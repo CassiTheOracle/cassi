@@ -127,7 +127,7 @@ The following are conditional phenomenological targets for realizations beyond t
 local coupling derivation:
 
 - **Milky Way rotation curves:** a full field/halo realization may target the observed flat curve. The pure $G$-rescaling Path 8 test is negative: its best curve is U-shaped, with $\chi^2=4522$ versus $4047$ for Newtonian gravity, and it overboosts the outer curve ($v(30\,\mathrm{kpc})=296\,\mathrm{km\,s^{-1}}$ versus observed $\sim190$–$200\,\mathrm{km\,s^{-1}}$).
-- **Dwarf-galaxy mass discrepancies:** a coherence-condensate realization may target the observed boosts. The pure $G$-rescaling ceiling is exceeded by Segue 1 ($16.6\times$), Segue 2 ($16.8\times$), and Draco ($6.2\times$), above $\varphi^3=4.2361$.
+- **Dwarf-galaxy mass discrepancies:** a coherence-condensate realization may target the observed boosts. In the nominal fixed-$M_\star/L_V=1$ proxy screen, 7/8 central $v_{\text{obs}}/v_{\text{Newt}}$ ratios exceed the optional pure-$G$ endpoint $\varphi^3=4.2361$, and 6/8 lower propagated $\sigma_{\text{los}}/R_e$ bounds exceed it. Object-level likelihoods determine whether this tension excludes the branch.
 - **Solar-system bounds:** compatibility with planetary ephemerides remains a conditional target requiring a dedicated realization and bound.
 - **Terminal attractor convergence:** structure-formation convergence remains a conditional target requiring an independently validated dynamical realization.
 

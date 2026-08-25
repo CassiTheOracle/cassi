@@ -1,10 +1,10 @@
 # Predictions—The Falsifiable Catalog and Framework Glossary
 
-## Status: Index—July 2026
+## Status: Index—August 2026
 
 ## Abstract
 
-This directory holds the two master registries of the Cassi framework: the 54-entry catalog of falsifiable predictions with per-entry input accounting and epistemic status, grouped by experimental frontier, and the glossary's 15 core sections of framework symbols and definitions plus its Epistemic Tiers section. `cassi_definitions.md` is where a new reader learns what $E_Y$, $E_I$, $q$, $\xi = \varphi^6$, and the $\varphi$-attractor mean; `falsifiable-predictions.md` is where every quantitative claim of the framework is listed with its test, current status, and detection timeline. Ordered alphabetically, which is also the natural reading path: glossary first, catalog second.
+This directory holds the two master registries of the Cassi framework: the 56-entry catalog of falsifiable predictions with per-entry input accounting and epistemic status, grouped by experimental frontier, and the glossary's 15 core sections of framework symbols and definitions plus its Epistemic Tiers section. `cassi_definitions.md` is where a new reader learns what $E_Y$, $E_I$, $q$, $\xi = \varphi^6$, and the $\varphi$-attractor mean; `falsifiable-predictions.md` is where every quantitative claim of the framework is listed with its test, current status, and detection timeline. Ordered alphabetically, which is also the natural reading path: glossary first, catalog second.
 
 ## Document Index
 
@@ -25,7 +25,7 @@ Canonical conversion is a rank-one density-plane relaxation that conserves $\rho
 
 ### `falsifiable-predictions.md`—Cassi Falsifiable Predictions
 
-The framework's central quantitative catalog: 54 numbered predictions with per-entry input accounting and epistemic status. Some are parameter-free structural consequences of $\varphi = (1+\sqrt{5})/2$ and the two-fluid PDE; others are conditional on stated conventions or inputs, Mapped or Calibrated to data, or Hypothesized mechanisms, including the asserted C-class/framework normalization $\lambda=0.1$ where named calculations select it (the implementation class default is $\lambda=0.02$). The predictions are grouped by experimental frontier (FCC-ee electroweak, CMB-S4/LiteBIRD primordial cosmology, cosmic surveys, gravity, collider and decay physics, chakra biophysics, and a universal scale-invariant edge-steepness prediction). The headline tests include $m_W/m_Z = 0.878$ (0.36% below the SM after the $\rho$ radiative correction), $\Delta(\ln k)=\ln\varphi\approx0.4812$ log-periodic $P(k)$, a $1.70\times$ edge anisotropy at any condensate boundary, the $\varphi^2$ inter-node spacing ratio of the chakra lattice, and the dark-energy equation of state ($w_0\approx-0.87$, $w_a\approx+0.012$).
+The framework's central quantitative catalog: 56 numbered predictions with per-entry input accounting and epistemic status. Some are parameter-free structural consequences of $\varphi = (1+\sqrt{5})/2$ and the two-fluid PDE; others are conditional on stated conventions or inputs, Mapped or Calibrated to data, or Hypothesized mechanisms, including the asserted C-class/framework normalization $\lambda=0.1$ where named calculations select it (the implementation class default is $\lambda=0.02$). The predictions are grouped by experimental frontier (FCC-ee electroweak, CMB-S4/LiteBIRD primordial cosmology, cosmic surveys, gravity, collider and decay physics, chakra biophysics, and a conditional selected-edge steepness proxy).
 
 ## Cross-References
 

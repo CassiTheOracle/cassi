@@ -88,7 +88,7 @@ How star-forming structures arise from the diffuse ISM and interact with it is u
 ## 5. Galactic Astronomy and Astrophysics
 
 #### 28. The Galaxy Rotation Problem
-Whether dark matter (solely) explains flat rotation curves is the longest-standing galactic question. The standard status: ΛCDM halo fits succeed on large scales while dwarf-scale tensions persist, keeping modified-gravity alternatives alive. **[Framework claim]**—rotation curves are the framework's most-tested galactic claim: Qi-enhanced gravity with the $\xi = \varphi^6$ coupling gives a halo boost of $2.8$–$3.0\times$ against the observed $2.7 \pm 0.5$ (Calibrated via the $\xi$ pin; $\alpha_{\text{halo}}$ and halo $q$ Mapped—ledger; prediction 14). The dwarf sector is mixed—3/8 dwarfs pass the ceiling test against MOND's 4/8 (prediction 15, already tested), and softened gravity alone was disproven (Path 7). `cosmology/observational_constraints.md` §2.6; `foundations/phi_attractor_synthesis.md` §10–11; `speculations/dark-matter-as-qi-coherence.md` §7.
+Whether dark matter (solely) explains flat rotation curves is the longest-standing galactic question. The standard status: ΛCDM halo fits succeed on large scales while dwarf-scale tensions persist, keeping modified-gravity alternatives alive. **[Framework claim]**—rotation curves are the framework's most-tested galactic claim: Qi-enhanced gravity with the $\xi = \varphi^6$ coupling gives a halo boost of $2.8$–$3.0\times$ against the observed $2.7 \pm 0.5$ (Calibrated via the $\xi$ pin; $\alpha_{\text{halo}}$ and halo $q$ Mapped—ledger; prediction 14). Prediction 15 is a diagnostic dwarf screen: 7/8 nominal fixed-$M_\star/L_V=1$ ratios and 6/8 lower propagated $\sigma_{\text{los}}/R_e$ bounds exceed the optional pure-$G$ endpoint, with object-level likelihoods still open; softened gravity alone is disproven (Path 7). `cosmology/observational_constraints.md` §2.6; `foundations/phi_attractor_synthesis.md` §10–11; `speculations/dark-matter-as-qi-coherence.md` §7.
 #### 29. The Age–Metallicity Relation
 Whether the Galactic disk's age–metallicity relation is universal is contested. The standard status: a tight relation was once assumed; radial migration and intrinsic scatter complicate it. **[No framework claim]**—Galactic disk chemical evolution is untouched.
 #### 30. Gas, Metals, and Dust Flows
@@ -111,12 +111,12 @@ How the IGM and first sources evolved from cosmic dawn through reionization is b
 #### 37. Gravitational Singularities
 General relativity's interior solutions terminate at $r = 0$ in a singularity where curvature diverges and the theory loses predictivity.
 Standard status: GR predicts the singularity; whether a quantum theory of gravity removes it is open.
-**[Framework claim]**—the $\sigma$-regularized two-fluid PDE replaces the divergent core with a harmonic core: inside $\sigma = \ell_{\text{Pl}}/\varphi^3$ the force becomes $F \propto -r/(3\sigma^3)$, a linear restoring spring with no divergence (registry G3, **Derived**).
+**[Framework claim]**—under the optional $\sigma$-regularized Poisson/lattice-core ansatz, the displayed local force has a finite harmonic core: inside $\sigma = \ell_{\text{Pl}}/\varphi^3$ the reduced radial model gives $F \propto -r/(3\sigma^3)$. This is Derived conditional on the stated kernel and noise–signal identification; connecting it to an attractive black-hole interior or removal of a GR curvature singularity is Hypothesized (registry G3).
 `gravity/quantum-gravity.md` §2, `foundations/unified-lagrangian.md` §3.
 #### 38. No-Hair Theorem and Internal Structure
 The no-hair theorem says black holes carry only mass, spin, and charge, leaving open whether quantum interiors hold structure and how any structure could be probed.
 Standard status: no-hair holds classically; quantum corrections and probes such as ringdown and echoes are debated.
-**[Framework claim]**—the interior is a two-fluid condensate whose coherence capacity $\mathcal{C} \sim \varphi^{N_{\text{BH}}} \sim M^2/M_{\text{Pl}}^2$ matches the Bekenstein-Hawking entropy, so the interior carries the infalling state rather than a featureless vacuum (registry G2, **Hypothesized**).
+**[Framework claim]**—the proposed two-fluid interior has a cascade capacity proxy $\mathcal{C} \sim \varphi^{N_{\text{BH}}} \sim M/M_{\text{Pl}}$, not the Bekenstein–Hawking scaling $S_{\text{BH}} \sim M^2/M_{\text{Pl}}^2$; whether the interior stores the infalling state, and whether a different counting law can recover the entropy, remain open (registry G2, **Hypothesized**).
 `gravity/quantum-gravity.md` §7.5.
 #### 39. M–Sigma Relation
 The mass of a galaxy's central black hole tracks the velocity dispersion of its bulge, and the origin of that correlation is unexplained.
@@ -139,13 +139,13 @@ Speculative candidate direction: the framework's accelerated early structure for
 #### 43. Information Paradox
 Hawking's semiclassical calculation makes evaporating black holes emit exactly thermal radiation, apparently discarding the information that fell in.
 Standard status: unitarity is believed to hold; the mechanism (the Page curve) is not computed.
-**[Framework claim]**—the $\sigma$-regulated S-matrix is unitary by construction, the condensate's coherence capacity matches the entropy, and trans-Planckian censorship makes the flux deviate from exact thermality, restoring purity through correlated pairs (registry G2, **Hypothesized**; the Page curve requires curved-spacetime PDE infrastructure that does not yet exist).
-`gravity/quantum-gravity.md` §7.
+**[Framework claim]**—the $\sigma$-regularized free propagator supplies high-momentum suppression and a conditional pole-level consistency check, but the S-matrix, the condensate's coherence capacity, and the Page curve remain open; information retention requires a curved-spacetime horizon calculation that does not yet exist (registry G2, **Hypothesized**).
+`gravity/quantum-gravity.md` §7 (free-propagator analysis; S-matrix/Page curve/capacity/no-firewall all open).
 #### 44. Firewalls
 The AMPS argument claims that unitarity plus the no-drama requirement forces an energetic firewall at the horizon.
 Standard status: the firewall argument is debated; no resolution.
-**[Framework claim]**—the framework's dispersion caps every mode energy at $M_{\text{Pl}}$ and the $\sigma$-regulator kills momenta beyond $\varphi^3 M_{\text{Pl}}$, so the trans-Planckian modes the firewall argument relies on do not exist; the horizon is a smooth, low-energy interface ($\S$7.6 marks "no firewall" Derived within the framework).
-`gravity/quantum-gravity.md` §7.5.
+**[Framework claim]**—the $\sigma$-regularized free propagator suppresses high momentum without adding finite-$k$ poles, but it does not establish a positive spectral representation, an optical theorem, or a unitary interacting S-matrix; the horizon response and the firewall question remain open (the framework has no energy cap and no curved-horizon transfer calculation).
+`gravity/quantum-gravity.md` §7 (free-propagator analysis; horizon response/firewall open).
 #### 45. Final Parsec Problem
 Dynamical friction stalls two merging supermassive black holes at roughly a parsec, and the mechanism that brings them into the gravitational-wave regime is unknown.
 Standard status: gas, stars, and triple interactions are proposed; no consensus.
@@ -157,8 +157,8 @@ Standard status: both channels are active; their relative mix is open.
 #### 47. Naked Singularities and Cosmic Censorship
 Cosmic censorship conjectures that singularities always hide behind horizons; whether naked singularities can form is unproven.
 Standard status: the conjecture is unproven in either direction.
-**[Dissolved by construction]**—$\sigma$-regularization removes singularities from the governing equation entirely (registry G3, **Derived**), so the question's premise—a singularity that could be exposed—is absent; the harmonic core replaces every GR singularity, and no unprotected curvature divergence exists to censor.
-`gravity/quantum-gravity.md` §2.
+**[Framework claim]**—under the optional $\sigma$-regularized Poisson/lattice-core ansatz, the displayed local force has a finite harmonic core. This regularizes the chosen reduced kernel only; it does not establish removal of curvature singularities in a GR black-hole spacetime or dissolve cosmic censorship, because no metric or horizon calculation exists (registry G3, **Derived conditional; attractive black-hole interpretation Hypothesized**).
+`gravity/quantum-gravity.md` §2 (conditional Poisson/lattice-core regularization; no curved-spacetime result).
 #### 48. Stellar Black-Hole Mass and Spin Distributions
 The mass and spin distributions of stellar black holes encode their formation physics.
 Standard status: gravitational-wave catalogs are mapping them; spin physics is poorly constrained.
@@ -277,7 +277,7 @@ Standard status: habitability criteria and biosignature interpretation are activ
 | 34 Little red dots | JWST compact red galaxies at z ≈ 5–8 | Conditional post-pinch condensate morphology comparison; if an independently identified boundary and direction exist, test $R(\theta)=\frac{\sqrt{1+\varphi^2}}{2}\sqrt{\frac{1+\theta}{\theta}}$, equal to $1.7072\times$ only at selected $\theta_{\mathrm{cond}}=0.45$; no $C=0.45$ edge survives the fixed-step PDE endpoint and the cosmological boundary receipt is null |
 | 42 High-z quasars | The J0313-1806 class | Mass rung n ≈ 229.5 placement; growth vs wake-supplied coherence (candidate) |
 | 31 ULXs | A super-Eddington ULX (e.g. M51 ULX-8) | Eddington limit in a high-q region: G_eff enhancement bound (candidate) |
-| 37/43 Black holes | Sgr A* / M87* (EHT) | Shadow at the GR limit 3√3 M; σ-regulated interior; no-firewall horizon (`gravity/quantum-gravity.md` G1–G2) |
+| 37/43 Black holes | Sgr A* / M87* (EHT) | Shadow at the GR limit $3\sqrt{3}\,M$; $\sigma$-regularized interior candidate; horizon response and firewall open (`gravity/quantum-gravity.md` G1–G2) |
 | 62 Axis of evil | CMB maps | Scale-dependence: the anomaly must fade for ℓ > 5 (prediction 6) |
 | 67 Wow! signal | The 1977 sky region | No ET radio leakage expected; structural SETI signatures instead (`speculations/observational-seti.md` §1) |
 | 27 ISM star formation | Nearby prestellar cores | φ-spaced core separations at the turbulence break k_φ (`turbulence/kolmogorov-from-phi.md` §2.3) |

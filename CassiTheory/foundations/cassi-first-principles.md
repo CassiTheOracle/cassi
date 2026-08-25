@@ -577,9 +577,13 @@ the canonical PDE and the displayed term do not supply one.
   \approx 3.00\times$ with $\alpha_{\text{halo}}\approx0.7$ and $q\approx0.7$
   (range 2.8–3.0), using the proposed coupling-magnitude boost; an attractive
   interpretation requires the separate sign/force closure above.
-- **Dwarf spheroidals (partial receipt):** 3/8 pass, MOND is preferred for
-  4/8, and the fixed-composition benchmark $\sqrt{\varphi^6}=\varphi^3=4.2361$
-  is exceeded in 3/8; this benchmark is not a universal velocity ceiling.
+- **Dwarf spheroidals (conditional catalog screen):** using McConnachie's
+  fixed-$M_\star/L_V=1$ stellar-mass proxies, 7/8 nominal
+  $v_{\text{obs}}/v_{\text{Newt}}$ ratios exceed the fixed-composition
+  benchmark $\sqrt{\varphi^6}=\varphi^3=4.2361$; 6/8 lower propagated
+  $\sigma_{\text{los}}/R_e$ bounds also exceed it. Object-level mass
+  likelihoods and fixed-$M/L$ systematics are absent; no model verdict is
+  assigned, and this benchmark is not a universal velocity ceiling.
 
 A formal Einstein–Hilbert substitution may be written on a restricted branch
 where $\pi/\rho>0$:

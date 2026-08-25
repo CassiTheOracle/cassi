@@ -707,7 +707,7 @@ PDE does not establish the initial perturbation spectrum or its transfer functio
 
 ## 13. Unification—The Theory of Everything (optional program)
 
-### The Single Equation
+### Shared canonical core
 The canonical two-fluid PDE supplies a shared density-and-advection core. An
 optional application realization may replace the canonical openness
 $\lambda(1-q)$ with the asserted transmission input
@@ -770,7 +770,7 @@ reproduces all known physics at all σ-scales is established.
 > **Implementation mapping (conditional)**: The following scripts implement selected ansätze:
 > 1. **Relativistic QM bridge**: `DiracBridge` explores a Dirac-equation correspondence.
 > 2. **GR/Gravity bridge**: `QiGravitySolver3D` explores an emergent-gravity closure with $G_{\rm eff}(r)$ and $\xi=\varphi^6$.
-> 3. **Gauge bridge**: `cassi_su2_bridge.py` explores SU(2)×U(1)$_Y$ and a candidate SU(3) coupling flow.
+> 3. **Gauge bridge**: `two-fluid/cassi_su2_bridge.py` explores SU(2)×U(1)$_Y$ and a candidate SU(3) coupling flow.
 >
 > These implementation mappings describe how selected extensions are computed;
 > they do not establish the corresponding sector closures.
@@ -785,7 +785,7 @@ an external datum does not confirm the canonical PDE or an optional sector closu
 | Observation | Cassi comparison | Status |
 |-------------|------------------|--------|
 | Dark energy (DESI DR2) | $w_0=-0.87$ | $2\sigma$ from DESI $\approx-0.75\pm0.06$ [INFERENCE]—tension, not matched |
-| Galaxy rotation curves | Qi-enhanced $G_{\rm eff}$ mapping | MOND preferred (4/8 vs 3/8 dwarfs) |
+| Galaxy rotation curves | Qi-enhanced $G_{\rm eff}$ mapping | MW comparison Calibrated/Mapped; dwarf proxy screen places 7/8 nominal ratios and 6/8 lower propagated $\sigma_{\text{los}}/R_e$ bounds above the optional pure-$G$ endpoint; no likelihood verdict |
 | Baryonic Tully-Fisher | Slope ≈ 0.96 | Consistent comparison |
 | Mercury precession | GR limit ($\sigma\to0$) | Selected limit matches 43″/century |
 | BH shadow (EHT) | GR-like core $G_{\rm eff}\approx1$ | Consistent comparison with M87* |
@@ -883,7 +883,7 @@ New theory documents:
 | PHI_6 = φ⁶ | 17.944 | Derived rung identity and calibrated empirical pin used by selected Qi-gravity mappings |
 | $\lambda$ | 0.1 | Asserted solver normalization/timescale (inverse-time convention); $\lambda=1/(2w)$ with $w=5$ is a Hypothesized Wu Xing linkage requiring independent cycle-time and dynamical closure |
 | `σ` | 0.1–1.0 (code units) | Optional Gaussian softening parameter in selected closures |
-| `cosmology/cosmology-from-phi.md` | — | Optional cosmology mappings for inflation, baryogenesis, and dark matter |
+| `cosmology/cosmology-from-phi.md` |—| Optional cosmology mappings for inflation, baryogenesis, and dark matter |
 | $q_{\mathrm{eq}}$ | 0.873 at the stated reference state | Density-dependent coherence; $1-q_{\mathrm{eq}}=\varphi^{-2}/3\approx0.127$ is the corresponding gate openness |
 
 ---

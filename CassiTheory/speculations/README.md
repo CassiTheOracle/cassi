@@ -97,7 +97,7 @@ phenomenological model and do not establish a laboratory control mechanism.
 
 - `hypotheses/README.md`—quality-barred hypothesis catalog
 - `open-questions-cassi-answers.md`—epistemic registry (42 questions)
-- `predictions/falsifiable-predictions.md`—the 54-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—the 56-entry prediction catalog
 - `parameter-inventory.md`—parameter registry ($\xi = \varphi^6$, $q$, $g(q)$, $\theta_{\text{cond}}$)
 - `foundations/dimensionful-cascade.md`—the 292-step ladder
 - `foundations/bubble-lattice-fabric.md`—condensation field geometry

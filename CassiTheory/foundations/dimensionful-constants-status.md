@@ -388,7 +388,7 @@ $\lambda = 0.1$ is the solver's normalization/timescale convention. The equality
 
 | Document | Claim | Current status |
 |----------|-------|-------------------|
-| `gravity/quantum-gravity.md` §3 | $\sigma = \ell_{\text{Pl}}/\varphi^3$ is the regularization scale | $M_{\text{Pl}}$ remains external (dimensionful); the ratio $\sigma = \ell_{\text{Pl}}/\varphi^3$ is derived |
+| `gravity/quantum-gravity.md` §3 | $\sigma = \ell_{\text{Pl}}/\varphi^3$ is the regularization scale | $M_{\text{Pl}}$ remains external (dimensionful); $\sigma = \ell_{\text{Pl}}/\varphi^3$ is **Derived conditional** on the noise–signal identification, the Hypothesized cascade-dephasing family ($d_i=\varphi^{-i-\delta}$), and the selected $d=3$ domain; only the $\varphi^{-3}$ arithmetic follows once $\delta=3$ is selected. Not a derived gravity prediction |
 | `gravity/quantum-gravity.md` | "The Theory of Everything is complete" | The closed dimensionless subset has derived origins; $\sin^2\theta_W$ remains an asserted boundary, while $c$, $\hbar$, $G$ remain external |
 | `foundations/xi-derivation.md` §5 | "zero free parameters" | Zero free inputs within the closed subset after the quadratic-coupling condition; asserted boundaries and mapped entries retain their ledger statuses |
 | `open-questions-cassi-answers.md` F5 | $\lambda$ is fixed by the measured Hubble | $\lambda = 0.1$ is the solver normalization/timescale convention; $\lambda = 1/(2w)$ is a Hypothesized Wu Xing linkage requiring independent cycle-time/dynamical closure |
