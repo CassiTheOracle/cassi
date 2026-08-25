@@ -1,18 +1,19 @@
 # Neutrino Masses from Fibonacci Cascade Partitioning of the Seesaw
 
-## Status: Derivation (offsets Mapped—ledger; result Hypothesized, Q3)—August 2026
+## Status: Hypothesized mechanism / Mapped offsets—August 2026
 
 ## Abstract
 
-Neutrino masses are the same Fibonacci triple-clustering that gives three
+Neutrino masses use the same Fibonacci triple-clustering that gives three
 generations of charged fermions (`foundations/three-generations.md`), applied
-to the **compressed** cascade span from the GUT scale (step $\sim 8$) to the
-seesaw scale (step $\sim 20$). The shorter cascade span ($N_\nu \approx 12$
-rungs vs. $N_{\text{lep}} \approx 72$ for charged leptons) compresses the
-Fibonacci sub-rung spacing by a factor of $\sim 6$, transforming the
-multi-order-of-magnitude charged-lepton hierarchy into the sub-eV compressed
-neutrino spectrum. The three mass eigenstates follow $\varphi$-power spacing
-amplified by the seesaw's Yukawa-squared structure:
+to a selected **12-rung coordinate span** from the fit-start coordinate $n=8$
+to the seesaw scale at $n=20$. The physical ladder anchor for the GUT scale is
+$n_{\text{GUT}} \approx 13.3$, so the dimensional interval to the seesaw is
+about seven rungs; the 12-rung span is a mapped convention used by the offset
+fit. The coordinate span compresses the Fibonacci sub-rung spacing by a factor
+of $\approx 6$ relative to the charged-lepton construction, giving a compact
+description of the sub-eV spectrum. The three mass eigenstates follow
+$\varphi$-power spacing amplified by the seesaw's Yukawa-squared structure:
 
 $$\frac{m_{\nu_2}}{m_{\nu_1}} \approx \varphi^{2\Delta_1}, \qquad \frac{m_{\nu_3}}{m_{\nu_2}} \approx \varphi^{2\Delta_2}$$
 
@@ -23,7 +24,6 @@ Fibonacci sub-rungs. The observed oscillation data ($\Delta m^2_{21} \approx
 lightest neutrino mass of $m_{\nu_1} \sim 0.003$ eV.
 
 ---
-
 ## 1. The seesaw scale in the cascade
 
 The seesaw mechanism in standard physics introduces a heavy right-handed
@@ -35,22 +35,24 @@ GUT scale (n ≈ 13.3 for $M_{\text{GUT}} \approx 2\times10^{16}$ GeV) and the e
 
 $$M_R \approx \ell_{\text{Pl}}^{-1} \cdot \varphi^{-20} \approx 10^{14}\ \text{GeV}$$
 
-The cascade suppression formula (`cascade-suppression-formula.md` §2) applied
-to the seesaw sector:
+The cascade notation used by the offset construction is a conditional
+suppression-scale ansatz:
 
-$$m_\nu = v_0 \cdot \varphi^{-N_\nu}$$
+$$m_\nu^{(\text{scale})} = v_0 \cdot \varphi^{-N_\nu}$$
 
-where $N_\nu$ is the effective cascade span from the GUT-scale Yukawa seed
-to the seesaw freeze-out at step 20. With the corrected GUT anchor
-$n_{\text{GUT}} \approx 13.3$ and
-$n_{\text{seesaw}} \approx 20$, the span is $N_\nu \approx 7$ cascade rungs.
-The sector is Mapped per the Fit-Status Ledger (`parameter-inventory.md` §10
-row 3): the offsets are grid-fit against the observed ratio, so the span is a
-coordinate label within a fitted sector, not an independent derivation.
+where $N_\nu$ is the selected coordinate span from the fit-start Yukawa
+seed to the seesaw scale. The computation uses $N_\nu=12$ for coordinates
+$n=8\rightarrow20$; the physical dimensional interval from the mapped GUT
+anchor $n_{\text{GUT}}\approx13.3$ to $n_{\text{seesaw}}=20$ is about seven
+cascade rungs. The sector is Mapped per the Fit-Status Ledger
+(`parameter-inventory.md` §10 row 3): the offsets are grid-fit against the
+observed ratio, so the coordinate span is a convention within a fitted sector,
+not an independent derivation.
 
-The single-rung estimate $v_0\,\varphi^{-12}$ sets the seesaw suppression
-scale; the absolute spectrum is fixed by the cascade RGE + PMNS computation
-(`computations/cascade_rge_pmns.py`), which pins
+The selected-coordinate expression $v_0\,\varphi^{-12}$ is a scale
+diagnostic; it does not set the absolute spectrum. The absolute spectrum is
+fixed by the cascade RGE + PMNS computation (`computations/cascade_rge_pmns.py`),
+which pins
 
 $$m_1 = 0.00356\ \text{eV}, \qquad m_2 = 0.00931\ \text{eV}, \qquad m_3 = 0.05019\ \text{eV}, \qquad \Sigma m_\nu = 0.0631\ \text{eV}$$
 
@@ -58,6 +60,8 @@ in normal ordering, with Fibonacci offsets $\Delta_1 = 1.00$ and $\Delta_2 =
 1.75$ rungs (§4). The spectrum is consistent with cosmological bounds
 ($\Sigma m_\nu < 0.12$–$0.6$ eV depending on dataset) and KATRIN's
 $\beta$-decay endpoint limit.
+
+The single-seed Yukawa evaluation $m_\nu = y_\nu^2 v_0^2/M_R$ in the companion computation is a scale diagnostic and does not reproduce these fitted absolute masses at the stated $\gamma_\nu$ trajectories. The displayed spectrum is therefore normalized by the selected oscillation mass-squared differences and the mapped offsets; the seesaw expression supplies the mass-ratio structure, not an independently derived absolute normalization.
 
 ---
 
@@ -70,9 +74,12 @@ $N_{\text{lep}} \approx 72$ rungs, and the Fibonacci sub-rung offsets are
 $\Delta_1 \approx 11$, $\Delta_2 \approx 6$, giving the steep hierarchy
 ($m_\tau/m_\mu \approx \varphi^6 \approx 18$, $m_\mu/m_e \approx \varphi^{11} \approx 200$).
 
-For neutrinos, the same Fibonacci partitioning operates over the **compressed**
-seesaw span $N_\nu \approx 12$. The Fibonacci sub-rung offsets are proportionally
-compressed:
+For neutrinos, the same Fibonacci partitioning is applied over the **selected
+mapped coordinate span** $N_\nu\approx12$ (coordinates $n=8\rightarrow20$). The
+physical dimensional interval from the mapped GUT anchor $n\approx13.3$ to
+the seesaw scale is about seven rungs; the two spans must not be conflated. The
+Fibonacci sub-rung offsets in the selected coordinate construction are
+proportionally compressed:
 
 $$\Delta_{\nu} \approx \Delta_{\text{lep}} \times \frac{N_\nu}{N_{\text{lep}}} \approx 11 \times \frac{12}{72} \approx 2$$
 
@@ -103,11 +110,8 @@ The mass ratios are therefore:
 $$\boxed{\frac{m_{\nu_2}}{m_{\nu_1}} = \varphi^{2\Delta_1}, \qquad
 \frac{m_{\nu_3}}{m_{\nu_2}} = \varphi^{2\Delta_2}}$$
 
-This $2\times$ amplification of the $\varphi$-exponent is the seesaw's
-**two-body product signature**—the same kind of geometric amplification
-that the condensation field's cosine product produces at bubble edges,
-but simpler: the gradient anisotropy there gave a factor $\sqrt{4\varphi^2/(1+\varphi^2)}
-\approx 1.70$, while the seesaw's $y^2$ doubles the exponent outright.
+The exponent doubles because the seesaw mass is quadratic in each Yukawa
+seed: a one-rung shift in $y$ becomes a two-rung shift in $m_\nu$.
 
 For the uniform-spacing case ($\Delta_1 = \Delta_2 = 1$ rung):
 
@@ -154,8 +158,10 @@ partitioning: the step from $n$ to $n-1$ is one rung, and from $n$ to $n-2$
 is two rungs—a 2:1 ratio in cascade offset.
 
 The full cascade RGE + PMNS computation (`computations/cascade_rge_pmns.py`,
-July 2026) pins the exact cascade-span offsets by running the discrete φ-RG
-from GUT (n ≈ 13.3) to seesaw (step 20) and matching the predicted
+July 2026) uses the selected mapped coordinate span $n=8\rightarrow20$ to pin
+the offset construction. The canonical dimensional anchors place the physical
+GUT scale at $n\approx13.3$ and the seesaw at step 20, an interval of about
+seven rungs. The computation matches the predicted
 $\Delta m^2_{31}/\Delta m^2_{21}$ ratio to the NuFIT 5.3 observed value
 $33.89$. The scan over quarter-rung increments yields:
 
@@ -222,13 +228,16 @@ Fibonacci spiral).
 
 ## 6. Epistemic boundaries
 
-### Derived (from $\varphi$ + cascade)
+### Structural mechanism (Hypothesized)
 
-- Overall seesaw scale $m_\nu \approx v_0 \cdot \varphi^{-12}$ from cascade position (step 20)
 - Three mass eigenstates from Fibonacci triple-clustering (same mechanism as Q5)
 - Normal ordering from Fibonacci triple monotonicity
 - No sterile neutrinos beyond the three Fibonacci sub-rungs
 - **$y_\nu^2$ amplification of the $\varphi$-exponent** (factor of 2 from seesaw product structure)
+
+### Mapped / conditional quantities
+
+- The selected-coordinate suppression diagnostic $v_0\,\varphi^{-12}$
 - **Pinned Fibonacci offsets**: $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs from cascade RGE + PMNS
 - **$\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$** (0.2% residual to observed $33.89$)
 

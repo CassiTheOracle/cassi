@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-"""
+r"""
 Bubble Edge Geometry—PDE + Analytical Derivation of the Condensation Boundary
 ================================================================================
-
-Six-panel visual explainer: the bubble edge profile derived from the condensation
-field C(x,y) = cos(αx)cos(βy), with PDE dynamics, edge steepness anisotropy,
-physical profiles, and the θ_cond phase diagram.
+Six-panel visual explainer for the condensation-field geometry
+$C(x,y)=\cos(\alpha x)\cos(\beta y)$, its edge-steepness anisotropy,
+and a selected constitutive comparison from the raw geometric intensity
+$q_{\rm proxy}=(1+C)^2/2$ to a bounded solver coordinate.
 
 Panels:
   A · Condensation field C(x,y) with the θ_cond edge contour
-  B · Edge steepness anisotropy—|∇C| field and the 1.70 ratio
-  C · Edge cross-section—C(r) and |∇C| along axial vs diagonal paths
-  D · θ_cond phase diagram—conversion-diffusion balance cubic
-  E · Physical profiles—q, ρ, G_eff across the edge
+  B · Gradient field and directional edge-slope benchmark at θ_cond
+  C · Edge cross-section C(r) and |dC/ds| along axial vs diagonal paths
+  D · θ_cond phase diagram—conditional conversion-diffusion balance cubic
+  E · Selected-map q_solver and conditional ρ, G_eff profiles
   F · 3D edge shape—triaxial spheroid schematic
-
-Plus: a lightweight 2D reaction-diffusion PDE (∂C/∂t = D∇²C + ω₀·g(q)·(C₀−C))
-that relaxes a sharp-edged bubble to steady state and measures the edge profile.
+Plus: a lightweight 2D proxy relaxation
+(∂C/∂t = D∇²C + ω₀·g(q_solver)·(C₀−C)). This illustrative PDE is not
+the canonical two-density solver.
 
 Sources: foundations/bubble-edge-geometry.md
 
@@ -44,8 +44,8 @@ LAM_Y = PHI * LAM_I                      # Yang wake wavelength—φ-scaled
 ALPHA = 2 * np.pi / LAM_Y               # Yang wavenumber
 BETA = 2 * np.pi / LAM_I                # Yin wavenumber (β/α = φ)
 GAMMA = 2 * np.pi / (PHI * LAM_I)       # string-axis wavenumber
-THETA_COND = 0.45                        # phenomenologically calibrated
-R_CALIB = 0.093                          # corresponding R value
+THETA_COND = 0.45                        # phenomenological benchmark selection
+R_CALIB = 0.093                          # corresponding selected-map R benchmark
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # House palette
@@ -100,13 +100,16 @@ def grad_C(x, y):
 
 
 def q_from_C(C):
-    """Qi density q = (1+C)/2."""
+    """Selected bounded comparison q_solver=M(q_proxy)=(1+C)/2.
+
+    Here q_proxy=(1+C)^2/2 and M(s)=sqrt(s/2) on s in [0,2].
+    """
     return (1 + C) / 2
 
 
 def G_eff_from_C(C, rho_ratio=1.0):
-    """G_eff ∝ (1 + (φ⁶−1)·q) / ρ (the saturation chord). Normalized
-    to center."""
+    """Conditional G_eff comparison for the selected q map and supplied
+    density ratio; normalization is applied separately by the caller."""
     q = q_from_C(C)
     return (1 + (XI - 1) * q) / rho_ratio
 
@@ -144,32 +147,37 @@ def run_edge_pde(N=96, D=0.002, omega0=0.1, steps=3000, dt=0.02, report_every=50
     Evolve a sharp-edged "bubble" under diffusion + conversion restoration.
 
     Initial condition: C = +1 inside an ellipse, C = -1 outside (sharp edge).
-    The PDE ∂C/∂t = D ∇²C + ω₀·g(q)·(C₀ − C) relaxes this edge.
-    C₀(x,y) = cos(αx)cos(βy) is the ideal interference pattern.
-    g(q) = q/(φ²+q²), q = (1+C)/2.
+    The illustrative PDE ∂C/∂t = D∇²C + ω₀·g(q_solver)·(C₀ − C)
+    relaxes this edge. C₀(x,y) = cos(αx)cos(βy) is the ideal interference
+    pattern. The selected comparison map is
+    q_proxy=(1+C)^2/2, q_solver=M(q_proxy)=(1+C)/2.
     """
     Lx, Ly = LAM_Y, LAM_I
     dx = Lx / N
     dy = Ly / N
-    x = np.linspace(0, Lx, N, endpoint=False)
-    y = np.linspace(0, Ly, N, endpoint=False)
+    x = np.linspace(-Lx / 2, Lx / 2, N, endpoint=False)
+    y = np.linspace(-Ly / 2, Ly / 2, N, endpoint=False)
     XX, YY = np.meshgrid(x, y)
     C0 = np.cos(ALPHA * XX) * np.cos(BETA * YY)
 
-    # Sharp-edged elliptical bubble—slightly smaller than steady-state size
+    # Sharp-edged elliptical bubble—initialized below the ansatz edge size
     a_x_init = np.arccos(THETA_COND) / ALPHA * 0.7
     a_y_init = np.arccos(THETA_COND) / BETA * 0.7
     inside = (XX / a_x_init)**2 + (YY / a_y_init)**2 <= 1.0
     C = np.where(inside, 1.0, -1.0)
 
     def laplacian(C_arr):
-        return (np.roll(C_arr, 1, axis=0) + np.roll(C_arr, -1, axis=0) +
-                np.roll(C_arr, 1, axis=1) + np.roll(C_arr, -1, axis=1) - 4*C_arr) / dx**2
+        return (
+            (np.roll(C_arr, 1, axis=0) - 2.0 * C_arr
+             + np.roll(C_arr, -1, axis=0)) / dy**2
+            + (np.roll(C_arr, 1, axis=1) - 2.0 * C_arr
+               + np.roll(C_arr, -1, axis=1)) / dx**2
+        )
 
     history = []
     for step in range(steps):
         lap = laplacian(C)
-        q = (1 + C) / 2
+        q = q_from_C(C)
         g = q / (PHI**2 + q**2)
         dCdt = D * lap + omega0 * g * (C0 - C)
         C += dt * dCdt
@@ -182,7 +190,10 @@ def run_edge_pde(N=96, D=0.002, omega0=0.1, steps=3000, dt=0.02, report_every=50
 # ═══════════════════════════════════════════════════════════════════════════════
 # Pre-computed derived quantities
 # ═══════════════════════════════════════════════════════════════════════════════
-steepness_ratio = np.sqrt(4 * PHI**2 / (1 + PHI**2))  # ≈ 1.70
+edge_slope_ratio = (
+    np.sqrt(1 + PHI**2) / 2
+    * np.sqrt((1 + THETA_COND) / THETA_COND)
+)
 a_x = np.arccos(THETA_COND) / ALPHA
 a_y = np.arccos(THETA_COND) / BETA
 axis_ratio = a_x / a_y  # = β/α = φ
@@ -202,13 +213,13 @@ axes["D"] = fig.add_subplot(gs[1, 1])
 axes["E"] = fig.add_subplot(gs[2, 0])
 axes["F"] = fig.add_subplot(gs[2, 1], projection="3d")
 
-fig.suptitle("BUBBLE EDGE GEOMETRY—The Physical Profile of the Condensation Boundary",
+fig.suptitle("BUBBLE EDGE GEOMETRY—Geometric Profile of the Condensation Boundary",
              fontsize=20, fontweight="bold", color=YANG_PEAK, y=0.97)
 fig.text(0.5, 0.953,
          "$C(x,y) = \\cos(\\alpha x)\\cos(\\beta y)$,  "
-         "$\\alpha = 2\\pi/\\Lambda_Y$,  $\\beta = 2\\pi/\\Lambda_I$,  "
-         "$\\Lambda_Y = \\varphi\\Lambda_I$  ·  edge = level set $C = \\theta_{\\rm cond}$"
-         "  ·  $q = (1+C)/2$,  $\\xi = \\varphi^6$",
+         "$\\Lambda_Y = \\varphi\\Lambda_I$  ·  edge $C = \\theta_{\\rm cond}$  ·  "
+         "$q_{\\rm proxy}=(1+C)^2/2$  ·  "
+         "$q_{\\rm solver}=\\mathcal{M}(q_{\\rm proxy})$",
          ha="center", fontsize=10, color=TEXT_SUB)
 
 
@@ -328,11 +339,12 @@ axB.text(LAM_Y/4 + 0.35, LAM_I/4 - 0.05, "diagonal (to neighbor)\n$|\\nabla C|$ 
          fontsize=8, color=TEXT_SUB, ha="left", va="center",
          bbox=dict(facecolor=BG, edgecolor="none", alpha=0.8, pad=2))
 
-# Ratio box
+# Directional-slope ratio at the selected condensation edge
 axB.text(0.5, 0.08,
-         "$\\frac{|\\nabla C|_{\\rm axial}}{|\\nabla C|_{\\rm diag}}"
-         " = \\sqrt{\\frac{4\\varphi^2}{1+\\varphi^2}}"
-         f" \\approx {steepness_ratio:.2f}$",
+         "$\\frac{|dC/ds|_{\\rm axial}}{|dC/ds|_{\\rm diag}}"
+         " = \\frac{\\sqrt{1+\\varphi^2}}{2}"
+         "\\sqrt{\\frac{1+\\theta_{\\rm cond}}{\\theta_{\\rm cond}}}"
+         f" \\approx {edge_slope_ratio:.2f}$",
          transform=axB.transAxes, ha="center", fontsize=10.5, color=EDGE_COLOR,
          fontweight="bold",
          bbox=dict(facecolor=BG, edgecolor=EDGE_COLOR, alpha=0.9, pad=8, lw=1.5))
@@ -340,7 +352,7 @@ axB.text(0.5, 0.08,
 axB.text(0.5, -0.10,
          "$|\\nabla C| = \\sqrt{(\\alpha\\sin\\alpha x\\cos\\beta y)^2"
          " + (\\beta\\cos\\alpha x\\sin\\beta y)^2}$  ·  "
-         "void-ward edge $1.70\\times$ steeper than neighbor-ward edge",
+         "directional ratio evaluated at $\\theta_{\\rm cond}=0.45$",
          transform=axB.transAxes, ha="center", fontsize=8.0, color=TEXT_MAIN,
          bbox=dict(facecolor=BG, edgecolor="none", alpha=0.8, pad=3))
 
@@ -349,7 +361,7 @@ axB.set_aspect("equal")
 axB.set_xticks([]); axB.set_yticks([])
 for s in axB.spines.values():
     s.set_visible(False)
-panel_title(axB, "B · GRADIENT ANISOTROPY—the edge is $1.70\\times$ steeper toward voids")
+panel_title(axB, "B · GRADIENT FIELD—selected directional edge slopes")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -361,15 +373,17 @@ axC.set_facecolor(BG)
 # Axial path along Yin: x=0, y from 0 to Λ_I/2
 t_axial = np.linspace(0, LAM_I/2, 300)
 C_axial = np.cos(BETA * t_axial)
-grad_axial = BETA * np.abs(np.sin(BETA * t_axial))
+slope_axial = BETA * np.abs(np.sin(BETA * t_axial))
 
 # Diagonal path: (t·Λ_Y/4, t·Λ_I/4) for t ∈ [0, 2]
 t_diag = np.linspace(0, 2, 300)
 xd = t_diag * LAM_Y / 4
 yd = t_diag * LAM_I / 4
 C_diag = np.cos(ALPHA * xd) * np.cos(BETA * yd)
-grad_diag = np.sqrt((ALPHA * np.sin(ALPHA * xd) * np.cos(BETA * yd))**2 +
-                    (BETA * np.cos(ALPHA * xd) * np.sin(BETA * yd))**2)
+slope_diag = (
+    2 * ALPHA * BETA / np.sqrt(ALPHA**2 + BETA**2)
+    * np.sqrt(np.clip(C_diag * (1 - C_diag), 0, None))
+)
 
 s_axial = t_axial
 s_diag = np.sqrt(xd**2 + yd**2)
@@ -400,11 +414,11 @@ axC.annotate("gentler drop\nto neighbor", xy=(s_di_edge, THETA_COND),
              fontsize=8, color=TEXT_SUB, ha="center",
              arrowprops=dict(arrowstyle="->", color=TEXT_SUB, lw=0.9))
 
-# Right axis: |∇C|
+# Right axis: directional slope along each plotted path
 axC2 = axC.twinx()
-axC2.plot(s_axial, grad_axial, color=EDGE_COLOR, lw=1.4, alpha=0.5, ls=(0, (3, 2)))
-axC2.plot(s_diag, grad_diag, color=TEXT_SUB, lw=1.4, alpha=0.5, ls=(0, (3, 2)))
-axC2.set_ylabel("$|\\nabla C|$", fontsize=9, color=TEXT_SUB)
+axC2.plot(s_axial, slope_axial, color=EDGE_COLOR, lw=1.4, alpha=0.5, ls=(0, (3, 2)))
+axC2.plot(s_diag, slope_diag, color=TEXT_SUB, lw=1.4, alpha=0.5, ls=(0, (3, 2)))
+axC2.set_ylabel("$|dC/ds|$", fontsize=9, color=TEXT_SUB)
 axC2.tick_params(axis="y", labelsize=7.5, colors=TEXT_SUB)
 axC2.spines["right"].set_color(TEXT_SUB)
 
@@ -417,8 +431,8 @@ axC.legend(fontsize=8, loc="lower left", framealpha=0.85, facecolor=BG, edgecolo
 axC.grid(True, alpha=0.15, color=RING)
 
 axC.text(0.97, 0.92,
-         "$\\frac{|\\nabla C|_{\\rm axial}}{|\\nabla C|_{\\rm diag}}"
-         f" = {steepness_ratio:.2f}$",
+         "$\\frac{|dC/ds|_{\\rm axial}}{|dC/ds|_{\\rm diag}}"
+         f" = {edge_slope_ratio:.2f}$ at $C=\\theta_{{\\rm cond}}$",
          transform=axC.transAxes, fontsize=9.5, color=EDGE_COLOR,
          fontweight="bold", ha="right",
          bbox=dict(facecolor=BG, edgecolor=EDGE_COLOR, alpha=0.85, pad=4, lw=1.0))
@@ -438,7 +452,7 @@ theta_vals = np.array([solve_theta_cond(R) for R in R_vals])
 axD.plot(R_vals, theta_vals, color=YANG_BRIGHT, lw=2.5, zorder=3)
 axD.fill_between(R_vals, theta_vals, 0, color=YANG_BRIGHT, alpha=0.08, zorder=2)
 
-# Calibrated point
+# Selected benchmark point
 axD.plot([R_CALIB], [THETA_COND], "o", ms=10, mfc=EDGE_COLOR, mec=YANG_PEAK, mew=2.0, zorder=5)
 
 # Regime shading
@@ -461,8 +475,8 @@ axD.text(R_vals[-1] * 0.92, 0.115, "lower bound ($\\theta \\geq 0.1$)",
 axD.text(R_vals[-1] * 0.92, 0.715, "upper bound ($\\theta \\leq 0.7$)",
          fontsize=7, color=TEXT_SUB, ha="right")
 
-# Calibrated annotation—positioned to stay within bounds
-axD.annotate(f"calibrated\n$R \\approx {R_CALIB}$\n$\\theta_{{\\rm cond}} = {THETA_COND}$",
+# Selected benchmark annotation—positioned to stay within bounds
+axD.annotate(f"selected benchmark\n$R \\approx {R_CALIB}$\n$\\theta_{{\\rm cond}} = {THETA_COND}$",
              xy=(R_CALIB, THETA_COND), xytext=(R_CALIB + 0.04, THETA_COND + 0.20),
              fontsize=8.5, color=EDGE_COLOR, fontweight="bold",
              arrowprops=dict(arrowstyle="->", color=EDGE_COLOR, lw=1.2))
@@ -486,16 +500,16 @@ panel_title(axD, "D · $\\theta_{\\rm cond}$ PHASE DIAGRAM—conversion–diffus
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PANEL E—Physical Profiles Across the Edge
+# PANEL E—Selected-Map and Conditional Profiles Across the Edge
 # ═══════════════════════════════════════════════════════════════════════════════
 axE = axes["E"]
 axE.set_facecolor(BG)
 
 C_range = np.linspace(-1, 1, 400)
 
-# q(C)
+# Selected bounded solver coordinate under M(s)=sqrt(s/2)
 q_vals = q_from_C(C_range)
-axE.plot(C_range, q_vals, color=YANG_BRIGHT, lw=2.2, label="$q(C) = (1+C)/2$")
+axE.plot(C_range, q_vals, color=YANG_BRIGHT, lw=2.2, label="$q_{\\rm solver}=\\mathcal{M}(q_{\\rm proxy})=(1+C)/2$")
 
 # ρ(C) for n = 1, 1.5, 2
 rho_styles = [(1.0, "-", "$n{=}1$ (linear)"),
@@ -527,12 +541,12 @@ axE.text(-0.5, 0.45, "VOID", fontsize=8, color=YIN_LIGHT,
 axE.text(THETA_COND, 0.12, "EDGE", fontsize=8, color=YANG_PEAK,
          ha="center", fontweight="bold")
 
-# Derived quantities box
+# Conditional comparison box
 axE.text(0.5, 0.20,
-         "$q_{\\rm edge} = \\frac{1+\\theta_{\\rm cond}}{2}"
+         "$q_{{\\rm solver,edge}} = \\frac{{1+\\theta_{{\\rm cond}}}}{{2}}"
          f" = {(1+THETA_COND)/2:.3f}$  ·  "
          "$G_{\\rm eff}^{\\rm center}/G_{\\rm eff}^{\\rm void}"
-         f" \\approx {XI:.1f}$",
+         f" = {XI:.1f}$ if $\\rho_{{\\rm center}}=\\rho_{{\\rm void}}$",
          transform=axE.transAxes, ha="center", fontsize=8.5, color=TEXT_MAIN,
          bbox=dict(facecolor=BG, edgecolor=RING, alpha=0.85, pad=6, lw=0.8))
 
@@ -544,7 +558,7 @@ axE.tick_params(labelsize=8)
 axE.legend(fontsize=7.5, loc="upper left", framealpha=0.85, facecolor=BG, edgecolor=RING)
 axE.grid(True, alpha=0.2, color=RING)
 
-panel_title(axE, "E · PHYSICAL PROFILES—$q$, $\\rho$, $G_{\\rm eff}$ across the condensation boundary")
+panel_title(axE, "E · SELECTED-MAP / CONDITIONAL PROFILES—$q_{\\rm solver}$, $\\rho$, $G_{\\rm eff}$")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -621,9 +635,9 @@ panel_title(axF, "F · 3D EDGE SHAPE—oblate triaxial spheroid (isosurface $B =
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PDE EDGE RELAXATION—evolve a sharp edge to steady state
+# PDE EDGE RELAXATION—evolve a sharp edge for a fixed step count
 # ═══════════════════════════════════════════════════════════════════════════════
-print("Running 2D edge-relaxation PDE (sharp ellipse → steady-state edge)...")
+print("Running 2D edge-relaxation PDE (sharp ellipse → fixed-step endpoint)...")
 x_pde, y_pde, XX_pde, YY_pde, C_final, C0_pde, history = run_edge_pde(
     N=64, D=0.002, omega0=0.1, steps=2500, dt=0.025, report_every=500)
 
@@ -631,31 +645,45 @@ Npde = len(x_pde)
 cx_idx = np.argmin(np.abs(x_pde))
 cy_idx = np.argmin(np.abs(y_pde))
 
-# Yin axis profile: C(0, y)
-r_yin = y_pde[:Npde//2]
-C_yin = C_final[cx_idx, :Npde//2]
-edge_idx_yin = np.argmin(np.abs(C_yin - THETA_COND))
-r_edge_yin = r_yin[edge_idx_yin]
+def threshold_index(profile, threshold):
+    """Return the first outward threshold crossing, or None when absent."""
+    offset = profile - threshold
+    crossings = np.flatnonzero(offset[:-1] * offset[1:] <= 0.0)
+    return int(crossings[0] + 1) if crossings.size else None
 
-# Yang axis profile: C(x, 0)
-r_yang = x_pde[:Npde//2]
-C_yang = C_final[:Npde//2, cy_idx]
-edge_idx_yang = np.argmin(np.abs(C_yang - THETA_COND))
-r_edge_yang = r_yang[edge_idx_yang]
 
-# Gradient at edge
+# Yin axis profile: C(0, y), from the center toward +y.
+r_yin = y_pde[cy_idx:] - y_pde[cy_idx]
+C_yin = C_final[cy_idx:, cx_idx]
+edge_idx_yin = threshold_index(C_yin, THETA_COND)
+
+# Yang axis profile: C(x, 0), from the center toward +x.
+r_yang = x_pde[cx_idx:] - x_pde[cx_idx]
+C_yang = C_final[cy_idx, cx_idx:]
+edge_idx_yang = threshold_index(C_yang, THETA_COND)
+
 dy = y_pde[1] - y_pde[0]
 dx = x_pde[1] - x_pde[0]
-grad_yin_at_edge = abs(C_yin[min(edge_idx_yin+1, Npde//2-1)] - C_yin[max(edge_idx_yin-1, 0)]) / (2*dy)
-grad_yang_at_edge = abs(C_yang[min(edge_idx_yang+1, Npde//2-1)] - C_yang[max(edge_idx_yang-1, 0)]) / (2*dx)
-grad_ratio_pde = grad_yin_at_edge / max(grad_yang_at_edge, 1e-10)
-axis_ratio_pde = r_edge_yang / max(r_edge_yin, 1e-10)
+if edge_idx_yin is None or edge_idx_yang is None:
+    r_edge_yin = r_edge_yang = np.nan
+    grad_ratio_pde = axis_ratio_pde = np.nan
+else:
+    r_edge_yin = r_yin[edge_idx_yin]
+    r_edge_yang = r_yang[edge_idx_yang]
+    grad_yin_at_edge = abs(C_yin[min(edge_idx_yin + 1, len(C_yin) - 1)]
+                            - C_yin[max(edge_idx_yin - 1, 0)]) / (2 * dy)
+    grad_yang_at_edge = abs(C_yang[min(edge_idx_yang + 1, len(C_yang) - 1)]
+                             - C_yang[max(edge_idx_yang - 1, 0)]) / (2 * dx)
+    grad_ratio_pde = grad_yin_at_edge / max(grad_yang_at_edge, 1e-10)
+    axis_ratio_pde = r_edge_yang / max(r_edge_yin, 1e-10)
 
-print(f"  PDE complete: {len(history)} snapshots, steady-state reached")
-print(f"  Edge position: r_yin={r_edge_yin:.4f}, r_yang={r_edge_yang:.4f}")
-print(f"  Axis ratio: r_yang/r_yin = {axis_ratio_pde:.4f}  (φ = {PHI:.4f})")
-print(f"  Gradient ratio: |∇C|_yin / |∇C|_yang = {grad_ratio_pde:.4f}"
-      f"  (analytical: {steepness_ratio:.4f})")
+print(f"  PDE complete: {len(history)} snapshots, fixed-step endpoint")
+if np.isfinite(axis_ratio_pde):
+    print(f"  Edge position: r_yin={r_edge_yin:.4f}, r_yang={r_edge_yang:.4f}")
+    print(f"  Axis ratio: r_yang/r_yin = {axis_ratio_pde:.4f}")
+    print(f"  Axis-gradient ratio: |dC/dy| / |dC/dx| = {grad_ratio_pde:.4f}")
+else:
+    print(f"  No C={THETA_COND:.2f} edge survives at the fixed-step endpoint")
 
 # Overlay PDE radial profiles on Panel C
 axC.plot(r_yin, C_yin, color=YIN_LIGHT, lw=1.0, alpha=0.45, ls=(0, (2, 1)))
@@ -668,10 +696,12 @@ sample_idx = np.random.RandomState(42).choice(len(C_flat), min(1500, len(C_flat)
 axE.scatter(C_flat[sample_idx], q_flat[sample_idx], s=0.4, color=YIN_LIGHT,
             alpha=0.12, zorder=1, rasterized=True)
 axE.text(0.97, 0.06,
-         f"PDE edge relax (sharp ellipse $\\to$ steady):\n"
-         f"axis ratio $\\approx {axis_ratio_pde:.3f}$  ·  "
-         f"grad ratio $\\approx {grad_ratio_pde:.3f}$\n"
-         f"(simplified 2D model, $64^2$, 2500 steps)",
+         ("PDE edge relax (fixed-step endpoint):\n"
+          + (f"axis ratio $\\approx {axis_ratio_pde:.3f}$  ·  "
+             f"axis-gradient ratio $\\approx {grad_ratio_pde:.3f}$\n"
+             if np.isfinite(axis_ratio_pde)
+             else f"no $C={THETA_COND:.2f}$ edge survives\n")
+          + r"(simplified 2D model, $64^2$, 2500 steps)"),
          transform=axE.transAxes, fontsize=7.0, color=YIN_LIGHT,
          ha="right", va="bottom",
          bbox=dict(facecolor=BG, edgecolor="none", alpha=0.85, pad=3))
@@ -683,8 +713,8 @@ axE.text(0.97, 0.06,
 fig.text(0.5, 0.01,
          "Cassi two-fluid framework  ·  sources: foundations/bubble-edge-geometry.md,"
          " foundations/cassi-first-principles.md  ·  "
-         "PDE: $\\partial C/\\partial t = D\\nabla^2 C + \\omega_0\\,g(q)\\,(C_0 - C)$"
-         "  ·  every quantity computed from the equations shown on its panel",
+         "Proxy PDE: $\\partial C/\\partial t = D\\nabla^2 C + "
+         "\\omega_0\\,g(q_{\\rm solver})\\,(C_0 - C)$  ·  conditional map shown on-panel",
          ha="center", fontsize=7.5, color=TEXT_SUB)
 
 OUT = "visual-explainers/bubble_edge_geometry.png"
@@ -712,11 +742,12 @@ print(f"  a_X = √(2(1-θ))/α = {a_x:.6f}")
 print(f"  a_Y = √(2(1-θ))/β = {a_y:.6f}")
 print(f"  a_X / a_Y = {axis_ratio:.6f}  (= β/α = φ)")
 
-print(f"\n── Edge steepness anisotropy (§2.2) ──")
-print(f"  |∇C|_axial / |∇C|_diag = √(4φ²/(1+φ²)) = {steepness_ratio:.6f}")
-print(f"  This is a ZERO-PARAMETER prediction.")
-print(f"  Note: {steepness_ratio:.4f} ≈ φ (1.6180) but distinct—two separate observables")
-
+print(f"\n-- Directional edge slope (§2.2) --")
+print("  axial: |dC/ds| = β√(1-C²)")
+print("  diagonal: |dC/ds| = 2αβ/√(α²+β²) √(C(1-C))")
+print("  ratio = [√(1+φ²)/2]√[(1+θ)/θ]")
+print(f"  at θ_cond={THETA_COND:.2f}: {edge_slope_ratio:.6f}")
+print("  The numerical value is conditional on the selected edge threshold.")
 print(f"\n── θ_cond phase diagram (§1.2) ──")
 for R_test in [0.001, 0.01, R_CALIB, 0.2, 0.5]:
     th = solve_theta_cond(R_test)
@@ -724,13 +755,13 @@ for R_test in [0.001, 0.01, R_CALIB, 0.2, 0.5]:
     rhs = R_test * (PHI**2 + (1 + th)**2 / 4)
     print(f"  R = {R_test:.4f} → θ = {th:.6f}  (residual = {lhs - rhs:.2e})")
 
-print(f"\n── Physical edge quantities (§4) ──")
+print(f"\n── Selected-map edge quantities (§4) ──")
 q_edge = (1 + THETA_COND) / 2
-print(f"  q_edge = (1+θ_cond)/2 = {q_edge:.3f}")
-print(f"  q_saddle = 0.5")
-print(f"  q_void = 0.0")
-print(f"  G_eff(center) / G_eff(edge) ≈ φ⁶/(1+q_edge·(φ⁶−1)) = {XI/(1+q_edge*(XI-1)):.3f}")
-print(f"  G_eff(edge) / G_eff(void) ≈ (1+q_edge·(φ⁶−1)) = {1+q_edge*(XI-1):.3f}")
+print(f"  q_proxy,edge = (1+θ_cond)²/2 = {(1+THETA_COND)**2/2:.5f}")
+print(f"  selected q_solver,edge = M(q_proxy,edge) = (1+θ_cond)/2 = {q_edge:.3f}")
+print(f"  selected q_solver,saddle = 0.5; q_solver,void = 0.0")
+print(f"  with equal supplied densities, G_eff(center)/G_eff(edge) = {XI/(1+q_edge*(XI-1)):.3f}")
+print(f"  with equal supplied densities, G_eff(edge)/G_eff(void) = {1+q_edge*(XI-1):.3f}")
 
 print(f"\n── Analytical bounds (§8.6) ──")
 R_bare = 2 * 0.001 * (ALPHA**2 + BETA**2) / 0.1
@@ -741,16 +772,22 @@ print(f"  Upper bound: θ ≤ 0.7 (density contrast constraint)")
 
 print(f"\n── PDE edge-relaxation result ──")
 print(f"  Grid: 64², D=0.002, ω₀=0.1, steps=2500, dt=0.025")
-print(f"  Edge axis ratio: r_yang/r_yin = {axis_ratio_pde:.4f} (φ = {PHI:.4f})")
-print(f"  Gradient ratio: |∇C|_yin/|∇C|_yang = {grad_ratio_pde:.4f} (analytical 1.70)")
-print(f"  Simplified 2D model—exact match needs full two-fluid PDE solver")
+if np.isfinite(grad_ratio_pde):
+    print(f"  Axis-aligned gradient ratio: |dC/dy|/|dC/dx| = {grad_ratio_pde:.4f}")
+else:
+    print(f"  No C={THETA_COND:.2f} edge survives; edge ratios are undefined")
+print("  Directional edge-slope ratio remains a separate θ_cond benchmark.")
 
-print(f"\n── Key zero-parameter predictions ──")
-print(f"  1. Bubble axis ratio: a_X/a_Y = φ = {PHI:.4f}")
-print(f"  2. Edge steepness ratio: √(4φ²/(1+φ²)) = {steepness_ratio:.4f}")
-print(f"  3. Lattice geometry: staggered checkerboard (m+n even)")
-print(f"  4. Connectable degree: 4 (diagonal only)")
-print(f"  5. θ_cond functional form: θ²(1+θ) = R(φ²+(1+θ)²/4)")
-print(f"  All five are Derived (structural), zero free parameters.")
-print(f"\n  Phenomenologically calibrated: θ_cond = {THETA_COND} (→ R ≈ {R_CALIB})")
+print(f"\n── Geometric and conditional results ──")
+print(f"  1. Bubble axis ratio within the geometric ansatz: "
+      f"a_X/a_Y = φ = {PHI:.4f}")
+print(f"  2. Directional slope ratio at θ_cond={THETA_COND:.2f}: "
+      f"{edge_slope_ratio:.4f}")
+print("  3. Lattice geometry: staggered checkerboard (m+n even)")
+print("  4. Geometric connectable degree: 4 (diagonal only)")
+print("  5. Conditional selected-map balance: "
+      "θ²(1+θ) = R(φ²+(1+θ)²/4)")
+print("  Items 1, 3, and 4 are structural consequences of the displayed geometry.")
+print("  Item 2 is derived after selecting θ_cond; item 5 uses the selected map.")
+print(f"\n  Phenomenological selection: θ_cond = {THETA_COND} (selected-map R ≈ {R_CALIB})")
 print(f"  PDE-measurable: D_eff, n_cond (see foundations/bubble-edge-geometry.md §9)")

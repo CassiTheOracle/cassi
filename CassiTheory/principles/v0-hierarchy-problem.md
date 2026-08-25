@@ -1,20 +1,24 @@
 # v₀/M_Pl: The Hierarchy Problem in φ-Clothing
 
-## Status: Mapped (step count $N = \log_\varphi(M_{\rm Pl}/v_0) \approx 79.7$—the log of the measured ratio, per registry Q1 and ledger row 499); the 5.3% residual is open—August 2026
+## Status: Mapped (raw measured ratio $N_{\rm raw}=\log_\varphi(M_{\rm Pl}/v_0)\approx79.89$; gap-adjusted cascade placement $N_g=\log_\varphi(gM_{\rm Pl}/v_0)\approx79.7$ with $g=1-\varphi^{-5}$; the nearest-integer residual remains open)—August 2026
 
-## The Physical Interactions at Play
+## Abstract
+
+The measured Planck-to-electroweak ratio places $v_0$ near cascade rung 80, but the residual to an integer $\varphi$-power remains unresolved. The raw ratio gives $N_{\rm raw}\approx79.89$, while the gap-adjusted cascade convention gives $N_g\approx79.7$. The electroweak VEV is set by the Standard Model parameters $\mu^2$ and $g$; the $\varphi$-attractor term affects fluctuations around that equilibrium. A Cassi correction requires the full SU(2) renormalization-group flow and threshold matching at the relevant scale.
 
 ---
 
 ## 1. The Question
 
-The Cassi framework accounts for the electroweak scale through the cascade step
-count $N = \log_\varphi(M_{\rm Pl}/v_0) \approx 79.7$ (registry Q1; **Mapped**—
-the count is the log of the measured ratio, ledger row 499):
-$v_0/M_{\rm Pl} \approx \varphi^{-80}$, within $5.3\%$ of the nearest integer
-$\varphi$-power. **What is open?** The framework does not yet compute the
-$5.3\%$ correction itself—the residual between $v_0/M_{\rm Pl}$ and the
-nearest integer power.
+The raw measured ratio is
+$N_{\rm raw}=\log_\varphi(M_{\rm Pl}/v_0)\approx79.89$ using
+$M_{\rm Pl}=1.22\times10^{19}\,\mathrm{GeV}$ and $v_0=246\,\mathrm{GeV}$.
+The gap-adjusted cascade convention in
+`foundations/dimensionful-cascade.md` §2.1 is a separate placement,
+$N_g=\log_\varphi(gM_{\rm Pl}/v_0)\approx79.7$, with
+$g=1-\varphi^{-5}$. Both values locate the electroweak scale near rung 80;
+the framework does not compute the residual to the nearest integer
+$\varphi$-power.
 
 What physics is at play, and what is needed to compute the correction from first principles?
 
@@ -41,20 +45,25 @@ $$\frac{\partial V}{\partial u} = \frac{\mu^2}{2} + \frac{g}{2}(u+v) = 0
 term contributes to fluctuations around equilibrium, not to the VEV itself.
 
 This means: $v_0$ is set by $\mu^2$ and $g$, both of which are SM parameters
-not determined by $\varphi$. The Cassi framework accounts for the ratio
-$v_0/M_{\rm Pl}$ as the cascade step count $N = \log_\varphi(M_{\rm Pl}/v_0)
-\approx 79.7$ (registry Q1; Mapped—the count is the log of the measured ratio,
-ledger row 499)—the electroweak scale sits at rung 80—but it
-does not derive the exact VEV: the $5.3\%$ residual between $v_0/M_{\rm Pl}$
-and the nearest integer $\varphi$-power is open.
+not determined by $\varphi$. The raw ratio is
+$N_{\rm raw}=\log_\varphi(M_{\rm Pl}/v_0)\approx79.89$. The gap-adjusted
+cascade convention instead uses
+$N_g=\log_\varphi(gM_{\rm Pl}/v_0)\approx79.7$ (registry Q1 and
+`foundations/dimensionful-cascade.md` §2.1), with
+$g=1-\varphi^{-5}$. The two conventions should not be conflated; the
+electroweak scale remains near rung 80, and the nearest-integer residual is
+open.
 
 ---
 
-## 3. What Determines the 5.3% Correction
+## 3. The Raw Nearest-Integer Residual
 
-The correction $\delta \equiv v_0/v_0^{(\varphi^{-80})} - 1 = 5.6\%$ has
-**four potential physical sources**, none of which is computed in the Cassi
-framework:
+Using the displayed raw anchors, the correction
+$\delta_{\rm raw}\equiv v_0/v_0^{(\varphi^{-80})}-1$ is approximately
+$5.6\%$. The catalog's rounded $5.3\%$ entry uses its declared rounded
+ratio. Both describe the open nearest-integer comparison; neither is a
+computed Cassi correction. Four potential physical sources remain
+uncomputed:
 
 ### 3.1 RGE running of $v_0$
 
@@ -66,25 +75,18 @@ $$16\pi^2 \frac{d v_0^2}{d \ln\mu} = v_0^2 \left[
 
 The dominant terms are $-6 y_t^2 + \frac{9}{2} g^2$. At $m_t$:
 $y_t \approx 1$, $g \approx 0.65$, so the bracket is $\approx -6 + 1.9 = -4.1$.
-The sign is **negative**: $v_0^2$ *decreases* with energy.
+The sign is **negative**: $v_0^2$ decreases with energy. The corresponding
+low- versus high-energy interpretation must be specified before assigning
+the raw $5.6\%$ residual to SM running; the Cassi framework has not supplied
+that matching calculation.
 
-But this means $v_0$ at low energy is *larger* than $v_0$ at high energy by
-the running. The SM Higgs RGE *increases* $v_0$ from the GUT scale
-to the EW scale. This is the *opposite* sign from the observed $5.3\%$
-correction (which says $v_0$ is larger than the $\varphi^{-80}$ baseline).
-
-The "$\varphi^{-80}$ baseline" is $v_0/M_{\rm Pl} = 1.91 \times 10^{-17}$.
-The observed is $v_0/M_{\rm Pl} = 2.02 \times 10^{-17}$. So $v_0$ is *larger* than
-the baseline by $5.6\%$.
-
-The SM RGE would give $v_0(M_{\rm GUT}) > v_0(m_t)$ (since $v_0$ increases as
-energy decreases). So if $\varphi^{-80}$ is supposed to be the *GUT-scale*
-value, then the SM RGE would shift it *down* going to low energy, making
-the low-energy value *smaller* than $\varphi^{-80}$. This is the wrong sign
-for the $5.6\%$ correction.
-
-Either the $\varphi^{-80}$ baseline is the *low-energy* value, or the RGE shift
-has the wrong sign for the Cassi framework.
+The displayed raw baseline is $v_0/M_{\rm Pl}=1.91\times10^{-17}$ and the
+rounded observed ratio is $2.02\times10^{-17}$, giving the raw comparison
+$\delta_{\rm raw}\approx5.6\%$. The SM RGE gives
+$v_0(M_{\rm GUT})>v_0(m_t)$ under the sign convention used here. If
+$\varphi^{-80}$ is assigned to the GUT-scale value, the low-energy shift
+requires an explicit matching calculation; its sign relative to the raw
+residual remains unresolved.
 
 ### 3.2 Threshold corrections at the matching scale
 
@@ -94,18 +96,18 @@ conditions:
 
 $$v_0(m_t) = v_0(M_{\rm match}) \cdot \left(1 + \sum_i c_i \frac{M_i^2}{M_{\rm match}^2}\right)$$
 
-For $M_i \sim M_{\rm match}$ (typical GUT-scale particles), the corrections
-are $\mathcal{O}(1)$ and shift $v_0$ by a few percent. **This is the
-plausible source of the $5.3\%$ correction**—but it has not been computed
-in the Cassi framework.
+For $M_i\sim M_{\rm match}$ (typical GUT-scale particles), the corrections
+can shift $v_0$ by a few percent. This is a candidate source of the raw
+$5.6\%$ residual, but it has not been computed in the Cassi framework.
 
 ### 3.3 The $\varphi^{-80}$ value is approximate
 
-The actual exponent giving $v_0/M_{\rm Pl}$ exactly is $79.89$—not an
-integer. The "$\varphi^{-80}$" is the *nearest integer power*. If the
-$\varphi$-attractor is exact (no $\lambda$ correction), the framework would
-predict $v_0/M_{\rm Pl} = \varphi^{-80}$ to within $0.13\%$. The $5.3\%$
-is the *deviation* from this nearest power, set by the underlying dynamics.
+The actual raw exponent giving $v_0/M_{\rm Pl}$ exactly is
+$N_{\rm raw}\approx79.89$, not an integer. The $\varphi^{-80}$ value is the
+nearest integer power. The gap-adjusted convention has
+$N_g\approx79.7$; it is a separate model placement rather than a second
+measurement of the ratio. The residual to either convention remains an open
+matching problem.
 
 The "underlying dynamics" might include:
 - A $\varphi$-power from a different counting (e.g., $\varphi^{-79} \cdot 1.07$)
@@ -121,21 +123,22 @@ This term shifts the equilibrium VEV. The shift is of order
 $\hbar^2 \Lambda^2 / (m^2 v_0^2)$ where $\Lambda$ is the UV cutoff. With
 $\Lambda = M_{\rm Pl}$ and $m = M_{\rm Pl}$: shift $\sim 1$. With
 $\Lambda = M_{\rm Pl}$ and $m = v_0$: shift $\sim (v_0/M_{\rm Pl})^2 = 10^{-34}$.
-Negligible. So the Bohm potential doesn't give a $5\%$ correction.
+Negligible at this estimate, so the Bohm potential does not supply the raw
+$5.6\%$ residual.
 
 ---
 
 ## 4. Computing the Correction: What Is Required
 
-Computing the $5.3\%$ correction from first principles requires:
+Resolving the nearest-integer residual requires:
 
 1. **The exact $\varphi$-attractor value, not the integer approximation.**
-   The step count $N = \log_\varphi(M_{\rm Pl}/v_0) \approx 79.7$ is derived
-   (registry Q1), fixing $v_0/M_{\rm Pl}$ to rung 80. The framework's
-   $\varphi$-attractor additionally gives a specific value on that rung in
-   the absence of corrections; it should be computed rather than approximated
-   by the nearest $\varphi$-power, and the $5.3\%$ residual is the gap to
-   close.
+   The raw step count is $N_{\rm raw}=\log_\varphi(M_{\rm Pl}/v_0)
+   \approx79.89$; the gap-adjusted cascade placement is
+   $N_g=\log_\varphi(gM_{\rm Pl}/v_0)\approx79.7$ (registry Q1).
+   The framework must specify which placement enters the attractor and
+   compute its value rather than treating either approximation as a derived
+   correction.
 
 2. **The RGE for $v_0$ in the Cassi SU(2) framework.** The SM RGE is
    known, but the Cassi framework has additional fields and couplings.
@@ -153,35 +156,37 @@ None of these is computed in the Cassi framework.
 
 ## 5. Assessment
 
-The $5.3\%$ correction in $v_0/M_{\rm Pl}$ is **the framework hierarchy problem
-in disguise.** The cascade step count $N = \log_\varphi(M_{\rm Pl}/v_0)
-\approx 79.7$ is derived (registry Q1), but the $5.3\%$ residual that the
-nearest integer power $\varphi^{-80}$ leaves open is not yet computed.
+The hierarchy comparison is Mapped: the measured electroweak and Planck
+anchors locate the scale near rung 80, while the residual to a selected
+$\varphi$-power remains uncomputed. The raw nearest-integer comparison is
+approximately $5.6\%$; the catalog's rounded entry is $5.3\%$. The
+gap-adjusted placement $N_g\approx79.7$ is a separate cascade convention.
 
 The de-resonance principle (§3 in `principles/de-resonance-principle.md`)
-labels the correction as **Hypothesized**: the $g/\lambda$-mixing candidate is
-excluded ($v_0$ is $\lambda$-independent at equilibrium), and the mechanism
-remains unidentified.
+labels the correction mechanism as **Hypothesized**. The $g/\lambda$-mixing
+candidate is excluded by the equilibrium relation, which leaves $v_0$
+$\lambda$-independent; the remaining mechanism is unidentified.
 
-The framework's claim is:
-- $\varphi$-powers set the *leading-order baseline* for all couplings and scales.
-- Subleading corrections come from dynamics, not from $\varphi$.
-- For $v_0/M_{\rm Pl}$, the correction is small ($5.3\%$), but the dynamics
-  responsible for it have not been identified.
-
-This is a **weaker** claim than "every quantity is exactly a $\varphi$-power,"
-and a **stronger** claim than "we have a thousand free parameters."
-
----
+The current framework states that $\varphi$-powers provide leading-order
+baselines for selected couplings and scales, with subleading corrections
+supplied by dynamics. For $v_0/M_{\rm Pl}$, the responsible dynamics have not
+been computed.
 
 ## 6. What Could Change This
 
-The $5.3\%$ correction would become *computed* by:
+The residual would become **Derived** after:
 
-1. Deriving the exact $\varphi$-attractor value of $v_0/M_{\rm Pl}$ (approximated
-   by the nearest integer $\varphi$-power).
-2. Computing the RGE for $v_0$ in the Cassi SU(2) framework.
-3. Calculating the threshold corrections at the matching scale.
+1. specifying and deriving the exact $\varphi$-attractor value of
+   $v_0/M_{\rm Pl}$;
+2. computing the RGE for $v_0$ in the Cassi SU(2) framework; and
+3. calculating threshold corrections at the matching scale.
 
-Any one of these would close the $5.3\%$ residual. Until then, it remains
-the framework's open gap.
+Until those calculations are available, the mechanism remains an open
+framework question.
+
+## References
+
+- `foundations/dimensionful-cascade.md` §2.1—dimensionful cascade placement and the gap-adjusted electroweak rung.
+- `principles/de-resonance-principle.md` §3—the $\varphi$-power baseline and correction-mechanism scope.
+- `open-questions-cassi-answers.md`—Q1 (the electroweak hierarchy and nearest-integer residual).
+- `standard-model/sm-radiative-corrections.md` §§2–3—running-coupling and matching context.

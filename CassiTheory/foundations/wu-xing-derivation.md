@@ -1,16 +1,18 @@
-# Wu Xing Number $w = 5$: Derivation from Cascade Dynamics
+# Wu Xing Number $w = 5$: Conditional Cascade–Geometry Construction
 
-## Status: Derived (w = 5, gap, r₀)—single input: coherence postulate; verified 2026-08-11 / λ = 1/(2w) = 0.1 Derived conditional on the doublet conversion budget + one event per cycle (§7) / Calibrated (w₀ via the DESI-anchored coupling form—ledger)
+## Status: Derived conditional ($w = 5$ arithmetic, gap, $r_0$) under the selected construction; the organizing cycle and coherence interpretation are Hypothesized coordinate/phenomenological inputs; verified 2026-08-11 / $\lambda = 0.1$—asserted solver normalization and hypothesized Wu Xing linkage; conditional consequences only (§7) / Calibrated ($w_0$ via the DESI-anchored coupling form—ledger)
 
 ## Abstract
 
-The Wu Xing number $w = 5$—the number of elements in the primordial generation/control cycle that determines the cosmological initial conditions—is derived from two constraints. The cascade dynamics force an upper bound $w \leq 5$: a $w$-vertex cycle closes the golden rotation with accumulated phase error $E(w) = \min_p w|\varphi - p/w|$, and the coherence criterion (accumulated error $\leq$ cascade signal at rung $w$) is solvable **for all $w$ at once**. Continued-fraction optimality (Hurwitz) selects the Fibonacci denominators as the only candidates, the Fibonacci identity $|F_k\varphi - F_{k+1}| = \varphi^{-k}$ evaluates them exactly, and the criterion passes only for $w \in \{1, 2, 3, 5\}$—verified exhaustively for all $w \leq 2000$. $\varphi$-geometry forces a lower bound $w \geq 5$: the regular $n$-gon contains $\varphi$ among its chord ratios first at $n = 5$ (the pentagon's diagonal/side ratio), verified for $n = 3 \ldots 12$. The intersection is exactly $w = 5$. The primordial gap $g = 1 - \varphi^{-5}$ and the primordial Yang-Yin ratio $r_0 = \varphi^{-5}/(2-\varphi^{-5})$ follow directly. The single physical input is the coherence criterion; the Fibonacci restriction is a derived consequence, not an assumption. The derived cycle also fixes the PDE conversion rate, $\lambda = (1/2)(1/w) = 1/(2w) = 0.1$ (§7): the doublet factor $1/2$ (each of the two channels carries half a full oscillation's conversion budget) times the per-vertex share $1/w$ of the single conversion event per cycle.
+The Wu Xing number $w = 5$ is a conditional organizing-cycle construction, not a quantity derived from the canonical two-fluid state. In the selected golden-rotation coordinate, the accumulated error $E(w) = \min_p w|\varphi - p/w|$ passes the stipulated coherence threshold only for $w \in \{1, 2, 3, 5\}$—verified exhaustively for all $w \leq 2000$—and the regular-polygon chord arithmetic first contains $\varphi$ at $n = 5$. Continued-fraction optimality (Hurwitz) and the Fibonacci identity $|F_k\varphi - F_{k+1}| = \varphi^{-k}$ are mathematical results; their use as a cycle-selection rule is conditional on the added coordinate and threshold construction. Within that construction, the intersection is $w = 5$, and $g = 1 - \varphi^{-5}$ and $r_0 = \varphi^{-5}/(2-\varphi^{-5})$ follow arithmetically.
+
+The compact phase coordinate, the interpretation of one vertex as one phase advance and one cascade rung, the one-turn closure rule, the coherence threshold, and the physical five-channel gate are Hypothesized coordinate/phenomenological inputs. The predicted coherent-cycle set is therefore conditional and is not a measured PDE result. The solver retains $\lambda = 0.1$ as an asserted normalization and hypothesized Wu Xing linkage; §7 audits its arithmetic and consequences without treating it as derived.
 
 ---
 
 ## 1. The Problem
 
-The Cassi framework's cosmological initial conditions depend on a single dimensionless number: the Wu Xing number $w$—the number of phase-advance vertices in the primordial generation/control cycle. This number determines:
+The Cassi framework's cosmological initial conditions use a single dimensionless label: the Wu Xing number $w$. Here $w$ labels the vertices of a hypothesized primordial generation/control cycle. Interpreting those vertices as phase advances in a compact golden-rotation coordinate is an additional coordinate/phenomenological input, not a consequence of the two real density fields. Under that stipulated construction, $w$ determines:
 
 - The primordial gap: $g = 1 - \varphi^{-w}$
 - The primordial Yang-Yin ratio: $r_0 = (1-g)/(1+g) = \varphi^{-w}/(2 - \varphi^{-w})$
@@ -18,18 +20,18 @@ The Cassi framework's cosmological initial conditions depend on a single dimensi
 
 Geometric candidates for $w = 5$ include (`computations/pinch_point_modes.py`):
 1. Elliptical cavity mode bands (threshold-dependent, does not enforce exactly 5)
-2. Fibonacci convergent hierarchy (derived in §2 from the coherence criterion + continued-fraction optimality)
+2. Fibonacci convergent hierarchy (mathematical candidate arithmetic conditional on the selected coordinate and threshold construction)
 3. Pentagon geometry (the minimal regular polygon containing $\varphi$)
 
-The derivation follows from two constraints: the cascade dynamics force an upper bound of $w \leq 5$, and $\varphi$-geometry forces a lower bound of $w \geq 5$. The intersection is unique.
+Within the stipulated coordinate, threshold, and $\varphi$-geometry construction, the upper and lower arithmetic bounds intersect at $w = 5$. This is a conditional construction result; it is not a derivation of a physical cycle count from the canonical PDE.
 
 ---
 
-## 2. The Cascade Upper Bound: Why $w \geq 6$ Fails
+## 2. Conditional Criterion: Why $w \geq 6$ Fails
 
 ### 2.1 Best Rational Closures of the Golden Rotation
 
-Each vertex of a $w$-step cycle advances the phase of the golden rotation by $\varphi$ turns (the de-resonant rotation of `principles/de-resonance-principle.md`). After $w$ steps the phase advanced is $w\varphi$ turns; the cycle closes when this is nearly an integer number $p$ of turns, i.e. when the rational ratio $p/w$ approximates $\varphi$. The **accumulated phase error** after one full cycle is the distance from $w\varphi$ to the nearest integer:
+For the selected construction, each vertex is assigned an advance of $\varphi$ turns in an added compact golden-rotation coordinate (the de-resonant rotation of `principles/de-resonance-principle.md`). After $w$ steps the assigned coordinate advances by $w\varphi$ turns; closure means that this added coordinate is near an integer number $p$ of turns, so the rational ratio $p/w$ approximates $\varphi$. This compact phase, one-turn closure, and vertex interpretation are Hypothesized coordinate inputs; the following error is mathematical arithmetic conditional on them. The **accumulated phase error** after the stipulated cycle is the distance from $w\varphi$ to the nearest integer:
 
 $$E(w) \;=\; \min_{p \in \mathbb{Z}}\, w\left|\varphi - \frac{p}{w}\right| \;=\; \|w\varphi\|$$
 
@@ -43,7 +45,7 @@ $$F_1 = 1, \; F_2 = 1, \; F_3 = 2, \; F_4 = 3, \; F_5 = 5, \; F_6 = 8, \; F_7 = 
 
 $$\boxed{\|w\varphi\| > \|F_{k+1}\varphi\| = \varphi^{-(k+1)} \qquad \text{for all } 0 < w < F_{k+1}}$$
 
-Cycle-size candidates for coherent closure are therefore the Fibonacci numbers themselves—**selected by optimality, not by assumption**. Any non-Fibonacci $w$ pays an error strictly larger than the next convergent's, and §2.5 shows that error already fails the coherence criterion.
+Cycle-size candidates for the stipulated coordinate closure are therefore the Fibonacci numbers themselves—**selected by mathematical optimality, conditional on the construction**. Any non-Fibonacci $w$ pays an error strictly larger than the next convergent's, and §2.5 shows that error fails the stipulated threshold.
 
 ### 2.2 The Fibonacci Identity (Number Theory)
 
@@ -53,7 +55,7 @@ $$\boxed{|F_k \cdot \varphi - F_{k+1}| = \varphi^{-k}}$$
 
 This is **exact** for all $k \geq 1$. Proof by induction: base case $k=1$ gives $|1\cdot\varphi - 1| = \varphi^{-1}$; the recurrence $F_{k+1} = F_k + F_{k-1}$ combined with $\varphi^{k+1} = \varphi^k + \varphi^{k-1}$ propagates the identity.
 
-By the best-approximation theorem the convergent $p = F_{k+1}$ is the minimizer at $w = F_k$, so the accumulated error of a Fibonacci cycle is exact:
+For the selected coordinate, the convergent $p = F_{k+1}$ is the minimizer at $w = F_k$, so the accumulated error assigned to a Fibonacci cycle is exact:
 
 $$E(F_k) = \|F_k \varphi\| = |F_k \varphi - F_{k+1}| = \varphi^{-k}$$
 
@@ -67,23 +69,23 @@ This is the per-rung damping in the signal-propagation regime: each rung damps n
 
 ### 2.4 The Coherence Criterion
 
-A Wu Xing cycle of $w$ vertices advances one cascade rung per vertex, so at cycle closure the cascade signal surviving to rung $w$ is $\varphi^{-w}$. The cycle maintains phase coherence across one complete turn only if its accumulated phase error does not exceed that surviving signal.
+For the stipulated construction, each vertex is assigned one cascade-rung step, so the signal retained at the assigned rung $w$ is $\varphi^{-w}$. Treating that rung count as the closure point of the added coordinate and comparing it with one complete turn are Hypothesized coordinate/phenomenological inputs; the canonical two-fluid equations do not supply this identification.
 
-**Coherence criterion (physical postulate).** A $w$-step cycle closes coherently if and only if
+**Coherence criterion (Hypothesized phenomenological rule, PDE-testable).** Under those inputs, a $w$-step cycle is assigned a coherent verdict if and only if
 
 $$\boxed{E(w) \leq \varphi^{-w}}$$
 
-i.e. the accumulated phase slip $\|w\varphi\|$ across one full cycle does not exceed the cascade signal strength $\varphi^{-w}$ at the cycle's rung. This is a signal-detection threshold: if the phase slip exceeds the surviving signal, the cycle's phase structure is obliterated by the cascade noise floor and cannot lock. It is the single physical input of the derivation (§6); it is motivated by the de-resonance principle and consistent with the cascade suppression formula, and it is PDE-testable.
+i.e. the assigned phase slip $\|w\varphi\|$ does not exceed the stipulated cascade signal strength $\varphi^{-w}$ at the assigned rung. This is a chosen signal-detection threshold: it gives a conditional prediction that a cycle passes when the slip is below the threshold and fails when it is above. It is not derived from the canonical two-fluid state. A PDE test would need to implement the added coordinate and measure whether the proposed cycle observable is maintained; until then, the rule remains Hypothesized.
 
-Because the criterion is stated for **all** integers $w$, it screens non-Fibonacci cycles as well: §2.5 evaluates $E(w)$ exactly on the Fibonacci candidates (via §2.1–§2.2) and bounds it away from the threshold on every other $w$.
+Because the rule is stipulated for **all** integers $w$, it screens non-Fibonacci cycles as arithmetic: §2.5 evaluates $E(w)$ exactly on the Fibonacci candidates (via §2.1–§2.2) and bounds it away from the threshold on every other $w$.
 
-### 2.5 Solving the Criterion
+### 2.5 Solving the Conditional Criterion
 
 **Fibonacci cycles.** For $w = F_k$, the criterion is $\varphi^{-k} \leq \varphi^{-F_k}$, equivalent (since $\varphi > 1$) to:
 
 $$\boxed{k \geq F_k}$$
 
-| $k$ | $F_k$ | $k \geq F_k$? | Cycle $w$ | Verdict |
+| $k$ | $F_k$ | $k \geq F_k$? | Cycle $w$ | Conditional criterion verdict |
 |-----|-------|:---:|:---:|---------|
 | 1 | 1 | ✓ | 1 | Coherent (trivial) |
 | 2 | 1 | ✓ | 1 | Coherent |
@@ -94,9 +96,9 @@ $$\boxed{k \geq F_k}$$
 | 7 | 13 | ✗ | 13 | **Decoheres** |
 | 8 | 21 | ✗ | 21 | **Decoheres** |
 
-The inequality $k \geq F_k$ holds for $k \in \{1, 2, 3, 4, 5\}$ and fails for all $k \geq 6$ ($F_k > k$ thereafter, with the gap growing exponentially: $F_{10} = 55$ vs. $k = 10$). The distinct coherent Fibonacci cycle sizes are $w \in \{1, 2, 3, 5\}$; $k = 5$ is the marginal case, closing at exact equality $E(5) = \varphi^{-5} = \text{signal}$.
+The inequality $k \geq F_k$ holds for $k \in \{1, 2, 3, 4, 5\}$ and fails for all $k \geq 6$ ($F_k > k$ thereafter, with the gap growing exponentially: $F_{10} = 55$ vs. $k = 10$). The distinct cycle sizes that pass the stipulated arithmetic criterion are $w \in \{1, 2, 3, 5\}$; interpreting these passes as physically coherent cycles is the Hypothesized phenomenological reading. The $k = 5$ case is marginal, satisfying the assigned threshold at exact equality $E(5) = \varphi^{-5} = \text{signal}$.
 
-**Non-Fibonacci cycles.** Every non-Fibonacci $w \geq 6$ fails the criterion. Write $F_k \leq w < F_{k+1}$ with $k \geq 5$. The best-approximation theorem gives $E(w) > \varphi^{-(k+1)}$. Since $w \geq 6$ implies $\varphi^{-(k+1)} \geq \varphi^{-w}$ (for $w \in \{6, 7\}$ with $k = 5$ this is $\varphi^{-6} \geq \varphi^{-w}$; for $k \geq 6$, $w \geq F_k \geq k+1$), the error strictly exceeds the threshold:
+**Non-Fibonacci cycles.** Every non-Fibonacci $w \geq 6$ fails the stipulated criterion. Write $F_k \leq w < F_{k+1}$ with $k \geq 5$. The best-approximation theorem gives $E(w) > \varphi^{-(k+1)}$. Since $w \geq 6$ implies $\varphi^{-(k+1)} \geq \varphi^{-w}$ (for $w \in \{6, 7\}$ with $k = 5$ this is $\varphi^{-6} \geq \varphi^{-w}$; for $k \geq 6$, $w \geq F_k \geq k+1$), the error strictly exceeds the threshold:
 
 $$E(w) > \varphi^{-(k+1)} \geq \varphi^{-w} \qquad \text{for all non-Fibonacci } w \geq 6$$
 
@@ -104,15 +106,15 @@ The remaining non-Fibonacci value below the geometric bound, $w = 4$, fails by d
 
 $$\boxed{\{w \in \mathbb{Z}^{+} : E(w) \leq \varphi^{-w}\} = \{1, 2, 3, 5\}}$$
 
-**Numeric verification.** `computations/wu_xing_coherence_check.py` (run from repo root) checks all $w \in [1, 2000]$: $\|w\varphi\| \leq \varphi^{-w}$ holds **only** for $w \in \{1, 2, 3, 5\}$ ($w = 5$ passes at equality, exact to the identity; the check uses a $10^{-12}$ float tolerance). Explicit values: $E(4) = 0.4721 > 0.1459$, $E(6) = 0.2918 > 0.0557$, $E(7) = 0.3262 > 0.0344$.
+**Numeric verification.** `computations/wu_xing_coherence_check.py` (run from repo root) checks the stipulated arithmetic for all $w \in [1, 2000]$: $\|w\varphi\| \leq \varphi^{-w}$ holds **only** for $w \in \{1, 2, 3, 5\}$ ($w = 5$ passes at equality, exact to the identity; the check uses a $10^{-12}$ float tolerance). These are conditional criterion results, not direct observations of physical phase coherence. Explicit values: $E(4) = 0.4721 > 0.1459$, $E(6) = 0.2918 > 0.0557$, $E(7) = 0.3262 > 0.0344$.
 
-**Explicit $w = 10$ falsification:** Ten steps with rational approximation $16/10 = 1.6$ accumulate error $10 \cdot |\varphi - 1.6| = 0.180$. Cascade attenuation at rung 10 is $\varphi^{-10} = 0.0081$. The error exceeds the signal by a factor of **22×**—the cycle is obliterated by noise.
+**Explicit $w = 10$ criterion counterexample:** Ten assigned steps with rational approximation $16/10 = 1.6$ accumulate error $10 \cdot |\varphi - 1.6| = 0.180$. The stipulated attenuation at assigned rung 10 is $\varphi^{-10} = 0.0081$. The error exceeds the threshold by a factor of **22×**; this is a counterexample within the conditional construction, not a direct physical falsification.
 
 ---
 
-## 3. The Geometry Lower Bound: Why $w < 5$ Fails
+## 3. Conditional Geometry Selection: Why $w < 5$ Fails
 
-A cycle that organizes a $\varphi$-based framework must encode $\varphi$ in its vertex geometry. Among the chord ratios of the regular $n$-gon, $\varphi$ appears **first** at $n = 5$ (verified numerically for $n = 3 \ldots 12$; `computations/wu_xing_coherence_check.py`):
+As mathematical geometry, a regular $n$-gon first contains $\varphi$ in its chord ratios at $n = 5$ (verified numerically for $n = 3 \ldots 12$; `computations/wu_xing_coherence_check.py`), because
 
 $$\frac{\text{diagonal}}{\text{side}} = 2\cos\left(\frac{\pi}{5}\right) = \varphi$$
 
@@ -123,19 +125,19 @@ $$\frac{\text{diagonal}}{\text{side}} = 2\cos\left(\frac{\pi}{5}\right) = \varph
 | **5** | **Pentagon** | **Yes**—$\text{diag}/\text{side} = \varphi$, $R/r = 2/\varphi$, $R/s = 1/(2\sin 36°) \approx 0.8507$ |
 | 6 | Hexagon | No—ratios $1$, $\sqrt{3}/2$, $\sqrt{3}$, $2$ |
 | 7–9, 11–12 | Heptagon … dodecagon | No—no chord ratio equals $\varphi$ |
-| 10 | Decagon | Yes, $R/s = \varphi$ (but decoheres—see §2; decomposes into two pentagons) |
+| 10 | Decagon | Yes, $R/s = \varphi$ (but fails the stipulated criterion—see §2; decomposes into two pentagons) |
 
-Cycles with $w \in \{1, 2, 3\}$ are cascade-coherent but not $\varphi$-structured: they cannot encode the golden ratio in their vertex distance ratios, so they cannot serve as the organizing cycle of a $\varphi$-based framework. The lower bound is $w \geq 5$.
+Cycles with $w \in \{1, 2, 3\}$ pass the stipulated arithmetic threshold but are not $\varphi$-structured: they cannot encode the golden ratio in their vertex distance ratios. Selecting the pentagon as the organizing cycle, and interpreting it as a physical five-channel gate, are additional Hypothesized phenomenological inputs; the chord-ratio result alone does not establish either claim. Within this construction, the lower candidate bound is $w \geq 5$.
 
 ---
 
 ## 4. The Intersection: $w = 5$
 
-The cascade dynamics eliminate $w \geq 6$ (all decohere—§2). $\varphi$-geometry eliminates $w < 5$ (all lack $\varphi$ in their chord ratios—§3). The only surviving value is:
+Within the stipulated criterion and $\varphi$-geometry construction, values $w \geq 6$ fail the arithmetic threshold and values $w < 5$ lack the selected chord ratio. The only surviving candidate is:
 
 $$\boxed{w = 5}$$
 
-The pentagon is **both** cascade-coherent **and** $\varphi$-structured. It is the unique non-trivial cycle satisfying the coherence criterion $E(w) \leq \varphi^{-w}$ with $\varphi$ in its geometry.
+The pentagon is the unique non-trivial candidate that passes the stipulated threshold while carrying the selected $\varphi$ chord ratio. Calling it physically coherent or identifying it as the organizing five-channel gate remains Hypothesized, rather than a consequence of the canonical PDE.
 
 ---
 
@@ -143,11 +145,11 @@ The pentagon is **both** cascade-coherent **and** $\varphi$-structured. It is th
 
 ### 5.1 The Primordial Gap
 
-One complete pentagonal cycle advances the conversion phase by a factor of $\varphi^5$, leaving an unconverted residual of $\varphi^{-5}$:
+Under the conditional pentagonal construction, one complete cycle is assigned a conversion factor of $\varphi^5$, leaving an unconverted residual of $\varphi^{-5}$:
 
 $$\boxed{g = 1 - \varphi^{-5} \approx 0.9098}$$
 
-This is the fraction of the primordial Yang-Yin imbalance converted in the first pentagon cycle at the GUT scale (n ≈ 13.3 for $M_{\text{GUT}} \approx 2\times10^{16}$ GeV; the cascade table's step-5 rung is the 1.1×10¹⁸ GeV scale).
+Under this conditional construction, this is the fraction of the primordial Yang-Yin imbalance assigned to the first pentagon cycle at the GUT scale (n ≈ 13.3 for $M_{\text{GUT}} \approx 2\times10^{16}$ GeV; the cascade table's step-5 rung is the 1.1×10¹⁸ GeV scale).
 
 ### 5.2 The Primordial Yang-Yin Ratio
 
@@ -159,123 +161,106 @@ Equivalently: $E_I/E_Y = 1/r_0 \approx 21.2$. Yin dominates Yang by a factor of 
 
 ### 5.3 Observable Consequences
 
-- **Dark energy equation of state:** $w_0 = -0.87$ (from PDE integration with $r_0$), $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INFERENCE]
-- **Baryon asymmetry:** The gap $g = 1 - \varphi^{-5}$ sets the Yang-Yin imbalance at GUT freeze-out, which seeds the matter-antimatter asymmetry
-- **Cascade depth:** $N \approx 292$ follows from $H(r)$ dynamics + cosmic age, with $r_0$ as the initial condition
+- **Conditional dark energy equation of state:** $w_0 = -0.87$ (from PDE integration with $r_0$), $2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INFERENCE]
+- **Conditional baryon-asymmetry hypothesis:** the gap $g = 1 - \varphi^{-5}$ is mapped to the Yang-Yin imbalance at GUT freeze-out, which is hypothesized to seed the matter-antimatter asymmetry
+- **Conditional cascade-depth mapping:** $N \approx 292$ follows from $H(r)$ dynamics + cosmic age, with $r_0$ as the initial condition
 
 ---
 
 ## 6. Epistemic Boundaries
 
-### Derived (from the coherence postulate + mathematical theorems)
+### Derived conditional mathematics
+
+The following are mathematical or arithmetic results after selecting the coordinate, cycle, and threshold construction. They do not establish that construction as a physical feature of the canonical two-fluid equations:
 
 - Fibonacci identity $|F_k \cdot \varphi - F_{k+1}| = \varphi^{-k}$ (mathematical theorem)
 - Best-approximation optimality of the Fibonacci denominators for $\varphi$ (Hurwitz; mathematical theorem)
-- Cascade attenuation $\varphi^{-N}$ over $N$ rungs (derived from two-fluid PDE signal regime)
-- The coherent cycle set $\{w : E(w) \leq \varphi^{-w}\} = \{1, 2, 3, 5\}$ (continued-fraction optimality + Fibonacci identity + coherence criterion; exhaustive numeric check $w \leq 2000$)
+- Cascade attenuation $\varphi^{-N}$ over $N$ rungs (derived from the two-fluid PDE signal regime)
+- For the stipulated $E(w)$ definition and threshold, the conditional criterion set $\{w : E(w) \leq \varphi^{-w}\} = \{1, 2, 3, 5\}$ (continued-fraction optimality + Fibonacci identity; exhaustive numeric check $w \leq 2000$)
 - $\varphi$ first appears in regular $n$-gon chord ratios at $n = 5$ (verified $n = 3 \ldots 12$)
-- Intersection: $w = 5$ uniquely
-- The gap: $g = 1 - \varphi^{-5}$
-- The primordial ratio: $r_0 = \varphi^{-5}/(2 - \varphi^{-5})$
-- The conversion rate: $\lambda = 1/(2w) = 0.1$ (§7)—**Derived conditional on** the doublet conversion budget ($1/2$: each of the two channels carries half a full oscillation's budget) and one conversion event per $w$-cycle ($1/w$: the gap is the fraction converted in one cycle, shared over $w$ vertices)
+- Within the selected construction, the intersection candidate is $w = 5$
+- Under that selected candidate, the gap is $g = 1 - \varphi^{-5}$
+- Under that selected candidate, the primordial ratio is $r_0 = \varphi^{-5}/(2 - \varphi^{-5})$
 
-### Physical Postulate (the single input, PDE-testable)
+### Hypothesized coordinate and phenomenological inputs
 
-- **The coherence criterion:** accumulated phase error $\leq$ cascade signal attenuation, $E(w) \leq \varphi^{-w}$. This is a signal-detection principle: if the phase slip across one cycle exceeds the surviving signal strength at that cascade rung, the cycle cannot close coherently. It is physically motivated by the de-resonance principle and consistent with the cascade suppression formula, but it has not been directly verified by a PDE simulation computing phase closure as a function of $w$. A PDE test would initialize a $w$-cycle perturbation and measure whether phase coherence is maintained after one full cycle. The prediction: coherent for $w \leq 5$, decoherent for $w \geq 6$.
+The canonical state is two real density fields. The following additions are not supplied by those equations:
 
-**Inputs.** The derivation rests on:
+- **Compact golden-rotation coordinate:** treating a density-plane diagnostic as a compact phase with a one-turn clock, and assigning a phase advance to each vertex
+- **Cycle/rung identification:** assigning one vertex step to one cascade rung and treating the end of $w$ steps as one-turn closure
+- **Coherence rule:** using $E(w) \leq \varphi^{-w}$ as a signal-detection threshold
+- **Physical five-channel gate:** selecting the pentagon as the primordial organizing gate and reading a criterion pass as physical coherence
+- **Predicted coherent cycles:** interpreting the conditional set $w \in \{1, 2, 3, 5\}$ and the $w \geq 6$ failures as phenomenological predictions; these are not measured PDE outcomes
 
-1. **Coherence criterion (physical postulate—the single input of the cascade bound).** A $w$-step cycle closes coherently iff $E(w) \leq \varphi^{-w}$, with one cascade rung advanced per vertex so the closing signal is $\varphi^{-w}$. The $1/\sqrt{5}$-class optimality of $\varphi$'s convergents then supplies the Fibonacci restriction as a theorem, not an assumption.
-2. **Cycle setup.** The $w$-vertex cycle closes the golden rotation with best integer ratio $p/w \approx \varphi$; $E(w) = \|w\varphi\|$ measures the phase slip in turns.
-3. **$\varphi$-structure requirement (framework principle, not a fitted number).** The organizing cycle of a $\varphi$-based framework must contain $\varphi$ among its vertex chord ratios, which first happens at the pentagon ($w = 5$).
+These hypotheses are PDE-testable only after the additional coordinate and cycle observable are explicitly implemented. Until then, the coherence labels and the $w = 5$ organizing interpretation remain Hypothesized.
 
-Everything else in §2–§5 is a mathematical theorem or a PDE-derived formula evaluated on these inputs. The tier is **Derived** conditional on input 1 (and the framework principle 3); no exponent is fitted—$w$, $g$, and $r_0$ are computed, and the Fibonacci restriction is derived.
+**Conditional construction inputs.**
+
+1. **Added coordinate.** The $w$-vertex golden-rotation coordinate, its phase/turn language, and $E(w) = \|w\varphi\|$ are stipulated definitions.
+2. **Phenomenological threshold.** The rule $E(w) \leq \varphi^{-w}$ and the one-rung-per-vertex assignment are Hypothesized inputs.
+3. **$\varphi$-geometry selection.** The chord-ratio fact is mathematical; requiring the pentagon as the physical organizing five-channel gate is an additional hypothesis.
+
+The tier for the cycle interpretation is **Hypothesized coordinate/phenomenological construction**. The Fibonacci identities, continued-fraction arithmetic, pentagon chord ratio, and the conditional evaluations of $g$ and $r_0$ are **Derived conditional on selecting that construction**. No compact phase clock, physical five-channel gate, or direct PDE coherence result is claimed here.
+
+### Asserted solver/model choice
+
+- $\lambda = 0.1$—asserted solver normalization and hypothesized Wu Xing linkage (§7); all rate, relaxation, and downstream numerical claims are conditional on this fixed choice
 
 ---
 
-## 7. The Conversion Rate $\lambda = 1/(2w) = 0.1$
+## 7. The Solver Conversion Normalization $\lambda = 0.1$
 
-The PDE conversion rate—the coefficient of the linearized conversion term
-$\partial_t E_Y \supset -\lambda(E_Y - \varphi E_I)$, $\partial_t E_I \supset +\lambda(E_Y - \varphi E_I)$
-(the code form in `two-fluid/cassi_two_fluid_3d_gpu.py`, gated by $(1-q)$)—factors into two
-structural inputs, both already present in the derived material above:
+The PDE conversion coefficient—the coefficient of the linearized conversion term
 
-**The doublet factor $1/2$.** The conversion term acts on the two-field SO(2) doublet
-$(\Psi_0, \Psi_1) = (E_Y, E_I)$. The $\varphi$-attractor potential is the two-field symmetric form
+$$\partial_t E_Y \supset -\lambda(E_Y - \varphi E_I), \qquad \partial_t E_I \supset +\lambda(E_Y - \varphi E_I)$$
+
+(the code form in `two-fluid/cassi_two_fluid_3d_gpu.py`, gated by $(1-q)$)—is an inverse-time coefficient in the solver's chosen time units. The coherence result $w = 5$ and the numerical choice $\lambda = 0.1$ are separate statements. The solver retains $\lambda = 0.1$ as an asserted normalization and hypothesized Wu Xing linkage; the factor-by-factor reading below is conditional bookkeeping, not a derivation of a dynamical rate.
+
+### 7.1 Why the factors do not derive a rate
+
+**Equal-and-opposite doublet flux is a conservation statement, not a rate calibration.** Let
+
+$$G = (1-q)(E_Y - \varphi E_I).$$
+
+The conversion contribution has the form
+
+$$\left.\partial_t E_Y\right|_{\mathrm{conv}} = -\lambda G, \qquad \left.\partial_t E_I\right|_{\mathrm{conv}} = +\lambda G.$$
+
+Therefore $\partial_t(E_Y + E_I)|_{\mathrm{conv}} = 0$ for every value of $\lambda$. Equal-and-opposite flux fixes the sign pattern and the internal redistribution of the two real density fields; it does not fix the magnitude or the timescale. In particular, it does not mean that each channel carries half of a rate. The mass-conservation check in the companion script tests this symmetry for the chosen coefficient—it cannot determine that coefficient.
+
+**The $1/2$ in the potential is a conventional normalization, not a dynamical rate.** The $\varphi$-attractor potential is written in the two-field form
 
 $$V_{\text{attr}} = \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2$$
 
-(`foundations/unified-lagrangian.md` §1.2): the $1/2$ is the standard normalization in which each
-of the two channels carries half the conversion budget. A full Yang→Yin→Yang oscillation is **two
-conversion events—one per channel leg**—so the per-channel share of one oscillation's budget is
-$1/2$. The same $2$ recurs as $\xi$'s quadratic degree ($\xi = \varphi^6 = (\pi/\rho)^{-2}$, exponent
-$6 = 3 \times 2$; `foundations/xi-derivation.md` §2.2), as the pentagonal gate's base offset
-$k_i = 2 + i$ (`foundations/wa-pentagon-gate.md`), and as the doublet's full SO(2) cycle of 2 rungs
-(`foundations/spin-fibonacci-spiral.md` §2.1).
+(`foundations/unified-lagrangian.md` §1.2). The prefactor $1/2$ is a choice of potential normalization; when the equations are formed, $\lambda$ remains the free coefficient setting the strength in the selected time units. It neither assigns half a conversion budget to each channel nor supplies the missing inverse-time scale. A conventional prefactor can be changed together with the parameter or field normalization without changing the equal-and-opposite structure.
 
-**The per-cycle event share $1/w$.** The gap $g = 1 - \varphi^{-5}$ (§5.1) is defined as the fraction
-of the primordial Yang-Yin imbalance converted in **one** pentagon cycle—each cycle completes exactly
-one conversion event. The cycle has $w = 5$ vertices, with one cascade rung advanced per vertex
-(§2.4), so the event's rate is shared across the $w$ vertex steps: the per-vertex rate is $1/w$.
-In PDE time units (the vertex step, one rung per step), the per-vertex, per-channel conversion rate is
+**One event per $w$-cycle leaves the timescale unspecified.** A statement that one conversion event occurs in one cycle supplies an event count and, at most, a dimensionless share such as $1/w$. If the cycle duration is $T_{\mathrm{cycle}}$, its frequency is set by $1/T_{\mathrm{cycle}}$; with a separately imposed half-share, a bookkeeping coefficient would be proportional to $1/(2T_{\mathrm{cycle}})$. Writing $T_{\mathrm{cycle}} = w\,\Delta t_{\mathrm{vertex}}$ makes the missing dependence explicit:
 
-$$\boxed{\lambda = \frac{1}{2}\cdot\frac{1}{w} = \frac{1}{2w} = \frac{1}{2 \times 5} = 0.1}$$
+$$\lambda_{\mathrm{bookkeeping}} = \frac{1}{2w\,\Delta t_{\mathrm{vertex}}}.$$
 
-With $w = 5$ derived (§4), $\lambda = 0.1$ follows. The value is rational: no $\varphi$-power equals
-$1/10$ (every $\varphi$-power combination has the form $A + B\varphi$, $A, B \in \mathbb{Z}$, and none
-equals $1/10$—verified numerically, §7.1), so the conversion rate never phase-locks with the
-$\varphi$-spaced cascade rungs and the pentagon's five channels remain non-overlapping (the
-de-resonance posture, `principles/de-resonance-principle.md`). This rational, non-resonant character
-was already documented as the reason $\lambda = 1/10$ is a *feature*
-(`foundations/dimensionful-constants-status.md` §2.1); §7 supplies the factor-by-factor origin of the
-value.
+Neither the coherence argument nor the event count specifies $\Delta t_{\mathrm{vertex}}$, the mapping from a vertex step to solver time, or the amount of density converted by an event. Setting $\Delta t_{\mathrm{vertex}} = 1$ in solver units and retaining the half-share gives the historical arithmetic $1/(2 \times 5) = 0.1$, but that assignment is an asserted timescale convention and hypothesized Wu Xing linkage—not a mathematical consequence of the cycle result.
 
-### 7.1 Numeric verification
+The fixed value is rational, and the finite non-resonance searches below verify that $0.1$ does not coincide with the tested $\varphi$ powers or integer combinations. This is a property of the selected normalization, not a mechanism that selects its magnitude.
 
-`computations/lambda_half_w_derivation.py` (run from repo root) verifies:
+### 7.2 Conditional numeric audit
 
-1. **$\lambda = 1/(2 \cdot 5) = 0.1$ exact**, and the $(1/2)(1/w)$ split multiplies to it.
-2. **$r_0 = \varphi^{-5}/(2 - \varphi^{-5}) = 0.0472$** (§5.2)—the derived primordial ratio, the
-   initial condition this $\lambda$ drives toward the attractor.
-3. **The attractor-approach time constant.** The two-field conversion ODE in the code form, gated at
-   the attractor gate value $(1-q_0) = \varphi^{-2}/3$, relaxes the imbalance
-   $\delta = E_Y - \varphi E_I$ as $e^{-\gamma t}$ with
-   $\gamma = \lambda(1-q_0)(1+\varphi) = \lambda/3 = 1/30$, $\tau = 30$—matching the radial relaxation
-   rate $\gamma = \lambda/3$ quoted in `foundations/spiral-dynamics.md` §2.3. The integrated ODE
-   reproduces the analytic decay to $1.1\times10^{-6}$ relative error (Euler truncation).
-4. **The $1/3$ is exact $\varphi$-algebra:** $(1-q_0)(1+\varphi) = (\varphi^{-2}/3)\cdot\varphi^2 = 1/3$
-   since $1 + \varphi = \varphi^2$.
-5. **Non-resonance:** no $\varphi^k$ ($-20 \le k \le 20$) and no $A + B\varphi$
-   ($|A|, |B| \le 1000$) equals $1/10$.
-6. **Doublet symmetry:** the conversion term is equal-and-opposite in the two channels
-   ($\partial_t E_Y = -\partial_t E_I$), conserving total mass exactly—the $1/2$-per-channel reading
-   of the budget.
-7. **$\lambda = 0.1$ consequences quoted in the docs reproduce:** the wake ratio
-   $\Lambda_\varepsilon/\Lambda_Y = 1/\sqrt{1 - 2\lambda(1-q)/\omega^2} = 1.0025$—a 0.25% correction
-   (the argument $2\lambda/\omega^2 = 0.51\%$ with $(1-q) = 1$), not a factor $\varphi$
-   (`foundations/wake-geometry.md`)—and the kinetic/conversion ratio
-   $\lambda/(c^2k^2) = 2.53\times10^{-3}$ (`foundations/cascade-suppression-formula.md`).
+`computations/lambda_half_w_derivation.py` (run from the repository root) is a conditional arithmetic and solver-consequence audit. It keeps the historical $1/(2w)$ bookkeeping calculation for continuity, but it does not present that calculation as a derivation:
 
-**Inputs.** The derivation rests on:
+1. **Arithmetic bookkeeping:** $1/(2 \cdot 5) = 0.1$ exactly, and the $(1/2)(1/w)$ split multiplies to the fixed audit value. This is a numerical consistency check, not a rate derivation.
+2. **Primordial ratio:** $r_0 = \varphi^{-5}/(2 - \varphi^{-5}) = 0.0472$ (§5.2), the $w$-conditioned initial ratio used in runs with the fixed $\lambda = 0.1$.
+3. **Conditional attractor relaxation:** with $\lambda = 0.1$ held fixed and the attractor gate $(1-q_0) = \varphi^{-2}/3$, the two-field conversion ODE relaxes $\delta = E_Y - \varphi E_I$ as $e^{-\gamma t}$ with $\gamma = \lambda(1-q_0)(1+\varphi) = \lambda/3 = 1/30$ and $\tau = 30$. The integrated ODE reproduces the analytic decay to $1.1\times10^{-6}$ relative error (Euler truncation); this verifies a consequence of the chosen coefficient.
+4. **Exact $\varphi$-algebra:** $(1-q_0)(1+\varphi) = (\varphi^{-2}/3)\cdot\varphi^2 = 1/3$ because $1 + \varphi = \varphi^2$.
+5. **Chosen-value non-resonance:** no $\varphi^k$ ($-20 \le k \le 20$) and no $A + B\varphi$ ($|A|, |B| \le 1000$) equals the selected value $0.1$.
+6. **Doublet symmetry:** the conversion term is equal-and-opposite in the two channels and conserves total mass exactly. This holds for any $\lambda$ and does not support a $1/2$ rate assignment.
+7. **Conditional downstream consequences:** at $\lambda = 0.1$, the wake ratio $\Lambda_\varepsilon/\Lambda_Y = 1/\sqrt{1 - 2\lambda(1-q)/\omega^2} = 1.0025$—a 0.25% correction (`foundations/wake-geometry.md`)—and the kinetic/conversion ratio $\lambda/(c^2k^2) = 2.53\times10^{-3}$ (`foundations/cascade-suppression-formula.md`) reproduce the quoted values.
 
-1. **The doublet conversion budget ($1/2$).** A full Yang→Yin→Yang oscillation is two conversion
-   events (one per channel leg); the two-field symmetric potential $(\lambda/2)(\Psi_0^2 - \varphi\Psi_1^2)^2$
-   carries the same $1/2$ per-channel normalization. Structural—the same $2$ as $\xi$'s quadratic
-   degree and the $b_i = \varphi^{-(2+i)}$ gate base.
-2. **One conversion event per $w$-vertex cycle ($1/w$).** The gap $g = 1 - \varphi^{-5}$ is the
-   fraction converted in one cycle (§5.1); the event's rate is shared across the $w$ vertices (one
-   cascade rung per vertex, §2.4). Structural reading of the derived gap.
-3. **$w = 5$** (§4), the PDE's linear conversion form, and its time unit (the vertex step). Derived.
+**Conditional audit inputs and tier.**
 
-The tier is **Derived conditional on inputs 1–2**: with the doublet budget and the one-event-per-cycle
-reading, $\lambda = 1/(2w) = 0.1$ is computed, not fitted. Both inputs are structural—input 1 is the
-established doublet normalization (and reproduces the existing "2 conversion events per full
-oscillation" reading of `foundations/dimensionful-constants-status.md` §2.1), and input 2 is the
-per-cycle reading of the already-derived gap—but neither is separately pinned by an independent
-measurement of $\lambda$; the numeric checks in §7.1 confirm the value's consequences, not the
-inputs' necessity.
+1. **Fixed solver normalization:** $\lambda = 0.1$ is supplied as the numerical input in solver time units; it is asserted, not independently measured or derived here.
+2. **Conditional Wu Xing bookkeeping:** $w = 5$ comes from §4. The historical $1/(2w)$ arithmetic is retained only as a hypothesized linkage under the explicit unit and half-share conventions above; the cycle's coherence does not set the rate.
+3. **Conditional ODE and gate:** the code-form conversion term, its gate, and the time unit are held fixed while consequences are checked.
 
----
+The tier for $\lambda = 0.1$ is **Asserted solver normalization / hypothesized Wu Xing linkage**. The $w = 5$ coherence result, $g$, and $r_0$ retain their §2–§5 classification; the script's arithmetic, relaxation, non-resonance, conservation, and downstream checks are conditional on selecting $\lambda = 0.1$. No independent measurement or dimensional argument in this document fixes the coefficient.
 
 ## 8. References
 
@@ -284,7 +269,7 @@ inputs' necessity.
 - `foundations/dimensionful-constants-status.md`—status of $w = 5$; §2.1 conversion-rate reading ("2 conversion events per full oscillation")
 - `computations/pinch_point_modes.py`—Candidate 2: Fibonacci convergent hierarchy
 - `computations/wu_xing_coherence_check.py`—numeric verification: Fibonacci identity, criterion over $w \leq 2000$, chord-ratio check for $n = 3 \ldots 12$
-- `computations/lambda_half_w_derivation.py`—numeric verification of §7: $\lambda = 1/(2w)$, $r_0$, the $\gamma = \lambda/3$ attractor time constant, non-resonance, doublet symmetry, $\lambda = 0.1$ doc consequences
+- `computations/lambda_half_w_derivation.py`—conditional numeric audit of the retained $1/(2w)$ bookkeeping at $\lambda = 0.1$: $r_0$, the $\gamma = \lambda/3$ attractor time constant, non-resonance, doublet symmetry, and downstream consequences
 - `foundations/spiral-dynamics.md`—Hubble, gravity, and $c$ from spiral geometry; §2.3 radial relaxation rate $\gamma = \lambda/3$
 - `foundations/unified-lagrangian.md`—the $\varphi$-attractor potential $(\lambda/2)(\Psi_0^2 - \varphi\Psi_1^2)^2$
 - `foundations/xi-derivation.md`—$\xi = \varphi^6$, the quadratic degree 2

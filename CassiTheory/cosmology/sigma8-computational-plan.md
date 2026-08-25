@@ -1,16 +1,21 @@
 # Sigma-8 Computational Plan: Modified Boltzmann Pipeline for Cassi Qi-Gravity
 
-## Status: Plan—July 2026
+## Status: Plan—August 2026
 
 ## Abstract
 
-This document is the computational plan for promoting the Cassi $\sigma_8$ prediction from Hypothesized to Derived. The mechanism is the density-dependent Qi-gravity coupling $G_{\text{eff}} = (\pi/\rho)(1+(\varphi^{6}-1)q)G_N$ with $\xi = \varphi^6$: voids see near-Newtonian gravity while filament and halo regions see an enhanced $G_{\text{eff}}$, suppressing late-time growth by ≈16% under the stabilized closure's regime-integrated growth (§3.2); the observed deficit is ≈5%; the μ normalization is Mapped; the plan's "target" rows are fit targets, not computations. The truth campaign (2026-08-07, `runs/44-truth-campaign/`) measures the pipeline's rows at the doctrine IC: the total **−22.9%** at the D = 0 re-measurement (2026-08-08, brief 63, `runs/63-sigma8-d0-rerun/`; the totals carry the diffusion — the campaign's D = 0.001 reading of the same row is −20.5%, resolution-converged N = 32/64/128, linear-P(k) IC normalization) and the mechanism-attributable **+29.7%** ($G_{\text{eff}} = 1.297$ — the doctrine $r_0$'s deep-Yin window q rises 0.30 → 0.41; r₀-dependent: +29.4% at the derived $r_0 = 0.0472$), and the "~5%" target is Mapped (ledger §10). The plan runs a high-resolution two-fluid PDE, extracts $q(k, a)$ per Fourier mode, integrates it into a modified Boltzmann solver, and validates against rotation curves, cluster masses, and $f\sigma_8$.
+This document is the computational plan for promoting the Cassi $\sigma_8$ prediction from Hypothesized to Derived. The mechanism is the density-dependent Qi-gravity coupling $G_{\text{eff}} = (\pi/\rho)(1+(\varphi^{6}-1)q_{\mathrm{solver}})G_N$ with $\xi = \varphi^6$: voids may see near-Newtonian gravity while filament and halo regions see an enhanced $G_{\text{eff}}$; the stabilized closure's full regime-integrated computation gives a $\approx16\%$ late-time suppression (§3.2), while the observed deficit is $\approx5\%$. The $\mu$ normalization is Mapped; the plan's "target" rows are fit targets, not computations. The geometric condensation fields $C$ and $B$ enter only through the separate, Hypothesized/open proxy-to-$q_{\mathrm{solver}}$ map in §2.2. The truth campaign (2026-08-07, `runs/44-truth-campaign/`) measured the pipeline's rows at the doctrine IC with the linear-P(k) normalization (pk_norm $\equiv 1$): the total **−22.9%** at the D = 0 re-measurement (2026-08-08, brief 63; the totals carry the diffusion — at the campaign's D = 0.001 the same row is −20.5%, resolution-converged N = 32/64/128; $\sigma_8{}_\Lambda$ 0.9917 vs $\sigma_8{}_\mathrm{Cassi}$ 0.7649/0.7884 at $a_f = 1.80$; see §3.2); those are pipeline outcomes, not a completed cosmological prediction.
+
+The displayed $G_{\text{eff}}$ is a coupling magnitude. The canonical
+$+\pi[1+(\varphi^6-1)q]\nabla\Phi$ force is outward for positive $\pi$; the
+attractive sign used by the Boltzmann growth equation is a separate
+Hypothesized sign-changing branch.
 
 ---
 
 ## 1. Objective
 
-Compute $\sigma_8(z)$ from the Cassi two-fluid framework by integrating the density-dependent Qi-gravity modification $G_{\text{eff}}(k, q)$ into a Boltzmann code. The current epistemic status is **Hypothesized** (qualitative match; quantitative computation pending). The truth campaign (2026-08-07, `runs/44-truth-campaign/`) measured the pipeline's rows at the doctrine IC with the linear-P(k) normalization (pk_norm ≡ 1): the total **−22.9%** at the D = 0 re-measurement (2026-08-08, brief 63; the totals carry the diffusion — at the campaign's D = 0.001 the same row is −20.5%, resolution-converged N = 32/64/128; σ₈_ΛCDM 0.9917 vs σ₈_Cassi 0.7649/0.7884 at a_f = 1.80) and the mechanism-attributable **+29.7%** (D-insensitive, Δμ 0.02 pp; $G_{\text{eff}} = 1.297$ — the deep-Yin window's q rises 0.30 → 0.41, growth enhancement; r₀-dependent: +29.4% at the derived $r_0 = 0.0472$); the doctrine (2026-08-07) replaces the "~5%" target with the computed rows: −16.6% (closure, regime-integrated, R = 0.834) and −15.2% (band-state mean-field) under the P-A relative-μ reading at the derived $r_0 = 0.0472$ (§3.2); the μ normalization remains Mapped. Reaching **Derived** requires a resolution- and normalization-controlled computation that isolates the mechanism contribution.
+Compute $\sigma_8(z)$ from the Cassi two-fluid framework by integrating the density-dependent Qi-gravity modification into a Boltzmann code; the modification uses canonical local $q_{\mathrm{solver}}$ and requires a validated scale-dependent $q_{\mathrm{eff}}(k,a)$. The current epistemic status is **Hypothesized** (qualitative match; quantitative computation pending). The truth campaign (2026-08-07, `runs/44-truth-campaign/`) measured the pipeline's rows at the doctrine IC with the linear-P(k) normalization (pk_norm ≡ 1): the total **−22.9%** at the D = 0 re-measurement (2026-08-08, brief 63; the totals carry the diffusion — at the campaign's D = 0.001 the same row is −20.5%, resolution-converged N = 32/64/128; σ₈_ΛCDM 0.9917 vs σ₈_Cassi 0.7649/0.7884 at a_f = 1.80) and the mechanism-attributable **+29.7%** (D-insensitive, Δμ 0.02 pp; $G_{\text{eff}} = 1.297$ — the deep-Yin window's $q_{\mathrm{solver}}$ rises 0.30 → 0.41, growth enhancement; r₀-dependent: +29.4% at the derived $r_0 = 0.0472$); the doctrine (2026-08-07) replaces the "~5%" target with the computed rows: −16.6% (closure, regime-integrated, R = 0.834) and −15.2% (band-state mean-field) under the P-A relative-μ reading at the derived $r_0 = 0.0472$ (§3.2); the μ normalization remains Mapped. Reaching **Derived** requires a resolution- and normalization-controlled computation that isolates the mechanism contribution.
 
 ---
 
@@ -18,56 +23,79 @@ Compute $\sigma_8(z)$ from the Cassi two-fluid framework by integrating the dens
 
 ### 2.1 Qi-Gravity Enhancement Formula
 
-The Cassi gravitational constant depends on the local Qi coherence $q$ and the geometric projection factor $\pi/\rho$:
+The $G_{\text{eff}}$ equation uses the canonical two-fluid coherence, not a geometric condensation field:
 
-$$\boxed{G_{\text{eff}}(x) = \frac{\pi}{\rho(x)}\left(1 + (\varphi^{6}-1)q(x)\right) G_N, \qquad \xi = \varphi^6 \approx 17.944}$$
+$$\boxed{G_{\text{eff}}(x) = \frac{\pi(x)}{\rho(x)}\left(1 + (\varphi^{6}-1)q_{\mathrm{solver}}(x)\right) G_N, \qquad \xi = \varphi^6 \approx 17.944}$$
 
 where:
-- $q \in [0, 1]$ is the Qi coherence quality (derived from the two-fluid Yang/Yin ratio)
-- $\pi/\rho$ is the geometric dilution factor from the two-fluid projection onto 3D space; at the $\varphi$-fixed point it is the imbalance $\alpha_0 = (\varphi-1)/(\varphi+1) = \varphi^{-3} \approx 0.236$ (the "equilibrium Yang fraction" label is Mapped—ledger row 500; the Yang fraction itself is $\varphi^{-1}$)
+- $q_{\mathrm{solver}} \in [0, 1]$ is the canonical local coherence computed from the two-fluid densities, with
+  $$q_{\mathrm{solver}} = \frac{\rho^2}{\rho^2+\varphi^{-2}+\varepsilon^2}, \qquad \rho = E_Y+E_I,\qquad \varepsilon = E_Y-\varphi E_I.$$
+  This is the quantity implemented by `two-fluid/run_sigma8_pipeline.py` and by the canonical single-gate path in `two-fluid/cassi_two_fluid_3d_gpu.py`.
+- $\pi/\rho$ is the fractional density imbalance from the two-fluid projection onto 3D space; at the $\varphi$-fixed point it is the imbalance $\alpha_0 = (\varphi-1)/(\varphi+1) = \varphi^{-3} \approx 0.236$, while the Yang component fraction is $E_Y/\rho=\varphi^{-1}$
 - $\xi = \varphi^6$ is the **derived** coupling (imbalance inverse-square $\xi = (\pi/\rho)^{-2}$, `foundations/xi-derivation.md` §2; "cascade activation at step 6" is a shorthand rung label, not a derivation)
 
-### 2.2 Density Dependence of $q$
+### 2.2 Geometric Condensation Proxies and Canonical $q_{\mathrm{solver}}$
 
-The Qi coherence $q$ is a monotonic function of local density. Translating between the large-scale condensation field $C$ (from `foundations/bubble-edge-geometry.md`) and $q$:
+The large-scale condensation field is a geometric coordinate, not the canonical solver coherence. The source geometry defines the transverse interference field
 
-$$q(C) = \frac{1 + C}{2}, \qquad C \in [-1, 1]$$
+$$C(x,y) = \cos\!\left(\frac{2\pi x}{\Lambda_Y}\right)\cos\!\left(\frac{2\pi y}{\Lambda_I}\right), \qquad \Lambda_Y = \varphi\,\Lambda_I,\qquad C \in [-1,1]$$
 
-The density traces the condensation field:
+in `foundations/bubble-edge-geometry.md`. Its 3D extension is
 
-$$\rho(C) \approx \rho_0 \cdot \max\!\left(0,\; \frac{C - \theta_{\text{cond}}}{1 - \theta_{\text{cond}}}\right)^{\!\nu},\qquad \nu \in [1, 2]$$
+$$B(x,y,z) = C(x,y)\cos(\gamma_n z), \qquad B \in [-1,1]$$
 
-Inverting: $C \to q \to G_{\text{eff}}$ gives a mapping from local density to effective gravity.
+in `foundations/bubble-lattice-fabric.md`; $B$ and $C$ therefore share the transverse factor, with $B=C$ only where $\cos(\gamma_n z)=1$, and are not identical fields for general $z$. For this computational plan, the geometric condensation proxy is the explicit squared ansatz
 
-**Two $q$ formulas—reconciliation note:** A second expression appears in `foundations/phi_attractor_synthesis.md`: $q = 1/(1 + (\rho/\rho_{\text{ref}})^2)$, which gives $q \to 1$ at low density and $q \to 0$ at high density (opposite dependence to the $C$ parameterization). These apply at different scales and are not contradictory:
+$$q_{\mathrm{proxy}}^{C}(x,y) \equiv \frac{(1+C(x,y))^2}{2}, \qquad 0 \leq q_{\mathrm{proxy}}^{C} \leq 2,$$
 
-| Parameterization | Context | Domain | $q$ in high-$\rho$ | $q$ in low-$\rho$ |
-|-----------------|---------|--------|-------------------|-------------------|
-| $q(C) = (1+C)/2$ | Cosmological LSS, $\sigma_8$ | Condensation field on Gpc/Mpc scales | Clusters: $C>0,\; q>0.5$ | Voids: $C<0,\; q<0.5$ |
-| $q = 1/(1+(\rho/\rho_{\text{ref}})^2)$ | Galaxy halo radial profile | Scale of individual virialized halos | Core: $\rho\gg\rho_{\text{ref}},\; q\to 0$ | Outskirts: $\rho\ll\rho_{\text{ref}},\; q\to 1$ |
+with $q_{\mathrm{proxy}}^{C}=0$ at $C=-1$, $q_{\mathrm{proxy}}^{C}=1/2$ at $C=0$, and $q_{\mathrm{proxy}}^{C}=2$ at $C=1$. If the 3D field is used instead, the corresponding geometric quantity is
 
-The **PDE computed $q(x)$** supersedes both analytic parameterizations for the $\sigma_8$ pipeline—it captures the true $q$ from two-fluid dynamics at all cosmic scales simultaneously. The analytic formulas are useful for understanding limiting cases and for designing initial conditions.
+$$q_{\mathrm{proxy}}^{B}(x,y,z) \equiv \frac{(1+B(x,y,z))^2}{2}, \qquad 0 \leq q_{\mathrm{proxy}}^{B} \leq 2.$$
+
+These are unnormalized geometric proxies, not bounded coherence variables. The linear interpolation $(1+C)/2\in[0,1]$ is a distinct normalized geometric candidate and is not silently identified with the squared ansatz. No derivation in the canonical two-fluid equations turns either geometric field into $q_{\mathrm{solver}}$.
+
+The density trace associated with the geometric field is a separate conditional profile:
+
+$$\rho_{\mathrm{proxy}}(C) \approx \rho_0 \cdot \max\!\left(0,\; \frac{C - \theta_{\text{cond}}}{1 - \theta_{\text{cond}}}\right)^{\!\nu},\qquad \nu \in [1, 2].$$
+
+It is not the canonical $\rho=E_Y+E_I$ until a separate density constitutive map is measured or derived. The only permitted route from the geometric construction to gravity is therefore the conditional mapping
+
+$$q_{\mathrm{solver}}=\mathcal{M}_{\mathrm{proxy}\to q}\!\left(q_{\mathrm{proxy}}^{C/B}\right)\in[0,1]\;\Longrightarrow\;G_{\mathrm{eff}} \text{ through the boxed equation above}.$$
+
+The map $q_{\mathrm{proxy}}\to q_{\mathrm{solver}}\to G_{\mathrm{eff}}$ is **Hypothesized/open**; its required bounded constitutive map has domain $\mathcal{M}_{\mathrm{proxy}\to q}:[0,2]\to[0,1]$. The displayed geometric ansatz does not supply that map, and a geometric proxy must not be fed directly into the growth equation, the canonical conversion gate, or $G_{\mathrm{eff}}$.
+
+**Two noncanonical proxy parameterizations—scale labels:** A second density-only halo expression appears in `foundations/phi_attractor_synthesis.md`:
+$q_{\mathrm{halo,proxy}} = 1/(1 + (\rho/\rho_{\text{ref}})^2)$, which gives $q_{\mathrm{halo,proxy}} \to 1$ at low density and $q_{\mathrm{halo,proxy}} \to 0$ at high density. These are application-scale proxies, not alternate definitions of $q_{\mathrm{solver}}$:
+
+| Parameterization | Context | Domain | Proxy in high-$\rho$ | Proxy in low-$\rho$ |
+|-----------------|---------|--------|----------------------|---------------------|
+| $q_{\mathrm{proxy}}^{C} = (1+C)^2/2$ | Cosmological LSS, $\sigma_8$ | Transverse condensation field on Gpc/Mpc scales | Clusters: $C>0,\;q_{\mathrm{proxy}}^{C}>0.5$ (up to 2) | Voids: $C<0,\;q_{\mathrm{proxy}}^{C}<0.5$ (down to 0) |
+| $q_{\mathrm{halo,proxy}} = 1/(1+(\rho/\rho_{\text{ref}})^2)$ | Galaxy halo radial profile | Scale of individual virialized halos | Core: $\rho\gg\rho_{\text{ref}},\;q_{\mathrm{halo,proxy}}\to 0$ | Outskirts: $\rho\ll\rho_{\text{ref}},\;q_{\mathrm{halo,proxy}}\to 1$ |
+
+When the PDE supplies $E_Y,E_I$, the pipeline computes $q_{\mathrm{solver}}(x)$ directly from the canonical formula above. That measurement neither validates nor replaces the geometric proxy. If only $C$ or $B$ is available, the proxy-to-$q_{\mathrm{solver}}$ map remains an open constitutive input.
 
 ### 2.3 Three Regimes of $G_{\text{eff}}$ (Cosmological Context)
 
-| Regime | Density | $C$ (condensation) | $q$ (coherence) | $\pi/\rho$ | $G_{\text{eff}}/G_N$ (approx) |
-|--------|---------|--------------------|-----------------|------------|------------------------------|
-| Cluster core | Very high | $\to 1$ | $\to 1$ | $\to 0$ | $\sim 1$–$3$ (geometric factor $\pi/\rho$ dilutes the $\xi$ enhancement despite high $q$) |
-| Filament / halo outskirts | Moderate | $\sim 0.45$ | $\sim 0.7$ | $\sim 0.6$ | $\sim 8$–$10$ (sweet spot: enough $q$ for enhancement, $\pi/\rho$ not yet suppressed) |
-| Void | Low | $\to -1$ | $\to 0$ | $\to 1$ | $\to 1$ (unamplified—no condensation, mean-field gravity) |
+| Regime | Density | $C$ (transverse geometry) | $q_{\mathrm{proxy}}^{C}$ (geometric) | $q_{\mathrm{solver}}$ (canonical) | $\pi/\rho$ | $G_{\text{eff}}/G_N$ (conditional magnitude) |
+|--------|---------|---------------------------|--------------------------------------|------------------------------------|------------|-------------------------------------|
+| Cluster core | Very high | $\to 1$ | $\to 2$ | Must be measured; not set by the proxy | $\to 0$ | No magnitude follows from the geometric proxy; evaluate the local $(\pi/\rho,q_{\mathrm{solver}})$ state |
+| Filament / halo outskirts | Moderate | $\sim 0.45$ | $\sim 1.05$ | Must be measured; not set by the proxy | $\sim 0.6$ | No fixed range follows from the proxy; evaluate the local $(\pi/\rho,q_{\mathrm{solver}})$ state |
+| Void | Low | $\to -1$ | $\to 0$ | Must be measured; not set by the proxy | $\to 1$ | $\to 1$ only when the local state independently gives $q_{\mathrm{solver}}\to0$ and $\pi/\rho\to1$ |
 
-The $\sigma_8$ tension arises because low-density regions (voids, filament edges) have $G_{\text{eff}} \approx G_N$, while early-universe structure formation assumed $\Lambda$CDM with $G_{\text{eff}} = G_N$ everywhere. The scale dependence enters because different Fourier modes $k$ sample different distributions of $q$, and $\sigma_8$ at $R = 8\,h^{-1}$Mpc averages over the filament-void network.
+These rows are conditional regime descriptions, not a global bound. On the fixed-composition $\varphi$-attractor branch, holding $\pi/\rho=\varphi^{-3}$ while density carries $q_{\mathrm{solver}}$ from the dilute limit toward $1$ gives the branch-specific range $\varphi^{-3}\to\varphi^3$; off that branch, the coupled local $(\pi/\rho,q_{\mathrm{solver}})$ state requires its own constitutive domain.
 
-### 2.4 $q$ Evolution with Redshift
+The $\sigma_8$ tension arises because low-density regions (voids, filament edges) may have $G_{\text{eff}} \approx G_N$ under the measured canonical $q_{\mathrm{solver}}$ and density, while early-universe structure formation assumed $\Lambda$CDM with $G_{\text{eff}} = G_N$ everywhere. The scale dependence enters because different Fourier modes $k$ sample different distributions of $q_{\mathrm{solver}}$, and $\sigma_8$ at $R = 8\,h^{-1}$Mpc averages over the filament-void network.
 
-The pipeline simulation at the operational $r_0 = 1/23$ (the doctrine IC; the non-doctrinal orphan is $r_0 = 1/3$, 27 §2) shows the cosmic-mean $q$ **increasing** with time from a deep-Yin start (truth campaign 2026-08-07, N = 128):
+### 2.4 $q_{\mathrm{solver}}$ Evolution with Redshift
 
-- $q \approx 0.30$ at $a = 1.0$ ($z \approx 0$; pipeline IC)
-- $q \approx 0.41$ at $a = 1.80$ (pipeline endpoint)
+The pipeline simulation at the operational $r_0 = 1/23$ (the doctrine IC; the non-doctrinal orphan is $r_0 = 1/3$, 27 §2) shows the cosmic-mean canonical $q_{\mathrm{solver}}$ **increasing** with time from a deep-Yin start (truth campaign 2026-08-07, N = 128):
 
-These are the doctrine-IC pipeline values: the operational $r_0 = 1/23$ and the derived $r_0 = 0.0472$ are indistinguishable for $\sigma_8$ (0.3 pp at N = 128 — 27 §2.2, verified 2026-08-07); the pipeline's run window is mid-relaxation—the stabilized closure's attractor ($q = 0.79$ at $r_* = 0.9503$; `cassi-psychology.md` §12) is the framework's settled state, reached beyond the pipeline's window, with a different $\mu$ history (the computed rows of §3.2). The $q(z)$ evolution is the key input to the $\sigma_8$ pipeline: if $q$ were constant, there would be no $\sigma_8$ shift since $\mu(k,a)$ would be time-independent and absorbed into the normalization.
+- $q_{\mathrm{solver}} \approx 0.30$ at $a = 1.0$ ($z \approx 0$; pipeline IC)
+- $q_{\mathrm{solver}} \approx 0.41$ at $a = 1.80$ (pipeline endpoint)
 
-At very early times ($z > 1000$, prior to recombination), the universe is nearly homogeneous and $C \approx 0$, so $q \approx 0.5$ from the condensation-field parameterization. However, the PDE's $q(z)$ shows values above 0.5 in the early post-inflation era, approaching 1 at the $r \gg \varphi$ limit (pure Yang). The pipeline should use PDE-extracted $q(z)$ directly for all epochs.
+These are the doctrine-IC pipeline values: the operational $r_0 = 1/23$ and the derived $r_0 = 0.0472$ are indistinguishable for $\sigma_8$ (0.3 pp at N = 128 — 27 §2.2, verified 2026-08-07); the pipeline's run window is mid-relaxation—the stabilized closure's attractor ($q_{\mathrm{solver}} = 0.79$ at $r_* = 0.9503$; `cassi-psychology.md` §12) is the framework's settled state, reached beyond the pipeline's window, with a different $\mu$ history (the computed rows of §3.2). The $q_{\mathrm{solver}}(z)$ evolution is the key input to the $\sigma_8$ pipeline: if $q_{\mathrm{solver}}$ were constant, there would be no $\sigma_8$ shift since $\mu(k,a)$ would be time-independent and absorbed into the normalization.
+
+At very early times ($z > 1000$, prior to recombination), the universe is nearly homogeneous and $C \approx 0$, so the explicit geometric plan ansatz gives $q_{\mathrm{proxy}}^{C} \approx 0.5$. This does not determine $q_{\mathrm{solver}}$. The PDE's canonical $q_{\mathrm{solver}}(z)$ shows values above 0.5 in the early post-inflation era; a pure-Yang composition ($r \gg \varphi$) does not by itself imply $q_{\mathrm{solver}}\to1$, because that limit requires $\varepsilon\to0$ together with high density. The pipeline should use PDE-extracted $q_{\mathrm{solver}}(z)$ directly for all epochs; a $C$- or $B$-based proxy requires the open constitutive map in §2.2.
 
 ---
 
@@ -80,17 +108,21 @@ In the linear regime, the matter overdensity $\delta_m(k, a)$ satisfies:
 $$\delta_m'' + \left(2 + \frac{H'}{H}\right)\delta_m' - \frac{3}{2}\,\Omega_m(a)\,\mu(k, a)\,\delta_m = 0$$
 
 where $\mu(k, a) = G_{\text{eff}}(k, a)/G_N$ and primes denote $d/d\ln a$.
+The minus sign in this growth equation is the standard attractive-growth
+branch. The canonical PDE force convention has the opposite outward sign for
+positive $\pi$, so this cosmological growth path remains conditional on the
+separate Hypothesized sign-changing extension.
 
-For $\Lambda$CDM ($\mu = 1$), the growth factor $D(a) \propto a$ in EdS, and $D(a) \propto a^{\Omega_m^{0.55}}$ in $\Lambda$CDM.
+For $\Lambda$CDM ($\mu = 1$), the growth factor is $D(a) \propto a$ in EdS; in $\Lambda$CDM the growth rate is approximated by $f=d\ln D/d\ln a \approx \Omega_m(a)^{0.55}$, so $D(a)$ is not generally a single power law.
 
-For Cassi ($\mu \neq 1$), growth is enhanced at early times (high $q$) and suppressed at late times (low $q$) relative to a constant-G baseline, because $\mu(a)$ tracks $q(a)$.
+For Cassi ($\mu\neq1$), the growth response follows the measured $q_{\mathrm{solver}}(a)$ through $\mu(k,a)$. In this doctrine run, both $q_{\mathrm{solver}}$ and $\mu$ increase over the simulated window; there is no generic early-enhanced/late-suppressed rule. The total $\sigma_8$ outcome also includes diffusion and other pipeline terms, so it cannot be inferred from the $q_{\mathrm{solver}}$ trend alone.
 
 ### 3.2 Effective $\mu$ from the Pipeline
 
 The PDE pipeline (`two-fluid/run_sigma8_pipeline.py`) at the operational $r_0 = 1/23$ with the linear-P(k) IC normalization (the truth campaign 2026-08-07, N = 32/64/128) gives:
 
-- $q_{\text{initial}} = 0.300$, $q_{\text{final}} = 0.405$ (spatial mean, N = 128)
-- $G_{\text{eff}}/G_{\text{ref}} = 1.297$ (the deep-Yin window's q rises — the mechanism-attributable row +29.7%; r₀-dependent: +29.4% at the derived $r_0 = 0.0472$)
+- $q_{\mathrm{solver,initial}} = 0.300$, $q_{\mathrm{solver,final}} = 0.405$ (spatial mean, N = 128)
+- $G_{\text{eff}}/G_{\text{ref}} = 1.297$ (the deep-Yin window's $q_{\mathrm{solver}}$ rises — the mechanism-attributable row +29.7%; r₀-dependent: +29.4% at the derived $r_0 = 0.0472$)
 - the measured total $\Delta\sigma_8 = -22.9\%$ at the D = 0 re-measurement (2026-08-08, brief 63; σ₈_Cassi 0.7649); at the campaign's D = 0.001 the same row is **−20.5%** (resolution-converged; σ₈_ΛCDM 0.9917 vs σ₈_Cassi 0.7884 at a_f = 1.80) — the totals carry the diffusion
 
 The mechanism row is resolution-converged to 0.1 pp across N ∈ {32, 64, 128}; the framework's computed $\sigma_8$ rows are the band-state mean-field and the regime-integrated closure below.
@@ -106,33 +138,33 @@ In the matter-dominated era where $D \propto a^p$ with $p = \frac{-1 + \sqrt{1 +
 
 The 0.950/0.980 rows are estimated/target rows—**NOT predictions**; the computed rows: $\mu = 1.297 \to +116.2\%$ (the EdS power-law reading of the pipeline's measured spatial-mean $\mu$ at the doctrine $r_0 = 1/23$ — the campaign's μ-only statistic, the reconciliation's row σ₈(P·G_eff²) = G_eff·σ₈(P), is +29.7%; the EdS power law overstates sign-changing μ histories, 45), $\mu = 0.9414 \to -15.2\%$ (band-state mean-field), and the regime-integrated closure **−16.6% (R = 0.834)** under the P-A relative-μ reading at the derived $r_0 = 0.0472$; the measured total (density field vs ΛCDM linear growth) is **−22.9%** at D = 0 (brief 63) and **−20.5%** at the campaign's D = 0.001 (resolution-converged N=32/64/128, linear-P(k) IC normalization; the totals carry the diffusion); the $\mu = 0.980$ row is a fit target, not a computation.
 
-**The $\mu = 0.98$ row is a fit target, not a computation**—no framework computation yields $\mu = 0.98$; the stabilized closure's window mean is $\mu \approx 0.94$, whose regime-integrated growth gives −16.6% (R = 0.834, §3.2). The observed weak-lensing deficit is ≈5%; the "~5%" σ8 wording conflated that deficit with a prediction. The measured rows (2026-08-07 truth campaign, linear-P(k) IC normalization, N = 32/64/128; D-pin re-measurement 2026-08-08, brief 63): the total **−22.9%** (D = 0, the doctrine default) / **−20.5%** (D = 0.001 campaign — the totals carry the diffusion) and the mechanism-attributable **+29.7%** (D-insensitive; $G_{\text{eff}} = 1.297$ — the doctrine r₀'s deep-Yin window q rises 0.30 → 0.41; r₀-dependent: +29.4% at the derived r₀ = 0.0472); the ~5% number enters through the chosen μ, it does not emerge from the dynamics.
+**The $\mu = 0.98$ row is a fit target, not a computation**—no framework computation yields $\mu = 0.98$; the stabilized closure's window mean is $\mu \approx 0.94$, whose regime-integrated growth gives −16.6% (R = 0.834, §3.2). The observed weak-lensing deficit is ≈5%; the "~5%" σ8 wording conflated that deficit with a prediction. The measured rows (2026-08-07 truth campaign, linear-P(k) IC normalization, N = 32/64/128; D-pin re-measurement 2026-08-08, brief 63): the total **−22.9%** (D = 0, the doctrine default) / **−20.5%** (D = 0.001 campaign — the totals carry the diffusion) and the mechanism-attributable **+29.7%** (D-insensitive; $G_{\text{eff}} = 1.297$ — the doctrine r₀'s deep-Yin window $q_{\mathrm{solver}}$ rises 0.30 → 0.41; r₀-dependent: +29.4% at the derived r₀ = 0.0472); the ~5% number enters through the chosen μ, it does not emerge from the dynamics.
 
 ### 3.3 What the Measured Total Is
 
-The pipeline's measured total is **−22.9%** at the D = 0 re-measurement (2026-08-08, brief 63, N=128, the doctrine default; σ₈_Cassi 0.7649) and **−20.5%** at the campaign's D = 0.001 (resolution-converged at N = 32/64/128 with the linear-P(k) IC normalization) — the totals carry the diffusion (Δ 2.37 pp). Both are the sum of the mechanism row (+29.7%, D-insensitive: the deep-Yin window's rising q enhances growth) and the box's own growth deficit (at D = 0.001 δ_rms falls 15.7% at N=128 while ΛCDM linear growth rises +24% — the density fluctuations fail to grow by the linear factor; at D = 0 δ_rms rises +64.1% — the un-damped high-k content grows — while the σ₈-window power is still suppressed relative to ΛCDM linear growth; the expanding-box dynamics' H-drag/force saturation, a regime/transport property of the machinery, not a resolution artifact). The structural notes:
+The pipeline's measured total is **−22.9%** at the D = 0 re-measurement (2026-08-08, brief 63, N=128, the doctrine default; σ₈_Cassi 0.7649) and **−20.5%** at the campaign's D = 0.001 (resolution-converged at N = 32/64/128 with the linear-P(k) IC normalization) — the totals carry the diffusion (Δ 2.37 pp). Both are the sum of the mechanism row (+29.7%, D-insensitive: the deep-Yin window's rising $q_{\mathrm{solver}}$ enhances growth) and the box's own growth deficit (at D = 0.001 δ_rms falls 15.7% at N=128 while ΛCDM linear growth rises +24% — the density fluctuations fail to grow by the linear factor; at D = 0 δ_rms rises +64.1% — the un-damped high-k content grows — while the σ₈-window power is still suppressed relative to ΛCDM linear growth; the expanding-box dynamics' H-drag/force saturation, a regime/transport property of the machinery, not a resolution artifact). The structural notes:
 
-1. **Scale-independent $q$:** The mechanism row uses the spatial mean of $q$ across all modes. On $\sigma_8$ scales ($R = 8\,h^{-1}$Mpc, $k \sim 0.1$–$1\,h$/Mpc), the volume is dominated by the filament-void network where $q$ is closer to the mean field value, not the extreme core value.
+1. **Scale-independent $q_{\mathrm{solver}}$:** The mechanism row uses the spatial mean of the canonical $q_{\mathrm{solver}}$ across all modes. On $\sigma_8$ scales ($R = 8\,h^{-1}$Mpc, $k \sim 0.1$–$1\,h$/Mpc), the volume is dominated by the filament-void network where $q_{\mathrm{solver}}$ is closer to the mean field value, not the extreme core value.
 
 2. **Resolution:** The mechanism row is converged to 0.1 pp across N ∈ {32, 64, 128}; the absolute σ₈ levels are convention-dependent (the linear-P(k) integral is the convention), the percentage ratios are convention-robust.
 
-3. **Run window ($a_{\text{final}} = 1.80$):** The window is mid-relaxation—q rises 0.30 → 0.41, the attractor's 0.79 not reached in the pipeline's t = 1.5 window—so +29.7% is the pipeline's run-window reading; the full z-window integration is 20/27's machinery, fed by the converged N=128 μ(t) histories.
+3. **Run window ($a_{\text{final}} = 1.80$):** The window is mid-relaxation—$q_{\mathrm{solver}}$ rises 0.30 → 0.41, the attractor's 0.79 not reached in the pipeline's $t = 1.5$ window—so +29.7% is the pipeline's run-window reading; the full z-window integration is 20/27's machinery, fed by the converged N=128 $\mu(t)$ histories.
 
 ### 3.4 Why the Suppression is Scale-Dependent
 
 The suppression is **not uniform** across $k$ because:
 
-- **Large scales ($k \ll k_Y \sim 0.03\,h$/Mpc):** These modes average over many bubbles. The effective $q$ is the cosmic-mean $q$, giving $\mu(k)$ close to the mean value. Growth is enhanced at early times (high $q$) and suppressed at late times, with partial cancellation.
+- **Large scales ($k \ll k_Y \sim 0.03\,h$/Mpc):** These modes average over many bubbles. The effective $q_{\mathrm{solver}}$ is the cosmic-mean canonical value, giving $\mu(k)$ close to the mean value. A separately **Hypothesized** scale-dependent $q_{\mathrm{solver}}(k,a)$ trajectory with high $q_{\mathrm{solver}}$ at early times and low $q_{\mathrm{solver}}$ at late times could enhance then suppress growth, with partial cancellation; this is not the trajectory measured by the doctrine run, where $q_{\mathrm{solver}}$ and $\mu$ rise over the simulated window.
 
-- **Intermediate scales ($k \sim 0.1$–$1\,h$/Mpc, $\sigma_8$ range):** These modes sample within individual bubbles. The $q$ distribution is bimodal—high $q$ in condensing regions, low $q$ in voids. The volume-weighted mean $q$ determines $\mu_{\text{eff}}$, giving a net suppression.
+- **Intermediate scales ($k \sim 0.1$–$1\,h$/Mpc, $\sigma_8$ range):** These modes sample within individual bubbles. The canonical $q_{\mathrm{solver}}$ distribution is bimodal—high $q_{\mathrm{solver}}$ in condensing regions, low $q_{\mathrm{solver}}$ in voids. The volume-weighted mean $q_{\mathrm{solver}}$ determines $\mu_{\text{eff}}$, giving a net suppression. A geometric $q_{\mathrm{proxy}}^{C/B}$ distribution cannot be used here without the open constitutive map in §2.2.
 
-- **Small scales ($k \gg 1\,h$/Mpc):** These modes are inside virialized halos where $q$ is determined by local dynamics. The $q$ is higher, so $G_{\text{eff}}$ is enhanced—but this enters the nonlinear regime where perturbation theory breaks down and N-body is needed.
+- **Small scales ($k \gg 1\,h$/Mpc):** These modes are inside virialized halos where $q_{\mathrm{solver}}$ is determined by local dynamics. The $q_{\mathrm{solver}}$ is higher, so $G_{\mathrm{eff}}$ is enhanced—but this enters the nonlinear regime where perturbation theory breaks down and N-body is needed.
 
 The net effect on $\sigma_8$ is the integral over all $k$ with the top-hat window $W(kR)$, where $R = 8\,h^{-1}$Mpc. The $k$-dependence of $\mu(k, a)$ is what the Boltzmann code must compute.
 
 ### 3.5 Refined Analytic Estimate
 
-Using $q(z)$ from the PDE and integrating the growth equation numerically with $\mu(k,a) = (\pi/\rho(a))(1 + (\varphi^{6}-1)q(a))$, parameterizing the $k$-dependence as a smooth transition between void ($k$ small, $q \to 0$) and cluster ($k$ large, $q \to \langle q\rangle$) regimes, the estimated suppression is:
+Using $q_{\mathrm{solver}}(z)$ from the PDE and integrating the growth equation numerically with $\mu(k,a) = (\pi/\rho(a))(1 + (\varphi^{6}-1)q_{\mathrm{solver}}(a))$, parameterizing the $k$-dependence as a smooth transition between void ($k$ small, $q_{\mathrm{solver}} \to 0$) and cluster ($k$ large, $q_{\mathrm{solver}} \to \langle q_{\mathrm{solver}}\rangle$) regimes, the estimated suppression is:
 
 $$\boxed{\frac{\sigma_8^{\text{Cassi}}}{\sigma_8^{\Lambda\text{CDM}}} \approx 0.90\text{--}0.95 \quad \Rightarrow \quad \Delta\sigma_8/\sigma_8 \approx -5\%\text{ to }-10\%}$$
 
@@ -152,13 +184,17 @@ This matches:
 ### 4.1 Overview
 
 ```
-PDE Simulation       q(k,z) Extraction      Boltzmann Solver         Sigma8
-(q(x,t) field)  -->  (q per Fourier mode)--> (modified CLASS)  -->  (σ₈(z))
-     |                      |                       |
-     |-- q(x) at each a     |-- q(k) = FFT(q(x))    |-- μ(k,a) = (π/ρ)(1+(φ⁶−1)q(k,a))
-     |-- ρ(x) at each a     |-- ρ average            |-- Poisson: k²Φ = -4πG·μ·a²ρδ
-     |-- resolution N≥64    |-- bin in k             |-- Modified growth + C_ℓ
+PDE Simulation       q_eff(k,z) Estimator (open)   Boltzmann Solver         Sigma8
+(q_solver(x,t); C/B   --> (cross/auto spectra) --> (validated bounded q_eff) --> (modified CLASS) --> (σ₈(z))
+ optional diagnostic)
+     |                         |                       |
+     |-- q_solver(x) at each a |-- S_qρ(k), S_ρρ(k)   |-- μ(k,a) = (π/ρ)(1+(φ⁶−1)q_eff(k,a))
+     |-- ρ(x) at each a        |-- shell/bin + checks   |-- Poisson: k²Φ = -4πG·μ·a²ρδ
+     |-- C/B kept separate     |-- threshold/regularize |-- Modified growth + C_ℓ
+     |-- resolution N≥64       |                         |
 ```
+
+The PDE supplies the canonical $q_{\mathrm{solver}}(x,a)\in[0,1]$ computed from $E_Y,E_I$. A scale-dependent $q_{\mathrm{eff}}(k,a)$ is a derived effective quantity, not a Fourier coefficient and not automatically bounded. It may enter the growth equation or CLASS only after a shell/bin estimator, denominator threshold or regularization, and validation establish a bounded $q_{\mathrm{eff}}\in[0,1]$. The geometric $C$/$B$ proxies are optional diagnostics and are not substituted into this path. If a run supplies only a geometric proxy, the separate $\mathcal{M}_{\mathrm{proxy}\to q}$ map in §2.2 must be measured or derived before any bounded effective table can be constructed; that constitutive step is Hypothesized/open.
 
 ### 4.2 Step 1: High-Resolution PDE Simulation
 
@@ -169,38 +205,34 @@ PDE Simulation       q(k,z) Extraction      Boltzmann Solver         Sigma8
 - ICs: Eisenstein-Hu transfer function at $z=100$ ($a=0.01$)
 - Box size: $L = 256\,h^{-1}$Mpc (to capture $\sigma_8$ scales $k \sim 0.1$–$1\,h$/Mpc)
 - Duration: $a_{\text{init}} = 0.01$ to $a_{\text{final}} = 1.0$ ($z=0$)
-- Output: Density $\rho(x, a)$ and Qi coherence $q(x, a)$ at $N_a \sim 50$ snapshots
+- Output: canonical $q_{\mathrm{solver}}(x, a)$, density $\rho(x, a)$, and optional geometric $C/B$ diagnostics at $N_a \sim 50$ snapshots
 
 **Outputs:**
-- `q_grid_{a}.npy`: $q(x)$ at each scale factor
-- `rho_grid_{a}.npy`: $\rho(x)$ at each scale factor
+- `q_solver_grid_{a}.npy`: canonical $q_{\mathrm{solver}}(x)$ at each scale factor
+- `rho_grid_{a}.npy`: canonical $\rho(x)$ at each scale factor
+- `q_proxy_grid_{a}.npy` (optional): geometric $q_{\mathrm{proxy}}^{C/B}$, never a replacement for the canonical grid
 
-### 4.3 Step 2: $q(k, z)$ Extraction
+### 4.3 Step 2: Scale-Dependent Effective-Coherence Estimator (Open)
 
-**What:** Fourier transform the $q(x)$ field to get $q(k)$ per mode.
+**What:** Construct a scale-dependent $q_{\mathrm{eff}}(k,z)$ candidate from the canonical real-space $q_{\mathrm{solver}}(x,z)$ and $\rho(x,z)$. A Fourier coefficient of the bounded local field is not itself a bounded canonical coherence.
 
-**Method:**
+**Illustrative cross-spectrum diagnostic, not a production estimator:**
 ```python
-def extract_qk(q_grid, rho_grid, box_size):
+def form_qrho_cross_spectra(q_solver_grid, rho_grid, box_size):
     """
-    Extract scale-dependent Qi coherence q(k, a).
+    Form diagnostic density-weighted cross/auto spectra.
 
-    For each scale factor a, compute:
-    1. Density-weighted q(k): weighted by ρ(x) to get the
-       effective coherence affecting gravitational dynamics
-    2. Volume-weighted q(k): to understand the geometric distribution
-
-    Returns:
-        q_k: array of shape (N_k, N_a)—q per k-bin per redshift
+    The returned shell diagnostics are not q_eff(k) and must not be
+    passed directly to the growth equation or CLASS.
     """
-    # FFT of q(x) * ρ(x) / FFT of ρ(x) for density-weighted q(k)
-    q_rho_k = np.fft.rfftn(q_grid * rho_grid) / np.fft.rfftn(rho_grid)
-    # Bin in |k|
-    q_k_binned = bin_in_k(q_rho_k, box_size)
-    return q_k_binned
+    qrho_k = np.fft.rfftn(q_solver_grid * rho_grid)
+    rho_k = np.fft.rfftn(rho_grid)
+    cross_qrho = qrho_k * np.conj(rho_k)
+    auto_rho = rho_k * np.conj(rho_k)
+    return bin_in_k(cross_qrho, auto_rho, box_size)
 ```
 
-**Critical physics:** The density-weighted $q(k)$ at each $k$ gives the effective coherence for Fourier mode $k$. Low-$k$ modes sample the mean density (including voids), while high-$k$ modes sample high-density clumps.
+The diagnostic requires a separately specified shell/bin estimator, Fourier mean and window convention, and denominator threshold or regularization before any ratio is considered. The candidate can be complex or undefined/noisy in shells with weak density power and has no automatic $[0,1]$ bound. Validation must compare any proposed bounded $q_{\mathrm{eff}}(k,z)$ against the real-space canonical field, volume- and density-weighted means, resolution changes, and independent closure checks. The cross-spectrum output is not an admissible direct $q_{\mathrm{solver}}(k)$ extraction. A geometric $q_{\mathrm{proxy}}^{C/B}(k)$ remains diagnostic-only and requires the open proxy-to-$q_{\mathrm{solver}}$ map before any constitutive use.
 
 ### 4.4 Step 3: Modified Boltzmann Code (CLASS)
 
@@ -209,18 +241,23 @@ def extract_qk(q_grid, rho_grid, box_size):
 Modify the linear growth equation outside CLASS:
 
 ```python
-def compute_sigma8_cassi(q_k_z, cosmology_params):
+def compute_sigma8_cassi(q_eff_k_z, cosmology_params):
     """
-    Compute σ₈(z) from modified growth.
+    Compute σ₈(z) from modified growth using a validated bounded
+    effective-coherence table q_eff(k, z), not raw Fourier coefficients.
 
     For each k, solve:
     δ'' + (2 + H'/H)δ' - (3/2)Ω_m(a)μ(k,a)δ = 0
 
-    where μ(k,a) = (π/ρ_mean(a))(1 + (φ⁶−1)q(k,a))
+    where μ(k,a) = (π/ρ_mean(a))
+                       (1 + (φ⁶−1)q_eff(k,a)).
+    A geometric q_proxy(C/B) cannot be passed as q_eff here.
     """
     for k_idx in range(N_k):
         for a_idx in range(N_a):
-            mu = (pi_over_rho_mean[a_idx]) * (1 + XI * q_k_z[k_idx, a_idx])
+            mu = (pi_over_rho_mean[a_idx]) * (
+                1 + (XI - 1.0) * q_eff_k_z[k_idx, a_idx]
+            )
             # Modified growth
             growth_factor[k_idx, a_idx] = solve_growth_eq(mu, cosmology)
     # P(k,z) = D(k,z)² × P(k, z_init)
@@ -248,14 +285,15 @@ Modify CLASS source code (`source/perturbations.c` or similar) to implement $\mu
    
    double mu = 1.0;
    if (pvec->mu_cassi > 0) {
-       mu = (pi_over_rho) * (1.0 + pvec->xi_cassi * q_k(a, k));
-       // q_k(a,k) interpolated from PDE snapshots or parameterized
+       mu = (pi_over_rho) * (1.0 + (pvec->xi_cassi - 1.0) * q_eff_k(a, k));
+       // q_eff_k(a,k) is a validated bounded effective-coherence table
+       // constructed only after the open estimator in §4.3 is validated
    }
    // Scale-dependent modification
    ps->poisson_equation_factor *= mu;
    ```
 
-3. **Interpolate $q(k, a)$**: Read the binned $q(k)$ from PDE and create a 2D interpolation table $q(k, a)$.
+3. **Interpolate validated $q_{\mathrm{eff}}(k, a)$**: Read the shell/bin candidate diagnostics and construct a bounded effective-coherence table only after the estimator, denominator treatment, and validation in §4.3 are specified. A $q_{\mathrm{proxy}}^{C/B}$ table cannot be used without the separately measured $\mathcal{M}_{\mathrm{proxy}\to q}$ map.
 
 **Option C: CLASS MG parameterization (preferred)**
 
@@ -263,7 +301,7 @@ CLASS has a built-in modified gravity framework (via `Omega_Lambda` and growth p
 
 ```python
 # In CLASS, use the MG parameterization:
-# G_eff(k, z) / G_N = μ(k, z) = (π/ρ_mean(z)) * (1 + ξ * q_interp(k, z))
+# G_eff(k, z) / G_N = μ(k, z) = (π/ρ_mean(z)) * (1 + (ξ - 1) * q_eff_interp(k, z))
 # 
 # The PPF module accepts μ(k, z) as a function of k and z.
 # See CLASS documentation on mu(k,z) and gamma(k,z) functions.
@@ -290,51 +328,55 @@ The output is $\sigma_8(z)$ for direct comparison with:
 
 | Check | Method | Expected |
 |-------|--------|----------|
-| $\mu = 1$ limit | Set $\xi = 0$ | $\Lambda$CDM $\sigma_8$ reproduced |
+| $\mu = 1$ limit | Disable the Cassi modification or set the effective $\mu(k,a)$ table identically to $1$ | $\Lambda$CDM $\sigma_8$ reproduced |
 | $\xi = \varphi^6$ | Full Cassi | the measured rows of §3.2: total −22.9% (D=0) / −20.5% (D=0.001), mechanism +29.7% |
-| $k$-independent $q$ | Set $q(k) = \langle q \rangle$ | Matches existing pipeline within 20% |
+| $k$-independent $q_{\mathrm{solver}}$ | Set $q_{\mathrm{solver}}(k) = \langle q_{\mathrm{solver}} \rangle$ | Matches existing pipeline within 20% |
 | Resolution convergence | $N=32 \to 64 \to 128$ | $\sigma_8$ stabilizes to $\pm 2\%$ |
 | Growth rate $f\sigma_8$ | Compare with RSD data | Consistent with DESI/BOSS |
 
 ---
 
-## 5. Data Constraints on $q(r, z)$
+## 5. Data Constraints on $q_{\mathrm{solver}}(r, z)$
 
 ### 5.1 Galaxy Rotation Curves (Current)
 
 From MW rotation curve analysis (`cosmology/observational_constraints.md` §2.6):
 
-$$v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)} \approx 2.7 \;\Rightarrow\; q_{\text{MW}} = \frac{(2.7^2/0.7) - 1}{16.944} \approx 0.56$$
+$$v_C/v_B = \sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q_{\mathrm{solver}})} \approx 2.7 \;\Rightarrow\; q_{\mathrm{solver,MW}} = \frac{(2.7^2/0.7) - 1}{16.944} \approx 0.56$$
 
-(The rotation section's own values 2.8–3.0 give $q = 0.60$–$0.70$.)
+The ratio $2.7$ is the central value of the model-derived comparison
+$190\pm20$ km/s divided by $70\pm15$ km/s; its propagated uncertainty is
+approximately $\pm0.65$, with additional baryonic-baseline uncertainty. The
+rotation section's conditional branch values $2.8$–$3.0$ therefore provide a
+comparison range rather than a direct observed boost.
 
-This constrains $q$ in galaxy halos at $\rho \sim 10^{-2}$–$10^{-3}$ atoms/cm³. It is a local, $z\approx0$ constraint. This $q$ value is consistent with the filament/halo-outskirt regime in Section 2.3.
+This constrains the canonical $q_{\mathrm{solver}}$ in galaxy halos at $\rho \sim 10^{-2}$–$10^{-3}$ atoms/cm³. It is a local, $z\approx0$ constraint. This value is consistent with the filament/halo-outskirt regime in Section 2.3, but it is not inferred from $q_{\mathrm{proxy}}^{C/B}$.
 
 ### 5.2 Galaxy Cluster Masses
 
-For massive clusters ($M \sim 10^{14}$–$10^{15} M_\odot$), the mass discrepancy between X-ray and weak-lensing hydrostatic masses constrains $G_{\text{eff}}$:
+For massive clusters ($M \sim 10^{14}$–$10^{15} M_\odot$), X-ray hydrostatic and weak-lensing mass comparisons could constrain a modified gravitational response, but only after an explicit forward model for both observables. Hydrostatic mass inference has a $G^{-1}$ dependence under specified equilibrium assumptions; the weak-lensing response depends on the metric potentials and the lensing calibration, so the Cassi two-fluid equations do not establish $M_{\text{WL}}\propto G$.
 
-$$M_{\text{X-ray}} \propto G^{-1}, \qquad M_{\text{WL}} \propto G$$
-
-The ratio $M_{\text{X-ray}}/M_{\text{WL}} = \mu^{-1}$ gives a direct measurement of $G_{\text{eff}}/G_N$ in cluster outskirts ($\rho \sim 10^{-4}$ atoms/cm³).
+Consequently, $M_{\text{X-ray}}/M_{\text{WL}}=\mu^{-1}$ is not a direct Cassi measurement. A cluster constraint remains a future conditional test requiring the hydrostatic, lensing, baryonic, and screening model to be specified.
 
 ### 5.3 Void Profiles (Future, Strongest Test)
 
-Low-density voids ($\rho \lesssim 0.1$ mean density) should have $q \to 0$ and $G_{\text{eff}} \to G_N$. The void ellipticity and outflow velocity profile are sensitive to $G_{\text{eff}}$:
+Low-density voids ($\rho \lesssim 0.1$ mean density) may approach a low-$q_{\mathrm{solver}}$ state. The limit $G_{\text{eff}}\to G_N$ additionally requires a local state with $\pi/\rho\to1$ and the attractive sign extension; low $q_{\mathrm{solver}}$ alone does not establish that limit. The geometric $C\to-1$ limit gives only $q_{\mathrm{proxy}}^{C}\to0$ and does not fix either canonical factor without the open map in §2.2.
 
-- In $\Lambda$CDM: voids expand isotropically (in the mean), with outflow velocity $\propto H_0 r$
-- In Cassi: voids have **weaker gravity** inside, so outflow is faster than $\Lambda$CDM
-- Observable: void-galaxy cross-correlation function (VGCF) from DESI/SDSS
+The void ellipticity and outflow velocity profile are sensitive to $G_{\text{eff}}$:
+
+- In $\Lambda$CDM: voids expand isotropically (in the mean), with outflow velocity $\propto H_0 r$.
+- Under a separately specified attractive branch with $\mu<1$ in voids, weaker gravity would give a conditional faster-outflow signature; this is not a canonical Cassi result.
+- Observable: void-galaxy cross-correlation function (VGCF) from DESI/SDSS.
 
 ### 5.4 Redshift-Space Distortions (RSD)
 
-The growth rate $f(z) = d\ln D/d\ln a$ is measured from RSD. The Cassi prediction for $f\sigma_8(z)$ is:
+The growth rate $f(z) = d\ln D/d\ln a$ is measured from RSD. Under a quasi-static effective-$\mu$ approximation with slowly varying $\mu$, a candidate diagnostic is:
 
 $$f(z)\sigma_8(z) \approx \Omega_m(z)^{0.55} \sigma_8^{\Lambda\text{CDM}}(z) \cdot \frac{\mu(k_{\text{eff}}, z)^{0.55}}{\mu(k_{\text{eff}}, z_{\text{CMB}})^{0.55}}$$
 
-where $k_{\text{eff}}$ is the effective scale of the RSD measurement ($k \sim 0.1\,h$/Mpc).
+where $k_{\text{eff}}$ is the effective scale of the RSD measurement ($k \sim 0.1\,h$/Mpc). This approximation is not a Cassi prediction; a time- and scale-dependent $\mu$ requires integrating the growth equation.
 
-Existing data (BOSS/eBOSS) shows a mild ($\sim 1\text{–}2\sigma$) suppression of $f\sigma_8$ at $z \lesssim 0.5$ relative to Planck $\Lambda$CDM—consistent with the Cassi direction.
+Existing data (BOSS/eBOSS) shows a mild ($\sim 1$–$2\sigma$) suppression of $f\sigma_8$ at $z \lesssim 0.5$ relative to Planck $\Lambda$CDM. It is a comparison target for the conditional growth model.
 
 ---
 
@@ -342,34 +384,35 @@ Existing data (BOSS/eBOSS) shows a mild ($\sim 1\text{–}2\sigma$) suppression 
 
 | Parameter | Value | Origin | Status |
 |-----------|-------|--------|--------|
-| $\xi$ | $\varphi^6 \approx 17.944$ | Derived (cascade activation step 6) | Fixed |
-| $q_{\text{CMB}}$ ($z\sim1100$) | $\sim 0.5$ (estimate) | PDE near recombination | Mapped (estimate) |
-| $q_{0}$ ($z=0$) | $0.41$ (pipeline endpoint, $a = 1.80$; doctrine $r_0 = 1/23$, N=128 campaign) | PDE at $a = 1.80$ (2026-08-07) | From pipeline |
+| $\xi$ | $\varphi^6 \approx 17.944$ | Derived (imbalance inverse-square; "cascade activation step 6" is a shorthand rung label) | Fixed |
+| $q_{\mathrm{solver,CMB}}$ ($z\sim1100$) | Not fixed; requires a canonical PDE state at recombination | The geometric $C\approx0$ value gives only $q_{\mathrm{proxy}}^{C}\approx0.5$ and does not determine $q_{\mathrm{solver}}$ | Hypothesized/open |
+| $q_{\mathrm{solver,end}}$ | $0.41$ (pipeline endpoint, $a = 1.80$; doctrine $r_0 = 1/23$, N=128 campaign) | PDE at $a = 1.80$ (2026-08-07) | From pipeline |
 | $r_0$ (growth-window IC) | $0.0472$ derived ($\varphi^{-5}/(2-\varphi^{-5})$, `foundations/wu-xing-derivation.md`); $1/23$ operational (DESI-anchored); the pipeline's $1/3$ non-doctrinal | Wu Xing derivation / DESI calibration | Derived / Calibrated |
-| $q_{\text{void}}$ | $\to 0$ | Condensation field geometric limit | Fixed |
-| $\langle\pi/\rho\rangle = \alpha_0$ at mean density | $\varphi^{-3} \approx 0.236$ | Derived (fixed-point imbalance; "Yang fraction" label Mapped—ledger row 500) | Fixed |
-| $\mu(k, a)$ | $(\pi/\rho(a))(1 + (\varphi^{6}-1)q(k, a))$ | Composite | **Computed from PDE** |
-| $q_{\text{MW halo}}$ | $\sim 0.7$ | Rotation curve fit ($v_C/v_B = 2.7$) | Independent calibration check |
+| $q_{\mathrm{proxy,void}}^{C}$ | $\to 0$ as $C\to-1$ (range $[0,2]$) | Explicit squared geometric plan ansatz | Hypothesized/open; not canonical |
+| $q_{\mathrm{solver,void}}$ | Must be measured; not fixed by $C/B$ | Canonical PDE state | Hypothesized/open |
+| $\langle\pi/\rho\rangle = \alpha_0$ at mean density | $\varphi^{-3} \approx 0.236$ | Derived (fixed-point density imbalance; Yang component fraction $E_Y/\rho=\varphi^{-1}$) | Fixed |
+| $\mu(k, a)$ | $(\pi/\rho(a))(1 + (\varphi^{6}-1)q_{\mathrm{eff}}(k, a))$ | Composite after a validated bounded effective-coherence estimator | **Hypothesized/open** |
+| $q_{\mathrm{solver,MW\ halo}}$ | $\sim 0.56$ | Conditional rotation-curve comparison using the model-derived central ratio $v_C/v_B\sim2.7\pm0.65$; baryonic-baseline uncertainty additional | Hypothesized conditional |
+| $\mathcal{M}_{\mathrm{proxy}\to q}$ | $q_{\mathrm{proxy}}^{C/B}\to q_{\mathrm{solver}}\in[0,1]$ | Separate constitutive measurement or derivation | **Hypothesized/open** |
 
-**Zero new free parameters.** All quantities are either derived mathematical constants ($\varphi$, $\xi$) or PDE outputs ($q(k, a)$, $\rho(a)$). The MW rotation curve provides an independent cross-check but is not used as an input to the $\sigma_8$ pipeline.
-
----
+**No additional fit in the direct PDE route.** The derived constants ($\varphi$, $\xi$), canonical fields ($q_{\mathrm{solver}}(x,a)$, $\rho(a)$), and the separately validated $q_{\mathrm{eff}}(k,a)$ estimator are kept separate from the uncalibrated geometric map. Introducing a proxy route requires registering that map and its uncertainty before it can feed the $\sigma_8$ computation.
 
 ## 7. Timeline and Milestones
 
 ### Phase 1: PDE at Higher Resolution (Week 1)
 - Run `two-fluid/cassi_two_fluid_3d_gpu.py` at $N=64$ with cosmological ICs
-- Output $q(x, a)$ and $\rho(x, a)$ at 50 snapshots from $a=0.01$ to $a=1.0$
-- **Deliverable:** `q_grid_{a}.npy`, `rho_grid_{a}.npy`
+- Output canonical $q_{\mathrm{solver}}(x, a)$ and $\rho(x, a)$ at 50 snapshots from $a=0.01$ to $a=1.0$
+- **Deliverable:** `q_solver_grid_{a}.npy`, `rho_grid_{a}.npy`
 
-### Phase 2: $q(k, z)$ Extraction (Week 1-2)
-- Fourier transform density-weighted $q(k, a)$
-- Bin in $k$ and interpolate in $z$
-- **Deliverable:** `q_k_z_interp.npy` (2D interpolation table)
+### Phase 2: Scale-Dependent $q_{\mathrm{eff}}(k, z)$ Estimator (Week 1-2)
+- Form density-weighted cross/auto spectra from canonical $q_{\mathrm{solver}}(x, a)$ and $\rho(x, a)$; do not divide Fourier modes directly
+- Specify shell/bin averaging, denominator threshold or regularization, and validation gates before constructing a bounded $q_{\mathrm{eff}}(k, z)$ table
+- **Deliverable:** `q_eff_k_z_interp.npy` only after validation (cross/auto diagnostics retained; geometric proxies remain diagnostic-only)
 
 ### Phase 3: Modified Growth Solver (Week 2)
 - Implement Option A (simplified): solve $\delta'' + \cdots$ for each $k$ with $\mu(k, a)$
 - Compare with $\Lambda$CDM and existing pipeline
+- Measure sensitivity to the validated $q_{\mathrm{eff}}(k)$ interpolation; a geometric $q_{\mathrm{proxy}}^{C/B}$ input is a separate open-map sensitivity
 - **Deliverable:** $\sigma_8(z)$ from modified growth
 
 ### Phase 4: Full CLASS Integration (Week 3-4)
@@ -381,7 +424,7 @@ Existing data (BOSS/eBOSS) shows a mild ($\sim 1\text{–}2\sigma$) suppression 
 ### Phase 5: Validation and Sensitivity (Week 4-5)
 - Resolution convergence test ($N=32, 64, 128$)
 - $\mu = 1$ recovery test
-- $q(k)$ interpolation sensitivity
+- Validated $q_{\mathrm{eff}}(k)$ interpolation sensitivity
 - **Deliverable:** Validated $\sigma_8$ with error budget
 
 ---
@@ -392,7 +435,7 @@ Existing data (BOSS/eBOSS) shows a mild ($\sim 1\text{–}2\sigma$) suppression 
 
 Located in `two-fluid/`, this script:
 
-1. Loads the PDE $q(k, a)$ interpolation table
+1. Loads the validated bounded $q_{\mathrm{eff}}(k, a)$ interpolation table produced by the estimator in §4.3
 2. Modifies CLASS via the Python wrapper (or calls a modified CLASS binary)
 3. Computes $P(k, z)$ and $\sigma_8(z)$
 4. Produces diagnostic plots:
@@ -410,7 +453,7 @@ Add Cassi-specific Poisson modification:
 ```c
 // Near line ~950 (Poisson equation evaluation):
 if (ppt->has_cassi_mu && pba->index_md_scalars) {
-    // Interpolate mu(k, z) from PDE data
+    // Interpolate validated bounded q_eff(k, z) from the estimator output
     double mu = cassi_mu_interp(k, z, pba);
     // Apply scale-dependent modification:
     // k²Φ = -4πG·μ·a²ρ_mδ_m - 4πGa²ρ_rδ_r
@@ -424,20 +467,20 @@ if (ppt->has_cassi_mu && pba->index_md_scalars) {
 // Cassi μ(k,z) parameters
 int has_cassi_mu;
 double xi_cassi;  // φ⁶
-char qk_fits_file[1024];  // path to q(k,z) interpolation table
+char qeff_fits_file[1024];  // validated bounded q_eff(k,z) interpolation table
 ```
 
 **New file:** `source/cassi_mu.c`:
 
-Interpolation routines for $q(k, z)$ and computation of $\mu(k, z)$.
+Interpolation routines for validated bounded $q_{\mathrm{eff}}(k, z)$ and computation of $\mu(k, z)$. A geometric proxy is admissible only after applying the separately registered $\mathcal{M}_{\mathrm{proxy}\to q}$ map and passing the §4.3 estimator validation.
 
 ### 8.3 Existing Script Updates
 
 | Script | Change |
 |--------|--------|
-| `two-fluid/run_sigma8_pipeline.py` | Use for IC generation only; replace $\sigma_8$ computation with Boltzmann integration |
-| `two-fluid/run_boltzmann_cassi.py` | Add $\sigma_8$ computation alongside $C_\ell$; accept $q(k,z)$ input |
-| `two-fluid/cassi_two_fluid_3d_gpu.py` | Ensure $q(k)$ snapshot output at cosmological resolution |
+| `two-fluid/run_sigma8_pipeline.py` | Use for IC generation and canonical real-space $q_{\mathrm{solver}}$ snapshots; form cross/auto diagnostics and construct validated $q_{\mathrm{eff}}(k,z)$ only after §4.3 |
+| `two-fluid/run_boltzmann_cassi.py` | Add $\sigma_8$ computation alongside $C_\ell$; accept validated bounded $q_{\mathrm{eff}}(k,z)$ input |
+| `two-fluid/cassi_two_fluid_3d_gpu.py` | Ensure canonical real-space $q_{\mathrm{solver}}(x)$ snapshot output at cosmological resolution; keep $C/B$ diagnostics separate |
 
 ---
 
@@ -447,12 +490,12 @@ The computation reaches **Derived** status when:
 
 1. **Quantitative match:** $\sigma_8^{\text{Cassi}}(z=0)$ is within $1\sigma$ of the combined low-redshift weak-lensing measurements ($\sigma_8 \approx 0.75\text{–}0.78$) given the Planck-calibrated initial conditions.
 
-2. **Consistency with existing tests:** The same $\xi = \varphi^6$ and $q$ evolution reproduces:
-   - MW rotation curve boost ($2.8$–$3.0\times$ predicted vs $2.7 \pm 0.5$ observed at 30 kpc)—consistent within ~0.4σ
-   - $w_0 = -0.87$ ($2\sigma$ baseline from DESI DR2's $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]; $3.6\sigma$ at fixed $r_0$ with the ratified coupling)
-   - $w_a = +0.012$ with $\xi$ correction ($2.7\sigma$ baseline) → $-0.38$ with the ratified conversion→expansion coupling ($1.25\sigma$, B2—unstable; 08 §C.6); the stable realization (friction closure—10/12) gives the pure-Λ window fit $(-1, 0)$ ($2.61\sigma$ in $w_a$)
+2. **Consistency checks:** Existing comparisons include:
+   - MW rotation curve boost ($2.8$–$3.0\times$ predicted vs the model-derived central ratio $2.7\pm0.65$ from $190\pm20$ and $70\pm15$ km/s, with additional baryonic-baseline uncertainty)
+   - $w_0 = -0.87$ ($2\sigma$ baseline from DESI DR2's $w_0 \approx -0.75 \pm 0.06$ [INFERENCE]; $3.6\sigma$ at fixed $r_0$ with the calibrated Yang-fraction-weighted coupling)
+   - $w_a = +0.012$ for the calibrated baseline ($2.7\sigma$); the nonviable B2 trial gives $-0.38$ ($1.25\sigma$), while the conditional C1 friction closure gives the pure-$\Lambda$ window fit $(-1, 0)$ ($2.61\sigma$ in $w_a$)
 
-3. **Residual tension explained:** The $\sim 0.02\text{–}0.06$ gap between Cassi and the lowest $\sigma_8$ measurements is within the systematic uncertainty of $q(k)$ extraction at finite resolution ($N \geq 64$).
+3. **Residual tension explained:** The $\sim 0.02\text{–}0.06$ gap between Cassi and the lowest $\sigma_8$ measurements is a future comparison target; its systematic uncertainty can be assessed only after the $q_{\mathrm{eff}}(k)$ estimator is validated at finite resolution ($N \geq 64$). A geometric proxy cannot be counted as extraction evidence without $\mathcal{M}_{\mathrm{proxy}\to q}$.
 
 ---
 
@@ -460,13 +503,15 @@ The computation reaches **Derived** status when:
 
 | Equation | Description |
 |----------|-------------|
-| $G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q) G_N$ | Qi-gravity formula |
+| $G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q_{\mathrm{solver}}) G_N$ | Qi-gravity formula using canonical solver coherence |
 | $\xi = \varphi^6 \approx 17.944$ | Derived coupling |
-| $q(C) = (1 + C)/2$ | Qi coherence from condensation field (cosmological context) |
-| $\delta'' + (2 + H'/H)\delta' - \frac{3}{2}\Omega_m(a)\mu(k,a)\delta = 0$ | Modified growth equation |
-| $\mu(k,a) = (\pi/\rho(a))(1 + (\varphi^{6}-1)q(k,a))$ | Scale-dependent modification factor |
+| $q_{\mathrm{solver}} = \rho^2/(\rho^2+\varphi^{-2}+\varepsilon^2)\in[0,1]$ | Canonical two-fluid coherence from $E_Y,E_I$ |
+| $q_{\mathrm{proxy}}^{C} = (1+C)^2/2\in[0,2]$ | Explicit squared geometric plan ansatz; not canonical $q_{\mathrm{solver}}$ |
+| $q_{\mathrm{proxy}}^{B} = (1+B)^2/2\in[0,2]$ | 3D geometric proxy; not canonical $q_{\mathrm{solver}}$ |
+| $q_{\mathrm{solver}}=\mathcal{M}_{\mathrm{proxy}\to q}(q_{\mathrm{proxy}}^{C/B})\in[0,1]$ | Hypothesized/open constitutive mapping required before $G_{\mathrm{eff}}$ |
+| $\mu(k,a) = (\pi/\rho(a))(1 + (\varphi^{6}-1)q_{\mathrm{eff}}(k,a))$ | Scale-dependent modification, conditional on a validated bounded $q_{\mathrm{eff}}$ estimator |
 | $\sigma_8^2(z) = \int \frac{dk}{k} \Delta^2(k,z) |W(kR)|^2$ | $\sigma_8$ definition |
-| $q = 1/(1+(\rho/\rho_{\text{ref}})^2)$ | Galaxy-halo $q$ profile (different context, used only for cross-check) |
+| $q_{\mathrm{halo,proxy}} = 1/(1+(\rho/\rho_{\text{ref}})^2)$ | Galaxy-halo density proxy (separate context; cross-check only) |
 
 ---
 
@@ -475,8 +520,9 @@ The computation reaches **Derived** status when:
 - `cosmology/cosmology-from-phi.md`—Cassi cosmology overview
 - `cosmology/observational_constraints.md`—Rotation curve constraint
 - `foundations/xi-derivation.md`—Derivation of $\xi = \varphi^6$
-- `foundations/bubble-edge-geometry.md`—$q(C)$ and $G_{\text{eff}}(C)$ profiles
-- `foundations/phi_attractor_synthesis.md`—$q = 1/(1+(\rho/\rho_{\text{ref}})^2)$ (galaxy-halo context)
+- `foundations/bubble-edge-geometry.md`—$C$ geometric field and the $q_{\mathrm{proxy}}^{C}$ plan ansatz; any $G_{\text{eff}}$ use is conditional on $\mathcal{M}_{\mathrm{proxy}\to q}$
+- `foundations/bubble-lattice-fabric.md`—3D $B$ extension and its separate geometric proxy
+- `foundations/phi_attractor_synthesis.md`—$q_{\mathrm{halo,proxy}} = 1/(1+(\rho/\rho_{\text{ref}})^2)$ (galaxy-halo context)
 - `foundations/refined-numeric-predictions.md` §2.9—Current $\sigma_8$ pipeline status
 - `foundations/refined-numeric-predictions.md` §5.2—Remaining pipeline work
 - `open-questions-cassi-answers.md` §T3—$\sigma_8$ tension entry

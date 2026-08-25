@@ -107,9 +107,12 @@ flavors) are
 $$b = \left(+\frac{41}{10},\; -\frac{19}{6},\; -7\right),$$
 
 so $\alpha_1$ grows with energy while $\alpha_2$ and $\alpha_3$ are
-asymptotically free. Below $m_t$ the top decouples:
-$b_1 = 3.36$, $b_3 = -6.33$ (in the same sign convention). For $\alpha_s$ the
-two-loop coefficient $b_1^{\text{QCD}} = 102 - 38n_f/3$ is included.
+asymptotically free. Below $m_t$ the top decouples in the formal threshold
+bookkeeping used by the computation:
+$b_1 = 41/10 - 17/30 = 53/15 \approx 3.53$ and
+$b_3 = -7 + 2/3 = -19/3 \approx -6.33$ (same sign convention). For
+$\alpha_s$ the two-loop coefficient
+$b_1^{\text{QCD}} = 102 - 38n_f/3$ is included.
 
 ### 3.2 Direction A: the φ-boundary run down
 
@@ -132,10 +135,11 @@ Three remarks.
 1. **The $\alpha_s$ deficit is the documented one.** $\alpha_s(m_Z) = 0.058$
    (2-loop: 0.061) reproduces the canonical value already registered in
    `parameter-inventory.md` §4.4 and `audit.md` §1.4: closing the $2\times$
-   gap requires $\Delta b = 1.70$ of beyond-SM colored content, which the
-   cascade predicts as a vector-like quark doublet at the Fibonacci
-   precursor position (`computations/cascade_gut_ew_rge.py`). The radiative
-   corrections themselves do not close this gap.
+   gap requires $\Delta b = 1.70$ of beyond-SM colored content. One
+   conditional cascade mapping tests a vector-like quark doublet at the
+   Fibonacci precursor position (`computations/cascade_gut_ew_rge.py`), but
+   the particle content that supplies the shift remains unselected. The
+   radiative corrections themselves do not close this gap.
 
 2. **The $\alpha_2$ (and $\alpha_1$) deficit is large.** The correct running
    of the unified boundary $\alpha_2 = 1/53.2$ at $10^{16}$ GeV down to
@@ -176,12 +180,13 @@ generic to unification-scale boundary conditions, not specific to the
 $\varphi$-boundary: forcing $\alpha_3$ through the $\alpha_1 = \alpha_2$ point
 predicts $\alpha_s(m_Z) \approx 0.07$ (0.071 at one loop;
 `computations/sm_radiative_corrections.py` §2)—a $1.7\times$ deficit in the
-*same* direction as the $\varphi$-boundary's $2.0\times$. The boundary
-$\alpha_{\text{GUT}} = \varphi^{-3}/4\pi = 1/53.2$ is realized by no SM
-coupling at any scale below $M_{\text{Pl}}$; a common intersection near
-$2 \times 10^{16}$ GeV requires beyond-SM content between $m_Z$ and
-$M_{\text{GUT}}$—the same $\Delta b = 1.70$ deficit that rescues
-$\alpha_s(m_Z)$ (`parameter-inventory.md` §4.4).
+same direction as the $\varphi$-boundary's $2.0\times$. The boundary
+$\alpha_{\text{GUT}} = \varphi^{-3}/4\pi = 1/53.2$ is not realized
+simultaneously by all three SM couplings at any scale below $M_{\text{Pl}}$;
+an individual coupling can cross that value, but there is no common
+intersection. A common intersection near $2 \times 10^{16}$ GeV requires
+beyond-SM content between $m_Z$ and $M_{\text{GUT}}$—the same $\Delta b = 1.70$
+deficit that rescues $\alpha_s(m_Z)$ (`parameter-inventory.md` §4.4).
 
 The Weinberg angle at high scale follows from the couplings:
 $\sin^2\theta_W(\mu) = \alpha_Y(\mu)/(\alpha_Y(\mu) + \alpha_2(\mu))$. With the
@@ -230,7 +235,7 @@ explicitly (`computations/mu_star_crossing_audit.py`):
 | $\alpha_1^{-1}(m_Z)$, $\alpha_2^{-1}(m_Z)$ | 59.0, 29.6 (from $\hat\alpha^{-1} = 127.955$, $\sin^2\hat\theta_W = 0.23122$) | Calibrated (measured MS-bar) |
 | β-function coefficients $b_1$, $b_2$ | 41/10, −19/6 | Derived (SM content) |
 | $\sin^2\theta_W = \varphi^{-3} = (\varphi-1)/(\varphi+1)$ | 0.23607 | Asserted boundary (blocking step: no action-level mechanism for $(g/g')^2 = 2\varphi$; `standard-model/su2-gauge-extension.md` §3.2.1) |
-| $\mu_*$ | 233 GeV | output of the RGE plus the selection—no free parameter |
+| $\mu_*$ | 233 GeV | output of the RGE plus the selection; no additional fit parameter after the measured inputs and asserted boundary are supplied |
 
 $\mu_* = 233$ GeV therefore follows from the RG equations in a limited sense:
 given the measured trajectory and the asserted $\varphi$ value, the scale is
@@ -326,7 +331,9 @@ $$\frac{c^2}{s^2}\Delta\rho = 0.0311, \qquad
   \frac{c^2}{s^2}\Delta\rho^{\text{QCD}} = 0.0277, \qquad
   \Delta r_{\text{rem}} = +0.0064,$$
 
-where the remainder is defined against the QCD-corrected product,
+For the numerical decomposition, $c^2/s^2$ uses the MS-bar angle from §2.1,
+while $s^2$ in the master relation remains the on-shell quantity. The
+remainder is defined against the QCD-corrected product,
 $\Delta r_{\text{rem}} = \Delta r - \Delta\alpha +
 (c^2/s^2)\Delta\rho^{\text{QCD}}$ (`computations/sm_radiative_corrections.py`
 §4). The identity then closes on the FOPS value:
@@ -385,20 +392,21 @@ $$\lambda(m_Z) = \frac{m_H^2}{2v^2} = 0.1294, \qquad v = \frac{1}{(\sqrt{2}
 Its one-loop β-function (with the top Yukawa from the running top mass,
 $y_t(m_Z) = 0.939$) drives it to
 
-$$\lambda(10^{10}\ \text{GeV}) = 0.016, \qquad
-  \lambda(M_{\text{Pl}}) = +0.003
+$$\lambda(10^{10}\ \text{GeV}) = 0.0008, \qquad
+  \lambda(M_{\text{Pl}}) = -0.0116
   \quad\text{(1-loop, running } y_t \text{)},$$
 
-$$\lambda(M_{\text{Pl}}) = -0.011
-  \quad\text{(NNLO, Degrassi et al. 2012, arXiv:1205.6497)}.$$
+$$\lambda(M_{\text{Pl}}) = -0.0729
+  \quad\text{(1-loop, pole } y_t \text{)}.$$
 
-The one-loop result sits at the stability boundary; the full NNLO running
-gives $\lambda(M_{\text{Pl}}) < 0$—the famous **metastable vacuum**: the SM
-Higgs potential turns over at high field values, but the decay rate is
-negligible (lifetime $\gg$ the age of the universe). The Higgs radiative
-corrections therefore carry a genuine structural message for the Cassi
-cascade, which spans to $M_{\text{Pl}}$: the $\varphi$-anchored vacuum at the
-Planck rung sits just below the stability line.
+A separate NNLO Standard Model calculation reports
+$\lambda(M_{\text{Pl}})=-0.011$ (Degrassi et al. 2012,
+arXiv:1205.6497). The local one-loop result is input-sensitive, as shown by
+the running- versus pole-mass top Yukawa choices. These calculations give a
+metastable Standard Model vacuum: the Higgs potential turns over at high
+field values, while the decay rate remains negligible (lifetime $\gg$ the age
+of the universe). The NNLO value is an external reference, and the
+$\varphi$-anchored stability interpretation remains a conditional comparison.
 
 The quartic formula $\lambda_\varphi = (\varphi^{-2}/2)(g^2/8)$ gives
 $\lambda_\varphi = 0.0101$ with $g = g_2(m_Z)$, i.e. $m_H = v\sqrt{2\lambda_\varphi}
@@ -407,37 +415,41 @@ program, not yet an output of the φ-framework; the quartic
 $\lambda(m_Z) = 0.1294$ follows from the measured $m_H$, and its radiative
 corrections (running, metastability) are standard physics.
 
-### 6.2 The φ-anchored mass formulas: candidates and verdicts
+### 6.2 The φ-anchored mass formulas: candidates and consistency tests
 
-In the two-fluid picture the Higgs is not a particle but a mode of the broken
-condensate: the isospinor's norm and Yang/Yin imbalance modes of the
-$\varphi$-attractor potential, in the same way that quarks and leptons are
-the valid modes available once a composite state breaks. The formulas below
-are the candidate mode frequencies of the φ-point potential, tested against
-$m_H = 125.25$ GeV (`computations/sm_radiative_corrections.py` §5.5):
+Within the conditional two-fluid picture, the Higgs is modeled as a mode of
+the broken condensate: the isospinor's norm and Yang/Yin imbalance modes of
+the $\varphi$-attractor potential. Quarks and leptons can be treated as
+additional modes only after a particle-sector extension supplies the
+relevant field content. The formulas below are candidate mode frequencies of
+the φ-point potential, tested against $m_H = 125.25$ GeV
+(`computations/sm_radiative_corrections.py` §5.5). The canonical numerical
+$\lambda=0.1$ remains the asserted solver convention. Rows that use
+$\lambda_{\text{WX}}$ insert the Hypothesized linkage
+$\lambda_{\text{WX}}=1/(2w)=0.1$ at $w=5$ as a conditional consistency-test
+input; their masses and residuals are consequences of that conditional
+construction.
 
 | Formula | $m_H$ | vs 125.25 | Verdict |
 |---|---|---|---|
 | $\lambda_\varphi = (\varphi^{-2}/2)(g_2^2/8)$ | 35.1 GeV | −72% | fails ($\times 3.6$) |
-| $m_H^2\varphi/(4v_0^2) = \lambda_{\text{WX}} = 1/(2w)$, $w = 5$ | 122.4 GeV | −2.3% | Hypothesized—Wu Xing quartic derived (`foundations/wu-xing-derivation.md`); residual in the 2–5% de-resonance band, mechanism open |
-| $\lambda(M_{\text{Pl}}) = 0$ (stability line) | 124.6 (1-loop) / 129.2 GeV (NNLO) | +0.5% / −3.1% (2.2σ) | Derived line; the measured mass lies inside the loop-order spread—the φ-anchored vacuum sits on the line |
-| two-fluid eigenmodes ($g = \varphi^{-3}$, $\lambda = \lambda_{\text{WX}}$) | 157.6 / 116.6 GeV | brackets 125.25 | Hypothesized structure—mode frequencies of the φ-point potential (normalization convention matters at the ~20% level) |
-| $m_H = v\sqrt{2(2\lambda_{\text{WX}}/\varphi)(1+\varphi^{-3}/w)}$, $w = 5$ | 125.28 GeV | +0.02% | Hypothesized—Wu-Xing quartic with the Yang-fraction-$w$ correction; mechanism open |
+| $m_H^2\varphi/(4v_0^2) = \lambda_{\text{WX}} = 1/(2w)$, $w = 5$ | 122.4 GeV | −2.3% | Conditional consistency test—built from the Hypothesized linkage $\lambda_{\text{WX}}=1/(2w)$ at $w=5$; residual in the 2–5% de-resonance band, mechanism open |
+| $\lambda(M_{\text{Pl}}) = 0$ (stability line) | 129.0 (1-loop) / 129.2 GeV (NNLO reference, $m_t=172.69$) | +3.0% / +3.2% | Stability-boundary outputs; both lie above the measured mass and are input/order sensitive |
+| two-fluid eigenmodes ($g = \varphi^{-3}$, $\lambda = \lambda_{\text{WX}}$) | 198.1 / 169.2 GeV | +58.2% / +35.1% | Conditional consistency test—both modes remain far above 125.25 GeV; normalization convention remains open |
+| $m_H = v\sqrt{2(2\lambda_{\text{WX}}/\varphi)(1+\varphi^{-3}/w)}$, $w = 5$ | 125.28 GeV | +0.02% | Conditional consistency test—built from the Hypothesized linkage $\lambda_{\text{WX}}=1/(2w)$ at $w=5$, with the Yang-fraction-$w$ correction; mechanism open |
 | $m_H = m_t\,\varphi^{-2/3}$ (top chain) | 125.30 GeV | +0.04% | mechanism target—2/3-rung separation has no Cassi origin yet |
 | $m_H = \sqrt{2}\,y_t(m_Z)\,v\,\varphi^{-2}$ | 124.90 GeV | −0.28% | Hypothesized—top-loop pooling, $\lambda(m_Z) = y_t^2(m_Z)\varphi^{-4}$ |
 | $m_Z\,\varphi^{2/3}$, $v\,\varphi^{-7/5}$ | 125.7 / 125.5 GeV | +0.34% / +0.22% | rejected as fits—no mechanism produces these fractional rungs (the pool-cell quantization covers half-rungs only, §6.3; the $m_e$ half-step 26.5 fit-rejection precedent, `foundations/deriving-remaining-gaps.md` §2.2) |
 
-**Collision pooling.** The measured mass is a property of the pooled collision
-zone, not of the isolated vacuum: the Higgs is produced through the top loop
-(gg→H), so its production pools the top-Yukawa structure. The scan tests this
-directly (`computations/sm_radiative_corrections.py` §5.6): no simple pooling
-law combines the two-fluid eigenmodes into the observed mass (harmonic 134.0,
-geometric 135.6, arithmetic 137.1, energy-weighted 140.2 GeV—all ≥ 7% off).
-The Higgs is not a merge of the isolated-vacuum modes; it is a new mode of
-the pooled zone. The one pooling structure that closes is the top loop
-itself: $\lambda(m_Z) = y_t^2(m_Z)\,\varphi^{-4}$ (−0.55% in λ)—the quartic
-equals the top-Yukawa pool times $\varphi^{-4}$, the imprint of the
-production process.
+**Collision pooling.** The scan tests whether simple pooling of the
+two-fluid eigenmodes can reproduce the measured mass
+(`computations/sm_radiative_corrections.py` §5.6). The harmonic, geometric,
+arithmetic, and energy-weighted combinations are 182.5, 183.1, 183.6, and
+184.8 GeV, respectively, or +45.7%, +46.2%, +46.6%, and +47.5% above
+125.25 GeV. These outputs remain conditional mode tests; a pooled-zone Higgs
+mode requires additional dynamics. A separate numerical relation is
+$\lambda(m_Z)=y_t^2(m_Z)\,\varphi^{-4}$ (−0.55% in λ), whose mechanism and
+status remain open.
 
 **The top chain.** The same production path anchors the top mass itself:
 $y_t(\text{pole}) = 1 - \varphi^{-10} = 2g - g^2$ with $g = 1-\varphi^{-5}$
@@ -452,7 +464,7 @@ $m_t/m_H = \varphi^{2/3}$ separation that carries the chain from the top to
 the Higgs.
 
 **Look-elsewhere discipline.** Three independent candidates land within
-0.05% ($m_t$ chain 0.001%, Wu-Xing+$\varphi^{-3}/5$ 0.02%,
+0.05% ($m_t$ chain 0.001%, conditional Wu-Xing consistency test+$\varphi^{-3}/5$ 0.02%,
 $m_t\varphi^{-2/3}$ 0.04%). Per the repo standard none is a derivation until
 a mechanism produces its structure; the entries above are ranked mechanism
 targets, and the $m_t$ chain is the priority: a two-step gap (Wu Xing)
@@ -461,13 +473,16 @@ together from coincidence to prediction.
 
 ### 6.3 The 2g−g² mechanism and the Yukawa ladder
 
-The top-chain coincidence of §6.2 has a framework-native reading. The two
-fluids are the chiral projections (Yang/Yin = $\hat P_{Y/I} = (1\pm\gamma^5)/2$,
-`foundations/unified-lagrangian.md`), and the Wu-Xing gap
+The top-chain coincidence of §6.2 has a framework-native reading. The canonical
+Yang/Yin variables in this real two-fluid sector are real density/field
+components. A particle-sector extension may assign them to chiral projectors
+$\hat P_{Y/I} = (1\pm\gamma^5)/2$; that assignment is explicitly
+**Hypothesized** and requires additional complex/spinor structure beyond the
+real two-fluid sector (`foundations/unified-lagrangian.md`). Under that
+Hypothesized extension, the Wu-Xing gap
 $g = 1-\varphi^{-5} = 0.90983$ is the per-cycle conversion fraction. A Dirac
-Yukawa couples both chiral components through the condensate; the
-unconverted residue is $(1-g) = \varphi^{-5}$ per component, so the coupled
-fraction is
+Yukawa couples both chiral components through the condensate; the unconverted
+residue is $(1-g) = \varphi^{-5}$ per component, so the coupled fraction is
 
 $$\boxed{y_t = 1 - (1-g)^2 = 2g - g^2 = 1 - \varphi^{-10} = 0.991869
   \quad\text{vs}\quad y_t(\text{pole}) = 0.991881}$$
@@ -534,21 +549,21 @@ $$\boxed{m_H = \frac{v}{\sqrt{2}}\,(2g-g^2)\,\varphi^{-2/3} = 125.30\ \text{GeV}
 
 | Observable | Derivation | Value | Measured | Status |
 |-----------|-----------|-------|----------|--------|
-| $\bar\alpha^{-1}(m_Z)$ | $\alpha(0) + \Delta\alpha$ | 128.95 | 128.9 | ✅ 0.05% |
-| $m_W$ | $\Delta r$ master relation (FOPS) | 80.363 | 80.360(11) | ✅ 0.004% |
-| $\sin^2\theta_{\text{eff}}^{\text{lept}}$ | FOPS | 0.23149 | 0.23153(16) | ✅ 0.02% |
-| $\alpha_s(m_Z)$ from φ-boundary | 1-/2-loop QCD + thresholds | 0.058 / 0.061 | 0.1180 | ❌ $2.0\times$ (Δb = 1.70) |
-| $\alpha_2^{-1}(m_Z)$ from φ-boundary | 1-loop + thresholds | 36.9 | 29.6 | ❌ +25% |
-| $\alpha_1^{-1}(m_Z)$ from φ-boundary | 1-loop + thresholds | 74.3 | 59.0 | ❌ +26% |
-| $\alpha_{\text{em}}^{-1}(m_Z)$ from φ-boundary | §3.2 | 161 | 128.9 | ❌ +25% |
-| $\sin^2\theta_W = \varphi^{-3}$ at $m_Z$ |—| 0.23607 | 0.23122 | ❌ +2.1% (at $\mu_*$ = 233 GeV ✓) |
-| $m_W/m_Z = \sqrt{1-\varphi^{-3}}$, +$\rho$ | §5.3 | 0.8781 | 0.8813 | ❌ −0.36% |
-| $m_H$ from $\lambda_\varphi = (\varphi^{-2}/2)(g^2/8)$ | §6.2 | 35 GeV | 125.25 | ❌ (not a prediction; $m_H$ is an input; structural anchors at −2.3%/+3.1% open) |
-| $\lambda(M_{\text{Pl}})$ | 1-loop / NNLO | +0.003 / −0.011 |—| metastable vacuum |
+| $\bar\alpha^{-1}(m_Z)$ | $\alpha(0) + \Delta\alpha$ | 128.95 | 128.9 | match, 0.05% |
+| $m_W$ | $\Delta r$ master relation (FOPS) | 80.363 | 80.360(11) | match, 0.004% |
+| $\sin^2\theta_{\text{eff}}^{\text{lept}}$ | FOPS | 0.23149 | 0.23153(16) | match, 0.02% |
+| $\alpha_s(m_Z)$ from φ-boundary | 1-/2-loop QCD + thresholds | 0.058 / 0.061 | 0.1180 | low by $2.0\times$ ($\Delta b = 1.70$) |
+| $\alpha_2^{-1}(m_Z)$ from φ-boundary | 1-loop + thresholds | 36.9 | 29.6 | high by 25% |
+| $\alpha_1^{-1}(m_Z)$ from φ-boundary | 1-loop + thresholds | 74.3 | 59.0 | high by 26% |
+| $\alpha_{\text{em}}^{-1}(m_Z)$ from φ-boundary | §3.2 | 161 | 128.9 | high by 25% |
+| $\sin^2\theta_W = \varphi^{-3}$ at $m_Z$ |—| 0.23607 | 0.23122 | high by 2.1% (at $\mu_* = 233$ GeV, the running value matches) |
+| $m_W/m_Z = \sqrt{1-\varphi^{-3}}$, +$\rho$ | §5.3 | 0.8781 | 0.8813 | low by 0.36% |
+| $m_H$ from $\lambda_\varphi = (\varphi^{-2}/2)(g^2/8)$ | §6.2 | 35 GeV | 125.25 | conditional comparison; $m_H$ is an input; anchors at −2.3% and +3.0–3.2% remain open |
+| $\lambda(M_{\text{Pl}})$ | 1-loop running $y_t$ / pole $y_t$; external NNLO | −0.0116 / −0.0729; −0.011 |—| metastable and input-sensitive |
 
-The radiative corrections are derived, not hand-waved: they close every
-relation that does not depend on the φ-boundary, and they sharpen—rather than
-erase—every discrepancy that does. The status of the φ-anchored predictions:
+The radiative corrections close every relation that does not depend on the
+φ-boundary and quantify each discrepancy that does. The status of the
+φ-anchored predictions:
 
 - **$\sin^2\theta_W$:** the running direction is upward; $\varphi^{-3}$ is
   realized at $\mu_* \approx 233$ GeV, and at $m_Z$ it sits 2.1% high.
@@ -561,10 +576,13 @@ erase—every discrepancy that does. The status of the φ-anchored predictions:
   $\alpha^{-1}$ from the φ-boundary—documented residuals.
 - **Higgs:** the $\lambda_\varphi$ formula does not produce 125 GeV; the SM
   λ-running (metastability at $M_{\text{Pl}}$) is derived and standard. The
-  φ-anchored candidates (§6.2): the Wu-Xing quartic (122.4 GeV) and the
-  $\lambda(M_{\text{Pl}}) = 0$ line (124.6–129.2 GeV) bracket the measured
-  value; three sub-0.1% candidates (top-Yukawa chain 0.001%, Wu-Xing +
-  $\varphi^{-3}/5$ 0.02%, $m_t\varphi^{-2/3}$ 0.04%) await mechanisms.
+  conditional Wu-Xing quartic consistency test gives 122.4 GeV, below the
+  measured mass, while the stability-line outputs (§6.2) give 129.0 GeV at
+  one loop and 129.2 GeV in the NNLO reference, both above it. These are
+  separate conditional constructions and cannot be combined into one
+  stability result; three sub-0.1% candidates (top-Yukawa chain 0.001%,
+  conditional Wu-Xing+$\varphi^{-3}/5$ consistency test 0.02%,
+  $m_t\varphi^{-2/3}$ 0.04%) await mechanisms.
 
 These residuals define the next stage of the framework: either the φ-boundary
 itself shifts (the unification reading $\alpha_1=\alpha_2=\alpha_3$ is not

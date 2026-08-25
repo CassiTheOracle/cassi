@@ -3,10 +3,11 @@
 SM Radiative Corrections: φ-Boundary → Z-Pole
 ==============================================
 
-The complete one-loop (plus leading two-loop) radiative-correction program
-that carries the Cassi φ-anchored GUT boundary conditions down to the Z-pole
-observables, and the reverse direction (measured Z-pole values run up to
-test unification claims).
+This compact radiative-correction audit evaluates the Cassi φ-anchored GUT
+boundary assignment down to Z-pole observables and runs measured Z-pole
+values upward to test unification claims.  It combines one-loop gauge and
+Higgs running with selected QCD and electroweak correction formulae; it is
+not a complete precision Standard-Model calculation.
 
 Theory sources:
   - Sirlin & Ferroglia, Rev. Mod. Phys. 85, 263 (2013) [arXiv:1210.5296]
@@ -19,7 +20,9 @@ Conventions:
   - GUT-normalized couplings: α₁ = (5/3)α_Y;  dα_i/dt = (b_i/2π)α_i²
   - SM one-loop coefficients (one Higgs doublet, 6 flavors):
       b = (+41/10, −19/6, −7)  for (U(1)_Y, SU(2)_L, SU(3)_C)
-  - Decoupling thresholds at m_t (top), m_W/m_Z for EW running
+  - A formal one-loop top-threshold bookkeeping segment is used for the
+    gauge/QCD running; below m_t the electroweak theory is broken, so this
+    is not precision electroweak matching.
   - sin²θ_W(μ) = α_Y(μ)/(α_Y(μ) + α₂(μ))  [MS-bar-like gauge-coupling ratio]
 
 Usage: python computations/sm_radiative_corrections.py
@@ -49,7 +52,7 @@ ALPHA_HAT_INV = 127.955         # α̂(m_Z) MS-bar
 DALPHA_HAD   = 0.02761          # Δα_had^(5) (Hagiwara et al. 2011)
 DALPHA_LEP   = 0.03150          # Δα_lept (3-loop, Steinhauser)
 DALPHA_TOP   = -0.000072        # Δα_top (perturbative, negative)
-M_GUT_CANON  = 1.0e16           # GeV, canonical continuous one-loop M_GUT
+M_GUT_CANON  = 1.0e16           # GeV, continuous one-loop reference M_GUT
 M_GUT_NOM    = 2.0e16           # GeV, nominal Cassi value
 
 ALPHA_GUT    = PHI**(-3) / (4 * pi)      # φ⁻³/4π ≈ 1/53.2
@@ -63,21 +66,22 @@ print("=" * 76)
 print("  SM RADIATIVE CORRECTIONS: φ-BOUNDARY → Z-POLE")
 print("=" * 76)
 print(f"  φ = {PHI:.6f},  α_GUT = φ⁻³/4π = 1/{1/ALPHA_GUT:.1f}")
-print(f"  M_GUT: canonical {M_GUT_CANON:.0e} GeV, nominal {M_GUT_NOM:.0e} GeV")
+print(f"  M_GUT: continuous one-loop reference {M_GUT_CANON:.0e} GeV, nominal {M_GUT_NOM:.0e} GeV")
 print()
 
 # ======================================================================
 # §1  One-loop gauge RGE with decoupling thresholds
 # ======================================================================
-print("── §1  GAUGE-COUPLING RGE (1-loop, thresholds at m_t, m_W/m_Z) ──")
+print("── §1  GAUGE-COUPLING RGE (formal one-loop top-threshold bookkeeping; not precision EW matching) ──")
 print()
 
 # dα_i/dt = (b_i/2π)α_i²  →  α_i⁻¹(μ) = α_i⁻¹(μ₀) − (b_i/2π) ln(μ/μ₀)
-# b_i = (+41/10, −19/6, −7) above m_t; top decouples below m_t:
+# b_i = (+41/10, −19/6, −7) above m_t; formal top bookkeeping below m_t:
 B1_6F, B2_6F, B3_6F = 41/10, -19/6, -7.0
-B1_5F = B1_6F - (4/3) * 3 * (1/3)**2 * (5/3)   # remove top from b₁ (GUT norm)
-B3_5F = B3_6F + 2/3                             # remove top from b₃
-B2_5F = B2_6F                                   # top is SU(2) singlet
+# GUT-normalized chiral top contribution: 1/30 (t_L) + 8/15 (t_R) = 17/30.
+B1_5F = B1_6F - 17/30
+B3_5F = B3_6F + 2/3
+B2_5F = B2_6F  # no separate electroweak matching in this compact audit
 
 def alpha_inv_run(inv0, b, mu0, mu1):
     """α⁻¹ at mu1 from α⁻¹ at mu0, one-loop, constant b between."""
@@ -85,8 +89,8 @@ def alpha_inv_run(inv0, b, mu0, mu1):
 
 def run_down_from_boundary(m_gut):
     """α_GUT = φ⁻³/4π at M_GUT for all three couplings → values at m_Z,
-    with the top decoupling threshold at m_t (6→5 flavors) and EW
-    thresholds at m_W, m_Z for the α_em reconstruction."""
+    with the top decoupling threshold at m_t (6→5 flavors); electroweak
+    threshold matching is not separately modeled."""
     inv1_g = alpha_inv_run(1/ALPHA_GUT, B1_6F, m_gut, M_T)
     inv2_g = alpha_inv_run(1/ALPHA_GUT, B2_6F, m_gut, M_T)
     inv3_g = alpha_inv_run(1/ALPHA_GUT, B3_6F, m_gut, M_T)
@@ -99,7 +103,7 @@ def run_down_from_boundary(m_gut):
     aem = a2 * s2
     return inv1, inv2, inv3, s2, aem
 
-print("  Direction A—φ-boundary at M_GUT, run DOWN to m_Z (SM content):")
+print("  Direction A—conditional φ-boundary assignment at M_GUT, run DOWN to m_Z (SM content):")
 print(f"  {'M_GUT':>10} {'α₁⁻¹(m_Z)':>10} {'α₂⁻¹(m_Z)':>10} {'α₃⁻¹(m_Z)':>10}"
       f" {'sin²θ_W':>9} {'α_em⁻¹':>9}")
 for mg in (M_GUT_CANON, M_GUT_NOM):
@@ -323,11 +327,11 @@ print(f"    (Δr − Δα = {dr - DALPHA:+.5f}—the >20σ evidence for electrow
       f" corrections beyond the running of α; 26σ in S&F 2013 §III.I)")
 print()
 
-# φ-tree m_W/m_Z with the ρ correction
+# conditional φ-tree candidate m_W/m_Z with the ρ correction
 MW_PHI_TREE = M_Z * sqrt(1 - S2_PHI)
 MW_PHI_RHO  = MW_PHI_TREE * sqrt(1 + d_rho)
-print(f"  φ-tree: m_W/m_Z = √(1−φ⁻³) = {sqrt(1-S2_PHI):.4f} → m_W = {MW_PHI_TREE:.2f} GeV")
-print(f"  φ-tree + leading ρ correction: m_W = {MW_PHI_RHO:.2f} GeV"
+print(f"  conditional φ-tree candidate: m_W/m_Z = √(1−φ⁻³) = {sqrt(1-S2_PHI):.4f} → m_W = {MW_PHI_TREE:.2f} GeV")
+print(f"  conditional φ-tree candidate + leading ρ correction: m_W = {MW_PHI_RHO:.2f} GeV"
       f"   (measured {M_W_EXP} → gap {(MW_PHI_RHO/M_W_EXP-1)*100:+.2f}%)")
 print()
 
@@ -347,21 +351,21 @@ G2_MZ = sqrt(4 * pi / 29.6)   # α₂(m_Z) = 1/29.6
 LAM_PHI = (PHI**(-2) / 2) * (G2_MZ**2 / 8)
 print(f"  sm-from-phi §2.3 check: λ_φ = (φ⁻²/2)(g₂²/8) = {LAM_PHI:.5f}"
       f" → m_H = v√(2λ_φ) = {V * sqrt(2*LAM_PHI):.1f} GeV  (NOT 125 GeV—"
-      f" the old formula does not reproduce m_H)")
+      f" the φ-anchored quartic check does not reproduce m_H)")
 
 # one-loop λ RGE: dλ/dt = (1/16π²)[24λ² + 12λy_t² − 6y_t⁴
-#                − (9/2)λg₂² − (3/2)λg'² + (3/8)(2g₂⁴ + (g₂²+g'²)²)]
+#                − 9λg₂² − 3λg'² + (3/8)(2g₂⁴ + (g₂²+g'²)²)]
 # d y_t/dt = (y_t/16π²)[(9/2)y_t² − 8g₃² − (9/4)g₂² − (17/12)g'²]
 # g' = g₁·√(3/5), g₁ GUT-normalized.
 def run_higgs(mu0, mu1, lam0, yt0, g1_0, g2_0, g3_0, n_steps=20000):
     def rhs(mu, lam, yt, g1, g2, g3):
         nf = 6 if mu > M_T else 5
         gp = g1 * sqrt(3/5)                     # SM-normalized hypercharge coupling
-        dg1 = (41/10 - (0 if nf == 6 else (4/3)*3*(1/9)*(5/3))) * g1**3 / (16*pi**2)
+        dg1 = (B1_6F if nf == 6 else B1_5F) * g1**3 / (16*pi**2)
         dg2 = (-19/6) * g2**3 / (16*pi**2)
         dg3 = (-(11 - 2*nf/3)) * g3**3 / (16*pi**2)
         dl = (24*lam**2 + 12*lam*yt**2 - 6*yt**4
-              - (9/2)*lam*g2**2 - (3/2)*lam*gp**2
+              - 9*lam*g2**2 - 3*lam*gp**2
               + (3/8)*(2*g2**4 + (g2**2 + gp**2)**2)) / (16*pi**2)
         dyt = yt * ((9/2)*yt**2 - 8*g3**2 - (9/4)*g2**2 - (17/12)*gp**2) / (16*pi**2)
         return dl, dyt, dg1, dg2, dg3
@@ -390,30 +394,37 @@ G3_MZ = sqrt(4 * pi / 8.47)
 # Yukawa from the RUNNING top mass at m_Z (m_t(m_Z) ≈ 163.5 GeV):
 YT_MZ_RUN = sqrt(2) * 163.5 / V
 lam_pl, yt_pl = run_higgs(M_Z, 1.0e19, LAM_MZ, YT_MZ_RUN, G1_MZ, G2_MZ, G3_MZ)
+# Direct pole-mass Yukawa input is retained only as a scheme-inconsistent
+# sensitivity diagnostic; it is not a physical alternative to YT_MZ_RUN.
 lam_pl_pole, _ = run_higgs(M_Z, 1.0e19, LAM_MZ, YT_MZ, G1_MZ, G2_MZ, G3_MZ)
 lam_10, _ = run_higgs(M_Z, 1.0e10, LAM_MZ, YT_MZ_RUN, G1_MZ, G2_MZ, G3_MZ)
 print(f"  y_t(m_Z) from running top mass (m_t(m_Z) ~ 163.5 GeV) = {YT_MZ_RUN:.4f};"
-      f"  from pole mass = {YT_MZ:.4f}")
+      f"  direct pole-mass input = {YT_MZ:.4f} (scheme-inconsistent diagnostic only)")
 print(f"  λ(m_Z) = {LAM_MZ:.4f} → λ(10¹⁰ GeV) = {lam_10:.4f} →"
-      f" λ(M_Pl) = {lam_pl:+.4f} (running y_t) / {lam_pl_pole:+.4f} (pole y_t)")
-print(f"  One loop: borderline at the stability boundary; NNLO"
+      f" λ(M_Pl) = {lam_pl:+.4f} (running y_t) / {lam_pl_pole:+.4f}"
+      f" (direct pole-y_t diagnostic)")
+print(f"  One loop with running y_t: λ(M_Pl) = {lam_pl:+.4f}; the SM"
+      f" vacuum is METASTABLE in this implementation. NNLO"
       f" (Degrassi et al. 2012, arXiv:1205.6497): λ(M_Pl) = −0.011 → the SM"
       f" vacuum is METASTABLE (lifetime ≫ age of the universe)")
 print()
 
 # ----------------------------------------------------------------------
-# §5.5  Higgs-mass candidates: φ-anchored formulas and honest verdicts
+# §5.5  Higgs-mass candidates: φ-anchored formulas and explicit verdicts
 # ----------------------------------------------------------------------
 print("── §5.5  HIGGS-MASS CANDIDATES: WHAT φ GIVES FOR m_H ──")
 print()
 M_H_EXP = 125.25
-# (2) Wu-Xing route (parameter-inventory §3.1): λ_WX = 1/(2w) = 0.1, w = 5 derived;
-#     consistency check m_H²φ/(4v₀²) ≈ λ_WX  →  m_H = √(4λ_WX/φ)·v
-LAM_WX = 1 / (2 * 5)
+# (2) Wu-Xing route (parameter-inventory §3.1): λ_WX = 0.1 is the
+#     solver convention.  The numerical equality 1/(2·5) = 0.1 is only
+#     a Hypothesized linkage/consistency check; the w = 5 physical reading
+#     is conditional on the declared cascade-signal and geometric maps.
+LAM_WX = 0.1
 M_H_WX = V * sqrt(4 * LAM_WX / PHI)
 LAM_CHK = M_H_EXP**2 * PHI / (4 * V**2)
-print(f"  (2) Wu-Xing quartic: m_H²φ/(4v₀²) = λ_WX = 1/(2w) = {LAM_WX:.4f}"
-      f" (w = 5 derived)")
+print(f"  (2) Wu-Xing quartic (Hypothesized linkage/consistency check):"
+      f" m_H²φ/(4v₀²) = λ_WX = {LAM_WX:.4f}; 1/(2·5) = {1/(2*5):.4f}"
+      f" (w = 5 conditional)")
 print(f"      λ check: {LAM_CHK:.4f} vs 0.1 → +{100*(LAM_CHK/0.1-1):.1f}%")
 print(f"      → m_H = √(4λ_WX/φ)·v = {M_H_WX:.2f} GeV vs {M_H_EXP}"
       f" ({100*(M_H_WX/M_H_EXP-1):+.1f}%)   [Hypothesized: in the 2–5% band,"
@@ -434,28 +445,32 @@ M_H_BOUND = (lo + hi) / 2
 print(f"  (3) stability boundary: λ(M_Pl) = 0 → m_H = {M_H_BOUND:.1f} GeV (1-loop)")
 print(f"      NNLO boundary: 129.4 ± 1.8 GeV at m_t = 173.1 (Degrassi et al. 2012)")
 print(f"      → 129.2 at m_t = 172.69; measured {M_H_EXP} is"
-      f" {100*(M_H_EXP/M_H_BOUND-1):+.1f}% above the 1-loop line and"
-      f" {100*(M_H_EXP/129.2-1):+.1f}% ({abs(M_H_EXP-129.2)/1.81:.1f}σ) below"
+      f" {100*(1 - M_H_EXP/M_H_BOUND):.1f}% below the 1-loop line and"
+      f" {100*(1 - M_H_EXP/129.2):.1f}% ({abs(M_H_EXP-129.2)/1.81:.1f}σ) below"
       f" the NNLO line")
-print(f"      → the measured mass lies inside the loop-order spread of the"
-      f" λ(M_Pl) = 0 line (λ(M_Pl) = −0.011 NNLO → metastable)")
+print("      → the measured mass is below both quoted stability boundaries;"
+      " λ(M_Pl) remains negative for the measured mass.")
 print()
 # (4) two-fluid eigenmasses at the φ-point:
 #     V = (g/4)(x+y)² + (λ/2)(x−φy)² − μ²(x+y),  x = Ψ₀², y = Ψ₁²
 #     field-space Hessian at |Ψ|²_min = v²,  g = φ⁻³,  λ = λ_WX = 0.1
+#     (solver convention; Hypothesized linkage)
 g_tf, lam_tf = PHI**(-3), LAM_WX
 mu2_tf = g_tf * V**2 / 2
 x0 = 2 * mu2_tf / (g_tf * PHI)
 y0 = 2 * mu2_tf / (g_tf * PHI**2)
-M11 = 3*g_tf*x0 + g_tf*y0 + 3*lam_tf*x0 - 2*lam_tf*PHI*y0 - 2*mu2_tf
-M22 = g_tf*x0 + 3*g_tf*y0 - 2*lam_tf*PHI*x0 + 3*lam_tf*PHI**2*y0 - 2*mu2_tf
+M11 = 3*g_tf*x0 + g_tf*y0 + 6*lam_tf*x0 - 2*lam_tf*PHI*y0 - 2*mu2_tf
+M22 = g_tf*x0 + 3*g_tf*y0 - 2*lam_tf*PHI*x0 + 6*lam_tf*PHI**2*y0 - 2*mu2_tf
 M12 = 2*(g_tf - 2*lam_tf*PHI) * sqrt(x0*y0)
 tr2 = (M11 + M22) / 2
 dd2 = sqrt(((M11 - M22) / 2)**2 + M12**2)
 m_hi = sqrt(max(tr2 + dd2, 0.0))
 m_lo = sqrt(max(tr2 - dd2, 0.0))
-print(f"  (4) two-fluid eigenmasses (g = φ⁻³, λ = λ_WX = 0.1, |Ψ|²_min = v²):")
-print(f"      m = {m_hi:.1f} / {m_lo:.1f} GeV—bracket m_H = 125.25"
+m_h_bracketed = m_lo <= M_H_EXP <= m_hi
+print(f"  (4) two-fluid eigenmasses (Wu-Xing Hypothesized linkage/consistency check;"
+      f" g = φ⁻³, λ = λ_WX = 0.1, |Ψ|²_min = v²):")
+print(f"      m = {m_hi:.1f} / {m_lo:.1f} GeV—"
+      f"{'brackets' if m_h_bracketed else 'does not bracket'} m_H = 125.25"
       f" (geometric mean {sqrt(m_hi*m_lo):.1f}, "
       f"{100*(sqrt(m_hi*m_lo)/M_H_EXP-1):+.1f}%)   [Hypothesized structure;"
       f" normalization convention matters at the ~20% level]")
@@ -486,8 +501,7 @@ print()
 # ----------------------------------------------------------------------
 print("── §5.6  COLLISION POOLING AND THE SHARP CANDIDATES ──")
 print()
-# P: pooling laws on the two-fluid eigenmodes (m_hi, m_lo from §5.5)
-print("  Pooling of the two-fluid eigenmodes (157.6 / 116.6 GeV) → m_H?")
+print(f"  Pooling of the two-fluid eigenmodes ({m_hi:.1f} / {m_lo:.1f} GeV) → m_H?")
 for lab, val in [
     ("harmonic mean",   2 / (1/m_hi + 1/m_lo)),
     ("geometric mean",  sqrt(m_hi * m_lo)),
@@ -499,28 +513,30 @@ print("      → no simple pooling law reproduces 125.25; the observed mass is")
 print("      not a combination of the isolated-vacuum modes (or the mode")
 print("      normalization differs—the ~20% convention sensitivity of §5.5)")
 print()
-# W2: Wu-Xing quartic with the (1 + φ⁻³/w) correction (w = 5)
+# W2: Wu-Xing quartic with the (1 + φ⁻³/w) correction (Hypothesized linkage;
+# w = 5).  Here φ⁻³ is the fixed-point fractional imbalance divided by w;
+# it is not the Yang fraction (which is φ⁻¹).
 LAM_W2 = (2 * LAM_WX / PHI) * (1 + PHI**(-3) / 5)
 M_H_W2 = V * sqrt(2 * LAM_W2)
-print(f"  Wu-Xing + correction: λ = (2λ_WX/φ)(1 + φ⁻³/w), w = 5:")
+print(f"  Wu-Xing + correction (Hypothesized linkage/consistency check):"
+      f" λ = (2λ_WX/φ)(1 + φ⁻³/w), w = 5:")
 print(f"      λ = {LAM_W2:.5f} vs {LAM_MZ:.5f}  "
       f"({100*(LAM_W2/LAM_MZ-1):+.3f}%)")
 print(f"      → m_H = {M_H_W2:.3f} GeV  ({100*(M_H_W2/M_H_EXP-1):+.3f}%)"
-      f"   [correction = Yang fraction / w; mechanism open]")
-print()
-# Y1: m_t = (v/√2)(1−φ⁻¹⁰), via the derived gap g = 1−φ⁻⁵ (de-resonance)
+      f"   [correction = fixed-point fractional imbalance / w; mechanism open]")
+# Y1: conditional m_t candidate, with exact φ arithmetic g = 1−φ⁻⁵
 M_T_PRED = (V / sqrt(2)) * (1 - PHI**(-10))
-print(f"  Top Yukawa chain: y_t = 1 − φ⁻¹⁰ = 1 − (1−g)² = 2g − g², "
-      f"g = 1 − φ⁻⁵ (the derived Wu-Xing gap):")
+print(f"  Conditional top-Yukawa candidate: y_t = 1 − φ⁻¹⁰ = 1 − (1−g)² = 2g − g², "
+      f"g = 1 − φ⁻⁵ (exact φ arithmetic conditional on the Wu-Xing construction):")
 print(f"      y_t(pole) = {sqrt(2)*M_T/V:.6f} vs 1−φ⁻¹⁰ = {1-PHI**(-10):.6f}")
-print(f"      → m_t = (v/√2)(1−φ⁻¹⁰) = {M_T_PRED:.3f} GeV vs {M_T}"
+print(f"      → conditional m_t = (v/√2)(1−φ⁻¹⁰) = {M_T_PRED:.3f} GeV vs {M_T}"
       f"  ({100*(M_T_PRED/M_T-1):+.4f}%)   [sharpest coincidence in the"
-      f" framework; mechanism = two-step gap survival, open]")
+      f" framework; two-step gap survival is a Hypothesized mechanism target]")
 print()
-# Y2: λ(m_Z) = y_t²(m_Z)·φ⁻⁴ (top-loop pooling: gg→H proceeds through the top)
+# Y2: λ(m_Z) = y_t²(m_Z)·φ⁻⁴ (SM top-loop context; Cassi relation is a Hypothesized candidate)
 LAM_Y2 = YT_MZ_RUN**2 * PHI**(-4)
 M_H_Y2 = V * sqrt(2 * LAM_Y2)
-print(f"  Top-loop pooling: λ(m_Z) = y_t²(m_Z)·φ⁻⁴ (the gg→H top loop):")
+print(f"  Hypothesized top-loop pooling candidate: λ(m_Z) = y_t²(m_Z)·φ⁻⁴ (the gg→H top loop):")
 print(f"      λ = {LAM_Y2:.5f} vs {LAM_MZ:.5f}  "
       f"({100*(LAM_Y2/LAM_MZ-1):+.3f}%)")
 print(f"      → m_H = {M_H_Y2:.2f} GeV  ({100*(M_H_Y2/M_H_EXP-1):+.2f}%)")
@@ -532,26 +548,27 @@ print(f"  Top-pair pool: 2m_t/φ² = {M_2T_PHI2:.1f} GeV  "
       f" correction (observation, not a prediction)")
 print()
 print("  Look-elsewhere note: three independent candidates land within 0.05%")
-print("  (m_t chain 0.0001%, Wu-Xing+φ⁻³/5 0.02%, m_t·φ^(−2/3) 0.04%). Per")
+print("  (top-Yukawa candidate 0.0001%, Wu-Xing+φ⁻³/5 0.02%, m_t·φ^(−2/3) 0.04%). Per")
 print("  the repo standard (m_e half-step precedent) none is a derivation")
 print("  until a mechanism produces its structure; they are ranked mechanism")
 print("  targets, not predictions.")
 print()
 
 # ----------------------------------------------------------------------
-# §5.7  The 2g−g² mechanism and the Yukawa ladder
+# §5.7  Conditional 2g−g² candidate and the Yukawa ladder
 # ----------------------------------------------------------------------
-print("── §5.7  THE 2g−g² MECHANISM AND THE YUKAWA LADDER ──")
+print("── §5.7  CONDITIONAL 2g−g² CANDIDATE AND THE YUKAWA LADDER ──")
 print()
-G_GAP = 1 - PHI**(-5)                  # Wu-Xing gap (derived)
+G_GAP = 1 - PHI**(-5)                  # exact φ arithmetic conditional on Wu-Xing construction
 Y_T_2G = 2*G_GAP - G_GAP**2            # = 1 − (1−g)² = 1 − φ⁻¹⁰
 Y_T_POLE = sqrt(2) * M_T / V
-print(f"  Mechanism: Yang/Yin = chiral projections; the top Yukawa couples")
-print(f"  both components through the condensate; the per-cycle unconverted")
-print(f"  fraction is 1−g = φ⁻⁵ per component:")
-print(f"      y_t = 1 − (1−g)² = 2g − g² = {Y_T_2G:.6f}  vs y_t(pole) ="
+print("  Hypothesized mapping: Yang/Yin → chiral projections;")
+print("      two-step gap survival is an open mechanism target, not an established mechanism.")
+print("      Conditional on the Wu-Xing construction, the per-cycle unconverted")
+print("      fraction is 1−g = φ⁻⁵ per component:")
+print(f"      Conditional arithmetic: y_t = 1 − (1−g)² = 2g − g² = {Y_T_2G:.6f}  vs y_t(pole) ="
       f" {Y_T_POLE:.6f}  ({100*(Y_T_2G/Y_T_POLE-1):+.4f}%)")
-print(f"      (g = 1−φ⁻⁵ = {G_GAP:.6f}, the derived Wu-Xing gap)")
+print(f"      (g = 1−φ⁻⁵ = {G_GAP:.6f}, exact φ arithmetic conditional on the selected Wu-Xing construction)")
 print()
 # Yukawa ladder below the top: Δn = log_φ(y_t/y_f), nearest-half-rung test
 print("  Yukawa ladder (pole top anchor; MS-bar quark masses at m_Z):")
@@ -579,21 +596,21 @@ print(f"      MS-bar top (y_t(m_Z) = {YT_MZ_RUN:.4f}):      Δn ="
 print(f"      pole top + pole b (4.18 GeV): Δn = 7.73—the b half-rung")
 print(f"      fails outright (mixed conventions do not rescue the ladder)")
 print()
-# combined chain
+# conditional combined candidate
 M_H_CHAIN = (V / sqrt(2)) * Y_T_2G * PHI**(-2/3)
-print(f"  Combined chain: m_H = (v/√2)(2g−g²)·φ^(−2/3) = {M_H_CHAIN:.2f} GeV"
+print(f"  Conditional combined candidate: m_H = (v/√2)(2g−g²)·φ^(−2/3) = {M_H_CHAIN:.2f} GeV"
       f"  ({100*(M_H_CHAIN/M_H_EXP-1):+.3f}%)—one open structure (2/3)"
-      f" + one derived constant (g)")
+      f" + one exact φ identity conditional on the Wu-Xing construction (g); physical mapping remains Hypothesized")
 print()
 
 # ----------------------------------------------------------------------
 # §6  Summary
 # ----------------------------------------------------------------------
 print("=" * 76)
-print("  SUMMARY: φ-BOUNDARY VS MEASURED, WITH FULL SM RADIATIVE CORRECTIONS")
+print("  SUMMARY: φ-BOUNDARY VS MEASURED, COMPACT SM RADIATIVE-CORRECTION AUDIT")
 print("=" * 76)
 print()
-print("  Direction A—φ-boundary (α_GUT = φ⁻³/4π at M_GUT = 10¹⁶ GeV) run down:")
+print("  Direction A—conditional φ-boundary assignment (α_GUT = φ⁻³/4π at M_GUT = 10¹⁶ GeV) run down:")
 print(f"    α₁⁻¹(m_Z) = {inv1_c:.1f}  vs 59.0   ({100*(inv1_c/59.0-1):+.0f}%)")
 print(f"    α₂⁻¹(m_Z) = {inv2_c:.1f}  vs 29.6   ({100*(inv2_c/29.6-1):+.0f}%)")
 print(f"    α₃⁻¹(m_Z) = {inv3_c:.1f}  vs 8.47   ({100*(inv3_c/8.47-1):+.0f}%)"
@@ -617,7 +634,7 @@ print(f"    sin²θ_eff^lept = {s2e:.5f} vs {S2_EFF_EXP} ± 0.00016   ✓")
 print(f"    Δr = {dr:.4f}; Δr − Δα = {dr-DALPHA:+.4f} (26σ EW signal)")
 print(f"    λ(M_Pl) = {lam_pl:+.4f} (1-loop; NNLO −0.011) → metastable vacuum (SM)")
 print()
-print("  Cassi φ-anchored tree predictions after radiative corrections:")
+print("  Cassi φ-anchored conditional tree candidates after radiative corrections:")
 print(f"    m_W/m_Z = √(1−φ⁻³) = {sqrt(1-S2_PHI):.4f} → +ρ-correction: "
       f"{MW_PHI_RHO/M_Z:.4f}  vs measured {M_W_EXP/M_Z:.4f}  "
       f"({100*(MW_PHI_RHO/M_Z - M_W_EXP/M_Z)/(M_W_EXP/M_Z):+.2f}%)")

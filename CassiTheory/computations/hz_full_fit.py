@@ -10,7 +10,8 @@ documented pipeline result ΔH₀ = −7.2 km/s/Mpc (−9.9%,
 fixed local H₀, not a simultaneous fit of the CMB and distance-ladder
 anchors. This script performs that fit.
 
-Models (zero free parameters each—w₀, w_a fixed by calibration):
+Models (no parameters are fit within this comparison; w₀ and w_a are held at
+the stated external calibration values):
   1. ΛCDM            w₀ = −1.000, w_a =  0.000   (reference)
   2. Cassi baseline  w₀ = −0.870, w_a = +0.012   (Calibrated, DESI-anchored)
   3. Cassi coupling  w₀ = −0.870, w_a = −0.380   (ratified conversion→expansion

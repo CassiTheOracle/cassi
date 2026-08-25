@@ -2,9 +2,9 @@
 
 Run:  python two-fluid/run_wake_structural_probes.py
 
-Three Derived-structural claims, each previously without a dedicated PDE
-realization, tested in the 1D standing-wave setup (the T1 harness
-`two-fluid/run_rung_offset_probe.py`, skill two-fluid-standing-wave-probe):
+The probe evaluates three derived-structural claims in the 1D standing-wave
+setup (the T1 harness `two-fluid/run_rung_offset_probe.py`, skill
+two-fluid-standing-wave-probe):
 
   P44 (staggered checkerboard; predictions/falsifiable-predictions.md P44,
       foundations/wake-geometry.md §2): the wake pair

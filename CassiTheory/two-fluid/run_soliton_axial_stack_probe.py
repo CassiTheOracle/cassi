@@ -1,49 +1,63 @@
 #!/usr/bin/env python3
-"""Multi-scale axial soliton probe (Amendment 2): does coherence flowing up a
-phi-spaced cascade stack self-lock a standing wave?
+"""Multi-scale axial soliton probe (Amendment 2): does a phi-spaced stack
+retain a standing-wave envelope under prescribed density-plane-angle winding?
 
 Run:  python two-fluid/run_soliton_axial_stack_probe.py
       (--steps N and --arm TAG repeatable override)
 
-Owner hypothesis (2026-08-16, confirmed 'both'): the twist that traps the
-dispersion is NOT a spatial winding on one scale. The theory
-(foundations/qi-flow-double-helix.md) places the winding in (scale,
-doublet-plane) space -- the helix is the *axial phase winding along the
-cascade*, emergent from coherence flowing up the rungs:
+Probe scope: the script specifies per-layer density-plane angles and a
+coherence-excess profile, then evolves the canonical solver on a fresh arm.
+It measures envelope retention and records the `J_z`/`F_c` diagnostics from the
+read-only lattice-stack machinery. Those values are named spatial projections
+of the density-doublet diagnostic; a constitutive map would be required for
+an inter-rung transport interpretation.
 
-    J_z = R^2 d_z theta      (L3.2: axial coherence current, phi^-1 per rung)
-    doublet phase +pi per rung, P_parallel = 2   (L3.3)
-    winding from relaxation excess eps_0           (L3: 'matter as wound Qi')
+Theory context (from `foundations/qi-flow-double-helix.md`):
 
-The single-scale Wave-0 probe removed this mechanism by construction (no
-cascade extent, no axial phase advance, no inflow from lower scales). This
-probe extends the shipped lattice-stack machinery (run_lattice_stack_probe,
-read-only -- zero new terms, canonical solver, fresh solver per arm) with an
-axial, phi-spaced multi-rung stack carrying a per-rung phase advance and a
-coherence excess seeded at the fine (lower-rung) end.
+    J_z = [J_d]_z = (E_Y² + E_I²) ∂_z θ_d
+        (named axial projection of the density-plane current)
+    layer angle increment dtheta selected by the arm
+    density-angle relaxation Δθ_d(ε_0) recorded as an angular response
+
+The density-plane angle is the state coordinate evolved by this probe.
+The `dtheta` input selects the closure increment (the default is 2pi/5;
+the π step is the P_parallel=2 comparison). The spatial projections are
+diagnostics of the simulated field; they do not supply a scale-transport
+law.
+
+The single-scale Wave-0 probe has no cascade extent, density-plane-angle
+advance, or lower-rung coupling. This probe extends the shipped
+lattice-stack machinery (`run_lattice_stack_probe`, read-only—zero new terms,
+canonical solver, fresh solver per arm) with an axial, phi-spaced multi-rung
+stack carrying a per-layer density-plane-angle increment and a coherence
+excess prescribed at the fine (lower-rung) end.
 
 Geometry (this probe's extension):
   - M two-lobe coherence layers along z (the string axis), positions z_i set
     by the CASCADE ladder around the lump center: innermost gap s_min (fine,
     lower rungs), gaps grow by phi outward: gap_k = s_min * phi^k.
-  - per-layer phase theta_i = i*dtheta (natural closure steps: 2pi/5 pentagon
-    R=phi, pi/5 decagon, pi P_parallel=2 anti-phase double-helix closure).
+  - per-layer density-plane angle theta_{d,i} = i*dtheta (closure steps:
+    2pi/5 pentagon, pi/5 decagon, and pi for the P_parallel=2 comparison).
   - a coherence-excess perturbation eps0 stronger at the fine shells
-    (epsilon_0 * exp(-|i|*phi^-1)), the excess the lower scales feed up, so
-    the relaxation winding Delta-vartheta(eps_0) can emerge as an axial flow.
+    (epsilon_0 * exp(-|i|*phi^-1)); the density-angle relaxation response
+    Delta-theta_d(eps_0) is recorded in the axial diagnostics.
 
 Arms (pairwise phi-spacing x fine-excess, vs uniform space + no excess):
 
-  A_phi_en  phi-spaced + phase + fine-excess   -- the owner's full mechanism
-  A_phi_ne  phi-spaced + phase, no excess      -- is the fine-excess load-bearing?
-  A_uni_en  uniform     + phase + fine-excess  -- is phi-spacing load-bearing?
-  A_uni_ne  uniform     + phase, no excess      -- base control (uniform stack)
-  m1        single layer (M=1)                   -- known TS1 escape control
+  A_phi_en  phi-spaced + density-angle increment + fine-excess
+             -- the owner's full mechanism
+  A_phi_ne  phi-spaced + density-angle increment, no excess
+             -- is the fine-excess load-bearing?
+  A_uni_en  uniform + density-angle increment + fine-excess
+             -- is phi-spacing load-bearing?
+  A_uni_ne  uniform + density-angle increment, no excess
+             -- base control (uniform stack)
+  m1        single layer (M=1) -- known TS1 escape control
 
 Verdict (extends pre-reg L5): H-HOLDS iff A_phi_en keeps C_abs(40) >= 0.5 and
 A_peak(40)/A_peak(0) >= 0.5 while A_uni_ne and m1 escape (C_abs -> ~0) and
-mass/charge drift <= 1e-6. Attribution: which element (phi-spacing / phase /
-fine-excess) is necessary, by pairwise contrast.
+mass/charge drift <= 1e-6. Attribution: which element (phi-spacing /
+density-angle increment / fine-excess) is necessary, by pairwise contrast.
 
 Output: runs/<rid>_soliton_axial/run_<arm>.json + results.json
 (commit the script only; runs/ is gitignored).
@@ -92,17 +106,12 @@ def phi_spaced_zs(N, M, s_min=3.0):
     if M == 1:
         return [cx]
     half = (M - 1) // 2
-    gaps = [s_min * PHI ** k for k in range(half)] if half else []
-    gaps = list(reversed(gaps)) + gaps  # symmetric: [.., s_min*phi, s_min, s_min*phi, ..]
-    zs = [cx]
-    for g in gaps:
-        zs = zs * 1  # placeholder
     # build symmetric positions
     left = [cx]
     right = [cx]
     for k in range(half):
         # gap between consecutive shells; outer gaps larger
-        g = s_min * PHI ** (half - 1 - k)
+        g = s_min * PHI ** k
         left = [left[0] - g] + left
         right = right + [right[-1] + g]
     zs = left + right[1:]
@@ -123,9 +132,11 @@ def ecc_weights(M, eps0, phi_inv=PHI_INV):
 
 def stack_init_ext(solver, M, dtheta, zs, ecc=None):
     """M two-lobe layers along z at *given* positions zs (phi-spaced or
-    uniform), per-layer phase theta_i = i*dtheta, plus an optional per-shell
-    coherence-excess ecc[i] added to the eps perturbation (the fine-end excess
-    feeding coherence up the stack). Reuses the base two-lobe construction.
+    uniform), per-layer density-plane angle theta_{d,i} = i*dtheta, plus an
+    optional per-shell coherence-excess ecc[i] added to the eps perturbation.
+    The excess profile is prescribed at the fine end and its response is
+    recorded by the spatial diagnostics. Reuses the base two-lobe
+    construction.
 
     ecc = None  -> exact base layer shape (no added excess).
     Returns (ey_hat, ei_hat, u_hat, zs).
@@ -154,8 +165,9 @@ def stack_init_ext(solver, M, dtheta, zs, ecc=None):
         gm = g1 - g2
         rho += RHO0 * BETA * gp * ct - E_RIDGE * gm * st
         e_delta = ecc[i] if ecc is not None else 0.0
-        # the excess rides the density doublet in the same phase plane: add it
-        # to the eps perturbation (positive eps = EY > phi*EI, coherence excess)
+        # the excess rides the density doublet in the density-plane
+        # representation: add it to the eps perturbation (positive eps =
+        # EY > phi*EI, coherence excess)
         eps += RHO0 * BETA * gp * st + E_RIDGE * gm * ct + e_delta * gp
     ey = (T.PHI * rho + eps) / (1.0 + T.PHI)
     ei = (rho - eps) / (1.0 + T.PHI)
@@ -240,7 +252,7 @@ def main():
     parser.add_argument('--arm', action='append', default=None)
     parser.add_argument('--depth-sweep', action='store_true',
                         help='retention-vs-rung-depth: phi-spaced + pentagon + '
-                             'fine-excess at M in {5,7,9,11} with s_min scaled '
+                             'fine-excess at M in {7,9,11} with s_min scaled '
                              'to fit the box (tests owner: more cascade rungs '
                              '=> more stable envelope, i.e. cascade suppression)')
     args = parser.parse_args()

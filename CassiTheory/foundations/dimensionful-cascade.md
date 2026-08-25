@@ -1,14 +1,14 @@
-# The Dimensionful Cascade: All Physical Scales from $\varphi$
+# The Dimensionful Cascade: External Planck Anchor and $\varphi$-Ladder
 
-## Status: Derived—July 2026
+## Status: Derived dimensionless ladder identity; physical rung mappings mixed—August 2026
 
 ## Abstract
 
-The Cassi two-fluid framework has one fundamental dimensionful scale: the Planck length $\ell_{\text{Pl}} = 1.616 \times 10^{-35}\,\text{m}$. Every other physical scale in the universe follows from the cascade relation
+The Cassi framework takes the external Planck length $\ell_{\text{Pl}} = 1.616 \times 10^{-35}\,\text{m}$ as the reference anchor for a dimensionful cascade parameterization. Once that anchor and the dimensionless scale-separation constant are supplied, the ladder is
 
 $$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}}$$
 
-where $\varphi = (1+\sqrt{5})/2 \approx 1.618$ and the integer exponent $n$ is determined by the dynamics of the $\varphi$-attractor—specifically, by where in the cascade a given physical process freezes out. The observable ladder spans $n = 0$ (Planck) to $n \approx 292$ (today's horizon rung—epoch-dependent); the cascade itself is unbounded (megacascade above, microcascade below). This document catalogues the complete spectrum.
+where $\varphi = (1+\sqrt{5})/2 \approx 1.618$. The integer or near-integer exponent $n$ is a coordinate assignment for a physical scale; its physical identification carries an individual **Mapped**, **Calibrated**, or **Hypothesized** status. The observable ladder spans $n = 0$ (Planck anchor) to $n \approx 292$ (today's horizon rung—epoch-dependent); the coordinate ladder is unbounded above and below. This document catalogues the present parameterization and its status-qualified scale assignments.
 
 **Extension:** The cascade does not truncate at either boundary. Above $n \approx 292$ lies the **megacascade** (multiverse, bubble boundaries). Below $n = 0$ lies the **microcascade** (sub-Planckian infinite ladder). See `foundations/microcascade-mirror.md` for the bidirectional extension.
 
@@ -19,21 +19,21 @@ where $\varphi = (1+\sqrt{5})/2 \approx 1.618$ and the integer exponent $n$ is d
 
 ## 1. The Fundamental Scale
 
-The Planck length is the sole dimensionful constant:
+The Planck length is the external dimensionful anchor used in this parameterization:
 
 $$\ell_{\text{Pl}} = \sqrt{\frac{\hbar G}{c^3}} = 1.616255 \times 10^{-35}\,\text{m}$$
 
-The Planck mass is $M_{\text{Pl}} = \sqrt{\hbar c / G} = 1.22 \times 10^{19}\,\text{GeV}/c^2$. In the Cassi framework, $\ell_{\text{Pl}}$ emerges as the natural UV cutoff from the $\sigma$-regularization of the two-fluid PDE (see `gravity/quantum-gravity.md`). No other fundamental length exists—all scales are $\varphi$-powers of $\ell_{\text{Pl}}$.
+The Planck mass is $M_{\text{Pl}} = \sqrt{\hbar c / G} = 1.22 \times 10^{19}\,\text{GeV}/c^2$. The relation $\ell_n=\ell_{\text{Pl}}\varphi^n$ supplies dimensionful rung values once the external anchor is chosen. A UV cutoff interpretation for the anchor requires a separately stated regularization and physical closure; it is not fixed by the ladder identity alone.
 
 ---
 
 ## 2. The Cascade Formula
 
-For any physical scale $\ell$, the exponent $n$ is:
+For any physical scale $\ell$ assigned within this parameterization, the exponent $n$ is:
 
 $$n = \frac{\ln(\ell / \ell_{\text{Pl}})}{\ln\varphi} = \log_\varphi\!\left(\frac{\ell}{\ell_{\text{Pl}}}\right)$$
 
-The cascade is NOT a continuous spectrum. Physical scales correspond to integer (or near-integer) values of $n$, where a gauge symmetry breaks, a particle decouples, or a dynamical threshold is crossed. The selection of which $n$ are "active" is determined by the PDE dynamics—specifically, the conversion rate $\lambda$, the Qi gate shape, and the scale-dependent wave speed $c(r)$ along the ratio-evolution string.
+The cascade is a discrete coordinate ladder rather than a continuous spectrum. Physical scale assignments may use integer or near-integer values of $n$, where a gauge symmetry breaks, a particle decouples, or a dynamical threshold is crossed; each assignment requires its own status and supporting inputs. The selection of which $n$ are "active" is determined by the declared model dynamics—specifically, by the conversion rate $\lambda$, the Qi gate shape, and the dimensionless solver-unit wave-speed diagnostic $c(r)$ along the ratio-evolution string.
 
 ### 2.1 Relationship to the Gap
 
@@ -41,55 +41,55 @@ The initial gap $g = 1 - \varphi^{-5}$ (see `cassi-physics.md`) sets the cascade
 
 $$\frac{v_0}{M_{\text{Pl}}} = g \cdot \varphi^{-N} \quad\Longrightarrow\quad N = \frac{\ln(g \cdot M_{\text{Pl}} / v_0)}{\ln\varphi} \approx 79.7 \approx 80$$
 
-The exponent $N \approx 80$ for the electroweak-to-Planck ratio is a **consistency check**—it matches the observation that $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ to within 5.3%. The gap itself is derived from the Wu Xing five-element structure ($w=5$), reducing the cascade depth to zero free parameters.
+The exponent $N \approx 80$ for the electroweak-to-Planck ratio is a **consistency check**—it matches the observation that $v_0/M_{\text{Pl}} \approx \varphi^{-80}$ to within 5.3%. The gap relation itself is a **Hypothesized** Wu Xing five-element input ($w=5$); conditional on adopting that input, the cascade-depth expression has zero additional free parameters.
 
 ### 2.2 Cascade Invariance
 
-The electroweak cascade depth $N \approx 80$ is robust against variations in the initial gap $g$. Changing $g$ (i.e., a different Wu Xing number $w$) changes the cosmology ($w_0$, $H_0$ evolution) but leaves the Standard Model couplings unchanged, because the $\varphi$-attractor physics near $r = \varphi$ is independent of the initial conditions. The EW scale "freezes out" at the same number of $\varphi$-steps from Planck regardless of how far the initial ratio started from equilibrium.
+The electroweak cascade depth $N \approx 80$ is robust as an algebraic ratio check against variations in the initial gap $g$ once the $\varphi$-attractor parameterization is adopted. Changing $g$ (i.e., a different Wu Xing number $w$) changes the cosmology ($w_0$, $H_0$ evolution) while leaving the listed Standard Model coupling inputs unchanged. The interpretation that the EW scale dynamically "freezes out" at the same number of $\varphi$-steps from Planck is **Hypothesized** and requires an independent dynamical closure.
 
 ---
 
 ## 3. Complete Cascade Table
 
 
-| Step $n$ | Scale (meters) | Physical Meaning | Regime |
-|----------|---------------|-------------------|--------|
-| 0 | $1.6 \times 10^{-35}$ | **Planck length**—UV cutoff | Quantum gravity |
-| 5 | $1.8 \times 10^{-34}$ | GUT-scale label ($M_{\text{GUT}} \approx 10^{16}$ GeV sits at $n \approx 13.3$–$14.8$, $\ell \approx 10^{-32}$ m; step 5 itself is $1.1\times10^{18}$ GeV) | GUT |
-| 10 | $2.0 \times 10^{-33}$ | Compactification / string scale | GUT |
-| 20 | $2.4 \times 10^{-31}$ | Seesaw scale ($\sim 10^{14}$ GeV, neutrino masses) | GUT/neutrino |
-| 40 | $3.7 \times 10^{-27}$ | Inflationary energy scale | Inflation |
-| 60 | $5.6 \times 10^{-23}$ | SUSY-breaking / intermediate scale | Desert |
-| **80** | **$8.0 \times 10^{-19}$** | **Electroweak scale** ($v_0 \approx 246$ GeV) | Particle physics |
-| 82 | $2.2 \times 10^{-18}$ | Weak boson Compton wavelength ($Z$: 91.2 GeV) | Particle physics |
-| 89 | $6.4 \times 10^{-17}$ | J/ψ charmonium ($m \approx 3.10$ GeV) | Particle physics |
-| **95** | **$1.1 \times 10^{-15}$** | **QCD confinement** ($\Lambda_{\text{QCD}} \sim 200$ MeV) | Nuclear |
-| 96 | $1.9 \times 10^{-15}$ | Muon Compton wavelength ($m_\mu \approx 105.7$ MeV) | Particle physics |
-| 107 | $3.7 \times 10^{-13}$ | Electron Compton wavelength (reduced; $m_e \approx 0.51$ MeV) | Particle physics |
-| **117** | **$5.3 \times 10^{-11}$** | **Bohr radius** (atomic scale, $a_0$) | Atomic |
-| 125 | $2.1 \times 10^{-9}$ | Typical molecular bond length | Molecular |
-| **136** | **$5.0 \times 10^{-7}$** | **Visible light** wavelength (500 nm) | Optical |
-| 142 | $7.7 \times 10^{-6}$ | Cellular scale ($\sim 8$ μm) | Biological |
-| **168** | **$1.7$** | **Human scale** ($\sim 1.7$ m) | Macroscopic |
-| 180 | $6.7 \times 10^{2}$ | Skyscraper scale | Macroscopic |
-| 185 | $8.8 \times 10^{3}$ | Mt Everest height | Planetary |
-| **200** | **$1.3 \times 10^{7}$** | **Earth diameter** | Planetary |
-| 208 | $3.8 \times 10^{8}$ | Earth-Moon distance | Planetary |
-| **220** | **$1.5 \times 10^{11}$** | **Astronomical Unit** (Earth-Sun) | Stellar system |
-| **228** | **$6.0 \times 10^{12}$** | **Solar System radius** ($\sim 40$ AU, Pluto) | Stellar system |
-| 235 | $2.1 \times 10^{14}$ | Inner Oort cloud ($\sim 1400$ AU) | Interstellar |
-| **243** | **$9.5 \times 10^{15}$** | **Light-year** | Interstellar |
-| 245 | $3.1 \times 10^{16}$ | Parsec ($\sim 3.26$ ly) | Interstellar |
-| 250 | $2.8 \times 10^{17}$ | Nearby stars ($\sim 9$ pc) | Interstellar |
-| 260 | $3.5 \times 10^{19}$ | Kiloparsec ($\sim 1.1$ kpc) | Galactic |
-| **267** | **$9.3 \times 10^{20}$** | **Milky Way diameter** ($\sim 30$ kpc) | Galactic |
-| 275 | $4.8 \times 10^{22}$ | Local Group ($\sim 1.6$ Mpc) | Extragalactic |
-| 280 | $5.3 \times 10^{23}$ | Cosmic void scale ($\sim 17$ Mpc) | Extragalactic |
-| **284** | **$3.6 \times 10^{24}$** | **Yin wake of rung 285** ($\Lambda_I = \ell_{285}/\varphi$; old “BAO ~120 Mpc” label—the measured ruler sits at the 284.5 half-step, 150 Mpc) | Cosmological |
-| **285** | **$5.9 \times 10^{24}$** | **Cassi bubble** ($\sim 191$ Mpc) | Multiverse |
-| 288 | $2.5 \times 10^{25}$ | Supercluster scale ($\sim 800$ Mpc) | Cosmological |
-| 290 | $6.5 \times 10^{25}$ | Horizon at recombination ($\sim 2.1$ Gpc) | Cosmological |
-| **292** | **$1.7 \times 10^{26}$** | **Horizon rung** (lattice length $\ell_{292} = 5.5$ Gpc; $R_H = 4.44$ Gpc $= 14.5$ Glyr, $\log_\varphi = 291.54$, c/H₀-consistent) | Observable universe |
+| Step $n$ | Scale (meters) | Physical Meaning | Regime | Epistemic status |
+|----------|---------------|-------------------|--------|------------------|
+| 0 | $1.6 \times 10^{-35}$ | **Planck length**—external anchor; UV-cutoff reading | Quantum gravity | External; cutoff **Hypothesized** |
+| 5 | $1.8 \times 10^{-34}$ | GUT-scale label ($M_{\text{GUT}} \approx 10^{16}$ GeV sits at $n \approx 13.3$–$14.8$, $\ell \approx 10^{-32}$ m; step 5 itself is $1.1\times10^{18}$ GeV) | GUT | Scale **Mapped**; GUT interpretation **Hypothesized** |
+| 10 | $2.0 \times 10^{-33}$ | Compactification / string scale | GUT | **Hypothesized** |
+| 20 | $2.4 \times 10^{-31}$ | Seesaw scale ($\sim 10^{14}$ GeV, neutrino masses) | GUT/neutrino | **Hypothesized** |
+| 40 | $3.7 \times 10^{-27}$ | Inflationary energy scale | Inflation | **Hypothesized** |
+| 60 | $5.6 \times 10^{-23}$ | SUSY-breaking / intermediate scale | Desert | **Hypothesized** |
+| **80** | **$8.0 \times 10^{-19}$** | **Electroweak scale** ($v_0 \approx 246$ GeV) | Particle physics | **Mapped** ratio; threshold **Hypothesized** |
+| 82 | $2.2 \times 10^{-18}$ | Weak boson Compton wavelength ($Z$: 91.2 GeV) | Particle physics | **Mapped** |
+| 89 | $6.4 \times 10^{-17}$ | J/ψ charmonium ($m \approx 3.10$ GeV) | Particle physics | **Mapped** |
+| **95** | **$1.1 \times 10^{-15}$** | **QCD confinement** ($\Lambda_{\text{QCD}} \sim 200$ MeV) | Nuclear | **Mapped** scale; confinement interpretation **Hypothesized** |
+| 96 | $1.9 \times 10^{-15}$ | Muon Compton wavelength ($m_\mu \approx 105.7$ MeV) | Particle physics | **Mapped** |
+| 107 | $3.7 \times 10^{-13}$ | Electron Compton wavelength (reduced; $m_e \approx 0.51$ MeV) | Particle physics | **Mapped** |
+| **117** | **$5.3 \times 10^{-11}$** | **Bohr radius** (atomic scale, $a_0$) | Atomic | **Mapped** |
+| 125 | $2.1 \times 10^{-9}$ | Typical molecular bond length | Molecular | **Mapped** |
+| **136** | **$5.0 \times 10^{-7}$** | **Visible light** wavelength (500 nm) | Optical | **Mapped** |
+| 142 | $7.7 \times 10^{-6}$ | Cellular scale ($\sim 8$ μm) | Biological | **Mapped** |
+| **168** | **$1.7$** | **Human scale** ($\sim 1.7$ m) | Macroscopic | **Mapped** |
+| 180 | $6.7 \times 10^{2}$ | Skyscraper scale | Macroscopic | **Mapped** |
+| 185 | $8.8 \times 10^{3}$ | Mt Everest height | Planetary | **Mapped** |
+| **200** | **$1.3 \times 10^{7}$** | **Earth diameter** | Planetary | **Mapped** |
+| 208 | $3.8 \times 10^{8}$ | Earth-Moon distance | Planetary | **Mapped** |
+| **220** | **$1.5 \times 10^{11}$** | **Astronomical Unit** (Earth-Sun) | Stellar system | **Mapped** |
+| **228** | **$6.0 \times 10^{12}$** | **Solar System radius** ($\sim 40$ AU, Pluto) | Stellar system | **Mapped** |
+| 235 | $2.1 \times 10^{14}$ | Inner Oort cloud ($\sim 1400$ AU) | Interstellar | **Mapped** |
+| **243** | **$9.5 \times 10^{15}$** | **Light-year** | Interstellar | **Mapped** |
+| 245 | $3.1 \times 10^{16}$ | Parsec ($\sim 3.26$ ly) | Interstellar | **Mapped** |
+| 250 | $2.8 \times 10^{17}$ | Nearby stars ($\sim 9$ pc) | Interstellar | **Mapped** |
+| 260 | $3.5 \times 10^{19}$ | Kiloparsec ($\sim 1.1$ kpc) | Galactic | **Mapped** |
+| **267** | **$9.3 \times 10^{20}$** | **Milky Way diameter** ($\sim 30$ kpc) | Galactic | **Mapped** |
+| 275 | $4.8 \times 10^{22}$ | Local Group ($\sim 1.6$ Mpc) | Extragalactic | **Mapped** |
+| 280 | $5.3 \times 10^{23}$ | Cosmic void scale ($\sim 17$ Mpc) | Extragalactic | **Mapped** |
+| **284** | **$3.6 \times 10^{24}$** | **Yin wake of rung 285** ($\Lambda_I = \ell_{285}/\varphi$; the observed BAO ruler lies near the 284.5 half-step, $\sim150$ Mpc) | Cosmological | **Hypothesized** wake mapping; BAO **Mapped** coincidence |
+| **285** | **$5.9 \times 10^{24}$** | **Cassi bubble** ($\sim 191$ Mpc) | Multiverse | **Hypothesized** conditional model |
+| 288 | $2.5 \times 10^{25}$ | Supercluster scale ($\sim 800$ Mpc) | Cosmological | **Mapped** |
+| 290 | $6.5 \times 10^{25}$ | Horizon at recombination ($\sim 2.1$ Gpc) | Cosmological | **Mapped** |
+| **292** | **$1.7 \times 10^{26}$** | **Horizon rung** (lattice length $\ell_{292} = 5.5$ Gpc; $R_H = 4.44$ Gpc $= 14.5$ Glyr, $\log_\varphi = 291.54$, c/H₀-consistent) | Observable universe | Horizon scale **Mapped/Calibrated** |
 
 ### Step Verification
 
@@ -101,8 +101,9 @@ Step  95:  ℓ_Pl × φ^95  = 1.616255e-35 × 7.142e19 = 1.154e-15 m  (QCD 1.0e-
 Step 117:  ℓ_Pl × φ^117 = 1.616255e-35 × 2.828e24 = 4.572e-11 m  (Bohr radius 5.29e-11 m: −13.6% ✗)
 Step 220:  ℓ_Pl × φ^220 = 1.616255e-35 × 9.490e45 = 1.534e11 m   (1.02 AU ✓)
 Step 267:  ℓ_Pl × φ^267 = 1.616255e-35 × 6.305e55 = 1.019e21 m   (33 kpc ✓)
-Step 284:  ℓ_Pl × φ^284 = 1.616255e-35 × 2.252e59 = 3.639e24 m   (118 Mpc, BAO ✓)
+Step 284:  ℓ_Pl × φ^284 = 1.616255e-35 × 2.252e59 = 3.639e24 m   (117.9 Mpc, Yin wake; observed BAO ruler ~150 Mpc lies near the 284.5 half-step)
 Step 285:  ℓ_Pl × φ^285 = 1.616255e-35 × 3.643e59 = 5.888e24 m   (191 Mpc, bubble ✓)
+```
 ---
 
 ## 4. Cascade Zones
@@ -111,22 +112,22 @@ The 292-step observable ladder (today) divides naturally into three regimes:
 
 ### Zone 1: Quantum ($n = 0$ to $n \approx 80$)
 - Planck scale to electroweak scale
-- Governed by the Standard Model and its GUT extension
-- All gauge couplings unify at the GUT scale ($\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$)
-- The electroweak scale emerges at $n \approx 80$ as a dynamical threshold where the Qi gate begins to engage
+- Standard Model scales; an optional GUT extension supplies a conditional high-scale map
+- The asserted boundary $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$ belongs to that optional gauge extension; unification and running require particle-content and threshold inputs
+- The electroweak scale is **Mapped** to $n \approx 80$; the interpretation as a dynamical threshold where the Qi gate begins to engage is **Hypothesized**
 
 ### Zone 2: Astrophysics ($n \approx 80$ to $n \approx 285$)
 - Electroweak scale to the Cassi bubble
-- Governed by Qi-enhanced gravity ($\xi = \varphi^6$)
+- Structure formation can be modeled with the Qi-gravity extension $\xi = \varphi^6$; its physical coupling is Calibrated/conditional and requires the declared constitutive and density maps
 - Structure formation: galaxies, clusters, superclusters
-- The wave speed $c(r)$ varies from $\sim 0.24$ (at $r_0$) to $\sim 0$ (near $\varphi$), creating a variable-tension "string" that generates wake waves at $\varphi$-scaled intervals
-- The Qi gate engagement at $r = \varphi^{-1}$ ($a \sim 0.051$, $z \sim 19$) sets the bubble scale
+- The wave-speed diagnostic $c(r)$ is dimensionless in solver units, and its physical interpretation requires a separate calibration
+- The Qi gate engagement at $r = \varphi^{-1}$ ($a \sim 0.051$, $z \sim 19$) sets the bubble scale only under the declared conditional wake model
 
 ### Zone 3: Cosmology ($n \approx 285$ to $n \approx 292$)
 - Cassi bubble to Hubble radius
 - Only 7 $\varphi$-steps in the rung labels—the bubble sits at 97.8% of today's observable ladder; by volume it is $\sim 10^{-5}$ of the observable universe ($R_H/\ell_{285} = 23.3 \approx \varphi^{6.5}$, +2%)
 - Adjacent lattice bubbles sit at $\varphi$-spaced intervals ($\ell_{286} = 309$ Mpc, $\ell_{287} = 500$ Mpc, …)—the nearest lie INSIDE the horizon; the horizon's rung coordinate (291.5 today) is an epoch-dependent cut through the lattice
-- CMB large-angle anomalies reflect bubble-boundary geometry at these scales (see `foundations/bubble-edge-geometry.md`)
+- A **Hypothesized conditional mapping** associates CMB large-angle anomalies with bubble-boundary geometry at these scales (see `foundations/bubble-edge-geometry.md`)
 
 ---
 
@@ -136,11 +137,11 @@ Not every integer $n$ corresponds to an observable physical scale. The wake wave
 
 ### 5.1 The String-Wake Feedback Loop
 
-The global ratio $r(t) = \langle E_Y\rangle/\langle E_I\rangle$ evolves along the "ratio-space string" from $r_0 \approx 0.047$ to $r = \varphi$. As it moves, it generates wake waves—spatial density perturbations—through the conversion term. These wakes propagate at the local wave speed:
+The global ratio $r(t) = \langle E_Y\rangle/\langle E_I\rangle$ evolves along the "ratio-space string" from $r_0 \approx 0.047$ to $r = \varphi$. As it moves, it generates wake waves—spatial density perturbations—through the conversion term. For a named solver run, $\lambda$ is a solver normalization (for example, $\lambda=0.1$ when explicitly passed), not a dimensional rate. The displayed local wave-speed diagnostic is:
 
-$$c(r) = \sqrt{\frac{\lambda \cdot \text{gate}(r) \cdot |r-\varphi|}{(1+r)/2}}$$
+$$c_{\mathrm{solver}}(r) = \sqrt{\frac{\lambda \cdot \text{gate}(r) \cdot |r-\varphi|}{(1+r)/2}}$$
 
-The wake spacing in physical space is set by $c(r) \times \tau(r)$, where $\tau(r)$ is the residence time at ratio $r$ (inverse of $dr/d\ln a$). The ratio of successive wake spacings follows $\varphi$-powers because both $c(r)$ and $\tau(r)$ scale with the Qi gate.
+This $c_{\mathrm{solver}}(r)$ is dimensionless and does not by itself represent the physical speed of light or a calibrated SI wave speed. In solver units, the wake spacing is $c_{\mathrm{solver}}(r)\times\tau_{\mathrm{solver}}(r)$, where $\tau_{\mathrm{solver}}(r)$ is the residence time at ratio $r$ (inverse of $dr/d\ln a$). A physical spacing requires an independently calibrated conversion from solver length and time units. The claim that successive wake spacings follow $\varphi$-powers is a Hypothesized conditional map requiring separately declared scaling for $c_{\mathrm{solver}}$ and $\tau_{\mathrm{solver}}$; it does not follow from the diagnostic alone.
 
 ### 5.2 Activated Steps
 
@@ -159,23 +160,25 @@ The known $\varphi$-exponents in the Cassi framework correspond to specific acti
 
 ---
 
-## 6. The Wu Xing Bubble (Step 285)
+## 6. The Wu Xing Bubble (Step 285; Hypothesized Conditional Model)
 
-The bubble at step 285 is the coherence length of the Wu Xing number $w$—the scale over which the cosmological initial conditions remain constant. It is set by the comoving horizon at the epoch when the Qi gate first engages ($r = \varphi^{-1}$, $a \approx 0.051$, $z \approx 19$).
+The following section is a **Hypothesized conditional bubble model**. Its coherence-length, gate-epoch, galaxy-count, and lattice-spacing assignments are model inputs or mapped targets.
+
+Within this model, the bubble at step 285 is assigned as the coherence length of the Wu Xing number $w$—the scale over which the cosmological initial conditions remain constant. Its scale is tied to the comoving horizon at the epoch when the Qi gate is proposed to engage ($r = \varphi^{-1}$, $a \approx 0.051$, $z \approx 19$).
 
 **Bubble properties:**
 - Diameter: $\sim 191$ Mpc (comoving)
 - Position in cascade: step 285 of today's observable ladder (97.8%; volume fraction $\sim 10^{-5}$)
-- Contains: $\sim 10^6$ Milky-Way-sized galaxies
-- Adjacent bubbles: identical $w=5$, arranged at $\varphi$-spaced intervals in the chord lattice. Separated by voids at $C=-1$ sites of the condensation field (`visual-explainers/chord_lattice.py`).
+- Model target: $\sim 10^6$ Milky-Way-sized galaxies
+- Conditional lattice assignment: adjacent bubbles carry identical $w=5$ and are arranged at $\varphi$-spaced intervals in the chord lattice. They are separated by voids at $C=-1$ sites of the condensation field (`visual-explainers/chord_lattice.py`).
 
-The bubble is nearly degenerate with the BAO scale, but the measured sound horizon sits at the *half-step* between the two cells: $r_d = 147.1$ Mpc (DESI/Planck) corresponds to $n = 284.46$ in $\ell_n = \ell_{\text{Pl}}\varphi^n$, and $\ell_{284.5} = \sqrt{\ell_{284}\ell_{285}} = 150.0$ Mpc (+1.98%—a structural anchor within 2%). Step 284 (117.9 Mpc) is the Yin wake wavelength of the rung-285 lattice ($\Lambda_I^{(285)} = \ell_{285}/\varphi$); the older “BAO scale ~120 Mpc” label is that Yin period, not the measured ruler. The wake wave modulation in $P(k)$ therefore sits adjacent to the BAO feature—entangled but separable through their different period structures (fixed scale vs. fixed ratio). See `cosmology/desi-lattice-averaging.md` §3.
+The bubble at step 285 has diameter $\sim191$ Mpc (comoving), while the measured sound horizon is $r_d=147.1$ Mpc (DESI/Planck). The ruler corresponds to $n=284.46$ in $\ell_n=\ell_{\text{Pl}}\varphi^n$, and $\ell_{284.5}=\sqrt{\ell_{284}\ell_{285}}=150.0$ Mpc (+1.98%—a **Mapped scale coincidence** within 2%). Step 284 (117.9 Mpc) is the Yin wake wavelength of the rung-285 lattice ($\Lambda_I^{(285)}=\ell_{285}/\varphi$); the wake wave modulation in $P(k)$ therefore sits adjacent to the BAO feature—entangled but separable through their different period structures (fixed scale vs. fixed ratio). See `cosmology/desi-lattice-averaging.md` §3.
 
 ---
 
 ## 7. Lattice Structure at Cascade Rungs
 
-The condensation field $B(x,y,z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$ forms a universal 3D checkerboard bubble lattice at every cascade rung—see `foundations/bubble-lattice-fabric.md` for the full derivation. The cascade ladder ($\ell_n = \ell_{\text{Pl}}\,\varphi^n$) is the 1D slice along the string axis through this lattice; each rung corresponds to a level set of $B$ at a specific scale factor.
+The optional condensation field $B(x,y,z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$ supplies a conditional 3D checkerboard bubble-lattice construction at selected cascade rungs—see `foundations/bubble-lattice-fabric.md` for the full derivation. The cascade ladder ($\ell_n = \ell_{\text{Pl}}\,\varphi^n$) is the 1D slice along the string axis through this construction; each rung corresponds to a level set of $B$ at a specific scale factor.
 
 The lattice structure varies with the condensation dimension $P_\parallel(n)$, which counts how many cascade rungs encode one structural repeat along the string axis. The following table catalogues key rungs:
 
@@ -189,7 +192,8 @@ The lattice structure varies with the condensation dimension $P_\parallel(n)$, w
 
 **Note:** $P_\parallel(n)$ varies with scale—1 rung at cosmological scales, 2 rungs at human scales. The $n$-dependence of $P_\parallel$ is not yet derived from first principles. The $P_\parallel = 1$ cosmological reading is the boundary-consistent one (tier Hypothesized): the Cassi bubble sits 6.5 rungs inside the horizon's nesting depth, the horizon cut is a half-rung, and the $P_\parallel = 1$ field reads $\approx$ void level there; the allowed set is $\{1, 2\}$ per `foundations/bubble-lattice-fabric.md` §8.1.
 
-For the full derivation, predicted signatures (φ-elliptical bubble shape, 1.70× edge anisotropy), and epistemic boundaries, see `foundations/bubble-lattice-fabric.md`.
+For the full derivation, the selected-level directional edge-slope proxy is
+$R(\theta_{\mathrm{cond}})=\frac{\sqrt{1+\varphi^2}}{2}\sqrt{\frac{1+\theta_{\mathrm{cond}}}{\theta_{\mathrm{cond}}}}$; at the phenomenologically selected $\theta_{\mathrm{cond}}=0.45$, $R=1.7072$. This ratio varies with the selected level and is a conditional geometric-proxy benchmark, not a universal or zero-parameter constant or canonical PDE output. The fixed-step PDE diagnostic retains no $C=0.45$ edge; any cosmological or biological test requires an independently identified boundary and proxy-to-observable map. See `foundations/bubble-lattice-fabric.md` for the epistemic boundaries.
 
 ---
 
@@ -227,7 +231,7 @@ The bubble at step 285 is bounded by adjacent bubbles at identical $w=5$ in the 
 
 ## References
 
-- `foundations/bubble-lattice-fabric.md`—Universal 3D checkerboard lattice; φ-elliptical bubble shape, edge anisotropy, and condensation field derivation
+- `foundations/bubble-lattice-fabric.md`—Conditional 3D checkerboard lattice; φ-elliptical bubble shape, level-dependent edge-slope proxy, and condensation field derivation
 - `cassi-physics.md`—Gap derivation, governing PDE, and $\varphi$-periodic $P(k)$ prediction
 - `parameter-inventory.md`—Complete parameter classification (46 parameters: F1/D24/C0/E7/I6/N8)
 - `cosmology/observational_constraints.md` §2.6—Rotation curve prediction ($\xi=\varphi^6$)

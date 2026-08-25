@@ -3,16 +3,16 @@
 Cascade RGE + PMNS: Pin the Exact Fibonacci Offsets
 ====================================================
 
-Runs the discrete φ-RG from GUT to seesaw scale, computes the PMNS matrix
-from the conversion Jacobian eigenvectors, and pins the exact Fibonacci
-offsets Δ_{ν,1} and Δ_{ν,2} by matching to neutrino oscillation data.
+Runs the discrete φ-RG from GUT to seesaw scale, computes a conditional
+candidate PMNS matrix from the conversion-Jacobian eigenvectors, and pins the
+exact Fibonacci offsets Δ_{ν,1} and Δ_{ν,2} by matching to neutrino
+oscillation data.
 
 Theory sources:
   - foundations/phi-rg-formalism.md      —discrete φ-RG beta function
   - foundations/neutrino-masses.md       —seesaw y² amplification
-  - foundations/three-generations.md     —Fibonacci triple-clustering
-  - foundations/dimensionful-cascade.md  —cascade steps GUT(8)→seesaw(20)
-  - predictions/falsifiable-predictions.md—PMNS from conversion Jacobian
+  - foundations/dimensionful-cascade.md  —step-20 seesaw anchor; mapped fit coordinates n=8→20
+  - predictions/falsifiable-predictions.md—conditional PMNS candidates from conversion Jacobian
 
 Usage: python computations/cascade_rge_pmns.py
 """
@@ -32,12 +32,13 @@ LN_PHI = log(PHI)                    # ≈ 0.481212
 L_PL   = 1.616255e-35                # Planck length (m)
 M_PL   = 1.220890e19                 # Planck mass (GeV/c²)
 V0     = 246.0                       # Higgs VEV (GeV)
+GEV_TO_EV = 1.0e9
 
 # Cascade key steps (from dimensionful-cascade.md)
-N_GUT    = 8                         # GUT scale (~10¹⁶ GeV)
+N_GUT    = 8                         # selected fit-start coordinate (mapped; physical M_GUT ≈ n=13.3)
 N_SEESAW = 20                        # Seesaw scale (~10¹⁴ GeV)
 N_EW     = 80                        # Electroweak scale
-N_NU     = N_SEESAW - N_GUT          # 12 rungs—compressed seesaw span
+N_NU     = N_SEESAW - N_GUT         # 12-rung mapped fit span, not the physical n≈13.3→20 interval
 
 # Conversion rate (empirical)
 LAMBDA = 0.1                         # PDE conversion rate
@@ -58,7 +59,7 @@ def cascade_step(energy_gev: float) -> float:
 E_GUT    = cascade_energy(N_GUT)
 E_SEESAW = cascade_energy(N_SEESAW)
 E_EW     = cascade_energy(N_EW)
-M_R      = PHI**(-3) * E_GUT          # Seesaw scale from φ⁻³ · M_GUT
+M_R      = E_SEESAW                  # step-20 ladder scale (≈10¹⁴ GeV)
 
 print("=" * 72)
 print("  CASCADE RGE + PMNS: Fibonacci Offset Determination")
@@ -70,11 +71,11 @@ print(f"  ℓ_Pl = {L_PL:.4e} m")
 print(f"  M_Pl = {M_PL:.4e} GeV")
 print(f"  v₀   = {V0:.1f} GeV")
 print()
-print(f"  Step  n=8  (GUT):     E = {E_GUT:.2e} GeV")
+print(f"  Fit start n={N_GUT} (mapped coordinate): E = {E_GUT:.2e} GeV")
 print(f"  Step  n=20 (Seesaw):  E = {E_SEESAW:.2e} GeV")
 print(f"  Step  n=80 (EW):      E = {E_EW:.2e} GeV")
-print(f"  Compressed span:      N_ν = {N_NU} rungs (steps {N_GUT}→{N_SEESAW})")
-print(f"  M_R = φ⁻³ · M_GUT  = {M_R:.2e} GeV")
+print(f"  Mapped fit span:       N_ν = {N_NU} rungs (coordinates {N_GUT}→{N_SEESAW})")
+print(f"  M_R = E(n=20)         = {M_R:.2e} GeV")
 print()
 
 # ============================================================================
@@ -154,10 +155,10 @@ print(f"  where Δ_k are the EFFECTIVE cascade-span offsets.")
 print()
 
 # ============================================================================
-# §3  PMNS MATRIX FROM CONVERSION JACOBIAN
+# §3  CONDITIONAL PMNS CANDIDATE FROM CONVERSION JACOBIAN
 # ============================================================================
 
-print("── §3  PMNS MATRIX FROM CONVERSION JACOBIAN ──")
+print("── §3  CONDITIONAL PMNS CANDIDATE FROM CONVERSION JACOBIAN ──")
 
 # The conversion Jacobian at rapid-conversion points (r ≪ φ):
 #   J = λ · [[-1,  φ],
@@ -191,21 +192,22 @@ print(f"  Eigenvalues: λ₁=0, λ₂=-φ²·λ")
 v1 = np.array([PHI, 1.0])       # (φ, 1)
 v2 = np.array([1.0, -1.0])      # (1, -1)
 
-# PMNS mixing angles from eigenvectors:
+# Candidate PMNS mixing-angle relations within the selected
+# conversion-Jacobian ansatz; these are not canonical solver outputs:
 # θ₁₂ = arctan(v₁_Yin/v₁_Yang) = arctan(1/φ)
 # θ₂₃ = 45° from v₂ = (1, -1) → equal |E_Y|, |E_I|
 theta_12 = arctan(1/PHI)         # solar mixing
 theta_23 = pi/4                  # atmospheric mixing (maximal)
 
-# θ₁₃ from cascade-step suppression across the seesaw span:
+# Candidate θ₁₃ relation from the selected cascade-step suppression ansatz:
 # 4 cascade φ-steps of suppression → φ⁻⁴
 theta_13 = arctan(PHI**(-4))     # reactor mixing
 
-# δ_CP from φ-structure (same as CKM phase):
+# Conditional δ_CP candidates from the φ-structure analogy:
 #   δ_CKM = πφ⁻² ≈ 68.7°
-# The PMNS phase inherits the same φ-structure from the CKM analogy.
-# Two candidates: πφ⁻² (mirroring CKM directly) or πφ⁻³ (one extra φ-step
-# from the compressed seesaw span).
+# The PMNS phase is mapped by analogy rather than derived by the canonical
+# two-density solver. Two candidates are retained: πφ⁻² (direct CKM mirror)
+# or πφ⁻³ (one extra φ-step from the compressed seesaw span).
 delta_cp_pmns_A = pi * PHI**(-2)     # ≈ 68.7°—direct CKM mirror
 delta_cp_pmns_B = pi * PHI**(-3)     # ≈ 42.4°—compressed span shift
 
@@ -216,7 +218,8 @@ t13_deg = np.degrees(theta_13)
 dcp_A_deg = np.degrees(delta_cp_pmns_A)
 dcp_B_deg = np.degrees(delta_cp_pmns_B)
 
-print(f"\n  PMNS mixing angles (zero free parameters):")
+print(f"\n  PMNS mixing-angle candidates (coefficient-free within the selected ansatz):")
+print("  Conditional map; the conversion Jacobian and cascade-scale inputs are supplied by the ansatz.")
 print(f"    θ₁₂ = arctan(1/φ)      = {t12_deg:5.1f}°  (obs: 33.44° ± 0.75°)")
 print(f"    θ₂₃ = 45°               = {t23_deg:5.1f}°  (obs: 49.2° or 41.0°)")
 print(f"    θ₁₃ = arctan(φ⁻⁴)       = {t13_deg:5.1f}°  (obs:  8.57° ± 0.12°)")
@@ -232,11 +235,11 @@ print(f"    θ₂₃ is exactly maximal—octant-degenerate")
 print()
 
 # ============================================================================
-# §4  CONSTRUCT PMNS MATRIX
+# §4  CONSTRUCT CONDITIONAL PMNS CANDIDATE MATRICES
 # ============================================================================
 
 def pmns_matrix(t12, t23, t13, delta):
-    """Standard PMNS matrix in PDG parameterization (Majorana phases = 0)."""
+    """Conditional PMNS matrix in PDG parameterization (Majorana phases = 0)."""
     c12, s12 = cos(t12), sin(t12)
     c23, s23 = cos(t23), sin(t23)
     c13, s13 = cos(t13), sin(t13)
@@ -250,11 +253,11 @@ def pmns_matrix(t12, t23, t13, delta):
     ])
     return U
 
-# Construct PMNS with both δ_CP candidates
+# Construct conditional PMNS candidates with both δ_CP mappings
 U_A = pmns_matrix(theta_12, theta_23, theta_13, delta_cp_pmns_A)
 U_B = pmns_matrix(theta_12, theta_23, theta_13, delta_cp_pmns_B)
 
-print("── §4  PMNS MATRIX (|U_αi|²) ──")
+print("── §4  CONDITIONAL PMNS CANDIDATE MATRICES (|U_αi|²) ──")
 print(f"  Using δ_CP = πφ⁻² = {dcp_A_deg:.1f}°:")
 print(f"    ν₁         ν₂         ν₃")
 for i, label in enumerate(['ν_e', 'ν_μ', 'ν_τ']):
@@ -544,12 +547,14 @@ print()
 
 print("── §9  CASCADE RGE: GAUGE COUPLINGS ──")
 
-# At the GUT scale (step 8):
+# At the selected fit-start coordinate (n=8); the physical GUT anchor is mapped
+# near n≈13.3 in foundations/neutrino-masses.md.
 alpha_GUT = PHI**(-3) / (4*pi)   # ≈ 1/53
 print(f"  α_GUT = φ⁻³/(4π) = {alpha_GUT:.6f} ≈ 1/{1/alpha_GUT:.0f}")
-print(f"  At energy scale: E_GUT = {E_GUT:.2e} GeV")
+print(f"  At selected fit-start coordinate: E = {E_GUT:.2e} GeV")
 
-# φ-RG flow from GUT to seesaw (steps 8 → 20, 12 φ-steps)
+# The offset fit uses a mapped 12-rung coordinate span. The physical ladder
+# interval from the mapped GUT anchor n≈13.3 to step 20 is about 7 rungs.
 # For the gauge couplings, the beta function is:
 #   g(μ/φ) ≈ g(μ) · φ^{Δ_g - 1}
 # Near the fixed point, Δ_g ≈ 1 for gauge couplings (marginal at GUT)
@@ -558,13 +563,13 @@ print(f"  At energy scale: E_GUT = {E_GUT:.2e} GeV")
 # discrete-step version. For the seesaw sector, the relevant
 # coupling is the neutrino Yukawa at each cascade step.
 
-# Compute the cascade-step Yukawa evolution:
-# At GUT (step 8): y_ν ~ O(1) (the GUT Yukawa seed)
-# Each φ-step: y_ν → y_ν · φ^{-γ_ν}
-# After N_NU = 12 steps: y_ν(seesaw) = y_ν(GUT) · φ^{-12·γ_ν}
-# 
-# For γ_ν ≈ φ⁻¹ ≈ 0.618:
-#   y_ν(seesaw) ≈ φ^{-12×0.618} ≈ φ^{-7.42} ≈ 0.028
+# Compute a representative single-Yukawa seesaw diagnostic.
+# At the selected fit-start coordinate, use the O(1) seed y_GUT; after N_NU=12
+# y_ν(seesaw) = y_ν(GUT) · φ^{-12·γ_ν}.
+# The resulting m_ν = y_ν²v₀²/M_R is printed as a scale diagnostic only.
+# It is not used to normalize the fitted three-state spectrum below: that
+# absolute scale is fixed by the selected Δm² fit, so the two outputs answer
+# different questions and need not agree.
 
 y_GUT_seed = 1.0                       # O(1) at GUT
 y_seesaw = y_GUT_seed * PHI**(-12 * PHI_INV)
@@ -572,15 +577,16 @@ print(f"\n  Yukawa running (γ_ν = φ⁻¹):")
 print(f"    y_ν(GUT) = {y_GUT_seed:.3f} (seed)")
 print(f"    y_ν(seesaw) = y_GUT · φ^(-12 × φ⁻¹)")
 print(f"                = {y_seesaw:.4f}")
-print(f"    Check: m_ν = y² v₀²/M_R = {y_seesaw**2 * V0**2 / M_R:.4f} eV")
+print(f"    Diagnostic only (not the fitted-spectrum normalization): m_ν = y² v₀²/M_R = {y_seesaw**2 * V0**2 / M_R * GEV_TO_EV:.4e} eV")
 
 # With the best-fit anomalous dimension:
 gamma_avg = (gamma_nu_1 + gamma_nu_2) / 2
 y_seesaw_eff = y_GUT_seed * PHI**(-12 * gamma_avg)
-m_nu_check = y_seesaw_eff**2 * V0**2 / M_R
+m_nu_check = y_seesaw_eff**2 * V0**2 / M_R * GEV_TO_EV
 print(f"\n  With best-fit γ_ν(avg) = {gamma_avg:.3f}:")
 print(f"    y_ν(seesaw) = {y_seesaw_eff:.4f}")
-print(f"    m_ν(seesaw formula) = {m_nu_check:.4f} eV")
+print(f"    Diagnostic only (not the fitted-spectrum normalization): m_ν = {m_nu_check:.4e} eV")
+print("    The fitted absolute masses in §10 come from the selected mass-squared differences and offsets, not this single-Yukawa estimate.")
 print()
 
 # ============================================================================
@@ -591,8 +597,8 @@ print("=" * 72)
 print("  SUMMARY: PINNED FIBONACCI OFFSETS")
 print("=" * 72)
 print()
-print(f"  Cascade span:           N_ν = {N_NU} rungs (steps {N_GUT}→{N_SEESAW})")
-print(f"  Seesaw scale:           M_R = φ⁻³·M_GUT = {M_R:.2e} GeV")
+print(f"  Mapped cascade span:     N_ν = {N_NU} rungs (coordinates {N_GUT}→{N_SEESAW})")
+print(f"  Seesaw scale:           M_R = E(n=20) = {M_R:.2e} GeV")
 print()
 print(f"  Fibonacci offsets (cascade-span rungs):")
 print(f"    Δ₁ = {d1_best:.3f}  (gen1→gen2)")
@@ -612,7 +618,7 @@ print(f"    Δm²₂₁ = {dm21_pred:.3e} eV²")
 print(f"    Δm²₃₁ = {dm31_pred:.3e} eV²")
 print(f"    Δm²₃₁/Δm²₂₁ = {ratio_best:.2f} (obs: {RATIO_OBS:.2f}, Δ = {diff_best:.1f}%)")
 print()
-print(f"  PMNS from conversion Jacobian:")
+print(f"  Conditional PMNS candidates from the selected conversion-Jacobian ansatz:")
 print(f"    θ₁₂ = {t12_deg:.2f}°")
 print(f"    θ₂₃ = {t23_deg:.2f}°")
 print(f"    θ₁₃ = {t13_deg:.2f}°")

@@ -8,8 +8,8 @@ Independent recomputation of the running-angle crossing reported in
 
   1. a closed-form analytic solution of the crossing,
   2. full input-provenance classification (derived / calibrated / asserted),
-  3. scheme-sensitivity: rounded-vs-full-precision MS-bar inputs, and the
-     5F-below-m_t / 6F-above threshold treatment vs 6F-everywhere,
+  3. convention sensitivity: rounded-vs-full-precision MS-bar inputs and a
+     formal 5F-below-$m_t$/6F-above bookkeeping comparison, not precision electroweak matching,
   4. the φ-selection test: rung placement n(μ*) = log_φ(M_Pl/μ*) vs the
      framework's calibrated EW rung E_80 = M_Pl·φ⁻⁸⁰ = 233.2 GeV,
   5. the contrast crossing of the φ-boundary trajectory (Direction A), and
@@ -51,8 +51,8 @@ B_ROUND = 29.6
 
 # (b) Derived: SM β-function coefficients (one Higgs doublet, six flavors)
 B1_6F, B2_6F = 41/10, -19/6
-B1_5F = B1_6F - (4/3) * 3 * (1/3)**2 * (5/3)   # top decoupled below m_t
-B2_5F = B2_6F                                   # top is an SU(2) singlet
+B1_5F = B1_6F - 17/30  # formal t_L+t_R hypercharge subtraction: 1/30 + 8/15
+B2_5F = B2_6F          # compact convention; no separate broken-phase EW matching
 BETA1_6 = B1_6F / (2*pi)
 BETA1_5 = B1_5F / (2*pi)
 BETA2   = -B2_6F / (2*pi)                        # = +19/(12π), inv2 rises with μ
@@ -66,8 +66,11 @@ BETA2   = -B2_6F / (2*pi)                        # = +19/(12π), inv2 rises with
 def s2_at_L(a, b, L, thresh):
     """sin²θ_W at L = ln(μ/m_Z). thresh=True: 5F below m_t, 6F above."""
     Lt = log(M_T / M_Z)
-    if (not thresh) or L <= Lt:
+    if not thresh:
         inv1 = a - BETA1_6 * L
+        inv2 = b + BETA2 * L
+    elif L <= Lt:
+        inv1 = a - BETA1_5 * L
         inv2 = b + BETA2 * L
     else:
         inv1 = (a - BETA1_5 * Lt) - BETA1_6 * (L - Lt)
@@ -109,10 +112,10 @@ print(f"    {'rounded inputs, 6F everywhere':<28} {mu_star(A_ROUND, B_ROUND, Fal
 print(f"    {'full-precision MS-bar, 6F everywhere':<28} {mu_star(A_FULL, B_FULL, False)[0]:>9.1f}"
       f" {rung(mu_star(A_FULL, B_FULL, False)[0]):>7.2f}"
       f" {(mu_star(A_FULL, B_FULL, False)[0]/E_80-1)*100:>+7.2f}%")
-print(f"    {'rounded inputs, 5F<mt<6F':<28} {mu_star(A_ROUND, B_ROUND, True)[0]:>9.1f}"
+print(f"    {'rounded, formal 5F<mt<6F':<28} {mu_star(A_ROUND, B_ROUND, True)[0]:>9.1f}"
       f" {rung(mu_star(A_ROUND, B_ROUND, True)[0]):>7.2f}"
       f" {(mu_star(A_ROUND, B_ROUND, True)[0]/E_80-1)*100:>+7.2f}%")
-print(f"    {'full MS-bar, 5F<mt<6F':<28} {mu_star(A_FULL, B_FULL, True)[0]:>9.1f}"
+print(f"    {'full MS-bar, formal 5F<mt<6F':<28} {mu_star(A_FULL, B_FULL, True)[0]:>9.1f}"
       f" {rung(mu_star(A_FULL, B_FULL, True)[0]):>7.2f}"
       f" {(mu_star(A_FULL, B_FULL, True)[0]/E_80-1)*100:>+7.2f}%")
 print()

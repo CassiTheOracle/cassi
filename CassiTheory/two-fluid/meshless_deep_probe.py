@@ -1,32 +1,32 @@
 #!/usr/bin/env python3
-"""Meshless coherence-cluster depth probe (Amendment 3, owner-approved (a)).
+"""Meshless depth sweep retained for Amendment 3 protocol auditing.
 
-Does a phi-organized multi-scale coherent particle cluster self-persist more
-with more cascade rungs? Uses the OWNER's directive: the meshless Qi-gated
-particle solver (two-fluid/cassi_nbody.py) with the solver's own particle
-coherence (q = rho^2/(rho^2 + phi^-2 + eps^2)) as the order parameter — no
-bespoke equation.
+The script evolves nested phi-spaced particle shells with the shipped N-body
+solver and records a legacy inner-rung retention diagnostic. It is not a
+controlled cascade-suppression experiment: increasing ``D`` also changes
+particle count, total mass, outer radius, and initial inner-mass fraction.
+The occupied-cell ``q`` proxy selects a legacy global adaptive-softening
+heuristic rather than canonical two-fluid coherence ``q(E_Y, E_I)``.
 
-Seed (phi-organized multi-scale cluster): N bodies in nested shells at
-phi-spaced radii r_k = r_inner * phi^k (k = 0..D-1, D = rung depth). The inner
-(fine, lower-rung) shells carry the density/coherence excess ("lower scales
-feed up") — realized NATIVELY by the Qi gate: the dense inner shells have high
-q -> adaptive softening collapses -> stronger core binding.
+The initial speed scale is another heuristic rather than a verified virial
+equilibrium. It differs from the signed-coordinate probes' inward radial seed.
+The first tracked solver frame occurs after one step, so the implementation
+uses the separately retained initial state and records the exact tracked
+sample times.
 
-Mechanism under test: a multi-rung coherent cluster should self-persist (stay
-bound longer) than a single-scale blob — more rungs -> more stable. That depth
-scaling IS cascade suppression (phi^-1 per rung coupling, qi-flow-double-helix
-L3.2). Owner: "the goal is for the simulator to simulate reality."
+The registered depth arithmetic is reported only as a diagnostic pattern. It
+cannot receive a support label because the protocol is invalid. A valid
+comparison needs matched mass, extent, phase-space sampling, initial inner
+fraction, and velocity distribution, plus a canonical nonnegative two-fluid
+state or an explicitly defined independent phase variable.
 
-Metric (frozen, Amendment 3 L12): T_hold(D) = time the mass fraction inside the
-innermost phi-rung (r < r_inner*phi) stays >= 0.5x its t=0 value (the dense
-high-coherence core persists). SUPPORTS cascade suppression iff T_hold monotone
-increasing in D (depth_4 > depth_2 > depth_1) AND T_hold(depth_4) >= 2x
-T_hold(depth_1); and mass conserved (KDK).
+Frozen statistic:
+``T_hold(D)`` is the last observed time for which the mass fraction inside
+``r_core = r_inner*phi`` has not fallen below half its exact initial value.
+Runs without a sampled crossing are right-censored at the last tracked frame.
 
-Arms: fresh solver per arm, L=20, G=1, sigma=0.4, dt=0.001, KDK, Qi-gate ON.
-Run:  python two-fluid/meshless_deep_probe.py [--steps N] [--arm TAG]
-Output: runs/<rid>_meshless_deep/ (per-arm + results JSON); commit script only.
+Run: ``python two-fluid/meshless_deep_probe.py [--steps N] [--arm TAG]``
+Output: ``runs/<rid>_meshless_deep/``
 """
 
 import os
@@ -47,20 +47,21 @@ PHI = (1.0 + math.sqrt(5)) / 2.0
 
 
 def phi_cluster_ic(D, r_inner, N_shell, L, seed=42):
-    """D nested virialized shells at phi-spaced radii r_inner*phi^k.
+    """Construct ``D`` nested shells at radii ``r_inner*phi**k``.
 
-    Inner (fine, lower-rung) shells carry heavier particles (the coherence
-    excess -> dense high-q core under the Qi gate). Velocities set to a
-    virial dispersion (Q ~ 1) so the depth question is structural persistence,
-    not a cold-collapse artifact. Total mass ~ D*N_shell (Plummer convention
-    M ~ N). Returns (pos, vel, masses) on CPU (caller moves to device)."""
+    Each shell contains ``N_shell`` particles. Per-particle shell weights fall
+    as ``phi**(-k)``, then are normalized so the total mass is
+    ``D*N_shell``. Consequently depth changes particle count, total mass,
+    outer extent, and initial inner-rung fraction; the arms are not controlled
+    counterfactuals. Returns ``(pos, vel, masses)`` on CPU.
+    """
     gen = np.random.default_rng(seed)
     G = 1.0
     parts, ms, vs = [], [], []
     # shell radii and masses
     rks = [r_inner * PHI ** k for k in range(D)]
-    # moderate mass: normalize so total mass = number of bodies (unit-ish),
-    # keeping the inner-heavier phi^-k weight (coherence excess at fine rungs).
+    # Normalize the mean particle mass to one within each arm. Total mass
+    # therefore grows linearly with D; this is a declared protocol confound.
     w_sum = sum(PHI ** (-k) for k in range(D))
     m0 = (D * N_shell) / (N_shell * w_sum)   # per-shell normalization -> mean ~ 1
     mk_list = [m0 * PHI ** (-k) for k in range(D)]
@@ -101,79 +102,70 @@ def to_device(pos, vel, masses, device):
     return pos.to(device), vel.to(device), masses.to(device)
 
 
-def measure_hold(trails, masses, r_core, frac_thresh=0.5,
+def measure_hold(trails, masses, initial_pos, r_core, frac_thresh=0.5,
                  config=None):
-    """Structural-retention metric: T_hold = time the mass fraction inside the
-    innermost phi-rung (r < r_core = r_inner*phi) stays >= frac_thresh of its
-    t=0 value. The dense high-coherence core is the 'lower scales feed up'
-    structure; deeper clusters should hold it longer (cascade suppression).
+    """Measure retention against the exact initial state and tracked times.
 
-    Returns (T_hold, inner-mass-fraction trajectory, half_mass_r trajectory)."""
+    ``run_simulation`` records frames after steps 1, 1+track_every, ...; it
+    does not record t=0 or necessarily the terminal state. A no-crossing run
+    is therefore right-censored at the final sampled time.
+    """
+    if config is None:
+        raise ValueError("config is required for exact sample times")
     n_frames = trails.shape[0]
-    t_cpu = trails.cpu()              # guarantee CPU regardless of source device
+    if n_frames == 0:
+        raise ValueError("at least one tracked frame is required")
+    t_cpu = trails.cpu()
+    initial_cpu = initial_pos.cpu()
     m_cpu = masses.cpu()
-    com = (t_cpu[0] * m_cpu[:, None]).sum(0) / m_cpu.sum()
-    r0 = torch.sqrt(((t_cpu[0] - com) ** 2).sum(1))
-    inner0 = float((m_cpu[r0 < r_core]).sum()) / float(m_cpu.sum())
-    frame_dt = config.dt * getattr(config, 'track_every', 50)
+    initial_com = (
+        (initial_cpu * m_cpu[:, None]).sum(0) / m_cpu.sum()
+    )
+    initial_r = torch.sqrt(((initial_cpu - initial_com) ** 2).sum(1))
+    inner0 = float((m_cpu[initial_r < r_core]).sum()) / float(m_cpu.sum())
+    sample_times = [
+        config.dt * (1 + f * config.track_every) for f in range(n_frames)
+    ]
     fracs, r_half = [], []
     T_hold = None
-    for f in range(n_frames):
+    for f, sample_time in enumerate(sample_times):
         c = (t_cpu[f] * m_cpu[:, None]).sum(0) / m_cpu.sum()
         r = torch.sqrt(((t_cpu[f] - c) ** 2).sum(1))
         cur = float((m_cpu[r < r_core]).sum()) / float(m_cpu.sum())
         fracs.append(cur)
-        srt = torch.sort(r).values
-        ms = m_cpu[torch.sort(r).indices]
+        order = torch.sort(r).indices
+        srt = r[order]
+        ms = m_cpu[order]
         csum = torch.cumsum(ms, 0)
         i50 = int((csum >= 0.5 * csum[-1]).nonzero()[0].item())
         r_half.append(float(srt[i50]))
-        t = f * frame_dt
         if T_hold is None and cur < frac_thresh * inner0:
-            T_hold = t
-    if T_hold is None:
-        T_hold = n_frames * frame_dt
-    return T_hold, fracs, r_half, inner0
+            T_hold = sample_time
+    censored = T_hold is None
+    if censored:
+        T_hold = sample_times[-1]
+    return T_hold, fracs, r_half, inner0, sample_times, censored
 
 
-def virialize(solver, pos, masses):
-    """Set velocity dispersion from the solver's OWN softened gravity so the
-    cluster starts near virial balance (Q ~ 1): deposit, solve_gravity -> a(x),
-    trilinear-interpolate to each particle, and set v_rms = sqrt(0.5*r*|a|).
-    Uses the real softened potential (sigma=0.4), not the analytic point-mass
-    form, so the cluster neither over-collapses nor flies apart at t=0.
-    Returns velocities tensor (same device as pos)."""
+def isotropic_speed_seed(solver, pos, masses):
+    """Construct the probe's heuristic isotropic velocity seed.
+
+    Native interpolation supplies the softened acceleration magnitude at each
+    particle. Random directions use a fixed seed and speeds
+    ``sqrt(0.5*r*abs(a))``. This does not impose or verify global
+    ``2K/abs(PE)=1`` and is not a stationary virial equilibrium.
+    """
     rho = solver.deposit_density(pos, masses)
     ax, ay, az = solver.solve_gravity(rho)
-    # grid -> physical coords interpolation
-    g = (pos + 0.5 * solver.L) / solver.dx
-    gi = g.long(); gf = (g - gi.float()).clamp(0.0, 1.0)
-    n = solver.n
-    def at(axg, gix, giy, giz, gfx, gfy, gfz):
-        # trilinear on the grid field
-        x0, x1 = gix % n, (gix + 1) % n
-        y0, y1 = giy % n, (giy + 1) % n
-        z0, z1 = giz % n, (giz + 1) % n
-        c000 = axg[x0, y0, z0]; c100 = axg[x1, y0, z0]
-        c010 = axg[x0, y1, z0]; c110 = axg[x1, y1, z0]
-        c001 = axg[x0, y0, z1]; c101 = axg[x1, y0, z1]
-        c011 = axg[x0, y1, z1]; c111 = axg[x1, y1, z1]
-        def bl(c00, c10, c01, c11, fx, fz):
-            return (c00 * (1 - fx) + c10 * fx) * (1 - fz) + \
-                   (c01 * (1 - fx) + c11 * fx) * fz
-        c0 = bl(c000, c100, c001, c101, gfx, gfz)
-        c1 = bl(c010, c110, c011, c111, gfx, gfz)
-        return c0 * (1 - gfy) + c1 * gfy
-    av = torch.stack([at(ax, gi[:,0], gi[:,1], gi[:,2], gf[:,0], gf[:,1], gf[:,2]),
-                      at(ay, gi[:,0], gi[:,1], gi[:,2], gf[:,0], gf[:,1], gf[:,2]),
-                      at(az, gi[:,0], gi[:,1], gi[:,2], gf[:,0], gf[:,1], gf[:,2])], dim=1)
+    accel = solver.interpolate_accel(ax, ay, az, pos)
     r = torch.sqrt(((pos - pos.mean(0)) ** 2).sum(1)).clamp(min=1e-4)
-    v_rms = torch.sqrt((0.5 * r * av.norm(dim=1)).clamp(min=0.0))
-    # isotropic random directions, magnitudes ~ v_rms
+    speed = torch.sqrt((0.5 * r * accel.norm(dim=1)).clamp(min=0.0))
     gen = torch.Generator(device=pos.device).manual_seed(7)
-    dirs = torch.randn(pos.shape, device=pos.device, generator=gen)
-    dirs = dirs / dirs.norm(dim=1, keepdim=True).clamp(min=1e-9)
-    return dirs * v_rms[:, None]
+    directions = torch.randn(pos.shape, device=pos.device, generator=gen)
+    directions = directions / directions.norm(
+        dim=1, keepdim=True
+    ).clamp(min=1e-9)
+    return directions * speed[:, None]
 
 
 def main():
@@ -209,70 +201,132 @@ def main():
             n_steps=args.steps, qi_gate=True, qi_memory=False,
             deposition_kernel='TSC', report_every=500, track_every=100,
             device=device)
-        # solver-consistent virialization: build the solver, set velocities from
-        # its own softened acceleration so Q(0) ~ 1 (no cold collapse).
-        vir_sol = NB.NBodySolver3D(n_grid=64, L=L, G=G, sigma=sigma,
-                                   device=device, qi_gate=True,
-                                   deposition_kernel='TSC')
-        vel = virialize(vir_sol, pos, masses)
+        # Heuristic isotropic speed seed; no virial-equilibrium claim.
+        seed_solver = NB.NBodySolver3D(
+            n_grid=64, L=L, G=G, sigma=sigma, device=device, qi_gate=True,
+            deposition_kernel='TSC'
+        )
+        vel = isotropic_speed_seed(seed_solver, pos, masses)
+        initial_pos = pos.detach().cpu().clone()
         t0 = time.time()
-        diag, trails, solver = NB.run_simulation(config, pos, vel, masses, track=True)
+        diag, trails, solver = NB.run_simulation(
+            config, pos, vel, masses, track=True
+        )
         elapsed = time.time() - t0
         if trails is None:
-            print(f"  ! no trails (track off) — cannot measure T_disperse")
-            out[tag] = {'error': 'no trails'}
+            print("  ! no tracked frames; cannot measure retention")
+            out[tag] = {'error': 'no tracked frames'}
             continue
-        r_core = arm['r_inner'] * PHI          # innermost phi-rung radius
-        T_hold, fracs, r_half, inner0 = measure_hold(
-            trails, masses, r_core, config=config)
-        # mean interior coherence from deposited rho at last frame (solver on GPU)
-        rho = solver.deposit_density(trails[-1].to(device), masses).cpu().numpy()
-        q_last = float(np.mean(rho ** 2 / (rho ** 2 + (1.0 / PHI) ** 2 + 1e-6)))
-        print(f"  N={N} total_m={float(masses.sum()):.1f}")
-        print(f"  inner_frac(0)={inner0:.3f}  T_hold={T_hold:.2f}  "
-              f"r_half_end={r_half[-1]:.3f}  q_last={q_last:.4f}  "
+        r_core = arm['r_inner'] * PHI
+        T_hold, fracs, r_half, inner0, sample_times, censored = measure_hold(
+            trails, masses, initial_pos, r_core, config=config
+        )
+        # Match the occupied-cell legacy proxy returned by
+        # NBodySolver3D.compute_acceleration_density_memory.
+        rho = solver.deposit_density(
+            trails[-1].to(device), masses
+        ).cpu().numpy()
+        rho_max = float(np.max(rho))
+        non_vac = (
+            rho > 0.01 * rho_max
+            if rho_max > 1e-10 else np.ones_like(rho, dtype=bool)
+        )
+        legacy_density_proxy = rho / (
+            rho + (1.0 / PHI) ** 2 + 1e-12
+        )
+        legacy_density_proxy_last_sample = float(
+            np.mean(legacy_density_proxy[non_vac])
+            if np.any(non_vac) else 1.0
+        )
+        total_mass = float(masses.sum())
+        outer_radius = arm['r_inner'] * PHI ** (arm['D'] - 1)
+        censor_label = " (right-censored)" if censored else ""
+        print(f"  N={N} total_m={total_mass:.1f} outer_radius={outer_radius:.3f}")
+        print(f"  inner_frac(initial)={inner0:.3f}  "
+              f"T_hold={T_hold:.3f}{censor_label}  "
+              f"last_sample_t={sample_times[-1]:.3f}  "
+              f"r_half_last_sample={r_half[-1]:.3f}  "
+              f"legacy_density_proxy_last_sample="
+              f"{legacy_density_proxy_last_sample:.4f}  "
               f"[{elapsed:.0f}s, {config.n_steps} steps]")
-        # save per-arm trails summary
+        arm_result = {
+            'tag': tag, 'D': arm['D'], 'N': N,
+            'total_mass': total_mass, 'outer_radius': outer_radius,
+            'T_hold': T_hold, 'T_hold_right_censored': censored,
+            'inner_frac_initial': inner0,
+            'inner_frac_last_sample': fracs[-1],
+            'last_sample_time': sample_times[-1],
+            'legacy_density_proxy_last_sample': legacy_density_proxy_last_sample,
+            'n_steps': config.n_steps, 'elapsed': elapsed,
+        }
         with open(f"{rdir}/run_{tag}.json", "w") as f:
-            json.dump({'tag': tag, 'D': arm['D'], 'N': N,
-                       'T_hold': T_hold, 'inner_frac_0': inner0,
-                       'inner_frac_end': fracs[-1],
-                       'q_last': q_last, 'n_steps': config.n_steps,
-                       'elapsed': elapsed}, f, indent=1)
-        out[tag] = {'D': arm['D'], 'T_hold': T_hold,
-                    'inner_frac_0': inner0, 'inner_frac_end': fracs[-1],
-                    'q_last': q_last, 'n_steps': config.n_steps}
+            json.dump(arm_result, f, indent=1)
+        out[tag] = arm_result
 
-    # Verification: inner-rung structural retention vs depth.
-    print("\n=== MESHLESS DEPTH (Amendment 3) RESULTS ===")
-    for tag, r in out.items():
-        if 'error' in r:
+    print("\n=== MESHLESS DEPTH (Amendment 3) AUDIT RESULTS ===")
+    for tag, result in out.items():
+        if 'error' in result:
             continue
-        print(f"  {tag}: D={r['D']} T_hold={r['T_hold']:.2f} "
-              f"inner_frac {r['inner_frac_0']:.3f}->{r['inner_frac_end']:.3f} "
-              f"q_last={r['q_last']:.4f}")
+        print(
+            f"  {tag}: D={result['D']} N={result['N']} "
+            f"M={result['total_mass']:.1f} "
+            f"R_outer={result['outer_radius']:.3f} "
+            f"T_hold={result['T_hold']:.3f} "
+            f"inner_frac {result['inner_frac_initial']:.3f}"
+            f"->{result['inner_frac_last_sample']:.3f} "
+            f"legacy_density_proxy_last_sample="
+            f"{result['legacy_density_proxy_last_sample']:.4f}"
+        )
 
-    if all('error' not in r and 'T_hold' in r for r in out.values()) and len(out) >= 2:
+    required = {'depth_1', 'depth_2', 'depth_4'}
+    if required.issubset(out) and all(
+        'error' not in out[tag] for tag in required
+    ):
         T1 = out['depth_1']['T_hold']
-        T2 = out.get('depth_2', {}).get('T_hold', T1)
-        T4 = out.get('depth_4', {}).get('T_hold', T2)
-        mono = T4 > T2 > T1 if 'depth_4' in out else (T2 > T1 if 'depth_2' in out else True)
-        at_least_2x = T4 >= 2.0 * T1 if 'depth_4' in out else (T2 >= 1.5 * T1 if 'depth_2' in out else False)
-        verdict = 'SUPPORTS' if (mono and at_least_2x) else (
-            'WEAK-PARTIAL' if mono else 'DOES NOT SUPPORT')
-        print(f"\n=== CASCADE-SUPPRESSION DEPTH VERDICT: {verdict} ===")
-        print(f"  (more rungs -> longer T_hold = dense-coherent core persists "
-              f"more = phi^-1/rung depth scaling = cascade suppression)")
-        note = ('T_hold monotone in D' if mono else 'T_hold NOT monotone in D')
-        print(f"  {note}; {'at-least-2x satisfied' if at_least_2x else 'at-least-2x not satisfied'}")
+        T2 = out['depth_2']['T_hold']
+        T4 = out['depth_4']['T_hold']
+        monotone = T4 > T2 > T1
+        at_least_2x = T4 >= 2.0 * T1
+        legacy_metric_pattern = (
+            'MONOTONE_AND_2X' if monotone and at_least_2x
+            else 'MONOTONE_BELOW_2X' if monotone
+            else 'NOT_MONOTONE'
+        )
     else:
-        verdict = 'INCOMPLETE'
-        print(f"\n=== VERDICT: {verdict} (need >= depth_1 + one deeper arm) ===")
+        monotone = False
+        at_least_2x = False
+        legacy_metric_pattern = 'N/A (requires all three arms)'
 
-    results = {'meta': {'L': L, 'G': G, 'sigma': sigma, 'dt': dt,
-                        'N_shell': 1200, 'gate': 'Qi (native coherence order param)',
-                        'amendment': '3', 'owner': 'meshless, (a) coherence-as-order-parameter'},
-               'arms': out, 'verdict': verdict}
+    frozen_metric_branch = 'UNSCOREABLE (protocol invalid)'
+    verdict = 'INCONCLUSIVE'
+    print(f"\n=== LEGACY METRIC PATTERN: {legacy_metric_pattern} ===")
+    print(f"  strict monotonicity: {monotone}; "
+          f"depth_4 >= 2x depth_1: {at_least_2x}")
+    print(f"=== FROZEN METRIC BRANCH: {frozen_metric_branch} ===")
+    print("=== SCIENTIFIC VERDICT: INCONCLUSIVE ===")
+    print("  Protocol validity: FAIL (depth changes N, total mass, outer radius, "
+          "initial inner fraction, and the dynamical state; gate is a legacy "
+          "global density proxy).")
+
+    results = {
+        'meta': {
+            'L': L, 'G': G, 'sigma': sigma, 'dt': dt, 'N_shell': 800,
+            'position_seed': 42, 'velocity_direction_seed': 7,
+            'gate': 'legacy global density-memory adaptive softening',
+            'amendment': '3',
+            'arm': 'meshless (a) scalar density-proxy sweep',
+            'protocol_valid': False,
+            'confounds': [
+                'particle_count', 'total_mass', 'outer_radius',
+                'initial_inner_fraction', 'heuristic_velocity_seed',
+                'noncanonical_global_density_proxy',
+            ],
+        },
+        'arms': out,
+        'legacy_metric_pattern': legacy_metric_pattern,
+        'frozen_metric_branch': frozen_metric_branch,
+        'verdict': verdict,
+    }
     with open(f"{rdir}/results.json", "w") as f:
         json.dump(results, f, indent=2)
     print(f"Results: {rdir}/results.json")

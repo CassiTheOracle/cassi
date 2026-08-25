@@ -1,47 +1,51 @@
 """
-SPARC Qi Analysis v9: Yang-fraction-driven coherence envelope.
+SPARC Qi Analysis v9: Hypothesized mass-fraction proxy envelope.
 
-The 2026-07-31 coupling correction (two-fluid/calibrate_initial_ratio_xi_v2.py)
-established that the Qi-gravity boost applies to the Yang component only:
+Receipt scope
+-------------
+This script fits a two-parameter hydrostatic condensate to SPARC rotation
+curves using
 
-    v^2(r) = G [ M_bar(r) + (1 + xi * q(r)) M_Y(r) ] / r,   xi = phi^6 ~ 17.944
+    v^2(r) = G [ M_bar(r) + (1 + xi * q(r)) M_Y(r) ] / r,
+    xi = phi^6 ~ 17.944
 
-NOTE: the fits in this script run with the pre-chord xi = phi^6 coefficient
-(1 + xi q); the adopted saturation chord 1 + (phi^6 - 1) q
-(foundations/xi-derivation.md) re-run is pending—flagged, not asserted.
-The chord shifts the fitted rho_c/c_s by ~3-5% at fixed q; the AIC and
-slope verdicts are robust.
+The current receipt evaluates this explicit coefficient and the three
+script-level q maps below. Its fit, AIC, and slope outputs are scoped to this
+parameterization; they are not a canonical gravity derivation.
 
-and that its homogeneous analogue weights by the cosmic Yang fraction
-r/(1+r):  H_eff^2 = H_bare^2 [1 + xi*q*r/(1+r)].  The galactic sector has
-so far used the radius proxy q(r) = r/(r + r_half) (v6-v8), with the
-baryonic half-mass radius as the decoherence scale.  That proxy has no
-theoretical status: the framework's fundamental dynamical variable is the
-Yang fraction pi/rho (cassi-first-principles.md Sec 1.2), and the insight
-from the cosmological correction is that the enhancement should be based
-on the Yang fraction itself.
+The canonical two-fluid notation is E_Y, E_I >= 0, rho = E_Y + E_I, and
+pi = E_Y - E_I. Thus pi/rho is the fractional energy imbalance, not the Yang
+fraction. The true Yang fraction is E_Y/rho; in this mass model the analogous
+quantity is M_Y / M_tot, where M_tot = M_bar + M_Y.
 
-This run replaces the radius proxy with the enclosed-mass Yang fraction:
+The canonical two-fluid coherence is
 
-    q(r) = alpha(r) = M_Y(r) / [ M_bar(r) + M_Y(r) ]
+    q_canonical = rho^2 / (rho^2 + phi^-2 + epsilon^2)
 
--- the exact galactic analogue of the cosmic r/(1+r) weighting.  Where the
-condensate dominates the enclosed mass (outer disk), alpha -> 1 and the
-boost saturates; where baryons dominate (center), alpha -> 0 and the field
-is decohered.  The decoherence scale emerges from the fitted condensate
-itself: zero new parameters, same 2-param fit as v7/v8 and NFW.
+with epsilon = E_Y - phi * E_I. The enclosed-mass map
+q(r) = M_Y(r) / [M_bar(r) + M_Y(r)] is a Hypothesized proxy map used by
+this galactic fit, not an exact or canonical identification of q.
+
+The homogeneous analogue weights by the true Yang fraction r/(1+r) =
+E_Y/rho when r = E_Y/E_I:
+
+    H_eff^2 = H_bare^2 [1 + xi * q * r/(1+r)].
+
+The radius-scale map q(r) = r/(r + r_half) is retained as a comparison map.
+The mass-fraction map uses the condensate mass profile itself, so its
+transition is not an independently calibrated Yang-fraction law.
 
 Variants (both 2 params rho_c, c_s):
-  A: q(r) = r/(r + r_half)                (v8 baseline, in-script)
-  B: q(r) = alpha(r) = M_Y/M_tot          (Yang-fraction-driven, new)
+  A: q(r) = r/(r + r_half)                (radius-scale map)
+  B: q(r) = M_Y/M_tot                     (Hypothesized mass-fraction proxy)
   C: NFW                                  (2 params, reference)
 
 Questions this run answers:
-  1. Does the Yang-fraction envelope (B) fit SPARC as well as the radius
-     proxy (A) at equal parsimony (head-to-head dAIC)?
-  2. Does B beat NFW (median dAIC), and does the win survive on the dwarf
-     subsample (V_flat < 100 km/s) -- where r_half is ill-defined and
-     alpha ~ 1 predicts a near-uniform boost?
+  1. Does the mass-fraction proxy envelope (B) fit SPARC as well as the
+     radius-scale map (A) at equal parsimony (head-to-head dAIC)?
+  2. Does B beat NFW (median dAIC), and does the result persist on the dwarf
+     subsample (V_flat < 100 km/s), where r_half is poorly constrained and
+     M_Y/M_tot can approach 1?
   3. Does the emergent core-radius scaling gamma ~ 0.41 survive under B?
   4. Does the v8 c_s-virial relation (c_s ~ v_DM,flat/6.15) survive?
 """
@@ -57,7 +61,7 @@ G_kpc = 4.302e-6
 BOOST = np.sqrt(2 * (1 + XI))   # 6.15: v_DM,flat / c_s
 
 # ============================================================
-# DATA LOADING (v8)
+# DATA LOADING
 # ============================================================
 data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sparc_data')
 files = sorted(glob.glob(f'{data_dir}/*_rotmod.dat'))
@@ -110,7 +114,7 @@ def parse_galaxy(fpath):
     }
 
 # ============================================================
-# HYDROSTATIC INTEGRATOR (v8)
+# HYDROSTATIC INTEGRATOR
 # ============================================================
 def hydrostatic_grid(r_grid, rho_c_vec, cs_vec, Mbar_fn):
     n = len(r_grid)
@@ -177,7 +181,7 @@ for name, g in galaxies.items():
     r_grid = np.geomspace(r_min, r_max, 700)
 
     def fit2_self(rho_c_cand, cs_cand, q_kind):
-        # v8 A2 machinery: condensate supported against its own mass only
+        # Condensate supported against its own mass only.
         M_Y, _ = hydrostatic_grid(r_grid, rho_c_cand, cs_cand, lambda r: 0.0 * r)
         MY_at_rad = np.empty((len(rho_c_cand), len(rad)))
         for j in range(len(rho_c_cand)):
@@ -187,9 +191,10 @@ for name, g in galaxies.items():
         if q_kind == 'rhalf':
             q = rad / (rad + r_half)
         elif q_kind == 'alpha':
-            # enclosed-mass Yang fraction M_Y/(M_bar + M_Y)
+            # M_Y/M_tot is the model's Yang-mass fraction; q is a Hypothesized
+            # proxy map, not the canonical two-fluid coherence.
             q = alpha
-        else:  # 'cross': envelope shape, scale = Yang-fraction crossover radius
+        else:  # 'cross': envelope shape, scale = mass-fraction crossover radius
             r_cross = np.empty(len(rho_c_cand))
             for j in range(len(rho_c_cand)):
                 a = alpha[j]
@@ -219,8 +224,13 @@ for name, g in galaxies.items():
             if chi2_r[bi] < chi2_best:
                 chi2_best = chi2_r[bi]
                 rho_b, cs_b = cand_r[bi], cand_c[bi]
-            else:
-                rho_b, cs_b = cand_r[bi], cand_c[bi]
+        chi2_check, _, _ = fit2_self(
+            np.array([rho_b]), np.array([cs_b]), q_kind
+        )
+        if not np.isclose(chi2_check[0], chi2_best, rtol=1e-12, atol=1e-9):
+            raise RuntimeError(
+                f"{q_kind}: retained parameters do not reproduce the minimum score"
+            )
         best[q_kind] = (chi2_best, rho_b, cs_b)
 
     # best curves + q profiles + constrained flags
@@ -380,7 +390,7 @@ else:
     print("  too few galaxies")
 
 # ============================================================
-# c_s virial relation under A and B (v8 story check, A-classified constrained)
+# c_s virial relation for A and B (A-constrained sample)
 # ============================================================
 if len(conA) >= 8:
     cx = np.array([r['vdm_flat'] for r in conA])
@@ -394,7 +404,7 @@ if len(conA) >= 8:
               f"scatter {np.std(np.log10(ratio)):.3f} dex")
 
 # ============================================================
-# q profile sanity: where does q_B reach 0.5?
+# Hypothesized proxy-map sanity: where does q_B reach 0.5?
 # ============================================================
 print(f"\nq profile sanity (model B):")
 for r in results[:12]:

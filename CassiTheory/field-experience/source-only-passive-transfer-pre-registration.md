@@ -4,17 +4,19 @@
 
 ## Abstract
 
-Wave 5 tests the canonical two-fluid solver with no corridor, edge, or receiver drive. A compact bounded amplitude-space $SO(2)$ pulse acts only inside a target core; diagonal and axial probes remain passive. The experiment measures a delayed, amplitude-retaining antisymmetric receiver response relative to same-shape direct-receiver calibrations. It tests passive receiver response in the finite proxy, not finite-speed transport or a biological pathway.
+Wave 5 tests the unmodified canonical two-fluid PDE/RK2 evolution with no supplied corridor, edge, or receiver drive. An additive compact bounded amplitude-space $SO(2)$ pulse acts only inside a target core; diagonal and axial probes remain passive. The experiment measures a delayed, amplitude-retaining antisymmetric receiver response relative to same-shape direct-receiver calibrations. It tests passive receiver response in the finite proxy, not endogenous routing, finite-speed transport, or a biological pathway.
 
 ## 1. Prior constraint and hypothesis
 
-`field-experience/checkerboard-edge-phase-coupling-wave-4-report.md` records carrier selectivity under a distributed corridor kick, while its diagonal receiver lies inside the imposed drive. A passive receiver test must remove that placement ambiguity.
+`field-experience/checkerboard-edge-phase-coupling-wave-4-report.md` records a carrier-correlated projection under a supplied distributed corridor kick, while its diagonal receiver lies inside the imposed drive. A passive receiver test must remove that placement ambiguity.
 
 The frozen hypothesis is:
 
-> A bounded phase-matched pulse confined to the target core produces a measurable passive response at the diagonal receiver that exceeds an equal-distance axial probe after each probe is normalized by its own same-shape direct-pulse response; the excess depends on the finite proxy's phase arrangement.
+> An externally supplied bounded phase-gated pulse confined to the target core produces a measurable passive response at the diagonal receiver that exceeds an equal-distance axial probe after each probe is normalized by its own same-shape direct-pulse response; the excess depends on the finite proxy's supplied phase-label arrangement.
 
-The canonical `rk2_step` remains unchanged. No prescribed corridor profile, tangent velocity, saddle-to-receiver source, or receiver support is allowed.
+The unmodified canonical `rk2_step` remains unchanged between the supplied
+source pulse and readout. No prescribed corridor profile, tangent velocity,
+saddle-to-receiver source, or receiver support is allowed.
 
 ## 2. Frozen finite geometry and compact support
 
@@ -77,7 +79,7 @@ $$
 =0.45^2.
 $$
 
-Then apply once before the canonical RK2 step:
+Then apply the externally supplied source pulse once before the unmodified canonical RK2 step:
 
 $$
 \alpha=s\beta b,
@@ -103,7 +105,7 @@ The $10^{-3}$ floor plus $10^{-5}$ angular-margin wedge, pointwise $\rho$ conser
 | `direct_diagonal_shuffled_plus`, `direct_diagonal_shuffled_minus` | diagonal/left-lower phase-label shuffle | $b_D$ | $+1,-1$ |
 | `direct_axial_shuffled_plus`, `direct_axial_shuffled_minus` | diagonal/left-lower phase-label shuffle | $b_A$ | $+1,-1$ |
 
-The direct arms calibrate each passive receiver's local susceptibility under the same compact shape and $0.45$ pulse norm. They do not count as transfer evidence.
+The direct arms calibrate each passive receiver's local susceptibility under the same compact shape and $0.45$ pulse norm. They do not count as transfer evidence; they are denominators for a normalized finite-proxy score.
 
 ## 5. Frozen passive-response statistic
 
@@ -144,14 +146,14 @@ E=F_D-F_A,
 E_{\rm shuf}=F_D^{\rm shuf}-F_A^{\rm shuf}.
 $$
 
-Unlike carrier coherence, $G_R^X$ retains response magnitude. The $+/-$ antisymmetry cancels the common unpulsed trajectory without adding a driven receiver to the source arm.
+Unlike carrier coherence, $G_R^X$ retains response magnitude. The $+/-$ antisymmetry cancels the common unpulsed trajectory without adding a driven receiver to the source arm. The direct-gain gate $G_R^{\rm direct}>10^{-12}$ prevents division by an exact numerical zero only; it is not a conditioning guarantee or a transport-validity threshold. The frozen fractions and their phase-label comparison are therefore score labels whose stability must be diagnosed from the denominator values.
 
 ## 6. Quality gates
 
 The run is **INVALID** if any condition fails:
 
 1. synthetic trace checks give $G=0$ for equal $+/-$ traces and $G=1$ for a scripted unit antisymmetric pair;
-2. the no-op wrapper differs from 100 direct canonical RK2 steps;
+2. the read-only wrapper differs from 100 direct steps of the unmodified canonical RK2 evolution;
 3. compact-source overlap with either receiver core is nonzero;
 4. any source arm fails the frozen target phase-match criterion at $n_p$;
 5. any field is non-finite, reaches the $10^{-3}$ floor, violates the fixed wedge, or has an absent lag-window trace;
@@ -164,15 +166,28 @@ The numerical feasibility thresholds are fixed before execution relative to a sa
 
 | feature | criterion | verdict label |
 |---|---|---|
-| F1 passive diagonal response | $F_D\geq0.010$ | EMERGES / DOES NOT EMERGE |
-| F2 diagonal-over-axial response | $E\geq0.005$ | EMERGES / DOES NOT EMERGE |
-| F3 phase-arrangement dependence | $E-E_{\rm shuf}\geq0.005$ | EMERGES / DOES NOT EMERGE |
+| F1 passive diagonal response score under source/direct calibration | $F_D\geq0.010$ | EMERGES / DOES NOT EMERGE |
+| F2 diagonal-over-axial normalized score | $E\geq0.005$ | EMERGES / DOES NOT EMERGE |
+| F3 supplied phase-label arrangement dependence | $E-E_{\rm shuf}\geq0.005$ | EMERGES / DOES NOT EMERGE |
 
-The passive finite-proxy hypothesis **SUPPORTS** only if F1, F2, and F3 emerge. It returns **HOLD** if F1 and F2 emerge while F3 does not. It **CONTRADICTS** if F1 or F2 does not emerge. Any other valid combination is **INCONCLUSIVE**.
+These uppercase feature labels are frozen score branches. F1 compares the
+source-only supplied pulse with the direct-diagonal calibration; F2 compares
+the diagonal and axial normalized scores; F3 compares standard and supplied
+phase-label-shuffled source/direct pairs. They do not establish endogenous
+phase selection, route specificity, or transport. The passive finite-proxy
+hypothesis **SUPPORTS** only if F1, F2, and F3 emerge. It returns **HOLD** if
+F1 and F2 emerge while F3 does not. It **CONTRADICTS** if F1 or F2 does not
+emerge. Any other valid combination is **INCONCLUSIVE**.
 
 ## 8. Scope
 
-The canonical PDE includes diffusion and FFT-mediated pressure/Poisson operations; this experiment therefore has no finite-speed causal interpretation. A positive result would measure a passive, lagged finite-proxy response under a source-localized pulse. It would not establish a physical bubble-edge transport law, a self-maintaining macro-spiral, biological circulation, neural action, or consciousness.
+The unmodified canonical PDE includes diffusion and FFT-mediated
+pressure/Poisson operations; this experiment therefore has no finite-speed
+causal interpretation. A positive result would measure a passive, lagged
+finite-proxy response under an externally supplied source-localized pulse,
+subject to the conditioning of its direct calibration. It would not establish
+a physical bubble-edge transport law, a self-maintaining macro-spiral,
+biological circulation, neural action, or consciousness.
 
 ## References
 

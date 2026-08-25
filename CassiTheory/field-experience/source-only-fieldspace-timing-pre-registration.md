@@ -4,21 +4,25 @@
 
 ## Abstract
 
-Wave 6 keeps the Wave 5 source-only physical construction and changes only the receiver readout. It removes projected $\mathbf J_\Psi$, local $J_{\rm rms}$ normalization, and direct-receiver pulse denominators from the classifier. The observable is the compact-window, projection-free difference in the amplitude pair $(A,B)=(\sqrt{E_Y},\sqrt{E_I})$ between matched $+/-$ source-pulse runs. It tests timing within the finite proxy; it does not test finite-speed propagation or prescribe an edge interaction.
+Wave 6 keeps the Wave 5 source-only finite-proxy construction and changes only the receiver readout. It removes projected $\mathbf J_\Psi$, local $J_{\rm rms}$ normalization, and direct-receiver pulse denominators from the classifier. The observable is the compact-window, projection-free difference in the amplitude pair $(A,B)=(\sqrt{E_Y},\sqrt{E_I})$ between matched $+/-$ runs of an externally supplied source pulse. It tests timing within the finite proxy; it does not test endogenous phase selection, finite-speed propagation, or prescribe an edge interaction.
 
 ## 1. Motivation and frozen hypothesis
 
-`field-experience/source-only-passive-transfer-wave-5-report.md` records a valid HOLD with a source/disjoint receiver construction. Its current-projection readout has an immediate axial signal and strongly receiver-dependent direct-calibration denominators. Wave 6 leaves the source, pulse, grid, solver, and source-label controls unchanged while replacing only that readout.
+`field-experience/source-only-passive-transfer-wave-5-report.md` records a valid HOLD with a source/disjoint receiver construction. Its current-projection readout has an immediate axial signal and strongly receiver-dependent direct-calibration denominators. Wave 6 leaves the supplied source pulse, grid, solver, and supplied source-label controls unchanged while replacing only that readout.
 
 The frozen hypothesis is:
 
-> A compact target-only phase pulse produces a field-space perturbation whose diagonal receiver accumulates later than the equal-distance axial probe, and this timing relationship depends on the finite proxy's phase labels.
+> An externally supplied compact target-only phase pulse produces a field-space perturbation whose diagonal receiver accumulates later than the equal-distance axial probe, and this timing relationship depends on the finite proxy's supplied phase-label arrangement.
 
-No receiver, corridor, saddle, or velocity profile is driven. No Wave 5 fraction, direct calibration, or threshold is used in the Wave 6 classifier.
+No receiver, corridor, saddle, or velocity profile is driven. No Wave 5 fraction,
+direct calibration, or threshold is used in the Wave 6 classifier. The pulse,
+sign pair, label shuffle, and source schedule are supplied protocol inputs.
 
 ## 2. Frozen construction
 
-Use the Wave 5 canonical construction without its direct receiver-pulse arms:
+Use the Wave 5 construction with its direct receiver-pulse arms removed: the
+unmodified canonical PDE/RK2 evolution is wrapped only by the externally
+supplied source pulse and read-only field-space trace.
 
 $$
 N=48,\quad dt=0.001,\quad n_p=100,\quad n_{\rm end}=260,
@@ -31,7 +35,11 @@ $$
 \max(b_Tb_D)=\max(b_Tb_A)=0.
 $$
 
-At $n_p$, each source arm requires the same target phase-match condition $M\geq\cos(\pi/6)$. It receives the same one-shot amplitude-space $SO(2)$ rotation with $+/-$ sign, 48 bisection steps, $\beta\in[0,0.05]$, target kick norm $0.45$, pointwise $\rho$ preservation, global-mass preservation, floor, and wedge requirements.
+At $n_p$, each source arm receives the same externally supplied one-shot
+amplitude-space $SO(2)$ rotation with $+/-$ sign, 48 bisection steps,
+$\beta\in[0,0.05]$, target kick norm $0.45$, pointwise $\rho$ preservation,
+global-mass preservation, floor, and wedge requirements. The target phase-match
+criterion is a seeded admission gate, not an endogenous phase oscillator.
 
 ## 3. Frozen arms
 
@@ -41,7 +49,11 @@ At $n_p$, each source arm requires the same target phase-match condition $M\geq\
 | `source_plus`, `source_minus` | standard | $b_T$ | $+1,-1$ |
 | `source_shuffled_plus`, `source_shuffled_minus` | diagonal/left-lower phase-label shuffle | $b_T$ | $+1,-1$ |
 
-Every arm starts from a fresh solver. There are no direct-diagonal, direct-axial, corridor, or velocity-drive arms.
+Every arm starts from a fresh solver. There are no direct-diagonal,
+direct-axial, corridor, or velocity-drive arms. The standard source pair
+measures the supplied pulse's field-space response against the no-pulse
+baseline; the shuffled source pair changes only the supplied phase-label
+arrangement. No arm tests native route selection.
 
 ## 4. Projection-free field-space observable
 
@@ -64,7 +76,9 @@ q_R(k)=\frac{1}{0.45}
 \left[\delta A(\mathbf x,k)^2+\delta B(\mathbf x,k)^2\right]}.
 $$
 
-The pulse snapshot $k=0$ occurs after the source rotation and before the first following canonical RK2 step. Since the source core is disjoint from both passive receiver cores, require
+The pulse snapshot $k=0$ occurs after the supplied source rotation and before
+the first following unmodified canonical RK2 step. Since the source core is
+disjoint from both passive receiver cores, require
 
 $$
 q_D(0)\leq10^{-12},\qquad q_A(0)\leq10^{-12}.
@@ -113,7 +127,7 @@ Define $\mathcal D_{\rm shuf}$ by the same strict inequalities for the shuffled 
 The run is **INVALID** if any condition fails:
 
 1. synthetic field-space checks give $q=0$ for equal field pairs and $q=1$ for a unit antisymmetric pair after normalization;
-2. the actual read-only field-space trace wrapper differs from 100 direct canonical RK2 steps;
+2. the actual read-only field-space trace wrapper differs from 100 direct steps of the unmodified canonical RK2 evolution;
 3. compact target/receiver support overlaps or either pulse-snapshot field-space value exceeds $10^{-12}$;
 4. any source arm fails the frozen target phase-match criterion at $n_p$;
 5. any field is non-finite, reaches the $10^{-3}$ floor, violates the fixed wedge, or lacks its 261-sample trace;
@@ -125,21 +139,35 @@ A valid run with $W_D=0$ or $Q_D^{\rm late}<10^{-12}$ is a result of no detectab
 
 | feature | condition | label |
 |---|---|---|
-| F1 diagonal field-space response | $W_D>0$ and $Q_D^{\rm late}\geq10^{-12}$ | EMERGES / DOES NOT EMERGE |
-| F2 delayed diagonal timing | $\mathcal D$ | EMERGES / DOES NOT EMERGE |
-| F3 label-specific timing | $\mathcal D$ and not $\mathcal D_{\rm shuf}$ | EMERGES / DOES NOT EMERGE |
+| F1 diagonal field-space response under the supplied source pulse | $W_D>0$ and $Q_D^{\rm late}\geq10^{-12}$ | EMERGES / DOES NOT EMERGE |
+| F2 delayed diagonal timing under supplied source/label controls | $\mathcal D$ | EMERGES / DOES NOT EMERGE |
+| F3 supplied label-specific timing | $\mathcal D$ and not $\mathcal D_{\rm shuf}$ | EMERGES / DOES NOT EMERGE |
 
-The hypothesis **SUPPORTS** only if F1, F2, and F3 emerge. It returns **HOLD** if F1 and F2 emerge while F3 does not. It **CONTRADICTS** if F1 does not emerge or if
+These uppercase feature labels are frozen protocol branches. F1 tests whether
+the supplied source pulse produces a measurable diagonal field-space response;
+F2 compares supplied diagonal and axial timing; F3 compares standard and
+supplied phase-label-shuffled source pairs. They do not establish endogenous
+phase selection, spontaneous route specificity, or transport. The hypothesis
+**SUPPORTS** only if F1, F2, and F3 emerge. It returns **HOLD** if F1 and F2
+emerge while F3 does not. It **CONTRADICTS** if F1 does not emerge or if
 
 $$
 k_{50,D}\leq k_{50,A}\qquad\text{and}\qquad\iota_D\geq\iota_A,
 $$
 
-which is the frozen immediate/global timing branch. Other valid outcomes are **INCONCLUSIVE**.
+which is the frozen immediate/global timing branch. Other valid outcomes are
+**INCONCLUSIVE**.
+
 
 ## 8. Scope
 
-The canonical RHS contains diffusion and FFT-mediated Poisson and gradient operations, with two RHS evaluations per RK2 step. A delayed field-space rise can distinguish this finite proxy's post-step timing from a $k=0$ field rotation, but it cannot establish finite-speed causation, a physical bubble-edge transport law, a self-maintaining macro-spiral, biological circulation, neural action, or consciousness.
+The unmodified canonical RHS contains diffusion and FFT-mediated Poisson and
+gradient operations, with two RHS evaluations per RK2 step. A delayed
+field-space rise can distinguish this finite proxy's post-step timing from the
+$k=0$ state after an externally supplied source rotation, but it cannot
+establish finite-speed causation, a physical bubble-edge transport law, a
+self-maintaining macro-spiral, biological circulation, neural action, or
+consciousness.
 
 ## References
 

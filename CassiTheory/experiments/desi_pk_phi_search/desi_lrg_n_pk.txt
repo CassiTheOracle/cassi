@@ -1,4 +1,6 @@
-#k[h/Mpc] P0[(Mpc/h)^3] FKP monopole (FFT)
+# INVALID: stale pre-fix output used Mpc/h conversion r_Mpc/h instead of r_Mpc*h
+# and lacked dimensional FKP normalization. Do not use for physical or shape inference.
+# k_legacy[mis-scaled] S_legacy[arbitrary]
 7.950000000000000469e-03 3.796284427945054496e+00
 1.384999999999999946e-02 2.883644034611128060e+00
 1.975000000000000019e-02 2.278151677152093324e+00

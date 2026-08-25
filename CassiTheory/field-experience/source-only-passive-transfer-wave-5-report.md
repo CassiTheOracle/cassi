@@ -4,7 +4,7 @@
 
 ## Abstract
 
-Wave 5 removes the distributed-corridor and receiver-placement ambiguity from Wave 4. A compact bounded amplitude-space $SO(2)$ pulse acts only in the target core, while diagonal and axial probe cores have exactly disjoint support. The corrected execution passes every frozen quality gate and returns **HOLD**: the diagonal source/direct fraction and diagonal-over-axial fractional contrast pass, but the phase-label shuffle does not suppress that contrast.
+Wave 5 removes the distributed-corridor and receiver-placement ambiguity from Wave 4. An externally supplied compact bounded amplitude-space $SO(2)$ pulse acts only in the target core while diagonal and axial probe cores have exactly disjoint support; between that supplied pulse and readout, the unmodified canonical PDE/RK2 evolution is used. The cited execution passes every frozen quality gate and selects the pre-registration's `HOLD` branch: the repository-level terminal classification is **INCONCLUSIVE** because the diagonal source/direct fraction and diagonal-over-axial fractional contrast pass, but the phase-label shuffle does not suppress that contrast. These are normalized finite-proxy score labels, not evidence of endogenous route or phase selectivity.
 
 The receipt contains a delayed diagonal response, but it does not establish a phase-arrangement-selected diagonal edge or finite-speed transport.
 
@@ -16,7 +16,7 @@ The receipt contains a delayed diagonal response, but it does not establish a ph
 **Device:** ROCm through `torch.cuda`  
 **Horizon:** $48^3$, $dt=0.001$, one pulse at $t_p=0.100$, $t_{\rm end}=0.260$.
 
-`runs/20260818_181939_source_only_passive_transfer/` contains stale post-RK receiver samples and is excluded. The cited execution reconstructs $E_Y,E_I$ after every canonical RK2 step before recording the next sample and confirms that the read-only trace wrapper is bit-identical to 100 direct canonical steps.
+The cited receipt is the scoreable source: it reconstructs $E_Y,E_I$ after every unmodified canonical RK2 step before recording the next sample and confirms that the read-only trace wrapper is bit-identical to 100 direct canonical steps. The source pulse is supplied by the additive probe; the separate `runs/20260818_181939_source_only_passive_transfer/` path contains stale post-RK receiver samples and is excluded.
 
 | gate | result |
 |---|---|
@@ -32,6 +32,10 @@ The receipt contains a delayed diagonal response, but it does not establish a ph
 | positivity wedge | PASS: minimum angular margin $0.58282$ rad |
 | delayed trace and calibration | PASS: all 261 samples and all direct gains exceed $10^{-12}$ |
 
+The $10^{-12}$ direct-gain gate is only a nonzero-denominator feasibility
+check. It does not guarantee a well-conditioned fraction or route-valid
+calibration.
+
 ## 2. Frozen receiver statistic
 
 The passive diagonal and equal-distance axial probes are
@@ -42,7 +46,8 @@ $$
 
 at target separations $12\sqrt2\simeq16.971$ and $17$, respectively. The source compact radius is six cells, so neither probe lies in its support.
 
-For the matched $+/-$ source-pulse pair, the receiver current is
+For the matched $+/-$ source-pulse pair, the receiver current is supplied only
+at the target; the diagonal and axial receiver cores remain passive:
 
 $$
 \mathbf J_\Psi=A\nabla B-B\nabla A,
@@ -74,29 +79,39 @@ $$
 
 | feature | frozen criterion | result | outcome |
 |---|---|---:|---|
-| F1 passive diagonal response | $F_D\geq0.010$ | $15.40435$ | EMERGES |
-| F2 diagonal-over-axial fraction | $E\geq0.005$ | $15.37575$ | EMERGES |
-| F3 phase-arrangement dependence | $E-E_{\rm shuf}\geq0.005$ | $-4.45190$ | DOES NOT EMERGE |
+| F1 passive diagonal response score | $F_D\geq0.010$ | $15.40435$ | EMERGES |
+| F2 diagonal-over-axial normalized score | $E\geq0.005$ | $15.37575$ | EMERGES |
+| F3 supplied phase-arrangement dependence | $E-E_{\rm shuf}\geq0.005$ | $-4.45190$ | DOES NOT EMERGE |
 
-The frozen result is
+F1 compares the supplied source-only pulse with the supplied direct-diagonal
+calibration. F2 compares the supplied source/direct scores for diagonal and
+axial passive probes. F3 compares standard and supplied phase-label-shuffled
+source/direct pairs. None of these controls varies an endogenous phase or
+native route mechanism.
+
+The frozen protocol selects its `HOLD` branch. At repository level, the terminal classification is:
 
 $$
-\boxed{\text{HOLD: PASSIVE DIAGONAL RESPONSE WITHOUT PHASE-ARRANGEMENT SELECTIVITY.}}
+\boxed{\text{INCONCLUSIVE: PASSIVE DIAGONAL RESPONSE WITHOUT PHASE-ARRANGEMENT SELECTIVITY.}}
 $$
 
 ## 4. Temporal and normalization boundary
 
-The diagonal antisymmetric trace is negligible at the pulse snapshot, $S_D(0)=1.55\times10^{-18}$, then grows under canonical evolution to $S_D(20)=-8.26\times10^{-10}$ and $S_D(120)=-5.09\times10^{-9}$. The source mask has zero diagonal-core support, so this delayed diagonal trace is not direct field rotation inside the diagonal probe.
+The diagonal antisymmetric trace is negligible at the pulse snapshot, $S_D(0)=1.55\times10^{-18}$, then grows under unmodified canonical evolution to $S_D(20)=-8.26\times10^{-10}$ and $S_D(120)=-5.09\times10^{-9}$. The source mask has zero diagonal-core support, so this delayed diagonal trace is not direct field rotation inside the diagonal probe.
 
 The axial trace is already nonzero at the pulse snapshot, $S_A(0)=-1.31\times10^{-5}$, and the raw axial trace remains larger than the diagonal trace throughout the frozen window. The solver contains diffusion and FFT-mediated field operators, so an immediate remote current response is a global numerical-field response rather than a finite-speed arrival measure.
 
-F1 and F2 use the frozen same-shape direct calibrations. Their ratio ordering does not mean that the diagonal source response dominates: the receiver-scale-normalized $G_A^{\rm source}$ is about $3.2$ times $G_D^{\rm source}$, while the frozen raw $S_A$ trace is also larger over the sampled lags. Under shuffled labels, both diagonal gains decrease, but the direct calibration decreases more than the source response; this raises $F_D^{\rm shuf}$ above $F_D$ and raises $E_{\rm shuf}$ above $E$. The resulting calibration is poorly conditioned for route selectivity, and F3 prevents promotion from HOLD to SUPPORTS.
+F1 and F2 use the frozen same-shape direct calibrations. Their ratio ordering does not mean that the diagonal source response dominates: the receiver-scale-normalized $G_A^{\rm source}$ is about $3.2$ times $G_D^{\rm source}$, while the frozen raw $S_A$ trace is also larger over the sampled lags. Under shuffled labels, both diagonal gains decrease, but the direct calibration decreases more than the source response: $G_D^{\rm direct}$ falls from $8.23757\times10^{-6}$ to $2.19932\times10^{-9}$, while $G_D^{\rm source}$ falls from $1.26894\times10^{-4}$ to $4.36701\times10^{-8}$. This denominator collapse raises $F_D^{\rm shuf}$ above $F_D$ and raises $E_{\rm shuf}$ above $E$. The ratios are therefore poorly conditioned for route selectivity even though every denominator exceeds the frozen numerical floor; F3 prevents any **SUPPORTS** classification.
 
 ## 5. Scope and required discriminator
 
-The receipt establishes a passive, delayed diagonal $\mathbf J_\Psi$ perturbation under a source-only compact pulse in this finite proxy. It does not establish diagonal-edge preference, a phase-arrangement-selected transport law, finite-speed causation, a self-maintaining macro-spiral, biological circulation, neural action, or consciousness.
+The receipt establishes a passive, delayed diagonal $\mathbf J_\Psi$ perturbation under an externally supplied source-only compact pulse in this finite proxy. It does not establish diagonal-edge preference, a phase-arrangement-selected transport law, finite-speed causation, a self-maintaining macro-spiral, biological circulation, neural action, or consciousness.
 
-A fresh discriminator must retain disjoint source/receiver support and compare a source-normalized delayed response before dividing by a local direct-projection calibration. Its temporal statistic must separately report the immediate FFT/global contribution and the post-pulse dynamic rise, with shuffled and equal-distance controls frozen before execution.
+A fresh discriminator must retain disjoint source/receiver support and compare
+a source-normalized delayed response before dividing by a local direct-projection
+calibration. It must report denominator conditioning explicitly, separately
+report the immediate FFT/global contribution and the post-pulse dynamic rise,
+and freeze shuffled and equal-distance controls before execution.
 
 ## References
 

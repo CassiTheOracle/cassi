@@ -175,10 +175,8 @@ print("""
      observed value at f = 0.18 -- inside the census bracket -- but that is an
      accounting artifact (the same baryons counted twice), not a comparison
      against the observed quantity.
-  4. The +1 is therefore a CALIBRATION ARTIFACT (Fit-Status Ledger row 502:
-     hand-added after phi^3 alone came in 21% low; selected from
-     {phi^3, xi, phi^2, phi^4, phi^3 +/- 1}) narrated post hoc as a capture
-     reservoir. It is withdrawn from the predicted value: the defensible
-     prediction is the derived base Omega_DM/Omega_b = phi^3 = 4.2361, leaving
-     a 21% residual against the observed 5.39 (open tension, not a match).
+  4. The +1 remains an unvalidated CALIBRATION ARTIFACT and is excluded from
+     the current prediction. The defensible base prediction is the derived
+     Omega_DM/Omega_b = phi^3 = 4.2361, leaving a 21% residual against the
+     observed 5.39 (open tension, not a match).
 """)

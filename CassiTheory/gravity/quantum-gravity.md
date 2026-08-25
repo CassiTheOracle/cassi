@@ -1,18 +1,18 @@
 # Cassi Quantum Gravity: UV-Finite from $\sigma$-Regularized Two-Fluid Quantization
 
-## Status: Derived conditional on the noise–signal identification and d = 3 (σ = ℓ_Pl/φ³; noise–signal crossover at the Planck core, §2.1) / Hypothesized (two-fluid quantization, composite graviton)—August 2026
+## Status: Derived conditional on the noise–signal identification and a selected $d = 3$ computational/physical domain ($\sigma = \ell_{\text{Pl}}/\varphi^3$; noise–signal crossover at the Planck core, §2.1) / Hypothesized (the $d = 3$ geometric reading, two-fluid quantization, composite graviton)—August 2026
 
 ## Abstract
 
-General relativity breaks down at the Planck scale: perturbative quantization of the graviton diverges in the ultraviolet. Cassi quantum gravity resolves this at two layers. The classical layer (Derived conditional on the noise–signal identification and d = 3; $\sigma = \ell_{\text{Pl}}/\varphi^3$ from the noise–signal crossover at the Planck core, §2.1) is $\sigma$-regularized Poisson emergence—gravity is not a quantum exchange force, and the Gaussian propagator $G(k^2) = e^{-k^2\sigma^2/2}/(k^2+i\epsilon)$ makes the theory UV-finite. The quantized two-fluid extension (Hypothesized) carries this further: the graviton is a composite spin-2 SO(2) excitation with the massless GR limit at $k \ll 1/\sigma$, no modes beyond $1/\sigma$, and no renormalization at any order. The information-paradox analysis (§7) and the black-hole coherence-capacity relation feed the GWTC mass-ladder analysis in `analyses/gwtc4-mass-ladder.md`.
+General relativity breaks down at the Planck scale: perturbative quantization of the graviton diverges in the ultraviolet. Cassi quantum gravity addresses this at two layers. The classical layer (Derived conditional on the noise–signal identification and the selected $d = 3$ computational/physical domain; $\sigma = \ell_{\text{Pl}}/\varphi^3$ from the noise–signal crossover at the Planck core, §2.1) provides a $\sigma$-regularized Poisson emergence sector—an emergent classical gravity description—and the Gaussian propagator $G(k^2) = e^{-k^2\sigma^2/2}/(k^2+i\epsilon)$ supplies high-momentum suppression. The quantized two-fluid extension (Hypothesized) models the graviton as a composite spin-2 excitation assembled from the two real Yang/Yin component fields, with the implemented dispersion relation and its limits given in §4.2.
 
 ---
 
 ## 1. The Problem Quantum Gravity Solves
 
-General relativity is a classical field theory that breaks down at the Planck scale $M_{\text{Pl}} = 1.22\times10^{19}$ GeV. When quantized perturbatively, the graviton loop diagrams diverge in the ultraviolet—Newton's constant $G$ runs to infinity at high energy, and the theory loses predictivity.
+General relativity is a classical field theory that breaks down at the Planck scale $M_{\text{Pl}} = 1.22\times10^{19}$ GeV. When quantized perturbatively, graviton loop diagrams generate ultraviolet divergences and require an unbounded tower of counterterms, so the perturbative theory loses predictivity.
 
-Every approach to quantum gravity (string theory, loop quantum gravity, asymptotic safety) introduces new structure to cure these divergences. The Cassi framework has a simpler answer: **the two-fluid fields are already the quantum degrees of freedom**, and their natural length scale $\sigma = \ell_{\text{Pl}}/\varphi^3$ regulates all UV divergences automatically. Yang and Yin are the doublet components; Qi is the flow of coherence between them and along the string axis between cascade scales—the phase current $J = \rho\nabla\theta$ (`foundations/qi-flow-double-helix.md`).
+Every approach to quantum gravity (string theory, loop quantum gravity, asymptotic safety) introduces new structure to cure these divergences. The Cassi framework proposes a simpler candidate: **the canonical state is the two real Yang/Yin density components**, and their natural length scale $\sigma = \ell_{\text{Pl}}/\varphi^3$ regularizes the displayed propagator and its evaluated loop integrals under the stated IR and interaction assumptions. The canonical Qi variables are $\rho = E_Y + E_I$, $\varepsilon = E_Y - \varphi E_I$, and $q = \rho^2/(\rho^2+\varphi^{-2}+\varepsilon^2)$. The signed density imbalance $\pi = E_Y - E_I$ is a separate density-component diagnostic used for the attractor signal. Their density-space flow is $\mathbf{J}_d=E_Y\nabla E_I-E_I\nabla E_Y=(E_Y^2+E_I^2)\nabla\theta_d$, with $\theta_d=\operatorname{atan2}(E_I,E_Y)$. A separate optional positive-root amplitude lift, $\Psi=(\sqrt{E_Y},\sqrt{E_I})$, defines $\mathbf{J}_\Psi=\Psi_0\nabla\Psi_1-\Psi_1\nabla\Psi_0=\rho\nabla\theta_\Psi$. Neither coordinate angle is an intrinsic complex phase of the real canonical fields. A named spatial projection carries direction or sign; a compact phase and inter-rung transport require separate Hypothesized extensions.
 
 ---
 
@@ -26,15 +26,15 @@ $$
 
 with $\ell_{\text{Pl}} = 1.616\times10^{-35}$ m and $\varphi^3 = 4.236$: the separation scale sits at cascade rung $n = -3$, a factor $\varphi^3 \approx 4.24$ below the Planck length.
 
-The physical meaning: at distances $r \ll \sigma$, the two-fluid description breaks down because the field's paired-real structure (SO(2) doublet) loses meaning—the two components merge into a single quantum degree of freedom.
+The physical meaning: at distances $r \ll \sigma$, the canonical density description no longer resolves the Yang/Yin distinction, so the two components merge into a single unresolved quantum degree of freedom. A compact phase coordinate at this scale belongs to a separate Hypothesized extension.
 
 ### 2.1 Derivation: The Noise–Signal Crossover at the Planck Core
 
-**Tier: Derived conditional on the noise–signal identification and $d = 3$ (geometric reading).** The separation scale is the scale at which the per-rung dephasing noise of the two-fluid equals the equilibrium Yang excess the doublet exists to maintain; at the Planck core this selects $\delta = 3$. The geometric reading $\delta = d = 3$ (one rung per spatial axis) is secondary.
+**Tier: Derived conditional on the noise–signal identification; the selected $d = 3$ computational/physical domain and its geometric reading are conditional/Hypothesized.** The separation scale is the scale at which the per-rung dephasing noise of the two-fluid equals the equilibrium density imbalance encoded by the canonical density variables; at the Planck core this selects $\delta = 3$. The geometric reading $\delta = d = 3$ (one rung per spatial axis) is a model choice, not an additional density-crossover identity.
 
-**What the separation scale means physically.** At cascade rung $n = 0$ the lattice cell is the Planck cell: the condensation field $B(x,y,z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$ with wavelengths $\Lambda_Y = \ell_{\text{Pl}}$, $\Lambda_I = \ell_{\text{Pl}}/\varphi$, $P_\parallel \sim \ell_{\text{Pl}}$ (`foundations/bubble-lattice-fabric.md` §2.2, §3.1). The cell's content is two-fluid phase structure: Yang and Yin wakes in anti-phase ($\Delta\phi = \pi$; W1-decided, `foundations/why-three-dimensions.md` §4.4), forming a staggered bubble/void checkerboard in the Yang–Yin plane bounded along the string axis. Which component of the SO(2) doublet is which at a point—the sign of $\varepsilon = E_Y - \varphi E_I$—is carried entirely by the relative phase of the two wake systems. The separation scale $\sigma$ is the scale below which that phase structure is lost: at $r \ll \sigma$ the paired-real structure of the doublet merges into a single quantum degree of freedom and the lattice's discrete bubble/void structure dissolves into the $\sigma$-regularized harmonic regime (`foundations/bubble-lattice-fabric.md` §6).
+**What the separation scale means physically.** At cascade rung $n = 0$ the lattice cell is the Planck cell: a separate geometric condensation ansatz uses $B(x,y,z) = \cos(\alpha x)\cos(\beta y)\cos(\gamma z)$ with wavelengths $\Lambda_Y = \ell_{\text{Pl}}$, $\Lambda_I = \ell_{\text{Pl}}/\varphi$, and the assigned axial period $P_\parallel \sim \ell_{\text{Pl}}$ (`foundations/bubble-lattice-fabric.md` §2.2, §3.1). The canonical cell state is the two real density components $(E_Y,E_I)$. Within this Hypothesized wake geometry, Yang- and Yin-dominated patterns may take the W1-decided opposite-sign/anti-phase morphology ($\Delta\phi = \pi$; `foundations/why-three-dimensions.md` §4.4), forming a staggered bubble/void checkerboard in the Yang–Yin plane bounded along the assigned string coordinate. This is a conditional geometric branch, not an intrinsic phase relation of the canonical densities: $\varepsilon = E_Y - \varphi E_I$ is the weighted Qi deviation and vanishes on the attractor, while $\pi = E_Y - E_I$ is the signed density imbalance; a relative phase is an optional label of the wake ansatz. A string-axis current or inter-rung transport requires an explicit Hypothesized constitutive law. At $r \ll \sigma$ the canonical density distinction is unresolved and the lattice's discrete bubble/void structure dissolves into the $\sigma$-regularized harmonic regime (`foundations/bubble-lattice-fabric.md` §6).
 
-**The signal: the equilibrium Yang excess.** The observable that distinguishes the two components of the paired-real doublet is the Yang excess
+**The signal: the signed density imbalance.** The canonical density observable that distinguishes the two components is $\pi = E_Y - E_I$, distinct from the weighted Qi deviation $\varepsilon = E_Y - \varphi E_I$; for the positive-root amplitude lift $\Psi_0^2 = E_Y$ and $\Psi_1^2 = E_I$,
 
 $$\frac{\pi}{\rho} = \frac{\Psi_0^2 - \Psi_1^2}{\Psi_0^2 + \Psi_1^2}$$
 
@@ -52,7 +52,7 @@ $$1 - q_i = \varphi^{-i-\delta}$$
 
 At the Planck core ($i = 0$): $1 - q_0 = \varphi^{-\delta}$.
 
-**The identification (explicit input).** The separation scale $\sigma$ is the scale below which the doublet's excess is unresolvable—the scale at which the per-rung dephasing noise equals the equilibrium excess the doublet exists to maintain. At the doublet's own reference—the Planck rung, where the two-fluid's identity is anchored and the dephasing profile is normalized—this reads:
+**The identification (explicit input).** The separation scale $\sigma$ is the scale below which the Yang/Yin density distinction is unresolvable—the scale at which per-rung dephasing noise equals the equilibrium density excess used in the derivation. At the Planck rung, where the two-fluid reference state is anchored and the dephasing profile is normalized, this reads:
 
 $$
 \varphi^{-\delta} = \varphi^{-3} \quad\Longrightarrow\quad \boxed{\delta = 3}, \qquad \sigma = \ell_{\text{Pl}}\,\varphi^{-3} = \frac{\ell_{\text{Pl}}}{\varphi^3}
@@ -60,9 +60,9 @@ $$
 
 The algebra is the cascade identity $\ell_n = \ell_{\text{Pl}}\varphi^n$ at $n = -\delta = -3$ (verified numerically: $\sigma = 3.815\times10^{-36}$ m; $\log_\varphi(\sigma/\ell_{\text{Pl}}) = -3.000$).
 
-**Why the crossover sits three rungs below the reference.** The dephasing profile steps by the de-resonance damping $\varphi^{-1}$ per rung, $1 - q_{i+1} = \varphi^{-1}(1 - q_i)$ (`foundations/cascade-suppression-formula.md` §4). With the reference noise set to the excess, $1 - q_0 = \varphi^{-3}$, the dephasing reaches certainty after exactly three rungs: $\varphi^{-3}\cdot\varphi^3 = 1$ at rung $-3 = \sigma$. Immediately below the reference the noise already exceeds the excess ($1 - q_{-1} = \varphi^{-2} > \varphi^{-3}$), so the doublet's distinguishing observable is marginal at its own scale and unresolvable below it; $\sigma$ is the floor of the physical profile ($1 - q \le 1$ holds exactly on $i \ge -3$), and below it ($i \le -4$) the extrapolated profile exceeds unity—the microcascade regime change (`foundations/microcascade-mirror.md` §3). The framework's "significant coherence deficit" at the Planck scale, $q_0 = 1 - \varphi^{-3} \approx 0.764$ (`foundations/microcascade-mirror.md` §3.1), is the same statement: the reference rung sits at marginal coherence, noise = signal = $\varphi^{-3}$.
+**Why the crossover sits three rungs below the reference.** The dephasing profile steps by the de-resonance damping $\varphi^{-1}$ per rung, $1 - q_{i+1} = \varphi^{-1}(1 - q_i)$ (`foundations/cascade-suppression-formula.md` §4). With the reference noise set to the excess, $1 - q_0 = \varphi^{-3}$, the dephasing reaches certainty after exactly three rungs: $\varphi^{-3}\cdot\varphi^3 = 1$ at rung $-3 = \sigma$. Immediately below the reference the noise already exceeds the excess ($1 - q_{-1} = \varphi^{-2} > \varphi^{-3}$), so the distinguishing density observable is marginal at its own scale and unresolvable below it; $\sigma$ is the floor of the physical profile ($1 - q \le 1$ holds exactly on $i \ge -3$), and below it ($i \le -4$) the extrapolated profile exceeds unity—the microcascade regime change (`foundations/microcascade-mirror.md` §3). The framework's "significant coherence deficit" at the Planck scale, $q_0 = 1 - \varphi^{-3} \approx 0.764$ (`foundations/microcascade-mirror.md` §3.1), is the same statement: the reference rung sits at marginal coherence, noise = signal = $\varphi^{-3}$.
 
-**Geometric reading: $\delta = d = 3$ (secondary).** Resolving the two fluids' phases in the condensation lattice requires phase resolution in every spatial axis: the Yang axis ($x$, period $\Lambda_Y$), the Yin axis ($y$, period $\Lambda_I$), and the string axis ($z$, period $P_\parallel$). The per-axis dephasing of the 3D condensation lattice is the de-resonance damping $\varphi^{-1}$ per axis (`foundations/cascade-suppression-formula.md` §4), so the core noise floor admits the per-axis decomposition
+**Geometric reading: $\delta = d = 3$ (secondary, conditional geometric ansatz).** In an optional Hypothesized condensation-lattice coordinate model, one may assign phase-like coordinates to three spatial axes: the Yang axis ($x$, period $\Lambda_Y$), the Yin axis ($y$, period $\Lambda_I$), and a string axis ($z$, period $P_\parallel$). The canonical density equations supply neither this phase resolution nor a string-axis or inter-rung transport law. Given this separate assignment, the per-axis dephasing of the 3D condensation lattice is the de-resonance damping $\varphi^{-1}$ per axis (`foundations/cascade-suppression-formula.md` §4), so the core noise floor admits the per-axis decomposition
 
 $$
 \varphi^{-\delta} = (\varphi^{-1})^{d} = \varphi^{-d},
@@ -72,15 +72,15 @@ consistent with the excess, $\varphi^{-d} = (\varphi-1)/(\varphi+1) = \varphi^{-
 
 **Cross-checks.**
 
-(i) *Shared origin in the fixed-point imbalance.* The same derived constant that sets $\delta$ here—the fixed-point imbalance $\alpha_0 = (\pi/\rho)_{\text{eq}} = \varphi^{-3}$—is the base of the Qi-gravity coupling, $\xi = \alpha_0^{-2} = \varphi^6$ (`foundations/xi-derivation.md` §2.1): the attractor's excess sets both the Yang/Yin separation depth and the gravity enhancement. The three-dimensional reading of $\xi$'s exponent 6 survives only as the secondary geometric reading (`foundations/xi-derivation.md`; `foundations/why-three-dimensions.md`), and the $1/3$ in $H_{\text{empty}} = \lambda\varphi^{-2}/3$ is flagged as "the 3D continuity reading" (`foundations/cassi-theory-reference.md` §3.3; `foundations/wake-geometry.md` §4a). The $\delta = 3$ of this section is the only one of the three that is now derived from the attractor dynamics rather than imported.
+(i) *Shared origin in the fixed-point imbalance.* The same derived constant that sets $\delta$ here—the fixed-point imbalance $\alpha_0 = (\pi/\rho)_{\text{eq}} = \varphi^{-3}$—is the base of the Qi-gravity coupling, $\xi = \alpha_0^{-2} = \varphi^6$ (`foundations/xi-derivation.md` §2.1): the attractor's density imbalance sets both the Yang/Yin separation depth and the gravity enhancement. The three-dimensional reading of $\xi$'s exponent 6 survives only as the secondary geometric reading (`foundations/xi-derivation.md`; `foundations/why-three-dimensions.md`), and the $1/3$ in $H_{\text{empty}} = \lambda\varphi^{-2}/3$ is flagged as "the 3D continuity reading" (`foundations/cassi-theory-reference.md` §3.3; `foundations/wake-geometry.md` §4a). The $\delta = 3$ of this section is the only one of the three that is now derived from the attractor dynamics rather than imported.
 
 (ii) *The same 3-rung offset at the sector-coupling scale.* $\kappa_s = \varphi^{-6}/v_0^2$ sits at rung 77, three rungs below the electroweak VEV rung 80: $77 = 80 - 3$, with $E_{77} = M_{\text{Pl}}\varphi^{-77} = 987.7$ GeV against $E_{80} = 233.2$ GeV (`foundations/sector-coupling-derivation.md` §2). The same 3-rung offset appears there in the rung count.
 
 (iii) *Cascade-suppression arithmetic unchanged.* The coherence exponent $N(n) = n(n+1)/2 + \delta(n+1)$ with $\delta = 3$ (`foundations/cascade-suppression-formula.md` §1.3). For the proton ($n = 91.46$): $N = 4505.6$, quoted as $\varphi^{-4506}$; the $\delta$ term contributes 277.4 of the 4505.6. Recomputed with $\delta = 3$, the proton-lifetime chain is unchanged: $\tau_p \sim \varphi^{4506}/\omega_p \sim 10^{910}$ yr (`foundations/cassi-theory-reference.md` §6.6).
 
-(iv) *Wake degeneracy at the separation scale.* At $\sigma$ the framework's built-in one-rung Yang/Yin wavelength offset (Yang at rung $n$ has the wavelength of Yin at rung $n+1$; `foundations/wake-geometry.md` §1) saturates: $\Lambda_Y(-3) = \ell_{-3} = \Lambda_I(-2) = \sigma$ (verified numerically: both $= 3.815\times10^{-36}$ m). The two fluids' wakes are mutually wavelength-degenerate precisely where the distinction fails.
+(iv) *Wake-wavelength degeneracy under the conditional geometry.* At $\sigma$ the assigned one-rung Yang/Yin wavelength offset (Yang at rung $n$ has the wavelength of Yin at rung $n+1$; `foundations/wake-geometry.md` §1) saturates: $\Lambda_Y(-3) = \ell_{-3} = \Lambda_I(-2) = \sigma$ (verified numerically: both $= 3.815\times10^{-36}$ m). The two assigned wake patterns are mutually wavelength-degenerate precisely where the density distinction fails.
 
-(v) *Phase-slip structure is scale-invariant.* The relative Yang/Yin phase slip over one lattice cell (one Yang period $\Lambda_Y = \ell_n$) is $2\pi(\varphi-1)/\varphi = 2\pi/\varphi^2$—the golden angle, the framework's phyllotaxis constant (`foundations/spin-fibonacci-spiral.md` §1)—and over one Yin period it is exactly $2\pi$ (one full SO(2) turn). Because the cell is self-similar, the slip is identical at every rung: the phase-slip structure alone cannot select $\delta$, which is why the crossover requires the noise–signal boundary at the Planck core.
+(v) *Optional geometric phase-slip ansatz (Hypothesized; not part of the $\sigma$ derivation).* If a separate compact geometric coordinate is assigned to the Yang/Yin wavelength pattern, its relative phase slip over one lattice cell (one Yang period $\Lambda_Y = \ell_n$) is $2\pi(\varphi-1)/\varphi = 2\pi/\varphi^2$—the golden angle, the framework's phyllotaxis constant (`foundations/spin-fibonacci-spiral.md` §1)—and over one Yin period it is exactly $2\pi$ (one full assigned compact turn). Because the cell is self-similar, this optional slip is identical at every rung; it cannot select $\delta$ or support the Derived conditional $\sigma$ result, which comes from the noise–signal boundary at the Planck core.
 
 **Inputs.**
 
@@ -91,7 +91,7 @@ $$
 &\text{(b) fixed-point excess } (\pi/\rho)_{\text{eq}} = (\varphi-1)/(\varphi+1) = \varphi^{-3} && \text{Derived: phi-attractor fixed point (foundations/cassi-theory-reference.md §2.3)}\\
 &\text{(c) per-rung dephasing family } 1 - q_i = \varphi^{-i-\delta} && \text{de-resonance; the family's } i\text{-dependence remains Hypothesized (foundations/proton-coherence-budget.md §8)}\\
 &\text{(d) } d = 3 \text{ for the geometric reading } \delta = d && \text{conditional: Frenet–Serret frame, granted its three postulates (foundations/why-three-dimensions.md §7; G5, Hypothesized)}\\
-&\text{(e) two-fluid phase structure of the Planck cell} && \text{context: condensation field at rung 0, anti-phase wakes, staggered checkerboard, string bound (foundations/bubble-lattice-fabric.md §2–§5)}
+&\text{(e) optional Planck-cell condensation geometry} && \text{Hypothesized geometric context: opposite-sign/anti-phase wake morphology, staggered checkerboard, and string-bound coordinate assignment; it supplies no canonical compact phase or inter-rung transport law (foundations/bubble-lattice-fabric.md §2–§5)}
 \end{aligned}
 }
 $$
@@ -102,9 +102,17 @@ $$
 \sigma = \frac{\ell_{\text{Pl}}}{\varphi^3}, \qquad \Lambda_{\text{UV}} = \frac{1}{\sigma} = \varphi^3 M_{\text{Pl}} \approx 5.17\times 10^{19}\ \text{GeV}
 $$
 
-The two-fluid PDE already contains $\sigma$ as the grid regularization scale. When quantizing, this same scale cuts off all loop integrals.
+The quantized construction introduces $\sigma$ as the regulator in its
+propagator. The production two-fluid PDE uses separate dimensionless numerical
+softening and saturation settings; it does not by itself establish this
+quantum regulator or make it a physical grid cutoff. Loop suppression therefore
+depends on adopting the displayed $\sigma$ in the quantized extension.
 
-The $\sigma$-scale is the lattice's finest resolution—three cascade rungs below the Planck length—where the discrete bubble/void checkerboard transitions to the $\sigma$-regularized harmonic regime (`foundations/bubble-lattice-fabric.md` §6).
+Within the optional condensation-lattice model, the $\sigma$-scale is the
+finest assigned resolution—three cascade rungs below the Planck length—where
+the discrete bubble/void checkerboard is proposed to transition to a
+$\sigma$-regularized harmonic regime (`foundations/bubble-lattice-fabric.md`
+§6).
 
 ---
 
@@ -120,61 +128,67 @@ The Gaussian factor $e^{-k^2\sigma^2/2}$ is the $\sigma$-regulator:
 
 | Regime | Behavior | Physics |
 |--------|----------|---------|
-| $k \ll 1/\sigma$ | $G(k^2) \approx 1/k^2$ | Standard massless propagator (GR recovery) |
+| $k \ll 1/\sigma$ | $G(k^2) \approx 1/k^2$ | Standard massless propagator form; the force-sign question remains open, with an attractive GR law requiring a separate Hypothesized extension |
 | $k \approx 1/\sigma$ | $G(k^2) \approx e^{-1/2}/k^2 \approx 0.607/k^2$ | Onset of quantum effects |
 | $k \gg 1/\sigma$ | $G(k^2) \approx 0$ | UV modes suppressed exponentially |
 
-**No ghosts, no tachyons, no issues with causality**—the Gaussian is a complete, positive-definite regulator that preserves unitarity.
+For the free flat-space expression, the denominator has only the intended massless pole at $k^2=0$, and the entire Gaussian factor adds no finite-$k$ poles; this formal check finds no additional ghost/tachyon poles. Causality and unitarity are conditional on specifying the quantized interaction and analyzing its full nonlocal response; the $c_{\text{eff}}>1$ probe result leaves the front-velocity bound open.
 
 ---
 
 ## 4. Graviton as a Composite Excitation
 
-No fundamental graviton: gravity is not a quantum exchange force—it emerges from the $\sigma$-regularized Poisson dynamics of the two-fluid fields (Derived; $\sigma$ per §2.1). In the quantized two-fluid extension (Hypothesized), the graviton is a composite spin-2 SO(2) excitation with the massless GR limit at $k \ll 1/\sigma$; no renormalization is ever needed.
+**Proposed classical extension:** The $\sigma$-regularized Poisson dynamics of the two-fluid fields provide an emergent classical gravity sector (Derived conditional on $\sigma$ per §2.1). In the quantized two-fluid extension (Hypothesized), the graviton is a composite spin-2 excitation assembled from the two real Yang/Yin component fields; the implemented dispersion relation and its limits are given in §4.2. The displayed free-propagator loop structure is UV-finite for $q_{\text{IR}}>0$; any all-order renormalization conclusion requires an explicit quantized interaction.
 
 ### 4.1 Field Quantization
 
-Quantize the paired-real field $\Psi_\alpha$ ($\alpha = 0, 1$ for Yang, Yin):
+For the Hypothesized quantized extension, quantize the two real Yang/Yin component fields $\Psi_\alpha$ ($\alpha = 0, 1$ for Yang, Yin):
 
 $$
 \hat\Psi_\alpha(\mathbf{x}) = \int \frac{d^3k}{(2\pi)^3} \frac{1}{\sqrt{2\omega_k}} \left( a_{\alpha}(\mathbf{k}) e^{i\mathbf{k}\cdot\mathbf{x}} + a^\dagger_{\alpha}(\mathbf{k}) e^{-i\mathbf{k}\cdot\mathbf{x}} \right)
 $$
 
-with the modified dispersion relation:
+The implemented source probe (`experiments/cassi_physics/cassi_quantum_gravity.py`) uses the following Hypothesized dispersion relation:
 
 $$
-\omega_k^2 = k^2 e^{k^2\sigma^2/2} + \omega_0^2\left(1 - e^{-k^2\sigma^2/2}\right)
+\omega_k^2 = k^2 + \omega_0^2\left(1 - e^{-k^2\sigma^2}\right)
 $$
 
-where $\omega_0 = M_{\text{Pl}}$ is the $\varphi$-resonance frequency (the rung-0 cascade scale)—the maximum mode frequency; the momentum cutoff is $\Lambda_{\text{UV}} = \varphi^3 M_{\text{Pl}}$ (§2).
+where $\omega_0 = M_{\text{Pl}}$ is the $\varphi$-resonance mass scale (not a maximum mode frequency); the Gaussian regulator scale is $1/\sigma = \varphi^3 M_{\text{Pl}}$ (§2), a suppression scale rather than a hard mode-energy cutoff.
 
 ### 4.2 Dispersion Relation
 
-The dimensionless group velocity $c_{\text{eff}} = d\omega/dk$:
+Writing $x = k\sigma$ and $\mu = \omega_0\sigma = \varphi^{-3}$, the phase ratio and group velocity are $\omega/k = \sqrt{1+\mu^2(1-e^{-x^2})/x^2}$ and $c_{\text{eff}} = d\omega/dk = [1+\mu^2e^{-x^2}]/(\omega/k)$.
 
-| $k$ | $\omega(k)$ | $c_{\text{eff}}$ |
+| $k$ | $\omega(k)/k$ (and $\omega$ where noted) | $c_{\text{eff}}$ |
 |-----|-------------|-----------------|
-| $k \ll 1/\sigma$ | $\omega \approx k$ | $c_{\text{eff}} \approx 1$ (massless GR limit of the composite excitation) |
-| $k \approx 1/\sigma$ | $\omega \approx 1.02\,k$ | $c_{\text{eff}} \approx 1.003$ (superluminal? See below) |
-| $k \gg 1/\sigma$ | $\omega \to \omega_0 = M_{\text{Pl}}$ | $c_{\text{eff}} \to 0$ (no trans-Planckian modes) |
+| $k \ll 1/\sigma$ | $\omega/k \to \sqrt{1+\varphi^{-6}} \approx 1.0275$ | $c_{\text{eff}} \to 1.0275$ (implemented probe; exact GR low-$k$ slope not established) |
+| $k = 1/\sigma$ | $\omega/k \approx 1.0175$ ($\omega \approx 4.31\,M_{\text{Pl}}$) | $c_{\text{eff}} \approx 1.0030$ |
+| $k \gg 1/\sigma$ | $\omega \sim k$ | $c_{\text{eff}} \to 1$ (Gaussian amplitude suppression; no energy cap) |
 
-**Causality note:** The apparent $c_{\text{eff}} > 1$ near $k \sim 1/\sigma$ is not a causality violation—it's a **group velocity** in a dispersive medium. The front velocity (signal velocity) remains $\leq c$ because the dispersion relation preserves analyticity. The full Green's function $G(x)$ vanishes outside the light cone.
+**Causality note:** The probe's slight $c_{\text{eff}} > 1$ is a group-velocity statement in a dispersive medium. A front-velocity/causality bound requires analysis of the full nonlocal response; it is not established by the flat-space table alone.
 
 ### 4.3 Why This Is a Graviton
 
-There is no fundamental graviton; the composite excitation's spin-2 nature emerges from the SO(2) structure of the two-fluid. The polarization tensor of the composite excitation is:
+There is no fundamental graviton; in the Hypothesized extension, its composite spin-2 nature is represented by the Yang/Yin component polarizations. The polarization tensor of the composite excitation is:
 
 $$
 \epsilon_{\mu\nu}(\mathbf{k}) = \frac{1}{\sqrt{2}}\left( \epsilon_\mu^{(Y)}\epsilon_\nu^{(Y)} - \epsilon_\mu^{(I)}\epsilon_\nu^{(I)} \right)
 $$
 
-where $\epsilon_\mu^{(Y)}$ and $\epsilon_\mu^{(I)}$ are the polarization vectors of the Yang and Yin components. This is a **transverse traceless** spin-2 field:
+where $\epsilon_\mu^{(Y)}$ and $\epsilon_\mu^{(I)}$ are the polarization vectors of the Yang and Yin components. If the polarization vectors and gauge are imposed to satisfy transversality and tracelessness, then:
 
 $$
 k^\mu \epsilon_{\mu\nu} = 0, \qquad \eta^{\mu\nu} \epsilon_{\mu\nu} = 0
 $$
 
-At low energy ($k \ll 1/\sigma$), the composite excitation reproduces the standard GR graviton with two polarization modes $+$ and $\times$.
+These conditions are inputs to the Hypothesized extension; the canonical density equations do not derive them.
+
+$$
+k^\mu \epsilon_{\mu\nu} = 0, \qquad \eta^{\mu\nu} \epsilon_{\mu\nu} = 0
+$$
+
+At low energy ($k \ll 1/\sigma$), the composite excitation has the two standard GR polarization labels $+$ and $\times$, but the implemented phase and group velocities approach $\sqrt{1+\varphi^{-6}} \approx 1.0275$ rather than an exact GR slope; exact low-energy GR recovery is not established.
 
 ---
 
@@ -197,10 +211,13 @@ $$
 The integral is **manifestly UV-finite** because the Gaussian $e^{-q^2\sigma^2}$ kills all high-momentum contributions. In Euclidean 4-momentum space:
 
 $$
-I_{\text{loop}} = \int \frac{d^4q_E}{(2\pi)^4} \frac{e^{-q_E^2\sigma^2}}{(q_E^2)^2} = \frac{1}{8\pi^2} \int_0^\infty \frac{dq}{q} e^{-q^2\sigma^2}
+I_{\text{loop}}(q_{\text{IR}}) = \int_{q_{\text{IR}}}^{\infty} \frac{d^4q_E}{(2\pi)^4}\frac{e^{-q_E^2\sigma^2}}{(q_E^2)^2}
+= \frac{1}{8\pi^2}\int_{q_{\text{IR}}}^{\infty}\frac{dq}{q}e^{-q^2\sigma^2},
+\qquad q_{\text{IR}}>0.
 $$
 
-(The angular factor is $\Omega_4/(2\pi)^4 = 2\pi^2/(2\pi)^4 = 1/8\pi^2$, and the radial integral is $\int_0^\infty \frac{dq}{q} e^{-q^2\sigma^2} = \tfrac12\Gamma(0,\cdot)$.)
+The uncut integral is logarithmically IR-divergent; the stated cutoff is
+required before evaluating the finite incomplete-gamma expression below.
 
 The remaining integral evaluates to a finite number involving the exponential integral:
 
@@ -208,13 +225,16 @@ $$
 I_{\text{loop}} = \frac{1}{16\pi^2} \Gamma(0, q_{\text{IR}}^2\sigma^2)
 $$
 
-which is finite for any IR cutoff $q_{\text{IR}} > 0$. The physical IR cutoff is the cosmological scale $\Lambda_{\text{IR}} \sim H_0$, making the loop completely finite.
+which is finite for any IR cutoff $q_{\text{IR}} > 0$. The cosmological scale
+$\Lambda_{\text{IR}}\sim H_0$ is a possible application-dependent IR regulator,
+not a consequence of the flat-space propagator; finiteness requires an
+explicitly supplied $q_{\text{IR}}>0$.
 
 ### 5.2 Higher Loops
 
-All $n$-loop diagrams are UV-finite by the same mechanism: each propagator carries a Gaussian factor $e^{-k^2\sigma^2/2}$, and products of Gaussians are Gaussians. The superficial degree of divergence is always negative for $k \gg 1/\sigma$.
+For the displayed Gaussian propagator, $n$-loop integrals are UV-finite by the same mechanism: each propagator carries a Gaussian factor $e^{-k^2\sigma^2/2}$, and products of Gaussians are Gaussians. Extending this result to the interacting quantized theory requires explicit vertices and an interaction completion.
 
-**Key result:** Cassi quantum gravity is perturbatively UV-finite to all orders. No renormalization is needed—the theory is predictive at all energy scales.
+**Conditional result:** The displayed free-propagator loop structure is perturbatively UV-finite to all orders for $q_{\text{IR}}>0$; a no-renormalization conclusion requires an explicit quantized interaction.
 
 ### 5.3 Running of $G$
 
@@ -227,54 +247,58 @@ $$
 where $f(x)$ is a finite, computable function that approaches a constant at high energy:
 
 $$
-\lim_{E \to \infty} G_{\text{eff}}(E) = G \left(1 + \frac{1}{16\pi^2} \cdot \frac{1}{(M_{\text{Pl}}\sigma)^2} \cdot O(1) \right) = G \left(1 + \frac{\varphi^6}{16\pi^2}\,O(1) \right) \approx G (1 + 0.114)
+\lim_{E\to\infty}G_{\text{eff}}(E)
+=G\left(1+\frac{\varphi^6}{16\pi^2}f(\infty)+\cdots\right)
+=G\left(1+0.114\,f(\infty)+\cdots\right),
 $$
 
-with $M_{\text{Pl}}\sigma = \varphi^{-3}$ (§2.1).
-
-The correction is **$\mathcal{O}(11\%)$ at the $\sigma$-scale** ($\varphi^6/16\pi^2 \approx 0.114$)—finite and perturbative, not a divergence. This is completely different from standard GR where $G$ diverges at the Planck scale.
+where $f(\infty)=\mathcal{O}(1)$ is a dimensionless function fixed by the
+unspecified vertex and interaction completion. The prefactor
+$\varphi^6/(16\pi^2)\approx0.114$ is therefore a scaling estimate, not a
+derived $11\%$ correction. A numerical running of $G$ requires the
+quantized interaction.
 
 ---
 
-## 6. No Trans-Planckian Problem
+## 6. Trans-Planckian Status of the Implemented Probe
 
-In standard inflation, modes that we see in the CMB today had wavelengths smaller than the Planck length during inflation—the "trans-Planckian problem." In Cassi quantum gravity, **there are no trans-Planckian modes.**
+In standard inflation, modes that we see in the CMB today had wavelengths smaller than the Planck length during inflation—the "trans-Planckian problem." The implemented Cassi probe leaves the trans-Planckian status open.
 
-The modified dispersion relation $\omega(k)$ asymptotes to $\omega_0 = M_{\text{Pl}}$ at high $k$. This means:
+Its dispersion grows as $\omega(k) \sim k$ for $k\sigma \gg 1$ rather than approaching $\omega_0 = M_{\text{Pl}}$; the Gaussian propagator suppresses high-momentum amplitudes but does not remove modes or cap their energy. At the nominal regulator scale $k = 1/\sigma = \varphi^3 M_{\text{Pl}}$, the probe gives $\omega \approx 1.0175\,k \approx 4.31\,M_{\text{Pl}}$ and $c_{\text{eff}} \approx 1.0030$.
 
-- No mode ever has energy $> M_{\text{Pl}}$
-- The CMB modes were always at energies $< M_{\text{Pl}}$
-- No need for "trans-Planckian physics" to explain the CMB spectrum
+- No mode-energy bound follows from this dispersion; the nominal Gaussian scale is a suppression scale.
+- The CMB trans-Planckian question remains open for this flat-space probe.
+- A curved-spacetime calculation is required to determine whether regulator effects alter Hawking or inflationary spectra.
 
-This is the Cassi resolution of the trans-Planckian problem.
+This is the present status of the trans-Planckian problem in Cassi: the regulator gives UV suppression, while a bounded spectrum and a quantitative cosmological resolution remain unestablished.
 
 ---
 
 ## 7. Black Hole Information Paradox
 
-**Epistemic status: Hypothesized**—mechanism (σ-regulated S-matrix unitarity) established; full Page curve computation requires new curved-spacetime PDE infrastructure (`open-questions-cassi-answers.md` G2).
+**Epistemic status: Hypothesized**—the $\sigma$-regulated S-matrix mechanism is proposed; its unitarity requires a specified quantized interaction and full nonlocal-response analysis. Full Page curve computation requires new curved-spacetime PDE infrastructure (`open-questions-cassi-answers.md` G2).
 
 The black hole information paradox is the most acute test of any quantum gravity theory. Hawking's 1975 calculation shows that semiclassical black hole evaporation produces thermal radiation uncorrelated with the initial collapsing matter—if the black hole evaporates completely, the final state is mixed, violating quantum unitarity. Resolving the paradox requires either (1) demonstrating that the outgoing radiation is not truly thermal (it carries correlations that restore a pure final state), or (2) providing a new mechanism that retrieves information from the interior.
 
 ### 7.1 The Horizon, Not the Singularity
 
-σ-regularization removes the singularity, but the information paradox concerns the **horizon**, not the singularity: how does information in interior degrees of freedom escape in the Hawking flux? For astrophysical black holes with $M \gg M_{\text{Pl}}$, the horizon curvature $R \sim 1/r_s^2 = 1/(4G^2M^2) \ll 1/\sigma^2$, so semiclassical GR applies at the horizon; the σ-regularized core (radius $\sim \sigma$) lies deep inside the black hole. The Cassi resolution must therefore address the horizon directly. The σ-regularized two-fluid provides the necessary tools: a manifestly unitary S-matrix, a finite UV cutoff that regulates the trans-Planckian modes on which Hawking's derivation relies, and the two-fluid condensate dynamics that can encode correlations in the outgoing radiation.
+$\sigma$-regularization removes the singularity, but the information paradox concerns the **horizon**, not the singularity: how does information in interior degrees of freedom escape in the Hawking flux? For astrophysical black holes with $M \gg M_{\text{Pl}}$, the horizon curvature $R \sim 1/r_s^2 = 1/(4G^2M^2) \ll 1/\sigma^2$, so semiclassical GR applies at the horizon; the $\sigma$-regularized core (radius $\sim \sigma$) lies deep inside the black hole. The Cassi resolution must therefore address the horizon directly. The $\sigma$-regularized two-fluid supplies a candidate S-matrix mechanism and Gaussian high-momentum suppression; unitarity and any correlations encoded in outgoing radiation require the missing interaction and horizon calculation.
 
-### 7.2 The Unitarity Theorem
+### 7.2 Conditional S-Matrix Consistency Argument
 
-The strongest analytic result available now:
+A conditional pole-level consistency argument is available:
 
-> **Theorem (Cassi QG S-matrix unitarity).** The σ-regulated propagator $G(k^2) = e^{-k^2\sigma^2/2}/(k^2 + i\epsilon)$ is a positive-definite, causal regulator that preserves unitarity. The S-matrix of Cassi quantum gravity—constructed from the two-fluid quantized fields with this propagator—is unitary by construction. No information loss occurs at the fundamental level.
+> **Conditional claim (Cassi QG S-matrix unitarity).** For the free $\sigma$-regulated propagator $G(k^2) = e^{-k^2\sigma^2/2}/(k^2 + i\epsilon)$, the entire Gaussian factor adds no finite-plane poles or branch cuts and the denominator has only the intended massless pole. If the two-fluid quantized interaction can be specified with a positive spectral representation and an optical theorem, then the resulting S-matrix would be unitary; neither condition is established by the propagator alone.
 
-*Proof sketch.* The Gaussian $e^{-k^2\sigma^2/2}$ is an entire function with no poles or branch cuts in the finite complex plane. The modified propagator satisfies the Kallen-Lehmann representation with positive spectral density—no ghosts, no tachyons. The optical theorem holds at each order in perturbation theory. The theory is manifestly unitary to all orders. ∎
+*Scope of the conditional argument.* The entire-function observation does not establish a Källén-Lehmann representation, the optical theorem, absence of interacting ghost or tachyon modes, or a causal front velocity. Those require an explicit quantized interaction and full nonlocal-response analysis; no all-order unitarity proof follows from the free propagator.
 
-This is not a computation of the Page curve—it is a **theorem about the underlying theory**. In standard semiclassical gravity, Hawking's information loss argument relies on the approximation that (a) gravity is classical and (b) the Planck scale can be ignored. Both assumptions fail in Cassi: (a) gravity is a composite two-fluid excitation, and (b) the Planck scale is a built-in UV regulator. The unitarity theorem guarantees that the exact quantum evolution is unitary; the question is how unitary evolution manifests in the semiclassical limit.
+This is not a computation of the Page curve; it is a **conditional pole-level consistency argument**. In standard semiclassical gravity, Hawking's information loss argument relies on the approximation that (a) gravity is classical and (b) the Planck scale can be ignored. Cassi supplies a composite two-fluid excitation and a built-in UV regulator, but whether exact quantum evolution is unitary and how it manifests in the semiclassical limit remain Hypothesized pending the interaction and curved-spacetime calculations.
 
 ### 7.3 Why Hawking's Calculation Is Incomplete in Cassi
 
-Hawking's thermal spectrum derivation requires tracing over modes that are exponentially blueshifted near the horizon—modes whose frequency at formation exceeds $M_{\text{Pl}}$. These trans-Planckian modes do not exist in Cassi quantum gravity: the dispersion relation $\omega(k)$ asymptotes to $\omega_0 = M_{\text{Pl}}$, and the σ-regulator suppresses $k \gg 1/\sigma$ exponentially. The standard derivation of exactly thermal Hawking radiation therefore **does not apply** to the Cassi vacuum.
+Hawking's thermal spectrum derivation requires tracing over modes that are exponentially blueshifted near the horizon—modes whose frequency at formation exceeds $M_{\text{Pl}}$. The implemented dispersion does not remove these trans-Planckian modes: for large $k$, $\omega(k) \sim k$, while the Gaussian propagator attenuates high-momentum amplitudes. The standard derivation of exactly thermal Hawking radiation therefore cannot be declared inapplicable; determining any regulator correction requires the curved-spacetime two-fluid calculation in §7.4.
 
-The Hawking flux in Cassi will deviate from exact thermality at $\mathcal{O}(e^{-\omega^2/\varphi^6 M_{\text{Pl}}^2})$ (the σ-regulator scale is $1/\sigma = \varphi^3 M_{\text{Pl}}$)—negligible for low-frequency modes, reaching $e^{-\varphi^{-6}} \approx 0.95$ at the frequency cap $\omega_0 = M_{\text{Pl}}$. Over the lifetime of an evaporating black hole, these small correlations between early and late quanta accumulate to restore a pure final state. Computing this accumulation is the Page curve calculation.
+No Hawking-flux correction follows from the flat-space dispersion alone. Its normalization and frequency dependence require the curved-spacetime calculation; over the lifetime of an evaporating black hole, any accumulation of regulator-induced correlations remains part of the Hypothesized Page-curve mechanism in §7.4.
 
 ### 7.4 Required Calculation: Page Curve via Two-Fluid PDE
 
@@ -294,7 +318,7 @@ $$
 \mathcal{L}_{\text{TF}} = \frac{1}{2}g^{\mu\nu}(\partial_\mu\Psi_\alpha)(\partial_\nu\Psi_\alpha) - \frac{\nu}{2}(\nabla^2\Psi_\alpha)^2 - \frac{g}{4}|\Psi|^4 - \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2
 $$
 
-where $\nabla^2$ is the covariant Laplacian on the Schwarzschild background and $g^{\mu\nu}$ is the inverse Schwarzschild metric. The σ-regularization enters through the hyperdiffusion term $\nu$ (which sets the minimum wavelength $\lambda_{\min} \sim \sigma$) and through the UV cutoff on mode quantization.
+where $\nabla^2$ is the covariant Laplacian on the Schwarzschild background and $g^{\mu\nu}$ is the inverse Schwarzschild metric. The σ-regularization enters through the hyperdiffusion term $\nu$ (which sets a characteristic crossover wavelength $\lambda \sim \sigma$ in the resolved probe) and through Gaussian suppression of high-momentum mode contributions.
 
 #### 7.4.3 Initial State
 
@@ -318,7 +342,7 @@ Time-integrate the coupled system:
 | Deviation from thermal spectrum $\Delta N_k / N_k^{\text{thermal}}$ | σ-regulator imprint on Hawking flux | Fraction |
 | Final state purity $\text{Tr}(\rho^2)$ after complete evaporation | Unitarity verification | $[0,1]$ |
 
-The **Page time** $t_{\text{Page}} \sim \mathcal{O}(G^2 M^3)$ is when the entanglement entropy should peak and then decrease to zero—the signature of unitary evaporation. In Cassi, the Page curve is determined by the two-fluid dynamics: the interior condensate retains information and releases it through correlations in the Hawking flux.
+For a unitary interacting completion, the **Page time** $t_{\text{Page}} \sim \mathcal{O}(G^2 M^3)$ would be when the entanglement entropy peaks and then decreases to zero—the signature of unitary evaporation. In Cassi, the Page curve is a target observable for the two-fluid dynamics; whether the interior condensate retains information and releases it through correlations in the Hawking flux remains Hypothesized.
 
 #### 7.4.6 Required New Infrastructure
 
@@ -335,11 +359,11 @@ The **Page time** $t_{\text{Page}} \sim \mathcal{O}(G^2 M^3)$ is when the entang
 
 ### 7.5 Analytic Progress Possible Now
 
-Without the full computational pipeline, the following results are already established:
+Without the full computational pipeline, the following analytic statements are available:
 
-**1. S-matrix unitarity (proved in §7.2).** The Cassi quantum gravity S-matrix is unitary. Hawking's information loss argument assumes the semiclassical approximation; Cassi provides an explicit UV completion where unitarity is manifest.
+**1. S-matrix mechanism (Hypothesized).** The conditional pole-level argument identifies the requirements for a unitary Cassi quantum-gravity S-matrix; unitarity remains to be demonstrated for a specified interaction and horizon response. Hawking's information-loss argument assumes the semiclassical approximation.
 
-**2. Information storage capacity of the two-fluid condensate.** The cascade coherence budget gives the information capacity of the interior two-fluid state. For a black hole of mass $M$, the number of accessible cascade rungs is:
+**2. Information-storage proxy (Hypothesized).** A proposed cascade counting proxy assigns the number of accessible cascade rungs for a black hole of mass $M$ as:
 
 $$
 N_{\text{BH}} \approx \log_\varphi\!\left(\frac{M}{M_{\text{Pl}}}\right)
@@ -347,38 +371,43 @@ $$
 
 The resulting mass-to-rung map is applied to the GWTC-4.0 compact-object catalog in `analyses/gwtc4-mass-ladder.md`.
 
-For $M = M_\odot \approx 2\times 10^{30}\ \text{kg} \approx 10^{38} M_{\text{Pl}}$: $N_{\text{BH}} \approx 180$ rungs. The per-rung coherence is $q_i = 1 - \varphi^{-i-\delta}$ with $\delta = 3$ (from `foundations/cascade-suppression-formula.md`; $\delta = 3$ derived in §2.1), giving a total storage capacity:
+Under this proposed proxy, for $M = M_\odot \approx 2\times 10^{30}\ \text{kg} \approx 10^{38} M_{\text{Pl}}$: $N_{\text{BH}} \approx \log_\varphi(10^{38})\approx182$ rungs. The per-rung coherence is $q_i = 1 - \varphi^{-i-\delta}$ with $\delta = 3$ (from `foundations/cascade-suppression-formula.md`; $\delta = 3$ conditional on the noise–signal identification in §2.1), giving the proxy capacity:
 
 $$
-\mathcal{C}_{\text{BH}} \sim \sum_{i=0}^{N_{\text{BH}}} \varphi^i \approx \varphi^{N_{\text{BH}}+1} \approx \varphi^{181} \sim 10^{38}
+\mathcal{C}_{\text{BH}} := \sum_{i=0}^{N_{\text{BH}}} \varphi^i
+= \frac{\varphi^{N_{\text{BH}}+1}-1}{\varphi-1}
+= \varphi\!\left(\varphi^{N_{\text{BH}}+1}-1\right)
+\sim \varphi^{N_{\text{BH}}+2}
+\sim \varphi^{184}
+\sim 10^{38}
 $$
 
-**Arithmetic note:** as computed, $\mathcal{C}_{\text{BH}} \sim \varphi^{N+1} \sim \varphi \cdot (M/M_{\text{Pl}})$, which is $\mathcal{O}(M/M_{\text{Pl}}) \sim 10^{38}$ for a solar-mass hole—**not** $\mathcal{O}(M^2/M_{\text{Pl}}^2) \sim 10^{76}$—so the claim "consistent with the Bekenstein-Hawking entropy $S_{\text{BH}} = A/4G \sim M^2/M_{\text{Pl}}^2$" does not follow from the computed formula. Matching $S_{\text{BH}}$ would require an extra factor of $\sim \varphi^{N}$ in the capacity (e.g., per-rung weights $\varphi^i q_i$ counted over the full squared depth); the $\mathcal{O}(M^2/M_{\text{Pl}}^2)$ claim is corrected here to $\mathcal{O}(M/M_{\text{Pl}})$ for the formula as written, with the Bekenstein-Hawking correspondence open. The interior two-fluid condensate has enough coherent degrees of freedom to encode all information that fell into the black hole.
+**Arithmetic note:** The exact geometric sum gives $\mathcal{C}_{\text{BH}}=\varphi(\varphi^{N+1}-1)\sim\varphi^{N+2}\sim\varphi^2(M/M_{\text{Pl}})$, which remains $\mathcal{O}(M/M_{\text{Pl}})\sim10^{38}$ for a solar-mass hole. Matching the Bekenstein–Hawking entropy $S_{\text{BH}}=A/4G\sim M^2/M_{\text{Pl}}^2$ would require an additional factor of approximately $\varphi^N$ in the capacity (for example, per-rung weights $\varphi^i q_i$ counted over the full squared depth). The correspondence between this capacity and $S_{\text{BH}}$ remains open.
 
-**3. Trans-Planckian censorship.** Hawking's derivation of exactly thermal radiation requires modes with formation frequencies above the Planck scale. The two-fluid dispersion caps every mode frequency at $\omega_0 = M_{\text{Pl}}$ (§4.2), and the σ-regulator suppresses momenta beyond $1/\sigma = \varphi^3 M_{\text{Pl}}$—such modes do not exist. The correction to the thermal spectrum is:
+**3. Dispersion-regulator status.** The implemented dispersion does not cap every mode frequency at $\omega_0 = M_{\text{Pl}}$; the Gaussian propagator suppresses high-momentum contributions but does not make such modes absent. A numerical Hawking-tail correction is not established by the flat-space probe.
 
 $$
-\frac{\Delta N_k}{N_k^{\text{thermal}}} \sim \mathcal{O}\!\left(e^{-\omega^2/\varphi^6 M_{\text{Pl}}^2}\right)
+\text{No numerical Hawking-tail correction is derived from the flat-space probe.}
 $$
 
-For modes with $\omega \ll M_{\text{Pl}}$ (the dominant Hawking quanta for $M \gg M_{\text{Pl}}$), this correction is exponentially small. However, these small correlations accumulate over the $M^3$ evaporation time—the integrated effect is $\mathcal{O}(M^2/M_{\text{Pl}}^2)$, comparable to the Page curve's information content. The exact Page curve requires the PDE computation in §7.4.
+The curved-spacetime calculation must determine whether regulator-induced correlations accumulate over the $M^3$ evaporation time; the exact Page curve requires the PDE computation in §7.4.
 
-**4. No firewall.** The σ-regularization eliminates the trans-Planckian problem at the horizon (§6). Because no mode ever exceeds $M_{\text{Pl}}$, the argument that an infalling observer encounters a "firewall" of high-energy quanta does not apply. The horizon in Cassi quantum gravity is a smooth, low-energy interface.
+**4. Horizon/firewall status.** The $\sigma$-regularized core is smooth in the flat-space model, but no mode-energy cap or horizon calculation is available; whether a firewall is excluded remains Hypothesized and requires the curved-spacetime infrastructure in §7.4.
 
 ### 7.6 Summary
 
 | Statement | Status | Evidence |
 |-----------|--------|----------|
-| Cassi QG S-matrix is unitary | **Proved** | σ-regulator is positive-definite; optical theorem holds |
-| BH information capacity vs Bekenstein-Hawking | **Open (arithmetic corrected)** | The computed $\mathcal{C} \sim \varphi^{N+1} \sim M/M_{\text{Pl}}$ is not $O(M^2/M_{\text{Pl}}^2)$; the $S_{\text{BH}}$ correspondence needs an additional $\sim\varphi^N$ factor (§7.5) |
-| Hawking flux is not exactly thermal | **Proved (σ-regulator)** | Trans-Planckian modes absent; $\Delta N_k/N_k \sim e^{-\omega^2/\varphi^6 M_{\text{Pl}}^2}$ |
-| Page curve is unitary (final state pure) | **Hypothesized** | Follows from S-matrix unitarity + capacity bound |
+| Cassi QG S-matrix is unitary | **Hypothesized / open** | Conditional pole-level argument; the interaction, optical theorem, and horizon response are not established |
+| BH information capacity vs Bekenstein-Hawking | **Open (capacity scaling)** | The computed $\mathcal{C} \sim \varphi^{N+1} \sim M/M_{\text{Pl}}$ is not $O(M^2/M_{\text{Pl}}^2)$; the $S_{\text{BH}}$ correspondence needs an additional $\sim\varphi^N$ factor (§7.5) |
+| Hawking flux is not exactly thermal | **Open / Hypothesized** | No curved-spacetime calculation; Gaussian suppression does not remove trans-Planckian modes |
+| Page curve is unitary (final state pure) | **Hypothesized** | Conditional on a unitary interacting S-matrix plus the capacity bound |
 | Full Page curve from two-fluid PDE | **Requires computation** | Needs curved-spacetime PDE solver (§7.4) |
-| No firewall at horizon | **Derived** | Dispersion caps mode energies at $\omega_0 = M_{\text{Pl}}$; σ-regulator caps momenta at $\varphi^3 M_{\text{Pl}}$ |
+| No firewall at horizon | **Open (requires computation)** | No mode-energy cap is established; horizon analysis needs the curved-spacetime solver (§7.4) |
 
-This non-thermality is cataloged as prediction 49 of `predictions/falsifiable-predictions.md`, testable in analogue horizons (fibre-optic, BEC, water-wave) whose vacuum is a two-fluid-like condensate.
+This possible non-thermality is cataloged as prediction 49 of `predictions/falsifiable-predictions.md`, but its transfer from the flat-space regulator to Hawking flux remains Hypothesized and requires the curved-spacetime calculation.
 
-**Bottom line:** The Cassi framework provides the **only known quantum gravity theory with a manifestly unitary S-matrix, a built-in UV regulator, and a concrete computational program** to compute the Page curve from first principles. The information paradox is not a paradox in Cassi—it is a calculation that has not yet been performed.
+**Bottom line:** Cassi supplies a built-in Gaussian UV regulator and a concrete computational program to compute the Page curve from first principles; a unitary interacting S-matrix and the Page curve remain Hypothesized until the quantized interaction and curved-spacetime response are specified and calculated.
 
 ---
 
@@ -386,15 +415,15 @@ This non-thermality is cataloged as prediction 49 of `predictions/falsifiable-pr
 
 | Property | Cassi QG | String Theory | LQG | Asymptotic Safety |
 |----------|---------|---------------|-----|-------------------|
-| UV complete | ✅ Yes | ✅ Yes | ? | ✅ Yes (non-pert) |
-| Free parameters | **0** dimensionless | Many | 1 (Barbero-Immirzi) | 1 (fixed point) |
+| UV complete | **Hypothesized** | Yes | ? | Yes (non-pert) |
+| Free parameters | **One solver-normalization input; no additional dimensionless parameters are fit within this comparison** | Many | 1 (Barbero-Immirzi) | 1 (fixed point) |
 | Graviton | Composite | Fundamental | Emergent | Fundamental |
 | Regulator | $\sigma = \ell_{\text{Pl}}/\varphi^3$ | Strings | Area/Volume | Nothing explicit |
-| Renormalization | **None needed** | Yes (worldsheet) | Yes (spin foam) | Yes (fixed point) |
-| Testable | ✅ Many | ? | ? | ? |
-| Unifies with SM | ✅ Gauge pillars | ✅ | ? | ? |
+| Renormalization | **Conditional on $q_{\text{IR}}>0$ and an explicit interaction** | Yes (worldsheet) | Yes (spin foam) | Yes (fixed point) |
+| Testable | Yes, conditional | ? | ? | ? |
+| Unifies with SM | **Proposed gauge-pillar connection (Hypothesized)** | Yes | ? | ? |
 
-Cassi is the only approach with **zero free dimensionless parameters** (every dimensionless coupling is a $\varphi$-power; $c$, $\hbar$, $G$ remain external), a **built-in UV regulator**, and **no renormalization**.
+Within this comparison, Cassi uses one solver-normalization input and fits no additional dimensionless parameters; the named canonical $\lambda=0.1$ is a solver normalization/timescale convention rather than a fitted physical constant (implementation defaults are a separate computational choice), the remaining structural couplings are $\varphi$-based where specified, $c$, $\hbar$, and $G$ remain external, and the displayed propagator has a built-in Gaussian regulator. Finiteness of the displayed loop integrals remains conditional on $q_{\text{IR}}>0$ and a specified quantized interaction.
 
 ---
 
@@ -403,33 +432,33 @@ Cassi is the only approach with **zero free dimensionless parameters** (every di
 | Property | Value |
 |----------|-------|
 | Fundamental length | $\sigma = \ell_{\text{Pl}}/\varphi^3 \approx 3.82\times10^{-36}$ m |
-| Cutoff scale | $\Lambda_{\text{UV}} = \varphi^3 M_{\text{Pl}} \approx 5.17\times10^{19}$ GeV |
+| Gaussian suppression scale | $\Lambda_{\text{supp}} = 1/\sigma = \varphi^3 M_{\text{Pl}} \approx 5.17\times10^{19}$ GeV |
 | Regulator type | Gaussian $e^{-k^2\sigma^2/2}$ in propagator |
-| UV behavior | All loop diagrams finite |
+| UV behavior | UV-finite for the displayed propagator with $q_{\text{IR}}>0$; quantized interaction unspecified |
 | Graviton nature | Composite EY/EI excitation |
-| Graviton dispersion | $\omega^2 = k^2 e^{k^2\sigma^2/2} + M_{\text{Pl}}^2(1 - e^{-k^2\sigma^2/2})$ |
-| Low energy | $\omega \approx k$ (standard GR) |
-| High energy | $\omega \to M_{\text{Pl}}$ (no trans-Planckian modes) |
-| Running of $G$ | $\approx 11\%$ correction at the $\sigma$-scale ($\varphi^6/16\pi^2 \approx 0.114$) |
-| Renormalization | **Not needed**—theory is already UV-finite |
-| Free parameters | **Zero dimensionless** ($c$, $\hbar$, $G$ external) |
+| Graviton dispersion | $\omega^2 = k^2 + M_{\text{Pl}}^2(1 - e^{-k^2\sigma^2})$ |
+| Low energy | $\omega/k \to \sqrt{1+\varphi^{-6}} \approx 1.0275$ (implemented probe; exact GR low-$k$ slope not established) |
+| High energy | $\omega \sim k$, $c_{\text{eff}}\to1$ (Gaussian amplitude suppression; no energy cap) |
+| Running of $G$ | Prefactor $\varphi^6/16\pi^2\approx0.114$; full correction depends on $f$ and the interaction completion |
+| Renormalization | **Conditional**—displayed loop integrals are finite for $q_{\text{IR}}>0$; interaction completion required |
+| Free parameters | **One solver-normalization input; no additional dimensionless parameters are fit within this comparison** ($c$, $\hbar$, $G$ external) |
 
 ### Falsifiable Predictions
 
 | Observable | GR | Cassi QG | Test |
 |-----------|-----|----------|------|
-| Graviton polarization | $+$, $\times$ | $+$, $\times$ + breathing mode from composite nature | LIGO high-SNR |
+| Graviton polarization | $+$, $\times$ | $+$, $\times$ (transverse-traceless composite excitation) | LIGO high-SNR |
 | GW dispersion | None ($\omega = k$) | $\omega \neq k$ near $M_{\text{Pl}}$ | LIGO high-frequency |
 | Black hole singularity | Yes ($r=0$) | No ($\sigma$-softened core) | GW ringdown |
-| Information loss | Yes (Hawking) | No (unitary S-matrix + Page curve) | Hawking evaporation endpoint / BH mass gap |
-| Hawking spectrum | Exactly thermal | **Gaussian-suppressed tail: $\Delta N/N = e^{-(\omega/\Lambda)^2/\varphi^6}$ (prediction 49)** | Fibre-optic analogue spectra (Nature, July 2026) |
-| Planck-scale $G$ | Divergent | $\approx 11\%$ correction ($\varphi^6/16\pi^2$) | Indirect (inflation) |
+| Information loss | Yes (Hawking) | Potentially no (conditional unitary S-matrix + Page curve) | Hawking evaporation endpoint / BH mass gap |
+| Hawking spectrum | Exactly thermal | **Potential Gaussian-regulator imprint (Hypothesized; prediction 49; curved-spacetime calculation required)** | Fibre-optic analogue spectra (Nature, July 2026) |
+| Planck-scale $G$ | Divergent | Conditional scaling prefactor $\varphi^6/16\pi^2\approx0.114$; full correction is not computed | Indirect (inflation) |
 
 ---
 
 ## 10. The Full Pillar Structure
 
-With Cassi quantum gravity, the four pillars of physics are unified:
+With the quantum-gravity extension, the document groups four proposed pillars around the same framework:
 
 $$
 \text{Cassi} = 
@@ -439,9 +468,9 @@ $$
 \underbrace{\sigma\text{-Regularization}}_{\text{Quantum Gravity}}
 $$
 
-All four pillars emerge from the same $\varphi$-governed two-fluid PDE. The quantum gravity pillar adds no new dimensionless constants: every dimensionless coupling is a $\varphi$-power, with $\lambda = 1/(2w) = 0.1$ derived from $w = 5$ (see `foundations/dimensionful-constants-status.md`). Three dimensionful constants ($c$, $\hbar$, $G$) remain external.
+The displayed pillar construction shares the $\varphi$-governed two-fluid PDE as its proposed common base. Within this comparison, the quantum-gravity pillar introduces no additional fitted dimensionless constants beyond the one solver-normalization input: the named canonical $\lambda=0.1$ is supplied as a solver normalization/timescale convention, while the relation $\lambda=1/(2w)$ with $w=5$ is Hypothesized and requires independent cycle-time/dynamical closure. Three dimensionful constants ($c$, $\hbar$, $G$) remain external.
 
-The **theory is structurally complete**; the remaining gaps are catalogued in `foundations/dimensionful-constants-status.md`.
+The displayed construction is not yet a complete physical theory; the remaining gaps are catalogued in `foundations/dimensionful-constants-status.md`.
 
 ---
 
@@ -455,7 +484,7 @@ The **theory is structurally complete**; the remaining gaps are catalogued in `f
 - `foundations/proton-coherence-budget.md`—per-rung dephasing $1-q_i = \varphi^{-i-\delta}$, the noise side of the §2.1 derivation
 - `foundations/xi-derivation.md`—$\xi = \alpha_0^{-2}$ from the same fixed-point imbalance (cross-check (i))
 - `foundations/why-three-dimensions.md`—$d = 3$ from the spiral's Frenet–Serret frame (geometric reading, conditional)
-- `computations/sigma_delta_derivation.py`—numerical verification of §2.1: identities, crossover, saturation, phase-slip structure
+- `computations/sigma_delta_derivation.py`—numerical verification of §2.1: identities, crossover, saturation, and the optional phase-slip ansatz
 - `foundations/bubble-lattice-fabric.md` §6—the bubble/void checkerboard that becomes the σ-regularized harmonic regime
 - `analyses/gwtc4-mass-ladder.md`—the black-hole mass-to-rung map applied to the GWTC-4.0 catalog
 - `two-fluid/cassi_two_fluid_3d_gpu.py`—the existing two-fluid PDE solver (flat/FLRW backgrounds)

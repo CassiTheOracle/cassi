@@ -4,15 +4,15 @@
 
 ## Abstract
 
-Wave 4 escalates the Wave 3 local synchronization mechanism to one explicit directed checkerboard edge. A phase-matched rhythmic amplitude-space $SO(2)$ kick is distributed along the finite proxy's target-to-diagonal corridor with a frozen endpoint phase ramp. The experiment tests whether a carrier-locked phase-current response at the diagonal receiver is stronger than equal-norm carrier-quadrature, axial-void, and undirected-flat route controls. It is an additive driven-edge construction; it does not claim spontaneous transport, a persistent macro-spiral, biology, or an anatomical lattice.
+Wave 4 escalates the Wave 3 imposed-operator/readout check to one explicit directed checkerboard edge. An externally supplied, carrier-signed amplitude-space $SO(2)$ kick is distributed along the finite proxy's target-to-diagonal corridor with a frozen endpoint phase ramp. The experiment tests whether the supplied matched-carrier projection at the diagonal receiver differs from equal-norm carrier-quadrature, axial-void, and undirected-flat route controls. It is an additive driven-edge construction; it does not claim endogenous phase selection, spontaneous transport, a persistent macro-spiral, biology, or an anatomical lattice.
 
 ## 1. Prior constraint and hypothesis
 
-`field-experience/counterflow-carrier-demodulation-wave-3-report.md` establishes phase-selective synchronization for a target-local kick while checkerboard routing remains unresolved. The missing mechanism is a directed edge operator. Wave 4 tests the following finite construction:
+`field-experience/counterflow-carrier-demodulation-wave-3-report.md` records an imposed-carrier operator/readout contrast for a target-local kick while checkerboard routing remains unresolved. The missing tested feature is a directed edge operator. Wave 4 tests the following finite supplied construction:
 
-> A local phase match can route a bounded rhythmic phase-current pulse across a permitted diagonal checkerboard edge more effectively than across an axial void barrier or through an undirected tube.
+> Under the supplied target-gated carrier schedule and route profile, does a bounded rhythmic phase-current pulse produce a stronger matched-reference response across the permitted diagonal checkerboard edge than across an axial void barrier or through an undirected tube?
 
-The Wave 3 matched-carrier coherence metric, block size, bootstrap seed, and $0.10$ threshold remain unchanged.
+The Wave 3 matched-carrier coherence metric, block size, bootstrap seed, and $0.10$ threshold remain unchanged. The hypothesis is a protocol feature test, not a claim that the canonical PDE selects a route endogenously.
 
 ## 2. Frozen finite geometry
 
@@ -79,7 +79,7 @@ Z_T=\langle A+iB\rangle_T,
 \qquad A=\sqrt{E_Y},\ B=\sqrt{E_I}.
 $$
 
-For route profile $w$, carrier sign $s_n$, and $\alpha=s_n\beta w$, apply once before the canonical `rk2_step`:
+For route profile $w$, externally supplied carrier sign $s_n$, and $\alpha=s_n\beta w$, apply the additive kick once before the unmodified canonical `rk2_step`:
 
 $$
 A'=\cos\alpha\,A-\sin\alpha\,B,
@@ -106,7 +106,7 @@ $$
 \theta_F\leq\operatorname{atan2}(B,A)+\alpha\leq\frac\pi2-\theta_F.
 $$
 
-No clipping, canonical-solver modification, or post-RK2 intervention is permitted.
+No clipping, canonical-solver modification, or post-RK2 intervention is permitted. The route profile, endpoint ramp, carrier signs, and event trigger remain supplied by the probe; the canonical PDE does not evolve them.
 
 ## 4. Frozen arms
 
@@ -120,7 +120,7 @@ No clipping, canonical-solver modification, or post-RK2 intervention is permitte
 | `diagonal_reversed_flow` | reversed paired flow | directed $w_D$ | matched |
 | `diagonal_zero_flow` | zero flow | directed $w_D$ | matched |
 
-`diagonal_matched` defines the accepted event schedule. Every driven control replays the same event times with a fresh solver. Each route solves its own $\beta$ to the fixed $0.45$ norm.
+`diagonal_matched` defines the accepted event schedule. Every driven control replays the same event times with a fresh solver. Each route solves its own $\beta$ to the fixed $0.45$ norm. Thus `diagonal_quadrature` changes the supplied carrier signs, `axial_matched` changes the supplied route profile, `diagonal_flat` removes the supplied ramp while retaining the tube, and the reversal/zero arms change the supplied flow proxy.
 
 ## 5. Receiver measurement
 
@@ -142,7 +142,7 @@ C_{D,b}=
 {\sqrt{\sum_{n\in b}(s_n^{\rm match})^2}\sqrt{\sum_{n\in b}r_{D,n}^2}},
 $$
 
-with $C_{D,b}=0$ for a zero response denominator. The primary receiver metric always projects onto the matched carrier, including the quadrature arm.
+with $C_{D,b}=0$ for a zero response denominator. The primary receiver metric always projects onto the **externally supplied** matched carrier, including the quadrature arm.
 
 Secondary receipts include target and receiver phasors, $\Delta\theta_{D-T}$, tube and half-tube current profiles, $\mathbf J_d=2AB\mathbf J_\Psi$, $q$ at target/saddle/receiver/void masks, $\sum\rho w^2$, actual norm, $\beta$, field minima, wedge margin, and pointwise/global invariants.
 
@@ -164,15 +164,29 @@ A route contrast passes only when its paired 10,000-resample block-bootstrap low
 
 | feature | contrast | feature verdict |
 |---|---|---|
-| F1 carrier-selective receiver response | diagonal matched minus diagonal quadrature | EMERGES / DOES NOT EMERGE |
-| F2 diagonal route specificity | diagonal matched minus axial matched | EMERGES / DOES NOT EMERGE |
-| F3 directed-ramp specificity | diagonal matched minus diagonal flat | EMERGES / DOES NOT EMERGE |
+| F1 carrier-correlated receiver response under the supplied corridor kick | diagonal matched minus diagonal quadrature | EMERGES / DOES NOT EMERGE |
+| F2 diagonal route specificity under supplied profiles | diagonal matched minus axial matched | EMERGES / DOES NOT EMERGE |
+| F3 directed-ramp specificity under supplied profiles | diagonal matched minus diagonal flat | EMERGES / DOES NOT EMERGE |
 
-The edge-coupling hypothesis is **SUPPORTS** only if F1, F2, and F3 all EMERGE. It is **HOLD** if F1 plus exactly one route feature EMERGES. It **CONTRADICTS** if none of F1–F3 EMERGES. Other valid combinations are **INCONCLUSIVE**. Counterflow reversal and zero-flow contrasts are recorded as secondary constraints.
+These uppercase feature labels are frozen protocol branches. F1 compares two
+externally supplied carrier sign schedules on the same supplied directed
+corridor; F2 compares supplied diagonal and axial profiles under the matched
+schedule; and F3 compares a supplied directed ramp with a supplied flat tube.
+They do not establish endogenous canonical phase selection, spontaneous routing,
+or transport. The edge-coupling hypothesis is **SUPPORTS** only if F1, F2, and
+F3 all EMERGE. It is **HOLD** if F1 plus exactly one route feature EMERGES. It
+**CONTRADICTS** if none of F1–F3 EMERGES. Other valid combinations are
+**INCONCLUSIVE**. Counterflow reversal and zero-flow contrasts are recorded as
+secondary constraints.
 
 ## 8. Scope
 
-The phase ramp is a deliberately supplied edge mechanism. A positive result would show a route-specific carrier response for this bounded construction. It would not show that the canonical PDE spontaneously routes information, that a brain creates the pulse, that a stable large spiral forms, or that the proxy maps to biology.
+The phase ramp is a deliberately supplied edge mechanism applied around an
+unmodified canonical PDE/RK2 step. A positive result would show a
+route-specific matched-reference response for this bounded construction. It
+would not show endogenous canonical phase selection, spontaneous routing,
+finite-speed transport, that a brain creates the pulse, that a stable large
+spiral forms, or that the proxy maps to biology.
 
 ## References
 

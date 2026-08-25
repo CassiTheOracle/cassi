@@ -2,7 +2,7 @@
 """phi-periodic P(k) detection pipeline—targeted matched-filter test.
 
 Falsifiable prediction: Delta(ln k) = ln(phi) = 0.4812 in matter P(k).
-Zero free parameters. Orthogonal to BAO.
+The log-period is fixed; amplitude, phase, detrending, window, and statistical choices are declared analysis inputs.
 """
 
 import numpy as np

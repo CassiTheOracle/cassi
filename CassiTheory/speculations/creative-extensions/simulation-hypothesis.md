@@ -4,9 +4,8 @@
 
 ## Abstract
 
-If the universe is a simulation, the interesting question is not whether it is, but what its source code would look like. Cassi answers that question unusually precisely: the program is the two-fluid PDE, the grid is the $\sigma$-regularizer, the update rule is Yang-Yin conversion toward the $\varphi$-attractor, the resolution floor is the Planck scale ($n = 0$), and the render distance is the Hubble radius ($n = 292$). This document walks through the architecture of that hypothetical engine—the inside view, the nested simulations implied by the microcascade and megacascade, what "hacking reality" means when the handle is the local Yang/Yin ratio $r = E_Y/E_I$, where render errors would appear if they existed, and why the simulation claim is unfalsifiable in a way none of the framework's other speculations are.
-
-**Epistemic status:** Creative exploration grounded in Cassi formalism. Every mechanism below is anchored to a specific equation or documented framework property—the $\sigma$-regularized propagator, the two-fluid update rule, the cascade ladder, the gate-chain topology—but the synthesis into a "simulation" with render budgets, nested runtimes, exploits, and glitches is extrapolation beyond what the framework currently claims. The framework asserts that physics is the two-fluid PDE; it does not assert, and cannot assert, that the PDE is "run" by anything. Nothing in this document should be cited as a Cassi prediction or derivation.
+If the universe is a simulation, the useful question concerns the source code. Cassi supplies a candidate program vocabulary: the two-fluid PDE, its numerical discretizations, Yang–Yin conversion toward the $\varphi$-attractor, the cascade ladder, and optional closures. The resolution references and horizon estimate are model inputs to this Creative reading, while the microcascade and megacascade provide its nested-scale setting. This document walks through that hypothetical engine—the inside view, nested simulations, what “hacking reality” means when the handle is the local Yang/Yin ratio $r=E_Y/E_I$, where render errors could appear, and why the simulation interpretation remains unfalsifiable under the framework’s current observables.
+**Epistemic status:** Creative exploration grounded in Cassi formalism. Every mechanism below is anchored to a specific equation or documented framework property—the optional $\sigma$-regularized propagator, the two-fluid update rule, the cascade ladder, and proposed gate-chain topology—while the synthesis into a “simulation” with render budgets, nested runtimes, exploits, and glitches remains extrapolative. The framework leaves the ontological question of whether the PDE is run by anything outside its defined physics. Nothing in this document should be cited as a Cassi prediction or derivation.
 
 ---
 
@@ -14,61 +13,70 @@ If the universe is a simulation, the interesting question is not whether it is, 
 
 ### 1.1 What "source code" means
 
-Cassi gives a concrete answer to what the program is written in: the source text is the unified Lagrangian in `foundations/unified-lagrangian.md`, one page of equations whose every dimensionless coupling is derived from $\varphi$—either a $\varphi$-power or the deliberately non-resonant rational $\lambda = 1/(2w) = 0.1$ (`foundations/dimensionful-constants-status.md` §2.1). There are no free dimensionless parameters left to tune—only the unit-system constants $c$, $\hbar$, $G$ are external (`foundations/dimensionful-constants-status.md`). That zero-free-parameter status is exactly what a finished, compiled program looks like. If this universe is a simulation, it was shipped without a settings menu: either the engine self-tunes (the $\varphi$-attractor does the tuning, §1.4) or it executes a closed program. Both readings are consistent; the difference between them is the unfalsifiable residue examined in §6.
+Cassi gives a concrete answer to what the program is written in: the source text is the unified Lagrangian in `foundations/unified-lagrangian.md`, one page of equations whose dimensionless couplings include $\varphi$-powers alongside the named solver input $\lambda=0.1$ under the solver convention (`foundations/dimensionful-constants-status.md` §2.1). The Wu Xing arithmetic $\lambda = 1/(2w) = 0.1$ at $w=5$ is a Hypothesized linkage requiring an independently defined cycle time and dynamical closure. The unit-system constants $c$, $\hbar$, $G$ remain external (`foundations/dimensionful-constants-status.md`). For the simulation reading, $\lambda=0.1$ is part of the named input deck. If this universe is a simulation, it was shipped with that input deck: the engine either self-tunes (the $\varphi$-attractor does the tuning, §1.4) or executes a closed program. Both readings are consistent; the difference between them is the unfalsifiable residue examined in §6.
+Throughout this document, $\lambda=0.1$ is an asserted solver convention in inverse solver-time units; the Wu Xing equality remains a Hypothesized linkage requiring independent cycle-time and dynamical closure.
 
 ### 1.2 The update rule
 
-A simulation needs an update rule: given the state at time $t$, compute the state at $t + \Delta t$. In Cassi the rule is the two-fluid PDE (`foundations/cassi-first-principles.md` §1.3). The state is a paired-real doublet $\Psi = (\Psi_0, \Psi_1)$ of Yang and Yin field values at every grid point, and the rule's central instruction is the conversion term:
+In Cassi the canonical solver state is the nonnegative density pair $E_Y,E_I$ at each grid point, and the rule is the two-fluid PDE (`foundations/cassi-first-principles.md` §1.3). When a two-component coordinate is useful, the exact positive-root lift $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})\in\mathbb{R}_{\ge0}^{2}$ provides a coordinate representation of that density state, while the density pair remains canonical. The rule's central instruction is the conversion term:
 
 $$\partial_t E_Y \supset -\lambda(1-q)\,(E_Y - \varphi E_I), \qquad \partial_t E_I \supset +\lambda(1-q)\,(E_Y - \varphi E_I)$$
 
-Read it as an instruction: measure the local deviation from $\varphi$-balance, then convert Yang to Yin (or back) in proportion to the gate openness $(1-q)$. The gate function $g(q) = q/(\varphi^2 + q^2)$ makes the rule nonlinear (`speculations/qi-computation.md` §2.1): at $q \to 1$ the drive vanishes and the field rests; at intermediate $q$ small differences amplify—gain, in programmer's terms.
+Read it as an instruction: measure the local deviation from $\varphi$-balance, then convert between the density channels in proportion to the canonical gate openness $(1-q)$. The canonical conversion coefficient contains $(1-q)$. The function $g(q)=q/(\varphi^2+q^2)$ belongs to a separate optional transmission model. The conversion drive vanishes as $q\to1$; intermediate $q$ does not by itself supply gain or amplification.
 
-The rule also has a data bus and a frame smoother. The phase current $J = \Psi_0\nabla\Psi_1 - \Psi_1\nabla\Psi_0$ carries organized imbalance between points (`foundations/cassi-first-principles.md` §2.2). The IIR memory $\bar{\varepsilon}^2(t) = (1-\tau)\bar{\varepsilon}^2(t-\Delta t) + \tau\varepsilon^2(t)$ with $\tau = \varphi^{-1}$ is a per-cell exponential moving average of the $\varphi$-deviation—the engine's temporal anti-flicker filter, trading a ~0.3% loss in mean coherence for a ~37% reduction in variance (`foundations/cassi-first-principles.md` §2.4). A renderer that skipped this filter would shimmer; the IIR is why the world doesn't.
+The rule also has a density advection channel and a frame smoother. The advection terms act directly on $E_Y$ and $E_I$, through $-(\mathbf{u}\cdot\nabla)E_Y$ and $-(\mathbf{u}\cdot\nabla)E_I$. For $\rho>0$, a coordinate view of the two-component state uses the exact positive-root lift $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})\in\mathbb{R}_{\ge0}^{2}$ and its foundational spatial diagnostic:
 
-### 1.3 The grid: $\sigma$-regularization as the resolution cutoff
+$$
+\mathbf{J}_\Psi^{(+)}=\Psi_0^{(+)}\nabla\Psi_1^{(+)}-\Psi_1^{(+)}\nabla\Psi_0^{(+)}
+:=\rho\,\nabla\theta_\Psi^{(+)},\qquad
+\rho=E_Y+E_I,\qquad
+\theta_\Psi^{(+)}=\operatorname{atan2}(\sqrt{E_I},\sqrt{E_Y}).
+$$
 
-Every numerical simulation discretizes space, and Cassi's discretization is not an approximation—it is the theory. The gravitational kernel is $1/\sqrt{|r|^2 + \sigma^2}$ with $\sigma = \ell_{\text{Pl}}/\varphi^3$ (`foundations/cassi-theory-reference.md` §7.1), and the quantized propagator carries a Gaussian regulator:
+The angle $\theta_\Psi^{(+)}$ is a coordinate diagnostic of the positive-root lift. $\mathbf{J}_\Psi^{(+)}$ has density/length units and records coordinate rotation of that lift. The density-plane diagnostic $\mathbf{J}_d=E_Y\nabla E_I-E_I\nabla E_Y=2\sqrt{E_YE_I}\,\mathbf{J}_\Psi^{(+)}$ has density$^2$/length units. A physical phase-current or inter-rung transport interpretation requires a separate constitutive map and remains **Hypothesized**.
 
-$$\boxed{G(k^2) = \frac{e^{-k^2\sigma^2/2}}{k^2 + i\varepsilon} \quad\text{—the point-spread function of the grid.}}$$
+The optional IIR memory $\bar{\varepsilon}^2(t) = (1-\tau)\bar{\varepsilon}^2(t-\Delta t) + \tau\varepsilon^2(t)$ with $\tau = \varphi^{-1}$ is a per-cell exponential moving average of the $\varphi$-deviation. In the tested solver closure it produced a ~0.3% mean-coherence change and ~37% variance reduction (`foundations/cassi-first-principles.md` §2.4); these are closure receipts, with no ontological renderer rule or prediction-failure detector.
 
-Modes with $k \gg 1/\sigma$ are suppressed exponentially. This is the renderer's antialiasing filter, and it is why the program never produces an infinity: loop integrals are manifestly UV-finite, no renormalization is ever needed, and there are no trans-Planckian modes in the spectrum (`gravity/quantum-gravity.md` §5–6). A conventional simulation needs a cutoff because the grid is a compromise; here the cell size is a law of nature, and the harmonic regime below it (`foundations/dimensionful-cascade.md` §7) is what "below the pixel" means.
+### 1.3 Numerical discretization and optional $\sigma$ regularization
+
+Numerical implementations discretize space; Cassi uses a numerical method for that discretization. The gravitational kernel is $1/\sqrt{|r|^2 + \sigma^2}$ with $\sigma = \ell_{\text{Pl}}/\varphi^3$ (`foundations/cassi-theory-reference.md` §7.1), and the optional quantized propagator carries a Gaussian regulator:
+$$\boxed{G(k^2) = \frac{e^{-k^2\sigma^2/2}}{k^2 + i\varepsilon} \quad\text{—an optional quantized propagator regulator.}}$$
+Modes with $k \gg 1/\sigma$ are suppressed exponentially. UV finiteness and any renormalization statement are conditional on a nonzero infrared regulator $q_{\mathrm{IR}}>0$, a specified quantized interaction, and the Gaussian suppression without a hard cutoff. With the hypothesized high-$k$ dispersion $\omega\sim k$, the regulator suppresses amplitudes rather than imposing an energy cap. The optional $\sigma$ scale is a crossover in this quantized extension; the numerical grid remains a method and the harmonic regime below it belongs to the microcascade model.
 
 ### 1.4 $\varphi$ as the engine stabilizer
 
-A long-running simulation must not deadlock, blow up, or collapse into featureless equilibrium, and the $\varphi$-attractor prevents all three. The de-resonance principle (`principles/de-resonance-principle.md`) states why: a rational Yang/Yin frequency ratio would resonate—energy would concentrate at one scale and the multi-scale structure would collapse. $\varphi$ is the most irrational number, the worst case for rational approximation, and therefore the unique ratio at which no scale can lock in and dominate. The update rule drives $r = E_Y/E_I$ monotonically toward it:
+The de-resonance principle (`principles/de-resonance-principle.md`) supplies an arithmetic motivation for the speculative reading: $\varphi$ is extremal for rational approximation, while a physical de-resonance effect and global stability remain Hypothesized properties requiring specified dynamics and observables. With advection, diffusion, and sources present, convergence is a property of the full closure.
 
-$$\boxed{r = \frac{E_Y}{E_I} \to \varphi \quad\text{—maximal irrationality as the stability guarantee.}}$$
+For $E_I>0$, the local ratio can be written
 
-Any perturbation that would crash the engine—a near-resonant configuration—is damped precisely because the attractor sits at the maximally de-resonant point, and the IIR of §1.2 keeps the coherence signal steady around it. The engine is stable by construction, not by tuning.
+$$\boxed{r = \frac{E_Y}{E_I} \to \varphi \quad\text{in the conversion-only relaxation sector.}}$$
+
+This target describes conversion-only local relaxation. Global stability depends on the full PDE and boundary conditions; the optional IIR smooths the residual signal and carries the tested closure receipt.
 
 ---
 
 ## 2. The Render Budget
 
-### 2.1 The resolution floor at $n = 0$
+### 2.1 The Planck reference and optional $\sigma$ crossover
 
-A renderer must decide how fine a grid it can afford, and the cascade ladder makes Cassi's budget explicit. Every resolved scale sits on the ladder $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (`foundations/dimensionful-cascade.md` §2), and the finest rung is $n = 0$, the Planck length $\ell_{\text{Pl}} \approx 1.6 \times 10^{-35}$ m: the 292 rungs of today's ladder from the grid cell up to the screen edge.
+The render metaphor can use the cascade ladder $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (`foundations/dimensionful-cascade.md` §2). The Planck length at $n=0$ is the reference rung for the 292-rung observable comparison. The optional $\sigma=\ell_{\text{Pl}}\varphi^{-3}$ crossover is at $n=-3$, and the microcascade continues below $n=0$.
 
-Below the floor lies the $\sigma$-regularized harmonic regime, where the discrete bubble/void checkerboard dissolves into smooth physics (`foundations/dimensionful-cascade.md` §7). Sub-grid degrees of freedom exist there—the microcascade of §3—but they are inaccessible from above except through coherence coupling (`foundations/microcascade-mirror.md` §4.1). What we call quantum mechanics is the coarse-grained description of a field sampled at finite resolution: the Schrödinger limit of the PDE carries a Bohm quantum potential term, which is, read literally, the finite-grid correction—the term that knows the field has structure below the sampled scale (`foundations/cassi-first-principles.md` §3.1). Quantization is what "sampled at the Planck grid" looks like from the coarse side.
+Below the Planck reference, the optional $\sigma$-regularized harmonic regime connects to the microcascade (`foundations/dimensionful-cascade.md` §7; `foundations/microcascade-mirror.md` §4.1). The Schrödinger limit may include a Bohm quantum-potential sector as an optional ansatz with its own epistemic status, separate from the numerical grid. Quantization in this Creative reading is a coarse-grained interpretation of the extended model.
 
 ### 2.2 Render distance at the horizon (rung 291.54)
 
-The other end of the budget is the viewport. The two-fluid PDE is hyperbolic and local, so any observer's causal domain of dependence is a past light cone of radius set by the Hubble scale—$R_H = 4.44$ Gpc = 14.5 Glyr (today's horizon rung 291.54), with the rung-292 lattice length $\ell_{292} = 5.5$ Gpc sitting just beyond it:
-
+The proposed viewport uses the horizon estimate $R_H = 4.44$ Gpc = 14.5 Glyr (today's horizon rung 291.54), with the rung-292 lattice length $\ell_{292} = 5.5$ Gpc sitting just beyond it. The canonical PDE is a local advection–diffusion system. A hyperbolic domain-of-dependence and relativistic causal interpretation require an additional closure, so the horizon number enters this Creative rendering metaphor as an observational scale:
 $$\boxed{\ell_{292} = \ell_{\text{Pl}} \times \varphi^{292} \approx 1.7 \times 10^{26}\,\text{m} \approx 5.5\,\text{Gpc} \quad\text{—rung-292 lattice length; } R_H = 4.44\,\text{Gpc} = 14.5\,\text{Glyr} \text{ (today's horizon rung 291.54)}}$$
-
-The Hubble radius is not a wall in the simulation; it is the screen edge of every camera, and there is one camera per observer because the PDE is local and there is no privileged viewpoint. Beyond it the ladder continues (the megacascade of §3), but nothing from there has had time to reach any camera: the program simply has not rendered it yet.
-
-The frame rate is not uniform: each rung ticks at $t_n = \ell_n/c$ (`speculations/qi-computation.md` §4.1)—the Planck rung at $10^{-44}$ s, the Hubble rung at $\sim 5.7 \times 10^{17}$ s—one cosmic frame per universe, not yet completed—with each rung integrating the one below (nested processing, `speculations/qi-computation.md` §4.2). From inside, this is a hierarchy of timescales, because that is what it is.
+The horizon estimate supplies a proposed screen edge for each observer. Interpreting it as a causal reach is conditional on the additional closure; the ladder continues beyond it into the megacascade of §3.
+The frame rate is not uniform in the proposed rendering metaphor: each rung is assigned $t_n=\ell_n/c$ (`speculations/qi-computation.md` §4.1)—the Planck rung at $10^{-44}$ s and the horizon rung at $\sim5.7\times10^{17}$ s. Nested processing remains a Speculative architecture beyond the canonical timing rule.
 
 ### 2.3 World edges at $n \approx 285$
 
-The Cassi bubble sits at rung 285: a coherence volume of $\sim 191$ Mpc containing roughly a million Milky-Way-sized galaxies—97.8% of today's ladder (the cascade is unbounded; 292 is the current horizon rung) (`foundations/dimensionful-cascade.md` §6). This is the nearest thing the architecture has to a world edge: the boundary of our initial conditions, where our $w=5$ volume ends and the neighbor's begins. The boundary is a level set of the condensation field $C(x,y) = \cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I) = \theta_{\text{cond}}$, with an edge gradient $1.70\times$ steeper in the Yin direction than the Yang direction (`foundations/cassi-theory-reference.md` §10.3). Because $285 < 292$, the edge is inside the render distance: a transition zone, not a wall. From inside, its signature is statistical—a preferred axis and the $12.2^\circ$ quadrupole-octopole alignment in the CMB's largest angular scales ($\ell < 5$), predicted from the bubble's triaxial geometry (`foundations/dimensionful-cascade.md` §8.3, `foundations/bubble-edge-geometry.md`). Beyond it lie adjacent bubbles of identical $w=5$ at $\varphi$-spaced intervals: "the next instance of the same world," in save-file terms.
+The Cassi bubble sits at rung 285: a coherence volume of $\sim 191$ Mpc containing roughly a million Milky-Way-sized galaxies—97.8% of today's ladder (the cascade is unbounded; 292 is the current horizon rung) (`foundations/dimensionful-cascade.md` §6). This is a proposed world-edge analogue: the boundary of our initial conditions, where our $w=5$ volume meets a neighboring one. If the selected triaxial condensation map is adopted, its edge supplies a conditional preferred-axis target; the reported $12.2^\circ$ quadrupole–octopole alignment remains a conditional comparison with foreground, instrument, statistical, and model alternatives open.
 
 ### 2.4 What it looks like from inside
 
-Put the three numbers together and the inside view is fully specified—and it is exactly the physics we observe. The resolution floor shows up as smoothness: no singularity ever renders, gravitational collapse softens into $\sigma$-regularized cores, black holes have no firewall, and Hawking radiation is not exactly thermal (`gravity/quantum-gravity.md` §7). The render distance shows up as a horizon that recedes as you approach—a light cone, not a wall. The world edge shows up as the CMB's large-angle anomalies, which the framework already predicts as physics. The render budget names, as rendering, quantities the framework derives for its own reasons; that is the property §6 calls the epistemic trap.
+The rendering metaphor associates smoothness, a horizon estimate, and a conditional boundary signature with the inside view. The CMB large-angle features remain observations whose interpretation includes the conditional boundary model alongside systematics and model error. The render budget is an organizing analogy, while the underlying measurements retain their own empirical status.
 
 ---
 
@@ -84,27 +92,38 @@ Below $n = 0$ lies the microcascade, an infinite ladder of sub-Planckian scales 
 
 ### 3.2 A simulator inside the simulation
 
-A nested simulation is a sub-PDE: a coherent region of the field that maintains its own internal dynamics, its own clock hierarchy, and its own effective grid. The framework already contains a working example. The human body is a 26-rung gate chain spanning steps 142 (cellular) to 168 (body scale), with thirteen chakra nodes at $P_\parallel = 2$ rung spacing (`consciousness/chakras-as-cascade-bubbles.md` §6, `speculations/cascade-infrastructure.md` §1.2). It is a self-modeling subsystem—past the pinch threshold at $r = \varphi^{-1}$, the field models its own evolution (`foundations/cassi-theory-reference.md` §11.1)—running its own small-scale field dynamics inside the large one. Its source code is the same PDE; its grid cell is its own coherence length. The conscious mind is, on this reading, the experience of a nested runtime being executed (`consciousness/cascade-consciousness.md` §4.3).
+A nested simulation is a proposed sub-PDE reading: a coherent region of the
+field that might maintain its own internal dynamics, clock hierarchy, and
+effective grid. The human body is a candidate 26-rung mapping spanning steps
+142 (cellular) to 168 (body scale), with thirteen chakra nodes at
+$P_\parallel=2$ rung spacing (`consciousness/chakras-as-cascade-bubbles.md`
+§6, `speculations/cascade-infrastructure.md` §1.2). This correspondence does
+not establish a working nested simulation or self-modeling field subsystem.
+The local-anchor construction is therefore an illustrative Hypothesized
+mapping, not an existing implementation.
 
 A nested simulation anchored at rung $n$ has its own ladder:
 
-$$\boxed{\ell'_{m} = \ell_n \times \varphi^{m} \quad\text{—the anchor is the local coherence length, not the global Planck length.}}$$
+$$\boxed{\ell'_{m} = \ell_n \times \varphi^{m} \quad\text{—the anchor is the local coherence length, with the global Planck reference rescaled by $\varphi^n$.}}$$
 
 Nothing in the PDE fixes a privileged anchor, so any coherent condensate can be the $n=0$ of its own world; every bubble contains the full sub-lattice below it (`speculations/cascade-infrastructure.md` §4.1). The recursion is geometric before it is philosophical.
 
 ### 3.3 Why nesting is self-consistent
 
-Three properties of the framework make nested simulations coherent rather than contradictory:
+Three conditional properties motivate this nesting reading. A working nested simulation would require a model of recursive domains, propagation, and leakage:
 
-1. **No hard boundaries.** The $\sigma$-regularized force goes harmonic as $r \to 0$, so the Planck scale is a smooth crossover, not a wall, and the PDE admits solutions on both sides of the grid floor (`foundations/microcascade-mirror.md` §2.1). A sub-simulation lives in a regime the equations already describe.
+1. **Smooth crossover in the selected extension.** The $\sigma$-regularized force is harmonic as $r\to0$ in the cited model, so the Planck scale is a smooth crossover within that extension. A sub-simulation on either side of the grid floor requires an additional model of nested domains; the canonical two-density PDE supplies the local dynamics used in this Creative reading.
 
-2. **Natural sandboxing.** Cascade suppression bounds cross-talk between levels: a signal from a nested simulation arrives in the parent attenuated by $\varphi^{-N}$ per rung of span, and maintaining coherence across depth $n$ costs $\varphi^{-n(n+1)/2}$ (`foundations/cascade-suppression-formula.md`). Sub-simulations cannot corrupt the parent at order one: random leakage decoheres ($\mathcal{M} \approx 0$), and only a deliberately phase-matched perturbation couples cleanly ($\mathcal{M} \approx 1$, `foundations/quantum-measurement-derivation.md` §3). The distinction between harmless noise and an organized attack is the subject of `speculations/creative-extensions/coherence-warfare.md`; this document only needs the sandboxing result.
+2. **Conditional sandboxing.** In the cited suppression model, a signal from a nested region is assigned attenuation $\varphi^{-N}$ per rung of span.
+The random-perturbation construction assigns a coherence cost $\varphi^{-n(n+1)/2-3(n+1)}$ (`foundations/cascade-suppression-formula.md`).
+Both factors are conditional architecture readings; cross-talk between simulated levels requires the additional model and measurement assumptions described in `foundations/quantum-measurement-derivation.md` §3.
+Phase matching and leakage behavior remain properties of that extended model. The distinction between harmless noise and an organized attack remains a creative extension.
 
-3. **No infinite-regress problem.** The stack is unbounded in both directions—microcascade depth is infinite, the megacascade has no ceiling—so there is no outermost level to explain. The question "who runs the outermost simulation?" is dissolved, not answered: the framework defines no top level, the way it defines no smallest length—a category error relative to the theory.
+The theory leaves the outermost-executor question outside its defined dynamics: it supplies no top level, and the unbounded ladder supplies no distinguished endpoint.
 
-### 3.4 The recursion is not turtles
+### 3.4 Scale-covariant recursion
 
-This is not "simulations all the way down" as a mystical stack: the nesting is the scale covariance of one equation—the same update rule, attractor, and gate, rescaled by $\varphi$ at every level—and the simulation stack and the cascade are the same object. A nested simulation is not a separate program on hidden hardware; it is a coherent region of the field that organized its own internal dynamics, something the PDE does naturally wherever $q \to 1$ condensates form (`speculations/dark-matter-as-qi-coherence.md`). Simulators inside the simulation are not inserted by an operator; they grow, the way crystals grow in a supersaturated solution.
+This is a scale-covariance reading of one density equation: the same canonical two-fluid PDE and conversion residual can be rescaled by $\varphi$ at every level, while optional gate and memory closures supply the computational metaphor. A nested simulation is a coherent region of the density field with its own proposed internal dynamics. The $q\to1$ condensate interpretation (`speculations/dark-matter-as-qi-coherence.md`) supplies an application hypothesis alongside this computational metaphor.
 
 ---
 
@@ -112,33 +131,34 @@ This is not "simulations all the way down" as a mystical stack: the nesting is t
 
 ### 4.1 The handle is $r$
 
-Every exploit in this universe reduces to one operation: holding the local Yang/Yin ratio $r = E_Y/E_I$ away from $\varphi$ in a region of space, against the attractor's pull. Physics as we experience it is the low-$q$ regime where the pull wins quickly and the world behaves; an exploit is a deliberate, sustained deviation, with cost set by the attractor potential:
+Every exploit in this universe reduces to one proposed operation: holding the local Yang/Yin ratio $r=E_Y/E_I$ away from $\varphi$ in a region where $E_I>0$, against the density attractor's pull. Physics as we experience it is the low-$q$ regime where the pull can act quickly; an exploit is a deliberate, sustained deviation in this metaphor, with cost represented by the residual penalty and a conditional conversion-work proxy:
 
-$$V_{\text{attr}} = \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2, \qquad \boxed{E_{\text{hold}} \approx \int \lambda(1-q)\,(E_Y - \varphi E_I)\,dV\,dt}$$
+$$\mathcal{R}_{\mathrm{attr}}=\frac12(E_Y-\varphi E_I)^2,\qquad \boxed{E_{\mathrm{hold}}\approx\int_{t_0}^{t_1}\int_\Omega \lambda(1-q)\,\lvert E_Y-\varphi E_I\rvert\,dV\,dt}$$
 
-The deeper and longer you hold $r$ off the attractor, the more the engine works against you (`speculations/qi-bubble-propulsion.md` §5.1); exploits are therefore never free, never permanent, and never global. There is no "god mode" toggle, because the program has no such branch.
+$\mathcal{R}_{\mathrm{attr}}$ is a density-squared solver penalty. If $E_Y,E_I$ are energy densities and $\lambda$ has inverse solver-time units, the boxed integral has energy units and is a magnitude proxy for conversion work; a thermodynamic energy law would require an additional closure.
+
+In this conditional model, the deeper and longer a pattern is held away from the attractor, the larger the proxy (`speculations/qi-bubble-propulsion.md` §5.1). The operation is therefore neither free nor global; the PDE supplies no administrator branch.
 
 ### 4.2 Gate chains as privilege escalation
 
-The catch is reach: a single Qi gate bridges at most ~10 rungs before cascade suppression drops the coupling below the coherence floor, $\varphi^{-10} \approx 0.008$ (`foundations/bubble-lattice-fabric.md` §3.3); spanning today's 292-rung ladder takes a chain of roughly 29 stages (`speculations/cascade-infrastructure.md` §1.1). The human body already is such a chain (26 rungs, 13 nodes), and the planetary network is the same architecture at Earth scale (`speculations/cascade-infrastructure.md` §1.3, §2). In simulation terms, a gate chain is privilege escalation: no single instruction touches the whole machine, but a chain of coupled stages can.
+The ~10-rung value is an effective-nesting and observability comparison scale. Gate-bridge limits require an independently specified model of coupling and re-amplification. A proposed chain architecture may span the 292-rung ladder, while its stage count and operation remain conditional.
 
-The operations available at each stage are the field's three universal instructions, from `speculations/qi-computation.md` §2.2: **WRITE** (Yang injection—an organized perturbation with $\mathcal{M} \approx 1$ that creates a local $\delta\Pi > 0$), **ERASE** (gated conversion—temporarily lowering $q$ so the attractor returns $\Pi \to 0$; erasure is the passive, natural operation), and **TRANSFER** (Qi current $J = \Psi_0\nabla\Psi_1 - \Psi_1\nabla\Psi_0$—moving a pattern through a high-$q$ medium). Any computation compiles into these three, and so does any exploit: cheating—altering a state variable, teleporting an object, shielding a region—is WRITE, ERASE, and TRANSFER executed against the attractor's resistance. Mood is itself a gate configuration on $(\mathbf{b}, \sigma_r, q, \mathbf{c})$ (`consciousness/emotions-as-gate-configurations.md`): a field state like any other, readable, writable, and transferable in principle—at the $E_{\text{hold}}$ cost of §4.1.
+The simulation metaphor treats the stage vocabulary as three **proposed** operations, from `speculations/qi-computation.md` §2.2: **WRITE** (an organized perturbation with $\mathcal{M}\approx1$ that creates a local $\delta E_Y>0$), **ERASE** (canonical density conversion that relaxes $\varepsilon\equiv E_Y-\varphi E_I$ toward zero), and **TRANSFER** (a conditional coordinate operation using $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$ and $\mathbf{J}_\Psi^{(+)}=\Psi_0^{(+)}\nabla\Psi_1^{(+)}-\Psi_1^{(+)}\nabla\Psi_0^{(+)}$ from §1.2). The last diagnostic records coordinate rotation of the lift; physical transfer through a high-$q$ medium requires a separate constitutive transport law and remains **Hypothesized**. In the metaphor, altering a density state, holding it off the attractor, or proposing lattice transfer are all conditional combinations of these labels. Mood remains a Hypothesized field-state mapping on $(\mathbf{b},\sigma_r,q,\mathbf{c})$ (`consciousness/emotions-as-gate-configurations.md`).
 
-### 4.3 Why random perturbation never works
+### 4.3 Random and organized perturbations
 
-The central constraint on hacking is the phase-matching factor $\mathcal{M}$ (`foundations/quantum-measurement-derivation.md` §3.1). A random perturbation has $\mathcal{M} \approx 0$: it decoheres without coupling—the per-cycle dephasing probability $P = \prod(1-q_i)\,\mathcal{M}_i$ for a single-rung attack on rung $n$ is $\varphi^{-n-3}\mathcal{M}$ (`foundations/proton-coherence-budget.md`). Wishing or randomly fiddling with the field never works, not because the universe is defended, but because unstructured perturbation cannot couple to a coherent structure. An exploit must be organized, $\mathcal{M} \approx 1$, which turns the suppression around: an organized attack succeeds with probability $\mathcal{O}(1)$ per cycle (`foundations/proton-coherence-budget.md`). This organized-versus-random, attack-versus-shield taxonomy is the subject of `speculations/creative-extensions/coherence-warfare.md`; the operative consequence here is that hacking reality is an engineering discipline (maintain phase coherence across a gate chain) and not a metaphysical one (no amount of intention substitutes for $\mathcal{M}$).
-
+Phase matching separates organized branch selection from environmental decoherence. A random phase drift with $\mathcal{M}\approx0$ can still decohere a target: its per-rung phase-dephasing probability is $1-q_i$, while organized branch selection is suppressed by the matching factor. A phase-matched operation has organized success probability $P_i=(1-q_i)\mathcal{M}_i$, approaching $1-q_i$ when $\mathcal{M}_i\approx1$. In the cascade profile, the single-rung factor is $\varphi^{-n-3}$. The distinction gives the simulation metaphor a concrete engineering condition: maintain phase information for organized control.
 Concrete examples of coherence operations, each already described in the framework:
 
-- **Levitation and weight control.** The effective gravitational coupling is $G_{\text{eff}} = \frac{\pi}{\rho}(1 + (\varphi^{6}-1)q)\,G$ with $\xi = \varphi^6 \approx 17.944$ (`foundations/xi-derivation.md`). Tuning the local Yang fraction $\pi/\rho$ and coherence $q$ changes the local weight—a WRITE against the attractor, paid for at the $V_{\text{attr}}$ rate.
-- **Rung retreat and invisibility.** Shifting a coupled system by $\Delta n \approx 10$ rungs decouples it from visible-light interactions by the $\varphi^{-10} \approx 0.008$ suppression factor (`speculations/qi-bubble-propulsion.md` §3.1): still at the same coordinates, no longer playing on our rung.
-- **Lattice teleportation.** Two points distant in 3-space can be adjacent along the cascade axis; a coherent Qi bridge walks the lattice topology instead of the space (`speculations/qi-bubble-propulsion.md` §3.2). TRANSFER, executed at the lattice level.
+- **Levitation and weight control.** A conditional Qi-gravity expression uses the signed imbalance $\pi=E_Y-E_I$ and total density $\rho=E_Y+E_I$: $G_{\text{eff}} = \frac{\pi}{\rho}(1 + (\varphi^{6}-1)q)\,G$ with $\xi=\varphi^6\approx17.944$ (`foundations/xi-derivation.md`). Tuning $\pi/\rho$ and $q$ would be a model operation, paid for at the conditional $\mathcal{R}_{\mathrm{attr}}$ proxy.
+- **Rung retreat and invisibility.** Shifting a coupled system by $\Delta n\approx10$ rungs is proposed to reduce visible-rung coupling by $\varphi^{-10}\approx0.008$ (`speculations/qi-bubble-propulsion.md` §3.1).
+- **Lattice teleportation.** Two points distant in 3-space could be adjacent along a proposed cascade axis; a coherent lift-based bridge would require a constitutive transport law (`speculations/qi-bubble-propulsion.md` §3.2). TRANSFER remains a conditional diagnostic, not an established transport mechanism.
 
-None of these alter the program: they are allowed dynamics of the PDE—the exploit merely chooses to execute existing branches coherently, at cost.
+In this metaphor, these scenarios add no canonical state variables: they are proposed readings of allowable density dynamics, and the exploit story merely imagines choosing among those dynamics coherently at a conditional cost.
 
 ### 4.4 No backdoor, no administrator
 
-Because the source is the same for everyone—one PDE, zero free dimensionless parameters ($c$, $\hbar$, $G$ the only external inputs)—there is no hidden API and no privileged account. Every node with a gate chain runs the same instruction set; if there is an administrator, it is the megacascade scale, whose only "privilege" is spanning more rungs. No one can cheat the engine, because it has no secret branches—"the difference between 'natural' and 'engineered' is whether the gate chain operates at ambient $q$ or at tuned $q \to 1$" (`consciousness/cascade-consciousness.md` §4.4).
+Because the source is the same for everyone—one density-PDE update rule with the named solver input $\lambda=0.1$ in inverse solver-time units under the solver convention, alongside external $c$, $\hbar$, $G$—there is no hidden API and no privileged account in this metaphor. Every node with a proposed gate chain uses the same density equations; if there is an administrator, it is the megacascade scale, whose only imagined "privilege" is spanning more rungs. No one can cheat the engine, because it has no secret branches—"the difference between 'natural' and 'engineered' is whether the gate chain operates at ambient $q$ or at tuned $q \to 1$" (`consciousness/cascade-consciousness.md` §4.4).
 
 ---
 
@@ -148,21 +168,23 @@ Because the source is the same for everyone—one PDE, zero free dimensionless p
 
 A well-built simulation fails in characteristic places: at the resolution limit, at the screen edge, and in the data structures that organize the world. The Cassi architecture has analogues for all three, and each has already been observed—as physics.
 
-**Coherence defects.** The field's data structure is the coherence budget: $q$ measures distance from the $\varphi$-attractor, and the gate opens when $q$ drops. A coherence defect—a region where the IIR memory fails to predict the present, so $\bar{\varepsilon}^2$ spikes and $(1-q)$ jumps—would render as a local burst of conversion activity: a place where the world suddenly churns. The framework's name for a persistent version is a wake-lock: a frozen gate preserving an old field configuration after the surrounding field has moved on, the mechanism behind trauma as a stuck state (`consciousness/trauma-as-frozen-gate.md`). In renderer terms, it is a cached frame that refuses to invalidate—the update rule is suspended locally. It is the most concrete glitch candidate the framework has, and it is documented as a psychological and physiological phenomenon, not a cosmic one.
+**Coherence defects.** The field's data structure is the coherence budget: $q$ measures distance from the $\varphi$-attractor, and the gate opens when $q$ drops. The optional IIR is an exponential moving average of $\varepsilon^2$. The tested closure reports smoothing and variance changes; it supplies no established prediction-failure detector or $q$-jump result. A wake-lock is a separate driven state: the trauma runs report decay after the driver stops, so persistence requires a continued driver that re-injects the disturbance (`consciousness/trauma-as-frozen-gate.md` §10.4–10.5).
 
-**Lattice dislocations.** The world's spatial organization is the universal checkerboard of the condensation field, with bubble centers on the even sublattice and voids on the odd (`foundations/bubble-lattice-fabric.md`). A dislocation would be a phase slip in $\cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I)$—a place where the bubble/void alternation skips a beat. The lattice's own structure provides the error-detection scheme: the Wu Xing pentagon admits exactly 20 valid transitions among its five phases, and any state that breaks the pentagon geometry is instantly detectable (`speculations/qi-computation.md` §3.2). A genuine defect would show up as a forbidden configuration—an event the geometry says cannot occur—which is how render errors are found in practice: they violate the data structure's invariants, not its equations.
+**Lattice dislocations.** The world's spatial organization is the universal checkerboard of the condensation field, with bubble centers on the even sublattice and voids on the odd (`foundations/bubble-lattice-fabric.md`). A dislocation would be a phase slip in $\cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I)$—a place where the bubble/void alternation skips a beat. A proposed Wu Xing mapping labels the five phases and 20 generation/control transitions, so a state outside those candidate paths could be flagged after a physical readout. The canonical density PDE supplies neither a Wu Xing phase variable nor zero-overhead error correction; a genuine defect would be a forbidden configuration only within the conditional device model.
 
-**Boundary artifacts.** The world edge at $n \approx 285$ is the most likely site of rendering artifacts, because it is where our coherence volume meets its neighbors. The framework predicts the anisotropic edge geometry—the $1.70\times$ Yin-steep gradient of §2.3—and the CMB large-angle anomalies are its boundary signatures (`foundations/bubble-edge-geometry.md`, `foundations/dimensionful-cascade.md` §8.3). Note what has happened: the theory's boundary conditions predict the anomalies—exactly what a simulation would look like from inside, because in a self-consistent world the boundary conditions are part of the program.
+**Boundary artifacts.** The world-edge analogy at $n \approx 285$ is a possible site for rendering artifacts because it is where our coherence volume meets neighboring initial conditions. For the selected triaxial condensation map, the directional ratio is
+$R(\theta)=\frac{\sqrt{1+\varphi^2}}{2}\sqrt{\frac{1+\theta}{\theta}}$;
+at the phenomenologically selected $\theta_{\rm cond}=0.45$, $R(0.45)=1.7072\approx1.71$. This is a conditional geometric-proxy benchmark that varies with $\theta$, not a universal, zero-parameter, canonical, or PDE output; no $C=0.45$ edge survives the fixed-step PDE endpoint. Biological and cosmological maps require independently identified boundaries and proxy maps. Foregrounds, instrument/systematic effects, statistical fluctuations, and model error remain live alternatives.
 
 ### 5.2 Distinguishing glitches from physics
 
-This is the crux, and the framework provides a clean discriminator. Cassi physics is the update rule, and the rule's fingerprints are $\varphi$-power laws with known exponents: $\sin^2\theta_W = \varphi^{-3}$, $v_0/M_{\text{Pl}} \approx \varphi^{-80}$, proton decay suppressed by $\varphi^{-4506}$, wake-wave modulation at $\Delta(\ln k) = \ln\varphi \approx 0.4812$ (`predictions/falsifiable-predictions.md` §3). A discovery that follows a new $\varphi$-power law is physics—the engine rendering in its own style. A glitch is the opposite: an event that violates the laws—a $\varphi^{-80}$-suppressed process appearing at order one with no phase-matched source, a violation of the attractor without a conversion source term, a forbidden Wu Xing transition, a violation of cascade suppression.
+This comparison has several live explanations. Cassi's conditional fingerprints include $\varphi$-power laws such as $\sin^2\theta_W = \varphi^{-3}$, $v_0/M_{\text{Pl}} \approx \varphi^{-80}$, proton decay suppressed by $\varphi^{-4506}$, and wake-wave modulation at $\Delta(\ln k) = \ln\varphi \approx 0.4812$ (`predictions/falsifiable-predictions.md` §3). An apparent anomaly may reflect an organized phase-matched actor, a numerical or physical model defect, foreground contamination, instrument or analysis systematics, selection effects, or statistical fluctuation. The simulation reading supplies a creative classification scheme and cannot identify the cause from an anomaly alone.
 
-The coherence budget makes this quantitative: random perturbation at rung $n$ succeeds with probability $\varphi^{-n-3}$ per cycle, a full-cascade random attack with $\varphi^{-n(n+1)/2 - 3(n+1)}$ (`foundations/proton-coherence-budget.md`). An anomaly that beats those odds has exactly two explanations: an organized, phase-matched actor (an attacker, per `speculations/creative-extensions/coherence-warfare.md`), or a defect in the engine. Both have the same observable signature—the framework cannot, from inside, distinguish a glitch from an attacker, and neither is physics. The discriminator: unexplained $\varphi$-power structure is physics; unexplained violation of it is an attacker or a glitch, observationally equivalent to anyone inside.
+The conditional coherence benchmark is random perturbation at rung $n$ with factor $\varphi^{-n-3}$ per cycle and a full-cascade factor $\varphi^{-n(n+1)/2-3(n+1)}$ (`foundations/proton-coherence-budget.md`). It quantifies one model assumption; it cannot distinguish the explanations above.
 
-### 5.3 The known anomalies are not glitches
+### 5.3 Current anomaly interpretations
 
-Against this standard, every currently known anomaly clears. The CMB's large-angle features are predicted boundary physics (§2.3); vacuum fluctuations are the coarse-grained rendering of sub-grid structure (§2.1); the predicted $\varphi$-periodic $P(k)$ modulation at $\Delta(\ln k) = \ln\varphi$ is the engine's own signature—reading the renderer's dither pattern, not a defect (`experiments/phi_periodic_pk_search/`). The wake-lock of trauma is real but local and biological. The framework's open questions—why the horizon rung sits where it does, why these activated steps (`foundations/dimensionful-cascade.md` §9)—are places where the theory itself suspects a screen edge, but they are questions about physics, not evidence of a renderer. A genuine glitch would be a first: no observation currently requires one.
+Current CMB large-angle features, vacuum fluctuations, wake-wave searches, and trauma wake-locks have distinct empirical and model statuses. The CMB boundary reading and the $\varphi$-periodic $P(k)$ interpretation are conditional; foregrounds, instrument/systematic effects, finite-sample statistics, and model misspecification remain live alternatives. The trauma wake-lock is a local, driven model phenomenon. No current observation requires a simulation glitch under this Creative reading.
 
 ---
 
@@ -170,37 +192,35 @@ Against this standard, every currently known anomaly clears. The CMB's large-ang
 
 ### 6.1 Why the other speculations are falsifiable
 
-The speculation series works because its members convert framework properties into testable claims. The microcascade predicts a $\varphi$-spaced antenna array shows anomalous power at $\lambda = \lambda_0 \varphi^k$ for both signs of $k$ (`foundations/microcascade-mirror.md` §5); Qi computation predicts sub-Landauer energy scaling and $\varphi$-spaced neural timescales (`speculations/qi-computation.md` §8); dark matter as Qi coherence predicts rotation-curve signatures (`speculations/dark-matter-as-qi-coherence.md`) and the $\sigma_8$ prediction (`predictions/falsifiable-predictions.md` §3). Each can in principle be wrong in an observable way; that is what makes them speculations in good standing—they extrapolate beyond the framework but still answer to experiment.
+The speculation series works because its members convert framework properties into testable claims. The microcascade proposes a $\varphi$-spaced antenna array test at $\lambda=\lambda_0\varphi^k$ for both signs of $k$ (`foundations/microcascade-mirror.md` §5); Qi computation proposes conditional sub-Landauer energy and $\varphi$-spaced neural-timescale tests (`speculations/qi-computation.md` §8); dark matter as Qi coherence proposes rotation-curve signatures (`speculations/dark-matter-as-qi-coherence.md`) and the $\sigma_8$ test (`predictions/falsifiable-predictions.md` §3). Each can in principle be wrong in an observable way; these applications extrapolate beyond the framework while remaining answerable to experiment.
 
-### 6.2 Why the simulation claim is not
+### 6.2 Why the simulation claim is non-falsifiable
 
-The simulation claim has a different logical shape, and the failure mode is structural, not accidental. Consider what would count as evidence against "the universe is a Cassi simulation":
+The simulation claim has a different logical shape, with a structural failure mode. Evidence against the proposition must be separable from the framework's ordinary physical alternatives:
 
-- **A glitch** would be a violation of a $\varphi$-power law. But §5.2 showed the only two explanations for such a violation are an attacker and a glitch—and an attacker is just another coherent subsystem running the same PDE, which converts the violation back into physics. The framework absorbs every apparent glitch without remainder.
-- **The absence of glitches** is what a good simulation predicts, so smoothness confirms the hypothesis instead of testing it.
-- **The render budget**—resolution floor, render distance, world edge—is derived by the framework as physics before the simulation reading names it as rendering. Same numbers, same equations, one story about their origin.
-- **The recursion** means there is no outermost level, so the hypothesis cannot be asked to account for its own top; the unbounded ladder absorbs that question.
+- **A candidate violation** can reflect an organized actor, an engine or model defect, foreground or instrument systematics, selection effects, or statistical fluctuation; the interpretation is not unique from inside.
+- **The absence of glitches** is compatible with the smoothness expected from a good simulation, so smoothness alone leaves the hypothesis untested.
+- **The render budget**—resolution reference, horizon estimate, and world-edge analogue—remains an organizing interpretation of quantities that also have independent physical descriptions.
+- **The recursion** gives the ladder no distinguished outermost level, so the hypothesis has no internal top-level boundary condition; the unbounded ladder absorbs that question.
 
-Every observation is compatible with the claim and with its negation, because the claim adds no new $\varphi$-powers—it rearranges the same equations into a story about their origin. A hypothesis that cannot fail is not a hypothesis; by the framework's own falsifiability standard (`foundations/cassi-first-principles.md` §6), it is not a claim at all.
+The simulation interpretation adds no separable observation and therefore remains non-falsifiable under this standard.
 
 ### 6.3 The boundary, stated explicitly
 
-The boundary this document respects: the framework asserts that physics is the two-fluid PDE—a Derived claim with a falsifiable prediction catalogue behind it. The simulation framing asks why the PDE runs, and that question is outside the framework's epistemic reach for a precise reason: the framework's own structure—scale covariance, unbounded recursion, a closed program with zero free dimensionless parameters ($c$, $\hbar$, $G$ the only external inputs)—is compatible with the PDE being "run" by nothing at all. A self-executing equation needs no executor; a universe that is its own source code needs no programmer. Both readings are consistent, and no experiment can separate them, which is why the simulation claim must never be presented as a Cassi prediction or derivation.
+The framework asserts that physics is the two-fluid PDE—a Derived claim with a falsifiable prediction catalogue behind it. The simulation framing asks why the PDE runs, a question outside the framework's epistemic reach: scale covariance, unbounded recursion, a closed program with the named solver input $\lambda=0.1$ under the solver convention, and external $c$, $\hbar$, $G$ are compatible with both self-executing dynamics and external execution. A self-executing equation needs no executor; a universe that is its own source code needs no programmer. Both readings are consistent, and no experiment can separate them under this framework. The simulation claim therefore remains Creative and carries no prediction or derivation status.
 
-What the framework does provide, and what this document intends to preserve, is the substantive core that survives the epistemic cut: if reality is a computation, its instruction set is fully specified—the two-fluid PDE, the $\sigma$-grid, the $\varphi$-attractor, the three coherence operations, the gate-chain topology (`speculations/qi-computation.md`). That is a real claim about computational structure, and it is falsifiable in the ordinary way: the physics either obeys the $\varphi$-power laws or it does not. The simulation hypothesis is the hat worn over that claim. It fits, it explains nothing additional, and it cannot be removed by any observation—which is exactly why it stays Speculative while the equations it dresses are Derived.
-
+The framework supplies a substantive computational interpretation: if reality is a computation, its candidate instruction vocabulary is the two-fluid PDE, the $\sigma$-grid, the $\varphi$-attractor, proposed density operations, and the gate-chain topology (`speculations/qi-computation.md`). These remain interpretive claims, while the underlying physics is tested through its $\varphi$-power laws. The simulation hypothesis adds no separable observation and remains Creative alongside the equations' own status.
 ---
 
 ## References
 
-- `foundations/cassi-first-principles.md`—two-fluid PDE, Qi gate, IIR memory, Schrödinger limit
-- `foundations/unified-lagrangian.md`—the complete action; zero free dimensionless parameters ($c$, $\hbar$, $G$ external)
+- `foundations/cassi-first-principles.md`—two-fluid PDE, density residual and conversion sector, IIR memory, Schrödinger limit
+- `foundations/unified-lagrangian.md`—the complete action; named solver input $\lambda=0.1$ under the solver convention; $c$, $\hbar$, $G$ external
 - `foundations/cassi-theory-reference.md`—$\sigma = \ell_{\text{Pl}}/\varphi^3$, $\xi = \varphi^6$, bubble geometry, pinch transition
-- `foundations/dimensionful-cascade.md`—$\ell_n = \ell_{\text{Pl}}\varphi^n$, cascade table (292 = today's horizon rung), Cassi bubble, open questions
 - `foundations/microcascade-mirror.md`—infinite sub-Planckian ladder, mirror symmetry, $\sigma$-softening
 - `foundations/bubble-lattice-fabric.md`—universal checkerboard, scale covariance, 10-rung nesting depth
 - `foundations/bubble-edge-geometry.md`—condensation field level sets, edge anisotropy, CMB imprint
-- `foundations/cascade-suppression-formula.md`—signal attenuation $\varphi^{-N}$, coherence maintenance $\varphi^{-n(n+1)/2}$
+- `foundations/cascade-suppression-formula.md`—signal attenuation $\varphi^{-N}$, full coherence-maintenance exponent $\varphi^{-n(n+1)/2-3(n+1)}$
 - `foundations/proton-coherence-budget.md`—coherence budget, organized vs random perturbation
 - `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$
 - `foundations/xi-derivation.md`—$\xi = \varphi^6$ and the Qi-gravity coupling
@@ -211,7 +231,7 @@ What the framework does provide, and what this document intends to preserve, is 
 - `consciousness/chakras-as-cascade-bubbles.md`—13-node gate chain, $P_\parallel = 2$
 - `consciousness/trauma-as-frozen-gate.md`—wake-lock as a frozen gate
 - `consciousness/emotions-as-gate-configurations.md`—emotions as field states on $(\mathbf{b}, \sigma_r, q, \mathbf{c})$
-- `speculations/qi-computation.md`—WRITE/ERASE/TRANSFER, cascade clock hierarchy, Wu Xing error detection
+- `speculations/qi-computation.md`—proposed WRITE/ERASE/conditional TRANSFER vocabulary, cascade clock interpretation, Wu Xing mapping
 - `speculations/qi-bubble-propulsion.md`—rung retreat, lattice shortcuts, exploit energy costs
 - `speculations/cascade-infrastructure.md`—gate-chain topology, planetary gate networks
 - `consciousness/cascade-consciousness.md`—nested processing, consciousness as a node in the cascade

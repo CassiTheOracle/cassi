@@ -34,7 +34,7 @@ wall sharpening, not the eps^3 collapse (T2 checks the signs every run).
     Wake field W (updated ONCE per rk2_step, after the clamp, from the
     final clamped fields -- the IIR-memory discipline):
         dW/dt = -W/tau_W + S/tau_W + (ell^2/tau_W) laplacian(W)
-        tau_W = 1/lam (the framework conversion timescale)
+        tau_W = 1/lam (the fixed solver convention timescale)
         ell = ELL_L = SIG*(L/N) L-units (the unit-covariant operator
         length; protocol -- the ridge width SIG is initialization, E4
         open; the raw-cells length over-diffuses 58.4x, documented in
@@ -56,8 +56,9 @@ PROVENANCE (parameter-inventory.md §9/§10 discipline):
           §9 symbol table + §10 ledger only if T4 and T5 pass (the
           director's registration condition); otherwise the
           non-registration is recorded explicitly in the verdicts.
-    tau_W = 1/lam   framework (conversion timescale; lam = 1/(2w) = 0.1
-          derived; 0.05 in the probe protocol)
+    tau_W = 1/lam   fixed timescale convention; lam = 0.1 (solver convention)
+          lam = 1/(2w) is a Hypothesized linkage at w = 5
+          (0.05 in the probe protocol)
     ell  = ELL_L = SIG*(L/N)   PROTOCOL (ridge-width initialization, E4
           open) -- flagged as protocol so it cannot masquerade as a
           framework scale
@@ -365,9 +366,11 @@ class InterlacedWakeLayer(C.ExpandingTwoFluid3DGPU):
     """ExpandingTwoFluid3DGPU + the interlaced-wake scratch layer.
 
     g = 0 reproduces the canonical solver bit-for-bit (every hook is
-    guarded; W is never allocated).  tau_w = 1/lam is a framework anchor;
-    ell = ELL_L is a protocol length (SIG ridge width in L-units, E4
-    open); g is the new model constant under test (Hypothesized).
+    guarded; W is never allocated).  tau_w = 1/lam is the fixed timescale
+    convention; lam = 0.1 (solver convention).  The relation lam = 1/(2w)
+    is a Hypothesized linkage at w = 5; ell = ELL_L is a protocol
+    length (SIG ridge width in L-units, E4 open); g is the new model
+    constant under test (Hypothesized).
     """
 
     def __init__(self, g=0.0, ell=ELL_L, tau_w=None, *args, **kwargs):

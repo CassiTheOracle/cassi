@@ -1,455 +1,477 @@
-# Spiral Dynamics: Hubble, Gravity, and $c$ from Fibonacci Spiral Geometry
+# Spiral Dynamics: Hubble, Gravity, and $c$ as Separate Cascade Diagnostics
 
 ## Status: Hypothesized—August 2026
 
 ## Abstract
 
-The Fibonacci spiral traced by the $(E_Y, E_I)$ doublet in its internal SO(2)
-plane (derived in `spin-fibonacci-spiral.md`) is not only the geometric origin
-of spin—it is the **universal structure** from which cosmic expansion,
-gravitational attraction, and the speed of light emerge as three projections
-of a single geometry. Each cascade rung corresponds to one full spiral turn;
-the Hubble expansion is the spiral's unwinding rate; gravity is gradient
-descent along the spiral toward coherence; and $c$ is the scale-invariant
-product of conversion rate and coherence wavelength. The two-fluid PDE already
-encodes all three in its equations; this document makes the geometric unity
-explicit.
+The canonical two-fluid solver evolves two real densities, $E_Y$ and $E_I$.
+Its conversion contribution conserves $\rho=E_Y+E_I$ and relaxes
+$\varepsilon=E_Y-\varphi E_I$. The derived density-plane angle
+$\theta_d=\operatorname{atan2}(E_I,E_Y)$ follows a monotone state trajectory
+toward $\operatorname{atan}(\varphi^{-1})$. This angle is not an independent
+compact phase and does not supply a periodic turn count or a fixed pitch per
+cascade rung.
+
+This document records three separate pieces of present-state mathematics: the
+PDE Hubble relation, the potential-gradient force, and the scale-invariant
+cancellation in the proposed signal-speed estimate. A logarithmic spiral,
+compact clock, conversion-to-expansion rotation, and radial/azimuthal pitch
+can be overlaid as an additional model, but they are **Hypothesized** inputs.
+The numerical winding, stability, gravity, and scale-cancellation diagnostics
+are retained with the parameter and implementation conditions under which they
+were obtained.
 
 ---
 
-## 1. The Fibonacci Spiral as Universal Geometry
+## 1. Canonical density dynamics and optional spiral coordinates
 
-### 1.1 The doublet spiral
+### 1.1 The density-plane angle
 
-The conversion term $\text{conv} = -\lambda(E_Y - \varphi E_I)$ continuously
-rotates the $(E_Y, E_I)$ doublet vector in its internal SO(2) plane, tracing
-the Fibonacci spiral (derived in `foundations/spin-fibonacci-spiral.md` §1,
-with winding quantization in §2.1). The accumulated rotation angle as a
-function of cascade rung index $n$ (or equivalently, length scale
-$\ell_n = \ell_{\text{Pl}}\varphi^n$) is
+For the conversion contribution, define
 
-$$\boxed{\Theta(n) = \Theta_0 + \frac{2\pi}{\ln\varphi} \cdot n}$$
+$$
+\rho=E_Y+E_I,\qquad
+\varepsilon=E_Y-\varphi E_I,
+$$
 
-One full rotation ($2\pi$) per cascade rung ($\Delta n = 1$); equivalently the
-pitch is $2\pi/\ln\varphi \approx 13.06$ rad per e-fold in scale. This
-rung-to-angle mapping is the **coordinate postulate** (Asserted; pitch
-convention $\Theta = 2\pi n$), not a dynamical claim.
+Here $q$ is the canonical coherence gate defined in
+`foundations/cassi-first-principles.md` §2.1.
 
-**Status: Hypothesized—August 2026 (this interaction).** The dynamics'
-rotation rate is a separate, derived quantity. With the ratified
-conversion→expansion coupling (zero free constants;
-`cassi-toe-rewrite-briefs/spiral-gravity/08-conversion-expansion-coupling.md`
-§A.2):
+The conversion contribution is
 
-$$\boxed{V_{\text{new}} = \lambda\,\tilde{h}(E_Y,E_I) + \frac{\lambda\varphi^{-2}}{d}}$$
+$$
+\left.\partial_tE_Y\right|_{\mathrm{conv}}
+=-\lambda(1-q)\varepsilon,
+\qquad
+\left.\partial_tE_I\right|_{\mathrm{conv}}
+=+\lambda(1-q)\varepsilon.
+$$
 
-the spiral clock turns **$\ln\varphi/2\pi \approx 0.0766$ turns per Hubble
-rung** (dynamical pitch angle $\approx 11.34°$, $\tan = \ln\varphi/(2\pi\varphi^{-2}) =
-0.2005$)—not one turn per rung; the azimuthal discriminator is
-$|a_\theta/a_r| = 0.19880$ (08 §C.3). The generator ratio $\varphi^{-2} =
-0.382$ is realized under the rung-time $2\pi d/\lambda \approx 4.987\times$
-the Hubble rung-time. The solver as written has no $\Omega$
-term (exchange-only rotation, $\omega = 0$).
+Thus
 
-**PDE winding test (09-winding-test.md, run 2026-08-04):** the rotation half
-is **PDE-verified**—the layered $\Omega$ generator rotates the doublet at the
-dressed rate in the $\varepsilon\to 0$ limit: measured **0.3868 ± 0.0001 turns
-per rung vs the dressed 0.38902**; the bare $\varphi^{-2} = 0.382$ is the
-generator ratio, never a realized winding; the asserted **1.0 is rejected as a
-dynamical claim**; measured discriminator $|a_\theta/a_r| = 0.213$ vs the
-predicted $0.19880$. The source half's **r-level content stands** (the $w_a$
-shifts of 08 §C.6 are scale-free), but its field-level realization is
-**unstable** (saddle at $(1,\varphi^{-1})$; density blow-up without Hubble
-friction; log-domain exit after 0.108 turns; the source's Hessian exactly
-cancels the $\Omega$ rotation at the fixed point)—**stable field-level
-realization found (10-source-stabilization.md, run 2026-08-04):** the C1
-Hubble-friction closure (the framework's own comoving-density structure,
-$H = S/(d\rho) = H_{\text{conv}}$) freezes $\rho$ at $\varphi$ exactly and
-realizes the source at the $r_*$ attractor, $r_* = 0.9502528427\ldots$ (the
-fixed-point equation is **transcendental**—the log terms vanish only at
-$r = \varphi$; 12 §1.2). The golden point $r = \varphi$ is a repeller
-($f'(\varphi) = +0.12723$ exact—12 §1.4) and a **knife-edge**: $r > \varphi$
-escapes, $r < \varphi$ drains to $r_*$. The cosmological consequence is a
-**pure-Λ DESI-window fit $(w_0, w_a) = (-1, 0)$** (4.17σ/2.61σ from DESI—12; the pure-Λ identified with the frozen coherent-phase energy—16-qi-field.md: per-cell constant under the friction closure ⟹ w ≡ −1 exactly; the coherent phase carries 78% of the expansion rate);
-the spatial test (11) confirms the ratio-field collapse is fast ($\sigma_r
-\times 0.15$ in 1.2τ) into a $\rho$-dependent band ($dr_*/d\rho \approx
--0.38$) in which the density structure survives and amplifies; the full
-ratified term with $\Omega$ still exits the log domain on the grid ($t =
-8.07$—11 §5). [COMPUTED]
+$$
+\left.\dot\rho\right|_{\mathrm{conv}}=0,
+\qquad
+\left.\dot\varepsilon\right|_{\mathrm{conv}}
+=-\lambda(1+\varphi)(1-q)\varepsilon.
+$$
 
-Crucially, this spiral lives in the **internal** $(E_Y, E_I)$ plane, not
-physical 3D space. The doublet angle $\Theta = \text{atan2}(E_I, E_Y)$ is
-defined at each spatial point; the spiral parameter $n$ maps to the cascade
-rung, which maps to a physical length scale $\ell_n$.
+The derived density-plane angle is
 
-### 1.2 The spiral as organizing principle
+$$
+\theta_d=\operatorname{atan2}(E_I,E_Y),
+$$
 
-Every physical process in the Cassi framework involves movement along this
-spiral:
+and its conversion-only rate is
 
-- **Advancing outward** (increasing $n$): the field expands through cascade
-  rungs—this IS cosmic expansion (§2).
-- **Falling inward** (decreasing $n$): the field descends toward higher
-  coherence—this IS gravity (§3).
-- **Propagating across**: a signal traverses one coherence wavelength per
-  conversion cycle—this sets $c$ (§4).
+$$
+\boxed{
+\left.\frac{d\theta_d}{dt}\right|_{\mathrm{conv}}
+=\lambda(1-q)\frac{\rho\,\varepsilon}{E_Y^2+E_I^2}}
+$$
 
----
+with equilibrium value $\theta_{d,\mathrm{eq}}=\operatorname{atan}(\varphi^{-1})$.
+For a homogeneous arm, the sign of $\varepsilon$ is preserved and
+$\theta_d$ moves monotonically toward that value. The full PDE adds advection,
+diffusion, and potential sources; those terms require their own local balance
+analysis.
 
-## 2. Hubble Expansion = Spiral Unwinding Rate
+The solver convention is $\lambda=0.1$ in inverse solver-time units. The
+normalization $w=5$, equal-and-opposite conversion, potential coefficient
+normalization, and a phrase such as “one event per cycle” do not derive a rate
+or its physical units. The value $\lambda=0.1$ is retained as an asserted
+solver normalization/timescale convention. A probe using a different value
+must report that value explicitly.
 
-### 2.1 Cascade rungs as cosmic expansion
+### 1.2 Optional compact phase and pitch
 
-The cascade table (`dimensionful-cascade.md`) maps each rung $n$ to a length
-scale $\ell_n = \ell_{\text{Pl}}\varphi^n$. The scale factor of the universe
-advances by $\varphi$ per rung:
+A separate geometric model may introduce a compact coordinate $\chi$ along the
+cascade. One possible coordinate postulate is
 
-$$\frac{a_{n+1}}{a_n} = \varphi$$
+$$
+\chi(\ell)=\chi_0+\frac{2\pi}{\ln\varphi}
+\ln\!\left(\frac{\ell}{\ell_0}\right),
+\qquad
+\ell_n=\ell_{\mathrm{Pl}}\varphi^n,
+$$
 
-This is the **discrete** form of expansion. The continuum limit gives the
-Hubble parameter:
+or, equivalently, $\chi(n)=\chi_0+2\pi n$ for the chosen $P=1$ convention.
+Another construction uses $P_\parallel=2$ and
+$\chi(n)=\chi_0+2\pi n/P_\parallel$. These are coordinate choices for an
+additional compact field. They do not define $\theta_d$, and the canonical
+conversion equations select neither $P=1$ nor $P_\parallel=2$.
 
-$$H = \frac{\dot{a}}{a} = \frac{d\ln a}{dt}$$
+The logarithmic curve in the $(\ell,\chi)$ coordinates is therefore a
+Hypothesized geometric overlay. It is not a trajectory derived by replacing
+the density-plane angle with a periodic phase. The same boundary applies to
+statements such as “one turn per rung,” “$\pi$ per rung,” or “one full cycle
+after two rungs”: they describe an optional convention only when $\chi$ and
+its pitch are explicitly added.
 
-But $\ln a \propto n$ (each rung adds $\ln\varphi$ to $\ln a$), so
+### 1.3 Conversion-to-expansion diagnostic record
 
-$$H = \ln\varphi \cdot \frac{dn}{dt}$$
+The proposed conversion-to-expansion coupling has been written as
 
-The rung advancement rate $dn/dt$ is set by the conversion dynamics: the
-doublet rotates through the spiral at a rate proportional to the conversion
-strength $\lambda$, modulated by the Qi coherence $q$:
+$$
+V_{\mathrm{new}}
+=\lambda\,\widetilde h(E_Y,E_I)+\frac{\lambda\varphi^{-2}}{d}.
+$$
 
-$$\frac{dn}{dt} \approx \frac{\lambda}{2\pi} \cdot (1-q)$$
+The source-level record gives the generator ratio
+$\varphi^{-2}=0.382$, an optional dynamical rate of
+$\ln\varphi/(2\pi)\approx0.0766$ turns per Hubble rung, a dynamical pitch
+angle near $11.34^\circ$, and an azimuthal discriminator
+$|a_\theta/a_r|=0.19880$. The solver as written has no $\Omega$ term in its
+exchange-only rotation ($\omega=0$). These values belong to the proposed
+conversion-to-expansion extension; they are not rates of $\theta_d$.
 
-where $(1-q)$ is the unresolved imbalance fraction—only the portion of the
-field NOT at $\varphi$-equilibrium drives rung advancement. This gives
+The winding test (09, run 2026-08-04) reports a layered-$\Omega$ rotation of
+$0.3868\pm0.0001$ turns per rung against a dressed value $0.38902$. The bare
+$\varphi^{-2}=0.382$ is the generator ratio, and an asserted $1.0$ turn per
+rung is rejected as a dynamical claim. The measured discriminator is
+$|a_\theta/a_r|=0.213$ versus $0.19880$. The source half's field-level
+realization is unstable: it has a saddle at $(1,\varphi^{-1})$, density
+blow-up without Hubble friction, logarithmic-domain exit after $0.108$ turns,
+and a Hessian that cancels the $\Omega$ rotation at the fixed point.
 
-$$\boxed{H \approx \frac{\lambda \cdot \ln\varphi}{2\pi} \cdot (1-q)}$$
-
-**Caveat:** this linearized form is the **equilibrium limit** ($r \to \varphi$,
-$q \to 1$). At early times or far from the attractor, the full PDE form
-(§2.2) includes a $(1+r)/r$ enhancement factor that dominates. The spiral
-mechanism sets the fundamental structure; the PDE dynamics determine the
-rate at any given $r$.
-
-### 2.2 Consistency with the PDE
-
-The two-fluid PDE computes $H$ from the Yang-Yin ratio $r = \langle
-E_Y\rangle/\langle E_I\rangle$:
-
-$$\boxed{H = \frac{\lambda}{3}\frac{(\varphi - r)(1+r)}{r} + \frac{\lambda}{3}\varphi^{-2}}$$
-
-(The 1/3 is **Derived** as the isotropic dimension factor $1/d$ at $d = 3$—`cosmology/cosmology-from-phi.md` §1; the $(\lambda/2\pi)(1-q)$ clock form is Hypothesized (§2.1); the $\lambda\varphi^{-2}$ rate stays Asserted; T₀₀ at equilibrium gives 0 or (g/4)φ², never λφ⁻²/3.)
-
-The two H forms are **two different clocks**, not one H in two limits: at the
-fixed point the PDE form gives $H = \lambda\varphi^{-2}/3$, while the
-spiral-linearized form gives $H = \lambda\ln\varphi\,(1-q_0)/2\pi =
-\lambda\varphi^{-2}\ln\varphi/(6\pi)$—the ratio is exactly $2\pi/\ln\varphi$
-(the rung-clock identity, 05 §C / 07; the gate is nonzero at the attractor,
-$(1-q_0) = \varphi^{-2}/3$, so neither clock stops there). The deviation parts
-differ in order: $(1-q) \to \varphi^{-2}/3 + O(\varepsilon^2)$ while
-$(\varphi-r)(1+r)/r \to 0$ linearly. The identity locks the two clocks'
-rates: under the Hubble rung-time the realized spiral-clock rate is
-$\ln\varphi/2\pi = 0.0766$ turns per H-rung (bare), and $\varphi^{-2} =
-0.382$ is the generator ratio, realized under the faster rung-time $2\pi d/\lambda
-\approx 4.987\times$ the Hubble rung-time (08). Verified July 2026: this PDE formula matches
-observed $H$ to R² = 1.000 (mean error 0.06%).
-
-**The radial/azimuthal pitch tangent (2026-08-07).** The doublet's two motions
-at the attractor have two $\varphi$-algebra rates: the radial relaxation rate
-$\gamma = \lambda(1-q_0)(1+\varphi) = \lambda/3$ (the $\varepsilon$-direction)
-and the azimuthal gate rate $\Omega_S = \lambda(1-q_0) = \lambda\varphi^{-2}/3 =
-H_{\text{empty}}$ (the spiral-clock rate; §2.3). With the gate value at the
-attractor, $(1-q_0) = \varphi^{-2}/3$ (above), the ratio is exact:
-
-$$\boxed{\tan(\text{pitch}) = \frac{\gamma}{\Omega_S} = 1 + \varphi = \varphi^2 = 2.618 \quad (69.1°)}$$
-
-(the identity $(1+\varphi) = \varphi^2$). The wake-geometry reading:
-$\gamma/\Omega_S = \ell_{n+1}/\Lambda_I$—the composite closure in Yin-wake
-units (`foundations/wake-geometry.md` §1(c)). The identity is **Derived**
-(φ-algebra on the derived rates); its realization in the winding dynamics is
-the falsifiable content (prediction 50, `predictions/falsifiable-predictions.md` §5).
-
-**Contrast with the canonical rotation.** These Hypothesized fixed-pitch clocks ($\varphi^{-2} = 0.382$ turns per rung realized under the $2\pi d/\lambda \approx 4.987\times$ faster-than-Hubble rung-time, equivalently $\ln\varphi/2\pi \approx 0.0766$ turns per Hubble rung; the 69.1° pitch tangent $\gamma/\Omega_S = \varphi^2$; the $\Omega$-generator of the conversion→expansion term) keep turning at the attractor, whereas the canonical dynamical rotation of `foundations/cassi-first-principles.md` §2.6, $d\theta/dt = \lambda(1-q)\rho\varepsilon/(E_Y^2+E_I^2)$, is $\varepsilon$-proportional and vanishes exactly at the $\varphi$-line.
-
-### 2.3 The irreducible baseline
-
-Even at perfect $\varphi$-equilibrium ($r = \varphi$, $q = 1$), there is a
-baseline expansion $H_{\text{empty}} = \lambda\varphi^{-2}/3$. In the spiral
-picture, this is the **zero-point unwinding**: the spiral's geometry itself
-carries a minimal curvature that prevents complete stasis. The factor
-$\varphi^{-2}$ is the cascade-suppression of vacuum fluctuations two rungs
-below the current scale.
+The C1 Hubble-friction closure gives the reported stable realization at
+$r_*=0.9502528427\ldots$; the fixed-point equation is transcendental. The
+record identifies $r=\varphi$ as a repeller with
+$f'(\varphi)=+0.12723$ and a knife-edge: $r>\varphi$ escapes, while
+$r<\varphi$ drains to $r_*$. The associated pure-$\Lambda$ DESI-window fit is
+$(w_0,w_a)=(-1,0)$, quoted as $4.17\sigma/2.61\sigma$ from the DESI anchor.
+The spatial test reports a rapid ratio-field collapse,
+$\sigma_r\times0.15$ in $1.2\tau$, into a $\rho$-dependent band with
+$dr_*/d\rho\approx-0.38$; density structure survives and amplifies. The full
+ratified term with $\Omega$ exits the grid's log domain at $t=8.07$. These are
+records of the tested extension and its closure, not evidence that the
+canonical density-plane angle is a compact clock. The same C1 record
+attributes $78\%$ of the expansion rate to its coherent component under the
+friction closure. “Coherent phase” in that report names the added extension
+variable; it is not the canonical $\theta_d$.
 
 ---
 
-## 3. Gravity = Gradient Descent Through the Spiral
+## 2. Hubble expansion from the PDE ratio
 
-### 3.1 The force equation
+### 2.1 Cascade scale and Hubble parameter
 
-In the two-fluid PDE, the momentum equation contains the buoyancy force:
+The cascade table assigns
 
-$$\mathbf{F} = \Pi \nabla\Phi, \qquad \Pi = E_Y - E_I, \qquad \nabla^2\Phi = E_Y + E_I = \rho$$
+$$
+\ell_n=\ell_{\mathrm{Pl}}\varphi^n,
+\qquad
+\frac{a_{n+1}}{a_n}=\varphi,
+\qquad
+H=\frac{\dot a}{a}=\frac{d\ln a}{dt}.
+$$
 
-The force points along the gradient of the information potential $\Phi$, weighted
-by the local Yang-Yin imbalance $\Pi$. This is gravity.
+For a spatially averaged ratio
+$r=\langle E_Y\rangle/\langle E_I\rangle$, the PDE expression is
 
-### 3.2 The spiral gradient
+$$
+\boxed{
+H=\frac{\lambda}{3}\frac{(\varphi-r)(1+r)}{r}
+ +\frac{\lambda\varphi^{-2}}{3}}.
+$$
 
-In a field with Fibonacci spiral structure, the doublet angle $\Theta(r)$ winds
-as a function of distance from the coherence center. The total density $\rho =
-E_Y + E_I$ peaks at the center and falls off radially, while the imbalance $\Pi
-= E_Y - E_I$ oscillates with the spiral period.
+The factor $1/3$ is the isotropic dimension factor and is Derived conditional
+on the assumed spatial dimension $d=3$ in the cited cosmology formulation. The
+canonical two-fluid solver takes this dimension as an input; it does not select
+spatial dimension. The relation is an equation for the PDE Hubble variable; it
+does not require a periodic angle.
 
-The gradient's direction is set by the Poisson convention $\nabla^2\Phi = \rho$
-(the solver solves $\hat\Phi = -\hat\rho/k^2$), which for a point mass gives
-$\Phi = -M/(4\pi r)$: in the far field $\nabla\Phi$ points **outward** from an
-overdensity. The inward reading is the near-field statement—close to a source
-the gradient points back toward it, as measured at the closure probe
-($\nabla\Phi(x^*) = -0.0143$ with $\Pi(x^*) = +0.2834$, giving the raw force
-$F_0(x^*) = -4.04\times10^{-3}$ at $t = 0$; `hypotheses/gravity-from-flow.md` §1).
-The force $\mathbf{F} = \Pi\nabla\Phi$ is $\Pi$-sign-following, not
-unconditionally attractive: a Yang excess ($\Pi > 0$) is repelled—the TS1 pair
-escapes ($d$ 9.90 → 15.73, `hypotheses/two-strand-five-channel-matter-organization.md`
-§3.3)—and a Yin excess ($\Pi < 0$) is attracted—the exchanged pair contracts
-and coalesces ($d$ 9.90 → 7.51, §3.5). Gravity is always attractive in the
-point-particle sector, where the reduced law is the Newtonian $-\nabla\Phi$
-convention $\ddot{\mathbf{X}}_j = -\alpha_j(1+(\varphi^{6}-1)q_j)\nabla\Phi$ of
-`gravity/three-body-analytical.md` §2.3.
+The numerical check reports $R^2=1.000$ with mean error $0.06\%$ (tested July
+2026). At the current epoch, the source record uses $N\approx291.543$ and
+$\lambda=0.1$. The attenuation factors are
+$\varphi^{-291.543}\approx1.1779216350439545\times10^{-61}$ and
+$\lambda\varphi^{-291.543}\approx1.1779216350\times10^{-62}$ in solver
+inverse-time units. The Hubble radius is recorded as
+$R_H=\ell_{\mathrm{Pl}}\varphi^{291.543}\approx1.37\times10^{26}\,\mathrm m$
+($4.44$ Gpc, $14.5$ Glyr), with the product check described in §4.
 
-The magnitude of the force at cascade rung $n$ is cascade-suppressed:
+### 2.2 Optional spiral clock and pitch
 
-$$|\mathbf{F}_n| \sim \varphi^{-n} \cdot |\nabla\Phi|$$
+An optional compact-coordinate model can associate a Hubble rung rate with
 
-because the imbalance $\Pi \propto \varphi^{-n}$ (each rung attenuates the
-deviation from equilibrium by $\varphi^{-1}$). The $1/r^2$ distance dependence
-is a property of 3D space (Gauss's law applied to $\nabla^2\Phi = \rho$ with
-spherical symmetry), not of the cascade. What the cascade explains is the
-**coupling strength**—why the gravitational coupling constant $\alpha_G$ is
-$\varphi^{-2n}$ at cascade rung $n$. The distance law is geometry; the weakness
-is cascade depth.
+$$
+H_{\mathrm{spiral}}
+\approx\frac{\lambda\ln\varphi}{2\pi}(1-q).
+$$
 
-### 3.3 Why gravity is weak
+This is a Hypothesized spiral clock, not an equilibrium limit of the PDE
+formula. At the reference state, the PDE term gives
+$H=\lambda\varphi^{-2}/3$, while the optional expression gives
+$H=\lambda\ln\varphi(1-q_0)/(2\pi)$ with
+$1-q_0=\varphi^{-2}/3$. Their ratio is $2\pi/\ln\varphi$ under the
+chosen rung-time convention. The optional coordinate rate is
+$\ln\varphi/(2\pi)=0.0766$ turns per Hubble rung; $\varphi^{-2}=0.382$ is a
+generator ratio under the faster rung-time
+$2\pi d/\lambda\approx4.987$ times the Hubble rung-time. Neither number is a
+canonical $\theta_d$ increment.
 
-The gravitational fine-structure constant $\alpha_G = G m^2 / (\hbar c)$ for a
-particle of mass $m$ at cascade rung $n$ is cascade-suppressed:
+At the optional attractor, the radial relaxation and azimuthal gate rates are
+reported as
 
-$$\boxed{\alpha_G(n) \sim \varphi^{-2n}}$$
+$$
+\gamma=\lambda(1-q_0)(1+\varphi)=\frac{\lambda}{3},
+\qquad
+\Omega_S=\lambda(1-q_0)=\frac{\lambda\varphi^{-2}}{3},
+$$
 
-For a proton ($n \approx 91.5$, Compton wavelength $\hbar/(m_p c) \approx
-2.10 \times 10^{-16}$ m relative to $\ell_{\text{Pl}}$), the prediction is
-$\varphi^{-183} \approx 5.9 \times 10^{-39}$. The observed value is $\alpha_G =
-G m_p^2 / (\hbar c) \approx 5.91 \times 10^{-39}$—**a match to 0.1%**.
-The ratio of gravitational to electromagnetic force between two protons follows
-as $\alpha_G / \alpha \approx 8.1 \times 10^{-37}$ (where $\alpha \approx
-1/137$). The "hierarchy problem" is not a problem; it is the cascade doing what
-cascades do.
+so their algebraic ratio is
 
----
+$$
+\boxed{\tan(\mathrm{pitch})=\frac{\gamma}{\Omega_S}
+=1+\varphi=\varphi^2=2.618\quad(69.1^\circ).}
+$$
 
-## 4. Speed of Light = Information Transfer Over Coherent Wavelengths
+This tangent is a relation among rates in the optional construction. The
+canonical conversion-angle rate is proportional to $\varepsilon$ and vanishes
+at the fixed ratio. The two descriptions are not the same clock.
 
-### 4.1 The mechanism
+### 2.3 Baseline term
 
-A signal in the Cassi field propagates by conversion between $E_Y$ and $E_I$.
-At each conversion cycle (timescale $\sim 1/\lambda$), the signal advances by
-one **coherence length**—the distance over which the field maintains phase
-coherence across adjacent cascade rungs.
-
-At cascade rung $n$, the coherence length is $\ell_n = \ell_{\text{Pl}}
-\varphi^n$, and the effective conversion rate is cascade-suppressed:
-
-$$\lambda_{\text{eff}}(n) = \lambda \cdot \varphi^{-n}$$
-
-The information propagation speed is the product:
-
-$$c \sim \lambda_{\text{eff}}(n) \cdot \ell_n = (\lambda \cdot \varphi^{-n}) \cdot (\ell_{\text{Pl}} \cdot \varphi^n) = \lambda \cdot \ell_{\text{Pl}}$$
-
-The $\varphi^n$ factors cancel. **The speed of light is scale-invariant**—a
-signal at the Planck scale propagates one Planck length per conversion cycle;
-a signal at the cosmic scale propagates one cosmic coherence length per
-(proportionally slower) conversion cycle. Both give the same $c$.
-
-This is a dimensional consistency check, not a derivation—both $\lambda = 0.1$
-(derived, $w = 5$) and $\ell_{\text{Pl}}$ (external dimensionful anchor) are inputs.
-The framework predicts that their product should be scale-invariant, and that
-this invariant product IS the speed of light. Testing this requires calibrating
-$\lambda$'s PDE inverse-time units against physical seconds (see
-`dimensionful-constants-status.md` for the status of each constant).
-
-### 4.2 Numerical check
-
-$\ell_{\text{Pl}} = \sqrt{\hbar G / c^3} \approx 1.616 \times 10^{-35}$ m.
-The conversion rate $\lambda = 0.1$ is in PDE inverse-time units; to convert
-to physical units requires the timescale calibration. The PDE timescale is set
-by the Hubble time at the current cascade rung:
-
-$$t_{\text{PDE}} \sim \frac{1}{H_0} \sim 4.4 \times 10^{17} \text{ s}$$
-
-At the current epoch (horizon rung $N \approx 291.54$), $\lambda_{\text{eff}} = 0.1 \cdot
-\varphi^{-291.54}$. The coherence length at this rung is the Hubble radius
-$R_H = \ell_{\text{Pl}}\,\varphi^{291.54} \sim c/H_0 \sim 1.37 \times 10^{26}$ m
-(4.44 Gpc = 14.5 Glyr). The product:
-
-$$c \sim \lambda_{\text{eff}} \cdot R_H \sim (0.1 \cdot \varphi^{-291.54}) \cdot (1.37 \times 10^{26} \text{ m}) \cdot \frac{1}{t_{\text{PDE}}}$$
-
-The $\varphi^{-291.54}$ factor compensates the enormous coherence length, and
-the product should recover $c \approx 3 \times 10^8$ m/s. The exact
-numerical agreement depends on the PDE-to-physical-unit calibration, which
-is not yet pinned—but the structure of the cancellation is exact.
-
-### 4.3 Photons as traveling spiral waves
-
-A photon is a localized $E_Y \leftrightarrow E_I$ oscillation that propagates
-along the spiral gradient. Its frequency $\nu$ is set by the conversion rate
-at its emission rung; its wavelength $\lambda_\gamma = c/\nu$ is the coherence
-length at that rung. The constant $c$ emerges because both the temporal (conversion
-rate) and spatial (coherence length) scales cascade-lock together.
+The PDE expression retains the baseline
+$H_{\mathrm{empty}}=\lambda\varphi^{-2}/3$ at $r=\varphi$. Calling this term
+zero-point spiral unwinding is an optional interpretation. The equation itself
+only supplies the baseline Hubble contribution shown above.
 
 ---
 
-## 5. The Unified Picture
+## 3. Gravity from the potential gradient
 
-```
-                    THE FIBONACCI SPIRAL
-                    ====================
-         Internal SO(2) doublet rotation Theta(n)
-         Pitch: 2*pi/ln(phi) ~ 13.06 rad per e-fold of scale
-                          |
-          ┌───────────────┼───────────────┐
-          │               │               │
-          ▼               ▼               ▼
-    ┌──────────┐   ┌──────────┐   ┌──────────────┐
-    │ UNWINDING│   │  DESCENT │   │  PROPAGATION │
-    │ (Hubble) │   │ (Gravity)│   │    (c)       │
-    └──────────┘   └──────────┘   └──────────────┘
-    
-    H ~ (lam*ln phi/2pi)*(1-q)   F = Pi*nabla Phi    c = lam_eff * ell_n
-    a_{n+1}/a_n = phi             nabla^2 Phi = rho   scale-invariant
-    Expansion = rung              Attraction =        Signal speed =
-    advancement                   coherence-seeking   coherence wavelength
-                                  gradient descent    x conversion rate
-```
+### 3.1 Force equation
 
-The two-fluid PDE (`two-fluid/cassi_two_fluid_3d_gpu.py`) already contains all
-three mechanisms in its equations:
+The momentum equation uses the buoyancy force
 
-| Mechanism | PDE term | Spiral interpretation |
+$$
+\mathbf F=\Pi\nabla\Phi,
+\qquad
+\Pi=E_Y-E_I,
+\qquad
+\nabla^2\Phi=E_Y+E_I=\rho.
+$$
+
+With the solver convention $\widehat\Phi=-\widehat\rho/k^2$, a point-mass
+potential is $\Phi=-M/(4\pi r)$ and its far-field gradient points outward.
+The local force follows the sign of $\Pi$ rather than being unconditionally
+attractive. At the closure probe,
+$\nabla\Phi(x^*)=-0.0143$ and $\Pi(x^*)=+0.2834$, giving
+$F_0(x^*)=-4.04\times10^{-3}$ at $t=0$
+(`hypotheses/gravity-from-flow.md` §1). A Yang excess is repelled in the
+reported TS1 branch ($d:9.90\to15.73$); a Yin excess is attracted in the
+exchanged branch ($d:9.90\to7.51$). The point-particle reduction has the
+Newtonian attractive convention
+
+$$
+\ddot{\mathbf X}_j
+=-\alpha_j\bigl(1+(\varphi^6-1)q_j\bigr)\nabla\Phi
+$$
+
+(`gravity/three-body-analytical.md` §2.3).
+
+These results are potential-gradient dynamics. A spiral-gradient reading is an
+optional interpretation and is not needed for the force equation.
+
+The rung-offset probes retain a separate local-flow record: at the tested
+closure rungs, the flow is at most $1.5\%$ of the wave speed, points inward
+for $J/\psi$, and is approximately zero for the muon; the conversion term
+alone transports outward at at most $0.1\%$
+(`foundations/rung-offset-mechanism.md` §5, T11–T13). These percentages
+characterize the tested potential and conversion terms. They do not measure
+an inter-rung phase current.
+
+### 3.2 Cascade coupling record
+
+The source scaling gives
+
+$$
+|\mathbf F_n|\sim\varphi^{-n}|\nabla\Phi|,
+\qquad
+\alpha_G(n)\sim\varphi^{-2n}.
+$$
+
+The inverse-square distance law follows conditionally from the assumed $d=3$
+Poisson geometry—a Hypothesized geometric input; the canonical two-fluid solver
+does not select spatial dimension. The cascade supplies the stated coupling
+scaling.
+For a proton at $n\approx91.5$, the record quotes
+
+$$
+\varphi^{-183}\approx5.7\times10^{-39},
+\qquad
+\alpha_G=\frac{Gm_p^2}{\hbar c}\approx5.91\times10^{-39},
+$$
+
+and $\alpha_G/\alpha\approx8.1\times10^{-37}$ for $\alpha\approx1/137$.
+The integer-rung value is about $3.5\%$ below the observed $5.91\times10^{-39}$. The more precise fractional rung $91.46$ is the logarithmic map of the
+measured mass; the catalog marks the resulting comparison Mapped (Fit-Status
+Ledger row 506), rather than a parameter-free hierarchy prediction.
+
+---
+
+## 4. Scale-invariant signal-speed product
+
+### 4.1 Algebraic cancellation
+
+The proposed coherence-length estimate uses
+
+$$
+\ell_n=\ell_{\mathrm{Pl}}\varphi^n,
+\qquad
+\lambda_{\mathrm{eff}}(n)=\lambda\varphi^{-n}.
+$$
+
+Their product is
+
+$$
+\boxed{
+\lambda_{\mathrm{eff}}(n)\ell_n
+=\lambda\ell_{\mathrm{Pl}}}
+$$
+
+for every $n$. This is an algebraic scale-cancellation check. It does not by
+itself derive the physical value of $c$: $\lambda=0.1$ is a dimensionless
+solver convention, $\ell_{\mathrm{Pl}}$ is an external dimensionful anchor,
+and the PDE-to-seconds calibration remains open.
+
+### 4.2 Numerical record
+
+Using the current-epoch values
+
+$$
+N\approx291.543,
+\qquad
+\lambda_{\mathrm{eff}}=0.1\varphi^{-291.543},
+\qquad
+R_H=\ell_{\mathrm{Pl}}\varphi^{291.543}\approx1.37\times10^{26}\,\mathrm m,
+$$
+
+the source record checks cancellation of the enormous factors. The product
+is expected to recover $c\approx3\times10^8\,\mathrm{m\,s^{-1}}$ only after
+calibrating solver inverse-time units against physical seconds; that numerical
+calibration is not pinned.
+
+### 4.3 Photon interpretation
+
+A localized conversion disturbance may be assigned a frequency and a
+coherence length in an additional propagation model. The statement
+$\lambda_\gamma=c/\nu$ with emission-rung coherence length is therefore a
+Hypothesized test relation, not a consequence of a compact density-plane
+phase.
+
+---
+
+## 5. Separate mechanisms, one comparison table
+
+The three equations below can be compared without assigning them a common
+spiral cause:
+
+| Mechanism | PDE or scaling relation | Present reading |
 |---|---|---|
-| Hubble | `_update_hubble(ey, ei) -> H = f(r)` | Spiral unwinding rate |
-| Gravity | `force = Pi * grad_phi` | Gradient descent along spiral |
-| Signal speed | `conv = -lam * (1-q) * (ey - PHI * ei)` | Conversion x coherence length |
+| Hubble | `_update_hubble` gives $H=f(r)$ | Canonical ratio-dependent expansion variable |
+| Gravity | $\mathbf F=\Pi\nabla\Phi$ | Canonical potential-gradient force |
+| Signal-speed product | $\lambda_{\mathrm{eff}}\ell_n=\lambda\ell_{\mathrm{Pl}}$ | Scale-cancellation diagnostic |
+| Optional geometry | $\chi(n)=\chi_0+2\pi n/P$ | Hypothesized compact coordinate |
 
-The spiral geometry unifies them: they are not three separate terms in the
-Lagrangian but three projections of the same Fibonacci spiral structure.
-
----
-
-## 6. Testable Consequences
-
-### 6.1 $H$—spiral relation
-
-The PDE formula $H = (\lambda/3)(\varphi-r)(1+r)/r + \lambda\varphi^{-2}/3$
-is confirmed to R² = 1.000 (mean error 0.06%, tested July 2026). The
-spiral-linearized form $H \approx (\lambda\cdot\ln\varphi/2\pi)\cdot(1-q)$
-is NOT the equilibrium limit of the PDE form: the two are different clocks
-locked by the rung-clock identity $dn_H/dn_S = 2\pi/\ln\varphi$ (§2.2). The
-correlation between $H$ and $(1-q)$ is strong ($R^2 > 0.99$), confirming the
-spiral mechanism; the proportionality constant is fixed by the identity, and
-with the ratified conversion→expansion coupling the generator ratio is
-$\varphi^{-2} = 0.382$ turns per rung (the $2\pi d/\lambda \approx 4.987\times$
-faster-than-Hubble rung-time; under the Hubble rung-time the realized rate is
-$\ln\varphi/2\pi = 0.0766$ turns per H-rung) (08).
-
-### 6.2 Gravitational coupling from cascade depth
-
-The relation $\alpha_G = \varphi^{-2n}$ is the definitional identity
-$\alpha_G = (m_p/M_{\text{Pl}})^2$ with $n = \log_\varphi(M_{\text{Pl}}/m_p)$
-the proton's measured rung: for $n \approx 91.5$, $\varphi^{-183} \approx
-5.7 \times 10^{-39}$ vs the observed $\alpha_G = G m_p^2/(\hbar c) \approx
-5.91 \times 10^{-39}$—about 3.5% low (the "0.1%" phrasing holds only for the
-fractional rung 91.46, the log map of the measured mass itself; Fit-Status
-Ledger row 506, **Mapped**). It is not a parameter-free prediction of the
-hierarchy—the exponent is read off the measured mass. The same formula holds
-for any particle by the identity: the gravitational coupling at cascade rung
-$n$ is $\varphi^{-2n} = (m/M_{\text{Pl}})^2$.
-
-### 6.3 $c$ as scale-invariant product
-
-The prediction that $c = \lambda_{\text{eff}} \cdot \ell_n$ is constant across
-all rungs is verified analytically: $\varphi^{-n} \cdot \varphi^n = 1$ for all
-$n$ (tested July 2026). The algebraic cancellation is exact; the numerical
-value of $c$ requires calibrating $\lambda$'s PDE units against physical time.
-
-### 6.4 Photon coherence length
-
-If photons propagate one coherence length per conversion cycle, then the
-photon wavelength $\lambda_\gamma = c/\nu$ should equal the coherence length
-at the emission rung. This predicts a relationship between photon energy and
-the cascade rung of its source—testable by comparing emission spectra
-across different cascade depths (atomic, nuclear, particle).
+The solver may contain conversion, Hubble, and gravity terms simultaneously.
+That coexistence does not establish that they are projections of one
+Fibonacci spiral, and the canonical conversion angle remains the monotone
+$\theta_d$ of §1.1.
 
 ---
 
-## 7. Epistemic Boundaries
+## 6. Testable consequences and retained diagnostics
 
-### Derived (from $\varphi$ + PDE + cascade)
+### 6.1 Hubble relation
 
-- Fibonacci spiral trajectory of $(E_Y, E_I)$ doublet: follows from the
-  conversion term and $\varphi$-scaling (`spin-fibonacci-spiral.md`)
-- Hubble parameter from Yang-Yin ratio: $H = (\lambda/3)(\varphi-r)(1+r)/r$
-  (`cosmology/cosmology-from-phi.md`)
-- Gravitational force from imbalance gradient: $\mathbf{F} = \Pi\nabla\Phi$
-  (PDE momentum equation)
-- Cascade suppression formula $\varphi^{-2n}$ for coupling constants
+The PDE expression for $H$ matches the quoted record to $R^2=1.000$ with
+mean error $0.06\%$. The optional clock expression has a strong reported
+correlation with $(1-q)$ ($R^2>0.99$), but its proportionality and rung-time
+conversion are properties of the Hypothesized extension. The generator ratio
+$\varphi^{-2}=0.382$ and the optional rates $0.0766$ turns per Hubble rung,
+$11.34^\circ$ dynamical pitch, and $0.19880$ discriminator remain conditioned
+on that extension.
 
-### Hypothesized (mechanism specified, testable)
+### 6.2 Gravitational coupling
 
-- Hubble as spiral unwinding: $H \approx (\lambda\cdot\ln\varphi/2\pi)\cdot(1-q)$
-  (Hypothesized spiral clock; related to the PDE $H$ by the rung-clock
-  identity $dn_H/dn_S = 2\pi/\ln\varphi$, §2.2—not the equilibrium limit; PDE
-  general form confirmed to R² = 1.000)
-- Conversion→expansion coupling $V_{\text{new}} = \lambda\tilde{h}(E_Y,E_I) +
-  \lambda\varphi^{-2}/d$ (Hypothesized—August 2026, zero free constants; the
-  vacuum half is the framework's own $\Lambda$; predicts $\varphi^{-2} = 0.382$
-  turns per rung (under the $2\pi d/\lambda \approx 4.987\times$ faster-than-Hubble
-  rung-time; $\ln\varphi/2\pi = 0.0766$ turns per Hubble rung), pitch 11.34°,
-  discriminator $|a_\theta/a_r| = 0.19880$; not
-  implemented in the solver—08 §A.2, §C.3). **Winding-test verdict (09):** the
-  rotation half is PDE-verified (dressed 0.389 turns/rung realized in the
-  $\varepsilon\to 0$ limit, measured 0.3868 ± 0.0001; the bare $\varphi^{-2}$
-  is the generator ratio; 1.0 rejected); the source half's field-level
-  realization is unstable (saddle at $(1,\varphi^{-1})$, density blow-up, log-
-  domain exit at 0.108 turns; the Hessian cancels the rotation at the fixed
-  point)—r-level content stands; **stable realization found**: the C1
-  Hubble-friction closure (10) realizes the source at the $r_* \approx
-  0.9503$ attractor with a pure-Λ late universe (pure-Λ DESI-window fit
-  $(-1, 0)$, 4.17σ/2.61σ—12); the full term with $\Omega$ is not integrable
-  on the grid ($t = 8.07$—11 §5)
-- Gravity as gradient descent along the spiral (anchored quantitatively by the rung-offset probes: at the closure rungs the flow reads $\le 1.5\%$ of the wave speed, inward for J/ψ and $\approx 0$ for μ, and the conversion term alone transports outward at $\le 0.1\%$—`foundations/rung-offset-mechanism.md` §5 T11–T13)
-- $c$ as scale-invariant product $\lambda_{\text{eff}} \cdot \ell_n$
-  (algebraically confirmed; numerical value awaits unit calibration)
-- Gravitational coupling $\alpha_G \propto \varphi^{-2n}$ (confirmed to 0.1%)
-- Photon wavelength = coherence length at emission rung
+The relation $\alpha_G=\varphi^{-2n}$ is the identity
+$\alpha_G=(m_p/M_{\mathrm{Pl}})^2$ when
+$n=\log_\varphi(M_{\mathrm{Pl}}/m_p)$ is read from the measured proton mass.
+At $n\approx91.5$ the quoted value is
+$\varphi^{-183}\approx5.7\times10^{-39}$ versus
+$5.91\times10^{-39}$, about $3.5\%$ low; the $0.1\%$ statement applies only
+to the fractional-rung mass map and is Mapped. This result does not depend on
+an optional spiral phase.
 
-### Speculative (consistent, no test design yet)
+### 6.3 Scale-cancellation relation
 
-- Exact numerical calibration of $\lambda = 0.1$ PDE units to physical $c$
-- Zero-point unwinding ($H_{\text{empty}}$) as spiral curvature
-- Repulsive gravity from reverse-spiral configurations (if they exist)
+The identity $\varphi^{-n}\varphi^n=1$ verifies the scale-invariant product
+analytically for every $n$. The physical value awaits unit calibration.
+
+### 6.4 Photon wavelength
+
+The proposed equality between photon wavelength and an emission-rung
+coherence length can be tested across atomic, nuclear, and particle sources.
+It remains Hypothesized until a propagation model and data analysis are
+specified.
 
 ---
 
-## 8. References
+## 7. Epistemic boundaries
 
-- `foundations/spin-fibonacci-spiral.md`—Fibonacci spiral derivation, internal vs spatial distinction
-- `cosmology/cosmology-from-phi.md`—Hubble from Yang-Yin ratio
-- `foundations/dimensionful-cascade.md`—cascade table, $\ell_n = \ell_{\text{Pl}}\varphi^n$
-- `foundations/cascade-suppression-formula.md`—per-rung attenuation $\varphi^{-1}$
-- `foundations/dimensionful-constants-status.md`—status of $c$, $\hbar$, $G$
-- `foundations/unified-lagrangian.md`—PDE coupling constants
-- `predictions/cassi_definitions.md`—framework glossary
-- `foundations/rung-offset-mechanism.md`—rung-offset probes T11–T13: descent flow, closure-crossing emission phase, conversion-driven flux
-- `two-fluid/cassi_two_fluid_3d_gpu.py`—PDE solver with all three mechanisms
-- `two-fluid/run_pde_bubble_spiral.py`—bubble PDE test (July 2026)
-- `visual-explainers/spiral_string.py`—spiral chord string visualizer
+### Derived or measured canonical content
+
+- Conversion-only conservation of $\rho$ and monotone relaxation of
+  $\theta_d=\operatorname{atan2}(E_I,E_Y)$ toward
+  $\operatorname{atan}(\varphi^{-1})$.
+- $H=(\lambda/3)(\varphi-r)(1+r)/r+\lambda\varphi^{-2}/3$ as the PDE
+  Hubble relation; the quoted numerical check has $R^2=1.000$ and mean error
+  $0.06\%$.
+- $\mathbf F=\Pi\nabla\Phi$ with the stated sign-dependent local behavior.
+- The algebraic cancellation
+  $\lambda_{\mathrm{eff}}\ell_n=\lambda\ell_{\mathrm{Pl}}$.
+- The cascade coupling comparison $\varphi^{-2n}$ with its Mapped proton
+  calibration.
+
+### Hypothesized additional structure
+
+- A compact coordinate $\chi$ with a chosen pitch, including $P=1$ and
+  $P_\parallel=2$ conventions.
+- The logarithmic spiral interpretation and the relation of the optional
+  $H_{\mathrm{spiral}}$ clock to $(1-q)$.
+- The conversion-to-expansion term $V_{\mathrm{new}}$, its generator ratio,
+  pitch, and the numerical winding-test/stability records in §1.3.
+- Spiral-gradient language for gravity and the photon coherence-length
+  relation.
+
+### Speculative
+
+- Physical unit calibration of $\lambda\ell_{\mathrm{Pl}}$ to $c$.
+- Zero-point unwinding as the interpretation of $H_{\mathrm{empty}}$.
+- Reverse-spiral configurations and any associated repulsive sector.
+
+No item in the Hypothesized list changes the canonical density equations or
+turns $\theta_d$ into a periodic field.
+
+---
+
+## References
+
+- `foundations/cassi-first-principles.md`—canonical two-fluid equations, gate, and density-plane angle rate
+- `foundations/spin-fibonacci-spiral.md`—optional compact-phase, pitch, and spinor construction
+- `foundations/qi-flow-double-helix.md`—spatial density-plane diagnostic and double-helix boundary
+- `cosmology/cosmology-from-phi.md`—PDE Hubble relation from the Yang–Yin ratio
+- `foundations/dimensionful-cascade.md`—cascade table and $\ell_n=\ell_{\mathrm{Pl}}\varphi^n$
+- `foundations/cascade-suppression-formula.md`—per-rung attenuation rule
+- `foundations/dimensionful-constants-status.md`—physical-unit status of $c$, $\hbar$, and $G$
+- `foundations/unified-lagrangian.md`—PDE coupling conventions
+- `foundations/rung-offset-mechanism.md`—descent-flow and conversion diagnostics T11–T13
+- `gravity/three-body-analytical.md`—point-particle potential-gradient convention
+- `hypotheses/gravity-from-flow.md`—closure-probe force record
+- `hypotheses/two-strand-five-channel-matter-organization.md`—TS1–TS4 and exchanged-pair records
+- `two-fluid/cassi_two_fluid_3d_gpu.py`—two-fluid solver
+- `two-fluid/run_pde_bubble_spiral.py`—bubble PDE diagnostic
+- `visual-explainers/spiral_string.py`—optional spiral visualization
+- `cassi-toe-rewrite-briefs/spiral-gravity/`—external provenance for the numbered conversion-to-expansion records

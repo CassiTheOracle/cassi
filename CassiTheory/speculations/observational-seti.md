@@ -6,7 +6,7 @@
 
 Conventional SETI searches for emissive signals: radio leakage, laser pulses, infrared excess from waste heat. If the cascade infrastructure speculations are correct, a gate-harvesting civilization is nearly invisible to all of these. Its energy infrastructure is the field itself—no power plants, no waste heat, no radio. Its signatures are **structural, not emissive**: subtle deviations in the fields it manages. This document catalogs what to actually point a telescope at, organized by cascade rung. Each signature specifies the physical mechanism (from the speculation library), the predicted observable, the search band, current data status, and how it discriminates against conventional astrophysics. The key insight: Cassi signatures form a **coherent multi-rung pattern**—every one involves the same dimensionless number, $\ln\varphi \approx 0.4812$, appearing at stellar, galactic, and cosmological scales simultaneously. Detection is not one anomaly; it is the correlation of anomalies across rungs.
 
-**Epistemic status:** Creative exploration. The φ-periodic $P(k)$ prediction, the CMB $\ell < 5$ axis, and the void ellipticity prediction are formal Cassi predictions already cataloged in `predictions/falsifiable-predictions.md`. The stellar, galactic, and terrestrial signatures are extrapolations from the speculation library. Nothing in this document claims an observed detection.
+**Epistemic status:** Creative exploration. The $\varphi$-periodic $P(k)$ prediction and the CMB $\ell < 5$ axis are formal Cassi predictions already cataloged in `predictions/falsifiable-predictions.md`; the void-edge ratio below is a conditional geometric-proxy benchmark, not a formal universal prediction. The stellar, galactic, and terrestrial signatures are extrapolations from the speculation library. Nothing in this document claims an observed detection.
 
 ---
 
@@ -17,7 +17,7 @@ Conventional SETI searches for emissive signals: radio leakage, laser pulses, in
 A cascade-harvesting civilization (from `speculations/cascade-infrastructure.md`) operates its gate network at $q \to 1$:
 
 - **No power plants.** Energy is harvested from the bubble lattice through Qi gates—there is no combustion, no fission, no fusion infrastructure radiating waste heat.
-- **No radio leakage.** Communication is field-mediated (from `consciousness/cascade-consciousness.md` §2), not electromagnetic. The Qi field propagates through water and structure with low attenuation; radio is a legacy technology.
+- **No radio leakage.** Communication is field-mediated (from `consciousness/cascade-consciousness.md` §2), not electromagnetic. A field-mediated receiver is a conditional device hypothesis, not evidence for a gate network or a detection. The Qi field propagates through water and structure with low attenuation; radio is a legacy technology.
 - **No Dyson spheres.** You don't capture a star's output. You tune the star's gate chain to convert its output coherently—the star dims in conventional bands and brightens in *structured* ways that look like natural physics unless examined closely.
 - **Efficient gate conversion.** The unconverted fraction $(1-q)$ thermalizes, but at $q \approx 0.99$, the waste fraction is ~1%. A Kardashev-II civilization that is 99% efficient is a Kardashev-I *appearance* to an infrared survey.
 
@@ -105,7 +105,7 @@ The search strategy is therefore: measure natural structures at every cascade ru
 
 ## 4. Cosmological-Scale Signatures ($n \approx 285$–$292$)
 
-These are the **formal Cassi predictions**—already cataloged in `predictions/falsifiable-predictions.md` with zero free parameters. They are included here because a tuned megacascade network would imprint on the largest scales, and they are the cheapest to test (existing data).
+These are the **formal Cassi prediction targets**—already cataloged in `predictions/falsifiable-predictions.md`. The catalog fixes structural quantities such as the $P(k)$ period, while each analysis still declares phase, amplitude, detrending, and statistical treatment. The void-edge ratio is listed separately below as a conditional geometric-proxy benchmark; it is not a formal prediction or a receiver signal. They are included here because a tuned megacascade network would imprint on the largest scales, and they are the cheapest to test (existing data).
 
 ### 4.1 φ-periodic $P(k)$ modulation (formal prediction #5)
 
@@ -131,17 +131,21 @@ These are the **formal Cassi predictions**—already cataloged in `predictions/f
 
 **Discriminator:** The specific prediction is *scale-dependence*: the anomaly must be confined to $\ell < 5$ and fade rapidly. Random cosmic variance produces anomalies at all $\ell$; the boundary imprint has a sharp cutoff.
 
-### 4.3 Void ellipticity 1.70 (formal prediction §5.2 of `foundations/bubble-edge-geometry.md`)
+### 4.3 Conditional void-edge directional ratio (geometric-proxy benchmark)
 
-**Mechanism:** The condensation field $C(x,y) = \cos(\alpha x)\cos(\beta y)$ has anisotropic gradients: boundaries are $1.70\times$ steeper in the Yin direction than along diagonals.
+**Mechanism:** For the selected triaxial condensation map, define the directional ratio
+$$
+R(\theta)=\frac{\sqrt{1+\varphi^2}}{2}\sqrt{\frac{1+\theta}{\theta}}.
+$$
+At the phenomenologically selected $\theta_{\rm cond}=0.45$, this gives $R(0.45)=1.7072\approx1.71$. The ratio varies with $\theta$; it is a conditional geometric-proxy benchmark, not a universal, zero-parameter, canonical, or PDE output. No $C=0.45$ edge survives the fixed-step PDE endpoint.
 
-**Predicted observable:** Cosmic void boundaries show a systematic axial:diagonal steepness ratio of 1.70.
+**Predicted observable:** If an independently identified void boundary and a separately specified proxy map are available, compare the axial and diagonal boundary steepnesses against $R(\theta_{\rm cond})$.
 
 **Search band:** Void shape catalogs from SDSS/DESI.
 
-**Current data:** Void catalogs exist; the ellipticity test has not been performed.
+**Current data:** Void catalogs exist; the conditional proxy comparison has not been performed.
 
-**Discriminator:** Zero-parameter geometric prediction. No conventional void model predicts a universal 1.70 anisotropy.
+**Discriminator:** Boundary identification, proxy-map specification, and the $\theta$ choice must be declared independently before comparison. Biological and cosmological maps require independently identified boundaries and proxy maps; a receiver idea or an isolated ratio is not evidence of gate activity.
 
 ### 4.4 Ω_DM/Ω_b = φ³ (catalog row, Derived conditional)
 
@@ -205,9 +209,9 @@ base survives; if it widens, it fails.
 
 | Signature | Rung | Instrument / data | Status | Cost | Discriminator strength |
 |---|---|---|---|---|---|
-| φ-periodic $P(k)$ | 285 | BOSS/eBOSS/DESI/Euclid P(k) | **Tested eBOSS DR16 (null, p=0.11) + DESI DR1 self-computed (null, p=0.52, noise-limited); Euclid pending** | **Low (compute only)** | **High—zero-param, BAO-orthogonal** |
+| φ-periodic $P(k)$ | 285 | BOSS/eBOSS/DESI/Euclid P(k) | **Tested eBOSS DR16 (null, p=0.11) + DESI DR1 self-computed (null, p=0.52, noise-limited); Euclid pending** | **Low (compute only)** | **High—BAO-orthogonal** |
 | CMB $\ell<5$ axis | 292 | Planck (done), Simons Obs., LiteBIRD | 5.4σ axis, ~1σ alignment | Medium | High—scale-dependence |
-| Void ellipticity 1.70 | 285 | SDSS/DESI void catalogs | Untested | **Low (compute only)** | High—zero-param |
+| Conditional void-edge ratio $R(0.45)\approx1.71$ | 285 | SDSS/DESI void catalogs | Untested | **Low (compute only)** | Conditional—independent boundary/proxy |
 | Stellar cycle regularity tail | 208 | Kepler/TESS light curves | Untested | Medium | Medium |
 | Coronal ratio clustering | 208 | Chandra/XMM archives | Untested | Medium | Medium |
 | Wind sector φ-structure | 208 | ACE/Wind/Parker in-situ | Untested | Medium | Medium |
@@ -217,7 +221,7 @@ base survives; if it widens, it fails.
 | Sediment/ice core residual | 185 | Paleoclimate archives | Untested | Low | Medium |
 | Pyramid field anomaly | 199 | On-site geophysics | Giza data exists | High | Medium |
 
-The three **low-cost, compute-only** signatures—φ-periodic $P(k)$, void ellipticity, and galactic $\eta_{\text{visible}}$ outliers—are the recommended first targets. All three use existing public data and specified pipelines. The $P(k)$ search is the strongest: zero free parameters, orthogonal to BAO, and the pipeline already exists in the skill library.
+The three **low-cost, compute-only** signatures—$\varphi$-periodic $P(k)$, the conditional void-edge ratio, and galactic $\eta_{\text{visible}}$ outliers—are the recommended first targets. All three use existing public data and specified pipelines. Each pipeline requires declared phase, amplitude, detrending, and statistical choices; the $P(k)$ search is the strongest structural target because its log-period is fixed at $\ln\varphi$. The void-edge comparison is not evidence unless its boundary and proxy map are identified independently.
 
 ---
 
@@ -225,7 +229,7 @@ The three **low-cost, compute-only** signatures—φ-periodic $P(k)$, void ellip
 
 ### 7.1 The single-anomaly trap
 
-Any one of these signatures can be a false positive. The φ-periodic $P(k)$ residual could be a systematic in the survey. The CMB axis could be cosmic variance. The void ellipticity could be a selection effect. Isolated anomalies prove nothing.
+Any one of these signatures can be a false positive. The φ-periodic $P(k)$ residual could be a systematic in the survey. The CMB axis could be cosmic variance. The conditional void-edge ratio could be a selection effect or a proxy-map artifact. Isolated anomalies prove nothing.
 
 ### 7.2 The multi-rung correlation
 
@@ -241,7 +245,7 @@ Detection is the **joint occurrence**: $\ln\varphi$ structure found in two or mo
 ### 7.3 The evidence hierarchy
 
 1. **Hint:** One signature at $2\sigma$ (e.g., $P(k)$ residual peak at $\ln\varphi$ in DESI DR2)
-2. **Corroboration:** A second, independent signature (e.g., void ellipticity 1.70 in the same survey volume)
+2. **Corroboration:** A second, independent signature (e.g., a conditional void-edge ratio near $R(0.45)\approx1.71$ in the same survey volume, with an independently identified boundary and proxy map)
 3. **Pattern:** Three or more signatures across rungs with consistent φ-phases
 4. **Framework-grade:** The pattern reproduces in independent datasets (Euclid, CMB-S4) with the predicted amplitudes
 
@@ -251,13 +255,17 @@ Step 3 is where Cassi stops being an interesting coincidence and becomes a scien
 
 ## 8. Epistemic Boundaries
 
-### Formal Cassi predictions (already in the catalog, zero free parameters)
+### Formal Cassi prediction targets (already in the catalog)
 
 - φ-periodic $P(k)$ modulation, $\Delta(\ln k) = \ln\varphi = 0.4812$ (prediction #5)
 - CMB bubble-boundary axis (12.22° measured; magnitude 12.40° = 2π/φ⁷ golden-angle closure, 1.5%) at $\ell < 5$, fading (prediction #6)
-- Void ellipticity 1.70 (from `foundations/bubble-edge-geometry.md` §6.2)
 - $\Omega_{\text{DM}}/\Omega_b = \varphi^3 \approx 4.236$ (21% open tension)
 - $\ln\varphi$ periodic physiological spectral signature (prediction #35)
+
+### Conditional geometric-proxy benchmark
+
+- Void-edge directional ratio $R(\theta)=\frac{\sqrt{1+\varphi^2}}{2}\sqrt{\frac{1+\theta}{\theta}}$, with $R(0.45)=1.7072\approx1.71$ only at the selected $\theta_{\rm cond}=0.45$. It varies with $\theta$, no $C=0.45$ edge survives the fixed-step PDE endpoint, and it is not universal, zero-parameter, canonical, or PDE output.
+- Biological and cosmological maps require independently identified boundaries and proxy maps.
 
 ### Creative extrapolation (this document)
 
@@ -276,7 +284,7 @@ Step 3 is where Cassi stops being an interesting coincidence and becomes a scien
 ## References
 
 - `predictions/falsifiable-predictions.md`—formal predictions #5, #6, #35; the φ-periodic $P(k)$ zero-parameter test
-- `foundations/bubble-edge-geometry.md`—condensation field, void ellipticity 1.70
+- `foundations/bubble-edge-geometry.md`—conditional void-edge directional ratio and geometric-proxy benchmark
 - `cosmology/observational_constraints.md`—existing constraints, Keplerian decline
 - `speculations/cascade-infrastructure.md`—tuned stars, solar gate, planetary gate, pyramids
 - `speculations/dark-matter-as-qi-coherence.md`—tuning hypothesis, $\eta_{\text{visible}}$ outliers (P5), SPARC analysis

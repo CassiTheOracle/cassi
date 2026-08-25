@@ -334,6 +334,7 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
                                     device=self.device, dtype=torch.float64)
         self.sigma_gate = torch.tensor(0.05, dtype=torch.float64)
         self.qi_memory = qi_memory
+        self.qi_tau = qi_tau if qi_tau is not None else PHI_INV
         self.qi_decompose = qi_decompose
         self.qi_beta = qi_beta
         # ─── Five-Element Wu Xing cycle ───────────────────────────────────
@@ -706,8 +707,6 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
         ey *= scale
         ei *= scale
         # Update IIR Qi memory: once per RK2 step using final clamped fields.
-        # Previously this was inside rhs() and updated twice per step (k1+k2),
-        # giving effective decay (1-τ)² per step—near-total amnesia. Fixed.
         if self.qi_memory:
             eps_sq = (ey - PHI * ei) ** 2
             self.eps_sq_memory = (1.0 - self.qi_tau) * self.eps_sq_memory + self.qi_tau * eps_sq

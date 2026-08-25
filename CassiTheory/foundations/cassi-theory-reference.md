@@ -10,7 +10,7 @@ This document compacts the Cassi framework into a single reference: the two-flui
 
 $$\boxed{\varphi = \frac{1 + \sqrt{5}}{2} \approx 1.618033989}$$
 
-is the universal scale-separation constant. $\varphi$ has continued fraction $[1;1,1,1,\ldots]$, making it the most irrational number—maximally resistant to rational approximation. Physical couplings flow toward $\varphi$-powers because these configurations are maximally **de-resonant**: a rational frequency ratio between Yang and Yin would concentrate energy at a single scale and collapse the multi-scale structure; $\varphi$, being worst-case for rational lock-in, is the unique value that preserves structure across all scales. This flow is formalized as a discrete renormalization group with scale factor $\varphi$ in `foundations/phi-rg-formalism.md`.
+is the universal scale-separation constant. $\varphi$ has continued fraction $[1;1,1,1,\ldots]$, making it the most irrational number—maximally resistant to rational approximation. This arithmetic property motivates a **Hypothesized** de-resonance interpretation, but leaves physical coupling dynamics and multiscale survival unspecified. In the canonical PDE, $\varphi$ is a declared conversion target, and convergence toward that target follows from the stated rank-one solver term and its assumptions. The discrete renormalization-group scale factor $\varphi$ in `foundations/phi-rg-formalism.md` is a separate **Hypothesized** construction.
 
 ---
 
@@ -18,96 +18,253 @@ is the universal scale-separation constant. $\varphi$ has continued fraction $[1
 
 ### 2.1 Field Variables
 
-The fundamental field is a paired-real SO(2) doublet:
+The fundamental state is a pair of nonnegative density components:
 
-$$\Psi = \begin{pmatrix} \Psi_0 \\ \Psi_1 \end{pmatrix} \in \mathbb{R}^2$$
+$$
+E_Y\ge0,\qquad E_I\ge0,\qquad \rho=E_Y+E_I,\qquad \pi=E_Y-E_I.
+$$
 
-$\Psi_0$ is Yang (expansive, symmetry-breaking). $\Psi_1$ is Yin (contractive, symmetry-restoring). Energy densities:
+$E_Y$ and $E_I$ are conventionally labeled Yang and Yin. A **Hypothesized**
+phenomenological mapping may call them expansive/symmetry-breaking and
+contractive/symmetry-restoring; the canonical equations treat both components
+as neutral densities.
 
-$$\rho = \Psi_0^2 + \Psi_1^2, \qquad \pi = \Psi_0^2 - \Psi_1^2$$
+When component amplitudes are useful, introduce the exact positive-root
+coordinate lift
 
-$\rho$ is total energy density. $\pi$ is Yang excess. The **Yang fraction** $\pi/\rho$ is the fundamental dynamical variable.
+$$
+\Psi^{(+)}
+=\begin{pmatrix}\Psi_0^{(+)}\\ \Psi_1^{(+)}\end{pmatrix}
+=\begin{pmatrix}\sqrt{E_Y}\\ \sqrt{E_I}\end{pmatrix}
+\in\mathbb{R}_{\ge0}^{2}.
+$$
 
+The lift is an exact coordinate representation of the density state. Compact
+phase dynamics and branch-sign interpretations require optional signed or
+complex extensions and remain **Hypothesized**. For $\rho>0$, the amplitude-plane
+phase diagnostic, density-plane angle, and Stokes double angle are distinct:
+
+$$
+\theta_\Psi=\operatorname{atan2}(\Psi_1^{(+)},\Psi_0^{(+)}),\qquad
+\theta_d=\operatorname{atan2}(E_I,E_Y),
+$$
+
+$$
+\Theta_S=\operatorname{atan2}(2\Psi_0^{(+)}\Psi_1^{(+)},E_Y-E_I)
+=2\theta_\Psi\pmod{2\pi}.
+$$
+
+The foundational spatial phase-current diagnostic of this lift is
+
+$$
+\mathbf{J}_\Psi=\Psi_0^{(+)}\nabla\Psi_1^{(+)}
+-\Psi_1^{(+)}\nabla\Psi_0^{(+)}
+=\rho\,\nabla\theta_\Psi.
+$$
+
+The positive-root density-lattice diagnostic is
+
+$$
+\mathbf{J}_d=E_Y\nabla E_I-E_I\nabla E_Y
+=(E_Y^2+E_I^2)\nabla\theta_d
+=2\sqrt{E_YE_I}\,\mathbf{J}_\Psi.
+$$
+
+The two diagnostics have different units: $\mathbf{J}_\Psi$ has
+density/length units, while $\mathbf{J}_d$ has density$^2$/length units. A
+named spatial projection, such as
+$J_{\Psi,\parallel}=\hat{\mathbf t}\cdot\mathbf{J}_\Psi$ for a specified unit
+direction $\hat{\mathbf t}$, records the chosen positive direction. Physical
+current and inter-rung transport interpretations require a separate
+constitutive map and remain **Hypothesized**.
 ### 2.2 Governing PDE
 
-In the energy-density form used by the solvers, with the densities $E_Y = \Psi_0^2$, $E_I = \Psi_1^2$ (§2.1), the governing equations are
 
-$$\partial_t E_Y = -(\mathbf{u}\cdot\nabla)E_Y + \nu\nabla^2 E_Y - \lambda(1-q)(E_Y - \varphi E_I) + S_Y[\Psi_I,\Phi]$$
+In the energy-density form used by the solvers, with the canonical densities
+$E_Y$ and $E_I$, the governing equations are
 
-$$\partial_t E_I = -(\mathbf{u}\cdot\nabla)E_I + \nu\nabla^2 E_I + \lambda(1-q)(E_Y - \varphi E_I) + S_I[\Psi_Y,\Phi]$$
+$$\partial_t E_Y = -(\mathbf{u}\cdot\nabla)E_Y + D\nabla^2 E_Y - \lambda(1-q)(E_Y - \varphi E_I)$$
 
-$\mathbf{u}$: velocity field. $\nu$: hyperdiffusion. $\lambda = 0.1$: conversion rate. $q$: Qi coherence (§2.4); the gate factor $(1-q)$ is the openness (§2.5). $S_\alpha$: source terms through gravitational potential $\Phi$. The conversion pair is equal and opposite, so conversion conserves total density. This gated density pair is the solver's code form (`two-fluid/cassi_two_fluid_3d_gpu.py`); the ungated amplitude form of the conversion appears only as the $\varphi$-attractor potential of the action (§2.3, §4.1), not as a governing evolution equation.
+$$\partial_t E_I = -(\mathbf{u}\cdot\nabla)E_I + D\nabla^2 E_I + \lambda(1-q)(E_Y - \varphi E_I)$$
+
+$\mathbf{u}$ is the shared velocity field. The solver family exposes $D$ as
+scalar density diffusion and $\nu$ as velocity viscosity; $\nu$ acts in the
+velocity equation, while $D\nabla^2 E_{Y/I}$ is the scalar density diffusion
+shown above.
+The framework declares $\lambda=0.1$ as the **C-class solver
+normalization/timescale convention**. The `TwoFluid3DGPU` constructor
+defaults to $\lambda=0.02$; $\lambda=0.1$ is used by that implementation
+only when explicitly passed for a named C-class experiment. The relation
+$\lambda=1/(2w)$ at $w=5$ is a **Hypothesized** Wu Xing cycle linkage, not a
+$\varphi$-derived rate or a determination of its units.
+$q$ is the Qi coherence (§2.4), and the gate factor $(1-q)$ is the openness
+(§2.5). The displayed gated density pair is the selected canonical/theory
+form. The implementation in `two-fluid/cassi_two_fluid_3d_gpu.py` supports the
+displayed gated pair through the `ExpandingTwoFluid3DGPU` class only when
+`qi_gate=True`; the base `TwoFluid3DGPU` `rhs` method uses the ungated
+$-\lambda\varepsilon$ conversion, and the expanding solver defaults to
+`qi_gate=False`.
+Implementation receipts therefore require the mode parameters
+`lambda`, `qi_gate`, `gate_model`, and `qi_memory` to be recorded alongside
+any q-gated result.
+An optional **Hypothesized** gravity/information-potential closure couples
+$\Phi$ to the velocity equation; the resulting $\mathbf{u}$ advects both
+density channels. The ungated amplitude form of the conversion appears only
+as the $\varphi$-attractor potential of the action (§2.3, §4.1).
+Writing $\kappa=\lambda(1-q)$, the conversion-only matrix is
+
+$$
+\partial_t
+\begin{pmatrix}E_Y\\E_I\end{pmatrix}_{\!\mathrm{conv}}
+=\kappa
+\begin{pmatrix}-1&\varphi\\1&-\varphi\end{pmatrix}
+\begin{pmatrix}E_Y\\E_I\end{pmatrix}.
+$$
+
+This rank-one relaxation has eigenvalues $0$ and $-\kappa(1+\varphi)=-\lambda(1-q)(1+\varphi)$. It conserves $\rho=E_Y+E_I$ while generally changing $E_Y^2+E_I^2$, so the canonical conversion is not a norm-preserving $SO(2)$ generator.
 
 ### 2.3 $\varphi$-Attractor
 
-$$V_{\text{attr}} = \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2$$
+$$V_{\text{attr}} = \frac{\lambda}{2}(E_Y-\varphi E_I)^2$$
 
-Fixed point: $\Psi_0^2 = \varphi\Psi_1^2$. At equilibrium:
+Fixed point: $E_Y=\varphi E_I$. In the positive-root lift,
+$\Psi_0^{(+)}:\Psi_1^{(+)}=\sqrt{\varphi}:1$. At equilibrium:
 
-$$\frac{\pi}{\rho} = \frac{\varphi-1}{\varphi+1} = \varphi^{-3}$$
+$$\frac{\pi}{\rho}=\frac{\varphi-1}{\varphi+1}=\varphi^{-3}$$
 
-The ratio $r = E_Y/E_I$ evolves monotonically toward $\varphi$.
+Under local conversion-only dynamics, the ratio $r=E_Y/E_I$ evolves monotonically toward $\varphi$; advection, diffusion, and optional closures can add spatial dynamics.
 
 ### 2.4 Qi Coherence
 
-$$\varepsilon = E_Y - \varphi E_I,\qquad \rho = E_Y + E_I = \Psi_0^2 + \Psi_1^2,\qquad q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2}$$
+$$\varepsilon=E_Y-\varphi E_I,\qquad \rho=E_Y+E_I,\qquad q=\frac{\rho^2}{\rho^2+\varphi^{-2}+\varepsilon^2}$$
+For $\rho>0$, define $s\equiv\pi/\rho\in[-1,1]$. Then
 
-$q \to 0$: far from $\varphi$-equilibrium. $q \to 1$: perfect $\varphi$-equilibrium. At the fixed point ($\varepsilon = 0$; the solver's reference state $E_Y = 1$, $E_I = \varphi^{-1}$ gives $\rho = \varphi$): $q_{\text{eq}} = \varphi^{2}/(\varphi^2 + \varphi^{-2}) \approx 0.873$, and the gate openness $(1-q_{\text{eq}}) = \varphi^{-2}/(\varphi^2 + \varphi^{-2}) = \varphi^{-2}/3 \approx 0.127$ (the value item 1 below quotes as $q_{\text{eq}}$ under the $\rho^2 = \varphi^{-6}$ reference normalization).
-**Qi 2-vector.** $\mathbf{Q} = (\rho,\; J)$ where $J = \Psi_0\nabla\Psi_1 - \Psi_1\nabla\Psi_0$: magnitude + phase current. Qi is the third fundamental of the framework—the flow of coherence between Yang and Yin, and along the string axis between cascade scales; the scalar $q$ is the magnitude diagnostic of that flow (`foundations/qi-flow-double-helix.md`). The axial current $J_z = R^2\partial_z\theta$ is the inter-scale flow; the $P_\parallel = 2$ doublet cycle winds the Yang and Yin strand-currents into a double helix about the string axis.
+$$
+\frac{\varepsilon}{\rho}
+=\frac{\varphi^2s-\varphi^{-1}}{2},
+\qquad
+q(\rho,s)
+=\left[
+1+\left(\frac{\varphi^2s-\varphi^{-1}}{2}\right)^2
++\frac{\varphi^{-2}}{\rho^2}
+\right]^{-1}.
+$$
 
-**Temporal coherence (IIR memory).** $\bar{\varepsilon}^2(t) = (1-\tau)\,\bar{\varepsilon}^2(t-\Delta t) + \tau\,\varepsilon^2(t)$, $\tau = \varphi^{-1}$. The field carries a memory of its own past state; smoothing $\varepsilon^2$ stabilizes $q$.
+The canonical $q$ therefore depends on both total density and composition. At
+$s=\varphi^{-3}$, $q=\rho^2/(\rho^2+\varphi^{-2})$, approaching $0$ as
+$\rho\to0$ and $1$ only as $\rho\to\infty$; $q$ is not an independent knob
+at fixed finite $(\rho,s)$. In physical energy-density variables, an external
+reference density $\rho_*$ gives
 
-**q-form inventory** (consistency sweep 2026-08-11; numeric checks in `computations/q_form_inventory_check.py`). The coherence $q$ appears in four forms:
+$$
+q=\frac{\rho_{\mathrm{phys}}^2}
+{\rho_{\mathrm{phys}}^2+\varphi^{-2}\rho_*^2+\varepsilon_{\mathrm{phys}}^2},
+\qquad \rho_* \text{ external}.
+$$
 
-1. **Canonical (this section):** $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$, numerator the field power $\rho^2$. Used by `cassi-first-principles.md` §2.1, `wa-pentagon-gate.md` §1, `gravity/three-body-analytical.md`, and the two-fluid solver's single gate ($M_{qi} = (E_Y+E_I)^2 = \rho^2$, $\varepsilon^2 = (E_Y-\varphi E_I)^2$; `two-fluid/cassi_two_fluid_3d_gpu.py`, `two-fluid/run_rung_offset_probe.py`, `two-fluid/run_sigma8_pipeline.py`, `runs/_pristine_solver.py`). The fixed-point value $q_{\text{eq}} = \varphi^{-2}/(\varphi^2+\varphi^{-2}) \approx 0.127$ corresponds to the equilibrium normalization $\rho^2 = \varphi^{-6}$; $q \to 1$ is the large-scale saturation limit ($\rho^2 \gg \varphi^{-2}$). Gate closure reads $1-q \to \varphi^{-2}/(\varphi^2+\varphi^{-2})$ under the solver's $\rho^2 = \varphi^2$ normalization (`computations/ns_gate_correction.py`).
-2. **Per-rung specialization:** $q_i = 1 - \varphi^{-i-\delta}$, $\delta = 3$ (`cascade-suppression-formula.md` §1; `proton-coherence-budget.md`; `gravity/quantum-gravity.md` §2.1; `microcascade-mirror.md`; the coherence-budget consumers). Per-rung dephasing $1-q_i = \varphi^{-i-\delta}$, step $1-q_{i+1} = \varphi^{-1}(1-q_i)$. Not pointwise equal to form (1): residuals $|q_i - q_{\text{eq}}| = 0.64$–$0.85$ over $i = 0$–$5$ (reference normalization); the profiles cross only at the sub-Planckian rung $i^* = \log_\varphi(1/(1-q_{\text{eq}}))-3 \approx -2.7$ ($i^* \approx +1.3$ under the solver normalization). The two are tied by the $\delta = 3$ calibration $1-q_0 = \varphi^{-\delta} = (\pi/\rho)_{\text{eq}}$ (quantum-gravity §2.1), not by an identity; the profile's $i$-dependence is Hypothesized (proton-coherence-budget.md §8).
-3. **Equilibrium simplification ("Qi quality"):** $q = M/(M + \varphi^{-2})$ with $M \equiv \rho^2$ the field power (`unified-lagrangian.md` §1.5/§3.2, reconciled to this section). Form (1) at $\varepsilon^2 = 0$: identical at the fixed point (residual $<10^{-15}$); the omitted $\varepsilon^2$ is the only discrepancy away from equilibrium. `two-fluid/cassi_bridge_v2.py` `qi_coherence` is form (1) with $\varepsilon^2$ replaced by the temporal-memory deviation $(\rho-\rho_{\text{mem}})^2$ (cf. the $\bar\varepsilon^2$ IIR memory above).
-4. **Removed branch form:** $q_\alpha \propto |\psi_\alpha|^2$, a branch-level Qi density asserted by the measurement derivation; retracted in favor of the canonical gate (`foundations/quantum-measurement-derivation.md` §4.5), no consumers remain.
+At fixed density, $\varepsilon\to0$ approaches the finite-density equilibrium value $q_{\mathrm{eq}}(\rho)=\rho^2/(\rho^2+\varphi^{-2})<1$. The limit $q\to1$ additionally requires $\rho\gg\varphi^{-1}$. At the fixed point ($\varepsilon=0$; the solver's reference state $E_Y=1$, $E_I=\varphi^{-1}$ gives $\rho=\varphi$), $q_{\mathrm{eq}}=\varphi^{2}/(\varphi^2+\varphi^{-2})\approx0.873$, and the gate openness $(1-q_{\mathrm{eq}})=\varphi^{-2}/(\varphi^2+\varphi^{-2})=\varphi^{-2}/3\approx0.127$.
+**Optional positive-root lift bookkeeping.** For $\rho>0$, define
+$\mathbf{Q}^{(+)}=(\rho,\mathbf{J}_\Psi^{(+)})$, where
+
+$$
+\mathbf{J}_\Psi^{(+)}
+=\Psi_0^{(+)}\nabla\Psi_1^{(+)}
+-\Psi_1^{(+)}\nabla\Psi_0^{(+)}
+=\rho\nabla\theta_\Psi.
+$$
+
+This is an exact coordinate/diagnostic lift of the canonical two-density
+state, whose independent variables remain $(E_Y,E_I)$ with derived scalar
+$q$; it is not an additional field or canonical compact-current pair. For a
+specified spatial direction $\hat{\mathbf t}$,
+$J_{\Psi,\parallel}^{(+)}=\hat{\mathbf t}\cdot\mathbf{J}_\Psi^{(+)}$ is the
+corresponding projection, with sign defined by $\hat{\mathbf t}$. The
+density-lattice diagnostic $\mathbf{J}_d$ has different units, as stated in
+§2.1. Physical-current and inter-rung-transport interpretations require a
+separate constitutive map and remain **Hypothesized**.
+
+**Optional temporal coherence (IIR memory).** When the default-off `qi_memory` closure is enabled, $\bar{\varepsilon}^2(t) = (1-\tau)\,\bar{\varepsilon}^2(t-\Delta t) + \tau\,\varepsilon^2(t)$ replaces the instantaneous deviation in the diagnostic, with $\tau=\varphi^{-1}$ as a solver coefficient convention. The memory carries a history of the field state and can smooth $\varepsilon^2$; neither the closure nor this coefficient is a canonical physical cycle.
+
+**Active q-form inventory.** The coherence $q$ has three active forms:
+
+In the implementation references below, “solver gate” means the optional
+`ExpandingTwoFluid3DGPU(qi_gate=True)` path in
+`two-fluid/cassi_two_fluid_3d_gpu.py`; the base `TwoFluid3DGPU` `rhs` method
+and the expanding solver's `qi_gate=False` default use ungated conversion.
+1. **Canonical (this section):** $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$, numerator the field power $\rho^2$. Used by `cassi-first-principles.md` §2.1, `wa-pentagon-gate.md` §1, `gravity/three-body-analytical.md`, and the two-fluid solver's single gate ($M_{qi} = (E_Y+E_I)^2 = \rho^2$, $\varepsilon^2 = (E_Y-\varphi E_I)^2$; `two-fluid/cassi_two_fluid_3d_gpu.py`, `two-fluid/run_rung_offset_probe.py`, `two-fluid/run_sigma8_pipeline.py`). At $\varepsilon=0$, $q_{\mathrm{eq}}(\rho)=\rho^2/(\rho^2+\varphi^{-2})$. Under the solver's $\rho^2=\varphi^2$ normalization, $q_{\mathrm{eq}}\approx0.873$ and the gate closure is $1-q_{\mathrm{eq}}=\varphi^{-2}/(\varphi^2+\varphi^{-2})\approx0.127$ (`computations/ns_gate_correction.py`); a separate normalization $\rho^2=\varphi^{-6}$ gives $q_{\mathrm{eq}}\approx0.127$. The large-density limit $\rho^2\gg\varphi^{-2}$ gives $q\to1$.
+2. **Per-rung specialization:** $q_i = 1 - \varphi^{-i-\delta}$, $\delta = 3$ (`cascade-suppression-formula.md` §1; `proton-coherence-budget.md`; `gravity/quantum-gravity.md` §2.1; `microcascade-mirror.md`; the coherence-budget consumers). Per-rung dephasing $1-q_i = \varphi^{-i-\delta}$, step $1-q_{i+1} = \varphi^{-1}(1-q_i)$. Not pointwise equal to form (1): under the separate $\rho^2=\varphi^{-6}$ normalization, residuals $|q_i-q_{\mathrm{eq}}|$ are $0.64$–$0.85$ over $i=0$–$5$; under the reference/solver $\rho^2=\varphi^2$ normalization, they are $0.019$–$0.109$. The profiles cross at $i^*=\log_\varphi(1/(1-q_{\mathrm{eq}}))-3\approx-2.7$ for the separate normalization and $i^*\approx+1.3$ for the solver normalization. The two are tied by the $\delta=3$ calibration $1-q_0=\varphi^{-\delta}=(\pi/\rho)_{\mathrm{eq}}$ (`gravity/quantum-gravity.md` §2.1), not by an identity; the profile's $i$-dependence is **Hypothesized** (`proton-coherence-budget.md` §8).
+3. **Equilibrium simplification ("Qi quality"):** $q = M/(M + \varphi^{-2})$ with $M \equiv \rho^2$ the field power (`unified-lagrangian.md` §1.5/§3.2). Form (1) at $\varepsilon^2 = 0$: identical at the fixed point (residual $<10^{-15}$); the omitted $\varepsilon^2$ is the only discrepancy away from equilibrium. `two-fluid/cassi_bridge_v2.py` `qi_coherence` is form (1) with $\varepsilon^2$ replaced by the temporal-memory deviation $(\rho-\rho_{\text{mem}})^2$ when its optional memory path is enabled; that path is default-off and uses a solver convention rather than a derived physical cycle (cf. the $\bar\varepsilon^2$ IIR memory above).
 
 Distinct-naming consumers (not the coherence $q$): `experiments/phi_attractor_paths/path8_phi_enhanced_rotation.py` uses a density-only halo $q = 1/(1+(\rho/\rho_{\text{ref}})^2)$ (inverted density dependence; documented halo-scale approximation, not the canonical form); `experiments/sparc_qi/sparc_qi_analysis_v9.py` uses $q$ as a halo mass fraction; `speculations/dark-matter-as-qi-coherence.md` and `consciousness/chakras-as-cascade-bubbles.md` use the spatial envelope $q(\mathbf{x}) = (1+B(\mathbf{x}))/2$; `standard-model/sm-from-phi.md` §3.1 uses a distinct $Q = |\Psi|^2|\varepsilon|^2$.
 ### 2.5 Qi Gate
 
 $$\partial_t E_Y \supset -\lambda(1-q)(E_Y - \varphi E_I),\qquad \partial_t E_I \supset +\lambda(1-q)(E_Y - \varphi E_I)$$
-The pair is equal and opposite ($\partial_t E_Y = -\partial_t E_I$), so total density is conserved exactly—the committed solver's code form (`foundations/wu-xing-derivation.md` §7.1).
+The pair is equal and opposite ($\partial_t E_Y=-\partial_t E_I$), so total
+density is conserved exactly in the selected canonical/theory form. In code,
+the base solver's `rhs` method in `two-fluid/cassi_two_fluid_3d_gpu.py` is
+ungated, and `ExpandingTwoFluid3DGPU` defaults to `qi_gate=False`; the
+q-gated rank-one mode is implemented only when `qi_gate=True`, with
+`gate_model` and `qi_memory` also affecting the receipt.
 
-The gate *openness* is $(1-q)$: $q \to 0$ means the gate is **open**—conversion runs hard, the region churns; $q \to 1$ means the gate is **closed**—the system rests at $\varphi$-balance. (Sign PDE-tested 2026-07-31 in `consciousness/trauma-as-frozen-gate.md` §10.4.) The gate determines $w(a)$; its shape follows from the $\varphi$-power structure.
+The gate *openness* is $(1-q)$: $q\to0$ means the gate is **open**—conversion runs hard and the region churns. At finite density, alignment at $\varepsilon=0$ reaches $q_{\mathrm{eq}}(\rho)$; $q\to1$ additionally requires $\rho\gg\varphi^{-1}$, and the gate is **closed** in that high-density limit—the system rests at $\varphi$-balance. (Sign PDE-tested 2026-07-31 in `consciousness/trauma-as-frozen-gate.md` §10.4.) The gate openness $(1-q)$ supplies the displayed conversion factor. The single-channel $g(q)$ shape used by some applications is an **Asserted input**; it is not derived from the $\varphi$-power structure, and any physical closure using it remains **Hypothesized**.
 
-### 2.6 Winding Rate
+### 2.6 Density-Plane Relaxation Rate
 
-The conversion pair rotates the doublet in its internal plane. With $\theta = \mathrm{atan2}(E_I, E_Y)$—the density-plane angle, twice the amplitude-plane doublet phase (one cascade rung advances $\theta$ by $2\pi$, the single-component pitch convention of `foundations/spin-fibonacci-spiral.md` §2.1)—the rotation rate is a state function:
+The canonical conversion is a rank-one relaxation in the density variables, not an $SO(2)$ generator. With $\kappa=\lambda(1-q)$, its conversion-only matrix has eigenvalues $0$ and $-\kappa(1+\varphi)=-\lambda(1-q)(1+\varphi)$. It conserves $\rho=E_Y+E_I$ while generally changing $E_Y^2+E_I^2$.
 
-$$\frac{d\theta}{dt} = \lambda(1-q)\,\frac{\rho\,\varepsilon}{E_Y^2 + E_I^2}$$
+For the density-plane angle
 
-(`foundations/cassi-first-principles.md` §2.6). The rate vanishes exactly at the $\varphi$-line ($\varepsilon = 0$) and is gated by the openness $(1-q)$. The total winding accumulated while a state relaxes from imbalance $\varepsilon_0$ to equilibrium is exact and parameter-free (the conversion rate and the gate cancel in $d\theta/d\varepsilon$; $\rho$ conserved):
+$$
+\theta_d=\operatorname{atan2}(E_I,E_Y),
+$$
 
-$$\Delta\vartheta = \mathrm{atan}\!\left(\frac{1}{\varphi}\right) - \mathrm{atan}\!\left(\frac{\rho-\varepsilon_0}{\rho\varphi+\varepsilon_0}\right)$$
+the exact state-function rate is
 
-with extremes the Yang limit $\varepsilon_0 \to \rho$ ($\Delta\vartheta \to +\mathrm{atan}(\varphi^{-1}) \approx 0.554$ rad) and the Yin limit $\varepsilon_0 \to -\rho\varphi$ ($\Delta\vartheta \to -\mathrm{atan}(\varphi) \approx -1.017$ rad); in rung units, relaxation offsets are bounded by $|\delta n| \le \mathrm{atan}(\varphi)/(2\pi) \approx 0.162$. A half-rung offset ($\delta n = 1/2$) is one full $\pi$-advance of the density-plane angle—the doublet's per-rung step, $\pi/\mathrm{atan}(\varphi) \approx 3.09\times$ the bound—so the half-step class is the **parity** structure of `foundations/rung-offset-mechanism.md` §7, not relaxation winding. Solver-measured: four homogeneous arms ($\lambda = 0.05$, $t = 4$) match the state-function rate to per-checkpoint relative error $\le 2.2\times10^{-3}$ with 100% sign agreement, and the equilibrium arm reads $q_{\text{eq}} \approx 0.873$ (4/4 PASS; `two-fluid/run_winding_rate_probe.py`).
+$$\frac{d\theta_d}{dt}=\lambda(1-q)\,\frac{\rho\,\varepsilon}{E_Y^2+E_I^2}$$
 
+(`foundations/cassi-first-principles.md` §2.6). The rate vanishes exactly at the $\varphi$-line ($\varepsilon=0$) and is gated by the openness $(1-q)$. Positive $\varepsilon$ gives positive $\theta_d$ drift; calling that direction toward the Yin-named axis uses the density-plane coordinate convention and does not assert a universal spatial transport direction, while negative $\varepsilon$ gives the reverse. Solver-measured: four homogeneous arms ($\lambda=0.05$, $t=4$) match the state-function rate to per-checkpoint relative error $\le2.2\times10^{-3}$ with 100% sign agreement, and the equilibrium arm reads $q_{\mathrm{eq}}\approx0.873$ (4/4 PASS; `two-fluid/run_winding_rate_probe.py`).
+
+**Density-plane relaxation (exact).** Since $d\varepsilon/dt=-\lambda(1+\varphi)(1-q)\varepsilon$, the conversion rate and the gate cancel in $d\theta_d/d\varepsilon$; with $\rho$ conserved, $\theta_d$ is a function of $\varepsilon$ alone:
+
+$$\theta_d=\operatorname{atan}\!\left(\frac{\rho-\varepsilon}{\rho\varphi+\varepsilon}\right).$$
+
+The total density-plane drift accumulated while a state relaxes from $\varepsilon_0$ to equilibrium is
+
+$$\boxed{\Delta\theta_d=\operatorname{atan}\!\left(\frac{1}{\varphi}\right)-\operatorname{atan}\!\left(\frac{\rho-\varepsilon_0}{\rho\varphi+\varepsilon_0}\right)}$$
+
+independent of $\lambda$ and of the gate shape. Its extremes are the Yang limit $\varepsilon_0\to\rho$ ($\Delta\theta_d\to+\operatorname{atan}(\varphi^{-1})\approx0.554$ rad) and the Yin limit $\varepsilon_0\to-\rho\varphi$ ($\Delta\theta_d\to-\operatorname{atan}(\varphi)\approx-1.017$ rad). If one assigns a rung coordinate by the map $\delta n_{\mathrm{map}}\equiv\Delta\theta_d/(2\pi)$, the bound $|\delta n_{\mathrm{map}}|\le\operatorname{atan}(\varphi)/(2\pi)\approx0.162$ is **Hypothesized**, not a PDE-derived rung offset or physical rung flux. For small deviations the integral reduces to $\Delta\theta_d\approx\rho\varepsilon_0/[(1+\varphi)(E_Y^2+E_I^2)]$. Under that same Hypothesized map, a half-rung offset ($\delta n_{\mathrm{map}}=1/2$) would correspond to one full $\pi$-advance of the density-plane angle and exceed the relaxation bound by $\sim3.09\times$; the half-step class is the **parity** structure of `foundations/rung-offset-mechanism.md` §7, not accumulated relaxation.
 ### 2.7 Classical Limits
 
 | Limit | Condition | Effective Theory |
 |-------|-----------|-----------------|
-| $q \to 0$ on the $\varphi$-line (dilute attractor: $\varepsilon = 0$, $\rho \to 0$; $q \to 0$ alone is $\rho \to 0$ or large $|\varepsilon|$, not equilibrium—at the reference fixed point $q = q_{\text{eq}} \approx 0.873$) | $\pi/\rho = \varphi^{-3}$, boost $\to 1$ | GR with $G_{\text{eff}} = \varphi^{-3}G \approx 0.236\,G$ |
-| $q \to 0$ on the $\varphi$-line, $\hbar \to 0$ | Classical + dilute equilibrium | Newtonian gravity |
-| $\hbar \not\to 0$, $q \to 0$ on the $\varphi$-line | Quantum + dilute equilibrium | Schrödinger equation |
-| $\lambda \to 0$ | No conversion | Euler-Poisson system |
-| $\xi \to 0$ | No Qi enhancement | Standard GR |
+| $q \to 0$ on the $\varphi$-line (dilute attractor: $\varepsilon = 0$, $\rho \to 0$; $q \to 0$ alone is $\rho \to 0$ or large $|\varepsilon|$, not equilibrium—at the reference fixed point $q = q_{\text{eq}} \approx 0.873$) | Optional Qi-gravity extension with $\pi/\rho = \varphi^{-3}$ and boost $\to 1$ | GR with $G_{\text{eff}} = \varphi^{-3}G \approx 0.236\,G$ |
+| $q \to 0$ on the $\varphi$-line, $\hbar \to 0$ | Optional Qi-gravity/force closure plus the classical dilute limit | Newtonian gravity |
+| $\hbar \not\to 0$, $q \to 0$ on the $\varphi$-line | Optional positive-root amplitude/action and quantum-potential sector plus the dilute limit | Schrödinger equation within that extension |
+| $\lambda \to 0$ | Optional pressure/force/source closure with conversion removed | Euler-Poisson system |
+| $\xi \to 0$ | Optional Qi-gravity sector switched off | Standard GR |
 
 ---
 
 ## 3. The Cascade
 
-### 3.1 Dimensionful Cascade Ladder
+### 3.1 Proposed Dimensionful Scale Coordinate
+
+Conditional on the external constants and a selected one-step convention, the
+framework uses the following proposed scale-coordinate relation:
 
 $$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}},\qquad \ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$$
 
-$n \in [0, \approx 292]$ today (cascade unbounded; horizon rung epoch-dependent). $n = \log_\varphi(\ell / \ell_{\text{Pl}})$.
+The recurrence and external anchor define the coordinate algebra; they do not
+by themselves derive physical dimensionality or force unification. Named
+physical-scale correspondences are **Hypothesized** unless explicitly marked
+**Mapped** from data. The table records the current coordinate labels. Today
+$n \in [0, \approx 292]$ in this epoch-dependent convention, and
+$n = \log_\varphi(\ell / \ell_{\text{Pl}})$.
 
-| $n$ | Scale (m) | Meaning |
-|-----|-----------|---------|
+| $n$ | Coordinate scale (m) | Current label |
+|-----|----------------------|---------------|
 | 0 | $1.6 \times 10^{-35}$ | Planck length |
-| 5 | $1.8 \times 10^{-34}$ | GUT scale |
+| $\approx13.3$ | $\approx1.0 \times 10^{-32}$ | GUT scale ($M_{\text{GUT}}\approx2\times10^{16}$ GeV; **Mapped** coordinate label) |
 | 20 | $2.4 \times 10^{-31}$ | Seesaw scale |
 | 40 | $3.7 \times 10^{-27}$ | Inflationary scale |
 | 80 | $8.0 \times 10^{-19}$ | Electroweak scale |
@@ -122,24 +279,78 @@ $n \in [0, \approx 292]$ today (cascade unbounded; horizon rung epoch-dependent)
 
 ### 3.2 Cascade Suppression
 
-A quantity originating at rung $m$, observed at rung $n$ ($N = n - m$):
+Within the proposed cascade-coordinate model, a quantity assigned to coordinate
+rung $m$ and evaluated at coordinate rung $n$ has modeled signal attenuation
+over the source-to-target span $N=n-m$:
 
 $$\text{Signal:}\quad \mathcal{D}_{m \to n} = \varphi^{-N}$$
 
-$$\text{Coherence:}\quad \mathcal{D}_{0 \to n} = \prod_{i=0}^{n} (1-q_i) = \varphi^{-n(n+1)/2 - \delta(n+1)}$$
+For an integer count $N\in\mathbb{Z}_{\ge0}$, define the indexed coherence
+product
 
-where $1-q_i = \varphi^{-i-\delta}$ is the per-rung dephasing probability, $\delta = 3$ (from $\sigma = \ell_{\text{Pl}}/\varphi^3$). Signal propagation is linear in span $N$; coherence maintenance is quadratic in depth $n$.
+$$
+S_N\equiv\prod_{i=0}^{N-1}(1-q_i),\qquad S_0=1.
+$$
 
-Applications: hierarchy ($v_0/M_{\text{Pl}} \propto \varphi^{-80}$; see `principles/v0-hierarchy-problem.md`), strong CP ($\bar{\theta} = \varphi^{-81.4} \times \pi\varphi^{-2} = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$), neutrino masses ($m_\nu \propto v_0 \cdot \varphi^{-12}$), proton lifetime (coherence: $\varphi^{-4506}$).
+With the conditional per-rung profile $1-q_i=\varphi^{-i-\delta}$,
 
-### 3.3 Wu Xing Cycle
+$$
+S_N=\varphi^{-\sum_{i=0}^{N-1}(i+\delta)}
+    =\varphi^{-N(N-1)/2-\delta N}.
+$$
 
-The cycle number $w = 5$ from two constraints:
+The canonical coherence endpoint convention labels the last supporting rung
+$N\in\mathbb{Z}_{\ge0}$, so it includes the endpoint factor:
 
-1. **Cascade upper bound:** Fibonacci cycles with $F_k \leq k$ hold for $k \in \{1,2,3,4,5\}$, fail for $k \geq 6$ (accumulated phase error exceeds cascade signal).
-2. **Geometry lower bound:** $\varphi$ appears in regular polygon ratios only for $n \geq 5$ (diagonal/side $= 2\cos(\pi/5) = \varphi$).
+$$
+\text{Coherence:}\quad
+\mathcal{D}_{0\to N}
+=\prod_{i=0}^{N}(1-q_i)
+=\varphi^{-N(N+1)/2-\delta(N+1)}.
+$$
 
-The intersection is unique: $w = 5$.
+For a constant local coherence $q_i\equiv q$ supplied to the count product,
+$S_N=(1-q)^N$ and the endpoint convention consequently gives
+$\mathcal{D}_{0\to N}=(1-q)^{N+1}$. The declared uniform signal input
+$d_i^{\mathrm{signal}}\equiv\varphi^{-1}$ gives
+$\prod_{i=m}^{n-1}d_i^{\mathrm{signal}}=\varphi^{-(n-m)}=\varphi^{-N}$.
+These are algebraic identities conditional on their stated per-rung inputs;
+the physical signal-map interpretation remains **Hypothesized**.
+
+For the fractional mapped endpoint $N_p=91.46$, no indexed product is taken.
+The closed quadratic exponent is continued by the explicit coordinate
+interpolation
+
+$$
+\mathcal{E}_{\mathrm{cont}}(N_p,\delta)
+=N_p(N_p+1)/2+\delta(N_p+1),\qquad
+\mathcal{D}^{\mathrm{cont}}_{0\to N_p}
+=\varphi^{-\mathcal{E}_{\mathrm{cont}}(N_p,\delta)}
+=\varphi^{-4505.5758}\approx\varphi^{-4506}.
+$$
+
+The discrete product and finite sum are **Derived conditional** on the
+profile $1-q_i=\varphi^{-i-\delta}$, with $\delta=3$ from
+$\sigma=\ell_{\text{Pl}}/\varphi^3$; the real-coordinate continuation is a
+**Mapped/Hypothesized** coordinate convention. Modeled signal attenuation is
+linear in span $N$; coherence maintenance is quadratic in depth.
+
+Applications of this coordinate model include hierarchy
+($v_0/M_{\text{Pl}}\propto\varphi^{-80}$; see
+`principles/v0-hierarchy-problem.md`), strong CP
+($\bar{\theta}=\varphi^{-81.4}\times\pi\varphi^{-2}
+=\pi\varphi^{-83.4}\approx1.2\times10^{-17}$), neutrino masses
+($m_\nu\propto v_0\cdot\varphi^{-12}$), and proton lifetime (coherence:
+$\varphi^{-4506}$).
+
+$$\lambda=0.1\quad\text{(declared C-class solver normalization/timescale convention; the `TwoFluid3DGPU` constructor default is $\lambda=0.02$ and uses $0.1$ only when explicitly passed; the linkage }\lambda=1/(2w)\text{ at }w=5\text{ is Hypothesized)}$$
+
+The cycle number $w=5$ is obtained conditionally from two constraints under the proposed cascade-coordinate signal map and its stipulated uniform phase-error/threshold assumptions:
+
+1. **Cascade upper bound:** within that construction, Fibonacci cycles with $F_k \leq k$ hold for $k \in \{1,2,3,4,5\}$ and fail for $k \geq 6$ because the modeled accumulated phase error exceeds the modeled cascade signal.
+2. **Geometry lower bound:** within the regular-polygon construction, $\varphi$ appears in polygon ratios only for $n \geq 5$ (diagonal/side $= 2\cos(\pi/5) = \varphi$).
+
+The intersection is unique under those assumptions: $w=5$. Its interpretation as a physical Wu Xing channel count, cycle, or canonical PDE extension remains **Hypothesized**.
 
 Consequences:
 
@@ -147,49 +358,127 @@ $$g = 1 - \varphi^{-5} \quad\text{(primordial gap)}$$
 
 $$r_0 = \frac{\varphi^{-5}}{2 - \varphi^{-5}} \quad\text{(primordial ratio } E_Y/E_I\text{)}$$
 
-$$\lambda = 1/(2w) = 0.1 \quad\text{(PDE conversion rate)}$$
+$$\lambda=0.1\quad\text{(C-class solver normalization/timescale convention; the linkage }\lambda=1/(2w)\text{ at }w=5\text{ is Hypothesized)}$$
+
+Dimensionless couplings are expressed as $\varphi$-powers, with individual status labels. The framework declares $\lambda=0.1$ as the **C-class solver normalization/timescale convention**; the `TwoFluid3DGPU` constructor defaults to $\lambda=0.02$ and uses $0.1$ only when explicitly passed. The relation $\lambda=1/(2w)$ at $w=5$ is a **Hypothesized** Wu Xing cycle linkage, not a $\varphi$-derived rate. Three external dimensionful constants ($c$, $\hbar$, $G$) set the unit system; $\ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$ is the cascade's sole dimensionful anchor.
 
 | Coefficient | Expression | Value | Meaning |
 |------------|-----------|-------|---------|
 | $K_{fw}$ | $\varphi^{-1}$ | $0.618$ | Water damps Fire |
 | $K_{fm}$ | $\lambda\varphi^2$ | $0.262$ | Fire melts Metal |
 | $K_{md}$ | $3\varphi^2$ | $7.85$ | Metal cuts Wood |
-| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| Irreducible cosmological baseline—the 1/3 is **Derived** as the isotropic dimension factor $1/d$ at $d = 3$ (`cosmology/cosmology-from-phi.md` §1); the $\lambda\varphi^{-2}$ rate stays **Asserted** |
-| $\kappa_s$ | $\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ | Dirac↔two-fluid sector-coupling scale (rung $77 = 154/2 = 80 - 3$; Derived conditional on $\delta = 3$—`foundations/sector-coupling-derivation.md` §2) |
+| $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| Irreducible cosmological baseline—the factor $1/3$ is **Derived conditional** on an assumed isotropic three-dimensional model ($d=3$); the $\lambda\varphi^{-2}$ factor inherits the **C-class** solver normalization/timescale convention, while any physical cosmological-rate interpretation is **Hypothesized** |
+| $\kappa_s$ | $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ (formal $C=1$ candidate) | Coefficient-free arithmetic scale candidate at proposed rung $77=154/2=80-3$, **Derived conditional** on $\delta=3$; the optional projection is dimensionally incomplete and establishes no physical $\kappa_s$ or equilibration scale (`foundations/sector-coupling-derivation.md` §§1–3) |
 
 ---
 
-## 4. The Unified Action
+## 4. The Unified Action (optional extension)
+
+The canonical solver is the density-pair system described in §2; the displayed action is an optional amplitude-field/action extension. Its sector identifications and physical mappings are **Hypothesized**; algebraic identities are **Derived conditional** only after the stated ansätze and external conventions are selected.
 
 $$S_{\text{Cassi}} = \int d^4x\sqrt{-g}\,(\mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}})$$
 
-Dimensionless couplings are expressed as $\varphi$-powers, with individual status labels and the derived rational conversion rate $\lambda = 1/(2w) = 0.1$. Three external dimensionful constants ($c$, $\hbar$, $G$) set the unit system; $\ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$ is the cascade's sole dimensionful anchor.
+Dimensionless couplings are expressed as $\varphi$-powers, with individual status labels. The canonical $\lambda=0.1$ is the **C-class solver normalization/timescale convention**; the relation $\lambda=1/(2w)$ at $w=5$ is a **Hypothesized** Wu Xing cycle linkage, not a $\varphi$-derived rate. Three external dimensionful constants ($c$, $\hbar$, $G$) set the unit system; $\ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$ is the cascade's sole dimensionful anchor.
 
-### 4.1 Two-Fluid Core $\mathcal{L}_{\text{TF}}$
+### 4.1 Two-Fluid Core $\mathcal{L}_{\text{TF}}$ (optional amplitude-field form)
+The action's $\Psi_\alpha$ notation denotes an optional amplitude-field
+representation; the canonical solver evolves the density pair $E_Y,E_I$ and
+uses the positive-root lift for the corresponding coordinate diagnostics.
+The Bohm-like expression carrying a free component index is a conditional
+operator term, not a scalar Lagrangian density:
 
-$$\mathcal{L}_{\text{TF}} = \frac{1}{2}(\partial_\mu\Psi_\alpha)(\partial^\mu\Psi_\alpha) - \frac{\nu}{2}(\nabla^2\Psi_\alpha)^2 - \frac{g}{4}|\Psi|^4 - \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2 - \frac{\hbar^2}{2m^2}\frac{\nabla^2 M^\beta}{M^\beta}\Psi_\alpha + A_B B(x,t)\frac{1}{2}|\Psi|^2$$
+$$
+\mathcal{Q}_{\mathrm{QP},\alpha}
+=-\frac{\hbar^2}{2m^2}\frac{\nabla^2 M^\beta}{M^\beta}\Psi_\alpha,
+\qquad
+M=\rho=E_Y+E_I=\Psi_0^2+\Psi_1^2,\qquad
+\beta=\frac{\varphi^{-1}}{2}.
+$$
 
-Terms: kinetic + gradient, hyperdiffusion, $\phi^4$, $\varphi$-attractor, Bohm quantum potential ($\beta = \varphi^{-1}/2$), breath modulation ($\omega_I = \varphi^{-1}\omega_Y$; localized to each region's rung-clock—Hypothesized, 21).
+Without an additional contraction or scalar completion, $\mathcal{Q}_{\mathrm{QP},\alpha}$
+is not included in the scalar bookkeeping action:
 
-### 4.2 Dirac Sector $\mathcal{L}_{\text{D}}$
+$$
+\mathcal{L}_{\text{TF}} =
+\frac{1}{2}(\partial_\mu\Psi_\alpha)(\partial^\mu\Psi_\alpha)
+-\frac{\nu}{2}(\nabla^2\Psi_\alpha)^2
+-\frac{g}{4}|\Psi|^4
+-\frac{\lambda}{2}(\Psi_0^2-\varphi\Psi_1^2)^2
++A_B B(x,t)\frac{1}{2}|\Psi|^2.
+$$
+
+Terms in this optional amplitude-field ansatz are kinetic + gradient,
+hyperdiffusion, $\phi^4$, $\varphi$-attractor, and breath modulation
+($\omega_I=\varphi^{-1}\omega_Y$; localized to each region's proposed
+coordinate rung-clock—**Hypothesized**, 21). The QP operator remains a
+separate **Derived conditional/Hypothesized** extension.
+
+### 4.2 Dirac Sector $\mathcal{L}_{\text{D}}$ (optional coupling extension)
+
+This sector is an optional **Hypothesized** fermion-coupling extension. The canonical density pair supplies the $\Psi_\alpha$ coordinate lift; the fermion identification below is an additional ansatz.
 
 $$\mathcal{L}_{\text{D}} = \bar\psi(i\gamma^\mu\partial_\mu - m)\psi - \frac{\varphi^{-1}}{2}(\bar\psi\psi)\cdot M + \bar\psi(\hat{P}_Y\Psi_0^2 + \hat{P}_I\Psi_1^2)\psi$$
 
-Chiral projections: $\hat{P}_Y = (1+\gamma^5)/2$, $\hat{P}_I = (1-\gamma^5)/2$. Mapping: $\Psi_0^2 = \bar\psi\hat{P}_Y\psi$, $\Psi_1^2 = \bar\psi\hat{P}_I\psi$.
+For this ansatz, $\hat{P}_Y = (1+\gamma^5)/2$ and $\hat{P}_I = (1-\gamma^5)/2$ are algebraic chiral-projector definitions, while the mapping $\Psi_0^2 = \bar\psi\hat{P}_Y\psi$, $\Psi_1^2 = \bar\psi\hat{P}_I\psi$ is **Hypothesized** and conditional; the canonical density PDE supplies no such fermion mapping.
 
-### 4.3 Gravity Sector $\mathcal{L}_{\text{GR}}$
+### 4.3 Gravity Sector $\mathcal{L}_{\text{GR}}$ (optional gravity extension)
+This sector is an optional **Hypothesized** gravity extension. Its displayed
+relations and fixed-point evaluations are **Derived conditional** on the ansatz
+and selected normalization. The Einstein–Hilbert expression below is a formal
+frozen-background or locally constant-$G_{\text{eff}}$ ansatz, not a complete
+variable-coupling covariant action.
 
 $$\mathcal{L}_{\text{GR}} = \frac{1}{16\pi G_{\text{eff}}}R\sqrt{-g} + \frac{1}{2}T_{\mu\nu}g^{\mu\nu}$$
 
 $$\boxed{G_{\text{eff}} = G \cdot \frac{\pi}{\rho} \cdot (1 + (\varphi^{6}-1)q)},\qquad \xi = \varphi^6 = \varphi^5 + \varphi^4$$
 
-$\xi = \varphi^6$: 2 field components $\times$ 3 spatial dimensions (Frenet-Serret frame, §10.2).
+The covariant coefficient $1/G_{\text{eff}}$ is undefined at $\pi=0$ and
+changes sign on the Yin-dominant branch $\pi<0$. A restricted positive-
+imbalance branch or a new regularized/sign constitutive map is required.
+If $F\equiv1/G_{\text{eff}}$ varies in spacetime, metric variation of
+$\int\sqrt{-g}\,F R$ adds
+$(g_{\mu\nu}\Box-\nabla_\mu\nabla_\nu)F$ and any implicit metric-dependence
+terms; a scalar-tensor completion or explicit exchange terms are required for
+a variable coupling. The displayed Einstein equation with only
+$G_{\text{eff}}T_{\mu\nu}$ and its Bianchi conservation is therefore not
+derived here.
 
-At the $\varphi$-fixed point ($\varepsilon = 0$, $\pi/\rho = \varphi^{-3}$) the equilibrium coherence is $q_{\text{eq}} = \varphi^2/(\varphi^2+\varphi^{-2}) \approx 0.873$ at the reference density, so $G_{\text{eff}} = \varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}})G = \varphi^{-3}(\varphi^{10}+1)/(\varphi^4+1)\,G \approx 3.73\,G$. In the weak-field (dilute) limit $q \to 0$ on the $\varphi$-line, PPN parameters $\beta = 1 + \mathcal{O}(\xi q^2)$, $\gamma = 1 + \mathcal{O}(\xi q^2)$ return to GR with $G_{\text{eff}} = \varphi^{-3}G$. In high-$q$ regions, $G_{\text{eff}}$ is enhanced by factor $(\varphi^{6}-1)q$.
+The optional Frenet–Serret interpretation reads $\xi=\varphi^6$ as 2 field
+components times 3 frame vectors under an assumed three-dimensional
+embedding; it is **Hypothesized** and does not derive $d=3$ or $\xi$ from the
+canonical density conversion.
 
-### 4.4 Gauge Sector $\mathcal{L}_{\text{SM}}$
+At the $\varphi$-fixed point ($\varepsilon=0$, $\pi/\rho=\varphi^{-3}$), the
+reference state has $\rho=\varphi$ and
+$q_{\mathrm{eq}}=\varphi^2/(\varphi^2+\varphi^{-2})=0.872677996$. Therefore
+$G_{\text{eff}}\approx3.726779962\,G$. On the same fixed-composition line,
+$q\to0$ as $\rho\to0$ and $G_{\text{eff}}\to\varphi^{-3}G$, while
+$q\to1$ only as $\rho\to\infty$ and $G_{\text{eff}}\to\varphi^3G$. These are
+branch limits, not global state-space bounds, because $q=q(\rho,s)$ varies
+with total density and composition. For the unrestricted-composition
+high-density expression
+$q_\infty(s)=\left[1+\left((\varphi^2s-\varphi^{-1})/2\right)^2\right]^{-1}$,
+$G_{\text{eff}}/G\to s[1+(\varphi^6-1)q_\infty(s)]$ has an interior peak
+$\approx9.601$ at $s\approx0.8569$ on the physical interval $0\le s\le1$;
+if $s>1$ is formally admitted, it is unbounded, so this value is not a
+global ceiling. The $\alpha$-free bracket factor remains separately bounded
+by $\varphi^6\approx17.94$ for $0\le q\le1$. The formal $\varphi^6$
+endpoint ratio is therefore a bracket bound, not a universal
+$G_{\text{eff}}$ or velocity ceiling $\varphi^3$.
+The PPN expressions $\beta=1+\mathcal{O}(\xi q^2)$ and
+$\gamma=1+\mathcal{O}(\xi q^2)$ remain **Derived conditional** on an
+additional metric/sign closure; attractive Newtonian or GR behavior is not
+supplied by the displayed constitutive law.
 
-Gauge group SU(3)$_C \times$ SU(2)$_L \times$ U(1)$_Y$. At the GUT scale (cascade step ~5):
+### 4.4 Gauge Sector $\mathcal{L}_{\text{SM}}$ (optional gauge/Higgs extension)
+The following gauge-group, coupling, and Higgs identifications are an optional
+**Hypothesized** physical extension. Trigonometric and mass identities are
+**Derived conditional** on this ansatz and selected external gauge parameters;
+the proposed GUT coordinate label is **Mapped** at $n\approx13.3$ for
+$M_{\text{GUT}}\approx2\times10^{16}$ GeV.
+
+Gauge group SU(3)$_C \times$ SU(2)$_L \times$ U(1)$_Y$. At the proposed
+GUT-labeled coordinate ($n\approx13.3$):
 
 $$\alpha_{\text{GUT}} = \frac{\varphi^{-3}}{4\pi}$$
 
@@ -211,9 +500,11 @@ Fermion mass hierarchy ($y_f = y_0 \cdot \varphi^{-n_f}$):
 | 2 (charm/strange) | 2 | $\varphi^{-2}$ |
 | 1 (up/down) | 3 | $\varphi^{-3}$ |
 
-### 4.5 Mixing Terms $\mathcal{L}_{\text{mix}}$
+### 4.5 Mixing Terms $\mathcal{L}_{\text{mix}}$ (optional extension)
+This mixing term is an optional **Hypothesized** extension of the action. Any matching of its displayed terms is **Derived conditional** on this ansatz, with no canonical density-PDE transport or fermion-mapping implication.
 
 $$\mathcal{L}_{\text{mix}} = \frac{\xi q}{16\pi G}R\sqrt{-g} + \frac{\kappa_s}{2}\sum_{\pm}\left(\bar\psi\frac{1\pm\gamma^5}{2}\psi - \Psi_{0,1}^2\right)^2 + \left(|D_\mu\Psi|^2 - |\partial_\mu\Psi|^2\right)$$
+The Dirac↔two-fluid bracket here is dimensionally incomplete: it subtracts a spinor density of dimension $[M]^3$ from a condensate square of dimension $[M]^2$. No physical $\kappa_s$ or equilibration scale follows without a sourced, ledgered normalization (`foundations/sector-coupling-derivation.md` §1).
 
 ---
 
@@ -221,35 +512,62 @@ $$\mathcal{L}_{\text{mix}} = \frac{\xi q}{16\pi G}R\sqrt{-g} + \frac{\kappa_s}{2
 
 ### 5.1 Schrödinger Limit
 
-The two-fluid PDE reduces to Schrödinger + Bohm quantum potential:
+Within the separately supplied **Hypothesized** positive-root amplitude/action
+extension and its quantum-potential closure, the two-fluid construction has a
+Schrödinger/Bohm reduction:
 
 $$\mathcal{L}_{\text{QP}} = -\frac{\hbar^2}{2m^2}\frac{\nabla^2 M^\beta}{M^\beta}\Psi_\alpha,\qquad \beta = \frac{\varphi^{-1}}{2},\qquad M = \Psi_0^2 + \Psi_1^2$$
 
-Atomic orbital energies emerge as standing waves. The Dirac equation emerges as the relativistic extension via the Foldy-Wouthuysen transformation.
+The canonical density PDE supplies the density pair, rank-one conversion, and
+Qi diagnostic. The displayed quantum-potential term and the interpretation of
+atomic orbital energies as standing waves are **Derived conditional** within
+the named amplitude/action extension. A Dirac equation via the
+Foldy-Wouthuysen transformation is a further **Hypothesized** relativistic
+extension of that sector.
 
 ### 5.2 Spin
 
-Spin is accumulated SO(2) winding along a nested Fibonacci spiral. Spiral polar equation:
+Spin is assigned through a **Hypothesized** geometric phase convention on a nested Fibonacci spiral, separate from canonical density-plane relaxation. Spiral polar equation:
 
 $$\Theta(r) = \frac{2\pi}{\ln\varphi}\ln\left(\frac{r}{\ell_n}\right)$$
 
-where $\Theta$ is the phase of a single doublet component (one rung = $2\pi$); the physical doublet carries the half-angle and winds $\pi$ per rung, so the spin is the doublet's internal winding in its own cycles, $s = \Delta\Theta/4\pi = \Delta n/2$ with $\Delta n$ the rung span (boxed unified convention: 1 rung = $2\pi$ single-component phase = $\pi$ doublet phase; 2 rungs = one full doublet SO(2) cycle—`foundations/spin-fibonacci-spiral.md` §2.1). Quantized: $s \in \{0, \frac{1}{2}, 1, 2\}$ (spans $\Delta n \in \{0, 1, 2, 4\}$). No fundamental $s = \frac{3}{2}$: $\Delta n = 3 = 1 + 2$ decomposes into the fermion span plus one gauge cycle, so under the minimal-span principle it is composite, not a new fundamental (`foundations/spin-fibonacci-spiral.md` §2.4). Spin-statistics from $(-1)^{2s}$. Form factor log-periodicity: $\Delta(\ln q) = \ln\varphi$.
+Here $\Theta$ is a geometric phase assigned to a single doublet component (one rung = $2\pi$); the spin convention uses the corresponding doublet phase assignment, $s=\Delta\Theta/4\pi=\Delta n/2$ with $\Delta n$ the rung span (one rung = $2\pi$ single-component geometric phase = $\pi$ assigned doublet phase; two rungs = one full assigned doublet phase cycle—`foundations/spin-fibonacci-spiral.md` §2.1). This fixed per-rung assignment is part of the **Hypothesized** geometric mapping. Quantized: $s\in\{0,\frac12,1,2\}$ (spans $\Delta n\in\{0,1,2,4\}$). No fundamental $s=\frac32$: $\Delta n=3=1+2$ decomposes into the fermion span plus one gauge cycle, so under the minimal-span principle it is composite, not a new fundamental (`foundations/spin-fibonacci-spiral.md` §2.4). Spin-statistics from $(-1)^{2s}$. The optional form-factor extension has log-periodicity $\Delta(\ln q)=\ln\varphi$.
 
 ### 5.3 Measurement
 
-Superposition coherence lives on a single cascade rung. Phase-matching factor $\mathcal{M}$:
+In the model's scale-coordinate bookkeeping, superposition coherence is
+assigned to a single cascade rung as a **Hypothesized** mapping. Phase-matching
+factor $\mathcal{M}$:
 - $\mathcal{M} \approx 1$: organized perturbation, definite outcome.
 - $\mathcal{M} \approx 0$: random noise, decoherence without branch selection.
 
-Born rule $P(\alpha) = |\alpha|^2$ from $q \propto |\psi|^2$.
+A Born-rule mapping $P(\alpha)=|\alpha|^2$ remains **Hypothesized** and open; the canonical $q$ is a local coherence diagnostic, and this section supplies no derivation of that probability law.
 
 ---
 
 ## 6. Particle Physics
 
-### 6.1 Gauge Coupling Unification
+### 6.1 Gauge-Coupling Boundary
 
-Unified coupling at GUT: $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi)$. Gauge coupling relations at $M_{\text{GUT}}$: $g^2 = g'^2 \cdot (1-\varphi^{-3})/\varphi^{-3} = g_s^2 = 4\pi\alpha_{\text{GUT}}$.
+At the selected GUT boundary, $\alpha_{\text{GUT}}=\varphi^{-3}/(4\pi)$
+is an **Asserted** boundary used to define the SU(3) normalization
+
+$$
+g_s^2\equiv4\pi\alpha_{\text{GUT}}.
+$$
+
+Separately, the electroweak relative normalization
+
+$$
+\left(\frac{g}{g'}\right)^2
+=\frac{1-\varphi^{-3}}{\varphi^{-3}}
+=2\varphi
+$$
+
+is an **Asserted** input. The current action supplies no mechanism tying
+either electroweak coupling to $g_s$, and Standard Model running has no
+common intersection. These are separate boundary assignments, not a derived
+three-coupling unification.
 
 ### 6.2 Three Generations
 
@@ -271,7 +589,8 @@ Corrections from off-diagonal Yukawa terms and RGE running.
 
 ### 6.4 Neutrino Masses
 
-Seesaw at cascade step 20. Overall mass scale:
+The proposed seesaw assignment places the neutrino mass at cascade step 20 in
+the scale-coordinate convention. Overall mass scale:
 
 $$m_\nu \approx v_0 \cdot \varphi^{-12}$$
 
@@ -279,7 +598,8 @@ Fibonacci offsets: $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs. The seesaw's Yuka
 
 $$\frac{\Delta m^2_{31}}{\Delta m^2_{21}} = \frac{\varphi^{11} - 1}{\varphi^{4} - 1}$$
 
-PMNS mixing (from conversion Jacobian eigenvectors):
+PMNS angle relations are **Conditional coefficient-free candidates within the
+selected conversion-Jacobian ansatz**:
 - $\theta_{12} = \arctan(1/\varphi)$
 - $\theta_{23} = 45^\circ$ (exact maximal)
 - $\theta_{13} = \arctan(\varphi^{-4})$
@@ -288,21 +608,50 @@ Pinned spectrum: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV. Normal or
 
 ### 6.5 Strong CP
 
-CP phase at GUT (n ≈ 13.3): $\delta_{\text{CP}} = \pi\varphi^{-2}$ (Mapped—ledger). Signal propagation through $N \approx 81$ rungs (94.71 − 13.33):
+At the GUT-labeled phase coordinate ($n\approx13.3$),
+$\delta_{\text{CP}} = \pi\varphi^{-2}$ (Mapped—ledger). Signal propagation
+through $N \approx 81$ coordinate rungs (94.71 − 13.33):
 
 $$\bar{\theta} \approx \varphi^{-81.4} \times \pi\varphi^{-2} = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$$
 
 ### 6.6 Proton Stability
 
-Proton is a condensed standing wave at $n = 91.5$ ($\log_\varphi(\lambda_p/\ell_{\text{Pl}}) = 91.46$). Per-rung dephasing: $1-q_i = \varphi^{-i-\delta}$ ($\delta=3$). Cumulative:
+The proton is a condensed standing wave at the mapped coordinate
+$n=91.5$ ($\log_\varphi(\lambda_p/\ell_{\text{Pl}})=91.46$). Per-rung
+dephasing: $1-q_i = \varphi^{-i-\delta}$ ($\delta=3$). Let
+$N=\lfloor91.46\rfloor=91$. The finite integer-cutoff product is
 
-$$P_{\text{dephase}} = \prod_{i=0}^{91.46} (1-q_i) = \varphi^{-4506}$$
+$$
+P_{\text{dephase}}^{(N)}
+=\prod_{i=0}^{N}(1-q_i)
+=\varphi^{-[N(N+1)/2+\delta(N+1)]}
+=\varphi^{-4462}\qquad(N=91,\ \delta=3).
+$$
 
-$N_{\text{max}} \approx \varphi^{4506}$ wave cycles. Physical lifetime $\tau_p \approx \varphi^{4506}/\omega_p \sim 10^{910}$ yr. Matter-antimatter annihilation is the same mechanism with organized anti-phase perturbation ($P \approx 1$, one cycle).
+For the mapped real coordinate, the quadratic exponent is continued as a
+real-coordinate interpolation:
+
+$$
+\mathcal{E}(n,\delta)=n(n+1)/2+\delta(n+1),\qquad
+\mathcal{E}(91.46,3)=4505.5758\approx4506.
+$$
+
+The lifetime estimate uses this continuous-coordinate rounded scale:
+$N_{\text{max}}\approx\varphi^{4506}$ wave cycles. Physical lifetime
+$\tau_p\approx\varphi^{4506}/\omega_p\sim10^{910}$ yr. Matter-antimatter
+annihilation is the same mechanism with organized anti-phase perturbation
+($P\approx1$, one cycle).
 
 ### 6.7 Quark Confinement
 
-Saturated-gate flux tube at $n = 95$: the conversion channel saturates between separated color charges ($q \to 0$); the tube's energy is extensive, $E(r) = \mu r$ with $\mu = \kappa(M_{\text{Pl}}/\varphi^{95})^2 = \kappa\Lambda_{\text{QCD}}^2$, $\kappa = 2\pi$ conditional on the 2π-per-rung winding reading ($\sigma_{\text{tube}} = 0.1836$ GeV², +2.0% vs measured) — a constant force, linear potential by extensivity (independent of the gate shape). Flux tube breaking probability $\approx \varphi^{-4506}$. Asymptotic freedom at $n \ll 95$ from $g(q) \to 0$.
+A saturated-gate flux tube is assigned to the proposed QCD-labeled coordinate
+$n=95$: the conversion channel saturates between separated color charges
+($q\to0$); the tube's energy is extensive, $E(r)=\mu r$ with
+$\mu=\kappa(M_{\text{Pl}}/\varphi^{95})^2=\kappa\Lambda_{\text{QCD}}^2$,
+$\kappa=2\pi$ conditional on the **Hypothesized** separate geometric
+$2\pi$-per-rung phase convention, not on canonical density-plane drift
+($\sigma_{\text{tube}}=0.1836$ GeV$^2$, +2.0% vs measured)—a constant
+force, linear potential by extensivity (independent of the gate shape). Flux tube breaking probability $\approx\varphi^{-4506}$ under the stated rounded coherence convention. In the optional effective-channel reading, asymptotic freedom at $n\ll95$ is **Hypothesized** conditional on an application-supplied $g(q)$ closure with $g(q)\to0$; the canonical PDE supplies no physical $n\mapsto q$ map.
 
 ---
 
@@ -330,7 +679,21 @@ Point-particle reduction of the two-fluid PDE gives:
 
 $$\ddot{\mathbf{X}}_j = -G\,\alpha_j\,(1+(\varphi^{6}-1)q_j)\,\sum_{i\neq j} M_i\frac{\mathbf{X}_j - \mathbf{X}_i}{|\mathbf{X}_j - \mathbf{X}_i|^3}$$
 
-where $\alpha_j = \Pi_j/M_j$ is the local Yang fraction. At the $\varphi$-fixed point ($\alpha_j = \varphi^{-3}$, $\varepsilon_j = 0$) each blob carries its equilibrium coherence $q_j = q_{\text{eq}}(\rho_j) = \rho_j^2/(\rho_j^2+\varphi^{-2})$, so $G_{\text{eff},j} = \varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}}(\rho_j))G$ ($\approx 3.73\,G$ at the reference density), masses are conserved, and the equations of motion keep the Newtonian form with body-dependent couplings; the exactly-Newtonian limit $G_{\text{eff}} = \varphi^{-3}G$ is the dilute fixed point $\rho_j \to 0$ ($q_j \to 0$). Off the fixed point, masses evolve via conversion and $G_{\text{eff}}$ is body-dependent.
+where $\alpha_j\equiv\pi_j/\rho_j=\Pi_j/M_j$ is the local fractional
+imbalance, not the Yang fraction; the local Yang fraction is
+$E_{Y,j}/\rho_j=(1+\alpha_j)/2$. At the $\varphi$-fixed point
+($\alpha_j=\varphi^{-3}$, $\varepsilon_j=0$), each blob carries
+$q_j=q_{\text{eq}}(\rho_j)=\rho_j^2/(\rho_j^2+\varphi^{-2})$. At the
+reference density $\rho_j=\varphi$, this is
+$q_j=0.872677996$ and
+$G_{\text{eff},j}=3.726779962\,G$; the dilute fixed-composition limit
+$\rho_j\to0$ gives $q_j\to0$ and
+$G_{\text{eff},j}\to\varphi^{-3}G$. The displayed negative sign is a separate
+attractive point-particle force convention. The canonical density PDE does not
+supply that sign: its optional $+\pi\,\nabla\Phi$ branch is outward for
+$\Phi=-GM/r$ and $\pi>0$, so an attractive Newtonian/GR interpretation
+requires an additional **Hypothesized** sign/force closure. Off the fixed point,
+masses evolve via conversion and $G_{\text{eff}}$ is body-dependent.
 
 ---
 
@@ -353,7 +716,10 @@ $3.6\sigma$); the term's **stable realization** (the C1 friction closure—
 
 ### 8.2 Inflation
 
-Cascade steps 20–60. Qi gate slow-roll drives $N_e = 40$ e-folds. Gate engages at $r = \varphi^{-1}$ (step ~60), providing graceful exit.
+In the proposed scale-coordinate construction, the inflationary interval spans
+coordinate steps 20–60. The Qi gate slow-roll drives $N_e=40$ e-folds. Gate
+engagement at the proposed coordinate step $\sim60$ ($r=\varphi^{-1}$)
+provides graceful exit.
 
 $$n_s = 1 - \frac{2\varphi^{-1}}{N_e},\qquad r = \frac{12}{N_e^2} \approx 0.0075 \quad (N_e = 40)$$
 
@@ -369,25 +735,45 @@ Three mechanisms: (1) organized annihilation (§6.6), (2) Wu Xing freeze-out gap
 
 $$\eta \approx \varphi^{-44}$$
 
-The exponent $-44$ is a **ledgered fit** (Fit-Status Ledger row 481, Mapped): the freeze-out construction $52 = 60 - 8$ used the pre-correction GUT seed at step 8, and with the corrected GUT anchor ($n \approx 13.3$) it gives $60 - 13.3 = 46.7$ and a dilution span of $33.4 \neq 44$—the construction does not close. The mechanism (Wu Xing gap + organized annihilation + cascade dilution) is Hypothesized; see `foundations/baryon-asymmetry.md` for the full status.
+The exponent $-44$ is a **ledgered fit** (Fit-Status Ledger row 481,
+Mapped). Current candidate spans remain unclosed: the pinch-minus-seed span is
+$46.7$, the required exponent is $44.126$ (ledgered as the Mapped integer
+exponent $44$), and the separate gate-threshold span is $26.7$. No rate law
+or physical coordinate map selects an endpoint connecting these values, so the
+construction does not close. The mechanism (Wu Xing gap + organized annihilation
+cascade dilution) is **Hypothesized**; see
+`foundations/baryon-asymmetry.md` for the full status.
 
 ### 8.4 Dark Matter
 
-High-$q$ two-fluid condensates: dark (no EM interaction), gravitationally active ($G_{\text{eff}}$ enhanced), stable ($\varphi$-attractor), collisionless.
+**Optional Hypothesized dark-matter sector.** A high-$q$ two-fluid
+condensate is modeled as dark (no EM interaction), gravitationally active
+($G_{\text{eff}}$ enhanced), stable ($\varphi$-attractor), and collisionless.
+Conditional on the Weinberg-angle identification, this sector gives
 
-$$\frac{\Omega_{\text{DM}}}{\Omega_b} = \varphi^3 = 4.2361$$
+$$
+\frac{\Omega_{\text{DM}}}{\Omega_b}=\varphi^3=4.2361.
+$$
 
-The condensate base is Derived conditional on the Weinberg-angle identification; the component budget excludes a $+1$ baryon-capture term because captured baryons already belong to the observed $\Omega_b$ denominator. The observed ratio is $5.39$, leaving a 21% open tension.
-
+The condensate base is **Hypothesized** conditional on that identification;
+the component budget excludes a $+1$ baryon-capture term because captured
+baryons already belong to the observed $\Omega_b$ denominator. The observed
+ratio is $5.39$, leaving a 21% open tension.
 ### 8.5 Structure Formation
 
-**Wake-wave.** Yang-Yin interference at $\varphi$-spaced intervals:
+The canonical real-density PDE supplies density variables; the
+phase/interference interpretation below is an optional **Hypothesized**
+extension. **Wake-wave.** Under this extension, Yang-Yin interference at
+$\varphi$-spaced intervals is represented by
 
-$$\Delta(\ln k) = \ln\varphi$$
-
+$$
+\Delta(\ln k)=\ln\varphi.
+$$
 **Flatness.** $\varphi$-attractor drives $\Omega_{\text{total}} \to 1$.
 
-**Horizon.** Scales synchronize through temporal emergence: when $r(t)$ crosses a cascade step, all associated scales activate simultaneously.
+**Horizon.** In the proposed temporal-emergence rule, scale-coordinate labels
+synchronize when $r(t)$ crosses a cascade step; this **Hypothesized** rule does
+not assert physical activation of distinct dimensions.
 
 **CMB anomalies.** Adjacent Cassi bubbles at $\varphi$-spaced intervals imprint a preferred axis at $\ell < 5$. Dipole–quadrupole alignment $12.2^\circ$, from bubble triaxial geometry. Scale-dependent (fades for $\ell > 5$).
 
@@ -395,23 +781,27 @@ $$\Delta(\ln k) = \ln\varphi$$
 
 ### 8.6 Hubble Tension
 
-$w(a)$ evolution shifts $H_0$ relative to the constant-$\Lambda$ extrapolation. The full $H(z)$ fit is pending (registry C3/T4); the pipeline CMB-inferred value is $H_0 \approx 65.8$ km/s/Mpc.
+$w(a)$ evolution shifts $H_0$ relative to the constant-$\Lambda$ extrapolation.
+The full $H(z)$ fit was performed 2026-08-06
+(`computations/hz_full_fit.py`) but leaves registry C3/T4 unresolved. The
+pipeline CMB-inferred value is $H_0\approx65.8$ km/s/Mpc versus the local
+$73.0$ km/s/Mpc; no resolved value is claimed.
 
 ---
 
 ## 9. Turbulence
 
-The Kolmogorov $-5/3$ spectrum emerges from the Navier-Stokes advection term embedded in the two-fluid velocity equation, in the inertial range where conversion is slow compared to eddy turnover. Cassi contributions:
+An optional **Hypothesized** turbulence closure supplies a physical velocity/Navier-Stokes inertial-range interpretation for the shared advection field. Conditional on that closure, a Kolmogorov $-5/3$ spectrum could emerge when conversion is slow compared to eddy turnover; the canonical density PDE alone supplies shared advection but no physical Navier-Stokes closure. Cassi contributions:
 
-**$\varphi$-break scale.** The wavenumber where conversion and eddy turnover timescales cross:
+**$\varphi$-break scale (conditional).** Under the same optional closure, the wavenumber where conversion and eddy turnover timescales cross:
 
 $$k_\varphi = \varphi^3\sqrt{\lambda^3/\varepsilon_{\text{flux}}}$$
 
-**Scale-dependent gravity.** $G_{\text{eff}}(k)$ varies by factor $\varphi^6$ across the break: $\varphi^{-3}G$ in the inertial range ($q \to 0$ on the $\varphi$-line), $\varphi^{3}G$ in the Qi-active range ($q \to 1$, from $\varphi^{-3}(1+(\varphi^{6}-1)) = \varphi^3$).
+**Scale-dependent gravity (conditional).** Under the same optional closure and supplied $q(k)$ map, $G_{\text{eff}}(k)$ varies by factor $\varphi^6$ across the break: $\varphi^{-3}G$ in the inertial range ($q\to0$ on the $\varphi$-line), $\varphi^{3}G$ in the Qi-active range ($q\to1$, from $\varphi^{-3}(1+(\varphi^{6}-1))=\varphi^3$).
 
-**$\varepsilon$-spectrum.** $E_\varepsilon(k) \propto k^{-5/3} \cdot f(k/k_\varphi)$—the deviation from $\varphi$-equilibrium has its own inertial-range scaling with a $\varphi$-determined break.
+**$\varepsilon$-spectrum (conditional).** Under the same optional closure, $E_\varepsilon(k)\propto k^{-5/3}\cdot f(k/k_\varphi)$ is a Hypothesized inertial-range mapping for the deviation from $\varphi$-equilibrium.
 
-**Qi-quality spectrum.** $1 - q(k) \propto k^{-5/3}$ in the inertial range.
+**Qi-quality spectrum (conditional).** Under the same optional closure, $1-q(k)\propto k^{-5/3}$ is a Hypothesized inertial-range mapping.
 
 ---
 
@@ -419,31 +809,66 @@ $$k_\varphi = \varphi^3\sqrt{\lambda^3/\varepsilon_{\text{flux}}}$$
 
 ### 10.1 Fibonacci Spiral
 
-The ratio string $r(t)$ couples $E_Y$ and $E_I$ antisymmetrically (SO(2) rotation) while advancing along the cascade:
+The ratio string $r(t)$ is paired with a separate geometric phase coordinate while advancing along the cascade:
 
-$$\Theta(r) = \frac{2\pi}{\ln\varphi}\ln\left(\frac{r}{\ell_n}\right)$$
+$$\Theta(r)=\frac{2\pi}{\ln\varphi}\ln\left(\frac{r}{\ell_n}\right)$$
 
-One full turn per cascade rung in the single-component viewpoint ($\Theta$ advancing $2\pi$ per rung); the physical doublet advances $\pi$ per rung and completes one full SO(2) cycle every two rungs—the same convention in two viewpoints (boxed unified convention, `foundations/spin-fibonacci-spiral.md` §2.1). Expansion factor per turn: $\varphi$.
+An optional geometric convention assigns one full turn per cascade rung in
+$\Theta$. If adopted, $\Theta$ advances $2\pi$ per rung and the assigned
+doublet phase advances $\pi$ per rung, completing one assigned phase cycle
+every two rungs. This numerical pitch is a **Hypothesized** coordinate
+mapping, not a value supplied by $\theta_d$ or the canonical conversion. The
+geometric coordinate is distinct from $\theta_d$, and the canonical rank-one
+conversion supplies no physical inter-rung flux or rung transport law.
+Expansion factor per geometric turn: $\varphi$.
 
 ### 10.2 Frenet-Serret Frame
 
-$$\boxed{\text{Three spatial dimensions} = \{\mathbf{T}, \mathbf{N}, \mathbf{B}\}}$$
+A proposed Frenet-Serret frame, conditional on an assumed three-dimensional
+embedding, is
 
-- $\mathbf{T}$: tangent (string axis, cascade forward)
-- $\mathbf{N}$: normal (Yang axis, extended)
-- $\mathbf{B} = \mathbf{T} \times \mathbf{N}$: binormal (Yin axis, contracted)
+$$\boxed{\text{Three spatial directions} = \{\mathbf{T}, \mathbf{N}, \mathbf{B}\}}$$
 
-Three dimensions from differential geometry of any non-degenerate space curve. $\xi = \varphi^{2 \times 3}$: 2 fields $\times$ 3 Frenet-Serret vectors.
+- $\mathbf{T}$: tangent (string axis, cascade coordinate)
+- $\mathbf{N}$: normal (named Yang coordinate direction)
+- $\mathbf{B} = \mathbf{T} \times \mathbf{N}$: binormal (named Yin coordinate direction)
+
+The identification of these vectors with physical spatial axes is
+**Hypothesized** and conditional on the embedding and a non-degenerate curve.
+The proposed geometric reading $\xi=\varphi^{2\times3}$ counts 2 field
+components times 3 frame vectors; it does not derive $d=3$ or $\xi$ from the
+canonical density conversion. Any directional population or kinetic extension
+requires selecting an oriented axis and remains conditional; it does not add
+canonical field components or an extra spacetime dimension.
 
 ### 10.3 Bubble Geometry
 
-Cassi bubble at step 285: triaxial spheroid bounded between adjacent cascade steps. Yang-Yin cross-section: elliptical, axis ratio $\varphi$. Condensation boundary: level set of $C(x,y) = \cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I)$. Edge gradient $1.70\times$ steeper in Yin direction. Adjacent bubbles: $m+n$ even sublattice; voids: odd sublattice.
+Within the optional geometric model, the Cassi bubble is represented at
+coordinate step 285 as a triaxial spheroid bounded between adjacent
+coordinate steps. Its Yang-Yin cross-section is elliptical with axis ratio
+$\varphi$. The condensation boundary is the level set of
+$C(x,y)=\cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I)$. At a common boundary
+level $\theta_{\mathrm{cond}}$, its directional edge-slope proxy is
+$$\boxed{R(\theta_{\mathrm{cond}})\equiv
+\frac{|\nabla C|_{\mathrm{axial}}}{|\nabla C|_{\mathrm{diag}}}
+=\frac{\sqrt{1+\varphi^2}}{2}
+\sqrt{\frac{1+\theta_{\mathrm{cond}}}{\theta_{\mathrm{cond}}}}}.$$
+For the phenomenologically selected $\theta_{\mathrm{cond}}=0.45$, $R=1.7072$;
+the ratio varies with the selected level. This is a conditional
+geometric-proxy benchmark, not a universal or zero-parameter constant, and
+the fixed-step PDE diagnostic retains no $C=0.45$ edge. Any physical
+cosmological or biological test requires an independently identified boundary
+and proxy-to-observable map. Adjacent bubbles use the $m+n$ even sublattice;
+voids use the odd sublattice.
 
-The condensation field and its bubble lattice are universal across all cascade rungs—see `foundations/bubble-lattice-fabric.md` for the full derivation and the four universal geometric signatures.
+The proposed condensation field and bubble lattice are scale-covariant across
+the model's coordinate rungs under the stated geometric construction—see
+`foundations/bubble-lattice-fabric.md` for the conditional geometric
+signatures.
 
 ### 10.4 Wake-Wave Mechanism
 
-Conversion term anti-phase coupling ($\Delta\phi = \pi$) produces paired sheets flanking a central void. Structural property of the PDE.
+An optional compact-phase/wake construction can pair sheets through an anti-phase assignment ($\Delta\phi=\pi$), producing paired sheets flanking a central void. This is a **Hypothesized** phenomenological extension; the canonical rank-one real-density conversion has no phase or anti-phase structural property.
 
 ---
 
@@ -451,18 +876,17 @@ Conversion term anti-phase coupling ($\Delta\phi = \pi$) produces paired sheets 
 
 ### 11.1 Pinch Transition
 
-At $r = \varphi^{-1}$, the Qi gate crosses a self-reference threshold. Before: $r < \varphi^{-1}$, no self-modeling. After: $r > \varphi^{-1}$, the field models its own evolution.
+Under an optional **Hypothesized** self-model mapping, $r=\varphi^{-1}$ is treated as a Qi-gate pinch threshold: before, $r<\varphi^{-1}$ corresponds to no self-modeling; after, $r>\varphi^{-1}$ corresponds to the field modeling its own evolution. The canonical PDE supplies density conversion and the $q$ diagnostic, not a self-reference or self-model criterion.
 
 ### 11.2 Chakra Cascade
 
-13 chakras: localized Qi condensates along the spine at $\varphi^2$-spaced intervals. Crown at step 166 (2 rungs below body boundary at 168). 13 nodes span 26 cascade rungs (2 rungs per SO(2) cycle). Six secondary nodes midway between primaries. Inter-chakra spacing ratio: $\varphi^2$. $\ln\varphi$ periodic signature in physiological signals.
+An optional **Hypothesized** geometric model places 13 proposed chakra markers as localized Qi condensates along a named spine at $\varphi^2$-spaced intervals. The crown is at step 166 (2 rungs below the body boundary at 168). Under the **Hypothesized** geometric phase convention, 13 nodes span 26 cascade rungs (2 rungs per assigned doublet phase cycle). Six secondary nodes midway between primaries. Inter-chakra spacing ratio: $\varphi^2$. A $\ln\varphi$ periodic signature in physiological signals is likewise **Hypothesized**.
 
 ### 11.3 Mind-Brain
 
 Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. Altered states correspond to spatial ratio dispersion $\sigma_r = \sqrt{\langle(r-\langle r\rangle)^2\rangle}$: waking (moderate), meditation (reduced), psychedelic (increased, sub-pinch excursions).
 
 ---
-
 ## 12. Derived Constants
 
 | Parameter | Expression | Value | Origin |
@@ -477,7 +901,7 @@ Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. A
 | $w_a$ | $\xi$ in $H(a)$; ratified conversion→expansion coupling | $+0.012$ baseline; $-0.38$ (B2, unstable); **$(-1, 0)$ pure-Λ window (stable realization—10/12)** | Calibrated baseline (ledger row 496); coupling shifts 08 §C.6; 12 |
 | $g$ | $1 - \varphi^{-5}$ | $0.910$ | Wu Xing gap |
 | $r_0$ | $\varphi^{-5}/(2-\varphi^{-5})$ | $0.047$ | Primordial ratio |
-| $\lambda$ | $1/(2w)$ | $0.1$ | PDE conversion rate ($w = 5$ derived; $\lambda = (1/2)(1/w)$: doublet factor $\times$ per-cycle event share—`foundations/wu-xing-derivation.md` §7; **Derived conditional on** the doublet conversion budget + one event per cycle) |
+| $\lambda$ | solver normalization/timescale convention | $0.1$ | PDE conversion normalization: $\lambda=0.1$ is **C-class**; the $w=5$ relation $\lambda=1/(2w)$ is a **Hypothesized** Wu Xing cycle linkage, not a $\varphi$-derived rate |
 | $n_s$ | $1 - 2\varphi^{-1}/N_e$ | $0.969$ | Inflation gate ($N_e = 40$ Mapped—ledger row 501) |
 | $r$ | $12/N_e^2$ | $0.0075$ | Tensor ratio (Mapped value at the $N_e = 40$ window—ledger row 495; the $0.003$ reading requires $N_e = 63.2$) |
 | $\eta$ | $\varphi^{-44}$ | $6.4 \times 10^{-10}$ | Baryon asymmetry (exponent **Mapped**—ledger row 481; mechanism Hypothesized) |

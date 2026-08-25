@@ -3,10 +3,8 @@
 Sector-Coupling Rung Identity: kappa_s = phi^-6 / v0^2 at rung 77
 ================================================================
 
-Closes the audit finding on `foundations/sector-coupling-derivation.md`
-sec. 2: the derivation must exhibit the rung arithmetic that places
-kappa_s at rung 77 (the doc previously asserted "three rungs above
-electroweak" without displaying why the coupling's own form lands there).
+The rung arithmetic below places kappa_s at rung 77 and displays why the
+coupling's own dimensionful form lands there:
 
 The rung identity (displayed algebra):
   (i)   v0   = M_Pl * phi^{-80}                (EW VEV anchor, rung 80;

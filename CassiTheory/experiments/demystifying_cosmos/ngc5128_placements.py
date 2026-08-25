@@ -2,9 +2,11 @@
 """Cassi Centaurus A—Cascade Placements for NGC 5128.
 
 Reproduces the rung placements in `demystifying-the-cosmos/NGC-5128.md` §7
-(distance, dust-band scale, merger timescale) and carries the two falsifiable
-test helpers from §8: the phi-spacing radial-ring test (T1) and the 1.70x
-edge-anisotropy constant (T2).
+(distance, dust-band scale, merger timescale) and carries the placement and
+phi-spacing helper from §8. The edge quantity is reported only as a
+conditional geometric-proxy benchmark at the selected
+$\theta_{\rm cond}=0.45$; it is not a fixed edge-anisotropy constant or PDE
+output.
 
 Usage
 -----
@@ -16,12 +18,13 @@ Outputs
       - distance rung sits 8.4 rungs below the Cassi bubble (285)
       - merger timescale sits 4.1 rungs below the horizon rung (291.54)
       - T1: phi-spaced peak ratios pass on the synthetic demo profile
-      - T2: edge anisotropy sqrt(4*phi^2/(1+phi^2)) = 1.7013
+      - T2: conditional $R(\theta_{\rm cond}=0.45)=1.7072\approx1.71$
 """
 
 import math
 
 PHI = (1.0 + math.sqrt(5.0)) / 2.0
+THETA_COND = 0.45
 LNPHI = math.log(PHI)
 
 T_PL = 5.391e-44   # s
@@ -47,6 +50,12 @@ def phi_peak_ratios(radii):
         r = b / a
         out.append((r, abs(r - PHI)))
     return out
+
+def edge_ratio(theta):
+    """Conditional directional ratio R(theta) for the selected proxy map."""
+    if theta <= 0.0:
+        raise ValueError("theta must be positive")
+    return math.sqrt(1.0 + PHI**2) / 2.0 * math.sqrt((1.0 + theta) / theta)
 
 
 def main():
@@ -82,17 +91,17 @@ def main():
     print(f"     test recipe: radial MIRI profile, find peaks, compare "
           f"consecutive radii to phi")
 
-    # T2 constant
-    aniso = math.sqrt(4.0 * PHI**2 / (1.0 + PHI**2))
-    t2_ok = abs(aniso - 1.70) < 0.01
-    print(f"\n  T2 (edge anisotropy): sqrt(4*phi^2/(1+phi^2)) = {aniso:.4f} "
-          f"-> {'PASS' if t2_ok else 'FAIL'} (prediction 38)")
+    # T2: conditional geometric-proxy benchmark, not a PDE prediction.
+    ratio = edge_ratio(THETA_COND)
+    print(f"\n  T2 (conditional geometric-proxy benchmark): "
+          f"R(theta_cond={THETA_COND:.2f}) = {ratio:.4f} (~1.71)")
+    print("     varies with theta; no C=0.45 edge survives the fixed-step "
+          "PDE endpoint")
 
     checks = [
         abs((n_dist - RUNG_BUBBLE) - (-8.4)) < 0.1,
         abs((RUNG_HORIZON - n_merger) - 4.1) < 0.1,
         t1_ok,
-        t2_ok,
     ]
     status = all(checks)
     print(f"\n  All placement checks: {'PASS' if status else 'FAIL'}")

@@ -14,9 +14,16 @@ probability is the product of per-rung dephasing probabilities. The cascade
 structure makes this product exponentially suppressed, yielding a coherence
 budget of
 
-$$\boxed{N_{\text{max}} = \prod_{i=0}^{n} \frac{1}{1-q_i} \approx \varphi^{\,n(n+1)/2}}$$
+For an integer endpoint $N\in\mathbb{Z}_{\ge0}$, the literal indexed product is
 
-For $n = 91.46$, $N_{\text{max}} \approx \varphi^{4506} \approx 10^{942}$ cycles.
+$$\boxed{N_{\text{max}}(N) = \prod_{i=0}^{N} \frac{1}{1-q_i}
+= \varphi^{\,N(N+1)/2+\delta(N+1)}}$$
+
+For the proton's real rung $N_p=91.46$, the product is continued through the closed exponent:
+
+$$N_{\text{max}}(N_p)=\varphi^{\,N_p(N_p+1)/2+\delta(N_p+1)}
+\big|_{N_p=91.46,\ \delta=3}
+=\varphi^{4505.5758}\approx\varphi^{4506}\approx10^{942}\ \text{cycles}.$$
 The proton's effective lifetime exceeds the age of the observable universe by
 ~900 orders of magnitude. Proton decay is not observed because the universe is
 not remotely old enough—and no experiment, in any environment, will see it.
@@ -51,7 +58,9 @@ one full cycle of phase coherence is lost. The per-cycle probability of this
 event is the probability that the field configuration at EVERY supporting rung
 independently fails to maintain coherence during that cycle:
 
-$$P_{\text{dephase}} = \prod_{i=0}^{n} (1 - q_i)$$
+For an integer endpoint $N$, the literal dephasing product is
+
+$$P_{\text{dephase}}(N) = \prod_{i=0}^{N} (1-q_i).$$
 
 Each factor $(1-q_i)$ is the per-cycle probability that the field at rung $i$
 provides a dephasing perturbation large enough to destabilize the pattern at
@@ -60,7 +69,7 @@ collapse.
 
 The maximum number of wave cycles the standing wave can sustain is the inverse:
 
-$$N_{\text{max}} = \frac{1}{P_{\text{dephase}}} = \prod_{i=0}^{n} \frac{1}{1-q_i}$$
+$$N_{\text{max}}(N) = \frac{1}{P_{\text{dephase}}(N)} = \prod_{i=0}^{N} \frac{1}{1-q_i}$$
 
 ---
 
@@ -72,11 +81,20 @@ $$1 - q_i = \varphi^{-i-\delta}$$
 
 $$\frac{1}{1-q_i} = \varphi^{\,i+\delta}$$
 
-$$N_{\text{max}} = \prod_{i=0}^{n} \varphi^{\,i+\delta} = \varphi^{\,\delta(n+1) + \sum_{i=0}^{n} i} = \varphi^{\,\delta(n+1) + n(n+1)/2}$$
+For an integer endpoint $N$,
 
-For $\delta = 3$ (from $\sigma = \ell_{\text{Pl}}/\varphi^3$) and $n=91.46$ (the proton's own rung):
+$$N_{\text{max}}(N) = \prod_{i=0}^{N} \varphi^{\,i+\delta}
+= \varphi^{\,\delta(N+1) + \sum_{i=0}^{N} i}
+= \varphi^{\,\delta(N+1) + N(N+1)/2}$$
 
-$$\boxed{N_{\text{max}} = \varphi^{\,3 \times 92.46 + 91.46\times 92.46/2} = \varphi^{\,277.4 + 4228.3} = \varphi^{4505.7} \approx \varphi^{4506} \approx 10^{942}}$$
+For $\delta = 3$ (from $\sigma = \ell_{\text{Pl}}/\varphi^3$) and the proton real rung $N_p=91.46$:
+
+$$\boxed{N_{\text{max}}(N_p)
+=\varphi^{\,N_p(N_p+1)/2+\delta(N_p+1)}
+\big|_{N_p=91.46,\ \delta=3}
+=\varphi^{277.38+4228.1958}
+=\varphi^{4505.5758}
+\approx\varphi^{4506}\approx10^{942}}$$
 
 The dominant term is quadratic in $n$: $n(n+1)/2$. The Planck-scale
 regularization ($\delta$) contributes linearly—important at small $n$,
@@ -116,13 +134,25 @@ placing a proton in a maximally incoherent environment (e.g., near a strong
 source of field noise) could suppress $q_i$ at the top rungs. But even
 suppressing $q_i$ to zero for the top $m$ rungs leaves the lower rungs intact:
 
-$$N_{\text{max}}(m\ \text{rungs suppressed}) = \prod_{i=0}^{n-m-1} \frac{1}{1-q_i}$$
-$$= \varphi^{\,(n-m)(n-m+1)/2 + \delta(n-m+1)}$$
+For an integer endpoint $N$ and integer $m$ with $0\le m\le N$, suppressing the top $m$ rungs leaves the inclusive endpoint $N-m$:
 
-For $m = 50$ (suppress fifty of the proton's 92 rungs), $N_{\text{max}} \approx
-\varphi^{41.46\times 42.46/2} = \varphi^{880} \approx 10^{184}$—still far exceeding
-the age of the universe. The quadratic cascade structure provides a
-**coherence floor** that no physically accessible environment can breach.
+$$N_{\text{max}}(N,m)=\prod_{i=0}^{N-m}\frac{1}{1-q_i}$$
+
+$$=\varphi^{\,(N-m)(N-m+1)/2+\delta(N-m+1)}$$
+
+For the proton's real rung $N_p=91.46$, use $N_{\mathrm{rem}}=N_p-m$ only in the continuous exponent:
+
+$$N_{\text{max}}^{\mathrm{cont}}(N_p,m)
+=\varphi^{\,N_{\mathrm{rem}}(N_{\mathrm{rem}}+1)/2+\delta(N_{\mathrm{rem}}+1)},
+\qquad N_{\mathrm{rem}}=N_p-m.$$
+
+For $m=50$ (suppress fifty of the proton's approximately 92 supporting rungs), $N_{\mathrm{rem}}=41.46$:
+
+$$N_{\text{max}}^{\mathrm{cont}}(N_p,50)
+=\varphi^{880.1958+127.38}
+=\varphi^{1007.5758}\approx10^{210.57}\approx10^{211}.$$
+
+Using the integer floor $\lfloor N_p\rfloor=91$ instead leaves endpoint $41$ and exponent $987$; the continuous value above follows the real proton placement. The quadratic cascade structure still provides a coherence floor far beyond the age of the universe.
 
 
 ### 5.2 Matter-antimatter annihilation: organized cascade decoherence
@@ -132,10 +162,8 @@ instantaneously** rather than on the proton's cosmic timescale. The two
 processes are opposite limits of the same physics:
 
 **Random dephasing** (proton decay): each cascade rung decoheres independently
-with per-cycle probability $(1-q_i) \approx \varphi^{-i}$. The cumulative
-survival probability is the product $\prod(1-q_i)$, yielding the astronomical
-$N_{\text{max}}$ derived above. The proton lives forever because the
-suppression compounds across 91.5 rungs.
+with per-cycle probability $(1-q_i) \approx \varphi^{-i}$. The cumulative survival probability is the integer-indexed product $\prod_{i=0}^{N}(1-q_i)$, followed by the same continuous exponent at the real proton rung, yielding the astronomical $N_{\text{max}}$ derived above.
+The proton lives forever because the suppression compounds across 91.5 rungs.
 
 **Organized anti-phase perturbation** (annihilation): an antiparticle is a
 condensed standing wave with the same cascade structure as its partner but
@@ -144,7 +172,11 @@ SO(2) doublet. When the two meet, the anti-phase perturbation is not random
 but **coherently tailored** to cancel the coherence at each rung
 simultaneously:
 
-$$P_{\text{annihilation}} = \prod_{i=0}^{n} \mathcal{O}(1) \approx 1$$
+For an integer endpoint $N$, the coordinated event is represented by the literal product
+
+$$P_{\text{annihilation}}(N) = \prod_{i=0}^{N} \mathcal{O}(1) \approx 1.$$
+
+The real proton placement remains a continuous rung label; no noninteger upper bound is assigned to this literal product.
 
 Every rung decoheres in the same cycle. The entire nested cascade structure
 dissolves, and the mass-energy returns to the two-fluid medium as free field
@@ -184,9 +216,7 @@ years. The Cassi framework predicts **null results at all achievable
 sensitivities**: the proton's coherence budget exceeds experimental reach by
 $> 870$ orders of magnitude.
 
-The standard SUSY-GUT prediction ($\tau_p \sim 10^{34-36}$ years, right at
-Hyper-K's reach) and the Cassi prediction are sharply distinguishable: the
-former says Hyper-K should see decays; Cassi says it cannot.
+The standard SUSY-GUT benchmark gives $\tau_p \sim 10^{34-36}$ years, placing proton decay within Hyper-K's reach. The conditional Cassi coherence-budget lifetime lies beyond that reach by $>870$ orders of magnitude and therefore predicts a null result at achievable sensitivity.
 
 ### 6.2 Distinction from nuclear $\beta$/$\alpha$ decay
 

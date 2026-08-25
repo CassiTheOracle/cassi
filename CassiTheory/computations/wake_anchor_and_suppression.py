@@ -1,43 +1,50 @@
-"""Wake-anchor ratio and per-rung suppression: what the two-fluid dynamics give.
+"""Wake-anchor ratio and per-rung suppression: prescribed pair plus auxiliary
+second-order wave model.
 
 Run:  python computations/wake_anchor_and_suppression.py
 
 Two audit questions, both about whether a 1/phi ratio is DERIVED from the
-two-fluid wave dynamics or selected/calibrated by the framework's principles.
+auxiliary second-order wave model or selected/calibrated by the framework's
+principles.
 
 Section A - the wake anchors (foundations/wake-geometry.md sec 1):
   The wake pair has Lambda_Y = ell_n and Lambda_I = ell_n/phi, i.e. the
-  Yin wavenumber k_I = phi k_Y.  Three dispersion facts are measured:
+  Yin wavenumber k_I = phi k_Y.  The three checks below distinguish exact
+  identities, numerical measurements, and the auxiliary model's analytic
+  dispersion:
 
-  A1. Eigenmodes of the linearized two-fluid wave system:
-      d2E_Y = c^2 d2E_Y - lam(1-q)(E_Y - phi E_I)
-      d2E_I = c^2 d2E_I + (lam/phi)(1-q)(E_Y - phi E_I)
-      -> in-phase mode  (E_Y = phi E_I):  w^2 = c^2 k^2   (the rho mode)
-      -> anti-phase mode(E_Y = -phi E_I): w^2 = c^2 k^2 + 2 lam (1-q)
+  A1. Eigenmodes of the auxiliary asymmetric second-order wave model
+      implemented here (not the canonical first-order density PDE):
+      d²E_Y/dt² = c² d²E_Y/dx² - lam(1-q)(E_Y - phi E_I)
+      d²E_I/dt² = c² d²E_I/dx² + (lam/phi)(1-q)(E_Y - phi E_I)
+      -> in-phase mode  (E_Y = phi E_I):  w² = c² k²   (the rho mode)
+      -> anti-phase mode(E_Y = -phi E_I): w² = c² k² + 2 lam (1-q)
                                             (the eps = E_Y - phi E_I mode)
       A single-frequency string (one motion) excites both modes at the
       SAME frequency w; the emitted wavelength ratio is
           Lambda_eps / Lambda_rho = 1 / sqrt(1 - 2 lam (1-q) / w^2)
-      measured at the rung tones w = 2 pi and w = 2 pi phi with the
-      framework's lam = 0.1.
+      evaluated at the rung tones w = 2 pi and w = 2 pi phi with the
+      declared solver normalization lam = 0.1.
 
-  A2. The canonical standing wave (the T1 harness wake pair
+  A2. The prescribed standing wave (the T1 harness wake pair
       cos(2 pi x) + cos(2 pi phi x)): envelope beat period
-      2 pi/(k_I - k_Y) = phi (in ell_n units) = ell_{n+1}, null spacing
-      pi/(k_I - k_Y) = phi/2, and the tone wavelengths 1 and 1/phi.
+      2 pi/(k_I - k_Y) = phi (in ell_n units) = ell_{n+1}; for equal
+      amplitudes, nulls are separated by the half-period
+      pi/(k_I - k_Y) = phi/2; the tone wavelengths are 1 and 1/phi.
       Measured from a short RK4 evolution (imported harness).
 
-  A3. The driven emission: a Gaussian source oscillating at frequency w
-      drives BOTH fluids (the string's single motion); the radiated
-      wavelengths of rho = E_Y + E_I and eps = E_Y - phi E_I are measured
-      away from the source.  This is the emission picture's direct answer
-      to "where does k_I = phi k_Y come from".
+  A3. The driven emission in the auxiliary second-order wave surrogate: a
+      Gaussian source oscillating at frequency w drives the rho and eps
+      eigenvectors separately; the radiated wavelengths of rho = E_Y + E_I
+      and eps = E_Y - phi E_I are measured away from the source.  This is
+      the emission picture's direct answer to "where does k_I = phi k_Y
+      come from".
 
   Verdict: the beat structure of the wake pair (given the pair) is exact
-  and measured; the RATIO itself does not emerge from the linearized
-  dispersion (it is ~1.003, not phi); it is selected by de-resonance +
-  closure + nesting (the Yin wake is the previous rung's Yang wake,
-  Lambda_I^(n) = ell_{n-1}, an identity of the ladder).
+  and measured; the RATIO itself does not emerge from the auxiliary
+  second-order dispersion (it is ~1.003, not phi); it is selected by
+  de-resonance + closure + nesting (the Yin wake is the previous rung's
+  Yang wake, Lambda_I^(n) = ell_{n-1}, an identity of the ladder).
 
 Section B - the per-rung suppression factor (cascade-suppression-formula.md
   sec 1/4):  d_i^signal ~ phi^-1 per rung.  Three candidates:
@@ -48,13 +55,12 @@ Section B - the per-rung suppression factor (cascade-suppression-formula.md
       phi^{-3} ~ 0.236.  None equal phi^-1 = 0.618.
   B2. The kinetic-vs-conversion ratio asserted in sec 4 ("the kinetic
       term at each rung is O(phi) relative to the conversion term"):
-      measured at the rung scale, kinetic = c^2 k^2 = 4 pi^2 and
       conversion = lam (1-q), so conversion/kinetic = lam/4 pi^2 ~ 0.0025
-      at lam = 0.1 - two and a half orders below phi^-1.  The assertion
-      does not hold at the rung-wave scale.
+      at the declared solver normalization lam = 0.1 - two and a half orders
+      below phi^-1.  The assertion does not hold at the rung-wave scale.
   B3. The attractor Yang fraction: r/(1+r) at r = phi = phi/(1+phi) =
       phi^-1 EXACTLY (parameter-inventory ledger row 500/453).  The
-      per-rung factor is the fraction of the two-fluid amplitude that
+      per-rung factor is the fraction of the density-doublet amplitude that
       sits in the Yang (propagating) channel at the fixed point - the
       framework's own attractor ratio, not a crossing amplitude.
 
@@ -69,32 +75,39 @@ import sys
 import os
 import numpy as np
 
-PHI = (1 + 5**0.5) / 2
+PHI = (1 + np.sqrt(5.0)) / 2.0
 LNPHI = np.log(PHI)
-LAM = 0.1                 # PDE conversion rate, lambda = 1/(2w), w = 5
+# Named auxiliary-probe normalization; the canonical implementation default
+# is separate.  The linkage lambda = 1/(2w) remains Hypothesized and requires
+# independent cycle-time/dynamical closure.
+LAM = 0.1
 C2 = 1.0                  # wave speed squared, probe units
 GAMMA = 0.01              # wave damping, probe units
 
 # ----------------------------------------------------------------------
-# A1. Linearized eigenmodes of the two-fluid wave system
+# A1. Auxiliary asymmetric second-order wave-model eigenmodes
 # ----------------------------------------------------------------------
 
 def eigenmode_ratio(w, lam=LAM, omq=1.0):
-    """Lambda_eps / Lambda_rho for a single-frequency source: the anti-phase
-    (eps) mode has w^2 = c^2 k^2 + 2 lam (1-q); the in-phase (rho) mode has
-    w^2 = c^2 k^2.  At common w:
+    """Lambda_eps / Lambda_rho for a single-frequency source in the auxiliary
+    second-order wave model: the anti-phase (eps) mode has
+    w^2 = c^2 k^2 + 2 lam (1-q); the in-phase (rho) mode has w^2 = c^2 k^2.
+    At common w:
         k_eps/k_rho = sqrt(1 - 2 lam (1-q)/w^2),
         Lambda_eps/Lambda_rho = 1 / sqrt(1 - 2 lam (1-q)/w^2).
+    The canonical first-order density PDE instead has a relaxation eigenvalue
+    -lam(1+phi)(1-q) and no oscillatory dispersion without an inertial closure.
     """
     return 1.0 / np.sqrt(1.0 - 2.0 * lam * omq / w**2)
 
 
 def a1():
     print("=" * 78)
-    print("A1 - linearized eigenmodes: single-frequency emission ratio")
+    print("A1 - auxiliary second-order wave-model eigenmodes: "
+          "single-frequency emission ratio")
     print("=" * 78)
     print(f"  lam = {LAM}, c = 1, gate open (1-q) = 1 and attractor "
-          f"(1-q) = phi^-2/3")
+          f"(1-q) = phi^-2/3; lam is the declared solver normalization")
     omq_att = PHI**-2 / 3.0
     for w, label in [(2 * np.pi, "Yang tone w = 2 pi (k = 1)"),
                      (2 * np.pi * PHI, "Yin tone w = 2 pi phi (k = phi)")]:
@@ -104,30 +117,31 @@ def a1():
                   f"Lambda_eps/Lambda_rho = {r:.6f}   "
                   f"(phi = {PHI:.6f}, phi^-1 = {PHI**-1:.6f})")
     r = eigenmode_ratio(2 * np.pi)
-    print(f"\n  Decisive number: at the Yang tone with lam = {LAM} and the")
-    print(f"  gate open, the anti-phase (conversion) wake is emitted at")
+    print(f"\n  Decisive number: at the Yang tone with lam = {LAM} (the")
+    print(f"  gate open, the auxiliary anti-phase (conversion) wake is emitted at")
     print(f"  {r - 1:.6f} relative correction to the rung scale - NOT the")
-    print(f"  sub-rung scale phi^-1 - 1 = {PHI**-1 - 1:.3f}.  The conversion")
-    print(f"  mass 2 lam = {2*LAM:.2f} is ~{2*LAM/(2*np.pi)**2:.4f} of the")
+    print(f"  sub-rung scale phi^-1 - 1 = {PHI**-1 - 1:.3f}.  The auxiliary")
+    print(f"  model's conversion mass 2 lam = {2*LAM:.2f} is "
+          f"~{2*LAM/(2*np.pi)**2:.4f} of the")
     print(f"  tone frequency-squared: the dispersion does not select the")
     print(f"  sub-rung scale.")
     return r
 
 
-# ----------------------------------------------------------------------
-# A2. Canonical standing wave: beat and extremum spacings
-# ----------------------------------------------------------------------
+# A2. Prescribed standing wave: beat and extremum spacings
 
 def a2():
-    """Wake pair cos(2 pi x) + cos(2 pi phi x) in the T1 harness: envelope
-    beat period 2 pi/(k_I - k_Y) = phi, null spacing pi/(k_I - k_Y) = phi/2,
-    tone wavelengths 1 and 1/phi.  Short RK4 evolution, extremum spacing."""
+    """Prescribed wake pair cos(2 pi x) + cos(2 pi phi x) in the T1
+    harness: envelope beat period 2 pi/(k_I - k_Y) = phi.  For equal
+    amplitudes, nulls are separated by pi/(k_I - k_Y) = phi/2; the
+    tone wavelengths are 1 and 1/phi.  Short RK4 evolution, extremum
+    spacing."""
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                     os.pardir, "two-fluid"))
     from run_rung_offset_probe import evolve
 
     print("=" * 78)
-    print("A2 - canonical wake-pair standing wave: extremum spacings")
+    print("A2 - prescribed wake-pair standing wave: extremum spacings")
     print("=" * 78)
     L = 5 * PHI
     x_sp = 1.5
@@ -177,11 +191,11 @@ def a2():
     # keep the window [0.12, 7.0] as the harness does
     xmin = xmin[(xmin > 0.12) & (xmin < 7.0)]
     xmax = xmax[(xmax > 0.12) & (xmax < 7.0)]
-    print(f"  envelope nulls at x = {np.array2string(xmin, precision=4)}")
-    print(f"    null spacing / phi = "
+    print(f"  envelope minima at x = {np.array2string(xmin, precision=4)}")
+    print(f"    minimum spacing / phi = "
           f"{np.array2string(np.diff(xmin) / PHI, precision=5)}  "
-          f"(predicted 1.0; the beat-to-null distance is the half-period")
-    print(f"    pi/(k_I - k_Y) = phi/2 = {PHI / 2:.5f})")
+          f"(predicted 1.0; the beat-to-minimum distance is the full beat period)")
+    print(f"    pi/(k_I - k_Y) = phi/2 = {PHI / 2:.5f} (half-period)")
     print(f"  envelope beats at x = {np.array2string(xmax, precision=4)}")
     print(f"    beat spacing / phi = "
           f"{np.array2string(np.diff(xmax) / PHI, precision=5)}  "
@@ -209,22 +223,22 @@ def a2():
 
 
 # ----------------------------------------------------------------------
-# A3. Driven emission: what a single-frequency string actually radiates
-# ----------------------------------------------------------------------
+# A3. Driven emission in the auxiliary second-order wave surrogate
 
 def a3():
-    """Gaussian source oscillating at frequency w drives both fluids (one
-    string motion).  Measure the radiated wavelengths of rho = E_Y + E_I
-    and eps = E_Y - phi E_I away from the source."""
+    """Drive the rho and eps eigenvectors separately in the auxiliary
+    second-order wave surrogate (one source frequency).  Measure the
+    radiated wavelengths of rho = E_Y + E_I and eps = E_Y - phi E_I away
+    from the source."""
     print("=" * 78)
     print("A3 - driven emission: wavelengths radiated by one frequency")
     print("=" * 78)
 
     L = 12.0
     N = 2400
-    dx = L / N
-    dt = 0.002
     x = np.linspace(-L / 2, L / 2, N)
+    dx = x[1] - x[0]
+    dt = 0.002
     tmax = 6.0
     n_steps = int(round(tmax / dt))
     w = 2 * np.pi                     # Yang-tone frequency, probe units
@@ -244,13 +258,12 @@ def a3():
         conv = -lam * imbalance
         s = src_amp * np.exp(-0.5 * (x / sigma) ** 2) * np.cos(w * t)
         if antisym:
-            # the conversion's own pattern: Yang grows as Yin shrinks
-            sY, sI = s, -s
+            sY, sI = -PHI * s, s
         else:
-            # the string's coherent motion: both fluids driven together
-            sY, sI = s, s
+            # rho eigenvector: E_Y = phi E_I
+            sY, sI = PHI * s, s
         dVY = c2 * lap(EY) - gamma * VY + conv + sY
-        dVI = c2 * lap(EI) - gamma * VI - conv + sI
+        dVI = c2 * lap(EI) - gamma * VI - conv / PHI + sI
         return dEY, dEI, dVY, dVI
 
     def evolve_driven(lam, antisym):
@@ -278,10 +291,10 @@ def a3():
         return EY, EI
 
     for lam in (0.0, LAM):
-        # symmetric drive -> the rho (in-phase) eigenmode
+        # rho eigenvector drive -> the in-phase (imbalance-free) mode
         EY, EI = evolve_driven(lam, antisym=False)
         rho = EY + EI - 2.0
-        # anti-symmetric drive -> the eps (anti-phase) eigenmode
+        # eps eigenvector drive -> the anti-phase conversion mode
         EY2, EI2 = evolve_driven(lam, antisym=True)
         eps = EY2 - PHI * EI2
         # measure wavelengths in [2.0, 5.5] (radiated zone, clear of the
@@ -327,7 +340,7 @@ def a3():
                   f"(2 lam/w^2 = {2*lam/w**2:.5f}); phi^-1 = {PHI**-1:.5f},")
             print(f"    phi^2 = {PHI**2:.5f}.  The emission does NOT produce")
             print(f"    the sub-rung scale.")
-    print(f"\n  Reading: with the framework's lam = {LAM} the conversion")
+    print(f"\n  Reading: with the declared solver normalization lam = {LAM} the")
     print(f"  mass barely perturbs the radiated wavelengths (ratio ~1.003);")
     print(f"  a single-frequency string does not emit a phi-scaled Yin")
     print(f"  wake at linear order.  The 1/phi of the anchors is not in")
@@ -367,7 +380,7 @@ def b():
     kinetic = C2 * kY ** 2
     conv = LAM
     print(f"\n  B2. 'the kinetic term at each rung is O(phi) relative to")
-    print(f"      the conversion term' (sec 4 assertion), measured at the")
+    print(f"      the conversion term' (sec 4 assertion), evaluated at the")
     print(f"      rung scale (c = 1, ell_n = 1, k = 2 pi):")
     print(f"      kinetic c^2 k^2 = {kinetic:.4f}, conversion lam = {conv}")
     print(f"      conversion/kinetic = {conv / kinetic:.6f} (gate open)")
@@ -399,7 +412,8 @@ def b():
 def main():
     print("=" * 78)
     print("Wake-anchor ratio and per-rung suppression verification")
-    print(f"phi = {PHI:.10f}, lam = {LAM}, c = 1, ell_n = 1")
+    print(f"phi = {PHI:.10f}, lam = {LAM} (declared solver normalization), "
+          f"c = 1, ell_n = 1")
     print("=" * 78)
     a1()
     a2()
@@ -408,11 +422,13 @@ def main():
     print("\n" + "=" * 78)
     print("Verdicts")
     print("=" * 78)
-    print("A1/A3: the linearized two-fluid dispersion emits the anti-phase")
-    print("  (conversion) wake at ~1.003 Lambda_Y with lam = 0.1 - the 1/phi")
-    print("  ratio is NOT in the dispersion.  The wake pair's beat structure")
-    print("  (A2) is exact: envelope period phi = ell_{n+1}, nulls at the")
-    print("  half-period, tones at 1 and 1/phi.  The ratio is selected by")
+    print("A1/A3: the auxiliary second-order wave-model dispersion emits")
+    print("  the anti-phase (conversion) wake at ~1.003 Lambda_Y with the")
+    print("  declared lam = 0.1.  The phi^-1 ratio is NOT in this")
+    print("  auxiliary dispersion.  The wake pair's beat structure (A2) is")
+    print("  exact for the ideal equal-amplitude pair: envelope period")
+    print("  phi = ell_{n+1}, with nulls at the half-period; the measured")
+    print("  tone wavelengths are 1 and 1/phi. The ratio is selected by")
     print("  de-resonance + composite closure + nesting (the Yin wake is")
     print("  the previous rung's Yang wake, ell_{n-1}).")
     print("B: the per-rung phi^-1 is not produced by any crossing model;")
