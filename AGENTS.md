@@ -11,17 +11,31 @@ This repo is being prepared for public release. The standard is **thorough, cons
 
 <project-overview>
 
-Standalone **theory repository** for the Cassi "Theory of Everything": a physics framework that derives quantum mechanics, general relativity, the Standard Model, and cosmology from a single constant—the golden ratio $\varphi \approx 1.618$ as the universal scale-separation constant between Yang/Yin fields. It contains the markdown papers **and the code that supports the theory**: PDE solvers, computational pipelines, calibration/analysis scripts, and visual explainers. **All code used in the theory lives in this repo**—if a claim in a paper depends on a computation, the script that runs it belongs here too. (Legacy refs into the parent repo are tracked in `BROKEN_REFS.md`; new code goes here, not there.)
+`CassiTheory` is the foundational theory repository for the broader Cassi project. The project has two coupled engineering aims: a **reality simulator** that evolves candidate physical laws in one intervenable multiscale field substrate, and **field-based artificial general intelligence** in which sensing, memory, prospective modeling, action selection, and learning become causal dynamics of that field. `CassiCosmos` implements the live GPU simulation substrate; `CassiCore` implements orchestration, memory, and the integration loop. This repo owns the physical and mathematical laws, their epistemic status, and the executable research record: papers, the canonical two-fluid PDE, solvers, computational pipelines, calibration and analysis scripts, preregistered probes, and visual explainers. The simulator and field-AGI programs are active research and engineering targets; completed components and open mechanisms MUST be identified separately. **All code used by a theory claim lives in this repo**—if a paper's number depends on a computation, the script that produces it belongs here. Legacy refs into the parent repo are tracked in `BROKEN_REFS.md`; new theory code goes here.
 
 </project-overview>
+
+<logic-flow-philosophy>
+
+Cassi research uses an expansive–contractive logic flow:
+
+`observation + lived experience + analogy + philosophy → candidate possibilities → mathematical commitment → simulation and causal intervention → measurement and surprise → reorganization`
+
+- **Expansion opens the possibility space.** Observation, lived experience, analogy, and philosophy can reveal missing capacities, useful distinctions, and candidate mechanisms. First-person reports supply architectural constraints and discriminating behaviors. Microscopic identifications require separate evidence.
+- **Contraction makes a possibility testable.** Translate each serious candidate into named state variables, dimensions, evolution laws, resource or conservation budgets, stability bounds, causal interventions, controls, and measurable outcomes. A mathematical label without this structure remains a hypothesis.
+- **Causal terms must earn their roles.** *Memory* requires state that carries ordered past information and changes later behavior under intervention. *Attention* requires a finite, reallocatable budget that changes sensing, modeling, or action. An *internal model* requires dynamically separable state that predicts action-conditioned consequences before actuation. A *goal* or *value* requires an internally represented prospective or viability state that causally changes action selection. *Intelligence* requires possible futures represented inside the system, contracted into committed action, with outcome error changing future steering. The scalar $q$ remains a coherence diagnostic and gate unless a separate causal mechanism is declared. Agency criteria do not establish phenomenal consciousness.
+- **Results reorganize the search.** Support integrates a mechanism at its measured scope. `NULL`, `FAIL`, `CONTRADICTS`, instability, and unexpected behavior return new constraints to the expansive phase. Preserve frozen statistics and stopping rules; design the next discriminating probe instead of tuning through a result.
+- **Adoption follows the full loop.** Before a mechanism enters the framework, assign its accurate epistemic tier, retain its assumptions and causal boundaries, and synchronize every affected registry. The purpose of the loop is to expand freely without losing mathematical, empirical, or causal accountability.
+
+</logic-flow-philosophy>
 
 <architecture-and-data-flow>
 
 The repo is a **document graph with three master registries** at the root:
 
 - `open-questions-cassi-answers.md`—epistemic master registry: 42 open questions (`Q1–Q10`, `C1–C10`, `G1–G6`, `M1–M6`, `F1–F6`, `T1–T4`), each with a `Cassi Answer | Mechanism | Epistemic | Reference` table. Epistemic tiers: **Derived / Calibrated / Mapped / Hypothesized / Speculative / Creative** (definitions: `open-questions-cassi-answers.md` §Epistemic Tiers; every fitted or anchored claim must have a row in the Fit-Status Ledger, `parameter-inventory.md` §10).
-- `parameter-inventory.md`—parameter master registry: all ~46 parameters classified by type (F/D/C/E/I/N). **Must be updated** when a paper introduces, derives, or reclassifies a parameter.
-| `predictions/falsifiable-predictions.md`—prediction catalog: 54 numbered predictions grouped by experiment (FCC-ee, CMB-S4, LSST…), each with a `**Source:**` block. Cited elsewhere by number / `§`.
+- `parameter-inventory.md`—parameter master registry: all 48 parameters classified by type (F/D/C/M/E/I/N). **Must be updated** when a paper introduces, derives, or reclassifies a parameter.
+- `predictions/falsifiable-predictions.md`—prediction catalog: 54 numbered predictions grouped by experiment (FCC-ee, CMB-S4, LSST…), each with a `**Source:**` block. Cited elsewhere by number / `§`.
 - `cassi-physics.md`—physics guide (start here)
 - `audit.md`—self-critical prediction-vs-experiment audit.
 
@@ -29,7 +43,7 @@ The repo is a **document graph with three master registries** at the root:
 - `foundations/cascade-suppression-formula.md`—universal $\varphi^{-N}$ attenuation law
 - `foundations/dimensionful-cascade.md`—the 292-step ladder $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (scale-identification backbone for every domain)
 - `foundations/bubble-lattice-fabric.md`—the 3D condensation field as universal organizing geometry at every cascade rung
-- `principles/de-resonance-principle.md`—why φ is the attractor (maximally irrational)
+- `principles/de-resonance-principle.md`—arithmetic extremality and the Hypothesized physical de-resonance proposal
 
 Domain papers open with "at cascade step N", then apply the universal tool. When a derivation changes a parameter or prediction status, **update the registries in the same change**.
 
@@ -45,7 +59,7 @@ Domain papers open with "at cascade step N", then apply the universal tool. When
 | `particles/` | Yang-Yin particle interference, DFT benchmarks |
 | `cosmology/` | Dark energy, inflation, observational constraints (DESI DR2) |
 | `gravity/` | Quantum gravity, three-body analytical solutions |
-| `consciousness/` | Consciousness as Qi-gate dynamics: core mapping, chakra anatomy, emotions, trauma, plus the identity and perception cluster (dense-medium consciousness, auras, time & memory, transhumanism, gender; moved here from `speculations/` August 2026) |
+| `consciousness/` | Consciousness as Qi-gate dynamics: core mapping, chakra anatomy, emotions, trauma, and the identity and perception cluster (dense-medium consciousness, auras, time and memory, transhumanism, gender) |
 | `turbulence/` | Kolmogorov spectrum from φ |
 | `predictions/` | Falsifiable-predictions catalog + `cassi_definitions.md` glossary |
 | `two-fluid/` | Two-fluid PDE solver (`cassi_two_fluid_3d_gpu.py`) + GPU N-body solver (`cassi_nbody.py`) + gate/ODE test scripts, calibration |
