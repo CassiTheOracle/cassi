@@ -23,6 +23,7 @@ These refer to Python scripts now present in this repo's `experiments/` director
 | `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path7_rotation_curves.py` |
 | `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path8_phi_enhanced_rotation.py` |
 | `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path9_cassi_vs_mond.py` |
+| `foundations/phi_attractor_synthesis.md` | `experiments/phi_attractor_paths/path10_dwarf_galaxies.py` |
 | `predictions/cassi_definitions.md` | `experiments/cassi_physics/cassi_electromagnetism.py` |
 | `predictions/cassi_definitions.md` | `experiments/cassi_physics/cassi_quantum_gravity.py` |
 | `predictions/cassi_definitions.md` | `experiments/cassi_physics/cassi_three_body.py` |
@@ -51,6 +52,7 @@ These refer to scripts now present in this repo's `two-fluid/` directory (copied
 | `foundations/refined-numeric-predictions.md` | `two-fluid/run_galaxy_mass_function.py` |
 | `foundations/refined-numeric-predictions.md` | `two-fluid/figures/galaxy_mass_function.png` |
 | `particles/dft-benchmarks.md` | `two-fluid/cassi_dirac_bridge.py` |
+| `predictions/cassi_definitions.md` | `two-fluid/cassi_su2_bridge.py` |
 
 ### Pipeline figure outputs (regenerable, gitignored)
 
@@ -105,12 +107,25 @@ The numbered frontier briefs and referee memos live outside this repo and are ci
 | Source Document | Reference tree |
 |----------------|----------------|
 | `foundations/spiral-dynamics.md` | `cassi-toe-rewrite-briefs/spiral-gravity/` (08 conversion→expansion coupling, 09 winding test, 10 source stabilization, 11 spatial test, 12 cosmology-r★, 16 qi-field) |
-| `foundations/parameter-inventory.md` | `cassi-toe-rewrite-briefs/referee/` (01-core, 02-sm, 03-cosmo, 04-grav, 06-hyp) |
-| `predictions/falsifiable-predictions.md` | `cassi-toe-rewrite-briefs/spiral-gravity/45-sigma8-mixture.md` |
-| `open-questions-cassi-answers.md` | `cassi-toe-rewrite-briefs/spiral-gravity/10-source-stabilization.md` |
+| `parameter-inventory.md` | `cassi-toe-rewrite-briefs/referee/` (01-core, 02-sm, 03-cosmo, 04-grav, 06-hyp) |
+| `predictions/falsifiable-predictions.md` | `cassi-toe-rewrite-briefs/spiral-gravity/45-sigma8-mixture.md`, `53-post-freeze-continuation.md`, `54-n128-mixture.md` |
+| `open-questions-cassi-answers.md` | `cassi-toe-rewrite-briefs/spiral-gravity/10-source-stabilization.md`, `53-post-freeze-continuation.md`, `54-n128-mixture.md` |
 | `cassi-psychology.md` | `cassi-toe-rewrite-briefs/spiral-gravity/10-source-stabilization.md`, `12-cosmology-rstar.md` |
 | `cosmology/observational_constraints.md` | `cassi-toe-rewrite-briefs/spiral-gravity/` (ratified conversion→expansion coupling) |
 | `hypotheses/gravity-from-flow.md` | `cassi-toe-rewrite-briefs/` (cited by name, §run71) |
+
+## References to generated or uncommitted run receipts
+
+These paths identify raw receipts that are not tracked in this repository.
+Their consuming documents retain the numerical summaries, run settings, hashes
+where available, and the scripts needed to regenerate current receipts.
+
+| Source Document | Untracked receipt |
+|----------------|-------------------|
+| `audit.md`; `cosmology/README.md`; `foundations/refined-numeric-predictions.md`; `open-questions-cassi-answers.md`; `parameter-inventory.md` | `runs/44-truth-campaign/` |
+| `foundations/refined-numeric-predictions.md`; `open-questions-cassi-answers.md` | `runs/63-sigma8-d0-rerun/` |
+| `predictions/falsifiable-predictions.md` | `runs/20260813_005814_bubble_ring_dynamic.json` |
+| `experiments/kepler_phi_ratios/kepler-period-ratio-report.md` | `experiments/kepler_phi_ratios/data/raw/`, `experiments/kepler_phi_ratios/data/parsed/`, `experiments/kepler_phi_ratios/data/runs/20260825_132506_phi_ratios.json` |
 
 ## References to `CassiCosmos/` (the space sim, in the unified workspace)
 

@@ -94,8 +94,8 @@ to $R_H$ = 4.44 Gpc = 14.5 Glyr (the rung-292 lattice length is 5.5 Gpc). The ve
 | : | : | : |
 | 168 | $\sim 1.7$ m | Human body scale |
 
-These 26 $\varphi$-steps correspond to a scale factor of $\varphi^{26} \approx 2.7 \times 10^5$
-— the ratio of human to cellular. The same exponent 26 appears in $m_e/v_0 \approx \varphi^{-26}$
+These 26 $\varphi$-steps correspond to a scale factor of $\varphi^{26} \approx 2.7 \times 10^5$—the
+ratio of human to cellular. The same exponent 26 appears in $m_e/v_0 \approx \varphi^{-26}$
 (electron-to-electroweak mass ratio).
 
 ### 1.3 Wake Waves and Self-Plucking
@@ -122,24 +122,15 @@ optional closure and an explicit constitutive map.
 
 ## 2. Consciousness Mapping (Hypothesis)
 
-### 2.1 Self-Awareness as the Pinch Point
+### 2.1 The Pinch as a Candidate Self-Model Coordinate
 
-**Claim**: The Qi gate pinch at $r = \varphi^{-1}$ is the structural basis of
-self-awareness—the dynamical phase transition where a field becomes capable
-of self-modeling.
+**Claim:** The ratio $r=\varphi^{-1}$ is a distinguished conjugate coordinate in the selected gate algebra and a Hypothesized marker for a change in self-model organization. The algebra in §1.1 supplies no body boundary, ordered history, internal forward model, or action-conditioned alternative by itself.
 
-Before the pinch: the field is driven by the external imbalance. It responds
-but does not reflect. This maps to pre-reflective awareness (infant cognition,
-automatic processing, deep anesthesia).
+Operational self-modeling requires the causal loop in `foundations/physical-becoming-hierarchy.md`: a maintained body and reserve, boundary-localized sensing, structured history, action-conditioned shadows, finite attention, resource-debited commitment, and prediction-error learning. A pinch crossing can participate in that loop only if an intervention on the crossing changes internal prediction and later action while current sensory state and external controls are matched.
 
-After the pinch: the field's own coherence ($q$) modulates its evolution. The
-field's state depends on its own state. This is the minimal condition for
-self-reference—a dynamical system that contains a model of itself. Identity is
-the configuration that self-model stabilizes on (`consciousness/gender-as-qi-configuration.md` §2);
-the pinch and thought mappings are proposed in §2; the field algebra is derived in §1.1–§1.2, while the wake-loop dynamics are conditional on the optional closure in §1.3. The psychology guide
-cassi-psychology.md develops them for a clinical audience.
+The fact that $q(E_Y,E_I)$ modulates the field's own conversion rate is ordinary state-dependent dynamics. Self-reference in the cognitive sense requires the system to carry a body-indexed model that predicts consequences of its own candidate actions. Identity is then the slowly maintained body/history/model configuration tested under perturbation and interruption (`consciousness/gender-as-qi-configuration.md` §2). The pinch interpretation remains a phenomenological coordinate mapping inside that larger architecture.
 
-**Tested prediction (2026-08-05)**: A PDE initialized at $r < \varphi^{-1}$ and evolved through the pinch does not develop two-point correlation peaks at $\varphi$-scaled separations. The field crosses the pinch cleanly ($t_c = 8.8$, $\bar r$: 0.5 → 1.19), but $\langle r(\mathbf{x}) r(\mathbf{x}+\mathbf{d}) \rangle$ shows no $\varphi$-scaled peaks after the crossing; pre- and post-crossing correlation structure is indistinguishable, and the above-pinch counterfactual is featureless. The prediction fails at the mandated epoch. Script: `two-fluid/run_pinch_correlation.py`; the run record is not retained in this checkout.
+**Tested prediction (2026-08-05):** A PDE initialized at $r<\varphi^{-1}$ and evolved through the pinch does not develop two-point correlation peaks at $\varphi$-scaled separations. The field crosses the pinch cleanly ($t_c=8.8$, $\bar r$: $0.5\rightarrow1.19$), while pre- and post-crossing correlation structure is indistinguishable and the above-pinch counterfactual is featureless. The registered prediction is **NULL**. Script: `two-fluid/run_pinch_correlation.py`; the run record is not retained in this checkout.
 
 ### 2.2 Thought as Wake Wave
 
@@ -191,8 +182,8 @@ Within an optional spatial closure, one could test whether two regions of the tw
 
 ### 3.2 Test Design
 
-1. **Setup**: Initialize a 3D two-fluid PDE ($N=48$, GPU) with two "bubbles" —
-   Gaussian regions initialized at different local ratios $r_1$ and $r_2$.
+1. **Setup**: Initialize a 3D two-fluid PDE ($N=48$, GPU) with two "bubbles"—Gaussian
+   regions initialized at different local ratios $r_1$ and $r_2$.
    Bubble centers separated by distance $d$.
 
 2. **r-pair scan**: Three configurations spanning the Qi gate pinch point
@@ -329,6 +320,7 @@ Results are not retained in this checkout; regenerate with `two-fluid/run_two_bu
 - `cassi-physics.md`—Gap derivation and governing PDE
 - `foundations/cassi-theory-reference.md` §2.4—canonical Qi gate $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$
 - `foundations/cassi-first-principles.md` §2.1—gate definitions $\rho = E_Y+E_I = \Psi_0^2+\Psi_1^2$, $\varepsilon = E_Y-\varphi E_I$
+- `foundations/physical-becoming-hierarchy.md` §§2–9—embodied state, ordered history, action-conditioned shadows, access-conscious integration, and causal gates
 - `computations/verify_pinch_halfopen.py`—numeric verification of the §1.1 pinch identities
 - `foundations/dimensionful-cascade.md`: Complete 292-step cascade
 - `two-fluid/run_spatial_boost.py`: Spatial boost measurement ($B=1.003$)

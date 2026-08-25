@@ -4,90 +4,69 @@
 
 ## Abstract
 
-The Titius-Bode "law" for solar system planetary spacing ($a \propto 1.7^n$)
-uses a progression factor close to $\varphi \approx 1.618$. The observed
-spacing is a catalog correspondence; standard orbital dynamics does not select
-$\varphi$ from this one system. A conditional Cassi reading identifies the
-disk condensation wake with the bubble-shell ring ladder
-(`foundations/bubble-edge-geometry.md` §3.1), which would place density nodes
-(future disk gaps) at $\varphi$-spaced radii and successive gaps at
-$\varphi^{-1}=0.6180$, against the interleaved null
-$\varphi^{-1/2}=0.7862$. Under that model, the corresponding tests are
-(a) a statistical excess of **adjacent-planet period ratios in the Kepler/TESS
-multi-planet catalog** at $\varphi^{3/2}=2.058171\approx2.058\approx2.06$ and
-its Fibonacci convergents, and (b) a statistical test of **successive radial
-gap ratios in resolved protoplanetary disks**. The disk-gap branch (b) is
-registered, but its reported analysis cannot be reproduced from this
-checkout: the parsed gap table, raw source files, hashes, and run JSON are
-absent. The disk-gap result therefore remains pending an auditable receipt
-rather than an established observation. The planet-period branch is likewise
-retained as a registered model test only; no current numerical verdict is
-accepted.
+The Titius-Bode relation supplies a loose one-system correspondence rather
+than evidence for a universal spacing law. A conditional Cassi reading assigns
+the bubble-shell ladder to coherence-coupled disk material, giving successive
+disk radii $r_{k+1}/r_k=\varphi^{-1}$. Kepler's law maps that radial template
+to the conditional detached-orbit value
+$P_{\rm out}/P_{\rm in}=\varphi^{3/2}=2.058171$. The disk-to-orbit
+preservation map remains unspecified.
+
+The registered period-ratio classifier has been executed on an explicitly
+confirmed NASA Exoplanet Archive sample. Its primary Kepler result is
+**INDETERMINATE**: 46 ratios occupy the headline window and the descriptive
+folded-window score is $z_{\rm win}=1.087$. The scientific result is
+**INCONCLUSIVE** for Cassi because the target window overlaps the registered
+2:1 interval across $41.8\%$ of its width and occupies the known excess
+immediately wide of the 2:1 mean-motion resonance. The DSHARP disk-gap branch
+remains pending an auditable input-and-run receipt.
 
 ## Origin Status
 
-**Verdict: mechanism Derived conditional; tier stays Hypothesized.** The
-disk mechanism is the bubble-shell ring ladder of
-`foundations/bubble-edge-geometry.md` §3.1 (the ring law, **Derived
-conditional** on the pitch convention, the doublet's $\pi$-per-rung internal
-advance, the pool-cell parities, and the nesting depth). In a protoplanetary
-disk the condensation wake plays the bubble shell: the density nodes—the
-annular gaps resolved by ALMA—sit at $\varphi$-spaced radii
-($r_k = R\,\varphi^{-k}$, successive ratio $\varphi^{-1} = 0.6180$, null
-interleaved ratio $\varphi^{-1/2} = 0.7862$). The mechanism is the
-phase-quantized radial ladder of the doublet phase ($\alpha = \pi u$), the
-product of the SO(2) doublet advance and the pool-cell parities—not a
-one-dimensional wake-sum beat. Pending status:
+**Verdict: mechanism Derived conditional; tier stays Hypothesized.** The disk
+mechanism is the bubble-shell ring ladder of
+`foundations/bubble-edge-geometry.md` §3.1. Its ring law is Derived conditional
+on the pitch convention, the doublet's $\pi$-per-rung internal advance, the
+pool-cell parities, and the nesting depth. In the disk application, a
+condensation wake is compared with the bubble shell:
 
-- **Radial-reading inference flag.** The reading of the doublet
-  phase radially, $\alpha = \pi u$, is an inference resting on the nested
-  sub-lattice structure (`foundations/bubble-lattice-fabric.md` §3.2), not an
-  established identity; it is flagged throughout `foundations/bubble-edge-geometry.md`
-  §3.1 and inherited by the disk application.
-- **Dynamical realization open.** Whether the full ~10-ring ladder
-  is realized from microphysics is not established. Two no-ring nulls are on
-  record: the canonical solver's four-arm dynamic probe
-  (`two-fluid/run_bubble_ring_dynamic_probe.py`—**NO RINGS** on all arms to
-  $t=40$) and an unretained external space-sim second-order wave-form readback
-  (**NO RIDGES**, transient shell with one interior ridge at ratio 0.545,
-  dissipated by $t=40$). The ladder is kinematic; its dynamical realization in
-  a disk is open, and the same caveat applies to the disk-gap reading.
-- **The period-ratio prediction is registered, not currently tested.** Prediction
-  54 specifies adjacent-planet period ratios in a Kepler/TESS **multi-planet**
-  catalog. Receipt-style claims of a Kepler result, a folded-window
-  significance, a K2/TESS cross-check, or an INDETERMINATE verdict are
-  **invalid/pending**: the retained implementation has unresolved null-support
-  and signal/control overlap defects described in §8, and its raw catalog,
-  archive-confirmation evidence, hash receipt, and run JSON are not retained.
-  No rerun or replacement verdict is claimed.
-- **Disk-gap branch pending provenance.** Prediction 53 specifies successive
-  radial gap ratios within each resolved disk, pooled only after the per-disk
-  radial ratios are formed. This checkout retains neither the parsed gap table
-  nor the raw source files, SHA-256 receipt, or run JSON. Pooled counts, null
-  comparisons, significances, and detection-power claims are **invalid/pending**;
-  no DSHARP verdict is assigned.
-Tier stays **Hypothesized**: the disk-gap mechanism remains open, the DSHARP
-analysis awaits a retained data-and-results receipt, and planet-carving is the
-standard alternative. The registered tests are scoped to radial gap ratios
-within resolved disks and adjacent-planet period ratios in a multi-planet
-catalog; neither current receipt-style numerical claims nor a cross-channel
-verdict is retained.
+$$
+r_k=R\varphi^{-k},
+\qquad
+\frac{r_{k+1}}{r_k}=\varphi^{-1}=0.6180.
+$$
 
-- **Solar-system fit.** The geometric mean of the document's six adjacent
-  planet ratios is 1.66, with the 3.42 Mars/Jupiter jump dominating the set.
-  The $\varphi$ fit has mean $|\ln a|$ deviation 0.193 for the fixed
-  Mercury-to-slot-8 assignment; an assignment that maps Uranus to slot 8,
-  Neptune to slot 9, and drops slot 7 gives 0.088. Titius-Bode gives 0.084
-  under its stated assignment. These values compare bookkeeping choices and
-  do not establish a mechanism.
+The application remains Hypothesized for four reasons:
 
-The channel reading (`foundations/qi-as-spatial-spacing-signal.md` §4) remains
-conditional: a coherence-coupled disk tracer could carry a spatial-spacing
-signal, while detached orbital dynamics may not preserve that signal in
-period-ratio statistics. With the current receipt defects, no Kepler result
-or cross-channel verdict is assigned.
+- **Radial-reading inference.** The assignment
+  $\alpha=\pi\log_\varphi(r/\ell_n)$ rests on the nested sub-lattice structure
+  in `foundations/bubble-lattice-fabric.md` §3.2.
+- **Dynamical realization.** The canonical four-arm dynamic probe produces
+  **NO RINGS** to $t=40$. The available second-order space-sim readback
+  produces **NO RIDGES** beyond a transient shell and one interior feature.
+  The ladder is therefore a kinematic location template rather than an
+  established disk-gap generator.
+- **Disk-gap data.** Prediction 53 has a registered DSHARP design, while the
+  parsed table, raw-source hashes, and run receipt are absent. No
+  observation-level DSHARP verdict is assigned.
+- **Detached-orbit data.** Prediction 54's confirmed-catalog execution returns
+  formal classifier verdict **INDETERMINATE** and scientific verdict
+  **INCONCLUSIVE**. Its target is degenerate with conventional dynamics near
+  the 2:1 resonance; full numbers and source hashes are frozen in
+  `experiments/kepler_phi_ratios/kepler-period-ratio-report.md`.
 
----
+The channel reading in `foundations/qi-as-spatial-spacing-signal.md` §4 assigns
+direct sensitivity to coherence-coupled disk gas. Mature planetary orbits gain
+a Cassi-specific period-ratio prediction only from a defined disk-to-orbit
+transfer and preservation law. The current catalog diagnostic supplies no
+evidence for such a law.
+
+The solar-system bookkeeping remains weak. The geometric mean of the six
+listed adjacent ratios is 1.66, with the 3.42 Mars/Jupiter jump dominating the
+set. The fixed Mercury-to-slot-8 assignment has mean $|\ln a|$ deviation
+0.193. A reassignment that maps Uranus to slot 8, Neptune to slot 9, and omits
+slot 7 gives 0.088; Titius-Bode gives 0.084 under its stated assignment. These
+values do not establish a mechanism.
 
 ## 1. The Titius-Bode "Law"
 
@@ -98,7 +77,7 @@ The progression factor is 2, but the actual mean spacing ratio of adjacent
 planets in our solar system varies: Venus/Earth = 0.723, Earth/Mars = 1.52,
 Mars/Jupiter = 3.42 (the asteroid belt occupies this gap), Jupiter/Saturn =
 1.83, Saturn/Uranus = 1.97, Uranus/Neptune = 1.56. The geometric mean of these
-six ratios is 1.66, within 3% of $\varphi$ — but the set is dominated by the
+six ratios is 1.66, within 3% of $\varphi$—but the set is dominated by the
 single 3.42 Mars/Jupiter jump, and the ratio convention (inner/outer vs
 outer/inner, Mercury included or not) moves the mean between 1.66 and 1.75.
 One planetary system cannot select $\varphi$ over the progression factor 2
@@ -142,35 +121,56 @@ The disk reading inherits the radial-reading inference flag of
 realization in a disk is open (the two no-ring nulls in Origin Status). The
 prediction is a statistical, pooled statement, not a per-disk scaffolding.
 
-## 3. Key Prediction: Period Ratio Distribution
+## 3. Conditional Period-Ratio Diagnostic
 
-For multi-planet systems, the ratio of adjacent orbital periods should show a
-statistical excess at $\varphi$ and its Fibonacci convergents:
+If adjacent formation radii obey
+$a_{\rm out}/a_{\rm in}=\varphi$, Kepler's third law gives
 
-$$\boxed{\frac{P_{\text{out}}}{P_{\text{in}}} = \left(\frac{a_{\text{out}}}{a_{\text{in}}}\right)^{3/2} \approx \varphi^{3/2} \approx 2.06}$$
+$$
+\boxed{
+\frac{P_{\rm out}}{P_{\rm in}}
+=
+\left(\frac{a_{\rm out}}{a_{\rm in}}\right)^{3/2}
+=\varphi^{3/2}
+=2.058171
+}.
+$$
 
-The Fibonacci convergents of $\varphi$ correspond to mean-motion resonances:
+This equation is exact arithmetic conditional on the radial premise. The
+canonical two-fluid PDE does not currently supply the transfer from a disk
+density node to a mature adjacent-planet period ratio.
 
-| Convergent | Ratio | Resonance | Observed? |
-|-----------|-------|-----------|-----------|
-| $1/1$ | 1.000 | 1:1 (co-orbital) | Trojan asteroids, Janus-Epimetheus |
-| $2/1$ | 2.000 | 2:1 | Common (e.g., TOI-216) |
-| $3/2$ | 1.500 | 3:2 | Common (e.g., GJ 876) |
-| $5/3$ | 1.667 | 5:3 | Observed in several systems |
-| $8/5$ | 1.600 | 8:5 | Rare but present |
-| $13/8$ | 1.625 |—| Near $\varphi$ |
+The Fibonacci convergents of $\varphi$ coincide with several familiar
+mean-motion resonances:
 
-The prediction is that these period ratios should be overrepresented in the
-Kepler multi-planet catalog compared to random spacing, and the excess should
-peak at period ratios corresponding to low-order Fibonacci convergents (this
-branch is untested here).
+| convergent | ratio | resonance |
+|---|---:|---|
+| $1/1$ | 1.000 | 1:1 |
+| $2/1$ | 2.000 | 2:1 |
+| $3/2$ | 1.500 | 3:2 |
+| $5/3$ | 1.667 | 5:3 |
+| $8/5$ | 1.600 | 8:5 |
+| $13/8$ | 1.625 | high-order neighborhood |
 
-Mean-motion resonances are already known to be common. The Cassi
-prediction is stronger: the specific resonances that are populated are exactly
-the Fibonacci convergents of $\varphi$—not an arbitrary set of rational
-ratios. Resonances like 4:3 (1.333), 5:2 (2.5), or 7:3 (2.333) that are NOT
-Fibonacci convergents should be underrepresented relative to their Fibonacci
-neighbors.
+The registered catalog diagnostic compares a
+$\varphi^{3/2}\pm0.05$ window, a $\varphi\pm0.05$ belt, the 3:2 and 2:1
+windows, and three distant non-Fibonacci controls. On the confirmed Kepler
+sample, the headline score is $z_{\rm win}=1.087$, the $\varphi$-belt score is
+$0.904$, the 3:2 score is $2.370$, and the 2:1 score is $0.171$. The
+classifier returns **INDETERMINATE**.
+
+The headline interval $[2.008171,2.108171]$ intersects the registered 2:1
+interval $[1.95,2.05]$ over $41.8\%$ of its width. Its upper part lies in the
+well-established wide-of-2:1 excess produced by ordinary near-resonant
+dynamics. Fabrycky et al. document the asymmetric excess wide of first-order
+resonances, and Lithwick and Wu derive resonant repulsion under eccentricity
+damping. This broad window is therefore unsuitable as a clean
+$\varphi$-versus-resonance discriminator.
+
+The period-ratio branch remains a catalog diagnostic. A Cassi-specific test
+requires an independently specified transfer amplitude and width plus a
+conventional baseline for resonant dynamics, survey selection, and
+within-system dependence.
 
 ## 4. Solar System Fit
 
@@ -197,33 +197,27 @@ bookkeeping choices and do not establish a mechanism.
 
 ## 5. Falsifiable Tests
 
-1. **Kepler period-ratio excess (registered; current receipt invalid/pending).**
-   The registered target is a statistical excess of adjacent-planet ratios
-   $P_{\text{out}}/P_{\text{in}}$ in a Kepler/TESS **multi-planet catalog** at
-   $\varphi^{3/2}=2.058171\approx2.058\approx2.06$. Receipt-style
-   claims of a run, significance, cross-check, or INDETERMINATE verdict are
-   invalid/pending: the retained analysis has unresolved null-support and
-   signal/control overlap defects (§8), and its raw catalog, archive-
-   confirmation evidence, hash receipt, and run JSON are absent. No rerun or
-   replacement verdict is claimed.
+1. **Confirmed-catalog period-ratio diagnostic.** The registered descriptive
+   classifier has been executed on 476 Kepler multi-planet systems. It returns
+   **INDETERMINATE** for the primary sample
+   ($N_{\varphi^{3/2}}=46$, $z_{\rm win}=1.087$). The mechanism-level verdict
+   is **INCONCLUSIVE** because the target occupies the conventional
+   wide-of-2:1 region.
 
-2. **Resonance selectivity (registered design only).** The design compares
-   Fibonacci-convergent resonance windows with non-Fibonacci controls in the
-   same adjacent-ratio multi-planet sample. No numerical control counts,
-   significance, or selectivity verdict is retained from the invalid receipt.
+2. **Resonance selectivity.** The 3:2 window is elevated
+   ($z_{\rm win}=2.370$), while the distant 4:3, 7:3, and 5:2 controls remain
+   below the registered threshold. Those controls do not model the
+   first-order 2:1 asymmetry. A physical baseline and likelihood comparison
+   are required.
 
-3. **Log-periodic $\varphi$-spacing in disk gaps (registered; evidence
-   pending).** The ring/gap locations of ALMA-resolved protoplanetary disks
-   should show $\varphi$-spacing in $\ln r$: successive **radial gap ratios**
-   $\varphi^{-1}=0.618$ versus the null $\varphi^{-1/2}=0.786$. The DSHARP
-   design is specified in §7, but the parsed input, source hashes, and run
-   output are absent from this checkout; no data verdict, significance, or
-   detection-power value is assigned.
+3. **Disk-gap $\varphi$ spacing.** Prediction 53 tests successive radial gap
+   ratios $\varphi^{-1}=0.6180$ against the interleaved value
+   $\varphi^{-1/2}=0.7862$ in resolved disks. Its DSHARP input and immutable
+   run receipt are absent, so the observation-level verdict remains pending.
 
-4. **No per-system exact-ratio claim.** The $\varphi$ spacing is a pooled
-   catalog or radial-gap-ratio hypothesis, not an exact fit for any individual
-   planetary system or disk. Migration, scattering, and disk dynamics may move
-   individual ratios away from the registered windows.
+4. **Per-system scope.** The radial and period-ratio claims are population
+   hypotheses. Migration, scattering, disk dynamics, and observational
+   selection can move individual systems away from any formation template.
 
 ## 6. Open Issues
 
@@ -246,12 +240,11 @@ bookkeeping choices and do not establish a mechanism.
   persistent ridge ladder. A real disk gap is carved by planet-disk
   interaction or other mechanisms; the Cassi ladder is a kinematic template,
   not an established generator of disk substructure.
-- **Planet-carving is the standard alternative.** Many of the same
-  $\varphi$-spaced gaps are naturally attributed to planets (low-order
-  mean-motion resonances, 2:1, 3:2, 5:3, are Fibonacci convergents). The
-  Cassi hypothesis predicts the *specific* Fibonacci set is overrepresented;
-  distinguishing it from generic resonance-locking requires the selectivity
-  test (§5, item 2), not yet run.
+- **The first-order resonance baseline is mandatory.**
+  $\varphi^{3/2}=2.058171$ lies in the observed excess immediately wide of
+  2:1. Distant resonance controls cannot separate a $\varphi$ component from
+  resonant repulsion or related migration dynamics. A future test must compare
+  full, frozen population models across the same selection function.
 
 ## 7. The DSHARP Disk-Gap Test (Prediction 53)
 
@@ -315,103 +308,107 @@ alternative explanation.
 
 ## 8. The Kepler Period-Ratio Test (Prediction 54)
 
-### 8.1 Registered design (not a retained result)
+### 8.1 Protocol and provenance
 
-The period-ratio branch is registered for adjacent-planet
-$P_{\text{out}}/P_{\text{in}}$ ratios in a Kepler/TESS **multi-planet**
-catalog. The decision tree is recorded in the script docstring
-(`experiments/kepler_phi_ratios/run_phi_ratios.py`), but the input and output
-receipts needed to claim a completed run are not retained in this checkout.
-The intended source is the NASA Exoplanet Archive `ps` table, with an explicit
-archive-confirmation predicate required for each included planet; a parser
-that merely treats a row label as confirmed is not sufficient evidence.
+The primary sample selects `soltype='Published Confirmed'`,
+`default_flag=1`, transit discovery, and exact `disc_facility='Kepler'` from
+the NASA Exoplanet Archive `ps` table. Hosts require at least two confirmed
+planets. Adjacent period ratios are formed after ordering each host by orbital
+period, with fixed support $[1,3]$. The raw response retains every predicate
+column, and the parser checks each predicate independently.
 
-The registered signal is
-$\varphi^{3/2}=2.058171\approx2.058\approx2.06$, with a fixed half-width
-$0.05$ window. The associated signal interval is therefore approximately
-$[2.008,2.108]$. The planned comparison includes Fibonacci-convergent
-resonance windows and non-Fibonacci controls, but the $\varphi^{3/2}$ window
-overlaps the stated 2:1 control interval $[1.95,2.05]$. Until that overlap is
-resolved in the registered analysis, the control cannot serve as an
-independent discriminator and no verdict transfers from this design.
+The fetched Kepler response has SHA-256
+`0da130b0641ac369d26fa2751b5ed544eefcb405d8d538d0370b2feb72255aae`;
+the K2/TESS response has SHA-256
+`61c240a20500e79942a4828f84a12cc3608e9a4c4af9be876f73f08e768b959a`.
+The complete receipt is
+`experiments/kepler_phi_ratios/kepler-period-ratio-report.md`.
 
-The planned folded-window null uses equal-width windows across a declared
-ratio support. The prior receipt used folded-null centers on $[1,3]$ while
-other parts of the receipt used a ratio support extending to $[1,4]$; this
-support/center mismatch is an unresolved design defect. A future run must
-freeze one support and center domain before computing counts or significance.
-The intended decision tree is retained as a registered design only:
-SUPPORTS, SUPPORTS NULL, or INDETERMINATE would be assigned only after the
-support, controls, catalog predicate, and complete receipts pass audit.
+The fixed-width scan supplies a descriptive score
 
-### 8.2 Data and provenance
+$$
+z_{\rm win}=\frac{N(W)-E_{\rm win}}{s_{\rm win}},
+$$
 
-The claimed acquisition is not auditable here. The raw catalog, archive-
-confirmation evidence, source/hash receipt, and run JSON are absent. The sample
-sizes, ratios, null moments, and any cross-check lack auditable receipts and are not retained as observations. The script paths below document
-the intended acquisition and analysis locations; they do not prove that a run
-was completed:
+where $E_{\rm win}$ and $s_{\rm win}$ describe count variation as the window
+center moves across the observed histogram. The registered sweep includes
+truncated edge windows. This score is not a repeated-catalog sampling
+distribution. The 562 in-support ratios come from 361 hosts; 137 hosts
+contribute more than one ratio, with a maximum of six, so pairwise independence
+does not hold.
 
-- `experiments/kepler_phi_ratios/acquire_kepler_catalog.py` — intended
-  download, archive-confirmation filtering, parsing, and hashing;
-- `experiments/kepler_phi_ratios/run_phi_ratios.py` — intended registered
-  decision tree and folded-window null;
-- **Required run receipt:** no JSON receipt is retained in this checkout.
+### 8.2 Primary result
 
-### 8.3 Results
+The Kepler sample contains 476 systems, 1,212 planets, 736 total adjacent
+ratios, and 562 ratios inside $[1,3]$. Its window reference is
+$E_{\rm win}=28.1995$ and $s_{\rm win}=16.3697$.
 
-No Kepler, K2, or TESS numerical result is currently valid. The table of
-counts and sigma values, the INDETERMINATE label, and any receipt-style
-cross-check claim are **invalid/pending** because the raw/hash/run receipts
-are missing and the retained implementation has the null-support mismatch and
-overlapping signal/control windows described above. No rerun or replacement
-verdict is claimed.
+| window | count | $z_{\rm win}$ |
+|---|---:|---:|
+| $\varphi^{3/2}\pm0.05$ | 46 | 1.087 |
+| $\varphi\pm0.05$ | 43 | 0.904 |
+| 3:2 | 67 | 2.370 |
+| 2:1 | 31 | 0.171 |
+| maximum non-Fibonacci control | 23 | -0.318 |
 
-### 8.4 Detection power and selection effects
+The registered primary classifier returns
 
-The detection-power statement is not retained. Its injection analysis
-reused a null calibrated for $N$ observations when evaluating $N+K$
-injections, so the reported percentages cannot support a power claim. A
-future power calculation must recalibrate the null for each injected sample
-size (or otherwise use a pre-specified size-matched procedure), while retaining
-the raw injection seeds, null draws, and run receipt.
+$$
+\boxed{\text{INDETERMINATE}.}
+$$
 
-Selection effects remain an open design consideration rather than an
-observed correction: transit geometry and compact multi-planet architectures
-can shape the marginal period-ratio distribution. The registered test must
-freeze the catalog inclusion predicate and null support before interpreting
-any excess.
+The K2/TESS cross-check contains 201 systems and 207 in-support adjacent
+ratios. Its headline count is 26 with $z_{\rm win}=2.120$, while the 3:2 and
+2:1 scores are $2.391$ and $1.849$. This secondary score is descriptive and
+does not override the primary verdict.
 
-### 8.5 Verdict and statistical reading
+### 8.3 Resonance confound and diagnostics
 
-Prediction 54 remains **registered and pending/invalid at the receipt level**,
-not confirmed, rejected, or INDETERMINATE. The document retains the
-multi-planet period-ratio design only. No matter-channel result or
-cross-channel comparison is assigned. Tier stays **Hypothesized** until a
-fresh, independently auditable run resolves the parser predicate, null
-support, signal/control overlap, size-matched power calibration, and missing
-raw/hash/run receipts.
+The headline interval overlaps the registered 2:1 interval across $41.829\%$
+of its width. Twenty-three of the 46 primary headline counts and 17 of the 26
+cross-check counts fall in the explicit overlap. The remaining upper segment
+occupies the conventionally observed excess wide of 2:1.
 
----
+A conditional per-system log-uniform reshuffle fixes the observed endpoint
+periods and randomizes only interior periods. It gives headline count
+$25.078\pm3.502$, placing the observed count at standardized offset $5.975$.
+All 298 two-planet systems are unchanged, including 12 headline-window pairs
+present in every realization. This is an interior-spacing diagnostic
+conditional on observed endpoints, not a generative orbital null or evidence
+for a $\varphi$ mechanism.
+
+The synthetic-injection classifier reaches a SUPPORTS fraction of 0.23 at a
+4% planted component and 0.99 at 6%. These values measure sensitivity to one
+log-normal injection family centered at 2.058 rather than power against a
+physical orbital-dynamics null.
+
+### 8.4 Verdict
+
+The formal registered-classifier verdict is **INDETERMINATE**. The scientific
+verdict is **INCONCLUSIVE** for Cassi. The current broad target interval fails
+as a mechanism discriminator because standard first-order resonance dynamics
+populate the same region. No Cassi field effect is inferred from either
+catalog.
+
+The detached-orbit branch requires a disk-to-orbit transfer law and a frozen
+conventional population model before another catalog execution can be
+falsifiable at the mechanism level. Prediction 53's disk-gas channel remains
+the direct observational test of the spacing hypothesis.
 
 ## References
 
-- `open-questions-cassi-answers.md`—C9 (cosmic web from wake-wave), G5 (3+1 dimensions)
-- `predictions/falsifiable-predictions.md`—$\varphi$-periodic $P(k)$ prediction; Prediction 51/52; **Prediction 53** (disk-gap $\varphi$-ladder); **Prediction 54** (Kepler period-ratio)
-- `foundations/bubble-edge-geometry.md` §3.1—the ring law (Derived conditional); §3.5—the negative result; §3.6—the two no-ring nulls
-- `foundations/bubble-lattice-fabric.md` §3.2–3.3—nested sub-lattice, the ~1% nesting floor
-- `foundations/dimensionful-cascade.md`—the 292-step ladder
-- `principles/de-resonance-principle.md`—why orbital resonances lock to $\varphi$
-- `foundations/qi-as-spatial-spacing-signal.md`—the channel principle: Qi is the spatial-spacing signal; disk gas is a coherence-coupled channel, detached orbital dynamics are not
-- `experiments/dsharp_phi_gaps/acquire_dsharp_gaps.py`—intended download and
-  hash procedure for the DSHARP gap table; raw and parsed receipts are absent
-- `experiments/dsharp_phi_gaps/stack_phi_gaps.py`—the pre-registered decision
-  tree and null; its data and run output are absent
-- Data: Andrews et al. 2018 (arXiv:1812.04040, DSHARP survey); Huang et al. 2018 (arXiv:1812.04041, annular substructures, Table `tab:ringpositions`)
-- `experiments/kepler_phi_ratios/acquire_kepler_catalog.py`—intended download,
-  archive-confirmation filtering, parse, and hash procedure; the raw receipt
-  is absent
-- `experiments/kepler_phi_ratios/run_phi_ratios.py`—registered decision tree
-  and folded-window null; the run receipt and any power receipt are absent
-- Data source intended: NASA Exoplanet Archive `ps` multi-planet catalog;
-  no completed Kepler/K2/TESS result is retained
+- `open-questions-cassi-answers.md`—C9 (cosmic web from wake-wave), G5 (3+1 dimensions).
+- `predictions/falsifiable-predictions.md`—Predictions 51–54.
+- `foundations/bubble-edge-geometry.md` §3.1—the conditional ring law; §§3.5–3.6—the no-ring analytic nulls.
+- `foundations/bubble-lattice-fabric.md` §3.2–3.3—the nested sub-lattice and radial-reading premise.
+- `foundations/qi-as-spatial-spacing-signal.md` §4—the coherence-coupled disk channel and detached matter channel.
+- `experiments/dsharp_phi_gaps/acquire_dsharp_gaps.py`—DSHARP acquisition specification.
+- `experiments/dsharp_phi_gaps/stack_phi_gaps.py`—registered disk-gap classifier.
+- `experiments/kepler_phi_ratios/acquire_kepler_catalog.py`—confirmed-planet TAP acquisition and SHA-256 receipt generation.
+- `experiments/kepler_phi_ratios/run_phi_ratios.py`—registered descriptive period-ratio classifier.
+- `experiments/kepler_phi_ratios/kepler-period-ratio-report.md`—audited catalog receipt, results, and verdict.
+- Andrews et al. 2018, arXiv:1812.04040—DSHARP survey.
+- Huang et al. 2018, arXiv:1812.04041—DSHARP annular substructures.
+- Fabrycky et al. 2014, arXiv:1202.6328—period-ratio asymmetry wide of first-order resonances.
+- Lithwick and Wu 2012, arXiv:1204.2555—resonant repulsion under eccentricity damping.
+- Steffen and Hwang 2015, arXiv:1409.3320—Kepler period-ratio distribution.

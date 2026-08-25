@@ -134,7 +134,7 @@ The golden ratio $\varphi = (1+\sqrt{5})/2 \approx 1.618\ldots$ is a central str
 
 Cassi's de-resonance principle is a **Hypothesized** physical mapping. The canonical density-conversion target is the declared model input $r_\star=E_Y/E_I=\varphi$. A physical attractor, suppression of phase locking, and survival of multi-scale structure are proposed outcomes to be evaluated with specified dynamics and observables. The framework uses $\varphi$-power baselines for couplings and mass ratios as a mapped structural program, with each input retaining its ledger status.
 
-### The Two-Fluid PDE—the Single Governing Equation
+### The Two-Fluid PDE—the canonical local law
 
 The canonical local evolution law is a single partial differential equation for the two interacting real density components Yang ($E_Y$) and Yin ($E_I$), which convert into one another through a nonlinear conversion term. The PDE is not a Lagrangian or a Hamiltonian—it directly evolves field densities in space and time. Gravity, quantum mechanics, cosmology, and other sectors require their own mappings or extensions with stated closures; they are not automatic consequences of the local density equation.
 
@@ -637,50 +637,50 @@ Spin is an observed property of particles. Cassi evaluates an optional positive-
 ```mermaid
 flowchart TD
     A[σ-regularized Poisson: ∇²Φ → 1/√(|r|²+σ²)] --> B[G_eff = (π/ρ)(1+(φ⁶−1)q) G_N]
-    B --> C[No fundamental graviton—composite in quantized extension]
+    B --> C[Quantized extension: composite spin-2 remains Hypothesized]
     C --> D[Gravity emerges from field density gradients]
 ```
 
-**Visual:** Gravity follows a $\sigma$-regularized Poisson equation with a softened kernel—a spring instead of a spike. The classical field is density-gradient driven; a quantized two-fluid extension may contain a composite spin-2 excitation with the massless GR limit at $k\ll1/\sigma$ (Hypothesized).
+**Visual:** Gravity follows a $\sigma$-regularized Poisson equation with a softened kernel—a spring instead of a spike. The classical field is density-gradient driven; a quantized two-fluid extension may contain a composite spin-2 excitation, while its dispersion and GR limit remain open.
 
+The classical gravitational field follows from density gradients in a $\sigma$-regularized Poisson equation (see Primer), with $G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q)\,G_N$ depending on local Qi density and matter density. The softening parameter $\sigma = \ell_{\text{Pl}}/\varphi^3$ comes from the cascade. A quantized two-fluid extension (Hypothesized) may contain a composite spin-2 excitation assembled from the two real Yang/Yin component fields; its dispersion and relation to the low-energy GR limit require an interacting quantization and remain open.
 
-The classical gravitational field follows from density gradients in a $\sigma$-regularized Poisson equation (see Primer), with $G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q)\,G_N$ depending on local Qi density and matter density. The softening parameter $\sigma = \ell_{\text{Pl}}/\varphi^3$ comes from the cascade. A quantized two-fluid extension (Hypothesized) may contain a composite spin-2 excitation with the massless GR limit at $k \ll 1/\sigma$.
-
-| **Cassi Answer** | At the classical field level, gravity follows $\sigma$-regularized Poisson emergence and Qi enhancement (Derived conditional on the noise–signal identification, G1). A quantized two-fluid extension (Hypothesized) may contain a composite spin-2 excitation with the massless GR limit at $k\ll1/\sigma$ |
-| **Mechanism** | $G_{\text{eff}}=(\pi/\rho)(1+(\varphi^{6}-1)q)G_N$; the classical field emerges from density gradients, and the quantized extension supplies the composite spin-2 excitation (Hypothesized) |
-| **Epistemic** | **Derived conditional on the noise–signal identification**—$\sigma=\ell_{\text{Pl}}/\varphi^3$ ($\delta=3$) from the Planck-core noise–signal crossover: per-rung dephasing $1-q_0=\varphi^{-\delta}$ equals the equilibrium excess $(\pi/\rho)_{\text{eq}}=\varphi^{-3}$ (the same $\alpha_0$ whose inverse square is $\xi=\varphi^6$), so $\delta=3$; the geometric reading $\delta=d=3$ is conditional and Hypothesized. `gravity/quantum-gravity.md` §2.1 |
+| **Cassi Answer** | At the classical field level, gravity follows $\sigma$-regularized Poisson emergence and Qi enhancement (Derived conditional on the noise–signal identification, G1). A quantized two-fluid extension (Hypothesized) may contain a composite spin-2 excitation; its dispersion and GR limit remain open |
+| **Mechanism** | $G_{\text{eff}}=(\pi/\rho)(1+(\varphi^{6}-1)q)G_N$; the classical field emerges from density gradients, while the quantized extension and its low-energy response require additional structure |
+| **Epistemic** | **Derived conditional on the noise–signal identification**—$\sigma=\ell_{\text{Pl}}/\varphi^3$ ($\delta=3$) from the Planck-core noise–signal crossover: per-rung dephasing $1-q_0=\varphi^{-\delta}$ equals the equilibrium excess $(\pi/\rho)_{\text{eq}}=\varphi^{-3}$ (the same $\alpha_0$ whose inverse square is $\xi=\varphi^6$), so $\delta=3$; the geometric reading $\delta=d=3$ is conditional and Hypothesized. The composite excitation, dispersion, and GR limit remain Hypothesized; a complete interacting treatment remains open. `gravity/quantum-gravity.md` §2.1 |
 | **Reference** | `foundations/unified-lagrangian.md`, `gravity/quantum-gravity.md` |
 
 ### G2: Black hole information paradox
 
 ```mermaid
 flowchart TD
-    A[Qi field condensate] --> B[Persists across horizon]
-    B --> C[Standing-wave patterns survive]
-    C --> D[Information stays—no paradox]
+    A[σ-regularized free propagator] --> B[UV suppression]
+    B --> C[Conditional pole-level consistency]
+    C --> D[Interacting completion and horizon response required]
+    D --> E[Page curve remains open]
 ```
 
-**Visual:** The Qi field condensate persists across the event horizon like ink surviving a burning paper—information is never lost.
+**Visual:** The $\sigma$-regularized free propagator supplies high-momentum suppression. A unitary interacting completion and a curved-spacetime horizon calculation remain required before any information-retention conclusion.
 
+The black hole information paradox concerns whether evaporation can preserve the quantum information carried by infalling matter. Cassi currently supplies a $\sigma$-regularized free propagator and a conditional pole-level consistency argument. The Gaussian factor $G(k^2)=e^{-k^2\sigma^2/2}/(k^2+i\epsilon)$ suppresses high momentum and adds no finite-$k$ poles, but the propagator alone does not establish a positive spectral representation, an optical theorem, a unitary interacting S-matrix, or a Page curve. The two-fluid condensate capacity estimate and any correlated Hawking flux require an explicitly specified interaction completion and a curved-spacetime response calculation.
 
-When matter falls into a black hole and the black hole later evaporates through Hawking radiation, the information about what fell in appears to be lost forever—violating quantum unitarity. This is the black hole information paradox, and it has resisted resolution for half a century. Cassi resolves it through a combination of S-matrix unitarity (proved from the σ-regulated propagator) and the two-fluid condensate's coherence capacity matching the Bekenstein-Hawking entropy. The Cassi quantum gravity S-matrix is unitary by construction because the Gaussian σ-regulator $G(k^2) = e^{-k^2\sigma^2/2}/(k^2+i\epsilon)$ is positive-definite and preserves unitarity—no information loss can occur at the fundamental level. Hawking's thermal spectrum derivation requires trans-Planckian modes that are absent in Cassi (the dispersion relation caps all mode energies at $M_{\text{Pl}}$), so the outgoing flux is not exactly thermal and correlations accumulate over evaporation to restore a pure final state. The interior two-fluid condensate has coherence capacity $\mathcal{C} \sim M^2/M_{\text{Pl}}^2$, matching the Bekenstein-Hawking entropy and providing sufficient coherent degrees of freedom to encode the infalling information. A full Page curve computation via the two-fluid PDE on a Schwarzschild background remains to be performed.
-
-| **Cassi Answer** | σ-regulated S-matrix is manifestly unitary; two-fluid condensate coherence capacity $\mathcal{C} \sim M^2/M_{\text{Pl}}^2$ matches BH entropy; outgoing flux carries correlations restoring purity |
-| **Mechanism** | (1) S-matrix unitarity from positive-definite σ-regulator—theorem; (2) trans-Planckian censorship eliminates exact thermality; (3) two-fluid interior state retains information through evaporation, released via correlated Hawking pairs |
-| **Epistemic** | **Hypothesized**—S-matrix unitarity theorem proved; Page curve computation requires curved-spacetime PDE infrastructure (new code, defined in `gravity/quantum-gravity.md` §7.4) |
+| **Cassi Answer** | The $\sigma$-regularized free propagator provides UV suppression and a conditional pole-level consistency check; information retention, an interacting S-matrix, and the Page curve remain open |
+| **Mechanism** | The Gaussian regulator suppresses high-momentum amplitudes without adding finite-$k$ poles. A positive spectral representation, optical theorem, specified interactions, nonlocal response, and horizon calculation are still required for a unitarity or information-retention result |
+| **Epistemic** | **Hypothesized**—the free-propagator argument is conditional; the interacting quantum theory and Page-curve calculation require the curved-spacetime PDE infrastructure defined in `gravity/quantum-gravity.md` §7.4 and remain open |
 | **Reference** | `gravity/quantum-gravity.md` §7 |
+
 
 ### G3: Black hole singularities
 
 ```mermaid
 flowchart TD
-    A[Force F(r)] --> B[Outside: F ∝ 1/r²]
+    A[Optional regularized kernel] --> B[Outside: F ∝ 1/r²]
     B --> C[Crossover at σ]
-    C --> D[Inside: F ∝ −r/(3σ³)]
-    D --> E[Harmonic core—no singularity]
+    C --> D[Inside: F ∝ +r/(3σ³) under +∇Φ]
+    D --> E[Finite harmonic core]
 ```
 
-**Visual:** The same σ-regularized soft center—spring, not spike—that prevents the Big Bang singularity also replaces the black hole's divergent core with a harmonic core.
+**Visual:** Under the stated $\sigma$-regularized kernel, the local force has a finite harmonic-core form. Connecting that form to an attractive black-hole interior requires the separate Hypothesized sign-changing extension.
 
 
 General relativity predicts that at the center of every black hole, matter is crushed to infinite density—a singularity where space and time cease to exist and physics breaks down. Cassi's optional $\sigma$-regularization (see Primer) replaces the divergent kernel with a finite core: outside the core the force magnitude follows the inverse-square form, while inside the $\sigma$ radius ($\sigma=\ell_{\text{Pl}}/\varphi^3$) it transitions to $F\propto +r/(3\sigma^3)$ under the displayed $+\nabla\Phi$ convention. An attractive GR-like branch requires a separate **Hypothesized** sign-changing extension; the regularized core remains conditional on the stated kernel.
@@ -796,44 +796,44 @@ The laws of physics work just as well forward in time as backward, yet we experi
 
 ```mermaid
 flowchart TD
-    A[Single two-fluid PDE] --> B[Gravity: n=0, Qi-Poisson]
-    A --> C[EM/Weak: n=80, SU(2) gauge]
-    A --> D[Strong: n=95, cascade confinement]
-    B --> E[All forces—emergent, not separate]
-    C --> E
-    D --> E
+    A[Canonical two-fluid densities and cascade] --> B[Candidate sector bookkeeping / common vocabulary]
+    B --> C[Gravity: incomplete Qi-gravity algebraic ansatz]
+    B --> D[GR and SM: established external physics]
+    B --> E[Rung associations: Mapped / Hypothesized]
+    C --> F[Microscopic action and P1→P2 matching remain open]
+    D --> F
+    E --> F
 ```
 
-**Visual:** All four forces are notes from the same two-fluid PDE at different cascade rungs—one guitar string playing gravity, electromagnetism, strong, and weak.
+**Visual:** The canonical two-fluid variables and cascade provide candidate bookkeeping and common vocabulary across sectors. General relativity and the Standard Model remain established external physics; Qi-gravity is an incomplete algebraic ansatz, and rung associations are Mapped or Hypothesized. No single microscopic action or P1→P2 matching currently derives the four interactions.
 
+The current construction uses the canonical two-fluid densities and cascade as candidate sector bookkeeping/common vocabulary. General relativity and Standard Model gauge dynamics remain established external physics. The Qi-gravity proposal is an incomplete algebraic ansatz; associations of gravity, electromagnetism, the strong interaction, and the weak interaction with cascade rungs are Mapped or Hypothesized according to the relevant registry entries. No single microscopic action or P1→P2 matching currently derives the four interactions. A complete unification requires a specified action, field content, gauge structure, matching conditions, and tests.
 
-Physics has four fundamental forces—gravity, electromagnetism, the strong nuclear force, and the weak nuclear force—that appear completely unrelated. Finding a single framework that explains all four as facets of one underlying reality has been the dream of physics for over a century. Cassi's current construction treats all four as manifestations of the same two-fluid PDE operating at different cascade rungs: gravity is Qi-enhanced Poisson at rungs 0–267, electromagnetism emerges from the SU(2) gauge extension at step 80, the strong force is cascade confinement at step 95, and the weak force is symmetry breaking at the electroweak rung. Named normalizations, asserted boundaries, calibrated anchors, and mapped placements remain explicit, so the cross-pillar unification is Hypothesized.
-
-| **Cassi Answer** | Single PDE: all forces are manifestations of two-fluid dynamics at different cascade rungs |
-| **Mechanism** | Gravity = Qi-enhanced Poisson; EM = gauge from SU(2) extension; strong = cascade confinement; weak = symmetry breaking at step 80 |
-| **Epistemic** | **Hypothesized**—gauge structure identified; full force derivation in progress |
-| **Reference** | `foundations/unified-lagrangian.md`, `standard-model/su2-gauge-extension.md` |
+| **Cassi Answer** | Candidate sector bookkeeping/common vocabulary using the canonical two-fluid variables and cascade; GR and SM remain established external physics; Qi-gravity is an incomplete algebraic ansatz; rung associations are Mapped or Hypothesized |
+| **Mechanism** | Canonical variables provide shared notation; the Qi-gravity algebraic relation and sector-rung mappings are optional or conditional; a microscopic action and P1→P2 matching remain open |
+| **Epistemic** | **Hypothesized/open**—cross-sector bookkeeping and mappings are proposed; no microscopic unification is derived |
+| **Reference** | `foundations/physical-becoming-hierarchy.md` §7.2, §7.3; `foundations/unified-lagrangian.md` |
 
 ### F4: Theory of Everything
 
 ```mermaid
 flowchart TD
-    A[φ] --> B[Two-fluid PDE + cascade]
-    B --> C[Cosmology: w₀ = −0.87]
-    B --> D[Particles: spin, generations]
-    B --> E[Gravity: ξ = φ⁶]
-    B --> F[SM: sin²θ_W = φ⁻³]
+    A[φ and canonical two-fluid notation] --> B[Cross-sector index / organization]
+    B --> C[Cosmology: mapped / hypothesized realizations]
+    B --> D[Particles: mapped / hypothesized structures]
+    B --> E[Gravity: Qi-gravity ansatz / covariant completion open]
+    B --> F[SM: established gauge structure / asserted boundary]
+    B --> G[P0→P1→P2 matching open]
 ```
 
-**Visual:** The two-fluid PDE is organized by $\varphi$ and the cascade, with named normalizations, asserted boundaries, calibrated anchors, and mapped placements—one guitar string carrying a mixed-input framework across the pillars of physics.
+**Visual:** The framework uses $\varphi$, canonical two-fluid notation, and the cascade to index mixed-tier claims across cosmology, particles, gravity, and the Standard Model. This common notation does not derive unified microscopic dynamics. P0→P1→P2 matching and a covariant gravity completion remain open.
 
+The current framework organizes cosmology, particle physics, gravity, and the Standard Model around common notation built from $\varphi$, the canonical two-fluid variables, and the cascade. Cosmology and particle entries retain their individual derivation or mapping status; general relativity and Standard Model gauge dynamics remain established external physics; and Qi-gravity remains an incomplete algebraic ansatz. The common notation and cascade do not by themselves derive unified microscopic dynamics. The P0→P1→P2 matching program and covariant gravity completion remain open.
 
-The framework organizes cosmology, particle physics, gravity, and the Standard Model around the same two-fluid PDE, $\varphi$, and cascade. Cosmology, spin, generations, and $\xi$ have their documented derivation chains; the Standard Model gauge algebra and the fixed-point value $\sin^2\theta_W = \varphi^{-3}$ are recorded with the coupling boundary asserted and its normalization blocker open.
-
-| **Cassi Answer** | Cassi: the two-fluid PDE and cascade organized by $\varphi$, with named solver normalizations, asserted boundaries, calibrated anchors, and mapped placements |
-| **Mechanism** | All four pillars (particles, cosmology, gravity, SM) are connected through the two-fluid PDE + $\varphi$ + cascade, with each input retaining its ledger status |
-| **Epistemic** | **Hypothesized**—all pillars active; full cross-pillar computation in progress |
-| **Reference** | `cassi-physics.md`, all foundations/ docs |
+| **Cassi Answer** | Index and organization of mixed-tier sector mappings using $\varphi$, canonical two-fluid notation, and the cascade; unified microscopic dynamics is not derived |
+| **Mechanism** | Cosmology, particle, Qi-gravity, and Standard Model entries retain individual Derived, Calibrated, Mapped, or Hypothesized status; P0→P1→P2 matching and covariant gravity remain open |
+| **Epistemic** | **Hypothesized/open**—the organization is a framework proposal; microscopic matching and covariant gravity remain open |
+| **Reference** | `foundations/physical-becoming-hierarchy.md` §7.1, §7.2; `foundations/unified-lagrangian.md`; `cassi-physics.md` |
 
 
 ### F5: Dimensionful constants ($c$, $\hbar$, $G$) and $\lambda$
@@ -880,16 +880,16 @@ The Dark Energy Spectroscopic Instrument (DESI) recently measured how dark energ
 flowchart TD
     A[Post-pinch z ≈ 19] --> B[Wake-wave starts structure]
     B --> C[Qi-enhanced gravity accelerates formation]
-    C --> D[Galaxies at z > 10 expected—no dark ages]
+    C --> D[Galaxies at z > 10: test of the mechanism]
 ```
 
-**Visual:** The cascade predicts structured formation beginning near z ≈ 19—JWST's 'impossible' early galaxies are expected, not surprising.
+**Visual:** The proposed cascade mechanism places a structure-formation channel from $z \approx 19$; its quantitative timing and comparison with JWST remain open.
 
 
-The James Webb Space Telescope has found massive, mature galaxies at unexpectedly early times—just a few hundred million years after the Big Bang—when standard cosmology says galaxies should not have had enough time to form. Cassi is not surprised: the cascade predicts structured formation beginning at all epochs with no "dark age." The wake-wave mechanism and Qi-enhanced gravity (see Primer) operate from $z \approx 19$ (the post-pinch era) onward, so early luminous objects are expected rather than problematic. The formation timeline is faster than $\Lambda$CDM because gravity is stronger where matter is denser, accelerating the collapse that builds the first galaxies and making the $\Lambda$CDM "too late, too slow" problem vanish.
+The James Webb Space Telescope has found massive, mature galaxies at unexpectedly early times—just a few hundred million years after the Big Bang—when standard cosmology says galaxies should not have had enough time to form. Cassi treats these objects as a test of an optional cascade mapping: the proposed wake-wave mechanism and Qi-enhanced gravity (see Primer) could operate from $z \approx 19$ (the post-pinch era) onward. Quantitative formation times and object-by-object comparison with $\Lambda$CDM remain open.
 
-| **Cassi Answer** | Cascade predicts structured formation at all epochs; no "dark age"—the wake-wave mechanism operates from $z \approx 19$ (pinch) onward |
-| **Mechanism** | Post-pinch ($r > \varphi^{-1}$), Qi-enhanced gravity accelerates structure formation; early luminous objects expected |
+| **Cassi Answer** | Optional wake-wave/Qi-gravity formation mechanism from $z \approx 19$; quantitative timing remains open |
+| **Mechanism** | Post-pinch ($r > \varphi^{-1}$), Qi-enhanced gravity may accelerate structure formation; early luminous objects are a test of the mapping |
 | **Epistemic** | **Hypothesized**—consistent with JWST observations; quantitative formation timeline pending |
 | **Reference** | `cosmology/cosmology-from-phi.md` |
 
@@ -899,17 +899,17 @@ The James Webb Space Telescope has found massive, mature galaxies at unexpectedl
 flowchart TD
     A[Void: low density] --> B[G_eff lower than ΛCDM]
     B --> C[Less clustering at large scales]
-    C --> D[Density-dependent gravity resolves σ₈]
+    C --> D[Density-dependent gravity tests sigma8]
 ```
 
-**Visual:** In low-density voids, the Qi-gate dimmer turns gravity down, reducing large-scale clustering and naturally resolving the σ₈ tension.
+**Visual:** The proposed Qi-gate response lowers gravity in low-density regions; the measured pipeline separates mechanism and total growth, so the $\sigma_8$ effect remains a test.
 
 
-The $\sigma_8$ parameter measures how much matter clusters on large scales, and low-redshift measurements consistently show less clustering than the cosmic microwave background predicts, hinting that structure growth has slowed more than expected. Cassi's answer: Qi gravity is density-dependent (see Primer)—low-density regions like voids and galactic outskirts experience weaker effective gravity, which reduces structure growth at large scales. This produces a lower $\sigma_8$: the measured pipeline rows (2026-08-07 truth campaign, `runs/44-truth-campaign/`, N = 32/64/128, linear-P(k) IC normalization; the D-pin re-measurement 2026-08-08, brief 63) are −22.9% total at the D = 0 doctrine default (σ₈_Cassi 0.7649; the campaign's D = 0.001 row is −20.5%, σ₈_ΛCDM 0.9917 vs σ₈_Cassi 0.7884 at a_f = 1.80 — the totals carry the diffusion) with the mechanism-attributable row +29.7% (D-insensitive; G_eff = 1.297 — the doctrine r₀'s deep-Yin window q rises 0.30 → 0.41, growth enhancement; r₀-dependent: +29.4% at the derived r₀ = 0.0472; resolution-converged to 0.1 pp); the stabilized closure's regime-integrated growth gives −16.6% (R = 0.834) vs ΛCDM under the P-A relative-μ reading at the derived $r_0 = 0.0472$ (the μ normalization is Mapped—ledger). The measured per-cell μ(x,t) histories integrate to +0.3% ± 0.5 pp (P-A) over the growth window $z \in [100, 61]$ — the early-window q (0.866 at z ≈ 109) is higher than the window-end value, so the window's growth nearly cancels, and the suppression the settlement family measures (−16.6%/−15.2%) lives below the freeze (z < 61); under the flagged P-C pointwise-chord reading the same window integrates to +24.8% ± 16.3 pp and the measured continuation $z \in [61, 0]$ to −95.7% ± 2.4 pp (the freeze is structural in the continuation — the common envelope decay, Re p = −0.25 for every μ < −1/24, with all cells ending R < 1 through z → 0; N=128 confirms both phases, resolution-stable). The effect is the same $\xi = \varphi^6$ mechanism that explains rotation curves, but working in the opposite direction: where density is low, the dimmer switch turns gravity down rather than up, making large-scale structure less clustered.
+The $\sigma_8$ parameter measures how much matter clusters on large scales, and low-redshift measurements consistently show less clustering than the cosmic microwave background predicts, hinting that structure growth has slowed more than expected. Cassi's answer: Qi gravity is density-dependent (see Primer)—low-density regions like voids and galactic outskirts experience weaker effective gravity, which could reduce structure growth at large scales. The hypothesis therefore predicts lower $\sigma_8$ in the relevant low-density regime, while the measured pipeline rows (2026-08-07 truth campaign, `runs/44-truth-campaign/`, N = 32/64/128, linear-P(k) IC normalization; the D-pin re-measurement 2026-08-08, brief 63) are −22.9% total at the D = 0 doctrine default (σ₈_Cassi 0.7649; the campaign's D = 0.001 row is −20.5%, σ₈_ΛCDM 0.9917 vs σ₈_Cassi 0.7884 at a_f = 1.80—the totals carry the diffusion) with the mechanism-attributable row +29.7% (D-insensitive; G_eff = 1.297—the doctrine r₀'s deep-Yin window q rises 0.30 → 0.41, growth enhancement; r₀-dependent: +29.4% at the derived r₀ = 0.0472; resolution-converged to 0.1 pp); the stabilized closure's regime-integrated growth gives −16.6% (R = 0.834) vs ΛCDM under the P-A relative-μ reading at the derived $r_0 = 0.0472$ (the μ normalization is Mapped—ledger). The measured per-cell μ(x,t) histories integrate to +0.3% ± 0.5 pp (P-A) over the growth window $z \in [100, 61]$—the early-window q (0.866 at z ≈ 109) is higher than the window-end value, so the window's growth nearly cancels, and the suppression the settlement family measures (−16.6%/−15.2%) lives below the freeze (z < 61); under the flagged P-C pointwise-chord reading the same window integrates to +24.8% ± 16.3 pp and the measured continuation $z \in [61, 0]$ to −95.7% ± 2.4 pp (the freeze is structural in the continuation—the common envelope decay, Re p = −0.25 for every μ < −1/24, with all cells ending R < 1 through z → 0; N=128 confirms both phases, resolution-stable). The same $\xi = \varphi^6$ coupling is used in the proposed rotation-curve mapping; its large-scale effect remains conditional on the density history, closure, and diffusion settings.
 
-| **Cassi Answer** | Qi-gravity ($\xi = \varphi^6$) is density-dependent: the measured window $z \in [100, 61]$ is Yang-excess (μ̄_PC ≈ +2.8 at its start), integrating to **+24.8% ± 16.3 pp** under the P-C pointwise-chord reading (R_mix = 1.2483, every cell ends with R > 1) and **+0.3% ± 0.5 pp** under the operative P-A relative-μ reading (the window's content is the q-history 0.866 → 0.795, not the endpoint; mixture = mean-field); the measured continuation $z \in [61, 0]$ gives **−95.7% ± 2.4 pp** (the freeze is structural in the continuation: Re p = −0.25 for every μ < −1/24, all 262144 cells end R < 1 through z → 0; N=128 confirms +24.83% / −95.9%, resolution-stable — `cassi-toe-rewrite-briefs/spiral-gravity/53-post-freeze-continuation.md`, `cassi-toe-rewrite-briefs/spiral-gravity/54-n128-mixture.md`); the settlement family: the stabilized closure's regime-integrated growth gives $\sigma_8 = -16.6\%$ (R = 0.834) vs ΛCDM under the P-A reading at the derived $r_0 = 0.0472$, and the band-state mean-field −15.2% (doctrine 2026-08-07; `cosmology/sigma8-computational-plan.md` §3.2); the pipeline's measured rows: total −22.9% (D=0, the doctrine default, brief 63) / −20.5% (the campaign's D=0.001 — the totals carry the diffusion), mechanism +29.7% (G_eff = 1.297, doctrine r₀, D-insensitive) |
-| **Mechanism** | $G_{\text{eff}}$ is density-dependent; low-density regions have lower $G_{\text{eff}}$, reducing structure growth — reading P-A operative, IC $r_0 = 0.0472$ (derived) / 1/23 (operational) / 1/3 (pipeline state, non-doctrinal) |
-| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($\mu(k,a)$ normalization—ledger); doctrine 2026-08-07: reading P-A operative, IC $r_0 = 0.0472$/1/23; the truth campaign 2026-08-07 (`runs/44-truth-campaign/`) and the D-pin re-measurement 2026-08-08 (brief 63, `runs/63-sigma8-d0-rerun/`): the total −22.9% (D = 0, the doctrine default) / −20.5% (D = 0.001 campaign — the totals carry the diffusion, Δ 2.37 pp) and the mechanism row +29.7% (G_eff = 1.297, doctrine-IC; q 0.30 → 0.41; r₀-dependent: +29.4% at r₀ = 0.0472; D-insensitive: Δμ 0.02 pp; resolution-converged 0.1 pp across N ∈ {32, 64, 128}) at the linear-P(k) IC normalization (pk_norm ≡ 1); the settlement rows −16.6% (R = 0.834, closure regime-integrated) and −15.2% (band-state mean-field); the "~5%" wording never computed (plan target only) |
+| **Cassi Answer** | Qi-gravity ($\xi = \varphi^6$) is density-dependent: the measured window $z \in [100, 61]$ is Yang-excess (μ̄_PC ≈ +2.8 at its start), integrating to **+24.8% ± 16.3 pp** under the P-C pointwise-chord reading (R_mix = 1.2483, every cell ends with R > 1) and **+0.3% ± 0.5 pp** under the operative P-A relative-μ reading (the window's content is the q-history 0.866 → 0.795, not the endpoint; mixture = mean-field); the measured continuation $z \in [61, 0]$ gives **−95.7% ± 2.4 pp** (the freeze is structural in the continuation: Re p = −0.25 for every μ < −1/24, all 262144 cells end R < 1 through z → 0; N=128 confirms +24.83% / −95.9%, resolution-stable—`cassi-toe-rewrite-briefs/spiral-gravity/53-post-freeze-continuation.md`, `cassi-toe-rewrite-briefs/spiral-gravity/54-n128-mixture.md`); the settlement family: the stabilized closure's regime-integrated growth gives $\sigma_8 = -16.6\%$ (R = 0.834) vs ΛCDM under the P-A reading at the derived $r_0 = 0.0472$, and the band-state mean-field −15.2% (doctrine 2026-08-07; `cosmology/sigma8-computational-plan.md` §3.2); the pipeline's measured rows: total −22.9% (D=0, the doctrine default, brief 63) / −20.5% (the campaign's D=0.001—the totals carry the diffusion), mechanism +29.7% (G_eff = 1.297, doctrine r₀, D-insensitive) |
+| **Mechanism** | $G_{\text{eff}}$ is density-dependent; low-density regions have lower $G_{\text{eff}}$, reducing structure growth—reading P-A operative, IC $r_0 = 0.0472$ (derived) / 1/23 (operational) / 1/3 (pipeline state, non-doctrinal) |
+| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($\mu(k,a)$ normalization—ledger); doctrine 2026-08-07: reading P-A operative, IC $r_0 = 0.0472$/1/23; the truth campaign 2026-08-07 (`runs/44-truth-campaign/`) and the D-pin re-measurement 2026-08-08 (brief 63, `runs/63-sigma8-d0-rerun/`): the total −22.9% (D = 0, the doctrine default) / −20.5% (D = 0.001 campaign—the totals carry the diffusion, Δ 2.37 pp) and the mechanism row +29.7% (G_eff = 1.297, doctrine-IC; q 0.30 → 0.41; r₀-dependent: +29.4% at r₀ = 0.0472; D-insensitive: Δμ 0.02 pp; resolution-converged 0.1 pp across N ∈ {32, 64, 128}) at the linear-P(k) IC normalization (pk_norm ≡ 1); the settlement rows −16.6% (R = 0.834, closure regime-integrated) and −15.2% (band-state mean-field); the "~5%" wording never computed (plan target only) |
 | **Reference** | `two-fluid/run_sigma8_pipeline.py`, `computations/sigma8_reconciliation.py` |
 
 ### T4: $H_0$ tension
@@ -921,13 +921,13 @@ flowchart TD
     C --> D[CMB + local H₀ reconcile—same as C3]
 ```
 
-**Visual:** The same evolving w(a) mechanism that resolves the Hubble tension in C3 also applies here—two roads, one solution from the two-fluid PDE.
+**Visual:** The evolving $w(a)$ closure tests whether the CMB and local $H_0$ inferences can converge; the calibrated fit remains unresolved.
 
 
-The Hubble constant measured from nearby stars and supernovae (73.0 km/s/Mpc) disagrees sharply with the value inferred from the cosmic microwave background (67.4)—a 5-sigma discrepancy that has become the most urgent crisis in cosmology. Cassi's answer is the same as for the Hubble tension in C3: the evolving $w(a)$ from the two-fluid model alters the expansion history in a way that reconciles the two measurements. The CMB-calibrated value using a constant-$\Lambda$ model is simply biased because $\Omega_\Lambda(a)$ was lower in the past; using the correct $w(a)$ evolution, which comes from the $\varphi$-attractor dynamics, brings early-universe and local measurements into agreement without any ad hoc adjustment.
+The Hubble constant measured from nearby stars and supernovae (73.0 km/s/Mpc) disagrees sharply with the value inferred from the cosmic microwave background (67.4)—a 5-sigma discrepancy that has become the most urgent crisis in cosmology. Cassi applies the optional evolving $w(a)$ closure tested in C3; it changes the extrapolated expansion history, but the calibrated full H(z) fit remains unresolved. The documented $\Delta H_0 = -7.2$ comes from an ODE pipeline with $w(a)$ right-clamped at +0.37 for $z > 99$, outside the calibrated range; a radiation-inclusive early-time two-fluid $H(z)$ fit is required.
 
-| **Cassi Answer** | Evolving $w(a)$ alters expansion history; extrapolating $H_0$ from CMB using $\Lambda$CDM gives wrong answer |
-| **Mechanism** | $\Omega_\Lambda(a)$ was lower in the past → $H(z)$ evolution differs from $\Lambda$CDM → CMB-calibrated $H_0$ reconciles with local when $w(a)$ is used |
+| **Cassi Answer** | Optional evolving $w(a)$ closure changes the expansion history; the calibrated full H(z) fit does not resolve the tension |
+| **Mechanism** | The optional closure maps $\Omega_\Lambda(a)$ and $w(a)$ into $H(z)$; the canonical PDE supplies no single-parameter Hubble extrapolation |
 | **Epistemic** | **Hypothesized**—consistent with DESI; full H(z) fit performed 2026-08-06 (`computations/hz_full_fit.py`): not resolved under the calibrated w(a); the ΔH₀ = −7.2 value comes only from the ODE pipeline model whose w(a) is right-clamped at +0.37 (radiation-like) for z > 99—an extrapolation beyond the calibrated range (a ≥ 0.01) and outside the DESI window; a radiation-inclusive early-time two-fluid H(z) is required to close C3/T4 |
 | **Reference** | `computations/hubble_tension_pipeline.py` |
 
@@ -938,39 +938,45 @@ The Hubble constant measured from nearby stars and supernovae (73.0 km/s/Mpc) di
 
 ```mermaid
 flowchart TD
-    A[Pre-pinch: field flows out, no self-ref] --> B[PINCH at r = φ⁻¹]
-    B --> C[Post-pinch: self-predicting field]
-    C --> D[Consciousness = field becoming object to itself]
+    A[Maintained embodied field] --> B[Ordered history and present self/world state]
+    B --> C[Action-conditioned future flows]
+    C --> D[Attention and commitment]
+    D --> E[Action and observed consequence]
+    E --> F[Prediction-error learning]
+    F --> B
+    D --> G[Access-conscious content]
+    G -. bridge principle open .-> H[Phenomenal experience]
 ```
 
-**Visual:** At the pinch r = φ⁻¹, the field becomes an object to itself—consciousness is a river bending back to see its own flow, a self-plucking guitar string.
+**Visual:** A physical system carries several possible futures into its present dynamics, commits one through a finite attention bottleneck, and changes its later steering from the prediction error.
 
+Cassi supplies an operational candidate for access consciousness: selected content becomes available to action competition, report, ordered memory, and learned control inside a maintained body. This causal loop makes self-modeling and prospective agency experimentally tractable. The phenomenal question—why or whether the loop is accompanied by subjective experience—requires a separate bridge principle and discriminating evidence. The scalar $q$ diagnostic and the proposed pinch at $r=\varphi^{-1}$ provide candidate field coordinates; they do not derive phenomenal qualities.
 
-Why should a collection of neurons firing produce subjective experience—the feeling of "what it is like" to be you? This is the hard problem of consciousness, and many consider it the most difficult question in modern science. Cassi's answer directly addresses the "why": consciousness is the experience of being a self-predicting, $\varphi$-damped, cross-chakra Qi fluid with a persistent self-condensate. The critical transition is the "pinch" at $r = \varphi^{-1}$ (see Primer), where the ratio of Yang to Yin crosses a threshold and the field becomes an object to itself—a river bending back to see its own flow. This self-reference is what we experience as subjective awareness, and the theory makes 19 testable predictions.
-
-| **Cassi Answer** | Consciousness is the experience of being a self-predicting, phi-damped, cross-chakra Qi fluid with a persistent self-condensate |
-| **Mechanism** | Qi-gate pinch at $r = \varphi^{-1}$ is self-reference; the field becomes an object to itself; phenomenal qualities ARE Qi fluid patterns |
-| **Epistemic** | **Hypothesized**—19 testable predictions; pinch two-point test run 2026-08-05 (`two-fluid/run_pinch_correlation.py`): NULL—no φ-scaled correlation peaks after the crossing; the two-bubble correlation is a static-geometry protocol feature (decisive scan 2026-08-05, `two-fluid/run_two_bubble_gate_scan.py`) |
-| **Reference** | `consciousness/consciousness-from-phi.md` |
+| **Cassi Answer** | Access consciousness is a bounded physical-becoming loop in which embodied history and action-conditioned futures guide present commitment and prediction-error learning; phenomenal experience remains an open bridge problem |
+| **Mechanism** | Maintained body and reserve $\rightarrow$ boundary sensing $\rightarrow$ ordered history $\rightarrow$ shadow futures $\rightarrow$ finite attention and commitment $\rightarrow$ resource-debited action $\rightarrow$ prediction-error update |
+| **Epistemic** | **Hypothesized architecture / Derived canonical reduction**—the two-fluid conversion has an exact gradient-flow embedding; embodiment, branch causality, debit, learning, and access-conscious integration await the registered gates in `foundations/physical-becoming-hierarchy.md`; the pinch two-point test is NULL and the two-bubble correlation is a static-geometry protocol feature |
+| **Reference** | `foundations/physical-becoming-hierarchy.md` §§3–9; `consciousness/consciousness-from-phi.md` |
 
 ### M2: Mind-brain relation
 
 ```mermaid
 flowchart TD
-    A[Brain = antenna] --> B[Qi field = signal]
-    B --> C[Pinch = receiver turning on]
-    C --> D[Mind not produced by brain—received]
+    A[Brain-body physical state] --> B[Boundary-localized sensing and action]
+    B --> C[Embodied history and self/world coordinates]
+    C --> D[Action-conditioned internal model]
+    D --> E[Commitment and behavior]
+    E --> A
+    F[Candidate Cassi field sector] <--> A
 ```
 
-**Visual:** The brain is an antenna for the Qi field—the mind is the signal itself, like a river bending back to see its own flow, not a byproduct of neural computation.
+**Visual:** Brain, body, environment, history, and prospective control form one coupled causal system; interventions determine which field variables add explanatory and predictive power.
 
+Cassi models the mind-brain relation as a hierarchy of physical and coarse-grained states. Neural and bodily dynamics provide the measured boundary, sensorimotor ports, reserve, and fast state variables. Ordered history, self/world coordinates, and action-conditioned forecasts are candidate reaction coordinates that must close on held-out trajectories and causally affect behavior. A Cassi two-fluid sector may serve as substrate, auxiliary physical field, or effective coordinate if it improves prediction and survives interventions beyond established neural dynamics. The antenna interpretation remains an unverified physical alternative requiring a separately measured field, source, transduction law, and direction-of-causation test.
 
-Philosophers and neuroscientists have long debated how neural activity in the brain gives rise to the mind. Is the mind produced by the brain, or does the brain serve a different role? Cassi's answer: the mind IS concentrated post-pinch field dynamics—the brain is the antenna that focuses and transduces the Qi field, not the generator of the mind. The relationship shares the same PDE and the same $\varphi$-attractor as cosmology, meaning mind is local field coherence rather than a computational byproduct of neural firing. This recasts the mind-brain relation as a physics problem rather than a philosophical one, with testable consequences for how brain activity and field coherence interact.
-
-| **Cassi Answer** | Mind IS concentrated post-pinch field dynamics; the brain is the antenna, the Qi fluid is the signal |
-| **Mechanism** | Same PDE, same attractor, same pinch as the cosmos—mind is not produced by brain, it is local field coherence |
-| **Epistemic** | **Hypothesized**—structural identity with cosmology established |
-| **Reference** | `consciousness/consciousness-from-phi.md` §3 |
+| **Cassi Answer** | Mind is the causally closed hierarchy of embodied state, ordered history, prospective modeling, attention, commitment, and learning realized by the brain-body-environment system; a Cassi field contribution is a testable physical hypothesis |
+| **Mechanism** | Microscopic and mesoscopic brain-body dynamics coarse-grain into reaction coordinates whose closure and causal efficacy are tested by lesions, perturbations, and energy accounting; any additional field couples through explicit source and transduction ports |
+| **Epistemic** | **Hypothesized**—the state hierarchy and tests are defined; no Cassi field has yet been independently measured in neural tissue, and the micro-to-brain coarse-graining remains open |
+| **Reference** | `foundations/physical-becoming-hierarchy.md` §§2, 6–9; `consciousness/two-strand-qi-neuroscience.md` |
 
 ### M3: Depth of mind
 
@@ -1076,7 +1082,7 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
 - **The 13-band chakra count.** The count uses a 26-rung window / 2-rung $P_\parallel=2$ coordinate cycle = 13 nodes (crown at step 166, body boundary at step 168). The coordinate-cycle mapping is Hypothesized; the mapping of specific colors to specific chakras via Fibonacci-resonant sub-rungs remains Hypothesized (open computational scan). See `consciousness/chakras-as-cascade-bubbles.md`.
 - **The internal$\to$physical axis map.** A coordinate spiral's Frenet-Serret vectors $\{\mathbf{T}, \mathbf{N}, \mathbf{B}\}$ provide a candidate projection into three physical directions; the physical identification remains Hypothesized. See `foundations/why-three-dimensions.md` §2.2 and §6.1.
 - **Bubble edge profile.** The physical gradient in $q$, $\rho$, and $G_{\text{eff}}$ across the condensation boundary is derived from the chord lattice geometry but the condensation threshold $\theta_{\text{cond}}$ and the density exponent $\nu$ require PDE computation. See `foundations/bubble-edge-geometry.md`.
-- **BH information Page curve.** S-matrix unitarity is proved ($\sigma$-regulator preserves unitarity); the full Page curve computation requires a curved-spacetime two-fluid PDE solver that does not yet exist. See `gravity/quantum-gravity.md` §7.
+- **BH information Page curve.** The $\sigma$-regularized free propagator supplies UV suppression and a conditional pole-level consistency argument; it does not establish an interacting unitary S-matrix. The full Page curve computation requires a curved-spacetime two-fluid PDE solver that does not yet exist. See `gravity/quantum-gravity.md` §7.
 - **Pipelines needed:** $H_0$ shift (C3/T4) requires $w(a) \to H(z)$ integration; $\sigma_8$ (T3) requires modified $G_{\text{eff}}(k,q)$ in Boltzmann code; galaxy mass function (T2) requires PDE wake-wave + Qi-gravity N-body; BH Page curve requires curved-spacetime PDE solver.
 - **Primordial Yang-Yin ratio $r_{\text{Planck}}$.** **Derived.** The Wu Xing number $w = 5$ follows from a single input—the coherence criterion applied to ALL cycle sizes: $w\min_p|\varphi - p/w| \leq \varphi^{-w}$ holds only for $w \in \{1,2,3,5\}$ (continued-fraction optimality; verified to $w = 2000$), and $\varphi$-geometry selects $w \geq 5$. The gap $g = 1 - \varphi^{-5}$ and $r_0 = \varphi^{-5}/(2-\varphi^{-5}) \approx 0.0472$ follow from this input. The named C-class/framework convention $\lambda=0.1$ is Asserted, the implementation class default is $\lambda=0.02$, and the relation $\lambda=1/(2w)$ is a Hypothesized Wu Xing linkage requiring independent cycle-time and dynamical closure. Dimensionless quantities retain mixed accounting—Derived structural forms alongside asserted normalizations, calibrated anchors, mapped exponents, and external constants; $c$, $\hbar$, and $G$ remain external.
 
@@ -1102,7 +1108,7 @@ All Cassi theory documents are organized in the subdirectories listed above. Key
 - `standard-model/sm-from-phi.md`—SM couplings, GUT, generations
 - `standard-model/cp-violation.md`—CP, baryon asymmetry
 - `standard-model/neutrino-mass.md`—neutrino masses
-- `predictions/falsifiable-predictions.md`—complete 54-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—complete 56-entry prediction catalog
 - `consciousness/consciousness-from-phi.md`—pinch, wake, two-bubble verification
 - `foundations/bubble-edge-geometry.md`—bubble edge profile, condensation threshold, anisotropic void ellipticity
 - `consciousness/consciousness-from-phi.md`—full consciousness theory

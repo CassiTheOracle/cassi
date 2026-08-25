@@ -115,7 +115,7 @@ measurement.
 ### 1.2 What has been established
 
 - Milky Way rotation curve: the working halo ansatz with $\xi = \varphi^6 \approx 17.944$ reports a match to 0.3% of the empirically calibrated value (`foundations/xi-derivation.md` §3); the comparison inherits the Hypothesized proxy-to-canonical-$q$ constitutive input
-- Dwarf spheroidal galaxies: G-rescaling sector 3/8 vs MOND 4/8 (Path 10, `experiments/phi_attractor_paths/path10_dwarf_galaxies.py`); coherence sector uncalibrated below $10^7\,M_\odot$ (see UFD note below)
+- Dwarf spheroidal galaxies: the optional fixed-composition $G$-rescaling screen places 7/8 nominal ratios and 6/8 lower propagated $\sigma_{\text{los}}/R_e$ bounds above the $\varphi^3$ endpoint (Path 10, `experiments/phi_attractor_paths/path10_dwarf_galaxies.py`); the coherence sector remains uncalibrated below $10^7\,M_\odot$ (see UFD note below)
 - The gravitational coupling $\alpha_G \propto \varphi^{-2n}$ is parameter-free once a cascade rung $n$ is supplied; without a supplied rung, no fitted $\alpha_G$ coupling is asserted
 
 ---
@@ -387,8 +387,8 @@ are organizational summaries; they are not visible-plus-dark mass fractions
 until a complete matter and lensing forward model defines those masses.
 
 A galaxy with a natural gate chain has a baseline index set by the
-conversion-diffusion balance at the galactic rung. An **active gate network**—
-stellar-scale analogues of the pyramids and ocean bases from
+conversion-diffusion balance at the galactic rung. An **active gate network**—stellar-scale
+analogues of the pyramids and ocean bases from
 `speculations/cascade-infrastructure.md`—would have a higher index under that
 matter map if the model's conversion closure supplies that effect. The gate
 interpretation remains a Hypothesized extension.
@@ -559,7 +559,7 @@ not a demonstrated physical dispersion.
 
 The boost applies to the Yang component only ($v^2 = G[M_{\rm bar} + (1+(\varphi^{6}-1)\mathcal{M}_{\rm proxy\to q}(q_{\rm proxy}))M_Y]/r$), and the homogeneous analogue weights by the attractor Yang fraction $\alpha_w = r/(1+r) = \varphi^{-1} \approx 0.618$ (`two-fluid/calibrate_initial_ratio_xi_v2.py`). The galactic-sector implementation of that insight—driving the geometric proxy by the enclosed-mass Yang fraction itself, $q_{\rm proxy}(r) = \alpha_{\text{halo}}(r) = M_Y(r)/[M_{\rm bar}(r)+M_Y(r)]$, with canonical $q$ supplied by the same constitutive map—was tested at zero new parameters (same 2-parameter fit; `experiments/sparc_qi/sparc_qi_analysis_v9.py`). It gives overall statistical parity with the decoherence-envelope form (median $\Delta$AIC(B−A) = −0.5, B better in 83/143) and a genuine gain on high-mass galaxies ($V_{\rm flat} \geq 100$ km/s, $n=81$: median −3.8, 55/81), but a modest loss on dwarfs ($V_{\rm flat} < 100$ km/s, $n=62$: median +0.6, A better in 29 vs B's 17). It still beats NFW on dwarfs (median −7.5), yet the decoherence envelope is preferred: under the Yang-fraction form no galaxy reaches its isothermal asymptote within the data (the recovery is too gradual), so the constrained/unconstrained decomposition collapses; and the fitted $c_s$ loses the virial anchor (median $c_s\cdot 5.99/v_{DM,\rm flat} = 1.60$ vs 1.10 under the envelope, though the relation tightens: slope $0.96 \pm 0.06$, $R^2 = 0.77$). The emergent core scaling survives ($\gamma = 0.397 \pm 0.021$, $R^2 = 0.72$, vs empirical $0.41 \pm 0.02$). A third variant—the envelope shape with the Yang-fraction crossover radius as its scale—is worse on dwarfs (median +2.7). The Yang-component-only boost with the baryonic-decoherence envelope is the form the data support under this Hypothesized proxy map.
 
-**UFD regime.** The ultra-faint dwarfs that exceed the G-rescaling velocity ceiling (Path 10: Segue 1/2 at $v_{\rm obs}/v_{\rm Newt} \approx 16.6$–$16.8$, Draco at 6.2; `experiments/phi_attractor_paths/path10_dwarf_galaxies.py`) are not a test of this sector's ceiling—in the coupling above they demand $M_Y/M_{\rm bar} \approx 15$ at canonical $q \to 1$, four-plus decades below the SPARC calibration range ($M_{\rm bar} \gtrsim 10^7\,M_\odot$). The condensate mechanism is therefore uncalibrated (not falsified) there; the SPARC $c_s$ scalings cannot be extrapolated to $10^3\,M_\odot$ stellar masses.
+**UFD regime.** The nominal fixed-$M_\star/L_V=1$ dwarf screen places Segue 1/2 at $v_{\rm obs}/v_{\rm Newt}\approx49.1$ and $29.6$, and Draco at $10.8$ (`experiments/phi_attractor_paths/path10_dwarf_galaxies.py`). In the coupling above, their central proxies would require $M_Y/M_{\rm bar}\approx134$, $49$, and $6.4$, respectively, at canonical $q\to1$. Those systems lie four-plus decades below the SPARC calibration range ($M_{\rm bar}\gtrsim10^7\,M_\odot$). The condensate mechanism is uncalibrated there, and the SPARC $c_s$ scalings have no validated extrapolation to $10^3\,M_\odot$ stellar masses. Object-level stellar-mass, membership, binary, and equilibrium likelihoods remain prerequisites for interpreting these ratios.
 
 **Candidate P2 (unregistered; Hypothesized scaling comparison).** The pseudo-isothermal fits give $\gamma = 0.23 \pm 0.10$ with $R^2 = 0.05$—the model-fitted $r_c$ is too degenerate with $\rho_c$ to trace mass, so the fitted scaling does not constrain P2. The empirical measurement stands as the P2 constraint.
 

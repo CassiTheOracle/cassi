@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-r"""Path 9: Cassi φ-Enhanced Gravity vs MOND—Radial Acceleration Relation.
+r"""Path 9: mapped density ansatz vs MOND—radial acceleration relation.
 
-Compares the Cassi φ-enhanced gravity model (Path 8) to MOND using the
-radial acceleration relation (RAR, McGaugh et al. 2016).
+Compares the Path-9 mapped density ansatz to MOND along one synthetic
+Milky-Way-like radial profile and overlays the published SPARC RAR catalog.
 
 MOND interpolating function (simple form, McGaugh 2008):
     μ(x) = x / √(1 + x²),   where x = a/a₀
@@ -10,21 +10,20 @@ MOND interpolating function (simple form, McGaugh 2008):
     Inverted analytically: a_obs = a₀ √y²,  y² = (b² + √(b⁴+4b²))/2,
     where b = a_baryon/a₀.
 
-Cassi φ-enhanced gravity:
-    G_eff/G = α·(1 + ξ·q),   ξ = φ⁶ ≈ 17.944,  α ≈ 0.7 (halo Yang fraction)
-    q = 1 / (1 + (ρ/ρ_ref)²)
-    a_Cassi = (G_eff/G) · a_baryon
+Path-9 halo parametrization:
+    G_eff/G = alpha*(1 + xi*q),   xi = phi^6 ~ 17.944,
+    alpha = 0.7 (Mapped halo normalization)
+    q = 1 / (1 + (rho/rho_ref)^2)
+    a_path9 = (G_eff/G) * a_baryon
 
-This is the full two-fluid coupling (cosmology/observational_constraints.md §2.6),
-superseding the earlier approximate G_eff/G_N = 1 + (φ−1)·q (max boost
-φ ≈ 1.618), which used the wrong equation and was withdrawn.
-The α = 0.7 form is the halo-regime parametrization (max α(1+ξ) ≈ 13.3);
-the framework saturation is the derived max boost φ⁶ ≈ 17.94 (velocity
-ceiling √φ⁶ = φ³ ≈ 4.24; corrected 2026-08-03).
+This script tests that specific fitted parametrization. The identity
+xi = phi^6 is Derived; assigning it to gravity, choosing the q profile, and
+using alpha = 0.7 are model assumptions. The resulting low-density endpoint
+is alpha*(1 + xi) ~ 13.3 within this path model.
 
-The Cassi enhancement depends on LOCAL DENSITY ρ, not on acceleration.
-This is a fundamental difference from MOND, where the boost depends on
-a_baryon alone (universal RAR).
+Within these ansätze, the Path-9 enhancement depends on local density rho,
+whereas the chosen MOND relation depends on baryonic acceleration alone.
+The comparison does not constitute a fit of local density to SPARC galaxies.
 
 Galaxy model: same MW-like disk+bulge as Path 8.
     Disk:  M = 6×10¹⁰ M_sun, R_d = 3.0 kpc, h_z = 0.3 kpc
@@ -99,7 +98,7 @@ def mond_boost(a_baryon, a0=A0):
     return a_obs / np.maximum(a_baryon, 1e-300)
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  Cassi φ-enhanced gravity
+#  Path-9 mapped density ansatz
 # ═══════════════════════════════════════════════════════════════════════════
 
 def cassi_q(rho, rho_ref):
@@ -109,13 +108,13 @@ def cassi_q(rho, rho_ref):
 
 
 def cassi_geff_ratio(rho, rho_ref):
-    """G_eff/G = α·(1 + ξ·q), with ξ = φ⁶, α = 0.7 (full two-fluid coupling)."""
+    """Return the Path-9 mapped ratio alpha*(1 + xi*q)."""
     q = cassi_q(rho, rho_ref)
     return ALPHA_HALO * (1.0 + XI * q)
 
 
 def cassi_a_obs(a_baryon, rho, rho_ref):
-    """Cassi observed acceleration: a_Cassi = (G_eff/G_N) · a_baryon."""
+    """Path-9 acceleration a_path9 = (G_eff/G_N) * a_baryon."""
     g_ratio = cassi_geff_ratio(rho, rho_ref)
     return g_ratio * a_baryon
 
@@ -200,7 +199,7 @@ def get_sparc_data():
 # ═══════════════════════════════════════════════════════════════════════════
 
 def compute_rar_curves(R_array, rho_ref_list):
-    """Compute a_obs(a_baryon) for MOND, Cassi at multiple ρ_ref, identity.
+    """Compute MOND and Path-9 curves along one synthetic radial profile.
 
     Parameters
     ----------
@@ -245,7 +244,7 @@ def compute_rar_curves(R_array, rho_ref_list):
 def find_best_rho_ref(R_array, rho_ref_range):
     """Find ρ_ref that minimizes RMS fractional deviation from MOND.
 
-    Minimizes:  Σ [ (a_Cassi(R) - a_MOND(R)) / a_MOND(R) ]²
+    Minimizes:  Σ [ (a_path9(R) - a_MOND(R)) / a_MOND(R) ]²
 
     Parameters
     ----------
@@ -284,9 +283,9 @@ def find_best_rho_ref(R_array, rho_ref_range):
 def make_figure(rar_data, rho_ref_list, rho_ref_best, spar_data, savepath):
     """3-panel figure: RAR, deviation from MOND, SPARC overlay.
 
-    Panel A: a_obs vs a_baryon (log-log)—identity, MOND, Cassi curves
-    Panel B: Fractional deviation (a_Cassi - a_MOND)/a_MOND vs a_baryon
-    Panel C: Same as A but with SPARC data points overlaid
+    Panel A: a_obs vs a_baryon (log-log)—identity, MOND, Path-9 curves
+    Panel B: Fractional deviation (a_path9 - a_MOND)/a_MOND vs a_baryon
+    Panel C: Same as A with the published SPARC points overlaid
     """
     fig, axes = plt.subplots(1, 3, figsize=(20, 7))
 
@@ -303,11 +302,11 @@ def make_figure(rar_data, rho_ref_list, rho_ref_best, spar_data, savepath):
     # MOND curve
     ax.plot(a_range, mond_a_obs(a_range), 'b-', lw=2.5, label='MOND (simple μ)')
 
-    # Cassi curves
+    # Path-9 curves
     colors = plt.cm.viridis(np.linspace(0.1, 0.9, len(rho_ref_list)))
     for i, rho_ref in enumerate(rho_ref_list):
         a_c = rar_data['a_cassi'][rho_ref]
-        label = f'Cassi $\\rho_{{ref}}$={rho_ref:.1e} kg/m³'
+        label = f'Path-9 $\\rho_{{ref}}$={rho_ref:.1e} kg/m³'
         if abs(rho_ref - rho_ref_best) / rho_ref_best < 0.01:
             label += ' (best-fit)'
             ax.plot(a_bar, a_c, '-', color=colors[i], lw=2.5, label=label, zorder=8)
@@ -330,7 +329,7 @@ def make_figure(rar_data, rho_ref_list, rho_ref_best, spar_data, savepath):
     # ── Panel B: Deviation from MOND ──────────────────────────────────────
     ax = axes[1]
 
-    # Best-fit Cassi vs MOND
+    # Best-fit Path-9 curve vs MOND
     a_c_best = rar_data['a_cassi'][rho_ref_best]
     frac_dev = (a_c_best - a_mond) / np.maximum(a_mond, 1e-300)
 
@@ -351,7 +350,7 @@ def make_figure(rar_data, rho_ref_list, rho_ref_best, spar_data, savepath):
     ax.axvline(A0, color='red', ls=':', lw=1, alpha=0.4)
 
     ax.set_xlabel(r'$a_{\mathrm{baryon}}$ [m/s²]', fontsize=13)
-    ax.set_ylabel(r'$(a_{\mathrm{Cassi}} - a_{\mathrm{MOND}})\,/\,a_{\mathrm{MOND}}$ [%]', fontsize=13)
+    ax.set_ylabel(r'$(a_{\mathrm{Path9}} - a_{\mathrm{MOND}})\,/\,a_{\mathrm{MOND}}$ [%]', fontsize=13)
     ax.set_title('Panel B: Deviation from MOND', fontsize=14, fontweight='bold')
     ax.legend(fontsize=8, loc='upper left')
     ax.grid(True, alpha=0.3)
@@ -363,10 +362,10 @@ def make_figure(rar_data, rho_ref_list, rho_ref_best, spar_data, savepath):
     ax.plot(a_range, a_range, 'k--', lw=1.2, alpha=0.4, label='1:1')
     ax.plot(a_range, mond_a_obs(a_range), 'b-', lw=2.5, label='MOND')
 
-    # Best-fit Cassi
+    # Best-fit Path-9 curve
     a_c_best = rar_data['a_cassi'][rho_ref_best]
     ax.plot(a_bar, a_c_best, '-', color='#8e44ad', lw=2.5,
-            label=f'Cassi best-fit ($\\rho_{{ref}}$={rho_ref_best:.2e})')
+            label=f'Path-9 best-fit ($\\rho_{{ref}}$={rho_ref_best:.2e})')
 
     # SPARC data
     a_bar_sparc, a_obs_sparc = spar_data
@@ -385,7 +384,7 @@ def make_figure(rar_data, rho_ref_list, rho_ref_best, spar_data, savepath):
     ax.set_ylim(5e-14, 1e-8)
     ax.grid(True, alpha=0.3)
 
-    fig.suptitle('Path 9: Cassi φ-Gravity vs MOND—Radial Acceleration Relation',
+    fig.suptitle('Path 9: Mapped Density Ansatz vs MOND—Synthetic Radial Profile',
                  fontsize=15, fontweight='bold', y=1.02)
     fig.tight_layout()
     fig.savefig(savepath, dpi=150, bbox_inches='tight')
@@ -399,8 +398,8 @@ def make_figure(rar_data, rho_ref_list, rho_ref_best, spar_data, savepath):
 
 def main():
     print("=" * 78)
-    print("  Path 9: Cassi φ-Enhanced Gravity vs MOND")
-    print("  Radial Acceleration Relation (RAR)")
+    print("  Path 9: Mapped Density Ansatz vs MOND")
+    print("  Synthetic radial-profile comparison with SPARC overlay")
     print("=" * 78)
     print()
 
@@ -480,8 +479,8 @@ def main():
     print(f"  At a_baryon ≈ 0.01 a₀ = {a_bar_at_target:.2e} m/s² (target {target_a:.2e}):")
     print(f"    R ≈ {R[idx_target]/KPC:.1f} kpc, ρ = {rho_at_target:.3e} kg/m³")
     print(f"    MOND:   a_obs = {a_mond_at_target:.3e} m/s²  (boost = {a_mond_at_target/a_bar_at_target:.2f}×)")
-    print(f"    Cassi:  a_obs = {a_cassi_at_target:.3e} m/s²  (boost = {a_cassi_at_target/a_bar_at_target:.3f}×)")
-    print(f"    Ratio a_Cassi/a_MOND = {a_cassi_at_target/a_mond_at_target:.3f}")
+    print(f"    Path-9: a_obs = {a_cassi_at_target:.3e} m/s²  (boost = {a_cassi_at_target/a_bar_at_target:.3f}×)")
+    print(f"    Ratio a_Path9/a_MOND = {a_cassi_at_target/a_mond_at_target:.3f}")
     print(f"    G_eff/G_N at this radius = {g_ratio_best[idx_target]:.4f}")
     print()
 
@@ -494,8 +493,8 @@ def main():
     print(f"  At a_baryon ≈ 0.1 a₀ = {a_bar_at_01:.2e} m/s² (target {target_a2:.2e}):")
     print(f"    R ≈ {R[idx2]/KPC:.1f} kpc, ρ = {rho[idx2]:.3e} kg/m³")
     print(f"    MOND:   a_obs = {a_mond_01:.3e} m/s²  (boost = {a_mond_01/a_bar_at_01:.2f}×)")
-    print(f"    Cassi:  a_obs = {a_cassi_01:.3e} m/s²  (boost = {a_cassi_01/a_bar_at_01:.3f}×)")
-    print(f"    Ratio a_Cassi/a_MOND = {a_cassi_01/a_mond_01:.3f}")
+    print(f"    Path-9: a_obs = {a_cassi_01:.3e} m/s²  (boost = {a_cassi_01/a_bar_at_01:.3f}×)")
+    print(f"    Ratio a_Path9/a_MOND = {a_cassi_01/a_mond_01:.3f}")
     print()
 
     # Maximum and minimum deviation
@@ -518,58 +517,57 @@ def main():
         print(f"  Deep regime (a_baryon ≈ {a_bar_deep:.2e} m/s², target {a_deep:.2e}):")
         print(f"    R ≈ {R[idx_deep]/KPC:.1f} kpc, ρ = {rho[idx_deep]:.3e} kg/m³")
         print(f"    MOND:   a_obs/a_baryon = {a_mond_deep/a_bar_deep:.1f}×")
-        print(f"    Cassi:  a_obs/a_baryon = {a_cassi_deep/a_bar_deep:.3f}×  (G_eff/G = {g_deep:.4f}, halo max α(1+ξ) = {ALPHA_HALO*(1.0+XI):.4f}; framework saturation φ⁶ = {XI:.4f})")
-        print(f"    Ratio a_Cassi/a_MOND = {a_cassi_deep/a_mond_deep:.4e}")
+        print(f"    Path-9: a_obs/a_baryon = {a_cassi_deep/a_bar_deep:.3f}×  (G_eff/G = {g_deep:.4f}, halo max α(1+ξ) = {ALPHA_HALO*(1.0+XI):.4f}; optional full-chord ceiling φ⁶ = {XI:.4f})")
+        print(f"    Ratio a_Path9/a_MOND = {a_cassi_deep/a_mond_deep:.4e}")
     else:
         print(f"  Deep regime: grid does not reach a_baryon = {a_deep:.2e} m/s²")
         print(f"    Closest grid point: a_baryon = {a_bar_deep:.2e} m/s² at R = {R[idx_deep]/KPC:.1f} kpc")
         print(f"    MOND asymptotic: a_obs/a_baryon → √(a₀/a_baryon) as a_baryon → 0")
-        print(f"    Cassi asymptotic (halo regime): a_obs/a_baryon → α(1+ξ) = {ALPHA_HALO*(1.0+XI):.4f} as ρ → 0; framework saturation φ⁶ = {XI:.4f}")
+        print(f"    Path-9 asymptotic: a_obs/a_baryon → α(1+ξ) = {ALPHA_HALO*(1.0+XI):.4f} as ρ → 0; optional full-chord ceiling φ⁶ = {XI:.4f}")
     print()
 
     # ── Answer the key questions ──────────────────────────────────────────
     print("[5/5] Key questions:")
     print()
 
-    print(f"  Q1: Does Cassi reproduce the RAR? At what ρ_ref?")
+    print(f"  Q1: Does the Path-9 ansatz reproduce the chosen MOND curve along this profile?")
     print(f"      Best-fit ρ_ref = {rho_ref_best:.3e} kg/m³ = {rho_ref_best*1e3:.3e} g/cm³")
     print(f"      RMS deviation from MOND = {rms_min*100:.2f}%")
     if rms_min < 0.1:
-        print(f"      → Cassi matches MOND to within 10% across the full range.")
+        print(f"      → Path-9 tracks MOND to within 10% across this synthetic profile.")
     elif rms_min < 0.3:
-        print(f"      → Cassi roughly tracks MOND but with significant deviations (10–30%).")
+        print(f"      → Path-9 roughly tracks MOND here, with 10–30% deviations.")
     else:
-        print(f"      → Cassi does NOT reproduce the MOND RAR (deviation > 30%).")
+        print(f"      → Path-9 does not reproduce MOND here (deviation > 30%).")
     print()
 
-    print(f"  Q2: What's the testable difference between Cassi and MOND?")
+    print(f"  Q2: What distinguishes the two ansätze?")
     print(f"      MOND boost → ∞ as a_baryon → 0 (a_obs ∝ √a_baryon).")
-    print(f"      Cassi boost → α(1+ξ) = {ALPHA_HALO*(1.0+XI):.3f} as ρ → 0 "
-          f"(halo regime; framework saturation φ⁶ = {XI:.3f}).")
-    print(f"      In the deep low-acceleration regime, MOND predicts MUCH larger")
-    print(f"      boosts than Cassi.  For a_baryon = 10⁻⁴ a₀:")
+    print(f"      Path-9 boost → α(1+ξ) = {ALPHA_HALO*(1.0+XI):.3f} as ρ → 0 "
+          f"(halo regime; optional full-chord ceiling φ⁶ = {XI:.3f}).")
+    print(f"      In the asymptotic low-acceleration limit, MOND grows beyond")
+    print(f"      the finite Path-9 endpoint. For a_baryon = 10⁻⁴ a₀:")
     a_deep_test = 1e-4 * A0
     a_mond_deep_test = mond_a_obs(a_deep_test)
-    print(f"        MOND boost = {a_mond_deep_test/a_deep_test:.0f}×, Cassi max boost = {ALPHA_HALO*(1.0+XI):.3f}×")
-    print(f"      This is a decisive test: measure rotation curves at very large")
-    print(f"      radii (very low accelerations) and check whether the boost")
-    print(f"      continues to grow (MOND) or saturates (Cassi: halo α(1+ξ) ≈ {ALPHA_HALO*(1.0+XI):.2f}, framework φ⁶ ≈ {XI:.2f}).")
+    print(f"        MOND boost = {a_mond_deep_test/a_deep_test:.0f}×, Path-9 max boost = {ALPHA_HALO*(1.0+XI):.3f}×")
+    print(f"      This supplies a potential discriminator at very low acceleration.")
+    print(f"      An observational test still requires preregistered galaxy selection,")
+    print(f"      local-density inference, nuisance models, and a population likelihood.")
     print()
 
     print(f"  Q3: For low-acceleration regions (a < 0.01 a₀), do they predict")
     print(f"      the same boost?")
     print(f"      No.  At a_baryon ≈ 0.01 a₀:")
     print(f"        MOND boost  = {a_mond_at_target/a_bar_at_target:.2f}×")
-    print(f"        Cassi boost = {a_cassi_at_target/a_bar_at_target:.3f}×  "
-          f"(at most the φ⁶ saturation = {XI:.3f}; halo regime α(1+ξ) = {ALPHA_HALO*(1.0+XI):.3f})")
+    print(f"        Path-9 boost = {a_cassi_at_target/a_bar_at_target:.3f}×  "
+          f"(optional full-chord ceiling = {XI:.3f}; halo endpoint α(1+ξ) = {ALPHA_HALO*(1.0+XI):.3f})")
     mond_equiv_boost = a_mond_at_target/a_bar_at_target
-    print(f"      MOND gives ≈ {mond_equiv_boost:.0f}× boost, Cassi gives at most φ⁶ = {XI:.3f}×.")
-    print(f"      The two disagree by a factor of ∼{mond_equiv_boost/XI:.1f} at this acceleration.")
+    print(f"      The Path-9 halo boost is {a_cassi_at_target/a_mond_at_target:.3f}× the MOND value here;")
+    print(f"      the separate full-chord ceiling φ⁶ would be {XI/mond_equiv_boost:.3f}× the MOND boost.")
     print()
 
-    print(f"  Q4: Does Cassi have a 'natural' a₀?")
-    print(f"      Cassi does NOT have a built-in acceleration scale like MOND's a₀.")
-    print(f"      Instead, ρ_ref sets the DENSITY scale where enhancement turns on.")
+    print(f"  Q4: Does the Path-9 ansatz contain a universal a₀?")
+    print(f"      No. ρ_ref sets a density scale rather than an acceleration scale.")
     print(f"      The corresponding acceleration scale depends on the galaxy:")
     # What a_baryon corresponds to ρ = ρ_ref?
     idx_ref = np.argmin(np.abs(rho - rho_ref_best))
@@ -577,17 +575,14 @@ def main():
     print(f"      Best-fit ρ_ref = {rho_ref_best:.3e} kg/m³ → transition at")
     print(f"      a_baryon ≈ {a_at_ref:.3e} m/s² = {a_at_ref/A0:.3f} a₀")
     print(f"      (R ≈ {R[idx_ref]/KPC:.1f} kpc)")
-    print(f"      Different galaxies with different density profiles will have")
-    print(f"      different transition accelerations—Cassi does NOT predict a")
-    print(f"      UNIVERSAL acceleration scale like MOND's a₀.")
-    print(f"      HOWEVER: if all disk galaxies have similar ρ(R) profiles,")
-    print(f"      the transition may occur at similar a_baryon, mimicking a")
-    print(f"      universal a₀.")
+    print(f"      Different galaxy density profiles generally map the same ρ_ref")
+    print(f"      to different accelerations. Similar profiles could mimic a common")
+    print(f"      transition scale, which must be tested rather than assumed.")
     print()
 
     # ── Summary table: boost factor vs a_baryon ──────────────────────────
     print("  Summary: Boost factor comparison (a_obs / a_baryon)")
-    print(f"  {'a_baryon/a₀':>14s}  {'MOND boost':>12s}  {'Cassi boost':>12s}  {'Ratio':>10s}")
+    print(f"  {'a_baryon/a₀':>14s}  {'MOND boost':>12s}  {'Path-9 boost':>12s}  {'Ratio':>10s}")
     print("  " + "-" * 54)
     for log_x in [-3, -2, -1, -0.5, 0, 0.5, 1]:
         a_test = 10**log_x * A0

@@ -4,7 +4,7 @@
 
 ## Abstract
 
-Cassi is a theory of everything built around one constant: the golden ratio $\varphi\approx1.618$, the most irrational number, used as the model's declared scale-separation target for a two-component density field. The real density components are conventionally labeled Yang ($E_Y$) and Yin ($E_I$); the canonical equations treat them as neutral components and use the **Asserted** C-class/framework convention $\lambda=0.1$ in named calculations. The implementation class default is $\lambda=0.02$ unless a caller passes a different value. The optional positive-root lift $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$ supplies coordinate phase diagnostics. A **Hypothesized** geometric and phenomenological mapping organizes selected coherence patterns as a 3D bubble lattice—bubbles of high coherence separated by voids—that repeats across the proposed cascade, from the Planck scale to the observable universe.
+Cassi is a proposed field framework organized around one declared scale-separation target, the golden ratio $\varphi\approx1.618$, rather than a closed theory of every physical sector. The canonical state uses two nonnegative density components conventionally labeled Yang ($E_Y$) and Yin ($E_I$); the canonical equations treat them as neutral components and use the **Asserted** C-class/framework convention $\lambda=0.1$ in named calculations. The implementation class default is $\lambda=0.02$ unless a caller passes a different value. The optional positive-root lift $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$ supplies coordinate phase diagnostics. **Hypothesized** geometric and phenomenological mappings organize selected coherence patterns.
 
 ---
 
@@ -14,9 +14,9 @@ Cassi is a theory of everything built around one constant: the golden ratio $\va
 
 Zoom into a bubble and you find the same lattice again. A bubble is not a solid object—it is one scale of a repeating structure. Inside every bubble, more bubbles: smaller lattices, the same pattern, another turn of the spiral.
 
-Zoom out, and the lattice you are inside is itself a bubble of a larger lattice. The pattern repeats at every scale, in both directions—it never bottoms out and never tops out. The Cassi framework proposes that this is how reality works: a **nested lattice of bubbles**, each scale a zoom of every other.
+Zoom out, and the lattice you are inside is itself a bubble of a larger lattice. The pattern repeats at every scale, in both directions—it never bottoms out and never tops out. The framework's **Hypothesized** geometric construction treats this as a **nested lattice of bubbles**, each scale a zoom of every other; this is not a consequence of the canonical density PDE.
 
-Every bubble carries the signature of that repetition at its poles: a **five-arm Fibonacci spiral** organized by the golden angle $2\pi/\varphi^2 \approx 137.5^\circ$. Count the arms and you find consecutive Fibonacci numbers—34 one way, 55 the other—because the golden angle is the one turn that never repeats exactly, so the spiral never locks into a smaller symmetry. Sunflowers, pinecones, and nautilus shells display the same phyllotaxis at their own scale; in the Cassi framework it is the macroscopic signature of the lattice's pole geometry. A sunflower is an observed instance of the pole spiral, not the source of the pattern.
+Within that **Hypothesized** geometry, each modeled bubble carries a proposed **five-arm Fibonacci spiral** at its poles, organized by the golden angle $2\pi/\varphi^2 \approx 137.5^\circ$. Count the arms and you find consecutive Fibonacci numbers—34 one way, 55 the other—because the golden angle is the one turn that never repeats exactly, so the spiral never locks into a smaller symmetry. Sunflowers, pinecones, and nautilus shells display the same phyllotaxis at their own scale; that analogy does not establish the proposed pole geometry. A sunflower is an observed instance of phyllotaxis, not evidence for the model's source.
 
 The pattern is described by two nonnegative density components and their coherence structure. The framework conventionally labels them **Yang** ($E_Y$) and **Yin** ($E_I$). A **Hypothesized** phenomenological mapping may call Yang expansive or outward and Yin contractive or inward; the canonical PDE treats $E_Y$ and $E_I$ as neutral density components. For $\rho>0$, the optional positive-root coordinate lift $\Psi^{(+)}=(\Psi_0^{(+)},\Psi_1^{(+)})=(\sqrt{E_Y},\sqrt{E_I})$ supplies the amplitude-plane diagnostic $\theta_\Psi=\operatorname{atan2}(\Psi_1^{(+)},\Psi_0^{(+)})$ and the foundational spatial phase-current diagnostic $\mathbf{J}_\Psi=\Psi_0^{(+)}\nabla\Psi_1^{(+)}-\Psi_1^{(+)}\nabla\Psi_0^{(+)}=\rho\nabla\theta_\Psi$. The density-plane angle $\theta_d=\operatorname{atan2}(E_I,E_Y)$ and Stokes double angle $\Theta_S=\operatorname{atan2}(2\Psi_0^{(+)}\Psi_1^{(+)},E_Y-E_I)=2\theta_\Psi\pmod{2\pi}$ are distinct coordinates. The density-lattice diagnostic $\mathbf{J}_d=E_Y\nabla E_I-E_I\nabla E_Y=(E_Y^2+E_I^2)\nabla\theta_d=2\sqrt{E_YE_I}\,\mathbf{J}_\Psi$ has different units. A named spatial projection records a chosen direction; physical-current and inter-rung transport interpretations require a separate constitutive map and remain **Hypothesized**.
 
@@ -28,7 +28,7 @@ The recorded bubble model has a definite shape: an **oblate triaxial spheroid** 
 
 The canonical fixed-point ratio is $r=E_Y/E_I=\varphi$. In the neutral density variables this is the balance condition of the rank-one relaxation. Interpreting the ratio as relative push and pull strength, or as the unique mechanism that preserves a nested pattern, is a **Hypothesized** phenomenological mapping.
 
-The rest of this document unpacks that image into physics: the equations that govern the two fluids, the coherence gate that controls conversion, the geometric spiral used to organize the proposed scale sequence, the cascade that connects the Planck length to the universe, and the specific phenomena to which the framework applies these constructions. Every claim carries a label: **Derived** (follows mathematically from the framework), **Calibrated** (anchored to an observation), **Mapped** (fitted or selected with ledgered provenance), **Hypothesized** (consistent and testable), or **Speculative** (framework-consistent with no test yet designed). **Creative** marks exploratory applications outside this evidence ladder.
+The rest of this document unpacks that image into physics: the equations that govern the two fluids, the coherence gate that controls conversion, the geometric spiral used to organize the proposed scale sequence, the conditional dimensionful cascade that parameterizes scales from an external Planck anchor to an epoch-dependent horizon coordinate, and the specific phenomena to which the framework applies these constructions. Every claim carries a label: **Derived** (follows mathematically from the framework), **Calibrated** (anchored to an observation), **Mapped** (fitted or selected with ledgered provenance), **Hypothesized** (consistent and testable), or **Speculative** (framework-consistent with no test yet designed). **Creative** marks exploratory applications outside this evidence ladder.
 
 ---
 
@@ -194,10 +194,10 @@ The phase-gate use of these sectors, including a compact five-channel phase and 
 
 A cycle must close: the last channel must connect back to the first without a jump. Two constraints intersect at the answer:
 
-1. **Phase coherence.** The Fibonacci approximations to $\varphi$ each carry a phase error. A cycle of $w$ channels accumulates error over $w$ turns of the spiral while the signal from the inner turns fades by $\varphi$ per turn. The cycle closes coherently only if accumulated error is smaller than surviving signal—true for 5 channels and fewer, false at 6 and beyond.
-2. **Geometric encoding.** The golden ratio appears as a distance ratio in regular polygons only for pentagons and above: the pentagon's diagonal-to-side ratio is exactly $\varphi$. Fewer than five channels cannot encode $\varphi$ in their geometry.
+1. **Phase coherence.** The Fibonacci approximations to $\varphi$ each carry a phase error. A cycle of $w$ channels accumulates error over $w$ turns of the spiral while the signal from the inner turns fades by $\varphi$ per turn. The stipulated criterion passes only $w\in\{1,2,3,5\}$; $w=5$ is the largest passing cycle and $w=4$ fails by direct evaluation.
+2. **Geometric encoding.** The selected $\varphi$ distance ratio first appears in the pentagon: its diagonal-to-side ratio is exactly $\varphi$. Cycles with fewer than five channels cannot encode that ratio in their vertex geometry.
 
-Under the stipulated coordinate/threshold construction, the intersection is unique: **5**. The pentagon is both the smallest shape that contains $\varphi$ and the largest cycle that remains phase-coherent. Five arms swirl from each pole of the spiral's closure, meeting at an equatorial pentagon with five vertices. This arithmetic selection is **Derived conditional**; treating it as a physical Wu Xing phase gate remains **Hypothesized** (`foundations/wu-xing-derivation.md`).
+Under the stipulated coordinate/threshold construction, the intersection is unique: **5**. The pentagon is the first selected shape that contains $\varphi$ and the largest cycle that passes the arithmetic criterion. Five arms swirl from each pole of the spiral's closure, meeting at an equatorial pentagon with five vertices. This arithmetic selection is **Derived conditional**; treating it as a physical Wu Xing phase gate remains **Hypothesized** (`foundations/wu-xing-derivation.md`).
 
 ### The numbers that fall out
 
@@ -455,7 +455,7 @@ Conditional on $\delta=3$, the scale form and rung-77 placement are **Derived co
 
 ## 18. Quantum Gravity Without Singularities
 
-In the proposed $\sigma$-regularized extension ($\sigma=\ell_{\text{Pl}}/\varphi^3$), the classical kernel algebra is **Derived conditional** on the noise–signal identification and assumed $d=3$: the inverse-square kernel magnitude transitions to a harmonic force magnitude at short distances, with direction inherited from the displayed $+\nabla\Phi$ convention. Treating this regularized construction as physical quantum gravity, with harmonic black-hole interiors and a smooth lattice-to-continuum crossover, is **Hypothesized**; an attractive GR-like limit requires a separate **Hypothesized** sign-changing extension. See `gravity/quantum-gravity.md`.
+In the proposed $\sigma$-regularized extension ($\sigma=\ell_{\text{Pl}}/\varphi^3$), the classical kernel algebra is **Derived conditional** on the noise–signal identification and assumed $d=3$: the inverse-square kernel magnitude transitions to a harmonic force magnitude at short distances, with direction inherited from the displayed $+\nabla\Phi$ convention. Treating this regularized construction as physical quantum gravity, with a **flat-space** softened kernel finite at the origin and a smooth lattice-to-continuum crossover, is **Hypothesized**; no black-hole solution is derived, and an attractive GR-like limit requires a separate **Hypothesized** sign-changing extension. The quantized two-fluid extension (Hypothesized) models a composite graviton; its implemented low-energy dispersion probe is **rejected by GW170817** as an astrophysical graviton signal. See `gravity/quantum-gravity.md`.
 
 **Epistemic status:** **Derived conditional** for the stated classical regularization inputs; **Hypothesized** for the two-fluid quantization, composite graviton, and physical harmonic-core interpretation.
 
@@ -486,7 +486,7 @@ The human-scale consequences—consciousness, emotion, trauma, therapy—are dev
 | 9 | $\bar{\theta} \approx 1.2\times10^{-17}$ | Future neutron EDM | Not yet testable |
 | 10 | Proton stability: coherence-budget $\tau_p\sim10^{910}$ yr (conditional); separate GUT-channel estimate $1.3\times10^{37}$ yr | Hyper-K / current technology | Conditional; consistent with null results |
 
-Full catalog: `predictions/falsifiable-predictions.md` (54 entries). The physics-specific predictions (1–3, 8–10) are listed here; the full set including the biological and psychological predictions is in the catalog.
+Full catalog: `predictions/falsifiable-predictions.md` (56 entries). The physics-specific predictions (1–3, 8–10) are listed here; the full set including the biological and psychological predictions is in the catalog.
 
 ## 21. Epistemic Tiers
 
@@ -513,6 +513,7 @@ The framework records evidence and limitations in `audit.md`; the gate-sign conv
 | The bubble lattice as universal geometry | `foundations/bubble-lattice-fabric.md` |
 | The cascade suppression formula (one rule, every hierarchy) | `foundations/cascade-suppression-formula.md` |
 | The unified Lagrangian | `foundations/unified-lagrangian.md` |
+| The physical-becoming hierarchy—Hypothesized architecture / Derived canonical reduction; open-system and covariant-gravity completions remain Hypothesized | `foundations/physical-becoming-hierarchy.md` |
 | The Wu Xing five-phase derivation | `foundations/wu-xing-derivation.md` |
 | Why three dimensions | `foundations/why-three-dimensions.md` |
 | Dark energy and cosmology | `cosmology/cosmology-from-phi.md` |
@@ -565,7 +566,7 @@ The framework records evidence and limitations in `audit.md`; the gate-sign conv
 - `consciousness/trauma-as-frozen-gate.md`—the 2026-07-31 PDE tests of the gate sign and the driven-wake mechanism
 - `cassi-psychology.md`—the psychology companion: consciousness, emotion, trauma, therapy
 - `demystifying-the-cosmos/README.md`—one Cassi analysis per observed object (lighthouse pulsar first)
-- `predictions/falsifiable-predictions.md`—the 54-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—the 56-entry prediction catalog
 - `open-questions-cassi-answers.md`—the epistemic registry
 - `parameter-inventory.md`—parameter classification
 - `audit.md`—self-critical prediction-vs-experiment audit

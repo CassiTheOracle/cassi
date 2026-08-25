@@ -42,6 +42,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 30 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
 | 31 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
 | 32 | `qi-as-spatial-spacing-signal.md` | The φ-spacing as a coherence-field (Qi) property; channel principle | Derived conditional (phase/coherence) / Hypothesized (channel transmission) |
+| 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction |
 
 ## Document Summaries
 
@@ -86,6 +87,10 @@ as the universal scale-separation constant, with listed structural couplings and
 The $\lambda=0.1$ statement is the declared framework/C-class convention;
 the `TwoFluid3DGPU` constructor default is $\lambda=0.02$, and $0.1$ is used
 only when explicitly passed.
+
+### `physical-becoming-hierarchy.md`—Physical Becoming: A Causal State Hierarchy for Cassi
+
+Separates microscopic actual physics, mesoscopic open-system dynamics, and agent-level reaction coordinates, then places them in one differential-algebraic operator equation. The state includes a maintained body, ordered history, action-conditioned shadow trajectories, possibility and attention allocations, measured resource debit, and bounded learned constitutive fields. The exact canonical reduction shows that selected $q$-gated rank-one conversion is a positive-semidefinite gradient flow of $\varepsilon^2/2$: it conserves $\rho$ and contracts $\varepsilon$ at rate $\lambda(1-q)(1+\varphi)$. The remaining intelligence blocks require held-out closure, intervention, energy-ledger, and generalization gates. The paper defines operational physical becoming and prospective intelligence while leaving phenomenal consciousness as an open bridge problem.
 
 ### `cassi-theory-reference.md`—The Cassi Framework (Compact Reference)
 
@@ -374,7 +379,7 @@ Derives how the five-channel gate operates as two interlaced cycles—the sheng 
 - `principles/de-resonance-principle.md`—why $\varphi$ is the maximally de-resonant attractor (Derived)
 - `open-questions-cassi-answers.md`—the 42-entry epistemic registry
 - `parameter-inventory.md`—parameter registry
-- `predictions/falsifiable-predictions.md`—the 54-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—the 56-entry prediction catalog
 - `cassi-physics.md`—framework overview and the gap $g = 1 - \varphi^{-5}$ derivation
 - `gravity/quantum-gravity.md`—the $\sigma = \ell_{\text{Pl}}/\varphi^3$ regularization that anchors the cascade
 - `standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$

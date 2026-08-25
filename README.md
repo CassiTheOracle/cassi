@@ -105,6 +105,8 @@ The causal criterion includes organized motion, coherence, separable prospective
 
 The canonical two-fluid PDE already supplies material state, shared flow, conversion, diffusion, optional potential coupling, and coherence diagnostics. Prospective branches, internally represented viability, resource-debited actuation, action competition, and learned constitutive change remain mechanisms to build and test. Field-based AGI remains an active construction program; the present solver supplies only part of the required architecture. Phenomenal consciousness remains a separate philosophical and empirical question.
 
+`foundations/physical-becoming-hierarchy.md` gives this program its mathematical contract. It separates microscopic actual physics, mesoscopic open-system dynamics, and agent-level reaction coordinates; embeds the exact canonical conversion in a dissipative operator block; and defines held-out closure, branch-causality, attention, work-debit, learning, and generalization gates. The current field-experience record supplies substrate measurements, while the first complete closed-loop target is a resource-limited Hungry Detour experiment with no-shadow and reactive controls.
+
 ## The logic-flow method
 
 Cassi develops through a regulated cycle of expansion and contraction:

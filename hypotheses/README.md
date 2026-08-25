@@ -61,7 +61,7 @@ rows, recomputed):** the cumulative closures over the doc's own §3 row sums
 8, 20, 28, 50, 82, 126, and the "126 + Fib = 184" island claim mislabels 58
 (not a Fibonacci number). The pinned prediction is that level spacing within a shell follows
 $\boxed{\Delta E_{j \to j+1} \propto \varphi^{-j} \cdot \Lambda_{\text{QCD}}}$,
-a $\varphi$-power falloff in the sub-channel angular momentum $j$ — testable
+a $\varphi$-power falloff in the sub-channel angular momentum $j$—testable
 and independent of the failed closure rows, but with its own mechanism open.
 **Epistemic tier: Hypothesized** (level-spacing leg); the closure claim is
 catalog correspondence, mechanism open.
@@ -73,8 +73,8 @@ sits one cascade rung above the $^3\alpha$ threshold (7.27 MeV), with the
 0.38 MeV gap identified as a Fibonacci sub-channel splitting at nuclear rungs
 ~82–88. The key prediction generalizes the Hoyle anchor to all $\alpha$-cluster
 nuclei—excitation spacing
-$\boxed{E_{\text{exc}}(N_\alpha + 1) - E_{\text{exc}}(N_\alpha) \propto \varphi^{-N_\alpha} \cdot \Lambda_{\text{QCD}}}$—
-with concrete numbers for $^{16}$O (6.05 MeV), $^{20}$Ne (5.79 MeV), and
+$\boxed{E_{\text{exc}}(N_\alpha + 1) - E_{\text{exc}}(N_\alpha) \propto \varphi^{-N_\alpha} \cdot \Lambda_{\text{QCD}}}$—with
+concrete numbers for $^{16}$O (6.05 MeV), $^{20}$Ne (5.79 MeV), and
 $^{24}$Mg (6.43 MeV), and consequences for the $^{16}$O$(\alpha,\gamma)^{20}$Ne
 bottleneck in stellar helium burning. **Epistemic tier: Hypothesized.**
 
@@ -96,18 +96,18 @@ Al-Pd-Mn and Al-Cu-Fe data. **Epistemic tier: Speculative**—the de-resonance a
 
 Applies the wake-wave mechanism of the cosmic web (open-questions entry C9) to
 protoplanetary disks: Yang-Yin interference is hypothesized to produce
-$\varphi$-spaced density nodes at which planetesimals preferentially condense,
-making Titius-Bode's progression factor and observed mean-motion resonances a
-conditional comparison. The registered zero-parameter target is a statistical
-excess of adjacent-planet period ratios at
-$\boxed{P_{\text{out}}/P_{\text{in}}\approx\varphi^{3/2}
-\approx2.058\approx2.06}$ in a Kepler/TESS **multi-planet** catalog; the disk
-branch tests successive **radial gap ratios** in resolved disks. The prior
-Kepler/DSHARP receipt-style results are invalid/pending: raw inputs, archive-
-confirmation evidence, hashes, and run JSON are absent, and the retained
-period-ratio design has null-support and signal/control-overlap defects.
-**Epistemic tier: Hypothesized** (registered design only; no current catalog
-or cross-channel verdict).
+$\varphi$-spaced density nodes at which planetesimals preferentially condense.
+The conditional detached-orbit target is
+$\boxed{P_{\text{out}}/P_{\text{in}}=\varphi^{3/2}
+\approx2.058171}$ in a Kepler/TESS **multi-planet** catalog; the disk branch
+tests successive **radial gap ratios** in resolved disks. The explicitly
+confirmed primary Kepler sample contains 476 systems and 562 adjacent ratios
+inside $[1,3]$. Its registered classifier result is **INDETERMINATE**
+($z_{\rm win}=1.087$), and the scientific verdict is **INCONCLUSIVE** because
+the target window overlaps the conventional excess immediately wide of the
+2:1 resonance. The DSHARP branch remains pending an auditable data-and-results
+receipt. **Epistemic tier: Hypothesized**; no mechanism-specific field signal
+is established.
 
 ### `neural-criticality.md`—Neural Criticality and the Cascade Brain
 
@@ -168,7 +168,7 @@ process zone $\sigma_{\text{crack}} = \ell_{\text{grain}} \cdot
 takes discrete $\varphi$-power values,
 $\boxed{m = 2 \cdot \varphi^{k}}$ for $k = 0, 1, 2, \ldots$ (2, 3.24, 5.24).
 **Epistemic qualification (recomputed):** this is a catalog correspondence, mechanism
-open — no dynamics selects $k$, the factor 2 is asserted, empirical Paris
+open—no dynamics selects $k$, the factor 2 is asserted, empirical Paris
 exponents are continuously distributed ~2–10, the predicted
 $\Delta K_{\text{th}}/K_{\text{IC}} = 0.49$–$0.62$ does not overlap the
 empirical 0.1–0.3, and the current arithmetic gives
@@ -307,8 +307,8 @@ timescale; twist generation, interlace selection, and matter-scale channel
 roles are open; effective coefficients are
 labeled as projection targets, not framework constants. Staged program
 TS1–TS15 (PDE gates → neural → assembloid → molecular → matter-scale), local
-labels only, no master prediction numbers. **Epistemic tier: Hypothesized**—
-the trace-graph algebra is Derived, the PDE gate outcomes are Tested
+labels only, no master prediction numbers. **Epistemic tier: Hypothesized**—the
+trace-graph algebra is Derived, the PDE gate outcomes are Tested
 (TS1–TS4 null, TS5 5-fold coincident projection, TS6 twist
 persistence/no generation, TS7 two-sector bound), and the spatial binding
 sector is Open.
@@ -366,7 +366,7 @@ epistemic tiers listed above.
 ## Cross-References
 
 - `open-questions-cassi-answers.md`—the 42-entry epistemic registry (Q/C/G/M/F/T)
-- `predictions/falsifiable-predictions.md`—the 54-entry prediction catalog
+- `predictions/falsifiable-predictions.md`—the 56-entry prediction catalog
 - `foundations/cascade-suppression-formula.md`—universal $\varphi^{-N}$ tool
 - `foundations/dimensionful-cascade.md`—the 292-step ladder
 - `principles/de-resonance-principle.md`—why $\varphi$ is the attractor

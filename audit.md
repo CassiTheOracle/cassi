@@ -42,11 +42,11 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 
 | Quantity | Cassi Value | Experimental | Deviation | Status |
 |----------|-------------|--------------|-----------|--------|
-| $w_0$ (DESI DR2) | $-0.87$ (Calibrated baseline, corrected 2026-07-31) | $\approx -0.75 \pm 0.06$ (Table 9 [INF]) | $2\sigma$ baseline; $3.6\sigma$ at fixed $r_0$ with the ratified coupling | ⚠️ **Tension** (baseline; worsens at fixed $r_0$) |
-| $w_a$ (DESI DR2) | $+0.012$ (+$\xi$, corrected form) → $-0.38$ (B2, unstable) → **$(-1, 0)$ pure-Λ window (stable realization—10/12)** | $\approx -0.73 \pm 0.28$ | $2.7\sigma$ baseline; $1.25\sigma$ (B2, unstable); $2.61\sigma$ (stable realization) | ⚠️ **Tension** (baseline and stable realization; the B2 1.25σ described the unstable realization, whose density blows up—10/12)—corrected 2026-07-31 (the earlier "0σ / resolved" was circular: the DESI anchor was the repo's own calibration target) |
-| $n_s$ (Planck 2018) | $0.9691 = 1 - 2\varphi^{-1}/N_e$, $N_e = 40$ | $0.9649 \pm 0.0042$ | $1.0\sigma$ (closed form) | ⚠️ **Mapped**—the gate slow-roll trajectory does not reproduce it: $(n_s, r) = (0.813, 0.188)$ under 1 step = 1 e-fold, $(0.914, 0.060)$ with $N_e = 40$ literal (2026-08-06, `computations/slow_roll_trajectory.py`) |
-| $r$ (tensor-to-scalar) | $0.0075$ ($12/N_e^2$ at $N_e = 40$ Mapped window; 0.003 needs $N_e = 63.2$) | $< 0.032$ (BK18) |—| ⚠️ **Mapped**—$\varphi^{-12}$ was a fit to the target (inflation doc §4, all formulas fail); the trajectory gives $r$ excluded by the BK18 bound; the two claimed numbers do not coexist on the trajectory (2026-08-06, `computations/slow_roll_trajectory.py`); 0.0075 survives BK18, 7.5σ-testable at CMB-S4 |
-| $H_0$ (Hubble tension) | ≈ 65.8 km/s/Mpc (pipeline, CMB-inferred) | Planck $67.4\pm0.5$, SH0ES $73.0\pm1.0$ | $\Delta H_0 = -7.2$ (−9.9%) | ⚠️ **Not resolved**—full H(z) fit performed 2026-08-06 (`computations/hz_full_fit.py`): not resolved under the calibrated w(a); the −7.2 value was an extrapolation beyond the calibrated range (registry C3/T4) |
+| $w_0$ (DESI DR2) | $-0.87$ (Calibrated baseline) | $\approx -0.75 \pm 0.06$ (Table 9 [INF]) | $2\sigma$ baseline; $3.6\sigma$ at fixed $r_0$ with the ratified coupling | ⚠️ **Tension** (baseline; worsens at fixed $r_0$) |
+| $w_a$ (DESI DR2) | $+0.012$ (+$\xi$ baseline) → $-0.38$ (B2, unstable) → **$(-1, 0)$ pure-Λ window (stable realization—10/12)** | $\approx -0.73 \pm 0.28$ | $2.7\sigma$ baseline; $1.25\sigma$ (B2, unstable); $2.61\sigma$ (stable realization) | ⚠️ **Tension**—the baseline and stable realization are in tension; the B2 value belongs to an unstable density trajectory, and the DESI anchor is the calibration target |
+| $n_s$ (Planck 2018) | $0.9691 = 1 - 2\varphi^{-1}/N_e$, $N_e = 40$ | $0.9649 \pm 0.0042$ | $1.0\sigma$ (closed form) | ⚠️ **Mapped**—the gate slow-roll trajectory does not reproduce it: $(n_s, r) = (0.813, 0.188)$ under 1 step = 1 e-fold, $(0.914, 0.060)$ with $N_e = 40$ literal (`computations/slow_roll_trajectory.py`) |
+| $r$ (tensor-to-scalar) | $0.0075$ ($12/N_e^2$ at $N_e = 40$ Mapped window; 0.003 needs $N_e = 63.2$) | $< 0.032$ (BK18) |—| ⚠️ **Mapped**—$\varphi^{-12}$ is fitted to the target; the trajectory gives $r$ excluded by the BK18 bound, and the two quoted numbers do not coexist on one trajectory; 0.0075 lies below BK18 and is testable at CMB-S4 |
+| $H_0$ (Hubble tension) | ≈ 65.8 km/s/Mpc (pipeline, CMB-inferred) | Planck $67.4\pm0.5$, SH0ES $73.0\pm1.0$ | $\Delta H_0 = -7.2$ (−9.9%) | ⚠️ **Not resolved**—the full H(z) fit (`computations/hz_full_fit.py`) does not resolve the tension under calibrated $w(a)$; the −7.2 value comes from extrapolation beyond the calibrated range (registry C3/T4) |
 
 ---
 
@@ -54,12 +54,13 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 
 | Prediction | Cassi Value | Experimental | Status |
 |-----------|-------------|--------------|--------|
-| Mercury perihelion | $42.98''$/cy (GR) | $42.98'' \pm 0.01''$/cy | ✅ **Matches GR** |
-| $G_{\text{eff}}/G$ (fixed point) | $\varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}}) \approx 3.73$ ($q_{\text{eq}} = \varphi^2/(\varphi^2+\varphi^{-2}) \approx 0.873$ at the reference density; $\pi/\rho = \varphi^{-3}$) |—| ✅ **Algebraic at the φ-fixed point**—the equilibrium Qi boost $(\varphi^{10}+1)/(\varphi^4+1) \approx 15.79$ times the imbalance $\pi/\rho = \varphi^{-3}$; the "equilibrium Yang fraction" label is Mapped (relabel), ledger row 500; the dilute limit $q \to 0$ ($\rho \to 0$ on the $\varphi$-line) gives $\varphi^{-3} \approx 0.236$ |
-| $v_C/v_B$ (MW rotation) | $2.8$–$3.0$ (revised 2026-07-31) | $2.5-3.0$ | ✅ **Within range** |
-| Dwarf spheroidal M/L | 3/8 pass (corrected 2026-08-03) | 3/8 | ⚠️ **MOND preferred (4/8); ceiling $\varphi^3 = 4.2361$ exceeded in 3/8** |
-| MESSENGER bound $\|q\|$ | $< 1.1\times 10^{-6}$ at 0.39 AU | Satisfied | ✅ **Passes** |
-| Gravitational wave amplif. | Up to $10\times$ GR in high-Qi |—| 🔭 **Falsifiable** |
+| Mercury perihelion | $42.98''$/cy in an optional metric/force closure | $42.98'' \pm 0.01''$/cy | ⚠️ **Conditional GR reproduction**—the canonical branch supplies no metric or attractive-force closure |
+| $G_{\text{eff}}/G$ (fixed point) | $\varphi^{-3}(1+(\varphi^{6}-1)q_{\text{eq}}) \approx 3.73$ ($q_{\text{eq}} = \varphi^2/(\varphi^2+\varphi^{-2}) \approx 0.873$ at the reference density; $\pi/\rho = \varphi^{-3}$) |—| ✅ **Algebraic at the φ-fixed point**—the equilibrium Qi boost $(\varphi^{10}+1)/(\varphi^4+1) \approx 15.79$ times the imbalance $\pi/\rho = \varphi^{-3}$; the "equilibrium Yang fraction" label is Mapped, ledger row 500; the dilute limit $q \to 0$ ($\rho \to 0$ on the $\varphi$-line) gives $\varphi^{-3} \approx 0.236$ |
+| $v_C/v_B$ (MW rotation) | $2.8$–$3.0$ | $2.5$–$3.0$ | ⚠️ **Calibrated/Mapped comparison**—the normalization and halo variables are fitted inputs |
+| Dwarf spheroidal mass discrepancy | Optional fixed-composition endpoint $v_{\text{obs}}/v_{\text{Newt}}\leq\varphi^3=4.2361$ | Nominal fixed-$M_\star/L_V=1$ proxy screen exceeds the endpoint in 7/8 objects; the lower propagated $\sigma_{\text{los}}/R_e$ bound exceeds it in 6/8 | ⚠️ **Diagnostic catalog screen**—stellar-mass posteriors, membership/binary models, equilibrium cuts, and a population likelihood remain open; no Cassi/MOND verdict is assigned |
+| Solar-System $q(r)$ | No canonical profile |—| ⚠️ **Undetermined**—the quoted MESSENGER value $1.1\times10^{-6}$ has no registered derivation |
+| Gravitational-wave strain | Optional chord sensitivity scenario |—| ⚠️ **Hypothesized**—no Cassi metric, waveform derivation, or sourced event-level precision input |
+| GW dispersion (GW170817) | Implemented probe $c_{\text{eff}}/c \to \sqrt{1+\varphi^{-6}} \approx 1.0275$ at low $k$ | $-3\times10^{-15} \le (v_g-c)/c \le +7\times10^{-16}$ (Abbott et al.) | ❌ **Rejected**—exceeds upper bound by $>3.9\times10^{13}$; viable only if modified to recover $c$ or decoupled from observed GWs |
 
 ---
 
@@ -75,7 +76,7 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 
 ## 5. Summary
 
-### Confirmed Predictions (7)
+### Selected Quantitative Comparisons
 
 | Sector | Prediction | Accuracy |
 |--------|-----------|----------|
@@ -83,20 +84,22 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 | Cosmology | $w_0 = -0.87$, $w_a = +0.012$ (Calibrated baseline; with the ratified conversion→expansion coupling $w_a = -0.38$ (B2, unstable); stable realization: pure-Λ $(-1, 0)$—12) | $2\sigma$/$2.7\sigma$ baseline → $3.6\sigma$ (fixed $r_0$, B2)/$1.25\sigma$ (B2, unstable); $4.17\sigma$/$2.61\sigma$ (stable realization—12) |
 | Cosmology | $n_s = 0.9691$ (closed form, $N_e = 40$; $N_e$ Mapped—ledger) | $1.0\sigma$ formula-level; the gate slow-roll trajectory does not reproduce it (2026-08-06, `computations/slow_roll_trajectory.py`) |
 | Cosmology | $r = 0.0075$ ($12/N_e^2$, $N_e = 40$ Mapped—ledger; the $\varphi^{-12} \approx 0.003$ reading needs $N_e = 63.2$) | Formula-consistent at the window, below bound; the trajectory's $r$ is excluded by BK18; the two numbers do not coexist on the trajectory (2026-08-06) |
-| Cosmology | $H_0$: pipeline CMB-inferred ≈ 65.8 km/s/Mpc | Not resolved—full H(z) fit performed 2026-08-06 (`computations/hz_full_fit.py`); the −7.2 value was an extrapolation beyond the calibrated range (registry C3/T4) |
+| Cosmology | $H_0$: pipeline CMB-inferred ≈ 65.8 km/s/Mpc | Not resolved—the full H(z) fit (`computations/hz_full_fit.py`) leaves the calibrated $w(a)$ tension intact; the −7.2 value comes from extrapolation beyond the calibrated range (registry C3/T4) |
 | Atomic | He ground state (LDA, N=64) | $0.9\%$ |
-| Gravity | $v_C/v_B$ (MW rotation) | Within $2.5$-$3.0$ range |
+| Gravity | $v_C/v_B$ (MW rotation; calibrated/mapped inputs) | Conditional comparison within $2.5$–$3.0$ range |
 
-The electroweak predictions ($\sin^2\theta_W = \varphi^{-3}$: +2.1% at $m_Z$,
+The electroweak quantities ($\sin^2\theta_W = \varphi^{-3}$: +2.1% at $m_Z$,
 exact at $\mu_* = 233$ GeV; $m_W/m_Z = 0.878$ after the $\rho$ correction:
-−0.36%) are falsifiable and pending FCC-ee—their status is in §1.1, not in
-this confirmed list.
+−0.36%) are falsifiable and pending FCC-ee; their status is in §1.1.
 
-(The dwarf-spheroidal M/L row moved out of Confirmed on 2026-08-03: with the
-corrected coupling the test favors MOND (4/8 vs Cassi's 3/8) and the saturation
-ceiling $\sqrt{\varphi^6} = \varphi^3 = 4.2361$ (max boost $G_{\text{eff}}/G = \varphi^6$) is
-exceeded in 3/8 dwarfs—see the §3 Gravity table and
-`experiments/phi_attractor_paths/path10_dwarf_galaxies.py`.)
+The dwarf-spheroidal result is a nominal catalog screen. McConnachie Table 4
+supplies stellar-mass proxies fixed by $M_\star/L_V=1$; stellar-population and
+fixed-$M/L$ systematics are omitted. Under the optional fixed-composition map,
+7/8 nominal ratios exceed $\sqrt{\varphi^6}=\varphi^3=4.2361$, and 6/8 remain
+above it at the lower propagated $\sigma_{\text{los}}/R_e$ bound. These counts
+identify targets for object-level likelihoods and assign no Cassi or MOND
+verdict. See the §3 Gravity table and
+`experiments/phi_attractor_paths/path10_dwarf_galaxies.py`.
 
 ### Framework Limitations
 
@@ -137,8 +140,8 @@ Thirteen committed computational tests (`runs/` archives the outputs; scripts in
 | 7 | WX2 κ³ = 0.236-per-cycle damping | Not reproduced: per-P0 retention 0.944 vs 0.764 predicted; gate-level mean 0.389 vs 0.764; sub-critical direction holds; ke ring adds no locked-channel damping (Δγ < 0.001) (same script) | ❌ **Not matched** |
 | 8 | Wake structural trio (P44 checkerboard, P43 closure, F₂/F₁ sharpening) | P44: nulls at (m+½)ℓ_{n+1} to 0.0023 grid precision, beats at m·ℓ_{n+1} to 0.00015; P43: beats land on m·ℓ_{n+1} to grid scale; F₂/F₁ = 0.617621 vs 1/φ = 0.618034 (−0.07%), cross-ratio φ³ exact, requires the documented Π∇Φ force form (`two-fluid/run_wake_structural_probes.py`, commit 168a11a) | ✅ **Supported** |
 | 9 | N_pde χ-bridge | Closes in [0.5, 1.0] only under the N² (2D section) reading (χ = 0.980); literal 3D count gives χ = 47; "exact closure" 2350.6 is a back-solved constant rearrangement (m_e·v₀²·φ⁹); documented L/dt values appear in no run script; code-default N=64 gives χ = 1.74 (out of band) (`computations/n_pde_bridge_check.py`) | ⚠️ **Convention underdetermined** |
-| 10 | Proton coherence-budget arithmetic | 323× ledger discrepancy traced to a 4.2× slip in M⁴/m⁵ (boxed number would need M_GUT ≈ 4.7×10¹⁵ GeV); corrected τ_p = 1.29×10³⁷ yr with stated inputs—"within Hyper-K reach" does not survive (2.1 orders above reach); coherence-budget chain (N_max = φ^4505.79 → τ_p = 10^910 yr) internally self-consistent, a separate prediction; per-rung q_i = 1 − φ^(−i−δ) remains Hypothesized (`computations/proton_budget_closure.py`) | ✅ **Arithmetic closed** |
-| 11 | σ₈ magnitude | The 2026-08-07 truth campaign (`runs/44-truth-campaign/`, N = 32/64/128, the linear-P(k) IC normalization — pk_norm ≡ 1; the tophat-field P(k) fudge it replaces is N-dependent: 8e-5 at N=32, σ₈_field 0.0068/0.0011/0.0002 at N=32/64/128 for a σ₈_Pk = 0.8 IC): the total **−20.5%** (σ₈_ΛCDM 0.9917 vs σ₈_Cassi 0.7884 at a_f = 1.80; resolution-converged: −20.4% at N=32 → −20.5% at N=64/128; the D = 0 re-measurement of the same row — the doctrine default, 2026-08-08, brief 63, N=128 — reads **−22.9%**, σ₈_Cassi 0.7649: the totals carry the diffusion, Δ 2.37 pp; the mechanism row is D-insensitive) and the mechanism-attributable row **+29.7%** (G_eff = 1.297, q 0.30 → 0.41 — the doctrine r₀'s deep-Yin window relaxes upward, growth enhancement; r₀-dependent: +29.4% at the derived r₀ = 0.0472, N=128; resolution-converged to 0.1 pp across N ∈ {32, 64, 128}); the +24% ΛCDM linear-growth reference reproduces exactly; the −50 pp total-vs-μ gap is the expanding box's own growth deficit (δ_rms −15.7% at N=128 while ΛCDM linear growth is +24%) — a regime/transport property, not resolution; "~5%" is a Mapped target (μ = 0.98 → −5.3%) (`computations/sigma8_reconciliation.py` — the μ-only row, σ₈(P·G_eff²) = G_eff·σ₈(P)); doctrine 2026-08-07: P-A operative, IC r₀ = 0.0472/1/23; the settlement rows −16.6% (R = 0.834) / −15.2% are the growth-window machinery's reading | ⚠️ **Measured** (doctrine-IC rows: mechanism +29.7% D-insensitive; total −22.9% at the D=0 doctrine default / −20.5% at the campaign's D=0.001 — the totals carry the diffusion) |
+| 10 | Proton coherence-budget arithmetic | The stated inputs give $\tau_p = 1.29\times10^{37}$ yr; this is 2.1 orders above Hyper-K reach. The boxed $3.99\times10^{34}$ yr value corresponds to $M_{\text{GUT}}\approx4.7\times10^{15}$ GeV rather than the registered input. The coherence-budget chain ($N_{\max}=\varphi^{4505.79}\rightarrow\tau_p=10^{910}$ yr) is internally self-consistent as a separate prediction; per-rung $q_i=1-\varphi^{-(i+\delta)}$ remains Hypothesized (`computations/proton_budget_closure.py`) | ✅ **Arithmetic verified; published claim rejected** |
+| 11 | σ₈ magnitude | The 2026-08-07 truth campaign (`runs/44-truth-campaign/`, N = 32/64/128, the linear-P(k) IC normalization—pk_norm ≡ 1; the tophat-field P(k) fudge it replaces is N-dependent: 8e-5 at N=32, σ₈_field 0.0068/0.0011/0.0002 at N=32/64/128 for a σ₈_Pk = 0.8 IC): the total **−20.5%** (σ₈_ΛCDM 0.9917 vs σ₈_Cassi 0.7884 at a_f = 1.80; resolution-converged: −20.4% at N=32 → −20.5% at N=64/128; the D = 0 re-measurement of the same row—the doctrine default, 2026-08-08, brief 63, N=128—reads **−22.9%**, σ₈_Cassi 0.7649: the totals carry the diffusion, Δ 2.37 pp; the mechanism row is D-insensitive) and the mechanism-attributable row **+29.7%** (G_eff = 1.297, q 0.30 → 0.41—the doctrine r₀'s deep-Yin window relaxes upward, growth enhancement; r₀-dependent: +29.4% at the derived r₀ = 0.0472, N=128; resolution-converged to 0.1 pp across N ∈ {32, 64, 128}); the +24% ΛCDM linear-growth reference reproduces exactly; the −50 pp total-vs-μ gap is the expanding box's own growth deficit (δ_rms −15.7% at N=128 while ΛCDM linear growth is +24%)—a regime/transport property, not resolution; "~5%" is a Mapped target (μ = 0.98 → −5.3%) (`computations/sigma8_reconciliation.py`—the μ-only row, σ₈(P·G_eff²) = G_eff·σ₈(P)); doctrine 2026-08-07: P-A operative, IC r₀ = 0.0472/1/23; the settlement rows −16.6% (R = 0.834) / −15.2% are the growth-window machinery's reading | ⚠️ **Measured** (doctrine-IC rows: mechanism +29.7% D-insensitive; total −22.9% at the D=0 doctrine default / −20.5% at the campaign's D=0.001—the totals carry the diffusion) |
 | 12 | Full H(z) fit resolves H₀ tension | Under calibrated CPL values (w₀ = −0.87, w_a = +0.012 baseline, −0.38 coupling), Cassi w(a) does not resolve: dark energy negligible at z~1000–1100, R_cmb = 1.00000, χ² ≈ 25.1 (same as ΛCDM, anchor separation 5.0σ); ΔH₀ = −7.2 comes only from the ODE pipeline model whose w(a) is right-clamped at +0.37 (radiation-like) for z > 99—an extrapolation beyond the calibrated range (a ≥ 0.01) (`computations/hz_full_fit.py`) | ❌ **Not resolved** |
 | 13 | Slow-roll trajectory gives n_s = 0.9691, r = φ⁻¹² | (n_s, r) = (0.813, 0.188) under 1 step = 1 e-fold; (0.914, 0.060) with N_e = 40 literal (1 step = ln φ physical e-folds)—n_s 12–36σ from Planck, r excluded by BK18; the two claimed numbers do not coexist (r = φ⁻¹² only at ~135 physical e-folds before the window end, where n_s = 0.9883, +5.6σ); N_e = 40 is a start-threshold choice, not a derived count; ledger Mapped flags confirmed (`computations/slow_roll_trajectory.py`) | ❌ **Fails** (Mapped with trajectory evidence) |
 
@@ -173,5 +176,16 @@ sub-claim only; the condensation-lattice morphology claim
 record: the null used radial-only $|k|$-shell collapse, which can **hide** a
 ladder if an ellipsoidal clump smears power across shells but cannot
 **create** secondary modes; a direction-resolved per-axis spectrum was not
-run. The ripple confirmation supports the two-channel (wave-phase vs
-advective) separation of the wedge doc §1.
+run. The ripple confirmation supports the two-channel (wave-phase vs advective) separation of the wedge doc §1.
+---
+
+## 9. Physical-Becoming Hierarchy Audit (present-state, `foundations/physical-becoming-hierarchy.md`)
+
+The physical-becoming integration adds a microscopic actual-physics sector, an agent-level reaction hierarchy, an EFT operator basis, gravity closure, and an open-system bath to the canonical two-fluid framework. The two rows below audit the present-state physical-completion gates that the audit found either conditional or unclosed; they are **not** gravity-sector predictions and are kept distinct from the §3 gravity table.
+
+| Gate | Present-state claim | Status |
+|---|---|---|
+| Canonical q-gated response (conditional canonical reduction; catalog Prediction 55) | Derived conditionally from the two-fluid PDE: fixed-ρ reference tail $\Gamma=\lambda/3$, q-curvature $-\varphi^2\varepsilon^2/9$, spatial pole $Dk^2+\lambda/3$. Physical-unit transduction is left open. Verified by `computations/verify_physical_becoming_reduction.py`. | ⚠️ **Derived conditional on the selected q-gated PDE; not experimentally tested** |
+| Two-singlet EFT basis | The unrestricted two-singlet EFT basis is radiatively closed at one loop. The restricted φ-attractor quartic surface fails one-loop RG invariance except on the O(2) radial ray with $\lambda_A=0$, so it functions as a matching condition rather than a UV prediction. | ⚠️ **Radiatively closed (unrestricted); matching-only on the φ-attractor quartic ray** |
+
+These rows record the current completion state of the physical-becoming integration without upgrading any claim in `foundations/physical-becoming-hierarchy.md`.
