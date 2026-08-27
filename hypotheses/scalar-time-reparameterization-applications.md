@@ -632,13 +632,20 @@ must decide whether one common lapse exists.
 
 This paper uses `$q$` only for the CassiTheory canonical bounded diagnostic in
 (28). A `$q$` or `$Q$` in another repository can have a different denominator,
-normalization, state, and unit convention. In particular, a CassiFI/Qwen
-multiplicative $\varphi^{-2}\varepsilon^2$ form is an out-of-repository
-definition and is excluded from (28)—it is not merged into the CassiTheory
-clock equation. Cross-repository work may compare the declared clock role and
-receipt form after each definition is frozen; it must not transfer the symbol,
-formula, value, normalization, or parameter between repositories. This paper
-therefore maps only the shared clock interface, not a shared $q$ law.
+normalization, state, and unit convention. CassiFI/Qwen currently defines
+
+$$
+Q=
+\frac{\bar\rho^2}
+{\bar\rho^2+\varphi^{-2}+\bar m_{\varepsilon^2}},
+$$
+
+where $\bar m_{\varepsilon^2}$ is the normalized stored `epsilon2_ema`;
+equation (28) contains the instantaneous canonical $\varepsilon^2$.
+Cross-repository work may compare the declared clock role and receipt form
+after each definition is frozen. Definition transfer between repositories is
+excluded. The cross-repository map is confined to the shared clock interface,
+with each coherence law retaining its own symbol provenance.
 
 ---
 
