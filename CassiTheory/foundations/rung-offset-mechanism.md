@@ -159,6 +159,12 @@ catalog statistics of §3 remain the measured baseline: the full 38-state scan
 does not cluster at special points, and the identification of the sector edges
 with the fundamental sine modes is Hypothesized, not Derived.
 
+The supplied compact two-fluid ring in
+`foundations/qi-loop-mass-cascade.md` also retains many stable primitive
+windings per $\varphi$-log energy cell and a coefficient-sensitive
+low-winding branch. It therefore supplies no replacement for the open
+absolute-cell selector in this section.
+
 The phase-current identity pins the parity class (Derived-conditional on the
 cell-closure structure). For the rotating doublet
 $\Psi_0 = \sqrt{\rho}\cos\alpha$, $\Psi_1 = \sqrt{\rho}\sin\alpha$ with
@@ -400,6 +406,7 @@ prediction.
 - `foundations/cassi-first-principles.md` §2.6—the winding rate: density-plane rotation, exact relaxation-winding identity, $\pm 0.162$-rung bound
 - `principles/de-resonance-principle.md`—why exact alignment is forbidden; correction posture
 - `foundations/dimensionful-cascade.md` §6—wake wavelengths, sound-horizon half-step
+- `foundations/qi-loop-mass-cascade.md`—conditional compact-ring near-closure branch and unresolved mass selector
 - `foundations/deriving-remaining-gaps.md` §2—electron mass status (external, class **E**)
 - `predictions/falsifiable-predictions.md` §3—$\Omega_{\text{DM}}/\Omega_b$ row ($\varphi^3$ vs observed 5.39, 21% open tension); §5—predictions 43–45 (wake closure, checkerboard, closure ladder)
 - `two-fluid/run_rung_offset_probe.py`—T1 probe: two-bubble standing pattern, $\delta n(\psi)$ measurement

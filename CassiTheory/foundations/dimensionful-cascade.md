@@ -227,6 +227,13 @@ The bubble at step 285 is bounded by adjacent bubbles at identical $w=5$ in the 
 
 4. **Full 3D PDE verification.** The cascade table is derived from the homogeneous ODE + dimensional analysis. The full 3D PDE should independently reproduce the activated step set through the wake wave mechanism. This requires N≥32 simulations with structure formation.
 
+5. **Which topology and constitutive law select a mass mode?** The
+   conditional compact two-fluid ring has a Fibonacci near-closure branch,
+   yet its primitive-mode scan retains many stable states per
+   $\varphi$-log energy cell and its low-winding energies vary with the
+   declared inter-fluid coefficient. A physical selector remains open
+   (`foundations/qi-loop-mass-cascade.md` §5).
+
 ---
 
 ## References
@@ -237,4 +244,5 @@ The bubble at step 285 is bounded by adjacent bubbles at identical $w=5$ in the 
 - `cosmology/observational_constraints.md` §2.6—Rotation curve prediction ($\xi=\varphi^6$)
 - `cosmology/observational_constraints.md` §4—CMB bubble-boundary axis analysis
 - `predictions/falsifiable-predictions.md`—Full prediction catalogue (47 entries)
+- `foundations/qi-loop-mass-cascade.md`—conditional compact-ring branch; topology and coefficient selection remain open
 - `visual-explainers/fractal_zoom.py`—fractal zoom: cascade self-similarity, φ-spaced rings

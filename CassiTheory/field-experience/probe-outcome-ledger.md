@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This ledger records the six completed counterflow/source-only field experiments and the independent phase-staggered scale-gap campaign as a compact index of their frozen protocols, raw receipts, feature gates, and terminal classifications. It is an outcome record, not an additional theory claim. The source records retain the exact scope of each construction: the six-wave chain uses finite proxies with externally supplied additive interventions and unmodified canonical PDE/RK2 evolution between them; the scale-gap campaign tests supplied-wave identities, the distinct second-order CassiCosmos wave branch, and a declared nearest-neighbor chain. None upgrades a local diagnostic into an endogenous phase, transport, biological, or consciousness mechanism.
+This ledger records the six completed counterflow/source-only field experiments, the independent phase-staggered scale-gap campaign, and the conditional Qi-loop mass-cascade campaign as a compact index of their frozen protocols, raw receipts, feature gates, and terminal classifications. It is an outcome record, not an additional theory claim. The source records retain the exact scope of each construction: the six-wave chain uses finite proxies with externally supplied additive interventions and unmodified canonical PDE/RK2 evolution between them; the scale-gap campaign tests supplied-wave identities, the distinct second-order CassiCosmos wave branch, and a declared nearest-neighbor chain; the Qi-loop campaign evaluates a supplied compact Hamiltonian. None upgrades a local diagnostic into an endogenous phase, transport, biological, or consciousness mechanism.
 
 ## 1. How to read this record
 
@@ -35,15 +35,28 @@ the declared link-magnitude modulation remains a conditional control rather
 than a PDE-derived node-to-link law. Prediction 51's multiplicative radial
 ladder remains `REJECT`.
 
-## 4. Present-state synthesis
+## 4. Conditional Qi-loop mass-cascade campaign
 
-The six-wave counterflow/source-only chain and the phase-gap campaign have
-different model boundaries. The former evolves the canonical first-order
-nonnegative densities. The latter's dynamic stage uses the default
-second-order CassiCosmos wave equation and its derived density/imbalance normal
-modes. Their outcomes cannot be combined into a canonical compact phase.
+| record | report | pre-registration | raw receipt | decisive discriminator and feature gates | terminal outcome |
+|---|---|---|---|---|---|
+| Compact two-fluid ring | `field-experience/qi-loop-mass-cascade-report.md` | `field-experience/qi-loop-mass-cascade-pre-registration.md` | `runs/20260827T120451Z_qi_loop_mass_cascade/results.json`<br>`runs/20260827T120451Z_qi_loop_mass_cascade/verification.json` | Q1–Q5 pass; A/B pass for Fibonacci near closure, positive radial/phase Hessians, stationary nonzero currents, and supplied tension covariance. C3/C4 pass with $1.060031841522592\times10^{-6}$ ratio residual and $2.578928547167112\times10^{-6}$ rung-label residual. C1 finds 1,163 stable primitive modes and C2 has $0.1146965060733196$ rung constitutive span against the $0.01$ gate. | **Closed Qi-loop skeleton EMERGES CONDITIONAL; unique mass positions DO NOT EMERGE.** |
 
-### 4.1 Counterflow/source-only synthesis
+The compact phases, ring topology, normalized coefficients, and tension law
+are supplied test architecture. The record retains the canonical scalar
+coherence diagnostic $q$ and uses $q_{\mathrm w}$ only for the integer Yin
+winding. It provides no open-space binding, topology-formation, or
+particle-identification result.
+
+## 5. Present-state synthesis
+
+The six-wave counterflow/source-only chain, the phase-gap campaign, and the
+Qi-loop campaign use distinct model boundaries. The first evolves canonical
+first-order nonnegative densities. The second uses the default second-order
+CassiCosmos wave equation and its derived density/imbalance normal modes. The
+third evaluates a supplied compact Hamiltonian. Their outcomes do not combine
+into a canonical compact phase.
+
+### 5.1 Counterflow/source-only synthesis
 
 At the field level, the unmodified canonical PDE evolves two nonnegative real densities, $E_Y$ and $E_I$. The probes form the derived amplitude pair $A=\sqrt{E_Y}$ and $B=\sqrt{E_I}$ for externally supplied bounded amplitude-space $SO(2)$ interventions and for projection-free receiver readouts. Those phase kicks are experimental constructions, and receiver labels, checkerboard corridors, source/probe masks, and carrier signs are supplied protocol coordinates or local diagnostics. They do not define a canonical compact phase or a transport law. The density-plane diagnostic $\mathbf J_d$ is also distinct from the amplitude current $\mathbf J_\Psi$ and has no transport interpretation without a constitutive law.
 
@@ -51,7 +64,7 @@ The chain does establish working bounded-intervention and receiver infrastructur
 
 The six-wave chain leaves a canonical four-channel state, a compact phase, route-specific counterflow transport, and delayed diagonal timing unestablished. Wave 5's passive diagonal score is conditioned by its direct-receiver denominator and is not route evidence; Wave 6 formally **CONTRADICTS** its delayed-diagonal timing branch with equal $k_{50}$, $p_D<p_A$, and unchanged shuffled timing. A detectable passive or field-space diagonal response is a finite-proxy observation under supplied operators; it is not evidence of a selected physical edge, finite-speed arrival, a self-maintaining macro-spiral, biological circulation, neural action, or consciousness.
 
-## 5. Next-test boundary
+## 6. Next-test boundary
 
 A further transport or timing claim requires a fresh pre-registration rather than relabeling any receipt above. The next construction should keep the source pulse compact and the receiver unforced with exactly disjoint source/receiver support, retain amplitude information in a source-normalized delayed statistic, report direct-calibration denominator conditioning explicitly, and report the immediate FFT/global contribution separately from the post-step dynamic rise. Equal-distance axial, spatially scrambled, and phase-label-shuffled controls must be frozen before execution. Receiver coherence under a distributed supplied drive, direct-receiver calibration fractions, and equal diagonal/axial timing cannot be promoted into route selection or delayed transport without that new discriminator.
 
@@ -63,6 +76,10 @@ $\Omega_*=\varphi^{3/2}\omega_{0,\mathrm{wave}}$, or a constitutive law that
 maps destructive nodes into coupling-magnitude modulation. Each proposal
 requires its own frozen source law and control arms. The existing receipts do
 not authorize either mechanism.
+
+For the compact-loop branch, a new experiment must specify an endogenous
+topology-formation law and a mode- or coefficient-selection discriminator
+before execution. The present receipt supplies neither law.
 
 ## References
 
@@ -81,3 +98,6 @@ not authorize either mechanism.
 - `field-experience/phase-staggered-scale-gap-report.md`—phase-gap campaign synthesis and terminal claim table.
 - `field-experience/phase-staggered-scale-gap-pre-registration.md`—parent supplied-wave, radial, and chain protocol with post-execution integrity record.
 - `field-experience/phase-staggered-scale-gap-lock-in-pre-registration.md`—independent steady-frequency closure protocol.
+- `field-experience/qi-loop-mass-cascade-pre-registration.md`—frozen compact-ring protocol and decision tree.
+- `field-experience/qi-loop-mass-cascade-report.md`—one-run compact-ring receipt, mass-sufficiency gates, and independent verification.
+- `foundations/qi-loop-mass-cascade.md`—conditional compact-ring algebra and framework boundary.

@@ -1,6 +1,6 @@
 # Foundations—First Principles and the φ-Cascade Machinery
 
-## Status: Index—July 2026
+## Status: Index—August 2026
 
 ## Abstract
 
@@ -43,6 +43,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 31 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
 | 32 | `qi-as-spatial-spacing-signal.md` | The φ-spacing as a coherence-field (Qi) property; channel principle | Derived conditional (phase/coherence) / Hypothesized (channel transmission) |
 | 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction |
+| 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 
 ## Document Summaries
 
@@ -170,6 +171,17 @@ SUPPORTS the coherence channel; Prediction 54 (Kepler period ratios, a matter
 channel) INDETERMINATE as expected. The discriminator is the channel, not the
 signal. Status: Derived conditional (phase/coherence re-statements) /
 Hypothesized (channel-transmission claim).
+
+### `qi-loop-mass-cascade.md`—Qi-Loop Mass Cascade: Conditional Two-Fluid De-Resonant Rings
+
+Defines a supplied compact two-fluid phase-gradient ring with
+$\alpha=\varphi$, whose Fibonacci winding pairs give exact near-closure
+identities and a positive stationary energy branch. The one-run receipt passes
+the frozen arithmetic, loop-stability, and supplied scale-covariance gates.
+Its primitive-mode multiplicity and coefficient-sensitivity gates show that
+the ring does not select unique physical mass positions. Status: Derived
+conditional supplied-ring algebra / Tested conditional branch / Hypothesized
+physical identification.
 
 ### `wu-xing-derivation.md`—Wu Xing Number $w = 5$: Derivation from Cascade Dynamics
 

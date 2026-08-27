@@ -101,6 +101,7 @@ Three gaps keep the force sector from being a closed account: the strong couplin
 - $m_H$: not predicted; the Higgs sits at $n = 81.291$ with no special point (10.6% residual in the catalog).
 - Quark hierarchy: the bare Fibonacci spacing gives $m_c/m_u = 29$ ($\varphi^7$) against the observed 588—a factor of ~20 that survives CKM mixing and SM RGE running (`foundations/three-generations.md` §3).
 - Charge magnitude: no derivation (open, §1.3).
+- Compact-loop mass selection: the conditional two-fluid ring retains many stable primitive modes per cascade cell and a coefficient-sensitive low-winding branch; a physical particle selector remains open (`foundations/qi-loop-mass-cascade.md` §5).
 
 ---
 
