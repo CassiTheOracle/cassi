@@ -246,6 +246,32 @@ universal proper-time lapse remains **Hypothesized**. Transport and source
 increments require separate accounting; exact equilibrium contains no
 readable conversion tick (`foundations/cassi-first-principles.md` §2.6).
 
+**Candidate physical time.** Let $x_\star$ be a reference worldline with
+$q_\star<1$. The parameter-free relational candidate is
+
+$$
+\boxed{
+\frac{d\tau_{\mathrm{phys}}(x)}{d\tau_\star}
+=N_q(x\mid x_\star)
+:=\frac{1-q(x)}{1-q_\star}
+}.
+$$
+
+With an external open-gate normalization,
+$d\tau_{\mathrm{phys}}=(1-q)dt=d\tau_F$. The $q_\star=0$ case is a
+normalization limit; an active canonical conversion reference requires
+$\varepsilon_\star\neq0$ and hence $q_\star>0$. The candidate assigns the
+entire canonical factor $(1-q)$ to a common clock lapse, so
+$d\varepsilon/d\tau_{\mathrm{phys}}
+=-(1+\varphi)\lambda\varepsilon$.
+The conversion equation itself fixes only
+$K(q)N(q)=1-q$; gated kinetics with $K=1-q,\ N=1$ produces the same
+conversion trace. The common-lapse assignment is therefore Hypothesized and
+is tested only by independently calibrated clock sectors. It defines a
+worldline proper-time functional, not a global synchronization coordinate
+(`foundations/unified-lagrangian.md` §1.7; CT-2 in
+`predictions/falsifiable-predictions.md`).
+
 For the density-plane angle
 
 $$

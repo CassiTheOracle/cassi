@@ -157,6 +157,43 @@ law. Interpreting the relative rate as a universal proper-time lapse remains
 share one reparameterization-invariant action. See
 `foundations/cassi-first-principles.md` §2.6.
 
+### Candidate Physical Time
+
+The exact relative conversion-clock rate selects a parameter-free candidate
+for physical proper time. Relative to a reference clock $x_\star$ with
+$q_\star<1$,
+
+$$
+\boxed{
+d\tau_{\mathrm{phys}}(x)
+=\frac{1-q(x)}{1-q_\star}\,d\tau_\star
+}.
+$$
+
+With an external open-gate normalization,
+$d\tau_{\mathrm{phys}}=(1-q)dt=d\tau_F$. The $q_\star=0$ case is a
+normalization limit; an active canonical conversion reference requires
+$\varepsilon_\star\neq0$. The candidate interprets the conversion gate as a
+clock lapse, making the imbalance relax at the constant
+intrinsic rate
+
+$$
+\frac{d\varepsilon}{d\tau_{\mathrm{phys}}}
+=-(1+\varphi)\lambda\varepsilon.
+$$
+
+The conversion trace alone also permits uniform physical time with
+$q$-dependent kinetics because it fixes only the product
+$K(q)N(q)=1-q$. Candidate physical time becomes a physical hypothesis when
+the same normalized rate $(1-q)/(1-q_\star)$ governs independent wave,
+particle, decay, or orbital clocks. Any resolved cross-clock disagreement
+falsifies the universal interpretation while preserving the exact
+conversion clock. The candidate is a worldline proper time, supplies no
+global synchronization rule, and requires an external reference clock to
+express seconds. The common-lapse action and status boundaries are in
+`foundations/unified-lagrangian.md` §1.7; the discriminator is CT-2 in
+`predictions/falsifiable-predictions.md`.
+
 ### Density-Plane Relaxation and Parity
 
 The canonical density conversion is a rank-one relaxation toward the $\varphi$-line. It changes the density-plane angle

@@ -534,6 +534,33 @@ source increments must be removed before evaluating the local identity.
 Exact equilibrium and unresolved near-zero endpoints contain no readable
 conversion tick.
 
+The conversion trajectory fixes only the product of a candidate clock lapse
+and an intrinsic kinetic gate. In
+
+$$
+\frac{d\varepsilon}{dt}
+=-(1+\varphi)\lambda K(q)N(q)\varepsilon,
+\qquad K(q)N(q)=1-q,
+$$
+
+the assignment $K=1-q,\ N=1$ and the candidate physical-time assignment
+$K=1,\ N=1-q$ give the same conversion trace. The candidate selects the
+second factorization by postulating a coherence-independent intrinsic
+relaxation law,
+
+$$
+\frac{d\varepsilon}{d\tau_{\mathrm{phys}}}
+=-(1+\varphi)\lambda\varepsilon.
+$$
+
+Its relational definition is
+$d\tau_{\mathrm{phys}}(x)/d\tau_\star
+=(1-q(x))/(1-q_\star)$, and it coincides with $d\tau_F$ when the reference
+is a conversion clock. This universal interpretation is Hypothesized and
+requires independent clocks to share one lapse; conversion-only data cannot
+distinguish it from gated kinetics. See `foundations/unified-lagrangian.md`
+§1.7 and CT-2 in `predictions/falsifiable-predictions.md`.
+
 The conversion subflow also fixes a local arrow:
 
 $$
