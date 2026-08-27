@@ -27,9 +27,12 @@ it is small, event-driven, and never hosts fragile background loops (recon §5.6
    `execute` forwards `{tool, params, sessionId}` to the runtime (`/v1/tools/execute`),
    mapping the returned string to `AgentToolResult.content`.
 3. **`mind_complete`** — the model-access bridge (plan §2.3). Resolves `model` via
-   `ctx.models.resolve`, then streams ONE completion through an injectable transport
-   (P3 default: a clear "transport not wired" error; the P4 cutover wires ohmypi's
-   provider stream. [VERIFY: ohmypi's raw-completion primitive — plan §2.2 fallback].)
+   `ctx.models.resolve`, then sends ONE completion through the retained transport.
+   The production default is the existing local OpenAI-compatible llama-server
+   adapter on `http://127.0.0.1:8080`; hosts may inject another transport explicitly.
+   Configure the default with `CASSI_LLAMA_SERVER_URL`, `CASSI_LLAMA_SERVER_TOKEN`,
+   and `CASSI_LLAMA_SERVER_TIMEOUT_MS` (the corresponding `LLAMA_SERVER_*` aliases
+   are also accepted). Ordinary ohmypi provider sessions remain owned by ohmypi.
 4. **Session lifecycle → runtime mirror** (plan §4.2): `session_start/switch/branch/
    compact/shutdown` → `/v1/session/mirror`; plus `appendEntry('mind.runtime.state', …)`
    episodic snapshots (plan §2.5).
@@ -55,8 +58,9 @@ registered-inactive until the ratified deletion lands (§7.5 / DELEGATE-SURFACE 
   `MemoryRuntimeContext`; `MemoryBackendId` is a closed union. The adapter implements
   the runtime-context shape; ohmypi backend resolution must register it (documented in
   `src/memory-backend.ts`).
-- **`mind_complete` transport** — P3 default is a documented "transport not wired" error;
-  the P4 cutover wires the real ohmypi provider stream (or routes through task-agents).
+- **`mind_complete` transport** — the default uses the local llama-server adapter
+  (`POST /v1/chat/completions`) with the loopback URL/token/timeout configuration
+  above; explicit `MindCompleteTransport` injection still takes precedence.
 - **`session_branch` / `session_compact` payloads** carry `entryId` / `summary` opaquely
   and are mirrored as `branchFrom` / `summary`.
 - **Native-load CI constraint** — see `[SPINE-TYPES]` above.

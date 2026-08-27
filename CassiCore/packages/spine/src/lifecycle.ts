@@ -11,6 +11,7 @@
  */
 
 import type {
+  SessionBeforeBranchEvent,
   SessionBranchEvent,
   SessionCompactEvent,
   SessionShutdownEvent,
@@ -57,6 +58,8 @@ function mirror(
 
 /** Register all session lifecycle + mcp_notification handlers on the extension API. */
 export function registerLifecycleHandlers(pi: ExtensionAPI, client: ChannelClient): void {
+  let pendingBranchEntryId: string | undefined
+
   pi.on('session_start', (e: SessionStartEvent, ctx: ExtensionContext) => {
     mirror(client, ctx, 'start')
     void snapshotMindState(pi, client, ctx)
@@ -67,23 +70,26 @@ export function registerLifecycleHandlers(pi: ExtensionAPI, client: ChannelClien
     void snapshotMindState(pi, client, ctx)
   })
 
-  // Plan §4.2: session_branch carries the branch point entryId. The retained runtime
-  // mirrors it as `branchFrom` so it can attach branch context.
-  pi.on('session_branch', (e: SessionBranchEvent, ctx: ExtensionContext) => {
-    const branchFrom = (e as SessionBranchEvent & { entryId?: string }).entryId
-    mirror(client, ctx, 'branch', { branchFrom })
+  pi.on('session_before_branch', (e: SessionBeforeBranchEvent) => {
+    pendingBranchEntryId = e.entryId
+  })
+
+  pi.on('session_branch', (_e: SessionBranchEvent, ctx: ExtensionContext) => {
+    mirror(client, ctx, 'branch', { branchFrom: pendingBranchEntryId })
+    pendingBranchEntryId = undefined
     void snapshotMindState(pi, client, ctx)
   })
 
   pi.on('session_compact', (e: SessionCompactEvent, ctx: ExtensionContext) => {
-    const summary = typeof (e as SessionCompactEvent & { summary?: string }).summary === 'string'
-      ? (e as SessionCompactEvent & { summary?: string }).summary
+    const summary = typeof e.compactionEntry?.summary === 'string'
+      ? e.compactionEntry.summary
       : undefined
     mirror(client, ctx, 'compact', { summary })
     void snapshotMindState(pi, client, ctx)
   })
 
-  pi.on('session_shutdown', (e: SessionShutdownEvent, ctx: ExtensionContext) => {
+  pi.on('session_shutdown', (_e: SessionShutdownEvent, ctx: ExtensionContext) => {
+    pendingBranchEntryId = undefined
     mirror(client, ctx, 'shutdown')
     void snapshotMindState(pi, client, ctx)
   })

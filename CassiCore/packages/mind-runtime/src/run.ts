@@ -12,10 +12,15 @@ import { MindChannelServer } from './channel/server.js'
 
 export async function main(): Promise<void> {
   const quiet = process.env.CASSI_MIND_QUIET === '1'
-  const runtime = await createMindRuntime()
+  const runtime = await createMindRuntime({
+    // Same explicit opt-in the spine uses; the spawned child inherits the env.
+    // Default remains off and therefore bit-identical/no-socket.
+    fieldTelemetry: process.env.CASSI_THALAMUS_FIELD_SHADOW === '1',
+  })
 
   let shutdownRequested = false
   const server = new MindChannelServer(runtime, {
+    token: runtime.config.token,
     onShutdown: async () => {
       if (!quiet) runtime.logger.info('graceful shutdown requested via /v1/shutdown')
       await finish()

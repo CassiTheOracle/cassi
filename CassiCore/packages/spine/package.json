@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@cassicore/mind-runtime": "*",
+    "@cassicore/thalamus": "*",
     "@cassicore/tools": "*"
   },
   "devDependencies": {

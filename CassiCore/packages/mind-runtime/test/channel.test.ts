@@ -3,11 +3,12 @@
  *
  * Asserts the 127.0.0.1 channel server behaves per the brief §3.2 endpoint table:
  * tools/execute runs a retained handler, session/mirror + events/push ack, snapshot
- * returns state, health 200, memory/* round-trip, unknown → 404, bad token → 401.
- * Uses an in-process harness (server + runtime) — no external process.
+ * returns state, health 200, memory/* round-trip, unknown → 404, bad token → 401,
+ * and the browser-CSRF/content-type/body-size boundary rejects unsafe POSTs.
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { createHmac } from 'node:crypto'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -120,6 +121,31 @@ describe('mind-runtime channel (127.0.0.1 contract)', () => {
     const res = await fetch(`http://127.0.0.1:${port}/v1/health`, { method: 'PUT' })
     expect(res.status).toBe(405)
   })
+
+  it('rejects browser-origin and simple non-JSON POST requests before dispatch', async () => {
+    const browser = await fetch(`http://127.0.0.1:${port}/v1/events/push`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: 'https://malicious.example' },
+      body: JSON.stringify({ type: 'should-not-dispatch' }),
+    })
+    expect(browser.status).toBe(403)
+
+    const simple = await fetch(`http://127.0.0.1:${port}/v1/events/push`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+      body: JSON.stringify({ type: 'should-not-dispatch' }),
+    })
+    expect(simple.status).toBe(415)
+  })
+
+  it('rejects request bodies larger than the one-megabyte channel bound', async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/v1/events/push`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'oversized', payload: 'x'.repeat(1024 * 1024) }),
+    })
+    expect(res.status).toBe(413)
+  })
 })
 
 describe('mind-runtime channel auth', () => {
@@ -133,6 +159,15 @@ describe('mind-runtime channel auth', () => {
     try {
       const noAuth = await fetch(`http://127.0.0.1:${port}/v1/health`)
       expect(noAuth.status).toBe(401)
+
+      const nonce = 'a'.repeat(64)
+      const challenge = await fetch(`http://127.0.0.1:${port}/v1/health?nonce=${nonce}`)
+      expect(challenge.status).toBe(200)
+      expect(await challenge.json()).toEqual({
+        ok: true,
+        proof: createHmac('sha256', 'sekrit').update(nonce).digest('hex'),
+      })
+
       const withAuth = await postJson(port, '/v1/snapshot', {}, 'sekrit')
       expect(withAuth.status).toBe(200)
     } finally {

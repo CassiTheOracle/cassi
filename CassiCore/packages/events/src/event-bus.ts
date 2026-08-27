@@ -98,19 +98,15 @@ export class EventBus implements IEventBus {
 
 
   /**
-   * Emit a typed event to all registered listeners for that event type,
-   * then notify all global (onAll) listeners.
-   * Events with a `sessionId` field are automatically stored in history.
-   * 
-   * This method properly awaits async handlers while maintaining backward
-   * compatibility with sync handlers. Errors from handlers are caught and
-   * logged with full stack traces preserved.
+   * Emit an event into bounded global history, optionally retain it per session,
+   * then notify global and typed listeners. High-churn context feedback remains
+   * global-only so arbitrary feedback session IDs cannot grow `sessionHistory`.
    */
   async emit<T extends RuntimeEvent>(event: T): Promise<void> {
-    // Store in history
     this.globalHistory.add(event);
     const sessionId = (event as Record<string, unknown>).sessionId as string | undefined;
-    if (sessionId) {
+    const retainInSessionHistory = (event as { type: string }).type !== 'cassi.context.feedback';
+    if (sessionId && retainInSessionHistory) {
       let buffer = this.sessionHistory.get(sessionId);
       if (!buffer) {
         buffer = new RingBuffer(this.sessionMaxSize);

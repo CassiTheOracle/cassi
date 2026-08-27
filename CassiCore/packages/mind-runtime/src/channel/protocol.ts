@@ -209,3 +209,65 @@ export interface ShutdownRequest extends ChannelRequest { }
 export interface ShutdownResponse extends ChannelResponse {
   ok: true
 }
+
+// ── Shared context seam (P8): candidate + feedback protocol ──────────────────
+//
+// The spine asks the runtime for context candidates for a turn and reports which
+// ones the plan actually used. Requests are deliberately narrow: the candidate
+// request carries ONLY {sessionId, turnId, query, limit?, deadlineMs?,
+// includeFieldShadow?} and the feedback carries ONLY IDs + a plan outcome — no
+// raw transcript text ever crosses this seam in either direction.
+//
+// The shared concepts (`ContextCandidate`, `ContextSourceStatus`, `FieldAdvisory`)
+// are OWNED by `@cassicore/thalamus/attention` (a leaf subpath that never
+// evaluates the legacy Thalamus graph) and re-exported here so the spine keeps
+// importing the whole contract from the mind-runtime barrel.
+
+import type { ContextCandidate, ContextSourceStatus, FieldAdvisory } from '@cassicore/thalamus/attention'
+export type { ContextCandidate, ContextSourceStatus, FieldAdvisory }
+
+/**
+ * `POST /v1/context/candidates` — typed Mnemic candidate lookup for a turn.
+ * All fields are validated and bounded server-side; the request never carries
+ * transcript content or raw 7599 arrays.
+ */
+export interface ContextCandidatesRequest extends ChannelRequest {
+  sessionId: string
+  turnId: number
+  query: string
+  /** Max candidates (clamped into [1, service max]; default 5). */
+  limit?: number
+  /** Request-side deadline in ms (clamped into service bounds; default 2500). */
+  deadlineMs?: number
+  /** Attach the cached field shadow advisory (never waits for a fresh read). */
+  includeFieldShadow?: boolean
+}
+
+export interface ContextCandidatesResponse extends ChannelResponse {
+  candidates: ContextCandidate[]
+  sources: ContextSourceStatus[]
+  /** Cached field advisory; null on first-miss/stale/offline/disabled. */
+  fieldAdvisory: FieldAdvisory | null
+}
+
+/** Turn-level plan outcome for the feedback channel — ID-only, never raw text. */
+export type ContextFeedbackOutcome = 'completed' | 'error' | 'unknown'
+
+/**
+ * `POST /v1/context/feedback` — turn-level plan receipt: IDs + plan outcome
+ * only. No raw transcript text is accepted, stored, or forwarded; retrieval
+ * outcomes are never fabricated.
+ */
+export interface ContextFeedbackRequest extends ChannelRequest {
+  sessionId: string
+  turnId: number
+  /** The plan id from `ContextPlanReceipt` (or the plan the turn ran). */
+  planId: string
+  /** Candidate IDs the turn-level plan included (≤ 64). */
+  includedCandidateIds: string[]
+  outcome: ContextFeedbackOutcome
+}
+
+export interface ContextFeedbackResponse extends ChannelResponse {
+  ack: true
+}

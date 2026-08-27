@@ -29,6 +29,7 @@ CLI / ACP / admin-api (plan §5 verdicts 22-31).
 | File | Role |
 |---|---|
 | `src/boot.ts` | **Composition root** — paths ports, `createIntelligence` + module wiring, orchestration bus, `MnemicField` open + injections (meditation/memory/archivist/constellation/cortex), unified loop, retained mind-tool deps → `registerMindTools`. Config read direct from `CASSICORE_HOME` + env (no watcher). |
+| `src/field/telemetry.ts` | Optional, default-off, read-only client for the CassiCosmos field engine on port 7599. A lazy `readout` request derives canonical balance/coherence, temporal phase continuity, a density-field phase-current proxy, and a non-canonical modal helix summary. It never sends `deposit`, `step`, or `clear`. Enable only through `createMindRuntime({ fieldTelemetry: … })`; no full arrays are exposed over the 7273 HTTP channel. |
 | `src/channel/server.ts` | `MindChannelServer` — the narrow `127.0.0.1` HTTP/1.1 JSON channel. |
 | `src/channel/protocol.ts` | The **channel contract types** (spine imports these). |
 | `src/memory/backend.ts` | `MnemicMemoryAdapter` — `status/search/save` over the running `MnemicField` (the ohmypi memory-backend adapter surface, plan §3). |
@@ -62,6 +63,7 @@ Read direct from env — **no** `Config.load()` / watcher / layered config:
 - `CASSI_MIND_TOKEN` — optional shared bearer token.
 - `CASSI_MIND_QUIET=1` — suppress log output (for detached spawn).
 - `CASSI_MIND_LIGHTNING` / `CASSI_MIND_RERANKER` — MnemicField mode overrides.
+- Field telemetry is API-configured and default off: pass `fieldTelemetry: true` or a `FieldTelemetryConfig` to `createMindRuntime`. It is lazy, so construction performs no network access.
 
 ## Model access (P4 boundary)
 
@@ -74,5 +76,7 @@ fire. The retained `ModelHandle` cast seam lives in `@cassicore/model-pool` for 
 
 Vitest, node environment, `pool: forks` (temp homes + sqlite/lmdb files are per-file).
 No live ohmypi / spine. Covers boot smoke (retained core registers retained mind tools,
-MnemicField opens, injections wired), the retained mind-tools runtime execution, and
-the full channel contract (§3.2) + bearer-token auth.
+MnemicField opens, injections wired), the retained mind-tools runtime execution, the
+full channel contract (§3.2) + bearer-token auth, and the strict readout-only field
+telemetry contract (little-endian decoding, canonical formulas, modal order, malformed
+payload rejection, and no mutation commands).

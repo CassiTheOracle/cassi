@@ -29,9 +29,17 @@ import type {
 
 import type { ChannelClient } from './channel/client.js'
 
+export interface MnemicMemoryBackendOptions {
+  /** Current OMP session identity; a getter follows session switches safely. */
+  sessionId?: string | (() => string | undefined)
+}
+
 /** A `MemoryRuntimeContext`-shaped adapter whose status/search/save proxy the mind runtime field. */
 export class MnemicMemoryBackend implements MemoryRuntimeContext {
-  constructor(private readonly client: ChannelClient) {}
+  constructor(
+    private readonly client: ChannelClient,
+    private readonly opts: MnemicMemoryBackendOptions = {},
+  ) {}
 
   async status(): Promise<MemoryBackendStatus> {
     try {
@@ -89,6 +97,9 @@ export class MnemicMemoryBackend implements MemoryRuntimeContext {
           source: (input as MemoryBackendSaveInput).source,
           importance: (input as MemoryBackendSaveInput).importance,
         } : undefined,
+        sessionId: typeof this.opts.sessionId === 'function'
+          ? this.opts.sessionId()
+          : this.opts.sessionId,
       })
       return { backend: 'mnemic-field' as never as never, stored: 1, ids: [r.id] } as never
     } catch (err) {

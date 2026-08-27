@@ -12,6 +12,16 @@ export type {
   MindRuntime,
   MindRuntimeOptions,
 } from './boot.js'
+export { MindFieldTelemetry } from './field/telemetry.js'
+export type {
+  FieldTelemetryConfig,
+  FieldTelemetryStatus,
+  FieldTelemetrySnapshot,
+  FieldBalanceSummary,
+  ThetaTemporalResultant,
+  JProxySummary,
+  FixedHelicalScanSummary,
+} from './field/telemetry.js'
 
 export { MindChannelServer } from './channel/server.js'
 export type { ChannelServerOptions } from './channel/server.js'
@@ -22,6 +32,15 @@ export type {
   MemorySaveEntry,
   MemoryHitView,
 } from './memory/backend.js'
+
+// ── Context candidate service (P8 shared context seam) ───────────────────────
+export { RuntimeContextCandidateService, ContextRequestError } from './context/candidates.js'
+export type {
+  RuntimeContextCandidateServiceOptions,
+  ContextCandidateServiceStatus,
+  ContextMemorySurface,
+  ContextFieldTelemetrySurface,
+} from './context/candidates.js'
 
 export { MindSessionMirror } from './session-store.js'
 export type { MindSessionManagerSurface } from './session-store.js'
@@ -62,4 +81,12 @@ export type {
   MemorySaveResponse,
   ShutdownRequest,
   ShutdownResponse,
+  ContextCandidate,
+  ContextCandidatesRequest,
+  ContextCandidatesResponse,
+  ContextFeedbackOutcome,
+  ContextFeedbackRequest,
+  ContextFeedbackResponse,
+  ContextSourceStatus,
+  FieldAdvisory,
 } from './channel/protocol.js'

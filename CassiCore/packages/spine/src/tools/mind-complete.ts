@@ -2,26 +2,51 @@
  * @cassicore/spine — the `mind_complete` model-access bridge (plan §2.3).
  *
  * The ONLY provider-adjacent surface the spine keeps. Registered via `pi.registerTool`.
- * It is NOT forwarded to the runtime — it executes in the spine using ohmypi's own
- * provider path:
+ * It is NOT forwarded to the runtime — it executes in the spine using the retained
+ * completion transport:
  *   1. Resolve `spec.model` ("provider/model-id" OR a role alias like @smol/@slow)
  *      via `ctx.models.resolve(spec)` (recon §1.5/§2.6).
- *   2. Stream ONE completion through ohmypi's provider path.
+ *   2. Send ONE completion through the transport (by default, the local
+ *      OpenAI-compatible llama-server loopback adapter).
  *   3. Return `{ content, model }` (+ usage when surfaced).
  *
- * Streaming (Open Item 6): single-shot for P3 — `onUpdate` unused. The retained
+ * Streaming (Open Item 6): single-shot — `onUpdate` is unused. The retained
  * pure-completion consumers (corpus/brainstem) don't need token-level output.
  *
- * [VERIFY] The exact ohmypi completion transport (`ctx.models.resolve` gives the
- * `Model`, but a raw single-shot completion over the resolved provider is not exposed
- * as a trivial one-liner on `ExtensionContext`). P3 defaults to an injectable
- * `complete` transport (documented above) so the tool is real and contract-testable;
- * the P4 cutover wires the production ohmypi provider stream. If ohmypi never surfaces
- * a faithful completion primitive, mind_internal loops route through task-agents
- * (option A-primary, plan §2.2) instead.
+ * The production default intentionally uses the existing local llama-server adapter
+ * rather than adding a provider path to CassiCore. Hosts may still inject an explicit
+ * `MindCompleteTransport`; ordinary ohmypi provider sessions remain owned by ohmypi.
+ * Configure the default loopback adapter with `CASSI_LLAMA_SERVER_URL` /
+ * `CASSI_LLAMA_SERVER_TOKEN` / `CASSI_LLAMA_SERVER_TIMEOUT_MS` /
+ * `CASSI_WORLD_PROVIDER_URL` (the corresponding `LLAMA_SERVER_*` names are
+ * accepted as compatibility aliases).
  */
 
-import type { AgentToolResult, ExtensionAPI, ExtensionContext } from '../oh-my-pi-types.js'
+import type { AgentToolResult, ExtensionAPI } from '../oh-my-pi-types.js'
+import { createLlamaServerTransport } from './llama-server-transport.js'
+
+function firstNonEmptyEnv(...names: string[]): string | undefined {
+  for (const name of names) {
+    const value = process.env[name]?.trim()
+    if (value) return value
+  }
+  return undefined
+}
+
+/** Build the default local transport at registration time so env overrides are read
+ * after the host has initialized its process configuration. */
+function createDefaultTransport(): MindCompleteTransport {
+  const timeoutText = firstNonEmptyEnv(
+    'CASSI_LLAMA_SERVER_TIMEOUT_MS',
+    'LLAMA_SERVER_TIMEOUT_MS',
+  )
+  return createLlamaServerTransport({
+    baseUrl: firstNonEmptyEnv('CASSI_LLAMA_SERVER_URL', 'LLAMA_SERVER_URL'),
+    worldModeUrl: firstNonEmptyEnv('CASSI_WORLD_PROVIDER_URL') ?? 'http://127.0.0.1:8082',
+    apiToken: firstNonEmptyEnv('CASSI_LLAMA_SERVER_TOKEN', 'LLAMA_SERVER_TOKEN'),
+    timeoutMs: timeoutText === undefined ? undefined : Number(timeoutText),
+  })
+}
 
 /** Structural slice of ohmypi's `Model` (avoid a deep catalog type import). */
 export interface ResolvedModel {
@@ -35,34 +60,26 @@ export interface MindCompleteSpec {
   tools?: unknown[]
   effort?: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
   temperature?: number
+  cassi_world_mode?: 'closed_loop'
 }
 
 export type MindCompleteTransport = (
   resolved: ResolvedModel,
   messages: Array<{ role: string; content: string }>,
-  opts: { effort?: string; temperature?: number },
+  opts: { effort?: string; temperature?: number; cassi_world_mode?: 'closed_loop' },
 ) => Promise<{ content: string; usage?: unknown }>
-
-/** Default transport: identical to the brief's shape; wired by the platform at P4.
- *  P3 returns a clear, non-fatal error so callers degrade gracefully. */
-const defaultTransport: MindCompleteTransport = async () => {
-  throw new Error(
-    'mind_complete transport not wired: the ohmypi raw-completion path is a P4 cutover ' +
-    '(plan §2.3). Use task-agents for mind-internal reasoning, or wire `capTransport` to ' +
-    "ohmypi's provider stream."
-  )
-}
 
 /** Register the `mind_complete` bridge tool on the extension API. */
 export function registerMindCompleteTool(
   pi: ExtensionAPI,
-  transport: MindCompleteTransport = defaultTransport,
+  transport: MindCompleteTransport = createDefaultTransport(),
 ): void {
   pi.registerTool({
     name: 'mind_complete',
     label: 'mind_complete',
     description:
-      'Perform a single model completion through the harness provider stack (no agent session). ' +
+      'Perform a single model completion through the retained transport (default: local ' +
+      'OpenAI-compatible llama-server; no agent session). ' +
       'Used by mind-internal pure-completion primitives (corpus-LLM summarizer, brainstem-LLM). ' +
       `model may be "provider/model-id" or a role alias (@smol/@slow); effort + temperature pass through.`,
     parameters: pi.zod.object({
@@ -71,6 +88,7 @@ export function registerMindCompleteTool(
       tools: pi.zod.array(pi.zod.any()).optional(),
       effort: pi.zod.enum(['minimal', 'low', 'medium', 'high', 'xhigh', 'max']).optional(),
       temperature: pi.zod.number().optional(),
+      cassi_world_mode: pi.zod.enum(['closed_loop']).optional(),
     }),
     execute: async (_id, params, _signal, _onUpdate, ctx): Promise<AgentToolResult> => {
       const spec = params as MindCompleteSpec
@@ -79,11 +97,12 @@ export function registerMindCompleteTool(
       if (!resolved) {
         return { content: [{ type: 'text', text: `model not resolvable: ${spec.model}` }], isError: true }
       }
-      // 2. Stream ONE completion through ohmypi's provider path.
+      // 2. Send ONE completion through the retained transport.
       try {
         const { content, usage } = await transport(resolved, spec.messages, {
           effort: spec.effort,
           temperature: spec.temperature,
+          cassi_world_mode: spec.cassi_world_mode,
         })
         return {
           content: [{ type: 'text', text: JSON.stringify({ content, model: resolved.id, usage }) }],

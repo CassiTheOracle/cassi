@@ -32,6 +32,8 @@ import { setDataDirRoot } from '@cassicore/constellation'
 import { bus as busSingleton, EventHistory, getEventHistory, rootLogger } from '@cassicore/events'
 import { MnemicField } from '@cassicore/mnemic-field'
 import { registerMindTools, ToolRegistry, type CoreToolDeps } from '@cassicore/tools'
+import { MindFieldTelemetry } from './field/telemetry.js'
+import type { FieldTelemetryConfig } from './field/telemetry.js'
 
 // Retained brain composition — host-agnostic in @cassicore/mind-runtime:
 // the createIntelligence closure + retained vendored core/intelligence modules
@@ -44,6 +46,7 @@ import { createOrchestrationBus } from './vendor/core/orchestration-bus.js'
 
 import { MnemicMemoryAdapter } from './memory/backend.js'
 import { MindSessionMirror } from './session-store.js'
+import { RuntimeContextCandidateService } from './context/candidates.js'
 
 /** Minimal `IConfig` — reads retained `intelligence.*` defaults direct from env.
  *  No watcher (`watch()`/`onChanged` are no-ops); `reload()` is a no-op. */
@@ -82,6 +85,8 @@ export interface MindRuntime {
   readonly logger: ILogger
   readonly bus: IEventBus
   readonly field: MnemicField
+  readonly fieldTelemetry: MindFieldTelemetry | undefined
+  readonly context: RuntimeContextCandidateService
   readonly intelligence: IntelligenceLayer
   readonly memory: MnemicMemoryAdapter
   readonly sessions: MindSessionMirror
@@ -96,16 +101,13 @@ export interface MindRuntime {
 export interface MindRuntimeOptions {
   logger?: ILogger
   bus?: IEventBus
-  /** Override CASSICORE_HOME for tests (isolated field). */
   homePath?: string
-  /** Override the channel port (default 7273). */
   port?: number
-  /** Override the bearer token (default read `CASSI_MIND_TOKEN`). */
   token?: string
-  /** Disable the unified loop (tests want the field open without timers). */
   disableUnifiedLoop?: boolean
-  /** Disable cortex oscillation (tests). */
   disableOscillation?: boolean
+  /** Optional, default-off read-only 7599 field telemetry. */
+  fieldTelemetry?: FieldTelemetryConfig | boolean
 }
 
 /**
@@ -198,6 +200,9 @@ export async function createMindRuntime(opts: MindRuntimeOptions = {}): Promise<
   }
 
   // ── MnemicField open + injections (daemon.ts:1568-1713 retained) ────────
+  const fieldTelemetry = opts.fieldTelemetry
+    ? new MindFieldTelemetry(opts.fieldTelemetry === true ? {} : opts.fieldTelemetry)
+    : undefined
   const field = new MnemicField(logger)
   field.enableNeuralKindling()
 
@@ -246,6 +251,17 @@ export async function createMindRuntime(opts: MindRuntimeOptions = {}): Promise<
   const memory = new MnemicMemoryAdapter(field)
   const registry = new ToolRegistry()
 
+  // ── Context candidate service (P8 shared context seam) ──────────────────
+  // Bounded/validated Mnemic candidates + cached field-shadow advisory for the
+  // spine's per-turn context planning. Fail-open, deadline-bounded; the field
+  // shadow never blocks a candidate response on a fresh 7599 read.
+  const context = new RuntimeContextCandidateService({
+    memory,
+    fieldTelemetry,
+    bus,
+    logger: logger.child('context'),
+  })
+
   // Retained event history store for query_events (mirror the bus history).
   const eventHistory: EventHistory | undefined = getEventHistory({ maxEvents: 5000 })
 
@@ -291,20 +307,22 @@ export async function createMindRuntime(opts: MindRuntimeOptions = {}): Promise<
 
   registerMindTools(registry, mindDeps)
 
+  const configuredToken = (opts.token ?? process.env.CASSI_MIND_TOKEN)?.trim() || undefined
   const runtime: MindRuntime = {
-    config: { homePath, port: opts.port ?? readPort(), token: opts.token ?? process.env.CASSI_MIND_TOKEN },
+    config: { homePath, port: opts.port ?? readPort(), token: configuredToken },
     logger,
     bus,
     field,
+    fieldTelemetry,
+    context,
     intelligence,
     memory,
     sessions,
     registry,
     startedAt,
     close: async () => {
-      // The unified loop's stop is handled inside boot (wired at creation); here we
-      // release the field DB + log. The unified-loop module is imported at boot, not
-      // re-fetched here.
+      try { context.close() } catch { /* ignore */ }
+      try { fieldTelemetry?.close() } catch { /* ignore */ }
       try { field.close() } catch { /* ignore */ }
       logger.info('Mind runtime closed', { uptimeMs: Date.now() - startedAt })
     },

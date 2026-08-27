@@ -5,7 +5,7 @@
  * mind_complete bridge) with the retained definitions' names/param schemas, hides the
  * P5 seam tools (hidden + defaultInactive), delegates retained execution to the runtime
  * channel, and mind_complete resolves via ctx.models.resolve with effort/temperature
- * passthrough.
+ * passthrough, including the default local llama-server transport.
  */
 
 import { describe, expect, it, vi } from 'vitest'
@@ -102,6 +102,59 @@ describe('spine factory registers retained mind tools', () => {
     expect(result.content[0]).toMatchObject({ type: 'text' })
     // json body contains model id + content
     expect(String(result.content[0].text)).toContain('completed-with-@slow')
+  })
+
+  it('mind_complete defaults to the local llama-server transport and preserves model/usage', async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      choices: [{ message: { content: 'local completion' } }],
+      usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5 },
+    }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }))
+    for (const name of [
+      'CASSI_LLAMA_SERVER_URL',
+      'CASSI_LLAMA_SERVER_TOKEN',
+      'CASSI_LLAMA_SERVER_TIMEOUT_MS',
+      'LLAMA_SERVER_URL',
+      'LLAMA_SERVER_TOKEN',
+      'LLAMA_SERVER_TIMEOUT_MS',
+    ]) {
+      vi.stubEnv(name, '')
+    }
+    vi.stubGlobal('fetch', fetchImpl)
+    try {
+      const stub = createStubPi()
+      const client = makeClient()
+      cassiSpine(stub.pi, { client: client as unknown as ChannelClient, noAutoSpawn: true })
+
+      const tool = stub.getTool('mind_complete')
+      const result = await tool!.execute(
+        'call-default',
+        { model: '@slow', messages: [{ role: 'user', content: 'hello' }], temperature: 0.2 },
+        undefined,
+        undefined,
+        stub.makeCtx() as never,
+      )
+
+      expect(result.isError).toBeFalsy()
+      expect(JSON.parse(String(result.content[0].text))).toEqual({
+        content: 'local completion',
+        model: '@slow',
+        usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5 },
+      })
+      expect(fetchImpl).toHaveBeenCalledTimes(1)
+      expect(fetchImpl.mock.calls[0][0]).toBe('http://127.0.0.1:8080/v1/chat/completions')
+      expect(JSON.parse(String(fetchImpl.mock.calls[0][1].body))).toEqual({
+        model: '@slow',
+        messages: [{ role: 'user', content: 'hello' }],
+        stream: false,
+        temperature: 0.2,
+      })
+    } finally {
+      vi.unstubAllGlobals()
+      vi.unstubAllEnvs()
+    }
   })
 
   it('mind_complete returns an isError result when the model is unresolvable', async () => {

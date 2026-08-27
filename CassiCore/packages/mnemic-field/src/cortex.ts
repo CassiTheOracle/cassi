@@ -788,9 +788,24 @@ export class Cortex {
         score: 1.0 - (i / limit),
       }))
     } catch (err) {
-      this.logger.debug('FTS5 search failed, likely syntax issue', { query, error: String(err) })
+      // Queries may contain provider-bound user text. Never copy that text into
+      // logs merely because SQLite rejected FTS syntax.
+      this.logger.debug('FTS5 search failed, likely syntax issue', { queryLength: query.length, error: String(err) })
       return []
     }
+  }
+
+  /**
+   * Strict FTS reader for privacy-sensitive callers. Unlike `searchText`, this
+   * never logs or swallows the query error, allowing the caller to report an
+   * accurate source status without persisting raw provider-bound text.
+   */
+  searchTextStrict(query: string, limit = 20): EngramSearchResult[] {
+    const rows = this.stmts.searchFts.all(query, limit) as Record<string, unknown>[]
+    return rows.map((row, i) => ({
+      engram: rowToEngram(row),
+      score: 1.0 - (i / limit),
+    }))
   }
 
   getTensionPairs(minPotentiation = 0.3, limit = 10): TensionPair[] {

@@ -4835,3 +4835,21 @@ export type {
 } from './cross-session-index.js'
 
 export { ThalamusStore } from './thalamus-store.js'
+
+export { ThalamusAttentionSession } from './attention/index.js'
+export type {
+  AttentionAuthority,
+  AttentionKind,
+  AttentionObservation,
+  AttentionState,
+  AttentionStatus,
+  ContextCandidate,
+  ContextFrame,
+  ContextPlan,
+  ContextPlanReceipt,
+  ContextSourceStatus,
+  FieldAdvisory,
+  PlannedAttentionItem,
+  ThalamusAttentionConfig,
+  ThalamusMode,
+} from './attention/index.js'

@@ -11,7 +11,12 @@
  *   4. Mirrors session lifecycle → runtime + writes appendEntry episodic snapshots.
  *   5. Bridges `mcp_notification` into the mind.
  *   6. Exports the MnemicField memory-backend adapter (`MnemicMemoryBackend`).
+ *   7. Runs the attention context controller (`ThalamusAttentionSession` per OMP session,
+ *      `/cassi-context` command; observe by default, inject on explicit `attentionMode`).
  */
+
+import { randomBytes } from 'node:crypto'
+import { setTimeout as delay } from 'node:timers/promises'
 
 import { spawn, type ChildProcess } from 'node:child_process'
 
@@ -21,7 +26,9 @@ import { ChannelClient, resolveChannelUrl } from './channel/client.js'
 import { registerMindToolDelegates } from './tools/register.js'
 import { registerMindCompleteTool, type MindCompleteTransport } from './tools/mind-complete.js'
 import { registerLifecycleHandlers } from './lifecycle.js'
+import { registerContextController, type ContextControllerOptions } from './context-controller.js'
 import { MnemicMemoryBackend } from './memory-backend.js'
+import type { ThalamusMode } from '@cassicore/thalamus/attention'
 
 /** Options for the spine factory (used by tests + embedding hosts). */
 export interface SpineOptions {
@@ -35,9 +42,25 @@ export interface SpineOptions {
   mindCompleteTransport?: MindCompleteTransport
   /** Provide an injected client (tests). */
   client?: ChannelClient
+  /**
+   * `observe` (default) builds attention without touching provider context, `inject`
+   * inserts one opaque synthetic agent packet before the latest direct-user message.
+   * Mode + the candidate wait deadline live in SpineOptions, not the kernel config.
+   */
+  attentionMode?: ThalamusMode
+  /** Short deadline (ms) waited on the first context event for prefetched candidates. Default 75. */
+  attentionCandidateWaitMs?: number
+  /** Further context-controller options (bounds, kernel config, …). */
+  context?: ContextControllerOptions
 }
 
 let spawnedRuntime: ChildProcess | undefined
+let spawnedRuntimeToken: string | undefined
+
+function nonEmptyRuntimeToken(value: string | undefined): string | undefined {
+  const token = value?.trim()
+  return token || undefined
+}
 
 /**
  * Locate the runtime: use `CASSI_MIND_URL` if set; else spawn `cassi-mind` (detached,
@@ -46,23 +69,31 @@ let spawnedRuntime: ChildProcess | undefined
  * fails at factory time (Open Item 1/4).
  */
 export function connectToRuntime(opts: SpineOptions = {}): ChannelClient {
-  const client = opts.client ?? new ChannelClient({ baseUrl: opts.baseUrl, token: opts.token })
   const explicitUrl = opts.baseUrl ?? (process.env.CASSI_MIND_URL && resolveChannelUrl())
-  if (explicitUrl) {
-    // Explicit URL — do NOT auto-spawn (the host owns the process).
-    return client
+  if (explicitUrl || opts.noAutoSpawn || opts.client) {
+    // Explicit/supervised runtimes own their authentication policy. Injected
+    // clients are already fully configured by their host/test.
+    return opts.client ?? new ChannelClient({ baseUrl: opts.baseUrl, token: opts.token })
   }
-  if (opts.noAutoSpawn) return client
-  // Auto-spawn fallback (Open Item 1): spawn cassi-mind detached, wait for health.
+
+  const token = spawnedRuntimeToken
+    ?? nonEmptyRuntimeToken(opts.token)
+    ?? nonEmptyRuntimeToken(process.env.CASSI_MIND_TOKEN)
+    ?? randomBytes(32).toString('hex')
+  const client = new ChannelClient({ baseUrl: opts.baseUrl, token })
   try {
-    spawnedRuntime = spawnMindRuntime()
+    if (!spawnedRuntime || spawnedRuntime.exitCode !== null) {
+      spawnedRuntimeToken = token
+      spawnedRuntime = spawnMindRuntime(token)
+    }
     const deadline = Date.now() + 15_000
     const poll = (): Promise<void> => client.ping().then(ok => {
       if (ok) return
       if (Date.now() >= deadline) throw new Error('cassi-mind did not become healthy in time')
-      return new Promise(res => setTimeout(res, 250)).then(poll)
+      return delay(250).then(poll)
     })
-    // Kick off a best-effort health wait; not blocking factory return.
+    // Kick off a best-effort identity-checked health wait; individual requests
+    // also prove the server before transmitting any context.
     poll().catch(() => { /* runtime liveness is the supervisor's concern */ })
   } catch {
     // fall through — the client will fail individual calls if the runtime is down
@@ -70,12 +101,12 @@ export function connectToRuntime(opts: SpineOptions = {}): ChannelClient {
   return client
 }
 
-function spawnMindRuntime(): ChildProcess {
+function spawnMindRuntime(token: string): ChildProcess {
   const bin = process.env.CASSI_MIND_BIN ?? 'cassi-mind'
   return spawn(bin, [], {
     detached: true,
     stdio: 'ignore',
-    env: { ...process.env },
+    env: { ...process.env, CASSI_MIND_TOKEN: token },
   })
 }
 
@@ -92,6 +123,20 @@ export default function cassiSpine(pi: ExtensionAPI, options: SpineOptions = {})
   // ── 2.6 Session lifecycle → runtime mirror + appendEntry snapshots ──
   registerLifecycleHandlers(pi, client)
 
+  // Off/observe leave provider context untouched; inject adds one opaque synthetic packet.
+  const envAttentionMode = process.env.CASSI_THALAMUS_MODE
+  const attentionMode = options.attentionMode
+    ?? (envAttentionMode === 'off' || envAttentionMode === 'observe' || envAttentionMode === 'inject'
+      ? envAttentionMode
+      : undefined)
+    ?? 'observe'
+  registerContextController(pi, client, {
+    mode: attentionMode,
+    candidateWaitMs: options.attentionCandidateWaitMs,
+    includeFieldShadow: process.env.CASSI_THALAMUS_FIELD_SHADOW === '1',
+    ...(options.context ?? {}),
+  })
+
   // (Memory-backend adapter: exported as MnemicMemoryBackend for ohmypi backend
   //  resolution; `ctx.memory` is read-only on ExtensionContext so the adapter is not
   //  substituted in-process — see memory-backend.ts [VERIFY].)
@@ -99,4 +144,8 @@ export default function cassiSpine(pi: ExtensionAPI, options: SpineOptions = {})
 
 export { ChannelClient } from './channel/client.js'
 export { MnemicMemoryBackend } from './memory-backend.js'
+export { registerContextController, ContextController } from './context-controller.js'
+export type { ContextControllerOptions } from './context-controller.js'
 export type { MindCompleteSpec, MindCompleteTransport } from './tools/mind-complete.js'
+export { createLlamaServerTransport } from './tools/llama-server-transport.js'
+export type { LlamaServerTransportConfig } from './tools/llama-server-transport.js'

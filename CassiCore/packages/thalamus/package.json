@@ -17,6 +17,10 @@
     "./types": {
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js"
+    },
+    "./attention": {
+      "types": "./dist/attention/index.d.ts",
+      "import": "./dist/attention/index.js"
     }
   },
   "files": [

@@ -2,6 +2,7 @@ import Database from 'better-sqlite3'
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { once } from 'node:events'
 import { Worker } from 'node:worker_threads'
 import { fileURLToPath } from 'node:url'
 import type { DreamEngine } from './vendor/core/intelligence/memory-bridge/dream-engine.js'
@@ -1256,6 +1257,46 @@ export class MnemicField {
   searchText(query: string, limit?: number): EngramSearchResult[] {
     const results = this.cortex.searchText(query, limit)
     return results.filter(r => r.engram.nodeType !== 'bridge')
+  }
+
+  /**
+   * Side-effect-free, no-log FTS lookup for privacy-sensitive provider-context
+   * selection. SQLite failures propagate to the caller instead of being logged
+   * with or converted from the raw query.
+   */
+  searchTextStrict(query: string, limit?: number): EngramSearchResult[] {
+    const results = this.cortex.searchTextStrict(query, limit)
+    return results.filter(result => result.engram.nodeType !== 'bridge')
+  }
+
+  /**
+   * Worker-isolated strict FTS lookup. Provider-context candidates never run
+   * synchronous SQLite on the runtime event loop; an in-memory field has no
+   * separately openable read-only database and therefore fails open at the
+   * candidate service rather than silently violating its deadline.
+   */
+  async searchTextStrictAsync(query: string, limit = 20, timeoutMs = 300): Promise<EngramSearchResult[]> {
+    const dbPath = this.db.name
+    if (!dbPath || dbPath === ':memory:') throw new Error('mnemic-strict-search-unavailable')
+
+    const worker = new Worker(fileURLToPath(new URL(
+      './fts-search-worker.js',
+      import.meta.url,
+    )), {
+      workerData: { dbPath, query, limit },
+    })
+    try {
+      const signal = AbortSignal.timeout(Math.max(1, Math.min(timeoutMs, 5_000)))
+      const [reply] = await once(worker, 'message', { signal }) as [{
+        ok: boolean
+        results?: EngramSearchResult[]
+        error?: string
+      }]
+      if (!reply.ok || !reply.results) throw new Error(reply.error ?? 'fts-search-failed')
+      return reply.results
+    } finally {
+      await worker.terminate()
+    }
   }
 
   /**

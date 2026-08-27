@@ -45,19 +45,24 @@ describe('spine lifecycle → runtime mirror + snapshots', () => {
     expect(mirrors[0]).toMatchObject({ event: 'switch', sessionId: 'sess-test-1' })
   })
 
-  it('session_branch mirrors {event:branch, branchFrom}', async () => {
+  it('session_branch mirrors the captured branch-point entry ID', async () => {
     const stub = createStubPi()
     const mirrors: Mirrors = []
     cassiSpine(stub.pi, { client: makeClient(mirrors), noAutoSpawn: true })
-    await stub.fire('session_branch', { type: 'session_branch', entryId: 'entry-42' })
-    expect(mirrors[0]).toMatchObject({ event: 'branch', branchFrom: 'entry-42' })
+    await stub.fire('session_before_branch', { type: 'session_before_branch', entryId: 'entry-branch-point-7' })
+    await stub.fire('session_branch', { type: 'session_branch', previousSessionFile: 'session-before-branch.jsonl' })
+    expect(mirrors[0]).toMatchObject({ event: 'branch', branchFrom: 'entry-branch-point-7' })
   })
 
   it('session_compact mirrors {event:compact, summary}', async () => {
     const stub = createStubPi()
     const mirrors: Mirrors = []
     cassiSpine(stub.pi, { client: makeClient(mirrors), noAutoSpawn: true })
-    await stub.fire('session_compact', { type: 'session_compact', summary: 'a compaction summary' })
+    await stub.fire('session_compact', {
+      type: 'session_compact',
+      compactionEntry: { summary: 'a compaction summary' },
+      fromExtension: false,
+    })
     expect(mirrors[0]).toMatchObject({ event: 'compact', summary: 'a compaction summary' })
   })
 
@@ -73,9 +78,11 @@ describe('spine lifecycle → runtime mirror + snapshots', () => {
     const stub = createStubPi()
     const mirrors: Mirrors = []
     cassiSpine(stub.pi, { client: makeClient(mirrors), noAutoSpawn: true })
-    for (const ev of ['session_start', 'session_switch', 'session_branch', 'session_compact', 'session_shutdown']) {
+    for (const ev of ['session_start', 'session_switch', 'session_compact', 'session_shutdown']) {
       await stub.fire(ev, { type: ev })
     }
+    await stub.fire('session_before_branch', { type: 'session_before_branch', entryId: 'entry-branch-point-7' })
+    await stub.fire('session_branch', { type: 'session_branch' })
     expect(stub.entries.filter(e => e.type === 'mind.runtime.state').length).toBe(5)
     const snap = stub.entries[0].data as { sessionId: string; ts: number; state: unknown }
     expect(snap.sessionId).toBe('sess-test-1')
