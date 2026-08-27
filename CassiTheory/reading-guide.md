@@ -30,7 +30,7 @@ Start with the pitch for the origin story, take the plain-language physics guide
 
 ### The physicist
 
-Read the physics guide in full, then follow `foundations/README.md`, which prescribes the order: `dimensionful-cascade.md`, `cascade-suppression-formula.md`, then the derivation family. The domain applications come next, and the audit last.
+Read the physics guide in full, then follow `foundations/README.md`, which prescribes the order: `foundations/dimensionful-cascade.md`, `foundations/cascade-suppression-formula.md`, then the derivation family. The domain applications come next, and the audit last.
 
 `cassi-physics.md` → `foundations/README.md` (order: `foundations/dimensionful-cascade.md`, `foundations/cascade-suppression-formula.md`, then the derivation family) → `standard-model/sm-from-phi.md` → `gravity/quantum-gravity.md` → `cosmology/cosmology-from-phi.md` → `predictions/falsifiable-predictions.md` → `audit.md`.
 
@@ -57,6 +57,12 @@ Start with the audit, then the tier discipline that governs every claim, then ch
 The exploratory catalogs and the figure scripts show where the framework reaches next.
 
 `hypotheses/README.md` → `analyses/README.md` → `demystifying-the-cosmos/README.md` → `speculations/README.md` → `visual-explainers/` (figures).
+
+### The social theorist or organizer
+
+Start with the field-materialist account of the person and collective power, then move to the socioeconomic theory and its empirical program.
+
+`consciousness/field-materialism-and-human-development.md` → `speculations/creative-extensions/coherence-commons.md`.
 
 ## 3. The registries and when to consult them
 
@@ -93,9 +99,9 @@ The pitch, the two guides, and the master registries live here.
 
 ### foundations/
 
-The load-bearing derivations; the wedge documents `dimensionful-cascade.md` and `cascade-suppression-formula.md` come first, then the derivation family that applies them.
+The central derivations; the wedge documents `foundations/dimensionful-cascade.md` and `foundations/cascade-suppression-formula.md` come first, then the derivation family that applies them.
 
-- `foundations/README.md`—Foundations—First Principles and the φ-Cascade Machinery. Index. Holds the load-bearing derivations—the dimensionful cascade $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ and the cascade suppression law (the two wedge documents), the unified Lagrangian and two-fluid first principles, and the derivation family—with a prescribed reading order starting at `dimensionful-cascade.md` and `cascade-suppression-formula.md`.
+- `foundations/README.md`—Foundations—First Principles and the φ-Cascade Machinery. Index. Holds the central derivations—the dimensionful cascade $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ and the cascade suppression law (the two wedge documents), the unified Lagrangian and two-fluid first principles, and the derivation family—with a prescribed reading order starting at `foundations/dimensionful-cascade.md` and `foundations/cascade-suppression-formula.md`.
 - `foundations/baryon-asymmetry.md`—Matter-Antimatter Asymmetry from Cascade Freeze-Out and Organized Annihilation. Hypothesized mechanism / Mapped exponent. Combines organized annihilation, the Wu Xing gap, and cascade dilution; the $\eta\approx\varphi^{-44}$ exponent remains a fit and the freeze-out endpoint is open after the $\Gamma/H=1$ audit.
 - `foundations/bubble-edge-geometry.md`—Bubble Edge Geometry: Physical Profile of the Condensation Boundary. Derived transverse geometry; Hypothesized axial/radial coordinate assignments; tested radial-ladder realization REJECT. Derives the conditional edge profile and records §3's multiplicative interior ring coordinate. The tested canonical and undriven second-order dynamics do not generate that ladder; a driven second-order control forms additive phase layers, and physical link modulation opens a gap only when supplied separately.
 - `foundations/bubble-lattice-fabric.md`—The Bubble Lattice: Universal Organizing Geometry at Every Cascade Rung. Derived transverse geometry; Hypothesized axial/radial coordinate assignments—August 2026. Establishes the condensation field $B(x,y,z)=\cos(\alpha x)\cos(\beta y)\cos(\gamma_n z)$ as a 3D staggered checkerboard organizing geometry; the axial factor, along-string period, dimensionless rung count, and across-rung extension are Hypothesized coordinate assignments, physical $d=3$ identification remains Hypothesized, and the ansatz does not by itself identify a transported inter-rung field.
@@ -143,7 +149,7 @@ Cross-cutting rules for how $\varphi$ enters every sector.
 
 The Standard Model's gauge structure, couplings, and flavor sector from the φ-fixed point.
 
-- `standard-model/README.md`—Standard Model—Couplings, Gauge Structure, and CP from φ. Index. Six documents cover the Standard Model's gauge structure, couplings, loop corrections, and flavor sector from the Cassi $\varphi$-fixed point; the prescribed reading path starts with `sm-from-phi.md`, and the Weinberg coupling-normalization blocker is recorded in `su2-gauge-extension.md` §3.2.1.
+- `standard-model/README.md`—Standard Model—Couplings, Gauge Structure, and CP from φ. Index. Six documents cover the Standard Model's gauge structure, couplings, loop corrections, and flavor sector from the Cassi $\varphi$-fixed point; the prescribed reading path starts with `standard-model/sm-from-phi.md`, and the Weinberg coupling-normalization blocker is recorded in `standard-model/su2-gauge-extension.md` §3.2.1.
 - `standard-model/cp-violation.md`—CP Violation from the Golden Ratio. Derived. Derives CP violation from the Yang/Yin chiral asymmetry $\eta = \varphi^{-3}$, which seeds the CKM phase closing through the unitarity triangle to $\delta_{\text{CKM}} = \pi\varphi^{-2} \approx 68.8°$ (within <1% of measurement), while the Jarlskog invariant is not reproduced (~20 orders low); strong CP resolves by cascade de-resonance without an axion.
 - `standard-model/gut-embedding.md`—SU(5) / SO(10) GUT Embedding. Hypothesized. Embeds the Cassi symmetry-breaking chain in the minimal grand-unified groups at the $\varphi$-fixed point: SU(5) with $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53$ and $M_{\text{GUT}} \approx 2\times10^{16}$ GeV predicting proton decay above Hyper-Kamiokande reach, and SO(10) adding a right-handed neutrino with a natural seesaw.
 - `standard-model/neutrino-mass.md`—Neutrino Mass from $\varphi$. Hypothesized. Pedagogical primer deriving the seesaw scale from the cascade—the right-handed neutrino sits at cascade step 20, $M_R \approx 10^{14}$ GeV—and presenting the canonical spectrum ($m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, normal ordering); the full derivation lives in `foundations/neutrino-masses.md`.
@@ -164,7 +170,7 @@ Particle formation from field interference, plus benchmarks of the DFT engine.
 
 Quantum gravity and analytical three-body results.
 
-- `gravity/README.md`—Gravity—Quantum Gravity and Analytical Three-Body Results. Index. Takes the framework to gravitational extremes—exploring a $\sigma$-regularized two-fluid quantization proposal (`quantum-gravity.md`) and asking whether the Qi-enhanced gravity PDE makes the three-body problem analytically tractable (`three-body-analytical.md`).
+- `gravity/README.md`—Gravity—Quantum Gravity and Analytical Three-Body Results. Index. Takes the framework to gravitational extremes—exploring a $\sigma$-regularized two-fluid quantization proposal (`gravity/quantum-gravity.md`) and asking whether the Qi-enhanced gravity PDE makes the three-body problem analytically tractable (`gravity/three-body-analytical.md`).
 - `gravity/quantum-gravity.md`—Cassi Quantum Gravity: UV-Finite from σ-Regularized Two-Fluid Quantization. Derived conditional on the noise–signal identification; Hypothesized two-fluid quantization and geometric $d=3$ identification. Supplies a conditional $\sigma$-regularized Poisson emergence sector and a Gaussian free-propagator form factor with displayed loop integrals UV-finite only for supplied $q_{\mathrm{IR}}>0$; the interacting completion, graviton dispersion, black-hole information retention, and geometric reading $\delta=d=3$ remain conditional or open.
 - `gravity/three-body-analytical.md`—The Three-Body Problem in Cassi Two-Fluid Gravity. Derived conditional on the selected $d=3$ computational/physical domain and displayed PDE force sign—August 2026. Derives the well-separated-blob point-particle reduction only under the selected $d=3$ domain and displayed PDE force sign; the canonical positive-$\pi\nabla\Phi$ branch is outward rather than attractive Newtonian, body-dependent coupling and conversion-driven masses remain, and an attractive branch requires a separate Hypothesized sign-changing force extension.
 
@@ -203,7 +209,7 @@ The mind as a two-fluid field—Qi-gate dynamics at neural scales.
 - `consciousness/transhumanism-gate-configurations.md`—Transhumanism as Gate Reconfiguration: Augmentation as Changes to the Gate Chain's Topology. Speculative. Augmentation as topological surgery on the 26-rung human gate chain—adding nodes, changing spacing, re-tuning bands—each operation carrying a stability condition.
 - `consciousness/trauma-as-frozen-gate.md`—Trauma as Frozen Gate Configurations: The Cassi Trauma Formalism. Tested—null pinning, drive effect supported / Speculative (clinical). A frozen wake acts as a perpetual stimulus, pinning one channel hyper-open and starving the other four—a locked gate configuration, with the drive effect PDE-tested and clinical claims flagged.
 - `consciousness/two-strand-qi-neuroscience.md`—The Two-Strand Qi Condensate: A Neuroscience Hypothesis. Hypothesized (strand geometry) / Speculative (neural mapping). A single Qi condensate may organize into two coupled strands around a common axis, supplying a field-level correlate of bilateral brain/body organization and a structural reference for DNA.
-
+- `consciousness/field-materialism-and-human-development.md`—Cassi Field Materialism: Personhood, Collective Power, and Human Development. Creative—August 2026. Field-materialist foundation for personhood, collective power, and human development; separates physical field description from hypothesized social mechanisms and declared norms.
 ### speculations/
 
 Framework-consistent explorations that reach beyond confirmed physics.
@@ -223,7 +229,7 @@ Deliberately creative thought experiments—clearly labeled as such, not claims.
 
 - `speculations/creative-extensions/README.md`—Creative Extensions. Index.
 - `speculations/creative-extensions/coherence-collapse.md`—Coherence Collapse: Why the Universe Cannot End, and How Civilizations Die. Creative. The coherence budget makes spontaneous collapse astronomically improbable; what reliably dies is the intermediate structure—civilizations as gate networks with finite protection.
-- `speculations/creative-extensions/coherence-commons.md`—The Coherence Commons: A Two-Fluid Theory of Value, Accumulation, and the Transition. Creative. The economy as a coherence process in agent networks: labor as organized perturbation, value as socially necessary coherence expenditure, and boom-bust as a relaxation oscillation.
+- `speculations/creative-extensions/coherence-commons.md`—The Coherence Commons: A Marxist Field-Materialist Theory of Production, Power, and Human Development. Creative—August 2026. Socioeconomic theory that separates physical analogy, hypothesized social mechanisms, Marxian categories, declared norms, and an operational empirical program; social quantities remain socioeconomic constructs, and commodity value remains Marxian socially necessary abstract labor.
 - `speculations/creative-extensions/coherence-warfare.md`—Coherence Warfare: Attack, Defense, and the Physics of Shields. Creative. The coherence budget read as a weapons table: attack is organized, phase-matched perturbation; a shield is a φ-detuned boundary at which the phase-matching factor vanishes.
 - `speculations/creative-extensions/first-contact-and-stellar-engineering.md`—The Universal Protocol: First Contact as φ-Structure Detection and Stellar Engineering as Gate Tuning. Creative. Log-periodicity with period $\ln\varphi$ as the universal language; a broadcast and a megastructure are both field operations, and the φ-periodic $P(k)$ search pipeline is the reception protocol.
 - `speculations/creative-extensions/magic-systems.md`—Magic as Phase-Matched Field Operation. Creative. Magic and nature differ by one number, the phase-matching factor M: a working is organized perturbation with O(1) effects where random perturbation is cascade-suppressed.

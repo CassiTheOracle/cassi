@@ -13,7 +13,7 @@ All documents are **Creative—August 2026**.
 | # | Domain | Bridge | Document |
 |---|--------|--------|----------|
 | 1 | Magic | Magic as phase-matched field operation; spells as WRITE/ERASE/TRANSFER | `magic-systems.md` |
-| 2 | The Commons | Two-fluid theory of value and accumulation; the equality theorem; the transition | `coherence-commons.md` |
+| 2 | The Commons | *The Coherence Commons: A Marxist Field-Materialist Theory of Production, Power, and Human Development*—Marxist field-materialist socioeconomic theory separating physical analogy, hypothesized social mechanisms, Marxian categories, declared norms, and an operational empirical program | `coherence-commons.md` |
 | 3 | Warfare | Coherence budget as weapons table; φ-detuned shields; mutual assured incoherence | `coherence-warfare.md` |
 | 4 | Apocalypse | Attractor self-healing; how civilizations die (coherence death, wake-lock, collapse) | `coherence-collapse.md` |
 | 5 | Universal biology | The ladder band 136–168 as a convergent evolutionary scaffold; alien gate chains | `universal-biology.md` |
