@@ -532,6 +532,15 @@ A closed-time-path representation has the corresponding retarded and advanced ke
 
 Equation (OS6) distinguishes the selected open-system dynamics from the closed scalar ansatz. The coarse composition mode has a first-order relaxation pole, while a conservative scalar fluctuation has a second-order oscillatory denominator of the form $-\omega^2+k^2+m^2$. Recovering (OS6) from the local two-singlet action therefore requires traced-out degrees of freedom, a bath spectral density, or auxiliary dissipative fields; the local two-singlet action alone cannot do it.
 
+The quantum-geometric campaign in
+`foundations/quantum-measurement-derivation.md` §8.3 adopts this same
+micro-to-meso direction as a Hypothesized architecture. The complex CassiFI
+configuration supplies a finite Kähler candidate, and its modulus map supplies
+the proposed coarse density coordinates. Phase-sensitive link forces give
+different projected accelerations for equal moduli, so an exact autonomous
+projection requires the missing reservoir or conditional phase ensemble. This
+is the GQ3 failure recorded by that campaign.
+
 ---
 
 ## 5. Constitutive blocks for becoming

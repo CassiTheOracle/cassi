@@ -605,6 +605,16 @@ and equilibrium selection, physical-sector, interacting-continuum, and
 discrimination gates fail (`foundations/quantum-measurement-derivation.md`
 §8.1).
 
+The GQ1–GQ7 geometric campaign `ADOPT`s a Hypothesized moment-map/Kähler
+projection architecture. A normalized complex Yang/Yin pair places the
+$\varphi$ attractor at Bloch latitude
+$n_z=\varphi^{-3}=0.236067977500$. Equal projected moduli retain causally
+different phases, and the finite $W$-metric complex configuration has
+compatible Kähler geometry. The exact symmetry quotient,
+microscopic-to-mesoscopic projection, cotangent reconstruction,
+physical-sector realization, and Cassi-specific holonomy remain open
+(`foundations/quantum-measurement-derivation.md` §8.3).
+
 ### 5.2 Spin
 
 Spin is assigned through a **Hypothesized** geometric phase convention on a nested Fibonacci spiral, separate from canonical density-plane relaxation. Spiral polar equation:

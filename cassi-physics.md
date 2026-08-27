@@ -278,6 +278,15 @@ bridge, guidance/equilibrium selection, physical sectors, continuum limit,
 and Cassi-specific discrimination gates fail. See
 `foundations/quantum-measurement-derivation.md` §8.1.
 
+The geometric campaign in §8.3 of the same source `ADOPT`s a
+moment-map/Kähler projection architecture as a Hypothesized research
+direction. The canonical density state fixes a Bloch latitude, with
+$n_z=\varphi^{-3}$ at the attractor, while complex phase remains in the
+microscopic fibre. GQ1 passes and GQ5 passes conditionally; the exact
+symmetry reduction, micro-to-meso projection, cotangent closure,
+physical-sector, and holonomy gates fail. The physical-identification tier
+remains Hypothesized.
+
 ---
 
 ## 4. The String: Spiral and Wakes
