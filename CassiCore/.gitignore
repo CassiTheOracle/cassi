@@ -6,3 +6,12 @@ dist/
 *.tsbuildinfo
 coverage/
 .DS_Store
+# Local generated feature-index LMDB stores.
+/packages/admin-api/feature-index.lmdb
+/packages/admin-api/feature-index.lmdb-lock
+/packages/thalamus/feature-index.lmdb
+/packages/thalamus/feature-index.lmdb-lock
+/packages/mnemic-field/feature-index.lmdb
+/packages/mnemic-field/feature-index.lmdb-lock
+/packages/dreamer-reverie-subconscious/feature-index.lmdb
+/packages/dreamer-reverie-subconscious/feature-index.lmdb-lock
