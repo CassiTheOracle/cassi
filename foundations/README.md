@@ -26,7 +26,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 14 | `phi_attractor_synthesis.md` | Analytical N-body paths | Derived |
 | 15 | `wa-pentagon-gate.md` | $w_a$ sign tension | Derived / Hypothesized |
 | 16 | `proton-coherence-budget.md` | Proton stability | Derivation |
-| 17 | `quantum-measurement-derivation.md` | Quantum dynamics and measurement | Derived conditional (regulated quantum mechanics); Hypothesized CassiFI physical identification |
+| 17 | `quantum-measurement-derivation.md` | Quantum dynamics and measurement | Derived conditional (regulated quantum mechanics and finite carrier projection); Hypothesized CassiFI and carrier physical identifications |
 | 18 | `strong-cp-derivation.md` | Strong CP | Derivation |
 | 19 | `quark-confinement.md` | Confinement | Derived conditional (tube extensivity + cell quantization); Hypothesized tube/coherence inputs; conditional normalization $\kappa=2\pi$ on the optional $2\pi$-per-rung winding convention |
 | 20 | `three-generations.md` | Generation count | Hypothesized |
@@ -296,6 +296,16 @@ architecture as a Hypothesized research direction. It interprets the
 canonical densities as action-like coordinates of a richer complex
 configuration. GQ1 passes and GQ5 passes conditionally; the exact reduction,
 projection, cotangent, physical-sector, and holonomy gates fail.
+
+The QC1–QC9 finite-completion campaign `ADOPT`s a conservative finite
+carrier birth-death-hopping process as Hypothesized microphysics. Its
+carrier-to-mesoscopic projection is Derived conditional: the mean drift is
+the canonical two-fluid conversion law, finite occupancy gives its binomial
+conversion variance, a reciprocal stochastic hopping law gives the symmetric
+transport-noise spectrum, and one finite CPTP instrument supplies retained
+record probabilities. The carrier density is additive to, rather than
+identified with, the projected QF1 density; the QF1-to-carrier state map,
+carrier identity, bath separation, and physical timescale remain Open.
 
 ### `strong-cp-derivation.md`—Strong CP: Why $\bar{\theta} \approx 0$ from Cascade De-Resonance
 

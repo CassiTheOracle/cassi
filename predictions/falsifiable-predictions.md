@@ -462,10 +462,21 @@ Sorted by detection likelihood (most definitive first):
 | CT-1 | Talbot-Lau harmonic multiplier for a 172 kDa sodium nanoparticle | $R_\ell^{\mathrm{CassiFI}}=1$ for every integer $\ell$ before ordinary environmental and apparatus factors; therefore the same visibility as linear quantum mechanics under the same calibrated grating model | **Derived conditional** on QF1-QF4; compatible with the 2026 observed visibilities $0.10\pm0.01$ and $0.08\pm0.01$ and the reported macrorealist bound $\tau_e\geq2.84\times10^{15}$ s ($\mu=15.45$). This is a compatibility constraint rather than a Cassi-specific deviation. | Any intrinsic CassiFI localization term producing a reproducible $R_\ell\neq1$, or failure of the regulated Hamiltonian to reproduce $E=\hbar^2k^2/(2M)$ |
 
 **Configuration-bridge boundary:** The DQ9 audit registers no Cassi-specific,
+
 no-fit quantum observable. CT-1 is a compatibility constraint shared with
 linear quantum mechanics. The DQ1–DQ9 campaign therefore yields `REJECT` for
 promotion of the CassiFI physical-field identification to Derived; DQ3 and
 DQ6 pass only under their declared quantum premises.
+
+**Finite-completion boundary.** The QC1–QC9 closure campaign separately
+`ADOPT`s a finite carrier reservoir as Hypothesized microphysics. Its
+carrier-to-mesoscopic drift, binomial fluctuation, transport-noise kernel, and
+finite quantum instrument are Derived conditional on the declared premises.
+The completion does not change CT-1: under QF4 and the same completely positive
+instrument, it remains operationally equivalent to ordinary quantum mechanics.
+The physical state map between the QF1 complex field and the carrier
+occupations is Open, so no carrier-derived Cassi-specific discriminator is
+registered.
 
 **Geometric boundary:** GQ7 certifies generic integer $U(1)$ winding and finds
 no source-derived Cassi-specific connection or no-fit holonomy. The
@@ -473,6 +484,8 @@ moment-map/Kähler architecture is an adopted Hypothesized research direction;
 it creates no additional registered quantum prediction.
 
 **Source:** `foundations/quantum-measurement-derivation.md` §§7–8;
+`computations/quantum-closure-pre-registration.md`;
+`computations/verify_quantum_closure.py`;
 `computations/quantum-geometric-bridge-pre-registration.md`;
 `computations/verify_quantum_geometric_bridge.py`;
 `computations/quantum-configuration-bridge-pre-registration.md`;
