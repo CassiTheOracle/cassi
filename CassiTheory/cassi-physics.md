@@ -270,9 +270,13 @@ yields Born frequencies. Quantum record distinguishability is
 $\mathcal M_{jk}=1-|\langle A_kE_k|A_jE_j\rangle|^2$.
 
 **Epistemic status:** the regulated mathematics is **Derived conditional** on
-QF1-QF4. Quantum equilibrium is an explicit statistical postulate. The
-CassiFI physical-field identification is **Hypothesized**. See
-`foundations/quantum-measurement-derivation.md`.
+QF1–QF4. Quantum equilibrium is an explicit statistical postulate. The
+CassiFI physical-field identification is **Hypothesized**. The DQ1–DQ9 audit
+yields `REJECT` for promotion to Derived; reverse-Madelung linearization and
+tensor composition pass conditionally, while the canonical lift, Fisher
+bridge, guidance/equilibrium selection, physical sectors, continuum limit,
+and Cassi-specific discrimination gates fail. See
+`foundations/quantum-measurement-derivation.md` §8.1.
 
 ---
 

@@ -10,6 +10,13 @@ The construction contains no mass-triggered or observer-triggered collapse term.
 
 The algebra below is Derived conditional on four explicit quantum-sector postulates. The identification of the CassiFI laboratory fields with nature's microscopic configuration remains Hypothesized. The positive-root density lift $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$ is a separate coordinate diagnostic and is never identified with the quantum wavefunctional $\Psi[Q,t]$.
 
+The frozen DQ1–DQ9 promotion audit in §8.1 yields `REJECT`: the canonical
+real-density state does not supply the missing complex phase fibre, Fisher
+ensemble term, unique guidance law, equilibrium preparation, physical-sector
+maps, interacting continuum limit, or a Cassi-specific discriminator. The
+reverse-Madelung and tensor-composition gates pass under their declared
+quantum premises.
+
 ---
 
 ## 1. Inputs from the CassiFI field law
@@ -977,6 +984,387 @@ G1 and G3 implement absorptive spatial filtering. G2 implements coherent, positi
 
 ## 8. Epistemic accounting and falsifiers
 
+### 8.1 Canonical-to-quantum configuration audit
+
+The frozen protocol
+`computations/quantum-configuration-bridge-pre-registration.md` asks whether
+QF1–QF4 follow from the canonical real-density state and the declared
+Cassi/CassiFI dynamics. The campaign separates three claims:
+
+1. the canonical density state determines the finite complex CassiFI
+   configuration;
+2. the finite CassiFI field law determines the quantum ensemble,
+   wavefunctional, guidance, and equilibrium structure;
+3. the regulated construction determines physical sectors, a continuum
+   theory, and a Cassi-specific observable.
+
+The deterministic script
+`computations/verify_quantum_configuration_bridge.py` evaluates the frozen
+algebraic certificates. Source-existence requirements remain documentary
+gates.
+
+#### DQ1. Canonical lift
+
+Write the complex amplitude extension locally as
+$\mathcal E_Y,\mathcal E_I\in\mathbb C$ to distinguish it from the canonical
+densities. Its density projection is
+
+$$
+\pi(\mathcal E_Y,\mathcal E_I)
+=\left(|\mathcal E_Y|^2,|\mathcal E_I|^2\right).
+$$
+
+At $\mathcal E_Y=2+i$ and $\mathcal E_I=3+2i$,
+
+$$
+D\pi
+=
+\begin{pmatrix}
+4&2&0&0\\
+0&0&6&4
+\end{pmatrix},
+\qquad
+\operatorname{rank}D\pi=2,
+\qquad
+\operatorname{nullity}D\pi=2.
+$$
+
+The generic fibre contains the two independent phase directions
+$U(1)\times U(1)$. The complex-linear CassiFI coordinate change
+
+$$
+D=\mathcal E_Y-\varphi\mathcal E_I,
+\qquad
+C=\frac{\varphi\mathcal E_Y+\mathcal E_I}{1+\varphi^2}
+$$
+
+is invertible after the complex amplitudes are supplied. It leaves the phase
+fibre of $\pi$ unresolved.
+
+The exact positive-root section of the canonical state is
+
+$$
+s(E_Y,E_I)
+=\left(\sqrt{E_Y},0,\sqrt{E_I},0\right).
+$$
+
+At $(E_Y,E_I)=(4,9)$,
+
+$$
+Ds=
+\begin{pmatrix}
+1/4&0\\
+0&0\\
+0&1/6\\
+0&0
+\end{pmatrix}.
+$$
+
+For the canonical complex-coordinate two-form
+
+$$
+\Omega=
+\begin{pmatrix}
+0&1&0&0\\
+-1&0&0&0\\
+0&0&0&1\\
+0&0&-1&0
+\end{pmatrix},
+$$
+
+the pullback is
+
+$$
+(Ds)^{\mathsf T}\Omega Ds=0.
+$$
+
+The section is rank two and isotropic. It supplies neither the two phase
+directions nor conjugate momenta. The frozen source set contains no canonical
+phase law, gauge quotient, or momentum closure that reconstructs them from
+$(E_Y,E_I)$.
+
+**DQ1 verdict: `FAIL`.** QF1 remains an independent regulated-configuration
+postulate.
+
+#### DQ2. Configuration-space Fisher bridge
+
+The canonical Qi terms are local functionals of physical-space fields. The
+Fisher functional required by an ensemble action is a functional of a
+probability density on configuration space,
+
+$$
+\mathcal I_F[\varrho]
+=
+\int_{\mathcal C}d\mu_G\,
+\varrho G^{AB}
+\partial_A\ln\varrho\,
+\partial_B\ln\varrho.
+$$
+
+The frozen independence controls give
+
+$$
+\begin{array}{c|cc}
+\text{control}&E_\nabla&I_F\\
+\hline
+q=(1,-1),\ p=(1/2,1/2)&2&0\\
+q^{(0)}=(0,0),\ q^{(1)}=(1,1),\ p=(0.8,0.2)&0&0.72
+\end{array}.
+$$
+
+Physical-space gradients and configuration-space ensemble gradients can vary
+independently. A bridge between them requires an additional measure,
+coarse-graining map, or information principle. The frozen source set contains
+no such bridge and no derivation of the coefficient $\hbar^2/8$.
+
+**DQ2 verdict: `FAIL`.** The Fisher term remains an additional quantum-sector
+premise.
+
+#### DQ3. Reverse-Madelung linearization
+
+Assume $\varrho=R^2>0$, a phase $S$, and the Fisher coefficient
+$\hbar^2/8$. For $\Psi=Re^{iS/\hbar}$,
+
+$$
+\partial_t\Psi
+=e^{iS/\hbar}
+\left(\partial_tR+\frac{i}{\hbar}R\partial_tS\right),
+$$
+
+$$
+\partial_x^2\Psi
+=e^{iS/\hbar}
+\left[
+\partial_x^2R
++\frac{2i}{\hbar}\partial_xR\,\partial_xS
++\frac{i}{\hbar}R\partial_x^2S
+-\frac{R}{\hbar^2}(\partial_xS)^2
+\right].
+$$
+
+Grouping real and imaginary terms gives the exact identity
+
+$$
+i\hbar\partial_t\Psi
++\frac{\hbar^2}{2}\partial_x^2\Psi-U\Psi
+=e^{iS/\hbar}
+\left[-R\mathcal H+\frac{i\hbar}{2R}\mathcal C\right],
+$$
+
+where
+
+$$
+\mathcal C
+=\partial_t(R^2)+\partial_x(R^2\partial_xS),
+$$
+
+$$
+\mathcal H
+=\partial_tS+\frac12(\partial_xS)^2+U
+-\frac{\hbar^2}{2R}\partial_x^2R.
+$$
+
+The frozen Gaussian/quadratic certificate has maximum complex residual
+$6.206\times10^{-17}$.
+
+**DQ3 verdict: `PASS` conditional** on the ensemble density, phase, and Fisher
+term. The identity establishes the linearization algebra under those premises.
+
+#### DQ4. Guidance uniqueness
+
+Equivariance fixes the divergence of the probability current. If
+$\nabla\cdot K=0$, then
+
+$$
+J'=J+K,
+\qquad
+v'=\frac{J+K}{|\Psi|^2}
+$$
+
+obeys the same continuity equation as $J$ and
+$v=J/|\Psi|^2$. On $\mathbb R^2$, choose
+
+$$
+\rho=f=e^{-(x^2+y^2)},
+\qquad
+K=(\partial_yf,-\partial_xf)=(-2yf,2xf).
+$$
+
+Then
+
+$$
+\nabla\cdot K=0,
+\qquad
+v_0=0,
+\qquad
+v_1=K/\rho=(-2y,2x).
+$$
+
+The two fields generate different trajectories while preserving the same
+stationary density. The certificate gives zero divergence residual and a
+minimum sampled velocity difference of $0.721110$. The source contains no
+locality, covariance, boundary, or minimal-current theorem that excludes all
+such $K$ on the regulated configuration space.
+
+**DQ4 verdict: `FAIL`.** QF3 selects a guidance law by declaration.
+
+#### DQ5. Quantum equilibrium
+
+Let $p$ and $q=|\Psi|^2$ obey the same continuity equation with velocity $v$.
+On their common positive support, the ratio $f=p/q$ satisfies
+
+$$
+(\partial_t+v\cdot\nabla)f=0.
+$$
+
+Equivariance transports every initial ratio. It preserves the special choice
+$f=1$ and also preserves nonequilibrium choices. With suitable boundary
+conditions, the fine-grained relative entropy
+
+$$
+D_{\mathrm{KL}}(p\|q)
+=\int p\ln(p/q)
+$$
+
+is invariant under the common transport.
+
+The frozen 128-point periodic control starts with
+$D_{\mathrm{KL}}=2.276105622459\times10^{-2}$. After a common 37-cell
+transport, both the KL change and the transported-ratio change are zero at
+the reported precision. The local-equivariance theorem in §6.2 fixes the
+functional form within its declared class once the shared flow is assumed.
+It does not select the preparation density of the realized ensemble.
+
+**DQ5 verdict: `FAIL`.** QF4 remains the irreducible statistical postulate
+stated in §2.
+
+#### DQ6. Composition, Bell correlations, and no-signalling
+
+Assume QF1 on a product configuration space and
+
+$$
+L^2(\mathcal C_A\times\mathcal C_B)
+\cong
+L^2(\mathcal C_A)\otimes L^2(\mathcal C_B).
+$$
+
+For
+
+$$
+|\Phi^+\rangle
+=\frac{|00\rangle+|11\rangle}{\sqrt2},
+$$
+
+and the frozen CHSH settings,
+
+$$
+A_0=\sigma_z,\quad A_1=\sigma_x,\quad
+B_0=\frac{\sigma_z+\sigma_x}{\sqrt2},\quad
+B_1=\frac{\sigma_z-\sigma_x}{\sqrt2},
+$$
+
+the certificate gives
+
+$$
+\langle\Phi^+|\mathcal B|\Phi^+\rangle
+=2\sqrt2,
+\qquad
+\|\mathcal B\|=2\sqrt2.
+$$
+
+A local unitary on subsystem $B$ changes the reduced state at $A$ by
+$1.110\times10^{-16}$ in maximum element norm.
+
+**DQ6 verdict: `PASS` conditional** on QF1 and tensor-product composition.
+The conditional quantum algebra supplies Bell correlations and local
+no-signalling.
+
+#### DQ7. Physical sectors and records
+
+| Required artifact | Frozen-source result |
+|---|---|
+| Derived spin-$1/2$ sector | The Dirac sector in `foundations/unified-lagrangian.md` is an optional standard sector. |
+| Derived fermionic composition | No antisymmetric composition rule follows from the canonical density pair or the complex CassiFI coordinates. |
+| Dimensionally complete particle correspondence | The optional two-fluid/particle projection retains an unset dimensionful bridge. |
+| Derived gauge quotient and observable map | Gauge sectors are appended standard sectors; the canonical state supplies no derived quotient. |
+| Apparatus record map from the same microscopic variables | Record sectors are conditional on QF3, a declared subsystem split, and retained apparatus sectors. |
+
+**DQ7 verdict: `FAIL`.** The regulated field coordinates do not yet supply
+the required microscopic-sector correspondence.
+
+#### DQ8. Regulator removal
+
+For the periodic second-difference Laplacian and its $m=1$ mode,
+
+$$
+\lambda_N
+=\frac{4}{a_N^2}\sin^2\left(\frac{a_N}{2}\right),
+\qquad
+a_N=\frac{2\pi}{N}.
+$$
+
+The frozen receipt is
+
+| $N$ | $|\lambda_N-1|$ | successive order |
+|---:|---:|---:|
+| 16 | $1.278517\times10^{-2}$ | |
+| 32 | $3.208636\times10^{-3}$ | $1.994439$ |
+| 64 | $8.029325\times10^{-4}$ | $1.998610$ |
+| 128 | $2.007815\times10^{-4}$ | $1.999652$ |
+
+This certifies second-order convergence of the free spatial operator. QF1
+explicitly conditions the continuum theory on a regulator-removal and
+renormalization limit. The source supplies no interacting regulator sequence,
+counterterm flow, self-adjoint-domain limit, or convergent physical
+observable without retuning.
+
+**DQ8 verdict: `FAIL`.** The free-operator certificate passes; the interacting
+continuum gate fails.
+
+#### DQ9. Cassi-specific discrimination
+
+CT-1 sets $R_\ell^{\mathrm{CassiFI}}=1$ and reproduces linear quantum
+mechanics under the same calibrated apparatus model. It is a compatibility
+constraint. Schrödinger dispersion, Born frequencies, interference,
+entanglement, and no-signalling are shared by the reference quantum theory.
+The reciprocal strengths $g_{Z,s}$ and scale maps $P_s$ are declared
+Hamiltonian inputs, so their ordinary coupled-oscillator consequences do not
+select the Cassi physical ontology.
+
+The frozen prediction registry contains no no-fit observable with a Cassi
+value, an orthodox-quantum baseline, fixed parameter provenance, a null
+model, and a preregistered decision threshold.
+
+**DQ9 verdict: `FAIL`.**
+
+#### Gate ledger and campaign verdict
+
+| Gate | Result | Decisive receipt or boundary |
+|---|---|---|
+| DQ1 canonical lift | `FAIL` | $\operatorname{rank}Ds=2$, $(Ds)^{\mathsf T}\Omega Ds=0$, $\operatorname{nullity}D\pi=2$; no phase/momentum closure |
+| DQ2 Fisher bridge | `FAIL` | $(E_\nabla,I_F)=(2,0)$ and $(0,0.72)$; no $\hbar^2/8$ derivation |
+| DQ3 linearization | `PASS` conditional | Reverse-Madelung residual $6.206\times10^{-17}$ |
+| DQ4 guidance uniqueness | `FAIL` | Nonzero divergence-free current addition changes trajectories |
+| DQ5 equilibrium | `FAIL` | Nonequilibrium ratio and KL divergence survive common transport |
+| DQ6 composition | `PASS` conditional | CHSH and operator norm $2\sqrt2$; remote reduced-state change $1.110\times10^{-16}$ |
+| DQ7 physical sectors | `FAIL` | Required spin, fermion, gauge, particle, and record maps are undeclared or conditional |
+| DQ8 continuum | `FAIL` | Free operator converges at order $>1.99$; interacting renormalized limit absent |
+| DQ9 discrimination | `FAIL` | CT-1 is compatibility-only; no registered Cassi-specific no-fit observable |
+
+The protocol requires every gate to pass for promotion. The campaign verdict
+is **`REJECT` promotion of the CassiFI physical-field identification to
+Derived**. The regulated quantum construction remains **Derived conditional**
+on QF1–QF4 and the stated operator assumptions. Its physical identification
+remains **Hypothesized**.
+
+The gate can be reopened by source artifacts that supply: a symplectic
+canonical lift; a derived ensemble/Fisher action; a guidance-selection
+theorem; an equilibrium-preparation law; complete fermion, gauge, particle,
+and apparatus maps; an interacting regulator-removal construction; and a
+preregistered Cassi-specific discriminator.
+
+### 8.2 Conditional result ledger
+
 | Result | Status | Decisive failure |
 |---|---|---|
 | Weighted $C,D$ metric and finite Hamiltonian coordinates | **Derived** within the CassiFI field law | Metric, adjoint, or energy ledger fails |
@@ -994,8 +1382,9 @@ G1 and G3 implement absorptive spatial filtering. G2 implements coherent, positi
 
 ## 9. Verification contract
 
-`computations/cassifi-quantum-bridge-pre-registration.md` and
-`computations/qi-flow-entanglement-pre-registration.md` freeze the
+`computations/cassifi-quantum-bridge-pre-registration.md`,
+`computations/qi-flow-entanglement-pre-registration.md`, and
+`computations/quantum-configuration-bridge-pre-registration.md` freeze the
 deterministic gates. Their companion scripts check:
 
 1. self-adjoint finite evolution and norm conservation;
@@ -1006,12 +1395,17 @@ deterministic gates. Their companion scripts check:
 6. product-state density-current factorization and its phase- and
    amplitude-correlation failure modes;
 7. reciprocal-link ground-state entanglement and direct-channel rank;
-8. unitary exchange flow producing a maximally entangled state.
+8. unitary exchange flow producing a maximally entangled state;
+9. canonical-section rank, symplectic pullback, and density-map nullity;
+10. physical-gradient/Fisher independence, reverse-Madelung linearization,
+    guidance ambiguity, and equilibrium transport;
+11. conditional CHSH/no-signalling algebra and free-lattice convergence.
 
-The scripts are `computations/verify_cassifi_quantum_bridge.py` and
-`computations/verify_qi_flow_entanglement.py`. These checks verify the stated
-algebra and numerical anchors. They do not establish QF1-QF4 as laws of
-nature.
+The scripts are `computations/verify_cassifi_quantum_bridge.py`,
+`computations/verify_qi_flow_entanglement.py`, and
+`computations/verify_quantum_configuration_bridge.py`. The first two verify
+the conditional quantum construction. The third records which additional
+premises remain outside the canonical real-density theory.
 
 ---
 

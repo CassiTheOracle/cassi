@@ -274,8 +274,11 @@ $\rho_Q=|\Psi|^2$ equivariant and yields Born frequencies; locality in
 $|\Psi|^2$ plus equivariance fixes this density uniquely within the stated
 class. Passive scattering is unitary on the enlarged system, and the
 sodium-nanoparticle limit has no intrinsic collapse multiplier:
-$R_\ell^{\mathrm{Cassi}}=1$. Status: Derived conditional on QF1-QF4;
-CassiFI physical identification Hypothesized.
+$R_\ell^{\mathrm{Cassi}}=1$. Status: Derived conditional on QF1–QF4;
+CassiFI physical identification Hypothesized. The DQ1–DQ9 audit rejects
+promotion of that identification to Derived: only reverse-Madelung
+linearization and tensor-product composition pass under their declared
+quantum premises.
 
 ### `strong-cp-derivation.md`—Strong CP: Why $\bar{\theta} \approx 0$ from Cascade De-Resonance
 

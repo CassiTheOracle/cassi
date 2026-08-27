@@ -459,7 +459,15 @@ Sorted by detection likelihood (most definitive first):
 |----|------------|--------------------------|----------------|-----------|
 | CT-1 | Talbot-Lau harmonic multiplier for a 172 kDa sodium nanoparticle | $R_\ell^{\mathrm{CassiFI}}=1$ for every integer $\ell$ before ordinary environmental and apparatus factors; therefore the same visibility as linear quantum mechanics under the same calibrated grating model | **Derived conditional** on QF1-QF4; compatible with the 2026 observed visibilities $0.10\pm0.01$ and $0.08\pm0.01$ and the reported macrorealist bound $\tau_e\geq2.84\times10^{15}$ s ($\mu=15.45$). This is a compatibility constraint rather than a Cassi-specific deviation. | Any intrinsic CassiFI localization term producing a reproducible $R_\ell\neq1$, or failure of the regulated Hamiltonian to reproduce $E=\hbar^2k^2/(2M)$ |
 
+**Configuration-bridge boundary:** The DQ9 audit registers no Cassi-specific,
+no-fit quantum observable. CT-1 is a compatibility constraint shared with
+linear quantum mechanics. The DQ1–DQ9 campaign therefore yields `REJECT` for
+promotion of the CassiFI physical-field identification to Derived; DQ3 and
+DQ6 pass only under their declared quantum premises.
+
 **Source:** `foundations/quantum-measurement-derivation.md` §§7–8;
+`computations/quantum-configuration-bridge-pre-registration.md`;
+`computations/verify_quantum_configuration_bridge.py`;
 `computations/cassifi-quantum-bridge-pre-registration.md`;
 `computations/verify_cassifi_quantum_bridge.py`; “Quantum interference of
 sodium nanoparticles,” *Nature* (2026),

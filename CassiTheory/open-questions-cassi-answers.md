@@ -560,7 +560,7 @@ flowchart TD
     C --> D[Disjoint retained topological record sectors Ωₖ]
     D --> E[Actual configuration enters one Ωₖ]
     E --> F[Effective conditional collapse]
-    D --> G[Quantum equilibrium ρ=|Ψ|²]
+    D --> G[QF4 postulate: quantum equilibrium ρ=|Ψ|²]
     G --> H[Born frequencies Pₖ=⟨Ψ|Pₖ|Ψ⟩]
 ```
 
@@ -596,6 +596,16 @@ include linear Schrödinger evolution, tensor-product entanglement,
 configuration-space nonlocal guidance, operational no-signalling in
 equilibrium, effective collapse, and Born frequencies.
 
+The frozen DQ1–DQ9 canonical-to-quantum audit yields `REJECT` for promotion
+of the physical-field identification to Derived. The canonical real-density
+state does not determine the complex phase fibre or symplectic configuration,
+the Qi law does not determine a configuration-space Fisher ensemble term,
+and equivariance does not select guidance or equilibrium preparation.
+Physical-sector maps, an interacting continuum limit, and a Cassi-specific
+discriminator remain absent. Reverse-Madelung linearization and
+tensor-product Bell/no-signalling algebra pass under their declared quantum
+premises.
+
 Record distinguishability is
 
 $$
@@ -613,10 +623,10 @@ quantum-flow structure.
 
 | | |
 |---|---|
-| **Cassi Answer** | A regulated CassiFI configuration is canonically quantized as a linear wavefunctional on configuration space. On connected nonnodal product support, entanglement is equivalent to nonfactorizable conserved Qi density-current organization $\mathfrak F_\Psi=(|\Psi|^2,J_A,J_B)$; Schmidt rank or reduced-state purity supplies the exact global criterion across disconnected support. One actual guided field configuration produces one retained apparatus record; conditioning on it gives effective collapse. The equivariant density $\rho_Q=|\Psi|^2$ is the unique normalized density local in $|\Psi|^2$ that shares the guidance flow, and the quantum-equilibrium postulate yields $P(k)=\langle\Psi|P_k|\Psi\rangle$. |
+| **Cassi Answer** | Under QF1–QF4, a regulated CassiFI configuration is canonically quantized as a linear wavefunctional on configuration space. On connected nonnodal product support, entanglement is equivalent to nonfactorizable conserved Qi density-current organization $\mathfrak F_\Psi=(|\Psi|^2,J_A,J_B)$; Schmidt rank or reduced-state purity supplies the exact global criterion across disconnected support. One actual guided field configuration produces one retained apparatus record; conditioning on it gives effective collapse. The equivariant density $\rho_Q=|\Psi|^2$ is the unique normalized density local in $|\Psi|^2$ that shares the selected guidance flow, and QF4 yields $P(k)=\langle\Psi|P_k|\Psi\rangle$. |
 | **Mechanism** | CassiFI interaction terms can make the joint flow nonfactorizable. Reciprocal links directly couple the singular modes of the scale map $P$; their quantized cross terms can generate intersheet entanglement. System-apparatus correlation creates disjoint topological record sectors, and the actual configuration enters one sector. Passive reflection, transmission, and absorption remain channels of an enlarged unitary scattering map. |
-| **Epistemic** | **Derived conditional** on QF1-QF4, the declared subsystem split, and the finite self-adjoint CassiFI Hamiltonian. Quantum equilibrium is an irreducible statistical postulate. The CassiFI physical-field identification is **Hypothesized**. The 2026 sodium-nanoparticle result constrains additional collapse and agrees with the bridge's $R_\ell=1$ limit. |
-| **Reference** | `foundations/quantum-measurement-derivation.md` §4.5; `computations/qi-flow-entanglement-pre-registration.md`; `computations/verify_qi_flow_entanglement.py`; `computations/cassifi-quantum-bridge-pre-registration.md`; `computations/verify_cassifi_quantum_bridge.py` |
+| **Epistemic** | **Derived conditional** on QF1–QF4, the declared subsystem split, and the finite self-adjoint CassiFI Hamiltonian. The DQ1–DQ9 promotion campaign is **`REJECT`**: DQ3 and DQ6 pass conditionally; DQ1, DQ2, DQ4, DQ5, DQ7, DQ8, and DQ9 fail. Quantum equilibrium remains an irreducible statistical postulate, and the CassiFI physical-field identification remains **Hypothesized**. The 2026 sodium-nanoparticle result constrains additional collapse and agrees with the bridge's $R_\ell=1$ limit. |
+| **Reference** | `foundations/quantum-measurement-derivation.md` §§4.5, 8.1; `computations/quantum-configuration-bridge-pre-registration.md`; `computations/verify_quantum_configuration_bridge.py`; `computations/qi-flow-entanglement-pre-registration.md`; `computations/verify_qi_flow_entanglement.py`; `computations/cassifi-quantum-bridge-pre-registration.md`; `computations/verify_cassifi_quantum_bridge.py` |
 
 ### Q8: Quark confinement
 

@@ -1,5 +1,14 @@
 # Cassi Framework: Prediction vs Experiment Audit
 
+## Status: Reference—August 2026
+
+## Abstract
+
+This audit compares Cassi claims with calculations, simulations, and
+observations at their registered epistemic tiers. It records quantitative
+matches, tensions, null results, and the source artifacts required to reopen
+failed gates.
+
 **All values computed with `python`—no generative arithmetic.**
 
 ---
@@ -112,6 +121,7 @@ does not determine.
 | $v_0/M_{\text{Pl}}$ | $\varphi^{-80}$ | $5.3\%$ | Correction factor |
 | $m_e$ | $v_0\varphi^{-26}/\sqrt{2} \approx 0.64$ MeV | $25\%$ | New mixing physics |
 | $\alpha_s(M_Z)$ | RGE from $\alpha_{\text{GUT}}$ | $2.0\times$ | Particle content ($\Delta b \approx 1.70$) |
+| CassiFI physical-field identification | Finite regulated quantum construction under QF1–QF4 | DQ1, DQ2, DQ4, DQ5, DQ7, DQ8, and DQ9 fail the canonical-to-quantum promotion criteria | Symplectic canonical lift, Fisher ensemble derivation, guidance/equilibrium selection, physical-sector maps, interacting continuum limit, and a Cassi-specific discriminator (`foundations/quantum-measurement-derivation.md` §8.1) |
 
 ---
 
