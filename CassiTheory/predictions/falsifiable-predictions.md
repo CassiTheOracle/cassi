@@ -490,7 +490,8 @@ https://doi.org/10.1038/s41586-025-09917-9.
 
 **Source:** `foundations/unified-lagrangian.md` §1.7;
 `foundations/cassi-first-principles.md` §2.6;
-`predictions/cassi_definitions.md` §6.
+`predictions/cassi_definitions.md` §6;
+`hypotheses/scalar-time-reparameterization-applications.md`.
 
 ---
 

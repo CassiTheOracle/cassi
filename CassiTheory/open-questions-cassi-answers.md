@@ -897,7 +897,7 @@ trajectory, so independent clocks must decide between them.
 | **Mechanism** | $d\tau_F=(1-q)dt$ exactly on the isolated conversion subflow; candidate universality requires one common lapse in every independent clock sector |
 | **Epistemic** | **Derived conditional** for the conversion age, relative rate, and imbalance arrow / **Hypothesized** for candidate physical time as a universal common lapse |
 | **Falsifier** | CT-2: a resolved independent clock-rate ratio that disagrees with $(1-q)/(1-q_\star)$ while the conversion receipt remains valid |
-| **Reference** | `foundations/cassi-first-principles.md` §2.6; `foundations/unified-lagrangian.md` §1.7; `predictions/falsifiable-predictions.md` CT-2 |
+| **Reference** | `foundations/cassi-first-principles.md` §2.6; `foundations/unified-lagrangian.md` §1.7; `predictions/falsifiable-predictions.md` CT-2; `hypotheses/scalar-time-reparameterization-applications.md` |
 
 ### F3: Unification of forces
 
