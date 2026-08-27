@@ -225,6 +225,149 @@ $$
 \end{aligned}}
 $$
 
+### 1.7 Candidate Physical Time
+
+**Status: Derived conditional conversion-clock identity / Hypothesized universal common lapse.**
+
+The canonical conversion law fixes an internal clock rate but leaves a
+clock-versus-kinetics factorization open. In the canonical solver coordinate,
+write
+
+$$
+\frac{d\varepsilon}{dt}
+=-(1+\varphi)\lambda\,K(q)N(q)\,\varepsilon,
+\qquad K(q)N(q)=1-q,
+$$
+
+where $N=d\tau_{\mathrm{phys}}/dt$ is a candidate lapse and $K$ is any
+remaining intrinsic conversion-rate factor. The canonical conversion trace
+alone fixes the product $K N$. Uniform coordinate time with gated kinetics,
+$K=1-q,\ N=1$, produces the same conversion trajectory as the candidate
+physical-time assignment
+
+$$
+\boxed{
+K_{\mathrm{cand}}=1,\qquad
+N_{\mathrm{cand}}=1-q,\qquad
+\frac{d\varepsilon}{d\tau_{\mathrm{phys}}}
+=-(1+\varphi)\lambda\varepsilon
+}.
+$$
+
+The candidate therefore makes $\lambda$ the coherence-independent intrinsic
+relaxation rate per unit physical time. This clock postulate selects
+$N_{\mathrm{cand}}=1-q$ without adding a parameter; conversion data by
+themselves do not select it.
+
+The coordinate-independent content is the relative rate. For a reference
+worldline $x_\star$ with $q_\star<1$, define
+
+$$
+\boxed{
+N_q(x\mid x_\star)
+:=\frac{1-q(x)}{1-q_\star},
+\qquad
+d\tau_{\mathrm{phys}}(x)
+:=N_q(x\mid x_\star)\,d\tau_\star
+}.
+$$
+
+When the reference clock is the canonical conversion clock,
+$d\tau_\star=d\tau_F(x_\star)$, this gives
+$d\tau_{\mathrm{phys}}(x)=d\tau_F(x)$. In the open-gate gauge
+$q_\star=0$ with $d\tau_\star=dt$, it reduces to
+
+$$
+\boxed{d\tau_{\mathrm{phys}}=(1-q)\,dt=d\tau_F.}
+$$
+
+The $q_\star=0$ case is a normalization limit anchored by an external
+reference clock. A readable canonical conversion reference requires
+$\varepsilon_\star\neq0$ and therefore has $q_\star>0$.
+
+The candidate is a proper-time functional along a material worldline
+$\gamma$:
+
+$$
+\Delta\tau_{\mathrm{phys}}[\gamma]
+=\int_{\tau_{\star,0}}^{\tau_{\star,1}}
+N_q\!\left(x_\gamma(\tau_\star),\tau_\star\mid x_\star\right)
+\,d\tau_\star.
+$$
+
+Spatially varying $q$ gives different accumulated times on different
+worldlines. The construction supplies no global synchronization rule or
+preferred $\tau_{\mathrm{phys}}=\mathrm{constant}$ foliation.
+
+Universality requires every independently calibrated local clock to use the
+same $N_q$. For a clock phase $\Theta_a$ with intrinsic angular frequency
+$\omega_a$ per unit physical time, define
+
+$$
+\mathcal C_a
+:=\frac{1}{\omega_a}\frac{d\Theta_a}{d\tau_\star},
+\qquad
+\mathcal C_F
+:=-\frac{1}{(1+\varphi)\lambda\varepsilon}
+\frac{d\varepsilon}{d\tau_\star}.
+$$
+
+The common-lapse candidate predicts
+
+$$
+\boxed{\mathcal C_a(x)=\mathcal C_F(x)=N_q(x\mid x_\star)}
+$$
+
+for every independent sector $a$. Agreement of conversion with itself only
+checks $K N=1-q$ and cannot distinguish the candidate from gated kinetics.
+Cross-clock disagreement falsifies the universal lapse while leaving
+$\tau_F$ as an exact conversion age.
+
+Here $a$ ranges over clock-bearing sectors that admit a variational
+description. Canonical irreversible conversion remains an open-system
+operator until its reservoir/noise completion is specified.
+
+A reference-gauge representation of the required common-lapse action is
+
+$$
+S_{\mathrm{common}}^{\mathrm{cand}}
+=\sum_a\int d\tau_\star\,d^3x\,\sqrt{\gamma}\,N_q\,
+\mathcal L_a\!\left(
+\Phi_a,\,
+N_q^{-1}D_\star\Phi_a,\,
+\nabla\Phi_a
+\right).
+$$
+
+Because $q$ is a composite of the two-fluid state, a variational completion
+must treat the lapse as an independent field, impose
+
+$$
+\frac{N(x)}{N(x_\star)}
+=\frac{1-q(x)}{1-q_\star}
+$$
+
+on shell, and retain the resulting $q$-backreaction and constraint terms.
+Applying $N_q$ to selected update equations while retaining the old
+two-fluid equations defines a sector-specific gate rather than this
+common-lapse theory. The displayed action is a Hypothesized completion
+criterion; it is not a completed spacetime metric or GR derivation.
+
+For the canonical bounded coherence at finite field values,
+$0\leq q<1$, so the unnormalized lapse $1-q$ is positive. The $q\to1$
+limit is a degenerate clock boundary and cannot serve as the reference.
+At $\varepsilon=0$ the conversion endpoint clock is unreadable, although
+$N_q$ has a continuous constitutive value; an independent clock is required
+there. Memory-bearing $q$ makes the worldline integral history-dependent,
+and transport or sources require conversion-only receipts. Physical seconds
+still require an independently calibrated reference clock, $\rho_\star$ for
+the physical-density form of $q$, and the model-time conversion described in
+`foundations/dimensionful-constants-status.md`. The candidate introduces no
+derivation of $c$, $\hbar$, $G$, a light cone, or a spatial metric.
+
+The cross-clock discriminator is registered as CT-2 in
+`predictions/falsifiable-predictions.md`.
+
 ---
 
 ## 2. Optional Dirac/Particle Extension $\mathcal{L}_{\text{D}}$ (Hypothesized—August 2026)

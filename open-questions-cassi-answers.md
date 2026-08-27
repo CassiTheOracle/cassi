@@ -820,54 +820,38 @@ The parameters of the Standard Model and cosmology seem exquisitely tuned—tiny
 | **Epistemic** | **Derived** (attractor dynamics) / **Mapped** (fitted exponents—ledger); named $\lambda=0.1$ C-class/framework convention **Asserted** solver normalization; implementation class default $\lambda=0.02$; $\lambda=1/(2w)$ **Hypothesized** Wu Xing linkage |
 | **Reference** | `parameter-inventory.md`, `principles/de-resonance-principle.md` |
 
-### F2: Arrow of time
+### F2: Arrow and candidate physical time
 
-```mermaid
-flowchart TD
-    A[Inter-fluid transfer dE_I at conversion] --> B[dχ_F = dE_I / ε]
-    B --> C[χ_F = -ln abs ε₁/ε₀ divided by 1+φ]
-    C --> D[Monotone conversion clock and decreasing ε²]
-```
-
-**Visual:** Inter-fluid transfer supplies an additive conversion exposure.
-The logarithmic imbalance ratio reads that exposure directly from two
-resolved field states, while the squared imbalance decreases monotonically.
-
-For the canonical rank-one law,
-$\Gamma=\lambda(1-q)\varepsilon$, each conversion-only transfer defines
+The isolated canonical conversion subflow gives both an exact internal clock
+and an arrow:
 
 $$
-d\chi_F
-=\frac{dE_I|_{\mathrm{conv}}}{\varepsilon}
-=-\frac{d\varepsilon}{(1+\varphi)\varepsilon}
-=\lambda(1-q)\,dt.
+d\tau_F=(1-q)\,dt,\qquad
+\frac{d}{dt}\frac{\varepsilon^2}{2}
+=-(1+\varphi)\lambda(1-q)\varepsilon^2\leq0.
 $$
 
-The resulting state-derived clock is
+The parameter-free candidate physical time promotes the derived relative
+conversion-clock rate to a common local lapse,
 
 $$
-\Delta\chi_F
-=-\frac{1}{1+\varphi}
-\ln\left|\frac{\varepsilon_1}{\varepsilon_0}\right|,
-\qquad
-\Delta\tau_F=\frac{\Delta\chi_F}{\lambda}
-=\int(1-q)\,dt
+\frac{d\tau_{\mathrm{phys}}(x)}{d\tau_\star}
+=\frac{1-q(x)}{1-q_\star}.
 $$
 
-for positive $\lambda$ and resolved nonzero endpoints on one conversion
-branch. Its arrow follows from
-$d(\varepsilon^2/2)/dt=-(1+\varphi)\lambda(1-q)\varepsilon^2\leq0$.
-The documented cosmological trajectory $r(t)=E_Y/E_I\to\varphi$ is one
-model-specific projection of this monotone conversion branch. Universal
-proper time requires the same local lapse in wave, particle, gravitational,
-and boundary dynamics; that extension remains Hypothesized.
+Conversion alone fixes only the product of lapse and intrinsic kinetic gate,
+$K(q)N(q)=1-q$. The candidate selects $K=1$ and $N=1-q$ by treating
+$\lambda$ as the intrinsic relaxation rate per unit physical time. A
+uniform-time kinetic gate, $K=1-q$ and $N=1$, gives the same conversion
+trajectory, so independent clocks must decide between them.
 
 | | |
 |---|---|
-| **Cassi Answer** | Inter-fluid conversion derives an additive dimensionless flow clock $\chi_F$; the calibrated rate $\lambda$ converts it to the local conversion time $\tau_F$ |
-| **Mechanism** | The transferred density gives $d\chi_F=dE_I|_{\mathrm{conv}}/\varepsilon$ and integrates to the logarithmic imbalance ratio; the imbalance norm decreases monotonically |
-| **Epistemic** | **Derived conditional** for conversion-only trajectories under the canonical rank-one law; **Hypothesized** as a universal proper-time lapse |
-| **Reference** | `foundations/cassi-first-principles.md` §2.6; `foundations/unified-lagrangian.md` §1.4 |
+| **Cassi Answer** | Canonical inter-fluid conversion supplies an openness-weighted worldline age and monotone arrow; the same openness ratio is the candidate physical-time lapse |
+| **Mechanism** | $d\tau_F=(1-q)dt$ exactly on the isolated conversion subflow; candidate universality requires one common lapse in every independent clock sector |
+| **Epistemic** | **Derived conditional** for the conversion age, relative rate, and imbalance arrow / **Hypothesized** for candidate physical time as a universal common lapse |
+| **Falsifier** | CT-2: a resolved independent clock-rate ratio that disagrees with $(1-q)/(1-q_\star)$ while the conversion receipt remains valid |
+| **Reference** | `foundations/cassi-first-principles.md` §2.6; `foundations/unified-lagrangian.md` §1.7; `predictions/falsifiable-predictions.md` CT-2 |
 
 ### F3: Unification of forces
 

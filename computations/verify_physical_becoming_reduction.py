@@ -7,7 +7,7 @@ Run from the CassiTheory repository root:
 The script checks symbolic identities only. It does not test the proposed
 embodiment, shadow, attention, action, learning, or consciousness closures.
 
-Two tiers of check:
+Three tiers of check:
 
 * **Generic structure** -- the rank-one conversion matrix, its eigenvalues
   $0$ and $-(1+\varphi)\gamma_{\mathrm{conv}}$, the positive-semidefinite
@@ -26,6 +26,12 @@ Two tiers of check:
   $\varepsilon^2\to\infty$ rate asymptote is not physically reachable; the
   normalized $R_Q$ boundary values are approximately $5.767427$ and
   $4.194048$ at $E_Y\to0$ and $E_I\to0$, respectively.
+
+* **Candidate physical-time factorization** -- the common-lapse assignment
+  $N=1-q,\ K=1$ and the uniform-time kinetic assignment $N=1,\ K=1-q$
+  produce the same canonical conversion trace. The script verifies the
+  proper-time chain rule and arrow; it supplies no evidence that independent
+  clock sectors share the candidate lapse.
 """
 
 from __future__ import annotations
@@ -161,6 +167,25 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Reference state (E_Y, E_I) = (1, phi**-1) => rho = phi, eps = 0.
     q = rho**2 / (rho**2 + phi**-2 + eps**2)
+
+    # Candidate physical time: this is an algebraic factorization check, not
+    # evidence that an independent clock sector shares the same lapse.
+    lapse_candidate = sp.simplify(1 - q)
+    eps_dot_proper = sp.simplify(-(1 + phi) * lam * eps)
+    eps_dot_candidate_coordinate = sp.simplify(
+        lapse_candidate * eps_dot_proper
+    )
+    eps_dot_kinetic_coordinate = sp.simplify(
+        -(1 + phi) * lam * (1 - q) * eps
+    )
+    require_zero(
+        "candidate proper-time chain rule",
+        eps_dot_candidate_coordinate - eps_dot_kinetic_coordinate,
+    )
+    require_zero(
+        "candidate proper-time imbalance arrow",
+        eps * eps_dot_proper + (1 + phi) * lam * eps**2,
+    )
     q_eq = sp.simplify(q.subs([(rho, phi), (eps, 0)]))
     require_zero("reference q exact", q_eq - phi**2 / 3)
     require_zero("reference gate exact", 1 - q_eq - phi**-2 / 3)

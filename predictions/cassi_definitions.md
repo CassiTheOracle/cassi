@@ -450,54 +450,149 @@ SU(3) gauge coupling flow to $\alpha_s(m_Z)\approx0.118$, remains unresolved.
 
 ## 6. Time
 
-### Definition (Philosophical/Hypothesized interpretation)
-The framework interprets the time parameter as the direction of Qi irreversibility,
-with the $E_Y$ and $E_I$ square densities tending toward the $\varphi$-equilibrium.
-This interpretation requires a proved monotonicity law for $q$; the canonical PDE
-does not establish that law.
-### Key Equations
+### Conversion-flow time (Derived conditional)
 
-    S_q = −q·k_B·ln(φ)          (Asserted/Hypothesized q-based entropy proxy)
-    dS_q/dt = −k_B·ln(φ)·dq/dt  (proxy derivative; monotonicity not established)
-    τ = ∫ |q| / g_eff dt       (proper-time diagnostic)
+For the isolated canonical conversion subflow,
 
-The q-budget proxy relative to q = 0 is
-$I_q=S_q(0)-S_q(q)=q\,k_B\ln\varphi$, maximal at q = 1. This is an
-Asserted/Hypothesized mapping, not an identity with Shannon information (§11).
+$$
+\partial_t E_Y|_{\mathrm{conv}}
+=-\lambda(1-q)\varepsilon,
+\qquad
+\partial_t E_I|_{\mathrm{conv}}
+=+\lambda(1-q)\varepsilon,
+\qquad
+\varepsilon=E_Y-\varphi E_I.
+$$
 
-### Second Law Status
-The canonical two-fluid equations define the Qi coherence and the $(1-q)$
-conversion openness. They do not supply the general identity
-$dq/dt = -\omega_0 g(q)^2(E_Y^2+E_I^2)$. The rational transmission function
-$g(q)=q/(\varphi^2+q^2)$ is an asserted application input, and a Lyapunov
-derivation for the entropy proxy remains open. The monotonicity of the
-specific gate model is checked in `computations/gate_origin_audit.py`.
-The PDE-level second-law theorem remains open; the missing step is a Lyapunov
-or monotonicity derivation for the canonical dynamics.
+The transfer defines the dimensionless exposure $\chi_F$ and conversion age
+$\tau_F$:
 
-### What Clocks Measure (Hypothesized mapping)
-A proposed clock mapping associates elapsed readings with accumulated Qi
-decoherence events—local irreversible mixing of the $E_Y$ and $E_I$ square
-densities. This does not replace coordinate time without an independently closed
-clock constitutive model.
+$$
+d\chi_F
+:=\frac{dE_I|_{\mathrm{conv}}}{\varepsilon}
+=-\frac{d\varepsilon}{(1+\varphi)\varepsilon}
+=\lambda(1-q)\,dt,
+\qquad
+d\tau_F:=\frac{d\chi_F}{\lambda}=(1-q)\,dt.
+$$
 
-Time dilation (GR) is an external comparison:
-- Stronger gravity may map to slower Qi mixing and slower clocks in this extension.
-- $\tau=\int |q|/g_{\rm eff}\,dt$ is a model diagnostic; $g_{\rm eff}$ is not derived
-  as a metric time-dilation factor by the canonical PDE.
+For resolved nonzero endpoints on one conversion branch,
 
-### The Big Bang (Speculative cosmology mapping)
-A candidate narrative begins the universe in a high-$q$ state and associates cosmic
-evolution with decreasing coherence toward the $\varphi$-attractor. This is a
-Speculative mapping; the canonical two-fluid PDE does not establish an initial
-condition, a complete cosmic history, or the smooth-to-clumpy explanation.
+$$
+\Delta\tau_F
+=-\frac{1}{(1+\varphi)\lambda}
+\ln\left|\frac{\varepsilon_1}{\varepsilon_0}\right|
+=\int(1-q)\,dt.
+$$
 
-### Time Travel (Hypothesized question)
-The canonical PDE currently supplies no theorem that forbids time travel or any
-other reversal of the $q$ trajectory. Reversibility and the physical meaning of
-reversing $dq/dt$ require a closed dynamics and boundary conditions; the proposed
-Qi arrow remains a Hypothesized interpretation.
+This identity uses the canonical bounded coherence
+$q=\rho^2/(\rho^2+\varphi^{-2}+\varepsilon^2)$, or its explicitly
+normalized physical-density form. Other quantities also named $q$ do not
+inherit the clock equation. Transport, diffusion, and source increments
+require separate accounting.
+
+### Candidate physical time (Hypothesized common lapse)
+
+Let $x_\star$ be a reference worldline with $q_\star<1$. The candidate
+physical proper time is
+
+$$
+\boxed{
+\frac{d\tau_{\mathrm{phys}}(x)}{d\tau_\star}
+=N_q(x\mid x_\star)
+:=\frac{1-q(x)}{1-q_\star}
+}.
+$$
+
+With an external open-gate normalization,
+$d\tau_{\mathrm{phys}}=(1-q)dt=d\tau_F$. The $q_\star=0$ case is a
+normalization limit; an active canonical conversion reference requires
+$\varepsilon_\star\neq0$ and hence $q_\star>0$. The candidate time is
+accumulated along a worldline:
+
+$$
+\Delta\tau_{\mathrm{phys}}[\gamma]
+=\int_\gamma N_q\,d\tau_\star.
+$$
+
+Spatially varying $q$ therefore desynchronizes worldline clocks and supplies
+no global time coordinate by itself.
+
+The canonical conversion equation admits the factorization
+
+$$
+\frac{d\varepsilon}{dt}
+=-(1+\varphi)\lambda K(q)N(q)\varepsilon,
+\qquad K(q)N(q)=1-q.
+$$
+
+Candidate physical time selects $K=1$ and $N=1-q$, so
+$d\varepsilon/d\tau_{\mathrm{phys}}
+=-(1+\varphi)\lambda\varepsilon$. Uniform physical time with gated kinetics,
+$K=1-q$ and $N=1$, produces the same conversion trace. Conversion data alone
+therefore establish $\tau_F$ but do not establish a universal lapse.
+
+### Clock-universality criterion
+
+For an independent clock phase $\Theta_a$ with intrinsic frequency
+$\omega_a$ per unit physical time, define
+
+$$
+\mathcal C_a
+:=\frac{1}{\omega_a}\frac{d\Theta_a}{d\tau_\star},
+\qquad
+\mathcal C_F
+:=-\frac{1}{(1+\varphi)\lambda\varepsilon}
+\frac{d\varepsilon}{d\tau_\star}.
+$$
+
+The candidate predicts
+$\mathcal C_a=\mathcal C_F=N_q$ for every independent local sector.
+CT-2 requires a conversion receipt and at least two independent
+non-conversion clocks. A reproducible cross-clock disagreement contradicts
+the universal interpretation while preserving the conversion identity.
+
+### Arrow and entropy status
+
+The conversion subflow has the exact Lyapunov relation
+
+$$
+\frac{d}{dt}\frac{\varepsilon^2}{2}
+=-(1+\varphi)\lambda(1-q)\varepsilon^2\leq0.
+$$
+
+Under the candidate clock postulate this becomes
+
+$$
+\frac{d}{d\tau_{\mathrm{phys}}}\frac{\varepsilon^2}{2}
+=-(1+\varphi)\lambda\varepsilon^2\leq0.
+$$
+
+The separate proxy
+$S_q=-qk_B\ln\varphi$ and its budget
+$I_q=qk_B\ln\varphi$ remain Asserted/Hypothesized mappings. No monotonicity
+theorem for $q$ or identity with thermodynamic or Shannon entropy follows
+from the conversion arrow.
+
+### Domain and physical scope
+
+For finite canonical fields, $0\leq q<1$. The $q\to1$ limit is a degenerate
+clock boundary and cannot be used as the reference. Exact
+$\varepsilon=0$ has no readable conversion tick, although $N_q$ remains
+continuous; an independent clock is required there. Memory-bearing $q$
+makes $\tau_{\mathrm{phys}}$ a history-dependent worldline functional.
+Physical seconds require an independently calibrated reference clock and
+the physical-density scale $\rho_\star$.
+
+The candidate supplies no complete spacetime metric, light cone, global
+synchronization rule, or derivation of GR time dilation. Those require a
+closed common-lapse action with the mandatory $q$-backreaction and constraint
+terms described in `foundations/unified-lagrangian.md` §1.7. The canonical
+framework therefore makes no time-travel or cosmological-origin claim from
+this clock alone.
+
 ---
+
 ## 7. Consciousness & Psychology
 
 ### Overview

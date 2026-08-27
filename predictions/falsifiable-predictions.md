@@ -465,6 +465,16 @@ Sorted by detection likelihood (most definitive first):
 sodium nanoparticles,” *Nature* (2026),
 https://doi.org/10.1038/s41586-025-09917-9.
 
+## 10. Candidate Physical-Time Cross-Clock Test
+
+| ID | Observable | Conditional Cassi result | Current status | Falsifier |
+|----|------------|--------------------------|----------------|-----------|
+| **CT-2** | Normalized rates of a canonical conversion clock and at least two independently calibrated non-conversion clocks across a frozen coherence contrast | Use the canonical bounded coherence $q=\rho^2/(\rho^2+\varphi^{-2}+\varepsilon^2)$ and reference $q_\star<1$. For each independent phase clock $a$, $\mathcal C_a=(1/\omega_a)d\Theta_a/d\tau_\star$; conversion supplies $\mathcal C_F=-[(1+\varphi)\lambda\varepsilon]^{-1}d\varepsilon/d\tau_\star$. Candidate physical time predicts $\mathcal C_a=\mathcal C_F=(1-q)/(1-q_\star)$ for every clock. | **Conditional discriminator; untested.** Freeze the $q$ definition, physical-density normalization $\rho_\star$, reference worldline, intrinsic clock calibrations, gate-memory choice, transport subtraction, resolution, and uncertainty budget before a run. Require a resolved $q$ contrast and nonzero phase accumulation. **SUPPORTS** only when the conversion receipt and at least two independent clock sectors share the predicted ratio within the preregistered uncertainty; **CONTRADICTS** when any resolved independent sector reproducibly disagrees while conversion isolation passes; **INCONCLUSIVE** when the contrast, branch, phase resolution, transport isolation, or calibration gate fails. Conversion-only agreement is an identity check. | A reproducible cross-clock disagreement at the same bounded $q$ and frozen reference. A sector-selective insertion of $(1-q)$ tests implementation wiring rather than universality. |
+
+**Source:** `foundations/unified-lagrangian.md` §1.7;
+`foundations/cassi-first-principles.md` §2.6;
+`predictions/cassi_definitions.md` §6.
+
 ---
 
 ## Notes
@@ -499,7 +509,7 @@ https://doi.org/10.1038/s41586-025-09917-9.
   fitted or calibrated comparisons, null results, rejected entries, and open
   hypotheses. Rows without a registered derivation are marked **Not
   predicted**; no aggregate success count is assigned across those classes.
-- **Conditional test rows (CT-n):** rows labeled CT-n are unnumbered conditional discriminators outside the 1–N numbered prediction sequence; they do not alter the catalog's numbered prediction count. CT-1 records the regulated quantum sector's no-collapse nanoparticle limit.
+- **Conditional test rows (CT-n):** rows labeled CT-n are unnumbered conditional discriminators outside the 1–N numbered prediction sequence; they do not alter the catalog's numbered prediction count. CT-1 records the regulated quantum sector's no-collapse nanoparticle limit; CT-2 registers the candidate physical-time cross-clock discriminator.
 
 - **Deviations from SM expectations are falsifiable**—not adjustable. If FCC-ee
   measures $m_W/m_Z = 0.881 \pm 0.0001$, the Cassi framework is excluded
