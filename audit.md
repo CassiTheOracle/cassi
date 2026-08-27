@@ -200,3 +200,34 @@ The physical-becoming integration adds a microscopic actual-physics sector, an a
 | Two-singlet EFT basis | The unrestricted two-singlet EFT basis is radiatively closed at one loop. The restricted φ-attractor quartic surface fails one-loop RG invariance except on the O(2) radial ray with $\lambda_A=0$, so it functions as a matching condition rather than a UV prediction. | ⚠️ **Radiatively closed (unrestricted); matching-only on the φ-attractor quartic ray** |
 
 These rows record the current completion state of the physical-becoming integration without upgrading any claim in `foundations/physical-becoming-hierarchy.md`.
+
+---
+
+## 10. Phase-Staggered Scale-Gap Campaign (2026-08-27)
+
+The frozen parent and closure protocols are
+`field-experience/phase-staggered-scale-gap-pre-registration.md` and
+`field-experience/phase-staggered-scale-gap-lock-in-pre-registration.md`.
+The combined record is
+`field-experience/phase-staggered-scale-gap-report.md`.
+
+| Claim | Decisive measurement | Status |
+|---|---|---|
+| Supplied adjacent-rung beat layers | closure residual $1.776\times10^{-15}$; node maximum $2.305\times10^{-14}$; adjacent/next-nearest demodulated correlations $-1/+1$; unequal-amplitude contrast residual $0$ | **SUPPORTS supplied-wave phase parity and contrast law** |
+| Ordinary radial beat as multiplicative ladder | additive residual $0$; log-spacing RMS $0.502630$ | **CONTRADICTS multiplicative spacing from ordinary radial beating** |
+| Default second-order imbalance threshold | exact $\Omega_g=\varphi\omega_{0,\mathrm{wave}}$; lock-in $\kappa_{\rm fit}=0.705275510$ vs $0.705284664$ expected; sub-gap attenuation $3.067\times10^{-6}$ | **SUPPORTS second-order channel threshold** |
+| Driven radial phase layers | tuned $k_\rho/k_\epsilon=1.618096626$; generic control $1.311855471$; valid parent/lock-in propagating rates agree within $1.319\times10^{-4}$ | **EMERGES CONDITIONAL on a supplied harmonic drive; parent time-domain Stage D remains INCONCLUSIVE** |
+| Endogenous $\Omega_*$ selection | exact $\varphi$ ratio occurs only at supplied $\Omega_*=\varphi^{3/2}\omega_{0,\mathrm{wave}}$; current live source path has no harmonic selector | **CONTRADICTS automatic $\varphi$-ratio selection** |
+| Phase staggering as a transfer gap | uniform-chain central gap $8.228\times10^{-17}$ under exact gauge equivalence | **CONTRADICTS phase-only gap** |
+| Physical link-magnitude modulation | declared $K_1=1.25$, $K_2=0.75$ chain has gap $1.0000000000000007$ and 12-cell transmission $4.738\times10^{-6}$; the live wave pass computes $q$ after update and does not feed it back into coupling magnitudes | **EMERGES CONDITIONAL; node-to-link constitutive law remains open** |
+| Canonical nested radial ladder | prior four-arm first-order and undriven second-order `NO RINGS` receipts remain controlling; driven layers are additive | **REJECT tested dynamical realization of Prediction 51** |
+
+Both parent time-domain receipts retain `INCONCLUSIVE`: their sub-gap lock-in
+windows contain undamped travelling transients, and a literal
+all-metrics-finite reading also flags the intentionally undefined D0/D3
+reference and fit fields. The independent frequency-domain closure is `PASS`;
+it does not relabel either parent receipt. The post-execution integrity audit
+also finds that the executed C4 Boolean used $10^{-9}$ while the registered
+threshold is $10^{-12}$: the measured $4.056\times10^{-11}$ is a formal C4
+failure under the registration. The committed source gate now matches the
+registered threshold, and no additional evidentiary run is introduced.

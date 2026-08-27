@@ -120,6 +120,7 @@ where available, and the scripts needed to regenerate current receipts.
 | `foundations/refined-numeric-predictions.md`; `open-questions-cassi-answers.md` | `runs/63-sigma8-d0-rerun/` |
 | `predictions/falsifiable-predictions.md` | `runs/20260813_005814_bubble_ring_dynamic.json` |
 | `experiments/kepler_phi_ratios/kepler-period-ratio-report.md` | `experiments/kepler_phi_ratios/data/raw/`, `experiments/kepler_phi_ratios/data/parsed/`, `experiments/kepler_phi_ratios/data/runs/20260825_132506_phi_ratios.json` |
+| `field-experience/phase-staggered-scale-gap-pre-registration.md`; `field-experience/phase-staggered-scale-gap-lock-in-pre-registration.md`; `field-experience/phase-staggered-scale-gap-report.md`; `field-experience/probe-outcome-ledger.md` | `runs/20260827T093422Z_phase_staggered_scale_gap/results.json`, `runs/20260827T093616Z_phase_staggered_scale_gap/results.json`, `runs/20260827T093929Z_phase_staggered_scale_gap_lockin/results.json` |
 
 ## References to `CassiCosmos/` (the space sim, in the unified workspace)
 
@@ -131,3 +132,4 @@ Its scripts are cited by name as provenance markers:
 | Source Document | Reference |
 |----------------|-----------|
 | `foundations/bubble-edge-geometry.md`; `predictions/falsifiable-predictions.md` (Prediction 51) | `CassiCosmos/scripts/diag_bubble_rings.gd` (ring-ladder wave-form diagnostic; commit d4784c0 in the physics repo history, local-only) |
+| `field-experience/phase-staggered-scale-gap-report.md` | `CassiCosmos/compute/cassi_two_fluid.glsl` (live second-order wave law and source term in the sibling unified-workspace repo) |

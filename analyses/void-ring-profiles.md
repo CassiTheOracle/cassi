@@ -4,16 +4,17 @@
 
 ## Abstract
 
-Prediction 51 (`predictions/falsifiable-predictions.md`) forecasts that a
-bubble shell of effective radius $R$ carries interior matter rings at
-$r_k = R\,\varphi^{-k}$ with void troughs at
-$R\,\varphi^{-(k+\frac12)}$ (`foundations/bubble-edge-geometry.md` §3.1):
-successive matter rings are separated by $\varphi^{-1}=0.6180$, versus the
-interleaved-null ratio $\varphi^{-1/2}=0.7862$
-(`predictions/falsifiable-predictions.md` Prediction 51). This document
-specifies a real-space extension using the Nadathur & Hotchkiss (2014) SDSS
-DR7 void catalog (VizieR `J/MNRAS/440/1248`), but the real-data stack is
-currently blocked.
+Prediction 51 (`predictions/falsifiable-predictions.md`) registers the supplied
+log-radius target in which a bubble shell of effective radius $R$ carries
+interior matter rings at $r_k=R\,\varphi^{-k}$ with void troughs at
+$R\,\varphi^{-(k+\frac12)}$ (`foundations/bubble-edge-geometry.md` §3.1).
+Successive matter rings are separated by $\varphi^{-1}=0.6180$, versus the
+interleaved-null ratio $\varphi^{-1/2}=0.7862$. Its tested first-order,
+undriven second-order, and driven additive-wave dynamical realizations are
+`REJECT`; the coordinate template remains Hypothesized. This document
+specifies a separate real-space observational extension using the Nadathur &
+Hotchkiss (2014) SDSS DR7 void catalog (VizieR `J/MNRAS/440/1248`), but the
+real-data stack is currently blocked.
 
 No raw catalog blobs, SHA-256 manifest, parsed Type1-count receipt, or tracked
 run JSON is retained in this checkout. The current
@@ -32,12 +33,14 @@ as a protocol for a future receipt, not as an analysis outcome.
 
 ## 1. The Prediction in Real Space
 
-Prediction 51 specifies a simulated bubble-shell ring ladder
-(`foundations/bubble-edge-geometry.md` §3.1). This analysis defines a
-real-space extension: stacked tracer-density profiles are tested for the same
-matter-ring ratios under an explicitly Hypothesized galaxy-to-shell mapping.
-The extension is conditional on the void selection, tracer catalogue, and
-null construction described below.
+Prediction 51 registers a supplied bubble-shell ring coordinate
+(`foundations/bubble-edge-geometry.md` §3.1) whose tested Cassi dynamical
+realization is `REJECT`
+(`field-experience/phase-staggered-scale-gap-report.md`). This analysis defines
+a real-space extension: stacked tracer-density profiles are tested for the
+same matter-ring ratios under an explicitly Hypothesized galaxy-to-shell
+mapping. The extension is conditional on the void selection, tracer catalogue,
+and null construction described below.
 
 For matter rings $r_k=R\,\varphi^{-k}$ and interleaved troughs
 $r^{\mathrm{void}}_{k+1/2}=R\,\varphi^{-(k+1/2)}$, the comparison is

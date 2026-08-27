@@ -461,8 +461,8 @@ spheroid geometry; W4 is active as an observational search.
   density, and derived density-plane angle
   $\theta_d=\operatorname{atan2}(E_I,E_Y)$ that relaxes monotonically toward
   equilibrium
-- Wake-wave mechanism with $\varphi$-scaled spacing and string-wake feedback
-  loop
+- Exact composite-period closure and alternating demodulated phase parity for
+  supplied adjacent-rung wake carriers
 - The Cassi bubble at step 285; neighboring $w$-bubbles at
   $\ell_{286}$–$\ell_{287}$ (inside the horizon)
 - The attractor exponent $(\pi/\rho)_{\rm eq}=\varphi^{-3}$ and the resulting
@@ -479,6 +479,9 @@ spheroid geometry; W4 is active as an observational search.
 - The bubble as a triaxial spheroid within that conditional morphology map
 - Flattened structure as frozen wake interference, with paired sheets flanking
   a central void on the opposite-sign branch
+- Source/cavity selection of the tuned second-order wake ratio, the
+  string-wake feedback loop, and a constitutive map from destructive nodes to
+  physical condensation or link-magnitude modulation
 
 ### Speculative (no current test design)
 
@@ -514,6 +517,8 @@ $\mathbb{R}^d$, a generalized Frenet frame can contain up to $d$ vectors.
 - `xi-derivation.md`: the $\xi=\varphi^6=(\pi/\rho)^{-2}$ relation (attractor exponent)
 - `computations/why_three_dimensions_frenet.py`: numerical verification of the prescribed $\mathbb{R}^3$ loxodrome invariants and Frenet-frame alignment; it does not determine ambient dimension
 - `dimensionful-cascade.md`: the $\varphi$-cascade (292 = today's horizon rung); Cassi bubble at step 285
+- `foundations/wake-geometry.md` §2: supplied-carrier closure, parity, and conditional second-order realization
+- `field-experience/phase-staggered-scale-gap-report.md`: source-selection and node-to-link boundaries
 - `consciousness/consciousness-from-phi.md` §1: pinch point, wake waves, string-wake loop
 - `principles/de-resonance-principle.md`: $\varphi$ as maximal de-resonance
 - `foundations/spin-fibonacci-spiral.md`: Fibonacci spiral geometry and asserted internal-coordinate conventions

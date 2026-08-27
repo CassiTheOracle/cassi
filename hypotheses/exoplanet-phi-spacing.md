@@ -23,12 +23,13 @@ remains pending an auditable input-and-run receipt.
 
 ## Origin Status
 
-**Verdict: mechanism Derived conditional; tier stays Hypothesized.** The disk
-mechanism is the bubble-shell ring ladder of
-`foundations/bubble-edge-geometry.md` §3.1. Its ring law is Derived conditional
-on the pitch convention, the doublet's $\pi$-per-rung internal advance, the
-pool-cell parities, and the nesting depth. In the disk application, a
-condensation wake is compared with the bubble shell:
+**Verdict: coordinate template Hypothesized; tested dynamical realization
+REJECT; tier stays Hypothesized.** The disk application uses the bubble-shell
+ring coordinates of `foundations/bubble-edge-geometry.md` §3.1. Their radii
+follow algebraically once the log-radius phase, pitch convention, doublet's
+$\pi$-per-rung advance, pool-cell parities, and nesting depth are supplied.
+The physical selection of that coordinate remains Hypothesized. In the disk
+application, a condensation wake is compared with the bubble shell:
 
 $$
 r_k=R\varphi^{-k},
@@ -42,10 +43,14 @@ The application remains Hypothesized for four reasons:
   $\alpha=\pi\log_\varphi(r/\ell_n)$ rests on the nested sub-lattice structure
   in `foundations/bubble-lattice-fabric.md` §3.2.
 - **Dynamical realization.** The canonical four-arm dynamic probe produces
-  **NO RINGS** to $t=40$. The available second-order space-sim readback
-  produces **NO RIDGES** beyond a transient shell and one interior feature.
-  The ladder is therefore a kinematic location template rather than an
-  established disk-gap generator.
+  **NO RINGS** to $t=40$. The available undriven second-order space-sim
+  readback produces **NO RIDGES** beyond a transient shell and one interior
+  feature. The driven second-order control forms additively spaced layers,
+  gives $k_\rho/k_\epsilon=1.311855471$ at its generic frequency, and leaves a
+  phase-only chain gapless. The live source supplies no $\Omega_*$ selector and
+  its computed $q$ does not feed back into wave coupling magnitudes. Prediction
+  51's tested dynamical realization is therefore `REJECT`; the supplied
+  log-radius disk template remains Hypothesized.
 - **Disk-gap data.** Prediction 53 has a registered DSHARP design, while the
   parsed table, raw-source hashes, and run receipt are absent. No
   observation-level DSHARP verdict is assigned.
@@ -107,6 +112,13 @@ wake-sum $\cos(2\pi r/\ell_n) + \cos(2\pi\varphi r/\ell_n)$ has zeros at
 $\{0.191, 0.573, 0.809, 0.955\}\,\ell_n$, not a $\varphi$-ladder—is documented
 in `foundations/bubble-edge-geometry.md` §3.5.
 
+The 2026-08-27 phase-gap campaign verifies that ordinary radial beating and
+the driven second-order channel pair produce additive layers. Exact
+$\varphi$ wavenumber ratio requires the supplied drive
+$\Omega_*=\varphi^{3/2}\omega_{0,\mathrm{wave}}$, and uniform phase
+staggering remains gapless. See
+`field-experience/phase-staggered-scale-gap-report.md`.
+
 For a conditional disk application, the condensation wake can be compared with
 the bubble shell: annular gaps in millimeter observations can be tested against
 the $\varphi$-spaced template, with successive gap ratios
@@ -117,9 +129,10 @@ location template, not a demonstrated gap generator. Whether local density,
 planet formation, or another process selects these loci remains open.
 
 The disk reading inherits the radial-reading inference flag of
-`foundations/bubble-edge-geometry.md` §3.1, and the ladder's dynamical
-realization in a disk is open (the two no-ring nulls in Origin Status). The
-prediction is a statistical, pooled statement, not a per-disk scaffolding.
+`foundations/bubble-edge-geometry.md` §3.1. Prediction 51's tested dynamical
+realization is `REJECT`; the disk-gap claim remains a statistical,
+observational test of the supplied coordinate template rather than a per-disk
+scaffolding.
 
 ## 3. Conditional Period-Ratio Diagnostic
 
@@ -399,7 +412,8 @@ the direct observational test of the spacing hypothesis.
 
 - `open-questions-cassi-answers.md`—C9 (cosmic web from wake-wave), G5 (3+1 dimensions).
 - `predictions/falsifiable-predictions.md`—Predictions 51–54.
-- `foundations/bubble-edge-geometry.md` §3.1—the conditional ring law; §§3.5–3.6—the no-ring analytic nulls.
+- `foundations/bubble-edge-geometry.md` §3.1—the conditional ring law; §§3.5–3.7—the no-ring, additive-wave, and phase-gap boundaries.
+- `field-experience/phase-staggered-scale-gap-report.md`—ordinary radial spacing, driven second-order layer control, and phase-only gap null.
 - `foundations/bubble-lattice-fabric.md` §3.2–3.3—the nested sub-lattice and radial-reading premise.
 - `foundations/qi-as-spatial-spacing-signal.md` §4—the coherence-coupled disk channel and detached matter channel.
 - `experiments/dsharp_phi_gaps/acquire_dsharp_gaps.py`—DSHARP acquisition specification.

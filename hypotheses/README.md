@@ -27,7 +27,7 @@ this bar.
 | 1 | Nuclear magic numbers | Hypothesized | Fibonacci sub-channel closure in cascade steps 80–95 (closure arithmetic open: 0/7 rows; φ-power level spacing independent) | `nuclear-magic-numbers.md` |
 | 2 | Hoyle state / stellar nucleosynthesis | Hypothesized | Sub-rung offset at the $^3\alpha$ threshold (0.084 rungs, not a full rung) | `hoyle-state-nucleosynthesis.md` |
 | 3 | Quasicrystal stability | Speculative | De-resonance + cascade suppression against crystallization | `quasicrystal-stability.md` |
-| 4 | Exoplanet $\varphi$-spacing | Hypothesized | Conditional wake-wave spacing template for disk gaps and orbital period-ratio tests | `exoplanet-phi-spacing.md` |
+| 4 | Exoplanet $\varphi$-spacing | Hypothesized | Supplied log-radius disk-gap template; tested Cassi dynamical realization REJECT; orbital transfer and observational tests open | `exoplanet-phi-spacing.md` |
 | 5 | Neural criticality / cascade brain | Hypothesized | Candidate neural application of the canonical PDE; biological measurement and parameterization required | `neural-criticality.md` |
 | 6 | Atomic shell structure / Madelung rule | Speculative | $n$ and $l$ as cascade coordinates | `periodic-table-madelung.md` |
 | 7 | Atmospheric climate cascade | Speculative | $\varphi$-break in atmospheric energy spectrum | `atmospheric-climate-cascade.md` |
@@ -94,10 +94,12 @@ Al-Pd-Mn and Al-Cu-Fe data. **Epistemic tier: Speculative**—the de-resonance a
 
 ### `exoplanet-phi-spacing.md`—Exoplanet Orbital Spacing from the Wake-Wave Mechanism
 
-Applies the wake-wave mechanism of the cosmic web (open-questions entry C9) to
-protoplanetary disks: Yang-Yin interference is hypothesized to produce
-$\varphi$-spaced density nodes at which planetesimals preferentially condense.
-The conditional detached-orbit target is
+Applies the supplied log-radius bubble-shell template to protoplanetary disks.
+The registered first-order and undriven second-order Cassi dynamics do not
+generate its multiplicative ring ladder; the driven second-order control forms
+additively spaced phase layers, and phase staggering alone remains gapless.
+The coordinate template and its disk-to-orbit preservation map remain
+Hypothesized. The conditional detached-orbit target is
 $\boxed{P_{\text{out}}/P_{\text{in}}=\varphi^{3/2}
 \approx2.058171}$ in a Kepler/TESS **multi-planet** catalog; the disk branch
 tests successive **radial gap ratios** in resolved disks. The explicitly
