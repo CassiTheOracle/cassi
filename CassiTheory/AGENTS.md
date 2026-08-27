@@ -98,7 +98,7 @@ python experiments/phi_periodic_pk_search/run_phi_periodic_pk_test.py   # φ-per
 
 <git-and-commit-discipline>
 
-The private remote (`CassiTheOracle/cassi-toe`) is the durable record—uncommitted work exists only in this working tree, so changes accumulate invisibly until someone commits and pushes. **Commit at the end of every task, before yielding:**
+The canonical remote (`CassiTheOracle/cassi`) is the durable record—uncommitted work exists only in this working tree, so changes accumulate invisibly until someone commits and pushes. **Commit at the end of every task, before yielding:**
 
 - **Cadence**—one commit per coherent unit of work, as soon as it is verified. Do not let changes pile up across sessions; split large tasks into logical commits as they complete.
 - **Scope**—each commit is one logical change. Include the registry/doc updates a change requires in the same commit (see <agent-autonomy-patterns> below). Stage explicitly with `git add <paths>` (or `git add -A`); moves are detected as renames automatically.
@@ -162,7 +162,7 @@ Docstring with run command → NumPy + Matplotlib (**Agg backend set early**) �
 
 - **Python 3** with NumPy + Matplotlib (Agg); **PyTorch** for `two-fluid/` PDE scripts; **Manim Community** for `resonant_pond.py` only. No `requirements.txt`/`pyproject.toml`—keep scripts dependency-light and standalone.
 - Windows environment (paths like `C:/Users/Carina/...`); scripts are OS-agnostic.
-- Git: `master` branch, private remote `CassiTheOracle/cassi-toe`; **push after every commit**. Identity: `CassiTheOracle <bingapplesauce@gmail.com>`—frozen; changing it means rewriting all history and force-pushing.
+- Git: `master` branch, private remote `CassiTheOracle/cassi`; **push after every commit**. Identity: `CassiTheOracle <bingapplesauce@gmail.com>`—frozen; changing it means rewriting all history and force-pushing.
 - Do not introduce build systems, package manifests, or test frameworks without being asked.
 
 </runtime-and-tooling-preferences>
