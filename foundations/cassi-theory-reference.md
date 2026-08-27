@@ -212,7 +212,8 @@ The gate *openness* is $(1-q)$: $q\to0$ means the gate is **open**—conversion 
 
 The canonical conversion is a rank-one relaxation in the density variables, not an $SO(2)$ generator. With $\kappa=\lambda(1-q)$, its conversion-only matrix has eigenvalues $0$ and $-\kappa(1+\varphi)=-\lambda(1-q)(1+\varphi)$. It conserves $\rho=E_Y+E_I$ while generally changing $E_Y^2+E_I^2$.
 
-**Conversion-flow time (exact).** The inter-fluid transfer defines
+**Conversion-flow time (exact).** The inter-fluid transfer defines $\chi_F$;
+for $\lambda>0$, division by the rate supplies $\tau_F$:
 
 $$
 d\chi_F
@@ -233,6 +234,10 @@ $$
 =\int(1-q)\,dt
 }.
 $$
+
+$\tau_F$ is an openness-weighted conversion age. It equals coordinate elapsed
+time only for $q=0$ throughout the interval; a memory-bearing gate requires
+its path history to reconstruct the coordinate duration.
 
 For two regions under the same conversion law,
 $d\tau_F(x)/d\tau_F(x_0)=(1-q(x))/(1-q(x_0))$. This relative

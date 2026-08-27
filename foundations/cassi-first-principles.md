@@ -510,6 +510,11 @@ $$
 \ln\left|\frac{\varepsilon'_{\mathrm{conv}}}{\varepsilon}\right|.
 $$
 
+$\tau_F$ is the openness-weighted age of the conversion subflow. It equals
+the coordinate interval $t_1-t_0$ only when $q=0$ almost everywhere on that
+interval. With a memory-bearing gate, the endpoint imbalance fixes
+$\Delta\tau_F$ while recovery of $t_1-t_0$ also requires the gate history.
+
 For two regions under the same conversion law, the relative clock rate is
 
 $$

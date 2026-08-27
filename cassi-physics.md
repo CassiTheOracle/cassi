@@ -118,6 +118,45 @@ sign and openness; conversion-to-expansion dynamics, high-coherence gravity
 amplification, and the pinch-point boundary at
 $r=\varphi^{-1}\approx0.618$ (section 19) are **Hypothesized** mappings.
 
+
+### Conversion-Flow Time and Arrow
+
+The conversion itself supplies an additive internal clock. On a
+conversion-only trajectory,
+
+$$
+d\chi_F
+:=\frac{dE_I|_{\mathrm{conv}}}{\varepsilon}
+=-\frac{d\varepsilon}{(1+\varphi)\varepsilon}
+=\lambda(1-q)\,dt.
+$$
+
+Two resolved nonzero field states therefore determine
+
+$$
+\boxed{
+\Delta\chi_F
+=-\frac{1}{1+\varphi}
+\ln\left|\frac{\varepsilon_1}{\varepsilon_0}\right|,
+\qquad
+\Delta\tau_F:=\frac{\Delta\chi_F}{\lambda}
+=\int(1-q)\,dt
+}
+$$
+
+for $\lambda>0$. $\tau_F$ is an openness-weighted conversion age and equals
+coordinate elapsed time only when $q=0$ throughout the interval. The relative
+rate between two regions under the same conversion law is
+$(1-q(x))/(1-q(x_0))$. The same subflow gives
+$d(\varepsilon^2/2)/dt=-(1+\varphi)\lambda(1-q)\varepsilon^2\leq0$, so the
+conversion clock has a monotone arrow.
+
+This result is **Derived conditional** for the isolated canonical conversion
+law. Interpreting the relative rate as a universal proper-time lapse remains
+**Hypothesized** until wave, particle, gravitational, and boundary dynamics
+share one reparameterization-invariant action. See
+`foundations/cassi-first-principles.md` §2.6.
+
 ### Density-Plane Relaxation and Parity
 
 The canonical density conversion is a rank-one relaxation toward the $\varphi$-line. It changes the density-plane angle
