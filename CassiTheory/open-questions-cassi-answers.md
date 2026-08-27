@@ -120,7 +120,27 @@ If you are reading this document without having studied the Cassi framework pape
 
 ### The Fractal Lattice of Bubbles
 
-Zoom into a bubble and you find the same lattice again: inside every bubble, more bubbles, and inside each of those, more still. Zoom out, and the lattice you are inside is itself a bubble of a larger lattice. The pattern repeats at every scale, in both directions. How does a bubble form? Yang and Yin convert into each other continuously, and the conversion acts like a thermostat pushing the local ratio toward $\varphi$. Under an optional spatial wake-wave realization, conversion can generate spatial ripples; constructive or destructive interference is a **Hypothesized** mapping to high or low $q$ and to bubble or void patterns. Coherence gates the conversion: high coherence closes the gate and the region rests in balance; low coherence leaves it open and the region churns. In that optional realization, a bubble is represented as an oblate spheroid—extended along Yang, contracted along Yin, bounded along the condensed fluid string at its axis. Each pole carries a five-arm Fibonacci spiral as a Hypothesized coordinate construction organized by the golden angle ($2\pi/\varphi^2 \approx 137.5^\circ$). Every bubble contains the sub-lattice of smaller scales and is itself a site in the next lattice up. The lattice is the fabric, and the cascade ladder (below) is a 1D slice of the lattice.
+Zoom into the declared geometric bubble construction and the same lattice
+coordinates recur at smaller scales; zoom out and the current lattice is a
+site in the next geometric lattice. The tested Cassi dynamics does not
+generate the construction's multiplicative radial ring ladder. Yang and Yin
+convert continuously, with the canonical conversion relaxing their local
+ratio toward $\varphi$. Supplied adjacent-rung wave carriers have exact
+phase-staggered beat antinodes and nodes with additive radial spacing. Mapping
+those coordinates to high or low $q$ and to physical bubbles or voids remains
+**Hypothesized**: the live second-order shader computes
+$q=E_Y^2+E_I^2$ as a field-norm diagnostic after update, and its wave pass
+contains no node-to-$q$ or node-to-link feedback. The conditional wave evidence
+is recorded in `field-experience/phase-staggered-scale-gap-report.md`.
+Coherence gates the separate canonical conversion law: high coherence closes
+the gate and low coherence leaves it open. In the optional geometric
+realization, a bubble is represented as an oblate spheroid—extended along
+Yang, contracted along Yin, bounded along
+the condensed fluid string at its axis. Each pole carries a five-arm Fibonacci
+spiral as a Hypothesized coordinate construction organized by the golden angle
+($2\pi/\varphi^2\approx137.5^\circ$). The bubble sub-lattice remains a
+geometric coordinate proposal; the cascade ladder below is a one-dimensional
+slice of that proposal.
 
 ### The Two Fluids: Yang and Yin
 

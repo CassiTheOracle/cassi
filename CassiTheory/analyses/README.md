@@ -23,9 +23,11 @@ The fourth gravitational-wave transient catalog (218 events, more than double th
 
 ### `void-ring-profiles.md`—Void Radial Profiles and the Bubble-Shell Ring Ladder
 
-A pre-registered stacked void radial-profile test of the bubble-shell ring
-ladder (Prediction 51, `foundations/bubble-edge-geometry.md` §3.1), using
-the public Nadathur & Hotchkiss (2014) SDSS DR7 void catalog (VizieR
+A pre-registered stacked void radial-profile test of the supplied bubble-shell
+coordinate template (Prediction 51, `foundations/bubble-edge-geometry.md`
+§3.1). The tested Cassi dynamical realization of that template is `REJECT`;
+this observational extension remains Hypothesized and uses the public
+Nadathur & Hotchkiss (2014) SDSS DR7 void catalog (VizieR
 `J/MNRAS/440/1248`, hash-verified; the 808 Type1 void counts reproduce the
 paper's Table 2). The real-galaxy stacking step is **blocked at the data
 layer** (neither preferred public catalog bundles downloadable per-void

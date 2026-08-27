@@ -1,10 +1,10 @@
 # Bubble Edge Geometry: Physical Profile of the Condensation Boundary
 
-## Status: Derived transverse geometry; Hypothesized axial/radial coordinate assignments; Derived conditional threshold relation; Asserted single-channel gate form—August 2026
+## Status: Derived transverse geometry; Hypothesized axial/radial coordinate assignments; Tested radial-ladder realization REJECT; Derived conditional threshold relation; Asserted single-channel gate form—August 2026
 
 ## Abstract
 
-The chord lattice (`visual-explainers/chord_lattice.py`) derives the geometric skeleton of the megacascade: a staggered checkerboard of bubble and void sites from the condensation field $C(x,y) = \cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I)$. This document derives the geometric level-set profile of the condensation boundary—its radial and 3D edge shape—and records conditional/Hypothesized proxy readings for $r$, $q_{\mathrm{proxy}}$, $\rho$, and $G_{\text{eff}}$ once separate constitutive maps are supplied. The geometric proxy alone does not derive those physical profiles or their observable consequences.
+The chord lattice (`visual-explainers/chord_lattice.py`) derives the geometric skeleton of the megacascade: a staggered checkerboard of bubble and void sites from the supplied condensation field $C(x,y) = \cos(2\pi x/\Lambda_Y)\cos(2\pi y/\Lambda_I)$. This document derives the geometric level-set profile of the condensation boundary—its radial and 3D edge shape—and records conditional/Hypothesized proxy readings for $r$, $q_{\mathrm{proxy}}$, $\rho$, and $G_{\text{eff}}$ once separate constitutive maps are supplied. Supplied adjacent-rung wakes provide an exact phase-staggered additive layer template. They do not generate the multiplicative interior ring ladder, select their own drive frequency, or convert phase nodes into physical gaps. The geometric proxy alone does not derive those physical profiles or their observable consequences.
 
 All bubbles carry the same Wu Xing number $w = 5$ (Derived conditional under the selected construction in `foundations/wu-xing-derivation.md`; the physical organizing cycle and five-channel application remain Hypothesized). The lattice is homogeneous—every bubble is structurally identical. The "neighboring bubble" in the chord lattice is the same $w$, spatially separated by $\varphi$-scaled interference.
 
@@ -20,7 +20,7 @@ The chord lattice field is:
 
 $$\boxed{C(x,y) = \cos\!\left(\frac{2\pi x}{\Lambda_Y}\right) \cos\!\left(\frac{2\pi y}{\Lambda_I}\right), \qquad \Lambda_Y = \varphi\,\Lambda_I}$$
 
-This is the product of the two perpendicular wake systems—Yang wake along the extended axis, Yin wake along the contracted axis. The W1 experiment confirmed anti-phase coupling, so the $m+n$ even sublattice (where $C = +1$ at extrema) are the condensate sites; the $m+n$ odd sublattice (where $C = -1$) are the voids. The staggered placement is interferometric: the wake beat envelope of `foundations/wake-geometry.md` §2 puts bubble centers at $m\,\ell_{n+1}$ and voids at the half-rungs, so the checkerboard follows from phase structure alone.
+This is the product of the two perpendicular wake systems—Yang wake along the extended axis, Yin wake along the contracted axis. The W1 experiment confirmed anti-phase coupling, so the $m+n$ even sublattice (where $C = +1$ at extrema) is assigned the condensate sites and the $m+n$ odd sublattice (where $C = -1$) is assigned the voids. For supplied adjacent-rung carriers, the wake beat envelope of `foundations/wake-geometry.md` §2 has antinodes at $m\,\ell_{n+1}$, nodes at the half-rungs, and alternating demodulated sign across neighboring antinodes. This supplies a conditional interferometric placement template; a separate constitutive law must turn the template into physical condensation and suppressed transfer.
 
 The raw intensity coordinate $q_{\mathrm{proxy}}$ is high where $C \approx 1$ and vanishes where $C \approx -1$, but it is not the bounded canonical Qi variable. Define a separately supplied constitutive map $q_{\mathrm{solver}}=\mathcal{M}(q_{\mathrm{proxy}})$ with $\mathcal{M}:[0,2]\to[0,1]$. Canonical conversion uses the measured solver variable $q_{\mathrm{solver}}$; relating it to the geometric proxy requires this separate map. The conditional gate reading below therefore uses $g(q_{\mathrm{solver}})(1-q_{\mathrm{solver}})$.
 
@@ -234,7 +234,7 @@ matter-ring positions $\{\ell_n, \ell_n\varphi^{-1}, \ell_n\varphi^{-2},
 \ell_n\varphi^{-3}\} = \{1,\,0.618,\,0.382,\,0.236\}\,\ell_n$: $0.382$ and
 $0.809$ are **not** zeros of the wake-sum, and none of the four zeros lands on
 a $\varphi$-ladder position. The intra-shell ladder is imposed by the
-Hypothesized geometric phase coordinate (§3.1), not the wake beat.
+Hypothesized geometric phase coordinate (§3.1). Ordinary wake beating produces additive spacing in $r$; the multiplicative $\varphi$ ratios require the supplied log-radius coordinate.
 
 ### 3.6 Not established
 
@@ -258,24 +258,56 @@ Hypothesized (PDE-testable) pending them:
   wave-mode verification confirms `ExpandingTwoFluid3DGPU` is first-order in
   time (no $d^2E/dt^2$ wave operator; $c_s^2$ enters only as a velocity
   pressure force), so the full second-order ring-ladder wave form
-  ($d^2E = c^2\nabla^2 E - \omega_0^2(E_Y-\varphi E_I)$) is not present in
-  this solver—it belongs to the space-sim GLSL PDE. Whether realization
-  requires that second-order form remains the open content; the recorded
-  four-arm null is retained. The second-order wave-form readback in the
+  ($d^2E = c^2\nabla^2 E - \omega_{0,\mathrm{wave}}^2(E_Y-\varphi E_I)$) is not present in
+  this solver—it belongs to the space-sim GLSL PDE. The recorded first-order null
+  does not test that form. The tested undriven second-order readback in the
   owner's space sim (Godot, $N = 128$, $\omega_0^2 = 20$, featureless
   filled-ball seed, no source drive) also shows no persistent ladder—a
   transient shell with one interior ridge at ratio 0.545 (marginal
   $\varphi^{-1}$) at $t = 24$, dissipated by $t = 40$, detector self-test
   PASS (probe `diag_bubble_rings.gd` in the owner's space-sim repo). The
-  ~10-ring ladder's dynamical realization therefore remains open in both
-  the first-order solver and the sim's wave form.
+  registered ~10-ring dynamical realization is therefore `REJECT` on the
+  tested first-order solver and undriven space-sim wave form. The geometric coordinate law remains Hypothesized and requires a new preregistration before another mechanism can change that verdict.
 
-**Test:** a simulated bubble should show ~10 matter ridges at
-$r_k = \ell_n\,\varphi^{-k}$ (successive matter-ring ratio $\varphi^{-1} =
-0.6180$, vs the null interleaved-ridge ratio $\varphi^{-1/2} = 0.7862$),
-interleaved with 9 void troughs at $\ell_n\,\varphi^{-(k+\frac12)}$, with
-strict matter/void alternation and an $n$-independent count. Cataloged as
-Prediction 51 (`predictions/falsifiable-predictions.md`).
+**Rejected emergence test:** a simulated bubble was required to show ~10
+matter ridges at $r_k = \ell_n\,\varphi^{-k}$ (successive matter-ring ratio
+$\varphi^{-1}=0.6180$, distinct from the interleaved-ridge ratio
+$\varphi^{-1/2}=0.7862$), interleaved with 9 void troughs at
+$\ell_n\,\varphi^{-(k+\frac12)}$, with strict matter/void alternation and an
+$n$-independent count. The tested canonical and undriven second-order arms do
+not meet this contract. Cataloged as Prediction 51
+(`predictions/falsifiable-predictions.md`).
+
+### 3.7 Driven second-order phase layers do not supply the ring ladder
+
+The default CassiCosmos second-order wave branch separates into a massless
+density channel and an imbalance channel with propagation threshold
+
+$$
+\Omega_g=\varphi\omega_{0,\mathrm{wave}}.
+$$
+
+A supplied harmonic drive at
+
+$$
+\Omega_*=\varphi^{3/2}\omega_{0,\mathrm{wave}}
+$$
+
+makes the two propagating wavenumbers satisfy
+$k_\rho/k_\epsilon=\varphi$. The frozen propagating fits produce
+phase-staggered layers with additive spacing
+$2\pi/|k_\rho-k_\epsilon|$; the generic-frequency control gives ratio
+$1.311855471$. The independent lock-in closure verifies sub-gap attenuation
+$3.067\times10^{-6}$ and tuned ratio $1.618096626$. The current live source
+path has no harmonic selector for $\Omega_*$.
+
+These driven layers do not have radii
+$r_k=\ell_n\varphi^{-k}$. Their additive spacing therefore leaves Prediction
+51 `REJECT`. Uniform phase staggering also leaves the declared nearest-neighbor
+chain gapless. A separate coupling-magnitude modulation opens the tested unit
+gap and suppresses 12-cell transmission to $4.738\times10^{-6}$, establishing
+only a conditional node-to-link mechanism. The PDE does not derive that map.
+See `field-experience/phase-staggered-scale-gap-report.md`.
 
 ---
 
@@ -619,3 +651,4 @@ The rung-indexed condensation field $B_n(x,y,z)$ and its checkerboard lattice ar
 - `two-fluid/run_bubble_ring_probe.py`—ring-ladder probe (Prediction 51): analytic ring law, recorded negative result, radial envelope
 - `two-fluid/run_bubble_ring_dynamic_probe.py`—ring-ladder dynamic-realization probe (Prediction 51): four spatial-coupling arms A/B/C/W, NO RINGS on all arms to $t=40$
 - `predictions/falsifiable-predictions.md`—Prediction 51 (bubble-shell ring ladder)
+- `field-experience/phase-staggered-scale-gap-report.md`—additive driven layers, imbalance threshold, source-selection null, phase-only gap null, and conditional link-modulated gap

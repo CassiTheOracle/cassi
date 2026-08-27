@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The primordial string's waveform is the Yang/Yin wake pair: a Yin wake at $\Lambda_I^{(n)} = \ell_n/\varphi$ and a Yang wake at $\Lambda_Y = \varphi\,\Lambda_I = \ell_n$. The composite period closes the next cascade rung ($\Lambda_Y + \Lambda_I = \ell_{n+1}$). The wakes never phase-lock—de-resonance is built into the wave structure itself—and their beat envelope places the bubbles and voids of the staggered checkerboard. The golden-angle phyllotaxis closure ladder (5, 13, 34, 89, 233, 610, …) is the geometry of bubble closure, with a Hypothesized imprint on the activated rungs. The cosmic depth is not a constant: 292 is the epoch-dependent horizon rung, not a cascade boundary; the derivable quantity is the asymptotic horizon $N_\infty \approx 294.2$ under the verified Yang-fraction-weighted coupling (292–296 across documented forms, §4).
+The primordial string's waveform is assigned a Yang/Yin wake pair: a Yin wake at $\Lambda_I^{(n)} = \ell_n/\varphi$ and a Yang wake at $\Lambda_Y = \varphi\,\Lambda_I = \ell_n$. The composite period closes the next cascade rung ($\Lambda_Y + \Lambda_I = \ell_{n+1}$). For supplied adjacent-rung carriers, the exact beat envelope has alternating demodulated sign at successive antinodes and destructive nodes between them. This is a conditional phase template for the bubbles and voids of the staggered checkerboard; the conversion from wave nodes to physical condensation remains open. Ordinary radial beats have additive spacing, and the live second-order wave law reaches the exact $\varphi$ wavenumber ratio only under a supplied drive frequency. The golden-angle phyllotaxis closure ladder (5, 13, 34, 89, 233, 610, …) is the geometry of bubble closure, with a Hypothesized imprint on the activated rungs. The cosmic depth is not a constant: 292 is the epoch-dependent horizon rung, not a cascade boundary; the derivable quantity is the asymptotic horizon $N_\infty \approx 294.2$ under the verified Yang-fraction-weighted coupling.
 
 ## 1. The waveform and its wavelength (Derived)
 
@@ -77,7 +77,7 @@ is where the measured sound horizon lives: $r_d \leftrightarrow n = 284.46$, doc
 
 ## 2. Where the phase wakes meet (Derived)
 
-The two wakes cannot ever line up in phase, and that failure is what builds the lattice: their beat envelope—not the wakes themselves—carries the structure from one rung to the next.
+Given the supplied adjacent-rung carriers, their beat envelope carries a phase-sensitive structural template from one rung to the next. The identity does not supply the carriers or turn its antinodes into condensed matter.
 
 **(a) The interference identity.** Superposing the Yang and Yin periods,
 
@@ -89,11 +89,59 @@ $$\cos\!\left(\frac{2\pi x}{\ell_n}\right) + \cos\!\left(\frac{2\pi\varphi x}{\e
 
 $$\boxed{\text{Envelope period } \varphi\,\ell_n = \ell_{n+1}:\quad \text{peaks at } x = m\,\ell_{n+1},\ \text{zeros at } x = \left(m+\tfrac{1}{2}\right)\ell_{n+1}}$$
 
-Envelope peaks are constructive—the amplitude doubles where the next bubble condenses; envelope zeros are destructive—voids open at the half-rungs.
+Envelope antinodes are constructive and envelope nodes are destructive. Under the bubble-condensation mapping, they mark candidate bubble and void sites. After carrier demodulation, successive antinodes have signs $(-1)^m$: adjacent layers are anti-correlated and next-nearest layers are correlated. Equal carrier amplitudes give exact nodes; for amplitudes $A_Y,A_I$, the gap contrast is $2A_YA_I/(A_Y^2+A_I^2)$.
 
-**(d) The staggered checkerboard.** This derives the staggered checkerboard of `foundations/bubble-edge-geometry.md` from phase structure alone: bubbles at $\ell_{n+1}$ spacing, voids at the half-rungs. No coupling strength enters; the placement is purely interferometric.
+**(d) The staggered checkerboard template.** This derives the placement and phase parity of the staggered checkerboard of `foundations/bubble-edge-geometry.md` from supplied adjacent-rung carriers: candidate bubbles at $\ell_{n+1}$ spacing and candidate voids at the half-rungs. The identity contains no coupling magnitude or condensation law.
 
-**(e) The cascade self-propagates.** Each bubble's wake pair constructively interferes exactly one rung up. The waveform at rung $n$ produces, by its own beat envelope, the condensation sites of rung $n+1$—the string does not need to re-launch the wake; the wake re-launches itself.
+**(e) The identity does not self-propagate.** A supplied wake pair at rung $n$ has antinodes at the next-rung spacing. A separate emission or constitutive law must launch the carriers and convert their interference profile into the physical state at rung $n+1$.
+
+**(f) The live second-order wave branch has a conditional realization.** In
+the default `ham_completion = 0` CassiCosmos wave equation, the channel
+variables
+
+$$
+\rho=E_Y+E_I,\qquad \epsilon=E_Y-\varphi E_I
+$$
+
+obey
+
+$$
+\ddot\rho=c^2\nabla^2\rho+S_\rho,
+\qquad
+\ddot\epsilon=c^2\nabla^2\epsilon-\varphi^2\omega_{0,\mathrm{wave}}^2\epsilon+S_\epsilon.
+$$
+
+The imbalance channel has propagation threshold
+
+$$
+\Omega_g=\varphi\omega_{0,\mathrm{wave}}.
+$$
+
+For harmonic drive above threshold,
+
+$$
+k_\rho=\frac{\Omega}{c},
+\qquad
+k_\epsilon=\frac{\sqrt{\Omega^2-\varphi^2\omega_{0,\mathrm{wave}}^2}}{c}.
+$$
+
+Their ratio equals $\varphi$ only at
+
+$$
+\boxed{\Omega_*=\varphi^{3/2}\omega_{0,\mathrm{wave}}}.
+$$
+
+The independent frequency-domain closure measures sub-gap attenuation
+$3.067\times10^{-6}$, tuned ratio $1.618096626$, and generic-frequency ratio
+$1.311855471$. Valid time-domain propagating fits agree within
+$1.319\times10^{-4}$ and form additively spaced, phase-staggered layers. Both
+time-domain sub-gap receipts remain `INCONCLUSIVE` because turn-on transients
+contaminate their finite lock-in windows; the closure does not relabel them.
+The live source path has no harmonic selector for $\Omega_*$. Uniform phase
+staggering is gauge-equivalent to a gapless chain, while declared
+coupling-magnitude modulation opens the tested gap. The full evidence and
+protocol audit are in
+`field-experience/phase-staggered-scale-gap-report.md`.
 
 ## 3. Closure levels of the spiral (Derived geometry, Hypothesized imprint)
 
@@ -168,7 +216,7 @@ The bare form reaches the attractor already by $a \approx 1$ ($r = 1.59$, $\Delt
 | # | Prediction | Status |
 |---|---|---|
 | Y1 | The composite wake pair closes each rung: $\Lambda_Y + \Lambda_I = \ell_{n+1}$. Verified at 285 ($191 + 118 = 309$ Mpc $= \ell_{286}$); testable wherever two wake scales are resolvable. | Derived |
-| Y2 | The wake envelope places bubbles at $m\,\ell_{n+1}$ and voids at $(m+\frac{1}{2})\ell_{n+1}$—the staggered checkerboard. PDE-verified 2026-08-06 (`two-fluid/run_wake_structural_probes.py`): nulls at $(m+\frac{1}{2})\ell_{n+1}$ to 0.0023 grid precision, beats at $m\,\ell_{n+1}$ to 0.00015. | Derived (structure), PDE-verified |
+| Y2 | For supplied adjacent-rung carriers, the wake envelope has candidate bubble antinodes at $m\,\ell_{n+1}$, candidate void nodes at $(m+\frac{1}{2})\ell_{n+1}$, adjacent demodulated parity $-1$, and next-nearest parity $+1$. The structural locations were PDE-verified 2026-08-06 (`two-fluid/run_wake_structural_probes.py`); the 2026-08-27 phase-gap certificate verifies the exact parity and amplitude-contrast law. Physical condensation at those sites remains Hypothesized. | Derived (supplied-wave structure), PDE-verified; condensation mapping open |
 | Y3 | The closure ladder imprints on the cascade. First test (2026-08-03): rung 89 hosts the J/ψ ($n = 88.98$, 1.0%—closure level 89); rung 96 hosts the muon ($n = 96.000$, 0.01%); rung 34: no established hit (PQ-window candidate). Existing hits $26 = 2\times13$ and $285 = 5\times57$. | Hypothesized (partially tested) |
 
 Y1–Y3 are cataloged as predictions 43–45 in `predictions/falsifiable-predictions.md` §5.
@@ -177,9 +225,9 @@ Y1–Y3 are cataloged as predictions 43–45 in `predictions/falsifiable-predict
 
 The tiers below separate what the geometry proves from what it suggests.
 
-- **Supported by Verified Physics**: the composite closure $\Lambda_Y + \Lambda_I = \ell_{n+1}$ (exact identity on documented anchors; PDE-verified P43); the envelope period and checkerboard spacing; the closure ladder's Fibonacci structure; the saturation of the horizon (positive floor, $q_{\max} < 1$).
-- **Derived conditional on the de-resonance principle and the composite closure (P43)**: the $1/\varphi$ anchor ratio—the unique de-resonant sub-rung placement whose composite closes the next rung, i.e. the inter-rung ratio $\ell_{n-1}/\ell_n$ (§1a). The mechanical emission step is open: the auxiliary second-order wave model emits the conversion wake at $\approx 1.003\,\Lambda_Y$, not $\Lambda_Y/\varphi$ (`computations/wake_anchor_and_suppression.py` §A); the canonical first-order density PDE supplies no oscillatory dispersion without an inertial closure.
-- **Plausible Hypothesis (test exists)**: the closure-ladder imprint ($26 = 2\times13$, $285 = 5\times57$; Y3 first test: J/ψ at 88.98, muon at 96.000—catalog hits, mechanism open); the $N_\infty$ value (≈ 294.2 under the verified Yang-weighted coupling; 292–296 across documented forms).
+- **Supported by Verified Physics**: the composite closure $\Lambda_Y + \Lambda_I = \ell_{n+1}$ (exact identity on documented anchors; PDE-verified P43); the supplied-carrier envelope period, phase parity, and amplitude-contrast law; the default second-order wave branch's imbalance threshold and frequency-domain attenuation; the closure ladder's Fibonacci structure; the saturation of the horizon (positive floor, $q_{\max} < 1$).
+- **Derived conditional on supplied adjacent-rung carriers, the de-resonance principle, and composite closure (P43)**: the $1/\varphi$ anchor ratio; the additively spaced phase-layer template; the unique drive frequency $\Omega_*=\varphi^{3/2}\omega_{0,\mathrm{wave}}$ that makes $k_\rho/k_\epsilon=\varphi$. The canonical first-order density PDE supplies no compact phase or oscillatory dispersion, and the live source path supplies no selector for $\Omega_*$.
+- **Plausible Hypothesis (test exists)**: a constitutive map from interference nodes to coupling-magnitude modulation; physical condensation at the structural antinodes; the closure-ladder imprint ($26 = 2\times13$, $285 = 5\times57$; Y3 first test: J/ψ at 88.98, muon at 96.000—catalog hits, mechanism open); the $N_\infty$ value (≈ 294.2 under the verified Yang-weighted coupling; 292–296 across documented forms).
 - **Speculative**: the rung-index ratio curiosities ($80 \approx 3\times26.5$, $292 \approx 26.5\,\varphi^5$) under the "rung number = level count" reading.
 - **Not Supported**: any claim that the current horizon rung 291.5/292 is a derivable constant—it is an epoch-dependent observation (see `foundations/dimensionful-constants-status.md` §3); exact spiral closure at any finite level ($1/\varphi^2$ is irrational).
 
@@ -196,3 +244,4 @@ The tiers below separate what the geometry proves from what it suggests.
 - `principles/de-resonance-principle.md`—why $\varphi$ forbids resonance
 - `cosmology/desi-lattice-averaging.md` §2—nesting: $\Lambda_I^{(n)} = \ell_{n-1}$, the inter-rung comb
 - `computations/wake_anchor_and_suppression.py`—§A: eigenmode dispersion, beat/extremum spacings, driven emission
+- `field-experience/phase-staggered-scale-gap-report.md`—exact phase parity, additive radial layers, second-order channel threshold, source-selection null, and conditional link-modulated gap

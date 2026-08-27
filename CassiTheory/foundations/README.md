@@ -33,12 +33,12 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 21 | `neutrino-masses.md` | Neutrino spectrum | Hypothesized mechanism / Mapped offsets |
 | 22 | `baryon-asymmetry.md` | Baryogenesis | Derivation (mechanism Hypothesized; $\eta$ exponent Mapped; endpoint open) |
 | 23 | `bubble-lattice-fabric.md` | Geometric lattice | Derived conditional (structural) |
-| 24 | `bubble-edge-geometry.md` | Condensation boundary | Derived geometry; threshold conditional on asserted gate |
+| 24 | `bubble-edge-geometry.md` | Condensation boundary | Derived transverse geometry; Hypothesized radial coordinate; tested radial-ladder realization REJECT |
 | 25 | `microcascade-mirror.md` | Sub-Planckian ladder | Hypothesized |
 | 26 | `refined-numeric-predictions.md` | Pinned φ-powers | Active derivation |
 | 27 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
 | 28 | `sector-coupling-derivation.md` | Dirac↔two-fluid sector coupling | Derived conditional on $\delta = 3$ (coefficient-free scale/rung identity); Hypothesized dimensionally incomplete projection; physical coupling blocked |
-| 29 | `wake-geometry.md` | Wake geometry | Derived (structural) |
+| 29 | `wake-geometry.md` | Wake geometry | Derived supplied-wave structure; tested conditional second-order realization; physical condensation open |
 | 30 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
 | 31 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
 | 32 | `qi-as-spatial-spacing-signal.md` | The φ-spacing as a coherence-field (Qi) property; channel principle | Derived conditional (phase/coherence) / Hypothesized (channel transmission) |
@@ -354,7 +354,7 @@ the condensation-proxy mapping $q_{\mathrm{proxy}}(\mathbf{x}) = (1 + C(\mathbf{
 $$\boxed{4\theta_{\text{cond}}^2 q_{\mathrm{edge}}(1-q_{\mathrm{edge}}) = R(1-\theta_{\text{cond}})(\varphi^2+q_{\mathrm{edge}}^2), \qquad q_{\mathrm{edge}} = \mathcal{M}\!\left(\frac{(1+\theta_{\text{cond}})^2}{2}\right)}$$
 This relation is conditional on the asserted single-channel transmission $g(q_{\mathrm{solver}}) = q_{\mathrm{solver}}/(\varphi^2+q_{\mathrm{solver}}^2)$ and the bounded canonical openness factor $(1-q_{\mathrm{solver}})$. At a common boundary level $\theta_{\mathrm{cond}}$, the directional edge-slope proxy is
 $$\boxed{R(\theta_{\mathrm{cond}})\equiv\frac{|\nabla C|_{\text{axial}}}{|\nabla C|_{\text{diag}}}=\frac{\sqrt{1+\varphi^2}}{2}\sqrt{\frac{1+\theta_{\mathrm{cond}}}{\theta_{\mathrm{cond}}}}}.$$
-At the phenomenologically selected $\theta_{\mathrm{cond}}=0.45$, $R=1.7072$. The ratio varies with the selected level; this is a conditional geometric-proxy benchmark, not a universal, zero-parameter constant or a solver output. The fixed-step PDE diagnostic retains no $C=0.45$ edge, and any cosmological or biological test must independently identify the physical boundary and proxy-to-observable map. The axial factor, along-string period, and radial ring coordinate are Hypothesized geometric assignments; canonical conversion does not determine them. Status: Derived conditional transverse geometry; threshold conditional on $\mathcal{M}$ and solver normalization; Hypothesized axial/radial coordinates.
+At the phenomenologically selected $\theta_{\mathrm{cond}}=0.45$, $R=1.7072$. The ratio varies with the selected level; this is a conditional geometric-proxy benchmark, not a universal, zero-parameter constant or a solver output. The fixed-step PDE diagnostic retains no $C=0.45$ edge, and any cosmological or biological test must independently identify the physical boundary and proxy-to-observable map. The axial factor, along-string period, and multiplicative radial ring coordinate are Hypothesized geometric assignments. Canonical and undriven second-order probes reject the registered ring-ladder realization; the driven second-order control forms additive phase layers only. Status: Derived conditional transverse geometry; threshold conditional on $\mathcal M$ and solver normalization; Hypothesized axial/radial coordinates; tested radial-ladder realization `REJECT`.
 
 ### `microcascade-mirror.md`—The Microcascade Mirror: Sub-Planckian Scale Extension & Bidirectional Coherence
 
@@ -382,7 +382,7 @@ so the formal scale $M_{s,\mathrm{scale}} = \kappa_{s,\mathrm{scale}}^{-1/2} = \
 
 ### `wake-geometry.md`—The Wake Geometry: Composite-Wavelength Closure and the Horizon Rung
 
-The Yang–Yin wake pair $\Lambda_Y = \varphi\Lambda_I$ closes the cascade ladder exactly through the identity $1 + 1/\varphi = \varphi$—$\Lambda_Y + \Lambda_I = \ell_n(1 + 1/\varphi) = \ell_{n+1}$ (at rung 285: 191 + 118 = 309 Mpc = $\ell_{286}$)—with the checkerboard envelope $\cos(2\pi x/\ell_n) + \cos(2\pi\varphi x/\ell_n) = 2\cos(\pi(1+\varphi)x/\ell_n)\cos(\pi(\varphi-1)x/\ell_n)$ peaking on $\ell_{n+1}$ and the golden-angle closure ladder converging through Fibonacci denominators without ever closing exactly. On this reading $N = 292$ is today's epoch-dependent horizon rung, $\log_\varphi(R_H/\ell_{\text{Pl}}) = 291.54$ with $R_H/\ell_{285} = 23.29 \approx \varphi^{6.5}$, saturating toward $N_\infty \approx 296$–$303$ as $r \to \varphi$ (2026-08-03 reclassification). Status: Derived wake geometry with Hypothesized closure imprint.
+The Yang–Yin wake pair $\Lambda_Y=\varphi\Lambda_I$ closes the cascade ladder exactly through $1+1/\varphi=\varphi$: $\Lambda_Y+\Lambda_I=\ell_{n+1}$. For supplied adjacent-rung carriers, the checkerboard beat envelope has nodes at half-envelope positions and alternating demodulated sign at successive antinodes. Ordinary radial beating produces additive spacing. In the default CassiCosmos second-order wave branch, the density and imbalance channels have threshold separation $\Omega_g=\varphi\omega_{0,\mathrm{wave}}$ and reach $k_\rho/k_\epsilon=\varphi$ only under the supplied drive $\Omega_*=\varphi^{3/2}\omega_{0,\mathrm{wave}}$; the current source path supplies no selector. Uniform phase staggering remains gapless, while a declared link-magnitude modulation opens a conditional gap. Physical condensation and the node-to-link map remain open. The golden-angle closure ladder converges through Fibonacci denominators without exact closure, and the verified Yang-fraction-weighted horizon convention gives $N_\infty\approx294.2$.
 
 ### `rung-offset-mechanism.md`—Why Observables Sit Between Rungs: Fractional Cascade Offsets
 
