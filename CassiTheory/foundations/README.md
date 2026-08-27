@@ -279,6 +279,11 @@ CassiFI physical identification Hypothesized. The DQ1–DQ9 audit rejects
 promotion of that identification to Derived: only reverse-Madelung
 linearization and tensor-product composition pass under their declared
 quantum premises.
+The GQ1–GQ7 geometric campaign `ADOPT`s a moment-map/Kähler projection
+architecture as a Hypothesized research direction. It interprets the
+canonical densities as action-like coordinates of a richer complex
+configuration. GQ1 passes and GQ5 passes conditionally; the exact reduction,
+projection, cotangent, physical-sector, and holonomy gates fail.
 
 ### `strong-cp-derivation.md`—Strong CP: Why $\bar{\theta} \approx 0$ from Cascade De-Resonance
 

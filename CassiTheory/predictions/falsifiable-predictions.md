@@ -465,7 +465,14 @@ linear quantum mechanics. The DQ1–DQ9 campaign therefore yields `REJECT` for
 promotion of the CassiFI physical-field identification to Derived; DQ3 and
 DQ6 pass only under their declared quantum premises.
 
+**Geometric boundary:** GQ7 certifies generic integer $U(1)$ winding and finds
+no source-derived Cassi-specific connection or no-fit holonomy. The
+moment-map/Kähler architecture is an adopted Hypothesized research direction;
+it creates no additional registered quantum prediction.
+
 **Source:** `foundations/quantum-measurement-derivation.md` §§7–8;
+`computations/quantum-geometric-bridge-pre-registration.md`;
+`computations/verify_quantum_geometric_bridge.py`;
 `computations/quantum-configuration-bridge-pre-registration.md`;
 `computations/verify_quantum_configuration_bridge.py`;
 `computations/cassifi-quantum-bridge-pre-registration.md`;

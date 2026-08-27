@@ -606,6 +606,16 @@ discriminator remain absent. Reverse-Madelung linearization and
 tensor-product Bell/no-signalling algebra pass under their declared quantum
 premises.
 
+The frozen GQ1–GQ7 geometric campaign interprets the real density pair as a
+candidate moment-map image of the complex CassiFI configuration. The
+$\varphi$ attractor fixes the Bloch latitude
+$n_z=\varphi^{-3}=0.236067977500$ while leaving the relative-phase longitude
+free. Fibre causality passes and finite Kähler compatibility passes
+conditionally; symmetry reduction, microscopic projection, cotangent
+reconstruction, physical-sector geometry, and Cassi-specific holonomy fail. The
+campaign `ADOPT`s this architecture as a Hypothesized research direction and
+retains `REJECT` for promotion of the physical identification.
+
 Record distinguishability is
 
 $$
@@ -625,8 +635,8 @@ quantum-flow structure.
 |---|---|
 | **Cassi Answer** | Under QF1–QF4, a regulated CassiFI configuration is canonically quantized as a linear wavefunctional on configuration space. On connected nonnodal product support, entanglement is equivalent to nonfactorizable conserved Qi density-current organization $\mathfrak F_\Psi=(|\Psi|^2,J_A,J_B)$; Schmidt rank or reduced-state purity supplies the exact global criterion across disconnected support. One actual guided field configuration produces one retained apparatus record; conditioning on it gives effective collapse. The equivariant density $\rho_Q=|\Psi|^2$ is the unique normalized density local in $|\Psi|^2$ that shares the selected guidance flow, and QF4 yields $P(k)=\langle\Psi|P_k|\Psi\rangle$. |
 | **Mechanism** | CassiFI interaction terms can make the joint flow nonfactorizable. Reciprocal links directly couple the singular modes of the scale map $P$; their quantized cross terms can generate intersheet entanglement. System-apparatus correlation creates disjoint topological record sectors, and the actual configuration enters one sector. Passive reflection, transmission, and absorption remain channels of an enlarged unitary scattering map. |
-| **Epistemic** | **Derived conditional** on QF1–QF4, the declared subsystem split, and the finite self-adjoint CassiFI Hamiltonian. The DQ1–DQ9 promotion campaign is **`REJECT`**: DQ3 and DQ6 pass conditionally; DQ1, DQ2, DQ4, DQ5, DQ7, DQ8, and DQ9 fail. Quantum equilibrium remains an irreducible statistical postulate, and the CassiFI physical-field identification remains **Hypothesized**. The 2026 sodium-nanoparticle result constrains additional collapse and agrees with the bridge's $R_\ell=1$ limit. |
-| **Reference** | `foundations/quantum-measurement-derivation.md` §§4.5, 8.1; `computations/quantum-configuration-bridge-pre-registration.md`; `computations/verify_quantum_configuration_bridge.py`; `computations/qi-flow-entanglement-pre-registration.md`; `computations/verify_qi_flow_entanglement.py`; `computations/cassifi-quantum-bridge-pre-registration.md`; `computations/verify_cassifi_quantum_bridge.py` |
+| **Epistemic** | **Derived conditional** on QF1–QF4, the declared subsystem split, and the finite self-adjoint CassiFI Hamiltonian. The DQ1–DQ9 promotion campaign is **`REJECT`**: DQ3 and DQ6 pass conditionally; DQ1, DQ2, DQ4, DQ5, DQ7, DQ8, and DQ9 fail. The GQ1–GQ7 campaign **`ADOPT`s** a moment-map/Kähler projection architecture as a **Hypothesized research direction**: GQ1 passes and GQ5 passes conditionally, while GQ2, GQ3, GQ4, GQ6, and GQ7 fail. Quantum equilibrium remains an irreducible statistical postulate, and the CassiFI physical-field identification remains **Hypothesized**. The 2026 sodium-nanoparticle result constrains additional collapse and agrees with the bridge's $R_\ell=1$ limit. |
+| **Reference** | `foundations/quantum-measurement-derivation.md` §§4.5, 8.1, 8.3; `computations/quantum-geometric-bridge-pre-registration.md`; `computations/verify_quantum_geometric_bridge.py`; `computations/quantum-configuration-bridge-pre-registration.md`; `computations/verify_quantum_configuration_bridge.py`; `computations/qi-flow-entanglement-pre-registration.md`; `computations/verify_qi_flow_entanglement.py`; `computations/cassifi-quantum-bridge-pre-registration.md`; `computations/verify_cassifi_quantum_bridge.py` |
 
 ### Q8: Quark confinement
 

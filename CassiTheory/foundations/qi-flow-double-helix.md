@@ -676,6 +676,18 @@ continuous family of direction-resolved lifts; separate species currents,
 transport speeds, collision dynamics, and a physical orientation are required
 to select one.
 
+The geometric campaign in
+`foundations/quantum-measurement-derivation.md` §8.3 places these density
+coordinates in a candidate moment-map picture. A normalized complex Yang/Yin
+pair has $\mathbb{CP}^1\simeq S^2$ ray geometry; the canonical pair fixes its
+latitude and leaves a relative-phase circle. At the attractor,
+$n_z=\varphi^{-3}=0.236067977500$. Equal moduli carry different declared
+CassiFI modal contents and link currents, so the phase fibre is causal.
+Finite Kähler compatibility passes conditionally. Symmetry reduction,
+micro-to-meso projection, and cotangent reconstruction fail. The
+campaign adopts the architecture as Hypothesized and preserves the canonical
+phase boundary recorded here.
+
 ---
 
 ## References

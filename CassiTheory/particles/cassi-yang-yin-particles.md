@@ -470,6 +470,14 @@ The equations above permit a conditional analogy to the way opposite-sign plane-
 
 The canonical labels $Y$ and $I$ have no built-in outward/inward or right/left propagation assignment. The extension's $+k$ and $-k$ signs define the spatial pattern only after $s$ and its orientation are selected. The shared factor $e^{-i\omega t}$ gives a common temporal convention. The canonical rank-one conversion has no fixed phase advance, compact phase clock, or chirality operator. Any such structure must be introduced and tested as an additional model sector.
 
+The GQ6 audit in `foundations/quantum-measurement-derivation.md` §8.3 sharpens
+this boundary geometrically. A normalized complex Yang/Yin pair supplies
+$\mathbb{CP}^1$ qubit geometry, while physical spin requires a derived
+$SU(2)$ action covering spatial $SO(3)$. Fermionic exchange requires a line
+bundle over unordered multiparticle configuration space, and a local gauge
+sector requires a connection with gauge-covariant observables. These
+structures are absent from the extension.
+
 ---
 
 ## 8. Conditional creation and decay workflow

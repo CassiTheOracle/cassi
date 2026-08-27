@@ -17,6 +17,13 @@ maps, interacting continuum limit, or a Cassi-specific discriminator. The
 reverse-Madelung and tensor-composition gates pass under their declared
 quantum premises.
 
+The frozen GQ1–GQ7 campaign in §8.3 `ADOPT`s a moment-map/Kähler projection
+architecture as a Hypothesized research direction. Fibre causality passes and
+finite Kähler compatibility passes conditionally; symmetry reduction,
+microscopic projection, cotangent reconstruction, physical-sector geometry,
+and Cassi-specific holonomy fail. The physical-identification promotion verdict remains
+`REJECT`.
+
 ---
 
 ## 1. Inputs from the CassiFI field law
@@ -1376,15 +1383,574 @@ preregistered Cassi-specific discriminator.
 | Born frequencies | **Derived conditional** on QF4 and the preparation model | Repeated controlled trials reject $|\Psi|^2$ |
 | CassiFI as nature's microscopic field configuration | **Hypothesized** | Bell/interference, spectroscopy, or field-configuration tests reject the identification |
 | No spontaneous Cassi collapse | **Selected quantum branch** | Reproducible excess visibility loss cannot be assigned to registered environmental channels |
+| Finite CassiFI Kähler configuration and $W$-isometric refinement | **Derived conditional** within the declared complex configuration | $W$, $J$, $g$, $\omega$, or complex-linear refinement compatibility fails |
+| Moment-map/Kähler projection architecture | **Hypothesized; `ADOPT` research direction** | Phase fibre is causally inert, finite Kähler compatibility fails, or the canonical state is declared complete and invertible |
+| Microscopic-to-mesoscopic projection theorem | **Open** | A source-defined phase ensemble or reservoir derives the canonical PDE with parameter provenance |
 
+### 8.3 Quantum-geometric reconstruction campaign
+
+The frozen protocol
+`computations/quantum-geometric-bridge-pre-registration.md` tests the
+microscopic-to-mesoscopic direction
+
+$$
+\text{complex CassiFI geometry}
+\xrightarrow{\ \mu\ }
+\text{canonical real densities}.
+$$
+
+This direction treats $(E_Y,E_I)$ as action-like or moment-map coordinates.
+The inverse positive-root section remains an exact density coordinate and an
+isotropic real slice. The physical bridge requires a projection theorem from
+the richer geometry.
+
+#### Local Bloch and moment-map geometry
+
+For one candidate complex Yang/Yin pair, write
+
+$$
+\widehat z
+=e^{i\gamma}
+\begin{pmatrix}
+\cos(\vartheta/2)\\
+e^{i\delta}\sin(\vartheta/2)
+\end{pmatrix}.
+$$
+
+The normalized modulus projection is
+
+$$
+p_Y=|z_Y|^2=\cos^2(\vartheta/2),
+\qquad
+p_I=|z_I|^2=\sin^2(\vartheta/2).
+$$
+
+After quotienting a constant common phase, the normalized complex pair is a
+point of
+
+$$
+\mathbb{CP}^1\simeq S^2.
+$$
+
+Its Bloch coordinates are
+
+$$
+n_x=2\operatorname{Re}(z_Y^*z_I),
+\qquad
+n_y=2\operatorname{Im}(z_Y^*z_I),
+\qquad
+n_z=p_Y-p_I,
+$$
+
+with
+
+$$
+n_x=\sin\vartheta\cos\delta,
+\qquad
+n_y=\sin\vartheta\sin\delta,
+\qquad
+n_z=\cos\vartheta.
+$$
+
+The real density pair fixes the radius and $n_z$. The relative phase
+$\delta$ labels a circle over every interior normalized density. Pointwise
+phase rotations act on $\mathbb C^2$ with moment-map coordinates
+
+$$
+\mu(z_Y,z_I)
+=\left(|z_Y|^2,|z_I|^2\right)
+$$
+
+up to conventional factors. In action-angle notation,
+
+$$
+z_a=\sqrt{E_a}\,e^{i\theta_a},
+\qquad
+\Omega\sim
+\sum_{a\in\{Y,I\}}dE_a\wedge d\theta_a.
+$$
+
+The canonical state contains the action coordinates. The phase angles occupy
+the fibre.
+
+At the Cassi attractor,
+
+$$
+E_Y=\varphi E_I,
+\qquad
+p_Y=\varphi^{-1},
+\qquad
+p_I=\varphi^{-2},
+$$
+
+so
+
+$$
+n_z=p_Y-p_I=\varphi^{-3}=0.236067977500.
+$$
+
+The attractor selects the Bloch latitude
+
+$$
+\vartheta_\varphi
+=\arccos(\varphi^{-3})
+=76.345415254^\circ
+$$
+
+with transverse radius
+
+$$
+\sin\vartheta_\varphi=0.971736543513.
+$$
+
+The positive-root section selects $\gamma=\delta=0$, one meridian of this
+geometry. The density-plane angle $\theta_d$ remains a bounded coordinate on
+the positive density cone. It has a different type from the compact
+longitude $\delta$.
+
+The C1 certificate reproduces all identities with maximum residual
+$2.776\times10^{-17}$.
+
+#### Two phase-bearing levels
+
+The geometric hierarchy contains two distinct many-to-one maps:
+
+```text
+projective quantum state [Psi] in P L2(C)
+        | Born map
+        v
+probability density rho_Q on field-configuration space C
+
+actual complex field configuration Q in C
+        | modulus / moment / coarse map mu
+        v
+canonical real-density configuration (E_Y,E_I)
+```
+
+The lower phase belongs to the physical CassiFI field variables and controls
+spatial currents, modal content, cross-scale exchange, and retained winding.
+The upper phase is $\arg\Psi[Q,t]$ on the complete configuration space and
+controls quantum probability current and entanglement. A lower complex lift
+supplies a candidate $Q$; QF1–QF2 remain the separate upper quantum lift.
+
+The upper fibre has the same phase-loss pattern. The frozen states
+
+$$
+\Psi_0=\frac1{\sqrt2}(1,1),
+\qquad
+\Psi_1=\frac1{\sqrt2}(1,i)
+$$
+
+share probabilities $(1/2,1/2)$ and have discrete edge currents $0$ and
+$1/2$. The C3 probability residual is zero.
+
+#### GQ1. Fibre causality
+
+For fixed projected densities $A=0.7$ and $B=0.3$, let
+
+$$
+\mathcal E_Y=\sqrt A,
+\qquad
+\mathcal E_I=\sqrt B\,e^{i\delta}.
+$$
+
+The declared CassiFI coordinates obey
+
+$$
+|D|^2
+=A+\varphi^2B
+-2\varphi\sqrt{AB}\cos\delta,
+$$
+
+$$
+|C|^2
+=\frac{
+\varphi^2A+B
++2\varphi\sqrt{AB}\cos\delta
+}{(1+\varphi^2)^2}.
+$$
+
+Their weighted total remains fixed,
+
+$$
+w_D|D|^2+w_C|C|^2=A+B,
+$$
+
+while their individual modal contents vary. Across the frozen phase sweep,
+
+$$
+\Delta|D|^2=2.965905292183,
+\qquad
+\Delta|C|^2=0.226575002840.
+$$
+
+For the scalar reciprocal link,
+
+$$
+Z_s=1,
+\qquad
+Z_{s+1}=e^{i\delta},
+$$
+
+the source-defined phase-charge current is
+
+$$
+\mathcal K(\delta)=-\sin\delta.
+$$
+
+It takes the frozen values $(0,-1,0)$ at
+$\delta=(0,\pi/2,\pi)$. Equal projected moduli therefore carry different
+declared modal contents and link currents.
+
+**GQ1 verdict: `PASS`.** The discarded lower phase fibre is causally active
+in the declared CassiFI dynamics. The upper Born fibre is also current-bearing
+under C3.
+
+#### GQ2. Symmetry and reduction
+
+A common global rotation
+
+$$
+(\mathcal E_Y,\mathcal E_I)
+\mapsto
+(e^{i\alpha}\mathcal E_Y,e^{i\alpha}\mathcal E_I)
+$$
+
+multiplies $D$ and $C$ by the same phase. Closed norm, polynomial, reciprocal
+link, and retained phase-difference terms preserve this global $U(1)$ when
+all coupled fields transform together. The C4 modal-norm residual at
+$\alpha=0.37$ is $2.168\times10^{-18}$.
+
+An independent Yang/Yin phase rotation changes $|D|^2$ and $|C|^2$. The
+frozen relative-phase modal change is $1.482952646092$. A local phase
+rotation also changes an ordinary gradient or edge energy:
+
+$$
+E_\nabla(e^{i\alpha},e^{i\alpha})=0,
+\qquad
+E_\nabla(1,i)=2.
+$$
+
+The declared field theory therefore supports a common global $U(1)$ in its
+closed compatible terms. It supplies neither an independent pointwise
+$U(1)\times U(1)$ gauge quotient nor a local connection that makes arbitrary
+spatial phase rotations gauge-covariant. External ports and fixed references
+can reduce the global symmetry further.
+
+**GQ2 verdict: `FAIL`.** The full phase fibre discarded by
+$\mu=(|\mathcal E_Y|^2,|\mathcal E_I|^2)$ is not a gauge orbit of the
+declared dynamics.
+
+#### GQ3. Microscopic-to-mesoscopic projection
+
+For the scalar source-defined reciprocal force
+
+$$
+F_0=z_1-z_0,
+\qquad
+z_0=1,
+\qquad
+z_1=e^{i\delta},
+$$
+
+with zero initial velocity,
+
+$$
+\left.\frac{d^2}{dt^2}|z_0|^2\right|_{t=0}
+=2(\cos\delta-1).
+$$
+
+The preparations $\delta=0$ and $\delta=\pi$ have identical initial moduli
+and projected accelerations $0$ and $-4$. This is a direct closure
+obstruction: the instantaneous projected state does not determine its own
+projected evolution.
+
+The source hierarchy classifies the canonical advection-diffusion-conversion
+PDE as mesoscopic open-system dynamics. The current source set contains no
+reservoir state, conditional phase measure, memory kernel, or trace operation
+whose projection derives
+
+$$
+\partial_tE_Y+\nabla\cdot(E_Y\mathbf u)
+=\nu\nabla^2E_Y-\lambda(1-q)\varepsilon,
+$$
+
+$$
+\partial_tE_I+\nabla\cdot(E_I\mathbf u)
+=\nu\nabla^2E_I+\lambda(1-q)\varepsilon
+$$
+
+from the complex CassiFI wave law with the same parameter provenance.
+
+The required future object is a map
+
+$$
+\mu:\mathcal C_{\mathrm{micro}}\to\mathcal B_{\mathrm{density}}
+$$
+
+together with a defined reservoir or conditional ensemble for which
+
+$$
+\frac{d}{dt}\mathbb E[\mu(Q_t)]
+$$
+
+closes as the canonical PDE.
+
+**GQ3 verdict: `FAIL`.** The mesoscopic classification supports the projection
+architecture; the microscopic projection theorem is absent.
+
+#### GQ4. Cotangent phase reconstruction
+
+For a locally irrotational shared flow,
+
+$$
+m\mathbf u^\flat=dS_c,
+$$
+
+the canonical velocity can supply a common phase potential. The frozen
+control
+
+$$
+S_c=x^2-\frac32y^2,
+\qquad
+\mathbf u_c=(2x,-3y)
+$$
+
+has zero curl.
+
+For every constant $\delta$,
+
+$$
+S_Y=S_c+\delta/2,
+\qquad
+S_I=S_c-\delta/2
+$$
+
+produces the same two gradients while changing the relative phase by
+$\delta$. The certificate gives zero gradient residual between
+$\delta=0$ and $\delta=1.1$.
+
+The rotational control
+
+$$
+\mathbf u_r=(-0.37y,0.37x)
+$$
+
+has curl $0.74$ and unit-circle circulation
+
+$$
+\oint\mathbf u_r\cdot d\boldsymbol\ell
+=2.324778563656.
+$$
+
+At $m=\hbar=1$, its distance from the nearest integer multiple of $2\pi$ is
+$2.324778563656$. The canonical source supplies neither a vortex-patch
+connection nor a circulation-quantization law.
+
+The four-channel construction in `foundations/qi-flow-double-helix.md`
+confirms the same missing direction: total density, composition, and one
+directional current leave the species-direction association coordinate free.
+Its passive positive ring has at most
+$0.159$ turns per amplitude e-fold under the positive-rate contract.
+
+**GQ4 verdict: `FAIL`.** A restricted irrotational sector can reconstruct one
+common phase potential. The relative phase, vortex data, and global period
+quantization remain independent.
+
+#### GQ5. Finite Kähler compatibility
+
+At fixed resolution, let the CassiFI configuration space carry the Hermitian
+form
+
+$$
+h_W(u,v)=u^\dagger Wv.
+$$
+
+Define
+
+$$
+g_W(u,v)=\operatorname{Re}h_W(u,v),
+\qquad
+\omega_W(u,v)=\operatorname{Im}h_W(u,v),
+\qquad
+Ju=iu.
+$$
+
+Then
+
+$$
+g_W(Ju,Jv)=g_W(u,v),
+\qquad
+\omega_W(u,v)=g_W(Ju,v).
+$$
+
+For every declared complex-linear refinement satisfying
+
+$$
+I^\dagger W'I=W,
+$$
+
+one also has
+
+$$
+h_{W'}(Iu,Iv)=h_W(u,v),
+$$
+
+$$
+g_{W'}(Iu,Iv)=g_W(u,v),
+\qquad
+\omega_{W'}(Iu,Iv)=\omega_W(u,v),
+\qquad
+IJu=JIu.
+$$
+
+The C7 deterministic receipt gives zero metric and compatibility residuals,
+refinement and Hermitian residuals $4.441\times10^{-16}$, and zero
+complex-linearity residual.
+
+This is the Kähler geometry of the finite complex configuration manifold.
+The second-order CassiFI mechanical phase space remains its cotangent bundle,
+with $V_D,V_C$ mapped to canonical momenta by the declared kinetic metric.
+The regulated quantum wavefunctional is a further construction over this
+configuration manifold.
+
+The geometric Madelung map places the upper lift on
+
+$$
+T^*\operatorname{Dens}(\mathcal C)
+\longrightarrow
+\mathbb P L^2(\mathcal C).
+$$
+
+Its density metric contains the Fisher-Rao form
+
+$$
+g_{\mathrm{FR}}(\delta\varrho,\delta\varrho)
+=\int_{\mathcal C}
+\frac{(\delta\varrho)^2}{\varrho}\,d\mu_G
+=4\int_{\mathcal C}
+(\delta\sqrt{\varrho})^2\,d\mu_G.
+$$
+
+This supplies a geometric origin for the Fisher functional form under the
+density-cotangent premise. The scale $\hbar$ and the physical identification
+of this statistical manifold remain external or postulated.
+
+**GQ5 verdict: `PASS` conditional** on the declared finite complex CassiFI
+configuration and its metric-compatible refinement contract.
+
+#### GQ6. Physical-sector geometry
+
+The local normalized complex pair supplies $\mathbb{CP}^1$ qubit geometry.
+A physical spin-$1/2$ sector additionally requires an $SU(2)$ action whose
+quotient covers the observed $SO(3)$ action on spatial frames. The real
+density projection retains only $n_z$ and cannot represent this orbit.
+
+For composite rays, product states form the Segre submanifold
+
+$$
+\mathbb{CP}^{m-1}\times\mathbb{CP}^{n-1}
+\hookrightarrow
+\mathbb{CP}^{mn-1}.
+$$
+
+The C9 coefficient-matrix receipt gives
+
+$$
+\det M_{\mathrm{prod}}=0,
+\qquad
+|\det M_{\mathrm{Bell}}|=\frac12.
+$$
+
+This is the correct conditional geometry of product and entangled two-qubit
+states. It assumes the tensor-product quantum composition rule.
+
+Fermionic statistics require a line bundle over unordered multiparticle
+configuration space with exchange holonomy $-1$. A local gauge sector
+requires a principal-bundle connection and gauge-covariant observables.
+The retained edge energy
+
+$$
+1-\operatorname{Re}(\widehat\psi_i^*\widehat\psi_j)
+$$
+
+has global $U(1)$ invariance and changes under independent local rotations
+unless a link variable is supplied. The source also retains the dimensionful
+particle/field bridge and the QF3 apparatus-record premise as open or
+conditional.
+
+**GQ6 verdict: `FAIL`.** Qubit and Segre geometry are conditionally available.
+Physical spin, fermionic exchange, local gauge structure, particle
+correspondence, and records do not follow from the same microscopic
+geometry.
+
+#### GQ7. Cassi-specific holonomy
+
+The retained phase loop
+
+$$
+(0,\pi/2,\pi,-\pi/2,0)
+$$
+
+has wrapped phase sum $2\pi$ and winding $n=1$. A common phase shift of $0.37$
+leaves both unchanged. The C8 residual is zero.
+
+This is generic $U(1)$ topology. Its formula contains no $\varphi$, and its
+winding is a property of the prepared field state. The frozen source set
+contains no derived local connection, closed spatial-scale Wilson loop,
+parameter-free curvature, orthodox comparison value, or observational
+threshold.
+
+**GQ7 verdict: `FAIL`.** Topological retention supplies a valid state-dependent
+winding receipt after a complex field exists. It supplies no Cassi-specific
+holonomy discriminator.
+
+#### Gate ledger and decisions
+
+| Gate | Verdict | Decisive receipt or boundary |
+|---|---|---|
+| GQ1 fibre causality | `PASS` | Equal modulus data give different $D/C$ modal contents, link currents, and upper discrete currents |
+| GQ2 symmetry reduction | `FAIL` | Common global $U(1)$ survives; relative and local phase actions change declared energies |
+| GQ3 microscopic projection | `FAIL` | Equal moduli give projected accelerations $0$ and $-4$; no bath or phase-ensemble closure |
+| GQ4 cotangent phase | `FAIL` | Shared irrotational flow recovers one common potential; relative phase and circulation quantization remain free |
+| GQ5 Kähler compatibility | `PASS` conditional | $W$, $J$, complex-linear refinement, $g$, and $\omega$ are compatible to $4.441\times10^{-16}$ |
+| GQ6 physical sectors | `FAIL` | Conditional qubit/Segre geometry lacks derived spin, fermion, gauge, particle, and record maps |
+| GQ7 holonomy | `FAIL` | Integer winding is generic and state-dependent; no fixed Cassi connection or observable |
+
+The frozen architecture rule is satisfied:
+
+1. GQ1 passes;
+2. GQ5 passes conditionally;
+3. the hierarchy declares the canonical PDE mesoscopic;
+4. the canonical source does not declare an invertible microscopic phase
+   space.
+
+The campaign therefore **`ADOPT`s the moment-map/Kähler projection
+architecture as a Hypothesized research direction**.
+
+The physical-identification rule requires every gate to pass. Its verdict
+remains **`REJECT` promotion to Derived**. The adopted direction changes the
+required bridge artifact from an inverse density lift to a
+microscopic-to-mesoscopic projection theorem.
+
+The projection architecture can advance through source artifacts that supply:
+
+1. an exact symmetry and reduction statement for the surviving phase
+   variables;
+2. a reservoir or conditional phase ensemble that derives the canonical PDE;
+3. common and relative cotangent currents with vortex and period rules;
+4. physical $SU(2)$, fermion-bundle, local gauge, particle, and record maps;
+5. interacting continuum convergence for the Kähler/Hamiltonian sequence;
+6. a preregistered, parameter-free spatial or scale holonomy observable.
 
 ---
 
 ## 9. Verification contract
 
 `computations/cassifi-quantum-bridge-pre-registration.md`,
-`computations/qi-flow-entanglement-pre-registration.md`, and
-`computations/quantum-configuration-bridge-pre-registration.md` freeze the
+`computations/qi-flow-entanglement-pre-registration.md`,
+`computations/quantum-configuration-bridge-pre-registration.md`, and
+`computations/quantum-geometric-bridge-pre-registration.md` freeze the
 deterministic gates. Their companion scripts check:
 
 1. self-adjoint finite evolution and norm conservation;
@@ -1399,13 +1965,19 @@ deterministic gates. Their companion scripts check:
 9. canonical-section rank, symplectic pullback, and density-map nullity;
 10. physical-gradient/Fisher independence, reverse-Madelung linearization,
     guidance ambiguity, and equilibrium transport;
-11. conditional CHSH/no-signalling algebra and free-lattice convergence.
+11. conditional CHSH/no-signalling algebra and free-lattice convergence;
+12. the $\varphi$ Bloch latitude and lower/upper phase-fibre causality;
+13. global, relative, and local phase actions plus projected nonclosure;
+14. cotangent reconstruction controls and finite Kähler refinement;
+15. generic winding and conditional Segre geometry.
 
 The scripts are `computations/verify_cassifi_quantum_bridge.py`,
-`computations/verify_qi_flow_entanglement.py`, and
-`computations/verify_quantum_configuration_bridge.py`. The first two verify
-the conditional quantum construction. The third records which additional
-premises remain outside the canonical real-density theory.
+`computations/verify_qi_flow_entanglement.py`,
+`computations/verify_quantum_configuration_bridge.py`, and
+`computations/verify_quantum_geometric_bridge.py`. The first two verify the
+conditional quantum construction. The third records premises outside the
+canonical real-density theory. The fourth verifies the geometric projection
+receipts and counterexamples.
 
 ---
 
@@ -1417,12 +1989,16 @@ premises remain outside the canonical real-density theory.
 - S. Nimmrichter and K. Hornberger, “Macroscopicity of mechanical quantum superposition states,” *Physical Review Letters* **110**, 160403 (2013), <https://doi.org/10.1103/PhysRevLett.110.160403>.
 - S. Pedalino et al., “Probing quantum mechanics with nanoparticle matter-wave interferometry,” *Nature* **649**, 866-870 (2026), <https://doi.org/10.1038/s41586-025-09917-9>.
 - Published data and analysis code for the sodium-cluster experiment, <https://doi.org/10.5281/zenodo.17502163>.
+- B. Khesin, G. Misiołek, and K. Modin, “Geometry of the Madelung transform,” <https://arxiv.org/abs/1807.07172>.
+- A. Ashtekar and T. A. Schilling, “Geometrical formulation of quantum mechanics,” <https://arxiv.org/abs/gr-qc/9706069>.
 
 ## Internal references
 
 - `foundations/cassi-first-principles.md` §3.1
 - `foundations/cassi-theory-reference.md` §5
 - `foundations/unified-lagrangian.md` §1.3
+- `foundations/physical-becoming-hierarchy.md` §§1, 5–7
+- `foundations/qi-flow-double-helix.md` §§1–6
 - `open-questions-cassi-answers.md` Q7
 - `parameter-inventory.md` §§2.2, 4, 9
 - `predictions/falsifiable-predictions.md` §9

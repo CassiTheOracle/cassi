@@ -122,6 +122,7 @@ does not determine.
 | $m_e$ | $v_0\varphi^{-26}/\sqrt{2} \approx 0.64$ MeV | $25\%$ | New mixing physics |
 | $\alpha_s(M_Z)$ | RGE from $\alpha_{\text{GUT}}$ | $2.0\times$ | Particle content ($\Delta b \approx 1.70$) |
 | CassiFI physical-field identification | Finite regulated quantum construction under QF1–QF4 | DQ1, DQ2, DQ4, DQ5, DQ7, DQ8, and DQ9 fail the canonical-to-quantum promotion criteria | Symplectic canonical lift, Fisher ensemble derivation, guidance/equilibrium selection, physical-sector maps, interacting continuum limit, and a Cassi-specific discriminator (`foundations/quantum-measurement-derivation.md` §8.1) |
+| Moment-map/Kähler projection architecture | GQ1 phase-fibre causality passes; GQ5 finite Kähler compatibility passes conditionally | GQ2, GQ3, GQ4, GQ6, and GQ7 fail; equal moduli can have projected accelerations $0$ and $-4$ | Exact phase symmetry/reduction, reservoir or conditional-ensemble projection, cotangent reconstruction, physical-sector maps, and a no-fit holonomy (`foundations/quantum-measurement-derivation.md` §8.3) |
 
 ---
 
