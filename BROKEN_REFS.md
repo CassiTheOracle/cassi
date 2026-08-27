@@ -121,6 +121,7 @@ where available, and the scripts needed to regenerate current receipts.
 | `predictions/falsifiable-predictions.md` | `runs/20260813_005814_bubble_ring_dynamic.json` |
 | `experiments/kepler_phi_ratios/kepler-period-ratio-report.md` | `experiments/kepler_phi_ratios/data/raw/`, `experiments/kepler_phi_ratios/data/parsed/`, `experiments/kepler_phi_ratios/data/runs/20260825_132506_phi_ratios.json` |
 | `field-experience/phase-staggered-scale-gap-pre-registration.md`; `field-experience/phase-staggered-scale-gap-lock-in-pre-registration.md`; `field-experience/phase-staggered-scale-gap-report.md`; `field-experience/probe-outcome-ledger.md` | `runs/20260827T093422Z_phase_staggered_scale_gap/results.json`, `runs/20260827T093616Z_phase_staggered_scale_gap/results.json`, `runs/20260827T093929Z_phase_staggered_scale_gap_lockin/results.json` |
+| `field-experience/qi-loop-mass-cascade-pre-registration.md`; `field-experience/qi-loop-mass-cascade-report.md`; `field-experience/probe-outcome-ledger.md` | `runs/20260827T120451Z_qi_loop_mass_cascade/results.json`, `runs/20260827T120451Z_qi_loop_mass_cascade/verification.json` |
 
 ## References to `CassiCosmos/` (the space sim, in the unified workspace)
 

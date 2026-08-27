@@ -82,6 +82,19 @@ An irrational ratio removes exact commensurability for that scalar pair, while n
 
 The Cassi proposal is that the two-fluid equations, with the declared target $r_\star=\varphi$, may possess a robust de-resonant regime. The hypothesis can be tested by varying $r(0)$ around $r_\star$, scanning damping and coupling parameters, and comparing the basin and long-time behavior with rational and other irrational controls. Evidence for the proposed mapping would include reproducible convergence to $r_\star$, a measured reduction in phase-locking intervals under predeclared conditions, and a quantified spectrum that retains energy across the selected scales. Each result needs a constitutive and observation map from field variables to the measured ratio, phase, and spectrum.
 
+### 1.4 Conditional two-fluid phase-gradient check
+
+The preregistered compact-ring calculation in
+`field-experience/qi-loop-mass-cascade-report.md` declares
+$\theta_I'/\theta_Y'=\varphi$ as a phase-gradient coordinate relation. Its
+Fibonacci near-closure branch and positive supplied ring sector pass the
+frozen arithmetic and stability gates. The same receipt retains many stable
+primitive modes per energy cell and coefficient-sensitive low-winding
+energies, so it does not supply a physical attractor, compact-topology
+formation, or a unique mass-position law. This result tests a conditional
+coordinate realization of de-resonance; the canonical density target and its
+physical mapping retain the status stated above.
+
 ## 2. Cassi framework posture
 
 The $\varphi$-power expressions below are working baselines for selected quantities. They are model ansätze whose physical scope must be stated for each sector.

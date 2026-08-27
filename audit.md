@@ -231,3 +231,22 @@ also finds that the executed C4 Boolean used $10^{-9}$ while the registered
 threshold is $10^{-12}$: the measured $4.056\times10^{-11}$ is a formal C4
 failure under the registration. The committed source gate now matches the
 registered threshold, and no additional evidentiary run is introduced.
+
+---
+
+## 11. Conditional Qi-Loop Mass-Cascade Campaign (2026-08-27)
+
+The frozen protocol, executed record, and conditional algebra are
+`field-experience/qi-loop-mass-cascade-pre-registration.md`,
+`field-experience/qi-loop-mass-cascade-report.md`, and
+`foundations/qi-loop-mass-cascade.md`.
+
+| Claim | Decisive measurement | Status |
+|---|---|---|
+| $\varphi$-separated compact phase-gradient branch | Exact Fibonacci record list; maximum identity residual $1.0165147637976205\times10^{-14}$; $\sqrt2$ control gap $0.09366495891647209$; 19-mode ring sector passes radial/phase/current and supplied-scale gates | **EMERGES CONDITIONAL**—the compact topology, normalized coefficients, and tension law are supplied |
+| Unique mass positions from the ring energy | 1,163 stable primitive modes across the scan, up to 528 in one occupied $\varphi$-log cell; coefficient span $0.1146965060733196$ rung against a $0.01$ gate | **DOES NOT EMERGE**—the current ring law leaves topology and constitutive selection open |
+| Frozen-receipt integrity | Q1–Q4 pass; independent verifier recomputes 172 Boolean values and 692 finite scalars with zero differences | **PASS** |
+
+The calculation uses no particle catalog or measured particle mass. Its
+classical loop energy is a conditional proxy, not an $\hbar\Omega$ quantum
+identification or a physical mass assignment.

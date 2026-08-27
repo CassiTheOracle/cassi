@@ -482,6 +482,12 @@ The weak nuclear force is about $10^{32}$ times stronger than gravity—a gap so
 | **Epistemic** | **Mapped**—the two placements use the measured ratio and the stated gap convention (ledger §10); 5.3% residual open |
 | **Reference** | `foundations/dimensionful-cascade.md` §2 |
 
+The conditional compact-ring calculation supplies a Fibonacci near-closure
+branch but leaves topology and constitutive mass selection open: 1,163 stable
+primitive modes remain across the scanned cells and the low-winding
+coefficient-sensitivity gate fails (`foundations/qi-loop-mass-cascade.md` §5).
+It leaves Q1's Mapped tier unchanged.
+
 ### Q2: Strong CP problem
 
 ```mermaid
@@ -1213,4 +1219,4 @@ All Cassi theory documents are organized in the subdirectories listed above. Key
 - `consciousness/consciousness-from-phi.md`—pinch, wake, two-bubble verification
 - `foundations/bubble-edge-geometry.md`—bubble edge profile, condensation threshold, anisotropic void ellipticity
 - `consciousness/consciousness-from-phi.md`—full consciousness theory
-- `../../quantum-measurement-qi-appendix.md`—measurement problem resolution
+- `foundations/quantum-measurement-derivation.md`—measurement problem resolution
