@@ -999,7 +999,49 @@ the model's coordinate rungs under the stated geometric construction—see
 `foundations/bubble-lattice-fabric.md` for the conditional geometric
 signatures.
 
-### 10.4 Wake-Wave Mechanism
+### 10.4 String-Bubble Projective Map
+
+Conditional on the complex CassiFI doublet, the normalized projective state
+$[z_Y:z_I]\in\mathbb{CP}^1$ supplies a phase-bearing shell over the canonical
+density pair:
+
+$$
+(E_Y,E_I)=\rho\left(\cos^2\frac{\vartheta}{2},
+\sin^2\frac{\vartheta}{2}\right),
+\qquad
+\delta=\arg z_I-\arg z_Y .
+$$
+
+Its Bloch vector is
+$\mathbf n=(\sin\vartheta\cos\delta,\sin\vartheta\sin\delta,
+\cos\vartheta)\in S^2$.
+
+For the selected quadratic bubble boundary, set
+$A=\sqrt{2(1-\theta_{\mathrm{cond}})}$ and
+
+$$
+\mathbf X=D\mathbf n,\qquad
+D=\operatorname{diag}\!\left(\frac{A}{\alpha},
+\frac{A}{\beta},\frac{A}{\gamma_n}\right),\qquad
+\|D^{-1}\mathbf X\|=1.
+$$
+
+The relative phase acts on this shell by
+$G(\Delta)=D R_z(\Delta)D^{-1}$, an exact one-parameter isometry of the
+pullback metric $D^{-2}$. Its orbit at fixed density composition is a latitude
+ellipse. At the Cassi fixed ratio $E_Y/E_I=\varphi$, the latitude is fixed by
+$\cos\vartheta_\varphi=\varphi^{-3}$, while the canonical conversion law gives
+the meridional relaxation of $\vartheta$. Supplying uniform phase motion
+generates smooth shell circulation, but no phase equation selects that motion.
+Five selected phases give a pentagon, and step-two connectivity gives its
+pentagram; neither selection nor locking follows from the canonical
+real-density PDE. The geometry, affine group action, and conversion-only
+meridional flow are **Derived conditional**. Physical identification of the
+projective shell with the condensation boundary, persistent phase circulation,
+and spontaneous fivefold locking remain **Hypothesized**. See
+`foundations/string-bubble-projective-map.md`.
+
+### 10.5 Wake-Wave Mechanism
 
 An optional compact-phase/wake construction can pair sheets through an anti-phase assignment ($\Delta\phi=\pi$), producing paired sheets flanking a central void. This is a **Hypothesized** phenomenological extension; the canonical rank-one real-density conversion has no phase or anti-phase structural property.
 

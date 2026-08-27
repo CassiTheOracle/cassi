@@ -44,6 +44,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 32 | `qi-as-spatial-spacing-signal.md` | The φ-spacing as a coherence-field (Qi) property; channel principle | Derived conditional (phase/coherence) / Hypothesized (channel transmission) |
 | 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction |
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
+| 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
 
 ## Document Summaries
 
@@ -413,6 +414,19 @@ No observable sits exactly on a rung; the fractional offset $\delta n = n - \lfl
 ### `wu-xing-cycle-structure.md`—The Wu Xing Cycle Structure: Control-Ring Algebra and the 5↔13 Partition
 
 Derives how the five-channel gate operates as two interlaced cycles—the sheng cycle (pentagon sides, step +1) and the ke control cycle (pentagram diagonals, step +2)—with control transmission $\kappa = \text{side}/\text{diagonal} = \varphi^{-1}$, sub-critical ring gain $\kappa^3 = \varphi^{-3}$, and lock threshold $\Delta_c = \varphi^{-4}$. The ke ring reproduces the ring algebra to ≤6×10⁻⁴ in the two-fluid PDE (`gate_model='five_ke'`; WX1 gate test 2026-08-01). The 5↔13 partition places the chakra nodes on a Hypothesized body-axis geometric phase coordinate—18°/rung, $\theta(n) = 288° + 18°(n-142)$—with the counts related as $13 = F_5 + F_6$ and channel step $\varphi^3 - \varphi^{-3} = 4$. Status: Derived / Tested / Hypothesized.
+
+### `string-bubble-projective-map.md`—From String Formation to Bubble Boundary
+
+Builds the minimal phase-bearing geometry over the canonical density pair.
+The normalized complex CassiFI doublet projects through
+$\mathbb{CP}^1\simeq S^2$ to $(E_Y,E_I)$, then maps affinely onto the selected
+quadratic bubble shell. The conjugated $U(1)$ action
+$G(\delta)=D R_z(\delta)D^{-1}$ preserves the pullback shell metric, and the
+canonical Yin/Yang conversion law becomes meridional motion at fixed total
+density. SB1–SB5 verify the identities independently. Five selected phases
+form a pentagon and step-two connectivity forms its pentagram, while the
+selector, physical shell identification, and microscopic phase dynamics
+remain Hypothesized.
 
 ## Cross-References
 

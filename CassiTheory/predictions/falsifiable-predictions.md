@@ -479,9 +479,10 @@ occupations is Open, so no carrier-derived Cassi-specific discriminator is
 registered.
 
 **Geometric boundary:** GQ7 certifies generic integer $U(1)$ winding and finds
-no source-derived Cassi-specific connection or no-fit holonomy. The
-moment-map/Kähler architecture is an adopted Hypothesized research direction;
-it creates no additional registered quantum prediction.
+no source-derived Cassi-specific connection or no-fit holonomy. The projective
+shell construction now executes a finite part of the adopted moment-map/Kähler
+direction and registers the conditional SB tests below. It supplies no
+additional quantum-sector discriminator or physical-identification promotion.
 
 **Source:** `foundations/quantum-measurement-derivation.md` §§7–8;
 `computations/quantum-closure-pre-registration.md`;
@@ -505,6 +506,24 @@ https://doi.org/10.1038/s41586-025-09917-9.
 `foundations/cassi-first-principles.md` §2.6;
 `predictions/cassi_definitions.md` §6;
 `hypotheses/scalar-time-reparameterization-applications.md`.
+
+## 11. Conditional String-Bubble Projective Tests
+
+| ID | Observable | Conditional Cassi result | Current status | Falsifier |
+|----|------------|--------------------------|----------------|-----------|
+| **SB-1** | Simultaneous normalized shell position and Yin/Yang density composition | With $D$ fixed by the observed or declared quadratic shell, $\mathbf n=D^{-1}\mathbf X$ obeys $\|\mathbf n\|=1$ and $n_z=(E_Y-E_I)/(E_Y+E_I)$ | **Derived conditional; untested physically.** Frozen verifier SB1 passes; the shell identification is Hypothesized | No single fixed diagonal $D$ closes the sampled states on a unit sphere, or the measured composition disagrees with $n_z$ beyond uncertainty |
+| **SB-2** | Shell trajectory under a controlled relative-phase advance at fixed density composition | $G(\Delta)=D R_z(\Delta)D^{-1}$ preserves $\mathbf X^T D^{-2}\mathbf X$, composes additively, and carries one meridian through a latitude ellipse | **Derived conditional; untested physically.** Frozen verifier SB2 passes | A controlled phase cycle changes the pullback shell norm or fails group composition after transport and dissipation are removed |
+| **SB-3** | Five selected phase sectors at one interior latitude | In normalized coordinates, the step-two/step-one chord ratio is $\varphi$ and each pentagram diagonal is divided as $\varphi^{-2}:\varphi^{-3}:\varphi^{-2}$; the collinear fractions survive the affine shell map | **Derived conditional geometry.** Frozen verifier SB3 passes; spontaneous selection of the five sectors is Hypothesized | The selected sectors fail either normalized ratio, or the affine map changes the collinear division fractions |
+| **SB-4** | Homogeneous conversion-only evolution of density composition | For $\rho>0$ and $0<\vartheta<\pi$, $\dot\rho=0$ and $\dot\vartheta=\kappa(\varphi^2\cos\vartheta-\varphi^{-1})/\sin\vartheta$, with $\kappa=\lambda(1-q)$ and $\cos\vartheta=(E_Y-E_I)/\rho$; $\dot s=-2\kappa\varepsilon/\rho$ is endpoint-safe | **Derived conditional; solver-level identity.** Frozen verifier SB4 passes | A homogeneous conversion-only run conserves neither $\rho$ nor the displayed meridional law |
+| **SB-5** | Projective phase loop around the attractor latitude | $\oint\mathcal A=\pi(1-\varphi^{-3})$ and five equal phase steps each contribute one fifth of the loop value | **Derived generic $\mathbb{CP}^1$ geometry.** Frozen verifier SB5 passes; a physical Cassi holonomy remains Open | A realized state map and measured connection disagree with the loop relation after gauge convention and uncertainty are fixed |
+
+The pure phase action also supplies a selector null:
+$a_m(t)=e^{-im\Omega t}a_m(0)$, so an absent $m=5$ mode remains absent.
+Amplification would require dynamics beyond that pure action; its absence would
+not establish the physical shell identification.
+
+**Source:** `foundations/string-bubble-projective-map.md`;
+`computations/verify_string_bubble_projective_map.py`.
 
 ---
 
@@ -540,7 +559,7 @@ https://doi.org/10.1038/s41586-025-09917-9.
   fitted or calibrated comparisons, null results, rejected entries, and open
   hypotheses. Rows without a registered derivation are marked **Not
   predicted**; no aggregate success count is assigned across those classes.
-- **Conditional test rows (CT-n):** rows labeled CT-n are unnumbered conditional discriminators outside the 1–N numbered prediction sequence; they do not alter the catalog's numbered prediction count. CT-1 records the regulated quantum sector's no-collapse nanoparticle limit; CT-2 registers the candidate physical-time cross-clock discriminator.
+- **Conditional test rows (CT-n and SB-n):** these rows are unnumbered conditional discriminators outside the 1–N numbered prediction sequence; they do not alter the catalog's numbered prediction count. CT-1 records the regulated quantum sector's no-collapse nanoparticle limit; CT-2 registers the candidate physical-time cross-clock discriminator; SB-1–SB-5 register the projective shell's conditional geometry, conversion flow, and phase-loop diagnostic.
 
 - **Deviations from SM expectations are falsifiable**—not adjustable. If FCC-ee
   measures $m_W/m_Z = 0.881 \pm 0.0001$, the Cassi framework is excluded
