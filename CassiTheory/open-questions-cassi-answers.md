@@ -642,6 +642,15 @@ reconstruction, physical-sector geometry, and Cassi-specific holonomy fail. The
 campaign `ADOPT`s this architecture as a Hypothesized research direction and
 retains `REJECT` for promotion of the physical identification.
 
+The frozen QC1–QC9 closure campaign `ADOPT`s the finite carrier reservoir as
+Hypothesized microphysics and its carrier-to-mesoscopic projection as Derived
+conditional mathematics. The fixed verifier passes the finite instrument,
+carrier positivity and conservation, conversion drift, binomial fluctuation,
+transport-noise, and operational-equivalence checks. The QF1 complex-field
+density and the carrier-projected density remain independent in the additive
+model; their physical state map is Open. This preserves the DQ and GQ rejection
+of physical-identification promotion.
+
 Record distinguishability is
 
 $$
@@ -659,10 +668,10 @@ quantum-flow structure.
 
 | | |
 |---|---|
-| **Cassi Answer** | Under QF1–QF4, a regulated CassiFI configuration is canonically quantized as a linear wavefunctional on configuration space. On connected nonnodal product support, entanglement is equivalent to nonfactorizable conserved Qi density-current organization $\mathfrak F_\Psi=(|\Psi|^2,J_A,J_B)$; Schmidt rank or reduced-state purity supplies the exact global criterion across disconnected support. One actual guided field configuration produces one retained apparatus record; conditioning on it gives effective collapse. The equivariant density $\rho_Q=|\Psi|^2$ is the unique normalized density local in $|\Psi|^2$ that shares the selected guidance flow, and QF4 yields $P(k)=\langle\Psi|P_k|\Psi\rangle$. |
-| **Mechanism** | CassiFI interaction terms can make the joint flow nonfactorizable. Reciprocal links directly couple the singular modes of the scale map $P$; their quantized cross terms can generate intersheet entanglement. System-apparatus correlation creates disjoint topological record sectors, and the actual configuration enters one sector. Passive reflection, transmission, and absorption remain channels of an enlarged unitary scattering map. |
-| **Epistemic** | **Derived conditional** on QF1–QF4, the declared subsystem split, and the finite self-adjoint CassiFI Hamiltonian. The DQ1–DQ9 promotion campaign is **`REJECT`**: DQ3 and DQ6 pass conditionally; DQ1, DQ2, DQ4, DQ5, DQ7, DQ8, and DQ9 fail. The GQ1–GQ7 campaign **`ADOPT`s** a moment-map/Kähler projection architecture as a **Hypothesized research direction**: GQ1 passes and GQ5 passes conditionally, while GQ2, GQ3, GQ4, GQ6, and GQ7 fail. Quantum equilibrium remains an irreducible statistical postulate, and the CassiFI physical-field identification remains **Hypothesized**. The 2026 sodium-nanoparticle result constrains additional collapse and agrees with the bridge's $R_\ell=1$ limit. |
-| **Reference** | `foundations/quantum-measurement-derivation.md` §§4.5, 8.1, 8.3; `computations/quantum-geometric-bridge-pre-registration.md`; `computations/verify_quantum_geometric_bridge.py`; `computations/quantum-configuration-bridge-pre-registration.md`; `computations/verify_quantum_configuration_bridge.py`; `computations/qi-flow-entanglement-pre-registration.md`; `computations/verify_qi_flow_entanglement.py`; `computations/cassifi-quantum-bridge-pre-registration.md`; `computations/verify_cassifi_quantum_bridge.py` |
+| **Cassi Answer** | Under QF1–QF4, a regulated CassiFI configuration is canonically quantized as a linear wavefunctional on configuration space. On connected nonnodal product support, entanglement is equivalent to nonfactorizable conserved Qi density-current organization $\mathfrak F_\Psi=(|\Psi|^2,J_A,J_B)$; Schmidt rank or reduced-state purity supplies the exact global criterion across disconnected support. One actual guided field configuration produces one retained apparatus record; conditioning on it gives effective collapse. The equivariant density $\rho_Q=|\Psi|^2$ is the unique normalized density local in $|\Psi|^2$ that shares the selected guidance flow, and QF4 yields $P(k)=\langle\Psi|P_k|\Psi\rangle$. A finite carrier jump process separately projects to the canonical two-fluid drift and its finite-size fluctuation law. |
+| **Mechanism** | CassiFI interaction terms can make the joint flow nonfactorizable. Reciprocal links directly couple the singular modes of the scale map $P$; their quantized cross terms can generate intersheet entanglement. System-apparatus correlation creates disjoint topological record sectors, and the actual configuration enters one sector. Passive reflection, transmission, and absorption remain channels of an enlarged unitary scattering map. Conservative carrier conversion and lattice jumps generate the carrier-projected mesoscopic density law. |
+| **Epistemic** | **Derived conditional** on QF1–QF4, the declared subsystem split, and the finite self-adjoint CassiFI Hamiltonian. The DQ1–DQ9 promotion campaign is **`REJECT`**: DQ3 and DQ6 pass conditionally; DQ1, DQ2, DQ4, DQ5, DQ7, DQ8, and DQ9 fail. The GQ1–GQ7 campaign **`ADOPT`s** a moment-map/Kähler projection architecture as a **Hypothesized research direction** while retaining `REJECT` for physical-identification promotion. QC1–QC9 **`ADOPT`s** a finite carrier reservoir as **Hypothesized microphysics** and its carrier-to-mesoscopic law as **Derived conditional**; the QF1-to-carrier state map remains **Open**. Quantum equilibrium remains an irreducible statistical postulate. The 2026 sodium-nanoparticle result constrains additional collapse and agrees with the bridge's $R_\ell=1$ limit. |
+| **Reference** | `foundations/quantum-measurement-derivation.md` §§4.5, 8.1, 8.3–8.4; `computations/quantum-closure-pre-registration.md`; `computations/verify_quantum_closure.py`; `computations/quantum-geometric-bridge-pre-registration.md`; `computations/verify_quantum_geometric_bridge.py`; `computations/quantum-configuration-bridge-pre-registration.md`; `computations/verify_quantum_configuration_bridge.py`; `computations/qi-flow-entanglement-pre-registration.md`; `computations/verify_qi_flow_entanglement.py`; `computations/cassifi-quantum-bridge-pre-registration.md`; `computations/verify_cassifi_quantum_bridge.py` |
 
 ### Q8: Quark confinement
 
@@ -1190,6 +1199,13 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
 - **The internal$\to$physical axis map.** A coordinate spiral's Frenet-Serret vectors $\{\mathbf{T}, \mathbf{N}, \mathbf{B}\}$ provide a candidate projection into three physical directions; the physical identification remains Hypothesized. See `foundations/why-three-dimensions.md` §2.2 and §6.1.
 - **Bubble edge profile.** The physical gradient in $q$, $\rho$, and $G_{\text{eff}}$ across the condensation boundary is derived from the chord lattice geometry but the condensation threshold $\theta_{\text{cond}}$ and the density exponent $\nu$ require PDE computation. See `foundations/bubble-edge-geometry.md`.
 - **BH information Page curve.** The $\sigma$-regularized free propagator supplies UV suppression and a conditional pole-level consistency argument; it does not establish an interacting unitary S-matrix. The full Page curve computation requires a curved-spacetime two-fluid PDE solver that does not yet exist. See `gravity/quantum-gravity.md` §7.
+- **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
+  the finite carrier occupations form independent factors in the adopted
+  additive completion. A physical identification requires an admissible state
+  map or constrained state space that reproduces both the CassiFI Hamiltonian
+  and the carrier jump generator without duplicating the density sector. The
+  carrier-to-mesoscopic projection is Derived conditional; this preceding map
+  remains Open.
 - **Pipelines needed:** $H_0$ shift (C3/T4) requires $w(a) \to H(z)$ integration; $\sigma_8$ (T3) requires modified $G_{\text{eff}}(k,q)$ in Boltzmann code; galaxy mass function (T2) requires PDE wake-wave + Qi-gravity N-body; BH Page curve requires curved-spacetime PDE solver.
 - **Primordial Yang-Yin ratio $r_{\text{Planck}}$.** **Derived.** The Wu Xing number $w = 5$ follows from a single input—the coherence criterion applied to ALL cycle sizes: $w\min_p|\varphi - p/w| \leq \varphi^{-w}$ holds only for $w \in \{1,2,3,5\}$ (continued-fraction optimality; verified to $w = 2000$), and $\varphi$-geometry selects $w \geq 5$. The gap $g = 1 - \varphi^{-5}$ and $r_0 = \varphi^{-5}/(2-\varphi^{-5}) \approx 0.0472$ follow from this input. The named C-class/framework convention $\lambda=0.1$ is Asserted, the implementation class default is $\lambda=0.02$, and the relation $\lambda=1/(2w)$ is a Hypothesized Wu Xing linkage requiring independent cycle-time and dynamical closure. Dimensionless quantities retain mixed accounting—Derived structural forms alongside asserted normalizations, calibrated anchors, mapped exponents, and external constants; $c$, $\hbar$, and $G$ remain external.
 

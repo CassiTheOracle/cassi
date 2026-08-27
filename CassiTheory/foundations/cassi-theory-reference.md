@@ -615,6 +615,17 @@ microscopic-to-mesoscopic projection, cotangent reconstruction,
 physical-sector realization, and Cassi-specific holonomy remain open
 (`foundations/quantum-measurement-derivation.md` §8.3).
 
+The QC1–QC9 finite-completion campaign `ADOPT`s a conservative carrier
+birth-death-hopping process as **Hypothesized** microphysics and its
+carrier-to-mesoscopic projection as **Derived conditional** mathematics. At a
+finite regulator its generator is positivity preserving, conserves total
+carrier number, projects to the canonical conversion-diffusion drift, and
+fixes binomial conversion fluctuations plus the declared transport-noise
+kernel. The QF1 complex-field density and carrier-projected density are
+independent coordinates in the additive completion; a physical state map
+between them remains Open (`foundations/quantum-measurement-derivation.md`
+§8.4).
+
 ### 5.2 Spin
 
 Spin is assigned through a **Hypothesized** geometric phase convention on a nested Fibonacci spiral, separate from canonical density-plane relaxation. Spiral polar equation:
@@ -655,6 +666,15 @@ $$
 which gives $P(k)=|c_k|^2$ for ideal disjoint records. No intrinsic
 mass-triggered collapse term is present. The complete derivation is
 `foundations/quantum-measurement-derivation.md`.
+
+At finite regulator the carrier reservoir and an apparatus record also define
+a completely positive trace-preserving instrument
+$\{\mathcal I_k\}$ with
+$\sum_k\mathcal I_k$ trace preserving. For the same preparation, controls,
+Hamiltonian, and instrument as ordinary quantum mechanics, the regulated
+CassiFI branch is operationally equivalent at every finite sequence of
+measurements. Its present quantum result is therefore a conditional
+construction and compatibility boundary, not a Cassi-specific departure.
 
 ---
 

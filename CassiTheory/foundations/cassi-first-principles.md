@@ -645,6 +645,15 @@ atomic DFT receipts remain numerical results for their effective solver and
 supply no test of the CassiFI physical identification. The full derivation and
 its four postulates are in `foundations/quantum-measurement-derivation.md`.
 
+A separate finite carrier reservoir supplies one conservative stochastic
+completion of the canonical two-fluid drift, its finite-size fluctuations, and
+a completely positive measurement instrument. Those consequences are
+**Derived conditional** for the declared carrier process; the carrier's
+physical identity is **Hypothesized**, and no state map identifies its
+projected densities with the QF1 complex-field density. With quantum
+equilibrium and the same instrument, the construction is operationally
+equivalent to ordinary quantum mechanics.
+
 ### 3.2 Cosmology (Pillar 2; optional Hubble closure)
 
 An FLRW background plus a separately supplied Hubble closure gives the standard

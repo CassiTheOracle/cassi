@@ -24,6 +24,21 @@ microscopic projection, cotangent reconstruction, physical-sector geometry,
 and Cassi-specific holonomy fail. The physical-identification promotion verdict remains
 `REJECT`.
 
+The finite carrier-reservoir construction in §8.4 closes the positivity
+boundary, conversion noise, and carrier-to-mesoscopic projection at a finite
+regulator. The canonical two-fluid drift is the density-dependent Markov limit
+of conservative Yang-to-Yin carrier jumps and lattice transport; the same
+process fixes the finite-volume fluctuation covariance once a carrier-density
+quantum is declared. Separately, QF1–QF4 and the quantum instrument close the
+regulated measurement algebra. The additive product model treats the QF1
+complex field and carrier occupations as independent sectors. A physical
+identification between the modulus density
+$\mu_{\rm dens}(Q)$ and the carrier density $\eta\mathbf k$ requires an
+additional state map or constraint and remains Open. The carrier reservoir and
+the CassiFI microscopic identification remain Hypothesized. With quantum
+equilibrium and the same completely positive instrument, the regulated branch
+is operationally equivalent to ordinary quantum mechanics.
+
 ---
 
 ## 1. Inputs from the CassiFI field law
@@ -1385,7 +1400,8 @@ preregistered Cassi-specific discriminator.
 | No spontaneous Cassi collapse | **Selected quantum branch** | Reproducible excess visibility loss cannot be assigned to registered environmental channels |
 | Finite CassiFI Kähler configuration and $W$-isometric refinement | **Derived conditional** within the declared complex configuration | $W$, $J$, $g$, $\omega$, or complex-linear refinement compatibility fails |
 | Moment-map/Kähler projection architecture | **Hypothesized; `ADOPT` research direction** | Phase fibre is causally inert, finite Kähler compatibility fails, or the canonical state is declared complete and invertible |
-| Microscopic-to-mesoscopic projection theorem | **Open** | A source-defined phase ensemble or reservoir derives the canonical PDE with parameter provenance |
+| Microscopic-to-mesoscopic projection theorem | **Derived conditional** on the finite carrier reservoir and density-dependent scaling; physical carrier identification **Hypothesized** | (QC17)–(QC28) fail, or no regulator regime converges to the canonical PDE |
+| Finite conversion-noise law | **Derived conditional** on finite carrier count and frozen-cell conversion | Mean relaxation, variance, and autocorrelation admit no common $(\lambda,N)$ in (QC33)–(QC38) |
 
 ### 8.3 Quantum-geometric reconstruction campaign
 
@@ -1942,6 +1958,952 @@ The projection architecture can advance through source artifacts that supply:
 4. physical $SU(2)$, fermion-bundle, local gauge, particle, and record maps;
 5. interacting continuum convergence for the Kähler/Hamiltonian sequence;
 6. a preregistered, parameter-free spatial or scale holonomy observable.
+
+### 8.4 Finite carrier-reservoir completion
+
+This section gives a finite carrier-reservoir completion of the canonical
+mesoscopic conversion law alongside the regulated quantum branch. It supplies
+an explicit reservoir, completely positive microscopic dynamics, a
+carrier-density projection, a hydrodynamic limit, a finite-size fluctuation
+law, and a compatible quantum instrument. Its physical use has three separate
+statuses:
+
+1. the QF1–QF4 quantum consequences are **Derived conditional**;
+2. the carrier-process consequences and carrier-to-mesoscopic projection are
+   **Derived conditional**;
+3. the physical identity or coupling between the QF1 complex configuration
+   and the carrier occupations is **Open**, while both proposed CassiFI
+   identifications remain **Hypothesized**.
+
+The construction introduces physical premises at every boundary that the
+canonical real-density theory leaves underdetermined. It preserves the
+DQ1–DQ9 source verdict because no state map from the QF1 sector to the carrier
+sector is supplied. Every remaining assumption, scale, and empirical escape
+route is named below.
+
+#### 8.4.1 Dependency-minimal quantum premises
+
+The four postulates in §2 have distinct jobs:
+
+| Premise | Irreducible job | What its equations establish |
+|---|---|---|
+| QF1 | complex Hilbert kinematics | superposition, inner product, tensor composition, and phase |
+| QF2 | self-adjoint dynamics | the Hamiltonian and unitary time evolution |
+| QF3 | actual configuration | one configuration guided by a selected current |
+| QF4 | preparation statistics | quantum equilibrium $\rho_Q=|\Psi|^2$ |
+
+Their independence is visible through the neighboring consistent theories.
+QF1 and QF2 without QF3 give the operational density-operator theory. QF1–QF3
+without QF4 give current-guided nonequilibrium ensembles. QF1 with a classical
+ensemble action and no Fisher term gives Hamilton–Jacobi flow. A real density
+pair without QF1 has no relative phase and fails DQ1. These are logical
+separations; none selects which neighboring theory nature realizes.
+
+For the regulated kinetic-plus-potential Hamiltonian in §1.2, QF2 can be
+replaced by a more primitive statistical premise. On the finite CassiFI
+configuration manifold $(\mathcal C,G)$, let $\rho(Q,t)\geq0$ be normalized
+and let $S(Q,t)$ be a real ensemble action. Define the covariant Fisher
+functional by its nonsingular square-root form
+
+$$
+\mathcal I_G[\rho]
+:=
+4\int_{\mathcal C}
+G^{AB}\partial_A\sqrt{\rho}\,\partial_B\sqrt{\rho}\,
+\mathrm d\mu_G .
+\tag{QC1}
+$$
+
+The functional is finite when $\sqrt{\rho}\in H^1(\mathcal C,\mathrm d\mu_G)$
+and is $+\infty$ otherwise. For smooth strictly positive $\rho$, (QC1) equals
+$\int\rho G^{AB}\partial_A\ln\rho\,\partial_B\ln\rho\,\mathrm d\mu_G$.
+
+The **exact-uncertainty premise EU** assigns unresolved, zero-mean momentum
+fluctuations $\xi_A$ whose ensemble kinetic contribution is
+
+$$
+\int_{\mathcal C}
+\rho\,
+\mathbb E\!\left[
+\xi_A G^{AB}\xi_B\mid Q
+\right]\mathrm d\mu_G
+=
+\frac{\hbar^2}{4}\mathcal I_G[\rho].
+\tag{QC2}
+$$
+The kinetic energy carries a factor of one half, so its fluctuation
+contribution to the action is one half of (QC2). This gives the
+$\hbar^2/8$ coefficient in (QC3).
+
+Together with the classical ensemble Hamiltonian, this gives the action
+
+$$
+\begin{aligned}
+\mathcal A_{\rm EU}[\rho,S]
+=
+\int\mathrm dt\int_{\mathcal C}\mathrm d\mu_G
+\bigg[
+&\rho\left(
+\partial_tS
++\frac12G^{AB}\partial_AS\,\partial_BS
++U_{\mathrm{FI}}(Q)
+\right)\\
+&+\frac{\hbar^2}{8}\rho\,
+G^{AB}\partial_A\ln\rho\,\partial_B\ln\rho
+\bigg].
+\end{aligned}
+\tag{QC3}
+$$
+
+Assume that $\rho$ and $S$ are smooth on the nonnodal domain,
+$\mathcal I_G[\rho]<\infty$, and the variations vanish at the temporal
+endpoints. Spatial variations have compact support, or the fields satisfy
+periodic, sufficient-decay, or no-flux boundary conditions so that every
+integration-by-parts boundary term vanishes. Variation with respect to $S$
+then gives
+
+$$
+\partial_t\rho+
+\nabla_A\!\left(\rho G^{AB}\partial_BS\right)=0,
+\tag{QC4}
+$$
+
+and variation with respect to $\rho$ gives
+
+$$
+\partial_tS
++\frac12G^{AB}\partial_AS\,\partial_BS
++U_{\mathrm{FI}}(Q)
+-\frac{\hbar^2}{2}
+\frac{\Delta_G\sqrt{\rho}}{\sqrt{\rho}}
+=0.
+\tag{QC5}
+$$
+
+With
+
+$$
+\Psi=\sqrt{\rho}\,e^{iS/\hbar},
+\tag{QC6}
+$$
+
+Let $\mathcal C_*=\{Q:\rho(Q,t)>0\}$. Assume that
+$e^{iS/\hbar}$ is single-valued on $\mathcal C_*$, equivalently
+$\oint_\gamma\partial_AS\,\mathrm dQ^A\in2\pi\hbar\mathbb Z$ for every
+closed loop $\gamma\subset\mathcal C_*$, and that
+$\Psi\in\operatorname{dom}(\Delta_G)$ with unit $L^2(\mathrm d\mu_G)$ norm.
+The wavefunction extends continuously by zero to nodes. Under these domain
+and circulation conditions, equations (QC4)–(QC5) are equivalent on
+$\mathcal C_*$, and weakly across its nodal boundary, to the linear equation
+
+$$
+i\hbar\partial_t\Psi
+=
+\left(
+-\frac{\hbar^2}{2}\Delta_G+U_{\mathrm{FI}}(Q)
+\right)\Psi.
+\tag{QC7}
+$$
+
+Thus QF2 follows from the classical ensemble action plus EU. EU is one
+statistical postulate in place of canonical quantization; it is not a
+consequence of the CassiFI conversion PDE. Its coefficient is fixed by the
+external physical constant $\hbar$, and the construction supplies no
+independent Cassi value for $\hbar$. Hall and Reginatto give the corresponding
+exact-uncertainty result for classical ensembles; (QC1)–(QC7) state its
+finite-metric CassiFI specialization.
+
+#### 8.4.2 Current selection and equilibrium
+
+The global phase symmetry of (QC3) gives the conserved current
+
+$$
+J^A
+=
+\rho\,G^{AB}\partial_BS
+=
+\hbar G^{AB}
+\operatorname{Im}\!\left(\Psi^*\partial_B\Psi\right).
+\tag{QC8}
+$$
+
+QF3 selects on $\mathcal C_*$ the corresponding minimal-current velocity
+
+$$
+\dot Q^A=\frac{J^A}{\rho}
+=G^{AB}\partial_BS.
+\tag{QC9}
+$$
+
+The velocity is undefined at nodes. Their QF4 measure is zero; almost-sure
+global trajectories additionally require the regularity and non-explosion
+conditions of the selected Hamiltonian.
+
+The word *minimal* is part of the premise: any sufficiently regular
+divergence-free addition $K^A$ with $\nabla_AK^A=0$ preserves the same
+continuity equation. Equation (QC9) selects zero such addition. No scalar
+density or equivariance condition can recover that choice by itself.
+
+Let $\sigma(Q,t)$ be the density of actual configurations transported by
+(QC9). Wherever $\rho>0$,
+
+$$
+\left(
+\partial_t+\dot Q^A\partial_A
+\right)\frac{\sigma}{\rho}=0.
+\tag{QC10}
+$$
+
+Consequently $\sigma=\rho$ is equivariant, while a nonequilibrium ratio
+$\sigma/\rho\ne1$ is carried along the same trajectories. Unitary dynamics
+therefore preserves QF4 but does not attract arbitrary preparations to QF4.
+The Born density remains the unique normalized local power
+$F(|\Psi|^2)$ that is equivariant, as proved in §6.4; empirical Born
+frequencies retain QF4 as an initial-ensemble condition.
+
+#### 8.4.3 Measurement as a quantum instrument
+
+At a fixed finite regulator, let $\mathcal H_S$ and $\mathcal H_R$ be
+separable system and combined apparatus–reservoir Hilbert spaces. Let
+$\tau_R\geq0$ satisfy $\operatorname{Tr}\tau_R=1$, let $U_{SR}$ be a unitary
+interaction, and let $\{P_k\}$ be mutually orthogonal projectors onto retained
+record sectors with $\sum_kP_k=\mathbf1_R$. The maps
+
+$$
+\boxed{
+\mathcal I_k(\varrho_S)
+:=
+\operatorname{Tr}_R\!\left[
+(\mathbf1\otimes P_k)
+U_{SR}(\varrho_S\otimes\tau_R)U_{SR}^\dagger
+(\mathbf1\otimes P_k)
+\right]
+}
+\tag{QC11}
+$$
+
+are completely positive and trace-nonincreasing, and their sum is a
+completely positive trace-preserving channel:
+
+$$
+\mathcal I_k\ \text{is CP and trace-nonincreasing},\qquad
+\sum_k\mathcal I_k\ \text{is CPTP}.
+\tag{QC12}
+$$
+
+The record probability and conditional system state are
+
+$$
+p_k=\operatorname{Tr}\mathcal I_k(\varrho_S),
+\qquad
+\varrho_{S|k}
+=\frac{\mathcal I_k(\varrho_S)}{p_k}
+\quad(p_k>0).
+\tag{QC13}
+$$
+
+For a pure initial state and an ideal correlating interaction, (QC13)
+reduces to the coefficient rule $p_k=|c_k|^2$ in §5. Under QF3, the actual
+apparatus configuration enters one disjoint support $\Omega_k$; under QF4,
+the measure of that support is (QC13). Topological retention stabilizes the
+selected record after the interaction has produced the disjoint sectors.
+The interaction $U_{SR}$, ready state $\tau_R$, and record projectors $P_k$
+jointly determine the outcome basis. The scalar $q$ may control record
+retention or a physical coupling inside $U_{SR}$, but it does not select a
+basis from the premeasurement system state.
+
+Absorption, loss, thresholding, and an unobserved environment are included by
+enlarging $\mathcal H_R$ and tracing the unrecorded factors. If the displayed
+record projectors are incomplete, the complement
+$P_\varnothing=\mathbf1_R-\sum_kP_k$ is the loss outcome required to make
+the instrument trace preserving. Every normal CPTP map on these separable
+state spaces admits a Stinespring isometry; enlarging the ancilla extends
+that isometry to a unitary interaction.
+The finite carrier space below makes its generator bounded, so the
+Gorini–Kossakowski–Sudarshan–Lindblad form generates a uniformly continuous
+CPTP semigroup. An unbounded or continuum generator requires additional
+domain hypotheses and is not used here.
+
+#### 8.4.4 Finite carrier-reservoir state
+
+Let $\Lambda_h$ be a finite periodic lattice or finite graph of spatial cells,
+and let
+
+$$
+\mathbf k
+:=
+\{k_{Y,n},k_{I,n}\}_{n\in\Lambda_h},
+\qquad
+k_{a,n}\in\mathbb N_0,
+\qquad
+\sum_{n,a}k_{a,n}=N_{\rm car}.
+\tag{QC14}
+$$
+
+One carrier contributes a density increment $\eta>0$ in one cell:
+
+$$
+E_{Y,n}=\eta k_{Y,n},
+\qquad
+E_{I,n}=\eta k_{I,n}.
+\tag{QC15}
+
+$$
+
+In (QC15)–(QC41), $E_{a,n}$ abbreviates the **carrier-projected** density
+$E^{\rm car}_{a,n}$. The QF1 complex configuration has the separate candidate
+modulus projection
+$\mu_{\rm dens}(Q)=(|\mathcal E_Y|^2,|\mathcal E_I|^2)$. The additive model
+below treats these as independent sectors. Identifying
+$E^{\rm car}_{a,n}$ with a discretized $\mu_{\rm dens}(Q)_n$ requires an
+explicit state map and admissible joint state space; neither follows from
+(QC14)–(QC15).
+
+The fixed-$N_{\rm car}$ occupation space $\Omega_{N_{\rm car}}$ is finite,
+and its carrier Hilbert space is
+$\mathcal H_{\rm car}=\ell^2(\Omega_{N_{\rm car}})$. For each configuration,
+$q_n(\mathbf k)\in[0,1]$ is the canonical Qi gate evaluated on the projected
+cell fields. Define the conversion maps
+
+$$
+T_{n,YI}\mathbf k
+=
+\mathbf k-\mathbf e_{Y,n}+\mathbf e_{I,n},
+\qquad
+T_{n,IY}\mathbf k
+=
+\mathbf k+\mathbf e_{Y,n}-\mathbf e_{I,n}.
+\tag{QC16}
+$$
+
+The carrier conversion operators are
+
+$$
+\begin{aligned}
+L_{n,YI}
+&=
+\sum_{\mathbf k:k_{Y,n}>0}
+\sqrt{\lambda[1-q_n(\mathbf k)]k_{Y,n}}\,
+|T_{n,YI}\mathbf k\rangle\langle\mathbf k|,\\
+L_{n,IY}
+&=
+\sum_{\mathbf k:k_{I,n}>0}
+\sqrt{\varphi\lambda[1-q_n(\mathbf k)]k_{I,n}}\,
+|T_{n,IY}\mathbf k\rangle\langle\mathbf k|.
+\end{aligned}
+\tag{QC17}
+$$
+
+The amplitudes in (QC17) are functions of basis configurations, so the
+operators are fixed linear operators on $\mathcal H_{\rm car}$. The resulting
+master equation is linear even though the projected drift contains the
+nonlinear gate $q(E_Y,E_I)$.
+
+For an oriented neighboring-cell face $n\to m$, take
+$u_{nm}=-u_{mn}$ and define the upwind advection-diffusion rate
+
+$$
+r_{n\to m}
+=
+\frac{D}{h^2}+\frac{[u_{nm}]_+}{h},
+\qquad
+[z]_+:=\max(z,0).
+\tag{QC18}
+$$
+Assume the face velocities are discretely divergence-free,
+$\sum_{m\sim n}u_{nm}=0$. This is the finite-volume condition under which
+the conservative advection limit below equals $-(\mathbf u\cdot\nabla)E$;
+without it, the limit is $-\nabla\cdot(\mathbf uE)$.
+
+
+The transport operators are
+
+$$
+L_{a,n\to m}
+=
+\sum_{\mathbf k:k_{a,n}>0}
+\sqrt{r_{n\to m}k_{a,n}}\,
+|\mathbf k-\mathbf e_{a,n}+\mathbf e_{a,m}\rangle
+\langle\mathbf k|,
+\qquad a\in\{Y,I\}.
+\tag{QC19}
+$$
+
+With
+
+$$
+\mathcal D[L]\varrho
+:=
+L\varrho L^\dagger
+-\frac12\{L^\dagger L,\varrho\},
+\tag{QC20}
+$$
+
+the reduced carrier generator is
+
+$$
+\boxed{
+\mathcal L_{\rm car}
+=
+\sum_n\left(
+\mathcal D[L_{n,YI}]
++\mathcal D[L_{n,IY}]
+\right)
++\sum_{a,n\to m}\mathcal D[L_{a,n\to m}]
+}.
+\tag{QC21}
+$$
+
+Every rate is nonnegative. Every jump preserves the total carrier number.
+Unavailable jumps have zero amplitude at $k_{a,n}=0$, so the positivity wedge
+is invariant without clipping, reflection, or a stochastic-calculus
+convention. Because $\Omega_{N_{\rm car}}$ is finite, (QC21) generates a
+positive trace-preserving semigroup for all finite times.
+
+The total regulated reduced state may be written
+
+$$
+\varrho_{\rm tot}
+\in
+\mathcal T_1\!\left(
+\mathcal H_Q\otimes
+\mathcal H_{\rm SM}\otimes
+\mathcal H_{\rm car}
+\right),
+\tag{QC22}
+
+$$
+
+Equation (QC22) is an additive tensor product. It supplies no diagonal
+constraint or isometry identifying the QF1 density coordinates with carrier
+occupations. The interaction Hamiltonian may couple the factors, while a
+physical identification requires the additional map named after (QC15).
+
+Its dynamics are
+
+$$
+\partial_t\varrho_{\rm tot}
+=
+-\frac{i}{\hbar}
+[H_Q+H_{\rm SM}+H_{\rm int},\varrho_{\rm tot}]
++\mathcal L_{\rm car}\varrho_{\rm tot}.
+\tag{QC23}
+$$
+
+$H_Q$ is the finite CassiFI Hamiltonian of §3, $H_{\rm SM}$ is the empirical
+Standard Model Hamiltonian on the chosen regulator, and $H_{\rm int}$
+specifies the experiment-dependent coupling. Equation (QC23) is complete only
+after those operators and the initial state are supplied. It imports the
+known matter, spin, fermion, and gauge sectors through $\mathcal H_{\rm SM}$;
+it does not derive them from the two-fluid variables.
+The one-factor Hamiltonians in (QC23) denote their canonical identity
+extensions to the full product space, and $\mathcal L_{\rm car}$ denotes
+$\operatorname{id}_{Q,\rm SM}\otimes\mathcal L_{\rm car}$.
+
+
+A unitary dilation of the finite-time channel generated by (QC23) exists.
+A microscopic bath Hamiltonian that produces the semigroup requires the
+usual weak-coupling, short-correlation, and secular limits. The carrier jump
+law (QC17)–(QC21) is therefore the declared reservoir completion; a unique
+molecular bath realization is not implied by the reduced generator.
+
+#### 8.4.5 Mesoscopic projection theorem
+
+On density matrices diagonal in the occupation basis, (QC21) is the master
+equation of a continuous-time carrier jump process. Its conversion
+intensities in cell $n$ are
+
+$$
+\begin{aligned}
+a_n(\mathbf k)
+&=\lambda[1-q_n(\mathbf k)]k_{Y,n},\\
+b_n(\mathbf k)
+&=\varphi\lambda[1-q_n(\mathbf k)]k_{I,n}.
+\end{aligned}
+\tag{QC24}
+$$
+
+The exact first-moment conversion identity is
+
+$$
+\frac{\mathrm d}{\mathrm dt}
+\mathbb E[E_{Y,n}]
+=
+-\eta\,\mathbb E[a_n-b_n]
+=
+-\frac{\mathrm d}{\mathrm dt}
+\mathbb E[E_{I,n}].
+\tag{QC25}
+$$
+
+For a density-dependent family indexed by $R$, fix $\eta_*>0$ and
+$N_*\in\mathbb N$, then take
+$\eta_R=\eta_*/R$ and $N_{\rm car}^{(R)}=RN_*$. The total projected density
+$\eta_RN_{\rm car}^{(R)}=\eta_*N_*$ is fixed. Define
+$\bar a_n(\mathbf E)=\lambda(1-q_n)E_{Y,n}$ and
+$\bar b_n(\mathbf E)=\varphi\lambda(1-q_n)E_{I,n}$, and use jump intensities
+$\eta_R^{-1}\bar a_n(\mathbf E)$ and
+$\eta_R^{-1}\bar b_n(\mathbf E)$. Assume that $q_n$ is Lipschitz on the
+compact fixed-total-density state space. The law of large numbers for
+density-dependent jump processes then gives, uniformly on each finite time
+interval in probability,
+
+$$
+\mathbf E^{(R)}(t)\longrightarrow\mathbf E(t)
+\qquad(R\to\infty),
+\tag{QC26}
+$$
+
+where the conversion drift is
+
+$$
+\begin{aligned}
+\partial_tE_{Y,n}\big|_{\rm conv}
+&=-\lambda(1-q_n)(E_{Y,n}-\varphi E_{I,n}),\\
+\partial_tE_{I,n}\big|_{\rm conv}
+&=+\lambda(1-q_n)(E_{Y,n}-\varphi E_{I,n}).
+\end{aligned}
+\tag{QC27}
+$$
+
+The transport operators (QC19) add the conservative upwind
+advection-diffusion discretization. Under the discrete divergence-free
+condition above and the regularity assumptions for that finite-volume scheme,
+mesh refinement gives
+
+$$
+\boxed{
+\begin{aligned}
+\partial_tE_Y
+&=-(\mathbf u\cdot\nabla)E_Y
++D\nabla^2E_Y
+-\lambda(1-q)(E_Y-\varphi E_I),\\
+\partial_tE_I
+&=-(\mathbf u\cdot\nabla)E_I
++D\nabla^2E_I
++\lambda(1-q)(E_Y-\varphi E_I).
+\end{aligned}
+}
+\tag{QC28}
+$$
+
+Equation (QC28) is exactly the selected canonical two-fluid density law.
+The carrier construction fixes the conversion-rate asymmetry
+$1:\varphi$ and introduces no new deterministic drift coefficient. At finite
+$R$, (QC21) supplies the stochastic completion whose expectation is generally
+unclosed because $\mathbb E[q(\mathbf E)\mathbf E]$ need not factorize.
+Equation (QC28) is the hydrodynamic limit of that finite process.
+
+Three limits have separate meanings:
+
+1. $\hbar\to0$ in (QC3) gives the Hamilton–Jacobi limit of the conservative
+   quantum sector;
+2. $R\to\infty$ in (QC26) suppresses relative carrier fluctuations and gives
+   the deterministic density law;
+3. $h\to0$ gives a continuum PDE only when the finite-volume solutions remain
+   regular and converge.
+No interchange or joint-limit claim is made.
+
+
+The finite regulated theory needs neither the second nor the third limit for
+mathematical consistency. A fundamental continuum identification requires
+the additional convergence control in item 3.
+
+#### 8.4.6 Exact finite-volume conversion statistics
+
+Freeze one cell's $q$, assume $\lambda(1-q)>0$, write its carrier count as
+$N_c:=k_Y+k_I$, and fix its total density
+$\rho=E_Y+E_I=\eta N_c$. Turn off transport. Each carrier independently
+changes $Y\to I$ at rate
+
+$$
+\alpha=\lambda(1-q)
+\tag{QC29}
+$$
+
+and $I\to Y$ at rate
+
+$$
+\beta=\varphi\lambda(1-q).
+\tag{QC30}
+$$
+
+The finite chain has the unique stationary distribution
+
+$$
+k_I\sim
+\operatorname{Binomial}\!\left(N_c,\frac{\alpha}{\alpha+\beta}\right)
+=
+\operatorname{Binomial}\!\left(N_c,\varphi^{-2}\right),
+\tag{QC31}
+$$
+
+because
+
+$$
+p_Y=\frac{\beta}{\alpha+\beta}=\varphi^{-1},
+\qquad
+p_I=\frac{\alpha}{\alpha+\beta}=\varphi^{-2}.
+\tag{QC32}
+$$
+
+Hence
+
+$$
+\mathbb E[E_Y]:\mathbb E[E_I]=\varphi:1,
+\qquad
+\mathbb E[\varepsilon]=0,
+\qquad
+\operatorname{Var}(\varepsilon)
+:=
+\frac{\varphi\rho^2}{N_c},
+\tag{QC33}
+$$
+
+where $\varepsilon=E_Y-\varphi E_I$. The relaxation rate and stationary
+autocovariance are
+
+$$
+\Gamma=(1+\varphi)\lambda(1-q)
+=\varphi^2\lambda(1-q),
+\tag{QC34}
+$$
+
+$$
+\operatorname{Cov}[\varepsilon(t),\varepsilon(0)]
+:=
+\frac{\varphi\rho^2}{N_c}e^{-\Gamma|t|}.
+\tag{QC35}
+$$
+
+The exact predictable quadratic-variation rate away from equilibrium is
+
+$$
+\frac{\mathrm d}{\mathrm dt}
+\langle[\varepsilon]\rangle
+=
+\eta^2\varphi^4\lambda(1-q)
+\left(k_Y+\varphi k_I\right).
+\tag{QC36}
+$$
+
+The central-limit fluctuation near equilibrium is therefore
+
+$$
+\mathrm d\varepsilon
+:=
+-\Gamma\varepsilon\,\mathrm dt
++\sqrt{
+\frac{2\Gamma\varphi\rho^2}{N_c}
+}\,\mathrm dW_t.
+\tag{QC37}
+$$
+
+For the canonical equilibrium gate
+$1-q_{\rm eq}=1/(3\varphi^2)$, equation (QC34) gives
+
+$$
+\Gamma_{\rm eq}=\frac{\lambda}{3}.
+\tag{QC38}
+$$
+
+After normalizing
+
+$$
+z
+:=
+\frac{\sqrt{N_c}}{\sqrt\varphi\,\rho}\varepsilon,
+\tag{QC39}
+$$
+
+(QC37) becomes the frozen unit-temperature form used in OS3:
+
+$$
+\mathrm dz
+=
+-\frac{\lambda}{3}z\,\mathrm dt
++\sqrt{\frac{2\lambda}{3}}\,\mathrm dW_t.
+\tag{QC40}
+$$
+
+The transport jumps also determine the spatial noise that OS3 leaves open.
+For a homogeneous periodic lattice with $\mathbf u=0$, let
+$L=|\Lambda_h|$, $\bar N=N_{\rm car}/L$, and $\rho_0=\eta\bar N$. The
+stationary carrier distribution is multinomial over cells and the two
+internal states.
+For a unitary discrete Fourier transform, every composition mode has
+
+$$
+V_\varepsilon
+:=
+\operatorname{Var}(\varepsilon_{\mathbf k})
+=
+\frac{\varphi\rho_0^2}{\bar N}.
+\tag{QC40a}
+$$
+
+The lattice Laplacian eigenvalue is
+
+$$
+\widehat k^2
+=
+\frac{4}{h^2}
+\sum_{j=1}^{d}
+\sin^2\!\left(\frac{k_jh}{2}\right).
+\tag{QC40b}
+$$
+
+The joint conversion-and-transport central-limit mode is
+
+$$
+\mathrm d\varepsilon_{\mathbf k}
+=
+-\left(\Gamma+D\widehat k^2\right)
+\varepsilon_{\mathbf k}\,\mathrm dt
++\sqrt{
+2\left(\Gamma+D\widehat k^2\right)V_\varepsilon
+}\,\mathrm dW_{\mathbf k}.
+\tag{QC40c}
+$$
+For a real composition field, the Fourier noises obey
+$\mathrm dW_{-\mathbf k}=\mathrm dW_{\mathbf k}^*$; self-conjugate modes use
+real Wiener increments.
+
+
+Its stationary spectrum is
+
+$$
+S_\varepsilon(\omega,\mathbf k)
+=
+\frac{
+2\left(\Gamma+D\widehat k^2\right)V_\varepsilon
+}{
+\omega^2+\left(\Gamma+D\widehat k^2\right)^2
+}.
+\tag{QC40d}
+$$
+
+Conversion supplies the $2\Gamma V_\varepsilon$ part of the noise power, and
+symmetric carrier transport supplies
+$2D\widehat k^2V_\varepsilon$. The latter is the conserved diffusion-noise
+kernel needed for a mode-independent equilibrium variance. Advection and
+nonuniform backgrounds require their corresponding stationary measure and
+are outside this homogeneous certificate.
+
+Thus the carrier process derives the OS3 normalization and its
+$\lambda/3$ spectral corner. The absolute density-noise amplitude depends on
+$N_c$, or equivalently on the carrier density quantum
+$\eta=\rho/N_c$ in the chosen cell volume. The deterministic PDE does not
+determine that microscopic scale. Measuring the variance in (QC33) determines
+$N_c$ directly:
+
+$$
+N_c
+:=
+\frac{\varphi\rho^2}{\operatorname{Var}(\varepsilon)}.
+\tag{QC41}
+$$
+
+The finite jump process resolves the Gaussian positivity problem in
+`foundations/physical-becoming-hierarchy.md` §4.3. State-dependent $q$ enters
+the jump intensities before the diffusion approximation, so the finite model
+also fixes the Itô convention and its noise-induced drift without an
+additional boundary prescription.
+
+#### 8.4.7 Parameter provenance and physical scope
+
+The completion has the following provenance:
+
+| Quantity | Role | Status |
+|---|---|---|
+| $\varphi$ | stationary conversion ratio and reverse-rate ratio | structural Cassi constant |
+| $\lambda,D,\mathbf u,q$ | deterministic mesoscopic drift | existing canonical PDE inputs |
+| $\hbar$ | quantum of action in EU and $H_Q$ | external measured physical constant |
+| $h$ | spatial regulator spacing | numerical regulator; a physical input only if a finite cutoff is identified |
+| $\eta$; equivalently $N_{\rm car}$ or local $N_c$ | carrier granularity and noise amplitude | new microscopic reservoir parameter |
+| $\tau_{\rm bath}$ | validity of the Markov reduction | conditional external bath timescale; no value supplied |
+| $H_{\rm SM},H_{\rm int}$ | known physical sectors and apparatus coupling | empirical model inputs |
+
+If the two conversion directions are coupled to a thermal reservoir at
+temperature $T_{\rm bath}$ with a carrier energy splitting $\Delta E$, local
+detailed balance reads
+
+$$
+\frac{\beta}{\alpha}
+=\varphi
+=\exp\!\left(
+\frac{\Delta E}{k_BT_{\rm bath}}
+\right),
+\qquad
+\Delta E=k_BT_{\rm bath}\ln\varphi.
+\tag{QC42}
+$$
+
+Equation (QC42) is an optional physical realization of the fixed rate ratio.
+It relates two bath quantities and does not determine $T_{\rm bath}$ or
+$\Delta E$ separately. The shared openness factor $(1-q)$ changes the
+relaxation clock while preserving the stationary ratio.
+
+The finite carrier model fills the reservoir, carrier-to-density projection,
+and fluctuation pieces requested by GQ3 under its declared premises. The map
+from the QF1 complex configuration to the carrier occupations remains Open,
+so the GQ3 microscopic-projection gate remains failed for promotion of the
+physical identification. Equation (QC11) supplies the record map. The
+Standard Model factor in (QC22) leaves the spin, fermion, local gauge, and
+particle-content derivations in GQ6 open. This is sufficient for an additive
+Cassi field and carrier reservoir coupled to known matter. A claim that the
+two-fluid sector generates the Standard Model requires a separate construction
+of $\mathcal H_{\rm SM}$, its representations, anomaly cancellation, and its
+couplings.
+
+#### 8.4.8 Operational-equivalence theorem
+
+Consider any finite sequence of preparations, controls, and measurements.
+Let ordinary quantum mechanics and the CassiFI regulated branch use the same
+initial density operator $\varrho_0$ and the same quantum instruments
+$\{\mathcal I^{(j)}_{k_j}\}$ at every stage. The stage label $j$ includes
+any dependence on the earlier record history, so adaptive choices are
+included. Under QF4, both assign the joint record probability
+
+$$
+\boxed{
+\Pr(k_1,\ldots,k_m)
+=
+\operatorname{Tr}\!\left[
+\mathcal I^{(m)}_{k_m}\circ\cdots\circ
+\mathcal I^{(1)}_{k_1}(\varrho_0)
+\right].
+}
+\tag{QC43}
+$$
+
+QF3 adds an actual configuration and a trajectory through the supports of
+these records. It does not change (QC43). Topological record sectors preserve
+the realized record and do not change (QC43). Therefore:
+
+> **Operational-equivalence theorem.** A QF1–QF4 CassiFI model with the same
+> initial density operators and completely positive instruments as ordinary
+> quantum mechanics has the same outcome statistics for every finite
+> experiment.
+
+The proof is the repeated application of (QC13), followed by the composition
+rule for completely positive maps. The theorem covers interference,
+entanglement, Bell experiments, scattering, sequential measurements, and
+adaptive controls.
+
+A Cassi-specific quantum discriminator can arise only if at least one input
+to (QC43) changes. The available boundaries are:
+
+1. a specified nonequilibrium preparation with
+   $\rho_Q\ne|\Psi|^2$;
+2. a specified modification of the Hamiltonian or completely positive
+   generator;
+3. a finite-regulator correction with a physical regulator scale;
+4. an observable coupling to a Cassi topological or carrier sector with
+   independently fixed parameters.
+
+The present regulated branch adopts none of these departures for microscopic
+quantum experiments. Its sodium-cluster calculation is consequently a
+parameter-free compatibility result at $R_0=1$. The absence of a Cassi-only
+visibility shift is a theorem of the adopted operational inputs, rather than
+an unfinished numerical search.
+
+This result resolves the discriminator requirement in DQ9 and GQ7 by
+separating two claims. Exact recovery of quantum mechanics is complete
+without a new discriminator. Promotion as a distinct predictive microscopic
+theory requires one of the four departures above and remains blocked until
+that departure has an independently fixed observable.
+
+#### 8.4.9 Closure ledger
+The `QL1`–`QL9` labels below denote closure claims. They are distinct from
+the preregistered verifier certificates `QC1`–`QC9`, which test individual
+finite identities.
+
+| Closure claim | Result | Dependency or boundary |
+|---|---|---|
+| QL1 regulated quantum state | Derived conditional | finite spatial regulator and QF1 |
+| QL2 quantum dynamics | Derived conditional | classical ensemble action plus EU and external $\hbar$ |
+| QL3 guidance and Born law | Derived conditional | minimal current QF3 and preparation condition QF4 |
+| QL4 measurement channel | Derived conditional | unitary interaction, ready state, and record projectors |
+| QL5 carrier dynamics | Derived conditional | finite $N_{\rm car}$ and nonnegative conversion and transport rates |
+| QL6 carrier-to-mesoscopic projection | Derived conditional | density scaling, law of large numbers, and finite-volume convergence |
+| QL7 fluctuation law | Derived conditional | frozen cell, finite $N_c$, and the carrier jump process |
+| QL8 sector relation and physical sectors | Hypothesized boundary | QF1-to-carrier map Open; Standard Model sectors imported |
+| QL9 discriminator | Derived boundary | operational equivalence under identical instruments |
+
+The closure decision is:
+
+1. **`ADOPT` the finite carrier-reservoir model as Hypothesized microphysics
+   for the canonical density law and its carrier-to-mesoscopic projection as
+   Derived conditional mathematics.**
+2. **`ADOPT` the quantum instrument (QC11) as the complete measurement-channel
+   interface for the regulated branch.**
+3. **Retain the QF1-to-carrier state map as Open; the additive tensor product
+   supplies no physical identification between its two density sectors.**
+4. **`REJECT` promotion of the CassiFI microscopic physical identification to
+   Derived.**
+5. **`REJECT` any Cassi-specific quantum prediction that changes none of the
+   inputs in (QC43).**
+
+The completion is falsifiable at its declared boundaries:
+
+1. Failure of complete positivity, trace preservation, carrier conservation,
+   or positivity on the finite state space rejects the mathematical model.
+2. A resolved carrier process whose stationary Yang/Yin ratio differs from
+   $\varphi:1$ under the frozen conversion conditions rejects (QC17).
+3. Joint measurements of the mean relaxation, variance, and autocorrelation
+   that admit no common $(\lambda,N_c)$ in (QC33)–(QC38) reject the finite
+   carrier reservoir.
+4. Failure of the scaled carrier process to converge to (QC28) under the
+   stated regularity conditions rejects the carrier-to-mesoscopic projection.
+5. A proposed identification of QF1 and carrier densities must define an
+   admissible joint state map and reproduce the declared dynamics without
+   duplicating one physical density sector.
+6. A claimed microscopic deviation from ordinary quantum mechanics with
+   unchanged $\varrho_0$ and instruments contradicts (QC43); the proposed
+   deviation must identify which operational input changes.
+7. Failure of continuum convergence rejects the continuum extension while
+   leaving the finite regulated sectors defined.
+
+#### 8.4.10 Closure boundary
+
+The finite construction has no unnamed mathematical step within either of its
+two conditional sectors:
+
+$$
+\boxed{
+\begin{gathered}
+\text{QF1}+\text{EU}+\text{QF3}+\text{QF4}
+\Longrightarrow
+\text{regulated quantum dynamics and Born instruments},\\
+\text{carrier jumps}+\text{lattice transport}
+\Longrightarrow
+\text{positive finite process}
+\Longrightarrow
+\text{canonical two-fluid PDE and finite-size noise}.
+\end{gathered}
+}
+\tag{QC44}
+$$
+
+No source-derived state map connects the QF1 complex field to the carrier
+occupations. The outstanding physical work is explicit:
+
+1. specify a nonduplicating QF1-to-carrier state map, or establish that the
+   two factors represent empirically distinct degrees of freedom;
+2. identify the carrier and measure $\eta$ or $N_c$;
+3. derive or measure a bath correlation time that justifies the Markov
+   reduction;
+4. specify $H_{\rm int}$ for each apparatus;
+5. derive the Standard Model sectors if CassiFI is proposed as their origin;
+6. establish continuum convergence if the regulator is removed;
+7. preregister one operational departure from (QC43) before claiming a
+   distinct microscopic prediction.
+
+These are physical-identification and unification problems. The regulated
+quantum mathematics, measurement instrument, finite reservoir, hydrodynamic
+projection, and operational-equivalence boundary are closed under the stated
+premises.
 
 ---
 
