@@ -1524,6 +1524,16 @@ geometry. The density-plane angle $\theta_d$ remains a bounded coordinate on
 the positive density cone. It has a different type from the compact
 longitude $\delta$.
 
+The finite projective construction in
+`foundations/string-bubble-projective-map.md` makes this local geometry
+explicit: its affine image maps the moment sphere to the selected quadratic
+bubble shell, its conjugated $U(1)$ action preserves the pullback shell
+metric, and the canonical density conversion becomes meridional flow at fixed
+total density. These are **Derived conditional** identities under the same
+complex-state and shell-identification assumptions. They do not change the
+GQ verdict: microscopic projection, physical shell identification, and a
+spontaneous selector for discrete fivefold locking remain open.
+
 The C1 certificate reproduces all identities with maximum residual
 $2.776\times10^{-17}$.
 

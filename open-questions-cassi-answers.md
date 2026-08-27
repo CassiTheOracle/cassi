@@ -642,6 +642,18 @@ reconstruction, physical-sector geometry, and Cassi-specific holonomy fail. The
 campaign `ADOPT`s this architecture as a Hypothesized research direction and
 retains `REJECT` for promotion of the physical identification.
 
+The projective shell construction in
+`foundations/string-bubble-projective-map.md` executes the finite geometric
+part of that direction. It maps the complex doublet through
+$\mathbb{CP}^1\simeq S^2$ onto the selected quadratic bubble shell, proves the
+conjugated $U(1)$ action is an isometry of the pullback shell metric, and maps
+canonical conversion to meridional flow at fixed total density. SB1–SB5 pass
+independently. This promotes the finite map, affine group action, and
+conversion-only meridional flow to **Derived conditional** while leaving
+microscopic projection, physical shell identification, phase dynamics, and
+spontaneous fivefold selection open; the GQ `REJECT` verdict on
+physical-identification promotion is unchanged.
+
 The frozen QC1–QC9 closure campaign `ADOPT`s the finite carrier reservoir as
 Hypothesized microphysics and its carrier-to-mesoscopic projection as Derived
 conditional mathematics. The fixed verifier passes the finite instrument,

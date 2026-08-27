@@ -642,6 +642,7 @@ The rung-indexed condensation field $B_n(x,y,z)$ and its checkerboard lattice ar
 - `foundations/dimensionful-cascade.md`—Cassi bubble at step 285, 191 Mpc
 - `foundations/spiral-dynamics.md`—the geometric spiral coordinate, $c(r)$ profile, and wave-speed application; $H \propto (1-q)$
 - `foundations/cassi-first-principles.md`—Qi gate $g(q) = q/(\varphi^2+q^2)$, conversion dynamics
+- `foundations/string-bubble-projective-map.md`—affine $\mathbb{CP}^1$ realization of the selected quadratic shell, its pullback metric, and the induced phase and conversion flows
 - `consciousness/consciousness-from-phi.md` §3—two-bubble correlation test
 - `visual-explainers/string_bubble_cascade.py`—3D damped-wave two-fluid PDE: string → pinch → spheroid → cascade
 - `two-fluid/cassi_two_fluid_3d_gpu.py`—PDE solver, $D$, $\lambda$, Qi gate implementation
