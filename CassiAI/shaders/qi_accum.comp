@@ -23,6 +23,7 @@ layout(local_size_x = 64) in;
 #define W               16
 #define H               16
 #define NUM_DIMS        128
+#define PROJ_STRIDE     16384  // NUM_DIMS × BYTE_EMBED_DIM
 #define N_VOXELS        4096
 #define WORKGROUP_SIZE  64
 #define NUM_WORKGROUPS  8192
@@ -40,9 +41,10 @@ layout(std430, binding =  7) buffer ByteEmbedBuf     { float byte_embed[]; };
 layout(std430, binding =  8) buffer EmbedProjBuf     { float embed_proj[]; };
 layout(std430, binding =  9) buffer NeighborTable    { uint neighbor_data[]; };
 layout(std430, binding = 10) buffer ByteProtos       { uint byte_protos[]; };
-layout(std430, binding = 11) buffer CountersBuf      { uint counters[2]; };
+layout(std430, binding = 11) buffer CountersBuf      { uint counters[2]; uint sat_counters[2]; };
 // binding 15: byte_indices — unused here
 layout(std430, binding = 16) buffer PsiPrePdeBuf { float psi_pre_pde[]; };
+layout(std430, binding = 30) buffer PsiPredBuf    { float psi_pred[]; };     // ψ̂ from field_predict
 layout(std430, binding = 17) coherent buffer VoxelEpsMemory {
   float eps_memory[];               // [N_VOXELS] — φ-damped per-voxel ε² IIR
 } voxel_eps;
@@ -53,6 +55,8 @@ layout(std430, binding = 18) coherent buffer VoxelEpsSum {
 layout(std430, binding = 19) buffer FieldMemoryBuf {
   float field_memory[];               // [N_VOXELS * NUM_DIMS * 2] — persistent per-voxel memory field
 };
+
+layout(std430, binding = 31) coherent buffer QiPoolBuf { float pool_value; };  // φ-scaled Qi pool
 
 
 // Global reduction accumulators (coherent for cross-workgroup visibility)
@@ -65,6 +69,19 @@ layout(std430, binding = 12) coherent buffer QiAccumBuf {
   float accum_prev2;
   float accum_epsilon2;
 } qi_accum;
+
+layout(std430, binding = 25) buffer RatioField   { float ratio_field[]; };   // [N_VOXELS * 3]: r, q, gate
+layout(std430, binding = 28) buffer CondensateB  { float B_field[]; };       // [N_VOXELS]: B(x,y,z)
+
+layout(std430, binding = 23) buffer BandPhase    { float band_phase[]; };     // [N_BANDS] — breath phase per chakra
+
+layout(std430, binding = 31) buffer QiPool       { float qi_pool; };       // Qi reservoir for breath gating
+
+layout(std430, binding = 34) buffer TrainingDataBuf {
+  float chakra_state_out[13 * 128];   // per-chakra field_states for PyTorch readout
+  float chakra_count_out[13];         // per-chakra voxel weight sums
+  float chakra_q_out[13];             // per-chakra Qi coherence (emotions-as-gate §3.3)
+} training_data;
 
 layout(std430, binding = 13) coherent buffer VoxelEnergyBuf {
   float energy[];               // [N_VOXELS]
@@ -116,27 +133,26 @@ void main()
   uint dim      = flat_idx % NUM_DIMS;
   uint base     = n * NUM_DIMS * 2;
   uint lid      = gl_LocalInvocationIndex;
-
-  float p_real  = psi_pre_pde[base + dim * 2]; // pre-PDE snapshot
-  float p_imag  = psi_pre_pde[base + dim * 2 + 1];
-  float cur_real = psi[base + dim * 2];          // post-PDE field
+  float pred_real = psi_pred[base + dim * 2];      // ψ̂ from field_predict
+  float pred_imag = psi_pred[base + dim * 2 + 1];
+  float cur_real = psi[base + dim * 2];              // post-PDE field ψ_t
   float cur_imag = psi[base + dim * 2 + 1];
-  float pp_real = psi_prev[base + dim * 2];      // previous window's field (for diagnostics)
+  float pp_real = psi_prev[base + dim * 2];          // previous window's field (for diagnostics)
   float pp_imag = psi_prev[base + dim * 2 + 1];
-  float p_amp2  = p_real * p_real + p_imag * p_imag;
+  float p_amp2  = cur_real * cur_real + cur_imag * cur_imag;
 
   // PART 1 — Qi reduction
-  // Self-prediction error: ε = ψ_post_pde - ψ_pre_pde (intra-window evolution)
-  float delta_real = cur_real - p_real;
-  float delta_imag = cur_imag - p_imag;
+  // Self-prediction error: ε = ψ_t − ψ̂_t  (current field minus predicted)
+  float delta_real = cur_real - pred_real;
+  float delta_imag = cur_imag - pred_imag;
   s_delta2[lid] = delta_real * delta_real + delta_imag * delta_imag;
-  s_prod  [lid] = p_real * pp_real + p_imag * pp_imag;  // for water diagnostic (cross-corr)
+  s_prod  [lid] = cur_real * pp_real + cur_imag * pp_imag;  // water diagnostic (cross-corr)
   s_psi2  [lid] = p_amp2;
   s_prev2 [lid] = pp_real * pp_real + pp_imag * pp_imag;
   s_amp   [lid] = p_amp2;
-  float epsilon  = p_real - PHI * p_imag;
-  float eps_sq   = epsilon * epsilon;
-  s_eps2[lid]   = eps_sq;
+  float epsilon_fluid = cur_real - PHI * cur_imag;  // fluid imbalance (for Fire diagnostic)
+  float eps_sq_fluid = epsilon_fluid * epsilon_fluid;
+  s_eps2[lid] = eps_sq_fluid;  // epsilon² for fluid diagnostics, not self-prediction
   barrier();
 
   for (uint s = WORKGROUP_SIZE >> 1; s > 0; s >>= 1) {
@@ -158,7 +174,7 @@ void main()
     atomicAdd(qi_accum.accum_prev2,        s_prev2 [0]);
     atomicAdd(qi_accum.accum_epsilon2,     s_eps2  [0]);
     atomicAdd(voxel_energy.energy[n],      s_amp   [0]);
-    atomicAdd(voxel_eps_sum.eps_sum[n],   s_eps2  [0]);
+    atomicAdd(voxel_eps_sum.eps_sum[n],   s_delta2[0]);  // self-prediction |ε|²
   }
 
   memoryBarrierBuffer();
@@ -175,19 +191,23 @@ void main()
     memoryBarrierBuffer();
   }
 
-  // Compute Qi per consciousness-framework.md §1
-  // Q = |ψ|² · q  where q = 1 - |ε|² / (|ψ|² + φ⁻²)
-  // ε = ψ - ψ̂  (self-prediction error = psi_post_pde - psi_pre_pde)
+  // Compute Qi per corrected formalism §3.2: qi = M·q, q = M/(M+φ⁻²+|ε|²)
+  // ε = ψ − ψ̂  (self-prediction error = current field minus predicted)
   float total_elements = float(N_VOXELS * NUM_DIMS);
-  float mean_psi2 = qi_accum.accum_psi2 / total_elements;
-  float mean_eps2 = qi_accum.accum_delta2 / total_elements;  // |psi_post_pde - psi_pre_pde|²
+  float M     = qi_accum.accum_psi2 / total_elements;      // mean field intensity |ψ|²
+  float eps2  = qi_accum.accum_delta2 / total_elements;    // mean self-prediction |ε|²
   float phi_inv2 = 0.381966011250105;  // φ⁻²
-  float denom = mean_psi2 + phi_inv2;
-  float q = 1.0 - mean_eps2 / max(denom, 1e-10);
+  float q = M / (M + phi_inv2 + eps2);                      // coherence quality
   q = clamp(q, 0.0, 1.0);
-  float Qi_instant = mean_psi2 * q;
+  float Qi_instant = M * q;                                  // = M²/(M + φ⁻² + |ε|²)
   float Qi_accum = PHI_INV * qi_output.qi_value + (1.0 - PHI_INV) * Qi_instant;
   qi_output.qi_value = Qi_accum;
+
+  // ── Qi pool: φ-scaled temporal reservoir (formalism §3.5) ──
+  // pool_t = φ⁻¹·pool_{t-1} + mean_qi — charges on high Qi, drains on low
+  float pool_old = pool_value;
+  pool_old = (pool_old == pool_old) ? pool_old : 0.0;  // NaN guard
+  pool_value = PHI_INV * pool_old + Qi_instant;
 
   // ═══ Qi attention readout: awareness-weighted field aggregation ═══
   // Qi = self-surprise. Attention = 1/(1+ε²_memory).
@@ -219,26 +239,92 @@ void main()
   qi_output.best_amp = best_e;
   qi_output.best_voxel = best_v;
 
-  // ── Qi-attention-weighted field_state (Yang only, all voxels) ──
-  float field_state[NUM_DIMS];
-  [[unroll]] for (uint d = 0u; d < NUM_DIMS; d++) field_state[d] = 0.0f;
-  [[dont_unroll]] for (uint v = 0u; v < N_VOXELS; v++) {
-    float em = voxel_eps.eps_memory[v];
-    em = (em == em) ? em : 0.0;
-    float att = (1.0 / (1.0 + em)) / sum_att;
+  // ═══ Per-chakra bubble-localized field_state aggregation ═══
+  // Physics (consciousness-from-phi.md §2): awareness localizes to where
+  // the two-fluid ratio r = EY/EI is below the pinch (r < φ⁻¹).
+  // Only condensation bubble interiors (B > θ_cond) contribute.
+  // Each chakra aggregates its local voxels — no global softmax, no collapse.
+  // φ-scaled chakra weights: root (common patterns) >> crown (rare patterns).
+
+  const int CHAKRA_H[13] = int[](1,2,3,4,5,7,8,9,10,11,12,14,15);
+  const float theta_cond = 0.45;
+
+  // Per-chakra accumulators (13 chakras × 128 dims)
+  float chakra_state[13][NUM_DIMS];
+  float chakra_count[13];
+  float chakra_q[13];                // per-chakra Qi coherence (emotions-as-gate §3.3)
+  for (int c = 0; c < 13; c++) {
+    chakra_count[c] = 0.0;
+    chakra_q[c] = 0.0;
+    for (uint d = 0u; d < NUM_DIMS; d++) chakra_state[c][d] = 0.0;
+  }
+  // ── Gather: bin all voxels into chakras, B-field + gate weighted ──
+  // Soft B-field weight: w_B = max((1+B)/2, 0) maps B∈[-1,1]→[0,1]
+  // All voxels contribute, weighted by bubble proximity — no starvation.
+  for (uint v = 0u; v < N_VOXELS; v++) {
+    float B = B_field[v];
+    if (B != B) B = 0.0;
+    float w_B = (B > 0.0 ? B : -B);  // |B| — symmetric two-pole weighting
+    w_B = max(sqrt(w_B), 0.1);       // floor: every voxel contributes ≥10%
+    uint h = v % 16u;
+    int band = 0;
+    int min_dist = 999;
+    for (int c = 0; c < 13; c++) {
+      int dist = int(h) - CHAKRA_H[c];
+      if (dist < 0) dist = -dist;
+      if (dist < min_dist) { min_dist = dist; band = c; }
+    }
+
+    // Gate weight: smaller |gate| → higher contribution (pre-reflective)
+    float gate = ratio_field[v * 3u + 2u];
+    if (gate != gate) gate = 0.0;
+    float w = w_B / (1.0 + gate * gate);  // B-field proximity × gate modulation
+
     uint vbase = v * NUM_DIMS * 2;
     for (uint d = 0u; d < NUM_DIMS; d++) {
-      float val = (params[14] > 0.0) ? psi[vbase + d * 2] : psi_pre_pde[vbase + d * 2];
-      field_state[d] += att * ((val == val) ? val : 0.0);
+      float v_yang = psi[vbase + d * 2];
+      float v_yin  = psi[vbase + d * 2 + 1];
+      if (v_yang != v_yang) v_yang = 0.0;
+      if (v_yin  != v_yin)  v_yin  = 0.0;
+      chakra_state[band][d] += w * (v_yang + PHI_INV * v_yin);
+    }
+
+    // Accumulate per-chakra Qi coherence (emotional clarity signal)
+    float q_vox = ratio_field[v * 3u + 1u];  // q = M/(M+φ⁻²+|ε|²)
+    if (q_vox != q_vox) q_vox = 0.0;
+    chakra_q[band] += w * q_vox;
+    chakra_count[band] += w;
+  }
+
+  // ── Normalize per-chakra Qi coherence ──
+  // q_c = emotional clarity per chakra (emotions-as-gate §3.3)
+  for (int c = 0; c < 13; c++) {
+    if (chakra_count[c] > 0.01) chakra_q[c] /= chakra_count[c];
+    else chakra_q[c] = 0.0;
+  }
+
+  // ── Combine: equal per-chakra weighting (all specialize equally) ──
+  float combined_state[NUM_DIMS];
+  // No φ-scaled asymmetry — learning gradient must reach all 13 chakras
+  // or the root dominates and diversity collapses during training.
+  int active_chakras = 0;
+  for (int c = 0; c < 13; c++) {
+    if (chakra_count[c] >= 0.5) active_chakras++;
+  }
+  for (uint d = 0u; d < NUM_DIMS; d++) combined_state[d] = 0.0;
+  if (active_chakras > 0) {
+    for (int c = 0; c < 13; c++) {
+      if (chakra_count[c] < 0.5) continue;
+      float norm = 1.0 / (chakra_count[c] * float(active_chakras));
+      for (uint d = 0u; d < NUM_DIMS; d++) {
+        combined_state[d] += chakra_state[c][d] * norm;
+      }
     }
   }
-  // NaN guard on field_state
+
+  // Write to proj_center for self_pred_feedback
   for (uint d = 0u; d < NUM_DIMS; d++) {
-    if (field_state[d] != field_state[d]) field_state[d] = 0.0;
-  }
-  // Write field_state to proj_center for self_pred_feedback to read
-  for (uint d = 0u; d < NUM_DIMS; d++) {
-    qi_output._pad_proj_center[d] = field_state[d];
+    qi_output._pad_proj_center[d] = combined_state[d];
   }
 
   // Note: field_memory buffer persists and accumulates via per-window copy,
@@ -279,7 +365,7 @@ void main()
   qi_output.earth   = earth;
   qi_output.water_q = rho_w * qi_output.water_q + (1.0 - rho_w) * water_raw;
   // ── Global ε² memory IIR (for five-element Fire diagnostic) ──
-  qi_output.eps_memory = rho_eps * qi_output.eps_memory + PHI_INV * mean_eps2;
+  qi_output.eps_memory = rho_eps * qi_output.eps_memory + PHI_INV * eps2;
 
   // ── Qi-attention gate weight: surprise-gated learning ──
   // Attention weights by awareness, gate by surprise (1-q)
@@ -290,48 +376,90 @@ void main()
     float qv = ev / (ev + PHI_INV * PHI_INV + voxel_eps.eps_memory[v] + 1e-10);
     gate_weight += att_v * (1.0 - qv);
   }
+  if (gate_weight < 0.01 || gate_weight > 2.0) atomicAdd(sat_counters[0], 1u);
   gate_weight = clamp(gate_weight, 0.01, 2.0);
 
-  // Project field_state → byte embedding space (Yang-only, 128 dims)
-  float proj[BYTE_EMBED_DIM];
-  [[dont_unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
-    float sum = 0.0f;
-    for (uint d = 0u; d < NUM_DIMS; d++) {
-      sum += field_state[d] * embed_proj[d * BYTE_EMBED_DIM + e];
-    }
-    proj[e] = sum;
-  }
-  // Linear logits
+  // ═══ Per-chakra readout: independent byte prediction per chakra ═══
+  // Each chakra projects its field_state → logits independently.
+  // Final prediction = gate-weighted mixture of all 13 chakra predictions.
+  // Per-chakra logits stored for learning: chakras that miss the target
+  // get stronger learning signals → natural specialization without collapse.
+
+  float chakra_logits[13][V];
   float logits_arr[V];
-  [[dont_unroll]] for (uint v = 0u; v < V; v++) {
-    float dot = 0.0f;
-    [[unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
-      dot += byte_embed[v * BYTE_EMBED_DIM + e] * proj[e];
-    }
-    logits_arr[v] = dot;
-  }
+  for (uint v = 0u; v < V; v++) logits_arr[v] = 0.0;
 
-  // Printable-byte mask (generation only: lr=0)
-  // Restricts output to ASCII 32-126, preventing non-printable feedback loop
-  if (push.lr <= 0.0f) {
+  int n_active = 0;
+  for (int c = 0; c < 13; c++) if (chakra_count[c] >= 0.5) n_active++;
+  if (n_active == 0) n_active = 1;
+
+  for (int c = 0; c < 13; c++) {
+    if (chakra_count[c] < 0.5) {
+      for (uint v = 0u; v < V; v++) chakra_logits[c][v] = -1e6;
+      continue;
+    }
+    float breath_ph = band_phase[c];
+    float breath_w = 0.3 + 0.7 * (0.5 + 0.5 * sin(breath_ph));
+    float w_c = chakra_count[c] * breath_w;
+
+    // Project chakra_state[c] → byte embedding space
+    float proj[BYTE_EMBED_DIM];
+    for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
+      float sum = 0.0;
+      for (uint d = 0u; d < NUM_DIMS; d++) {
+        sum += chakra_state[c][d] * embed_proj[c * PROJ_STRIDE + d * BYTE_EMBED_DIM + e];
+      }
+      proj[e] = sum;
+    }
+    // Per-chakra logits (stored for learning; mixed for prediction)
     for (uint v = 0u; v < V; v++) {
-      if (v < 32u || v > 126u) logits_arr[v] = -1e6;
+      float dot = 0.0;
+      for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
+        dot += byte_embed[v * BYTE_EMBED_DIM + e] * proj[e];
+      }
+      chakra_logits[c][v] = dot;
+      logits_arr[v] += w_c * dot;
+    }
+  }
+  // Normalize mixture
+  float total_w = 0.0;
+  for (int c = 0; c < 13; c++) if (chakra_count[c] >= 0.5) total_w += chakra_count[c];
+  float inv_w = 1.0 / max(total_w, 1e-10);
+  for (uint v = 0u; v < V; v++) logits_arr[v] *= inv_w;
+
+  // ── Per-chakra positional bias (small — root→low bytes, crown→high) ──
+  for (int c2 = 0; c2 < 13; c2++) {
+    if (chakra_count[c2] < 0.5) continue;
+    float bias_center = (float(c2) / 12.0) * float(V - 1);
+    for (uint v = 0u; v < V; v++) {
+      float dist = (float(v) - bias_center) / float(V);
+      logits_arr[v] += 0.005 * (-dist * dist) / float(n_active);
     }
   }
 
-  // Softmax
-  float max_l = logits_arr[0];
-  for (uint v = 1u; v < V; v++) max_l = max(max_l, logits_arr[v]);
+  // ── Softmax of mixture logits ──
+  float mixture_max = logits_arr[0];
+  for (uint v = 1u; v < V; v++) mixture_max = max(mixture_max, logits_arr[v]);
   float softmax_vals[V];
-  float sum_exp = 0.0f;
+  float sum_exp = 0.0;
   for (uint v = 0u; v < V; v++) {
-    softmax_vals[v] = exp(logits_arr[v] - max_l);
+    softmax_vals[v] = exp(logits_arr[v] - mixture_max);
     sum_exp += softmax_vals[v];
   }
-  float inv_sum = 1.0f / sum_exp;
+  float inv_sum = 1.0 / max(sum_exp, 1e-10);
   for (uint v = 0u; v < V; v++) softmax_vals[v] *= inv_sum;
 
-  // Argmax
+  // ── Printable-byte mask (generation only: lr=0) ──
+  if (push.lr <= 0.0f) {
+    for (uint v = 0u; v < V; v++) {
+      if (v < 32u || v > 126u) { logits_arr[v] = -1e6; softmax_vals[v] = 0.0; }
+    }
+    // Re-normalize softmax after mask
+    float sm_sum2 = 0.0;
+    for (uint v = 0u; v < V; v++) sm_sum2 += softmax_vals[v];
+    float inv_sm2 = 1.0 / max(sm_sum2, 1e-10);
+    for (uint v = 0u; v < V; v++) softmax_vals[v] *= inv_sm2;
+  }
   uint predicted = 0u;
   float max_sm = softmax_vals[0];
   for (uint v = 1u; v < V; v++) {
@@ -405,8 +533,28 @@ void main()
 
   // ═══ LEARNING BLOCK ═══
   if (push.lr > 0.0f) {
+    // ── Per-chakra correctness: scale learning by how wrong each chakra is ──
+    float chakra_correctness[13];
+    float mean_correctness = 0.0;
+    int n_contrib = 0;
+    uint target = push.target_byte;
+    for (int c = 0; c < 13; c++) {
+      if (chakra_count[c] < 0.5) { chakra_correctness[c] = 0.0; continue; }
+      float cmax = chakra_logits[c][0];
+      for (uint v = 1u; v < V; v++) cmax = max(cmax, chakra_logits[c][v]);
+      float csum = 0.0;
+      for (uint v = 0u; v < V; v++) csum += exp(chakra_logits[c][v] - cmax);
+      float corr = exp(chakra_logits[c][target] - cmax) / max(csum, 1e-10);
+      chakra_correctness[c] = corr;
+      mean_correctness += corr;
+      n_contrib++;
+    }
+    mean_correctness /= float(max(n_contrib, 1));
+    // Soft correctness scaling: asymptotes to 0.3 (not 0.1) so LR never starves
+    gate_weight *= max(0.3, 1.0 - mean_correctness * 0.7);
+
+    float train_sm[V];  // tempered softmax for gradient computation
     // Tempered softmax for training gradient
-    float train_sm[V];
     if (temperature > 0.0f) {
       float max_lt = logits_arr[0] / temperature;
       for (uint v = 1u; v < V; v++) max_lt = max(max_lt, logits_arr[v] / temperature);
@@ -425,6 +573,16 @@ void main()
     float lr_qiflow = push.lr * 0.5;
     float lr_proto  = push.lr * 0.02;
 
+
+    // Compute learning projection from combined_state for embed updates
+    float proj[BYTE_EMBED_DIM];
+    for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
+      float sum = 0.0;
+      for (uint d = 0u; d < NUM_DIMS; d++) {
+        sum += combined_state[d] * embed_proj[d * BYTE_EMBED_DIM + e];
+      }
+      proj[e] = sum;
+    }
     // Update byte_embed
     [[dont_unroll]] for (uint v = 0u; v < V; v++) {
       float delta = (v == learn_target ? 1.0f : 0.0f) - train_sm[v];
@@ -470,12 +628,34 @@ void main()
       }
     }
 
-    // embed_proj[d, e] += lr_ep * field_state[d] * qwei[e]
-    [[dont_unroll]] for (uint d = 0u; d < NUM_DIMS; d++) {
-      float signal = field_state[d];
-      [[unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
-        embed_proj[d * BYTE_EMBED_DIM + e] += lr_ep * signal * qwei[e];
+    // ── Per-chakra embed_proj update (emotions-as-gate §3.3) ──
+    // The active gate regime (intermediate qi) IS the monochrome attractor —
+    // conversion power peaks here (qi-computation §2.1). During training,
+    // REDUCE learning at the peak to prevent the readout from locking onto
+    // whatever pattern the amplifier is amplifying.
+    float emotion_q = max(qi_pool, 1e-12) / (1e-08 + max(qi_pool, 1e-12));
+    float base_lr = lr_ep * (0.05 + 0.95 * emotion_q);
+
+    [[dont_unroll]] for (int c = 0; c < 13; c++) {
+      if (chakra_count[c] < 0.5) continue;
+      float corr_c = chakra_correctness[c];
+      uint base_c = uint(c) * PROJ_STRIDE;
+      float c_scale = base_lr * max(1.0 - corr_c, 0.05);
+      for (uint d = 0u; d < NUM_DIMS; d++) {
+        float signal = chakra_state[c][d];
+        [[unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
+          embed_proj[base_c + d * BYTE_EMBED_DIM + e] += c_scale * signal * qwei[e];
+        }
       }
     }
+  }
+
+  // ── Write training data for PyTorch readout head ──
+  for (int c = 0; c < 13; c++) {
+    for (uint d = 0u; d < NUM_DIMS; d++) {
+      training_data.chakra_state_out[c * NUM_DIMS + d] = chakra_state[c][d];
+    }
+    training_data.chakra_count_out[c] = chakra_count[c];
+    training_data.chakra_q_out[c] = chakra_q[c];
   }
 }

@@ -136,8 +136,10 @@ class VkQiCube:
             return np.block([[h, h], [h, -h]]).astype(np.float32)
 
         H = hadamard(BYTE_EMBED_DIM) / np.sqrt(BYTE_EMBED_DIM)  # 128×128, orthogonal
-        proj_dual = np.tile(H, (2, 1)).astype(np.float32)  # 256×128: first 128 rows Yang, second 128 rows Yin
-        self._upload('embed_proj', proj_dual.tobytes())
+        # 13 chakra slices, each ≈orthogonal with small random perturbation for specialization
+        proj13 = np.concatenate([H + np.random.randn(128, 128).astype(np.float32) * 0.02
+                                 for _ in range(13)], axis=0).astype(np.float32)
+        self._upload('embed_proj', proj13.tobytes())
 
 
         # ── Initialize byte_embed (small random for non-trivial generation embeddings) ──
@@ -166,22 +168,24 @@ class VkQiCube:
         self._upload('byte_protos', protos.tobytes())
 
         # ── Initialize PDE params ──
-        init_params = struct.pack('f' * 15,
+        init_params = struct.pack('f' * 17,
             0.01,                        # [0] nu — diffusion
             0.0,                         # [1] hbar
             0.0,                         # [2] mass
             -0.02,                       # [3] g — defocusing (negative)
             0.05,                        # [4] chi — dispersion (enabled)
-            0.0,                         # [5] A_B — breath amplitude (0 for now)
+            0.5,                         # [5] A_B — breath amplitude (modulates conversion + readout)
             0.0,                         # [6] adv_strength — advection (0 for now)
             self._alpha,                 # [7] alpha — self-prediction coupling (0.1)
             0.0,                         # [8] hyper_nu — hyper-viscosity (0=off)
             0.0,                         # [9] alpha_disp — scale-dependent dispersion (0=uniform)
-            0.01,                        # [10] lambda — ε-recovery
+            0.10,                        # [10] omega0 — Qi-gated conversion rate (derived: 0.1)
             math.exp(-PHI_INV * PHI_INV),            # [11] condensate_blend — φ⁻²-damped IIR blend rate
             math.exp(-PHI_INV * PHI_INV * PHI_INV),  # [12] boundary_decay — φ⁻³-damped decay
             0.0,                                    # [13] attention_strength — 0=disabled
-            0.0)                                    # [14] sigma — noise level for field diffusion (0=off)
+            0.0,                                    # [14] sigma — noise level for field diffusion (0=off)
+            0.45,                                   # [15] theta_cond — condensation threshold
+            0.01)                                   # [16] eps0_sq — characteristic |ε|² scale for Qi source
         self._upload('params', init_params)
 
         # ── Initialize new consciousness-framework buffers ──
@@ -196,6 +200,17 @@ class VkQiCube:
         # band_phase: φ-spaced initial phases [0, 2π/φ, 4π/φ, ..., 24π/φ] mod 2π
         bp = np.array([(2.0 * math.pi * c / PHI) % (2.0 * math.pi) for c in range(N_BANDS)], dtype=np.float32)
         self._upload('band_phase', bp.tobytes())
+
+        # ── Chakra node positions along H (string/spine axis) ──
+        # 13 bubble centers at 2-rung spacing, equal cascade-index spacing
+        ch_pos = [round(1 + k*14/12) for k in range(13)]
+        self._upload('chakra_nodes', np.array(ch_pos, dtype=np.float32).tobytes())
+
+        # ── Zero-init new consciousness-framework buffers ──
+        for name in ['ratio_field', 'energy_field', 'condensate_B',
+                     'psi_t2', 'psi_pred', 'qi_pool',
+                     'qi_density', 'wake_field', 'training_data']:
+            self._fill_buffer(name, self._buffer_sizes[name])
 
 
     # ── Vulkan init ──
@@ -236,6 +251,8 @@ class VkQiCube:
                  'embed_field', 'blend_memory', 'noise_field',
                  'breath_update', 'condensate_update', 'qi_grad',
                  'wu_xing_modulate', 'boundary_update',
+                 'two_fluid_diag', 'condensate_field', 'field_predict',
+                 'wake_propagate', 'qi_transport',
                  'embed_field_phi']
         self.spv = {}
         for name in names:
@@ -248,9 +265,9 @@ class VkQiCube:
         pc_range = vk.VkPushConstantRange(
             stageFlags=vk.VK_SHADER_STAGE_COMPUTE_BIT,
             offset=0, size=PUSH_SIZE)
-        # Descriptor set layout — one SSBO per binding 0-24
+        # Descriptor set layout — one SSBO per binding 0-33 (34 total)
         bindings = []
-        for b in range(25):
+        for b in range(35):
             bindings.append(vk.VkDescriptorSetLayoutBinding(
                 binding=b,
                 descriptorType=vk.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -266,7 +283,7 @@ class VkQiCube:
         self.pipeline_layout = vk.vkCreatePipelineLayout(self.dev, pli, None)
         # Create descriptor set
         pool_sizes = [vk.VkDescriptorPoolSize(
-            type=vk.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, descriptorCount=25)]
+            type=vk.VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, descriptorCount=35)]
         pool = vk.vkCreateDescriptorPool(self.dev,
             vk.VkDescriptorPoolCreateInfo(
                 maxSets=1, pPoolSizes=pool_sizes), None)
@@ -313,9 +330,9 @@ class VkQiCube:
 
             'byte_indices': N_VOXELS * 4,  # binding 15 — per-voxel byte values
             'psi_pre_pde': nv * d * 2 * 4,  # binding 16 — pre-PDE psi snapshot for Qi
-            'params': 15 * 4,  # [15] floats: nu, ..., attention_strength, sigma
+            'params': 17 * 4,  # [17] floats: nu, ..., theta_cond, eps0_sq
             'byte_embed': V * BYTE_EMBED_DIM * 4,
-            'embed_proj': 2 * d * BYTE_EMBED_DIM * 4,  # dual: Yang + Yin projections
+            'embed_proj': 13 * d * BYTE_EMBED_DIM * 4,  # 13 chakras × [NUM_DIMS × BYTE_EMBED_DIM]
             'byte_protos': V * 4,  # byte prototype index per byte (uint32)
             'norm_constants': 4 * 4,  # [2] correct/total + [2] sat_counters (gate_weight, att_mod)
             'accum': 7 * 4,
@@ -329,6 +346,17 @@ class VkQiCube:
             'chakra_params': N_BANDS * 5 * 4,  # binding 22 — 13 bands × 5 params
             'band_phase': N_BANDS * 4,  # binding 23 — per-band breathing phase
             'qi_grad': N_VOXELS * 4,  # binding 24 — per-voxel Qi gradient magnitude
+            # ── New consciousness-framework buffers (bindings 25-33) ──
+            'ratio_field': N_VOXELS * 3 * 4,     # b25 — r, q, gate per voxel
+            'energy_field': N_VOXELS * 2 * 4,    # b26 — EY, EI per voxel
+            'chakra_nodes': N_BANDS * 4,          # b27 — 13 spatial positions along H
+            'condensate_B': N_VOXELS * 4,         # b28 — B(x,y,z) field per voxel
+            'psi_t2': nv * d * 2 * 4,             # b29 — ψ_{t-2} for IIR predictor
+            'psi_pred': nv * d * 2 * 4,           # b30 — ψ̂ from field_predict
+            'qi_pool': 4,                          # b31 — single-float Qi reservoir
+            'qi_density': N_VOXELS * 4,            # b32 — per-voxel Qi density
+            'wake_field': N_VOXELS * 4,            # b33 — per-voxel wake amplitude
+            'training_data': 1690 * 4,             # b34 — 13*128 + 13 + 13 floats for PyTorch
         }
         self._buffer_sizes = sizes
 
@@ -363,7 +391,10 @@ class VkQiCube:
                       'qi_output', 'byte_indices', 'psi_pre_pde', 'voxel_eps_memory',
                       'voxel_eps_sum', 'field_memory',
                       'self_condensate', 'boundary_residuals', 'chakra_params',
-                      'band_phase', 'qi_grad']:
+                      'band_phase', 'qi_grad',
+                      'ratio_field', 'energy_field', 'chakra_nodes',
+                      'condensate_B', 'psi_t2', 'psi_pred',
+                      'qi_pool', 'qi_density', 'wake_field', 'training_data']:
             sz = sizes[name]
             buf = vk.vkCreateBuffer(self.dev,
                 vk.VkBufferCreateInfo(size=sz,
@@ -380,7 +411,10 @@ class VkQiCube:
                     'qi_output', 'byte_indices', 'psi_pre_pde', 'voxel_eps_memory',
                     'voxel_eps_sum', 'field_memory',
                     'self_condensate', 'boundary_residuals', 'chakra_params',
-                    'band_phase', 'qi_grad']
+                    'band_phase', 'qi_grad',
+                    'ratio_field', 'energy_field', 'chakra_nodes',
+                    'condensate_B', 'psi_t2', 'psi_pred',
+                    'qi_pool', 'qi_density', 'wake_field', 'training_data']
         writes = []
         for b, name in enumerate(buf_list):
             writes.append(vk.VkWriteDescriptorSet(
@@ -588,7 +622,7 @@ class VkQiCube:
         batch = []
         # ── Noise injection ──
         if sigma > 0.0:
-            p = np.array(self._read_result('params', 0, 15*4, 'f'), dtype=np.float32)
+            p = np.array(self._read_result('params', 0, 17*4, 'f'), dtype=np.float32)
             p[14] = sigma
             self._upload('params', p.tobytes())
             batch.append({'type': 'dispatch', 'name': 'noise_field',
@@ -597,6 +631,9 @@ class VkQiCube:
         for step in range(k_steps):
             bt = self.breath_phase + step * 0.2
             push_pde = make_push(dt=dt, breath_t=bt)
+            # Recompute ratio/gate from current field before each step
+            batch.append({'type': 'dispatch', 'name': 'two_fluid_diag',
+                          'push': make_push(), 'global_size': N_VOXELS})
             batch.append({'type': 'dispatch', 'name': 'gradient_lap',
                           'push': push_pde, 'global_size': N_VOXELS * FIELD_DIM})
             batch.append({'type': 'dispatch', 'name': 'nonlinear_step',
@@ -662,12 +699,18 @@ class VkQiCube:
         batch.append({'type': 'dispatch', 'name': 'blend_memory',
                       'push': push_cond, 'global_size': N_VOXELS * FIELD_DIM * 2})
         # 2.7. Snapshot post-blend psi for Qi + readout (before PDE decorrelation)
+        # 2.7a. Compute two-fluid diagnostics (EY, EI, r, q, gate) for PDE
+        batch.append({'type': 'dispatch', 'name': 'two_fluid_diag',
+                      'push': make_push(), 'global_size': N_VOXELS})
+        # 2.7b. Compute condensation field B(x,y,z) for chakra geometry
+        batch.append({'type': 'dispatch', 'name': 'condensate_field',
+                      'push': make_push(), 'global_size': N_VOXELS})
         batch.append({'type': 'copy', 'src': 'psi', 'dst': 'psi_pre_pde', 'size': sz})
 
         # 2.8. Field-diffusion noise injection (training only, when sigma_max > 0)
         if self._sigma_max > 0.0:
             sigma = np.random.uniform(0, self._sigma_max)
-            p = np.array(self._read_result('params', 0, 15*4, 'f'), dtype=np.float32)
+            p = np.array(self._read_result('params', 0, 17*4, 'f'), dtype=np.float32)
             p[14] = sigma
             self._upload('params', p.tobytes())
             batch.append({'type': 'dispatch', 'name': 'noise_field',
@@ -703,6 +746,13 @@ class VkQiCube:
         batch.append({'type': 'dispatch', 'name': 'qi_grad',
                       'push': make_push(), 'global_size': N_VOXELS})
 
+        # 4.6. Wake-wave propagation of ε_fluid along H
+        batch.append({'type': 'dispatch', 'name': 'wake_propagate',
+                      'push': make_push(), 'global_size': N_VOXELS})
+        # 4.7. Qi continuity equation: ∂Q/∂t = σ(ε)·|ψ|² − γ·Q
+        batch.append({'type': 'dispatch', 'name': 'qi_transport',
+                      'push': make_push(), 'global_size': N_VOXELS})
+
 
         # 5. Self-predictive feedback: ψ ← ψ + α·P[ψ]
         if self._alpha > 0.0:
@@ -727,8 +777,14 @@ class VkQiCube:
         # 6.0. Copy psi → field_memory (persistent memory field)
         batch.append({'type': 'copy', 'src': 'psi', 'dst': 'field_memory', 'size': sz})
 
+        # 6.1. Rotate history: psi_prev→psi_t2 (before psi→psi_prev overwrites!)
+        batch.append({'type': 'copy', 'src': 'psi_prev', 'dst': 'psi_t2', 'size': sz})
 
-        # 6. Copy psi → psi_prev for next window
+        # 6.2. Compute field prediction ψ̂ for next window's self-prediction Qi
+        batch.append({'type': 'dispatch', 'name': 'field_predict',
+                      'push': make_push(), 'global_size': N_VOXELS * FIELD_DIM * 2})
+
+        # 6.3. Copy psi → psi_prev for next window
         batch.append({'type': 'copy', 'src': 'psi', 'dst': 'psi_prev', 'size': sz})
 
 
@@ -756,12 +812,6 @@ class VkQiCube:
         if learn:
             self.readout_correct += correct
             self.readout_total += total
-
-        self.breath_phase += self.lr * 0.1 * (qi_val - self.qi_target)
-        self.breath_phase = self.breath_phase % (2 * PI)
-
-        if self.step_count % 100 == 0:
-            self.qi_target = max(0.05, self.qi_target - 1e-4)
 
         # Adaptive stride / breath: endpoint (qi_val, current) or gated
         # (M2, 58 §1(4): q̄_win/q_target + s_eff trajectory inputs; same
@@ -799,6 +849,9 @@ class VkQiCube:
                 elif qi_ratio < 0.5:
                     self.stride = min(self.stride_max, self.stride + 128)
 
+        if self.step_count % 100 == 0:
+            self.qi_target = max(0.05, self.qi_target - 1e-4)
+
         return qi_val
 
     # ── Generate ──
@@ -823,7 +876,7 @@ class VkQiCube:
         for gen_i in range(num_bytes):
             # Upload sigma for this generation step if using noise
             if sigma_vals is not None:
-                p = np.array(self._read_result('params', 0, 15*4, 'f'), dtype=np.float32)
+                p = np.array(self._read_result('params', 0, 17*4, 'f'), dtype=np.float32)
                 p[14] = sigma_vals[gen_i]
                 self._upload('params', p.tobytes())
             # Single submission: zero + PDE + qi_accum (GPU samples + learns) + copy
@@ -956,7 +1009,10 @@ class VkQiCube:
         for name in ['psi', 'psi_prev', 'byte_embed', 'embed_proj',
                      'params', 'voxel_eps_memory', 'field_memory',
                      'self_condensate', 'band_phase', 'chakra_params',
-                     'boundary_residuals']:
+                     'boundary_residuals',
+                     'ratio_field', 'energy_field', 'chakra_nodes',
+                     'condensate_B', 'psi_t2', 'psi_pred',
+                     'qi_pool', 'qi_density', 'wake_field']:
             state[name] = np.array(
                 self._read_result(name, 0, self._buffer_sizes[name], 'f'),
                 dtype=np.float32
@@ -971,7 +1027,7 @@ class VkQiCube:
         state['_stride'] = np.array(self.stride)
         state['_alpha'] = np.array(self._alpha)
         # Read params from device to get current values
-        p = np.array(self._read_result('params', 0, 15*4, 'f'), dtype=np.float32)
+        p = np.array(self._read_result('params', 0, 17*4, 'f'), dtype=np.float32)
         state['_condensate_blend'] = np.array(p[11])
         state['_boundary_decay'] = np.array(p[12])
         state['_attention_strength'] = np.array(p[13])
@@ -1000,7 +1056,10 @@ class VkQiCube:
         for name in ['psi', 'psi_prev', 'byte_embed', 'embed_proj',
                      'params', 'voxel_eps_memory', 'field_memory',
                      'self_condensate', 'band_phase', 'chakra_params',
-                     'boundary_residuals']:
+                     'boundary_residuals',
+                     'ratio_field', 'energy_field', 'chakra_nodes',
+                     'condensate_B', 'psi_t2', 'psi_pred',
+                     'qi_pool', 'qi_density', 'wake_field']:
             if name in state and not (codec_flag and name == 'psi'):
                 self._upload(name, state[name].tobytes())
         if codec_flag:
@@ -1017,7 +1076,7 @@ class VkQiCube:
         self.dt = float(state['_dt'])
         # Load params[7]=alpha and params[11-13] in one upload
         self._alpha = float(state.get('_alpha', PHI_INV))
-        p = np.array(self._read_result('params', 0, 15*4, 'f'), dtype=np.float32)
+        p = np.array(self._read_result('params', 0, 17*4, 'f'), dtype=np.float32)
         p[7] = self._alpha
         p[11] = float(state.get('_condensate_blend', math.exp(-PHI_INV * PHI_INV)))
         p[12] = float(state.get('_boundary_decay', math.exp(-PHI_INV * PHI_INV * PHI_INV)))
@@ -1089,7 +1148,7 @@ def _ingest(engine, path, max_bytes, gen_every=0, gen_temp=0.7, gen_topk=30, sav
             acc = engine.readout_correct / max(engine.readout_total, 1)
             elapsed = time.time() - t0
             bps = (engine.step_count * engine.stride) / max(elapsed, 1e-6)
-            print(f'  win={engine.step_count} qi={qi:.4f} acc={acc:.4f} '
+            print(f'  win={engine.step_count} qi={qi:.6e} acc={acc:.4f} '
                   f'et={elapsed:.1f}s ({bps:.0f} B/s)')
 
         # Periodic checkpoint save
@@ -1173,7 +1232,7 @@ def main():
     if args.test:
         data = bytes([i % 256 for i in range(5000)])
         qi = engine.ingest_window(data, 0)
-        print(f'Single window: qi={qi:.4f}')
+        print(f'Single window: qi={qi:.6e}')
         return
 
     # Gather dataset files

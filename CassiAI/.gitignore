@@ -60,5 +60,6 @@ debug_*.py
 # Generated experiment results
 experiments/*.json
 
-# Archived legacy files
-/archive/
+# Generated Vulkan shader binaries (GLSL .comp sources are tracked)
+/comp.spv
+/shaders/*.spv

@@ -65,13 +65,16 @@ void main() {
     uint n    = idx / dims;          // voxel index  [0, 4095]
     uint dim  = idx % dims;          // field dim    [0, 127]
 
-    // ── Band lookup ──
-    const int BAND_START[13] = int[](0,2,4,8,14,24,40,66,87,100,113,121,126);
+    // ── Spatial chakra lookup (H = string/spine axis) ──
+    const int CHAKRA_H[13] = int[](1,2,3,4,5,7,8,9,10,11,12,14,15);
+    uint h = n % 16u;
     int band = 0;
-    for (int b = 0; b < 12; b++) {
-        if (dim >= BAND_START[b] && dim < BAND_START[b+1]) { band = b; break; }
+    int min_dist = 999;
+    for (int c = 0; c < 13; c++) {
+        int dist = int(h) - CHAKRA_H[c];
+        if (dist < 0) dist = -dist;
+        if (dist < min_dist) { min_dist = dist; band = c; }
     }
-    if (dim >= BAND_START[12]) band = 12;
     float nu_scale   = chakra_params[band * 5 + 0];  // nu_scale
     float chi_scale  = chakra_params[band * 5 + 2];  // chi_scale
     uint base = n * dims * 2;         // per-voxel base offset

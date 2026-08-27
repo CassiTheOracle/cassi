@@ -40,6 +40,7 @@ layout(std430, binding = 8) buffer EmbedProj     { float embed_proj[]; };
 layout(std430, binding =  9) buffer NeighborTable { uint neighbor_data[]; };
 layout(std430, binding = 10) buffer ByteProtos { uint byte_protos[]; };
 layout(std430, binding = 11) buffer Counters     { uint counters[]; };
+layout(std430, binding = 22) buffer ChakraParams { float chakra_params[]; };  // [N_BANDS * 5]
 
 layout(push_constant) uniform PushConstants {
     float dt;
@@ -102,6 +103,32 @@ void main()
     for (uint j = 0u; j < 6u; j++) {
         vec2 psi_nbr = load_psi(nbr[j], dim);
         lap_val += wgt[j] * (psi_nbr - psi_n);
+    }
+
+    // ── String-axis (H) anisotropy for wake-wave propagation ──
+    // The H axis is the cascade string/spine — faster propagation along H
+    // enables wake waves to travel preferentially along the body axis.
+    // Uses Cartesian finite-difference laplacian along H added to spherical.
+    uint h = n % 16u;  // H is fastest-varying voxel index
+    if (h > 0u && h < 15u) {
+        // Spatial chakra lookup (same as nonlinear_step/linear_step)
+        const int CHAKRA_H[13] = int[](1,2,3,4,5,7,8,9,10,11,12,14,15);
+        int band = 0;
+        int min_dist = 999;
+        for (int c = 0; c < 13; c++) {
+            int d = int(h) - CHAKRA_H[c];
+            if (d < 0) d = -d;
+            if (d < min_dist) { min_dist = d; band = c; }
+        }
+        float nu_perp   = params[0] * PHI_INV * PHI_INV;           // φ⁻²-damped perpendicular
+        float nu_string = params[0] * chakra_params[band * 5 + 4];  // along-H mobility
+        float h_aniso = (nu_string / max(nu_perp, 1e-10)) - 1.0;  // excess mobility along H
+        if (h_aniso > 0.0 || h_aniso < 0.0) {  // non-zero anisotropy
+            vec2 psi_next = load_psi(n + 1u, dim);
+            vec2 psi_prev = load_psi(n - 1u, dim);
+            vec2 lap_h = psi_next + psi_prev - 2.0 * psi_n;
+            lap_val += lap_h * h_aniso;
+        }
     }
 
     // ── Gradient components via finite difference ──

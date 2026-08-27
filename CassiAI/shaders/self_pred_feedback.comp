@@ -1,122 +1,57 @@
 #version 460
 #extension GL_EXT_control_flow_attributes : enable
 
-// ──────────────────────────────────────────────────────────────
-// Self-predictive feedback shader
-// Implements the α·P[ψ] coupling term from Qi fluid formalism.
+// ═══════════════════════════════════════════════════════════════════
+// self_pred_feedback.comp — Field-space self-prediction feedback
 //
-// After qi_accum computes readout predictions, this shader feeds
-// the predicted field vector back into psi, coupling the field
-// evolution to the readout's own predictions.
+// Implements the α·P[ψ] coupling term from Qi fluid formalism §2.3:
+//   ψ_{t+1} = Φ_γ(ψ_t, ψ_{t-1}) + S_t + α · ψ̂_{t+1}
 //
-// ψ_{t+1} = Φ_γ(ψ_t, ψ_{t-1}) + S_t + α · ψ̂_{t+1}
+// where ψ̂ = ψ_pred (from field_predict.comp, binding 30) is the
+// field's own prediction of its next state.
 //
-// where ψ̂_{t+1} = P[ψ_{≤t}] is the model's prediction of the
-// next field state derived from the sampled byte.
-// ──────────────────────────────────────────────────────────────
+// Feedback: ψ += α · (ψ_pred − ψ)
+// = field nudges itself toward its prediction, with α controlling
+// the coupling strength (α = φ⁻¹ is the critical point).
+//
+// Replaces the old byte-space feedback that mixed byte embeddings
+// into the field. Now the field predicts ITSELF, not the next byte.
+//
+// One invocation per (voxel, dim) — same dispatch as PDE.
+// ═══════════════════════════════════════════════════════════════════
 
 layout(local_size_x = 64) in;
 
 // ── Constants ──
-#define V               256
-#define BYTE_EMBED_DIM  128    // byte embedding dimension
-#define D               16
-#define W               16
-#define H               16
-#define NUM_DIMS        128
-#define N_VOXELS        4096
-#define WORKGROUP_SIZE  64
-#define NUM_WORKGROUPS  8192   // N_VOXELS * NUM_DIMS / WORKGROUP_SIZE
+#define DIM          128
+#define N_VOXELS     4096
+#define VOXEL_STRIDE (DIM * 2)
 
-// ── Buffer bindings (std430) — same cross-shader convention ──
+// ── Buffer bindings (std430) ──
+layout(std430, binding = 0)  buffer PsiBuf      { float psi[]; };
+layout(std430, binding = 6)  buffer ParamsBuf   { float params[]; };
+layout(std430, binding = 30) buffer PsiPredBuf  { float psi_pred[]; };  // ψ̂ from field_predict
 
-layout(std430, binding =  0) buffer PsiBuf           { float psi[]; };
-layout(std430, binding =  1) buffer PsiPrevBuf       { float psi_prev[]; };
-// bindings 2-5: grad_h, grad_w, grad_d, lap — unused here
-layout(std430, binding =  6) buffer ParamsBuf        { float params[15]; };
-layout(std430, binding =  7) buffer ByteEmbedBuf     { float byte_embed[]; };
-layout(std430, binding =  8) buffer EmbedProjBuf     { float embed_proj[]; };
-// bindings 9-13: readout_weight, readout_bias, counters, accum, voxel_energy — unused here
-layout(std430, binding = 14) buffer QiOutputBuf {
-  float qi_value;
-  float best_amp;
-  uint  best_voxel;
-  uint  sampled_byte;
-  float sampled_prob;
-  float logits[256];
-  uint  argmax_byte;    // argmax prediction (always set, used by feedback)
-  float argmax_prob;
-  // ── Five-element diagnostics + ε² memory ──
-  float wood;
-  float fire;
-  float metal;
-  float earth;
-  float water_q;
-  float eps_memory;
-  float _pad_proj_center[256 * 128];  // reclaimed space, do not read/write
-} qi_output;
-// ── Push constants ──
-layout(push_constant) uniform PushConstants {
-    float dt;
-    uint  pass;
-    float breath_t;
-    uint  target_byte;
-    float lr;
-    float qi_target;
-    int   pads[5];
-} push;
-
-// ═══════════════════════════════════════════════════
-void main()
-// ═══════════════════════════════════════════════════
-{
+void main() {
     // ── Early-out: α ≤ 0 means feedback is disabled ──
     float alpha = params[7];
-    if (alpha <= 0.0f) {
-        return;
-    }
+    if (alpha <= 0.0) return;
 
-    // ── Each invocation handles one (voxel, dim) ──
-    uint idx   = gl_GlobalInvocationID.x;          // [0, 524288)
-    uint n     = idx / NUM_DIMS;                   // voxel index [0, 4095]
-    uint dim   = idx % NUM_DIMS;                   // field dimension [0, 127]
-    uint base  = n * NUM_DIMS * 2;                 // base offset for this voxel
+    uint idx = gl_GlobalInvocationID.x;
+    uint total = N_VOXELS * VOXEL_STRIDE;
+    if (idx >= total) return;
 
-    // ── Full softmax over all 256 classes ──
-    float max_l = qi_output.logits[0];
-    [[unroll]] for (uint v = 1u; v < V; v++) max_l = max(max_l, qi_output.logits[v]);
-    float sum_exp = 0.0;
-    float sm[256];
-    [[unroll]] for (uint v = 0u; v < V; v++) {
-        sm[v] = exp(qi_output.logits[v] - max_l);
-        sum_exp += sm[v];
-    }
-    float inv_sum = 1.0 / max(sum_exp, 1e-30);
-    [[unroll]] for (uint v = 0u; v < V; v++) sm[v] *= inv_sum;
+    float cur   = psi[idx];       // ψ_t (post-PDE)
+    float pred  = psi_pred[idx];  // ψ̂_t (from field_predict)
 
-    // ── Full-softmax-weighted predicted field value ──
-    // pf = Σ_v softmax(v) · Σ_e byte_embed[v][e] · embed_proj[dim][e]
-    float pf = 0.0;
-    [[unroll]] for (uint v = 0u; v < V; v++) {
-        float weight = sm[v];
-        float dot = 0.0;
-        [[dont_unroll]] for (uint e = 0u; e < BYTE_EMBED_DIM; e++) {
-            dot += byte_embed[v * BYTE_EMBED_DIM + e]
-                 * embed_proj[dim * BYTE_EMBED_DIM + e];
-        }
-        pf += weight * dot;
-    }
+    // NaN guard on uninitialized buffers
+    if (cur != cur)  cur  = 0.0;
+    if (pred != pred) pred = 0.0;
 
-    // ── Load attention-weighted field_state[dim] from qi_accum ──
-    // (written by qi_accum into _pad_proj_center[0..127])
-    float field_state_dim = qi_output._pad_proj_center[dim];
-    if (field_state_dim != field_state_dim) field_state_dim = 0.0;
-
-    // ── Write feedback to psi ──
-    // Real part: α × pf — the predicted field component
-    psi[base + dim * 2] += alpha * pf;
-
-    // Imag part: α × (field_state - pf) — prediction error projected
-    // into imaginary axis, which the PDE propagates on the next step
-    psi[base + dim * 2 + 1] += alpha * (field_state_dim - pf);
+    // Field-space feedback: ψ_t += α · (ψ̂_t − ψ_t)
+    // Positive α: field is attracted to its prediction (the prediction
+    //   reshapes the field to match what it expected)
+    // At α = φ⁻¹: critical coupling — field and prediction co-oscillate
+    //   (the Qi paradox: no stable fixed point)
+    psi[idx] = cur + alpha * (pred - cur);
 }

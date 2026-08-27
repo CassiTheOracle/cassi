@@ -1,34 +1,38 @@
 #version 460
 
-// ──────────────────────────────────────────────────────────────
-// condensate_update.comp — Self-condensate IIR update
+// ═══════════════════════════════════════════════════════════════════
+// condensate_update.comp — B-field-driven condensate maintenance
 //
-// Maintains a thresholded, time-averaged field pattern that
-// serves as the long-lived "self" attractor. Only field amplitudes
-// above a φ⁻² threshold blend into the condensate; below threshold
-// the condensate decays at the same φ-damped rate.
+// Replaces the old per-voxel |ψ|² > φ⁻² threshold with the
+// condensation field B(x,y,z) from condensate_field.comp.
 //
-// ψ_cond ← mix(ψ_cond, ψ, ρ) if |ψ|² > φ⁻²
-// ψ_cond ← (1-ρ) · ψ_cond      if |ψ|² ≤ φ⁻²
-// ──────────────────────────────────────────────────────────────
+// Bubble-void lattice dynamics:
+//   B[n] >  θ_cond  → blend ψ into condensate (chakra center, constructive)
+//   B[n] < -θ_cond  → decay condensate (void, destructive interference)
+//   else            → hysteresis band, leave unchanged
+//
+// θ_cond = 0.45 (from chakras-as-cascade-bubbles.md §7.2).
+// ρ = params[11] — condensate blend rate (φ⁻²-damped IIR).
+// ═══════════════════════════════════════════════════════════════════
 
 layout(local_size_x = 64) in;
 
-layout(std430, binding = 0)  buffer PsiBuf          { float psi[]; };
-layout(std430, binding = 6)  buffer ParamsBuf       { float params[]; };
-layout(std430, binding = 20) buffer SelfCondensate  { float condensate[]; };
+layout(std430, binding = 0)  buffer PsiBuf         { float psi[]; };
+layout(std430, binding = 6)  buffer ParamsBuf      { float params[]; };
+layout(std430, binding = 20) buffer SelfCondensate { float condensate[]; };
+layout(std430, binding = 28) buffer CondensateB    { float B_field[]; };   // [N_VOXELS]
 
-#define DIM 128
-#define N_VOXELS 4096
+#define DIM         128
+#define N_VOXELS    4096
 #define VOXEL_STRIDE (DIM * 2)
-#define PHI_INV 0.618033988749895
+#define PHI_INV     0.618033988749895
 
 void main() {
     uint idx = gl_GlobalInvocationID.x;  // one per (voxel, dim) pair
     if (idx >= N_VOXELS * DIM) return;
 
-    uint n   = idx / DIM;
-    uint dim = idx % DIM;
+    uint n   = idx / DIM;       // voxel index
+    uint dim = idx % DIM;       // field dimension
     uint base = n * VOXEL_STRIDE;
 
     uint off_r = base + dim * 2;
@@ -36,18 +40,19 @@ void main() {
 
     float re = psi[off_r];
     float im = psi[off_i];
-    float amp2 = re * re + im * im;
 
-    float threshold = PHI_INV * PHI_INV;  // φ⁻²
-    float rho = params[11];               // condensate_blend from param index 11
+    float B = B_field[n];           // condensation field value [-1, 1]
+    float theta = 0.45;             // condensation threshold
+    float rho  = params[11];        // blend rate (from params[11])
 
-    if (amp2 > threshold) {
-        // Blend current field into condensate
+    if (B > theta) {
+        // ── Chakra center: constructive interference → accumulate ──
         condensate[off_r] = mix(condensate[off_r], re, rho);
         condensate[off_i] = mix(condensate[off_i], im, rho);
-    } else {
-        // Decay condensate below threshold
+    } else if (B < -theta) {
+        // ── Void between chakras: destructive → dissolve ──
         condensate[off_r] *= (1.0 - rho);
         condensate[off_i] *= (1.0 - rho);
     }
+    // else: hysteresis band between ±θ — leave unchanged
 }
