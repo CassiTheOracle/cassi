@@ -140,10 +140,11 @@ Creative explorations are clearly identified as non-claims and are exempt from t
 
 | Document | Status | Summary |
 |----------|--------|---------|
+| `consciousness/field-materialism-and-human-development.md` | Creative—August 2026 | Field-materialist account of embodied personhood, relational production, human development, class power, the state, and emancipatory transition; supplies the socioeconomic foundation for the Coherence Commons |
 | `speculations/creative-extensions/coherence-warfare.md` | Creative | Coherence budget as weapons table; φ-detuned shields; mutual assured incoherence |
 | `speculations/creative-extensions/universal-biology.md` | Creative | Cascade ladder as convergent evolutionary scaffold |
 | `speculations/creative-extensions/magic-systems.md` | Creative | Magic as phase-matched field operation |
-| `speculations/creative-extensions/coherence-commons.md` | Creative | Two-fluid theory of value; equality theorem; the transition to the commons |
+| `speculations/creative-extensions/coherence-commons.md` | Creative—August 2026 | Marxist field-materialist socioeconomic theory of production, relational surplus, value, class topology, ecological reproduction, democratic planning, transition, and preregistered empirical tests |
 | `speculations/creative-extensions/coherence-collapse.md` | Creative | Attractor self-healing; civilization death modes |
 | `speculations/creative-extensions/first-contact-and-stellar-engineering.md` | Creative | $\ln\varphi$ protocol; stars as gate chains |
 | `speculations/creative-extensions/simulation-hypothesis.md` | Creative | Two-fluid PDE as source code; nested universes |

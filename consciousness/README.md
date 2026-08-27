@@ -22,8 +22,8 @@ This directory maps the Cassi two-fluid framework onto the human scale—the 26-
 | 10 | `neurodivergence-as-gate-configuration.md` | Autism/ADHD as gate configurations; readout and loop variants | Speculative (drive-mechanism layer PDE-tested 2026-08-04) |
 | 11 | `two-strand-qi-neuroscience.md` | Two-strand Qi condensate, neural mapping, and multiscale tests | Hypothesized (strand geometry) / Speculative (neural mapping) |
 | 12 | `meditators-taijitu-brain-bubble.md` | Observer-framing proposal for a taijitu-shaped brain-bubble slice; prospective anatomical and computational discriminators | Hypothesized |
-| 13 | `cassi-psychology.md` | Psychology guide (root-level synthesis) | Synthesis |
-
+| 13 | `field-materialism-and-human-development.md` | Field-materialist personhood and Coherence Commons—bridge to social theory | Creative—August 2026 |
+| 14 | `cassi-psychology.md` | Psychology guide (root-level synthesis) | Synthesis |
 ## Document Summaries
 
 ### `consciousness-from-phi.md`—Consciousness in the Two-Fluid Framework
@@ -73,6 +73,10 @@ This sibling application is a **Speculative psychological mapping**, not a claim
 ### `meditators-taijitu-brain-bubble.md`—The Meditator's Taijitu
 
 Proposes a **Hypothesized** observer-framing model in which a resting-centered observer reads a front-back slice through a brain-bubble geometry. The canonical two-density state, optional doublet-plane diagnostics, and condensation field supply the mathematical ingredients; the taijitu image, anatomical projection, and pineal focal point remain unmeasured mappings. The paper defines prospective spatial-slice, internal-projection, winding, and independent-anatomy checks without assigning empirical status.
+
+### `field-materialism-and-human-development.md`—Cassi Field Materialism: Personhood, Collective Power, and Human Development
+
+**Creative—August 2026** foundation at `consciousness/field-materialism-and-human-development.md` that bridges personhood and consciousness work into social theory. It retains embodied personhood (the person as field-pattern, consciousness at the Qi gate) and proposed social mechanisms of the Coherence Commons as **Creative/Hypothesized**, declares equality, freedom, and emancipation commitments as **Declared** norms, and keeps physical Cassi variables (Qi coherence, bubble geometry, gate dynamics) separate from socioeconomic measures (labor, value, institutions). The Coherence Commons is presented as a socioeconomic theory separating physical analogy, hypothesized social mechanisms, Marxian categories, declared norms, and an operational empirical program; social quantities are not literal Qi coherence and commodity value is not coherence expenditure.
 
 ### `cassi-psychology.md`—Cassi Psychology: The Mind as a Two-Fluid Field
 
