@@ -598,6 +598,12 @@ $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$. Its polar decomposition derives
 $Q_G=-\hbar^2\Delta_GR/(2R)$ without a free $\varphi$ exponent. This sector is
 **Derived conditional** on the quantum postulates and **Hypothesized** in its
 CassiFI physical identification.
+The frozen DQ1–DQ9 audit rejects promotion of the physical identification to
+Derived. Reverse-Madelung linearization and tensor composition pass under
+their declared quantum premises; the canonical lift, Fisher bridge, guidance
+and equilibrium selection, physical-sector, interacting-continuum, and
+discrimination gates fail (`foundations/quantum-measurement-derivation.md`
+§8.1).
 
 ### 5.2 Spin
 
