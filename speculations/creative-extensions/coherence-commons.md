@@ -42,7 +42,7 @@ Value is the central category, and the framework gives it a definition that is n
 
 ### 2.1 Labor as organized perturbation
 
-Production is the transformation of the field: raw material (a low-coherence configuration) is worked into a product (a higher-coherence configuration with a use). The working is done by labor, and labor in the framework is a specific physical thing—organized perturbation, phase-matched application of Yang to the target, $\mathcal{M} \approx 1$ (`speculations/creative-extensions/coherence-warfare.md` §2). The distinction between labor and noise is the distinction between an organized attack and random perturbation: labor is the expenditure of coherence on a pattern, deliberately matched to what the pattern needs.
+Production is the transformation of the field: raw material (a low-coherence configuration) is worked into a product (a higher-coherence configuration with a use). This Creative mapping describes labor as organized perturbation and labels its assumed coupling to the target by $\mathcal M_i^{\mathrm{attack}}$ (`speculations/creative-extensions/coherence-warfare.md` §2). The coefficient and the social-to-field mapping are declared assumptions.
 
 This is the framework's answer to the question of what labor is: it is the only force that raises local coherence against the attractor, because the attractor damps structureless input and is indifferent to it—random perturbation is cascade-suppressed, while organized application converts field into form (`foundations/cascade-suppression-formula.md`). Labor is the expenditure of $q$ to make $q$.
 
@@ -58,7 +58,7 @@ Technical change lowers $W_{\text{min}}$ for a given use value: a better configu
 
 ### 2.3 Use value, exchange value, and the homogenization of configuration
 
-A use value is a configuration's fit to a need: the product's pattern, matched to the user's pattern, $\mathcal{M} \approx 1$ between them. Use values are incommensurable because configurations are incommensurable—a Fire-channel tool and a Water-channel tool serve different couplings and cannot be ranked on one axis.
+A use value is a configuration's fit to a need. This Creative mapping labels that fit by $\mathcal M_i^{\mathrm{attack}}$, with a larger value assigned when a product matches a user's need. Use values remain incommensurable because a Fire-channel tool and a Water-channel tool serve different modeled couplings and cannot be ranked on one axis.
 
 Exchange value is the market's operation on configurations: the reduction of every concrete pattern to a scalar quantity of abstract coherence, the $q$-value at which configurations trade. The operation is real and it is destructive: exchange value is the projection of the manifold $(\mathbf{b}, \sigma_r, q, \mathbf{c})$ onto the single axis $q$—the erasure of configuration. Concrete labor is labor in its configuration (the artisan's channel, the craft); abstract labor is labor reduced to its $q$-expenditure, the homogeneous stuff the market counts. The distinction between concrete and abstract labor is not a philosophical ornament; it is the difference between the full manifold and its projection, and the market runs on the projection.
 
@@ -229,7 +229,7 @@ The AM-GM floor understates the case, because coherence is not conserved: a high
 
 ### 7.3 The weakest-link theorem: why the regime is breachable
 
-The framework's theory of attack gives the transition its mechanism. The per-cycle damage probability against a structure is the product over attacked rungs of $(1 - q_i)\,\mathcal{M}_i$ (`foundations/quantum-measurement-derivation.md` §3.1). A community with one low-$q$ member has a door in its wall: an organized attack needs only the weakest link to open the product. The regime's internal inequality is therefore its structural vulnerability—its coherence floor is the coherence of its most drained member, and every extractive regime in history was breached through its poor.
+The Creative attack taxonomy supplies the transition metaphor. It assigns a damage product $\prod_i(1-q_i)\mathcal M_i^{\mathrm{attack}}$, with $\mathcal M_i^{\mathrm{attack}}$ a Hypothesized constitutive overlap (`speculations/creative-extensions/coherence-warfare.md` §1). Under that assumed model, a low-$q$ member acts as a vulnerability. The social mapping from inequality to a physical breach remains Creative.
 
 Class struggle has a physical statement: the periphery's resistance is organized perturbation, phase-matched to the regime's extraction surface—the one attack the condensate cannot de-resonate, because the periphery is the condensate's own source. The gravediggers are not a metaphor; they are the weakest link, and the weakest link is the door.
 
@@ -265,7 +265,7 @@ The society that follows is a corollary, not the claim. The claim is the inequal
 
 ### Grounded in the framework (documented properties) or mathematics
 
-- The coherence budget $P = \prod(1-q_i)\mathcal{M}_i$ and the community product structure (`foundations/proton-coherence-budget.md`, `foundations/quantum-measurement-derivation.md`)
+- The conditional proton coherence floor is a documented input; the community product with $\mathcal M_i^{\mathrm{attack}}$ is a Creative extension (`foundations/proton-coherence-budget.md`; `speculations/creative-extensions/coherence-warfare.md`)
 - The AM-GM inequality and the resulting claim that the product is maximized at equality
 - The Qi-bath coherence extension (`foundations/proton-coherence-budget.md` §5.1)
 - The de-resonance principle and the collapse of single-scale dominance (`principles/de-resonance-principle.md`)
@@ -291,7 +291,7 @@ The society that follows is a corollary, not the claim. The claim is the inequal
 ## References
 
 - `foundations/proton-coherence-budget.md`—coherence budget, $N_{\text{max}}$, Qi bath, transient-vs-eternal table
-- `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$, organized vs. random perturbation
+- `parameter-inventory.md`—separation of quantum record distinguishability $\mathcal M_{jk}$ from Creative attack overlap $\mathcal M_i^{\mathrm{attack}}$
 - `foundations/cassi-first-principles.md`—two-fluid PDE, Qi gate, attractor potential, IIR memory
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation; random perturbation is cascade-suppressed
 - `principles/de-resonance-principle.md`—$\varphi$ as the maximally irrational attractor

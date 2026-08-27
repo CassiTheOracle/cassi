@@ -453,6 +453,20 @@ Sorted by detection likelihood (most definitive first):
 | Biophysics (chakra) | Qi density gradient at chakra boundary | **1.7072×** directional proxy steepness, conditional on a measured or selected $\theta_{\mathrm{cond}}$ | Not yet tested; canonical $q$ requires a separately measured constitutive map | **Laboratory** |
 | Anatomy (fascial planes) | Ultrasound elastography boundary stiffness ratio | **1.7072×** directional proxy anisotropy, conditional on a measured or selected $\theta_{\mathrm{cond}}$ | Not yet tested; canonical-field identification is not supplied | **Laboratory** |
 
+## 9. Quantum-Sector Compatibility—Sodium-Nanoparticle Interference
+
+| ID | Observable | Conditional Cassi result | Current status | Falsifier |
+|----|------------|--------------------------|----------------|-----------|
+| CT-1 | Talbot-Lau harmonic multiplier for a 172 kDa sodium nanoparticle | $R_\ell^{\mathrm{CassiFI}}=1$ for every integer $\ell$ before ordinary environmental and apparatus factors; therefore the same visibility as linear quantum mechanics under the same calibrated grating model | **Derived conditional** on QF1-QF4; compatible with the 2026 observed visibilities $0.10\pm0.01$ and $0.08\pm0.01$ and the reported macrorealist bound $\tau_e\geq2.84\times10^{15}$ s ($\mu=15.45$). This is a compatibility constraint rather than a Cassi-specific deviation. | Any intrinsic CassiFI localization term producing a reproducible $R_\ell\neq1$, or failure of the regulated Hamiltonian to reproduce $E=\hbar^2k^2/(2M)$ |
+
+**Source:** `foundations/quantum-measurement-derivation.md` §§7–8;
+`computations/cassifi-quantum-bridge-pre-registration.md`;
+`computations/verify_cassifi_quantum_bridge.py`; “Quantum interference of
+sodium nanoparticles,” *Nature* (2026),
+https://doi.org/10.1038/s41586-025-09917-9.
+
+---
+
 ## Notes
 
 - **No canonical parameter-free prediction is assigned.** The ratio is a geometric proxy conditional on the selected threshold and the stated coordinate construction; the Fit-Status Ledger records anchored quantities (`parameter-inventory.md` §10).
@@ -485,7 +499,7 @@ Sorted by detection likelihood (most definitive first):
   fitted or calibrated comparisons, null results, rejected entries, and open
   hypotheses. Rows without a registered derivation are marked **Not
   predicted**; no aggregate success count is assigned across those classes.
-- **Conditional test rows (CT-n):** rows labeled CT-n are unnumbered conditional discriminators added outside the 1–N numbered prediction sequence; they do not alter the catalog's numbered prediction count. The CT-n convention is reserved, and the catalog currently contains no active CT-n rows.
+- **Conditional test rows (CT-n):** rows labeled CT-n are unnumbered conditional discriminators outside the 1–N numbered prediction sequence; they do not alter the catalog's numbered prediction count. CT-1 records the regulated quantum sector's no-collapse nanoparticle limit.
 
 - **Deviations from SM expectations are falsifiable**—not adjustable. If FCC-ee
   measures $m_W/m_Z = 0.881 \pm 0.0001$, the Cassi framework is excluded

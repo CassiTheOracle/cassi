@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This glossary defines the Cassi two-fluid variables, $\varphi$-attractor, Qi coherence, phase currents, conversion, and the scope of optional spatial drift. The canonical solver variables are the nonnegative square densities $E_Y$ and $E_I$; $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$ is their exact positive-root coordinate lift for amplitude-plane diagnostics. The signed imbalance is $\pi=E_Y-E_I$, while $\rho=E_Y+E_I$ remains nonnegative. Yang/Yin direction words are phenomenological or coordinate mnemonics unless a shared advection field or named potential-relative drift supplies the motion.
+This glossary defines the Cassi two-fluid variables, $\varphi$-attractor, Qi coherence, phase currents, conversion, optional spatial drift, and the regulated CassiFI quantum sector. The canonical solver variables are the nonnegative square densities $E_Y$ and $E_I$; $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$ is their exact positive-root coordinate lift for amplitude-plane diagnostics. The conditional quantum state $\Psi[Q,t]$ is a distinct complex wavefunctional on the full CassiFI configuration space. The signed imbalance is $\pi=E_Y-E_I$, while $\rho=E_Y+E_I$ remains nonnegative. Yang/Yin direction words are phenomenological or coordinate mnemonics unless a shared advection field or named potential-relative drift supplies the motion.
 
 > Framework proposal grounded in the φ-attractor and the Yin-Yang two-fluid,
 > with emergent-spacetime geometry treated as an optional closure.
@@ -44,6 +44,15 @@ This glossary defines the Cassi two-fluid variables, $\varphi$-attractor, Qi coh
 - **Definition**: The canonical solver state is $(E_Y,E_I)\in\mathbb{R}_{\geq0}^2$. Its reference lift is $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})\in\mathbb{R}_{\geq0}^2$.
 - **Scope**: The positive-root lift is a coordinate diagnostic on the nonnegative quadrant. Independent signs and compact phase belong to optional extensions.
 - **State ratio**: $r=E_Y/E_I$ where $E_I>0$; the ratio is continuous and the densities remain the primary solver variables.
+
+### $\Psi[Q,t]$—regulated CassiFI quantum wavefunctional
+- **Configuration**: $Q^A=\{\operatorname{Re}D,\operatorname{Im}D,\operatorname{Re}C,\operatorname{Im}C\}_{s,j}$ is the finite regulated CassiFI complex-field configuration, with positive metric $G_{AB}$.
+- **State space**: $\Psi[Q,t]\in L^2(\mathcal C,d\mu_G)$ is a normalized complex wavefunctional on the full configuration space. It is distinct from the real positive-root lift $\Psi^{(+)}$.
+- **Dynamics**: $\hat H_Q=-\hbar^2\Delta_G/2+U_{\mathrm{FI}}(Q)$ and $i\hbar\partial_t\Psi=\hat H_Q\Psi$ in the closed conservative sector.
+- **Actual configuration**: One field configuration follows the conserved current, $\dot Q^A=J^A/|\Psi|^2$.
+- **Quantum equilibrium**: $\rho_Q=|\Psi|^2$ is an explicit statistical postulate. It is equivariant and yields $P(k)=\langle\Psi|P_k|\Psi\rangle$ for disjoint retained apparatus sectors.
+- **Record distinguishability**: $\mathcal M_{jk}=1-|\langle A_kE_k|A_jE_j\rangle|^2$. The Creative classical attack coefficient $\mathcal M_i^{\mathrm{attack}}$ is a separate Hypothesized quantity.
+- **Status**: The regulated mathematical construction is **Derived conditional** on QF1-QF4. Identifying the CassiFI field with nature's microscopic configuration is **Hypothesized** (`foundations/quantum-measurement-derivation.md`).
 
 ### $E_Y$—Yang density
 - **Definition**: $E_Y\ge0$ is the canonical Yang density component, equivalently $E_Y=(\Psi_0^{(+)})^2$ in the positive-root lift.

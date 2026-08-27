@@ -1,25 +1,27 @@
 #!/usr/bin/env python3
-"""Q7 coherence-budget contrast: organized vs random drive on a superposed state.
+"""Q7 real-density contrast: organized vs random drive.
 
-Tests `foundations/quantum-measurement-derivation.md` §3 (open question Q7,
-`open-questions-cassi-answers.md`): an ORGANIZED perturbation (phase-matched,
-M≈1) attacks single-rung inter-branch coherence with O(1) collapse
-probability and selects one branch, while a RANDOM perturbation (M≈0) at
-equal power decoheres the off-diagonal elements without branch selection.
-Never tested before: the trauma-driver family tested organized/random drives
-on the OPEN gate and the HELD single-branch site, never on a two-branch
-superposed state.
+This script evaluates the real-density branch-selection ansatz listed as Null
+in the parameter-inventory fit-status ledger. The regulated Q7 quantum sector
+is specified separately; it uses a complex unitary wavefunctional,
+configuration-space entanglement, an actual guided configuration, a quantum-
+equilibrium ensemble, and a topological-retention detector record.
 
-Init (the superposition—a which-path state, §3.2): two Gaussian bubbles at
-moderate separation, each a distinct branch of the superposed observable:
+The protocol assigns M≈1 to a periodic drive and M≈0 to equal-power white
+noise, then asks whether the periodic drive selects one of two classical
+Gaussian density bubbles. The present symbol for that Creative constitutive
+label is M_attack; quantum record distinguishability M_jk is a separate
+overlap of apparatus/environment states.
+
+Init: two Gaussian classical density bubbles at moderate separation:
 
   branch A (Fire): r = EY/EI = 0.45, blend 0.50  -> eps ~ -0.65 (Yang deficit)
   branch B (Wood): r = 6.0,        blend 0.643 -> eps ~ +0.65 (Yang excess)
 
-Blends are tuned so the two branches have EQUAL |eps| (0.65) at equal cell
-volume: q_A = q_B (same total density M, same eps^2), so the superposition
-carries NO built-in winner—selection must be produced by the drive. The
-branch amplitude sits in the standing-test range (AMP ~ 0.8) so the 0.15
+Blends are tuned so the two bubbles have EQUAL |eps| (0.65) at equal cell
+volume: q_A=q_B (same total density, same eps^2), so the classical initial
+condition carries no built-in winner.
+The branch amplitude sits in the standing-test range (AMP ~ 0.8) so the 0.15
 drive is a moderate perturbation (23%), not a swamping rectification. The
 branches are phase-incompatible (anti-phase in eps): the §2 "competing
 templates" at the single rung of the superposed observable (the sign of eps
@@ -33,31 +35,32 @@ Arms (equal power, seed 42, t=4, lambda=0.05, N=48):
   organized recurring sine at P0, amp 0.15, uniform over the union ball
             (the apparatus couples to the path observable), on ey (the
             direct-epsilon channel, house Fire in-channel convention);
-            M≈1 for the state's coherent phase structure
+            proposed M_attack≈1 label for the periodic drive
   random    white noise on the SAME component (ey), std = 0.15/sqrt(2)
-            (RMS-matched to the sine), fixed seed; M≈0
+            (RMS-matched to the sine), fixed seed; proposed M_attack≈0 label
 
 Drive component is fixed by design on ey for both drive arms: for a
-symmetric superposition the mean-epsilon sign is a +/-0.02 coin flip that
+symmetric initial condition the mean-epsilon sign is a +/-0.02 coin flip that
 selects the ei pump channel (v1/v2 iterations; preserved under runs/).
-Both arms share the component, so the contrast is purely the temporal phase
-structure (periodic vs white), which is the M factor.
+Both arms share the component, so the contrast isolates periodic versus white
+temporal structure.
 
 Observables (union of the two balls = the site):
   frac_neg  fraction of cells with eps < 0—branch occupancy (0.5 =
-            symmetric superposition; -> 1: Fire branch won, -> 0: Wood won)
-  eps1, eps2 per-branch mean eps over each branch ball (who drains)
-  c_AB      inter-branch cross-term eps1*eps2—the alpha*beta off-diagonal
-            element proxy: ~ -0.085 at init, -> 0 as either branch drains;
-            rho_AB = normalized sign form (anti-phase = -1); plus the
-            Gaussian-overlap wake correlation (two-bubble convention)
+            symmetric classical state; -> 1: Fire bubble won, -> 0: Wood won)
+  eps1, eps2 per-bubble mean eps over each bubble ball
+  c_AB      cross-term proxy eps1*eps2: ~ -0.085 at init, -> 0 as either
+            bubble drains; rho_AB is the normalized sign form (anti-phase
+            = -1), supplemented by the Gaussian-overlap wake correlation
+            (two-bubble convention)
   eps_site, q_site/q_gap, sigma_r_site, ey/ei_min_site (clamp diags)
 
-Verdict (Q7): SUPPORTED if the organized arm SELECTS—|frac_neg-0.5|
+Verdict (real-density branch-selection ansatz): SUPPORTED if the organized arm
+SELECTS—|frac_neg-0.5|
 growing from ~0 to >= 0.35 (one branch taking over) with the cross-term
 |rho_AB| decaying by >= 0.3—while the equal-power random arm and the
 undriven reference do NOT select (frac_neg stays near 0.5). NULL otherwise.
-Reported honestly either way.
+The script reports either outcome.
 
 Usage:
   python two-fluid/run_coherence_budget_contrast.py --arm ref
@@ -97,7 +100,7 @@ NOISE_STD = DRIVE_AMP / np.sqrt(2.0)   # RMS-matched to the sine
 SEED = 42
 P0_FALLBACK = 0.1            # only if the ref series has no dominant peak
 
-# ── Superposition branches (which-path two-bubble, equal |eps|) ───────────
+# ── Classical two-bubble initial condition (equal |eps|) ─────────────────
 R_A = 0.45                   # Fire branch: eps < 0
 R_B = 6.0                    # Wood branch: eps > 0 (blend tuned below)
 A_A = 0.50                   # branch-A blend -> |eps| ~ 0.65
@@ -132,7 +135,7 @@ def make_branch_bubble(ey, ei, cx, cy, cz, radius, r_local, amplitude):
 
 
 def superposition_init(solver, seed=SEED):
-    """Two-branch which-path superposition (see module docstring)."""
+    """Two-bubble classical initial condition (see module docstring)."""
     N_ = solver.N
     dev = solver.device
     ey = torch.ones((N_,) * 3, dtype=torch.float64, device=dev)
@@ -194,7 +197,7 @@ def measure_branches(solver, ey, ei, union, bA, bB, w1, w2):
 
 
 def run_case(solver, mode, p0=None, outdir=None):
-    """Evolve the superposed init under one drive mode; return hist."""
+    """Evolve the two-bubble initial condition under one drive mode."""
     print(f"\n=== run: {mode} (p0={'-' if p0 is None else f'{p0:.4f}'}, "
           f"amp={DRIVE_AMP}, noise_std={NOISE_STD:.4f}) ===")
     ey_hat, ei_hat, u_hat = superposition_init(solver, seed=SEED)
@@ -236,7 +239,7 @@ def run_case(solver, mode, p0=None, outdir=None):
                 # spatial phase structure (the inter-branch coherence).
                 ey = ey + drive * (bA - bB)
             elif mode == 'pathA':
-                # Which-path detector: organized attack on branch A only.
+                # Branch-A-localized drive in the historical protocol.
                 ey = ey + drive * bA
             else:
                 ey = ey + drive * union
@@ -381,7 +384,7 @@ def make_figure(v):
             ax.grid(alpha=0.3)
             ax.legend(fontsize=8)
         p0 = v['meta'].get('P0', 0.0)
-        fig.suptitle(f'Q7 coherence-budget contrast (P0 {p0:.3f}, '
+        fig.suptitle(f'Q7 real-density contrast (P0 {p0:.3f}, '
                      f'amp {DRIVE_AMP}, noise RMS {NOISE_STD:.3f})')
         fig.tight_layout()
         fig.savefig(f"{RDIR}/coherence_budget.png", dpi=130)
@@ -396,7 +399,7 @@ def print_verdict(v):
                             v['arms']['random'])
     s_anti, s_path = v['extra_arms']['organized_anti'], \
         v['extra_arms']['organized_pathA']
-    print("\n=== Q7 COHERENCE-BUDGET CONTRAST (t=4) ===")
+    print("\n=== Q7 REAL-DENSITY CONTRAST (t=4) ===")
     print(f"{'arm':>9s} {'frac_neg 0->1':>14s} {'|sel|':>6s} "
           f"{'asym':>6s} {'c_AB 0->1':>13s} {'crossΔrel':>9s} "
           f"{'eps_rel':>7s} {'q_gap':>7s} {'ey_min':>7s} {'ei_min':>7s}")
@@ -425,15 +428,13 @@ def print_verdict(v):
     print(f"random (equal RMS):        selection={vd['random_selected']}")
     print(f"ref (undriven):            selection={vd['ref_selected']}")
     if vd['SUPPORTED']:
-        print("*** Q7 SUPPORTED: the organized (M≈1) drive at the "
-              "state's own phase collapses the two-branch superposition "
-              "to one branch while the equal-power random (M≈0) drive "
-              "and the undriven reference leave it unselected—"
-              "measurement-like selection is phase-matching, not "
-              "power. ***")
+        print("*** REAL-DENSITY ANSATZ SUPPORTED: the periodic drive "
+              "selects one classical bubble while equal-power white noise "
+              "and the reference remain unselected. The regulated quantum "
+              "sector uses its separate wavefunctional and apparatus model. ***")
     else:
-        print("Q7 NULL: no organized-vs-random selection contrast in "
-              "this PDE—see per-arm numbers above.")
+        print("Q7 NULL: no periodic-vs-random selection contrast in this "
+              "real-density PDE—see per-arm numbers above.")
     print(f"Results: {RDIR}/verdict.json")
 
 

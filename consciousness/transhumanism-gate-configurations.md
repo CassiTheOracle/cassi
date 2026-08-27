@@ -120,7 +120,7 @@ Three capabilities are real configurations:
 The classic wishlist fails on four documented grounds:
 
 - **The bridge limit kills cross-scale powers.** Flight, telekinesis, weather control—any capability coupling the body to distant rungs (n≈95 QCD, n≈220 AU) requires chained gates across spans a single gate cannot bridge (`foundations/bubble-lattice-fabric.md` §3.3).
-- **The coherence budget kills immunity.** Stability against *random* dephasing is $N_{\max} = \varphi^{n(n+1)/2}$—astronomically large at the human scale ($\approx \varphi^{14196} \approx 10^{2967}$ cycles, `foundations/proton-coherence-budget.md` §7). But organized, phase-matched perturbation with $\mathcal{M} \approx 1$ has probability $\mathcal{O}(1)$ at the targeted rung, independent of cascade depth (`foundations/quantum-measurement-derivation.md` §3). The only defenses are φ-detuned boundaries that refuse coupling—the shield domain of `speculations/creative-extensions/coherence-warfare.md`.
+- **The coherence budget kills immunity.** Stability against *random* dephasing is $N_{\max}=\varphi^{n(n+1)/2}$—astronomically large at the human scale ($\approx\varphi^{14196}\approx10^{2967}$ cycles, `foundations/proton-coherence-budget.md` §7). The Creative attack model assigns $\mathcal O(1)$ targeted coupling only through the Hypothesized constitutive idealization $\mathcal M_i^{\mathrm{attack}}\approx1$ (`foundations/proton-coherence-budget.md` §5.2). Its proposed defenses are φ-detuned boundaries that reduce that assumed overlap—the shield domain of `speculations/creative-extensions/coherence-warfare.md`.
 - **The attractor supplies a model-level cost.** Holding a configuration far from $r = \varphi$ increases the declared potential $V_{\text{attr}} = (\lambda/2)(E_Y - \varphi E_I)^2$ (`foundations/cassi-first-principles.md`); treating that potential as continuous physical work, or reading §5 failure modes as an energy payment, requires an additional dimensional and constitutive map.
 - **The pinch excludes unknowable powers.** Self-modeling exists only above $r = \varphi^{-1}$ (`consciousness/consciousness-from-phi.md` §2.1); a sub-pinch configuration acts without self-awareness by construction—the overwhelm regime, a driver rather than an augmentation.
 
@@ -140,11 +140,18 @@ $$\boxed{\varphi^{-10} \approx 0.008}$$
 
 ### 4.2 More gates is a larger decoherence surface
 
-Every gate is an interface between the chain and the ambient field—a place where phase noise can enter and where organized perturbation can land. The per-cycle decoherence probability is the per-site factor $(1 - q_i)\,\mathcal{M}_i$ (`foundations/quantum-measurement-derivation.md` §3.1), compounded over the chain's coherence-bearing sites (cf. `foundations/proton-coherence-budget.md` §2):
+Every gate is an interface between the chain and the ambient field—a place
+where phase noise can enter and where organized perturbation can land. The
+Creative attack model parameterizes the per-site factor as
+$(1-q_i)\mathcal M_i^{\mathrm{attack}}$, with
+$\mathcal M_i^{\mathrm{attack}}$ a Hypothesized constitutive overlap
+(`foundations/proton-coherence-budget.md` §5.2):
 
-$$P = \prod_i (1 - q_i)\,\mathcal{M}_i$$
+$$P=\prod_i(1-q_i)\mathcal M_i^{\mathrm{attack}}.$$
 
-Adding a gate adds a factor to the product and an attack surface: a site where a phase-matched perturbation operates at $\mathcal{O}(1)$ probability. In the language of `speculations/creative-extensions/coherence-warfare.md`, the vulnerability budget grows with node count in both the random and the organized channels.
+Within that model, adding a gate adds a factor to the product and a proposed
+attack surface. The vulnerability budget grows with node count in both the
+random and organized channels (`speculations/creative-extensions/coherence-warfare.md`).
 
 ### 4.3 The quadratic cost of a longer chain
 
@@ -200,7 +207,7 @@ The person is the configuration $\mathcal{H}$ of §1.2 under time evolution, bou
 
 Uploading proposes to copy the coherence string into a new substrate. The framework's own primitives make the copy questionable at three independent levels:
 
-1. **Reading is an interaction.** A readout of the full continuous field state is an organized perturbation at the pattern's rungs, and organized perturbation with $\mathcal{M} \approx 1$ collapses the configuration with $\mathcal{O}(1)$ probability per interaction (`foundations/quantum-measurement-derivation.md` §3.2). You cannot read the state without selecting a branch of it; the copy inherits a branch, not the state (random noise with $\mathcal{M} \approx 0$ selects nothing, §3.1).
+1. **An arbitrary unknown quantum state cannot be cloned.** A universal copier would require a unitary map $U|\psi\rangle|0\rangle=|\psi\rangle|\psi\rangle$. Inner-product preservation would then require $\langle\phi|\psi\rangle=\langle\phi|\psi\rangle^2$, which fails for generic nonorthogonal rays. Measurement can write one classical retained record after alternatives become distinguishable; it does not produce a second copy of the original wavefunctional (`foundations/quantum-measurement-derivation.md` §4.4).
 
 2. **Coherence is relational.** $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$ is defined against the local field, so a copy in a new location has a new ambient field, a new $G_{\text{eff}}$ environment, a new wake-wave structure—the same recipe under different boundary conditions.
 
@@ -228,7 +235,7 @@ Identity is the trajectory of a configuration under the attractor—the $\varphi
 - `foundations/dimensionful-cascade.md`—292-step cascade table, human window at steps 142–168
 - `foundations/cassi-first-principles.md`—governing PDE, $\varphi$-attractor, IIR memory with $\tau = \varphi^{-1}$
 - `foundations/proton-coherence-budget.md`—$N_{\max} = \varphi^{n(n+1)/2}$, per-rung dephasing, body-pattern budget
-- `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$, organized vs random perturbation, $\mathcal{O}(1)$ collapse
+- `foundations/quantum-measurement-derivation.md`—configuration-space no-cloning, topological apparatus records, and conditional quantum measurement
 - `foundations/bubble-lattice-fabric.md`—universal condensation field, scale covariance, 10-rung nesting depth
 - `foundations/cascade-suppression-formula.md`—signal attenuation $\varphi^{-N}$, coherence maintenance $\varphi^{-n(n+1)/2}$
 - `foundations/bubble-edge-geometry.md`—condensation field derivation, checkerboard lattice, $\theta_{\text{cond}}$

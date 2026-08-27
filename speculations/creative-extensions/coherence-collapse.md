@@ -4,9 +4,9 @@
 
 ## Abstract
 
-Every civilization that asks "how does it all end?" is asking about a coherence event in this Creative framework. Random phase drift can decohere a target with per-rung probability $1-q_i$ while carrying little organized branch information; organized perturbation can attack a selected structure with probability $P_i=(1-q_i)\mathcal{M}_i$, reaching $1-q_i$ under phase matching. These mechanisms are local and driven in the tested model. The document explores how civilization-scale gate networks could fail, recover, or leave coherence fossils.
+Every civilization that asks "how does it all end?" is asking about a coherence event in this Creative framework. The conditional random-dephasing budget supplies the $(1-q_i)$ factors. This document adds the constitutive attack coefficient $\mathcal M_i^{\mathrm{attack}}$ and explores how civilization-scale gate networks could fail, recover, or leave coherence fossils.
 
-**Epistemic status:** Creative exploration grounded in Cassi formalism. Every mechanism is anchored to a specific equation or documented framework property—the coherence budget, phase-matching factor, trauma wake-lock runs, and gate-chain architecture—while collapse scenarios, civilization-level mappings, and quantitative extrapolations such as the global probability in §1.3 and event-rate readings in §2.2 remain Creative applications beyond the canonical PDE's established observables.
+**Epistemic status:** Creative exploration grounded in Cassi notation. The quadratic coherence floor and named wake-lock runs are documented inputs. The attack coefficient, global collapse probabilities, civilization mappings, and event-rate readings are Creative/Hypothesized; $\mathcal M_i^{\mathrm{attack}}$ is distinct from quantum record distinguishability $\mathcal M_{jk}$.
 
 ---
 
@@ -72,13 +72,13 @@ Collapse scenarios that survive the passive budget are the ones that bring their
 
 The per-cycle decoherence probability at a target rung is
 
-$$P_{\text{decohere},i} = (1-q_i)\,\mathcal{M}_i$$
+$$P_{\text{decohere},i}=(1-q_i)\mathcal M_i^{\mathrm{attack}}$$
 
-where $\mathcal{M}_i \in [0,1]$ is the phase-matching factor between the perturbation and the pattern at rung $i$ (`foundations/quantum-measurement-derivation.md` §3.1). Random phase drift with $\mathcal{M}\approx0$ can still decohere a target; organized branch selection has probability $P_i=(1-q_i)\mathcal{M}_i$, approaching $1-q_i$ when $\mathcal{M}_i\approx1$. The framework's organized attack examples therefore require phase information, while environmental drift can erase phase coherence without selecting a branch.
+where $\mathcal M_i^{\mathrm{attack}}\in[0,1]$ is the Creative constitutive overlap defined by the companion attack taxonomy (`speculations/creative-extensions/coherence-warfare.md` §1). The canonical PDE supplies no universal probability law of this form. Environmental decoherence and organized pattern forcing therefore require separate dynamical models.
 
 The math of the wave is the math of cascade suppression (`foundations/cascade-suppression-formula.md` §1.2). A signal crossing $N$ rungs attenuates by $\varphi^{-N}$; a gate stage bridges at most ~10 rungs, so an unregenerated wave loses $\varphi^{-10} \approx 0.008$ per stage:
 
-$$\boxed{\mathcal{A}_m = \mathcal{A}_0 \cdot \varphi^{-10m} \prod_{k=1}^{m} \mathcal{M}_k}$$
+$$\boxed{\mathcal{A}_m=\mathcal{A}_0\varphi^{-10m}\prod_{k=1}^{m}\mathcal M_k^{\mathrm{attack}}}$$
 
 A self-propagating wave therefore requires $\mathcal{M}_k\to1$ at every stage: it must resolve each gate's rung, phase, and response. The collapse wave is information-limited, and the gate's own coherence supplies the modeled cost of its destruction.
 
@@ -166,7 +166,7 @@ Global collapse and civilization-scale collapse have different statuses in this 
 
 The Cassi bubble at cascade step $n = 285$ (~191 Mpc) is the coherence length of the Wu Xing number $w = 5$—the scale over which the cosmological initial conditions remain constant, set by the comoving horizon when the Qi gate first engaged (`foundations/dimensionful-cascade.md` §6). Adjacent bubbles sit at $\varphi$-spaced intervals in the chord lattice, separated by voids at the $C = -1$ sites of the condensation field; the observable universe today sits at 97.8% of the way up the ladder (the bubble's volume fraction is $\sim 10^{-5}$); the bubble spans the last ~7 rungs of today's observable ladder. The boundary is a level set of the condensation field—a $\varphi$-detuned interface between the bubble's interior structure and the exterior lattice.
 
-At a $\varphi$-detuned boundary the phase-matching factor is assigned $\mathcal{M}\approx0$ in this model: energy coupling across the interface is suppressed. A coherence catastrophe inside the bubble therefore remains localized under the selected boundary closure because its phase information does not match the neighboring domain. The apocalypse is local within this Creative scenario.
+At a $\varphi$-detuned boundary this Creative model assigns $\mathcal M_{\mathrm{boundary}}^{\mathrm{attack}}\approx0$. Localization of a coherence catastrophe then follows only inside that selected domain-coupling rule. No material-scattering, momentum-transfer, or heat-disposal calculation establishes the assignment.
 
 ### 5.2 Weakly coupled coherence domains
 
@@ -174,9 +174,16 @@ Each bubble is treated as a coherence domain, with weak coupling through the meg
 
 ### 5.3 What "global" would require
 
-Within the selected domain-coupling model, a global-collapse scenario requires survival across today's 292 rungs with $\varphi^{-292}$ attenuation without regeneration, phase matching to every structure with $\mathcal{M}\approx1$ at every rung, and transmission across a bubble boundary assigned $\mathcal{M}\approx0$. The resulting suppression is a conditional model estimate; regeneration, boundary coupling, and external drives require independent specifications.
+Within the selected domain-coupling model, a global-collapse scenario requires
+survival across today's 292 rungs with $\varphi^{-292}$ attenuation without
+regeneration, high $\mathcal M_i^{\mathrm{attack}}$ at every addressed
+structure, and transmission across a boundary assigned
+$\mathcal M_{\mathrm{boundary}}^{\mathrm{attack}}\approx0$. The resulting
+suppression is a Creative model estimate.
 
-$$\boxed{P_{\text{global}} \lesssim \varphi^{-292} \times \prod_{\text{domains}} \langle \mathcal{M} \rangle \times \mathcal{M}_{\text{boundary}}}$$
+$$\boxed{P_{\text{global}}\lesssim\varphi^{-292}
+\prod_{\text{domains}}\langle\mathcal M_i^{\mathrm{attack}}\rangle
+\mathcal M_{\mathrm{boundary}}^{\mathrm{attack}}}$$
 
 Coherence collapse is an energy redistribution, not energy deletion. Annihilation returns mass-energy to free field excitations; the field remains present while its organized pattern decoheres (`foundations/proton-coherence-budget.md` §5.2). The framework's catastrophic outcome is therefore a local rearrangement of the two-fluid field.
 
@@ -192,7 +199,7 @@ The same boundary that confines a catastrophe also confines rescue. Neighboring 
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational, the attractor as emergent de-resonance
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation, coherence maintenance, per-rung damping
 - `foundations/proton-coherence-budget.md`—coherence budget, random vs organized dephasing, annihilation
-- `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$, single-rung organized attack, Born rule
+- `parameter-inventory.md`—separation of quantum record distinguishability $\mathcal M_{jk}$ from Creative attack overlap $\mathcal M_i^{\mathrm{attack}}$
 - `foundations/dimensionful-cascade.md`—the φ-ladder (292 = today's horizon rung), Cassi bubble at $n \approx 285$, megacascade extension
 - `foundations/bubble-lattice-fabric.md`—universal checkerboard, voids, 10-rung nesting depth
 - `foundations/microcascade-mirror.md`—sub-Planckian extension of the ladder
@@ -207,5 +214,5 @@ The same boundary that confines a catastrophe also confines rescue. Neighboring 
 - `two-fluid/run_trauma_phase_channels.py`—phase-channel selectivity, representability bound (2026-07-31)
 - `speculations/cascade-infrastructure.md`—gate chains, 10-rung stages, planetary and stellar networks
 - `speculations/observational-seti.md`—structural signatures, multi-rung detection criterion, geological record
-- `speculations/qi-bubble-propulsion.md`—φ-detuned boundary $\mathcal{M} \approx 0$, $(1-q)$ thermalization
+- `speculations/qi-bubble-propulsion.md`—Hypothesized φ-detuned boundary coefficient $\mathcal M_{\mathrm{boundary}}^{\mathrm{attack}}$ and $(1-q)$ thermalization
 - `speculations/creative-extensions/coherence-warfare.md`—companion document: organized vs random attack taxonomy, phase-matching, φ-detuned shields

@@ -9,11 +9,11 @@
 | **F** | **Fundamental axiom**—the declared scale-separation input for the framework | 1 |
 | **D** | **Derived**—mathematical consequence of $\varphi$ and the PDE structure, zero freedom | 7 |
 | **C** | **Convention / calibrated model output**—solver conventions and calibrated model outputs whose provenance lies beyond $\varphi$ + the canonical PDE; distinct from the epistemic tier **Calibrated** | 5 |
-| **M** | **Mapped**—selected, fit-dependent, or optional-extension quantities whose physical identification lies beyond $\varphi$ + the canonical PDE | 11 |
+| **M** | **Mapped**—selected, fit-dependent, or optional-extension quantities whose physical identification lies beyond $\varphi$ + the canonical PDE | 10 |
 | **E** | **External / empirically determined**—empirical or inherited quantities supplied by calibration or external physics, plus lattice parameters not yet derived from $\varphi$ | 9 |
 | **I** | **Initial condition**—free initial values that evolve dynamically, not fixed by theory | 7 |
 | **N** | **Numerical**—computational parameters with no physical significance | 8 |
-| | **Total** | **48** |
+| | **Total** | **47** |
 Counts are mechanical: count one primary parameter-table row per quantity in §§1–6 with an explicit F/D/C/E/M/I/N class symbol; the §3.4 recap is not counted again. The classification legend, §7 summary, canonical symbol table (§9), fit-status ledger (§10), and descriptive-only solver status entries are excluded.
 
 ---
@@ -53,7 +53,6 @@ Section 2 records the dimensionless quantities fixed as $\varphi$-power identiti
 | $m_W/m_Z$ | $\sqrt{1-\varphi^{-3}}$ | $0.874$; $0.878$ with $\rho$ | **M** | Conditional mass-ratio construction from the selected Weinberg-angle boundary; the $\rho$ correction is an extension input; candidate for FCC-ee |
 | $\alpha_{\text{em}}^{-1}(m_Z)$ | from $\varphi^{-3}/(4\pi)$ at $M_{\text{GUT}}$ | $161$ (vs measured $128.9$) | **M** | Conditional running output from the selected $\varphi^{-3}$ gauge boundary; the SM value $128.9$ closes via $\alpha(0)+\Delta\alpha$ (`standard-model/sm-radiative-corrections.md` §3–4) |
 | $\delta_{\text{CKM}}$ (CP phase) | $\pi\varphi^{-2}$ | $1.199$ rad $(68.7^\circ)$ | **M** | Selected CKM-phase map via the unitarity triangle from $\varphi$-scaled CKM elements; the four-candidate scan and promoted winner are recorded in ledger row 512 |
-| $\beta$ (Bohm QP exponent) | $\varphi^{-1}/2$ | $0.309$ | **M** | Optional amplitude/action extension coefficient; the $\varphi^{-1}/2$ value is a Derived conditional identity under the Hypothesized ansatz in `foundations/cassi-first-principles.md` §3.1 |
 | $\chi_Y$ (Yang chemotaxis) | $\chi/\varphi$ | $\chi \cdot 0.618$ | **E** | Empirical $\chi$ inherited by the ratio; $\chi_Y$ is the algebraic conversion of the calibrated mobility (ledger row 517) |
 | $w_0$ (DE equation of state) |—| $-0.87$ | **C** | ODE calibrated to the hardcoded `TARGET_W0` (DESI-anchored; ledger §10 row 496); 2σ baseline from DESI $w_0 \approx -0.75 \pm 0.06$ ($3.6\sigma$ at fixed $r_0$ with the B2 coupling; $r_0$ re-tuning closed negatively under the stable realization—12) |
 | $w_a$ (DE running) |—| $+0.012$ (with $\xi = \varphi^6$); $-0.38$ (with the ratified coupling, B2—unstable); **$(w_0, w_a) = (-1, 0)$ pure-Λ window (stable realization—10/12)** | **C** | Yang-fraction-weighted $\xi = \varphi^6$ prediction at the Calibrated $w_0$ baseline (ledger §10 row 496); verified via `two-fluid/calibrate_initial_ratio_xi_v2.py`; $2.7\sigma$ baseline; $1.25\sigma$ with the coupling (B2, 08 §C.6—unstable); $4.17\sigma$/$2.61\sigma$ for the stable realization's pure-Λ fit (12) |
@@ -79,7 +78,7 @@ derivations.
 |---|-----------|-------|------|--------|
 | 1 | $\lambda$ (conversion) | $0.1$ (named C-class convention) | $\varphi$-attractor timescale | **C**—asserted framework normalization/timescale convention. The implementation class default is $\lambda=0.02$; named calculations may pass $\lambda=0.1$. The cycle linkage $\lambda=1/(2w)$ at $w=5$ is **Hypothesized**, not derived; equal-and-opposite conversion, potential-coefficient normalization, and “one event per cycle” do not determine a rate or its units. All existing calculations conditioned on $\lambda=0.1$ retain that value; the Three-body row in §8 remains its recorded $\lambda=0.01$ case. |
 | 2 | $\chi$ (chemotaxis) | $0.5$–$1.0$ | Density-focusing mobility | **Empirical**—no independent derivation |
-| 3 | $c_s^2$ (sound speed) | $0.01$ | Effective pressure | **Empirical**—set by Bohm scale + normalization (see §3.2) |
+| 3 | $c_s^2$ (sound speed) | $0.01$ | Effective pressure | **Empirical**—shared solver pressure coefficient; no independent microscopic derivation |
 | 4 | $\nu$ (velocity viscosity) | $10^{-4}$–$10^{-3}$ | Shared-velocity dissipation | **Numerical**—solver-stability setting with no physical interpretation |
 
 ### 3.1 $\lambda$: Electroweak Consistency Check—solver convention; cycle linkage Hypothesized
@@ -121,29 +120,24 @@ values lie above the measured Higgs mass. The Wu Xing construction supplies a
 potential-coefficient normalization, and “one event per cycle” do not derive
 a rate or its units.
 
-### 3.2 $c_s^2$ from the Bohm Quantum Potential
+### 3.2 $c_s^2$ as an Empirical Solver Pressure
 
-The sound speed in the PDE is NOT a fundamental constant—it is the effective
-pressure response of the two-fluid system. The optional amplitude/action
-extension's Bohm quantum-potential closure (section 1.3) supplies:
+The PDE coefficient $c_s^2$ sets the effective barotropic pressure response
+used by the named finite solvers. The regulated CassiFI quantum bridge derives
+the centre-of-mass Schrödinger kinetic operator
+$-\hbar^2\nabla^2/(2M)$, but it supplies no local barotropic closure for the
+coarse real-density PDE.
 
-$$\mathcal{L}_{\text{QP}} = -\frac{\hbar^2}{2m^2}
-                            \frac{\nabla^2 M^\beta}{M^\beta}\Psi_\alpha$$
+The value
 
-The effective sound speed from this term at the atomic scale is:
+$$
+c_s^2=0.01
+$$
 
-$$c_s^2 \sim \frac{\hbar^2}{m_e^2 a_0^2} \cdot \frac{\varphi^{-2}}{1+\varphi}
-          \approx 1.0\ \text{a.u.} \times 0.146 \approx 0.146$$
-
-The PDE solver uses $c_s^2 = 0.01$ because the field normalization in
-simulation units absorbs most of the physical scale factor. The remaining
-$c_s^2 = 0.01$ is a **residual** that accounts for the ratio between the
-Bohm pressure and the full kinetic energy density of the DFT system.
-
-For cosmological systems, the PHYSICAL sound speed is different (set by the
-dark matter velocity dispersion), but in simulation coordinates the same
-numerical $c_s^2 = 0.01$ is used—this is a **unit conversion** from atomic
-to simulation units, not a universal physical constant.
+is therefore an empirical solver coefficient under the listed field and grid
+normalizations. Atomic, galactic, and cosmological physical sound speeds
+require their own constitutive matching even when a numerical receipt uses the
+same solver value.
 
 ### 3.3 $\chi$: The Sector-Coupling Bridge; $D$ and $\nu$: Spatial Solver Coefficients
 
@@ -191,7 +185,7 @@ $\kappa_4$, which is separate from the canonical solver coefficients.
 |-----------|-------------|-------------------------------|
 | $\lambda = 0.1$ | **C**—asserted solver normalization/timescale convention; the cycle linkage $\lambda = 1/(2w)$ at $w=5$ is **Hypothesized**, not derived. Equal-and-opposite conversion, potential-coefficient normalization, and “one event per cycle” do not determine a rate or its units; $m_H^2\varphi/4v_0^2 \approx 0.104$ remains a consistency check (§3.1) | The Higgs quartic's orthogonal mode coupling |
 | $\chi \approx 1.0$ | **Formal bridge unresolved**—$\kappa_s = \varphi^{-6}/v_0^2$ is a formal $C=1$ arithmetic scale candidate only; the dimensionally incomplete projection leaves physical $\kappa_s$ and its equilibration timescale unresolved; PDE-normalization factor $\mathcal{N}_{\text{pde}}$ pending | $\chi = \mathcal{N}_{\text{pde}}\kappa_s\varphi^{-1}/[m_e(1+\varphi)]$ |
-| $c_s^2 \approx 0.01$ | **Emergent**—Bohm pressure + normalization choice | $c_s^2 \propto \hbar^2/(m_e^2 a_0^2) \cdot \varphi^{-2}$ |
+| $c_s^2 \approx 0.01$ | **Empirical**—shared solver pressure coefficient under the named normalizations | No $\varphi$ formula or quantum derivation |
 | $\nu \sim 10^{-4}$–$10^{-3}$ | **Numerical**—shared-velocity viscosity setting | No $\varphi$ formula; implementation default $\nu=0.001$ |
 
 The listed values across the cosmology, galaxy, and atomic rows are solver
@@ -429,11 +423,11 @@ convention drives all configurations toward the equilibrium.
 | Fundamental axiom | **F** | 1 | $\varphi$ itself |
 | $\varphi$-derived | **D** | 7 | The seven pure $\varphi$-power rows; conditional identities in §2.2 retain their stated algebraic expressions and provenance |
 | Convention / calibrated model output | **C** | 5 | $\lambda$, $w_0$, $w_a$, $\xi$, and $\sin^2\theta_W(\mu_*)$—solver convention, calibrated outputs, and calibrated physical pin |
-| Mapped quantity | **M** | 11 | $\sin^2\theta_W(m_Z)$, $\alpha_{\text{GUT}}$, $m_W/m_Z$, $\alpha_{\text{em}}^{-1}(m_Z)$, $\delta_{\text{CKM}}$, $\beta$, $K_{fw}$, $K_{ring}$, $\kappa_s$, $n_s$, and $r$—selected boundaries, optional-extension quantities, and mapped windows |
+| Mapped quantity | **M** | 10 | $\sin^2\theta_W(m_Z)$, $\alpha_{\text{GUT}}$, $m_W/m_Z$, $\alpha_{\text{em}}^{-1}(m_Z)$, $\delta_{\text{CKM}}$, $K_{fw}$, $K_{ring}$, $\kappa_s$, $n_s$, and $r$—selected boundaries, optional-extension quantities, and mapped windows |
 | External constant | **E** | 9 | $G$, $c$, $\hbar$, $m_e$, $m_p$, $\alpha_s(M_Z)$, $P_\parallel(n)$, $(A_B,\omega_Y)$, and $\chi_Y$ |
 | Initial condition | **I** | 7 | $r_0$, $a_0$, $H_0$, $N_{\text{blobs}}$, $M_j$, $\sigma_j$, and $\mathbf{X}_j/\mathbf{V}_j$ |
 | Numerical parameter | **N** | 8 | $N$, $L$, $\Delta t$, $\epsilon_{\text{soft}}$, $\text{grav\_sigma}$, $h_{\text{smooth}}$, $D$, $\tau_{\text{qi}}$ |
-| **Total** | | **48** | |
+| **Total** | | **47** | |
 
 ### Free-Parameter Accounting
 
@@ -495,7 +489,8 @@ Symbols used framework-wide that are not parameter rows above (or names for rows
 | $\sigma$ | regularization scale | $\ell_{\text{Pl}}/\varphi^3$ | conditional softened-kernel scale and Gaussian free-propagator form factor; this does not by itself establish physical gravity cores or an interacting UV-finite quantum-gravity theory. **Derived conditional** on the noise–signal identification, the Hypothesized cascade-dephasing family ($d_i=\varphi^{-i-\delta}$), and the selected $d=3$ computational/physical domain; only the $\varphi^{-3}$ arithmetic follows once $\delta=3$ is selected by the noise–signal criterion. Registry G1; no ledger row (not Calibrated/Mapped) |
 | $\sigma_r$ | spatial ratio dispersion | dynamic state variable | consciousness master variable (registry M4) |
 | $\theta_{\text{cond}}$ | condensation threshold | $0.45$ (at $R \approx 0.093$) | calibrated to phenomenology at step 285 (ledger §10); not an a-priori fixed point |
-| $\mathcal{M}$ | phase-matching factor | $\approx 1$ organized / $\approx 0$ random | quantum-measurement derivation (Q7) |
+| $\mathcal{M}_{jk}$ | apparatus-record distinguishability | $1-|\langle A_kE_k|A_jE_j\rangle|^2\in[0,1]$ | **Derived conditional** diagnostic in the regulated quantum sector: $\mathcal M_{jk}\simeq0$ means the alternatives retain overlapping records; $\mathcal M_{jk}\simeq1$ means orthogonal retained records. Its inputs are the apparatus/environment states (`foundations/quantum-measurement-derivation.md` §5.3) |
+| $\mathcal{M}_i^{\mathrm{attack}}$ | classical attack-overlap coefficient used by Creative extensions | $[0,1]$ | **Hypothesized constitutive label** for organized pattern forcing; no universal PDE derivation or measured scattering map. Its inputs are a proposed classical drive and target (`foundations/proton-coherence-budget.md` §5.2) |
 | $g$ | Wu Xing freeze-out gap | $1 - \varphi^{-5} \approx 0.9098$ | derived identity |
 | $\Lambda_Y$, $\Lambda_I$ | wake wavelengths | $\ell_n$ and $\ell_n/\varphi$ | distinct from the conversion rate $\lambda$ (`foundations/wake-geometry.md`) |
 | $\lambda$ | conversion rate | $0.1$ (asserted C-class/framework convention; implementation class default $\lambda=0.02$) | Named calculations may select $\lambda=0.1$. The relation $\lambda=1/(2w)$ at $w=5$ is a **Hypothesized** cycle linkage, not a $\varphi$-derived rate; equal-and-opposite conversion, potential-coefficient normalization, and “one event per cycle” do not determine its rate or units. Keep—do not reuse $\lambda$ for wavelengths or the C1 mechanism scale ($\kappa_{\text{DE}} = 3\varphi^2 H_0$) |
@@ -517,6 +512,7 @@ Symbols used framework-wide that are not parameter rows above (or names for rows
 | $q$ | Qi coherence diagnostic | $\rho^2/(\rho^2 + \varphi^{-2} + \varepsilon_{\mathrm{eff}}^2)$ | **C / Asserted** canonical local gate diagnostic under the model's reference normalization; the rational form and bare $\varphi^{-2}$ floor are constitutive choices, not consequences derived from $\varphi$ + the PDE. Here $\varepsilon_{\mathrm{eff}}^2=\varepsilon^2$ by default; optional default-off `qi_memory` replaces it with $\bar{\varepsilon}^2$ using $\tau=\varphi^{-1}$ when enabled. The bounds and $q_{\mathrm{eq}}\approx0.873$ at the stated reference state are **Derived conditional** on this definition and normalization. The solver fields are dimensionless/reference-normalized; if $E_Y,E_I$ denote physical energy densities, an external reference density $\rho_*$ is required: with $e_Y=E_Y/\rho_*$, $e_I=E_I/\rho_*$, $\tilde\rho=\rho/\rho_*$, and $\tilde\varepsilon_{\mathrm{eff}}=\varepsilon_{\mathrm{eff}}/\rho_*$, use $q=\tilde\rho^2/(\tilde\rho^2+\varphi^{-2}+\tilde\varepsilon_{\mathrm{eff}}^2)=\rho^2/(\rho^2+\varphi^{-2}\rho_*^2+\varepsilon_{\mathrm{eff}}^2)$. No $\rho_*$ scale is derived or counted as a framework parameter. It carries no spatial-current or inter-rung-transport meaning |
 | $\theta_\Psi$ | amplitude-plane phase coordinate | $\operatorname{atan2}(\Psi_1,\Psi_0)$; positive-root lift $\operatorname{atan2}(\Psi_1^{(+)},\Psi_0^{(+)})=\operatorname{atan2}(\sqrt{E_I},\sqrt{E_Y})\in[0,\pi/2]$ | **Derived** exact coordinate diagnostic of the real two-component field for $\rho>0$; the positive-root specialization uses $\Psi_0^{(+)}=\sqrt{E_Y}$ and $\Psi_1^{(+)}=\sqrt{E_I}$. Treating $\theta_\Psi$ as an independent compact physical phase requires an optional signed or complex extension and is **Hypothesized** |
 | $\theta_d$ | density-plane angle | $\operatorname{atan2}(E_I,E_Y)$ | **Derived** state variable of the canonical two-density pair; conversion relaxes it monotonically toward the $\varphi$-line with local rate $\lambda(1-q)\rho\varepsilon/(E_Y^2+E_I^2)$; it supplies no periodic $2\pi$ phase clock or fixed per-rung pitch |
+| $\chi_F,\tau_F$ | dimensionless conversion-flow exposure and time-dimension conversion clock | $\Delta\chi_F=-(1+\varphi)^{-1}\ln|\varepsilon_1/\varepsilon_0|=\int\lambda(1-q)\,dt$; for $\lambda>0$, $\Delta\tau_F=\Delta\chi_F/\lambda=\int(1-q)\,dt$ | **Derived conditional** for conversion-only trajectories with resolved nonzero endpoints under the canonical rank-one law. $\lambda$ supplies the time-unit calibration. The relative rate $d\tau_F(x)/d\tau_F(x_0)=(1-q(x))/(1-q(x_0))$ is exact for the conversion clock; universal proper-time use remains **Hypothesized** and is not counted in §7 |
 | $\Theta_S$ | Stokes double-angle coordinate, distinct from $\theta_\Psi$ and $\theta_d$ | $\Theta_S\equiv2\theta_\Psi\pmod{2\pi}$; $\operatorname{atan2}(2\Psi_0\Psi_1,E_Y-E_I)$ (positive-root lift: $\operatorname{atan2}(2\sqrt{E_YE_I},E_Y-E_I)=2\theta_\Psi^{(+)}\in[0,\pi]$) | **Derived** exact coordinate identity on the positive quadrant; treating $\Theta_S$ as an independent compact physical phase is **Hypothesized**, requires an optional signed or complex extension, and is not supplied by canonical conversion |
 | $\mathbf{J}_\Psi$ | foundational spatial phase current | $\Psi_0\nabla\Psi_1-\Psi_1\nabla\Psi_0=\rho\nabla\theta_\Psi$; on the positive-root lift $\rho=(\Psi_0^{(+)})^2+(\Psi_1^{(+)})^2=E_Y+E_I$ | **Derived** exact local identity with density/length units, distinct from $\mathbf{J}_d$; a named spatial projection such as $J_{\Psi,\parallel}$ supplies a chosen spatial component, while inter-rung or cascade transport interpretation is **Hypothesized** and requires a constitutive map |
 | $J_{\Psi,\parallel}$ | optional named spatial projection | $\hat{\mathbf t}\cdot\mathbf{J}_\Psi$ for specified unit direction $\hat{\mathbf t}$ | **Derived** named spatial projection identity of the positive-root diagnostic; physical directional-current or transport interpretation is **Hypothesized** and requires a separate constitutive map and test, with sign tied to the chosen spatial direction |
@@ -576,7 +572,7 @@ fails the quality bar. Tier definitions: `open-questions-cassi-answers.md`
 | Five-channel $w_a$ shift (wa-pentagon-gate §4) | "→ 0⁻ (potential flip)" | PDE test 2026-08-06 (`two-fluid/run_pde_wa_5channel.py`): w_a = −0.425 ± 0.1 vs single-channel −0.09 ± 0.10 (−0.44 ± 0.15 toward DESI; ~1.1σ from DESI w_a = −0.73 ± 0.28); measured Δ(1−q) ≈ ±0.01, not the documented +0.055—the shift is gate-structure dynamics, not control-release; pentagon gate NaN at a ≈ 0.38–0.66 at the default cap; five_ke inconclusive | PDE run record not retained in this checkout; regenerate with `two-fluid/run_pde_wa_5channel.py` | `two-fluid/run_pde_wa_5channel.py` | Partial-support (mechanism mismatch) |
 | H₀ full H(z) fit (registry C3/T4) | "full H(z) fit pending" | Fit 2026-08-06 (`computations/hz_full_fit.py`): not resolved under the calibrated w(a) (w₀ = −0.87, w_a = +0.012 baseline / −0.38 coupling); dark energy negligible at z~1000–1100, R_cmb = 1.00000, χ² ≈ 25.1 = ΛCDM (anchor separation 5.0σ); ΔH₀ = −7.2 comes from the ODE pipeline's right-clamp at +0.37 for z > 99—extrapolation beyond the calibrated range (a ≥ 0.01) | Planck/SH0ES anchors | hz_full_fit.py | Not resolved |
 | Slow-roll trajectory (n_s, r) | "1.0σ from Planck" / "within bound" | Trajectory test 2026-08-06 (`computations/slow_roll_trajectory.py`): (n_s, r) = (0.813, 0.188) under 1 step = 1 e-fold; (0.914, 0.060) with N_e = 40 literal (1 step = ln φ physical e-folds); n_s 12–36σ from Planck; r excluded by BK18; the two claimed numbers do not coexist on the trajectory; N_e = 40 is a start-threshold choice, not a derived count | Planck 2018 n_s; BK18 r | slow_roll_trajectory.py | Mapped confirmed (trajectory evidence) |
-| Q7 organized-vs-random branch selection (registry Q7) | "M≈1 → definite outcome" | Contrast test 2026-08-06 (`two-fluid/run_coherence_budget_contrast.py`): no organized drive (uniform, anti-phase, single-path) selects a branch of the symmetric two-branch superposition; equal-power random drive rectifies both branches into a same-sign phase lock; protocol caveat: the superposition has no fast coherent oscillation (P₀ an FFT artifact)—the phase-matching channel was unreachable at t = 4 | PDE run (runs/q7_coherence_budget/) | run_coherence_budget_contrast.py | Null (tested) |
+| Q7 real-density organized-vs-random branch-selection ansatz | “$\mathcal M\approx1$ → definite outcome” in the Q7 real-density ansatz | Contrast test 2026-08-06 (`two-fluid/run_coherence_budget_contrast.py`): no organized drive (uniform, anti-phase, single-path) selects a branch of the symmetric two-branch state; equal-power random drive rectifies both branches into a same-sign phase lock; protocol caveat: the state has no fast coherent oscillation ($P_0$ is an FFT artifact), so the proposed phase-matching channel was unreachable at $t=4$. This null constrains the canonical real-density ansatz. It does not test the regulated configuration-space wavefunctional, quantum-equilibrium postulate, or topological apparatus sectors registered in Q7. | PDE run (`runs/q7_coherence_budget/`) | `two-fluid/run_coherence_budget_contrast.py` | Null (tested real-density ansatz) |
 | TR3 phase-matched trigger (cassi-psychology §17) | "Hypothesized, untested" | Test 2026-08-06 (`two-fluid/run_trigger_wx2_tests.py`): Fire trigger re-locks a released Fire site (23× control)—phase-matched re-lock confirmed; Wood trigger re-activates the released site into Wood (39× control)—reactivation is channel-selective, not lock-memory-specific | PDE run (runs/20260806_001658_trigger_wx2/) | run_trigger_wx2_tests.py | Partial |
 | WX2 κ³ damping signature (wu-xing-cycle-structure WX2) | "κ³ = 23.6% per cycle" | Test 2026-08-06 (same script): per-P0 retention 0.944 vs 0.764 predicted; gate-level mean 0.389 vs 0.764; sub-critical direction holds (decay, no self-sustain); ke ring adds no locked-channel damping (Δγ < 0.001) | PDE run (runs/20260806_001658_trigger_wx2/) | run_trigger_wx2_tests.py | Not matched |
 | Wake structural trio (P44 checkerboard, P43 closure, F₂/F₁ sharpening) | "Not yet tested" (catalog rows 43–44) | Probes 2026-08-06 (`two-fluid/run_wake_structural_probes.py`, commit 168a11a): P44 nulls at (m+½)ℓ_{n+1} to 0.0023 grid precision, beats at m·ℓ_{n+1} to 0.00015; P43 beats land on m·ℓ_{n+1} to grid scale; F₂/F₁ = 0.617621 vs 1/φ = 0.618034 (−0.07%), cross-ratio φ³ exact, requires the documented Π∇Φ force form | PDE probes (commit 168a11a) | run_wake_structural_probes.py | Supported (PDE-verified) |

@@ -61,7 +61,7 @@ A square pyramid maps directly onto the bubble-lattice geometry. From `foundatio
 
 The geometric concentration factor is the ratio of base area to apex area. For a 200 m base and a ~0.1 m coherent gate node at the apex, the concentration is approximately $(200/0.1)^2 = 4 \times 10^6$. The pyramid takes the distributed, low-intensity ambient $\Pi$ field and focuses it to a localized $q \to 1$ node.
 
-The pyramid is not a heat collector. Passive geothermal flux through a 200 m × 200 m base is ~3.7 kW—with $\xi$ amplification, about 70 kW, the output of a large diesel generator. The pyramid's value is not in intercepting heat but in **geometrically concentrating Qi coherence** by a factor of millions, creating a node that can couple to the deep cascade with $\mathcal{M} \approx 1$.
+The pyramid is not a heat collector. Passive geothermal flux through a 200 m × 200 m base is ~3.7 kW—with $\xi$ amplification, about 70 kW, the output of a large diesel generator. The geometric area ratio can be used as a focusing proxy, but deep-cascade coupling additionally requires a constitutive device model. This Creative scenario labels that unknown coupling by $\mathcal M_i^{\mathrm{attack}}$; no CassiFI scattering calculation fixes it near one.
 
 ### 2.2 Ocean bases: the primary $\Pi$ couplers
 

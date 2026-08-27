@@ -3,9 +3,8 @@
 Coherent-Field Born Rule: Verification
 =======================================
 
-Verifies the derivation of the Born rule from coherent-field detection
-statistics (foundations/quantum-measurement-derivation.md section 4):
-
+Verifies coherent-state counting as a special detector realization of the
+general Born law (foundations/quantum-measurement-derivation.md section 6.4):
   (1) The field state at the detector is a coherent excitation of the linear
       quantum sector with amplitude alpha(x) = g * psi(x).  Absorbed-quanta
       counts are Poisson with mean lambda(x) = |alpha(x)|^2 = g^2 |psi(x)|^2:
@@ -24,9 +23,8 @@ statistics (foundations/quantum-measurement-derivation.md section 4):
       |psi_1 + psi_2|^2 = |psi_1|^2 + |psi_2|^2 + 2 Re(psi_1* psi_2).
   (6) Secondary reading consistency: the canonical gate q (theory-reference
       2.4) is monotonically increasing in field intensity rho^2 at fixed
-      self-prediction error epsilon^2 -- the higher-|alpha|^2 branch is the
-      more coherent branch (directionally consistent, not the source of the
-      exact quadratic law).
+      self-prediction error epsilon^2.  This directional relation is neither
+      the source of the exact quadratic law nor a pointer-basis selector.
 
 Usage: python computations/coherent_field_born_rule.py
 """

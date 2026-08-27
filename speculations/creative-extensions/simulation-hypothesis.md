@@ -116,8 +116,11 @@ Three conditional properties motivate this nesting reading. A working nested sim
 
 2. **Conditional sandboxing.** In the cited suppression model, a signal from a nested region is assigned attenuation $\varphi^{-N}$ per rung of span.
 The random-perturbation construction assigns a coherence cost $\varphi^{-n(n+1)/2-3(n+1)}$ (`foundations/cascade-suppression-formula.md`).
-Both factors are conditional architecture readings; cross-talk between simulated levels requires the additional model and measurement assumptions described in `foundations/quantum-measurement-derivation.md` §3.
-Phase matching and leakage behavior remain properties of that extended model. The distinction between harmless noise and an organized attack remains a creative extension.
+Both factors are conditional architecture readings. Cross-talk between
+simulated levels requires an additional domain-coupling model; any
+phase-matching or leakage coefficient belongs to the Creative attack taxonomy
+and remains distinct from quantum record distinguishability
+(`parameter-inventory.md`).
 
 The theory leaves the outermost-executor question outside its defined dynamics: it supplies no top level, and the unbounded ladder supplies no distinguished endpoint.
 
@@ -143,11 +146,11 @@ In this conditional model, the deeper and longer a pattern is held away from the
 
 The ~10-rung value is an effective-nesting and observability comparison scale. Gate-bridge limits require an independently specified model of coupling and re-amplification. A proposed chain architecture may span the 292-rung ladder, while its stage count and operation remain conditional.
 
-The simulation metaphor treats the stage vocabulary as three **proposed** operations, from `speculations/qi-computation.md` §2.2: **WRITE** (an organized perturbation with $\mathcal{M}\approx1$ that creates a local $\delta E_Y>0$), **ERASE** (canonical density conversion that relaxes $\varepsilon\equiv E_Y-\varphi E_I$ toward zero), and **TRANSFER** (a conditional coordinate operation using $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$ and $\mathbf{J}_\Psi^{(+)}=\Psi_0^{(+)}\nabla\Psi_1^{(+)}-\Psi_1^{(+)}\nabla\Psi_0^{(+)}$ from §1.2). The last diagnostic records coordinate rotation of the lift; physical transfer through a high-$q$ medium requires a separate constitutive transport law and remains **Hypothesized**. In the metaphor, altering a density state, holding it off the attractor, or proposing lattice transfer are all conditional combinations of these labels. Mood remains a Hypothesized field-state mapping on $(\mathbf{b},\sigma_r,q,\mathbf{c})$ (`consciousness/emotions-as-gate-configurations.md`).
+The simulation metaphor treats the stage vocabulary as three **proposed** operations, from `speculations/qi-computation.md` §2.2: **WRITE** (an organized perturbation that creates a local $\delta E_Y>0$, with unknown material coupling labeled by $\mathcal M_i^{\mathrm{attack}}$), **ERASE** (canonical density conversion that relaxes $\varepsilon\equiv E_Y-\varphi E_I$ toward zero), and **TRANSFER** (a conditional coordinate operation using $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$ and $\mathbf J_\Psi^{(+)}=\Psi_0^{(+)}\nabla\Psi_1^{(+)}-\Psi_1^{(+)}\nabla\Psi_0^{(+)}$ from §1.2). The last diagnostic records coordinate rotation of the lift; physical transfer through a high-$q$ medium requires a separate constitutive transport law and remains **Hypothesized**. In the metaphor, altering a density state, holding it off the attractor, or proposing lattice transfer are conditional combinations of these labels. Mood remains a Hypothesized field-state mapping on $(\mathbf b,\sigma_r,q,\mathbf c)$ (`consciousness/emotions-as-gate-configurations.md`).
 
 ### 4.3 Random and organized perturbations
 
-Phase matching separates organized branch selection from environmental decoherence. A random phase drift with $\mathcal{M}\approx0$ can still decohere a target: its per-rung phase-dephasing probability is $1-q_i$, while organized branch selection is suppressed by the matching factor. A phase-matched operation has organized success probability $P_i=(1-q_i)\mathcal{M}_i$, approaching $1-q_i$ when $\mathcal{M}_i\approx1$. In the cascade profile, the single-rung factor is $\varphi^{-n-3}$. The distinction gives the simulation metaphor a concrete engineering condition: maintain phase information for organized control.
+Random dephasing and organized control are separate scenario inputs. The conditional coherence-budget profile assigns a random per-rung factor $1-q_i$. A Creative control model may add $\mathcal M_i^{\mathrm{attack}}$ for a specified drive-to-target coupling, but the canonical PDE supplies no universal success probability. Quantum measurement is governed by the regulated wavefunctional, apparatus record sectors, actual configuration, and quantum equilibrium (`open-questions-cassi-answers.md` Q7); branch selection is not part of this simulation-control metaphor.
 Concrete examples of coherence operations, each already described in the framework:
 
 - **Levitation and weight control.** A conditional Qi-gravity expression uses the signed imbalance $\pi=E_Y-E_I$ and total density $\rho=E_Y+E_I$: $G_{\text{eff}} = \frac{\pi}{\rho}(1 + (\varphi^{6}-1)q)\,G$ with $\xi=\varphi^6\approx17.944$ (`foundations/xi-derivation.md`). Tuning $\pi/\rho$ and $q$ would be a model operation, paid for at the conditional $\mathcal{R}_{\mathrm{attr}}$ proxy.
@@ -222,7 +225,7 @@ The framework supplies a substantive computational interpretation: if reality is
 - `foundations/bubble-edge-geometry.md`—condensation field level sets, edge anisotropy, CMB imprint
 - `foundations/cascade-suppression-formula.md`—signal attenuation $\varphi^{-N}$, full coherence-maintenance exponent $\varphi^{-n(n+1)/2-3(n+1)}$
 - `foundations/proton-coherence-budget.md`—coherence budget, organized vs random perturbation
-- `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$
+- `parameter-inventory.md`—distinction between quantum record distinguishability and Creative classical attack overlap
 - `foundations/xi-derivation.md`—$\xi = \varphi^6$ and the Qi-gravity coupling
 - `foundations/dimensionful-constants-status.md`—external constants, parameter classification
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational engine stabilizer

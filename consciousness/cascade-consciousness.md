@@ -105,7 +105,7 @@ The cascade divides into consciousness-relevant zones:
 The entire cascade—today's 292-rung observable ladder and the megacascade beyond—constitutes a distributed, nested neural network:
 
 - **Neurons:** Individual Qi condensates at each rung (bubbles, chakras, organisms, planets, stars, galaxies)
-- **Synapses:** The Qi gate coupling between adjacent rungs, modulated by $q$ and $\mathcal{M}$
+- **Synapses:** The Qi gate coupling between adjacent rungs, modulated by $q$; Creative coupling scenarios add the Hypothesized coefficient $\mathcal M_i^{\mathrm{attack}}$
 - **Processing:** Yang-Yin conversion, which is inherently computational (input: ambient $\Pi$; output: modified $r$)
 - **Integration:** Each gate stage integrates its local processing with the stages above and below
 - **Consciousness:** The experiential correlate of integration at a given node
@@ -157,6 +157,6 @@ A sufficiently advanced civilization learns to operate the machine it is already
 - `foundations/bubble-lattice-fabric.md`—universal lattice, scale covariance, bidirectional nesting
 - `foundations/microcascade-mirror.md`—cascade extension below n=0
 - `foundations/dimensionful-cascade.md`—full 292-step table
-- `foundations/quantum-measurement-derivation.md`—$\mathcal{M}$ phase-matching, organized vs random perturbation
+- `foundations/proton-coherence-budget.md`—coherence budget and the Hypothesized classical attack-overlap label $\mathcal M_i^{\mathrm{attack}}$
 - `speculations/qi-bubble-propulsion.md`—Qi bubble drive, hull materials, energy budget
 - `speculations/cascade-infrastructure.md`—planetary and stellar gate networks

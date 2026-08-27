@@ -26,7 +26,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 14 | `phi_attractor_synthesis.md` | Analytical N-body paths | Derived |
 | 15 | `wa-pentagon-gate.md` | $w_a$ sign tension | Derived / Hypothesized |
 | 16 | `proton-coherence-budget.md` | Proton stability | Derivation |
-| 17 | `quantum-measurement-derivation.md` | Born rule | Derivation |
+| 17 | `quantum-measurement-derivation.md` | Quantum dynamics and measurement | Derived conditional (regulated quantum mechanics); Hypothesized CassiFI physical identification |
 | 18 | `strong-cp-derivation.md` | Strong CP | Derivation |
 | 19 | `quark-confinement.md` | Confinement | Derived conditional (tube extensivity + cell quantization); Hypothesized tube/coherence inputs; conditional normalization $\kappa=2\pi$ on the optional $2\pi$-per-rung winding convention |
 | 20 | `three-generations.md` | Generation count | Hypothesized |
@@ -258,13 +258,21 @@ $\delta=3$. The proton's effective lifetime exceeds the age of the observable
 universe by roughly 900 orders of magnitude—proton decay is not observed
 because the universe is not remotely old enough. Status: Derivation.
 
-### `quantum-measurement-derivation.md`—Quantum Measurement as Organized Cascade Perturbation
+### `quantum-measurement-derivation.md`—CassiFI Quantum Dynamics and Measurement
 
-Applies the coherence budget to measurement. A superposition's branches share every cascade rung except the one of the superposed observable, so inter-branch coherence is a single-rung phenomenon; organized perturbation phase-matched to that rung collapses it with $\mathcal{O}(1)$ probability per interaction, while random perturbation (environmental decoherence) at the same rung only damps off-diagonal terms and selects no outcome. The Born-rule branch-weight mapping remains Hypothesized and open; the canonical local Qi diagnostic $q$ is distinct from the branch weights:
-
-$$\boxed{P(\alpha) = \frac{q_\alpha^{\mathrm{branch}}}{q_\alpha^{\mathrm{branch}} + q_\beta^{\mathrm{branch}}} = \frac{|\alpha|^2}{|\alpha|^2 + |\beta|^2}}$$
-
-The same coherence-budget machinery that stabilizes the proton for $\sim 10^{910}$ years explains why collapse happens at all. Status: Derived (single-rung coherence-budget mechanism); Hypothesized (branch-weight/Born mapping).
+Quantizes the finite metric-bearing CassiFI field configuration with
+$\hat H_Q=-\hbar^2\Delta_G/2+U_{\mathrm{FI}}(Q)$. The resulting linear
+wavefunctional supplies the standard centre-of-mass Schrödinger dispersion,
+configuration-space entanglement, conserved current, and classical
+Hamilton-Jacobi limit. One actual current-guided field configuration enters one
+disjoint retained topological apparatus sector, giving a single effective outcome.
+The declared quantum-equilibrium condition makes
+$\rho_Q=|\Psi|^2$ equivariant and yields Born frequencies; locality in
+$|\Psi|^2$ plus equivariance fixes this density uniquely within the stated
+class. Passive scattering is unitary on the enlarged system, and the
+sodium-nanoparticle limit has no intrinsic collapse multiplier:
+$R_\ell^{\mathrm{Cassi}}=1$. Status: Derived conditional on QF1-QF4;
+CassiFI physical identification Hypothesized.
 
 ### `strong-cp-derivation.md`—Strong CP: Why $\bar{\theta} \approx 0$ from Cascade De-Resonance
 

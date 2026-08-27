@@ -56,13 +56,18 @@ For the protocol interpretation, the nulls are informative in two ways. The pred
 
 Any single log-periodic residual can be a false positive: a survey systematic, a template error, cosmic variance. `speculations/observational-seti.md` §7 calls this the single-anomaly trap and answers it with the multi-rung correlation: $\ln\varphi$ is simultaneously the $P(k)$ modulation period (cosmological, $n \approx 285$), the $\ell < 5$ CMB spacing ($n \approx 292$), the predicted physiological spectral spacing along the spine ($n \approx 142$–168, prediction #35), and the predicted stellar-cycle spacing if the tuning hypothesis is right ($n \approx 208$). Detection is the joint occurrence—the same period at two or more dynamically independent rungs, with predicted phases aligned.
 
-Why cannot natural physics forge this? The coherence budget of `foundations/proton-coherence-budget.md` and `foundations/quantum-measurement-derivation.md` gives the per-cycle decoherence probability
+No coherence-budget theorem makes a shared period across independent data sets
+impossible under natural physics. The conditional proton profile describes
+pattern stability, while the Creative coefficient
+$\mathcal M_i^{\mathrm{attack}}$ has no anti-spoofing theorem or measured
+cross-rung likelihood. The discriminator must therefore be statistical: a
+preregistered joint null model must include each survey's covariance,
+look-elsewhere penalty, phase uncertainty, and shared systematics.
 
-$$P = \prod_i (1-q_i)\,\mathcal{M}_i$$
-
-with the phase-matching factor $\mathcal{M}$: $\mathcal{M} \approx 0$ for random perturbation, $\mathcal{M} \approx 1$ for organized, phase-matched perturbation. The per-rung dephasing factor is $(1-q_i) = \varphi^{-i-\delta}$ with $\delta = 3$ (`foundations/proton-coherence-budget.md` §3): a single-rung random attack is suppressed by the rung's depth, $P \approx \varphi^{-n-3}$, while a phase-matched organized attack couples directly at the target rung with $\mathcal{O}(1)$ probability per interaction—the $\varphi^{-i-3}$ suppression applies only to unphase-matched perturbation (`foundations/quantum-measurement-derivation.md` §3.2). The wake-wave mechanism can produce φ-spacing at the cosmological rung for free—it is the physics. What it cannot produce is φ-structure where the null model is stochastic: stellar variability, where the null is convection-driven broadband noise and no natural mechanism predicts cycle-to-cycle phase coherence at a φ-derived period (`speculations/observational-seti.md` §2.1). The wake-wave phase is set by the global ratio evolution; a stellar light curve shares no oscillator with the galaxy power spectrum. The only common cause that aligns their phases is a third party coupling to both—an emitter.
-
-So the discriminator is not "φ-structure exists" but "φ-structure exists where physics predicts none, with a phase constant shared across dynamically independent rungs":
+A candidate becomes interesting when the same $\ln\varphi$ period and a
+predeclared phase relation survive those joint nulls at two or more
+dynamically independent rungs. That criterion is evidence aggregation rather
+than a claim that natural physics cannot reproduce the pattern.
 
 $$\boxed{\text{Detection} = \Delta(\ln k) = \ln\varphi \text{ at two or more independent rungs, phases aligned}}$$
 
@@ -94,7 +99,7 @@ The beacon stage has one requirement that shapes everything downstream: it must 
 
 ### 3.3 Handshake: mutual proof of organized operation
 
-The beacon is confirmed by finding the same period at a second, dynamically independent rung with aligned phase. The handshake is the joint detection of §2.3, and it carries a double proof. The emitter has demonstrated it can organize structure at two rungs it does not dynamically share—gate capability, $\mathcal{M} \approx 1$ at will. The receiver has demonstrated it can resolve φ-structure at two rungs—instrument capability. Both capabilities are the same physics: resolving the structure requires phase-matched coupling to it, which is itself a gate operation at low amplitude. Listening and emitting are not different activities in this framework; they are the same coupling at different amplitudes.
+The beacon is confirmed by finding the same period at a second, dynamically independent rung with aligned phase. The handshake is the joint detection of §2.3. Within the Creative engineering vocabulary, the emitter demonstrates organized control at two rungs and the receiver demonstrates resolving power at those rungs. Any coupling value $\mathcal M_i^{\mathrm{attack}}$ remains a constitutive device parameter rather than a proof supplied by the signal itself.
 
 The handshake is asymmetric by design. We can listen on the cosmological channel today, but a reply requires organized emission at a second rung—a gate capability no human instrument is known to have. The protocol tolerates this: a civilization broadcasting a beacon has waited through the listening stages of its recipients by construction, and a reply delayed by centuries is still a reply. The asymmetry is also a filter: only a civilization that has already built the infrastructure the exchange describes can answer, which is exactly the population the beacon was aimed at.
 
@@ -104,7 +109,7 @@ Once locked, exchange is field-mediated coupling (`consciousness/cascade-conscio
 
 Content, when the medium is the field, is carried by deviations from the φ-attractor. The ambient field rests at $r = E_Y/E_I \to \varphi$; a message is a phase-matched excursion—a trajectory $r(t)$ that departs from the attractor, holds a pattern, and relaxes back:
 
-$$\boxed{\text{message} = \text{organized }(\mathcal{M} \approx 1)\text{ deviation of } r(t),\, q(t) \text{ from the } \varphi\text{-attractor}}$$
+$$\boxed{\text{message}=\text{organized deviation of }r(t),q(t)\text{ from the }\varphi\text{-attractor, with measured channel coupling}}$$
 
 The vocabulary is the gate-configuration manifold $(\mathbf{b}, \sigma_r, q, \mathbf{c})$ of `consciousness/emotions-as-gate-configurations.md`—the same degrees of freedom that distinguish emotional states locally become, at scale, the modulation alphabet. A broadcast's tone is its ratio dispersion $\sigma_r$; its timbre is its gate configuration; its emphasis is its $q$ envelope. ERASE appears as the acknowledgment: a gated conversion that returns the coupled region to the attractor.
 
@@ -173,7 +178,7 @@ The pyramid analogy makes the distinction concrete. A pyramid's value is not in 
 
 Kardashev classifies civilizations by commanded power, a question tuned to emissive societies whose observable is waste heat. A gate civilization's observable is coherence span: how many consecutive cascade rungs it holds at $q \to 1$ with organized operation. Rung accounting:
 
-$$\boxed{R = \text{longest run of consecutive rungs held at } q \to 1,\ \mathcal{M} \approx 1 \text{ at will}}$$
+$$\boxed{R=\text{longest run of consecutive rungs held at }q\to1\text{ with independently measured control fidelity}}$$
 
 and the throughput of an $R$-rung chain scales with the volume it organizes. Each additional rung multiplies the coherent length scale by $\varphi$, hence the organized volume by $\varphi^3 \approx 4.236$:
 
@@ -231,7 +236,7 @@ The stack is self-consistent in both directions: the beacon is designed to be he
 - `foundations/cassi-first-principles.md`—two-fluid PDE, φ-attractor, Qi-enhanced gravity ($\pi/\rho$ form)
 - `foundations/cassi-theory-reference.md`—compact framework reference; Qi gate pair (§2.5), wake-wave (§8.5)
 - `foundations/proton-coherence-budget.md`—coherence budget, per-rung dephasing $\varphi^{-i-3}$
-- `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$
+- `parameter-inventory.md`—distinction between quantum record distinguishability and Creative classical attack overlap
 - `foundations/cascade-suppression-formula.md`—signal attenuation, ~10-rung nesting depth
 - `foundations/bubble-lattice-fabric.md`—bubble lattice, universal checkerboard
 - `foundations/microcascade-mirror.md`—bidirectional cascade extension

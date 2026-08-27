@@ -83,7 +83,7 @@ The state-dependent coefficient can support a computational analogy, but claims 
 
 The following operations are a Speculative instruction vocabulary, not a canonical or established universal gate set:
 
-**WRITE (Yang injection):** Apply a specified organized perturbation that produces a local density change such as $\delta E_Y>0$ at position $\mathbf{x}$. This is the field analogue of setting a bit to 1. A coupling condition such as $\mathcal{M}\approx1$ is a Hypothesized application of the phase-matching model, not a guaranteed input channel.
+**WRITE (Yang injection):** Apply a specified perturbation that produces a local density change such as $\delta E_Y>0$ at position $\mathbf{x}$. This is the field analogue of setting a bit to 1. The material coupling is labeled by the Hypothesized Creative coefficient $\mathcal M_i^{\mathrm{attack}}$ (`parameter-inventory.md`), so WRITE is not a guaranteed input channel.
 
 **ERASE (gated conversion):** Use the canonical conversion sector at position $\mathbf{x}$ to relax the residual $\varepsilon=E_Y-\varphi E_I$ toward zero. The attractor is $E_Y=\varphi E_I$, and conversion redistributes the two densities while conserving their conversion-sector sum. Temporarily reducing $q$ raises the canonical coefficient $(1-q)$, but treating that maneuver as a controllable reset protocol is Hypothesized.
 
@@ -155,7 +155,7 @@ The specific mapping of arithmetic to Wu Xing transitions is an open design prob
 
 ### 3.4 Physical implementation
 
-A Wu Xing logic device is a conditional material mapping, not a consequence of the pentagon geometry. A quasicrystalline implementation would first have to define how the five-element doping pattern maps onto the canonical density state $(E_Y,E_I)$ and how an external perturbation couples to a selected transition. The phase-matching factor $\mathcal{M}$ and any such material response remain **Hypothesized**.
+A Wu Xing logic device is a conditional material mapping, not a consequence of the pentagon geometry. A quasicrystalline implementation would first have to define how the five-element doping pattern maps onto the canonical density state $(E_Y,E_I)$ and how an external perturbation couples to a selected transition. That coupling may be parameterized by the Hypothesized $\mathcal M_i^{\mathrm{attack}}$; no material response is derived.
 
 For an isolated conversion residual, the canonical relaxation timescale is
 
@@ -347,7 +347,7 @@ If a device closure makes a density pattern's decay rate proportional to the con
 - The exact positive-root lift $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$ supplies the coordinate diagnostic $\mathbf J_\Psi^{(+)}$. A physical-current, transport, or inter-rung transfer interpretation requires a separate constitutive map and remains **Hypothesized**.
 - The Wu Xing $w=5$ cycle and its two transition types are documented geometry; using them as a 5-state logic encoding or error-correcting instruction set is **Hypothesized/Speculative**.
 - The documented 13-node, 26-rung chakra chain is a framework mapping; treating it as a 26-stage computer or neural gate chain is **Hypothesized/Speculative**.
-- The phase-matching factor $\mathcal M$ is a model quantity in `foundations/quantum-measurement-derivation.md` §3.1; using it as a material gate-coupling or transfer-success parameter is **Hypothesized**.
+- The classical attack overlap $\mathcal M_i^{\mathrm{attack}}$ is a Hypothesized constitutive label (`parameter-inventory.md`); using it as a material gate-coupling or transfer-success parameter remains **Hypothesized**.
 
 ### Speculative / Creative extrapolation
 
@@ -377,7 +377,7 @@ If a device closure makes a density pattern's decay rate proportional to the con
 - `foundations/wu-xing-derivation.md`—pentagon geometry, generation and control cycles
 - `foundations/dimensionful-cascade.md`—the $\varphi$-ladder (292 = today's horizon rung), conditional clock interpretation
 - `foundations/cascade-suppression-formula.md`—per-rung attenuation, signal propagation
-- `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$
+- `parameter-inventory.md`—distinction between quantum record distinguishability and Creative classical attack overlap
 - `foundations/bubble-lattice-fabric.md`—8-level neural hierarchy at n≈144
 - `consciousness/chakras-as-cascade-bubbles.md`—13-chakra gate chain, 26-rung span
 - `consciousness/consciousness-from-phi.md`—consciousness as Qi gate dynamics
