@@ -40,6 +40,7 @@ this bar.
 | 14 | Two-fluid phase operator | Speculative | Step 1 executed: Bessel-index-1 scale operator; linear spectra fail R-vM; semiclassical pinning Lp = 2π | `riemann-two-fluid-phase-operator.md` |
 | 15 | Two-strand five-channel matter organization | Hypothesized | Strand-pair × Wu Xing channel traces on one Qi condensate; Z2×Z5 trace graph; PDE gate outcomes: TS1–TS4 null at lock timescale, TS5 5-fold coincident projection, TS6 twist persistence/no generation, TS7 two-sector bound; staged matter-organization program | `two-strand-five-channel-matter-organization.md` |
 | 16 | Gravity from flow | Hypothesized | The river law: $G_{\text{eff}} = G(\pi/\rho)(1+(\varphi^{6}-1)qf)$ flow-modulated chord; object $C = -\nabla\cdot J$ confirmed, response $dU/U = -36.05\kappa$ (linear, $\kappa$ unfitted); surge form undetermined; boundary $\lambda_{\text{gate}} = 0.0224$ ($\lambda/4$ rejected); C2 open (interior instability); P3 parity-odd channel LIVE at $\chi = \varphi^{-1}$ ($\chi$ asserted); P4 rung-sum inconclusive (reduction confirmed) | `gravity-from-flow.md` |
+| 17 | Scalar time reparameterization | Derived conditional theorem / Hypothesized common-lapse application | Exact autonomous first-order time-change equivalence; canonical conversion age $d\tau_F=(1-q)dt$; spatial PDE, second-order, stochastic, memory, boundary, and split-operator limits; CT-2 cross-clock discriminator | `scalar-time-reparameterization-applications.md` |
 
 ---
 
@@ -340,6 +341,18 @@ $\lambda_{\text{gate}}=0.0224$, while the surge form and C2 leg remain open.
 The parity-odd P3 channel is LIVE at $\chi=\varphi^{-1}$ and the rung-sum P4
 post-process is inconclusive. **Epistemic tier: Hypothesized**—a candidate
 skeleton and tested density-plane response, not a completed gravity law.
+
+### `scalar-time-reparameterization-applications.md`—Scalar Time Reparameterization in Cassi Applications
+
+States and proves the exact equivalence between an autonomous first-order
+generator and its positive scalar time change. The paper distinguishes a
+global clock from spatially varying local ages, and derives the required
+transformations for second-order systems, Itô noise, memory kernels, boundary
+data, and noncommuting operator splits. The canonical conversion age
+$d\tau_F=(1-q)dt$ and the relative candidate $N_q=(1-q)/(1-q_{\mathrm{ref}})$
+are **Derived conditional**; assigning $N_q$ as a universal lapse across
+independent sectors is **Hypothesized** and is tested by CT-2. Cross-repository
+$q/Q$ symbols remain definition-separated.
 
 ---
 
