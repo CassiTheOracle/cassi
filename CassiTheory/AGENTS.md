@@ -34,7 +34,7 @@ Cassi research uses an expansive–contractive logic flow:
 The repo is a **document graph with three master registries** at the root:
 
 - `open-questions-cassi-answers.md`—epistemic master registry: 42 open questions (`Q1–Q10`, `C1–C10`, `G1–G6`, `M1–M6`, `F1–F6`, `T1–T4`), each with a `Cassi Answer | Mechanism | Epistemic | Reference` table. Epistemic tiers: **Derived / Calibrated / Mapped / Hypothesized / Speculative / Creative** (definitions: `open-questions-cassi-answers.md` §Epistemic Tiers; every fitted or anchored claim must have a row in the Fit-Status Ledger, `parameter-inventory.md` §10).
-- `parameter-inventory.md`—parameter master registry: all 48 parameters classified by type (F/D/C/M/E/I/N). **Must be updated** when a paper introduces, derives, or reclassifies a parameter.
+- `parameter-inventory.md`—parameter master registry: all 47 parameters classified by type (F/D/C/M/E/I/N). **Must be updated** when a paper introduces, derives, or reclassifies a parameter.
 - `predictions/falsifiable-predictions.md`—prediction catalog: 56 numbered predictions grouped by experiment (FCC-ee, CMB-S4, LSST…), each with a `**Source:**` block. Cited elsewhere by number / `§`.
 - `cassi-physics.md`—physics guide (start here)
 - `audit.md`—self-critical prediction-vs-experiment audit.

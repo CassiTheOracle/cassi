@@ -3,12 +3,12 @@
 Outcome-Basis Selection Check: Basis Covariance vs. Pointer-Basis Selector
 ===========================================================================
 
-Audits the outcome-basis problem of the coherent-field Born-rule derivation
-(foundations/quantum-measurement-derivation.md section 4, subsection 4.6).
+Audits basis covariance and the limited role of the canonical Qi diagnostic
+in the regulated measurement construction
+(foundations/quantum-measurement-derivation.md sections 5.1-5.3).
 
-Question: do the two-fluid geometry, the Qi field, or the measurement
-interaction SELECT the outcome basis, or is the derivation merely
-basis-COVARIANT (valid for whatever channel basis the apparatus realizes)?
+Question: do the two-fluid geometry or the local Qi diagnostic select a
+quantization axis beyond the apparatus Hamiltonian and its retained sectors?
 
 Three concrete checks:
 
@@ -17,8 +17,8 @@ Three concrete checks:
       psi, the relative-rate law holds in the new basis:
           P'(k) = |(U psi)_k|^2 / sum_k' |(U psi)_k'|^2,
       and the outcome frequencies of a detector built in the rotated basis
-      match it.  The derivation therefore constrains the probabilities in
-      ANY gate eigenbasis; it never prefers one over another.
+      match it.  The law constrains probabilities in whichever channel basis
+      the apparatus realizes.
 
   (B) The branch-reduction condition.
       The two-branch form  P(alpha) = |alpha|^2 / (|alpha|^2 + |beta|^2)
@@ -35,10 +35,10 @@ Three concrete checks:
       that the apparatus must supply.  Both facts leave the axis
       undetermined by the field equations.
 
-Conclusion: the derivation is basis-covariant; the outcome basis is the
-apparatus-resolved channel basis (an input, section 4.6); no selection
-rule for the outcome basis is produced by the two-fluid geometry or the
-Qi field.  That is the pointer-basis gap, still open.
+Conclusion: the probability law is basis-covariant.  The outcome basis is the
+apparatus-resolved channel basis, represented in the quantum bridge by
+disjoint retained topological sectors.  The two-fluid geometry and local Qi scalar
+supply no additional universal quantization-axis selector.
 
 Run:  python computations/outcome_basis_selection_check.py
 """
@@ -49,8 +49,8 @@ rng = np.random.default_rng(20260811)
 PHI = (1 + np.sqrt(5)) / 2
 N_EXP = 1_000_000
 
-print("Outcome-Basis Selection Check: basis covariance vs. pointer-basis")
-print("selector (foundations/quantum-measurement-derivation.md section 4).")
+print("Outcome-Basis Selection Check: apparatus basis vs. canonical Qi")
+print("diagnostic (foundations/quantum-measurement-derivation.md section 5).")
 print()
 
 # ---------------------------------------------------------------------------
@@ -198,9 +198,8 @@ print()
 # ---------------------------------------------------------------------------
 # Verdict
 # ---------------------------------------------------------------------------
-print("VERDICT: the coherent-field Born-rule derivation is basis-COVARIANT")
-print("(check A) but supplies no pointer-basis SELECTOR: the branch form")
-print("requires apparatus-resolved channels (check B), and the Qi gate is")
-print("a pointwise scalar that cannot rank quantization axes (check C).")
-print("The outcome basis remains an input -- section 4.6 of the measurement")
-print("derivation is confirmed, not closed.")
+print("VERDICT: the coherent-state channel law is basis-COVARIANT")
+print("(check A); apparatus-resolved channels define the measured basis")
+print("(check B), and the Qi gate is a pointwise scalar that cannot rank")
+print("quantization axes (check C).  This agrees with the topological apparatus")
+print("sector construction in section 5 of the measurement derivation.")

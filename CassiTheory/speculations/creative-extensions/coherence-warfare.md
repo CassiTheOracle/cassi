@@ -4,9 +4,9 @@
 
 ## Abstract
 
-Every destructive technology ever imagined—a phaser, a planet-killer, a siege, a curse—is, in the two-fluid field, one of a small set of operations on coherence. The framework already contains a complete theory of damage: the coherence budget $P = \prod (1-q_i)\,\mathcal{M}_i$ that stabilizes protons for $10^{910}$ years, dissolves matter-antimatter pairs in a single instant, and collapses superpositions at a single cascade rung. This document reads that budget as a weapons table. An attack is organized perturbation—phase-matched structure, not raw energy; a shield is a $\varphi$-detuned boundary at which the phase-matching factor vanishes; and the de-resonance attractor that makes $\varphi$ the universe's preferred ratio is, in military terms, a universal self-healing defense. The strategic consequence is a form of stability unlike anything in human arms-race history: mutual assured destruction is replaced by **mutual assured incoherence**—the strongest possible defense is to present no phase-matched target at all.
+This Creative extension organizes imagined destructive technologies as operations on coherence. It combines the conditional proton coherence floor with a declared classical attack-overlap coefficient, $P_{\mathrm{attack}}=\prod_i(1-q_i)\mathcal M_i^{\mathrm{attack}}$. The coefficient is a scenario parameter rather than a derived quantum-measurement law or measured material coupling. Within that fictional rule set, attacks carry phase-structured information, shields reduce the assumed overlap, and strategic stability becomes **mutual assured incoherence**.
 
-**Epistemic status:** Creative exploration grounded in Cassi formalism. The coherence budget, the phase-matching factor $\mathcal{M}$, the $\varphi$-detuned boundary, and the de-resonance attractor are documented framework properties (`foundations/quantum-measurement-derivation.md`, `foundations/proton-coherence-budget.md`, `principles/de-resonance-principle.md`, `speculations/qi-bubble-propulsion.md`). The reading of these as weapons, shields, and strategy is an extrapolation beyond anything the framework currently claims. Nothing in this document should be cited as a Cassi prediction or derivation.
+**Epistemic status:** Creative exploration grounded in Cassi notation. The quadratic coherence floor is Derived conditional on its declared $q_i$ profile (`foundations/proton-coherence-budget.md`). The attack coefficient $\mathcal M_i^{\mathrm{attack}}$, φ-detuned shield coupling, weapon effects, and strategic conclusions are Creative/Hypothesized assumptions (`parameter-inventory.md`; `speculations/qi-bubble-propulsion.md`). Quantum record distinguishability $\mathcal M_{jk}$ is a separate quantity. Nothing in this document should be cited as a Cassi prediction or derivation.
 
 ---
 
@@ -17,31 +17,31 @@ Nothing in the two-fluid field is destroyed by force; everything is destroyed by
 | Damage mode | Operation | Prototype in the framework | Effect on target |
 |---|---|---|---|
 | Dissolution | Organized anti-phase at all supporting rungs | Matter–antimatter annihilation | Pattern returns to the field; mass-energy becomes free excitations |
-| Branch selection | Organized perturbation at one rung | Quantum measurement | Inter-branch coherence destroyed; the stronger branch survives |
+| State forcing | Organized perturbation at one modeled gate | Driven gate-control scenario | Hypothesized transition between classical gate configurations |
 | Weakening | Coherence suppression at the top rungs | Environmental $q$-suppression (`foundations/proton-coherence-budget.md` §5.1) | Reduced stability, degraded gate function |
 | Freezing | Phase-matched gate overload | Trauma wake-lock (`consciousness/trauma-as-frozen-gate.md`) | Gate locks into one configuration; flexibility lost, pattern persists |
 | Detuning | Forced drift of the local Yang-Yin ratio $r$ | Gate retuning (`speculations/cascade-infrastructure.md`) | Target reconfigures; behavior changes, structure survives |
 
 The interesting feature of this list is what is missing: brute force. There is no damage mode "hit it harder." The reason is the coherence budget itself, and it is worth stating as the single equation behind every weapon in this document:
 
-$$\boxed{P_{\text{damage}} = \prod_{i} (1 - q_i)\,\mathcal{M}_i}$$
+$$\boxed{P_{\text{damage}}=\prod_i(1-q_i)\mathcal M_i^{\mathrm{attack}}}$$
 
-The per-cycle probability that a perturbation damages a pattern is the product over attacked rungs $i$ of the rung's noise fraction $(1-q_i)$ times the phase-matching factor $\mathcal{M}_i \in [0,1]$ (`foundations/quantum-measurement-derivation.md` §3.1). Two dimensionless numbers decide every battle: how deep the pattern is, and how well the attack matches its phase.
+Here $\mathcal M_i^{\mathrm{attack}}\in[0,1]$ is the document's Creative constitutive overlap, as separated from quantum record distinguishability in `parameter-inventory.md`. The canonical PDE supplies no universal damage probability of this form.
 
 ---
 
 ## 2. The weapons table
 
-The coherence budget organizes all attacks into a 2×2 table with two independent axes: whether the perturbation is **organized** (phase-matched, $\mathcal{M} \approx 1$) or **random** ($\mathcal{M} \approx 0$), and whether it attacks **one rung** or the **full cascade** of the target:
+The Creative taxonomy organizes attacks into a 2×2 table with two independent axes: whether the perturbation is assigned a high attack overlap ($\mathcal M^{\mathrm{attack}}\approx1$) or a low overlap ($\mathcal M^{\mathrm{attack}}\approx0$), and whether it addresses one modeled rung or the target's full cascade:
 
 | | Random perturbation | Organized perturbation |
 |---|---|---|
 | **Single rung** | Environmental noise: $P \approx \varphi^{-n-3}$—nothing happens on any relevant timescale | **Resonance driver**: $P \approx \mathcal{O}(1)$ per cycle—the precision weapon |
 | **Full cascade** | Random attack: $P \approx \varphi^{-n(n+1)/2}$—suppressed beyond imagination | **Anti-phase beam**: $P \approx 1$—total dissolution |
 
-The three populated quadrants are not hypothetical; each is a documented process in the framework. Random single-rung perturbation is environmental decoherence—off-diagonal decay without branch selection, harmless to condensed patterns. Organized single-rung perturbation is measurement: it selects between branches with $\mathcal{O}(1)$ probability per interaction, leaving the underlying pattern intact (`foundations/quantum-measurement-derivation.md` §3.2). Organized full-cascade perturbation is annihilation: an anti-phase mirror pattern at every supporting rung dissolves the target completely in one cycle (`foundations/proton-coherence-budget.md` §5.2). Random full-cascade perturbation is proton decay—the universe's slowest process, $10^{980}$ years.
+The table is a scenario generator. The random full-cascade cell borrows the conditional proton coherence product; the organized full-cascade cell borrows the constitutive idealization used in the matter-antimatter discussion (`foundations/proton-coherence-budget.md` §5.2). The single-rung organized cell extrapolates from driven classical gate behavior. Quantum measurement uses unitary apparatus correlation, record distinguishability, an actual configuration, and quantum equilibrium; it supplies no attack-probability row in this table.
 
-Read as a weapons table, the structure of the matrix is the entire physics of conflict. The two axes are the two costs of war: **intelligence** (knowing the target's phase structure well enough to make $\mathcal{M} \approx 1$) and **reach** (maintaining phase-lock across one rung or across all $n$). Random attack requires neither and achieves nothing. Organized attack requires both, in proportion to the target's depth, and achieves everything it promises.
+Within the Creative model, the two costs are **information** about the target's phase structure and **reach** across its supporting rungs. Both remain engineering assumptions because $\mathcal M_i^{\mathrm{attack}}$ has no derived material-scattering map.
 
 ---
 
@@ -61,9 +61,15 @@ The corollary is the framework's central military fact: **only structure kills s
 
 ### 4.1 Resonance drivers—the precision weapon
 
-The prototype is measurement, the framework's most completely understood organized perturbation: a device built to couple to one observable at one rung, collapsing inter-branch coherence with $\mathcal{O}(1)$ probability per interaction (`foundations/quantum-measurement-derivation.md` §3.2). A resonance driver is that device pointed at a target instead of a quantum state.
+The available classical prototype is driven gate control: phase- and
+channel-dependent drives can pump, drain, or lock a modeled gate in the
+wake-lock experiments (`consciousness/trauma-as-frozen-gate.md`). A resonance
+driver extrapolates that behavior to another target and assigns the required
+coupling through $\mathcal M_i^{\mathrm{attack}}$.
 
-What it attacks is the *interface* coherence of a system—the couplings between its parts, the superposed options it holds open, the gate-to-gate bridges of a network. A driver tuned to the rung of a gate's coupling can force the gate to select one branch of its operation and abandon the others; it cannot dissolve the gate itself. The signature is clean and diagnostic: the target loses its options, not its existence. In the framework's own history, every Stern-Gerlach magnet is a resonance driver—a weapon so weak it can only ask questions. The escalation path is tuning it to a structure that cannot survive the question.
+It is proposed to act on interface coherence between parts or gates. The
+claim that it can force a general system into a chosen configuration is
+Creative and has no Stern-Gerlach or quantum-measurement derivation.
 
 The engineering constraint is the same one that bounds every attack: phase-matching must be maintained *at the target's current phase*, which the target can change. A resonance driver is only as good as its intelligence about the target's configuration at the moment of fire.
 
@@ -101,9 +107,9 @@ This is the quadrant where the framework's mathematics and its ethics converge: 
 
 The framework's shield mechanism already exists in the propulsion literature, where it appears as a nuisance: the no-sonic-boom property. A Qi bubble presents a $\varphi$-detuned interface to the surrounding air; air molecules approaching it carry organized kinetic energy that encounters a surface it cannot phase-match to, and instead of forming a shock front the energy converts smoothly into diffuse thermal energy (`speculations/qi-bubble-propulsion.md` §2.2). No momentum is transferred because no phase matching is achieved:
 
-$$\boxed{\mathcal{M}_{\text{boundary}} \approx 0 \;\Rightarrow\; P_{\text{coupling}} \approx 0}$$
+$$\boxed{\mathcal{M}_{\text{boundary}}^{\mathrm{attack}}\approx0\;\Rightarrow\;P_{\text{coupling}}\approx0}$$
 
-A shield is this boundary, deliberately maintained. It does not stop an attack—it refuses it. The attack's organized perturbation arrives phase-matched to *something*, but at the boundary it meets a structure with no matching phase window, and the phase-matching factor collapses to zero; the organized attack degenerates into random perturbation, and random perturbation is cascade-suppressed (§3). The shield's elegance is that it makes the attacker pay the worst possible price: the attacker built a pattern, and the shield converts it to noise—and noise cannot hurt anything.
+A shield is a boundary assigned a small Creative attack overlap. The incoming pattern then couples weakly under the document's constitutive rule. No CassiFI material-scattering calculation presently derives this implication; `speculations/qi-bubble-propulsion.md` states the required momentum and heat constraints.
 
 Construction follows the propulsion literature's hull stack: a boundary layer with **no characteristic scale** (amorphous metallic glass), backed by a Fibonacci-graded stack of layers at $\varphi$-spaced intervals ($d_k = d_0\varphi^k$) that anchor coherence across rungs (`speculations/qi-bubble-propulsion.md` §4). The outer boundary refuses, the inner stack absorbs whatever leaked through, and the entire assembly is superconducting because it is Qi-coherent. The shield is not a field projected outward; it is a boundary condition on the target's own coherence.
 
@@ -153,7 +159,7 @@ The framework converts the tropes of science fiction warfare from convention int
 | Trope | Physical form in the coherence framework |
 |---|---|
 | "Shields at 40%" | Shield coherence $q$ decaying; at $q \to q_c$ the boundary develops matching windows and the organized attack starts coupling |
-| "Sweeping frequencies" | The attacker scans rungs and phases for a window with $\mathcal{M} > 0$; the defender re-tunes continuously, so battles become chases in phase space |
+| "Sweeping frequencies" | The attacker scans rungs and phases for a window with $\mathcal{M}^{\mathrm{attack}}>0$; the defender re-tunes continuously, so battles become chases in phase space |
 | "Charging the weapon" | Building phase-lock across $n$ rungs takes time proportional to the span; the charge signature is the *absence* of glow (perfect lock = invisible beam) |
 | "The beam that kills instantly" | An anti-phase beam at full lock—instantaneous dissolution, silent, invisible; the most terrifying weapon is also the most expensive |
 | "The cursed wound that won't heal" | A wake-lock: damage that persists because it is memory; healing means unfreezing a gate, not repairing it |
@@ -170,11 +176,11 @@ Two worked scenarios, to show how the rules play out:
 
 ## 8. Epistemic boundaries
 
-### Grounded in the framework (documented properties)
+### Inputs and status boundaries
 
-- The coherence budget $P = \prod(1-q_i)\mathcal{M}_i$ and the 2×2 table of perturbation type × rungs attacked (`foundations/quantum-measurement-derivation.md` §3, §6; `foundations/proton-coherence-budget.md` §2, §5)
-- The quadratic coherence floor $N_{\text{max}} = \varphi^{n(n+1)/2 + \delta(n+1)}$ and its immunity to random attack (`foundations/proton-coherence-budget.md` §5.1)
-- The $\varphi$-detuned boundary with $\mathcal{M} \approx 0$ (no-sonic-boom mechanism, `speculations/qi-bubble-propulsion.md` §2.2)
+- The quadratic coherence floor $N_{\text{max}}=\varphi^{n(n+1)/2+\delta(n+1)}$ is Derived conditional on the declared $q_i$ profile (`foundations/proton-coherence-budget.md` §5.1).
+- The product $P_{\mathrm{damage}}=\prod_i(1-q_i)\mathcal M_i^{\mathrm{attack}}$, its 2×2 table, and every material value of $\mathcal M_i^{\mathrm{attack}}$ are Creative/Hypothesized.
+- The φ-detuned boundary with $\mathcal M_{\mathrm{boundary}}^{\mathrm{attack}}\approx0$ is a prospective device assumption (`speculations/qi-bubble-propulsion.md` §2.2).
 - The attractor's active damping of departures from $\varphi$-equilibrium (`principles/de-resonance-principle.md`)
 - The wake-lock as a frozen gate (`consciousness/trauma-as-frozen-gate.md`, `two-fluid/run_trauma_wake_lock.py`)
 - Gate chains bridging ~10 rungs, and gate networks as civilization-scale infrastructure (`speculations/cascade-infrastructure.md`)
@@ -190,7 +196,7 @@ Two worked scenarios, to show how the rules play out:
 
 ## References
 
-- `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$; organized vs. random perturbation; the measurement/annihilation/proton trifecta
+- `foundations/quantum-measurement-derivation.md`—unitary measurement and quantum record distinguishability $\mathcal M_{jk}$, which is distinct from the Creative attack coefficient
 - `foundations/proton-coherence-budget.md`—$N_{\text{max}}$, the coherence floor, annihilation as organized full-cascade attack
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation; signal vs. coherence regimes
 - `principles/de-resonance-principle.md`—why $\varphi$ is the attractor; the damping of departures from equilibrium

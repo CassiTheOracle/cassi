@@ -214,11 +214,12 @@ The threshold is a heuristic for this scenario, not corroboration of biology, a 
 - The cascade ladder $\ell_n=\ell_{\text{Pl}}\times\varphi^n$ and its rung table (`foundations/dimensionful-cascade.md`)
 - The canonical real-density conversion variables, contrast relaxation, and stated Qi diagnostics (`foundations/cassi-first-principles.md`; `foundations/qi-flow-double-helix.md` §§1–2)
 - The condensation-field and nesting diagnostics in their stated geometric/model scope (`foundations/bubble-lattice-fabric.md`)
-- The cited coherence-budget and phase-matching diagnostics (`foundations/proton-coherence-budget.md`; `foundations/quantum-measurement-derivation.md`)
+- The conditional coherence-budget profile in its stated scope (`foundations/proton-coherence-budget.md`)
 
 ### Additional extension assumptions used here
 
 - A compact coordinate, spiral/pitch convention, and any phase-like biological interpretation (`foundations/spiral-dynamics.md` §1.2; `foundations/qi-flow-double-helix.md` §3.1)
+- Any biological use of the Creative classical attack overlap $\mathcal M_i^{\mathrm{attack}}$ (`parameter-inventory.md`)
 - The golden-angle placement ansatz of §2.1
 - The human-scale $P_\parallel=2$ coordinate convention, endpoint allocation, and resulting 13-node arithmetic (`consciousness/chakras-as-cascade-bubbles.md` §§5–6)
 - Biological gate chains, their anatomy, and every transfer from geometric $q_{\rm proxy}$ to canonical coherence or physics
@@ -246,7 +247,7 @@ The threshold is a heuristic for this scenario, not corroboration of biology, a 
 - `foundations/spiral-dynamics.md`—canonical density-plane angle and optional compact spiral/pitch coordinates
 - `foundations/three-generations.md`—Fibonacci recurrence, sub-channel partitioning
 - `foundations/proton-coherence-budget.md`—coherence budget, organized vs random perturbation
-- `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$
+- `parameter-inventory.md`—distinction between quantum record distinguishability and Creative classical attack overlap
 - `foundations/xi-derivation.md`—$\xi = \varphi^6$, Qi-gravity coupling
 - `foundations/cassi-first-principles.md`—two-fluid PDE, Qi gate, $\varphi$-attractor
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational attractor

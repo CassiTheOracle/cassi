@@ -1,385 +1,732 @@
-# Quantum Measurement as Organized Cascade Perturbation
+# CassiFI Quantum Dynamics and Measurement
 
-## Status: Derived (coherent-field statistics), outcome basis open—August 2026
+## Status: Derived conditional (regulated quantum mechanics); Hypothesized (CassiFI physical identification)—August 2026
 
 ## Abstract
 
-The same coherence-budget mechanism that gives the proton its $10^{910}$-year
-lifetime (`foundations/proton-coherence-budget.md`) resolves the quantum
-measurement problem. A superposition is a multi-branch condensed pattern in the
-Qi field; its inter-branch coherence lives at a **single cascade rung**—the
-rung of the quantum number being superposed—not across all 92 supporting
-rungs. Measurement is organized perturbation phase-matched to that rung; its
-collapse probability per interaction is $\mathcal{O}(1)$, not cascade-suppressed.
-Environmental decoherence is random perturbation at the **same single rung**
-with $\mathcal{M} \approx 0$—it causes off-diagonal decay (standard
-Zurek decoherence) but **no single-outcome selection**. Only organized
-($\mathcal{M} \approx 1$) perturbation can select a branch. The Born rule then
-follows from **coherent-field detection statistics** (§4): the field at the
-detector is a coherent excitation of the linear quantum sector with amplitude
-$A(x) \propto \psi(x)$; absorbed quanta are Poisson with mean
-$|A(x)|^2 \propto |\psi(x)|^2$; the outcome probability is the relative rate
-$|\psi(x)|^2/\sum|\psi(x')|^2$—with no additional postulate. Which observable
-the gate measures (the outcome basis) remains an input (§4.6).
+The CassiFI field law supplies a finite, metric-bearing Hamiltonian configuration and a topological apparatus state. Canonical quantization of that regulated configuration gives a linear Schrödinger wavefunctional, the standard free-particle dispersion, configuration-space entanglement, conserved probability current, and a controlled classical limit. A Cassi field-configuration ontology supplies one actual field configuration. Its guidance by the wavefunctional current gives one detector record in a topological sector. The Born density is the unique normalized density that is both local in $|\Psi|^2$ and equivariant under this guidance; empirical frequencies additionally require the declared quantum-equilibrium condition.
+
+The construction contains no mass-triggered or observer-triggered collapse term. Closed evolution is unitary. Measurement correlates a system with disjoint, retained apparatus sectors; conditioning on the actual apparatus configuration produces effective collapse. Passive CassiFI reflection, transmission, and absorption become channels of a unitary total scattering map. The reduced open-system description may decohere or absorb amplitude while the enlarged state preserves norm.
+
+The algebra below is Derived conditional on four explicit quantum-sector postulates. The identification of the CassiFI laboratory fields with nature's microscopic configuration remains Hypothesized. The positive-root density lift $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$ is a separate coordinate diagnostic and is never identified with the quantum wavefunctional $\Psi[Q,t]$.
 
 ---
 
-## 1. The problem restated
+## 1. Inputs from the CassiFI field law
 
-In standard quantum mechanics, measurement collapses the wavefunction into an
-eigenstate with probability $|\langle\phi|\psi\rangle|^2$ (the Born rule), but
-the theory provides no mechanism—collapse is a *postulate*, not a derivation.
-Environmental decoherence can diagonalize the density matrix in a preferred
-basis but cannot select a single outcome, leaving the "measurement problem"
-intact.
+### 1.1 Complex Yang/Yin coordinates
 
-In Cassi, the two-fluid field provides a medium in which collapse is a
-**physical process**—the same process that stabilizes protons and annihilates
-antimatter, applied to the inter-branch coherence of a superposition.
+The CassiFI complex-field extension uses the weighted coordinates
 
----
+$$
+D=\mathcal E_Y-\varphi\mathcal E_I,
+\qquad
+C=\frac{\varphi\mathcal E_Y+\mathcal E_I}{1+\varphi^2},
+$$
 
-## 2. The superposition as a multi-branch Qi pattern
+with
 
-A quantum superposition $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$
-corresponds to the Qi field hosting **two competing templates** $\phi_0(s)$ and
-$\phi_1(s)$—spatially overlapping but phase-incompatible standing-wave
-configurations. Both are condensed patterns, each stable in isolation (each has
-its own full cascade depth and the associated $10^{910}$-year stability). The
-superposition persists because the **inter-branch coupling** is weak—the two
-templates are nearly orthogonal in Qi phase space, and their interaction is a
-surface term at the rung where they differ.
+$$
+w_D=\frac{1}{1+\varphi^2},
+\qquad
+w_C=1+\varphi^2,
+$$
 
-The crucial structural fact: the two branches share the **same cascade rungs
-$i = 0$ through $n-1$** (mass, charge, color—all quantum numbers held in
-common). They differ **only at rung $n$**—the rung of the superposed
-observable (spin, polarization, path, energy level). The inter-branch coherence
-is therefore a **single-rung** phenomenon, not a full-cascade phenomenon.
+and inverse
 
-| Structure | Cascade depth of coherence | Decoherence pathway | $P_{\text{per cycle}}$ |
-|-----------|---------------------------|---------------------|------------------------|
-| Proton (single condensate) | $n = 91.5$ rungs | Random dephasing at all 92 rungs | $\varphi^{-4506} \approx 10^{-942}$ |
-| Superposition (two-branch) | **1 rung** ($n$) | Random perturbation at rung $n$ | $\varphi^{-n-3} \approx 10^{-20}$ |
-| Superposition + measurement | 1 rung ($n$) | **Organized** perturbation at rung $n$ | $\mathcal{O}(1)$ |
-| Matter-antimatter pair | $n = 91.5$ rungs | **Organized** anti-phase at all 92 rungs | $\mathcal{O}(1)$ |
+$$
+\mathcal E_Y=w_DD+\varphi C,
+\qquad
+\mathcal E_I=C-\varphi w_DD.
+$$
 
----
+The exact pointwise metric identity is
 
-## 3. Organized vs. random perturbation
+$$
+|\mathcal E_Y|^2+|\mathcal E_I|^2
+=w_D|D|^2+w_C|C|^2.
+$$
 
-### 3.1 The phase-matching factor $\mathcal{M}$
+The physical-density identification
 
-An environmental perturbation couples to the field at rung $i$ with an
-effective interaction strength proportional to the **phase alignment**
-between the perturbation and the target pattern:
+$$
+E_Y=|\mathcal E_Y|^2,
+\qquad
+E_I=|\mathcal E_I|^2
+$$
 
-$$P_{\text{decohere},i} = (1-q_i) \times \mathcal{M}_i$$
+is the bridge from the complex CassiFI extension to the canonical nonnegative density pair. This identification is Hypothesized. The weighted coordinate identity itself is algebraic.
 
-where $\mathcal{M}_i \in [0,1]$ measures the phase-matching between the
-perturbation and the pattern at rung $i$:
+### 1.2 Finite regulated configuration and metric
 
-- $\mathcal{M}_i \approx 1$: the perturbation is **organized**—it matches
-  the phase structure of the target. The per-cycle decoherence probability
-  is $1-q_i$, independent of cascade depth.
+On each registered spatial sheet $s$, let $W_s$ be the positive cell metric. Split every complex field into real and imaginary parts and collect the position coordinates as
 
-- $\mathcal{M}_i \approx 0$: the perturbation is **random**—its phase is
-  uncorrelated with the specific quantum number's phase structure. Each
-  random interaction provides zero net phase-matching to the inter-branch
-  coherence; the superposition's off-diagonal elements decay slowly via
-  accumulated random phase drift, not via organized attack.
+$$
+Q^A=
+\left\{
+\operatorname{Re}D_{s,j},\operatorname{Im}D_{s,j},
+\operatorname{Re}C_{s,j},\operatorname{Im}C_{s,j}
+\right\}_{s,j}.
+$$
 
-### 3.2 Measurement: $\mathcal{M} \approx 1$
+The finite-dimensional configuration metric is
 
-A measurement apparatus is designed to couple to a specific observable. It
-produces a perturbation **phase-matched** to the corresponding cascade rung.
-For a spin measurement (Stern-Gerlach), the magnetic field gradient is
-organized to couple to spin—$\mathcal{M}_{\text{spin}} \approx 1$. For a
-position measurement (double-slit with detector), the photon absorption is
-organized to couple to path—$\mathcal{M}_{\text{path}} \approx 1$.
+$$
+G_{\mathrm{FI}}
+=
+\bigoplus_s
+\operatorname{diag}
+\left(
+ w_DW_s,w_DW_s,w_CW_s,w_CW_s
+\right).
+$$
 
-The organized perturbation attacks the inter-branch coherence at the target
-rung with $\mathcal{O}(1)$ probability per interaction. The superposition
-collapses as rapidly as the measurement coupling strength allows:
-strong coupling → single-interaction collapse; weak coupling → gradual
-which-path information accumulation.
+For the conservative CassiFI core,
 
-### 3.3 Environmental decoherence: random, unphase-matched
+$$
+L_{\mathrm{FI}}(Q,\dot Q)
+:=\frac12G_{AB}\dot Q^A\dot Q^B-U_{\mathrm{FI}}(Q),
+$$
 
-Thermal photons, stray magnetic fields, cosmic rays—these couple to the
-superposition at the **same single rung** as measurement (the rung of the
-superposed quantum number). But their coupling is **random**—they carry no
-phase information about the specific inter-branch phase difference.
-$\mathcal{M}_{\text{env}} \approx 0$ for the branch-selection channel.
+$$
+P_A=G_{AB}\dot Q^B,
+\qquad
+H_{\mathrm{FI}}(Q,P)
+:=\frac12P_AG^{AB}P_B+U_{\mathrm{FI}}(Q).
+$$
 
-The result is **density-matrix diagonalization without single-outcome
-selection**. Random interactions accumulate random phase errors between the
-branches, causing the off-diagonal elements $\rho_{01}$ to decay—this is
-standard environmental decoherence, described fully by Zurek et al. But
-because $\mathcal{M}_{\text{env}} \approx 0$, there is no organized attack on
-either branch's Qi density. The diagonal elements $\rho_{00}$ and $\rho_{11}$
-are preserved. No branch is selected; no single outcome emerges.
+$U_{\mathrm{FI}}$ contains the registered gradient, base-frequency, nonlinear, composition, cross-scale, and topological retention potentials. The factor of two in the complex Wirtinger force convention is exactly the real-coordinate metric gradient of this $L_{\mathrm{FI}}$.
 
-Standard decoherence correctly explains why macroscopic superpositions don't
-persist (many environmental degrees of freedom → rapid off-diagonal decay)
-and why microscopic superpositions do (few coupling channels → slow decay).
-What it cannot explain—and what the Qi mechanism supplies—is why
-measurement produces a **single definite outcome** with **Born-rule
-probabilities** rather than just a diagonal density matrix.
+The CassiFI engineering state records both positions and velocities. In the quantum sector, $(C,D)$ are configuration coordinates and $(V_C,V_D)$ are the classical velocities recovered from the phase guidance law. The non-Hamiltonian EMA is a reduced constitutive variable and is not an independent coordinate in this quantization.
 
-Measurement: $\mathcal{M} \approx 1$, attacks one rung → single outcome with
-$|\alpha|^2$ probability (§4). Environment: $\mathcal{M} \approx 0$, same
-rung → off-diagonal decay only, no branch selection. The distinction is
-**phase-matching alone**—not cascade depth.
+### 1.3 Closed and open terms
+
+Fundamental unitary evolution uses a self-adjoint Hamiltonian for the total field, ports, detector, and environment. CassiFI damping, dissipative conversion, and absorbed boundary work are reduced open-system terms. They enter the quantum theory through additional bath or port coordinates:
+
+$$
+\mathcal C_{\mathrm{total}}
+:=\mathcal C_{\mathrm{field}}\times
+ \mathcal C_{\mathrm{ports}}\times
+ \mathcal C_{\mathrm{apparatus}}\times
+ \mathcal C_{\mathrm{environment}}.
+$$
+
+Tracing over unobserved coordinates may produce a completely positive trace-preserving map or a Lindblad equation. A fundamental state-dependent nonlinear term in $\Psi$ is excluded because it would generally violate mixture equivalence and operational no-signalling. Classical CassiFI nonlinearities remain admissible as the multiplication operator $U_{\mathrm{FI}}(Q)$; the Schrödinger equation remains linear in $\Psi$.
 
 ---
 
-## 4. The Born rule from coherent-field statistics
+## 2. Four quantum-sector postulates
 
-### 4.1 Detection is gate-mediated absorption from a linear field
+### QF1. Regulated configuration Hilbert space
 
-The quantum sector of the two-fluid field is **linear**—the Schrödinger limit
-of the PDE (`foundations/cassi-theory-reference.md` §5.1) with a quadratic
-kinetic term (`foundations/unified-lagrangian.md` §1.1). A superposition
-$\sum_i c_i |i\rangle$ is therefore a linear sum of field configurations: the
-field amplitude at the detector is
+At a fixed CassiFI regulator, the quantum state is a normalized ray in
 
-$$\psi(x) = \sum_i c_i\,\phi_i(x)$$
+$$
+\mathcal H_Q=L^2(\mathcal C,d\mu_G),
+\qquad
+d\mu_G=\sqrt{|G|}\,d^KQ,
+$$
 
-with the cross terms present from the start. Amplitudes superpose and interfere
-automatically; no interference postulate is needed.
+where $K$ is the finite real configuration dimension. The continuum theory is defined only after a regulator-removal and renormalization limit exists. No continuum claim follows from the finite construction alone.
 
-A detector is a region where the **Qi gate** (`foundations/cassi-theory-reference.md`
-§2.5) opens along the measured field direction at the target rung: an organized
-($\mathcal{M} \approx 1$, §3.2) single-rung conversion that absorbs one quantum
-of field excitation. Each absorption removes one quantum from the field mode at
-$x$ and registers an outcome.
+### QF2. Canonical quantization
 
-### 4.2 The absorbed-quanta count is Poisson
+The closed quantum Hamiltonian is the Laplace-Beltrami quantization of the CassiFI Hamiltonian,
 
-*Input.* The field mode at the detector sits in a **coherent state** $|A(x)\rangle$
-with amplitude $A(x) = g\,\psi(x)$, where $g$ is the detector's absorption
-coupling (efficiency). Coherent states are the natural states of a free linear
-field (Glauber 1963); the two-fluid quantum sector is free to the extent the
-$\varphi$-attractor condensate is a slowly varying background.
+$$
+\boxed{
+\hat H_Q
+:=-\frac{\hbar^2}{2}\Delta_G+U_{\mathrm{FI}}(Q)
+},
+$$
 
-For a coherent state, the number of quanta absorbed in a fixed exposure is
-**Poisson** (standard quantum-optics result; Glauber 1963, Mandel & Wolf 1995):
+$$
+\Delta_G
+=|G|^{-1/2}\partial_A
+\left(|G|^{1/2}G^{AB}\partial_B\right),
+$$
 
-$$P(n) = \frac{e^{-\lambda(x)}\,\lambda(x)^n}{n!}, \qquad
-\lambda(x) = |A(x)|^2 = g^2\,|\psi(x)|^2$$
+on a declared self-adjoint domain. Its action is
 
-Verified numerically: sampled counts reproduce the Poisson mean–variance
-identity and $P(0) = e^{-\lambda}$ (`computations/coherent_field_born_rule.py` §1).
+$$
+\mathcal S_Q
+=\int dt\,d\mu_G
+\left[
+\frac{i\hbar}{2}
+\left(\Psi^*\partial_t\Psi-
+\partial_t\Psi^*\Psi\right)
+-\frac{\hbar^2}{2}G^{AB}
+\partial_A\Psi^*\partial_B\Psi
+-U_{\mathrm{FI}}|\Psi|^2
+\right].
+$$
 
-### 4.3 The outcome probability is the relative rate
+Variation with respect to $\Psi^*$ gives
 
-A measurement reports the **first absorption**. Each detector channel $x$ is an
-independent Poisson process with rate $\lambda(x)$; the first event across the
-array lands at $x$ with probability equal to its relative rate
-(competing-exponential law):
+$$
+\boxed{i\hbar\partial_t\Psi=\hat H_Q\Psi}.
+$$
 
-$$\boxed{P(x) = \frac{\lambda(x)}{\sum_{x'} \lambda(x')}
-= \frac{|\psi(x)|^2}{\sum_{x'} |\psi(x')|^2}}$$
+$\hbar$ remains an External physical constant. No $\varphi$ exponent is assigned to it.
 
-Three properties follow without further assumption:
+### QF3. Actual Cassi field configuration
 
-- **Exact at any coupling.** The detector efficiency $g$ cancels; the law holds
-  for strong and weak absorption alike. The weak-coupling limit
-  $1 - e^{-\lambda(x)} \approx \lambda(x)$ governs the single-channel *firing*
-  probability in a short exposure, but the relative rate is the normalized
-  outcome law—numerically confirmed: for $\lambda = (0.5,\,0.3)$ the Born
-  probability is $0.625$, while the unnormalized firing probability
-  $1 - e^{-0.5} = 0.3935$ is not the outcome probability
-  (`computations/coherent_field_born_rule.py` §4).
-- **Normalization automatic.** $\sum_x P(x) = 1$ identically.
-- **Frequencies converge to it.** Conditional on $N$ total absorptions the
-  channel counts are multinomial with probabilities $\lambda/\sum\lambda$
-  (Poisson splitting), so long-run detection frequencies converge to
-  $|\psi(x)|^2$ (verified numerically, §3 of the script).
+One configuration $Q(t)\in\mathcal C$ is physically realized. Writing
 
-For a two-branch superposition with detectors that resolve the branches
-($\phi_0$, $\phi_1$ with disjoint support or observable-tagged channels), the
-boxed law reduces to the familiar form
+$$
+\Psi(Q,t)=R(Q,t)e^{iS(Q,t)/\hbar},
+$$
 
-$$\boxed{P(\alpha) = \frac{|\alpha|^2}{|\alpha|^2 + |\beta|^2}}$$
+the actual configuration follows the conserved quantum current:
 
-With overlapping support the same law yields the interference pattern
-$|\psi(x)|^2$—complementarity is automatic.
+$$
+J^A
+=\hbar G^{AB}\operatorname{Im}
+\left(\Psi^*\partial_B\Psi\right)
+=R^2G^{AB}\partial_BS,
+$$
 
-### 4.4 Interference and normalization are automatic
+$$
+\boxed{
+\dot Q^A=\frac{J^A}{|\Psi|^2}
+=G^{AB}\partial_BS
+}.
+$$
 
-Both derive from the linearity of the quantum sector:
+Nodes $R=0$ have zero quantum-equilibrium measure. The guidance law is nonlocal on a composite configuration space, as required for Bell-correlated systems. Operational no-signalling is recovered under QF4.
 
-- **Interference:** $|\psi_1 + \psi_2|^2 = |\psi_1|^2 + |\psi_2|^2 +
-  2\operatorname{Re}(\psi_1^*\psi_2)$—the cross term is present by
-  construction (verified numerically, §5 of the script).
-- **Normalization:** a normalized state $\sum_x |\psi(x)|^2 = 1$ gives
-  $\sum_x P(x) = 1$ identically through the relative-rate form.
+### QF4. Quantum equilibrium
 
-### 4.5 The survival rule as a secondary reading
+Prepared ensembles use the equivariant density
 
-A branch-level survival rule can assign lower-$q$ branches a shorter coherence
-lifetime and take $q_\alpha\propto|\psi_\alpha|^2$. The canonical gate
-$q=\rho^2/(\rho^2+\varphi^{-2}+\varepsilon^2)$ and its survival dynamics
-provide no such exact proportionality. The coherent-field statistics of
-§4.1–4.3 supply the quadratic law through first-absorption counting, with the
-branch survival rule retained only as a qualitative consistency reading.
+$$
+\boxed{\rho_Q(Q,t)=|\Psi(Q,t)|^2}.
+$$
 
-The canonical gate $q$ is monotonically increasing in field intensity $\rho^2$
-at fixed self-prediction error $\varepsilon^2$, so the branch with larger
-$|\alpha|^2$ is the more coherent branch. This stability bias is directionally
-consistent with the $|\alpha|^2$ law. The exact quadratic statistics come from
-the counting law: $q$ saturates toward 1 and is not proportional to
-$|\psi|^2$ (verified numerically, §6 of the script).
-
-### 4.6 Open: the outcome basis
-
-The derivation fixes the outcome *probabilities* for a chosen gate basis. The
-observable that a given gate measures is set by apparatus construction: the
-gate opens **along the measured field direction**, so the outcome basis is the
-gate's **eigenbasis** (a Stern-Gerlach gradient defines the spin quantization
-axis; a which-path detector defines the path basis). The field equations leave
-the outcome-basis selection as an input.
-
-The audit (`computations/outcome_basis_selection_check.py`) makes the
-distinction precise. The derivation is **basis-covariant** but supplies no
-**pointer-basis selector**:
-
-- **Basis covariance (check A).** The first-absorption law holds in *any*
-  channel basis: for a unitary change of basis $U$ the outcome law is
-  $P'(k) = |(U\psi)_k|^2/\sum_{k'}|(U\psi)_{k'}|^2$, and a detector built in
-  the rotated basis reproduces it exactly (numerically confirmed). The
-  derivation constrains the probabilities in every gate eigenbasis; it never
-  prefers one over another.
-- **Resolving channels are required for the branch form (check B).** The
-  reduction to $P(\alpha) = |\alpha|^2/(|\alpha|^2+|\beta|^2)$ holds only
-  when the detector channels *resolve the branches* (disjoint support or
-  observable-tagged channels, §4.3). For overlapping templates the same law
-  returns the interference pattern $|\psi(x)|^2$ instead (numerically
-  confirmed). Which channels a given apparatus resolves is its construction,
-  not a field equation.
-- **The Qi gate carries no axis (check C).** The canonical gate
-  $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$
-  (theory-reference §2.4) is a pointwise scalar of the local doublet
-  $(E_Y(x), E_I(x))$: it contains no vector or axis, so rotating the
-  apparatus frame changes no field value and $q$ is unchanged at every
-  point—the Qi dynamics cannot rank quantization axes in physical space.
-  The gate *is* sensitive to the internal phase through
-  $\varepsilon^2 = (E_Y - \varphi E_I)^2$ (it is maximized at the
-  $\varphi$-attractor ratio), but that fixes an equilibrium *ratio*, not a
-  spatial direction; the phase reference of the measured observable (axis,
-  winding sense, internal zero) remains an apparatus choice.
-
-The two-fluid geometry supplies one preferred decomposition—the spatial
-standing-wave modes of the linear sector—which anchors which-path and
-position measurements. Spin and polarization use internal winding, whose
-quantization axis is supplied by apparatus construction (§4.6). The framework
-derives the probabilities in every chosen basis; the general pointer-basis
-selector remains open.
-
-> **Inputs.** The Born rule of §4.3 is derived from: (i) the quantum sector is
-> linear (Schrödinger limit, `foundations/cassi-theory-reference.md` §5.1);
-> (ii) the field mode at the detector is a coherent state with amplitude
-> $A(x) = g\psi(x)$ (§4.2); (iii) detection is gate-mediated absorption of a
-> quantum—organized single-rung conversion, $\mathcal{M} \approx 1$ (§3.2,
-> theory-reference §2.5); (iv) the outcome basis is the gate's eigenbasis,
-> set by apparatus construction (§4.6).
+This condition is the irreducible statistical postulate of the bridge. Equivariance preserves it at every later time. Typical repeated preparations then obey Born frequencies. A nonequilibrium ensemble $\rho_Q\ne|\Psi|^2$ would permit observable departures and, for entangled states, may permit operational signalling; no such Cassi branch is adopted.
 
 ---
 
-## 5. Strong and weak measurement as limits of the same process
+## 3. Schrödinger dynamics, dispersion, and units
 
-### 5.1 Strong measurement (single-interaction collapse)
+### 3.1 Norm conservation
 
-When the measurement coupling is strong (one interaction provides
-$\mathcal{M} \approx 1$ at the target rung), the superposition collapses in
-that single interaction. The outcome is branch $\alpha$ with probability
-$|\alpha|^2$ (§4.3).
+Self-adjointness gives
 
-Example: a photon absorbed by a detector. The absorption is a single organized
-interaction at the path rung. Collapse is instantaneous. The photon's which-path
-superposition dissolves; the detector registers the first absorption, which
-lands on path $x$ with probability $|\psi(x)|^2$ (§4.3).
+$$
+\frac{d}{dt}\langle\Psi|\Psi\rangle
+=\frac{i}{\hbar}
+\langle\Psi|(\hat H_Q^\dagger-\hat H_Q)|\Psi\rangle
+=0.
+$$
 
-### 5.2 Weak measurement (gradual which-path acquisition)
+The local form is
 
-When the measurement coupling is weak (many interactions needed to accumulate
-$\mathcal{M} \to 1$ at the target rung), collapse is gradual. Each weak
-interaction provides partial phase-matching: $\mathcal{M}_k \ll 1$ per
-interaction, and $\sum_k \mathcal{M}_k \to 1$ over many interactions.
+$$
+\partial_t|\Psi|^2+\nabla_AJ^A=0,
+$$
 
-During the gradual collapse, the accumulated counts $\lambda(x)$—the
-which-path information—update the outcome posterior: the channel that has
-absorbed quanta carries a higher effective rate, and the surviving field
-amplitude reweights accordingly. This is observable as "weak values" and
-trajectories in weak measurement experiments (Aharonov, Albert, and Vaidman 1988).
+where $\nabla_A$ is the metric-compatible configuration divergence.
 
-The framework predicts: weak trajectories should trace a path determined by the
-field-intensity gradient $\nabla|\psi(x)|^2$, converging to the $|\psi(x)|^2$
-outcome distribution as $\sum \mathcal{M}_k \to 1$.
+The quantum ray phase $\Psi\mapsto e^{i\alpha}\Psi$ is distinct from the internal CassiFI symmetry $(C,D)\mapsto e^{i\theta}(C,D)$. The first leaves every quantum ray unchanged. The second acts on the physical field coordinates and has its own conserved generator when $U_{\mathrm{FI}}$ is invariant.
+
+### 3.2 Single-particle and centre-of-mass reduction
+
+Let $\mathbf r$ be a collective coordinate with classical kinetic term
+
+$$
+T_{\rm COM}=\frac12M\dot{\mathbf r}^{\,2}.
+$$
+
+The induced configuration metric is $G_{ij}=M\delta_{ij}$. If internal modes remain in one adiabatic band, the conditional wavefunction $\psi(\mathbf r,t)$ obeys
+
+$$
+\boxed{
+i\hbar\partial_t\psi
+=\left[-\frac{\hbar^2}{2M}\nabla^2+V(\mathbf r,t)\right]\psi.
+}
+$$
+
+For a plane wave,
+
+$$
+\psi\propto e^{i(\mathbf k\cdot\mathbf r-\omega t)},
+\qquad
+E=\hbar\omega=\frac{\hbar^2k^2}{2M},
+\qquad
+\mathbf p=\hbar\mathbf k,
+$$
+
+$$
+\lambda_{\rm dB}=\frac{h}{Mv},
+\qquad
+\mathbf j
+=\frac{\hbar}{M}\operatorname{Im}(\psi^*\nabla\psi).
+$$
+
+In three dimensions, $[\psi]=L^{-3/2}$ under unit normalization. The field wavefunctional has units $[\Psi]=[d\mu_G]^{-1/2}$. Neither object has the units of the Cassi density coordinate $\Psi^{(+)}$.
+
+The sodium-cluster identification uses $M$ as the measured inertial mass. A derivation of that mass from a Cassi field soliton remains open and is not required for the centre-of-mass interference calculation.
+
+### 3.3 Quantum Hamilton-Jacobi form and classical limit
+
+Separating real and imaginary parts gives
+
+$$
+\partial_tS
++\frac12G^{AB}\partial_AS\partial_BS
++U_{\mathrm{FI}}
++Q_G=0,
+$$
+
+$$
+Q_G
+=-\frac{\hbar^2}{2R}\Delta_GR.
+$$
+
+The quantum potential $Q_G$ is therefore derived from the linear wavefunctional equation and has no free exponent.
+
+When $|Q_G|$ and its gradients are negligible relative to the resolved classical action, the guidance characteristics obey the Hamilton-Jacobi limit of $H_{\rm FI}$. The CassiFI velocity coordinates are then
+
+$$
+V^A=\dot Q^A=G^{AB}\partial_BS.
+$$
 
 ---
 
-## 6. Relation to proton stability and annihilation
+## 4. Composite systems and entanglement
 
-This completes a **trifecta** of coherence-budget phenomena:
+### 4.1 Product configuration and tensor factorization
 
-| Phenomenon | Structure | Perturbation | Rungs attacked | $P_{\text{per cycle}}$ |
-|-----------|-----------|-------------|----------------|------------------------|
-| Proton decay | Single condensate | Random | All $n$ rungs | $\varphi^{-(n(n+1)/2 + \delta(n+1))} \approx 10^{-942}$ |
-| Annihilation | Particle-antiparticle pair | Organized (anti-phase) | All $n$ rungs | $\mathcal{O}(1)$ |
-| **Measurement collapse** | Superposition | **Organized (phase-matched)** | **1 rung** | $\mathcal{O}(1-q_n) \approx 10^{-20}$ |
+For a regulated split $Q=(Q_A,Q_B)$,
 
-Measurement is the *single-rung* analogue of annihilation—organized attack,
-but targeting only the rung where the branches differ, not the full cascade
-structure. This is why measurement collapses superpositions with $|\alpha|^2$
-statistics but leaves the particle itself intact (no mass-to-energy conversion).
-Annihilation attacks all rungs—total dissolution. Measurement attacks one
-rung—branch selection, particle survives. Proton decay attacks all rungs but
-randomly—nothing happens on laboratory timescales.
+$$
+\mathcal C=\mathcal C_A\times\mathcal C_B,
+\qquad
+\mathcal H_Q
+\cong\mathcal H_A\otimes\mathcal H_B.
+$$
+
+A product state has
+
+$$
+\Psi(Q_A,Q_B)=\psi_A(Q_A)\psi_B(Q_B).
+$$
+
+A generic entangled state is nonfactorizable:
+
+$$
+\Psi(Q_A,Q_B)
+=\sum_r\sqrt{\lambda_r}\,
+ u_r(Q_A)v_r(Q_B),
+\qquad
+\sum_r\lambda_r=1.
+$$
+
+The reduced density operator is
+
+$$
+\rho_A
+=\operatorname{Tr}_B|\Psi\rangle\langle\Psi|.
+$$
+
+An ordinary field value at one point of three-space cannot encode an arbitrary function of $N$ spatial arguments. Generic entanglement therefore lives in the wavefunctional over the complete field configuration. The CassiFI multiscale stack provides physical configuration coordinates and coarse-graining maps; it does not replace the configuration-space dependence of $\Psi$.
+
+### 4.2 Particle sectors
+
+For $N$ effective particles,
+
+$$
+\mathcal H_N
+=L^2(\mathbb R^{3N},d^{3N}x)
+$$
+
+before internal and identical-particle restrictions. Bosonic and fermionic sectors use the standard symmetric and antisymmetric subspaces. The Hamiltonian
+
+$$
+\hat H_N
+=\sum_{j=1}^N
+\left[-\frac{\hbar^2}{2m_j}\nabla_j^2
++V_j(\mathbf x_j)\right]
++\sum_{j<k}V_{jk}(\mathbf x_j-\mathbf x_k)
+$$
+
+is Hermitian on its declared domain and conserves total norm. A Cassi field theory may recover these sectors as collective excitations of the regulated field; that particle-field identification remains Hypothesized.
+
+### 4.3 No-signalling
+
+For any local trace-preserving completely positive map on $B$,
+
+$$
+\mathcal E_B(\rho)
+=\sum_k(I_A\otimes K_k)\rho(I_A\otimes K_k^\dagger),
+\qquad
+\sum_kK_k^\dagger K_k=I_B,
+$$
+
+cyclicity of the partial trace gives
+
+$$
+\operatorname{Tr}_B[(I_A\otimes\mathcal E_B)(\rho_{AB})]
+=\operatorname{Tr}_B\rho_{AB}.
+$$
+
+Local outcome-averaged operations cannot change statistics at $A$. The guidance law remains ontically nonlocal. QF4 prevents that nonlocality from becoming a controllable signal.
+
+### 4.4 No-cloning
+
+Suppose a universal unitary copier acted as
+
+$$
+U|\psi\rangle|0\rangle=|\psi\rangle|\psi\rangle,
+\qquad
+U|\phi\rangle|0\rangle=|\phi\rangle|\phi\rangle.
+$$
+
+Unitary preservation of inner products would require
+
+$$
+\langle\phi|\psi\rangle
+=\langle\phi|\psi\rangle^2.
+$$
+
+This holds generally only for orthogonal or identical rays. An arbitrary
+unknown CassiFI quantum state therefore cannot be copied. A measurement can
+write a topologically retained classical record after the alternatives have become
+distinguishable; that record is not a second copy of the original
+wavefunctional.
 
 ---
 
-## 7. Testable predictions
+## 5. Measurement and retained records
 
-| # | Prediction | Observable | Status |
-|---|-----------|-----------|--------|
-| M1 | Environmental decoherence cannot produce single-outcome selection with Born-rule statistics—only organized ($\mathcal{M} \approx 1$) perturbation can | Run long-duration superposition experiments under controlled random noise; observe off-diagonal decay (standard decoherence) but no biased branch selection; check that outcome distributions remain uniform (no Born-rule signature) until organized measurement is applied | Consistent with standard decoherence results; the null is that random noise never produces biased outcomes |
-| M2 | Weak measurement trajectories follow the field-intensity gradient | Reconstruct weak trajectories; compare to $\nabla|\psi(x)|^2$ predicted path | Testable with existing weak-measurement apparatus |
-| M3 | Measurement collapse time scales inversely with phase-matching $\mathcal{M}$ | Vary detector coupling strength; measure collapse onset vs coupling | Testable with tunable-detector experiments |
-| M4 | Single-photon which-path detection produces $|\psi(x)|^2$ statistics with no deviation beyond Poisson | Extended quantum optics statistics; no "collapse noise" beyond shot noise | The defining content of §4.2–4.3: counts are Poisson with mean $\propto |\psi(x)|^2$; testable with high-statistics quantum optics |
-| M5 | Collapse is NOT a spontaneous process—it requires organized perturbation; zero environmental-collapse events in ultra-high-vacuum, ultra-low-temperature, shielded superpositions | Run superposition lifetime tests under maximally isolated conditions; no decay to classical state | Testable with matter-wave interferometry in space (MAQRO) |
+### 5.1 Premeasurement
+
+Let $\{|s_k\rangle\}$ be the system alternatives resolved by the apparatus. A measurement interaction produces
+
+$$
+\left(\sum_kc_k|s_k\rangle\right)
+|A_0\rangle|E_0\rangle
+\longrightarrow
+\sum_kc_k|s_k\rangle|A_k\rangle|E_k\rangle.
+$$
+
+The interaction Hamiltonian determines the basis. The scalar Qi diagnostic $q$ and the cascade rung count do not select it.
+
+### 5.2 Topological apparatus sectors
+
+For the apparatus configuration $Q_A$, CassiFI topological retention defines
+
+$$
+\mathcal T_{\mathrm{topo}}(Q_A)
+:=\left(
+\{n_{\mathrm{topo},x}\},\{n_{\mathrm{topo},y}\},\{p_{\mathrm{topo}}\}
+\right).
+$$
+
+A record value $k$ corresponds to a guarded region
+
+$$
+\Omega_k
+:=\{Q_A:\mathcal T_{\mathrm{topo}}(Q_A)=\tau_k\},
+\qquad
+\Omega_j\cap\Omega_k=\varnothing
+\quad(j\ne k).
+$$
+
+The measurement packets satisfy
+
+$$
+\operatorname{supp}A_k\subset\Omega_k.
+$$
+
+The bounded topological retention potential and its phase-slip barrier provide metastability and retention. In the semiclassical detector limit, the interaction supplies the energy that moves the apparatus between sectors and the CassiFI work ledger closes. Quantum tunnelling between retained sectors is allowed in principle; a usable record requires
+
+$$
+\Gamma_{\rm tunnel}T_{\rm hold}\ll1.
+$$
+
+### 5.3 Decoherence and record distinguishability
+
+After tracing the environment, an off-diagonal system element is multiplied by
+
+$$
+\gamma_{jk}
+=\langle A_kE_k|A_jE_j\rangle.
+$$
+
+Define the derived record-distinguishability diagnostic
+
+$$
+\boxed{
+\mathcal M_{jk}=1-|\gamma_{jk}|^2
+},
+\qquad
+0\le\mathcal M_{jk}\le1.
+$$
+
+$\mathcal M_{jk}=0$ means that the apparatus and environment carry no distinguishing record. $\mathcal M_{jk}\simeq1$ means that the records are effectively orthogonal. Organization or randomness does not determine this value by itself. A coherent phase grating may be highly organized with $\mathcal M\simeq0$; random scattering may have $\mathcal M\simeq1$ when it exports which-path information.
+
+### 5.4 One outcome and effective collapse
+
+The total wavefunctional retains all dynamically separated packets. The actual apparatus configuration belongs to one guarded region $\Omega_K$. The conditional system wavefunction is
+
+$$
+\psi_{\rm cond}(Q_S,t)
+\propto
+\Psi(Q_S,Q_A(t),Q_E(t),t).
+$$
+
+When the packets have disjoint support, this conditional wavefunction contains only branch $K$ to observational accuracy. The effective update is
+
+$$
+\psi\longrightarrow
+\frac{P_K\psi}{\|P_K\psi\|}.
+$$
+
+No observer term and no fundamental stochastic collapse term is added. The unique record is the topological sector occupied by the actual field configuration. The global wavefunctional remains unitary.
+
+### 5.5 Passive scattering and absorption
+
+For each CassiFI port,
+
+$$
+\eta_{\rm ref}+\eta_{\rm trans}+\eta_{\rm abs}=1
+$$
+
+within the declared numerical residual. Quantum amplitudes require an enlarged unitary scattering matrix $S_r$ whose channel norms reproduce these fractions:
+
+$$
+|r|^2=\eta_{\rm ref},
+\qquad
+|t|^2=\eta_{\rm trans},
+\qquad
+\sum_a|a_a|^2=\eta_{\rm abs},
+\qquad
+S_r^\dagger S_r=I.
+$$
+
+Absorption transfers amplitude into detector or environment channels. It does not delete total norm. A reduced no-click state may be non-unitarily conditioned after the absorbed channels are excluded.
 
 ---
 
-## 8. Epistemic boundaries
+## 6. Born probabilities and frequencies
 
-### Derived (from the Schrödinger limit, with the §4 inputs)
+### 6.1 Equivariance
 
-- Single-rung vs full-cascade coherence architectures (§2): superposition decoherence costs one rung; proton decay costs all 92 (0 → 91.5)
-- Born rule from coherent-field statistics: $P(x) = |\psi(x)|^2/\sum|\psi(x')|^2$ (§4), conditional on the inputs listed in §4.6; verified numerically (`computations/coherent_field_born_rule.py`)
+The Schrödinger continuity equation and the guidance flow share the same current:
 
-### Hypothesized (mechanism specified, testable)
+$$
+\partial_t|\Psi|^2+\nabla_A(|\Psi|^2\dot Q^A)=0.
+$$
 
-- Phase-matching factor $\mathcal{M}$ as the bridge between organized and random regimes (§3.1)
-- Strong/weak measurement limits as $\sum\mathcal{M}_k$ accumulation (§5)
-- Weak trajectory = field-intensity gradient path (§5.2, M2)
+Any ensemble initially distributed according to QF4 remains distributed according to QF4.
 
-### Open (inputs, not derived)
+### 6.2 Uniqueness among local equivariant densities
 
-- Coherent-state structure of the field at the detector (§4.2)
-- Outcome-basis selection: the measured observable is set by apparatus construction; the gate's eigenbasis is the outcome basis (§4.6); the derivation is basis-covariant but supplies no pointer-basis selector (audited, `computations/outcome_basis_selection_check.py` §4.6)
-- Exact functional form of $\mathcal{M}_i$ at multi-rung interfaces
+Suppose a candidate equilibrium density is local in $u=|\Psi|^2$,
+
+$$
+\rho_Q=f(u),
+$$
+
+and is transported by the same velocity field for every admissible flow. Along a trajectory,
+
+$$
+D_tu=-u\,\nabla_A\dot Q^A,
+\qquad
+D_tf(u)=-f(u)\,\nabla_A\dot Q^A.
+$$
+
+The chain rule therefore requires
+
+$$
+uf'(u)=f(u).
+$$
+
+The nonnegative solutions are $f(u)=Cu$. Normalization gives $C=1$. Thus
+
+$$
+\boxed{\rho_Q=|\Psi|^2}
+$$
+
+is the unique normalized equilibrium density within the declared local-equivariance class. This theorem fixes the functional form; QF4 supplies the equilibrium condition for the realized ensemble.
+
+### 6.3 Outcome probabilities
+
+For disjoint detector sectors,
+
+$$
+\boxed{
+P(k)
+=\int_{\Omega_k}|\Psi(Q)|^2d\mu_G
+=\langle\Psi|P_k|\Psi\rangle
+}.
+$$
+
+For an ideal state $\sum_kc_k|s_k\rangle$ correlated with disjoint apparatus packets,
+
+$$
+P(k)=|c_k|^2.
+$$
+
+Repeated independently prepared trials converge to these frequencies by the law of large numbers. Correlated trials require their joint quantum state and do not inherit an independent-trial claim.
+
+For a detector represented by disjoint outgoing absorbing surfaces $\Sigma_k$, the same probability may be written as an integrated outward flux when the detector boundary condition makes that flux nonnegative:
+
+$$
+P(k)
+=\int_0^\infty dt
+\int_{\Sigma_k}J^An_A\,d\Sigma.
+$$
+
+If all prepared systems are eventually detected, $\sum_kP(k)=1$.
+
+### 6.4 Coherent-state counting as a special case
+
+A Glauber coherent field with detector amplitude $A_k=g c_k$ has Poisson mean $|A_k|^2$. Normalizing its mean counts reproduces $|c_k|^2$. That calculation remains valid for coherent-state counting. The general Born result above applies to one-particle, Fock, mixed, and entangled states and does not assume Poisson source statistics.
 
 ---
 
-## 9. References
+## 7. Sodium-nanoparticle interferometer
 
-- `foundations/proton-coherence-budget.md`—proton lifetime, annihilation mechanism, $N_{\text{max}}$ formula
-- `../../quantum-measurement-qi-appendix.md`—qualitative Qi collapse framework, 5 predictions
-- Glauber, R. J., "Coherent and Incoherent States of the Radiation Field," *Phys. Rev.* 131, 2766 (1963)—coherent states; Poisson photon-counting statistics
-- Mandel, L. & Wolf, E., *Optical Coherence and Quantum Optics* (Cambridge University Press, 1995)—coherent-state counting statistics
-- `computations/coherent_field_born_rule.py`—numeric verification of §4.2–4.6 (Poisson step, relative-rate law, multinomial splitting, weak-coupling limit, automatic interference, canonical-$q$ monotonicity)
-- `computations/outcome_basis_selection_check.py`—audit of the §4.6 outcome-basis problem (basis covariance of the first-absorption law; resolving-channel condition for the branch form; Qi-gate axis independence)
-- `(external—see papers/consciousness-framework.md in physics repo)` §9—catalytic template and Qi-to-matter coupling
-- `open-questions-cassi-answers.md`—Q7 (measurement problem), Q9 (proton lifetime)
+### 7.1 Standard quantum-sector prediction
+
+For a symmetric Talbot-Lau interferometer,
+
+$$
+S(x_3)=\sum_{\ell=-\infty}^{\infty}
+S_\ell e^{2\pi i\ell x_3/d},
+$$
+
+$$
+S_\ell
+=B_{-\ell}^{(1)}(0)
+ B_{2\ell}^{(2)}\!\left(\ell\frac{L}{L_T}\right)
+ B_{\ell}^{(3)}(0),
+$$
+
+$$
+L_T=\frac{d^2}{\lambda_{\rm dB}}
+=\frac{d^2Mv}{h},
+\qquad
+V=\frac{2|S_1|}{S_0}.
+$$
+
+The Talbot coefficients include coherent dipole phase and ionization depletion. The CassiFI quantum bridge uses the same linear centre-of-mass Hamiltonian and therefore predicts
+
+$$
+\boxed{
+S_\ell^{\rm Cassi}=S_\ell^{\rm QM},
+\qquad
+V_{\rm Cassi}=V_{\rm QM}
+}
+$$
+
+for isolated propagation, apart from ordinary environment and apparatus channels already included in the Hamiltonian or reduced open-system model. The canonical bridge contains no additional visibility factor and no fitted quantum coefficient.
+
+### 7.2 Experimental anchors
+
+For the 2026 sodium-cluster result,
+
+$$
+d=133\ \mathrm{nm},
+\qquad
+L=0.983\ \mathrm{m},
+\qquad
+M\simeq172\ \mathrm{kDa},
+\qquad
+v\simeq160\ \mathrm{m\,s^{-1}}.
+$$
+
+These values give
+
+$$
+\lambda_{\rm dB}\simeq14.5\ \mathrm{fm},
+\qquad
+L_T\simeq1.22\ \mathrm{m},
+\qquad
+\frac{L}{L_T}\simeq0.806,
+$$
+
+and a G1-to-G3 flight time near $12.3$ ms. The measured diagnostic regime around 172 kDa gave $V=0.10\pm0.01$ and $0.08\pm0.01$ in two runs. The reported 0.4-1 MDa fringes do not distinguish the quantum and classical curves in that apparatus geometry.
+
+The experiment's conventional environment factor $0.78$ is applied equally to its quantum and classical models. It is an apparatus nuisance factor, not a Cassi parameter.
+
+### 7.3 Constraint on additional collapse
+
+The published minimal-macrorealist modification multiplies each Fourier order by $R_\ell$, with $R_0=1$. The data give the 5% bound
+
+$$
+\tau_e\ge2.84\times10^{15}\ \mathrm{s}
+$$
+
+at $\hbar/\sigma_q=10$ nm, corresponding to
+
+$$
+\mu=\log_{10}(\tau_e/1\ \mathrm{s})=15.45.
+$$
+
+The CassiFI field-configuration bridge selects
+
+$$
+R_\ell^{\rm Cassi}=1
+$$
+
+for spontaneous collapse during isolated propagation. Any later stochastic or nonlinear Cassi extension must be registered separately and satisfy the published $R_\ell$ likelihood bound. The 133 nm and 8 nm lengths have no preregistered $\varphi$-rung relation and provide no cascade evidence.
+
+### 7.4 Apparatus interpretation
+
+G1 and G3 implement absorptive spatial filtering. G2 implements coherent, position-dependent phase transmission. G2 does not establish orthogonal path records, so $\mathcal M\simeq0$ for the transmitted alternatives. Final ionization and amplification correlate position with disjoint detector records, giving $\mathcal M\simeq1$ and a retained apparatus outcome.
+
+---
+
+## 8. Epistemic accounting and falsifiers
+
+| Result | Status | Decisive failure |
+|---|---|---|
+| Weighted $C,D$ metric and finite Hamiltonian coordinates | **Derived** within the CassiFI field law | Metric, adjoint, or energy ledger fails |
+| $\hat H_Q=-\hbar^2\Delta_G/2+U$ and norm conservation | **Derived conditional** on QF1-QF2 and self-adjointness | Non-unitary closed evolution |
+| Schrödinger centre-of-mass dispersion | **Derived conditional** on an induced mass metric $M\delta_{ij}$ | Measured $E(p)$ differs after declared interactions are included |
+| Configuration-space entanglement and no-signalling | **Derived conditional** on tensor composition and trace-preserving local maps | Local outcome-averaged operation changes a remote reduced state |
+| One retained outcome | **Derived conditional** on QF3 and disjoint topological apparatus sectors | One actual configuration yields simultaneous incompatible records |
+| Born functional form | **Derived conditional** on local equivariance | Another normalized local equivariant density exists |
+| Born frequencies | **Derived conditional** on QF4 and the preparation model | Repeated controlled trials reject $|\Psi|^2$ |
+| CassiFI as nature's microscopic field configuration | **Hypothesized** | Bell/interference, spectroscopy, or field-configuration tests reject the identification |
+| No spontaneous Cassi collapse | **Selected quantum branch** | Reproducible excess visibility loss cannot be assigned to registered environmental channels |
+
+The real-density organized-versus-random contrast test remains a NULL result for that protocol. It does not test this quantum sector because its initial state had no complex unitary wavefunctional, no configuration-space entanglement, and no topological detector record.
+
+---
+
+## 9. Verification contract
+
+`computations/cassifi-quantum-bridge-pre-registration.md` freezes the deterministic gates. `computations/verify_cassifi_quantum_bridge.py` checks:
+
+1. self-adjoint finite evolution and norm conservation;
+2. free-particle dispersion and the sodium de Broglie/Talbot anchors;
+3. entanglement plus local no-signalling under a trace-preserving map;
+4. Born normalization, equivariance, and the unique local exponent;
+5. the published macroscopicity arithmetic and $R_0=1$ contract.
+
+These checks verify the stated algebra and numerical anchors. They do not establish QF1-QF4 as laws of nature.
+
+---
+
+## References
+
+- J. S. Bell, “On the Einstein Podolsky Rosen paradox,” *Physics Physique Fizika* **1**, 195-200 (1964), <https://doi.org/10.1103/PhysicsPhysiqueFizika.1.195>.
+- D. Bohm, “A suggested interpretation of the quantum theory in terms of ‘hidden’ variables. I and II,” *Physical Review* **85**, 166-193 (1952), <https://doi.org/10.1103/PhysRev.85.166>, <https://doi.org/10.1103/PhysRev.85.180>.
+- D. Dürr, S. Goldstein, and N. Zanghì, “Quantum equilibrium and the origin of absolute uncertainty,” *Journal of Statistical Physics* **67**, 843-907 (1992), <https://doi.org/10.1007/BF01049004>.
+- S. Nimmrichter and K. Hornberger, “Macroscopicity of mechanical quantum superposition states,” *Physical Review Letters* **110**, 160403 (2013), <https://doi.org/10.1103/PhysRevLett.110.160403>.
+- S. Pedalino et al., “Probing quantum mechanics with nanoparticle matter-wave interferometry,” *Nature* **649**, 866-870 (2026), <https://doi.org/10.1038/s41586-025-09917-9>.
+- Published data and analysis code for the sodium-cluster experiment, <https://doi.org/10.5281/zenodo.17502163>.
+
+## Internal references
+
+- `foundations/cassi-first-principles.md` §3.1
+- `foundations/cassi-theory-reference.md` §5
+- `foundations/unified-lagrangian.md` §1.3
+- `open-questions-cassi-answers.md` Q7
+- `parameter-inventory.md` §§2.2, 4, 9
+- `predictions/falsifiable-predictions.md` §5

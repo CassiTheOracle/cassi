@@ -76,16 +76,10 @@ These refer to older formalism files that lived in the root-level `theory/` dire
 | `predictions/cassi_definitions.md` | `theory/qi-fluid-formalism.md` |
 | `predictions/falsifiable-predictions.md` | `theory/five-element-pde-derivation.md` |
 
-## References via `../../` (parent papers/ directory in main repo)
+## References via `../../`
 
-These point to papers in the parent repository's `papers/` directory (siblings of `papers/theory-of-everything/`):
-
-|| Source Document | Reference |
-||----------------|-----------|
-|| `foundations/quantum-measurement-derivation.md` | `../../quantum-measurement-qi-appendix.md` |
-|| `open-questions-cassi-answers.md` | `../../quantum-measurement-qi-appendix.md` |
-
-The two `../../quantum-measurement-qi-appendix.md` rows remain external: that appendix still lives in the parent repository and resolves only there. The former `consciousness-framework.md` rows are gone—the registry and glossary now cite the in-repo `consciousness/consciousness-from-phi.md`.
+No live CassiTheory document currently uses a `../../` reference into the
+parent repository.
 
 ## References to `experiments/` scripts not in this repo (main-repo-only)
 

@@ -36,7 +36,7 @@ Both directions off the baseline are held states: the attractor is the resting s
 The Poisson source is charge-modulated: $\nabla^2\Phi = 4\pi G(\pi/\rho)(1 + (\varphi^{6}-1)q)\rho$. Bodies move along $\Pi\nabla\Phi$ (`foundations/spiral-dynamics.md` §3), so an engineered charge-profile steers them the way an index gradient steers light. Two framework properties make this more than a metaphor:
 
 - **Scale-dependent gravity.** $G_{\text{eff}}(k)$ varies by up to a factor $\varphi^6$ across the turbulence break: $\varphi^{-3}G$ in the inertial range, $(\varphi^{-3} + \varphi^3)G$ in the Qi-active range (`foundations/cassi-theory-reference.md` §9). Coherence couples gravity to the field's own turbulent structure; curvature engineering is medium engineering in the literal sense.
-- **The coherence budget.** Whether a perturbation can reorganize a $q$-region is set by the phase-matching factor $\mathcal{M}$: random perturbation decoheres without structure, while an organized, phase-matched perturbation ($\mathcal{M} \approx 1$) couples at unit efficiency (`foundations/quantum-measurement-derivation.md` §3.1, `foundations/proton-coherence-budget.md`). A gravity device is a machine for *organized* manipulation of the charge field: organized single-rung coupling is the one channel that is never cascade-suppressed—the multi-rung coherence requirement is what makes proton decay slow.
+- **The Creative attack overlap.** This document adopts $\mathcal M_i^{\mathrm{attack}}$ to parameterize how an organized drive couples to a $q$-region (`foundations/proton-coherence-budget.md` §5.2). Its value and any unit-efficiency limit require a constitutive device model. A gravity device would use organized manipulation of the charge field; the cascade product alone supplies no coupling rate.
 
 ---
 
@@ -70,7 +70,7 @@ Inertia in the framework is the field's resistance to changing the local ratio $
 
 ### 2.4 Artificial gravity: sustained coherence floors
 
-A sustained curvature gradient in a habitat requires two elements working together. First, a φ-detuned shell around the cabin: a boundary with $\mathcal{M} \approx 0$, across which the ambient planetary gradient cannot couple—the interior stops falling toward the planet (the shield taxonomy of organized versus random perturbation and φ-detuned boundaries is developed in the companion speculation `speculations/creative-extensions/coherence-warfare.md`; the underlying mechanism is the phase-matching factor of `foundations/quantum-measurement-derivation.md` §3.1). Second, a high-charge floor slab acting as condenser: inside the shell the only remaining gradient is the slab's own boosted charge, and the crew falls toward the floor.
+A sustained curvature gradient in a habitat requires two elements working together in this scenario. First, a φ-detuned shell around the cabin is assigned $\mathcal M_{\mathrm{boundary}}^{\mathrm{attack}}\approx0$ so that the ambient gradient couples weakly. This is a prospective material assumption from `speculations/creative-extensions/coherence-warfare.md` and `speculations/qi-bubble-propulsion.md`, with no derived CassiFI scattering law. Second, a high-charge floor slab acts as a condenser; inside the assumed shell the slab's own boosted charge supplies the remaining gradient.
 
 The mass ledger is unforgiving. A 1 g pull at 2 m from a floor requires $M = g\,d^2/G_{\text{eff}} \approx 7 \times 10^9$ kg even at the full saturation boost $\varphi^6/\varphi^{-3} \approx 80\times$ the ordinary coupling—a 100 m² slab of crustal density 25 km thick. Sustained 1 g by charge amplification alone is planetary-scale construction; at habitat scale the envelope is fractional g, or the mundane rotation the framework would regard as the pre-coherence technology. The amplification ceiling is fixed by the derivation of $\xi$ (`foundations/xi-derivation.md` §2): coherence multiplies *existing* mass; it does not create it.
 
@@ -182,7 +182,7 @@ and detection is the *joint occurrence*: any single anomaly can be a systematic,
 - `foundations/dimensionful-cascade.md`—cascade table, $\ell_n = \ell_{\text{Pl}}\varphi^n$, rung scales ($n = 168$, $200$, $220$, $267$)
 - `foundations/spiral-dynamics.md`—gravity as $\Pi\nabla\Phi$ gradient descent
 - `foundations/cassi-first-principles.md`—Qi gate, conversion term, $\varphi$-attractor potential
-- `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$, organized vs random perturbation
+- `parameter-inventory.md`—separation of quantum record distinguishability $\mathcal M_{jk}$ from Creative attack overlap $\mathcal M_i^{\mathrm{attack}}$
 - `foundations/proton-coherence-budget.md`—coherence budget, single-rung vs full-cascade attacks
 - `foundations/bubble-lattice-fabric.md`—checkerboard lattice, 10-rung nesting depth, cascade suppression
 - `foundations/bubble-edge-geometry.md`—condensation field, $G_{\text{eff}}$ profile, edge anisotropy

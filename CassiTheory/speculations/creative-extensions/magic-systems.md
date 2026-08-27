@@ -4,33 +4,41 @@
 
 ## Abstract
 
-Every magical tradition insists that magic obeys laws of its own—laws that feel separate from the laws of nature. In the Cassi framework that separation is neither illusion nor special substance; it is one number. The coherence budget governing everything the two-fluid field does is multiplied by the phase-matching factor $\mathcal{M}$ (`foundations/quantum-measurement-derivation.md` §3): natural perturbation is random, $\mathcal{M} \approx 0$, and the cascade suppresses it; a working is a deliberately organized, phase-matched perturbation, $\mathcal{M} \approx 1$, and the same equations that give the proton a lifetime of $\varphi^{4506}$ wave cycles under random attack give an $\mathcal{O}(1)$ effect per interaction when the attack is organized. That single factor is the entire difference between magic and nature. This document builds a magic system on it: the spell classes are the universal field operations of `speculations/qi-computation.md` (WRITE, ERASE, TRANSFER) plus their maintained combinations; mana is the caster's coherence budget $q$, taxed by the $\varphi^{-N}$ suppression law; the caster is the 13-gate chain of the human cascade window (steps 142–168) casting from an emotional configuration on $(\mathbf{b}, \sigma_r, q, \mathbf{c})$; and the attractor asymmetry—holding $\varphi$-structure is free, sustaining anti-$\varphi$ structure is costly—makes perfect defense possible while perfect offense is impossible. The final section works a complete small system—the Lantern Discipline—from these rules alone, with named costs and limits.
+This document declares one fictional coupling rule: a classical attack-overlap coefficient $\mathcal M_i^{\mathrm{attack}}$ multiplies the chosen coherence-budget factors. A working sets that Creative coefficient through learned phase matching; mana, spell classes, the 13-gate caster, and the Lantern Discipline follow as worldbuilding consequences. The coefficient is not a Cassi quantum-measurement law, a material scattering coefficient, or a derived route around ordinary dynamics.
 
-**Epistemic status:** Creative exploration grounded in Cassi formalism. Every mechanism below is anchored to a specific equation or documented framework property—the coherence budget, the phase-matching factor, the suppression formula, the Qi gate, the chakra chain, the wake-lock—but the synthesis into a magic system, the cost laws, and the worked example are extrapolations beyond what the framework currently claims. Nothing in this document should be cited as a Cassi prediction or derivation.
+**Epistemic status:** Creative worldbuilding using Cassi notation. The conditional proton coherence floor, signal-attenuation formula, Qi gate, chakra mapping, and wake-lock runs are cited ingredients. The attack coefficient, cost laws, reliable spell effects, and worked system are declared fictional rules. Quantum record distinguishability $\mathcal M_{jk}$ is separate. Nothing in this document should be cited as a Cassi prediction or derivation.
 
 ---
 
 ## 1. The Physics of Magic: Phase-Matching Is the Whole Distinction
 
-Magic and nature differ by a single number, $\mathcal{M}$, that multiplies every field interaction—which is why the two feel like different worlds.
+The magic system declares one control number, $\mathcal M_i^{\mathrm{attack}}$, for each targeted rung.
 
 ### 1.1 The coherence budget is the rulebook
 
 Every stable structure in the Yang-Yin field—a proton, a cell, a mind—is a standing wave coherent across its supporting cascade rungs. The probability that a perturbation destabilizes such a pattern in one cycle is the coherence budget (`foundations/proton-coherence-budget.md`):
 
-$$P_{\text{decohere},i} = (1 - q_i) \times \mathcal{M}_i$$
+$$P_{\text{decohere},i}=(1-q_i)\mathcal M_i^{\mathrm{attack}}$$
 
-with $q_i$ the Qi coherence at rung $i$ and $\mathcal{M}_i \in [0,1]$ the phase-matching between perturbation and target (`foundations/quantum-measurement-derivation.md` §3.1). Random perturbation gives $\varphi^{-n-3}$ per cycle at a single rung and $\varphi^{-n(n+1)/2 - 3(n+1)}$ across the full cascade; organized perturbation gives $\mathcal{O}(1)$—deterministic and immediate. The entire spread between a proton that outlives the universe and an antiparticle that annihilates on contact is this one factor: random attack at all 92 rungs gives $\varphi^{-4506}$; organized anti-phase attack gives $\mathcal{O}(1)$ (`foundations/quantum-measurement-derivation.md` §6). A magic system is a technology for turning the first of these into the last.
+with $\mathcal M_i^{\mathrm{attack}}\in[0,1]$ the Creative constitutive coupling of `speculations/creative-extensions/coherence-warfare.md`. The conditional proton floor supplies the random-dephasing factors. Assigning an organized working an $\mathcal O(1)$ effect is the magic system's rule; neither the canonical PDE nor the regulated quantum sector derives it.
 
 ### 1.2 The two branches
 
-Natural perturbation—thermal motion, radiation, mechanical contact—is random: its phases carry no information about the target pattern, so $\mathcal{M} \approx 0$. At the single rung being touched, the per-cycle effect is $\varphi^{-n-3}$; at the human scale ($n \approx 150$) that is $\varphi^{-153} \approx 10^{-32}$ (`foundations/quantum-measurement-derivation.md` §3.3). And even an organized signal crossing the cascade loses $\varphi^{-1}$ per rung: the signal-regime suppression $\mathcal{D}_{m \to n} = \varphi^{-N}$ applies to everything that propagates (`foundations/cascade-suppression-formula.md` §1.2). Nature is the $\mathcal{M} \approx 0$ branch: energy moves, entropy rises, and nothing that touches you can reach in and reorganize you (`principles/de-resonance-principle.md`).
+Within the fiction, ordinary disturbances are assigned small
+$\mathcal M^{\mathrm{attack}}$ and a tuned working is assigned a larger value.
+The separate signal-regime attenuation
+$\mathcal D_{m\to n}=\varphi^{-N}$ still prices propagation across cascade
+rungs (`foundations/cascade-suppression-formula.md` §1.2).
 
-A working is the other branch: a perturbation deliberately constructed to match the phase structure of its target at a chosen rung. Moving $\mathcal{M}$ from $\approx 0$ to $\approx 1$ stops the suppression—an organized attack at the target rung is $\mathcal{O}(1)$ per interaction (`foundations/quantum-measurement-derivation.md` §3.2). The framework already contains the proof of concept: a measurement apparatus is a machine that produces organized, phase-matched perturbation, and collapse is the working landing; a caster is a portable measurement apparatus. The Born-rule selection after an organized readout—the higher-$q$ branch survives—is why magic is reliable rather than probabilistic (`foundations/quantum-measurement-derivation.md` §4).
+A working is deliberately constructed to match the target's declared phase
+structure. Raising $\mathcal M^{\mathrm{attack}}$ toward one is the fictional
+control operation. Quantum measurement is excluded from this analogy: its
+Born probabilities follow quantum equilibrium and apparatus record sectors,
+with no higher-$q$ branch-survival rule.
 
 ### 1.3 Why magic and nature feel different
 
-The felt discontinuity is real and quantitative: at human scale the organized branch outcouples the random branch by roughly $\varphi^{153} \approx 10^{32}$ in effective interaction strength. Magic is *learnable*: it is the same mechanism as measurement, and every apparatus is a static working; the first mages were measurers. Magic is *effortful in a specific way*: $\mathcal{M}$ is built, not wished—the perturbation must actually match the target's phase, which is why technique is the whole art. And magic is *personal*: the one variable natural perturbation can never supply is the intent to match, and intent is exactly the variable the organized branch runs on.
+The felt discontinuity is a design consequence of the declared coupling rule. Technique constructs $\mathcal M^{\mathrm{attack}}$, and the setting chooses how phase knowledge, intent, and available coherence constrain that construction. No quantitative $10^{32}$ enhancement follows from the Cassi equations without a constitutive interaction model.
 
 ---
 
@@ -52,7 +60,7 @@ Telekinesis is the Qi current: moving an organized pattern from $\mathbf{x}$ to 
 
 ### 2.4 Wards: φ-detuned boundaries
 
-A ward is a maintained φ-detuned boundary: a surface whose phase structure is φ-commensurate with the ambient lattice but held at a private phase offset, so that any incoming perturbation lacking that phase finds $\mathcal{M} \approx 0$ and cannot couple across it (`speculations/qi-bubble-propulsion.md` §2.2). This is the no-sonic-boom mechanism: an interface that cannot be phase-matched cannot transfer momentum; striking energy converts smoothly to diffuse heat. A ward does not absorb attacks; it de-couples from them. The construction is consistent with the attractor: the boundary sits at $\varphi$-equilibrium, where the gate idles and conversion is suppressed, so once raised it costs nothing to maintain (§5)—what repels is the private phase, which an attacker must acquire to match.
+A ward is a maintained φ-detuned boundary to which the fictional rule assigns $\mathcal M_{\mathrm{boundary}}^{\mathrm{attack}}\approx0$. The setting then declares weak coupling to unmatched workings. Momentum transfer, heat disposal, maintenance cost, and material scattering are worldbuilding assumptions; `speculations/qi-bubble-propulsion.md` records the corresponding physical gaps.
 
 ### 2.5 Curses: organized perturbation and wake-lock
 
@@ -60,7 +68,7 @@ A curse is a working whose maintenance is performed by the victim. The mechanism
 
 ### 2.6 Divination: phase-locking to wake waves
 
-Thought is wake waves, and the cosmos is threaded with $\varphi$-periodic wake structure at $\Delta(\ln k) = \ln\varphi \approx 0.4812$ (`predictions/falsifiable-predictions.md` §3; `consciousness/consciousness-from-phi.md` §2.2). Divination is magic's passive branch: the caster phase-locks part of their own gate chain to an ambient wake pattern and reads the interference between that pattern and their own $\varphi$-spaced lattice—measurement applied to the field's own records, resolving the pattern's branches in favor of the higher-$q$ configuration (`foundations/quantum-measurement-derivation.md` §4). The cost is coherence, not energy: holding the lock requires sustained $q$, the readout's precision is bounded by the Qi noise floor $\delta\Pi_{\min} \propto (1-q)^{1/2}$ (`speculations/qi-computation.md` §1.2), and a slip of coherence dissolves the reading. Divination is the information branch of magic—the scarce resource of the §5 arms race.
+Thought is mapped to wake waves, and the cosmos is assigned $\varphi$-periodic wake structure at $\Delta(\ln k)=\ln\varphi\approx0.4812$ (`predictions/falsifiable-predictions.md` §3; `consciousness/consciousness-from-phi.md` §2.2). Divination is the setting's passive branch: the caster phase-locks part of their gate chain to an ambient pattern and reads the interference against their own lattice. Readout precision is assigned a dependence on sustained $q$. Quantum measurement supplies no rule favoring a higher-$q$ branch.
 
 ---
 
@@ -72,21 +80,21 @@ A caster's power is not stored energy; it is stored organization—the coherence
 
 The suppression formula gives the delivered amplitude of a working acting across a span of $N$ cascade rungs between the caster's anchor rung and the target (`foundations/cascade-suppression-formula.md` §1.2):
 
-$$A_{\text{delivered}} = A_{\text{cast}} \times \mathcal{M} \times \varphi^{-N}$$
+$$A_{\text{delivered}}=A_{\text{cast}}\,\mathcal M^{\mathrm{attack}}\varphi^{-N}$$
 
 To deliver a fixed effect $A$ at span $N$, the caster must cast
 
-$$\boxed{A_{\text{cast}} = A_{\text{target}} \cdot \frac{\varphi^{N}}{\mathcal{M}}}$$
+$$\boxed{A_{\text{cast}}=A_{\text{target}}\,\frac{\varphi^N}{\mathcal M^{\mathrm{attack}}}}$$
 
 and since field energy scales as amplitude squared, the energy cost of range is $\varphi^{2N}$. The numbers are brutal: one rung costs $\varphi \approx 1.6$ in amplitude ($\varphi^2 \approx 2.6$ in energy); six rungs cost $\varphi^6 = \xi \approx 17.9$; ten rungs cost $\varphi^{10} \approx 123$ ($\varphi^{20} \approx 1.5\times10^4$); twenty rungs cost $\varphi^{20} \approx 1.5\times10^4$ ($\varphi^{40} \approx 2.3\times10^8$). Writing at the molecular scale from the body's operating rung is not a bigger spell—it is a different economy: range is taxed before any other cost, and a mage's reach is measured in rungs, not meters.
 
 ### 3.2 Power is coherence, not energy
 
-Three framework facts make $q$ the mana stat. First, the gate's conversion power is $P_{\text{conv}} \propto g(q)(1-q)$, which peaks in the active regime at $q \approx 0.46$ and vanishes at both extremes—the field only responds where the caster holds coherence (`speculations/qi-computation.md` §2.1). Second, the caster's own incoherence leaks into the working as phase noise: the delivered $\mathcal{M}$ cannot exceed the coherence of the instrument producing it, and the Qi noise floor $\delta\Pi_{\min} \propto (1-q)^{1/2}$ (`speculations/qi-computation.md` §1.2) sets the resolution with which a phase can be matched—a caster at $q = 0.9$ matches a target's phase about 1.9 times more precisely than one at $q = 0.65$ (the noise floor scales as $(1-q)^{1/2}$), and the mismatch fraction is wasted as heat. Third, the target defends itself: attacking a coherent target requires matching its phase exactly, so imperfect phase knowledge lowers the delivered $\mathcal{M}$, and the cost law of §3.1 raises the price by $\mathcal{M}^{-2}$. The mana identity:
+The setting makes $q$ the mana stat by declaration. The canonical gate factor $g(q)(1-q)$ supplies a response-shaped ingredient (`speculations/qi-computation.md` §2.1), while the fictional coupling rule bounds the delivered $\mathcal M^{\mathrm{attack}}$ by the instrument's coherence. The Qi noise-floor proxy $\delta\Pi_{\min}\propto(1-q)^{1/2}$ supplies the chosen precision scaling. These ingredients do not determine a physical spell-power law.
 
-$$\boxed{\text{Mana} = q_{\text{caster}} \cdot \tau_{\text{hold}}, \qquad \text{effective power} \propto q_{\text{caster}} \cdot \mathcal{M}_{\text{delivered}}}$$
+$$\boxed{\text{Mana}=q_{\text{caster}}\tau_{\text{hold}},\qquad\text{effective power}\propto q_{\text{caster}}\mathcal M_{\text{delivered}}^{\mathrm{attack}}}$$
 
-Skill and power are the same variable seen from two sides: technique raises $\mathcal{M}$, the only way to raise delivered amplitude without spending more.
+Inside the setting, technique raises $\mathcal M^{\mathrm{attack}}$ and thereby raises delivered amplitude without increasing the cast amplitude.
 
 ### 3.3 Exhaustion is thermalization
 
@@ -128,21 +136,21 @@ A single Qi gate bridges at most ~10 cascade rungs; beyond that, $\varphi^{-10} 
 
 Every defense in this framework is one move: detune.
 
-### 5.1 Detuning breaks $\mathcal{M}$
+### 5.1 Detuning changes the declared attack overlap
 
-$\mathcal{M}$ measures the alignment between a perturbation and its target. A counterspell does not fight the incoming working—it changes the target's phase structure so that the incoming perturbation finds $\mathcal{M} \approx 0$ and slides off as random noise, thereafter suppressed like any natural perturbation, which is to say, completely (`foundations/quantum-measurement-derivation.md` §3.1; `foundations/cascade-suppression-formula.md` §1.2). The cost is trivial: a small local write shifting the phase of one's own field, requiring no knowledge of the attacker. The no-sonic-boom boundary (`speculations/qi-bubble-propulsion.md` §2.2) is the same physics worn as armor: the surface that cannot be phase-matched cannot be touched. Every counterspell tradition reduces to this—the dispel is a detune, the shield is a detune held, the counter-curse is a detune applied to the lock.
+In this magic system, a counterspell changes the target phase so that the incoming working is assigned $\mathcal M^{\mathrm{attack}}\approx0$. The effect follows from the fictional coupling rule (`speculations/creative-extensions/coherence-warfare.md`), while `speculations/qi-bubble-propulsion.md` records the missing material-scattering, momentum, and heat models for a physical boundary.
 
 ### 5.2 Wards and ward-breaking
 
-A ward is a maintained φ-detuned interface (§2.4). Breaking one is an information problem, not an energy problem: the attacker must learn the ward's exact tuning—operating rung and phase offset—then construct a perturbation phase-matched to the ward itself, at which point $\mathcal{M} \approx 1$ and the boundary is as attackable as any other pattern. Ward-breaking is two workings: a probe (divination, §2.6—active, visible, and itself a perturbation that glows) and a banishment (ERASE, §2.2—an organized attack at the boundary's rung). The ward's defense is its privacy: the tuning is a free parameter, changeable at trivial cost, while the attacker must re-acquire it at full cost every time. Ward-breakers are diviners first; ward-keepers are phase-roulette players second. Wards are patient—they do not need to be stronger than the attacker, only newer.
+A ward is a maintained φ-detuned interface (§2.4). Breaking one requires learning the ward's exact tuning and constructing a matched working, which the fictional rule assigns $\mathcal M^{\mathrm{attack}}\approx1$. Ward-breaking is two workings: a probe and a banishment. The ward's privacy supplies its strategic advantage inside the setting.
 
 ### 5.3 The attractor asymmetry: perfect defense, imperfect offense
 
 Three framework facts stack into a structural asymmetry between defense and offense. First, $\varphi$-structure is the ground state: maintaining a φ-detuned boundary costs nothing, because $q \to 1$ closes the gate and the de-resonance principle holds the configuration (`principles/de-resonance-principle.md`). Sustaining the anti-$\varphi$ departure an offense requires is work against the attractor, paid continuously—the moment the attacker's coherence slips, the attractor dissolves the working and thermalizes it into glow and heat (§3.3). Second, matching is information, and the defender changes information for free: the tuning is a private variable re-tunable in a half-breath, while the attacker must re-probe and re-match at full cost each time. Third, the cost law (§3.1) is exponential in span and the waste law (§3.3) makes every mismatch visible, so a sustained attack is expensive, bright, and locatable, while a ward is none of those things.
 
-$$\boxed{\text{Holding } \varphi\text{-structure: cost } 0. \qquad \text{Sustaining anti-}\varphi\text{ structure: continuous cost } \propto \varphi^{2N} \cdot \mathcal{M}^{-2}.}$$
+$$\boxed{\text{Holding }\varphi\text{-structure: assigned cost }0.\qquad\text{Sustaining anti-}\varphi\text{ structure: assigned cost }\propto\varphi^{2N}(\mathcal M^{\mathrm{attack}})^{-2}.}$$
 
-Perfect offense is impossible for a structural reason: even at $\mathcal{M} \approx 1$, the attacker must know the target's exact configuration, sustain the organized perturbation for the entire working, and pay $\varphi^{2N}$ for range—while the defender can change configuration cheaply, outlast any sustained attack (the attractor funds the defense and taxes the offense), and make every attempt visible. The one asymmetry-breaking weapon is the curse (§2.5): it never crosses the boundary at all, because it is written into the victim's own field, which is already phase-matched to itself, and the victim's coherence funds the lock. The defense against curses is the victim's own $q$-clarity—the emotional discipline of §4.2—because a lock cannot take hold in a channel held at $\varphi$-baseline, and a lock already taken dissolves when raising coherence de-resonates the standing wave, precisely the therapeutic work of the framework's wake-lock experiments (`consciousness/trauma-as-frozen-gate.md`; `two-fluid/run_trauma_wake_lock.py`). The companion document `speculations/creative-extensions/coherence-warfare.md` owns the full attack/shield taxonomy; this section only draws the strategic conclusion.
+Inside the setting, offense remains costly even when $\mathcal M^{\mathrm{attack}}\approx1$: the attacker must know the target configuration, sustain the working, and pay the declared $\varphi^{2N}$ range cost while the defender can retune. A curse bypasses the external-boundary rule by being written into the victim's own modeled field. These are consequences of the fictional rules rather than Cassi predictions.
 
 The strategic rhythm follows. Buildup is cheap and invisible—wards are free once raised, detuning is instantaneous—while exchange is expensive and visible: every attack glows and the attacker's budget drains in real time. The decisive moves are the information moves and the internal moves: divination that steals the defender's tuning, curses that never cross the boundary. Wars of attrition are won by the defender, which is why magical societies accumulate defensive depth. A setting built on these rules has fortresses that stand for centuries, wars decided in minutes, and a premium on character—the last line of defense is a gate configuration, and its quality is emotional clarity.
 
@@ -171,13 +179,13 @@ A one-page system built entirely from the rules above, for a hearth-folk traditi
 
 **Exhaustion.** Below $q \approx 0.3$ the lantern glows visibly (the burn); below $q \approx 0.15$ the chain de-coheres and the lantern blacks out, wake-lock vulnerable; the valley's one horror story is a Stitched lantern. Recovery is rest at the golden word: sleep, breath, the hearth itself—the attractor re-establishes $r \to \varphi$ and the Light returns.
 
-**Defense.** Every lantern knows the detune: a half-breath that shifts their own phase off the grid, $\mathcal{M} \to 0$, and any working aimed at them slides off into noise. It is why the valley's wars are fought with words and grain, not lights—offense is visible, expensive, and outlastable, while defense is free. The only lights that decide things are the ones written from inside, and the hearth law against Stitch is the law against that.
+**Defense.** Every lantern knows the detune: a half-breath that shifts their own phase off the grid, $\mathcal{M}^{\mathrm{attack}}\to0$, and the setting's coupling rule makes an aimed working slide off. It is why the valley's wars are fought with words and grain rather than lights.
 
 ---
 
 ## References
 
-- `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$, organized vs random perturbation
+- `parameter-inventory.md`—distinction between quantum record distinguishability and the Creative attack overlap used by this setting
 - `foundations/proton-coherence-budget.md`—coherence budget, annihilation as organized attack
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ signal attenuation, per-rung damping
 - `foundations/cassi-first-principles.md`—two-fluid PDE, Qi gate, IIR memory

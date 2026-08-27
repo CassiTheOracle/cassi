@@ -460,9 +460,84 @@ At $r=\varphi^{-2}$ the bracket equals $\varphi^{-2}$, so $q=\tfrac12$ only at $
 ---
 
 
-### 2.6 Density-Plane Relaxation Rate
+### 2.6 Density-Plane Relaxation and Conversion-Flow Time
 
 The canonical conversion is a rank-one relaxation in the density variables, not an $SO(2)$ generator. With $\kappa=\lambda(1-q)$, its conversion-only matrix has eigenvalues $0$ and $-\kappa(1+\varphi)=-\lambda(1-q)(1+\varphi)$. It conserves $\rho=E_Y+E_I$ while generally changing $E_Y^2+E_I^2$.
+
+**Conversion-flow time (exact).** On a local conversion-only trajectory,
+write the inter-fluid transfer as
+
+$$
+\Gamma=\lambda(1-q)\varepsilon,\qquad
+dE_I\big|_{\mathrm{conv}}=\Gamma\,dt=-dE_Y\big|_{\mathrm{conv}}.
+$$
+
+The transferred density defines a dimensionless additive exposure
+$\chi_F$. For $\lambda>0$, its time-dimension counterpart is $\tau_F$:
+
+$$
+\boxed{
+d\chi_F
+:=\frac{dE_I|_{\mathrm{conv}}}{\varepsilon}
+=-\frac{d\varepsilon}{(1+\varphi)\varepsilon}
+=\lambda(1-q)\,dt,
+\qquad
+d\tau_F:=\frac{d\chi_F}{\lambda}=(1-q)\,dt
+}
+$$
+
+For resolved nonzero endpoints whose sign is preserved by conversion,
+
+$$
+\boxed{
+\Delta\chi_F
+=-\frac{1}{1+\varphi}
+\ln\left|\frac{\varepsilon_1}{\varepsilon_0}\right|
+=\int_{t_0}^{t_1}\lambda(1-q)\,dt,
+\qquad
+\Delta\tau_F
+=-\frac{1}{(1+\varphi)\lambda}
+\ln\left|\frac{\varepsilon_1}{\varepsilon_0}\right|
+=\int_{t_0}^{t_1}(1-q)\,dt
+}.
+$$
+
+The frozen-$Q$ finite map therefore has the exact receipt identity
+
+$$
+\Delta\tau_F=(1-Q)h
+=-\frac{1}{(1+\varphi)\lambda}
+\ln\left|\frac{\varepsilon'_{\mathrm{conv}}}{\varepsilon}\right|.
+$$
+
+For two regions under the same conversion law, the relative clock rate is
+
+$$
+\boxed{
+\frac{d\tau_F(x)}{d\tau_F(x_0)}
+=\frac{1-q(x)}{1-q(x_0)}
+}.
+$$
+
+At $q_0=\varphi^2/3$, this ratio is exactly the
+$\mathcal R=(1-q)/(1-q_0)$ factor used by the optional breath extension.
+Its status as a relative **conversion-clock** rate is Derived conditional on
+the canonical conversion law. A universal proper-time lapse shared by wave,
+particle, gravitational, and boundary dynamics remains Hypothesized and
+requires a common reparameterization-invariant action. Spatial transport and
+source increments must be removed before evaluating the local identity.
+Exact equilibrium and unresolved near-zero endpoints contain no readable
+conversion tick.
+
+The conversion subflow also fixes a local arrow:
+
+$$
+\frac{d}{dt}\frac{\varepsilon^2}{2}
+=-(1+\varphi)\lambda(1-q)\varepsilon^2\leq0.
+$$
+
+Thus $\chi_F$ is monotone while the imbalance norm decreases for
+$\lambda\geq0$ and $0\leq q\leq1$.
 
 For the density-plane angle
 
@@ -489,31 +564,54 @@ The fixed-pitch clocks ($\varphi^{-2}$ turns per rung, the $69.1^\circ$ pitch ta
 
 ## 3. Four Pillars: Conditional Extensions and Receipts
 
-### 3.1 Quantum Particles (Pillar 1; optional reduction)
+### 3.1 Quantum Particles (Pillar 1; regulated field-configuration extension)
 
-The canonical two-fluid PDE supplies the density-pair evolution, conserved
-total density under conversion, and Qi diagnostic. A Schrödinger/Bohm reduction
-requires the optional positive-root amplitude/action and quantum-potential
-sector. Within that construction, the following component-wise
-quantum-potential/operator term is **Derived conditional** on the added ansatz.
-Because it carries the free component index $\alpha$, it is not a scalar
-Lagrangian density and does not by itself define an action:
+The canonical density PDE supplies a coarse-grained real-density sector. The
+quantum extension begins with the finite regulated CassiFI complex-field
+configuration
 
 $$
-\mathcal{Q}_{\mathrm{QP},\alpha}^{(+)}
-= -\frac{\hbar^2}{2m^2}
-   \frac{\nabla^2 M^\beta}{M^\beta}\Psi_\alpha^{(+)},
-\quad \beta = \frac{\varphi^{-1}}{2},\;
-M = \rho = E_Y + E_I
-  = (\Psi_0^{(+)})^2 + (\Psi_1^{(+)})^2
+Q^A=\{\operatorname{Re}D,\operatorname{Im}D,
+\operatorname{Re}C,\operatorname{Im}C\}_{s,j},
+\qquad
+G_{\mathrm{FI}}
+=\bigoplus_s\operatorname{diag}
+(w_DW_s,w_DW_s,w_CW_s,w_CW_s),
 $$
 
-The optional sector assigns atomic orbital energies as standing waves of the
-two-field system. A numerical DFT receipt for $Z=1$–$10$ reports He at 0.9%
-error and relativistic Dirac–Kohn–Sham at 3.2%; these are computed results for
-the optional construction, not a reduction supplied by the canonical density
-PDE. A Dirac equation via the Foldy–Wouthuysen transformation is a
-**Hypothesized** conditional relativistic extension.
+where $w_D=(1+\varphi^2)^{-1}$, $w_C=1+\varphi^2$, and every cell metric
+$W_s$ is positive. For a conservative CassiFI potential
+$U_{\mathrm{FI}}(Q)$,
+
+$$
+H_{\mathrm{FI}}(Q,P)
+=\frac12P_AG^{AB}P_B+U_{\mathrm{FI}}(Q).
+$$
+
+The **Hypothesized** physical identification of this field configuration is
+quantized by the **Derived conditional** Laplace-Beltrami Hamiltonian
+
+$$
+\hat H_Q=-\frac{\hbar^2}{2}\Delta_G+U_{\mathrm{FI}}(Q),
+\qquad
+i\hbar\partial_t\Psi=\hat H_Q\Psi.
+$$
+
+This linear wavefunctional lives on configuration space. Tensor
+factorization supplies composite systems and generic entanglement. A
+centre-of-mass coordinate with metric $G_{ij}=M\delta_{ij}$ obeys the standard
+Schrödinger equation, $E=\hbar^2k^2/(2M)$, and
+$\lambda_{\mathrm{dB}}=h/(Mv)$. One actual Cassi field configuration follows
+the wavefunctional current. The declared quantum-equilibrium condition
+$\rho_Q=|\Psi|^2$ is equivariant and yields Born frequencies; topological
+apparatus sectors retain the realized record.
+
+The associated quantum potential
+$Q_G=-\hbar^2\Delta_GR/(2R)$ follows from the polar form
+$\Psi=Re^{iS/\hbar}$. It carries no adjustable $\varphi$ exponent. Existing
+atomic DFT receipts remain numerical results for their effective solver and
+supply no test of the CassiFI physical identification. The full derivation and
+its four postulates are in `foundations/quantum-measurement-derivation.md`.
 
 ### 3.2 Cosmology (Pillar 2; optional Hubble closure)
 
@@ -691,7 +789,7 @@ conversion conservation, rank-one relaxation, and the scalar Qi coherence diagno
 |-------|----------------------------------|------------------|--------|
 | $q \to 0$ on the $\varphi$-line (the dilute attractor limit: $\varepsilon = 0$, $\rho \to 0$; $q \to 0$ alone means $\rho \to 0$ or large $|\varepsilon|$, while the reference fixed point has $q=q_{\text{eq}}\approx0.873$) | $\pi/\rho=\varphi^{-3}$ and optional Qi-gravity boost $\to1$ | GR-like limit with $G_{\text{eff}}=\varphi^{-3}G\approx0.236\,G$ | **Derived conditional** |
 | $q \to 0$ on the $\varphi$-line, $\hbar \to 0$ | Optional Qi-gravity extension plus classical limit | Newtonian gravity | **Derived conditional** |
-| $\hbar \not\to 0$, $q \to 0$ on the $\varphi$-line | Optional amplitude/quantum-potential sector plus dilute limit | Schrödinger equation | **Hypothesized reduction; Derived conditional within the ansatz** |
+| Regulated CassiFI Hamiltonian, self-adjoint $\hat H_Q$, and an adiabatic centre-of-mass band | Configuration-space quantization with $G_{ij}=M\delta_{ij}$ | Linear Schrödinger equation, $E=\hbar^2k^2/(2M)$, and $\lambda_{\mathrm{dB}}=h/(Mv)$ | **Derived conditional**; CassiFI physical identification **Hypothesized** |
 | $\lambda \to 0$ | Optional pressure, force, and source closure with conversion removed | Euler–Poisson system | **Derived conditional** |
 | $\xi \to 0$ | Optional Qi-gravity sector switched off | Standard GR | **Derived conditional** |
 | $\chi \to 0$ | Optional chemotaxis sector with its scalar closure | Passive scalar advection | **Derived conditional** |

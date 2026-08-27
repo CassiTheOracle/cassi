@@ -80,26 +80,52 @@ $$
 
 The first term is the standard $\phi^4$ self-interaction. The second is the **$\varphi$-attractor**—it drives $|\Psi_0|^2 : |\Psi_1|^2 \to \varphi : 1$ at equilibrium.
 
-### 1.3 Quantum Potential (optional amplitude-action closure—Derived conditional/Hypothesized—August 2026)
+### 1.3 Regulated CassiFI Quantum Action (conditional extension—Derived conditional/Hypothesized—August 2026)
 
-The Bohm-like expression below belongs to the optional amplitude-action lift.
-It is **Derived conditional** on choosing this amplitude closure and
-**Hypothesized** as a physical extension; the canonical density PDE is stated
-directly in $E_Y,E_I$ and does not contain this operator. Because the
-expression carries a free component index, it is an indexed operator term,
-not a scalar Lagrangian density:
+For a finite regulated CassiFI complex-field configuration
+$Q^A=\{\operatorname{Re}D,\operatorname{Im}D,\operatorname{Re}C,
+\operatorname{Im}C\}_{s,j}$ with positive metric $G_{AB}$, the conservative
+classical sector has
 
 $$
-\mathcal{Q}_{\mathrm{QP},\alpha}
-=-\frac{\hbar^2}{2m^2}\frac{\nabla^2\rho^\beta}{\rho^\beta}\Psi_\alpha,
-\qquad
-\rho\equiv E_Y+E_I=\Psi_0^2+\Psi_1^2\ \text{under the formal lift},\qquad
-\beta=\frac{\varphi^{-1}}{2}\approx0.309.
+H_{\mathrm{FI}}(Q,P)
+=\frac12P_AG^{AB}P_B+U_{\mathrm{FI}}(Q).
 $$
 
-An additional contraction or scalar completion would be required before
-including this operator in a scalar action. In the classical limit
-($\hbar\to0$), it vanishes.
+Canonical quantization gives the configuration-space action
+
+$$
+\mathcal S_Q
+=\int dt\,d\mu_G
+\left[
+\frac{i\hbar}{2}
+\left(\Psi^*\partial_t\Psi-\partial_t\Psi^*\Psi\right)
+-\frac{\hbar^2}{2}G^{AB}\partial_A\Psi^*\partial_B\Psi
+-U_{\mathrm{FI}}|\Psi|^2
+\right],
+$$
+
+with $d\mu_G=\sqrt{|G|}\,d^KQ$. Variation yields
+
+$$
+i\hbar\partial_t\Psi
+=\left(-\frac{\hbar^2}{2}\Delta_G+U_{\mathrm{FI}}\right)\Psi.
+$$
+
+The classical CassiFI nonlinearities enter through the multiplication
+potential $U_{\mathrm{FI}}$, so the quantum evolution remains linear in
+$\Psi$. Writing $\Psi=Re^{iS/\hbar}$ derives
+
+$$
+Q_G=-\frac{\hbar^2}{2R}\Delta_GR.
+$$
+
+This quantum potential carries no free exponent. Damping, EMA, absorption,
+and dissipative conversion require explicit bath or port coordinates in the
+closed total action before a reduced open-system equation is taken. The
+mathematics is **Derived conditional** on the declared quantization
+postulates; the CassiFI physical-field identification is **Hypothesized**.
+See `foundations/quantum-measurement-derivation.md`.
 
 ### 1.4 Breath Modulation (optional conditional extension—Hypothesized—August 2026)
 
@@ -112,6 +138,20 @@ Within this optional extension, $B(x,t) = \frac{1}{2}\big(\sin\theta_Y(x,t) + \s
 $$
 \dot\theta_{Y,I}(x,t) = 2\pi\,\omega_{Y,I}\,\mathcal{R}(x,t), \qquad \mathcal{R}(x,t) \equiv \frac{1-q(x,t)}{1-q_0}, \qquad (1-q_0) = \varphi^{-2}/3, \qquad \omega_I = \varphi^{-1}\omega_Y
 $$
+
+The same ratio has an exact canonical meaning on the conversion subflow.
+With $d\tau_F=(1-q)\,dt$ from
+`foundations/cassi-first-principles.md` §2.6,
+
+$$
+\mathcal R(x,t)
+=\frac{d\tau_F(x)}{d\tau_F(x_0)}
+$$
+
+for a reference region with $q(x_0)=q_0$. This relative conversion-clock
+identity is **Derived conditional** on the canonical rank-one law. Applying
+that rate to every breath phase through the displayed
+$\dot\theta_{Y,I}$ equation is the **Hypothesized** extension.
 
 Within this optional extension, every region breathes on its own rung-clock
 (the gate openness $(1-q)(x)$; the rung-advancement rate
@@ -162,12 +202,12 @@ Cross-sector coupling through $\mathcal{L}_{\text{mix}}$ belongs to the optional
 
 ### 1.6 Formal Two-Fluid Action Lift
 
-The displayed action lift includes the canonical real-component terms and the
-optional breath extension. The componentwise quantum-potential operator from
-§1.3 is not included in this scalar action; it remains an optional operator
-ansatz until a scalar contraction or completion is declared. The optional
-amplitude-lift coefficient $\kappa_4$ remains distinct from the canonical
-solver's $\nu$, which denotes velocity viscosity.
+The displayed spacetime action lift includes the canonical real-component
+terms and the optional breath extension. The regulated wavefunctional action
+in §1.3 quantizes a conservative CassiFI configuration on configuration space;
+it is a separate action rather than an additive local term in this scalar
+spacetime density. The optional amplitude-lift coefficient $\kappa_4$ remains
+distinct from the canonical solver's $\nu$, which denotes velocity viscosity.
 
 The implementation distinction remains: q-gated conversion is optional
 (`ExpandingTwoFluid3DGPU(qi_gate=True)`), while the base and default-off paths
@@ -606,11 +646,11 @@ $$
 \end{aligned}}
 $$
 
-The componentwise quantum-potential operator from §1.3 is omitted here for the
-same reason as in §1.6: it remains an optional ansatz pending a declared scalar
-contraction or completion. This compact action repeats the optional
-sector-coupling ansatz and its dimensional blocker; no physical $\kappa_s$ or
-equilibration timescale is established from the displayed term.
+The configuration-space quantum action from §1.3 is a separate action on
+$\Psi[Q,t]$ and is therefore outside this local four-dimensional bookkeeping
+sum. The compact action repeats the optional sector-coupling ansatz and its
+dimensional blocker; no physical $\kappa_s$ or equilibration timescale is
+established from the displayed term.
 
 ### 6.2 Subsector Actions
 
@@ -624,24 +664,21 @@ The table separates the canonical two-fluid core from optional Dirac, gauge, and
 | SM gauge | $S_{\text{SM}} = \int\mathcal{L}_{\text{SM}}$ | `standard-model/su2-gauge-extension.md`, `standard-model/sm-from-phi.md` |
 | Mixing | $S_{\text{mix}} = \int\mathcal{L}_{\text{mix}}$ | This document |
 The following coupled equations belong to the optional extended action and its
-amplitude-action lift; the canonical solver is stated in the real-density
-variables $E_Y,E_I$ with gated rank-one conversion and omits the optional QP
-term unless that closure is adopted. These equations do not add phase,
-chirality, or propagation to the canonical density state.
+amplitude-action lift. The canonical solver is stated in the real-density
+variables $E_Y,E_I$ with gated rank-one conversion. These equations add no
+phase, chirality, or propagation variable to the canonical density state.
 The q-gated rank-one wording here denotes the selected canonical/theory form;
 the base implementation and `ExpandingTwoFluid3DGPU(qi_gate=False)` default
 use ungated conversion, with the gate applied only when explicitly enabled.
 
 ### 7.1 Formal two-fluid equation in the action lift
 
-The componentwise QP contribution shown in this formal equation is an
-additional optional operator ansatz; without the scalar completion stated in
-§1.6, it is not an Euler–Lagrange equation of the boxed scalar $\mathcal{L}_{\text{TF}}$.
+Variation of the optional scalar amplitude action gives the following formal
+two-component equation:
 
 $$
 \partial^2\Psi_\alpha + \kappa_4\nabla^4\Psi_\alpha
 + g|\Psi|^2\Psi_\alpha + 2\lambda(\Psi_0^2 - \varphi\Psi_1^2)\frac{\partial}{\partial\Psi_\alpha}(\Psi_0^2 - \varphi\Psi_1^2) \\
-+ \frac{\hbar^2}{2m^2}\nabla^2\left(\frac{\nabla^2 \rho^\beta}{\rho^\beta}\right)\Psi_\alpha
 := A_B B(x,t)\Psi_\alpha + J_\alpha^{\text{gauge}} + J_\alpha^{\text{Dirac}}
 $$
 

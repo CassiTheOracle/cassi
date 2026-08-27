@@ -555,21 +555,46 @@ The universe contains matter but essentially no antimatter, yet the laws of phys
 
 ```mermaid
 flowchart TD
-    A[Superposition on one rung] --> B{Attack type?}
-    B -->|Organized M≈1| C[Definite outcome—measured]
-    B -->|Random M≈0| D[Wobble only—decohered]
-    C --> E[Born rule: P(α) = |α|²]
+    A[Regulated CassiFI configuration Q plus wavefunctional Ψ] --> B[Unitary system-apparatus correlation]
+    B --> C[Disjoint retained topological record sectors Ωₖ]
+    C --> D[Actual configuration enters one Ωₖ]
+    D --> E[Effective conditional collapse]
+    C --> F[Quantum equilibrium ρ=|Ψ|²]
+    F --> G[Born frequencies Pₖ=⟨Ψ|Pₖ|Ψ⟩]
 ```
 
-**Visual:** An optional measurement extension maps organized and unphase-matched perturbations to distinct outcomes; the canonical density PDE does not contain a collapse rule.
+**Visual:** The regulated wavefunctional evolves unitarily across all
+branches. One actual Cassi field configuration enters one retained apparatus
+sector, and quantum equilibrium supplies the branch frequencies.
 
+The CassiFI field law supplies a finite metric-bearing Hamiltonian
+configuration and topological retention. Four declared quantum-sector
+postulates add the configuration Hilbert space, canonical quantization, one
+actual guided field configuration, and quantum equilibrium. Their consequences
+include linear Schrödinger evolution, tensor-product entanglement,
+configuration-space nonlocal guidance, operational no-signalling in
+equilibrium, effective collapse, and Born frequencies.
 
-Quantum measurement raises questions about outcome selection and the Born rule. Cassi evaluates an optional amplitude/measurement extension in which a phase-matching factor $\mathcal{M}$ distinguishes an organized perturbation from environmental decoherence. The proposed single-rung coherence budget and Born-rule construction remain conditional on that extension; neither the canonical real-density PDE nor its $q$ diagnostic contains a collapse rule.
+Record distinguishability replaces the primitive organized/random label:
 
-| **Cassi Answer** | Optional amplitude/measurement extension: a single-rung coherence budget and the $\mathcal{M}$ diagnostic are proposed; the outcome basis remains open |
-| **Mechanism** | Within the optional linear/amplitude extension, organized perturbations are assigned $\mathcal{M}\approx1$ and environmental perturbations $\mathcal{M}\approx0$; the canonical density PDE supplies neither complex amplitudes nor a collapse operator |
-| **Epistemic** | **Derived conditional** (coherent-field statistics within the optional amplitude extension); the outcome basis, $\mathcal{M}$ mechanism, and collapse interpretation remain Hypothesized or open |
-| **Reference** | `foundations/quantum-measurement-derivation.md` |
+$$
+\gamma_{jk}=\langle A_kE_k|A_jE_j\rangle,
+\qquad
+\mathcal M_{jk}=1-|\gamma_{jk}|^2.
+$$
+
+A coherent phase interaction can preserve path overlap
+($\mathcal M_{jk}\simeq0$), while amplification into orthogonal retained
+records gives $\mathcal M_{jk}\simeq1$. The apparatus Hamiltonian and its
+topological sectors define the measured basis. The canonical local Qi diagnostic
+$q$ supplies no universal pointer-basis selector.
+
+| | |
+|---|---|
+| **Cassi Answer** | A regulated CassiFI configuration is canonically quantized as a linear wavefunctional on configuration space. One actual guided field configuration produces one retained apparatus record; conditioning on it gives effective collapse. The equivariant density $\rho_Q=|\Psi|^2$ is the unique normalized density local in $|\Psi|^2$ that shares the guidance flow, and the quantum-equilibrium postulate yields $P(k)=\langle\Psi|P_k|\Psi\rangle$. |
+| **Mechanism** | Unitary system-apparatus correlation creates disjoint topological record sectors; the actual configuration enters one sector. Passive reflection, transmission, and absorption are channels of an enlarged unitary scattering map. Decoherence suppresses overlaps between record sectors, while the enlarged state preserves norm. |
+| **Epistemic** | **Derived conditional** on QF1-QF4 and the finite self-adjoint CassiFI Hamiltonian. Quantum equilibrium is an irreducible statistical postulate. The CassiFI physical-field identification is **Hypothesized**. The 2026 sodium-nanoparticle result constrains additional collapse and agrees with the bridge's $R_\ell=1$ limit. |
+| **Reference** | `foundations/quantum-measurement-derivation.md`; `computations/cassifi-quantum-bridge-pre-registration.md`; `computations/verify_cassifi_quantum_bridge.py` |
 
 ### Q8: Quark confinement
 
@@ -777,20 +802,50 @@ The parameters of the Standard Model and cosmology seem exquisitely tuned—tiny
 
 ```mermaid
 flowchart TD
-    A[r(t) monotonic → φ] --> B[Cosmological realization: conversion sign]
-    B --> C[dr/d ln a > 0 in that realization]
-    C --> D[Irreversible cosmic clock—arrow of time]
+    A[Inter-fluid transfer dE_I at conversion] --> B[dχ_F = dE_I / ε]
+    B --> C[χ_F = -ln abs ε₁/ε₀ divided by 1+φ]
+    C --> D[Monotone conversion clock and decreasing ε²]
 ```
 
-**Visual:** In the documented cosmological realization, the ratio $r(t)$ rolls monotonically toward its $\varphi$-attractor like a marble in a funnel, giving an irreversible cosmic clock—the arrow of time emerges from that model-specific flow.
+**Visual:** Inter-fluid transfer supplies an additive conversion exposure.
+The logarithmic imbalance ratio reads that exposure directly from two
+resolved field states, while the squared imbalance decreases monotonically.
 
+For the canonical rank-one law,
+$\Gamma=\lambda(1-q)\varepsilon$, each conversion-only transfer defines
 
-The laws of physics work just as well forward in time as backward, yet we experience time flowing in only one direction—ice melts, eggs scramble, and we all age. Nothing in the fundamental equations picks a direction. Cassi's answer: in the documented cosmological realization, the ratio $r(t) = E_Y/E_I$ monotonically approaches its $\varphi$-attractor equilibrium, providing an irreversible cosmic clock. The conversion sign in that realization gives $dr/d\ln a > 0$ until equilibrium is reached. The Yang/Yin outward/inward labels are phenomenological or coordinate descriptions and do not by themselves specify a universal spatial PDE transport law. This is a dynamical statement about the selected model reduction rather than a universal transport assertion.
+$$
+d\chi_F
+=\frac{dE_I|_{\mathrm{conv}}}{\varepsilon}
+=-\frac{d\varepsilon}{(1+\varphi)\varepsilon}
+=\lambda(1-q)\,dt.
+$$
 
-| **Cassi Answer** | In the documented cosmological realization, $r(t)$ monotonically approaches $\varphi$; ratio evolution provides an irreversible cosmic clock |
-| **Mechanism** | Selected cosmological realization: the conversion sign gives $dr/d\ln a > 0$ until equilibrium; Yang/Yin outward/inward labels remain phenomenological or coordinate descriptions, not universal PDE transport laws |
-| **Epistemic** | **Derived**—follows from conversion sign and attractor dynamics |
-| **Reference** | `foundations/cassi-first-principles.md` |
+The resulting state-derived clock is
+
+$$
+\Delta\chi_F
+=-\frac{1}{1+\varphi}
+\ln\left|\frac{\varepsilon_1}{\varepsilon_0}\right|,
+\qquad
+\Delta\tau_F=\frac{\Delta\chi_F}{\lambda}
+=\int(1-q)\,dt
+$$
+
+for positive $\lambda$ and resolved nonzero endpoints on one conversion
+branch. Its arrow follows from
+$d(\varepsilon^2/2)/dt=-(1+\varphi)\lambda(1-q)\varepsilon^2\leq0$.
+The documented cosmological trajectory $r(t)=E_Y/E_I\to\varphi$ is one
+model-specific projection of this monotone conversion branch. Universal
+proper time requires the same local lapse in wave, particle, gravitational,
+and boundary dynamics; that extension remains Hypothesized.
+
+| | |
+|---|---|
+| **Cassi Answer** | Inter-fluid conversion derives an additive dimensionless flow clock $\chi_F$; the calibrated rate $\lambda$ converts it to the local conversion time $\tau_F$ |
+| **Mechanism** | The transferred density gives $d\chi_F=dE_I|_{\mathrm{conv}}/\varepsilon$ and integrates to the logarithmic imbalance ratio; the imbalance norm decreases monotonically |
+| **Epistemic** | **Derived conditional** for conversion-only trajectories under the canonical rank-one law; **Hypothesized** as a universal proper-time lapse |
+| **Reference** | `foundations/cassi-first-principles.md` §2.6; `foundations/unified-lagrangian.md` §1.4 |
 
 ### F3: Unification of forces
 
@@ -1063,7 +1118,7 @@ The psychology mapping treats the golden ratio $r = \varphi$ as the healthy, org
 | **Derived** (a priori $\varphi$ + PDE consequence; named inputs retain their ledger status) | 7 | flatness (C5), Big Bang singularity (C8), quark confinement (Q8; tube extensivity + cell quantization + $\kappa = 2\pi$ conditional on the phase-to-rung coordinate mapping—inputs: gate saturation, one-cell quantization), quantum gravity (G1; $\sigma$ exponent derived conditional on the noise–signal identification), BH singularity (G3), gravity weakness (G6; $\xi$ pin Calibrated—ledger), arrow of time (F2) |
 | **Calibrated** (framework form, value anchored to an observation—ledger) | 4 | CMB axis direction (C10; magnitude Derived $2\pi/\varphi^7=12.40°$, direction Calibrated, boundary orientation Hypothesized and ecliptic-degenerate), dark energy $w_0$ (C1), dark matter $\xi$ pin (C2), DESI $w_0$/$w_a$ (T1) |
 | **Mapped** (placement/exponent fitted or selected—ledger) | 11 | inflation $r = 12/N_e^2 = 0.0075$, $N_e = 40$ (C4), baryon asymmetry $\eta = \varphi^{-44}$ (C7, Q6), hierarchy $N$ (Q1), strong CP $\bar\theta$ (Q2), neutrino offsets $\Delta_1$, $\Delta_2$ (Q3), gauge unification $\Delta b = 1.70$, $M_{\text{GUT}}$, $\mu_*$ (Q4), proton-lifetime exponent (Q9), galaxy rotation $\alpha_{\text{halo}}$, $q$ (G4), fine-tuning fitted exponents (F1), dimensionful-constant exponents (F5) |
-| **Hypothesized** (mechanism proposed with named inputs and mapped components retained in the ledger; testable prediction) | 19 | Hubble tension (C3), horizon (C6), cosmic web (C9), 3 generations $N_{\text{gen}}$=3 (Q5; 2+1 counting Derived under the propagation-channel postulate; rung placements Mapped—ledger), measurement (Q7; Born rule Derived—coherent-field statistics; outcome basis open), spin form factor (Q10), 3+1 dimensions (G5), BH information (G2), unification (F3), TOE (F4), $P_\parallel(n)$ (F6), JWST galaxies (T2), $\sigma_8$ (T3; $\mu$ target Mapped—ledger), $H_0$ tension (T4), hard problem (M1), mind-brain (M2), depth of mind (M3), altered states (M4), self-reference (M5) |
+| **Hypothesized** (mechanism proposed with named inputs and mapped components retained in the ledger; testable prediction) | 19 | Hubble tension (C3), horizon (C6), cosmic web (C9), 3 generations $N_{\text{gen}}$=3 (Q5; 2+1 counting Derived under the propagation-channel postulate; rung placements Mapped—ledger), measurement (Q7; regulated quantum mechanics Derived conditional, with quantum equilibrium postulated and CassiFI physical identification Hypothesized), spin form factor (Q10), 3+1 dimensions (G5), BH information (G2), unification (F3), TOE (F4), $P_\parallel(n)$ (M4), biological and consciousness mappings, and other entries whose physical mechanism remains unclosed |
 | **Speculative** (framework-consistent, prediction not pinned) | 1 | golden balance as driven structure (M6) |
 | **Creative** (exploration, not a claim) | 0 | *(none)* |
 

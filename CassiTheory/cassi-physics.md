@@ -4,7 +4,7 @@
 
 ## Abstract
 
-Cassi is a proposed field framework organized around one declared scale-separation target, the golden ratio $\varphi\approx1.618$, rather than a closed theory of every physical sector. The canonical state uses two nonnegative density components conventionally labeled Yang ($E_Y$) and Yin ($E_I$); the canonical equations treat them as neutral components and use the **Asserted** C-class/framework convention $\lambda=0.1$ in named calculations. The implementation class default is $\lambda=0.02$ unless a caller passes a different value. The optional positive-root lift $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$ supplies coordinate phase diagnostics. **Hypothesized** geometric and phenomenological mappings organize selected coherence patterns.
+Cassi is a proposed field framework organized around the declared scale-separation target $\varphi\approx1.618$. The canonical state uses two nonnegative density components conventionally labeled Yang ($E_Y$) and Yin ($E_I$); the canonical equations treat them as neutral components and use the **Asserted** C-class/framework convention $\lambda=0.1$ in named calculations. The implementation class default is $\lambda=0.02$ unless a caller passes a different value. The positive-root lift $\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$ supplies coordinate diagnostics. A distinct optional regulated quantum sector quantizes the finite CassiFI complex-field configuration as a linear wavefunctional. **Hypothesized** geometric and phenomenological mappings organize selected coherence patterns.
 
 ---
 
@@ -166,6 +166,37 @@ adds no spacetime dimension and makes no quantum-entanglement claim. See
 **Epistemic status:** the simplex algebra is **Derived conditional** on the
 declared four-population lift; physical populations, the oriented axis, hidden
 species-direction association, and kinetics are **Hypothesized**.
+
+### Regulated CassiFI Quantum Sector
+
+The optional quantum sector starts from the finite regulated complex-field
+configuration
+
+$$
+Q^A=\{\operatorname{Re}D,\operatorname{Im}D,
+\operatorname{Re}C,\operatorname{Im}C\}_{s,j}
+$$
+
+with a positive CassiFI metric $G_{AB}$ and conservative Hamiltonian
+$H_{\mathrm{FI}}=P_AG^{AB}P_B/2+U_{\mathrm{FI}}(Q)$. Its normalized state is
+a complex wavefunctional on the full configuration space:
+
+$$
+i\hbar\partial_t\Psi[Q,t]
+=\left(-\frac{\hbar^2}{2}\Delta_G+U_{\mathrm{FI}}(Q)\right)\Psi[Q,t].
+$$
+
+This construction gives the standard centre-of-mass Schrödinger dispersion,
+tensor-product entanglement, and no-cloning. One actual current-guided field
+configuration enters one disjoint retained topological apparatus sector. The
+declared quantum-equilibrium condition $\rho_Q=|\Psi|^2$ is equivariant and
+yields Born frequencies. Quantum record distinguishability is
+$\mathcal M_{jk}=1-|\langle A_kE_k|A_jE_j\rangle|^2$.
+
+**Epistemic status:** the regulated mathematics is **Derived conditional** on
+QF1-QF4. Quantum equilibrium is an explicit statistical postulate. The
+CassiFI physical-field identification is **Hypothesized**. See
+`foundations/quantum-measurement-derivation.md`.
 
 ---
 

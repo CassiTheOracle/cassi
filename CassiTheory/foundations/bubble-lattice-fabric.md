@@ -275,7 +275,7 @@ $$
 
 4. **Is the lattice structure identical in the microcascade ($n < 0$)?** The microcascade mirror (`foundations/microcascade-mirror.md`) establishes bidirectional extension but notes a regime change in the Qi coherence profile at $n < 0$. Whether the condensation field maintains the same $B(x,y,z)$ functional form or transitions to something else is not yet known.
 
-5. **Can the lattice explain quantum measurement?** Measurement collapse may be a single-rung lattice decoherence event—a superposition resolving to one lattice site. The phase-matching factor $\mathcal{M}$ (`open-questions-cassi-answers.md` §Q7) would correspond to the overlap between the superposition's wavefunction and the local bubble eigenmode. This connection is structurally suggestive but not yet derived.
+5. **Can the lattice realize a quantum apparatus?** The regulated measurement construction uses a Hamiltonian interaction that correlates alternatives with disjoint retained topological sectors, plus one actual guided configuration and quantum equilibrium (`open-questions-cassi-answers.md` Q7). A bubble lattice could supply microscopic apparatus coordinates only if an explicit CassiFI Hamiltonian produces those sectors and the required record overlaps $\gamma_{jk}$. No such lattice-to-apparatus derivation is presently registered.
 
 ---
 

@@ -208,9 +208,38 @@ q-gated rank-one mode is implemented only when `qi_gate=True`, with
 
 The gate *openness* is $(1-q)$: $q\to0$ means the gate is **open**—conversion runs hard and the region churns. At finite density, alignment at $\varepsilon=0$ reaches $q_{\mathrm{eq}}(\rho)$; $q\to1$ additionally requires $\rho\gg\varphi^{-1}$, and the gate is **closed** in that high-density limit—the system rests at $\varphi$-balance. (Sign PDE-tested 2026-07-31 in `consciousness/trauma-as-frozen-gate.md` §10.4.) The gate openness $(1-q)$ supplies the displayed conversion factor. The single-channel $g(q)$ shape used by some applications is an **Asserted input**; it is not derived from the $\varphi$-power structure, and any physical closure using it remains **Hypothesized**.
 
-### 2.6 Density-Plane Relaxation Rate
+### 2.6 Density-Plane Relaxation and Conversion-Flow Time
 
 The canonical conversion is a rank-one relaxation in the density variables, not an $SO(2)$ generator. With $\kappa=\lambda(1-q)$, its conversion-only matrix has eigenvalues $0$ and $-\kappa(1+\varphi)=-\lambda(1-q)(1+\varphi)$. It conserves $\rho=E_Y+E_I$ while generally changing $E_Y^2+E_I^2$.
+
+**Conversion-flow time (exact).** The inter-fluid transfer defines
+
+$$
+d\chi_F
+:=\frac{dE_I|_{\mathrm{conv}}}{\varepsilon}
+=-\frac{d\varepsilon}{(1+\varphi)\varepsilon}
+=\lambda(1-q)\,dt,
+$$
+
+so resolved nonzero endpoints on one conversion branch give
+
+$$
+\boxed{
+\Delta\chi_F
+=-\frac{1}{1+\varphi}
+\ln\left|\frac{\varepsilon_1}{\varepsilon_0}\right|,
+\qquad
+\Delta\tau_F:=\frac{\Delta\chi_F}{\lambda}
+=\int(1-q)\,dt
+}.
+$$
+
+For two regions under the same conversion law,
+$d\tau_F(x)/d\tau_F(x_0)=(1-q(x))/(1-q(x_0))$. This relative
+conversion-clock identity is **Derived conditional**. Its promotion to a
+universal proper-time lapse remains **Hypothesized**. Transport and source
+increments require separate accounting; exact equilibrium contains no
+readable conversion tick (`foundations/cassi-first-principles.md` §2.6).
 
 For the density-plane angle
 
@@ -239,7 +268,7 @@ independent of $\lambda$ and of the gate shape. Its extremes are the Yang limit 
 |-------|-----------|-----------------|
 | $q \to 0$ on the $\varphi$-line (dilute attractor: $\varepsilon = 0$, $\rho \to 0$; $q \to 0$ alone is $\rho \to 0$ or large $|\varepsilon|$, not equilibrium—at the reference fixed point $q = q_{\text{eq}} \approx 0.873$) | Optional Qi-gravity extension with $\pi/\rho = \varphi^{-3}$ and boost $\to 1$ | GR with $G_{\text{eff}} = \varphi^{-3}G \approx 0.236\,G$ |
 | $q \to 0$ on the $\varphi$-line, $\hbar \to 0$ | Optional Qi-gravity/force closure plus the classical dilute limit | Newtonian gravity |
-| $\hbar \not\to 0$, $q \to 0$ on the $\varphi$-line | Optional positive-root amplitude/action and quantum-potential sector plus the dilute limit | Schrödinger equation within that extension |
+| Regulated CassiFI Hamiltonian with a self-adjoint configuration-space quantization | Positive CassiFI metric and an adiabatic centre-of-mass band | Linear Schrödinger equation with $G_{ij}=M\delta_{ij}$ |
 | $\lambda \to 0$ | Optional pressure/force/source closure with conversion removed | Euler-Poisson system |
 | $\xi \to 0$ | Optional Qi-gravity sector switched off | Standard GR |
 
@@ -381,37 +410,30 @@ $$S_{\text{Cassi}} = \int d^4x\sqrt{-g}\,(\mathcal{L}_{\text{TF}} + \mathcal{L}_
 Dimensionless couplings are expressed as $\varphi$-powers, with individual status labels. The canonical $\lambda=0.1$ is the **C-class solver normalization/timescale convention**; the relation $\lambda=1/(2w)$ at $w=5$ is a **Hypothesized** Wu Xing cycle linkage, not a $\varphi$-derived rate. Three external dimensionful constants ($c$, $\hbar$, $G$) set the unit system; $\ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$ is the cascade's sole dimensionful anchor.
 
 ### 4.1 Two-Fluid Core $\mathcal{L}_{\text{TF}}$ (optional amplitude-field form)
+
 The action's $\Psi_\alpha$ notation denotes an optional amplitude-field
 representation; the canonical solver evolves the density pair $E_Y,E_I$ and
-uses the positive-root lift for the corresponding coordinate diagnostics.
-The Bohm-like expression carrying a free component index is a conditional
-operator term, not a scalar Lagrangian density:
-
-$$
-\mathcal{Q}_{\mathrm{QP},\alpha}
-=-\frac{\hbar^2}{2m^2}\frac{\nabla^2 M^\beta}{M^\beta}\Psi_\alpha,
-\qquad
-M=\rho=E_Y+E_I=\Psi_0^2+\Psi_1^2,\qquad
-\beta=\frac{\varphi^{-1}}{2}.
-$$
-
-Without an additional contraction or scalar completion, $\mathcal{Q}_{\mathrm{QP},\alpha}$
-is not included in the scalar bookkeeping action:
+uses the positive-root lift for coordinate diagnostics. The scalar
+bookkeeping action is
 
 $$
 \mathcal{L}_{\text{TF}} =
 \frac{1}{2}(\partial_\mu\Psi_\alpha)(\partial^\mu\Psi_\alpha)
--\frac{\nu}{2}(\nabla^2\Psi_\alpha)^2
+-\frac{\kappa_4}{2}(\nabla^2\Psi_\alpha)^2
 -\frac{g}{4}|\Psi|^4
 -\frac{\lambda}{2}(\Psi_0^2-\varphi\Psi_1^2)^2
 +A_B B(x,t)\frac{1}{2}|\Psi|^2.
 $$
 
-Terms in this optional amplitude-field ansatz are kinetic + gradient,
-hyperdiffusion, $\phi^4$, $\varphi$-attractor, and breath modulation
+Terms in this optional amplitude-field ansatz are kinetic, fourth-order
+gradient, $\phi^4$, $\varphi$-attractor, and breath modulation
 ($\omega_I=\varphi^{-1}\omega_Y$; localized to each region's proposed
-coordinate rung-clock—**Hypothesized**, 21). The QP operator remains a
-separate **Derived conditional/Hypothesized** extension.
+coordinate rung-clock—**Hypothesized**, 21). The coefficient $\kappa_4$ is
+distinct from the canonical solver's velocity viscosity $\nu$.
+
+The regulated quantum action in §5.1 acts on a wavefunctional over the full
+CassiFI configuration space. Its derived quantum potential
+$Q_G=-\hbar^2\Delta_GR/(2R)$ remains inside that configuration-space action.
 
 ### 4.2 Dirac Sector $\mathcal{L}_{\text{D}}$ (optional coupling extension)
 
@@ -510,20 +532,41 @@ The Dirac↔two-fluid bracket here is dimensionally incomplete: it subtracts a s
 
 ## 5. Quantum Physics
 
-### 5.1 Schrödinger Limit
+### 5.1 Regulated Schrödinger Sector
 
-Within the separately supplied **Hypothesized** positive-root amplitude/action
-extension and its quantum-potential closure, the two-fluid construction has a
-Schrödinger/Bohm reduction:
+The optional CassiFI quantum sector starts from a finite conservative
+configuration $Q^A$ with positive metric $G_{AB}$:
 
-$$\mathcal{L}_{\text{QP}} = -\frac{\hbar^2}{2m^2}\frac{\nabla^2 M^\beta}{M^\beta}\Psi_\alpha,\qquad \beta = \frac{\varphi^{-1}}{2},\qquad M = \Psi_0^2 + \Psi_1^2$$
+$$
+H_{\mathrm{FI}}
+=\frac12P_AG^{AB}P_B+U_{\mathrm{FI}}(Q),
+\qquad
+\hat H_Q=-\frac{\hbar^2}{2}\Delta_G+U_{\mathrm{FI}}(Q).
+$$
 
-The canonical density PDE supplies the density pair, rank-one conversion, and
-Qi diagnostic. The displayed quantum-potential term and the interpretation of
-atomic orbital energies as standing waves are **Derived conditional** within
-the named amplitude/action extension. A Dirac equation via the
-Foldy-Wouthuysen transformation is a further **Hypothesized** relativistic
-extension of that sector.
+The normalized wavefunctional obeys
+
+$$
+i\hbar\partial_t\Psi[Q,t]=\hat H_Q\Psi[Q,t].
+$$
+
+For a centre-of-mass coordinate with $G_{ij}=M\delta_{ij}$, this reduces to
+
+$$
+i\hbar\partial_t\psi
+=\left[-\frac{\hbar^2}{2M}\nabla^2+V\right]\psi,
+\qquad
+E=\frac{\hbar^2k^2}{2M},
+\qquad
+\lambda_{\mathrm{dB}}=\frac{h}{Mv}.
+$$
+
+The wavefunctional lives on the full field-configuration space and is
+distinct from the positive-root density coordinate
+$\Psi^{(+)}=(\sqrt{E_Y},\sqrt{E_I})$. Its polar decomposition derives
+$Q_G=-\hbar^2\Delta_GR/(2R)$ without a free $\varphi$ exponent. This sector is
+**Derived conditional** on the quantum postulates and **Hypothesized** in its
+CassiFI physical identification.
 
 ### 5.2 Spin
 
@@ -533,15 +576,38 @@ $$\Theta(r) = \frac{2\pi}{\ln\varphi}\ln\left(\frac{r}{\ell_n}\right)$$
 
 Here $\Theta$ is a geometric phase assigned to a single doublet component (one rung = $2\pi$); the spin convention uses the corresponding doublet phase assignment, $s=\Delta\Theta/4\pi=\Delta n/2$ with $\Delta n$ the rung span (one rung = $2\pi$ single-component geometric phase = $\pi$ assigned doublet phase; two rungs = one full assigned doublet phase cycle—`foundations/spin-fibonacci-spiral.md` §2.1). This fixed per-rung assignment is part of the **Hypothesized** geometric mapping. Quantized: $s\in\{0,\frac12,1,2\}$ (spans $\Delta n\in\{0,1,2,4\}$). No fundamental $s=\frac32$: $\Delta n=3=1+2$ decomposes into the fermion span plus one gauge cycle, so under the minimal-span principle it is composite, not a new fundamental (`foundations/spin-fibonacci-spiral.md` §2.4). Spin-statistics from $(-1)^{2s}$. The optional form-factor extension has log-periodicity $\Delta(\ln q)=\ln\varphi$.
 
-### 5.3 Measurement
+### 5.3 Measurement and Born Frequencies
 
-In the model's scale-coordinate bookkeeping, superposition coherence is
-assigned to a single cascade rung as a **Hypothesized** mapping. Phase-matching
-factor $\mathcal{M}$:
-- $\mathcal{M} \approx 1$: organized perturbation, definite outcome.
-- $\mathcal{M} \approx 0$: random noise, decoherence without branch selection.
+A regulated composite system uses
+$\mathcal H_A\otimes\mathcal H_B$ and therefore supports generic
+configuration-space entanglement. Measurement correlates a system state with
+disjoint topological apparatus sectors $\Omega_k$. One actual Cassi field
+configuration enters one sector, while the total wavefunctional remains
+unitary. Conditioning on that realized apparatus configuration gives the
+effective post-measurement state.
 
-A Born-rule mapping $P(\alpha)=|\alpha|^2$ remains **Hypothesized** and open; the canonical $q$ is a local coherence diagnostic, and this section supplies no derivation of that probability law.
+Record distinguishability is
+
+$$
+\gamma_{jk}=\langle A_kE_k|A_jE_j\rangle,
+\qquad
+\mathcal M_{jk}=1-|\gamma_{jk}|^2.
+$$
+
+A coherent phase grating may have $\mathcal M_{jk}\simeq0$ because it exports
+no path record; amplification into orthogonal detector records gives
+$\mathcal M_{jk}\simeq1$. Under the declared quantum-equilibrium condition,
+$\rho_Q=|\Psi|^2$ is equivariant and is the unique normalized density local in
+$|\Psi|^2$ that shares the guidance flow. Thus
+
+$$
+P(k)=\int_{\Omega_k}|\Psi(Q)|^2d\mu_G
+=\langle\Psi|P_k|\Psi\rangle,
+$$
+
+which gives $P(k)=|c_k|^2$ for ideal disjoint records. No intrinsic
+mass-triggered collapse term is present. The complete derivation is
+`foundations/quantum-measurement-derivation.md`.
 
 ---
 

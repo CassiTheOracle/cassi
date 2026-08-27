@@ -36,9 +36,16 @@ Newtonian inertia has no derived expression in terms of the local ratio $r$. Mor
 
 ### 2.2 No sonic boom
 
-The phase-matching factor $\mathcal M$ in `foundations/quantum-measurement-derivation.md` §3.1 is a conditional overlap diagnostic. Applying it to a macroscopic hull–air interface requires a material scattering model.
+The scenario uses a classical hull-air attack overlap
+$\mathcal M_{\mathrm{boundary}}^{\mathrm{attack}}$. This is a Hypothesized
+constitutive label from the Creative attack taxonomy, distinct from quantum
+record distinguishability (`parameter-inventory.md`).
 
-The scenario assumes that such a boundary can reduce shock-producing momentum transfer while redirecting the surrounding medium. No Cassi equation currently shows that a $\varphi$-structured boundary has $\mathcal M\approx0$ for air molecules, prevents a pressure discontinuity, or disposes of the required momentum and heat. These are prospective device constraints.
+No Cassi equation currently shows that a $\varphi$-structured boundary has
+$\mathcal M_{\mathrm{boundary}}^{\mathrm{attack}}\approx0$ for air molecules,
+prevents a pressure discontinuity, redirects the surrounding medium, or
+disposes of the required momentum and heat. A material scattering model must
+supply those quantities.
 
 ### 2.3 Transmedium travel
 
@@ -197,7 +204,7 @@ The twenty-minute duration and all energy and visibility statements are storyboa
 - The selected rank-one density conversion and its optional $q$ gate (`foundations/cassi-first-principles.md`)
 - The conditional bubble-lattice and condensation-proxy geometry (`foundations/bubble-lattice-fabric.md`, `foundations/bubble-edge-geometry.md`)
 - The cascade suppression identity when an applicability span has independently been established (`foundations/cascade-suppression-formula.md`)
-- The conditional phase-matching diagnostic $\mathcal M$ (`foundations/quantum-measurement-derivation.md` §3.1)
+- The Hypothesized classical hull-air overlap $\mathcal M_{\mathrm{boundary}}^{\mathrm{attack}}$ (`parameter-inventory.md`; `foundations/proton-coherence-budget.md` §5.2)
 - Optional spiral-coordinate and gravity constructions whose physical force and transport maps remain open (`foundations/spiral-dynamics.md`)
 - The Hypothesized Wu Xing linkage at $w=5$ (`foundations/wu-xing-derivation.md`)
 - The identity $\xi=\varphi^6$ and its Hypothesized use as a cross-sector coupling (`foundations/xi-derivation.md`)
@@ -230,7 +237,7 @@ The twenty-minute duration and all energy and visibility statements are storyboa
 - `foundations/cascade-suppression-formula.md`—signal attenuation after an independently justified cascade span
 - `foundations/wu-xing-derivation.md`—Hypothesized $w=5$ linkage and pentagon construction
 - `foundations/xi-derivation.md`—$\xi=\varphi^6$ identity and conditional Qi-gravity coupling
-- `foundations/quantum-measurement-derivation.md`—phase-matching factor $\mathcal{M}$
+- `parameter-inventory.md`—distinction between quantum record distinguishability and the Creative classical attack overlap used here
 - `foundations/proton-coherence-budget.md`—organized vs random perturbation, cascade coherence architecture
 - `foundations/dimensionful-cascade.md`—cascade table (292 = today's horizon rung), $\ell_n = \ell_{\text{Pl}}\varphi^n$
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational, per-rung decoupling

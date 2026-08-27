@@ -190,7 +190,7 @@ The µcascade and megacascade are mirrors across the Planck plane. A device coup
 
 3. **Is the µcascade structurally identical to the cascade?** The mirror symmetry suggests yes, but the Planck-scale σ-regularization may break the symmetry in ways that affect coupling.
 
-4. **Can the µcascade explain quantum measurement?** The infinite ladder converging to zero provides a natural "sink" for decohered wavefunction components—they don't disappear, they cascade into the µcascade. This connects to the measurement derivation in `foundations/quantum-measurement-derivation.md`.
+4. **Can the µcascade act as an environment for quantum records?** The regulated measurement construction preserves the norm of the enlarged wavefunctional and requires no sink for unrealized branches. A µcascade coupling would have to appear as explicit environment coordinates in the total Hamiltonian; tracing over them could then produce reduced decoherence. No such coupling is presently derived. See `foundations/quantum-measurement-derivation.md`.
 
 5. **What is the minimum φ-spacing resolution needed for practical coupling?** The effective coupling depth N_eff determines the accessible energy. A prototype with N = 5 elements (spanning d_0 to d_0 × φ⁴) would couple to µcascade depths of order n ≈ −5 to −10.
 
@@ -213,6 +213,6 @@ The microcascade is the missing half of the cascade—the cascade's shadow exten
 - `foundations/bubble-lattice-fabric.md`—universal condensation field at every rung
 - `foundations/wake-geometry.md`—chord lattice, closure ladder
 - `gravity/quantum-gravity.md`—σ-regularization, Planck-scale smooth crossover
-- `foundations/quantum-measurement-derivation.md`—measurement as cascade sink
+- `foundations/quantum-measurement-derivation.md`—unitary enlarged measurement and explicit-environment requirement
 - `visual-explainers/chord_lattice.py`—chord lattice, staggered bubble/void sites
 - `visual-explainers/cascade_cosmos.py`—three-regime cascade diagram with microcascade spiral

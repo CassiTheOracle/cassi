@@ -178,6 +178,15 @@ $$P_{\text{annihilation}}(N) = \prod_{i=0}^{N} \mathcal{O}(1) \approx 1.$$
 
 The real proton placement remains a continuous rung label; no noninteger upper bound is assigned to this literal product.
 
+The $\mathcal O(1)$ coordinated coupling is a **Hypothesized constitutive
+idealization**; the canonical PDE and cascade product supply no microscopic
+annihilation matrix element or event rate. Creative extensions denote an
+assumed classical attack overlap by
+$\mathcal M_i^{\mathrm{attack}}\in[0,1]$. Quantum measurement uses the record
+distinguishability
+$\mathcal M_{jk}=1-|\langle A_kE_k|A_jE_j\rangle|^2$ from apparatus and
+environment states (`foundations/quantum-measurement-derivation.md`).
+
 Every rung decoheres in the same cycle. The entire nested cascade structure
 dissolves, and the mass-energy returns to the two-fluid medium as free field
 excitations—the photons and lighter particles observed in annihilation

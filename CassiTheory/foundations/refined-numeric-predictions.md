@@ -53,7 +53,7 @@ at Mapped or Calibrated are carried for their refined numbers:
 | Q3 | Neutrino masses | **Mapped cascade-span fit** | $m_3 \approx 0.050$ eV (computed spectrum) | Specific $\Delta_{\nu,k}$ offsets selected in the pipeline |
 | Q5 | Three generations | **Conditional Fibonacci count** | $N_{\text{gen}}=3$ under propagation-channel postulate | Mass ratios per sector; canonical PDE does not select the count |
 | Q6 | Matter asymmetry | **Mapped exponent / Hypothesized chain** | $\eta\approx\varphi^{-44}$ (same fit as C7) | Same refinement as C7 |
-| Q7 | Measurement | **Optional conditional sector** | $P=|\alpha|^2$ under declared detector inputs | Born mapping **Hypothesized/open**; canonical $q$ is a local coherence scalar, not a branch-intensity rule |
+| Q7 | Measurement | **Regulated conditional quantum sector** | $P(k)=\langle\Psi|P_k|\Psi\rangle$; $R_\ell^{\mathrm{CassiFI}}=1$ | Dynamics, entanglement, effective outcomes, and unique local equivariant density Derived conditional; quantum equilibrium postulated; CassiFI physical identification Hypothesized |
 | Q10 | Spin | **Optional Hypothesized extension** | $s\in\{0,\frac12,1,2\}$ conditional on compact phase | Form-factor period $\Delta(\ln q)=\ln\varphi$; compact phase/half-angle construction remains open |
 | G5 | 3+1 dimensions | **Conditional embedding algebra** | Frenet-Serret triad in selected $d=3$ embedding | Physical $d=3$ selection and SO(2) interpretation Hypothesized/open |
 | F3 | Force unification | **Structural / optional sectors** |—| Candidate force-sector map; no unified derivation from the canonical PDE |
@@ -355,47 +355,63 @@ Mapped window, not for a derived gate mechanism.
 
 ---
 
-### 2.5 Q7—Measurement: conditional Born statistics and open branch mapping
+### 2.5 Q7—Measurement: regulated configuration-space closure
 
-**Current status:** The quantum measurement source
-(`foundations/quantum-measurement-derivation.md`) records a single-rung
-coherence-budget mechanism. Organized perturbation has
-$\mathcal{M}\approx1$, while random environmental perturbation has
-$\mathcal{M}\approx0$. Its coherent-field counting algebra is conditional on
-a linear quantum sector, a coherent detector mode, gate-mediated first
-absorption, and an apparatus-selected outcome basis. The physical Born mapping
-and the basis selector remain Hypothesized/open.
+**Current status:** The finite CassiFI complex-field configuration has a
+positive metric and conservative Hamiltonian. The declared quantum-sector
+postulates give
 
-The canonical solver state is the real-density pair $E_Y,E_I$ with
-$q=\rho^2/(\rho^2+\varphi^{-2}+\varepsilon^2)$. This $q$ is a local
-coherence scalar. It does not define a branch probability and has no exact
-proportionality to $|\psi|^2$.
+$$
+\hat H_Q=-\frac{\hbar^2}{2}\Delta_G+U_{\mathrm{FI}}(Q),
+\qquad
+i\hbar\partial_t\Psi=\hat H_Q\Psi,
+$$
 
-**Conditional detector calculation:** In the added linear quantum sector, let
-the detector mode be a coherent state with amplitude
-$A(x)=g\psi(x)$. Poisson counting gives
-$$
-P(n)=\frac{e^{-\lambda(x)}\lambda(x)^n}{n!},\qquad
-\lambda(x)=g^2|\psi(x)|^2.
-$$
-For independent channels, the first-absorption relative rate is
-$$
-\boxed{P(x)=\frac{\lambda(x)}{\sum_{x'}\lambda(x')}
-=\frac{|\psi(x)|^2}{\sum_{x'}|\psi(x')|^2}}.
-$$
-When detector channels resolve two branches, this reduces to
-$$
-\boxed{P(\alpha)=\frac{|\alpha|^2}{|\alpha|^2+|\beta|^2}}.
-$$
-These equations are the conditional coherent-field statistics. The
-branch-to-detector identification, phase matching, and outcome-basis choice
-are optional sector inputs, so the physical Born mapping remains
-Hypothesized/open.
+one actual current-guided configuration $Q(t)$, and the quantum-equilibrium
+condition $\rho_Q=|\Psi|^2$. The wavefunctional is linear and unitary on the
+closed enlarged system. Composite configuration spaces supply generic
+entanglement.
 
-**Open closure:** A complete measurement account must specify which
-apparatus-sector construction selects the outcome basis and when
-$\mathcal{M}\approx1$ holds for a general interaction. The canonical $q$
-diagnostic supplies no such branch or axis selector.
+An apparatus interaction correlates branches with retained topological record
+sectors $\Omega_k$. Their distinguishability is
+
+$$
+\mathcal M_{jk}
+=1-|\langle A_kE_k|A_jE_j\rangle|^2.
+$$
+
+The apparatus Hamiltonian and its disjoint sectors define the measured basis.
+The actual configuration enters one sector, and conditioning on that sector
+gives the effective outcome. A coherent phase interaction can retain
+$\mathcal M_{jk}\simeq0$; orthogonal amplified records give
+$\mathcal M_{jk}\simeq1$.
+
+Equivariance preserves the quantum-equilibrium density. If a competing
+normalized density is local in $u=|\Psi|^2$, $f(u)$, and shares the same
+guidance flow for every admissible state, then
+
+$$
+uf'(u)=f(u),
+$$
+
+so $f(u)=u$. Outcome probabilities are therefore
+
+$$
+\boxed{
+P(k)=\int_{\Omega_k}|\Psi(Q)|^2d\mu_G
+=\langle\Psi|P_k|\Psi\rangle
+}.
+$$
+
+For ideal disjoint records this gives $P(k)=|c_k|^2$. Coherent-state Poisson
+counting remains a special detector realization of the same law rather than
+its general foundation.
+
+**Open closure:** Quantum equilibrium is an explicit irreducible statistical
+postulate, and the identification of CassiFI laboratory fields with nature's
+microscopic configuration remains Hypothesized. The canonical real-density
+$q$ diagnostic remains distinct from branch probability and supplies no
+universal quantization-axis selector.
 
 ---
 
