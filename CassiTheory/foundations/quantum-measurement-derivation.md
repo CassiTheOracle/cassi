@@ -396,6 +396,300 @@ write a topologically retained classical record after the alternatives have beco
 distinguishable; that record is not a second copy of the original
 wavefunctional.
 
+### 4.5 Entanglement as joint Qi flow
+
+The quantum continuity equation on a product configuration
+$Q=(Q_A,Q_B)$ is
+
+$$
+\partial_t\rho_\Psi
++\operatorname{div}_{G_A}J_A
++\operatorname{div}_{G_B}J_B=0,
+\qquad
+\rho_\Psi:=|\Psi|^2,
+$$
+
+with
+
+$$
+J_A^a
+:=\rho_\Psi G_A^{ab}\partial_bS,
+\qquad
+J_B^\alpha
+:=\rho_\Psi G_B^{\alpha\beta}\partial_\beta S.
+$$
+
+The derived quantum Qi-flow object for this split is the conserved
+density-current object
+
+$$
+\mathfrak F_\Psi
+:=(\rho_\Psi,J_A,J_B).
+$$
+
+It includes both occupancy and transport. This matters because a stationary
+entangled state may have $J_A=J_B=0$ while its joint density remains
+nonfactorizable.
+
+For a product state
+$\Psi=\psi_A\psi_B=R_AR_Be^{i(S_A+S_B)/\hbar}$,
+
+$$
+\rho_\Psi=\rho_A\rho_B,
+\qquad
+J_A=\rho_BJ_A^{(A)},
+\qquad
+J_B=\rho_AJ_B^{(B)}.
+$$
+
+Equivalently, the normalized guidance velocities obey
+
+$$
+v_A(Q_A,Q_B)=v_A(Q_A),
+\qquad
+v_B(Q_A,Q_B)=v_B(Q_B).
+$$
+
+On a connected nonnodal product domain, these global density-current
+factorization conditions are equivalent to wavefunctional factorization.
+Entanglement there is therefore the failure of the conserved Qi-flow object
+$\mathfrak F_\Psi$ to decompose across the declared subsystem split. Across
+disconnected nodal domains, density and current can omit relative branch
+phases; Schmidt rank or reduced-state purity supplies the exact global
+criterion.
+
+Two local cross-flow tensors expose the two ways factorization can fail:
+
+$$
+\Xi^{(R)}_{a\beta}
+:=\nabla_a\nabla_\beta\ln R,
+\qquad
+\Xi^{(S)}_{a\beta}
+:=\nabla_a\nabla_\beta S.
+$$
+
+A nonzero $\Xi^{(R)}$ diagnoses amplitude correlation. A nonzero
+$\Xi^{(S)}$ means that one subsystem's guidance velocity changes with the
+other subsystem's configuration:
+
+$$
+\Xi^{(S)}_{a\beta}
+=\nabla_\beta\!\left[(G_A)_{ab}v_A^b\right].
+$$
+
+Either condition is sufficient for entanglement on that support. A real
+correlated standing state can have $\Xi^{(R)}\neq0$ and zero current. A
+phase-coupled state
+
+$$
+\Psi(Q_A,Q_B)
+=\psi_A(Q_A)\psi_B(Q_B)e^{i\chi Q_AQ_B}
+$$
+
+can have a factorized density and
+$\Xi^{(S)}=\hbar\chi\neq0$. The full density-current pair is required.
+
+For the actual configuration $Q_B(t)$, subsystem $A$ follows
+
+$$
+\dot Q_A^a(t)
+=\left.
+G_A^{ab}\partial_bS(Q_A,Q_B,t)
+\right|_{Q_A=Q_A(t),\,Q_B=Q_B(t)}.
+$$
+
+This is the precise Qi-flow form of ontic quantum nonlocality: entanglement
+makes the local conditional flow depend on the actual remote configuration.
+The reduced-state identity in §4.3 preserves operational no-signalling under
+quantum equilibrium.
+
+#### 4.5.1 How CassiFI couplings create entanglement
+
+Write the regulated Hamiltonian as
+
+$$
+\hat H
+=\hat H_A\otimes I
++I\otimes\hat H_B
++\hat H_{\mathrm{int}}.
+$$
+
+The reduced state evolves as
+
+$$
+\dot\rho_A
+=-\frac{i}{\hbar}[\hat H_A,\rho_A]
+-\frac{i}{\hbar}
+\operatorname{Tr}_B[\hat H_{\mathrm{int}},\rho_{AB}].
+$$
+
+The local commutator changes the local basis while preserving the eigenvalues
+of $\rho_A$. The interaction term changes those eigenvalues and therefore can
+change the entanglement entropy
+
+$$
+\mathcal E_{A:B}
+:=-\operatorname{Tr}(\rho_A\ln\rho_A).
+$$
+
+The CassiFI reciprocal link is an explicit interaction of this kind. For
+$Z\in\{C,D\}$ across adjacent sheets $s$ and $s+1$,
+
+$$
+U_{\mathrm{link},Z,s}
+:=\frac{w_Zg_{Z,s}}{2}
+\left\|Z_{s+1}-P_sZ_s\right\|_{W_{s+1}}^2.
+$$
+
+After quantization, its cross term is
+
+$$
+\hat H_{\mathrm{cross},Z,s}
+=-w_Zg_{Z,s}\,
+\operatorname{Re}
+\left\langle\hat Z_{s+1},P_s\hat Z_s\right\rangle_{W_{s+1}}.
+$$
+
+The link enters the Qi flow immediately. For an initially factorized
+nonnodal state, its short-time contribution to the phase is
+
+$$
+\delta S_{\mathrm{int}}
+=-\delta t\,U_{\mathrm{link},Z,s}
++O(\delta t^2).
+$$
+
+Use the declared cell metrics to define the whitened reciprocal map
+
+$$
+\widetilde P_s
+:=W_{s+1}^{1/2}P_sW_s^{-1/2}.
+$$
+
+In the corresponding real coordinate blocks, the mixed Hessian and induced
+phase cross-flow are
+
+$$
+H_{(s+1)s}^{\mathrm{link}}
+:=\frac{\partial^2U_{\mathrm{link},Z,s}}
+{\partial\widetilde Q_{s+1}\,\partial\widetilde Q_s}
+=-w_Zg_{Z,s}\widetilde P_s,
+$$
+
+$$
+\delta\Xi_{(s+1)s}^{(S)}
+=-\delta t\,H_{(s+1)s}^{\mathrm{link}}
+=\delta t\,w_Zg_{Z,s}\widetilde P_s
++O(\delta t^2).
+$$
+
+Thus a generic product state first acquires cross-dependent guidance flow.
+The continuity equation can then convert that phase correlation into joint
+density correlation. On connected nonnodal product support, entanglement
+begins once the density or current sector of $\mathfrak F_\Psi$ ceases to
+factorize.
+
+If
+
+$$
+\widetilde P_s=U\Sigma V^\dagger,
+\qquad
+\Sigma=\operatorname{diag}(\sigma_1,\ldots,\sigma_r),
+$$
+
+then the cross interaction decomposes into
+$r=\operatorname{rank}\widetilde P_s=\operatorname{rank}P_s$ directly coupled
+mode pairs. Its nonzero metric-aware singular directions identify the direct
+inter-sheet entangling channels. Null directions have no direct coupling
+through that link.
+
+For the scalar identity-metric audit $P_s=I$ with unit mass, write
+$g_{\mathrm{link}}:=w_Zg_{Z,s}$.
+
+$$
+H
+=\frac12(p_A^2+p_B^2)
++\frac12\omega^2(q_A^2+q_B^2)
++\frac{g_{\mathrm{link}}}{2}(q_B-q_A)^2.
+$$
+
+Its normal frequencies are
+
+$$
+\omega_+=\omega,
+\qquad
+\omega_-=\sqrt{\omega^2+2g_{\mathrm{link}}}.
+$$
+
+The ground state's reduced symplectic eigenvalue and purity are
+
+$$
+\nu_A
+=\frac14
+\sqrt{(\omega_++\omega_-)
+\left(\omega_+^{-1}+\omega_-^{-1}\right)},
+\qquad
+\mu_A=\frac{1}{2\nu_A}.
+$$
+
+At $g_{\mathrm{link}}=0$, $\nu_A=1/2$ and $\mu_A=1$. For
+$g_{\mathrm{link}}>0$,
+$\nu_A>1/2$ and $\mu_A<1$: the quantized reciprocal Qi link produces
+intersheet entanglement even in a stationary zero-current ground state.
+
+#### 4.5.2 What the classical signed link current measures
+
+The corresponding CassiFI phase-charge transfer is
+
+$$
+\mathcal K_{Z,s\to s+1}
+:=-w_Zg_{Z,s}\,
+\operatorname{Im}
+\left\langle P_sZ_s,Z_{s+1}-P_sZ_s\right\rangle_{W_{s+1}}
+=-w_Zg_{Z,s}\,
+\operatorname{Im}
+\left\langle P_sZ_s,Z_{s+1}\right\rangle_{W_{s+1}}.
+$$
+
+This is the semiclassical exchange quadrature of the same reciprocal link.
+Its sign gives transfer direction and its magnitude gives instantaneous
+phase-charge transport. Entanglement is measured by Schmidt coefficients,
+reduced purity, or $\mathcal E_{A:B}$. Product coherent states can carry a
+nonzero $\mathcal K$, while the entangled coupled ground state above has
+$\langle\mathcal K\rangle=0$. Current and entanglement are complementary
+diagnostics of the same interaction.
+
+System-apparatus measurement applies the same structure at a larger
+bipartition. The interaction creates nonfactorizable joint Qi flow between
+the system alternatives and apparatus coordinates. Topological apparatus
+sectors retain the resulting record branches, and the actual guided
+configuration enters one of them.
+
+The resulting identification is
+
+$$
+\boxed{
+\begin{aligned}
+\text{connected nonnodal product support:}\quad
+\Psi\ \text{entangled}
+&\Longleftrightarrow
+\mathfrak F_\Psi\ \text{nonfactorizable},\\
+\text{all pure bipartite states:}\quad
+\Psi\ \text{entangled}
+&\Longleftrightarrow
+\operatorname{rank}_{\mathrm{Schmidt}}\Psi>1.
+\end{aligned}
+}
+$$
+
+The Qi-flow equivalence is **Derived conditional** on QF1-QF3, the declared
+subsystem factorization, and the regulated Hamiltonian. The scalar classical
+diagnostic $q$ measures local Yang/Yin coherence. The object
+$\mathfrak F_\Psi$ captures connected-support density-current organization;
+Schmidt coefficients and reduced-state invariants supply the exact global
+criterion. The physical identification of the CassiFI link coordinates
+remains **Hypothesized**.
+
 ---
 
 ## 5. Measurement and retained records
@@ -677,7 +971,7 @@ for spontaneous collapse during isolated propagation. Any later stochastic or no
 
 ### 7.4 Apparatus interpretation
 
-G1 and G3 implement absorptive spatial filtering. G2 implements coherent, position-dependent phase transmission. G2 does not establish orthogonal path records, so $\mathcal M\simeq0$ for the transmitted alternatives. Final ionization and amplification correlate position with disjoint detector records, giving $\mathcal M\simeq1$ and a retained apparatus outcome.
+G1 and G3 implement absorptive spatial filtering. G2 implements coherent, position-dependent phase transmission. Its transmitted alternatives retain overlapping path records, so $\mathcal M_{jk}\simeq0$. Final ionization and amplification correlate position with disjoint detector records, giving $\mathcal M_{jk}\simeq1$ and a retained apparatus outcome.
 
 ---
 
@@ -688,28 +982,36 @@ G1 and G3 implement absorptive spatial filtering. G2 implements coherent, positi
 | Weighted $C,D$ metric and finite Hamiltonian coordinates | **Derived** within the CassiFI field law | Metric, adjoint, or energy ledger fails |
 | $\hat H_Q=-\hbar^2\Delta_G/2+U$ and norm conservation | **Derived conditional** on QF1-QF2 and self-adjointness | Non-unitary closed evolution |
 | Schrödinger centre-of-mass dispersion | **Derived conditional** on an induced mass metric $M\delta_{ij}$ | Measured $E(p)$ differs after declared interactions are included |
-| Configuration-space entanglement and no-signalling | **Derived conditional** on tensor composition and trace-preserving local maps | Local outcome-averaged operation changes a remote reduced state |
+| Connected-support entanglement as nonfactorizable Qi flow | **Derived conditional** on tensor composition, QF1-QF3, and the declared subsystem split | On connected nonnodal product support, Schmidt rank exceeds one while the global density-current object satisfies the product-flow law; or a $g_{\mathrm{link}}>0$ reciprocal oscillator link has unit reduced purity in its ground state |
 | One retained outcome | **Derived conditional** on QF3 and disjoint topological apparatus sectors | One actual configuration yields simultaneous incompatible records |
 | Born functional form | **Derived conditional** on local equivariance | Another normalized local equivariant density exists |
 | Born frequencies | **Derived conditional** on QF4 and the preparation model | Repeated controlled trials reject $|\Psi|^2$ |
 | CassiFI as nature's microscopic field configuration | **Hypothesized** | Bell/interference, spectroscopy, or field-configuration tests reject the identification |
 | No spontaneous Cassi collapse | **Selected quantum branch** | Reproducible excess visibility loss cannot be assigned to registered environmental channels |
 
-The real-density organized-versus-random contrast test remains a NULL result for that protocol. It does not test this quantum sector because its initial state had no complex unitary wavefunctional, no configuration-space entanglement, and no topological detector record.
 
 ---
 
 ## 9. Verification contract
 
-`computations/cassifi-quantum-bridge-pre-registration.md` freezes the deterministic gates. `computations/verify_cassifi_quantum_bridge.py` checks:
+`computations/cassifi-quantum-bridge-pre-registration.md` and
+`computations/qi-flow-entanglement-pre-registration.md` freeze the
+deterministic gates. Their companion scripts check:
 
 1. self-adjoint finite evolution and norm conservation;
 2. free-particle dispersion and the sodium de Broglie/Talbot anchors;
 3. entanglement plus local no-signalling under a trace-preserving map;
 4. Born normalization, equivariance, and the unique local exponent;
-5. the published macroscopicity arithmetic and $R_0=1$ contract.
+5. the published macroscopicity arithmetic and $R_0=1$ contract;
+6. product-state density-current factorization and its phase- and
+   amplitude-correlation failure modes;
+7. reciprocal-link ground-state entanglement and direct-channel rank;
+8. unitary exchange flow producing a maximally entangled state.
 
-These checks verify the stated algebra and numerical anchors. They do not establish QF1-QF4 as laws of nature.
+The scripts are `computations/verify_cassifi_quantum_bridge.py` and
+`computations/verify_qi_flow_entanglement.py`. These checks verify the stated
+algebra and numerical anchors. They do not establish QF1-QF4 as laws of
+nature.
 
 ---
 
@@ -729,4 +1031,4 @@ These checks verify the stated algebra and numerical anchors. They do not establ
 - `foundations/unified-lagrangian.md` §1.3
 - `open-questions-cassi-answers.md` Q7
 - `parameter-inventory.md` §§2.2, 4, 9
-- `predictions/falsifiable-predictions.md` §5
+- `predictions/falsifiable-predictions.md` §9

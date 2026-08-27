@@ -47,9 +47,12 @@ This glossary defines the Cassi two-fluid variables, $\varphi$-attractor, Qi coh
 
 ### $\Psi[Q,t]$—regulated CassiFI quantum wavefunctional
 - **Configuration**: $Q^A=\{\operatorname{Re}D,\operatorname{Im}D,\operatorname{Re}C,\operatorname{Im}C\}_{s,j}$ is the finite regulated CassiFI complex-field configuration, with positive metric $G_{AB}$.
-- **State space**: $\Psi[Q,t]\in L^2(\mathcal C,d\mu_G)$ is a normalized complex wavefunctional on the full configuration space. It is distinct from the real positive-root lift $\Psi^{(+)}$.
+- **State space**: $\Psi[Q,t]\in L^2(\mathcal C,d\mu_G)$ is a normalized complex wavefunctional on the full configuration space. The positive-root lift $\Psi^{(+)}$ remains a real density-coordinate diagnostic.
 - **Dynamics**: $\hat H_Q=-\hbar^2\Delta_G/2+U_{\mathrm{FI}}(Q)$ and $i\hbar\partial_t\Psi=\hat H_Q\Psi$ in the closed conservative sector.
 - **Actual configuration**: One field configuration follows the conserved current, $\dot Q^A=J^A/|\Psi|^2$.
+- **Quantum Qi flow**: For $Q=(Q_A,Q_B)$, $\mathfrak F_\Psi=(\rho_\Psi,J_A,J_B)$ with $\rho_\Psi=|\Psi|^2$. A product state obeys $\rho_\Psi=\rho_A\rho_B$, $J_A=\rho_BJ_A^{(A)}$, and $J_B=\rho_AJ_B^{(B)}$. On connected nonnodal product support, the converse holds; Schmidt rank or reduced-state purity supplies the exact global criterion across disconnected support.
+- **Local cross-flow diagnostics**: $\Xi^{(R)}_{a\beta}=\nabla_a\nabla_\beta\ln R$ diagnoses amplitude correlation and $\Xi^{(S)}_{a\beta}=\nabla_a\nabla_\beta S$ diagnoses cross-dependent guidance flow. Schmidt rank, reduced purity, and $\mathcal E_{A:B}=-\operatorname{Tr}(\rho_A\ln\rho_A)$ supply the global entanglement criteria.
+- **Entangling links**: The quantized reciprocal term $w_Zg_{Z,s}\|Z_{s+1}-P_sZ_s\|_{W_{s+1}}^2/2$ directly couples the nonzero metric-aware singular modes of $P_s$. Its classical signed current $\mathcal K$ measures the exchange quadrature; reduced-state invariants measure entanglement.
 - **Quantum equilibrium**: $\rho_Q=|\Psi|^2$ is an explicit statistical postulate. It is equivariant and yields $P(k)=\langle\Psi|P_k|\Psi\rangle$ for disjoint retained apparatus sectors.
 - **Record distinguishability**: $\mathcal M_{jk}=1-|\langle A_kE_k|A_jE_j\rangle|^2$. The Creative classical attack coefficient $\mathcal M_i^{\mathrm{attack}}$ is a separate Hypothesized quantity.
 - **Status**: The regulated mathematical construction is **Derived conditional** on QF1-QF4. Identifying the CassiFI field with nature's microscopic configuration is **Hypothesized** (`foundations/quantum-measurement-derivation.md`).
