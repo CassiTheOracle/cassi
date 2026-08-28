@@ -8,7 +8,7 @@
 [node name="CassiSim" type="Node3D" parent="."]
 script = ExtResource("1_sim")
 dt = 0.01
-N_particles = 4096
+N_particles = 65536
 grid_N = 64
 cluster_radius = 20.0
 cluster_separation = 0.0

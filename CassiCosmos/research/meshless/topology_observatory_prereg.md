@@ -1,6 +1,6 @@
 # Topology observatory — preregistration
 
-Status: PRE-REGISTERED (frozen before the first observatory run)
+Status: PRE-REGISTERED (original detector frozen before the first observatory run); high-resolution rerun amendment below is frozen before its run
 
 ## Question
 
@@ -221,3 +221,25 @@ limitations. The report is an observation of the supplied arrays at one sampled
 state. It is not a persistent phase/current measurement, a particle-vorticity
 identity, a proof of physical strings, or evidence that transient `Pi` values
 are a compact state carrier.
+
+## Amendment 1 — high-resolution temporal rerun (2026-08-28)
+
+The first arm execution used `N_particles = 4096` and one `8`-step batch. This
+amendment defines a separate higher-budget repeat before its runtime, without
+changing the detector, thresholds, controls, or verdict tree:
+
+- `grid_N = 64` remains fixed so the lattice detector is directly comparable.
+- `N_particles = 65536` increases the particle population by `16x`.
+- `MAX_PARENT_SAMPLES = 65536` permits the parent estimator to use the full
+  population rather than retaining the original `4096` sample cap.
+- `FROZEN_BATCH_STEPS = 64` and `EPOCH_COUNT = 16` give `1024` total physics
+  steps, with one readback at each step in `64, 128, ..., 1024`.
+- `dt = 0.01`, `ic_seed = 424242`, paused-scene execution, and all other scene
+  pins remain unchanged.
+
+The arm advances one batch before every epoch readback. The final `EY/EI`
+arrays remain the detector input and the epoch summaries provide a temporal
+diagnostic trace; no pooled or post-hoc hit criterion is added. The detector
+verdict is still assigned only by the frozen live-snapshot tree. The rerun
+stops after the sixteenth readback and report write. This amendment does not
+revise the first-run result.

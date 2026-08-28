@@ -8,10 +8,10 @@ extends Node3D
 
 const REPORT_PATH: String = "res://_diag/topology_observatory_live.json"
 const GRID_N: int = 64
-const PARTICLES: int = 4096
-const FROZEN_BATCH_STEPS: int = 8
-const EPOCH_COUNT: int = 1
-const MAX_PARENT_SAMPLES: int = 4096
+const PARTICLES: int = 65536
+const FROZEN_BATCH_STEPS: int = 64
+const EPOCH_COUNT: int = 16
+const MAX_PARENT_SAMPLES: int = 65536
 const PHASE_FIELD_STATUS: String = "transient_derived_from_EY_EI"
 const EPSILON: float = 1.0e-20
 
@@ -48,23 +48,22 @@ func _ready() -> void:
 	if not bool(self_tests.get("passed", false)):
 		_fail("detector self-tests failed", {"self_tests": self_tests})
 		return
-	# One frozen manual batch is enough for the receipt.  The following
-	# process-frame waits let CassiSim's renderer-owned compute work finish
-	# before the single live readback.
-	sim._run_physics_steps(FROZEN_BATCH_STEPS)
-	await get_tree().process_frame
-	await get_tree().process_frame
-
+	# Advance one frozen batch per epoch.  This preserves the paused-scene
+	# contract while giving the live detector a longer 1024-step trajectory.
 	var epochs: Array = []
 	var topology_summaries: Array = []
 	var parent_summaries: Array = []
 	var phase_rate_summaries: Array = []
 	var final_ey := PackedFloat32Array()
 	var final_ei := PackedFloat32Array()
+
 	var final_parent_vorticity: float = 0.0
 	var final_parent_angular_velocity: float = 0.0
 
 	for epoch in range(EPOCH_COUNT):
+		sim._run_physics_steps(FROZEN_BATCH_STEPS)
+		await get_tree().process_frame
+		await get_tree().process_frame
 		var snap: Dictionary = _read_snapshot()
 		if not bool(snap.get("ok", false)):
 			_fail(str(snap.get("error", "snapshot readback failed")), {"epoch": epoch})
@@ -144,6 +143,10 @@ func _config() -> Dictionary:
 		"grid_N": int(sim.grid_N),
 		"N_particles": int(sim.N_particles),
 		"dt": float(sim.dt),
+		"frozen_batch_steps": FROZEN_BATCH_STEPS,
+		"epoch_count": EPOCH_COUNT,
+		"total_steps": FROZEN_BATCH_STEPS * EPOCH_COUNT,
+		"parent_samples_cap": MAX_PARENT_SAMPLES,
 		"gravity_mode": int(sim.gravity_mode),
 		"box_scale": float(sim.box_scale),
 		"cluster_radius": float(sim.cluster_radius),
