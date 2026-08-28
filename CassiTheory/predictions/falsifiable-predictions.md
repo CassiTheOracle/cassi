@@ -525,6 +525,31 @@ not establish the physical shell identification.
 **Source:** `foundations/string-bubble-projective-map.md`;
 `computations/verify_string_bubble_projective_map.py`.
 
+## 12. Conditional Loop-to-Bubble Tests
+
+These tests apply only if the shared-support carrier variables are physically
+identified. They test that realization without promoting the open
+QF1-to-carrier map or assigning a universal loop-to-bubble spatial ratio.
+
+| ID | Observable | Conditional Cassi result | Current status | Falsifier |
+|----|------------|--------------------------|----------------|-----------|
+| **LP-1** | Direction-resolved Yang/Yin populations and their complete-loop averages | With one common projected gate and common exterior transport, $E_a=\sum_s\langle f_{a,s}\rangle_\chi$ obeys the canonical two-density PDE exactly; internal circulation, loop diffusion, and symmetric direction exchange leave no residual in the zero mode | **Derived conditional; untested physically.** Frozen verifier LB1–LB3 passes; carrier identity and shared support are Hypothesized | A resolved common-support realization leaves a projected drift or flux covariance outside calibrated error after the declared operators are included |
+| **LP-2** | Undriven decay rates of loop Fourier, direction-imbalance, and species-imbalance perturbations | The passive generator has $\Lambda_{m,c,\pm}=-dm^2+c-r\pm\sqrt{r^2-m^2\Omega^2}$ with $c\in\{0,-\kappa(1+\varphi)\}$ and $g_{\rm int}=\min\{\kappa(1+\varphi),2r,d+r-\operatorname{Re}\sqrt{r^2-\Omega^2}\}$ | **Derived conditional; untested physically.** Frozen verifier LB5 passes | No common $(d,\Omega,r,\kappa)$ fits the resolved passive mode spectrum, or an undriven persistent mode remains where the fitted gap is positive |
+| **LP-3** | Coherence-sensitive bubble coordinates at fixed projected densities | The normalized species Gram matrix is positive, so $|c|^2\leq E_YE_I$ and $\|\mathbf n\|\leq1$; rank-one states lie on the projective shell, while phase decorrelation contracts the transverse coordinate into the affine bubble interior | **Derived conditional coordinate geometry; untested physically.** Frozen verifier LB4 and LB6 pass; the observable map from $c$ is Open | A physical $c$-sensitive map violates the coherence bound, places a rank-one state inside the normalized ball, or remains unchanged under every controlled phase change at fixed $(E_Y,E_I)$ |
+| **LP-4** | Coarse transverse visibility of $K$ equal-weight layers with successive mean phase difference $\pi$ | $\zeta_K=K^{-1}\sum_{j=0}^{K-1}(-1)^j$, hence $\zeta_{2N}=0$ and $|\zeta_{2N+1}|=1/(2N+1)$; unequal opposite-phase weights leave $|w_+-w_-|/(w_++w_-)$ | **Derived conditional projection law; untested physically.** Frozen verifier LB4 passes; layer production and spacing are Open | The measured residual lies outside independently calibrated phase and weight errors |
+| **LP-5** | Accuracy of the projected bubble description across an internal-relaxation sweep | When $g_{\rm int}T_B\gg1$ and $R/L_B\ll1$, unforced nonzero loop modes relax before the bubble fields change and the zero-mode PDE becomes dynamically autonomous after the transient | **Derived sufficient coarse-graining criterion; untested physically.** No universal threshold value or spatial ratio is assigned | Resolved nonzero modes produce a persistent projected-state dependence in the stated asymptotic regime after common-gate and common-transport conditions are verified |
+| **LP-6** | Visibility of five supplied phase sectors at the attractor composition | Every normalized transverse radius and chord scales linearly with $\eta_c$; for $\eta_c>0$, $L_{\rm step\,2}^{\rm norm}/L_{\rm step\,1}^{\rm norm}=\varphi$, while all five points coincide at $\eta_c=0$ | **Derived conditional geometry.** Frozen verifier LB7 passes; selection of five sectors and their rotation law remain Hypothesized | A realized five-sector map violates linear visibility scaling or the normalized chord ratio after the affine metric and uncertainty are fixed |
+
+The projection supplies a scale switch by state reduction and the
+rate-controlled criterion in LP-5. It does not predict the radial layer
+spacing, $R/L_B$, a $\varphi$-spaced spatial jump, spontaneous $w=5$
+selection, or a phase-rotation law.
+
+**Source:** `foundations/loop-to-bubble-projection-theorem.md` §§2–10;
+`computations/loop-to-bubble-projection-pre-registration.md`;
+`computations/verify_loop_to_bubble_projection.py`.
+
+
 ---
 
 ## Notes
@@ -559,7 +584,7 @@ not establish the physical shell identification.
   fitted or calibrated comparisons, null results, rejected entries, and open
   hypotheses. Rows without a registered derivation are marked **Not
   predicted**; no aggregate success count is assigned across those classes.
-- **Conditional test rows (CT-n and SB-n):** these rows are unnumbered conditional discriminators outside the 1–N numbered prediction sequence; they do not alter the catalog's numbered prediction count. CT-1 records the regulated quantum sector's no-collapse nanoparticle limit; CT-2 registers the candidate physical-time cross-clock discriminator; SB-1–SB-5 register the projective shell's conditional geometry, conversion flow, and phase-loop diagnostic.
+- **Conditional test rows (CT-n, SB-n, and LP-n):** these rows are unnumbered conditional discriminators outside the 1–N numbered prediction sequence; they do not alter the catalog's numbered prediction count. CT-1 records the regulated quantum sector's no-collapse nanoparticle limit; CT-2 registers the candidate physical-time cross-clock discriminator; SB-1–SB-5 register the projective shell's conditional geometry, conversion flow, and phase-loop diagnostic; LP-1–LP-6 register the shared-loop projection, passive spectrum, coherence, phase-cancellation, coarse-graining, and fivefold-visibility contracts.
 
 - **Deviations from SM expectations are falsifiable**—not adjustable. If FCC-ee
   measures $m_W/m_Z = 0.881 \pm 0.0001$, the Cassi framework is excluded

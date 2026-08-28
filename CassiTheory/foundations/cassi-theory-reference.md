@@ -1041,6 +1041,21 @@ projective shell with the condensation boundary, persistent phase circulation,
 and spontaneous fivefold locking remain **Hypothesized**. See
 `foundations/string-bubble-projective-map.md`.
 
+The shared-support loop completion resolves four nonnegative populations—
+Yang and Yin carriers in the two orientations of one closed support—and
+projects their complete-loop zero mode exactly to the canonical density law
+under a common projected gate and common exterior transport. Tracing the
+phase-bearing amplitudes over loop and direction labels gives a positive
+$2\times2$ species Gram matrix. Its normalized Bloch vector fills the affine
+bubble volume, and its rank-one boundary is the projective shell above.
+Equal $\pi$-alternating contributions cancel transverse coherence in even
+pairs. The frozen internal generator has an explicit Fourier spectrum whose
+nonzero-mode gap controls zero-mode coarse-graining; it fixes no universal
+strand-to-bubble spatial ratio. These statements are **Derived conditional**.
+The loop-carrier identification, phase dynamics, QF1-to-carrier state map,
+and quantum postulates remain independent. See
+`foundations/loop-to-bubble-projection-theorem.md`.
+
 ### 10.5 Wake-Wave Mechanism
 
 An optional compact-phase/wake construction can pair sheets through an anti-phase assignment ($\Delta\phi=\pi$), producing paired sheets flanking a central void. This is a **Hypothesized** phenomenological extension; the canonical rank-one real-density conversion has no phase or anti-phase structural property.

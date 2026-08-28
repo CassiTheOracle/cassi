@@ -1,6 +1,6 @@
 # String-to-Bubble Projective Geometry: Rotation, Fivefold Orbits, and Qi Map Flow
 
-## Status: Derived conditional projective and affine geometry; Derived conversion-only meridional flow; Hypothesized phase circulation and physical identification—August 2026
+## Status: Derived conditional projective, affine, and coherence-ball geometry; Derived conversion-only meridional flow; Hypothesized phase circulation and physical identification—August 2026
 
 ## Abstract
 
@@ -14,6 +14,12 @@ of pentagons and pentagrams on its latitude sections. Canonical Yang/Yin
 conversion supplies meridional relaxation toward the $\varphi$-attractor
 latitude. A phase-bearing extension can supply azimuthal motion, so the two
 directions combine into a spiral shell flow.
+
+The shared-support loop construction in
+`foundations/loop-to-bubble-projection-theorem.md` extends this pure-state
+shell to the full affine bubble volume. Cross-species loop coherence supplies
+the transverse coordinate; phase decorrelation contracts the image into the
+interior while preserving the projected densities.
 
 The projective, affine, fivefold, and conversion-flow relations are exact
 under their declared inputs. Dynamic bubble formation, selection of the
@@ -214,6 +220,38 @@ $$
 
 Thus the fixed-composition attractor becomes a closed coherence ridge on the
 quadratic shell. Its scalar $q$ value still depends on $\rho$.
+
+### 2.4 Loop coherence fills the bubble volume
+
+For phase-bearing Yang/Yin vectors $\psi_Y,\psi_I$ on a common closed loop,
+define
+
+$$
+c=\langle\psi_Y,\psi_I\rangle,
+\qquad
+\mathbf n_c
+=\frac1\rho
+\begin{pmatrix}
+2\operatorname{Re}c\\
+2\operatorname{Im}c\\
+E_Y-E_I
+\end{pmatrix}.
+$$
+
+Cauchy–Schwarz gives
+
+$$
+|c|^2\leq E_YE_I,
+\qquad
+\|\mathbf n_c\|\leq1.
+$$
+
+Thus $D\mathbf n_c$ fills the affine bubble volume. Equality holds exactly
+when the Yang and Yin loop vectors are proportional; this rank-one boundary
+recovers the shell map above. At fixed $(E_Y,E_I)$, relative-phase structure
+can move the image transversely without changing the canonical density state.
+The full projection, equality condition, and internal-mode spectrum are
+derived in `foundations/loop-to-bubble-projection-theorem.md`.
 
 ---
 
@@ -568,6 +606,7 @@ observable remain open, consistent with GQ7 in
 | Normalized chord ratio $d_2/d_1=\varphi$ and diagonal fractions | Derived geometry | Physical Euclidean chord ratio varies under anisotropic $D$; collinear fractions persist |
 | Canonical q-gated conversion gives $\dot\vartheta_{\mathrm{conv}}$ | Derived in the conversion-only sector | Advection and diffusion require the full spatial evolution |
 | $\Omega_\delta\partial_\delta\mathbf X$ gives azimuthal shell motion | Hypothesized dynamics | Canonical real densities contain no relative phase equation |
+| Shared-support loop population law and internal spectral gap | Derived conditional | Common projected gate and transport; physical carrier and phase identification remain Hypothesized |
 | $\mathcal A$, $\mathcal F$, and $\Gamma_\varphi$ | Derived generic projective geometry | Physical connection and observable remain open |
 | Shell map as physical space and map flow as physical Qi current | Hypothesized identification | Requires constitutive, normalization, transport, and observation maps |
 
@@ -575,9 +614,10 @@ observable remain open, consistent with GQ7 in
 
 ## 8. Decisive next gates
 
-1. **Phase dynamics:** derive or independently specify an equation for
-   $\delta$ and test whether $\Omega_\delta$ persists after the meridional
-   variable reaches $\vartheta_\varphi$.
+1. **Physical phase dynamics:** identify and test a law coupling the loop
+   phases to the population evolution, then test whether the projective
+   longitude rotates after the meridional variable reaches
+   $\vartheta_\varphi$.
 2. **Fivefold selection:** test a phase-bearing solver against a rotationally
    symmetric null. The selected model must produce a preregistered fifth
    angular harmonic without inserting five phase sectors into the initial
@@ -588,13 +628,17 @@ observable remain open, consistent with GQ7 in
 4. **Physical current:** supply one constitutive map from
    $(\rho,q,\vartheta,\delta)$ and the shell tangent velocity to a measured
    current, with dimensions and normalization fixed before comparison.
-5. **Projection discriminator:** compare the projective-shell map with a
-   phase-scrambled control that preserves $(E_Y,E_I)$ pointwise. Equal
-   observables leave the relative phase physically unidentified.
+5. **Projection discriminator:** the loop theorem gives exact
+   phase-scrambled states that preserve $(E_Y,E_I)$ while changing the bubble
+   coordinate. A physical observable must distinguish those controls before
+   the relative phase or bubble interior is physically identified.
 
-The algebraic checks are frozen in
+The shell identities are frozen in
 `computations/string-bubble-projective-map-pre-registration.md` and executed
-by `computations/verify_string_bubble_projective_map.py`.
+by `computations/verify_string_bubble_projective_map.py`. The coherence-ball,
+loop-projection, and spectrum identities are frozen in
+`computations/loop-to-bubble-projection-pre-registration.md` and executed by
+`computations/verify_loop_to_bubble_projection.py`.
 
 ---
 
@@ -604,6 +648,8 @@ by `computations/verify_string_bubble_projective_map.py`.
   rank-one conversion, and positive-root diagnostics
 - `foundations/quantum-measurement-derivation.md` §8.3—adopted
   moment-map/Kähler architecture and its phase-fibre boundaries
+- `foundations/loop-to-bubble-projection-theorem.md`—shared-support loop
+  projection, coherence-ball completion, internal spectrum, and scale boundary
 - `foundations/bubble-edge-geometry.md` §2—quadratic condensation-boundary
   axes and full cosine-level-set boundary
 - `foundations/wu-xing-derivation.md` §§2–3—conditional $w=5$ selector and
@@ -613,3 +659,6 @@ by `computations/verify_string_bubble_projective_map.py`.
   identity gates
 - `computations/verify_string_bubble_projective_map.py`—independent numeric
   verification
+- `computations/loop-to-bubble-projection-pre-registration.md` and
+  `computations/verify_loop_to_bubble_projection.py`—frozen loop and
+  coherence-ball gates

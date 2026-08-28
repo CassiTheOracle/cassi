@@ -287,6 +287,17 @@ symmetry reduction, micro-to-meso projection, cotangent closure,
 physical-sector, and holonomy gates fail. The physical-identification tier
 remains Hypothesized.
 
+A shared-support loop completion supplies a finite microscopic construction
+between the canonical densities and the projective shell. Four nonnegative
+Yang/Yin direction populations on one closed support project exactly to the
+canonical PDE under common exterior transport and gate assumptions. Their
+species coherence matrix fills the affine Bloch ball, its rank-one boundary is
+the projective shell, and the frozen loop generator has an explicit Fourier
+gap controlling zero-mode coarse-graining. This is **Derived conditional** as
+a projection theorem. The microscopic identification, phase dynamics,
+QF1-to-carrier state map, quantum postulates, and physical scale law remain
+independent. See `foundations/loop-to-bubble-projection-theorem.md`.
+
 ---
 
 ## 4. The String: Spiral and Wakes

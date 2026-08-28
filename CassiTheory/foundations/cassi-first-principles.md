@@ -654,6 +654,17 @@ projected densities with the QF1 complex-field density. With quantum
 equilibrium and the same instrument, the construction is operationally
 equivalent to ordinary quantum mechanics.
 
+The shared-support loop completion resolves the carrier route into four
+nonnegative populations: Yang and Yin carriers in the two orientations of one
+closed support. Complete-loop averaging recovers the canonical density PDE
+exactly under a common projected gate and common exterior transport. A
+phase-bearing amplitude lift gives a positive species coherence matrix whose
+normalized Bloch vector fills the affine bubble volume; rank-one carrier
+states lie on its projective shell. These statements are **Derived
+conditional**. They do not identify the carrier with the QF1 complex field,
+derive its phase dynamics, or add quantum statistics. See
+`foundations/loop-to-bubble-projection-theorem.md`.
+
 ### 3.2 Cosmology (Pillar 2; optional Hubble closure)
 
 An FLRW background plus a separately supplied Hubble closure gives the standard

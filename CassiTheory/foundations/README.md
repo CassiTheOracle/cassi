@@ -45,6 +45,7 @@ This directory holds the load-bearing derivations of the Cassi framework: the di
 | 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction |
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
+| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support Yang/Yin loop, canonical zero-mode projection, coherence ball, and internal spectrum | Derived conditional projection, bubble map, and population spectrum / Hypothesized microscopic physical identification |
 
 ## Document Summaries
 
@@ -427,6 +428,18 @@ density. SB1–SB5 verify the identities independently. Five selected phases
 form a pentagon and step-two connectivity forms its pentagram, while the
 selector, physical shell identification, and microscopic phase dynamics
 remain Hypothesized.
+
+### `loop-to-bubble-projection-theorem.md`—Shared-Support Counterflow, Coherence, and Scale Separation
+
+Constructs four nonnegative Yang/Yin carrier populations on the two
+orientations of one closed loop. Complete-loop averaging gives the canonical
+two-density PDE exactly under common gate and transport assumptions. The
+species Gram matrix maps to the full affine bubble volume, with rank-one
+carrier states on the projective shell. The frozen Fourier generator gives an
+explicit internal spectral gap, alternating equal $\pi$-phase layers cancel in
+even pairs, and the supplied fivefold phase orbit preserves the normalized
+$\varphi$ chord ratio. LB1–LB7 verify these identities. The physical carrier,
+phase law, scale ratio, and quantum-sector identification remain open.
 
 ## Cross-References
 

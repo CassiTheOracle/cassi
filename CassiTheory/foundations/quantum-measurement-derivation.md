@@ -2755,16 +2755,23 @@ $\Delta E$ separately. The shared openness factor $(1-q)$ changes the
 relaxation clock while preserving the stationary ratio.
 
 The finite carrier model fills the reservoir, carrier-to-density projection,
-and fluctuation pieces requested by GQ3 under its declared premises. The map
-from the QF1 complex configuration to the carrier occupations remains Open,
-so the GQ3 microscopic-projection gate remains failed for promotion of the
-physical identification. Equation (QC11) supplies the record map. The
-Standard Model factor in (QC22) leaves the spin, fermion, local gauge, and
-particle-content derivations in GQ6 open. This is sufficient for an additive
-Cassi field and carrier reservoir coupled to known matter. A claim that the
-two-fluid sector generates the Standard Model requires a separate construction
-of $\mathcal H_{\rm SM}$, its representations, anomaly cancellation, and its
-couplings.
+and fluctuation pieces requested by GQ3 under its declared premises.
+`foundations/loop-to-bubble-projection-theorem.md` gives one loop-resolved
+realization: four direction-preserving populations on a shared closed support
+project exactly to the canonical density law, while their species Gram matrix
+retains one phase-sensitive coherence moment and maps to the full affine
+bubble volume. This strengthens the carrier-to-density mathematics without
+supplying the missing physical state map.
+
+The map from the QF1 complex configuration to the loop amplitudes or carrier
+occupations remains Open, so the GQ3 microscopic-projection gate remains
+failed for promotion of the physical identification. Equation (QC11) supplies
+the record map. The Standard Model factor in (QC22) leaves the spin, fermion,
+local gauge, and particle-content derivations in GQ6 open. This is sufficient
+for an additive Cassi field and carrier reservoir coupled to known matter. A
+claim that the two-fluid sector generates the Standard Model requires a
+separate construction of $\mathcal H_{\rm SM}$, its representations, anomaly
+cancellation, and its couplings.
 
 #### 8.4.8 Operational-equivalence theorem
 
@@ -2836,7 +2843,7 @@ finite identities.
 | QL3 guidance and Born law | Derived conditional | minimal current QF3 and preparation condition QF4 |
 | QL4 measurement channel | Derived conditional | unitary interaction, ready state, and record projectors |
 | QL5 carrier dynamics | Derived conditional | finite $N_{\rm car}$ and nonnegative conversion and transport rates |
-| QL6 carrier-to-mesoscopic projection | Derived conditional | density scaling, law of large numbers, and finite-volume convergence |
+| QL6 carrier-to-mesoscopic projection | Derived conditional | density scaling, law of large numbers, finite-volume convergence, and optional shared-loop zero-mode realization |
 | QL7 fluctuation law | Derived conditional | frozen cell, finite $N_c$, and the carrier jump process |
 | QL8 sector relation and physical sectors | Hypothesized boundary | QF1-to-carrier map Open; Standard Model sectors imported |
 | QL9 discriminator | Derived boundary | operational equivalence under identical instruments |
@@ -2942,14 +2949,19 @@ deterministic gates. Their companion scripts check:
 13. global, relative, and local phase actions plus projected nonclosure;
 14. cotangent reconstruction controls and finite Kähler refinement;
 15. generic winding and conditional Segre geometry.
+16. exact shared-loop zero-mode closure, coherence-ball completion, internal
+    population spectrum, and density-projection non-injectivity.
 
 The scripts are `computations/verify_cassifi_quantum_bridge.py`,
 `computations/verify_qi_flow_entanglement.py`,
-`computations/verify_quantum_configuration_bridge.py`, and
-`computations/verify_quantum_geometric_bridge.py`. The first two verify the
+`computations/verify_quantum_configuration_bridge.py`,
+`computations/verify_quantum_geometric_bridge.py`, and
+`computations/verify_loop_to_bubble_projection.py`. The first two verify the
 conditional quantum construction. The third records premises outside the
 canonical real-density theory. The fourth verifies the geometric projection
-receipts and counterexamples.
+receipts and counterexamples. The fifth verifies the loop-resolved carrier
+projection and coherence-ball identities under
+`computations/loop-to-bubble-projection-pre-registration.md`.
 
 ---
 
@@ -2971,6 +2983,7 @@ receipts and counterexamples.
 - `foundations/unified-lagrangian.md` §1.3
 - `foundations/physical-becoming-hierarchy.md` §§1, 5–7
 - `foundations/qi-flow-double-helix.md` §§1–6
+- `foundations/loop-to-bubble-projection-theorem.md` §§2–11
 - `open-questions-cassi-answers.md` Q7
 - `parameter-inventory.md` §§2.2, 4, 9
 - `predictions/falsifiable-predictions.md` §9

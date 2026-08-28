@@ -1,6 +1,6 @@
 # Yang, Yin, and Qi: Density-Plane Diagnostics and Optional Helical Structure
 
-## Status: Hypothesized—August 2026
+## Status: Derived density diagnostics and passive lift bounds; Hypothesized phase and helical physical structure—August 2026
 
 ## Abstract
 
@@ -676,6 +676,15 @@ continuous family of direction-resolved lifts; separate species currents,
 transport speeds, collision dynamics, and a physical orientation are required
 to select one.
 
+`foundations/loop-to-bubble-projection-theorem.md` selects one minimal
+continuous realization of those four labels on a single shared closed support.
+Its complete loop average projects exactly to the canonical two-density PDE,
+and its frozen Fourier spectrum quantifies when the unresolved loop modes
+relax. Symmetric direction exchange damps the net loop current, so persistent
+passive circulation and a positive internal gap remain incompatible. The
+construction supplies phase-bearing coordinates but leaves their evolution
+and physical identification open.
+
 The geometric campaign in
 `foundations/quantum-measurement-derivation.md` §8.3 places these density
 coordinates in a candidate moment-map picture. A normalized complex Yang/Yin
@@ -683,10 +692,11 @@ pair has $\mathbb{CP}^1\simeq S^2$ ray geometry; the canonical pair fixes its
 latitude and leaves a relative-phase circle. At the attractor,
 $n_z=\varphi^{-3}=0.236067977500$. Equal moduli carry different declared
 CassiFI modal contents and link currents, so the phase fibre is causal.
-Finite Kähler compatibility passes conditionally. Symmetry reduction,
-micro-to-meso projection, and cotangent reconstruction fail. The
-campaign adopts the architecture as Hypothesized and preserves the canonical
-phase boundary recorded here.
+Finite Kähler compatibility passes conditionally. The finite carrier and
+shared-loop models now give derived conditional carrier-to-density
+projections. The map from the regulated complex quantum configuration to
+those carriers, cotangent reconstruction, and physical phase identification
+remain open, so the GQ3 promotion gate remains failed.
 
 ---
 
@@ -703,4 +713,7 @@ phase boundary recorded here.
 - `hypotheses/two-strand-five-channel-matter-organization.md`—lattice-stack record and TS1–TS4 nulls
 - `two-fluid/run_winding_rate_probe.py`—conversion-angle rate diagnostic
 - `computations/verify_four_channel_lift.py`—exact rank and non-uniqueness audit for the conditional four-channel kinetic lift
+- `foundations/loop-to-bubble-projection-theorem.md`—shared-support
+  realization of the four labels, exact zero-mode projection, passive
+  spectrum, and current limit
 - `computations/qi_flow_double_helix_check.py`—numeric checks for the listed identities

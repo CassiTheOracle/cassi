@@ -534,12 +534,14 @@ Equation (OS6) distinguishes the selected open-system dynamics from the closed s
 
 The quantum-geometric campaign in
 `foundations/quantum-measurement-derivation.md` §8.3 adopts this same
-micro-to-meso direction as a Hypothesized architecture. The complex CassiFI
-configuration supplies a finite Kähler candidate, and its modulus map supplies
-the proposed coarse density coordinates. Phase-sensitive link forces give
-different projected accelerations for equal moduli, so an exact autonomous
-projection requires the missing reservoir or conditional phase ensemble. This
-is the GQ3 failure recorded by that campaign.
+micro-to-meso direction as a Hypothesized physical architecture. The finite
+carrier reservoir and `foundations/loop-to-bubble-projection-theorem.md`
+derive conditional carrier-to-density projections. The shared-loop theorem
+also isolates the common-gate and common-transport conditions for exact
+closure and gives the internal relaxation gap. Neither construction derives
+the carrier state from the regulated complex quantum configuration or from
+the P1 effective field theory. This missing physical identification is the
+remaining GQ3 and P1→P2 boundary.
 
 ---
 
@@ -970,7 +972,7 @@ Here $\mathfrak B$ denotes the full right-hand side of equation (PB). The first 
 |---|---|---|---|
 | P0 | established Standard Model + general relativity in their tested domains | reproduce established observables | established external physics |
 | P1 | generic Standard Model plus two-singlet EFT; restricted Cassi matching surface | retain every allowed counterterm; test vacuum, unitarity, and protection of the restricted relations | generic EFT closed; restricted $\varphi$ surface **REJECTED** as RG invariant |
-| P2 | canonical two-density PDE and causal response theory | derive as a controlled coarse-grained limit of P1, including bath, noise, and transport coefficients | deterministic reduction closed; microscopic matching open |
+| P2 | canonical two-density PDE and causal response theory | derive as a controlled coarse-grained limit of P1, including bath, noise, and transport coefficients | deterministic and conditional carrier reductions closed; P1 physical matching open |
 | P3 | maintained body and reserve | derive or measure boundary, flux, repair, damage, and work balance | proposed |
 | P4 | reaction-coordinate state $(m,h,g)$ | held-out closure and autonomy | proposed |
 | P5 | shadows, possibility allocation, attention, commitment | forecast accuracy, branch causality, debit | proposed |
@@ -1390,7 +1392,7 @@ The prospective-steering closure may be **ADOPT**ed only after PB-C1, PB-C4, and
 |---|---|---|
 | **PB-P1 quantum EFT** | dimensions, counterterms, unitarity domain, stable vacuum, and protecting symmetry/fixed manifold | **FAIL** as a closed microscopic unification; effective ansatz remains available |
 | **PB-P2 covariant gravity** | scalar equations, Bianchi-compatible metric equation, $F>0$, weak-field limit, and screening | equations defined; current composite map **FAILS** completion because its covariant source and screening profile are absent |
-| **PB-P3 micro-to-PDE** | controlled derivation of the two-density PDE, $q$ gate, transport, noise, and physical units | open |
+| **PB-P3 micro-to-PDE** | controlled derivation of the two-density PDE, $q$ gate, transport, noise, and physical units | finite carrier and shared-loop realizations **PASS** conditionally; physical P1 state map, coefficients, and units remain open |
 | **PB-P4 distinctive observation** | a preregistered result that differs from GR+SM plus an ordinary auxiliary field and survives full controls | open |
 
 ---
@@ -1421,9 +1423,12 @@ Success requires the full mediated chain, a closed energy ledger, and generaliza
 The theory closes one exact mathematical bridge and one architectural hierarchy:
 
 - **Derived conditional:** the canonical selected rank-one conversion is a positive-semidefinite gradient flow in $(E_Y,E_I)$, conserving $\rho$ and contracting $\varepsilon$.
+- **Derived conditional:** a finite shared-loop carrier law projects exactly
+  to the canonical PDE, with an explicit internal spectrum and
+  coherence-sensitive affine-bubble projection.
 - **Defined:** actual state, body readouts, gate readouts, history, shadow trajectories, branch allocation, attention, commitment, resource debit, learning, and their causal order occupy typed slots in one differential-algebraic state.
 - **Hypothesized:** these slots form an autonomous field-native prospective controller after coarse-graining.
-- **Open:** a symmetry-protected microscopic completion, covariant screened gravity, the micro-to-PDE derivation, physical unit matching, maintained embodiment, agent-level causal gates, and a distinctive physical prediction validated against controls.
+- **Open:** a symmetry-protected microscopic completion, covariant screened gravity, the physical P1-to-carrier state map, physical unit matching, maintained embodiment, agent-level causal gates, and a distinctive physical prediction validated against controls.
 - **Outside the derived scope:** phenomenal consciousness and a universal metaphysical identity between experience and any single Cassi diagnostic.
 
 The compact physical-becoming equation is therefore a research contract. It says exactly what must be built, conserved, measured, lesioned, and falsified for possible flow to become part of present flow.
@@ -1434,6 +1439,8 @@ The compact physical-becoming equation is therefore a research contract. It says
 - `foundations/cassi-first-principles.md` §§1–2—canonical $E_Y,E_I,\rho,\varepsilon,q$ state and selected conversion.
 - `foundations/cassi-theory-reference.md` §2—compact canonical equations and diagnostic boundaries.
 - `foundations/qi-flow-double-helix.md` §§1–2—exact density/amplitude diagnostic lifts and conditional channel construction.
+- `foundations/loop-to-bubble-projection-theorem.md`—conditional
+  shared-support carrier reduction, coherence map, and internal spectral gap.
 - `foundations/unified-lagrangian.md`—optional microscopic action assembly and its dimensional/covariant blockers.
 - `foundations/dimensionful-constants-status.md`—physical-unit and external-constant boundaries.
 - `computations/verify_physical_becoming_reduction.py`—symbolic checks of the exact conversion, mobility, covariance null mode, response eigenmodes, reference-state $\Gamma_0=\lambda/3$, physical fixed-$\rho$ wedge, and conditional FDT normalization.
