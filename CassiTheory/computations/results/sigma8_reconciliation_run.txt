@@ -1,0 +1,60 @@
+====================================================================
+σ₈ MAGNITUDE RECONCILIATION—pipeline Δσ₈ vs the '~5%' claim
+====================================================================
+  N=32³, L=6.2832 (≈125.0 Mpc/h), dt=0.001, steps=1500
+  R₈ = 8.0 Mpc/h → 0.4021 sim-units,  ξ = φ⁶ = 17.9443
+
+[1/4] Building Eisenstein-Hu ICs (σ₈ target = 0.8)...
+  σ₈ of raw density contrast: 0.0962
+  σ₈ after scaling: 0.8000 (target=0.8)
+  δ_rms after scaling: 1.2468
+  q_ref: 0.4285
+  P(k) norm factor: 0.0001  (σ₈ field=0.8000, σ₈ Pk raw=89.9020)
+      q_ref = 0.4285   P(k) norm factor = 0.000079  (σ₈ Pk raw = 89.9020)
+[2/4] Running PDE simulation...
+      PDE done in 53.6s — a: 1.000 → 1.652, δ_rms: 1.2468 → 0.8459, q_mean: 0.4285 → 0.3822
+
+[3/4] σ₈ values (pipeline definitions)...
+  σ₈(ΛCDM linear):       0.9707
+  σ₈(Cassi, P(k) meas):  0.5482
+  σ₈(Cassi, field):      0.5816
+  σ₈(Cassi, μ const):    0.8779
+  σ₈(Cassi, μ(k) k-dep): 1.0550
+
+[4/4] Decomposition of Δσ₈...
+  Δσ₈ total  (measured P(k) − ΛCDM):  -0.4226  (-43.5%)
+  Δσ₈ μ-only (G_eff factor 0.9044): -0.0928  (-9.6%)
+  Δσ₈ residual (measured − μ-formula): -0.3297  (-34.0%)
+  δ_rms evolution: 1.2468 → 0.8459  (-32.2%) vs ΛCDM linear growth D(1.652)/D(1.000) = 1.2134 (+21.3%)
+
+  Constant-μ growth-scaling table (plan §3.2, recomputed with a_i = 0.01):
+         μ        p  D(0)/D(100)  σ₈ ratio Suppression
+    1.0000   1.0000        100.0     1.000       +0.0%   (ΛCDM)
+    0.9044   0.9412         76.3     0.763      -23.7%   (pipeline q-drop)
+    0.9500   0.9696         86.9     0.869      -13.1%   (estimated effective)
+    0.9800   0.9879         94.6     0.946       -5.4%   (target (matches obs))
+
+VERDICT
+-------
+1. The pipeline headline is Δσ₈ = -0.4226 (-43.5%), reproduced here.
+   Of that, only -9.6% is the Qi-gravity μ mechanism as the pipeline
+   itself formulates it (the scale-independent G_eff factor
+   (1+ξ·q_final)/(1+ξ·q_ref) = 0.9044 applied to linear-growth P(k)).
+2. The remaining -34.0% is NOT the μ mechanism: the PDE's δ_rms falls
+   -32.2% over the run (dissipation at N=32 with nonlinear ICs, δ_rms = 1.25)
+   while ΛCDM linear growth would raise σ₈ by +21.3%. The measured-vs-formula
+   gap is a resolution/transport artifact of the box, not a gravity change.
+3. The "~5% lower" claim is a Mapped target (ledger row 506): the plan's
+   own table maps μ = 0.98 on σ₈ scales to −5.3%; the pipeline's spatial-mean
+   q-drop (μ = 0.9044) maps to −23.7% under the same full-history growth
+   scaling. The pipeline cannot resolve the effective μ on σ₈ scales: its
+   k-dependent variant (+8.7%) is normalization-unstable (final-state q(k)
+   anchored to the IC q_ref), and N=32 captures few σ₈ modes.
+4. Honest number: the N=32 pipeline measures Δσ₈ = -0.4226 (-43.5%) total,
+   of which ≈ -9.6% is attributable to the q-drop mechanism. Neither the
+   −43% nor the −5% is a derived prediction; the ~5% claim remains a Mapped
+   target pending the Boltzmann σ₈ integration with q(k,a) input
+   (cosmology/sigma8-computational-plan.md Phases 3–4; the current
+   two-fluid/run_boltzmann_cassi.py computes C_ℓ only and does not support σ₈).
+
+====================================================================
