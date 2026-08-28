@@ -309,6 +309,7 @@ def _profile_backend(profile: Any, thresholds: Mapping[str, Any]) -> tuple[dict[
         ladder_rows.append({
             "lanes": int(lanes),
             "candidate_count": int(lanes),
+            "delta": 0.01,
             "elapsed_ns": int(elapsed),
             "per_candidate_ns": float(elapsed) / float(lanes),
             "input_state_sha256": row_state.state_sha256(profile),
