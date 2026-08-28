@@ -226,6 +226,13 @@ lifts and records the extra assumptions required for compact spatial phases.
 phase-only chain has no spectral gap and that link-magnitude modulation needs a
 supplied constitutive law.
 
+`computations/phase-slip-selection-report.md` tests one passive
+complex-amplitude candidate $M_0$ for the required transition law. The frozen
+$N=64$ and $N=96$ arms both pass sampled descent and return zero
+$\varphi$-band counteroriented sectors. Its protocol verdict is
+$\mathrm{REJECT}\ M_0$; a physical compact-current and phase-slip law remains
+open.
+
 The compact-loop result therefore adds a narrow conditional result: \(\varphi\)
 can organize the finite near-closure sequence of a declared two-fluid
 phase-gradient ratio. The physical questions are topology formation, coupling
@@ -238,6 +245,7 @@ selection, dimensional conversion, and a particle-independent observable.
 - `field-experience/qi-loop-mass-cascade-pre-registration.md`—frozen model and decision tree
 - `field-experience/qi-loop-mass-cascade-report.md`—executed receipt and independent verification
 - `principles/de-resonance-principle.md`—arithmetic extremality and physical mapping boundary
+- `computations/phase-slip-selection-report.md`—tested passive compact-field candidate and $\mathrm{REJECT}\ M_0$ receipt
 - `foundations/dimensionful-cascade.md`—external Planck anchor and rung ladder
 - `foundations/qi-flow-double-helix.md`—canonical \(q\), density-plane angle, and phase-lift boundary
 - `foundations/cassi-first-principles.md`—canonical real-density PDE and conversion law

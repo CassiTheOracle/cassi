@@ -184,8 +184,11 @@ passes the arithmetic, loop-stability, and supplied scale-covariance gates.
 Its primitive-mode multiplicity and coefficient-sensitivity gates show that
 the ring does not select unique physical mass positions. Fixed winding sectors
 also require an unprovided phase-slip law to follow the evolving continuum
-target. Status: Derived conditional counterflow selection and supplied-ring
-algebra / Tested conditional branches / Hypothesized physical realization.
+target. The frozen passive complex-amplitude candidate $M_0$ passes sampled
+descent and produces zero $\varphi$-band counteroriented sectors in both
+frozen arms, giving $\mathrm{REJECT}\ M_0$ for that transition-law candidate.
+Status: Derived conditional counterflow selection and supplied-ring algebra /
+Tested conditional branches / Hypothesized physical realization.
 
 ### `wu-xing-derivation.md`—Wu Xing Number $w = 5$: Derivation from Cascade Dynamics
 

@@ -289,6 +289,18 @@ the continuum target. Measurements of the separate currents, phase locking,
 spectral transfer, and winding transitions decide whether the conditional
 closure describes the physical field.
 
+### 1.6 Passive compact-field candidate—Tested
+
+`computations/phase-slip-selection-pre-registration.md` freezes a passive
+complex-amplitude candidate $M_0$ with lattice stiffness, local amplitude
+restoration, and symmetric Yang/Yin alignment. Its evolution contains no
+$\varphi$-dependent term. The protocol-complete primary and resolution arms
+both pass sampled passive descent and return zero $\varphi$-band
+counteroriented sectors; each arm returns one $3/2$ control hit. The prescribed
+result is $\mathrm{REJECT}\ M_0$, recorded in
+`computations/phase-slip-selection-report.md`. This result narrows $M_0$;
+the physical compact-current and phase-slip law remains Hypothesized.
+
 ## 2. Cassi framework posture
 
 The $\varphi$-power expressions below are working baselines for selected quantities. They are model ansätze whose physical scope must be stated for each sector.

@@ -9,7 +9,9 @@ framework across every sector. `de-resonance-principle.md` records the Derived
 Hurwitz/continued-fraction identity, a Derived topological winding boundary,
 and a conditional counterflow theorem that transfers the declared density
 target to a phase-gradient target under explicit current assumptions. Their
-physical realization and de-resonance effect remain Hypothesized. Quantities
+physical realization and de-resonance effect remain Hypothesized. A frozen
+passive compact-field candidate $M_0$ is REJECT after producing zero
+$\varphi$-band sectors in both control arms. Quantities
 sit *near* $\varphi$-powers, with dynamics supplying subleading corrections.
 `v0-hierarchy-problem.md` deep-dives the one correction row that
 remains unexplained, the residual between the raw measured
@@ -22,7 +24,7 @@ principle first, then its hardest application.
 
 | # | Document | Domain | Epistemic |
 |---|----------|--------|-----------|
-| 1 | `de-resonance-principle.md` | Attractor origin; correction posture | Derived number theory and topology / Derived conditional counterflow selection / Tested PC1–PC7 / Hypothesized physical realization |
+| 1 | `de-resonance-principle.md` | Attractor origin; correction posture | Derived number theory and topology / Derived conditional counterflow selection / Tested PC1–PC7 and passive $M_0$ REJECT / Hypothesized physical realization |
 | 2 | `v0-hierarchy-problem.md` | Electroweak hierarchy gap | Mapped placement / Hypothesized mechanism |
 
 ## Document Summaries
@@ -36,8 +38,12 @@ counterflow theorem selects $\theta_I'/\theta_Y'\to\varphi$; the frozen PC1–PC
 receipt verifies its algebra and controls. A nonzero scalar loop amplitude
 conserves integer winding exactly, so compact-sector tracking requires phase
 slips or altered topology. The compact phases, current closure, phase-slip
-dynamics, and physical resonance suppression remain Hypothesized. The
-correction table records quantity-level provenance and mechanism tiers separately:
+dynamics, and physical resonance suppression remain Hypothesized. The frozen
+passive compact-field candidate $M_0$ passes sampled descent and returns zero
+$\varphi$-band counteroriented sectors in both arms, yielding
+$\mathrm{REJECT}\ M_0$. Its result narrows that candidate; the microscopic
+phase-current and phase-slip laws remain Hypothesized. The correction table
+records quantity-level provenance and mechanism tiers separately:
 $\sin^2\theta_W$ compares the $\varphi^{-3}$ baseline with the measured
 $m_Z$ value (the baseline is $+2.1\%$ above the measurement). The
 $v_0/M_{\rm Pl}$ entry uses raw measured $N_{\rm raw}\approx79.89$ and a

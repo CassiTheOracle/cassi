@@ -161,11 +161,14 @@ $\theta_I'/\theta_Y'\to\varphi$; the frozen PC1–PC7 computation verifies the
 algebra, transient, controls, and Fibonacci record near-closures. A continuous
 nonzero scalar amplitude on $S^1$ exactly conserves integer winding, so a
 finite compact sector can follow the evolving target only through a phase
-slip or altered boundary, topology, or bundle structure. The framework does
-not yet derive the compact phases, current closure, phase-slip law, or
-suppression of physical phase locking. Its $\varphi$-power coupling and mass
-baselines remain a mapped structural program with each input retaining its
-ledger status.
+slip or altered boundary, topology, or bundle structure. The frozen passive
+complex-amplitude candidate $M_0$ passes sampled energy descent and returns
+zero $\varphi$-band final counteroriented sectors in both the $N=64$ and
+$N=96$ arms, giving the prescribed $\mathrm{REJECT}\ M_0$ verdict. The
+framework retains no derived compact phases, current closure, phase-slip law,
+or suppression of physical phase locking. Its $\varphi$-power coupling and
+mass baselines remain a mapped structural program with each input retaining
+its ledger status.
 
 ### The Two-Fluid PDE—the canonical local law
 
