@@ -24,6 +24,9 @@ CassiQwen/*.npy
 CassiQwen/*.pth
 CassiQwen/*.safetensors
 CassiQwen/*.zip
+CassiQwen/native/llama.cpp-*.tar.gz
+CassiQwen/historical/qi-v2/source/all-layer-hidden-state-capture.json
+CassiQwen/historical/qi-v2/source/hidden-state-capture.json
 CassiQwen/native/llama.cpp/build-cassi/
 CassiQwen/native/llama.cpp/models/ggml-vocab-*.gguf*
 CassiQwen/native/llama.cpp/build-qi/
