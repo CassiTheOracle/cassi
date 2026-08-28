@@ -1,0 +1,22 @@
+# ── Gradle ────────────────────────────────────────────────────────────────
+.gradle/
+build/
+# Do NOT ignore the wrapper: gradlew / gradlew.bat / gradle/wrapper/* are the
+# build's bootstrap and are committed by convention.
+
+# ── Minecraft dev runtime (Loom runServer/runClient) ──────────────────────
+# run/ holds a live server world (cassicraft-demo/), server logs, and the
+# EULA acceptance + server.properties — local runtime state, never commit.
+run/
+runserver_*.log
+*.log
+
+# ── IDEs / OS ─────────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Central-file seam wiring requests (owner-only seam; not source)
+wiring-requests/
