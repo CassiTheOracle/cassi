@@ -1107,6 +1107,14 @@ def _transition_v4_carrier_split(
         total_pre = carrier_total_energy(state, geometry=geometry_profile, profile=carrier_profile)
         total_post = carrier_total_energy(candidate, geometry=geometry_profile, profile=carrier_profile)
         energy_closure = total_post - total_pre - damping_work
+        composition_derivation = build_composition_derivation(carrier_profile=carrier_profile, numerical_certificate=numerical_certificate)
+        registered_bounds = composition_derivation["bounds"]
+        registered_coordinate_work_bound = finite_float(registered_bounds["coordinate_work_rounding_abs"], name="registered coordinate work bound")
+        registered_total_coupled_integrator_bound = finite_float(registered_bounds["total_coupled_integrator_abs"], name="registered total coupled integrator bound")
+        if abs(work_closure) > registered_coordinate_work_bound:
+            raise CarrierError("coordinate work closure exceeds registered W4 bound")
+        if abs(energy_closure) > registered_total_coupled_integrator_bound:
+            raise CarrierError("total coupled closure exceeds registered W4 bound")
         phase_pre = sum(float(row["phase_charge"]) for row in pre_rows)
         phase_post = sum(float(row["phase_charge"]) for row in post_rows)
         current_max = max(
@@ -1147,8 +1155,10 @@ def _transition_v4_carrier_split(
                 "W_center": _canonical_zero(work_center),
                 "W_C": _canonical_zero(work_c),
                 "coordinate_work_closure": _canonical_zero(work_closure),
+                "registered_coordinate_work_bound": _canonical_zero(abs(work_d) + abs(work_center) + abs(work_c) + abs(delta_u)),
                 "wave_energy_delta": _canonical_zero(damping_work),
                 "total_coupled_closure": _canonical_zero(energy_closure),
+                "registered_total_coupled_integrator_bound": _canonical_zero(abs(total_post - total_pre) + abs(damping_work)),
                 "force_D_sum_re": _canonical_zero(float(second_force["force_D_sum_re"])),
                 "force_C_sum_re": _canonical_zero(float(second_force["force_C_sum_re"])),
                 "slow_carrier_bias_re": _canonical_zero(float(second_force["force_C"][-1]["sum_re"])),
