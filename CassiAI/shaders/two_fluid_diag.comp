@@ -1,0 +1,73 @@
+#version 460
+
+// ═══════════════════════════════════════════════════════════════════
+// two_fluid_diag.comp — Per-voxel two-fluid diagnostics
+//
+// For each voxel, computes the scalar Yang/Yin two-fluid quantities
+// from the 128-dim complex neural field ψ:
+//   EY = Σ_d |ψ_real[d]|²     (Yang energy density)
+//   EI = Σ_d |ψ_imag[d]|²     (Yin energy density)
+//   r  = EY / EI              (local ratio, drives pinch dynamics)
+//   q  = (EY - φ·EI)/(EY + φ·EI)  (coherence, range (-1,1])
+//   gate = q / (φ² + q²)      (Qi gate — modulates conversion rate)
+//
+// Writes 3 floats/voxel to ratio_field (r, q, gate) at binding 25.
+// Writes 2 floats/voxel to energy_field (EY, EI) at binding 26.
+//
+// Dispatched once per window BEFORE the PDE step.
+// Non-destructive: existing shaders ignore these buffers.
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Constants ──
+#define PHI            1.618033988749895
+#define PHI_INV        0.618033988749895
+#define PHI2           2.618033988749895   // φ²
+#define PHI_INV2       0.381966011250105   // φ⁻²
+
+#define DIM            128
+#define N_VOXELS       4096
+#define VOXEL_STRIDE   (DIM * 2)           // 256 (real+imag interleaved)
+
+// ── Buffer bindings (std430) ──
+layout(std430, binding = 0)  buffer PsiBuf      { float psi[]; };
+layout(std430, binding = 25) buffer RatioField  { float ratio_field[]; };   // [N_VOXELS * 3]: r, q, gate
+layout(std430, binding = 26) buffer EnergyField { float energy_field[]; };  // [N_VOXELS * 2]: EY, EI
+
+// ── Workgroup: one invocation per voxel ──
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+    uint n = gl_GlobalInvocationID.x;  // voxel index [0, N_VOXELS-1]
+    if (n >= N_VOXELS) return;
+
+    uint base = n * VOXEL_STRIDE;  // n * 256
+
+    // ── Accumulate Yang (real) and Yin (imag) energy across all 128 dims ──
+    float EY = 0.0;
+    float EI = 0.0;
+
+    for (uint d = 0u; d < DIM; d++) {
+        uint off = base + d * 2u;
+        float real_val = psi[off];
+        float imag_val = psi[off + 1u];
+        EY += real_val * real_val;
+        EI += imag_val * imag_val;
+    }
+
+    // ── Two-fluid scalar diagnostics ──
+    float r = EY / max(EI, 1e-10);
+    float sum = EY + EI + 1e-10;
+    float q  = (EY - PHI * EI) / sum;
+    q = clamp(q, -1.0, 1.0);
+    float gate = q / (PHI2 + q * q + 1e-10);
+
+    // ── Write to output buffers ──
+    uint rbase = n * 3u;
+    ratio_field[rbase + 0u] = r;
+    ratio_field[rbase + 1u] = q;
+    ratio_field[rbase + 2u] = gate;
+
+    uint ebase = n * 2u;
+    energy_field[ebase + 0u] = EY;
+    energy_field[ebase + 1u] = EI;
+}

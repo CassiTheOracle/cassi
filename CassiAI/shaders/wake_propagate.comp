@@ -1,0 +1,116 @@
+#version 460
+
+// ═══════════════════════════════════════════════════════════════════
+// wake_propagate.comp — Wake-wave propagation of ε_fluid along H
+//
+// ε_fluid = EY − φ·EI is the conversion-driving imbalance.
+// It propagates along the H axis (string/spine) as a wake wave,
+// advected by the gradient of self-prediction pressure:
+//   v_H = -κ · ∂p/∂h,  κ = φ⁻¹,  p = |ε_selfpred|²
+//
+// Neumann boundaries at h=0 and h=15 (zero flux — reflective).
+//
+// Wake amplitude modulates conversion in nonlinear_step:
+//   conv *= (1 + wake_amp · φ⁻¹)
+// creating the self-plucking feedback loop:
+//   ε → wake → ∇Φ → flow → δr → ε
+//
+// Inputs:  energy_field (b26): [EY, EI] per voxel → ε_fluid
+//          eps_memory    (b17): per-voxel |ε_selfpred|² → pressure
+//          grad_h        (b2):  H-axis gradient (for velocity)
+// Output:  wake_field    (b33): per-voxel wake amplitude
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Constants ──
+#define PHI       1.618033988749895
+#define PHI_INV   0.618033988749895
+#define H         16
+#define W         16
+#define D         16
+#define N_VOXELS  4096
+#define STRIDE_W  D             // 16
+#define STRIDE_H  (D * W)       // 256
+
+// ── Buffer bindings (std430) ──
+layout(std430, binding = 2)  buffer GradHBuf      { float grad_h[]; };
+layout(std430, binding = 17) buffer EpsMemoryBuf  { float eps_memory[]; };
+layout(std430, binding = 26) buffer EnergyField   { float energy_field[]; };  // [EY, EI] per voxel
+layout(std430, binding = 33) buffer WakeField     { float wake_field[]; };    // [N_VOXELS]
+
+// ── Workgroup: one per voxel ──
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+    uint n = gl_GlobalInvocationID.x;
+    if (n >= N_VOXELS) return;
+
+    // ── Voxel coordinates ──
+    uint h = n % H;     // H is fastest-varying (string axis)
+    uint w = (n / H) % W;
+    uint d_u = n / (H * W);
+
+    // ── ε_fluid = EY − φ·EI ──
+    float EY = energy_field[n * 2u];
+    float EI = energy_field[n * 2u + 1u];
+    float eps_fluid = EY - PHI * EI;
+
+    // ── Self-prediction pressure p = |ε_selfpred|² ──
+    float p = eps_memory[n];
+    if (p != p) p = 0.0;  // NaN guard
+
+    // ── Pressure gradient along H (central difference with boundary fallback) ──
+    float dp = 0.0;
+    if (h > 0u && h < 15u) {
+        // Central difference
+        float p_next = eps_memory[n + 1u];
+        float p_prev = eps_memory[n - 1u];
+        if (p_next != p_next) p_next = 0.0;
+        if (p_prev != p_prev) p_prev = 0.0;
+        dp = (p_next - p_prev) * 0.5;
+    } else if (h > 0u) {
+        // Backward difference (h=15, far edge)
+        float p_prev = eps_memory[n - 1u];
+        if (p_prev != p_prev) p_prev = 0.0;
+        dp = p - p_prev;
+    } else if (h < 15u) {
+        // Forward difference (h=0, near edge)
+        float p_next = eps_memory[n + 1u];
+        if (p_next != p_next) p_next = 0.0;
+        dp = p_next - p;
+    }
+
+    // ── Velocity: v_H = -κ · ∂p/∂h, κ = φ⁻¹ ──
+    float kappa = PHI_INV;
+    float v_H = -kappa * dp;
+
+    // ── Upwind advection of ε_fluid along H ──
+    float eps_upwind;
+    if (v_H > 0.0) {
+        // Flow rightward: ε comes from h-1
+        if (h > 0u) {
+            float EY_prev = energy_field[(n - 1u) * 2u];
+            float EI_prev = energy_field[(n - 1u) * 2u + 1u];
+            eps_upwind = EY_prev - PHI * EI_prev;
+        } else {
+            eps_upwind = eps_fluid;  // Neumann: no flux from boundary
+        }
+    } else {
+        // Flow leftward: ε comes from h+1
+        if (h < 15u) {
+            float EY_next = energy_field[(n + 1u) * 2u];
+            float EI_next = energy_field[(n + 1u) * 2u + 1u];
+            eps_upwind = EY_next - PHI * EI_next;
+        } else {
+            eps_upwind = eps_fluid;  // Neumann: no flux from boundary
+        }
+    }
+
+    // ── Wake amplitude: φ-damped blend of advected ε ──
+    // wake_t = PHI_INV·ε_fluid + (1-PHI_INV)·ε_upwind  (simple damping)
+    float wake = PHI_INV * eps_fluid + (1.0 - PHI_INV) * eps_upwind;
+
+    // ── NaN guard ──
+    if (wake != wake) wake = 0.0;
+
+    wake_field[n] = wake;
+}

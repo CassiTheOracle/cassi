@@ -1,0 +1,78 @@
+#version 460
+
+// ═══════════════════════════════════════════════════════════════════
+// condensate_field.comp — 13 chakra-bubble superposition
+//
+// Each chakra is its own bubble (2-rung spacing along the cascade).
+// Each chakra-bubble has two poles with a local P5 standing wave.
+// The total B-field is the superposition (max) of all 13 bubbles.
+//
+// Chakra positions (CHAKRA_H) are the bubble centers along the spine.
+// Each chakra-bubble radius = 1.5 voxels (φ-scaled with cascade rung).
+//
+// writes B[n] to condensate_B buffer (binding 28). One per voxel.
+// ═══════════════════════════════════════════════════════════════════
+
+#define PHI    1.618033988749895
+#define N_VOXELS 4096
+
+layout(std430, binding = 28) buffer CondensateB { float B_field[]; };  // [N_VOXELS]
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+    uint n = gl_GlobalInvocationID.x;
+    if (n >= N_VOXELS) return;
+
+    uint h = n % 16u;
+    uint w = (n / 16u) % 16u;
+    uint d_u = n / 256u;
+
+    // ── Chakra bubble centers along the spine ──
+    const int CHAKRA_H[13] = int[](1,2,3,4,5,7,8,9,10,11,12,14,15);
+
+    // ── W-D plane coordinates (shared by all chakra bubbles) ──
+    float wc = (float(w) - 7.5) / 4.0;
+    float dc = (float(d_u) - 7.5) / 4.0;
+    float wp = wc / PHI;                     // Yang axis stretched (φ-ellipsoid cross-section)
+    float r2 = wp * wp + dc * dc;
+
+    // ── Superposition: max B over all 13 chakra bubbles ──
+    float B_max = 0.0;
+    float B_max_signed = 0.0;  // preserve sign of strongest contributor
+
+    for (int c = 0; c < 13; c++) {
+        float pos_c = float(CHAKRA_H[c]);
+
+        // Normalized H-distance from chakra center ([-1, 1] within bubble radius)
+        float radius = 2.0;  // bubble half-extent in voxels
+        float dh = (float(h) - pos_c) / radius;  // [-1, 1] within bubble
+
+        // Only contribute if within bubble extent
+        float abs_dh = (dh > 0.0 ? dh : -dh);
+        if (abs_dh > 1.0) continue;
+
+        // ── Local P5 standing wave within this chakra bubble ──
+        float h2 = dh * dh;
+        float h3 = h2 * dh;
+        float h5 = h3 * h2;
+        float P5 = (63.0 * h5 - 70.0 * h3 + 15.0 * dh) / 8.0;
+
+        // ── Radial envelope: Gaussian around chakra center in W-D plane ──
+        float plane_env = exp(-r2 * 0.5);
+
+        float B_c = P5 * plane_env;
+
+        // ── Track maximum absolute value ──
+        float abs_Bc = (B_c > 0.0 ? B_c : -B_c);
+        if (abs_Bc > B_max) {
+            B_max = abs_Bc;
+            B_max_signed = B_c;
+        }
+    }
+
+    // NaN guard
+    if (B_max_signed != B_max_signed) B_max_signed = 0.0;
+
+    B_field[n] = B_max_signed;
+}

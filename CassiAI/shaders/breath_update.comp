@@ -1,0 +1,39 @@
+#version 460
+
+// ──────────────────────────────────────────────
+// breath_update.comp — Per-band phase evolution
+// Advances 13 band phases at φ-scaled frequencies.
+// ──────────────────────────────────────────────
+
+layout(local_size_x = 64) in;
+
+layout(std430, binding = 23) buffer BandPhase { float phase[]; };
+layout(std430, binding = 6) buffer ParamsBuf  { float params[]; };
+
+layout(push_constant) uniform PushConstants {
+    float dt;
+    uint  pass;
+    float breath_t;
+    uint  target_byte;
+    float lr;
+    float qi_target;
+    int   pads[5];
+} pc;
+
+#define N_BANDS 13
+#define PHI_INV 0.618033988749895
+#define TWO_PI 6.283185307179586
+
+void main() {
+    uint b = gl_GlobalInvocationID.x;
+    if (b >= N_BANDS) return;
+
+    // φ-scaled frequency: ω_c = ω_0 · φ⁻ᶜ
+    // Root (c=0) fastest, crown (c=6) slower, sub-bands (c=7-12) slowest
+    float omega0 = 1.0;
+    float freq = omega0 * pow(PHI_INV, float(b));
+    phase[b] += freq * pc.dt;
+
+    // Wrap to [0, 2π)
+    if (phase[b] > TWO_PI) phase[b] -= TWO_PI;
+}

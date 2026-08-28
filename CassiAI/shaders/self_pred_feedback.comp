@@ -1,0 +1,57 @@
+#version 460
+#extension GL_EXT_control_flow_attributes : enable
+
+// ═══════════════════════════════════════════════════════════════════
+// self_pred_feedback.comp — Field-space self-prediction feedback
+//
+// Implements the α·P[ψ] coupling term from Qi fluid formalism §2.3:
+//   ψ_{t+1} = Φ_γ(ψ_t, ψ_{t-1}) + S_t + α · ψ̂_{t+1}
+//
+// where ψ̂ = ψ_pred (from field_predict.comp, binding 30) is the
+// field's own prediction of its next state.
+//
+// Feedback: ψ += α · (ψ_pred − ψ)
+// = field nudges itself toward its prediction, with α controlling
+// the coupling strength (α = φ⁻¹ is the critical point).
+//
+// Replaces the old byte-space feedback that mixed byte embeddings
+// into the field. Now the field predicts ITSELF, not the next byte.
+//
+// One invocation per (voxel, dim) — same dispatch as PDE.
+// ═══════════════════════════════════════════════════════════════════
+
+layout(local_size_x = 64) in;
+
+// ── Constants ──
+#define DIM          128
+#define N_VOXELS     4096
+#define VOXEL_STRIDE (DIM * 2)
+
+// ── Buffer bindings (std430) ──
+layout(std430, binding = 0)  buffer PsiBuf      { float psi[]; };
+layout(std430, binding = 6)  buffer ParamsBuf   { float params[]; };
+layout(std430, binding = 30) buffer PsiPredBuf  { float psi_pred[]; };  // ψ̂ from field_predict
+
+void main() {
+    // ── Early-out: α ≤ 0 means feedback is disabled ──
+    float alpha = params[7];
+    if (alpha <= 0.0) return;
+
+    uint idx = gl_GlobalInvocationID.x;
+    uint total = N_VOXELS * VOXEL_STRIDE;
+    if (idx >= total) return;
+
+    float cur   = psi[idx];       // ψ_t (post-PDE)
+    float pred  = psi_pred[idx];  // ψ̂_t (from field_predict)
+
+    // NaN guard on uninitialized buffers
+    if (cur != cur)  cur  = 0.0;
+    if (pred != pred) pred = 0.0;
+
+    // Field-space feedback: ψ_t += α · (ψ̂_t − ψ_t)
+    // Positive α: field is attracted to its prediction (the prediction
+    //   reshapes the field to match what it expected)
+    // At α = φ⁻¹: critical coupling — field and prediction co-oscillate
+    //   (the Qi paradox: no stable fixed point)
+    psi[idx] = cur + alpha * (pred - cur);
+}

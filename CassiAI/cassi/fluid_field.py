@@ -1,0 +1,285 @@
+#!/usr/bin/env python3
+"""FluidField — PDE-based neural field replacing IIR + diffusion + Qi.
+
+Single complex field ψ ∈ ℂ^{B×N×d} evolved via split-step spectral integration
+of the master PDE:
+
+    ∂ψ/∂t = -φ⁻¹(ψ·∇)ψ + ν∇²ψ - (ℏ²/2m²)∇(∇²|ψ|^{φ⁻¹}/|ψ|^{φ⁻¹})
+            + g|ψ|²ψ + A_B·(yang - φ⁻¹·yin)·ψ + S(x, t)
+
+    advection   diffusion   quantum potential (Simeonov+φ)   condensation   breath   source
+
+All 6 coefficients are learnable scalars activated through bounded functions.
+"""
+
+import math
+
+import torch
+import torch.nn as nn
+
+from cassi._chakra_utils import PHI, PHI_INV, chakra_offsets
+
+
+class FluidField(nn.Module):
+    """Single-field PDE integrator replacing ResonantField IIR + diffusion + Qi.
+
+    State: one complex field ψ ∈ ℂ^{B×N×d} (persistent buffer).
+    Integration: split-step spectral (Strang) with T/dt steps.
+
+    Args:
+        d: Field dimension per position.
+        C: Number of chakras (always 13).
+        N: Number of spatial positions (token sequence length).
+        max_batch_size: Maximum batch size for persistent buffer.
+    """
+
+    def __init__(self, d: int, C: int = 13, N: int = 128, max_batch_size: int = 64,
+                 use_phi_qp: bool = True):
+        super().__init__()
+        self.d = d
+        self.C = C
+        self.N = N
+        self.max_batch_size = max_batch_size
+        self.use_phi_qp = use_phi_qp
+
+        # ── Equal chakra widths ──
+        base = d // C
+        rem = d - base * C
+        widths = [base + 1 if c < rem else base for c in range(C)]
+        self.widths = widths
+        offsets = chakra_offsets(widths)
+        self.register_buffer("chakra_offsets", offsets.clone())
+        self._chakra_start_end = [
+            (int(offsets[c].item()), int(offsets[c].item()) + widths[c])
+            for c in range(C)
+        ]
+
+        # ── FFT wavenumbers ──
+        # For full complex FFT (advection, linear step): [N]
+        freq_fft = torch.fft.fftfreq(N) * (2.0 * math.pi)  # k = 2π·f
+        self.register_buffer("k_pos_fft", freq_fft)  # [N]
+        # For real-input rFFT (quantum potential): [N//2+1]
+        k_pos_rfft = 2.0 * math.pi * torch.arange(N // 2 + 1, dtype=torch.float) / N
+        self.register_buffer("k_pos_rfft", k_pos_rfft)  # [N//2+1]
+
+        # ── Uniform wavenumber scale (all chakras equally important) ──
+        k_chakra = torch.ones(d)
+
+        # ── Laplacian eigenvalues ──
+        k2_fft = freq_fft ** 2  # [N]
+        k2_rfft = k_pos_rfft ** 2  # [N//2+1]
+        # For rfft (real inputs): [N//2+1, d]
+        laplacian_eigvals_rfft = k2_rfft.unsqueeze(-1) * k_chakra.unsqueeze(0)
+        self.register_buffer("laplacian_eigvals_rfft", laplacian_eigvals_rfft)
+        # For fft (complex inputs): [N, d]
+        laplacian_eigvals_fft = k2_fft.unsqueeze(-1) * k_chakra.unsqueeze(0)
+        self.register_buffer("laplacian_eigvals_fft", laplacian_eigvals_fft)
+
+        # ── Learnable PDE coefficients ──
+        # Each logit is activated through sigmoid/tanh for bounded range.
+        self.nu_logit = nn.Parameter(torch.tensor(-4.6))       # sigmoid × 0.1 → ~0.01
+        self.hbar_logit = nn.Parameter(torch.tensor(-2.3))     # sigmoid → ~0.1
+        self.mass_logit = nn.Parameter(torch.tensor(2.3))      # sigmoid × 99 + 1 → ~10
+        self.g_logit = nn.Parameter(torch.tensor(-2.2))        # tanh × 0.5 → ~0.1
+        self.chi_logit = nn.Parameter(torch.tensor(-2.9))      # sigmoid × 0.2 → ~0.05
+        self.A_B_logit = nn.Parameter(torch.tensor(-2.3))      # sigmoid × 0.5 → ~0.1
+        self.advection_logit = nn.Parameter(torch.zeros(self.C))  # sigmoid → [0, 1] per chakra
+        # ── One complex field state (persistent, no gradient) ──
+        self.register_buffer("psi",
+                             torch.zeros(max_batch_size, N, d, dtype=torch.cfloat))
+
+    # ── Parameter access ──
+
+    def get_params(self):
+        """Return activated PDE coefficients as a dict of scalars."""
+        nu = torch.sigmoid(self.nu_logit) * 0.1
+        hbar = torch.sigmoid(self.hbar_logit)
+        mass = torch.sigmoid(self.mass_logit) * 99.0 + 1.0
+        g = torch.tanh(self.g_logit) * 0.5
+        chi = torch.sigmoid(self.chi_logit) * 0.2
+        A_B = torch.sigmoid(self.A_B_logit) * 0.5
+        return {"nu": nu, "hbar": hbar, "mass": mass,
+                "g": g, "chi": chi, "A_B": A_B}
+
+    # ── State management ──
+
+    def reset_state(self):
+        """Clear persistent field state."""
+        self.psi.zero_()
+
+    # ── PDE terms ──
+
+    def _quantum_potential(self, rho, hbar, mass):
+        """Simeonov quantum potential with φ-modified density.
+
+        Q = -(ℏ²/2m²) · ∇(∇²(ρ^{φ⁻¹/2}) / ρ^{φ⁻¹/2})
+
+        Computed via spectral method.  φ-amp is real-valued, so we use rfft.
+
+        Args:
+            rho: |ψ|², shape [B, N, d].
+            hbar: Effective Planck constant (scalar).
+            mass: Effective mass (scalar).
+
+        Returns:
+            grad_q: ∂Q/∂x, shape [B, N, d].
+        """
+        # φ-modified amplitude: |ψ|^{φ⁻¹} or standard |ψ|^{1/2}
+        exponent = PHI_INV / 2.0 if self.use_phi_qp else 0.5
+        phi_amp = rho ** exponent  # [B, N, d] real
+        amp_k = torch.fft.rfft(phi_amp, dim=1)  # [B, N//2+1, d]
+        laplacian_amp = torch.fft.irfft(
+            -self.laplacian_eigvals_rfft * amp_k, n=self.N, dim=1
+        )  # [B, N, d] real
+
+        # Q_scalar = -ℏ²/(2m²) × ∇²(φ-amp) / φ-amp
+        q_scalar = (
+            -(hbar ** 2) / (2.0 * mass ** 2)
+            * laplacian_amp / phi_amp.clamp_min(1e-12)
+        )  # [B, N, d] real
+
+        # Gradient of Q (the force on ψ)
+        q_k = torch.fft.rfft(q_scalar, dim=1)  # [B, N//2+1, d]
+        grad_q = torch.fft.irfft(
+            1j * self.k_pos_rfft.unsqueeze(-1) * q_k, n=self.N, dim=1
+        )  # [B, N, d] real
+
+        return grad_q
+
+    def _advection(self, psi):
+        """Nonlinear advection with per-chakra strength.
+
+        Each chakra learns how much to mix spatially: high strength →
+        information propagates to neighbors (long-range context).
+        Low strength → stays local (fine detail preserved).
+
+        Formula: -φ⁻¹ · s(ch) · (ψ·∇)ψ where s(ch) ∈ (0, 1) per chakra.
+
+        Args:
+            psi: Complex field [B, N, d].
+
+        Returns:
+            Advection term [B, N, d] complex.
+        """
+        device = psi.device
+        psi_k = torch.fft.fft(psi, dim=1)  # [B, N, d] complex
+        grad_psi = torch.fft.ifft(
+            1j * self.k_pos_fft.unsqueeze(-1) * psi_k, n=self.N, dim=1
+        )  # [B, N, d] complex
+
+        # Per-chakra advection strength: sigmoid → each chakra ∈ (0, 1)
+        strength = torch.sigmoid(self.advection_logit)  # [C]
+        s = torch.ones(self.d, device=device)
+        for c in range(self.C):
+            start, end = self._chakra_start_end[c]
+            s[start:end] = strength[c]
+
+        advection = psi * grad_psi  # (ψ·∇)ψ
+        return -PHI_INV * s * advection
+
+    def _breath_force(self, step, n_steps, phase_offset, psi):
+        """Periodic forcing with φ:φ⁻¹ frequency ratio.
+
+        Yang phase (freq=1): fast expansion / energy injection.
+        Yin phase (freq=φ⁻¹): slow contraction / density equalization.
+
+        Net: slight Yang dominance (×φ) prevents energy collapse.
+
+        Args:
+            step: Current integration step index.
+            n_steps: Total integration steps.
+            phase_offset: Phase offset from persistent breath phase.
+            psi: Current field [B, N, d] (for amplitude modulation).
+
+        Returns:
+            Breath forcing term [B, N, d] complex.
+        """
+        device = psi.device
+        t = step / n_steps + phase_offset
+        t_tensor = torch.tensor(t, device=device)
+        yang = 0.5 * (1.0 + torch.sin(2.0 * math.pi * t_tensor))
+        yin = 0.5 * (1.0 + torch.sin(2.0 * math.pi * t_tensor * PHI_INV))
+        A_B = torch.sigmoid(self.A_B_logit) * 0.5
+        force = A_B * (yang - PHI_INV * yin)
+        return force * psi
+
+    # ── Integration ──
+
+    def integrate(self, source, T=1.0, dt=0.2, breath_phase=0.0):
+        """Split-step spectral integration of the master PDE.
+
+        Strang splitting: half-step nonlinear (real space) → full-step linear
+        (Fourier space) → half-step nonlinear (real space).
+
+        Args:
+            source: Source term S(x, t) [B, N, d] complex (embedded tokens).
+            T: Total integration time (default 1.0 → 5 steps at dt=0.2).
+            dt: Time step size.
+            breath_phase: Phase offset for breath oscillator (from persistent
+                          phase buffer on FluidCord).
+
+        Returns:
+            psi_T: Complex field [B, N, d] after integration.
+        """
+        B = source.shape[0]
+        device = source.device
+
+        # Clone persistent field state (preserves buffer for next call)
+        psi = self.psi[:B].clone().to(device)
+
+        # Unpack parameters
+        params = self.get_params()
+        nu = params["nu"]
+        hbar = params["hbar"]
+        mass = params["mass"]
+        g = params["g"]
+        chi = params["chi"]
+
+        n_steps = int(T / dt)
+        k = self.k_pos_fft.unsqueeze(-1)  # [N, 1]
+
+        for step in range(n_steps):
+            # ── Half-step: nonlinear terms (real space) ──
+            rho = psi.abs() ** 2  # [B, N, d] real
+            qp = self._quantum_potential(rho, hbar, mass)  # real
+            advection = self._advection(psi)  # complex
+            nonlinear = g * rho * psi  # complex
+            breath = self._breath_force(step, n_steps, breath_phase, psi)  # complex
+            psi = psi + 0.5 * dt * (advection + qp + nonlinear + breath + source)
+
+            # ── Clamp before FFT (prevents ROCm HSA exceptions from large values) ──
+            psi = torch.complex(
+                torch.clamp(psi.real, -1e3, 1e3),
+                torch.clamp(psi.imag, -1e3, 1e3),
+            )
+
+            # ── Full-step: linear terms (Fourier space) ──
+            psi_k = torch.fft.fft(psi, dim=1)  # [B, N, d] complex
+            # Linear propagator: diffusion (real) + chirality (imag)
+            # ψ_k = exp(dt·(-νk² + iχk)) · ψ_k
+            propagator = torch.exp(
+                dt * (-nu * self.laplacian_eigvals_fft + 1j * chi * k)
+            )  # [N, d] complex
+            psi_k = psi_k * propagator
+            psi = torch.fft.ifft(psi_k, n=self.N, dim=1)
+
+            # ── Half-step: nonlinear terms again (Strang symmetric) ──
+            rho = psi.abs() ** 2
+            qp = self._quantum_potential(rho, hbar, mass)
+            advection = self._advection(psi)
+            nonlinear = g * rho * psi
+            psi = psi + 0.5 * dt * (advection + qp + nonlinear + breath + source)
+
+            # ── Clamp after nonlinear half-step (prevents NaN entering normalization) ──
+            psi = torch.complex(
+                torch.clamp(psi.real, -1e3, 1e3),
+                torch.clamp(psi.imag, -1e3, 1e3),
+            )
+
+            # ── Normalization (per-position max, preserves relative amplitudes) ──
+            psi = psi / psi.abs().max(dim=-1, keepdim=True).values.clamp_min(1e-8)
+
+        # Store final state back to persistent buffer
+        self.psi[:B] = psi.detach().clone()
+
+        return psi
