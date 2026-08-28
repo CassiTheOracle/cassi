@@ -1,0 +1,45 @@
+{
+  "name": "@cassicore/lamina-locus-bridge",
+  "version": "0.1.0",
+  "description": "Lamina field/store + locus bridge extracted from CassiCore. LaminaField/LaminaStore (persistent lamina with provenance via a vendored audit runtime), plus the locus-bridge context curator/history scorer/window assembler/spark extractor. History-preserved import splice; depends on @cassicore/foundation and vendored runtime/type stubs pending later phases.",
+  "type": "module",
+  "main": "./dist/lamina/index.js",
+  "types": "./dist/lamina/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/lamina/index.d.ts",
+      "import": "./dist/lamina/index.js"
+    },
+    "./lamina": {
+      "types": "./dist/lamina/index.d.ts",
+      "import": "./dist/lamina/index.js"
+    },
+    "./locus-bridge": {
+      "types": "./dist/locus-bridge/index.d.ts",
+      "import": "./dist/locus-bridge/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@cassicore/foundation": "*",
+    "better-sqlite3": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

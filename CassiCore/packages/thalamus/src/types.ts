@@ -1,0 +1,656 @@
+import type { CorticalSignal, SignalType, Affect } from '@cassicore/cortex-pineal-dialectic'
+import type { CognitiveSignal, SystemLuminanceScore } from './vendor/core/intelligence/workspace/cognitive-signal.js'
+import type { BridgeFocus } from './vendor/core/intelligence/locus-bridge/types.js'
+
+
+
+/** The five slot types, one per message category */
+export type MessageSlotType = 'user' | 'tool_call' | 'tool_result' | 'assistant' | 'system'
+
+/**
+ * Why a message was force-included by the curator regardless of luminance.
+ *
+ * Resolution priority when multiple apply: pin > live-read > system > recent-window.
+ * (A pinned message in the recent window is reported as `pin` because the pin is
+ * the durable reason — it would survive even outside the window.)
+ *
+ * - `pin`           explicit pin (user pattern, AskUserQuestion answer, loop-detection auto-pin, <pin> thought-command)
+ * - `live-read`     latest read of a file not yet written to since (reason = file path)
+ * - `system`        system-slot message; slot budget is uncapped
+ * - `recent-window` last N messages (configured by recentWindowSize, adaptive)
+ */
+export type ProtectionSource = 'pin' | 'recent-window' | 'live-read' | 'system'
+
+/** Tool-level metadata attached by ToolCallSlot and ToolResultSlot */
+export interface ThalamusToolMeta {
+  /** Resolved tool name (e.g. 'bash', 'read') */
+  name: string
+  /** High-level class (e.g. 'shell', 'fs', 'memory', 'orchestration') */
+  class: string
+  /** Wall-clock execution time in ms (tool_result only) */
+  durationMs: number
+  /** Raw output byte count (tool_result only) */
+  outputBytes: number
+  /** Whether the tool reported an error */
+  isError: boolean
+}
+
+/** Temporal context computed during curation from the TemporalRegistry */
+export interface ThalamusTemporalContext {
+  /** Milliseconds since the previous message */
+  msSincePrevious: number
+  /** Milliseconds since the last user message */
+  msSinceLastUser: number
+  /** Milliseconds since the session started */
+  sessionElapsedMs: number
+}
+
+/**
+ * Structured annotation attached to every message as `msg._thalamus`.
+ * Written at processing time (when the message arrives), enriched with
+ * temporal context at curation time.
+ */
+export interface ThalamusAnnotation {
+  /** ISO 8601 UTC timestamp when the message was processed */
+  ts: string
+  /** Which slot processed this message */
+  slot: MessageSlotType
+  /** Character count of the original message content */
+  chars: number
+  /** Tool metadata (present on tool_call and tool_result messages) */
+  tool?: ThalamusToolMeta
+  /** Temporal context (populated lazily during curation) */
+  temporal?: ThalamusTemporalContext
+  /** Whether this is a code-heavy assistant message */
+  hasCode?: boolean
+  /** Source tag for system messages (e.g. 'pineal', 'context-injection') */
+  source?: string
+  /**
+   * If true, the message is force-included during assembly regardless of luminance.
+   * Set during processAll for AskUserQuestion answers (which carry standing user
+   * directives) and may be set explicitly via the cassi_context tool.
+   */
+  pinned?: boolean
+  /** Why the message was pinned — used in drop receipts and audit output */
+  pinReason?: string
+  /** Pin priority for hard-budget trimming: critical > high > normal */
+  pinPriority?: 'critical' | 'high' | 'normal'
+  /** If true, thought-commands in this message have already been processed */
+  tcProcessed?: boolean
+  /**
+   * Set during curate() when the message was force-included independently of
+   * its luminance score. Read by the drop receipt and the cassi_context.map
+   * action so Cassi can see why each visible message survives.
+   *
+   * Distinct from `pinned`: a pinned message has `protectedBy='pin'`, but
+   * recent-window / live-read / system messages also need a tag and were
+   * previously indistinguishable from "kept by high luminance" in the audit
+   * surface. See ProtectionSource for the categories.
+   */
+  protectedBy?: ProtectionSource
+  /**
+   * Free-form reason — file path for live-read, pin-pattern id or auto-pin
+   * trigger ('askuserquestion-answer', 'loop-detection') for pin, source tag
+   * for system. Empty when protectedBy is undefined.
+   */
+  protectedReason?: string
+  /**
+   * Original index into the session's full message array. Stable across curate
+   * passes — this is the durable ID used by drop/collapse directives and
+   * displayed in inline markers as `#N`.
+   */
+  index?: number
+  /** Set when a Cassi-issued drop directive matches this message in the current pass. */
+  directiveDropped?: boolean
+  /** Set when a Cassi-issued collapse directive replaced this message's content. */
+  directiveCollapsed?: boolean
+  /** Summary text that replaced the original content when collapsed. */
+  directiveSummary?: string
+}
+
+/** Context passed to slot.augment() during real-time processing */
+export interface SlotContext {
+  /** Current ISO 8601 timestamp */
+  timestamp: string
+  /** When the session started */
+  sessionStart: string
+  /** Timestamp of the most recent user message, or null */
+  lastUserMessageAt: string | null
+  /** tool_use_id → { durationMs, outputBytes } recorded by the executor */
+  toolMetrics: Map<string, { durationMs: number; outputBytes: number }>
+  /** tool_use_id → tool name, built from preceding tool_use blocks */
+  toolUseMap: Map<string, string>
+  /** Timestamp of the immediately preceding message, or null */
+  previousMessageTs: string | null
+}
+
+/**
+ * Strategy interface for a message processing slot.
+ * One implementation per MessageSlotType.
+ */
+export interface MessageSlot {
+  readonly type: MessageSlotType
+
+  /**
+   * Does this message belong to this slot?
+   *
+   * `ctx` is optional so existing callers can pass it when available
+   * (e.g. classifyMessage in the thalamus pipeline) without forcing every
+   * synthetic test caller to construct one. UserSlot/ToolResultSlot use
+   * `ctx.toolUseMap` to identify question-tool answers.
+   */
+  matches(msg: any, ctx?: SlotContext): boolean
+
+  /** Attach type-specific metadata. Returns a new message with _thalamus. */
+  augment(msg: any, ctx: SlotContext): any
+
+  /** Type-specific compression during curation. Returns compressed message. */
+  compress(msg: any, annotation: ThalamusAnnotation, maxChars: number): any
+
+  /**
+   * Adjust luminance scores using typed metadata.
+   * Returns a new score with type-specific adjustments applied.
+   */
+  adjustScore(score: SystemLuminanceScore, annotation: ThalamusAnnotation): SystemLuminanceScore
+
+  /**
+   * Render a compact prefix for LLM-facing context.
+   * Returns empty string if no prefix is needed for this slot type.
+   */
+  renderPrefix(annotation: ThalamusAnnotation): string
+}
+
+/** Per-type budget fractions for curation assembly (must sum to ≤ 1.0) */
+export interface SlotBudgets {
+  user: number
+  tool_call: number
+  tool_result: number
+  assistant: number
+  system: number
+}
+
+export const DEFAULT_SLOT_BUDGETS: SlotBudgets = {
+  system: 1.0,        // always retained (budget is uncapped)
+  user: 0.40,         // instructions are king
+  tool_result: 0.30,  // ground truth from tools
+  assistant: 0.20,    // least credible, most compressible
+  tool_call: 0.10,    // mostly structural
+}
+
+
+
+export interface CurationConfig {
+  charBudget: number
+  recentWindowSize: number
+  toolResultMaxChars: number
+  ignitionThreshold: number
+  excludeSessionPrefixes: string[]
+  slotBudgets: SlotBudgets
+  distillationEnabled: boolean
+  distillationMinChars: number
+  distillationTargetChars: number
+  distillationChunkSize: number
+  /** Max distinct tool_use_id entries cached per session before FIFO eviction. */
+  distillationCacheMaxEntries: number
+}
+
+export const DEFAULT_CURATION_CONFIG: CurationConfig = {
+  charBudget: 80_000,
+  recentWindowSize: 8,
+  toolResultMaxChars: 1200,
+  ignitionThreshold: 0.20,
+  excludeSessionPrefixes: ['meditation:', 'module:', 'helix-review:'],
+  slotBudgets: DEFAULT_SLOT_BUDGETS,
+  distillationEnabled: true,
+  distillationMinChars: 5000,
+  distillationTargetChars: 2400,
+  distillationChunkSize: 400,
+  distillationCacheMaxEntries: 200,
+}
+
+export interface ScoredMessage {
+  messageIndex: number
+  luminance: SystemLuminanceScore
+  estimatedChars: number
+}
+
+export interface CurationMeta {
+  originalCount: number
+  curatedCount: number
+  originalChars: number
+  curatedChars: number
+  compressed: number
+  deduped: number
+  dropped: number
+  gapNotes: number
+  durationMs: number
+  /** Total messages distilled during this curation pass */
+  distilled: number
+  skipped?: boolean
+  reason?: string
+  receipt?: import('./drop-receipt.js').DropReceipt | null
+  /**
+   * Whether this curation invalidated the LLM prompt cache.
+   * Set true when messages were dropped or structurally changed.
+   * Content-only changes (tool result compression, distillation) set false.
+   * Callers use this to decide whether to rebuild the system prompt.
+   */
+  cacheInvalidated: boolean
+  /**
+   * Tool repetition warning — set when the same (tool, target) pair appears
+   * 3+ times in the conversation. The proxy injects this as a system block
+   * to break the agent out of a re-read/re-run loop.
+   */
+   repetitionWarning?: string
+  /**
+   * Topic summaries extracted from this curation pass.
+   * Populated when a CrossSessionTopicIndex is in use.
+   * Contains both active topic clusters and archived topics with their
+   * summaries, key terms, and importance scores.
+   */
+  topicSummaries?: TopicSummary[]
+}
+
+export interface CurationResult {
+  messages: any[]
+  meta: CurationMeta
+}
+
+/**
+ * A distilled summary of a topic cluster or archived topic, suitable
+ * for cross-session sharing via CrossSessionTopicIndex.
+ */
+export interface TopicSummary {
+  id: string
+  label: string
+  summary: string
+  status: 'active' | 'archived'
+  keyTerms: string[]
+  importanceScore: number
+  /** Files touched during this topic's work phase (from TopicArchiveStructured) */
+  filesTouched?: string[]
+}
+
+/**
+ * A topic cluster detected by sliding-window term-overlap analysis.
+ * Topic boundaries are inferred from sharp Jaccard drops at user-turn boundaries,
+ * giving us a rough segmentation of the conversation into distinct work phases.
+ */
+export interface TopicCluster {
+  /** Unique ID within the session (e.g. "topic-0", "topic-1") */
+  id: string
+  /** Human-readable label — LLM-generated async; undefined until populated */
+  label?: string
+  /** Message indices (into the curated message array) belonging to this cluster */
+  messageIndices: number[]
+  /** Union of extracted terms across all messages in this cluster */
+  termSet: Set<string>
+  /** One-to-two sentence summary — LLM-generated async; undefined until populated */
+  summary?: string
+  /** True while the async LLM label/summary call is in-flight */
+  asyncPending: boolean
+}
+
+/**
+ * A completed topic that has been summarized and moved to the archive.
+ * Summaries are used to enrich gap descriptions when a pruned segment
+ * spans a finished topic.
+ */
+export interface TopicArchive {
+  id: string
+  /** Short human-readable label (first sentence of summary, ≤50 chars) */
+  label: string
+  /** One-to-two sentence LLM summary of what happened in this topic */
+  summary: string
+  /** The message indices (from the time of archiving) that were in this topic */
+  originalIndices: number[]
+  /** Unix ms timestamp when the archive entry was written */
+  archivedAt: number
+  /** Top N key terms extracted from this topic's messages */
+  keyTerms: string[]
+  /** Structured fields parsed from the topic-archive LLM call. Empty when not yet populated or parse failed. */
+  structured?: TopicArchiveStructured
+}
+
+/**
+ * Structured payload extracted from the topic-archive LLM. Fields may be
+ * partially populated — the renderer skips empty fields rather than failing.
+ * The model is prompted to return tagged lines so partial output is still useful.
+ */
+export interface TopicArchiveStructured {
+  /** What the segment was attempting (intent, not summary of output) */
+  goal: string
+  /** Concrete decisions that should survive compaction */
+  decisions: string[]
+  /** Files touched in the segment, formatted as "path (status)" */
+  filesTouched: string[]
+  /** Unresolved questions or work that did not complete */
+  openThreads: string[]
+}
+
+/**
+ * A single per-message drop/keep decision from a curate() pass.
+ * Stored in CurationSession.dropHistory for cassi_context.audit/why.
+ */
+export interface DropRecord {
+  /** Opaque message identifier from the session */
+  msgIndex: number
+  /** Message role (user, assistant, tool_result, etc.) */
+  role: string
+  /** Luminance scores from the scorer */
+  luminance: {
+    novelty: number
+    urgency: number
+    relevance: number
+    sourceCredibility: number
+    cognitiveResonance: number
+    strategicImportance: number
+    composite: number
+  }
+  /** Whether this message was dropped or kept */
+  kept: boolean
+  /** Monotonically increasing curation pass counter */
+  curationPass: number
+  /** First ~80 chars of content for audit readability */
+  preview: string
+  /** Slot type the message was classified into */
+  slot: string
+  /** Whether this message was pinned (immune to scoring) */
+  pinned: boolean
+}
+
+/**
+ * An active pin pattern — matches messages by content substring or msgId.
+ * Messages matching any active pattern are treated as composite=1.0 by the scorer.
+ */
+export interface PinnedPattern {
+  id: string
+  /** Content substring or msgIndex-as-string to match */
+  target: string
+  /** Human-readable justification */
+  reason: string
+  /** ISO timestamp when pinned */
+  pinnedAt: string
+  /** Engram class for TTL decay (episode, decision, goal, anomaly, concern) */
+  pinClass: string
+}
+
+export interface IntentSpan {
+  /** Stable ID for this intent span */
+  id: string
+  /** Message indices belonging to this span (user + assistant context) */
+  messageIndices: number[]
+  /** Index of the substantive user message that anchors this span */
+  anchorIndex: number
+  /** When this span was created */
+  createdAt: number
+}
+
+export interface CurationSession {
+  sessionId: string
+  /** tool_use_id → tool name, accumulated across the session */
+  toolUseMap: Map<string, string>
+  /** tool_use_id → tool call data buffered until result arrives */
+  pendingToolCalls: Map<string, {
+    toolName: string
+    toolClass: string
+    input: Record<string, unknown>
+    messageIndex: number
+    timestamp: string
+  }>
+  lastCuratedAt: number
+  totalCurations: number
+  /** Topic clusters detected in the most recent curate() call */
+  topicClusters: TopicCluster[]
+  /**
+   * Completed topic archive. Entries are added asynchronously when a
+   * LLM topic-archive call resolves. Used to enrich gap descriptions.
+   */
+  topicArchive: TopicArchive[]
+  /** Intent spans detected in the most recent curate() call */
+  intentSpans: IntentSpan[]
+  /**
+   * Capped history of drop/keep decisions from recent curate() passes.
+   * Used by cassi_context.audit and cassi_context.why.
+   * Circular buffer — oldest entries pruned at MAX_DROP_HISTORY.
+   */
+  dropHistory: DropRecord[]
+  /** Scored messages from the most recent curate() pass */
+  lastScored: ScoredMessage[]
+  /** Threshold used in the most recent curate() pass */
+  lastThreshold: number
+  /** Active pinned patterns — messages matching these are immune */
+  pinnedPatterns: PinnedPattern[]
+  /** Log of thought-commands (<pin>, <recall>, <note>, <flag>) processed this session */
+  thoughtCommandLog: ThoughtCommandLogEntry[]
+  /**
+   * Per-turn cache for detectTopicClusters output. Skipping the O(n) term-set
+   * + sliding-window walk when the message array hasn't changed since the
+   * last curate() saves real time on long sessions. Invalidated by signature
+   * mismatch (count + last-message hash).
+   */
+  clusterCache?: {
+    messageCount: number
+    signature: string
+    clusters: TopicCluster[]
+  }
+  rerankerCache: RerankerCompressionCache
+  /**
+   * Cassi-issued directives consumed by curate(). Indices are stable
+   * original-session indices.
+   * dropDirectives: messages to force-exclude (treated as dropped, never assembled).
+   * collapseDirectives: messages whose content is replaced by `[collapsed: summary]`
+   *   so the position remains but the bulk shrinks.
+   */
+  dropDirectives: Set<number>
+  collapseDirectives: Map<number, string>
+}
+
+export interface RerankerChunk {
+  text: string
+  startLine: number
+  endLine: number
+  score: number
+  summary: string
+}
+
+export interface RerankerCacheEntry {
+  toolUseId: string
+  contentHash: string
+  originalContent: string
+  compressedContent: string
+  keptChunks: RerankerChunk[]
+  droppedChunks: RerankerChunk[]
+  totalChunks: number
+  originalChars: number
+  compressedChars: number
+  timestamp: number
+}
+
+export interface RerankerCompressionCache {
+  entries: Map<string, RerankerCacheEntry>
+}
+
+/**
+
+/**
+ * A cortical signal with pre-computed weight and extracted terms
+ * for efficient matching during message scoring.
+ */
+export interface WeightedSignal {
+  signal: CorticalSignal
+  /** Pre-computed composite weight from type × region × salience × confidence */
+  weight: number
+  /** Extracted terms for content matching */
+  terms: string[]
+}
+
+/**
+ * Structured index of cortex signals, categorized for efficient access
+ * during multi-axis scoring. Built once per curation call.
+ */
+export interface CortexIndex {
+  /** Signals grouped by type — concern, decision, insight, etc. */
+  byType: Partial<Record<SignalType, WeightedSignal[]>>
+  /** Signals grouped by region — executive, limbic, etc. */
+  byRegion: Partial<Record<string, WeightedSignal[]>>
+  /** Signals currently in session working memory */
+  workingMemory: WeightedSignal[]
+  /** High-salience signals (>0.6) */
+  highSalience: WeightedSignal[]
+  /** Negative-valence signals representing threats or concerns */
+  threats: WeightedSignal[]
+}
+
+/** Signal type importance for message scoring */
+export const SIGNAL_TYPE_WEIGHTS: Record<string, number> = {
+  concern: 1.5, anomaly: 1.5, decision: 1.3, insight: 1.3,
+  request: 1.2, action: 1.1, association: 1.0, perception: 0.8,
+}
+
+/** Cortex region importance for message scoring */
+export const REGION_WEIGHTS: Record<string, number> = {
+  executive: 1.4, limbic: 1.3, monitor: 1.2,
+  motor: 1.1, association: 1.0, sensory: 0.9,
+}
+
+
+/**
+ * A self-model retrieval result enriched with concept metadata
+ * for use in architectural relevance and novelty scoring.
+ */
+export interface SelfModelHit {
+  content: string
+  score: number
+  nodeType: string     // module, capability, pattern, principle, weakness
+  conceptName: string  // name extracted before " — " separator
+}
+
+
+export interface BrainContext {
+  foci: BridgeFocus[]
+  workspaceSignals: CognitiveSignal[]
+  focusTerms: Set<string>
+  focusFiles: Set<string>
+
+  cortexSignals: CorticalSignal[]
+  cortexIndex: CortexIndex
+  affectState: Affect | null
+  workingMemoryTerms: Set<string>
+
+  mnemonicTerms: Set<string>
+
+  architecturalTerms: Set<string>
+  architecturalConcepts: Set<string>
+  architecturalHits: SelfModelHit[]
+
+  pinealTerms: Set<string>
+  pinealPriorities: Map<string, number>
+
+  recentMessageTerms: Set<string>
+  recentMessageFiles: Set<string>
+
+  /**
+   * Phase transition coefficient (0.0 = total topic shift, 1.0 = same topic).
+   * When low, stale focus/cortex terms are down-weighted in relevance scoring
+   * so the thalamus doesn't keep resurfacing completed work phases.
+   */
+  phaseCoherence: number
+
+  /** Term → count of distinct topic archive clusters containing that term. Used by strategicImportance. */
+  topicArchiveTerms: Map<string, number>
+}
+
+export const MESSAGE_CREDIBILITY_PRIORS: Record<string, number> = {
+  'user': 0.90,
+  'user:tool_result': 0.70,
+  'assistant:tool_use': 0.65,
+  'assistant': 0.40,
+  'system': 0.20,
+}
+
+export interface CompressionConfig {
+  toolResultMaxChars: number
+}
+
+
+export type ThoughtCommandType = 'pin' | 'recall' | 'note' | 'flag'
+
+export interface PinCommand {
+  type: 'pin'
+  /** Content pattern to pin */
+  target: string
+  /** Why this was pinned */
+  reason?: string
+}
+
+export interface RecallCommand {
+  type: 'recall'
+  /** Search query for BM25 recall */
+  query: string
+  /** Optional context for the recall request */
+  context?: string
+}
+
+export interface NoteCommand {
+  type: 'note'
+  /** Intended recipient (e.g. 'reverie') */
+  recipient: string
+  /** The note message */
+  message: string
+}
+
+export interface FlagCommand {
+  type: 'flag'
+  /** Content being flagged as important */
+  content: string
+}
+
+export type ThoughtCommand = PinCommand | RecallCommand | NoteCommand | FlagCommand
+
+export interface ThoughtCommandLogEntry {
+  type: ThoughtCommandType
+  raw: string
+  timestamp: string
+  result?: string
+}
+
+const THOUGHT_CMD_RE = /<(?<type>pin|recall|note|flag)(?<attrs>[^>]*)>(?<body>[\s\S]*?)<\/\1>/g
+
+const ATTR_RE = /(?<key>\w+)="(?<value>[^"]*)"/g
+
+export function parseThoughtCommands(text: string): ThoughtCommand[] {
+  const commands: ThoughtCommand[] = []
+  let match: RegExpExecArray | null
+
+  THOUGHT_CMD_RE.lastIndex = 0
+  while ((match = THOUGHT_CMD_RE.exec(text)) !== null) {
+    const type = match.groups!.type as ThoughtCommandType
+    const body = match.groups!.body.trim()
+    const attrsRaw = match.groups!.attrs || ''
+
+    const attrs: Record<string, string> = {}
+    ATTR_RE.lastIndex = 0
+    let attrMatch: RegExpExecArray | null
+    while ((attrMatch = ATTR_RE.exec(attrsRaw)) !== null) {
+      attrs[attrMatch.groups!.key] = attrMatch.groups!.value
+    }
+
+    switch (type) {
+      case 'pin':
+        commands.push({ type: 'pin', target: body, reason: attrs.reason })
+        break
+      case 'recall':
+        commands.push({ type: 'recall', query: attrs.query || body, context: attrs.query ? body : undefined })
+        break
+      case 'note':
+        commands.push({ type: 'note', recipient: attrs.for || 'reverie', message: body })
+        break
+      case 'flag':
+        commands.push({ type: 'flag', content: body })
+        break
+    }
+  }
+
+  return commands
+}

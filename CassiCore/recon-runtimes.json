@@ -1,0 +1,108 @@
+{
+  "runtimes": [
+    {
+      "key": "core",
+      "via": "daemon/CLI/bin",
+      "seeds": [
+        "core/entry/index.ts",
+        "core/entry/daemon-main.ts",
+        "core/entry/supervisor.ts",
+        "core/daemon.ts",
+        "core/admin-api.ts",
+        "core/admin-api/index.ts",
+        "core/cli/index.ts",
+        "core/cli/cassicore.ts",
+        "core/commands.ts"
+      ],
+      "reachSize": 714
+    },
+    {
+      "key": "commands",
+      "via": "commands/index.ts + root bin",
+      "seeds": [
+        "commands/index.ts",
+        "commands/cassi-commands.ts",
+        "commands/cassicore-commands.ts",
+        "commands/git-commands.ts",
+        "commands/qwen-commands.ts",
+        "commands/team-commands.ts",
+        "commands/tool-commands.ts",
+        "commands/universal-processor.ts"
+      ],
+      "reachSize": 9
+    },
+    {
+      "key": "workers",
+      "via": "worker entry",
+      "seeds": [
+        "workers/echo-channel.ts"
+      ],
+      "reachSize": 11
+    },
+    {
+      "key": "mcp",
+      "via": "mcp gateway",
+      "seeds": [
+        "mcp/cassicore-gateway.ts",
+        "mcp/scip-server.ts",
+        "mcp/gitnexus-server.js",
+        "mcp/serena-server.js",
+        "mcp/gateway/agent-tools.ts",
+        "mcp/gateway/index.ts"
+      ],
+      "reachSize": 70
+    },
+    {
+      "key": "ai",
+      "via": "npm package ai (main dist/index.js)",
+      "seeds": [
+        "ai/src/index.ts",
+        "ai/src/cli.ts"
+      ],
+      "reachSize": 42
+    },
+    {
+      "key": "cassi-tui",
+      "via": "npm package cassi (bin cassi)",
+      "seeds": [
+        "cassi-tui/src/index.tsx"
+      ],
+      "reachSize": 27
+    },
+    {
+      "key": "cassi-watch",
+      "via": "npm package cassicore-watch",
+      "seeds": [
+        "cassi-watch/src/index.tsx"
+      ],
+      "reachSize": 10
+    },
+    {
+      "key": "webui",
+      "via": "next app webui",
+      "seeds": [
+        "webui/src/app/layout.tsx",
+        "webui/src/app/page.tsx"
+      ],
+      "reachSize": 2
+    },
+    {
+      "key": "prism",
+      "via": "vite app prism",
+      "seeds": [
+        "prism/src/main.tsx"
+      ],
+      "reachSize": 17
+    },
+    {
+      "key": "mind-plugin",
+      "via": "new migration plugin",
+      "seeds": [
+        "mind-plugin/src/index.ts",
+        "mind-plugin/src/mind-client.ts"
+      ],
+      "reachSize": 2
+    }
+  ],
+  "noop": 0
+}

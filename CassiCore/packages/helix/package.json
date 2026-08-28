@@ -1,0 +1,49 @@
+{
+  "name": "@cassicore/helix",
+  "version": "0.1.0",
+  "description": "Helix orchestration subsystem extracted from CassiCore: posture runners, brainstem, dialectic channel, and the helix pipeline. Standalone TypeScript ESM module; depends on @cassicore/foundation and vendored type stubs pending later phases.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:host-wired": "vitest run --config vitest.host-wired.config.ts",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@cassicore/aurora": "*",
+    "@cassicore/cortex-pineal-dialectic": "*",
+    "@cassicore/embeddings": "*",
+    "@cassicore/foundation": "*",
+    "@cassicore/lamina-locus-bridge": "*",
+    "@cassicore/mini-helix": "*",
+    "@cassicore/model-pool": "*",
+    "@cassicore/mnemic-field": "*",
+    "@cassicore/utils": "*",
+    "@cassicore/thalamus": "*",
+    "@cassicore/tools": "*",
+    "@cassicore/workspace": "*",
+    "better-sqlite3": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
