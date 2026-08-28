@@ -1,0 +1,165 @@
+# Recording Mode — background batch jobs (Godot 4 Movie Maker)
+
+Run RealSim (or any config) at high resolution as a background batch job:
+the console exe runs the engine as fast as possible at a fixed movie fps,
+Movie Maker captures the root viewport each rendered frame into an AVI
+(MJPEG), and the recorder scene quits itself when the frame count is
+reached. Leave it running and walk away.
+
+## Launch
+
+From `godot/space-sim`:
+
+```powershell
+powershell -File record.ps1 -Out myvideo.avi -Duration 60
+```
+
+Raw one-liner (same thing, no wrapper):
+
+```powershell
+& "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" --path . --write-movie myvideo.avi --fixed-fps 30 res://scenes/main_recorder.tscn -- --record-frames=1800 --record-fps=30
+```
+
+`record.ps1` parameters: `-Out` (default `recording.avi`), `-Fps` (30),
+`-Duration` (seconds, 30), `-Grid`, `-Particles`, `-Gravity`, `-Init`,
+`-Steps` (0 / -1 = leave the scene default), `-Aspect` (`x,y,z` — the
+per-axis box aspect, e.g. `1.618,1,2.618` for the theory φ-aspect box;
+empty = inherit from main.tscn), `-Scene`, `-Exe`.
+
+```powershell
+# φ-aspect box recording (the theory's incommensurate bubble-lattice
+# periods — GRID_LAYOUT.md; removes the cubic box-mode straight-line lock)
+powershell -File record.ps1 -Out phi_box.avi -Duration 60 -Aspect 1.618,1,2.618
+```
+
+## FPS and resolution (how it actually works)
+
+Movie Maker fixes the game loop at the movie fps, and both the fps and the
+AVI resolution are locked in at engine start, before any scene code runs:
+
+- **FPS** — `--fixed-fps N` is the mechanism (verified against the shipped
+  `main.cpp`: the value goes straight into `MovieWriter::begin()`; the AVI
+  stream header matches the requested rate, e.g. 30/40/60). A runtime
+  `ProjectSettings.set_setting("movie_writer/fps", ...)` has no effect on
+  the recording. Without `--fixed-fps`, Godot 4.7's Movie Maker defaults
+  to 60 fps.
+- **Resolution** — the movie size is read from the project settings
+  `display/window/size/viewport_width/height` at engine start. The window
+  size (`--resolution`, a runtime `get_window().size = ...`) does NOT
+  change the movie size, and the `window_width_override` pair comes out
+  DPI-scaled on Windows. So `record.ps1` temporarily patches those two
+  viewport settings in `project.godot` for the run and restores the file
+  afterwards (a `.recbak` from a crashed run is cleaned up on the next
+  launch).
+
+## Time-lapse math
+
+Per video frame the sim advances `min(max_steps_per_frame, dt_accum)`
+physics steps at `dt = 0.001` s:
+
+| fps | steps | sim time per video second |
+|-----|-------|---------------------------|
+| 30  | 16 (default) | 0.48 s (≈2× slow-motion) |
+| 30  | 60 (recorder scene default) | 1.0 s (real-time) |
+| 30  | 300 | 5 s (time-lapse) |
+
+Raise `-Steps` for longer time-lapse coverage per video second.
+
+## Batch job notes
+
+- Movie Maker runs as fast as the GPU allows: one Godot at a time on this
+  machine, and the window must stay open — it can be behind other windows,
+  but do not minimize it (Windows throttles rendering of minimized
+  windows).
+- `record.ps1` temporarily edits `project.godot` (viewport size) and
+  restores it after the run. If the Godot editor is open, it may pop a
+  "project settings changed externally" prompt — close the editor before
+  recording, or dismiss the prompt.
+- Progress goes to stdout: `[Recorder] frame N/M (sim t=…)` every 30
+  frames, then `[Recorder] done`. Exit code 0 means the AVI finalized.
+- The camera orbits the SPAWN REGION at a fixed elevation: the orbit center
+  is the cluster-centroid (mean of the cluster centers, mirroring
+  cassi_sim.gd's ring/Fibonacci placement — NOT the origin, so a
+  single-cluster config is framed dead-center) and the default orbit radius
+  is derived from the spawn extent (cluster-ring radius + cluster radius),
+  so the startup frame shows the particles up close and centered.
+  `--orbit-radius` overrides the auto-framed distance; no UI nodes are in
+  the video.
+
+## Converting to MP4
+
+```powershell
+ffmpeg -i recording.avi -c:v libx264 -crf 18 -pix_fmt yuv420p recording.mp4
+```
+
+(only if ffmpeg is installed).
+
+## Settings: main.tscn vs command line
+
+The recorder no longer has its own settings copy. At launch it mirrors
+whatever is currently set on `scenes/main.tscn`'s CassiSim node — editor
+edits are written to the file, and the recorder reads the file (loading
+the scene without adding it to the tree, then copying the settings and
+reinitializing). If `main.tscn` is unreadable it falls back to the
+script's export defaults. The only recorder-specific flags are
+`suppress_readbacks = true` (suppresses the CPU readbacks that stall the
+GPU) and `max_steps_per_frame = 60`. The recorder inherits the BH toggle
+(`black_holes_enabled`) from main.tscn like every other sim setting.
+
+Command line overrides (`--grid=… --particles=… --gravity=… --init=…
+--aspect=x,y,z --box-scale=… --v-circ=…`) are applied on top of the
+inherited settings and reinitialized before recording; `--v-circ=…` sets
+the IC rotational support factor (v_tangential = factor·√(G·M_enc/r) about
+z; default 0.85); `--box-scale=…` uniformly rescales the box (extent_i =
+box_scale·aspect_i·1.5·cluster_radius) — it separates the cluster from its
+periodic images (image forces drop like 1/(3·box_scale−1)²; scale ≈ 3 is
+the tested isolation regime) while preserving the aspect; `--bhs=0/1` sets
+the BH toggle live (no reinit);
+`--color=0..6` sets the packed particle color mode (low nibble base,
+high-nibble VFX flags `0x10` size-by-mass, `0x20` glow, `0x40` depth):
+
+| base | Mode |
+|---:|---|
+| 0 | Cassi mass gradient (legacy/default) |
+| 1 | Velocity speed rainbow |
+| 2 | Qi rainbow |
+| 3 | Qi double rainbow |
+| 4 | Two-axis q/ρ (vertex-color path) |
+| 5 | Field phase (vertex-color path; no band fit) |
+| 6 | Velocity direction (vertex-color path; no band fit) |
+
+The recorder inherits `color_lut_mode`, `boxless_field`, and
+`physics_decoupled` from `main.tscn`; LUT format is used only for bases 0–3.
+
+All rainbow modes share one engine: the CYCLE band (velocity: [0, v_max]
+measured at init, or `--grad-ranges`; Qi: the calibrated band [2e-4, 1e-3],
+or `--grad-ranges`) is swept by the hue circle once per pass — log
+progress per segment (multiplicative physics), hue shares 0.2/0.6/0.2 per
+segment by default (`--grad-shares`); an optional PINCH split
+(`--grad-pinch`, Qi preset 3.4e-4 → 5.7e-4 — the measured q band)
+concentrates the gradient where most particles sit (≈1.87× the default
+slope); and the count-invariant white-hot APPROACH band ramps violet →
+PINK exactly at the φ⁻² decoherence gate q = 0.381966… → pure WHITE at
+qi_condensation_threshold, so elevated coherence washes out instead of
+wrapping. All live, no reinit.
+
+Gradient exports are inherited from main.tscn like every other sim
+setting; CLI overrides on top:
+`--rainbow-count=0..8` (0 = auto: Qi 2 passes, else 1; explicit 1-8 for
+finer granularity), `--grad-ranges=lo,hi` (cycle band, validated 0 < lo <
+hi — applied to the ACTIVE source: Qi for `--color=2/3`, velocity for
+`--color=1`; set `--color` first), `--grad-pinch=lo,hi` (pinch split,
+same source rule), `--grad-shares=a,b,c` (lo/pinch/hi hue shares ≥ 0,
+positive sum), `--grad-offset=F` (cycle-start hue rotation, -1..1). The
+record.ps1 launcher mirrors these as `-RainbowCount` (1-8, 0 = inherited),
+`-GradRanges "lo,hi"`, `-GradPinch "lo,hi"`, `-GradShares "a,b,c"`,
+`-GradOffset F` (0 = inherited).
+`--freeze-field=0/1` freezes the two-fluid field after init (skips the
+PDE passes; gravity/particle path unchanged; no reinit — read per step);
+`--steps=…` changes the per-frame catch-up cap;
+`--orbit-speed/--orbit-radius` tune the camera (radius pins the
+auto-framed distance); `-Resolution` on the
+launcher sets the AVI size (default 1920x1080). `--record-frames` /
+`--record-fps` come from the launcher (`-Duration` × `-Fps`); bare runs
+without them fall back to the scene defaults (900 frames @ 30 fps,
+1920x1080 window).

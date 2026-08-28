@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/verify_meshless_reconstruct.gd" id="1_ver"]
+
+[node name="VerifyMeshlessReconstruct" type="Node"]
+script = ExtResource("1_ver")

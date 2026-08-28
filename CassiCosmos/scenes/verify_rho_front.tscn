@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/verify_rho_front.gd" id="1_r"]
+
+[node name="VerifyRhoFront" type="Node"]
+script = ExtResource("1_r")

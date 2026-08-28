@@ -1,0 +1,1087 @@
+{
+  "status": "M2 falsifier ledger (MACHINE_PLAN.md \u00a74)",
+  "closure_slot": "no-op (R1 insert-later)",
+  "bands": [
+    {
+      "band": "cosmic (supercluster/void)",
+      "anchor": "w0, wa vs DESI DR2 (w0 = -0.838)",
+      "measured": {
+        "attractor_r": 1.6449,
+        "attractor": true,
+        "approach_gated_w0": -0.8654,
+        "approach_gated_wa": 0.4641,
+        "approach_gated_std": 0.0136,
+        "approach_gated_delta_vs_desi": 0.0274,
+        "gate": "G54 (epoch-gated approach estimator)"
+      },
+      "decision_rule": "G54 approach-gated (below-\u03c6 transit, |r\u2212\u03c6|\u22650.02); loop_design.md \u00a75 epoch-gating",
+      "verdict": "not falsified \u2014 approach-gated w0 within DESI 1\u03c3",
+      "note": "the end state SITS on the \u03c6-attractor (r\u2192\u03c6, 1.7%); a single fixed-point snapshot cannot invert w0/wa (ODE stall, recorded in M2). G54 breaks the degeneracy via the BELOW-\u03c6 APPROACH transient of the level survey: epoch-gated w0 = -0.8654 \u00b1 0.0136, within DESI 1\u03c3 (True). Honesty: this is a SELF-CONSISTENCY check (the machine's r is \u03c6-calibrated), not an independent forecast; the remaining falsifiable claim is the \u03c6-attractor approach RATE dr/dlna vs H_conv, needing an off-attractor start (|r\u2212\u03c6| \u2273 0.3) the current levels do not exercise."
+    },
+    {
+      "band": "cosmic structure (P(k))",
+      "anchor": "\u0394(ln k) = ln \u03c6 = 0.4812 (0-param, orthogonal to BAO)",
+      "measured": {
+        "levels_searched": 49,
+        "significant": 0,
+        "per_level": [
+          {
+            "level": 0,
+            "daic": 2.966167628289675,
+            "p_spec": 0.8315217391304348,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 1,
+            "daic": 3.0975040008949435,
+            "p_spec": 0.842391304347826,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 2,
+            "daic": 3.249165449455056,
+            "p_spec": 0.8641304347826086,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 3,
+            "daic": 3.1704816581222417,
+            "p_spec": 0.8532608695652174,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 4,
+            "daic": 3.0310153470059547,
+            "p_spec": 0.842391304347826,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 5,
+            "daic": 3.447627895706276,
+            "p_spec": 0.875,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 6,
+            "daic": 3.235911847930261,
+            "p_spec": 0.875,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 7,
+            "daic": 3.172802252093895,
+            "p_spec": 0.8641304347826086,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 8,
+            "daic": 3.1559084960545647,
+            "p_spec": 0.842391304347826,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 9,
+            "daic": 2.8672356459893678,
+            "p_spec": 0.8369565217391305,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 10,
+            "daic": 2.759096987745302,
+            "p_spec": 0.8260869565217391,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 11,
+            "daic": 3.3763281410624018,
+            "p_spec": 0.8641304347826086,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 12,
+            "daic": 2.9369761237706413,
+            "p_spec": 0.8369565217391305,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 13,
+            "daic": 3.227160735206631,
+            "p_spec": 0.8478260869565217,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 14,
+            "daic": 3.355690559549231,
+            "p_spec": 0.8532608695652174,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 15,
+            "daic": 3.3754476180727835,
+            "p_spec": 0.8586956521739131,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 16,
+            "daic": 3.250889896523674,
+            "p_spec": 0.8478260869565217,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 17,
+            "daic": 3.4128601696682708,
+            "p_spec": 0.8695652173913043,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 18,
+            "daic": 3.3235616692833645,
+            "p_spec": 0.875,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 19,
+            "daic": 3.234282106916332,
+            "p_spec": 0.8532608695652174,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 20,
+            "daic": 3.3435125599180395,
+            "p_spec": 0.8586956521739131,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 21,
+            "daic": 3.3461622335963455,
+            "p_spec": 0.8532608695652174,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 22,
+            "daic": 3.2108992856638707,
+            "p_spec": 0.8532608695652174,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 23,
+            "daic": 2.958342086692305,
+            "p_spec": 0.842391304347826,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 24,
+            "daic": 3.309172445202698,
+            "p_spec": 0.8478260869565217,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 25,
+            "daic": 3.2327978469597767,
+            "p_spec": 0.842391304347826,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 26,
+            "daic": 3.101817378397108,
+            "p_spec": 0.842391304347826,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 27,
+            "daic": 3.5769935315869503,
+            "p_spec": 0.8967391304347826,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 28,
+            "daic": 3.3272780531870794,
+            "p_spec": 0.8586956521739131,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 29,
+            "daic": 3.287405842148779,
+            "p_spec": 0.8532608695652174,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 30,
+            "daic": 2.9315040088741426,
+            "p_spec": 0.842391304347826,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 31,
+            "daic": 3.0002827011864,
+            "p_spec": 0.842391304347826,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 32,
+            "daic": 3.1902535696843373,
+            "p_spec": 0.8532608695652174,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 33,
+            "daic": 2.945896625057756,
+            "p_spec": 0.8369565217391305,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 34,
+            "daic": 3.216639403786118,
+            "p_spec": 0.8478260869565217,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 35,
+            "daic": 3.3458480718853636,
+            "p_spec": 0.875,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 36,
+            "daic": 3.2941252268950905,
+            "p_spec": 0.8532608695652174,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 37,
+            "daic": 2.944908970024713,
+            "p_spec": 0.8315217391304348,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 38,
+            "daic": 3.3094747828266975,
+            "p_spec": 0.8641304347826086,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 39,
+            "daic": 2.573051484378766,
+            "p_spec": 0.8206521739130435,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 40,
+            "daic": 3.163690683050234,
+            "p_spec": 0.8478260869565217,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 41,
+            "daic": 3.1845236490015694,
+            "p_spec": 0.8532608695652174,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 42,
+            "daic": 3.075185476738106,
+            "p_spec": 0.8478260869565217,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 43,
+            "daic": 3.413244743321137,
+            "p_spec": 0.8804347826086957,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 44,
+            "daic": 2.9907624353852356,
+            "p_spec": 0.8369565217391305,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 45,
+            "daic": 3.4372268188488917,
+            "p_spec": 0.8641304347826086,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 46,
+            "daic": 3.243568337773233,
+            "p_spec": 0.842391304347826,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 47,
+            "daic": 3.212953701634099,
+            "p_spec": 0.8532608695652174,
+            "significant_at_ln_phi": false
+          },
+          {
+            "level": 48,
+            "daic": 3.271701792004791,
+            "p_spec": 0.8532608695652174,
+            "significant_at_ln_phi": false
+          }
+        ],
+        "r5_concatenation": {
+          "stitch": "finest",
+          "k_span_rungs": 131.83591985463528,
+          "n_bins": 801,
+          "raw_stitched_daic": -37.74,
+          "raw_stitched_p_spec": 0.022,
+          "raw_stitched_amp": 0.504,
+          "detrended_residual_daic": 2.29,
+          "detrended_residual_p_spec": 0.293,
+          "detrended_amp": 0.01,
+          "interpretation": "the raw stitched 'hit' is the 4th harmonic of the \u03c6\u2074 level-spacing (harmonic of the band repeat == \u03c9\u2080), NOT a physical ln-\u03c6 modulation; the band-detrended residual is an honest null"
+        }
+      },
+      "decision_rule": "calibrated null (\u0394AIC + \u03c9-specificity p < 0.05), with the R5 artifact discriminator: a physical cross-level signal survives per-band detrending, the stitching artifact does not",
+      "verdict": "not yet falsifiable (honest null, per-level AND concatenated)",
+      "note": "a period of ln \u03c6 in the BAO-subtracted residual confirms; its ABSENCE at the predicted amplitude (1\u20133%) falsifies the wake-wave mechanism. M2 measures per-level AND concatenated nulls with the amplitude-window caveat: the machine's condensation levels carry a smooth blob envelope, not the 1\u20133% oscillatory matter spectrum, so the predicted-amplitude signature is NOT measured \u2014 an honest null, sharpening the falsification."
+    },
+    {
+      "band": "cluster / BH rung (mass ladder)",
+      "anchor": "log_\u03c6(m/m_cell) on 3-rung spacing (G8 uniform baseline)",
+      "measured": {
+        "levels": 49,
+        "on_ladder": false,
+        "rows": [
+          {
+            "level": 0,
+            "rung_anchor": 288,
+            "rung_score": 0.9808028960542969,
+            "n_cores": 6,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.16799120547975,
+              5.560888750983892,
+              8.201326695257288,
+              8.58306377623627,
+              11.143735383420179,
+              11.182623316296217
+            ]
+          },
+          {
+            "level": 1,
+            "rung_anchor": 284,
+            "rung_score": 0.9289395033223014,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.014799675143943,
+              5.125362286644346,
+              8.121390420160491,
+              11.110159099734288,
+              11.745722881704463
+            ]
+          },
+          {
+            "level": 2,
+            "rung_anchor": 280,
+            "rung_score": 0.9222960853814715,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.230338489443695,
+              5.6464188031358935,
+              8.179153654677133,
+              11.113782617515902,
+              11.64119180837479
+            ]
+          },
+          {
+            "level": 3,
+            "rung_anchor": 276,
+            "rung_score": 0.9035161099653308,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.330265765049779,
+              5.516766352073299,
+              8.247373653862043,
+              11.185539929997775,
+              11.729185700963509
+            ]
+          },
+          {
+            "level": 4,
+            "rung_anchor": 272,
+            "rung_score": 0.8571365036537482,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.349687279508781,
+              5.434905517282339,
+              8.072431365234994,
+              11.135392034989403,
+              11.649601344262688
+            ]
+          },
+          {
+            "level": 5,
+            "rung_anchor": 268,
+            "rung_score": 0.8255269055589638,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              4.898022498405443,
+              5.462552314251044,
+              8.121390420160491,
+              11.159732140066998,
+              11.734115921357276
+            ]
+          },
+          {
+            "level": 6,
+            "rung_anchor": 264,
+            "rung_score": 0.5941107526304594,
+            "n_cores": 5,
+            "on_ladder": false,
+            "n_abs_sorted": [
+              4.54540237572158,
+              5.070816191332401,
+              8.154236246775891,
+              11.154413558380591,
+              11.760804048283587
+            ]
+          },
+          {
+            "level": 7,
+            "rung_anchor": 260,
+            "rung_score": 0.9824004395980754,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.092806734331268,
+              5.300788860590502,
+              8.098343009193846,
+              11.119206074934155,
+              11.784533782500413
+            ]
+          },
+          {
+            "level": 8,
+            "rung_anchor": 256,
+            "rung_score": 0.975123046587413,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.146786052898603,
+              5.290869572443195,
+              8.184101483017484,
+              11.159141858307247,
+              11.690688928640908
+            ]
+          },
+          {
+            "level": 9,
+            "rung_anchor": 252,
+            "rung_score": 0.9096593119217178,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.04859045090006,
+              5.654781337242836,
+              8.184101483017484,
+              11.160322254204498,
+              11.713420362048229
+            ]
+          },
+          {
+            "level": 10,
+            "rung_anchor": 248,
+            "rung_score": 0.8632705701341177,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.359330391574715,
+              5.507828330031015,
+              8.154236246775891,
+              11.153821763724382,
+              11.664930992051021
+            ]
+          },
+          {
+            "level": 11,
+            "rung_anchor": 244,
+            "rung_score": 0.9736660076279708,
+            "n_cores": 6,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.188982160939445,
+              5.507828330031016,
+              8.19150120687624,
+              8.627451786422009,
+              11.137779268935143,
+              11.21678124605123
+            ]
+          },
+          {
+            "level": 12,
+            "rung_anchor": 240,
+            "rung_score": 0.9083484905887829,
+            "n_cores": 6,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.290869572443195,
+              5.569601916458403,
+              8.164239091221685,
+              8.581023435452593,
+              11.142545525431053,
+              11.170328640246062
+            ]
+          },
+          {
+            "level": 13,
+            "rung_anchor": 236,
+            "rung_score": 0.8021980025391544,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              4.849410061311221,
+              5.578278701177822,
+              8.016941958665052,
+              11.14611305750249,
+              11.695255150915916
+            ]
+          },
+          {
+            "level": 14,
+            "rung_anchor": 232,
+            "rung_score": 0.9916803743291371,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.103715352143172,
+              5.434905517282339,
+              8.111178670268808,
+              11.116194790649466,
+              11.805401776315728
+            ]
+          },
+          {
+            "level": 15,
+            "rung_anchor": 228,
+            "rung_score": 0.9729226569001319,
+            "n_cores": 6,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.209763203328303,
+              5.425607573711716,
+              8.186570986482474,
+              8.595263930189379,
+              11.163859424286136,
+              11.174434953070866
+            ]
+          },
+          {
+            "level": 16,
+            "rung_anchor": 224,
+            "rung_score": 0.8152488510196758,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.416267841490292,
+              5.534527886876398,
+              8.139141118019806,
+              11.119206074934155,
+              11.771384063947599
+            ]
+          },
+          {
+            "level": 17,
+            "rung_anchor": 220,
+            "rung_score": 0.9102341750011711,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.220076310953025,
+              5.744614405134436,
+              8.085427573454782,
+              11.163859424286134,
+              11.72873691855787
+            ]
+          },
+          {
+            "level": 18,
+            "rung_anchor": 216,
+            "rung_score": 0.5224323014299248,
+            "n_cores": 5,
+            "on_ladder": false,
+            "n_abs_sorted": [
+              4.5595873244591845,
+              5.704261934879375,
+              8.275938872314297,
+              11.125815580616898,
+              11.685196184682075
+            ]
+          },
+          {
+            "level": 19,
+            "rung_anchor": 212,
+            "rung_score": 0.8619104620255544,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.125362286644346,
+              5.6126280273797775,
+              7.918227979682677,
+              11.227662806398747,
+              11.665856437143686
+            ]
+          },
+          {
+            "level": 20,
+            "rung_anchor": 208,
+            "rung_score": 0.9428917716587275,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.199398658545095,
+              5.507828330031015,
+              8.113736316033187,
+              11.170915753379289,
+              11.785407478927507
+            ]
+          },
+          {
+            "level": 21,
+            "rung_anchor": 204,
+            "rung_score": 0.8107894446292482,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.250712053820269,
+              5.534527886876397,
+              7.869931236275401,
+              11.071109928749028,
+              11.746168011174138
+            ]
+          },
+          {
+            "level": 22,
+            "rung_anchor": 200,
+            "rung_score": 0.9357772602548957,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.048590450900059,
+              5.387994113898303,
+              8.011579150730787,
+              11.144924560517715,
+              11.746168011174138
+            ]
+          },
+          {
+            "level": 23,
+            "rung_anchor": 196,
+            "rung_score": 0.9757073527770863,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.167991205479752,
+              5.425607573711715,
+              8.131552234645381,
+              11.1750209073737,
+              11.686112650814344
+            ]
+          },
+          {
+            "level": 24,
+            "rung_anchor": 192,
+            "rung_score": 0.7258335846041728,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              4.774290306904034,
+              5.471686776963995,
+              8.046192545415368,
+              11.185539929997775,
+              11.699356189916259
+            ]
+          },
+          {
+            "level": 25,
+            "rung_anchor": 188,
+            "rung_score": 0.8911433103478732,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              4.9804503489419885,
+              5.397461496657021,
+              8.077639605859066,
+              11.143735383420179,
+              11.708893923923965
+            ]
+          },
+          {
+            "level": 26,
+            "rung_anchor": 184,
+            "rung_score": 0.8488590818851929,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.4716867769639945,
+              5.507828330031015,
+              8.244975399791784,
+              11.119206074934155,
+              11.764777869167537
+            ]
+          },
+          {
+            "level": 27,
+            "rung_anchor": 180,
+            "rung_score": 0.9340165162076595,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.25071205382027,
+              5.349687279508781,
+              8.15924368756323,
+              11.1306093241988,
+              11.725592725058746
+            ]
+          },
+          {
+            "level": 28,
+            "rung_anchor": 176,
+            "rung_score": 0.873593206452205,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.300788860590501,
+              5.621127372239015,
+              8.111178670268808,
+              11.167978527559928,
+              11.787590114272819
+            ]
+          },
+          {
+            "level": 29,
+            "rung_anchor": 172,
+            "rung_score": 0.966545368109405,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.199398658545095,
+              5.462552314251044,
+              8.149216710709203,
+              11.20006191027759,
+              11.751058152725552
+            ]
+          },
+          {
+            "level": 30,
+            "rung_anchor": 168,
+            "rung_score": 0.8763384800822474,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.52566609553133,
+              5.543352048420901,
+              8.123935536120067,
+              11.186122761840394,
+              11.711158375407958
+            ]
+          },
+          {
+            "level": 31,
+            "rung_anchor": 164,
+            "rung_score": 0.8540747550216636,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              4.933749801113025,
+              5.240550239335378,
+              7.987273763468654,
+              11.15263766858053,
+              11.702085726544984
+            ]
+          },
+          {
+            "level": 32,
+            "rung_anchor": 160,
+            "rung_score": 0.8481012979592416,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.516766352073299,
+              5.7446144051344366,
+              8.13661456826027,
+              11.163270313886374,
+              11.68014838356179
+            ]
+          },
+          {
+            "level": 33,
+            "rung_anchor": 156,
+            "rung_score": 0.8858149030924434,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.037387798857565,
+              5.471686776963995,
+              8.2086654442189,
+              11.137182717496788,
+              11.724693509587668
+            ]
+          },
+          {
+            "level": 34,
+            "rung_anchor": 152,
+            "rung_score": 0.9694840135941769,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.081840550987395,
+              5.270887813478209,
+              8.098343009193846,
+              11.12761453059613,
+              11.657976985825323
+            ]
+          },
+          {
+            "level": 35,
+            "rung_anchor": 148,
+            "rung_score": 0.899744742177218,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.339999211046967,
+              5.406885943291993,
+              8.186570986482472,
+              11.189616324312794,
+              11.69799007597121
+            ]
+          },
+          {
+            "level": 36,
+            "rung_anchor": 144,
+            "rung_score": 0.8774874923075746,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.157415676695019,
+              5.444162044485985,
+              7.973646915156381,
+              11.14967447554853,
+              11.72694081911915
+            ]
+          },
+          {
+            "level": 37,
+            "rung_anchor": 140,
+            "rung_score": 0.8142497459027904,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.378483402005791,
+              5.663110354089092,
+              8.176675315777262,
+              11.099858020859976,
+              11.708893923923965
+            ]
+          },
+          {
+            "level": 38,
+            "rung_anchor": 136,
+            "rung_score": 0.9292787854540532,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.178513187053914,
+              5.290869572443195,
+              8.072431365234994,
+              11.110159099734288,
+              11.67738986069491
+            ]
+          },
+          {
+            "level": 39,
+            "rung_anchor": 132,
+            "rung_score": 0.888010449808732,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              4.957231259101997,
+              5.638022480920609,
+              8.121390420160491,
+              11.125215584388899,
+              11.65890553227564
+            ]
+          },
+          {
+            "level": 40,
+            "rung_anchor": 128,
+            "rung_score": 0.8963483083641379,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.290869572443196,
+              5.349687279508782,
+              7.968171057123013,
+              11.135392034989403,
+              11.693429865843594
+            ]
+          },
+          {
+            "level": 41,
+            "rung_anchor": 124,
+            "rung_score": 0.9629820289650592,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.209763203328302,
+              5.728567322141508,
+              8.154236246775891,
+              11.155005184554334,
+              11.72604218692299
+            ]
+          },
+          {
+            "level": 42,
+            "rung_anchor": 120,
+            "rung_score": 0.920560120550076,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              5.230338489443694,
+              5.696096553366975,
+              8.111178670268808,
+              11.119807808519143,
+              11.731876362005657
+            ]
+          },
+          {
+            "level": 43,
+            "rung_anchor": 116,
+            "rung_score": 0.8871321280843065,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              12.874928070387304,
+              12.874928070387304,
+              12.874928070387304,
+              12.874928070387304,
+              12.874928070387304
+            ]
+          },
+          {
+            "level": 44,
+            "rung_anchor": 112,
+            "rung_score": 0.953259475522834,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              24.874928070387305,
+              24.874928070387305,
+              24.874928070387305,
+              24.874928070387305,
+              24.874928070387305
+            ]
+          },
+          {
+            "level": 45,
+            "rung_anchor": 108,
+            "rung_score": 0.9005117806126683,
+            "n_cores": 6,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              36.874928070387305,
+              36.874928070387305,
+              36.874928070387305,
+              36.874928070387305,
+              36.874928070387305,
+              36.874928070387305
+            ]
+          },
+          {
+            "level": 46,
+            "rung_anchor": 104,
+            "rung_score": 0.7761334727016598,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              48.874928070387305,
+              48.874928070387305,
+              48.874928070387305,
+              48.874928070387305,
+              48.874928070387305
+            ]
+          },
+          {
+            "level": 47,
+            "rung_anchor": 100,
+            "rung_score": 0.7905287944469235,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              60.874928070387305,
+              60.874928070387305,
+              60.874928070387305,
+              60.874928070387305,
+              60.874928070387305
+            ]
+          },
+          {
+            "level": 48,
+            "rung_anchor": 96,
+            "rung_score": 0.8847209070876705,
+            "n_cores": 5,
+            "on_ladder": true,
+            "n_abs_sorted": [
+              72.8749280703873,
+              72.8749280703873,
+              72.8749280703873,
+              72.8749280703873,
+              72.8749280703873
+            ]
+          }
+        ]
+      },
+      "decision_rule": "Stage-3 G8 discipline: uniform-baseline rung_score \u2265 0.70 AND \u03c6 beats a non-\u03c6 control by > +0.10",
+      "verdict": "measured \u2014 some level failed the uniform-baseline bar",
+      "note": "a catalog that does NOT sit on integer/half-integer rung spacing falsifies the mass-ladder condensation claim; the sim's own Stage-3 G8 (0.972 vs 0.594) is the internal control. RUNS WITHOUT the closure slot (R1 no-op)."
+    },
+    {
+      "band": "galaxy (rotation-curve band)",
+      "anchor": "SPARC rotation curves; cored vs cuspy (Qi condensate, \u03be = \u03c6\u2076 gravity)",
+      "measured": {
+        "pipeline": "shipped CassiTheory experiments/sparc_qi/sparc_qi_analysis_v9.py (reused, never edited)",
+        "galaxies_fit": 143,
+        "data_authentic": true,
+        "median_dAIC_vs_NFW_all": -6.4,
+        "median_dAIC_vs_NFW_dwarfs": -9.7,
+        "median_dAIC_vs_NFW_constrained": -10.8,
+        "win_counts_all": [
+          76,
+          14,
+          53
+        ],
+        "core_radius_index": 0.397,
+        "machine_cored_ensemble": true,
+        "gate": "G55 (shipped SPARC v9 Qi-vs-NFW AIC)"
+      },
+      "decision_rule": "AIC comparison (Qi vs NFW/Einasto) over SPARC; median \u0394AIC < 0 (Qi better at equal 2-param parsimony) on the decisive subsample \u2192 supports the Qi-core claim",
+      "verdict": "not falsified \u2014 cored Qi beats NFW on median AIC",
+      "note": "REUSES the shipped v9 SPARC pipeline + authentic sparc_data (zip sha256 0a80cc90\u2026 MATCH, 175 files; no fabricated rotation curves).  Machine\u2192SPARC handoff GAP: the machine's galaxy levels condense to discrete CORED cores (rung masses), not observed vobs(r)/baryons \u2014 the `*_rotmod.dat` format cannot be honored from machine outputs, so the AIC runs on the 143 authentic galaxies.  cored Qi-condensate beats cuspy NFW on median \u0394AIC: all \u22126.4, dwarfs \u22129.7, constrained \u221210.8; emergent \u03b3 = 0.397 \u00b1 0.021 (emp 0.41).  Honest caveat: not a unanimous win \u2014 the high-V subsample is near-parity (\u0394AIC\u22480); the cored win is decisive where the core is resolved."
+    },
+    {
+      "band": "atomic / molecular (resolved-bottom bands)",
+      "anchor": "(no direct cosmic observable)",
+      "measured": null,
+      "decision_rule": "structural \u2014 must keep the mass-ladder integers when the closure is inserted (the regression contract)",
+      "verdict": "not yet falsifiable (structural)",
+      "note": "no dedicated observables; these bands are structural. A rung slip here means the closure broke the ladder, not that a theory number is wrong."
+    },
+    {
+      "band": "proton anchor (bottom)",
+      "anchor": "n_p = log_\u03c6(M_Pl/m_p) via m_p \u2248 \u03c6\u00b3\u039b_QCD (within ~10%)",
+      "measured": {
+        "n_p_mass_rung": 91.462,
+        "theory_length_rung": 95
+      },
+      "decision_rule": "fixed input \u2014 the machine does NOT simulate QCD (\u00a72.4)",
+      "verdict": "fixed input (not a machine falsifier)",
+      "note": "the proton is a RUNG ANCHOR, never a 64\u00b3 ab initio lattice-QCD proxy \u2014 that claim is refused by design. The mass-ladder rung log_\u03c6(M_Pl/m_p) \u2248 92 and the length-table rung n\u224895 are the anchors; the machine inherits them, it does not re-derive QCD."
+    }
+  ]
+}

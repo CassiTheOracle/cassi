@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://c82ghd3kf4m1x"
+path="res://.godot/imported/cassi_bh_lensing.glsl-e1580164355b981ccf12642f5a8e3d82.res"
+
+[deps]
+
+source_file="res://compute/cassi_bh_lensing.glsl"
+dest_files=["res://.godot/imported/cassi_bh_lensing.glsl-e1580164355b981ccf12642f5a8e3d82.res"]
+
+[params]
+

@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://doqmao3ondqvk"]
+
+[ext_resource type="Script" uid="uid://ctd74qvas4ily" path="res://scripts/free_camera.gd" id="1_hx442"]
+[ext_resource type="Script" uid="uid://bp5bjas7jlx46" path="res://scripts/cassi_sim.gd" id="2_umhrx"]
+[ext_resource type="Script" uid="uid://c3iwrspepbm45" path="res://scripts/sim_ui.gd" id="3_6wv7r"]
+
+[sub_resource type="Environment" id="env"]
+background_mode = 1
+tonemap_mode = 2
+glow_enabled = true
+glow_intensity = 0.8
+
+[node name="Main" type="Node3D" unique_id=2078421686]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1910698047]
+environment = SubResource("env")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1501670894]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 300, 500)
+fov = 70.0
+script = ExtResource("1_hx442")
+
+[node name="CassiSim" type="Node3D" parent="." unique_id=822736192]
+script = ExtResource("2_umhrx")
+gridless_physics = true
+cluster_radius = 25.0
+
+[node name="UILayer" type="CanvasLayer" parent="." unique_id=1258460337]
+
+[node name="SimUI" type="Control" parent="UILayer" unique_id=551568303]
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+script = ExtResource("3_6wv7r")

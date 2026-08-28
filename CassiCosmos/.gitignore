@@ -1,0 +1,38 @@
+# CassiCosmos — the Godot space-sim (extracted from the physics repo with full history)
+
+# Godot cache + editor state (regenerable)
+.godot/
+*.uid
+
+# Generated import metadata (tracked .import files stay tracked)
+*.import
+
+# Diagnostic probes / run logs (never tracked)
+_diag/
+*.log
+
+# Tooling config (Godot-MCP auto-generated skills)
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+
+# Generated shader binaries
+*.spv
+
+# Run artifacts
+*.npy
+*.avi
+*.zip
+figures/
+
+# Research run data (generated outputs; research/ source .py/.md stays tracked)
+research/cascade_machine/cascade_tree/
+research/cascade_machine/cascade_tree_boxcenter/
+research/falsification/_synthetic_survey/
+research/mind/
+
+# OS
+.DS_Store
+Thumbs.db

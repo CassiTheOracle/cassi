@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dvmspki3bq082"
+path="res://.godot/imported/cassi_two_fluid.glsl-218a21410e49fd265920588b67132d75.res"
+
+[deps]
+
+source_file="res://compute/cassi_two_fluid.glsl"
+dest_files=["res://.godot/imported/cassi_two_fluid.glsl-218a21410e49fd265920588b67132d75.res"]
+
+[params]
+
