@@ -33,5 +33,27 @@ func _ready() -> void:
 			_failures += 1
 		else:
 			_checks += 1
+
+	_checks += 1
+	var presentation := ui.find_child("presentation_profileToggle", true, false)
+	if presentation == null or not presentation is CheckButton:
+		push_error("validate_sim_ui: missing presentation-profile toggle")
+		_failures += 1
+	elif presentation.button_pressed:
+		push_error("validate_sim_ui: presentation profile defaulted ON — it must be opt-in")
+		_failures += 1
+	else:
+		_checks += 1
+
+	ui._set_mode_highlight(1)
+	var field_visible: bool = bool(ui._viz_texture_rect.visible)
+	ui._set_mode_highlight(2)
+	var bh_visible: bool = bool(ui._viz_texture_rect.visible)
+	ui._set_mode_highlight(3)
+	var cosmology_overlay_hidden: bool = not bool(ui._viz_texture_rect.visible)
+	_checks += 1
+	if not field_visible or not bh_visible or not cosmology_overlay_hidden:
+		push_error("validate_sim_ui: visualization texture visibility does not match Field/Black Hole/Cosmology modes")
+		_failures += 1
 	print("══════ RESULT: %d/%d checks passed, %d failed ══════" % [_checks - _failures, _checks, _failures])
 	get_tree().quit(0 if _failures == 0 else 1)

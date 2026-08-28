@@ -1,0 +1,64 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/cassi_sim.gd" id="1_sim"]
+[ext_resource type="Script" path="res://scripts/presentation_sky.gd" id="2_sky"]
+[ext_resource type="Script" path="res://scripts/verify_presentation_layers.gd" id="3_ver"]
+
+[sub_resource type="Environment" id="env"]
+background_mode = 0
+background_clear_color = Color(0.003, 0.007, 0.020, 1)
+tonemap_mode = 2
+glow_enabled = true
+glow_intensity = 0.65
+glow_strength = 0.75
+glow_bloom = 0.08
+glow_hdr_threshold = 0.8
+
+[node name="VerifyPresentationLayers" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.976187, 0.21693, 0, -0.21693, 0.976187, 0, 40, 180)
+fov = 65.0
+near = 0.1
+far = 2000.0
+
+[node name="PresentationSky" type="MeshInstance3D" parent="."]
+script = ExtResource("2_sky")
+
+[node name="CassiSim" type="Node3D" parent="."]
+script = ExtResource("1_sim")
+grid_N = 64
+N_particles = 1024
+cluster_radius = 25.0
+num_clusters = 1
+cluster_separation = 0.0
+playing = false
+gravity_mode = 0
+initial_condition = 1
+initial_v_circ_factor = 1.0
+meshless_mode = true
+gridless_physics = true
+meshless_gravity = true
+boxless_field = true
+physics_decoupled = true
+physics_frame_budget = 0.0
+max_steps_per_frame = 1
+suppress_readbacks = true
+auto_frame_camera_on_start = false
+particle_color_mode = 50
+presentation_profile = true
+presentation_macro_lod_enabled = false
+presentation_macro_min_coherence = 0.0
+presentation_trails_enabled = false
+presentation_trail_speed_threshold = 0.0
+presentation_volume_history_enabled = false
+volume_dynamic_resolution = false
+volume_resolution_target = 256
+volume_resolution_min = 256
+volume_resolution_max = 256
+
+[node name="Verify" type="Node" parent="."]
+script = ExtResource("3_ver")

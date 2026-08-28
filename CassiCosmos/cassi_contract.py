@@ -57,10 +57,6 @@ This file exists for documentation. The actual simulation runs in Godot GLSL com
 #    g = −G_eff · M_enc(r) / r²
 #    Where M_enc uses enclosed-mass Plummer model
 #
-# 3. Black hole lensing (screen-space):
-#    Deflection angle α = 2·r_s / b · (1 + ξ·q)
-#    Image distortion: each pixel maps through deflection to source position
-#
 # =============================================================================
 # PARAMETER DEFAULTS
 # =============================================================================
@@ -78,5 +74,5 @@ print("Cassi Universe Simulator — Shared Contract")
 print(f"  φ = {PHI:.10f}")
 print(f"  φ⁻² = {1/PHI**2:.10f}  (Qi decoherence threshold)")
 print("  Buffer layouts: SET 0 = field grid, SET 1 = particles, SET 2 = render")
-print("  Compute shaders: cassi_two_fluid, cassi_nbody_gravity, cassi_field_render, cassi_bh_lensing")
+print("  Compute shaders: cassi_two_fluid, cassi_nbody_gravity, cassi_field_render")
 print("  All physics runs in Godot GLSL — no Python backend needed.")

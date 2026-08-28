@@ -1,6 +1,6 @@
 # Verify battery — one-command runner
 
-Runs the whole Cassi GPU-sim verify battery (33 arms) in sequence, captures each
+Runs the whole Cassi GPU-sim verify battery (35 arms) in sequence, captures each
 arm's exit code, and exits 0 only when every arm passes.
 
 ## How to run
@@ -18,7 +18,7 @@ Godot console exe:
   `--path . res://scenes/<scene>.tscn`; child commands never receive
   `--headless`. Both the sim's global RenderingDevice and the arms' local
   RenderingDevices require a real window on this rig.
-- Exit code: `0` = all 33 passed; `1` = at least one failed.
+- Exit code: `0` = all 35 passed; `1` = at least one failed.
 - The runner prints a progress line per arm and a summary table; failed arms
   get their last 15 stdout/stderr lines printed.
 - Per-arm logs: `res://_diag/battery_logs/armNN_<name>.log` (gitignored).
@@ -27,10 +27,28 @@ Godot console exe:
   (The console exe is a wrapper that spawns the real Godot process, so the
   process *tree* must be killed, or the orphan keeps the GPU and a window.)
 
+## Standalone passive process-clock lab (not an ARMS battery member)
+
+This is a separate CPU-only/default-off lab; it is **not** included in the
+`ARMS` list or the one-command battery above. From `CassiCosmos/`, launch it
+windowed with the console executable:
+
+```
+"C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" --path . res://scenes/verify_process_clock.tscn
+```
+
+The frozen preregistration is
+[`research/process_time/common_lapse_prereg.md`](../research/process_time/common_lapse_prereg.md).
+The raw receipt is written to
+`res://_diag/process_time/common_lapse_receipt.json`. The scene has no
+RenderingDevice/GPU/readback dependency, makes no production/default-path
+common-lapse change, and reports implementation/reparameterization PASS/FAIL
+only—not evidence for universal physical time.
+
 ## The arms
 
-The authoritative arm list is the `ARMS` const in `verify/run_all.gd` (33 arms).
-The table below documents the primary arms:
+The authoritative arm list is the `ARMS` const in `verify/run_all.gd` (35 arms).
+The table below documents each arm:
 
 | # | Scene | What it verifies |
 |---|-------|------------------|
@@ -40,38 +58,44 @@ The table below documents the primary arms:
 | 4 | verify_merge | Particle-merge shader on a planted 8-particle input (local RD); dump for stage6_merge.py (G28/G29) |
 | 5 | verify_meshless_sim | Meshless arm vs grid arm from the SAME initial condition — cross-solver agreement (G11/G12′ in stage4_verify.py) |
 | 6 | verify_meshless_stability | Meshless arm under live-sim flat-noise conditions: 2000 steps, Voronoi site-spread and finiteness gates |
-| 7 | verify_particle_vfx | Instancer pipeline through each default-off visual feature, plus the shader-exact legacy size/color contract |
+| 7 | verify_gridless_physics | Production site-native field, topology, tree-force, telemetry, snapshot, and CSR contracts |
 | 8 | verify_phi_box | φ-aspect box battery: anisotropic 19-point stencil residuals, ellipsoid ring test, box-mode de-resonance |
 | 9 | verify_ring | Wave-front ring roundness: 19-point stencil dispersion anisotropy, symbol[110]/symbol[100] ∈ [0.985, 1.015] |
 | 10 | verify_river_law | River-law gravity upgrade: q→0 Newtonian limit, point-mass profile, mode toggle, no-NaN, reinit regression |
 | 11 | validate_sim_ui | sim_ui.gd loads cleanly and the VFX controls exist (exit 0 = parse/load clean) |
-| 12 | verify_survey | Survey exporter: programmatic snapshot vs a direct frozen-buffer reference read (byte-exact gate in survey_read.py) |
-| 13 | verify_synth | Audio-reduce cascade meter: φ-spaced plane-wave rung energies vs analytic references (G22/G23) |
-| 14 | verify_volumetric | Volumetric ray-marched render of the analytic φ-attractor field (PNG + RGBAF pixel dump; G35) |
-| 15 | verify_voronoi3d | GPU JFA Voronoi + per-cell two-fluid wave vs the numpy spectral reference (stage1_verify.py) |
-| 16 | verify_voronoi3d_moving | Moving mesh: steering + periodic ALE remap + JFA refresh (stage2_verify.py) |
-| 17 | verify_meshless_gravity | Meshless TREE gravity over the sim's real source buffers, rebuilt on a local RD (G30/G31) |
-| 18 | verify_river_isotropy | River azimuthal anisotropy: ring probes on N=64 and N=128, shader-vs-estimator identity, pinned trilinear baseline |
-| 19 | verify_merge_sim | Particle merge wired into the LIVE sim: monotone merge count, mass conservation, dead-marking, φ⁻² gate (G52–G54) |
-| 20 | verify_meshless_reconstruct | AREPO-style per-cell LINEAR reconstruction: linear exactness + interface-jump smoothness (R1/R2) |
-| 21 | verify_meshless_sim_aniso | The verify_meshless_sim cross-solver battery at the φ-aspect box |
-| 22 | verify_particle_vanish | "All particles vanish" diagnostic: direct + `_process` drive paths, full buffer readback timeline |
-| 23 | verify_voronoi3d_aniso | The verify_voronoi3d battery at the φ-aspect box |
-| 24 | verify_voronoi3d_moving_aniso | The verify_voronoi3d_moving battery at the φ-aspect box |
-| 26 | verify_falsify | Falsification meter: w₀ estimator port vs falsify_wo.py references, meter wiring (F1–F3) |
-| 27 | verify_mind_engine | Mind-engine no-op gate: attractor-ratio deposit stays at the fp32 floor; off-ratio evolution conserves charge |
-| 28 | verify_bh_accretion_engine | BH accretion in the standalone engine (local RD): exact mass conservation (G55), swallowed-dead/no-deposit (G56), toggle-off bit-identity (G57) |
-| 29 | verify_merge_engine | Particle merge in the standalone engine (local RD): merge count + mass conservation (G52), dead-marking/no-deposit (G53), φ⁻² low-q no-merge gate (G54) |
-| 30 | verify_multigrid_engine | Cascade-multigrid arm in the standalone engine (local RD): coarse-level Φ vs direct reference (G58), fine-dominant near-field match (G59), honest placement-bias ring metric (G60) |
+| 12 | verify_particle_vfx | Instancer pipeline through each default-off visual feature, plus the shader-exact legacy size/color contract |
+| 13 | verify_presentation_layers | Opt-in particle, macro-site, velocity-ribbon, camera-following sky, and site-volume-history rendering contracts |
+| 14 | verify_survey | Survey exporter: programmatic snapshot vs a direct frozen-buffer reference read (byte-exact gate in survey_read.py) |
+| 15 | verify_synth | Audio-reduce cascade meter: φ-spaced plane-wave rung energies vs analytic references (G22/G23) |
+| 16 | verify_volumetric | Volumetric ray-marched render of the analytic φ-attractor field (PNG + RGBAF pixel dump; G35) |
+| 17 | verify_voronoi3d | GPU JFA Voronoi + per-cell two-fluid wave vs the numpy spectral reference (stage1_verify.py) |
+| 18 | verify_voronoi3d_moving | Moving mesh: steering + periodic ALE remap + JFA refresh (stage2_verify.py) |
+| 19 | verify_meshless_gravity | Meshless TREE gravity over the sim's real source buffers, rebuilt on a local RD (G30/G31) |
+| 20 | verify_river_isotropy | River azimuthal anisotropy: ring probes on N=64 and N=128, shader-vs-estimator identity, pinned trilinear baseline |
+| 21 | verify_merge_sim | Particle merge wired into the LIVE sim: monotone merge count, mass conservation, dead-marking, φ⁻² gate (G52–G54) |
+| 22 | verify_meshless_reconstruct | AREPO-style per-cell LINEAR reconstruction: linear exactness + interface-jump smoothness (R1/R2) |
+| 23 | verify_meshless_sim_aniso | The verify_meshless_sim cross-solver battery at the φ-aspect box |
+| 24 | verify_particle_vanish | "All particles vanish" diagnostic: direct + `_process` drive paths, full buffer readback timeline |
+| 25 | verify_voronoi3d_aniso | The verify_voronoi3d battery at the φ-aspect box |
+| 26 | verify_voronoi3d_moving_aniso | The verify_voronoi3d_moving battery at the φ-aspect box |
+| 27 | verify_falsify | Falsification meter: w₀ estimator port vs falsify_wo.py references, meter wiring (F1–F3) |
+| 28 | verify_mind_engine | Mind-engine no-op gate: attractor-ratio deposit stays at the fp32 floor; off-ratio evolution conserves charge; full-field seeding resets state with exact EY/EI readback and stable RIDs |
+| 29 | verify_bh_accretion_engine | BH accretion in the standalone engine (local RD): exact mass conservation (G55), swallowed-dead/no-deposit (G56), toggle-off bit-identity (G57) |
+| 30 | verify_merge_engine | Particle merge in the standalone engine (local RD): merge count + mass conservation (G52), dead-marking/no-deposit (G53), φ⁻² low-q no-merge gate (G54) |
+| 31 | verify_multigrid_engine | Cascade-multigrid engine: coarse Φ reference, near-field recovery, and placement-bias ring metric (G58–G60) |
+| 32 | verify_rho_front | φ-locked density-front speed and radial-symmetry gates |
+| 33 | verify_eps_gap | Pure-ε decoupling, gap frequency, and non-propagation gates |
+| 34 | verify_subsonic_step | Exact particle-merge transverse-speed threshold gate |
+| 35 | verify_omega_invariant | ω₀²-independent density-front speed and widened ε-gap gate |
 
 ## Expected runtime
 
 Measured 2026-08-14 on the RX 7900 XTX rig: **≈ 8–9 minutes** for a fully
 passing tree (arms 1–60 s each; the slowest are verify_fft ~35 s,
 verify_meshless_sim_aniso ~25 s, verify_particle_vanish ~60–100 s). The
-same-day full 33-arm run with three arms hitting their 240 s timeout took
-17 minutes. Arms run strictly serially because they share the GPU. First run
-after a shader change can be slower (SPIR-V recompile).
+A prior full run with three arms hitting their 240 s timeout took 17 minutes.
+Arms run strictly serially because they share the GPU. First run after a shader
+change can be slower (SPIR-V recompile).
 
 ## Special launch conventions (read before touching the battery)
 

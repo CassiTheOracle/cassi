@@ -45,7 +45,9 @@ var _nclusters_spin: CSpinParam; var _sep_spin: CSpinParam
 var _init_opt: COptionParam
 var _rainbow_btn: CheckButton
 var _color_src_opt: OptionButton
+var _presentation_color_opt: OptionButton
 var _fit_btn: Button
+var _presentation_director_opt: OptionButton
 var _auto_align_btn: CheckButton
 var _scale_label: Label
 var _falsify_btn: CheckButton
@@ -193,7 +195,8 @@ const INIT_CHOICES: Array[String] = ["Plummer", "Gaussian", "Uniform"]
 #   prop   — the CassiSim property name (sim.get/sim.set target).
 #   reinit — true → call sim.reinit() after setting (init-time / MultiMesh
 #            rebuild side effects); false → LIVE, applied next frame.
-# Backed toggles ride the generic toggle table (see EXTRA_TOGGLES below).
+# Backed toggles ride the generic toggle table (see EXTRA_TOGGLES below),
+# with an optional tab route (System by default).
 const EXTRA_PARAMS: Array[Dictionary] = [
 	# ── Setup / Initial state (all reinit — they shape the IC draw) ──────
 	{"id": "cluster_radius",           "prop": "cluster_radius",           "caption": "Cluster radius:",   "token": "cluster", "min": 1.0,   "max": 500.0,     "step": 1.0,    "reinit": true,  "tooltip": "Initial sphere radius the cluster(s) are seeded within (world units)."},
@@ -229,6 +232,10 @@ const EXTRA_TOGGLES: Array[Dictionary] = [
 	{"id": "river_calibrate_gn",    "prop": "river_calibrate_gn",    "reinit": true,  "caption": "River G-calib",   "tooltip": "Calibrate G_N to the River gravity chain (init-time — applies on reinit)."},
 	{"id": "field_attractor_init",  "prop": "field_attractor_init",  "reinit": true,  "caption": "Field attractor", "tooltip": "Seed the initial field near the φ-attractor (init-time — applies on reinit)."},
 	{"id": "freeze_field",          "prop": "freeze_field",          "reinit": false, "caption": "Freeze field",    "tooltip": "Diagnostic: initialize the two-fluid field once and leave it frozen (live tick)."},
+	{"id": "presentation_profile",  "prop": "presentation_profile",  "reinit": false, "tab": "visuals", "caption": "Presentation", "tooltip": "Soft luminous particles, range visibility, and a matched field palette. Off restores the compatibility appearance. Live, no reinit."},
+	{"id": "presentation_macro_lod", "prop": "presentation_macro_lod_enabled", "reinit": false, "tab": "visuals", "caption": "Macro LOD", "tooltip": "Draw bounded Voronoi-site representatives beyond the individual-particle range. Requires Presentation and a ready meshless topology. Live, no reinit."},
+	{"id": "presentation_trails", "prop": "presentation_trails_enabled", "reinit": false, "tab": "visuals", "caption": "Velocity ribbons", "tooltip": "Draw a bounded, instantaneous camera-facing ribbon for sampled moving particles. It uses current velocity only; it never records particle paths. Live, no reinit."},
+	{"id": "presentation_volume_history", "prop": "presentation_volume_history_enabled", "reinit": false, "tab": "visuals", "caption": "Volume history", "tooltip": "Use depth-rejected temporal reprojection for the presentation site-volume view. History resets on camera, topology, window, resize, or mode changes. Live, no reinit."},
 ]
 
 
@@ -393,6 +400,7 @@ func _ready() -> void:
 	_build_system_page()
 	_build_workbench_page()
 	_sync_extra_params()
+	_sync_presentation_director_control()
 	_tab_bar.set_selected_no_signal(0)
 	_show_tab(0)
 
@@ -884,6 +892,52 @@ func _on_extra_toggle_changed(on: bool, id: String) -> void:
 		sim.set(String(e.prop), on)
 
 
+func _presentation_director() -> Node:
+	var scene := get_tree().current_scene
+	return scene.get_node_or_null("PresentationDirector") if scene != null else null
+
+
+func _sync_presentation_director_control() -> void:
+	if _presentation_director_opt == null:
+		return
+	var director := _presentation_director()
+	if director == null:
+		_presentation_director_opt.disabled = true
+		_presentation_director_opt.tooltip_text = "No presentation director is present in this scene."
+		return
+	_presentation_director_opt.disabled = false
+	var director_mode := int(director.get("mode"))
+	var director_preset := int(director.get("preset"))
+	var selected := 0 if director_mode == 0 else clampi(director_preset + 1, 1, 3)
+	if director_mode == 2:
+		selected = 3
+	_presentation_director_opt.select(selected)
+	var changed := Callable(self, "_on_presentation_director_mode_changed")
+	if director.has_signal("mode_changed") and not director.is_connected("mode_changed", changed):
+		director.connect("mode_changed", changed)
+
+
+func _on_presentation_director_selected(index: int) -> void:
+	var director := _presentation_director()
+	if director == null:
+		return
+	if index <= 0:
+		if director.has_method("request_manual_takeover"):
+			director.call("request_manual_takeover")
+		return
+	if director.has_method("set_directed_preset"):
+		director.call("set_directed_preset", index - 1)
+
+
+func _on_presentation_director_mode_changed(next_mode: int, next_preset: int) -> void:
+	if _presentation_director_opt == null:
+		return
+	var selected := 0 if next_mode == 0 else clampi(next_preset + 1, 1, 3)
+	if next_mode == 2:
+		selected = 3
+	_presentation_director_opt.select(selected)
+
+
 const ROW_WIDTH: int = 132
 
 
@@ -926,6 +980,23 @@ func _build_visuals_page() -> void:
 	_fit_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_fit_btn.pressed.connect(_on_fit_colors)
 	cm_row.add_child(_fit_btn)
+	var palette_row := HBoxContainer.new()
+	palette_row.add_theme_constant_override("separation", 6)
+	color_sec.add_child(palette_row)
+	var palette_label := _make_label("Presentation palette:", "gold", "param")
+	palette_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	palette_row.add_child(palette_label)
+	_presentation_color_opt = OptionButton.new()
+	_presentation_color_opt.name = "PresentationColorSchemeOpt"
+	_presentation_color_opt.add_item("Cassi Night")
+	_presentation_color_opt.add_item("Spectrum")
+	_presentation_color_opt.selected = 0
+	_presentation_color_opt.tooltip_text = "Choose the palette that colors all presentation layers; Color source remains the data input mapped by the Color controls. Live, no reinit."
+	_presentation_color_opt.custom_minimum_size = Vector2(112, 22)
+	_presentation_color_opt.focus_mode = Control.FOCUS_NONE
+	_presentation_color_opt.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_presentation_color_opt.item_selected.connect(_on_presentation_color_scheme_selected)
+	palette_row.add_child(_presentation_color_opt)
 
 	var cm_auto := HBoxContainer.new()
 	cm_auto.add_theme_constant_override("separation", 6)
@@ -988,6 +1059,34 @@ func _build_visuals_page() -> void:
 		_on_vfx_twoaxis_toggled)
 	vfx_grid.add_child(_vfx_twoaxis_btn)
 
+	# Generic presentation-profile toggle, kept in the backed registry so
+	# initial state and live updates use the same no-signal sync mechanism.
+	for e in EXTRA_TOGGLES:
+		if e.get("tab", "system") == "visuals":
+			vfx_grid.add_child(_build_extra_toggle(e))
+
+
+	# ── Camera direction (manual-first pose source) ─────────────
+	var camera_sec := _add_section(_visuals_page, "Camera direction", "LIVE")
+	var camera_row := HBoxContainer.new()
+	camera_row.add_theme_constant_override("separation", 6)
+	camera_sec.add_child(camera_row)
+	var camera_label := _make_label("Camera:", "gold", "param")
+	camera_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	camera_row.add_child(camera_label)
+	_presentation_director_opt = OptionButton.new()
+	_presentation_director_opt.name = "PresentationDirectorOpt"
+	_presentation_director_opt.add_item("Manual")
+	_presentation_director_opt.add_item("Wide envelope")
+	_presentation_director_opt.add_item("Focus core")
+	_presentation_director_opt.add_item("Record orbit")
+	_presentation_director_opt.selected = 0
+	_presentation_director_opt.tooltip_text = "Manual always owns the camera. Choose a preset to let the presentation director supply an orbit; any camera input immediately returns to Manual."
+	_presentation_director_opt.custom_minimum_size = Vector2(150, 22)
+	_presentation_director_opt.focus_mode = Control.FOCUS_NONE
+	_presentation_director_opt.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_presentation_director_opt.item_selected.connect(_on_presentation_director_selected)
+	camera_row.add_child(_presentation_director_opt)
 
 ## Build one VFX CheckButton with the house interaction defaults.
 func _build_vfx_toggle(name: String, text: String, tip: String, cb: Callable) -> CheckButton:
@@ -1030,11 +1129,12 @@ func _build_system_page() -> void:
 	_meshless_btn = _build_system_toggle("Meshless",
 		"Run the two-fluid field on the moving Voronoi cell mesh (JFA construction, steering + ALE remap); applies on reinit", _on_meshless_toggled, false)
 	phys_grid.add_child(_meshless_btn)
-	# Generic backed toggles (meshless gravity, particle merge, BH
+	# Generic backed System toggles (meshless gravity, particle merge, BH
 	# accretion, River calibration, field attractor, freeze field).
 	for e in EXTRA_TOGGLES:
-		var t := _build_extra_toggle(e)
-		phys_grid.add_child(t)
+		if e.get("tab", "system") == "system":
+			var t := _build_extra_toggle(e)
+			phys_grid.add_child(t)
 
 	# ── Performance ─────────────────────────────────────────────
 	var perf_sec := _add_section(_system_page, "Performance", "LIVE")
@@ -1416,6 +1516,8 @@ func _sync_color_widgets(sim: Node3D) -> void:
 		2, 4: _color_src_opt.select(1)
 		5: _color_src_opt.select(2)
 		1: _color_src_opt.select(3)
+	if _presentation_color_opt != null:
+		_presentation_color_opt.select(clampi(int(sim.presentation_color_scheme), 0, 1))
 	_auto_align_btn.set_pressed_no_signal(sim.auto_align_colors)
 	_vfx_twoaxis_btn.set_pressed_no_signal(base == 4)
 	_vfx_size_btn.set_pressed_no_signal((flags & 0x1) != 0)
@@ -1483,8 +1585,9 @@ func _on_field_texture_updated(tex: Texture2D) -> void:
 
 func _set_mode_highlight(active: int) -> void:
 	_mode_seg.set_selected_no_signal(active)
-	# Show viz texture only in Field (1) or BH (2) mode
-	_viz_texture_rect.visible = (active == 1 or active == 2)
+	# Field and Black Hole modes each own the full-frame visualization texture.
+	# Cosmology renders particles directly and must not retain a stale overlay.
+	_viz_texture_rect.visible = active == 1 or active == 2
 
 
 func _set_grav_highlight(active: int) -> void:
@@ -1826,6 +1929,13 @@ func _on_color_src_selected(idx: int) -> void:
 		_apply_particle_color_mode(sim)
 	_sync_color_widgets(sim)
 	_repaint_if_paused(sim)
+
+
+func _on_presentation_color_scheme_selected(idx: int) -> void:
+	var sim = _get_sim()
+	if sim == null:
+		return
+	sim.presentation_color_scheme = clampi(idx, 0, 1)
 
 
 func _on_vfx_size_toggled(on: bool) -> void:

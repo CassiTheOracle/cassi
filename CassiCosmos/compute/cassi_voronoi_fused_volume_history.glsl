@@ -1,6 +1,12 @@
 #[compute]
-// Production boxless site-native volume renderer.
-// Bindings are owned by the global-RD renderer wiring:
+// Presentation-history variant of the boxless site-native volume renderer.
+// This is a dedicated current-only producer for the temporal reprojection path;
+// it shares the live shader's vocabulary but NEVER mixes history itself and
+// NEVER reinterprets alpha as depth.
+//
+// Binding map — set=0, identical semantics to cassi_voronoi_fused_volume.glsl
+// for bindings 0..9 (so the existing host uniform set 0..9 stays wire-
+// compatible), plus one auxiliary depth output:
 //  0 open finite-tile labels (uint site id per hash cell; invalid < 0 is encoded 0xffffffff)
 //  1 symmetric adjacency bitset (ceil(site_count/32) uint words/site)
 //  2 exact CSR degree (uint/site)
@@ -8,13 +14,30 @@
 //  4 exact CSR neighbors (ascending site ids)
 //  5 compact optical payload: vec4[2*site], first xyz+opacity, second EY/EI/coherence/gradient
 //  6 immutable topology status: [generation,total,overflow,site_count]
-//  7 output rgba32f image
-//  8 history rgba32f image (read-only temporal hook; invalid history is transparent)
+//  7 output rgba32f image — CURRENT radiance (rgb) + Beer-Lambert opacity (a) only
+//  8 history rgba32f image (readonly; declared for ABI parity with the live
+//    uniform set but deliberately NEVER sampled here — this variant must not
+//    mix history at the same pixel)
 //  9 render stats uints: [overflow, miss, history_reject, topology_reject,
 //                         sentinel, executed_generation, history_accepted, scheduling]
+//    Words 2 (history_reject) and 6 (history_accepted) belong to the live
+//    path / resolve accounting and are never touched by this variant.
+// 10 output r32f image — representative opacity-weighted ray-distance first
+//    moment: sum over ray segments of (absorbed-opacity * segment midpoint
+//    distance), normalized by total opacity. Values <= 0.0 are the invalid
+//    sentinel "no representative surface" (topology failure, slab miss, or a
+//    fully transparent ray). Depth is a SEPARATE image; alpha stays opacity.
 //
-// Push constants are exactly eight vec4 groups: 32 floats / 128 bytes.
-// Slots 0..31 are the canonical live-camera/topology/traversal contract.
+// Push constants are byte-identical to the live fused-volume contract: exactly
+// eight vec4 groups / 32 floats / 128 bytes (see scripts/contracts/layout.gd,
+// "cassi_voronoi_fused_volume": 32). The host uploads the same packed array to
+// both pipelines. Slot usage specific to this variant:
+//   float 20 topology_generation   validated against topology_status[0]
+//   float 22 coherence_mask        presentation gate (1.0 = presentation emission)
+//   float 23 gradient_mask         presentation color scheme selector:
+//                                    0 = Cassi Night; 1 = Spectrum.
+//   floats 24..31 ignored here (history weight/tolerance, scheduling, step and
+//   cutoff controls are owned by the resolve pass).
 #version 450
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
@@ -24,6 +47,8 @@ const float EPS_T = 1e-5;
 const float EPS_DEN = 1e-7;
 const float PHI = 1.6180339887498948482;
 const float PHI_INV2 = 0.3819660112501051518;
+// Opacity floor below which a ray has no representative surface (depth 0).
+const float DEPTH_EPS = 1e-6;
 
 layout(push_constant, std430) uniform PC {
     vec3 camera_origin; float fov_y;
@@ -47,8 +72,9 @@ layout(set=0,binding=4,std430) readonly buffer Neighbors { uint neighbors[]; };
 layout(set=0,binding=5,std430) readonly buffer Optical { vec4 optical[]; };
 layout(set=0,binding=6,std430) readonly buffer TopologyStatus { uint topology_status[]; };
 layout(set=0,binding=7,rgba32f) uniform restrict writeonly image2D output_image;
-layout(set=0,binding=8,rgba32f) uniform restrict readonly image2D history_image;
+layout(set=0,binding=8,rgba32f) uniform restrict readonly image2D history_image; // ABI parity; never sampled
 layout(set=0,binding=9,std430) coherent buffer RenderStats { uint render_stats[]; };
+layout(set=0,binding=10,r32f) uniform restrict writeonly image2D depth_image;
 
 uint site_count() { return uint(max(0.0, pc.site_count_f)); }
 uint hash_words() { return max(1u, (site_count() + 31u) >> 5u); }
@@ -100,9 +126,8 @@ vec3 ray_dir(ivec2 pix) {
 }
 
 vec3 site_pos(uint s) { return optical[2u*s].xyz; }
-// Palette selection mirrors CassiSim.presentation_color_scheme:
-// 0 = Cassi Night; 1 = Spectrum. It is only consulted under the existing
-// presentation gate, so the compatibility emission branch stays unchanged.
+// Palette selection mirrors cassi_voronoi_fused_volume.glsl exactly so a
+// history toggle cannot alter the field's color semantics.
 vec3 presentation_hsl_to_rgb(vec3 c) {
     vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0)
                      - 1.0, 0.0, 1.0);
@@ -137,10 +162,15 @@ float crossing(vec3 ro, vec3 rd, float tc, uint cur, uint j) {
     return t > tc+eps ? t : INF;
 }
 
-vec4 integrate(vec3 ro, vec3 rd, float ta, float tb, out bool overflowed) {
+// Current-only integration. ray_depth (out) is the representative
+// opacity-weighted ray-distance first moment; 0.0 means no representative
+// surface. Alpha remains Beer-Lambert opacity and is never used as depth.
+vec4 integrate(vec3 ro, vec3 rd, float ta, float tb, out bool overflowed, out float ray_depth) {
     overflowed=false;
+    ray_depth=0.0;
     uint ns=site_count(); if(ns==0u)return vec4(0.0);
     float tc=max(ta,0.0),trans=1.0; vec3 radiance=vec3(0.0);
+    float depth_moment=0.0; // sum of (segment opacity * segment midpoint distance)
     vec3 entry=ro+rd*(tc+4.0*EPS_T); uint cur=label_lookup(entry);
     if(cur==INVALID_SITE||cur>=ns)return vec4(0.0);
     bool settled=false;
@@ -166,14 +196,18 @@ vec4 integrate(vec3 ro, vec3 rd, float ta, float tb, out bool overflowed) {
             emit=vec3(max(fs.x,0.0),max(fs.y,0.0),rho)*sigma;
         }
         float absorb=exp(-sigma*ds);
+        float seg_opac=trans*(1.0-absorb);
         radiance += trans*emit*(1.0-absorb)/max(sigma,1e-6);
+        depth_moment += seg_opac*(0.5*(tc+best));
         trans*=absorb;tc=best;
         if(next==INVALID_SITE||!(tc>0.0)||tc>=tb-EPS_T)break;
         cur=next;
     }
     // A non-terminal cap hit is explicit overflow, never silent truncation.
     if (tc < tb-EPS_T && trans > pc.transmittance_cutoff) overflowed=true;
-    return vec4(radiance,1.0-trans);
+    float total_opacity=1.0-trans;
+    ray_depth = total_opacity > DEPTH_EPS ? depth_moment/total_opacity : 0.0;
+    return vec4(radiance,total_opacity);
 }
 void main() {
     ivec2 pix=ivec2(gl_GlobalInvocationID.xy);
@@ -188,13 +222,15 @@ void main() {
     uint cap=6u*n*n*max(n-1u,1u);
     bool topology_ok=ns>0u && topology_status[0]==uint(max(pc.topology_generation,0.0)+0.5)
         && topology_status[3]==ns && topology_status[2]==0u && required<=cap;
-    if(!topology_ok){atomicAdd(render_stats[3],1u);imageStore(output_image,pix,vec4(0.0));return;}
+    if(!topology_ok){atomicAdd(render_stats[3],1u);imageStore(output_image,pix,vec4(0.0));imageStore(depth_image,pix,vec4(0.0));return;}
     vec3 ro=pc.camera_origin,rd=ray_dir(pix);float ta,tb;
-    vec4 outv=vec4(0.0);bool overflowed=false;
-    if(slab(ro,rd,ta,tb))outv=integrate(ro,rd,ta,tb,overflowed);
+    vec4 outv=vec4(0.0);float ray_depth=0.0;bool overflowed=false;
+    if(slab(ro,rd,ta,tb))outv=integrate(ro,rd,ta,tb,overflowed,ray_depth);
     else atomicAdd(render_stats[1],1u);
-    if(pc.history_weight>0.0&&outv.a>0.0&&pc.topology_generation==pc.envelope_generation){vec4 old=imageLoad(history_image,pix);outv=mix(outv,old,clamp(pc.history_weight,0.0,1.0));}
-    else if(pc.history_weight>0.0)atomicAdd(render_stats[2],1u);
     if(overflowed)atomicAdd(render_stats[0],1u);
+    // Current-only write: no history mixing, alpha stays opacity, depth is
+    // the separate auxiliary image. Every pixel stores a defined depth (0.0
+    // sentinel when there is no representative surface).
     imageStore(output_image,pix,outv);
+    imageStore(depth_image,pix,vec4(ray_depth,0.0,0.0,0.0));
 }

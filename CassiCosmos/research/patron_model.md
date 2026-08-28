@@ -373,4 +373,4 @@ The following are incompatible with this model:
 - [`cassi_coop_game_design.md`](cassi_coop_game_design.md)
 - [`interactivity/interactivity_report.md`](interactivity/interactivity_report.md)
 - [`interactivity/next_frontier_report.md`](interactivity/next_frontier_report.md)
-- [`../../WORKING-WITH-THE-AI.md`](../../WORKING-WITH-THE-AI.md)
+- [`../../UNIFICATION.md`](../../UNIFICATION.md) — shared architecture and research program.

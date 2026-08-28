@@ -7,7 +7,7 @@ Companion to `oblate_provenance_audit.md` (commit `27ad20f`), which established 
 - **THEORY-PREDICTION** — doctrine predicts the shape as physics (reference only; not engine-observed).
 - **UNVERIFIED-QUOTE** — cites the 1.422/2.510 numbers (or an equivalent shape "record") with no engine grounding, usually presenting a Python-PDE output as if it were a confirmed record.
 
-**Read-only survey** — root docs (`UNIFICATION.md`, `WORKING-WITH-THE-AI.md`) were never edited; the only new file is this one.
+**Read-only survey** — root doc (`UNIFICATION.md`) was never edited; the only new file is this one.
 
 ---
 
@@ -69,7 +69,6 @@ Companion to `oblate_provenance_audit.md` (commit `27ad20f`), which established 
 | Site | Bucket | Quote (file:line) | One-line reason |
 |---|---|---|---|
 | `UNIFICATION.md` | — | (no matches for oblate/ellipsoid/triaxial/1.422/2.510 in the surveyed patterns) | No oblate/ellipsoid bubble claim. |
-| `WORKING-WITH-THE-AI.md` | — | (no matches) | No shape claim. |
 
 ---
 

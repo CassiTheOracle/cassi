@@ -217,7 +217,7 @@ bh[2] = (cluster_radius, extent_x, extent_y, extent_z)
   14-float PC** (the shared 11 + extent_x/y/z), following the established
   "dedicated-PC precedent" (the nbody shader already has its own 60-B PC;
   Godot hard-errors on push-constant size mismatch, so the shared 11-float
-  `_pc_bytes` used by field_render/instancer/lensing stays untouched).
+  `_pc_bytes` used by field_render/instancer stays untouched).
 - `box_aspect` and `box_scale` are init-time exports like `cluster_radius`:
   changing them requires `reinit()` (the extents are encoded in
   `_bh_init_bytes` at `_setup_buffers`). Both flow through `_extents()`

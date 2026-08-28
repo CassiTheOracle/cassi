@@ -3,8 +3,11 @@
 Status: implemented in `compute/cassi_instancer.glsl` + `scripts/sim_ui.gd`,
 with the two `scripts/cassi_sim.gd` hooks LANDED (green-lit after the FMM
 wave): TRUE ρ = EY+EI for two-axis and the live camera position for depth.
-Verification: `verify_river_isotropy` 36/36 bit-identical, `verify_particle_vfx`
-smoke 5/5, `validate_sim_ui` 9/9.
+The opt-in presentation profile is implemented in
+`shaders/particle_billboard_presentation.gdshader` and the profile-gated
+fused-volume palette.
+Verification: `verify_particle_vfx` 8/8, `validate_sim_ui` 11/11, and the
+volumetric smoke contract 6/6.
 
 ## Feature encoding
 
@@ -35,6 +38,20 @@ preserved verbatim by the nbody KDK kick, `cassi_nbody_gravity.glsl`:
 `Positions` binding — **no new MASS/COUNT buffer is needed**. When a future
 merge pass writes varied masses into `pos.w`, the size mode lights up for
 free.
+
+## Presentation profile
+
+`sim.presentation_profile` is false by default, preserving the compatibility
+billboard material and fused-volume emission branch. `main.tscn` and
+`main_recorder.tscn` opt in and use `particle_color_mode = 50` (Qi +
+size-by-mass + glow).
+
+The presentation billboard replaces the flat quad appearance with an
+anti-aliased radial core/halo, explicit HDR emission, and a bounded
+projection-aware pixel-radius floor. The Visuals tab exposes the profile as a
+live toggle; turning it off restores the compatibility appearance without
+reinitialization.
+
 ## UI controls (scripts/sim_ui.gd)
 
 The Color mapping controls expose all six non-default shader mappings:
@@ -71,10 +88,10 @@ with the same periodic convention as q.
 
 ## Bloom (WorldEnvironment glow)
 
-`scenes/vfx_glow_env.tscn` is a standalone `WorldEnvironment` with HDR/
-additive glow enabled (threshold 0.35, additive blend). To use it, instance
-that node into the scene (or add a `WorldEnvironment` node to any scene and
-assign the included Environment resource). `main.tscn` is left untouched.
+`scenes/vfx_glow_env.tscn` remains a standalone `WorldEnvironment` with
+HDR/additive glow enabled (threshold 0.35, additive blend). The presentation
+scenes use their own restrained inline Environment; the standalone resource
+remains available for other scenes.
 
 ## Verification
 

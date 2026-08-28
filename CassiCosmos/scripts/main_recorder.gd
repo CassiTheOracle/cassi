@@ -37,6 +37,11 @@ var _orbit_target: Vector3 = Vector3.ZERO
 # --orbit-radius on the command line pins the distance; otherwise the default
 # is derived from the spawn extent so the startup frame shows the particles.
 var _orbit_radius_cli := false
+# The sibling `PresentationDirector` node when present: a pose source that
+# this recorder samples (the recorder remains the sole camera writer). Null
+# (or a MANUAL director) keeps the fixed orbit below unchanged.
+var _director: Node = null
+var _director_requested: bool = false
 
 
 func _ready() -> void:
@@ -87,6 +92,12 @@ func _ready() -> void:
 		"particle_color_mode", "rainbow_count", "color_shares", "color_progress",
 		"qi_cycle", "qi_pinch", "qi_approach", "qi_approach_tracks_threshold",
 		"velocity_cycle", "velocity_pinch", "velocity_approach", "color_hue_offset",
+		"presentation_profile", "presentation_color_scheme",
+		"presentation_macro_lod_enabled", "presentation_macro_min_coherence",
+		"presentation_lod_enter", "presentation_lod_exit",
+		"presentation_trails_enabled", "presentation_trail_speed_threshold",
+		"presentation_trail_shutter_seconds", "presentation_volume_history_enabled",
+		"presentation_volume_history_weight", "presentation_volume_history_depth_tolerance",
 		"auto_frame_camera_on_start",
 	]
 	var main_scene := load("res://scenes/main.tscn")
@@ -212,6 +223,8 @@ func _ready() -> void:
 			"--orbit-radius":
 				orbit_radius = float(kv[1])
 				_orbit_radius_cli = true
+			"--presentation-director":
+				_director_requested = int(kv[1]) != 0
 
 	# ── Spawn-aware camera framing ──
 	# Aim the orbit at the actual spawn region and frame it: the default
@@ -222,6 +235,12 @@ func _ready() -> void:
 		orbit_radius = _framing_radius()
 	_orbit_target = _spawn_centroid()
 	_apply_camera_pose()
+	_director = _find_director()
+	if _director_requested and _director != null and _director.has_method("set_recorder_directing"):
+		if _director.has_method("configure_recorder_orbit"):
+			_director.call("configure_recorder_orbit",
+				_orbit_target, orbit_radius, orbit_elevation, orbit_speed)
+		_director.call("set_recorder_directing")
 
 	# The sim already ran _ready with script defaults; reinit applies the
 	# inherited settings + CLI overrides (fresh buffers/field/particles at
@@ -309,11 +328,34 @@ func _apply_camera_pose() -> void:
 	_cam.look_at(_orbit_target, Vector3.UP)
 
 
+# ---------------------------------------------------------------------------
+# Director sampling (presentation director; all no-ops when absent)
+# ---------------------------------------------------------------------------
+
+## The sibling `PresentationDirector` node, if present. Cached once at
+## _ready and re-resolved lazily so a director added later is honored.
+func _find_director() -> Node:
+	return get_node_or_null("PresentationDirector")
+
+
+## The cached director ref, re-resolved when missing or freed.
+func _current_director() -> Node:
+	if not is_instance_valid(_director):
+		_director = _find_director()
+	return _director
+
+
 func _process(delta: float) -> void:
-	# Slow orbital camera: rotate around the spawn centroid (the cluster
-	# region) at a fixed elevation, always looking at it.
-	_angle += orbit_speed * delta
-	_apply_camera_pose()
+	# While a director is present and directing, it is the pose source; the
+	# recorder stays the sole camera writer and applies the sampled pose.
+	# Without a director (or in MANUAL) the fixed orbit below is unchanged.
+	var director := _current_director()
+	if director != null and director.has_method("is_directing") and director.call("is_directing"):
+		var pose: Transform3D = director.call("sample_pose", delta, _cam)
+		_cam.global_transform = pose
+	else:
+		_angle += orbit_speed * delta
+		_apply_camera_pose()
 
 	_frame_count += 1
 	if _frame_count % 30 == 0 or _frame_count == record_frames:

@@ -18,8 +18,8 @@ extends RefCounted
 ## moving Voronoi sites, CSR field evolution, carry-safe particle mass
 ## deposition, site condensation, BH integration, tree build/walk, and the
 ## cached-acc KDK force read the same live site state. The renderer's
-## instancer, q-histogram, field display, and BH lensing remain render-side
-## consumers; they bind the engine's site buffers when gridless_physics is on.
+## instancer, q-histogram, and field display remain render-side consumers;
+## they bind the engine's site buffers when gridless_physics is on.
 ## Legacy grid mode retains the original raster chain and the compatibility
 ## seam described below.
 ##
@@ -1043,13 +1043,9 @@ func service_render_topology() -> void:
 		"gradi": gradi,
 		"ext": _extents(),
 	}
-	_render_topology_last_step = _step_count
-	var immediate: Dictionary = _render_topology_worker.submit(job)
-	if immediate.is_empty():
-		_render_topology_inflight = _render_topology_worker.is_ready()
-	else:
-		_apply_render_topology(immediate)
-		_render_topology_inflight = false
+	if _render_topology_worker.submit(job):
+		_render_topology_last_step = _step_count
+		_render_topology_inflight = true
 
 
 func _apply_render_topology(result: Dictionary) -> void:

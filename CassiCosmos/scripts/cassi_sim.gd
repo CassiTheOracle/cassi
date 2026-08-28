@@ -1,8 +1,8 @@
 extends Node3D
 ## Cassi Universe Simulator — core orchestration.
 ##
-## Manages the two-fluid PDE field grid, N-body particles, black hole
-## lensing, and visualization — all running in Godot compute shaders.
+## Manages the two-fluid PDE field grid, N-body particles, black-hole physics,
+## and visualization — all running in Godot compute shaders.
 ##
 
 const PHI: float = CassiTreeConsts.PHI
@@ -445,6 +445,53 @@ const ENVELOPE_SAMPLE_MAX: int = 8192
 ## direction mappings and ignore band fitting. Live — no reinit.
 ## High flags: 0x10 size-by-mass, 0x20 additive glow, 0x40 depth cue.
 @export_range(0, 118, 1) var particle_color_mode: int = 2
+## Presentation-only particle/material profile. OFF preserves the legacy
+## billboard shader and the default field-volume palette; production scenes
+## may opt in without changing physics, buffer layouts, or verification arms.
+@export var presentation_profile: bool = false:
+	get:
+		return _presentation_profile
+	set(value):
+		if _presentation_profile == value:
+			return
+		_presentation_profile = value
+		_apply_particle_presentation_profile()
+		_invalidate_volume_render_cache()
+
+## Presentation palette applied consistently to particles, macro sites,
+## velocity ribbons, and the profile-gated site-volume renderer. Color source
+## remains particle_color_mode; this changes only the display mapping.
+@export_enum("Cassi Night", "Spectrum") var presentation_color_scheme: int = 0:
+	get:
+		return _presentation_color_scheme
+	set(value):
+		var next_scheme := clampi(value, 0, 1)
+		if _presentation_color_scheme == next_scheme:
+			return
+		_presentation_color_scheme = next_scheme
+		_apply_particle_presentation_profile()
+		_invalidate_volume_render_cache()
+
+## Visual-only site representatives for the far field. The particle layer and
+## every solver buffer remain unchanged when this is on.
+@export var presentation_macro_lod_enabled: bool = false
+@export_range(0.0, 1.0, 0.01) var presentation_macro_min_coherence: float = 0.03
+@export_range(1.0, 100000.0, 1.0) var presentation_lod_enter: float = 300.0
+@export_range(1.0, 100000.0, 1.0) var presentation_lod_exit: float = 700.0
+
+## Bounded instantaneous velocity ribbons. This never allocates a
+## per-particle temporal path history.
+@export var presentation_trails_enabled: bool = false
+@export_range(0.0, 10000.0, 0.01) var presentation_trail_speed_threshold: float = 0.25
+@export_range(0.001, 2.0, 0.001) var presentation_trail_shutter_seconds: float = 0.08
+
+## Opt-in true temporal reprojection for the site volume. It owns separate
+## history resources and does not touch the compatibility volume pipeline.
+@export var presentation_volume_history_enabled: bool = false
+@export_range(0.0, 0.95, 0.01) var presentation_volume_history_weight: float = 0.45
+@export_range(0.001, 0.5, 0.001) var presentation_volume_history_depth_tolerance: float = 0.05
+
+
 
 # ── Consolidated gradient engine (live exports — read per instancer PC fill) ──
 ## Rainbow pass count: 0 = AUTO (mode 3 → 2 passes, modes 1/2 → 1); explicit 1-8
@@ -576,7 +623,7 @@ var _decoupled_initial_blend_id := 0
 # — auxiliary buffers (SET 2) —
 var _cluster_buf: RID
 var _bh_buf: RID
-var _bh_lens_buf: RID  # BH lensing params (4 vec4s, visual only — NOT the 36-vec4 sim header)
+var _bh_lens_buf: RID  # four vec4 visual lens parameters; never aliases the simulation BH header
 var _mass_density_buf: RID
 var _mass_density_fix: RID  # uvec4 per cell — exact fixed-point digit-sum deposit accumulator (determinism fix, cassi_mass_deposit.glsl)
 
@@ -585,12 +632,34 @@ var _nbody_shader: RID;      var _nbody_pipe: RID
 var _poisson_shader: RID;    var _poisson_pipe: RID
 var _field_render_shader: RID; var _field_render_pipe: RID
 var _volume_shader: RID; var _volume_pipe: RID
-var _bh_lensing_shader: RID;  var _bh_lensing_pipe: RID
+var _bh_lensing_shader: RID; var _bh_lensing_pipe: RID
 var _mass_deposit_shader: RID; var _mass_deposit_pipe: RID
 var _shaders_ready: bool = false
 var _setup_retry_counter: int = 0
 var _volume_pc_bytes: PackedByteArray
 var _volume_stats_zero: PackedByteArray
+
+# True temporal volume history is a separate default-off path. The live
+# fused-volume shader and its fixed 32-float ABI remain the compatibility
+# route; this path owns current/depth, ping-pong history, resolve, and state.
+var _volume_history_shader: RID; var _volume_history_pipe: RID
+var _volume_reproject_shader: RID; var _volume_reproject_pipe: RID
+var _volume_current_tex: RID
+var _volume_current_depth_tex: RID
+var _volume_history_color_a: RID; var _volume_history_color_b: RID
+var _volume_history_depth_a: RID; var _volume_history_depth_b: RID
+var _volume_history_state: RID
+var _us_volume_history_0: RID
+var _us_volume_reproject_ab: RID; var _us_volume_reproject_ba: RID
+var _volume_history_prev_is_a: bool = true
+var _volume_history_has_state: bool = false
+var _volume_history_last_origin := Vector3.INF
+var _volume_history_last_forward := Vector3.ZERO
+var _volume_history_last_fov: float = -1.0
+var _volume_history_last_size := Vector2i(-1, -1)
+var _volume_history_last_topology: int = -1
+var _volume_history_last_query: int = -1
+var _volume_history_last_key: float = -1.0
 var _volume_stats: RID
 var _volume_history_neutral: RID
 var _volume_cache_valid: bool = false
@@ -617,6 +686,7 @@ var _volume_pending_tier: int = 0
 var _volume_last_max_steps := -1.0
 var _volume_last_cutoff := -1.0
 var _volume_last_history_weight := -1.0
+var _volume_last_history_depth_tolerance := -1.0
 var _volume_last_scheduling := -1.0
 var _volume_last_boxless_active := false
 var _volume_last_record_us := 0
@@ -720,7 +790,7 @@ var _pc_bytes: PackedByteArray        # shared 11-float PC (all physics shaders)
 var _nbody_pc_bytes: PackedByteArray  # nbody PC (15 floats: 11 shared + pass_mode + 3 RealSim)
 # Two-fluid dedicated PC (16 floats: the shared 11 + the 3 per-axis
 # extents + pass_sel + omega2 — layout key `cassi_two_fluid`) — the
-# dedicated-PC precedent: field_render/instancer/bh_lensing
+# dedicated-PC precedent: field_render/instancer
 # share _pc_bytes (11 floats) and Godot hard-errors on push-constant size
 # mismatch, so the two-fluid's anisotropic-stencil extents get their own.
 var _two_fluid_pc_bytes: PackedByteArray  # two-fluid PC (16 floats: 11 shared + extent_x/y/z + pass_sel + omega2)
@@ -738,10 +808,9 @@ var _merge_pc_bytes: PackedByteArray  # merge PC (26 floats: N, phi, phi_inv2, q
 # 11 + color_mode@11 + prog_mode@12 + ref@13 + the up-to-3 cycle segments
 # (lo1/slope1@14-15, lo2/slope2/off2@16-18, lo3/slope3/off3@19-21) +
 # hiC@22 + span_total@23 + the approach band (a_lo@24, a_hi@25, a_top@26,
-# approach_on@27) + extent_x/y/z@28-30 + hue_offset@31. The dedicated-PC
-# precedent (nbody 15, two-fluid 14, mass-deposit 5): field_render/
-# bh_lensing keep the shared 11-float _pc_bytes, and Godot hard-errors on
-# push-constant size mismatch, so the instancer's extra fields get their
+# approach_on@27) + extent_x/y/z@28-30 + hue_offset@31.
+# The shared-PC consumers are field_render and the instancer. Godot hard-errors
+# on push-constant size mismatch, so the instancer's extra fields get their
 # own pre-allocated buffer.
 var _instancer_pc_bytes: PackedByteArray  # instancer PC (32 floats: 11 shared + color_mode@11 + prog_mode@12 + ref@13 + lo1/slope1@14-15 + lo2/slope2/off2@16-18 + lo3/slope3/off3@19-21 + hiC@22 + span_total@23 + a_lo/a_hi/gate/approach_on@24-27 + extent_x/y/z@28-30 + hue_offset@31)
 # ── Meshless (moving-Voronoi) arm — MESHLESS_PLAN.md §10 integration ────
@@ -931,17 +1000,44 @@ func _ml_need_tree() -> bool:
 # (`MultiMesh.buffer` is PackedFloat32Array-typed in Godot 4.7; there is no
 # RID-injection property, so the reverse direction is used: compute binds
 # the renderer's buffer RID.)
-# Visual readbacks (field slice, BH lensing) stay wall-time capped at
-# ~15 Hz; full-q diagnostics ~3 Hz (each readback stalls the global RD, so
-# they are throttled hard).
+# Visual field readbacks stay wall-time capped at ~15 Hz; full-q diagnostics
+# stay near ~3 Hz because each readback stalls the global RD.
 const RB_HZ: float = 15.0
 const DIAG_HZ: float = 3.0
 var _mm_rd_rid: RID = RID()              # the multimesh's RD instance buffer
 var _last_field_rb_ms: int = 0
-var _last_bh_rb_ms: int = 0
 var _last_diag_ms: int = 0
 var _last_p0_rb_ms: int = 0              # wall-time gate for the p[0] debug print
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
+var _presentation_profile: bool = false
+var _presentation_color_scheme: int = 0
+var _particle_compat_shader: Shader = null
+var _particle_presentation_shader: Shader = null
+var _presentation_viewport_height: float = -1.0
+
+# ── Optional presentation layers (each owns a renderer-only MultiMesh) ──
+# The individual-particle buffer remains authoritative. These layers write
+# only renderer-owned instance buffers and are allocated lazily while their
+# opt-in toggle *and* presentation_profile are enabled.
+const PRESENTATION_TRAIL_CAP: int = 65_536
+var _macro_lod_shader: RID; var _macro_lod_pipe: RID; var _us_macro_lod_0: RID
+var _macro_lod_pc: PackedByteArray
+var _macro_lod_mmi: MultiMeshInstance3D = null
+var _macro_lod_mm: MultiMesh = null
+var _macro_lod_rd_rid: RID
+var _macro_lod_material: ShaderMaterial = null
+var _macro_lod_set_generation: int = -1
+var _macro_lod_set_site_count: int = -1
+var _macro_lod_last_scheme: int = -1
+
+var _trail_shader: RID; var _trail_pipe: RID
+var _us_trail_0: RID; var _us_trail_0_dc: RID
+var _trail_pc: PackedByteArray
+var _trail_mmi: MultiMeshInstance3D = null
+var _trail_mm: MultiMesh = null
+var _trail_rd_rid: RID
+var _trail_material: ShaderMaterial = null
+var _trail_last_scheme: int = -1
 var _mm_particle_size: float = -1.0  # particle_size the multimesh was built with (reinit rebuild check)
 var _rainbow_vref: float = 1.0  # rainbow speed reference: mean initial |v| (set in _init_particles; fallback 1.0)
 var _rainbow_vscale: float = 0.95 * LN2  # rainbow hue scale: 0.95/ln(1+v_max/v_ref) (set in _init_particles; degenerate fallback 0.95·ln2)
@@ -1021,9 +1117,9 @@ var _last_occ_ms: int = 0
 
 var field_display_texture: Texture2D = null
 signal field_texture_updated(tex: Texture2D)
+var bh_display_texture: Texture2D = null
 signal bh_texture_updated(tex: Texture2D)
 var _render_texture_rebuild_count: int = 0
-var bh_display_texture: Texture2D = null
 # ═══════════════════════════════════════════════════════════════════════
 # Lifecycle
 # ═══════════════════════════════════════════════════════════════════════
@@ -1182,7 +1278,15 @@ func _process(delta: float) -> void:
 		return
 	if _gridless_failure:
 		return
+	_update_particle_presentation_viewport()
 
+
+	# Optional presentation layers are renderer-only and allocate lazily.
+	# Run the lifecycle outside all compute lists so a live toggle can never
+	# invalidate a set currently bound by the render/physics chain.
+	_sync_presentation_macro_lod()
+	_sync_presentation_trails()
+	_sync_presentation_volume_history()
 	# First-run import race: on a fresh cache the .glsl imports may not have
 	# finished when _ready ran — retry until every shader compiles.
 	if not _shaders_ready:
@@ -1452,6 +1556,7 @@ func _run_physics_steps(n_steps: int) -> void:
 			_rd.compute_list_bind_uniform_set(cl, _us_inst_0_lut_render if _lut_active() else _us_inst_0_render, 0)
 		_rd.compute_list_set_push_constant(cl, _instancer_pc_bytes, _instancer_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, ipg, 1, 1)
+	_record_presentation_trails(cl, _us_trail_0)
 	_rd.compute_list_end()
 
 	# Inline simulation owns the global RenderingDevice and keeps the
@@ -1746,6 +1851,12 @@ func _fail_gridless_physics(reason: String) -> void:
 	push_error("[CassiSim] gridless physics unavailable — refusing raster fallback: %s" % reason)
 	_gridless_failure = true
 	playing = false
+	# These uniform sets reference the engine's live buffers. Release the
+	# renderer-only profile resources before stopping that producer so a
+	# fail-closed gridless transition cannot leave stale presentation RIDs.
+	_free_macro_lod_multimesh()
+	_free_trail_multimesh()
+	_free_volume_history_resources()
 	_decoupled_boot_wait = false
 	if _physics_engine != null:
 		_physics_engine.stop_threaded()
@@ -2164,15 +2275,20 @@ func _decoupled_poll_and_render() -> void:
 			return
 		_decoupled_boot_wait = false
 		print("[CassiSim] decoupled bootstrap complete (non-blocking) — finish_setup took %d ms" % [Time.get_ticks_msec() - _decoupled_boot_fs_ms])
+	# Paused decoupled scenes still need one renderer binding pass and
+	# repeated topology-worker servicing. Otherwise the async worker can become
+	# ready just after the first paused frame and never receive its first job.
+	if not _us_blend_0_dc.is_valid():
+		_build_dc_sets()
+	if _physics_engine != null and boxless_field and meshless_mode:
+		if not bool(_physics_engine.get("_meshless_query_ready")):
+			_physics_engine.publish_render_query()
+		_physics_engine.service_render_topology()
 	var initial_blend_ready := _decoupled_initial_render_pending and _us_blend_0_dc.is_valid() and _blend_pipe.is_valid() and _physics_engine != null and bool(_physics_engine.get("_ml_ready"))
 	if ((not playing and not initial_blend_ready) or (not _shaders_ready and not initial_blend_ready)):
 		return
-	if _physics_engine != null and boxless_field and meshless_mode \
-			and not bool(_physics_engine.get("_meshless_query_ready")):
-		_physics_engine.publish_render_query()
-	if _physics_engine != null and boxless_field and meshless_mode:
-		_physics_engine.service_render_topology()
 	_physics_engine.update_bh_header()   # BEFORE the list
+
 	var cl := _rd.compute_list_begin()
 	var frame_target := _decoupled_target
 	if _physics_engine.setup_ready():
@@ -2185,9 +2301,6 @@ func _decoupled_poll_and_render() -> void:
 	if executed > 0:
 		_physics_engine.record_merge_if_due(cl)
 		_barrier(cl)
-	# P3 (M0b-P one-RD): the decoupled render sets bind the ENGINE's live
-	if not _us_blend_0_dc.is_valid():
-		_build_dc_sets()
 	# Decoupled fp32 blend: set every PC field explicitly; never inherit
 	# inline-path state. Shader layout = alpha, mode, win_x, win_y, win_z.
 	_blend_pc.encode_float(0, 1.0)
@@ -2217,6 +2330,27 @@ func _decoupled_poll_and_render() -> void:
 		_rd.compute_list_add_barrier(cl)
 		if _decoupled_initial_render_pending:
 			initial_instancer_recorded = true
+	# ── Presentation macro-site LOD (renderer-only) ───────────────────
+	# Dispatch the fixed site capacity, not merely the currently published
+	# count: the shader writes finite zero records whenever topology status is
+	# absent/stale/overflowed, so an invalidated topology cannot leave the
+	# previous generation visible.
+	if _presentation_macro_lod_wanted() and _us_macro_lod_0.is_valid() \
+			and _rd.uniform_set_is_valid(_us_macro_lod_0) \
+			and _macro_lod_mm != null and _macro_lod_mm.instance_count > 0:
+		var macro_count := _macro_lod_mm.instance_count
+		_macro_lod_pc = PackedFloat32Array([
+			float(macro_count),
+			clampf(presentation_macro_min_coherence, 0.0, 1.0),
+			maxf(cluster_radius * 0.08, 1.5),
+			1.0,
+		]).to_byte_array()
+		_rd.compute_list_bind_compute_pipeline(cl, _macro_lod_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_macro_lod_0, 0)
+		_rd.compute_list_set_push_constant(cl, _macro_lod_pc, _macro_lod_pc.size())
+		_rd.compute_list_dispatch(cl, ceili(float(macro_count) / 256.0), 1, 1)
+		_rd.compute_list_add_barrier(cl)
+	_record_presentation_trails(cl, _us_trail_0_dc)
 
 	# ── q-histogram (auto color-align; RENDER variant reads pos_render —
 	var color_base_dc: int = int(particle_color_mode) & 0xF
@@ -2352,6 +2486,13 @@ func _build_dc_sets() -> void:
 			_uniform_storage(12, eng._hash_cell_sites),
 			_uniform_storage(13, eng._hash_cfg),
 		], _instancer_shader, 0)
+	if _presentation_trails_wanted() and _trail_rd_rid.is_valid() \
+			and not (_us_trail_0_dc.is_valid() and _rd.uniform_set_is_valid(_us_trail_0_dc)):
+		_us_trail_0_dc = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_render_buf),
+			_uniform_storage(1, eng._vel_buf),
+			_uniform_storage(2, _trail_rd_rid),
+		], _trail_shader, 0)
 	if _qhist_shader.is_valid() and _pos_render_buf.is_valid():
 		_us_qhist_0_render_dc = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_render_buf),
@@ -2548,10 +2689,14 @@ func _setup_buffers() -> void:
 		bh_full[i] = bh_init_f[i]
 	_bh_init_bytes = bh_full.to_byte_array()
 	_rd.buffer_update(_bh_buf, 0, _bh_init_bytes.size(), _bh_init_bytes)
-	# BH lensing params — dedicated 4-vec4 buffer. The lensing shader
-	# declares exactly 4 vec4s; never bind the 36-vec4 sim BH header to it.
-	# Params are filled by _update_bh_lens_params() in _make_render_textures.
-	_bh_lens_buf = _rd.storage_buffer_create(64)
+	# Black-hole presentation buffer: a compact, separate visual contract
+	# consumed only by the lens pass. It never aliases the 36-vec4 physics
+	# header above, whose layout is owned by the gravity shaders.
+	_bh_lens_buf = _rd.storage_buffer_create(4 * 16)
+	var bh_lens_zero := PackedByteArray()
+	bh_lens_zero.resize(4 * 16)
+	bh_lens_zero.fill(0)
+	_rd.buffer_update(_bh_lens_buf, 0, bh_lens_zero.size(), bh_lens_zero)
 	# Cluster center positions + masses (for multi-cluster gravity).
 	# 64-vec4 cap — keep in sync with ClusterBuf in cassi_nbody_gravity.glsl
 	# (set 2 binding 1); cluster indices 0..63 are safe.
@@ -2754,6 +2899,7 @@ func _setup_buffers() -> void:
 	_lut_bake_dirty = false          # set by _update_lut_bake_sig on the first fill
 
 func _free_buffers() -> void:
+	_free_volume_history_resources()
 	for rid in [_field_ey, _field_ei, _field_q, _field_vel, _field_scratch,
 				_pos_buf, _vel_buf, _acc_buf, _pos_prev_buf, _pos_render_buf,
 				_bh_buf, _bh_lens_buf,
@@ -2780,18 +2926,16 @@ func _free_buffers() -> void:
 	_merge_cc_buf = RID(); _merge_cs_buf = RID(); _merge_ch_buf = RID()
 	_merge_cl_buf = RID(); _merge_mc_buf = RID(); _merge_scr_buf = RID()
 	_merge_spin_buf = RID(); _merge_mprev_buf = RID()
-	_field_render_tex = RID()
-	_bh_lensing_tex = RID()
+	_field_render_tex = RID(); _bh_lensing_tex = RID()
 	_volume_history_neutral = RID(); _volume_stats = RID()
 	_lut_u_buf_on = RID(); _lut_u_buf_off = RID()
 	_shortlist_sites = RID(); _shortlist_count = RID()
 	_hash_cell_start = RID(); _hash_cell_sites = RID(); _hash_cell_count = RID(); _hash_cfg = RID()
 	_shortlist_flag_off = RID(); _shortlist_flag_on = RID()
 	_color_lut_tex = null
+	bh_display_texture = null
 	_tree_mc_buf = RID()   # stale freed RID must not survive a set-only rebuild
 	_tree_worker_stop()
-
-
 
 func _free_uniform_sets() -> void:
 	# Uniform sets reference buffers/shaders/textures — release them BEFORE
@@ -2801,17 +2945,19 @@ func _free_uniform_sets() -> void:
 	var seen := {}
 	for rid in [_us_two_0, _us_two_1, _us_two_2, _us_mass_dep_0,
 				_us_nbody_0, _us_nbody_1, _us_nbody_2, _us_poisson_0,
-				_us_fr_0, _us_fr_2, _us_cond_0, _us_cond_1,
+				_us_fr_0, _us_fr_2, _us_bh_lens_2, _us_cond_0, _us_cond_1,
 				_us_bh_int_0, _us_bh_int_1, _us_inst_0, _us_inst_0_render,
 				_us_inst_0_lut, _us_inst_0_lut_render,
 				_us_inst_0_boxless, _us_inst_0_render_boxless,
 				_us_inst_0_lut_boxless, _us_inst_0_lut_render_boxless,
-				_us_inst_0_boxless_render_dc, _us_inst_0_lut_boxless_render_dc,
-				_us_bh_lens_2, _us_blend_0, _us_blend_0_dc,
+				_us_blend_0, _us_blend_0_dc,
 				_us_inst_0_render_dc, _us_inst_0_lut_render_dc,
+				_us_inst_0_boxless_render_dc, _us_inst_0_lut_boxless_render_dc,
 				_us_qhist_0_render_dc, _us_occ_0_dc, _us_occ_0,
 				_us_qhist_0, _us_qhist_0_render, _us_jfa_0, _us_cell_0,
-				_us_raster_0, _us_shortlist, _us_hash, _us_volume_0]:
+				_us_raster_0, _us_shortlist, _us_hash, _us_volume_0,
+				_us_volume_history_0, _us_volume_reproject_ab, _us_volume_reproject_ba,
+				_us_macro_lod_0, _us_trail_0, _us_trail_0_dc]:
 		if rid.is_valid() and _rd.uniform_set_is_valid(rid) and not seen.has(rid):
 			seen[rid] = true
 			_rd.free_rid(rid)
@@ -2819,10 +2965,10 @@ func _free_uniform_sets() -> void:
 	_us_mass_dep_0 = RID()
 	_us_nbody_0 = RID(); _us_nbody_1 = RID(); _us_nbody_2 = RID()
 	_us_poisson_0 = RID()
-	_us_fr_0 = RID(); _us_fr_2 = RID()
+	_us_fr_0 = RID(); _us_fr_2 = RID(); _us_bh_lens_2 = RID()
 	_us_cond_0 = RID(); _us_cond_1 = RID()
 	_us_bh_int_0 = RID(); _us_bh_int_1 = RID()
-	_us_inst_0 = RID(); _us_inst_0_render = RID(); _us_bh_lens_2 = RID()
+	_us_inst_0 = RID(); _us_inst_0_render = RID()
 	_us_inst_0_lut = RID(); _us_inst_0_lut_render = RID()
 	_us_inst_0_boxless = RID(); _us_inst_0_render_boxless = RID()
 	_us_inst_0_lut_boxless = RID(); _us_inst_0_lut_render_boxless = RID()
@@ -2836,6 +2982,12 @@ func _free_uniform_sets() -> void:
 	_us_tree_build = RID(); _us_tree_grav = RID(); _us_tree_mc = RID()
 	_us_merge_0 = RID(); _us_bh_acc_0 = RID(); _us_scan_0 = RID()
 	_us_shortlist = RID(); _us_hash = RID(); _us_volume_0 = RID()
+	_us_volume_history_0 = RID()
+	_us_volume_reproject_ab = RID()
+	_us_volume_reproject_ba = RID()
+	_us_macro_lod_0 = RID()
+	_us_trail_0 = RID()
+	_us_trail_0_dc = RID()
 	_volume_clear_signature()
 
 func _free_shaders() -> void:
@@ -2845,8 +2997,23 @@ func _free_shaders() -> void:
 		if rid.is_valid() and not seen.has(rid):
 			seen[rid] = true
 			_rd.free_rid(rid)
+	for rid in [_volume_history_pipe, _volume_reproject_pipe,
+				_volume_history_shader, _volume_reproject_shader,
+				_macro_lod_pipe, _macro_lod_shader, _trail_pipe, _trail_shader]:
+		if rid.is_valid() and not seen.has(rid):
+			seen[rid] = true
+			_rd.free_rid(rid)
 	_two_fluid_shader = RID(); _nbody_shader = RID(); _poisson_shader = RID(); _field_render_shader = RID(); _volume_shader = RID(); _bh_lensing_shader = RID(); _instancer_shader = RID(); _mass_deposit_shader = RID(); _cond_shader = RID(); _bh_int_shader = RID(); _occ_shader = RID(); _qhist_shader = RID(); _jfa_shader = RID(); _cell_shader = RID(); _raster_shader = RID(); _shortlist_shader = RID(); _hash_shader = RID(); _tree_build_shader = RID(); _tree_grav_shader = RID(); _tree_mc_shader = RID(); _blend_sh = RID(); _merge_shader = RID(); _scan_shader = RID(); _bh_acc_shader = RID()
 	_two_fluid_pipe = RID(); _nbody_pipe = RID(); _poisson_pipe = RID(); _field_render_pipe = RID(); _volume_pipe = RID(); _bh_lensing_pipe = RID(); _instancer_pipe = RID(); _mass_deposit_pipe = RID(); _cond_pipe = RID(); _bh_int_pipe = RID(); _occ_pipe = RID(); _qhist_pipe = RID(); _jfa_pipe = RID(); _cell_pipe = RID(); _raster_pipe = RID(); _shortlist_pipe = RID(); _hash_pipe = RID(); _tree_build_pipe = RID(); _tree_grav_pipe = RID(); _tree_mc_pipe = RID(); _blend_pipe = RID(); _merge_pipe = RID(); _scan_pipe = RID(); _bh_acc_pipe = RID()
+	_volume_history_shader = RID()
+	_volume_reproject_shader = RID()
+	_volume_history_pipe = RID()
+	_volume_reproject_pipe = RID()
+	_macro_lod_shader = RID()
+	_macro_lod_pipe = RID()
+	_trail_shader = RID()
+	_trail_pipe = RID()
+	_invalidate_volume_history_state()
 func _invalidate_volume_render_cache() -> void:
 	_volume_cache_valid = false
 	_volume_last_generation = -1
@@ -2859,10 +3026,12 @@ func _invalidate_volume_render_cache() -> void:
 	_volume_last_max_steps = -1.0
 	_volume_last_cutoff = -1.0
 	_volume_last_history_weight = -1.0
+	_volume_last_history_depth_tolerance = -1.0
 	_volume_last_scheduling = -1.0
 	_volume_last_boxless_active = false
 	_volume_overload_streak = 0
 	_volume_underload_streak = 0
+	_invalidate_volume_history_state()
 
 
 func _volume_clear_signature() -> void:
@@ -2953,7 +3122,8 @@ func _sync_volume_uniform_set() -> bool:
 	if not _field_render_tex.is_valid() or not _volume_history_neutral.is_valid():
 		_volume_set_dirty = true
 		return false
-	if not _volume_set_dirty and _volume_cache_valid and _us_volume_0.is_valid():
+	if not _volume_set_dirty and _volume_cache_valid and _us_volume_0.is_valid() \
+			and _rd.uniform_set_is_valid(_us_volume_0):
 		return true
 	var topo: Dictionary = _physics_engine.topology_resources() if _physics_engine != null and _physics_engine.has_method("topology_resources") else {}
 	var r0: RID = topo.get("topology_open_label_rid", RID())
@@ -2966,7 +3136,7 @@ func _sync_volume_uniform_set() -> bool:
 	if not r0.is_valid() or not r1.is_valid() or not r2.is_valid() or not r3.is_valid() or not r4.is_valid() or not r5.is_valid() or not r6.is_valid():
 		_volume_set_dirty = true
 		return false
-	if _us_volume_0.is_valid():
+	if _us_volume_0.is_valid() and _rd.uniform_set_is_valid(_us_volume_0):
 		_rd.free_rid(_us_volume_0)
 	_us_volume_0 = _rd.uniform_set_create([
 		_uniform_storage(0, r0), _uniform_storage(1, r1), _uniform_storage(2, r2), _uniform_storage(3, r3),
@@ -2975,9 +3145,10 @@ func _sync_volume_uniform_set() -> bool:
 		_get_set2_image_uniform(_volume_shader, 8, _volume_history_neutral),
 		_uniform_storage(9, _volume_stats),
 	], _volume_shader, 0)
-	if not _us_volume_0.is_valid():
+	if not _us_volume_0.is_valid() or not _rd.uniform_set_is_valid(_us_volume_0):
 		_volume_clear_signature()
 		_volume_set_dirty = true
+		return false
 	_volume_uniform_set_create_count += 1
 	_volume_us_sig_7 = _field_render_tex
 	_volume_us_sig_8 = _volume_history_neutral
@@ -3010,6 +3181,13 @@ func _setup_shaders() -> void:
 	if _field_render_shader.is_valid():
 		_field_render_pipe = _rd.compute_pipeline_create(_field_render_shader)
 		print("[CassiSim] Field render pipeline ready")
+	# Black-hole lensing writes a second presentation target. Its source
+	# shader is a required display-mode dependency, separate from the
+	# solver-owned black-hole physics passes.
+	_bh_lensing_shader = _shader_from_file("res://compute/cassi_bh_lensing.glsl")
+	if _bh_lensing_shader.is_valid():
+		_bh_lensing_pipe = _rd.compute_pipeline_create(_bh_lensing_shader)
+		print("[CassiSim] Black-hole lensing pipeline ready")
 
 	# Fused site-volume producer (cassi_voronoi_fused_volume.glsl).
 	_volume_shader = _shader_from_file("res://compute/cassi_voronoi_fused_volume.glsl")
@@ -3018,11 +3196,26 @@ func _setup_shaders() -> void:
 		print("[CassiSim] fused volume pipeline ready")
 		print("[CassiSim] Field render pipeline ready")
 
-	# BH lensing
-	_bh_lensing_shader = _shader_from_file("res://compute/cassi_bh_lensing.glsl")
-	if _bh_lensing_shader.is_valid():
-		_bh_lensing_pipe = _rd.compute_pipeline_create(_bh_lensing_shader)
-		print("[CassiSim] BH lensing pipeline ready")
+	# Optional presentation layers are isolated from the solver/instancer
+	# contracts. Their MultiMesh buffers are allocated lazily only when their
+	# default-off visual toggles become active.
+	_macro_lod_shader = _shader_from_file("res://compute/cassi_presentation_macro_lod.glsl")
+	if _macro_lod_shader.is_valid():
+		_macro_lod_pipe = _rd.compute_pipeline_create(_macro_lod_shader)
+		print("[CassiSim] presentation macro LOD pipeline ready")
+	_trail_shader = _shader_from_file("res://compute/cassi_presentation_trails.glsl")
+	if _trail_shader.is_valid():
+		_trail_pipe = _rd.compute_pipeline_create(_trail_shader)
+		print("[CassiSim] presentation trail pipeline ready")
+	_volume_history_shader = _shader_from_file("res://compute/cassi_voronoi_fused_volume_history.glsl")
+	if _volume_history_shader.is_valid():
+		_volume_history_pipe = _rd.compute_pipeline_create(_volume_history_shader)
+		print("[CassiSim] presentation volume current pipeline ready")
+	_volume_reproject_shader = _shader_from_file("res://compute/cassi_volume_reproject.glsl")
+	if _volume_reproject_shader.is_valid():
+		_volume_reproject_pipe = _rd.compute_pipeline_create(_volume_reproject_shader)
+		print("[CassiSim] presentation volume reprojection pipeline ready")
+
 
 	# Particle instancer
 	_instancer_shader = _shader_from_file("res://compute/cassi_instancer.glsl")
@@ -3282,13 +3475,14 @@ func _cache_uniform_sets() -> void:
 			_us_fr_2 = _rd.uniform_set_create([
 				_get_set2_image_uniform(_field_render_shader, 0, _field_render_tex),
 			], _field_render_shader, 2)
-
-	# BH lensing (set 2 only: screen image + dedicated 4-vec4 params)
+	# Black-hole lensing owns only set 2: its image target plus a dedicated
+	# four-vec4 presentation buffer. Do not bind the physics BH header here.
 	if _bh_lensing_shader.is_valid() and _bh_lensing_tex.is_valid() and _bh_lens_buf.is_valid():
 		_us_bh_lens_2 = _rd.uniform_set_create([
 			_get_set2_image_uniform(_bh_lensing_shader, 0, _bh_lensing_tex),
-			_get_set2_buffer_uniform(_bh_lensing_shader, 1, _bh_lens_buf),
+			_uniform_storage(1, _bh_lens_buf),
 		], _bh_lensing_shader, 2)
+
 
 	# Instancer — writes DIRECTLY into the renderer's multimesh instance
 	# buffer (GPU-direct; no readback). The buffer must be valid here:
@@ -3661,6 +3855,15 @@ func _cluster_centroid() -> Vector3:
 			var angle := float(i) * PI * 2.0 / float(nc)
 			acc += Vector3(sep * cos(angle), 0.0, sep * sin(angle))
 	return acc / float(nc)
+
+
+## Current presentation focus. Static scenes retain the spawn centroid;
+## tracking scenes follow the measured render envelope rather than a stale
+## initialization coordinate. This is camera-only and never feeds physics.
+func get_presentation_camera_target() -> Vector3:
+	if home_window_enabled or tracking_envelope:
+		return _window_center
+	return _cluster_centroid()
 
 
 ## Fibonacci-sphere direction (deterministic, de-resonant — the same
@@ -4519,8 +4722,8 @@ func _apply_gravity_calibration() -> void:
 
 # — Render target textures for compute shader output —
 var _field_render_tex: RID = RID()
-var _volume_texture_2d: Texture2D = null
 var _bh_lensing_tex: RID = RID()
+var _volume_texture_2d: Texture2D = null
 var _rt_size: Vector2i = Vector2i(512, 512)
 
 
@@ -4542,6 +4745,17 @@ func _make_render_texture(width: int, height: int) -> RID:
 	return _rd.texture_create(fmt, view, [])
 
 
+func _make_render_depth_texture(width: int, height: int) -> RID:
+	var fmt := RDTextureFormat.new()
+	fmt.width = width
+	fmt.height = height
+	fmt.format = RenderingDevice.DATA_FORMAT_R32_SFLOAT
+	fmt.usage_bits = RenderingDevice.TEXTURE_USAGE_STORAGE_BIT \
+				   | RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT \
+				   | RenderingDevice.TEXTURE_USAGE_CAN_UPDATE_BIT
+	return _rd.texture_create(fmt, RDTextureView.new(), [])
+
+
 func _get_set2_image_uniform(shader: RID, binding: int, tex: RID) -> RDUniform:
 	var u = RDUniform.new()
 	u.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
@@ -4550,12 +4764,6 @@ func _get_set2_image_uniform(shader: RID, binding: int, tex: RID) -> RDUniform:
 	return u
 
 
-func _get_set2_buffer_uniform(shader: RID, binding: int, buf: RID) -> RDUniform:
-	var u = RDUniform.new()
-	u.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-	u.binding = binding
-	u.add_id(buf)
-	return u
 
 
 func _render_field_slice() -> void:
@@ -4597,6 +4805,36 @@ func _render_field_slice() -> void:
 	# The renderer consumes the shared RD image asynchronously. Signal the
 	# same existing presentation seam after recording the producer dispatch.
 	field_texture_updated.emit(field_display_texture)
+
+func _render_bh_lensing() -> void:
+	if not _bh_lensing_pipe.is_valid():
+		return
+	if not _bh_lensing_tex.is_valid():
+		_make_render_textures()
+		_cache_render_texture_sets()
+	if not _us_bh_lens_2.is_valid():
+		return
+	if bh_display_texture == null or not (bh_display_texture is Texture2DRD):
+		bh_display_texture = CassiGpuTextureBridge.wrap(_bh_lensing_tex)
+	# Share the same 11-float visual PC contract as the field renderer.
+	_pc_bytes.encode_float(0, float(grid_N))
+	_pc_bytes.encode_float(4, dt)
+	_pc_bytes.encode_float(8, _time)
+	_pc_bytes.encode_float(12, PHI)
+	_pc_bytes.encode_float(16, xi)
+	_pc_bytes.encode_float(20, softening * softening)
+	_pc_bytes.encode_float(24, float(N_particles))
+	_pc_bytes.encode_float(28, float(mode))
+	_pc_bytes.encode_float(32, source_strength)
+	_pc_bytes.encode_float(36, float(num_clusters))
+	_pc_bytes.encode_float(40, float(gravity_mode))
+	var cl := _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(cl, _bh_lensing_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_bh_lens_2, 2)
+	_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
+	_rd.compute_list_dispatch(cl, ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1)
+	_rd.compute_list_end()
+	bh_texture_updated.emit(bh_display_texture)
 
 
 func _physics_step() -> void:
@@ -4697,6 +4935,307 @@ func _apply_lut_material() -> void:
 	mat.set_shader_parameter("glow_tint", Vector3(0.95, 0.90, 0.98))
 	mat.set_shader_parameter("glow_strength", 0.12)
 
+
+func _apply_particle_presentation_profile() -> void:
+	if _mmi == null or not is_instance_valid(_mmi) or _mmi.material_override == null:
+		return
+	var mat := _mmi.material_override as ShaderMaterial
+	if mat == null:
+		return
+	if _particle_compat_shader == null:
+		_particle_compat_shader = load("res://shaders/particle_billboard.gdshader") as Shader
+	if _particle_presentation_shader == null:
+		_particle_presentation_shader = load("res://shaders/particle_billboard_presentation.gdshader") as Shader
+	var target: Shader = _particle_presentation_shader if presentation_profile else _particle_compat_shader
+	if target == null:
+		push_error("[CassiSim] particle presentation shader could not be loaded")
+		return
+	mat.shader = target
+	if presentation_profile:
+		# QuadMesh already carries particle_size; the presentation shader's
+		# screen-space correction operates from that single physical scale.
+		mat.set_shader_parameter("size", 1.0)
+		mat.set_shader_parameter("min_pixel_radius", 1.60)
+		mat.set_shader_parameter("max_pixel_radius", 18.0)
+		mat.set_shader_parameter("halo_strength", 0.45)
+		mat.set_shader_parameter("emission_strength", 1.75)
+		mat.set_shader_parameter("core_radius", 0.30)
+		mat.set_shader_parameter("color_scheme", float(_presentation_color_scheme))
+	else:
+		# Restore the legacy shader's historical default if the live toggle is
+		# switched off after the presentation material was active.
+		mat.set_shader_parameter("size", 1.5)
+	_apply_lut_material()
+
+
+func _presentation_layers_ready() -> bool:
+	# Decoupled setup mutates its live RD buffers on a worker. Do not create
+	# renderer-owned presentation targets until that worker has published its
+	# finished setup; doing it earlier can contend with the first topology
+	# query on the global device.
+	return not _decoupled_boot_wait and (_physics_engine == null or _physics_engine.setup_ready())
+
+
+func _presentation_macro_lod_wanted() -> bool:
+	return _presentation_layers_ready() and _physics_engine != null \
+			and presentation_profile and presentation_macro_lod_enabled \
+			and _macro_lod_pipe.is_valid() and _macro_lod_shader.is_valid()
+
+
+func _sync_presentation_macro_lod() -> void:
+	if not _presentation_macro_lod_wanted():
+		_free_macro_lod_multimesh()
+		return
+	if _macro_lod_mmi == null or not is_instance_valid(_macro_lod_mmi):
+		_setup_macro_lod_multimesh()
+	if _macro_lod_mmi == null or _macro_lod_material == null:
+		return
+	_macro_lod_mmi.visible = true
+	var scheme := _presentation_color_scheme
+	if _macro_lod_last_scheme != scheme:
+		_macro_lod_material.set_shader_parameter("color_scheme", float(scheme))
+		_macro_lod_last_scheme = scheme
+	_macro_lod_material.set_shader_parameter("lod_enter", minf(presentation_lod_enter, presentation_lod_exit))
+	_macro_lod_material.set_shader_parameter("lod_exit", maxf(presentation_lod_enter, presentation_lod_exit))
+	_macro_lod_material.set_shader_parameter("base_size", 1.0)
+	_sync_macro_lod_uniform_set()
+
+
+func _setup_macro_lod_multimesh() -> void:
+	if _macro_lod_mmi != null and is_instance_valid(_macro_lod_mmi):
+		return
+	var site_cap := maxi(2 * ML_N1 * ML_N1 * ML_N1, 1)
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE
+	quad.orientation = PlaneMesh.FACE_Z
+	_macro_lod_mm = MultiMesh.new()
+	_macro_lod_mm.transform_format = MultiMesh.TRANSFORM_3D
+	_macro_lod_mm.use_colors = false
+	_macro_lod_mm.use_custom_data = true
+	_macro_lod_mm.mesh = quad
+	_macro_lod_mm.instance_count = site_cap
+	# Force allocation of the renderer-owned storage before the compute writer
+	# obtains its RID. The finite zero records also make a not-yet-published
+	# topology explicitly invisible.
+	var zero_records := PackedFloat32Array()
+	zero_records.resize(site_cap * 16)
+	_macro_lod_mm.buffer = zero_records
+	_macro_lod_mmi = MultiMeshInstance3D.new()
+	_macro_lod_mmi.name = "PresentationMacroLod"
+	_macro_lod_mmi.multimesh = _macro_lod_mm
+	add_child(_macro_lod_mmi)
+	_macro_lod_rd_rid = RenderingServer.multimesh_get_buffer_rd_rid(_macro_lod_mm.get_rid())
+	if not _macro_lod_rd_rid.is_valid():
+		push_error("[CassiSim] presentation macro LOD could not acquire its MultiMesh RD buffer")
+		_free_macro_lod_multimesh()
+		return
+	_macro_lod_material = ShaderMaterial.new()
+	_macro_lod_material.shader = load("res://shaders/presentation_macro_billboard.gdshader") as Shader
+	if _macro_lod_material.shader == null:
+		push_error("[CassiSim] presentation macro LOD material shader could not be loaded")
+		_free_macro_lod_multimesh()
+		return
+	_macro_lod_material.render_priority = 0
+	_macro_lod_mmi.material_override = _macro_lod_material
+	_macro_lod_last_scheme = -1
+	_update_particle_cull_bounds()
+
+
+func _free_macro_lod_multimesh() -> void:
+	if _rd != null and _us_macro_lod_0.is_valid() \
+			and _rd.uniform_set_is_valid(_us_macro_lod_0):
+		_rd.free_rid(_us_macro_lod_0)
+	_us_macro_lod_0 = RID()
+	_macro_lod_set_generation = -1
+	_macro_lod_set_site_count = -1
+	if _macro_lod_mmi != null and is_instance_valid(_macro_lod_mmi):
+		remove_child(_macro_lod_mmi)
+		_macro_lod_mmi.free()
+	_macro_lod_mmi = null
+	_macro_lod_mm = null
+	_macro_lod_rd_rid = RID()
+	_macro_lod_material = null
+	_macro_lod_last_scheme = -1
+
+
+func _sync_macro_lod_uniform_set() -> bool:
+	if _rd == null or not _macro_lod_rd_rid.is_valid() or _physics_engine == null:
+		return false
+	if _us_macro_lod_0.is_valid() and _rd.uniform_set_is_valid(_us_macro_lod_0):
+		return true
+	if not _physics_engine.has_method("topology_resources"):
+		return false
+	var topo: Dictionary = _physics_engine.topology_resources()
+	var optical: RID = topo.get("topology_optical_rid", RID())
+	var status: RID = topo.get("topology_status_rid", RID())
+	if not optical.is_valid() or not status.is_valid():
+		return false
+	_us_macro_lod_0 = _rd.uniform_set_create([
+		_uniform_storage(0, optical),
+		_uniform_storage(1, status),
+		_uniform_storage(2, _macro_lod_rd_rid),
+	], _macro_lod_shader, 0)
+	if not _us_macro_lod_0.is_valid():
+		push_warning("[CassiSim] presentation macro LOD uniform set creation failed")
+		return false
+	return true
+
+
+func _presentation_trails_wanted() -> bool:
+	return _presentation_layers_ready() and presentation_profile and presentation_trails_enabled \
+			and _trail_pipe.is_valid() and _trail_shader.is_valid()
+
+
+func _sync_presentation_trails() -> void:
+	if not _presentation_trails_wanted():
+		_free_trail_multimesh()
+		return
+	if _trail_mmi == null or not is_instance_valid(_trail_mmi):
+		_setup_trail_multimesh()
+	if _trail_mmi == null or _trail_material == null:
+		return
+	_trail_mmi.visible = true
+	var scheme := _presentation_color_scheme
+	if _trail_last_scheme != scheme:
+		_trail_material.set_shader_parameter("color_scheme", float(scheme))
+		_trail_last_scheme = scheme
+	_trail_material.set_shader_parameter("emission_strength", 0.85)
+	_trail_material.set_shader_parameter("alpha_scale", 0.55)
+	_trail_material.set_shader_parameter("width_softness", 0.5)
+	_trail_material.set_shader_parameter("taper_power", 1.5)
+	_trail_material.set_shader_parameter("depth_fade_near", 200.0)
+	_trail_material.set_shader_parameter("depth_fade_far", 2000.0)
+	if _decoupled_active:
+		_sync_trail_dc_uniform_set()
+	else:
+		_sync_trail_inline_uniform_set()
+
+
+func _setup_trail_multimesh() -> void:
+	if _trail_mmi != null and is_instance_valid(_trail_mmi):
+		return
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE
+	quad.orientation = PlaneMesh.FACE_Z
+	_trail_mm = MultiMesh.new()
+	_trail_mm.transform_format = MultiMesh.TRANSFORM_3D
+	_trail_mm.use_colors = false
+	_trail_mm.use_custom_data = true
+	_trail_mm.mesh = quad
+	_trail_mm.instance_count = PRESENTATION_TRAIL_CAP
+	var zero_records := PackedFloat32Array()
+	zero_records.resize(PRESENTATION_TRAIL_CAP * 16)
+	_trail_mm.buffer = zero_records
+	_trail_mmi = MultiMeshInstance3D.new()
+	_trail_mmi.name = "PresentationVelocityRibbons"
+	_trail_mmi.multimesh = _trail_mm
+	add_child(_trail_mmi)
+	_trail_rd_rid = RenderingServer.multimesh_get_buffer_rd_rid(_trail_mm.get_rid())
+	if not _trail_rd_rid.is_valid():
+		push_error("[CassiSim] presentation trails could not acquire their MultiMesh RD buffer")
+		_free_trail_multimesh()
+		return
+	_trail_material = ShaderMaterial.new()
+	_trail_material.shader = load("res://shaders/presentation_trail.gdshader") as Shader
+	if _trail_material.shader == null:
+		push_error("[CassiSim] presentation trail material shader could not be loaded")
+		_free_trail_multimesh()
+		return
+	_trail_material.render_priority = 0
+	_trail_mmi.material_override = _trail_material
+	_trail_last_scheme = -1
+	_update_particle_cull_bounds()
+
+
+func _free_trail_multimesh() -> void:
+	if _rd != null:
+		for rid in [_us_trail_0, _us_trail_0_dc]:
+			if rid.is_valid() and _rd.uniform_set_is_valid(rid):
+				_rd.free_rid(rid)
+	_us_trail_0 = RID()
+	_us_trail_0_dc = RID()
+	if _trail_mmi != null and is_instance_valid(_trail_mmi):
+		remove_child(_trail_mmi)
+		_trail_mmi.free()
+	_trail_mmi = null
+	_trail_mm = null
+	_trail_rd_rid = RID()
+	_trail_material = null
+	_trail_last_scheme = -1
+
+
+func _sync_trail_inline_uniform_set() -> bool:
+	if _rd == null or not _trail_rd_rid.is_valid() or _decoupled_active:
+		return false
+	if _us_trail_0.is_valid() and _rd.uniform_set_is_valid(_us_trail_0):
+		return true
+	if not _pos_render_buf.is_valid() or not _vel_buf.is_valid():
+		return false
+	_us_trail_0 = _rd.uniform_set_create([
+		_uniform_storage(0, _pos_render_buf),
+		_uniform_storage(1, _vel_buf),
+		_uniform_storage(2, _trail_rd_rid),
+	], _trail_shader, 0)
+	return _us_trail_0.is_valid()
+
+
+func _sync_trail_dc_uniform_set() -> bool:
+	if _rd == null or not _trail_rd_rid.is_valid() or _physics_engine == null:
+		return false
+	if _us_trail_0_dc.is_valid() and _rd.uniform_set_is_valid(_us_trail_0_dc):
+		return true
+	var engine_vel: RID = _physics_engine.get("_vel_buf")
+	if not _pos_render_buf.is_valid() or not engine_vel.is_valid():
+		return false
+	_us_trail_0_dc = _rd.uniform_set_create([
+		_uniform_storage(0, _pos_render_buf),
+		_uniform_storage(1, engine_vel),
+		_uniform_storage(2, _trail_rd_rid),
+	], _trail_shader, 0)
+	return _us_trail_0_dc.is_valid()
+
+func _record_presentation_trails(cl, uniform_set: RID) -> void:
+	if not _presentation_trails_wanted() or not uniform_set.is_valid() \
+			or not _rd.uniform_set_is_valid(uniform_set) \
+			or _trail_mm == null or _trail_mm.instance_count <= 0:
+		return
+	var cam := _sim_cam
+	if cam == null:
+		return
+	var forward := -cam.global_transform.basis.z.normalized()
+	var right := cam.global_transform.basis.x.normalized()
+	var min_length := maxf(cluster_radius * 0.02, 0.5)
+	var max_length := maxf(cluster_radius * 0.12, 6.0)
+	var width := maxf(cluster_radius * 0.004, 0.10)
+	_trail_pc = PackedFloat32Array([
+		float(N_particles), float(_trail_mm.instance_count),
+		maxf(presentation_trail_speed_threshold, 0.0),
+		maxf(presentation_trail_shutter_seconds, 0.0),
+		min_length, max_length, width,
+		maxf(_rainbow_vmax, presentation_trail_speed_threshold * 1.05),
+		forward.x, forward.y, forward.z, 1337.0,
+		right.x, right.y, right.z, 1.0,
+	]).to_byte_array()
+	_rd.compute_list_bind_compute_pipeline(cl, _trail_pipe)
+	_rd.compute_list_bind_uniform_set(cl, uniform_set, 0)
+	_rd.compute_list_set_push_constant(cl, _trail_pc, _trail_pc.size())
+	_rd.compute_list_dispatch(cl, ceili(float(_trail_mm.instance_count) / 256.0), 1, 1)
+	_rd.compute_list_add_barrier(cl)
+
+func _update_particle_presentation_viewport() -> void:
+	if not presentation_profile or _mmi == null or not is_instance_valid(_mmi):
+		return
+	var mat := _mmi.material_override as ShaderMaterial
+	if mat == null:
+		return
+	var viewport := get_viewport()
+	if viewport == null:
+		return
+	var height := viewport.get_visible_rect().size.y
+	if height <= 0.0 or is_equal_approx(height, _presentation_viewport_height):
+		return
+	mat.set_shader_parameter("viewport_height", height)
+	_presentation_viewport_height = height
 
 func _bake_color_lut() -> void:
 	# Bake the CURRENT color curve into the LUT (256 RGBA8 texels, u ∈ [0,1]
@@ -5023,9 +5562,8 @@ func _repaint_instancer() -> void:
 	# One-shot GPU repaint of the multimesh instance buffer from the CURRENT
 	# pos/vel buffers — used when paused (playing=false), where
 	# _step_dispatches never runs, so a live color-mode flip repaints the
-	# visible instances immediately. Precedent: _render_field_slice / the
-	# BH-lensing path — a standalone compute list on the global RD, no
-	# submit/sync (illegal on the main instance).
+	# visible instances immediately. It uses a standalone compute list on the
+	# global RD with no submit/sync.
 	if _rd == null or not _instancer_shader.is_valid() or not _us_inst_0.is_valid() or N_particles <= 0:
 		return
 	if not _mm_rd_rid.is_valid(): return
@@ -5089,7 +5627,7 @@ func _step_dispatches(cl: int) -> void:
 	# Two-fluid PC (dedicated 64 B): the shared 11 fields + the 3 per-axis
 	# extents (the anisotropic 19-point stencil needs h_i = 2·extent_i/N —
 	# the dedicated-PC precedent: the shared _pc_bytes stays at 11 floats
-	# for field_render/instancer/bh_lensing) + pass_sel (float 14)
+	# for field_render/instancer) + pass_sel (float 14)
 	# + omega2 (float 15).
 	_two_fluid_pc_bytes.encode_float(0, float(grid_N))
 	_two_fluid_pc_bytes.encode_float(4, dt)
@@ -5816,27 +6354,246 @@ func _dispatch_poisson(cl: int) -> void:
 		_rd.compute_list_dispatch(cl, n, fft_groups_y, 1)  # 2D rows dispatch
 		_barrier(cl)  # inverse FFT passes
 
+
+func _presentation_volume_history_wanted() -> bool:
+	return _presentation_layers_ready() and _physics_engine != null \
+			and bool(_physics_engine.get("_topology_ready")) \
+			and presentation_profile and presentation_volume_history_enabled and mode == 1 \
+			and _volume_history_pipe.is_valid() and _volume_reproject_pipe.is_valid()
+
+
+func _sync_presentation_volume_history() -> void:
+	if not _presentation_volume_history_wanted() and (_volume_current_tex.is_valid() \
+			or _volume_history_state.is_valid() or _us_volume_history_0.is_valid()):
+		_free_volume_history_resources()
+		# The current-only producer shares the resolved output target. Its
+		# cache must not retain a temporal image after the live opt-out.
+		_invalidate_volume_render_cache()
+
+
+func _free_volume_history_resources() -> void:
+	if _rd != null:
+		var seen := {}
+		for rid in [_us_volume_history_0, _us_volume_reproject_ab, _us_volume_reproject_ba]:
+			if rid.is_valid() and _rd.uniform_set_is_valid(rid) and not seen.has(rid):
+				seen[rid] = true
+				_rd.free_rid(rid)
+		for rid in [_volume_current_tex, _volume_current_depth_tex,
+					_volume_history_color_a, _volume_history_color_b,
+					_volume_history_depth_a, _volume_history_depth_b,
+					_volume_history_state]:
+			if rid.is_valid():
+				_rd.free_rid(rid)
+	_us_volume_history_0 = RID()
+	_us_volume_reproject_ab = RID()
+	_us_volume_reproject_ba = RID()
+	_volume_current_tex = RID()
+	_volume_current_depth_tex = RID()
+	_volume_history_color_a = RID()
+	_volume_history_color_b = RID()
+	_volume_history_depth_a = RID()
+	_volume_history_depth_b = RID()
+	_volume_history_state = RID()
+	_volume_history_prev_is_a = true
+	_volume_history_has_state = false
+	_volume_history_last_origin = Vector3.INF
+	_volume_history_last_forward = Vector3.ZERO
+	_volume_history_last_fov = -1.0
+	_volume_history_last_size = Vector2i(-1, -1)
+	_volume_history_last_topology = -1
+	_volume_history_last_query = -1
+	_volume_history_last_key = -1.0
+
+
+func _invalidate_volume_history_state() -> void:
+	if _rd != null and _volume_history_state.is_valid():
+		var zero := PackedByteArray()
+		zero.resize(20 * 4)
+		zero.fill(0)
+		_rd.buffer_update(_volume_history_state, 0, zero.size(), zero)
+	_volume_history_has_state = false
+	_volume_history_last_origin = Vector3.INF
+	_volume_history_last_forward = Vector3.ZERO
+	_volume_history_last_fov = -1.0
+	_volume_history_last_size = Vector2i(-1, -1)
+	_volume_history_last_topology = -1
+	_volume_history_last_query = -1
+	_volume_history_last_key = -1.0
+
+
+func _ensure_volume_history_resources() -> bool:
+	if _field_render_tex.is_valid() and _volume_history_neutral.is_valid() \
+			and _volume_current_tex.is_valid() and _volume_current_depth_tex.is_valid() \
+			and _volume_history_color_a.is_valid() and _volume_history_color_b.is_valid() \
+			and _volume_history_depth_a.is_valid() and _volume_history_depth_b.is_valid() \
+			and _volume_history_state.is_valid():
+		return true
+	_free_volume_history_resources()
+	if _rd == null or not _field_render_tex.is_valid() or not _volume_history_neutral.is_valid():
+		return false
+	_volume_current_tex = _make_render_texture(_rt_size.x, _rt_size.y)
+	_volume_current_depth_tex = _make_render_depth_texture(_rt_size.x, _rt_size.y)
+	_volume_history_color_a = _make_render_texture(_rt_size.x, _rt_size.y)
+	_volume_history_color_b = _make_render_texture(_rt_size.x, _rt_size.y)
+	_volume_history_depth_a = _make_render_depth_texture(_rt_size.x, _rt_size.y)
+	_volume_history_depth_b = _make_render_depth_texture(_rt_size.x, _rt_size.y)
+	_volume_history_state = _rd.storage_buffer_create(20 * 4)
+	var clear_color := PackedByteArray()
+	clear_color.resize(_rt_size.x * _rt_size.y * 16)
+	clear_color.fill(0)
+	var clear_depth := PackedByteArray()
+	clear_depth.resize(_rt_size.x * _rt_size.y * 4)
+	clear_depth.fill(0)
+	for tex in [_volume_current_tex, _volume_history_color_a, _volume_history_color_b]:
+		_rd.texture_update(tex, 0, clear_color)
+	for tex in [_volume_current_depth_tex, _volume_history_depth_a, _volume_history_depth_b]:
+		_rd.texture_update(tex, 0, clear_depth)
+	var state_zero := PackedByteArray()
+	state_zero.resize(20 * 4)
+	state_zero.fill(0)
+	_rd.buffer_update(_volume_history_state, 0, state_zero.size(), state_zero)
+	_volume_history_prev_is_a = true
+	return true
+
+
+func _ensure_volume_history_uniform_sets() -> bool:
+	if not _ensure_volume_history_resources() or _physics_engine == null \
+			or not _physics_engine.has_method("topology_resources"):
+		return false
+	var topo: Dictionary = _physics_engine.topology_resources()
+	var r0: RID = topo.get("topology_open_label_rid", RID())
+	var r1: RID = topo.get("topology_adjacency_rid", RID())
+	var r2: RID = topo.get("topology_degree_rid", RID())
+	var r3: RID = topo.get("topology_offset_rid", RID())
+	var r4: RID = topo.get("topology_neighbor_rid", RID())
+	var r5: RID = topo.get("topology_optical_rid", RID())
+	var r6: RID = topo.get("topology_status_rid", RID())
+	if not r0.is_valid() or not r1.is_valid() or not r2.is_valid() or not r3.is_valid() \
+			or not r4.is_valid() or not r5.is_valid() or not r6.is_valid():
+		return false
+	if not (_us_volume_history_0.is_valid() and _rd.uniform_set_is_valid(_us_volume_history_0)):
+		_us_volume_history_0 = _rd.uniform_set_create([
+			_uniform_storage(0, r0), _uniform_storage(1, r1),
+			_uniform_storage(2, r2), _uniform_storage(3, r3),
+			_uniform_storage(4, r4), _uniform_storage(5, r5),
+			_uniform_storage(6, r6),
+			_get_set2_image_uniform(_volume_history_shader, 7, _volume_current_tex),
+			_get_set2_image_uniform(_volume_history_shader, 8, _volume_history_neutral),
+			_uniform_storage(9, _volume_stats),
+			_get_set2_image_uniform(_volume_history_shader, 10, _volume_current_depth_tex),
+		], _volume_history_shader, 0)
+	if not (_us_volume_reproject_ab.is_valid() and _rd.uniform_set_is_valid(_us_volume_reproject_ab)):
+		_us_volume_reproject_ab = _rd.uniform_set_create([
+			_get_set2_image_uniform(_volume_reproject_shader, 0, _volume_current_tex),
+			_get_set2_image_uniform(_volume_reproject_shader, 1, _volume_current_depth_tex),
+			_get_set2_image_uniform(_volume_reproject_shader, 2, _volume_history_color_a),
+			_get_set2_image_uniform(_volume_reproject_shader, 3, _volume_history_depth_a),
+			_get_set2_image_uniform(_volume_reproject_shader, 4, _field_render_tex),
+			_get_set2_image_uniform(_volume_reproject_shader, 5, _volume_history_color_b),
+			_get_set2_image_uniform(_volume_reproject_shader, 6, _volume_history_depth_b),
+			_uniform_storage(7, _volume_history_state),
+		], _volume_reproject_shader, 0)
+	if not (_us_volume_reproject_ba.is_valid() and _rd.uniform_set_is_valid(_us_volume_reproject_ba)):
+		_us_volume_reproject_ba = _rd.uniform_set_create([
+			_get_set2_image_uniform(_volume_reproject_shader, 0, _volume_current_tex),
+			_get_set2_image_uniform(_volume_reproject_shader, 1, _volume_current_depth_tex),
+			_get_set2_image_uniform(_volume_reproject_shader, 2, _volume_history_color_b),
+			_get_set2_image_uniform(_volume_reproject_shader, 3, _volume_history_depth_b),
+			_get_set2_image_uniform(_volume_reproject_shader, 4, _field_render_tex),
+			_get_set2_image_uniform(_volume_reproject_shader, 5, _volume_history_color_a),
+			_get_set2_image_uniform(_volume_reproject_shader, 6, _volume_history_depth_a),
+			_uniform_storage(7, _volume_history_state),
+		], _volume_reproject_shader, 0)
+	return _us_volume_history_0.is_valid() and _us_volume_reproject_ab.is_valid() \
+			and _us_volume_reproject_ba.is_valid()
+
+
+func _volume_history_geometry_key() -> float:
+	# Stable and exactly representable (< 2^24). Camera/window/size live in
+	# the state record; this key covers presentation radiance semantics.
+	return float(mode * 64 + _presentation_color_scheme * 8 \
+			+ (1 if presentation_profile else 0) \
+			+ int(volume_dynamic_resolution) * 2)
+
+
+func _volume_history_reject_current(origin: Vector3, forward: Vector3, fov: float,
+		generation: int, query_generation: int, key: float) -> bool:
+	if not _volume_history_has_state:
+		return true
+	if _volume_history_last_size != _rt_size or generation != _volume_history_last_topology \
+			or query_generation != _volume_history_last_query \
+			or not is_equal_approx(key, _volume_history_last_key):
+		return true
+	if absf(fov - _volume_history_last_fov) > 0.002:
+		return true
+	if origin.distance_to(_volume_history_last_origin) > maxf(0.5, _extent_min() * 0.05):
+		return true
+	return forward.normalized().dot(_volume_history_last_forward.normalized()) < 0.9986
+
+
+func _store_volume_history_state(origin: Vector3, transform: Transform3D, fov: float,
+		generation: int, query_generation: int, key: float) -> void:
+	if not _volume_history_state.is_valid():
+		return
+	var right := transform.basis.x.normalized()
+	var up := transform.basis.y.normalized()
+	var forward := -transform.basis.z.normalized()
+	var state := PackedFloat32Array([
+		origin.x, origin.y, origin.z, fov,
+		right.x, right.y, right.z, float(_rt_size.x),
+		up.x, up.y, up.z, float(_rt_size.y),
+		forward.x, forward.y, forward.z, 0.0,
+		float(generation), float(query_generation), key, 1.0,
+	]).to_byte_array()
+	_rd.buffer_update(_volume_history_state, 0, state.size(), state)
+	_volume_history_has_state = true
+	_volume_history_last_origin = origin
+	_volume_history_last_forward = forward
+	_volume_history_last_fov = fov
+	_volume_history_last_size = _rt_size
+	_volume_history_last_topology = generation
+	_volume_history_last_query = query_generation
+	_volume_history_last_key = key
 func _make_render_textures() -> void:
 	_render_texture_rebuild_count += 1
 	if _rt_size.x <= 0 or _rt_size.y <= 0:
 		_rt_size = Vector2i(512, 512)
-	# Image uniform sets reference the old textures — release them before
-	# the textures they point to.
-	if _us_fr_2.is_valid(): _rd.free_rid(_us_fr_2)
-	if _us_bh_lens_2.is_valid(): _rd.free_rid(_us_bh_lens_2)
-	if _us_volume_0.is_valid(): _rd.free_rid(_us_volume_0)
+	# Image uniform sets reference the old textures, so release every
+	# presentation-history set before replacing the texture RIDs.
+	_free_volume_history_resources()
+	if _us_fr_2.is_valid() and _rd.uniform_set_is_valid(_us_fr_2): _rd.free_rid(_us_fr_2)
+	if _us_bh_lens_2.is_valid() and _rd.uniform_set_is_valid(_us_bh_lens_2): _rd.free_rid(_us_bh_lens_2)
+	if _us_volume_0.is_valid() and _rd.uniform_set_is_valid(_us_volume_0): _rd.free_rid(_us_volume_0)
+	_us_fr_2 = RID(); _us_bh_lens_2 = RID(); _us_volume_0 = RID()
 	if _field_render_tex.is_valid(): _rd.free_rid(_field_render_tex)
+	if _bh_lensing_tex.is_valid(): _rd.free_rid(_bh_lensing_tex)
 	if _volume_history_neutral.is_valid(): _rd.free_rid(_volume_history_neutral)
 	_field_render_tex = _make_render_texture(_rt_size.x, _rt_size.y)
+	_bh_lensing_tex = _make_render_texture(_rt_size.x, _rt_size.y)
 	_volume_history_neutral = _make_render_texture(_rt_size.x, _rt_size.y)
-	_update_bh_lens_params()
 	var clear := PackedByteArray(); clear.resize(_rt_size.x * _rt_size.y * 16); clear.fill(0)
+	_rd.texture_update(_bh_lensing_tex, 0, clear)
 	_rd.texture_update(_volume_history_neutral, 0, clear)
+	_update_bh_lens_params()
 func _render_site_volume() -> void:
+	# A selected temporal path must never fall through to the current-only
+	# pipeline while its own topology uniforms are still being built. Keeping
+	# the last resolved image is both visually stable and avoids binding a
+	# stale/null current-only uniform set during the live toggle transition.
+	if _presentation_volume_history_wanted():
+		_render_site_volume_history()
+		return
 	var cam := _sim_cam
 	if cam == null: return
 	if _physics_engine == null or not bool(_physics_engine.get("_topology_ready")):
 		return
+	# Public/direct callers (the palette parity verifier included) may enter
+	# this producer immediately after history teardown. Rebind its dedicated
+	# topology/image set before recording, rather than silently binding null.
+	if not _volume_pipe.is_valid() or not _us_volume_0.is_valid() \
+			or not _rd.uniform_set_is_valid(_us_volume_0):
+		if not _sync_volume_uniform_set():
+			return
 	# The site-native producer writes the same shared render target consumed by
 	# the existing Texture2DRD → field_texture_updated → SimUI TextureRect
 	# seam. Keep the wrapper stable across frames; no CPU texture copy.
@@ -5863,7 +6620,7 @@ func _render_site_volume() -> void:
 		forward.x, forward.y, forward.z, float(site_count),
 		ext.x, ext.y, ext.z, float(grid_N),
 		float(generation), float(generation),
-		0.0, 0.0,
+		1.0 if presentation_profile else 0.0, float(_presentation_color_scheme),
 		0.0, 128.0,
 		1e-3, float(generation),
 		0.0, 0.0,
@@ -5877,12 +6634,111 @@ func _render_site_volume() -> void:
 	_volume_last_record_us = Time.get_ticks_usec() - started; _volume_max_record_us = maxi(_volume_max_record_us, _volume_last_record_us)
 	_note_volume_dispatch_frame(get_process_delta_time() * 1000.0)
 	_volume_last_generation = generation; _volume_last_site_count = site_count; _volume_last_cam_transform = transform; _volume_last_fov = fov; _volume_last_window_center = _window_center; _volume_last_extents = ext; _volume_last_rt_size = _rt_size; _volume_last_max_steps = 128.0; _volume_last_cutoff = 1e-3; _volume_cache_valid = true
+	_volume_last_history_weight = -1.0
+	_volume_last_history_depth_tolerance = -1.0
+	_volume_last_scheduling = 0.0
 	# Publish the same Texture2DRD object through the existing SimUI seam.
 	field_texture_updated.emit(field_display_texture)
+
+
+func _render_site_volume_history() -> bool:
+	var cam := _sim_cam
+	if cam == null or _physics_engine == null or not bool(_physics_engine.get("_topology_ready")):
+		return false
+	if not _ensure_volume_history_uniform_sets():
+		return false
+	# The resolved render target remains the one stable Texture2DRD exposed to
+	# SimUI. The current/depth and ping-pong history targets are private.
+	if field_display_texture == null or not (field_display_texture is Texture2DRD):
+		field_display_texture = CassiGpuTextureBridge.wrap(_field_render_tex)
+	var ext := _extents()
+	var transform: Transform3D = cam.global_transform
+	var origin := cam.global_position - _window_center
+	var forward := -transform.basis.z.normalized()
+	var fov := cam.fov * PI / 180.0
+	var generation := int(_physics_engine.topology_generation_value())
+	var query_generation := int(_physics_engine.render_query_generation_value()) \
+			if _physics_engine.has_method("render_query_generation_value") else generation
+	var site_count := int(_physics_engine.topology_site_count_value())
+	var key := _volume_history_geometry_key()
+	var history_weight := clampf(presentation_volume_history_weight, 0.0, 0.95)
+	var history_depth_tolerance := clampf(presentation_volume_history_depth_tolerance, 0.001, 0.5)
+	if _volume_cache_valid \
+			and _volume_history_has_state \
+			and _volume_last_scheduling == 1.0 \
+			and not _volume_needs_dispatch(generation, site_count, transform, fov, _window_center, ext) \
+			and query_generation == _volume_history_last_query \
+			and is_equal_approx(key, _volume_history_last_key) \
+			and is_equal_approx(history_weight, _volume_last_history_weight) \
+			and is_equal_approx(history_depth_tolerance, _volume_last_history_depth_tolerance):
+		_volume_skip_count += 1
+		return true
+	var reject_history := _volume_history_reject_current(
+			origin, forward, fov, generation, query_generation, key)
+	var volume_pc := PackedFloat32Array([
+		origin.x, origin.y, origin.z, fov,
+		transform.basis.x.x, transform.basis.x.y, transform.basis.x.z, float(_rt_size.x),
+		transform.basis.y.x, transform.basis.y.y, transform.basis.y.z, float(_rt_size.y),
+		forward.x, forward.y, forward.z, float(site_count),
+		ext.x, ext.y, ext.z, float(grid_N),
+		float(generation), float(query_generation),
+		1.0, float(_presentation_color_scheme),
+		0.0, 128.0,
+		1e-3, float(generation),
+		0.0, 0.0,
+		0.0, 1.0,
+	]).to_byte_array()
+	var resolve_pc := PackedFloat32Array([
+		origin.x, origin.y, origin.z, fov,
+		transform.basis.x.x, transform.basis.x.y, transform.basis.x.z, float(_rt_size.x),
+		transform.basis.y.x, transform.basis.y.y, transform.basis.y.z, float(_rt_size.y),
+		forward.x, forward.y, forward.z, float(generation),
+		float(query_generation), key,
+		history_weight,
+		history_depth_tolerance,
+		0.0 if reject_history else 1.0,
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+		0.0,
+	]).to_byte_array()
+	var started := Time.get_ticks_usec()
+	var history_set: RID = _us_volume_reproject_ab if _volume_history_prev_is_a else _us_volume_reproject_ba
+	var cl := _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(cl, _volume_history_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_volume_history_0, 0)
+	_rd.compute_list_set_push_constant(cl, volume_pc, volume_pc.size())
+	_rd.compute_list_dispatch(cl, ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1)
+	_barrier(cl)
+	_rd.compute_list_bind_compute_pipeline(cl, _volume_reproject_pipe)
+	_rd.compute_list_bind_uniform_set(cl, history_set, 0)
+	_rd.compute_list_set_push_constant(cl, resolve_pc, resolve_pc.size())
+	_rd.compute_list_dispatch(cl, ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1)
+	_rd.compute_list_end()
+	_volume_history_prev_is_a = not _volume_history_prev_is_a
+	_store_volume_history_state(origin, transform, fov, generation, query_generation, key)
+	_volume_dispatch_id += 1
+	_volume_last_record_us = Time.get_ticks_usec() - started
+	_volume_max_record_us = maxi(_volume_max_record_us, _volume_last_record_us)
+	_note_volume_dispatch_frame(get_process_delta_time() * 1000.0)
+	_volume_last_generation = generation
+	_volume_last_site_count = site_count
+	_volume_last_cam_transform = transform
+	_volume_last_fov = fov
+	_volume_last_window_center = _window_center
+	_volume_last_extents = ext
+	_volume_last_rt_size = _rt_size
+	_volume_last_max_steps = 128.0
+	_volume_last_cutoff = 1e-3
+	_volume_last_history_weight = history_weight
+	_volume_last_history_depth_tolerance = history_depth_tolerance
+	_volume_last_scheduling = 1.0
+	_volume_cache_valid = true
+	field_texture_updated.emit(field_display_texture)
+	return true
 func _cache_render_texture_sets() -> void:
 	# Rebuild ONLY the image uniform sets after _make_render_textures()
 	# recreates the textures (the old sets were freed there). The full
 	field_display_texture = null
+	bh_display_texture = null
 	# _cache_uniform_sets() must not be used here — it would overwrite the
 	# live sets of untouched buffers and leak their RIDs.
 	if _field_render_shader.is_valid() and _field_render_tex.is_valid():
@@ -5892,23 +6748,24 @@ func _cache_render_texture_sets() -> void:
 	if _bh_lensing_shader.is_valid() and _bh_lensing_tex.is_valid() and _bh_lens_buf.is_valid():
 		_us_bh_lens_2 = _rd.uniform_set_create([
 			_get_set2_image_uniform(_bh_lensing_shader, 0, _bh_lensing_tex),
-			_get_set2_buffer_uniform(_bh_lensing_shader, 1, _bh_lens_buf),
+			_uniform_storage(1, _bh_lens_buf),
 		], _bh_lensing_shader, 2)
 
-
 func _update_bh_lens_params() -> void:
-	# Lens demo params (visual only): BH at screen center, M=0.2, spin=0,
-	# G_eff=1.0 — the values the old per-frame array intended but never
-	# uploaded. Live in a dedicated buffer so the 36-vec4 sim BH header is
-	# never bound to the lensing shader's 4-vec4 layout.
-	if not _bh_lens_buf.is_valid(): return
-	var p = PackedFloat32Array([
-		_rt_size.x * 0.5, _rt_size.y * 0.5, 0.0, 0.0,
+	# The Black Hole display is a presentation-only lens demonstration. Its
+	# compact parameter block stays deliberately independent of the active
+	# physics BH records and uses the established readable 0.2 screen scale.
+	if not _bh_lens_buf.is_valid():
+		return
+	var params := PackedFloat32Array([
+		float(_rt_size.x) * 0.5, float(_rt_size.y) * 0.5, 0.0, 0.0,
 		0.2, 0.0, 1.0, 0.0,
 		0.0, 0.0, 0.0, 0.0,
 		0.0, 0.0, 0.0, 0.0,
-	])
-	_rd.buffer_update(_bh_lens_buf, 0, 64, p.to_byte_array())
+	]).to_byte_array()
+	_rd.buffer_update(_bh_lens_buf, 0, params.size(), params)
+
+
 
 
 # Rendering
@@ -5919,6 +6776,8 @@ func _free_multimesh() -> void:
 	# MultiMeshInstance3D child (its MultiMesh holds the RD buffer that
 	# _mm_rd_rid points at). Only safe with all uniform sets already freed
 	# (callers free them first — see reinit).
+	_free_macro_lod_multimesh()
+	_free_trail_multimesh()
 	if _mmi != null and is_instance_valid(_mmi):
 		remove_child(_mmi)
 		_mmi.free()
@@ -5928,16 +6787,21 @@ func _free_multimesh() -> void:
 
 
 func _update_particle_cull_bounds() -> void:
-	if _mm == null:
-		return
 	var ext := _extents()
-	var margin := maxf(_mm_particle_size * 4.0, 1.0)
-	var bound := ext + Vector3.ONE * margin
-	# The instancer writes positions relative to the render window origin.
-	# When tracking moves physics only, the rendered cloud is offset by the
-	# physical center in that local space; keep the MultiMesh AABB with it.
 	var local_center := _window_center - _render_window_origin()
-	_mm.custom_aabb = AABB(local_center - bound, bound * 2.0)
+	if _mm != null:
+		var margin := maxf(_mm_particle_size * 4.0, 1.0)
+		var bound := ext + Vector3.ONE * margin
+		# The instancer writes positions relative to the render window origin.
+		# When tracking moves physics only, the rendered cloud is offset by the
+		# physical center in that local space; keep the MultiMesh AABB with it.
+		_mm.custom_aabb = AABB(local_center - bound, bound * 2.0)
+	var presentation_margin := maxf(cluster_radius * 0.15, 8.0)
+	var presentation_bound := ext + Vector3.ONE * presentation_margin
+	if _macro_lod_mm != null:
+		_macro_lod_mm.custom_aabb = AABB(local_center - presentation_bound, presentation_bound * 2.0)
+	if _trail_mm != null:
+		_trail_mm.custom_aabb = AABB(local_center - presentation_bound, presentation_bound * 2.0)
 
 func _setup_multimesh() -> void:
 	# Color-as-LUT (Tier-2): the MultiMesh FORMAT is static per build —
@@ -5996,9 +6860,12 @@ func _setup_multimesh() -> void:
 		push_error("[CassiSim] multimesh_get_buffer_rd_rid returned an invalid RID — instancer writes will fail")
 
 	var mat = ShaderMaterial.new()
-	mat.shader = load("res://shaders/particle_billboard.gdshader")
+	_particle_compat_shader = load("res://shaders/particle_billboard.gdshader") as Shader
+	_particle_presentation_shader = load("res://shaders/particle_billboard_presentation.gdshader") as Shader
+	mat.shader = _particle_presentation_shader if presentation_profile and _particle_presentation_shader != null else _particle_compat_shader
 	mat.render_priority = 1
 	_mmi.material_override = mat
+	_apply_particle_presentation_profile()
 	_apply_lut_material()
 
 
@@ -6020,11 +6887,15 @@ func _render_frame() -> void:
 	# record the render list (blend −c seam + instancer + qhist) — no
 	# physics list on the global RD in this mode.
 	if _decoupled_active:
-		if tracking_envelope:
-			_track_envelope_window()   # percentile measurement updates the target
-			_apply_envelope_state()    # continuous applied physics window; never camera
-		else:
-			_track_window_center()     # movable home-window: slow-cadence COM follow
+		# A pause freezes simulation-owned window geometry as well as stepping.
+		# Rendering and topology publication stay live below so a paused view
+		# can still converge its renderer-only resources.
+		if playing:
+			if tracking_envelope:
+				_track_envelope_window()   # percentile measurement updates the target
+				_apply_envelope_state()    # continuous applied physics window; never camera
+			else:
+				_track_window_center()     # movable home-window: slow-cadence COM follow
 		_decoupled_poll_and_render()
 
 	# Throttled diagnostics readback (wall-time ~3 Hz; the step-count gate
@@ -6140,9 +7011,11 @@ func _render_frame() -> void:
 			if _ml_boxless_on():
 				_prepare_volume_resolution()
 				if _field_render_tex.is_valid() and _volume_history_neutral.is_valid():
-					if _volume_set_dirty or not _us_volume_0.is_valid():
+					if _volume_set_dirty or not _us_volume_0.is_valid() \
+							or not _rd.uniform_set_is_valid(_us_volume_0):
 						_sync_volume_uniform_set()
-					if _volume_pipe.is_valid() and _us_volume_0.is_valid():
+					if _volume_pipe.is_valid() and _us_volume_0.is_valid() \
+							and _rd.uniform_set_is_valid(_us_volume_0):
 						_render_site_volume()
 			elif not _decoupled_active:
 				# Legacy raster field rendering remains only for explicit
@@ -6151,8 +7024,7 @@ func _render_frame() -> void:
 				_render_field_slice()
 		2:
 			_render_particles()
-			if _q_mean > 0.0:
-				_render_bh_lensing()
+			_render_bh_lensing()
 		3:
 			_render_particles()
 
@@ -6338,56 +7210,6 @@ func _render_particles() -> void:
 				pos[0], pos[1], pos[2], _step_count])
 
 
-func _render_bh_lensing() -> void:
-	if not _bh_lensing_shader.is_valid(): return
-	var now_ms := Time.get_ticks_msec()
-	if now_ms - _last_bh_rb_ms < int(1000.0 / RB_HZ): return  # ~15 Hz cap
-	_last_bh_rb_ms = now_ms
-	if not _bh_lensing_tex.is_valid():
-		_make_render_textures()
-		_cache_render_texture_sets()  # sets referencing the new texture
-
-	# Shared PC (11 floats) — pre-allocated, no per-frame allocation
-	_pc_bytes.encode_float(0, float(grid_N))
-	_pc_bytes.encode_float(4, dt)
-	_pc_bytes.encode_float(8, _time)
-	_pc_bytes.encode_float(12, PHI)
-	_pc_bytes.encode_float(16, xi)
-	_pc_bytes.encode_float(20, softening * softening)
-	_pc_bytes.encode_float(24, float(N_particles))
-	_pc_bytes.encode_float(28, float(mode))
-	_pc_bytes.encode_float(32, source_strength)
-	_pc_bytes.encode_float(36, float(num_clusters))
-	_pc_bytes.encode_float(40, float(gravity_mode))
-
-	var wg = Vector3i(ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1)
-
-	var cl = _rd.compute_list_begin()
-	_rd.compute_list_bind_compute_pipeline(cl, _bh_lensing_pipe)
-	# Set 2 only — lensing shader doesn't use sets 0 or 1. The set is
-	# cached (uniform_set_create was a per-frame local-RD allocation);
-	# the params live in the dedicated 4-vec4 _bh_lens_buf, not the
-	# 36-vec4 sim BH header.
-	_rd.compute_list_bind_uniform_set(cl, _us_bh_lens_2, 2)
-	_rd.compute_list_set_push_constant(cl, _pc_bytes, _pc_bytes.size())
-	_rd.compute_list_dispatch(cl, wg.x, wg.y, wg.z)
-	_rd.compute_list_end()
-	# Global RD: no submit/sync; texture_get_data self-stalls.
-
-	# Readback for UI display (15 Hz — one 512² RGBAF readback per gate)
-	var bdata = _rd.texture_get_data(_bh_lensing_tex, 0)
-	if bdata.size() > 100:
-		var img = Image.create_from_data(_rt_size.x, _rt_size.y, false, Image.FORMAT_RGBAF, bdata)
-		if img:
-			# Reuse the ImageTexture via update() when the size matches —
-			# avoids allocating a new GPU texture every readback.
-			if bh_display_texture is ImageTexture \
-					and bh_display_texture.get_width() == _rt_size.x \
-					and bh_display_texture.get_height() == _rt_size.y:
-				bh_display_texture.update(img)
-			else:
-				bh_display_texture = ImageTexture.create_from_image(img)
-			bh_texture_updated.emit(bh_display_texture)
 func _setup_workbench_cursor() -> void:
 	_workbench_cursor_world = _window_center
 	if _workbench_cursor_marker != null:

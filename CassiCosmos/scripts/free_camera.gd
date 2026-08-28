@@ -34,26 +34,35 @@ var _prev_mouse_pos: Vector2 = Vector2.ZERO
 # Recalculated every frame.
 var _current_speed: float = 10.0
 
+# The sibling `PresentationDirector` node when present (a pose source, never
+# a camera writer). While it is directing, this camera applies its sampled
+# pose; any manual control requests a MANUAL takeover first.
+var _director: Node = null
+
 # ---------------------------------------------------------------------------
 # Lifecycle
 # ---------------------------------------------------------------------------
 
 func _ready() -> void:
 	_current_speed = move_speed
+	_director = _find_director()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	# --- Tab: toggle flight / world-axis strafe ---
 	if event.is_action_pressed(&"ui_focus_next") or (event is InputEventKey and event.keycode == KEY_TAB and event.pressed and not event.echo):
+		_request_manual_takeover()
 		_flight_mode = not _flight_mode
 		get_viewport().set_input_as_handled()
 
 	# --- Scroll: logarithmic speed change ---
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_request_manual_takeover()
 			_current_speed = clampf(_current_speed * speed_multiplier, 0.1, 1000.0)
 			get_viewport().set_input_as_handled()
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_request_manual_takeover()
 			_current_speed = clampf(_current_speed / speed_multiplier, 0.1, 1000.0)
 			get_viewport().set_input_as_handled()
 
@@ -61,9 +70,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	# repeat is allowed so holding a key keeps stepping, like a throttle) ---
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_Z:
+			_request_manual_takeover()
 			_current_speed = clampf(_current_speed * speed_multiplier, 0.1, 1000.0)
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_X:
+			_request_manual_takeover()
 			_current_speed = clampf(_current_speed / speed_multiplier, 0.1, 1000.0)
 			get_viewport().set_input_as_handled()
 
@@ -72,6 +83,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var btn: int = event.button_index
 		if btn == MOUSE_BUTTON_RIGHT or btn == MOUSE_BUTTON_MIDDLE:
 			if event.pressed and not _dragging:
+				_request_manual_takeover()
 				_dragging = true
 				_prev_mouse_pos = event.position
 				Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -83,6 +95,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	# --- Mouse drag rotate ---
 	if event is InputEventMouseMotion and _dragging:
+		_request_manual_takeover()
 		var capture: bool = Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
 		var delta: Vector2 = event.relative if capture else (event.position - _prev_mouse_pos)
 		_prev_mouse_pos = event.position if not capture else _prev_mouse_pos
@@ -98,7 +111,59 @@ func _unhandled_input(event: InputEvent) -> void:
 		rotate_object_local(Vector3(1.0, 0.0, 0.0), pitch)
 
 
+# ---------------------------------------------------------------------------
+# Director handoff (presentation director; all no-ops when absent)
+# ---------------------------------------------------------------------------
+
+## The sibling `PresentationDirector` node, if present. Cached once at
+## _ready and re-resolved lazily so a director added later is honored.
+func _find_director() -> Node:
+	var parent := get_parent()
+	if parent == null:
+		return null
+	return parent.get_node_or_null("PresentationDirector")
+
+
+## The cached director ref, re-resolved when missing or freed.
+func _current_director() -> Node:
+	if not is_instance_valid(_director):
+		_director = _find_director()
+	return _director
+
+
+## Ask a present director to switch to MANUAL (free-camera ownership)
+## before a manual control applies. No-op without a director.
+func _request_manual_takeover() -> void:
+	var director := _current_director()
+	if director != null and director.has_method("request_manual_takeover"):
+		director.call("request_manual_takeover")
+
+
+## True while any manual camera-motion key is held (WASD, Shift/Ctrl,
+## Q/E). Lets a directing director hand ownership back the moment the
+## user starts moving, without waiting for a fresh key-press event.
+func _manual_keys_held() -> bool:
+	return (
+		Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_S) or
+		Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_D) or
+		Input.is_key_pressed(KEY_SHIFT) or Input.is_key_pressed(KEY_CTRL) or
+		Input.is_key_pressed(KEY_Q) or Input.is_key_pressed(KEY_E))
+
+
 func _process(delta: float) -> void:
+	# --- Director handoff ---
+	# A directing director is the pose source and this camera does not move
+	# on its own; a held manual key hands ownership back before any motion
+	# below applies (manual input always wins).
+	var director := _current_director()
+	if director != null and director.has_method("is_directing") and director.call("is_directing"):
+		if _manual_keys_held():
+			_request_manual_takeover()
+		else:
+			var pose: Transform3D = director.call("sample_pose", delta, self)
+			global_transform = pose
+			return
+
 	# --- Keyboard rotation (Q/E yaw) ---
 	var key_rot = 0.0
 	if Input.is_key_pressed(KEY_Q): key_rot += 1.0

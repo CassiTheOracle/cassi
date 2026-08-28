@@ -13,7 +13,9 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-// ── Screen texture (input/output) ──────────────────────────────────────
+// ── Lens output target ─────────────────────────────────────────────────
+// The source sky below is procedural, avoiding an undefined in-place
+// imageLoad/imageStore feedback loop on this single storage image.
 layout(set = 2, binding = 0, rgba32f) uniform restrict image2D screenImage;
 
 // ── BH params buffer: vec4[4] ──────────────────────────────────────────
@@ -144,10 +146,10 @@ void main() {
     float deflection_scale = M_pixels * 0.5;  // maps angle to pixel offset
     vec2 sample_offset = defl_dir * deflection * deflection_scale;
 
-    // ── Sample the background at the deflected position ────────────────
+    // ── Sample a deterministic procedural sky at the deflected position ──
+    // Other invocations write this target concurrently, so it must not also
+    // serve as the sampled background.
     vec2 source_uv = pixel_pos + sample_offset;
-    ivec2 src_pix = ivec2(clamp(source_uv, vec2(0.0), vec2(dims) - 1.0));
-    vec4 source_color = imageLoad(screenImage, src_pix);
 
     // ── Gravitational redshift ─────────────────────────────────────────
     // redshift factor: sqrt(1 - r_s/r) where r = b (closest approach)
@@ -155,12 +157,9 @@ void main() {
     float redshift = 1.0;
     if (r_phys > r_s_phys * 0.5 + 0.01) {
         redshift = sqrt(max(1.0 - r_s_phys / r_phys, 0.0));
-	}
-    // ── Starfield background (when source image is black) ──────────────
-    vec4 bg = source_color;
-    if (bg.r + bg.g + bg.b < 0.01) {
-        bg = vec4(starfield(source_uv + vec2(float(dims.x) * 0.1)), 0.0);
     }
+    // ── Procedural sky background ───────────────────────────────────────
+    vec4 bg = vec4(starfield(source_uv + vec2(float(dims.x) * 0.1)), 1.0);
     vec4 lensed_color = bg * redshift;
     // Cassi reduces it; spec says ~10x GR result, so ISCO ~ 3M in units
     // where GR ISCO = 6M, meaning Cassi ISCO = 60M... but spec says

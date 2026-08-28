@@ -4,14 +4,14 @@
 
 This document fixes the statistic, decision tree, and stopping rule for the
 Phase-3 steering loop **before any steering run executes**. It is the pre-file
-the plan requires (UNIFICATION.md §4 Phase 3; WORKING-WITH-THE-AI.md §2.4 / §2.3
-discipline). No claim below is a measurement; every run's verdict lands in the
+the plan requires (UNIFICATION.md §4 Phase 3; the pre-registration and honest-verdict
+discipline is recorded in UNIFICATION.md §1.6 and §5). No claim below is a measurement; every run's verdict lands in the
 ledger appended to this file after `tools/field_steer.py` runs.
 
 ## 0. Context asserted, not argued
 
 - The field is the computation; intelligence is the operator that steers the
-  flow of coherence (WORKING-WITH-THE-AI.md §0).
+  flow of coherence (UNIFICATION.md §3.3–§3.4).
 - Read = readout/project; write = deposit (`cassi_mind_engine.gd` bridge, port
   7599). Coherence density per cell `q = EY² + EI²`; disequilibrium
   `ε² = (EY − φ·EI)²` (mind-engine `compute_readout`).
@@ -26,7 +26,7 @@ ledger appended to this file after `tools/field_steer.py` runs.
     (floor 0.5571). Steering over prediction is the winning posture.
 - Pre-registration discipline: statistic, decision tree, stopping rule fixed
   before any run; fresh solver per arm; no post-hoc tuning; NaN-loud-fail
-  (WORKING-WITH-THE-AI.md §2.3).
+  (UNIFICATION.md §1.6 and §5).
 
 ## 1. Artifact under test
 

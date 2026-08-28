@@ -510,24 +510,20 @@ func _check_depth() -> void:
 		push_error("depth: instancer returned no instances")
 		return
 	_checks += 1
-	var pos := _read_positions()
-	if pos.size() < sim.N_particles * 4:
-		_failures += 1
-		push_error("depth: live position readback unavailable")
-		return
 	var n: int = sim.N_particles
 	var ext: Vector3 = sim._extents()
 	var boxd: float = ext.length()
 	var dn: float = 0.35 * boxd
 	var df: float = 1.35 * boxd
-	# Alpha must equal the depth fade exactly: a = clamp((df−d)/(df−dn),0,1)
-	# times the base alpha (1.0 for Qi rainbow). Verify per-particle so the
-	# check is independent of the IC geometry (camera-at-origin proxy today).
+	# The shader applies depth to `pf`, the same position it writes into the
+	# instance transform after selecting open-world or periodic rendering.
+	# Read that emitted position rather than raw source position: escaped
+	# particles are legitimately folded by the legacy path.
 	var ok := 0
 	var fail := 0
 	for i in range(n):
 		var b := i * 16
-		var d: float = Vector3(pos[i * 4], pos[i * 4 + 1], pos[i * 4 + 2]).length()
+		var d: float = Vector3(inst[b + 3], inst[b + 7], inst[b + 11]).length()
 		var a := inst[b + 15]
 		var fade: float = clampf((df - d) / (df - dn), 0.0, 1.0)   # DEPTH_POW = 1 (linear)
 		if _approx(a, fade, 2e-3):

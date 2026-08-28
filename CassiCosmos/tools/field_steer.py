@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """field_steer.py — Phase 3: the steering loop (readout -> predict -> deposit).
 
-Closes the minimal closed loop described in UNIFICATION.md §4 Phase 3 and
-WORKING-WITH-THE-AI.md §2.4: read coherence (readout/project), decide a
+Closes the minimal closed loop described in UNIFICATION.md §3.4 and §4 Phase 3: read coherence (readout/project), decide a
 perturbation (a clearly-labeled steering policy, NOT a neural model), inject it
 (deposit), on a phi-cadence schedule (NOT per-step). Hard stop on divergence
 (NaN-loud-fail + q_mean / pi-saturation guard reads).

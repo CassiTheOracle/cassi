@@ -6,7 +6,7 @@
 
 This document is a **specification** for the Field Desktop: an always-on field that ingests the user's digital activity (git commits, file edits, build/test results, searches, tool calls) and renders the resulting memory as a navigable galaxy in the CassiCosmos sim. It is **SPEC ONLY**—no code is edited, no sim runs are performed. Every mechanism here is grounded in a cited existing file; where a mechanism must be newly built, this document states that it is new and names the file that defines the contract it builds on.
 
-The thesis it serves (from `C:/Users/Carina/workspaces/Cassi/WORKING-WITH-THE-AI.md` §0): *intelligence is the ability to steer the flow of coherence*, and the digital world (files, code, events, tools) is itself a flow of coherence that the field steers. The integration loop is already closed in the stack: **digital world → CassiCore tools/memory (7273) → field bridge → engine `deposit` (7599); engine → `readout`/`project` → field bridge → MnemicField → back to the digital world.** This spec makes that loop concrete for a *passive ingestion surface*: the loop runs continuously, encoding each user action into a field deposition, and the galaxy renderer visualizes the sediment as it consolidates.
+The thesis it serves (from `UNIFICATION.md` §3.3–§3.4): *intelligence is the ability to steer the flow of coherence*, and the digital world (files, code, events, tools) is itself a flow of coherence that the field steers. The integration loop is already closed in the stack: **digital world → CassiCore tools/memory (7273) → field bridge → engine `deposit` (7599); engine → `readout`/`project` → field bridge → MnemicField → back to the digital world.** This spec makes that loop concrete for a *passive ingestion surface*: the loop runs continuously, encoding each user action into a field deposition, and the galaxy renderer visualizes the sediment as it consolidates.
 
 This is deliberately the **cheap visualization-first** phase of `C:/Users/Carina/workspaces/Cassi/UNIFICATION.md` §4 Phase 9 (the engram galaxy), built in the build order Phase 9 itself prescribes: the galaxy is cheap (existing instancer, existing streams); the dream A/B waits for the §19 data. Until §19 passes (z > 2 in ≥2/3 sessions), the galaxy is a visualization of an *unproven* mechanism, not of the field-as-memory claim. Section 4 states this explicitly.
 
@@ -200,7 +200,7 @@ Until `CassiTheory`-governed §19/§34 passes (`z > 2` in ≥2/3 sessions), the 
 
 ### 4.5 Honest negatives are deliverables
 
-Per the program's discipline (`WORKING-WITH-THE-AI.md` §1.1, §2.3; `UNIFICATION.md` §5.8), each milestone's report carries its honest-negative branch as a first-class outcome, not a failure: a NULL placement in Phase 1 is a valid deliverable that closes the "deterministic placement aids retrieval" question at measured cost; the galaxy still renders, and the field-as-memory claim simply remains un-adopted until §19. The spec's build order is deliberately structured so a negative at any phase costs visualization time, not doctrine.
+Per the program's discipline (`UNIFICATION.md` §1.6 and §5), each milestone's report carries its honest-negative branch as a first-class outcome, not a failure: a NULL placement in Phase 1 is a valid deliverable that closes the "deterministic placement aids retrieval" question at measured cost; the galaxy still renders, and the field-as-memory claim simply remains un-adopted until §19. The spec's build order is deliberately structured so a negative at any phase costs visualization time, not doctrine.
 
 ## 5. Risks and explicit caveats
 
@@ -213,7 +213,6 @@ Per the program's discipline (`WORKING-WITH-THE-AI.md` §1.1, §2.3; `UNIFICATIO
 ## References
 
 - `C:/Users/Carina/workspaces/Cassi/UNIFICATION.md` §3.4 (AI I/O is field probing), §4 Phase 9 (the engram galaxy), §1.6 (Stage 4/§19, Stage 3-wiring, ledger), §5 (risk notebook)
-- `C:/Users/Carina/workspaces/Cassi/WORKING-WITH-THE-AI.md` §0 (thesis), §1.1/§1.2 (campaign + discipline), §2 (field + learned term), §3 (surfaces)
 - `CassiCore/packages/mnemic-field/src/attractor.ts` — three-pole attention, radial boost, sigma
 - `CassiCore/packages/mnemic-field/src/engram-decomposer.ts` — density decomposition
 - `CassiCore/packages/mnemic-field/src/consolidation.ts` — consolidation engine, TYPE_POTENTIATION, drift/potentiation

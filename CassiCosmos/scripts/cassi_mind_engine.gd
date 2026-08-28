@@ -186,6 +186,146 @@ func step_n(n: int) -> void:
 func deposit(x: float, y: float, z: float, cy: float, ci: float, sigma: float = 1.0) -> void:
 	_pending.append_array(PackedFloat32Array([x, y, z, cy, ci, sigma]))
 
+# Replace the complete canonical field without reallocating any GPU resource.
+# The validation pass is side-effect free: no buffer update or engine-state
+# mutation occurs until both channels and their derived q values are valid.
+func seed_full_field(ey_values: PackedFloat32Array, ei_values: PackedFloat32Array) -> bool:
+	var cells: int = grid_n * grid_n * grid_n
+	if ey_values.size() != cells or ei_values.size() != cells:
+		return false
+	var q_values := PackedFloat32Array()
+	q_values.resize(cells)
+	for i in range(cells):
+		var ey_value: float = ey_values[i]
+		var ei_value: float = ei_values[i]
+		if is_nan(ey_value) or is_inf(ey_value) or is_nan(ei_value) or is_inf(ei_value):
+			return false
+		var q_value: float = ey_value * ey_value + ei_value * ei_value
+		if is_nan(q_value) or is_inf(q_value):
+			return false
+		q_values[i] = q_value
+		if is_nan(q_values[i]) or is_inf(q_values[i]):
+			return false
+	if _rd == null or not _ey.is_valid() or not _ei.is_valid() or not _q.is_valid() \
+			or not _vel.is_valid() or not _rho.is_valid() or not _scratch.is_valid():
+		return false
+
+	var zero4 := PackedByteArray()
+	zero4.resize(cells * 4)
+	var zero16 := PackedByteArray()
+	zero16.resize(cells * 16)
+	_rd.buffer_update(_ey, 0, cells * 4, ey_values.to_byte_array())
+	_rd.buffer_update(_ei, 0, cells * 4, ei_values.to_byte_array())
+	_rd.buffer_update(_q, 0, cells * 4, q_values.to_byte_array())
+	_rd.buffer_update(_rho, 0, cells * 4, zero4)
+	_rd.buffer_update(_vel, 0, cells * 16, zero16)
+	_rd.buffer_update(_scratch, 0, cells * 16, zero16)
+	_pending = PackedFloat32Array()
+	_step = 0
+	_t = 0.0
+	return true
+
+
+# Restore a previously captured full field and its exact simulation clock.
+# This is explicit/default-off: only a session owner that already holds raw
+# EY/EI bytes may invoke it. Validation remains side-effect free until the
+# field itself and its clock metadata are both known valid.
+func restore_full_field(ey_values: PackedFloat32Array, ei_values: PackedFloat32Array,
+		step_value: int, time_value: float) -> bool:
+	if step_value < 0 or is_nan(time_value) or is_inf(time_value) or time_value < 0.0:
+		return false
+	var expected_time: float = float(step_value) * dt
+	if absf(time_value - expected_time) > maxf(1.0e-6, absf(expected_time) * 1.0e-6):
+		return false
+	if not seed_full_field(ey_values, ei_values):
+		return false
+	_step = step_value
+	_t = time_value
+	return true
+# Blend an incoming complete field into the canonical channels without
+# reallocating GPU resources or resetting any PDE state. This path is
+# explicit/default-off: no bridge command or automatic caller invokes it.
+func blend_full_field(ey_values: PackedFloat32Array, ei_values: PackedFloat32Array,
+		retained_weight: float) -> bool:
+	var cells: int = grid_n * grid_n * grid_n
+	if is_nan(retained_weight) or is_inf(retained_weight) \
+			or retained_weight < 0.0 or retained_weight > 1.0:
+		return false
+	if ey_values.size() != cells or ei_values.size() != cells:
+		return false
+	if _rd == null or not _ey.is_valid() or not _ei.is_valid() or not _q.is_valid() \
+			or not _vel.is_valid() or not _rho.is_valid() or not _scratch.is_valid():
+		return false
+
+	# Validate both incoming channels before flushing any pending deposits or
+	# touching a canonical GPU buffer. Derived q is validated below from the
+	# actual mixed channels, which is the only q value this API writes.
+	for i in range(cells):
+		var ey_value: float = ey_values[i]
+		var ei_value: float = ei_values[i]
+		if is_nan(ey_value) or is_inf(ey_value) or is_nan(ei_value) or is_inf(ei_value):
+			return false
+
+	# Preflight the current field and pending deposits on CPU. This keeps the
+	# eventual flush after every input/output validation and makes rejection
+	# observationally side-effect free even with pending deposits.
+	var current_ey: PackedFloat32Array = _rd.buffer_get_data(
+		_ey, 0, cells * 4).to_float32_array()
+	var current_ei: PackedFloat32Array = _rd.buffer_get_data(
+		_ei, 0, cells * 4).to_float32_array()
+	if _pending.size() % 6 != 0:
+		return false
+	var pending_index: int = 0
+	while pending_index < _pending.size():
+		for pending_offset in range(6):
+			var pending_value: float = _pending[pending_index + pending_offset]
+			if is_nan(pending_value) or is_inf(pending_value):
+				return false
+		_scatter(current_ey, current_ei, _pending[pending_index],
+			_pending[pending_index + 1], _pending[pending_index + 2],
+			_pending[pending_index + 3], _pending[pending_index + 4],
+			_pending[pending_index + 5])
+		pending_index += 6
+	var mixed_ey := PackedFloat32Array()
+	var mixed_ei := PackedFloat32Array()
+	var q_values := PackedFloat32Array()
+	mixed_ey.resize(cells)
+	mixed_ei.resize(cells)
+	q_values.resize(cells)
+	var incoming_weight: float = 1.0 - retained_weight
+	for i in range(cells):
+		var current_ey_value: float = current_ey[i]
+		var current_ei_value: float = current_ei[i]
+		if is_nan(current_ey_value) or is_inf(current_ey_value) \
+				or is_nan(current_ei_value) or is_inf(current_ei_value):
+			return false
+		var mixed_ey_value: float = retained_weight * current_ey_value \
+				+ incoming_weight * ey_values[i]
+		var mixed_ei_value: float = retained_weight * current_ei_value \
+				+ incoming_weight * ei_values[i]
+		var q_value: float = mixed_ey_value * mixed_ey_value \
+				+ mixed_ei_value * mixed_ei_value
+		if is_nan(mixed_ey_value) or is_inf(mixed_ey_value) \
+				or is_nan(mixed_ei_value) or is_inf(mixed_ei_value) \
+				or is_nan(q_value) or is_inf(q_value):
+			return false
+		mixed_ey[i] = mixed_ey_value
+		mixed_ei[i] = mixed_ei_value
+		q_values[i] = q_value
+		if is_nan(q_values[i]) or is_inf(q_values[i]):
+			return false
+
+	# All input, pending values, mixed channels, and q values are valid now.
+	# Flush the real pending deposits only after this complete validation.
+	_flush_pending()
+	# Only the canonical channels and derived q are written. PDE buffers,
+	# clocks, and all RIDs remain intact; validated pending deposits are
+	# drained before the blend.
+	_rd.buffer_update(_ey, 0, cells * 4, mixed_ey.to_byte_array())
+	_rd.buffer_update(_ei, 0, cells * 4, mixed_ei.to_byte_array())
+	_rd.buffer_update(_q, 0, cells * 4, q_values.to_byte_array())
+	return true
+
 
 func _flush_pending() -> void:
 	if _pending.size() == 0:

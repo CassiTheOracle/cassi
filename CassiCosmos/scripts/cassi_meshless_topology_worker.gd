@@ -77,7 +77,12 @@ var _us_optical: RID
 
 
 func is_ready() -> bool:
-	return _ready
+	if _setup_mutex == null:
+		return false
+	_setup_mutex.lock()
+	var ready := _setup_complete and _ready
+	_setup_mutex.unlock()
+	return ready
 
 
 ## MAIN thread. Shader resources are loaded here because RDShaderFile loading
@@ -122,15 +127,21 @@ func start(grid_n: int, site_count: int, neighbor_capacity: int, extents: Vector
 
 
 ## MAIN thread. Submit is deliberately non-blocking: topology is a render
-## payload, not a prerequisite for particle physics. The first topology job
-## may take seconds on the local RD, so waiting for _done_sem here would stall
-## the entire renderer and make the physics HUD appear frozen.
-func submit(job: Dictionary) -> Dictionary:
-	if not _thread_started or not _ready:
-		return {}
+## payload, not a prerequisite for particle physics. A job may be queued while
+## the worker builds its local RD resources; the worker cannot consume the
+## semaphore until setup has completed. This prevents a fast render loop from
+## repeatedly readback-staging a job that an almost-ready worker would reject.
+func submit(job: Dictionary) -> bool:
+	if not _thread_started or _setup_mutex == null:
+		return false
+	_setup_mutex.lock()
+	var setup_failed := _setup_complete and not _ready
+	_setup_mutex.unlock()
+	if setup_failed:
+		return false
 	_wait_next = false
 	_enqueue(job)
-	return {}
+	return true
 
 func poll() -> Dictionary:
 	return _consume_latest()
@@ -235,13 +246,17 @@ func _setup(spirv: Dictionary) -> void:
 			_storage(0, _sites), _storage(1, _psi_y), _storage(2, _psi_i),
 			_storage(3, _grad_y), _storage(4, _grad_i), _storage(5, _optical),
 		], _optical_shader, 0)
-	_ready = _topology_pipe.is_valid() and _adj_pipe.is_valid() and _csr_pipe.is_valid() \
+	var setup_ready := _topology_pipe.is_valid() and _adj_pipe.is_valid() and _csr_pipe.is_valid() \
 			and _optical_pipe.is_valid() and _us_topology.is_valid() \
 			and _us_adjacency.is_valid() and _us_csr.is_valid() and _us_optical.is_valid()
 	_setup_mutex.lock()
+	_ready = setup_ready
 	_setup_complete = true
 	_setup_mutex.unlock()
-	print("[MeshlessTopologyWorker] ready: grid=%d^3 sites=%d neighbors=%d" % [_grid_n, _site_count, _neighbor_capacity])
+	if setup_ready:
+		print("[MeshlessTopologyWorker] ready: grid=%d^3 sites=%d neighbors=%d" % [_grid_n, _site_count, _neighbor_capacity])
+	else:
+		push_error("[MeshlessTopologyWorker] setup failed: local RD pipeline or uniform set is invalid")
 
 
 func _shader_create(path: String, spirv: Dictionary) -> RID:

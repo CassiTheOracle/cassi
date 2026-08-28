@@ -178,6 +178,269 @@ func _run() -> void:
 		"size=" + str(cells_g.size()))
 	_check("gate G: clamped array sorted non-increasing in q", _sorted_desc(cells_g), "")
 
+	# Gate H: full-field seed is exact, resets runtime state, and rejects bad
+	# inputs without touching fields, pending deposits, or engine counters.
+	var h_cells: int = _eng.grid_n * _eng.grid_n * _eng.grid_n
+	var h_ey := PackedFloat32Array()
+	var h_ei := PackedFloat32Array()
+	h_ey.resize(h_cells)
+	h_ei.resize(h_cells)
+	for hi in range(h_cells):
+		h_ey[hi] = float((hi % 17) - 8) * 0.001
+		h_ei[hi] = float((hi % 13) - 6) * 0.002
+	# Establish a non-zero, stepped state and a pending deposit to make the
+	# no-mutation rejection checks observable.
+	_eng.deposit(0.2, -0.1, 0.3, 0.7, 0.2, 1.0)
+	_eng._flush_pending()
+	_eng.step_n(2)
+	_eng.deposit(-0.4, 0.25, -0.15, 0.3, 0.1, 1.0)
+	var h_before_rb: Array = _eng.readback_ey_ei()
+	var h_before_ey: PackedFloat32Array = h_before_rb[0]
+	var h_before_ei: PackedFloat32Array = h_before_rb[1]
+	var h_before_state: Dictionary = _eng.compute_state()
+	var h_before_pending: int = _eng._pending.size()
+	var h_ey_rid: RID = _eng._ey
+	var h_ei_rid: RID = _eng._ei
+	var h_q_rid: RID = _eng._q
+	var h_vel_rid: RID = _eng._vel
+	var h_rho_rid: RID = _eng._rho
+	var h_scratch_rid: RID = _eng._scratch
+	var h_us_rid: RID = _eng._us
+
+	var h_short_ey: PackedFloat32Array = h_ey.duplicate()
+	h_short_ey.resize(h_cells - 1)
+	var h_short_rejected: bool = not _eng.seed_full_field(h_short_ey, h_ei)
+	var h_short_rb: Array = _eng.readback_ey_ei()
+	var h_short_ey_rb: PackedFloat32Array = h_short_rb[0]
+	var h_short_ei_rb: PackedFloat32Array = h_short_rb[1]
+	var h_short_state: Dictionary = _eng.compute_state()
+	_check("gate H: wrong-size full-field seed rejected without mutation",
+		h_short_rejected
+			and _same_values(h_short_ey_rb, h_before_ey)
+			and _same_values(h_short_ei_rb, h_before_ei)
+			and int(h_short_state["step"]) == int(h_before_state["step"])
+			and float(h_short_state["t"]) == float(h_before_state["t"])
+			and _eng._pending.size() == h_before_pending)
+
+	var h_nan_ey: PackedFloat32Array = h_ey.duplicate()
+	h_nan_ey[0] = NAN
+	var h_nan_rejected: bool = not _eng.seed_full_field(h_nan_ey, h_ei)
+	var h_nan_rb: Array = _eng.readback_ey_ei()
+	var h_nan_ey_rb: PackedFloat32Array = h_nan_rb[0]
+	var h_nan_ei_rb: PackedFloat32Array = h_nan_rb[1]
+	var h_nan_state: Dictionary = _eng.compute_state()
+	_check("gate H: non-finite full-field seed rejected without mutation",
+		h_nan_rejected
+			and _same_values(h_nan_ey_rb, h_before_ey)
+			and _same_values(h_nan_ei_rb, h_before_ei)
+			and int(h_nan_state["step"]) == int(h_before_state["step"])
+			and float(h_nan_state["t"]) == float(h_before_state["t"])
+			and _eng._pending.size() == h_before_pending)
+
+	var h_expected_q := PackedFloat32Array()
+	h_expected_q.resize(h_cells)
+	for hi in range(h_cells):
+		h_expected_q[hi] = h_ey[hi] * h_ey[hi] + h_ei[hi] * h_ei[hi]
+	var h_seed_ok: bool = _eng.seed_full_field(h_ey, h_ei)
+	var h_rb: Array = _eng.readback_ey_ei()
+	var h_seed_ey_rb: PackedFloat32Array = h_rb[0]
+	var h_seed_ei_rb: PackedFloat32Array = h_rb[1]
+	var h_state: Dictionary = _eng.compute_state()
+	var h_q: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._q, 0, h_cells * 4).to_float32_array()
+	var h_vel: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._vel, 0, h_cells * 16).to_float32_array()
+	var h_rho: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._rho, 0, h_cells * 4).to_float32_array()
+	var h_scratch: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._scratch, 0, h_cells * 16).to_float32_array()
+	_check("gate H: valid full-field seed accepted with exact EY/EI readback",
+		h_seed_ok and _same_values(h_seed_ey_rb, h_ey) and _same_values(h_seed_ei_rb, h_ei))
+	_check("gate H: valid full-field seed uploads q and clears rho/vel/scratch",
+		h_seed_ok and _same_values(h_q, h_expected_q)
+			and _all_zero(h_vel) and _all_zero(h_rho) and _all_zero(h_scratch))
+	_check("gate H: valid full-field seed resets step/time and pending",
+		h_seed_ok and int(h_state["step"]) == 0 and float(h_state["t"]) == 0.0
+			and _eng._pending.size() == 0)
+	_check("gate H: valid full-field seed preserves all RIDs and uniform set",
+		h_seed_ok and _eng._ey == h_ey_rid and _eng._ei == h_ei_rid
+			and _eng._q == h_q_rid and _eng._vel == h_vel_rid
+			and _eng._rho == h_rho_rid and _eng._scratch == h_scratch_rid
+			and _eng._us == h_us_rid)
+
+	# Gate I: blend a finite complete field after a PDE step. The API must
+	# preserve clock/PDE state, reject bad inputs side-effect free, drain
+	# pending deposits only after validation, and keep every RID/uniform set.
+	var i_cells: int = _eng.grid_n * _eng.grid_n * _eng.grid_n
+	var i_seed_ey := PackedFloat32Array()
+	var i_seed_ei := PackedFloat32Array()
+	var i_in_ey := PackedFloat32Array()
+	var i_in_ei := PackedFloat32Array()
+	i_seed_ey.resize(i_cells)
+	i_seed_ei.resize(i_cells)
+	i_in_ey.resize(i_cells)
+	i_in_ei.resize(i_cells)
+	for ii in range(i_cells):
+		i_seed_ey[ii] = float((ii % 23) - 11) * 0.003
+		i_seed_ei[ii] = float((ii % 19) - 9) * 0.002
+		i_in_ey[ii] = float((ii % 29) - 14) * 0.0025 + 0.0001
+		i_in_ei[ii] = float((ii % 31) - 15) * 0.0015 - 0.0002
+	var i_seed_ok: bool = _eng.seed_full_field(i_seed_ey, i_seed_ei)
+	_eng.step_n(1)
+	var i_state_before: Dictionary = _eng.compute_state()
+	var i_before_rb: Array = _eng.readback_ey_ei()
+	var i_before_ey: PackedFloat32Array = i_before_rb[0]
+	var i_before_ei: PackedFloat32Array = i_before_rb[1]
+	var i_before_q: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._q, 0, i_cells * 4).to_float32_array()
+	var i_before_vel: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._vel, 0, i_cells * 16).to_float32_array()
+	var i_before_rho: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._rho, 0, i_cells * 4).to_float32_array()
+	var i_before_scratch: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._scratch, 0, i_cells * 16).to_float32_array()
+	var i_ey_rid: RID = _eng._ey
+	var i_ei_rid: RID = _eng._ei
+	var i_q_rid: RID = _eng._q
+	var i_vel_rid: RID = _eng._vel
+	var i_rho_rid: RID = _eng._rho
+	var i_scratch_rid: RID = _eng._scratch
+	var i_us_rid: RID = _eng._us
+
+	# Keep one pending deposit so invalid calls prove that validation happens
+	# before _flush_pending().
+	var i_px: float = 0.17
+	var i_py: float = -0.23
+	var i_pz: float = 0.31
+	var i_pcy: float = 0.37
+	var i_pci: float = -0.11
+	var i_psigma: float = 1.0
+	_eng.deposit(i_px, i_py, i_pz, i_pcy, i_pci, i_psigma)
+	var i_pending_before: int = _eng._pending.size()
+
+	var i_bad_weight_ok: bool = not _eng.blend_full_field(i_in_ey, i_in_ei, -0.01)
+	var i_bad_weight_rb: Array = _eng.readback_ey_ei()
+	var i_bad_weight_ey: PackedFloat32Array = i_bad_weight_rb[0]
+	var i_bad_weight_ei: PackedFloat32Array = i_bad_weight_rb[1]
+	var i_bad_weight_q: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._q, 0, i_cells * 4).to_float32_array()
+	var i_bad_weight_state: Dictionary = _eng.compute_state()
+	_check("gate I: invalid weight rejects without mutating field/clock/pending",
+		i_bad_weight_ok and _same_values(i_bad_weight_ey, i_before_ey)
+			and _same_values(i_bad_weight_ei, i_before_ei)
+			and _same_values(i_bad_weight_q, i_before_q)
+			and int(i_bad_weight_state["step"]) == int(i_state_before["step"])
+			and float(i_bad_weight_state["t"]) == float(i_state_before["t"])
+			and _eng._pending.size() == i_pending_before)
+
+	var i_bad_size_ey: PackedFloat32Array = i_in_ey.duplicate()
+	i_bad_size_ey.resize(i_cells - 1)
+	var i_bad_size_ok: bool = not _eng.blend_full_field(i_bad_size_ey, i_in_ei, 0.25)
+	var i_bad_size_rb: Array = _eng.readback_ey_ei()
+	var i_bad_size_ey_rb: PackedFloat32Array = i_bad_size_rb[0]
+	var i_bad_size_ei_rb: PackedFloat32Array = i_bad_size_rb[1]
+	var i_bad_size_q: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._q, 0, i_cells * 4).to_float32_array()
+	var i_bad_size_state: Dictionary = _eng.compute_state()
+	_check("gate I: wrong-size input rejects without mutating field/clock/pending",
+		i_bad_size_ok and _same_values(i_bad_size_ey_rb, i_before_ey)
+			and _same_values(i_bad_size_ei_rb, i_before_ei)
+			and _same_values(i_bad_size_q, i_before_q)
+			and int(i_bad_size_state["step"]) == int(i_state_before["step"])
+			and float(i_bad_size_state["t"]) == float(i_state_before["t"])
+			and _eng._pending.size() == i_pending_before)
+
+	var i_nan_ey: PackedFloat32Array = i_in_ey.duplicate()
+	i_nan_ey[0] = NAN
+	var i_nan_ok: bool = not _eng.blend_full_field(i_nan_ey, i_in_ei, 0.25)
+	var i_nan_rb: Array = _eng.readback_ey_ei()
+	var i_nan_ey_rb: PackedFloat32Array = i_nan_rb[0]
+	var i_nan_ei_rb: PackedFloat32Array = i_nan_rb[1]
+	var i_nan_q: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._q, 0, i_cells * 4).to_float32_array()
+	var i_nan_state: Dictionary = _eng.compute_state()
+	_check("gate I: non-finite input rejects without mutating field/clock/pending",
+		i_nan_ok and _same_values(i_nan_ey_rb, i_before_ey)
+			and _same_values(i_nan_ei_rb, i_before_ei)
+			and _same_values(i_nan_q, i_before_q)
+			and int(i_nan_state["step"]) == int(i_state_before["step"])
+			and float(i_nan_state["t"]) == float(i_state_before["t"])
+			and _eng._pending.size() == i_pending_before)
+
+	var i_bad_q_ey: PackedFloat32Array = i_in_ey.duplicate()
+	i_bad_q_ey[0] = 1.0e20
+	var i_bad_q_ok: bool = not _eng.blend_full_field(i_bad_q_ey, i_in_ei, 0.25)
+	var i_bad_q_rb: Array = _eng.readback_ey_ei()
+	var i_bad_q_ey_rb: PackedFloat32Array = i_bad_q_rb[0]
+	var i_bad_q_ei_rb: PackedFloat32Array = i_bad_q_rb[1]
+	var i_bad_q: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._q, 0, i_cells * 4).to_float32_array()
+	var i_bad_q_state: Dictionary = _eng.compute_state()
+	_check("gate I: non-finite q rejects without mutating field/clock/pending",
+		i_bad_q_ok and _same_values(i_bad_q_ey_rb, i_before_ey)
+			and _same_values(i_bad_q_ei_rb, i_before_ei)
+			and _same_values(i_bad_q, i_before_q)
+			and int(i_bad_q_state["step"]) == int(i_state_before["step"])
+			and float(i_bad_q_state["t"]) == float(i_state_before["t"])
+			and _eng._pending.size() == i_pending_before)
+
+	# The valid call must drain the pending deposit and blend against the
+	# post-drain canonical field. Build that exact CPU-side reference with the
+	# engine's own TSC scatter helper, without mutating the GPU field.
+	var i_current_ey: PackedFloat32Array = i_before_ey.duplicate()
+	var i_current_ei: PackedFloat32Array = i_before_ei.duplicate()
+	_eng._scatter(i_current_ey, i_current_ei, i_px, i_py, i_pz,
+		i_pcy, i_pci, i_psigma)
+	var i_retained: float = 0.25
+	var i_incoming: float = 1.0 - i_retained
+	var i_expected_ey := PackedFloat32Array()
+	var i_expected_ei := PackedFloat32Array()
+	var i_expected_q := PackedFloat32Array()
+	i_expected_ey.resize(i_cells)
+	i_expected_ei.resize(i_cells)
+	i_expected_q.resize(i_cells)
+	for ii in range(i_cells):
+		var i_expected_ey_value: float = i_retained * i_current_ey[ii] \
+				+ i_incoming * i_in_ey[ii]
+		var i_expected_ei_value: float = i_retained * i_current_ei[ii] \
+				+ i_incoming * i_in_ei[ii]
+		i_expected_ey[ii] = i_expected_ey_value
+		i_expected_ei[ii] = i_expected_ei_value
+		i_expected_q[ii] = i_expected_ey_value * i_expected_ey_value \
+				+ i_expected_ei_value * i_expected_ei_value
+
+	var i_blend_ok: bool = _eng.blend_full_field(i_in_ey, i_in_ei, i_retained)
+	var i_after_rb: Array = _eng.readback_ey_ei()
+	var i_after_ey: PackedFloat32Array = i_after_rb[0]
+	var i_after_ei: PackedFloat32Array = i_after_rb[1]
+	var i_after_q: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._q, 0, i_cells * 4).to_float32_array()
+	var i_after_vel: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._vel, 0, i_cells * 16).to_float32_array()
+	var i_after_rho: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._rho, 0, i_cells * 4).to_float32_array()
+	var i_after_scratch: PackedFloat32Array = _eng._rd.buffer_get_data(
+		_eng._scratch, 0, i_cells * 16).to_float32_array()
+	var i_after_state: Dictionary = _eng.compute_state()
+	_check("gate I: finite N^3 blend has exact EY/EI algebra within fp32 tolerance",
+		i_seed_ok and i_blend_ok
+			and _same_approx(i_after_ey, i_expected_ey, 2e-6)
+			and _same_approx(i_after_ei, i_expected_ei, 2e-6))
+	_check("gate I: blend writes exact q=EY^2+EI^2 within fp32 tolerance",
+		i_blend_ok and _same_approx(i_after_q, i_expected_q, 2e-6))
+	_check("gate I: blend preserves step/time, drains validated pending input",
+		i_blend_ok and int(i_after_state["step"]) == int(i_state_before["step"])
+			and float(i_after_state["t"]) == float(i_state_before["t"])
+			and _eng._pending.size() == 0)
+	_check("gate I: blend preserves vel/rho/scratch and all RIDs/uniform set",
+		i_blend_ok and _same_values(i_after_vel, i_before_vel)
+			and _same_values(i_after_rho, i_before_rho)
+			and _same_values(i_after_scratch, i_before_scratch)
+			and _eng._ey == i_ey_rid and _eng._ei == i_ei_rid
+			and _eng._q == i_q_rid and _eng._vel == i_vel_rid
+			and _eng._rho == i_rho_rid and _eng._scratch == i_scratch_rid
+			and _eng._us == i_us_rid)
+
 	_dump(ey0, ei0, ey1, ei1, ey2, ei2, ey3, ei3, st_a, st_b, relay_d, top3, relay_e)
 	_finish()
 
@@ -185,6 +448,29 @@ func _run() -> void:
 func _finite(a: PackedFloat32Array) -> bool:
 	for v in a:
 		if is_nan(v) or is_inf(v):
+			return false
+	return true
+
+func _same_values(a: PackedFloat32Array, b: PackedFloat32Array) -> bool:
+	if a.size() != b.size():
+		return false
+	for i in range(a.size()):
+		if a[i] != b[i]:
+			return false
+	return true
+
+func _same_approx(a: PackedFloat32Array, b: PackedFloat32Array, tolerance: float) -> bool:
+	if a.size() != b.size():
+		return false
+	for i in range(a.size()):
+		if absf(a[i] - b[i]) > tolerance:
+			return false
+	return true
+
+
+func _all_zero(a: PackedFloat32Array) -> bool:
+	for v in a:
+		if v != 0.0:
 			return false
 	return true
 
