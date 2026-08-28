@@ -42,4 +42,5 @@ CassiQwen/local_*.json
 CassiQwen/local_*.txt
 CassiQwen/schema-summary.json
 CassiQwen/w12-schema-summary.txt
+CassiQwen/local/world-schema-*
 CassiQwen/world-schemas-extract.json
