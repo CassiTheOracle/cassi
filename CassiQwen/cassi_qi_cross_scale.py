@@ -1633,7 +1633,6 @@ def transition_w6_integrated(
     )
 
 
-transition_w6 = transition_w6_integrated
 
 
 __all__ = [
@@ -1691,5 +1690,4 @@ __all__ = [
     "link_off",
     "cross_scale_diagnostics",
     "transition_w6_integrated",
-    "transition_w6",
 ]

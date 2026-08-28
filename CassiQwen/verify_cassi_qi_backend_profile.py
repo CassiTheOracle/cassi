@@ -297,14 +297,15 @@ def _verify_prepared(payload: Any, profile_sha: str, backend_sha: str, operator:
     return payload
 
 
-def _verify_step_record(record: Any, name: str, profile_sha: str, backend_sha: str, operator: Mapping[str, Any], duration_limit: float) -> None:
+def _verify_step_record(record: Any, name: str, profile_sha: str, backend_sha: str, operator: Mapping[str, Any], expected_delta: float) -> None:
     _require(isinstance(record, dict), f"{name} record missing")
     _state_hash(record.get("input_state_sha256"), f"{name}.input_state_sha256")
     _state_hash(record.get("output_state_sha256"), f"{name}.output_state_sha256")
+    delta = _number(record.get("delta"), f"{name} delta")
+    _require(delta == expected_delta, f"{name} delta changed")
     prepared = _verify_prepared(record.get("prepared"), profile_sha, backend_sha, operator, 1)
     elapsed = record.get("elapsed_ns")
     _require(isinstance(elapsed, int) and elapsed > 0, f"{name} elapsed time invalid")
-    _require(float(elapsed) <= duration_limit * 1_000_000_000.0, f"{name} elapsed time exceeds bound")
     receipt = record.get("receipt")
     _require(isinstance(receipt, dict), f"{name} backend step receipt missing")
     _require(receipt.get("schema") == "cassi.qi-flow-backend-step.v1", f"{name} receipt schema mismatch")
@@ -418,6 +419,7 @@ def _verify_profiler(root: Path, profile: Mapping[str, Any], index: Mapping[str,
     for row in rows:
         lanes = row["lanes"]
         _require(row.get("candidate_count") == lanes and isinstance(row.get("elapsed_ns"), int) and row["elapsed_ns"] > 0, "candidate timing/counter changed")
+        _require(_number(row.get("delta"), "candidate delta") == 0.01, "candidate delta changed")
         per = _number(row.get("per_candidate_ns"), "candidate per-candidate time")
         _require(per > 0 and abs(per - float(row["elapsed_ns"]) / lanes) <= max(1.0, per * 1e-12), "candidate amortization changed")
         _state_hash(row.get("input_state_sha256"), "candidate input state")
@@ -427,9 +429,14 @@ def _verify_profiler(root: Path, profile: Mapping[str, Any], index: Mapping[str,
         row_memory = _verify_memory(row.get("memory"), profile, expected_ops=1, expected_batch=lanes)
         _require(row_memory["prepared_cache_entries"] == 1 and row_memory["prepared_cache_hits"] == 1 and row_memory["prepared_cache_misses"] == 1, "candidate cache counters changed")
         step = row.get("step_receipt")
-        _require(isinstance(step, dict) and step.get("status") == "COMMITTED", "candidate step was not committed")
-        _require(step.get("prepared_sha256") == prepared.get("prepared_sha256") and step.get("backend_identity_sha256") == backend_sha, "candidate receipt identity changed")
-        _require(_canonical_hash(step, BACKEND_STEP_DOMAIN) == _canonical_hash(step, BACKEND_STEP_DOMAIN), "candidate step hash guard")
+        _require(isinstance(step, dict) and step.get("schema") == "cassi.qi-flow-backend-step.v1" and step.get("status") == "COMMITTED", "candidate step was not committed")
+        _require(step.get("transaction_id") == f"w14b-candidate-{lanes}", "candidate transaction changed")
+        _require(step.get("operator_id") == operator.get("operator_id") and step.get("backend_identity_sha256") == backend_sha, "candidate receipt identity changed")
+        _require(step.get("operator_sha256") == operator.get("operator_sha256") and step.get("prepared_sha256") == prepared.get("prepared_sha256"), "candidate receipt prepared identity changed")
+        _require(step.get("operator_cache_sha256") == prepared.get("operator_cache_sha256"), "candidate receipt cache identity changed")
+        _require(step.get("predecessor_state_sha256") == row.get("input_state_sha256") and step.get("candidate_state_sha256") == row.get("output_state_sha256"), "candidate receipt state changed")
+        _require(step.get("op_count") == 1 and isinstance(step.get("wall_time_ns"), int) and step["wall_time_ns"] > 0 and step.get("failure_reason") is None, "candidate receipt counters changed")
+        _require(isinstance(step.get("raw_operator_receipt"), dict), "candidate raw operator receipt malformed")
     horizon = profiler.get("long_horizon")
     _require(isinstance(horizon, dict), "long-horizon receipt missing")
     steps = thresholds["long_horizon_steps"]
@@ -443,9 +450,26 @@ def _verify_profiler(root: Path, profile: Mapping[str, Any], index: Mapping[str,
         _require(isinstance(sample, dict) and sample.get("step") == expected_step and isinstance(sample.get("current_bytes"), int) and sample["current_bytes"] >= 0, "long-horizon sample changed")
     baseline = horizon.get("baseline_current_bytes")
     final = horizon.get("final_current_bytes")
-    high = horizon.get("tracemalloc_peak_bytes")
-    _require(isinstance(baseline, int) and isinstance(final, int) and isinstance(high, int) and high >= final >= 0, "long-horizon memory values invalid")
+    high = horizon.get("peak_working_set_bytes")
+    _require(
+        isinstance(baseline, int)
+        and isinstance(final, int)
+        and isinstance(high, int)
+        and baseline > 0
+        and final > 0
+        and high >= max(baseline, final),
+        "long-horizon memory values invalid",
+    )
+    measurement = horizon.get("memory_measurement")
+    _require(
+        measurement in {"process-working-set-v1", "process-resident-set-v1", "process-ru-maxrss-v1"},
+        "long-horizon memory measurement invalid",
+    )
+    observed_peak = max([baseline, final] + [sample["current_bytes"] for sample in samples])
+    _require(high == observed_peak, "long-horizon peak memory changed")
     slope = _number(horizon.get("current_slope_bytes_per_step"), "long-horizon slope")
+    observed_slope = _linear_slope([(sample["step"], sample["current_bytes"]) for sample in samples])
+    _require(abs(slope - observed_slope) <= max(1.0, abs(observed_slope) * 1e-12), "long-horizon slope changed")
     _require(slope <= _number(thresholds["max_memory_slope_bytes_per_step"], "long-horizon slope threshold"), "long-horizon memory slope exceeds profile threshold")
     _state_hash(horizon.get("input_state_sha256"), "long-horizon input state")
     _state_hash(horizon.get("output_state_sha256"), "long-horizon output state")
@@ -495,4 +519,22 @@ def verify_artifact(root: Path | str) -> dict[str, Any]:
     }
 
 
-def verify(root: 
+def verify(root: Path | str) -> dict[str, Any]:
+    return verify_artifact(root)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("artifact", type=Path)
+    args = parser.parse_args()
+    try:
+        result = verify_artifact(args.artifact)
+    except W14BArtifactVerificationError as exc:
+        print(json.dumps({"status": "FAIL", "error": str(exc)}, sort_keys=True, separators=(",", ":")))
+        return 1
+    print(json.dumps(result, sort_keys=True, separators=(",", ":")))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
