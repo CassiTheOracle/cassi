@@ -1014,6 +1014,22 @@ def _radial(values: Mapping[str, Any]) -> dict[str, Any]:
 def _f64_tag(value: float) -> str:
     require(math.isfinite(value) and not (value == 0.0 and math.copysign(1.0, value) < 0.0), "cannot tag non-finite f64")
     return "f64:" + struct.pack(">d", float(value)).hex()
+def _verify_core_law_identity(core: Mapping[str, Any]) -> None:
+    """Validate the immutable landing-core signature before using its receipts."""
+    require(isinstance(core, Mapping), "W4R core law identity is not an object")
+    _check_self(core, ARTIFACT_DOMAIN + ".core-law")
+    require(
+        core.get("schema") == "cassi.qi-flow-w4r-retention-core-law-identity.v1"
+        and core.get("module") == "cassi_qi_topology"
+        and core.get("class") == "QiTopologicalRetentionLaw"
+        and core.get("transition") == "cassi_qi_topology.QiTopologicalRetentionLaw.transition_w4r_topology"
+        and core.get("reset") == "transition_kind=retention_reset"
+        and core.get("immutable_public_transition") is True
+        and core.get("additional_state") is False,
+        "W4R core law identity is not the immutable landing signature",
+    )
+
+
 def _verify_derived(root: Path, profile_obj: Mapping[str, Any], values: Mapping[str, Any], edges: list[dict[str, Any]], cycle: Mapping[str, Any], edge_sha: str, cycle_sha: str) -> dict[str, Any]:
     codebook = _load(root / "certificate/topological-v1-codebook.json")
     endpoint = _load(root / "certificate/endpoint-subdivision.json")
@@ -1026,8 +1042,7 @@ def _verify_derived(root: Path, profile_obj: Mapping[str, Any], values: Mapping[
     _check_self(endpoint, ARTIFACT_DOMAIN + ".endpoint-subdivision")
     _check_self(barrier, BARRIER_DOMAIN)
     _check_self(reset, RESET_DOMAIN)
-    _check_self(core, ARTIFACT_DOMAIN + ".core-law")
-    require(core.get("schema") == "cassi.qi-flow-w4r-retention-core-law-identity.v1" and core.get("module") == "cassi_qi_topology" and core.get("class") == "QiTopologicalRetentionLaw" and core.get("transition") == "cassi_qi_topology.QiTopologicalRetentionLaw.transition_w4r_topology" and core.get("reset") == "transition_kind=retention_reset" and core.get("immutable_public_transition") is True and core.get("additional_state") is False, "W4R core law identity is not the immutable landing signature")
+    _verify_core_law_identity(core)
     require(endpoint.get("schema") == "cassi.qi-flow-w4r-retention-core-endpoint-subdivision.v1" and endpoint.get("method") == "deterministic-lipschitz-interval-refinement.v1" and endpoint.get("termination") == "amplitude-floor-branch-integer-and-torus-algebra-decided" and endpoint.get("positive_duration_only") is True and endpoint.get("unresolved") == "reject", "endpoint subdivision contract is missing")
     _check_self(extension, ARTIFACT_DOMAIN + ".extension")
     profile = _unwrap_profile(profile_obj)

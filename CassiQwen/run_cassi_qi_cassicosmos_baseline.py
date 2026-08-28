@@ -125,20 +125,96 @@ def run_all_arms(run_all: Path) -> list[str]:
 
 
 
-def copy_arm_logs(log_dir: Path, arm_names: list[str], out_dir: Path) -> list[dict[str, Any]]:
-    entries: list[dict[str, Any]] = []
+def snapshot_arm_logs(log_dir: Path, arm_names: list[str]) -> dict[str, str]:
+    """Record pre-run bytes so stale logs cannot be retained as this run's evidence."""
+    snapshots: dict[str, str] = {}
     for index, name in enumerate(arm_names, 1):
         path = log_dir / f"arm{index:02d}_{name}.log"
+        if path.is_file():
+            snapshots[path.name] = sha256(path.read_bytes())
+    return snapshots
+
+
+def copy_arm_logs(
+    log_dir: Path,
+    arm_names: list[str],
+    out_dir: Path,
+    *,
+    before_hashes: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    before_hashes = before_hashes or {}
+    for index, name in enumerate(arm_names, 1):
+        path = log_dir / f"arm{index:02d}_{name}.log"
+        relative = f"arm_logs/{path.name}"
         if not path.is_file():
-            entries.append({"path": f"arm_logs/{path.name}", "source": str(path), "exists": False, "byte_count": 0, "sha256": None})
+            entries.append(
+                {
+                    "path": relative,
+                    "source": str(path),
+                    "exists": False,
+                    "emitted_this_run": False,
+                    "byte_count": 0,
+                    "sha256": None,
+                }
+            )
             continue
         raw = path.read_bytes()
         digest = sha256(raw)
+        if before_hashes.get(path.name) == digest:
+            # The file is present but was not changed by this invocation.  Do
+            # not copy prior-run bytes into the immutable baseline bundle.
+            entries.append(
+                {
+                    "path": relative,
+                    "source": str(path),
+                    "exists": False,
+                    "source_exists": True,
+                    "stale": True,
+                    "emitted_this_run": False,
+                    "byte_count": 0,
+                    "sha256": None,
+                }
+            )
+            continue
         target = out_dir / "arm_logs" / path.name
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(raw)
-        entries.append({"path": f"arm_logs/{path.name}", "source": str(path), "exists": True, "byte_count": len(raw), "sha256": digest})
+        entries.append(
+            {
+                "path": relative,
+                "source": str(path),
+                "exists": True,
+                "emitted_this_run": True,
+                "byte_count": len(raw),
+                "sha256": digest,
+            }
+        )
     return entries
+
+
+def kill_process_tree(pid: int) -> dict[str, Any]:
+    """Terminate the wrapper and every child arm on a timed-out Windows run."""
+    if os.name != "nt":
+        return {"method": "process.kill", "attempted": False, "reason": "non-windows"}
+    try:
+        result = subprocess.run(
+            ["taskkill", "/PID", str(pid), "/T", "/F"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=30,
+        )
+        output = result.stdout or b""
+        return {
+            "method": "taskkill",
+            "attempted": True,
+            "returncode": result.returncode,
+            "output_sha256": sha256(output),
+            "output_byte_count": len(output),
+        }
+    except (OSError, subprocess.SubprocessError) as exc:
+        return {"method": "taskkill", "attempted": True, "error": f"{type(exc).__name__}: {exc}"}
 
 
 def source_inventory(brief: dict[str, Any], run_all: Path) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -294,6 +370,7 @@ def run(brief_path: Path, timeout_seconds: float) -> tuple[Path, int]:
         canonical_write(run_root / "inputs" / "adapter-fixture.json", brief["adapter_fixture"])
         log_dir = COSMOS / "_diag" / "battery_logs"
         arm_names = run_all_arms(run_all)
+        before_log_hashes = snapshot_arm_logs(log_dir, arm_names)
         command_argv = [str(godot), "--path", ".", "--headless", "-s", "res://verify/run_all.gd"]
         command = {
             "schema": COMMAND_SCHEMA,
@@ -312,6 +389,7 @@ def run(brief_path: Path, timeout_seconds: float) -> tuple[Path, int]:
         timed_out = False
         output = b""
         error: str | None = None
+        termination: dict[str, Any] | None = None
         try:
             proc = subprocess.Popen(command_argv, cwd=str(COSMOS), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             pid = proc.pid
@@ -323,7 +401,9 @@ def run(brief_path: Path, timeout_seconds: float) -> tuple[Path, int]:
             timed_out = True
             status = "BLOCKED"
             error = f"battery timed out after {timeout_seconds:g} seconds"
-            proc.kill()
+            termination = kill_process_tree(proc.pid)
+            if termination.get("method") != "taskkill" or termination.get("returncode") not in (0, 128, 255):
+                proc.kill()
             output, _ = proc.communicate()
             returncode = proc.returncode
         except (OSError, subprocess.SubprocessError) as exc:
@@ -344,8 +424,10 @@ def run(brief_path: Path, timeout_seconds: float) -> tuple[Path, int]:
         }
         if error:
             process["error"] = error
+        if termination is not None:
+            process["termination"] = termination
         process_sha = canonical_write(raw_root / "process-receipt.json", process)
-        log_entries = copy_arm_logs(log_dir, arm_names, raw_root)
+        log_entries = copy_arm_logs(log_dir, arm_names, raw_root, before_hashes=before_log_hashes)
         source, scenes = source_inventory(brief, run_all)
         source_sha = canonical_write(raw_root / "source-inventory.json", source)
         scene_sha = canonical_write(raw_root / "scene-inventory.json", scenes)

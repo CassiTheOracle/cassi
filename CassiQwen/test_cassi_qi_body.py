@@ -357,6 +357,12 @@ class QiBodyContractTests(unittest.TestCase):
             "reaction_sha256": "1" * 64,
             "committed_prior_head_sha256": "2" * 64,
         }
+        class BrokenAck:
+            def canonical_payload(self, *, include_hash: bool = True) -> dict[str, object]:
+                raise TypeError("validator-internal")
+
+        with self.assertRaisesRegex(TypeError, "validator-internal"):
+            QiEfferenceCopy.from_validated_ack(BrokenAck(), **factory_kwargs)
         with self.assertRaises(QiBodyError):
             QiEfferenceCopy.from_validated_ack(acknowledgement, **factory_kwargs)
         efference = QiEfferenceCopy.from_validated_ack(validated_ack, **factory_kwargs)

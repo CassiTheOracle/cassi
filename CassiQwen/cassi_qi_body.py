@@ -16,6 +16,7 @@ import hashlib
 import math
 import re
 import struct
+import inspect
 from typing import Any, Iterable, Sequence
 
 import torch
@@ -1983,7 +1984,6 @@ def _canonical_tick(value: Any, name: str) -> Any:
 def _tick(value: Any, name: str) -> QiClockTime:
     return _clock(value, name)
 
-
 def _ack_payload(value: Any) -> dict[str, Any]:
     if isinstance(value, (bytes, bytearray, memoryview)):
         raise QiBodyError("body accepts a BoundaryRuntime-validated acknowledgement object, not ack bytes")
@@ -1993,9 +1993,17 @@ def _ack_payload(value: Any) -> dict[str, Any]:
     if not callable(canonical):
         raise QiBodyError("body accepts only a BoundaryRuntime-validated tick acknowledgement object")
     try:
-        payload = canonical(include_hash=True)
-    except TypeError:
+        signature = inspect.signature(canonical)
+    except (TypeError, ValueError):
         payload = canonical()
+    else:
+        include_hash = signature.parameters.get("include_hash")
+        if include_hash is None:
+            payload = canonical()
+        elif include_hash.kind is inspect.Parameter.POSITIONAL_ONLY:
+            payload = canonical(True)
+        else:
+            payload = canonical(include_hash=True)
     return _strict_mapping(payload, "validated tick acknowledgement")
 
 

@@ -753,14 +753,32 @@ def _discover_w4r(*, w5_root: Path, profile: Mapping[str, Any], conversion_root:
                 continue
             if value.get("schema") == W5V_EXTENSION_SCHEMA:
                 snapshot_extensions.append(value)
+    parent_data = parent_binding or {}
+    parent_extension_values = [
+        parent_data.get(key)
+        for key in (
+            "w4r_certificate_extension_sha256",
+            "certificate_extension_sha256",
+            "w4r_extension_sha256",
+            "extension_sha256",
+        )
+        if isinstance(parent_data.get(key), str)
+    ]
     expected_extension = (
-        conversion_root.get("w4r_certificate_extension_sha256")
+        parent_extension_values[0]
+        if len(set(parent_extension_values)) == 1 and parent_extension_values
+        else conversion_root.get("w4r_certificate_extension_sha256")
         or profile.get("w4r_certificate_extension_sha256")
         or (snapshot_extensions[0].get("self_sha256") if len(snapshot_extensions) == 1 else None)
     )
-    parent_data = parent_binding or {}
-    expected_runs = _identity_values(parent_data, ("run_id", "w4r_parent_run_id", "w4r_run_id"))
-    expected_run = expected_runs[0] if len(set(expected_runs)) == 1 else None
+    require(isinstance(expected_extension, str) and expected_extension, "W4R certificate extension identity is missing")
+    parent_run_values = [
+        parent_data.get(key)
+        for key in ("run_id", "w4r_parent_run_id", "w4r_run_id")
+        if isinstance(parent_data.get(key), str)
+    ]
+    require(parent_run_values and len(set(parent_run_values)) == 1, "W4R parent run identity is missing or ambiguous")
+    expected_run = parent_run_values[0]
     expected = {"run_id": expected_run, "extension_sha256": expected_extension}
     hints = _path_hints(parent_data)
     candidates = _w4r_candidates(w5_root=w5_root, expected=expected, hints=hints)

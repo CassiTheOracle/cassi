@@ -36,7 +36,7 @@
   "input_identities": {
     "source_hashes": {
       "cassi_qi_world.py": "a7d53d7369652b0124108fc796964ef7a72613aa81a3a75a64b6a56363862a84",
-      "cassi-qi-flow-development.json": "7b9b418a0a46abad9d9330b26573cb0ff9c8a8614b44ef4824f292dc39bd19c1",
+      "cassi-qi-flow-development.json": "3090009096703c01164f65192fa6d65839b161fb181ee50144f488b7fb0567dc",
       "cassi-qi-flow-canonical-fixtures.json": "bb2328b55c90c7ad2c84ef83aa0b3890a5da41cc4549906126c26524d7abdddb",
       "../CassiCosmos/project.godot": "deb6cb5516e503c9635305246da522b8d26dfc5715d0f6e0394a40aebf5bf125",
       "../CassiCosmos/verify/run_all.gd": "11662b8a1cc075fa94ffe5f3b374c5aab83cd0022ea85360d8e12a1514c06d87"
@@ -157,6 +157,6 @@
     "python run_cassi_qi_cassicosmos_baseline.py --brief CASSI-QI-WORLD-ADAPTER-BRIEF.json",
     "python verify_cassi_qi_adapter_off_identity.py --run-root <run-root>"
   ],
-  "baseline_input_sha256": "7bb3d3dc5d8b87a850b6251486621d74eaff6b489745258c2af601eddc594aca",
-  "brief_sha256": "c5894ecd74651b542f6bc296ce0bda30c3b6bdc4a19df30187e5bf6fac1decb2"
+  "baseline_input_sha256": "d6705a10a99e0bfebbf4a4a7b0e0bc1864a08ae17752576d5c08cf95c9f6fd11",
+  "brief_sha256": "987ae58f1ec789f0094d1989d1a3d11f9891ecfc5d7d38572dd9c648d0e06964"
 }

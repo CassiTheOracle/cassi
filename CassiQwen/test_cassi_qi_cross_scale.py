@@ -39,6 +39,97 @@ from cassi_qi_geometry import PeriodicSheetGeometry, load_w2_geometry_profile
 from cassi_qi_profile import load_development_profile
 from cassi_qi_topology import load_w4r_topology_profile, make_topology_fixture
 from cassi_qi_transport import load_w3_transport_profile
+@dataclass
+class _FakeCarrierStep:
+    predecessor: QiFlowStateV3
+    candidate: QiFlowStateV3 | None
+    committable: bool
+    receipt: dict
+    failure_reason: str | None = None
+    intermediates: dict | None = None
+
+
+def _fake_carrier_split(
+    state,
+    *,
+    geometry_profile,
+    transport_profile,
+    carrier_profile,
+    numerical_certificate,
+    duration_s=None,
+    potential_enabled=True,
+    additional_force=None,
+    center_map=None,
+):
+    del transport_profile, numerical_certificate, duration_s, potential_enabled
+    coordinates = carrier_coordinates(state, geometry=geometry_profile, profile=carrier_profile)
+    try:
+        first = additional_force(state, geometry_profile, carrier_profile, coordinates) if additional_force else None
+        centered = center_map(state, geometry_profile, carrier_profile, coordinates) if center_map else coordinates
+        if isinstance(centered, QiFlowStateV3):
+            center_state = centered
+        else:
+            center_state = conversion._replace_coordinates(
+                state,
+                geometry=geometry_profile,
+                profile=carrier_profile,
+                d=centered.d,
+                c=centered.c,
+                vd=centered.vd,
+                vc=centered.vc,
+            )
+        center_coordinates = carrier_coordinates(center_state, geometry=geometry_profile, profile=carrier_profile)
+        second = additional_force(center_state, geometry_profile, carrier_profile, center_coordinates) if additional_force else None
+        receipt = {
+            "schema": "test-carrier-receipt",
+            "status": "PASS",
+            "center_map": "profile-bound-center-map.v1",
+            "stage_schedule": {
+                "stages": [
+                    {"ordinal": 1, "name": "preflight"},
+                    {"ordinal": 2, "name": "first_local_force_velocity_half_kick"},
+                    {"ordinal": 3, "name": "first_analytic_damped_spectral_half_propagation"},
+                    {"ordinal": 4, "name": "centered_conversion_placeholder"},
+                    {"ordinal": 5, "name": "second_analytic_damped_spectral_half_propagation"},
+                    {"ordinal": 6, "name": "second_local_force_velocity_half_kick"},
+                    {"ordinal": 7, "name": "precommit"},
+                ]
+            },
+            "force_evaluations": 2 if additional_force else 0,
+            "force_callbacks": {"first": first is not None, "second": second is not None},
+        }
+        intermediates = {
+            "predecessor": QiFlowStateV3(state.field.detach().contiguous().clone()),
+            "post-first-kick": QiFlowStateV3(state.field.detach().contiguous().clone()),
+            "post-first-spectral/pre-center": QiFlowStateV3(state.field.detach().contiguous().clone()),
+            "post-center": QiFlowStateV3(center_state.field.detach().contiguous().clone()),
+            "post-second-spectral": QiFlowStateV3(center_state.field.detach().contiguous().clone()),
+            "post-second-kick/pre-EMA": QiFlowStateV3(center_state.field.detach().contiguous().clone()),
+        }
+        return _FakeCarrierStep(state, center_state, True, receipt, None, intermediates)
+    except Exception as exc:
+        return _FakeCarrierStep(state, None, False, {"schema": "test-carrier-receipt", "status": "REJECTED"}, str(exc))
+
+
+class _RuntimeFixtures:
+    """W1-W5 parent profiles for the focused private-transition smoke."""
+
+    @classmethod
+    def build(cls):
+        base = load_development_profile()
+        geometry = load_w2_geometry_profile(base_profile=base)
+        transport = load_w3_transport_profile(geometry_profile=geometry)
+        carrier = load_w4_carrier_profile(geometry=geometry, transport=transport)
+        topology = load_w4r_topology_profile(geometry=geometry, carrier_profile=carrier)
+        conversion_profile = conversion.load_w5_conversion_profile(
+            geometry_profile=geometry,
+            transport_profile=transport,
+            carrier_profile=carrier,
+            topology_profile=topology,
+        )
+        cross_scale = load_w6_cross_scale_profile(geometry_profile=geometry, carrier_profile=carrier)
+        state = make_topology_fixture(geometry=geometry, kind="plane-wave", batch_lanes=2)
+        return geometry, transport, carrier, topology, conversion_profile, cross_scale, state
 
 
 class CrossScaleCoreTests(unittest.TestCase):
