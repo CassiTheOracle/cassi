@@ -1,6 +1,6 @@
 # Yang, Yin, and Qi: Density-Plane Diagnostics and Optional Helical Structure
 
-## Status: Derived density diagnostics and passive lift bounds; Hypothesized phase and helical physical structure—August 2026
+## Status: Derived density diagnostics, passive lift bounds, and conditional compact-current specialization; Hypothesized phase and helical physical structure—August 2026
 
 ## Abstract
 
@@ -20,6 +20,15 @@ $\theta_{d,\mathrm{eq}}=\operatorname{atan}(\varphi^{-1})$. It is a bounded
 state coordinate; the canonical conversion equations supply no independent
 compact $U(1)$ or $SO(2)$ field, no fixed $\pi$ or $2\pi$ advance per cascade
 rung, and no periodic phase clock.
+
+A separate compact-phase constitutive lift gives a conditional phase-selection
+theorem. Counteroriented strand currents with equal mobilities and zero net
+current yield a local continuum relation
+$\theta_I'/\theta_Y'=E_Y/E_I\to\varphi$ under adiabatic current adjustment.
+Fixed uniform compact windings require phase slips to track that relation.
+The compact fields, current law, and winding transitions retain Hypothesized
+physical status; the conditional algebra and controls are recorded in
+`principles/de-resonance-principle.md`.
 
 The spatial quantity
 
@@ -321,6 +330,16 @@ with $|J_a|\leq v_aE_a$. The canonical paired-real field supplies neither
 $(J_Y,J_I)$ nor $(v_Y,v_I)$. Its single amplitude-plane phase current
 $\mathbf J_\Psi$ and density-plane diagnostic $\mathbf J_d$ cannot be
 substituted for these two kinetic currents without a constitutive map.
+
+The compact counterflow theorem in
+`principles/de-resonance-principle.md` supplies one optional constitutive
+specialization. It defines phase currents
+$J_Y=+\mu_YE_Y\theta_Y'$ and
+$J_I=-\mu_IE_I\theta_I'$; equal mobilities and $J_Y+J_I=0$ then give the local
+relation $\theta_I'/\theta_Y'=E_Y/E_I$. These phase currents become the
+kinetic species currents displayed above only if a further constitutive
+identification is supplied. Uniform compact winding additionally requires a
+sector-transition mechanism to follow the evolving density ratio.
 
 A conservative positive conversion lift illustrates the remaining dynamical
 freedom. For $s\in\{+,-\}$, let

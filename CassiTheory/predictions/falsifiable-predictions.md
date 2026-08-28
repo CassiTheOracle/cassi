@@ -2,7 +2,7 @@
 
 ## Status: Reference—August 2026
 
-The catalog separates parameter-free structural predictions from predictions that depend on optional extensions, declared inputs, Mapped placements, or Calibrated normalizations. The parameter-free structural subset is derived from the golden ratio $\varphi = (1+\sqrt{5})/2$ and the canonical two-fluid PDE under its stated assumptions. Framework couplings are often expressed as $\varphi$-powers, while observationally anchored quantities carry the Calibrated or Mapped flag with a Fit-Status Ledger row (`parameter-inventory.md` §10). Conditional, Hypothesized, Mapped, and Calibrated flags are load-bearing and appear per-row below.
+The catalog separates parameter-free structural predictions from predictions that depend on optional extensions, declared inputs, Mapped placements, or Calibrated normalizations. The parameter-free structural subset is derived from the golden ratio $\varphi = (1+\sqrt{5})/2$ and the canonical two-fluid PDE under its stated assumptions. Framework couplings are often expressed as $\varphi$-powers, while observationally anchored quantities carry the Calibrated or Mapped flag with a Fit-Status Ledger row (`parameter-inventory.md` §10). Conditional, Hypothesized, Mapped, and Calibrated flags govern how each row may be read.
 
 ---
 
@@ -550,6 +550,25 @@ selection, or a phase-rotation law.
 `computations/verify_loop_to_bubble_projection.py`.
 
 
+## 13. Conditional Counterflow De-Resonance Tests
+
+These tests apply only after a physical compact phase and its signed current
+have been identified independently of the density ratio. They do not promote
+the declared density target or the physical de-resonance proposal.
+
+| ID | Observable | Conditional Cassi result | Current status | Falsifier |
+|----|------------|--------------------------|----------------|-----------|
+| **DR-1** | Simultaneous $E_Y/E_I$, phase-gradient magnitudes $k_I/k_Y$, effective mobilities, and net through-current | The declared current law gives $\alpha=(\mu_Y/\mu_I)(E_Y/E_I)-J_0/(\mu_IE_Ik_Y)$. Under independently verified $\mu_Y=\mu_I$, $J_0=0$, and adiabatic adjustment, $\alpha=E_Y/E_I$ and obeys $\dot\alpha=-\kappa(1+\alpha)(\alpha-\varphi)$ during homogeneous conversion | **Derived conditional; untested physically.** PC1–PC6 verify the algebra, transient, exposure, and controls; compact phases and the current law remain Hypothesized | With every closure premise independently satisfied, either the current identity or the displayed transient fails beyond calibrated uncertainty |
+| **DR-2** | Complex loop amplitude and integer winding before, during, and after a compact-sector change | A jointly continuous nonzero scalar amplitude on an unchanged $S^1$ domain conserves $w=(2\pi i)^{-1}\oint\psi^{-1}d\psi$; a sector change requires an amplitude zero, changed boundary or topology, or gauge-bundle holonomy | **Derived topological identity; physical realization untested.** This theorem determines necessity, not slip rate or direction | A fully resolved sector change occurs while the scalar amplitude remains nonzero on the complete space-time cylinder and the boundary, topology, and bundle remain unchanged |
+| **DR-3** | Phase locking or resonant spectral transfer under a preregistered ratio sweep with fixed forcing, dissipation, exposure, and boundary data | The physical de-resonance hypothesis requires the $\varphi$ target to produce a reproducible suppression relative to matched rational controls and other preregistered irrational targets without parameter refitting | **Hypothesized physical discriminator.** The canonical density law and PC1–PC7 do not predict a suppression magnitude; the microscopic phase-current law, statistic, comparison set, and stopping rule must be frozen before execution | The frozen sweep does not distinguish $\varphi$, places it above the preregistered suppression threshold, or another target outperforms it under the same controls |
+| **DR-4** | Stable compact winding sectors during slow conversion toward the continuum target | If the physical sector cost is dominated by bounded-denominator phase mismatch, the record candidates are $(p,q_{\rm w})=(F_n,F_{n+1})$; sector changes must obey DR-2 | **Derived conditional arithmetic / Hypothesized selector.** PC7 verifies the record sequence; no energy or transition law selects it physically | With the mismatch-only selector and cutoff independently established, the stable record sequence is non-Fibonacci, or physical sectors systematically select non-record ratios |
+
+**Source:** `principles/de-resonance-principle.md` §§1.3–1.5;
+`computations/phi-counterflow-selection-pre-registration.md`;
+`computations/verify_phi_counterflow_selection.py`;
+`computations/phi-counterflow-selection-report.md`.
+
+
 ---
 
 ## Notes
@@ -584,7 +603,7 @@ selection, or a phase-rotation law.
   fitted or calibrated comparisons, null results, rejected entries, and open
   hypotheses. Rows without a registered derivation are marked **Not
   predicted**; no aggregate success count is assigned across those classes.
-- **Conditional test rows (CT-n, SB-n, and LP-n):** these rows are unnumbered conditional discriminators outside the 1–N numbered prediction sequence; they do not alter the catalog's numbered prediction count. CT-1 records the regulated quantum sector's no-collapse nanoparticle limit; CT-2 registers the candidate physical-time cross-clock discriminator; SB-1–SB-5 register the projective shell's conditional geometry, conversion flow, and phase-loop diagnostic; LP-1–LP-6 register the shared-loop projection, passive spectrum, coherence, phase-cancellation, coarse-graining, and fivefold-visibility contracts.
+- **Conditional test rows (CT-n, SB-n, LP-n, and DR-n):** these rows are unnumbered conditional discriminators outside the 1–N numbered prediction sequence; they do not alter the catalog's numbered prediction count. CT-1 records the regulated quantum sector's no-collapse nanoparticle limit; CT-2 registers the candidate physical-time cross-clock discriminator; SB-1–SB-5 register the projective shell's conditional geometry, conversion flow, and phase-loop diagnostic; LP-1–LP-6 register the shared-loop projection, passive spectrum, coherence, phase-cancellation, coarse-graining, and fivefold-visibility contracts; DR-1–DR-4 register the counterflow identity, winding boundary, physical de-resonance discriminator, and conditional Fibonacci-sector selector.
 
 - **Deviations from SM expectations are falsifiable**—not adjustable. If FCC-ee
   measures $m_W/m_Z = 0.881 \pm 0.0001$, the Cassi framework is excluded

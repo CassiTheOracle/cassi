@@ -152,7 +152,20 @@ The golden ratio $\varphi = (1+\sqrt{5})/2 \approx 1.618\ldots$ is a central str
 
 ### The De-Resonance Principle
 
-Cassi's de-resonance principle is a **Hypothesized** physical mapping. The canonical density-conversion target is the declared model input $r_\star=E_Y/E_I=\varphi$. A physical attractor, suppression of phase locking, and survival of multi-scale structure are proposed outcomes to be evaluated with specified dynamics and observables. The framework uses $\varphi$-power baselines for couplings and mass ratios as a mapped structural program, with each input retaining its ledger status.
+Cassi's physical de-resonance mapping remains **Hypothesized**. The canonical
+density-conversion target is the declared model input
+$r_\star=E_Y/E_I=\varphi$. Under additional counteroriented compact-phase
+currents, equal mobilities, zero net current, and adiabatic adjustment, the
+selected homogeneous conversion law conditionally transfers that target to
+$\theta_I'/\theta_Y'\to\varphi$; the frozen PC1–PC7 computation verifies the
+algebra, transient, controls, and Fibonacci record near-closures. A continuous
+nonzero scalar amplitude on $S^1$ exactly conserves integer winding, so a
+finite compact sector can follow the evolving target only through a phase
+slip or altered boundary, topology, or bundle structure. The framework does
+not yet derive the compact phases, current closure, phase-slip law, or
+suppression of physical phase locking. Its $\varphi$-power coupling and mass
+baselines remain a mapped structural program with each input retaining its
+ledger status.
 
 ### The Two-Fluid PDE—the canonical local law
 

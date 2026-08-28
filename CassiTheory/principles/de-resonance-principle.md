@@ -1,14 +1,28 @@
 # The De-Resonance Principle in Cassi
 
-## Status: Derived number-theory identity / Hypothesized physical de-resonance mapping—August 2026
+## Status: Derived number-theory identity and conditional counterflow phase-selection theorem / Hypothesized physical realization—August 2026
 
 ## Abstract
 
-The continued fraction $\varphi=[1;1,1,\ldots]$ and its sharp Hurwitz/Lagrange approximation constant are established number-theory facts. In the standard integer fractional-linear equivalence class, $\varphi$ is the conventional positive representative of the worst-approximable class. Cassi uses that arithmetic property to motivate a physical proposal. Its canonical density-conversion target
+The continued fraction $\varphi=[1;1,1,\ldots]$ and its sharp
+Hurwitz/Lagrange approximation constant are established number-theory facts.
+In the standard integer fractional-linear equivalence class, $\varphi$ is the
+conventional positive representative of the worst-approximable class. The
+canonical density-conversion target
 
-$$\boxed{r_\star \equiv \frac{E_Y}{E_I}=\varphi}$$
+$$
+\boxed{r_\star\equiv\frac{E_Y}{E_I}=\varphi}
+$$
 
-is a declared model postulate and solver input. A physical attractor, suppression of phase locking, a coupling flow, or survival of multi-scale structure requires specified dynamics and observables; arithmetic extremality alone does not establish those outcomes. The correction table records the $\varphi$-power baselines used in the proposal, their measured offsets, and candidate mechanisms. The de-resonance mapping remains a concrete, testable Cassi hypothesis.
+is a declared model postulate and solver input. The selected conversion law
+conditionally relaxes a homogeneous parcel toward that target. With the
+additional compact-phase assumptions of counteroriented strand currents,
+equal mobilities, zero net current, and adiabatic current adjustment, the same
+relaxation also selects the phase-gradient magnitude ratio
+$\alpha=\theta_I'/\theta_Y'\to\varphi$. Compact winding identifies Fibonacci
+record near-closures to the irrational local target. Physical realization of
+the phase-current closure and suppression of resonance remain testable
+hypotheses.
 
 ## 0. Scope: arithmetic datum and physical proposal
 
@@ -18,10 +32,18 @@ The arithmetic statement and the physical interpretation have separate epistemic
 |-------|-----------|----------------------|
 | Number theory | $\varphi=(1+\sqrt{5})/2=[1;1,1,\ldots]$ and the sharp Hurwitz/Lagrange approximation result | **Derived number-theory identity / standard theorem** |
 | Cassi target | The canonical density-conversion target is $r_\star=E_Y/E_I=\varphi$ | **Hypothesized model postulate / solver input** |
-| Physical mapping | The two-fluid dynamics may select $r_\star$, reduce phase locking, and organize scales near $\varphi$-powers | **Hypothesized** |
+| Density relaxation | The selected homogeneous conversion law approaches $r_\star$ under persistent positive gate exposure | **Derived conditional on the selected conversion law** |
+| Counterflow bridge | Equal-mobility, zero-net-current counterflow gives $\alpha=E_Y/E_I\to\varphi$ | **Derived conditional on the compact-phase current closure** |
+| Compact topology | A continuous nonzero scalar amplitude on $S^1$ conserves integer winding; changing sector requires a phase slip or altered boundary, topology, or bundle structure | **Derived topological identity** |
+| Physical realization | Separate compact phases, equal strand mobilities, zero net current, adiabatic adjustment, and reduced phase locking occur in the physical field | **Hypothesized** |
 | Correction catalogue | Measured anchors and calculated comparisons, with quantity provenance and mechanism tiers stated below | Mixed; see the row-level labels |
 
-The target $r_\star$ is therefore an input against which the equations can be tested. It is not a number-theory consequence. A candidate attractor claim has a definite form: for a declared parameter region and an open set of initial conditions, the computed ratio $r(t)$ approaches $r_\star$ and remains there within a stated tolerance. The same experiment must measure phase locking and spectral energy transfer, so that resonance behavior and scale retention are outcomes of the equations rather than assumptions.
+The target $r_\star$ enters through the selected conversion operator. The
+conditional phase theorem introduces no second $\varphi$ input: it projects
+the density ratio into a phase-gradient ratio through a stated current
+closure. A physical attractor claim still requires a declared parameter
+region, an open set of initial conditions, and observables for the currents,
+phase locking, and spectral transfer.
 
 ## 1. The arithmetic statement and resonance scope
 
@@ -78,22 +100,194 @@ In a coupled-oscillator model, a rational frequency ratio supplies exact commens
 
 An irrational ratio removes exact commensurability for that scalar pair, while near-rational approximants can still produce long finite-time interactions. Nonlinear combination frequencies and parametric resonances require their own analysis. The extremal approximation property of $\varphi$ limits one arithmetic route to close rational approximation; it does not universally prevent resonance locking or guarantee persistent multi-scale structure.
 
-### 1.3 The physical claim that remains to be tested
+### 1.3 Canonical density selection—**Derived conditional**
 
-The Cassi proposal is that the two-fluid equations, with the declared target $r_\star=\varphi$, may possess a robust de-resonant regime. The hypothesis can be tested by varying $r(0)$ around $r_\star$, scanning damping and coupling parameters, and comparing the basin and long-time behavior with rational and other irrational controls. Evidence for the proposed mapping would include reproducible convergence to $r_\star$, a measured reduction in phase-locking intervals under predeclared conditions, and a quantified spectrum that retains energy across the selected scales. Each result needs a constitutive and observation map from field variables to the measured ratio, phase, and spectrum.
+For a homogeneous conversion-only parcel, write
 
-### 1.4 Conditional two-fluid phase-gradient check
+$$
+\rho=E_Y+E_I,
+\qquad
+\varepsilon=E_Y-\varphi E_I,
+\qquad
+\kappa(t)=\lambda[1-q(t)]\geq0.
+$$
 
-The preregistered compact-ring calculation in
-`field-experience/qi-loop-mass-cascade-report.md` declares
-$\theta_I'/\theta_Y'=\varphi$ as a phase-gradient coordinate relation. Its
-Fibonacci near-closure branch and positive supplied ring sector pass the
-frozen arithmetic and stability gates. The same receipt retains many stable
-primitive modes per energy cell and coefficient-sensitive low-winding
-energies, so it does not supply a physical attractor, compact-topology
-formation, or a unique mass-position law. This result tests a conditional
-coordinate realization of de-resonance; the canonical density target and its
-physical mapping retain the status stated above.
+The selected conversion contribution obeys
+
+$$
+\dot E_Y=-\kappa\varepsilon,
+\qquad
+\dot E_I=+\kappa\varepsilon,
+$$
+
+and therefore
+
+$$
+\dot\rho=0,
+\qquad
+\dot\varepsilon=-\kappa(1+\varphi)\varepsilon
+=-\kappa\varphi^2\varepsilon.
+$$
+
+For accumulated exposure $K(t)=\int_0^t\kappa(u)\,du$,
+
+$$
+\varepsilon(t)=\varepsilon_0e^{-\varphi^2K(t)},
+\qquad
+\frac{E_Y}{E_I}
+=\frac{\varphi\rho+\varepsilon(t)}{\rho-\varepsilon(t)}.
+$$
+
+Whenever $E_I>0$, the ratio $r=E_Y/E_I$ satisfies the projective flow
+
+$$
+\boxed{\dot r=-\kappa(1+r)(r-\varphi)}.
+$$
+
+The positive fixed point is asymptotically stable when
+$K(t)\to\infty$. Finite exposure leaves a finite residual, and $\kappa=0$
+freezes the current ratio. The result establishes selection by the declared
+conversion operator; the occurrence of that operator in nature retains the
+model-postulate status in §0.
+
+### 1.4 Counterflow phase selection—**Derived conditional**
+
+Use the compact phase coordinates of
+`foundations/qi-loop-mass-cascade.md`. Let
+$k_Y=\partial_s\theta_Y>0$ and $k_I=\partial_s\theta_I>0$ denote phase-gradient
+magnitudes measured along each strand's own orientation. For opposite physical
+strand orientations and positive mobilities $\mu_Y,\mu_I$, define the signed
+currents
+
+$$
+J_Y=+\mu_YE_Yk_Y,
+\qquad
+J_I=-\mu_IE_Ik_I.
+$$
+
+If $J_0=J_Y+J_I$ is the imposed net current, then
+
+$$
+\alpha\equiv\frac{k_I}{k_Y}
+=\frac{\mu_Y}{\mu_I}\frac{E_Y}{E_I}
+-\frac{J_0}{\mu_IE_Ik_Y}.
+$$
+
+The equal-mobility, zero-net-current closure gives the exact identity
+
+$$
+\boxed{\alpha=r}.
+$$
+
+Adiabatic enforcement of that closure along the conversion trajectory gives
+
+$$
+\boxed{\dot\alpha=-\kappa(1+\alpha)(\alpha-\varphi)},
+\qquad
+\alpha(t)=
+\frac{\varphi\rho+\varepsilon_0e^{-\varphi^2K(t)}}
+{\rho-\varepsilon_0e^{-\varphi^2K(t)}}.
+$$
+
+Thus the canonical density target becomes a dynamically selected local
+continuum phase-gradient target under the added closure. On a common ordinary
+compact loop, uniform single-valued phases require
+
+$$
+\alpha=\frac{q_{\rm w}}{p},
+\qquad p,q_{\rm w}\in\mathbb Z_{>0}.
+$$
+
+The irrational target has no exact finite-winding closure. Its record
+near-closures are the Fibonacci pairs
+$(p,q_{\rm w})=(F_n,F_{n+1})$, with
+
+$$
+F_{n+1}-\varphi F_n=(-1)^n\varphi^{-n}.
+$$
+
+Fixed integers $(p,q_{\rm w})$ make the uniform compact ratio discrete and
+time independent. Continuous tracking of $\alpha(t)$ therefore applies to
+local or noncompact gradients, or else requires phase slips that change the
+winding sector. The arithmetic identifies the record candidates; a physical
+energy, dissipation, or transition law must choose among them.
+
+This supplies a direct conditional chain from density conversion to the
+Fibonacci compact candidates. The compact phases, common loop geometry,
+opposite strand orientation, current constitutive law, equal mobilities, zero
+net current, adiabatic adjustment, and any required winding-sector dynamics
+are the explicit physical assumptions.
+
+#### Topological winding boundary—**Derived**
+
+The need for a sector transition is exact under the ordinary scalar-loop
+assumptions. Let
+$\psi_a:S^1\times[t_0,t_1]\to\mathbb C\setminus\{0\}$ be jointly continuous
+and piecewise smooth in $\chi$, with
+$\psi_a=\sqrt{f_a}\,e^{i\theta_a}$. At each time,
+
+$$
+w_a(t)
+:=
+\frac{1}{2\pi i}
+\oint_{S^1}\psi_a^{-1}\partial_\chi\psi_a\,d\chi
+=
+\deg\!\left(\frac{\psi_a}{|\psi_a|}\right)
+\in\mathbb Z,
+\qquad a\in\{Y,I\}.
+$$
+
+The joint nonvanishing evolution is a homotopy in
+$\mathbb C\setminus\{0\}$, so $w_a$ is invariant. For a smooth evolution the
+same result follows directly:
+
+$$
+\dot w_a
+=
+\frac{1}{2\pi i}
+\oint_{S^1}
+\partial_\chi\!\left(\psi_a^{-1}\partial_t\psi_a\right)d\chi
+=0.
+$$
+
+Therefore a finite compact pair $(p,q_{\rm w})$ cannot continuously track the
+changing continuum target. A sector change requires an amplitude zero—a phase
+slip—or a change of boundary conditions, topology, or bundle structure. With
+a gauge connection, a gauge-covariant circulation or holonomy replaces the
+scalar winding above.
+
+This proves the necessity of a transition event, not its rate, direction, or
+energetic preference. The next physical frontier is a microscopic
+complex-amplitude law that generates the counteroriented currents and their
+effective mobilities, permits and selects phase slips, and still projects to
+the canonical real-density equations. The present density and population
+laws cannot supply that result because their projections discard phase and
+winding.
+
+### 1.5 Frozen verification and controls
+
+`computations/phi-counterflow-selection-pre-registration.md` freezes seven
+gates for the algebra, transient, stability, exposure boundary, constitutive
+controls, and compact approximation sequence.
+`computations/verify_phi_counterflow_selection.py` passes PC1–PC7 on the first
+protocol-complete execution recorded in
+`computations/phi-counterflow-selection-report.md`. The maximum transient
+residual against the exact
+solution is $4.441\times10^{-16}$; the projective-flow residual is
+$1.110\times10^{-16}$; and the Fibonacci identity residual through
+$p=144$ is $1.017\times10^{-14}$.
+
+The controls delimit the theorem. A mobility ratio
+$m=\mu_Y/\mu_I$ shifts the fixed phase ratio to $m\varphi$. A nonzero
+through-current adds
+$-J_0/(\mu_IE_Ik_Y)$. Finite accumulated exposure preserves a nonzero
+initial-condition residual. The attracting density states form a line indexed
+by the conserved $\rho$; ratio stability holds within each fixed-$\rho$
+sector. Full PDE terms can alter the local density trajectory. Fixed compact
+windings require phase slips or another sector-transition mechanism to follow
+the continuum target. Measurements of the separate currents, phase locking,
+spectral transfer, and winding transitions decide whether the conditional
+closure describes the physical field.
 
 ## 2. Cassi framework posture
 
@@ -266,24 +460,52 @@ a new scale assignment.
 
 ## 6. Implications for the TOE
 
-The Cassi proposal has a clear division between an arithmetic input and a physical hypothesis.
+The Cassi proposal has four distinct layers.
 
-1. The arithmetic input is the extremal rational-approximation property of the golden-ratio equivalence class.
-2. The model postulate is the canonical target $r_\star=E_Y/E_I=\varphi$ used in the density conversion and solver.
-3. The physical hypothesis is that specified two-fluid dynamics can make this target a robust regime, with measurable effects on phase locking, coupling offsets, and scale transfer.
+1. The arithmetic input is the extremal rational-approximation property of
+   the golden-ratio equivalence class.
+2. The model postulate is the canonical target
+   $r_\star=E_Y/E_I=\varphi$ used in the density conversion and solver.
+3. The conditional theorem maps the selected density relaxation to
+   $\alpha\to\varphi$ under equal-mobility, zero-net-current counterflow and
+   identifies the Fibonacci record approximants imposed by compact closure.
+4. The physical hypothesis assigns that closure and a winding-sector
+   transition law to the Yang/Yin field and predicts measurable phase-locking
+   and spectral-transfer behavior.
 
-Within that posture, selected dimensionless couplings may be organized near $\varphi$-power baselines, while RGE running, thresholds, flavor mixing, and particle content supply corrections. The empirical table supplies a starting catalogue for those tests. It does not establish that every quantity has a $\varphi$-power baseline, that deviations are monotonic in scale, or that the same mechanism controls every sector.
-
-The framework's predictive content therefore lies in declaring the target, the selected observable set, the tolerance, and the dynamics before a comparison. A successful de-resonance result would show convergence and spectral behavior in the equations under controls; a successful coupling result would reproduce the listed offsets with a specified mechanism; a failed comparison would delimit the proposal's domain.
+Selected dimensionless couplings may be organized near $\varphi$-power
+baselines, while RGE running, thresholds, flavor mixing, and particle content
+supply corrections. Each application retains its own declared observable,
+tolerance, and mechanism.
 
 ## 7. Conclusion
 
-The mathematical content of this paper is the continued-fraction identity for $\varphi$, its Fibonacci convergents, and the standard sharp rational-approximation result under an explicit equivalence convention. The Cassi physical content is a Hypothesized mapping that uses $\varphi$ as the declared density-conversion target and asks whether two-fluid dynamics select a de-resonant regime.
-The proposal remains concrete: vary the initial ratio around $r_\star$, measure locking and spectral transfer, and compare with rational and irrational controls. Use $\delta n=\ln(1+\delta)/\ln\varphi$ as a scalar logarithmic rung offset. A phase interpretation requires its own observation/constitutive map. These tests determine whether the proposed attractor and correction mechanisms describe the dynamics; the arithmetic extremality alone sets their motivation.
+The number-theory result fixes the arithmetic meaning of de-resonance. The
+counterflow theorem supplies the missing conditional bridge from the
+canonical density target to the compact phase-gradient target:
+
+$$
+E_Y/E_I\longrightarrow\varphi,
+\qquad
+J_Y+J_I=0,\ \mu_Y=\mu_I
+\quad\Longrightarrow\quad
+\theta_I'/\theta_Y'\longrightarrow\varphi.
+$$
+
+Finite compact closure has Fibonacci record near-windings. Physical selection
+among those discrete sectors requires an energy, dissipation, or phase-slip
+law. The remaining physics problem is sharply localized: determine whether
+the two fluids carry the required counteroriented compact currents with equal
+effective mobility, whether winding transitions occur, and whether their
+measured dynamics reduce phase locking relative to predeclared rational and
+irrational controls.
 
 ## References
 
 - `foundations/phi-rg-formalism.md`—Hypothesized discrete-$\varphi$ renormalization-group construction and proposed physical flow.
+- `computations/phi-counterflow-selection-pre-registration.md`—Frozen PC1–PC7 algebra, stability, exposure, control, and compact-closure gates.
+- `computations/verify_phi_counterflow_selection.py`—Independent standard-library execution of the frozen gates.
+- `computations/phi-counterflow-selection-report.md`—Protocol-complete PC1–PC7 ledger and epistemic boundary.
 - `foundations/rung-offset-mechanism.md`—Hypothesized correspondence between fractional rung offsets and two-fluid phase variables.
 - `principles/v0-hierarchy-problem.md`—Analysis of the $v_0$ hierarchy offset and candidate mechanisms.
 - `standard-model/sm-radiative-corrections.md` §§2–3.2—PDG 2024 input $\alpha_s(m_Z)=0.1180(9)$ and the one-/two-loop $\varphi$-boundary running comparison; numerical provenance `computations/sm_radiative_corrections.py`.

@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This directory holds the load-bearing derivations of the Cassi framework: the dimensionful cascade $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ and the cascade suppression law $\mathcal{D} = \varphi^{-N}$ (the two wedge documents), the assembled unified Lagrangian and the two-fluid first principles behind it, the Yin–Yang–Qi triad (`qi-flow-double-helix.md`), and the derivation family—spin, the Qi-gravity coupling $\xi = \varphi^6$, the Wu Xing number $w = 5$, proton stability, measurement, strong CP, confinement, generations, neutrino masses, baryon asymmetry, and the bubble-lattice geometry that structures every rung. Reading order: start with `dimensionful-cascade.md` and `cascade-suppression-formula.md`, then `unified-lagrangian.md` and `cassi-first-principles.md` (with `cassi-theory-reference.md` as the compact map), then `qi-flow-double-helix.md` for the triad, then the structural-constant derivations, the spiral-dynamics family, the coherence-budget derivations, the particle-physics derivations, the bubble geometry, and finally the numeric-refinement and gap-closing documents. Epistemic tiers below are taken verbatim from each document's own Status header: most are Derived or Derivation, a smaller set (dimensionful constants, φ-RG, spiral dynamics, three generations, microcascade) are Hypothesized, and none are Speculative.
+This directory holds the foundational derivations of the Cassi framework: the dimensionful cascade $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ and the cascade suppression law $\mathcal{D} = \varphi^{-N}$ (the two wedge documents), the assembled unified Lagrangian and the two-fluid first principles behind it, the Yin–Yang–Qi triad (`qi-flow-double-helix.md`), and the derivation family—spin, the Qi-gravity coupling $\xi = \varphi^6$, the Wu Xing number $w = 5$, proton stability, measurement, strong CP, confinement, generations, neutrino masses, baryon asymmetry, and the bubble-lattice geometry that structures every rung. Reading order: start with `dimensionful-cascade.md` and `cascade-suppression-formula.md`, then `unified-lagrangian.md` and `cassi-first-principles.md` (with `cassi-theory-reference.md` as the compact map), then `qi-flow-double-helix.md` for the triad, then the structural-constant derivations, the spiral-dynamics family, the coherence-budget derivations, the particle-physics derivations, the bubble geometry, and finally the numeric-refinement and gap-closing documents. Epistemic tiers below are taken verbatim from each document's own Status header: most are Derived or Derivation, a smaller set (dimensionful constants, φ-RG, spiral dynamics, three generations, microcascade) are Hypothesized, and none are Speculative.
 
 ## Document Index
 
@@ -176,14 +176,16 @@ Hypothesized (channel-transmission claim).
 
 ### `qi-loop-mass-cascade.md`—Qi-Loop Mass Cascade: Conditional Two-Fluid De-Resonant Rings
 
-Defines a supplied compact two-fluid phase-gradient ring with
-$\alpha=\varphi$, whose Fibonacci winding pairs give exact near-closure
-identities and a positive stationary energy branch. The one-run receipt passes
-the frozen arithmetic, loop-stability, and supplied scale-covariance gates.
+The declared density target conditionally selects a compact two-fluid
+phase-gradient ratio $\alpha\to\varphi$ under the explicit counterflow closure.
+Its Fibonacci winding pairs give exact near-closure identities, and a supplied
+positive ring Hamiltonian gives a stable stationary branch. The frozen receipt
+passes the arithmetic, loop-stability, and supplied scale-covariance gates.
 Its primitive-mode multiplicity and coefficient-sensitivity gates show that
-the ring does not select unique physical mass positions. Status: Derived
-conditional supplied-ring algebra / Tested conditional branch / Hypothesized
-physical identification.
+the ring does not select unique physical mass positions. Fixed winding sectors
+also require an unprovided phase-slip law to follow the evolving continuum
+target. Status: Derived conditional counterflow selection and supplied-ring
+algebra / Tested conditional branches / Hypothesized physical realization.
 
 ### `wu-xing-derivation.md`—Wu Xing Number $w = 5$: Derivation from Cascade Dynamics
 

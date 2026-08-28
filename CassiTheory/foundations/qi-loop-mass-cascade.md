@@ -1,17 +1,19 @@
 # Qi-Loop Mass Cascade: Conditional Two-Fluid De-Resonant Rings
 
-## Status: Derived conditional supplied-ring algebra / Tested conditional branch / Hypothesized physical identification—August 2026
+## Status: Derived conditional counterflow selection and supplied-ring algebra / Tested conditional branches / Hypothesized physical realization—August 2026
 
 ## Abstract
 
-A pair of compact phase coordinates can encode a declared de-resonant
-separation between the Yang and Yin fluids. Taking their phase-gradient ratio
-to be \(\alpha=\varphi\) makes exact finite winding closure unavailable and
-selects Fibonacci near-closures. With a positive supplied ring Hamiltonian,
-those near-closures have a stable stationary length and a conditional
-\(\varphi\)-scaled energy branch. The frozen computation in
-`field-experience/qi-loop-mass-cascade-report.md` verifies that branch and
-also shows that it leaves the physical mass selector open: many stable
+The canonical density conversion, combined with counteroriented compact-phase
+currents, equal mobilities, zero net current, and adiabatic current adjustment,
+conditionally selects the local phase-gradient ratio
+\(\alpha=\theta_I'/\theta_Y'\to\varphi\). Finite compact windings realize
+rational ratios whose Fibonacci pairs are the record approximants to the
+irrational target. With a positive supplied ring Hamiltonian, those
+near-closures have a stable
+stationary length and a conditional \(\varphi\)-scaled energy branch. The
+frozen computation in `field-experience/qi-loop-mass-cascade-report.md`
+verifies that branch and leaves the physical mass selector open: many stable
 primitive modes occupy each cascade cell, and the low-winding energies depend
 on the declared inter-fluid coefficient.
 
@@ -31,19 +33,34 @@ scale rungs,
 \ell_N=\ell_{\rm Pl}\varphi^N.
 \]
 
-The de-resonance proposal permits a second, coordinate-specific role:
-\(\varphi\) can separate the gradients, frequencies, or wave numbers of two
-coupled fluid coordinates when the relevant coordinate and coupling are
-specified. In the compact ring construction,
+The de-resonance proposal has a second, coordinate-specific role for
+\(\varphi\). For compact phase-gradient magnitudes
+\(k_Y=\theta_Y'>0\) and \(k_I=\theta_I'>0\), counteroriented strand currents
+obey
 
 \[
-\frac{\theta_I'}{\theta_Y'}\approx\alpha=\varphi.
+J_Y=+\mu_YE_Yk_Y,
+\qquad
+J_I=-\mu_IE_Ik_I.
 \]
 
-This is a Hypothesized physical mapping of the standard Hurwitz/Lagrange
-arithmetic property described in `principles/de-resonance-principle.md`.
-The canonical real-density pair retains its stated scope; a compact-phase
-physical realization requires additional constitutive structure.
+Equal mobilities and zero net current give
+
+\[
+\alpha\equiv\frac{k_I}{k_Y}=\frac{E_Y}{E_I}.
+\]
+
+The canonical homogeneous conversion law therefore selects
+\(\alpha\to\varphi\) under adiabatic enforcement of this current closure.
+`principles/de-resonance-principle.md` gives the exact transient, stability
+proof, controls, and PC1–PC7 verification. Uniform finite winding restricts
+\(\alpha\) to \(q_{\mathrm w}/p\), whose record approximants form the
+Fibonacci branch used below. A fixed winding sector cannot track the
+continuous local target; physical tracking requires local noncompact
+gradients or phase slips between sectors. Separate compact phases, a common
+ordinary loop, opposite orientation, equal effective mobilities, zero net
+current, adiabatic adjustment, and winding-sector dynamics remain explicit
+physical assumptions.
 
 ---
 
