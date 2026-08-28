@@ -1,0 +1,171 @@
+{
+  "protocol": "CassiQwen L2 baseline performance receipt",
+  "startedAt": "2026-08-18T07:11:41.437Z",
+  "baseUrl": "http://127.0.0.1:8080",
+  "expectedModel": "C:/Users/Carina/workspaces/Cassi/CassiQwen/Qwen3.8-27B-Q4_K_M.gguf",
+  "decision": "PASS",
+  "health": {
+    "status": "ok"
+  },
+  "model": "C:/Users/Carina/workspaces/Cassi/CassiQwen/Qwen3.8-27B-Q4_K_M.gguf",
+  "results": [
+    {
+      "id": "echo_ready",
+      "requestClass": "first-request",
+      "prompt": "Reply with exactly: CASSI_LOCAL_READY",
+      "maxTokens": 16,
+      "outcome": "PASS",
+      "elapsedMs": 219.18949999999995,
+      "content": "CASSI_LOCAL_READY",
+      "reasoningContent": null,
+      "usage": {
+        "completion_tokens": 6,
+        "prompt_tokens": 21,
+        "total_tokens": 27,
+        "prompt_tokens_details": {
+          "cached_tokens": 17
+        }
+      },
+      "timings": {
+        "cache_n": 17,
+        "prompt_n": 4,
+        "prompt_ms": 86.851,
+        "prompt_per_token_ms": 21.71275,
+        "prompt_per_second": 46.05588882108439,
+        "predicted_n": 6,
+        "predicted_ms": 127.025,
+        "predicted_per_token_ms": 25.405,
+        "predicted_per_second": 39.362330249950794
+      },
+      "error": null
+    },
+    {
+      "id": "arithmetic",
+      "requestClass": "resident-request",
+      "prompt": "What is 17 multiplied by 6? Reply with only the integer.",
+      "maxTokens": 16,
+      "outcome": "PASS",
+      "elapsedMs": 349.0516,
+      "content": "102",
+      "reasoningContent": null,
+      "usage": {
+        "completion_tokens": 4,
+        "prompt_tokens": 28,
+        "total_tokens": 32,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 28,
+        "prompt_ms": 172.795,
+        "prompt_per_token_ms": 6.17125,
+        "prompt_per_second": 162.0417257443792,
+        "predicted_n": 4,
+        "predicted_ms": 77.564,
+        "predicted_per_token_ms": 25.854666666666663,
+        "predicted_per_second": 38.677737094528396
+      },
+      "error": null
+    },
+    {
+      "id": "reverse_word",
+      "requestClass": "resident-request",
+      "prompt": "Reverse the letters in cassi. Reply with only the reversed word.",
+      "maxTokens": 16,
+      "outcome": "PASS",
+      "elapsedMs": 489.7885,
+      "content": "issac",
+      "reasoningContent": null,
+      "usage": {
+        "completion_tokens": 3,
+        "prompt_tokens": 26,
+        "total_tokens": 29,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 26,
+        "prompt_ms": 368.669,
+        "prompt_per_token_ms": 14.179576923076922,
+        "prompt_per_second": 70.52396594234936,
+        "predicted_n": 3,
+        "predicted_ms": 55.308,
+        "predicted_per_token_ms": 27.654,
+        "predicted_per_second": 36.16113401316265
+      },
+      "error": null
+    },
+    {
+      "id": "json_shape",
+      "requestClass": "resident-request",
+      "prompt": "Return exactly this JSON object and nothing else: {\"cassi\":true,\"rungs\":3}",
+      "maxTokens": 32,
+      "outcome": "PASS",
+      "elapsedMs": 586.0283,
+      "content": "{\"cassi\":true,\"rungs\":3}",
+      "reasoningContent": null,
+      "usage": {
+        "completion_tokens": 12,
+        "prompt_tokens": 32,
+        "total_tokens": 44,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 32,
+        "prompt_ms": 178.267,
+        "prompt_per_token_ms": 5.57084375,
+        "prompt_per_second": 179.5060218660773,
+        "predicted_n": 12,
+        "predicted_ms": 329.934,
+        "predicted_per_token_ms": 29.994000000000003,
+        "predicted_per_second": 33.34000133360005
+      },
+      "error": null
+    },
+    {
+      "id": "short_explanation",
+      "requestClass": "resident-request",
+      "prompt": "In one sentence, define a loopback network address.",
+      "maxTokens": 64,
+      "outcome": "PASS",
+      "elapsedMs": 1534.5607000000002,
+      "content": "A loopback network address is a special IP address (typically 127.0.0.1) that routes network traffic back to the local host, allowing a computer to communicate with itself for testing and development purposes.",
+      "reasoningContent": null,
+      "usage": {
+        "completion_tokens": 47,
+        "prompt_tokens": 23,
+        "total_tokens": 70,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 23,
+        "prompt_ms": 167.944,
+        "prompt_per_token_ms": 7.30191304347826,
+        "prompt_per_second": 136.95041204210926,
+        "predicted_n": 47,
+        "predicted_ms": 1309.963,
+        "predicted_per_token_ms": 28.47745652173913,
+        "predicted_per_second": 35.11549562850249
+      },
+      "error": null
+    }
+  ],
+  "aggregates": {
+    "exactBoard": "4/4",
+    "serviceBoard": "5/5",
+    "medianClientWallMs": 489.7885,
+    "medianPromptTokensPerSecond": 136.95041204210926,
+    "medianGeneratedTokensPerSecond": 36.16113401316265
+  },
+  "finishedAt": "2026-08-18T07:11:44.697Z"
+}

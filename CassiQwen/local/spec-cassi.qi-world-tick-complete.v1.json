@@ -1,0 +1,279 @@
+{
+  "nullable": [],
+  "optional": [],
+  "props": {
+    "schema": {
+      "const": "cassi.qi-world-tick-complete.v1"
+    },
+    "tick_ack": {
+      "properties": {
+        "ack_bytes": {
+          "format": "base64",
+          "type": "string"
+        },
+        "ack_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "action_id": {
+          "one_of": [
+            {
+              "const": null
+            },
+            {
+              "max_length": 256,
+              "min_length": 1,
+              "type": "string"
+            }
+          ]
+        },
+        "action_scope_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "application_tick": {
+          "one_of": [
+            {
+              "const": null
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            }
+          ]
+        },
+        "applied_values": {
+          "one_of": [
+            {
+              "const": null
+            },
+            {
+              "items": {
+                "nullable_keys": [],
+                "optional_keys": [],
+                "properties": {
+                  "channel_id": {
+                    "max_length": 256,
+                    "min_length": 1,
+                    "type": "string"
+                  },
+                  "value": {
+                    "format": "finite_bits",
+                    "type": "string"
+                  }
+                },
+                "required_keys": [
+                  "channel_id",
+                  "value"
+                ],
+                "rules": [],
+                "type": "object"
+              },
+              "max_items": 4096,
+              "min_items": 0,
+              "type": "array"
+            }
+          ]
+        },
+        "body_transition": {
+          "one_of": [
+            {
+              "const": null
+            },
+            {
+              "nullable_keys": [],
+              "optional_keys": [],
+              "properties": {
+                "after_body_frame_id": {
+                  "max_length": 256,
+                  "min_length": 1,
+                  "type": "string"
+                },
+                "before_body_frame_id": {
+                  "max_length": 256,
+                  "min_length": 1,
+                  "type": "string"
+                },
+                "remap_sha256": {
+                  "format": "sha256",
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                }
+              },
+              "required_keys": [
+                "before_body_frame_id",
+                "after_body_frame_id",
+                "remap_sha256"
+              ],
+              "rules": [],
+              "type": "object"
+            }
+          ]
+        },
+        "canonical_intent_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "committed_prior_head_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "cycle_number": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "effective_tick": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "episode_id": {
+          "max_length": 256,
+          "min_length": 1,
+          "type": "string"
+        },
+        "first_visible_observation_tick": {
+          "one_of": [
+            {
+              "const": null
+            },
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            }
+          ]
+        },
+        "from_tick": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "max_length": 256,
+          "min_length": 1,
+          "type": "string"
+        },
+        "original_terminal_ack_sha256": {
+          "one_of": [
+            {
+              "const": null
+            },
+            {
+              "format": "sha256",
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            }
+          ]
+        },
+        "profile_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "requested_values": {
+          "one_of": [
+            {
+              "const": null
+            },
+            {
+              "items": {
+                "nullable_keys": [],
+                "optional_keys": [],
+                "properties": {
+                  "channel_id": {
+                    "max_length": 256,
+                    "min_length": 1,
+                    "type": "string"
+                  },
+                  "value": {
+                    "format": "finite_bits",
+                    "type": "string"
+                  }
+                },
+                "required_keys": [
+                  "channel_id",
+                  "value"
+                ],
+                "rules": [],
+                "type": "object"
+              },
+              "max_items": 4096,
+              "min_items": 0,
+              "type": "array"
+            }
+          ]
+        },
+        "schema": {
+          "const": "cassi.qi-flow-tick-ack.v1"
+        },
+        "session_id": {
+          "max_length": 256,
+          "min_length": 1,
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "started",
+            "applied",
+            "rejected",
+            "expired",
+            "duplicate"
+          ],
+          "type": "string"
+        },
+        "terminal_status": {
+          "one_of": [
+            {
+              "const": null
+            },
+            {
+              "enum": [
+                "applied",
+                "rejected",
+                "expired"
+              ],
+              "type": "string"
+            }
+          ]
+        },
+        "to_tick": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "world_effect": {
+          "enum": [
+            "unknown",
+            "true",
+            "false"
+          ],
+          "type": "string"
+        },
+        "world_id": {
+          "max_length": 256,
+          "min_length": 1,
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "tick_complete_sha256": {
+      "format": "sha256",
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "tick_ack",
+    "tick_complete_sha256"
+  ]
+}

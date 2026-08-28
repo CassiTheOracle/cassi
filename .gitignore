@@ -1,6 +1,42 @@
-# The project directories keep their own git repos (no submodules).
-CassiAI/
-CassiCore/
-CassiTheory/
-CassiCosmos/
-CassiCraft/
+# Workspace-local/generated artifacts.
+.pi/
+tmp_audit*/
+comp.spv
+**/__pycache__/
+**/_diag/
+**/.godot/
+**/*.import
+**/*.uid
+**/*.spv
+**/*.pt
+**/*.gguf
+**/runs/
+**/logs/
+
+# CassiQwen model/runtime downloads and native build trees.
+CassiQwen/*.bin
+CassiQwen/*.ckpt
+CassiQwen/*.dll
+CassiQwen/*.exe
+CassiQwen/*.gguf
+CassiQwen/*.npz
+CassiQwen/*.npy
+CassiQwen/*.pth
+CassiQwen/*.safetensors
+CassiQwen/*.zip
+CassiQwen/native/llama.cpp/build-cassi/
+CassiQwen/native/llama.cpp/models/ggml-vocab-*.gguf*
+CassiQwen/native/llama.cpp/build-qi/
+
+# CassiQwen generated captures, schema extracts, and local receipts.
+CassiQwen/all-layer-hidden-state-capture.json
+CassiQwen/cognition-schema-docs.tmp.json
+CassiQwen/cognition-schemas.tmp.json
+CassiQwen/hidden-state-capture.json
+CassiQwen/local-*.json
+CassiQwen/local-*.txt
+CassiQwen/local_*.json
+CassiQwen/local_*.txt
+CassiQwen/schema-summary.json
+CassiQwen/w12-schema-summary.txt
+CassiQwen/world-schemas-extract.json

@@ -1,0 +1,128 @@
+{
+  "protocol": "CassiQwen L8b resilient thinking policy receipt",
+  "startedAt": "2026-08-18T09:14:21.944Z",
+  "results": [
+    {
+      "item": "logic_chain",
+      "arm": "fast",
+      "expected": "Pia",
+      "response": "Pia",
+      "reasoningContent": null,
+      "pass": true,
+      "elapsedMs": 329.1649,
+      "usage": {
+        "completion_tokens": 3,
+        "prompt_tokens": 37,
+        "total_tokens": 40,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 37,
+        "prompt_ms": 192.073,
+        "prompt_per_token_ms": 5.191162162162162,
+        "prompt_per_second": 192.6350918661134,
+        "predicted_n": 3,
+        "predicted_ms": 127.167,
+        "predicted_per_token_ms": 63.5835,
+        "predicted_per_second": 15.727350649146398
+      }
+    },
+    {
+      "item": "logic_chain",
+      "arm": "deliberate",
+      "expected": "Pia",
+      "response": "Pia",
+      "reasoningContent": "We need answer only name. Simple logic: Nora older than Ivo, Ivo older than Pia => Pia youngest. Final only Pia.\n",
+      "pass": true,
+      "elapsedMs": 1180.7243,
+      "usage": {
+        "completion_tokens": 34,
+        "prompt_tokens": 77,
+        "total_tokens": 111,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 77,
+        "prompt_ms": 311.166,
+        "prompt_per_token_ms": 4.041116883116883,
+        "prompt_per_second": 247.45634163115508,
+        "predicted_n": 34,
+        "predicted_ms": 789.14,
+        "predicted_per_token_ms": 23.913333333333334,
+        "predicted_per_second": 41.81767493727349
+      }
+    },
+    {
+      "item": "modular_arithmetic",
+      "arm": "fast",
+      "expected": "1",
+      "response": "1",
+      "reasoningContent": null,
+      "pass": true,
+      "elapsedMs": 715.5795,
+      "usage": {
+        "completion_tokens": 2,
+        "prompt_tokens": 38,
+        "total_tokens": 40,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 38,
+        "prompt_ms": 574.544,
+        "prompt_per_token_ms": 15.11957894736842,
+        "prompt_per_second": 66.13940794786822,
+        "predicted_n": 2,
+        "predicted_ms": 26.721,
+        "predicted_per_token_ms": 26.721,
+        "predicted_per_second": 37.423749111185955
+      }
+    },
+    {
+      "item": "modular_arithmetic",
+      "arm": "deliberate",
+      "expected": "1",
+      "response": "1",
+      "reasoningContent": "We need answer user: \"What is the remainder when 7 to the power of 4 is divided by 10? Reply with only the integer.\" Need compute 7^4 mod 10. 7^2=49 mod10=9, 7^4=9^2=81 mod10=1. Or 2401 mod10=1. Final only integer. Ensure no extra.\n",
+      "pass": true,
+      "elapsedMs": 3624.3288999999995,
+      "usage": {
+        "completion_tokens": 98,
+        "prompt_tokens": 78,
+        "total_tokens": 176,
+        "prompt_tokens_details": {
+          "cached_tokens": 42
+        }
+      },
+      "timings": {
+        "cache_n": 42,
+        "prompt_n": 36,
+        "prompt_ms": 220.614,
+        "prompt_per_token_ms": 6.128166666666667,
+        "prompt_per_second": 163.18094046615354,
+        "predicted_n": 98,
+        "predicted_ms": 2837.433,
+        "predicted_per_token_ms": 29.251886597938146,
+        "predicted_per_second": 34.18582923367706
+      }
+    }
+  ],
+  "verdict": "DELIBERATE-COST-CONFIRMED",
+  "health": {
+    "status": "ok"
+  },
+  "model": "C:/Users/Carina/workspaces/Cassi/CassiQwen/Qwen3.8-27B-Q4_K_M.gguf",
+  "cost": {
+    "fastCompletionTokens": 5,
+    "deliberateCompletionTokens": 132
+  },
+  "finishedAt": "2026-08-18T09:14:27.825Z"
+}

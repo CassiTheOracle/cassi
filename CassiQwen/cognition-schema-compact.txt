@@ -1,0 +1,6731 @@
+### cassi.qi-flow-action-prediction.v1
+required=['schema', 'prediction_id', 'profile_sha256', 'state_before_sha256', 'boundary_registry_sha256', 'operator_sha256', 'predecessor_step_id', 'horizon', 'candidate_id', 'target_actuator', 'body_frame_id', 'predicted_boundary_deltas', 'score_terms', 'uncertainty', 'no_peek', 'cycle_number', 'prediction_sha256']
+optional=[]
+nullable=[]
+{
+  "body_frame_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "boundary_registry_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "candidate_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "cycle_number": {
+    "maximum": 9007199254740991,
+    "minimum": 0,
+    "type": "integer"
+  },
+  "horizon": {
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "d": {
+        "maximum": 9007199254740991,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "n": {
+        "maximum": 9007199254740991,
+        "minimum": 0,
+        "type": "integer"
+      }
+    },
+    "type": "object"
+  },
+  "no_peek": {
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "candidate_observation_read": {
+        "const": false
+      },
+      "operator_input_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "world_payload_read": {
+        "const": false
+      }
+    },
+    "type": "object"
+  },
+  "operator_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "predecessor_step_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "predicted_boundary_deltas": {
+    "items": {
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "delta_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "interval": {
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite_bits",
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite_bits",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "modality": {
+          "max_length": 256,
+          "min_length": 1,
+          "type": "string"
+        },
+        "port_id": {
+          "max_length": 256,
+          "min_length": 1,
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 4096,
+    "min_items": 0,
+    "type": "array"
+  },
+  "prediction_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "prediction_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "profile_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "schema": {
+    "const": "cassi.qi-flow-action-prediction.v1"
+  },
+  "score_terms": {
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "flow_alignment": {
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite_bits",
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite_bits",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "move_cost": {
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite_bits",
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite_bits",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "observability": {
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite_bits",
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite_bits",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "prediction_error": {
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite_bits",
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite_bits",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "safety": {
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite_bits",
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite_bits",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "total": {
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite_bits",
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite_bits",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "type": "object"
+  },
+  "state_before_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "target_actuator": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "uncertainty": {
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "abstention_margin": {
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite_bits",
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite_bits",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "finite": {
+        "type": "boolean"
+      },
+      "score_interval": {
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite_bits",
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite_bits",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "type": "object"
+  }
+}
+
+### cassi.qi-flow-action-proposal.v1
+required=['schema', 'proposal_id', 'prediction_sha256', 'profile_sha256', 'predecessor_step_id', 'predecessor_head_sha256', 'successor_head_sha256', 'cycle_number', 'candidate_id', 'target_actuator', 'body_frame_id', 'action_sha256', 'action_scope_sha256', 'requested_values', 'port_reaction_sha256', 'score_interval', 'margin_interval', 'decision_status', 'world_effect', 'proposal_sha256']
+optional=[]
+nullable=['action_sha256']
+{
+  "action_scope_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "action_sha256": {},
+  "body_frame_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "candidate_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "cycle_number": {
+    "maximum": 9007199254740991,
+    "minimum": 0,
+    "type": "integer"
+  },
+  "decision_status": {
+    "enum": [
+      "selected",
+      "hold",
+      "abstained"
+    ],
+    "type": "string"
+  },
+  "margin_interval": {
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite_bits",
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite_bits",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "port_reaction_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "predecessor_head_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "predecessor_step_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "prediction_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "profile_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "proposal_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "proposal_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "requested_values": {
+    "items": {
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "channel_id": {
+          "max_length": 256,
+          "min_length": 1,
+          "type": "string"
+        },
+        "value": {
+          "format": "finite_bits",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 4096,
+    "min_items": 0,
+    "type": "array"
+  },
+  "schema": {
+    "const": "cassi.qi-flow-action-proposal.v1"
+  },
+  "score_interval": {
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite_bits",
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite_bits",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "successor_head_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "target_actuator": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "world_effect": {
+    "const": false
+  }
+}
+
+### cassi.qi-flow-motor-port-reaction.v1
+required=['schema', 'reaction_id', 'proposal_sha256', 'profile_sha256', 'predecessor_head_sha256', 'successor_head_sha256', 'target_actuator', 'channel_reactions', 'full_hamiltonian_before_sha256', 'full_hamiltonian_after_sha256', 'work_interval', 'state_after_sha256', 'logical_tick_advance', 'world_effect', 'reaction_status', 'reaction_sha256']
+optional=[]
+nullable=[]
+{
+  "channel_reactions": {
+    "items": {
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "channel_id": {
+          "max_length": 256,
+          "min_length": 1,
+          "type": "string"
+        },
+        "eta_interval": {
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite_bits",
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite_bits",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "requested_value": {
+          "format": "finite_bits",
+          "type": "string"
+        },
+        "sigma": {
+          "format": "finite_bits",
+          "type": "string"
+        },
+        "work_interval": {
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite_bits",
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite_bits",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 4096,
+    "min_items": 0,
+    "type": "array"
+  },
+  "full_hamiltonian_after_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "full_hamiltonian_before_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "logical_tick_advance": {
+    "const": 0
+  },
+  "predecessor_head_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "profile_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "proposal_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "reaction_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "reaction_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "reaction_status": {
+    "enum": [
+      "accepted",
+      "hold"
+    ],
+    "type": "string"
+  },
+  "schema": {
+    "const": "cassi.qi-flow-motor-port-reaction.v1"
+  },
+  "state_after_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "successor_head_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "target_actuator": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "work_interval": {
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite_bits",
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite_bits",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "world_effect": {
+    "const": false
+  }
+}
+
+### cassi.qi-flow-applied-efference.v1
+required=['schema', 'efference_id', 'world_id', 'episode_id', 'session_id', 'cycle_number', 'action_id', 'command_sha256', 'proposal_sha256', 'reaction_sha256', 'committed_prior_head_sha256', 'application_tick', 'first_visible_observation_tick', 'actual_values', 'body_transition', 'terminal_ack_sha256', 'terminal_ack_bytes', 'world_effect', 'consumption_status', 'applied_efference_sha256']
+optional=[]
+nullable=[]
+{
+  "action_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "actual_values": {
+    "items": {
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "channel_id": {
+          "max_length": 256,
+          "min_length": 1,
+          "type": "string"
+        },
+        "value": {
+          "format": "finite_bits",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 4096,
+    "min_items": 0,
+    "type": "array"
+  },
+  "application_tick": {
+    "maximum": 9007199254740991,
+    "minimum": 0,
+    "type": "integer"
+  },
+  "applied_efference_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "body_transition": {
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "after_body_frame_id": {
+        "max_length": 256,
+        "min_length": 1,
+        "type": "string"
+      },
+      "before_body_frame_id": {
+        "max_length": 256,
+        "min_length": 1,
+        "type": "string"
+      },
+      "remap_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "command_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "committed_prior_head_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "consumption_status": {
+    "enum": [
+      "pending",
+      "consumed"
+    ],
+    "type": "string"
+  },
+  "cycle_number": {
+    "maximum": 9007199254740991,
+    "minimum": 0,
+    "type": "integer"
+  },
+  "efference_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "episode_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "first_visible_observation_tick": {
+    "maximum": 9007199254740991,
+    "minimum": 0,
+    "type": "integer"
+  },
+  "proposal_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "reaction_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "schema": {
+    "const": "cassi.qi-flow-applied-efference.v1"
+  },
+  "session_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  },
+  "terminal_ack_bytes": {
+    "format": "base64",
+    "type": "string"
+  },
+  "terminal_ack_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "world_effect": {
+    "const": true
+  },
+  "world_id": {
+    "max_length": 256,
+    "min_length": 1,
+    "type": "string"
+  }
+}
+
+### cassi.qi-flow-action-discriminability.v1
+required=['schema', 'receipt_id', 'profile_sha256', 'state_contract_sha256', 'boundary_action_sha256', 'predecessor_head_sha256', 'candidate_set_sha256', 'decision_horizon', 'observability_horizon', 'baseline_hold_control_sha256', 'paired_world_fixture_sha256', 'candidate_input_digests', 'action_descriptor_sha256', 'offline_observation_response_digests', 'discriminability_interval', 'null_interval', 'causal_margin_interval', 'uncertainty_threshold', 'no_peek_runtime_input_sha256', 'world_authentication', 'terminal_evidence', 'controls', 'consumed_semantic_subhashes', 'self_sha256']
+optional=[]
+nullable=[]
+{
+  "action_descriptor_sha256": {
+    "items": {
+      "format": "sha256",
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "max_items": 64,
+    "min_items": 1,
+    "type": "array"
+  },
+  "baseline_hold_control_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "boundary_action_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "candidate_input_digests": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "action_kind": {
+          "enum": [
+            "candidate",
+            "hold",
+            "null"
+          ],
+          "type": "string"
+        },
+        "input_id": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "input_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "semantic_parent_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 4096,
+    "min_items": 1,
+    "type": "array"
+  },
+  "candidate_set_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "causal_margin_interval": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "consumed_semantic_subhashes": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "name": {
+          "enum": [
+            "state_contract_sha256",
+            "boundary_action_sha256",
+            "world_protocol_sha256",
+            "session_storage_sha256",
+            "provider_api_sha256",
+            "backend_capacity_sha256",
+            "security_evidence_sha256"
+          ],
+          "type": "string"
+        },
+        "sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 7,
+    "min_items": 0,
+    "type": "array"
+  },
+  "controls": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "action_scramble_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "baseline_hold_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "future_world_peek_rejected": {
+        "type": "boolean"
+      },
+      "future_world_peek_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "post_hoc_label_rejected": {
+        "type": "boolean"
+      },
+      "post_hoc_label_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "world_swap_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "decision_horizon": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "den": {
+        "maximum": 1048576,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "num": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "discriminability_interval": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "no_peek_runtime_input_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "null_interval": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "observability_horizon": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "den": {
+        "maximum": 1048576,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "num": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "offline_observation_response_digests": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "commits_at_frontier": {
+          "type": "boolean"
+        },
+        "frontier_id": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "observation_horizon": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "den": {
+              "maximum": 1048576,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "num": {
+              "maximum": 1048576,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "unit": {
+              "enum": [
+                "tick",
+                "second",
+                "microsecond",
+                "item",
+                "joule",
+                "normalized",
+                "radian"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "response_a_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "response_b_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "response_difference_interval": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "unit": {
+              "enum": [
+                "tick",
+                "second",
+                "microsecond",
+                "item",
+                "joule",
+                "normalized",
+                "radian"
+              ],
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "uncertainty_interval": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "unit": {
+              "enum": [
+                "tick",
+                "second",
+                "microsecond",
+                "item",
+                "joule",
+                "normalized",
+                "radian"
+              ],
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "work_normalized_difference_interval": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "unit": {
+              "enum": [
+                "tick",
+                "second",
+                "microsecond",
+                "item",
+                "joule",
+                "normalized",
+                "radian"
+              ],
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "world_a": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "world_b": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 4096,
+    "min_items": 1,
+    "type": "array"
+  },
+  "paired_world_fixture_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "predecessor_head_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "profile_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "receipt_id": {
+    "format": "identifier-v1",
+    "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+    "type": "string"
+  },
+  "schema": {
+    "enum": [
+      "cassi.qi-flow-action-discriminability.v1"
+    ],
+    "type": "string"
+  },
+  "self_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "state_contract_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "terminal_evidence": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "applied_efference_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "post_action_world_effect_interval": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "proposal_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "reaction_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "terminal_state_a_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "terminal_state_b_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "world_effect_observed": {
+        "type": "boolean"
+      }
+    },
+    "type": "object"
+  },
+  "uncertainty_threshold": {
+    "format": "finite-f64-bits",
+    "pattern": "^f64:[0-9a-f]{16}$",
+    "type": "string"
+  },
+  "world_authentication": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "initial_state_a_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "initial_state_b_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "same_initial_prefix": {
+        "type": "boolean"
+      },
+      "shared_prefix_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "world_a": {
+        "format": "identifier-v1",
+        "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "world_b": {
+        "format": "identifier-v1",
+        "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "world_order_permutation_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  }
+}
+
+### cassi.qi-flow-delayed-influence.v1
+required=['schema', 'receipt_id', 'profile_sha256', 'state_contract_sha256', 'boundary_action_sha256', 'source_port_id', 'target_port_id', 'source_packet_sha256', 'action_identity_sha256', 'predecessor_head_sha256', 'delay_horizon', 'ordered_frontier_ids', 'frontiers', 'response_packet_digests', 'ordinary_residual_packet_digests', 'frontier_order_sha256', 'matched_null_control_sha256', 'effect_interval', 'null_interval', 'causal_margin_interval', 'uncertainty_threshold', 'consequence_class', 'persistent_credit_state', 'no_credit_state', 'controls', 'reset_counts_as_acquisition', 'consumed_semantic_subhashes', 'self_sha256']
+optional=[]
+nullable=[]
+{
+  "action_identity_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "boundary_action_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "causal_margin_interval": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "consequence_class": {
+    "enum": [
+      "applied-terminal-world-effect",
+      "offline-frontier-effect"
+    ],
+    "type": "string"
+  },
+  "consumed_semantic_subhashes": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "name": {
+          "enum": [
+            "state_contract_sha256",
+            "boundary_action_sha256",
+            "world_protocol_sha256",
+            "session_storage_sha256",
+            "provider_api_sha256",
+            "backend_capacity_sha256",
+            "security_evidence_sha256"
+          ],
+          "type": "string"
+        },
+        "sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 7,
+    "min_items": 0,
+    "type": "array"
+  },
+  "controls": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "action_scramble_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "future_world_peek_rejected": {
+        "type": "boolean"
+      },
+      "future_world_peek_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "matched_null_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "post_hoc_label_rejected": {
+        "type": "boolean"
+      },
+      "post_hoc_label_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "world_swap_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "delay_horizon": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "den": {
+        "maximum": 1048576,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "num": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "effect_interval": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "frontier_order_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "frontiers": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "applied_efference_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "causal_parent_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "delay": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "den": {
+              "maximum": 1048576,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "num": {
+              "maximum": 1048576,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "unit": {
+              "enum": [
+                "tick",
+                "second",
+                "microsecond",
+                "item",
+                "joule",
+                "normalized",
+                "radian"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "episode_id": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "frontier_id": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "frontier_tick": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "den": {
+              "maximum": 1048576,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "num": {
+              "maximum": 1048576,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "unit": {
+              "enum": [
+                "tick",
+                "second",
+                "microsecond",
+                "item",
+                "joule",
+                "normalized",
+                "radian"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "influence_interval": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "unit": {
+              "enum": [
+                "tick",
+                "second",
+                "microsecond",
+                "item",
+                "joule",
+                "normalized",
+                "radian"
+              ],
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "observation_packet_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "port_id": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "reduction_interval": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "unit": {
+              "enum": [
+                "tick",
+                "second",
+                "microsecond",
+                "item",
+                "joule",
+                "normalized",
+                "radian"
+              ],
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "residual_packet_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "unresolved",
+            "rejected"
+          ],
+          "type": "string"
+        },
+        "uncertainty_interval": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "unit": {
+              "enum": [
+                "tick",
+                "second",
+                "microsecond",
+                "item",
+                "joule",
+                "normalized",
+                "radian"
+              ],
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "work_interval": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "sign": {
+              "enum": [
+                "nonnegative"
+              ],
+              "type": "string"
+            },
+            "unit": {
+              "enum": [
+                "joule",
+                "normalized"
+              ],
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "world_id": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 4096,
+    "min_items": 1,
+    "type": "array"
+  },
+  "matched_null_control_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "no_credit_state": {
+    "enum": [
+      true
+    ],
+    "type": "boolean"
+  },
+  "null_interval": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "ordered_frontier_ids": {
+    "items": {
+      "format": "identifier-v1",
+      "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+      "type": "string"
+    },
+    "max_items": 4096,
+    "min_items": 1,
+    "type": "array"
+  },
+  "ordinary_residual_packet_digests": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "frontier_id": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "packet_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 4096,
+    "min_items": 1,
+    "type": "array"
+  },
+  "persistent_credit_state": {
+    "enum": [
+      false
+    ],
+    "type": "boolean"
+  },
+  "predecessor_head_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "profile_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "receipt_id": {
+    "format": "identifier-v1",
+    "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+    "type": "string"
+  },
+  "reset_counts_as_acquisition": {
+    "enum": [
+      false
+    ],
+    "type": "boolean"
+  },
+  "response_packet_digests": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "frontier_id": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "packet_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 4096,
+    "min_items": 1,
+    "type": "array"
+  },
+  "schema": {
+    "enum": [
+      "cassi.qi-flow-delayed-influence.v1"
+    ],
+    "type": "string"
+  },
+  "self_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "source_packet_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "source_port_id": {
+    "format": "identifier-v1",
+    "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+    "type": "string"
+  },
+  "state_contract_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "target_port_id": {
+    "format": "identifier-v1",
+    "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+    "type": "string"
+  },
+  "uncertainty_threshold": {
+    "format": "finite-f64-bits",
+    "pattern": "^f64:[0-9a-f]{16}$",
+    "type": "string"
+  }
+}
+
+### cassi.qi-flow-forgetting.v1
+required=['schema', 'receipt_id', 'profile_sha256', 'state_contract_sha256', 'backend_capacity_sha256', 'retention_class', 'retention_mode', 'initial_state_sha256', 'controller_grammar_sha256', 'physical_horizon', 'advance_schedule_sha256', 'trajectory_set_sha256', 'trajectory_ids', 'incident_source_work_budget', 'forget_targets', 'washout_schedule', 'controls', 'recovery_policy', 'capacity_before_after', 'topology_witnesses', 'reset_counts_as_acquisition', 'no_reset_required', 'consumed_semantic_subhashes', 'self_sha256']
+optional=[]
+nullable=[]
+{
+  "advance_schedule_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "backend_capacity_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "capacity_before_after": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "after": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "geometric": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "observable": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "reachable": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "retained": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "reusable": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "usable": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "before": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "geometric": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "observable": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "reachable": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "retained": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "reusable": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "usable": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "type": "object"
+  },
+  "consumed_semantic_subhashes": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "name": {
+          "enum": [
+            "state_contract_sha256",
+            "boundary_action_sha256",
+            "world_protocol_sha256",
+            "session_storage_sha256",
+            "provider_api_sha256",
+            "backend_capacity_sha256",
+            "security_evidence_sha256"
+          ],
+          "type": "string"
+        },
+        "sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 7,
+    "min_items": 0,
+    "type": "array"
+  },
+  "controller_grammar_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "controls": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "matched_work_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "no_reset_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "phase_scramble_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "saturation_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "unreachable_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "wrong_cue_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "forget_targets": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [
+        "reacquisition_endpoint_sha256"
+      ],
+      "optional_keys": [],
+      "properties": {
+        "collateral_descriptor_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "collateral_preservation_interval": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "unit": {
+              "enum": [
+                "tick",
+                "second",
+                "microsecond",
+                "item",
+                "joule",
+                "normalized",
+                "radian"
+              ],
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "forgetting_witness_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "perturbation_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "positive_source_work_interval": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "sign": {
+              "enum": [
+                "nonnegative"
+              ],
+              "type": "string"
+            },
+            "unit": {
+              "enum": [
+                "joule",
+                "normalized"
+              ],
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "post_forgetting_endpoint_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "pre_forgetting_endpoint_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "reacquisition_endpoint_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "reacquisition_status": {
+          "enum": [
+            "reacquired",
+            "not_reacquired",
+            "rejected"
+          ],
+          "type": "string"
+        },
+        "reset_counts_as_acquisition": {
+          "enum": [
+            false
+          ],
+          "type": "boolean"
+        },
+        "reset_used": {
+          "type": "boolean"
+        },
+        "retained_label_interval": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "unit": {
+              "enum": [
+                "tick",
+                "second",
+                "microsecond",
+                "item",
+                "joule",
+                "normalized",
+                "radian"
+              ],
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "target_descriptor_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "target_id": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "target_loss_interval": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "unit": {
+              "enum": [
+                "tick",
+                "second",
+                "microsecond",
+                "item",
+                "joule",
+                "normalized",
+                "radian"
+              ],
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "washout_endpoint_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 4096,
+    "min_items": 1,
+    "type": "array"
+  },
+  "incident_source_work_budget": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "sign": {
+        "enum": [
+          "nonnegative"
+        ],
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "joule",
+          "normalized"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "initial_state_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "no_reset_required": {
+    "enum": [
+      true
+    ],
+    "type": "boolean"
+  },
+  "physical_horizon": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "den": {
+        "maximum": 1048576,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "num": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "profile_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "receipt_id": {
+    "format": "identifier-v1",
+    "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+    "type": "string"
+  },
+  "recovery_policy": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "acquisition_requires_nonreset_trajectory": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "acquisition_requires_positive_source_work": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "heldout_reproduction_required": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "minimum_recovery_margin": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "policy_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "reset_never_credited": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      }
+    },
+    "type": "object"
+  },
+  "reset_counts_as_acquisition": {
+    "enum": [
+      false
+    ],
+    "type": "boolean"
+  },
+  "retention_class": {
+    "enum": [
+      "reciprocal-hamiltonian-topology"
+    ],
+    "type": "string"
+  },
+  "retention_mode": {
+    "enum": [
+      "topological-v1"
+    ],
+    "type": "string"
+  },
+  "schema": {
+    "enum": [
+      "cassi.qi-flow-forgetting.v1"
+    ],
+    "type": "string"
+  },
+  "self_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "state_contract_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "topology_witnesses": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "codebook_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "cycle_winding_witness": {
+          "items": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "type": "object"
+          },
+          "max_items": 4096,
+          "min_items": 2,
+          "type": "array"
+        },
+        "edge_phase_raw_intervals": {
+          "items": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "type": "object"
+          },
+          "max_items": 4096,
+          "min_items": 1,
+          "type": "array"
+        },
+        "edge_registry_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "endpoint_amplitude_witness": {
+          "items": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "type": "object"
+          },
+          "max_items": 4096,
+          "min_items": 1,
+          "type": "array"
+        },
+        "endpoint_branch_witness": {
+          "items": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "type": "object"
+          },
+          "max_items": 4096,
+          "min_items": 1,
+          "type": "array"
+        },
+        "endpoint_state_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "grid_shape": {
+          "items": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "max_items": 2,
+          "min_items": 2,
+          "type": "array"
+        },
+        "minimum_amplitude_lower_bound": {
+          "format": "finite-f64-bits",
+          "pattern": "^f64:[0-9a-f]{16}$",
+          "type": "string"
+        },
+        "minimum_branch_margin_lower_bound": {
+          "format": "finite-f64-bits",
+          "pattern": "^f64:[0-9a-f]{16}$",
+          "type": "string"
+        },
+        "pass": {
+          "type": "boolean"
+        },
+        "plaquette_witness": {
+          "items": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "type": "object"
+          },
+          "max_items": 4096,
+          "min_items": 1,
+          "type": "array"
+        },
+        "raw_witness_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "sector_transport_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "sector_vector": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "cycle_x": {
+              "items": {
+                "maximum": 1048576,
+                "minimum": -1048576,
+                "type": "integer"
+              },
+              "max_items": 4096,
+              "min_items": 1,
+              "type": "array"
+            },
+            "cycle_y": {
+              "items": {
+                "maximum": 1048576,
+                "minimum": -1048576,
+                "type": "integer"
+              },
+              "max_items": 4096,
+              "min_items": 1,
+              "type": "array"
+            },
+            "plaquette": {
+              "items": {
+                "maximum": 1048576,
+                "minimum": -1048576,
+                "type": "integer"
+              },
+              "max_items": 4096,
+              "min_items": 1,
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "slow_scale": {
+          "format": "finite-f64-bits",
+          "pattern": "^f64:[0-9a-f]{16}$",
+          "type": "string"
+        },
+        "torus_algebra_witness": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "integer_closure": {
+              "type": "boolean"
+            },
+            "max_residual_upper_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "total_plaquette_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "x_cycle_residual_intervals": {
+              "items": {
+                "additional_properties": false,
+                "nullable_keys": [],
+                "optional_keys": [],
+                "type": "object"
+              },
+              "max_items": 4096,
+              "min_items": 1,
+              "type": "array"
+            },
+            "y_cycle_residual_intervals": {
+              "items": {
+                "additional_properties": false,
+                "nullable_keys": [],
+                "optional_keys": [],
+                "type": "object"
+              },
+              "max_items": 4096,
+              "min_items": 1,
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "witness_id": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 4096,
+    "min_items": 2,
+    "type": "array"
+  },
+  "trajectory_ids": {
+    "items": {
+      "format": "identifier-v1",
+      "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+      "type": "string"
+    },
+    "max_items": 4096,
+    "min_items": 1,
+    "type": "array"
+  },
+  "trajectory_set_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "washout_schedule": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "probe_delay": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "den": {
+            "maximum": 1048576,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "num": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "reset_after_episode": {
+        "type": "boolean"
+      },
+      "schedule_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "warmup_ticks": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "washout_ticks": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      }
+    },
+    "type": "object"
+  }
+}
+
+### cassi.qi-flow-retention-phase-slip.v1
+required=['schema', 'receipt_id', 'profile_sha256', 'state_contract_sha256', 'boundary_action_sha256', 'backend_capacity_sha256', 'retention_class', 'retention_mode', 'transition_kind', 'predecessor_head_sha256', 'candidate_head_sha256', 'pre_state_sha256', 'post_state_sha256', 'controller_grammar_sha256', 'execution_schedule_sha256', 'clock_start', 'clock_end', 'positive_clock_duration', 'source_work_interval', 'work_partition', 'barrier_interval', 'barrier_thresholds', 'barrier_margin_interval', 'residence_interval', 'causal_return_sha256', 'old_sector_vector', 'new_sector_vector', 'topology_before', 'topology_after', 'topology_transport', 'controls', 'reset_counts_as_acquisition', 'phase_slip_eligibility', 'consumed_semantic_subhashes', 'self_sha256']
+optional=[]
+nullable=[]
+{
+  "backend_capacity_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "barrier_interval": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "barrier_margin_interval": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "barrier_thresholds": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "amplitude_lower_bound": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "barrier_lower_bound": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "branch_margin_lower_bound": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "closure_residual_upper_bound": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "threshold_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "boundary_action_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "candidate_head_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "causal_return_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "clock_end": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "den": {
+        "maximum": 1048576,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "num": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "clock_start": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "den": {
+        "maximum": 1048576,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "num": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "consumed_semantic_subhashes": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "name": {
+          "enum": [
+            "state_contract_sha256",
+            "boundary_action_sha256",
+            "world_protocol_sha256",
+            "session_storage_sha256",
+            "provider_api_sha256",
+            "backend_capacity_sha256",
+            "security_evidence_sha256"
+          ],
+          "type": "string"
+        },
+        "sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 7,
+    "min_items": 0,
+    "type": "array"
+  },
+  "controller_grammar_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "controls": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "amplitude_violation_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "below_barrier_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "branch_violation_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "matched_energy_opposite_current_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "phase_scrambled_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "reset_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "execution_schedule_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "new_sector_vector": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "cycle_x": {
+        "items": {
+          "maximum": 1048576,
+          "minimum": -1048576,
+          "type": "integer"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "cycle_y": {
+        "items": {
+          "maximum": 1048576,
+          "minimum": -1048576,
+          "type": "integer"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "plaquette": {
+        "items": {
+          "maximum": 1048576,
+          "minimum": -1048576,
+          "type": "integer"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      }
+    },
+    "type": "object"
+  },
+  "old_sector_vector": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "cycle_x": {
+        "items": {
+          "maximum": 1048576,
+          "minimum": -1048576,
+          "type": "integer"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "cycle_y": {
+        "items": {
+          "maximum": 1048576,
+          "minimum": -1048576,
+          "type": "integer"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "plaquette": {
+        "items": {
+          "maximum": 1048576,
+          "minimum": -1048576,
+          "type": "integer"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      }
+    },
+    "type": "object"
+  },
+  "phase_slip_eligibility": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "acquisition_credit": {
+        "enum": [
+          false
+        ],
+        "type": "boolean"
+      },
+      "barrier_lower_exceeds_threshold": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "positive_clock_duration": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "raw_topology_witness_pass": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "reset_excluded": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "sector_vector_changed": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      }
+    },
+    "type": "object"
+  },
+  "positive_clock_duration": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "den": {
+        "maximum": 1048576,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "num": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "post_state_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "pre_state_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "predecessor_head_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "profile_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "receipt_id": {
+    "format": "identifier-v1",
+    "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+    "type": "string"
+  },
+  "reset_counts_as_acquisition": {
+    "enum": [
+      false
+    ],
+    "type": "boolean"
+  },
+  "residence_interval": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "den": {
+        "maximum": 1048576,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "num": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "retention_class": {
+    "enum": [
+      "reciprocal-hamiltonian-topology"
+    ],
+    "type": "string"
+  },
+  "retention_mode": {
+    "enum": [
+      "topological-v1"
+    ],
+    "type": "string"
+  },
+  "schema": {
+    "enum": [
+      "cassi.qi-flow-retention-phase-slip.v1"
+    ],
+    "type": "string"
+  },
+  "self_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "source_work_interval": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "sign": {
+        "enum": [
+          "nonnegative"
+        ],
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "joule",
+          "normalized"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "state_contract_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "topology_after": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "codebook_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "cycle_winding_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "axis": {
+              "enum": [
+                "x",
+                "y"
+              ],
+              "type": "string"
+            },
+            "index": {
+              "maximum": 1048576,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "integer_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "raw_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "rounded_integer": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 2,
+        "type": "array"
+      },
+      "edge_phase_raw_intervals": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "branch_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "edge_id": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "raw_phase_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "uncertainty_half_width": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "edge_registry_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "endpoint_amplitude_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "psi_modulus_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "site_id": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "threshold": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "uncertainty_radius": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "endpoint_branch_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "branch_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "delta_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "edge_id": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "uncertainty_half_width": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "endpoint_state_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "grid_shape": {
+        "items": {
+          "maximum": 1048576,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_items": 2,
+        "min_items": 2,
+        "type": "array"
+      },
+      "minimum_amplitude_lower_bound": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "minimum_branch_margin_lower_bound": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "pass": {
+        "type": "boolean"
+      },
+      "plaquette_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "integer_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "origin": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "raw_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "rounded_integer": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "raw_witness_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "sector_transport_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "sector_vector": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "cycle_x": {
+            "items": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          },
+          "cycle_y": {
+            "items": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          },
+          "plaquette": {
+            "items": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "slow_scale": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "torus_algebra_witness": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "integer_closure": {
+            "type": "boolean"
+          },
+          "max_residual_upper_bound": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "pass": {
+            "type": "boolean"
+          },
+          "total_plaquette_interval": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "properties": {
+              "lower": {
+                "format": "finite-f64-bits",
+                "pattern": "^f64:[0-9a-f]{16}$",
+                "type": "string"
+              },
+              "unit": {
+                "enum": [
+                  "tick",
+                  "second",
+                  "microsecond",
+                  "item",
+                  "joule",
+                  "normalized",
+                  "radian"
+                ],
+                "type": "string"
+              },
+              "upper": {
+                "format": "finite-f64-bits",
+                "pattern": "^f64:[0-9a-f]{16}$",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "x_cycle_residual_intervals": {
+            "items": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          },
+          "y_cycle_residual_intervals": {
+            "items": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "witness_id": {
+        "format": "identifier-v1",
+        "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "topology_before": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "codebook_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "cycle_winding_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "axis": {
+              "enum": [
+                "x",
+                "y"
+              ],
+              "type": "string"
+            },
+            "index": {
+              "maximum": 1048576,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "integer_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "raw_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "rounded_integer": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 2,
+        "type": "array"
+      },
+      "edge_phase_raw_intervals": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "branch_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "edge_id": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "raw_phase_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "uncertainty_half_width": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "edge_registry_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "endpoint_amplitude_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "psi_modulus_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "site_id": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "threshold": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "uncertainty_radius": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "endpoint_branch_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "branch_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "delta_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "edge_id": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "uncertainty_half_width": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "endpoint_state_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "grid_shape": {
+        "items": {
+          "maximum": 1048576,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_items": 2,
+        "min_items": 2,
+        "type": "array"
+      },
+      "minimum_amplitude_lower_bound": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "minimum_branch_margin_lower_bound": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "pass": {
+        "type": "boolean"
+      },
+      "plaquette_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "integer_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "origin": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "raw_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "rounded_integer": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "raw_witness_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "sector_transport_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "sector_vector": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "cycle_x": {
+            "items": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          },
+          "cycle_y": {
+            "items": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          },
+          "plaquette": {
+            "items": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "slow_scale": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "torus_algebra_witness": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "integer_closure": {
+            "type": "boolean"
+          },
+          "max_residual_upper_bound": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "pass": {
+            "type": "boolean"
+          },
+          "total_plaquette_interval": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "properties": {
+              "lower": {
+                "format": "finite-f64-bits",
+                "pattern": "^f64:[0-9a-f]{16}$",
+                "type": "string"
+              },
+              "unit": {
+                "enum": [
+                  "tick",
+                  "second",
+                  "microsecond",
+                  "item",
+                  "joule",
+                  "normalized",
+                  "radian"
+                ],
+                "type": "string"
+              },
+              "upper": {
+                "format": "finite-f64-bits",
+                "pattern": "^f64:[0-9a-f]{16}$",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "x_cycle_residual_intervals": {
+            "items": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          },
+          "y_cycle_residual_intervals": {
+            "items": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "witness_id": {
+        "format": "identifier-v1",
+        "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "topology_transport": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "closure_pass": {
+        "type": "boolean"
+      },
+      "inverse_map_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "map_kind": {
+        "enum": [
+          "nearest-sector-then-codebook"
+        ],
+        "type": "string"
+      },
+      "map_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "source_sector_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "target_sector_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "transition_kind": {
+    "enum": [
+      "timed-phase-slip"
+    ],
+    "type": "string"
+  },
+  "work_partition": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "absorbed": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "sign": {
+            "enum": [
+              "nonnegative"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "joule",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "admitted": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "sign": {
+            "enum": [
+              "nonnegative"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "joule",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "closure_residual": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "sign": {
+            "enum": [
+              "signed"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "joule",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "conversion": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "sign": {
+            "enum": [
+              "signed"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "joule",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "damping_dissipation": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "sign": {
+            "enum": [
+              "nonnegative"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "joule",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "incident": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "sign": {
+            "enum": [
+              "nonnegative"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "joule",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "port_reaction": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "sign": {
+            "enum": [
+              "nonnegative"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "joule",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "reflected": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "sign": {
+            "enum": [
+              "nonnegative"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "joule",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "residual": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "sign": {
+            "enum": [
+              "signed"
+            ],
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "joule",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "type": "object"
+  }
+}
+
+### cassi.qi-flow-retention-reset.v1
+required=['schema', 'receipt_id', 'profile_sha256', 'state_contract_sha256', 'boundary_action_sha256', 'backend_capacity_sha256', 'security_evidence_sha256', 'retention_class', 'retention_mode', 'transition_kind', 'status', 'clock_increment', 'predecessor_head_sha256', 'successor_head_sha256', 'authorization', 'pre_state_sha256', 'post_state_sha256', 'reset_target', 'work_reset', 'charge_impulse', 'hamiltonian_before', 'hamiltonian_after', 'topology_before', 'topology_after', 'atomicity', 'controls', 'reset_counts_as_acquisition', 'reset_counts_as_forgetting', 'reset_counts_as_recovery', 'acquisition_exclusion', 'abort_reason', 'consumed_semantic_subhashes', 'self_sha256']
+optional=[]
+nullable=['abort_reason']
+{
+  "abort_reason": {
+    "enum": [
+      "not_applicable",
+      "authorization_failed",
+      "predecessor_mismatch",
+      "guard_failed"
+    ],
+    "type": "string"
+  },
+  "acquisition_exclusion": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "failed_reset_credit": {
+        "enum": [
+          false
+        ],
+        "type": "boolean"
+      },
+      "ordinary_step_required": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "reset_credit": {
+        "enum": [
+          false
+        ],
+        "type": "boolean"
+      },
+      "rule_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "zero_clock_credit": {
+        "enum": [
+          false
+        ],
+        "type": "boolean"
+      }
+    },
+    "type": "object"
+  },
+  "atomicity": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "acquisition_credit_zero": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "apply_once": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "clock_increment_verified": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "failure_preserves_predecessor": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "preflight_checked": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      }
+    },
+    "type": "object"
+  },
+  "authorization": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "auth_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "expected_session_head_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "expires_tick": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "issued_tick": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "operator_id": {
+        "format": "identifier-v1",
+        "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "reason": {
+        "format": "identifier-v1",
+        "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "request_id": {
+        "format": "identifier-v1",
+        "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "backend_capacity_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "boundary_action_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "charge_impulse": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "clock_increment": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "den": {
+        "maximum": 1048576,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "num": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "consumed_semantic_subhashes": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "name": {
+          "enum": [
+            "state_contract_sha256",
+            "boundary_action_sha256",
+            "world_protocol_sha256",
+            "session_storage_sha256",
+            "provider_api_sha256",
+            "backend_capacity_sha256",
+            "security_evidence_sha256"
+          ],
+          "type": "string"
+        },
+        "sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 7,
+    "min_items": 0,
+    "type": "array"
+  },
+  "controls": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "failure_recovery_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "ordinary_step_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "profile_mismatch_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "reset_replay_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "startup_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "unauthenticated_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "hamiltonian_after": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "coupling": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "damping": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "gradient": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "kinetic": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "potential": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "total": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "type": "object"
+  },
+  "hamiltonian_before": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "coupling": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "damping": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "gradient": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "kinetic": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "potential": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "total": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "tick",
+              "second",
+              "microsecond",
+              "item",
+              "joule",
+              "normalized",
+              "radian"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "type": "object"
+  },
+  "post_state_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "pre_state_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "predecessor_head_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "profile_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "receipt_id": {
+    "format": "identifier-v1",
+    "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+    "type": "string"
+  },
+  "reset_counts_as_acquisition": {
+    "enum": [
+      false
+    ],
+    "type": "boolean"
+  },
+  "reset_counts_as_forgetting": {
+    "enum": [
+      false
+    ],
+    "type": "boolean"
+  },
+  "reset_counts_as_recovery": {
+    "enum": [
+      false
+    ],
+    "type": "boolean"
+  },
+  "reset_target": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "branch_guard_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "chi_preserved": {
+        "type": "boolean"
+      },
+      "psi_modulus_target": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "theta_reference": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "topology_guard_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "velocity_target": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "retention_class": {
+    "enum": [
+      "reciprocal-hamiltonian-topology"
+    ],
+    "type": "string"
+  },
+  "retention_mode": {
+    "enum": [
+      "topological-v1"
+    ],
+    "type": "string"
+  },
+  "schema": {
+    "enum": [
+      "cassi.qi-flow-retention-reset.v1"
+    ],
+    "type": "string"
+  },
+  "security_evidence_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "self_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "state_contract_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "status": {
+    "enum": [
+      "applied",
+      "rejected"
+    ],
+    "type": "string"
+  },
+  "successor_head_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "topology_after": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "codebook_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "cycle_winding_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "axis": {
+              "enum": [
+                "x",
+                "y"
+              ],
+              "type": "string"
+            },
+            "index": {
+              "maximum": 1048576,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "integer_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "raw_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "rounded_integer": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 2,
+        "type": "array"
+      },
+      "edge_phase_raw_intervals": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "branch_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "edge_id": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "raw_phase_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "uncertainty_half_width": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "edge_registry_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "endpoint_amplitude_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "psi_modulus_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "site_id": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "threshold": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "uncertainty_radius": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "endpoint_branch_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "branch_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "delta_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "edge_id": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "uncertainty_half_width": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "endpoint_state_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "grid_shape": {
+        "items": {
+          "maximum": 1048576,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_items": 2,
+        "min_items": 2,
+        "type": "array"
+      },
+      "minimum_amplitude_lower_bound": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "minimum_branch_margin_lower_bound": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "pass": {
+        "type": "boolean"
+      },
+      "plaquette_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "integer_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "origin": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "raw_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "rounded_integer": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "raw_witness_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "sector_transport_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "sector_vector": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "cycle_x": {
+            "items": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          },
+          "cycle_y": {
+            "items": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          },
+          "plaquette": {
+            "items": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "slow_scale": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "torus_algebra_witness": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "integer_closure": {
+            "type": "boolean"
+          },
+          "max_residual_upper_bound": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "pass": {
+            "type": "boolean"
+          },
+          "total_plaquette_interval": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "properties": {
+              "lower": {
+                "format": "finite-f64-bits",
+                "pattern": "^f64:[0-9a-f]{16}$",
+                "type": "string"
+              },
+              "unit": {
+                "enum": [
+                  "tick",
+                  "second",
+                  "microsecond",
+                  "item",
+                  "joule",
+                  "normalized",
+                  "radian"
+                ],
+                "type": "string"
+              },
+              "upper": {
+                "format": "finite-f64-bits",
+                "pattern": "^f64:[0-9a-f]{16}$",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "x_cycle_residual_intervals": {
+            "items": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          },
+          "y_cycle_residual_intervals": {
+            "items": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "witness_id": {
+        "format": "identifier-v1",
+        "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "topology_before": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "codebook_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "cycle_winding_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "axis": {
+              "enum": [
+                "x",
+                "y"
+              ],
+              "type": "string"
+            },
+            "index": {
+              "maximum": 1048576,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "integer_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "raw_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "rounded_integer": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 2,
+        "type": "array"
+      },
+      "edge_phase_raw_intervals": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "branch_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "edge_id": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "raw_phase_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "uncertainty_half_width": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "edge_registry_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "endpoint_amplitude_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "psi_modulus_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "site_id": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "threshold": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "uncertainty_radius": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "endpoint_branch_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "branch_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "delta_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "edge_id": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "uncertainty_half_width": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "endpoint_state_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "grid_shape": {
+        "items": {
+          "maximum": 1048576,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_items": 2,
+        "min_items": 2,
+        "type": "array"
+      },
+      "minimum_amplitude_lower_bound": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "minimum_branch_margin_lower_bound": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "pass": {
+        "type": "boolean"
+      },
+      "plaquette_witness": {
+        "items": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "integer_margin_lower_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "origin": {
+              "format": "identifier-v1",
+              "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "raw_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "rounded_integer": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "max_items": 4096,
+        "min_items": 1,
+        "type": "array"
+      },
+      "raw_witness_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "sector_transport_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "sector_vector": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "cycle_x": {
+            "items": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          },
+          "cycle_y": {
+            "items": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          },
+          "plaquette": {
+            "items": {
+              "maximum": 1048576,
+              "minimum": -1048576,
+              "type": "integer"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "slow_scale": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "torus_algebra_witness": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "integer_closure": {
+            "type": "boolean"
+          },
+          "max_residual_upper_bound": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "pass": {
+            "type": "boolean"
+          },
+          "total_plaquette_interval": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "properties": {
+              "lower": {
+                "format": "finite-f64-bits",
+                "pattern": "^f64:[0-9a-f]{16}$",
+                "type": "string"
+              },
+              "unit": {
+                "enum": [
+                  "tick",
+                  "second",
+                  "microsecond",
+                  "item",
+                  "joule",
+                  "normalized",
+                  "radian"
+                ],
+                "type": "string"
+              },
+              "upper": {
+                "format": "finite-f64-bits",
+                "pattern": "^f64:[0-9a-f]{16}$",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "x_cycle_residual_intervals": {
+            "items": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          },
+          "y_cycle_residual_intervals": {
+            "items": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "max_items": 4096,
+            "min_items": 1,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "witness_id": {
+        "format": "identifier-v1",
+        "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "transition_kind": {
+    "enum": [
+      "retention-reset"
+    ],
+    "type": "string"
+  },
+  "work_reset": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "sign": {
+        "enum": [
+          "signed"
+        ],
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "joule",
+          "normalized"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  }
+}
+
+### cassi.qi-flow-capacity-ladder.v1
+required=['schema', 'receipt_id', 'profile_sha256', 'state_contract_sha256', 'backend_capacity_sha256', 'initial_state_sha256', 'controller_grammar_sha256', 'physical_horizon', 'trajectory_set_sha256', 'trajectory_ids', 'work_budget', 'ladder_order', 'capacity_levels', 'capacity_intervals', 'reachability_witnesses', 'reset_control_sha256', 'saturation_control_sha256', 'overwrite_control_sha256', 'washout_recovery_schedule_sha256', 'topology_codebook_sha256', 'topology_witnesses', 'barrier_interval', 'closure_residual', 'reset_counts_as_acquisition', 'acquisition_eligibility', 'consumed_semantic_subhashes', 'self_sha256']
+optional=[]
+nullable=[]
+{
+  "acquisition_eligibility": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "eligibility_sha256": {
+        "format": "sha256",
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "minimum_source_work_lower_bound": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "ordinary_step_required": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "reset_counted_as_acquisition": {
+        "enum": [
+          false
+        ],
+        "type": "boolean"
+      },
+      "reset_excluded": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "successful_reproduction_required": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      },
+      "zero_clock_transition_excluded": {
+        "enum": [
+          true
+        ],
+        "type": "boolean"
+      }
+    },
+    "type": "object"
+  },
+  "backend_capacity_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "barrier_interval": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "capacity_intervals": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "geometric": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "uncertainty_radius": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "item",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "observable": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "uncertainty_radius": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "item",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "reachable": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "uncertainty_radius": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "item",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "retained": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "uncertainty_radius": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "item",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "reusable": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "uncertainty_radius": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "item",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "usable": {
+        "additional_properties": false,
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "lower": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "uncertainty_radius": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "item",
+              "normalized"
+            ],
+            "type": "string"
+          },
+          "upper": {
+            "format": "finite-f64-bits",
+            "pattern": "^f64:[0-9a-f]{16}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "type": "object"
+  },
+  "capacity_levels": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "geometric": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "observable": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "reachable": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "retained": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "reusable": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "usable": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      }
+    },
+    "type": "object"
+  },
+  "closure_residual": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "sign": {
+        "enum": [
+          "signed"
+        ],
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "joule",
+          "normalized"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "consumed_semantic_subhashes": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "name": {
+          "enum": [
+            "state_contract_sha256",
+            "boundary_action_sha256",
+            "world_protocol_sha256",
+            "session_storage_sha256",
+            "provider_api_sha256",
+            "backend_capacity_sha256",
+            "security_evidence_sha256"
+          ],
+          "type": "string"
+        },
+        "sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 7,
+    "min_items": 0,
+    "type": "array"
+  },
+  "controller_grammar_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "initial_state_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "ladder_order": {
+    "items": {
+      "enum": [
+        "geometric",
+        "reachable",
+        "observable",
+        "usable",
+        "retained",
+        "reusable"
+      ],
+      "type": "string"
+    },
+    "max_items": 6,
+    "min_items": 6,
+    "type": "array"
+  },
+  "overwrite_control_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "physical_horizon": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "den": {
+        "maximum": 1048576,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "num": {
+        "maximum": 1048576,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "unit": {
+        "enum": [
+          "tick",
+          "second",
+          "microsecond",
+          "item",
+          "joule",
+          "normalized",
+          "radian"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "profile_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "reachability_witnesses": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "advance_count": {
+          "maximum": 1048576,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "candidate_head_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "endpoint_admitted": {
+          "type": "boolean"
+        },
+        "endpoint_head_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "predecessor_head_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "source_work": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "lower": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "sign": {
+              "enum": [
+                "nonnegative"
+              ],
+              "type": "string"
+            },
+            "unit": {
+              "enum": [
+                "joule",
+                "normalized"
+              ],
+              "type": "string"
+            },
+            "upper": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "strict_improvement": {
+          "type": "boolean"
+        },
+        "trajectory_id": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        "work_partition": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "absorbed": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "admitted": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "closure_residual": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "conversion": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "damping_dissipation": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "incident": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "port_reaction": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "reflected": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "residual": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "zero_clock_transport_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 4096,
+    "min_items": 1,
+    "type": "array"
+  },
+  "receipt_id": {
+    "format": "identifier-v1",
+    "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+    "type": "string"
+  },
+  "reset_control_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "reset_counts_as_acquisition": {
+    "enum": [
+      false
+    ],
+    "type": "boolean"
+  },
+  "saturation_control_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "schema": {
+    "enum": [
+      "cassi.qi-flow-capacity-ladder.v1"
+    ],
+    "type": "string"
+  },
+  "self_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "state_contract_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "topology_codebook_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "topology_witnesses": {
+    "items": {
+      "additional_properties": false,
+      "nullable_keys": [],
+      "optional_keys": [],
+      "properties": {
+        "codebook_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "cycle_winding_witness": {
+          "items": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "type": "object"
+          },
+          "max_items": 4096,
+          "min_items": 2,
+          "type": "array"
+        },
+        "edge_phase_raw_intervals": {
+          "items": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "type": "object"
+          },
+          "max_items": 4096,
+          "min_items": 1,
+          "type": "array"
+        },
+        "edge_registry_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "endpoint_amplitude_witness": {
+          "items": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "type": "object"
+          },
+          "max_items": 4096,
+          "min_items": 1,
+          "type": "array"
+        },
+        "endpoint_branch_witness": {
+          "items": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "type": "object"
+          },
+          "max_items": 4096,
+          "min_items": 1,
+          "type": "array"
+        },
+        "endpoint_state_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "grid_shape": {
+          "items": {
+            "maximum": 1048576,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "max_items": 2,
+          "min_items": 2,
+          "type": "array"
+        },
+        "minimum_amplitude_lower_bound": {
+          "format": "finite-f64-bits",
+          "pattern": "^f64:[0-9a-f]{16}$",
+          "type": "string"
+        },
+        "minimum_branch_margin_lower_bound": {
+          "format": "finite-f64-bits",
+          "pattern": "^f64:[0-9a-f]{16}$",
+          "type": "string"
+        },
+        "pass": {
+          "type": "boolean"
+        },
+        "plaquette_witness": {
+          "items": {
+            "additional_properties": false,
+            "nullable_keys": [],
+            "optional_keys": [],
+            "type": "object"
+          },
+          "max_items": 4096,
+          "min_items": 1,
+          "type": "array"
+        },
+        "raw_witness_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "sector_transport_sha256": {
+          "format": "sha256",
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "sector_vector": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "cycle_x": {
+              "items": {
+                "maximum": 1048576,
+                "minimum": -1048576,
+                "type": "integer"
+              },
+              "max_items": 4096,
+              "min_items": 1,
+              "type": "array"
+            },
+            "cycle_y": {
+              "items": {
+                "maximum": 1048576,
+                "minimum": -1048576,
+                "type": "integer"
+              },
+              "max_items": 4096,
+              "min_items": 1,
+              "type": "array"
+            },
+            "plaquette": {
+              "items": {
+                "maximum": 1048576,
+                "minimum": -1048576,
+                "type": "integer"
+              },
+              "max_items": 4096,
+              "min_items": 1,
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "slow_scale": {
+          "format": "finite-f64-bits",
+          "pattern": "^f64:[0-9a-f]{16}$",
+          "type": "string"
+        },
+        "torus_algebra_witness": {
+          "additional_properties": false,
+          "nullable_keys": [],
+          "optional_keys": [],
+          "properties": {
+            "integer_closure": {
+              "type": "boolean"
+            },
+            "max_residual_upper_bound": {
+              "format": "finite-f64-bits",
+              "pattern": "^f64:[0-9a-f]{16}$",
+              "type": "string"
+            },
+            "pass": {
+              "type": "boolean"
+            },
+            "total_plaquette_interval": {
+              "additional_properties": false,
+              "nullable_keys": [],
+              "optional_keys": [],
+              "type": "object"
+            },
+            "x_cycle_residual_intervals": {
+              "items": {
+                "additional_properties": false,
+                "nullable_keys": [],
+                "optional_keys": [],
+                "type": "object"
+              },
+              "max_items": 4096,
+              "min_items": 1,
+              "type": "array"
+            },
+            "y_cycle_residual_intervals": {
+              "items": {
+                "additional_properties": false,
+                "nullable_keys": [],
+                "optional_keys": [],
+                "type": "object"
+              },
+              "max_items": 4096,
+              "min_items": 1,
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "witness_id": {
+          "format": "identifier-v1",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "max_items": 4096,
+    "min_items": 2,
+    "type": "array"
+  },
+  "trajectory_ids": {
+    "items": {
+      "format": "identifier-v1",
+      "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$",
+      "type": "string"
+    },
+    "max_items": 4096,
+    "min_items": 1,
+    "type": "array"
+  },
+  "trajectory_set_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "washout_recovery_schedule_sha256": {
+    "format": "sha256",
+    "pattern": "^[0-9a-f]{64}$",
+    "type": "string"
+  },
+  "work_budget": {
+    "additional_properties": false,
+    "nullable_keys": [],
+    "optional_keys": [],
+    "properties": {
+      "lower": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      },
+      "sign": {
+        "enum": [
+          "nonnegative"
+        ],
+        "type": "string"
+      },
+      "unit": {
+        "enum": [
+          "joule",
+          "normalized"
+        ],
+        "type": "string"
+      },
+      "upper": {
+        "format": "finite-f64-bits",
+        "pattern": "^f64:[0-9a-f]{16}$",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  }
+}

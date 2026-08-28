@@ -1,0 +1,128 @@
+{
+  "nullable": [
+    "response_to"
+  ],
+  "optional": [],
+  "props": {
+    "auth_key_id": {
+      "max_length": 256,
+      "min_length": 1,
+      "type": "string"
+    },
+    "auth_nonce": {
+      "format": "base64",
+      "type": "string"
+    },
+    "auth_sha256": {
+      "format": "sha256",
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "boundary_registry_sha256": {
+      "format": "sha256",
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "clock_sha256": {
+      "format": "sha256",
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "connection_sequence": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "episode_id": {
+      "max_length": 256,
+      "min_length": 1,
+      "type": "string"
+    },
+    "kind": {
+      "max_length": 256,
+      "min_length": 1,
+      "type": "string"
+    },
+    "message_sequence": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "payload_bytes": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "payload_sha256": {
+      "format": "sha256",
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "profile_sha256": {
+      "format": "sha256",
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "protocol_version": {
+      "max_length": 256,
+      "min_length": 1,
+      "type": "string"
+    },
+    "request_id": {
+      "max_length": 256,
+      "min_length": 1,
+      "type": "string"
+    },
+    "response_to": {
+      "one_of": [
+        {
+          "const": null
+        },
+        {
+          "max_length": 256,
+          "min_length": 1,
+          "type": "string"
+        }
+      ]
+    },
+    "run_id": {
+      "max_length": 256,
+      "min_length": 1,
+      "type": "string"
+    },
+    "schema": {
+      "const": "cassi.qi-world-frame.v1"
+    },
+    "session_id": {
+      "max_length": 256,
+      "min_length": 1,
+      "type": "string"
+    },
+    "world_id": {
+      "max_length": 256,
+      "min_length": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "protocol_version",
+    "kind",
+    "run_id",
+    "episode_id",
+    "world_id",
+    "session_id",
+    "connection_sequence",
+    "message_sequence",
+    "request_id",
+    "response_to",
+    "profile_sha256",
+    "boundary_registry_sha256",
+    "clock_sha256",
+    "payload_bytes",
+    "payload_sha256",
+    "auth_key_id",
+    "auth_nonce",
+    "auth_sha256"
+  ]
+}

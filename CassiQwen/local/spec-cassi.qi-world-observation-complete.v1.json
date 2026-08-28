@@ -1,0 +1,46 @@
+{
+  "nullable": [],
+  "optional": [],
+  "props": {
+    "final_source_sequence": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "logical_tick": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "observation_complete_sha256": {
+      "format": "sha256",
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "observation_count": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "schema": {
+      "const": "cassi.qi-world-observation-complete.v1"
+    },
+    "terminal": {
+      "const": true
+    },
+    "watermark_sha256": {
+      "format": "sha256",
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "logical_tick",
+    "observation_count",
+    "watermark_sha256",
+    "final_source_sequence",
+    "terminal",
+    "observation_complete_sha256"
+  ]
+}

@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://seeded_mind_engine.gd" id="1_seed"]
+
+[node name="CassiQwenSeededMind" type="Node"]
+script = ExtResource("1_seed")

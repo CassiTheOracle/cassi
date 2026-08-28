@@ -1,0 +1,68 @@
+#version 450
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0) readonly buffer Field {
+    float values[];
+} field_data;
+
+layout(binding = 1) readonly buffer Probes {
+    float values[];
+} probes;
+
+layout(binding = 2) writeonly buffer Output {
+    float values[];
+} output_data;
+
+layout(push_constant) uniform parameter {
+    uint mode_count;
+    uint batch_count;
+    uint candidate_count;
+    float phi;
+    float velocity_scale;
+} pc;
+
+void main() {
+    const uint candidate = gl_GlobalInvocationID.x;
+    const uint batch = gl_GlobalInvocationID.y;
+
+    if (candidate >= pc.candidate_count || batch >= pc.batch_count) {
+        return;
+    }
+
+    const uint field_mode_stride = 8u * pc.mode_count;
+    const uint probe_mode_stride = 2u * pc.mode_count;
+    const uint field_base = batch * field_mode_stride;
+    const uint probe_base = candidate * probe_mode_stride;
+
+    float correlation_re = 0.0;
+    float correlation_im = 0.0;
+
+    for (uint mode = 0u; mode < pc.mode_count; ++mode) {
+        const uint field_offset = field_base + 8u * mode;
+        const uint probe_offset = probe_base + 2u * mode;
+
+        const float ey_re = field_data.values[field_offset + 0u];
+        const float ey_im = field_data.values[field_offset + 1u];
+        const float ei_re = field_data.values[field_offset + 2u];
+        const float ei_im = field_data.values[field_offset + 3u];
+        const float vy_re = field_data.values[field_offset + 4u];
+        const float vy_im = field_data.values[field_offset + 5u];
+        const float vi_re = field_data.values[field_offset + 6u];
+        const float vi_im = field_data.values[field_offset + 7u];
+
+        const float diff_re = ey_re - pc.phi * ei_re;
+        const float diff_im = ey_im - pc.phi * ei_im;
+        const float flux_re = diff_re + pc.velocity_scale * (vy_re - pc.phi * vi_re);
+        const float flux_im = diff_im + pc.velocity_scale * (vy_im - pc.phi * vi_im);
+
+        const float probe_re = probes.values[probe_offset + 0u];
+        const float probe_im = probes.values[probe_offset + 1u];
+
+        correlation_re += probe_re * flux_re + probe_im * flux_im;
+        correlation_im += probe_re * flux_im - probe_im * flux_re;
+    }
+
+    const uint output_offset = batch * pc.candidate_count + candidate;
+    output_data.values[output_offset] = correlation_re * correlation_re + correlation_im * correlation_im;
+}

@@ -1,0 +1,156 @@
+{
+  "nullable": [],
+  "optional": [],
+  "props": {
+    "auth_domain": {
+      "const": "cassi.qi-world-auth.v1"
+    },
+    "authenticated_raw_payload_max_bytes": {
+      "const": 1048576
+    },
+    "canonical_header_max_bytes": {
+      "const": 65536
+    },
+    "canonical_json_schema": {
+      "const": "cassi.canonical-json.v1"
+    },
+    "common_header_schema": {
+      "const": "cassi.qi-world-frame.v1"
+    },
+    "connection_sequence_policy": {
+      "const": "strictly-increasing-never-reused"
+    },
+    "frame_layout": {
+      "const": "uint32_be canonical_header_bytes || uint32_be raw_payload_bytes || canonical UTF-8 header || raw payload"
+    },
+    "kind_registry": {
+      "items": {
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "correlation": {
+            "one_of": [
+              {
+                "const": null
+              },
+              {
+                "max_length": 256,
+                "min_length": 1,
+                "type": "string"
+              }
+            ]
+          },
+          "direction": {
+            "max_length": 256,
+            "min_length": 1,
+            "type": "string"
+          },
+          "kind": {
+            "max_length": 256,
+            "min_length": 1,
+            "type": "string"
+          },
+          "max_payload_bytes": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "payload_schema": {
+            "max_length": 256,
+            "min_length": 1,
+            "type": "string"
+          },
+          "terminal": {
+            "type": "boolean"
+          }
+        },
+        "required_keys": [
+          "kind",
+          "direction",
+          "correlation",
+          "payload_schema",
+          "max_payload_bytes",
+          "terminal"
+        ],
+        "rules": [],
+        "type": "object"
+      },
+      "max_items": 15,
+      "min_items": 15,
+      "type": "array"
+    },
+    "message_sequence_policy": {
+      "const": "contiguous-per-direction"
+    },
+    "nonce_bytes": {
+      "const": 16
+    },
+    "outer_frame_max_bytes": {
+      "const": 1114112
+    },
+    "protocol_version": {
+      "const": "qi-world-v1"
+    },
+    "registry_sha256": {
+      "format": "sha256",
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "request_response_pairs": {
+      "items": {
+        "nullable_keys": [],
+        "optional_keys": [],
+        "properties": {
+          "request_kind": {
+            "max_length": 256,
+            "min_length": 1,
+            "type": "string"
+          },
+          "response_kinds": {
+            "items": {
+              "max_length": 256,
+              "min_length": 1,
+              "type": "string"
+            },
+            "max_items": 4096,
+            "min_items": 0,
+            "type": "array"
+          }
+        },
+        "required_keys": [
+          "request_kind",
+          "response_kinds"
+        ],
+        "rules": [],
+        "type": "object"
+      },
+      "max_items": 4096,
+      "min_items": 1,
+      "type": "array"
+    },
+    "schema": {
+      "const": "cassi.qi-world-wire.v1"
+    },
+    "unknown_field_policy": {
+      "const": "reject"
+    }
+  },
+  "required": [
+    "schema",
+    "protocol_version",
+    "common_header_schema",
+    "frame_layout",
+    "canonical_header_max_bytes",
+    "authenticated_raw_payload_max_bytes",
+    "outer_frame_max_bytes",
+    "auth_domain",
+    "canonical_json_schema",
+    "kind_registry",
+    "request_response_pairs",
+    "nonce_bytes",
+    "connection_sequence_policy",
+    "message_sequence_policy",
+    "unknown_field_policy",
+    "registry_sha256"
+  ]
+}

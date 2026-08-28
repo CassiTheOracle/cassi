@@ -1,0 +1,11 @@
+{
+  "schema": "cassi.qi-native-chat-config.v1",
+  "qi_config_path": "cassi-qi-language.json",
+  "state_dir": "_diag/cassi-qi-native/chat",
+  "session_id": "cassi-qi-native-chat",
+  "max_output_symbols": 96,
+  "device": "cpu",
+  "runtime": {
+    "max_input_bytes": 4096
+  }
+}

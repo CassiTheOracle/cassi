@@ -1,0 +1,225 @@
+#version 450
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout(binding = 0) readonly buffer Sense { float values[]; } sense;
+layout(binding = 1) readonly buffer State { float values[]; } state_in;
+layout(binding = 2) readonly buffer ModeParams { float values[]; } mode_params;
+layout(binding = 3) readonly buffer SequenceIds { int values[]; } sequence_ids;
+layout(binding = 4) writeonly buffer Output { float values[]; } output_data;
+layout(push_constant) uniform parameter {
+    uint mode_count;
+    uint sequence_count;
+    uint token_count;
+    uint scale_count;
+    uint steps;
+    float phi;
+    float dt;
+    float coupling;
+    float damping_min;
+    float damping_max;
+    float epsilon_tau;
+    float scale_ratio;
+    float energy_floor;
+    float read_floor;
+} pc;
+
+float qi_clamp(float x, float lo, float hi) { return min(max(x, lo), hi); }
+float qi_state_value(float x) { return (isnan(x) || isinf(x)) ? 0.0 : qi_clamp(x, -64.0, 64.0); }
+void qi_chirp(uint scale, uint mode, out float re, out float im) {
+    const uint primes[4] = uint[4](4093u, 4099u, 4127u, 4133u);
+    const float c[16] = float[16](1.0, 0.9238795325, 0.7071067812, 0.3826834324, 0.0, -0.3826834324, -0.7071067812, -0.9238795325, -1.0, -0.9238795325, -0.7071067812, -0.3826834324, 0.0, 0.3826834324, 0.7071067812, 0.9238795325);
+    const float s[16] = float[16](0.0, 0.3826834324, 0.7071067812, 0.9238795325, 1.0, 0.9238795325, 0.7071067812, 0.3826834324, 0.0, -0.3826834324, -0.7071067812, -0.9238795325, -1.0, -0.9238795325, -0.7071067812, -0.3826834324);
+    uint index = (mode * mode + mode * primes[scale & 3u] + 17u * scale) & 15u;
+    re = c[index]; im = s[index];
+}
+void qi_metrics(float yr, float yi, float ir, float ii, float ema,
+                out float rho, out float q, out float chi, out uint available) {
+    float ey = yr * yr + yi * yi;
+    float ei = ir * ir + ii * ii;
+    rho = qi_clamp(ey + ei, 0.0, 64.0);
+    float inv_phi2 = 1.0 / (pc.phi * pc.phi);
+    float rho2 = rho * rho;
+    float den = rho2 + inv_phi2 + max(ema, 0.0);
+    q = den > 0.0 ? qi_clamp(rho2 / den, 0.0, 1.0) : 0.0;
+    float qmax = rho2 / (rho2 + inv_phi2);
+    available = rho > pc.energy_floor ? 1u : 0u;
+    chi = available != 0u && qmax > 0.0 ? qi_clamp(q / qmax, 0.0, 1.0) : 0.0;
+}
+
+void main() {
+    uint sequence = gl_GlobalInvocationID.x;
+    if (sequence >= pc.sequence_count || pc.scale_count == 0u || pc.scale_count > 4u) return;
+    uint mode_stride = 2u * pc.mode_count;
+    uint state_stride = 9u * pc.mode_count * pc.scale_count;
+    uint flux_count = mode_stride * pc.token_count;
+    uint state_count = state_stride * pc.sequence_count;
+    uint diag_stride = 10u * pc.scale_count;
+    float dt_base = qi_clamp(pc.dt, 1.0e-6, 0.25);
+    float alpha = qi_clamp(pc.epsilon_tau, 0.0, 1.0);
+    float diag_sum[40];
+    for (uint i = 0u; i < 40u; ++i) diag_sum[i] = 0.0;
+
+    for (uint mode = 0u; mode < pc.mode_count; ++mode) {
+        float work[36];
+        float last_write[4];
+        float last_consolidation[4];
+        for (uint i = 0u; i < 36u; ++i) work[i] = 0.0;
+        for (uint scale = 0u; scale < pc.scale_count; ++scale) {
+            last_write[scale] = 0.0; last_consolidation[scale] = 0.0;
+            for (uint component = 0u; component < 9u; ++component) {
+                uint off = sequence * state_stride + (scale * pc.mode_count + mode) * 9u + component;
+                work[scale * 9u + component] = qi_state_value(state_in.values[off]);
+            }
+        }
+        for (uint token = 0u; token < pc.token_count; ++token) {
+            int seq_id = sequence_ids.values[token];
+            if (seq_id < 0 || seq_id >= int(pc.sequence_count)) {
+                if (sequence == 0u) {
+                    uint off = token * mode_stride + 2u * mode;
+                    output_data.values[off + 0u] = 0.0;
+                    output_data.values[off + 1u] = 0.0;
+                }
+                continue;
+            }
+            if (seq_id != int(sequence)) continue;
+            float read_re = 0.0, read_im = 0.0, chi_sum = 0.0, phase_sum = 0.0;
+            uint available_count = 0u;
+            float rho_local[4], q_local[4], chi_local[4];
+            uint avail_local[4];
+            for (uint scale = 0u; scale < pc.scale_count; ++scale) {
+                qi_metrics(work[scale * 9u + 0u], work[scale * 9u + 1u], work[scale * 9u + 2u], work[scale * 9u + 3u], max(work[scale * 9u + 8u], 0.0), rho_local[scale], q_local[scale], chi_local[scale], avail_local[scale]);
+                if (avail_local[scale] != 0u) {
+                    float dr = work[scale * 9u + 0u] - pc.phi * work[scale * 9u + 2u];
+                    float di = work[scale * 9u + 1u] - pc.phi * work[scale * 9u + 3u];
+                    float norm = 1.0 / sqrt(max(rho_local[scale], 1.0e-12));
+                    read_re += chi_local[scale] * dr * norm;
+                    read_im += chi_local[scale] * di * norm;
+                    chi_sum += chi_local[scale]; ++available_count;
+                }
+                if (scale > 0u && avail_local[scale - 1u] != 0u && avail_local[scale] != 0u) {
+                    float d0r = work[(scale - 1u) * 9u + 0u] - pc.phi * work[(scale - 1u) * 9u + 2u];
+                    float d0i = work[(scale - 1u) * 9u + 1u] - pc.phi * work[(scale - 1u) * 9u + 3u];
+                    float d1r = work[scale * 9u + 0u] - pc.phi * work[scale * 9u + 2u];
+                    float d1i = work[scale * 9u + 1u] - pc.phi * work[scale * 9u + 3u];
+                    float den = sqrt(max(rho_local[scale - 1u] * rho_local[scale], 1.0e-12));
+                    phase_sum += qi_clamp(0.5 + 0.5 * (d0r * d1r + d0i * d1i) / den, 0.0, 1.0);
+                }
+            }
+            float cross = available_count > 1u ? qi_clamp(phase_sum / float(available_count - 1u), 0.0, 1.0) : (available_count == 1u ? 1.0 : 0.0);
+            float read_gate = available_count > 0u ? qi_clamp((chi_sum / float(available_count)) * cross, 0.0, 1.0) : 0.0;
+            uint flux_off = token * mode_stride + 2u * mode;
+            if (available_count > 0u && read_gate >= pc.read_floor) {
+                output_data.values[flux_off + 0u] = pc.coupling * read_gate * read_re / float(available_count);
+                output_data.values[flux_off + 1u] = pc.coupling * read_gate * read_im / float(available_count);
+            } else {
+                output_data.values[flux_off + 0u] = 0.0;
+                output_data.values[flux_off + 1u] = 0.0;
+            }
+            float sr = sense.values[token * mode_stride + 2u * mode + 0u];
+            float si = sense.values[token * mode_stride + 2u * mode + 1u];
+            float cr, ci; qi_chirp(0u, mode, cr, ci);
+            float source_re = cr * sr - ci * si;
+            float source_im = cr * si + ci * sr;
+            float source_energy = source_re * source_re + source_im * source_im;
+            float structured = qi_clamp(source_energy / (1.0 + source_energy), 0.0, 1.0);
+            float write_gate = avail_local[0] == 0u ? 1.0 : structured * (1.0 - q_local[0]);
+            float write_gain = qi_clamp(dt_base * write_gate, 0.0, 0.5);
+            last_write[0] = write_gate;
+            work[0] = qi_state_value((1.0 - write_gain) * work[0] + 0.5 * write_gain * source_re);
+            work[1] = qi_state_value((1.0 - write_gain) * work[1] + 0.5 * write_gain * source_im);
+            work[2] = qi_state_value((1.0 - write_gain) * work[2] - 0.5 * write_gain * source_re / pc.phi);
+            work[3] = qi_state_value((1.0 - write_gain) * work[3] - 0.5 * write_gain * source_im / pc.phi);
+            for (uint step = 0u; step < pc.steps; ++step) {
+                float damping = qi_clamp(abs(mode_params.values[mode]), pc.damping_min, pc.damping_max);
+                float dr = work[0] - pc.phi * work[2];
+                float di = work[1] - pc.phi * work[3];
+                float ayr = dr - damping * work[4], ayi = di - damping * work[5];
+                float air = -dr / pc.phi - damping * work[6], aii = -di / pc.phi - damping * work[7];
+                work[4] = qi_state_value(work[4] + ayr * dt_base);
+                work[5] = qi_state_value(work[5] + ayi * dt_base);
+                work[6] = qi_state_value(work[6] + air * dt_base);
+                work[7] = qi_state_value(work[7] + aii * dt_base);
+                work[0] = qi_state_value(work[0] + work[4] * dt_base);
+                work[1] = qi_state_value(work[1] + work[5] * dt_base);
+                work[2] = qi_state_value(work[2] + work[6] * dt_base);
+                work[3] = qi_state_value(work[3] + work[7] * dt_base);
+            }
+            float ey = work[0] * work[0] + work[1] * work[1];
+            float ei = work[2] * work[2] + work[3] * work[3];
+            float epsilon = ey - pc.phi * ei;
+            work[8] = qi_state_value((1.0 - alpha) * max(work[8], 0.0) + alpha * qi_clamp(epsilon * epsilon, 0.0, 64.0));
+            float scale_dt = dt_base;
+            for (uint scale = 1u; scale < pc.scale_count; ++scale) {
+                scale_dt = qi_clamp(scale_dt / max(pc.scale_ratio, 1.0e-6), 1.0e-6, 0.25);
+                float srho, sq, schi, trho, tq, tchi; uint sav, tav;
+                qi_metrics(work[(scale - 1u) * 9u + 0u], work[(scale - 1u) * 9u + 1u], work[(scale - 1u) * 9u + 2u], work[(scale - 1u) * 9u + 3u], max(work[(scale - 1u) * 9u + 8u], 0.0), srho, sq, schi, sav);
+                qi_metrics(work[scale * 9u + 0u], work[scale * 9u + 1u], work[scale * 9u + 2u], work[scale * 9u + 3u], max(work[scale * 9u + 8u], 0.0), trho, tq, tchi, tav);
+                float sdr = work[(scale - 1u) * 9u + 0u] - pc.phi * work[(scale - 1u) * 9u + 2u];
+                float sdi = work[(scale - 1u) * 9u + 1u] - pc.phi * work[(scale - 1u) * 9u + 3u];
+                float tdr = work[scale * 9u + 0u] - pc.phi * work[scale * 9u + 2u];
+                float tdi = work[scale * 9u + 1u] - pc.phi * work[scale * 9u + 3u];
+                float js = sdr * tdi - sdi * tdr;
+                float den = sqrt(max(srho * trho, 1.0e-12));
+                float phase = qi_clamp(0.5 + 0.5 * (sdr * tdr + sdi * tdi) / den, 0.0, 1.0);
+                float gain = 0.0;
+                if (sav != 0u) {
+                    if (tav == 0u) gain = scale_dt * schi;
+                    else if (phase >= 0.5 && js >= 0.0) gain = scale_dt * schi * phase * qi_clamp(js / den, 0.0, 1.0) * (1.0 - tq);
+                }
+                gain = qi_clamp(gain, 0.0, 0.5);
+                last_consolidation[scale] = gain;
+                for (uint component = 0u; component < 9u; ++component) work[scale * 9u + component] = qi_state_value((1.0 - gain) * work[scale * 9u + component] + gain * work[(scale - 1u) * 9u + component]);
+            }
+            float final_read_re = 0.0, final_read_im = 0.0, final_chi_sum = 0.0;
+            uint final_available = 0u;
+            for (uint final_scale = 0u; final_scale < pc.scale_count; ++final_scale) {
+                float final_rho, final_q, final_chi; uint final_avail;
+                qi_metrics(work[final_scale * 9u + 0u], work[final_scale * 9u + 1u], work[final_scale * 9u + 2u], work[final_scale * 9u + 3u], max(work[final_scale * 9u + 8u], 0.0), final_rho, final_q, final_chi, final_avail);
+                if (final_avail != 0u) {
+                    float fdr = work[final_scale * 9u + 0u] - pc.phi * work[final_scale * 9u + 2u];
+                    float fdi = work[final_scale * 9u + 1u] - pc.phi * work[final_scale * 9u + 3u];
+                    float fnorm = 1.0 / sqrt(max(final_rho, 1.0e-12));
+                    final_read_re += final_chi * fdr * fnorm;
+                    final_read_im += final_chi * fdi * fnorm;
+                    final_chi_sum += final_chi;
+                    ++final_available;
+                }
+            }
+            float final_gate = final_available > 0u ? qi_clamp(final_chi_sum / float(final_available), 0.0, 1.0) : 0.0;
+            uint final_flux_off = token * mode_stride + 2u * mode;
+            if (final_available > 0u && final_gate >= pc.read_floor) {
+                output_data.values[final_flux_off + 0u] = pc.coupling * final_gate * final_read_re / float(final_available);
+                output_data.values[final_flux_off + 1u] = pc.coupling * final_gate * final_read_im / float(final_available);
+            } else {
+                output_data.values[final_flux_off + 0u] = 0.0;
+                output_data.values[final_flux_off + 1u] = 0.0;
+            }
+        }
+        float rho_final[4]; uint avail_final[4];
+        for (uint scale = 0u; scale < pc.scale_count; ++scale) { float q, chi; qi_metrics(work[scale * 9u + 0u], work[scale * 9u + 1u], work[scale * 9u + 2u], work[scale * 9u + 3u], max(work[scale * 9u + 8u], 0.0), rho_final[scale], q, chi, avail_final[scale]); }
+        float phase_sum_final = 0.0; uint phase_count_final = 0u;
+        for (uint scale = 1u; scale < pc.scale_count; ++scale) if (avail_final[scale - 1u] != 0u && avail_final[scale] != 0u) { float d0r = work[(scale - 1u) * 9u + 0u] - pc.phi * work[(scale - 1u) * 9u + 2u]; float d0i = work[(scale - 1u) * 9u + 1u] - pc.phi * work[(scale - 1u) * 9u + 3u]; float d1r = work[scale * 9u + 0u] - pc.phi * work[scale * 9u + 2u]; float d1i = work[scale * 9u + 1u] - pc.phi * work[scale * 9u + 3u]; float den = sqrt(max(rho_final[scale - 1u] * rho_final[scale], 1.0e-12)); phase_sum_final += qi_clamp(0.5 + 0.5 * (d0r * d1r + d0i * d1i) / den, 0.0, 1.0); ++phase_count_final; }
+        float final_cross = phase_count_final > 0u ? phase_sum_final / float(phase_count_final) : (avail_final[0] != 0u ? 1.0 : 0.0);
+        for (uint scale = 0u; scale < pc.scale_count; ++scale) {
+            float rho, q, chi; uint available;
+            qi_metrics(work[scale * 9u + 0u], work[scale * 9u + 1u], work[scale * 9u + 2u], work[scale * 9u + 3u], max(work[scale * 9u + 8u], 0.0), rho, q, chi, available);
+            float dr = work[scale * 9u + 0u] - pc.phi * work[scale * 9u + 2u];
+            float di = work[scale * 9u + 1u] - pc.phi * work[scale * 9u + 3u];
+            float ddr = work[scale * 9u + 4u] - pc.phi * work[scale * 9u + 6u];
+            float ddi = work[scale * 9u + 5u] - pc.phi * work[scale * 9u + 7u];
+            float jt = qi_clamp(dr * ddi - di * ddr, -64.0, 64.0);
+            float js = 0.0;
+            if (scale + 1u < pc.scale_count) { float nr = work[(scale + 1u) * 9u + 0u] - pc.phi * work[(scale + 1u) * 9u + 2u]; float ni = work[(scale + 1u) * 9u + 1u] - pc.phi * work[(scale + 1u) * 9u + 3u]; js = qi_clamp(dr * ni - di * nr, -64.0, 64.0); }
+            uint off = scale * 10u;
+            diag_sum[off + 0u] += rho; diag_sum[off + 1u] += q; diag_sum[off + 2u] += chi; diag_sum[off + 3u] += jt; diag_sum[off + 4u] += js;
+            diag_sum[off + 5u] += available != 0u ? qi_clamp(chi * final_cross, 0.0, 1.0) : 0.0;
+            diag_sum[off + 6u] += available != 0u ? final_cross : 0.0;
+            diag_sum[off + 7u] += available != 0u ? qi_clamp(last_write[scale], 0.0, 1.0) : 0.0;
+            diag_sum[off + 8u] += scale > 0u ? qi_clamp(last_consolidation[scale], 0.0, 1.0) : 0.0;
+            diag_sum[off + 9u] += available != 0u ? 1.0 : 0.0;
+            uint state_off = flux_count + sequence * state_stride + (scale * pc.mode_count + mode) * 9u;
+            for (uint component = 0u; component < 9u; ++component) output_data.values[state_off + component] = work[scale * 9u + component];
+        }
+    }
+    uint diag_base = flux_count + state_count + sequence * diag_stride;
+    for (uint i = 0u; i < diag_stride; ++i) output_data.values[diag_base + i] = diag_sum[i] / float(pc.mode_count);
+}

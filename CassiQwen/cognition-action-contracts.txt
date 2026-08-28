@@ -1,0 +1,102 @@
+### cassi.qi-flow-action-prediction.v1
+body_frame_id: string
+boundary_registry_sha256: string; format=sha256
+candidate_id: string
+cycle_number: integer
+horizon: object; req=n,d
+no_peek: object; req=world_payload_read,candidate_observation_read,operator_input_sha256
+operator_sha256: string; format=sha256
+predecessor_step_id: string
+predicted_boundary_deltas: array; items=object; itemsreq=port_id,modality,delta_sha256,interval
+prediction_id: string
+prediction_sha256: string; format=sha256
+profile_sha256: string; format=sha256
+schema: 
+score_terms: object; req=prediction_error,move_cost,flow_alignment,observability,safety,total
+state_before_sha256: string; format=sha256
+target_actuator: string
+uncertainty: object; req=score_interval,abstention_margin,finite
+rootreq=schema,prediction_id,profile_sha256,state_before_sha256,boundary_registry_sha256,operator_sha256,predecessor_step_id,horizon,candidate_id,target_actuator,body_frame_id,predicted_boundary_deltas,score_terms,uncertainty,no_peek,cycle_number,prediction_sha256
+### cassi.qi-flow-action-proposal.v1
+action_scope_sha256: string; format=sha256
+action_sha256: 
+body_frame_id: string
+candidate_id: string
+cycle_number: integer
+decision_status: string; enum=['selected', 'hold', 'abstained']
+margin_interval: object; req=lower,upper
+port_reaction_sha256: string; format=sha256
+predecessor_head_sha256: string; format=sha256
+predecessor_step_id: string
+prediction_sha256: string; format=sha256
+profile_sha256: string; format=sha256
+proposal_id: string
+proposal_sha256: string; format=sha256
+requested_values: array; items=object; itemsreq=channel_id,value
+schema: 
+score_interval: object; req=lower,upper
+successor_head_sha256: string; format=sha256
+target_actuator: string
+world_effect: 
+rootreq=schema,proposal_id,prediction_sha256,profile_sha256,predecessor_step_id,predecessor_head_sha256,successor_head_sha256,cycle_number,candidate_id,target_actuator,body_frame_id,action_sha256,action_scope_sha256,requested_values,port_reaction_sha256,score_interval,margin_interval,decision_status,world_effect,proposal_sha256
+### cassi.qi-flow-action.v1
+action_id: string
+body_frame_id: string
+command_sha256: string; format=sha256
+command_timestamp_ns_telemetry: integer
+current_sha256: string; format=sha256
+descriptor_sha256: string; format=sha256
+effective_tick: integer
+episode_id: string
+idempotency_key: string
+logical_tick: integer
+parent_step_id: string
+profile_sha256: string; format=sha256
+proposal_id: string
+requested_values: array; items=object; itemsreq=channel_id,value
+schema: 
+state_before_sha256: string; format=sha256
+target_actuator: string
+valid_until_tick: integer
+world_id: string
+rootreq=schema,world_id,episode_id,action_id,idempotency_key,parent_step_id,proposal_id,logical_tick,effective_tick,command_timestamp_ns_telemetry,valid_until_tick,target_actuator,body_frame_id,requested_values,profile_sha256,descriptor_sha256,state_before_sha256,current_sha256,command_sha256
+### cassi.qi-flow-applied-efference.v1
+action_id: string
+actual_values: array; items=object; itemsreq=channel_id,value
+application_tick: integer
+applied_efference_sha256: string; format=sha256
+body_transition: object; req=before_body_frame_id,after_body_frame_id,remap_sha256
+command_sha256: string; format=sha256
+committed_prior_head_sha256: string; format=sha256
+consumption_status: string; enum=['pending', 'consumed']
+cycle_number: integer
+efference_id: string
+episode_id: string
+first_visible_observation_tick: integer
+proposal_sha256: string; format=sha256
+reaction_sha256: string; format=sha256
+schema: 
+session_id: string
+terminal_ack_bytes: string; format=base64
+terminal_ack_sha256: string; format=sha256
+world_effect: 
+world_id: string
+rootreq=schema,efference_id,world_id,episode_id,session_id,cycle_number,action_id,command_sha256,proposal_sha256,reaction_sha256,committed_prior_head_sha256,application_tick,first_visible_observation_tick,actual_values,body_transition,terminal_ack_sha256,terminal_ack_bytes,world_effect,consumption_status,applied_efference_sha256
+### cassi.qi-flow-motor-port-reaction.v1
+channel_reactions: array; items=object; itemsreq=channel_id,requested_value,work_interval,eta_interval,sigma
+full_hamiltonian_after_sha256: string; format=sha256
+full_hamiltonian_before_sha256: string; format=sha256
+logical_tick_advance: 
+predecessor_head_sha256: string; format=sha256
+profile_sha256: string; format=sha256
+proposal_sha256: string; format=sha256
+reaction_id: string
+reaction_sha256: string; format=sha256
+reaction_status: string; enum=['accepted', 'hold']
+schema: 
+state_after_sha256: string; format=sha256
+successor_head_sha256: string; format=sha256
+target_actuator: string
+work_interval: object; req=lower,upper
+world_effect: 
+rootreq=schema,reaction_id,proposal_sha256,profile_sha256,predecessor_head_sha256,successor_head_sha256,target_actuator,channel_reactions,full_hamiltonian_before_sha256,full_hamiltonian_after_sha256,work_interval,state_after_sha256,logical_tick_advance,world_effect,reaction_status,reaction_sha256

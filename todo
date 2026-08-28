@@ -1,0 +1,6 @@
+- [x] Recon: boxless toggle NOT in UI (inspector-only export — owner confirms that's fine); merge is the sole grid-carrier physics reader on the boxless hot path; winding is field-only (no particle_merge dependency)
+- [x] Pre-reg merge-boxless (frozen gates; owner chose full-fidelity site q_ord + site flow)
+- [ ] Build: cassi_particle_merge.glsl boxless branch (site q_coh/q_ord/flow) + bindings
+- [ ] Wire layout.gd + engine + sim merge sets + _merge_pc_values boxless flag
+- [ ] Verify: glslang, parse gate, assert_layout, merge battery bit-identical, ON probe
+- [ ] Report + path-limited commit

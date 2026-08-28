@@ -1,0 +1,10 @@
+{
+  "protocol": "CassiQwen L13 Q4-to-Q6 escalation receipt",
+  "q4Model": "C:\\Users\\Carina\\workspaces\\Cassi\\CassiQwen\\Qwen3.8-27B-Q4_K_M.gguf",
+  "q6Model": "C:\\Users\\Carina\\workspaces\\Cassi\\CassiQwen\\Qwen3.8-27B-Q6_K.gguf",
+  "q4Present": true,
+  "q6Present": false,
+  "verdict": "BLOCKED-PREREQUISITE",
+  "reason": "No same-model Q6 GGUF is present; no Q4/Q6 behavioral comparison was run.",
+  "boardSize": 6
+}
