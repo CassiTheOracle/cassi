@@ -5,11 +5,15 @@ state tensor; no receipt, artifact, runner, or alternate state is involved.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 import inspect
 import unittest
+from unittest.mock import patch
 
 import torch
 
+import cassi_qi_conversion as conversion
+from cassi_qi_carrier import carrier_coordinates, load_w4_carrier_profile
 from cassi_qi_cross_scale import (
     CrossScaleError,
     QiCrossScaleLaw,
@@ -23,12 +27,18 @@ from cassi_qi_cross_scale import (
     cross_scale_phase_current,
     hodge_decompose,
     link_off,
+    load_w6_cross_scale_profile,
     phase_current_reversal,
     phase_shuffled_equal_energy,
     spatial_currents,
+    transition_w6_integrated,
     validate_w6_cross_scale_profile,
 )
-from cassi_qi_geometry import PeriodicSheetGeometry
+from cassi_qi_field import QiFlowStateV3
+from cassi_qi_geometry import PeriodicSheetGeometry, load_w2_geometry_profile
+from cassi_qi_profile import load_development_profile
+from cassi_qi_topology import load_w4r_topology_profile, make_topology_fixture
+from cassi_qi_transport import load_w3_transport_profile
 
 
 class CrossScaleCoreTests(unittest.TestCase):

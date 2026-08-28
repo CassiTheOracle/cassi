@@ -611,8 +611,8 @@ def _candidate_roots(base: Path, *, depth: int = 1) -> list[Path]:
         candidates.append(base)
     if depth > 0 and base.is_dir():
         for child in sorted(base.iterdir()):
-            if child.is_dir() and (child / "index.json").is_file():
-                candidates.append(child)
+            if child.is_dir():
+                candidates.extend(_candidate_roots(child, depth=depth - 1))
     return candidates
 
 
@@ -702,16 +702,11 @@ def _identity_record(value: Mapping[str, Any], *, label: str, relative_path: str
 def _w4r_candidates(*, w5_root: Path, expected: Mapping[str, Any], hints: Sequence[Path]) -> list[dict[str, Any]]:
     bases: list[Path] = list(hints)
     diag = Path(__file__).resolve().parent / "_diag"
-    for relative in (
-        "cassi-qi-flow-w4r-retention-core-final",
-        "cassi-qi-flow-w4r-retention-final",
-        "cassi-qi-flow-w4r-final",
-    ):
-        bases.append(diag / relative)
+    bases.append(diag)
     bases.extend((w5_root.parent, w5_root.parent.parent))
     roots: list[Path] = []
     for base in bases:
-        for candidate in _candidate_roots(base, depth=1):
+        for candidate in _candidate_roots(base, depth=2):
             if candidate not in roots:
                 roots.append(candidate)
     expected_run = expected.get("run_id")
@@ -720,6 +715,7 @@ def _w4r_candidates(*, w5_root: Path, expected: Mapping[str, Any], hints: Sequen
     for candidate in roots:
         try:
             independent = _call_verifier("verify_cassi_qi_topology", candidate)
+            index_raw = (candidate / "index.json").read_bytes()
             index = read_json(candidate / "index.json")
             extension_path, extension_raw, extension = _extension_in(candidate, expected_sha256=expected_extension)
             check_parent_extension(extension, expected_sha256=expected_extension)

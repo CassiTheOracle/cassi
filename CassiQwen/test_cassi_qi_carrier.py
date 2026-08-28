@@ -49,9 +49,31 @@ class CarrierTest(unittest.TestCase):
             key=lambda path: path.stat().st_mtime,
             reverse=True,
         )
-        if not roots:
+        cls.certificate = None
+        for root in roots:
+            candidate = json.loads(root.read_text(encoding="utf-8"))
+            accepted = candidate.get("accepted_w3_artifact_identity")
+            if (
+                candidate.get("self_sha256")
+                == canonical_hash(
+                    {key: value for key, value in candidate.items() if key != "self_sha256"},
+                    NUMERICAL_CERTIFICATE_DOMAIN,
+                )
+                and candidate.get("profile_sha256") == cls.transport.profile_sha256
+                and candidate.get("transport_semantic_sha256") == cls.transport.transport_semantic_sha256
+                and candidate.get("operator_semantic_sha256") == cls.geometry.operator_semantic_sha256
+                and candidate.get("w2_parent") == dict(cls.transport.parent_w2)
+                and isinstance(accepted, dict)
+                and accepted.get("profile_sha256") == cls.transport.profile_sha256
+                and accepted.get("contract_root_sha256") == cls.transport.contract_root_sha256
+                and accepted.get("semantic_sha256") == cls.transport.transport_semantic_sha256
+                and accepted.get("parent_w2_profile_sha256") == cls.geometry.profile_sha256
+                and accepted.get("parent_w2_contract_root_sha256") == cls.geometry.contract_root_sha256
+            ):
+                cls.certificate = candidate
+                break
+        if cls.certificate is None:
             raise FileNotFoundError("current source-exact W3N certificate tree is missing")
-        cls.certificate = json.loads(roots[0].read_text(encoding="utf-8"))
         cls.fixture = composition_reversal_fixture(geometry=cls.geometry, profile=cls.profile)
 
     def _step(self, state: QiFlowStateV3, *, potential: bool = True):

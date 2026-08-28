@@ -14,10 +14,13 @@ from verify_cassi_qi_backend_parity import W14AArtifactVerificationError, verify
 
 ROOT = Path(__file__).resolve().parent
 REGISTRY = ROOT / "cassi-fi-schema-registry" / "manifest.json"
-
-
 def _registry_has_backend_contract() -> bool:
-    payload = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    if not REGISTRY.is_file():
+        return False
+    try:
+        payload = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError):
+        return False
     names = {row.get("schema") for row in payload.get("entry_hashes", []) if isinstance(row, dict)}
     return set(REQUIRED_REGISTRY_SCHEMAS).issubset(names)
 
