@@ -252,7 +252,7 @@ func _wrap_edge(d: float) -> float:
 
 
 func _theta(ey: PackedFloat32Array, ei: PackedFloat32Array, id: int) -> float:
-	return atan(ei[id], ey[id])
+	return atan2(ei[id], ey[id])
 
 
 func _idx(x: int, y: int, z: int, n: int) -> int:
@@ -326,6 +326,7 @@ func _detect_topology(ey: PackedFloat32Array, ei: PackedFloat32Array, n: int) ->
 	var orientation_positive: Array = [0, 0, 0]
 	var orientation_negative: Array = [0, 0, 0]
 	var orientation_signed: Array = [0, 0, 0]
+	var orientation_max_abs: Array = [0, 0, 0]
 	for id in range(mini(ey.size(), ei.size())):
 		var amplitude: float = sqrt(ey[id] * ey[id] + ei[id] * ei[id])
 		if not is_finite(amplitude):
@@ -351,7 +352,7 @@ func _detect_topology(ey: PackedFloat32Array, ei: PackedFloat32Array, n: int) ->
 					else:
 						negative += 1
 						orientation_negative[axis] += 1
-					signed_sum += w
+					orientation_max_abs[axis] = maxi(int(orientation_max_abs[axis]), absi(w))
 					orientation_signed[axis] += w
 					abs_sum += absi(w)
 					var a: Vector3i
@@ -446,7 +447,7 @@ func _detect_topology(ey: PackedFloat32Array, ei: PackedFloat32Array, n: int) ->
 			"positive_count": orientation_positive[axis],
 			"negative_count": orientation_negative[axis],
 			"sum_winding": orientation_signed[axis],
-			"max_abs_winding": 1,
+			"max_abs_winding": orientation_max_abs[axis],
 		}
 	var phase_min: Variant = amplitude_min if amplitude_min < INF else null
 	var phase_max: Variant = amplitude_max if amplitude_min < INF else null
@@ -643,7 +644,7 @@ func _run_detector_self_tests() -> Dictionary:
 	for z in range(n):
 		for y in range(n):
 			for x in range(n):
-				var theta: float = atan(float(y) - (float(line_y0) + 0.5), float(x) - (float(line_x0) + 0.5))
+				var theta: float = atan2(float(y) - (float(line_y0) + 0.5), float(x) - (float(line_x0) + 0.5))
 				var id: int = _idx(x, y, z, n)
 				line_y[id] = cos(theta)
 				line_i[id] = sin(theta)
@@ -661,7 +662,7 @@ func _run_detector_self_tests() -> Dictionary:
 				var dx: float = float(x) - center
 				var dy: float = float(y) - center
 				var rho: float = sqrt(dx * dx + dy * dy)
-				var theta: float = atan(float(z) - center, rho - ring_radius)
+				var theta: float = atan2(float(z) - center, rho - ring_radius)
 				var id: int = _idx(x, y, z, n)
 				ring_y[id] = cos(theta)
 				ring_i[id] = sin(theta)
