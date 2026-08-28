@@ -1,0 +1,42 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/cassi_sim.gd" id="1_sim"]
+[ext_resource type="Script" path="res://scripts/diag_topology_observatory.gd" id="2_probe"]
+
+[node name="DiagTopologyObservatory" type="Node3D"]
+
+[node name="CassiSim" type="Node3D" parent="."]
+script = ExtResource("1_sim")
+dt = 0.01
+N_particles = 4096
+grid_N = 64
+cluster_radius = 20.0
+cluster_separation = 0.0
+num_clusters = 1
+merger_speed = 0.0
+source_strength = 0.0
+suppress_readbacks = true
+black_holes_enabled = false
+particle_merge = false
+bh_accretion = false
+vsync_enabled = false
+gravity_mode = 0
+river_calibrate_gn = false
+field_attractor_init = true
+winding_coupling = 0.0
+box_scale = 3.0
+multi_rung_seed = false
+multi_rung_count = 0
+physics_decoupled = false
+gridless_physics = false
+meshless_mode = false
+meshless_gravity = false
+tracking_envelope = false
+auto_align_colors = false
+particle_color_mode = 0
+playing = false
+ic_seed = 424242
+auto_frame_camera_on_start = false
+
+[node name="Probe" type="Node3D" parent="."]
+script = ExtResource("2_probe")
