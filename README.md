@@ -1,6 +1,6 @@
 # Cassi — the unified workspace
 
-The four Cassi projects, unified around one object: a two-fluid Yang/Yin field with Qi coherence and a φ-scaled gate vocabulary. The unification proposal lives in [UNIFICATION.md](./UNIFICATION.md) (Status: Plan—August 2026).
+The Cassi projects are unified around one object: a two-fluid Yang/Yin field with Qi coherence and a φ-scaled gate vocabulary. The unification proposal lives in [UNIFICATION.md](./UNIFICATION.md).
 
 ## Projects
 
@@ -14,13 +14,15 @@ The four Cassi projects, unified around one object: a two-fluid Yang/Yin field w
 ## Structure
 
 ```
-C:/Users/Carina/workspaces/Cassi/        ← this workspace root (docs-only git repo)
+Cassi/                                  ← the unified Cassi monorepo
 ├── UNIFICATION.md                       ← the unification proposal (field-as-AI)
 ├── README.md
-├── CassiAI/       Python/PyTorch neural field   (own git repo)
-├── CassiCore/     TypeScript npm-workspaces     (own git repo)
-├── CassiTheory/   the laws — markdown + solvers (own git repo)
-└── CassiCosmos/   Godot 4.7 GPU space-sim       (own git repo, extracted with history)
+├── CassiAI/                             Python/PyTorch archive
+├── CassiCore/                           TypeScript orchestration and memory
+├── CassiTheory/                         laws, papers, and solvers
+├── CassiCosmos/                         Godot GPU space-sim
+├── CassiCraft/                          playable Cassi world
+└── CassiQwen/                           field-intelligence experiments
 ```
 
 The physics parent **stays** at `C:/Users/Carina/workspaces/physics` (the two-fluid Python solvers' sibling work, `research/neural_closure/`, `data/fields/*.pt`, `archive/`). It is referenced from UNIFICATION.md but is not part of this workspace.
