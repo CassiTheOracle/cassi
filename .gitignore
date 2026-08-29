@@ -46,3 +46,8 @@ CassiQwen/local/world-schema-*
 CassiQwen/local/world-schemas-*
 CassiQwen/local/cassi_qi-world-*
 CassiQwen/world-schemas-extract.json
+
+# Root planning docs stay workspace-local; project docs remain tracked.
+/*.md
+!/README.md
+!/AGENTS.md
