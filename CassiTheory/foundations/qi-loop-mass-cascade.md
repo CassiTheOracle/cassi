@@ -235,10 +235,12 @@ open.
 
 The preregistered open-space campaign in
 `field-experience/toroidal-coherence-survival-report.md` supplies a complex
-two-component Schrödinger–Poisson realization. Both frozen initializations
-stop before evolution: V1 falls below the helical-order floor, while V2 falls
-below the 64-sector coherence floor. The receipts provide no binding,
-perturbation, resolution, or time-step result.
+two-component Schrödinger–Poisson realization. V5 passes G1–G4 and Q1–Q5
+with independent verification, then fails all three survival gates. The
+declared seed changes Yang winding from `+2` to `+3`, contracts to radius
+ratio `0.4468592782418393`, and retains `0.3459793652013782` of its initial
+helical order by `t=4`. Its registered finite-time result is `DOES NOT
+EMERGE`.
 
 The compact-loop result therefore adds a narrow conditional result: \(\varphi\)
 can organize the finite near-closure sequence of a declared two-fluid
@@ -251,9 +253,12 @@ selection, dimensional conversion, and a particle-independent observable.
 
 - `field-experience/qi-loop-mass-cascade-pre-registration.md`—frozen model and decision tree
 - `field-experience/qi-loop-mass-cascade-report.md`—executed receipt and independent verification
-- `field-experience/toroidal-coherence-survival-report.md`—three-dimensional initialization receipts and campaign boundary
+- `field-experience/toroidal-coherence-survival-report.md`—three-dimensional V1–V5 receipts and adopted campaign verdict
 - `field-experience/toroidal-coherence-survival-pre-registration.md`—frozen V1 open-space protocol
 - `field-experience/toroidal-coherence-survival-v2-pre-registration.md`—frozen V2 initialization protocol
+- `field-experience/toroidal-coherence-survival-v3-pre-registration.md`—frozen V3 normalized-phase and arm protocol
+- `field-experience/toroidal-coherence-survival-v4-pre-registration.md`—frozen V4 complex128 convergence protocol
+- `field-experience/toroidal-coherence-survival-v5-pre-registration.md`—frozen V5 fourth-order diagnostic-precision protocol
 - `principles/de-resonance-principle.md`—arithmetic extremality and physical mapping boundary
 - `computations/phase-slip-selection-report.md`—tested passive compact-field candidate and $\mathrm{REJECT}\ M_0$ receipt
 - `foundations/dimensionful-cascade.md`—external Planck anchor and rung ladder

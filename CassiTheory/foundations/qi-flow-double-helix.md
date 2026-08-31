@@ -593,11 +593,13 @@ axial construction, but it is not a canonical solver result.
 The open-space toroidal campaign in
 `field-experience/toroidal-coherence-survival-report.md` declares a
 phase-bearing Yang/Yin double helix under a supplied two-component
-Schrödinger–Poisson evolution. Its V1 seed fails the frozen initial helical
-order floor, and its separately preregistered V2 seed fails the frozen
-64-sector coherence floor. Both receipts stop before evolution, so they add
-no spatial survival, perturbation, or convergence result to the transverse
-nulls above.
+Schrödinger–Poisson evolution. V5 passes its initialization,
+numerical-quality, time-step, resolution, and independent-verification gates.
+The primary seed changes Yang winding from `+2` to `+3`, contracts to radius
+ratio `0.4468592782418393`, and retains `0.3459793652013782` of its initial
+helical order by `t=4`; S1–S3 fail. The registered result is `DOES NOT
+EMERGE` for finite-time survival of this seed, adding a verified toroidal null
+to the transverse nulls above.
 
 The axial-stack correlation in §2.3 and these transverse nulls answer different
 questions. Neither one upgrades $J_{d,z}$ into an inter-scale current.
@@ -744,10 +746,16 @@ remain open, so the GQ3 promotion gate remains failed.
 - `foundations/loop-to-bubble-projection-theorem.md`—shared-support
   realization of the four labels, exact zero-mode projection, passive
   spectrum, and current limit
-- `field-experience/toroidal-coherence-survival-report.md`—two
-  preflight-invalid open-space double-helix receipts
+- `field-experience/toroidal-coherence-survival-report.md`—V1–V5
+  open-space double-helix receipts and adopted survival verdict
 - `field-experience/toroidal-coherence-survival-pre-registration.md`—V1
   supplied Schrödinger–Poisson survival protocol
 - `field-experience/toroidal-coherence-survival-v2-pre-registration.md`—V2
   initialization protocol and preflight-capable verifier
+- `field-experience/toroidal-coherence-survival-v3-pre-registration.md`—V3
+  normalized-phase diagnostic and complete arm matrix
+- `field-experience/toroidal-coherence-survival-v4-pre-registration.md`—V4
+  complex128 convergence protocol
+- `field-experience/toroidal-coherence-survival-v5-pre-registration.md`—V5
+  fourth-order diagnostic-precision protocol and verdict tree
 - `computations/qi_flow_double_helix_check.py`—numeric checks for the listed identities

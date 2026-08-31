@@ -53,22 +53,28 @@ particle-identification result.
 |---|---|---|---|---|---|
 | V1 toroidal double helix | `field-experience/toroidal-coherence-survival-report.md` | `field-experience/toroidal-coherence-survival-pre-registration.md` | `runs/20260831T205711Z_toroidal_coherence_survival/results.json` | G1, G2, and G4 pass. G3 fails because the seeded closed helical order is `0.670671820640564` against the frozen `0.80` floor. The frozen V1 verifier does not handle the preflight-only receipt and reaches `KeyError: 'arms'`. | **INCONCLUSIVE—INVALID INITIALIZATION; no arm evolved.** |
 | V2 separated-strand initialization | `field-experience/toroidal-coherence-survival-report.md` | `field-experience/toroidal-coherence-survival-v2-pre-registration.md` | `runs/20260831T210445Z_toroidal_coherence_survival_v2/results.json`<br>`runs/20260831T210445Z_toroidal_coherence_survival_v2/verification.json` | Independent verification passes and reproduces G1/G3/G4 pass with G2 fail. Helical order is `0.8272420763969421`; the Yang/Yin 64-sector coherence floors are `0.1700311303138733` and `0.17034706473350525` against the frozen `0.20` floor. | **INCONCLUSIVE—INVALID INITIALIZATION; no arm evolved.** |
+| V3 normalized-phase diagnostic | `field-experience/toroidal-coherence-survival-report.md` | `field-experience/toroidal-coherence-survival-v3-pre-registration.md` | `runs/20260831T214821Z_toroidal_coherence_survival_v3/results.json`<br>`runs/20260831T214821Z_toroidal_coherence_survival_v3/verification.json` | G1–G4 and Q1 pass. Q2 fails on arm J mass drift; Q3 fails on arms E/F energy drift; Q4 fails time-step opposition agreement; Q5 fails resolution agreement. The verifier reproduces those gates and the terminal verdict but returns `pass: false` on raw-metric comparison. | **INCONCLUSIVE—NUMERICAL QUALITY; verification-invalid.** |
+| V4 complex128 convergence | `field-experience/toroidal-coherence-survival-report.md` | `field-experience/toroidal-coherence-survival-v4-pre-registration.md` | `runs/20260831T220853Z_toroidal_coherence_survival_v4/results.json`<br>`runs/20260831T220853Z_toroidal_coherence_survival_v4/verification.json` | G1–G4, Q1, Q2, and Q4 pass. Q3 fails on the spherical control's `0.013280009933384629` energy drift; Q5 fails on a `0.387179711030671` opposition difference while radius, core fraction, helical order, windings, and survival directions agree. The verifier reproduces the gates and verdict but returns `pass: false`; the primary diagnostic inherits a float32 kinetic-energy accumulator and exceeds its frozen comparison tolerance. | **INCONCLUSIVE—NUMERICAL QUALITY; verification-invalid.** |
+| V5 fourth-order diagnostic precision | `field-experience/toroidal-coherence-survival-report.md` | `field-experience/toroidal-coherence-survival-v5-pre-registration.md` | `runs/20260831T223517Z_toroidal_coherence_survival_v5/results.json`<br>`runs/20260831T223517Z_toroidal_coherence_survival_v5/verification.json` | G1–G4 and Q1–Q5 pass. Maximum energy drift is `0.00026232696068808405`; Q5 radius, core, helical-order, opposed-moment, winding, and survival-direction comparisons pass. S1–S3 fail with Yang winding `+3`, radius ratio `0.4468592782418393`, helical-order retention `0.3459793652013782`, and opposition `0.5518768949443402`. The independent verifier returns `pass: true`, no errors, and maximum normalized metric discrepancy `3.65019126036259e-12`. | **DOES NOT EMERGE; independently verified.** |
 
-The toroidal campaign supplies no survival, control, perturbation, resolution,
-or time-step observation. Its compact phases and Schrödinger–Poisson
-evolution remain declared test architecture, and neither seed reached
-evolution.
+V3 and V4 supply complete matrices whose numerical-quality or independent
+verification gates fail. V5 closes G1–G4 and Q1–Q5, passes independent
+verification, and adopts the finite-time result that the supplied toroidal
+double-helix seed does not survive to `t=4`. Its perturbation arm also fails
+S1–S3.
 
 ## 5. Present-state synthesis
 
 The six-wave counterflow/source-only chain, the phase-gap campaign, the
-Qi-loop campaign, and the toroidal initialization campaign use distinct model
-boundaries. The first evolves canonical first-order nonnegative densities. The
-second uses the default second-order CassiCosmos wave equation and its derived
+Qi-loop campaign, and the toroidal campaign use distinct model boundaries.
+The first evolves canonical first-order nonnegative densities. The second uses
+the default second-order CassiCosmos wave equation and its derived
 density/imbalance normal modes. The third evaluates a supplied compact
 Hamiltonian. The fourth declares a supplied complex Schrödinger–Poisson
-evolution, but both frozen seeds stop before evolution. Their outcomes do not
-combine into a canonical compact phase.
+evolution. V1 and V2 stop during initialization; V3 and V4 remain
+numerically inconclusive. V5 supplies a verified finite-time negative for its
+declared toroidal seed. These outcomes do not combine into a canonical compact
+phase.
 
 ### 5.1 Counterflow/source-only synthesis
 
@@ -91,12 +97,14 @@ maps destructive nodes into coupling-magnitude modulation. Each proposal
 requires its own frozen source law and control arms. The existing receipts do
 not authorize either mechanism.
 
-For the compact-loop branch, the three-dimensional toroidal campaign supplies
-no dynamical result because both preregistered seeds fail initialization. A new
-dynamical claim requires a separately preregistered diagnostic and seed
-hypothesis. Endogenous topology formation and a mode- or
-coefficient-selection discriminator also remain required for a physical
-matter claim.
+For the compact-loop branch, the three-dimensional V5 campaign closes its
+numerical-quality and independent-verification gates and finds that the
+declared toroidal seed unwinds, contracts in radius, and loses helical order
+by `t=4`. A further spatial-loop claim requires a separately preregistered
+seed, coupling, formation mechanism, or field equation with its own controls;
+the V5 result remains the terminal classification for the tested realization.
+Endogenous topology formation and a mode- or coefficient-selection
+discriminator remain required for a physical matter claim.
 
 ## References
 
@@ -119,5 +127,8 @@ matter claim.
 - `field-experience/qi-loop-mass-cascade-report.md`—one-run compact-ring receipt, mass-sufficiency gates, and independent verification.
 - `field-experience/toroidal-coherence-survival-pre-registration.md`—V1 frozen open-space survival protocol.
 - `field-experience/toroidal-coherence-survival-v2-pre-registration.md`—frozen V2 initialization protocol.
-- `field-experience/toroidal-coherence-survival-report.md`—two preflight-invalid receipts and campaign boundary.
+- `field-experience/toroidal-coherence-survival-v3-pre-registration.md`—frozen normalized-phase diagnostic and complete arm matrix.
+- `field-experience/toroidal-coherence-survival-v4-pre-registration.md`—frozen complex128 convergence protocol.
+- `field-experience/toroidal-coherence-survival-v5-pre-registration.md`—frozen fourth-order diagnostic-precision protocol and verdict tree.
+- `field-experience/toroidal-coherence-survival-report.md`—V1–V5 receipts and adopted campaign verdict.
 - `foundations/qi-loop-mass-cascade.md`—conditional compact-ring algebra and framework boundary.
