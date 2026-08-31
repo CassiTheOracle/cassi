@@ -260,6 +260,10 @@ the campaign's adopted three-dimensional result:
 > geometry, controls, and diagnostic thresholds.
 
 This finite-time result covers the registered seed and parameter set.
+The geometry is the single V2 seed fixed by the V3 protocol before any V3
+arm evolved. V3 permits no seed search, geometry change, threshold fitting,
+or mass retuning, and the campaign contains no first-passing candidate
+selection.
 Spontaneous topology formation, other seeds or couplings, unique mode or mass
 selection, relativistic completion, and experimental correspondence remain
 open.
