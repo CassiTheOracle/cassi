@@ -590,6 +590,15 @@ phenomenological two-string label in
 `consciousness/two-strand-qi-neuroscience.md` §5.3 can refer to the optional
 axial construction, but it is not a canonical solver result.
 
+The open-space toroidal campaign in
+`field-experience/toroidal-coherence-survival-report.md` declares a
+phase-bearing Yang/Yin double helix under a supplied two-component
+Schrödinger–Poisson evolution. Its V1 seed fails the frozen initial helical
+order floor, and its separately preregistered V2 seed fails the frozen
+64-sector coherence floor. Both receipts stop before evolution, so they add
+no spatial survival, perturbation, or convergence result to the transverse
+nulls above.
+
 The axial-stack correlation in §2.3 and these transverse nulls answer different
 questions. Neither one upgrades $J_{d,z}$ into an inter-scale current.
 
@@ -735,4 +744,10 @@ remain open, so the GQ3 promotion gate remains failed.
 - `foundations/loop-to-bubble-projection-theorem.md`—shared-support
   realization of the four labels, exact zero-mode projection, passive
   spectrum, and current limit
+- `field-experience/toroidal-coherence-survival-report.md`—two
+  preflight-invalid open-space double-helix receipts
+- `field-experience/toroidal-coherence-survival-pre-registration.md`—V1
+  supplied Schrödinger–Poisson survival protocol
+- `field-experience/toroidal-coherence-survival-v2-pre-registration.md`—V2
+  initialization protocol and preflight-capable verifier
 - `computations/qi_flow_double_helix_check.py`—numeric checks for the listed identities

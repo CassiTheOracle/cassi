@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This ledger records the six completed counterflow/source-only field experiments, the independent phase-staggered scale-gap campaign, and the conditional Qi-loop mass-cascade campaign as a compact index of their frozen protocols, raw receipts, feature gates, and terminal classifications. It is an outcome record, not an additional theory claim. The source records retain the exact scope of each construction: the six-wave chain uses finite proxies with externally supplied additive interventions and unmodified canonical PDE/RK2 evolution between them; the scale-gap campaign tests supplied-wave identities, the distinct second-order CassiCosmos wave branch, and a declared nearest-neighbor chain; the Qi-loop campaign evaluates a supplied compact Hamiltonian. None upgrades a local diagnostic into an endogenous phase, transport, biological, or consciousness mechanism.
+This ledger records the six completed counterflow/source-only field experiments, the independent phase-staggered scale-gap campaign, the conditional Qi-loop mass-cascade campaign, and the three-dimensional toroidal-loop initialization campaign as a compact index of their frozen protocols, raw receipts, feature gates, and terminal classifications. It is an outcome record, not an additional theory claim. The source records retain the exact scope of each construction: the six-wave chain uses finite proxies with externally supplied additive interventions and unmodified canonical PDE/RK2 evolution between them; the scale-gap campaign tests supplied-wave identities, the distinct second-order CassiCosmos wave branch, and a declared nearest-neighbor chain; the Qi-loop campaign evaluates a supplied compact Hamiltonian; the toroidal campaign declares a supplied Schrödinger–Poisson evolution whose two frozen seeds stop at initialization. None upgrades a local diagnostic into an endogenous phase, transport, biological, or consciousness mechanism.
 
 ## 1. How to read this record
 
@@ -47,14 +47,28 @@ coherence diagnostic $q$ and uses $q_{\mathrm w}$ only for the integer Yin
 winding. It provides no open-space binding, topology-formation, or
 particle-identification result.
 
+### 4.1 Three-dimensional toroidal survival campaign
+
+| record | report | pre-registration | raw receipt | decisive discriminator and feature gates | terminal outcome |
+|---|---|---|---|---|---|
+| V1 toroidal double helix | `field-experience/toroidal-coherence-survival-report.md` | `field-experience/toroidal-coherence-survival-pre-registration.md` | `runs/20260831T205711Z_toroidal_coherence_survival/results.json` | G1, G2, and G4 pass. G3 fails because the seeded closed helical order is `0.670671820640564` against the frozen `0.80` floor. The frozen V1 verifier does not handle the preflight-only receipt and reaches `KeyError: 'arms'`. | **INCONCLUSIVE—INVALID INITIALIZATION; no arm evolved.** |
+| V2 separated-strand initialization | `field-experience/toroidal-coherence-survival-report.md` | `field-experience/toroidal-coherence-survival-v2-pre-registration.md` | `runs/20260831T210445Z_toroidal_coherence_survival_v2/results.json`<br>`runs/20260831T210445Z_toroidal_coherence_survival_v2/verification.json` | Independent verification passes and reproduces G1/G3/G4 pass with G2 fail. Helical order is `0.8272420763969421`; the Yang/Yin 64-sector coherence floors are `0.1700311303138733` and `0.17034706473350525` against the frozen `0.20` floor. | **INCONCLUSIVE—INVALID INITIALIZATION; no arm evolved.** |
+
+The toroidal campaign supplies no survival, control, perturbation, resolution,
+or time-step observation. Its compact phases and Schrödinger–Poisson
+evolution remain declared test architecture, and neither seed reached
+evolution.
+
 ## 5. Present-state synthesis
 
-The six-wave counterflow/source-only chain, the phase-gap campaign, and the
-Qi-loop campaign use distinct model boundaries. The first evolves canonical
-first-order nonnegative densities. The second uses the default second-order
-CassiCosmos wave equation and its derived density/imbalance normal modes. The
-third evaluates a supplied compact Hamiltonian. Their outcomes do not combine
-into a canonical compact phase.
+The six-wave counterflow/source-only chain, the phase-gap campaign, the
+Qi-loop campaign, and the toroidal initialization campaign use distinct model
+boundaries. The first evolves canonical first-order nonnegative densities. The
+second uses the default second-order CassiCosmos wave equation and its derived
+density/imbalance normal modes. The third evaluates a supplied compact
+Hamiltonian. The fourth declares a supplied complex Schrödinger–Poisson
+evolution, but both frozen seeds stop before evolution. Their outcomes do not
+combine into a canonical compact phase.
 
 ### 5.1 Counterflow/source-only synthesis
 
@@ -77,9 +91,12 @@ maps destructive nodes into coupling-magnitude modulation. Each proposal
 requires its own frozen source law and control arms. The existing receipts do
 not authorize either mechanism.
 
-For the compact-loop branch, a new experiment must specify an endogenous
-topology-formation law and a mode- or coefficient-selection discriminator
-before execution. The present receipt supplies neither law.
+For the compact-loop branch, the three-dimensional toroidal campaign supplies
+no dynamical result because both preregistered seeds fail initialization. A new
+dynamical claim requires a separately preregistered diagnostic and seed
+hypothesis. Endogenous topology formation and a mode- or
+coefficient-selection discriminator also remain required for a physical
+matter claim.
 
 ## References
 
@@ -100,4 +117,7 @@ before execution. The present receipt supplies neither law.
 - `field-experience/phase-staggered-scale-gap-lock-in-pre-registration.md`—independent steady-frequency closure protocol.
 - `field-experience/qi-loop-mass-cascade-pre-registration.md`—frozen compact-ring protocol and decision tree.
 - `field-experience/qi-loop-mass-cascade-report.md`—one-run compact-ring receipt, mass-sufficiency gates, and independent verification.
+- `field-experience/toroidal-coherence-survival-pre-registration.md`—V1 frozen open-space survival protocol.
+- `field-experience/toroidal-coherence-survival-v2-pre-registration.md`—frozen V2 initialization protocol.
+- `field-experience/toroidal-coherence-survival-report.md`—two preflight-invalid receipts and campaign boundary.
 - `foundations/qi-loop-mass-cascade.md`—conditional compact-ring algebra and framework boundary.

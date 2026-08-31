@@ -502,7 +502,11 @@ The conditional compact-ring calculation supplies a Fibonacci near-closure
 branch but leaves topology and constitutive mass selection open: 1,163 stable
 primitive modes remain across the scanned cells and the low-winding
 coefficient-sensitivity gate fails (`foundations/qi-loop-mass-cascade.md` §5).
-It leaves Q1's Mapped tier unchanged.
+The three-dimensional toroidal campaign likewise stops at initialization: V1
+falls below its helical-order floor, and V2 falls below its frozen 64-sector
+coherence floor (`field-experience/toroidal-coherence-survival-report.md`).
+It supplies no open-space binding evidence and leaves Q1's Mapped tier
+unchanged.
 
 ### Q2: Strong CP problem
 

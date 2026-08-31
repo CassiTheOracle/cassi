@@ -233,6 +233,13 @@ $\varphi$-band counteroriented sectors. Its protocol verdict is
 $\mathrm{REJECT}\ M_0$; a physical compact-current and phase-slip law remains
 open.
 
+The preregistered open-space campaign in
+`field-experience/toroidal-coherence-survival-report.md` supplies a complex
+two-component Schrödinger–Poisson realization. Both frozen initializations
+stop before evolution: V1 falls below the helical-order floor, while V2 falls
+below the 64-sector coherence floor. The receipts provide no binding,
+perturbation, resolution, or time-step result.
+
 The compact-loop result therefore adds a narrow conditional result: \(\varphi\)
 can organize the finite near-closure sequence of a declared two-fluid
 phase-gradient ratio. The physical questions are topology formation, coupling
@@ -244,6 +251,9 @@ selection, dimensional conversion, and a particle-independent observable.
 
 - `field-experience/qi-loop-mass-cascade-pre-registration.md`—frozen model and decision tree
 - `field-experience/qi-loop-mass-cascade-report.md`—executed receipt and independent verification
+- `field-experience/toroidal-coherence-survival-report.md`—three-dimensional initialization receipts and campaign boundary
+- `field-experience/toroidal-coherence-survival-pre-registration.md`—frozen V1 open-space protocol
+- `field-experience/toroidal-coherence-survival-v2-pre-registration.md`—frozen V2 initialization protocol
 - `principles/de-resonance-principle.md`—arithmetic extremality and physical mapping boundary
 - `computations/phase-slip-selection-report.md`—tested passive compact-field candidate and $\mathrm{REJECT}\ M_0$ receipt
 - `foundations/dimensionful-cascade.md`—external Planck anchor and rung ladder
