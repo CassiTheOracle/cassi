@@ -509,6 +509,27 @@ unwinds, contracts to radius ratio `0.4468592782418393`, and retains
 `0.3459793652013782` of its initial helical order by `t=4`. This verified
 finite-time `DOES NOT EMERGE` result leaves Q1's Mapped tier unchanged.
 
+The frozen-field spectral diagnosis in
+`field-experience/toroidal-multiscale-transfer-report.md` finds endpoint
+increases of `0.4700353507626928` in fine modal-mass fraction and
+`0.7565406294842472` in fine kinetic fraction for the primary torus, while
+the no-gravity control preserves both to floating precision. Its Q3–Q5 and
+independent-verification gates fail, so the registered result is
+`INCONCLUSIVE—DIAGNOSTIC QUALITY`. The calculation contains one periodic
+domain and one physical hierarchy level; it leaves Q1's Mapped tier
+unchanged.
+
+The connected campaign in
+`field-experience/toroidal-connected-hierarchy-report.md` evolves compact,
+loop, and envelope Yang/Yin pairs through a symmetric gravitational graph.
+All initialization and numerical gates pass, independent re-evolution
+verifies the receipt, and the full graph has exchange amplitude
+`1.2025553100905404` against `1.1863354081760941e-9` in the decoupled
+control. The registered result is
+`EMERGES—CONNECTED SCALE-ENERGY REDISTRIBUTION`. The three scale species,
+their mass shares, and their graph are supplied protocol variables, so Q1
+remains Mapped.
+
 ### Q2: Strong CP problem
 
 ```mermaid

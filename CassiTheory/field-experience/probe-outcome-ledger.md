@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This ledger records the six completed counterflow/source-only field experiments, the independent phase-staggered scale-gap campaign, the conditional Qi-loop mass-cascade campaign, and the three-dimensional toroidal-loop initialization campaign as a compact index of their frozen protocols, raw receipts, feature gates, and terminal classifications. It is an outcome record, not an additional theory claim. The source records retain the exact scope of each construction: the six-wave chain uses finite proxies with externally supplied additive interventions and unmodified canonical PDE/RK2 evolution between them; the scale-gap campaign tests supplied-wave identities, the distinct second-order CassiCosmos wave branch, and a declared nearest-neighbor chain; the Qi-loop campaign evaluates a supplied compact Hamiltonian; the toroidal campaign declares a supplied Schrödinger–Poisson evolution whose two frozen seeds stop at initialization. None upgrades a local diagnostic into an endogenous phase, transport, biological, or consciousness mechanism.
+This ledger indexes the six completed counterflow/source-only field experiments, the independent phase-staggered scale-gap campaign, the conditional Qi-loop mass-cascade campaign, and the three-dimensional toroidal survival, spectral-transfer, and connected-hierarchy campaigns through their frozen protocols, raw receipts, gates, and terminal classifications. The source records retain each construction's scope: the six-wave chain uses finite proxies with externally supplied additive interventions and unmodified canonical PDE/RK2 evolution; the scale-gap campaign tests supplied-wave identities, the distinct second-order CassiCosmos wave branch, and a declared nearest-neighbor chain; the Qi-loop campaign evaluates a supplied compact Hamiltonian; toroidal V5 declares a supplied two-component Schrödinger–Poisson evolution; the transfer diagnosis analyzes frozen V5 fields inside one domain; and the connected hierarchy declares six fields arranged as three labeled scale pairs with a supplied symmetric gravitational graph. The ledger assigns no mechanism beyond those declared boundaries.
 
 ## 1. How to read this record
 
@@ -63,18 +63,42 @@ verification, and adopts the finite-time result that the supplied toroidal
 double-helix seed does not survive to `t=4`. Its perturbation arm also fails
 S1–S3.
 
+### 4.2 Single-domain spectral-transfer diagnosis
+
+| record | report | pre-registration | raw receipt | decisive discriminator and feature gates | terminal outcome |
+|---|---|---|---|---|---|
+| V5 frozen-field spectral diagnosis | `field-experience/toroidal-multiscale-transfer-report.md` | `field-experience/toroidal-multiscale-transfer-pre-registration.md` | `runs/20260831T232039Z_toroidal_multiscale_transfer/transfer.json`<br>`runs/20260831T232039Z_toroidal_multiscale_transfer/verification.json` | Q1 and Q2 pass. Primary arm A increases its fine modal-mass fraction by `0.4700353507626928` and fine kinetic fraction by `0.7565406294842472`; no-gravity arm B preserves both to floating precision. Q3 fails on the near-zero-activity relative transfer residual `0.9327716406897517`; Q4 fails on arm-I interval error `0.08064316330185473`; Q5 fails only on arm-I integrated flux, while endpoint mass, kinetic, and binding changes converge. The verifier reproduces all gates and the verdict but returns `pass: false` on one ill-conditioned arm-I transfer-conservation comparison. | **INCONCLUSIVE—DIAGNOSTIC QUALITY; verification-invalid.** |
+
+The endpoint redistribution is a measured property of one periodic domain and
+one physical hierarchy level. It supplies no independently evolving core,
+outer environment, boundary exchange, or connected hierarchy.
+
+### 4.3 Connected three-scale hierarchy campaign
+
+| record | report | pre-registration | raw receipt | decisive discriminator and feature gates | terminal outcome |
+|---|---|---|---|---|---|
+| core–loop–envelope gravitational graph | `field-experience/toroidal-connected-hierarchy-report.md` | `field-experience/toroidal-connected-hierarchy-pre-registration.md` | `runs/20260831T233830Z_toroidal_connected_hierarchy/results.json`<br>`runs/20260831T233830Z_toroidal_connected_hierarchy/verification.json` | G1–G4 and Q1–Q5 pass. Full arm A has exchange amplitude `1.2025553100905404`; the identical-seed decoupled arm has `1.1863354081760941e-9`; the loop-disconnected control changes loop energy by `-1.465542789391465e-12` and reproduces its final fields exactly. The nearest-neighbor graph differs from full by `0.41492254499549075` in exchange amplitude and fails its frozen sufficiency limit. The independent re-evolution verifier returns `pass: true` with no errors. | **EMERGES—CONNECTED SCALE-ENERGY REDISTRIBUTION.** Secondary labels: **CONTRADICTS NEAREST-NEIGHBOR SUFFICIENCY** and **INCONCLUSIVE—MIXED LOOP RESPONSE**. |
+
+This campaign supplies three labeled scale species on one periodic grid. It
+establishes graph-mediated energy redistribution within that declared
+multicomponent system. Endogenous scale formation, mass conversion among
+levels, nested-domain exchange, and a preferred scale spacing remain open.
+
 ## 5. Present-state synthesis
 
-The six-wave counterflow/source-only chain, the phase-gap campaign, the
-Qi-loop campaign, and the toroidal campaign use distinct model boundaries.
-The first evolves canonical first-order nonnegative densities. The second uses
-the default second-order CassiCosmos wave equation and its derived
+The six-wave counterflow/source-only chain, phase-gap campaign, Qi-loop
+campaign, and toroidal campaigns use distinct model boundaries. The first
+evolves canonical first-order nonnegative densities. The second uses the
+default second-order CassiCosmos wave equation and its derived
 density/imbalance normal modes. The third evaluates a supplied compact
-Hamiltonian. The fourth declares a supplied complex Schrödinger–Poisson
-evolution. V1 and V2 stop during initialization; V3 and V4 remain
-numerically inconclusive. V5 supplies a verified finite-time negative for its
-declared toroidal seed. These outcomes do not combine into a canonical compact
-phase.
+Hamiltonian. Toroidal V5 declares a supplied two-component complex
+Schrödinger–Poisson evolution and gives a verified finite-time negative for
+its seed. The frozen-field diagnosis measures fine-mode endpoint
+redistribution and remains `INCONCLUSIVE—DIAGNOSTIC QUALITY`. The connected
+extension evolves three labeled scale pairs through a supplied symmetric
+gravitational graph and returns
+`EMERGES—CONNECTED SCALE-ENERGY REDISTRIBUTION`. It does not define an
+endogenous or canonical hierarchy.
 
 ### 5.1 Counterflow/source-only synthesis
 
@@ -131,4 +155,8 @@ discriminator remain required for a physical matter claim.
 - `field-experience/toroidal-coherence-survival-v4-pre-registration.md`—frozen complex128 convergence protocol.
 - `field-experience/toroidal-coherence-survival-v5-pre-registration.md`—frozen fourth-order diagnostic-precision protocol and verdict tree.
 - `field-experience/toroidal-coherence-survival-report.md`—V1–V5 receipts and adopted campaign verdict.
+- `field-experience/toroidal-multiscale-transfer-pre-registration.md`—frozen single-domain spectral-transfer diagnosis and decision tree.
+- `field-experience/toroidal-multiscale-transfer-report.md`—spectral endpoint measurements, failed quality gates, and connected-scale boundary.
+- `field-experience/toroidal-connected-hierarchy-pre-registration.md`—frozen three-scale graph, controls, convergence gates, and decision tree.
+- `field-experience/toroidal-connected-hierarchy-report.md`—verified connected energy redistribution and graph-attribution result.
 - `foundations/qi-loop-mass-cascade.md`—conditional compact-ring algebra and framework boundary.

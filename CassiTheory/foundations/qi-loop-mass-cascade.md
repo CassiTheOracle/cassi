@@ -242,10 +242,31 @@ ratio `0.4468592782418393`, and retains `0.3459793652013782` of its initial
 helical order by `t=4`. Its registered finite-time result is `DOES NOT
 EMERGE`.
 
-The compact-loop result therefore adds a narrow conditional result: \(\varphi\)
-can organize the finite near-closure sequence of a declared two-fluid
-phase-gradient ratio. The physical questions are topology formation, coupling
-selection, dimensional conversion, and a particle-independent observable.
+The secondary analysis in
+`field-experience/toroidal-multiscale-transfer-report.md` resolves Fourier
+bands in the frozen V5 fields. The primary torus increases its fine
+modal-mass fraction by `0.4700353507626928` and its fine kinetic fraction by
+`0.7565406294842472`; the no-gravity control preserves both to floating
+precision. Q3–Q5 and the independent comparison fail, yielding
+`INCONCLUSIVE—DIAGNOSTIC QUALITY`. This is a single-domain,
+single-hierarchy-level spectral diagnosis.
+
+The connected campaign in
+`field-experience/toroidal-connected-hierarchy-report.md` supplies compact,
+loop, and envelope Yang/Yin pairs in one conservative multicomponent
+Schrödinger–Poisson evolution. G1–G4 and Q1–Q5 pass, the independent
+re-evolution verifier returns `pass: true`, and the full graph has exchange
+amplitude `1.2025553100905404` against `1.1863354081760941e-9` in the
+identical-seed decoupled control. Its registered result is
+`EMERGES—CONNECTED SCALE-ENERGY REDISTRIBUTION`; the nearest-neighbor graph
+does not reproduce the full transfer vector.
+
+The combined result adds two narrow conditional statements: \(\varphi\) can
+organize the finite near-closure sequence of a declared two-fluid
+phase-gradient ratio, and a supplied symmetric graph can redistribute energy
+among supplied scale species. Topology formation, endogenous scale
+membership, mass conversion, coupling selection, dimensional conversion, and
+a particle-independent observable remain open.
 
 ---
 
@@ -259,6 +280,10 @@ selection, dimensional conversion, and a particle-independent observable.
 - `field-experience/toroidal-coherence-survival-v3-pre-registration.md`—frozen V3 normalized-phase and arm protocol
 - `field-experience/toroidal-coherence-survival-v4-pre-registration.md`—frozen V4 complex128 convergence protocol
 - `field-experience/toroidal-coherence-survival-v5-pre-registration.md`—frozen V5 fourth-order diagnostic-precision protocol
+- `field-experience/toroidal-multiscale-transfer-pre-registration.md`—frozen single-domain spectral diagnosis
+- `field-experience/toroidal-multiscale-transfer-report.md`—measured endpoint redistribution and failed quality gates
+- `field-experience/toroidal-connected-hierarchy-pre-registration.md`—frozen multicomponent graph and decision tree
+- `field-experience/toroidal-connected-hierarchy-report.md`—verified connected scale-energy redistribution
 - `principles/de-resonance-principle.md`—arithmetic extremality and physical mapping boundary
 - `computations/phase-slip-selection-report.md`—tested passive compact-field candidate and $\mathrm{REJECT}\ M_0$ receipt
 - `foundations/dimensionful-cascade.md`—external Planck anchor and rung ladder
