@@ -1,6 +1,6 @@
 # Toroidal Connected-Hierarchy Campaign Report
 
-## Status: EMERGES—CONNECTED SCALE-ENERGY REDISTRIBUTION—August 2026
+## Status: Tested—August 2026
 
 ## 1. Scope and receipts
 

@@ -1,6 +1,6 @@
 # Toroidal Coherence Survival Report
 
-## Status: V5 finite-time toroidal survival DOES NOT EMERGE—August 2026
+## Status: Tested—August 2026
 
 ## 1. Campaign outcome
 

@@ -1,6 +1,6 @@
 # Toroidal Multiscale Transfer Report
 
-## Status: INCONCLUSIVE—DIAGNOSTIC QUALITY—August 2026
+## Status: Tested—August 2026
 
 ## 1. Scope and receipt
 
