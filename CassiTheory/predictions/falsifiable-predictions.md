@@ -1,6 +1,6 @@
 # Cassi Falsifiable Predictions
 
-## Status: Reference—August 2026
+## Status: Reference—September 2026
 
 The catalog separates parameter-free structural predictions from predictions that depend on optional extensions, declared inputs, Mapped placements, or Calibrated normalizations. The parameter-free structural subset is derived from the golden ratio $\varphi = (1+\sqrt{5})/2$ and the canonical two-fluid PDE under its stated assumptions. Framework couplings are often expressed as $\varphi$-powers, while observationally anchored quantities carry the Calibrated or Mapped flag with a Fit-Status Ledger row (`parameter-inventory.md` §10). Conditional, Hypothesized, Mapped, and Calibrated flags govern how each row may be read.
 
@@ -586,6 +586,25 @@ to physical microphysics.
 `computations/geometric_manifold_completion_check.py`.
 
 
+## 15. Conditional Endpoint and Localization Tests
+
+These checks apply to the declared relative-connection and metric-graph
+endpoint sector. They register algebraic and topological boundaries without
+assigning a particle realization.
+
+| ID | Observable | Conditional Cassi result | Current status | Falsifier |
+|----|------------|--------------------------|----------------|-----------|
+| **EL-1** | Relative-frame transformation and Yang/Yin source at a coherent scale vertex | A charge-$-g_Q$ section makes $\Upsilon_v^*\psi_Y^*\psi_I+\mathrm{c.c.}$ invariant and gives $\dot E_Y=-\dot E_I$, so vertex conversion conserves total Yang-plus-Yin density | **Derived conditional representation and source algebra.** Physical endpoint field and normalization remain Hypothesized | The link transforms nontrivially or violates total-density conservation under the declared charge assignments |
+| **EL-2** | Stationary circuit current, endpoint phase lag, and donor populations | Coherent turning requires $|\mathcal J_Q|\leq2\kappa_v|\Upsilon_v|\sqrt{E_YE_I}/\hbar$; at uniform $\varphi$ composition this gives $\kappa_v|\Upsilon_v|\geq K_{\mathfrak s}|\Delta_m|/(2\varphi^{3/2}\mathfrak s_p)$. The one-way open alternative gives $\gamma_-/\gamma_+=\varphi$ | **Derived conditional.** The checker verifies the cancellation and the $m=1$ coefficient $0.0166889699$; absolute endpoint data remain open | A realized endpoint satisfying the declared model carries a larger stationary coherent current, or the one-way stationary rates and donor densities violate the displayed ratio |
+| **EL-3** | Off-diagonal endpoint coherence under an undriven one-way channel | Each donor jump gives $\dot c=-\gamma_vc/2$ | **Derived within the declared Lindblad channel.** A coherent drive or different reservoir may change the result | The declared undriven one-jump dissipator preserves or amplifies nonzero $c$ |
+| **EL-4** | State-only and connection-bundle topology | $\mathcal C_2^+\setminus\{0\}\simeq\mathbb R_{>0}\times B^3$ is contractible. An independent compact connection has $N_G=(g_Q/4\pi)\int_\Sigma G\in\mathbb Z$, while $H^2(\mathbb R^3\times S^1_{\mathfrak s};\mathbb Z)=0$ on the smooth object base | **Derived topology.** Point or line excision supplies a candidate $\mathbb Z$ sector; its physical realization remains open | A nontrivial state-only homotopy class exists in the full positive fibre, or a nonzero first Chern class exists on the declared smooth base without a cycle, defect, boundary, or topology change |
+| **EL-5** | Spatial Derrick scale in the smooth zero-Chern endpoint sector | With $\mathcal B=0$, $\mathcal A>0$, $\mathcal C\geq0$, and $\mathcal D\geq0$, $E'(R)=\mathcal A+\mathcal D/R^2+3\mathcal C R^2>0$; no finite positive stationary radius exists | **Derived minimal-sector localization no-go.** This does not cover added defect, fixed-flux, higher-derivative, or nonlocal sectors | A finite stationary radius occurs while every declared premise, including absence of independent $1/R$ support, remains satisfied |
+| **EL-6** | Supported reduced radius | For $\mathcal Q=\mathcal B-\mathcal D>0$, $R_*^2=[-\mathcal A+\sqrt{\mathcal A^2+12\mathcal C\mathcal Q}]/(6\mathcal C)$ and $E''(R_*)=2\mathcal A/R_*+12\mathcal C R_*>0$; $\mathcal B>\mathcal D$ is necessary | **Derived conditional reduced-profile algebra.** No physical core coefficient or stationary field solution is selected | The displayed root fails the stationary or local-minimum conditions under positive declared coefficients, or a root exists for $\mathcal B\leq\mathcal D$ |
+
+**Source:** `foundations/endpoint-link-and-localization-boundary.md`;
+`computations/endpoint_link_localization_check.py`.
+
+
 ---
 
 ## Notes
@@ -620,7 +639,12 @@ to physical microphysics.
   fitted or calibrated comparisons, null results, rejected entries, and open
   hypotheses. Rows without a registered derivation are marked **Not
   predicted**; no aggregate success count is assigned across those classes.
-- **Conditional test rows (CT-n, SB-n, LP-n, DR-n, and GM-n):** these rows are unnumbered conditional discriminators outside the 1–N numbered prediction sequence; they do not alter the catalog's numbered prediction count. CT-1 records the regulated quantum sector's no-collapse nanoparticle limit; CT-2 registers the candidate physical-time cross-clock discriminator; SB-1–SB-5 register the projective shell's conditional geometry, conversion flow, and phase-loop diagnostic; LP-1–LP-6 register the shared-loop projection, passive spectrum, coherence, phase-cancellation, coarse-graining, and fivefold-visibility contracts; DR-1–DR-4 register the counterflow identity, winding boundary, physical de-resonance discriminator, and conditional Fibonacci-sector selector; GM-1–GM-5 register the positive fibre, exact diagonal reduction, minimal-lift coherence rate, scale-graph topology, and projective-unwinding boundary.
+- **Conditional test rows (CT-n, SB-n, LP-n, DR-n, GM-n, and EL-n):**
+  these rows are unnumbered conditional discriminators outside the 1–N
+  numbered prediction sequence and do not alter its count. EL-1–EL-6 register
+  endpoint gauge covariance, coherent capacity, the open-channel rate and
+  coherence laws, full-fibre and bundle topology, the smooth-sector
+  localization no-go, and the conditional supported radius.
 
 - **Deviations from SM expectations are falsifiable**—not adjustable. If FCC-ee
   measures $m_W/m_Z = 0.881 \pm 0.0001$, the Cassi framework is excluded

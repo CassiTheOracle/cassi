@@ -1,6 +1,6 @@
 # Cassi Answers to the Open Questions of Physics
 
-## Status: Comprehensive catalog—August 2026
+## Status: Comprehensive catalog—September 2026
 
 ## Abstract
 
@@ -723,10 +723,13 @@ projective shell is its rank-one boundary, and the affine bubble is an
 observation image. A cross-glued two-rail metric graph supplies the compact
 internal scale circuit. Its minimal completely positive conversion lift
 reproduces canonical population relaxation exactly and conditionally gives
-$\gamma_c=\gamma_\varepsilon/2$. This closes the mathematical map among the
-declared layers. The physical carrier map, reservoir, scale metric, endpoint
-fields, localized solution, observation map, and quantum numbers remain open,
-so the DQ and GQ physical-identification verdicts are unchanged.
+$\gamma_c=\gamma_\varepsilon/2$. Charged coherent and one-way open endpoint
+realizations supply conditional scale-vertex closure. The full coherence fibre
+is contractible, the smooth object base has no first-Chern sector, and the
+minimal endpoint completion has no finite Derrick radius. The physical carrier
+map, reservoir, scale metric, endpoint normalization, independent core,
+supported solution, observation map, and quantum numbers remain open, so the
+DQ and GQ physical-identification verdicts are unchanged.
 
 Record distinguishability is
 
@@ -783,12 +786,12 @@ flowchart LR
 
 **Visual:** The candidate scale circuit sends Yang outward from the Planck endpoint and Yin back from the proton endpoint. Equal-and-opposite number currents close the scale window while their relative current can source mixed curvature.
 
-Grand unified theories motivate proton-lifetime searches. Cassi has two distinct conditional descriptions. The coherence-budget extension assigns a Hypothesized independent failure probability to each scale step and yields the arithmetic cycle count $\varphi^{4506}$; its conversion to a lifetime remains conditional. The interscale-current extension places the Mapped proton coordinate at $\mathfrak s_p=91.4616$ and admits a closed two-rail current with $J_{\mathfrak s}=0$ and $J_Q\ne0$. The circuit needs endpoint converters, a scale tension, a localized mixed-curvature solution, and a winding-changing transition rate.
+Grand unified theories motivate proton-lifetime searches. Cassi has two distinct conditional descriptions. The coherence-budget extension assigns a Hypothesized independent failure probability to each scale step and yields the arithmetic cycle count $\varphi^{4506}$; its conversion to a lifetime remains conditional. The interscale-current extension places the Mapped proton coordinate at $\mathfrak s_p=91.4616$ and admits a closed two-rail current with $J_{\mathfrak s}=0$ and $J_Q\ne0$. A charge-$-g_Q$ endpoint section closes the circuit coherently when its capacity bound holds. A one-way Markov alternative closes the populations with $\gamma_-/\gamma_+=\varphi$ and damps endpoint coherence. The smooth zero-Chern endpoint sector has no finite Derrick radius; localization requires independent support satisfying $\mathcal B>\mathcal D$.
 
-| **Cassi Answer** | A Planck-to-proton relative-current circuit is an explicit candidate proton architecture; the independent-step coherence budget remains a separate conditional arithmetic model |
-| **Mechanism** | Yang flows from Planck to the proton endpoint, Yin returns, and endpoint conversion closes the circuit. At $E_Y/E_I=\varphi$, $\mathcal J_{Q,m}=K_{\mathfrak s}\rho\Delta_m/(\hbar\varphi^3\mathfrak s_p)$; mixed curvature can pinch the spatial core |
-| **Epistemic** | **Mapped** (proton coordinate) / **Derived conditional** (zero-total-flow current and energy identities) / **Hypothesized** (endpoint conversion, scale tension, proton identification, and decay rate). Neither candidate currently determines a physical lifetime |
-| **Reference** | `foundations/proton-coherence-budget.md` §10; `foundations/interscale-current-soliton.md` §4.5; `computations/planck_proton_scale_current_check.py` |
+| **Cassi Answer** | A Planck-to-proton relative-current circuit has explicit conditional endpoint equations; the minimal smooth sector does not yield a localized proton or lifetime, and the independent-step coherence budget remains a separate conditional arithmetic model |
+| **Mechanism** | Yang flows from Planck to the proton endpoint and Yin returns. At $E_Y/E_I=\varphi$, $\mathcal J_{Q,m}=K_{\mathfrak s}\rho\Delta_m/(\hbar\varphi^3\mathfrak s_p)$. Coherent turning has a finite capacity; one-way open turning has rate ratio $\varphi$. Mixed curvature can compress a profile, while an independent core must satisfy $\mathcal B>\mathcal D$ |
+| **Epistemic** | **Mapped** (proton coordinate) / **Derived conditional** (zero-total-flow current, endpoint covariance, capacity, rate ratio, and minimal-sector localization no-go) / **Hypothesized** (physical endpoint normalization, scale tension, supported defect, proton identification, and decay rate). Neither candidate determines a physical lifetime |
+| **Reference** | `foundations/proton-coherence-budget.md` §10; `foundations/interscale-current-soliton.md` §4.5; `foundations/endpoint-link-and-localization-boundary.md`; `computations/endpoint_link_localization_check.py` |
 
 ### Q10: Spin—what is it?
 
@@ -1028,12 +1031,12 @@ flowchart TD
 
 **Visual:** The framework uses $\varphi$, canonical two-fluid notation, and the cascade to index mixed-tier claims. The geometric completion ansatz unifies the declared density, coherence, projective, and scale-circuit maps while preserving separate conservative and open-system dynamics. Unified microscopic physics and a covariant gravity completion remain open.
 
-The current framework organizes cosmology, particle physics, gravity, and the Standard Model around shared notation. The geometric completion supplies a stratified metric-graph bundle with exact reduction to canonical density dynamics and a conditional completely positive coherence lift. Its scale metric, endpoint fields, reservoir, localized solution, particle quantum numbers, and observation map remain unselected. General relativity and Standard Model gauge dynamics remain established external physics, and Qi-gravity remains an incomplete algebraic ansatz. The P0→P1→P2 matching program and covariant gravity completion remain open.
+The current framework organizes cosmology, particle physics, gravity, and the Standard Model around shared notation. The geometric completion supplies a stratified metric-graph bundle with exact reduction to canonical density dynamics and a conditional completely positive coherence lift. Charged coherent and one-way open vertex sectors provide conditional endpoint equations. The full coherence fibre is contractible, the smooth object base has no first-Chern sector, and the minimal endpoint completion has no finite Derrick radius. Its scale metric, physical endpoint normalization, reservoir, independent core, supported solution, particle quantum numbers, and observation map remain unselected. General relativity and Standard Model gauge dynamics remain established external physics, and Qi-gravity remains an incomplete algebraic ansatz. The P0→P1→P2 matching program and covariant gravity completion remain open.
 
 | **Cassi Answer** | Mixed-tier sector organization plus one Hypothesized geometric completion ansatz with exact canonical reduction; unified microscopic dynamics remains open |
-| **Mechanism** | The stratified bundle connects canonical densities, loop coherence, projective geometry, and a compact scale circuit while retaining distinct conservative, dissipative, gravity, and Standard Model sectors |
-| **Epistemic** | **Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry**—microscopic matching, physical endpoints, reservoir, localized solution, and covariant gravity remain open |
-| **Reference** | `foundations/geometric-manifold-completion.md`; `foundations/physical-becoming-hierarchy.md` §7.1, §7.2; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md`; `cassi-physics.md` |
+| **Mechanism** | The stratified bundle connects canonical densities, loop coherence, projective geometry, a compact scale circuit, and conditional endpoint sectors while retaining distinct conservative, dissipative, gravity, and Standard Model dynamics |
+| **Epistemic** | **Hypothesized completion ansatz / Derived canonical reduction, conditional fibre geometry, endpoint boundaries, and minimal-sector localization no-go**—microscopic matching, physical endpoint normalization, reservoir, supported solution, and covariant gravity remain open |
+| **Reference** | `foundations/geometric-manifold-completion.md`; `foundations/endpoint-link-and-localization-boundary.md`; `foundations/physical-becoming-hierarchy.md` §7.1, §7.2; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md`; `cassi-physics.md` |
 
 
 ### F5: Dimensionful constants ($c$, $\hbar$, $G$) and $\lambda$
@@ -1278,7 +1281,7 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
 - **Baryon asymmetry specific exponent.** $\eta \approx \varphi^{-44}$ is the best-fit integer (6.3% of observed; Mapped—`parameter-inventory.md` §10). The freeze-out step must be derived from the thermal cascade history, not fit; the 2026-08-11 sweep (`foundations/baryon-asymmetry.md` §4.5, `computations/eta_span_closure_check.py`) found no closure—five mechanisms fail (gate threshold crossings at/below the GUT seed; the gate floor $1/(1+\varphi^2) = 0.276$ prevents a $(1-q) \to 0$ freeze-out definition; the endpoint rung 57.3 is an empty desert scale; the composite gap flips sign; factorizations have no anchors). The strongest candidate span is $60 - 13.3 = 46.7$ vs the exact $44.13$ (5.5% overshoot; $\eta$ 3.4× low); the blocking step is that the freeze-out threshold rung is not fixed by any mechanism.
 - **Exact neutrino masses.** The Fibonacci offsets $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs are the grid-fit of the cascade RGE + PMNS pipeline against the observed ratio (Mapped—`parameter-inventory.md` §10; 0-dof fit). The predicted $\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$ matches the observed $\approx 33.89$ to 0.2% (grid quantization). Full mass spectrum: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, $\Sigma m_\nu = 0.0631$ eV. The absolute scale remains the solved-for input, not a prediction.
 - **$n_s$ gate form.** The present formula is a derived φ-form: $n_s = 1 - 2\varphi^{-1}/N_e = 0.969$ (1.0σ from Planck 2018), with $\delta n_s = 2\varphi^{-2}/N_e$. See `computations/ns_gate_correction.py` (July 2026).
-- **Proton decay rate (quantitative).** The mechanism is derived ($N_{\text{max}} = \varphi^{n(n+1)/2}$); the $q$-dependence of the effective lifetime in varying environmental coherence remains to be computed.
+- **Proton decay rate and localized sector.** The mapped proton coordinate and conditional circuit arithmetic do not determine a lifetime. Coherent and one-way open endpoint equations are explicit, while their physical normalization is unselected. The smooth zero-Chern sector has no finite Derrick radius; a protected core or defect satisfying $\mathcal B>\mathcal D$, a full stationary solution, fluctuation dynamics, quantum numbers, and a winding-changing path remain required.
 - **Specific beyond-SM particle spectrum.** The particle content that fills the RGE between GUT and EW scales is predicted to exist but its individual masses are not yet computed.
 - **The 13-band chakra count.** The count uses a 26-rung window / 2-rung $P_\parallel=2$ coordinate cycle = 13 nodes (crown at step 166, body boundary at step 168). The coordinate-cycle mapping is Hypothesized; the mapping of specific colors to specific chakras via Fibonacci-resonant sub-rungs remains Hypothesized (open computational scan). See `consciousness/chakras-as-cascade-bubbles.md`.
 - **The internal$\to$physical axis map.** A coordinate spiral's Frenet-Serret vectors $\{\mathbf{T}, \mathbf{N}, \mathbf{B}\}$ provide a candidate projection into three physical directions; the physical identification remains Hypothesized. See `foundations/why-three-dimensions.md` §2.2 and §6.1.
@@ -1311,6 +1314,9 @@ All Cassi theory documents are organized in the subdirectories listed above. Key
 - `principles/de-resonance-principle.md`—de-resonance principle
 - `foundations/why-three-dimensions.md`—spiral's Frenet-Serret frame, triaxial spheroid
 - `foundations/proton-coherence-budget.md`—conditional proton coherence budget and scale-current circuit
+- `foundations/endpoint-link-and-localization-boundary.md`—gauge-covariant
+  endpoint closure, invariant classification, and smooth-sector localization
+  boundary
 - `cosmology/cosmology-from-phi.md`—dark energy, Hubble, inflation
 - `cosmology/observational_constraints.md`—CMB, DESI, rotation curves
 - `standard-model/sm-from-phi.md`—SM couplings, GUT, generations

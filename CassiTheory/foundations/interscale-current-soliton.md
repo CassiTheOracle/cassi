@@ -1,6 +1,6 @@
 # Interscale Yang/Yin Current and the Conditional Soliton Pinch
 
-## Status: Hypothesized—August 2026
+## Status: Hypothesized action / Derived conditional endpoint and localization boundaries—September 2026
 
 ## Abstract
 
@@ -29,11 +29,15 @@ conditions, and a positive static response. The positive action by itself does
 not generate a universal attractive term or guarantee a soliton.
 
 A finite localized object requires short-distance support in addition to any
-pinch. A reduced Derrick profile has a stable radius only when its flux/core
-term exceeds the effective attraction. Smooth topology also constrains literal
-pinch-off: a normalized two-component field cannot change homotopy sector
-without an amplitude zero, boundary event, singularity, or independent gauge
-bundle event.
+pinch. A charged endpoint section supplies one coherent, gauge-covariant
+turning realization, and a one-way Markov channel supplies an open alternative
+(`foundations/endpoint-link-and-localization-boundary.md`). Neither endpoint
+choice generates the positive $1/R$ core term required by the reduced Derrick
+profile. In the smooth unexcised zero-Chern sector there is no finite
+stationary radius. Smooth topology also constrains literal pinch-off: a
+normalized two-component field cannot change homotopy sector without an
+amplitude zero, boundary event, singularity, or independent gauge-bundle
+event.
 
 The analysis fixes several algebraic relations and leaves the dimensional
 normalization, carrier inertia, gauge stiffnesses, scale metric, conversion
@@ -598,6 +602,14 @@ or arise from dynamical charged endpoint fields. Treating them as fixed
 numbers explicitly breaks that symmetry. The conservative bulk action omits
 the endpoint sector, which must be supplied as additional physics.
 
+The charged section $\Upsilon_v$ in
+`foundations/endpoint-link-and-localization-boundary.md` supplies this
+transformation dynamically. Its coherent critical current gives
+$\kappa_v|\Upsilon_v|\geq
+K_{\mathfrak s}|\Delta_m|/(2\varphi^{3/2}\mathfrak s_p)$ in the uniform
+circuit state. A one-way Lindblad alternative gives
+$\gamma_-/\gamma_+=\varphi$ while damping undriven endpoint coherence.
+
 For a compact closed circuit, define the gauge-invariant accumulated phase
 
 $$
@@ -976,6 +988,13 @@ $$
 states the central result: pinch can compress a localized state, while a
 stronger flux/core sector must prevent collapse.
 
+The explicit endpoint completions do not supply $\mathcal B$. With
+$\mathcal B=0$ and $\mathcal D\geq0$, the derivative is
+$E'(R)=\mathcal A+\mathcal D/R^2+3\mathcal C R^2>0$ for positive
+$\mathcal A$ and nonnegative $\mathcal C$. The smooth zero-Chern endpoint
+sector therefore has no finite Derrick radius. A supported defect or
+higher-order sector must establish $\mathcal B>\mathcal D$ independently.
+
 ### 7.2 Conditional loop minimum
 
 A thin loop with tension $\mathcal T_\star$, compact winding $W$, and phase
@@ -1084,6 +1103,15 @@ fundamental charge-$g_Q$ composite order parameter has a different primitive
 normalization. Compact gauge structure, nonzero boundary condensate, and
 finite-energy asymptotics are all required. A Wilson loop on a torus without
 these conditions can have continuous holonomy.
+
+For the full coherence fibre, state-only projective winding can contract
+through the Bloch-ball interior. The independent compact connection admits the
+first Chern candidate
+$N_G=(g_Q/4\pi)\int_\Sigma G$, but
+$H^2(\mathbb R^3\times S^1_{\mathfrak s};\mathbb Z)=0$ on the smooth
+unexcised object base. A nonzero integer sector requires an excised point or
+line, boundary flux, or different spatial topology
+(`foundations/endpoint-link-and-localization-boundary.md` §5).
 
 ---
 
@@ -1301,11 +1329,11 @@ minimum in §7.2.
 | Separate Yang/Yin conservation and absence of ratio relaxation | Derived from the candidate action |
 | Planck-to-proton two-rail current and normalized energy | Derived conditional on the Mapped endpoint, uniform $\varphi$ composition, compact circuit phase, and endpoint bias |
 | Cross-glued two-rail metric graph and circuit holonomy | Derived graph geometry under the Hypothesized gauge-covariant flux-unitary endpoint quotient; the physical endpoint fields and scale metric remain open (`foundations/geometric-manifold-completion.md`) |
-| Endpoint conversion, scale tension, and proton selection | Hypothesized; the unbiased $m=1$ endpoint requires $\mathcal T_{\mathfrak s}/(K_{\mathfrak s}\rho)=5.57043\times10^{-4}$ |
+| Endpoint conversion, scale tension, and proton selection | Coherent charged and one-way open endpoint realizations are Derived conditionally; their couplings, potentials, absolute rates, scale tension, and proton selection remain Hypothesized or open |
 | Healing widths and local London coefficients | Derived conditional linearization |
 | Inward mixed-curvature force | Conditional on source sign, response, and restricted field sector |
-| Finite Derrick radius and loop length | Conditional reduced-profile algebra; existence unestablished |
-| Pure $CP^1$ obstruction and flux quantization | Conditional on smoothness, compactness, and boundary data |
+| Finite Derrick radius and loop length | No finite radius in the minimal smooth zero-Chern endpoint sector; conditional supported radius requires $\mathcal B>\mathcal D$; loop existence remains unestablished |
+| Pure $CP^1$ obstruction and flux quantization | Projective charge contracts in the full coherence ball; an independent first Chern number requires a closed two-cycle absent from the smooth unexcised base |
 | Scale-metric coefficient profiles | Convention-dependent; no selected branch |
 | Fibonacci winding sector and mass law | Separate conditional extensions |
 | Particle identification | Open |
@@ -1325,19 +1353,23 @@ requires stronger short-distance support, and literal pinch-off requires a
 topology-changing event.
 
 On the finite Planck-to-proton interval, equal-and-opposite Yang/Yin currents
-form a closed relative-current circuit with no net scale-number leakage. This
-turns the mixed-curvature pinch into a concrete proton research route. The
-endpoint converters, scale tension, localized solution, quantum numbers, and
-winding-changing rate remain open.
+form a closed relative-current circuit with no net scale-number leakage. A
+charge-$-g_Q$ endpoint section realizes coherent turning with a finite current
+capacity. A one-way open endpoint channel closes the populations with the
+conditional rate ratio $\gamma_-/\gamma_+=\varphi$ and damps transverse
+coherence.
 
 The completion ansatz in
-`foundations/geometric-manifold-completion.md` realizes this scale circuit as
-a two-edge metric graph with $b_1=1$ and adds the mesoscopic conversion block
-through a separate completely positive generator. Its flux-unitary endpoint
-quotient geometrizes the Yang-outward/Yin-return path without forcing equal
-rail densities and reproduces the dressed circuit holonomy. It leaves the
-charged endpoint sector or equivalent gauge dressing, scale length, localized
-solution, and winding-changing rate unselected.
+`foundations/geometric-manifold-completion.md` realizes the circuit as a
+two-edge metric graph with $b_1=1$ and keeps conservative transport separate
+from mesoscopic conversion. The normalized full fibre is contractible, and the
+smooth object base carries no first Chern sector. The endpoint completions add
+no positive $1/R$ core support, so the minimal sector has no finite Derrick
+radius. A localized solution requires an independent defect, fixed flux, or
+higher-order term satisfying $\mathcal B>\mathcal D$.
+
+The scale tension, endpoint physical normalization, supported solution,
+particle quantum numbers, and winding-changing rate remain unselected.
 
 
 The mechanism is mathematically coherent at the stated level and physically
@@ -1358,6 +1390,9 @@ winding approximants; it does not replace those inputs.
 - `foundations/proton-coherence-budget.md` §10—proton-facing statement of the distinct scale-circuit candidate
 - `computations/planck_proton_scale_current_check.py`—Planck-to-proton current, energy, and scale-tension identities
 - `foundations/geometric-manifold-completion.md`—two-rail metric-graph closure, positive coherence fibre, and separate open-system conversion block
+- `foundations/endpoint-link-and-localization-boundary.md`—charged coherent
+  endpoint, one-way open alternative, full-fibre invariant classification,
+  and minimal-sector localization no-go
 - `foundations/spin-fibonacci-spiral.md`—optional compact phase, half-angle, and winding structure
 - `principles/de-resonance-principle.md`—Fibonacci convergents under compact-current assumptions
 - `particles/cassi-yang-yin-particles.md`—complex two-component field precedent

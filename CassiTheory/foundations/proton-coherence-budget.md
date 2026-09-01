@@ -1,6 +1,6 @@
 # Proton Coherence Budget and Planck-to-Proton Scale Circuit
 
-## Status: Mapped coordinate / Derived conditional arithmetic / Hypothesized mechanisms—August 2026
+## Status: Mapped coordinate / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms—September 2026
 
 ## Abstract
 
@@ -40,10 +40,12 @@ requires a fluctuation law and a map from cycles to transition attempts.
 
 The scale-circuit candidate sends Yang from the Planck endpoint to the proton
 endpoint and returns Yin along the same scale interval. Total scale-number
-current vanishes while the relative current remains nonzero. Its endpoint
-converters, scale tension, mixed-curvature localization, proton quantum
-numbers, and winding-changing rate are Hypothesized/Open. Neither candidate
-currently determines a physical proton lifetime.
+current vanishes while the relative current remains nonzero. A charged
+coherent vertex section and a one-way open channel supply conditional endpoint
+realizations. The smooth zero-Chern sector has no finite Derrick radius.
+Scale tension, physical endpoint normalization, independent core support,
+proton quantum numbers, and winding-changing rate remain Hypothesized/Open.
+Neither candidate determines a physical proton lifetime.
 
 ---
 
@@ -226,9 +228,11 @@ mechanism.
 Super-Kamiokande and Hyper-Kamiokande search for physical proton-decay
 channels such as $p\to e^+\pi^0$. The coherence-budget candidate supplies a
 rate only after the independent-step hazard and Compton-cycle trial map are
-selected. The scale-circuit candidate supplies a rate only after a localized
-solution and winding-changing transition action are selected. Neither
-candidate currently predicts a null result or a finite lifetime.
+selected. The scale-circuit candidate has conditional endpoint equations and
+a minimal-sector localization no-go. It supplies a rate only after an
+independently supported localized solution and winding-changing transition
+action are selected. Neither candidate predicts a null result or a finite
+lifetime.
 
 The gauge-mediated GUT estimate is a separate channel with its own coupling,
 mass scale, operators, and matrix elements. Its arithmetic audit is recorded
@@ -255,8 +259,10 @@ requires a physical state map, a failure process, correlations, a trial
 frequency, and an observable. The formula alone supplies no lifetime.
 
 The two-rail current also generalizes to any finite scale interval. A closed
-physical state requires endpoint converters, coefficients, boundary data, a
-localized solution, and an observable coupling.
+physical state requires endpoint coefficients and boundary data. A localized
+state additionally requires a defect, fixed flux, higher-order core, or other
+support satisfying $\mathcal B>\mathcal D$, followed by an observable
+coupling.
 
 ---
 
@@ -271,8 +277,8 @@ localized solution, and an observable coupling.
 | Compton cycle as one transition trial | Hypothesized |
 | Conditional $10^{910}$-year conversion | Arithmetic inside the selected stochastic model; no physical rate |
 | Zero-total-flow two-rail current and normalized energy | Derived conditional on the candidate interscale action and circuit data |
-| Endpoint conversion and scale-tension closure | Hypothesized |
-| Mixed-curvature proton pinch and winding barrier | Hypothesized until a localized solution and fluctuation action exist |
+| Endpoint conversion and scale-tension closure | Charged coherent and one-way open realizations are Derived conditionally; physical normalization and scale tension remain Hypothesized |
+| Mixed-curvature proton pinch and winding barrier | No finite radius in the minimal smooth zero-Chern endpoint sector; an independently supported defect solution and fluctuation action remain open |
 | Proton mass selection, charge, color, spin, and decay rate | Open |
 
 No numbered prediction is added. A quantitative proton claim requires a
@@ -353,6 +359,25 @@ Yin turns into Yang at the Planck endpoint and Yang turns into Yin at the
 proton endpoint. The bulk interscale action conserves Yang and Yin separately,
 so these turns require an additional charged endpoint or mixing sector.
 
+For a charged coherent section $\Upsilon_v$, stationary turning requires
+
+$$
+\kappa_v|\Upsilon_v|
+\geq
+\frac{K_{\mathfrak s}|\Delta_m|}
+{2\varphi^{3/2}\mathfrak s_p}.
+$$
+
+A one-way open alternative gives
+
+$$
+\frac{\gamma_-}{\gamma_+}=\varphi
+$$
+
+in the uniform circuit state while damping undriven endpoint coherence. These
+relations fix conditional capacity and rate ratios. The absolute endpoint
+couplings and rates remain unselected.
+
 For gauge-invariant circuit phase
 
 $$
@@ -406,12 +431,20 @@ f_r^{(\mathrm{mixed})}
 =\hbar g_Q\mathcal J_QG_{r\mathfrak s}.
 $$
 
-A self-consistent mixed-curvature response can therefore pinch a spatial core
-without net scale-number leakage. Winding change requires a phase slip,
-endpoint conversion event, or condensate zero, which supplies a candidate
-stability barrier. A proton lifetime still requires a localized solution,
-endpoint dynamics, fluctuation action, and physical proton quantum numbers.
+A self-consistent mixed-curvature response can compress a spatial profile
+without net scale-number leakage. In the smooth unexcised zero-Chern endpoint
+sector, it supplies an attractive $-\mathcal D/R$ term without the independent
+$+\mathcal B/R$ support required for a finite Derrick radius. Localization
+therefore requires a defect, fixed flux, higher-order core, or equivalent
+sector satisfying $\mathcal B>\mathcal D$. Winding change requires a phase
+slip, endpoint conversion event, condensate zero, defect crossing, or boundary
+event. A proton lifetime still requires the supported solution, fluctuation
+action, physical proton quantum numbers, and observable decay channel.
 
-The derivation and its open inputs are given in
-`foundations/interscale-current-soliton.md` §4.5. The normalized identities are
-reproduced by `computations/planck_proton_scale_current_check.py`.
+The circuit derivation is given in
+`foundations/interscale-current-soliton.md` §4.5. Endpoint closure, invariant
+classification, and the localization boundary are given in
+`foundations/endpoint-link-and-localization-boundary.md`. The normalized
+identities are checked by
+`computations/planck_proton_scale_current_check.py` and
+`computations/endpoint_link_localization_check.py`.

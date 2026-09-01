@@ -1,6 +1,6 @@
 # Cassi Physics: The Bubble Lattice at Every Scale
 
-## Status: Synthesis—August 2026
+## Status: Synthesis—September 2026
 
 ## Abstract
 
@@ -309,11 +309,17 @@ distinct from the shared carrier loop and from any spatial torus.
 The conservative interscale action and mesoscopic conversion remain separate
 dynamical blocks. A minimal completely positive lift reproduces canonical
 population conversion exactly and conditionally gives transverse coherence
-decay at half the composition-relaxation rate. The construction is a
-**Hypothesized completion ansatz** with **Derived canonical reduction and
-conditional fibre geometry**. The physical reservoir, scale metric, endpoint
-fields, localized solution, observation map, quantum numbers, and decay rate
-remain open. See `foundations/geometric-manifold-completion.md`.
+decay at half the composition-relaxation rate. Charged coherent and one-way
+open endpoint sectors provide conditional scale-vertex closure. The full
+coherence fibre is contractible, the smooth object base has no first-Chern
+sector, and the minimal endpoint completion has no finite Derrick radius. The
+construction is a **Hypothesized completion ansatz** with **Derived canonical
+reduction, conditional fibre geometry, endpoint boundaries, and a
+minimal-sector localization no-go**. The physical reservoir, scale metric,
+endpoint normalization, independent core, supported solution, observation
+map, quantum numbers, and decay rate remain open. See
+`foundations/geometric-manifold-completion.md` and
+`foundations/endpoint-link-and-localization-boundary.md`.
 
 ---
 
@@ -598,14 +604,19 @@ $$
 At the uniform $\varphi$ composition,
 $\mathcal J_{Q,m}=K_{\mathfrak s}\rho\Delta_m/
 (\hbar\varphi^3\mathfrak s_p)$. Yin-to-Yang conversion at the Planck endpoint
-and Yang-to-Yin conversion at the proton endpoint close the circuit. The
-relative current can source the mixed-curvature pinch while total scale-number
-flow remains zero. The endpoint fields, scale tension, localized solution,
-proton quantum numbers, and winding-changing rate remain open
-(`foundations/interscale-current-soliton.md` §4.5;
+and Yang-to-Yin conversion at the proton endpoint close the circuit. A charged
+coherent section provides a finite-capacity vertex realization; a one-way open
+channel provides a population realization with
+$\gamma_-/\gamma_+=\varphi$ while damping endpoint coherence. The relative
+current can source the mixed-curvature pinch while total scale-number flow
+remains zero. The smooth zero-Chern endpoint sector has no finite Derrick
+radius. Physical endpoint normalization, scale tension, independent core
+support, proton quantum numbers, and winding-changing rate remain open
+(`foundations/endpoint-link-and-localization-boundary.md`;
+`foundations/interscale-current-soliton.md` §4.5;
 `foundations/proton-coherence-budget.md` §10).
 
-**Epistemic status:** the $N_{\text{max}}$ product and lifetime conversion are **Derived conditional** on the **Mapped** span and **Hypothesized** $q_i$ profile. The two-rail current and energy identities are **Derived conditional** on the interscale action, compact circuit phase, uniform composition, and endpoint data. Identifying either construction with physical proton stability, selecting the endpoint converters and scale tension, and obtaining a decay rate are **Hypothesized/Open**.
+**Epistemic status:** the $N_{\text{max}}$ product and lifetime conversion are **Derived conditional** on the **Mapped** span and **Hypothesized** $q_i$ profile. The two-rail current, energy, endpoint capacity, open-rate ratio, and minimal-sector localization boundary are **Derived conditional** on the interscale action and declared endpoint sectors. Identifying either construction with physical proton stability, selecting the endpoint normalization and scale tension, supplying a supported localized solution, and obtaining a decay rate are **Hypothesized/Open**.
 
 For the neutron–proton–electron trio as a whole—their rungs, sectors, and what the framework does and does not say about their differences—see `particles/matter-organization.md`.
 

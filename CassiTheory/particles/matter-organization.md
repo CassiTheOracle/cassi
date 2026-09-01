@@ -1,6 +1,6 @@
 # Matter Organization: Forces, Lattice Pools, and the Neutron–Proton–Electron Trio
 
-## Status: Synthesis—August 2026
+## Status: Synthesis—September 2026
 
 Every claim below retains the epistemic tier of its source document; this document adds no new claims.
 
@@ -215,7 +215,7 @@ $$\boxed{N_{\text{max}}(N_p)
 \big|_{N_p=91.46,\ \delta=3}
 =\varphi^{4505.5758}\approx\varphi^{4506}\approx10^{942}\ \text{cycles}}$$
 
-At $N_p^{\mathrm{budget}}=91.46$, the product gives a conditional $\sim10^{942}$-cycle budget. Converting it to $\sim10^{910}$ years additionally declares one independent transition trial per Compton cycle; the field action supplies no fluctuation law or matrix element for that map. The distinct Planck-to-proton scale circuit has zero total scale-number flow and nonzero relative current, but its endpoint converters, scale tension, localized proton solution, quantum numbers, and winding-changing rate remain open (`foundations/proton-coherence-budget.md` §10). Current null searches are compatible with these candidates and select neither one.
+At $N_p^{\mathrm{budget}}=91.46$, the product gives a conditional $\sim10^{942}$-cycle budget. Converting it to $\sim10^{910}$ years additionally declares one independent transition trial per Compton cycle; the field action supplies no fluctuation law or matrix element for that map. The distinct Planck-to-proton scale circuit has zero total scale-number flow and nonzero relative current. Charged coherent and one-way open endpoint equations are explicit, while their physical normalization and scale tension remain open. The smooth zero-Chern endpoint sector has no finite Derrick radius; an independent core, supported proton solution, quantum numbers, and winding-changing rate remain required (`foundations/endpoint-link-and-localization-boundary.md`; `foundations/proton-coherence-budget.md` §10). Current null searches are compatible with these candidates and select neither one.
 
 ### 3.3 The neutron
 

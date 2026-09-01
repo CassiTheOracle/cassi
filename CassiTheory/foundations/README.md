@@ -1,6 +1,6 @@
 # Foundations—First Principles and the φ-Cascade Machinery
 
-## Status: Index—August 2026
+## Status: Index—September 2026
 
 ## Abstract
 
@@ -48,6 +48,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 36 | `loop-to-bubble-projection-theorem.md` | Shared-support Yang/Yin loop, canonical zero-mode projection, coherence ball, and internal spectrum | Derived conditional projection, bubble map, and population spectrum / Hypothesized microscopic physical identification |
 | 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action / Derived conditional algebra |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, two-rail scale graph, canonical reduction, and open-system coherence lift | Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry |
+| 39 | `endpoint-link-and-localization-boundary.md` | Gauge-covariant endpoint closure, full-fibre invariant classification, and smooth-sector localization boundary | Derived conditional endpoint closure / Derived minimal-sector localization no-go |
 
 ## Document Summaries
 
@@ -476,11 +477,13 @@ diagnostic $\mathbf J_d$. The composition potential has a minimum at
 $E_Y/E_I=\varphi$ but conserves the two species separately, so a conversion
 sector or bath remains necessary.
 
-On the Mapped Planck-to-proton interval, an added pair of endpoint converters
-closes Yang outward flow and Yin return flow into a two-rail circuit. Total
-scale-number current vanishes while the relative current remains nonzero and
-can source mixed curvature. The normalized current and energy are derived;
-the endpoint fields, scale tension, localized proton solution, and decay rate
+On the Mapped Planck-to-proton interval, endpoint conversion closes Yang
+outward flow and Yin return flow into a two-rail circuit. A charged coherent
+section and a one-way open channel provide explicit conditional realizations.
+Total scale-number current vanishes while the relative current remains nonzero
+and can source mixed curvature. The normalized current, energy, coherent
+capacity bound, and open-channel rate ratio are derived. Scale tension,
+physical endpoint normalization, a supported proton solution, and decay rate
 remain open.
 
 The mixed curvature $G_{i\mathfrak s}$ supplies one conditional force channel.
@@ -505,10 +508,32 @@ remain separate dynamical blocks. A minimal completely positive two-jump lift
 reproduces canonical conversion exactly on the diagonal and conditionally
 gives $\gamma_c=\gamma_\varepsilon/2$, with
 $(\gamma_\varepsilon,\gamma_c)=(\lambda/3,\lambda/6)$ at the gated reference
-state. The physical scale metric, endpoint fields, reservoir, localized
-solution, observation map, particle quantum numbers, and decay rate remain
-open. Status: Hypothesized completion ansatz with Derived canonical reduction
-and conditional fibre geometry.
+state. Charged coherent and one-way open endpoint realizations are available
+conditionally. The smooth zero-Chern sector has no finite Derrick radius; the
+physical scale metric, endpoint normalization, reservoir, independently
+supported solution, observation map, particle quantum numbers, and decay rate
+remain open. Status: Hypothesized completion ansatz with Derived canonical
+reduction and conditional fibre geometry.
+
+### `endpoint-link-and-localization-boundary.md`—Gauge-Covariant Endpoint Closure and the Localization Boundary
+
+Introduces a charge-$-g_Q$ complex section at each scale vertex. Its invariant
+link term reduces to the endpoint cosine, conserves Yang-plus-Yin density, and
+has a finite critical current. In the uniform $\varphi$ circuit, coherent
+turning requires
+$\kappa_v|\Upsilon_v|\geq
+K_{\mathfrak s}|\Delta_m|/(2\varphi^{3/2}\mathfrak s_p)$.
+A one-way Lindblad alternative closes the same population circuit with
+$\gamma_-/\gamma_+=\varphi$ and damps undriven endpoint coherence.
+
+The full positive coherence fibre is contractible. An independent first Chern
+number can survive mixed states, while the smooth base
+$\mathbb R^3\times S^1_{\mathfrak s}$ has $H^2=0$ and therefore no nonzero
+Chern sector. A defect or boundary is required. The endpoint terms supply no
+positive $1/R$ core energy, so the smooth zero-Chern sector has no finite
+Derrick radius. A conditional supported solution still requires
+$\mathcal B>\mathcal D$. Status: Derived conditional endpoint closure and
+Derived minimal-sector localization no-go.
 
 ## Cross-References
 
