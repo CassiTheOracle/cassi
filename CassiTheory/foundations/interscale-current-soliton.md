@@ -37,17 +37,22 @@ profile. In the smooth unexcised zero-Chern sector there is no finite
 stationary radius. An imposed point-core Chern sector supplies the exact
 exterior coefficient
 $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$. An auxiliary adjoint
-$SU(2)_Q$ branch smooths the local core and matches this coefficient, but the
+$SU(2)_Q$ branch smooths the local core and matches this coefficient. The
 registered nonzero fundamental condensate removes the isolated magnetic sector
-and confines its flux. The resulting finite net-zero string pair has no
+and confines its flux; the resulting finite net-zero string pair has no
 finite-separation minimum in the registered asymptotic energy
 (`foundations/nonabelian-magnetic-core-boundary.md`).
 
-The analysis fixes several algebraic relations and leaves the dimensional
-normalization, carrier inertia, gauge stiffnesses, scale metric, conversion
-mechanism, compact boundary conditions, and particle-sector map open. In
-particular, $\varphi$ fixes the energy-minimizing Yang/Yin composition and its
-counterflow factor; it does not determine the gauge coupling or any SI scale.
+The neutral carrier branch in `foundations/core-trapped-charge-support.md`
+supplies an exact conserved $Q_C$ and a conditional inverse-length term
+$A_C/L$. The reduced pair has one finite root with positive length curvature
+when $A_C>C_Q$, the carrier remains below its bulk threshold, and the root lies
+beyond core overlap. The transverse carrier mode, dimensional normalization,
+carrier and gauge stiffnesses, scale metric, conversion mechanism, compact
+boundary conditions, and particle-sector map remain open. In particular,
+$\varphi$ fixes the energy-minimizing Yang/Yin composition and its counterflow
+factor; it does not determine the carrier coefficients, gauge coupling, or any
+SI scale.
 
 ---
 
@@ -1351,7 +1356,7 @@ minimum in §7.2.
 | Endpoint conversion, scale tension, and proton selection | Coherent charged and one-way open endpoint realizations are Derived conditionally; their couplings, potentials, absolute rates, scale tension, and proton selection remain Hypothesized or open |
 | Healing widths and local London coefficients | Derived conditional linearization |
 | Inward mixed-curvature force | Conditional on source sign, response, and restricted field sector |
-| Finite Derrick radius and loop length | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux gives $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires $\mathcal B_G>\mathcal D$; an auxiliary adjoint $SU(2)_Q$ core matches that exterior, while the registered condensate confines flux and gives no persistent finite-separation pair; loop existence remains unestablished |
+| Finite Derrick radius and loop length | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux gives $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires $\mathcal B_G>\mathcal D$; an auxiliary adjoint $SU(2)_Q$ core matches that exterior, while the registered condensate confines flux and gives no persistent pair by itself; a neutral fixed-$Q_C$ carrier gives one conditional reduced separation under its support, retention, and matching inequalities; full loop existence remains unestablished |
 | Pure $CP^1$ obstruction and flux quantization | Projective charge contracts in the full coherence ball; an independent first Chern number requires a closed two-cycle absent from the smooth unexcised base; point excision retains a singular or externally completed core |
 | Scale-metric coefficient profiles | Convention-dependent; no selected branch |
 | Fibonacci winding sector and mass law | Separate conditional extensions |
@@ -1367,9 +1372,10 @@ observable, and a solution that actually realizes the localized sector.
 The smallest consistent interscale extension is a complex Yang/Yin field with
 a separately named scale current. It yields a conservative scale-window source
 law and an exact relative counterflow structure. Mixed curvature can provide an
-inward contribution under specified static conditions. A stable object still
-requires stronger short-distance support, and literal pinch-off requires a
-topology-changing event.
+inward contribution under specified static conditions. The registered fields
+alone leave the finite composite unsupported, and literal pinch-off requires a
+topology-changing event. The auxiliary neutral carrier supplies one
+conditional reduced support branch.
 
 On the finite Planck-to-proton interval, equal-and-opposite Yang/Yin currents
 form a closed relative-current circuit with no net scale-number leakage. A
@@ -1393,9 +1399,11 @@ magnetic sector and confines flux. A finite monopole-antimonopole tube is
 conditional, and its positive tension plus attractive screened tail gives no
 finite-separation minimum in the registered branch.
 
-The scale tension, endpoint physical normalization, support for a persistent
-net-zero composite, particle quantum numbers, and winding-changing rate remain
-unselected.
+The core-trapped carrier gives a unique reduced separation when $A_C>C_Q$ and
+its independent retention and scale-separation inequalities hold. A bound
+transverse carrier mode, the full backreacted stationary composite, scale
+tension, endpoint physical normalization, particle quantum numbers, and
+winding-changing rate remain unselected.
 
 
 The mechanism is mathematically coherent at the stated level and physically
@@ -1415,6 +1423,10 @@ winding approximants; it does not replace those inputs.
   condensate confinement, and persistent-composite boundary
 - `computations/magnetic_core_completion_check.py`—BPS profile, matching,
   London, and pair-slope checker
+- `foundations/core-trapped-charge-support.md`—conditional conserved-charge
+  support, carrier retention, and reduced finite-separation theorem
+- `computations/core_trapped_charge_check.py`—support-root, curvature,
+  localization, and source-unit checker
 - `foundations/microcascade-mirror.md`—formal negative-step scale coordinate and energy boundary
 - `foundations/dimensionful-cascade.md`—external-anchor cascade parameterization
 - `foundations/dimensionful-constants-status.md`—status of $c$, $\hbar$, $G$, and SI anchors

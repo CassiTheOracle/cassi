@@ -320,17 +320,24 @@ branch, distinct from electroweak $SU(2)_L$, supplies a regular local core and
 matches the exterior coefficient. Its exact monopole belongs to the decoupled
 adjoint sector. Coupling the registered nonzero fundamental condensate removes
 the isolated magnetic sector, gives a positive London mass, and confines flux;
-the resulting finite net-zero string pair has no registered finite-separation
-minimum. The construction is a **Hypothesized completion ansatz** with
-**Derived canonical reduction, conditional fibre geometry, endpoint
-boundaries, exterior point-flux support, and conditional smooth-core and
-confinement boundaries**. The physical reservoir, scale metric, endpoint
-normalization, supported composite, observation map, quantum numbers,
-temporal gauge dynamics, and decay rate remain open. See
+the resulting finite pair has no finite-separation minimum in the registered
+branch. A neutral core carrier supplies an exact global $Q_C$ and a conditional
+$A_C/L$ term. The frozen-mode thin-tube branch has one stable reduced
+separation when $A_C>C_Q$, the carrier remains below its bulk threshold, and
+the root lies beyond core overlap.
+
+The construction is a **Hypothesized completion ansatz** with **Derived
+canonical reduction, conditional fibre geometry, endpoint boundaries,
+exterior point-flux support, smooth-core and confinement boundaries, and a
+conditional reduced conserved-charge support theorem**. The physical
+reservoir, scale metric, endpoint normalization, transverse carrier mode, full
+backreacted composite, observation map, quantum numbers, temporal gauge
+dynamics, and decay rate remain open. See
 `foundations/geometric-manifold-completion.md`,
 `foundations/endpoint-link-and-localization-boundary.md`,
-`foundations/point-core-flux-sector.md`, and
-`foundations/nonabelian-magnetic-core-boundary.md`.
+`foundations/point-core-flux-sector.md`,
+`foundations/nonabelian-magnetic-core-boundary.md`, and
+`foundations/core-trapped-charge-support.md`.
 
 ---
 
@@ -626,13 +633,16 @@ $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires
 $\mathcal B_G>\mathcal D$. An auxiliary adjoint $SU(2)_Q$ branch supplies a
 regular local core and matches that exterior coefficient. The registered
 nonzero fundamental condensate removes the isolated magnetic sector and
-confines flux; a finite monopole-antimonopole tube has no registered
-finite-separation minimum. Physical endpoint normalization, scale tension,
-persistent-composite support, proton quantum numbers, temporal gauge dynamics,
-and winding-changing rate remain open
+confines flux; a finite monopole-antimonopole tube has no finite-separation
+minimum in the registered branch. A neutral fixed-$Q_C$ carrier supplies one
+conditional reduced root under its support, retention, and thin-tube matching
+inequalities. Physical endpoint normalization, scale tension, a bound
+transverse carrier mode, the full proton solution, proton quantum numbers,
+temporal gauge dynamics, and the winding-changing rate remain open
 (`foundations/endpoint-link-and-localization-boundary.md`;
 `foundations/point-core-flux-sector.md`;
 `foundations/nonabelian-magnetic-core-boundary.md`;
+`foundations/core-trapped-charge-support.md`;
 `foundations/interscale-current-soliton.md` §4.5;
 `foundations/proton-coherence-budget.md` §10).
 

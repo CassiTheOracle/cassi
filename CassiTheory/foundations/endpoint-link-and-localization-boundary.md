@@ -803,8 +803,10 @@ This sharp coefficient replaces $\mathcal B$ in that branch. The associated
 support condition is $\mathcal B_G>\mathcal D$. The auxiliary adjoint
 $SU(2)_Q$ branch gives a smooth local core in its decoupled sector. Coupling the
 registered condensate confines the flux, and the tested finite net-zero pair
-has no registered finite-separation minimum
-(`foundations/nonabelian-magnetic-core-boundary.md`).
+has no registered finite-separation minimum. The neutral carrier branch in
+`foundations/core-trapped-charge-support.md` supplies a conditional $A_C/L$
+term and a unique reduced root when $A_C>C_Q$, carrier retention, and
+thin-tube matching hold.
 
 ---
 
@@ -820,6 +822,7 @@ has no registered finite-separation minimum
 | First Chern number $N_G$ | Closed two-cycle and compact connection in a defect or nontrivial-base sector | Boundary flux, defect crossing, singular connection event, or removal of the cycle | Exterior coefficient Derived conditionally; core dynamics unselected |
 | Reduced spatial radius | $\mathcal A>0$, $\mathcal C\geq0$, and $\mathcal B_G>\mathcal D$ in the point-core branch | Collapse when support does not exceed $\mathcal D$; large-radius instability when $\mathcal C<0$ | Reduced curvature Derived; full field and fluctuation operator absent |
 | Auxiliary magnetic core | Adjoint-only $SU(2)_Q$ sector has the exact BPS core; the registered nonzero fundamental condensate confines flux | Condensate coupling removes the isolated magnetic sector; a finite pair can shrink and annihilate | Static adjoint Hessian nonnegative conditionally; coupled spectrum absent |
+| Core-trapped carrier pair | $A_C>C_Q$, $\hbar\omega_C<\varepsilon_{C,\rm out}$, and separation beyond core overlap | Carrier leakage, profile delocalization, core merger, or transition to another fixed-$Q_C$ configuration | Reduced length and line-density curvature Derived conditionally; full coupled spectrum absent |
 | Open endpoint population circuit | Positive rates satisfying (EL32) | Rate imbalance, donor depletion, or bath change | Absolute rates given conditionally by (EL33) |
 | Open endpoint coherence | External coherent support | Undriven decay $\dot c=-\gamma_vc/2$ | Half the local donor-jump rate |
 
@@ -937,6 +940,10 @@ remain open physical sectors.
   condensate confinement, and persistent-composite boundary
 - `computations/magnetic_core_completion_check.py`—BPS profile, matching,
   London, and pair-slope checker
+- `foundations/core-trapped-charge-support.md`—conditional conserved-charge
+  support, retention boundary, and finite-separation theorem
+- `computations/core_trapped_charge_check.py`—support-root, curvature,
+  localization, and source-unit checker
 - `foundations/physical-becoming-hierarchy.md`—closed conservative and
   mesoscopic open-system boundary
 - `foundations/loop-to-bubble-projection-theorem.md`—positive Yang/Yin Gram

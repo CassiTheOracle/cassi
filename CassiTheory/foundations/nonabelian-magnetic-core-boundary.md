@@ -31,26 +31,33 @@ M_{\rm BPS}
 =\frac{4\pi L_{\mathfrak s}v_Q|N_G|}{\mu_xg_Q}.
 $$
 
-This is a conditional smooth-core completion, not a completion of the Cassi
-particle sector. The registered vacuum has nonzero Yang and Yin condensates.
-Promoting that doublet to the fundamental representation completely breaks the
-residual gauge group. The chosen-vacuum gauge orbit becomes
-$SU(2)_Q\simeq S^3$ with $\pi_2=0$, while the complete minimum set, including
-the ungauged common phase, has the finite central identification
-$(SU(2)_Q\times U(1)_N)/\mathbb Z_2\simeq U(2)$ and also has trivial
-$\pi_2$. The registered London mass then confines a unit monopole flux into a
-tube. A finite monopole-antimonopole string is possible conditionally, but its
-positive tension and attractive screened tail drive it toward annihilation;
-the present action supplies no finite-separation minimum.
+This is a conditional smooth-core completion. The Cassi particle sector also
+contains nonzero Yang and Yin condensates. Promoting that doublet to the
+fundamental representation completely breaks the residual gauge group. The
+chosen-vacuum gauge orbit becomes $SU(2)_Q\simeq S^3$ with $\pi_2=0$, while
+the complete minimum set, including the ungauged common phase, has the finite
+central identification $(SU(2)_Q\times U(1)_N)/\mathbb Z_2\simeq U(2)$ and
+also has trivial $\pi_2$. The registered London mass then confines a unit
+monopole flux into a tube. A finite monopole-antimonopole string is possible
+conditionally, while its positive tension and attractive screened tail give no
+finite-separation minimum in the registered asymptotic energy.
 
-The resulting boundary is sharp. A smooth magnetic core is available only in
-the adjoint-only or vanishing-condensate branch. An isolated finite-energy
-point defect, a persistent net-zero composite, a full stationary particle
-solve, and a dynamical fluctuation spectrum remain absent from the registered
-Cassi sector. The next particle-level ingredient must first supply a conserved
-or repulsive support mechanism for a finite composite. Temporal gauge
-curvatures and a Gauss law are additionally required before mode frequencies
-can be defined.
+The auxiliary neutral carrier in
+`foundations/core-trapped-charge-support.md` supplies a conditional reduced
+support branch. Its conserved $Q_C$ and positive line self-coupling give
+$A_C/L$ with $A_C=\Lambda_CQ_C^2/2$; $A_C>C_Q$ yields one finite root with
+positive length curvature. Carrier localization, thin-tube matching,
+backreaction, and comparison with competing fixed-$Q_C$ configurations remain
+required.
+
+The resulting boundary is sharp. A smooth magnetic core is available in the
+adjoint-only or vanishing-condensate branch. The registered Cassi fields alone
+supply no isolated finite-energy point defect or persistent net-zero
+composite. The auxiliary carrier closes the one-coordinate support condition
+only under its declared inequalities. A full stationary particle and
+dynamical fluctuation spectrum remain unestablished. Temporal gauge curvatures
+and a Gauss law are additionally required before gauge-mode frequencies can be
+defined.
 
 ---
 
@@ -748,18 +755,19 @@ slope. A persistent finite pair is not derived.
 
 ### 6.1 Solver decision
 
-| Problem | Well posed now? | Reason |
+| Problem | Well posed? | Reason |
 |---|---:|---|
 | Adjoint-only BPS unit core | Yes, analytically solved | Equations (MC22)-(MC24) give the exact solution and boundary limits |
 | Adjoint-only non-BPS core | Not numerically selected | $\beta_Q$ and any scale dependence are free |
 | Isolated core with $\rho\to\rho_0>0$ | No | Finite-energy isolated magnetic boundary data do not exist |
-| Fixed-separation monopole-antimonopole string | Conditional constrained problem only | Tube profile, core data, outer boundary, endpoint lift, and coefficients are unselected |
-| Persistent finite-separation composite | No | The registered energy has a collapse direction and no support mechanism |
+| Fixed-separation monopole-antimonopole string with registered fields | Conditional constrained problem only | Tube profile, core data, outer boundary, endpoint lift, and coefficients are unselected |
+| Carrier-supported fixed-$Q_C$ pair | Reduced problem solved analytically; full problem unselected | `foundations/core-trapped-charge-support.md` gives the unique length root under $A_C>C_Q$, carrier retention, and matching conditions |
+| Full stationary particle | No | The transverse carrier mode, magnetic tube, nonlinear backreaction, and competing fixed-charge configurations are unselected |
 
-A numerical integration of the already exact BPS profile would add no physical
-information. A full stationary particle solve would choose absent physics
-through its boundary conditions and coefficients. No preregistered PDE run is
-therefore performed.
+A numerical integration of the exact BPS profile or the reduced carrier root
+would add no physical information. A full stationary particle solve would
+choose absent coefficients, tube data, and boundaries. No preregistered PDE
+run is therefore performed.
 
 ### 6.2 Static BPS Hessian
 
@@ -787,7 +795,7 @@ $\mathcal F_{ti}^a$ or $\mathcal F_{t\mathfrak s}^a$ kinetic terms and no
 complete Gauss law. The coupled branch also lacks a finite-energy stationary
 background. A physical fluctuation spectrum therefore requires, in order:
 
-1. a selected support mechanism and finite-energy composite background;
+1. a selected full fixed-$Q_C$ carrier-and-tube background;
 2. an $SU(2)_Q$ lift or replacement of the endpoint sector;
 3. temporal gauge curvatures with positive coefficients;
 4. the corresponding Gauss constraint and gauge fixing;
@@ -809,16 +817,17 @@ nonzero-condensate monopole obstruction.
 | Exact BPS solution after coupling $\Psi_\infty\ne0$ | **FAIL** | Fundamental kinetic and composition terms source the BPS equations |
 | Isolated finite-energy monopole with $\rho_0>0$ | **FAIL** | Trivial full stabilizer, $\pi_2=0$, and positive London mass |
 | Finite net-zero monopole-antimonopole configuration | **CONDITIONAL** | Requires a resolved flux tube and selected coefficients |
-| Persistent finite-separation composite | **FAIL in the registered asymptotic branch** | Strictly positive slope (MC47); no selected support term |
-| Full stationary particle solver | **FAIL / not well posed** | No finite-energy isolated boundary data or persistent pair background |
+| Persistent finite-separation composite from registered fields | **FAIL in the registered asymptotic branch** | Strictly positive slope (MC47); no registered support term |
+| Carrier-supported separation coordinate | **PASS conditionally in the reduced branch** | $A_C>C_Q$, carrier retention, and thin-tube matching in `foundations/core-trapped-charge-support.md` |
+| Full stationary particle solver | **FAIL / not well posed** | No selected transverse carrier mode, backreacted tube, or comparison with competing fixed-charge configurations |
 | Static adjoint BPS stability | **PASS conditionally** | Nonnegative factorized quadratic energy (MC48) |
 | Full dynamical fluctuation spectrum | **FAIL / undefined** | No stationary full background, temporal gauge kinetics, or Gauss law |
 
-The first additional ingredient for a particle candidate is a declared
-conserved or repulsive support sector that yields a finite composite and
-passes $E'(L_*)=0$, $E''(L_*)>0$. If that succeeds, the first additional
-ingredient for a spectrum is a positive temporal gauge completion with its
-Gauss law. Neither is selected in this document.
+The auxiliary carrier supplies the first explicit conserved support sector and
+passes $E'(L_*)=0$, $E''(L_*)>0$ in the frozen-mode thin-tube reduction. The
+next stationary decision is the bound transverse carrier mode and a full
+fixed-$Q_C$ backreacted solution. A positive temporal gauge completion with its
+Gauss law remains necessary for a coupled gauge spectrum.
 
 ---
 
@@ -851,13 +860,18 @@ Prasad-Sommerfield limit, its profile and source-interval mass are exact.
 The registered Cassi condensate changes the result. Its nonzero fundamental
 doublet removes the magnetic $\pi_2$ sector, produces the registered London
 mass, and confines residual flux. Neutralizing the far field with a finite
-monopole-antimonopole string removes the infinite-volume energy divergence but
-leaves a collapse direction. The tested minimal completion therefore supplies
-a smooth core without supplying a persistent particle.
+monopole-antimonopole string removes the infinite-volume energy divergence and
+leaves a collapse direction in the registered branch.
 
-Stationary particle numerics remain premature. The next physical decision is
-a support mechanism for a finite net-zero composite, followed by a temporal
-gauge action only after such a background exists.
+The auxiliary core carrier in
+`foundations/core-trapped-charge-support.md` supplies the missing inverse-length
+term conditionally. A fixed $Q_C$ gives one reduced stable separation when
+$A_C>C_Q$, provided the carrier remains below its bulk threshold and the root
+lies beyond core overlap. The full transverse mode, backreaction, and
+fixed-charge configuration comparison remain open.
+
+Stationary particle numerics require those selected inputs and a resolved tube.
+Temporal gauge dynamics follows after a full stationary background exists.
 
 ---
 
@@ -873,6 +887,10 @@ gauge action only after such a background exists.
   requirements
 - `computations/magnetic_core_completion_check.py`—profile, energy, matching,
   screening, and pair-slope checker
+- `foundations/core-trapped-charge-support.md`—conditional conserved-charge
+  support, carrier-retention boundary, and finite-separation theorem
+- `computations/core_trapped_charge_check.py`—support-root, curvature,
+  localization, and source-unit checker
 - G. 't Hooft, “Magnetic Monopoles in Unified Gauge Theories,” *Nuclear Physics
   B* **79** (1974), 276–284
 - A. M. Polyakov, “Particle Spectrum in Quantum Field Theory,” *JETP Letters*

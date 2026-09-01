@@ -44,9 +44,12 @@ normalization, the scale metric, endpoint microphysics, observation map, and
 decay rate remain unselected. The smooth zero-Chern endpoint sector has no
 finite Derrick radius. Point-core Chern flux supplies a conditional exterior
 $1/R$ coefficient. An auxiliary adjoint $SU(2)_Q$ branch smooths that core and
-matches its flux, but the registered nonzero fundamental condensate removes the
-isolated magnetic sector and confines flux; no supported finite composite is
-selected (`foundations/nonabelian-magnetic-core-boundary.md`).
+matches its flux. The registered nonzero fundamental condensate removes the
+isolated magnetic sector and confines flux; its finite pair has no
+finite-separation minimum in the registered branch. A neutral core carrier
+supplies one conditional reduced support branch under explicit charge,
+retention, and matching inequalities
+(`foundations/core-trapped-charge-support.md`).
 
 ---
 
@@ -1391,7 +1394,7 @@ No numbered prediction is added to
 | Scale tension and endpoint selection | Capacity bound and one-way rate ratio Derived conditionally; physical couplings, rates, and scale selection open |
 | Mixed-curvature inward force | Conditional restricted-sector result |
 | Physical bubble identification | Hypothesized observation map |
-| Stable spatially localized solution | Absent in the minimal smooth zero-Chern sector; point-core flux supplies a conditional exterior coefficient, and an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, but the registered condensate confines the flux and gives no persistent finite-separation composite |
+| Stable spatially localized solution | Absent in the minimal smooth zero-Chern and registered confined-pair sectors; point-core flux supplies a conditional exterior coefficient, an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, and a neutral fixed-$Q_C$ carrier supplies one statically stable reduced separation under support, retention, and matching inequalities; a full coupled stationary solution remains open |
 | Particle mass, charge, color, spin, statistics, and decay rate | Open |
 | Covariant gravity and physical scale metric | Open |
 
@@ -1415,8 +1418,9 @@ The ansatz reaches physical completion only when one declared model supplies:
    $2\pi N_G^2\int d\mathfrak s/e_x^2>\mathcal D$ and a compatible core; the
    auxiliary adjoint $SU(2)_Q$ branch supplies the local core but not a
    persistent condensate-coupled object;
-7. a selected conserved or repulsive support mechanism and finite-energy
-   boundary data for a net-zero composite;
+7. a bound core-carrier mode, selected $Q_C$ and carrier coefficients, and
+   finite-energy boundary data satisfying the reduced support, retention, and
+   matching inequalities;
 8. a stationary solution localized in $M_3$ and compact through scale in that
    completed support sector;
 9. a stability spectrum with no growing physical modes;
@@ -1483,8 +1487,9 @@ $1/R$ coefficient. An auxiliary adjoint $SU(2)_Q$ branch supplies a regular
 local core and matches that coefficient. The registered nonzero fundamental
 condensate removes the isolated magnetic sector and confines the flux; its
 finite monopole-antimonopole branch has no registered finite-separation
-minimum. A supported net-zero stationary solution and all particle quantum
-numbers remain open.
+minimum. A neutral core carrier supplies a unique reduced separation when
+$A_C>C_Q$ and the retention and matching conditions hold. The full backreacted
+stationary solution and all particle quantum numbers remain open.
 
 The completion ansatz closes the mathematical map among the declared geometric
 layers. Physical completion requires the solution specified in §10.
@@ -1508,6 +1513,10 @@ layers. Physical completion requires the solution specified in §10.
   condensate confinement, and persistent-composite boundary
 - `computations/magnetic_core_completion_check.py`—BPS profile, matching,
   London, and pair-slope checker
+- `foundations/core-trapped-charge-support.md`—conditional conserved-charge
+  support, carrier retention, and reduced finite-separation theorem
+- `computations/core_trapped_charge_check.py`—support-root, curvature,
+  localization, and source-unit checker
 - `foundations/unified-lagrangian.md`—optional conservative sector bookkeeping
 - `field-experience/toroidal-coherence-survival-report.md`—spatial torus survival verdict
 - `field-experience/toroidal-connected-hierarchy-report.md`—connected hierarchy result

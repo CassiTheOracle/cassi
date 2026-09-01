@@ -51,6 +51,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 39 | `endpoint-link-and-localization-boundary.md` | Gauge-covariant endpoint closure, full-fibre invariant classification, and smooth-sector localization boundary | Derived conditional endpoint closure / Derived minimal-sector localization no-go |
 | 40 | `point-core-flux-sector.md` | Quantized point-core exterior energy, finite-energy obstruction, and stationary-solver boundary | Derived conditional exterior support / Derived current-action completion no-go |
 | 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary smooth magnetic core, condensate topology, London confinement, and composite-stability boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries |
+| 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary |
 
 ## Document Summaries
 
@@ -299,9 +300,11 @@ $(\hbar\varphi^3\mathfrak s_p)$. Endpoint conversion closes the two rails, and
 the relative current can source a mixed-curvature pinch. Point flux supplies a
 conditional exterior coefficient. An auxiliary adjoint $SU(2)_Q$ branch
 supplies a smooth local core and matches that coefficient, while the registered
-condensate confines flux and gives no persistent finite-separation pair.
-Physical endpoint normalization, scale tension, supported proton solution,
-temporal gauge dynamics, quantum numbers, and decay rate remain open. Status:
+condensate confines flux and gives no persistent pair by itself. A neutral core
+carrier supplies one conditional reduced separation under support, retention,
+and matching inequalities. Physical endpoint normalization, scale tension, a
+bound transverse carrier mode, a full supported proton solution, temporal
+gauge dynamics, quantum numbers, and decay rate remain open. Status:
 Mapped coordinate / Derived conditional arithmetic and identities /
 Hypothesized physical mechanisms.
 
@@ -495,8 +498,10 @@ A reduced Derrick profile has a finite radius only when its flux/core support
 exceeds the effective attraction. Point flux supplies a conditional exterior
 coefficient. An auxiliary adjoint $SU(2)_Q$ branch supplies a regular local
 core and matches that coefficient, while the registered condensate confines
-flux and supplies no persistent finite-separation object. Physical endpoint
-normalization, scale tension, supported proton solution, temporal gauge
+flux and supplies no persistent pair by itself. A neutral core carrier gives
+one conditional reduced separation under support, retention, and matching
+inequalities. Physical endpoint normalization, scale tension, a bound
+transverse carrier mode, a full supported proton solution, temporal gauge
 dynamics, compact winding, mass scaling, particle identification, and decay
 rate remain open. Status: Hypothesized action with Derived conditional
 identities and completion boundaries.
@@ -544,9 +549,11 @@ Chern sector. A defect or boundary is required. The endpoint terms supply no
 positive $1/R$ core energy, so the smooth zero-Chern sector has no finite
 Derrick radius. Point-core flux supplies a conditional exterior coefficient.
 An auxiliary adjoint $SU(2)_Q$ branch supplies a regular local core, while the
-registered condensate confines flux and gives no persistent pair. The endpoint
-field has no selected non-Abelian vertex lift. Status: Derived conditional
-endpoint closure and Derived minimal-sector localization no-go.
+registered condensate confines flux and gives no persistent pair by itself.
+The neutral core-carrier branch supplies a conditional reduced root under
+separate support, retention, and matching inequalities. The endpoint field has
+no selected non-Abelian vertex lift. Status: Derived conditional endpoint
+closure and Derived minimal-sector localization no-go.
 
 ### `point-core-flux-sector.md`—Quantized Point-Core Flux and the Persistent-Defect Boundary
 
@@ -556,11 +563,12 @@ fixed-flux minimum
 $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$, so the reduced point branch
 has a supported radius only when $\mathcal B_G>\mathcal D$. The Abelian Bianchi
 identity prevents a smooth core, and the nonzero charged condensate gives a
-linear angular-energy divergence at infinity. The tested auxiliary
-$SU(2)_Q$ branch resolves the local core only in its adjoint sector; coupling
-the registered condensate confines the flux and supplies no persistent
-finite-energy particle. Status: Derived conditional exterior support and
-Derived current-action completion no-go.
+linear angular-energy divergence at infinity. The auxiliary $SU(2)_Q$ branch
+resolves the local core in its adjoint sector; coupling the registered
+condensate confines the flux and supplies no persistent pair by itself. The
+neutral fixed-$Q_C$ carrier supplies a conditional reduced separation; a full
+backreacted particle remains open. Status: Derived conditional exterior
+support and Derived current-action completion no-go.
 
 ### `nonabelian-magnetic-core-boundary.md`—Non-Abelian Magnetic Core and the Confined-Defect Boundary
 
@@ -572,9 +580,21 @@ exterior coefficient. The nonzero Yang/Yin fundamental condensate leaves
 trivial gauge stabilizer, removes the magnetic $\pi_2$ sector, and gives a
 positive London mass. A finite monopole-antimonopole tube is conditional and
 shrinks in the registered long-distance energy because positive string tension
-and the attractive screened tail produce no finite-separation minimum. Status:
-Hypothesized auxiliary completion with Derived conditional smooth-core and
-confinement boundaries.
+and the attractive screened tail produce no finite-separation minimum. The
+carrier-support handoff is explicit. Status: Hypothesized auxiliary completion
+with Derived conditional smooth-core and confinement boundaries.
+
+### `core-trapped-charge-support.md`—Core-Trapped Noether Charge and the Finite-Composite Boundary
+
+Tests the first conserved spatial-support branch. The existing common Yang/Yin
+number disperses through the bulk and scale winding adds spatial line tension.
+One neutral bulk-gapped carrier supplies an exact $Q_C$ and, after
+transverse-mode reduction, the positive term $A_C/L$ with
+$A_C=\Lambda_CQ_C^2/2$. The condition $A_C>C_Q$ gives one finite root with
+positive length curvature. Carrier retention,
+$\hbar\omega_C<\varepsilon_{C,\rm out}$, and separation beyond core overlap
+remain independent requirements; the full coupled fixed-charge solution is
+unselected.
 
 ## Cross-References
 

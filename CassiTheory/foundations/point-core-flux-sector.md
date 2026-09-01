@@ -710,16 +710,20 @@ $$
 >\mathcal D.
 $$
 
-The auxiliary adjoint $SU(2)_Q$ branch now supplies one regular local core and
+The auxiliary adjoint $SU(2)_Q$ branch supplies one regular local core and
 matches the point-flux exterior coefficient. That exact monopole belongs to the
 adjoint-only or vanishing-condensate sector. Coupling the registered nonzero
 Yang/Yin fundamental condensate gives a positive London mass, removes the
 isolated magnetic $\pi_2$ sector, and confines the flux. A finite
-monopole-antimonopole tube is conditionally finite in energy, but its positive
-tension and attractive screened tail supply no finite-separation minimum.
-The stationary Cassi particle problem and full fluctuation spectrum therefore
-remain undefined pending a supported net-zero background and temporal gauge
-dynamics.
+monopole-antimonopole tube is conditionally finite in energy, while its
+positive tension and attractive screened tail give no finite-separation
+minimum in the registered branch.
+
+The neutral carrier in `foundations/core-trapped-charge-support.md` supplies a
+conditional reduced support term $A_C/L$. The strict inequality $A_C>C_Q$
+gives one finite root with positive length curvature when carrier retention
+and thin-tube matching also hold. A full backreacted stationary particle and
+its fluctuation spectrum remain undefined.
 
 ---
 
@@ -739,3 +743,7 @@ dynamics.
   adjoint core, condensate confinement, and persistent-composite boundary
 - `computations/magnetic_core_completion_check.py`—BPS profile, matching,
   London, and pair-slope checker
+- `foundations/core-trapped-charge-support.md`—conditional conserved-charge
+  support, carrier retention, and reduced finite-separation theorem
+- `computations/core_trapped_charge_check.py`—support-root, curvature,
+  localization, and source-unit checker

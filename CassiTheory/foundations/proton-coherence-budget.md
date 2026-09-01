@@ -283,7 +283,7 @@ coupling.
 | Conditional $10^{910}$-year conversion | Arithmetic inside the selected stochastic model; no physical rate |
 | Zero-total-flow two-rail current and normalized energy | Derived conditional on the candidate interscale action and circuit data |
 | Endpoint conversion and scale-tension closure | Charged coherent and one-way open realizations are Derived conditionally; physical normalization and scale tension remain Hypothesized |
-| Mixed-curvature proton pinch and winding barrier | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux supplies a conditional exterior coefficient; an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, while the registered condensate confines flux and gives no persistent finite-separation defect; the full fluctuation action remains open |
+| Mixed-curvature proton pinch and winding barrier | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux supplies a conditional exterior coefficient; an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, while the registered condensate confines flux and gives no persistent pair by itself; a neutral fixed-$Q_C$ carrier supplies one conditional reduced separation under support, retention, and matching inequalities; the transverse mode and full fluctuation action remain open |
 | Proton mass selection, charge, color, spin, and decay rate | Open |
 
 No numbered prediction is added. A quantitative proton claim requires a
@@ -468,8 +468,11 @@ classification are given in
 coefficient and completion boundary are given in
 `foundations/point-core-flux-sector.md`; the tested auxiliary core and
 confinement boundary are given in
-`foundations/nonabelian-magnetic-core-boundary.md`. The normalized identities
-are checked by `computations/planck_proton_scale_current_check.py`,
+`foundations/nonabelian-magnetic-core-boundary.md`; and the conditional
+fixed-$Q_C$ support branch is given in
+`foundations/core-trapped-charge-support.md`. The normalized identities are
+checked by `computations/planck_proton_scale_current_check.py`,
 `computations/endpoint_link_localization_check.py`,
-`computations/point_core_flux_check.py`, and
-`computations/magnetic_core_completion_check.py`.
+`computations/point_core_flux_check.py`,
+`computations/magnetic_core_completion_check.py`, and
+`computations/core_trapped_charge_check.py`.

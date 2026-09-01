@@ -228,14 +228,17 @@ $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires
 $\mathcal B_G>\mathcal D$. An auxiliary adjoint $SU(2)_Q$ branch supplies a
 smooth local core and matches this exterior coefficient, while the registered
 nonzero fundamental condensate removes the isolated magnetic sector and
-confines flux. Its finite net-zero string pair has no registered
-finite-separation minimum. Persistent-composite support, a proton solution,
-quantum numbers, temporal gauge dynamics, and a winding-changing rate remain
-required (`foundations/endpoint-link-and-localization-boundary.md`;
+confines flux. Its finite net-zero string pair has no finite-separation
+minimum in the registered branch. A neutral core-trapped carrier supplies one
+conditional reduced root when $A_C>C_Q$ and its retention and matching
+inequalities hold. A bound transverse carrier mode, a full backreacted proton
+solution, quantum numbers, temporal gauge dynamics, and a winding-changing
+rate remain required (`foundations/endpoint-link-and-localization-boundary.md`;
 `foundations/point-core-flux-sector.md`;
 `foundations/nonabelian-magnetic-core-boundary.md`;
+`foundations/core-trapped-charge-support.md`;
 `foundations/proton-coherence-budget.md` §10). Current null searches are
-compatible with these candidates and select neither one.
+compatible with these candidates and select none of them.
 
 ### 3.3 The neutron
 
@@ -310,6 +313,12 @@ of these phase, propagation, selected-coordinate, or NLS structures.
 - `foundations/three-generations.md`—$N_{\text{gen}} = 3$ from Fibonacci partitioning; quark-hierarchy gaps
 - `foundations/wake-geometry.md`—wake pair, envelope, closure ladder, mass scan
 - `foundations/unified-lagrangian.md`—assembled action; gauge couplings; $\kappa_s$
+- `foundations/nonabelian-magnetic-core-boundary.md`—auxiliary smooth magnetic
+  core, condensate topology, and confinement boundary
+- `foundations/core-trapped-charge-support.md`—conditional conserved-charge
+  support, carrier retention, and reduced finite-separation theorem
+- `computations/core_trapped_charge_check.py`—support-root, curvature,
+  localization, and source-unit checker
 - `foundations/cassi-theory-reference.md`—compact reference (Qi gate, $G_{\text{eff}}$, cascade, coherence budget)
 - `foundations/deriving-remaining-gaps.md`—electron mass class E; activated-step catalog; lepton desert
 - `particles/cassi-yang-yin-particles.md`—conditional Hypothesized soliton formation from complex-field/NLS interference
