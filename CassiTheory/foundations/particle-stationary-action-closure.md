@@ -923,4 +923,5 @@ of a converged localized solution.
 - `foundations/unified-lagrangian.md`
 - `parameter-inventory.md`
 - `predictions/falsifiable-predictions.md`
-- `computations/particle_action_closure_check.py`
+- `computations/particle_action_closure_check.py`: deterministic covariance,
+  source, stationary-variation, unit, and dimensionless-group checker

@@ -18,11 +18,10 @@ gauge-electric dyon belongs to the separate conditional temporal branch in
 coefficient point and stationary configuration remain unselected.
 
 The selected auxiliary branch is a neutral complex carrier $\chi_C$ with a
-global $U(1)_C$ phase, the same first-order time structure as the registered
-Yang/Yin doublet, a positive bulk gap, and an attractive well wherever the
-Yang/Yin density is depleted. A bound transverse carrier mode gives an exact
-Noether number $Q_C$. In the frozen-mode thin-tube reduction, positive quartic
-self-repulsion contributes
+global $U(1)_C$ phase, its own first-order time term, a positive bulk gap, and
+an attractive well wherever the Yang/Yin density is depleted. A bound
+transverse carrier mode gives an exact Noether number $Q_C$. In the frozen-mode
+thin-tube reduction, positive quartic self-repulsion contributes
 
 $$
 E_C^{\rm rep}(L)=\frac{\Lambda_CQ_C^2}{2L}.
