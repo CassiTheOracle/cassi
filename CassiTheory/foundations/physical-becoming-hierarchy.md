@@ -543,6 +543,15 @@ the carrier state from the regulated complex quantum configuration or from
 the P1 effective field theory. This missing physical identification is the
 remaining GQ3 and P1→P2 boundary.
 
+The completion ansatz in
+`foundations/geometric-manifold-completion.md` embeds the projected density
+pair in a positive Hermitian fibre and supplies one minimal completely
+positive off-diagonal conversion lift. Its diagonal equations reproduce the
+canonical population operator exactly, while its transverse coherence decays
+at $\gamma_c=\gamma_\varepsilon/2$. This conditional rate belongs to the
+selected two-jump lift. It leaves the physical carrier map and the microscopic
+conversion reservoir open.
+
 ---
 
 ## 5. Constitutive blocks for becoming
@@ -1426,6 +1435,10 @@ The theory closes one exact mathematical bridge and one architectural hierarchy:
 - **Derived conditional:** a finite shared-loop carrier law projects exactly
   to the canonical PDE, with an explicit internal spectrum and
   coherence-sensitive affine-bubble projection.
+- **Derived within the completion ansatz:** the positive coherence fibre
+  contains the canonical density diameter and projective boundary, while the
+  minimal completely positive conversion lift reproduces canonical populations
+  and gives $\gamma_c=\gamma_\varepsilon/2$.
 - **Defined:** actual state, body readouts, gate readouts, history, shadow trajectories, branch allocation, attention, commitment, resource debit, learning, and their causal order occupy typed slots in one differential-algebraic state.
 - **Hypothesized:** these slots form an autonomous field-native prospective controller after coarse-graining.
 - **Open:** a symmetry-protected microscopic completion, covariant screened gravity, the physical P1-to-carrier state map, physical unit matching, maintained embodiment, agent-level causal gates, and a distinctive physical prediction validated against controls.
@@ -1441,6 +1454,9 @@ The compact physical-becoming equation is therefore a research contract. It says
 - `foundations/qi-flow-double-helix.md` §§1–2—exact density/amplitude diagnostic lifts and conditional channel construction.
 - `foundations/loop-to-bubble-projection-theorem.md`—conditional
   shared-support carrier reduction, coherence map, and internal spectral gap.
+- `foundations/geometric-manifold-completion.md`—stratified positive coherence
+  fibre, two-rail scale graph, exact canonical reduction, and conditional
+  completely positive conversion lift.
 - `foundations/unified-lagrangian.md`—optional microscopic action assembly and its dimensional/covariant blockers.
 - `foundations/dimensionful-constants-status.md`—physical-unit and external-constant boundaries.
 - `computations/verify_physical_becoming_reduction.py`—symbolic checks of the exact conversion, mobility, covariance null mode, response eigenmodes, reference-state $\Gamma_0=\lambda/3$, physical fixed-$\rho$ wedge, and conditional FDT normalization.

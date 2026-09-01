@@ -715,6 +715,19 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
+The completion ansatz in
+`foundations/geometric-manifold-completion.md` places these finite layers in
+one stratified bundle: the canonical pair is the diagonal of a positive
+Hermitian cone, the loop Gram state supplies its Bloch-ball section, the
+projective shell is its rank-one boundary, and the affine bubble is an
+observation image. A cross-glued two-rail metric graph supplies the compact
+internal scale circuit. Its minimal completely positive conversion lift
+reproduces canonical population relaxation exactly and conditionally gives
+$\gamma_c=\gamma_\varepsilon/2$. This closes the mathematical map among the
+declared layers. The physical carrier map, reservoir, scale metric, endpoint
+fields, localized solution, observation map, and quantum numbers remain open,
+so the DQ and GQ physical-identification verdicts are unchanged.
+
 Record distinguishability is
 
 $$
@@ -983,20 +996,22 @@ flowchart TD
     B --> D[GR and SM: established external physics]
     B --> E[Scale associations: Mapped or Hypothesized]
     B --> G[Interscale current: one Hypothesized action]
+    B --> H[Geometric completion: stratified metric-graph bundle]
+    H --> F
     C --> F[Microscopic action and P1 to P2 matching remain open]
     D --> F
     E --> F
     G --> F
 ```
 
-**Visual:** The canonical variables provide common vocabulary across sectors. The interscale-current proposal adds one explicit Hypothesized action with internal continuity and counterflow identities. General relativity and Standard Model gauge dynamics remain established external physics, Qi-gravity remains an incomplete algebraic ansatz, and no current action matches all four interactions to the canonical solver.
+**Visual:** The canonical variables provide common vocabulary across sectors. The geometric completion ansatz combines the canonical density subcone, coherence ball, projective shell, and interscale circuit in one stratified bundle. General relativity and Standard Model gauge dynamics remain established external physics, Qi-gravity remains an incomplete algebraic ansatz, and no current action matches all four interactions to the canonical solver.
 
-The candidate action in `foundations/interscale-current-soliton.md` promotes scale to a field coordinate and derives a conservative current within that extension. It introduces free stiffnesses, gauge normalization, a scale measure, and boundary data; its composition potential also conserves Yang and Yin separately, so canonical conversion requires another sector. General relativity and Standard Model gauge dynamics retain their external status, and the Qi-gravity proposal retains its algebraic status. Complete unification requires microscopic field content, local gauge completion, P1→P2 matching, sector quantum numbers, and tests.
+The completion ansatz in `foundations/geometric-manifold-completion.md` supplies compatible geometry and an exact neutral reduction to the canonical PDE. It keeps the Hypothesized conservative interscale action separate from mesoscopic dissipative conversion and introduces open endpoint, scale-metric, and reservoir structures. General relativity and Standard Model gauge dynamics retain their external status, and the Qi-gravity proposal retains its algebraic status. Complete force unification still requires microscopic field content, local gauge completion, P1→P2 matching, sector quantum numbers, covariant gravity, and tests.
 
-| **Cassi Answer** | Candidate sector bookkeeping plus one explicit Hypothesized interscale action; no action currently derives or matches the four established interactions |
-| **Mechanism** | The interscale model derives internal continuity and counterflow under supplied coefficients; gravity, Standard Model gauge structure, conversion, and P1→P2 matching remain separate |
-| **Epistemic** | **Hypothesized/open**—the candidate action is explicit, while its physical realization and cross-sector matching remain open |
-| **Reference** | `foundations/physical-becoming-hierarchy.md` §7.2, §7.3; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md` |
+| **Cassi Answer** | One explicit stratified geometric completion ansatz with exact canonical reduction; no action currently derives or matches the four established interactions |
+| **Mechanism** | A positive Hermitian Yang/Yin fibre connects the canonical densities, loop coherence, and projective bubble map, while a two-rail graph closes the conditional scale circuit; gravity, Standard Model gauge structure, endpoint microphysics, conversion reservoir, and P1→P2 matching remain separate |
+| **Epistemic** | **Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry**—physical realization and cross-sector matching remain open |
+| **Reference** | `foundations/geometric-manifold-completion.md`; `foundations/physical-becoming-hierarchy.md` §7.2, §7.3; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md` |
 
 ### F4: Theory of Everything
 
@@ -1007,18 +1022,18 @@ flowchart TD
     B --> D[Particles: mapped or hypothesized structures]
     B --> E[Gravity: Qi-gravity ansatz and covariant completion open]
     B --> F[SM: established gauge structure and asserted boundary]
-    B --> H[Interscale action: Hypothesized internal extension]
+    B --> H[Geometric manifold: Hypothesized completion ansatz]
     H --> G[P0 to P1 to P2 matching open]
 ```
 
-**Visual:** The framework uses $\varphi$, canonical two-fluid notation, and the cascade to index mixed-tier claims. The interscale-current action supplies one explicit internal extension and preserves the same open matching boundary. Unified microscopic dynamics and a covariant gravity completion remain open.
+**Visual:** The framework uses $\varphi$, canonical two-fluid notation, and the cascade to index mixed-tier claims. The geometric completion ansatz unifies the declared density, coherence, projective, and scale-circuit maps while preserving separate conservative and open-system dynamics. Unified microscopic physics and a covariant gravity completion remain open.
 
-The current framework organizes cosmology, particle physics, gravity, and the Standard Model around shared notation. The interscale-current proposal derives conservation and counterflow identities inside a separately normalized complex field, while leaving its coefficients, conversion sector, scale metric, quantum numbers, and observable coupling open. General relativity and Standard Model gauge dynamics remain established external physics, and Qi-gravity remains an incomplete algebraic ansatz. The P0→P1→P2 matching program and covariant gravity completion remain open.
+The current framework organizes cosmology, particle physics, gravity, and the Standard Model around shared notation. The geometric completion supplies a stratified metric-graph bundle with exact reduction to canonical density dynamics and a conditional completely positive coherence lift. Its scale metric, endpoint fields, reservoir, localized solution, particle quantum numbers, and observation map remain unselected. General relativity and Standard Model gauge dynamics remain established external physics, and Qi-gravity remains an incomplete algebraic ansatz. The P0→P1→P2 matching program and covariant gravity completion remain open.
 
-| **Cassi Answer** | Mixed-tier sector organization plus one Hypothesized interscale action; unified microscopic dynamics remains open |
-| **Mechanism** | Each cosmology, particle, gravity, Standard Model, and interscale entry retains its own status; no current map derives their common ultraviolet field content or coarse-graining |
-| **Epistemic** | **Hypothesized/open**—the organization and interscale action are framework proposals; microscopic matching and covariant gravity remain open |
-| **Reference** | `foundations/physical-becoming-hierarchy.md` §7.1, §7.2; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md`; `cassi-physics.md` |
+| **Cassi Answer** | Mixed-tier sector organization plus one Hypothesized geometric completion ansatz with exact canonical reduction; unified microscopic dynamics remains open |
+| **Mechanism** | The stratified bundle connects canonical densities, loop coherence, projective geometry, and a compact scale circuit while retaining distinct conservative, dissipative, gravity, and Standard Model sectors |
+| **Epistemic** | **Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry**—microscopic matching, physical endpoints, reservoir, localized solution, and covariant gravity remain open |
+| **Reference** | `foundations/geometric-manifold-completion.md`; `foundations/physical-becoming-hierarchy.md` §7.1, §7.2; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md`; `cassi-physics.md` |
 
 
 ### F5: Dimensionful constants ($c$, $\hbar$, $G$) and $\lambda$

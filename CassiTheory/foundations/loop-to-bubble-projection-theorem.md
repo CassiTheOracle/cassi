@@ -1004,6 +1004,16 @@ microscopic completions.
 | Physical loop-carrier and phase identification | **Hypothesized** | Direct carrier, phase, current, and closure tests |
 | Quantum dynamics and statistics from the loop state | **Open** | QF1–QF4 and the remaining DQ/GQ artifacts |
 
+The completion ansatz in
+`foundations/geometric-manifold-completion.md` identifies the species Gram
+matrix with the positive Hermitian fibre of one stratified bundle. Its
+normalized section is the Bloch ball, the rank-one stratum is the projective
+shell, and the affine bubble map has the same normalized pullback metric. The
+minimal completely positive conversion lift extends the diagonal population
+law with a conditional coherence rate
+$\gamma_c=\gamma_\varepsilon/2$; this rate is specific to that lift and does
+not follow from the loop projection alone.
+
 ---
 
 ## 12. Verification
@@ -1034,5 +1044,7 @@ certificate is
 - `foundations/string-bubble-projective-map.md`—pure projective shell,
   affine orbit, and conditional fivefold map
 - `foundations/bubble-edge-geometry.md`—quadratic bubble axes and boundary
+- `foundations/geometric-manifold-completion.md`—positive coherence fibre,
+  metric compatibility, two-rail scale graph, and exact diagonal reduction
 - `computations/loop-to-bubble-projection-pre-registration.md`—frozen gates
 - `computations/verify_loop_to_bubble_projection.py`—independent certificate

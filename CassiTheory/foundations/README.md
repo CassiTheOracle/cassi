@@ -47,6 +47,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
 | 36 | `loop-to-bubble-projection-theorem.md` | Shared-support Yang/Yin loop, canonical zero-mode projection, coherence ball, and internal spectrum | Derived conditional projection, bubble map, and population spectrum / Hypothesized microscopic physical identification |
 | 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action / Derived conditional algebra |
+| 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, two-rail scale graph, canonical reduction, and open-system coherence lift | Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry |
 
 ## Document Summaries
 
@@ -489,6 +490,25 @@ boundary event, nonsmooth defect, or independent gauge-bundle event.
 Coefficient normalization, the scale measure, local embedding, compact
 winding, mass scaling, and particle identification remain open. Status:
 Hypothesized action with Derived conditional identities.
+
+### `geometric-manifold-completion.md`—Cassi Geometric Manifold Completion Ansatz
+
+Defines one stratified metric-graph bundle that contains the canonical
+real-density pair as the diagonal of a positive Hermitian cone, the
+loop-derived coherence ball as its normalized section, the projective shell as
+its rank-one boundary, and the affine bubble as a metric-compatible
+observation image. A cross-glued two-rail scale graph has two vertices, two
+edges, $b_1=1$, and one Yang-outward/Yin-return internal cycle.
+
+The conservative interscale action and mesoscopic dissipative conversion
+remain separate dynamical blocks. A minimal completely positive two-jump lift
+reproduces canonical conversion exactly on the diagonal and conditionally
+gives $\gamma_c=\gamma_\varepsilon/2$, with
+$(\gamma_\varepsilon,\gamma_c)=(\lambda/3,\lambda/6)$ at the gated reference
+state. The physical scale metric, endpoint fields, reservoir, localized
+solution, observation map, particle quantum numbers, and decay rate remain
+open. Status: Hypothesized completion ansatz with Derived canonical reduction
+and conditional fibre geometry.
 
 ## Cross-References
 

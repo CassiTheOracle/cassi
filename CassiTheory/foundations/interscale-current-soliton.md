@@ -265,9 +265,9 @@ Define
 $$
 a_A=\partial_A\Theta,
 \qquad
-u_{Y,A}=a_A-\frac{c_A}{2},
+\nu_{Y,A}=a_A-\frac{c_A}{2},
 \qquad
-u_{I,A}=a_A+\frac{c_A}{2}.
+\nu_{I,A}=a_A+\frac{c_A}{2}.
 $$
 
 The number currents are
@@ -1300,6 +1300,7 @@ minimum in §7.2.
 | Co-flow/counterflow decomposition | Derived from the candidate action |
 | Separate Yang/Yin conservation and absence of ratio relaxation | Derived from the candidate action |
 | Planck-to-proton two-rail current and normalized energy | Derived conditional on the Mapped endpoint, uniform $\varphi$ composition, compact circuit phase, and endpoint bias |
+| Cross-glued two-rail metric graph and circuit holonomy | Derived graph geometry under the Hypothesized gauge-covariant flux-unitary endpoint quotient; the physical endpoint fields and scale metric remain open (`foundations/geometric-manifold-completion.md`) |
 | Endpoint conversion, scale tension, and proton selection | Hypothesized; the unbiased $m=1$ endpoint requires $\mathcal T_{\mathfrak s}/(K_{\mathfrak s}\rho)=5.57043\times10^{-4}$ |
 | Healing widths and local London coefficients | Derived conditional linearization |
 | Inward mixed-curvature force | Conditional on source sign, response, and restricted field sector |
@@ -1329,6 +1330,16 @@ turns the mixed-curvature pinch into a concrete proton research route. The
 endpoint converters, scale tension, localized solution, quantum numbers, and
 winding-changing rate remain open.
 
+The completion ansatz in
+`foundations/geometric-manifold-completion.md` realizes this scale circuit as
+a two-edge metric graph with $b_1=1$ and adds the mesoscopic conversion block
+through a separate completely positive generator. Its flux-unitary endpoint
+quotient geometrizes the Yang-outward/Yin-return path without forcing equal
+rail densities and reproduces the dressed circuit holonomy. It leaves the
+charged endpoint sector or equivalent gauge dressing, scale length, localized
+solution, and winding-changing rate unselected.
+
+
 The mechanism is mathematically coherent at the stated level and physically
 Hypothesized. Its free coefficients and normalization choices carry the missing
 physics. The golden ratio organizes the composition and possible compact
@@ -1346,6 +1357,7 @@ winding approximants; it does not replace those inputs.
 - `foundations/qi-loop-mass-cascade.md`—conditional loop tension and inverse-scale mass bookkeeping
 - `foundations/proton-coherence-budget.md` §10—proton-facing statement of the distinct scale-circuit candidate
 - `computations/planck_proton_scale_current_check.py`—Planck-to-proton current, energy, and scale-tension identities
+- `foundations/geometric-manifold-completion.md`—two-rail metric-graph closure, positive coherence fibre, and separate open-system conversion block
 - `foundations/spin-fibonacci-spiral.md`—optional compact phase, half-angle, and winding structure
 - `principles/de-resonance-principle.md`—Fibonacci convergents under compact-current assumptions
 - `particles/cassi-yang-yin-particles.md`—complex two-component field precedent

@@ -568,6 +568,23 @@ the declared density target or the physical de-resonance proposal.
 `computations/verify_phi_counterflow_selection.py`;
 `computations/phi-counterflow-selection-report.md`.
 
+## 14. Conditional Geometric-Manifold Completion Tests
+
+These checks apply to the declared stratified metric-graph completion. They
+test its compatibility and reduction contracts without promoting the ansatz
+to physical microphysics.
+
+| ID | Observable | Conditional Cassi result | Current status | Falsifier |
+|----|------------|--------------------------|----------------|-----------|
+| **GM-1** | Positive Yang/Yin coherence matrix and its normalized Bloch coordinate | $\det\Gamma=\rho^2(1-\|\mathbf n\|^2)/4$, so positive matrices fill the cone over $B^3$ and rank-one states lie on $S^2$ | **Derived linear algebra.** The checker verifies full-rank and rank-one samples | A matrix satisfying the declared positive-fibre premises violates the determinant identity or leaves the Bloch ball |
+| **GM-2** | Canonical real-density and zero-extension limits of the graph-bundle continuity equation | With $c=0$, no scale current, no relative connection, no endpoint channel, canonical spatial fluxes, and zero noise, every added-sector term vanishes separately and the diagonal equations reproduce the canonical two-fluid PDE exactly | **Derived conditional reduction.** The checker computes connection, scale, endpoint, and bath terms from their neutral inputs, asserts their component residuals separately, and evaluates the assembled zero-extension residual. Active endpoint and bath dynamics remain unspecified and unverified | Any computed neutral-input component survives, the assembled added-sector residual is nonzero, or the remaining population operator differs from canonical conversion |
+| **GM-3** | Undriven transverse coherence and composition relaxation in the minimal two-jump lift | $\gamma_c=\gamma_\varepsilon/2$; at the gated reference state, $(\gamma_\varepsilon,\gamma_c)=(\lambda/3,\lambda/6)$ | **Derived within the minimal lift; physically untested.** A carrier-to-$c$ observable and an independently identified undriven regime remain open | Under the declared two-jump generator and controlled undriven conditions, measured coherence fails the half-rate relation beyond calibrated uncertainty |
+| **GM-4** | Topology and holonomy of the cross-glued Yang/Yin scale rails | Two vertices and two edges give $b_1=1$, circumference $2L_{\mathfrak s}$, and $\int(\nu_Y-\nu_I)d\mathfrak s+\delta_-+\delta_+=2\pi m$, where $\delta_-+\delta_+$ is the dressed endpoint contribution | **Derived graph geometry conditional on gauge-covariant endpoint gluing.** Physical charged endpoint fields or equivalent dressing remain Hypothesized | The declared quotient has a different first Betti number or its oriented circuit phase fails the displayed holonomy after the endpoint contribution is made gauge invariant |
+| **GM-5** | Projective winding under a continuous path through full-rank coherence states | The rank-one shell has $\pi_2(S^2)=\mathbb Z$, while the full normalized fibre $B^3$ is contractible, so shell winding can unwind through the interior unless another invariant protects it | **Derived topology.** Physical access to and control of the coherence interior remain untested | A continuous contraction is impossible in the full declared Bloch ball after independent gauge flux and boundary invariants are excluded |
+
+**Source:** `foundations/geometric-manifold-completion.md`;
+`computations/geometric_manifold_completion_check.py`.
+
 
 ---
 
@@ -603,7 +620,7 @@ the declared density target or the physical de-resonance proposal.
   fitted or calibrated comparisons, null results, rejected entries, and open
   hypotheses. Rows without a registered derivation are marked **Not
   predicted**; no aggregate success count is assigned across those classes.
-- **Conditional test rows (CT-n, SB-n, LP-n, and DR-n):** these rows are unnumbered conditional discriminators outside the 1–N numbered prediction sequence; they do not alter the catalog's numbered prediction count. CT-1 records the regulated quantum sector's no-collapse nanoparticle limit; CT-2 registers the candidate physical-time cross-clock discriminator; SB-1–SB-5 register the projective shell's conditional geometry, conversion flow, and phase-loop diagnostic; LP-1–LP-6 register the shared-loop projection, passive spectrum, coherence, phase-cancellation, coarse-graining, and fivefold-visibility contracts; DR-1–DR-4 register the counterflow identity, winding boundary, physical de-resonance discriminator, and conditional Fibonacci-sector selector.
+- **Conditional test rows (CT-n, SB-n, LP-n, DR-n, and GM-n):** these rows are unnumbered conditional discriminators outside the 1–N numbered prediction sequence; they do not alter the catalog's numbered prediction count. CT-1 records the regulated quantum sector's no-collapse nanoparticle limit; CT-2 registers the candidate physical-time cross-clock discriminator; SB-1–SB-5 register the projective shell's conditional geometry, conversion flow, and phase-loop diagnostic; LP-1–LP-6 register the shared-loop projection, passive spectrum, coherence, phase-cancellation, coarse-graining, and fivefold-visibility contracts; DR-1–DR-4 register the counterflow identity, winding boundary, physical de-resonance discriminator, and conditional Fibonacci-sector selector; GM-1–GM-5 register the positive fibre, exact diagonal reduction, minimal-lift coherence rate, scale-graph topology, and projective-unwinding boundary.
 
 - **Deviations from SM expectations are falsifiable**—not adjustable. If FCC-ee
   measures $m_W/m_Z = 0.881 \pm 0.0001$, the Cassi framework is excluded

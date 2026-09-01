@@ -1082,7 +1082,55 @@ The loop-carrier identification, phase dynamics, QF1-to-carrier state map,
 and quantum postulates remain independent. See
 `foundations/loop-to-bubble-projection-theorem.md`.
 
-### 10.5 Wake-Wave Mechanism
+### 10.5 Geometric Manifold Completion Ansatz
+
+One minimal completion ansatz organizes the declared geometric layers as a
+stratified metric-graph bundle. Its common reduced fibre is
+
+$$
+\Gamma=
+\begin{pmatrix}E_Y&c^*\\c&E_I\end{pmatrix}
+\in\operatorname{Herm}_2^+,
+\qquad
+\det\Gamma=\frac{\rho^2}{4}(1-\|\mathbf n\|^2).
+$$
+
+The canonical real-density pair is the diagonal diameter of the normalized
+Bloch ball, the loop Gram state fills that ball, its rank-one boundary is the
+projective shell, and $\mathbf X=D\mathbf n$ is the affine bubble observation
+map. Their normalized metrics obey
+$2\operatorname{tr}(d\widehat\Gamma^2)=d\mathbf n^2
+=d\mathbf X^{\mathsf T}D^{-2}d\mathbf X$.
+
+The internal scale circuit is a cross-glued pair of Yang and Yin interval
+edges. It has two vertices, two edges, first Betti number $b_1=1$, and
+circumference $2L_{\mathfrak s}$. Yang runs toward increasing scale and Yin
+returns, so its oriented phase obeys
+
+$$
+\int_{\mathfrak s_-}^{\mathfrak s_+}
+(\nu_Y-\nu_I)\,d\mathfrak s+\delta_-+\delta_+=2\pi m.
+$$
+
+The Hypothesized conservative interscale action remains separate from
+mesoscopic open-system conversion. The minimal completely positive two-jump
+lift reproduces the canonical population operator exactly and gives the
+conditional rate relation
+
+$$
+\gamma_c=\frac12\gamma_\varepsilon,
+\qquad
+(\gamma_\varepsilon,\gamma_c)_{\rm ref}
+=\left(\frac{\lambda}{3},\frac{\lambda}{6}\right).
+$$
+
+This ansatz completes the mathematical maps among the declared layers.
+Physical scale normalization, endpoint microphysics, the conversion
+reservoir, localized solutions, the observation map, particle quantum
+numbers, and decay rates remain open. See
+`foundations/geometric-manifold-completion.md`.
+
+### 10.6 Wake-Wave Mechanism
 
 An optional compact-phase/wake construction can pair sheets through an anti-phase assignment ($\Delta\phi=\pi$), producing paired sheets flanking a central void. This is a **Hypothesized** phenomenological extension; the canonical rank-one real-density conversion has no phase or anti-phase structural property.
 

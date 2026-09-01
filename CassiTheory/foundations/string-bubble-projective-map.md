@@ -610,6 +610,15 @@ observable remain open, consistent with GQ7 in
 | $\mathcal A$, $\mathcal F$, and $\Gamma_\varphi$ | Derived generic projective geometry | Physical connection and observable remain open |
 | Shell map as physical space and map flow as physical Qi current | Hypothesized identification | Requires constitutive, normalization, transport, and observation maps |
 
+The completion ansatz in
+`foundations/geometric-manifold-completion.md` places this shell on the
+rank-one boundary of the full positive Hermitian coherence cone. Its
+normalized interior is the loop-derived Bloch ball, and the affine map
+$\mathbf X=D\mathbf n$ preserves the declared normalized metric. The minimal
+conversion lift moves an undriven coherent state into the interior at the
+conditional rate $\gamma_c=\gamma_\varepsilon/2$, so persistent shell
+dynamics requires an identified coherent drive or protected sector.
+
 ---
 
 ## 8. Decisive next gates
@@ -650,6 +659,8 @@ loop-projection, and spectrum identities are frozen in
   moment-map/Kähler architecture and its phase-fibre boundaries
 - `foundations/loop-to-bubble-projection-theorem.md`—shared-support loop
   projection, coherence-ball completion, internal spectrum, and scale boundary
+- `foundations/geometric-manifold-completion.md`—positive coherence cone,
+  rank-one shell boundary, metric compatibility, and open-system lift
 - `foundations/bubble-edge-geometry.md` §2—quadratic condensation-boundary
   axes and full cosine-level-set boundary
 - `foundations/wu-xing-derivation.md` §§2–3—conditional $w=5$ selector and

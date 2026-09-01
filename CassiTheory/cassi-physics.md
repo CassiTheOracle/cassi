@@ -298,6 +298,23 @@ a projection theorem. The microscopic identification, phase dynamics,
 QF1-to-carrier state map, quantum postulates, and physical scale law remain
 independent. See `foundations/loop-to-bubble-projection-theorem.md`.
 
+The geometric manifold completion ansatz places these finite structures in
+one stratified bundle. A positive Hermitian Yang/Yin fibre contains the
+canonical density pair on its diagonal, the loop coherence state in its
+normalized Bloch ball, and the projective shell on its rank-one boundary; the
+affine bubble map preserves the corresponding normalized metric. A
+cross-glued two-rail metric graph supplies one compact internal scale cycle,
+distinct from the shared carrier loop and from any spatial torus.
+
+The conservative interscale action and mesoscopic conversion remain separate
+dynamical blocks. A minimal completely positive lift reproduces canonical
+population conversion exactly and conditionally gives transverse coherence
+decay at half the composition-relaxation rate. The construction is a
+**Hypothesized completion ansatz** with **Derived canonical reduction and
+conditional fibre geometry**. The physical reservoir, scale metric, endpoint
+fields, localized solution, observation map, quantum numbers, and decay rate
+remain open. See `foundations/geometric-manifold-completion.md`.
+
 ---
 
 ## 4. The String: Spiral and Wakes
