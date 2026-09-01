@@ -32,11 +32,13 @@ spatial topology.
 
 These results produce a localization boundary. In the smooth, unexcised,
 zero-Chern sector, the endpoint completion supplies no positive $1/R$ support
-under spatial Derrick scaling. The reduced energy has no finite-radius
-stationary point. A conditional radius exists only after an independent
-flux/core term supplies $\mathcal B>\mathcal D$. The endpoint sector therefore
-closes the scale current without deriving a particle soliton, particle quantum
-numbers, or a decay rate.
+under spatial Derrick scaling, and the reduced energy has no finite-radius
+stationary point. An imposed point-core Chern sector has the sharp exterior
+coefficient derived in `foundations/point-core-flux-sector.md` and supports the
+reduced radius only when $\mathcal B_G>\mathcal D$. The current Abelian action
+cannot smooth that core or produce an isolated finite-energy condensate around
+it. The endpoint sector therefore closes the scale current without deriving a
+particle soliton, particle quantum numbers, or a decay rate.
 
 ---
 
@@ -72,7 +74,7 @@ results below are deductions within those declared structures.
 | EL-3 | One-way endpoint jumps close the population circuit with $\gamma_-/\gamma_+=\varphi$ | Derived conditional on the Markov endpoint channel and uniform $\varphi$ composition |
 | EL-4 | The full positive coherence fibre carries no nontrivial state-only homotopy invariant | Derived topology |
 | EL-5 | The smooth unexcised object base has no first-Chern sector; point or line excision creates one candidate integer sector | Derived topology for the declared base choices |
-| EL-6 | The smooth zero-Chern endpoint completion has no finite Derrick radius; $\mathcal B>\mathcal D$ remains necessary | Derived minimal-sector localization no-go |
+| EL-6 | The smooth zero-Chern endpoint completion has no finite Derrick radius; point-core flux gives a conditional exterior coefficient but no current-action particle completion | Derived minimal-sector no-go / Derived conditional point-core boundary |
 
 No row identifies a Standard Model particle. Mass, electric charge, color,
 spin, statistics, scale length, endpoint normalization, and lifetime remain
@@ -784,6 +786,21 @@ it. Equations (EL45)–(EL56) establish the minimal-sector localization no-go an
 the exact condition an added support sector must satisfy. They do not establish
 a solution of a broader higher-derivative, defect, or nonlocal theory.
 
+For the point-excised compact connection, the registered spatial gauge term
+gives
+
+$$
+\mathcal B_G
+=2\pi N_G^2
+\int_{I_{\mathfrak s}}\frac{d\mathfrak s}{e_x^2},
+\qquad e_x^2=g_Q^2\mu_x.
+$$
+
+This sharp coefficient replaces $\mathcal B$ in that branch. The associated
+support condition is $\mathcal B_G>\mathcal D$. The same branch retains an
+excised core, and the current nonzero-condensate Abelian action has no isolated
+finite-energy continuation (`foundations/point-core-flux-sector.md`).
+
 ---
 
 ## 7. Stability and decay channels
@@ -795,8 +812,8 @@ a solution of a broader higher-derivative, defect, or nonlocal theory.
 | Coherent endpoint phase | $|\mathcal J_Q|<\mathcal J_{c,v}$, $u_v>0$, and $\cos(\vartheta-\alpha_v)>0$ at both vertices | Overcritical current, $u_v=0$, endpoint phase slip, or coupling to an incoherent channel | Requires $U_v$, endpoint damping, and fluctuation data |
 | Scale-graph winding $m$ | Nonzero coherent amplitude around the compact graph | Rail-amplitude zero, endpoint phase slip, boundary event, or open jump | Unselected |
 | Rank-one projective charge | Evolution remains on $\|\mathbf n\|=1$ with fixed boundary data | Entry into the full-rank interior or $\rho=0$ | Minimal conversion supplies an inward path but no universal transition rate |
-| First Chern number $N_G$ | Closed two-cycle and compact connection in a defect or nontrivial-base sector | Boundary flux, defect crossing, singular connection event, or removal of the cycle | Unselected |
-| Reduced spatial radius | $\mathcal A>0$, $\mathcal C\geq0$, and $\mathcal B>\mathcal D$ | Collapse when $\mathcal B\leq\mathcal D$; large-radius instability when $\mathcal C<0$ | Requires the full action and fluctuation operator |
+| First Chern number $N_G$ | Closed two-cycle and compact connection in a defect or nontrivial-base sector | Boundary flux, defect crossing, singular connection event, or removal of the cycle | Exterior coefficient Derived conditionally; core dynamics unselected |
+| Reduced spatial radius | $\mathcal A>0$, $\mathcal C\geq0$, and $\mathcal B_G>\mathcal D$ in the point-core branch | Collapse when support does not exceed $\mathcal D$; large-radius instability when $\mathcal C<0$ | Reduced curvature Derived; full field and fluctuation operator absent |
 | Open endpoint population circuit | Positive rates satisfying (EL32) | Rate imbalance, donor depletion, or bath change | Absolute rates given conditionally by (EL33) |
 | Open endpoint coherence | External coherent support | Undriven decay $\dot c=-\gamma_vc/2$ | Half the local donor-jump rate |
 
@@ -861,11 +878,11 @@ localized solution, or defect sector.
 ### 8.2 Present evidential status
 
 The gauge transformations, source cancellation, capacity inequality, Markov
-rate ratio, coherence half-rate, cohomology groups, and reduced-radius algebra
-are executable analytic checks. No numerical PDE run currently realizes the
-charged endpoint field or open endpoint channel. The toroidal experiments test
-different conservative spatial constructions and do not instantiate (EL9) or
-(EL28).
+rate ratio, coherence half-rate, cohomology groups, reduced-radius algebra, and
+point-core exterior coefficient are executable analytic checks. No numerical
+PDE run currently realizes the charged endpoint field, open endpoint channel,
+or a finite-energy point defect. The toroidal experiments test different
+conservative spatial constructions and do not instantiate (EL9) or (EL28).
 
 No numbered prediction is added to
 `predictions/falsifiable-predictions.md`. A physical discriminator requires a
@@ -889,10 +906,13 @@ protected flux sector requires a defect, excision, boundary flux, or different
 spatial topology.
 
 The endpoint closure supplies no positive $1/R$ support in the minimal smooth
-sector. The Derrick profile therefore has no finite stationary radius until an
-independent core satisfies $\mathcal B>\mathcal D$. The endpoint current has
-mathematical closure at the declared conditional level. A localized particle,
-its quantum numbers, and its decay rate remain open physical sectors.
+sector. Point excision and fixed Chern flux give
+$\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and a conditional reduced
+radius when $\mathcal B_G>\mathcal D$. The current Abelian action cannot smooth
+the magnetic core, and its nonzero charged condensate has no isolated
+finite-energy point-flux state. The endpoint current has mathematical closure
+at the declared conditional level. A localized particle, its quantum numbers,
+and its decay rate remain open physical sectors.
 
 ---
 
@@ -902,6 +922,8 @@ its quantum numbers, and its decay rate remain open physical sectors.
   coherence fibre, canonical reduction, and endpoint-gluing boundary
 - `foundations/interscale-current-soliton.md`—relative connection, scale
   current, endpoint cosine, mixed curvature, and Derrick profile
+- `foundations/point-core-flux-sector.md`—quantized exterior support,
+  finite-energy obstruction, and stationary-solver boundary
 - `foundations/physical-becoming-hierarchy.md`—closed conservative and
   mesoscopic open-system boundary
 - `foundations/loop-to-bubble-projection-theorem.md`—positive Yang/Yin Gram
@@ -915,3 +937,4 @@ its quantum numbers, and its decay rate remain open physical sectors.
   hierarchy result
 - `computations/endpoint_link_localization_check.py`—endpoint, topology, and
   localization algebra checker
+- `computations/point_core_flux_check.py`—point-core flux and support checker

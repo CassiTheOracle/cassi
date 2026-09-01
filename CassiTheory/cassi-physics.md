@@ -312,14 +312,19 @@ population conversion exactly and conditionally gives transverse coherence
 decay at half the composition-relaxation rate. Charged coherent and one-way
 open endpoint sectors provide conditional scale-vertex closure. The full
 coherence fibre is contractible, the smooth object base has no first-Chern
-sector, and the minimal endpoint completion has no finite Derrick radius. The
-construction is a **Hypothesized completion ansatz** with **Derived canonical
-reduction, conditional fibre geometry, endpoint boundaries, and a
-minimal-sector localization no-go**. The physical reservoir, scale metric,
-endpoint normalization, independent core, supported solution, observation
-map, quantum numbers, and decay rate remain open. See
-`foundations/geometric-manifold-completion.md` and
-`foundations/endpoint-link-and-localization-boundary.md`.
+sector, and the minimal endpoint completion has no finite Derrick radius.
+Point-core Chern flux supplies the sharp exterior coefficient
+$\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and supports the reduced
+radius only when $\mathcal B_G>\mathcal D$. The present Abelian action cannot
+smooth the magnetic core or sustain its nonzero charged condensate at finite
+energy. The construction is a **Hypothesized completion ansatz** with
+**Derived canonical reduction, conditional fibre geometry, endpoint
+boundaries, exterior point-flux support, and a current-action completion
+no-go**. The physical reservoir, scale metric, endpoint normalization,
+magnetic core, supported solution, observation map, quantum numbers, and decay
+rate remain open. See `foundations/geometric-manifold-completion.md`,
+`foundations/endpoint-link-and-localization-boundary.md`, and
+`foundations/point-core-flux-sector.md`.
 
 ---
 
@@ -610,13 +615,18 @@ channel provides a population realization with
 $\gamma_-/\gamma_+=\varphi$ while damping endpoint coherence. The relative
 current can source the mixed-curvature pinch while total scale-number flow
 remains zero. The smooth zero-Chern endpoint sector has no finite Derrick
-radius. Physical endpoint normalization, scale tension, independent core
-support, proton quantum numbers, and winding-changing rate remain open
+radius. A point-core Chern sector gives
+$\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires
+$\mathcal B_G>\mathcal D$. The current Abelian action has no smooth magnetic
+core or isolated finite-energy nonzero-condensate realization. Physical
+endpoint normalization, scale tension, magnetic core support, proton quantum
+numbers, and winding-changing rate remain open
 (`foundations/endpoint-link-and-localization-boundary.md`;
+`foundations/point-core-flux-sector.md`;
 `foundations/interscale-current-soliton.md` §4.5;
 `foundations/proton-coherence-budget.md` §10).
 
-**Epistemic status:** the $N_{\text{max}}$ product and lifetime conversion are **Derived conditional** on the **Mapped** span and **Hypothesized** $q_i$ profile. The two-rail current, energy, endpoint capacity, open-rate ratio, and minimal-sector localization boundary are **Derived conditional** on the interscale action and declared endpoint sectors. Identifying either construction with physical proton stability, selecting the endpoint normalization and scale tension, supplying a supported localized solution, and obtaining a decay rate are **Hypothesized/Open**.
+**Epistemic status:** the $N_{\text{max}}$ product and lifetime conversion are **Derived conditional** on the **Mapped** span and **Hypothesized** $q_i$ profile. The two-rail current, energy, endpoint capacity, open-rate ratio, point-flux coefficient, support inequality, and current-action completion no-go are **Derived conditional** on the interscale action and declared sectors. Identifying either construction with physical proton stability, selecting the endpoint normalization and scale tension, supplying a magnetic core and supported localized solution, and obtaining a decay rate are **Hypothesized/Open**.
 
 For the neutron–proton–electron trio as a whole—their rungs, sectors, and what the framework does and does not say about their differences—see `particles/matter-organization.md`.
 

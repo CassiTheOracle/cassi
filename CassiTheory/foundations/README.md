@@ -49,6 +49,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action / Derived conditional algebra |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, two-rail scale graph, canonical reduction, and open-system coherence lift | Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry |
 | 39 | `endpoint-link-and-localization-boundary.md` | Gauge-covariant endpoint closure, full-fibre invariant classification, and smooth-sector localization boundary | Derived conditional endpoint closure / Derived minimal-sector localization no-go |
+| 40 | `point-core-flux-sector.md` | Quantized point-core exterior energy, finite-energy obstruction, and stationary-solver boundary | Derived conditional exterior support / Derived current-action completion no-go |
 
 ## Document Summaries
 
@@ -509,8 +510,10 @@ reproduces canonical conversion exactly on the diagonal and conditionally
 gives $\gamma_c=\gamma_\varepsilon/2$, with
 $(\gamma_\varepsilon,\gamma_c)=(\lambda/3,\lambda/6)$ at the gated reference
 state. Charged coherent and one-way open endpoint realizations are available
-conditionally. The smooth zero-Chern sector has no finite Derrick radius; the
-physical scale metric, endpoint normalization, reservoir, independently
+conditionally. The smooth zero-Chern sector has no finite Derrick radius.
+Point-core Chern flux supplies a conditional exterior coefficient, while the
+present Abelian condensate has no smooth isolated finite-energy realization.
+The physical scale metric, endpoint normalization, reservoir, magnetic core,
 supported solution, observation map, particle quantum numbers, and decay rate
 remain open. Status: Hypothesized completion ansatz with Derived canonical
 reduction and conditional fibre geometry.
@@ -531,9 +534,22 @@ number can survive mixed states, while the smooth base
 $\mathbb R^3\times S^1_{\mathfrak s}$ has $H^2=0$ and therefore no nonzero
 Chern sector. A defect or boundary is required. The endpoint terms supply no
 positive $1/R$ core energy, so the smooth zero-Chern sector has no finite
-Derrick radius. A conditional supported solution still requires
-$\mathcal B>\mathcal D$. Status: Derived conditional endpoint closure and
-Derived minimal-sector localization no-go.
+Derrick radius. Point-core flux supplies a conditional exterior coefficient
+and a finite-energy completion obstruction. Status: Derived conditional
+endpoint closure and Derived minimal-sector localization no-go.
+
+### `point-core-flux-sector.md`—Quantized Point-Core Flux and the Persistent-Defect Boundary
+
+A spatial core removed through the full scale circuit gives a linking $S^2$
+and an integer first Chern sector. The registered gauge term has the sharp
+fixed-flux minimum
+$\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$, so the reduced point branch
+has a supported radius only when $\mathcal B_G>\mathcal D$. The Abelian Bianchi
+identity prevents a smooth core, and the nonzero charged condensate gives a
+linear angular-energy divergence at infinity. No radial stationary particle or
+full fluctuation spectrum is defined until a magnetic completion and
+compatible boundary data are supplied. Status: Derived conditional exterior
+support and Derived current-action completion no-go.
 
 ## Cross-References
 

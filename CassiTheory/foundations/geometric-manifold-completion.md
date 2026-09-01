@@ -42,7 +42,9 @@ realizations of the gluing in
 `foundations/endpoint-link-and-localization-boundary.md`. Their physical
 normalization, the scale metric, endpoint microphysics, observation map, and
 decay rate remain unselected. The smooth zero-Chern endpoint sector has no
-finite Derrick radius; an independent flux/core term remains necessary.
+finite Derrick radius. Point-core Chern flux supplies a conditional exterior
+$1/R$ coefficient, while the current Abelian condensate admits no smooth,
+isolated finite-energy completion (`foundations/point-core-flux-sector.md`).
 
 ---
 
@@ -1194,7 +1196,7 @@ Under the restricted static response in
 
 $$
 f_i
-=\mathcal I_{\mathfrak s}G_{i\mathfrak s},
+:=\hbar\mathcal I_{\mathfrak s}G_{i\mathfrak s},
 \qquad
 \mathcal I_{\mathfrak s}=g_QJ_Q.
 \tag{GM73}
@@ -1204,8 +1206,11 @@ An inward sign is conditional on the source, response, and boundary data. A
 finite spatial radius additionally requires independent flux/core support. In
 the smooth unexcised zero-Chern sector, the endpoint completion supplies no
 positive $1/R$ term and the Derrick profile has no finite stationary radius.
-The conditional supported profile still requires $\mathcal B>\mathcal D$
-(`foundations/endpoint-link-and-localization-boundary.md` §6).
+Point-core Chern flux gives
+$\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires
+$\mathcal B_G>\mathcal D$, but the present Abelian action cannot smooth the
+core or satisfy isolated finite-energy condensate asymptotics
+(`foundations/point-core-flux-sector.md`).
 
 ### 6.4 Spatial loop boundary
 
@@ -1384,7 +1389,7 @@ No numbered prediction is added to
 | Scale tension and endpoint selection | Capacity bound and one-way rate ratio Derived conditionally; physical couplings, rates, and scale selection open |
 | Mixed-curvature inward force | Conditional restricted-sector result |
 | Physical bubble identification | Hypothesized observation map |
-| Stable spatially localized solution | Absent in the minimal smooth zero-Chern sector; an independently supported defect or higher-order sector remains open |
+| Stable spatially localized solution | Absent in the minimal smooth zero-Chern sector; point-core flux supplies a conditional exterior coefficient, while a smooth magnetic core and finite-energy stationary completion remain open |
 | Particle mass, charge, color, spin, statistics, and decay rate | Open |
 | Covariant gravity and physical scale metric | Open |
 
@@ -1404,14 +1409,17 @@ The ansatz reaches physical completion only when one declared model supplies:
 4. a physical scale measure, $K_{\mathfrak s}$, and scale tension;
 5. a relative-connection action and boundary state that produce the required
    mixed curvature;
-6. a short-distance core, fixed flux, or higher-order support satisfying
-   $\mathcal B>\mathcal D$;
-7. a finite-energy solution localized in $M_3$ and compact through scale in
-   that added support sector;
-8. a stability spectrum with no growing physical modes;
-9. an observation map from $\Gamma$ to measured density, phase coherence, and
-   particle observables;
-10. independently identifiable mass, charge, color, spin, statistics, and any
+6. a magnetic core or another short-distance support sector; the point-flux
+   branch must satisfy
+   $2\pi N_G^2\int d\mathfrak s/e_x^2>\mathcal D$;
+7. boundary data compatible with the core, the charged condensate, and finite
+   total energy;
+8. a stationary solution localized in $M_3$ and compact through scale in that
+   completed support sector;
+9. a stability spectrum with no growing physical modes;
+10. an observation map from $\Gamma$ to measured density, phase coherence, and
+    particle observables;
+11. independently identifiable mass, charge, color, spin, statistics, and any
     winding-changing rate.
 
 The target equations form a coupled conservative and open-system problem:
@@ -1467,8 +1475,10 @@ a coherent realization with finite current capacity; a one-way open channel
 gives a population realization with a conditional $\varphi$ rate ratio. Their
 physical couplings and the scale length remain boundary data. Mixed curvature
 supplies a conditional localization route, while the smooth zero-Chern sector
-has no finite Derrick radius. A supported defect solution and all particle
-quantum numbers remain open.
+has no finite Derrick radius. Point-core flux fixes the conditional exterior
+$1/R$ coefficient, and the current Abelian condensate has no smooth isolated
+finite-energy realization. A magnetic core completion, supported stationary
+solution, and all particle quantum numbers remain open.
 
 The completion ansatz closes the mathematical map among the declared geometric
 layers. Physical completion requires the solution specified in §10.
@@ -1486,6 +1496,8 @@ layers. Physical completion requires the solution specified in §10.
 - `foundations/endpoint-link-and-localization-boundary.md`—charged endpoint
   realization, open vertex alternative, invariant classification, and
   minimal-sector localization no-go
+- `foundations/point-core-flux-sector.md`—quantized exterior flux support and
+  current-action point-defect boundary
 - `foundations/unified-lagrangian.md`—optional conservative sector bookkeeping
 - `field-experience/toroidal-coherence-survival-report.md`—spatial torus survival verdict
 - `field-experience/toroidal-connected-hierarchy-report.md`—connected hierarchy result

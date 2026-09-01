@@ -43,9 +43,11 @@ endpoint and returns Yin along the same scale interval. Total scale-number
 current vanishes while the relative current remains nonzero. A charged
 coherent vertex section and a one-way open channel supply conditional endpoint
 realizations. The smooth zero-Chern sector has no finite Derrick radius.
-Scale tension, physical endpoint normalization, independent core support,
-proton quantum numbers, and winding-changing rate remain Hypothesized/Open.
-Neither candidate determines a physical proton lifetime.
+Point-core Chern flux supplies an exact conditional exterior coefficient, while
+the current Abelian action has no smooth isolated finite-energy completion.
+Scale tension, physical endpoint normalization, magnetic core support, proton
+quantum numbers, and winding-changing rate remain Hypothesized/Open. Neither
+candidate determines a physical proton lifetime.
 
 ---
 
@@ -228,11 +230,11 @@ mechanism.
 Super-Kamiokande and Hyper-Kamiokande search for physical proton-decay
 channels such as $p\to e^+\pi^0$. The coherence-budget candidate supplies a
 rate only after the independent-step hazard and Compton-cycle trial map are
-selected. The scale-circuit candidate has conditional endpoint equations and
-a minimal-sector localization no-go. It supplies a rate only after an
-independently supported localized solution and winding-changing transition
-action are selected. Neither candidate predicts a null result or a finite
-lifetime.
+selected. The scale-circuit candidate has conditional endpoint equations, an
+exact point-flux exterior coefficient, and a current-action completion no-go.
+It supplies a rate only after a magnetic core, finite-energy stationary
+solution, and winding-changing transition action are selected. Neither
+candidate predicts a null result or a finite lifetime.
 
 The gauge-mediated GUT estimate is a separate channel with its own coupling,
 mass scale, operators, and matrix elements. Its arithmetic audit is recorded
@@ -278,7 +280,7 @@ coupling.
 | Conditional $10^{910}$-year conversion | Arithmetic inside the selected stochastic model; no physical rate |
 | Zero-total-flow two-rail current and normalized energy | Derived conditional on the candidate interscale action and circuit data |
 | Endpoint conversion and scale-tension closure | Charged coherent and one-way open realizations are Derived conditionally; physical normalization and scale tension remain Hypothesized |
-| Mixed-curvature proton pinch and winding barrier | No finite radius in the minimal smooth zero-Chern endpoint sector; an independently supported defect solution and fluctuation action remain open |
+| Mixed-curvature proton pinch and winding barrier | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux supplies a conditional exterior coefficient, while a magnetic core, finite-energy stationary defect, and fluctuation action remain open |
 | Proton mass selection, charge, color, spin, and decay rate | Open |
 
 No numbered prediction is added. A quantitative proton claim requires a
@@ -434,17 +436,31 @@ $$
 A self-consistent mixed-curvature response can compress a spatial profile
 without net scale-number leakage. In the smooth unexcised zero-Chern endpoint
 sector, it supplies an attractive $-\mathcal D/R$ term without the independent
-$+\mathcal B/R$ support required for a finite Derrick radius. Localization
-therefore requires a defect, fixed flux, higher-order core, or equivalent
-sector satisfying $\mathcal B>\mathcal D$. Winding change requires a phase
-slip, endpoint conversion event, condensate zero, defect crossing, or boundary
-event. A proton lifetime still requires the supported solution, fluctuation
-action, physical proton quantum numbers, and observable decay channel.
+$+\mathcal B/R$ support required for a finite Derrick radius.
+
+A spatial core removed through the scale circuit admits $N_G\in\mathbb Z$ and
+gives
+
+$$
+\mathcal B_G
+=2\pi N_G^2
+\int_{I_{\mathfrak s}}\frac{d\mathfrak s}{e_x^2}.
+$$
+
+The reduced point branch requires $\mathcal B_G>\mathcal D$. The current
+Abelian action cannot smooth the magnetic core, and its nonzero charged
+condensate has linearly divergent angular energy around isolated point flux.
+Winding change requires a phase slip, endpoint conversion event, condensate
+zero, defect crossing, or boundary event. A proton lifetime still requires a
+magnetic completion, finite-energy stationary solution, fluctuation action,
+physical proton quantum numbers, and observable decay channel.
 
 The circuit derivation is given in
-`foundations/interscale-current-soliton.md` §4.5. Endpoint closure, invariant
-classification, and the localization boundary are given in
-`foundations/endpoint-link-and-localization-boundary.md`. The normalized
-identities are checked by
-`computations/planck_proton_scale_current_check.py` and
-`computations/endpoint_link_localization_check.py`.
+`foundations/interscale-current-soliton.md` §4.5. Endpoint closure and invariant
+classification are given in
+`foundations/endpoint-link-and-localization-boundary.md`. The point-core
+coefficient and completion boundary are given in
+`foundations/point-core-flux-sector.md`. The normalized identities are checked
+by `computations/planck_proton_scale_current_check.py`,
+`computations/endpoint_link_localization_check.py`, and
+`computations/point_core_flux_check.py`.
