@@ -384,20 +384,18 @@ $\theta_d=\operatorname{atan2}(E_I,E_Y)$.
 
 ---
 
-## 6. Relation to the coherence-budget comparison
+## 6. Relation to the proton candidates
 
-| | Proton decay | Annihilation | Measurement | Optional spin construction |
+| | Coherence budget | Scale circuit | Measurement | Optional spin construction |
 |---|---|---|---|---|
-| What is sampled | All 92 rungs, random | All 92 rungs, anti-phase | One rung, phase-matched | Added winding across selected rungs |
-| Timescale input | Cascade product | Single-cycle | Single-cycle | Added pitch $2\pi/\ln\varphi$ |
-| Optional quantized quantity | N/A | N/A | Born rule $|\alpha|^2$ | $s=\Delta\vartheta/(2\pi)=\Delta n/2$ |
-| What persists | Proton itself | Nothing | Post-collapse branch | Added spiral geometry if postulated |
+| Mathematical object | Independent-step product | Compact two-rail winding $m$ | One phase-matched record channel | Added winding across selected scale steps |
+| Physical input still needed | Failure law and trial frequency | Endpoint conversion, localized solution, transition rate | Instrument map | Pitch $2\pi/\ln\varphi$ and particle map |
+| Conditional quantity | $\sim10^{941.8}$ modeled cycles | Relative current $\mathcal J_{Q,m}$ | Born rule $|\alpha|^2$ | $s=\Delta\vartheta/(2\pi)=\Delta n/2$ |
 
-The proton record quotes a coherence lifetime of $10^{910}$ years and a
-coherence depth of approximately 92 rungs. Reading a $\pi$ increment across
-that depth, or assigning spin-$1/2$ to a quark, requires the optional compact
-coordinate and minimal-span rules. The lifetime and rung count themselves do
-not supply those rules.
+The proton models supply neither the compact-coordinate pitch nor the
+particle-to-spin map. Assigning a $\pi$ phase increment to a minimal span and
+identifying it with spin-$1/2$ require the optional compact construction stated
+in this document.
 
 ---
 

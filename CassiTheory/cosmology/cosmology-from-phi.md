@@ -177,7 +177,7 @@ $$
 B=\frac{28}{79}(B-L)\quad\text{(SM with one Higgs doublet)}.
 $$
 
-Conditional on this extension, the baryon-to-photon ratio is the ledgered Mapped value (`foundations/baryon-asymmetry.md`; Fit-Status Ledger row 481): the residual Yang excess after organized annihilation is attenuated through 44 rungs of photon-producing conversion, but the freeze-out-step construction (steps 8 → 52) does not close with the GUT anchor ($60 - 13.3 = 46.7$), and the available dilution span is $33.4 \neq 44$, so the exponent $-44$ is a fit to the observed value, not a derivation. The mechanism (Wu Xing gap + organized annihilation + cascade dilution) is Hypothesized.
+Conditional on this extension, the baryon-to-photon ratio is the ledgered Mapped value (`foundations/baryon-asymmetry.md`; Fit-Status Ledger row 481): a residual Yang excess after the Hypothesized particle/antiparticle circuit interaction is attenuated through 44 scale steps of photon-producing conversion. The freeze-out-step construction (steps 8 → 52) does not close with the GUT anchor ($60-13.3=46.7$), and the available dilution span is $33.4\neq44$, so the exponent $-44$ is a fit to the observed value. The mechanism (Wu Xing gap, unselected circuit interaction, and cascade dilution) remains Hypothesized.
 
 $$
 \boxed{\eta = \varphi^{-44} \approx 6.38 \times 10^{-10}}

@@ -706,6 +706,13 @@ preserves Yang and Yin number separately, so it does not replace the canonical
 conversion law or establish the compact pitch and physical identification left
 open here.
 
+With additional endpoint converters, §4.5 of that document closes a
+Planck-to-proton two-rail circuit:
+$J_{Y,\mathfrak s}=+\mathcal J_Q$ and
+$J_{I,\mathfrak s}=-\mathcal J_Q$. Its total scale-number current vanishes
+while the relative current remains nonzero. This circuit is a candidate Qi
+current in internal-scale space and remains distinct from $J_{d,z}$.
+
 The conditional four-channel lift resolves independent Yang/out, Yang/in,
 Yin/out, and Yin/in populations in operational $\mathbb R^4$. At fixed
 positive total density its state is the three-simplex $\Delta^3$. The canonical

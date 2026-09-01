@@ -15,15 +15,15 @@ Claim A—GUT gauge-mediated decay, `standard-model/gut-embedding.md` §3.1:
 
 Claim B—coherence budget, `foundations/proton-coherence-budget.md` §3:
   N_max = Π_{i=0}^{n} 1/(1−q_i) = φ^{δ(n+1) + n(n+1)/2},  q_i = 1 − φ^{−i−δ}
-  with δ = 3, n = 91.46: boxed N_max ≈ φ⁴⁵⁰⁶ ≈ 10⁹⁴² cycles → τ_p ≈ 10⁹¹⁰ yr
+  with δ = 3, n = 91.46: N_max ≈ φ⁴⁵⁰⁶ ≈ 10⁹⁴² modeled cycles; the additional Compton-cycle trial map gives the conditional τ_p ≈ 10⁹¹⁰ yr
 
 Tier ledger (what each link rests on):
   - GUT formula: standard SU(5) dimensional estimate (formula: Derived, as
     standard physics); inputs α_GUT = φ⁻³/4π and M_GUT = 2×10¹⁶ GeV carry the
     ledgered Δb = 1.70 beyond-SM content—Mapped (parameter-inventory.md §10).
   - Coherence budget: product structure is combinatorial (Derived, given the
-    dephasing model); per-rung profile q_i = 1 − φ^{−i−δ} is Hypothesized
-    (no derivation—doc §8); rung n = 91.46 = log_φ(λ_p/ℓ_Pl) is Mapped.
+    dephasing model); per-step profile q_i = 1 − φ^{−i−δ} is Hypothesized
+    (no derivation—doc §8); scale coordinate n = 91.46 is Mapped.
 
 Usage: python computations/proton_budget_closure.py
 """
@@ -43,11 +43,12 @@ HBARC_GEV_M = 1.973269804e-16  # ħc in GeV·m
 ALPHA_GUT_STATED = 1.0 / 53.0
 ALPHA_GUT_PHI    = PHI**(-3) / (4 * math.pi)   # φ⁻³/4π ≈ 1/53.2 (doc §3 value)
 M_GUT            = 2.0e16      # GeV
-M_P              = 0.938       # GeV
+M_P              = 0.938       # GeV, value printed in the GUT estimate
+M_P_PRECISE      = 0.93827208816  # GeV, proton mass for the scale coordinate
 TAU_BOXED_YR     = 4.0e34      # printed boxed value [yr]
 
 # ---- Claim B inputs (exactly as printed) ----------------------------------
-N_PROTON   = 91.46            # rung: log_φ(λ_p/ℓ_Pl)
+N_PROTON   = 91.46            # registered two-decimal reporting coordinate
 DELTA      = 3.0              # σ = ℓ_Pl/φ³ regularization offset
 N_BOXED    = 4506.0           # printed exponent ≈ φ⁴⁵⁰⁶
 
@@ -83,7 +84,7 @@ print(f"    ÷ year ({YEAR_S:.4e} s)      = {tau_yr:.3e} yr")
 print()
 
 ratio = tau_yr / TAU_BOXED_YR
-print(f"  HONEST VALUE of the boxed formula with its own inputs:")
+print(f"  EVALUATED VALUE of the boxed formula with its own inputs:")
 print(f"      τ_p = {tau_yr:.3e} yr")
 print(f"  vs the printed boxed value τ_p ≈ 4×10³⁴ yr:")
 print(f"      ratio = {ratio:.1f}×   ← the ledgered 323× discrepancy")
@@ -114,26 +115,31 @@ print()
 # ---------------------------------------------------------------------------
 print("─ CLAIM B—coherence budget N_max  (proton-coherence-budget.md §3) ─")
 print()
-lam_p = HBARC_GEV_M / M_P            # proton Compton wavelength [m]
+lam_p = HBARC_GEV_M / M_P_PRECISE    # proton reduced Compton wavelength [m]
 n_exact = math.log(lam_p / M_PL) / LN_PHI
-exponent = DELTA * (n_exact + 1) + n_exact * (n_exact + 1) / 2.0
+n_budget = N_PROTON                  # registered two-decimal continuation
+exponent = DELTA * (n_budget + 1) + n_budget * (n_budget + 1) / 2.0
+exponent_exact_coord = DELTA * (n_exact + 1) + n_exact * (n_exact + 1) / 2.0
 nmax_log10 = exponent * LOG10_PHI
-omega_p = M_P / HBAR_GEV_S           # proton Compton frequency [Hz]
+omega_p = M_P_PRECISE / HBAR_GEV_S   # proton Compton frequency [Hz]
 # log10 space: 10^941.6 overflows float; carry the exponent only
 log10_tau_b_s  = nmax_log10 - math.log10(omega_p)
 log10_tau_b_yr = log10_tau_b_s - math.log10(YEAR_S)
 
-print(f"  n = log_φ(λ_p/ℓ_Pl) = log_φ({lam_p:.4e}/{M_PL:.4e}) = {n_exact:.2f}")
-print(f"      (doc: 91.46; ledger: Mapped rung)")
-print(f"  exponent = δ(n+1) + n(n+1)/2 = 3×{n_exact+1:.2f} + {n_exact:.2f}×{n_exact+1:.2f}/2")
-print(f"           = {DELTA*(n_exact+1):.2f} + {n_exact*(n_exact+1)/2:.2f} = {exponent:.2f}")
-print(f"      (doc prints 277.4 + 4228.3 = 4505.7; exact sum {exponent:.2f} ≈ φ⁴⁵⁰⁶ ✓)")
-print(f"  N_max = φ^{exponent:.2f} = 10^{nmax_log10:.2f} cycles  (doc: ≈ 10⁹⁴² ✓)")
-print(f"  ω_p = m_p c²/ħ = {M_P}/{HBAR_GEV_S:.4e} = {omega_p:.4e} Hz  (doc: 1.43×10²⁴ ✓)")
+assert math.isclose(n_exact, 91.461618346390, rel_tol=1e-12)
+assert math.isclose(exponent, 4505.5758, rel_tol=1e-12)
+
+print(f"  mapped coordinate = log_φ({lam_p:.9e}/{M_PL:.7e}) = {n_exact:.9f}")
+print(f"  registered budget coordinate rounds this to n = {n_budget:.2f}")
+print(f"  exponent = δ(n+1) + n(n+1)/2")
+print(f"           = {DELTA*(n_budget+1):.4f} + {n_budget*(n_budget+1)/2:.4f}")
+print(f"           = {exponent:.4f} ≈ 4506")
+print(f"  precise-coordinate exponent, reported separately = {exponent_exact_coord:.6f}")
+print(f"  N_max = φ^{exponent:.4f} = 10^{nmax_log10:.2f} cycles  (doc: ≈ 10⁹⁴² ✓)")
+print(f"  ω_p = m_p c²/ħ = {M_P_PRECISE}/{HBAR_GEV_S:.4e} = {omega_p:.4e} Hz")
 print(f"  τ_p = N_max/ω_p = 10^{log10_tau_b_s:.2f} s = 10^{log10_tau_b_yr:.2f} yr")
-print(f"      (doc: ≈ 10⁹¹⁰ yr ✓)")
-print(f"  → Claim B's boxed numbers DO follow from its stated inputs: the")
-print(f"    chain is arithmetically self-consistent, unlike Claim A's 4×10³⁴.")
+print(f"  → Claim B's boxed cycle count follows from its declared reporting")
+print(f"    coordinate and Hypothesized independent-step model.")
 print()
 
 # ---------------------------------------------------------------------------
@@ -152,11 +158,10 @@ print(f"    GUT chain:  formula = standard SU(5) dimensional estimate (Derived,"
 print(f"                as standard physics); inputs α_GUT = φ⁻³/4π and")
 print(f"                M_GUT = 2×10¹⁶ GeV (Δb = 1.70 content) = Mapped (ledger).")
 print(f"                → closed value {tau_yr:.2e} yr is Mapped, arithmetic closed.")
-print(f"    Coherence chain:  product structure = Derived (combinatorial);")
-print(f"                per-rung q_i = 1 − φ^(−i−δ) = Hypothesized (no derivation,")
-print(f"                doc §8); rung n = 91.46 = Mapped (ledger).")
-print(f"                → τ_p ≈ 10⁹¹⁰ yr is internally consistent but rests on the")
-print(f"                Hypothesized q_i profile; it is a different prediction")
-print(f"                (coherence dephasing) from Claim A (gauge mediation).")
+print(f"    Coherence chain:  product structure = Derived conditional;")
+print(f"                per-step q_i = 1 − φ^(−i−δ) = Hypothesized (doc §8);")
+print(f"                registered coordinate n = 91.46 = Mapped (ledger).")
+print(f"                → τ_p ≈ 10⁹¹⁰ yr additionally requires the unselected")
+print(f"                Compton-cycle trial map and is distinct from Claim A.")
 print()
 print("=" * 76)

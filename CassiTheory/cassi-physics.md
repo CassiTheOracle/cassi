@@ -443,9 +443,9 @@ Within the proposed cascade coordinate, this rule supplies a common conditional 
 | Electroweak hierarchy ($v_0/M_{\text{Pl}}$) | 66.7 (Mapped GUT anchor $n \approx 13.3$) | $\varphi^{-66.7}$ | $10^{-14}$ ($N_{\mathrm{gap}}\approx79.7$ uses $g=1-\varphi^{-5}$; direct measured-ratio placement $N_{\mathrm{raw}}\approx79.89$; both identify nearest rung 80; exponent Mapped—ledger row 549) |
 | Strong CP ($\bar{\theta}$) | 81.4 | $\varphi^{-81.4}$ | $\pi\varphi^{-83.4} \approx 1.2\times10^{-17}$ |
 | Neutrino masses ($m_\nu$) | 12–25 | $\varphi^{-12}$ to $\varphi^{-25}$ | 0.001–0.1 eV |
-| Proton lifetime | 91.5 (coherence) | $\varphi^{-4506}$ | $10^{910}$ yr |
+| Proton conditional cycle budget | $N_p^{\mathrm{budget}}=91.46$ | $\varphi^{-4505.5758}$ | $\sim10^{942}$ modeled cycles; physical decay rate open |
 
-The model distinguishes scale-coordinate attenuation, which is linear in the span ($\varphi^{-N}$), from **coherence maintenance**—a structure that depends on all supporting rungs staying coherent simultaneously, like the proton across its 91.5 rungs—which is modeled as quadratic, $\varphi^{-n(n+1)/2}$. The coherence-budget proton-lifetime estimate follows conditionally from that auxiliary coherence regime; the electroweak hierarchy and strong CP use the scale-coordinate regime under their respective mappings.
+The model distinguishes scale-coordinate attenuation, linear in the span ($\varphi^{-N}$), from the auxiliary coherence-budget product, quadratic in its declared endpoint. The proton row is dimensionless arithmetic under the Hypothesized independent-step profile. A lifetime additionally requires a failure law and trial-frequency map; §13 records the separate scale-current candidate.
 
 Within this coordinate model, the gap $g=1-\varphi^{-5}$ gives the electroweak cascade coordinate $N_{\mathrm{gap}}\approx79.7$ from $v_0/M_{\text{Pl}}=g\cdot\varphi^{-N_{\mathrm{gap}}}$. The direct measured ratio gives $N_{\mathrm{raw}}=\log_\varphi(M_{\text{Pl}}/v_0)\approx79.89$; both placements identify the nearest integer rung 80.
 
@@ -547,13 +547,48 @@ clustering limit, Mercury limit, or PPN limit for the canonical branch.
 
 ## 13. Proton Stability
 
-If the proton is identified with a condensed standing wave spanning the **Mapped** 91.5-rung interval ($\log_\varphi(\lambda_p/\ell_{\text{Pl}})=91.46$, with $\lambda_p=\hbar c/m_p$), then the coherence-budget construction assigns its lifetime from the probability that all 91.5 modeled rungs stay coherent simultaneously—the cascade suppression formula's coherence regime:
+The measured proton mass maps to the precise coordinate
+$\mathfrak s_p=\log_\varphi[\hbar/(m_pc\ell_{\mathrm{Pl}})]=91.4616$.
+The coherence-budget candidate uses the registered two-decimal coordinate
+$N_p^{\mathrm{budget}}=91.46$ and the Hypothesized profile
+$q_i=1-\varphi^{-i-\delta}$. Under the declared independent simultaneous
+failure model,
 
-$$\tau_p = N_{\text{max}}/\omega_p \sim 10^{942}/10^{24} \sim 10^{910} \text{ yr}$$
+$$
+N_{\mathrm{max}}
+=\varphi^{4505.5758}
+\approx10^{942}\ \text{cycles}.
+$$
 
-The product algebra behind this estimate is **Derived conditional** on the Mapped span and on the declared per-rung profile $q_i=1-\varphi^{-i-\delta}$, whose specific physical form is **Hypothesized** (`foundations/proton-coherence-budget.md` §3, §8). Within that representation, organized conversion coherent across the full 91.5-rung span is required to dismantle the candidate state, while random perturbation does not satisfy the same coherence condition. The estimate is consistent with current null results but does not derive that the physical proton is this condensate or that this is its decay mechanism; that physical identification is **Hypothesized** and the $10^{910}$-year channel is not directly testable with current technology.
+Mapping one Compton cycle to one transition trial gives the conditional
+$10^{910}$-year figure. The interscale action supplies no fluctuation law,
+transition state, or matrix element for that mapping, so the cycle count
+currently yields no physical proton lifetime.
 
-**Epistemic status:** the $N_{\text{max}}$ product and lifetime conversion are **Derived conditional** on the **Mapped** span and **Hypothesized** $q_i$ profile; identifying them with physical proton stability is **Hypothesized**; **not testable** with current technology.
+A distinct current-based candidate uses the same Mapped interval as a closed
+two-rail circuit:
+
+$$
+J_{Y,\mathfrak s}=+\mathcal J_Q,
+\qquad
+J_{I,\mathfrak s}=-\mathcal J_Q,
+\qquad
+J_{\mathfrak s}=0,
+\qquad
+\mathcal I_{\mathfrak s}=g_Q\mathcal J_Q.
+$$
+
+At the uniform $\varphi$ composition,
+$\mathcal J_{Q,m}=K_{\mathfrak s}\rho\Delta_m/
+(\hbar\varphi^3\mathfrak s_p)$. Yin-to-Yang conversion at the Planck endpoint
+and Yang-to-Yin conversion at the proton endpoint close the circuit. The
+relative current can source the mixed-curvature pinch while total scale-number
+flow remains zero. The endpoint fields, scale tension, localized solution,
+proton quantum numbers, and winding-changing rate remain open
+(`foundations/interscale-current-soliton.md` §4.5;
+`foundations/proton-coherence-budget.md` §10).
+
+**Epistemic status:** the $N_{\text{max}}$ product and lifetime conversion are **Derived conditional** on the **Mapped** span and **Hypothesized** $q_i$ profile. The two-rail current and energy identities are **Derived conditional** on the interscale action, compact circuit phase, uniform composition, and endpoint data. Identifying either construction with physical proton stability, selecting the endpoint converters and scale tension, and obtaining a decay rate are **Hypothesized/Open**.
 
 For the neutron–proton–electron trio as a whole—their rungs, sectors, and what the framework does and does not say about their differences—see `particles/matter-organization.md`.
 
@@ -632,9 +667,9 @@ The human-scale consequences—consciousness, emotion, trauma, therapy—are dev
 | 7 | $\varphi$-periodic modulation in neural avalanche sizes | MEA recordings, >10³ events | Not yet tested |
 | 8 | No fourth generation within the mapped three-channel construction | LHC/FCC | Consistent |
 | 9 | $\bar{\theta} \approx 1.2\times10^{-17}$ | Future neutron EDM | Not yet testable |
-| 10 | Proton stability: coherence-budget $\tau_p\sim10^{910}$ yr (conditional); separate GUT-channel estimate $1.3\times10^{37}$ yr | Hyper-K / current technology | Conditional; consistent with null results |
+| 10 | Proton stability mechanisms: conditional $\sim10^{942}$-cycle coherence budget; separate two-rail scale current; GUT-channel estimate $1.3\times10^{37}$ yr | Select a physical channel and compute its transition rate before comparison with Hyper-K | Conditional mechanisms; no Cassi rate yet |
 
-Full catalog: `predictions/falsifiable-predictions.md` (56 entries). The physics-specific predictions (1–3, 8–10) are listed here; the full set including the biological and psychological predictions is in the catalog.
+Full catalog: `predictions/falsifiable-predictions.md` (56 entries). The physics-specific entries (1–3, 8–10) are listed here; the full set including the biological and psychological predictions is in the catalog.
 
 ## 21. Epistemic Tiers
 

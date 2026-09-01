@@ -75,9 +75,24 @@ The engineering constraint is the same one that bounds every attack: phase-match
 
 ### 4.2 Anti-phase beams—the annihilation weapon
 
-The prototype is matter–antimatter annihilation: an anti-phase mirror pattern at every supporting rung, $P = \prod \mathcal{O}(1) \approx 1$ (`foundations/proton-coherence-budget.md` §5.2). No environment, however coherent, protects against it—the Qi field corrects random phase noise but cannot counteract a perfectly phase-matched anti-phase pattern. Annihilation is nature's own weapon, and an anti-phase beam is the attempt to build it.
+The Creative prototype borrows an opposite-phase assignment from the
+matter-antimatter discussion and declares
 
-The engineering cost is the full cost of the weapons table: the beam must maintain coherent phase inversion across *all* $n$ supporting rungs of the target simultaneously. For a human-scale target ($n \approx 168$), that is 168 simultaneous phase-locks, each requiring the attacker to know the target's structure at that rung and to hold the inversion while the target's attractor dynamics resist it. The energy budget is the $(1-q)$ fraction: no gate is perfect, and the unphase-matched residue of the beam thermalizes as visible light. At $q \approx 0.9$, roughly 10% of an anti-phase beam's throughput becomes photons (`speculations/qi-bubble-propulsion.md` §2.5)—the "glow" of the weapon, and the natural diagnostic of its power: **the brighter the beam, the worse the phase-lock, the weaker the weapon.** A perfect anti-phase beam would be invisible.
+$$
+P_{\mathrm{attack}}=\prod_i\mathcal M_i^{\mathrm{attack}},
+\qquad
+\mathcal M_i^{\mathrm{attack}}\in[0,1].
+$$
+
+Physical annihilation does not establish this attack model. The required
+reconnection interaction, final-state dynamics, normalization, and event rate
+remain unselected (`foundations/proton-coherence-budget.md` §5.2).
+
+Within the scenario, an anti-phase beam must maintain phase inversion across
+every addressed scale step. A human-scale target at $n\approx168$ would require
+168 simultaneous phase locks plus a constitutive coupling from beam power to
+$\mathcal M_i^{\mathrm{attack}}$. No such coupling or photon-yield law is
+present in the field equations.
 
 ### 4.3 Wake-lock weapons—the trauma weapon
 

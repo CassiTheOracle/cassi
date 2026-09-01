@@ -747,33 +747,59 @@ through $N \approx 81$ coordinate rungs (94.71 − 13.33):
 
 $$\bar{\theta} \approx \varphi^{-81.4} \times \pi\varphi^{-2} = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$$
 
-### 6.6 Proton Stability
+### 6.6 Proton stability candidates
 
-The proton is a condensed standing wave at the mapped coordinate
-$n=91.5$ ($\log_\varphi(\lambda_p/\ell_{\text{Pl}})=91.46$). Per-rung
-dephasing: $1-q_i = \varphi^{-i-\delta}$ ($\delta=3$). Let
-$N=\lfloor91.46\rfloor=91$. The finite integer-cutoff product is
+The measured proton mass maps to
 
 $$
-P_{\text{dephase}}^{(N)}
-=\prod_{i=0}^{N}(1-q_i)
-=\varphi^{-[N(N+1)/2+\delta(N+1)]}
-=\varphi^{-4462}\qquad(N=91,\ \delta=3).
+\mathfrak s_p
+=\log_\varphi\!\left(\frac{\hbar}{m_pc\,\ell_{\mathrm{Pl}}}\right)
+=91.4616.
 $$
 
-For the mapped real coordinate, the quadratic exponent is continued as a
-real-coordinate interpolation:
+The coherence-budget candidate uses the registered reporting coordinate
+$N_p^{\mathrm{budget}}=91.46$ and the Hypothesized profile
+$1-q_i=\varphi^{-i-\delta}$ with $\delta=3$. Continuing the closed exponent
+gives
 
 $$
-\mathcal{E}(n,\delta)=n(n+1)/2+\delta(n+1),\qquad
-\mathcal{E}(91.46,3)=4505.5758\approx4506.
+\mathcal E(N_p^{\mathrm{budget}},3)
+=\frac{N_p^{\mathrm{budget}}(N_p^{\mathrm{budget}}+1)}{2}
++3(N_p^{\mathrm{budget}}+1)
+=4505.5758,
 $$
 
-The lifetime estimate uses this continuous-coordinate rounded scale:
-$N_{\text{max}}\approx\varphi^{4506}$ wave cycles. Physical lifetime
-$\tau_p\approx\varphi^{4506}/\omega_p\sim10^{910}$ yr. Matter-antimatter
-annihilation is the same mechanism with organized anti-phase perturbation
-($P\approx1$, one cycle).
+$$
+N_{\mathrm{max}}^{\mathrm{cont}}
+=\varphi^{4505.5758}
+\approx10^{941.8}\ \text{modeled cycles}.
+$$
+
+The product is Derived conditional arithmetic under the independent-step
+failure model. The $10^{910}$-year conversion additionally assigns one
+transition trial to every Compton cycle; no fluctuation law or matrix element
+selects that map.
+
+The distinct scale-circuit candidate has
+
+$$
+J_{Y,\mathfrak s}=+\mathcal J_Q,
+\qquad
+J_{I,\mathfrak s}=-\mathcal J_Q,
+\qquad
+J_{\mathfrak s}=0,
+\qquad
+\mathcal I_{\mathfrak s}=g_Q\mathcal J_Q.
+$$
+
+At uniform $E_Y/E_I=\varphi$,
+$\mathcal J_{Q,m}=K_{\mathfrak s}\rho\Delta_m/
+(\hbar\varphi^3\mathfrak s_p)$. Endpoint converters close the circuit, and the
+relative current can source a mixed-curvature pinch. The endpoint fields,
+scale tension, localized proton solution, particle quantum numbers, and
+winding-changing rate remain Hypothesized/Open. Opposite winding sectors
+$m$ and $-m$ provide a possible matter/antimatter branch label; their physical
+identification and annihilation interaction remain unselected.
 
 ### 6.7 Quark Confinement
 
@@ -864,7 +890,7 @@ The $\varphi^{-1}$ correction in $n_s$ comes from the Qi gate's residual transpa
 
 ### 8.3 Baryon Asymmetry
 
-Three mechanisms: (1) organized annihilation (§6.6), (2) Wu Xing freeze-out gap $g = 1 - \varphi^{-5}$, (3) cascade dilution through photon-producing conversion:
+Three candidate ingredients: (1) a particle/antiparticle circuit interaction (§6.6), (2) the Wu Xing freeze-out gap $g = 1 - \varphi^{-5}$, and (3) cascade dilution through photon-producing conversion:
 
 $$\eta \approx \varphi^{-44}$$
 
@@ -873,9 +899,9 @@ Mapped). Current candidate spans remain unclosed: the pinch-minus-seed span is
 $46.7$, the required exponent is $44.126$ (ledgered as the Mapped integer
 exponent $44$), and the separate gate-threshold span is $26.7$. No rate law
 or physical coordinate map selects an endpoint connecting these values, so the
-construction does not close. The mechanism (Wu Xing gap + organized annihilation
-cascade dilution) is **Hypothesized**; see
-`foundations/baryon-asymmetry.md` for the full status.
+construction does not close. The mechanism (Wu Xing gap + candidate circuit
+interaction + cascade dilution) is **Hypothesized**, with reconnection dynamics
+and event rate open; see `foundations/baryon-asymmetry.md` for the full status.
 
 ### 8.4 Dark Matter
 
@@ -1098,6 +1124,7 @@ Mind: concentrated post-pinch field dynamics. Brain: antenna for the Qi field. A
 | $\sigma$ | $\ell_{\text{Pl}}/\varphi^3$ |—| Regularization scale ($\delta = 3$ Derived conditional on the noise–signal identification + $d = 3$: per-rung dephasing $\varphi^{-\delta}$ equals the equilibrium excess $\varphi^{-3}$—`gravity/quantum-gravity.md` §2.1) |
 | $\Omega_{\text{DM}}/\Omega_b$ | $\varphi^3$ | $4.24$ | Qi condensate base, Derived conditional on the Weinberg-angle identification; the $+1$ capture term is excluded by the component budget—ledger row 502 |
 | $\bar{\theta}$ | $\pi\varphi^{-83.4}$ | $1.2\times10^{-17}$ | Strong CP |
-| $\tau_p$ | $\varphi^{4506}/\omega_p$ | $\sim 10^{910}$ yr | Proton coherence budget |
+| $N_{\mathrm{budget},p}$ | $\varphi^{4505.5758}$ | $\sim10^{941.8}$ modeled cycles | Proton coherence budget; Derived conditional arithmetic at $N_p^{\mathrm{budget}}=91.46$, with failure and trial-frequency maps Hypothesized |
+| $\hbar\mathcal J_{Q,1}/(K_{\mathfrak s}\rho)$ | $2\pi/(\varphi^3\mathfrak s_p)$ | $0.0162173$ | Planck-to-proton two-rail circuit; Derived conditional on the Mapped endpoint, uniform $\varphi$ composition, $m=1$, and zero endpoint bias |
 
 External constants: $c$, $\hbar$, $G$ define the unit system. $\ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$ is the cascade's sole dimensionful anchor.

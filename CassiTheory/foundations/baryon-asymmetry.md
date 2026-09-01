@@ -1,14 +1,15 @@
-# Matter-Antimatter Asymmetry from Cascade Freeze-Out and Organized Annihilation
+# Matter-Antimatter Asymmetry from Cascade Freeze-Out and a Candidate Circuit Interaction
 
-## Status: Derivation (mechanism Hypothesized, C7/Q6; $\eta_{\mathrm{fit}}$ exponent Mapped—ledger; conditional normalized product Hypothesized; single $\eta$ normalization open; 44-rung span open—no closure found in the 2026-08-11 sweeps, §4.5 and the $\Gamma/H = 1$ rate-based attempt, §4.7)—August 2026
+## Status: Derivation (mechanism Hypothesized, C7/Q6; $\eta_{\mathrm{fit}}$ exponent Mapped—ledger; conditional normalized product Hypothesized; single $\eta$ normalization open; 44-step span open—no closure found in the 2026-08-11 sweeps, §4.5 and the $\Gamma/H = 1$ rate-based attempt, §4.7)—August 2026
 
 ## Abstract
 
 The baryon asymmetry $\eta = n_b/n_\gamma \approx 6\times10^{-10}$—why the
 universe contains matter but almost no antimatter—is represented by a candidate
-chain: organized annihilation (§5.2 of `proton-coherence-budget.md`), the
-Yang-Yin imbalance at the Wu Xing gap $g=1-\varphi^{-5}$, and cascade dilution.
-Organized annihilation is the strongest supported component; the complete
+chain: a candidate particle/antiparticle circuit interaction (§5.2 of
+`proton-coherence-budget.md`), the Yang-Yin imbalance at the Wu Xing gap
+$g=1-\varphi^{-5}$, and cascade dilution. The circuit branch assignment has
+no selected reconnection interaction or event rate, and the complete
 freeze-out mechanism remains Hypothesized. The ledgered $\varphi$-power
 coincidence is
 
@@ -51,22 +52,29 @@ homogeneous ODE gives $N\approx9$ total steps.
 
 ## 1. The two ingredients
 
-### 1.1 Organized annihilation (Hypothesized conditional mechanism)
+### 1.1 Candidate particle/antiparticle circuit interaction
 
-The coherence-budget product supplies conditional algebra for the organized
-annihilation mechanism. A separate Hypothesized particle/antiparticle branch
-map may use a compact SO(2)/U(1) phase coordinate; under that optional
-assignment, an antiparticle is a condensed standing wave with inverted phase at
-every cascade rung. When it meets its matter partner, the anti-phase
-perturbation attacks all 92 rungs coherently and simultaneously:
-$P_{\text{annihilation}} \approx 1$.
+The coherence-budget product supplies no annihilation interaction. A separate
+Hypothesized particle/antiparticle branch map may use opposite winding sectors
+of the Planck-to-proton scale circuit. Physical annihilation would then require
+a reconnection or unwinding interaction that preserves the full conserved
+charges and specifies final states.
 
-Under this Hypothesized branch assignment, a matter-antimatter encounter has
-unit annihilation probability. In the early universe, when the density was
-high, every antimatter particle found a matter partner and was eliminated.
-Only the residual Yang excess—particles without antimatter partners—survived.
+A Creative overlap parameter can describe the unselected interaction:
 
-### 1.2 The Yang-Yin imbalance at freeze-out (Derived conditional on declared gap input and annihilation map)
+$$
+P_{\mathrm{attack}}
+:=\prod_i\mathcal M_i^{\mathrm{attack}},
+\qquad
+\mathcal M_i^{\mathrm{attack}}\in[0,1].
+$$
+
+Assigning $\mathcal M_i^{\mathrm{attack}}=\mathcal O(1)$ at every addressed
+scale step is a constitutive assumption. The current action supplies no
+normalization, interaction time, or event rate. Matter survival and antimatter
+depletion therefore remain outputs required from the missing kinetics.
+
+### 1.2 The Yang-Yin imbalance at freeze-out (Derived conditional on declared gap input and circuit-interaction map)
 
 The Wu Xing five-element structure sets the initial Yang-Yin gap:
 
@@ -78,11 +86,10 @@ progressively transferred energy from Yin to Yang. At the GUT seed
 $n_{\text{GUT}}\approx13.3$, the ratio had reached
 $r_{\text{GUT}} \approx 0.3$–$0.5$.
 
-Under the conditional organized-annihilation map, the Yang excess at
-freeze-out is the fraction of Yang that was **unpaired** with Yin-equivalent
-antimatter. Since the fields were created with the Wu Xing gap, the paired
-fraction $(E_Y + E_I)$ is subject to organized annihilation, but the
-**difference** $E_Y - E_I$ survives:
+Under the conditional circuit-interaction map, the Yang excess at freeze-out
+is the fraction of Yang that was **unpaired** with Yin-equivalent antimatter.
+The paired fraction $(E_Y + E_I)$ is assigned to the unselected reconnection
+channel, while the **difference** $E_Y - E_I$ survives:
 
 $$\eta_{\text{GUT}} = \frac{E_{Y,\text{GUT}} - E_{I,\text{GUT}}}{E_{Y,\text{GUT}} + E_{I,\text{GUT}}} = \frac{r_{\text{GUT}} - 1}{r_{\text{GUT}} + 1}$$
 
@@ -193,10 +200,10 @@ $$\boxed{\eta_{\mathrm{fit}}\equiv\varphi^{-44}\approx 6.38 \times 10^{-10}
 
 The exponent $-44$ is a **ledgered fit**—the nearest-integer $\varphi$-power
 to the observed $\eta$ (search table above; `parameter-inventory.md` §10).
-The conditional product in §2 uses the same 44-rung dilution exponent with
+The conditional product in §2 uses the same 44-step dilution exponent with
 the independent normalization $\eta_{\text{matter}}\approx0.05$ and gives
 $\eta_{\mathrm{cond}}\approx3.187967\times10^{-11}$. The two readings have
-separate provenance. The mechanism (organized annihilation + Yang-Yin
+separate provenance. The mechanism (candidate circuit interaction + Yang-Yin
 imbalance + cascade dilution) is Hypothesized. A normalization derivation
 selecting one reading is required before the baryon asymmetry has a single
 Derived prediction. The formal coordinate relation $52 = 60 - 8$ uses $8$
@@ -561,7 +568,7 @@ ratio-to-step map.
 
 ---
 
-## 5. Relation to CP violation and annihilation
+## 5. Relation to CP violation and the candidate circuit interaction
 
 The three Sakharov conditions are compared with the Cassi framework in the
 table below; the physical mechanism statuses remain conditional where they use
@@ -570,14 +577,14 @@ map:
 
 | Sakharov condition | Cassi mechanism | Status |
 |---|---|---|
-| Baryon number violation | Organized annihilation (§5.2 of `proton-coherence-budget.md`) eliminates antimatter under the Hypothesized phase/branch map | Hypothesized (conditional branch map; coherence algebra conditional) |
+| Baryon number violation | Candidate circuit reconnection or unwinding (§5.2 of `proton-coherence-budget.md`) under the Hypothesized particle/antiparticle branch map | Hypothesized (interaction and branch map unselected; no event rate) |
 | C and CP violation | $\delta_{\text{CP}} = \pi\varphi^{-2}$ from CKM phase at GUT scale; cascade-suppressed to low-energy physics | Mapped (CP phase—ledger), Mapped (strong CP—ledger) |
-| Out-of-equilibrium dynamics | Cascade freeze-out: ratio $r(t)$ evolves through the optional Wu Xing phase probe during the GUT epoch ($n\approx13.3$); dilution continues through the 44-rung span (Mapped fit) until the normalized-gate ansatz is assigned to stop conversion | Hypothesized (freeze-out map; span Mapped) |
+| Out-of-equilibrium dynamics | Cascade freeze-out: ratio $r(t)$ evolves through the optional Wu Xing phase probe during the GUT epoch ($n\approx13.3$); dilution continues through the 44-step span (Mapped fit) until the normalized-gate ansatz is assigned to stop conversion | Hypothesized (freeze-out map; span Mapped) |
 
-The conditional coherence algebra and Yang-Yin gap provide the ingredients
-listed above. The matter asymmetry is represented conditionally by the
-Yang-Yin imbalance together with the Hypothesized annihilation and freeze-out
-maps.
+The conditional coherence algebra and Yang-Yin gap provide candidate
+ingredients. The matter asymmetry map combines the Yang-Yin imbalance with
+unselected circuit-interaction and freeze-out mechanisms. Neither mechanism
+currently supplies a physical event rate.
 
 ---
 
@@ -593,9 +600,9 @@ maps.
 
 ### Hypothesized (testable)
 
-- Organized annihilation eliminates the paired fraction under the
-  Hypothesized particle/antiparticle phase/branch map (§1.1); its
-  coherence-budget product is Derived conditional on that map
+- The Hypothesized phase/branch map assigns the paired fraction to a candidate
+  particle/antiparticle reconnection channel (§1.1); its dynamics and event
+  rate remain unselected
 - **Freeze-out coordinate construction** $52 = 60 - 8$: the formal relation
   uses $8$ as an offset, while an optional Hypothesized map assigns the
   threshold $r=\varphi^{-1}$ to step 60; the GUT anchor gives
@@ -603,12 +610,13 @@ maps.
   $\eta_{\mathrm{cond}}\approx\eta_{\text{matter}}\varphi^{-44}
   \approx3.187967\times10^{-11}$, a Hypothesized phenomenological estimate
   with separate normalization
-- Sakharov conditions are jointly realized by the conditional annihilation,
-  phase, and freeze-out mechanisms
+- The Sakharov requirements remain a checklist: the CP input is Mapped, while
+  baryon-number violation and out-of-equilibrium dynamics remain Hypothesized
+  and lack interaction/rate closure
 - **5-phase mapping**: the optional assignment of Wu Xing phases to specific
-  cascade step ranges (§4.1) is structurally motivated but not uniquely fixed
-  by the current ODE analysis—the step boundaries could shift by $\pm 1$–$2$
-  rungs under the full spatial PDE dynamics
+  cascade step ranges (§4.1) is structurally motivated, while the current ODE
+  analysis leaves the step boundaries free at the $\pm1$–$2$ scale-step level
+  under the full spatial PDE dynamics
 
 ### Mapped / fit
 
@@ -683,7 +691,7 @@ Derived physical account:
 
 ## 7. References
 
-- `foundations/proton-coherence-budget.md` §5.2—organized annihilation
+- `foundations/proton-coherence-budget.md` §5.2—conditional matter/antimatter interaction requirements
 - `foundations/cascade-suppression-formula.md`—cascade attenuation,
   signal-propagation regime
 - `foundations/dimensionful-cascade.md`—GUT scale n ≈ 13.3, complete

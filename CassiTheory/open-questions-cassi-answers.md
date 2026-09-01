@@ -400,19 +400,19 @@ The horizon problem concerns the uniformity of widely separated regions. Cassi p
 
 ```mermaid
 flowchart TD
-    A[Organized annihilation] --> B[Matter survives, antimatter eliminated]
+    A[Hypothesized circuit reconnection] --> B[Candidate matter-survival bias]
     B --> C[Wu Xing freeze-out gap g=1−φ⁻⁵]
     C --> D[Cascade photon dilution]
     D --> E[η ≈ φ⁻⁴⁴ ≈ 6.4×10⁻¹⁰]
 ```
 
-**Visual:** The diagram shows the proposed mechanism chain—organized annihilation, the Wu Xing freeze-out gap, and cascade dilution—for the Mapped value $\eta \approx \varphi^{-44}$. The rate-based freeze-out test leaves the endpoint open.
+**Visual:** The diagram shows a candidate circuit-reconnection branch, the Wu Xing freeze-out gap, and cascade dilution for the Mapped value $\eta\approx\varphi^{-44}$. The reconnection interaction, event rate, and freeze-out endpoint remain open.
 
 
-The universe is overwhelmingly made of matter, not antimatter—but this should not be the case if the Big Bang created equal amounts of both. Something must have produced a slight excess, roughly one extra particle per billion. Cassi's candidate combines organized annihilation, a Yang-Yin imbalance at the Wu Xing gap $g = 1-\varphi^{-5}$, and cascade dilution. The value $\eta \approx \varphi^{-44} \approx 6.4\times10^{-10}$ is a Mapped fit within 6% of the observed ratio; the dynamical freeze-out endpoint remains open after the $\Gamma/H=1$ test.
+The universe is overwhelmingly made of matter, although standard early-universe production is nearly symmetric. Cassi's candidate combines an unselected particle/antiparticle circuit interaction, a Yang-Yin imbalance at the Wu Xing gap $g=1-\varphi^{-5}$, and cascade dilution. The value $\eta\approx\varphi^{-44}\approx6.4\times10^{-10}$ is a Mapped fit within 6% of the observed ratio. The current equations select neither the circuit interaction nor the post-seed freeze-out endpoint.
 
-| **Cassi Answer** | $\eta \approx \varphi^{-44} \approx 6.4\times10^{-10}$ as a Mapped exponent; organized annihilation, Yang-Yin imbalance, and cascade dilution form a Hypothesized mechanism chain. The GUT seed and rate-based freeze-out test do not select the 44-rung endpoint. |
-| **Mechanism** | Freeze-out Yang-Yin ratio at GUT; organized annihilation probability O(1); cascade expansion dilutes the asymmetry. The endpoint selection remains open (`foundations/baryon-asymmetry.md` §4.7; `computations/eta_gamma_h_freezeout_check.py`). |
+| **Cassi Answer** | $\eta\approx\varphi^{-44}\approx6.4\times10^{-10}$ as a Mapped exponent; circuit reconnection, Yang-Yin imbalance, and cascade dilution form a Hypothesized mechanism chain. The GUT seed and rate-based test leave the 44-step endpoint open. |
+| **Mechanism** | Candidate particle/antiparticle circuit reconnection; freeze-out Yang-Yin ratio at GUT; cascade expansion dilution. The interaction rate and endpoint selection remain open (`foundations/baryon-asymmetry.md` §4.7; `computations/eta_gamma_h_freezeout_check.py`). |
 | **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($\eta$ exponent $-44$—ledger) |
 | **Reference** | `foundations/baryon-asymmetry.md`, `foundations/refined-numeric-predictions.md` |
 
@@ -610,12 +610,12 @@ The Standard Model contains three copies of the basic fermion families—up/down
 ### Q6: Matter-antimatter asymmetry
 *(See diagram at C7—the baryon asymmetry mechanism is shared between cosmology and particle physics.)*
 
-**Visual:** The proposed three-part cascade—organized annihilation, the Wu Xing freeze-out gap, and cascade photon dilution—maps the particle-physics asymmetry onto the cosmological candidate while leaving the endpoint selection open.
+**Visual:** The proposed three-part cascade—candidate circuit reconnection, the Wu Xing freeze-out gap, and cascade photon dilution—maps the particle-physics asymmetry onto the cosmological candidate while leaving the interaction rate and endpoint selection open.
 
-The universe contains matter but essentially no antimatter, yet the laws of physics treat them nearly symmetrically. Satisfying the three Sakharov conditions for generating this imbalance requires new physics beyond the Standard Model. Cassi's candidate is shared with C7: organized annihilation, a Yang-Yin freeze-out gap $g = 1 - \varphi^{-5}$, and cascade dilution. The value $\eta \approx \varphi^{-44}$ is Mapped; the freeze-out endpoint is not selected by the current rate equations.
+The universe contains matter but essentially no antimatter, while the laws of physics treat them nearly symmetrically. Satisfying the three Sakharov conditions requires new physics beyond the Standard Model. Cassi's candidate is shared with C7: an unselected particle/antiparticle circuit interaction, a Yang-Yin freeze-out gap $g=1-\varphi^{-5}$, and cascade dilution. The value $\eta\approx\varphi^{-44}$ is Mapped; the current equations select neither the reconnection rate nor the freeze-out endpoint.
 
-| **Cassi Answer** | $\eta \approx \varphi^{-44} \approx 6.4\times10^{-10}$ as a Mapped fit; the three-part mechanism chain is Hypothesized and the endpoint remains open. |
-| **Mechanism** | Same candidate chain as C7; the $\Gamma/H=1$ test yields a thaw crossing rather than a post-seed freeze-out. |
+| **Cassi Answer** | $\eta\approx\varphi^{-44}\approx6.4\times10^{-10}$ as a Mapped fit; the three-part mechanism chain is Hypothesized, and its interaction and endpoint remain open. |
+| **Mechanism** | Same candidate chain as C7; the circuit reconnection interaction is unselected, and the $\Gamma/H=1$ test yields a thaw crossing rather than a post-seed freeze-out. |
 | **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($\eta$ exponent $-44$—ledger) |
 | **Reference** | `foundations/baryon-asymmetry.md`, `foundations/refined-numeric-predictions.md` |
 
@@ -759,21 +759,23 @@ Quarks are confined in observed hadrons, while the mechanism behind confinement 
 ### Q9: Proton lifetime
 
 ```mermaid
-flowchart TD
-    A[92-rung cascade ladder] --> B[Each rung i: suppression φ⁻ⁱ]
-    B --> C[Cumulative product φ⁻⁴⁵⁰⁶]
-    C --> D[Lifetime ≫ universe age—Hyper-K sees nothing]
+flowchart LR
+    A[Planck endpoint: Yin → Yang] --> B[Yang current toward proton endpoint]
+    B --> C[Proton endpoint: Yang → Yin]
+    C --> D[Yin current toward Planck endpoint]
+    D --> A
+    B --> E[Total scale flow 0; relative Qi current nonzero]
+    D --> E
 ```
 
-**Visual:** An optional coherence-budget extension maps a cascade span into a candidate proton-stability estimate; the canonical density PDE does not by itself determine a lifetime.
+**Visual:** The candidate scale circuit sends Yang outward from the Planck endpoint and Yin back from the proton endpoint. Equal-and-opposite number currents close the scale window while their relative current can source mixed curvature.
 
+Grand unified theories motivate proton-lifetime searches. Cassi has two distinct conditional descriptions. The coherence-budget extension assigns a Hypothesized independent failure probability to each scale step and yields the arithmetic cycle count $\varphi^{4506}$; its conversion to a lifetime remains conditional. The interscale-current extension places the Mapped proton coordinate at $\mathfrak s_p=91.4616$ and admits a closed two-rail current with $J_{\mathfrak s}=0$ and $J_Q\ne0$. The circuit needs endpoint converters, a scale tension, a localized mixed-curvature solution, and a winding-changing transition rate.
 
-Grand unified theories motivate proton-lifetime searches. Cassi evaluates an optional coherence-budget extension in which a Mapped proton rung and a Hypothesized per-rung suppression profile produce a very large stability estimate. The resulting $\varphi^{4506}$-scale cycle count and any conversion to years are conditional on that extension; antiproton annihilation and proton decay are distinct observables, and the canonical density PDE does not supply either process.
-
-| **Cassi Answer** | Optional coherence-budget extension: a Mapped proton rung and Hypothesized per-rung profile yield a conditional large cycle count |
-| **Mechanism** | Within the optional extension, simultaneous failure across the cascade span is assigned a product suppression; no proton lifetime or annihilation law follows from the canonical real-density PDE |
-| **Epistemic** | **Mapped** (proton rung—ledger) / **Hypothesized** (per-rung $q_i$ profile and lifetime mapping); the stability estimate remains conditional on the optional coherence-budget extension |
-| **Reference** | `foundations/proton-coherence-budget.md` |
+| **Cassi Answer** | A Planck-to-proton relative-current circuit is an explicit candidate proton architecture; the independent-step coherence budget remains a separate conditional arithmetic model |
+| **Mechanism** | Yang flows from Planck to the proton endpoint, Yin returns, and endpoint conversion closes the circuit. At $E_Y/E_I=\varphi$, $\mathcal J_{Q,m}=K_{\mathfrak s}\rho\Delta_m/(\hbar\varphi^3\mathfrak s_p)$; mixed curvature can pinch the spatial core |
+| **Epistemic** | **Mapped** (proton coordinate) / **Derived conditional** (zero-total-flow current and energy identities) / **Hypothesized** (endpoint conversion, scale tension, proton identification, and decay rate). Neither candidate currently determines a physical lifetime |
+| **Reference** | `foundations/proton-coherence-budget.md` §10; `foundations/interscale-current-soliton.md` §4.5; `computations/planck_proton_scale_current_check.py` |
 
 ### Q10: Spin—what is it?
 
@@ -1293,7 +1295,7 @@ All Cassi theory documents are organized in the subdirectories listed above. Key
 - `foundations/unified-lagrangian.md`—unified action
 - `principles/de-resonance-principle.md`—de-resonance principle
 - `foundations/why-three-dimensions.md`—spiral's Frenet-Serret frame, triaxial spheroid
-- `foundations/proton-coherence-budget.md`—proton lifetime from cascade coherence product
+- `foundations/proton-coherence-budget.md`—conditional proton coherence budget and scale-current circuit
 - `cosmology/cosmology-from-phi.md`—dark energy, Hubble, inflation
 - `cosmology/observational_constraints.md`—CMB, DESI, rotation curves
 - `standard-model/sm-from-phi.md`—SM couplings, GUT, generations

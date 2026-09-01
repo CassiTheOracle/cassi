@@ -76,7 +76,7 @@ consistent with the excess, $\varphi^{-d} = (\varphi-1)/(\varphi+1) = \varphi^{-
 
 (ii) *The same 3-rung offset at the sector-coupling scale.* $\kappa_s = \varphi^{-6}/v_0^2$ sits at rung 77, three rungs below the electroweak VEV rung 80: $77 = 80 - 3$, with $E_{77} = M_{\text{Pl}}\varphi^{-77} = 987.7$ GeV against $E_{80} = 233.2$ GeV (`foundations/sector-coupling-derivation.md` §2). The same 3-rung offset appears there in the rung count.
 
-(iii) *Cascade-suppression arithmetic unchanged.* The coherence exponent $N(n) = n(n+1)/2 + \delta(n+1)$ with $\delta = 3$ (`foundations/cascade-suppression-formula.md` §1.3). For the proton ($n = 91.46$): $N = 4505.6$, quoted as $\varphi^{-4506}$; the $\delta$ term contributes 277.4 of the 4505.6. Recomputed with $\delta = 3$, the proton-lifetime chain is unchanged: $\tau_p \sim \varphi^{4506}/\omega_p \sim 10^{910}$ yr (`foundations/cassi-theory-reference.md` §6.6).
+(iii) *Cascade-suppression arithmetic.* The coherence exponent $N(n)=n(n+1)/2+\delta(n+1)$ with $\delta=3$ (`foundations/cascade-suppression-formula.md` §1.3). At the registered budget coordinate $N_p^{\mathrm{budget}}=91.46$, $N=4505.5758$ and the $\delta$ term contributes $277.38$. This gives the conditional cycle budget $\varphi^{4505.5758}\approx10^{941.8}$. The $10^{910}$-year conversion additionally requires the unselected Compton-cycle trial map (`foundations/cassi-theory-reference.md` §6.6).
 
 (iv) *Wake-wavelength degeneracy under the conditional geometry.* At $\sigma$ the assigned one-rung Yang/Yin wavelength offset (Yang at rung $n$ has the wavelength of Yin at rung $n+1$; `foundations/wake-geometry.md` §1) saturates: $\Lambda_Y(-3) = \ell_{-3} = \Lambda_I(-2) = \sigma$ (verified numerically: both $= 3.815\times10^{-36}$ m). The two assigned wake patterns are mutually wavelength-degenerate precisely where the density distinction fails.
 
@@ -205,6 +205,8 @@ where $\mathcal{V}$ is the vertex factor from the two-fluid self-interaction. Wi
 
 $$
 \Delta G \propto G^2 \int d^4q \frac{e^{-q^2\sigma^2}}{q^4} \times (\text{vertex})
+$$
+
 The displayed one-loop integral is UV-finite for a polynomially bounded vertex because the Gaussian $e^{-q_E^2\sigma^2}$ kills all high-momentum contributions; an exponentially growing nonlocal vertex can overcome the Gaussian suppression, so finiteness beyond the displayed prototype requires a net negative-definite Gaussian in every independent Euclidean loop momentum. In Euclidean 4-momentum space:
 
 $$

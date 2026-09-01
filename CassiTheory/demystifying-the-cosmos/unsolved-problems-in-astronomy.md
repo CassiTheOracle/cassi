@@ -205,7 +205,7 @@ Standard status: $\Lambda$CDM fits the data but has no theoretical justification
 #### 56. Baryon Asymmetry
 Why the universe contains matter but essentially no antimatter is unexplained by the Standard Model.
 Standard status: the Sakharov conditions demand beyond-SM physics; no mechanism is confirmed.
-**[Framework claim]**—$\eta \approx \varphi^{-44} \approx 6.38 \times 10^{-10}$, within 6% of the observed $6.0 \times 10^{-10}$, from organized annihilation, the Wu Xing freeze-out gap, and cascade dilution (registry C7/Q6: mechanism **Hypothesized**, exponent **Mapped** per the Fit-Status Ledger).
+**[Framework claim]**—$\eta \approx \varphi^{-44} \approx 6.38 \times 10^{-10}$, within 6% of the observed $6.0 \times 10^{-10}$, from a candidate particle/antiparticle circuit interaction, the Wu Xing freeze-out gap, and cascade dilution (registry C7/Q6: mechanism **Hypothesized**, exponent **Mapped** per the Fit-Status Ledger; reconnection rate open).
 `foundations/baryon-asymmetry.md`.
 #### 57. Cosmological Constant Problem
 Quantum-field-theory zero-point energy predicts a vacuum energy roughly $10^{120}$ times the observed $\Lambda$.

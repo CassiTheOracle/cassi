@@ -496,6 +496,234 @@ linear $\psi_Y^*\psi_I$ conversion needs an additional charged link or
 Stueckelberg field to remain gauge invariant. The canonical rank-one
 dissipative conversion law remains a separate sector.
 
+### 4.5 Planck-to-proton closed scale circuit
+
+Choose the external anchor $\ell_\star=\ell_{\mathrm{Pl}}$ and terminate the
+scale interval at the proton's reduced Compton wavelength:
+
+$$
+\mathfrak s_p
+:=\log_\varphi\!\left(\frac{\lambda_p}{\ell_{\mathrm{Pl}}}\right),
+\qquad
+\lambda_p:=\frac{\hbar}{m_pc},
+\qquad
+\boxed{\mathfrak s_p=91.4616}.
+$$
+
+The endpoint value is Mapped from the measured proton mass and remains
+unselected by the interscale action.
+
+A closed current can nevertheless be expressed without sending net number
+density out of the scale window. Use the Yang component as the outward rail
+from $\mathfrak s=0$ to $\mathfrak s=\mathfrak s_p$ and the Yin component as
+the return rail. In the stationary interior, set
+
+$$
+\boxed{
+J_{Y,\mathfrak s}=+\mathcal J_Q,
+\qquad
+J_{I,\mathfrak s}=-\mathcal J_Q.}
+$$
+
+Then
+
+$$
+J_{\mathfrak s}
+=J_{Y,\mathfrak s}+J_{I,\mathfrak s}=0,
+$$
+
+while the relative Yang/Yin current is
+
+$$
+\boxed{
+J_Q
+:=\frac{J_{Y,\mathfrak s}-J_{I,\mathfrak s}}{2}
+=\mathcal J_Q,
+\qquad
+\mathcal I_{\mathfrak s}=g_QJ_Q.}
+$$
+
+The term circulating Qi current designates this relative Yang/Yin phase current
+on the doubled scale interval. The scalar coherence diagnostic $q$ remains a
+local diagnostic without its own continuity equation.
+
+The rails must turn into one another at both endpoints. Introduce a Yang source
+$\Gamma$ and an equal Yin sink:
+
+$$
+\partial_tE_Y+\partial_{\mathfrak s}J_{Y,\mathfrak s}=\Gamma,
+\qquad
+\partial_tE_I+\partial_{\mathfrak s}J_{I,\mathfrak s}=-\Gamma.
+$$
+
+The stationary circuit requires
+
+$$
+\boxed{
+\Gamma(\mathfrak s)
+=\mathcal J_Q
+\left[
+\delta(\mathfrak s)
+-\delta(\mathfrak s-\mathfrak s_p)
+\right].}
+$$
+
+At the Planck endpoint, Yin turns into Yang. At the proton endpoint, Yang turns
+into Yin. The total source vanishes after summing the species and after
+integrating over the full interval.
+
+One local realization is a pair of endpoint mixing terms
+
+$$
+\mathcal H_{\mathrm{turn}}
+:=-2\sum_{b\in\{0,p\}}
+\kappa_b\,\delta(\mathfrak s-\mathfrak s_b)
+\sqrt{E_YE_I}\,
+\cos(\vartheta-\alpha_b),
+$$
+
+with $\mathfrak s_0=0$ and $\mathfrak s_p$ as above. With the displayed sign
+convention, each term supplies
+
+$$
+\Gamma_b
+:=-\frac{2\kappa_b}{\hbar}
+\sqrt{E_YE_I}\,
+\sin(\vartheta-\alpha_b)\,
+\delta(\mathfrak s-\mathfrak s_b).
+$$
+
+The boundary phases $\alpha_b$ must transform with the relative gauge symmetry,
+or arise from dynamical charged endpoint fields. Treating them as fixed
+numbers explicitly breaks that symmetry. The conservative bulk action omits
+the endpoint sector, which must be supplied as additional physics.
+
+For a compact closed circuit, define the gauge-invariant accumulated phase
+
+$$
+\boxed{
+\Delta_m
+:=\int_0^{\mathfrak s_p}
+\left(\nu_{Y,\mathfrak s}-\nu_{I,\mathfrak s}\right)
+d\mathfrak s
+=2\pi m-\delta_{\mathrm{end}},
+\qquad m\in\mathbb Z,}
+$$
+
+where $\delta_{\mathrm{end}}$ contains the two turning phases. The connection
+holonomy is already included in the invariant velocities
+$\nu_{Y,\mathfrak s}$ and $\nu_{I,\mathfrak s}$.
+
+For uniform density, uniform composition, and zero total number current, the
+$\varphi$ composition gives
+
+$$
+E_Y=\frac{\rho}{\varphi},
+\qquad
+E_I=\frac{\rho}{\varphi^2},
+$$
+
+and the exact stationary solution is
+
+$$
+\boxed{
+\nu_{Y,\mathfrak s}
+=\frac{\Delta_m}{\varphi^2\mathfrak s_p},
+\qquad
+\nu_{I,\mathfrak s}
+=-\frac{\Delta_m}{\varphi\mathfrak s_p},}
+$$
+
+so that $\nu_I/\nu_Y=-\varphi$. The circulating current and integrated phase
+energy per spatial volume are
+
+$$
+\boxed{
+\mathcal J_{Q,m}
+=\frac{K_{\mathfrak s}\rho}
+{\hbar\varphi^3\mathfrak s_p}\,\Delta_m,}
+$$
+
+$$
+\boxed{
+\mathscr E_{\mathrm{circ},m}
+:=\int_0^{\mathfrak s_p}
+\mathcal H_{\mathrm{phase},\mathfrak s}\,d\mathfrak s
+=\frac{K_{\mathfrak s}\rho}
+{2\varphi^3\mathfrak s_p}\,\Delta_m^2.}
+$$
+
+For the lowest unbiased sector, $m=1$ and $\delta_{\mathrm{end}}=0$,
+
+$$
+\frac{\hbar\mathcal J_{Q,1}}{K_{\mathfrak s}\rho}
+=\frac{2\pi}{\varphi^3\mathfrak s_p}
+=0.0162173,
+$$
+
+$$
+\frac{\mathscr E_{\mathrm{circ},1}}
+{K_{\mathfrak s}\rho}
+=\frac{2\pi^2}{\varphi^3\mathfrak s_p}
+=0.0509481.
+$$
+
+At fixed winding, the circulation energy falls as $1/\mathfrak s_p$, so a
+finite proton endpoint requires another term. A minimal scale-tension closure
+has the form
+
+$$
+\mathscr E_{\mathrm{sel}}(\mathfrak s_p)
+:=\mathcal T_{\mathfrak s}\mathfrak s_p
++\frac{K_{\mathfrak s}\rho\Delta_m^2}
+{2\varphi^3\mathfrak s_p}
++\mathscr E_{\mathrm{end}},
+$$
+
+which, for endpoint energy independent of $\mathfrak s_p$, has
+
+$$
+\boxed{
+\mathfrak s_\star
+=|\Delta_m|
+\sqrt{\frac{K_{\mathfrak s}\rho}
+{2\varphi^3\mathcal T_{\mathfrak s}}}.}
+$$
+
+Selecting the observed proton endpoint in the unbiased $m=1$ sector would
+require
+
+$$
+\boxed{
+\frac{\mathcal T_{\mathfrak s}}{K_{\mathfrak s}\rho}
+=\frac{2\pi^2}{\varphi^3\mathfrak s_p^2}
+=5.57043\times10^{-4}.}
+$$
+
+This value is a required closure ratio with no current $\varphi$ derivation.
+
+The current does provide a concrete pinch route. Although the number currents
+cancel, their relative charges add:
+
+$$
+f_r^{(\mathrm{mixed})}
+=\hbar g_Q\mathcal J_QG_{r\mathfrak s}.
+$$
+
+A same-sign mixed-curvature response can therefore pinch the spatial profile
+without draining total density along the scale coordinate. A proton candidate
+would be a self-consistent solution in which the endpoint turners, relative
+current, mixed curvature, spatial core, and scale tension all close together.
+
+Changing the circulation sector requires a phase slip, an endpoint conversion
+event, or a zero of one condensate. This supplies a possible stability
+mechanism. A decay rate additionally requires the endpoint dynamics,
+fluctuation action, and physical proton quantum numbers. The proton mass,
+lifetime, electric charge, color, and spin remain open.
+
+The arithmetic identities and normalized coefficients are checked by
+`computations/planck_proton_scale_current_check.py`.
+
 ---
 
 ## 5. Mixed curvature and the conditional pinch
@@ -766,8 +994,8 @@ $$
 =\sqrt{\frac{2\pi^2K_\parallel W^2}{\mathcal T_\star}}.}
 $$
 
-The candidate action does not select a loop geometry, compact winding, tension,
-or $K_\parallel$. This is a conditional reduction once those data are supplied.
+The loop geometry, compact winding, tension, and $K_\parallel$ are supplied
+inputs in this conditional reduction.
 
 ---
 
@@ -969,7 +1197,7 @@ $\ell=\ell_\star\varphi^{\mathfrak s}$ alone.
 
 ---
 
-## 10. What $\varphi$ can and cannot select
+## 10. Selection scope of $\varphi$
 
 ### 10.1 Exact composition geometry
 
@@ -1004,8 +1232,7 @@ $$
 
 This is the Fibonacci convergent theorem described in
 `principles/de-resonance-principle.md`. A continuous connection holonomy can
-absorb the mismatch, so the candidate action does not select these pairs by
-itself.
+absorb the mismatch, leaving these pairs unselected by the candidate action.
 
 An illustrative sector cost
 
@@ -1072,6 +1299,8 @@ minimum in §7.2.
 | Species and total continuity; observed-window boundary flux | Derived from the candidate action |
 | Co-flow/counterflow decomposition | Derived from the candidate action |
 | Separate Yang/Yin conservation and absence of ratio relaxation | Derived from the candidate action |
+| Planck-to-proton two-rail current and normalized energy | Derived conditional on the Mapped endpoint, uniform $\varphi$ composition, compact circuit phase, and endpoint bias |
+| Endpoint conversion, scale tension, and proton selection | Hypothesized; the unbiased $m=1$ endpoint requires $\mathcal T_{\mathfrak s}/(K_{\mathfrak s}\rho)=5.57043\times10^{-4}$ |
 | Healing widths and local London coefficients | Derived conditional linearization |
 | Inward mixed-curvature force | Conditional on source sign, response, and restricted field sector |
 | Finite Derrick radius and loop length | Conditional reduced-profile algebra; existence unestablished |
@@ -1094,6 +1323,12 @@ inward contribution under specified static conditions. A stable object still
 requires stronger short-distance support, and literal pinch-off requires a
 topology-changing event.
 
+On the finite Planck-to-proton interval, equal-and-opposite Yang/Yin currents
+form a closed relative-current circuit with no net scale-number leakage. This
+turns the mixed-curvature pinch into a concrete proton research route. The
+endpoint converters, scale tension, localized solution, quantum numbers, and
+winding-changing rate remain open.
+
 The mechanism is mathematically coherent at the stated level and physically
 Hypothesized. Its free coefficients and normalization choices carry the missing
 physics. The golden ratio organizes the composition and possible compact
@@ -1109,6 +1344,8 @@ winding approximants; it does not replace those inputs.
 - `foundations/dimensionful-cascade.md`—external-anchor cascade parameterization
 - `foundations/dimensionful-constants-status.md`—status of $c$, $\hbar$, $G$, and SI anchors
 - `foundations/qi-loop-mass-cascade.md`—conditional loop tension and inverse-scale mass bookkeeping
+- `foundations/proton-coherence-budget.md` §10—proton-facing statement of the distinct scale-circuit candidate
+- `computations/planck_proton_scale_current_check.py`—Planck-to-proton current, energy, and scale-tension identities
 - `foundations/spin-fibonacci-spiral.md`—optional compact phase, half-angle, and winding structure
 - `principles/de-resonance-principle.md`—Fibonacci convergents under compact-current assumptions
 - `particles/cassi-yang-yin-particles.md`—complex two-component field precedent

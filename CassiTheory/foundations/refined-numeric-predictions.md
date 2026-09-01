@@ -47,7 +47,7 @@ at Mapped or Calibrated are carried for their refined numbers:
 | C3 | Hubble tension | Cascade-span (needs $w(a)$ pipeline) | $w_0=-0.87$ (2σ) | $\Delta H_0$ from $w(z)$ integration |
 | C4 | Inflation | Cascade-span (numbers present) | $n_s=0.9691$, $r = 12/N_e^2 = 0.0075$ ($N_e = 40$ Mapped) | $n_s$ correction form; $r$ is the closed form at the window, not a $\varphi$-power |
 | C6 | Horizon problem | **Structural / Hypothesized** |—| Cascade emergence mechanism |
-| C7 | Baryon asymmetry | **Mapped exponent / Hypothesized chain** | $\eta\approx\varphi^{-44}$ (Mapped fit) | $6.38\times 10^{-10}$; organized annihilation, Sakharov closure, and endpoint remain Hypothesized/open |
+| C7 | Baryon asymmetry | **Mapped exponent / Hypothesized chain** | $\eta\approx\varphi^{-44}$ (Mapped fit) | $6.38\times 10^{-10}$; circuit interaction, Sakharov closure, rate, and endpoint remain Hypothesized/open |
 | C9 | Cosmic web | **Structural / Hypothesized** |—| Wake-wave interference morphology |
 | C10 | CMB axis | Cascade-span (geometric) | Axis at $(l,b)=(260°,+60°)$ | Alignment angle $12.2°$ (measured; calibrated from data vectors), boundary mechanism Hypothesized |
 | Q3 | Neutrino masses | **Mapped cascade-span fit** | $m_3 \approx 0.050$ eV (computed spectrum) | Specific $\Delta_{\nu,k}$ offsets selected in the pipeline |
@@ -76,11 +76,12 @@ at Mapped or Calibrated are carried for their refined numbers:
 ### 2.1 C7/Q6—Baryon/Matter Asymmetry: $\eta \approx \varphi^{-44}$
 
 **Current status:** `foundations/baryon-asymmetry.md` records a
-Hypothesized candidate chain. Organized annihilation and the Sakharov closure
-remain Hypothesized and depend on the declared branch/anti-phase assignment.
-The CP candidate is also Hypothesized; the out-of-equilibrium condition and its
-freeze-out endpoint are open. The observed ratio is represented by the Mapped
-fit $\varphi^{-44}$.
+Hypothesized candidate chain. The particle/antiparticle circuit interaction
+and Sakharov closure remain Hypothesized and depend on the declared
+phase/branch assignment; the reconnection rate is open. The CP candidate is
+also Hypothesized, and the out-of-equilibrium condition and freeze-out
+endpoint are open. The observed ratio is represented by the Mapped fit
+$\varphi^{-44}$.
 
 **Mapped numerical fit:** The integer exponent closest to the observed
 $\eta_{\text{obs}} = 6.0 \times 10^{-10}$ is:

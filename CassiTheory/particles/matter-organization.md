@@ -208,18 +208,18 @@ For an integer endpoint $N$, the literal indexed product is
 $$N_{\text{max}}(N) = \prod_{i=0}^{N} \frac{1}{1-q_i^{\mathrm{cascade}}}
 = \varphi^{\,N(N+1)/2+\delta(N+1)}.$$
 
-At the real proton rung $N_p=91.46$, no noninteger upper-bound product is implied; use the continuous continuation
+At the registered budget coordinate $N_p^{\mathrm{budget}}=91.46$, no noninteger upper-bound product is implied; use the continuous continuation
 
 $$\boxed{N_{\text{max}}(N_p)
 =\varphi^{\,N_p(N_p+1)/2+\delta(N_p+1)}
 \big|_{N_p=91.46,\ \delta=3}
 =\varphi^{4505.5758}\approx\varphi^{4506}\approx10^{942}\ \text{cycles}}$$
 
-For $n = 91.46$ this gives $\tau_p = N_{\text{max}}/\omega_p \sim 10^{910}$ years against the universe's $1.38\times10^{10}$; the proton has survived $N_{\text{elapsed}} \approx 6\times10^{41}$ cycles since the Big Bang, well within budget. Open-questions-cassi-answers.md—Q9 states the proton is "the most coherence-robust object in the universe," with Hyper-Kamiokande predicted to see nothing at any achievable sensitivity (the baseline exceeds experimental reach by >870 orders of magnitude). A phase-inverted mirror interpretation of annihilation belongs to the conditional complex-field extension; the coherence-budget product itself remains the stated stability bookkeeping, with $P_{\text{annihilation}} \approx 1$ as an extension assignment. Tiers, per the registry: the quadratic product is combinatorial (Derived); the rung exponent $n = 91.5$ is **Mapped** per the Fit-Status Ledger; the per-rung $q_i^{\mathrm{cascade}}$ profile is **Hypothesized**. The framework presents, without resolving, the tension with the SU(5)-type decay channel: prediction #10 gives $p \to e^+\pi^0$ with $\tau \sim 4\times10^{34}$ yr—within Hyper-K reach in the 2030s—while the coherence budget says no experiment can see a decay.
+At $N_p^{\mathrm{budget}}=91.46$, the product gives a conditional $\sim10^{942}$-cycle budget. Converting it to $\sim10^{910}$ years additionally declares one independent transition trial per Compton cycle; the field action supplies no fluctuation law or matrix element for that map. The distinct Planck-to-proton scale circuit has zero total scale-number flow and nonzero relative current, but its endpoint converters, scale tension, localized proton solution, quantum numbers, and winding-changing rate remain open (`foundations/proton-coherence-budget.md` §10). Current null searches are compatible with these candidates and select neither one.
 
 ### 3.3 The neutron
 
-The neutron is the neutral sibling at $n = 91.459$. Its ~1.3 MeV mass excess over the proton is **not derived**: the isospin formalism is explicitly open—"isospin dependence (proton vs. neutron cascade offset) needs a formalism for how the Yang-Yin ratio $r = E_Y/E_I$ couples to isospin $T_z$" (`hypotheses/nuclear-magic-numbers.md` §7). β-decay is explicitly outside the framework: β/α decay is barrier penetration, $q$-insensitive, with rates unchanged by the Qi field—there is no Cassi account of the rate itself (`foundations/proton-coherence-budget.md` §6.2). Its nuclear role is the magic-number shell structure and the island of stability—Hypothesized, with the closure arithmetic open (§2.5).
+The neutron is the neutral sibling at $n=91.459$. Its $\sim1.3$ MeV mass excess over the proton is **not derived**: the isospin formalism is explicitly open—"isospin dependence (proton vs. neutron cascade offset) needs a formalism for how the Yang-Yin ratio $r=E_Y/E_I$ couples to isospin $T_z$" (`hypotheses/nuclear-magic-numbers.md` §7). Standard $\beta$-decay uses the established weak-interaction matrix element; no Cassi correction or independent rate is selected (`foundations/proton-coherence-budget.md` §6). Its proposed nuclear role is the Hypothesized magic-number shell structure and island-of-stability mapping, with closure arithmetic open (§2.5).
 
 ### 3.4 The electron
 

@@ -92,12 +92,14 @@ With $n_{\text{QCD}} = 94.71$, $n_{\text{GUT}} = 13.33$, and $\delta_{\text{CP}}
 $$\boxed{\bar{\theta} \approx \varphi^{-81.4} \times \pi\varphi^{-2} = \pi\varphi^{-83.4} \approx 1.2 \times 10^{-17}}$$
 
 This is ~7 orders of magnitude below the experimental bound of $10^{-10}$.
-The cascade depth between GUT and QCD is ~81 rungs (94.71 − 13.33 = 81.38); the exponential
-suppression comes from the same product
-structure that gives the proton its $10^{910}$-year lifetime, applied to
-CP-violating propagation rather than random dephasing. The span is Mapped:
-its GUT-seed anchor ($M_{\text{GUT}} \approx 2\times10^{16}$ GeV, n = 13.33)
-and its seed phase ($\delta_{\text{CP}} = \pi\varphi^{-2}$) are both fitted/selected
+The Mapped cascade span between GUT and QCD is $94.71-13.33=81.38$ scale
+steps. The displayed suppression uses the separate linear signal-propagation
+map $\varphi^{-N}$. The proton coherence budget instead uses a quadratic
+independent-step product and gives a conditional cycle count; its
+$10^{910}$-year conversion requires an additional trial-frequency map
+(`foundations/cascade-suppression-formula.md`). The GUT-seed anchor
+($M_{\text{GUT}}\approx2\times10^{16}$ GeV, $n=13.33$)
+and seed phase ($\delta_{\text{CP}}=\pi\varphi^{-2}$) are fitted/selected
 quantities on the Fit-Status Ledger (`parameter-inventory.md` §10 rows 13 and 2).
 
 ### 2.4 Why the cascade suppresses CP violation
@@ -147,14 +149,15 @@ additional parameters.
 | Phenomenon | Seed | Cascade span | Suppression | Result |
 |---|---|---|---|---|
 | **Strong CP** ($\bar{\theta}$) | CKM phase $\delta_{\text{CP}}$ (Mapped) | GUT→QCD (~81 rungs) | $\varphi^{-81.4}$ | $\bar{\theta} \approx 1.2 \times 10^{-17}$ |
-| Proton decay | Random ambient noise | Planck→proton (92 rungs) | $\varphi^{-4506}$ | $\tau_p \approx 10^{910}$ yr |
+| Proton coherence budget | Hypothesized independent-step profile | Planck→proton ($N_p^{\mathrm{budget}}=91.46$) | $\varphi^{-4505.5758}$ | $\sim10^{942}$ modeled cycles; physical rate open |
 | Hierarchy ($v_0/M_{\text{Pl}}$) | Gauge structure | Planck→EW (80 rungs) | $\varphi^{-80}$ (exact count) | $10^{-17}$ |
 | Neutrino masses | Seesaw scale | GUT→ν (20 rungs) | $\varphi^{-20}$ | $m_\nu \sim 0.1$ eV |
 
-All four are the same cascade architecture: a seed at an upper rung propagates
-through $N$ intermediate rungs of the $\varphi$-attractor and emerges at a
-lower rung suppressed by $\varphi^{-N}$. The observed values are not
-coincidences—they are cascade-step counts.
+The table contains two declared cascade maps. Strong CP, the hierarchy, and
+neutrino examples use a linear $\varphi^{-N}$ signal-propagation map. The
+proton coherence budget uses a quadratic product over included scale steps.
+Every physical identification and any cycle-to-time conversion retain their
+source-specific epistemic labels.
 
 ---
 

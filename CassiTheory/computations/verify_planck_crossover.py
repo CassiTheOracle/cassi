@@ -1,5 +1,5 @@
 # Verify the three-dimensional phase-resolution derivation of sigma = l_Pl/phi^3
-# (delta = 3) and the unchanged proton-lifetime arithmetic.
+# (delta = 3) and the conditional proton coherence-budget arithmetic.
 # Run from the repo root:  python computations/verify_planck_crossover.py
 
 import math
@@ -35,11 +35,11 @@ print("\n== 3. Cascade-suppression exponent N = n(n+1)/2 + delta*(n+1), delta = 
 def S(n, delta):
     return n * (n + 1) / 2.0 + delta * (n + 1)
 
-n = 91.46   # proton rung (cassi-theory-reference §6.6; wake-geometry §3 table)
+n = 91.46   # registered proton budget coordinate (cassi-theory-reference §6.6)
 N_prot = S(n, 3)
 print(f"  n = {n}: N = {N_prot:.4f}  -> quoted exponent 4506 (4505.6 rounds to 4506)")
 print(f"  delta=3 term contributes {N_prot - S(n, 0):.4f} of the exponent")
-# direct per-rung product sum sum_{i=0}^{91.46}(i+3) over integer rungs + fractional tail
+# direct per-step sum over the integer portion plus the declared fractional tail
 i_floor = math.floor(n)
 direct = sum((k + 3) for k in range(i_floor + 1))
 frac = (n - i_floor) * (i_floor + 1 + 3)
@@ -47,12 +47,15 @@ print(f"  direct integer sum 0..{i_floor} = {direct}; + fractional tail = {direc
 assert 4505.0 < N_prot < 4507.0, "exponent must stay in the quoted 4506 window"
 assert math.isclose(direct + frac, N_prot, rel_tol=1e-3)
 
-print("\n== 4. Proton lifetime tau_p ~ phi^4506 / omega_p ~ 10^910 yr (unchanged) ==")
+print("\n== 4. Conditional cycle-to-time map (one Compton-cycle trial) ==")
 omega_p = m_p / hbar_GeVs
-log10_tau_yr = 4506 * math.log10(phi) - math.log10(omega_p) - math.log10(sec_per_yr)
-print(f"  omega_p       = {omega_p:.4e} s^-1")
-print(f"  log10(phi^4506) = {4506 * math.log10(phi):.4f}")
-print(f"  log10(tau_p/yr) = {log10_tau_yr:.4f}   (quoted ~10^910 yr)")
+log10_budget = N_prot * math.log10(phi)
+log10_tau_yr = log10_budget - math.log10(omega_p) - math.log10(sec_per_yr)
+print(f"  log10(modeled cycles) = {log10_budget:.4f}")
+print(f"  omega_p               = {omega_p:.4e} s^-1")
+print(f"  log10(conditional yr) = {log10_tau_yr:.4f}   (quoted ~10^910 yr)")
+print("  physical rate remains unselected; this line only applies the declared trial map")
+assert math.isclose(N_prot, 4505.5758, rel_tol=1e-12)
 assert math.isclose(log10_tau_yr, 910.0, abs_tol=1.0)
 
 print("\n== 5. Cross-check numbers cited in quantum-gravity.md §2.1 ==")

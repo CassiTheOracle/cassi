@@ -121,21 +121,26 @@ $$\mathcal{D}_{0 \to N}^{\text{coherence}} = \prod_{i=0}^{N}
 = \varphi^{-N(N+1)/2 - \delta(N+1)}$$
 
 This discrete product and finite sum are literal only for integer endpoints.
-For the proton's real rung $N_p=91.46$, no discrete product with a noninteger
-upper bound is implied; we use the continuous continuation of the closed
-quadratic exponent:
+For the registered two-decimal proton coordinate
+$N_p^{\mathrm{budget}}=91.46$, no discrete product with a noninteger upper
+bound is implied. The coherence-budget model continues the closed quadratic
+exponent:
 
-$$\mathcal{D}_{0 \to N_p}^{\text{coherence}}
-= \varphi^{-N_p(N_p+1)/2 - \delta(N_p+1)}
-\big|_{N_p=91.46} = \varphi^{-4505.5758} \approx \varphi^{-4506}$$
+$$
+\mathcal{D}_{0\to N_p}^{\mathrm{coherence}}
+:=\varphi^{-N_p(N_p+1)/2-\delta(N_p+1)}
+\big|_{N_p=91.46}
+=\varphi^{-4505.5758}
+\approx\varphi^{-4506}.
+$$
 
 The floor convention for an integer comparison is
-$\lfloor N_p\rfloor=91$; the placement table reports the same real rung
-rounded to $91.5$. Conditional on the declared $q_i^{\mathrm{cascade}}$
-profile, this quadratic-in-$N_p$ exponent is why the proton lives
-$10^{910}$ years. Each rung contributes
-$\varphi^{-i-\delta}$ with $\delta = 3$ (from
-$\sigma = \ell_{\text{Pl}}/\varphi^3$); see
+$\lfloor N_p\rfloor=91$. The declared profile assigns
+$\varphi^{-i-\delta}$ to each scale step, with $\delta=3$ from
+$\sigma=\ell_{\mathrm{Pl}}/\varphi^3$. Interpreting the product as a failure
+probability requires independent simultaneous step failures. Converting the
+result to $10^{910}$ years further requires one transition trial per Compton
+cycle. These stochastic inputs are Hypothesized; see
 `foundations/proton-coherence-budget.md`.
 
 ---
@@ -145,7 +150,7 @@ $\sigma = \ell_{\text{Pl}}/\varphi^3$); see
 | Regime | $d_i$ | $\mathcal{D}_{m \to n}$ | Exponent | Physical meaning |
 |---|---|---|---|---|
 | **Signal propagation (Hypothesized map)** | $\varphi^{-1}$ | $\varphi^{-N}$ | Linear in $N$ | Under the separate map, a signal assigned across $N$ rungs receives $\varphi^{-N}$; the product parameterizes damping of non-$\varphi$ structure at a fixed rate per indexed rung. |
-| **Coherence maintenance** | $\varphi^{-i-\delta}$ | $\varphi^{-n(n+1)/2 - \delta(n+1)}$ | Quadratic in $n$ | $n$ rungs must all stay coherent simultaneously; the probability compounds multiplicatively across all supporting depths. |
+| **Coherence budget** | $\varphi^{-i-\delta}$ | $\varphi^{-n(n+1)/2-\delta(n+1)}$ | Quadratic in $n$ | Under the Hypothesized independent-step failure model, every included scale layer participates in one simultaneous trial. |
 
 ---
 
@@ -156,7 +161,7 @@ $\sigma = \ell_{\text{Pl}}/\varphi^3$); see
 | **Hierarchy** ($v_0/M_{\text{Pl}}$) | Signal (Hypothesized map) | $n_{\text{GUT}} \approx 13.3$ (GUT anchor) | $n_{\text{EW}} \approx 80$ | $66.7$ | $\varphi^{-66.7}$ | $10^{-14}$ (cf. $10^{-17}$; the $N \approx 80$ consistency check of `foundations/dimensionful-cascade.md` §2.1 uses the gap factor $g$) | Derived conditional on declared input; exponent **Mapped** (ledger row 499) |
 | **Strong CP** ($\bar{\theta}$) | Signal (Hypothesized map) | $n_{\text{GUT}} \approx 13.3$ with Mapped seed $\delta_{\text{CP}}=\pi\varphi^{-2}$ | $n_{\text{QCD}} = 94.7$ | $81.4$ | $\pi\varphi^{-2}\times\varphi^{-81.4}=\pi\varphi^{-83.4}$ | $\bar{\theta} \approx 1.2\times10^{-17}$ | Derived conditional on declared input and Mapped seed |
 | **Neutrino masses** | Signal (Hypothesized map) | $n_{\text{GUT}} \approx 13.3$ (GUT-scale Yukawa seed) | $n_{\text{seesaw}} \approx 20$ | $N_\nu = 20 - 13.3 \approx 6.7 \approx 7$ | $\varphi^{-N_\nu}\approx\varphi^{-6.7}$ (flavor exponents $\varphi^{-12}$ to $\varphi^{-25}$) | $m_\nu \sim 0.001$–$0.1$ eV | Hypothesized (signal map and rung assignment; flavor offsets Mapped) |
-| **Proton stability** | Coherence | $n=0$ (Planck) | $n = 91.46$ (91.5 rounded proton rung) | $91.46$ | $\varphi^{-4505.5758}\approx\varphi^{-4506}$ | $\tau_p \approx 10^{910}$ yr | Derived conditional on declared $q_i^{\mathrm{cascade}}$ profile |
+| **Proton conditional cycle budget** | Coherence | $n=0$ (Planck) | $N_p^{\mathrm{budget}}=91.46$ | $91.46$ | $\varphi^{-4505.5758}\approx\varphi^{-4506}$ | $\sim10^{942}$ modeled cycles; physical rate open | Derived conditional arithmetic under the declared $q_i^{\mathrm{cascade}}$ profile; stochastic and trial-frequency maps Hypothesized |
 | **Spin ($s = \Delta n/2$)** | Geometric |—|—| $\Delta n \in \{0,1,2,4\}$ | N/A (conserved winding) | $s \in \{0,\frac12,1,2\}$ | Hypothesized |
 
 The hierarchy, strong CP, and neutrino masses use the **Hypothesized

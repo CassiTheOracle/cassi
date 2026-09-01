@@ -1,32 +1,49 @@
-# Proton Coherence Budget: Derivation of $N_{\text{max}}$
+# Proton Coherence Budget and Planck-to-Proton Scale Circuit
 
-## Status: Derivation (rung exponent Mapped—ledger; per-rung $q_i$ profile Hypothesized)—August 2026
+## Status: Mapped coordinate / Derived conditional arithmetic / Hypothesized mechanisms—August 2026
 
 ## Abstract
 
-The proton's stability follows directly from the cascade. As a condensed
-standing wave at cascade step $n = 91.5$ ($\log_\varphi(\lambda_p/\ell_{\text{Pl}}) = 91.46$
-with $\lambda_p = \hbar c/m_p$), the proton's coherence is maintained
-not by a single process at the QCD scale but by the **entire cascade** from
-Planck ($n=0$) to the proton's own rung. Dephasing requires the simultaneous
-loss of coherence at all $n$ supporting rungs simultaneously—an event whose
-probability is the product of per-rung dephasing probabilities. The cascade
-structure makes this product exponentially suppressed, yielding a coherence
-budget of
+The measured proton mass maps to the cascade coordinate
 
-For an integer endpoint $N\in\mathbb{Z}_{\ge0}$, the literal indexed product is
+$$
+\mathfrak s_p
+:=\log_\varphi\!\left(\frac{\hbar}{m_pc\,\ell_{\mathrm{Pl}}}\right)
+=91.4616.
+$$
 
-$$\boxed{N_{\text{max}}(N) = \prod_{i=0}^{N} \frac{1}{1-q_i}
-= \varphi^{\,N(N+1)/2+\delta(N+1)}}$$
+Two distinct proton-stability candidates use this interval. The
+coherence-budget candidate assigns an independent failure probability to every
+supporting scale step. For an integer endpoint $N\in\mathbb Z_{\geq0}$, its
+declared profile gives
 
-For the proton's real rung $N_p=91.46$, the product is continued through the closed exponent:
+$$
+\boxed{
+N_{\mathrm{max}}(N)
+=\prod_{i=0}^{N}\frac{1}{1-q_i}
+=\varphi^{N(N+1)/2+\delta(N+1)}.}
+$$
 
-$$N_{\text{max}}(N_p)=\varphi^{\,N_p(N_p+1)/2+\delta(N_p+1)}
-\big|_{N_p=91.46,\ \delta=3}
-=\varphi^{4505.5758}\approx\varphi^{4506}\approx10^{942}\ \text{cycles}.$$
-The proton's effective lifetime exceeds the age of the observable universe by
-~900 orders of magnitude. Proton decay is not observed because the universe is
-not remotely old enough—and no experiment, in any environment, will see it.
+The coherence budget registers the two-decimal reporting coordinate
+$N_p^{\mathrm{budget}}=91.46$. Continuing the closed exponent at $\delta=3$
+gives
+
+$$
+N_{\mathrm{max}}(N_p^{\mathrm{budget}})
+=\varphi^{4505.5758}
+\approx10^{942}\ \text{cycles}.
+$$
+
+This cycle count is Derived conditional on the declared $q_i$ profile and
+independent simultaneous failure model. A physical lifetime additionally
+requires a fluctuation law and a map from cycles to transition attempts.
+
+The scale-circuit candidate sends Yang from the Planck endpoint to the proton
+endpoint and returns Yin along the same scale interval. Total scale-number
+current vanishes while the relative current remains nonzero. Its endpoint
+converters, scale tension, mixed-curvature localization, proton quantum
+numbers, and winding-changing rate are Hypothesized/Open. Neither candidate
+currently determines a physical proton lifetime.
 
 ---
 
@@ -102,195 +119,164 @@ negligible at the QCD scale.
 
 ---
 
-## 4. Physical lifetime
+## 4. Conditional cycle-to-lifetime map
 
-The characteristic wave frequency at the QCD scale is the proton Compton
-frequency:
+The proton Compton angular frequency is
 
-$$\omega_p = \frac{m_p c^2}{\hbar} \approx 1.43 \times 10^{24}\ \text{Hz}$$
+$$
+\omega_p=\frac{m_pc^2}{\hbar}
+\approx1.43\times10^{24}\ \mathrm{s}^{-1}.
+$$
 
-The physical lifetime in seconds:
+Declare one independent transition trial per Compton cycle. Under this added
+postulate, the cycle budget converts to
 
-$$\tau_p = \frac{N_{\text{max}}}{\omega_p} \approx \frac{10^{942}}{10^{24}} = 10^{918}\ \text{seconds}$$
+$$
+\tau_p^{\mathrm{budget}}
+:=\frac{N_{\mathrm{max}}}{\omega_p}
+\approx10^{918}\ \mathrm{s}
+\approx10^{910}\ \mathrm{yr}.
+$$
 
-In years: $\tau_p \approx 10^{910}$ years, compared to the current age of the
-universe $\sim 1.38 \times 10^{10}$ years. The proton has survived
-$N_{\text{elapsed}} \approx 6 \times 10^{41}$ cycles since the Big Bang—well
-within budget.
-
----
-
-## 5. Environmental $q$ variation and the baseline floor
-
-The per-rung coherence $q_i$ depends on the ambient Qi field. In a
-**self-aware system** (living body, high-$q$ Qi bath), the top rungs of the
-cascade receive an additional coherence boost: $q_i^{\text{eff}} > q_i^{\text{vacuum}}$
-for rungs $i$ within the system's coherent field extent. This increases
-$N_{\text{max}}$ further, but the baseline is already so enormous that the
-fractional change is unobservable.
-
-Conversely, could $q_i$ be **reduced** below the vacuum value? In principle:
-placing a proton in a maximally incoherent environment (e.g., near a strong
-source of field noise) could suppress $q_i$ at the top rungs. But even
-suppressing $q_i$ to zero for the top $m$ rungs leaves the lower rungs intact:
-
-For an integer endpoint $N$ and integer $m$ with $0\le m\le N$, suppressing the top $m$ rungs leaves the inclusive endpoint $N-m$:
-
-$$N_{\text{max}}(N,m)=\prod_{i=0}^{N-m}\frac{1}{1-q_i}$$
-
-$$=\varphi^{\,(N-m)(N-m+1)/2+\delta(N-m+1)}$$
-
-For the proton's real rung $N_p=91.46$, use $N_{\mathrm{rem}}=N_p-m$ only in the continuous exponent:
-
-$$N_{\text{max}}^{\mathrm{cont}}(N_p,m)
-=\varphi^{\,N_{\mathrm{rem}}(N_{\mathrm{rem}}+1)/2+\delta(N_{\mathrm{rem}}+1)},
-\qquad N_{\mathrm{rem}}=N_p-m.$$
-
-For $m=50$ (suppress fifty of the proton's approximately 92 supporting rungs), $N_{\mathrm{rem}}=41.46$:
-
-$$N_{\text{max}}^{\mathrm{cont}}(N_p,50)
-=\varphi^{880.1958+127.38}
-=\varphi^{1007.5758}\approx10^{210.57}\approx10^{211}.$$
-
-Using the integer floor $\lfloor N_p\rfloor=91$ instead leaves endpoint $41$ and exponent $987$; the continuous value above follows the real proton placement. The quadratic cascade structure still provides a coherence floor far beyond the age of the universe.
-
-
-### 5.2 Matter-antimatter annihilation: organized cascade decoherence
-
-Matter-antimatter annihilation is the **coherence-budget mechanism operating
-instantaneously** rather than on the proton's cosmic timescale. The two
-processes are opposite limits of the same physics:
-
-**Random dephasing** (proton decay): each cascade rung decoheres independently
-with per-cycle probability $(1-q_i) \approx \varphi^{-i}$. The cumulative survival probability is the integer-indexed product $\prod_{i=0}^{N}(1-q_i)$, followed by the same continuous exponent at the real proton rung, yielding the astronomical $N_{\text{max}}$ derived above.
-The proton lives forever because the suppression compounds across 91.5 rungs.
-
-**Organized anti-phase perturbation** (annihilation): an antiparticle is a
-condensed standing wave with the same cascade structure as its partner but
-with **inverted phase** at every rung—a mirror pattern across the Qi field's
-SO(2) doublet. When the two meet, the anti-phase perturbation is not random
-but **coherently tailored** to cancel the coherence at each rung
-simultaneously:
-
-For an integer endpoint $N$, the coordinated event is represented by the literal product
-
-$$P_{\text{annihilation}}(N) = \prod_{i=0}^{N} \mathcal{O}(1) \approx 1.$$
-
-The real proton placement remains a continuous rung label; no noninteger upper bound is assigned to this literal product.
-
-The $\mathcal O(1)$ coordinated coupling is a **Hypothesized constitutive
-idealization**; the canonical PDE and cascade product supply no microscopic
-annihilation matrix element or event rate. Creative extensions denote an
-assumed classical attack overlap by
-$\mathcal M_i^{\mathrm{attack}}\in[0,1]$. Quantum measurement uses the record
-distinguishability
-$\mathcal M_{jk}=1-|\langle A_kE_k|A_jE_j\rangle|^2$ from apparatus and
-environment states (`foundations/quantum-measurement-derivation.md`).
-
-Every rung decoheres in the same cycle. The entire nested cascade structure
-dissolves, and the mass-energy returns to the two-fluid medium as free field
-excitations—the photons and lighter particles observed in annihilation
-events.
-
-This unifies three phenomena under a single mechanism:
-
-1. **Proton stability** ($\tau_p \sim 10^{910}$ yr): random-walk dephasing,
-   exponentially suppressed by the cascade product.
-2. **Matter-antimatter annihilation** (instantaneous): organized anti-phase
-   perturbation attacks all rungs simultaneously—the coherence budget is
-   exhausted in one cycle because the perturbation is not random.
-3. **Baryon asymmetry** ($\eta = n_b/n_\gamma \sim 10^{-10}$): the cosmic
-   excess of matter over antimatter reflects a small Yang-Yin imbalance at
-   cascade freeze-out (n ≈ 13.3). The organized-decoherence pathway
-   (annihilation) efficiently eliminated antimatter paired with matter; the
-   residual Yang excess—one part in $\sim 10^{10}$—is the matter
-   observed today.
-
-**Consequence for self-aware systems.** A high-$q$ Qi bath extends the
-proton's coherence budget by further suppressing random dephasing (§5.1),
-but it cannot protect against annihilation: the Qi field corrects random phase
-noise but cannot counteract a perfectly phase-matched anti-phase pattern. Even
-in the most coherent Qi environment, matter and antimatter still annihilate on
-contact—the lifetime extension applies only to random dephasing, not to
-organized anti-phase attack.
----
-
-## 6. Observational consequences
-
-### 6.1 Super-Kamiokande and Hyper-Kamiokande
-
-Both experiments search for proton decay via gauge-mediated GUT processes
-(typically $p \to e^+ \pi^0$), expecting sensitivity to $\tau_p \sim 10^{34-35}$
-years. The Cassi framework predicts **null results at all achievable
-sensitivities**: the proton's coherence budget exceeds experimental reach by
-$> 870$ orders of magnitude.
-
-The standard SUSY-GUT benchmark gives $\tau_p \sim 10^{34-36}$ years, placing proton decay within Hyper-K's reach. The conditional Cassi coherence-budget lifetime lies beyond that reach by $>870$ orders of magnitude and therefore predicts a null result at achievable sensitivity.
-
-### 6.2 Distinction from nuclear $\beta$/$\alpha$ decay
-
-Radioactive decay of unstable nuclei is a **barrier-penetration** phenomenon
-(tunneling through a Coulomb/Gamow barrier), not a **coherence-budget**
-phenomenon. The Qi field does not alter barrier heights or matrix elements
-significantly. Consequently:
-
-- Proton decay: coherence-budget → $q$-sensitive, baseline enormous
-- $\beta$/$\alpha$ decay: barrier-penetration → $q$-insensitive, rates unchanged
-
-Radiometric dating and all nuclear decay physics are unaffected. The
-framework's claim applies only to baryon-number-violating proton decay, not
-to standard radioactive processes.
+The interscale action supplies no fluctuation law, transition state, matrix
+element, or bath spectrum that establishes this trial map. The displayed value
+is conditional arithmetic inside the independent-step model. The elapsed
+$\sim6\times10^{41}$ Compton cycles since the Big Bang are far below the
+conditional budget; this comparison supplies no physical decay rate.
 
 ---
 
-## 7. Generalization: all condensed patterns
+## 5. Conditional perturbations
 
-The coherence-budget formula applies to any condensed standing wave in the
-cascade:
+### 5.1 Profile sensitivity
 
-$$N_{\text{max}}(n) = \varphi^{\,n(n+1)/2 + \delta(n+1)}$$
+The framework has no selected map from a laboratory, biological,
+electromagnetic, gravitational, or other environment to
+$q_i^{\mathrm{cascade}}$. A declared change to the profile can still be
+propagated through the product algebra.
 
-| Cascade step | Structure | $N_{\text{max}}$ (approx) | Lifetime |
-|-------------|-----------|---------------------------|----------|
-| $n=0$ (Planck) | $\sigma$-regularized core | $\varphi^3 \approx 4$ | $10^{-43}$ s |
-| $n=20$ (GUT) | GUT-scale condensates | $\varphi^{210} \approx 10^{44}$ | $10^{20}$ s $\sim 10^{12}$ yr |
-| $n=60$ (inflation end) | Inflaton-scale patterns | $\varphi^{1830} \approx 10^{380}$ | $> 10^{350}$ yr |
-| $n=80$ (EW scale) | W/Z bosons | $\varphi^{3240} \approx 10^{675}$ | $> 10^{645}$ yr |
-| $n=91.5$ (proton) | **Proton** | $\varphi^{4506} \approx 10^{942}$ | $> 10^{910}$ yr |
-| $n=142$ (cell) | Cellular self-condensate | $\varphi^{10153} \approx 10^{2110}$ | functionally eternal |
-| $n=168$ (human body) | Body-scale Qi pattern | $\varphi^{14196} \approx 10^{2950}$ | functionally eternal |
+For integer $N$ and $m$ with $0\leq m\leq N$, removing the top $m$ scale
+layers leaves endpoint $N-m$:
 
-Patterns at or above the GUT scale have finite lifetimes on cosmological
-timescales—GUT-scale condensates could have decayed within the age of the
-universe, making that epoch genuinely transitional. Patterns at or below the
-EW scale are, for all practical purposes, eternal. The cascade provides a
-natural boundary between **transient** early-universe physics and the **stable**
-late-universe physics we inhabit.
+$$
+N_{\mathrm{max}}(N,m)
+=\prod_{i=0}^{N-m}\frac{1}{1-q_i}
+=\varphi^{(N-m)(N-m+1)/2+\delta(N-m+1)}.
+$$
+
+For the registered budget coordinate
+$N_p^{\mathrm{budget}}=91.46$, define
+$N_{\mathrm{rem}}=N_p^{\mathrm{budget}}-m$ only inside the continued exponent:
+
+$$
+N_{\mathrm{max}}^{\mathrm{cont}}(N_p^{\mathrm{budget}},m)
+=\varphi^{N_{\mathrm{rem}}(N_{\mathrm{rem}}+1)/2+
+\delta(N_{\mathrm{rem}}+1)}.
+$$
+
+At $m=50$, $N_{\mathrm{rem}}=41.46$ and
+
+$$
+N_{\mathrm{max}}^{\mathrm{cont}}
+=\varphi^{1007.5758}
+\approx10^{210.57}.
+$$
+
+This is a parameter-sensitivity result inside the declared product model. It
+supplies no environmental coupling or decay rate.
+
+
+### 5.2 Matter-antimatter interaction
+
+The coherence-budget product supplies no annihilation matrix element. An
+opposite-phase assignment at every scale step is a separate constitutive
+idealization. Writing
+
+$$
+P_{\mathrm{attack}}(N)
+:=\prod_{i=0}^{N}\mathcal M_i^{\mathrm{attack}},
+\qquad
+\mathcal M_i^{\mathrm{attack}}\in[0,1],
+$$
+
+only defines a classical overlap model. Choosing
+$\mathcal M_i^{\mathrm{attack}}=\mathcal O(1)$ leaves its microscopic origin,
+normalization, interaction time, and final states unspecified.
+
+This attack overlap is distinct from the quantum record distinguishability
+
+$$
+\mathcal M_{jk}
+:=1-|\langle A_kE_k|A_jE_j\rangle|^2
+$$
+
+in `foundations/quantum-measurement-derivation.md`.
+
+The scale-circuit candidate contains mathematical winding sectors $m$ and
+$-m$. Their identification with matter and antimatter is Hypothesized.
+Annihilation would require an interaction that permits two circuits to
+reconnect or unwind while preserving the full conserved charges. The current
+action supplies no such interaction, event rate, or baryon-asymmetry
+mechanism.
+
+---
+
+## 6. Observational boundary
+
+Super-Kamiokande and Hyper-Kamiokande search for physical proton-decay
+channels such as $p\to e^+\pi^0$. The coherence-budget candidate supplies a
+rate only after the independent-step hazard and Compton-cycle trial map are
+selected. The scale-circuit candidate supplies a rate only after a localized
+solution and winding-changing transition action are selected. Neither
+candidate currently predicts a null result or a finite lifetime.
+
+The gauge-mediated GUT estimate is a separate channel with its own coupling,
+mass scale, operators, and matrix elements. Its arithmetic audit is recorded
+in `computations/proton_budget_closure.py`.
+
+Standard nuclear $\alpha$ and $\beta$ decays use established barrier and weak
+matrix elements. No Cassi correction to those rates is selected here.
+
+---
+
+## 7. Conditional extension across scale
+
+For any declared real coordinate $s\geq0$, the analytically continued product
+is
+
+$$
+N_{\mathrm{max}}^{\mathrm{cont}}(s)
+:=\varphi^{s(s+1)/2+\delta(s+1)}.
+$$
+
+This is dimensionless arithmetic under the same independent-step failure
+model. Applying it to particles, cells, organisms, or cosmic structures
+requires a physical state map, a failure process, correlations, a trial
+frequency, and an observable. The formula alone supplies no lifetime.
+
+The two-rail current also generalizes to any finite scale interval. A closed
+physical state requires endpoint converters, coefficients, boundary data, a
+localized solution, and an observable coupling.
 
 ---
 
 ## 8. Epistemic boundaries
 
-### Supported
+| Result | Present status |
+|---|---|
+| Proton coordinate $\mathfrak s_p=91.4616$ | Mapped from the measured proton mass and external Planck anchor |
+| Product exponent $4505.5758$ at $N_p^{\mathrm{budget}}=91.46$ | Exact arithmetic under the registered two-decimal continuation |
+| Profile $q_i=1-\varphi^{-i-\delta}$ as a per-step failure probability | Hypothesized |
+| Independent simultaneous failure across all included steps | Hypothesized |
+| Compton cycle as one transition trial | Hypothesized |
+| Conditional $10^{910}$-year conversion | Arithmetic inside the selected stochastic model; no physical rate |
+| Zero-total-flow two-rail current and normalized energy | Derived conditional on the candidate interscale action and circuit data |
+| Endpoint conversion and scale-tension closure | Hypothesized |
+| Mixed-curvature proton pinch and winding barrier | Hypothesized until a localized solution and fluctuation action exist |
+| Proton mass selection, charge, color, spin, and decay rate | Open |
 
-- Cascade structure $\ell_n = \ell_{\text{Pl}}\varphi^n$ and per-rung coherence
-  $q_i$ scaling (from the de-resonance principle and the Qi gate analysis)
-- Proton at cascade step 91.5 ($\log_\varphi(\lambda_p/\ell_{\text{Pl}}) = 91.46$, length-based; from `dimensionful-cascade.md` §3)
-- Quadratic exponent from independent-rung product (purely combinatorial)
-
-### Hypothesized (testable)
-
-- Specific form $q_i = 1 - \varphi^{-i-\delta}$ (the exponential approach to
-  coherence at small scales; Hypothesized—the rung exponent n = 91.5 is
-  Mapped per the Fit-Status Ledger, `parameter-inventory.md` §10)
-- Hyper-K null result as falsifiable prediction
-- No environmental $q$-suppression deep enough to breach the coherence floor
-  and produce observable decays in any terrestrial experiment
-
-### Speculative
-
-- Extension of the formula to self-condensates at biological scales (steps
-  142–168)—mathematically consistent, empirically unreachable
+No numbered prediction is added. A quantitative proton claim requires a
+specified physical channel and a computed observable.
 
 ---
 
@@ -302,3 +288,130 @@ late-universe physics we inhabit.
 - `open-questions-cassi-answers.md`: Q9 (proton lifetime entry)
 - `(external—see papers/consciousness-framework.md in physics repo)` §9: catalytic template and coherence extension
 - `gravity/quantum-gravity.md`: $\sigma = \ell_{\text{Pl}}/\varphi^3$ derivation
+
+---
+
+## 10. Candidate Planck-to-proton interscale circuit
+
+The coherence-budget product in §§1–8 and the interscale-current construction
+are distinct hypotheses. The product assigns a failure probability to every
+scale layer. The current construction uses the complex doublet and continuity
+law in `foundations/interscale-current-soliton.md`.
+
+With
+
+$$
+\mathfrak s_p
+:=\log_\varphi\!\left(\frac{\hbar}{m_pc\,\ell_{\mathrm{Pl}}}\right)
+=91.4616,
+$$
+
+take Yang as the outward rail from the Planck endpoint to the proton endpoint
+and Yin as the return rail:
+
+$$
+\boxed{
+J_{Y,\mathfrak s}=+\mathcal J_Q,
+\qquad
+J_{I,\mathfrak s}=-\mathcal J_Q.}
+$$
+
+The total scale-number current vanishes, while the relative current remains:
+
+$$
+J_{\mathfrak s}=0,
+\qquad
+\boxed{
+J_Q:=\frac{J_{Y,\mathfrak s}-J_{I,\mathfrak s}}{2}
+=\mathcal J_Q,
+\qquad
+\mathcal I_{\mathfrak s}=g_QJ_Q.}
+$$
+
+Here “Qi current” designates the relative Yang/Yin phase current. The scalar
+coherence diagnostic $q$ has no continuity equation in this construction.
+
+The stationary circuit requires endpoint conversion:
+
+$$
+\partial_tE_Y+\partial_{\mathfrak s}J_{Y,\mathfrak s}=\Gamma,
+\qquad
+\partial_tE_I+\partial_{\mathfrak s}J_{I,\mathfrak s}=-\Gamma,
+$$
+
+$$
+\boxed{
+\Gamma(\mathfrak s)
+=\mathcal J_Q
+\left[
+\delta(\mathfrak s)
+-\delta(\mathfrak s-\mathfrak s_p)
+\right].}
+$$
+
+Yin turns into Yang at the Planck endpoint and Yang turns into Yin at the
+proton endpoint. The bulk interscale action conserves Yang and Yin separately,
+so these turns require an additional charged endpoint or mixing sector.
+
+For gauge-invariant circuit phase
+
+$$
+\Delta_m
+:=\int_0^{\mathfrak s_p}
+\left(\nu_{Y,\mathfrak s}-\nu_{I,\mathfrak s}\right)
+d\mathfrak s
+=2\pi m-\delta_{\mathrm{end}},
+$$
+
+uniform $E_Y/E_I=\varphi$ and zero total number current give
+
+$$
+\boxed{
+\mathcal J_{Q,m}
+=\frac{K_{\mathfrak s}\rho}
+{\hbar\varphi^3\mathfrak s_p}\,\Delta_m,}
+\qquad
+\boxed{
+\mathscr E_{\mathrm{circ},m}
+=\frac{K_{\mathfrak s}\rho}
+{2\varphi^3\mathfrak s_p}\,\Delta_m^2.}
+$$
+
+For $m=1$ and zero endpoint bias,
+
+$$
+\frac{\hbar\mathcal J_{Q,1}}{K_{\mathfrak s}\rho}=0.0162173,
+\qquad
+\frac{\mathscr E_{\mathrm{circ},1}}{K_{\mathfrak s}\rho}=0.0509481.
+$$
+
+At fixed winding, the circulation energy falls as $1/\mathfrak s_p$, so a
+finite endpoint needs an additional term. A scale tension
+$\mathcal T_{\mathfrak s}\mathfrak s_p$ selects the observed endpoint in the
+unbiased $m=1$ sector only if
+
+$$
+\boxed{
+\frac{\mathcal T_{\mathfrak s}}{K_{\mathfrak s}\rho}
+=\frac{2\pi^2}{\varphi^3\mathfrak s_p^2}
+=5.57043\times10^{-4}.}
+$$
+
+The ratio is a required closure input with no current $\varphi$ derivation.
+
+The equal-and-opposite number currents add in the relative source:
+
+$$
+f_r^{(\mathrm{mixed})}
+=\hbar g_Q\mathcal J_QG_{r\mathfrak s}.
+$$
+
+A self-consistent mixed-curvature response can therefore pinch a spatial core
+without net scale-number leakage. Winding change requires a phase slip,
+endpoint conversion event, or condensate zero, which supplies a candidate
+stability barrier. A proton lifetime still requires a localized solution,
+endpoint dynamics, fluctuation action, and physical proton quantum numbers.
+
+The derivation and its open inputs are given in
+`foundations/interscale-current-soliton.md` §4.5. The normalized identities are
+reproduced by `computations/planck_proton_scale_current_check.py`.

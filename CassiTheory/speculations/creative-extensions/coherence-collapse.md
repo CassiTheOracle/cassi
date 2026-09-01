@@ -32,7 +32,17 @@ The conversion-only sector drives the local ratio $r=E_Y/E_I$ toward $\varphi$ w
 
 The standard picture of global catastrophe is vacuum metastability: the Higgs potential has a second, lower minimum, and the vacuum can tunnel into it, nucleating a bubble of "true vacuum" that expands at the speed of light. The apocalypse is a phase transition.
 
-Within this optional potential, $V_{\text{attr}}\geq0$ vanishes exactly on the canonical residual manifold $\varepsilon=E_Y-\varphi E_I=0$ (equivalently $\Psi_0^2=\varphi\Psi_1^2$ under the positive-root lift) and has no second minimum in that sector. A perturbation that pushes $r=E_Y/E_I$ away from $\varphi$ raises this potential, while the conversion term drives the residual toward zero. Tunneling requires a lower target; this sector supplies none. The arithmetic de-resonance motivation does not by itself establish global dynamical uniqueness, which requires the full PDE and boundary conditions. The only "vacuum decay" reading developed here is organized annihilation, where a mirror-phase pattern dissolves a structure in one cycle (`foundations/proton-coherence-budget.md` §5.2); that process is pair-local, confined to the encounter of a pattern with its anti-phase twin.
+Within this optional potential, $V_{\text{attr}}\geq0$ vanishes exactly on the
+canonical residual manifold $\varepsilon=E_Y-\varphi E_I=0$ (equivalently
+$\Psi_0^2=\varphi\Psi_1^2$ under the positive-root lift) and has no second
+minimum in that sector. A perturbation that pushes $r=E_Y/E_I$ away from
+$\varphi$ raises this potential, while the conversion term drives the residual
+toward zero. Tunneling requires a lower target; this sector supplies none. The
+arithmetic de-resonance motivation does not by itself establish global
+dynamical uniqueness, which requires the full PDE and boundary conditions. A
+candidate local particle/antiparticle circuit reconnection is described in
+`foundations/proton-coherence-budget.md` §5.2; its interaction and event rate
+remain unselected.
 
 ### 1.3 The coherence budget as a global firewall
 
@@ -56,7 +66,7 @@ P_{\text{dephase}}(n)
 := \varphi^{-n(n+1)/2 - \delta(n+1)}.
 $$
 
-For the proton ($n = 91.5$): $\varphi^{-4506} \approx 10^{-942}$, a lifetime near $10^{910}$ years (`foundations/proton-coherence-budget.md` §3). A *global* collapse is the same event at every rung of the ladder simultaneously—every condensed pattern in the observable universe dephasing in the same cycle. Applying the same product to today's observable ladder, $n = 0 \ldots 292$ (292 is the epoch-dependent horizon rung, not a fixed cascade depth):
+At the registered proton budget coordinate $N_p^{\mathrm{budget}}=91.46$, the declared product gives $\varphi^{-4505.5758}\approx10^{-942}$ per modeled simultaneous trial, or $\sim10^{942}$ modeled cycles (`foundations/proton-coherence-budget.md` §3). The failure law and trial frequency remain Hypothesized. A *global* collapse extends the same independent-step model to every scale layer of the observable universe—every condensed pattern dephasing in one declared trial. Applying the product to today's observable interval $n=0\ldots292$ (where 292 is the epoch-dependent horizon coordinate):
 
 $$\boxed{P_{\text{global}} \sim \prod_{n=0}^{292} \varphi^{-n(n+1)/2 - 3(n+1)} = \varphi^{-4\,321\,457} \approx 10^{-903\,000}}$$
 
@@ -185,7 +195,7 @@ $$\boxed{P_{\text{global}}\lesssim\varphi^{-292}
 \prod_{\text{domains}}\langle\mathcal M_i^{\mathrm{attack}}\rangle
 \mathcal M_{\mathrm{boundary}}^{\mathrm{attack}}}$$
 
-Coherence collapse is an energy redistribution, not energy deletion. Annihilation returns mass-energy to free field excitations; the field remains present while its organized pattern decoheres (`foundations/proton-coherence-budget.md` §5.2). The framework's catastrophic outcome is therefore a local rearrangement of the two-fluid field.
+The Creative model constrains collapse to energy redistribution by assumption. Mapping physical annihilation to organized-pattern decoherence requires the unselected reconnection interaction and final-state dynamics in `foundations/proton-coherence-budget.md` §5.2. Within the scenario, a catastrophic outcome is therefore modeled as a local rearrangement of the two-fluid field.
 
 ### 5.4 Locality cuts both ways
 

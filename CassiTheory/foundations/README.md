@@ -25,7 +25,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 13 | `spin-fibonacci-spiral.md` | Spin as spiral winding | Derivation |
 | 14 | `phi_attractor_synthesis.md` | Analytical N-body paths | Derived |
 | 15 | `wa-pentagon-gate.md` | $w_a$ sign tension | Derived / Hypothesized |
-| 16 | `proton-coherence-budget.md` | Proton stability | Derivation |
+| 16 | `proton-coherence-budget.md` | Proton stability: coherence budget and Planck-to-proton scale circuit | Derived conditional arithmetic / Hypothesized physical realizations |
 | 17 | `quantum-measurement-derivation.md` | Quantum dynamics and measurement | Derived conditional (regulated quantum mechanics and finite carrier projection); Hypothesized CassiFI and carrier physical identifications |
 | 18 | `strong-cp-derivation.md` | Strong CP | Derivation |
 | 19 | `quark-confinement.md` | Confinement | Derived conditional (tube extensivity + cell quantization); Hypothesized tube/coherence inputs; conditional normalization $\kappa=2\pi$ on the optional $2\pi$-per-rung winding convention |
@@ -255,31 +255,47 @@ $$\boxed{H_{\text{eff}} = H_{\text{bare}} \,\sqrt{1 + (\varphi^{6}-1)q(r)}}$$
 
 shifts the prediction to $+0.10$ ($1.6\sigma$); the 5-channel pentagonal gate (channel openness $b_i = \varphi^{-k_i}$, $k_i = 2 + i$) and Wu Xing control-release add secondary negative shifts, bringing the combined prediction to $\boxed{w_a^{\text{pred}} \approx [-0.05, +0.10]}$, within $1.4\sigma$ of DESI. Four independent checks ($\lambda$-independence, gate-$\alpha$-independence, spatial-boost falsification, structural-mode decay) rule out numerical artifacts in the bare sign. Status: Derived ($\xi = \varphi^6$) / Hypothesized (5-channel).
 
-### `proton-coherence-budget.md`—Proton Coherence Budget: Derivation of $N_{\text{max}}$
+### `proton-coherence-budget.md`—Proton Coherence Budget and Planck-to-Proton Scale Circuit
 
-A condensed standing wave at cascade step $n = 91.5$ ($\log_\varphi(\lambda_p/\ell_{\text{Pl}}) = 91.46$) is not an isolated structure: its coherence is maintained by the entire cascade from Planck to its own rung, and dephasing requires the simultaneous loss of coherence at all supporting rungs. The coherence budget is the product of per-rung survival probabilities. For the declared live profile $q_i^{\mathrm{cascade}} = 1-\varphi^{-i-\delta}$ with $\delta=3$, an integer endpoint $N\in\mathbb{Z}_{\ge0}$ has
-
-$$
-N_{\text{max}}(N)=\prod_{i=0}^{N}\frac{1}{1-q_i^{\mathrm{cascade}}}
-=\varphi^{\,N(N+1)/2+\delta(N+1)}.
-$$
-
-The physical mapped endpoint is $N_p=91.46$. No indexed product is taken at
-this real coordinate; its continuous continuation is
+The measured proton mass maps to
+$\mathfrak s_p=\log_\varphi[\hbar/(m_pc\ell_{\mathrm{Pl}})]=91.4616$.
+The coherence-budget candidate assigns the declared profile
+$q_i^{\mathrm{cascade}}=1-\varphi^{-i-\delta}$ to independent simultaneous
+failure channels. Under those assumptions, an integer endpoint has
 
 $$
-N_{\text{max}}^{\mathrm{cont}}(N_p)
-=\varphi^{\,N_p(N_p+1)/2+\delta(N_p+1)}
-\big|_{N_p=91.46}
-=\varphi^{4505.5758}\approx\varphi^{4505.6}.
+N_{\mathrm{max}}(N)
+=\prod_{i=0}^{N}\frac{1}{1-q_i^{\mathrm{cascade}}}
+=\varphi^{N(N+1)/2+\delta(N+1)}.
 $$
 
-This gives $N_{\text{max}}\approx10^{941.8}$ cycles. The $\delta=0$ expression
-$\varphi^{\,N_p(N_p+1)/2}\approx\varphi^{4228}\approx10^{884}$ is an unused
-comparison profile; the live Planck-scale $\sigma$-regularized budget uses
-$\delta=3$. The proton's effective lifetime exceeds the age of the observable
-universe by roughly 900 orders of magnitude—proton decay is not observed
-because the universe is not remotely old enough. Status: Derivation.
+Continuing the closed exponent at the registered two-decimal budget coordinate
+$N_p^{\mathrm{budget}}=91.46$ and $\delta=3$ gives
+$N_{\mathrm{max}}^{\mathrm{cont}}=\varphi^{4505.5758}\approx10^{941.8}$
+cycles. The profile, independence assumption, simultaneous-failure rule, and
+cycle-to-transition map are Hypothesized, so this arithmetic supplies no
+physical proton lifetime.
+
+The distinct scale-circuit candidate closes a relative current on the doubled
+Planck-to-proton interval:
+
+$$
+J_{Y,\mathfrak s}=+\mathcal J_Q,
+\qquad
+J_{I,\mathfrak s}=-\mathcal J_Q,
+\qquad
+J_{\mathfrak s}=0,
+\qquad
+J_Q=\mathcal J_Q.
+$$
+
+At $E_Y/E_I=\varphi$, the uniform current is
+$\mathcal J_{Q,m}=K_{\mathfrak s}\rho\Delta_m/
+(\hbar\varphi^3\mathfrak s_p)$. Endpoint conversion closes the two rails, and
+the relative current can source a mixed-curvature pinch. The endpoint fields,
+scale tension, localized proton solution, quantum numbers, and decay rate
+remain open. Status: Mapped coordinate / Derived conditional arithmetic /
+Hypothesized mechanisms.
 
 ### `quantum-measurement-derivation.md`—CassiFI Quantum Dynamics and Measurement
 
@@ -358,9 +374,9 @@ with mapped offsets $\Delta_1 = 1.00$ and $\Delta_2 = 1.75$ rungs, and a
 lightest mass $m_{\nu_1} \sim 0.003$ eV from the selected oscillation fit. The
 oscillation ratio $\boxed{\Delta m^2_{31}/\Delta m^2_{21} = (\varphi^{11} - 1)/(\varphi^{4} - 1) \approx 33.82}$ matches the observed $33.89$ to 0.2%. Status: Hypothesized mechanism with Mapped offsets and conditional scale diagnostic.
 
-### `baryon-asymmetry.md`—Matter-Antimatter Asymmetry from Cascade Freeze-Out and Organized Annihilation
+### `baryon-asymmetry.md`—Matter-Antimatter Asymmetry from Cascade Freeze-Out and a Candidate Circuit Interaction
 
-Analyzes $\eta = n_b/n_\gamma \approx 6\times10^{-10}$ through a candidate chain of organized annihilation, the Yang-Yin imbalance at the Wu Xing gap $g=1-\varphi^{-5}$, and cascade dilution. Organized annihilation is the strongest supported component; the complete freeze-out mechanism remains Hypothesized. The exponent $\log_\varphi(1/\eta_{\text{obs}})=44.09$–$44.13$ is represented by the Mapped fit
+Analyzes $\eta = n_b/n_\gamma \approx 6\times10^{-10}$ through a candidate chain of a particle/antiparticle circuit interaction, the Yang-Yin imbalance at the Wu Xing gap $g=1-\varphi^{-5}$, and cascade dilution. The interaction's reconnection dynamics and event rate remain unselected; the complete freeze-out mechanism remains Hypothesized. The exponent $\log_\varphi(1/\eta_{\text{obs}})=44.09$–$44.13$ is represented by the Mapped fit
 
 $$\boxed{\eta \approx \varphi^{-44} \approx 6.38\times10^{-10}}$$
 
@@ -458,6 +474,13 @@ $J_{\mathfrak s}$ is distinct from the canonical spatial density-plane
 diagnostic $\mathbf J_d$. The composition potential has a minimum at
 $E_Y/E_I=\varphi$ but conserves the two species separately, so a conversion
 sector or bath remains necessary.
+
+On the Mapped Planck-to-proton interval, an added pair of endpoint converters
+closes Yang outward flow and Yin return flow into a two-rail circuit. Total
+scale-number current vanishes while the relative current remains nonzero and
+can source mixed curvature. The normalized current and energy are derived;
+the endpoint fields, scale tension, localized proton solution, and decay rate
+remain open.
 
 The mixed curvature $G_{i\mathfrak s}$ supplies one conditional force channel.
 A reduced Derrick profile has a finite radius only when its flux/core support

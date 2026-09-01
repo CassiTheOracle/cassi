@@ -104,6 +104,13 @@ Step 267:  ℓ_Pl × φ^267 = 1.616255e-35 × 6.305e55 = 1.019e21 m   (33 kpc �
 Step 284:  ℓ_Pl × φ^284 = 1.616255e-35 × 2.252e59 = 3.639e24 m   (117.9 Mpc, Yin wake; observed BAO ruler ~150 Mpc lies near the 284.5 half-step)
 Step 285:  ℓ_Pl × φ^285 = 1.616255e-35 × 3.643e59 = 5.888e24 m   (191 Mpc, bubble ✓)
 ```
+
+The measured proton mass gives the distinct real coordinate
+$\mathfrak s_p=91.4616$. A Hypothesized two-rail current can use the interval
+$0\leq\mathfrak s\leq\mathfrak s_p$ as a closed Planck-to-proton circuit once
+endpoint converters are supplied. The mapped endpoint remains external to the
+current construction (`foundations/interscale-current-soliton.md` §4.5).
+
 ---
 
 ## 4. Cascade Zones
