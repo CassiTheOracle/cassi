@@ -13,6 +13,8 @@ comp.spv
 **/runs/
 **/logs/
 
+# CassiFI generated checkpoints, receipts, and run state.
+CassiFI/artifacts/
 # CassiQwen model/runtime downloads and native build trees.
 CassiQwen/*.bin
 CassiQwen/*.ckpt

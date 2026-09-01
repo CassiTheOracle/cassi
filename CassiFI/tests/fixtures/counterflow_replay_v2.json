@@ -1,0 +1,448 @@
+{
+  "schema": "cassi.counterflow.replay.v2",
+  "primary_field_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "scenarios": [
+    {
+      "name": "continuous-lineage",
+      "requests": [
+        {
+          "mode": "predict",
+          "observations": [],
+          "current": {
+            "record_id": "memory-a",
+            "address": "6dddbf30dd0834343fe8964e28f0582b",
+            "revision": "1111111111111111111111111111111111111111111111111111111111111111",
+            "start_byte": 0,
+            "end_byte": 4,
+            "semantic_kind": "fact"
+          },
+          "policy": {
+            "eligible_observation_ids": [],
+            "permitted_action_kinds": [],
+            "authority": 1,
+            "authorization_path": [
+              "mnemic:fixture"
+            ]
+          }
+        },
+        {
+          "mode": "predict",
+          "observations": [
+            {
+              "id": "u1",
+              "before": {
+                "record_id": "memory-a",
+                "address": "6dddbf30dd0834343fe8964e28f0582b",
+                "revision": "1111111111111111111111111111111111111111111111111111111111111111",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "after": {
+                "record_id": "memory-a",
+                "address": "b391a5a32d64de056ede033c353603d0",
+                "revision": "2222222222222222222222222222222222222222222222222222222222222222",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "symbol": "mnemic:update"
+            }
+          ],
+          "current": {
+            "record_id": "memory-a",
+            "address": "b391a5a32d64de056ede033c353603d0",
+            "revision": "2222222222222222222222222222222222222222222222222222222222222222",
+            "start_byte": 0,
+            "end_byte": 4,
+            "semantic_kind": "fact"
+          },
+          "expected": {
+            "record_id": "memory-a",
+            "address": "188866261238ba57a8760c10e9b2306a",
+            "revision": "3333333333333333333333333333333333333333333333333333333333333333",
+            "start_byte": 0,
+            "end_byte": 4,
+            "semantic_kind": "fact"
+          },
+          "policy": {
+            "eligible_observation_ids": [
+              "u1"
+            ],
+            "permitted_action_kinds": [],
+            "authority": 1,
+            "authorization_path": [
+              "mnemic:fixture"
+            ]
+          }
+        },
+        {
+          "mode": "predict",
+          "observations": [
+            {
+              "id": "u1",
+              "before": {
+                "record_id": "memory-a",
+                "address": "6dddbf30dd0834343fe8964e28f0582b",
+                "revision": "1111111111111111111111111111111111111111111111111111111111111111",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "after": {
+                "record_id": "memory-a",
+                "address": "b391a5a32d64de056ede033c353603d0",
+                "revision": "2222222222222222222222222222222222222222222222222222222222222222",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "symbol": "mnemic:update"
+            },
+            {
+              "id": "u2",
+              "before": {
+                "record_id": "memory-a",
+                "address": "b391a5a32d64de056ede033c353603d0",
+                "revision": "2222222222222222222222222222222222222222222222222222222222222222",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "after": {
+                "record_id": "memory-a",
+                "address": "188866261238ba57a8760c10e9b2306a",
+                "revision": "3333333333333333333333333333333333333333333333333333333333333333",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "symbol": "mnemic:update"
+            }
+          ],
+          "current": {
+            "record_id": "memory-a",
+            "address": "188866261238ba57a8760c10e9b2306a",
+            "revision": "3333333333333333333333333333333333333333333333333333333333333333",
+            "start_byte": 0,
+            "end_byte": 4,
+            "semantic_kind": "fact"
+          },
+          "expected": {
+            "record_id": "memory-a",
+            "address": "4652ca13a827957a59d7ff1dbdd3573c",
+            "revision": "4444444444444444444444444444444444444444444444444444444444444444",
+            "start_byte": 0,
+            "end_byte": 4,
+            "semantic_kind": "fact"
+          },
+          "policy": {
+            "eligible_observation_ids": [
+              "u1",
+              "u2"
+            ],
+            "permitted_action_kinds": [],
+            "authority": 1,
+            "authorization_path": [
+              "mnemic:fixture"
+            ]
+          }
+        }
+      ],
+      "expected": [
+        {
+          "status": "no_transition_data",
+          "abstention": "no_transition_data",
+          "proposal": false
+        },
+        {
+          "status": "predicted",
+          "abstention": "prediction_only",
+          "proposal": false
+        },
+        {
+          "status": "predicted",
+          "abstention": "prediction_only",
+          "proposal": false
+        }
+      ]
+    },
+    {
+      "name": "ambiguous-prediction",
+      "requests": [
+        {
+          "mode": "predict",
+          "observations": [
+            {
+              "id": "left-1",
+              "before": {
+                "record_id": "memory-a",
+                "address": "6dddbf30dd0834343fe8964e28f0582b",
+                "revision": "1111111111111111111111111111111111111111111111111111111111111111",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "after": {
+                "record_id": "memory-a",
+                "address": "b391a5a32d64de056ede033c353603d0",
+                "revision": "2222222222222222222222222222222222222222222222222222222222222222",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "symbol": "left"
+            },
+            {
+              "id": "left-2",
+              "before": {
+                "record_id": "memory-a",
+                "address": "6dddbf30dd0834343fe8964e28f0582b",
+                "revision": "1111111111111111111111111111111111111111111111111111111111111111",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "after": {
+                "record_id": "memory-a",
+                "address": "b391a5a32d64de056ede033c353603d0",
+                "revision": "2222222222222222222222222222222222222222222222222222222222222222",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "symbol": "left"
+            },
+            {
+              "id": "right-1",
+              "before": {
+                "record_id": "memory-a",
+                "address": "6dddbf30dd0834343fe8964e28f0582b",
+                "revision": "1111111111111111111111111111111111111111111111111111111111111111",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "after": {
+                "record_id": "memory-a",
+                "address": "188866261238ba57a8760c10e9b2306a",
+                "revision": "3333333333333333333333333333333333333333333333333333333333333333",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "symbol": "right"
+            },
+            {
+              "id": "right-2",
+              "before": {
+                "record_id": "memory-a",
+                "address": "6dddbf30dd0834343fe8964e28f0582b",
+                "revision": "1111111111111111111111111111111111111111111111111111111111111111",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "after": {
+                "record_id": "memory-a",
+                "address": "188866261238ba57a8760c10e9b2306a",
+                "revision": "3333333333333333333333333333333333333333333333333333333333333333",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "symbol": "right"
+            }
+          ],
+          "current": {
+            "record_id": "memory-a",
+            "address": "6dddbf30dd0834343fe8964e28f0582b",
+            "revision": "1111111111111111111111111111111111111111111111111111111111111111",
+            "start_byte": 0,
+            "end_byte": 4,
+            "semantic_kind": "fact"
+          },
+          "expected": {
+            "record_id": "memory-a",
+            "address": "b391a5a32d64de056ede033c353603d0",
+            "revision": "2222222222222222222222222222222222222222222222222222222222222222",
+            "start_byte": 0,
+            "end_byte": 4,
+            "semantic_kind": "fact"
+          },
+          "policy": {
+            "eligible_observation_ids": [
+              "left-1",
+              "left-2",
+              "right-1",
+              "right-2"
+            ],
+            "permitted_action_kinds": [],
+            "authority": 1,
+            "authorization_path": [
+              "mnemic:fixture"
+            ]
+          }
+        }
+      ],
+      "expected": [
+        {
+          "status": "ambiguous",
+          "abstention": "ambiguous_prediction",
+          "proposal": false
+        }
+      ]
+    },
+    {
+      "name": "action-success-error",
+      "requests": [
+        {
+          "mode": "predict",
+          "observations": [
+            {
+              "id": "action-success",
+              "before": {
+                "record_id": "memory-a",
+                "address": "6dddbf30dd0834343fe8964e28f0582b",
+                "revision": "1111111111111111111111111111111111111111111111111111111111111111",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "after": {
+                "record_id": "memory-a",
+                "address": "b391a5a32d64de056ede033c353603d0",
+                "revision": "2222222222222222222222222222222222222222222222222222222222222222",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "symbol": "tool:edit",
+              "outcome": "completed",
+              "action": {
+                "id": "edit-signature",
+                "kind": "tool:edit",
+                "required_authority": 1,
+                "reversible": false,
+                "effects": [
+                  {
+                    "record_id": "memory-effect",
+                    "before_revision": "5555555555555555555555555555555555555555555555555555555555555555",
+                    "after_revision": "6666666666666666666666666666666666666666666666666666666666666666",
+                    "semantic_kind": "mnemic:update",
+                    "start_byte": 0,
+                    "end_byte": 5
+                  }
+                ]
+              }
+            }
+          ],
+          "current": {
+            "record_id": "memory-a",
+            "address": "6dddbf30dd0834343fe8964e28f0582b",
+            "revision": "1111111111111111111111111111111111111111111111111111111111111111",
+            "start_byte": 0,
+            "end_byte": 4,
+            "semantic_kind": "fact"
+          },
+          "expected": {
+            "record_id": "memory-a",
+            "address": "b391a5a32d64de056ede033c353603d0",
+            "revision": "2222222222222222222222222222222222222222222222222222222222222222",
+            "start_byte": 0,
+            "end_byte": 4,
+            "semantic_kind": "fact"
+          },
+          "observed_outcome": "completed",
+          "policy": {
+            "eligible_observation_ids": [
+              "action-success"
+            ],
+            "permitted_action_kinds": [
+              "tool:edit"
+            ],
+            "authority": 1,
+            "authorization_path": [
+              "thalamus:fixture"
+            ]
+          }
+        },
+        {
+          "mode": "predict",
+          "observations": [
+            {
+              "id": "action-error",
+              "before": {
+                "record_id": "memory-a",
+                "address": "6dddbf30dd0834343fe8964e28f0582b",
+                "revision": "1111111111111111111111111111111111111111111111111111111111111111",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "after": {
+                "record_id": "memory-a",
+                "address": "b391a5a32d64de056ede033c353603d0",
+                "revision": "2222222222222222222222222222222222222222222222222222222222222222",
+                "start_byte": 0,
+                "end_byte": 4,
+                "semantic_kind": "fact"
+              },
+              "symbol": "tool:edit",
+              "outcome": "error",
+              "action": {
+                "id": "edit-signature",
+                "kind": "tool:edit",
+                "required_authority": 1,
+                "reversible": false,
+                "effects": [
+                  {
+                    "record_id": "memory-effect",
+                    "before_revision": "5555555555555555555555555555555555555555555555555555555555555555",
+                    "after_revision": "6666666666666666666666666666666666666666666666666666666666666666",
+                    "semantic_kind": "mnemic:update",
+                    "start_byte": 0,
+                    "end_byte": 5
+                  }
+                ]
+              }
+            }
+          ],
+          "current": {
+            "record_id": "memory-a",
+            "address": "6dddbf30dd0834343fe8964e28f0582b",
+            "revision": "1111111111111111111111111111111111111111111111111111111111111111",
+            "start_byte": 0,
+            "end_byte": 4,
+            "semantic_kind": "fact"
+          },
+          "policy": {
+            "eligible_observation_ids": [
+              "action-error"
+            ],
+            "permitted_action_kinds": [
+              "tool:edit"
+            ],
+            "authority": 1,
+            "authorization_path": [
+              "thalamus:fixture"
+            ]
+          },
+          "failure_inhibition": true
+        }
+      ],
+      "expected": [
+        {
+          "status": "predicted",
+          "abstention": null,
+          "proposal": true
+        },
+        {
+          "status": "predicted",
+          "abstention": "failure_inhibited",
+          "proposal": false
+        }
+      ]
+    }
+  ]
+}

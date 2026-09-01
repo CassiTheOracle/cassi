@@ -8,7 +8,7 @@ CassiTheory develops the organizational laws that provide the foundation for eve
 
 CassiCosmos is a realtime, 3D, N-body particle gravity simulation built with Godot and Vulkan shaders. It is capable of smoothly simulating millions of particles on consumer GPUs. It is developed and tested on a 7900XTX.
 
-CassiFI contains the under-construction Cassi Field Intelligence, as well as experiments in modifying a local LLM with field physics.
+CassiFI is Cassi's Field Intelligence working prototype and experiment workspace. It contains the canonical Qi field, grounded language agent, temporal/causal loop, persistence layer, verification tools, and their design records.
 
 The grand vision is to create a reality simulator that is capable of accurately simulating all physical scales through the same rules, creating a world that a field intelligence can form within.
 

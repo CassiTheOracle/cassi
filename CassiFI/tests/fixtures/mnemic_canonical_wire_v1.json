@@ -1,0 +1,53 @@
+{
+  "schema": "cassicore.mnemic.field-canonical-fixtures.v1",
+  "cases": [
+    {
+      "name": "ordered-scalars",
+      "value": {
+        "z": null,
+        "a": 1,
+        "m": 1.25
+      },
+      "canonical": "{\"a\":1,\"m\":1.25,\"z\":null}",
+      "sha256": "108e26d2e4be91323429fb2fc2f19fc1944860cdfd3555e7588ae75b7746dcef"
+    },
+    {
+      "name": "nested-unicode",
+      "value": {
+        "β": [
+          "é",
+          false,
+          0
+        ],
+        "a": {
+          "y": 2,
+          "x": "line\nfeed"
+        }
+      },
+      "canonical": "{\"a\":{\"x\":\"line\\nfeed\",\"y\":2},\"β\":[\"é\",false,0]}",
+      "sha256": "e547d2b1caaf5ea526cfbf1cf63125280de62caeed74bd1a222c7b8c04493937"
+    },
+    {
+      "name": "arrays-and-empty",
+      "value": {
+        "values": [
+          null,
+          true,
+          -2,
+          0.125
+        ],
+        "empty": {},
+        "list": []
+      },
+      "canonical": "{\"empty\":{},\"list\":[],\"values\":[null,true,-2,0.125]}",
+      "sha256": "d7df243ca16bb9044cfb02df26a28a0715793e0ecf30ab9fad432da869336dd2"
+    }
+  ],
+  "noncanonical": [
+    {
+      "name": "integral-float-wire",
+      "wire": "{\"value\":1.0}",
+      "canonical": "{\"value\":1}"
+    }
+  ]
+}

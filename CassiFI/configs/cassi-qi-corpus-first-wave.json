@@ -1,0 +1,27 @@
+{
+  "holdout_fraction_denominator": 100,
+  "minimum_holdout_bytes": 1048576,
+  "schema": "cassi.qi-corpus-manifest.v1",
+  "sources": [
+    {
+      "id": "light-novels",
+      "path": "C:/Users/Carina/workspaces/Cassi/CassiAI/datasets/active/LightNovels.txt",
+      "sha256": "f78dcc1d940fb15001936b143fa05e748be6777480850509eec02f1dcce1283c"
+    },
+    {
+      "id": "tinystories-instruct-train",
+      "path": "D:/carina/workspaces/cassi/datasets/TinyStories-Instruct-train.txt",
+      "sha256": "c2c667bc6b608509c0f02f1d5da1414a4b8810b99487fc525086ca664b6e8aa4"
+    },
+    {
+      "id": "wikitext103-train",
+      "path": "D:/carina/workspaces/cassi/datasets/inactive/wikitext103_train.txt",
+      "sha256": "1063fd685dc32af56a0c61af24a7efec627ed96a5c85ad684b205fb5b5cac189"
+    },
+    {
+      "id": "textbook-train",
+      "path": "D:/carina/workspaces/cassi/datasets/inactive/textbook_train.txt",
+      "sha256": "914d3830a5dc70d9866ba4cba2f5b4170df4df5f259344208f01589cbdd2a645"
+    }
+  ]
+}

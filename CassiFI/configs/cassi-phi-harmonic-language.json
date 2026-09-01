@@ -1,0 +1,17 @@
+{
+  "schema": "cassi.phi-harmonic-language-config.v1",
+  "alphabet_size": 260,
+  "base_damping": 0.2,
+  "base_omega2": 1.0,
+  "coupling_omega2": 0.05,
+  "dt": 0.05,
+  "epsilon_tau": 0.05,
+  "field_energy_budget": 1.0,
+  "heartbeat_carrier_energy": 0.5,
+  "max_mean_energy": 4.0,
+  "max_mode_amplitude": 8.0,
+  "mode_count": 3510,
+  "nonlinear_gain": 0.002,
+  "readout_energy_floor": 1e-08,
+  "root_timescale": 1.0
+}

@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-Governance for AI assistants working in the unified Cassi workspace: `C:/Users/Carina/workspaces/cassi`. Four **independent nested git repos** sit under a **docs-only root repo** — no submodules, no shared build system (by design). This file governs cross-repo work and the repos without their own guidelines; where it conflicts with a sub-repo's own rules, the sub-repo wins.
+Governance for AI assistants working in the unified Cassi workspace: `C:/Users/Carina/workspaces/cassi`. Five **independent nested git repos** sit under a **docs-only root repo** — no submodules, no shared build system (by design). This file governs cross-repo work and the repos without their own guidelines; where it conflicts with a sub-repo's own rules, the sub-repo wins.
 
 ## Project Overview
 
@@ -11,6 +11,7 @@ The unification program (see `UNIFICATION.md`): build a "field-AI" on the thesis
 | `CassiCosmos/` | **The substrate.** Godot 4.7.1 Mono GPU space-sim; the field runs on the RX 7900 XTX as a live physics engine with TCP bridges. Most active repo. |
 | `CassiCore/` | **Orchestration + memory.** npm-workspaces TS monorepo, 22 retained `@cassicore/*` packages; mind-runtime (HTTP 7273), mnemic-field, ohmypi spine. |
 | `CassiTheory/` | **The laws.** Markdown theory doc-graph + Python solvers/pipelines. Has its own `CassiTheory/AGENTS.md` — read it before any CassiTheory edit. |
+| `CassiFI/` | **Field intelligence.** Python/PyTorch field-owned cognition experiments and runtime work; the live `QiFieldState.field` is the sole adaptive state. Iteration is direct and test-driven, without preregistration, gate, contract, or frozen-verdict documents. |
 | `CassiAI/` | **Archive, reference only.** Python/PyTorch+Vulkan predecessors. Code is never used or modified; lessons (steering over prediction, increment metric) are consulted. Its own `CassiAI/AGENTS.md` describes the old stack as live — stale, do not follow. |
 
 Root repo tracks `README.md`, `UNIFICATION.md`, this guidance, and the integrated project trees; generated/local artifacts stay ignored. The physics parent (`C:/Users/Carina/workspaces/physics`) is outside this workspace and out of scope, as is `D:/carina/workspaces/cassicore` (read-only migration source; never run git operations there).
@@ -37,6 +38,7 @@ Per-repo structure:
 
 - **CassiCosmos**: `scripts/cassi_sim.gd` (main orchestrator, inline global-RD chain or decoupled engine) and `scripts/cassi_physics_engine.gd` (standalone RefCounted engine: mass deposit → spectral Poisson FFT → two-fluid PDE → BH sector → ∇(g·Φ) → Yin/Yang dual lattice → cached-acc KDK, on global or worker-thread local RD). Shader vocabulary in `CassiCosmos/compute/*.glsl` (`cassi_two_fluid.glsl`, `cassi_poisson.glsl`, `cassi_voronoi_cells.glsl`, `cassi_qi_time.glsl`, …). Entry scene `scenes/main.tscn`; **no autoloads**.
 - **CassiCore**: everything under `packages/` (there is no root `src/`; ports live inside packages, e.g. `packages/tools/src/ports`). Composition root `packages/mind-runtime/src/boot.ts` (run via `packages/mind-runtime/src/run.ts`, bin `cassi-mind`). `packages/spine` is the only package that touches ohmypi.
+- **CassiFI**: field-owned Python controllers, language/action surfaces, and focused verification. It explicitly iterates through implementation plus direct tests/smokes; do not introduce preregistration, gate, contract, protocol-design, or frozen-verdict documents.
 - **CassiTheory**: document graph — `foundations/` wedge docs → domain papers → three master registries as source of truth (`open-questions-cassi-answers.md`, `parameter-inventory.md`, `predictions/falsifiable-predictions.md`).
 
 ## Key Directories
@@ -102,7 +104,7 @@ Recording: `powershell -File record.ps1 -Out myvideo.avi -Duration 60` (see `Cas
 
 **Owner-live workspace.** Parallel sessions (human + agents) edit the same trees concurrently. Never edit `UNIFICATION.md` unless asked (owner carries uncommitted edits there). Commit path-limited (`git commit -- <paths>`); when a file mixes your edits with a live collaborator's, stage only your hunks. One session pushes. If a file looks mid-write, report uncertainty instead of guessing.
 
-**Measured-verdict discipline (workspace-wide).** Pre-register before any run: statistic, decision tree, stopping rule — frozen in a `*_prereg.md` before the probe script runs. Gates are G-numbered (`verify_mind_engine` Gate A–C, G52–G60…). Verdict vocabulary is frozen: `PASS/FAIL/NULL/ADOPT/REJECT` for stage gates; `SUPPORTS/CONTRADICTS/EMERGES/DOES NOT EMERGE/INCONCLUSIVE` for probes; honest negatives are deliverables. Never re-run a rejected hypothesis at full cost.
+**Measured-verdict discipline (CassiFI exempt).** Pre-register CassiCosmos/CassiTheory research runs before execution: statistic, decision tree, stopping rule — frozen in a `*_prereg.md` before the probe script runs. Gates are G-numbered (`verify_mind_engine` Gate A–C, G52–G60…). Verdict vocabulary is frozen: `PASS/FAIL/NULL/ADOPT/REJECT` for stage gates; `SUPPORTS/CONTRADICTS/EMERGES/DOES NOT EMERGE/INCONCLUSIVE` for probes; honest negatives are deliverables. Never re-run a rejected hypothesis at full cost. **CassiFI never creates preregistrations, gates, contract/protocol documents, or frozen verdicts:** implement the smallest field-owned change directly, run focused tests and actual scenarios, and report the measured behavior. Do not block CassiFI work waiting for a preregistration.
 
 **Default-off additive toggles.** New engine features ship disabled and must leave the default battery bit-identical (`cassi_qi_time.glsl` OFF = bit-identical copy is the model). The no-op contracts that actually exist today: the attractor-ratio dormant-deposit gate (`verify_mind_engine`) and toggle-off bit-identity (G57 etc.). `verify_river_isotropy.gd` pins the default CUBE grid-river chain bit-identical with fixed numeric anchors — treat its anchors as load-bearing.
 
