@@ -35,10 +35,13 @@ zero-Chern sector, the endpoint completion supplies no positive $1/R$ support
 under spatial Derrick scaling, and the reduced energy has no finite-radius
 stationary point. An imposed point-core Chern sector has the sharp exterior
 coefficient derived in `foundations/point-core-flux-sector.md` and supports the
-reduced radius only when $\mathcal B_G>\mathcal D$. The current Abelian action
-cannot smooth that core or produce an isolated finite-energy condensate around
-it. The endpoint sector therefore closes the scale current without deriving a
-particle soliton, particle quantum numbers, or a decay rate.
+reduced radius only when $\mathcal B_G>\mathcal D$. An auxiliary adjoint
+$SU(2)_Q$ branch smooths the local core and matches its exterior flux, but the
+registered nonzero fundamental condensate removes the isolated magnetic sector
+and confines flux. The residual-$U(1)_Q$ endpoint field has no selected
+$SU(2)_Q$ vertex lift. The endpoint sector therefore closes the scale current
+without deriving a persistent particle, particle quantum numbers, or a decay
+rate.
 
 ---
 
@@ -797,9 +800,11 @@ $$
 $$
 
 This sharp coefficient replaces $\mathcal B$ in that branch. The associated
-support condition is $\mathcal B_G>\mathcal D$. The same branch retains an
-excised core, and the current nonzero-condensate Abelian action has no isolated
-finite-energy continuation (`foundations/point-core-flux-sector.md`).
+support condition is $\mathcal B_G>\mathcal D$. The auxiliary adjoint
+$SU(2)_Q$ branch gives a smooth local core in its decoupled sector. Coupling the
+registered condensate confines the flux, and the tested finite net-zero pair
+has no registered finite-separation minimum
+(`foundations/nonabelian-magnetic-core-boundary.md`).
 
 ---
 
@@ -814,6 +819,7 @@ finite-energy continuation (`foundations/point-core-flux-sector.md`).
 | Rank-one projective charge | Evolution remains on $\|\mathbf n\|=1$ with fixed boundary data | Entry into the full-rank interior or $\rho=0$ | Minimal conversion supplies an inward path but no universal transition rate |
 | First Chern number $N_G$ | Closed two-cycle and compact connection in a defect or nontrivial-base sector | Boundary flux, defect crossing, singular connection event, or removal of the cycle | Exterior coefficient Derived conditionally; core dynamics unselected |
 | Reduced spatial radius | $\mathcal A>0$, $\mathcal C\geq0$, and $\mathcal B_G>\mathcal D$ in the point-core branch | Collapse when support does not exceed $\mathcal D$; large-radius instability when $\mathcal C<0$ | Reduced curvature Derived; full field and fluctuation operator absent |
+| Auxiliary magnetic core | Adjoint-only $SU(2)_Q$ sector has the exact BPS core; the registered nonzero fundamental condensate confines flux | Condensate coupling removes the isolated magnetic sector; a finite pair can shrink and annihilate | Static adjoint Hessian nonnegative conditionally; coupled spectrum absent |
 | Open endpoint population circuit | Positive rates satisfying (EL32) | Rate imbalance, donor depletion, or bath change | Absolute rates given conditionally by (EL33) |
 | Open endpoint coherence | External coherent support | Undriven decay $\dot c=-\gamma_vc/2$ | Half the local donor-jump rate |
 
@@ -908,11 +914,14 @@ spatial topology.
 The endpoint closure supplies no positive $1/R$ support in the minimal smooth
 sector. Point excision and fixed Chern flux give
 $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and a conditional reduced
-radius when $\mathcal B_G>\mathcal D$. The current Abelian action cannot smooth
-the magnetic core, and its nonzero charged condensate has no isolated
-finite-energy point-flux state. The endpoint current has mathematical closure
-at the declared conditional level. A localized particle, its quantum numbers,
-and its decay rate remain open physical sectors.
+radius when $\mathcal B_G>\mathcal D$. The auxiliary adjoint $SU(2)_Q$ branch
+supplies a regular local core and matches that exterior coefficient. Its exact
+monopole belongs to the decoupled adjoint sector; the registered nonzero
+fundamental condensate removes the isolated magnetic sector and confines the
+flux. The endpoint current retains mathematical closure at the declared
+conditional level, but it has no selected non-Abelian vertex lift. A supported
+net-zero particle, its quantum numbers, fluctuation spectrum, and decay rate
+remain open physical sectors.
 
 ---
 
@@ -924,6 +933,10 @@ and its decay rate remain open physical sectors.
   current, endpoint cosine, mixed curvature, and Derrick profile
 - `foundations/point-core-flux-sector.md`—quantized exterior support,
   finite-energy obstruction, and stationary-solver boundary
+- `foundations/nonabelian-magnetic-core-boundary.md`—auxiliary smooth core,
+  condensate confinement, and persistent-composite boundary
+- `computations/magnetic_core_completion_check.py`—BPS profile, matching,
+  London, and pair-slope checker
 - `foundations/physical-becoming-hierarchy.md`—closed conservative and
   mesoscopic open-system boundary
 - `foundations/loop-to-bubble-projection-theorem.md`—positive Yang/Yin Gram

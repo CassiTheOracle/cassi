@@ -50,6 +50,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, two-rail scale graph, canonical reduction, and open-system coherence lift | Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry |
 | 39 | `endpoint-link-and-localization-boundary.md` | Gauge-covariant endpoint closure, full-fibre invariant classification, and smooth-sector localization boundary | Derived conditional endpoint closure / Derived minimal-sector localization no-go |
 | 40 | `point-core-flux-sector.md` | Quantized point-core exterior energy, finite-energy obstruction, and stationary-solver boundary | Derived conditional exterior support / Derived current-action completion no-go |
+| 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary smooth magnetic core, condensate topology, London confinement, and composite-stability boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries |
 
 ## Document Summaries
 
@@ -294,11 +295,15 @@ $$
 
 At $E_Y/E_I=\varphi$, the uniform current is
 $\mathcal J_{Q,m}=K_{\mathfrak s}\rho\Delta_m/
-(\hbar\varphi^3\mathfrak s_p)$. Endpoint conversion closes the two rails, and
-the relative current can source a mixed-curvature pinch. The endpoint fields,
-scale tension, localized proton solution, quantum numbers, and decay rate
-remain open. Status: Mapped coordinate / Derived conditional arithmetic /
-Hypothesized mechanisms.
+$(\hbar\varphi^3\mathfrak s_p)$. Endpoint conversion closes the two rails, and
+the relative current can source a mixed-curvature pinch. Point flux supplies a
+conditional exterior coefficient. An auxiliary adjoint $SU(2)_Q$ branch
+supplies a smooth local core and matches that coefficient, while the registered
+condensate confines flux and gives no persistent finite-separation pair.
+Physical endpoint normalization, scale tension, supported proton solution,
+temporal gauge dynamics, quantum numbers, and decay rate remain open. Status:
+Mapped coordinate / Derived conditional arithmetic and identities /
+Hypothesized physical mechanisms.
 
 ### `quantum-measurement-derivation.md`—CassiFI Quantum Dynamics and Measurement
 
@@ -483,17 +488,18 @@ outward flow and Yin return flow into a two-rail circuit. A charged coherent
 section and a one-way open channel provide explicit conditional realizations.
 Total scale-number current vanishes while the relative current remains nonzero
 and can source mixed curvature. The normalized current, energy, coherent
-capacity bound, and open-channel rate ratio are derived. Scale tension,
-physical endpoint normalization, a supported proton solution, and decay rate
-remain open.
+capacity bound, and open-channel rate ratio are derived.
 
 The mixed curvature $G_{i\mathfrak s}$ supplies one conditional force channel.
 A reduced Derrick profile has a finite radius only when its flux/core support
-exceeds the effective attraction. Smooth pinch-off requires an amplitude zero,
-boundary event, nonsmooth defect, or independent gauge-bundle event.
-Coefficient normalization, the scale measure, local embedding, compact
-winding, mass scaling, and particle identification remain open. Status:
-Hypothesized action with Derived conditional identities.
+exceeds the effective attraction. Point flux supplies a conditional exterior
+coefficient. An auxiliary adjoint $SU(2)_Q$ branch supplies a regular local
+core and matches that coefficient, while the registered condensate confines
+flux and supplies no persistent finite-separation object. Physical endpoint
+normalization, scale tension, supported proton solution, temporal gauge
+dynamics, compact winding, mass scaling, particle identification, and decay
+rate remain open. Status: Hypothesized action with Derived conditional
+identities and completion boundaries.
 
 ### `geometric-manifold-completion.md`—Cassi Geometric Manifold Completion Ansatz
 
@@ -511,12 +517,14 @@ gives $\gamma_c=\gamma_\varepsilon/2$, with
 $(\gamma_\varepsilon,\gamma_c)=(\lambda/3,\lambda/6)$ at the gated reference
 state. Charged coherent and one-way open endpoint realizations are available
 conditionally. The smooth zero-Chern sector has no finite Derrick radius.
-Point-core Chern flux supplies a conditional exterior coefficient, while the
-present Abelian condensate has no smooth isolated finite-energy realization.
-The physical scale metric, endpoint normalization, reservoir, magnetic core,
-supported solution, observation map, particle quantum numbers, and decay rate
-remain open. Status: Hypothesized completion ansatz with Derived canonical
-reduction and conditional fibre geometry.
+Point-core Chern flux supplies a conditional exterior coefficient. An
+auxiliary adjoint $SU(2)_Q$ branch smooths that core and matches its flux, but
+the registered nonzero fundamental condensate removes the isolated magnetic
+sector and confines flux into a tube. The physical scale metric, endpoint
+normalization, reservoir, supported net-zero composite, observation map,
+particle quantum numbers, and decay rate remain open. Status: Hypothesized
+completion ansatz with Derived canonical reduction and conditional fibre
+geometry.
 
 ### `endpoint-link-and-localization-boundary.md`—Gauge-Covariant Endpoint Closure and the Localization Boundary
 
@@ -534,8 +542,10 @@ number can survive mixed states, while the smooth base
 $\mathbb R^3\times S^1_{\mathfrak s}$ has $H^2=0$ and therefore no nonzero
 Chern sector. A defect or boundary is required. The endpoint terms supply no
 positive $1/R$ core energy, so the smooth zero-Chern sector has no finite
-Derrick radius. Point-core flux supplies a conditional exterior coefficient
-and a finite-energy completion obstruction. Status: Derived conditional
+Derrick radius. Point-core flux supplies a conditional exterior coefficient.
+An auxiliary adjoint $SU(2)_Q$ branch supplies a regular local core, while the
+registered condensate confines flux and gives no persistent pair. The endpoint
+field has no selected non-Abelian vertex lift. Status: Derived conditional
 endpoint closure and Derived minimal-sector localization no-go.
 
 ### `point-core-flux-sector.md`—Quantized Point-Core Flux and the Persistent-Defect Boundary
@@ -546,10 +556,25 @@ fixed-flux minimum
 $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$, so the reduced point branch
 has a supported radius only when $\mathcal B_G>\mathcal D$. The Abelian Bianchi
 identity prevents a smooth core, and the nonzero charged condensate gives a
-linear angular-energy divergence at infinity. No radial stationary particle or
-full fluctuation spectrum is defined until a magnetic completion and
-compatible boundary data are supplied. Status: Derived conditional exterior
-support and Derived current-action completion no-go.
+linear angular-energy divergence at infinity. The tested auxiliary
+$SU(2)_Q$ branch resolves the local core only in its adjoint sector; coupling
+the registered condensate confines the flux and supplies no persistent
+finite-energy particle. Status: Derived conditional exterior support and
+Derived current-action completion no-go.
+
+### `nonabelian-magnetic-core-boundary.md`—Non-Abelian Magnetic Core and the Confined-Defect Boundary
+
+Tests an auxiliary adjoint $SU(2)_Q\to U(1)_Q$ completion, distinct from the
+electroweak $SU(2)_L$ extension. The adjoint-only Prasad-Sommerfield branch has
+a regular analytic unit monopole with flux $4\pi/g_Q$ and source-interval mass
+$4\pi L_{\mathfrak s}v_Q/(\mu_xg_Q)$, matching the registered point-core
+exterior coefficient. The nonzero Yang/Yin fundamental condensate leaves
+trivial gauge stabilizer, removes the magnetic $\pi_2$ sector, and gives a
+positive London mass. A finite monopole-antimonopole tube is conditional and
+shrinks in the registered long-distance energy because positive string tension
+and the attractive screened tail produce no finite-separation minimum. Status:
+Hypothesized auxiliary completion with Derived conditional smooth-core and
+confinement boundaries.
 
 ## Cross-References
 

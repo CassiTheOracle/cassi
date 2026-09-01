@@ -36,9 +36,12 @@ choice generates the positive $1/R$ core term required by the reduced Derrick
 profile. In the smooth unexcised zero-Chern sector there is no finite
 stationary radius. An imposed point-core Chern sector supplies the exact
 exterior coefficient
-$\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$, while the current Abelian
-action cannot smooth the core or support its nonzero asymptotic condensate at
-finite energy (`foundations/point-core-flux-sector.md`).
+$\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$. An auxiliary adjoint
+$SU(2)_Q$ branch smooths the local core and matches this coefficient, but the
+registered nonzero fundamental condensate removes the isolated magnetic sector
+and confines its flux. The resulting finite net-zero string pair has no
+finite-separation minimum in the registered asymptotic energy
+(`foundations/nonabelian-magnetic-core-boundary.md`).
 
 The analysis fixes several algebraic relations and leaves the dimensional
 normalization, carrier inertia, gauge stiffnesses, scale metric, conversion
@@ -1348,7 +1351,7 @@ minimum in §7.2.
 | Endpoint conversion, scale tension, and proton selection | Coherent charged and one-way open endpoint realizations are Derived conditionally; their couplings, potentials, absolute rates, scale tension, and proton selection remain Hypothesized or open |
 | Healing widths and local London coefficients | Derived conditional linearization |
 | Inward mixed-curvature force | Conditional on source sign, response, and restricted field sector |
-| Finite Derrick radius and loop length | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux gives $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires $\mathcal B_G>\mathcal D$; the current Abelian condensate has no isolated finite-energy point completion; loop existence remains unestablished |
+| Finite Derrick radius and loop length | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux gives $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires $\mathcal B_G>\mathcal D$; an auxiliary adjoint $SU(2)_Q$ core matches that exterior, while the registered condensate confines flux and gives no persistent finite-separation pair; loop existence remains unestablished |
 | Pure $CP^1$ obstruction and flux quantization | Projective charge contracts in the full coherence ball; an independent first Chern number requires a closed two-cycle absent from the smooth unexcised base; point excision retains a singular or externally completed core |
 | Scale-metric coefficient profiles | Convention-dependent; no selected branch |
 | Fibonacci winding sector and mass law | Separate conditional extensions |
@@ -1383,11 +1386,15 @@ smooth object base carries no first Chern sector. The endpoint completions add
 no positive $1/R$ core support, so the minimal sector has no finite Derrick
 radius. Point excision and fixed Chern flux give the conditional coefficient
 $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and require
-$\mathcal B_G>\mathcal D$. The present Abelian action cannot smooth that core
-or support an isolated nonzero-condensate monopole at finite energy.
+$\mathcal B_G>\mathcal D$. The auxiliary adjoint $SU(2)_Q$ branch supplies a
+regular local core in its decoupled sector and matches the exterior
+coefficient. Coupling the registered nonzero condensate removes the isolated
+magnetic sector and confines flux. A finite monopole-antimonopole tube is
+conditional, and its positive tension plus attractive screened tail gives no
+finite-separation minimum in the registered branch.
 
-The scale tension, endpoint physical normalization, magnetic core completion,
-supported solution, particle quantum numbers, and winding-changing rate remain
+The scale tension, endpoint physical normalization, support for a persistent
+net-zero composite, particle quantum numbers, and winding-changing rate remain
 unselected.
 
 
@@ -1404,6 +1411,10 @@ winding approximants; it does not replace those inputs.
 - `foundations/unified-lagrangian.md`—current Cassi action and open-system conversion boundary
 - `foundations/point-core-flux-sector.md`—quantized point-core exterior energy
   and current-action completion boundary
+- `foundations/nonabelian-magnetic-core-boundary.md`—auxiliary smooth core,
+  condensate confinement, and persistent-composite boundary
+- `computations/magnetic_core_completion_check.py`—BPS profile, matching,
+  London, and pair-slope checker
 - `foundations/microcascade-mirror.md`—formal negative-step scale coordinate and energy boundary
 - `foundations/dimensionful-cascade.md`—external-anchor cascade parameterization
 - `foundations/dimensionful-constants-status.md`—status of $c$, $\hbar$, $G$, and SI anchors

@@ -215,7 +215,27 @@ $$\boxed{N_{\text{max}}(N_p)
 \big|_{N_p=91.46,\ \delta=3}
 =\varphi^{4505.5758}\approx\varphi^{4506}\approx10^{942}\ \text{cycles}}$$
 
-At $N_p^{\mathrm{budget}}=91.46$, the product gives a conditional $\sim10^{942}$-cycle budget. Converting it to $\sim10^{910}$ years additionally declares one independent transition trial per Compton cycle; the field action supplies no fluctuation law or matrix element for that map. The distinct Planck-to-proton scale circuit has zero total scale-number flow and nonzero relative current. Charged coherent and one-way open endpoint equations are explicit, while their physical normalization and scale tension remain open. The smooth zero-Chern endpoint sector has no finite Derrick radius. Point-core Chern flux supplies $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires $\mathcal B_G>\mathcal D$, while the current Abelian action has no smooth isolated finite-energy point-flux completion. A magnetic core, supported proton solution, quantum numbers, and winding-changing rate remain required (`foundations/endpoint-link-and-localization-boundary.md`; `foundations/point-core-flux-sector.md`; `foundations/proton-coherence-budget.md` §10). Current null searches are compatible with these candidates and select neither one.
+At $N_p^{\mathrm{budget}}=91.46$, the product gives a conditional
+$\sim10^{942}$-cycle budget. Converting it to $\sim10^{910}$ years additionally
+declares one independent transition trial per Compton cycle; the field action
+supplies no fluctuation law or matrix element for that map. The distinct
+Planck-to-proton scale circuit has zero total scale-number flow and nonzero
+relative current. Charged coherent and one-way open endpoint equations are
+explicit, while their physical normalization and scale tension remain open.
+The smooth zero-Chern endpoint sector has no finite Derrick radius. Point-core
+Chern flux supplies
+$\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires
+$\mathcal B_G>\mathcal D$. An auxiliary adjoint $SU(2)_Q$ branch supplies a
+smooth local core and matches this exterior coefficient, while the registered
+nonzero fundamental condensate removes the isolated magnetic sector and
+confines flux. Its finite net-zero string pair has no registered
+finite-separation minimum. Persistent-composite support, a proton solution,
+quantum numbers, temporal gauge dynamics, and a winding-changing rate remain
+required (`foundations/endpoint-link-and-localization-boundary.md`;
+`foundations/point-core-flux-sector.md`;
+`foundations/nonabelian-magnetic-core-boundary.md`;
+`foundations/proton-coherence-budget.md` §10). Current null searches are
+compatible with these candidates and select neither one.
 
 ### 3.3 The neutron
 

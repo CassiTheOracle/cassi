@@ -43,8 +43,10 @@ realizations of the gluing in
 normalization, the scale metric, endpoint microphysics, observation map, and
 decay rate remain unselected. The smooth zero-Chern endpoint sector has no
 finite Derrick radius. Point-core Chern flux supplies a conditional exterior
-$1/R$ coefficient, while the current Abelian condensate admits no smooth,
-isolated finite-energy completion (`foundations/point-core-flux-sector.md`).
+$1/R$ coefficient. An auxiliary adjoint $SU(2)_Q$ branch smooths that core and
+matches its flux, but the registered nonzero fundamental condensate removes the
+isolated magnetic sector and confines flux; no supported finite composite is
+selected (`foundations/nonabelian-magnetic-core-boundary.md`).
 
 ---
 
@@ -1389,7 +1391,7 @@ No numbered prediction is added to
 | Scale tension and endpoint selection | Capacity bound and one-way rate ratio Derived conditionally; physical couplings, rates, and scale selection open |
 | Mixed-curvature inward force | Conditional restricted-sector result |
 | Physical bubble identification | Hypothesized observation map |
-| Stable spatially localized solution | Absent in the minimal smooth zero-Chern sector; point-core flux supplies a conditional exterior coefficient, while a smooth magnetic core and finite-energy stationary completion remain open |
+| Stable spatially localized solution | Absent in the minimal smooth zero-Chern sector; point-core flux supplies a conditional exterior coefficient, and an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, but the registered condensate confines the flux and gives no persistent finite-separation composite |
 | Particle mass, charge, color, spin, statistics, and decay rate | Open |
 | Covariant gravity and physical scale metric | Open |
 
@@ -1409,11 +1411,12 @@ The ansatz reaches physical completion only when one declared model supplies:
 4. a physical scale measure, $K_{\mathfrak s}$, and scale tension;
 5. a relative-connection action and boundary state that produce the required
    mixed curvature;
-6. a magnetic core or another short-distance support sector; the point-flux
-   branch must satisfy
-   $2\pi N_G^2\int d\mathfrak s/e_x^2>\mathcal D$;
-7. boundary data compatible with the core, the charged condensate, and finite
-   total energy;
+6. the point-flux support condition
+   $2\pi N_G^2\int d\mathfrak s/e_x^2>\mathcal D$ and a compatible core; the
+   auxiliary adjoint $SU(2)_Q$ branch supplies the local core but not a
+   persistent condensate-coupled object;
+7. a selected conserved or repulsive support mechanism and finite-energy
+   boundary data for a net-zero composite;
 8. a stationary solution localized in $M_3$ and compact through scale in that
    completed support sector;
 9. a stability spectrum with no growing physical modes;
@@ -1476,9 +1479,12 @@ gives a population realization with a conditional $\varphi$ rate ratio. Their
 physical couplings and the scale length remain boundary data. Mixed curvature
 supplies a conditional localization route, while the smooth zero-Chern sector
 has no finite Derrick radius. Point-core flux fixes the conditional exterior
-$1/R$ coefficient, and the current Abelian condensate has no smooth isolated
-finite-energy realization. A magnetic core completion, supported stationary
-solution, and all particle quantum numbers remain open.
+$1/R$ coefficient. An auxiliary adjoint $SU(2)_Q$ branch supplies a regular
+local core and matches that coefficient. The registered nonzero fundamental
+condensate removes the isolated magnetic sector and confines the flux; its
+finite monopole-antimonopole branch has no registered finite-separation
+minimum. A supported net-zero stationary solution and all particle quantum
+numbers remain open.
 
 The completion ansatz closes the mathematical map among the declared geometric
 layers. Physical completion requires the solution specified in §10.
@@ -1498,6 +1504,10 @@ layers. Physical completion requires the solution specified in §10.
   minimal-sector localization no-go
 - `foundations/point-core-flux-sector.md`—quantized exterior flux support and
   current-action point-defect boundary
+- `foundations/nonabelian-magnetic-core-boundary.md`—auxiliary smooth core,
+  condensate confinement, and persistent-composite boundary
+- `computations/magnetic_core_completion_check.py`—BPS profile, matching,
+  London, and pair-slope checker
 - `foundations/unified-lagrangian.md`—optional conservative sector bookkeeping
 - `field-experience/toroidal-coherence-survival-report.md`—spatial torus survival verdict
 - `field-experience/toroidal-connected-hierarchy-report.md`—connected hierarchy result

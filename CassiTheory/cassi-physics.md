@@ -315,16 +315,22 @@ coherence fibre is contractible, the smooth object base has no first-Chern
 sector, and the minimal endpoint completion has no finite Derrick radius.
 Point-core Chern flux supplies the sharp exterior coefficient
 $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and supports the reduced
-radius only when $\mathcal B_G>\mathcal D$. The present Abelian action cannot
-smooth the magnetic core or sustain its nonzero charged condensate at finite
-energy. The construction is a **Hypothesized completion ansatz** with
+radius only when $\mathcal B_G>\mathcal D$. An auxiliary adjoint $SU(2)_Q$
+branch, distinct from electroweak $SU(2)_L$, supplies a regular local core and
+matches the exterior coefficient. Its exact monopole belongs to the decoupled
+adjoint sector. Coupling the registered nonzero fundamental condensate removes
+the isolated magnetic sector, gives a positive London mass, and confines flux;
+the resulting finite net-zero string pair has no registered finite-separation
+minimum. The construction is a **Hypothesized completion ansatz** with
 **Derived canonical reduction, conditional fibre geometry, endpoint
-boundaries, exterior point-flux support, and a current-action completion
-no-go**. The physical reservoir, scale metric, endpoint normalization,
-magnetic core, supported solution, observation map, quantum numbers, and decay
-rate remain open. See `foundations/geometric-manifold-completion.md`,
-`foundations/endpoint-link-and-localization-boundary.md`, and
-`foundations/point-core-flux-sector.md`.
+boundaries, exterior point-flux support, and conditional smooth-core and
+confinement boundaries**. The physical reservoir, scale metric, endpoint
+normalization, supported composite, observation map, quantum numbers,
+temporal gauge dynamics, and decay rate remain open. See
+`foundations/geometric-manifold-completion.md`,
+`foundations/endpoint-link-and-localization-boundary.md`,
+`foundations/point-core-flux-sector.md`, and
+`foundations/nonabelian-magnetic-core-boundary.md`.
 
 ---
 
@@ -617,16 +623,28 @@ current can source the mixed-curvature pinch while total scale-number flow
 remains zero. The smooth zero-Chern endpoint sector has no finite Derrick
 radius. A point-core Chern sector gives
 $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires
-$\mathcal B_G>\mathcal D$. The current Abelian action has no smooth magnetic
-core or isolated finite-energy nonzero-condensate realization. Physical
-endpoint normalization, scale tension, magnetic core support, proton quantum
-numbers, and winding-changing rate remain open
+$\mathcal B_G>\mathcal D$. An auxiliary adjoint $SU(2)_Q$ branch supplies a
+regular local core and matches that exterior coefficient. The registered
+nonzero fundamental condensate removes the isolated magnetic sector and
+confines flux; a finite monopole-antimonopole tube has no registered
+finite-separation minimum. Physical endpoint normalization, scale tension,
+persistent-composite support, proton quantum numbers, temporal gauge dynamics,
+and winding-changing rate remain open
 (`foundations/endpoint-link-and-localization-boundary.md`;
 `foundations/point-core-flux-sector.md`;
+`foundations/nonabelian-magnetic-core-boundary.md`;
 `foundations/interscale-current-soliton.md` §4.5;
 `foundations/proton-coherence-budget.md` §10).
 
-**Epistemic status:** the $N_{\text{max}}$ product and lifetime conversion are **Derived conditional** on the **Mapped** span and **Hypothesized** $q_i$ profile. The two-rail current, energy, endpoint capacity, open-rate ratio, point-flux coefficient, support inequality, and current-action completion no-go are **Derived conditional** on the interscale action and declared sectors. Identifying either construction with physical proton stability, selecting the endpoint normalization and scale tension, supplying a magnetic core and supported localized solution, and obtaining a decay rate are **Hypothesized/Open**.
+**Epistemic status:** the $N_{\text{max}}$ product and lifetime conversion are
+**Derived conditional** on the **Mapped** span and **Hypothesized** $q_i$
+profile. The two-rail current, energy, endpoint capacity, open-rate ratio,
+point-flux coefficient, support inequality, auxiliary adjoint core, and
+condensate-confinement boundary are **Derived conditional** on their declared
+actions and sectors. Identifying either construction with physical proton
+stability, selecting endpoint normalization and scale tension, supplying a
+supported localized composite and temporal gauge action, and obtaining a decay
+rate are **Hypothesized/Open**.
 
 For the neutron–proton–electron trio as a whole—their rungs, sectors, and what the framework does and does not say about their differences—see `particles/matter-organization.md`.
 

@@ -43,11 +43,14 @@ endpoint and returns Yin along the same scale interval. Total scale-number
 current vanishes while the relative current remains nonzero. A charged
 coherent vertex section and a one-way open channel supply conditional endpoint
 realizations. The smooth zero-Chern sector has no finite Derrick radius.
-Point-core Chern flux supplies an exact conditional exterior coefficient, while
-the current Abelian action has no smooth isolated finite-energy completion.
-Scale tension, physical endpoint normalization, magnetic core support, proton
-quantum numbers, and winding-changing rate remain Hypothesized/Open. Neither
-candidate determines a physical proton lifetime.
+Point-core Chern flux supplies an exact conditional exterior coefficient. An
+auxiliary adjoint $SU(2)_Q$ branch smooths the local core and matches that
+coefficient, while the registered nonzero fundamental condensate removes the
+isolated magnetic sector and confines flux. The tested finite net-zero pair has
+no registered finite-separation minimum. Scale tension, physical endpoint
+normalization, persistent-composite support, proton quantum numbers, and the
+winding-changing rate remain Hypothesized/Open. Neither candidate determines a
+physical proton lifetime.
 
 ---
 
@@ -280,7 +283,7 @@ coupling.
 | Conditional $10^{910}$-year conversion | Arithmetic inside the selected stochastic model; no physical rate |
 | Zero-total-flow two-rail current and normalized energy | Derived conditional on the candidate interscale action and circuit data |
 | Endpoint conversion and scale-tension closure | Charged coherent and one-way open realizations are Derived conditionally; physical normalization and scale tension remain Hypothesized |
-| Mixed-curvature proton pinch and winding barrier | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux supplies a conditional exterior coefficient, while a magnetic core, finite-energy stationary defect, and fluctuation action remain open |
+| Mixed-curvature proton pinch and winding barrier | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux supplies a conditional exterior coefficient; an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, while the registered condensate confines flux and gives no persistent finite-separation defect; the full fluctuation action remains open |
 | Proton mass selection, charge, color, spin, and decay rate | Open |
 
 No numbered prediction is added. A quantitative proton claim requires a
@@ -447,20 +450,26 @@ $$
 \int_{I_{\mathfrak s}}\frac{d\mathfrak s}{e_x^2}.
 $$
 
-The reduced point branch requires $\mathcal B_G>\mathcal D$. The current
-Abelian action cannot smooth the magnetic core, and its nonzero charged
-condensate has linearly divergent angular energy around isolated point flux.
-Winding change requires a phase slip, endpoint conversion event, condensate
-zero, defect crossing, or boundary event. A proton lifetime still requires a
-magnetic completion, finite-energy stationary solution, fluctuation action,
-physical proton quantum numbers, and observable decay channel.
+The reduced point branch requires $\mathcal B_G>\mathcal D$. The auxiliary
+adjoint $SU(2)_Q$ branch supplies a smooth local core and matches the Abelian
+exterior coefficient. Its exact monopole belongs to the decoupled adjoint
+sector. The registered nonzero fundamental condensate removes the isolated
+magnetic sector and confines flux; the finite monopole-antimonopole branch has
+no registered finite-separation minimum. Winding change requires a phase slip,
+endpoint conversion event, condensate zero, defect crossing, or boundary
+event. A proton lifetime still requires persistent-composite support, a
+finite-energy stationary solution, temporal fluctuation dynamics, physical
+proton quantum numbers, and an observable decay channel.
 
 The circuit derivation is given in
 `foundations/interscale-current-soliton.md` §4.5. Endpoint closure and invariant
 classification are given in
 `foundations/endpoint-link-and-localization-boundary.md`. The point-core
 coefficient and completion boundary are given in
-`foundations/point-core-flux-sector.md`. The normalized identities are checked
-by `computations/planck_proton_scale_current_check.py`,
-`computations/endpoint_link_localization_check.py`, and
-`computations/point_core_flux_check.py`.
+`foundations/point-core-flux-sector.md`; the tested auxiliary core and
+confinement boundary are given in
+`foundations/nonabelian-magnetic-core-boundary.md`. The normalized identities
+are checked by `computations/planck_proton_scale_current_check.py`,
+`computations/endpoint_link_localization_check.py`,
+`computations/point_core_flux_check.py`, and
+`computations/magnetic_core_completion_check.py`.

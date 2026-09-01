@@ -45,10 +45,14 @@ Their angular covariant-gradient energy has a positive lower bound on every
 large sphere, so an isolated point-flux configuration has infinite matter
 energy. A scalar radial matter mode is absent for the same reason.
 
-The current theory therefore determines the exterior flux coefficient, its
-support inequality, and the positive reduced breathing curvature. A smooth
-core, a finite-energy stationary field, and a dynamical fluctuation spectrum
-require an additional magnetic or ultraviolet completion.
+The current Abelian theory therefore determines the exterior flux coefficient,
+its support inequality, and the positive reduced breathing curvature. The
+auxiliary adjoint $SU(2)_Q$ branch in
+`foundations/nonabelian-magnetic-core-boundary.md` resolves the local core and
+matches this exterior coefficient. Its registered nonzero fundamental
+condensate removes the isolated magnetic sector and confines the flux, so a
+finite-energy stationary particle and dynamical fluctuation spectrum still
+require a supported net-zero completion.
 
 ---
 
@@ -706,13 +710,16 @@ $$
 >\mathcal D.
 $$
 
-The same calculation identifies the next physical boundary. The point
-excision remains part of the model, and the current broken-density Abelian
-sector has no isolated finite-energy continuation. Its stationary radial
-matter problem and full fluctuation spectrum are consequently undefined. A
-persistent localized particle requires a magnetic core completion or a
-finite, net-zero flux geometry before numerical stationary and stability work
-can begin.
+The auxiliary adjoint $SU(2)_Q$ branch now supplies one regular local core and
+matches the point-flux exterior coefficient. That exact monopole belongs to the
+adjoint-only or vanishing-condensate sector. Coupling the registered nonzero
+Yang/Yin fundamental condensate gives a positive London mass, removes the
+isolated magnetic $\pi_2$ sector, and confines the flux. A finite
+monopole-antimonopole tube is conditionally finite in energy, but its positive
+tension and attractive screened tail supply no finite-separation minimum.
+The stationary Cassi particle problem and full fluctuation spectrum therefore
+remain undefined pending a supported net-zero background and temporal gauge
+dynamics.
 
 ---
 
@@ -728,3 +735,7 @@ can begin.
   localization requirements
 - `computations/point_core_flux_check.py`—flux, energy, support, and spectral
   algebra checker
+- `foundations/nonabelian-magnetic-core-boundary.md`—conditional smooth
+  adjoint core, condensate confinement, and persistent-composite boundary
+- `computations/magnetic_core_completion_check.py`—BPS profile, matching,
+  London, and pair-slope checker
