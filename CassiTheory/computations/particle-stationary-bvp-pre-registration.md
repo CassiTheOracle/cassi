@@ -194,6 +194,8 @@ $$
 where $m$ is zero on the fixed boundary and one elsewhere. Charge is therefore
 fixed during every optimizer evaluation. This realizes the
 $\widehat E-\widehat\omega_Cq_C$ sign convention of PA34.
+For G1 only, $q_C=0$ directly sets $c\equiv0$; the normalized
+positive-charge map above is used only for $q_C>0$.
 
 For a scalar or component-valued field $u$, and for the four quarter-turns
 $R_k$ around $z$, the exact lattice projector is
@@ -334,10 +336,10 @@ Each arm uses exactly:
 
 1. Adam for `800` steps with learning rate `0.020` for steps `0–399` and
    `0.005` for steps `400–799`;
-2. L-BFGS with `max_iter=120`, `history_size=20`,
+2. L-BFGS with `max_iter=120`, `max_eval=150`, `history_size=20`,
    `tolerance_grad=1e-10`, `tolerance_change=1e-12`, and
    `line_search_fn="strong_wolfe"`. It terminates only at either declared
-   tolerance or `max_iter`.
+   tolerance, `max_iter`, or `max_eval`.
 
 The boundary, $C_4$, carrier-positivity, and charge maps are part of the
 objective construction. Adam completes all `800` steps unless an objective,
@@ -731,7 +733,8 @@ Each NPZ has these float64 C-order arrays:
 
 `results.json` contains `schema_version`, the coefficient point including the
 exact value of $\varphi$, environment, source/program SHA-256 inventory,
-preflight results, frozen arm inventory, per-arm optimizer receipt and
+preflight results, frozen arm inventory, per-arm optimizer receipt including
+the actual L-BFGS iteration, closure-call, and function-evaluation counts,
 diagnostics, `H` selection, gate booleans, pairwise ordering margins, terminal
 verdict, and every NPZ SHA-256. Its `hashes` object uses the exact keys
 `authority_action`, `authority_core_support`, `authority_magnetic_boundary`,
