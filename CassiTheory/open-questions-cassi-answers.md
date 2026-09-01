@@ -216,7 +216,7 @@ The two-fluid dynamics organize into a discrete ladder of "rungs," each separate
 
 $$\ell_n = \ell_{\text{Pl}} \times \varphi^{n}$$
 
-There are 292 rungs from the Planck scale (step 0, the smallest meaningful distance) to the size of the observable universe (step 292 today—the cascade is unbounded; 292 is the current horizon rung, epoch-dependent). Each rung corresponds to a specific physical scale: the electroweak symmetry breaking happens at step $\sim$80; the QCD confinement scale at step $\sim$95; the human body spans steps 142–168. The cascade ladder explains why different physical phenomena appear at the widely separated scales they do—they are simply different rungs of the same ladder.
+There are approximately 292 coordinate steps from the external Planck anchor (step 0) to today's horizon scale (step 291.54, catalogued as 292). The formal coordinate $n\in\mathbb Z$ is unbounded; physical fields beyond the observed catalogue, including the microcascade and megacascade, remain Hypothesized. Each registered step corresponds to a status-qualified physical scale: electroweak symmetry breaking near step 80, QCD confinement near step 95, and the mapped human-body window at steps 142–168. The scale parameterization organizes these widely separated phenomena while retaining the provenance of each assignment.
 
 ### Cascade Suppression
 
@@ -976,44 +976,47 @@ trajectory, so independent clocks must decide between them.
 
 ```mermaid
 flowchart TD
-    A[Canonical two-fluid densities and cascade] --> B[Candidate sector bookkeeping / common vocabulary]
+    A[Canonical two-fluid densities and cascade] --> B[Candidate sector bookkeeping and common vocabulary]
     B --> C[Gravity: incomplete Qi-gravity algebraic ansatz]
     B --> D[GR and SM: established external physics]
-    B --> E[Rung associations: Mapped / Hypothesized]
-    C --> F[Microscopic action and P1→P2 matching remain open]
+    B --> E[Scale associations: Mapped or Hypothesized]
+    B --> G[Interscale current: one Hypothesized action]
+    C --> F[Microscopic action and P1 to P2 matching remain open]
     D --> F
     E --> F
+    G --> F
 ```
 
-**Visual:** The canonical two-fluid variables and cascade provide candidate bookkeeping and common vocabulary across sectors. General relativity and the Standard Model remain established external physics; Qi-gravity is an incomplete algebraic ansatz, and rung associations are Mapped or Hypothesized. No single microscopic action or P1→P2 matching currently derives the four interactions.
+**Visual:** The canonical variables provide common vocabulary across sectors. The interscale-current proposal adds one explicit Hypothesized action with internal continuity and counterflow identities. General relativity and Standard Model gauge dynamics remain established external physics, Qi-gravity remains an incomplete algebraic ansatz, and no current action matches all four interactions to the canonical solver.
 
-The current construction uses the canonical two-fluid densities and cascade as candidate sector bookkeeping/common vocabulary. General relativity and Standard Model gauge dynamics remain established external physics. The Qi-gravity proposal is an incomplete algebraic ansatz; associations of gravity, electromagnetism, the strong interaction, and the weak interaction with cascade rungs are Mapped or Hypothesized according to the relevant registry entries. No single microscopic action or P1→P2 matching currently derives the four interactions. A complete unification requires a specified action, field content, gauge structure, matching conditions, and tests.
+The candidate action in `foundations/interscale-current-soliton.md` promotes scale to a field coordinate and derives a conservative current within that extension. It introduces free stiffnesses, gauge normalization, a scale measure, and boundary data; its composition potential also conserves Yang and Yin separately, so canonical conversion requires another sector. General relativity and Standard Model gauge dynamics retain their external status, and the Qi-gravity proposal retains its algebraic status. Complete unification requires microscopic field content, local gauge completion, P1→P2 matching, sector quantum numbers, and tests.
 
-| **Cassi Answer** | Candidate sector bookkeeping/common vocabulary using the canonical two-fluid variables and cascade; GR and SM remain established external physics; Qi-gravity is an incomplete algebraic ansatz; rung associations are Mapped or Hypothesized |
-| **Mechanism** | Canonical variables provide shared notation; the Qi-gravity algebraic relation and sector-rung mappings are optional or conditional; a microscopic action and P1→P2 matching remain open |
-| **Epistemic** | **Hypothesized/open**—cross-sector bookkeeping and mappings are proposed; no microscopic unification is derived |
-| **Reference** | `foundations/physical-becoming-hierarchy.md` §7.2, §7.3; `foundations/unified-lagrangian.md` |
+| **Cassi Answer** | Candidate sector bookkeeping plus one explicit Hypothesized interscale action; no action currently derives or matches the four established interactions |
+| **Mechanism** | The interscale model derives internal continuity and counterflow under supplied coefficients; gravity, Standard Model gauge structure, conversion, and P1→P2 matching remain separate |
+| **Epistemic** | **Hypothesized/open**—the candidate action is explicit, while its physical realization and cross-sector matching remain open |
+| **Reference** | `foundations/physical-becoming-hierarchy.md` §7.2, §7.3; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md` |
 
 ### F4: Theory of Everything
 
 ```mermaid
 flowchart TD
-    A[φ and canonical two-fluid notation] --> B[Cross-sector index / organization]
-    B --> C[Cosmology: mapped / hypothesized realizations]
-    B --> D[Particles: mapped / hypothesized structures]
-    B --> E[Gravity: Qi-gravity ansatz / covariant completion open]
-    B --> F[SM: established gauge structure / asserted boundary]
-    B --> G[P0→P1→P2 matching open]
+    A[φ and canonical two-fluid notation] --> B[Cross-sector index and organization]
+    B --> C[Cosmology: mapped or hypothesized realizations]
+    B --> D[Particles: mapped or hypothesized structures]
+    B --> E[Gravity: Qi-gravity ansatz and covariant completion open]
+    B --> F[SM: established gauge structure and asserted boundary]
+    B --> H[Interscale action: Hypothesized internal extension]
+    H --> G[P0 to P1 to P2 matching open]
 ```
 
-**Visual:** The framework uses $\varphi$, canonical two-fluid notation, and the cascade to index mixed-tier claims across cosmology, particles, gravity, and the Standard Model. This common notation does not derive unified microscopic dynamics. P0→P1→P2 matching and a covariant gravity completion remain open.
+**Visual:** The framework uses $\varphi$, canonical two-fluid notation, and the cascade to index mixed-tier claims. The interscale-current action supplies one explicit internal extension and preserves the same open matching boundary. Unified microscopic dynamics and a covariant gravity completion remain open.
 
-The current framework organizes cosmology, particle physics, gravity, and the Standard Model around common notation built from $\varphi$, the canonical two-fluid variables, and the cascade. Cosmology and particle entries retain their individual derivation or mapping status; general relativity and Standard Model gauge dynamics remain established external physics; and Qi-gravity remains an incomplete algebraic ansatz. The common notation and cascade do not by themselves derive unified microscopic dynamics. The P0→P1→P2 matching program and covariant gravity completion remain open.
+The current framework organizes cosmology, particle physics, gravity, and the Standard Model around shared notation. The interscale-current proposal derives conservation and counterflow identities inside a separately normalized complex field, while leaving its coefficients, conversion sector, scale metric, quantum numbers, and observable coupling open. General relativity and Standard Model gauge dynamics remain established external physics, and Qi-gravity remains an incomplete algebraic ansatz. The P0→P1→P2 matching program and covariant gravity completion remain open.
 
-| **Cassi Answer** | Index and organization of mixed-tier sector mappings using $\varphi$, canonical two-fluid notation, and the cascade; unified microscopic dynamics is not derived |
-| **Mechanism** | Cosmology, particle, Qi-gravity, and Standard Model entries retain individual Derived, Calibrated, Mapped, or Hypothesized status; P0→P1→P2 matching and covariant gravity remain open |
-| **Epistemic** | **Hypothesized/open**—the organization is a framework proposal; microscopic matching and covariant gravity remain open |
-| **Reference** | `foundations/physical-becoming-hierarchy.md` §7.1, §7.2; `foundations/unified-lagrangian.md`; `cassi-physics.md` |
+| **Cassi Answer** | Mixed-tier sector organization plus one Hypothesized interscale action; unified microscopic dynamics remains open |
+| **Mechanism** | Each cosmology, particle, gravity, Standard Model, and interscale entry retains its own status; no current map derives their common ultraviolet field content or coarse-graining |
+| **Epistemic** | **Hypothesized/open**—the organization and interscale action are framework proposals; microscopic matching and covariant gravity remain open |
+| **Reference** | `foundations/physical-becoming-hierarchy.md` §7.1, §7.2; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md`; `cassi-physics.md` |
 
 
 ### F5: Dimensionful constants ($c$, $\hbar$, $G$) and $\lambda$
@@ -1162,20 +1165,21 @@ Cassi models the mind-brain relation as a hierarchy of physical and coarse-grain
 
 ```mermaid
 flowchart TD
-    A[Infinite microcascade ladder] --> B[Meditation = climbing down rungs]
-    B --> C[σ_r collapse reveals finer structure]
-    C --> D[No floor—unbounded depth]
+    A[Embodied neural state] --> B[Self-model and metacognition]
+    B --> C[Successive levels of description]
+    C --> B
+    D[Formal scale coordinate] -. physical link requires evidence .-> C
+    E[Measured interscale state and current] --> D
 ```
 
-**Visual:** The field's cascade has no floor—meditation protocols that reduce σ_r allow access to ever-finer structure with no bottom, like descending an infinite ladder.
+**Visual:** Recursive self-modeling can produce successive levels of introspection. A physical microcascade contribution requires an independently measured scale-resolved state and current.
 
+Reports of apparently unbounded introspective depth are compatible with recursive metacognition and repeated coarse-graining in a finite brain-body system. Cassi's formal coordinate $\ell_n=\ell_{\mathrm{Pl}}\varphi^n$ extends to every integer $n$, while physical field states at negative steps remain Hypothesized. Meditation has no established mechanism for moving a state through that coordinate. Such a mechanism would require a normalized field $\Psi(\mathbf x,\mathfrak s,t)$, a measured interscale current, causal intervention, and a closed energy account.
 
-When you introspect—look inward at your own mind—you find no bottom. There is always another layer of awareness, another observer behind the observer. This unbounded depth has no explanation in standard neuroscience. Cassi's answer: the field's cascade has no floor—it extends downward infinitely, and mind inherits this infinite-ladder structure. Meditation protocols that reduce $\sigma_r$ (the spatial ratio dispersion, explained in the Primer) allow access to ever-finer cascade-step resolutions, giving the experience of unbounded depth. Prediction #31 of the framework links subjective depth to measurable coherence parameters, making it empirically testable.
-
-| **Cassi Answer** | The field's cascade has no floor (§1.2 of `foundations/why-three-dimensions.md`); mind inherits the infinite ladder |
-| **Mechanism** | Meditation as coherence protocol: $\sigma_r$ collapse → finer cascade-step resolution → no floor to experience |
-| **Epistemic** | **Hypothesized**—Prediction #31 (depth↔coherence correlation) |
-| **Reference** | `consciousness/consciousness-from-phi.md`, `foundations/bubble-lattice-fabric.md` §8.5 |
+| **Cassi Answer** | Depth of mind is modeled as recursive self-modeling across embodied levels of description; a physical microcascade contribution is an additional testable hypothesis |
+| **Mechanism** | Neural and bodily states support repeated coarse-graining and metacognitive feedback; any scale-sector extension must couple through an explicit state, current, and transduction law |
+| **Epistemic** | **Hypothesized**—the formal negative-step coordinate is exact, while physical microcascade states and meditation access are unmeasured; no depth-specific prediction is registered in `predictions/falsifiable-predictions.md` |
+| **Reference** | `foundations/physical-becoming-hierarchy.md`; `foundations/microcascade-mirror.md`; `foundations/interscale-current-soliton.md` |
 
 ### M4: Altered states
 

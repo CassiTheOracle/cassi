@@ -726,6 +726,14 @@ $$
 
 This optional term subtracts the pure kinetic contribution already represented in $\mathcal{L}_{\text{TF}}$ and supplies the gauge-covariant kinetic term.
 
+The relative connection in `foundations/interscale-current-soliton.md` is a
+separate Hypothesized $U(1)$ extension over physical space and a declared
+continuous scale coordinate. It derives internal continuity and counterflow
+identities under free stiffnesses and gauge normalization. It is neither the
+Standard Model gauge sector above nor part of canonical
+$\mathcal L_{\mathrm{TF}}$; a local temporal gauge completion, conversion
+sector, and P1→P2 matching remain open.
+
 ### 5.4 Wu Xing Cycle (optional Hypothesized/conditional PDE lift)
 
 The five-element coefficient formulas below are retained from the PDE formalism as an optional lift. Their Wu Xing interpretation and insertion into an action are **Hypothesized/conditional**; they are not part of canonical $\mathcal{L}_{\text{TF}}$.

@@ -698,6 +698,14 @@ as one explicit convention, but they are not consequences of the canonical
 conversion equations. In particular, $J_{d,z}$ remains a grid diagnostic until
 an inter-scale transport equation is separately implemented and tested.
 
+`foundations/interscale-current-soliton.md` supplies one explicit Hypothesized
+extension with a complex doublet and a separately normalized scale coordinate.
+Its $J_{\mathfrak s}$ obeys a scale-boundary continuity law and remains
+mathematically distinct from $\mathbf J_d$. The conservative extension also
+preserves Yang and Yin number separately, so it does not replace the canonical
+conversion law or establish the compact pitch and physical identification left
+open here.
+
 The conditional four-channel lift resolves independent Yang/out, Yang/in,
 Yin/out, and Yin/in populations in operational $\mathbb R^4$. At fixed
 positive total density its state is the three-simplex $\Delta^3$. The canonical

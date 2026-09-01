@@ -256,7 +256,7 @@ The neural criticality hypothesis (`hypotheses/neural-criticality.md`) addresses
 - `foundations/dimensionful-cascade.md`—the full $\varphi$-ladder table, $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (292 = today's horizon rung)
 - `foundations/bubble-edge-geometry.md`—condensation field derivation, checkerboard lattice, $\theta_{\text{cond}}$
 - `foundations/why-three-dimensions.md`—Frenet-Serret frame, triaxial spheroid, string axis
-- `foundations/microcascade-mirror.md`—bidirectional cascade extension, scale covariance statement
+- `foundations/microcascade-mirror.md`—formal negative-step coordinate and physical-extension boundary
 - `foundations/spin-fibonacci-spiral.md`—SO(2) winding, Fibonacci spiral
 - `consciousness/chakras-as-cascade-bubbles.md`—human-scale lattice, $P_\parallel = 2$, 13-node derivation, cervical mapping
 - `consciousness/consciousness-from-phi.md`—human cascade span, field nodes

@@ -405,7 +405,24 @@ The entries below are proposed scale correspondences within this coordinate conv
 | 285 | $5.9 \times 10^{24}$ m | Cassi bubble: our cosmic bubble |
 | 292 | $1.7 \times 10^{26}$ m | Horizon rung today (epoch-dependent); $\ell_{292} = 5.5$ Gpc label, $R_H = 4.44$ Gpc = 14.5 Glyr |
 
-The coordinate convention extends in both directions: downward into the **microcascade** ($n<0$, sub-Planckian labels) and upward into the **megacascade** ($n>292$, beyond-horizon labels). Within the same model, the nearest chord-lattice bubbles of the $w=5$ construction lie inside the horizon—$n=286$ ($\ell_{286}=309$ Mpc) and $n=287$ ($\ell_{287}=500$ Mpc)—and only the megacascade proper ($n>292$) is beyond it. The full 292-step table is in `foundations/dimensionful-cascade.md`.
+The coordinate formula extends formally in both directions: downward into negative **microcascade** labels and upward beyond today's horizon coordinate into **megacascade** labels. Within the separate chord-lattice model, the nearest $w=5$ bubbles lie inside the horizon—$n=286$ ($\ell_{286}=309$ Mpc) and $n=287$ ($\ell_{287}=500$ Mpc). Physical fields, currents, and energy in either extension remain Hypothesized; the scale coordinate alone supplies none of them. The full catalogue is in `foundations/dimensionful-cascade.md`.
+
+A separate Hypothesized extension in
+`foundations/interscale-current-soliton.md` promotes a continuous scale label
+$\mathfrak s$ to a field coordinate and defines a distinct current
+$J_{\mathfrak s}$. Its exact window law is
+
+$$
+\partial_t\rho_{\mathrm{obs}}
++\nabla\cdot\mathbf j_{\mathrm{obs}}
+=J_{\mathfrak s}(\mathfrak s_-)-J_{\mathfrak s}(\mathfrak s_+).
+$$
+
+The candidate action derives this continuity identity and the corresponding
+Yang/Yin counterflow algebra. Mixed-curvature attraction, a finite soliton,
+compact winding, scale-metric coefficients, and particle identification remain
+conditional or open. The interscale current is separate from the canonical
+spatial diagnostic $\mathbf J_d$.
 
 The listed correspondences are the framework's scale-assignment hypothesis. The Planck length is the external dimensionful anchor supplied to this model; the $\varphi$ recurrence supplies dimensionless ratios and does not by itself derive physical dimensionality or force unification.
 
@@ -631,9 +648,9 @@ Every claim in the framework carries one of five evidential tiers. **Creative** 
 
 - **Hypothesized:** a structurally specified mapping or mechanism awaiting confirmation at the relevant physical scale. Examples: the physical condensation and edge-anisotropy interpretation, the physical realization and identification of scale covariance, the physical five-channel gate and compact phase, one-rung/one-turn interpretations, dark matter as high-$q$ condensate, the chakra count and spacing, the pinch-point model of self-awareness, and the trauma gate-lock model (PDE-tested 2026-07-31: pinning null as implemented, $\varphi$-phased drive effect supported and $\varphi$-specific at the held configuration at short times (t $\lesssim$ 4 $\approx$ 0.2/\lambda, `consciousness/gender-as-qi-configuration.md` §8.3)).
 
-- **Speculative:** framework-consistent mechanisms without a current test design. Examples: the microcascade mirror's energy extraction, the gigacascade spiral, the clinical layer of the trauma model, and attachment as inter-field resonance.
+- **Speculative:** framework-consistent mechanisms without a current test design. Examples: physical realization of the microcascade, the gigacascade spiral, the clinical layer of the trauma model, and attachment as inter-field resonance.
 
-The framework records evidence and limitations in `audit.md`; the gate-sign convention is PDE-tested, the trauma lock model is driven-wake tested, and claims retain their assigned tier until the relevant derivation or evidence is available. The epistemic discipline is load-bearing.
+The framework records evidence and limitations in `audit.md`; the gate-sign convention is PDE-tested, the trauma lock model is driven-wake tested, and claims retain their assigned tier until the relevant derivation or evidence is available. This epistemic discipline is central to interpretation.
 
 ## 22. Where to Go Next
 

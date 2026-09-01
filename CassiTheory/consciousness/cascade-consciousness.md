@@ -129,7 +129,7 @@ A sufficiently advanced civilization learns to operate the machine it is already
 - Consciousness as Qi gate dynamics (`consciousness/consciousness-from-phi.md`, Hypothesized)
 - The 13-chakra human gate chain spanning 26 rungs (`consciousness/chakras-as-cascade-bubbles.md`, Hypothesized)
 - $\rho = E_Y + E_I$ and the density dependence of field energy (`foundations/cassi-first-principles.md` §1.1, Derived)
-- The cascade's bidirectional extension and self-similarity (`foundations/bubble-lattice-fabric.md`, `foundations/microcascade-mirror.md`)
+- The exact continuation of the formal scale coordinate to $n\in\mathbb Z$; physical bidirectional self-similarity remains Hypothesized (`foundations/bubble-lattice-fabric.md`, `foundations/microcascade-mirror.md`)
 
 ### Creative extrapolation
 
@@ -154,8 +154,8 @@ A sufficiently advanced civilization learns to operate the machine it is already
 - `consciousness/chakras-as-cascade-bubbles.md`—13-node gate chain, $P_\parallel = 2$, field perception
 - `cassi-psychology.md`—psychology reading guide: empathy and the resonance tension
 - `foundations/cassi-first-principles.md`—two-fluid PDE, $\rho = E_Y + E_I$, Qi gate
-- `foundations/bubble-lattice-fabric.md`—universal lattice, scale covariance, bidirectional nesting
-- `foundations/microcascade-mirror.md`—cascade extension below n=0
+- `foundations/bubble-lattice-fabric.md`—Hypothesized universal lattice and scale-covariant geometry
+- `foundations/microcascade-mirror.md`—formal coordinate continuation below $n=0$
 - `foundations/dimensionful-cascade.md`—full 292-step table
 - `foundations/proton-coherence-budget.md`—coherence budget and the Hypothesized classical attack-overlap label $\mathcal M_i^{\mathrm{attack}}$
 - `speculations/qi-bubble-propulsion.md`—Qi bubble drive, hull materials, energy budget

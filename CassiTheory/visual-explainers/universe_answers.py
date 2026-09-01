@@ -11,7 +11,7 @@ Panels:
   1 · THE CONSTANT          φ—the maximally irrational number
   2 · THE TWO COMPONENTS    r(x,t) is the master variable
   3 · THE SCALE LADDER      ℓ_n = ℓ_Pl × φ^n—all 292 rungs
-  4 · THE MICROCASCADE      n < 0—infinite descent
+  4 · THE MICROCASCADE      n < 0—formal geometric continuation
   5 · THE PLANCK MEMBRANE   n = 0—where gravity becomes soft
   6 · THE GATE              r = 1/φ—the self-referential threshold
   7 · STANDING WAVES        particles, mass, quantum mechanics emerge
@@ -44,14 +44,10 @@ THETA_COND = 0.45
 EDGE_RATIO = np.sqrt(1.0 + PHI**2) / 2.0 * np.sqrt(
     (1.0 + THETA_COND) / THETA_COND
 )
-DELTA = 3
 
 def ell(n):
     return L_PL * PHI ** np.asarray(n, dtype=float)
 
-def coherence_factor(depth):
-    f = PHI ** (-np.asarray(depth, dtype=float) - DELTA)
-    return 1.0 / (1.0 + f)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # House palette
@@ -313,7 +309,7 @@ ax4.annotate(r"$\ell \to 0$—never reached", xy=(0, 0), xytext=(-1.0, -0.65),
              fontsize=8, color=YIN_LIGHT,
              arrowprops=dict(arrowstyle="->", color=YIN_LIGHT, lw=0.9))
 eq_text(ax4, 0.02, 0.05, r"$r(\theta) = \ell_{\rm Pl}\,\varphi^{-2\theta/\pi}$—contracts by $\varphi$ every quarter-turn")
-panel_title(ax4, r"4 · THE MICROCASCADE ($n<0$)—the ladder descends forever, each rung $\varphi\times$ smaller")
+panel_title(ax4, r"4 · THE FORMAL MICROCASCADE ($n<0$)—exact coordinates; dynamics unselected")
 
 # Convergence plot (right side)
 ax4b = fig.add_subplot(gs[3, 2])
@@ -328,13 +324,10 @@ ax4b.tick_params(labelsize=7.5)
 ax4b.grid(True, which="major", color=RING, lw=0.3, alpha=0.4)
 for s in ("top",): ax4b.spines[s].set_visible(False)
 
-ax4b2 = ax4b.twinx()
-ax4b2.plot(depth, coherence_factor(depth), color=YIN_LIGHT, lw=1.6, ls=(0, (5, 3)))
-ax4b2.set_ylim(0.75, 1.005)
-ax4b2.set_ylabel(r"coherence $1-q_n$", fontsize=8.5, color=YIN_LIGHT)
-ax4b2.tick_params(axis="y", labelsize=7, colors=YIN_LIGHT)
-ax4b2.spines["right"].set_color(YIN_LIGHT)
-ax4b2.spines["top"].set_visible(False)
+# Negative-step coherence requires a separate constitutive law.
+ax4b.text(0.03, 0.08,
+          "$q_n$ for $n<0$: unselected\\ncoordinate continuation supplies no energy or current",
+          transform=ax4b.transAxes, fontsize=7.5, color=YIN_LIGHT)
 ax4b.annotate("straight = geometric convergence\n— no floor", xy=(20, PHI ** -20),
               xytext=(8, 3e-6), fontsize=7.5, color=YANG_PEAK,
               arrowprops=dict(arrowstyle="->", color=YANG_PEAK, lw=0.8))
@@ -907,5 +900,3 @@ for k, label in [(1, "φ⁻¹"), (2, "φ⁻²"), (3, "sin²θ_W"), (6, "ξ"), (1
                  (44, "η≈6e-10"), (80, "v₀/M_Pl"), (89, "θ̄≈1e-19")]:
     val = PHI ** k
     print(f"  φ^{k:>3} = {val:.6e}  ({label})")
-
-print(f"\nmicrocascade ansatz: (1−q_0⁻) = {coherence_factor(0):.3f}  (doc: ≈0.809)")

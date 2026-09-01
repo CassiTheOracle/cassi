@@ -1,218 +1,238 @@
-# The Microcascade Mirror: Sub-Planckian Scale Extension & Bidirectional Coherence
+# The Microcascade Coordinate Extension: Sub-Planckian Scale Labels
 
-## Status: Hypothesized—July 2026
+## Status: Hypothesized—August 2026
 
 ## Abstract
 
-The Cassi cascade ℓ_n = ℓ_Pl × φ^n maps every physical scale from Planck (n=0) to today's horizon rung (n=292, epoch-dependent). Above the horizon scale, the cascade continues into the **megacascade**—the chord lattice of identical $w=5$ bubbles arranged at $\varphi$-spaced intervals (`visual-explainers/chord_lattice.py`). This document proposes that the cascade does not truncate at the Planck scale either: it extends into a **microcascade** (n < 0)—an infinite ladder of ever-smaller length scales converging to zero geometrically but never reaching it. The microcascade is the mirror image of the megacascade, with the Planck scale as the reflection plane.
+The cascade coordinate
 
-A practical consequence: a φ-aligned electromagnetic array tuned to the specific φ-spacing of both cascade directions could create a bidirectional coherence bridge—simultaneously coupling upward into the megacascade and downward into the microcascade. Since the microcascade has infinite depth (n → -∞), the available coherent energy reservoir is, in principle, unbounded.
+$$
+\ell_n=\ell_{\mathrm{Pl}}\varphi^n
+$$
 
-**Figure:** `visual-explainers/cascade_cosmos.png`—panel C shows the microcascade as a golden spiral ($r(\theta) = \ell_{\text{Pl}}\,\varphi^{-2\theta/\pi}$) plus the geometric-convergence plot with the $(1-q_n)$ coherence ansatz (`visual-explainers/cascade_cosmos.py`).
+is mathematically defined for every integer $n$. The name **microcascade** denotes
+the formal continuation to $n<0$, where the assigned lengths decrease
+geometrically toward zero. This continuation supplies scale labels. A physical
+sub-Planckian sector additionally requires state variables, a measure over
+scale, a Hamiltonian, boundary conditions, and an interaction with observable
+fields.
 
----
+The positive-step coherence profile cannot be continued unchanged through the
+entire negative-$n$ domain: it becomes negative below step $-3$. The canonical
+meaning of $q$ is retained throughout this document—$q$ is coherence and
+$1-q$ is gate openness or coherence deficit. A divergent sum of $1-q$ is
+therefore neither a coherent-energy density nor an energy reservoir. No
+infinite-energy or passive power-extraction claim follows from the cascade
+coordinate.
 
-## 1. The Cascade Extension Problem
-
-### 1.1 Current cascade: n ∈ ℤ (today's observable range 0…292)
-
-The dimensionful cascade (see `foundations/dimensionful-cascade.md`) maps all known physical scales:
-
-$$\ell_n = \ell_{\text{Pl}} \times \varphi^n, \qquad n \in \mathbb{Z} \quad (\text{today's observable range: } 0 \ldots 292)$$
-
-| n | Scale | Physical meaning |
-|---|-------|-----------------|
-| 0 | 1.6×10⁻³⁵ m | Planck length |
-| 80 | 8.0×10⁻¹⁹ m | Electroweak |
-| 95 | 1.0×10⁻¹⁵ m | QCD confinement |
-| 117 | 5.3×10⁻¹¹ m | Atomic (Bohr) |
-| 267 | 9.3×10²⁰ m | Milky Way |
-| 285 | 5.9×10²⁴ m | Cassi bubble |
-| 292 | 1.7×10²⁶ m | Today's horizon rung (ℓ₂₉₂ = 5.5 Gpc; R_H = 4.44 Gpc = 14.5 Glyr) |
-
-### 1.2 The extension above: megacascade
-
-The cascade above n=292 enters the multiverse regime—distances larger than the observable universe. Adjacent bubbles at identical $w=5$ in the chord lattice sit inside today's horizon at $\ell_{286} = 309$ Mpc and $\ell_{287} = 500$ Mpc (the nearest neighbors of the rung-285 bubble); only the megacascade (n > 292) lies beyond the horizon. Their boundary geometry (the level set of the condensation field) imprints on the CMB at ℓ < 5 (see `cosmology/observational_constraints.md` §4 and `foundations/bubble-edge-geometry.md`). The `foundations/why-three-dimensions.md` document explicitly states: "the field's cascade has no floor"—meaning no upper bound either.
-
-### 1.3 The extension below: microcascade (this document)
-
-The cascade formula ℓ_n = ℓ_Pl × φ^n is well-defined for ALL integer n, including negative. There is no mathematical reason for the cascade to truncate at n=0. Extending to n < 0:
-
-$$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}, \qquad n \in \mathbb{Z}}$$
-
-Negative n represents length scales **shorter** than the Planck length:
-
-| n | ℓ / ℓ_Pl | Physical scale (m) |
-|---|----------|-------------------|
-| 0 | 1.000 | 1.616×10⁻³⁵ (Planck) |
-| −1 | 0.618 | 9.987×10⁻³⁶ |
-| −2 | 0.382 | 6.173×10⁻³⁶ |
-| −5 | 0.090 | 1.457×10⁻³⁶ |
-| −10 | 0.008 | 1.314×10⁻³⁷ |
-| −20 | 6.6×10⁻⁵ | 1.069×10⁻³⁹ |
-| −50 | 3.6×10⁻¹¹ | 5.7×10⁻⁴⁶ |
-| −100 | 1.3×10⁻²¹ | 2.0×10⁻⁵⁶ |
-| −292 | 9.5×10⁻⁶² | 1.5×10⁻⁹⁶ |
-
-The µcascade converges geometrically: lim_{n→-∞} ℓ_n = 0. It has **infinite depth**—for every step down, there is another step below.
+A separate interscale action can promote scale labels to a dynamical
+coordinate and define a conserved scale current. That Hypothesized extension
+is developed in `foundations/interscale-current-soliton.md`; the coordinate
+continuation here supplies only its possible domain.
 
 ---
 
-## 2. Mirror Symmetry: Megacascade ↔ Microcascade
+## 1. Formal continuation of the cascade coordinate
 
-The two extensions of the cascade form a **mirror pair** around the Planck scale:
+### 1.1 Integer scale labels
 
-| Property | Megacascade (n > 292) | Microcascade (n < 0) |
-|----------|----------------------|---------------------|
-| Direction | Expands outward (ℓ → ∞) | Contracts inward (ℓ → 0) |
-| Boundary | Bubble membrane at n ≈ 285-292 | Planck membrane at n = 0 |
-| Energy flow | Expansion → cooling, dimming | Contraction → heating, amplification |
-| Coherence | Q_i → 1 (saturation) | Q_i → ? (regime change) |
-| Observability | CMB ℓ<5 anomalies, bubble boundary | Vacuum fluctuations, quantization |
+The dimensionful cascade uses the external Planck-length anchor:
 
-This mirror symmetry is structural: the two-fluid PDE is scale-covariant under φ-rescaling. The cascade ℓ → φ×ℓ is a symmetry of the governing equations (up to the Qi-gate nonlinearity). If the PDE admits solutions above the Hubble scale (megacascade), it must also admit solutions below the Planck scale (microcascade)—unless the Planck scale has a special status that breaks the symmetry. But in Cassi, ℓ_Pl is the *UV cutoff of the PDE* (from σ-regularization, see `gravity/quantum-gravity.md`), not a physical "wall." The σ-softening makes the Planck scale a smooth crossover, not a hard boundary.
+$$
+\boxed{\ell_n=\ell_{\mathrm{Pl}}\varphi^n,\qquad n\in\mathbb Z.}
+$$
 
-### 2.1 The σ-softening argument
+The current observable catalogue occupies $0\le n\lesssim292$, with the upper
+endpoint set by today's empirical horizon scale. Negative integer labels are
+well-defined arithmetically:
 
-At r → 0 (spatial separation below σ ≈ ℓ_Pl), the two-fluid force goes harmonic:
+| $n$ | $\ell_n/\ell_{\mathrm{Pl}}$ | $\ell_n$ using $\ell_{\mathrm{Pl}}=1.616255\times10^{-35}\,\mathrm m$ |
+|---:|---:|---:|
+| $0$ | $1$ | $1.616255\times10^{-35}\,\mathrm m$ |
+| $-1$ | $\varphi^{-1}\approx0.618$ | $9.989\times10^{-36}\,\mathrm m$ |
+| $-2$ | $\varphi^{-2}\approx0.382$ | $6.173\times10^{-36}\,\mathrm m$ |
+| $-5$ | $\varphi^{-5}\approx0.0902$ | $1.458\times10^{-36}\,\mathrm m$ |
+| $-10$ | $\varphi^{-10}\approx0.00813$ | $1.314\times10^{-37}\,\mathrm m$ |
+| $-20$ | $\varphi^{-20}\approx6.61\times10^{-5}$ | $1.069\times10^{-39}\,\mathrm m$ |
 
-$$F(r) \propto -\frac{r}{3\sigma^3} \cdot (1 + (\varphi^{6}-1)q), \qquad r \ll \sigma$$
+The limit is
 
-The force vanishes linearly as r → 0—there is **no singularity** at the Planck scale. This means the physics at r < σ is regular and well-defined. The cascade can continue across r = σ without encountering a singularity. The microcascade is not blocked by the Planck scale—it is enabled by σ-regularization.
+$$
+\lim_{n\to-\infty}\ell_n=0.
+$$
 
----
+This is a property of the geometric sequence. Physical degrees of freedom at
+those labels remain a Hypothesized extension.
 
-## 3. Coherence in the Microcascade
+### 1.2 Coordinate continuation and dynamical scale
 
-### 3.1 The regime change at n < 0
+A coordinate table assigns a length to each $n$. Transport between different
+$n$ values requires additional dynamics. In particular, the table supplies no
+continuity equation, no interscale current, and no energy measure over scale.
+The spatial density-plane diagnostic $\mathbf J_d$ in
+`foundations/qi-flow-double-helix.md` remains a spatial diagnostic with its
+own units.
 
-The cascade suppression formula (see `foundations/cascade-suppression-formula.md`) defines per-rung attenuation for signal propagation and coherence maintenance. Both formulas are parameterized for n ≥ 0. Extending them to negative n requires care.
+A continuous version may be declared as
 
-At positive n (above Planck), the Qi coherence profile is:
+$$
+\mathfrak s=\log_\varphi\!\left(\frac{\ell}{\ell_\star}\right),
+\qquad
+\ell=\ell_\star\varphi^{\mathfrak s}.
+$$
 
-$$q_i = 1 - \varphi^{-i-\delta}, \qquad i \geq 0, \quad \delta = 3$$
-
-This gives q_i → 1 as i → ∞ (Qi saturates at large scales) and q_0 = 1 - φ⁻³ ≈ 0.764 at Planck (significant coherence deficit).
-
-For negative i, the term φ^{-i} = φ^{|i|} grows exponentially. The formula q_i = 1 - φ^{-i-3} would go *negative* for i ≤ −4, which is unphysical for a coherence measure. This indicates a **regime change**: the cascade structure below Planck operates under different dynamics than above.
-
-### 3.2 Proposed microcascade coherence
-
-At sub-Planckian scales (n < 0), the physics inverts: instead of the Qi gate opening (1−q) → 0 as scale increases, the sub-Planckian regime may have (1−q) → 1 as scale decreases—meaning Qi coherence *amplifies* at smaller scales. This is consistent with the intuitive picture: contracting toward zero concentrates energy density.
-
-A natural ansatz (mirror of the positive-n formula):
-
-$$q_n = \frac{\varphi^{-|n|-\delta}}{1 + \varphi^{-|n|-\delta}}, \qquad n < 0$$
-
-This gives q_n → 0 as n → −∞ (noise dominates at the deepest microcascade), but q_n → φ⁻³/(1+φ⁻³) ≈ 0.191 at n → 0⁻ (the Planck boundary has modest coherence). The per-rung factor (1−q_n) → 1 as n → −∞, meaning deep microcascade rungs have near-perfect coherence.
-
-### 3.3 Energy density of the microcascade
-
-If each microcascade rung n < 0 contains coherent energy density ε_n that scales with the per-rung Qi factor, the total available coherent energy across all negative n is:
-
-$$E_{\text{micro}} = \sum_{n=-\infty}^{0} \varepsilon_n \approx \varepsilon_0 \sum_{n=-\infty}^{0} (1 - q_n)$$
-
-Since (1−q_n) → 1 as n → −∞, and there are infinitely many negative rungs, the sum **diverges**: E_micro → ∞. This is the "infinite energy depth" of the microcascade.
-
-The divergence is formal—it assumes equal energy density per rung. In practice, coupling efficiency from deeper rungs to accessible scales attenuates with depth (see §4), putting a finite effective depth on extractable energy. But the *reservoir* is infinite.
+Here $\ell_\star$ fixes the coordinate origin. Changing $\ell_\star$ translates
+$\mathfrak s$ and leaves physical ratios unchanged. The choice
+$\ell_\star=\ell_{\mathrm{Pl}}$ uses the external Planck anchor; $\varphi$ alone
+does not determine that length.
 
 ---
 
-## 4. Practical Coupling: The φ-Aligned EM Array
+## 2. The Planck crossover supplies regularity
 
-### 4.1 The bridging problem
+The softened spatial kernel used in the gravity extension has the short-range
+form
 
-Energy in the microcascade exists at sub-Planckian length scales. Coupling it to macroscopic (n ≫ 0) scales requires bridging the Planck gap—a span of the full cascade in the reverse direction. A passive antenna at accessible scales cannot resolve structure at 10⁻³⁵ m.
+$$
+F(r)\propto-
+\frac{r}{3\sigma_{\mathrm{reg}}^3}
+\left[1+(\varphi^6-1)q\right],
+\qquad r\ll\sigma_{\mathrm{reg}}.
+$$
 
-The solution: **bidirectional coherent coupling**. If a device simultaneously couples to cascade rungs on BOTH sides of the Planck boundary—upward into the megacascade and downward into the microcascade—the coherence bridge spans the gap via φ-resonance.
+Its force approaches zero linearly as $r\to0$. This establishes regularity of
+that selected spatial kernel. It leaves the field content below the crossover,
+the scale-domain measure, and any current along $\mathfrak s$ open. Smoothness
+of a spatial potential permits a continuation of the calculation; it does not
+supply an independent scale dimension.
 
-### 4.2 φ-spacing as a resonant antenna
-
-An array of N electromagnetic elements spaced at φ-scaled intervals:
-
-$$d_k = d_0 \times \varphi^k, \qquad k = 0, 1, 2, \ldots, N-1$$
-
-creates a broadband antenna whose spatial frequency spectrum has peaks at every φ-multiple of the base wavelength. This is the **de-resonance principle** in reverse: where natural structures *avoid* φ-resonance for stability, an engineered device *exploits* φ-resonance for coupling.
-
-The key: the same φ-spacing that matches the cascade structure above Planck ALSO matches the cascade structure below Planck. A φ-scaled array is simultaneously tuned to:
-
-- **Upward** (megacascade): wavelength λ = d_0 × φ^k for positive k
-- **Downward** (microcascade): wavelength λ = d_0 × φ^{-k} for negative k
-
-The bidirectional resonance creates constructive interference at the Planck boundary, allowing energy transport in both directions.
-
-### 4.3 The perpetual energy claim
-
-If a φ-aligned EM array can couple to the µcascade's infinite depth, the extractable power is:
-
-$$P_{\text{extract}} = \eta \cdot \sum_{n=-N_{\text{eff}}}^{0} (1-q_n) \cdot P_0$$
-
-where η is the array's coupling efficiency and N_eff is the effective coupling depth (finite, determined by the array's φ-spacing resolution). The deeper the φ-spacing extends (more elements, larger φ-range), the deeper into the µcascade the array couples, and the more energy is accessible.
-
-**Critical caveat:** This does not violate conservation of energy in the two-fluid PDE. The energy comes from the µcascade reservoir—coherent structure at sub-Planckian scales that would otherwise remain inaccessible. It is not "free energy"—it is *extracted* coherent energy from an untapped scale range. Thermodynamic consistency depends on whether the extraction increases entropy in the µcascade (likely yes—extraction is a decoherence process from the µcascade's perspective).
+The regularization length $\sigma_{\mathrm{reg}}$ is distinct from the
+continuous coordinate $\mathfrak s$. The former has length units; the latter is
+dimensionless.
 
 ---
 
-## 5. Falsifiable Predictions
+## 3. Coherence below the registered domain
 
-| # | Prediction | Test | Status |
-|---|-----------|------|--------|
-| M1 | A φ-spaced EM array shows anomalous power at wavelengths λ = λ_0 × φ^k for both positive and negative k | Bench measurement: spectrum analyzer on φ-spaced dipole array vs uniform array control | Testable with tabletop equipment |
-| M2 | Coupling efficiency peaks at φ-base wavelengths, not at uniform harmonics | Same as M1—look for φ-periodic peaks in S₁₁ return loss | Requires φ-spaced fabrication |
-| M3 | Extracted power exceeds input power when array is tuned bidirectionally (both upward and downward φ-spacings present) | Calorimetric measurement: input DC power vs RF output integrated over all φ-harmonics | High-precision calorimetry |
-| M4 | Deeper φ-spacing (more elements spanning larger φ-range) increases extractable power | Vary N (number of φ-spaced elements) and measure P_extract vs N | Scaling law test |
+### 3.1 Breakdown of the positive-step profile
 
-**Epistemic status:** All predictions are **Speculative**—framework-consistent, no experimental data exists. The microcascade's existence is a logical consequence of cascade extension symmetry, but it is not yet derivable from the PDE without assumptions about the sub-Planckian Qi profile.
+The declared positive-step coherence profile is
 
----
+$$
+q_i=1-\varphi^{-i-3},\qquad i\ge0.
+$$
 
-## 6. Relation to Existing Physics
+It gives $q_0=1-\varphi^{-3}\approx0.764$ and tends to one as $i$ increases.
+Formal substitution gives $q_{-3}=0$ and $q_i<0$ for $i<-3$, outside the
+allowed coherence interval $0\le q\le1$. The profile therefore has a finite
+domain of physical interpretation.
 
-### 6.1 Not zero-point energy
+A bounded negative-step function could be supplied as a constitutive law. Its
+limit must retain the canonical semantics: $q\to0$ means vanishing coherence
+and maximal openness, while $q\to1$ means maximal coherence and a closed gate.
+The canonical PDE currently selects no such continuation.
 
-The µcascade is NOT the quantum vacuum. Zero-point energy arises from harmonic oscillator ground states in quantum field theory; the µcascade arises from the geometric continuation of the Cassi cascade below ℓ_Pl. Both concepts involve sub-Planckian energy scales, but the mechanisms differ: ZPE is quantum-statistical (ℏ/2 per mode), while µcascade energy is coherent-structural (φ-ordered Qi density).
+### 3.2 Energy requires an independent measure
 
-### 6.2 Not a perpetuum mobile
+A scale-sector energy would have the form
 
-Energy extracted from the µcascade is NOT created—it is *transferred* from an inaccessible regime to an accessible one. The total energy of the full bidirectional cascade is conserved. The extraction is more analogous to geothermal energy (tapping a deep thermal reservoir) than to perpetual motion (creating energy from nothing).
+$$
+E_{\mathrm{scale}}=
+\sum_{n<0}w_n\,\epsilon_n
+$$
 
-### 6.3 Relation to the megacascade
+for discrete steps, or an integral with a declared measure in a continuous
+model. The weights $w_n$, energy densities $\epsilon_n$, field normalization,
+and ultraviolet boundary condition are physical inputs. The series can
+converge or diverge according to those inputs.
 
-The µcascade and megacascade are mirrors across the Planck plane. A device coupling bidirectionally acts as a **cascade transformer**—stepping energy up or down the φ-ladder. Energy flowing down from the megacascade (multiverse bubbles, cosmic expansion) meets energy flowing up from the µcascade (sub-Planckian coherence) at the Planck boundary. The device couples to both simultaneously.
-
----
-
-## 7. Open Questions
-
-1. **What is the correct q_n formula for n < 0?** The mirror ansatz in §3.2 is plausible but not derived from the PDE. A proper treatment would solve the two-fluid PDE on a σ-regularized grid with negative n modes.
-
-2. **Does extraction decohere the µcascade?** If extraction increases entropy at sub-Planckian scales, the µcascade is a non-renewable resource (though practically infinite on human timescales). If extraction is reversible, it may function as a coherence pump.
-
-3. **Is the µcascade structurally identical to the cascade?** The mirror symmetry suggests yes, but the Planck-scale σ-regularization may break the symmetry in ways that affect coupling.
-
-4. **Can the µcascade act as an environment for quantum records?** The regulated measurement construction preserves the norm of the enlarged wavefunctional and requires no sink for unrealized branches. A µcascade coupling would have to appear as explicit environment coordinates in the total Hamiltonian; tracing over them could then produce reduced decoherence. No such coupling is presently derived. See `foundations/quantum-measurement-derivation.md`.
-
-5. **What is the minimum φ-spacing resolution needed for practical coupling?** The effective coupling depth N_eff determines the accessible energy. A prototype with N = 5 elements (spanning d_0 to d_0 × φ⁴) would couple to µcascade depths of order n ≈ −5 to −10.
+The sum $\sum_{n<0}(1-q_n)$ is dimensionless. Since $1-q$ is openness or
+coherence deficit, assigning equal energy to every term introduces both the
+energy scale and the divergent equal-per-step weighting by assumption. The
+geometric continuation supplies neither choice.
 
 ---
 
-## 8. Conclusion
+## 4. Coupling to an electromagnetic array
 
-The cascade ℓ_n = ℓ_Pl × φ^n admits a natural extension to negative n—the **microcascade**—with the same mathematical structure as the positive-n cascade and its megacascade extension. The mirror symmetry between megacascade (n → +∞) and microcascade (n → −∞) is structurally elegant and follows from the scale-covariance of the two-fluid PDE.
+A $\varphi$-spaced antenna is an ordinary log-spaced electromagnetic geometry.
+Its resonances, return loss, radiation pattern, and dissipation follow from
+Maxwell electrodynamics and the materials used. Geometric agreement between
+its element spacing and $\ell_n$ supplies no coupling to negative cascade
+steps.
 
-A φ-aligned electromagnetic array—exploiting the same φ-resonance that the de-resonance principle shows nature *avoids*—could couple bidirectionally across the Planck boundary, tapping the infinite coherence depth of the µcascade. While entirely speculative, this concept is framework-consistent and makes specific, falsifiable predictions about φ-periodic power spectra in purpose-built antenna arrays.
+A physical bridge requires an explicit interaction term or port, for example
 
-The microcascade is the missing half of the cascade—the cascade's shadow extending inward as the megacascade extends outward. Together, the three regimes form a complete bidirectional scale spectrum: **microcascade (n < 0) → observable cascade (0 ≤ n ≤ 292 today) → megacascade (n > 292)**.
+$$
+\mathcal L_{\mathrm{int}}
+=\mathcal L_{\mathrm{int}}[F_{\mu\nu},\Psi(\mathbf x,\mathfrak s,t)],
+$$
+
+with dimensions, coupling strength, boundary conditions, backreaction, and a
+conserved total energy. No such electromagnetic coupling is selected by the
+canonical density PDE.
+
+For any passive completion, the power account must satisfy
+
+$$
+P_{\mathrm{out}}
+=P_{\mathrm{drive}}
+-\frac{dE_{\mathrm{scale}}}{dt}
+-P_{\mathrm{loss}}.
+$$
+
+Steady operation with no depletion gives
+$P_{\mathrm{out}}\le P_{\mathrm{drive}}$. Output above the drive would require a
+measured decrease of a declared scale-sector energy. The coordinate sequence
+alone supplies no source term or stored energy.
+
+---
+
+## 5. Discriminating measurements
+
+The formal continuation has no unique empirical signature. The following
+measurements would constrain a physical extension:
+
+1. **Electromagnetic null model.** Compare a $\varphi$-spaced array with a
+   full-wave Maxwell simulation and geometry-matched log-spaced and uniform
+   controls. Ordinary geometric resonances are part of the null model.
+2. **Scale-resolved state.** Measure or simulate a field
+   $\Psi(\mathbf x,\mathfrak s,t)$ with a declared normalization and boundary
+   conditions.
+3. **Interscale current.** Verify a continuity equation whose scale flux has
+   the correct units and whose transfer closes the energy account. A spatial
+   $\mathbf J_d$ measurement does not supply this observable.
+4. **Backreaction.** Track drive work, losses, and change in the scale-sector
+   Hamiltonian. A power residual without a measured source rejects the closed
+   passive model.
+
+No numbered prediction is added to
+`predictions/falsifiable-predictions.md` until a coupling operator fixes a
+nonzero observable beyond the Maxwell null.
+
+---
+
+## 6. Present conclusion
+
+The microcascade is a formal continuation of the Cassi scale coordinate to
+$n<0$. Its geometric convergence is exact. Physical scale states, coherence,
+energy, and transport remain Hypothesized.
+
+The canonical $q$ semantics remove the proposed infinite-energy inference:
+$q$ measures coherence, $1-q$ measures openness or deficit, and neither is an
+energy density. A dynamical scale theory begins with a normalized field,
+Hamiltonian, continuity law, and boundary conditions. The interscale-current
+proposal in `foundations/interscale-current-soliton.md` supplies one explicit
+candidate while retaining all coefficients and physical identifications as
+open inputs.
 
 ---
 
 ## References
 
-- `foundations/dimensionful-cascade.md`—cascade ladder, $\ell_n = \ell_{\text{Pl}}\varphi^n$ (292 = today's horizon rung)
-- `foundations/cascade-suppression-formula.md`—per-rung attenuation, Qi coherence profile
-- `foundations/bubble-lattice-fabric.md`—universal condensation field at every rung
-- `foundations/wake-geometry.md`—chord lattice, closure ladder
-- `gravity/quantum-gravity.md`—σ-regularization, Planck-scale smooth crossover
-- `foundations/quantum-measurement-derivation.md`—unitary enlarged measurement and explicit-environment requirement
-- `visual-explainers/chord_lattice.py`—chord lattice, staggered bubble/void sites
-- `visual-explainers/cascade_cosmos.py`—three-regime cascade diagram with microcascade spiral
+- `foundations/dimensionful-cascade.md`—dimensionful scale catalogue and empirical horizon coordinate
+- `foundations/dimensionful-constants-status.md`—external dimensional anchors and identifiability boundary
+- `foundations/qi-flow-double-helix.md`—canonical density diagnostics and the boundary on spatial-current interpretation
+- `foundations/interscale-current-soliton.md`—Hypothesized dynamical scale coordinate, continuity law, and soliton mechanism
+- `gravity/quantum-gravity.md`—softened spatial kernel and Planck-crossover proposal
+- `visual-explainers/cascade_cosmos.py`—visualization of the three coordinate ranges; its negative-step coherence curve is a model ansatz

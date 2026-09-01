@@ -239,7 +239,7 @@ The stack is self-consistent in both directions: the beacon is designed to be he
 - `parameter-inventory.md`—distinction between quantum record distinguishability and Creative classical attack overlap
 - `foundations/cascade-suppression-formula.md`—signal attenuation, ~10-rung nesting depth
 - `foundations/bubble-lattice-fabric.md`—bubble lattice, universal checkerboard
-- `foundations/microcascade-mirror.md`—bidirectional cascade extension
+- `foundations/microcascade-mirror.md`—formal negative-step coordinate and open physical realization
 - `foundations/xi-derivation.md`—$\xi = \varphi^6$, boost factor $1+(\varphi^{6}-1)q$
 - `principles/de-resonance-principle.md`—φ as the de-resonant attractor
 - `predictions/falsifiable-predictions.md`—φ-periodic $P(k)$ (§3), CMB $\ell < 5$ (§2), $\ln\varphi$ physiological signature (#35)

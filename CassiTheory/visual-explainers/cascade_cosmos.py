@@ -34,17 +34,11 @@ from matplotlib.colors import LinearSegmentedColormap, to_rgb
 PHI = (1 + np.sqrt(5)) / 2          # 1.6180339887…
 L_PL = 1.616255e-35                 # Planck length (m)—the sole dimensionful scale
 N_HUBBLE = 292                      # cascade steps Planck → Hubble radius
-DELTA = 3                           # Qi-profile offset δ (microcascade-mirror.md §3)
 
 def ell(n):
     """Cascade scale ℓ_n = ℓ_Pl · φⁿ in meters (any integer n)."""
     return L_PL * PHI ** np.asarray(n, dtype=float)
 
-def coherence_factor(depth):
-    """Per-rung coherent fraction (1−q_n) for the microcascade, proposed ansatz
-    q_n = φ^(−|n|−δ) / (1 + φ^(−|n|−δ))   (microcascade-mirror.md §3.2)."""
-    f = PHI ** (-np.asarray(depth, dtype=float) - DELTA)
-    return 1.0 / (1.0 + f)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # House palette (matches resonant_pond.py): Yin indigo → Yang gold on deep dark
@@ -390,7 +384,7 @@ axC1.text(0, -1.08,
           "$r(\\theta) = \\ell_{\\rm Pl}\\,\\varphi^{-2\\theta/\\pi}$"
           " —contracts by $\\varphi$ every quarter-turn",
           ha="center", fontsize=9.0, color=TEXT_MAIN)
-panel_title(axC1, "C · THE MICROCASCADE ($n<0$)—the golden spiral")
+panel_title(axC1, "C · FORMAL MICROCASCADE ($n<0$)")
 
 # ── C2: geometric convergence—no floor ──────────────────────────────────────
 depth = np.arange(0, 41)
@@ -407,15 +401,6 @@ axC2.grid(True, which="major", color=RING, lw=0.4, alpha=0.5)
 for s in ("top",):
         axC2.spines[s].set_visible(False)
 
-# Coherence ansatz on a twin axis: (1−q_n) → 1 with depth
-axC2b = axC2.twinx()
-axC2b.plot(depth, coherence_factor(depth), color=YIN_LIGHT, lw=1.6,
-           ls=(0, (5, 3)), label="$(1-q_n) \\to 1$  (proposed ansatz, §3.2)")
-axC2b.set_ylim(0.75, 1.005)
-axC2b.set_ylabel("per-rung coherence  $1-q_n$", fontsize=9, color=YIN_LIGHT)
-axC2b.tick_params(axis="y", labelsize=8, colors=YIN_LIGHT)
-axC2b.spines["right"].set_color(YIN_LIGHT)
-axC2b.spines["top"].set_visible(False)
 
 # Annotations
 axC2.annotate("straight on semilog = exact geometric convergence\n"
@@ -429,18 +414,14 @@ axC2.text(1.2, 1.25,
           "0.618", fontsize=7.5, color=TEXT_MAIN)
 axC2.text(10.2, 1.3e-2, "$8×10^{-3}$", fontsize=7.5, color=TEXT_MAIN)
 axC2.text(20.2, 1.1e-4, "$6.6×10^{-5}$", fontsize=7.5, color=TEXT_MAIN)
-axC2.text(0.5, 4.5e-9,
-          "$E_{\\rm micro} = \\sum_{n}(1-q_n) \\to \\infty$ —the infinite reservoir"
-          " (formal divergence, §3.3)\nmirror of the megacascade: expansion "
-          "$\\ell\\to\\infty$  ↔  contraction $\\ell\\to 0$—one symmetry, $\\ell\\to\\varphi\\ell$",
-          fontsize=7.8, color=TEXT_SUB, va="bottom", linespacing=1.5)
+axC2.text(0.03, 0.18,
+          "formal coordinate: $\\ell_n\\to0$ as $n\\to-\\infty$\\n"
+          "physical $q_n$, energy measure, and $J_{\\mathfrak{s}}$ remain unselected",
+          transform=axC2.transAxes, fontsize=7.8, color=TEXT_SUB, linespacing=1.5)
 
-# Combined legend
-h1, l1 = axC2.get_legend_handles_labels()
-h2, l2 = axC2b.get_legend_handles_labels()
-axC2.legend(h1 + h2, l1 + l2, loc="upper right", fontsize=8, frameon=False,
+axC2.legend(loc="upper right", fontsize=8, frameon=False,
             labelcolor=TEXT_MAIN)
-panel_title(axC2, "C · GEOMETRIC CONVERGENCE—no floor")
+panel_title(axC2, "C · FORMAL CONVERGENCE")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Footer
@@ -460,5 +441,3 @@ print("\ncascade spot-checks (ℓ_n = ℓ_Pl · φⁿ):")
 for n, expect in [(0, 1.616e-35), (95, 1.1e-15), (117, 5.3e-11),
                   (168, 1.7), (285, 5.9e24), (292, 1.7e26), (-50, 5.7e-46)]:
     print(f"  n={n:>4}: {float(ell(n)):.3e} m   (doc: {expect:.1e})")
-print(f"\nmicrocascade ansatz: (1−q_0⁻) = {coherence_factor(0):.3f}"
-      f"  (doc: 1−0.191 = 0.809)")

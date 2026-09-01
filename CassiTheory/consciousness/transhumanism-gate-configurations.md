@@ -242,7 +242,7 @@ Identity is the trajectory of a configuration under the attractor—the $\varphi
 - `foundations/wu-xing-derivation.md`—$w = 5$ uniqueness, pentagon geometry
 - `foundations/wu-xing-cycle-structure.md`—sheng and ke cycles, the 5↔13 partition
 - `foundations/wa-pentagon-gate.md`—5-channel gate model, adiabatic redistribution
-- `foundations/microcascade-mirror.md`—bidirectional cascade extension
+- `foundations/microcascade-mirror.md`—formal negative-step coordinate and open physical realization
 - `principles/de-resonance-principle.md`—Derived number-theory motivation for a Hypothesized physical de-resonance mapping; the attractor interpretation is conditional on specified dynamics
 - `consciousness/chakras-as-cascade-bubbles.md`—13-node geometric mapping, $P_\parallel = 2$ Hypothesized coordinate convention, gate-chain geometry, $G_{\text{eff}}$ self-reinforcement
 - `consciousness/emotions-as-gate-configurations.md`—emotional manifold $(\mathbf{b}, \sigma_r, q, \mathbf{c})$, pentagon channels, $R$-matrix

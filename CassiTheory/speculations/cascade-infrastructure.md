@@ -211,4 +211,4 @@ The Earth's interior layers (inner core, outer core, mantle, Moho) are interpola
 - `foundations/cassi-first-principles.md`—two-fluid PDE, $\rho = E_Y + E_I$
 - `consciousness/chakras-as-cascade-bubbles.md`—human gate chain, $P_\parallel = 2$, 13-node count
 - `consciousness/consciousness-from-phi.md`—26-step human cascade, Qi cultivation as gate tuning
-- `foundations/microcascade-mirror.md`—bidirectional cascade extension
+- `foundations/microcascade-mirror.md`—formal negative-step coordinate and open physical realization

@@ -134,7 +134,7 @@ $$\boxed{\begin{aligned}
 - `foundations/cassi-theory-reference.md`—compact framework reference: gate pair, cascade table, wake waves, horizon synchronization, coherence budgets
 - `principles/de-resonance-principle.md`—Derived number-theory motivation for a Hypothesized physical de-resonance mapping; any locking, collapse, or scale-survival consequence requires specified dynamics and observables
 - `foundations/dimensionful-cascade.md`—$\ell_n = \ell_{\text{Pl}}\varphi^n$, 292-rung table, key step numbers
-- `foundations/microcascade-mirror.md`—cascade extension below $n = 0$, mirror symmetry, $\sigma$-regularized Planck crossover
+- `foundations/microcascade-mirror.md`—formal coordinate extension below $n=0$ and open physical realization
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ signal attenuation over $N$ rungs
 - `foundations/proton-coherence-budget.md`—full-cascade coherence budget, organized vs random perturbation
 - `parameter-inventory.md`—separation of quantum record distinguishability $\mathcal M_{jk}$ from Creative classical attack overlap $\mathcal M_i^{\mathrm{attack}}$

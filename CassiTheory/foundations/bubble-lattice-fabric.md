@@ -130,11 +130,11 @@ The full bubble lattice has three spatial periods, one along each Frenet-Serret 
 
 Because the same condensation field is assigned at every $n$, the lattice is **self-similar across scales** as a geometric construction. A bubble at rung $n$ contains within it the full sub-lattice of rungs $n-1$, $n-2$, $\ldots$—the 2D checkerboard in its own Yang-Yin cross-section, plus the along-string periodicity of its own sub-cascade. A bubble at rung $n$ is itself a site in the lattice at rung $n+1$.
 
-This nesting continues upward and downward without bound:
+The Hypothesized lattice geometry may be continued upward and downward:
 
-$$\underbrace{\cdots \subset \text{bubble}_{n-2} \subset \text{bubble}_{n-1} \subset \text{bubble}_n \subset \text{bubble}_{n+1} \subset \text{bubble}_{n+2} \subset \cdots}_{\text{infinite bidirectional nesting}}$$
+$$\underbrace{\cdots \subset \text{bubble}_{n-2} \subset \text{bubble}_{n-1} \subset \text{bubble}_n \subset \text{bubble}_{n+1} \subset \text{bubble}_{n+2} \subset \cdots}_{\text{formal bidirectional nesting}}$$
 
-The microcascade mirror (`foundations/microcascade-mirror.md`) establishes the downward extension to $n \to -\infty$. The megacascade (chord lattice beyond $n = 292$) is the upward extension. The lattice has **no intrinsic floor or ceiling**.
+The scale coordinate in `foundations/microcascade-mirror.md` is defined as $n\to-\infty$, and the megacascade coordinate continues beyond $n\approx292$. Identical bubble fields throughout those ranges are a Hypothesized physical assignment. The formal coordinate has no intrinsic floor or ceiling.
 
 Read radially through a single bubble's shell, this nesting is represented by the Hypothesized geometric coordinate $\alpha_{\mathrm{geom}} = \theta_\Psi = \pi\,u$, $u = \log_\varphi(r/\ell_n)$. It quantizes the interior into matter rings at $r_k = \ell_n\,\varphi^{-k}$ (each a rung-$(n-k)$ condensate, since $\ell_n\,\varphi^{-k} = \ell_{n-k}$) with void rings at $\ell_n\,\varphi^{-(k+\frac12)}$, ~10 rings within the ~1% nesting floor, $n$-independent (`foundations/bubble-edge-geometry.md` §3). This radial projection is an inference resting on the nested-sub-lattice structure; it is not an independently-derived identity of the canonical density-plane relaxation.
 
@@ -223,7 +223,7 @@ The ladder metaphor is correct but incomplete—it captures the assigned along-s
 - The $\varphi$-elliptical bubble shape (axis ratio $\varphi$) (`foundations/bubble-edge-geometry.md` §2.1)
 - The level-dependent directional edge-slope proxy $R(\theta_{\mathrm{cond}})=\frac{\sqrt{1+\varphi^2}}{2}\sqrt{\frac{1+\theta_{\mathrm{cond}}}{\theta_{\mathrm{cond}}}}$ (`foundations/bubble-edge-geometry.md` §2.2); at $\theta_{\mathrm{cond}}=0.45$, $R=1.7072$ as a conditional geometric-proxy benchmark, with no surviving $C=0.45$ edge at the fixed-step PDE endpoint
 - The Qi density proxy $q_{\mathrm{proxy}} = (1+B)^2/2$ with the bounded canonical map $q_{\mathrm{solver}}=\mathcal{M}(q_{\mathrm{proxy}})$ when the geometric ansatz and constitutive map are supplied (`foundations/bubble-edge-geometry.md` §1.1)
-- The displayed PDE's conditional scale reparameterization under $\varphi$-rescaling (`foundations/microcascade-mirror.md` §2)
+- The exact coordinate ratio $\ell_{n+k}/\ell_n=\varphi^k$ under the declared cascade parameterization (`foundations/dimensionful-cascade.md` §1)
 - The Planck-crossover scale: $\sigma = \ell_{\text{Pl}}/\varphi^3$ (rung $n = -3$)—the scale at which the lattice's bubble/void phase structure dissolves into the harmonic regime (noise–signal crossover at the Planck core, `gravity/quantum-gravity.md` §2.1; **Derived conditional on the noise–signal identification and $d = 3$**)
 
 ### Hypothesized (geometric coordinate assignments, PDE-testable, predictions supplied)
@@ -273,7 +273,7 @@ $$
 }
 $$
 
-4. **Is the lattice structure identical in the microcascade ($n < 0$)?** The microcascade mirror (`foundations/microcascade-mirror.md`) establishes bidirectional extension but notes a regime change in the Qi coherence profile at $n < 0$. Whether the condensation field maintains the same $B(x,y,z)$ functional form or transitions to something else is not yet known.
+4. **Is the lattice structure identical in the microcascade ($n<0$)?** `foundations/microcascade-mirror.md` defines the formal negative-step coordinate and leaves its field content open. The current theory supplies no bounded $q_n$, condensation field, or dynamical scale current for that domain.
 
 5. **Can the lattice realize a quantum apparatus?** The regulated measurement construction uses a Hamiltonian interaction that correlates alternatives with disjoint retained topological sectors, plus one actual guided configuration and quantum equilibrium (`open-questions-cassi-answers.md` Q7). A bubble lattice could supply microscopic apparatus coordinates only if an explicit CassiFI Hamiltonian produces those sectors and the required record overlaps $\gamma_{jk}$. No such lattice-to-apparatus derivation is presently registered.
 
@@ -283,7 +283,7 @@ $$
 
 - `foundations/bubble-edge-geometry.md`—condensation field derivation, checkerboard lattice, edge anisotropy, $\theta_{\text{cond}}$
 - `foundations/dimensionful-cascade.md`—complete cascade table, $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (292 = today's horizon rung)
-- `foundations/microcascade-mirror.md`—bidirectional cascade extension, conditional scale-reparameterization statement
+- `foundations/microcascade-mirror.md`—formal negative-step coordinate and physical-extension boundary
 - `foundations/cascade-suppression-formula.md`—signal attenuation per rung, effective nesting depth bound
 - `foundations/why-three-dimensions.md`—Frenet-Serret frame, triaxial spheroid, string axis
 - `foundations/wake-geometry.md`—wake beat envelope, checkerboard placement, closure ladder

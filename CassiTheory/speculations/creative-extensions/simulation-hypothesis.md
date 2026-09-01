@@ -59,9 +59,9 @@ This target describes conversion-only local relaxation. Global stability depends
 
 ### 2.1 The Planck reference and optional $\sigma$ crossover
 
-The render metaphor can use the cascade ladder $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ (`foundations/dimensionful-cascade.md` §2). The Planck length at $n=0$ is the reference rung for the 292-rung observable comparison. The optional $\sigma=\ell_{\text{Pl}}\varphi^{-3}$ crossover is at $n=-3$, and the microcascade continues below $n=0$.
+The render metaphor can use the cascade ladder $\ell_n=\ell_{\text{Pl}}\varphi^n$ (`foundations/dimensionful-cascade.md` §2). The Planck length at $n=0$ is the reference step for the 292-step observable comparison. The optional $\sigma=\ell_{\text{Pl}}\varphi^{-3}$ crossover is at $n=-3$, and the formal microcascade coordinate continues below $n=0$.
 
-Below the Planck reference, the optional $\sigma$-regularized harmonic regime connects to the microcascade (`foundations/dimensionful-cascade.md` §7; `foundations/microcascade-mirror.md` §4.1). The Schrödinger limit may include a Bohm quantum-potential sector as an optional ansatz with its own epistemic status, separate from the numerical grid. Quantization in this Creative reading is a coarse-grained interpretation of the extended model.
+Below the Planck reference, the optional $\sigma$-regularized harmonic regime and the microcascade are separate Hypothesized additions (`foundations/dimensionful-cascade.md` §7; `foundations/microcascade-mirror.md` §2). The Schrödinger limit may include a Bohm quantum-potential sector as an optional ansatz with its own epistemic status, separate from the numerical grid. Quantization in this Creative reading is a coarse-grained interpretation of the extended model.
 
 ### 2.2 Render distance at the horizon (rung 291.54)
 
@@ -72,7 +72,7 @@ The frame rate is not uniform in the proposed rendering metaphor: each rung is a
 
 ### 2.3 World edges at $n \approx 285$
 
-The Cassi bubble sits at rung 285: a coherence volume of $\sim 191$ Mpc containing roughly a million Milky-Way-sized galaxies—97.8% of today's ladder (the cascade is unbounded; 292 is the current horizon rung) (`foundations/dimensionful-cascade.md` §6). This is a proposed world-edge analogue: the boundary of our initial conditions, where our $w=5$ volume meets a neighboring one. If the selected triaxial condensation map is adopted, its edge supplies a conditional preferred-axis target; the reported $12.2^\circ$ quadrupole–octopole alignment remains a conditional comparison with foreground, instrument, statistical, and model alternatives open.
+The Cassi bubble sits at step 285: a coherence volume of $\sim191$ Mpc containing roughly a million Milky-Way-sized galaxies—97.8% of today's catalogued ladder (the formal coordinate is unbounded; physical extensions beyond the catalogue remain Hypothesized) (`foundations/dimensionful-cascade.md` §6). This is a proposed world-edge analogue: the boundary of our initial conditions, where our $w=5$ volume meets a neighboring one. If the selected triaxial condensation map is adopted, its edge supplies a conditional preferred-axis target; the reported $12.2^\circ$ quadrupole–octopole alignment remains a conditional comparison with foreground, instrument, statistical, and model alternatives open.
 
 ### 2.4 What it looks like from inside
 
@@ -84,11 +84,11 @@ The rendering metaphor associates smoothness, a horizon estimate, and a conditio
 
 ### 3.1 The ladder continues both ways
 
-A program that runs at one scale can run at any scale, because the update rule is scale-free. The two-fluid PDE is covariant under $\varphi$-rescaling (`foundations/bubble-lattice-fabric.md` §2.1), and the cascade formula is well-defined for all integers:
+The rendering metaphor assumes that one update architecture can recur across scale. The exact cascade coordinate is defined for all integers:
 
 $$\ell_n = \ell_{\text{Pl}} \times \varphi^{n}, \qquad n \in \mathbb{Z}$$
 
-Below $n = 0$ lies the microcascade, an infinite ladder of sub-Planckian scales converging geometrically to zero (`foundations/microcascade-mirror.md` §1.3); above $n = 292$ lies the megacascade, the chord lattice of identical $w=5$ bubbles beyond today's horizon. The lattice is not remote: the nearest neighbor bubbles sit inside the horizon at $\ell_{286} = 309$ Mpc and $\ell_{287} = 500$ Mpc (`foundations/dimensionful-cascade.md`, extension). The ladder has no top and no bottom: every level is the same equation rescaled. An architecture with this property cannot stop at one universe: the equation that generates one does not know where to stop.
+Below $n=0$, the formal microcascade labels converge geometrically to zero (`foundations/microcascade-mirror.md` §1); above $n\approx292$, the formal megacascade labels continue beyond today's horizon coordinate. The separate chord-lattice proposal places neighboring bubbles at $\ell_{286}=309$ Mpc and $\ell_{287}=500$ Mpc (`foundations/dimensionful-cascade.md`, extension). Repeating one field equation and one bubble geometry at every label is a Creative assumption of the simulation metaphor.
 
 ### 3.2 A simulator inside the simulation
 
@@ -195,7 +195,7 @@ Current CMB large-angle features, vacuum fluctuations, wake-wave searches, and t
 
 ### 6.1 Why the other speculations are falsifiable
 
-The speculation series works because its members convert framework properties into testable claims. The microcascade proposes a $\varphi$-spaced antenna array test at $\lambda=\lambda_0\varphi^k$ for both signs of $k$ (`foundations/microcascade-mirror.md` §5); Qi computation proposes conditional sub-Landauer energy and $\varphi$-spaced neural-timescale tests (`speculations/qi-computation.md` §8); dark matter as Qi coherence proposes rotation-curve signatures (`speculations/dark-matter-as-qi-coherence.md`) and the $\sigma_8$ test (`predictions/falsifiable-predictions.md` §3). Each can in principle be wrong in an observable way; these applications extrapolate beyond the framework while remaining answerable to experiment.
+The speculation series works because its members can define observable comparisons. A $\varphi$-spaced antenna can bound any response beyond a full-wave Maxwell null, although the microcascade supplies no nonzero residual prediction or coupling operator (`foundations/microcascade-mirror.md` §5). Qi computation proposes conditional sub-Landauer energy and $\varphi$-spaced neural-timescale tests (`speculations/qi-computation.md` §8); dark matter as Qi coherence proposes rotation-curve signatures (`speculations/dark-matter-as-qi-coherence.md`) and the $\sigma_8$ test (`predictions/falsifiable-predictions.md` §3). These applications extrapolate beyond the framework while remaining answerable to experiment.
 
 ### 6.2 Why the simulation claim is non-falsifiable
 
@@ -220,7 +220,7 @@ The framework supplies a substantive computational interpretation: if reality is
 - `foundations/cassi-first-principles.md`—two-fluid PDE, density residual and conversion sector, IIR memory, Schrödinger limit
 - `foundations/unified-lagrangian.md`—the complete action; named solver input $\lambda=0.1$ under the solver convention; $c$, $\hbar$, $G$ external
 - `foundations/cassi-theory-reference.md`—$\sigma = \ell_{\text{Pl}}/\varphi^3$, $\xi = \varphi^6$, bubble geometry, pinch transition
-- `foundations/microcascade-mirror.md`—infinite sub-Planckian ladder, mirror symmetry, $\sigma$-softening
+- `foundations/microcascade-mirror.md`—formal negative-step coordinate and open physical state, energy, and coupling
 - `foundations/bubble-lattice-fabric.md`—universal checkerboard, scale covariance, 10-rung nesting depth
 - `foundations/bubble-edge-geometry.md`—condensation field level sets, edge anisotropy, CMB imprint
 - `foundations/cascade-suppression-formula.md`—signal attenuation $\varphi^{-N}$, full coherence-maintenance exponent $\varphi^{-n(n+1)/2-3(n+1)}$

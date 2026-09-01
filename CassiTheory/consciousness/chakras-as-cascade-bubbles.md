@@ -286,9 +286,9 @@ The universal statement of this scale-covariance and the bubble lattice geometry
 
 ### 9.2 The Infinite Ladder
 
-The microcascade mirror (`foundations/microcascade-mirror.md`) establishes that the cascade extends infinitely in both directions. The human chakra system occupies one octave of this infinite ladder—the 26-rung window from cellular to organism. Adjacent octaves exist above (social/planetary scales at steps 169+) and below (sub-cellular/molecular at steps 141−).
+`foundations/microcascade-mirror.md` establishes the arithmetic continuation of the scale coordinate to negative and positive integer labels. Physical field states across that full range remain Hypothesized. The human chakra construction occupies the mapped 26-step window from cellular to organism scale; repeating its geometry into adjacent scale intervals is a separate Hypothesized assignment.
 
-The "infinite depth of mind" described in the consciousness framework (`consciousness/consciousness-from-phi.md` §2.3, M3) is not a separate claim—it follows directly from the cascade having no floor. The chakras are the accessible nodes of that infinite ladder at the human scale. Deeper meditation accesses lower $n$ (sub-cellular, molecular, ultimately microcascade $n < 0$); higher states access higher $n$ (social, planetary, ultimately megacascade $n > 292$).
+The proposed “infinite depth of mind” in `consciousness/consciousness-from-phi.md` §2.3 is therefore a Creative interpretation of the formal coordinate. Meditation has no established mechanism for accessing lower cascade labels; such access would require a measured interscale state and current.
 
 ### 9.3 Visible Light and the Chakra Colors
 
@@ -467,7 +467,7 @@ The tracer/coarse-graining resolution (tier: **Hypothesized—conditional on the
 - `foundations/bubble-edge-geometry.md`—condensation field, bubble geometry, edge steepness, $\theta_{\text{cond}}$
 - `foundations/why-three-dimensions.md`—Frenet-Serret frame, triaxial spheroid, anti-phase selection
 - `foundations/dimensionful-cascade.md`—complete 292-step cascade, steps 142 and 168
-- `foundations/microcascade-mirror.md`—bidirectional cascade extension, mirror symmetry
+- `foundations/microcascade-mirror.md`—formal negative-step coordinate and open physical realization
 - `foundations/spin-fibonacci-spiral.md`—geometric doublet convention and phase coordinates; the canonical conversion's density relaxation is distinct from that convention
 - `foundations/three-generations.md`—Fibonacci recurrence, cascade sub-channel partitioning
 - `predictions/falsifiable-predictions.md`—prediction catalog, $\ln\varphi$ $P(k)$ modulation

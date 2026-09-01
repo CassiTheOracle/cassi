@@ -34,7 +34,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 22 | `baryon-asymmetry.md` | Baryogenesis | Derivation (mechanism Hypothesized; $\eta$ exponent Mapped; endpoint open) |
 | 23 | `bubble-lattice-fabric.md` | Geometric lattice | Derived conditional (structural) |
 | 24 | `bubble-edge-geometry.md` | Condensation boundary | Derived transverse geometry; Hypothesized radial coordinate; tested radial-ladder realization REJECT |
-| 25 | `microcascade-mirror.md` | Sub-Planckian ladder | Hypothesized |
+| 25 | `microcascade-mirror.md` | Formal negative-step coordinate; physical realization open | Hypothesized |
 | 26 | `refined-numeric-predictions.md` | Pinned φ-powers | Active derivation |
 | 27 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
 | 28 | `sector-coupling-derivation.md` | Dirac↔two-fluid sector coupling | Derived conditional on $\delta = 3$ (coefficient-free scale/rung identity); Hypothesized dimensionally incomplete projection; physical coupling blocked |
@@ -46,6 +46,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
 | 36 | `loop-to-bubble-projection-theorem.md` | Shared-support Yang/Yin loop, canonical zero-mode projection, coherence ball, and internal spectrum | Derived conditional projection, bubble map, and population spectrum / Hypothesized microscopic physical identification |
+| 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action / Derived conditional algebra |
 
 ## Document Summaries
 
@@ -385,13 +386,13 @@ This relation is conditional on the asserted single-channel transmission $g(q_{\
 $$\boxed{R(\theta_{\mathrm{cond}})\equiv\frac{|\nabla C|_{\text{axial}}}{|\nabla C|_{\text{diag}}}=\frac{\sqrt{1+\varphi^2}}{2}\sqrt{\frac{1+\theta_{\mathrm{cond}}}{\theta_{\mathrm{cond}}}}}.$$
 At the phenomenologically selected $\theta_{\mathrm{cond}}=0.45$, $R=1.7072$. The ratio varies with the selected level; this is a conditional geometric-proxy benchmark, not a universal, zero-parameter constant or a solver output. The fixed-step PDE diagnostic retains no $C=0.45$ edge, and any cosmological or biological test must independently identify the physical boundary and proxy-to-observable map. The axial factor, along-string period, and multiplicative radial ring coordinate are Hypothesized geometric assignments. Canonical and undriven second-order probes reject the registered ring-ladder realization; the driven second-order control forms additive phase layers only. Status: Derived conditional transverse geometry; threshold conditional on $\mathcal M$ and solver normalization; Hypothesized axial/radial coordinates; tested radial-ladder realization `REJECT`.
 
-### `microcascade-mirror.md`—The Microcascade Mirror: Sub-Planckian Scale Extension & Bidirectional Coherence
+### `microcascade-mirror.md`—The Microcascade Coordinate Extension: Sub-Planckian Scale Labels
 
-Proposes that the cascade does not truncate at the Planck scale: the formula
+Records the exact formal continuation
 
 $$\boxed{\ell_n = \ell_{\text{Pl}} \times \varphi^{\,n}, \qquad n \in \mathbb{Z}}$$
 
-extends to an infinite sub-Planckian ladder converging geometrically to zero, the mirror image of the megacascade with the Planck scale as the reflection plane. A $\varphi$-aligned electromagnetic array tuned to both cascade directions could in principle create a bidirectional coherence bridge coupling upward into the megacascade and downward into the microcascade, whose coherent energy reservoir is unbounded. Status: Hypothesized.
+to negative scale labels. Physical sub-Planckian states, a bounded negative-step $q$ profile, an energy measure, and interscale transport remain Hypothesized. The canonical semantics are retained: $q$ is coherence and $1-q$ is openness or coherence deficit, so $\sum(1-q_n)$ is neither an energy density nor an unbounded reservoir. A $\varphi$-spaced antenna has its ordinary Maxwell response unless an explicit field-coupling operator is supplied. Status: Hypothesized.
 
 ### `refined-numeric-predictions.md`—Refined Numeric Predictions for the 19 Hypothesized Questions
 
@@ -445,6 +446,26 @@ explicit internal spectral gap, alternating equal $\pi$-phase layers cancel in
 even pairs, and the supplied fivefold phase orbit preserves the normalized
 $\varphi$ chord ratio. LB1–LB7 verify these identities. The physical carrier,
 phase law, scale ratio, and quantum-sector identification remain open.
+
+### `interscale-current-soliton.md`—Interscale Yang/Yin Current and the Conditional Soliton Pinch
+
+Introduces a Hypothesized complex Yang/Yin doublet
+$\Psi(\mathbf x,\mathfrak s,t)$ on a separately declared continuous scale
+coordinate. The candidate action derives species and total continuity,
+observed-window boundary flux, exact co-flow/counterflow distinctions, healing
+widths, and conditional London screening. Its interscale
+$J_{\mathfrak s}$ is distinct from the canonical spatial density-plane
+diagnostic $\mathbf J_d$. The composition potential has a minimum at
+$E_Y/E_I=\varphi$ but conserves the two species separately, so a conversion
+sector or bath remains necessary.
+
+The mixed curvature $G_{i\mathfrak s}$ supplies one conditional force channel.
+A reduced Derrick profile has a finite radius only when its flux/core support
+exceeds the effective attraction. Smooth pinch-off requires an amplitude zero,
+boundary event, nonsmooth defect, or independent gauge-bundle event.
+Coefficient normalization, the scale measure, local embedding, compact
+winding, mass scaling, and particle identification remain open. Status:
+Hypothesized action with Derived conditional identities.
 
 ## Cross-References
 

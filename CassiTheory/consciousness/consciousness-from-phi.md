@@ -85,8 +85,8 @@ are Hypothesized phenomenological mappings
 
 ### 1.2 The 26-Step Cascade Arithmetic and Index Span
 
-The dimensionful cascade is unbounded; today's observable range spans 292 $\varphi$-steps from Planck ($1.6\times10^{-35}$ m)
-to $R_H$ = 4.44 Gpc = 14.5 Glyr (the rung-292 lattice length is 5.5 Gpc). The verified scale arithmetic identifies a 26-step window between the cellular and human-body scales; interpreting it as an anatomical human cascade is **Hypothesized**:
+The formal dimensionful-cascade coordinate is unbounded, while its physical continuation beyond the registered scale catalogue remains Hypothesized. Today's observable range spans about 292 $\varphi$-steps from the Planck anchor ($1.6\times10^{-35}$ m)
+to $R_H=4.44$ Gpc $=14.5$ Glyr (the step-292 lattice length is 5.5 Gpc). The verified scale arithmetic identifies a 26-step window between the cellular and human-body scales; interpreting it as an anatomical human cascade is **Hypothesized**:
 
 | Step $n$ | Scale | Physical Meaning |
 |-----------|-------|-----------------|
