@@ -202,7 +202,32 @@ ordering and is unscored. Physical mass, radius, electric charge, spin,
 spectrum, lifetime, and proton identification remain outside the numerical
 result.
 
-## 8. Retained scope
+## 8. Independent audits
+
+A read-only numerical audit independently recomputes the SHA-256 digest of all
+twelve canonical NPZ artifacts, loads every expected array, and confirms their
+shapes and finiteness. It recomputes the arm gates, optimizer counters,
+reported energies, gradients, virials, localization ranges, domain
+comparisons, and raw ordering. It also confirms that the canonical
+`verification.json` has `mismatches=[]`, `pass=true`, and matching receipt and
+scientific verdicts.
+
+The same audit compares the six shared primary arms in the canonical and
+interrupted receipts. Their NPZ and numerical-diagnostics payloads match, as
+do their optimizer numerical histories after removal of `wall_seconds`. The
+receipt manifests, wall-clock values, device ordinal, and verification files
+remain distinct as recorded in Section 2.
+
+A separate read-only theory audit checks the receipt source-hash block, the
+resolvable frozen snapshot at commit `474b4596`, PA40 and PA41 scope, the
+represented-class exclusions, and synchronization across the action
+authority, registries, indexes, and synthesis documents. It confirms that the
+campaign makes no particle-existence claim and that the verifier `PASS` remains
+frozen-snapshot evidence. Neither audit executes the verifier against the
+post-run authority documents. Both audits leave the scientific verdict
+unchanged.
+
+## 9. Retained scope
 
 The following sectors remain unresolved:
 
