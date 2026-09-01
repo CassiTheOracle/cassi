@@ -436,6 +436,13 @@ Dimensionless couplings are expressed as $\varphi$-powers, with individual statu
 
 The canonical solver is the density-pair system described in §2; the displayed action is an optional amplitude-field/action extension. Its sector identifications and physical mappings are **Hypothesized**; algebraic identities are **Derived conditional** only after the stated ansätze and external conventions are selected.
 
+For fixed-charge particle work, the action authority is
+`foundations/particle-stationary-action-closure.md`. That conditional branch
+combines the registered interscale, adjoint-core, and neutral-carrier static
+terms, selects a source-free second-order temporal gauge completion, and
+excludes the aggregate optional action and dimensionally incomplete mixing
+term displayed in this section.
+
 $$S_{\text{Cassi}} = \int d^4x\sqrt{-g}\,(\mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}})$$
 
 Dimensionless couplings are expressed as $\varphi$-powers, with individual status labels. The canonical $\lambda=0.1$ is the **C-class solver normalization/timescale convention**; the relation $\lambda=1/(2w)$ at $w=5$ is a **Hypothesized** Wu Xing cycle linkage, not a $\varphi$-derived rate. Three external dimensionful constants ($c$, $\hbar$, $G$) set the unit system; $\ell_{\text{Pl}} = \sqrt{\hbar G/c^3}$ is the cascade's sole dimensionful anchor.

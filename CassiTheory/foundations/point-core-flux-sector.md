@@ -663,17 +663,19 @@ The current action does not derive $M_R$ for an excised boundary.
 
 ### 7.3 Full fluctuation operator
 
-A full spectrum requires a stationary background
-$(\Psi_*,B_{A,*},\Upsilon_{v,*})$, gauge fixing, core and endpoint boundary
-conditions, and the second variation in every coupled channel. The registered
-action has first-order matter kinetics and no temporal gauge curvatures
-$G_{ti}$ or $G_{t\mathfrak s}$. It therefore supplies no gauge-field inertia or
-complete Gauss dynamics. Static positivity of (PF39) cannot be converted into
-gauge-mode frequencies.
+A full spectrum requires a stationary background, gauge fixing, core and
+endpoint boundary conditions, and the second variation in every coupled
+channel. The separate conditional action in
+`foundations/particle-stationary-action-closure.md` supplies second-order
+charged-field kinetics, positive temporal curvatures, and Gauss's law. Its
+coefficient point and stationary background remain unselected. Static
+positivity of (PF39) therefore cannot yet be converted into gauge-mode
+frequencies.
 
-The exact result currently available is the positive one-dimensional scaling
-curvature. The full fluctuation spectrum remains undefined until a finite-energy
-background and temporal gauge completion are supplied.
+The exact result available in this sector is the positive one-dimensional
+scaling curvature. The full fluctuation spectrum requires a finite-energy
+background, selected temporal groups, gauge fixing, and the complete second
+variation.
 
 ---
 
@@ -687,7 +689,7 @@ background and temporal gauge completion are supplied.
 | Does the current Abelian action smooth the point core? | No; $dG=0$ forces zero flux through a smooth ball |
 | Does the registered condensate admit an isolated finite-energy monopole? | No; the nonzero charged asymptotic sections give divergent angular kinetic energy |
 | Is a scalar radial matter solve available? | No; $j\geq|N_G|/2$ and the core/outer data are incomplete |
-| Is the full fluctuation spectrum defined? | No; the stationary background, core data, and temporal gauge dynamics are absent |
+| Is the full fluctuation spectrum defined? | No; the temporal action and Gauss constraint are explicit, while the stationary background, core data, temporal groups, gauge fixing, and second variation remain unselected |
 
 The algebraic and spectral identities are checked by
 `computations/point_core_flux_check.py`. They create no numbered physical
@@ -722,8 +724,10 @@ minimum in the registered branch.
 The neutral carrier in `foundations/core-trapped-charge-support.md` supplies a
 conditional reduced support term $A_C/L$. The strict inequality $A_C>C_Q$
 gives one finite root with positive length curvature when carrier retention
-and thin-tube matching also hold. A full backreacted stationary particle and
-its fluctuation spectrum remain undefined.
+and thin-tube matching also hold. The separate particle action supplies the
+complete fixed-charge stationary formulation and Gauss constraint. Its
+coefficient point, backreacted solution, and fluctuation spectrum remain
+unselected.
 
 ---
 
@@ -747,3 +751,7 @@ its fluctuation spectrum remain undefined.
   support, carrier retention, and reduced finite-separation theorem
 - `computations/core_trapped_charge_check.py`—support-root, curvature,
   localization, and source-unit checker
+- `foundations/particle-stationary-action-closure.md`—source-free temporal
+  action, Gauss constraint, stationary equations, and variational boundary
+- `computations/particle_action_closure_check.py`—action-algebra and
+  nondimensionalization checker

@@ -46,18 +46,23 @@ The auxiliary neutral carrier in
 `foundations/core-trapped-charge-support.md` supplies a conditional reduced
 support branch. Its conserved $Q_C$ and positive line self-coupling give
 $A_C/L$ with $A_C=\Lambda_CQ_C^2/2$; $A_C>C_Q$ yields one finite root with
-positive length curvature. Carrier localization, thin-tube matching,
-backreaction, and comparison with competing fixed-$Q_C$ configurations remain
+positive length curvature. The conditional source-free action in
+`foundations/particle-stationary-action-closure.md` combines the carrier,
+doublet, adjoint core, and gauge sectors; derives Gauss's law and all stationary
+equations; and declares the first fixed-$Q_C$ variational class. Carrier
+localization, a normalization-invariant coefficient point, the backreacted
+tube, and comparison with competing fixed-charge configurations remain
 required.
 
 The resulting boundary is sharp. A smooth magnetic core is available in the
 adjoint-only or vanishing-condensate branch. The registered Cassi fields alone
 supply no isolated finite-energy point defect or persistent net-zero
 composite. The auxiliary carrier closes the one-coordinate support condition
-only under its declared inequalities. A full stationary particle and
-dynamical fluctuation spectrum remain unestablished. Temporal gauge curvatures
-and a Gauss law are additionally required before gauge-mode frequencies can be
-defined.
+only under its declared inequalities. The particle action makes a full
+stationary solve well posed once its dimensionless data are selected; no such
+point or solution is presently registered. A dynamical fluctuation spectrum
+additionally requires a stationary background, temporal coefficients, and
+gauge fixing.
 
 ---
 
@@ -762,12 +767,13 @@ slope. A persistent finite pair is not derived.
 | Isolated core with $\rho\to\rho_0>0$ | No | Finite-energy isolated magnetic boundary data do not exist |
 | Fixed-separation monopole-antimonopole string with registered fields | Conditional constrained problem only | Tube profile, core data, outer boundary, endpoint lift, and coefficients are unselected |
 | Carrier-supported fixed-$Q_C$ pair | Reduced problem solved analytically; full problem unselected | `foundations/core-trapped-charge-support.md` gives the unique length root under $A_C>C_Q$, carrier retention, and matching conditions |
-| Full stationary particle | No | The transverse carrier mode, magnetic tube, nonlinear backreaction, and competing fixed-charge configurations are unselected |
+| Full stationary particle | Variational problem defined; numerical instance unselected | The conditional particle action supplies the coupled Euler and Gauss equations and boundary inventory; the coefficient point, transverse carrier mode, backreacted tube, and basin comparison remain unselected |
 
 A numerical integration of the exact BPS profile or the reduced carrier root
-would add no physical information. A full stationary particle solve would
-choose absent coefficients, tube data, and boundaries. No preregistered PDE
-run is therefore performed.
+would add no physical information. A full stationary particle solve now has a
+declared functional, but choosing its absent dimensionless point, charge,
+domain, and initialization basins would determine the tested model. No
+preregistered PDE run is therefore performed.
 
 ### 6.2 Static BPS Hessian
 
@@ -790,20 +796,22 @@ Equation (MC48) establishes static nonnegativity, not dynamical frequencies.
 
 ### 6.3 Full dynamical spectrum
 
-The registered source action contains first-order matter kinetics but no
-$\mathcal F_{ti}^a$ or $\mathcal F_{t\mathfrak s}^a$ kinetic terms and no
-complete Gauss law. The coupled branch also lacks a finite-energy stationary
-background. A physical fluctuation spectrum therefore requires, in order:
+The conditional source-free branch in
+`foundations/particle-stationary-action-closure.md` supplies positive
+$\mathcal F_{ti}^a$ and $\mathcal F_{t\mathfrak s}^a$ terms, second-order
+charged-field time kinetics, and the complete Gauss constraint. A physical
+fluctuation spectrum still requires, in order:
 
 1. a selected full fixed-$Q_C$ carrier-and-tube background;
-2. an $SU(2)_Q$ lift or replacement of the endpoint sector;
-3. temporal gauge curvatures with positive coefficients;
-4. the corresponding Gauss constraint and gauge fixing;
-5. the second variation in adjoint, doublet, gauge, endpoint, and scale
+2. selected temporal groups $c_\Psi,c_\Phi,e_{tx},e_{t\mathfrak s}$;
+3. an $SU(2)_Q$ endpoint lift or replacement where the circuit boundary is
+   retained;
+4. a declared gauge condition;
+5. the second variation in adjoint, doublet, gauge, endpoint, carrier, and scale
    channels.
 
-Temporal completion alone would make frequencies definable only after the
-stationary-background problem is solved. It does not remove the
+The temporal action makes frequencies definable after the stationary
+background and temporal point are selected. It does not remove the
 nonzero-condensate monopole obstruction.
 
 ---
@@ -819,15 +827,17 @@ nonzero-condensate monopole obstruction.
 | Finite net-zero monopole-antimonopole configuration | **CONDITIONAL** | Requires a resolved flux tube and selected coefficients |
 | Persistent finite-separation composite from registered fields | **FAIL in the registered asymptotic branch** | Strictly positive slope (MC47); no registered support term |
 | Carrier-supported separation coordinate | **PASS conditionally in the reduced branch** | $A_C>C_Q$, carrier retention, and thin-tube matching in `foundations/core-trapped-charge-support.md` |
-| Full stationary particle solver | **FAIL / not well posed** | No selected transverse carrier mode, backreacted tube, or comparison with competing fixed-charge configurations |
+| Full stationary particle solver | **DEFINED conditionally / not solved** | The source-free particle action fixes the variational equations and boundaries; no coefficient point, transverse mode, backreacted tube, or basin comparison is selected |
 | Static adjoint BPS stability | **PASS conditionally** | Nonnegative factorized quadratic energy (MC48) |
-| Full dynamical fluctuation spectrum | **FAIL / undefined** | No stationary full background, temporal gauge kinetics, or Gauss law |
+| Full dynamical fluctuation spectrum | **UNSOLVED** | The temporal and Gauss sectors are explicit, while the stationary background, temporal groups, gauge fixing, and second variation remain unselected |
 
 The auxiliary carrier supplies the first explicit conserved support sector and
 passes $E'(L_*)=0$, $E''(L_*)>0$ in the frozen-mode thin-tube reduction. The
-next stationary decision is the bound transverse carrier mode and a full
-fixed-$Q_C$ backreacted solution. A positive temporal gauge completion with its
-Gauss law remains necessary for a coupled gauge spectrum.
+source-free temporal branch supplies the coupled fixed-charge functional and
+Gauss constraint. The next stationary decision is a normalization-invariant
+coefficient point, bound transverse carrier mode, and full backreacted basin
+comparison. A coupled gauge spectrum follows only after that background and
+the temporal groups are selected.
 
 ---
 
@@ -867,11 +877,15 @@ The auxiliary core carrier in
 `foundations/core-trapped-charge-support.md` supplies the missing inverse-length
 term conditionally. A fixed $Q_C$ gives one reduced stable separation when
 $A_C>C_Q$, provided the carrier remains below its bulk threshold and the root
-lies beyond core overlap. The full transverse mode, backreaction, and
-fixed-charge configuration comparison remain open.
+lies beyond core overlap. The separate action in
+`foundations/particle-stationary-action-closure.md` supplies the complete
+backreaction equations, temporal gauge sector, Gauss constraint, and
+fixed-charge variational boundary. The coefficient point, transverse mode,
+stationary solution, and fixed-charge configuration comparison remain open.
 
-Stationary particle numerics require those selected inputs and a resolved tube.
-Temporal gauge dynamics follows after a full stationary background exists.
+Stationary particle numerics begin with selection and preregistration of those
+dimensionless inputs and basins. Dynamical gauge analysis follows a converged
+stationary background.
 
 ---
 
@@ -891,6 +905,10 @@ Temporal gauge dynamics follows after a full stationary background exists.
   support, carrier-retention boundary, and finite-separation theorem
 - `computations/core_trapped_charge_check.py`—support-root, curvature,
   localization, and source-unit checker
+- `foundations/particle-stationary-action-closure.md`—conditional temporal
+  action, Gauss constraint, stationary equations, and variational boundary
+- `computations/particle_action_closure_check.py`—action-algebra and
+  nondimensionalization checker
 - G. 't Hooft, “Magnetic Monopoles in Unified Gauge Theories,” *Nuclear Physics
   B* **79** (1974), 276–284
 - A. M. Polyakov, “Particle Spectrum in Quantum Field Theory,” *JETP Letters*

@@ -122,6 +122,11 @@ $B_t$, its temporal covariant derivatives, and Gauss dynamics. Those fields are
 absent from the interscale source action and remain outside the present
 sector.
 
+The separate source-free completion in
+`foundations/particle-stationary-action-closure.md` supplies those temporal
+fields and Gauss's law for the coupled fixed-$Q_C$ particle branch. The endpoint
+sector here remains the authority for the spatial-and-scale vertex algebra.
+
 ### 2.2 Vertex orientation
 
 Let
@@ -820,9 +825,10 @@ thin-tube matching hold.
 | Scale-graph winding $m$ | Nonzero coherent amplitude around the compact graph | Rail-amplitude zero, endpoint phase slip, boundary event, or open jump | Unselected |
 | Rank-one projective charge | Evolution remains on $\|\mathbf n\|=1$ with fixed boundary data | Entry into the full-rank interior or $\rho=0$ | Minimal conversion supplies an inward path but no universal transition rate |
 | First Chern number $N_G$ | Closed two-cycle and compact connection in a defect or nontrivial-base sector | Boundary flux, defect crossing, singular connection event, or removal of the cycle | Exterior coefficient Derived conditionally; core dynamics unselected |
-| Reduced spatial radius | $\mathcal A>0$, $\mathcal C\geq0$, and $\mathcal B_G>\mathcal D$ in the point-core branch | Collapse when support does not exceed $\mathcal D$; large-radius instability when $\mathcal C<0$ | Reduced curvature Derived; full field and fluctuation operator absent |
-| Auxiliary magnetic core | Adjoint-only $SU(2)_Q$ sector has the exact BPS core; the registered nonzero fundamental condensate confines flux | Condensate coupling removes the isolated magnetic sector; a finite pair can shrink and annihilate | Static adjoint Hessian nonnegative conditionally; coupled spectrum absent |
-| Core-trapped carrier pair | $A_C>C_Q$, $\hbar\omega_C<\varepsilon_{C,\rm out}$, and separation beyond core overlap | Carrier leakage, profile delocalization, core merger, or transition to another fixed-$Q_C$ configuration | Reduced length and line-density curvature Derived conditionally; full coupled spectrum absent |
+| Reduced spatial radius | $\mathcal A>0$, $\mathcal C\geq0$, and $\mathcal B_G>\mathcal D$ in the point-core branch | Collapse when support does not exceed $\mathcal D$; large-radius instability when $\mathcal C<0$ | Reduced curvature Derived; full stationary functional defined, background unselected |
+| Auxiliary magnetic core | Adjoint-only $SU(2)_Q$ sector has the exact BPS core; the registered nonzero fundamental condensate confines flux | Condensate coupling removes the isolated magnetic sector; a finite pair can shrink and annihilate | Static adjoint Hessian nonnegative conditionally; temporal action defined, coupled spectrum absent |
+| Core-trapped carrier pair | $A_C>C_Q$, $\hbar\omega_C<\varepsilon_{C,\rm out}$, and separation beyond core overlap | Carrier leakage, profile delocalization, core merger, or transition to another fixed-$Q_C$ configuration | Reduced length and line-density curvature Derived conditionally; fixed-charge action defined, background and spectrum absent |
+| Fixed-$Q_C$ stationary particle | Selected static dimensionless groups, charge, domain, boundary data, gauge condition, and converged coupled solution | Basin change, charge leakage, boundary failure, or instability in the second variation | Action and Gauss constraint Derived conditionally; coefficient point, background, and spectrum unselected |
 | Open endpoint population circuit | Positive rates satisfying (EL32) | Rate imbalance, donor depletion, or bath change | Absolute rates given conditionally by (EL33) |
 | Open endpoint coherence | External coherent support | Undriven decay $\dot c=-\gamma_vc/2$ | Half the local donor-jump rate |
 
@@ -922,9 +928,11 @@ supplies a regular local core and matches that exterior coefficient. Its exact
 monopole belongs to the decoupled adjoint sector; the registered nonzero
 fundamental condensate removes the isolated magnetic sector and confines the
 flux. The endpoint current retains mathematical closure at the declared
-conditional level, but it has no selected non-Abelian vertex lift. A supported
-net-zero particle, its quantum numbers, fluctuation spectrum, and decay rate
-remain open physical sectors.
+conditional level and has no selected non-Abelian vertex lift. The separate
+source-free particle action defines the coupled fixed-$Q_C$ stationary problem
+and Gauss constraint. A selected coefficient point, supported net-zero
+particle, its quantum numbers, fluctuation spectrum, and decay rate remain
+open physical sectors.
 
 ---
 
@@ -944,6 +952,10 @@ remain open physical sectors.
   support, retention boundary, and finite-separation theorem
 - `computations/core_trapped_charge_check.py`—support-root, curvature,
   localization, and source-unit checker
+- `foundations/particle-stationary-action-closure.md`—source-free temporal
+  action, Gauss constraint, stationary equations, and variational boundary
+- `computations/particle_action_closure_check.py`—action-algebra and
+  nondimensionalization checker
 - `foundations/physical-becoming-hierarchy.md`—closed conservative and
   mesoscopic open-system boundary
 - `foundations/loop-to-bubble-projection-theorem.md`—positive Yang/Yin Gram

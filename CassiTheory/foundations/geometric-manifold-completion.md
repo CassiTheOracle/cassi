@@ -49,7 +49,11 @@ isolated magnetic sector and confines flux; its finite pair has no
 finite-separation minimum in the registered branch. A neutral core carrier
 supplies one conditional reduced support branch under explicit charge,
 retention, and matching inequalities
-(`foundations/core-trapped-charge-support.md`).
+(`foundations/core-trapped-charge-support.md`). The separate source-free
+temporal action combines the charged and carrier sectors, derives Gauss's law,
+and defines the fixed-$Q_C$ stationary variational problem
+(`foundations/particle-stationary-action-closure.md`). Its coefficient point
+and stationary solution remain unselected.
 
 ---
 
@@ -1394,7 +1398,7 @@ No numbered prediction is added to
 | Scale tension and endpoint selection | Capacity bound and one-way rate ratio Derived conditionally; physical couplings, rates, and scale selection open |
 | Mixed-curvature inward force | Conditional restricted-sector result |
 | Physical bubble identification | Hypothesized observation map |
-| Stable spatially localized solution | Absent in the minimal smooth zero-Chern and registered confined-pair sectors; point-core flux supplies a conditional exterior coefficient, an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, and a neutral fixed-$Q_C$ carrier supplies one statically stable reduced separation under support, retention, and matching inequalities; a full coupled stationary solution remains open |
+| Stable spatially localized solution | Absent in the minimal smooth zero-Chern and registered confined-pair sectors; point-core flux supplies a conditional exterior coefficient, an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, and a neutral fixed-$Q_C$ carrier supplies one statically stable reduced separation under support, retention, and matching inequalities. A separate source-free temporal action defines the coupled stationary variational problem, while no coefficient point or stationary solution is selected |
 | Particle mass, charge, color, spin, statistics, and decay rate | Open |
 | Covariant gravity and physical scale metric | Open |
 
@@ -1517,6 +1521,10 @@ layers. Physical completion requires the solution specified in §10.
   support, carrier retention, and reduced finite-separation theorem
 - `computations/core_trapped_charge_check.py`—support-root, curvature,
   localization, and source-unit checker
+- `foundations/particle-stationary-action-closure.md`—source-free temporal
+  action, Gauss constraint, stationary equations, and variational boundary
+- `computations/particle_action_closure_check.py`—action-algebra and
+  nondimensionalization checker
 - `foundations/unified-lagrangian.md`—optional conservative sector bookkeeping
 - `field-experience/toroidal-coherence-survival-report.md`—spatial torus survival verdict
 - `field-experience/toroidal-connected-hierarchy-report.md`—connected hierarchy result

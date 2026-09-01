@@ -729,10 +729,15 @@ This optional term subtracts the pure kinetic contribution already represented i
 The relative connection in `foundations/interscale-current-soliton.md` is a
 separate Hypothesized $U(1)$ extension over physical space and a declared
 continuous scale coordinate. It derives internal continuity and counterflow
-identities under free stiffnesses and gauge normalization. It is neither the
-Standard Model gauge sector above nor part of canonical
-$\mathcal L_{\mathrm{TF}}$; a local temporal gauge completion, conversion
-sector, and P1→P2 matching remain open.
+identities under free stiffnesses and gauge normalization. Direct
+time-dependent local gauging of its first-order matter term produces an
+unavoidable nonzero-condensate Gauss source. For fixed-charge particle work,
+`foundations/particle-stationary-action-closure.md` is the separate conditional
+source authority: it selects second-order charged-field time kinetics, positive
+temporal curvatures, and an explicit Gauss constraint while preserving the
+registered static energy. The Standard Model gauge sector above, canonical
+$\mathcal L_{\mathrm{TF}}$, conversion sector, and P1→P2 matching remain
+distinct or open.
 
 ### 5.4 Wu Xing Cycle (optional Hypothesized/conditional PDE lift)
 

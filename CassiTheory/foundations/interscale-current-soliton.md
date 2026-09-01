@@ -47,12 +47,18 @@ The neutral carrier branch in `foundations/core-trapped-charge-support.md`
 supplies an exact conserved $Q_C$ and a conditional inverse-length term
 $A_C/L$. The reduced pair has one finite root with positive length curvature
 when $A_C>C_Q$, the carrier remains below its bulk threshold, and the root lies
-beyond core overlap. The transverse carrier mode, dimensional normalization,
-carrier and gauge stiffnesses, scale metric, conversion mechanism, compact
-boundary conditions, and particle-sector map remain open. In particular,
-$\varphi$ fixes the energy-minimizing Yang/Yin composition and its counterflow
-factor; it does not determine the carrier coefficients, gauge coupling, or any
-SI scale.
+beyond core overlap. The separate source-free temporal branch in
+`foundations/particle-stationary-action-closure.md` combines this static sector
+with the auxiliary adjoint core, derives Gauss's law, and defines the coupled
+fixed-$Q_C$ stationary functional. Its second-order charged-field kinetics are
+separate from the first-order interscale action derived here, whose direct local
+gauging carries an unavoidable nonzero-condensate Gauss source.
+
+The transverse carrier mode, dimensional normalization, coefficient point,
+scale metric, conversion mechanism, compact boundary data, stationary field
+solution, and particle-sector map remain open. In particular, $\varphi$ fixes
+the energy-minimizing Yang/Yin composition and its counterflow factor; it does
+not determine the carrier coefficients, gauge coupling, or any SI scale.
 
 ---
 
@@ -234,10 +240,13 @@ $$
 $$
 
 All displayed stiffnesses are positive in the stable static sector. This is a
-spatial-and-scale connection in temporal gauge. A fully time-local gauge theory
-requires temporal curvatures $G_{ti}$ and $G_{t\mathfrak s}$, their kinetic
-coefficients, and a Gauss law. Varying an otherwise nondynamical $B_t$ would
-instead impose an unwanted local Yang/Yin neutrality constraint.
+spatial-and-scale connection with a first-order matter time term. Promoting the
+same term to a time-dependent local gauge symmetry gives the fundamental
+condensate a nonzero Gauss source; a source-free homogeneous vacuum is therefore
+obstructed. The separate branch in
+`foundations/particle-stationary-action-closure.md` uses second-order covariant
+time kinetics for the charged fields, positive temporal curvatures, and an
+explicit Gauss constraint while retaining this document's static energy.
 
 ### 2.5 Units under the flat-density convention
 
@@ -1357,6 +1366,7 @@ minimum in §7.2.
 | Healing widths and local London coefficients | Derived conditional linearization |
 | Inward mixed-curvature force | Conditional on source sign, response, and restricted field sector |
 | Finite Derrick radius and loop length | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux gives $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires $\mathcal B_G>\mathcal D$; an auxiliary adjoint $SU(2)_Q$ core matches that exterior, while the registered condensate confines flux and gives no persistent pair by itself; a neutral fixed-$Q_C$ carrier gives one conditional reduced separation under its support, retention, and matching inequalities; full loop existence remains unestablished |
+| Temporal gauge and Gauss sector | Direct local gauging of the first-order interscale term is source-free Gauss-obstructed for the nonzero fundamental condensate; a separate conditional second-order particle branch supplies time-dependent local $SU(2)_Q$, positive temporal curvatures, and a Gauss-compatible static sector |
 | Pure $CP^1$ obstruction and flux quantization | Projective charge contracts in the full coherence ball; an independent first Chern number requires a closed two-cycle absent from the smooth unexcised base; point excision retains a singular or externally completed core |
 | Scale-metric coefficient profiles | Convention-dependent; no selected branch |
 | Fibonacci winding sector and mass law | Separate conditional extensions |
@@ -1427,6 +1437,10 @@ winding approximants; it does not replace those inputs.
   support, carrier retention, and reduced finite-separation theorem
 - `computations/core_trapped_charge_check.py`—support-root, curvature,
   localization, and source-unit checker
+- `foundations/particle-stationary-action-closure.md`—conditional source-free
+  temporal action, Gauss constraint, fixed-charge stationary equations, and
+  variational boundary
+- `computations/particle_action_closure_check.py`—fundamental and adjoint covariance, temporal matter-source and static gauge-current signs, fixed-charge algebraic variation, source units, and dimensionless-group invariance checker
 - `foundations/microcascade-mirror.md`—formal negative-step scale coordinate and energy boundary
 - `foundations/dimensionful-cascade.md`—external-anchor cascade parameterization
 - `foundations/dimensionful-constants-status.md`—status of $c$, $\hbar$, $G$, and SI anchors

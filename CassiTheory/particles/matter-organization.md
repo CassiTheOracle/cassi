@@ -231,12 +231,17 @@ nonzero fundamental condensate removes the isolated magnetic sector and
 confines flux. Its finite net-zero string pair has no finite-separation
 minimum in the registered branch. A neutral core-trapped carrier supplies one
 conditional reduced root when $A_C>C_Q$ and its retention and matching
-inequalities hold. A bound transverse carrier mode, a full backreacted proton
-solution, quantum numbers, temporal gauge dynamics, and a winding-changing
-rate remain required (`foundations/endpoint-link-and-localization-boundary.md`;
+inequalities hold. Direct first-order local gauging is source-free
+Gauss-obstructed; the separate particle action supplies a second-order charged
+temporal branch, Gauss's law, the coupled fixed-$Q_C$ stationary equations, and
+the first variational class. A selected coefficient point, bound transverse
+carrier mode, full backreacted proton solution, quantum numbers, fluctuation
+spectrum, and winding-changing rate remain required
+(`foundations/endpoint-link-and-localization-boundary.md`;
 `foundations/point-core-flux-sector.md`;
 `foundations/nonabelian-magnetic-core-boundary.md`;
 `foundations/core-trapped-charge-support.md`;
+`foundations/particle-stationary-action-closure.md`;
 `foundations/proton-coherence-budget.md` §10). Current null searches are
 compatible with these candidates and select none of them.
 
@@ -319,6 +324,11 @@ of these phase, propagation, selected-coordinate, or NLS structures.
   support, carrier retention, and reduced finite-separation theorem
 - `computations/core_trapped_charge_check.py`—support-root, curvature,
   localization, and source-unit checker
+- `foundations/particle-stationary-action-closure.md`—source-free temporal
+  action, Gauss constraint, fixed-charge stationary equations, and variational
+  boundary
+- `computations/particle_action_closure_check.py`—action-algebra and
+  nondimensionalization checker
 - `foundations/cassi-theory-reference.md`—compact reference (Qi gate, $G_{\text{eff}}$, cascade, coherence budget)
 - `foundations/deriving-remaining-gaps.md`—electron mass class E; activated-step catalog; lepton desert
 - `particles/cassi-yang-yin-particles.md`—conditional Hypothesized soliton formation from complex-field/NLS interference

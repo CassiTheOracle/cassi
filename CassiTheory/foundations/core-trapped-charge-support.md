@@ -13,8 +13,9 @@ The existing common Yang/Yin number does not localize: a fixed excess can
 spread through the nonzero bulk condensate with energy tending to zero. The
 registered scale-circuit winding acts along the independent scale coordinate
 and contributes spatial tube tension rather than inverse-length support. A
-gauge-electric dyon requires temporal gauge curvatures and a Gauss law that the
-current action does not contain.
+gauge-electric dyon belongs to the separate conditional temporal branch in
+`foundations/particle-stationary-action-closure.md`; its dimensionless
+coefficient point and stationary configuration remain unselected.
 
 The selected auxiliary branch is a neutral complex carrier $\chi_C$ with a
 global $U(1)_C$ phase, the same first-order time structure as the registered
@@ -47,10 +48,11 @@ $$
 
 Carrier localization adds the independent chemical-potential condition
 $\hbar\omega_C<\varepsilon_{C,\rm out}$. These results establish a conditional
-reduced support branch. They do not establish a full stationary particle:
-the transverse carrier mode, magnetic tube, backreaction, core-overlap region,
-and free coefficients remain unselected, and a fixed $Q_C$ can in principle
-reorganize into another charged configuration.
+reduced support branch. The separate particle action now supplies complete
+carrier backreaction, Gauss's law, and the fixed-$Q_C$ stationary equations.
+It does not establish a stationary particle: the coefficient point,
+transverse carrier mode, magnetic tube, core-overlap region, initialization
+basins, and competing fixed-charge configurations remain unselected.
 
 ---
 
@@ -96,7 +98,9 @@ that is tied to an exact conserved quantity. The derivation must preserve:
 3. the auxiliary internal $SU(2)_Q$ magnetic completion;
 4. the distinction between spatial length $L$ and scale-circuit length
    $\mathfrak s_p$;
-5. the present absence of temporal gauge curvature and Gauss dynamics.
+5. the separation between the carrier's first-order global-$U(1)_C$ time term
+   and the conditional second-order temporal branch for $SU(2)_Q$-charged
+   fields.
 
 The result is a conditional effective branch. No identification is made with
 electric charge, baryon number, lepton number, or an observed particle.
@@ -107,13 +111,13 @@ electric charge, baryon number, lepton number, or an observed particle.
 |---|---|---|
 | CC-A | A fixed excess of the existing common Yang/Yin number can disperse through the bulk with energy tending to zero | Derived obstruction |
 | CC-B | Existing scale-circuit winding contributes a spatial line tension unless an additional spatial closure map is supplied | Derived boundary |
-| CC-C | A neutral, bulk-gapped complex carrier is the smallest branch that supplies an exact conserved number without temporal gauge completion | Hypothesized auxiliary field |
+| CC-C | A neutral, bulk-gapped complex carrier is the smallest branch that supplies an exact conserved number while remaining $SU(2)_Q$ gauge neutral | Hypothesized auxiliary field |
 | CC-D | The carrier action has an exact continuity equation and conserved $Q_C$ | Derived identity |
 | CC-E | A transverse mode is localized only when its eigenvalue lies below the bulk threshold | Derived spectral condition |
 | CC-F | Positive carrier self-repulsion gives $A_C/L$ on the uniform fixed-charge tube branch | Derived thin-tube identity |
 | CC-G | $A_C>C_Q$ gives one statically stable finite separation in the reduced length coordinate | Derived conditional theorem |
 | CC-H | Localization, scale separation, and core-overlap bounds remain independent conditions | Derived evidence boundary |
-| CC-I | The current inputs do not select a unique full coupled numerical solve or physical mass | Open |
+| CC-I | The conditional particle action defines the full coupled equations, while no coefficient point, stationary solution, or physical mass is selected | Open numerical and physical realization |
 
 ---
 
@@ -123,7 +127,7 @@ electric charge, baryon number, lepton number, or an observed particle.
 |---|---|---|---|
 | Existing common Yang/Yin number | global $U(1)_N$ Noether number | none after bulk spreading | excluded as a localizer |
 | Existing scale-circuit winding | compact winding in $\mathfrak s$ | contributes spatial tube tension | retained for scale localization only |
-| Endpoint gauge charge / Julia–Zee branch | gauge-electric charge | possible screened repulsion | deferred until temporal gauge curvature and Gauss law exist |
+| Endpoint gauge charge / Julia–Zee branch | gauge-electric charge | possible screened repulsion | represented only in the separate conditional temporal action; coefficient point and stationary solution unselected |
 | Higher-derivative or Hopf support | derivative/linking invariant | model dependent | larger auxiliary extension |
 | Core-trapped neutral carrier | global $U(1)_C$ Noether number plus positive self-repulsion | $A_C/L$ | selected conditional branch |
 
@@ -172,13 +176,14 @@ It renormalizes $\sigma_Q$ and strengthens spatial contraction. Converting
 $\mathfrak s_p$ into the spatial length $L$ requires an additional geometric
 identification that the current framework does not define.
 
-### 2.3 Gauge-electric support requires the temporal completion
+### 2.3 Gauge-electric support belongs to the temporal branch
 
-A dyonic pair can carry a repulsive electric tail only after the theory
-specifies temporal gauge components, electric curvature energy, charged source
-kinetics, and the Gauss constraint. The registered static source action has no
-$\mathcal F_{0i}^a$ or $\mathcal F_{0\mathfrak s}^a$ terms. Assigning a Coulomb
-or Yukawa coefficient before that completion would choose the missing action.
+The source-free action in
+`foundations/particle-stationary-action-closure.md` specifies temporal gauge
+components, electric curvature energy, charged source kinetics, and the Gauss
+constraint. Its coefficients remain free, and no dyonic stationary background
+or asymptotic electric coefficient is selected. Assigning a Coulomb or Yukawa
+support strength before that solve would choose the missing parameter point.
 
 ### 2.4 Minimal selected branch
 
@@ -779,10 +784,11 @@ $$
 \tag{CC48}
 $$
 
-The first-order carrier action defines carrier dynamics, while the registered
-magnetic action still has no temporal gauge curvature or complete Gauss
-sector. It supplies no full collective inertia or coupled gauge-mode spectrum.
-Equation (CC39) is a static curvature statement.
+The first-order carrier action defines carrier dynamics. The separate
+source-free particle action supplies temporal gauge curvature and Gauss's law,
+but no stationary background or temporal coefficient point. A full collective
+inertia and coupled gauge-mode spectrum therefore remain uncomputed. Equation
+(CC39) is a static curvature statement.
 
 ---
 
@@ -808,20 +814,25 @@ The current framework selects none of those numerical inputs.
 
 ### 8.3 Full coupled stationary problem
 
-A full fixed-$Q_C$ solve additionally requires:
+A full fixed-$Q_C$ solve uses the action and equations in
+`foundations/particle-stationary-action-closure.md` and requires:
 
-1. the complete backreaction of $\chi_C$ on $\Psi$, $\Phi^a$, and
+1. a selected normalization-invariant static group point and $q_C$;
+2. declared spatial topology, domain, scale interval, boundary data, and gauge
+   condition;
+3. a coupled solution for $\Psi$, $\Phi^a$, $\chi_C$, and
    $\mathcal A_A^a$;
-2. a selected $Q_C$ and $\lambda_C$;
-3. monopole–antimonopole or closed-loop boundary data;
-4. an outer domain large enough to test (CC42);
-5. a stationary tube whose separation lies beyond $L_{\rm match}$.
+4. preregistered separated-core, merged-core, closed-loop, carrier-lump, and
+   delocalized control basins;
+5. localization, outer-domain, and core-overlap checks on every converged
+   candidate.
 
-Those choices would determine the missing physics rather than evaluate a
+Those choices define the numerical hypothesis rather than evaluate a
 registered parameter point. No preregistered PDE run is performed. The
-executable check associated with this document tests the analytic identities,
-source-unit dimensions, root bracket, uniqueness, positive curvature, and
-localization thresholds.
+executable check associated with this document tests the reduced support
+identities, source-unit dimensions, root bracket, uniqueness, positive
+curvature, and localization thresholds. The action checker separately tests
+the temporal matter-source signs, static zero-source sector, algebraic fixed-charge variation, gauge-current sign, source units, and dimensionless-group invariance.
 
 ---
 
@@ -840,18 +851,21 @@ localization thresholds.
 | Is a full stationary particle established? | No; transverse binding, backreaction, topology-changing competitors, and coefficients remain unresolved |
 | Is a physical mass or parameter-free numerical prediction obtained? | No |
 
-The algebraic claims are checked by
-`computations/core_trapped_charge_check.py` and registered as conditional
-evidence-ledger test EL-8. They introduce no physical or parameter-free
-numerical prediction.
+The reduced support claims are checked by
+`computations/core_trapped_charge_check.py`; the coupled action closure is
+checked by `computations/particle_action_closure_check.py`. They are registered
+as conditional evidence-ledger tests EL-8 and EL-9 and introduce no physical or
+parameter-free numerical prediction.
 
 ---
 
 ## 10. Present conclusion
 
 The registered currents do not supply spatial finite-composite support. The
-common Yang/Yin number disperses through the bulk, scale winding contributes
-tube tension, and a gauge-electric dyon awaits temporal gauge completion.
+common Yang/Yin number disperses through the bulk and scale winding contributes
+tube tension. The separate source-free temporal branch now defines
+gauge-electric dynamics and Gauss's law, while its coefficients and stationary
+dyonic configurations remain unselected.
 
 One neutral core carrier with a positive bulk gap and global $U(1)_C$ number
 is the smallest explicit support branch. Its repulsive fixed-charge energy
@@ -863,9 +877,9 @@ $$
 
 provided the carrier remains below its bulk threshold and the stationary
 length exceeds the core-overlap scale. This closes the reduced support
-question conditionally. The full particle question remains a coupled
-fixed-charge field problem with unselected inputs and competing charged
-configurations.
+question conditionally. The particle action closes the coupled variational
+formulation; the coefficient point, full stationary field solution, basin
+ordering, spectrum, and physical interpretation remain open.
 
 ---
 

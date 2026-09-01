@@ -52,6 +52,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 40 | `point-core-flux-sector.md` | Quantized point-core exterior energy, finite-energy obstruction, and stationary-solver boundary | Derived conditional exterior support / Derived current-action completion no-go |
 | 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary smooth magnetic core, condensate topology, London confinement, and composite-stability boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries |
 | 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary |
+| 43 | `particle-stationary-action-closure.md` | Source-free temporal particle action, Gauss constraint, fixed-charge functional, and variational boundary | Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries |
 
 ## Document Summaries
 
@@ -500,11 +501,14 @@ coefficient. An auxiliary adjoint $SU(2)_Q$ branch supplies a regular local
 core and matches that coefficient, while the registered condensate confines
 flux and supplies no persistent pair by itself. A neutral core carrier gives
 one conditional reduced separation under support, retention, and matching
-inequalities. Physical endpoint normalization, scale tension, a bound
-transverse carrier mode, a full supported proton solution, temporal gauge
-dynamics, compact winding, mass scaling, particle identification, and decay
-rate remain open. Status: Hypothesized action with Derived conditional
-identities and completion boundaries.
+inequalities. Direct local gauging of the first-order time term is source-free
+Gauss-obstructed; the separate particle action supplies the temporal gauge and
+Gauss sectors and defines the fixed-$Q_C$ stationary problem. Physical endpoint
+normalization, scale tension, coefficient point, bound transverse carrier
+mode, supported proton solution, fluctuation spectrum, compact winding, mass
+scaling, particle identification, and decay rate remain open. Status:
+Hypothesized action with Derived conditional identities and completion
+boundaries.
 
 ### `geometric-manifold-completion.md`—Cassi Geometric Manifold Completion Ansatz
 
@@ -595,6 +599,17 @@ positive length curvature. Carrier retention,
 $\hbar\omega_C<\varepsilon_{C,\rm out}$, and separation beyond core overlap
 remain independent requirements; the full coupled fixed-charge solution is
 unselected.
+
+### `particle-stationary-action-closure.md`—Particle-Sector Action and Fixed-Charge Variational Closure
+
+Combines the registered Yang/Yin, auxiliary adjoint-core, and neutral-carrier
+static energies in one conditional particle action. Direct local gauging of the
+first-order Yang/Yin time term gives an unavoidable condensate Gauss source.
+The selected source-free branch instead uses second-order covariant temporal
+kinetics for the charged fields, derives the Gauss constraint and fixed-$Q_C$
+stationary equations, and reduces to the registered static energy. Its
+normalization-invariant groups and first variational class are explicit; no
+coefficient point or stationary particle solution is selected.
 
 ## Cross-References
 
