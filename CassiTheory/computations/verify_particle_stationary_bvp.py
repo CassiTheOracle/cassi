@@ -1298,7 +1298,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         }
         if set(environment) != required_environment:
             mismatch(mismatches, "environment.keys", sorted(required_environment), sorted(environment), "exact")
-        compare_tree(mismatches, "environment.cuda_visible_devices", environment.get("cuda_visible_devices"), "1")
+        compare_tree(mismatches, "environment.cuda_visible_devices", environment.get("cuda_visible_devices"), "0")
+        compare_tree(mismatches, "environment.device_name", environment.get("device_name"), "AMD Radeon RX 7900 XTX")
         compare_tree(mismatches, "environment.dtype", environment.get("dtype"), "float64")
         compare_tree(mismatches, "environment.deterministic_algorithms", environment.get("deterministic_algorithms"), True)
         for name in ("python", "platform", "torch", "device", "device_name"):

@@ -142,8 +142,10 @@ $\psi_\infty^\dagger\sigma^3\psi_\infty
 ## 3. Discretization, gauge condition, and constrained gradient
 
 The primary run uses PyTorch float64 on the installed ROCm device exposed as
-`cuda:0`, launched with `CUDA_VISIBLE_DEVICES=1`. Absence of that device is a
-preflight failure; there is no CPU fallback. The receipt records the PyTorch,
+`cuda:0`, launched with `CUDA_VISIBLE_DEVICES=0`. The physical device name is
+fixed to `AMD Radeon RX 7900 XTX`; the program does not override the launch
+selector. Absence of that device is a preflight failure; there is no CPU
+fallback. The receipt records the PyTorch,
 HIP, and device versions. The program calls
 `torch.use_deterministic_algorithms(True)`.
 

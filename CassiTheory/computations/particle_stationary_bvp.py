@@ -13,8 +13,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-
 import numpy as np
 import torch
 import torch.nn.functional as F

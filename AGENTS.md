@@ -139,7 +139,7 @@ Recording: `powershell -File record.ps1 -Out myvideo.avi -Duration 60` (see `Cas
 - **Godot 4.7.1 Mono** console exe (WinGet path above). Scene arms **always windowed** — this rig's global RenderingDevice has no headless device; only the battery runner may be `--headless`. GPU: RX 7900 XTX.
 - **Node ≥20 + npm** for CassiCore (no packageManager field; lockfileVersion 3). No lint tooling exists; `typecheck` = `tsc --noEmit` per package.
 - **System Python 3.12** everywhere; torch is the ROCm build (device reports `cuda`). No `requirements.txt`/`pyproject.toml` anywhere — environments are pre-installed; keep scripts dependency-light.
-- **AMD/ROCm env** (archive-era, still the machine convention): `CUDA_VISIBLE_DEVICES=1` (GPU 0 is the iGPU — never used), `PYTORCH_HIP_ALLOC_CONF=expandable_segments:True`, `HSA_ENABLE_SDMA=0`.
+- **AMD/ROCm env** (current machine convention): `CUDA_VISIBLE_DEVICES=0` (the iGPU is disabled; the RX 7900 XTX is the sole ROCm device), `PYTORCH_HIP_ALLOC_CONF=expandable_segments:True`, `HSA_ENABLE_SDMA=0`.
 - Windows paths with forward slashes in commands; bash available for Python/npm orchestration.
 - Shader SPIR-V: Godot imports `.glsl` itself (via `--import`). The `glslangValidator` loop (`CassiAI/build_shaders.sh`) is an archive pattern, not used by CassiCosmos.
 
