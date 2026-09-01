@@ -4484,3 +4484,28 @@ export function slerpEmbedding(a: Float32Array, b: Float32Array, t: number): Flo
 }
 
 export { KnowledgeField } from './knowledge/knowledge-field.js'
+export {
+  MnemicExactStore,
+  mnemicRecordRevision,
+  MNEMIC_FIELD_CANONICAL_SCHEMA,
+  MnemicFieldJournalError,
+  mnemicFieldCanonicalJson,
+  mnemicObservationRevision,
+  type MnemicActionFinish,
+  type MnemicActionEffect,
+  type MnemicActionOutcome,
+  type MnemicActionStart,
+  type MnemicFeedbackOutcome,
+  type MnemicFieldCandidate,
+  type MnemicFieldToolResult,
+  type MnemicFieldActionEvent,
+  type MnemicFieldJournalVerification,
+  type MnemicFieldJournalVerificationCode,
+  type MnemicUnresolvedActionEpisode,
+  type MnemicFieldEvent,
+  type MnemicFieldEventPayload,
+  type MnemicFieldStreamStatus,
+  type MnemicObservationInput,
+  type MnemicObservationReference,
+  type MnemicRecordOperation,
+} from './exact-store.js'

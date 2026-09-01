@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   ThalamusAttentionSession,
+  contextCandidateUnitId,
   type ContextCandidate,
   type FieldAdvisory,
 } from '../attention/index.js'
@@ -69,6 +70,141 @@ describe('ThalamusAttentionSession', () => {
     expect(first.fieldAdvisory).toEqual(FIELD_A)
   })
 
+  it('carries field-ranked candidate scores into the memory plan', () => {
+    const session = seededSession()
+    const candidates: ContextCandidate[] = [
+      { id: 'a-fts-first', source: 'mnemic', text: 'neutral query exact match', score: 0.1 },
+      { id: 'z-field-first', source: 'mnemic', text: 'beta evidence', score: 2.1 },
+    ]
+
+    const plan = session.plan({
+      turnId: 1,
+      query: 'neutral query',
+      contextTokens: 0,
+      contextWindow: 10_000,
+    }, candidates)
+    const memories = plan.items.filter(item => item.reason === 'relevant-memory')
+
+    expect(memories.map(item => item.unitId)).toEqual([
+      contextCandidateUnitId(candidates[1]),
+      contextCandidateUnitId(candidates[0]),
+    ])
+  })
+  it('admits exact observation references with fixed policy and work budget', () => {
+    const session = new ThalamusAttentionSession('observation-policy', {
+      minHeadroomTokens: 0,
+      maxPacketTokens: 256,
+    })
+    session.beginTurn(1, 'inspect world evidence')
+    const sha = (character: string): string => character.repeat(64)
+    const observation = {
+      recordId: 'observation-a',
+      revision: sha('a'),
+      packetSha256: sha('b'),
+      packetObjectSha256: sha('c'),
+      payloadManifestSha256: sha('d'),
+      journalHeadSha256: sha('e'),
+      viewSha256: sha('f'),
+      codecId: 'cassi.codec.raster-u8-c.v1',
+      sourceStreamId: 'world:raster',
+      sourceSequence: 4,
+      sourcePath: ['plane', 1],
+      sourceSpan: [0, 1_352] as const,
+    }
+    const plan = session.plan({
+      turnId: 1,
+      query: 'inspect world evidence',
+      contextTokens: 0,
+      contextWindow: 10_000,
+    }, [
+      {
+        id: 'exact-observation',
+        source: 'mnemic',
+        text: 'exact raster observation with deliberately long descriptive text',
+        score: 0,
+        eligible: true,
+        required: true,
+        kind: 'evidence',
+        authority: 'external_data',
+        workBudget: 24,
+        observation,
+      },
+      {
+        id: 'ineligible-observation',
+        source: 'mnemic',
+        text: 'must not enter the plan',
+        score: 100,
+        eligible: false,
+        observation: { ...observation, viewSha256: sha('1') },
+      },
+    ])
+
+    expect(plan.items).toHaveLength(1)
+    expect(plan.items[0]).toMatchObject({
+      kind: 'evidence',
+      authority: 'external_data',
+      estimatedTokens: 24,
+      sourceRefs: [
+        `record:${observation.recordId}@${observation.revision}`,
+        `packet:${observation.packetSha256}`,
+        `packet-object:${observation.packetObjectSha256}`,
+        `payload-manifest:${observation.payloadManifestSha256}`,
+        `journal:${observation.journalHeadSha256}`,
+        `view:${observation.viewSha256}`,
+      ],
+    })
+    expect(plan.items[0]!.text).not.toContain('descriptive text')
+  })
+
+
+  it('deduplicates the current goal and preserves field-owned work kinds', () => {
+    const session = new ThalamusAttentionSession('field-work', { minHeadroomTokens: 0 })
+    session.beginTurn(1, 'repair runtime')
+    session.observe({
+      type: 'user',
+      turnId: 1,
+      sourceId: 'current-goal',
+      text: 'repair runtime',
+    })
+    const candidates: ContextCandidate[] = [
+      {
+        id: 'working:goal:1',
+        source: 'field',
+        text: 'repair runtime',
+        score: 1,
+        workingKind: 'goal',
+      },
+      {
+        id: 'working:artifact:1',
+        source: 'field',
+        text: 'tool pytest artifact tc-1',
+        score: 0.9,
+        workingKind: 'artifact',
+      },
+      {
+        id: 'working:failure:1',
+        source: 'field',
+        text: 'tool pytest failure tc-2',
+        score: 0.8,
+        workingKind: 'failure',
+      },
+    ]
+
+    const plan = session.plan({
+      turnId: 1,
+      query: 'repair runtime',
+      contextTokens: 0,
+      contextWindow: 10_000,
+    }, candidates)
+
+    expect(plan.items.filter(item => item.text === 'repair runtime')).toHaveLength(1)
+    expect(plan.items.map(item => item.reason)).toEqual(expect.arrayContaining([
+      'current-user-goal',
+      'active-artifact',
+      'unresolved-failure',
+    ]))
+  })
+
   it('enforces headroom and packet budgets while retaining user goals and pins', () => {
     const session = seededSession()
     const pinId = session.pin(1, 'Never rewrite OMP provider metadata.')
@@ -95,6 +231,41 @@ describe('ThalamusAttentionSession', () => {
     expect(noHeadroom.budgetTokens).toBe(0)
     expect(noHeadroom.items).toEqual([])
     expect(noHeadroom.estimatedTokens).toBe(0)
+  })
+
+  it('uses UTF-8 bytes as an exact conservative token upper bound', () => {
+    const session = new ThalamusAttentionSession('unicode-budget', {
+      minHeadroomTokens: 0,
+      maxPacketTokens: 100,
+    })
+    session.beginTurn(1, 'x')
+    session.observe({
+      type: 'user',
+      turnId: 1,
+      sourceId: 'unicode-user',
+      text: 'x',
+    })
+    const unicodeCodeJson = 'x {"path":"C:\\界🙂"} '.repeat(12)
+    const plan = session.plan({
+      turnId: 1,
+      query: 'x',
+      contextTokens: 0,
+      contextWindow: 10_000,
+    }, [{
+      id: 'unicode-memory',
+      source: 'mnemic',
+      text: unicodeCodeJson,
+      score: 1,
+    }])
+
+    expect(plan.items.map(item => item.reason)).toEqual(['current-user-goal'])
+    for (const item of plan.items) {
+      expect(item.estimatedTokens).toBe(10 + Buffer.byteLength(item.text))
+    }
+    expect(plan.estimatedTokens).toBe(
+      48 + plan.items.reduce((sum, item) => sum + item.estimatedTokens, 0),
+    )
+    expect(plan.estimatedTokens).toBeLessThanOrEqual(plan.budgetTokens)
   })
 
   it('supports unpin, invalidation, text-free compact context, and reset', () => {

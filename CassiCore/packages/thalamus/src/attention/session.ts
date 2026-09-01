@@ -8,6 +8,7 @@ import type {
   AttentionStatus,
   ContextCandidate,
   ContextFrame,
+  ExactObservationReference,
   ContextPlan,
   ContextPlanReceipt,
   ContextSourceStatus,
@@ -27,6 +28,8 @@ interface AttentionUnit {
   /** Monotonic observation order; OMP turn indices reset for each agent run. */
   sequence: number
   pinned: boolean
+  required: boolean
+  workBudget?: number
   toolName?: string
 }
 
@@ -162,6 +165,7 @@ export class ThalamusAttentionSession {
       lastConfirmedTurn: observation.turnId,
       sequence: ++this.observationSequence,
       pinned: descriptor.pinned,
+      required: false,
       toolName: observation.toolName,
     })
     this.revision += 1
@@ -203,25 +207,31 @@ export class ThalamusAttentionSession {
     let omitted = 0
 
     for (const unit of ranked) {
-      const fullCost = estimateTokens(unit.text)
+      let text = unit.text
+      if (unit.workBudget !== undefined) {
+        text = truncateTextBytes(
+          text,
+          Math.max(0, unit.workBudget - ITEM_OVERHEAD_TOKENS),
+        )
+      }
+      const fullCost = estimateTokens(text)
       if (remaining <= ITEM_OVERHEAD_TOKENS) {
         omitted += 1
         continue
       }
 
-      let text = unit.text
       let cost = fullCost
       if (cost > remaining) {
         if (!unit.required) {
           omitted += 1
           continue
         }
-        const availableChars = Math.max(0, (remaining - ITEM_OVERHEAD_TOKENS) * 4)
-        if (availableChars < 24) {
+        const availableBytes = Math.max(0, remaining - ITEM_OVERHEAD_TOKENS)
+        if (availableBytes < 24) {
           omitted += 1
           continue
         }
-        text = truncateText(text, availableChars)
+        text = truncateTextBytes(text, availableBytes)
         cost = estimateTokens(text)
       }
 
@@ -412,25 +422,53 @@ export class ThalamusAttentionSession {
     const out: AttentionUnit[] = []
     const seenIds = new Set<string>()
     for (const candidate of candidates) {
-      if (!candidate || typeof candidate.id !== 'string' || !candidate.id || seenIds.has(candidate.id)) continue
+      if (
+        !candidate
+        || candidate.eligible === false
+        || typeof candidate.id !== 'string'
+        || !candidate.id
+        || seenIds.has(candidate.id)
+      ) continue
+      const observation = validObservationReference(candidate.observation)
+      if (candidate.observation && !observation) continue
       const text = normalizeText(candidate.text, this.config.maxUnitChars)
-      if (!text) continue
-      const textHash = digest(text.toLowerCase())
+      if (!text && !observation) continue
+      const textHash = digest(text.toLowerCase() || observation!.viewSha256)
+      const workingKind = candidate.source === 'field' ? candidate.workingKind : undefined
       if (knownText.has(textHash)) continue
+      const workBudget = candidate.workBudget
+      if (
+        workBudget !== undefined
+        && (!Number.isInteger(workBudget) || workBudget < ITEM_OVERHEAD_TOKENS)
+      ) continue
       knownText.add(textHash)
       seenIds.add(candidate.id)
+      const kind = candidate.kind ?? workingKind ?? 'memory'
+      const authority = candidate.authority
+        ?? (workingKind === 'goal' ? 'direct_user' : workingKind ? 'tool' : 'memory')
       out.push({
         id: contextCandidateUnitId(candidate),
-        kind: 'memory',
+        kind,
         state: 'active',
-        authority: 'memory',
+        authority,
         text,
-        sourceRefs: (candidate.sourceRefs?.length ? candidate.sourceRefs : [candidate.id])
-          .map(ref => sourceRef(ref, candidate.source)),
+        sourceRefs: observation
+          ? [
+              `record:${observation.recordId}@${observation.revision}`,
+              `packet:${observation.packetSha256}`,
+              `packet-object:${observation.packetObjectSha256}`,
+              `payload-manifest:${observation.payloadManifestSha256}`,
+              `journal:${observation.journalHeadSha256}`,
+              `view:${observation.viewSha256}`,
+            ]
+          : (candidate.sourceRefs?.length ? candidate.sourceRefs : [candidate.id])
+              .map(ref => sourceRef(ref, candidate.source)),
         createdTurn: turnId,
         lastConfirmedTurn: turnId,
         sequence: this.observationSequence,
         pinned: false,
+        required: candidate.required === true,
+        ...(workBudget === undefined ? {} : { workBudget }),
         toolName: Number.isFinite(candidate.score) ? `score:${candidate.score}` : undefined,
       })
     }
@@ -481,7 +519,7 @@ function observationDescriptor(observation: AttentionObservation): {
 }
 
 function rankUnit(unit: AttentionUnit, query: string, latestGoalId: string | undefined): RankedUnit {
-  const required = unit.pinned || unit.id === latestGoalId
+  const required = unit.required || unit.pinned || unit.id === latestGoalId
   const candidateScore = unit.toolName?.startsWith('score:') ? Number(unit.toolName.slice(6)) : 0
   return {
     ...unit,
@@ -504,8 +542,8 @@ function compareRanked(a: RankedUnit, b: RankedUnit): number {
   return Number(b.required) - Number(a.required)
     || KIND_PRIORITY[b.kind] - KIND_PRIORITY[a.kind]
     || AUTHORITY_PRIORITY[b.authority] - AUTHORITY_PRIORITY[a.authority]
-    || b.relevance - a.relevance
     || b.sourceScore - a.sourceScore
+    || b.relevance - a.relevance
     || b.sequence - a.sequence
     || a.id.localeCompare(b.id)
 }
@@ -513,6 +551,50 @@ function compareRanked(a: RankedUnit, b: RankedUnit): number {
 function compareNewest(a: AttentionUnit, b: AttentionUnit): number {
   return b.sequence - a.sequence
     || a.id.localeCompare(b.id)
+}
+
+function validObservationReference(
+  value: ExactObservationReference | undefined,
+): ExactObservationReference | null {
+  if (!value) return null
+  const digestFields = [
+    value.revision,
+    value.packetSha256,
+    value.packetObjectSha256,
+    value.payloadManifestSha256,
+    value.journalHeadSha256,
+    value.viewSha256,
+  ]
+  if (
+    !value.recordId
+    || digestFields.some(item => !/^[0-9a-f]{64}$/.test(item))
+    || !/^[A-Za-z0-9._:+-]{1,128}$/.test(value.codecId)
+    || !value.sourceStreamId
+    || !Number.isInteger(value.sourceSequence)
+    || value.sourceSequence < 0
+  ) return null
+  if (
+    value.sourcePath
+    && (
+      value.sourcePath.length > 64
+      || value.sourcePath.some(segment => (
+        typeof segment === 'number'
+          ? !Number.isInteger(segment) || segment < 0
+          : typeof segment !== 'string' || Buffer.byteLength(segment) > 256
+      ))
+    )
+  ) return null
+  if (
+    value.sourceSpan
+    && (
+      value.sourceSpan.length !== 2
+      || !Number.isInteger(value.sourceSpan[0])
+      || !Number.isInteger(value.sourceSpan[1])
+      || value.sourceSpan[0] < 0
+      || value.sourceSpan[1] < value.sourceSpan[0]
+    )
+  ) return null
+  return value
 }
 
 function normalizeSourceStatuses(statuses: ContextSourceStatus[] | undefined): ContextSourceStatus[] {
@@ -558,8 +640,21 @@ function truncateText(text: string, maxChars: number): string {
   return `${text.slice(0, maxChars - 1).trimEnd()}…`
 }
 
+function truncateTextBytes(text: string, maxBytes: number): string {
+  if (Buffer.byteLength(text) <= maxBytes) return text
+  const suffix = '…'
+  const suffixBytes = Buffer.byteLength(suffix)
+  const contentBytes = Math.max(0, maxBytes - suffixBytes)
+  const prefix = new TextDecoder()
+    .decode(Buffer.from(text).subarray(0, contentBytes))
+    .replace(/\uFFFD$/u, '')
+    .trimEnd()
+  return maxBytes >= suffixBytes ? `${prefix}${suffix}` : prefix
+}
+
+
 function estimateTokens(text: string): number {
-  return ITEM_OVERHEAD_TOKENS + Math.ceil(text.length / 4)
+  return ITEM_OVERHEAD_TOKENS + Buffer.byteLength(text)
 }
 
 function digest(text: string): string {

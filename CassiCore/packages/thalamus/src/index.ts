@@ -4836,7 +4836,7 @@ export type {
 
 export { ThalamusStore } from './thalamus-store.js'
 
-export { ThalamusAttentionSession } from './attention/index.js'
+export { ThalamusAttentionSession, contextCandidateUnitId } from './attention/index.js'
 export type {
   AttentionAuthority,
   AttentionKind,

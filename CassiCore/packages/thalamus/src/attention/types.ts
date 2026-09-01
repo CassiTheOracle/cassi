@@ -30,14 +30,48 @@ export interface AttentionObservation {
   isError?: boolean
   unitId?: string
 }
+export interface ExactObservationReference {
+  recordId: string
+  revision: string
+  packetSha256: string
+  packetObjectSha256: string
+  payloadManifestSha256: string
+  journalHeadSha256: string
+  viewSha256: string
+  codecId: string
+  sourceStreamId: string
+  sourceSequence: number
+  sourcePath?: readonly (string | number)[]
+  sourceSpan?: readonly [number, number]
+}
+
 
 export interface ContextCandidate {
   id: string
-  source: 'mnemic' | 'aurora' | 'pineal'
+  /** Exact Mnemic content revision used by the field's deletion path. */
+  revision?: string
+  /** Exact source record and UTF-8 byte range represented by this candidate. */
+  recordId?: string
+  startByte?: number
+  endByte?: number
+  source: 'mnemic' | 'aurora' | 'pineal' | 'field'
   text: string
   score: number
   sourceRefs?: string[]
+  /** Semantic role for a field-owned active-development candidate. */
+  workingKind?: 'goal' | 'artifact' | 'failure'
   metadata?: Record<string, unknown>
+  /** Fixed upstream admission. False candidates are ineligible and never enter the plan. */
+  eligible?: boolean
+  /** Required records sort first but never grant authorization. */
+  required?: boolean
+  /** Fixed semantic class; candidates cannot claim user-goal or constraint authority. */
+  kind?: 'evidence' | 'artifact' | 'failure' | 'memory'
+  authority?: 'tool' | 'memory' | 'external_data'
+  /** Hard per-candidate byte/token upper bound, including item overhead. */
+  workBudget?: number
+  /** Exact Mnemic → ingress-journal evidence identity; no payload copy. */
+  observation?: ExactObservationReference
 }
 
 export interface ContextSourceStatus {

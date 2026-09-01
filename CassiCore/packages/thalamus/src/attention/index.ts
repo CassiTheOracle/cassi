@@ -10,6 +10,7 @@ export type {
   ContextPlan,
   ContextPlanReceipt,
   ContextSourceStatus,
+  ExactObservationReference,
   FieldAdvisory,
   PlannedAttentionItem,
   ThalamusAttentionConfig,
