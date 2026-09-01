@@ -334,16 +334,18 @@ The construction is a **Hypothesized completion ansatz** with **Derived
 canonical reduction, conditional fibre geometry, endpoint boundaries,
 exterior point-flux support, smooth-core and confinement boundaries, a
 conditional reduced conserved-charge support theorem, and conditional action,
-Gauss, stationary, and nondimensional boundaries**. The physical reservoir,
-scale metric, endpoint normalization, normalization-invariant coefficient
-point, transverse carrier mode, backreacted composite, observation map,
-quantum numbers, fluctuation spectrum, and decay rate remain open. See
+Gauss, stationary, and nondimensional boundaries**, plus a **Tested one-point
+numerical boundary**. The physical reservoir, scale metric, endpoint
+normalization, physical calibration of the normalization-invariant coefficient
+point, a qualified transverse carrier mode, backreacted composite, observation
+map, quantum numbers, fluctuation spectrum, and decay rate remain open. See
 `foundations/geometric-manifold-completion.md`,
 `foundations/endpoint-link-and-localization-boundary.md`,
 `foundations/point-core-flux-sector.md`,
 `foundations/nonabelian-magnetic-core-boundary.md`,
-`foundations/core-trapped-charge-support.md`, and
-`foundations/particle-stationary-action-closure.md`.
+`foundations/core-trapped-charge-support.md`,
+`foundations/particle-stationary-action-closure.md`, and
+`computations/particle-stationary-bvp-report.md`.
 
 ---
 
@@ -645,15 +647,17 @@ conditional reduced root under its support, retention, and thin-tube matching
 inequalities. Direct first-order local gauging is source-free
 Gauss-obstructed; a separate second-order charged-field branch supplies the
 temporal action, Gauss constraint, coupled stationary equations, and
-normalization-invariant variational class. Physical endpoint normalization,
-scale tension, a dimensionless coefficient point, bound transverse carrier
-mode, full proton solution, proton quantum numbers, fluctuation spectrum, and
-winding-changing rate remain open
+normalization-invariant variational class. One dimensionless coefficient point
+is tested, but all twelve primary/domain arms fail Q2. Physical endpoint
+normalization, scale tension, coefficient calibration, a qualified bound
+transverse carrier mode, full proton solution, proton quantum numbers,
+fluctuation spectrum, and winding-changing rate remain open
 (`foundations/endpoint-link-and-localization-boundary.md`;
 `foundations/point-core-flux-sector.md`;
 `foundations/nonabelian-magnetic-core-boundary.md`;
 `foundations/core-trapped-charge-support.md`;
 `foundations/particle-stationary-action-closure.md`;
+`computations/particle-stationary-bvp-report.md`;
 `foundations/interscale-current-soliton.md` §4.5;
 `foundations/proton-coherence-budget.md` §10).
 
@@ -663,10 +667,12 @@ profile. The two-rail current, energy, endpoint capacity, open-rate ratio,
 point-flux coefficient, support inequality, auxiliary adjoint core,
 condensate-confinement boundary, first-order Gauss obstruction, temporal gauge
 covariance, Gauss constraint, and stationary equations are **Derived
-conditional** on their declared actions and sectors. Identifying either
-construction with physical proton stability, selecting endpoint and action
-data, obtaining a stationary composite and fluctuation spectrum, and deriving
-a decay rate are **Hypothesized/Open**.
+conditional** on their declared actions and sectors. One dimensionless
+stationary point is **Tested** with verdict
+`INCONCLUSIVE—NUMERICAL QUALITY`. Identifying either construction with physical
+proton stability, selecting endpoint and calibrated action data, obtaining a
+qualified stationary composite and fluctuation spectrum, and deriving a decay
+rate are **Hypothesized/Open**.
 
 For the neutron–proton–electron trio as a whole—their rungs, sectors, and what the framework does and does not say about their differences—see `particles/matter-organization.md`.
 

@@ -1,6 +1,6 @@
 # Particle-Sector Action and Fixed-Charge Variational Closure
 
-## Status: Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries—September 2026
+## Status: Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries / Tested one-point numerical boundary—September 2026
 
 ## Abstract
 
@@ -26,11 +26,11 @@ $\mathcal A_0^a=0$.
 
 The fixed-$Q_C$ stationary functional, coupled Euler equations, boundary
 inventory, source-unit dimensions, normalization-invariant dimensionless
-groups, and first numerical variational class are derived below. No coefficient
-point, stationary field configuration, mass, radius, spectrum, lifetime, or
-particle identification is selected. The next numerical experiment must solve
-this functional with backreaction and compare preregistered basins within the
-declared variational class.
+groups, and first numerical variational class are derived below. The first
+registered coefficient point is tested in
+`computations/particle-stationary-bvp-report.md` and returns
+`INCONCLUSIVE—NUMERICAL QUALITY`. A qualified stationary field configuration,
+mass, radius, spectrum, lifetime, and particle identification remain open.
 
 ---
 
@@ -851,6 +851,28 @@ The first class leaves unresolved:
 Every numerical report must retain this list and add any sectors removed by its
 implementation.
 
+### 8.5 Registered fixed-charge campaign
+
+The first registered point sets
+$\alpha_{\mathfrak s}=\gamma_x=\gamma_{\mathfrak s}
+=k_{Cx}=k_{C\mathfrak s}=u_C=1$,
+$u_\rho=u_\varphi=u_H=4$, $e_C=0.75$, $h_C=1.50$, $q_C=4$, and
+$L_{\mathfrak s}=1$ in the $\mathfrak s$-independent, $a_0=0$ class.
+The primary and domain grids are $(R,N)=(4,17)$ and $(5,21)$.
+
+All twelve primary/domain arms pass charge, boundary, gauge, and outer-flux
+gates Q1, Q3, and Q4. Every arm fails the stationary-quality gate Q2:
+the physical gradient RMS spans $4.297\times10^{-4}$ to
+$4.140\times10^{-3}$ against the $3\times10^{-4}$ ceiling. No primary
+structural basin is eligible for the high-resolution arm. PA40 is not scored
+downstream of Q2; the measured
+$\widehat\omega_C\in[0.8887,0.9666]$ also does not satisfy its raw
+$\widehat\omega_C<e_C=0.75$ retention bound. PA41 has no Q2-eligible basin
+ordering and is unscored. The frozen verdict is
+`INCONCLUSIVE—NUMERICAL QUALITY`; it does not exclude stronger numerical
+methods at this point or solutions at other points. The complete receipt is
+recorded in `computations/particle-stationary-bvp-report.md`.
+
 ---
 
 ## 9. What is closed and what remains open
@@ -865,15 +887,16 @@ implementation.
 | Does the neutral fixed-charge stationary sector satisfy Gauss's law? | Yes, by (PA16)--(PA17) |
 | Are carrier backreaction and the density trap in one variational problem? | Yes, (PA21)--(PA23) |
 | Is the stationary problem nondimensionalized without gauge-normalization dials? | Yes, (PA29)--(PA37) |
-| Is a numerical coefficient point selected? | No |
-| Does a converged separated, merged, loop, or lump solution exist? | Undetermined |
+| Is a numerical coefficient point selected? | Yes for the registered fixed-charge campaign; its physical calibration remains open |
+| Does a converged separated, merged, loop, or lump solution exist? | Not established; all twelve primary/domain arms fail Q2 |
 | Is any basin the unrestricted global minimum? | Undetermined and not established by finite controls |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 
-The action and stationary boundary inventory are now sufficient to define a
-preregistered mathematical boundary-value experiment once one dimensionless
-parameter point and numerical ansatz are declared. They do not supply that
-selection or its outcome.
+The action and stationary boundary inventory define the registered
+mathematical boundary-value experiment at one dimensionless point. The frozen
+run-time source snapshot at commit `474b4596` has an independently verified
+receipt with verdict `INCONCLUSIVE—NUMERICAL QUALITY`. Stationary existence,
+localization, and basin ordering remain open.
 
 ---
 
@@ -891,9 +914,9 @@ The analytic closure fails if any of the following is shown:
    dimension or gauge-normalization dependence;
 7. the coupled stationary equations omit a variation of (PA12).
 
-A failed future boundary-value solve does not falsify the algebra above. It
-rejects the tested coefficient point, ansatz, or existence claim according to
-its preregistered decision tree.
+The current numerical-quality receipt does not falsify the algebra above. It
+evaluates the declared optimizer at the tested coefficient point and qualifies
+no basin; stronger numerical methods and other coefficient points remain open.
 
 ---
 
@@ -906,22 +929,21 @@ its unavoidable gauge charge, while the selected second-order charged-field
 kinetics give a time-local gauge symmetry and a Gauss-compatible static sector.
 The neutral carrier remains first order and supplies the exact fixed charge.
 
-The next experiment is therefore specific: select one normalization-invariant
-dimensionless point, freeze an axisymmetric numerical ansatz and controls,
-solve (PA21)--(PA26) with (PA18), and report the basin ordering only within the
-declared class. Particle masses, radii, spectra, and lifetimes remain downstream
-of a converged localized solution.
+The registered one-point campaign executes this variational class, but its
+twelve primary/domain arms do not meet the stationary-quality gate. Any
+further campaign requires a separately frozen numerical method or coefficient
+point; the current receipt supports no basin ordering. Particle masses, radii,
+spectra, and lifetimes remain downstream of a converged localized solution.
 
 ---
 
 ## References
 
-- `foundations/interscale-current-soliton.md`
-- `foundations/nonabelian-magnetic-core-boundary.md`
-- `foundations/core-trapped-charge-support.md`
-- `foundations/cassi-theory-reference.md`
-- `foundations/unified-lagrangian.md`
-- `parameter-inventory.md`
-- `predictions/falsifiable-predictions.md`
-- `computations/particle_action_closure_check.py`: deterministic covariance,
-  source, stationary-variation, unit, and dimensionless-group checker
+- `foundations/interscale-current-soliton.md`—conditional scale current and soliton-pinch boundary.
+- `foundations/nonabelian-magnetic-core-boundary.md`—auxiliary smooth core and confinement boundary.
+- `foundations/core-trapped-charge-support.md`—neutral-carrier support and reduced finite-separation theorem.
+- `foundations/cassi-theory-reference.md`—particle-sector reference context.
+- `foundations/unified-lagrangian.md`—optional conservative-sector bookkeeping.
+- `parameter-inventory.md`—coefficient and boundary-data registry.
+- `predictions/falsifiable-predictions.md`—particle prediction and evidence registry.
+- `computations/particle_action_closure_check.py`—deterministic covariance, source, stationary-variation, unit, and dimensionless-group checker.

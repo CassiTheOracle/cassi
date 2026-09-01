@@ -1,6 +1,6 @@
 # Interscale Yang/Yin Current and the Conditional Soliton Pinch
 
-## Status: Hypothesized action / Derived conditional endpoint and localization boundaries—September 2026
+## Status: Hypothesized action / Derived conditional endpoint, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point coupled campaign—September 2026
 
 ## Abstract
 
@@ -50,15 +50,18 @@ when $A_C>C_Q$, the carrier remains below its bulk threshold, and the root lies
 beyond core overlap. The separate source-free temporal branch in
 `foundations/particle-stationary-action-closure.md` combines this static sector
 with the auxiliary adjoint core, derives Gauss's law, and defines the coupled
-fixed-$Q_C$ stationary functional. Its second-order charged-field kinetics are
-separate from the first-order interscale action derived here, whose direct local
-gauging carries an unavoidable nonzero-condensate Gauss source.
+fixed-$Q_C$ stationary functional. Its first registered coefficient point
+returns `INCONCLUSIVE—NUMERICAL QUALITY`; every primary/domain arm fails Q2.
+Its second-order charged-field kinetics are separate from the first-order
+interscale action derived here, whose direct local gauging carries an
+unavoidable nonzero-condensate Gauss source.
 
-The transverse carrier mode, dimensional normalization, coefficient point,
-scale metric, conversion mechanism, compact boundary data, stationary field
-solution, and particle-sector map remain open. In particular, $\varphi$ fixes
-the energy-minimizing Yang/Yin composition and its counterflow factor; it does
-not determine the carrier coefficients, gauge coupling, or any SI scale.
+The transverse carrier mode, dimensional normalization, physical calibration,
+scale metric, conversion mechanism, compact boundary data, qualified
+stationary field solution, and particle-sector map remain open. In particular,
+$\varphi$ fixes the energy-minimizing Yang/Yin composition and its counterflow
+factor; it does not determine the carrier coefficients, gauge coupling, or any
+SI scale.
 
 ---
 
@@ -1441,6 +1444,7 @@ winding approximants; it does not replace those inputs.
   temporal action, Gauss constraint, fixed-charge stationary equations, and
   variational boundary
 - `computations/particle_action_closure_check.py`—fundamental and adjoint covariance, temporal matter-source and static gauge-current signs, fixed-charge algebraic variation, source units, and dimensionless-group invariance checker
+- `computations/particle-stationary-bvp-report.md`—registered one-point campaign receipt and numerical-quality verdict
 - `foundations/microcascade-mirror.md`—formal negative-step scale coordinate and energy boundary
 - `foundations/dimensionful-cascade.md`—external-anchor cascade parameterization
 - `foundations/dimensionful-constants-status.md`—status of $c$, $\hbar$, $G$, and SI anchors

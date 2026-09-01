@@ -234,14 +234,16 @@ conditional reduced root when $A_C>C_Q$ and its retention and matching
 inequalities hold. Direct first-order local gauging is source-free
 Gauss-obstructed; the separate particle action supplies a second-order charged
 temporal branch, Gauss's law, the coupled fixed-$Q_C$ stationary equations, and
-the first variational class. A selected coefficient point, bound transverse
-carrier mode, full backreacted proton solution, quantum numbers, fluctuation
-spectrum, and winding-changing rate remain required
+the first variational class. One coefficient point is tested, but all twelve
+primary/domain arms fail Q2. A qualified bound transverse carrier mode, full
+backreacted proton solution, quantum numbers, fluctuation spectrum, and
+winding-changing rate remain open
 (`foundations/endpoint-link-and-localization-boundary.md`;
 `foundations/point-core-flux-sector.md`;
 `foundations/nonabelian-magnetic-core-boundary.md`;
 `foundations/core-trapped-charge-support.md`;
 `foundations/particle-stationary-action-closure.md`;
+`computations/particle-stationary-bvp-report.md`;
 `foundations/proton-coherence-budget.md` §10). Current null searches are
 compatible with these candidates and select none of them.
 

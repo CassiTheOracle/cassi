@@ -1,6 +1,6 @@
 # Proton Coherence Budget and Planck-to-Proton Scale Circuit
 
-## Status: Mapped coordinate / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms—September 2026
+## Status: Mapped coordinate / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms / Tested one-point coupled campaign—September 2026
 
 ## Abstract
 
@@ -283,7 +283,7 @@ coupling.
 | Conditional $10^{910}$-year conversion | Arithmetic inside the selected stochastic model; no physical rate |
 | Zero-total-flow two-rail current and normalized energy | Derived conditional on the candidate interscale action and circuit data |
 | Endpoint conversion and scale-tension closure | Charged coherent and one-way open realizations are Derived conditionally; physical normalization and scale tension remain Hypothesized |
-| Mixed-curvature proton pinch and winding barrier | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux supplies a conditional exterior coefficient; an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, while the registered condensate confines flux and gives no persistent pair by itself; a neutral fixed-$Q_C$ carrier supplies one conditional reduced separation under support, retention, and matching inequalities. Direct first-order local gauging is source-free Gauss-obstructed; a separate conditional second-order branch supplies the temporal action, Gauss constraint, and fixed-charge stationary functional. The coefficient point, transverse mode, stationary solution, and fluctuation spectrum remain open |
+| Mixed-curvature proton pinch and winding barrier | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux supplies a conditional exterior coefficient; an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, while the registered condensate confines flux and gives no persistent pair by itself; a neutral fixed-$Q_C$ carrier supplies one conditional reduced separation under support, retention, and matching inequalities. Direct first-order local gauging is source-free Gauss-obstructed; a separate conditional second-order branch supplies the temporal action, Gauss constraint, and fixed-charge stationary functional. One registered coefficient point returns `INCONCLUSIVE—NUMERICAL QUALITY`; every primary/domain arm fails Q2, so a qualified transverse mode, stationary solution, and fluctuation spectrum remain open |
 | Proton mass selection, charge, color, spin, and decay rate | Open |
 
 No numbered prediction is added. A quantitative proton claim requires a
@@ -458,12 +458,13 @@ magnetic sector and confines flux; the finite monopole-antimonopole branch has
 no registered finite-separation minimum. Winding change requires a phase slip,
 endpoint conversion event, condensate zero, defect crossing, or boundary
 event. A proton lifetime still requires persistent-composite support, a
-finite-energy stationary solution, a selected temporal coefficient point and
-fluctuation spectrum, physical proton quantum numbers, and an observable decay
-channel. The source-free action in
+Q2-qualified finite-energy stationary solution, physical coefficient
+calibration and fluctuation spectrum, proton quantum numbers, and an observable
+decay channel. The source-free action in
 `foundations/particle-stationary-action-closure.md` defines the full
-fixed-$Q_C$ variational problem and Gauss constraint without selecting any of
-those data.
+fixed-$Q_C$ variational problem and Gauss constraint. One coefficient point is
+tested, but every arm fails Q2 and the current receipt establishes none of the
+required physical proton data.
 
 The circuit derivation is given in
 `foundations/interscale-current-soliton.md` §4.5. Endpoint closure and invariant
@@ -476,8 +477,10 @@ confinement boundary are given in
 fixed-$Q_C$ support branch is given in
 `foundations/core-trapped-charge-support.md`; and the coupled action, Gauss, and
 stationary boundary is given in
-`foundations/particle-stationary-action-closure.md`. The normalized identities
-are checked by `computations/planck_proton_scale_current_check.py`,
+`foundations/particle-stationary-action-closure.md`. The registered campaign
+receipt is recorded in `computations/particle-stationary-bvp-report.md`. The
+normalized identities are checked by
+`computations/planck_proton_scale_current_check.py`,
 `computations/endpoint_link_localization_check.py`,
 `computations/point_core_flux_check.py`,
 `computations/magnetic_core_completion_check.py`,

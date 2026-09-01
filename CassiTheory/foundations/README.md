@@ -25,7 +25,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 13 | `spin-fibonacci-spiral.md` | Spin as spiral winding | Derivation |
 | 14 | `phi_attractor_synthesis.md` | Analytical N-body paths | Derived |
 | 15 | `wa-pentagon-gate.md` | $w_a$ sign tension | Derived / Hypothesized |
-| 16 | `proton-coherence-budget.md` | Proton stability: coherence budget and Planck-to-proton scale circuit | Derived conditional arithmetic / Hypothesized physical realizations |
+| 16 | `proton-coherence-budget.md` | Proton stability: coherence budget and Planck-to-proton scale circuit | Mapped coordinate / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms / Tested one-point coupled campaign |
 | 17 | `quantum-measurement-derivation.md` | Quantum dynamics and measurement | Derived conditional (regulated quantum mechanics and finite carrier projection); Hypothesized CassiFI and carrier physical identifications |
 | 18 | `strong-cp-derivation.md` | Strong CP | Derivation |
 | 19 | `quark-confinement.md` | Confinement | Derived conditional (tube extensivity + cell quantization); Hypothesized tube/coherence inputs; conditional normalization $\kappa=2\pi$ on the optional $2\pi$-per-rung winding convention |
@@ -46,13 +46,13 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
 | 36 | `loop-to-bubble-projection-theorem.md` | Shared-support Yang/Yin loop, canonical zero-mode projection, coherence ball, and internal spectrum | Derived conditional projection, bubble map, and population spectrum / Hypothesized microscopic physical identification |
-| 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action / Derived conditional algebra |
-| 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, two-rail scale graph, canonical reduction, and open-system coherence lift | Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry |
+| 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action / Derived conditional endpoint, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point coupled campaign |
+| 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, two-rail scale graph, canonical reduction, and open-system coherence lift | Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry / Tested one-point stationary campaign |
 | 39 | `endpoint-link-and-localization-boundary.md` | Gauge-covariant endpoint closure, full-fibre invariant classification, and smooth-sector localization boundary | Derived conditional endpoint closure / Derived minimal-sector localization no-go |
 | 40 | `point-core-flux-sector.md` | Quantized point-core exterior energy, finite-energy obstruction, and stationary-solver boundary | Derived conditional exterior support / Derived current-action completion no-go |
-| 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary smooth magnetic core, condensate topology, London confinement, and composite-stability boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries |
-| 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary |
-| 43 | `particle-stationary-action-closure.md` | Source-free temporal particle action, Gauss constraint, fixed-charge functional, and variational boundary | Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries |
+| 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary smooth magnetic core, condensate topology, London confinement, and composite-stability boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Tested one-point coupled campaign |
+| 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point coupled campaign |
+| 43 | `particle-stationary-action-closure.md` | Source-free temporal particle action, Gauss constraint, fixed-charge functional, and variational boundary | Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries / Tested one-point numerical boundary |
 
 ## Document Summaries
 
@@ -303,11 +303,12 @@ conditional exterior coefficient. An auxiliary adjoint $SU(2)_Q$ branch
 supplies a smooth local core and matches that coefficient, while the registered
 condensate confines flux and gives no persistent pair by itself. A neutral core
 carrier supplies one conditional reduced separation under support, retention,
-and matching inequalities. Physical endpoint normalization, scale tension, a
-bound transverse carrier mode, a full supported proton solution, temporal
-gauge dynamics, quantum numbers, and decay rate remain open. Status:
-Mapped coordinate / Derived conditional arithmetic and identities /
-Hypothesized physical mechanisms.
+and matching inequalities. One coupled coefficient point is tested, but every
+arm fails Q2. Physical endpoint normalization, scale tension, coefficient
+calibration, a qualified bound transverse carrier mode, a supported proton
+solution, temporal gauge dynamics, quantum numbers, and decay rate remain
+open. Status: Mapped coordinate / Derived conditional arithmetic and identities
+/ Hypothesized physical mechanisms / Tested one-point coupled campaign.
 
 ### `quantum-measurement-derivation.md`—CassiFI Quantum Dynamics and Measurement
 
@@ -503,12 +504,13 @@ flux and supplies no persistent pair by itself. A neutral core carrier gives
 one conditional reduced separation under support, retention, and matching
 inequalities. Direct local gauging of the first-order time term is source-free
 Gauss-obstructed; the separate particle action supplies the temporal gauge and
-Gauss sectors and defines the fixed-$Q_C$ stationary problem. Physical endpoint
-normalization, scale tension, coefficient point, bound transverse carrier
-mode, supported proton solution, fluctuation spectrum, compact winding, mass
+Gauss sectors and defines the fixed-$Q_C$ stationary problem. One coefficient
+point is tested, but every primary/domain arm fails Q2. Physical endpoint
+normalization, scale tension, a bound transverse carrier mode, qualified
+supported proton solution, fluctuation spectrum, compact winding, mass
 scaling, particle identification, and decay rate remain open. Status:
 Hypothesized action with Derived conditional identities and completion
-boundaries.
+boundaries, plus a Tested one-point numerical boundary.
 
 ### `geometric-manifold-completion.md`—Cassi Geometric Manifold Completion Ansatz
 
@@ -597,8 +599,9 @@ transverse-mode reduction, the positive term $A_C/L$ with
 $A_C=\Lambda_CQ_C^2/2$. The condition $A_C>C_Q$ gives one finite root with
 positive length curvature. Carrier retention,
 $\hbar\omega_C<\varepsilon_{C,\rm out}$, and separation beyond core overlap
-remain independent requirements; the full coupled fixed-charge solution is
-unselected.
+remain independent requirements. One coupled coefficient point is tested, but
+all twelve primary/domain arms fail Q2 and no qualified full solution is
+established.
 
 ### `particle-stationary-action-closure.md`—Particle-Sector Action and Fixed-Charge Variational Closure
 
@@ -608,8 +611,10 @@ first-order Yang/Yin time term gives an unavoidable condensate Gauss source.
 The selected source-free branch instead uses second-order covariant temporal
 kinetics for the charged fields, derives the Gauss constraint and fixed-$Q_C$
 stationary equations, and reduces to the registered static energy. Its
-normalization-invariant groups and first variational class are explicit; no
-coefficient point or stationary particle solution is selected.
+normalization-invariant groups and first variational class are explicit. The
+first registered coefficient point returns `INCONCLUSIVE—NUMERICAL QUALITY`;
+every arm fails Q2, so no qualified stationary field or basin ordering is
+established.
 
 ## Cross-References
 

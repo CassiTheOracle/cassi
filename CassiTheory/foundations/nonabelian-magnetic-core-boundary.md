@@ -1,6 +1,6 @@
 # Non-Abelian Magnetic Core and the Confined-Defect Boundary
 
-## Status: Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries—September 2026
+## Status: Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Tested one-point coupled campaign—September 2026
 
 ## Abstract
 
@@ -46,13 +46,13 @@ The auxiliary neutral carrier in
 `foundations/core-trapped-charge-support.md` supplies a conditional reduced
 support branch. Its conserved $Q_C$ and positive line self-coupling give
 $A_C/L$ with $A_C=\Lambda_CQ_C^2/2$; $A_C>C_Q$ yields one finite root with
-positive length curvature. The conditional source-free action in
-`foundations/particle-stationary-action-closure.md` combines the carrier,
-doublet, adjoint core, and gauge sectors; derives Gauss's law and all stationary
-equations; and declares the first fixed-$Q_C$ variational class. Carrier
-localization, a normalization-invariant coefficient point, the backreacted
-tube, and comparison with competing fixed-charge configurations remain
-required.
+positive length curvature.
+The source-free particle action in
+`foundations/particle-stationary-action-closure.md` combines these sectors,
+derives the coupled Euler and Gauss equations, and declares the first
+fixed-$Q_C$ variational class. One coefficient point is tested, but every arm
+fails Q2. A qualified carrier mode, backreacted tube, and fixed-charge
+configuration comparison remain required.
 
 The resulting boundary is sharp. A smooth magnetic core is available in the
 adjoint-only or vanishing-condensate branch. The registered Cassi fields alone
@@ -765,15 +765,16 @@ slope. A persistent finite pair is not derived.
 | Adjoint-only BPS unit core | Yes, analytically solved | Equations (MC22)-(MC24) give the exact solution and boundary limits |
 | Adjoint-only non-BPS core | Not numerically selected | $\beta_Q$ and any scale dependence are free |
 | Isolated core with $\rho\to\rho_0>0$ | No | Finite-energy isolated magnetic boundary data do not exist |
-| Fixed-separation monopole-antimonopole string with registered fields | Conditional constrained problem only | Tube profile, core data, outer boundary, endpoint lift, and coefficients are unselected |
-| Carrier-supported fixed-$Q_C$ pair | Reduced problem solved analytically; full problem unselected | `foundations/core-trapped-charge-support.md` gives the unique length root under $A_C>C_Q$, carrier retention, and matching conditions |
-| Full stationary particle | Variational problem defined; numerical instance unselected | The conditional particle action supplies the coupled Euler and Gauss equations and boundary inventory; the coefficient point, transverse carrier mode, backreacted tube, and basin comparison remain unselected |
+| Fixed-separation monopole-antimonopole string with registered fields | Conditional constrained problem; one coupled point tested | The registered $C_4$ campaign co-optimizes tube, core, and carrier fields, but no arm passes Q2 |
+| Carrier-supported fixed-$Q_C$ pair | Reduced problem solved analytically; coupled point returns numerical-quality failure | `foundations/core-trapped-charge-support.md` gives the unique reduced length root under $A_C>C_Q$, carrier retention, and matching conditions; the coupled campaign does not establish a qualified field solution |
+| Full stationary particle | One numerical point tested; no qualified solution obtained in this campaign | The conditional action supplies the Euler and Gauss equations; all twelve primary/domain arms fail Q2, so no high-resolution arm or basin ordering is eligible |
 
-A numerical integration of the exact BPS profile or the reduced carrier root
-would add no physical information. A full stationary particle solve now has a
-declared functional, but choosing its absent dimensionless point, charge,
-domain, and initialization basins would determine the tested model. No
-preregistered PDE run is therefore performed.
+Numerical integration of the exact BPS profile or the reduced carrier root adds
+no physical information at the declared boundary. The registered coupled
+campaign freezes one dimensionless point, charge, domain pair, and six
+initialization basins. All twelve primary/domain arms fail the
+stationary-quality gate Q2. No
+high-resolution arm, localization verdict, or basin ordering is eligible.
 
 ### 6.2 Static BPS Hessian
 
@@ -824,20 +825,20 @@ nonzero-condensate monopole obstruction.
 | Exact point-core flux and exterior coefficient matching | **PASS** | (MC16) and (MC31) |
 | Exact BPS solution after coupling $\Psi_\infty\ne0$ | **FAIL** | Fundamental kinetic and composition terms source the BPS equations |
 | Isolated finite-energy monopole with $\rho_0>0$ | **FAIL** | Trivial full stabilizer, $\pi_2=0$, and positive London mass |
-| Finite net-zero monopole-antimonopole configuration | **CONDITIONAL** | Requires a resolved flux tube and selected coefficients |
+| Finite net-zero monopole-antimonopole configuration | **CONDITIONAL / tested point unqualified** | Requires a resolved flux tube and qualified coupled fields; every registered primary/domain arm fails Q2 |
 | Persistent finite-separation composite from registered fields | **FAIL in the registered asymptotic branch** | Strictly positive slope (MC47); no registered support term |
 | Carrier-supported separation coordinate | **PASS conditionally in the reduced branch** | $A_C>C_Q$, carrier retention, and thin-tube matching in `foundations/core-trapped-charge-support.md` |
-| Full stationary particle solver | **DEFINED conditionally / not solved** | The source-free particle action fixes the variational equations and boundaries; no coefficient point, transverse mode, backreacted tube, or basin comparison is selected |
+| Full stationary particle solver | **TESTED one point / INCONCLUSIVE—NUMERICAL QUALITY** | The source-free action fixes the variational equations and boundaries; all twelve primary/domain arms fail Q2 and no high-resolution or ordering branch is eligible |
 | Static adjoint BPS stability | **PASS conditionally** | Nonnegative factorized quadratic energy (MC48) |
-| Full dynamical fluctuation spectrum | **UNSOLVED** | The temporal and Gauss sectors are explicit, while the stationary background, temporal groups, gauge fixing, and second variation remain unselected |
+| Full dynamical fluctuation spectrum | **UNSOLVED** | The tested class produces no Q2-qualified stationary background; the complete constrained second variation remains open |
 
 The auxiliary carrier supplies the first explicit conserved support sector and
 passes $E'(L_*)=0$, $E''(L_*)>0$ in the frozen-mode thin-tube reduction. The
 source-free temporal branch supplies the coupled fixed-charge functional and
-Gauss constraint. The next stationary decision is a normalization-invariant
-coefficient point, bound transverse carrier mode, and full backreacted basin
-comparison. A coupled gauge spectrum follows only after that background and
-the temporal groups are selected.
+Gauss constraint. Its first registered point returns
+`INCONCLUSIVE—NUMERICAL QUALITY`; the measured fields do not qualify a
+stationary background. A coupled gauge spectrum remains downstream of a
+Q2-qualified background and the complete constrained second variation.
 
 ---
 
@@ -880,12 +881,10 @@ $A_C>C_Q$, provided the carrier remains below its bulk threshold and the root
 lies beyond core overlap. The separate action in
 `foundations/particle-stationary-action-closure.md` supplies the complete
 backreaction equations, temporal gauge sector, Gauss constraint, and
-fixed-charge variational boundary. The coefficient point, transverse mode,
-stationary solution, and fixed-charge configuration comparison remain open.
-
-Stationary particle numerics begin with selection and preregistration of those
-dimensionless inputs and basins. Dynamical gauge analysis follows a converged
-stationary background.
+fixed-charge variational boundary. One coefficient point and six basins are
+tested on primary and domain grids, but every arm fails Q2. A qualified
+transverse mode, stationary field solution, fixed-charge configuration
+comparison, and fluctuation spectrum remain open.
 
 ---
 
@@ -909,6 +908,7 @@ stationary background.
   action, Gauss constraint, stationary equations, and variational boundary
 - `computations/particle_action_closure_check.py`—action-algebra and
   nondimensionalization checker
+- `computations/particle-stationary-bvp-report.md`—registered one-point campaign receipt and numerical-quality verdict
 - G. 't Hooft, “Magnetic Monopoles in Unified Gauge Theories,” *Nuclear Physics
   B* **79** (1974), 276–284
 - A. M. Polyakov, “Particle Spectrum in Quantum Field Theory,” *JETP Letters*
