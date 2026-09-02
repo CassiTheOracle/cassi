@@ -1,6 +1,6 @@
 # Interscale Yang/Yin Current and the Conditional Soliton Pinch
 
-## Status: Hypothesized action / Derived conditional endpoint, source-action response, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point coupled campaign—September 2026
+## Status: Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point coupled campaign—September 2026
 
 ## Abstract
 
@@ -1419,6 +1419,12 @@ minimum in §7.2.
 | Fibonacci winding sector and mass law | Separate conditional extensions |
 | Particle identification | Open |
 
+The physical-space stationary endpoint-flux result belongs to
+`foundations/endpoint-link-and-localization-boundary.md` §3.10. Its SF1–SF6
+receipt is recorded in `computations/endpoint_spatial_flux_report.md`. This
+paper uses it only as the declared endpoint-sector boundary; the scale-coordinate
+circuit derivation above does not reproduce that physical-space calculation.
+
 No numbered prediction is added to
 `predictions/falsifiable-predictions.md`. A nonzero prediction requires a
 selected normalization, coefficient set, boundary state, coupling to an
@@ -1499,6 +1505,12 @@ winding approximants; it does not replace those inputs.
 - `foundations/endpoint-link-and-localization-boundary.md`—charged coherent
   endpoint, Wilson-link transport, one-way open alternative, full-fibre
   invariant classification, and minimal-sector localization boundary
+- `computations/endpoint_spatial_flux_prereg.md`—frozen stationary
+  spatial-flux, zero-mode, covariance, and gradient-cost criteria
+- `computations/endpoint_spatial_flux_check.py`—passing SF1–SF6 analytic and
+  Fourier receipt
+- `computations/endpoint_spatial_flux_report.md`—first-execution output,
+  closed-domain obstruction, and conditional spatial-flux boundary
 - `computations/endpoint_intervertex_transport_report.md`—IT1–IT6
   Wilson-covariance, vertex-ledger, capacity, and phase-curvature receipt
 - `foundations/spin-fibonacci-spiral.md`—optional compact phase, half-angle, and winding structure

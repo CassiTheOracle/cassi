@@ -1,6 +1,6 @@
 # Interscale Stress Transfer and the Attenuation Boundary
 
-## Status: Hypothesized physical carrier / Derived conditional stress, frozen-link, and first-order source-action response boundaries—September 2026
+## Status: Hypothesized physical carrier and Wilson-link coefficient / Derived conditional stress, frozen-link, first-order source-action, stationary spatial-flux, and Wilson-transport boundaries—September 2026
 
 ## Abstract
 
@@ -847,6 +847,8 @@ This statement supplies an explicit conservative realization of the suppression 
 | Simultaneous golden matching, unbiased current capacity, and positive fixed-amplitude phase stiffness require $k_\star>0.0964640362$ | **Derived conditional** on the Mapped proton endpoint and selected matching branch |
 | Every closed homogeneous conservative time-harmonic endpoint extremum has $\mathcal I_{\mathrm{link}}=0$ | **Derived conditional background boundary** |
 | First-order endpoint integration gives $\mathbb\Lambda_{\mathrm{eff}}^R=\mathbb\Lambda_0-\mathcal C^\dagger(\mathcal K^R)^{-1}\mathcal C=\mathbb\Lambda_0+\mathcal C^\dagger(\mathcal D^R)^{-1}\mathcal C$; the symmetric zero-background eliminated-source-action term begins at quartic rail order with a positive coefficient when $\mu_{v,0}:=W_v'(0)>0$, without fixing a physical energy, stress, inertial-mass, or stability sign | **Derived conditional first-order source-action response and order boundary** |
+| A stationary EL9 endpoint obeys $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v$; every closed endpoint domain has zero integrated source, and every nonzero reconstructible source has positive gradient cost when $K_v>0$ and $u_v>0$ | **Derived conditional spatial-flux and closed-domain boundary; SF1–SF6 PASS** |
+| The separately declared Wilson link carries equal-and-opposite endpoint transport and closes the homogeneous circuit when $I_{-\to+}=\mathcal J_Q$ below $I_c=2t_\Upsilon u_-u_+/\hbar$ | **Hypothesized action coefficient / Derived conditional covariance, conservation, and capacity; IT1–IT6 PASS** |
 | The endpoint dynamics select the potential, nonzero-current background, damping law, coupling amplitude, dressed phase, trace normalization, and $k_\star$ | **Hypothesized constitutive selection** |
 | $S_\varphi$ is unitary for the selected fixed-point power fractions | **Derived conditional algebra** |
 | Closed coherent propagation gives $\cos^2(N\theta_\varphi)$ | **Derived conditional algebra** |
@@ -912,6 +914,13 @@ direct-elimination residual is $1.511\times10^{-17}$, the covariance residual
 is $2.220\times10^{-16}$, the anomalous-block norm is $0.390450933151$, and the
 damped non-Hermiticity norm is $0.360569701415$.
 
+The separately frozen SF1–SF6 receipt in
+`computations/endpoint_spatial_flux_report.md` passes on its first execution. It
+verifies the source normalization and local continuity law, time-independent
+gauge covariance, periodic inverse-divergence reconstruction, closed-domain
+zero-mode obstruction, and positive gradient-cost identity when $K_v>0$ and
+$u_v>0$.
+
 The separately frozen IT1–IT6 receipt in
 `computations/endpoint_intervertex_transport_report.md` also passes on its first
 execution. It verifies the Wilson transformation, both endpoint equations,
@@ -941,6 +950,12 @@ doubled port-flux law, and full coupled fluctuation spectrum remain unselected.
 - `computations/endpoint_action_response_prereg.md`—frozen source-action response criteria
 - `computations/endpoint_action_response_check.py`—passing source-action analytic receipt
 - `computations/endpoint_action_response_report.md`—AR1–AR6 outcome and scope boundary
+- `computations/endpoint_spatial_flux_prereg.md`—frozen stationary
+  spatial-flux, zero-mode, covariance, and gradient-cost criteria
+- `computations/endpoint_spatial_flux_check.py`—passing SF1–SF6 analytic and
+  Fourier receipt
+- `computations/endpoint_spatial_flux_report.md`—first-execution output,
+  closed-domain obstruction, and conditional spatial-flux boundary
 - `computations/endpoint_intervertex_transport_prereg.md`—frozen Wilson-link
   covariance, vertex-ledger, capacity, and control criteria
 - `computations/endpoint_intervertex_transport_check.py`—passing IT1–IT6
