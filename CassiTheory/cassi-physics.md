@@ -317,9 +317,10 @@ The charged coherent endpoint action also fixes the stationary spatial boundary:
 $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v
 =-\mathcal I_{\mathrm{link},v}/2$. Every periodic, no-flux, or sufficiently
 localized endpoint domain has zero integrated $\Gamma_v$ at each scale vertex.
-Spatial endpoint current can support compensating local source-and-sink
-conversion with a positive inverse-Laplacian gradient cost; a uniform nonzero
-circuit source requires boundary flux or additional endpoint transport.
+For $K_v>0$ and $u_v>0$, spatial endpoint current can support compensating
+local source-and-sink conversion with a positive inverse-Laplacian gradient
+cost. A uniform nonzero circuit source requires boundary flux or additional
+endpoint transport.
 Point-core Chern flux supplies the sharp exterior coefficient
 $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and supports the reduced
 radius only when $\mathcal B_G>\mathcal D$. An auxiliary adjoint $SU(2)_Q$

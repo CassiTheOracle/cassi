@@ -33,8 +33,9 @@ homogeneous, conservative time-harmonic endpoint extremum has zero coherent
 conversion current. Stationary spatial structure obeys
 $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v
 =-\mathcal I_{\mathrm{link},v}/2$. A closed endpoint domain has zero
-integrated $\Gamma_v$, and every nonzero reconstructible zero-mean source has a
-positive inverse-Laplacian gradient cost. Around a nonzero rail background,
+integrated $\Gamma_v$. For $K_v>0$ and $u_v>0$, every nonzero
+reconstructible zero-mean source has a positive inverse-Laplacian gradient
+cost. Around a nonzero rail background,
 the first-order endpoint action gives a $4\times4$ Nambu Schur response
 covariant under constant relative-frame rotations. Around the symmetric zero
 background, its eliminated source action begins at quartic rail order with a
@@ -102,7 +103,7 @@ results below are deductions within those declared structures.
 | EL-4 | The full positive coherence fibre carries no nontrivial state-only homotopy invariant | Derived topology |
 | EL-5 | The smooth unexcised object base has no first-Chern sector; point or line excision creates one candidate integer sector | Derived topology for the declared base choices |
 | EL-6 | The smooth zero-Chern endpoint completion has no finite Derrick radius; point-core flux gives a conditional exterior coefficient but no current-action particle completion | Derived minimal-sector no-go / Derived conditional point-core boundary |
-| EL-7 | A closed homogeneous time-harmonic endpoint extremum has zero coherent conversion current; stationary spatial structure obeys $\partial_iJ_{\Upsilon,v}^i=\Gamma_v=-\mathcal I_{\mathrm{link},v}/2$, with zero integrated source on a closed endpoint domain and a positive Fourier gradient cost for every nonzero reconstructible source; first-order source-action elimination gives a constant-frame-covariant Nambu response on a nonzero rail background, while the symmetric zero-background eliminated-source-action term begins at quartic rail order with a positive coefficient when $\mu_{v,0}:=W_v'(0)>0$ | Derived conditional current, spatial-flux, first-order response, and source-action order boundaries |
+| EL-7 | A closed homogeneous time-harmonic endpoint extremum has zero coherent conversion current; stationary spatial structure obeys $\partial_iJ_{\Upsilon,v}^i=\Gamma_v=-\mathcal I_{\mathrm{link},v}/2$, with zero integrated source on a closed endpoint domain; for $K_v>0$ and $u_v>0$, every nonzero reconstructible source has a positive Fourier gradient cost; first-order source-action elimination gives a constant-frame-covariant Nambu response on a nonzero rail background, while the symmetric zero-background eliminated-source-action term begins at quartic rail order with a positive coefficient when $\mu_{v,0}:=W_v'(0)>0$ | Derived conditional current, spatial-flux, first-order response, and source-action order boundaries |
 
 No row identifies a Standard Model particle. Mass, electric charge, color,
 spin, statistics, scale length, endpoint normalization, and lifetime remain
@@ -1092,7 +1093,7 @@ condition $\Gamma_v=\sigma_v\mathcal J_Q$ cannot hold with a spatially
 uniform nonzero $\mathcal J_Q$ in a closed endpoint domain under (EL9) alone.
 
 The zero-mode obstruction has an explicit inverse on a periodic cube. For
-constant $u_v>0$, $B_i=0$, and a zero-mean stationary source,
+constant $u_v>0$, $K_v\ne0$, $B_i=0$, and a zero-mean stationary source,
 
 $$
 \nabla^2\alpha_v
@@ -1129,9 +1130,10 @@ H_{\nabla\Upsilon,v}
 \tag{ELR24}
 $$
 
-For $K_v>0$ this cost is strictly positive whenever the reconstructible source
-is nonzero. It is the spatial-stiffness contribution within (EL9); the full
-particle energy and fluctuation spectrum require the coupled rail background.
+For $K_v>0$ and the assumed $u_v>0$, this cost is strictly positive whenever
+the reconstructible source is nonzero. It is the spatial-stiffness contribution
+within (EL9); the full particle energy and fluctuation spectrum require the
+coupled rail background.
 
 The endpoint equation itself admits an exact conditional realization of every
 such phase pattern. In the rotating frame, choose a real constant
@@ -1591,7 +1593,7 @@ thin-tube matching hold.
 
 | Structure | Stability condition | Sector-changing event | Rate status |
 |---|---|---|---|
-| Coherent endpoint phase and spatial flux | $|\mathcal J_Q|<\mathcal J_{c,v}$, $u_v>0$, $\cos(\vartheta-\alpha_v)>0$, and $\partial_iJ_{\Upsilon,v}^i=\Gamma_v$; a closed endpoint domain additionally requires $\int\Gamma_vd^3x=0$ | Overcritical current, $u_v=0$, endpoint phase slip, uncompensated source mean, boundary-flux change, or coupling to an incoherent channel | The closed homogeneous extremum has $\mathcal I_{\mathrm{link},v}=0$; a sign-changing local source has a positive conditional gradient cost, while the coupled source profile and rate remain unselected |
+| Coherent endpoint phase and spatial flux | $|\mathcal J_Q|<\mathcal J_{c,v}$, $K_v>0$, $u_v>0$, $\cos(\vartheta-\alpha_v)>0$, and $\partial_iJ_{\Upsilon,v}^i=\Gamma_v$; a closed endpoint domain additionally requires $\int\Gamma_vd^3x=0$ | Overcritical current, $u_v=0$, endpoint phase slip, uncompensated source mean, boundary-flux change, or coupling to an incoherent channel | The closed homogeneous extremum has $\mathcal I_{\mathrm{link},v}=0$; a sign-changing local source has a positive conditional gradient cost when $K_v>0$ and $u_v>0$, while the coupled source profile and rate remain unselected |
 | Frozen-link Robin response | Common Yang/Yin species-port trace normalization, fixed $u_v>0$, Hermitian rail-rail Hessian, and $k_\star>k_{\min,m}$ on the positive fixed-amplitude phase-stiffness branch | Endpoint amplitude or dressed-phase change, port-basis change, active endpoint dispersion, or loss of coherent current turning | Unitary matrix and selected-point matching Derived conditionally; $k_\star$, dressed phase, normalization, and physical bandwidth remain unselected |
 | Active endpoint response | $A_v(\mathbf q)>|B_v|$ and a pole-free frequency domain for the declared background; full stability uses the coupled rail-endpoint Hessian | Endpoint pole, negative curvature, damping-channel change, or background change | Nambu Schur response and endpoint pole law Derived conditionally; the potential, background, damping mechanism, and coupled physical spectrum remain unselected |
 | Scale-graph winding $m$ | Nonzero coherent amplitude around the compact graph | Rail-amplitude zero, endpoint phase slip, boundary event, or open jump | Unselected |
@@ -1669,7 +1671,7 @@ The gauge transformations, source cancellation, capacity inequality,
 frozen-link Robin reduction, Cayley unitarity, selected-point golden match,
 conditional current-capacity lower bound, closed homogeneous current boundary,
 stationary spatial continuity and source normalization, closed-domain zero
-mode, positive spatial-flux gradient cost, first-order active mixed Hessian,
+mode, spatial-flux gradient-cost sign under $K_v>0$ and $u_v>0$,
 zero-background source-action order and sign boundary, endpoint pole law,
 Nambu Schur response, Markov rate ratio, coherence half-rate, cohomology
 groups, reduced-radius algebra, and point-core exterior coefficient are
@@ -1715,8 +1717,13 @@ The separately frozen source-action execution of
 | AR5 $\mathcal K/\mathcal D$ equivalence, elimination, constant-frame kernel covariance, and anomalous block | $0$, $1.511\times10^{-17}$, $2.220\times10^{-16}$, and $0.390450933151$ |
 | AR6 conservative Hermiticity, damped non-Hermiticity, and advanced adjoint | $3.103\times10^{-17}$, $0.360569701415$, and $6.206\times10^{-17}$ |
 
-The frozen first execution of
-`computations/endpoint_spatial_flux_check.py` has verdict **PASS**:
+The frozen dynamical and source-action protocols use
+$D_i^{(-)}$ in the sense fixed by (ELR9a).
+
+The frozen protocol is
+`computations/endpoint_spatial_flux_prereg.md`. Its first execution by
+`computations/endpoint_spatial_flux_check.py`, recorded in
+`computations/endpoint_spatial_flux_report.md`, has verdict **PASS**:
 
 | Gate | Numerical receipt |
 |---|---:|
@@ -1725,7 +1732,7 @@ The frozen first execution of
 | SF3 analytic time-independent local covariance | $2.776\times10^{-17}$ invariant-gradient, $5.594\times10^{-17}$ covariant-derivative, $1.144\times10^{-16}$ covariant-Laplacian, $1.388\times10^{-16}$ current, $1.665\times10^{-16}$ source, and $4.518\times10^{-16}$ transformed-equation residuals |
 | SF4 periodic inverse-divergence reconstruction | $1.804\times10^{-16}$ phase residual; $8.224\times10^{-18}$ source mean |
 | SF5 closed-domain zero-mode obstruction | $0$ bad-source mean error; $8.224\times10^{-18}$ reconstructed-divergence mean; $1.027\times10^{-15}$ uniform-residual error |
-| SF6 positive gradient-cost identity | direct, $\Gamma_v$-spectral, and $\mathcal I_{\mathrm{link},v}$-spectral values all $4.670076740822$; $1.902\times10^{-16}$ relative residual |
+| SF6 positive gradient-cost identity at $K_v=2.3$, $u_v=0.9$ | direct, $\Gamma_v$-spectral, and $\mathcal I_{\mathrm{link},v}$-spectral values all $4.670076740822$; $1.902\times10^{-16}$ relative residual |
 
 The executable label `stable matched-link k_min` denotes the current-capacity
 threshold where the frozen-amplitude phase stiffness vanishes. The endpoint
@@ -1759,8 +1766,9 @@ Every closed periodic, no-flux, or sufficiently localized endpoint domain has
 zero integrated $\Gamma_v$ at each vertex, so spatial flux supports stationary
 local conversion only through compensating source-and-sink structure. A
 nonzero source mean requires boundary flux or additional endpoint transport.
-Every nonzero periodic zero-mean source has the inverse-Laplacian phase
-reconstruction (ELR23) and the positive gradient cost (ELR24).
+For $K_v\ne0$ and $u_v>0$, every nonzero periodic zero-mean source has the
+inverse-Laplacian phase reconstruction (ELR23). Its gradient cost (ELR24) is
+positive when $K_v>0$.
 
 Around a nonzero rail background, endpoint integration gives the
 constant-frame-covariant Nambu response (ELR15), with the pole and curvature

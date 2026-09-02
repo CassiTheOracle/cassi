@@ -597,9 +597,10 @@ gives the exact stationary balance
 $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v
 =-\mathcal I_{\mathrm{link},v}/2$. Periodic, no-flux, and sufficiently
 localized endpoint domains require zero integrated $\Gamma_v$ at each vertex.
-Every reconstructible nonzero zero-mean source has an inverse-Laplacian phase
-profile and positive gradient cost. A uniform nonzero circuit source therefore
-requires boundary flux or additional endpoint transport. Around a nonzero rail
+For $K_v>0$ and $u_v>0$, every reconstructible nonzero zero-mean source has
+an inverse-Laplacian phase profile and positive gradient cost. A uniform
+nonzero circuit source therefore requires boundary flux or additional endpoint
+transport. Around a nonzero rail
 background, first-order source-action elimination gives a Nambu Schur response
 covariant under constant relative-frame rotations, with analytic endpoint
 poles. The separately frozen AR1–AR6 receipt passes; the DR receipt remains

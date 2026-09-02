@@ -75,7 +75,7 @@ OVERALL: PASS
 | SF3 | The current, source, covariant derivative, covariant Laplacian, and endpoint equation are covariant under the declared nonconstant time-independent frame change | PASS |
 | SF4 | The periodic Fourier inverse reproduces the analytic phase and source divergence | PASS |
 | SF5 | Adding source mean $0.07$ leaves a uniform residual $-0.07$ because periodic divergence has no zero mode | PASS |
-| SF6 | Direct, $\Gamma_v$-spectral, and $\mathcal I_{\mathrm{link},v}$-spectral gradient energies agree and are positive | PASS |
+| SF6 | At the frozen $K_v=2.3$ and $u_v=0.9$, direct, $\Gamma_v$-spectral, and $\mathcal I_{\mathrm{link},v}$-spectral gradient energies agree and are positive | PASS |
 
 ## 4. Derived Boundary
 
@@ -116,7 +116,7 @@ $$
 \qquad \mathbf k\ne\mathbf0,
 $$
 
-with positive gradient cost
+and, when $K_v>0$ and $u_v>0$, has the positive gradient cost
 
 $$
 H_{\nabla\Upsilon,v}
@@ -143,7 +143,7 @@ The result establishes:
 - exact endpoint, rail-difference, and charge-source normalization;
 - local stationary source support by endpoint current divergence;
 - a zero-mode obstruction for every closed periodic or no-flux endpoint domain;
-- a positive nonlocal gradient cost for every reconstructible source;
+- a positive nonlocal gradient cost for every reconstructible source when $K_v>0$ and $u_v>0$;
 - covariance under the declared time-independent local relative-frame transformations.
 
 The result leaves open:

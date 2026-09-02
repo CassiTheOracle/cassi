@@ -360,8 +360,9 @@ The charged transition section in
 intertwiner, frozen-link Robin family, and source-action Nambu response
 conditionally. A closed homogeneous conservative time-harmonic endpoint
 extremum has zero coherent conversion current. A stationary spatial endpoint
-obeys $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v$ and carries the positive
-inverse-Laplacian gradient cost derived in §3.10 of that paper. Periodic,
+obeys $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v$. When $K_v>0$ and
+$u_v>0$, it carries the positive inverse-Laplacian gradient cost derived in
+§3.10 of that paper. Periodic,
 no-flux, and sufficiently localized domains require zero integrated
 $\Gamma_v$ at each scale vertex, so spatial flux supports compensating local
 source-and-sink structure while a nonzero source mean requires boundary flux
