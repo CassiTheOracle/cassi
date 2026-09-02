@@ -316,6 +316,13 @@ $E_Y/E_I=\varphi$ and
 $|\nu_{I,\mathfrak s}/\nu_{Y,\mathfrak s}|=\varphi$, so the two flux norms
 agree. At zero current the boundary phase is inert.
 
+Each occupied endpoint trace reaches exactly one outgoing rail with unit
+modulus. This is a phase-only perfect-transfer vertex. Partial
+reflection/transmission requires an additional endpoint interaction; the
+self-adjoint two-lead family and the coupling required by the declared golden
+target are derived in
+`foundations/interscale-stress-attenuation-boundary.md` §4.3–§4.4.
+
 The scalar phases in (GM11) are fixed-frame representatives of endpoint
 intertwiners. Under a relative $U(1)_Q$ frame change, each $S_v$ must transform
 as

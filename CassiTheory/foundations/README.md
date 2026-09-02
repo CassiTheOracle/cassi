@@ -53,7 +53,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary smooth magnetic core, condensate topology, London confinement, and composite-stability boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Tested one-point coupled campaign |
 | 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point coupled campaign |
 | 43 | `particle-stationary-action-closure.md` | Source-free temporal particle action, Gauss constraint, fixed-charge functional, and variational boundary | Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries / Tested one-point numerical boundary |
-| 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, and routed quadratic-flux attenuation | Hypothesized—September 2026; conservation and transfer identities Derived conditional within the proposed branch |
+| 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, and routed quadratic-flux attenuation | Hypothesized—September 2026; conservation, boundary, and transfer identities Derived conditional within the proposed branch |
 
 ## Document Summaries
 
@@ -525,11 +525,15 @@ reciprocal dynamics do not compose into $d^N$.
 
 A separate two-port construction declares the fixed-point fractions
 $T_\varphi=\varphi^{-1}$ and $R_\varphi=\varphi^{-2}$ to be forward and return
-powers. The representative splitter is unitary. Closed coherent propagation
-interferes, while routed return ports give forward quadratic flux
-$\varphi^{-N}$ and complementary return flux $1-\varphi^{-N}$. The physical
-stress carrier, density-to-port identification, phases, and non-re-entry
-mechanism remain Hypothesized.
+powers. The time-completed quadratic scale action fixes the canonical boundary
+flux, and Hermitian Robin endpoint data give a unitary scattering family
+$S_\Lambda(k)$. The registered two-rail phase gluing is a perfect-transfer
+endpoint. The golden matrix requires a selected coupling at one design wave
+number, and a fixed local coupling gives a wave-number-dependent split.
+Conditional on that endpoint selection, routed return ports give forward
+quadratic flux $\varphi^{-N}$ and complementary return flux $1-\varphi^{-N}$.
+The physical stress carrier, endpoint field, density-to-port identification,
+and non-re-entry mechanism remain Hypothesized.
 
 ### `geometric-manifold-completion.md`—Cassi Geometric Manifold Completion Ansatz
 
@@ -539,6 +543,10 @@ loop-derived coherence ball as its normalized section, the projective shell as
 its rank-one boundary, and the affine bubble as a metric-compatible
 observation image. A cross-glued two-rail scale graph has two vertices, two
 edges, $b_1=1$, and one Yang-outward/Yin-return internal cycle.
+Its registered phase gluing is a perfect-transfer endpoint; partial
+reflection/transmission requires the additional endpoint interaction derived
+as a free self-adjoint family in
+`foundations/interscale-stress-attenuation-boundary.md` §4.3.
 
 The conservative interscale action and mesoscopic dissipative conversion
 remain separate dynamical blocks. A minimal completely positive two-jump lift

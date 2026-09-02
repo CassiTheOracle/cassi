@@ -5,7 +5,11 @@ Run from the CassiTheory repository root:
     python computations/interscale_stress_attenuation_check.py
 """
 
+from cmath import exp
 from math import cos, isclose, sin, sqrt
+
+Matrix2 = tuple[tuple[complex, complex], tuple[complex, complex]]
+Vector2 = tuple[complex, complex]
 
 PHI = (1.0 + sqrt(5.0)) / 2.0
 T_PHI = PHI**-1
@@ -22,9 +26,7 @@ def check(label: str, condition: bool, detail: str) -> None:
         raise AssertionError(f"{label} failed: {detail}")
 
 
-def matmul(a: tuple[tuple[float, float], tuple[float, float]],
-           b: tuple[tuple[float, float], tuple[float, float]],
-           ) -> tuple[tuple[float, float], tuple[float, float]]:
+def matmul(a: Matrix2, b: Matrix2) -> Matrix2:
     return (
         (
             a[0][0] * b[0][0] + a[0][1] * b[1][0],
@@ -37,20 +39,58 @@ def matmul(a: tuple[tuple[float, float], tuple[float, float]],
     )
 
 
-def matpow(a: tuple[tuple[float, float], tuple[float, float]],
-           exponent: int,
-           ) -> tuple[tuple[float, float], tuple[float, float]]:
+def matpow(a: Matrix2, exponent: int) -> Matrix2:
     result = ((1.0, 0.0), (0.0, 1.0))
     for _ in range(exponent):
         result = matmul(result, a)
     return result
 
 
-def max_matrix_error(
-    a: tuple[tuple[float, float], tuple[float, float]],
-    b: tuple[tuple[float, float], tuple[float, float]],
-) -> float:
+def max_matrix_error(a: Matrix2, b: Matrix2) -> float:
     return max(abs(a[row][col] - b[row][col]) for row in range(2) for col in range(2))
+
+
+def dagger(matrix: Matrix2) -> Matrix2:
+    return (
+        (matrix[0][0].conjugate(), matrix[1][0].conjugate()),
+        (matrix[0][1].conjugate(), matrix[1][1].conjugate()),
+    )
+
+
+def inverse2(matrix: Matrix2) -> Matrix2:
+    determinant = (
+        matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]
+    )
+    if abs(determinant) <= TOL:
+        raise ValueError("singular 2x2 matrix")
+    return (
+        (matrix[1][1] / determinant, -matrix[0][1] / determinant),
+        (-matrix[1][0] / determinant, matrix[0][0] / determinant),
+    )
+
+
+def matvec(matrix: Matrix2, vector: Vector2) -> Vector2:
+    return (
+        matrix[0][0] * vector[0] + matrix[0][1] * vector[1],
+        matrix[1][0] * vector[0] + matrix[1][1] * vector[1],
+    )
+
+
+def cayley_scattering(
+    coupling: Matrix2,
+    scale_stiffness: float,
+    wave_number: float,
+) -> Matrix2:
+    ik = 1j * scale_stiffness * wave_number
+    minus = (
+        (ik - coupling[0][0], -coupling[0][1]),
+        (-coupling[1][0], ik - coupling[1][1]),
+    )
+    plus = (
+        (ik + coupling[0][0], coupling[0][1]),
+        (coupling[1][0], ik + coupling[1][1]),
+    )
+    return matmul(inverse2(minus), plus)
 
 
 def main() -> None:
@@ -186,7 +226,7 @@ def main() -> None:
 
     coherent_steps = 2
     coherent = matpow(splitter, coherent_steps)
-    coherent_forward_power = coherent[0][0] ** 2
+    coherent_forward_power = abs(coherent[0][0]) ** 2
     expected_two_step_power = (T_AMP * T_AMP - R_AMP * R_AMP) ** 2
     routed_two_step_power = T_PHI**coherent_steps
     check(
@@ -275,11 +315,126 @@ def main() -> None:
         ),
     )
 
+    robin_coupling = (
+        (0.37 + 0.0j, 0.12 + 0.21j),
+        (0.12 - 0.21j, -0.23 + 0.0j),
+    )
+    robin_scattering = cayley_scattering(robin_coupling, 1.4, 0.9)
+    robin_unitarity_error = max_matrix_error(
+        matmul(dagger(robin_scattering), robin_scattering),
+        identity,
+    )
+    robin_hermitian_error = max_matrix_error(
+        dagger(robin_coupling),
+        robin_coupling,
+    )
+    robin_input = (0.63 - 0.14j, -0.22 + 0.51j)
+    robin_output = matvec(robin_scattering, robin_input)
+    robin_flux_error = abs(
+        sum(abs(value) ** 2 for value in robin_output)
+        - sum(abs(value) ** 2 for value in robin_input)
+    )
+    check(
+        "ST11 Hermitian Robin unitarity",
+        robin_hermitian_error < TOL
+        and robin_unitarity_error < TOL
+        and robin_flux_error < TOL,
+        (
+            f"|Lambda^dag-Lambda|={robin_hermitian_error:.3e}; "
+            f"|S^dag*S-I|={robin_unitarity_error:.3e}; "
+            f"flux residual={robin_flux_error:.3e}"
+        ),
+    )
+
+    design_stiffness = 1.3
+    design_wave_number = 0.8
+    tau_phi = R_AMP / (1.0 + T_AMP)
+    endpoint_scale = 1j * design_stiffness * design_wave_number * tau_phi
+    golden_coupling = (
+        (0.0j, endpoint_scale),
+        (-endpoint_scale, 0.0j),
+    )
+    matched_splitter = cayley_scattering(
+        golden_coupling,
+        design_stiffness,
+        design_wave_number,
+    )
+    golden_coupling_error = max_matrix_error(
+        dagger(golden_coupling),
+        golden_coupling,
+    )
+    golden_match_error = max_matrix_error(matched_splitter, splitter)
+    check(
+        "ST12 golden target inverse matching",
+        golden_coupling_error < TOL and golden_match_error < TOL,
+        (
+            f"tau_phi={tau_phi:.12f}; "
+            f"|Lambda^dag-Lambda|={golden_coupling_error:.3e}; "
+            f"|S_Lambda(k*)-S_phi|={golden_match_error:.3e}"
+        ),
+    )
+
+    alternate_wave_number = 1.7 * design_wave_number
+    alpha = design_wave_number / alternate_wave_number * tau_phi
+    denominator = 1.0 + alpha * alpha
+    expected_alternate = (
+        ((1.0 - alpha * alpha) / denominator, 2.0 * alpha / denominator),
+        (-2.0 * alpha / denominator, (1.0 - alpha * alpha) / denominator),
+    )
+    alternate_splitter = cayley_scattering(
+        golden_coupling,
+        design_stiffness,
+        alternate_wave_number,
+    )
+    alternate_formula_error = max_matrix_error(
+        alternate_splitter,
+        expected_alternate,
+    )
+    alternate_target_difference = max_matrix_error(alternate_splitter, splitter)
+    check(
+        "ST13 fixed-coupling wave-number dependence",
+        alternate_formula_error < TOL and alternate_target_difference > 1.0e-3,
+        (
+            f"|S-S(alpha)|={alternate_formula_error:.3e}; "
+            f"|S(1.7*k*)-S_phi|={alternate_target_difference:.6f}"
+        ),
+    )
+
+    delta_minus = 0.37
+    delta_plus = -0.82
+    perfect_transfer = (
+        (0.0j, exp(1j * delta_minus)),
+        (exp(1j * delta_plus), 0.0j),
+    )
+    perfect_transfer_error = max_matrix_error(
+        matmul(dagger(perfect_transfer), perfect_transfer),
+        identity,
+    )
+    gm_output_y = matvec(perfect_transfer, (1.0 + 0.0j, 0.0j))
+    gm_output_i = matvec(perfect_transfer, (0.0j, 1.0 + 0.0j))
+    gm_power_error = max(
+        abs(sum(abs(value) ** 2 for value in gm_output_y) - 1.0),
+        abs(sum(abs(value) ** 2 for value in gm_output_i) - 1.0),
+    )
+    gm_leakage = max(abs(gm_output_y[0]), abs(gm_output_i[1]))
+    check(
+        "ST14 phase-only perfect-transfer limit",
+        perfect_transfer_error < TOL
+        and gm_power_error < TOL
+        and gm_leakage < TOL,
+        (
+            f"|S_GM^dag*S_GM-I|={perfect_transfer_error:.3e}; "
+            f"power residual={gm_power_error:.3e}; "
+            f"complementary leakage={gm_leakage:.3e}"
+        ),
+    )
+
     print()
     print("ALL CHECKS PASSED")
     print(
-        "Receipt: reciprocal stress is conservative; "
-        "phi^-N is a routed quadratic-flux law."
+        "Receipt: reciprocal stress and self-adjoint matching are conservative; "
+        "the golden split requires a selected endpoint coupling; "
+        "phi^-N remains a routed quadratic-flux law."
     )
 
 

@@ -41,10 +41,13 @@ algebraic form for modeled cases. Signal-map interpretations remain
 Hypothesized.
 
 `foundations/interscale-stress-attenuation-boundary.md` supplies one explicit
-Hypothesized realization of the uniform family. It yields $\varphi^{-N}$ for a
-quadratic forward flux when complementary return ports are routed away from
-coherent re-entry. Reciprocal stress transfer and closed coherent propagation
-obey different composition laws.
+Hypothesized realization of the uniform family. Its time-completed quadratic
+branch fixes the canonical boundary flux and a unitary endpoint family, while
+the golden matrix requires a selected coupling at one design wave number.
+With complementary return ports separately routed away from coherent re-entry,
+the branch yields $\varphi^{-N}$ for a quadratic forward flux. Reciprocal
+stress transfer, self-adjoint endpoint matching, and closed coherent
+propagation obey distinct composition laws.
 
 **Index extension:** The per-step attenuation formulas in §1 are parameterized for
 $n \geq 0$ (Planck → observable scales). Extending the index to sub-Planckian
@@ -213,20 +216,43 @@ $$\boxed{\text{Inputs: (i) the }\varphi\text{-attractor fixed point } E_Y = \var
 ### 4.1 Conservative stress and routed-flux boundary
 
 The mixed-stress identity in
-`foundations/interscale-stress-attenuation-boundary.md` separates three uses of
+`foundations/interscale-stress-attenuation-boundary.md` separates four uses of
 the same scalar coefficient. In a reciprocal ladder,
 $\kappa_a=\kappa_{\star,a}d_a$ makes $d_a$ an interface stiffness. It gives the
 exact frozen-state traction ratio
 $\Pi_{a+1/2}(d_a)/\Pi_{a+1/2}(1)=d_a$, while normal modes remain conservative
 and static interfaces combine through series compliance.
 
-A representative two-port map can instead declare the fixed-point fractions
-$T_\varphi=\varphi^{-1}$ and $R_\varphi=\varphi^{-2}$ to be forward and return
-powers. The corresponding amplitudes
-$t_\varphi=\varphi^{-1/2}$ and $r_\varphi=\varphi^{-1}$ form a unitary matrix.
-A closed coherent chain produces interference. With each return port routed
-away from forward re-entry, the forward quadratic flux and accumulated return
-flux are
+The time-completed quadratic scale action supplies the canonical boundary
+flux. At an equal-impedance two-lead vertex, Hermitian Robin data
+$K_{\mathfrak s}\Phi'=\Lambda_v\Phi$ give the unitary family
+
+$$
+S_\Lambda(k)
+=
+(ikK_{\mathfrak s}I-\Lambda_v)^{-1}
+(ikK_{\mathfrak s}I+\Lambda_v).
+$$
+
+The registered two-rail phase gluing is a perfect-transfer endpoint. The
+declared golden matrix is realized at one design wave number by the selected
+coupling
+
+$$
+\Lambda_\varphi(k_\star)
+=
+iK_{\mathfrak s}k_\star
+\frac{r_\varphi}{1+t_\varphi}
+\begin{pmatrix}0&1\\-1&0\end{pmatrix}.
+$$
+
+Self-adjointness leaves this coupling and $k_\star$ free, and a fixed local
+coupling gives a wave-number-dependent split.
+
+With the separate constitutive identification
+$T_\varphi=\varphi^{-1}$ and $R_\varphi=\varphi^{-2}$ as forward and return
+powers, a closed coherent chain produces interference. Routing every return
+port away from later forward inputs gives
 
 $$
 P_N^{\mathrm{fwd}}=\varphi^{-N}P_0,
@@ -234,12 +260,12 @@ P_N^{\mathrm{fwd}}=\varphi^{-N}P_0,
 P_N^{\mathrm{return,tot}}=(1-\varphi^{-N})P_0.
 $$
 
-The amplitude in that routed branch scales as $\varphi^{-N/2}$. Therefore this
+The amplitude in that routed branch scales as $\varphi^{-N/2}$. This
 realization applies directly to a conserved quadratic flux, power, energy, or
 stress. Coupling constants, phases, and other amplitude-like observables retain
-their separate Hypothesized signal maps. The port identification, phases,
-return routing, and map from density or gauge current to spatial-momentum
-stress remain open constitutive physics.
+their separate Hypothesized signal maps. The endpoint selection, port
+identification, return routing, and map from density or gauge current to
+spatial-momentum stress remain open constitutive physics.
 
 ---
 

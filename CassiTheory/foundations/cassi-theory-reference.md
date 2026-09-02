@@ -374,18 +374,22 @@ $S_N=(1-q)^N$ and the endpoint convention consequently gives
 $\mathcal{D}_{0\to N}=(1-q)^{N+1}$. The declared uniform signal input
 $d_i^{\mathrm{signal}}\equiv\varphi^{-1}$ gives
 $\prod_{i=m}^{n-1}d_i^{\mathrm{signal}}=\varphi^{-(n-m)}=\varphi^{-N}$.
-These are algebraic identities conditional on their stated per-rung inputs;
+These are algebraic identities conditional on their stated per-step inputs;
 the physical signal-map interpretation remains **Hypothesized**.
 
 One explicit conservative realization is isolated in
 `foundations/interscale-stress-attenuation-boundary.md`. A reciprocal
 scale-stress ladder treats $d_i$ as interface stiffness and gives conservative
-dispersion plus series compliance. A separate routed two-port branch declares
-$\varphi^{-1}$ and $\varphi^{-2}$ to be forward and return powers; it yields
-$\varphi^{-N}$ for the forward quadratic flux and retains
-$1-\varphi^{-N}$ in the return ledger. Closed coherent propagation interferes,
-and the routed amplitude scales as $\varphi^{-N/2}$. The physical port and
-stress-current identifications remain Hypothesized.
+dispersion plus series compliance. The time-completed quadratic action fixes
+the canonical scale-boundary flux, while Hermitian endpoint data generate a
+unitary two-lead family $S_\Lambda(k)$. The registered two-rail phase gluing is
+a perfect-transfer endpoint. The declared golden matrix requires the selected
+coupling $\Lambda_\varphi(k_\star)$ at one design wave number; a fixed local
+coupling gives a wave-number-dependent split. With separate return routing,
+the forward quadratic flux is $\varphi^{-N}$, the return ledger is
+$1-\varphi^{-N}$, and the routed amplitude is $\varphi^{-N/2}$. The physical
+endpoint selection, port map, routing, and stress-current identification
+remain Hypothesized.
 
 For the fractional mapped endpoint $N_p=91.46$, no indexed product is taken.
 The closed quadratic exponent is continued by the explicit coordinate

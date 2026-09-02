@@ -4,7 +4,7 @@
 
 ## Abstract
 
-A force attributed to transfer across scale must appear as a boundary flux of spatial momentum. This paper derives that conservation statement, realizes it in a reciprocal scale-stress ladder, and identifies the exact boundary between stiffness reduction and multiplicative attenuation. A conservative reciprocal ladder with an interface coefficient $d=\varphi^{-1}$ changes the traction, static compliance, and normal-mode spectrum; it does not produce a factor $d^N$ across $N$ interfaces. A separate routed two-port branch can produce $\varphi^{-N}$ for a quadratic forward flux. In that branch the Yang/Yin fixed-point fractions are declared to be port powers, the complementary return flux is retained, and each return port is prevented from coherently re-entering the forward chain. The algebra and conservation ledger are exact under those assumptions. The physical port identification, routing law, and momentum-carrying field remain Hypothesized.
+A force attributed to transfer across scale must appear as a boundary flux of spatial momentum. This paper derives that conservation statement, realizes it in a reciprocal scale-stress ladder, and identifies the exact boundary between stiffness reduction and multiplicative attenuation. A conservative reciprocal ladder with an interface coefficient $d=\varphi^{-1}$ changes the traction, static compliance, and normal-mode spectrum. Multiplicative $d^N$ transfer requires a separate routed two-port branch. In that branch the Yang/Yin fixed-point fractions are declared to be port powers, the complementary return flux is retained, and each return port is prevented from coherently re-entering the forward chain. The algebra and conservation ledger are exact under those assumptions. The physical port identification, routing law, and momentum-carrying field remain Hypothesized.
 
 ---
 
@@ -184,7 +184,7 @@ $$
 =d_a.
 $$
 
-Thus $d_a=\varphi^{-1}$ gives an exact $\varphi^{-1}$ traction ratio in a frozen-state comparison. Once the fields evolve, their displacement jump also depends on $d_a$, so this ratio does not iterate into a transfer law.
+Thus $d_a=\varphi^{-1}$ gives an exact $\varphi^{-1}$ traction ratio in a frozen-state comparison. During evolution the displacement jump also depends on $d_a$, so the result remains a frozen-state ratio.
 
 ### 3.2 Normal modes
 
@@ -238,7 +238,7 @@ $$
 }
 $$
 
-Uniform $\kappa_a=\kappa_\star d$ gives $\kappa_{\mathrm{eff}}=\kappa_\star d/N$. Reciprocal static transfer combines interface compliances in series; it does not multiply the coefficients.
+Uniform $\kappa_a=\kappa_\star d$ gives $\kappa_{\mathrm{eff}}=\kappa_\star d/N$. Reciprocal static transfer combines interface compliances in series and yields this $1/N$ scaling.
 
 ---
 
@@ -286,9 +286,223 @@ S_\varphi^{\mathsf T}S_\varphi=I,
 \det S_\varphi=1.
 $$
 
-The fixed-point fractions determine the magnitudes of the matrix entries. Interface phases remain free until a microscopic action fixes them.
+Under the constitutive port-power identification, the fixed-point fractions determine the entry magnitudes. The endpoint phase and microscopic selection remain inputs to the boundary coupling analyzed below. The conservative interscale action separately conserves Yang and Yin number, and $V_\varphi$ supplies no conversion (`foundations/interscale-current-soliton.md` §4.4). A Yang/Yin species interpretation of the two ports would therefore require an added gauge-covariant endpoint interaction or open-system sector; other physical port assignments remain unselected.
 
-### 4.2 Closed coherent propagation
+### 4.2 Canonical scale-boundary flux
+
+The source-free temporal completion in
+`foundations/particle-stationary-action-closure.md` supplies the quadratic
+boundary problem that a physical splitter must solve. Let $\eta$ be a
+two-component perturbation about a frozen background, suppress the spatial
+coordinates, and collect the local quadratic potential and transverse
+wave-number terms into a Hermitian matrix $\mathsf H$. The scale sector is
+
+$$
+S^{(2)}
+=
+\frac12\int dt\,d\mathfrak s
+\left[
+C_\Psi\dot\eta^\dagger\dot\eta
+-K_{\mathfrak s}
+(D_{\mathfrak s}\eta)^\dagger D_{\mathfrak s}\eta
+-\eta^\dagger\mathsf H\eta
+\right].
+$$
+
+The scale operator has boundary Green form
+
+$$
+\mathfrak b_{\partial I}(\eta_1,\eta_2)
+=
+K_{\mathfrak s}
+\sum_{v\in\partial I}
+\left[
+\eta_1^\dagger D_{n_v}\eta_2
+-
+(D_{n_v}\eta_1)^\dagger\eta_2
+\right]_v.
+$$
+
+For one solution, the associated scale-current flux is
+
+$$
+J_{\mathfrak s}[\eta]
+=
+\frac{K_{\mathfrak s}}{2i\hbar}
+\left[
+\eta^\dagger D_{\mathfrak s}\eta
+-
+(D_{\mathfrak s}\eta)^\dagger\eta
+\right].
+$$
+
+Here $D_{n_v}$ is the outward covariant derivative at endpoint $v$. The
+componentwise current agrees with the continuum normalization in
+`foundations/interscale-current-soliton.md` §3.1. At a vertex, self-adjoint
+evolution requires the sum of the outward boundary forms over all incident
+leads to vanish. The potential Hessian controls bulk propagation and thresholds;
+the scale-gradient coefficient and boundary data control the canonical port
+flux.
+
+### 4.3 Self-adjoint two-lead matching
+
+Let $\Phi$ collect the two boundary values at a vertex and let $\Phi'$ collect
+their outward covariant derivatives. General linear self-adjoint data have the
+form
+
+$$
+A\Phi+B\Phi'=0,
+\qquad
+AB^\dagger=BA^\dagger,
+\qquad
+\operatorname{rank}(A,B)=2.
+$$
+
+A useful local subclass is the Hermitian Robin vertex
+
+$$
+K_{\mathfrak s}\Phi'=\Lambda_v\Phi,
+\qquad
+\Lambda_v^\dagger=\Lambda_v.
+$$
+
+For two equal-impedance leads with real wave number $k>0$, absorb the common
+$\sqrt{K_{\mathfrak s}k/\hbar}$ factor into the incoming and outgoing
+amplitudes. Then
+
+$$
+\Phi=a^{\mathrm{in}}+a^{\mathrm{out}},
+\qquad
+\Phi'=ik(a^{\mathrm{out}}-a^{\mathrm{in}}),
+$$
+
+and
+
+$$
+\boxed{
+S_{\Lambda}(k)
+=
+(ikK_{\mathfrak s}I-\Lambda_v)^{-1}
+(ikK_{\mathfrak s}I+\Lambda_v).
+}
+$$
+
+Hermiticity gives
+
+$$
+S_{\Lambda}(k)^\dagger S_{\Lambda}(k)=I,
+\qquad
+\|a^{\mathrm{out}}\|^2=\|a^{\mathrm{in}}\|^2.
+$$
+
+With unequal lead velocities or stiffnesses, the same statement holds after
+normalization by the diagonal flux metric. Self-adjointness therefore supplies
+the unitary family while $\Lambda_v$ selects its member.
+
+The two-rail circle in `foundations/geometric-manifold-completion.md` §§2.4–2.5
+uses the phase-only special case
+
+$$
+S_{\mathrm{GM}}
+=
+\begin{pmatrix}
+0&e^{i\delta_-}\\
+e^{i\delta_+}&0
+\end{pmatrix}.
+$$
+
+Each occupied input maps to one unit-modulus output. This is the
+perfect-transfer limit of the endpoint problem and contains no complementary
+partial split.
+
+### 4.4 Matching the declared golden target
+
+For a unitary target without eigenvalue $-1$, the Robin coupling required at
+one design wave number follows from the inverse Cayley transform:
+
+$$
+\Lambda_v(k_\star)
+=
+iK_{\mathfrak s}k_\star
+(S_\star-I)(S_\star+I)^{-1}.
+$$
+
+For the declared matrix $S_\star=S_\varphi$, define
+
+$$
+J=
+\begin{pmatrix}
+0&1\\
+-1&0
+\end{pmatrix},
+\qquad
+\tau_\varphi
+:=
+\frac{r_\varphi}{1+t_\varphi}.
+$$
+
+The required endpoint coupling is
+
+$$
+\boxed{
+\Lambda_\varphi(k_\star)
+=
+iK_{\mathfrak s}k_\star\tau_\varphi J.
+}
+$$
+
+Because $J^\dagger=-J$, this $\Lambda_\varphi$ is Hermitian. With outward
+derivatives, the bulk scale-gradient term contributes
+$-K_{\mathfrak s}\delta\Phi^\dagger\Phi'$ at the boundary. The local endpoint
+action
+
+$$
+S_v
+:=
++\frac12\int dt\,\Phi^\dagger\Lambda_v\Phi
+$$
+
+then gives $K_{\mathfrak s}\Phi'=\Lambda_v\Phi$ in the stated convention.
+The off-diagonal phase in $\Lambda_\varphi$ requires a gauge-covariant endpoint
+intertwiner or a resolved endpoint field, consistent with the endpoint
+covariance boundary already identified in
+`foundations/geometric-manifold-completion.md` §2.5.
+Equivalently, endpoint frame changes act as
+$S_\Lambda\mapsto g_{\mathrm{out}}S_\Lambda g_{\mathrm{in}}^{-1}$.
+The displayed numerical matrix is a fixed-frame representative until an
+endpoint intertwiner or dressing supplies that covariance.
+
+This inverse matching identifies the endpoint term required by the declared
+golden matrix. The bulk quadratic action, self-adjointness, and the local
+Yang/Yin Hessian leave $\Lambda_v$ and $k_\star$ free.
+
+A fixed local $\Lambda_\varphi(k_\star)$ also makes the split wave-number
+dependent. At wave number $k$, define
+
+$$
+\alpha(k)
+:=
+\frac{k_\star}{k}\tau_\varphi.
+$$
+
+The same endpoint then gives
+
+$$
+S(k)
+=
+\frac{1}{1+\alpha^2}
+\begin{pmatrix}
+1-\alpha^2&2\alpha\\
+-2\alpha&1-\alpha^2
+\end{pmatrix}.
+$$
+
+The golden powers occur at the selected matching point $k=k_\star$. A
+frequency-independent golden splitter would require additional endpoint
+dynamics, a derivative boundary interaction, or a microscopic law that fixes
+the relevant wave-number dependence.
+
+### 4.5 Closed coherent propagation
 
 Write $t_\varphi=\cos\theta_\varphi$ and $r_\varphi=\sin\theta_\varphi$. A closed coherent chain gives
 
@@ -301,9 +515,9 @@ S_\varphi^N
 \end{pmatrix}.
 $$
 
-Its forward power for one occupied input port is $\cos^2(N\theta_\varphi)$. Coherent return amplitudes re-enter the next interface and produce interference. The geometric product $T_\varphi^N$ belongs to a routed boundary condition rather than to the closed two-port matrix.
+Its forward power for one occupied input port is $\cos^2(N\theta_\varphi)$. Coherent return amplitudes re-enter the next interface and produce interference. The geometric product $T_\varphi^N$ requires the routed boundary condition in §4.6.
 
-### 4.3 Routed, non-re-entering propagation
+### 4.6 Routed, non-re-entering propagation
 
 Suppose each interface sends its return output into a separate return rail or reservoir, with no coherent re-entry into subsequent forward inputs. Then
 
@@ -346,7 +560,7 @@ $$
 
 The apparent attenuation is redistribution between resolved and return channels. A full closed system retains both channels and conserves the total.
 
-### 4.4 Amplitude and flux exponents
+### 4.7 Amplitude and flux exponents
 
 The routed splitter acts on amplitudes through $t_\varphi$ and on quadratic powers through $T_\varphi$:
 
@@ -360,7 +574,7 @@ $$
 
 Accordingly, this branch realizes the universal suppression formula only when the quantity called a signal is a quadratic conserved flux, power, stress, or energy. Amplitude-like couplings and phases require an observable-specific map.
 
-### 4.5 Stress-derived force in the routed branch
+### 4.8 Stress-derived force in the routed branch
 
 Suppose the normalized port power is proportional to a collinear signed
 spatial-momentum flux, with the same power-to-momentum conversion on the input
@@ -385,8 +599,8 @@ $$
 $$
 
 The return-port label specifies motion toward the opposite direction in the
-scale graph. It does not determine the direction of the carried spatial
-momentum. For collinear ports, introduce the routing-orientation label
+scale graph. The direction of the carried spatial momentum is a separate
+orientation datum. For collinear ports, introduce the routing-orientation label
 
 $$
 \sigma_a\in\{+1,-1\},
@@ -449,21 +663,28 @@ and, for fixed $G_{i\mathfrak s}$, the forward mixed-force contribution carries 
 This identification requires four additional pieces:
 
 1. the Noether stress tensor of the time-completed field action;
-2. a dimensionally explicit map from $\mathcal I_{\mathfrak s}$ to $T_{i\mathfrak s}$;
-3. a microscopic two-port interaction that fixes the splitter magnitudes and phases;
-4. a return rail, reservoir, or decoherence mechanism that enforces non-re-entry.
+2. a dimensionally explicit map from $\mathcal I_{\mathfrak s}$ to
+   $T_{i\mathfrak s}$;
+3. a microscopic endpoint action that selects $\Lambda_v$, its gauge-covariant
+   dressing, and its wave-number dependence;
+4. a return rail, side channel, or reservoir topology that enforces
+   non-re-entry.
 
-The fixed-point density ratio selects the candidate port powers in this branch. It does not derive the physical port map or the routed boundary condition.
+The fixed-point density ratio supplies the target power fractions for this
+branch. The boundary problem now fixes the canonical flux norm and the endpoint
+coupling required to realize that target at one wave number. Physical
+selection of the coupling and the routed boundary condition remain open.
 
 ---
 
 ## 6. Consequences for cascade attenuation
 
-The derivation separates three mechanisms that can share the same scalar coefficient:
+The derivation separates four mechanisms that can share the same scalar coefficient:
 
 | Mechanism | Role of $d=\varphi^{-1}$ | Transfer across $N$ interfaces |
 |---|---|---|
 | Reciprocal elastic ladder | Interface stiffness or conductance | Normal-mode dispersion; static series compliance |
+| Self-adjoint two-lead vertex | Target transmitted power at a selected matching point | Unitary $S_\Lambda(k)$; a fixed local coupling gives wave-number-dependent power |
 | Closed coherent two-port chain | Single-interface power fraction | $\cos^2(N\theta_\varphi)$ for the representative phase choice |
 | Routed two-port chain | Forward power fraction with return non-re-entry | $\varphi^{-N}$ forward flux plus $1-\varphi^{-N}$ return flux |
 
@@ -478,7 +699,7 @@ $$
 }
 $$
 
-This statement supplies an explicit conservative realization of the suppression algebra. It does not promote the universal attenuation law to a dynamical prediction. Existing applications in `foundations/cascade-suppression-formula.md` retain their registered tiers until each observable is identified with a physical routed flux.
+This statement supplies an explicit conservative realization of the suppression algebra. A dynamical prediction additionally requires a physical routed-flux identification. Existing applications in `foundations/cascade-suppression-formula.md` retain their registered tiers until each observable is identified with that flux.
 
 ---
 
@@ -489,6 +710,11 @@ This statement supplies an explicit conservative realization of the suppression 
 | Scale-window force equals the difference of mixed-stress boundary fluxes | **Derived** from local momentum conservation |
 | Reciprocal ladder interface forces cancel pairwise | **Derived** from the ladder action |
 | Positive reciprocal ladder has real normal modes and series compliance | **Derived** |
+| Quadratic scale action supplies the canonical boundary flux | **Derived conditional** on the time-completed action |
+| Hermitian Robin data give unitary $S_\Lambda(k)$ | **Derived conditional boundary algebra** |
+| Existing two-rail phase gluing is a perfect-transfer endpoint | **Derived conditional** from the registered gluing |
+| $\Lambda_\varphi(k_\star)$ realizes $S_\varphi$ at the declared matching point | **Derived conditional inverse matching** |
+| The endpoint dynamics select $\Lambda_\varphi$ and $k_\star$ | **Hypothesized constitutive selection** |
 | $S_\varphi$ is unitary for the selected fixed-point power fractions | **Derived conditional algebra** |
 | Closed coherent propagation gives $\cos^2(N\theta_\varphi)$ | **Derived conditional algebra** |
 | Routed non-re-entry gives forward flux $\varphi^{-N}$ with a complementary return ledger | **Derived conditional algebra** |
@@ -496,7 +722,10 @@ This statement supplies an explicit conservative realization of the suppression 
 | Return channels are physically routed without coherent re-entry | **Hypothesized boundary dynamics** |
 | $\mathcal I_{\mathfrak s}$ carries the physical mixed stress $T_{i\mathfrak s}$ | **Hypothesized constitutive identification** |
 
-A physical realization must measure all three ledgers at each interface: forward flux, return flux, and stored or dissipated energy. The routed branch requires the ratios
+A physical realization must predict its endpoint coupling before measuring the
+split and must measure all three ledgers at each interface: forward flux,
+return flux, and stored or dissipated energy. The routed branch requires the
+ratios
 
 $$
 \frac{P_{a+1}^{\mathrm{fwd}}}{P_a^{\mathrm{fwd}}}
@@ -508,7 +737,22 @@ $$
 
 with their sum equal to unity before any universal interpretation is assigned. A reciprocal chain, a coherent two-port chain, or an unclosed loss term falsifies that specific realization when it replaces these ledgers.
 
-The algebraic receipt is `computations/interscale_stress_attenuation_check.py`.
+Agreement at one $k_\star$ establishes an endpoint matching point. A universal
+splitter additionally requires the predicted wave-number dependence and the
+physical routing geometry.
+
+The frozen algebraic receipt is
+`computations/interscale_port_matching_prereg.md`; its executable is
+`computations/interscale_stress_attenuation_check.py`.
+
+The frozen first execution passed ST11–ST14 without coefficient changes:
+
+| Check | Numerical receipt |
+|---|---|
+| Hermitian Robin unitarity | $\|S^\dagger S-I\|_{\max}=3.331\times10^{-16}$; flux residual $1.110\times10^{-16}$ |
+| Golden target inverse matching | $\tau_\varphi=0.346014339236$; $\|S_{\Lambda}(k_\star)-S_\varphi\|_{\max}=0$ |
+| Fixed-coupling wave-number dependence | analytic residual $1.110\times10^{-16}$; $\|S(1.7k_\star)-S_\varphi\|_{\max}=0.227152$ |
+| Phase-only perfect transfer | unitarity, power, and complementary-leakage residuals all $0$ |
 
 ---
 
@@ -517,5 +761,8 @@ The algebraic receipt is `computations/interscale_stress_attenuation_check.py`.
 - `foundations/cassi-first-principles.md` §1.2—Yang/Yin attractor and fixed-point density fractions
 - `foundations/cascade-suppression-formula.md`—registered conditional suppression law and evidence boundary
 - `foundations/interscale-current-soliton.md`—density current, gauge current, endpoint circuit, and mixed-curvature force
+- `foundations/particle-stationary-action-closure.md` §3.2—time-completed quadratic scale action
+- `foundations/geometric-manifold-completion.md` §§2.4–2.5—two-rail circuit and phase-only endpoint gluing
 - `foundations/endpoint-link-and-localization-boundary.md`—endpoint transfer and return-path boundary conditions
-- `computations/interscale_stress_attenuation_check.py`—conservation, splitter, coherent-chain, and routed-chain checks
+- `computations/interscale_port_matching_prereg.md`—frozen boundary-matching checks
+- `computations/interscale_stress_attenuation_check.py`—conservation, endpoint matching, coherent-chain, and routed-chain checks

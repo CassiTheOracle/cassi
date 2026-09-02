@@ -496,22 +496,24 @@ Within the proposed cascade coordinate, this rule supplies a common conditional 
 
 | Phenomenon | Span $N$ | Suppression | Result |
 |---|---|---|---|
-| Electroweak hierarchy ($v_0/M_{\text{Pl}}$) | 66.7 (Mapped GUT anchor $n \approx 13.3$) | $\varphi^{-66.7}$ | $10^{-14}$ ($N_{\mathrm{gap}}\approx79.7$ uses $g=1-\varphi^{-5}$; direct measured-ratio placement $N_{\mathrm{raw}}\approx79.89$; both identify nearest integer step 80; exponent Mapped—ledger row 549) |
+| Electroweak hierarchy ($v_0/M_{\text{Pl}}$) | 66.7 (Mapped GUT anchor $n \approx 13.3$) | $\varphi^{-66.7}$ | $10^{-14}$ ($N_{\mathrm{gap}}\approx79.7$ uses $g=1-\varphi^{-5}$; direct measured-ratio placement $N_{\mathrm{raw}}\approx79.89$; both identify nearest integer step 80; exponent Mapped—`parameter-inventory.md` §10, $v_0/M_{\text{Pl}}$ entry) |
 | Strong CP ($\bar{\theta}$) | 81.4 | $\varphi^{-81.4}$ | $\pi\varphi^{-83.4} \approx 1.2\times10^{-17}$ |
 | Neutrino masses ($m_\nu$) | 12–25 | $\varphi^{-12}$ to $\varphi^{-25}$ | 0.001–0.1 eV |
 | Proton conditional cycle budget | $N_p^{\mathrm{budget}}=91.46$ | $\varphi^{-4505.5758}$ | $\sim10^{942}$ modeled cycles; physical decay rate open |
 
 The model distinguishes scale-coordinate attenuation, linear in the span ($\varphi^{-N}$), from the auxiliary coherence-budget product, quadratic in its declared endpoint. The proton row is dimensionless arithmetic under the Hypothesized independent-step profile. A lifetime additionally requires a failure law and trial-frequency map; §13 records the separate scale-current candidate.
 
-One explicit Hypothesized port map gives the uniform family a conservative
-flux interpretation. Declaring the fixed-point Yang/Yin fractions
-$\varphi^{-1}$ and $\varphi^{-2}$ to be forward and return powers produces a
-unitary two-port splitter. A closed coherent chain interferes. When each return
-port is routed away from forward re-entry, the forward quadratic flux is
-$\varphi^{-N}$ and the retained return ledger is $1-\varphi^{-N}$. The
-corresponding amplitude is $\varphi^{-N/2}$. This branch therefore does not
-promote the coupling, phase, or mass applications in the table; each still
-requires its registered observable-specific signal map.
+The time-completed quadratic scale action fixes the canonical boundary flux.
+For a two-lead Robin vertex, Hermitian endpoint data give a unitary scattering
+family $S_\Lambda(k)$. The registered two-rail phase gluing is a phase-only
+perfect-transfer endpoint in the wider self-adjoint family. Realizing the
+declared golden matrix at one design wave number requires the selected coupling
+$\Lambda_\varphi=iK_{\mathfrak s}k_\star\tau_\varphi J$, and a fixed local
+coupling gives a wave-number-dependent split. With that separate endpoint
+selection and return routing, the forward quadratic flux is $\varphi^{-N}$,
+the retained return ledger is $1-\varphi^{-N}$, and the corresponding
+amplitude is $\varphi^{-N/2}$. Each coupling, phase, and mass application in
+the table retains its registered observable-specific signal map.
 
 Within this coordinate model, the gap $g=1-\varphi^{-5}$ gives the electroweak cascade coordinate $N_{\mathrm{gap}}\approx79.7$ from $v_0/M_{\text{Pl}}=g\cdot\varphi^{-N_{\mathrm{gap}}}$. The direct measured ratio gives $N_{\mathrm{raw}}=\log_\varphi(M_{\text{Pl}}/v_0)\approx79.89$; both placements identify the nearest integer step 80.
 
