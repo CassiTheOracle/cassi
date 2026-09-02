@@ -88,7 +88,7 @@ trace_metric = coherence_metric
 assert close(trace_metric, coherence_metric)
 assert close(affine_metric, coherence_metric)
 
-# Minimal completely positive lift and exact canonical diagonal reduction.
+# Fixed-rate GKSL lift and exact canonical diagonal reduction.
 gamma_conv = 0.07
 e_y, e_i, coherence = 1.2, 0.4, 0.2 + 0.1j
 state = [[e_y, coherence.conjugate()], [coherence, e_i]]

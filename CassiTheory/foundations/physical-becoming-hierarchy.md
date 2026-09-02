@@ -545,12 +545,16 @@ remaining GQ3 and P1→P2 boundary.
 
 The completion ansatz in
 `foundations/geometric-manifold-completion.md` embeds the projected density
-pair in a positive Hermitian fibre and supplies one minimal completely
-positive off-diagonal conversion lift. Its diagonal equations reproduce the
-canonical population operator exactly, while its transverse coherence decays
-at $\gamma_c=\gamma_\varepsilon/2$. This conditional rate belongs to the
-selected two-jump lift. It leaves the physical carrier map and the microscopic
-conversion reservoir open.
+pair in a positive Hermitian fibre and supplies one minimal
+positivity-preserving two-jump conversion lift. Its diagonal equations
+reproduce the canonical population operator exactly, while its transverse
+coherence decays at $\gamma_c=\gamma_\varepsilon/2$. With the state-dependent
+$q$, the lift is a nonlinear pointwise Lindblad-form vector field whose
+trajectories reparametrize a fixed linear GKSL flow. The conditional rate
+belongs to the selected lift. The physical carrier map and microscopic
+conversion reservoir remain open. The integrated balance and exact
+finite-density support boundary are derived in
+`foundations/yin-yang-qi-dynamical-geometry.md`.
 
 ---
 
@@ -1437,8 +1441,9 @@ The theory closes one exact mathematical bridge and one architectural hierarchy:
   coherence-sensitive affine-bubble projection.
 - **Derived within the completion ansatz:** the positive coherence fibre
   contains the canonical density diameter and projective boundary, while the
-  minimal completely positive conversion lift reproduces canonical populations
-  and gives $\gamma_c=\gamma_\varepsilon/2$.
+  minimal positivity-preserving two-jump conversion lift reproduces canonical
+  populations and gives $\gamma_c=\gamma_\varepsilon/2$. At finite density
+  with $\lambda>0$, its undriven nonzero transverse coherence decays.
 - **Defined:** actual state, body readouts, gate readouts, history, shadow trajectories, branch allocation, attention, commitment, resource debit, learning, and their causal order occupy typed slots in one differential-algebraic state.
 - **Hypothesized:** these slots form an autonomous field-native prospective controller after coarse-graining.
 - **Open:** a symmetry-protected microscopic completion, covariant screened gravity, the physical P1-to-carrier state map, physical unit matching, maintained embodiment, agent-level causal gates, and a distinctive physical prediction validated against controls.
@@ -1456,7 +1461,11 @@ The compact physical-becoming equation is therefore a research contract. It says
   shared-support carrier reduction, coherence map, and internal spectral gap.
 - `foundations/geometric-manifold-completion.md`—stratified positive coherence
   fibre, two-rail scale graph, exact canonical reduction, and conditional
-  completely positive conversion lift.
+  positivity-preserving conversion lift.
+- `foundations/yin-yang-qi-dynamical-geometry.md`—integrated open-system
+  matrix balance and finite-density coherence-support boundary.
+- `computations/dynamical_geometry_closure_report.md`—DG1–DG7 analytic and
+  deterministic closure receipt.
 - `foundations/unified-lagrangian.md`—optional microscopic action assembly and its dimensional/covariant blockers.
 - `foundations/dimensionful-constants-status.md`—physical-unit and external-constant boundaries.
 - `computations/verify_physical_becoming_reduction.py`—symbolic checks of the exact conversion, mobility, covariance null mode, response eigenmodes, reference-state $\Gamma_0=\lambda/3$, physical fixed-$\rho$ wedge, and conditional FDT normalization.

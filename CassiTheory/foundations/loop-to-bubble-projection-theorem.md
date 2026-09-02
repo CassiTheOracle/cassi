@@ -1009,10 +1009,13 @@ The completion ansatz in
 matrix with the positive Hermitian fibre of one stratified bundle. Its
 normalized section is the Bloch ball, the rank-one stratum is the projective
 shell, and the affine bubble map has the same normalized pullback metric. The
-minimal completely positive conversion lift extends the diagonal population
-law with a conditional coherence rate
-$\gamma_c=\gamma_\varepsilon/2$; this rate is specific to that lift and does
-not follow from the loop projection alone.
+minimal positivity-preserving two-jump conversion lift extends the diagonal
+population law with the conditional coherence rate
+$\gamma_c=\gamma_\varepsilon/2$. With state-dependent $q$, the complete lift
+is nonlinear; its trajectories reparametrize a fixed linear GKSL flow. The
+rate and the associated finite-density coherence-support boundary are specific
+to that lift and do not follow from the loop projection alone. See
+`foundations/yin-yang-qi-dynamical-geometry.md` §§5–7.
 
 ---
 

@@ -1141,7 +1141,7 @@ $$
 $$
 
 The Hypothesized conservative interscale action remains separate from
-mesoscopic open-system conversion. The minimal completely positive two-jump
+mesoscopic open-system conversion. The minimal positivity-preserving two-jump
 lift reproduces the canonical population operator exactly and gives the
 conditional rate relation
 
@@ -1152,11 +1152,19 @@ $$
 =\left(\frac{\lambda}{3},\frac{\lambda}{6}\right).
 $$
 
+With the canonical state-dependent $q$, the conversion vector field is
+nonlinear. It factorizes into a nonnegative scalar rate and a fixed linear GKSL
+generator, so its trajectories preserve the positive cone by conversion-time
+reparametrization. For every finite density with $\lambda>0$, the undriven
+minimal lift strictly damps nonzero transverse coherence. A stationary
+phase-bearing state therefore requires an identified support term.
+
 This ansatz completes the mathematical maps among the declared layers.
 Physical scale normalization, endpoint microphysics, the conversion
 reservoir, localized solutions, the observation map, particle quantum
 numbers, and decay rates remain open. See
-`foundations/geometric-manifold-completion.md`.
+`foundations/geometric-manifold-completion.md` and
+`foundations/yin-yang-qi-dynamical-geometry.md`.
 
 ### 10.6 Wake-Wave Mechanism
 

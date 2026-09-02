@@ -307,12 +307,23 @@ cross-glued two-rail metric graph supplies one compact internal scale cycle,
 distinct from the shared carrier loop and from any spatial torus.
 
 The conservative interscale action and mesoscopic conversion remain separate
-dynamical blocks. A minimal completely positive lift reproduces canonical
-population conversion exactly and conditionally gives transverse coherence
-decay at half the composition-relaxation rate. Charged coherent and one-way
-open endpoint sectors provide conditional scale-vertex closure. The full
-coherence fibre is contractible, the smooth object base has no first-Chern
-sector, and the minimal endpoint completion has no finite Derrick radius.
+dynamical blocks. A minimal positivity-preserving two-jump lift reproduces
+canonical population conversion exactly and conditionally gives transverse
+coherence decay at half the composition-relaxation rate. With the canonical
+state-dependent $q$, the complete conversion vector field is nonlinear; its
+trajectories reparametrize a fixed linear GKSL flow and preserve the positive
+cone.
+
+The open dynamical-geometry synthesis assembles the conservative currents,
+conversion flow, endpoint channels, and declared reservoir terms into one
+effective matrix balance. DG1–DG7 pass. At every finite density with
+$\lambda>0$, undriven nonzero transverse coherence decays, so a stationary
+phase-bearing state requires an identified support term. The result is an
+effective open-system closure; one microscopic action, total
+field-plus-reservoir stress, geometry backreaction, and the interface to the
+separate local-$SU(2)_Q$ particle branch remain open. See
+`foundations/yin-yang-qi-dynamical-geometry.md` and
+`computations/dynamical_geometry_closure_report.md`.
 The charged coherent endpoint action also fixes the stationary spatial boundary:
 $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v
 =-\mathcal I_{\mathrm{link},v}/2$. Every periodic, no-flux, or sufficiently
@@ -881,6 +892,8 @@ The framework records evidence and limitations in `audit.md`; the gate-sign conv
 - `foundations/cassi-theory-reference.md`—compact physics reference: governing equations, unified Lagrangian
 - `foundations/dimensionful-cascade.md`—the 292-step cascade table and scale-assignment provenance
 - `foundations/bubble-lattice-fabric.md`—the condensation field as universal organizing geometry
+- `foundations/yin-yang-qi-dynamical-geometry.md`—integrated open-system
+  geometry and the finite-density coherence-support boundary
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation and the hierarchy resolutions
 - `foundations/wu-xing-derivation.md`—why $w = 5$
 - `foundations/wu-xing-cycle-structure.md`—the two 5-cycles, the control ring, the 5↔13 partition

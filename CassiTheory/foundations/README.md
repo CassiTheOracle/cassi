@@ -54,6 +54,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point coupled campaign |
 | 43 | `particle-stationary-action-closure.md` | Source-free temporal particle action, Gauss constraint, fixed-charge functional, and variational boundary | Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries / Tested one-point numerical boundary |
 | 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, source-action Nambu response, and routed quadratic-flux attenuation | Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026 |
+| 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated canonical conversion, coherence fibre, relative-phase transport, endpoint ledgers, and open-system support boundary | Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, and conditional coherence-support boundary—September 2026 |
 
 ## Document Summaries
 
@@ -566,11 +567,13 @@ reflection and transmission, and the charged coherent field in
 conditional gauge-covariant realization.
 
 The conservative interscale action and mesoscopic dissipative conversion
-remain separate dynamical blocks. A minimal completely positive two-jump lift
-reproduces canonical conversion exactly on the diagonal and conditionally
+remain separate dynamical blocks. A minimal positivity-preserving two-jump
+lift reproduces canonical conversion exactly on the diagonal and conditionally
 gives $\gamma_c=\gamma_\varepsilon/2$, with
 $(\gamma_\varepsilon,\gamma_c)=(\lambda/3,\lambda/6)$ at the gated reference
-state. Charged coherent and one-way open endpoint realizations are available
+state. Its state-dependent flow is nonlinear and follows fixed-GKSL orbits
+under a nondecreasing conversion-time reparametrization.
+Charged coherent and one-way open endpoint realizations are available
 conditionally. The smooth zero-Chern sector has no finite Derrick radius.
 Point-core Chern flux supplies a conditional exterior coefficient. An
 auxiliary adjoint $SU(2)_Q$ branch smooths that core and matches its flux, but
@@ -580,6 +583,24 @@ normalization, reservoir, supported net-zero composite, observation map,
 particle quantum numbers, and decay rate remain open. Status: Hypothesized
 completion ansatz with Derived canonical reduction and conditional fibre
 geometry.
+
+### `yin-yang-qi-dynamical-geometry.md`—Yin–Yang–Qi Open Dynamical Geometry
+
+Assembles the canonical $E_Y,E_I,q$ conversion law, positive Hermitian
+coherence fibre, relative-$U(1)_Q$ currents, and endpoint/Wilson channels into
+one explicit open-system matrix balance. The two-jump conversion factorizes
+into a nonnegative state-dependent rate and a fixed linear GKSL generator, so
+the nonlinear trajectories preserve the positive cone and reproduce the
+canonical diagonal PDE exactly. For every finite density with $\lambda>0$,
+undriven nonzero transverse coherence decays; a stationary phase-bearing state
+therefore requires an identified coherent source, protected sector, boundary
+or transport influx, modified reservoir, or different lift. DG1–DG7 pass by
+exact analysis plus the frozen deterministic receipt. One microscopic action,
+total field-plus-reservoir stress, geometry backreaction, interface to the
+separate local-$SU(2)_Q$ particle branch, and a qualified stationary matter
+solution remain open. Status: Hypothesized integrated open-system geometry /
+Derived exact diagonal reduction, positivity-preserving conversion flow,
+covariance, ledger closure, and conditional coherence-support boundary.
 
 ### `endpoint-link-and-localization-boundary.md`—Gauge-Covariant Endpoint Closure and the Localization Boundary
 
