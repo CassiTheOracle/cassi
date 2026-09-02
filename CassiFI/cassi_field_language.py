@@ -312,6 +312,27 @@ class CassiQiTrajectoryLaw:
             context=context * phase,
             velocity=velocity * phase,
         )
+
+    def reverse_live_context(self, state: QiFieldState, count: int) -> QiFieldState:
+        if (
+            isinstance(count, bool)
+            or not isinstance(count, int)
+            or not 2 <= count <= max(self.history_limits)
+        ):
+            raise CassiFieldLanguageError("live context reversal count is invalid")
+        state.validate(self.config)
+        field = state.field.detach().clone()
+        parts = field.reshape(
+            self.config.scale_count,
+            9,
+            self.config.mode_count,
+            1,
+        )
+        parts[:, :, :count, :] = parts[:, :, :count, :].flip(dims=(2,))
+        result = QiFieldState(field)
+        result.validate(self.config)
+        return result
+
     def write_live_boundary_values(
         self,
         state: QiFieldState,

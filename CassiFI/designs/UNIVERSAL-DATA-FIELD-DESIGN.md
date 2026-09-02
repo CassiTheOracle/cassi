@@ -259,7 +259,8 @@ The current implementation is distributed across:
   paired JSON/raster, directional transfer, adapter conformance, ablation, and
   restart scenarios;
 - [`cassi_persistent_provider.py`](../cassi_persistent_provider.py): one shared
-  native field and one checkpoint payload for continuation and counterflow;
+  native field and checkpoint payload for continuation and counterflow, plus
+  exact append/read/replay routes backed by `QiIngressJournal`;
 - [`exact-store.ts`](../../CassiCore/packages/mnemic-field/src/exact-store.ts)
   and [`session.ts`](../../CassiCore/packages/thalamus/src/attention/session.ts):
   exact durable observation references and fixed admission; and
@@ -297,6 +298,16 @@ round-tripped exact bytes, reproduced its view hash, retained exact provenance,
 and rejected its malformed control. Audio and scientific arrays remained one
 block-backed `Tensor`. Every one of these five modalities still reports
 semantic status `unsupported` because no semantic task was measured.
+
+The live-provider integration check sends opaque payloads containing NUL,
+non-UTF-8, and high-bit bytes through HTTP, retries the same append
+idempotently, reads the exact bytes, and replays the chain across provider
+restart. A malformed UTF-8 packet remains exact journal evidence while its
+adapter returns `unsupported`. The route reports semantic status `unsupported`
+with reason `no_semantic_task`; both paths report no adaptive-state mutation and
+leave the initial `QiFieldState` hash unchanged. A reduced configured budget
+rejects oversized HTTP bodies before reading them and rejects cumulative
+journal overflow before writing packet or payload objects.
 
 The bounded claim remains field-generated relational programs for the declared
 two-entity grid task plus exact typed ingress. It does not establish arbitrary
@@ -365,7 +376,7 @@ query is `unsupported`.
 | Audio samples | Exact float64 little-endian block-backed tensor | Acquired sample retention only | Length/dtype mismatch and no-sample controls | Audio events or meaning not measured | Malformed/no-sample `unsupported`; semantic query `unsupported` | Exact journal replay, shape/stride/block digest | Substrate only | 2026-09-01 | partial |
 | Scientific tensor | Exact float32 block-backed tensor | Dtype, shape, stride, and acquired-value retention only | Length/shape mismatch control | Scientific interpretation not measured | Malformed tensor `unsupported`; semantic query `unsupported` | Exact journal replay and block digest | Substrate only | 2026-09-01 | partial |
 | Unknown binary semantics | Exact opaque-byte retention | No semantic task | Unknown codec and descriptor-mismatch controls | No semantic intervention | `unsupported` with `no_adapter`, `descriptor_mismatch`, or no measured task | Exact packet, payload, and replay references remain available | No semantic transfer claim | 2026-09-01 | unsupported |
-| Opaque acquired-payload retention | Exact bytes, digest, full span, and replay | Exact retention only | Byte-preserving replay | Not a semantic task | Semantic status remains `unsupported` | Five-entry adapter journal replay exact and idempotent | Substrate only | 2026-09-01 | supported |
+| Opaque acquired-payload retention | Exact bytes, digest, full span, and replay | Exact retention only | Byte-preserving HTTP read and restart replay | Not a semantic task | Semantic status `unsupported` with `no_semantic_task`; malformed typed input returns adapter status `unsupported` | Bounded live-provider append/read/replay are exact and idempotent across restart; capacity rejection leaves no objects | Substrate only | 2026-09-01 | supported |
 
 ## Implemented first slice
 
@@ -391,6 +402,9 @@ The implementation order is complete:
 6. Text, code, audio, scientific tensor, and opaque adapters are each measured
    for exact conformance; their unmeasured semantic tasks remain
    `unsupported`.
+7. The live provider accepts arbitrary byte values under the opaque codec,
+   exposes exact append/read/replay receipts, and keeps semantic work and
+   Thalamus admission explicit.
 
 The implementation adds no service, dependency, optimizer, teacher/model call,
 learned codec, learned modality head, or second adaptive checkpoint.

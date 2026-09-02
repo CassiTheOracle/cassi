@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import base64
 import hashlib
+from dataclasses import replace
 from collections.abc import Mapping
 import http.server
 import json
 from pathlib import Path
 import threading
+import urllib.error
 import urllib.request
 from typing import Any, cast
 
@@ -14,6 +17,7 @@ import torch
 
 from cassi_persistent_provider import (
     CONTEXT_STREAM_METADATA_KEY,
+    DEFAULT_INGRESS_MAX_BYTES,
     DEFAULT_HOST,
     DEFAULT_MAX_OUTPUT_SYMBOLS,
     DEFAULT_PORT,
@@ -34,6 +38,7 @@ from cassi_phi_harmonic_language import (
     PhiHarmonicLanguageConfig,
     PhiHarmonicLanguageController,
 )
+from cassi_universal_data import CODEC_OPAQUE, CODEC_TEXT, ZERO_SHA256
 
 
 def _canonical(value: Any) -> bytes:
@@ -47,11 +52,14 @@ def _canonical(value: Any) -> bytes:
 
 def _start_http_provider(
     provider: PersistentFieldProvider,
+    *,
+    world_token: str | None = None,
 ) -> tuple[http.server.ThreadingHTTPServer, threading.Thread]:
     class Handler(_Handler):
         pass
 
     Handler.provider = provider
+    Handler.world_token = world_token
     server = http.server.ThreadingHTTPServer(
         ("127.0.0.1", 0),
         cast(Any, Handler),
@@ -74,17 +82,52 @@ def _post_provider(
     server: http.server.ThreadingHTTPServer,
     path: str,
     body: Mapping[str, Any],
+    *,
+    token: str | None = None,
 ) -> dict[str, Any]:
+    headers = {"Content-Type": "application/json"}
+    if token is not None:
+        headers["Authorization"] = f"Bearer {token}"
     request = urllib.request.Request(
         f"http://127.0.0.1:{server.server_port}{path}",
         data=_canonical(body),
-        headers={"Content-Type": "application/json"},
+        headers=headers,
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=30.0) as response:
+    try:
+        response = urllib.request.urlopen(request, timeout=30.0)
+    except urllib.error.HTTPError as error:
+        raise AssertionError(error.read().decode("utf-8")) from error
+    with response:
         decoded = json.loads(response.read())
     if not isinstance(decoded, dict):
         raise AssertionError("provider response must be an object")
+    return decoded
+
+
+def _post_provider_error(
+    server: http.server.ThreadingHTTPServer,
+    path: str,
+    body: Mapping[str, Any],
+    *,
+    token: str | None = None,
+    expected_status: int = 400,
+) -> dict[str, Any]:
+    headers = {"Content-Type": "application/json"}
+    if token is not None:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(
+        f"http://127.0.0.1:{server.server_port}{path}",
+        data=_canonical(body),
+        headers=headers,
+        method="POST",
+    )
+    with pytest.raises(urllib.error.HTTPError) as caught:
+        urllib.request.urlopen(request, timeout=30.0)
+    assert caught.value.code == expected_status
+    decoded = json.loads(caught.value.read())
+    if not isinstance(decoded, dict):
+        raise AssertionError("provider error response must be an object")
     return decoded
 
 
@@ -190,7 +233,11 @@ def _candidate(
     }
 
 
-def _provider_config(root: Path) -> ProviderConfig:
+def _provider_config(
+    root: Path,
+    *,
+    extra_exchanges: tuple[tuple[bytes, bytes], ...] = (),
+) -> ProviderConfig:
     phi_config = PhiHarmonicLanguageConfig(mode_count=640)
     config_path = root / "phi-config.json"
     config_path.write_text(
@@ -206,6 +253,7 @@ def _provider_config(root: Path) -> ProviderConfig:
         (
             (b"hello", "café".encode("utf-8")),
             (b"status", b"ready"),
+            *extra_exchanges,
         ),
     )
     checkpoint_path = root / "field-state.pt"
@@ -218,8 +266,14 @@ def _provider_config(root: Path) -> ProviderConfig:
     )
 
 
-def _start(root: Path) -> PersistentFieldProvider:
-    provider = PersistentFieldProvider(_provider_config(root))
+def _start(
+    root: Path,
+    *,
+    extra_exchanges: tuple[tuple[bytes, bytes], ...] = (),
+) -> PersistentFieldProvider:
+    provider = PersistentFieldProvider(
+        _provider_config(root, extra_exchanges=extra_exchanges)
+    )
     provider.start()
     return provider
 
@@ -238,16 +292,358 @@ def _completion(
         "user": user,
     }
 
+def _ingress_request(
+    *,
+    codec_id: str,
+    payload: bytes,
+    head_sha256: str,
+    sequence: int,
+) -> dict[str, Any]:
+    instant = {"numerator": sequence, "denominator": 1}
+    return {
+        "codec_id": codec_id,
+        "packet": {
+            "run_id": "provider-ingress-run",
+            "episode_id": f"provider-ingress-episode-{sequence}",
+            "world_id": "provider-ingress-world",
+            "session_id": "provider-ingress-session",
+            "profile_sha256": "1" * 64,
+            "clock_sha256": "2" * 64,
+            "request_id": f"provider-ingress-{sequence}",
+            "logical_tick": sequence,
+            "logical_time": instant,
+            "capture_start": instant,
+            "capture_end": instant,
+            "source_epoch": "provider-ingress-v1",
+            "source_stream_id": "provider-ingress-stream",
+            "source_sequence": sequence,
+            "ingress_journal_sha256": head_sha256,
+            "body_frame_id": "provider-ingress-frame",
+            "payload_shape": [len(payload)],
+            "payload_dtype": "uint8",
+            "valid": True,
+        },
+        "payload_base64": base64.b64encode(payload).decode("ascii"),
+    }
+
+
+
 
 def test_provider_identity_and_cli_defaults() -> None:
     args = build_parser().parse_args([])
     assert args.host == DEFAULT_HOST
     assert args.port == DEFAULT_PORT
     assert args.max_output_symbols == DEFAULT_MAX_OUTPUT_SYMBOLS
+    assert args.ingress_max_bytes == DEFAULT_INGRESS_MAX_BYTES
     assert args.phi_config.name == "cassi-phi-harmonic-language.json"
     assert MODEL_NAME == "cassi-phi-harmonic-language-v1"
     assert PROTOCOL == "Cassi Phi-harmonic field provider"
-    assert VERSION == 6
+    assert VERSION == 7
+
+def test_authenticated_particle_world_turn_and_result_are_idempotent(
+    tmp_path: Path,
+) -> None:
+    token = "cassi-world-test-token"
+    message = "Arrange the selected particles into a ring around the cursor radius 2"
+    outcome = {
+        "schema": "cassi.particle-result.v1",
+        "status": "applied",
+        "affected_count": 96,
+        "post_state_digest": "a" * 64,
+    }
+    provider = _start(tmp_path)
+    server, thread = _start_http_provider(provider, world_token=token)
+    turn_request = {
+        "user": "particle-world-test",
+        "world_id": "cosmos-main",
+        "request_id": "turn-0001",
+        "message": message,
+        "context": {
+            "cursor": [0.0, 0.0, 0.0],
+            "selection": {"type": "all"},
+            "particle_count": 96,
+            "constraints": {
+                "maximum_particles": 96,
+                "maximum_displacement": 20.0,
+                "maximum_speed": 4.0,
+            },
+        },
+        "max_tokens": 8,
+    }
+    try:
+        unauthorized = _post_provider_error(
+            server,
+            "/v1/world/turn",
+            turn_request,
+            expected_status=401,
+        )
+        assert unauthorized["error"]["type"] == "authentication_error"
+
+        turn = _post_provider(
+            server, "/v1/world/turn", turn_request, token=token
+        )
+        assert turn["schema"] == "cassi.world-turn.v1"
+        assert turn["request_id"] == "turn-0001"
+        assert turn["planner"] == "deterministic"
+        assert turn["staged_program"]["schema"] == "cassi.particle-program.v1"
+        assert turn["staged_program"]["target"]["type"] == "ring"
+        assert len(turn["program_digest"]) == 64
+        assert turn["assistant"].startswith("Staged a ring arrangement")
+        assert turn["field_receipt"]["schema"] == "cassi.world-field-observation.v1"
+        assert (
+            turn["field_receipt"]["state_in_sha256"]
+            != turn["field_receipt"]["state_out_sha256"]
+        )
+        duplicate_turn = _post_provider(
+            server, "/v1/world/turn", turn_request, token=token
+        )
+        assert duplicate_turn == turn
+
+        conflict = dict(turn_request)
+        conflict["message"] = "Arrange all particles into a line"
+        conflict_error = _post_provider_error(
+            server,
+            "/v1/world/turn",
+            conflict,
+            token=token,
+        )
+        assert "request_id conflict" in conflict_error["error"]["message"]
+
+        result_request = {
+            "user": "particle-world-test",
+            "world_id": "cosmos-main",
+            "request_id": "turn-0001",
+            "program_digest": turn["program_digest"],
+            "outcome": outcome,
+        }
+        result = _post_provider(
+            server, "/v1/world/result", result_request, token=token
+        )
+        assert result["schema"] == "cassi.world-result.v1"
+        assert result["observed_once"] is True
+        assert result["status"] == "applied"
+        assert result["assistant"].startswith("Observed the applied result")
+        assert (
+            result["field_receipt"]["state_in_sha256"]
+            != result["field_receipt"]["state_out_sha256"]
+        )
+        duplicate_result = _post_provider(
+            server, "/v1/world/result", result_request, token=token
+        )
+        assert duplicate_result == result
+
+        conflicting_result = dict(result_request)
+        conflicting_result["outcome"] = {
+            **result_request["outcome"],
+            "affected_count": 95,
+        }
+        result_error = _post_provider_error(
+            server,
+            "/v1/world/result",
+            conflicting_result,
+            token=token,
+        )
+        assert "request_id conflict" in result_error["error"]["message"]
+    finally:
+        _stop_http_provider(server, thread)
+        provider.close()
+
+def test_exact_ingress_http_round_trips_replays_and_abstains(
+    tmp_path: Path,
+) -> None:
+    config = _provider_config(tmp_path)
+    provider = PersistentFieldProvider(config)
+    provider.start()
+    server, thread = _start_http_provider(provider)
+    payload = b"\x00\xffCassi\x80\x00"
+    append_request = _ingress_request(
+        codec_id=CODEC_OPAQUE,
+        payload=payload,
+        head_sha256=ZERO_SHA256,
+        sequence=1,
+    )
+    try:
+        assert provider.controller is not None
+        assert provider.initial_state is not None
+        state_sha256 = provider.controller.state_sha256(provider.initial_state)
+        noncanonical = _ingress_request(
+            codec_id=CODEC_OPAQUE,
+            payload=b"f",
+            head_sha256=ZERO_SHA256,
+            sequence=1,
+        )
+        noncanonical["payload_base64"] = "Zh=="
+        with pytest.raises(ProviderError, match="canonical base64"):
+            provider.append_ingress(noncanonical)
+        assert provider.ingress_journal is not None
+        assert provider.ingress_journal.head_sha256 == ZERO_SHA256
+
+        appended = _post_provider(
+            server, "/v1/ingress/append", append_request
+        )
+        assert appended["schema"] == "cassi.provider.ingress-receipt.v1"
+        assert appended["operation"] == "append"
+        assert appended["adapter"] == {
+            "status": "selected",
+            "reason": None,
+            "view_sha256": appended["adapter"]["view_sha256"],
+            "modality": "opaque",
+            "root_constructor": "Atom",
+        }
+        assert len(appended["adapter"]["view_sha256"]) == 64
+        assert appended["packet"]["payload_sha256"] == hashlib.sha256(
+            payload
+        ).hexdigest()
+        assert appended["semantic_status"] == "unsupported"
+        assert appended["semantic_reason"] == "no_semantic_task"
+        assert appended["thalamus_admission"] == "policy_required"
+        assert appended["adaptive_state_changed"] is False
+        assert appended["mnemic_observation_input"] == {
+            "contextSessionId": "provider-ingress-session",
+            "recordId": appended["packet"]["event_id"],
+            "packetSha256": appended["journal"]["packet_sha256"],
+            "packetObjectSha256": appended["journal"][
+                "packet_object_sha256"
+            ],
+            "payloadManifestSha256": appended["journal"][
+                "payload_manifest_sha256"
+            ],
+            "journalHeadSha256": appended["journal"]["journal_head_sha256"],
+            "viewSha256": appended["adapter"]["view_sha256"],
+            "codecId": CODEC_OPAQUE,
+            "sourceStreamId": "provider-ingress-stream",
+            "sourceSequence": 1,
+            "sourcePath": [],
+            "sourceSpan": [0, len(payload)],
+        }
+
+        duplicate = _post_provider(
+            server, "/v1/ingress/append", append_request
+        )
+        assert duplicate["journal"] == appended["journal"]
+        assert duplicate["packet"] == appended["packet"]
+
+        read_back = _post_provider(
+            server,
+            "/v1/ingress/read",
+            {
+                "codec_id": CODEC_OPAQUE,
+                "reference": appended["journal"],
+            },
+        )
+        assert read_back["operation"] == "read"
+        assert base64.b64decode(read_back["payload_base64"], validate=True) == payload
+        assert read_back["adapter"]["view_sha256"] == appended["adapter"][
+            "view_sha256"
+        ]
+
+        malformed = _post_provider(
+            server,
+            "/v1/ingress/append",
+            _ingress_request(
+                codec_id=CODEC_TEXT,
+                payload=b"\xff",
+                head_sha256=appended["journal"]["journal_head_sha256"],
+                sequence=2,
+            ),
+        )
+        assert malformed["adapter"] == {
+            "status": "unsupported",
+            "reason": "malformed_input",
+            "view_sha256": None,
+            "modality": None,
+            "root_constructor": None,
+        }
+        assert malformed["mnemic_observation_input"] is None
+        assert malformed["semantic_status"] == "unsupported"
+        assert malformed["semantic_reason"] == "no_semantic_task"
+        assert malformed["adaptive_state_changed"] is False
+
+        replay = _post_provider(
+            server, "/v1/ingress/replay", {"limit": 1}
+        )
+        assert replay["head_sha256"] == malformed["journal"][
+            "journal_head_sha256"
+        ]
+        assert replay["total_entries"] == 2
+        assert replay["returned_entries"] == 1
+        assert replay["truncated"] is True
+        assert replay["entries"][0]["adapter"]["status"] == "unsupported"
+        assert provider.controller.state_sha256(provider.initial_state) == state_sha256
+    finally:
+        _stop_http_provider(server, thread)
+        provider.close()
+
+    restarted = PersistentFieldProvider(config)
+    restarted.start()
+    restarted_server, restarted_thread = _start_http_provider(restarted)
+    try:
+        replayed = _post_provider(
+            restarted_server, "/v1/ingress/replay", {"limit": 8}
+        )
+        assert replayed["total_entries"] == 2
+        assert replayed["returned_entries"] == 2
+        assert replayed["truncated"] is False
+        assert [row["adapter"]["status"] for row in replayed["entries"]] == [
+            "selected",
+            "unsupported",
+        ]
+        reread = _post_provider(
+            restarted_server,
+            "/v1/ingress/read",
+            {
+                "codec_id": CODEC_OPAQUE,
+                "reference": appended["journal"],
+            },
+        )
+        assert base64.b64decode(reread["payload_base64"], validate=True) == payload
+        assert reread["packet"] == appended["packet"]
+    finally:
+        _stop_http_provider(restarted_server, restarted_thread)
+        restarted.close()
+
+
+def test_ingress_http_enforces_configured_body_and_journal_capacity(
+    tmp_path: Path,
+) -> None:
+    config = replace(_provider_config(tmp_path), ingress_max_bytes=1024)
+    provider = PersistentFieldProvider(config)
+    provider.start()
+    server, thread = _start_http_provider(provider)
+    try:
+        oversized = _post_provider_error(
+            server,
+            "/v1/ingress/append",
+            _ingress_request(
+                codec_id=CODEC_OPAQUE,
+                payload=b"x" * (100 * 1024),
+                head_sha256=ZERO_SHA256,
+                sequence=1,
+            ),
+        )
+        assert oversized["error"]["message"] == (
+            "request body is missing or exceeds the route limit"
+        )
+        assert provider.ingress_journal is not None
+        assert provider.ingress_journal.head_sha256 == ZERO_SHA256
+
+        capacity = _post_provider_error(
+            server,
+            "/v1/ingress/append",
+            _ingress_request(
+                codec_id=CODEC_OPAQUE,
+                payload=b"x" * config.ingress_max_bytes,
+                head_sha256=ZERO_SHA256,
+                sequence=1,
+            ),
+        )
+        assert "capacity" in capacity["error"]["message"]
+        assert provider.ingress_journal.head_sha256 == ZERO_SHA256
+        assert not tuple(provider.ingress_journal.objects.iterdir())
+        assert not tuple(provider.ingress_journal.blobs.iterdir())
+    finally:
+        _stop_http_provider(server, thread)
+        provider.close()
 
 
 def test_completion_max_tokens_one_commits_utf8_safe_partial(tmp_path: Path) -> None:

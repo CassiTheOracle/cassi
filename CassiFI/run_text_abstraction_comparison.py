@@ -19,6 +19,7 @@ from cassi_phi_harmonic_language import (
     PhiHarmonicTextEngine,
 )
 from cassi_qi_field import QiFieldConfig, QiFieldController, QiFieldError, QiFieldState
+from cassi_task_receipts import TaskCorpusEpisode
 
 
 ROOT = Path(__file__).resolve().parent
@@ -129,8 +130,14 @@ class TextProgram:
         return tuple(token.name for token in self.tokens)
 
     @property
+    def namespace(self) -> str:
+        return "cassi.text-program.v1"
+
+    @property
     def sha256(self) -> str:
-        payload = bytes(int(token) for token in self.tokens)
+        payload = self.namespace.encode("utf-8") + b"\0" + bytes(
+            int(token) for token in self.tokens
+        )
         return hashlib.sha256(payload).hexdigest()
 
     @property
@@ -205,12 +212,6 @@ def evaluate_text_program(program: TextProgram, prompt: bytes, length: int) -> b
     return value
 
 
-@dataclass(frozen=True)
-class TextEpisode:
-    source_id: str
-    prompt: bytes
-    continuation: bytes
-    payload_sha256: str
 
 
 SYMBOLIC_REGIMES = (
@@ -325,8 +326,15 @@ class RoleProgram:
         return tuple(token.name for token in self.tokens)
 
     @property
+    def namespace(self) -> str:
+        return "cassi.surface-role-program.v1"
+
+    @property
     def sha256(self) -> str:
-        return hashlib.sha256(bytes(int(token) for token in self.tokens)).hexdigest()
+        payload = self.namespace.encode("utf-8") + b"\0" + bytes(
+            int(token) for token in self.tokens
+        )
+        return hashlib.sha256(payload).hexdigest()
 
     @property
     def complexity(self) -> float:
@@ -439,7 +447,7 @@ def _role_control_programs(
 
 
 def _role_examples_by_regime(
-    episodes: Sequence[TextEpisode],
+    episodes: Sequence[TaskCorpusEpisode],
     programs: Sequence[RoleProgram],
     *,
     rename_seed: str | None = None,
@@ -557,6 +565,9 @@ class TextAbstractionController:
         grammar = {
             "grammar_id": grammar_id,
             "programs": [list(program.decoded) for program in self.programs],
+            "program_namespaces": [
+                program.namespace for program in self.programs
+            ],
             "regimes": list(self.regimes),
             "row_width": self.row_width,
         }
@@ -625,6 +636,23 @@ class TextAbstractionController:
         return hashlib.sha256(
             state.field.detach().cpu().contiguous().numpy().tobytes()
         ).hexdigest()
+
+    def regime_sha256(self, state: QiFieldState, regime: str) -> str:
+        self.validate_state(state)
+        if regime not in self.regimes:
+            raise QiFieldError("text abstraction regime is unsupported")
+        regime_id = self.regimes.index(regime)
+        start = self._row_offset(regime_id, 0)
+        end = self._row_offset(regime_id + 1, 0)
+        payload = (
+            state.field.reshape(-1)[start:end]
+            .detach()
+            .cpu()
+            .contiguous()
+            .numpy()
+            .tobytes()
+        )
+        return hashlib.sha256(payload).hexdigest()
 
     @staticmethod
     def _position_accuracy(predicted: bytes, observed: bytes) -> float:
@@ -707,6 +735,52 @@ class TextAbstractionController:
             for index, item in enumerate(evidence)
         )
 
+    def learn_regime(
+        self,
+        state: QiFieldState,
+        regime: str,
+        examples: Sequence[tuple[bytes, bytes]],
+    ) -> QiFieldState:
+        self.validate_state(state)
+        if regime not in self.regimes:
+            raise QiFieldError("text abstraction regime is unsupported")
+        samples = tuple(examples)
+        if not samples or any(not prompt or not target for prompt, target in samples):
+            raise QiFieldError("text abstraction examples must contain byte spans")
+        evidence = self._refine(
+            [self._base_evidence(program, samples) for program in self.programs]
+        )
+        result = QiFieldState(field=state.field.clone())
+        regime_id = self.regimes.index(regime)
+        for program_id, (program, metrics) in enumerate(
+            zip(self.programs, evidence, strict=True)
+        ):
+            row = torch.zeros(self.row_width, dtype=torch.float64)
+            row[0] = program_id + 1
+            row[1] = regime_id + 1
+            row[2] = len(program.tokens)
+            row[3 : 3 + len(program.tokens)] = torch.tensor(
+                [int(token) for token in program.tokens],
+                dtype=torch.float64,
+            )
+            row[3 + self.token_capacity :] = torch.tensor(
+                [
+                    metrics.support,
+                    metrics.position_accuracy,
+                    metrics.edit_similarity,
+                    metrics.exact_rate,
+                    metrics.outcome_error,
+                    metrics.complexity,
+                    metrics.activation,
+                    metrics.score,
+                    float(metrics.eligible),
+                ],
+                dtype=torch.float64,
+            )
+            self._row(result, regime_id, program_id).copy_(row)
+        self.validate_state(result)
+        return result
+
     def synthesize(
         self,
         examples_by_regime: Mapping[str, Sequence[tuple[bytes, bytes]]],
@@ -714,40 +788,12 @@ class TextAbstractionController:
         if set(examples_by_regime) != set(self.regimes):
             raise QiFieldError("text abstraction corpus regimes are incomplete")
         result = self.new_state()
-        for regime_id, regime in enumerate(self.regimes):
-            examples = tuple(examples_by_regime[regime])
-            if not examples or any(not prompt or not target for prompt, target in examples):
-                raise QiFieldError("text abstraction examples must contain byte spans")
-            evidence = self._refine(
-                [self._base_evidence(program, examples) for program in self.programs]
+        for regime in self.regimes:
+            result = self.learn_regime(
+                result,
+                regime,
+                examples_by_regime[regime],
             )
-            for program_id, (program, metrics) in enumerate(
-                zip(self.programs, evidence, strict=True)
-            ):
-                row = torch.zeros(self.row_width, dtype=torch.float64)
-                row[0] = program_id + 1
-                row[1] = regime_id + 1
-                row[2] = len(program.tokens)
-                row[3 : 3 + len(program.tokens)] = torch.tensor(
-                    [int(token) for token in program.tokens],
-                    dtype=torch.float64,
-                )
-                row[3 + self.token_capacity :] = torch.tensor(
-                    [
-                        metrics.support,
-                        metrics.position_accuracy,
-                        metrics.edit_similarity,
-                        metrics.exact_rate,
-                        metrics.outcome_error,
-                        metrics.complexity,
-                        metrics.activation,
-                        metrics.score,
-                        float(metrics.eligible),
-                    ],
-                    dtype=torch.float64,
-                )
-                self._row(result, regime_id, program_id).copy_(row)
-        self.validate_state(result)
         return result
 
     def records(self, state: QiFieldState, regime: str) -> tuple[TextProgramRecord, ...]:
@@ -901,7 +947,7 @@ class TextAbstractionController:
 def _load_episode(
     descriptor: Mapping[str, Any],
     source_paths: Mapping[str, Path],
-) -> TextEpisode:
+) -> TaskCorpusEpisode:
     source_id = str(descriptor["source_id"])
     try:
         path = source_paths[source_id]
@@ -922,7 +968,7 @@ def _load_episode(
         or not 1 <= prompt_bytes < length
     ):
         raise QiFieldError("corpus episode byte counts changed")
-    return TextEpisode(
+    return TaskCorpusEpisode(
         source_id=source_id,
         prompt=payload[:prompt_bytes],
         continuation=payload[prompt_bytes:],
@@ -945,7 +991,7 @@ def _control_programs(programs: Sequence[TextProgram]) -> dict[str, TextProgram]
 
 
 def _examples_by_regime(
-    episodes: Sequence[TextEpisode],
+    episodes: Sequence[TaskCorpusEpisode],
     programs: Sequence[TextProgram],
 ) -> dict[str, tuple[tuple[bytes, bytes], ...]]:
     controls = _control_programs(programs)
@@ -970,7 +1016,7 @@ def _examples_by_regime(
 
 
 def _span_metrics(
-    episodes: Sequence[TextEpisode],
+    episodes: Sequence[TaskCorpusEpisode],
     outputs: Sequence[bytes],
     *,
     targets: Sequence[bytes] | None = None,
@@ -1014,7 +1060,7 @@ def _span_metrics(
 
 
 def _baseline_outputs(
-    episodes: Sequence[TextEpisode],
+    episodes: Sequence[TaskCorpusEpisode],
 ) -> tuple[list[bytes], dict[str, Any]]:
     config = QiFieldConfig.from_dict(
         json.loads((ROOT / "configs" / "cassi-qi-corpus-language.json").read_text())
@@ -1047,7 +1093,7 @@ def _baseline_outputs(
 
 
 def _phi_outputs(
-    episodes: Sequence[TextEpisode],
+    episodes: Sequence[TaskCorpusEpisode],
 ) -> tuple[list[bytes], dict[str, Any]]:
     controller = PhiHarmonicLanguageController(
         _load_phi_config(ROOT / "configs" / "cassi-phi-harmonic-language.json")
@@ -1105,7 +1151,7 @@ def _preview(value: bytes, limit: int = 72) -> str:
 
 def _target_aware_oracle(
     controller: TextAbstractionController,
-    episodes: Sequence[TextEpisode],
+    episodes: Sequence[TaskCorpusEpisode],
 ) -> tuple[list[bytes], dict[str, int]]:
     outputs = []
     program_counts: dict[str, int] = {}

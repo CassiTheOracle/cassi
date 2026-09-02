@@ -33,6 +33,9 @@ python CassiFI/run_learned_relational_basis.py
 python CassiFI/run_relational_stress_tests.py
 python CassiFI/run_generative_abstraction.py
 python CassiFI/run_text_abstraction_comparison.py
+python CassiFI/run_general_task_gauntlet.py
+python CassiFI/run_general_task_gauntlet.py --phase controls `
+  --output CassiFI/artifacts/general-task-gauntlet/controls.json
 ```
 
 ## Live provider composition
@@ -64,6 +67,19 @@ evidence, and—when exact evidence and policy agree—an inert typed action pro
 with its Mnemic revision effects. Thalamus eligibility, action kind, authority,
 reversibility, and authorization path remain fixed constraints. No tool executes,
 and planning asserts that both canonical component hashes remain unchanged.
+
+The same provider now exposes exact nonadaptive data ingress through
+`POST /v1/ingress/append`, `/v1/ingress/read`, and `/v1/ingress/replay`.
+Append accepts one fixed lossless codec, acquisition identity, the expected
+journal head, and canonical base64 payload bytes; it journals before adapter
+selection and returns packet, journal, view, and Mnemic-compatible exact
+references. The opaque codec accepts every byte value. Read and replay verify
+the content-addressed payload and hash chain across restart. The HTTP body bound
+is derived from the configured journal budget, and capacity rejection occurs
+before journal objects are written. These operations never mutate
+`QiFieldState`, infer arbitrary-byte semantics, or bypass Thalamus policy:
+semantic status is `unsupported` with reason `no_semantic_task`, while malformed
+typed input remains journaled evidence with adapter status `unsupported`.
 
 `run_grounded_counterflow_deliberation.py` is the provider-bound exact-edge
 composition smoke. It commits six independently executed one-action fragments,
@@ -149,8 +165,9 @@ read-only inference remain exact.
 
 The same entry point exercises exact text, Python syntax, audio, scientific
 tensor, and opaque adapters. Those adapters round-trip and retain provenance,
-but their unmeasured semantic tasks remain `unsupported`. No teacher, model, or
-live provider route participates in the relational scenario.
+but their unmeasured semantic tasks remain `unsupported`. The live provider
+routes the same exact boundary contract without participating in the relational
+inference scenario; no teacher or model participates.
 
 `run_text_abstraction_comparison.py` applies the same bounded typed-program,
 upward-fit/downward-outcome selection discipline to whole byte spans from the
@@ -179,6 +196,46 @@ itself supply a prose law. Entity swap, predicate rebinding, and reversed
 Role-program ablation and shuffled outcomes exhaust selection; framed restart
 is byte-exact and read-only inference is frozen. The entity and predicate names
 here denote surface-position hypotheses, not inferred semantic parses.
+
+`run_general_task_gauntlet.py` is the CPU-only orchestrator for the bounded
+training gauntlet. Its reproduction phase calls the existing text-abstraction,
+generative-abstraction, and universal-data-field entrypoints; their receipts
+retain explicit `bounded_*_grammar` candidate-space labels and do not describe a
+task-independent learner or general semantic acquisition. The reproduction
+diagnostic is derived from each entrypoint's exact documented success result
+rather than being declared independently.
+
+The mixed curriculum updates one `[1,6606,1]` float64 field sequentially. The
+current leave-one-source-out run removes WikiText from training, uses 30
+remaining training episodes, and evaluates four held-out WikiText episodes.
+The receipt keeps the two provenance questions separate:
+`raw_receipt_source_overlap` lists all four sources shared by the original
+offset-based corpus receipts, while `selected_split_source_overlap` is empty
+after the leave-one-source-out filter. The untrained baseline exhausts all 15
+regimes; after 13 sequential family updates, every supported byte-span and
+surface-role family reaches 4/4 exact on holdout, with 1.0 minimum retained
+accuracy and no measured interference. Three bounded compositions that were
+not trained directly each reach 4/4 exact.
+
+Shuffled outcomes exhaust, an induced ambiguity remains `ambiguous`, natural
+continuation exhausts, a targeted lesion removes only the selected family,
+malformed UTF-8 remains `unsupported`, 256 repeated updates stay finite at the
+same fixed point, and checkpoint reload, journal restart replay, and read-only
+inference are exact. The execution wrapper requires CPU state and installs
+fail-closed sentinels for Qwen-provider imports, subprocesses, sockets, and
+Torch optimizers. The successful receipt records zero attempts on every
+forbidden surface rather than relying on declared counters.
+
+The JSON, tensor, opaque, and text results are 13/13 exact only after a fixed
+lossless projection back to the same prompt bytes. They establish codec
+invariance, not learned cross-view transfer. The receipt therefore separates
+`diagnostic_checks_passed = true` from `readiness_validated = false` and reports
+`readiness.status = "not_ready"` with `learned_cross_view_transfer` as the
+remaining missing capability. `--require-ready` returns exit code 2 while that
+condition remains. Reproduction, curriculum, holdouts, retention, persistence,
+and controls can be requested independently with `--phase`; each invocation
+writes one JSON receipt, defaulting to
+`artifacts/general-task-gauntlet/receipt.json`.
 
 CassiCore supplies both endpoints from its transactional Mnemic journal. It
 first predicts the held-out event from the prior shared field snapshot, then

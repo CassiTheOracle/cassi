@@ -3,16 +3,20 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import hashlib
 import http.server
 import json
 import math
 import os
 import threading
+import hmac
 import time
 import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, fields
+from fractions import Fraction
 from pathlib import Path
 from typing import Any, Final
 
@@ -27,11 +31,36 @@ from cassi_phi_harmonic_language import (
     PhiHarmonicTextEngine,
     PhiHarmonicTextResult,
 )
+from cassi_particle_program import (
+    ParticleProgramError,
+    compile_particle_program,
+    normalize_program,
+    program_digest,
+)
 from cassi_qi_field import QiFieldError, QiFieldState
 from cassi_text_codec import CassiFieldLanguageError
+from cassi_universal_data import (
+    BoundaryIdentity,
+    BoundaryPacket,
+    BoundaryResult,
+    CODEC_AUDIO,
+    CODEC_CODE,
+    CODEC_JSON,
+    CODEC_OPAQUE,
+    CODEC_RASTER,
+    CODEC_TENSOR,
+    CODEC_TEXT,
+    JournalReference,
+    ObservationView,
+    QiIngressJournal,
+    UniversalDataError,
+    ZERO_SHA256,
+    adapt,
+    descriptor_sha256,
+)
 
 PROTOCOL = "Cassi Phi-harmonic field provider"
-VERSION = 6
+VERSION = 7
 MODEL_NAME = "cassi-phi-harmonic-language-v1"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8086
@@ -39,6 +68,9 @@ DEFAULT_MAX_OUTPUT_SYMBOLS = 512
 MAX_CONTEXT_MESSAGES = 128
 MAX_SESSION_ID = 256
 MAX_REQUEST_BYTES = 4 * 1024 * 1024
+DEFAULT_INGRESS_MAX_BYTES = 64 * 1024 * 1024
+_INGRESS_REQUEST_METADATA_BYTES = 64 * 1024
+MAX_INGRESS_REPLAY_ENTRIES = 1024
 MAX_CONTEXT_CANDIDATES = 32
 MAX_CONTEXT_QUERY_BYTES = 16 * 1024
 MAX_CONTEXT_CANDIDATE_BYTES = 16 * 1024
@@ -53,8 +85,72 @@ SHARED_FIELD_SESSION_SCHEMA = "cassi.shared-field-provider-session.v3"
 SHARED_FIELD_LAYOUT_SCHEMA = "cassi.shared-field-layout.v1"
 CONTEXT_STREAM_METADATA_KEY = "context_streams_v1"
 COUNTERFLOW_COMMIT_METADATA_KEY = "counterflow_commits_v1"
+WORLD_TURNS_METADATA_KEY = "particle_world_turns_v1"
+WORLD_RESULTS_METADATA_KEY = "particle_world_results_v1"
+WORLD_EXCHANGES_METADATA_KEY = "particle_world_exchanges_v1"
+WORLD_LEDGER_LIMIT = 32
 LAST_COMPLETION_METADATA_KEY = "last_completion_v1"
 CONTEXT_ASSOCIATION_FORMAT = "cassi.context.association.v2"
+INGRESS_RECEIPT_SCHEMA = "cassi.provider.ingress-receipt.v1"
+INGRESS_REPLAY_SCHEMA = "cassi.provider.ingress-replay.v1"
+_INGRESS_CODECS: Final[tuple[str, ...]] = (
+    CODEC_JSON,
+    CODEC_RASTER,
+    CODEC_TEXT,
+    CODEC_CODE,
+    CODEC_AUDIO,
+    CODEC_TENSOR,
+    CODEC_OPAQUE,
+)
+_INGRESS_CODEC_BY_DESCRIPTOR: Final[dict[str, str]] = {
+    descriptor_sha256(codec_id): codec_id for codec_id in _INGRESS_CODECS
+}
+_INGRESS_REQUEST_KEYS: Final[frozenset[str]] = frozenset(
+    {"codec_id", "packet", "payload_base64", "record_id"}
+)
+_INGRESS_PACKET_REQUIRED_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        "run_id",
+        "episode_id",
+        "world_id",
+        "session_id",
+        "profile_sha256",
+        "clock_sha256",
+        "request_id",
+        "logical_tick",
+        "logical_time",
+        "capture_start",
+        "capture_end",
+        "source_epoch",
+        "source_stream_id",
+        "source_sequence",
+        "ingress_journal_sha256",
+        "body_frame_id",
+        "payload_shape",
+        "payload_dtype",
+    }
+)
+_INGRESS_PACKET_OPTIONAL_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        "source_timestamp_ns_telemetry",
+        "arrival_sequence_telemetry",
+        "watermark_sha256",
+        "antialias_receipt_sha256",
+        "causal_parent_event_id",
+        "causal_parent_action_id",
+        "valid",
+    }
+)
+_JOURNAL_REFERENCE_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        "packet_sha256",
+        "packet_object_sha256",
+        "payload_manifest_sha256",
+        "journal_head_sha256",
+        "source_stream_id",
+        "source_sequence",
+    }
+)
 _CONTEXT_ASSOCIATION_METADATA_PROMPT = CONTEXT_ASSOCIATION_FORMAT.encode("ascii")
 
 _SESSION_MAGIC: Final[bytes] = b"CASSI-SHARED-FIELD-SESSION\x00"
@@ -66,6 +162,9 @@ _ALLOWED_METADATA_KEYS: Final[frozenset[str]] = frozenset(
         CONTEXT_STREAM_METADATA_KEY,
         COUNTERFLOW_COMMIT_METADATA_KEY,
         LAST_COMPLETION_METADATA_KEY,
+        WORLD_TURNS_METADATA_KEY,
+        WORLD_RESULTS_METADATA_KEY,
+        WORLD_EXCHANGES_METADATA_KEY,
     }
 )
 _TORCH_THREADS_CONFIGURED = False
@@ -84,6 +183,7 @@ class ProviderConfig:
     host: str = DEFAULT_HOST
     port: int = DEFAULT_PORT
     max_output_symbols: int = DEFAULT_MAX_OUTPUT_SYMBOLS
+    ingress_max_bytes: int = DEFAULT_INGRESS_MAX_BYTES
     device: str = "cpu"
 
     def __post_init__(self) -> None:
@@ -102,6 +202,14 @@ class ProviderConfig:
             or not 1 <= self.max_output_symbols <= 4096
         ):
             raise ProviderError("max_output_symbols must lie in [1, 4096]")
+        if (
+            isinstance(self.ingress_max_bytes, bool)
+            or not isinstance(self.ingress_max_bytes, int)
+            or not 1 <= self.ingress_max_bytes <= DEFAULT_INGRESS_MAX_BYTES
+        ):
+            raise ProviderError(
+                "ingress_max_bytes must lie in [1, 67108864]"
+            )
         if not isinstance(self.device, str) or not self.device:
             raise ProviderError("device must be nonempty text")
 
@@ -122,6 +230,8 @@ def _javascript_json_numbers(value: Any) -> Any:
     return value
 
 
+
+
 def _canonical(value: Any) -> bytes:
     try:
         return json.dumps(
@@ -133,8 +243,6 @@ def _canonical(value: Any) -> bytes:
         ).encode("utf-8")
     except (TypeError, ValueError) as error:
         raise ProviderError(f"value is not canonical JSON: {error}") from error
-
-
 def _sha256(value: Any) -> str:
     raw = value if isinstance(value, bytes) else _canonical(value)
     return hashlib.sha256(raw).hexdigest()
@@ -581,6 +689,29 @@ def _normalize_stream_watermarks(value: Any, *, label: str) -> dict[str, dict[st
     return streams
 
 
+def _normalize_world_ledger(value: Any, *, label: str) -> dict[str, dict[str, Any]]:
+    if not isinstance(value, Mapping) or len(value) > WORLD_LEDGER_LIMIT:
+        raise ProviderError(f"stored {label} ledger is malformed or over limit")
+    ledger: dict[str, dict[str, Any]] = {}
+    for request_id, entry in value.items():
+        if (
+            not isinstance(request_id, str)
+            or not 1 <= len(request_id) <= 128
+            or any(
+                character
+                not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-"
+                for character in request_id
+            )
+            or not isinstance(entry, Mapping)
+        ):
+            raise ProviderError(f"stored {label} ledger entry is malformed")
+        normalized_entry = dict(entry)
+        if len(_canonical(normalized_entry)) > 128 * 1024:
+            raise ProviderError(f"stored {label} ledger entry exceeds the limit")
+        ledger[request_id] = normalized_entry
+    return ledger
+
+
 def _metadata(value: Mapping[str, Any] | None) -> dict[str, Any]:
     result = {} if value is None else dict(value)
     unexpected = set(result) - _ALLOWED_METADATA_KEYS
@@ -604,11 +735,26 @@ def _metadata(value: Mapping[str, Any] | None) -> dict[str, Any]:
         if completion_value is None
         else _validate_completion_metadata(completion_value)
     )
+    world_turns = _normalize_world_ledger(
+        result.get(WORLD_TURNS_METADATA_KEY, {}), label="world turn"
+    )
+    world_results = _normalize_world_ledger(
+        result.get(WORLD_RESULTS_METADATA_KEY, {}), label="world result"
+    )
+    world_exchanges = _normalize_world_ledger(
+        result.get(WORLD_EXCHANGES_METADATA_KEY, {}), label="world exchange"
+    )
     normalized: dict[str, Any] = {CONTEXT_STREAM_METADATA_KEY: streams}
     if counterflow_commits:
         normalized[COUNTERFLOW_COMMIT_METADATA_KEY] = counterflow_commits
     if completion is not None:
         normalized[LAST_COMPLETION_METADATA_KEY] = completion
+    if world_turns:
+        normalized[WORLD_TURNS_METADATA_KEY] = world_turns
+    if world_results:
+        normalized[WORLD_RESULTS_METADATA_KEY] = world_results
+    if world_exchanges:
+        normalized[WORLD_EXCHANGES_METADATA_KEY] = world_exchanges
     if len(_canonical(normalized)) > MAX_SESSION_METADATA_BYTES:
         raise ProviderError("session metadata exceeds the bounded limit")
     return normalized
@@ -920,13 +1066,24 @@ class _Association:
 class PersistentFieldProvider:
     """Hash-pinned seven-pool engine with one shared native field state."""
 
-    def __init__(self, config: ProviderConfig) -> None:
+    def __init__(
+        self,
+        config: ProviderConfig,
+        *,
+        world_qwen_url: str | None = None,
+        world_qwen_token: str | None = None,
+        world_qwen_timeout: float = 10.0,
+    ) -> None:
         self.config = config
+        self.world_qwen_url = world_qwen_url
+        self.world_qwen_token = world_qwen_token
+        self.world_qwen_timeout = world_qwen_timeout
         self.phi_config: PhiHarmonicLanguageConfig | None = None
         self.controller: PhiHarmonicLanguageController | None = None
         self.engine: PhiHarmonicTextEngine | None = None
         self.store: SharedFieldSessionStore | None = None
         self.counterflow_runtime: DerivedCounterflowRuntime | None = None
+        self.ingress_journal: QiIngressJournal | None = None
         self.initial_state: QiFieldState | None = None
         self.initial_checkpoint_sha256: str | None = None
         self.provider_fingerprint: str | None = None
@@ -1014,6 +1171,15 @@ class PersistentFieldProvider:
                 engine_fingerprint=engine.fingerprint,
                 device=device,
             )
+            try:
+                ingress_journal = QiIngressJournal(
+                    self.config.state_dir / "ingress",
+                    max_bytes=self.config.ingress_max_bytes,
+                )
+            except (OSError, UniversalDataError) as error:
+                raise ProviderError(
+                    f"could not open exact ingress journal: {error}"
+                ) from error
             self.phi_config = phi_config
             self.controller = controller
             self.engine = engine
@@ -1022,12 +1188,14 @@ class PersistentFieldProvider:
             self.provider_fingerprint = provider_fingerprint
             self.store = store
             self.counterflow_runtime = counterflow_runtime
+            self.ingress_journal = ingress_journal
             self._started = True
 
     def close(self) -> None:
         with self._lock:
             self._started = False
             self.store = None
+            self.ingress_journal = None
             self.counterflow_runtime = None
             self.engine = None
             self.controller = None
@@ -1065,6 +1233,344 @@ class PersistentFieldProvider:
             self.store,
             self.provider_fingerprint,
         )
+
+    def _require_ingress(self) -> QiIngressJournal:
+        if not self._started or self.ingress_journal is None:
+            raise ProviderError("persistent field provider is not started")
+        return self.ingress_journal
+
+    @staticmethod
+    def _ingress_fraction(value: Any, label: str) -> Fraction:
+        if (
+            not isinstance(value, Mapping)
+            or set(value) != {"numerator", "denominator"}
+            or isinstance(value["numerator"], bool)
+            or not isinstance(value["numerator"], int)
+            or isinstance(value["denominator"], bool)
+            or not isinstance(value["denominator"], int)
+            or value["denominator"] <= 0
+        ):
+            raise ProviderError(f"{label} must be a canonical rational time")
+        return Fraction(value["numerator"], value["denominator"])
+
+    @staticmethod
+    def _ingress_codec(value: Any) -> str:
+        if not isinstance(value, str) or value not in _INGRESS_CODECS:
+            raise ProviderError(
+                f"codec_id must be one of {', '.join(_INGRESS_CODECS)}"
+            )
+        return value
+
+    @staticmethod
+    def _reference_payload(reference: JournalReference) -> dict[str, Any]:
+        return {
+            "packet_sha256": reference.packet_sha256,
+            "packet_object_sha256": reference.packet_object_sha256,
+            "payload_manifest_sha256": reference.payload_manifest_sha256,
+            "journal_head_sha256": reference.journal_head_sha256,
+            "source_stream_id": reference.source_stream_id,
+            "source_sequence": reference.source_sequence,
+        }
+
+    @staticmethod
+    def _journal_reference(value: Any) -> JournalReference:
+        if not isinstance(value, Mapping) or set(value) != _JOURNAL_REFERENCE_KEYS:
+            raise ProviderError("ingress journal reference is invalid")
+        try:
+            return JournalReference(
+                packet_sha256=value["packet_sha256"],
+                packet_object_sha256=value["packet_object_sha256"],
+                payload_manifest_sha256=value["payload_manifest_sha256"],
+                journal_head_sha256=value["journal_head_sha256"],
+                source_stream_id=value["source_stream_id"],
+                source_sequence=value["source_sequence"],
+            )
+        except UniversalDataError as error:
+            raise ProviderError(f"ingress journal reference is invalid: {error}") from error
+
+    @staticmethod
+    def _ingress_record_id(value: Any, *, default: str) -> str:
+        if value is None:
+            return default
+        if (
+            not isinstance(value, str)
+            or not value
+            or len(value.encode("utf-8")) > MAX_SESSION_ID
+        ):
+            raise ProviderError(
+                f"record_id must be nonempty and at most {MAX_SESSION_ID} UTF-8 bytes"
+            )
+        return value
+
+    def _packet_from_ingress(
+        self, request: Mapping[str, Any]
+    ) -> tuple[BoundaryPacket, str, str]:
+        keys = frozenset(request)
+        if (
+            not {"codec_id", "packet", "payload_base64"} <= keys
+            or not keys <= _INGRESS_REQUEST_KEYS
+        ):
+            raise ProviderError("ingress append request has unexpected or missing keys")
+        codec_id = self._ingress_codec(request["codec_id"])
+        packet_value = request["packet"]
+        if not isinstance(packet_value, Mapping):
+            raise ProviderError("ingress packet must be an object")
+        packet_keys = frozenset(packet_value)
+        if (
+            not _INGRESS_PACKET_REQUIRED_KEYS <= packet_keys
+            or not packet_keys
+            <= _INGRESS_PACKET_REQUIRED_KEYS | _INGRESS_PACKET_OPTIONAL_KEYS
+        ):
+            raise ProviderError("ingress packet has unexpected or missing keys")
+        encoded = request["payload_base64"]
+        if not isinstance(encoded, str):
+            raise ProviderError("payload_base64 must be text")
+        max_encoded = ((self.config.ingress_max_bytes + 2) // 3) * 4
+        if len(encoded) > max_encoded:
+            raise ProviderError("decoded ingress payload exceeds the journal capacity")
+        try:
+            payload = base64.b64decode(encoded, validate=True)
+        except (binascii.Error, UnicodeEncodeError, ValueError) as error:
+            raise ProviderError("payload_base64 is not canonical base64") from error
+        if len(payload) > self.config.ingress_max_bytes:
+            raise ProviderError("decoded ingress payload exceeds the journal capacity")
+        if base64.b64encode(payload).decode("ascii") != encoded:
+            raise ProviderError("payload_base64 is not canonical base64")
+        try:
+            packet = BoundaryPacket.create(
+                identity=BoundaryIdentity(
+                    run_id=packet_value["run_id"],
+                    episode_id=packet_value["episode_id"],
+                    world_id=packet_value["world_id"],
+                    session_id=packet_value["session_id"],
+                    profile_sha256=packet_value["profile_sha256"],
+                    clock_sha256=packet_value["clock_sha256"],
+                    source_epoch=packet_value["source_epoch"],
+                    source_stream_id=packet_value["source_stream_id"],
+                    body_frame_id=packet_value["body_frame_id"],
+                ),
+                codec_id=codec_id,
+                request_id=packet_value["request_id"],
+                logical_tick=packet_value["logical_tick"],
+                logical_time=self._ingress_fraction(
+                    packet_value["logical_time"], "logical_time"
+                ),
+                capture_start=self._ingress_fraction(
+                    packet_value["capture_start"], "capture_start"
+                ),
+                capture_end=self._ingress_fraction(
+                    packet_value["capture_end"], "capture_end"
+                ),
+                source_sequence=packet_value["source_sequence"],
+                payload_shape=tuple(packet_value["payload_shape"]),
+                payload_dtype=packet_value["payload_dtype"],
+                payload=payload,
+                source_timestamp_ns_telemetry=packet_value.get(
+                    "source_timestamp_ns_telemetry"
+                ),
+                arrival_sequence_telemetry=packet_value.get(
+                    "arrival_sequence_telemetry"
+                ),
+                watermark_sha256=packet_value.get(
+                    "watermark_sha256", ZERO_SHA256
+                ),
+                ingress_journal_sha256=packet_value["ingress_journal_sha256"],
+                antialias_receipt_sha256=packet_value.get(
+                    "antialias_receipt_sha256"
+                ),
+                causal_parent_event_id=packet_value.get(
+                    "causal_parent_event_id"
+                ),
+                causal_parent_action_id=packet_value.get(
+                    "causal_parent_action_id"
+                ),
+                valid=packet_value.get("valid", True),
+            )
+        except (TypeError, UniversalDataError) as error:
+            raise ProviderError(f"ingress packet is invalid: {error}") from error
+        return (
+            packet,
+            codec_id,
+            self._ingress_record_id(
+                request.get("record_id"), default=packet.event_id
+            ),
+        )
+
+    def _ingress_receipt(
+        self,
+        *,
+        operation: str,
+        packet: BoundaryPacket,
+        codec_id: str,
+        reference: JournalReference,
+        result: BoundaryResult[ObservationView],
+        record_id: str,
+        payload_base64: str | None = None,
+    ) -> dict[str, Any]:
+        view = result.value
+        adapter: dict[str, Any] = {
+            "status": result.status,
+            "reason": result.reason,
+            "view_sha256": None,
+            "modality": None,
+            "root_constructor": None,
+        }
+        mnemic_input: dict[str, Any] | None = None
+        if view is not None:
+            source = view.root.source
+            adapter.update(
+                {
+                    "view_sha256": view.view_sha256,
+                    "modality": view.modality,
+                    "root_constructor": type(view.root).__name__,
+                }
+            )
+            mnemic_input = {
+                "contextSessionId": packet.identity.session_id,
+                "recordId": record_id,
+                "packetSha256": reference.packet_sha256,
+                "packetObjectSha256": reference.packet_object_sha256,
+                "payloadManifestSha256": reference.payload_manifest_sha256,
+                "journalHeadSha256": reference.journal_head_sha256,
+                "viewSha256": view.view_sha256,
+                "codecId": codec_id,
+                "sourceStreamId": reference.source_stream_id,
+                "sourceSequence": reference.source_sequence,
+                "sourcePath": list(source.path),
+            }
+            if source.span is not None:
+                mnemic_input["sourceSpan"] = list(source.span)
+        receipt: dict[str, Any] = {
+            "schema": INGRESS_RECEIPT_SCHEMA,
+            "operation": operation,
+            "codec_id": codec_id,
+            "packet": packet.metadata(),
+            "journal": self._reference_payload(reference),
+            "adapter": adapter,
+            "mnemic_observation_input": mnemic_input,
+            "semantic_status": "unsupported",
+            "semantic_reason": "no_semantic_task",
+            "thalamus_admission": "policy_required",
+            "adaptive_state_changed": False,
+        }
+        if payload_base64 is not None:
+            receipt["payload_base64"] = payload_base64
+        return receipt
+
+    def append_ingress(self, request: Mapping[str, Any]) -> dict[str, Any]:
+        if not isinstance(request, Mapping):
+            raise ProviderError("ingress append request must be an object")
+        journal = self._require_ingress()
+        packet, codec_id, record_id = self._packet_from_ingress(request)
+        try:
+            reference = journal.append(packet)
+            result = adapt(packet, codec_id, evidence=(reference,))
+        except UniversalDataError as error:
+            raise ProviderError(f"exact ingress append failed: {error}") from error
+        return self._ingress_receipt(
+            operation="append",
+            packet=packet,
+            codec_id=codec_id,
+            reference=reference,
+            result=result,
+            record_id=record_id,
+        )
+
+    def read_ingress(self, request: Mapping[str, Any]) -> dict[str, Any]:
+        if not isinstance(request, Mapping):
+            raise ProviderError("ingress read request must be an object")
+        if not {"codec_id", "reference"} <= set(request) or not set(request) <= {
+            "codec_id",
+            "reference",
+            "record_id",
+        }:
+            raise ProviderError("ingress read request has unexpected or missing keys")
+        journal = self._require_ingress()
+        codec_id = self._ingress_codec(request["codec_id"])
+        reference = self._journal_reference(request["reference"])
+        try:
+            if reference not in journal.replay():
+                raise ProviderError("ingress reference is not in the current journal")
+            packet = journal.read_packet(reference)
+            if descriptor_sha256(codec_id) != packet.descriptor_sha256:
+                raise ProviderError("codec_id does not match the journaled packet")
+            result = adapt(packet, codec_id, evidence=(reference,))
+        except UniversalDataError as error:
+            raise ProviderError(f"exact ingress read failed: {error}") from error
+        return self._ingress_receipt(
+            operation="read",
+            packet=packet,
+            codec_id=codec_id,
+            reference=reference,
+            result=result,
+            record_id=self._ingress_record_id(
+                request.get("record_id"), default=packet.event_id
+            ),
+            payload_base64=base64.b64encode(packet.payload).decode("ascii"),
+        )
+
+    def replay_ingress(self, request: Mapping[str, Any]) -> dict[str, Any]:
+        if not isinstance(request, Mapping) or not set(request) <= {"limit"}:
+            raise ProviderError("ingress replay request must contain only limit")
+        limit = request.get("limit", 128)
+        if (
+            isinstance(limit, bool)
+            or not isinstance(limit, int)
+            or not 1 <= limit <= MAX_INGRESS_REPLAY_ENTRIES
+        ):
+            raise ProviderError(
+                f"ingress replay limit must lie in [1, {MAX_INGRESS_REPLAY_ENTRIES}]"
+            )
+        journal = self._require_ingress()
+        entries: list[dict[str, Any]] = []
+        try:
+            references = journal.replay()
+            first_returned = max(0, len(references) - limit)
+            previous_head = ZERO_SHA256
+            for index, reference in enumerate(references):
+                packet = journal.read_packet(reference)
+                if (
+                    packet.ingress_journal_sha256 != previous_head
+                    or packet.identity.source_stream_id
+                    != reference.source_stream_id
+                    or packet.source_sequence != reference.source_sequence
+                ):
+                    raise UniversalDataError(
+                        "replayed packet does not match its journal chain"
+                    )
+                previous_head = reference.journal_head_sha256
+                codec_id = _INGRESS_CODEC_BY_DESCRIPTOR.get(
+                    packet.descriptor_sha256
+                )
+                if codec_id is None:
+                    raise UniversalDataError(
+                        "replayed packet uses an unsupported codec descriptor"
+                    )
+                result = adapt(packet, codec_id, evidence=(reference,))
+                if index >= first_returned:
+                    entries.append(
+                        self._ingress_receipt(
+                            operation="replay",
+                            packet=packet,
+                            codec_id=codec_id,
+                            reference=reference,
+                            result=result,
+                            record_id=packet.event_id,
+                        )
+                    )
+        except UniversalDataError as error:
+            raise ProviderError(f"exact ingress replay failed: {error}") from error
+        return {
+            "schema": INGRESS_REPLAY_SCHEMA,
+            "head_sha256": journal.head_sha256,
+            "max_bytes": self.config.ingress_max_bytes,
+            "total_entries": len(references),
+            "returned_entries": len(entries),
+            "truncated": len(entries) != len(references),
+            "entries": entries,
+            "adaptive_state_changed": False,
+        }
+
 
     def _response(
         self,
@@ -1199,6 +1705,371 @@ class PersistentFieldProvider:
                 checkpoint=checkpoint,
                 checkpoint_sha256=checkpoint_sha256,
             )
+
+    @staticmethod
+    def _world_identifier(value: Any, label: str) -> str:
+        if (
+            not isinstance(value, str)
+            or not 1 <= len(value) <= 128
+            or any(
+                character
+                not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-"
+                for character in value
+            )
+        ):
+            raise ProviderError(f"{label} is invalid")
+        return value
+
+    @staticmethod
+    def _world_ledger(
+        metadata: Mapping[str, Any], key: str
+    ) -> dict[str, dict[str, Any]]:
+        raw = metadata.get(key, {})
+        if not isinstance(raw, Mapping):
+            raise ProviderError("stored world ledger is malformed")
+        ledger: dict[str, dict[str, Any]] = {}
+        for request_id, entry in raw.items():
+            if not isinstance(request_id, str) or not isinstance(entry, Mapping):
+                raise ProviderError("stored world ledger entry is malformed")
+            ledger[request_id] = dict(entry)
+        return ledger
+
+    @staticmethod
+    def _bounded_world_ledger(
+        ledger: Mapping[str, Mapping[str, Any]]
+    ) -> dict[str, dict[str, Any]]:
+        bounded = {str(key): dict(value) for key, value in ledger.items()}
+        while len(bounded) > WORLD_LEDGER_LIMIT:
+            del bounded[next(iter(bounded))]
+        return bounded
+
+    @staticmethod
+    def _world_turn_assistant(
+        program: Mapping[str, Any] | None, clarification: str | None
+    ) -> str:
+        if program is None:
+            return (
+                "I need clarification before staging a particle program: "
+                + str(clarification)
+            )
+        target = str(program["target"]["type"]).replace("_", " ")
+        selection = str(program["selection"]["type"]).replace("_", " ")
+        return (
+            f"Staged a {target} arrangement for the {selection} selection. "
+            "Preview it before Apply; the world has not changed."
+        )
+
+    @staticmethod
+    def _world_result_assistant(
+        request_id: str, outcome: Mapping[str, Any]
+    ) -> str:
+        raw_status = outcome.get("status")
+        if isinstance(raw_status, str) and raw_status:
+            status = raw_status
+        else:
+            status = "applied" if outcome.get("ok") is True else "rejected"
+        backend = outcome.get("backend")
+        suffix = (
+            f" through {backend}"
+            if isinstance(backend, str) and backend
+            else ""
+        )
+        return f"Observed the {status} result for request {request_id}{suffix}."
+
+    def _observe_world_exchange(
+        self,
+        *,
+        session_id: str,
+        event_id: str,
+        prompt: str,
+        continuation: str,
+        shared: QiFieldState,
+        metadata: Mapping[str, Any],
+    ) -> tuple[QiFieldState, dict[str, Any], dict[str, Any]]:
+        controller, _, initial, store, _ = self._require()
+        exchange_digest = _sha256(
+            {"prompt": prompt, "continuation": continuation}
+        )
+        exchanges = self._world_ledger(
+            metadata, WORLD_EXCHANGES_METADATA_KEY
+        )
+        prior = exchanges.get(event_id)
+        if prior is not None and prior.get("exchange_digest") != exchange_digest:
+            raise ProviderError("world field observation event conflict")
+        exchanges[event_id] = {
+            "prompt": prompt,
+            "continuation": continuation,
+            "exchange_digest": exchange_digest,
+        }
+        exchanges = self._bounded_world_ledger(exchanges)
+
+        while exchanges:
+            encoded = [
+                (
+                    str(entry["prompt"]).encode("utf-8"),
+                    str(entry["continuation"]).encode("utf-8"),
+                )
+                for entry in exchanges.values()
+            ]
+            event_count = sum(
+                len(controller.codec.encode_training_exchange(prompt_bytes, reply_bytes))
+                for prompt_bytes, reply_bytes in encoded
+            )
+            if event_count <= controller.config.trajectory_capacity:
+                break
+            del exchanges[next(iter(exchanges))]
+        if event_id not in exchanges:
+            raise ProviderError("world field observation exceeds trajectory capacity")
+
+        phi = store.layout.phi(shared)
+        state_in_sha256 = controller.state_sha256(phi)
+        tape_in_sha256 = controller.tape_sha256(phi)
+        try:
+            observed = controller.rebuild_exchanges(phi, initial, encoded)
+        except (QiFieldError, CassiFieldLanguageError) as error:
+            raise ProviderError(
+                "world field observation failed; prior checkpoint retained: "
+                f"{error}"
+            ) from error
+        state_out_sha256 = controller.state_sha256(observed)
+        tape_out_sha256 = controller.tape_sha256(observed)
+        updated_metadata = dict(metadata)
+        updated_metadata[WORLD_EXCHANGES_METADATA_KEY] = exchanges
+        updated_shared = store.layout.with_phi(shared, observed)
+        checkpoint, checkpoint_sha256 = store.save(
+            session_id, updated_shared, updated_metadata
+        )
+        return updated_shared, updated_metadata, {
+            "schema": "cassi.world-field-observation.v1",
+            "event_id": event_id,
+            "exchange_digest": exchange_digest,
+            "exchange_count": len(exchanges),
+            "state_in_sha256": state_in_sha256,
+            "state_out_sha256": state_out_sha256,
+            "tape_in_sha256": tape_in_sha256,
+            "tape_out_sha256": tape_out_sha256,
+            "checkpoint": str(checkpoint),
+            "checkpoint_sha256": checkpoint_sha256,
+        }
+
+    def world_turn(self, request: Mapping[str, Any]) -> dict[str, Any]:
+        if not isinstance(request, Mapping) or not set(request) <= {
+            "user",
+            "world_id",
+            "message",
+            "context",
+            "program",
+            "request_id",
+            "max_tokens",
+        }:
+            raise ProviderError("world turn request keys are invalid")
+        session_id = _session_id(request)
+        world_id = self._world_identifier(request.get("world_id"), "world_id")
+        message = request.get("message")
+        if (
+            not isinstance(message, str)
+            or not message.strip()
+            or len(message.encode("utf-8")) > 16 * 1024
+        ):
+            raise ProviderError("world turn message is invalid")
+        context = request.get("context", {})
+        if not isinstance(context, Mapping) or len(_canonical(context)) > 64 * 1024:
+            raise ProviderError("world turn context is invalid")
+        raw_request_id = request.get("request_id", uuid.uuid4().hex)
+        request_id = self._world_identifier(raw_request_id, "request_id")
+
+        explicit = request.get("program")
+        planner = "explicit"
+        program: dict[str, Any] | None
+        clarification: str | None = None
+        if explicit is not None:
+            if not isinstance(explicit, Mapping):
+                raise ProviderError("world turn program must be an object")
+            try:
+                normalized_program = normalize_program(explicit)
+            except ParticleProgramError as error:
+                raise ProviderError(f"world turn program is invalid: {error}") from error
+            program = normalized_program
+            if normalized_program["request_id"] != request_id:
+                raise ProviderError("world turn program request_id mismatch")
+        else:
+            try:
+                program, planner = compile_particle_program(
+                    message,
+                    context,
+                    request_id=request_id,
+                    qwen_url=self.world_qwen_url,
+                    qwen_token=self.world_qwen_token,
+                    qwen_timeout=self.world_qwen_timeout,
+                )
+            except ParticleProgramError as error:
+                program = None
+                planner = "clarification"
+                clarification = str(error)
+
+        input_digest = _sha256(
+            {
+                "world_id": world_id,
+                "message": message,
+                "context": context,
+                "program": program,
+            }
+        )
+        controller, _, initial, store, _ = self._require()
+        with self._session_lock(session_id):
+            loaded = store.load(session_id)
+            if loaded is not None:
+                prior_turns = self._world_ledger(
+                    loaded[1], WORLD_TURNS_METADATA_KEY
+                )
+                prior = prior_turns.get(request_id)
+                if prior is not None:
+                    if prior.get("input_digest") != input_digest:
+                        raise ProviderError("world turn request_id conflict")
+                    response = prior.get("response")
+                    if not isinstance(response, Mapping):
+                        raise ProviderError("stored world turn response is malformed")
+                    return dict(response)
+
+            shared = store.initial(initial) if loaded is None else loaded[0]
+            metadata = _metadata(None if loaded is None else loaded[1])
+            assistant = self._world_turn_assistant(program, clarification)
+            shared, metadata, field_receipt = self._observe_world_exchange(
+                session_id=session_id,
+                event_id=f"turn:{request_id}",
+                prompt=message,
+                continuation=assistant,
+                shared=shared,
+                metadata=metadata,
+            )
+            response = {
+                "schema": "cassi.world-turn.v1",
+                "world_id": world_id,
+                "session_id": session_id,
+                "request_id": request_id,
+                "assistant": assistant,
+                "staged_program": program,
+                "program_digest": (
+                    program_digest(program) if program is not None else None
+                ),
+                "planner": planner,
+                "clarification": clarification,
+                "field_receipt": field_receipt,
+            }
+            turns = self._world_ledger(metadata, WORLD_TURNS_METADATA_KEY)
+            turns[request_id] = {
+                "input_digest": input_digest,
+                "response": response,
+            }
+            metadata[WORLD_TURNS_METADATA_KEY] = self._bounded_world_ledger(
+                turns
+            )
+            store.save(session_id, shared, metadata)
+            return response
+
+    def world_result(self, request: Mapping[str, Any]) -> dict[str, Any]:
+        if not isinstance(request, Mapping) or set(request) != {
+            "user",
+            "world_id",
+            "request_id",
+            "program_digest",
+            "outcome",
+        }:
+            raise ProviderError("world result request keys are invalid")
+        session_id = _session_id(request)
+        world_id = self._world_identifier(request.get("world_id"), "world_id")
+        request_id = self._world_identifier(
+            request.get("request_id"), "request_id"
+        )
+        expected_program_digest = request.get("program_digest")
+        if not _is_digest(expected_program_digest):
+            raise ProviderError("world result program digest is invalid")
+        outcome = request.get("outcome")
+        if not isinstance(outcome, Mapping) or len(_canonical(outcome)) > 64 * 1024:
+            raise ProviderError("world result outcome is invalid")
+        result_digest = _sha256(
+            {
+                "world_id": world_id,
+                "request_id": request_id,
+                "program_digest": expected_program_digest,
+                "outcome": outcome,
+            }
+        )
+        _, _, _, store, _ = self._require()
+        with self._session_lock(session_id):
+            loaded = store.load(session_id)
+            if loaded is None:
+                raise ProviderError("world result has no field session")
+            shared, metadata = loaded[0], dict(loaded[1])
+            turns = self._world_ledger(metadata, WORLD_TURNS_METADATA_KEY)
+            turn = turns.get(request_id)
+            if turn is None:
+                raise ProviderError("world result has no staged turn")
+            turn_response = turn.get("response")
+            if not isinstance(turn_response, Mapping):
+                raise ProviderError("stored world turn response is malformed")
+            if turn_response.get("program_digest") != expected_program_digest:
+                raise ProviderError("world result program digest mismatch")
+            results = self._world_ledger(metadata, WORLD_RESULTS_METADATA_KEY)
+            prior = results.get(request_id)
+            if prior is not None:
+                if prior.get("result_digest") != result_digest:
+                    raise ProviderError("world result request_id conflict")
+                response = prior.get("response")
+                if not isinstance(response, Mapping):
+                    raise ProviderError("stored world result response is malformed")
+                return dict(response)
+
+            result_summary = {
+                "request_id": request_id,
+                "program_digest": expected_program_digest,
+                "result_digest": result_digest,
+                "status": outcome.get("status"),
+                "ok": outcome.get("ok"),
+                "backend": outcome.get("backend"),
+                "applied": outcome.get("applied"),
+                "error": outcome.get("error"),
+            }
+            result_text = (
+                "World execution result: "
+                + _canonical(result_summary).decode("utf-8")
+            )
+            assistant = self._world_result_assistant(request_id, outcome)
+            shared, metadata, field_receipt = self._observe_world_exchange(
+                session_id=session_id,
+                event_id=f"result:{request_id}",
+                prompt=result_text,
+                continuation=assistant,
+                shared=shared,
+                metadata=metadata,
+            )
+            observed_status = (
+                str(outcome["status"])
+                if isinstance(outcome.get("status"), str) and outcome["status"]
+                else ("applied" if outcome.get("ok") is True else "rejected")
+            )
+            response = {
+                "schema": "cassi.world-result.v1",
+                "world_id": world_id,
+                "session_id": session_id,
+                "request_id": request_id,
+                "program_digest": expected_program_digest,
+                "result_digest": result_digest,
+                "assistant": assistant,
+                "field_receipt": field_receipt,
+                "observed_once": True,
+                "status": observed_status,
+            }
+            results = self._world_ledger(metadata, WORLD_RESULTS_METADATA_KEY)
+            results[request_id] = {
+                "result_digest": result_digest,
+                "response": response,
+            }
+            metadata[WORLD_RESULTS_METADATA_KEY] = (
+                self._bounded_world_ledger(results)
+            )
+            store.save(session_id, shared, metadata)
+            return response
 
     @staticmethod
     def _validate_stream_id(value: Any) -> str:
@@ -2469,6 +3340,36 @@ class PersistentFieldProvider:
 
 class _Handler(http.server.BaseHTTPRequestHandler):
     provider: PersistentFieldProvider
+    world_token: str | None = None
+
+    def _authorize_world(self) -> bool:
+        if not self.world_token:
+            self._send_json(
+                503,
+                {
+                    "error": {
+                        "message": "world adapter is disabled until a bearer token is configured",
+                        "type": "world_adapter_disabled",
+                    }
+                },
+            )
+            return False
+        authorization = self.headers.get("Authorization", "")
+        prefix = "Bearer "
+        supplied = authorization[len(prefix) :] if authorization.startswith(prefix) else ""
+        if not supplied or not hmac.compare_digest(supplied, self.world_token):
+            self._send_json(
+                401,
+                {
+                    "error": {
+                        "message": "world adapter bearer token is invalid",
+                        "type": "authentication_error",
+                    }
+                },
+            )
+            return False
+        return True
+
 
     def log_message(self, format: str, *args: Any) -> None:
         return
@@ -2501,6 +3402,18 @@ class _Handler(http.server.BaseHTTPRequestHandler):
                         None
                         if self.provider.counterflow_runtime is None
                         else self.provider.counterflow_runtime.status()
+                    ),
+                    "ingress": (
+                        None
+                        if self.provider.ingress_journal is None
+                        else {
+                            "head_sha256": (
+                                self.provider.ingress_journal.head_sha256
+                            ),
+                            "max_bytes": self.provider.config.ingress_max_bytes,
+                            "codecs": list(_INGRESS_CODECS),
+                            "adaptive_state": False,
+                        }
                     ),
                 },
             )
@@ -2582,6 +3495,11 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             "/v1/context/reset",
             "/v1/counterflow/plan",
             "/v1/counterflow/commit",
+            "/v1/ingress/append",
+            "/v1/ingress/read",
+            "/v1/ingress/replay",
+            "/v1/world/turn",
+            "/v1/world/result",
         }
         if self.path not in routes:
             self._send_json(
@@ -2594,16 +3512,44 @@ class _Handler(http.server.BaseHTTPRequestHandler):
                 },
             )
             return
+        if self.path in {"/v1/world/turn", "/v1/world/result"} and not self._authorize_world():
+            return
         try:
             length = int(self.headers.get("Content-Length", "-1"))
-            if length < 0 or length > MAX_REQUEST_BYTES:
-                raise ProviderError("request body is missing or exceeds 4 MiB")
+            request_limit = (
+                (
+                    (self.provider.config.ingress_max_bytes + 2) // 3
+                )
+                * 4
+                + _INGRESS_REQUEST_METADATA_BYTES
+                if self.path == "/v1/ingress/append"
+                else MAX_REQUEST_BYTES
+            )
+            if length < 0 or length > request_limit:
+                raise ProviderError(
+                    "request body is missing or exceeds the route limit"
+                )
             request = json.loads(
                 self.rfile.read(length),
                 parse_constant=lambda token: (_ for _ in ()).throw(ValueError(token)),
             )
             if not isinstance(request, dict):
                 raise ProviderError("request JSON must be an object")
+            if self.path == "/v1/world/turn":
+                self._send_json(200, self.provider.world_turn(request))
+                return
+            if self.path == "/v1/world/result":
+                self._send_json(200, self.provider.world_result(request))
+                return
+            if self.path == "/v1/ingress/append":
+                self._send_json(200, self.provider.append_ingress(request))
+                return
+            if self.path == "/v1/ingress/read":
+                self._send_json(200, self.provider.read_ingress(request))
+                return
+            if self.path == "/v1/ingress/replay":
+                self._send_json(200, self.provider.replay_ingress(request))
+                return
             if self.path == "/v1/counterflow/commit":
                 self._send_json(200, self.provider.commit_counterflow(request))
                 return
@@ -2672,15 +3618,61 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=DEFAULT_MAX_OUTPUT_SYMBOLS,
     )
+    parser.add_argument(
+        "--ingress-max-bytes",
+        type=int,
+        default=DEFAULT_INGRESS_MAX_BYTES,
+    )
     parser.add_argument("--device", default="cpu")
+    parser.add_argument(
+        "--world-token",
+        default=os.environ.get("CASSI_WORLD_TOKEN"),
+        help="Bearer token required by /v1/world/* (or CASSI_WORLD_TOKEN)",
+    )
+    parser.add_argument(
+        "--world-qwen-url",
+        default=os.environ.get("CASSI_WORLD_QWEN_URL"),
+        help="Optional loopback OpenAI-compatible Qwen completion URL",
+    )
+    parser.add_argument(
+        "--world-qwen-token",
+        default=os.environ.get("CASSI_WORLD_QWEN_TOKEN"),
+    )
+    parser.add_argument(
+        "--world-qwen-timeout",
+        type=float,
+        default=10.0,
+    )
     return parser
 
 
-def serve(config: ProviderConfig) -> None:
-    provider = PersistentFieldProvider(config)
+def serve(
+    config: ProviderConfig,
+    *,
+    world_token: str | None = None,
+    world_qwen_url: str | None = None,
+    world_qwen_token: str | None = None,
+    world_qwen_timeout: float = 10.0,
+) -> None:
+    if world_token is not None and len(world_token.encode("utf-8")) < 16:
+        raise ProviderError("world adapter bearer token must contain at least 16 UTF-8 bytes")
+    if world_qwen_url is not None and not world_qwen_url.startswith(
+        ("http://127.0.0.1:", "http://localhost:", "http://[::1]:")
+    ):
+        raise ProviderError("world Qwen URL must use loopback HTTP")
+    if not math.isfinite(world_qwen_timeout) or world_qwen_timeout <= 0.0:
+        raise ProviderError("world Qwen timeout must be positive and finite")
+    provider = PersistentFieldProvider(
+        config,
+        world_qwen_url=world_qwen_url,
+        world_qwen_token=world_qwen_token,
+        world_qwen_timeout=world_qwen_timeout,
+    )
     provider.start()
     handler = type(
-        "CassiFieldProviderHandler", (_Handler,), {"provider": provider}
+        "CassiFieldProviderHandler",
+        (_Handler,),
+        {"provider": provider, "world_token": world_token},
     )
     server = http.server.ThreadingHTTPServer((config.host, config.port), handler)
     print(
@@ -2704,8 +3696,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             host=args.host,
             port=args.port,
             max_output_symbols=args.max_output_symbols,
+            ingress_max_bytes=args.ingress_max_bytes,
             device=args.device,
-        )
+        ),
+        world_token=args.world_token,
+        world_qwen_url=args.world_qwen_url,
+        world_qwen_token=args.world_qwen_token,
+        world_qwen_timeout=args.world_qwen_timeout,
     )
     return 0
 

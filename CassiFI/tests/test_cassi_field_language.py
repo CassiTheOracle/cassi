@@ -203,6 +203,25 @@ class TrajectoryLanguageTests(unittest.TestCase):
             self.engine.law.memory_sha256(changed),
         )
 
+    def test_live_order_reversal_is_exact_and_memory_preserving(self) -> None:
+        law = self.engine.law
+        state = self.engine.initial_state()
+        for symbol in (17, 83, 201, 41, 59, 131, 223, 7):
+            state, _ = law.sense_event(state, symbol)
+        recent = law.read_recent_symbols(state, 8)
+        memory_sha256 = law.memory_sha256(state)
+        state_sha256 = self.engine.state_sha256(state)
+
+        reversed_state = law.reverse_live_context(state, 8)
+        self.assertEqual(
+            law.read_recent_symbols(reversed_state, 8),
+            tuple(reversed(recent)),
+        )
+        self.assertEqual(law.memory_sha256(reversed_state), memory_sha256)
+
+        restored_state = law.reverse_live_context(reversed_state, 8)
+        self.assertEqual(self.engine.state_sha256(restored_state), state_sha256)
+
     def test_live_context_exposes_exact_bounded_event_ages(self) -> None:
         law = self.engine.law
         state = self.engine.initial_state()
