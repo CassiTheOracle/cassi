@@ -10,6 +10,7 @@
 # Diagnostic probes / run logs (never tracked)
 _diag/
 *.log
+nul
 
 # Tooling config (Godot-MCP auto-generated skills)
 .claude/
