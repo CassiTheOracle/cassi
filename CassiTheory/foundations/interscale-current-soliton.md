@@ -1511,6 +1511,10 @@ winding approximants; it does not replace those inputs.
   Fourier receipt
 - `computations/endpoint_spatial_flux_report.md`—first-execution output,
   closed-domain obstruction, and conditional spatial-flux boundary
+- `computations/endpoint_intervertex_transport_prereg.md`—frozen IT1–IT6
+  covariance, endpoint-ledger, capacity, and control criteria
+- `computations/endpoint_intervertex_transport_check.py`—passing IT1–IT6
+  deterministic receipt
 - `computations/endpoint_intervertex_transport_report.md`—IT1–IT6
   Wilson-covariance, vertex-ledger, capacity, and phase-curvature receipt
 - `foundations/spin-fibonacci-spiral.md`—optional compact phase, half-angle, and winding structure
