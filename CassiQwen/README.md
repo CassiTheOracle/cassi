@@ -1,6 +1,9 @@
 # CassiQwen
 
-Field-organism language and native-Qwen displacement work for the Cassi program. The live conscious terminal and OpenAI-compatible provider are field-only; the pinned Qwen/llama.cpp runtime remains explicit offline teacher and measured-baseline tooling.
+Field-organism language and native-Qwen displacement work for the Cassi program. The live conscious terminal and OpenAI-compatible provider are Cassi Field Intelligence; the pinned Qwen/llama.cpp runtime remains explicit offline teacher and measured-baseline tooling.
+
+> The Field Intelligence working prototype is organized in `../CassiFI`.
+> This document retains the Qwen/native integration and intervention notes.
 
 ## Current operational state
 
@@ -38,11 +41,20 @@ Field-organism language and native-Qwen displacement work for the Cassi program.
 | Native Qwen35 modal seam | PASS (offline lab) | The pinned Vulkan build retains `GGML_OP_CASSI_MODAL`, per-sequence state serialization, loopback CLI controls, and native smoke receipts for isolated experiments and baseline measurement only. |
 | Native Qwen35 Qi seam | PASS (offline lab) | The opt-in `GGML_OP_CASSI_QI_FIELD_STEP` carries a four-scale, nine-component Yang/Yin state per sequence, runs on CPU and Vulkan, survives context serialization, and is consumed before the LM head in separately invoked native experiments. |
 | Organism research stack | OFFLINE REFERENCE | The arena organism and its learned world-model bridge are not the adopted runtime. The learned language sector has been removed; the remaining stack is retained only for offline organism-law research. |
-| Direct Qi text boundary | PASS (mechanical) | The fixed 260-symbol codec senses each prompt symbol into `QiFieldState [S,9M,B]`; each emitted symbol is the deterministic phase-conjugate resonance argmax and is committed through the same Qi transition. |
+| Corpus-trained Qi text boundary | PASS (trajectory-mechanical) | A fixed 260-event UTF-8/control codec writes corpus episodes as phase-coded circulation tracks into the common-mode half of one Qi field. The live differential half carries 16/32/64/128-event histories; integrated port work and a field-phase resonance resolve each outbound event without a count lattice, vocabulary, learned decoder, or probabilistic sampler. |
+| Grounded Qi language agent | PASS (causal milestone) | One trajectory field receives typed proprioceptive observations and held-out utterances, resolves all five world actions through an exhaustive field port, commits the selected action before seeing its consequence, predicts the successor observation at `1.0` held-out accuracy, and persists the acknowledgment and successor state. Shuffled grounding scores `0.0`. |
+| Spatial Qi language agent | PASS (state-dependent milestone) | The same field receives a fixed three-color object frame, resolves the question family from its trajectory, and commits one of six relation answers through a live coordinate-resonance probe. Two unseen layouts produce six correct held-out answers, all three answers reverse with world state, and swapping only the object frame makes the field follow the substituted layout in `6/6` cases. |
+| Reference Qi language agent | PASS (identity milestone) | The field binds unseen names to red/blue/green object identities, resolves subject and comparison roles through exhaustive reference ports, and carries the active `it` referent in persistent differential coordinates. `Mira`, `Sable`, and `Orin` bind correctly; unknown `Quill` fails closed; changing the active subject changes `it` from red/near to green/far; names survive restart without appearing in session metadata. |
+| Temporal Qi language agent | PASS (temporal/causal milestone) | Before execution, held-out action instructions select all five measured successor changes while the world and trained memory remain unchanged. Executed transitions persist exact predecessor, successor, and action values; independent ports recover `5/5` changes and causes, and before/after questions resolve all four forward/reverse presentations. The transition and its answers survive process restart. |
 | Native Qi checkpoint | PASS (mechanical) | Each session checkpoint contains exactly one serialized `QiFieldState` plus bounded non-adaptive metadata. It contains no learned parameters, neural layers, feature vectors, optimizer state, decoder state, or sampler state. |
 | Field-only conscious runtime | PASS (mechanical) | Terminal chat and the loopback OpenAI-compatible provider on port 8086 call the direct Qi text engine without loading llama.cpp, a GGUF, Qwen tokenizer/output rows, KV cache, recurrent state, organism arena, learned world model, or probabilistic sampler. |
 | Native Qwen displacement receipt | PASS (measured) | The direct Qi path reports zero live Qwen graph, state, weight, output-row, GGUF-open, and teacher counters against the pinned nonzero native baseline. The architecture receipt records one adaptive Qi tensor and zero learned parameters, neural layers, optimizer bytes, engineered features, or sampling. |
-| Direct Qi field-dependence counterfactual | FIELD_DEPENDENT | Zeroing the prompt-conditioned Qi state changed the live end-turn emission into field abstention; the frozen one-radian scale-phase rotation changed state and receipt hashes but not the selected end-turn symbol. This establishes dependence on field presence on the frozen board, not semantic sensitivity or language quality. |
+| Direct Qi text field-dependence counterfactual | NULL (measured) | After one stored trajectory primes the live session, the unrotated and three differential-phase rotations all emit the same 16 symbols while trained circulation memory remains bit-identical. Grounded action, spatial, reference, and temporal counterfactuals separately change committed decisions when only live differential state changes. |
+| Canonical native Qi bridge | **PASS** | Exact checkpoint transpose `[4,55296,1] → [1,4,6144,9]`; independent scalar NumPy oracle agrees with CPU within `1.87e-9` and Vulkan within `1.49e-8`; raw-state save/reload is exact |
+| Native displacement rungs 0–6 | **PASS on exact 0.8B target** | Measured candidate ownership, full-vocabulary ownership, recurrent/KV bypass, transformer-block bypass, and exact field-owned logits; machine-readable graph-node counts fall `1382 → 1376 → 782 → 698 → 695` across the removal rungs |
+| Native field-only executable | **PASS on exact 0.8B target** | `cassi-qwen --mode field` loads only GGUF vocabulary/tokenizer metadata; reports zero tensor bytes loaded, zero Qwen forwards, and zero model-logit reads |
+| Live-order text counterfactual | **FIELD_DEPENDENT (exploratory)** | Reversing only bounded live-event order changes committed field-owned symbols while trained circulation stays bit-identical. This is separate from the unavailable frozen `qi-field-dependence.v2` receipt and from the null phase-rotation probe above |
+| CassiCosmos canonical Qi mirror | **PASS** | Hash-bound monotonic `qi_snapshot` handoff, deterministic top-mode projection, idempotent replay, stale/conflicting revision rejection, and exact PDE isolation |
 
 
 
@@ -50,12 +62,20 @@ Field-organism language and native-Qwen displacement work for the Cassi program.
 
 `cassi_qi_field.py` and `cassi_field_language.py` are the adopted computation.
 The only adaptive persistent value in a session is `QiFieldState.field` with
-logical layout `[S,9M,B]`. The text codec is fixed. Prompt symbols enter through
-`QiFieldController.sense_symbols`; field evolution and consolidation use the Qi
-law; output is selected directly by deterministic phase-conjugate resonance
-argmax; and each emitted symbol is committed through the same Qi transition.
-There is no learned head, embedding table, feature projection, loss, optimizer,
-backpropagation path, or probabilistic sampler.
+logical layout `[S,9M,B]`. The fixed boundary has 260 events: 256 raw UTF-8
+bytes plus `end_turn`, `system`, `user`, and `assistant`.
+
+Corpus experience lives inside the common-mode half of the same tensor as
+ordered phase-coded trajectories. The differential half carries rolling live
+histories at 16, 32, 64, and 128-event horizons. At emission, the field compares
+those live histories with every stored circulation position, accumulates
+positive outgoing port work, and commits the winning byte or control through a
+negative characteristic reaction. The committed event advances the live
+trajectory as an efference copy; it is never replayed as inbound sensing.
+
+There is no count lattice, trie, vocabulary, embedding, learned head, feature
+projection, optimizer, backpropagation path, or probabilistic sampler. The only
+output filter is the fixed UTF-8 protocol-validity mask.
 
 `cassi_organism.py`, `cassi_organism_law.py`, and
 `cassi_organism_teacher.py` are offline research references, not the adopted
@@ -65,7 +85,7 @@ conventional learned world-model bridge, so it is not labelled Cassi-native and
 is never imported by the terminal or provider.
 
 `cassi_conscious_chat.py` is the terminal composition root. It restores one Qi
-state, senses only the new user turn, emits through the direct Qi readout, and
+state, senses only the new user turn, emits through the active Qi text port, and
 atomically checkpoints the successor state with bounded non-adaptive transcript
 metadata. The obsolete conscious-agent/persistence stack that depended on the
 learned organism language sector and world-model bridge is preserved only for
@@ -76,13 +96,39 @@ the adopted root runtime.
 `cassi_persistent_provider.py` exposes the same direct Qi path through an
 OpenAI-compatible loopback service. Per-session Qi checkpoints are written
 atomically and restored across process restart. Non-streaming and streaming
-responses carry state, field-text, and displacement receipt hashes. Requests
-for temperature sampling, top-k/top-p truncation, or sampling seeds fail
-closed. There is no Qwen or conventional-model fallback.
+responses carry state, field-text, presentation, and displacement receipt
+hashes. Requests for temperature sampling, top-k/top-p truncation, or sampling
+seeds fail closed. There is no Qwen or conventional-model fallback.
 
-The runtime remains non-embodied: it does not add a CassiCosmos scene, Godot
-script, shader, 7599 mind-engine operation, 7273 mind-runtime endpoint, or
-mechanical actuator path.
+`cassi_field_agent.py` closes the grounded language loop over
+`DeterministicQiWorld`. Exact ordered proprioceptive bytes, colored-object
+coordinates, user utterances, temporary reference cues, field-owned action,
+identity, relation, change, cause, and temporal-order frames traverse the same
+trajectory field. All five registered actions are evaluated from the same
+predecessor state; the unique positive-margin winner is committed before the
+world consequence exists. A prediction query commits that proposed action and
+its learned successor change without stepping the world.
+
+For spatial questions, the question trajectory resolves one of three relation
+families and bounded live differential modes hold the raw object coordinates; a
+fixed resonance probe resolves the two candidates in that field-selected
+family. Binding explicitly consolidates a name and its subject/comparison cues
+into common-mode trajectories. The active pronoun referent occupies a
+persistent one-hot differential register.
+
+Every executed action writes its exact predecessor, successor, action, and
+validity marker into the same live differential field. Separate change and
+cause ports render explanations, while a learned before/after target and a
+register probe identify the requested state in forward or reversed
+presentation order. Session metadata stores only counters and the world
+snapshot, never names, an entity map, or a transition table. Failed saves roll
+the world back; restarts continue the exact successor field, world state,
+referents, and last transition. Prediction, spatial, reference, explanation,
+and ordering queries leave trained memory unchanged.
+
+Embodiment currently uses the deterministic Python reference world. It does
+not add a CassiCosmos scene, Godot script, shader, 7599 mind-engine operation,
+7273 mind-runtime endpoint, or mechanical actuator path.
 
 ## Qi multi-scale field and associative memory
 
@@ -246,25 +292,219 @@ or contacted by the canonical terminal or port-8086 provider. Historical
 native experiments may still select `-NoCassiQiField`, `-NoCassiModal`, or the
 explicit intervention controls described by their frozen preregistrations.
 
-## Direct Qi-native terminal and provider
+## Direct Qi-native terminal, provider, and field agent
 
-The live terminal loads the checked-in fixed Qi configuration and restores one
-`QiFieldState`; no organism checkpoint, learned world-model checkpoint, Qwen
-server, GGUF, or llama.cpp process is started or loaded:
+The live terminal loads the fixed 260-event Qi configuration and the required
+trajectory-trained `QiFieldState` checkpoint. Its single `field` tensor has
+shape `[4,55296,1]` and contains both the read-only corpus circulation banks and
+the mutable live differential trajectory. No organism checkpoint, Qwen server,
+GGUF, llama.cpp process, tokenizer, vocabulary, decoder, neural layer,
+optimizer, count table, or sampler is started or loaded:
 
 ```powershell
+python .\train_cassi_field_language.py
 python .\run_cassi_conscious_chat.py --runtime-config .\conscious-chat.json
 ```
 
-Every prompt symbol and committed output symbol advances the same Qi state.
-Output comes directly from phase-conjugate field resonance and each decision is
-hash-linked to its successor-state receipt. Checkpoint/replay is deterministic
-across restart. The present fixed configuration can select the end-turn control
-immediately and therefore return an empty text string; no decoder, language
-head, replacement policy, or fallback hides that result.
+Training defaults to the ordered, hash-bound manifest
+`cassi-qi-corpus-first-wave.json`. It verifies all four declared source files,
+then deterministically selects ten UTF-8 line episodes per source, capped at 96
+bytes each. Each episode becomes one continuous
+`user → prompt → end_turn → assistant → continuation → end_turn` trajectory.
+Four independently selected suffix-region episodes per source remain held out.
+The current manifest covers LightNovels, TinyStories-Instruct, WikiText-103,
+and textbook data totalling `4,482,680,317` source bytes; the field itself
+stores 40 sampled episodes and 3,360 encoded events, not a copy or count model
+of all source bytes.
+
+Run the independent reconstruction after training:
+
+```powershell
+python .\train_cassi_field_language.py
+python .\verify_cassi_corpus_language.py
+```
+
+The generated checkpoint and receipts live under
+`_diag/cassi-qi-corpus-language/`. The verifier rereads the declared source
+bytes, reconstructs every sampled episode, rebuilds the one field tensor from
+scratch, requires bit-exact circulation memory, and replays the recorded
+generations through the live engine. A missing or mismatched source,
+configuration, codec, trajectory law, or checkpoint fails startup rather than
+falling back. `--corpus` remains the direct single-source training mode.
+
+The canonical run reproduces its stored continuations:
+
+| Prompt | Field generation |
+|---|---|
+| `gi High School culture fest` | `ival! It’s such an honor!` |
+| `o quickly shift his battle-` | `axe back to defend himself. ` |
+| `ve titles—one read Hand-Selected Knight Storie` | `s and the other Royal Academy Stories. Packaged ` |
+| `es at the GF Bunko editorial office when Kenjiro` | ` Toki’s desk received an internal phone call. ` |
+
+For prompts not stored as trajectories, the same field performs nearest
+multiscale circulation recall:
+
+| Prompt | Field generation |
+|---|---|
+| `Hello Cassi` | `ll provide a solid foundation for designing and ` |
+| `Once upon a time` | `d to explore it.` |
+| `The field` | `s. "Let's trade this pebble for a sweet fruit," ` |
+| `light` | `hat.” Yukinari sounded pleased.` |
+| `water` | ` cannot. Just like you envy me in the bottom of ` |
+
+The measured event-retrieval accuracy is `0.984036` on the 40 stored episodes
+and `0.301255` on 16 held-out episodes. Stored continuations remain exact, and
+ordered suffix matching raises held-out retrieval from the former diffuse-match
+result while preserving coherent corpus fragments for prompts outside the
+stored set.
+
+Every inbound event shifts the multiscale active trajectory. Each common-mode
+bank stores complete episode events separated by an empty field mode. The
+emission port gives primary weight to the contiguous ordered suffix, retains a
+small distributed-match term, and integrates fixed prime-permuted Qi phase work
+over the four live horizons. A next-event phase resonance breaks equal work,
+and the port waits up to four dwell ticks for a strictly positive winner
+margin. The selected event is committed as an outbound reaction; trained memory
+modes are checked unchanged after inference.
+
+The trajectory engine fingerprint rejects checkpoints from the superseded
+count-lattice runtime instead of reinterpreting them. Use a new session or
+state directory across this cutover.
+
+The grounded action, spatial, reference, and temporal milestones are specified
+in `GROUNDED-LANGUAGE-PLAN.md`. Train their derived checkpoints from the corpus
+field, then run actions, questions, bindings, predictions, explanations, or
+temporal ordering through the same persistent field and world session:
+
+```powershell
+python .\train_cassi_grounded_language.py
+python .\train_cassi_spatial_language.py
+python .\train_cassi_reference_language.py
+python .\train_cassi_temporal_language.py
+python .\run_cassi_field_agent.py `
+  --instruction "turn your gaze left" `
+  --instruction "turn your gaze right" `
+  --instruction "raise your gaze up" `
+  --instruction "lower your gaze down" `
+  --instruction "remain still" `
+  --no-consolidate
+```
+
+The canonical held-out run commits:
+
+| Unseen utterance | Field-owned action | Margin | World consequence |
+|---|---|---:|---|
+| `turn your gaze left` | `action.gaze-left` | `7.985973` | $x: 0 \rightarrow -0.08$ |
+| `turn your gaze right` | `action.gaze-right` | `10.041994` | $x: -0.08 \rightarrow 0$ in the live multi-turn smoke |
+| `raise your gaze up` | `action.gaze-up` | `5.956003` | $y: 0 \rightarrow 0.08$ |
+| `lower your gaze down` | `action.gaze-down` | `10.029530` | $y: 0.08 \rightarrow 0$ in the live multi-turn smoke |
+| `remain still` | `action.hold` | `12.024390` | no world movement |
+
+The grounded checkpoint contains one field tensor, 4,290 occupied trajectory
+events out of 12,288 available event positions, ten causal training episodes,
+and no external adaptive object. Held-out action accuracy is `1.0`; held-out
+successor-observation prediction is `1.0`; the cyclically shuffled
+utterance/action control is `0.0`. The field commits the action before the
+acknowledgment and successor observation enter. Online mode then consolidates
+the causal prefix and complete outcome episode; `--no-consolidate` provides the
+declared inference-only arm.
+
+The spatial checkpoint extends that same tensor to 5,626 occupied trajectory
+events while retaining all five actions. It adds 24 balanced spatial episodes
+and 1,336 typed events. Ask the same unseen questions in either held-out world:
+
+```powershell
+python .\run_cassi_field_agent.py --seed 101 `
+  --question "please decide if red is left or right of blue" `
+  --question "please decide if red is above or below blue" `
+  --question "please decide if red and blue are near or far"
+```
+
+| Held-out world | Horizontal answer | Vertical answer | Distance answer |
+|---|---:|---:|---:|
+| seed `101` | `left` (`10.000000`) | `above` (`5.000000`) | `far` (`10.000000`) |
+| seed `159` | `right` (`5.000000`) | `below` (`5.000000`) | `near` (`5.000000`) |
+
+The same three paraphrases therefore reverse all three answers when only the
+world layout changes. Substituting the opposite world's object frame makes the
+field follow that frame in `6/6` episodes and produces `0/6` matches to the
+original labels. Spatial inference preserves common-mode memory, close/reopen
+preserves the live field and object layout, and the prior action board remains
+`5/5`.
+
+The reference checkpoint extends the field to 7,394 occupied trajectory events.
+It adds 36 binding, literal-reference, and generic relation-family episodes with
+1,768 typed events. The checkpoint never contains the held-out names `Mira`,
+`Sable`, or `Orin`; their mappings are created only by live binding turns.
+
+```powershell
+python .\run_cassi_field_agent.py --seed 159 `
+  --bind "Mira::let Mira refer to red" `
+  --bind "Orin::let Orin refer to green" `
+  --reference-query "Mira::blue::please decide the distance relation" `
+  --reference-query "it::blue::please decide the distance relation" `
+  --reference-query "Orin::blue::please decide the distance relation" `
+  --reference-query "it::blue::please decide the distance relation"
+```
+
+Actual committed reference flow:
+
+| Turn | Field identity | Field answer | Margin |
+|---|---|---|---:|
+| bind `Mira` | `reference.red` | binding committed | `13.997237` |
+| bind `Orin` | `reference.green` | binding committed | `17.942223` |
+| `Mira` relative to blue | red vs blue | `near` | `5.000000` |
+| `it` relative to blue | red vs blue | `near` | `5.000000` |
+| `Orin` relative to blue | green vs blue | `far` | `10.000000` |
+| `it` relative to blue | green vs blue | `far` | `10.000000` |
+
+All three held-out binding statements resolve correctly; literal subject and
+comparison references score `6/6`; generic relation-family transfer scores
+`6/6`; unknown `Quill` fails before binding; and the action and spatial boards
+remain `5/5` and `6/6`. Binding is the only reference operation that changes
+common-mode memory. Both names, the active green referent, the world layout,
+and the next `far` answer survive close and reopen. Serialized metadata contains
+three counters and world state but no name or referent mapping.
+
+The temporal checkpoint extends the same field to 8,540 occupied trajectory
+events. It adds 14 action-effect and before/after episodes containing 1,146
+typed events:
+
+```powershell
+python .\train_cassi_temporal_language.py
+python .\run_cassi_field_agent.py `
+  --predict "turn your gaze right" `
+  --instruction "turn your gaze right" `
+  --explain-last `
+  --order-last before
+```
+
+Actual live flow:
+
+| Operation | Field result | World result |
+|---|---|---|
+| predict `turn your gaze right` | `action.gaze-right` → `change.x-increase` | unchanged at tick `0` |
+| execute `turn your gaze right` | `action.gaze-right` | $x: 0 \rightarrow 0.08$ |
+| explain last | `gaze-right caused x to increase` | unchanged at tick `1` |
+| locate `before`, forward presentation | `position.first` | unchanged at tick `1` |
+
+All five held-out action paraphrases predict their separately measured changes;
+the shuffled-label control scores `0/5`, and all five counterfactual actions
+branch correctly from one predecessor. Change and cause decisions score `5/5`.
+Before/after ordering scores `4/4` across forward and reversed presentation.
+Prediction, explanation, and ordering preserve trained memory, while changing
+only live differential phase changes the prediction and changing only the
+transition register changes the causal and order answers.
+
+A second process reopening the same session reproduces
+`gaze-right caused x to increase`; asking for `after` with reversed
+presentation returns `position.first`. The temporal checkpoint itself is also
+loaded and exercised after serialization before its training receipt passes.
+
+
 
 The OpenAI-compatible provider uses the same direct Qi engine on loopback port
-8086 with model id `cassi-qi-language-v1`:
+8086 with model id `cassi-qi-corpus-language-v1`:
 
 ```powershell
 python .\cassi_persistent_provider.py
@@ -294,19 +534,107 @@ zero for all corresponding Qwen graph, state, weight, transfer, output-row,
 GGUF-open, and teacher-call counters; its symbol, output-byte, receipt, and
 successor-state replay gates pass across a fresh checkpoint reload.
 
-The direct-state counterfactual is frozen in
-`qi-native-field-dependence-prereg.md`. The live arm emitted only the fixed
-end-turn control symbol. Zeroing the conditioned Qi state changed that decision
-to field abstention; rotating the scale-0 Yang phase by one radian changed the
-state and receipt chain but retained the end-turn symbol. The frozen verdict is
-`FIELD_DEPENDENT` because field removal changed both the committed symbol
-sequence and abstention status. It supports causal dependence on field presence
-for this board only, not semantic sensitivity or language quality.
+The current text counterfactual first primes every arm with the same stored
+corpus trajectory, then rotates only the seeded live differential trajectory by
+$0$, $\pi/2$, $\pi$, or $3\pi/2$ before the same `Continue` event. Trained
+circulation memory remains bit-identical, but all four arms emit
+`d to explore it.`. Its measured verdict is therefore
+`NULL_NO_SYMBOL_CHANGE`. The grounded action, spatial, and reference suites
+independently show committed-decision changes under live differential
+intervention; the 16-symbol text probe itself does not.
 
-The self-hashed source records are
-`_diag/qwen-displacement/baseline-receipt.json`,
-`_diag/qwen-displacement/qi-field-dependence.json`, and
-`_diag/qwen-displacement/final-qi-native-evidence.json`.
+Current local evidence is written to
+`_diag/qwen-displacement/qi-field-dependence.json` and
+`_diag/qwen-displacement/final-qi-native-evidence.json`; the pinned measured
+Qwen reference remains `_diag/qwen-displacement/baseline-receipt.json`.
+Earlier `first-wave-v3` records describe the superseded count-lattice runtime
+and remain historical evidence only.
+
+### Canonical native bridge, displacement, and field-only execution
+
+The release path is the direct `cassi-qwen` executable. It does not use the
+`llama-cli` wrapper. The canonical state boundary is exact:
+
+```text
+CassiFI checkpoint [scale=4, flattened_mode_plane=55296, batch=1]
+    transpose, never reshape
+native state       [sequence=1, scale=4, mode=6144, plane=9]
+```
+
+`ggml_cassi_qi_field_step.v2` is the defined native bridge transition. The
+boundary, fixtures, and independent CPU/Vulkan oracle parity are canonical;
+the transition is not described as a numerical reimplementation of
+`QiFieldController.cycle`.
+
+The displacement parameter is cumulative:
+
+| Level | Native execution contract |
+|---:|---|
+| 0 | Qwen greedy output, with canonical field observation/state advance |
+| 1 | The field chooses from Qwen's candidate set |
+| 2 | The field owns selection over the full vocabulary |
+| 3 | The selected recurrent convolution/SSM state write is omitted |
+| 4 | Attention, recurrent, and KV work at and after the field layer is omitted |
+| 5 | Entire transformer blocks at and after the field layer are omitted |
+| 6 | Output norm, LM head, and model logits are omitted; exact field logits are passed to upstream greedy sampling |
+
+Build and run the complete direct-native verification from the `CassiQwen`
+root:
+
+```powershell
+& "C:/Program Files (x86)/Microsoft Visual Studio/18/BuildTools/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe" `
+  --build native/llama.cpp/build-qi --config Release `
+  --target test-cassi-qi-field test-cassi-qi-canonical test-cassi-qi-qwen cassi-qwen
+python verify_native_qi_release.py
+```
+
+`verify_native_qi_release.py` hash-pins
+`Qwen3.5-0.8B-Q4_0.gguf`, regenerates direct runtime states, exercises
+displacement levels 0–6, checks machine-readable graph-node counts, runs
+independent CPU/Vulkan parity, and verifies both production modes:
+
+- `--mode coupled`: Qwen remains an immutable forward teacher through the
+  selected field layer; the canonical field owns persistent state and final
+  logits.
+- `--mode field`: the GGUF is opened with `vocab_only=true`; Qwen tensors,
+  context, forward passes, recurrent/KV state, model logits, LM head, and
+  model sampler are absent. A fixed `fixed_64_mode_hash_v1` token-sense map
+  supplies immutable input observations to the same native field transition.
+
+With `CassiCosmos/scenes/mind_engine.tscn` listening on loopback port 7599, the
+verified field-only state can be mirrored without giving the simulator write
+authority:
+
+```powershell
+cd ../CassiCosmos
+python tools/qi_state_bridge.py `
+  --state ../CassiQwen/_diag/native-runtime-field-state.f32 `
+  --contract ../CassiQwen/_diag/canonical-native-qi-v1/contract.json `
+  --revision 1 --project-k 8
+```
+
+Seal the exact binaries, sources, states, model, parity evidence, field-order
+counterfactual, mind-engine gate, and live bridge receipt after the handoff:
+
+```powershell
+cd ../CassiQwen
+python write_native_qi_release_manifest.py
+```
+
+The machine-readable outputs are
+`_diag/native-qi-release-verification.json` and
+`_diag/native-qi-release-manifest.json`; the corresponding simulator handoff
+is `../CassiCosmos/_diag/qi_state_bridge_receipt.json`.
+
+The native verification target is the exact
+[`ggml-org/Qwen3.5-0.8B-GGUF`](https://huggingface.co/ggml-org/Qwen3.5-0.8B-GGUF)
+Q4_0 artifact: `563,036,064` bytes with SHA-256
+`57d1997790d1744fba5b40a7317df71ea5e2acee28c47e78f0cce39c0703f8cf`.
+All live rungs were observed on the RX 7900 XTX after the iGPU was disabled.
+The 27B model and `llama-cli` were deliberately not rerun after the two
+iGPU-enabled hard hangs, so the release evidence makes no 27B equivalence
+claim. The frozen Python ctypes runtime under
+`runtimes/llama-b10472-wip9/` remains separate and unchanged.
 
 
 ## Offline Qwen request policy
@@ -337,9 +665,20 @@ request deadlines, returns a provenance receipt, and never silently retries.
 Adopted Qi-native runtime verification:
 
 ```powershell
-python -m unittest -v test_cassi_qi_field.py test_cassi_field_language.py test_cassi_conscious_chat.py test_cassi_persistent_provider.py test_cassi_qwen_displacement.py
+python -m unittest -v test_cassi_qi_field.py test_cassi_field_language.py test_cassi_conscious_chat.py test_cassi_persistent_provider.py test_cassi_field_agent.py test_cassi_qwen_displacement.py
+python .\verify_cassi_corpus_language.py
 python .\verify_cassi_native_runtime.py
+python .\train_cassi_spatial_language.py
+python .\train_cassi_temporal_language.py
 ```
+
+The corpus verifier independently rereads every selected source episode,
+reconstructs the phase-coded circulation banks inside a fresh `QiFieldState`,
+requires bit-exact memory, recomputes stored and held-out event retrieval, and
+replays the recorded generations. The native verifier separately requires an
+exact stored-trajectory continuation, unchanged trained memory, one adaptive
+tensor, active outbound ownership, and a live source surface with no learned or
+Qwen-serving dependency.
 
 Offline organism-reference checks are separate:
 
@@ -536,8 +875,9 @@ L20 keeps the same direct-child, bridge-disabled 7601 laboratory and the same ra
 ## Adoption rule
 
 The live conscious terminal and port-8086 provider use the adopted field-only
-v3 organism checkpoint and may produce poor or malformed language as a valid
-experimental outcome; they do not fall back to Qwen. The hash-pinned
+Qi state and emit deterministic words selected from a hash-pinned,
+non-adaptive lexical boundary; those choices may remain semantically poor.
+They do not fall back to Qwen. The hash-pinned
 Qwen/llama.cpp programs remain separately invoked offline teacher and
 measurement tools. This cutover does not authorize changes to the 7599 mind
 engine, 7273 HTTP channel, tool authorization, evidence truth evaluation,
@@ -599,9 +939,19 @@ unrelated providers, or CassiCosmos mechanical behavior.
 - `cassi_qi_field.py`
 - `cassi-qi-language.json`
 - `cassi_field_language.py`
+- `cassi_grounded_language.py`
+- `cassi_temporal_language.py`
+- `train_cassi_grounded_language.py`
+- `train_cassi_spatial_language.py`
+- `train_cassi_reference_language.py`
+- `train_cassi_temporal_language.py`
+- `GROUNDED-LANGUAGE-PLAN.md`
 - `cassi_conscious_chat.py`
 - `run_cassi_conscious_chat.py`
 - `cassi_persistent_provider.py`
+- `cassi_field_agent.py`
+- `run_cassi_field_agent.py`
+- `test_cassi_field_agent.py`
 - `cassi_qwen_displacement.py`
 - `verify_cassi_native_runtime.py`
 - `qi-native-field-dependence-prereg.md`
