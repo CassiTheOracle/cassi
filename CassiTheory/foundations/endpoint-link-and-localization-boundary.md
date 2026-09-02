@@ -1,6 +1,6 @@
 # Gauge-Covariant Endpoint Closure and the Localization Boundary
 
-## Status: Derived conditional endpoint closure / Derived minimal-sector localization no-go—September 2026
+## Status: Derived conditional endpoint closure, frozen-link response, and source-action response / Derived minimal-sector localization no-go—September 2026
 
 ## Abstract
 
@@ -26,8 +26,15 @@ $k_\star$ when the dressed endpoint phase is a quarter-turn and
 $2\kappa_vu_v/(K_{\mathfrak s}k_\star)=\tau_\varphi$. On the selected
 species-port branch, requiring the unbiased $m=1$ current to remain below
 capacity with positive fixed-amplitude phase stiffness gives the conditional
-bound $k_\star>0.0964640362$. The action leaves the matching point, endpoint
-background, trace normalization, and dressed phase unselected.
+bound $k_\star>0.0964640362$.
+
+Allowing the endpoint to fluctuate supplies a sharper boundary. Every closed,
+homogeneous, conservative time-harmonic endpoint extremum has zero coherent
+conversion current. Around a nonzero rail background, source-action elimination
+gives a $4\times4$ Nambu Schur response; around the symmetric zero background,
+its first endpoint-mediated rail term is positive and quartic. The potential,
+background, damping law, trace normalization, dressed phase, and matching point
+remain unselected.
 
 The one-way open closure instead fixes the conditional endpoint-rate ratio
 $\gamma_-/\gamma_+=\varphi$ while damping transverse coherence.
@@ -88,6 +95,7 @@ results below are deductions within those declared structures.
 | EL-4 | The full positive coherence fibre carries no nontrivial state-only homotopy invariant | Derived topology |
 | EL-5 | The smooth unexcised object base has no first-Chern sector; point or line excision creates one candidate integer sector | Derived topology for the declared base choices |
 | EL-6 | The smooth zero-Chern endpoint completion has no finite Derrick radius; point-core flux gives a conditional exterior coefficient but no current-action particle completion | Derived minimal-sector no-go / Derived conditional point-core boundary |
+| EL-7 | A closed homogeneous time-harmonic endpoint extremum has zero coherent conversion current; source-action elimination gives a gauge-covariant Nambu response on a nonzero rail background, while the symmetric zero-background correction begins at positive quartic rail order | Derived conditional current, response, and order boundaries |
 
 No row identifies a Standard Model particle. Mass, electric charge, color,
 spin, statistics, scale length, endpoint normalization, and lifetime remain
@@ -562,15 +570,10 @@ $$
 
 so (ELR4) reproduces the wave-number dependence in
 `foundations/interscale-stress-attenuation-boundary.md` §4.4. This section
-sets $\delta\Upsilon_v=0$ and therefore derives a static closed-channel
-Hermitian matrix. Integrating active endpoint fluctuations would instead
-produce a frequency-dependent self-energy
-$\Lambda_{\mathrm{eff}}^{R/A}(\omega,k)$ whose retarded or advanced convention
-must be declared. An open endpoint channel can give its retarded response an
-imaginary part. Comparing that response with a conservative Hermitian Robin
-matrix requires a closed fluctuation sector, a regular pole-free on-shell
-domain, and a stable declared background. Those conditions depend on $U_v$,
-$K_v$, the temporal term, damping, and boundary normalization.
+sets $\delta\Upsilon_v=0$ and therefore gives the static closed-channel
+Hermitian matrix. Section 3.9 derives the active retarded/advanced response,
+its pole-free Hermitian limit, and the backgrounds on which that reduction is
+defined.
 
 ### 3.8 Simultaneous current-capacity boundary
 
@@ -633,9 +636,10 @@ $$
 At $k_\star=k_{\min,m}$ the fixed-amplitude phase stiffness vanishes, so
 equality is the marginal current-capacity boundary. The strict inequality in
 (ELR7) establishes current existence with positive phase curvature in the
-frozen-amplitude subspace. Full endpoint fluctuation stability additionally
-depends on $U_v'(u_v^2)$, $U_v''(u_v^2)$, $K_v$, the temporal coefficient,
-and the coupled rail-endpoint spectrum.
+frozen-amplitude subspace. Section 3.9 supplies the endpoint Hessian and pole
+law. A physical full-spectrum claim additionally requires a selected
+$U_v$, $K_v$, background, damping prescription, and coupled rail-endpoint
+spectrum.
 
 The numerical value in (ELR8) uses the Mapped proton endpoint, unbiased
 winding, declared species-port identification, common trace normalization,
@@ -643,6 +647,265 @@ quadratic-link identification
 $|\Lambda_{YI}|=2\kappa_vu_v$, and selected golden matching condition
 $|\Lambda_{YI}|=K_{\mathfrak s}k_\star\tau_\varphi$. Its scope is a
 conditional lower bound on a free $k_\star$ above the capacity boundary.
+
+### 3.9 Dynamical endpoint response and closed-current boundary
+
+Allowing the endpoint field to move exposes the background requirement behind
+the frozen current-turning law. The endpoint equation from (EL9) is
+
+$$
+i\hbar\partial_t\Upsilon
+=
+-\frac{K_v}{2}D_i^{(-)}D_i^{(-)}\Upsilon
++U_v'(|\Upsilon|^2)\Upsilon
+-\kappa_v\psi_Y^*\psi_I.
+\tag{ELR10}
+$$
+For a homogeneous time-harmonic background whose rail bilinear shares the
+endpoint carrier,
+
+$$
+\Upsilon(t)=\Upsilon_{v,0}e^{-i\Omega_{\mathrm{bg}}t},
+\qquad
+\psi_{Y,0}^*\psi_{I,0}
+=Y_0^*I_0e^{-i\Omega_{\mathrm{bg}}t},
+\qquad
+\Upsilon_{v,0}=u_ve^{i\alpha_v},
+\qquad
+W_v(n):=U_v(n)-\hbar\Omega_{\mathrm{bg}}n,
+$$
+
+the field equation becomes
+
+$$
+\boxed{
+W_v'(u_v^2)\Upsilon_{v,0}
+=\kappa_vY_0^*I_0,
+\qquad
+\operatorname{Im}
+\left(\Upsilon_{v,0}^*Y_0^*I_0\right)=0,
+\qquad
+\mathcal I_{\mathrm{link}}=0.}
+\tag{ELR11}
+$$
+
+The second identity follows because $W_v'$ is real. A closed, homogeneous,
+conservative time-harmonic extremum therefore cannot carry the nonzero
+stationary conversion current in (EL18). Such a current requires endpoint
+spatial flux, a drive or open channel, a non-harmonic background, or a larger
+coupled background problem. Equations (ELR6)–(ELR9) remain the capacity and
+fixed-amplitude phase-curvature laws for those branches.
+
+For the active quadratic response, use fractional endpoint fluctuations:
+
+$$
+\psi_Y=Y_0+\eta_Y,
+\qquad
+\psi_I=I_0+\eta_I,
+\qquad
+\Upsilon=e^{-i\Omega_{\mathrm{bg}}t}
+\Upsilon_{v,0}(1+\zeta),
+$$
+
+and define
+
+$$
+\mathbb\Phi
+:=
+\begin{pmatrix}
+\eta_Y\\\eta_I\\\eta_Y^*\\\eta_I^*
+\end{pmatrix},
+\qquad
+\Xi
+:=
+\begin{pmatrix}\zeta\\\zeta^*\end{pmatrix}.
+$$
+
+The doubled direct-link block and mixed endpoint-rail Hessian are
+
+$$
+\mathbb\Lambda_{0,v}
+:=
+\frac12
+\begin{pmatrix}
+\Lambda_{\mathrm{link},v}&0\\
+0&\Lambda_{\mathrm{link},v}^*
+\end{pmatrix},
+\qquad
+\boxed{
+\mathcal C_v
+:=
+\kappa_vu_v
+\begin{pmatrix}
+0&e^{-i\alpha_v}Y_0^*&e^{-i\alpha_v}I_0&0\\
+e^{i\alpha_v}I_0^*&0&0&e^{i\alpha_v}Y_0
+\end{pmatrix}.}
+\tag{ELR12}
+$$
+
+With the outer factor $1/2$ in the doubled quadratic form,
+$\mathbb\Lambda_{0,v}$ reproduces
+$\frac12(\eta_Y^*,\eta_I^*)\Lambda_{\mathrm{link},v}
+(\eta_Y,\eta_I)^T$ once. The mixed term is
+
+$$
+\frac12\left(
+\Xi^\dagger\mathcal C_v\mathbb\Phi
++\mathbb\Phi^\dagger\mathcal C_v^\dagger\Xi
+\right).
+$$
+
+At spatial Fourier momentum $\mathbf q$, the fractional endpoint fluctuation
+has
+
+$$
+\begin{aligned}
+\mathcal Z_v&:=\hbar u_v^2,\\
+A_v(\mathbf q)
+&:=u_v^2\left[
+W_v'(u_v^2)+u_v^2U_v''(u_v^2)
++\frac{K_v}{2}|\mathbf q|^2
+\right],\\
+B_v&:=u_v^4U_v''(u_v^2),\\
+\mathcal H_v(\mathbf q)
+&:=
+\begin{pmatrix}
+A_v(\mathbf q)&B_v\\
+B_v^*&A_v(\mathbf q)
+\end{pmatrix}.
+\end{aligned}
+\tag{ELR13}
+$$
+
+The retarded endpoint action kernel and its closed pole frequency are
+
+$$
+\boxed{
+\mathcal K_v^R(\omega,\mathbf q)
+:=
+\mathcal Z_v(\omega+i\gamma_v)\sigma_3
+-\mathcal H_v(\mathbf q),
+\qquad
+\omega_{\mathrm{end}}(\mathbf q)
+:=
+\frac{\sqrt{A_v(\mathbf q)^2-|B_v|^2}}{\mathcal Z_v}.}
+\tag{ELR14}
+$$
+
+Positive endpoint curvature requires
+$A_v(\mathbf q)>|B_v|$. For $\gamma_v=0$, the poles are
+$\omega=\pm\omega_{\mathrm{end}}(\mathbf q)$. The declared damped
+continuation moves them to
+$\omega=\pm\omega_{\mathrm{end}}(\mathbf q)-i\gamma_v$.
+The damping continuation is a response convention; (EL9) does not select its
+microscopic bath.
+Define the equivalent endpoint energy kernel
+$\mathcal D_v^R:=\mathcal H_v-\mathcal Z_v(\omega+i\gamma_v)\sigma_3$,
+so $\mathcal K_v^R=-\mathcal D_v^R$.
+
+With the doubled convention of (ELR12), the frequency-space source action is
+
+$$
+Q_v^{(2),R}
+=
+\frac12\mathbb\Phi^\dagger\mathbb\Lambda_{0,v}\mathbb\Phi
++\frac12\Xi^\dagger\mathcal K_v^R\Xi
++\frac12\left(
+\Xi^\dagger\mathcal C_v\mathbb\Phi
++\mathbb\Phi^\dagger\mathcal C_v^\dagger\Xi
+\right).
+$$
+
+Eliminating the endpoint fluctuation gives
+
+$$
+\boxed{
+\begin{aligned}
+\mathbb\Lambda_{\mathrm{eff},v}^R(\omega,\mathbf q)
+&=
+\mathbb\Lambda_{0,v}
+-\mathcal C_v^\dagger
+\left(\mathcal K_v^R\right)^{-1}
+\mathcal C_v\\
+&=
+\mathbb\Lambda_{0,v}
++\mathcal C_v^\dagger
+\left(\mathcal D_v^R\right)^{-1}
+\mathcal C_v.
+\end{aligned}}
+\tag{ELR15}
+$$
+
+For a closed, pole-free real frequency this response is Hermitian. With
+$\gamma_v>0$ it is generally non-Hermitian and satisfies
+$\mathbb\Lambda_{\mathrm{eff}}^A
+=(\mathbb\Lambda_{\mathrm{eff}}^R)^\dagger$. Generic nonzero $Y_0$ and $I_0$
+produce particle-hole blocks, so the active response is a Nambu kernel. A
+$2\times2$ complex-linear Robin matrix is recovered only when those anomalous
+blocks cancel.
+
+Under a constant relative-frame angle $\chi=g_Q\beta$, set
+
+$$
+G(\chi):=\operatorname{diag}(e^{i\chi/2},e^{-i\chi/2}),
+\qquad
+\mathbb G(\chi):=\operatorname{diag}(G,G^*).
+$$
+
+The fractional endpoint fluctuation is invariant, and
+
+$$
+\boxed{
+\mathcal C_v\longmapsto\mathcal C_v\mathbb G^\dagger,
+\qquad
+\mathbb\Lambda_{\mathrm{eff},v}^{R/A}
+\longmapsto
+\mathbb G\mathbb\Lambda_{\mathrm{eff},v}^{R/A}\mathbb G^\dagger.}
+\tag{ELR16}
+$$
+
+This covers the time-independent relative-frame convention of §2. A
+time-dependent frame requires a temporal relative-gauge connection.
+
+The zero-background limit is also sharp. At $Y_0=I_0=0$,
+$\mathcal C_v=0$, so active endpoint integration adds no quadratic rail
+self-energy. At the self-consistent symmetric background
+$Y_0=I_0=\Upsilon_{v,0}=0$ with $W_v'(0)>0$, the unnormalized endpoint source
+is
+
+$$
+j_{v,0}
+:=
+\kappa_v
+\begin{pmatrix}
+\eta_Y^*\eta_I\\
+\eta_I^*\eta_Y
+\end{pmatrix},
+\qquad
+\mathcal K_{v,0}(0):=-W_v'(0)I_2,
+\qquad
+\Delta Q_{\mathrm{rail}}
+:=
+-\frac12j_{v,0}^\dagger
+\mathcal K_{v,0}(0)^{-1}j_{v,0}
+=O(\eta^4).
+\tag{ELR17}
+$$
+
+The active response therefore begins at quartic rail order on the symmetric
+background. The quadratic frequency dependence in (ELR15) requires a nonzero
+rail background.
+
+The frozen DR1–DR6 receipt has overall verdict **FAIL**. Its DR5 direct
+elimination used the positive block
+$+\frac12\Xi^\dagger(\mathcal H-\mathcal Z\omega\sigma_3)\Xi$, while (EL9)
+supplies the action block
+$+\frac12\Xi^\dagger\mathcal K_v^R\Xi$. The separately frozen AR1–AR6
+source-action receipt uses $\mathcal K_v^R=-\mathcal D_v^R$ and passes on its
+first execution. It verifies (ELR15), its equivalent
+$\mathbb\Lambda_{0,v}+\mathcal C_v^\dagger(\mathcal D_v^R)^{-1}\mathcal C_v$
+form, constant-frame covariance, the positive zero-background quartic term,
+and the closed/damped response classes.
 
 ---
 
@@ -1080,8 +1343,9 @@ thin-tube matching hold.
 
 | Structure | Stability condition | Sector-changing event | Rate status |
 |---|---|---|---|
-| Coherent endpoint phase | $|\mathcal J_Q|<\mathcal J_{c,v}$, $u_v>0$, and $\cos(\vartheta-\alpha_v)>0$ at both vertices | Overcritical current, $u_v=0$, endpoint phase slip, or coupling to an incoherent channel | Requires $U_v$, endpoint damping, and fluctuation data |
-| Frozen-link Robin response | Common Yang/Yin species-port trace normalization, fixed $u_v>0$, Hermitian rail-rail Hessian, and $k_\star>k_{\min,m}$ on the positive fixed-amplitude phase-stiffness branch | Endpoint amplitude or dressed-phase change, port-basis change, active endpoint dispersion, or loss of coherent current turning | Unitary matrix and selected-point matching Derived conditionally; full fluctuation stability, $k_\star$, dressed phase, normalization, and bandwidth dynamics remain unselected |
+| Coherent endpoint phase | $|\mathcal J_Q|<\mathcal J_{c,v}$, $u_v>0$, and $\cos(\vartheta-\alpha_v)>0$ at both vertices; a nonzero steady current also requires spatial endpoint flux, an open/driven channel, a non-harmonic state, or a larger coupled background | Overcritical current, $u_v=0$, endpoint phase slip, or coupling to an incoherent channel | The closed homogeneous conservative time-harmonic extremum has $\mathcal I_{\mathrm{link}}=0$; the nonzero-current background and rate remain unselected |
+| Frozen-link Robin response | Common Yang/Yin species-port trace normalization, fixed $u_v>0$, Hermitian rail-rail Hessian, and $k_\star>k_{\min,m}$ on the positive fixed-amplitude phase-stiffness branch | Endpoint amplitude or dressed-phase change, port-basis change, active endpoint dispersion, or loss of coherent current turning | Unitary matrix and selected-point matching Derived conditionally; $k_\star$, dressed phase, normalization, and physical bandwidth remain unselected |
+| Active endpoint response | $A_v(\mathbf q)>|B_v|$ and a pole-free frequency domain for the declared background; full stability uses the coupled rail-endpoint Hessian | Endpoint pole, negative curvature, damping-channel change, or background change | Nambu Schur response and endpoint pole law Derived conditionally; the potential, background, damping mechanism, and coupled physical spectrum remain unselected |
 | Scale-graph winding $m$ | Nonzero coherent amplitude around the compact graph | Rail-amplitude zero, endpoint phase slip, boundary event, or open jump | Unselected |
 | Rank-one projective charge | Evolution remains on $\|\mathbf n\|=1$ with fixed boundary data | Entry into the full-rank interior or $\rho=0$ | Minimal conversion supplies an inward path but no universal transition rate |
 | First Chern number $N_G$ | Closed two-cycle and compact connection in a defect or nontrivial-base sector | Boundary flux, defect crossing, singular connection event, or removal of the cycle | Exterior coefficient Derived conditionally; core dynamics unselected |
@@ -1155,13 +1419,14 @@ localized solution, or defect sector.
 
 The gauge transformations, source cancellation, capacity inequality,
 frozen-link Robin reduction, Cayley unitarity, selected-point golden match,
-conditional current-capacity lower bound, Markov rate ratio, coherence
-half-rate, cohomology groups, reduced-radius algebra, and point-core exterior
-coefficient are executable analytic checks. No numerical PDE run currently
-realizes the charged endpoint field, open endpoint channel, or a finite-energy
-point defect.
-The toroidal experiments test different conservative spatial constructions and
-do not instantiate (EL9) or (EL28).
+conditional current-capacity lower bound, closed homogeneous current boundary,
+active mixed Hessian, zero-background quartic boundary, endpoint pole law,
+Nambu Schur response, Markov rate ratio, coherence half-rate, cohomology
+groups, reduced-radius algebra, and point-core exterior coefficient are
+executable analytic checks. No numerical PDE run currently realizes the
+charged endpoint field, open endpoint channel, or a finite-energy point
+defect. The toroidal experiments test different conservative spatial
+constructions and do not instantiate (EL9) or (EL28).
 
 The frozen first execution of
 `computations/endpoint_link_localization_check.py` passed ER1–ER5 without
@@ -1175,9 +1440,35 @@ coefficient changes:
 | ER4 `stable matched-link k_min` | $k_{\min,1}=0.096464036203895$; $\lvert\mathcal J_Q\rvert/\mathcal J_c=0.120580045255$ at $k_\star=0.8$ |
 | ER5 fixed-link off-match response | $\left\lVert S(1.7k_\star)-S_{\varphi,+}\right\rVert_{\max}=0.227151634836$ |
 
+The frozen execution of
+`computations/endpoint_dynamical_response_check.py` has overall verdict
+**FAIL**:
+
+| Gate | Outcome |
+|---|---|
+| DR1 closed homogeneous current boundary | Algebraically valid |
+| DR2 exact trilinear Hessian | Algebraically valid |
+| DR3 symmetric-background order | Quartic order valid; the effective-action sign requires the action kernel |
+| DR4 endpoint pole law | Algebraically valid |
+| DR5 Nambu elimination and covariance | **FAIL**—the eliminated endpoint block has the wrong source-action sign |
+| DR6 response class | Matrix identities valid for the declared block |
+
+The separately frozen source-action execution of
+`computations/endpoint_action_response_check.py` has verdict **PASS**:
+
+| Gate | Numerical receipt |
+|---|---:|
+| AR1 background and closed-current residuals | $0$ and $0$ |
+| AR2 trilinear, mixed-Hessian, and static action-Hessian residuals | $0$, $6.202\times10^{-19}$, and $6.951\times10^{-18}$ |
+| AR3 positive quartic term and scaling | $3.708520494545\times10^{-5}$ at $t_1$; zero ratio residual |
+| AR4 endpoint pole law | $\omega_{\mathrm{end}}=0.462391879254$; zero pole residual |
+| AR5 $\mathcal K/\mathcal D$ equivalence, elimination, covariance, and anomalous block | $0$, $1.511\times10^{-17}$, $2.220\times10^{-16}$, and $0.390450933151$ |
+| AR6 closed Hermiticity, damped non-Hermiticity, and advanced adjoint | $3.103\times10^{-17}$, $0.360569701415$, and $6.206\times10^{-17}$ |
+
 The executable label `stable matched-link k_min` denotes the current-capacity
-threshold where the frozen-amplitude phase stiffness vanishes. Full endpoint
-fluctuation stability remains open.
+threshold where the frozen-amplitude phase stiffness vanishes. The endpoint
+potential, nonzero-current background, damping law, and full coupled
+fluctuation spectrum remain open.
 
 No new prediction number is introduced. Existing EL-2 in
 `predictions/falsifiable-predictions.md` records the conditional response and
@@ -1195,11 +1486,20 @@ identification, and the Cayley map is unitary. A dressed quarter-turn phase and
 $2\kappa_vu_v/(K_{\mathfrak s}k_\star)=\tau_\varphi$ realize the declared
 golden target at one $k_\star$. On the unbiased $m=1$ branch, current capacity
 and positive fixed-amplitude phase stiffness require
-$k_\star>0.0964640362$. Stability against endpoint-amplitude and coupled
-rail fluctuations remains open. The endpoint background, matching point,
-dressed phase, trace normalization, and active response remain physical
-inputs. A one-way Lindblad alternative closes the population circuit and fixes
-a conditional $\varphi$ rate ratio while damping endpoint coherence.
+$k_\star>0.0964640362$.
+
+The same action fixes the active boundary. A closed homogeneous conservative
+time-harmonic endpoint extremum has zero conversion current. Nonzero stationary
+turning therefore needs spatial flux, an open or driven endpoint, a
+non-harmonic state, or a larger coupled background. Around a nonzero rail
+background, endpoint integration gives the gauge-covariant Nambu response
+(ELR15), with the pole and curvature conditions in (ELR14). Around the
+symmetric zero background, the endpoint-mediated rail contribution is positive
+and begins at quartic order. The potential, nonzero-current background,
+matching point, dressed phase, trace normalization, damping law, and full coupled
+spectrum remain physical inputs. A one-way Lindblad alternative closes the population
+circuit and fixes a conditional $\varphi$ rate ratio while damping endpoint
+coherence.
 
 The complete positive coherence fibre has no state-only homotopy protection.
 A first Chern number of the compact relative connection survives mixed states,
@@ -1248,6 +1548,18 @@ fluctuation spectrum, physical calibration, and decay rate remain open.
 - `computations/particle-stationary-bvp-report.md`—registered one-point campaign receipt and numerical-quality verdict
 - `computations/endpoint_robin_link_prereg.md`—frozen Robin-link matching and
   current-capacity checks
+- `computations/endpoint_dynamical_response_prereg.md`—frozen failed
+  energy-kernel response criteria
+- `computations/endpoint_dynamical_response_check.py`—frozen failed
+  block-matrix receipt
+- `computations/endpoint_dynamical_response_report.md`—source-action sign
+  review and FAIL verdict
+- `computations/endpoint_action_response_prereg.md`—frozen source-action
+  response, covariance, pole, and zero-background criteria
+- `computations/endpoint_action_response_check.py`—passing source-action
+  analytic receipt
+- `computations/endpoint_action_response_report.md`—AR1–AR6 gate accounting
+  and PASS verdict
 - `foundations/physical-becoming-hierarchy.md`—closed conservative and
   mesoscopic open-system boundary
 - `foundations/loop-to-bubble-projection-theorem.md`—positive Yang/Yin Gram

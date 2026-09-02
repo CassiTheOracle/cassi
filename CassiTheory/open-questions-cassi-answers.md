@@ -1021,12 +1021,59 @@ flowchart TD
 
 **Visual:** The canonical variables provide common vocabulary across sectors. The geometric completion ansatz combines the canonical density subcone, coherence ball, projective shell, and interscale circuit in one stratified bundle. The interscale stress branch adds an exact momentum-window ledger and separates reciprocal stress transfer from routed attenuation. General relativity and Standard Model gauge dynamics remain established external physics, Qi-gravity remains an incomplete algebraic ansatz, and no current action matches all four interactions to the canonical solver.
 
-The registered interscale-current construction now consists of a separately normalized scale-coordinate Yang/Yin doublet with exact total and relative continuity identities, equal-and-opposite rail transport on the Mapped Planck-to-proton interval, two endpoint-closure alternatives, explicit point-core support conditions, one auxiliary confinement route, and one conditional neutral-carrier support route. The coherent endpoint action is gauge invariant under local $U(1)_Q$ only when the endpoint section carries charge $-g_Q$; under the Hypothesized species-port trace identification, its frozen rail-rail Hessian is the gauge-covariant Hermitian Robin matrix $\Lambda_{\mathrm{link}}=2\kappa uM(\alpha)$ with an exact unitary Cayley response. A dressed quarter-turn phase and selected coupling ratio realize the declared golden matrix at one $k_\star$, while simultaneous unbiased current capacity and positive fixed-amplitude phase stiffness give the conditional lower bound $k_\star>0.0964640362$. Full fluctuation stability, the endpoint background, matching point, trace normalization, dressed phase, active response, and physical port map remain unselected. A directed Lindblad alternative closes the one-way population circuit with $\gamma_-/\gamma_+=\varphi$ and predicts decoherence at half the rate sum. Positive smooth local amplitude-gradient and core-potential energies cannot support a shrinking endpoint core. A persistent point defect instead requires fixed topological flux or an equally explicit positive exterior term. A compact $U(1)_G$ connection supplies the exterior class $E_G(R)=\mathcal B_G/R$ with $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_{\mathfrak s}^2>0$ and point-core condition $\mathcal B_G>D$; a separately labeled neutral massive adjoint can reduce the exterior coefficient to $\mathcal B_Ge^{-2m_GR}$. A local fundamental Yang/Yin condensate removes the isolated magnetic sector by forcing $N_G=0$, so this mechanism requires an auxiliary gauge completion. A distinct bulk-gapped neutral carrier $\chi$ supplies $E_C=A_C/R$ conditionally through the exact Noether number $Q_C$, with reduced support $D<A_C<D+D_{\max}$ and the additional retention inequality $\Omega_b<\mu_C$. The carrier normalization, mass, coupling, endpoint amplitude, core energies, and matching boundary remain open. The registered one-point composite campaign tests the bulk-soliton, auxiliary flux-core, condensate confinement, and neutral-carrier sectors together; all preregistered arms fail Q2, so no tested coefficient point qualifies a persistent composite. The theory therefore contains exact current algebra, conditional endpoint response, explicit support terms, a confinement route, a conditional carrier route, and a measured numerical boundary rather than a completed matter solution. |
+The registered interscale-current construction consists of a separately
+normalized scale-coordinate Yang/Yin doublet with exact total and relative
+continuity identities, equal-and-opposite rail transport on the Mapped
+Planck-to-proton interval, two endpoint-closure alternatives, explicit
+point-core support conditions, one auxiliary confinement route, and one
+conditional neutral-carrier support route. The coherent endpoint action is
+gauge invariant under local $U(1)_Q$ when the endpoint section carries charge
+$-g_Q$; under the Hypothesized species-port trace identification, its frozen
+rail-rail Hessian is the gauge-covariant Hermitian Robin matrix
+$\Lambda_{\mathrm{link}}=2\kappa uM(\alpha)$ with an exact unitary Cayley
+response. A dressed quarter-turn phase and selected coupling ratio realize the
+declared golden matrix at one $k_\star$, while simultaneous unbiased current
+capacity and positive fixed-amplitude phase stiffness give the conditional
+lower bound $k_\star>0.0964640362$. Source-action elimination gives the
+gauge-covariant Nambu Schur form
+$\mathbb\Lambda_{\mathrm{eff}}^R
+=\mathbb\Lambda_0-\mathcal C^\dagger(\mathcal K^R)^{-1}\mathcal C
+=\mathbb\Lambda_0+\mathcal C^\dagger(\mathcal D^R)^{-1}\mathcal C$.
+The frozen AR1–AR6 source-action receipt passes; the DR receipt remains `FAIL`
+because its DR5 endpoint block has the opposite source-action sign. Every
+closed homogeneous conservative time-harmonic endpoint extremum has zero
+coherent conversion current, and the symmetric zero-background
+endpoint-mediated rail contribution is positive and begins at quartic order.
+The endpoint potential, nonzero-current background, matching point,
+trace normalization, dressed phase, damping mechanism, doubled port-flux law,
+and physical port map remain unselected. A directed Lindblad alternative closes the one-way
+population circuit with $\gamma_-/\gamma_+=\varphi$ and predicts decoherence at
+half the rate sum. Positive smooth local amplitude-gradient and core-potential
+energies cannot support a shrinking endpoint core. A persistent point defect
+requires fixed topological flux or an equally explicit positive exterior term.
+A compact $U(1)_G$ connection supplies
+$E_G(R)=\mathcal B_G/R$ with
+$\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_{\mathfrak s}^2>0$ and point-core
+condition $\mathcal B_G>D$; a separately labeled neutral massive adjoint can
+reduce the exterior coefficient to $\mathcal B_Ge^{-2m_GR}$. A local
+fundamental Yang/Yin condensate removes the isolated magnetic sector by
+forcing $N_G=0$, so this mechanism requires an auxiliary gauge completion. A
+distinct bulk-gapped neutral carrier $\chi$ supplies $E_C=A_C/R$ conditionally
+through the exact Noether number $Q_C$, with reduced support
+$D<A_C<D+D_{\max}$ and retention inequality $\Omega_b<\mu_C$. The carrier
+normalization, mass, coupling, endpoint amplitude, core energies, and matching
+boundary remain open. The registered one-point composite campaign tests the
+bulk-soliton, auxiliary flux-core, condensate confinement, and neutral-carrier
+sectors together; all preregistered arms fail Q2, so no tested coefficient
+point qualifies a persistent composite. The theory contains exact current
+algebra, conditional frozen and source-action endpoint responses, explicit
+support terms, a confinement route, a conditional carrier route, and a
+measured numerical boundary without a completed matter solution.
 
-| **Cassi Answer** | One explicit stratified geometric completion ansatz with exact canonical reduction and one conditional interscale momentum ledger; no action currently derives or matches the four established interactions |
-| **Mechanism** | A positive Hermitian Yang/Yin fibre connects the canonical densities, loop coherence, and projective bubble map; a two-rail graph closes the conditional scale circuit; mixed-stress boundary flux transfers momentum between scale windows; Hermitian endpoint data preserve flux; the charged endpoint field supplies a conditional gauge-covariant Robin matrix family; its physical coupling, dressed phase, matching point, active response, routed-port identification, and stress-current map remain unselected; gravity, Standard Model gauge structure, conversion reservoir, and P1→P2 matching remain separate |
-| **Epistemic** | **Hypothesized completion and constitutive ansätze / Derived canonical reduction, conditional fibre geometry, and momentum-window conservation**—physical realization and cross-sector matching remain open |
-| **Reference** | `foundations/geometric-manifold-completion.md`; `foundations/physical-becoming-hierarchy.md` §7.2, §7.3; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md`; `foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.8; `foundations/interscale-stress-attenuation-boundary.md` |
+| **Cassi Answer** | One explicit stratified geometric completion ansatz with exact canonical reduction, one conditional interscale momentum ledger, and conditional frozen and source-action endpoint responses; no action currently derives or matches the four established interactions |
+| **Mechanism** | A positive Hermitian Yang/Yin fibre connects the canonical densities, loop coherence, and projective bubble map; a two-rail graph closes the conditional scale circuit; mixed-stress boundary flux transfers momentum between scale windows; Hermitian frozen endpoint data preserve flux. Source-action elimination gives a gauge-covariant Nambu Schur response around nonzero rail backgrounds. The frozen AR1–AR6 receipt passes; the DR receipt remains `FAIL` because its DR5 endpoint block has the opposite source-action sign. The symmetric zero-background contribution is positive and begins at quartic order, and a closed homogeneous conservative endpoint extremum has zero stationary conversion current. The potential, nonzero-current background, damping law, doubled port-flux identification, dressed phase, matching point, and stress-current map remain unselected; gravity, Standard Model gauge structure, conversion reservoir, and P1→P2 matching remain separate |
+| **Epistemic** | **Hypothesized completion and constitutive ansätze / Derived canonical reduction, conditional fibre geometry, momentum-window conservation, frozen-link response, source-action response, closed-current boundary, and zero-background order**—physical realization and cross-sector matching remain open |
+| **Reference** | `foundations/geometric-manifold-completion.md`; `foundations/physical-becoming-hierarchy.md` §7.2, §7.3; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md`; `foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.9; `foundations/interscale-stress-attenuation-boundary.md`; `computations/endpoint_dynamical_response_prereg.md`; `computations/endpoint_dynamical_response_check.py`; `computations/endpoint_dynamical_response_report.md`; `computations/endpoint_action_response_prereg.md`; `computations/endpoint_action_response_check.py`; `computations/endpoint_action_response_report.md` |
 
 ### F4: Theory of Everything
 

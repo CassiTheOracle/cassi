@@ -46,14 +46,14 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
 | 36 | `loop-to-bubble-projection-theorem.md` | Shared-support Yang/Yin loop, canonical zero-mode projection, coherence ball, and internal spectrum | Derived conditional projection, bubble map, and population spectrum / Hypothesized microscopic physical identification |
-| 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action / Derived conditional endpoint, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point coupled campaign |
+| 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action / Derived conditional endpoint, source-action response, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point coupled campaign |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, two-rail scale graph, canonical reduction, and open-system coherence lift | Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry / Tested one-point stationary campaign |
-| 39 | `endpoint-link-and-localization-boundary.md` | Gauge-covariant endpoint closure, frozen-link Robin response, current-capacity matching boundary, full-fibre invariant classification, and smooth-sector localization boundary | Derived conditional endpoint closure and Robin response / Derived minimal-sector localization no-go |
+| 39 | `endpoint-link-and-localization-boundary.md` | Gauge-covariant endpoint closure, frozen-link response, source-action Nambu response, closed-current boundary, full-fibre invariant classification, and smooth-sector localization boundary | Derived conditional endpoint closure, frozen-link response, and source-action response / Derived minimal-sector localization no-go |
 | 40 | `point-core-flux-sector.md` | Quantized point-core exterior energy, finite-energy obstruction, and stationary-solver boundary | Derived conditional exterior support / Derived current-action completion no-go |
 | 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary smooth magnetic core, condensate topology, London confinement, and composite-stability boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Tested one-point coupled campaign |
 | 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point coupled campaign |
 | 43 | `particle-stationary-action-closure.md` | Source-free temporal particle action, Gauss constraint, fixed-charge functional, and variational boundary | Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries / Tested one-point numerical boundary |
-| 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, and routed quadratic-flux attenuation | Hypothesized—September 2026; conservation, boundary, and transfer identities Derived conditional within the proposed branch |
+| 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, source-action Nambu response, and routed quadratic-flux attenuation | Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026 |
 
 ## Document Summaries
 
@@ -527,14 +527,19 @@ reciprocal dynamics do not compose into $d^N$.
 time-completed scale action, the self-adjoint Robin scattering family, the
 conditional golden fixed-point matrix at a declared matching wave number, and
 the gauge-covariant rail-rail Hessian supplied by a frozen charged endpoint
-background under the Hypothesized species-port identification. A dressed
-quarter-turn phase and selected coupling ratio realize the golden matrix at
-one $k_\star$; requiring the same unbiased proton current to remain below
-capacity with positive fixed-amplitude phase stiffness gives the conditional
-bound $k_\star>0.0964640362$. The port map, trace normalization, endpoint
-background, dressed phase, and matching point remain unselected. It separates
-reciprocal stress transfer, closed coherent propagation, and routed forward
-flux, showing that only the routed non-re-entry branch composes as
+under the Hypothesized species-port identification. A dressed quarter-turn
+phase and selected coupling ratio realize the golden matrix at one $k_\star$;
+current capacity with positive fixed-amplitude phase stiffness gives the
+conditional bound $k_\star>0.0964640362$. Source-action elimination gives a
+Nambu Schur response; the separately frozen AR1–AR6 receipt passes, while the
+DR receipt remains `FAIL` because its DR5 endpoint block has the opposite
+source-action sign. A closed homogeneous conservative time-harmonic extremum
+has zero coherent conversion current, while the symmetric zero-background
+contribution is positive and begins at quartic rail order. The endpoint
+potential, nonzero-current background, damping law, port map, trace
+normalization, dressed phase, and matching point remain unselected. The paper
+separates reciprocal stress transfer, closed coherent propagation, and routed
+forward flux, showing that only the routed non-re-entry branch composes as
 $\varphi^{-N}$.
 
 **Use:** the boundary between the universal $\varphi^{-N}$ algebra and any
@@ -554,7 +559,7 @@ Its registered phase gluing is a perfect-transfer endpoint. The Hermitian
 Robin family in
 `foundations/interscale-stress-attenuation-boundary.md` §4.3 supplies partial
 reflection and transmission, and the charged coherent field in
-`foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.8 gives one
+`foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.9 gives one
 conditional gauge-covariant realization.
 
 The conservative interscale action and mesoscopic dissipative conversion
@@ -583,13 +588,21 @@ gauge-covariant Hermitian rail-rail Hessian
 $\Lambda_{\mathrm{link},v}=2\kappa_vu_vM(\alpha_v)$, an exact unitary Cayley
 response, and conditional golden matching at one $k_\star$. Current capacity
 with positive fixed-amplitude phase stiffness gives the conditional unbiased
-bound $k_\star>0.0964640362$ while leaving full fluctuation stability, the
-endpoint background, dressed phase, trace normalization, port map, and
-matching point open. It derives one-way Lindblad closure with the conditional
-rate ratio $\gamma_-/\gamma_+=\varphi$, proves that smooth local positive
-energies cannot support a shrinking core, identifies fixed flux and
-$\mathcal B_G>0$ as the required point-core exterior class, and separates
-interface cohesion from bulk core support.
+bound $k_\star>0.0964640362$. A closed homogeneous conservative time-harmonic
+endpoint extremum has zero coherent conversion current. Around a nonzero rail
+background, source-action elimination gives a gauge-covariant Nambu Schur
+response with analytic endpoint poles. The separately frozen AR1–AR6 receipt
+passes; the DR receipt remains `FAIL` because its DR5 endpoint block has the
+opposite source-action sign. Around the symmetric zero background, the
+endpoint-mediated rail contribution is positive and begins at quartic order.
+The potential, nonzero-current background, damping law, full coupled spectrum,
+dressed phase, trace normalization, port map, and matching point remain
+unselected. The paper
+also derives one-way Lindblad closure with the conditional rate ratio
+$\gamma_-/\gamma_+=\varphi$, proves that smooth local positive energies cannot
+support a shrinking core, identifies fixed flux and $\mathcal B_G>0$ as the
+required point-core exterior class, and separates interface cohesion from bulk
+core support.
 
 The full positive coherence fibre is contractible. An independent first Chern
 number can survive mixed states, while the smooth base
@@ -602,7 +615,8 @@ registered condensate confines flux and gives no persistent pair by itself.
 The neutral core-carrier branch supplies a conditional reduced root under
 separate support, retention, and matching inequalities. The endpoint field has
 no selected non-Abelian vertex lift. Status: Derived conditional endpoint
-closure and Derived minimal-sector localization no-go.
+closure, frozen-link response, and source-action response / Derived
+minimal-sector localization no-go.
 
 ### `point-core-flux-sector.md`—Quantized Point-Core Flux and the Persistent-Defect Boundary
 

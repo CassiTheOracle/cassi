@@ -328,10 +328,13 @@ $\Lambda_{\mathrm{link},v}=2\kappa_vu_vM(\alpha_v)$. A dressed quarter-turn
 phase and $2\kappa_vu_v/(K_{\mathfrak s}k_\star)=\tau_\varphi$ realize the
 declared golden matrix at one selected $k_\star$. Requiring the simultaneous
 unbiased proton current to remain below capacity with positive fixed-amplitude
-phase stiffness gives the conditional bound $k_\star>0.0964640362$. The
-endpoint background, trace normalization, port assignment, dressed phase, and
-matching point remain physical inputs, and full fluctuation stability remains
-open.
+phase stiffness gives the conditional bound $k_\star>0.0964640362$. The active
+endpoint Hessian is explicit. Source-action elimination gives its Nambu Schur
+response, and the separately frozen AR1–AR6 receipt passes. The DR receipt
+remains `FAIL` because its DR5 endpoint block has the opposite source-action
+sign. The endpoint potential, nonzero-current background, damping law, trace
+normalization, port assignment, dressed phase, matching point, and full
+coupled fluctuation spectrum remain physical inputs.
 
 The scalar phases in (GM11) are fixed-frame representatives of endpoint
 intertwiners. Under a relative $U(1)_Q$ frame change, each $S_v$ must transform
@@ -350,11 +353,14 @@ a trace-preserving open-system vertex channel.
 
 The charged transition section in
 `foundations/endpoint-link-and-localization-boundary.md` realizes the endpoint
-intertwiner and frozen-link Robin family conditionally and has a finite
-coherent-current capacity. A one-way
-Lindblad vertex channel supplies a distinct gauge-covariant population
-closure, with $\gamma_-/\gamma_+=\varphi$ in the uniform circuit state while
-undriven endpoint coherence decays.
+intertwiner, frozen-link Robin family, and source-action Nambu response
+conditionally. A closed homogeneous conservative time-harmonic endpoint
+extremum has zero coherent conversion current; a nonzero stationary branch
+requires spatial endpoint flux, an open or driven channel, a non-harmonic
+state, or a larger coupled background. A one-way Lindblad vertex channel
+supplies a distinct gauge-covariant population closure, with
+$\gamma_-/\gamma_+=\varphi$ in the uniform circuit state while undriven
+endpoint coherence decays.
 
 ---
 

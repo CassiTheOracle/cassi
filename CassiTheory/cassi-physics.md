@@ -515,15 +515,28 @@ Cayley response. A dressed quarter-turn phase and
 $2\kappa_vu_v/(K_{\mathfrak s}k_\star)=\tau_\varphi$ realize the declared
 golden matrix at one selected point. Requiring the unbiased proton current to
 remain below capacity with positive fixed-amplitude phase stiffness gives the
-conditional bound $k_\star>0.0964640362$. Full endpoint fluctuation stability,
-the port map, trace normalization, endpoint background, dressed phase, and
-$k_\star$ remain open.
-With complementary return ports
-routed away from coherent re-entry, the forward quadratic flux is
-$\varphi^{-N}$, the retained return ledger is $1-\varphi^{-N}$, and the
-corresponding amplitude is $\varphi^{-N/2}$. Each coupling, phase, and mass
-application in the table retains its registered observable-specific signal
-map.
+conditional bound $k_\star>0.0964640362$.
+
+The closed-background boundary is explicit: every homogeneous conservative
+time-harmonic endpoint extremum has zero coherent conversion current. Around
+nonzero rail backgrounds, source-action elimination gives the gauge-covariant
+Nambu Schur response
+$\mathbb\Lambda_{\mathrm{eff}}^R
+=\mathbb\Lambda_0-\mathcal C^\dagger(\mathcal K^R)^{-1}\mathcal C
+=\mathbb\Lambda_0+\mathcal C^\dagger(\mathcal D^R)^{-1}\mathcal C$, where
+$\mathcal K^R=-\mathcal D^R$, with analytic endpoint poles. The frozen
+AR1–AR6 source-action receipt passes; the DR receipt remains `FAIL` because its
+DR5 endpoint block has the opposite source-action sign. Around the symmetric
+zero background, the endpoint-mediated rail contribution is positive and
+begins at quartic order. The potential, nonzero-current background, damping
+mechanism, full coupled spectrum, doubled port-flux law, port map, trace
+normalization, dressed phase, and $k_\star$ remain open.
+
+With complementary return ports routed away from coherent re-entry, the
+forward quadratic flux is $\varphi^{-N}$, the retained return ledger is
+$1-\varphi^{-N}$, and the corresponding amplitude is $\varphi^{-N/2}$. Each
+coupling, phase, and mass application in the table retains its registered
+observable-specific signal map.
 
 Within this coordinate model, the gap $g=1-\varphi^{-5}$ gives the electroweak cascade coordinate $N_{\mathrm{gap}}\approx79.7$ from $v_0/M_{\text{Pl}}=g\cdot\varphi^{-N_{\mathrm{gap}}}$. The direct measured ratio gives $N_{\mathrm{raw}}=\log_\varphi(M_{\text{Pl}}/v_0)\approx79.89$; both placements identify the nearest integer step 80.
 

@@ -1,6 +1,6 @@
 # Interscale Yang/Yin Current and the Conditional Soliton Pinch
 
-## Status: Hypothesized action / Derived conditional endpoint, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point coupled campaign—September 2026
+## Status: Hypothesized action / Derived conditional endpoint, source-action response, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point coupled campaign—September 2026
 
 ## Abstract
 
@@ -636,9 +636,16 @@ $\Lambda_{\mathrm{link},v}=2\kappa_v|\Upsilon_v|M(\alpha_v)$. A dressed
 quarter-turn phase and selected coupling ratio realize the declared golden
 two-port matrix at one $k_\star$. Combining that match with current capacity
 and positive fixed-amplitude phase stiffness gives the conditional bound
-$k_\star>0.0964640362$ for the unbiased proton branch. Full endpoint
-fluctuation stability remains open; see
-`foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.8.
+$k_\star>0.0964640362$ for the unbiased proton branch. Source-action
+elimination of endpoint fluctuations gives the Nambu Schur response in
+`foundations/endpoint-link-and-localization-boundary.md` §3.9. The separately
+frozen AR1–AR6 receipt passes; the DR receipt remains `FAIL` because its DR5
+endpoint block has the opposite source-action sign. A closed homogeneous
+conservative time-harmonic endpoint extremum has zero coherent conversion
+current; a nonzero stationary branch requires spatial endpoint flux, an open
+or driven channel, a non-harmonic state, or a larger coupled background. The
+endpoint potential, physical background, damping mechanism, trace
+normalization, and full coupled spectrum remain unselected.
 
 For a compact closed circuit, define the gauge-invariant accumulated phase
 

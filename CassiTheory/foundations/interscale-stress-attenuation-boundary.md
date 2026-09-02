@@ -1,10 +1,25 @@
 # Interscale Stress Transfer and the Attenuation Boundary
 
-## Status: Hypothesized—September 2026
+## Status: Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026
 
 ## Abstract
 
-A force attributed to transfer across scale must appear as a boundary flux of spatial momentum. This paper derives that conservation statement, realizes it in a reciprocal scale-stress ladder, and identifies the exact boundary between stiffness reduction and multiplicative attenuation. A conservative reciprocal ladder with an interface coefficient $d=\varphi^{-1}$ changes the traction, static compliance, and normal-mode spectrum. Multiplicative $d^N$ transfer requires a separate routed two-port branch. In that branch the Yang/Yin fixed-point fractions are declared to be port powers, the complementary return flux is retained, and each return port is prevented from coherently re-entering the forward chain. The algebra and conservation ledger are exact under those assumptions. The physical port identification, routing law, and momentum-carrying field remain Hypothesized.
+A force attributed to transfer across scale must appear as a boundary flux of
+spatial momentum. This paper derives that conservation statement, realizes it
+in a reciprocal scale-stress ladder, and identifies the exact boundary between
+stiffness reduction and multiplicative attenuation. A conservative reciprocal
+ladder with an interface coefficient $d=\varphi^{-1}$ changes the traction,
+static compliance, and normal-mode spectrum. Multiplicative $d^N$ transfer
+requires a separate routed two-port branch. In that branch the Yang/Yin
+fixed-point fractions are declared to be port powers, the complementary return
+flux is retained, and each return port is prevented from coherently re-entering
+the forward chain. A frozen charged endpoint supplies a Hermitian Robin block.
+Source-action elimination on a nonzero rail background gives a Nambu Schur
+response, while every closed homogeneous conservative time-harmonic endpoint
+extremum has zero coherent conversion current. The algebra and conservation
+ledger are exact under the declared assumptions. The physical port
+identification, nonzero-current background, routing law, and momentum-carrying
+field remain Hypothesized.
 
 ---
 
@@ -674,6 +689,60 @@ scalar power fractions; carrier velocity, impedance, and port geometry fix the
 signed momentum ledger. The full forward-plus-return-plus-interface system has
 zero internal net force.
 
+
+### 4.9 Active charged-endpoint response
+
+Endpoint motion determines when the frozen two-port matrix can represent a
+stationary physical branch. For the endpoint potential $U_v(n)$, the rotating
+frame $W_v(n)=U_v(n)-\hbar\Omega_{\mathrm{bg}}n$, and a rail bilinear sharing
+the endpoint carrier, a homogeneous conservative extremum obeys
+
+$$
+W_v'(u_v^2)\Upsilon_{v,0}
+=\kappa_vY_0^*I_0.
+$$
+
+Its imaginary part forces
+
+$$
+\boxed{\mathcal I_{\mathrm{link}}=0}
+$$
+
+for every closed homogeneous time-harmonic background. A nonzero stationary
+endpoint current requires spatial endpoint flux, an open or driven channel, a
+non-harmonic state, or a larger coupled background. This condition applies
+before a link current can be identified with mixed stress.
+
+For a nonzero rail background, the fractional endpoint fluctuation gives the
+retarded Nambu response
+
+$$
+\boxed{
+\mathbb\Lambda_{\mathrm{eff},v}^R(\omega,\mathbf q)
+=
+\mathbb\Lambda_{0,v}
+-\mathcal C_v^\dagger
+\left[
+\hbar u_v^2(\omega+i\gamma_v)\sigma_3
+-\mathcal H_v(\mathbf q)
+\right]^{-1}
+\mathcal C_v,}
+$$
+
+with $\mathbb\Lambda_{0,v}$, $\mathcal C_v$, and $\mathcal H_v$ given in
+`foundations/endpoint-link-and-localization-boundary.md` §3.9. The closed
+response is Hermitian when
+$A_v(\mathbf q)>|B_v|$ and the frequency avoids the endpoint poles. Generic
+nonzero rail backgrounds generate anomalous particle-hole blocks. The
+ordinary $2\times2$ Cayley family in §4.2 therefore describes the frozen
+endpoint or a special active branch whose anomalous blocks cancel. A generic
+active branch needs a doubled port-flux law.
+
+At the symmetric zero background, the mixed quadratic Hessian vanishes and
+endpoint integration first contributes a positive term at quartic rail order.
+A linear endpoint-mediated stress response consequently requires a nonzero
+background or a separate open-channel constitutive law.
+
 ---
 
 ## 5. Relation to the Cassi mixed-curvature force
@@ -750,8 +819,10 @@ This statement supplies an explicit conservative realization of the suppression 
 | Existing two-rail phase gluing is a perfect-transfer endpoint | **Derived conditional** from the registered gluing |
 | $\Lambda_\varphi(k_\star)$ realizes $S_\varphi$ at the declared matching point | **Derived conditional inverse matching** |
 | The frozen charged endpoint background gives the rail-rail Hessian $\Lambda_{\mathrm{link},v}=2\kappa_vu_vM(\alpha_v)$ | **Derived conditional** on the species-port trace identification and common normalization |
-| Simultaneous golden matching, unbiased current capacity, and positive fixed-amplitude phase stiffness require $k_\star>0.0964640362$ | **Derived conditional** on the Mapped proton endpoint and selected matching branch; full fluctuation stability remains open |
-| The endpoint dynamics select the coupling amplitude, dressed phase, trace normalization, and $k_\star$ | **Hypothesized constitutive selection** |
+| Simultaneous golden matching, unbiased current capacity, and positive fixed-amplitude phase stiffness require $k_\star>0.0964640362$ | **Derived conditional** on the Mapped proton endpoint and selected matching branch |
+| Every closed homogeneous conservative time-harmonic endpoint extremum has $\mathcal I_{\mathrm{link}}=0$ | **Derived conditional background boundary** |
+| Active endpoint integration gives $\mathbb\Lambda_{\mathrm{eff}}^R=\mathbb\Lambda_0-\mathcal C^\dagger(\mathcal K^R)^{-1}\mathcal C=\mathbb\Lambda_0+\mathcal C^\dagger(\mathcal D^R)^{-1}\mathcal C$; the symmetric zero-background contribution is positive and begins at quartic rail order | **Derived conditional source-action response and order boundary** |
+| The endpoint dynamics select the potential, nonzero-current background, damping law, coupling amplitude, dressed phase, trace normalization, and $k_\star$ | **Hypothesized constitutive selection** |
 | $S_\varphi$ is unitary for the selected fixed-point power fractions | **Derived conditional algebra** |
 | Closed coherent propagation gives $\cos^2(N\theta_\varphi)$ | **Derived conditional algebra** |
 | Routed non-re-entry gives forward flux $\varphi^{-N}$ with a complementary return ledger | **Derived conditional algebra** |
@@ -804,8 +875,20 @@ execution:
 | Fixed-link off-match response | $\left\lVert S(1.7k_\star)-S_{\varphi,+}\right\rVert_{\max}=0.227151634836$ |
 
 The executable label `stable matched-link k_min` denotes the current-capacity
-threshold where the frozen-amplitude phase stiffness vanishes. Full endpoint
-fluctuation stability remains open.
+threshold where the frozen-amplitude phase stiffness vanishes.
+
+The frozen execution of
+`computations/endpoint_dynamical_response_check.py` has overall verdict
+**FAIL** because its DR5 endpoint block has the opposite sign from the
+registered source action. The separately frozen
+`computations/endpoint_action_response_check.py` receipt passes AR1–AR6 on its
+first execution: the $\mathcal K/\mathcal D$ equivalence residual is zero, the
+direct-elimination residual is $1.511\times10^{-17}$, the covariance residual
+is $2.220\times10^{-16}$, the anomalous-block norm is $0.390450933151$, and the
+damped non-Hermiticity norm is $0.360569701415$.
+
+The endpoint potential, nonzero-current background, damping mechanism, doubled
+port-flux law, and full coupled fluctuation spectrum remain unselected.
 
 ---
 
@@ -816,8 +899,14 @@ fluctuation stability remains open.
 - `foundations/interscale-current-soliton.md`—density current, gauge current, endpoint circuit, and mixed-curvature force
 - `foundations/particle-stationary-action-closure.md` §3.2—time-completed quadratic scale action
 - `foundations/geometric-manifold-completion.md` §§2.4–2.5—two-rail circuit and phase-only endpoint gluing
-- `foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.8—gauge-covariant charged-link realization and conditional current-capacity boundary
+- `foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.9—gauge-covariant frozen and active charged-endpoint response
 - `computations/interscale_port_matching_prereg.md`—frozen boundary-matching checks
 - `computations/endpoint_robin_link_prereg.md`—frozen charged-link matching and capacity receipt
+- `computations/endpoint_dynamical_response_prereg.md`—frozen failed energy-kernel response criteria
+- `computations/endpoint_dynamical_response_check.py`—frozen failed block-matrix receipt
+- `computations/endpoint_dynamical_response_report.md`—source-action sign review and FAIL verdict
+- `computations/endpoint_action_response_prereg.md`—frozen source-action response criteria
+- `computations/endpoint_action_response_check.py`—passing source-action analytic receipt
+- `computations/endpoint_action_response_report.md`—AR1–AR6 outcome and scope boundary
 - `computations/interscale_stress_attenuation_check.py`—conservation, endpoint matching, coherent-chain, and routed-chain checks
 - `computations/endpoint_link_localization_check.py`—charged-link covariance, matching, and current-capacity checks
