@@ -85,9 +85,9 @@ layout(push_constant, std430) uniform PC {
     float lam;              // super-Lagrangian momentum ride
     float T_steer;          // dt × rebuild cadence
     float lloyd_p;          // Qi-gate exponent: κ_eff = κ·(1 − q)^p
-    float J_wind;           // (appended slot 17, offset 68) J_z winding coupling:
-                            // 0.0 = engine (OFF, bit-identical); >0.0 = the
-                            // (b2) phase-lock term. Existing 17 offsets preserved.
+    float J_wind;           // appended slot 17, offset 68: optional phase-lock
+                            // coefficient (shader ABI name; not a stored J_z
+                            // current or compact phase field). 0.0 = OFF.
 } pc;
 
 layout(set = 0, binding = 0, std430) buffer Labels {
@@ -528,12 +528,11 @@ void main() {
     float src_y = pc.source_strength * exp(-r2 * 4.0) + mr * 0.001;
     float src_i = pc.source_strength * 0.707 * exp(-r2 * 4.0) + mr * 0.000707;
 
-    // J_z winding coupling (b2, amendment 3c): the phase-lock term that makes
-    // the doublet wind toward its coherent neighbors, gated by the site's own
-    // openness (1−q). q = ρ²/(ρ²+φ⁻²+ε²) is the site's coherence (the exact
-    // native gate); the term reinforces the lap transport only where the site
-    // is open (NOT closed/φ-locked). J_wind == 0 (default) → the term is
-    // exactly 0.0 → bit-identical battery.
+    // Optional phase-lock coupling (b2, amendment 3c): an additive
+    // openness-gated laplacian term. q = ρ²/(ρ²+φ⁻²+ε²) is the site's
+    // coherence (the native gate); the term acts only while the site is open
+    // (not φ-locked). J_wind == 0 (default) makes the term exactly 0.0 and
+    // preserves the bit-identical battery.
     float qloc = 0.0;
     if (pc.J_wind > 0.0) {
         float rho = psi_y[s] + psi_i[s];

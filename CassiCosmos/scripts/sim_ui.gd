@@ -77,11 +77,14 @@ var _wb_pause_btn: CButton
 var _wb_step_btn: CButton
 var _wb_apply_btn: CButton
 var _wb_tool_opt: COptionParam
+var _wb_selection_opt: COptionParam
+var _wb_motion_opt: COptionParam
 var _wb_lens_opt: COptionParam
 var _wb_center_spins: Array[CSpinParam] = []
 var _wb_radius_spin: CSpinParam
 var _wb_strength_spin: CSpinParam
 var _wb_vector_spins: Array[CSpinParam] = []
+var _wb_speed_spin: CSpinParam
 var _wb_ratio_spin: CSpinParam
 var _wb_save_btn: CButton
 var _wb_replay_btn: CButton
@@ -89,6 +92,21 @@ var _wb_cursor_arm: CheckButton
 var _wb_checkpoint_btn: CButton
 var _wb_branch_btn: CButton
 var _wb_signature_btn: CButton
+var _wb_preview_btn: CButton
+var _wb_undo_btn: CButton
+var _wb_chat_log: RichTextLabel
+var _wb_chat_input: LineEdit
+var _wb_provider_url: LineEdit
+var _wb_provider_session: LineEdit
+var _wb_provider_token: LineEdit
+var _wb_provider_status: Label
+var _wb_staged_label: Label
+var _wb_http: HTTPRequest
+var _wb_http_action := ""
+var _wb_staged_program: Dictionary = {}
+var _wb_staged_digest := ""
+var _wb_staged_request_id := ""
+var _wb_pending_result_detail := ""
 var _server_port_edit: LineEdit
 
 var _fps_accum: float = 0.0
@@ -132,7 +150,7 @@ const RAIL_WIDTH_NARROW: float = 280.0
 ## to the RIGHT of the rail; below this it sits top-left over the viewport.
 const STATUS_MIN_SIDE_SPACE: float = 360.0
 
-const MODE_NAMES: Array[String] = ["Particles", "Field", "Black Hole", "Cosmology"]
+const MODE_NAMES: Array[String] = ["Particles", "Field", "Cosmology"]
 const PHI: float = 1.618033988749895
 const GradientLegend = preload("res://scripts/gradient_legend.gd")
 ## House design-language theme (addons/cassi_ui/theme/cassi_theme.tres):
@@ -350,8 +368,6 @@ func _ready() -> void:
 	if sim:
 		if sim.has_signal("field_texture_updated"):
 			sim.field_texture_updated.connect(_on_field_texture_updated)
-		if sim.has_signal("bh_texture_updated"):
-			sim.bh_texture_updated.connect(_on_field_texture_updated)
 		if sim.has_signal("workbench_cursor_changed"):
 			sim.workbench_cursor_changed.connect(_on_wb_cursor_changed)
 
@@ -1213,60 +1229,146 @@ func _build_system_page() -> void:
 	_server_port_edit.modulate = _tok_color("disabled")
 	srv_row.add_child(_server_port_edit)
 func _build_workbench_page() -> void:
-	var intro := _make_label("Paused, explicit Apply only. Lens/readout is view-only.", "text_hint", "param")
+	var intro := _make_label("One staged path: Preview is pure; Apply requires pause; Undo restores the exact pre-Apply checkpoint.", "text_hint", "param")
 	intro.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_workbench_page.add_child(intro)
+
 	var transport := _add_section(_workbench_page, "Workbench transport", "")
 	var tr := HBoxContainer.new()
 	transport.add_child(tr)
 	_wb_pause_btn = CButton.make("Pause / Resume", _on_wb_pause)
-	_wb_pause_btn.tooltip_text = "Toggle the simulation pause state; workbench mutations require paused."
+	_wb_pause_btn.name = "WorkbenchPause"
+	_wb_pause_btn.tooltip_text = "Toggle simulation pause; every workbench mutation requires paused."
 	tr.add_child(_wb_pause_btn)
 	_wb_step_btn = CButton.make("Step 1", _on_wb_step)
+	_wb_step_btn.name = "WorkbenchStep"
 	_wb_step_btn.tooltip_text = "Advance exactly one deterministic physics step while paused."
 	tr.add_child(_wb_step_btn)
 	_wb_status_label = _make_label("Workbench ready (view-only)", "text_dim", "param")
+	_wb_status_label.name = "WorkbenchStatus"
 	_wb_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	transport.add_child(_wb_status_label)
 
-	var tool_sec := _add_section(_workbench_page, "Field operation", "")
+	var agent_sec := _add_section(_workbench_page, "Field agent", "")
+	var provider_grid := GridContainer.new()
+	provider_grid.columns = 2
+	provider_grid.add_theme_constant_override("h_separation", 8)
+	provider_grid.add_theme_constant_override("v_separation", 5)
+	agent_sec.add_child(provider_grid)
+	var configured_url := OS.get_environment("CASSI_WORLD_URL")
+	if configured_url.is_empty():
+		configured_url = "http://127.0.0.1:8086"
+	_wb_provider_url = _wb_make_line("Endpoint", configured_url, false, provider_grid)
+	_wb_provider_url.name = "ParticleProviderEndpoint"
+	var configured_session := OS.get_environment("CASSI_WORLD_SESSION")
+	if configured_session.is_empty():
+		configured_session = "cassi-cosmos-workbench"
+	_wb_provider_session = _wb_make_line("Session", configured_session, false, provider_grid)
+	_wb_provider_session.name = "ParticleProviderSession"
+	_wb_provider_token = _wb_make_line("Bearer", OS.get_environment("CASSI_WORLD_TOKEN"), true, provider_grid)
+	_wb_provider_token.name = "ParticleProviderToken"
+	_wb_provider_status = _make_label("Provider: not contacted", "text_dim", "param")
+	_wb_provider_status.name = "ParticleProviderStatus"
+	_wb_provider_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	agent_sec.add_child(_wb_provider_status)
+	_wb_chat_log = RichTextLabel.new()
+	_wb_chat_log.name = "ParticleChatTranscript"
+	_wb_chat_log.bbcode_enabled = false
+	_wb_chat_log.fit_content = false
+	_wb_chat_log.scroll_active = true
+	_wb_chat_log.selection_enabled = true
+	_wb_chat_log.custom_minimum_size = Vector2(0, 120)
+	_wb_chat_log.text = "Field agent ready. Returned programs remain staged until Preview and Apply.\n"
+	agent_sec.add_child(_wb_chat_log)
+	_wb_chat_input = LineEdit.new()
+	_wb_chat_input.name = "ParticleChatInput"
+	_wb_chat_input.placeholder_text = "Arrange the selected particles into a ring around the orange cursor"
+	_wb_chat_input.text_submitted.connect(func(_text: String) -> void: _on_wb_chat_send())
+	agent_sec.add_child(_wb_chat_input)
+	var chat_row := HBoxContainer.new()
+	agent_sec.add_child(chat_row)
+	var send_btn := CButton.make("Send", _on_wb_chat_send)
+	send_btn.name = "ParticleChatSend"
+	send_btn.tooltip_text = "Ask the persistent field session and stage its validated particle program. Never auto-applies."
+	chat_row.add_child(send_btn)
+	var ping_btn := CButton.make("Ping", _on_wb_provider_ping)
+	ping_btn.name = "ParticleProviderPing"
+	chat_row.add_child(ping_btn)
+	_wb_staged_label = _make_label("No chat program staged", "text_hint", "param")
+	_wb_staged_label.name = "ParticleStagedProgram"
+	_wb_staged_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	agent_sec.add_child(_wb_staged_label)
+	_wb_http = HTTPRequest.new()
+	_wb_http.name = "ParticleWorldHTTP"
+	_wb_http.timeout = 20.0
+	_wb_http.request_completed.connect(_on_wb_http_completed)
+	add_child(_wb_http)
+
+	var tool_sec := _add_section(_workbench_page, "Operation / target", "")
 	_wb_tool_opt = COptionParam.new()
 	_wb_tool_opt.box_min_width = ROW_WIDTH
-	_wb_tool_opt.setup("Tool", "gold", ["Deposit", "Align", "Impulse"], 0, Callable(self, "_on_wb_tool"))
-	_wb_tool_opt.tooltip_text = "Choose an operation; selection alone never mutates physics."
+	_wb_tool_opt.setup("Tool", "gold", [
+		"Deposit", "Align", "Impulse", "Line", "Ring", "Sphere", "Grid",
+		"Helix", "Double helix", "Translate", "Scale", "Rotate",
+	], 4, Callable(self, "_on_wb_tool"))
+	_wb_tool_opt.tooltip_text = "Manual controls compile into the same FieldWorkbench command pipeline used by chat."
 	tool_sec.add_child(_wb_tool_opt)
+	_wb_selection_opt = COptionParam.new()
+	_wb_selection_opt.box_min_width = ROW_WIDTH
+	_wb_selection_opt.setup("Selection", "mint", ["All live", "Sphere", "Box"], 0, Callable())
+	_wb_selection_opt.tooltip_text = "Select live particle IDs deterministically in ascending ID order."
+	tool_sec.add_child(_wb_selection_opt)
+	_wb_motion_opt = COptionParam.new()
+	_wb_motion_opt.box_min_width = ROW_WIDTH
+	_wb_motion_opt.setup("Motion", "mint", ["Exact + zero velocity", "Exact + preserve velocity", "Steer"], 0, Callable())
+	tool_sec.add_child(_wb_motion_opt)
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 8)
 	grid.add_theme_constant_override("v_separation", 5)
 	tool_sec.add_child(grid)
+	_wb_center_spins.clear()
 	for axis in ["X", "Y", "Z"]:
-		var s := CSpinParam.new()
-		s.box_min_width = ROW_WIDTH
-		s.setup("Center %s" % axis, "gold_soft", -10000.0, 10000.0, 0.1, 0.0, Callable())
-		s.spin.tooltip_text = "World-space center coordinate (%s)." % axis
-		grid.add_child(s)
-		_wb_center_spins.append(s)
+		var spin := CSpinParam.new()
+		spin.box_min_width = ROW_WIDTH
+		spin.setup("Center %s" % axis, "gold_soft", -10000.0, 10000.0, 0.1, 0.0, Callable())
+		spin.spin.tooltip_text = "World-space selection and target center (%s)." % axis
+		grid.add_child(spin)
+		_wb_center_spins.append(spin)
 	_wb_cursor_arm = CheckButton.new()
-	_wb_cursor_arm.text = "Place in viewport"
-	_wb_cursor_arm.tooltip_text = "Arm left-click placement in the 3D viewport. Leaving Workbench or collapsing the rail disarms it."
+	_wb_cursor_arm.text = "Place orange cursor in viewport"
+	_wb_cursor_arm.tooltip_text = "Arm left-click placement. Leaving Workbench or collapsing the rail disarms it."
 	_wb_cursor_arm.focus_mode = Control.FOCUS_NONE
 	_wb_cursor_arm.toggled.connect(_on_wb_cursor_armed)
 	tool_sec.add_child(_wb_cursor_arm)
-	_wb_radius_spin = _wb_make_spin("Radius", 1.0, 0.1, 10000.0, "Selection radius in world units.")
+	_wb_radius_spin = _wb_make_spin("Radius / size", 5.0, 0.1, 10000.0, "Selection radius, ring/sphere radius, or line half-scale.")
 	grid.add_child(_wb_radius_spin)
-	_wb_strength_spin = _wb_make_spin("Strength", 1.0, -10000.0, 10000.0, "Operation strength; staged until Apply.")
+	_wb_strength_spin = _wb_make_spin("Strength / pitch", 1.0, -10000.0, 10000.0, "Field strength, grid spacing, helix pitch, scale, or rotation degrees.")
 	grid.add_child(_wb_strength_spin)
 	_wb_vector_spins.clear()
 	for axis in ["X", "Y", "Z"]:
-		var v := _wb_make_spin("Vector %s" % axis, 0.0, -10000.0, 10000.0, "Impulse/alignment vector component.")
-		grid.add_child(v)
-		_wb_vector_spins.append(v)
-	_wb_ratio_spin = _wb_make_spin("Ratio", 1.0, -10000.0, 10000.0, "Optional alignment ratio.")
+		var vector_spin := _wb_make_spin("Vector %s" % axis, 0.0, -10000.0, 10000.0, "Impulse, offset, direction, normal, axis, or box half-extent.")
+		grid.add_child(vector_spin)
+		_wb_vector_spins.append(vector_spin)
+	_wb_ratio_spin = _wb_make_spin("Ratio / turns", 3.0, -10000.0, 10000.0, "Alignment ratio or helix turn count.")
 	grid.add_child(_wb_ratio_spin)
+	_wb_speed_spin = _wb_make_spin("Steer speed", 1.0, 0.01, 10000.0, "Bounded steering speed when Motion is Steer.")
+	grid.add_child(_wb_speed_spin)
+	var action_row := HBoxContainer.new()
+	tool_sec.add_child(action_row)
+	_wb_preview_btn = CButton.make("Preview", _on_wb_preview)
+	_wb_preview_btn.name = "ParticlePreview"
+	_wb_preview_btn.tooltip_text = "Resolve the staged program and show cyan ghost targets without changing state."
+	action_row.add_child(_wb_preview_btn)
 	_wb_apply_btn = CButton.make("Apply", _on_wb_apply)
-	_wb_apply_btn.tooltip_text = "Apply the staged operation. Requires an available API and a paused simulation."
-	tool_sec.add_child(_wb_apply_btn)
+	_wb_apply_btn.name = "ParticleApply"
+	_wb_apply_btn.tooltip_text = "Capture automatic undo, then apply the staged program while paused."
+	action_row.add_child(_wb_apply_btn)
+	_wb_undo_btn = CButton.make("Undo", _on_wb_undo)
+	_wb_undo_btn.name = "ParticleUndo"
+	_wb_undo_btn.tooltip_text = "Restore the exact automatic pre-Apply checkpoint."
+	action_row.add_child(_wb_undo_btn)
 
 	var view_sec := _add_section(_workbench_page, "Measure / scenario", "")
 	_wb_lens_opt = COptionParam.new()
@@ -1274,24 +1376,24 @@ func _build_workbench_page() -> void:
 	_wb_lens_opt.setup("Lens", "mint", ["Qi", "Density", "Phase", "Velocity"], 0, Callable(self, "_on_wb_lens"))
 	_wb_lens_opt.tooltip_text = "Choose a readout lens; this never changes simulation physics."
 	view_sec.add_child(_wb_lens_opt)
-	var vr := HBoxContainer.new()
-	view_sec.add_child(vr)
+	var view_row := HBoxContainer.new()
+	view_sec.add_child(view_row)
 	var measure := CButton.make("Measure region", _on_wb_measure)
 	measure.tooltip_text = "Read the selected region using the active lens."
-	vr.add_child(measure)
+	view_row.add_child(measure)
 	_wb_save_btn = CButton.make("Save scenario", _on_wb_save)
 	_wb_save_btn.tooltip_text = "Save deterministic workbench state to user://workbench_scenario.json."
-	vr.add_child(_wb_save_btn)
+	view_row.add_child(_wb_save_btn)
 	_wb_replay_btn = CButton.make("Replay scenario", _on_wb_replay)
 	_wb_replay_btn.tooltip_text = "Replay user://workbench_scenario.json."
-	vr.add_child(_wb_replay_btn)
+	view_row.add_child(_wb_replay_btn)
 	var branch_row := HBoxContainer.new()
 	view_sec.add_child(branch_row)
 	_wb_checkpoint_btn = CButton.make("Checkpoint", _on_wb_checkpoint)
-	_wb_checkpoint_btn.tooltip_text = "Capture the exact supported inline/grid state."
+	_wb_checkpoint_btn.tooltip_text = "Capture the exact authoritative state."
 	branch_row.add_child(_wb_checkpoint_btn)
 	_wb_branch_btn = CButton.make("Compare branch", _on_wb_branch)
-	_wb_branch_btn.tooltip_text = "Restore the checkpoint, apply the staged operation, and show fixed-scale differences."
+	_wb_branch_btn.tooltip_text = "Restore checkpoint, apply the staged operation, and show fixed-scale differences."
 	branch_row.add_child(_wb_branch_btn)
 	_wb_signature_btn = CButton.make("Energy ≠ coherence", _on_wb_signature)
 	_wb_signature_btn.tooltip_text = "Run the equal-field-intensity, different-coherence guided fixture."
@@ -1303,6 +1405,16 @@ func _wb_make_spin(caption: String, value: float, min_v: float, max_v: float, ti
 	s.setup(caption, "gold_soft", min_v, max_v, 0.1, value, Callable())
 	s.spin.tooltip_text = tip
 	return s
+
+func _wb_make_line(caption: String, value: String, secret: bool, parent: GridContainer) -> LineEdit:
+	var label := _make_label(caption, "text_hint", "param")
+	parent.add_child(label)
+	var edit := LineEdit.new()
+	edit.text = value
+	edit.secret = secret
+	edit.custom_minimum_size = Vector2(ROW_WIDTH, 24)
+	parent.add_child(edit)
+	return edit
 
 func _wb_status(text: String) -> void:
 	if _wb_status_label != null:
@@ -1355,21 +1467,286 @@ func _on_wb_tool(_idx: int) -> void:
 func _on_wb_lens(_idx: int) -> void:
 	_wb_status("Workbench: lens changed (view-only)")
 
+func _wb_center() -> Vector3:
+	return Vector3(_wb_center_spins[0].get_value(), _wb_center_spins[1].get_value(), _wb_center_spins[2].get_value())
+
+func _wb_vector() -> Vector3:
+	return Vector3(_wb_vector_spins[0].get_value(), _wb_vector_spins[1].get_value(), _wb_vector_spins[2].get_value())
+
+func _wb_selection(center: Vector3, radius: float, vector: Vector3) -> Dictionary:
+	var selection_index := int(_wb_selection_opt.get_value())
+	if selection_index == 0:
+		return {"type": "all"}
+	if selection_index == 1:
+		return {"type": "sphere", "center": center, "radius": radius}
+	var half_extents := vector.abs()
+	if half_extents.x <= 0.0 or half_extents.y <= 0.0 or half_extents.z <= 0.0:
+		half_extents = Vector3.ONE * radius
+	return {"type": "box", "center": center, "half_extents": half_extents}
+
+func _wb_motion() -> Dictionary:
+	var motion_index := int(_wb_motion_opt.get_value())
+	if motion_index == 2:
+		return {"type": "steer", "speed": _wb_speed_spin.get_value()}
+	return {"type": "exact", "velocity_policy": "preserve" if motion_index == 1 else "zero"}
+
+func _wb_request_id(prefix: String) -> String:
+	return "%s-%d-%d" % [prefix, int(Time.get_unix_time_from_system()), Time.get_ticks_usec()]
+
 func _wb_dict() -> Dictionary:
-	return {"tool": _wb_tool_opt.get_value(), "center": Vector3(_wb_center_spins[0].get_value(), _wb_center_spins[1].get_value(), _wb_center_spins[2].get_value()), "radius": _wb_radius_spin.get_value(), "strength": _wb_strength_spin.get_value(), "vector": Vector3(_wb_vector_spins[0].get_value(), _wb_vector_spins[1].get_value(), _wb_vector_spins[2].get_value()), "ratio": _wb_ratio_spin.get_value()}
+	var tool := int(_wb_tool_opt.get_value())
+	var center := _wb_center()
+	var radius := _wb_radius_spin.get_value()
+	var strength := _wb_strength_spin.get_value()
+	var vector := _wb_vector()
+	var ratio := _wb_ratio_spin.get_value()
+	if tool < 3:
+		return {"tool": tool, "center": center, "radius": radius, "strength": strength, "vector": vector, "ratio": ratio}
+	var axis := vector.normalized() if vector.length_squared() > 1e-24 else Vector3.UP
+	var target: Dictionary
+	match tool:
+		3:
+			target = {"type": "line", "center": center, "direction": Vector3.RIGHT if vector.length_squared() <= 1e-24 else axis, "length": radius * 2.0}
+		4:
+			target = {"type": "ring", "center": center, "normal": axis, "radius": radius, "phase": 0.0}
+		5:
+			target = {"type": "sphere", "center": center, "radius": radius}
+		6:
+			target = {"type": "grid", "center": center, "spacing": maxf(absf(strength), 0.1)}
+		7, 8:
+			target = {"type": "double_helix" if tool == 8 else "helix", "center": center, "axis": axis, "radius": radius, "pitch": maxf(absf(strength), 0.1), "turns": maxf(absf(ratio), 0.1), "phase": 0.0}
+		9:
+			target = {"type": "translate", "offset": vector}
+		10:
+			target = {"type": "scale", "center": center, "factor": maxf(absf(strength), 0.01)}
+		_:
+			target = {"type": "rotate", "center": center, "axis": axis, "angle_radians": deg_to_rad(strength)}
+	var sim = _get_sim()
+	var particle_count := int(sim.N_particles) if sim != null else 2500000
+	return {
+		"schema": "cassi.particle-program.v1",
+		"operation": "arrange",
+		"selection": _wb_selection(center, radius, vector),
+		"target": target,
+		"motion": _wb_motion(),
+		"constraints": {"maximum_particles": maxi(particle_count, 1), "maximum_displacement": 10000.0, "maximum_speed": 10000.0},
+		"source": {"kind": "manual"},
+		"request_id": _wb_request_id("manual"),
+	}
+
+func _wb_active_command() -> Dictionary:
+	return _wb_staged_program.duplicate(true) if not _wb_staged_program.is_empty() else _wb_dict()
+
+func _on_wb_preview() -> void:
+	var sim = _get_sim()
+	if sim == null:
+		return
+	if sim.playing:
+		_wb_status("Workbench: pause before Preview")
+		return
+	var result = _wb_call("workbench_preview", [_wb_active_command()])
+	if not result is Dictionary:
+		return
+	if not bool(result.get("ok", false)):
+		_wb_status("Preview rejected: %s" % str(result.get("error", "unknown")))
+		if not _wb_staged_program.is_empty():
+			_wb_post_result({"schema":"cassi.particle-result.v1", "status":"rejected", "error":str(result.get("error", "unknown")), "affected_count":0, "world_step":int(sim.get("_step_count"))})
+		return
+	if not _wb_staged_digest.is_empty() and str(result.get("program_digest", "")) != _wb_staged_digest:
+		_wb_call("workbench_clear_preview")
+		_wb_status("Preview rejected: provider/local program digest mismatch")
+		_wb_post_result({"schema":"cassi.particle-result.v1", "status":"rejected", "error":"program_digest_mismatch", "affected_count":0, "world_step":int(sim.get("_step_count"))})
+		return
+	_wb_status("Preview: %d particles, max Δ %.4f" % [int(result.get("affected_count", 0)), float(result.get("maximum_displacement", 0.0))])
+	if _wb_staged_label != null:
+		_wb_staged_label.text = "Previewed %s — %d particles" % [str(result.get("program_digest", "")).left(12), int(result.get("affected_count", 0))]
+
+func _apply_receipt(result: Dictionary) -> Dictionary:
+	if bool(result.get("duplicate", false)):
+		return result.get("receipt", {})
+	var commands: Array = result.get("commands", [])
+	if commands.is_empty() or not commands[-1] is Dictionary:
+		return {}
+	return commands[-1].get("receipt", {})
 
 func _on_wb_apply() -> void:
 	var sim = _get_sim()
-	if sim == null: return
+	if sim == null:
+		return
 	if sim.playing:
 		_wb_status("Workbench: pause before Apply")
 		return
-	if _wb_call("workbench_apply", [_wb_dict()]) != null:
-		_wb_status("Workbench: operation applied")
+	var chat_program := not _wb_staged_program.is_empty()
+	var result = _wb_call("workbench_apply", [_wb_active_command()])
+	if not result is Dictionary:
+		return
+	if not bool(result.get("ok", false)):
+		_wb_status("Apply rejected: %s" % str(result.get("error", "unknown")))
+		if chat_program:
+			_wb_post_result({"schema":"cassi.particle-result.v1", "status":"rejected", "error":str(result.get("error", "unknown")), "affected_count":0, "world_step":int(sim.get("_step_count"))})
+		return
+	var receipt := _apply_receipt(result)
+	_wb_status("Workbench: %s" % ("duplicate receipt returned" if bool(result.get("duplicate", false)) else "operation applied"))
+	if chat_program and not receipt.is_empty():
+		_wb_post_result(receipt)
 
+func _on_wb_undo() -> void:
+	var result = _wb_call("workbench_undo")
+	if result is Dictionary:
+		_wb_status("Undo: %s" % (str(result.get("digest", "")).left(12) if bool(result.get("ok", false)) else str(result.get("error", "unavailable"))))
+		if bool(result.get("ok", false)):
+			_wb_chat_append("World", "Last Apply restored from its exact automatic checkpoint.")
+
+func _wb_wire_value(value: Variant) -> Variant:
+	if value is Vector3:
+		return [value.x, value.y, value.z]
+	if value is Array:
+		var array: Array = []
+		for item in value:
+			array.append(_wb_wire_value(item))
+		return array
+	if value is Dictionary:
+		var mapped := {}
+		for key in value:
+			mapped[str(key)] = _wb_wire_value(value[key])
+		return mapped
+	return value
+
+func _wb_endpoint() -> String:
+	var endpoint := _wb_provider_url.text.strip_edges().trim_suffix("/")
+	var pattern := RegEx.new()
+	pattern.compile("^http://127[.]0[.]0[.]1:([0-9]{1,5})$")
+	var matched := pattern.search(endpoint)
+	if matched == null:
+		return ""
+	var port := int(matched.get_string(1))
+	return endpoint if port >= 1 and port <= 65535 else ""
+
+func _wb_begin_request(action: String, path: String, body: Dictionary = {}, method := HTTPClient.METHOD_POST) -> bool:
+	if _wb_http == null or _wb_http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
+		_wb_status("Provider request already in flight")
+		return false
+	var endpoint := _wb_endpoint()
+	if endpoint.is_empty():
+		_wb_status("Provider endpoint must be explicit 127.0.0.1 HTTP")
+		return false
+	var token := _wb_provider_token.text
+	if token.to_utf8_buffer().size() < 16:
+		_wb_status("Provider bearer token must contain at least 16 UTF-8 bytes")
+		return false
+	var headers := PackedStringArray(["Accept: application/json", "Authorization: Bearer " + token])
+	var encoded := ""
+	if method == HTTPClient.METHOD_POST:
+		headers.append("Content-Type: application/json")
+		encoded = JSON.stringify(_wb_wire_value(body))
+	_wb_http_action = action
+	var error := _wb_http.request(endpoint + path, headers, method, encoded)
+	if error != OK:
+		_wb_http_action = ""
+		_wb_status("Provider request failed to start: %s" % error_string(error))
+		return false
+	_wb_provider_status.text = "Provider: contacting %s" % endpoint
+	return true
+
+func _wb_world_context() -> Dictionary:
+	var status = _wb_call("workbench_status")
+	var state: Dictionary = status.get("state", {}) if status is Dictionary else {}
+	var center := _wb_center()
+	var vector := _wb_vector()
+	var radius := _wb_radius_spin.get_value()
+	var world_center: Vector3 = state.get("window_center", Vector3.ZERO)
+	var extents: Vector3 = state.get("extents", Vector3.ONE)
+	return {
+		"cursor": [center.x, center.y, center.z],
+		"selection": _wb_wire_value(_wb_selection(center, radius, vector)),
+		"particle_count": int(state.get("particle_count", 1)),
+		"world_bounds": {"min":[world_center.x-extents.x, world_center.y-extents.y, world_center.z-extents.z], "max":[world_center.x+extents.x, world_center.y+extents.y, world_center.z+extents.z]},
+		"constraints": {"maximum_particles":maxi(int(state.get("particle_count", 1)), 1), "maximum_displacement":maxf(extents.length() * 2.0, 1.0), "maximum_speed":10000.0},
+		"default_radius": radius,
+		"world_step": int(state.get("step", 0)),
+	}
+
+func _wb_chat_append(role: String, text: String) -> void:
+	if _wb_chat_log == null:
+		return
+	_wb_chat_log.text += "%s: %s\n" % [role, text]
+	_wb_chat_log.scroll_to_line(maxi(_wb_chat_log.get_line_count() - 1, 0))
+
+func _on_wb_chat_send() -> void:
+	var message := _wb_chat_input.text.strip_edges()
+	if message.is_empty():
+		_wb_status("Enter a particle-world request first")
+		return
+	var request_id := _wb_request_id("world")
+	_wb_staged_program.clear()
+	_wb_staged_digest = ""
+	_wb_staged_request_id = ""
+	_wb_call("workbench_clear_preview")
+	_wb_chat_append("You", message)
+	var body := {
+		"user": _wb_provider_session.text.strip_edges(),
+		"world_id": "cassi-cosmos-main",
+		"request_id": request_id,
+		"message": message,
+		"context": _wb_world_context(),
+	}
+	if _wb_begin_request("turn", "/v1/world/turn", body):
+		_wb_chat_input.clear()
+
+func _on_wb_provider_ping() -> void:
+	_wb_begin_request("health", "/v1/health", {}, HTTPClient.METHOD_GET)
+
+func _wb_post_result(outcome: Dictionary) -> void:
+	if _wb_staged_request_id.is_empty() or _wb_staged_digest.is_empty():
+		return
+	_wb_pending_result_detail = str(outcome.get("error", outcome.get("status", "")))
+	var body := {
+		"user": _wb_provider_session.text.strip_edges(),
+		"world_id": "cassi-cosmos-main",
+		"request_id": _wb_staged_request_id,
+		"program_digest": _wb_staged_digest,
+		"outcome": _wb_wire_value(outcome),
+	}
+	if not _wb_begin_request("result", "/v1/world/result", body):
+		_wb_status("World result retained locally; provider post did not start")
+
+func _on_wb_http_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	var action := _wb_http_action
+	_wb_http_action = ""
+	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
+	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300 or not parsed is Dictionary:
+		var message := "transport=%d HTTP=%d" % [result, response_code]
+		if parsed is Dictionary and parsed.has("error"):
+			message = str(parsed.error.get("message", message)) if parsed.error is Dictionary else str(parsed.error)
+		_wb_provider_status.text = "Provider: error — " + message
+		_wb_status("Provider: " + message)
+		return
+	_wb_provider_status.text = "Provider: connected — HTTP %d" % response_code
+	if action == "health":
+		_wb_status("Provider health: %s" % str(parsed.get("status", "ok")))
+		return
+	if action == "turn":
+		_wb_chat_append("Field", str(parsed.get("assistant", "")))
+		var staged: Variant = parsed.get("staged_program")
+		if staged is Dictionary:
+			_wb_staged_program = staged.duplicate(true)
+			_wb_staged_digest = str(parsed.get("program_digest", ""))
+			_wb_staged_request_id = str(parsed.get("request_id", ""))
+			_wb_staged_label.text = "Staged %s via %s — Preview before Apply" % [_wb_staged_digest.left(12), str(parsed.get("planner", "provider"))]
+			_wb_status("Provider program staged; no world mutation performed")
+		else:
+			_wb_staged_label.text = "Clarification: %s" % str(parsed.get("clarification", "no program"))
+			_wb_status("Provider returned a clarification; nothing staged")
+		return
+	if action == "result":
+		_wb_chat_append("Field", str(parsed.get("assistant", "")))
+		var observed_status := str(parsed.get("status", "observed"))
+		_wb_staged_label.text = "%s receipt observed once by field — %s" % [observed_status.capitalize(), _wb_staged_digest.left(12)]
+		var detail_suffix := "" if _wb_pending_result_detail.is_empty() else " — " + _wb_pending_result_detail
+		_wb_pending_result_detail = ""
+		_wb_status("Provider observed the %s world result exactly once%s" % [observed_status, detail_suffix])
 func _on_wb_measure() -> void:
-	var d := _wb_dict()
-	var result = _wb_call("workbench_measure", [d.center, d.radius])
+	var result = _wb_call("workbench_measure", [_wb_center(), _wb_radius_spin.get_value()])
 	if result != null:
 		_wb_status("Workbench measurement: %s" % str(result))
 
@@ -1585,9 +1962,9 @@ func _on_field_texture_updated(tex: Texture2D) -> void:
 
 func _set_mode_highlight(active: int) -> void:
 	_mode_seg.set_selected_no_signal(active)
-	# Field and Black Hole modes each own the full-frame visualization texture.
-	# Cosmology renders particles directly and must not retain a stale overlay.
-	_viz_texture_rect.visible = active == 1 or active == 2
+	# Field mode owns the full-frame visualization texture.
+	# Particles and Cosmology render particles directly.
+	_viz_texture_rect.visible = active == 1
 
 
 func _set_grav_highlight(active: int) -> void:

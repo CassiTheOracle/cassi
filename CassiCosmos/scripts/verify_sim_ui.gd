@@ -48,12 +48,10 @@ func _ready() -> void:
 	ui._set_mode_highlight(1)
 	var field_visible: bool = bool(ui._viz_texture_rect.visible)
 	ui._set_mode_highlight(2)
-	var bh_visible: bool = bool(ui._viz_texture_rect.visible)
-	ui._set_mode_highlight(3)
 	var cosmology_overlay_hidden: bool = not bool(ui._viz_texture_rect.visible)
 	_checks += 1
-	if not field_visible or not bh_visible or not cosmology_overlay_hidden:
-		push_error("validate_sim_ui: visualization texture visibility does not match Field/Black Hole/Cosmology modes")
+	if not field_visible or not cosmology_overlay_hidden:
+		push_error("validate_sim_ui: visualization texture visibility does not match Field/Cosmology modes")
 		_failures += 1
 	print("══════ RESULT: %d/%d checks passed, %d failed ══════" % [_checks - _failures, _checks, _failures])
 	get_tree().quit(0 if _failures == 0 else 1)

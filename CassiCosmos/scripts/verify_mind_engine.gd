@@ -441,7 +441,148 @@ func _run() -> void:
 			and _eng._rho == i_rho_rid and _eng._scratch == i_scratch_rid
 			and _eng._us == i_us_rid)
 
-	_dump(ey0, ei0, ey1, ei1, ey2, ei2, ey3, ei3, st_a, st_b, relay_d, top3, relay_e)
+	# Gate J: the canonical native Qi state is mirrored read-only. The bridge
+	# accepts one exact [scale, mode, plane] float32 layout, verifies its hashes,
+	# advances monotonically, and cannot mutate the live PDE field.
+	var qi_before_state: Dictionary = _eng.compute_state()
+	var qi_before_rb: Array = _eng.readback_ey_ei()
+	var qi_before_ey: PackedFloat32Array = qi_before_rb[0]
+	var qi_before_ei: PackedFloat32Array = qi_before_rb[1]
+	var qi_state := PackedByteArray()
+	qi_state.resize(_eng.QI_STATE_BYTES)
+	qi_state.encode_float(7 * _eng.QI_PLANE_COUNT * 4, 3.0)
+	qi_state.encode_float((7 * _eng.QI_PLANE_COUNT + 1) * 4, 4.0)
+	qi_state.encode_float(15 * _eng.QI_PLANE_COUNT * 4, -2.0)
+	var qi_state_sha256: String = _eng._sha256_hex(qi_state)
+	var qi_contract_sha256 := "fd34a9ac52df28e3c292080053ecde18d742cf6049e840209add2d82f433d320"
+	var qi_request := {
+		"cmd": "qi_snapshot",
+		"schema": "cassi.qi.native-state.v1",
+		"revision": 7,
+		"state_sha256": qi_state_sha256,
+		"contract_sha256": qi_contract_sha256,
+		"state_f32_base64": Marshalls.raw_to_base64(qi_state),
+	}
+	var qi_snapshot_reply: Dictionary = JSON.parse_string(
+		_eng._handle_line(JSON.stringify(qi_request)))
+	_check("gate J: canonical Qi snapshot accepted with exact metadata",
+		bool(qi_snapshot_reply.get("ok", false))
+			and qi_snapshot_reply.get("cmd") == "qi_snapshot"
+			and qi_snapshot_reply.get("schema") == "cassi.qi.native-state.v1"
+			and int(qi_snapshot_reply.get("revision", -1)) == 7
+			and qi_snapshot_reply.get("state_sha256") == qi_state_sha256
+			and qi_snapshot_reply.get("contract_sha256") == qi_contract_sha256
+			and int(qi_snapshot_reply.get("state_bytes", 0)) == _eng.QI_STATE_BYTES
+			and int(qi_snapshot_reply.get("mode_count", 0)) == 6144
+			and int(qi_snapshot_reply.get("wave_mode_count", 0)) == 3072
+			and int(qi_snapshot_reply.get("scale_count", 0)) == 4
+			and int(qi_snapshot_reply.get("plane_count", 0)) == 9
+			and not bool(qi_snapshot_reply.get("idempotent", true)))
+
+	var qi_state_reply: Dictionary = JSON.parse_string(
+		_eng._handle_line('{"cmd":"qi_state"}'))
+	var qi_project_reply: Dictionary = JSON.parse_string(
+		_eng._handle_line('{"cmd":"qi_project","k":4}'))
+	var qi_modes: Array = qi_project_reply.get("modes", [])
+	_check("gate J: Qi state query reports the accepted authoritative revision",
+		bool(qi_state_reply.get("ok", false))
+			and qi_state_reply.get("cmd") == "qi_state"
+			and bool(qi_state_reply.get("available", false))
+			and int(qi_state_reply.get("revision", -1)) == 7
+			and qi_state_reply.get("state_sha256") == qi_state_sha256)
+	_check("gate J: Qi projection returns deterministic top active modes",
+		bool(qi_project_reply.get("ok", false))
+			and qi_project_reply.get("cmd") == "qi_project"
+			and qi_modes.size() == 4
+			and int(qi_modes[0]["mode"]) == 7
+			and is_equal_approx(float(qi_modes[0]["p0"]), 3.0)
+			and is_equal_approx(float(qi_modes[0]["p1"]), 4.0)
+			and is_equal_approx(float(qi_modes[0]["q"]), 25.0)
+			and int(qi_modes[1]["mode"]) == 15
+			and is_equal_approx(float(qi_modes[1]["q"]), 4.0)
+			and _sorted_desc(qi_modes))
+
+	var qi_duplicate_reply: Dictionary = JSON.parse_string(
+		_eng._handle_line(JSON.stringify(qi_request)))
+	_check("gate J: an identical Qi revision is idempotent",
+		bool(qi_duplicate_reply.get("ok", false))
+			and bool(qi_duplicate_reply.get("idempotent", false))
+			and int(qi_duplicate_reply.get("revision", -1)) == 7)
+
+	var qi_conflict_state: PackedByteArray = qi_state.duplicate()
+	qi_conflict_state.encode_float(7 * _eng.QI_PLANE_COUNT * 4, 6.0)
+	var qi_conflict_request: Dictionary = qi_request.duplicate()
+	qi_conflict_request["state_f32_base64"] = Marshalls.raw_to_base64(qi_conflict_state)
+	qi_conflict_request["state_sha256"] = _eng._sha256_hex(qi_conflict_state)
+	var qi_conflict_reply: Dictionary = _eng.accept_qi_snapshot(qi_conflict_request)
+	var qi_stale_request: Dictionary = qi_request.duplicate()
+	qi_stale_request["revision"] = 6
+	var qi_stale_reply: Dictionary = _eng.accept_qi_snapshot(qi_stale_request)
+	_check("gate J: conflicting and stale Qi revisions are rejected without mutation",
+		not bool(qi_conflict_reply.get("ok", true))
+			and not bool(qi_stale_reply.get("ok", true))
+			and int(_eng.qi_state_info().get("revision", -1)) == 7
+			and _eng.qi_state_info().get("state_sha256") == qi_state_sha256)
+
+	var qi_nonfinite_state: PackedByteArray = qi_state.duplicate()
+	qi_nonfinite_state.encode_float(0, NAN)
+	var qi_nonfinite_request: Dictionary = qi_request.duplicate()
+	qi_nonfinite_request["revision"] = 8
+	qi_nonfinite_request["state_f32_base64"] = Marshalls.raw_to_base64(qi_nonfinite_state)
+	qi_nonfinite_request["state_sha256"] = _eng._sha256_hex(qi_nonfinite_state)
+	var qi_nonfinite_reply: Dictionary = _eng.accept_qi_snapshot(qi_nonfinite_request)
+	var qi_short_state: PackedByteArray = qi_state.duplicate()
+	qi_short_state.resize(qi_short_state.size() - 4)
+	var qi_short_request: Dictionary = qi_request.duplicate()
+	qi_short_request["revision"] = 8
+	qi_short_request["state_f32_base64"] = Marshalls.raw_to_base64(qi_short_state)
+	qi_short_request["state_sha256"] = _eng._sha256_hex(qi_short_state)
+	var qi_short_reply: Dictionary = _eng.accept_qi_snapshot(qi_short_request)
+	_check("gate J: non-finite and wrong-size Qi states are rejected without mutation",
+		not bool(qi_nonfinite_reply.get("ok", true))
+			and not bool(qi_short_reply.get("ok", true))
+			and int(_eng.qi_state_info().get("revision", -1)) == 7
+			and _eng.qi_state_info().get("state_sha256") == qi_state_sha256)
+
+	var qi_after_accept_state: Dictionary = _eng.compute_state()
+	var qi_after_accept_rb: Array = _eng.readback_ey_ei()
+	_check("gate J: Qi acceptance cannot mutate the PDE field or clock",
+		_same_values(qi_after_accept_rb[0], qi_before_ey)
+			and _same_values(qi_after_accept_rb[1], qi_before_ei)
+			and int(qi_after_accept_state["step"]) == int(qi_before_state["step"])
+			and float(qi_after_accept_state["t"]) == float(qi_before_state["t"]))
+
+	var qi_clear_reply: Dictionary = JSON.parse_string(
+		_eng._handle_line('{"cmd":"qi_clear"}'))
+	var qi_cleared_state: Dictionary = _eng.qi_state_info()
+	var qi_after_clear_rb: Array = _eng.readback_ey_ei()
+	_check("gate J: Qi clear removes only the mirror",
+		bool(qi_clear_reply.get("ok", false))
+			and not bool(qi_cleared_state.get("available", true))
+			and int(qi_cleared_state.get("revision", 0)) == -1
+			and _same_values(qi_after_clear_rb[0], qi_before_ey)
+			and _same_values(qi_after_clear_rb[1], qi_before_ei))
+	var qi_receipt := {
+		"snapshot_reply": qi_snapshot_reply,
+		"state_reply": qi_state_reply,
+		"project_reply": qi_project_reply,
+		"duplicate_reply": qi_duplicate_reply,
+		"conflict_reply": qi_conflict_reply,
+		"stale_reply": qi_stale_reply,
+		"nonfinite_reply": qi_nonfinite_reply,
+		"short_reply": qi_short_reply,
+		"clear_reply": qi_clear_reply,
+		"cleared_state": qi_cleared_state,
+		"pde_isolated": (
+			_same_values(qi_after_accept_rb[0], qi_before_ey)
+			and _same_values(qi_after_accept_rb[1], qi_before_ei)
+			and _same_values(qi_after_clear_rb[0], qi_before_ey)
+			and _same_values(qi_after_clear_rb[1], qi_before_ei)
+			and int(qi_after_accept_state["step"]) == int(qi_before_state["step"])
+			and float(qi_after_accept_state["t"]) == float(qi_before_state["t"])),
+	}
+
+	_dump(ey0, ei0, ey1, ei1, ey2, ei2, ey3, ei3, st_a, st_b, relay_d, top3, relay_e, qi_receipt)
 	_finish()
 
 
@@ -508,7 +649,8 @@ func _dump(ey0: PackedFloat32Array, ei0: PackedFloat32Array,
 		ey2: PackedFloat32Array, ei2: PackedFloat32Array,
 		ey3: PackedFloat32Array, ei3: PackedFloat32Array,
 		st_a: Dictionary, st_b: Dictionary,
-		relay_d: Dictionary, top3: Array, relay_e: Dictionary) -> void:
+		relay_d: Dictionary, top3: Array, relay_e: Dictionary,
+		qi_receipt: Dictionary) -> void:
 	var d := {
 		"N": _eng.grid_n, "dt": _eng.dt, "extent": [1.0, 1.0, 1.0],
 		"dep_x": DEP_X, "dep_y": DEP_Y, "dep_z": DEP_Z,
@@ -523,6 +665,7 @@ func _dump(ey0: PackedFloat32Array, ei0: PackedFloat32Array,
 			"top3": top3,
 			"empty_reply": relay_e,
 		},
+		"qi_mirror": qi_receipt,
 		"ey0_b64": Marshalls.raw_to_base64(ey0.to_byte_array()),
 		"ei0_b64": Marshalls.raw_to_base64(ei0.to_byte_array()),
 		"ey1_b64": Marshalls.raw_to_base64(ey1.to_byte_array()),

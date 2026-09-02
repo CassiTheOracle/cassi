@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/diag_gravity_recovery_helix.gd" id="1_probe"]
+
+[node name="GravityRecoveryHelix" type="Node"]
+script = ExtResource("1_probe")

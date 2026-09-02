@@ -12,6 +12,7 @@ playing = false
 box_aspect = Vector3(1.618033988749895, 1, 2.618033988749895)
 N_particles = 0
 suppress_readbacks = true
+physics_decoupled = false
 auto_frame_camera_on_start = false
 field_attractor_init = true
 source_strength = 0.0

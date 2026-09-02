@@ -85,6 +85,7 @@ var _q: RID
 var _vel: RID
 var _rho: RID
 var _scratch: RID
+var _fi_fallback: RID
 var _probe_ey: RID
 var _probe_ei: RID
 
@@ -125,6 +126,8 @@ func _make_buffers() -> void:
 	_vel = _rd.storage_buffer_create(n * 16)
 	_rho = _rd.storage_buffer_create(n * 4)
 	_scratch = _rd.storage_buffer_create(n * 16)
+	var fi_zero := PackedByteArray(); fi_zero.resize(128)
+	_fi_fallback = _rd.storage_buffer_create(128, fi_zero)
 	_probe_ey = _rd.storage_buffer_create(n * 4)
 	_probe_ei = _rd.storage_buffer_create(n * 4)
 	_zero_buffer(_ey, n * 4); _zero_buffer(_ei, n * 4); _zero_buffer(_q, n * 4)
@@ -146,6 +149,7 @@ func _load_pipelines() -> bool:
 	_tf_pipe = _rd.compute_pipeline_create(_tf_shader)
 	_tf_us = _rd.uniform_set_create([
 		_u(0, _ey), _u(1, _ei), _u(2, _q), _u(3, _vel), _u(4, _rho), _u(5, _scratch),
+		_u(6, _fi_fallback), _u(7, _fi_fallback),
 	], _tf_shader, 0)
 
 	# The operator is the SAME frozen cassi_qi_time_exp.glsl; only the q_sharp
@@ -262,6 +266,8 @@ func _tf_pc(pass_sel: float, t: float) -> PackedFloat32Array:
 	p.append(0.0); p.append(0.0); p.append(0.0)
 	p.append(EXTENT); p.append(EXTENT); p.append(EXTENT)
 	p.append(pass_sel)
+	p.append(20.0)  # omega2 = ω₀² (default 20.0 — bit-identical)
+	p.append(0.0)   # ham_completion OFF (U1 toggle, offset 64)
 	return p
 
 
@@ -672,11 +678,12 @@ func _check(name: String, ok: bool, detail: String = "") -> void:
 
 func _finish() -> void:
 	if _rd != null:
-		_rd.free_rid(_probe_ei); _rd.free_rid(_probe_ey)
-		_rd.free_rid(_scratch); _rd.free_rid(_rho); _rd.free_rid(_vel)
-		_rd.free_rid(_q); _rd.free_rid(_ei); _rd.free_rid(_ey)
-		_rd.free_rid(_qt_pipe); _rd.free_rid(_qt_shader)
-		_rd.free_rid(_tf_pipe); _rd.free_rid(_tf_shader)
+		for rid in [_qt_us, _tf_us, _probe_ei, _probe_ey, _fi_fallback, _scratch,
+				_rho, _vel, _q, _ei, _ey, _qt_pipe, _qt_shader, _tf_pipe, _tf_shader]:
+			if rid.is_valid():
+				_rd.free_rid(rid)
+		_rd.free()
+		_rd = null
 	print("[VerifyTelescopingWeak] checks=%d failures=%d" % [_checks, _failures])
 	if _failures == 0:
 		print("[VerifyTelescopingWeak] RESULT: PASS — state dumped for the weak-twist report")

@@ -377,6 +377,7 @@ func _run_job(job: Dictionary) -> void:
 	var status := _rd.buffer_get_data(_status, 0, 16)
 	var result := {
 		"generation": gen,
+		"query_generation": int(job.get("query_generation", -1)),
 		"status": status,
 		"open_labels": _rd.buffer_get_data(_open_labels, 0, cells * 4),
 		"adjacency": _rd.buffer_get_data(_adjacency, 0, _site_count * _words_per_site * 4),

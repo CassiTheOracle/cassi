@@ -18,6 +18,12 @@ extends Node
 ##   {"cmd":"readout"}                   -> {"ok":true,"cmd":"readout","ey_b64":..,"ei_b64":..,
 ##                                           "q_b64":..,"eps2_b64":..}
 ##   {"cmd":"snapshot","label":..}       -> {"ok":true,"cmd":"snapshot","path":..}
+##   {"cmd":"qi_snapshot","schema":"cassi.qi.native-state.v1","revision":..,
+##      "state_sha256":..,"contract_sha256":..,"state_f32_base64":..}
+##                                       -> {"ok":true,"cmd":"qi_snapshot",...}
+##   {"cmd":"qi_state"}                  -> read-only canonical-Qi snapshot metadata
+##   {"cmd":"qi_project","k":..}         -> top-k active Qi modes by p0²+p1²
+##   {"cmd":"qi_clear"}                  -> clears only the read-only Qi mirror
 ##
 ## Coordinates are physical: box [-extent, extent]^3. Deposits scatter with
 ## a TSC kernel (separable quadratic spline, partition of unity, 27 cells),
@@ -25,6 +31,13 @@ extends Node
 ## nothing is written to disk except explicit snapshots.
 
 const PHI := 1.618033988749895
+const QI_SCHEMA := "cassi.qi.native-state.v1"
+const QI_MODE_COUNT := 6144
+const QI_WAVE_MODE_COUNT := 3072
+const QI_SCALE_COUNT := 4
+const QI_PLANE_COUNT := 9
+const QI_STATE_FLOATS := QI_MODE_COUNT * QI_SCALE_COUNT * QI_PLANE_COUNT
+const QI_STATE_BYTES := QI_STATE_FLOATS * 4
 
 @export var grid_n := 64
 @export var dt := 0.005
@@ -44,6 +57,7 @@ var _q: RID
 var _vel: RID
 var _rho: RID
 var _scratch: RID  # two-fluid PDE double-buffer scratch (cassi_two_fluid.glsl binding 5)
+var _fi_fallback: RID  # zeroed shared two-fluid bindings 6/7; mind sidecar keeps FI disabled
 var _pc := PackedFloat32Array()
 var _step := 0
 var _t := 0.0
@@ -51,6 +65,10 @@ var _server: TCPServer
 var _peers: Array[StreamPeerTCP] = []
 var _peer_buf: Dictionary = {}
 var _pending := PackedFloat32Array()
+var _qi_state := PackedByteArray()
+var _qi_revision := -1
+var _qi_state_sha256 := ""
+var _qi_contract_sha256 := ""
 
 
 func _ready() -> void:
@@ -100,6 +118,8 @@ func _make_buffers() -> void:
 	# buffers never alias, so the 19-point stencil is race-free)
 	_scratch = _rd.storage_buffer_create(cells * 16)
 	_rd.buffer_update(_scratch, 0, cells * 16, zero16)
+	var fi_zero := PackedByteArray(); fi_zero.resize(128)
+	_fi_fallback = _rd.storage_buffer_create(128, fi_zero)
 
 
 func _load_pipeline() -> void:
@@ -112,6 +132,7 @@ func _load_pipeline() -> void:
 	_us = _rd.uniform_set_create([
 		_u(0, _ey), _u(1, _ei), _u(2, _q), _u(3, _vel), _u(4, _rho),
 		_u(5, _scratch),
+		_u(6, _fi_fallback), _u(7, _fi_fallback),
 	], _shader, 0)
 	if not _pipe.is_valid():
 		push_error("[MindEngine] compute pipeline build failed")
@@ -518,6 +539,99 @@ func compute_projection(k: int) -> Dictionary:
 	return {"step": _step, "t": _t, "cells": out}
 
 
+func _sha256_hex(bytes: PackedByteArray) -> String:
+	var context := HashingContext.new()
+	if context.start(HashingContext.HASH_SHA256) != OK:
+		return ""
+	if context.update(bytes) != OK:
+		return ""
+	return context.finish().hex_encode()
+
+
+func accept_qi_snapshot(obj: Dictionary) -> Dictionary:
+	if str(obj.get("schema", "")) != QI_SCHEMA:
+		return {"ok": false, "error": "unsupported Qi schema"}
+	var revision: int = int(obj.get("revision", -1))
+	var expected_sha256: String = str(obj.get("state_sha256", "")).to_lower()
+	var contract_sha256: String = str(obj.get("contract_sha256", "")).to_lower()
+	if revision < 0 or expected_sha256.length() != 64 or contract_sha256.length() != 64:
+		return {"ok": false, "error": "invalid Qi metadata"}
+	var encoded: String = str(obj.get("state_f32_base64", ""))
+	var bytes: PackedByteArray = Marshalls.base64_to_raw(encoded)
+	if bytes.size() != QI_STATE_BYTES:
+		return {"ok": false, "error": "Qi state byte length mismatch"}
+	var actual_sha256: String = _sha256_hex(bytes)
+	if actual_sha256 == "" or actual_sha256 != expected_sha256:
+		return {"ok": false, "error": "Qi state SHA-256 mismatch"}
+	for offset in range(0, QI_STATE_BYTES, 4):
+		var value: float = bytes.decode_float(offset)
+		if is_nan(value) or is_inf(value):
+			return {"ok": false, "error": "non-finite Qi state"}
+	if revision < _qi_revision:
+		return {"ok": false, "error": "stale Qi revision"}
+	if revision == _qi_revision:
+		if expected_sha256 != _qi_state_sha256 or contract_sha256 != _qi_contract_sha256:
+			return {"ok": false, "error": "conflicting Qi revision"}
+		return qi_state_info().merged({"idempotent": true})
+	_qi_state = bytes.duplicate()
+	_qi_revision = revision
+	_qi_state_sha256 = actual_sha256
+	_qi_contract_sha256 = contract_sha256
+	return qi_state_info().merged({"idempotent": false})
+
+
+func qi_state_info() -> Dictionary:
+	return {
+		"ok": true,
+		"cmd": "qi_state",
+		"schema": QI_SCHEMA,
+		"available": _qi_state.size() == QI_STATE_BYTES,
+		"revision": _qi_revision,
+		"state_sha256": _qi_state_sha256,
+		"contract_sha256": _qi_contract_sha256,
+		"state_bytes": _qi_state.size(),
+		"mode_count": QI_MODE_COUNT,
+		"wave_mode_count": QI_WAVE_MODE_COUNT,
+		"scale_count": QI_SCALE_COUNT,
+		"plane_count": QI_PLANE_COUNT,
+	}
+
+
+func compute_qi_projection(k: int) -> Dictionary:
+	if _qi_state.size() != QI_STATE_BYTES:
+		return {"ok": false, "cmd": "qi_project", "error": "Qi state unavailable"}
+	if k < 1:
+		k = 8
+	k = mini(k, QI_WAVE_MODE_COUNT)
+	var top: Array = []
+	top.resize(k)
+	for t in range(k):
+		top[t] = {"q": -1.0e30, "mode": -1, "p0": 0.0, "p1": 0.0}
+	for mode in range(QI_WAVE_MODE_COUNT):
+		var base: int = mode * QI_PLANE_COUNT * 4
+		var p0: float = _qi_state.decode_float(base)
+		var p1: float = _qi_state.decode_float(base + 4)
+		var q: float = p0 * p0 + p1 * p1
+		var pos: int = k - 1
+		while pos >= 0 and (q > float(top[pos]["q"]) \
+				or (q == float(top[pos]["q"]) and mode < int(top[pos]["mode"]))):
+			pos -= 1
+		if pos < k - 1:
+			var t: int = k - 1
+			while t > pos + 1:
+				top[t] = top[t - 1]
+				t -= 1
+			top[pos + 1] = {"q": q, "mode": mode, "p0": p0, "p1": p1}
+	return qi_state_info().merged({"cmd": "qi_project", "modes": top}, true)
+
+
+func _clear_qi_snapshot() -> void:
+	_qi_state = PackedByteArray()
+	_qi_revision = -1
+	_qi_state_sha256 = ""
+	_qi_contract_sha256 = ""
+
+
 func _clear_field() -> void:
 	var cells: int = grid_n * grid_n * grid_n
 	var zero := PackedByteArray()
@@ -529,10 +643,7 @@ func _clear_field() -> void:
 	var zero16 := PackedByteArray()
 	zero16.resize(cells * 16)
 	_rd.buffer_update(_vel, 0, cells * 16, zero16)
-	# PDE double-buffer scratch (vec4 per cell — pass A writes the new
-	# field here, pass B copies to the canonical buffers; read/write
-	# buffers never alias, so the 19-point stencil is race-free)
-	_scratch = _rd.storage_buffer_create(cells * 16)
+	# Keep the descriptor-bound scratch RID stable across clear.
 	_rd.buffer_update(_scratch, 0, cells * 16, zero16)
 	_pending = PackedFloat32Array()
 	_step = 0
@@ -651,5 +762,36 @@ func _handle_line(line: String) -> String:
 		"snapshot":
 			return JSON.stringify({"ok": true, "cmd": "snapshot",
 				"path": write_snapshot(str(obj.get("label", "")))})
+		"qi_snapshot":
+			var qi_reply: Dictionary = accept_qi_snapshot(obj)
+			if bool(qi_reply.get("ok", false)):
+				qi_reply["cmd"] = "qi_snapshot"
+			return JSON.stringify(qi_reply)
+		"qi_state":
+			return JSON.stringify(qi_state_info())
+		"qi_project":
+			var qi_k: int = 8
+			if obj.has("k") and (obj["k"] is int or obj["k"] is float):
+				qi_k = int(obj["k"])
+			return JSON.stringify(compute_qi_projection(qi_k))
+		"qi_clear":
+			_clear_qi_snapshot()
+			return JSON.stringify({"ok": true, "cmd": "qi_clear"})
 		_:
 			return JSON.stringify({"ok": false, "error": "unknown cmd: " + cmd})
+
+
+func _exit_tree() -> void:
+	for peer in _peers:
+		peer.disconnect_from_host()
+	_peers.clear()
+	_peer_buf.clear()
+	if _server != null:
+		_server.stop()
+		_server = null
+	if _rd != null:
+		for rid in [_us, _fi_fallback, _scratch, _rho, _vel, _q, _ei, _ey, _pipe, _shader]:
+			if rid.is_valid():
+				_rd.free_rid(rid)
+		_rd.free()
+		_rd = null

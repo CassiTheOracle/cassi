@@ -3,12 +3,9 @@
 [ext_resource type="Script" uid="uid://ctd74qvas4ily" path="res://scripts/free_camera.gd" id="1_cam"]
 [ext_resource type="Script" uid="uid://bp5bjas7jlx46" path="res://scripts/cassi_sim.gd" id="2_sim"]
 [ext_resource type="Script" uid="uid://c3iwrspepbm45" path="res://scripts/sim_ui.gd" id="3_ui"]
-[ext_resource type="Script" path="res://scripts/cassi_presentation_director.gd" id="4_dir"]
-[ext_resource type="Script" path="res://scripts/presentation_sky.gd" id="5_sky"]
+[ext_resource type="Script" uid="uid://cynpds3q8x7fc" path="res://scripts/cassi_presentation_director.gd" id="4_dir"]
 
 [sub_resource type="Environment" id="env"]
-background_mode = 0
-background_clear_color = Color(0.003, 0.007, 0.020, 1)
 tonemap_mode = 2
 glow_enabled = true
 glow_intensity = 0.65
@@ -26,30 +23,36 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 300, 500)
 fov = 70.0
 script = ExtResource("1_cam")
 
-[node name="PresentationDirector" type="Node" parent="."]
+[node name="PresentationDirector" type="Node" parent="." unique_id=1605336596]
 script = ExtResource("4_dir")
-
-[node name="PresentationSky" type="MeshInstance3D" parent="."]
-script = ExtResource("5_sky")
 
 [node name="CassiSim" type="Node3D" parent="." unique_id=822736192]
 script = ExtResource("2_sim")
-N_particles = 500000
+particle_size = 3.0
 cluster_radius = 50.0
-num_clusters = 5
-cluster_separation = 200.0
+num_clusters = 10
+cluster_separation = 250.0
+particle_merge = true
 bh_accretion = false
 vsync_enabled = true
+river_calibrate_gn = true
+field_attractor_init = true
 initial_condition = 1
 gridless_physics = true
+tree_hierarchical_refit = true
+presentation_profile = true
+presentation_color_scheme = 1
+presentation_macro_lod_enabled = true
+presentation_lod_enter = 3000.0
+presentation_lod_exit = 7000.0
+presentation_trails_enabled = true
+presentation_trail_speed_threshold = 0.1
+presentation_trail_shutter_seconds = 0.16
+presentation_volume_history_enabled = true
 qi_cycle = Vector2(0.005, 1)
 qi_approach = Vector2(0.8, 1)
 volume_dynamic_resolution = true
-presentation_profile = true
-presentation_macro_lod_enabled = true
-presentation_trails_enabled = true
-presentation_volume_history_enabled = true
-particle_color_mode = 50
+camera_far_plane = 10000000.0
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=1258460337]
 

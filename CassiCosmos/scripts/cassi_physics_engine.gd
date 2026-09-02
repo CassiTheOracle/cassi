@@ -120,6 +120,7 @@ var multi_rung_amp: float = 0.2
 var multi_rung_base_scale: float = 1.0
 var meshless_mode: bool = true    # enables Voronoi/site topology and render path
 var meshless_gravity: bool = true # site-native tree/N-body when gridless_physics
+var tree_hierarchical_refit: bool = false # retained-tree bottom-up moments; full build after site-topology changes
 var gridless_physics: bool = false # authoritative site field/force/BH path
 var mode: int = 0                 # display mode (shared PC slot 7; render-side but encoded in PCs)
 # Cassi particle merge — "dust -> object" (particle_merge_design.md): two
@@ -221,6 +222,7 @@ var _freed := false
 var _field_ey: RID; var _field_ei: RID
 var _field_q: RID;  var _field_vel: RID
 var _field_scratch: RID  # vec4 per cell — two-fluid PDE double-buffer scratch (determinism fix, cassi_two_fluid.glsl)
+var _fi_fallback_buf: RID  # zeroed 128-B descriptor fallback; standalone engine keeps FI disabled
 # — Poisson solver (SET 0 of cassi_poisson.glsl) —
 var _fft_buf: RID      # vec2 per cell — FFT workspace; real part = Φ after solve
 var _tel_buf: RID      # gravity telemetry: [pi_hi, pi_lo, rho_guard, q_min, q_max, pi_min, pi_max, samples]
@@ -330,6 +332,9 @@ var _render_query_extents := Vector3.ZERO
 var _render_topology_worker = null
 var _render_topology_last_step := -1
 var _render_topology_inflight := false
+var _render_topology_readback_token := 0
+var _render_topology_readback_parts: Dictionary = {}
+var _render_topology_readback_context: Dictionary = {}
 
 ## Stable public topology accessors. Returning a Dictionary is reserved for
 ## full resource handoff; scalar hot paths use the allocation-free accessors.
@@ -341,6 +346,8 @@ func render_query_generation_value() -> int:
 
 func topology_site_count_value() -> int:
 	return _topology_site_count
+
+
 func topology_resources() -> Dictionary:
 	return {
 		"topology_open_label_rid": _topology_open_labels,
@@ -389,6 +396,12 @@ var _us_tree_mc: RID
 var _tree_mc_pc_bytes: PackedByteArray   # 3 floats (12 B): N_f, op
 var _tree_cadence := 1           # submit a tree job every N physics jobs (sim's cadence semantics)
 var _tree_job_counter := 0
+var _tree_built_topology_generation := -1
+var _tree_built_window_center := Vector3.INF
+var _tree_built_box_scale := -1.0
+var _tree_full_build_count := 0
+var _tree_hier_refit_count := 0
+var _tree_transition_full_build_count := 0
 # MOVABLE HOME-WINDOW (perf-decomp 2026-08-15, overhaul migration): the
 # field grid's world-origin offset (bh[0].yzw + the deposit PC off terms).
 var _home_window: bool = false
@@ -399,6 +412,8 @@ var _poisson_shader: RID;    var _poisson_pipe: RID
 var _mass_deposit_shader: RID; var _mass_deposit_pipe: RID
 var _cond_shader: RID;       var _cond_pipe: RID
 var _bh_int_shader: RID;     var _bh_int_pipe: RID
+var _workbench_particle_shader: RID
+var _workbench_particle_pipe: RID
 var _site_physics_shader: RID; var _site_physics_pipe: RID
 var _site_mass_shader: RID; var _site_mass_pipe: RID
 var _site_nbody_shader: RID; var _site_nbody_pipe: RID
@@ -591,6 +606,7 @@ func setup(cfg: Dictionary) -> bool:
 	multi_rung_base_scale = float(cfg.get("multi_rung_base_scale", multi_rung_base_scale))
 	meshless_mode = bool(cfg.get("meshless_mode", meshless_mode))
 	meshless_gravity = bool(cfg.get("meshless_gravity", meshless_gravity))
+	tree_hierarchical_refit = bool(cfg.get("tree_hierarchical_refit", tree_hierarchical_refit))
 	gridless_physics = bool(cfg.get("gridless_physics", gridless_physics))
 	winding_coupling = float(cfg.get("winding_coupling", winding_coupling))
 	q_weighted_com = bool(cfg.get("q_weighted_com", q_weighted_com))
@@ -617,6 +633,12 @@ func setup(cfg: Dictionary) -> bool:
 	# Tree cadence (the sim's _tree_local_cadence) — the in-list tree job gate.
 	_tree_cadence = int(cfg.get("tree_cadence", 1))
 	_tree_job_counter = 0
+	_tree_built_topology_generation = -1
+	_tree_built_window_center = Vector3.INF
+	_tree_built_box_scale = -1.0
+	_tree_full_build_count = 0
+	_tree_hier_refit_count = 0
+	_tree_transition_full_build_count = 0
 	_home_window = bool(cfg.get("home_window", false))
 	_window_center = Vector3(cfg.get("window_center", Vector3.ZERO))
 	# ── build the chain ──
@@ -899,11 +921,9 @@ func publish_render_query(shift_delta: Vector3 = Vector3.ZERO) -> bool:
 	var ext := _extents()
 	var needed := ns * 4
 	if _render_query_sites_cpu.size() != needed:
-		if not _ml_sites.is_valid():
+		if _ml_sites_cpu.size() != needed:
 			return false
-		_render_query_sites_cpu = _rd.buffer_get_data(_ml_sites, 0, needed * 4).to_float32_array()
-		if _render_query_sites_cpu.size() != needed:
-			return false
+		_render_query_sites_cpu = _ml_sites_cpu.duplicate()
 		_render_query_center = _window_center
 		_render_query_extents = ext
 	else:
@@ -1002,7 +1022,7 @@ func publish_render_query(shift_delta: Vector3 = Vector3.ZERO) -> bool:
 	return true
 
 ## Service the render-topology worker at a global-RD frame boundary.
-## Readbacks stage only the site field/gradient payload; the worker owns its
+## Asynchronous readbacks stage only the site field/gradient payload; the worker owns its
 ## local device and returns one coherent open-label/CSR/optical generation.
 ## All returned buffers are uploaded before the caller opens its global list.
 func service_render_topology() -> void:
@@ -1018,34 +1038,107 @@ func service_render_topology() -> void:
 		_render_topology_worker = w
 	var completed: Dictionary = _render_topology_worker.poll()
 	if not completed.is_empty():
-		_apply_render_topology(completed)
+		var completed_generation := int(completed.get("generation", _topology_generation))
+		if int(completed.get("query_generation", -1)) == _render_query_generation:
+			_apply_render_topology(completed)
+		else:
+			# A moving window may publish again while the worker owns its
+			# snapshot. Retire that generation without exposing stale geometry.
+			_topology_generation = maxi(_topology_generation, completed_generation)
+			_topology_ready = false
 		_render_topology_inflight = false
-	var cadence_due := _topology_generation <= 0 \
+	var cadence_due := not _topology_ready or _topology_generation <= 0 \
 			or (_step_count - _render_topology_last_step >= ML_REBUILD)
 	if not cadence_due or _render_topology_inflight:
 		return
 	var ns := 2 * ML_N1 * ML_N1 * ML_N1
 	if _render_query_sites_cpu.size() != ns * 4:
 		return
-	var psy := _rd.buffer_get_data(_ml_psi_y, 0, ns * 4).to_float32_array()
-	var psi := _rd.buffer_get_data(_ml_psi_i, 0, ns * 4).to_float32_array()
-	var grady := _rd.buffer_get_data(_ml_grad_y, 0, ns * 16).to_float32_array()
-	var gradi := _rd.buffer_get_data(_ml_grad_i, 0, ns * 16).to_float32_array()
+	var requests := [
+		[_ml_psi_y, &"psy", ns * 4],
+		[_ml_psi_i, &"psi", ns * 4],
+		[_ml_grad_y, &"grady", ns * 16],
+		[_ml_grad_i, &"gradi", ns * 16],
+	]
+	_render_topology_readback_token += 1
+	var token := _render_topology_readback_token
+	_render_topology_readback_parts.clear()
+	_render_topology_readback_context = {
+		"generation": _topology_generation + 1,
+		"query_generation": _render_query_generation,
+		"sites": _render_query_sites_cpu,
+		"ext": _extents(),
+		"step": _step_count,
+	}
+	_render_topology_inflight = true
+	for request in requests:
+		var rid: RID = request[0]
+		var key: StringName = request[1]
+		var size_bytes: int = request[2]
+		if not rid.is_valid():
+			_cancel_render_topology_readback()
+			return
+		var err: Error = _rd.buffer_get_data_async(
+				rid, _on_render_topology_readback.bind(token, key), 0, size_bytes)
+		if err != OK:
+			_cancel_render_topology_readback()
+			return
+
+
+func _on_render_topology_readback(
+		data: PackedByteArray, token: int, key: StringName) -> void:
+	if token != _render_topology_readback_token or not _render_topology_inflight:
+		return
+	_render_topology_readback_parts[key] = data
+	if _render_topology_readback_parts.size() < 4:
+		return
+	var parts := _render_topology_readback_parts
+	var context := _render_topology_readback_context
+	_render_topology_readback_parts = {}
+	_render_topology_readback_context = {}
+	if int(context.get("query_generation", -1)) != _render_query_generation:
+		# The window moved while the GPU transfer was pending. Drop the
+		# snapshot before allocating CPU arrays or occupying the worker.
+		_render_topology_inflight = false
+		return
+	var ns := 2 * ML_N1 * ML_N1 * ML_N1
+	var psy_bytes: PackedByteArray = parts.get(&"psy", PackedByteArray())
+	var psi_bytes: PackedByteArray = parts.get(&"psi", PackedByteArray())
+	var grady_bytes: PackedByteArray = parts.get(&"grady", PackedByteArray())
+	var gradi_bytes: PackedByteArray = parts.get(&"gradi", PackedByteArray())
+	var psy := psy_bytes.to_float32_array()
+	var psi := psi_bytes.to_float32_array()
+	var grady := grady_bytes.to_float32_array()
+	var gradi := gradi_bytes.to_float32_array()
 	if psy.size() != ns or psi.size() != ns \
 			or grady.size() != ns * 4 or gradi.size() != ns * 4:
+		_render_topology_inflight = false
+		return
+	var worker = _render_topology_worker
+	if worker == null:
+		_render_topology_inflight = false
 		return
 	var job := {
-		"generation": _topology_generation + 1,
-		"sites": _render_query_sites_cpu,
+		"generation": int(context.get("generation", _topology_generation + 1)),
+		"query_generation": int(context.get("query_generation", _render_query_generation)),
+		"sites": context.get("sites", PackedFloat32Array()),
 		"psy": psy,
 		"psi": psi,
 		"grady": grady,
 		"gradi": gradi,
-		"ext": _extents(),
+		"ext": context.get("ext", _extents()),
 	}
-	if _render_topology_worker.submit(job):
-		_render_topology_last_step = _step_count
-		_render_topology_inflight = true
+	if worker.submit(job):
+		_render_topology_last_step = int(context.get("step", _step_count))
+	else:
+		_render_topology_inflight = false
+
+
+func _cancel_render_topology_readback() -> void:
+	_render_topology_readback_token += 1
+	_render_topology_readback_parts.clear()
+	_render_topology_readback_context = {}
+	_render_topology_inflight = false
 
 
 func _apply_render_topology(result: Dictionary) -> void:
@@ -1090,11 +1183,11 @@ func _apply_render_topology(result: Dictionary) -> void:
 ## The worker owns its local device and must be joined before this engine frees
 ## the global buffers that the last staged job may still reference by value.
 func stop_render_topology_worker() -> void:
+	_cancel_render_topology_readback()
 	if _render_topology_worker != null:
 		_render_topology_worker.stop()
 		_render_topology_worker = null
 	_render_topology_last_step = -1
-	_render_topology_inflight = false
 
 
 ## M0b-P: the subsampled center of mass of the live pos buffer — the window
@@ -1355,7 +1448,8 @@ func start_threaded(cfg: Dictionary) -> bool:
 			"res://compute/cassi_voronoi_adjacency_csr.glsl",
 			"res://compute/cassi_voronoi_optical_payload.glsl",
 			"res://compute/cassi_voronoi_render_topology.glsl",
-			"res://compute/cassi_voronoi_fused_volume.glsl"]
+			"res://compute/cassi_voronoi_fused_volume.glsl",
+			"res://compute/cassi_particle_program_apply.glsl"]
 	if bool(cfg.get("cascade_level", cascade_level)):
 		shader_paths.append("res://compute/cassi_coarse_grad.glsl")
 	for p in shader_paths:
@@ -1388,6 +1482,119 @@ func start_threaded(cfg: Dictionary) -> bool:
 ## render-thread-only — the render thread records the chains directly).
 func setup_ready() -> bool:
 	return _setup_done and _thread_started
+## Paused FieldWorkbench authority seam. The decoupled one-RD engine owns
+## these buffers; callers must never edit the sim's dormant inline mirrors.
+func workbench_ready() -> bool:
+	return _rd != null and _ready and _setup_compute_done
+
+func workbench_read_buffers() -> Dictionary:
+	if not workbench_ready():
+		return {}
+	return {
+		"grid_N": grid_N,
+		"extents": _extents(),
+		"window_center": _window_center,
+		"ey": _rd.buffer_get_data(_field_ey).to_float32_array(),
+		"ei": _rd.buffer_get_data(_field_ei).to_float32_array(),
+		"q": _rd.buffer_get_data(_field_q).to_float32_array(),
+		"vel": _rd.buffer_get_data(_field_vel).to_float32_array(),
+		"pos": _rd.buffer_get_data(_pos_buf).to_float32_array(),
+		"pvel": _rd.buffer_get_data(_vel_buf).to_float32_array(),
+		"acc": _rd.buffer_get_data(_acc_buf).to_float32_array(),
+	}
+
+func _workbench_particle_pipeline_ready() -> bool:
+	if _workbench_particle_pipe.is_valid():
+		return true
+	_workbench_particle_shader = _shader_create("res://compute/cassi_particle_program_apply.glsl")
+	if not _workbench_particle_shader.is_valid():
+		return false
+	_workbench_particle_pipe = _rd.compute_pipeline_create(_workbench_particle_shader)
+	if not _workbench_particle_pipe.is_valid():
+		push_error("[PhysicsEngine] particle-program compute pipeline creation failed")
+		return false
+	return true
+
+
+func _workbench_gpu_commit_particles(pos: PackedFloat32Array,
+		pvel: PackedFloat32Array, acc: PackedFloat32Array) -> Dictionary:
+	if not _workbench_particle_pipeline_ready():
+		return {"ok": false, "error": "particle_program_gpu_pipeline_unavailable"}
+	var staging: Array[RID] = []
+	for values in [pos, pvel, acc]:
+		var bytes: PackedByteArray = values.to_byte_array()
+		var rid := _rd.storage_buffer_create(bytes.size())
+		if not rid.is_valid():
+			for staged in staging:
+				_rd.free_rid(staged)
+			return {"ok": false, "error": "particle_program_gpu_staging_failed"}
+		_rd.buffer_update(rid, 0, bytes.size(), bytes)
+		staging.append(rid)
+	var uniform_set := _rd.uniform_set_create([
+		_uniform_storage(0, staging[0]), _uniform_storage(1, staging[1]),
+		_uniform_storage(2, staging[2]), _uniform_storage(3, _pos_buf),
+		_uniform_storage(4, _vel_buf), _uniform_storage(5, _acc_buf),
+	], _workbench_particle_shader, 0)
+	if not uniform_set.is_valid():
+		for staged in staging:
+			_rd.free_rid(staged)
+		return {"ok": false, "error": "particle_program_gpu_uniform_set_failed"}
+	var push := PackedInt32Array([N_particles, 0, 0, 0]).to_byte_array()
+	var compute_list := _rd.compute_list_begin()
+	_rd.compute_list_bind_compute_pipeline(compute_list, _workbench_particle_pipe)
+	_rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
+	_rd.compute_list_set_push_constant(compute_list, push, push.size())
+	_rd.compute_list_dispatch(compute_list, maxi(ceili(float(N_particles) / 256.0), 1), 1, 1)
+	_rd.compute_list_add_barrier(compute_list)
+	_rd.compute_list_end()
+	_finish_standalone_list()
+	# A readback is the completion fence for this infrequent paused-world
+	# transaction on the renderer-owned global RD. FieldWorkbench then
+	# verifies the complete seven-buffer digest before accepting the receipt.
+	var committed := _rd.buffer_get_data(_pos_buf)
+	_rd.free_rid(uniform_set)
+	for staged in staging:
+		_rd.free_rid(staged)
+	if committed.size() != pos.size() * 4:
+		return {"ok": false, "error": "particle_program_gpu_readback_failed"}
+	return {"ok": true, "backend": "authoritative_gpu"}
+
+
+func workbench_write_buffers(buffers: Dictionary, particle_only := false) -> Dictionary:
+	if not workbench_ready():
+		return {"ok": false, "error": "engine_authority_not_ready"}
+	if not buffers.has_all(["ey", "ei", "q", "vel", "pos", "pvel", "acc"]):
+		return {"ok": false, "error": "engine_authority_buffers_missing"}
+	var cells := grid_N * grid_N * grid_N
+	var particles := maxi(N_particles, 1) * 4
+	if buffers.ey.size() != cells or buffers.ei.size() != cells or buffers.q.size() != cells \
+			or buffers.vel.size() != cells * 4 or buffers.pos.size() != particles \
+			or buffers.pvel.size() != particles or buffers.acc.size() != particles:
+		return {"ok": false, "error": "engine_authority_buffer_size_mismatch"}
+	var particle_commit := _workbench_gpu_commit_particles(buffers.pos, buffers.pvel, buffers.acc)
+	if not particle_commit.ok:
+		return particle_commit
+	if not particle_only:
+		for pair in [
+			[_field_ey, buffers.ey], [_field_ei, buffers.ei],
+			[_field_q, buffers.q], [_field_vel, buffers.vel],
+		]:
+			var values: PackedFloat32Array = pair[1]
+			_rd.buffer_update(pair[0], 0, values.size() * 4, values.to_byte_array())
+	# Any paused edit invalidates cached force/topology state. The next KDK
+	# step recomputes acceleration before its first kick, and the next
+	# tree-cadence check is forced to rebuild from the edited positions.
+	_grav_warmup = true
+	_tree_job_counter = 0
+	_tree_built_topology_generation = -1
+	_tree_built_window_center = Vector3.INF
+	return {
+		"ok": true,
+		"authority": "decoupled_engine",
+		"backend": str(particle_commit.backend),
+		"particle_only": particle_only,
+	}
+
 
 
 ## Stop the threaded runner (reinit / exit). MAIN thread: joins the worker
@@ -1450,14 +1657,14 @@ func shutdown() -> void:
 		if rid.is_valid() and _rd.uniform_set_is_valid(rid) and not seen.has(rid):
 			seen[rid] = true
 			_rd.free_rid(rid)
-	var free_pipes := [_two_fluid_pipe, _nbody_pipe, _poisson_pipe, _mass_deposit_pipe, _cond_pipe, _bh_int_pipe, _jfa_pipe, _cell_pipe, _raster_pipe, _shortlist_pipe, _hash_pipe, _merge_pipe, _scan_pipe, _bh_acc_pipe, _topology_pipe, _topology_adj_pipe, _topology_csr_pipe, _topology_optical_pipe, _tree_bld_pipe, _tree_walk_pipe, _tree_mc_pipe, _cf_grad_pipe]
+	var free_pipes := [_two_fluid_pipe, _nbody_pipe, _poisson_pipe, _mass_deposit_pipe, _cond_pipe, _bh_int_pipe, _jfa_pipe, _cell_pipe, _raster_pipe, _shortlist_pipe, _hash_pipe, _merge_pipe, _scan_pipe, _bh_acc_pipe, _topology_pipe, _topology_adj_pipe, _topology_csr_pipe, _topology_optical_pipe, _tree_bld_pipe, _tree_walk_pipe, _tree_mc_pipe, _cf_grad_pipe, _workbench_particle_pipe]
 	free_pipes.append_array([_site_physics_pipe, _site_mass_pipe, _site_nbody_pipe,
 		_site_cond_pipe, _site_bh_int_pipe])
 	for rid in free_pipes:
 		if rid.is_valid() and not seen.has(rid):
 			seen[rid] = true
 			_rd.free_rid(rid)
-	var free_shaders := [_two_fluid_shader, _nbody_shader, _poisson_shader, _mass_deposit_shader, _cond_shader, _bh_int_shader, _merge_shader, _scan_shader, _bh_acc_shader, _cf_grad_shader, _jfa_shader, _cell_shader, _shortlist_shader, _hash_shader, _raster_shader, _topology_shader, _topology_adj_shader, _topology_csr_shader, _topology_optical_shader, _tree_bld_sh, _tree_walk_sh, _tree_mc_sh]
+	var free_shaders := [_two_fluid_shader, _nbody_shader, _poisson_shader, _mass_deposit_shader, _cond_shader, _bh_int_shader, _merge_shader, _scan_shader, _bh_acc_shader, _cf_grad_shader, _jfa_shader, _cell_shader, _shortlist_shader, _hash_shader, _raster_shader, _topology_shader, _topology_adj_shader, _topology_csr_shader, _topology_optical_shader, _tree_bld_sh, _tree_walk_sh, _tree_mc_sh, _workbench_particle_shader]
 	free_shaders.append_array([_site_physics_shader, _site_mass_shader, _site_nbody_shader,
 		_site_cond_shader, _site_bh_int_shader])
 	for rid in free_shaders:
@@ -1466,6 +1673,7 @@ func shutdown() -> void:
 			_rd.free_rid(rid)
 	var free_buffers := [_acc_buf, _bh_buf, _cf_density_buf, _cf_fft_buf, _cf_grad_buf, _cluster_buf, _fft_buf, _field_ei, _field_ey, _field_q, _field_scratch, _field_vel, _grad_buf, _grad_buf2, _hash_cell_count, _hash_cell_sites, _hash_cell_start, _hash_cfg, _mass_density_buf, _mass_density_fix, _merge_alive_buf, _merge_best_buf, _merge_cc_buf, _merge_cen_buf, _merge_ch_buf, _merge_cl_buf, _merge_cs_buf, _merge_mass_buf, _merge_mc_buf, _merge_mom_buf, _merge_mprev_buf, _merge_scr_buf, _merge_sink_buf, _merge_spin_buf, _ml_cen, _ml_grad_i, _ml_grad_y, _ml_labels_a, _ml_labels_b, _ml_lap_i, _ml_lap_y, _ml_lsm_i, _ml_lsm_y, _ml_pi_i, _ml_pi_y, _ml_psi_i, _ml_psi_y, _ml_remap, _ml_sites, _ml_tmp_i, _ml_tmp_pi, _ml_tmp_py, _ml_tmp_y, _ml_vol, _pos_buf, _shortlist_count, _shortlist_sites, _tel_buf, _tl_cf, _tl_ctr, _tl_key, _tl_nq, _tl_nqq, _tl_nr, _tl_nw, _tl_order, _tl_src, _tl_srcw, _tl_tic, _topology_adjacency, _topology_degree, _topology_meta, _topology_neighbors, _topology_offsets, _topology_open_labels, _topology_open_labels_scratch_a, _topology_open_labels_scratch_b, _topology_optical, _topology_status, _tree_grad, _tree_mc_buf, _vel_buf]
 	free_buffers.append_array([_ml_sites_world, _ml_mass_fix, _ml_mass, _ml_q, _ml_eps])
+	free_buffers.append(_fi_fallback_buf)
 	var free_cascade_buffers := [_cf_density_fix_buf]
 	for rid in free_cascade_buffers:
 		if rid.is_valid() and not seen.has(rid):
@@ -1504,6 +1712,7 @@ func _clear_gpu_handles() -> void:
 	_render_topology_inflight = false
 	_field_ey = RID(); _field_ei = RID(); _field_q = RID(); _field_vel = RID()
 	_field_scratch = RID(); _fft_buf = RID(); _tel_buf = RID()
+	_fi_fallback_buf = RID()
 	_grad_buf = RID(); _grad_buf2 = RID()
 	_pos_buf = RID(); _vel_buf = RID(); _acc_buf = RID()
 	_cluster_buf = RID(); _bh_buf = RID()
@@ -1550,6 +1759,7 @@ func _clear_gpu_handles() -> void:
 	_scan_shader = RID(); _scan_pipe = RID()
 	_bh_acc_shader = RID(); _bh_acc_pipe = RID()
 	_cf_grad_shader = RID(); _cf_grad_pipe = RID()
+	_workbench_particle_shader = RID(); _workbench_particle_pipe = RID()
 	_site_physics_shader = RID(); _site_physics_pipe = RID()
 	_site_mass_shader = RID(); _site_mass_pipe = RID()
 	_site_nbody_shader = RID(); _site_nbody_pipe = RID()
@@ -1693,6 +1903,9 @@ func _setup_buffers() -> void:
 	_field_scratch = _rd.storage_buffer_create(nc * 16)
 	var scr_zero := PackedByteArray(); scr_zero.resize(nc * 16)
 	_rd.buffer_update(_field_scratch, 0, scr_zero.size(), scr_zero)
+	_fi_fallback_buf = _rd.storage_buffer_create(128)
+	var fi_zero := PackedByteArray(); fi_zero.resize(128)
+	_rd.buffer_update(_fi_fallback_buf, 0, fi_zero.size(), fi_zero)
 	# Poisson solver: complex FFT workspace (vec2/cell) + gravity telemetry
 	_fft_buf  = _rd.storage_buffer_create(nc * 8)
 	_tel_buf  = _rd.storage_buffer_create(48)
@@ -1769,9 +1982,6 @@ func _setup_buffers() -> void:
 		cfix_zero.resize(cn3 * 16)
 		_rd.buffer_update(_cf_density_fix_buf, 0, cfix_zero.size(), cfix_zero)
 	_cf_grad_pc_bytes = PackedByteArray(); _cf_grad_pc_bytes.resize(8 * 4)
-	# Mode-5 tree seam: per-particle tree gradient (nbody set 1 binding 3).
-	# Zeroed once at setup so an unused seam reads zero force instead of
-	# stale allocator memory; run_steps uploads when a gradient is supplied.
 	_tree_grad = _rd.storage_buffer_create(maxi(N_particles, 1) * 16)
 	var tz := PackedFloat32Array()
 	tz.resize(maxi(N_particles, 1) * 4)
@@ -2080,12 +2290,15 @@ func _setup_shaders() -> void:
 			_uniform_storage(2, _ml_psi_i), _uniform_storage(3, _ml_grad_y),
 			_uniform_storage(4, _ml_grad_i), _uniform_storage(5, _topology_optical),
 		], _topology_optical_shader, 0)
-	# Two-fluid PDE declares ONLY set 0 (bindings 0-5: fields + rho + scratch)
+	# Shared two-fluid PDE declares set 0 bindings 0-7. The standalone engine
+	# does not run FI, so bindings 6/7 share a zeroed descriptor-safe buffer.
 	_us_two_0 = _rd.uniform_set_create([
 		_uniform_storage(0, _field_ey), _uniform_storage(1, _field_ei),
 		_uniform_storage(2, _field_q), _uniform_storage(3, _field_vel),
 		_uniform_storage(4, _mass_density_buf),
 		_uniform_storage(5, _field_scratch),
+		_uniform_storage(6, _fi_fallback_buf),
+		_uniform_storage(7, _fi_fallback_buf),
 	], _two_fluid_shader, 0)
 	# N-body: set 0 (fields/Φ/telemetry/gradients), set 1 (particles + the
 	# mode-5 tree-gradient binding 3), set 2 (BH header + clusters).
@@ -2774,8 +2987,8 @@ func _meshless_init() -> void:
 	# TREE-IN-LIST (M0 commit 2): the tree build+walk resources on THIS
 	# engine RD — pipelines + intermediates + uniform sets over the LIVE
 	# meshless buffers. The mode-7 gather reads ml_sites/psy/psi/vol and
-	# the deposit density directly; the walk reads _pos_buf and writes
-	# _tree_grad (the mode-5 seam buffer) — no staging, no seam upload.
+	# the deposit density directly; the walk writes per-particle _tree_grad
+	# with no cross-device staging.
 	var tnm := ML_TREE_NODE_MAX_MULT * ml_ns + 64
 	_tl_src = _rd.storage_buffer_create(2 * ml_ns * 16)
 	_tl_srcw = _rd.storage_buffer_create(ml_ns * 4)
@@ -3183,14 +3396,13 @@ func _tree_job_due() -> bool:
 
 
 ## Append the tree build+walk dispatches to the CURRENT compute list cl.
-## Reads the live meshless buffers + _pos_buf; writes _tree_grad. The PC
-## values (bmin/bhalf adaptive root, eps2, tnm) come from the host-side
-## site mirror (_ml_sites_cpu — no readback).
+## Reads the live meshless buffers; writes per-particle _tree_grad. The PC
+## values (bmin/bhalf adaptive root, eps2, tnm) come from the host-side site
+## mirror (_ml_sites_cpu — no readback).
 func _tree_run_in_list(cl: int) -> void:
 	if not _us_tree_bld.is_valid() or not _us_tree_walk.is_valid():
 		return
 	var S := _ml_tree_nsrc
-	var Np: int = N_particles
 	var ext := _extents()
 	# ADAPTIVE TREE ROOT (perf-decomp 2026-08-15, overhaul migration): the
 	# root cube from the tracked structure's bounding box (the CPU site
@@ -3240,7 +3452,7 @@ func _tree_run_in_list(cl: int) -> void:
 	bpc[18] = -ML_TREE_FIELD_FLOOR if gridless_physics else ML_TREE_FIELD_FLOOR
 	var gpc := PackedFloat32Array()
 	gpc.resize(8)
-	gpc[0] = float(Np)
+	gpc[0] = float(N_particles)
 	gpc[1] = ML_TREE_THETA
 	gpc[2] = eps2
 	gpc[3] = 1.0
@@ -3251,56 +3463,88 @@ func _tree_run_in_list(cl: int) -> void:
 	gpc[7] = 1.0 if coherence_theta else 0.0
 	var pg := int(ceil(float(S) / 64.0))
 	var pall := int(ceil(float(tnm) / 64.0))
-	# Mode 9 CTR_RESET + mode 10 ROOT_SEED: the on-GPU counter/root seeding
-	# (replaces the worker's per-job host buffer_update seeds).
-	bpc[10] = 9.0
-	_rd.compute_list_bind_compute_pipeline(cl, _tree_bld_pipe)
-	_rd.compute_list_bind_uniform_set(cl, _us_tree_bld, 0)
-	_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
-	_rd.compute_list_dispatch(cl, 1, 1, 1)
-	_rd.compute_list_add_barrier(cl)
-	bpc[10] = 10.0
-	_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
-	_rd.compute_list_dispatch(cl, 1, 1, 1)
-	_rd.compute_list_add_barrier(cl)
-	# gather (mode 7) + bitonic (1) + BFS split (5/8) + moments (6) — the
-	# worker's verbatim sequence, in this list on the live buffers.
-	bpc[10] = 7.0
-	_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
-	_rd.compute_list_dispatch(cl, pg, 1, 1)
-	_rd.compute_list_add_barrier(cl)
-	var k := 2
-	while k <= S:
-		var j := k >> 1
-		while j >= 1:
-			bpc[10] = 1.0
-			bpc[11] = float(k)
-			bpc[12] = float(j)
-			bpc[13] = 1.0
-			_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
-			_rd.compute_list_dispatch(cl, pg, 1, 1)
-			_rd.compute_list_add_barrier(cl)
-			j = j >> 1
-		k = k << 1
-	_rd.compute_list_add_barrier(cl)
-	for _d in range(ML_TREE_MAX_LEVELS):
-		bpc[10] = 5.0
+	var use_hierarchical_refit := (
+		tree_hierarchical_refit
+		and _tree_built_topology_generation == _topology_generation
+		and _tree_built_window_center == _window_center
+		and _tree_built_box_scale == box_scale
+	)
+	if use_hierarchical_refit:
+		# Refresh live sources, solve leaves directly, then combine child
+		# moments deepest-to-root. The retained topology is untouched.
+		bpc[10] = 11.0
+		_rd.compute_list_bind_compute_pipeline(cl, _tree_bld_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_tree_bld, 0)
+		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		_rd.compute_list_dispatch(cl, pg, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		bpc[10] = 12.0
 		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
 		_rd.compute_list_dispatch(cl, pall, 1, 1)
 		_rd.compute_list_add_barrier(cl)
-		bpc[10] = 8.0
+		for depth in range(ML_TREE_MAX_LEVELS - 1, -1, -1):
+			bpc[10] = 13.0
+			bpc[11] = float(depth)
+			_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+			_rd.compute_list_dispatch(cl, pall, 1, 1)
+			_rd.compute_list_add_barrier(cl)
+		_tree_hier_refit_count += 1
+	else:
+		# Mode 9 CTR_RESET + mode 10 ROOT_SEED: the on-GPU counter/root
+		# seeding, then gather + sort + split + direct moments.
+		bpc[10] = 9.0
+		_rd.compute_list_bind_compute_pipeline(cl, _tree_bld_pipe)
+		_rd.compute_list_bind_uniform_set(cl, _us_tree_bld, 0)
 		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
 		_rd.compute_list_dispatch(cl, 1, 1, 1)
 		_rd.compute_list_add_barrier(cl)
-	bpc[10] = 6.0
-	_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
-	_rd.compute_list_dispatch(cl, pall, 1, 1)
-	_rd.compute_list_add_barrier(cl)
-	# walk — one thread per particle (reads _pos_buf live), writes _tree_grad
+		bpc[10] = 10.0
+		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		_rd.compute_list_dispatch(cl, 1, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		bpc[10] = 7.0
+		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		_rd.compute_list_dispatch(cl, pg, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		var k := 2
+		while k <= S:
+			var j := k >> 1
+			while j >= 1:
+				bpc[10] = 1.0
+				bpc[11] = float(k)
+				bpc[12] = float(j)
+				bpc[13] = 1.0
+				_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+				_rd.compute_list_dispatch(cl, pg, 1, 1)
+				_rd.compute_list_add_barrier(cl)
+				j = j >> 1
+			k = k << 1
+		_rd.compute_list_add_barrier(cl)
+		for _d in range(ML_TREE_MAX_LEVELS):
+			bpc[10] = 5.0
+			_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+			_rd.compute_list_dispatch(cl, pall, 1, 1)
+			_rd.compute_list_add_barrier(cl)
+			bpc[10] = 8.0
+			_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+			_rd.compute_list_dispatch(cl, 1, 1, 1)
+			_rd.compute_list_add_barrier(cl)
+		bpc[10] = 6.0
+		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		_rd.compute_list_dispatch(cl, pall, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		if tree_hierarchical_refit and _tree_built_topology_generation >= 0 \
+				and _tree_built_topology_generation != _topology_generation:
+			_tree_transition_full_build_count += 1
+		_tree_built_topology_generation = _topology_generation
+		_tree_built_window_center = _window_center
+		_tree_built_box_scale = box_scale
+		_tree_full_build_count += 1
+	# walk — one thread per particle, writes _tree_grad for the step chain
 	_rd.compute_list_bind_compute_pipeline(cl, _tree_walk_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_tree_walk, 0)
 	_rd.compute_list_set_push_constant(cl, gpc.to_byte_array(), gpc.size() * 4)
-	_rd.compute_list_dispatch(cl, int(ceil(float(Np) / 64.0)), 1, 1)
+	_rd.compute_list_dispatch(cl, int(ceil(float(N_particles) / 64.0)), 1, 1)
 	_rd.compute_list_add_barrier(cl)   # walk's _tree_grad writes → the step chain's reads
 
 

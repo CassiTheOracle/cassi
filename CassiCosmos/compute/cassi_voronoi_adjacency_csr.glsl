@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 8 floats (32 B); set 0: bindings 0-4
 // Exact sampled-JFA adjacency compaction.
 // mode 0: degree count; mode 1: ascending CSR fill; mode 2: single-workgroup
 // exclusive scan into offsets including the sentinel and status publication.

@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 8 floats (32 B); set 0: bindings 0-3
 // Dedicated clamped/open JFA. mode 0 clears A/B; mode 1 seeds A;
 // mode 2 floods selected input with bounded neighbors; mode 3 copies output.
 #version 450

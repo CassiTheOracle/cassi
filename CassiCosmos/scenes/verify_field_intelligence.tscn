@@ -1,0 +1,74 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/verify_field_intelligence.gd" id="1_verify"]
+[ext_resource type="Script" path="res://scripts/cassi_sim.gd" id="2_sim"]
+
+[node name="VerifyFieldIntelligence" type="Node"]
+script = ExtResource("1_verify")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 0, 28)
+current = true
+
+[node name="CassiSim" type="Node3D" parent="."]
+script = ExtResource("2_sim")
+playing = false
+grid_N = 64
+N_particles = 1
+dt = 0.02
+cluster_radius = 8.0
+num_clusters = 1
+cluster_separation = 0.0
+source_strength = 0.0
+black_holes_enabled = false
+particle_merge = false
+gravity_mode = 4
+realsim_drag = 0.05
+realsim_viscosity = 4.0
+realsim_friction = 0.0
+river_calibrate_gn = false
+initial_v_circ_factor = 0.0
+box_aspect = Vector3(1, 1, 1)
+box_scale = 2.0
+dual_grid = false
+meshless_mode = false
+gridless_physics = false
+physics_decoupled = false
+home_window_enabled = false
+tracking_envelope = false
+ic_seed = 424242
+field_intelligence_enabled = true
+field_intelligence_probe_index = 0
+field_intelligence_eta = 0.18
+field_intelligence_gamma = 0.85
+field_intelligence_decay = 0.0001
+field_intelligence_p_max = 1.0
+field_intelligence_actuation = 4.0
+field_intelligence_energy_penalty = 0.0002
+field_intelligence_reward_control = 0
+field_intelligence_explore_period = 18
+field_intelligence_explore_steps = 72
+field_intelligence_organ_radius = 4.0
+field_intelligence_context_radius = 2.0
+field_intelligence_kernel_radius = 0.8
+field_intelligence_render = false
+mode = 0
+particle_color_mode = 101
+color_lut_mode = false
+particle_size = 8.0
+presentation_profile = false
+max_steps_per_frame = 16
+physics_frame_budget = 0.0
+auto_align_colors = false
+
+[node name="Status" type="Label" parent="."]
+offset_left = 28.0
+offset_top = 24.0
+offset_right = 980.0
+offset_bottom = 110.0
+theme_override_colors/font_color = Color(0.7, 0.92, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 22
+text = "FIELD INTELLIGENCE • deterministic verification starting"

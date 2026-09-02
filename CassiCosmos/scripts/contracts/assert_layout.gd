@@ -58,11 +58,17 @@ func _check_shader(L: GDScript, name: String) -> void:
 	var m := pc.search(src)
 	var nf := 0
 	if m:
-		nf = RegEx.create_from_string(r'\bfloat\s+\w+').search_all(m.get_string(1)).size()
+		var scalar := RegEx.create_from_string(r'\b(float|vec2|vec3|vec4)\s+\w+')
+		for field in scalar.search_all(m.get_string(1)):
+			match field.get_string(1):
+				"float": nf += 1
+				"vec2": nf += 2
+				"vec3": nf += 3
+				"vec4": nf += 4
 	if nf != int(L.PC[name]):
 		_fail += 1
 		printerr("[assert_layout] FAIL %s: PC %d floats (schema %d)" % [name, nf, int(L.PC[name])])
-	var bind := RegEx.create_from_string(r'layout\(set = (\d+), binding = (\d+)')
+	var bind := RegEx.create_from_string(r'layout\(\s*set\s*=\s*(\d+)\s*,\s*binding\s*=\s*(\d+)')
 	var got := {}
 	for mm in bind.search_all(src):
 		var s := int(mm.get_string(1))

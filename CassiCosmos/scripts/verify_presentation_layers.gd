@@ -63,7 +63,6 @@ func _run() -> void:
 		return
 
 	await _check_sky_follows_camera()
-	await _check_bh_lens_output()
 	_check_particle_profile()
 	await _check_macro_records()
 	_check_trail_records()
@@ -72,6 +71,7 @@ func _run() -> void:
 	await _check_volume_history()
 	await _check_spectrum_volume_parity()
 	await _check_opt_out_cleanup()
+
 ## Optional manual visual hold used by the windowed smoke check. The regular
 ## verifier has no hold argument and retains its fast deterministic exit.
 func _optional_particle_hold() -> void:
@@ -138,30 +138,6 @@ func _check_particle_profile() -> void:
 	_check("particle presentation shader is selected", material != null and material.shader == expected)
 
 
-func _check_bh_lens_output() -> void:
-	var saved_mode: int = int(sim.mode)
-	sim.mode = 2
-	sim._render_bh_lensing()
-	await RenderingServer.frame_post_draw
-	var target: RID = sim.get("_bh_lensing_tex")
-	var pixels := PackedFloat32Array()
-	if target.is_valid():
-		pixels = sim._rd.texture_get_data(target, 0).to_float32_array()
-	var finite := not pixels.is_empty()
-	var non_black := false
-	if finite:
-		var stride := maxi(4, int(pixels.size() / 16384) * 4)
-		for i in range(0, pixels.size() - 3, stride):
-			for channel in range(4):
-				if not is_finite(pixels[i + channel]):
-					finite = false
-					break
-			non_black = non_black or maxf(absf(pixels[i]), maxf(absf(pixels[i + 1]), absf(pixels[i + 2]))) > 1e-5
-			if not finite:
-				break
-	_check("Black Hole display publishes finite procedural lens output",
-			target.is_valid() and sim.bh_display_texture is Texture2DRD and finite and non_black)
-	sim.mode = saved_mode
 
 func _check_macro_records() -> void:
 	var mm: MultiMesh = sim.get("_macro_lod_mm")
@@ -329,3 +305,5 @@ func _check(label: String, ok: bool) -> void:
 	else:
 		_failures += 1
 		push_error("[FAIL] " + label)
+
+

@@ -1,5 +1,5 @@
 #[compute]
-// canonical layout: scripts/contracts/layout.gd §PC — 17 floats (68 B); set 0: bindings 0-5
+// canonical layout: scripts/contracts/layout.gd §PC — 17 floats (68 B); set 0: bindings 0-7
 #version 450
 // Cassi Two-Fluid PDE Solver — 3D finite-difference leapfrog integration.
 // Evolves EY (Yang) and EI (Yin) fields on a regular grid.
@@ -34,6 +34,19 @@ layout(set = 0, binding = 4, std430) coherent readonly buffer MassDensity { floa
 // ~3.8e-6 parity gap). Scratch is fully overwritten every pass A, so it
 // never needs clearing. vec4 = (ey_new, ei_new, vx_new, vy_new).
 layout(set = 0, binding = 5, std430) buffer FieldScratch { vec4 scr[]; };
+layout(set = 0, binding = 6, std430) readonly buffer FieldPlasticity {
+    vec2 pe[];
+};
+layout(set = 0, binding = 7, std430) readonly buffer FieldLearningState {
+    vec4 learn_metrics;
+    vec4 learn_target;
+    vec4 learn_probe;
+    vec4 learn_organ;
+    vec4 learn_control;
+    vec4 learn_context;
+    uvec4 learn_status;
+    uvec4 learn_flags;
+};
 layout(push_constant, std430) uniform PC {
     float N_f; float dt; float t; float phi;
     float xi; float eps2; float particle_N;
@@ -172,6 +185,31 @@ float source_ei(int i, int j, int k) {
 	return s * exp(-r2 * 4.0) + mr * 0.001;
 }
 
+vec3 learned_cell_world(int i, int j, int k) {
+    float halfn = float(int(pc.N_f)) * 0.5;
+    return vec3(
+        (float(i) - halfn) / halfn * pc.extent_x,
+        (float(j) - halfn) / halfn * pc.extent_y,
+        (float(k) - halfn) / halfn * pc.extent_z);
+}
+
+float learned_source(int i, int j, int k) {
+    vec3 command = clamp(learn_control.xyz, vec3(-8.0), vec3(8.0));
+    float amplitude = length(command);
+    if (amplitude <= 1e-8) return 0.0;
+    vec3 lobe = learn_organ.xyz + command / amplitude * learn_organ.w;
+    float sigma = max(learn_organ.w * 0.65, 1e-4);
+    vec3 delta = learned_cell_world(i, j, k) - lobe;
+    return 0.01 * amplitude * exp(-0.5 * dot(delta, delta) / (sigma * sigma));
+}
+
+vec3 learned_medium_flow(int i, int j, int k) {
+    vec3 command = clamp(learn_control.xyz, vec3(-8.0), vec3(8.0));
+    float sigma = max(learn_organ.w * 2.5, 1e-4);
+    vec3 delta = learned_cell_world(i, j, k) - learn_organ.xyz;
+    return command * exp(-0.5 * dot(delta, delta) / (sigma * sigma));
+}
+
 // ── Pass A (pc.pass_sel == 0): compute the new field into scratch ────
 // Reads the canonical ey/ei/vel/rho (old values) and writes ONLY scr —
 // no read/write aliasing within the dispatch, so the 19-point stencil
@@ -187,7 +225,10 @@ void pass_a() {
     // Read current fields
     float ey_old = ey[id];
     float ei_old = ei[id];
-    vec4 vel_old = vel[id];
+    // In FI mode scratch retains the prior PDE derivatives while FieldVel
+    // is the bounded embodied transport seen by particles. Default mode
+    // keeps the historic single-buffer derivative path bit-identical.
+    vec4 vel_old = learn_status.x != 0u ? scr[id] : vel[id];
 
     // Laplacian
     float lap_ey = lap_ey_at(i, j, k);
@@ -212,6 +253,13 @@ void pass_a() {
     // Update fields
     float ey_new = ey_old + vx_new * dt + source_ey(i, j, k) * dt * dt;
     float ei_new = ei_old + vy_new * dt + source_ei(i, j, k) * dt * dt;
+    if (learn_status.x != 0u) {
+        float pulse = learned_source(i, j, k) * dt * dt;
+        vx_new = clamp(vx_new, -8.0, 8.0);
+        vy_new = clamp(vy_new, -8.0, 8.0);
+        ey_new = clamp(ey_new + pulse, -8.0, 8.0);
+        ei_new = clamp(ei_new + pulse * 0.7071067811865476, -8.0, 8.0);
+    }
 
     scr[id] = vec4(ey_new, ei_new, vx_new, vy_new);
 }
@@ -243,7 +291,15 @@ void pass_b() {
     ey[id] = ey_new;
     ei[id] = ei_new;
     q[id] = q_val;
-    vel[id] = vec4(s.z, s.w, 0.0, eps2);
+    if (learn_status.x != 0u) {
+        // FI owns a bounded physical medium-flow component. The fast
+        // Yang/Yin time derivatives remain in scratch for the next PDE
+        // step, but are not reinterpreted as unbounded 3-D transport.
+        vel[id] = vec4(clamp(learned_medium_flow(i, j, k),
+                             vec3(-8.0), vec3(8.0)), eps2);
+    } else {
+        vel[id] = vec4(s.z, s.w, 0.0, eps2);
+    }
 }
 
 void main() {

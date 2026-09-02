@@ -9,7 +9,7 @@ extends Control
 ##
 ## Usage:
 ##   var seg := CSegmented.new()
-##   seg.setup(["Particles", "Field", "Black Hole", "Cosmology"], 0, _on_mode)
+##   seg.setup(["Particles", "Field", "Cosmology"], 0, _on_mode)
 ##   add_child(seg)
 ##   seg.selected_index = 2   # setter presses the right button
 ##

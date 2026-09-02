@@ -1,0 +1,309 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/field_intelligence_demo.gd" id="1_demo"]
+[ext_resource type="Script" path="res://scripts/cassi_sim.gd" id="2_sim"]
+
+[sub_resource type="Environment" id="Environment_demo"]
+background_mode = 1
+background_color = Color(0.003, 0.005, 0.015, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.16, 0.22, 0.38, 1)
+ambient_light_energy = 0.65
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="ProbeMaterial"]
+shading_mode = 1
+albedo_color = Color(0.08, 0.92, 1, 1)
+emission_enabled = true
+emission = Color(0.04, 0.8, 1, 1)
+emission_energy_multiplier = 5.0
+
+[sub_resource type="SphereMesh" id="ProbeMesh"]
+material = SubResource("ProbeMaterial")
+radius = 0.38
+height = 0.76
+radial_segments = 32
+rings = 16
+
+[sub_resource type="StandardMaterial3D" id="TargetMaterial"]
+transparency = 1
+shading_mode = 1
+albedo_color = Color(1, 0.45, 0.08, 0.7)
+emission_enabled = true
+emission = Color(1, 0.22, 0.02, 1)
+emission_energy_multiplier = 4.0
+
+[sub_resource type="SphereMesh" id="TargetMesh"]
+material = SubResource("TargetMaterial")
+radius = 0.58
+height = 1.16
+radial_segments = 24
+rings = 12
+
+[sub_resource type="StandardMaterial3D" id="OrganMaterial"]
+transparency = 1
+shading_mode = 1
+albedo_color = Color(0.32, 0.1, 0.75, 0.08)
+emission_enabled = true
+emission = Color(0.18, 0.05, 0.7, 1)
+emission_energy_multiplier = 1.8
+
+[sub_resource type="SphereMesh" id="OrganMesh"]
+material = SubResource("OrganMaterial")
+radius = 4.0
+height = 8.0
+radial_segments = 48
+rings = 24
+
+[sub_resource type="StyleBoxFlat" id="PanelStyle"]
+bg_color = Color(0.012, 0.018, 0.045, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.18, 0.38, 0.72, 0.72)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0, 0, 0, 0.55)
+shadow_size = 8
+
+[sub_resource type="StyleBoxFlat" id="ButtonStyle"]
+bg_color = Color(0.06, 0.11, 0.24, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.65, 0.95, 0.7)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 12.0
+content_margin_right = 12.0
+content_margin_top = 7.0
+content_margin_bottom = 7.0
+
+[sub_resource type="StyleBoxFlat" id="FieldStyle"]
+bg_color = Color(0.002, 0.004, 0.012, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.72, 1, 0.7)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="FieldIntelligenceDemo" type="Node3D"]
+script = ExtResource("1_demo")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_demo")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 28)
+current = true
+fov = 52.0
+far = 250.0
+
+[node name="KeyLight" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-42, -28, 0)
+light_color = Color(0.62, 0.76, 1, 1)
+light_energy = 1.5
+shadow_enabled = true
+
+[node name="OrganMarker" type="MeshInstance3D" parent="."]
+mesh = SubResource("OrganMesh")
+
+[node name="ProbeMarker" type="MeshInstance3D" parent="."]
+mesh = SubResource("ProbeMesh")
+
+[node name="TargetMarker" type="MeshInstance3D" parent="."]
+position = Vector3(6, 0, 0)
+mesh = SubResource("TargetMesh")
+
+[node name="CassiSim" type="Node3D" parent="."]
+script = ExtResource("2_sim")
+playing = false
+grid_N = 64
+N_particles = 1
+dt = 0.02
+cluster_radius = 8.0
+num_clusters = 1
+cluster_separation = 0.0
+source_strength = 0.0
+black_holes_enabled = false
+particle_merge = false
+gravity_mode = 4
+realsim_drag = 0.05
+realsim_viscosity = 4.0
+realsim_friction = 0.0
+river_calibrate_gn = false
+initial_v_circ_factor = 0.0
+box_aspect = Vector3(1, 1, 1)
+box_scale = 2.0
+dual_grid = false
+meshless_mode = false
+gridless_physics = false
+physics_decoupled = false
+home_window_enabled = false
+tracking_envelope = false
+ic_seed = 424242
+field_intelligence_enabled = true
+field_intelligence_probe_index = 0
+field_intelligence_eta = 0.18
+field_intelligence_gamma = 0.85
+field_intelligence_decay = 0.0001
+field_intelligence_p_max = 1.0
+field_intelligence_actuation = 4.0
+field_intelligence_energy_penalty = 0.0002
+field_intelligence_reward_control = 0
+field_intelligence_explore_period = 18
+field_intelligence_explore_steps = 72
+field_intelligence_organ_radius = 4.0
+field_intelligence_context_radius = 2.0
+field_intelligence_kernel_radius = 0.8
+field_intelligence_render = true
+mode = 1
+particle_color_mode = 101
+color_lut_mode = false
+particle_size = 8.0
+presentation_profile = true
+max_steps_per_frame = 16
+sim_speed = 3.0
+physics_frame_budget = 0.0
+auto_align_colors = false
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Title" type="Label" parent="UI"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 14.0
+offset_bottom = 52.0
+theme_override_colors/font_color = Color(0.78, 0.92, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.85)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 26
+text = "CASSI  •  EMBODIED WORLD-FIELD INTELLIGENCE"
+horizontal_alignment = 1
+
+[node name="InfoPanel" type="PanelContainer" parent="UI"]
+anchors_preset = 15
+anchor_right = 0.41
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 64.0
+offset_right = -10.0
+offset_bottom = -28.0
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Margin" type="MarginContainer" parent="UI/InfoPanel"]
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 18
+
+[node name="Rows" type="VBoxContainer" parent="UI/InfoPanel/Margin"]
+theme_override_constants/separation = 16
+
+[node name="Kicker" type="Label" parent="UI/InfoPanel/Margin/Rows"]
+theme_override_colors/font_color = Color(0.3, 0.78, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "ONE FIELD  •  FAST DYNAMICS + SLOW PLASTICITY"
+
+[node name="Stage" type="Label" parent="UI/InfoPanel/Margin/Rows"]
+theme_override_colors/font_color = Color(0.96, 0.98, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "BOOTING FIELD"
+autowrap_mode = 2
+
+[node name="Rule" type="HSeparator" parent="UI/InfoPanel/Margin/Rows"]
+
+[node name="Metrics" type="Label" parent="UI/InfoPanel/Margin/Rows"]
+theme_override_colors/font_color = Color(0.72, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "distance  —     reward  —     control  —"
+autowrap_mode = 2
+
+[node name="Progress" type="Label" parent="UI/InfoPanel/Margin/Rows"]
+theme_override_colors/font_color = Color(0.68, 0.72, 0.86, 1)
+theme_override_font_sizes/font_size = 14
+text = "waiting for the authoritative field"
+autowrap_mode = 2
+
+[node name="Explanation" type="Label" parent="UI/InfoPanel/Margin/Rows"]
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.72, 0.76, 0.86, 1)
+theme_override_font_sizes/font_size = 15
+text = "Six spatial lobes steer the existing Yang/Yin medium. Reward changes the slow P/e component at those same world-field cells. The probe moves only through the ordinary field-to-particle viscosity path.\n\nThe sequence is causal: train → replay → erase only P/e → replay → restore the exact GPU snapshot → replay."
+autowrap_mode = 2
+
+[node name="Legend" type="Label" parent="UI/InfoPanel/Margin/Rows"]
+theme_override_colors/font_color = Color(0.86, 0.67, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "FIELD VIEW  phase = hue  •  energy = light\nINSET  cyan = +P  •  magenta = −P  •  gold = eligibility"
+autowrap_mode = 2
+
+[node name="Verdict" type="Label" parent="UI/InfoPanel/Margin/Rows"]
+theme_override_colors/font_color = Color(1, 0.72, 0.34, 1)
+theme_override_font_sizes/font_size = 15
+text = "The field will learn, lose P/e, then recover it exactly."
+autowrap_mode = 2
+
+[node name="Controls" type="HBoxContainer" parent="UI/InfoPanel/Margin/Rows"]
+theme_override_constants/separation = 8
+
+[node name="Restart" type="Button" parent="UI/InfoPanel/Margin/Rows/Controls"]
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("ButtonStyle")
+text = "Restart story"
+
+[node name="Pause" type="Button" parent="UI/InfoPanel/Margin/Rows/Controls"]
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("ButtonStyle")
+text = "Pause"
+
+[node name="Clear" type="Button" parent="UI/InfoPanel/Margin/Rows/Controls"]
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("ButtonStyle")
+text = "Clear P/e"
+
+[node name="Restore" type="Button" parent="UI/InfoPanel/Margin/Rows/Controls"]
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("ButtonStyle")
+text = "Restore"
+
+[node name="FieldPanel" type="PanelContainer" parent="UI"]
+anchors_preset = 15
+anchor_left = 0.43
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 64.0
+offset_right = -24.0
+offset_bottom = -28.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("FieldStyle")
+
+[node name="FieldView" type="TextureRect" parent="UI/FieldPanel"]
+mouse_filter = 2
+texture_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="FieldCaption" type="Label" parent="UI/FieldPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.76, 0.9, 1, 0.92)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 14
+text = "LIVE GPU PHASE FIELD                                         P / e"
+vertical_alignment = 2

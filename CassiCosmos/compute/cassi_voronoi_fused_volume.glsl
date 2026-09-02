@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 32 floats (128 B); set 0: bindings 0-9
 // Production boxless site-native volume renderer.
 // Bindings are owned by the global-RD renderer wiring:
 //  0 open finite-tile labels (uint site id per hash cell; invalid < 0 is encoded 0xffffffff)

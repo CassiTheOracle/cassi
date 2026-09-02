@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd §PC — 8 floats (32 B); set 0: bindings 0-5
 // Two-vec4/site compact payload. First vec4 = render-local site xyz (tile-E)
 // and opacity. Second = EY, EI, coherence, gradient magnitude.
 #version 450

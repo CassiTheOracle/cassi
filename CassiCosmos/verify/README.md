@@ -1,6 +1,6 @@
 # Verify battery — one-command runner
 
-Runs the whole Cassi GPU-sim verify battery (35 arms) in sequence, captures each
+Runs the whole Cassi GPU-sim verify battery (38 arms) in sequence, captures each
 arm's exit code, and exits 0 only when every arm passes.
 
 ## How to run
@@ -18,7 +18,7 @@ Godot console exe:
   `--path . res://scenes/<scene>.tscn`; child commands never receive
   `--headless`. Both the sim's global RenderingDevice and the arms' local
   RenderingDevices require a real window on this rig.
-- Exit code: `0` = all 35 passed; `1` = at least one failed.
+- Exit code: `0` = all 38 passed; `1` = at least one failed.
 - The runner prints a progress line per arm and a summary table; failed arms
   get their last 15 stdout/stderr lines printed.
 - Per-arm logs: `res://_diag/battery_logs/armNN_<name>.log` (gitignored).
@@ -47,7 +47,7 @@ only—not evidence for universal physical time.
 
 ## The arms
 
-The authoritative arm list is the `ARMS` const in `verify/run_all.gd` (35 arms).
+The authoritative arm list is the `ARMS` const in `verify/run_all.gd` (38 arms).
 The table below documents each arm:
 
 | # | Scene | What it verifies |
@@ -70,7 +70,7 @@ The table below documents each arm:
 | 16 | verify_volumetric | Volumetric ray-marched render of the analytic φ-attractor field (PNG + RGBAF pixel dump; G35) |
 | 17 | verify_voronoi3d | GPU JFA Voronoi + per-cell two-fluid wave vs the numpy spectral reference (stage1_verify.py) |
 | 18 | verify_voronoi3d_moving | Moving mesh: steering + periodic ALE remap + JFA refresh (stage2_verify.py) |
-| 19 | verify_meshless_gravity | Meshless TREE gravity over the sim's real source buffers, rebuilt on a local RD (G30/G31) |
+| 19 | verify_meshless_gravity | Meshless TREE gravity over the sim's real source buffers, rebuilt on a local RD (production G30/G31); also dumps rejected site-target G61/G62 and direct-refit G63 receipts plus hierarchical-refit G70/G71 receipts, which are evaluated by their numpy gates and do not control the arm exit |
 | 20 | verify_river_isotropy | River azimuthal anisotropy: ring probes on N=64 and N=128, shader-vs-estimator identity, pinned trilinear baseline |
 | 21 | verify_merge_sim | Particle merge wired into the LIVE sim: monotone merge count, mass conservation, dead-marking, φ⁻² gate (G52–G54) |
 | 22 | verify_meshless_reconstruct | AREPO-style per-cell LINEAR reconstruction: linear exactness + interface-jump smoothness (R1/R2) |
@@ -79,14 +79,17 @@ The table below documents each arm:
 | 25 | verify_voronoi3d_aniso | The verify_voronoi3d battery at the φ-aspect box |
 | 26 | verify_voronoi3d_moving_aniso | The verify_voronoi3d_moving battery at the φ-aspect box |
 | 27 | verify_falsify | Falsification meter: w₀ estimator port vs falsify_wo.py references, meter wiring (F1–F3) |
-| 28 | verify_mind_engine | Mind-engine no-op gate: attractor-ratio deposit stays at the fp32 floor; off-ratio evolution conserves charge; full-field seeding resets state with exact EY/EI readback and stable RIDs |
-| 29 | verify_bh_accretion_engine | BH accretion in the standalone engine (local RD): exact mass conservation (G55), swallowed-dead/no-deposit (G56), toggle-off bit-identity (G57) |
-| 30 | verify_merge_engine | Particle merge in the standalone engine (local RD): merge count + mass conservation (G52), dead-marking/no-deposit (G53), φ⁻² low-q no-merge gate (G54) |
-| 31 | verify_multigrid_engine | Cascade-multigrid engine: coarse Φ reference, near-field recovery, and placement-bias ring metric (G58–G60) |
-| 32 | verify_rho_front | φ-locked density-front speed and radial-symmetry gates |
-| 33 | verify_eps_gap | Pure-ε decoupling, gap frequency, and non-propagation gates |
-| 34 | verify_subsonic_step | Exact particle-merge transverse-speed threshold gate |
-| 35 | verify_omega_invariant | ω₀²-independent density-front speed and widened ε-gap gate |
+| 28 | verify_mind_engine | Mind-engine no-op gate: attractor-ratio deposit stays at the fp32 floor; off-ratio evolution conserves charge; full-field seeding resets state with exact EY/EI readback and stable RIDs; canonical native Qi snapshots are hash-bound, monotonic, idempotent, projected deterministically, and isolated exactly from the PDE field |
+| 29 | verify_field_intelligence | Default-off bit identity; fixed P/e and 128-byte header ABI; finite bounded learning; six-target learned-vs-clear controls; exact snapshot/restore; render purity; same-list visual receipt; reinitialization ownership (FI0–FI9) |
+| 30 | verify_bh_accretion_engine | BH accretion in the standalone engine (local RD): exact mass conservation (G55), swallowed-dead/no-deposit (G56), toggle-off bit-identity (G57) |
+| 31 | verify_merge_engine | Particle merge in the standalone engine (local RD): merge count + mass conservation (G52), dead-marking/no-deposit (G53), φ⁻² low-q no-merge gate (G54) |
+| 32 | verify_multigrid_engine | Cascade-multigrid engine: coarse Φ reference, near-field recovery, and placement-bias ring metric (G58–G60) |
+| 33 | verify_rho_front | φ-locked density-front speed and radial-symmetry gates |
+| 34 | verify_eps_gap | Pure-ε decoupling, gap frequency, and non-propagation gates |
+| 35 | verify_subsonic_step | Exact particle-merge transverse-speed threshold gate |
+| 36 | verify_omega_invariant | ω₀²-independent density-front speed and widened ε-gap gate |
+| 37 | verify_tree_hier_refit_engine | Default-off retained-tree moment refit: 32 finite engine steps, forced-full force parity, pre-transition refits, and mandatory full rebuild on the first preparation after a site-topology generation change (G72) |
+| 38 | verify_particle_world_agent | Canonical particle-program validation, pure preview, decoupled-engine authoritative Apply, cache/render publication, idempotency and conflict rejection, one explicit step, and byte-exact automatic Undo (PWA0–PWA8) |
 
 ## Expected runtime
 

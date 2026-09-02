@@ -183,9 +183,12 @@ class BHOctree:
     # The walk is a breadth-first frontier of (target, node) pairs; each
     # wave is one vectorized numpy batch (accept-as-multipole vs open), so
     # it mirrors the "one thread per target, level-by-level" GPU design.
-    def force(self, targets, theta=0.6, pot=False, quad=True):
+    def force(self, targets, theta=0.6, pot=False, quad=True, exclude_self=True):
         """F = −∇(Phi_g) with (quad=True) monopole + quadrupole, or
         (quad=False) monopole only. pot=True also returns Phi_g.
+
+        Set exclude_self=False when targets are not the source array; the
+        default preserves the source-on-source integration behavior.
 
         Density-aware softening (density_aware=True, matching the producing
         GPU shader cassi_tree_gravity.glsl): every ACCEPTED node n is softened
@@ -274,10 +277,11 @@ class BHOctree:
                     quadc = (R2[:, None] * Qd
                              - 2.5 * qd[:, None] * dd) / R7[:, None]
                     add = monop + quadc
-                # subtract self: a leaf at exactly this target (its own
-                # 1-particle cell) contributes nothing to its own force
-                self_leaf = is_leaf[acc_idx] & (self.node_ps[nn] == tt)
-                add[self_leaf] = 0.0
+                # Subtract self only for source-on-source evaluations. Probe
+                # targets have no source identity and must retain every leaf.
+                if exclude_self:
+                    self_leaf = is_leaf[acc_idx] & (self.node_ps[nn] == tt)
+                    add[self_leaf] = 0.0
                 np.add.at(acc, tt, add)
             # ── expand the open internal nodes ─────────────────────────
             if not open_mask.any():

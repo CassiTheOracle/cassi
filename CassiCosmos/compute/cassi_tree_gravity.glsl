@@ -84,9 +84,9 @@ layout(push_constant, std430) uniform PC {
     float N_f;        // #0 target count
     float theta;      // #1 opening criterion (0.5)
     float eps2;       // #2 softening² (1e-6)
-    float use_tp;     // #3 target source selector: >0.5 → tpos[i].xyz
-                      //     (was an unused `phi` slot; 0 = src[2i], the
-                      //     verify/official path — unchanged)
+    float use_tp;     // #3: 0 = source targets; 1 = legacy tpos targets;
+                      //     2 = diagnostic tpos targets without source-ID
+                      //     self-exclusion (never used by production)
     float node_cnt;   // #4 total octree node count
     float q_cent;     // #5 field mean coherence q (the running _q_mean) —
                       //     the θ-adjustment pivot; 0 when coherence_theta off
@@ -159,7 +159,7 @@ void force_main() {
 
         if (!open) {
             // self-exclusion: a leaf whose single source IS this target
-            if (is_leaf && (srcorder[ps] == i)) {
+            if (is_leaf && (pc.use_tp < 1.5) && (srcorder[ps] == i)) {
                 // skip the target's own source entirely
             } else {
                 // monopole (R² = ds2 + eps2_node — density-aware)

@@ -20,6 +20,11 @@
 //             meshless Voronoi mesh (site pos / EY / EI / vol + the deposit's
 //             mass density at the site's grid cell, SOURCE-MASS RECIPE in
 //             gather_main), then does everything mode 0 does (chord w + key)
+//   mode 11 REFRESH   (G63 research verifier only) refreshes live
+//             source/mass/Yang/Yin values without touching order.
+//   mode 12 LEAVES    (G70 probe) recomputes direct moments only for leaves.
+//   mode 13 REDUCE    (G70 probe, deepest level to root) combines the already
+//             complete moments of each internal node's contiguous children.
 //   mode 1  BITONIC   (91 dispatches)  sort srcOrder by the Morton key
 //             ascending (N=2^13 = 8192 → 13·14/2 = 91 comparator stages;
 //             deterministic exact order, no histogram/prefix stability trap).
@@ -40,7 +45,7 @@
 //             + quadrupole the walk consumes).
 //
 // Opening/hardening rules live in the WALK shader (this shader only builds).
-// Total dispatch count ≈ 1 + 91 + levels(≤ MAX_LEVELS) + 1.
+// Full production preparation is 123 dispatches; G70 hierarchical refit is 16.
 //
 // Buffers (set 0, shared with the gravity shader):
 //   0 srcTable  vec4[2N]  [pos.xyz, mass], [EY, EI, 0, 0]
@@ -105,7 +110,7 @@ layout(push_constant, std430) uniform PC {
     float xi;           // #7 phi⁶
     float leaf_cap;     // #8 1.0
     float max_levels;   // #9 14.0
-    float mode;         // #10 0 prep / 1 bitonic / 5 split / 6 moments / 7 gather / 8 commit / 9 ctr-reset / 10 root-seed
+    float mode;         // #10 production 0/1/5-10; recovery probe 11-13
     float b_k;          // #11 bitonic outer k, or (split) level_start
     float b_j;          // #12 bitonic inner j, or (split) level_count
     float b_m;          // #13 bitonic pass index (0 precount, 1..91 swap)
@@ -173,7 +178,7 @@ void prepare_main() {
 // deposit and the field are simultaneously empty — COM/quadrupole ratios in
 // mode 6 stay defined. When the deposit is nonzero the floor is moot; it
 // only guards the fully-empty case.
-void gather_main() {
+void gather_main(bool structural) {
     uint s = gl_GlobalInvocationID.x;
     if (int(s) >= int(pc.N_f)) return;
     vec4 sp = site[s];
@@ -209,12 +214,14 @@ void gather_main() {
     float q = (rho * rho) / (rho * rho + PHI_INV2 + eps * eps);
     float g = 1.0 + (pc.xi - 1.0) * q;
     srcw[s] = mass * g;
-    float D = 2.0 * pc.bhalf;
-    uint ix = uint(clamp(floor((sp.x - pc.bmin_x) * MORT_F / D), 0.0, MORT_F - 1.0));
-    uint iy = uint(clamp(floor((sp.y - pc.bmin_y) * MORT_F / D), 0.0, MORT_F - 1.0));
-    uint iz = uint(clamp(floor((sp.z - pc.bmin_z) * MORT_F / D), 0.0, MORT_F - 1.0));
-    srckey[s] = dilate10(ix) | (dilate10(iy) << 1u) | (dilate10(iz) << 2u);
-    srcorder[s] = s;
+    if (structural) {
+        float D = 2.0 * pc.bhalf;
+        uint ix = uint(clamp(floor((sp.x - pc.bmin_x) * MORT_F / D), 0.0, MORT_F - 1.0));
+        uint iy = uint(clamp(floor((sp.y - pc.bmin_y) * MORT_F / D), 0.0, MORT_F - 1.0));
+        uint iz = uint(clamp(floor((sp.z - pc.bmin_z) * MORT_F / D), 0.0, MORT_F - 1.0));
+        srckey[s] = dilate10(ix) | (dilate10(iy) << 1u) | (dilate10(iz) << 2u);
+        srcorder[s] = s;
+    }
 }
 
 // ── mode 1: bitonic sort of srcorder by srckey (ascending), N = 2^k ────
@@ -352,7 +359,6 @@ void root_seed_main() {
     nr[0] = ivec4(0, int(pc.N_f), -1, 0);
 }
 
-
 // packed trace-free quadrupole accumulation helpers (node-local, mode 6)
 // Q[6] = [Qxx,Qxy,Qxz,Qyy,Qyz,Qzz]
 
@@ -360,23 +366,19 @@ void root_seed_main() {
 // W = Σ w ; COM = Σ w·p / W ; Q_ij = Σ w(3 ξ_i ξ_j − |ξ|² δ_ij), ξ = p − COM.
 // Accumulated in float (portable; the float32 AMOUNT of rounding is well
 // below the G16 ≤5e-3 cross-check threshold vs the float64 prototype).
-void moments_main() {
-    uint gid = gl_GlobalInvocationID.x;
-    int nc = int(ctr[0]);           // total node count (after all splits)
-    if (int(gid) >= nc) return;
+void direct_moments(uint gid) {
     ivec4 rng = nr[gid];
     int ps = rng.x;
     int pe = rng.y;
     float W = 0.0;
     vec3 s = vec3(0.0);
-    float qsum = 0.0;   // Arm 2: mass-weighted Σ(w·q_i) for the node's mean q
+    float qsum = 0.0;
     for (int s2 = ps; s2 < pe; s2++) {
         uint si = srcorder[s2];
         vec4 p = src[2 * si];
         float wv = srcw[si];
         W += wv;
         s += wv * p.xyz;
-        // q_i from the source's own (EY,EI): ρ=EY+EI, ε=EY−φ·EI
         vec4 f = src[2 * si + 1];
         float rho = f.x + f.y;
         float eps = f.x - pc.phi * f.y;
@@ -405,14 +407,72 @@ void moments_main() {
     nq[2 * gid + 1] = vec4(qyz, qzz, 0.0, 0.0);
 }
 
+void moments_main() {
+    uint gid = gl_GlobalInvocationID.x;
+    if (gid >= ctr[0]) return;
+    direct_moments(gid);
+}
+
+// ── mode 12: retained-tree leaf moments ────────────────────────────────
+void leaf_moments_main() {
+    uint gid = gl_GlobalInvocationID.x;
+    if (gid >= ctr[0] || nr[gid].w != 0) return;
+    direct_moments(gid);
+}
+
+// ── mode 13: one retained internal level reduced from its children ─────
+void reduce_moments_main() {
+    uint gid = gl_GlobalInvocationID.x;
+    if (gid >= ctr[0]) return;
+    ivec4 rng = nr[gid];
+    if (rng.w == 0) return;
+    float half_ratio = pc.bhalf / max(ncf[gid].w, 1e-30);
+    int depth = int(round(log2(max(half_ratio, 1.0))));
+    if (depth != int(pc.b_k)) return;
+
+    float W = 0.0;
+    vec3 weighted_com = vec3(0.0);
+    float qsum = 0.0;
+    for (int ci = 0; ci < rng.w; ci++) {
+        int child = rng.z + ci;
+        float child_w = nw[child].x;
+        W += child_w;
+        weighted_com += child_w * nw[child].yzw;
+        qsum += child_w * nodeqq[child];
+    }
+    vec3 com = (W > 1e-30) ? weighted_com / W : vec3(0.0);
+    float qxx = 0.0, qxy = 0.0, qxz = 0.0, qyy = 0.0, qyz = 0.0, qzz = 0.0;
+    for (int ci = 0; ci < rng.w; ci++) {
+        int child = rng.z + ci;
+        float child_w = nw[child].x;
+        vec3 d = nw[child].yzw - com;
+        float r2 = dot(d, d);
+        vec4 q0 = nq[2 * child];
+        vec4 q1 = nq[2 * child + 1];
+        qxx += q0.x + child_w * (3.0 * d.x * d.x - r2);
+        qxy += q0.y + child_w * (3.0 * d.x * d.y);
+        qxz += q0.z + child_w * (3.0 * d.x * d.z);
+        qyy += q0.w + child_w * (3.0 * d.y * d.y - r2);
+        qyz += q1.x + child_w * (3.0 * d.y * d.z);
+        qzz += q1.y + child_w * (3.0 * d.z * d.z - r2);
+    }
+    nw[gid] = vec4(W, com);
+    nq[2 * gid] = vec4(qxx, qxy, qxz, qyy);
+    nq[2 * gid + 1] = vec4(qyz, qzz, 0.0, 0.0);
+    nodeqq[gid] = (W > 1e-30) ? qsum / W : 0.0;
+}
+
 void main() {
     int m = int(pc.mode);
     if (m == 0) prepare_main();
-    else if (m == 7) gather_main();
+    else if (m == 7) gather_main(true);
+    else if (m == 11) gather_main(false);
+    else if (m == 12) leaf_moments_main();
+    else if (m == 13) reduce_moments_main();
     else if (m == 1) bitonic_main();
     else if (m == 8) commit_main();
     else if (m == 9) ctr_reset_main();
     else if (m == 10) root_seed_main();
     else if (m == 5) split_main();
-    else moments_main();
+    else if (m == 6) moments_main();
 }

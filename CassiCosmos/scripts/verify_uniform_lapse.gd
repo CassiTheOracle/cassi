@@ -50,6 +50,7 @@ var _q: RID
 var _vel: RID
 var _rho: RID
 var _scratch: RID
+var _fi_fallback: RID
 var _pc := PackedFloat32Array()
 var _initial_ey := PackedFloat32Array()
 var _initial_ei := PackedFloat32Array()
@@ -111,13 +112,16 @@ func _make_buffers() -> bool:
 	_vel = _rd.storage_buffer_create(CELLS * 16)
 	_rho = _rd.storage_buffer_create(CELLS * 4)
 	_scratch = _rd.storage_buffer_create(CELLS * 16)
-	var buffers_ok: bool = _ey.is_valid() and _ei.is_valid() and _q.is_valid() and _vel.is_valid() and _rho.is_valid() and _scratch.is_valid()
+	var fi_zero := PackedByteArray(); fi_zero.resize(128)
+	_fi_fallback = _rd.storage_buffer_create(128, fi_zero)
+	var buffers_ok: bool = _ey.is_valid() and _ei.is_valid() and _q.is_valid() and _vel.is_valid() and _rho.is_valid() and _scratch.is_valid() and _fi_fallback.is_valid()
 	if buffers_ok:
 		_us = _rd.uniform_set_create([
 			_u(0, _ey), _u(1, _ei), _u(2, _q), _u(3, _vel), _u(4, _rho), _u(5, _scratch),
+			_u(6, _fi_fallback), _u(7, _fi_fallback),
 		], _shader, 0)
 		buffers_ok = _us.is_valid()
-	_gate("storage_bindings", buffers_ok, "bindings 0..5 and six storage buffers" if buffers_ok else "storage buffer or uniform set RID invalid")
+	_gate("storage_bindings", buffers_ok, "bindings 0..7 and seven storage buffers" if buffers_ok else "storage buffer or uniform set RID invalid")
 	_zero_field.resize(CELLS * 4)
 	_zero_velocity.resize(CELLS * 16)
 	return buffers_ok
@@ -548,7 +552,7 @@ func _gate(name: String, ok: bool, detail: String = "") -> void:
 
 func _exit_tree() -> void:
 	if _rd != null:
-		for rid in [_us, _scratch, _rho, _vel, _q, _ei, _ey, _pipe, _shader]:
+		for rid in [_us, _fi_fallback, _scratch, _rho, _vel, _q, _ei, _ey, _pipe, _shader]:
 			if rid.is_valid():
 				_rd.free_rid(rid)
 		_rd.free()
