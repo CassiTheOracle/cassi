@@ -18,6 +18,16 @@ $$
 \frac{K_{\mathfrak s}|\Delta_m|}
 {2\varphi^{3/2}\mathfrak s_p}.
 $$
+In the same boundary-trace normalization, freezing a declared endpoint
+background gives a Hermitian rail-rail Robin Hessian,
+$\Lambda_{\mathrm{link},v}=2\kappa_vu_vM(\alpha_v)$, with a unitary
+two-port Cayley matrix. It realizes the declared golden matrix at one
+$k_\star$ when the dressed endpoint phase is a quarter-turn and
+$2\kappa_vu_v/(K_{\mathfrak s}k_\star)=\tau_\varphi$. On the selected
+species-port branch, requiring the unbiased $m=1$ current to remain below
+capacity with positive fixed-amplitude phase stiffness gives the conditional
+bound $k_\star>0.0964640362$. The action leaves the matching point, endpoint
+background, trace normalization, and dressed phase unselected.
 
 The one-way open closure instead fixes the conditional endpoint-rate ratio
 $\gamma_-/\gamma_+=\varphi$ while damping transverse coherence.
@@ -297,7 +307,7 @@ $$
 Gauge charge is exchanged with the charged endpoint section. The corresponding
 Noether current includes the $\Upsilon_v$ contribution.
 
-### 3.4 Critical current and stable phase branch
+### 3.4 Critical current and positive phase curvature
 
 Define the vertex critical current
 
@@ -333,10 +343,10 @@ K_{\delta,v}
 \tag{EL21}
 $$
 
-The locally stable current branch has $K_{\delta,v}>0$, equivalently
-$\cos(\vartheta-\alpha_v)>0$. Its phase stiffness vanishes at critical current.
-An overcritical current has no stationary coherent phase lag in this endpoint
-model.
+The positive phase-curvature current branch has $K_{\delta,v}>0$, equivalently
+$\cos(\vartheta-\alpha_v)>0$. Its fixed-amplitude phase stiffness vanishes at
+critical current. An overcritical current has no stationary coherent phase lag
+in this endpoint model.
 
 ### 3.5 Uniform $\varphi$-composition capacity
 
@@ -384,6 +394,255 @@ $$
 This number is a required coupling ratio within the declared endpoint
 normalization. It is not a measured endpoint coupling or a prediction of the
 canonical two-density PDE.
+
+### 3.6 Frozen coherent link as a Robin vertex
+
+The coherent endpoint field supplies a concrete static Hermitian boundary
+matrix after the background and scattering variables are declared. Freeze a
+stationary endpoint background and its fluctuation,
+
+$$
+\Upsilon_{v,0}:=u_v e^{i\alpha_v},
+\qquad
+\delta\Upsilon_v=0,
+\qquad
+u_v>0.
+$$
+
+Let the two scattering variables be the ordered Yang/Yin rail-perturbation
+traces in the same normalization as the quadratic boundary problem:
+
+$$
+\Phi_v:=
+\begin{pmatrix}\eta_Y(v)\\\eta_I(v)\end{pmatrix},
+\qquad
+\nu_v:=2\kappa_vu_v,
+\qquad
+M(\alpha_v):=
+\begin{pmatrix}
+0&e^{-i\alpha_v}\\
+e^{i\alpha_v}&0
+\end{pmatrix}.
+\tag{ELR1}
+$$
+
+At fixed $\Upsilon_{v,0}$, the rail-rail Hessian block of the coherent
+interaction in (EL9) is
+
+$$
+\kappa_v
+\left(
+\Upsilon_{v,0}^*\eta_Y^*\eta_I
++\Upsilon_{v,0}\eta_I^*\eta_Y
+\right)
+=
+\frac12\Phi_v^\dagger
+\Lambda_{\mathrm{link},v}\Phi_v,
+\qquad
+\boxed{
+\Lambda_{\mathrm{link},v}
+:=\nu_vM(\alpha_v).}
+\tag{ELR2}
+$$
+
+The factor $2$ in $\nu_v$ follows from the overall $1/2$ in the quadratic
+boundary-action convention: variation with respect to the complex boundary
+trace and its conjugate gives
+$K_{\mathfrak s}\Phi_v'=\Lambda_{\mathrm{link},v}\Phi_v$. For dimensionless
+$\mathfrak s$,
+$[\Lambda_{\mathrm{link},v}]=[K_{\mathfrak s}]=\hbar/T$ in this trace
+normalization.
+
+The matrix obeys
+
+$$
+M^\dagger=M,
+\qquad
+M^2=I,
+\qquad
+\operatorname{tr}M=0,
+\qquad
+\det M=-1.
+$$
+
+Thus $\Lambda_{\mathrm{link},v}$ is Hermitian with eigenvalues
+$\pm\nu_v$. Under the local relative-frame transformation
+$G(\beta)=\operatorname{diag}(e^{ig_Q\beta/2},e^{-ig_Q\beta/2})$,
+
+$$
+\boxed{
+\Lambda_{\mathrm{link},v}
+\longmapsto
+G(\beta)\Lambda_{\mathrm{link},v}G(\beta)^\dagger.}
+\tag{ELR3}
+$$
+
+The Robin law
+$K_{\mathfrak s}\Phi_v'=\Lambda_{\mathrm{link},v}\Phi_v$, with $\Phi_v'$ the
+ordered outward covariant derivatives, is therefore gauge covariant. This
+reduction uses the second-order temporal branch in
+`foundations/particle-stationary-action-closure.md` §3.2 and the boundary
+normalization in
+`foundations/interscale-stress-attenuation-boundary.md` §4.3. The original
+first-order endpoint action continues to govern the coherent source and
+current-capacity calculation. A full fluctuation Hessian also contains
+rail-endpoint blocks when $\delta\Upsilon_v\neq0$; those blocks are excluded
+from the frozen $2\times2$ response. The identification of the two scattering
+ports with the Yang/Yin species traces remains Hypothesized.
+
+### 3.7 Exact link scattering and selected golden match
+
+The involution $M^2=I$ makes the frozen-link scattering matrix analytic. Set
+$x:=K_{\mathfrak s}k$ and use the Hermitian-Robin Cayley map. Direct inversion
+gives
+
+$$
+\boxed{
+S_{\mathrm{link}}(k)
+=
+\frac{x^2-\nu_v^2}{x^2+\nu_v^2}I
+-i\frac{2x\nu_v}{x^2+\nu_v^2}M(\alpha_v),}
+\qquad
+S_{\mathrm{link}}^\dagger S_{\mathrm{link}}=I.
+\tag{ELR4}
+$$
+
+For an oriented target
+
+$$
+S_{\varphi,\epsilon}
+:=t_\varphi I+\epsilon r_\varphi J,
+\qquad
+J:=
+\begin{pmatrix}0&1\\-1&0\end{pmatrix},
+\qquad
+\epsilon\in\{+1,-1\},
+$$
+
+The channel order is $(Y,I)$ and every derivative is outward at its vertex.
+The sign $\epsilon$ chooses the target-matrix orientation in that fixed channel
+order. The vertex sign $\sigma_v$ in the current-turning law separately
+records outward scale-current orientation; it is not a gauge-frame phase and
+is not absorbed into $\alpha_v$. A frame change conjugates the scattering
+matrix, while reversing $\sigma_v$ reverses the desired current turning.
+
+The exact selected-point conditions are
+
+$$
+\boxed{
+\alpha_v=-\epsilon\frac{\pi}{2}\pmod{2\pi},
+\qquad
+\frac{2\kappa_vu_v}{K_{\mathfrak s}k_\star}
+=\tau_\varphi
+:=\frac{r_\varphi}{1+t_\varphi}.}
+\tag{ELR5}
+$$
+
+They give
+
+$$
+\Lambda_{\mathrm{link},v}
+=i\epsilon K_{\mathfrak s}k_\star\tau_\varphi J,
+\qquad
+S_{\mathrm{link}}(k_\star)=S_{\varphi,\epsilon}.
+$$
+
+The phase in (ELR5) is a fixed-frame representative of the dressed endpoint
+intertwiner. The endpoint action supplies the allowed charged field and the
+static Hermitian matrix form while leaving $\alpha_v$, $\kappa_vu_v$, and
+$k_\star$ as physical inputs. The equality therefore realizes the declared
+golden target conditionally. Target selection remains open.
+
+For the same frozen link at another wave number,
+
+$$
+a(k):=\frac{\nu_v}{K_{\mathfrak s}k}
+=\frac{k_\star}{k}\tau_\varphi,
+$$
+
+so (ELR4) reproduces the wave-number dependence in
+`foundations/interscale-stress-attenuation-boundary.md` §4.4. This section
+sets $\delta\Upsilon_v=0$ and therefore derives a static closed-channel
+Hermitian matrix. Integrating active endpoint fluctuations would instead
+produce a frequency-dependent self-energy
+$\Lambda_{\mathrm{eff}}^{R/A}(\omega,k)$ whose retarded or advanced convention
+must be declared. An open endpoint channel can give its retarded response an
+imaginary part. Comparing that response with a conservative Hermitian Robin
+matrix requires a closed fluctuation sector, a regular pole-free on-shell
+domain, and a stable declared background. Those conditions depend on $U_v$,
+$K_v$, the temporal term, damping, and boundary normalization.
+
+### 3.8 Simultaneous current-capacity boundary
+
+The same endpoint can realize the selected two-port matrix and turn the
+stationary scale current only while that current remains below the matched
+link's critical current. At uniform $\varphi$ composition, (EL18), (EL22),
+(EL23), and (ELR5) give
+
+$$
+\boxed{
+\frac{|\mathcal J_{Q,m}|}{\mathcal J_{c,v}}
+=
+\frac{|\Delta_m|}
+{\varphi^{3/2}\mathfrak s_p\tau_\varphi k_\star}
+=
+\frac{k_{\min,m}}{k_\star}.}
+\tag{ELR6}
+$$
+
+The positive fixed-amplitude phase-stiffness branch has
+$|\mathcal J_{Q,m}|<\mathcal J_{c,v}$, so the matching point must satisfy
+
+$$
+\boxed{k_\star>k_{\min,m}.}
+\tag{ELR7}
+$$
+
+Here the conditional capacity scale is
+
+$$
+\boxed{
+k_{\min,m}
+:=
+\frac{|\Delta_m|}
+{\varphi^{3/2}\mathfrak s_p\tau_\varphi}.}
+\tag{ELR7a}
+$$
+
+For the unbiased $m=1$ branch with
+$\Delta_1=2\pi$ and $\mathfrak s_p=91.461618346$,
+
+$$
+\boxed{k_{\min,1}=0.096464036203895.}
+\tag{ELR8}
+$$
+
+The compatible stationary phase lag satisfies
+
+$$
+\sin(\vartheta-\alpha_v)
+=-\sigma_v\frac{k_{\min,m}}{k_\star},
+\qquad
+K_{\delta,v}
+=\frac{K_{\mathfrak s}k_\star\tau_\varphi\rho}
+{\varphi^{3/2}}
+\sqrt{1-\left(\frac{k_{\min,m}}{k_\star}\right)^2}.
+\tag{ELR9}
+$$
+
+At $k_\star=k_{\min,m}$ the fixed-amplitude phase stiffness vanishes, so
+equality is the marginal current-capacity boundary. The strict inequality in
+(ELR7) establishes current existence with positive phase curvature in the
+frozen-amplitude subspace. Full endpoint fluctuation stability additionally
+depends on $U_v'(u_v^2)$, $U_v''(u_v^2)$, $K_v$, the temporal coefficient,
+and the coupled rail-endpoint spectrum.
+
+The numerical value in (ELR8) uses the Mapped proton endpoint, unbiased
+winding, declared species-port identification, common trace normalization,
+quadratic-link identification
+$|\Lambda_{YI}|=2\kappa_vu_v$, and selected golden matching condition
+$|\Lambda_{YI}|=K_{\mathfrak s}k_\star\tau_\varphi$. Its scope is a
+conditional lower bound on a free $k_\star$ above the capacity boundary.
 
 ---
 
@@ -822,6 +1081,7 @@ thin-tube matching hold.
 | Structure | Stability condition | Sector-changing event | Rate status |
 |---|---|---|---|
 | Coherent endpoint phase | $|\mathcal J_Q|<\mathcal J_{c,v}$, $u_v>0$, and $\cos(\vartheta-\alpha_v)>0$ at both vertices | Overcritical current, $u_v=0$, endpoint phase slip, or coupling to an incoherent channel | Requires $U_v$, endpoint damping, and fluctuation data |
+| Frozen-link Robin response | Common Yang/Yin species-port trace normalization, fixed $u_v>0$, Hermitian rail-rail Hessian, and $k_\star>k_{\min,m}$ on the positive fixed-amplitude phase-stiffness branch | Endpoint amplitude or dressed-phase change, port-basis change, active endpoint dispersion, or loss of coherent current turning | Unitary matrix and selected-point matching Derived conditionally; full fluctuation stability, $k_\star$, dressed phase, normalization, and bandwidth dynamics remain unselected |
 | Scale-graph winding $m$ | Nonzero coherent amplitude around the compact graph | Rail-amplitude zero, endpoint phase slip, boundary event, or open jump | Unselected |
 | Rank-one projective charge | Evolution remains on $\|\mathbf n\|=1$ with fixed boundary data | Entry into the full-rank interior or $\rho=0$ | Minimal conversion supplies an inward path but no universal transition rate |
 | First Chern number $N_G$ | Closed two-cycle and compact connection in a defect or nontrivial-base sector | Boundary flux, defect crossing, singular connection event, or removal of the cycle | Exterior coefficient Derived conditionally; core dynamics unselected |
@@ -834,8 +1094,9 @@ thin-tube matching hold.
 
 ### 7.2 Phase-slip boundary
 
-On the stable coherent branch, the phase curvature (EL21) controls the local
-endpoint restoring force. As $|\mathcal J_Q|\to\mathcal J_{c,v}$,
+On the positive fixed-amplitude phase-stiffness branch, the curvature (EL21)
+controls the local endpoint restoring force. As
+$|\mathcal J_Q|\to\mathcal J_{c,v}$,
 
 $$
 \cos(\vartheta-\alpha_v)\to0,
@@ -892,27 +1153,53 @@ localized solution, or defect sector.
 
 ### 8.2 Present evidential status
 
-The gauge transformations, source cancellation, capacity inequality, Markov
-rate ratio, coherence half-rate, cohomology groups, reduced-radius algebra, and
-point-core exterior coefficient are executable analytic checks. No numerical
-PDE run currently realizes the charged endpoint field, open endpoint channel,
-or a finite-energy point defect. The toroidal experiments test different
-conservative spatial constructions and do not instantiate (EL9) or (EL28).
+The gauge transformations, source cancellation, capacity inequality,
+frozen-link Robin reduction, Cayley unitarity, selected-point golden match,
+conditional current-capacity lower bound, Markov rate ratio, coherence
+half-rate, cohomology groups, reduced-radius algebra, and point-core exterior
+coefficient are executable analytic checks. No numerical PDE run currently
+realizes the charged endpoint field, open endpoint channel, or a finite-energy
+point defect.
+The toroidal experiments test different conservative spatial constructions and
+do not instantiate (EL9) or (EL28).
 
-No numbered prediction is added to
-`predictions/falsifiable-predictions.md`. A physical discriminator requires a
-selected endpoint normalization, support sector, solution, and observable map.
+The frozen first execution of
+`computations/endpoint_link_localization_check.py` passed ER1–ER5 without
+coefficient changes:
+
+| Check | Numerical receipt |
+|---|---:|
+| ER1 charged-link covariance | $1.110\times10^{-16}$ residual |
+| ER2 link-scattering unitarity | $0$ residual |
+| ER3 selected golden match | $1.173\times10^{-16}$ residual |
+| ER4 `stable matched-link k_min` | $k_{\min,1}=0.096464036203895$; $\lvert\mathcal J_Q\rvert/\mathcal J_c=0.120580045255$ at $k_\star=0.8$ |
+| ER5 fixed-link off-match response | $\left\lVert S(1.7k_\star)-S_{\varphi,+}\right\rVert_{\max}=0.227151634836$ |
+
+The executable label `stable matched-link k_min` denotes the current-capacity
+threshold where the frozen-amplitude phase stiffness vanishes. Full endpoint
+fluctuation stability remains open.
+
+No new prediction number is introduced. Existing EL-2 in
+`predictions/falsifiable-predictions.md` records the conditional response and
+its open premises. A physical discriminator still requires a selected endpoint
+normalization, support sector, solution, and observable map.
 
 ---
 
 ## 9. Present conclusion
 
 A charge-$-g_Q$ endpoint section supplies the minimal coherent dressing of the
-Yang/Yin conversion bilinear. Its frozen-amplitude limit gives the registered
-endpoint cosine, its source conserves total Yang-plus-Yin density, and its
-critical current yields an explicit coupling threshold. A one-way Lindblad
-alternative closes the same population circuit and fixes a conditional
-$\varphi$ rate ratio while damping endpoint coherence.
+Yang/Yin conversion bilinear. Its frozen-background rail Hessian gives the
+gauge-covariant Hermitian Robin matrix (ELR2) under the declared species-port
+identification, and the Cayley map is unitary. A dressed quarter-turn phase and
+$2\kappa_vu_v/(K_{\mathfrak s}k_\star)=\tau_\varphi$ realize the declared
+golden target at one $k_\star$. On the unbiased $m=1$ branch, current capacity
+and positive fixed-amplitude phase stiffness require
+$k_\star>0.0964640362$. Stability against endpoint-amplitude and coupled
+rail fluctuations remains open. The endpoint background, matching point,
+dressed phase, trace normalization, and active response remain physical
+inputs. A one-way Lindblad alternative closes the population circuit and fixes
+a conditional $\varphi$ rate ratio while damping endpoint coherence.
 
 The complete positive coherence fibre has no state-only homotopy protection.
 A first Chern number of the compact relative connection survives mixed states,
@@ -942,6 +1229,8 @@ fluctuation spectrum, physical calibration, and decay rate remain open.
   coherence fibre, canonical reduction, and endpoint-gluing boundary
 - `foundations/interscale-current-soliton.md`—relative connection, scale
   current, endpoint cosine, mixed curvature, and Derrick profile
+- `foundations/interscale-stress-attenuation-boundary.md`—canonical boundary
+  flux, Hermitian Robin family, and selected-point golden target
 - `foundations/point-core-flux-sector.md`—quantized exterior support,
   finite-energy obstruction, and stationary-solver boundary
 - `foundations/nonabelian-magnetic-core-boundary.md`—auxiliary smooth core,
@@ -957,6 +1246,8 @@ fluctuation spectrum, physical calibration, and decay rate remain open.
 - `computations/particle_action_closure_check.py`—action-algebra and
   nondimensionalization checker
 - `computations/particle-stationary-bvp-report.md`—registered one-point campaign receipt and numerical-quality verdict
+- `computations/endpoint_robin_link_prereg.md`—frozen Robin-link matching and
+  current-capacity checks
 - `foundations/physical-becoming-hierarchy.md`—closed conservative and
   mesoscopic open-system boundary
 - `foundations/loop-to-bubble-projection-theorem.md`—positive Yang/Yin Gram
@@ -968,6 +1259,6 @@ fluctuation spectrum, physical calibration, and decay rate remain open.
   survival verdict
 - `field-experience/toroidal-connected-hierarchy-report.md`—connected
   hierarchy result
-- `computations/endpoint_link_localization_check.py`—endpoint, topology, and
-  localization algebra checker
+- `computations/endpoint_link_localization_check.py`—endpoint, Robin matching,
+  topology, and localization algebra checker
 - `computations/point_core_flux_check.py`—point-core flux and support checker

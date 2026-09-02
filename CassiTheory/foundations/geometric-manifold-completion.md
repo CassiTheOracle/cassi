@@ -322,6 +322,16 @@ reflection/transmission requires an additional endpoint interaction; the
 self-adjoint two-lead family and the coupling required by the declared golden
 target are derived in
 `foundations/interscale-stress-attenuation-boundary.md` §4.3–§4.4.
+Under the conditional species-port trace identification, freezing the charged
+endpoint background gives the gauge-covariant rail-rail Hessian
+$\Lambda_{\mathrm{link},v}=2\kappa_vu_vM(\alpha_v)$. A dressed quarter-turn
+phase and $2\kappa_vu_v/(K_{\mathfrak s}k_\star)=\tau_\varphi$ realize the
+declared golden matrix at one selected $k_\star$. Requiring the simultaneous
+unbiased proton current to remain below capacity with positive fixed-amplitude
+phase stiffness gives the conditional bound $k_\star>0.0964640362$. The
+endpoint background, trace normalization, port assignment, dressed phase, and
+matching point remain physical inputs, and full fluctuation stability remains
+open.
 
 The scalar phases in (GM11) are fixed-frame representatives of endpoint
 intertwiners. Under a relative $U(1)_Q$ frame change, each $S_v$ must transform
@@ -339,8 +349,9 @@ physical endpoint may instead require an explicitly resolved mixing field or
 a trace-preserving open-system vertex channel.
 
 The charged transition section in
-`foundations/endpoint-link-and-localization-boundary.md` realizes the phase
-intertwiner dynamically and has a finite coherent-current capacity. A one-way
+`foundations/endpoint-link-and-localization-boundary.md` realizes the endpoint
+intertwiner and frozen-link Robin family conditionally and has a finite
+coherent-current capacity. A one-way
 Lindblad vertex channel supplies a distinct gauge-covariant population
 closure, with $\gamma_-/\gamma_+=\varphi$ in the uniform circuit state while
 undriven endpoint coherence decays.

@@ -42,11 +42,17 @@ Hypothesized.
 
 `foundations/interscale-stress-attenuation-boundary.md` supplies one explicit
 Hypothesized realization of the uniform family. Its time-completed quadratic
-branch fixes the canonical boundary flux and a unitary endpoint family, while
-the golden matrix requires a selected coupling at one design wave number.
-With complementary return ports separately routed away from coherent re-entry,
-the branch yields $\varphi^{-N}$ for a quadratic forward flux. Reciprocal
-stress transfer, self-adjoint endpoint matching, and closed coherent
+branch fixes the canonical boundary flux and a unitary endpoint family. Under
+the Hypothesized Yang/Yin species-port identification, the frozen charged
+endpoint background supplies a gauge-covariant Hermitian rail-rail Hessian.
+A dressed quarter-turn phase and selected coupling ratio realize the golden
+matrix at one design wave number. Requiring the same unbiased proton current
+to remain below endpoint capacity with positive fixed-amplitude phase
+stiffness gives the conditional bound $k_\star>0.0964640362$. The endpoint
+background, trace normalization, dressed phase, and matching point remain
+inputs. With complementary return ports separately routed away from coherent
+re-entry, the branch yields $\varphi^{-N}$ for a quadratic forward flux.
+Reciprocal stress transfer, self-adjoint endpoint matching, and closed coherent
 propagation obey distinct composition laws.
 
 **Index extension:** The per-step attenuation formulas in §1 are parameterized for
@@ -235,19 +241,36 @@ S_\Lambda(k)
 $$
 
 The registered two-rail phase gluing is a perfect-transfer endpoint. The
-declared golden matrix is realized at one design wave number by the selected
-coupling
+declared golden matrix is realized at one design wave number by
 
 $$
 \Lambda_\varphi(k_\star)
-=
+:=
 iK_{\mathfrak s}k_\star
 \frac{r_\varphi}{1+t_\varphi}
 \begin{pmatrix}0&1\\-1&0\end{pmatrix}.
 $$
 
-Self-adjointness leaves this coupling and $k_\star$ free, and a fixed local
-coupling gives a wave-number-dependent split.
+Under the Hypothesized Yang/Yin species-port identification, freezing the
+charged endpoint background gives the gauge-covariant rail-rail Hessian
+
+$$
+\Lambda_{\mathrm{link},v}
+:=2\kappa_vu_v
+\begin{pmatrix}
+0&e^{-i\alpha_v}\\
+e^{i\alpha_v}&0
+\end{pmatrix}.
+$$
+
+A dressed quarter-turn phase and the matching condition
+$2\kappa_vu_v/(K_{\mathfrak s}k_\star)
+=r_\varphi/(1+t_\varphi)$ realize $\Lambda_\varphi$. Requiring the same link
+to carry the unbiased proton circuit current below capacity with positive
+fixed-amplitude phase stiffness gives the conditional lower bound
+$k_\star>0.0964640362$. The endpoint background, coupling amplitude, dressed
+phase, port normalization, and matching point remain physical inputs, and a
+fixed frozen link gives a wave-number-dependent split.
 
 With the separate constitutive identification
 $T_\varphi=\varphi^{-1}$ and $R_\varphi=\varphi^{-2}$ as forward and return
@@ -316,4 +339,6 @@ scaling parameterization for those declared cases.
 - `principles/de-resonance-principle.md`—why $\varphi^{-1}$ is the per-step attenuation input
 - `computations/wake_anchor_and_suppression.py`—§B: impedance, kinetic-vs-conversion, and Yang-fraction readings of the per-step factor
 - `foundations/interscale-stress-attenuation-boundary.md`—reciprocal stress ledger, coherent two-port boundary, and routed quadratic-flux realization
+- `foundations/endpoint-link-and-localization-boundary.md`—gauge-covariant charged-link realization and conditional current-capacity boundary
+- `computations/endpoint_robin_link_prereg.md`—frozen endpoint–Robin receipt
 - `computations/interscale_stress_attenuation_check.py`—conservation and transfer-algebra receipt

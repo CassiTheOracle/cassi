@@ -6,6 +6,7 @@ import math
 PHI = (1.0 + math.sqrt(5.0)) / 2.0
 S_PROTON = 91.461618346
 TOL = 1e-12
+ER_TOL = 5e-13
 
 
 def close(a: complex, b: complex = 0.0) -> bool:
@@ -21,6 +22,58 @@ def matmul(a: list[list[complex]], b: list[list[complex]]) -> list[list[complex]
 
 def dagger(a: list[list[complex]]) -> list[list[complex]]:
     return [[a[j][i].conjugate() for j in range(2)] for i in range(2)]
+def matrix_error(
+    a: list[list[complex]], b: list[list[complex]]
+) -> float:
+    return max(abs(a[i][j] - b[i][j]) for i in range(2) for j in range(2))
+
+
+def inverse2(matrix: list[list[complex]]) -> list[list[complex]]:
+    determinant = (
+        matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]
+    )
+    if abs(determinant) <= ER_TOL:
+        raise ValueError("singular 2x2 matrix")
+    return [
+        [matrix[1][1] / determinant, -matrix[0][1] / determinant],
+        [-matrix[1][0] / determinant, matrix[0][0] / determinant],
+    ]
+
+
+def matvec(
+    matrix: list[list[complex]], vector: tuple[complex, complex]
+) -> tuple[complex, complex]:
+    return (
+        matrix[0][0] * vector[0] + matrix[0][1] * vector[1],
+        matrix[1][0] * vector[0] + matrix[1][1] * vector[1],
+    )
+
+
+def link_matrix(strength: float, phase: float) -> list[list[complex]]:
+    phase_factor = complex(math.cos(phase), math.sin(phase))
+    return [
+        [0j, strength * phase_factor.conjugate()],
+        [strength * phase_factor, 0j],
+    ]
+
+
+def cayley_scattering(
+    coupling: list[list[complex]],
+    scale_stiffness: float,
+    wave_number: float,
+) -> list[list[complex]]:
+    ik = 1j * scale_stiffness * wave_number
+    minus = [
+        [ik - coupling[0][0], -coupling[0][1]],
+        [-coupling[1][0], ik - coupling[1][1]],
+    ]
+    plus = [
+        [ik + coupling[0][0], coupling[0][1]],
+        [coupling[1][0], ik + coupling[1][1]],
+    ]
+    return matmul(inverse2(minus), plus)
+
+
 
 
 def dissipator(jump: list[list[complex]], state: list[list[complex]]) -> list[list[complex]]:
@@ -225,6 +278,152 @@ for q_no_support in (0.0, -0.2, -d_coeff):
         assert all(term >= 0.0 for term in derivative_terms)
         assert derivative_terms[0] > 0.0
         assert sum(derivative_terms) > 0.0
+# ER1: the frozen charged link is a Hermitian, gauge-covariant Robin matrix.
+er_kappa = 0.41
+er_u = 0.73
+er_nu = 2.0 * er_kappa * er_u
+er_phase = -0.37
+er_link = link_matrix(er_nu, er_phase)
+identity = [[1.0 + 0j, 0j], [0j, 1.0 + 0j]]
+er_m = link_matrix(1.0, er_phase)
+er_hermitian_error = matrix_error(dagger(er_link), er_link)
+er_involution_error = matrix_error(matmul(er_m, er_m), identity)
+er_trace = er_link[0][0] + er_link[1][1]
+er_determinant = (
+    er_link[0][0] * er_link[1][1] - er_link[0][1] * er_link[1][0]
+)
+er_frame_phase = 0.44
+er_g = [
+    [
+        complex(
+            math.cos(er_frame_phase / 2.0),
+            math.sin(er_frame_phase / 2.0),
+        ),
+        0j,
+    ],
+    [
+        0j,
+        complex(
+            math.cos(-er_frame_phase / 2.0),
+            math.sin(-er_frame_phase / 2.0),
+        ),
+    ],
+]
+er_transformed_link = link_matrix(er_nu, er_phase - er_frame_phase)
+er_covariant_link = matmul(matmul(er_g, er_link), dagger(er_g))
+er_covariance_error = matrix_error(er_transformed_link, er_covariant_link)
+assert er_hermitian_error < ER_TOL
+assert er_involution_error < ER_TOL
+assert abs(er_trace) < ER_TOL
+assert abs(er_determinant + er_nu**2) < ER_TOL
+assert er_covariance_error < ER_TOL
+
+# ER2: the link Cayley matrix equals its closed form and preserves flux.
+er_scale_stiffness = 1.4
+er_wave_number = 0.9
+er_x = er_scale_stiffness * er_wave_number
+er_denominator = er_x**2 + er_nu**2
+er_cosine = (er_x**2 - er_nu**2) / er_denominator
+er_sine = 2.0 * er_x * er_nu / er_denominator
+er_analytic = [
+    [
+        er_cosine * identity[i][j] - 1j * er_sine * er_m[i][j]
+        for j in range(2)
+    ]
+    for i in range(2)
+]
+er_scattering = cayley_scattering(
+    er_link, er_scale_stiffness, er_wave_number
+)
+er_scattering_error = matrix_error(er_scattering, er_analytic)
+er_unitarity_error = matrix_error(
+    matmul(dagger(er_scattering), er_scattering), identity
+)
+er_input = (0.63 - 0.14j, -0.22 + 0.51j)
+er_output = matvec(er_scattering, er_input)
+er_flux_error = abs(
+    sum(abs(value) ** 2 for value in er_output)
+    - sum(abs(value) ** 2 for value in er_input)
+)
+assert er_scattering_error < ER_TOL
+assert er_unitarity_error < ER_TOL
+assert er_flux_error < ER_TOL
+
+# ER3: one selected link strength and dressed phase realize the golden target.
+er_t_phi = PHI**-0.5
+er_r_phi = PHI**-1
+er_tau_phi = er_r_phi / (1.0 + er_t_phi)
+er_match_stiffness = 1.3
+er_k_star = 0.8
+er_match_nu = er_match_stiffness * er_k_star * er_tau_phi
+er_match_link = link_matrix(er_match_nu, -math.pi / 2.0)
+er_j = [[0j, 1.0 + 0j], [-1.0 + 0j, 0j]]
+er_target_link = [
+    [1j * er_match_nu * er_j[i][j] for j in range(2)]
+    for i in range(2)
+]
+er_target_scattering = [
+    [er_t_phi + 0j, er_r_phi + 0j],
+    [-er_r_phi + 0j, er_t_phi + 0j],
+]
+er_match_scattering = cayley_scattering(
+    er_match_link, er_match_stiffness, er_k_star
+)
+er_link_match_error = matrix_error(er_match_link, er_target_link)
+er_golden_match_error = matrix_error(
+    er_match_scattering, er_target_scattering
+)
+assert er_link_match_error < ER_TOL
+assert er_golden_match_error < ER_TOL
+
+# ER4: simultaneous current turning gives a stable-branch lower bound on k_*.
+er_delta_one = 2.0 * math.pi
+er_k_min = er_delta_one / (
+    PHI**1.5 * S_PROTON * er_tau_phi
+)
+er_matching_ratio = er_k_star * er_tau_phi / 2.0
+er_current = (
+    er_match_stiffness
+    * rho
+    * er_delta_one
+    / (hbar * PHI**3 * S_PROTON)
+)
+er_critical_current = er_match_nu * rho / (hbar * PHI**1.5)
+er_current_fraction = er_current / er_critical_current
+er_marginal_stiffness_factor = math.sqrt(
+    max(0.0, 1.0 - (er_k_min / er_k_min) ** 2)
+)
+assert abs(er_matching_ratio - er_match_nu / (2.0 * er_match_stiffness)) < ER_TOL
+assert abs(er_k_min - 0.096464036203895) < ER_TOL
+assert abs(er_current_fraction - er_k_min / er_k_star) < ER_TOL
+assert er_matching_ratio > threshold_ratio
+assert er_k_star > er_k_min
+assert er_marginal_stiffness_factor < ER_TOL
+
+# ER5: the same frozen link departs from the target away from k_*.
+er_off_wave_number = 1.7 * er_k_star
+er_off_scattering = cayley_scattering(
+    er_match_link, er_match_stiffness, er_off_wave_number
+)
+er_off_a = er_k_star * er_tau_phi / er_off_wave_number
+er_off_denominator = 1.0 + er_off_a**2
+er_off_analytic = [
+    [
+        (1.0 - er_off_a**2) / er_off_denominator,
+        2.0 * er_off_a / er_off_denominator,
+    ],
+    [
+        -2.0 * er_off_a / er_off_denominator,
+        (1.0 - er_off_a**2) / er_off_denominator,
+    ],
+]
+er_off_error = matrix_error(er_off_scattering, er_off_analytic)
+er_off_target_difference = matrix_error(
+    er_off_scattering, er_target_scattering
+)
+assert er_off_error < ER_TOL
+assert er_off_target_difference > 1e-3
+
 
 print("Cassi endpoint-link and localization-boundary check")
 print(f"  coherent source trace residual    = {dy + di:.3e}")
@@ -236,4 +435,10 @@ print(f"  supported stationary radius       = {r_star:.12f}")
 print(f"  stationary derivative residual    = {derivative:.3e}")
 print(f"  radial second derivative          = {second_derivative:.12f}")
 print(f"  C=0 supported radius              = {r_linear:.12f}")
+print(f"  endpoint Robin covariance residual = {er_covariance_error:.3e}")
+print(f"  endpoint Robin unitarity residual  = {er_unitarity_error:.3e}")
+print(f"  golden link matching residual      = {er_golden_match_error:.3e}")
+print(f"  stable matched-link k_min          = {er_k_min:.15f}")
+print(f"  matched current / critical current = {er_current_fraction:.12f}")
+print(f"  off-match target difference        = {er_off_target_difference:.12f}")
 print("ALL CHECKS PASSED")

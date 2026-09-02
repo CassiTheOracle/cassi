@@ -48,7 +48,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 36 | `loop-to-bubble-projection-theorem.md` | Shared-support Yang/Yin loop, canonical zero-mode projection, coherence ball, and internal spectrum | Derived conditional projection, bubble map, and population spectrum / Hypothesized microscopic physical identification |
 | 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action / Derived conditional endpoint, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point coupled campaign |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, two-rail scale graph, canonical reduction, and open-system coherence lift | Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry / Tested one-point stationary campaign |
-| 39 | `endpoint-link-and-localization-boundary.md` | Gauge-covariant endpoint closure, full-fibre invariant classification, and smooth-sector localization boundary | Derived conditional endpoint closure / Derived minimal-sector localization no-go |
+| 39 | `endpoint-link-and-localization-boundary.md` | Gauge-covariant endpoint closure, frozen-link Robin response, current-capacity matching boundary, full-fibre invariant classification, and smooth-sector localization boundary | Derived conditional endpoint closure and Robin response / Derived minimal-sector localization no-go |
 | 40 | `point-core-flux-sector.md` | Quantized point-core exterior energy, finite-energy obstruction, and stationary-solver boundary | Derived conditional exterior support / Derived current-action completion no-go |
 | 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary smooth magnetic core, condensate topology, London confinement, and composite-stability boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Tested one-point coupled campaign |
 | 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point coupled campaign |
@@ -523,17 +523,24 @@ normal modes, and series compliance. An interface factor
 $d=\varphi^{-1}$ is an exact frozen-state traction ratio in this branch; its
 reciprocal dynamics do not compose into $d^N$.
 
-A separate two-port construction declares the fixed-point fractions
-$T_\varphi=\varphi^{-1}$ and $R_\varphi=\varphi^{-2}$ to be forward and return
-powers. The time-completed quadratic scale action fixes the canonical boundary
-flux, and Hermitian Robin endpoint data give a unitary scattering family
-$S_\Lambda(k)$. The registered two-rail phase gluing is a perfect-transfer
-endpoint. The golden matrix requires a selected coupling at one design wave
-number, and a fixed local coupling gives a wave-number-dependent split.
-Conditional on that endpoint selection, routed return ports give forward
-quadratic flux $\varphi^{-N}$ and complementary return flux $1-\varphi^{-N}$.
-The physical stress carrier, endpoint field, density-to-port identification,
-and non-re-entry mechanism remain Hypothesized.
+**What it establishes:** derives the canonical stress boundary term from the
+time-completed scale action, the self-adjoint Robin scattering family, the
+conditional golden fixed-point matrix at a declared matching wave number, and
+the gauge-covariant rail-rail Hessian supplied by a frozen charged endpoint
+background under the Hypothesized species-port identification. A dressed
+quarter-turn phase and selected coupling ratio realize the golden matrix at
+one $k_\star$; requiring the same unbiased proton current to remain below
+capacity with positive fixed-amplitude phase stiffness gives the conditional
+bound $k_\star>0.0964640362$. The port map, trace normalization, endpoint
+background, dressed phase, and matching point remain unselected. It separates
+reciprocal stress transfer, closed coherent propagation, and routed forward
+flux, showing that only the routed non-re-entry branch composes as
+$\varphi^{-N}$.
+
+**Use:** the boundary between the universal $\varphi^{-N}$ algebra and any
+proposed physical stress-transfer or charged-link mechanism. It supplies the
+falsifiers that distinguish reciprocal transport, coherent interference,
+conditional endpoint matching, current capacity, and routed attenuation.
 
 ### `geometric-manifold-completion.md`—Cassi Geometric Manifold Completion Ansatz
 
@@ -543,10 +550,12 @@ loop-derived coherence ball as its normalized section, the projective shell as
 its rank-one boundary, and the affine bubble as a metric-compatible
 observation image. A cross-glued two-rail scale graph has two vertices, two
 edges, $b_1=1$, and one Yang-outward/Yin-return internal cycle.
-Its registered phase gluing is a perfect-transfer endpoint; partial
-reflection/transmission requires the additional endpoint interaction derived
-as a free self-adjoint family in
-`foundations/interscale-stress-attenuation-boundary.md` §4.3.
+Its registered phase gluing is a perfect-transfer endpoint. The Hermitian
+Robin family in
+`foundations/interscale-stress-attenuation-boundary.md` §4.3 supplies partial
+reflection and transmission, and the charged coherent field in
+`foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.8 gives one
+conditional gauge-covariant realization.
 
 The conservative interscale action and mesoscopic dissipative conversion
 remain separate dynamical blocks. A minimal completely positive two-jump lift
@@ -566,14 +575,21 @@ geometry.
 
 ### `endpoint-link-and-localization-boundary.md`—Gauge-Covariant Endpoint Closure and the Localization Boundary
 
-Introduces a charge-$-g_Q$ complex section at each scale vertex. Its invariant
-link term reduces to the endpoint cosine, conserves Yang-plus-Yin density, and
-has a finite critical current. In the uniform $\varphi$ circuit, coherent
-turning requires
-$\kappa_v|\Upsilon_v|\geq
-K_{\mathfrak s}|\Delta_m|/(2\varphi^{3/2}\mathfrak s_p)$.
-A one-way Lindblad alternative closes the same population circuit with
-$\gamma_-/\gamma_+=\varphi$ and damps undriven endpoint coherence.
+**What it establishes:** closes the $U(1)_Q$ endpoint current algebra with a
+charge-$-g_Q$ complex vertex section, an exact continuity law, a critical
+current, and the endpoint phase-slip boundary. Under the Hypothesized
+species-port trace identification, the frozen endpoint background gives the
+gauge-covariant Hermitian rail-rail Hessian
+$\Lambda_{\mathrm{link},v}=2\kappa_vu_vM(\alpha_v)$, an exact unitary Cayley
+response, and conditional golden matching at one $k_\star$. Current capacity
+with positive fixed-amplitude phase stiffness gives the conditional unbiased
+bound $k_\star>0.0964640362$ while leaving full fluctuation stability, the
+endpoint background, dressed phase, trace normalization, port map, and
+matching point open. It derives one-way Lindblad closure with the conditional
+rate ratio $\gamma_-/\gamma_+=\varphi$, proves that smooth local positive
+energies cannot support a shrinking core, identifies fixed flux and
+$\mathcal B_G>0$ as the required point-core exterior class, and separates
+interface cohesion from bulk core support.
 
 The full positive coherence fibre is contractible. An independent first Chern
 number can survive mixed states, while the smooth base

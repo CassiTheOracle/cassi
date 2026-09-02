@@ -630,6 +630,15 @@ $\kappa_v|\Upsilon_v|\geq
 K_{\mathfrak s}|\Delta_m|/(2\varphi^{3/2}\mathfrak s_p)$ in the uniform
 circuit state. A one-way Lindblad alternative gives
 $\gamma_-/\gamma_+=\varphi$ while damping undriven endpoint coherence.
+Under the separate Hypothesized Yang/Yin species-port identification, the same
+frozen endpoint background gives the Hermitian rail-rail Hessian
+$\Lambda_{\mathrm{link},v}=2\kappa_v|\Upsilon_v|M(\alpha_v)$. A dressed
+quarter-turn phase and selected coupling ratio realize the declared golden
+two-port matrix at one $k_\star$. Combining that match with current capacity
+and positive fixed-amplitude phase stiffness gives the conditional bound
+$k_\star>0.0964640362$ for the unbiased proton branch. Full endpoint
+fluctuation stability remains open; see
+`foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.8.
 
 For a compact closed circuit, define the gauge-invariant accumulated phase
 

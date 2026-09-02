@@ -377,19 +377,26 @@ $\prod_{i=m}^{n-1}d_i^{\mathrm{signal}}=\varphi^{-(n-m)}=\varphi^{-N}$.
 These are algebraic identities conditional on their stated per-step inputs;
 the physical signal-map interpretation remains **Hypothesized**.
 
-One explicit conservative realization is isolated in
-`foundations/interscale-stress-attenuation-boundary.md`. A reciprocal
-scale-stress ladder treats $d_i$ as interface stiffness and gives conservative
-dispersion plus series compliance. The time-completed quadratic action fixes
-the canonical scale-boundary flux, while Hermitian endpoint data generate a
-unitary two-lead family $S_\Lambda(k)$. The registered two-rail phase gluing is
-a perfect-transfer endpoint. The declared golden matrix requires the selected
-coupling $\Lambda_\varphi(k_\star)$ at one design wave number; a fixed local
-coupling gives a wave-number-dependent split. With separate return routing,
-the forward quadratic flux is $\varphi^{-N}$, the return ledger is
-$1-\varphi^{-N}$, and the routed amplitude is $\varphi^{-N/2}$. The physical
-endpoint selection, port map, routing, and stress-current identification
-remain Hypothesized.
+The endpoint action carries the corresponding gauge charge:
+
+$$
+\Upsilon_v\mapsto e^{-ig_Q\alpha(v,t)}\Upsilon_v .
+$$
+
+Under the conditional Yang/Yin species-port identification, a frozen endpoint
+background supplies the Hermitian rail-rail Hessian
+$\Lambda_{\mathrm{link},v}=2\kappa_vu_vM(\alpha_v)$. A dressed quarter-turn
+phase and selected coupling ratio realize the declared golden matrix at one
+$k_\star$; current capacity with positive fixed-amplitude phase stiffness
+gives the conditional unbiased bound $k_\star>0.0964640362$. Full fluctuation
+stability, the endpoint background, port map, trace normalization, dressed
+phase, and matching point remain open.
+
+Gauge-invariant endpoint conversion is
+
+$$
+\Upsilon_v^*\psi_Y^*\psi_I+\text{c.c.}
+$$
 
 For the fractional mapped endpoint $N_p=91.46$, no indexed product is taken.
 The closed quadratic exponent is continued by the explicit coordinate

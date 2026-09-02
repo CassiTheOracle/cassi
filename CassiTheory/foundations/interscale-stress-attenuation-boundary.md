@@ -471,10 +471,45 @@ Equivalently, endpoint frame changes act as
 $S_\Lambda\mapsto g_{\mathrm{out}}S_\Lambda g_{\mathrm{in}}^{-1}$.
 The displayed numerical matrix is a fixed-frame representative until an
 endpoint intertwiner or dressing supplies that covariance.
+The charged coherent endpoint field supplies a concrete static member of this
+family after a background and scattering variables are declared. Freeze
+$\Upsilon_{v,0}=u_ve^{i\alpha_v}$ with $\delta\Upsilon_v=0$, and conditionally
+identify the ordered rail-perturbation traces with the Yang/Yin species traces
+in the same boundary normalization. The rail-rail Hessian is
 
-This inverse matching identifies the endpoint term required by the declared
-golden matrix. The bulk quadratic action, self-adjointness, and the local
-Yang/Yin Hessian leave $\Lambda_v$ and $k_\star$ free.
+$$
+\Lambda_{\mathrm{link},v}
+=
+2\kappa_vu_v
+\begin{pmatrix}
+0&e^{-i\alpha_v}\\
+e^{i\alpha_v}&0
+\end{pmatrix}.
+$$
+
+It is Hermitian, transforms covariantly with the endpoint field, and equals
+$i\epsilon K_{\mathfrak s}k_\star\tau_\varphi J$ when
+
+$$
+\alpha_v=-\epsilon\frac{\pi}{2}\pmod{2\pi},
+\qquad
+\frac{2\kappa_vu_v}{K_{\mathfrak s}k_\star}=\tau_\varphi.
+$$
+
+Therefore a dressed quarter-turn endpoint phase and the selected coupling
+ratio realize the declared golden matrix at one design wave number. Combining
+that matching condition with the unbiased $m=1$ proton current capacity and
+positive fixed-amplitude phase stiffness gives the conditional lower bound
+
+$$
+\boxed{k_\star>0.0964640362.}
+$$
+
+The capacity bound controls the frozen-amplitude phase mode. Full fluctuation
+stability additionally depends on the endpoint potential Hessian, temporal and
+gradient coefficients, and the coupled rail-endpoint spectrum. The
+species-port identification, trace normalization, endpoint background,
+dressed phase, and $k_\star$ remain physical inputs.
 
 A fixed local $\Lambda_\varphi(k_\star)$ also makes the split wave-number
 dependent. At wave number $k$, define
@@ -714,7 +749,9 @@ This statement supplies an explicit conservative realization of the suppression 
 | Hermitian Robin data give unitary $S_\Lambda(k)$ | **Derived conditional boundary algebra** |
 | Existing two-rail phase gluing is a perfect-transfer endpoint | **Derived conditional** from the registered gluing |
 | $\Lambda_\varphi(k_\star)$ realizes $S_\varphi$ at the declared matching point | **Derived conditional inverse matching** |
-| The endpoint dynamics select $\Lambda_\varphi$ and $k_\star$ | **Hypothesized constitutive selection** |
+| The frozen charged endpoint background gives the rail-rail Hessian $\Lambda_{\mathrm{link},v}=2\kappa_vu_vM(\alpha_v)$ | **Derived conditional** on the species-port trace identification and common normalization |
+| Simultaneous golden matching, unbiased current capacity, and positive fixed-amplitude phase stiffness require $k_\star>0.0964640362$ | **Derived conditional** on the Mapped proton endpoint and selected matching branch; full fluctuation stability remains open |
+| The endpoint dynamics select the coupling amplitude, dressed phase, trace normalization, and $k_\star$ | **Hypothesized constitutive selection** |
 | $S_\varphi$ is unitary for the selected fixed-point power fractions | **Derived conditional algebra** |
 | Closed coherent propagation gives $\cos^2(N\theta_\varphi)$ | **Derived conditional algebra** |
 | Routed non-re-entry gives forward flux $\varphi^{-N}$ with a complementary return ledger | **Derived conditional algebra** |
@@ -754,6 +791,22 @@ The frozen first execution passed ST11–ST14 without coefficient changes:
 | Fixed-coupling wave-number dependence | analytic residual $1.110\times10^{-16}$; $\|S(1.7k_\star)-S_\varphi\|_{\max}=0.227152$ |
 | Phase-only perfect transfer | unitarity, power, and complementary-leakage residuals all $0$ |
 
+The frozen charged-link receipt in
+`computations/endpoint_robin_link_prereg.md` passed ER1–ER5 on its first
+execution:
+
+| Check | Numerical receipt |
+|---|---:|
+| Charged-link covariance | $1.110\times10^{-16}$ residual |
+| Link-scattering unitarity | $0$ residual |
+| Selected golden match | $1.173\times10^{-16}$ residual |
+| `stable matched-link k_min` | $k_{\min,1}=0.096464036203895$; $\lvert\mathcal J_Q\rvert/\mathcal J_c=0.120580045255$ at $k_\star=0.8$ |
+| Fixed-link off-match response | $\left\lVert S(1.7k_\star)-S_{\varphi,+}\right\rVert_{\max}=0.227151634836$ |
+
+The executable label `stable matched-link k_min` denotes the current-capacity
+threshold where the frozen-amplitude phase stiffness vanishes. Full endpoint
+fluctuation stability remains open.
+
 ---
 
 ## References
@@ -763,6 +816,8 @@ The frozen first execution passed ST11–ST14 without coefficient changes:
 - `foundations/interscale-current-soliton.md`—density current, gauge current, endpoint circuit, and mixed-curvature force
 - `foundations/particle-stationary-action-closure.md` §3.2—time-completed quadratic scale action
 - `foundations/geometric-manifold-completion.md` §§2.4–2.5—two-rail circuit and phase-only endpoint gluing
-- `foundations/endpoint-link-and-localization-boundary.md`—endpoint transfer and return-path boundary conditions
+- `foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.8—gauge-covariant charged-link realization and conditional current-capacity boundary
 - `computations/interscale_port_matching_prereg.md`—frozen boundary-matching checks
+- `computations/endpoint_robin_link_prereg.md`—frozen charged-link matching and capacity receipt
 - `computations/interscale_stress_attenuation_check.py`—conservation, endpoint matching, coherent-chain, and routed-chain checks
+- `computations/endpoint_link_localization_check.py`—charged-link covariance, matching, and current-capacity checks

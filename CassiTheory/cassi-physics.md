@@ -506,14 +506,24 @@ The model distinguishes scale-coordinate attenuation, linear in the span ($\varp
 The time-completed quadratic scale action fixes the canonical boundary flux.
 For a two-lead Robin vertex, Hermitian endpoint data give a unitary scattering
 family $S_\Lambda(k)$. The registered two-rail phase gluing is a phase-only
-perfect-transfer endpoint in the wider self-adjoint family. Realizing the
-declared golden matrix at one design wave number requires the selected coupling
-$\Lambda_\varphi=iK_{\mathfrak s}k_\star\tau_\varphi J$, and a fixed local
-coupling gives a wave-number-dependent split. With that separate endpoint
-selection and return routing, the forward quadratic flux is $\varphi^{-N}$,
-the retained return ledger is $1-\varphi^{-N}$, and the corresponding
-amplitude is $\varphi^{-N/2}$. Each coupling, phase, and mass application in
-the table retains its registered observable-specific signal map.
+perfect-transfer endpoint in the wider self-adjoint family. Under the
+conditional identification of endpoint scattering ports with the Yang/Yin
+species traces in the same boundary normalization, the frozen charged endpoint
+background supplies the gauge-covariant rail-rail Hessian
+$\Lambda_{\mathrm{link},v}=2\kappa_vu_vM(\alpha_v)$ and an exact unitary
+Cayley response. A dressed quarter-turn phase and
+$2\kappa_vu_v/(K_{\mathfrak s}k_\star)=\tau_\varphi$ realize the declared
+golden matrix at one selected point. Requiring the unbiased proton current to
+remain below capacity with positive fixed-amplitude phase stiffness gives the
+conditional bound $k_\star>0.0964640362$. Full endpoint fluctuation stability,
+the port map, trace normalization, endpoint background, dressed phase, and
+$k_\star$ remain open.
+With complementary return ports
+routed away from coherent re-entry, the forward quadratic flux is
+$\varphi^{-N}$, the retained return ledger is $1-\varphi^{-N}$, and the
+corresponding amplitude is $\varphi^{-N/2}$. Each coupling, phase, and mass
+application in the table retains its registered observable-specific signal
+map.
 
 Within this coordinate model, the gap $g=1-\varphi^{-5}$ gives the electroweak cascade coordinate $N_{\mathrm{gap}}\approx79.7$ from $v_0/M_{\text{Pl}}=g\cdot\varphi^{-N_{\mathrm{gap}}}$. The direct measured ratio gives $N_{\mathrm{raw}}=\log_\varphi(M_{\text{Pl}}/v_0)\approx79.89$; both placements identify the nearest integer step 80.
 
