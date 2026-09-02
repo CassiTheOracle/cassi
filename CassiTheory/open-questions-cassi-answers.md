@@ -1034,19 +1034,21 @@ $\Lambda_{\mathrm{link}}=2\kappa uM(\alpha)$ with an exact unitary Cayley
 response. A dressed quarter-turn phase and selected coupling ratio realize the
 declared golden matrix at one $k_\star$, while simultaneous unbiased current
 capacity and positive fixed-amplitude phase stiffness give the conditional
-lower bound $k_\star>0.0964640362$. Source-action elimination gives the
-gauge-covariant Nambu Schur form
+lower bound $k_\star>0.0964640362$. First-order source-action elimination gives
+the constant-frame-covariant Nambu Schur form
 $\mathbb\Lambda_{\mathrm{eff}}^R
 =\mathbb\Lambda_0-\mathcal C^\dagger(\mathcal K^R)^{-1}\mathcal C
 =\mathbb\Lambda_0+\mathcal C^\dagger(\mathcal D^R)^{-1}\mathcal C$.
 The frozen AR1–AR6 source-action receipt passes; the DR receipt remains `FAIL`
 because its DR5 endpoint block has the opposite source-action sign. Every
 closed homogeneous conservative time-harmonic endpoint extremum has zero
-coherent conversion current, and the symmetric zero-background
-endpoint-mediated rail contribution is positive and begins at quartic order.
-The endpoint potential, nonzero-current background, matching point,
-trace normalization, dressed phase, damping mechanism, doubled port-flux law,
-and physical port map remain unselected. A directed Lindblad alternative closes the one-way
+coherent conversion current. At the symmetric zero background, the eliminated
+source action begins at quartic rail order with a positive coefficient when
+$\mu_{v,0}:=W_v'(0)>0$; physical energy, stress, inertial mass, and stability
+signs remain open. The endpoint potential, nonzero-current background, matching
+point, trace normalization, dressed phase, damping mechanism, temporal
+relative-gauge connection, doubled port-flux law, and physical port map remain
+unselected. A directed Lindblad alternative closes the one-way
 population circuit with $\gamma_-/\gamma_+=\varphi$ and predicts decoherence at
 half the rate sum. Positive smooth local amplitude-gradient and core-potential
 energies cannot support a shrinking endpoint core. A persistent point defect
@@ -1071,8 +1073,8 @@ support terms, a confinement route, a conditional carrier route, and a
 measured numerical boundary without a completed matter solution.
 
 | **Cassi Answer** | One explicit stratified geometric completion ansatz with exact canonical reduction, one conditional interscale momentum ledger, and conditional frozen and source-action endpoint responses; no action currently derives or matches the four established interactions |
-| **Mechanism** | A positive Hermitian Yang/Yin fibre connects the canonical densities, loop coherence, and projective bubble map; a two-rail graph closes the conditional scale circuit; mixed-stress boundary flux transfers momentum between scale windows; Hermitian frozen endpoint data preserve flux. Source-action elimination gives a gauge-covariant Nambu Schur response around nonzero rail backgrounds. The frozen AR1–AR6 receipt passes; the DR receipt remains `FAIL` because its DR5 endpoint block has the opposite source-action sign. The symmetric zero-background contribution is positive and begins at quartic order, and a closed homogeneous conservative endpoint extremum has zero stationary conversion current. The potential, nonzero-current background, damping law, doubled port-flux identification, dressed phase, matching point, and stress-current map remain unselected; gravity, Standard Model gauge structure, conversion reservoir, and P1→P2 matching remain separate |
-| **Epistemic** | **Hypothesized completion and constitutive ansätze / Derived canonical reduction, conditional fibre geometry, momentum-window conservation, frozen-link response, source-action response, closed-current boundary, and zero-background order**—physical realization and cross-sector matching remain open |
+| **Mechanism** | A positive Hermitian Yang/Yin fibre connects the canonical densities, loop coherence, and projective bubble map; a two-rail graph closes the conditional scale circuit; mixed-stress boundary flux transfers momentum between scale windows; Hermitian frozen endpoint data preserve flux. First-order source-action elimination gives a Nambu Schur response around nonzero rail backgrounds with kernel covariance under constant relative-frame rotations. The frozen AR1–AR6 receipt passes; the DR receipt remains `FAIL` because its DR5 endpoint block has the opposite source-action sign. At the symmetric zero background, the eliminated source action begins at quartic rail order with a positive coefficient when $\mu_{v,0}:=W_v'(0)>0$; physical energy, stress, inertial mass, and stability signs remain open. A closed homogeneous conservative endpoint extremum has zero stationary conversion current. The potential, nonzero-current background, damping law, temporal relative-gauge connection, doubled port-flux identification, dressed phase, matching point, and stress-current map remain unselected; gravity, Standard Model gauge structure, conversion reservoir, and P1→P2 matching remain separate |
+| **Epistemic** | **Hypothesized completion and constitutive ansätze / Derived canonical reduction, conditional fibre geometry, momentum-window conservation, frozen-link response, first-order source-action response, closed-current boundary, and source-action order/sign boundary**—physical realization and cross-sector matching remain open |
 | **Reference** | `foundations/geometric-manifold-completion.md`; `foundations/physical-becoming-hierarchy.md` §7.2, §7.3; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md`; `foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.9; `foundations/interscale-stress-attenuation-boundary.md`; `computations/endpoint_dynamical_response_prereg.md`; `computations/endpoint_dynamical_response_check.py`; `computations/endpoint_dynamical_response_report.md`; `computations/endpoint_action_response_prereg.md`; `computations/endpoint_action_response_check.py`; `computations/endpoint_action_response_report.md` |
 
 ### F4: Theory of Everything

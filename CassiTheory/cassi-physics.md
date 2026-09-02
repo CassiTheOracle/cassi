@@ -519,18 +519,20 @@ conditional bound $k_\star>0.0964640362$.
 
 The closed-background boundary is explicit: every homogeneous conservative
 time-harmonic endpoint extremum has zero coherent conversion current. Around
-nonzero rail backgrounds, source-action elimination gives the gauge-covariant
-Nambu Schur response
+nonzero rail backgrounds, first-order source-action elimination gives the
+constant-frame-covariant Nambu Schur response
 $\mathbb\Lambda_{\mathrm{eff}}^R
 =\mathbb\Lambda_0-\mathcal C^\dagger(\mathcal K^R)^{-1}\mathcal C
 =\mathbb\Lambda_0+\mathcal C^\dagger(\mathcal D^R)^{-1}\mathcal C$, where
 $\mathcal K^R=-\mathcal D^R$, with analytic endpoint poles. The frozen
 AR1–AR6 source-action receipt passes; the DR receipt remains `FAIL` because its
-DR5 endpoint block has the opposite source-action sign. Around the symmetric
-zero background, the endpoint-mediated rail contribution is positive and
-begins at quartic order. The potential, nonzero-current background, damping
-mechanism, full coupled spectrum, doubled port-flux law, port map, trace
-normalization, dressed phase, and $k_\star$ remain open.
+DR5 endpoint block has the opposite source-action sign. At the symmetric zero
+background, the eliminated source action begins at quartic rail order with a
+positive coefficient when $\mu_{v,0}:=W_v'(0)>0$; physical energy, stress,
+inertial mass, and stability signs remain open. The potential, nonzero-current
+background, microscopic damping channel, temporal relative-gauge connection,
+full coupled spectrum, doubled port-flux law, port map, trace normalization,
+dressed phase, and $k_\star$ remain open.
 
 With complementary return ports routed away from coherent re-entry, the
 forward quadratic flux is $\varphi^{-N}$, the retained return ledger is

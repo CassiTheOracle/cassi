@@ -4,7 +4,7 @@
 
 ## 1. Verdict
 
-The frozen AR1–AR6 source-action receipt passes on its first execution. The registered endpoint action therefore has, conditionally on the declared background and coefficients, a gauge-covariant $4\times4$ Nambu rail response with the endpoint action kernel
+The frozen AR1–AR6 source-action receipt passes on its first execution. The first-order endpoint action (EL9) therefore has, conditionally on the declared background and coefficients, a $4\times4$ Nambu rail response covariant under the declared constant relative-frame transformation, with endpoint action kernel
 
 $$
 \boxed{
@@ -25,6 +25,8 @@ $$
 $$
 
 This is a conditional response identity. It does not select the endpoint potential, amplitude, background, damping mechanism, trace normalization, physical species-port map, or a particle lifetime.
+
+AR1–AR6 are the Bogoliubov–de Gennes linearization of the first-order endpoint action (EL9). No coefficient from the separate second-order fixed-$Q_C$ particle action enters $\mathcal H_v$, $\mathcal K_v^{R/A}$, the pole law, or the Schur complement.
 
 ## 2. Frozen Execution
 
@@ -65,10 +67,10 @@ The frozen equality tolerance is $5\times10^{-13}$. The anomalous-block and damp
 |---|---|
 | AR1 closed homogeneous current boundary | **PASS**—the background equation and phase balance give zero closed link current |
 | AR2 exact trilinear and static action Hessians | **PASS**—the trilinear polynomial, mixed block, and $-\mathcal H_v$ static action block agree |
-| AR3 zero-background order and sign | **PASS**—the quadratic correction vanishes, the leading term is quartic, and its action contribution is positive |
-| AR4 endpoint stability and poles | **PASS**—both curvature eigenvalues are positive and the analytic pole pair is reproduced |
-| AR5 source-action elimination, covariance, and Nambu boundary | **PASS**—the $\mathcal K$ and $\mathcal D$ forms agree, direct elimination closes, constant-frame covariance holds, and the anomalous block is nonzero |
-| AR6 closed and open response classes | **PASS**—the closed response is Hermitian; the damped retarded response is non-Hermitian and its advanced partner is the adjoint |
+| AR3 zero-background order and source-action sign | **PASS**—the quadratic correction vanishes; the leading eliminated-source-action term is quartic and has a positive coefficient for the registered $m_{v,0}=1.1>0$, the protocol notation for $\mu_{v,0}:=W_v'(0)$ |
+| AR4 endpoint stability and poles | **PASS**—both endpoint-curvature eigenvalues are positive and the analytic pole pair is reproduced |
+| AR5 source-action elimination, covariance, and Nambu boundary | **PASS**—the $\mathcal K$ and $\mathcal D$ forms agree, direct elimination closes, constant-frame response-kernel covariance holds, and the anomalous block is nonzero |
+| AR6 conservative and damped response classes | **PASS**—for $\gamma_v=0$ the real pole-free response is Hermitian; the declared retarded continuation is non-Hermitian, has lower-half-plane poles, and has the advanced response as its adjoint |
 
 The overall frozen verdict is **PASS** because AR1–AR6 all pass.
 
@@ -94,39 +96,54 @@ A nonzero stationary conversion current requires endpoint spatial flux, an open 
 
 ### 4.2 Symmetric zero background
 
-At $Y_0=I_0=\Upsilon_{v,0}=0$, the direct and mixed quadratic rail blocks vanish. With $m_{v,0}>0$,
+At $Y_0=I_0=\Upsilon_{v,0}=0$, the direct and mixed quadratic rail blocks vanish. Define the static zero-background source-action curvature
 
 $$
-\mathcal K_{v,0}(0)=-m_{v,0}I_2,
+\mu_{v,0}:=W_v'(0)>0.
+$$
+
+The frozen AR3 protocol denotes this same curvature by $m_{v,0}$ and evaluates it at $m_{v,0}=1.1$. The symbol is protocol notation for a static potential curvature, not an inertial or physical mass. For a nonzero unnormalized endpoint source $j_{v,0}$,
+
+$$
+\mathcal K_{v,0}(0)=-\mu_{v,0}I_2,
 \qquad
 \boxed{
 \Delta Q_{v,0}^{(4)}
-=-\frac12j_{v,0}^\dagger\mathcal K_{v,0}^{-1}j_{v,0}>0.}
+:=-\frac12j_{v,0}^\dagger\mathcal K_{v,0}^{-1}j_{v,0}
+=\frac{j_{v,0}^\dagger j_{v,0}}{2\mu_{v,0}}>0,}
+\qquad
+\Delta Q_{v,0}^{(4)}=O(\eta^4).
 $$
 
-The endpoint-mediated rail term therefore begins at quartic order and cannot supply a linear Robin response about the symmetric vacuum.
+The symmetric-vacuum term therefore begins at quartic rail order and cannot supply a linear Robin response. Its positive coefficient belongs to the eliminated source action under the Hypothesized curvature condition $\mu_{v,0}>0$; it is not a physical energy, stress, or stability result.
 
 ### 4.3 Active background
 
-At generic nonzero $Y_0$ and $I_0$, the mixed block $\mathcal C_v$ is nonzero and the effective response has particle–hole blocks. The active boundary law is generically Nambu doubled. The ordinary $2\times2$ complex-linear Cayley response applies to a frozen endpoint or to an active branch where the anomalous blocks cancel.
+At generic nonzero $Y_0$ and $I_0$, the mixed block $\mathcal C_v$ is nonzero and the effective response has particle–hole blocks. This is the Bogoliubov–de Gennes response of the first-order endpoint action (EL9); the separate second-order fixed-$Q_C$ particle action remains outside this response. The active boundary law is generically Nambu doubled. The ordinary $2\times2$ complex-linear Cayley response applies to a frozen endpoint or to an active branch where the anomalous blocks cancel.
 
 ### 4.4 Closed and damped domains
 
-For $A_v>|B_v|$, the endpoint pole pair is
+With fields proportional to $e^{-i\omega t}$ and $A_v>|B_v|$, the conservative $\gamma_v=0$ endpoint poles are
 
 $$
-\omega=\pm\frac{\sqrt{A_v^2-|B_v|^2}}{\mathcal Z_v}.
+\omega=\pm\omega_{\mathrm{end}},
+\qquad
+\omega_{\mathrm{end}}
+:=\frac{\sqrt{A_v^2-|B_v|^2}}{\mathcal Z_v}.
 $$
 
-The closed pole-free response is Hermitian. The declared damping continuation shifts the poles by $-i\gamma_v$, gives a non-Hermitian retarded response, and obeys $\mathbb\Lambda^A=(\mathbb\Lambda^R)^\dagger$. A microscopic damping channel remains unselected.
+The declared retarded kernel
+$\mathcal K_v^R=\mathcal Z_v(\omega+i\gamma_v)\sigma_3-\mathcal H_v$
+has poles $\omega=\pm\omega_{\mathrm{end}}-i\gamma_v$ in the lower half-plane. Its advanced partner has poles $\omega=\pm\omega_{\mathrm{end}}+i\gamma_v$ in the upper half-plane, and $\gamma_v\to0$ recovers the conservative kernel. For $\gamma_v=0$, real pole-free $\omega$, and $A_v>|B_v|$, the response is Hermitian. For $\gamma_v>0$ the retarded response is generally non-Hermitian and obeys $\mathbb\Lambda^A=(\mathbb\Lambda^R)^\dagger$. A microscopic damping channel remains unselected.
 
 ## 5. Research Boundary
 
-The receipt establishes algebraic response identities around one declared normalized background. A physical endpoint model still requires:
+The receipt establishes algebraic response identities for the Bogoliubov–de Gennes linearization of the first-order endpoint action around one declared normalized background, together with response-kernel covariance under constant relative-frame rotations. The separate second-order fixed-$Q_C$ particle action and full time-dependent gauge covariance remain outside AR1–AR6. A physical endpoint model still requires:
 
 - a selected $U_v$, $K_v$, and $u_v$;
 - a background with the spatial flux, drive, or larger coupling needed for nonzero stationary conversion current;
 - a microscopic damping mechanism;
+- a temporal relative-gauge connection for time-dependent frame covariance;
 - a physical trace normalization and Yang/Yin species-port map;
 - the doubled port-flux law for the Nambu response;
 - the full coupled rail–endpoint fluctuation spectrum;

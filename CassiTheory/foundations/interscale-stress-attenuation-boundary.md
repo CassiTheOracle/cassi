@@ -1,6 +1,6 @@
 # Interscale Stress Transfer and the Attenuation Boundary
 
-## Status: Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026
+## Status: Hypothesized physical carrier / Derived conditional stress, frozen-link, and first-order source-action response boundaries—September 2026
 
 ## Abstract
 
@@ -14,10 +14,10 @@ requires a separate routed two-port branch. In that branch the Yang/Yin
 fixed-point fractions are declared to be port powers, the complementary return
 flux is retained, and each return port is prevented from coherently re-entering
 the forward chain. A frozen charged endpoint supplies a Hermitian Robin block.
-Source-action elimination on a nonzero rail background gives a Nambu Schur
-response, while every closed homogeneous conservative time-harmonic endpoint
-extremum has zero coherent conversion current. The algebra and conservation
-ledger are exact under the declared assumptions. The physical port
+First-order source-action elimination on a nonzero rail background gives a
+Nambu Schur response, while every closed homogeneous conservative time-harmonic
+endpoint extremum has zero coherent conversion current. The algebra and
+conservation ledger are exact under the declared assumptions. The physical port
 identification, nonzero-current background, routing law, and momentum-carrying
 field remain Hypothesized.
 
@@ -690,12 +690,13 @@ signed momentum ledger. The full forward-plus-return-plus-interface system has
 zero internal net force.
 
 
-### 4.9 Active charged-endpoint response
+### 4.9 First-order active charged-endpoint response
 
-Endpoint motion determines when the frozen two-port matrix can represent a
-stationary physical branch. For the endpoint potential $U_v(n)$, the rotating
-frame $W_v(n)=U_v(n)-\hbar\Omega_{\mathrm{bg}}n$, and a rail bilinear sharing
-the endpoint carrier, a homogeneous conservative extremum obeys
+Linearizing the first-order endpoint action (EL9) determines when the frozen
+two-port matrix can represent a stationary physical branch. For the endpoint
+potential $U_v(n)$, the rotating frame
+$W_v(n)=U_v(n)-\hbar\Omega_{\mathrm{bg}}n$, and a rail bilinear sharing the
+endpoint carrier, a homogeneous conservative extremum obeys
 
 $$
 W_v'(u_v^2)\Upsilon_{v,0}
@@ -713,13 +714,13 @@ endpoint current requires spatial endpoint flux, an open or driven channel, a
 non-harmonic state, or a larger coupled background. This condition applies
 before a link current can be identified with mixed stress.
 
-For a nonzero rail background, the fractional endpoint fluctuation gives the
-retarded Nambu response
+For a nonzero rail background, the first-order fractional endpoint fluctuation
+gives the retarded Nambu response
 
 $$
 \boxed{
 \mathbb\Lambda_{\mathrm{eff},v}^R(\omega,\mathbf q)
-=
+:=
 \mathbb\Lambda_{0,v}
 -\mathcal C_v^\dagger
 \left[
@@ -730,18 +731,26 @@ $$
 $$
 
 with $\mathbb\Lambda_{0,v}$, $\mathcal C_v$, and $\mathcal H_v$ given in
-`foundations/endpoint-link-and-localization-boundary.md` §3.9. The closed
-response is Hermitian when
-$A_v(\mathbf q)>|B_v|$ and the frequency avoids the endpoint poles. Generic
-nonzero rail backgrounds generate anomalous particle-hole blocks. The
-ordinary $2\times2$ Cayley family in §4.2 therefore describes the frozen
-endpoint or a special active branch whose anomalous blocks cancel. A generic
-active branch needs a doubled port-flux law.
+`foundations/endpoint-link-and-localization-boundary.md` §3.9. The separate
+second-order fixed-$Q_C$ particle action supplies no coefficient to this
+Bogoliubov–de Gennes response. With fields proportional to $e^{-i\omega t}$,
+$\gamma_v=0$, real pole-free $\omega$, and
+$A_v(\mathbf q)>|B_v|$, the conservative response is Hermitian. For
+$\gamma_v>0$, the retarded poles lie at
+$\omega=\pm\omega_{\mathrm{end}}-i\gamma_v$ in the lower half-plane and the
+advanced poles lie at $\omega=\pm\omega_{\mathrm{end}}+i\gamma_v$ in the upper
+half-plane; $\gamma_v\to0$ recovers the conservative kernel. Generic nonzero
+rail backgrounds generate anomalous particle-hole blocks. The ordinary
+$2\times2$ Cayley family in §4.2 therefore describes the frozen endpoint or a
+special active branch whose anomalous blocks cancel. A generic active branch
+needs a doubled port-flux law.
 
-At the symmetric zero background, the mixed quadratic Hessian vanishes and
-endpoint integration first contributes a positive term at quartic rail order.
-A linear endpoint-mediated stress response consequently requires a nonzero
-background or a separate open-channel constitutive law.
+At the symmetric zero background, the mixed quadratic Hessian vanishes. The
+eliminated source action first contributes at quartic rail order, with a
+positive coefficient when the Hypothesized static curvature
+$\mu_{v,0}:=W_v'(0)>0$. Physical energy, stress, inertial mass, and stability
+signs remain open. A linear endpoint-mediated stress response consequently
+requires a nonzero background or a separate open-channel constitutive law.
 
 ---
 
@@ -821,7 +830,7 @@ This statement supplies an explicit conservative realization of the suppression 
 | The frozen charged endpoint background gives the rail-rail Hessian $\Lambda_{\mathrm{link},v}=2\kappa_vu_vM(\alpha_v)$ | **Derived conditional** on the species-port trace identification and common normalization |
 | Simultaneous golden matching, unbiased current capacity, and positive fixed-amplitude phase stiffness require $k_\star>0.0964640362$ | **Derived conditional** on the Mapped proton endpoint and selected matching branch |
 | Every closed homogeneous conservative time-harmonic endpoint extremum has $\mathcal I_{\mathrm{link}}=0$ | **Derived conditional background boundary** |
-| Active endpoint integration gives $\mathbb\Lambda_{\mathrm{eff}}^R=\mathbb\Lambda_0-\mathcal C^\dagger(\mathcal K^R)^{-1}\mathcal C=\mathbb\Lambda_0+\mathcal C^\dagger(\mathcal D^R)^{-1}\mathcal C$; the symmetric zero-background contribution is positive and begins at quartic rail order | **Derived conditional source-action response and order boundary** |
+| First-order endpoint integration gives $\mathbb\Lambda_{\mathrm{eff}}^R=\mathbb\Lambda_0-\mathcal C^\dagger(\mathcal K^R)^{-1}\mathcal C=\mathbb\Lambda_0+\mathcal C^\dagger(\mathcal D^R)^{-1}\mathcal C$; the symmetric zero-background eliminated-source-action term begins at quartic rail order with a positive coefficient when $\mu_{v,0}:=W_v'(0)>0$, without fixing a physical energy, stress, inertial-mass, or stability sign | **Derived conditional first-order source-action response and order boundary** |
 | The endpoint dynamics select the potential, nonzero-current background, damping law, coupling amplitude, dressed phase, trace normalization, and $k_\star$ | **Hypothesized constitutive selection** |
 | $S_\varphi$ is unitary for the selected fixed-point power fractions | **Derived conditional algebra** |
 | Closed coherent propagation gives $\cos^2(N\theta_\varphi)$ | **Derived conditional algebra** |

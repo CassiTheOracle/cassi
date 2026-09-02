@@ -296,7 +296,7 @@ Under the Hypothesized coupling represented by this law, near the model target (
 
 ### P3: Adiabatic Blend Proportions
 
-**Claim:** When an emotion subsides, the emotional aftereffect is a simultaneous blend of the four remaining channels, not a discrete transition to a single successor. The blend proportions are given by the redistribution matrix $R_{ij}$ (§4.2) and are fully determined by $\varphi$ once the conditional baseline hierarchy $b_i = \varphi^{-(2+i)}$ is adopted—zero free parameters beyond that adopted hierarchy.
+**Claim:** When an emotion subsides, the emotional aftereffect is a simultaneous blend of the four remaining channels, not a discrete transition to a single successor. The blend proportions are given by the redistribution matrix $R_{ij}$ (§4.2) and are fully determined by $\varphi$ once the conditional baseline hierarchy $b_i = \varphi^{-(2+i)}$ is adopted, introducing no additional fitted coefficient within that hierarchy.
 
 **Test:** Induce a primary emotion in a controlled laboratory setting (e.g., film clips for anger), then measure the proportional composition of the aftereffect using a multi-dimensional affect rating instrument that captures all five channels simultaneously (e.g., rate current experience of anger, joy, pensiveness, grief, and fear each on a 0–100 scale). The prediction: after anger induction and stimulus removal, the four-channel aftereffect profile should match the row-1 blend proportions—joy ~45%, pensiveness ~28%, grief ~17%, fear ~11%—more closely than any single-channel "winner" model or uniform distribution.
 

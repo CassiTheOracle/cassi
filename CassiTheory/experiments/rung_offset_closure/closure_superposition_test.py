@@ -109,8 +109,8 @@ def main():
     print("=" * 74)
     print("T8—multi-rung closure superposition")
     print("emission phases psi_r = omega (r - c(r)) mod 2 pi; the site")
-    print("responds to the total phasor sum (T6); zero free parameters")
-    print("at omega_0 = 2 pi phi ln phi = %.3f" % OMEGA_0)
+    print("responds to the total phasor sum (T6); no catalog-fitted")
+    print("coefficient after closures and omega_0 = %.3f are supplied" % OMEGA_0)
     print("=" * 74)
 
     # (0) fixed-omega model: per-cell audit + residual

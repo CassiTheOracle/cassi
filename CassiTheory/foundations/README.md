@@ -530,14 +530,17 @@ the gauge-covariant rail-rail Hessian supplied by a frozen charged endpoint
 under the Hypothesized species-port identification. A dressed quarter-turn
 phase and selected coupling ratio realize the golden matrix at one $k_\star$;
 current capacity with positive fixed-amplitude phase stiffness gives the
-conditional bound $k_\star>0.0964640362$. Source-action elimination gives a
-Nambu Schur response; the separately frozen AR1–AR6 receipt passes, while the
-DR receipt remains `FAIL` because its DR5 endpoint block has the opposite
-source-action sign. A closed homogeneous conservative time-harmonic extremum
-has zero coherent conversion current, while the symmetric zero-background
-contribution is positive and begins at quartic rail order. The endpoint
-potential, nonzero-current background, damping law, port map, trace
-normalization, dressed phase, and matching point remain unselected. The paper
+conditional bound $k_\star>0.0964640362$. First-order source-action elimination
+gives a Nambu Schur response covariant under constant relative-frame rotations;
+the separately frozen AR1–AR6 receipt passes, while the DR receipt remains
+`FAIL` because its DR5 endpoint block has the opposite source-action sign. A
+closed homogeneous conservative time-harmonic extremum has zero coherent
+conversion current. At the symmetric zero background, the eliminated source
+action begins at quartic rail order with a positive coefficient when
+$\mu_{v,0}:=W_v'(0)>0$; physical energy, stress, inertial mass, and stability
+signs remain open. The endpoint potential, nonzero-current background, damping
+law, port map, trace normalization, dressed phase, and matching point remain
+unselected. The paper
 separates reciprocal stress transfer, closed coherent propagation, and routed
 forward flux, showing that only the routed non-re-entry branch composes as
 $\varphi^{-N}$.
@@ -590,14 +593,15 @@ response, and conditional golden matching at one $k_\star$. Current capacity
 with positive fixed-amplitude phase stiffness gives the conditional unbiased
 bound $k_\star>0.0964640362$. A closed homogeneous conservative time-harmonic
 endpoint extremum has zero coherent conversion current. Around a nonzero rail
-background, source-action elimination gives a gauge-covariant Nambu Schur
-response with analytic endpoint poles. The separately frozen AR1–AR6 receipt
-passes; the DR receipt remains `FAIL` because its DR5 endpoint block has the
-opposite source-action sign. Around the symmetric zero background, the
-endpoint-mediated rail contribution is positive and begins at quartic order.
-The potential, nonzero-current background, damping law, full coupled spectrum,
-dressed phase, trace normalization, port map, and matching point remain
-unselected. The paper
+background, first-order source-action elimination gives a Nambu Schur response
+covariant under constant relative-frame rotations, with analytic endpoint
+poles. The separately frozen AR1–AR6 receipt passes; the DR receipt remains
+`FAIL` because its DR5 endpoint block has the opposite source-action sign. At
+the symmetric zero background, the eliminated source action begins at quartic
+rail order with a positive coefficient when $\mu_{v,0}:=W_v'(0)>0$; physical
+energy, stress, inertial mass, and stability signs remain open. The potential,
+nonzero-current background, damping law, full coupled spectrum, dressed phase,
+trace normalization, port map, and matching point remain unselected. The paper
 also derives one-way Lindblad closure with the conditional rate ratio
 $\gamma_-/\gamma_+=\varphi$, proves that smooth local positive energies cannot
 support a shrinking core, identifies fixed flux and $\mathcal B_G>0$ as the
