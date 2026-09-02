@@ -11,7 +11,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | # | Document | Domain | Epistemic |
 |---|----------|--------|-----------|
 | 1 | `dimensionful-cascade.md` | Scales from φ | Derived |
-| 2 | `cascade-suppression-formula.md` | Universal attenuation law | Derived |
+| 2 | `cascade-suppression-formula.md` | Conditional attenuation families | Derived conditional product algebra; uniform input and signal/routed-port maps Hypothesized |
 | 3 | `unified-lagrangian.md` | Formal assembled Lagrangian around the canonical core | Hypothesized (canonical core; optional sector extensions) |
 | 4 | `cassi-first-principles.md` | Postulate and two-fluid PDE | Derived PDE; asserted single-channel g(q) input |
 | 5 | `cassi-theory-reference.md` | Compact framework reference | Reference |
@@ -53,6 +53,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary smooth magnetic core, condensate topology, London confinement, and composite-stability boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Tested one-point coupled campaign |
 | 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point coupled campaign |
 | 43 | `particle-stationary-action-closure.md` | Source-free temporal particle action, Gauss constraint, fixed-charge functional, and variational boundary | Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries / Tested one-point numerical boundary |
+| 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, and routed quadratic-flux attenuation | Hypothesized—September 2026; conservation and transfer identities Derived conditional within the proposed branch |
 
 ## Document Summaries
 
@@ -511,6 +512,24 @@ supported proton solution, fluctuation spectrum, compact winding, mass
 scaling, particle identification, and decay rate remain open. Status:
 Hypothesized action with Derived conditional identities and completion
 boundaries, plus a Tested one-point numerical boundary.
+
+### `interscale-stress-attenuation-boundary.md`—Interscale Stress Transfer and the Attenuation Boundary
+
+The proposed branch derives the force on a finite scale window as the
+difference of its spatial-momentum fluxes $T_{i\mathfrak s}$. A reciprocal
+displacement ladder
+realizes the ledger with pairwise interface forces, positive energy, real
+normal modes, and series compliance. An interface factor
+$d=\varphi^{-1}$ is an exact frozen-state traction ratio in this branch; its
+reciprocal dynamics do not compose into $d^N$.
+
+A separate two-port construction declares the fixed-point fractions
+$T_\varphi=\varphi^{-1}$ and $R_\varphi=\varphi^{-2}$ to be forward and return
+powers. The representative splitter is unitary. Closed coherent propagation
+interferes, while routed return ports give forward quadratic flux
+$\varphi^{-N}$ and complementary return flux $1-\varphi^{-N}$. The physical
+stress carrier, density-to-port identification, phases, and non-re-entry
+mechanism remain Hypothesized.
 
 ### `geometric-manifold-completion.md`—Cassi Geometric Manifold Completion Ansatz
 

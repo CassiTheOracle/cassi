@@ -1,4 +1,4 @@
-"""Wake-anchor ratio and per-rung suppression: prescribed pair plus auxiliary
+"""Wake-anchor ratio and per-cascade-step suppression: prescribed pair plus auxiliary
 second-order wave model.
 
 Run:  python computations/wake_anchor_and_suppression.py
@@ -23,7 +23,7 @@ Section A - the wake anchors (foundations/wake-geometry.md sec 1):
       A single-frequency string (one motion) excites both modes at the
       SAME frequency w; the emitted wavelength ratio is
           Lambda_eps / Lambda_rho = 1 / sqrt(1 - 2 lam (1-q) / w^2)
-      evaluated at the rung tones w = 2 pi and w = 2 pi phi with the
+      evaluated at the cascade-step tones w = 2 pi and w = 2 pi phi with the
       declared solver normalization lam = 0.1.
 
   A2. The prescribed standing wave (the T1 harness wake pair
@@ -43,30 +43,31 @@ Section A - the wake anchors (foundations/wake-geometry.md sec 1):
   Verdict: the beat structure of the wake pair (given the pair) is exact
   and measured; the RATIO itself does not emerge from the auxiliary
   second-order dispersion (it is ~1.003, not phi); it is selected by
-  de-resonance + closure + nesting (the Yin wake is the previous rung's
+  de-resonance + closure + nesting (the Yin wake is the preceding cascade step's
   Yang wake, Lambda_I^(n) = ell_{n-1}, an identity of the ladder).
 
-Section B - the per-rung suppression factor (cascade-suppression-formula.md
-  sec 1/4):  d_i^signal ~ phi^-1 per rung.  Three candidates:
+Section B - the per-cascade-step suppression factor (cascade-suppression-formula.md
+  sec 1/4):  d_i^signal ~ phi^-1 per cascade step.  Three candidates:
 
-  B1. Impedance transmission across a rung boundary with impedance ratio
+  B1. Impedance transmission across a cascade-step boundary with impedance ratio
       phi: T = 2 sqrt(Z1 Z2)/(Z1 + Z2) = 2 phi^{-3/2} ~ 0.9717 (amplitude),
       power 4 phi^{-3} ~ 0.944, amplitude reflection (phi-1)/(1+phi) =
       phi^{-3} ~ 0.236.  None equal phi^-1 = 0.618.
   B2. The kinetic-vs-conversion ratio asserted in sec 4 ("the kinetic
-      term at each rung is O(phi) relative to the conversion term"):
+      term at each cascade step is O(phi) relative to the conversion term"):
       conversion = lam (1-q), so conversion/kinetic = lam/4 pi^2 ~ 0.0025
       at the declared solver normalization lam = 0.1 - two and a half orders
-      below phi^-1.  The assertion does not hold at the rung-wave scale.
+      below phi^-1.  The assertion does not hold at the cascade-step wave scale.
   B3. The attractor Yang fraction: r/(1+r) at r = phi = phi/(1+phi) =
-      phi^-1 EXACTLY (parameter-inventory ledger row 500/453).  The
-      per-rung factor is the fraction of the density-doublet amplitude that
-      sits in the Yang (propagating) channel at the fixed point - the
-      framework's own attractor ratio, not a crossing amplitude.
+      phi^-1 EXACTLY (parameter-inventory ledger row 500/453).  This is
+      a density fraction.  It is not a field-amplitude transmission
+      coefficient.  A separate Hypothesized routed-port branch may select it
+      as the quadratic forward power/flux fraction, with amplitude
+      phi^-1/2 and complementary return power phi^-2.
 
-  Verdict: no crossing model yields phi^-1; the per-rung factor is the
-  attractor Yang fraction (exact identity) and remains the definitional
-  calibration of the suppression formula.
+  Verdict: no impedance or canonical crossing model yields phi^-1.  The exact
+  attractor density identity supplies a declared input to the suppression
+  formula; the physical signal or routed-port assignment remains Hypothesized.
 
 Output: console tables + verdicts.  No figure is written.
 """
@@ -119,12 +120,12 @@ def a1():
     r = eigenmode_ratio(2 * np.pi)
     print(f"\n  Decisive number: at the Yang tone with lam = {LAM} (the")
     print(f"  gate open, the auxiliary anti-phase (conversion) wake is emitted at")
-    print(f"  {r - 1:.6f} relative correction to the rung scale - NOT the")
-    print(f"  sub-rung scale phi^-1 - 1 = {PHI**-1 - 1:.3f}.  The auxiliary")
+    print(f"  {r - 1:.6f} relative correction to the cascade-step scale - NOT the")
+    print(f"  next-finer-step scale phi^-1 - 1 = {PHI**-1 - 1:.3f}.  The auxiliary")
     print(f"  model's conversion mass 2 lam = {2*LAM:.2f} is "
           f"~{2*LAM/(2*np.pi)**2:.4f} of the")
     print(f"  tone frequency-squared: the dispersion does not select the")
-    print(f"  sub-rung scale.")
+    print(f"  next-finer cascade-step scale.")
     return r
 
 
@@ -339,32 +340,32 @@ def a3():
             print(f"    predicted eps/rho ratio = {r:.5f} "
                   f"(2 lam/w^2 = {2*lam/w**2:.5f}); phi^-1 = {PHI**-1:.5f},")
             print(f"    phi^2 = {PHI**2:.5f}.  The emission does NOT produce")
-            print(f"    the sub-rung scale.")
+            print(f"    the next-finer cascade-step scale.")
     print(f"\n  Reading: with the declared solver normalization lam = {LAM} the")
     print(f"  mass barely perturbs the radiated wavelengths (ratio ~1.003);")
     print(f"  a single-frequency string does not emit a phi-scaled Yin")
     print(f"  wake at linear order.  The 1/phi of the anchors is not in")
-    print(f"  the dispersion; it is the cascade's own inter-rung ratio")
+    print(f"  the dispersion; it is the cascade's own adjacent-step ratio")
     print(f"  (Lambda_I^(n) = ell_{{n-1}}), selected by de-resonance and the")
     print(f"  composite closure 1 + 1/phi = phi.")
     return
 
 
 # ----------------------------------------------------------------------
-# B. Per-rung suppression candidates
+# B. Per-cascade-step suppression candidates
 # ----------------------------------------------------------------------
 
 def b():
     print("=" * 78)
-    print("B - per-rung suppression d ~ phi^-1: crossing-model candidates")
+    print("B - per-cascade-step suppression d ~ phi^-1: crossing-model candidates")
     print("=" * 78)
 
-    # B1. impedance transmission across a rung boundary, Z2/Z1 = phi
+    # B1. impedance transmission across a cascade-step boundary, Z2/Z1 = phi
     T = 2 * np.sqrt(PHI) / (1 + PHI)          # 2 sqrt(Z1 Z2)/(Z1+Z2)
     T_pow = 4 * PHI / (1 + PHI) ** 2          # power transmission
     R = (PHI - 1) / (1 + PHI)                 # amplitude reflection
     R_pow = R ** 2
-    print(f"\n  B1. impedance step Z2/Z1 = phi (one rung):")
+    print(f"\n  B1. impedance step Z2/Z1 = phi (one cascade step):")
     print(f"      amplitude transmission T = 2 sqrt(phi)/(1+phi) = "
           f"2 phi^-3/2 = {T:.6f}   (phi^-1 = {PHI**-1:.6f})")
     print(f"      power transmission = 4 phi/(1+phi)^2 = 4 phi^-3 = "
@@ -375,17 +376,17 @@ def b():
     print(f"      the wrong tool: a phi impedance step transmits ~97%,")
     print(f"      not 62%.)")
 
-    # B2. kinetic vs conversion at the rung scale (the sec-4 assertion)
+    # B2. kinetic vs conversion at the cascade-step scale (the sec-4 assertion)
     kY = 2 * np.pi
     kinetic = C2 * kY ** 2
     conv = LAM
-    print(f"\n  B2. 'the kinetic term at each rung is O(phi) relative to")
+    print(f"\n  B2. 'the kinetic term at each cascade step is O(phi) relative to")
     print(f"      the conversion term' (sec 4 assertion), evaluated at the")
-    print(f"      rung scale (c = 1, ell_n = 1, k = 2 pi):")
+    print(f"      cascade-step scale (c = 1, ell_n = 1, k = 2 pi):")
     print(f"      kinetic c^2 k^2 = {kinetic:.4f}, conversion lam = {conv}")
     print(f"      conversion/kinetic = {conv / kinetic:.6f} (gate open)")
     print(f"      vs phi^-1 = {PHI**-1:.6f}: the assertion is false by")
-    print(f"      ~2.5 orders at the rung-wave scale.  The kinetic term")
+    print(f"      ~2.5 orders at the cascade-step wave scale.  The kinetic term")
     print(f"      dominates the conversion term by ~{kinetic / conv:.0f}x.")
     omq_att = PHI**-2 / 3.0
     print(f"      gated (attractor, 1-q = phi^-2/3): "
@@ -396,14 +397,14 @@ def b():
     print(f"\n  B3. attractor Yang fraction r/(1+r) at r = phi:")
     print(f"      phi/(1+phi) = phi/phi^2 = phi^-1 = {yf:.10f}  EXACT")
     print(f"      (fixed point E_Y = phi E_I; ledger rows 500/453).  The")
-    print(f"      per-rung factor is the fixed point's amplitude split:")
-    print(f"      the Yang (propagating) channel carries fraction phi^-1")
-    print(f"      of the doublet at each rung.  This is the defensible")
-    print(f"      in-framework expression of the per-rung factor; it is")
-    print(f"      the definitional calibration of the suppression formula")
-    print(f"      (postulate-level, like ell_n), not a crossing amplitude.")
+    print(f"      per-step factor is the fixed point's density fraction:")
+    print(f"      the Yang component carries fraction phi^-1 of the")
+    print(f"      total doublet density.  Reading that fraction as a")
+    print(f"      routed forward power is a separate constitutive branch;")
+    print(f"      see interscale_stress_attenuation_check.py.  The identity")
+    print(f"      is a definitional calibration, not a crossing amplitude.")
     print(f"\n  Verdict: no crossing model (impedance, gate, de-resonance")
-    print(f"  window) yields phi^-1 exactly; the per-rung factor stands as")
+    print(f"  window) yields phi^-1 exactly; the per-step factor stands as")
     print(f"  the attractor Yang fraction - exact identity, definitional")
     print(f"  calibration, stated plainly.")
     return
@@ -411,7 +412,7 @@ def b():
 
 def main():
     print("=" * 78)
-    print("Wake-anchor ratio and per-rung suppression verification")
+    print("Wake-anchor ratio and per-cascade-step suppression verification")
     print(f"phi = {PHI:.10f}, lam = {LAM} (declared solver normalization), "
           f"c = 1, ell_n = 1")
     print("=" * 78)
@@ -430,10 +431,10 @@ def main():
     print("  phi = ell_{n+1}, with nulls at the half-period; the measured")
     print("  tone wavelengths are 1 and 1/phi. The ratio is selected by")
     print("  de-resonance + composite closure + nesting (the Yin wake is")
-    print("  the previous rung's Yang wake, ell_{n-1}).")
-    print("B: the per-rung phi^-1 is not produced by any crossing model;")
-    print("  it is the attractor Yang fraction phi/(1+phi) = phi^-1, the")
-    print("  definitional calibration of the suppression formula.")
+    print("  the preceding cascade step's Yang wake, ell_{n-1}).")
+    print("B: no impedance or canonical crossing model produces phi^-1;")
+    print("  it is the attractor Yang density fraction phi/(1+phi). A")
+    print("  separate routed-port ansatz realizes it as forward power.")
 
 
 if __name__ == "__main__":

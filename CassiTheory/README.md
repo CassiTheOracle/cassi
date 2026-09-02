@@ -150,7 +150,7 @@ CassiTheory is a live theoretical research program. The canonical PDE, gate, and
 `Asserted` marks a selected definition, equation form, or convention. Its
 mathematical consequences are Derived only conditional on that input.
 
-Every public claim uses one of six tiers:
+The repository uses five evidential tiers for public claims, plus **Creative** for exploratory applications outside the evidential ladder:
 
 | Tier | Meaning |
 |---|---|

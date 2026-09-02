@@ -1015,9 +1015,9 @@ Creative**. Full definitions with worked examples:
 - **Calibrated**—the framework supplies the form; the constant's value is
   anchored to a stated observation, and downstream claims that use the pinned
   value inherit Calibrated unless independently derived. Example: $\xi =
-  \varphi^6$ (Derived rung identity, Calibrated empirical pin $\xi \approx 18$
+  \varphi^6$ (Derived algebraic identity, Calibrated empirical pin $\xi \approx 18$
   from the Milky Way rotation curve).
-- **Mapped**—the placement (rung, exponent, offset, candidate, normalization)
+- **Mapped**—the placement (cascade step, exponent, offset, candidate, normalization)
   was selected or fitted to data: search tables, grid scans, nearest-integer
   logs of measured ratios, back-solved normalizations, candidate tables, free
   parameters closing a gap, scan highlights. The fit MUST be recorded in the
@@ -1034,7 +1034,7 @@ Creative**. Full definitions with worked examples:
 Bookkeeping words—Reference, Index, Synthesis, Plan, Registry, Catalog, Open
 problem—are genres rather than epistemic claims and do not sit on the ladder.
 "Tested" is a verification marker that attaches to a tier and does not upgrade
-it. Use the six evidential tiers defined above.
+it. Use one of the five evidential tiers defined above for claims; reserve Creative for exploratory applications outside the ladder.
 
 ---
 

@@ -799,6 +799,15 @@ $$
 is one term in the force, rather than a complete force law. The factor $\hbar$
 and the gauge-charge normalization are required by the declared units.
 
+The gauge-source current $\mathcal I_{\mathfrak s}$ and the Noether
+spatial-momentum flux $T_{i\mathfrak s}$ are separate objects. The exact
+scale-window momentum ledger and a reciprocal stress realization are derived
+in `foundations/interscale-stress-attenuation-boundary.md`. Identifying the
+mixed-curvature term with an attenuated physical stress requires the
+time-completed action, a constitutive map between these currents, and a
+specified return channel. The routed $\varphi^{-N}$ branch in that document
+applies to a quadratic forward flux under non-re-entry boundary conditions.
+
 ### 5.2 Conditional inward sign
 
 Consider a static sector with $B_i=0$, weak variation in $\mathfrak s$, and a
@@ -1460,3 +1469,5 @@ winding approximants; it does not replace those inputs.
 - `particles/cassi-yang-yin-particles.md`—complex two-component field precedent
 - `field-experience/toroidal-connected-hierarchy-report.md`—measured connected-hierarchy redistribution
 - `field-experience/toroidal-coherence-survival-report.md`—toroidal stability result
+- `foundations/interscale-stress-attenuation-boundary.md`—Noether momentum-window ledger, reciprocal scale stress, and routed-flux attenuation boundary
+- `computations/interscale_stress_attenuation_check.py`—stress and transfer-algebra checker

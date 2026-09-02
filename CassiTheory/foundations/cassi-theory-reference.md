@@ -1,6 +1,6 @@
 # The Cassi Framework
 
-## Status: Reference—August 2026
+## Status: Reference—September 2026
 
 ## Abstract
 
@@ -376,6 +376,16 @@ $d_i^{\mathrm{signal}}\equiv\varphi^{-1}$ gives
 $\prod_{i=m}^{n-1}d_i^{\mathrm{signal}}=\varphi^{-(n-m)}=\varphi^{-N}$.
 These are algebraic identities conditional on their stated per-rung inputs;
 the physical signal-map interpretation remains **Hypothesized**.
+
+One explicit conservative realization is isolated in
+`foundations/interscale-stress-attenuation-boundary.md`. A reciprocal
+scale-stress ladder treats $d_i$ as interface stiffness and gives conservative
+dispersion plus series compliance. A separate routed two-port branch declares
+$\varphi^{-1}$ and $\varphi^{-2}$ to be forward and return powers; it yields
+$\varphi^{-N}$ for the forward quadratic flux and retains
+$1-\varphi^{-N}$ in the return ledger. Closed coherent propagation interferes,
+and the routed amplitude scales as $\varphi^{-N/2}$. The physical port and
+stress-current identifications remain Hypothesized.
 
 For the fractional mapped endpoint $N_p=91.46$, no indexed product is taken.
 The closed quadratic exponent is continued by the explicit coordinate

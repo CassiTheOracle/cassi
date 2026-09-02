@@ -13,12 +13,13 @@ The registries record named solver normalizations, asserted boundaries,
 calibrated anchors, mapped placements, and external constants; quantitative claims retain mixed-input accounting and their
 epistemic status. Current constructions omit dark matter particles, an
 inflaton, a cosmological constant, SUSY, and extra dimensions. Every answer is
-tagged with its epistemic status: **Derived**
+tagged with one of five evidential statuses: **Derived**
 (a priori consequence of $\varphi$ + PDE), **Calibrated** (value anchored to
 an observation), **Mapped** (placement or exponent fitted or selected, fit
-ledgered), **Hypothesized** (mechanism proposed, test exists), **Speculative**
-(framework-consistent, testing pending), or **Creative** (exploration, not a
-claim). Full definitions: the **Epistemic Tiers** section below. If the
+ledgered), **Hypothesized** (mechanism proposed, test exists), or **Speculative**
+(framework-consistent, testing pending). **Creative** is reserved for
+exploration and carries no claim status. Full definitions are in the
+**Epistemic Tiers** section below. If the
 concepts below are unfamiliar, the **Cassi Primer** section immediately
 following gives a self-contained explanation of every framework term used
 throughout the document.
@@ -27,10 +28,11 @@ throughout the document.
 
 ## Epistemic Tiers
 
-Every claim in this registry carries an epistemic tier. The ladder, highest to
-lowest: **Derived > Calibrated > Mapped > Hypothesized > Speculative >
-Creative**. A stranger must be able to classify any claim from these
-definitions alone; when in doubt, use the lower tier.
+Every claim in this registry carries one of five evidential tiers. The ladder,
+highest to lowest, is **Derived > Calibrated > Mapped > Hypothesized >
+Speculative**. **Creative** is an exploratory category outside this ladder. A
+stranger must be able to classify any claim from these definitions alone; when
+in doubt, use the lower tier.
 
 ### Derived
 
@@ -49,7 +51,7 @@ with $\varphi$—is the axiom, not a Derived consequence.
 ### Calibrated
 
 The framework supplies the form, but the constant's **value** is anchored to a
-stated observation. Example: $\xi = \varphi^6$ has a Derived rung identity
+stated observation. Example: $\xi = \varphi^6$ has a Derived algebraic identity
 ($\varphi^6 = \varphi^5 + \varphi^4$), but its empirical pin ($\xi \approx 18$
 from the Milky Way rotation curve) is Calibrated; every downstream claim that
 uses the pinned value inherits Calibrated unless independently derived.
@@ -61,8 +63,8 @@ the calibration, not an independent test.
 
 ### Mapped
 
-The quantity is placed on the framework's structure—rung, exponent, offset,
-candidate, or normalization—and the **placement** was selected or fitted to
+The quantity is placed on the framework's structure—cascade step, exponent,
+offset, candidate, or normalization—and the **placement** was selected or fitted to
 data: search tables over exponents (η's −44), grid scans (the neutrino offsets
 $\Delta_1$, $\Delta_2$), nearest-integer logs of measured ratios
 ($N_{\mathrm{raw}}=\log_\varphi(M_{\text{Pl}}/v_0)\approx79.89$), and the
@@ -72,7 +74,7 @@ $g=1-\varphi^{-5}$), back-solved
 normalizations ($N_{\text{pde}} \approx 2.35\times10^3$), candidate tables with
 one winner ($\delta_{\text{CKM}} = \pi\varphi^{-2}$), free parameters chosen to
 close a gap ($\Delta b = 1.70$), and look-elsewhere highlights from scans
-(muon, J/ψ rung placements). Boundary with Calibrated: Calibrated fixes a
+(muon, J/ψ cascade-step placements). Boundary with Calibrated: Calibrated fixes a
 value read off one anchor; Mapped fixes a placement chosen to land on the
 data. **The fit MUST be recorded in the Fit-Status Ledger**
 (`parameter-inventory.md` §10). A Mapped claim describes the data it was
@@ -1017,14 +1019,14 @@ flowchart TD
     G --> F
 ```
 
-**Visual:** The canonical variables provide common vocabulary across sectors. The geometric completion ansatz combines the canonical density subcone, coherence ball, projective shell, and interscale circuit in one stratified bundle. General relativity and Standard Model gauge dynamics remain established external physics, Qi-gravity remains an incomplete algebraic ansatz, and no current action matches all four interactions to the canonical solver.
+**Visual:** The canonical variables provide common vocabulary across sectors. The geometric completion ansatz combines the canonical density subcone, coherence ball, projective shell, and interscale circuit in one stratified bundle. The interscale stress branch adds an exact momentum-window ledger and separates reciprocal stress transfer from routed attenuation. General relativity and Standard Model gauge dynamics remain established external physics, Qi-gravity remains an incomplete algebraic ansatz, and no current action matches all four interactions to the canonical solver.
 
-The completion ansatz in `foundations/geometric-manifold-completion.md` supplies compatible geometry and an exact neutral reduction to the canonical PDE. It keeps the Hypothesized conservative interscale action separate from mesoscopic dissipative conversion and introduces open endpoint, scale-metric, and reservoir structures. General relativity and Standard Model gauge dynamics retain their external status, and the Qi-gravity proposal retains its algebraic status. Complete force unification still requires microscopic field content, local gauge completion, P1→P2 matching, sector quantum numbers, covariant gravity, and tests.
+The completion ansatz in `foundations/geometric-manifold-completion.md` supplies compatible geometry and an exact neutral reduction to the canonical PDE. It keeps the Hypothesized conservative interscale action separate from mesoscopic dissipative conversion and introduces open endpoint, scale-metric, and reservoir structures. `foundations/interscale-stress-attenuation-boundary.md` derives the force on a scale window as mixed-stress boundary flux, proves that a reciprocal ladder has conservative normal modes and series compliance, and gives a separate Hypothesized routed-port realization of $\varphi^{-N}$ quadratic-flux transfer. General relativity and Standard Model gauge dynamics retain their external status, and the Qi-gravity proposal retains its algebraic status. Complete force unification still requires microscopic field content, local gauge completion, a Noether stress tensor for the time-completed action, P1→P2 matching, sector quantum numbers, covariant gravity, and tests.
 
-| **Cassi Answer** | One explicit stratified geometric completion ansatz with exact canonical reduction; no action currently derives or matches the four established interactions |
-| **Mechanism** | A positive Hermitian Yang/Yin fibre connects the canonical densities, loop coherence, and projective bubble map, while a two-rail graph closes the conditional scale circuit; gravity, Standard Model gauge structure, endpoint microphysics, conversion reservoir, and P1→P2 matching remain separate |
-| **Epistemic** | **Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry**—physical realization and cross-sector matching remain open |
-| **Reference** | `foundations/geometric-manifold-completion.md`; `foundations/physical-becoming-hierarchy.md` §7.2, §7.3; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md` |
+| **Cassi Answer** | One explicit stratified geometric completion ansatz with exact canonical reduction and one conditional interscale momentum ledger; no action currently derives or matches the four established interactions |
+| **Mechanism** | A positive Hermitian Yang/Yin fibre connects the canonical densities, loop coherence, and projective bubble map; a two-rail graph closes the conditional scale circuit; mixed-stress boundary flux transfers momentum between scale windows; gravity, Standard Model gauge structure, endpoint microphysics, conversion reservoir, routed-port identification, and P1→P2 matching remain separate |
+| **Epistemic** | **Hypothesized completion and constitutive ansätze / Derived canonical reduction, conditional fibre geometry, and momentum-window conservation**—physical realization and cross-sector matching remain open |
+| **Reference** | `foundations/geometric-manifold-completion.md`; `foundations/physical-becoming-hierarchy.md` §7.2, §7.3; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md`; `foundations/interscale-stress-attenuation-boundary.md` |
 
 ### F4: Theory of Everything
 

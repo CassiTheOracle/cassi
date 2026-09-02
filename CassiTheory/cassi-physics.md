@@ -18,9 +18,9 @@ Zoom out, and the lattice you are inside is itself a bubble of a larger lattice.
 
 Within that **Hypothesized** geometry, each modeled bubble carries a proposed **five-arm Fibonacci spiral** at its poles, organized by the golden angle $2\pi/\varphi^2 \approx 137.5^\circ$. Count the arms and you find consecutive Fibonacci numbers—34 one way, 55 the other—because the golden angle is the one turn that never repeats exactly, so the spiral never locks into a smaller symmetry. Sunflowers, pinecones, and nautilus shells display the same phyllotaxis at their own scale; that analogy does not establish the proposed pole geometry. A sunflower is an observed instance of phyllotaxis, not evidence for the model's source.
 
-The pattern is described by two nonnegative density components and their coherence structure. The framework conventionally labels them **Yang** ($E_Y$) and **Yin** ($E_I$). A **Hypothesized** phenomenological mapping may call Yang expansive or outward and Yin contractive or inward; the canonical PDE treats $E_Y$ and $E_I$ as neutral density components. For $\rho>0$, the optional positive-root coordinate lift $\Psi^{(+)}=(\Psi_0^{(+)},\Psi_1^{(+)})=(\sqrt{E_Y},\sqrt{E_I})$ supplies the amplitude-plane diagnostic $\theta_\Psi=\operatorname{atan2}(\Psi_1^{(+)},\Psi_0^{(+)})$ and the foundational spatial phase-current diagnostic $\mathbf{J}_\Psi=\Psi_0^{(+)}\nabla\Psi_1^{(+)}-\Psi_1^{(+)}\nabla\Psi_0^{(+)}=\rho\nabla\theta_\Psi$. The density-plane angle $\theta_d=\operatorname{atan2}(E_I,E_Y)$ and Stokes double angle $\Theta_S=\operatorname{atan2}(2\Psi_0^{(+)}\Psi_1^{(+)},E_Y-E_I)=2\theta_\Psi\pmod{2\pi}$ are distinct coordinates. The density-lattice diagnostic $\mathbf{J}_d=E_Y\nabla E_I-E_I\nabla E_Y=(E_Y^2+E_I^2)\nabla\theta_d=2\sqrt{E_YE_I}\,\mathbf{J}_\Psi$ has different units. A named spatial projection records a chosen direction; physical-current and inter-rung transport interpretations require a separate constitutive map and remain **Hypothesized**.
+The pattern is described by two nonnegative density components and their coherence structure. The framework conventionally labels them **Yang** ($E_Y$) and **Yin** ($E_I$). A **Hypothesized** phenomenological mapping may call Yang expansive or outward and Yin contractive or inward; the canonical PDE treats $E_Y$ and $E_I$ as neutral density components. For $\rho>0$, the optional positive-root coordinate lift $\Psi^{(+)}=(\Psi_0^{(+)},\Psi_1^{(+)})=(\sqrt{E_Y},\sqrt{E_I})$ supplies the amplitude-plane diagnostic $\theta_\Psi=\operatorname{atan2}(\Psi_1^{(+)},\Psi_0^{(+)})$ and the foundational spatial phase-current diagnostic $\mathbf{J}_\Psi=\Psi_0^{(+)}\nabla\Psi_1^{(+)}-\Psi_1^{(+)}\nabla\Psi_0^{(+)}=\rho\nabla\theta_\Psi$. The density-plane angle $\theta_d=\operatorname{atan2}(E_I,E_Y)$ and Stokes double angle $\Theta_S=\operatorname{atan2}(2\Psi_0^{(+)}\Psi_1^{(+)},E_Y-E_I)=2\theta_\Psi\pmod{2\pi}$ are distinct coordinates. The density-lattice diagnostic $\mathbf{J}_d=E_Y\nabla E_I-E_I\nabla E_Y=(E_Y^2+E_I^2)\nabla\theta_d=2\sqrt{E_YE_I}\,\mathbf{J}_\Psi$ has different units. A named spatial projection records a chosen direction; physical-current and interscale-transport interpretations require a separate constitutive map and remain **Hypothesized**.
 
-The canonical conversion relaxes the local ratio $r=E_Y/E_I$ toward $\varphi$. Spatial responses in the deviation $\varepsilon=E_Y-\varphi E_I$ can form patterns in simulations. Supplied adjacent-rung carriers have an exact phase-staggered beat envelope, while interpreting its antinodes and nodes as physical bubbles and voids remains a **Hypothesized** phenomenological mapping. The distinct default CassiCosmos second-order wave branch separates into a massless density mode and an imbalance mode with threshold $\Omega_g=\varphi\omega_{0,\mathrm{wave}}$; a supplied drive at $\Omega_*=\varphi^{3/2}\omega_{0,\mathrm{wave}}$ gives $k_\rho/k_\epsilon=\varphi$ and additively spaced layers. The current source path selects no such drive, and phase staggering alone opens no transfer gap. The independently defined Qi gate closes as $q$ increases and opens as $q$ decreases; associating high-$q$ pockets with bubbles and low-$q$ regions with voids requires the same separate physical mapping.
+The canonical conversion relaxes the local ratio $r=E_Y/E_I$ toward $\varphi$. Spatial responses in the deviation $\varepsilon=E_Y-\varphi E_I$ can form patterns in simulations. Supplied adjacent-scale carriers have an exact phase-staggered beat envelope, while interpreting its antinodes and nodes as physical bubbles and voids remains a **Hypothesized** phenomenological mapping. The distinct default CassiCosmos second-order wave branch separates into a massless density mode and an imbalance mode with threshold $\Omega_g=\varphi\omega_{0,\mathrm{wave}}$; a supplied drive at $\Omega_*=\varphi^{3/2}\omega_{0,\mathrm{wave}}$ gives $k_\rho/k_\epsilon=\varphi$ and additively spaced layers. The current source path selects no such drive, and phase staggering alone opens no transfer gap. The independently defined Qi gate closes as $q$ increases and opens as $q$ decreases; associating high-$q$ pockets with bubbles and low-$q$ regions with voids requires the same separate physical mapping.
 
 Coherence gates conversion: at high $q$ the gate closes and at low $q$ the gate opens. Reading these gate states as a bubble holding or a void churning belongs to the **Hypothesized** phenomenological mapping above. Where a spatial solution develops a coherent filament, a **Hypothesized** geometric mapping may call it a **condensed fluid string**—the proposed spine around which bubbles condense (source: `foundations/bubble-lattice-fabric.md`).
 
@@ -220,7 +220,7 @@ The exact relaxation integral gives
 
 $$\boxed{\Delta\theta_d=\operatorname{atan}\!\left(\frac{1}{\varphi}\right)-\operatorname{atan}\!\left(\frac{\rho-\varepsilon_0}{\rho\varphi+\varepsilon_0}\right)}$$
 
-If a rung coordinate is assigned by $\delta n_{\mathrm{map}}\equiv\Delta\theta_d/(2\pi)$, that coordinate mapping is **Hypothesized**, not a PDE-derived rung offset or physical rung flux. Under this map, $|\delta n_{\mathrm{map}}|\le\operatorname{atan}(\varphi)/(2\pi)\approx0.162$; a half-rung value is a separate parity structure (`foundations/rung-offset-mechanism.md` §7), not accumulated relaxation.
+If a cascade-step coordinate is assigned by $\delta n_{\mathrm{map}}\equiv\Delta\theta_d/(2\pi)$, that coordinate mapping is **Hypothesized**. The PDE supplies the relaxation angle while the scale-step offset and physical interscale flux remain open. Under this map, $|\delta n_{\mathrm{map}}|\le\operatorname{atan}(\varphi)/(2\pi)\approx0.162$; a half-step value is a separate parity structure (`foundations/rung-offset-mechanism.md` §7) and carries no accumulated-relaxation interpretation.
 
 ### Memory
 
@@ -368,7 +368,7 @@ Within that optional mapping, the closed toroidal loop—string → wake pattern
 ## 5. Five Channels: The Wu Xing Closure
 
 The string's optional geometric phase pattern partitions the full circle into angular sectors where the density ratio and phase relation differ. These are the **coherence channels**—modes of the field. Describing the sectors as different kinds of push and pull is a **Hypothesized** phenomenological mapping.
-The phase-gate use of these sectors, including a compact five-channel phase and a one-rung/one-turn interpretation, is **Hypothesized**; the arithmetic closure below is **Derived conditional** only under the stipulated coordinate/threshold construction.
+The phase-gate use of these sectors, including a compact five-channel phase and a one-step/one-turn interpretation, is **Hypothesized**; the arithmetic closure below is **Derived conditional** only under the stipulated coordinate/threshold construction.
 
 ### Why five
 
@@ -384,12 +384,12 @@ Under the stipulated coordinate/threshold construction, the intersection is uniq
 The five-arm closure supplies the following quantities with distinct epistemic status:
 
 - **The gap** $g=1-\varphi^{-5}\approx0.910$: the five-phase Wu Xing closure's bookkeeping factor for the modeled density imbalance; it sets the depth of the cascade under that conditional construction.
-- **The primordial ratio** $r_0\approx0.047$: at the universe's birth, the component ratio was Yang-labeled $E_Y$ to Yin-labeled $E_I$ at about 1 to 21. This follows conditionally from the $w=5$ closure and the epoch calibration that places today's horizon at rung 292.
+- **The primordial ratio** $r_0\approx0.047$: at the universe's birth, the component ratio was Yang-labeled $E_Y$ to Yin-labeled $E_I$ at about 1 to 21. This follows conditionally from the $w=5$ closure and the epoch calibration that places today's horizon at step 292.
 - **The conversion normalization** $\lambda=0.1$: the **Asserted** C-class/framework convention used by named calculations. The implementation class default is $\lambda=0.02$. A **Hypothesized** Wu Xing linkage writes $\lambda=1/(2w)$ at $w=5$; this linkage does not derive the rate or its units.
 
 Within that construction, 5 is fixed by the two constraints. Applying the result as a physical channel count requires the Hypothesized geometric and phenomenological mapping.
 
-**Epistemic status:** the $w=5$ selection and gap are **Derived conditional** on the phase-coherence, geometry, coordinate, and threshold assumptions; $r_0$ inherits that closure and the epoch calibration. The physical five-channel gate, compact phase, and one-rung/one-turn interpretation are **Hypothesized**. The named $\lambda=0.1$ convention is **Asserted**, the implementation default is $\lambda=0.02$, and the cycle linkage is **Hypothesized**. At the human scale the five channels structure emotion; that mapping is **Hypothesized** and testable (see `consciousness/emotions-as-gate-configurations.md`).
+**Epistemic status:** the $w=5$ selection and gap are **Derived conditional** on the phase-coherence, geometry, coordinate, and threshold assumptions; $r_0$ inherits that closure and the epoch calibration. The physical five-channel gate, compact phase, and one-step/one-turn interpretation are **Hypothesized**. The named $\lambda=0.1$ convention is **Asserted**, the implementation default is $\lambda=0.02$, and the cycle linkage is **Hypothesized**. At the human scale the five channels structure emotion; that mapping is **Hypothesized** and testable (see `consciousness/emotions-as-gate-configurations.md`).
 
 ---
 
@@ -421,7 +421,7 @@ At the phenomenologically selected level $\theta_{\text{cond}}=0.45$, this ratio
 
 ### Scale covariance
 
-The optional condensation model is **scale-covariant** by construction: the same functional form $B(x,y,z)$ operates at every cascade rung with wavelengths scaled to $\ell_n$. In that construction, a bubble at rung $n$ contains the modeled sub-lattice of rungs below it and is itself a site in the lattice at rung $n+1$. The bubble lattice is the proposed organizing geometry at every scale (`foundations/bubble-lattice-fabric.md`)—the cascade ladder is a 1D slice of this 3D model along the named string axis.
+The optional condensation model is **scale-covariant** by construction: the same functional form $B(x,y,z)$ operates at every cascade step with wavelengths scaled to $\ell_n$. In that construction, a bubble at step $n$ contains the modeled scale layers below it and is itself a site in the lattice at step $n+1$. The bubble lattice is the proposed organizing geometry at every scale (`foundations/bubble-lattice-fabric.md`)—the cascade ladder is a 1D slice of this 3D model along the named string axis.
 
 **Epistemic status:** the density-plane relaxation and Qi gate are **Derived** from the canonical PDE. The condensation field, checkerboard, Yang/Yin axis assignment, and bubble/void interpretation are **Hypothesized** geometric constructions. The spheroid shape and edge ratio are **Derived conditional on that construction** and have the numerical support stated above; algebraic scale covariance is **Derived conditional** on the stipulated $\varphi$-rescaling construction, while its physical realization and identification are **Hypothesized**.
 
@@ -431,7 +431,7 @@ The optional condensation model is **scale-covariant** by construction: the same
 
 ## 7. The Cascade of Scales
 
-The framework defines a proposed dimensionful cascade coordinate from the external Planck length $\ell_{\text{Pl}}=1.616\times10^{-35}$ m and a chosen $\varphi$ step per named rung:
+The framework defines a proposed dimensionful cascade coordinate from the external Planck length $\ell_{\text{Pl}}=1.616\times10^{-35}$ m and a chosen factor $\varphi$ between adjacent cascade steps:
 
 $$\boxed{\ell_n=\ell_{\text{Pl}}\times\varphi^{\,n},\qquad n\in\mathbb{Z}\quad(\text{the framework's observable ladder label spans }n\in[0,292])}$$
 
@@ -452,7 +452,7 @@ The entries below are proposed scale correspondences within this coordinate conv
 | 267 | $9.3 \times 10^{20}$ m | Milky Way diameter |
 | 284 | $3.6 \times 10^{24}$ m | BAO scale (118 Mpc) |
 | 285 | $5.9 \times 10^{24}$ m | Cassi bubble: our cosmic bubble |
-| 292 | $1.7 \times 10^{26}$ m | Horizon rung today (epoch-dependent); $\ell_{292} = 5.5$ Gpc label, $R_H = 4.44$ Gpc = 14.5 Glyr |
+| 292 | $1.7 \times 10^{26}$ m | Horizon coordinate today (epoch-dependent); $\ell_{292} = 5.5$ Gpc label, $R_H = 4.44$ Gpc = 14.5 Glyr |
 
 The coordinate formula extends formally in both directions: downward into negative **microcascade** labels and upward beyond today's horizon coordinate into **megacascade** labels. Within the separate chord-lattice model, the nearest $w=5$ bubbles lie inside the horizon—$n=286$ ($\ell_{286}=309$ Mpc) and $n=287$ ($\ell_{287}=500$ Mpc). Physical fields, currents, and energy in either extension remain Hypothesized; the scale coordinate alone supplies none of them. The full catalogue is in `foundations/dimensionful-cascade.md`.
 
@@ -473,15 +473,22 @@ compact winding, scale-metric coefficients, and particle identification remain
 conditional or open. The interscale current is separate from the canonical
 spatial diagnostic $\mathbf J_d$.
 
+`foundations/interscale-stress-attenuation-boundary.md` introduces the separate
+spatial-momentum flux $T_{i\mathfrak s}$. The force on a finite scale window is
+the difference between this flux at its two scale boundaries. A reciprocal
+stress ladder conserves total momentum and energy; its interface coefficient
+changes traction and dispersion without producing a multiplicative transfer
+law.
+
 The listed correspondences are the framework's scale-assignment hypothesis. The Planck length is the external dimensionful anchor supplied to this model; the $\varphi$ recurrence supplies dimensionless ratios and does not by itself derive physical dimensionality or force unification.
 
-**Epistemic status:** the recurrence is **Derived conditional** on the supplied anchor and one-step convention. Identifying each named rung with a physical scale is **Hypothesized** and, where a placement is selected from measured data, **Mapped**; `foundations/dimensionful-cascade.md` records the arithmetic and provenance.
+**Epistemic status:** the recurrence is **Derived conditional** on the supplied anchor and one-step convention. Identifying each named cascade step with a physical scale is **Hypothesized** and, where a placement is selected from measured data, **Mapped**; `foundations/dimensionful-cascade.md` records the arithmetic and provenance.
 
 ---
 
 ## 8. Cascade Suppression
 
-Within the proposed cascade coordinate, a signal assigned to one rung and evaluated at another is modeled as **attenuated** by a factor of $\varphi$ for every coordinate step in the span:
+Within the proposed cascade coordinate, a signal assigned to one cascade step and evaluated at another is modeled as **multiplied by $\varphi^{-1}$ per coordinate step** in the span:
 
 $$\boxed{\text{attenuation} = \varphi^{-N}}$$
 
@@ -489,14 +496,24 @@ Within the proposed cascade coordinate, this rule supplies a common conditional 
 
 | Phenomenon | Span $N$ | Suppression | Result |
 |---|---|---|---|
-| Electroweak hierarchy ($v_0/M_{\text{Pl}}$) | 66.7 (Mapped GUT anchor $n \approx 13.3$) | $\varphi^{-66.7}$ | $10^{-14}$ ($N_{\mathrm{gap}}\approx79.7$ uses $g=1-\varphi^{-5}$; direct measured-ratio placement $N_{\mathrm{raw}}\approx79.89$; both identify nearest rung 80; exponent Mapped—ledger row 549) |
+| Electroweak hierarchy ($v_0/M_{\text{Pl}}$) | 66.7 (Mapped GUT anchor $n \approx 13.3$) | $\varphi^{-66.7}$ | $10^{-14}$ ($N_{\mathrm{gap}}\approx79.7$ uses $g=1-\varphi^{-5}$; direct measured-ratio placement $N_{\mathrm{raw}}\approx79.89$; both identify nearest integer step 80; exponent Mapped—ledger row 549) |
 | Strong CP ($\bar{\theta}$) | 81.4 | $\varphi^{-81.4}$ | $\pi\varphi^{-83.4} \approx 1.2\times10^{-17}$ |
 | Neutrino masses ($m_\nu$) | 12–25 | $\varphi^{-12}$ to $\varphi^{-25}$ | 0.001–0.1 eV |
 | Proton conditional cycle budget | $N_p^{\mathrm{budget}}=91.46$ | $\varphi^{-4505.5758}$ | $\sim10^{942}$ modeled cycles; physical decay rate open |
 
 The model distinguishes scale-coordinate attenuation, linear in the span ($\varphi^{-N}$), from the auxiliary coherence-budget product, quadratic in its declared endpoint. The proton row is dimensionless arithmetic under the Hypothesized independent-step profile. A lifetime additionally requires a failure law and trial-frequency map; §13 records the separate scale-current candidate.
 
-Within this coordinate model, the gap $g=1-\varphi^{-5}$ gives the electroweak cascade coordinate $N_{\mathrm{gap}}\approx79.7$ from $v_0/M_{\text{Pl}}=g\cdot\varphi^{-N_{\mathrm{gap}}}$. The direct measured ratio gives $N_{\mathrm{raw}}=\log_\varphi(M_{\text{Pl}}/v_0)\approx79.89$; both placements identify the nearest integer rung 80.
+One explicit Hypothesized port map gives the uniform family a conservative
+flux interpretation. Declaring the fixed-point Yang/Yin fractions
+$\varphi^{-1}$ and $\varphi^{-2}$ to be forward and return powers produces a
+unitary two-port splitter. A closed coherent chain interferes. When each return
+port is routed away from forward re-entry, the forward quadratic flux is
+$\varphi^{-N}$ and the retained return ledger is $1-\varphi^{-N}$. The
+corresponding amplitude is $\varphi^{-N/2}$. This branch therefore does not
+promote the coupling, phase, or mass applications in the table; each still
+requires its registered observable-specific signal map.
+
+Within this coordinate model, the gap $g=1-\varphi^{-5}$ gives the electroweak cascade coordinate $N_{\mathrm{gap}}\approx79.7$ from $v_0/M_{\text{Pl}}=g\cdot\varphi^{-N_{\mathrm{gap}}}$. The direct measured ratio gives $N_{\mathrm{raw}}=\log_\varphi(M_{\text{Pl}}/v_0)\approx79.89$; both placements identify the nearest integer step 80.
 
 **Epistemic status: Derived conditional** for the suppression law within the proposed scale-coordinate model. Each row's identification of span $N$ with a known physics gap is **Hypothesized** or **Mapped** as indicated by its source ledger; `foundations/cascade-suppression-formula.md` records the derivation and provenance.
 
@@ -552,7 +569,7 @@ with the optional Qi-gravity coupling $\xi = \varphi^6$ entering the cosmologica
 
 Under the optional cosmological construction, a candidate dark-matter component is represented as a high-coherence two-fluid condensate whose ratio is at the $\varphi$-equilibrium. This is a **Hypothesized** physical identification; the canonical density variables alone do not establish that such a condensate is cosmic dark matter. If the identification is adopted, the optional Qi-gravity law supplies a high-$q$ coupling-magnitude factor (the $\alpha$-free $q\to1$ value $\varphi^6\approx17.94\times$ is a formal fixed-composition endpoint, not a canonical dynamic ceiling; halo-regime magnitude estimates are $2.8$–$3.0\times$ via $\sqrt{\alpha_{\text{halo}}(1+(\varphi^{6}-1)q)}$ with $\xi=\varphi^6\approx17.9$). The displayed magnitude does not set an attractive force: the canonical sign is outward at positive fixed-point $\pi$, and an attractive galaxy-rotation interpretation belongs to a separate **Hypothesized** sign-changing branch.
 
-The defensible ratio base is **Derived conditional** on the Weinberg-angle identification: $\varphi^3 = \alpha_0^{-1} = \xi\cdot\sin^2\theta_W$, the inverse fixed-point imbalance (`cosmology/cosmology-from-phi.md` §4.2; the literal rung-gap reading fails: span $\xi$(rung 6) − $\alpha_{\text{EM}}$(10.2) = −4.2, not 3). The component budget excludes the $+1$ capture term because captured baryons already belong to the observed $\Omega_b$ denominator (Fit-Status Ledger row 502).
+The defensible ratio base is **Derived conditional** on the Weinberg-angle identification: $\varphi^3 = \alpha_0^{-1} = \xi\cdot\sin^2\theta_W$, the inverse fixed-point imbalance (`cosmology/cosmology-from-phi.md` §4.2; the literal step-gap reading gives the span $\xi$ (step 6) − $\alpha_{\text{EM}}$ (10.2) = −4.2, inconsistent with 3). The component budget excludes the $+1$ capture term because captured baryons already belong to the observed $\Omega_b$ denominator (Fit-Status Ledger row 502).
 
 $$\boxed{\Omega_{\text{DM}}/\Omega_b = \varphi^3 \approx 4.24} \qquad \text{observed: } \approx 5.39$$
 
@@ -572,7 +589,7 @@ as Yang/outward and negative $\pi$ as Yin/inward remains a model-specific
 phenomenological or coordinate mapping, not a universal PDE transport law
 (`hypotheses/two-strand-five-channel-matter-organization.md` §3.3, §3.5).
 
-Within the proposed cascade coordinate, a force is assigned to a cascade rung, and each coordinate step between the force's source and the measurement scale attenuates its modeled strength by $\varphi^{-1}$. The proton's gravitational coupling satisfies the exact algebraic identity $\alpha_G=(m_p/M_{\text{Pl}})^2=\varphi^{-2n}$ once $n=\log_\varphi(M_{\text{Pl}}/m_p)\approx91.5$ is defined from the measured mass. This measured-rung exponent is a **Mapped** assignment, not a prediction (Fit-Status Ledger row 506): $\varphi^{-183}\approx5.7\times10^{-39}$, 3.5% from the observed $\alpha_G\approx5.9\times10^{-39}$. The fractional rung $91.46$ is the same log map of the measured mass and is not an independent prediction.
+Within the proposed cascade coordinate, the declared signal map assigns a modeled force magnitude to a cascade step and multiplies that magnitude by $\varphi^{-1}$ for each coordinate step between source and measurement labels. This is an algebraic signal-map input. The physical mixed-stress identification and measured force-transfer law remain open; `foundations/interscale-stress-attenuation-boundary.md` gives the separate conditional stress ledger. The proton's gravitational coupling satisfies the exact algebraic identity $\alpha_G=(m_p/M_{\text{Pl}})^2=\varphi^{-2n}$ once $n=\log_\varphi(M_{\text{Pl}}/m_p)\approx91.5$ is defined from the measured mass. This measured-coordinate exponent is a **Mapped** assignment recorded in Fit-Status Ledger row 506: $\varphi^{-183}\approx5.7\times10^{-39}$, 3.5% from the observed $\alpha_G\approx5.9\times10^{-39}$. The fractional coordinate $n=91.46$ is the same log map of the measured mass and carries no independent predictive content.
 
 
 Its effective-coupling expression is a magnitude diagnostic,
@@ -592,7 +609,7 @@ independently are source-specific mapped inputs. These values do not
 establish an attractive force, halo interpretation, rotation-curve fit,
 clustering limit, Mercury limit, or PPN limit for the canonical branch.
 
-**Epistemic status:** the fixed-point force identity is **Derived conditional** on the optional Qi-gravity constitutive law and the stated canonical $q$; the nearest-integer $\varphi^{-183}$ receipt is **Mapped** (3.5% from the observed coupling); the $\xi=\varphi^6$ rung identity is **Derived conditional** and its empirical pin is **Calibrated**; physical gravity amplification and any attractive halo, cosmological, rotation-curve, clustering, Mercury, or PPN interpretation are **Hypothesized**, with fit-dependent quantities retaining their source-specific **Mapped** or **Calibrated** labels.
+**Epistemic status:** the fixed-point force identity is **Derived conditional** on the optional Qi-gravity constitutive law and the stated canonical $q$; the nearest-integer $\varphi^{-183}$ receipt is **Mapped** (3.5% from the observed coupling); the $\xi=\varphi^6$ scale-coordinate identity is **Derived conditional** and its empirical pin is **Calibrated**; physical gravity amplification and any attractive halo, cosmological, rotation-curve, clustering, Mercury, or PPN interpretation are **Hypothesized**, with fit-dependent quantities retaining their source-specific **Mapped** or **Calibrated** labels.
 
 ## 13. Proton Stability
 
@@ -674,7 +691,7 @@ proton stability, selecting endpoint and calibrated action data, obtaining a
 qualified stationary composite and fluctuation spectrum, and deriving a decay
 rate are **Hypothesized/Open**.
 
-For the neutron–proton–electron trio as a whole—their rungs, sectors, and what the framework does and does not say about their differences—see `particles/matter-organization.md`.
+For the neutron–proton–electron trio as a whole—their scale coordinates, sectors, and framework-level distinctions—see `particles/matter-organization.md`.
 
 ## 14. Three Generations of Fermions
 
@@ -682,11 +699,11 @@ The Fibonacci recurrence
 $$\varphi^n = \varphi^{n-1} + \varphi^{n-2}$$
 
 is an exact counting identity. Under the stated propagation-channel postulate, it partitions each cascade span into three coordinate sub-channels. The construction therefore has three channels; identifying them with the three physical fermion generations is **Hypothesized**. Within that mapping the framework supplies no fourth generation, consistent with current LHC null results. See `foundations/three-generations.md`.
-**Epistemic status:** the counting identity is **Derived conditional** on the stated channel postulate; per-sector offsets and rung placements are **Mapped**; the identification with the three fermion generations and the no-fourth-generation consequence are **Hypothesized**.
+**Epistemic status:** the counting identity is **Derived conditional** on the stated channel postulate; per-sector offsets and scale-step placements are **Mapped**; the identification with the three physical fermion generations and the no-fourth-generation consequence are **Hypothesized**.
 
 ## 15. Strong CP
 
-Within a **Hypothesized** particle-sector constitutive/transport extension, the CP-violating phase is assigned to the GUT-labeled scale and attenuated through the **Mapped** $\sim81$-rung interval to the QCD-labeled scale:
+Within a **Hypothesized** particle-sector constitutive/transport extension, the CP-violating phase is assigned to the GUT-labeled scale and attenuated through the **Mapped** $\sim81$-step interval to the QCD-labeled scale:
 
 $$\bar{\theta}\approx\pi\varphi^{-83.4}\approx1.2\times10^{-17}$$
 
@@ -716,9 +733,9 @@ The sector-coupling source supplies only a coefficient-free arithmetic scale can
 
 $$\kappa_{s,\mathrm{scale}}=\frac{\varphi^{-6}}{v_0^2}\approx0.92\ \mathrm{TeV}^{-2},\qquad M_{s,\mathrm{scale}}=\kappa_{s,\mathrm{scale}}^{-1/2}=\varphi^3v_0\approx1.04\ \mathrm{TeV}$$
 
-Conditional on $\delta=3$, the scale form and rung-77 placement are **Derived conditional** arithmetic. The optional Dirac↔two-fluid projection is a **Hypothesized**, dimensionally incomplete ansatz: it subtracts a spinor density of dimension $[M]^3$ from a condensate square of dimension $[M]^2$. No physical $\kappa_s$, equilibration timescale, or $\chi$ bridge follows from the displayed expression; the normalization repair and full coupling remain unresolved (`foundations/sector-coupling-derivation.md`).
+Conditional on $\delta=3$, the scale form and step-77 placement are **Derived conditional** arithmetic. The optional Dirac↔two-fluid projection is a **Hypothesized**, dimensionally incomplete ansatz: it subtracts a spinor density of dimension $[M]^3$ from a condensate square of dimension $[M]^2$. No physical $\kappa_s$, equilibration timescale, or $\chi$ bridge follows from the displayed expression; the normalization repair and full coupling remain unresolved (`foundations/sector-coupling-derivation.md`).
 
-**Epistemic status:** the modulation period is **Derived conditional** on the optional signal map; its physical wake imprint and cross-domain extensions are **Hypothesized** and being tested. The coefficient-free sector scale and rung identity are **Derived conditional** on $\delta=3$; the optional projection and any physical coupling are **Hypothesized**, with normalization, timescale, and $\chi$ bridge unresolved.
+**Epistemic status:** the modulation period is **Derived conditional** on the optional signal map; its physical wake imprint and cross-domain extensions are **Hypothesized** and being tested. The coefficient-free sector scale and scale-coordinate identity are **Derived conditional** on $\delta=3$; the optional projection and any physical coupling are **Hypothesized**, with normalization, timescale, and $\chi$ bridge unresolved.
 
 ## 18. Quantum Gravity Without Singularities
 
@@ -732,11 +749,11 @@ In the proposed $\sigma$-regularized extension ($\sigma=\ell_{\text{Pl}}/\varphi
 
 ## 19. The Lattice at Human Scale
 
-The optional condensation model is scale-covariant: it uses the same field form in the human body's 26-rung window (steps 142–168, from the living cell at ~8 µm to the body at ~1.7 m) as in the cosmological construction. A chosen human-scale geometry takes the along-string bubble period to be $P_\parallel=2$ rungs, yielding 13 modeled maxima along the spine at steps 142, 144, …, 166. This period and the associated placements are **Hypothesized** coordinate/geometric mappings, not canonical phase transport. The gate's pinch point at $r=\varphi^{-1}\approx0.618$ is the framework's proposed boundary between reactive and self-aware dynamics.
+The optional condensation model is scale-covariant: it uses the same field form in the human body's 26-step window (steps 142–168, from the living cell at ~8 µm to the body at ~1.7 m) as in the cosmological construction. A chosen human-scale geometry takes the along-string bubble period to be $P_\parallel=2$ steps, yielding 13 modeled maxima along the spine at steps 142, 144, …, 166. This period and the associated placements are **Hypothesized** coordinate/geometric mappings; canonical phase transport remains open. The gate's pinch point at $r=\varphi^{-1}\approx0.618$ is the framework's proposed boundary between reactive and self-aware dynamics.
 
 The human-scale consequences—consciousness, emotion, trauma, therapy—are developed in full in `cassi-psychology.md`, the psychology companion to this document. The physics presentation introduces no additional field variables; these extensions use the same proposed field form and gate at a different cascade label.
 
-**Epistemic status:** the 13-node count is **Derived conditional** on the chosen 26-rung window and $P_\parallel=2$ geometric convention; its identification with the chakras and with human experience is **Hypothesized** (testable via the C-predictions; see `predictions/falsifiable-predictions.md`).
+**Epistemic status:** the 13-node count is **Derived conditional** on the chosen 26-step window and $P_\parallel=2$ geometric convention; its identification with the chakras and with human experience is **Hypothesized** (testable via the C-predictions; see `predictions/falsifiable-predictions.md`).
 
 ## 20. Predictions
 
@@ -763,9 +780,9 @@ Every claim in the framework carries one of five evidential tiers. **Creative** 
 
 - **Calibrated:** anchored to an observation or calibration target. Examples: the DESI-anchored $w_0$ baseline and the phenomenological condensation threshold.
 
-- **Mapped:** selected or fit-dependent quantities whose assignments are recorded in the Fit-Status Ledger. Examples: cascade-rung identifications with specific physics scales and fitted exponents.
+- **Mapped:** selected or fit-dependent quantities whose assignments are recorded in the Fit-Status Ledger. Examples: cascade-step identifications with specific physics scales and fitted exponents.
 
-- **Hypothesized:** a structurally specified mapping or mechanism awaiting confirmation at the relevant physical scale. Examples: the physical condensation and edge-anisotropy interpretation, the physical realization and identification of scale covariance, the physical five-channel gate and compact phase, one-rung/one-turn interpretations, dark matter as high-$q$ condensate, the chakra count and spacing, the pinch-point model of self-awareness, and the trauma gate-lock model (PDE-tested 2026-07-31: pinning null as implemented, $\varphi$-phased drive effect supported and $\varphi$-specific at the held configuration at short times (t $\lesssim$ 4 $\approx$ 0.2/\lambda, `consciousness/gender-as-qi-configuration.md` §8.3)).
+- **Hypothesized:** a structurally specified mapping or mechanism awaiting confirmation at the relevant physical scale. Examples: the physical condensation and edge-anisotropy interpretation, the physical realization and identification of scale covariance, the physical five-channel gate and compact phase, one-step/one-turn interpretations, dark matter as high-$q$ condensate, the chakra count and spacing, the pinch-point model of self-awareness, and the trauma gate-lock model (PDE-tested 2026-07-31: pinning null as implemented, $\varphi$-phased drive effect supported and $\varphi$-specific at the held configuration at short times (t $\lesssim$ 4 $\approx$ 0.2/\lambda, `consciousness/gender-as-qi-configuration.md` §8.3)).
 
 - **Speculative:** framework-consistent mechanisms without a current test design. Examples: physical realization of the microcascade, the gigacascade spiral, the clinical layer of the trauma model, and attachment as inter-field resonance.
 
@@ -794,7 +811,7 @@ The framework records evidence and limitations in `audit.md`; the gate-sign conv
 
 ## 23. What We Don't Know
 
-1. **$P_\parallel(n)$: the along-string bubble period as a function of scale.** The chosen geometric constructions use 1 rung at the cosmological scale and 2 rungs at the human scale. These are **Hypothesized** coordinate/geometric mappings; whether the variation is continuous, discrete at octave boundaries, or assigned by the Hypothesized density-plane mapping $\delta n_{\mathrm{map}}=\Delta\theta_d/(2\pi)$ at each $n$ remains open.
+1. **$P_\parallel(n)$: the along-string bubble period as a function of scale.** The chosen geometric constructions use one step at the cosmological scale and two steps at the human scale. These are **Hypothesized** coordinate/geometric mappings; whether the variation is continuous, discrete at octave boundaries, or assigned by the Hypothesized density-plane mapping $\delta n_{\mathrm{map}}=\Delta\theta_d/(2\pi)$ at each $n$ remains open.
 
 2. **$\theta_{\text{cond}}$ at non-cosmological scales.** The condensation threshold is calibrated to ~0.45 at step 285 using phenomenology. Its value at biological, atomic, or sub-Planckian scales requires PDE measurement at those scales.
 
@@ -808,7 +825,7 @@ The framework records evidence and limitations in `audit.md`; the gate-sign conv
 
 7. **Can $q$ be externally modulated at human scale?** Whether coherence can be deliberately increased (meditation, biofeedback) is untested, and would be the framework's most consequential practical claim.
 
-8. **What supplies the placements beyond density-plane relaxation.** The canonical drift gives $\Delta\theta_d$; if the Hypothesized coordinate map $\delta n_{\mathrm{map}}=\Delta\theta_d/(2\pi)$ is adopted, its magnitude is bounded by $\operatorname{atan}(\varphi)/(2\pi)\approx0.162$ (`foundations/cassi-first-principles.md` §2.6). The half-step placements (proton, electron, BAO) exceed that mapped range and are assigned to the parity structure of `foundations/rung-offset-mechanism.md` §7. The structural source of that parity—the boundary condition that pins a state at the half-rung—is open.
+8. **What supplies the placements beyond density-plane relaxation.** The canonical drift gives $\Delta\theta_d$; if the Hypothesized coordinate map $\delta n_{\mathrm{map}}=\Delta\theta_d/(2\pi)$ is adopted, its magnitude is bounded by $\operatorname{atan}(\varphi)/(2\pi)\approx0.162$ (`foundations/cassi-first-principles.md` §2.6). The half-step placements (proton, electron, BAO) exceed that mapped range and are assigned to the parity structure of `foundations/rung-offset-mechanism.md` §7. The structural source of that parity—the boundary condition that pins a state at the half-step—is open.
 
 ---
 
