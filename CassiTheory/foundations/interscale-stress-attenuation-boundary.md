@@ -16,10 +16,13 @@ flux is retained, and each return port is prevented from coherently re-entering
 the forward chain. A frozen charged endpoint supplies a Hermitian Robin block.
 First-order source-action elimination on a nonzero rail background gives a
 Nambu Schur response, while every closed homogeneous conservative time-harmonic
-endpoint extremum has zero coherent conversion current. The algebra and
-conservation ledger are exact under the declared assumptions. The physical port
-identification, nonzero-current background, routing law, and momentum-carrying
-field remain Hypothesized.
+endpoint extremum of the registered EL9 action has zero coherent conversion
+current. A separately declared Wilson-link term closes that homogeneous circuit
+conditionally, preserves the endpoint and relative-charge ledgers, and has a
+finite fixed-amplitude transport capacity. The algebra and conservation ledgers
+are exact under the declared assumptions. The physical port identification,
+nonzero-current background, Wilson-link coefficient, routing law, and
+momentum-carrying field remain Hypothesized.
 
 ---
 
@@ -715,10 +718,14 @@ $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v
 =-\mathcal I_{\mathrm{link},v}/2$. Periodic, no-flux, and sufficiently
 localized endpoint data require zero integrated $\Gamma_v$ at each vertex.
 Spatial endpoint flux can therefore sustain compensating local source-and-sink
-conversion; a nonzero source mean requires boundary flux or additional
-endpoint transport. Open or driven channels, non-harmonic states, and larger
-coupled backgrounds provide separate branches. This condition applies before
-a link current can be identified with mixed stress.
+conversion; a nonzero source mean requires boundary flux or inter-vertex
+endpoint transport. The separately declared Wilson coupling in
+`foundations/endpoint-link-and-localization-boundary.md` §3.11 supplies one
+conservative channel with $I_{-\to+}=\mathcal J_Q$ on the stationary circuit
+and capacity $I_c=2t_\Upsilon u_-u_+/\hbar$. Its scale-edge charge current
+completes the relative-charge ledger. Open or driven channels, non-harmonic
+states, and larger coupled backgrounds provide separate branches. These
+conditions apply before either link current is identified with mixed stress.
 
 For a nonzero rail background, the first-order fractional endpoint fluctuation
 gives the retarded Nambu response
@@ -905,8 +912,16 @@ direct-elimination residual is $1.511\times10^{-17}$, the covariance residual
 is $2.220\times10^{-16}$, the anomalous-block norm is $0.390450933151$, and the
 damped non-Hermiticity norm is $0.360569701415$.
 
-The endpoint potential, nonzero-current background, damping mechanism, doubled
-port-flux law, and full coupled fluctuation spectrum remain unselected.
+The separately frozen IT1–IT6 receipt in
+`computations/endpoint_intervertex_transport_report.md` also passes on its first
+execution. It verifies the Wilson transformation, both endpoint equations,
+equal-and-opposite number transport, the two-vertex relative-charge ledger, the
+capacity $I_c$, both subcritical phase branches, and the zero-coupling and bare
+bilinear controls at one normalized point.
+
+The endpoint potential, nonzero-current rail background, microscopic origin
+and value of $t_\Upsilon$, local scale-bulk completion, damping mechanism,
+doubled port-flux law, and full coupled fluctuation spectrum remain unselected.
 
 ---
 
@@ -917,7 +932,7 @@ port-flux law, and full coupled fluctuation spectrum remain unselected.
 - `foundations/interscale-current-soliton.md`—density current, gauge current, endpoint circuit, and mixed-curvature force
 - `foundations/particle-stationary-action-closure.md` §3.2—time-completed quadratic scale action
 - `foundations/geometric-manifold-completion.md` §§2.4–2.5—two-rail circuit and phase-only endpoint gluing
-- `foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.9—gauge-covariant frozen and active charged-endpoint response
+- `foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.11—gauge-covariant frozen, active, spatial-flux, and Wilson-link charged-endpoint response
 - `computations/interscale_port_matching_prereg.md`—frozen boundary-matching checks
 - `computations/endpoint_robin_link_prereg.md`—frozen charged-link matching and capacity receipt
 - `computations/endpoint_dynamical_response_prereg.md`—frozen failed energy-kernel response criteria
@@ -926,5 +941,11 @@ port-flux law, and full coupled fluctuation spectrum remain unselected.
 - `computations/endpoint_action_response_prereg.md`—frozen source-action response criteria
 - `computations/endpoint_action_response_check.py`—passing source-action analytic receipt
 - `computations/endpoint_action_response_report.md`—AR1–AR6 outcome and scope boundary
+- `computations/endpoint_intervertex_transport_prereg.md`—frozen Wilson-link
+  covariance, vertex-ledger, capacity, and control criteria
+- `computations/endpoint_intervertex_transport_check.py`—passing IT1–IT6
+  deterministic receipt
+- `computations/endpoint_intervertex_transport_report.md`—first-execution
+  output and conditional transport boundary
 - `computations/interscale_stress_attenuation_check.py`—conservation, endpoint matching, coherent-chain, and routed-chain checks
 - `computations/endpoint_link_localization_check.py`—charged-link covariance, matching, and current-capacity checks

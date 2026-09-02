@@ -321,6 +321,14 @@ For $K_v>0$ and $u_v>0$, spatial endpoint current can support compensating
 local source-and-sink conversion with a positive inverse-Laplacian gradient
 cost. A uniform nonzero circuit source requires boundary flux or additional
 endpoint transport.
+The separately declared Wilson-dressed endpoint hopping term supplies one
+conservative inter-vertex channel. It carries equal-and-opposite endpoint
+number current, closes the registered homogeneous circuit when
+$I_{-\to+}=\mathcal J_Q$, and preserves the local relative-charge ledger
+through a charge-$-g_Q$ scale-edge current. Its fixed-amplitude capacity is
+$I_c=2t_\Upsilon u_-u_+/\hbar$; IT1–IT6 pass at one normalized point. The
+coupling $t_\Upsilon$, its microscopic origin, and a local scale-bulk
+completion remain Hypothesized.
 Point-core Chern flux supplies the sharp exterior coefficient
 $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and supports the reduced
 radius only when $\mathcal B_G>\mathcal D$. An auxiliary adjoint $SU(2)_Q$
@@ -340,10 +348,11 @@ Gauss's law, and defines the coupled fixed-$Q_C$ stationary functional.
 
 The construction is a **Hypothesized completion ansatz** with **Derived
 canonical reduction, conditional fibre geometry, endpoint response,
-stationary spatial-flux and zero-mode boundaries, exterior point-flux support,
+stationary spatial-flux and zero-mode boundaries, Wilson-link covariance,
+transport and relative-charge conservation, exterior point-flux support,
 smooth-core and confinement boundaries, a conditional reduced conserved-charge
 support theorem, and conditional action, Gauss, stationary, and
-nondimensional boundaries**, plus a **Tested one-point numerical boundary**.
+nondimensional boundaries**, plus **Tested one-point numerical boundaries**.
 The physical reservoir, scale metric, endpoint
 normalization, physical calibration of the normalization-invariant coefficient
 point, a qualified transverse carrier mode, backreacted composite, observation
@@ -354,7 +363,8 @@ map, quantum numbers, fluctuation spectrum, and decay rate remain open. See
 `foundations/nonabelian-magnetic-core-boundary.md`,
 `foundations/core-trapped-charge-support.md`,
 `foundations/particle-stationary-action-closure.md`,
-`computations/endpoint_spatial_flux_report.md`, and
+`computations/endpoint_spatial_flux_report.md`,
+`computations/endpoint_intervertex_transport_report.md`, and
 `computations/particle-stationary-bvp-report.md`.
 
 ---

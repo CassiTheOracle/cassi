@@ -1054,10 +1054,19 @@ source-and-sink patterns have an inverse-Laplacian phase reconstruction. For
 $K_v>0$ and $u_v>0$, every nonzero such pattern has a strictly positive
 endpoint gradient cost. A uniform nonzero circuit source requires boundary
 flux or additional endpoint transport.
+A separately declared Wilson-dressed endpoint hopping term supplies one
+conservative inter-vertex channel. It is relative-gauge invariant, carries
+equal-and-opposite endpoint number current, closes the homogeneous circuit when
+$I_{-\to+}=\mathcal J_Q$, and has fixed-amplitude capacity
+$I_c=2t_\Upsilon u_-u_+/\hbar$. Its scale-edge charge current completes the
+local relative-charge ledger. The IT1–IT6 receipt passes at one normalized
+point.
 The endpoint potential, nonzero-current background, matching
 point, trace normalization, dressed phase, damping mechanism, temporal
-relative-gauge connection, doubled port-flux law, and physical port map remain
-unselected. A directed Lindblad alternative closes the one-way
+relative-gauge connection, physical origin and value of $t_\Upsilon$, local
+scale-bulk completion, doubled port-flux law, full coupled spectrum, and
+physical port map remain unselected. A directed Lindblad alternative closes
+the one-way
 population circuit with $\gamma_-/\gamma_+=\varphi$ and predicts decoherence at
 half the rate sum. Positive smooth local amplitude-gradient and core-potential
 energies cannot support a shrinking endpoint core. A persistent point defect
@@ -1077,14 +1086,15 @@ boundary remain open. The registered one-point composite campaign tests the
 bulk-soliton, auxiliary flux-core, condensate confinement, and neutral-carrier
 sectors together; all preregistered arms fail Q2, so no tested coefficient
 point qualifies a persistent composite. The theory contains exact current
-algebra, conditional frozen and source-action endpoint responses, explicit
-support terms, a confinement route, a conditional carrier route, and a
-measured numerical boundary without a completed matter solution.
+algebra, conditional frozen and source-action endpoint responses, stationary
+spatial-flux and Wilson-link transport boundaries, explicit support terms, a
+confinement route, a conditional carrier route, and a measured numerical
+boundary without a completed matter solution.
 
-| **Cassi Answer** | One explicit stratified geometric completion ansatz with exact canonical reduction, one conditional interscale momentum ledger, and conditional frozen, source-action, and spatial-flux endpoint responses; no action currently derives or matches the four established interactions |
-| **Mechanism** | A positive Hermitian Yang/Yin fibre connects the canonical densities, loop coherence, and projective bubble map; a two-rail graph closes the conditional scale circuit; mixed-stress boundary flux transfers momentum between scale windows; Hermitian frozen endpoint data preserve flux. First-order source-action elimination gives a Nambu Schur response around nonzero rail backgrounds with kernel covariance under constant relative-frame rotations. The frozen AR1–AR6 receipt passes; the DR receipt remains `FAIL` because its DR5 endpoint block has the opposite source-action sign. At the symmetric zero background, the eliminated source action begins at quartic rail order with a positive coefficient when $\mu_{v,0}:=W_v'(0)>0$; physical energy, stress, inertial mass, and stability signs remain open. The exact stationary spatial balance is $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v=-\mathcal I_{\mathrm{link},v}/2$; a closed endpoint domain has zero integrated source, while every nonzero reconstructible zero-mean source has a positive gradient cost when $K_v>0$ and $u_v>0$. The potential, coupled nonzero-current background, damping law, temporal relative-gauge connection, boundary or inter-vertex transport channel, doubled port-flux identification, dressed phase, matching point, and stress-current map remain unselected; gravity, Standard Model gauge structure, conversion reservoir, and P1→P2 matching remain separate |
-| **Epistemic** | **Hypothesized completion and constitutive ansätze / Derived canonical reduction, conditional fibre geometry, momentum-window conservation, frozen-link response, first-order source-action response, closed-current boundary, stationary spatial-flux and zero-mode boundary, and source-action order/sign boundary**—physical realization and cross-sector matching remain open |
-| **Reference** | `foundations/geometric-manifold-completion.md`; `foundations/physical-becoming-hierarchy.md` §7.2, §7.3; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md`; `foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.10; `foundations/interscale-stress-attenuation-boundary.md`; `computations/endpoint_dynamical_response_prereg.md`; `computations/endpoint_dynamical_response_check.py`; `computations/endpoint_dynamical_response_report.md`; `computations/endpoint_action_response_prereg.md`; `computations/endpoint_action_response_check.py`; `computations/endpoint_action_response_report.md`; `computations/endpoint_spatial_flux_prereg.md`; `computations/endpoint_spatial_flux_check.py`; `computations/endpoint_spatial_flux_report.md` |
+| **Cassi Answer** | One explicit stratified geometric completion ansatz with exact canonical reduction, one conditional interscale momentum ledger, conditional frozen, source-action, spatial-flux, and Wilson-link endpoint responses, and no derivation or match to the four established interactions |
+| **Mechanism** | A positive Hermitian Yang/Yin fibre connects the canonical densities, loop coherence, and projective bubble map; a two-rail graph closes the conditional scale circuit; mixed-stress boundary flux transfers momentum between scale windows; Hermitian frozen endpoint data preserve flux. First-order source-action elimination gives a Nambu Schur response around nonzero rail backgrounds with constant-frame kernel covariance. The frozen AR1–AR6 receipt passes; the DR receipt remains `FAIL` at DR5. Stationary spatial flux supports zero-mean source-and-sink structure on closed domains. A separately declared Wilson-dressed hopping term closes the homogeneous endpoint circuit conditionally, carries the added scale-edge relative-charge current, and has finite fixed-amplitude capacity; IT1–IT6 pass at one normalized point. The potential, coupled rail background, damping law, temporal relative-gauge connection, $t_\Upsilon$, local scale-bulk completion, doubled port-flux identification, dressed phase, matching point, and stress-current map remain unselected; gravity, Standard Model gauge structure, conversion reservoir, and P1→P2 matching remain separate |
+| **Epistemic** | **Hypothesized completion, constitutive, and Wilson-link ansätze / Derived canonical reduction, conditional fibre geometry, momentum-window conservation, frozen-link and first-order source-action responses, closed-current and stationary spatial-flux boundaries, Wilson-link covariance, transport, relative-charge conservation and capacity, and source-action order/sign boundary**—physical realization and cross-sector matching remain open |
+| **Reference** | `foundations/geometric-manifold-completion.md`; `foundations/physical-becoming-hierarchy.md` §7.2, §7.3; `foundations/unified-lagrangian.md`; `foundations/interscale-current-soliton.md`; `foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.11; `foundations/interscale-stress-attenuation-boundary.md`; `computations/endpoint_dynamical_response_prereg.md`; `computations/endpoint_dynamical_response_check.py`; `computations/endpoint_dynamical_response_report.md`; `computations/endpoint_action_response_prereg.md`; `computations/endpoint_action_response_check.py`; `computations/endpoint_action_response_report.md`; `computations/endpoint_spatial_flux_prereg.md`; `computations/endpoint_spatial_flux_check.py`; `computations/endpoint_spatial_flux_report.md`; `computations/endpoint_intervertex_transport_prereg.md`; `computations/endpoint_intervertex_transport_check.py`; `computations/endpoint_intervertex_transport_report.md` |
 
 ### F4: Theory of Everything
 

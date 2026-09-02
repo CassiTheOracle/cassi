@@ -30,9 +30,11 @@ not generate a universal attractive term or guarantee a soliton.
 
 A finite localized object requires short-distance support in addition to any
 pinch. A charged endpoint section supplies one coherent, gauge-covariant
-turning realization, and a one-way Markov channel supplies an open alternative
-(`foundations/endpoint-link-and-localization-boundary.md`). Neither endpoint
-choice generates the positive $1/R$ core term required by the reduced Derrick
+turning realization; its separately declared Wilson-link extension supplies
+conditional inter-vertex transport; and a one-way Markov channel supplies an
+open alternative
+(`foundations/endpoint-link-and-localization-boundary.md`). These endpoint
+choices generate no positive $1/R$ core term required by the reduced Derrick
 profile. In the smooth unexcised zero-Chern sector there is no finite
 stationary radius. An imposed point-core Chern sector supplies the exact
 exterior coefficient
@@ -652,11 +654,17 @@ $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v$ and
 $\int_\Omega\Gamma_vd^3x=\oint_{\partial\Omega}
 \mathbf J_{\Upsilon,v}\cdot d\mathbf S$. Spatial endpoint flux therefore
 supports local source-and-sink conversion in a closed domain, while a uniform
-nonzero circuit source requires boundary flux or additional endpoint
-transport. An open or driven channel, a non-harmonic state, or a larger
-coupled background supplies other possible branches. The endpoint potential,
-physical background, transport channel, damping mechanism, trace
-normalization, and full coupled spectrum remain unselected.
+nonzero circuit source requires boundary flux or inter-vertex endpoint
+transport. The separately declared Wilson coupling
+$-t_\Upsilon(\Upsilon_+^*\mathcal W_{+\leftarrow-}\Upsilon_-+\mathrm{c.c.})$
+supplies one conservative channel with
+$I_{-\to+}=\mathcal J_Q$ on the stationary circuit and capacity
+$I_c=2t_\Upsilon u_-u_+/\hbar$. Its scale-edge charge current completes the
+relative-charge ledger. An open or driven channel, a non-harmonic state, or a
+larger coupled background supplies other possible branches. The endpoint
+potential, physical background, microscopic origin and value of $t_\Upsilon$,
+local scale-bulk completion, damping mechanism, trace normalization, and full
+coupled spectrum remain unselected.
 
 For a compact closed circuit, define the gauge-invariant accumulated phase
 
@@ -1401,7 +1409,7 @@ minimum in §7.2.
 | Separate Yang/Yin conservation and absence of ratio relaxation | Derived from the candidate action |
 | Planck-to-proton two-rail current and normalized energy | Derived conditional on the Mapped endpoint, uniform $\varphi$ composition, compact circuit phase, and endpoint bias |
 | Cross-glued two-rail metric graph and circuit holonomy | Derived graph geometry under the Hypothesized gauge-covariant flux-unitary endpoint quotient; the physical endpoint fields and scale metric remain open (`foundations/geometric-manifold-completion.md`) |
-| Endpoint conversion, scale tension, and proton selection | Coherent charged and one-way open endpoint realizations are Derived conditionally; their couplings, potentials, absolute rates, scale tension, and proton selection remain Hypothesized or open |
+| Endpoint conversion, inter-vertex transport, scale tension, and proton selection | Coherent charged, Wilson-dressed transport, and one-way open endpoint realizations are Derived conditionally on their declared actions; their couplings, potentials, absolute rates, scale tension, local scale-bulk completion, and proton selection remain Hypothesized or open |
 | Healing widths and local London coefficients | Derived conditional linearization |
 | Inward mixed-curvature force | Conditional on source sign, response, and restricted field sector |
 | Finite Derrick radius and loop length | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux gives $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires $\mathcal B_G>\mathcal D$; an auxiliary adjoint $SU(2)_Q$ core matches that exterior, while the registered condensate confines flux and gives no persistent pair by itself; a neutral fixed-$Q_C$ carrier gives one conditional reduced separation under its support, retention, and matching inequalities; full loop existence remains unestablished |
@@ -1489,8 +1497,10 @@ winding approximants; it does not replace those inputs.
 - `computations/planck_proton_scale_current_check.py`—Planck-to-proton current, energy, and scale-tension identities
 - `foundations/geometric-manifold-completion.md`—two-rail metric-graph closure, positive coherence fibre, and separate open-system conversion block
 - `foundations/endpoint-link-and-localization-boundary.md`—charged coherent
-  endpoint, one-way open alternative, full-fibre invariant classification,
-  and minimal-sector localization no-go
+  endpoint, Wilson-link transport, one-way open alternative, full-fibre
+  invariant classification, and minimal-sector localization boundary
+- `computations/endpoint_intervertex_transport_report.md`—IT1–IT6
+  Wilson-covariance, vertex-ledger, capacity, and phase-curvature receipt
 - `foundations/spin-fibonacci-spiral.md`—optional compact phase, half-angle, and winding structure
 - `principles/de-resonance-principle.md`—Fibonacci convergents under compact-current assumptions
 - `particles/cassi-yang-yin-particles.md`—complex two-component field precedent

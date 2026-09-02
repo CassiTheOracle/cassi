@@ -1,15 +1,17 @@
 # Gauge-Covariant Endpoint Closure and the Localization Boundary
 
-## Status: Derived conditional endpoint closure, frozen-link response, first-order source-action response, and stationary spatial-flux boundary / Derived minimal-sector localization no-go—September 2026
+## Status: Hypothesized inter-vertex Wilson extension / Derived conditional endpoint closure, frozen-link, first-order source-action, stationary spatial-flux, and Wilson-link transport responses / Derived minimal-sector localization no-go—September 2026
 
 ## Abstract
 
 The Cassi scale circuit has two vertices where Yang and Yin rail currents must
 turn into one another. This document supplies two explicit endpoint
-completions. A charged complex vertex field gives a coherent, gauge-covariant
-link and reduces to the endpoint cosine interaction when its amplitude is
-frozen. A one-way Lindblad channel gives a gauge-covariant open-system
-alternative. The coherent link has a finite current capacity. At uniform
+completions and one conservative inter-vertex extension. A charged complex
+vertex field gives a coherent, gauge-covariant link and reduces to the endpoint
+cosine interaction when its amplitude is frozen. A one-way Lindblad channel
+gives a gauge-covariant open-system alternative. A separately declared Wilson
+link transports endpoint number between the two charged vertex sections. The
+coherent rail link has a finite current capacity. At uniform
 $\varphi$ composition, stationary Planck-to-proton circulation requires
 
 $$
@@ -28,21 +30,29 @@ species-port branch, requiring the unbiased $m=1$ current to remain below
 capacity with positive fixed-amplitude phase stiffness gives the conditional
 bound $k_\star>0.0964640362$.
 
-Allowing the endpoint to fluctuate supplies a sharper boundary. Every closed,
-homogeneous, conservative time-harmonic endpoint extremum has zero coherent
-conversion current. Stationary spatial structure obeys
+Allowing each endpoint to fluctuate supplies a sharper boundary. Every closed,
+homogeneous, conservative time-harmonic endpoint extremum of the registered EL9
+action has zero coherent conversion current. Stationary spatial structure obeys
 $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v
 =-\mathcal I_{\mathrm{link},v}/2$. A closed endpoint domain has zero
 integrated $\Gamma_v$. For $K_v>0$ and $u_v>0$, every nonzero
 reconstructible zero-mean source has a positive inverse-Laplacian gradient
-cost. Around a nonzero rail background,
-the first-order endpoint action gives a $4\times4$ Nambu Schur response
-covariant under constant relative-frame rotations. Around the symmetric zero
-background, its eliminated source action begins at quartic rail order with a
-positive coefficient when $\mu_{v,0}:=W_v'(0)>0$. Physical energy, stress,
-inertial mass, and stability interpretations require an additional map. The
-potential, background, boundary or inter-vertex transport, damping law, trace
-normalization, dressed phase, and matching point remain unselected.
+cost. Around a nonzero rail background, the first-order endpoint action gives
+a $4\times4$ Nambu Schur response covariant under constant relative-frame
+rotations. Around the symmetric zero background, its eliminated source action
+begins at quartic rail order with a positive coefficient when
+$\mu_{v,0}:=W_v'(0)>0$.
+
+The Wilson extension carries equal-and-opposite endpoint number transport,
+closes the homogeneous circuit when $I_{-\to+}=\mathcal J_Q$, and supplies the
+scale-edge current needed by the local relative-charge ledger. Its
+fixed-amplitude capacity is $I_c=2t_\Upsilon u_-u_+/\hbar$. The principal
+subcritical phase branch has positive curvature. The coupling $t_\Upsilon$,
+its microscopic origin, and a local scale-bulk completion remain
+Hypothesized. Physical energy, stress, inertial mass, and complete stability
+interpretations require additional maps. The potential, coupled rail
+background, damping law, trace normalization, dressed phase, and matching
+point remain unselected.
 
 The one-way open closure instead fixes the conditional endpoint-rate ratio
 $\gamma_-/\gamma_+=\varphi$ while damping transverse coherence.
@@ -104,6 +114,7 @@ results below are deductions within those declared structures.
 | EL-5 | The smooth unexcised object base has no first-Chern sector; point or line excision creates one candidate integer sector | Derived topology for the declared base choices |
 | EL-6 | The smooth zero-Chern endpoint completion has no finite Derrick radius; point-core flux gives a conditional exterior coefficient but no current-action particle completion | Derived minimal-sector no-go / Derived conditional point-core boundary |
 | EL-7 | A closed homogeneous time-harmonic endpoint extremum has zero coherent conversion current; stationary spatial structure obeys $\partial_iJ_{\Upsilon,v}^i=\Gamma_v=-\mathcal I_{\mathrm{link},v}/2$, with zero integrated source on a closed endpoint domain; for $K_v>0$ and $u_v>0$, every nonzero reconstructible source has a positive Fourier gradient cost; first-order source-action elimination gives a constant-frame-covariant Nambu response on a nonzero rail background, while the symmetric zero-background eliminated-source-action term begins at quartic rail order with a positive coefficient when $\mu_{v,0}:=W_v'(0)>0$ | Derived conditional current, spatial-flux, first-order response, and source-action order boundaries |
+| EL-11 | A separately declared Wilson-dressed endpoint hopping term is locally relative-gauge invariant, carries equal-and-opposite endpoint number transport, closes the homogeneous stationary circuit below $I_c=2t_\Upsilon u_-u_+/\hbar$, and supplies the added scale-edge charge-current ledger | Hypothesized action extension / Derived conditional covariance, conservation, capacity, and phase-curvature boundary |
 
 No row identifies a Standard Model particle. Mass, electric charge, color,
 spin, statistics, scale length, endpoint normalization, and lifetime remain
@@ -1157,6 +1168,198 @@ Equation (ELR10) then holds identically and its imaginary part reproduces
 equation for an imposed boundary trace. It supplies no solution of the coupled
 rail equations and no selected physical source profile.
 
+### 3.11 Gauge-covariant inter-vertex transport
+
+The zero-mode obstruction identifies a precise missing capacity: a closed
+homogeneous endpoint circuit needs number transport between its two endpoint
+reservoirs. The registered action (EL9) contains no
+$D_{\mathfrak s}\Upsilon_v$ term, so this capacity requires a separately
+declared action extension.
+
+Let
+
+$$
+\mathcal B(\mathbf x,t)
+:=\int_{v_-}^{v_+}
+B_{\mathfrak s}(\mathbf x,\mathfrak s,t)\,d\mathfrak s,
+\qquad
+\boxed{
+\mathcal W_{+\leftarrow-}
+:=e^{-ig_Q\mathcal B}.}
+\tag{ELR26}
+$$
+
+For the same time-independent relative-frame transformations used in §3.6,
+
+$$
+B_{\mathfrak s}\longmapsto
+B_{\mathfrak s}+\partial_{\mathfrak s}\chi,
+\qquad
+\Upsilon_\pm\longmapsto
+e^{-ig_Q\chi_\pm}\Upsilon_\pm,
+\qquad
+\chi_\pm:=\chi(v_\pm),
+$$
+
+the Wilson line transforms as
+
+$$
+\boxed{
+\mathcal W_{+\leftarrow-}
+\longmapsto
+e^{-ig_Q\chi_+}\mathcal W_{+\leftarrow-}
+e^{+ig_Q\chi_-}.}
+\tag{ELR27}
+$$
+
+Thus
+
+$$
+Z_\Upsilon
+:=\Upsilon_+^*\mathcal W_{+\leftarrow-}\Upsilon_-
+$$
+
+is gauge invariant. The minimal Hermitian bilinear extension is
+
+$$
+\boxed{
+S_{\mathrm{tr}}
+:=\int dt\,d^3x\,
+t_\Upsilon\left(Z_\Upsilon+Z_\Upsilon^*\right),
+\qquad
+\mathcal H_{\mathrm{tr}}
+=-t_\Upsilon\left(Z_\Upsilon+Z_\Upsilon^*\right),
+\qquad
+t_\Upsilon>0.}
+\tag{ELR28}
+$$
+
+This is a Hypothesized coupling, local in $(t,\mathbf x)$ and spanning the
+finite scale interval through $\mathcal W_{+\leftarrow-}$. It adds no
+scale-bulk endpoint field. A local completion along $\mathfrak s$ would require
+extending $\Upsilon$ beyond the two vertex sections.
+
+Writing
+
+$$
+\Upsilon_\pm=u_\pm e^{i\alpha_\pm},
+\qquad
+\Delta_{\mathcal W}
+:=\alpha_+-\alpha_-+g_Q\mathcal B,
+$$
+
+gives
+
+$$
+\boxed{
+\mathcal H_{\mathrm{tr}}
+=-2t_\Upsilon u_-u_+\cos\Delta_{\mathcal W}.}
+\tag{ELR29}
+$$
+
+Variation of $S_{\mathrm{end}}+S_{\mathrm{tr}}$ adds
+
+$$
+\boxed{
+\begin{aligned}
+i\hbar\partial_t\Upsilon_-
+&=\mathcal F_-
+-t_\Upsilon\mathcal W_{+\leftarrow-}^*\Upsilon_+,
+\\
+i\hbar\partial_t\Upsilon_+
+&=\mathcal F_+
+-t_\Upsilon\mathcal W_{+\leftarrow-}\Upsilon_-,
+\end{aligned}}
+\tag{ELR30}
+$$
+
+where $\mathcal F_v$ denotes the right-hand side of (ELR10) before this
+extension. Define positive endpoint number transport from $v_-$ to $v_+$ by
+
+$$
+\boxed{
+I_{-\to+}
+:=-\frac{2t_\Upsilon}{\hbar}\operatorname{Im}Z_\Upsilon
+=\frac{2t_\Upsilon u_-u_+}{\hbar}
+\sin\Delta_{\mathcal W}.}
+\tag{ELR31}
+$$
+
+Direct norm differentiation gives
+
+$$
+\left.\partial_tn_-\right|_{\mathrm{tr}}=-I_{-\to+},
+\qquad
+\left.\partial_tn_+\right|_{\mathrm{tr}}=+I_{-\to+}.
+$$
+
+The endpoint continuity equations therefore become
+
+$$
+\boxed{
+\begin{aligned}
+\partial_tn_-+\nabla\cdot\mathbf J_{\Upsilon,-}
+&=\Gamma_- - I_{-\to+},
+\\
+\partial_tn_++\nabla\cdot\mathbf J_{\Upsilon,+}
+&=\Gamma_+ + I_{-\to+}.
+\end{aligned}}
+\tag{ELR32}
+$$
+
+Transport cancels from the summed endpoint-number equation. For the stationary
+circuit orientation $\Gamma_-=+\mathcal J_Q$ and
+$\Gamma_+=-\mathcal J_Q$, a homogeneous closed endpoint domain satisfies both
+vertex balances precisely when
+
+$$
+\boxed{I_{-\to+}=\mathcal J_Q.}
+\tag{ELR33}
+$$
+
+The Wilson interaction carries the charge-$-g_Q$ current of this added scale
+edge:
+
+$$
+\boxed{
+-\frac1\hbar
+\frac{\delta H_{\mathrm{tr}}}
+{\delta B_{\mathfrak s}(\mathfrak s)}
+=-g_QI_{-\to+}
+\mathbf 1_{(v_-,v_+)}(\mathfrak s).}
+\tag{ELR34}
+$$
+
+Since
+$\partial_{\mathfrak s}\mathbf 1_{(v_-,v_+)}
+=\delta(\mathfrak s-v_-)-\delta(\mathfrak s-v_+)$, its incidence cancels the
+endpoint charge moved between vertices. The remaining endpoint charge source
+$-g_Q\Gamma_v$ cancels the rail source $+g_Q\Gamma_v$ locally. This Wilson-link
+current belongs to (ELR28); $\mathbf J_{\Upsilon,v}$ remains the spatial current
+of (ELR18), and $J_Q$ remains the Yang/Yin rail current.
+
+At fixed $u_\pm>0$, the transport capacity and phase curvature are
+
+$$
+\boxed{
+I_c:=\frac{2t_\Upsilon u_-u_+}{\hbar},
+\qquad
+|I_{-\to+}|\leq I_c,
+\qquad
+\frac{\partial^2\mathcal H_{\mathrm{tr}}}
+{\partial\Delta_{\mathcal W}^2}
+=2t_\Upsilon u_-u_+\cos\Delta_{\mathcal W}.}
+\tag{ELR35}
+$$
+
+A stationary target exists exactly when $|\mathcal J_Q|\leq I_c$. For a strict
+inequality, the principal branch
+$\Delta_{\mathrm s}=\arcsin(\mathcal J_Q/I_c)$ has positive fixed-amplitude
+curvature; the companion branch has negative curvature, and equality is
+marginal. This is a phase-sector result. The coefficient $t_\Upsilon$,
+endpoint amplitudes, coupled rail solution, amplitude stability, and complete
+fluctuation spectrum remain open.
+
 ---
 
 ## 4. Gauge-covariant open endpoint channel
@@ -1672,6 +1875,8 @@ frozen-link Robin reduction, Cayley unitarity, selected-point golden match,
 conditional current-capacity lower bound, closed homogeneous current boundary,
 stationary spatial continuity and source normalization, closed-domain zero
 mode, spatial-flux gradient-cost sign under $K_v>0$ and $u_v>0$,
+Wilson-dressed inter-vertex covariance, endpoint transport and relative-charge
+ledgers, transport-capacity and fixed-amplitude phase-curvature boundaries,
 zero-background source-action order and sign boundary, endpoint pole law,
 Nambu Schur response, Markov rate ratio, coherence half-rate, cohomology
 groups, reduced-radius algebra, and point-core exterior coefficient are
@@ -1734,6 +1939,20 @@ The frozen protocol is
 | SF5 closed-domain zero-mode obstruction | $0$ bad-source mean error; $8.224\times10^{-18}$ reconstructed-divergence mean; $1.027\times10^{-15}$ uniform-residual error |
 | SF6 positive gradient-cost identity at $K_v=2.3$, $u_v=0.9$ | direct, $\Gamma_v$-spectral, and $\mathcal I_{\mathrm{link},v}$-spectral values all $4.670076740822$; $1.902\times10^{-16}$ relative residual |
 
+The separately frozen Wilson-link protocol is
+`computations/endpoint_intervertex_transport_prereg.md`. Its first execution by
+`computations/endpoint_intervertex_transport_check.py`, recorded in
+`computations/endpoint_intervertex_transport_report.md`, has verdict **PASS**:
+
+| Gate | Numerical receipt |
+|---|---:|
+| IT1 Wilson covariance | $1.388\times10^{-16}$ Wilson-law, $1.241\times10^{-16}$ bilinear, $2.220\times10^{-16}$ energy, and $5.551\times10^{-17}$ current errors |
+| IT2 stationary endpoint closure | $1.388\times10^{-17}$ endpoint-equation, $5.551\times10^{-17}$ lower-source, $1.110\times10^{-16}$ upper-source, and $1.665\times10^{-16}$ summed-source errors |
+| IT3 scale-edge charge-current ledger | $5.737\times10^{-11}$ centered-derivative error and $2.776\times10^{-17}$ vertex-ledger error |
+| IT4 finite transport capacity | $I_c=0.9317647058824$, $\mathcal J_Q=0.3727058823529$, and frozen subcritical margin $0.5590588235294$ |
+| IT5 fixed-amplitude phase curvature | $+1.451759980162$ principal, $-1.451759980162$ companion, and $9.699\times10^{-17}$ marginal |
+| IT6 necessary controls | $0.2762953669956$ bare-bilinear gauge change and $0.3727058823529$ zero-coupling closure residual |
+
 The executable label `stable matched-link k_min` denotes the current-capacity
 threshold where the frozen-amplitude phase stiffness vanishes. The endpoint
 potential, nonzero-current background, damping law, and full coupled
@@ -1741,9 +1960,11 @@ fluctuation spectrum remain open.
 
 Prediction EL-2 in `predictions/falsifiable-predictions.md` records the
 conditional frozen and active response. Prediction EL-10 records the
-stationary spatial-flux, zero-mode, and gradient-cost boundary. A physical
-discriminator still requires a selected endpoint normalization, support
-sector, coupled solution, transport channel, and observable map.
+stationary spatial-flux, zero-mode, and gradient-cost boundary. Prediction
+EL-11 records the conditional Wilson-link transport, capacity, and
+relative-charge ledger. A physical discriminator still requires a selected
+endpoint normalization, support sector, coupled solution, microscopic value
+and origin for $t_\Upsilon$, and observable map.
 
 ---
 
@@ -1770,16 +1991,26 @@ For $K_v\ne0$ and $u_v>0$, every nonzero periodic zero-mean source has the
 inverse-Laplacian phase reconstruction (ELR23). Its gradient cost (ELR24) is
 positive when $K_v>0$.
 
+The separately declared Wilson coupling (ELR28) supplies one conservative
+inter-vertex channel. Its gauge-invariant phase carries
+$I_{-\to+}=2t_\Upsilon u_-u_+\sin\Delta_{\mathcal W}/\hbar$ and closes the
+registered homogeneous circuit when $I_{-\to+}=\mathcal J_Q$. The associated
+scale-edge charge current completes the local relative-charge ledger. A
+stationary phase exists exactly below the capacity
+$I_c=2t_\Upsilon u_-u_+/\hbar$; the principal subcritical branch has positive
+fixed-amplitude phase curvature.
+
 Around a nonzero rail background, endpoint integration gives the
 constant-frame-covariant Nambu response (ELR15), with the pole and curvature
 conditions in (ELR14). Around the symmetric zero background, the eliminated
 source action begins at quartic rail order with a positive coefficient when
 $\mu_{v,0}>0$. Physical energy, stress, inertial mass, and stability signs
 remain open. The potential, coupled nonzero-current background, matching
-point, dressed phase, trace normalization, damping law, boundary or
-inter-vertex transport channel, and full coupled spectrum remain physical
-inputs. A one-way Lindblad alternative closes the population circuit and fixes
-a conditional $\varphi$ rate ratio while damping endpoint coherence.
+point, dressed phase, trace normalization, damping law, boundary data,
+microscopic origin and value of $t_\Upsilon$, local scale-bulk completion, and
+full coupled spectrum remain physical inputs. A one-way Lindblad alternative
+closes the population circuit and fixes a conditional $\varphi$ rate ratio
+while damping endpoint coherence.
 
 The complete positive coherence fibre has no state-only homotopy protection.
 A first Chern number of the compact relative connection survives mixed states,
@@ -1846,6 +2077,12 @@ fluctuation spectrum, physical calibration, and decay rate remain open.
   Fourier receipt
 - `computations/endpoint_spatial_flux_report.md`—source normalization,
   closed-domain obstruction, and PASS verdict
+- `computations/endpoint_intervertex_transport_prereg.md`—frozen Wilson-link
+  covariance, endpoint closure, charge-ledger, and capacity criteria
+- `computations/endpoint_intervertex_transport_check.py`—passing IT1–IT6
+  deterministic receipt
+- `computations/endpoint_intervertex_transport_report.md`—first-execution
+  output, conditional transport boundary, and PASS verdict
 - `foundations/physical-becoming-hierarchy.md`—closed conservative and
   mesoscopic open-system boundary
 - `foundations/loop-to-bubble-projection-theorem.md`—positive Yang/Yin Gram
