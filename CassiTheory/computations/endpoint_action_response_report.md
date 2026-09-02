@@ -92,7 +92,13 @@ $$
 \boxed{\mathcal I_{\mathrm{link}}=0.}
 $$
 
-A nonzero stationary conversion current requires endpoint spatial flux, an open or driven channel, a non-harmonic state, or a larger coupled background.
+Here $\mathcal I_{\mathrm{link}}=-2\Gamma_v$ is the negative
+rail-difference rate; $\Gamma_v$ is the Yang source coefficient and
+$g_Q\Gamma_v$ is the gauge-weighted source. Stationary spatial endpoint flux
+permits a local source only with compensating sinks or boundary flux because
+$\int_\Omega\Gamma_vd^3x=\oint_{\partial\Omega}
+\mathbf J_{\Upsilon,v}\cdot d\mathbf S$. Open or driven channels,
+non-harmonic states, and larger coupled backgrounds provide separate branches.
 
 ### 4.2 Symmetric zero background
 
@@ -152,7 +158,8 @@ microscopic damping channel remains unselected.
 The receipt establishes algebraic response identities for the Bogoliubov–de Gennes linearization of the first-order endpoint action around one declared normalized background, together with response-kernel covariance under constant relative-frame rotations. The separate second-order fixed-$Q_C$ particle action and full time-dependent gauge covariance remain outside AR1–AR6. A physical endpoint model still requires:
 
 - a selected $U_v$, $K_v$, and $u_v$;
-- a background with the spatial flux, drive, or larger coupling needed for nonzero stationary conversion current;
+- a sign-changing stationary source with endpoint flux, a physical boundary or
+  inter-vertex transport channel, a drive, or a larger coupled background;
 - a microscopic damping mechanism;
 - a temporal relative-gauge connection for time-dependent frame covariance;
 - a physical trace normalization and Yang/Yin species-port map;
@@ -167,4 +174,6 @@ The receipt establishes algebraic response identities for the Bogoliubov–de Ge
 - `computations/endpoint_action_response_check.py`—first-execution analytic receipt
 - `computations/endpoint_dynamical_response_report.md`—separate failed energy-kernel receipt
 - `foundations/endpoint-link-and-localization-boundary.md`—registered charged-endpoint action and response boundary
+- `computations/endpoint_spatial_flux_report.md`—stationary source,
+  closed-domain zero-mode, and gradient-cost boundary
 - `foundations/interscale-stress-attenuation-boundary.md`—boundary-stress and Robin-response interpretation

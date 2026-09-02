@@ -709,10 +709,16 @@ $$
 \boxed{\mathcal I_{\mathrm{link}}=0}
 $$
 
-for every closed homogeneous time-harmonic background. A nonzero stationary
-endpoint current requires spatial endpoint flux, an open or driven channel, a
-non-harmonic state, or a larger coupled background. This condition applies
-before a link current can be identified with mixed stress.
+for every closed homogeneous time-harmonic background. The exact stationary
+spatial balance is
+$\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v
+=-\mathcal I_{\mathrm{link},v}/2$. Periodic, no-flux, and sufficiently
+localized endpoint data require zero integrated $\Gamma_v$ at each vertex.
+Spatial endpoint flux can therefore sustain compensating local source-and-sink
+conversion; a nonzero source mean requires boundary flux or additional
+endpoint transport. Open or driven channels, non-harmonic states, and larger
+coupled backgrounds provide separate branches. This condition applies before
+a link current can be identified with mixed stress.
 
 For a nonzero rail background, the first-order fractional endpoint fluctuation
 gives the retarded Nambu response

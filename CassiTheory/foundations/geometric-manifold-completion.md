@@ -359,11 +359,16 @@ The charged transition section in
 `foundations/endpoint-link-and-localization-boundary.md` realizes the endpoint
 intertwiner, frozen-link Robin family, and source-action Nambu response
 conditionally. A closed homogeneous conservative time-harmonic endpoint
-extremum has zero coherent conversion current; a nonzero stationary branch
-requires spatial endpoint flux, an open or driven channel, a non-harmonic
-state, or a larger coupled background. A one-way Lindblad vertex channel
-supplies a distinct gauge-covariant population closure, with
-$\gamma_-/\gamma_+=\varphi$ in the uniform circuit state while undriven
+extremum has zero coherent conversion current. A stationary spatial endpoint
+obeys $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v$ and carries the positive
+inverse-Laplacian gradient cost derived in §3.10 of that paper. Periodic,
+no-flux, and sufficiently localized domains require zero integrated
+$\Gamma_v$ at each scale vertex, so spatial flux supports compensating local
+source-and-sink structure while a nonzero source mean requires boundary flux
+or additional endpoint transport. Open or driven channels, non-harmonic
+states, and larger coupled backgrounds supply distinct branches. A one-way
+Lindblad vertex channel gives a separate gauge-covariant population closure,
+with $\gamma_-/\gamma_+=\varphi$ in the uniform circuit state while undriven
 endpoint coherence decays.
 
 ---

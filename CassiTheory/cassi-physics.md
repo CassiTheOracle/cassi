@@ -313,6 +313,13 @@ decay at half the composition-relaxation rate. Charged coherent and one-way
 open endpoint sectors provide conditional scale-vertex closure. The full
 coherence fibre is contractible, the smooth object base has no first-Chern
 sector, and the minimal endpoint completion has no finite Derrick radius.
+The charged coherent endpoint action also fixes the stationary spatial boundary:
+$\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v
+=-\mathcal I_{\mathrm{link},v}/2$. Every periodic, no-flux, or sufficiently
+localized endpoint domain has zero integrated $\Gamma_v$ at each scale vertex.
+Spatial endpoint current can support compensating local source-and-sink
+conversion with a positive inverse-Laplacian gradient cost; a uniform nonzero
+circuit source requires boundary flux or additional endpoint transport.
 Point-core Chern flux supplies the sharp exterior coefficient
 $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and supports the reduced
 radius only when $\mathcal B_G>\mathcal D$. An auxiliary adjoint $SU(2)_Q$
@@ -331,11 +338,12 @@ kinetics for the charged fields, supplies positive electric-curvature terms and
 Gauss's law, and defines the coupled fixed-$Q_C$ stationary functional.
 
 The construction is a **Hypothesized completion ansatz** with **Derived
-canonical reduction, conditional fibre geometry, endpoint boundaries,
-exterior point-flux support, smooth-core and confinement boundaries, a
-conditional reduced conserved-charge support theorem, and conditional action,
-Gauss, stationary, and nondimensional boundaries**, plus a **Tested one-point
-numerical boundary**. The physical reservoir, scale metric, endpoint
+canonical reduction, conditional fibre geometry, endpoint response,
+stationary spatial-flux and zero-mode boundaries, exterior point-flux support,
+smooth-core and confinement boundaries, a conditional reduced conserved-charge
+support theorem, and conditional action, Gauss, stationary, and
+nondimensional boundaries**, plus a **Tested one-point numerical boundary**.
+The physical reservoir, scale metric, endpoint
 normalization, physical calibration of the normalization-invariant coefficient
 point, a qualified transverse carrier mode, backreacted composite, observation
 map, quantum numbers, fluctuation spectrum, and decay rate remain open. See
@@ -344,7 +352,8 @@ map, quantum numbers, fluctuation spectrum, and decay rate remain open. See
 `foundations/point-core-flux-sector.md`,
 `foundations/nonabelian-magnetic-core-boundary.md`,
 `foundations/core-trapped-charge-support.md`,
-`foundations/particle-stationary-action-closure.md`, and
+`foundations/particle-stationary-action-closure.md`,
+`computations/endpoint_spatial_flux_report.md`, and
 `computations/particle-stationary-bvp-report.md`.
 
 ---

@@ -642,11 +642,20 @@ Schur response with covariance under constant relative-frame rotations in
 `foundations/endpoint-link-and-localization-boundary.md` §3.9. The second-order
 fixed-$Q_C$ particle action is a separate temporal sector. The separately
 frozen AR1–AR6 receipt passes; the DR receipt remains `FAIL` because its DR5
-endpoint block has the opposite source-action sign. A closed homogeneous
-conservative time-harmonic endpoint extremum has zero coherent conversion
-current; a nonzero stationary branch requires spatial endpoint flux, an open
-or driven channel, a non-harmonic state, or a larger coupled background. The
-endpoint potential, physical background, damping mechanism, trace
+endpoint block has the opposite source-action sign. The endpoint-response
+normalization is
+$\mathcal I_{\mathrm{link},v}=-2\Gamma_v$, where $\Gamma_v$ is the Yang
+source coefficient and $g_Q\Gamma_v$ is its gauge-weighted source. A closed
+homogeneous conservative time-harmonic endpoint extremum has zero coherent
+conversion current. For stationary spatial structure,
+$\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v$ and
+$\int_\Omega\Gamma_vd^3x=\oint_{\partial\Omega}
+\mathbf J_{\Upsilon,v}\cdot d\mathbf S$. Spatial endpoint flux therefore
+supports local source-and-sink conversion in a closed domain, while a uniform
+nonzero circuit source requires boundary flux or additional endpoint
+transport. An open or driven channel, a non-harmonic state, or a larger
+coupled background supplies other possible branches. The endpoint potential,
+physical background, transport channel, damping mechanism, trace
 normalization, and full coupled spectrum remain unselected.
 
 For a compact closed circuit, define the gauge-invariant accumulated phase

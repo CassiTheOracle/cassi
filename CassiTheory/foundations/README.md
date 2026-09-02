@@ -48,7 +48,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 36 | `loop-to-bubble-projection-theorem.md` | Shared-support Yang/Yin loop, canonical zero-mode projection, coherence ball, and internal spectrum | Derived conditional projection, bubble map, and population spectrum / Hypothesized microscopic physical identification |
 | 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action / Derived conditional endpoint, source-action response, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point coupled campaign |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, two-rail scale graph, canonical reduction, and open-system coherence lift | Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry / Tested one-point stationary campaign |
-| 39 | `endpoint-link-and-localization-boundary.md` | Gauge-covariant endpoint closure, frozen-link response, source-action Nambu response, closed-current boundary, full-fibre invariant classification, and smooth-sector localization boundary | Derived conditional endpoint closure, frozen-link response, and source-action response / Derived minimal-sector localization no-go |
+| 39 | `endpoint-link-and-localization-boundary.md` | Gauge-covariant endpoint closure, frozen-link and source-action Nambu response, stationary spatial-flux and zero-mode boundary, full-fibre invariant classification, and smooth-sector localization boundary | Derived conditional endpoint closure, response, and spatial-flux identities / Derived minimal-sector localization no-go |
 | 40 | `point-core-flux-sector.md` | Quantized point-core exterior energy, finite-energy obstruction, and stationary-solver boundary | Derived conditional exterior support / Derived current-action completion no-go |
 | 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary smooth magnetic core, condensate topology, London confinement, and composite-stability boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Tested one-point coupled campaign |
 | 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point coupled campaign |
@@ -562,7 +562,7 @@ Its registered phase gluing is a perfect-transfer endpoint. The Hermitian
 Robin family in
 `foundations/interscale-stress-attenuation-boundary.md` §4.3 supplies partial
 reflection and transmission, and the charged coherent field in
-`foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.9 gives one
+`foundations/endpoint-link-and-localization-boundary.md` §§3.6–3.10 gives one
 conditional gauge-covariant realization.
 
 The conservative interscale action and mesoscopic dissipative conversion
@@ -592,7 +592,14 @@ $\Lambda_{\mathrm{link},v}=2\kappa_vu_vM(\alpha_v)$, an exact unitary Cayley
 response, and conditional golden matching at one $k_\star$. Current capacity
 with positive fixed-amplitude phase stiffness gives the conditional unbiased
 bound $k_\star>0.0964640362$. A closed homogeneous conservative time-harmonic
-endpoint extremum has zero coherent conversion current. Around a nonzero rail
+endpoint extremum has zero coherent conversion current. The spatial stiffness
+gives the exact stationary balance
+$\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v
+=-\mathcal I_{\mathrm{link},v}/2$. Periodic, no-flux, and sufficiently
+localized endpoint domains require zero integrated $\Gamma_v$ at each vertex.
+Every reconstructible nonzero zero-mean source has an inverse-Laplacian phase
+profile and positive gradient cost. A uniform nonzero circuit source therefore
+requires boundary flux or additional endpoint transport. Around a nonzero rail
 background, first-order source-action elimination gives a Nambu Schur response
 covariant under constant relative-frame rotations, with analytic endpoint
 poles. The separately frozen AR1–AR6 receipt passes; the DR receipt remains
