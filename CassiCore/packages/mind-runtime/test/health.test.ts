@@ -2,9 +2,8 @@
  * @cassicore/mind-runtime — retained mind-health read slice test (P5).
  *
  * Asserts `collectMindHealth(runtime)` returns a host-agnostic, read-only snapshot
- * across the retained admin disciplines (cortex/pineal/thalamus/memory/replay/
- * observability), reads real field + intelligence state, and never throws when a
- * subsystem is missing. This is the retained admin-api fold (§5 #27).
+ * across cortex, pineal, exact memory, replay, and observability; it reads real
+ * state and never throws when a subsystem is missing.
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -40,21 +39,20 @@ describe('mind-runtime retained health slice (admin-api fold)', () => {
     try { rmSync(home, { recursive: true, force: true }) } catch { /* Windows lock — best effort */ }
   })
 
-  it('collects all six retained disciplines read-only, without throwing', () => {
+  it('collects all five retained disciplines read-only, without throwing', () => {
     const snap = collectMindHealth(rt)
     expect(snap).toHaveProperty('cortex')
     expect(snap).toHaveProperty('pineal')
-    expect(snap).toHaveProperty('thalamus')
     expect(snap).toHaveProperty('memory')
     expect(snap).toHaveProperty('replay')
     expect(snap).toHaveProperty('observability')
     // Every discipline is a typed object; none throws.
-    for (const key of ['cortex', 'pineal', 'thalamus', 'memory', 'replay', 'observability'] as const) {
+    for (const key of ['cortex', 'pineal', 'memory', 'replay', 'observability'] as const) {
       expect(typeof snap[key].available).toBe('boolean')
     }
   })
 
-  it('reads real MnemicField memory state (engrams + stats)', () => {
+  it('reads real exact Mnemic state (engrams + stats)', () => {
     const saved = rt.memory.save({ content: 'health probe memory', type: 'fact' })
     expect(saved).toBeTypeOf('string')
     const snap = collectMindHealth(rt)

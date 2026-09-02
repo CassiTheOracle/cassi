@@ -26,6 +26,8 @@
  *   POST /v1/context/candidates { sessionId, turnId, query, limit?, deadlineMs?, includeFieldShadow? }
  *                              → { candidates, sources, fieldAdvisory }   (shared context seam; deadline fails open)
  *   POST /v1/context/feedback   { sessionId, turnId, planId, includedCandidateIds, outcome } → { ack:true }
+ *   POST /v1/context/action     exact text-free tool start/outcome → { ack:true }
+ *   POST /v1/context/status     {} → read-only candidate/counterflow/journal recovery status
  *   POST /v1/shutdown           {} → { ok }
  */
 
@@ -40,9 +42,12 @@ import { ContextRequestError } from '../context/candidates.js'
 import type {
   ChannelRequest,
   ContextCandidatesRequest,
+  ContextActionRequest,
+  ContextActionResponse,
   ContextCandidatesResponse,
   ContextFeedbackRequest,
   ContextFeedbackResponse,
+  ContextStatusResponse,
   ExecuteToolRequest,
   HealthResponse,
   MemorySaveRequest,
@@ -188,11 +193,17 @@ export class MindChannelServer {
         case '/v1/memory/save':
           payload = await this.memorySave(body as MemorySaveRequest)
           break
+        case '/v1/context/status':
+          payload = this.contextStatus()
+          break
         case '/v1/context/candidates':
           payload = await this.contextCandidates(body as ContextCandidatesRequest)
           break
         case '/v1/context/feedback':
           payload = await this.contextFeedback(body as ContextFeedbackRequest)
+          break
+        case '/v1/context/action':
+          payload = await this.contextAction(body as ContextActionRequest)
           break
         case '/v1/shutdown':
           payload = await this.shutdown(body as ShutdownRequest)
@@ -296,7 +307,6 @@ export class MindChannelServer {
   }
 
   private async snapshot(): Promise<SnapshotResponse> {
-    const fieldStats = this.safeFieldStats()
     return {
       state: {
         memory: this.runtime.memory.status(),
@@ -313,7 +323,6 @@ export class MindChannelServer {
       status: 'ok',
       uptimeMs: Date.now() - this.runtime.startedAt,
       fieldStats: this.safeFieldStats(),
-      lightningStatus: this.safeLightningStatus(),
       retained: collectMindHealth(this.runtime),
     }
   }
@@ -326,13 +335,6 @@ export class MindChannelServer {
     }
   }
 
-  private safeLightningStatus(): Record<string, unknown> | null {
-    try {
-      return this.runtime.memory.status().lightning
-    } catch {
-      return null
-    }
-  }
 
   private async memoryStatus(): Promise<MemoryStatusResponse> {
     return { backend: 'mnemic-field', stats: this.safeFieldStats() }
@@ -352,9 +354,23 @@ export class MindChannelServer {
       content: req.content,
       type: req.type,
       metadata: req.metadata,
+      tags: req.tags,
+      provenance: req.provenance,
       sessionId: req.sessionId,
     })
     return { id }
+  }
+
+  private contextStatus(): ContextStatusResponse {
+    return {
+      schemaVersion: 1,
+      candidates: this.runtime.context.status(),
+      journal: {
+        stream: this.runtime.field.fieldStreamStatus(),
+        verification: this.runtime.field.fieldJournalVerificationStatus(),
+        unresolvedActions: this.runtime.field.unresolvedActionEpisodes(),
+      },
+    }
   }
 
   private async contextCandidates(req: ContextCandidatesRequest): Promise<ContextCandidatesResponse> {
@@ -369,6 +385,15 @@ export class MindChannelServer {
   private async contextFeedback(req: ContextFeedbackRequest): Promise<ContextFeedbackResponse> {
     try {
       return await this.runtime.context.feedback(req)
+    } catch (err) {
+      if (err instanceof ContextRequestError) throw new HttpError(err.statusCode, err.message)
+      throw err
+    }
+  }
+
+  private async contextAction(req: ContextActionRequest): Promise<ContextActionResponse> {
+    try {
+      return await this.runtime.context.action(req)
     } catch (err) {
       if (err instanceof ContextRequestError) throw new HttpError(err.statusCode, err.message)
       throw err

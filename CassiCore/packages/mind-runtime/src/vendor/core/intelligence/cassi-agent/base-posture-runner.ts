@@ -161,26 +161,10 @@ export abstract class BasePostureRunner<
   protected moduleDebugSessionId?: string
   /** Optional intelligent context management coordinator */
   protected contextBudgetCoordinator?: ContextBudgetCoordinator
-  /** Thalamus for context curation during long-running sessions */
-  protected thalamus?: import('@cassicore/thalamus').ThalamusModule
-  /** Cross-session topic index for sharing Thalamus insights across sessions */
-  protected crossSessionIndex?: import('@cassicore/thalamus').CrossSessionTopicIndex
 
-  /**
-   * Append a message to the conversation, passing it through the Thalamus
-   * slot processor for annotation. Falls back to a plain push if no Thalamus.
-   *
-   * Use this instead of `this.messages.push()` at intake points to ensure
-   * _thalamus annotations are attached with real timestamps and metrics.
-   */
+  /** Append one message to the canonical conversation. */
   protected pushMessage(msg: Message): void {
-    if (this.thalamus) {
-      const index = this.messages.length
-      const annotated = this.thalamus.process(this.sessionId, msg, index)
-      this.messages.push(annotated)
-    } else {
-      this.messages.push(msg)
-    }
+    this.messages.push(msg)
   }
 
   /**
@@ -221,8 +205,6 @@ export abstract class BasePostureRunner<
     postureSlot?: string
     moduleDebugSessionId?: string
     contextBudgetCoordinator?: ContextBudgetCoordinator
-    thalamus?: import('@cassicore/thalamus').ThalamusModule
-    crossSessionIndex?: import('@cassicore/thalamus').CrossSessionTopicIndex
   }) {
     this.posture = opts.posture
     this.handle = opts.handle
@@ -242,8 +224,6 @@ export abstract class BasePostureRunner<
     this.postureSlot = opts.postureSlot
     this.moduleDebugSessionId = opts.moduleDebugSessionId
     this.contextBudgetCoordinator = opts.contextBudgetCoordinator
-    this.thalamus = opts.thalamus
-    this.crossSessionIndex = opts.crossSessionIndex
     this.lastModelConfig = { provider: opts.handle.provider, model: opts.handle.model }
   }
 
@@ -295,71 +275,7 @@ export abstract class BasePostureRunner<
     let streamTextAccumulated = ''
     let streamReasoningAccumulated = ''
 
-    // Curate context through the Thalamus for long-running sessions.
-    // The canonical messages array keeps growing; the Thalamus trims it
-    // to fit the model's context window by scoring and selecting the
-    // most relevant messages while preserving the recent window.
-    let inferenceMessages = this.messages
-    if (this.thalamus && this.messages.length > 10) {
-      try {
-        const curation = await this.thalamus.curate(this.sessionId, this.messages, {
-          excludeSessionPrefixes: [],
-        })
-        inferenceMessages = curation.messages
-
-        // Assemble Thalamus injections (Mnemic Field retrieval, Aurora, Pineal)
-        // to provide cross-session context during inference. This also generates
-        // ActivationSpikes in the Mnemic Field for potentiation accumulation.
-        if (this.thalamus.assembleInjections) {
-          try {
-            const injections = await this.thalamus.assembleInjections(
-              this.sessionId,
-              inferenceMessages,
-            )
-            if (injections.length > 0) {
-              const injectionText = injections.map(i => i.content).join('\n')
-              // Insert after the first user message to avoid breaking
-              // providers (DeepSeek) that require user-first message ordering
-              const injectionMsg = { role: 'system' as const, content: injectionText }
-              const firstUserIdx = inferenceMessages.findIndex(
-                (m: any) => m.role === 'user',
-              )
-              if (firstUserIdx >= 0) {
-                inferenceMessages = [
-                  ...inferenceMessages.slice(0, firstUserIdx + 1),
-                  injectionMsg,
-                  ...inferenceMessages.slice(firstUserIdx + 1),
-                ]
-              } else {
-                inferenceMessages = [injectionMsg, ...inferenceMessages]
-              }
-            }
-          } catch (err) {
-            this.logger.debug('Thalamus injection assembly failed', { error: String(err) })
-          }
-        }
-
-        if (this.iterationCount > 0 && this.iterationCount % 20 === 0) {
-          this.logger.debug('Thalamus curation', {
-            iteration: this.iterationCount,
-            original: curation.meta.originalCount,
-            curated: curation.meta.curatedCount,
-            compressed: curation.meta.compressed,
-            dropped: curation.meta.dropped,
-          })
-        }
-        // Publish topic summaries to cross-session index
-        if (this.crossSessionIndex && curation.meta.topicSummaries?.length) {
-          try {
-            await this.crossSessionIndex.publish(this.sessionId, curation.meta.topicSummaries)
-          } catch (err) {
-            this.logger.debug('Cross-session publish failed (non-critical)', { error: String(err) })
-          }
-        }
-      } catch (err) {
-        this.logger.debug('Thalamus curation failed, using full messages', { error: String(err) })
-      }
-    }
+    const inferenceMessages = this.messages
 
     try {
       for await (const chunk of this.handle.stream(inferenceMessages, opts)) {
@@ -791,14 +707,7 @@ export abstract class BasePostureRunner<
             contentLength: result.content.length,
           })
           const durationMs = Date.now() - startMs
-          const outputBytes = Buffer.byteLength(result.content, 'utf8')
 
-          // Pre-record metrics in the Thalamus temporal registry before the
-          // result message is pushed — so augment() finds them immediately.
-          if (this.thalamus) {
-            this.thalamus.getTemporalRegistry(this.sessionId)
-              .recordToolMetrics(tc.id, durationMs, outputBytes)
-          }
 
           this.store?.saveToolCall(
             this.sessionId, this.getAgentLabel(), tc.name, tc.id, false,

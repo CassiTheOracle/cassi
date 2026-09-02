@@ -132,7 +132,8 @@ export default function cassiSpine(pi: ExtensionAPI, options: SpineOptions = {})
     ?? 'observe'
   registerContextController(pi, client, {
     mode: attentionMode,
-    candidateWaitMs: options.attentionCandidateWaitMs,
+    candidateWaitMs: options.attentionCandidateWaitMs
+      ?? (process.env.CASSI_FI_PROVIDER_URL ? 2_500 : undefined),
     includeFieldShadow: process.env.CASSI_THALAMUS_FIELD_SHADOW === '1',
     ...(options.context ?? {}),
   })

@@ -52,7 +52,6 @@ import type { InterFieldBridge } from '@cassicore/mnemic-field'
 import type { ILogger } from '../vendor/types/interfaces.js'
 import type { CorticalField } from '@cassicore/cortex-pineal-dialectic'
 import type { ICorpusTree } from '../corpus-types.js'
-import type { ThalamusModule } from '@cassicore/thalamus'
 import type { Aurora } from '@cassicore/aurora'
 import { runSoloExplorer } from './solo-runner.js'
 import type { SoloRunnerResult } from './solo-runner.js'
@@ -87,7 +86,6 @@ export class MeditationController extends BaseCognitiveModule {
   private activeAbortController?: AbortController
   /** Cached by checkAndMeditate when health-based organizing is triggered */
   private cachedHealthSnapshot?: FieldHealthSnapshot
-  private thalamus?: ThalamusModule
   private aurora?: Aurora
   private directedMeditationCount = 0
 
@@ -129,9 +127,6 @@ export class MeditationController extends BaseCognitiveModule {
     this.cortex = cortex
   }
 
-  setThalamus(thalamus: ThalamusModule): void {
-    this.thalamus = thalamus
-  }
 
   /**
    * C1.3 Sub6 inlet: when Aurora has auto-scheduled meditation seeds, the idle
@@ -622,7 +617,6 @@ export class MeditationController extends BaseCognitiveModule {
           eventBus: this.eventBus!,
           signal: abortController.signal,
           memoryContext,
-          thalamus: this.thalamus,
         })
       })
 
@@ -643,21 +637,6 @@ export class MeditationController extends BaseCognitiveModule {
             }))
           }
 
-          // Feed explorer transcripts into Aurora's cognitive graph so meditation
-          // findings shape my mental state, not just Mnemic Field engrams.
-          // Routed through Thalamus so Aurora's reasoning observer + Reverie sampling stay centralized.
-          if (this.thalamus && typeof (this.thalamus as any).observeReasoning === 'function') {
-            for (const r of soloResults) {
-              if (!r.transcript || r.transcript.length < 200) continue
-              try {
-                ;(this.thalamus as any).observeReasoning(r.transcript)
-              } catch (err) {
-                this.logger.debug('[Meditation] aurora.observeReasoning failed', {
-                  explorer: r.name, error: String(err),
-                })
-              }
-            }
-          }
 
           this.logger.info('[Meditation] All explorers completed', {
             constellationId,
@@ -950,15 +929,12 @@ private countDiscoveries(transcript?: string): number {
         handle,
         toolExecutor: this.toolExecutor!,
         toolRegistry: this.toolRegistry!,
-        maxIterations: this.thalamus
-          ? Math.max(this.meditationConfig.maxTotalSteps, 500)
-          : this.meditationConfig.maxTotalSteps,
+        maxIterations: this.meditationConfig.maxTotalSteps,
         logger: this.logger,
         eventBus: this.eventBus!,
         signal: abortController.signal,
         customHandlers: handlers,
         customToolSchemas: getOrganizingToolSchemas(),
-        thalamus: this.thalamus,
       })
 
       // Capture after-snapshot and compute delta
@@ -1186,7 +1162,6 @@ private countDiscoveries(transcript?: string): number {
         signal: abortController.signal,
         customHandlers: handlers,
         customToolSchemas: getSelfModelingToolSchemas(),
-        thalamus: this.thalamus,
       })
 
       if (this.activeSession) {

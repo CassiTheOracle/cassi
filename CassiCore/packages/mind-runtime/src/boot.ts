@@ -30,7 +30,7 @@ import path from 'node:path'
 import { setRootResolver, type IConfig, type IEventBus, type ILogger, type ISessionManager } from '@cassicore/foundation'
 import { setDataDirRoot } from '@cassicore/constellation'
 import { bus as busSingleton, EventHistory, getEventHistory, rootLogger } from '@cassicore/events'
-import { MnemicField } from '@cassicore/mnemic-field'
+import { MnemicExactStore } from '@cassicore/mnemic-field'
 import { registerMindTools, ToolRegistry, type CoreToolDeps } from '@cassicore/tools'
 import { MindFieldTelemetry } from './field/telemetry.js'
 import type { FieldTelemetryConfig } from './field/telemetry.js'
@@ -46,7 +46,11 @@ import { createOrchestrationBus } from './vendor/core/orchestration-bus.js'
 
 import { MnemicMemoryAdapter } from './memory/backend.js'
 import { MindSessionMirror } from './session-store.js'
-import { RuntimeContextCandidateService } from './context/candidates.js'
+import {
+  createHttpContextFieldClient,
+  RuntimeContextCandidateService,
+  type ContextFieldClientOptions,
+} from './context/candidates.js'
 
 /** Minimal `IConfig` — reads retained `intelligence.*` defaults direct from env.
  *  No watcher (`watch()`/`onChanged` are no-ops); `reload()` is a no-op. */
@@ -59,8 +63,6 @@ class RuntimeConfig implements IConfig {
       'intelligence.unifiedLoop.backgroundIntervalMs': 60_000,
       'intelligence.unifiedLoop.consolidationCadence': 5,
       'intelligence.unifiedLoop.maintenanceCadence': 10,
-      'intelligence.mnemic.lightningMode': process.env.CASSI_MIND_LIGHTNING ?? 'off',
-      'intelligence.mnemic.rerankerType': process.env.CASSI_MIND_RERANKER ?? 'local',
       'intelligence.memory.dualWriteTurns': false,
     }
   }
@@ -84,7 +86,7 @@ export interface MindRuntime {
   }
   readonly logger: ILogger
   readonly bus: IEventBus
-  readonly field: MnemicField
+  readonly field: MnemicExactStore
   readonly fieldTelemetry: MindFieldTelemetry | undefined
   readonly context: RuntimeContextCandidateService
   readonly intelligence: IntelligenceLayer
@@ -92,7 +94,7 @@ export interface MindRuntime {
   readonly sessions: MindSessionMirror
   readonly registry: ToolRegistry
   readonly startedAt: number
-  /** Stop the unified loop + release the MnemicField DB. */
+  /** Flush field observations and release the exact Mnemic DB. */
   close(): Promise<void>
   /** Execute a retained mind tool by name (used by `/v1/tools/execute`). */
   executeTool(tool: string, params: Record<string, unknown>, sessionId?: string): Promise<{ result: string }>
@@ -108,6 +110,12 @@ export interface MindRuntimeOptions {
   disableOscillation?: boolean
   /** Optional, default-off read-only 7599 field telemetry. */
   fieldTelemetry?: FieldTelemetryConfig | boolean
+  /** Optional loopback CassiFI provider used to rank Mnemic context candidates. */
+  fieldIntelligenceUrl?: string
+  /** Explicit startup verification; ordinary Mnemic reads remain available on failure. */
+  verifyMnemicJournal?: boolean
+  /** Default-off counterflow experiments and shadow-only calibration threshold. */
+  counterflow?: ContextFieldClientOptions
 }
 
 /**
@@ -199,50 +207,58 @@ export async function createMindRuntime(opts: MindRuntimeOptions = {}): Promise<
     throw err
   }
 
-  // ── MnemicField open + injections (daemon.ts:1568-1713 retained) ────────
+  // ── Exact Mnemic records + sole adaptive CassiFI field ───────────────────
   const fieldTelemetry = opts.fieldTelemetry
     ? new MindFieldTelemetry(opts.fieldTelemetry === true ? {} : opts.fieldTelemetry)
     : undefined
-  const field = new MnemicField(logger)
-  field.enableNeuralKindling()
-
-  // Cortex affect/consolidation bridge.
-  if (intelligence.cortex) {
-    try {
-      const { createConsolidationBridge } = await import('@cassicore/cortex-pineal-dialectic')
-      intelligence.cortex.setAffectRegister(field.getAffectRegister())
-      intelligence.cortex.setConsolidationCallback(createConsolidationBridge(field, logger))
-      field.setCorticalField(intelligence.cortex)
-    } catch (err) {
-      logger.warn('Cortex affect/consolidation bridge not available', { error: String(err) })
-    }
+  const field = new MnemicExactStore(logger)
+  const verifyMnemicJournal = opts.verifyMnemicJournal
+    ?? process.env.CASSI_MNEMIC_VERIFY_JOURNAL === '1'
+  if (verifyMnemicJournal) {
+    const verification = field.verifyFieldJournal()
+    field.requireVerifiedActionJournal(verification)
+    const log = verification.status === 'valid' ? logger.info.bind(logger) : logger.warn.bind(logger)
+    log('Mnemic exact journal verification completed', {
+      status: verification.status,
+      acknowledgedPrefixValid: verification.acknowledgedPrefixValid,
+      checkedThroughSequence: verification.checkedThroughSequence,
+      failure: verification.failure,
+    })
   }
-
-  // Meditation / memory / archivist / constellation MnemicField injections.
-  const inject = (mod: unknown, name: string): boolean => {
-    const m = mod as { setMnemicField?: (f: MnemicField) => void } | undefined
-    if (m && typeof m.setMnemicField === 'function') { m.setMnemicField(field); logger.info(`${name} MnemicField wired`); return true }
-    return false
+  const enabledCounterflowFeatures = new Set(
+    (process.env.CASSI_COUNTERFLOW_FEATURES ?? '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean),
+  )
+  const configuredShadowSupport = Number(process.env.CASSI_COUNTERFLOW_SHADOW_SUPPORT)
+  const counterflowOptions: ContextFieldClientOptions = {
+    failureInhibition: opts.counterflow?.failureInhibition
+      ?? enabledCounterflowFeatures.has('failure-inhibition'),
+    actionRoleAbstraction: opts.counterflow?.actionRoleAbstraction
+      ?? enabledCounterflowFeatures.has('action-roles'),
+    lineageRoleAbstraction: opts.counterflow?.lineageRoleAbstraction
+      ?? enabledCounterflowFeatures.has('lineage-roles'),
+    multiActionTrajectories: opts.counterflow?.multiActionTrajectories
+      ?? enabledCounterflowFeatures.has('multi-action'),
+    shadowSupportThreshold: opts.counterflow?.shadowSupportThreshold
+      ?? (Number.isFinite(configuredShadowSupport) && configuredShadowSupport >= 0
+        ? configuredShadowSupport
+        : undefined),
   }
-  inject(intelligence.meditation, 'Meditation')
-  inject(intelligence.memory, 'Memory')
-  inject(intelligence.constellation, 'Constellation')
-  try {
-    const archivist = (intelligence.memory as never as { getArchivist?: () => { setMnemicField?: (f: MnemicField) => void } }).getArchivist?.()
-    inject(archivist, 'Archivist')
-  } catch (err) {
-    logger.warn('Archivist MnemicField wiring failed', { error: String(err) })
+  const fieldClient = opts.fieldIntelligenceUrl
+    ? createHttpContextFieldClient(
+        opts.fieldIntelligenceUrl,
+        field,
+        logger.child('cassi-fi'),
+        counterflowOptions,
+      )
+    : undefined
+  if (fieldClient) {
+    field.onFieldEvent = fieldClient.notify
+    fieldClient.notify()
   }
-  // Store the field on the intelligence layer — retained consumers read `__mnemicField`.
-  ;(intelligence as unknown as { __mnemicField: MnemicField }).__mnemicField = field
-
-  // Reranker / lightning / foreshadow (retained defaults; no live LLM in P3).
-  try {
-    field.setLightningMode(config.get<string>('intelligence.mnemic.lightningMode', 'off') as 'shadow' | 'sparsify' | 'off')
-    field.setRerankerMode(config.get<string>('intelligence.mnemic.rerankerType', 'local') as 'local' | 'llm' | 'off')
-  } catch (err) {
-    logger.warn('field mode wiring failed (non-fatal)', { error: String(err) })
-  }
+  ;(intelligence as unknown as { __mnemicField: MnemicExactStore }).__mnemicField = field
 
   // ── Session mirror store (ohmypi owns sessions; runtime mirrors) ────────
   const sessions = new MindSessionMirror()
@@ -251,14 +267,14 @@ export async function createMindRuntime(opts: MindRuntimeOptions = {}): Promise<
   const memory = new MnemicMemoryAdapter(field)
   const registry = new ToolRegistry()
 
-  // ── Context candidate service (P8 shared context seam) ──────────────────
-  // Bounded/validated Mnemic candidates + cached field-shadow advisory for the
-  // spine's per-turn context planning. Fail-open, deadline-bounded; the field
-  // shadow never blocks a candidate response on a fresh 7599 read.
+  // Exact records stay in Mnemic; CassiFI alone owns adaptive ordering and
+  // successful-use consolidation. Provider failure leaves deterministic FTS.
   const context = new RuntimeContextCandidateService({
     memory,
     fieldTelemetry,
+    fieldRanker: fieldClient?.rank,
     bus,
+    counterflowStatus: fieldClient?.status,
     logger: logger.child('context'),
   })
 
@@ -322,6 +338,7 @@ export async function createMindRuntime(opts: MindRuntimeOptions = {}): Promise<
     startedAt,
     close: async () => {
       try { context.close() } catch { /* ignore */ }
+      try { await fieldClient?.close() } catch { /* ignore */ }
       try { fieldTelemetry?.close() } catch { /* ignore */ }
       try { field.close() } catch { /* ignore */ }
       logger.info('Mind runtime closed', { uptimeMs: Date.now() - startedAt })

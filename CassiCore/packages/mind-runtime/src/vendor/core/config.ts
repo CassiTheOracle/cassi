@@ -32,17 +32,6 @@ const DEFAULT_CONFIG = {
     memory: { enabled: true },
     thinker: { enabled: true },
     backgroundEmbedding: { enabled: false },
-    // Overhaul defaults (2026-08-13 owner directive): every Cassi Mind
-    // mechanism is ON by default during the continuous-measurement period.
-    // Off-states remain for A/B baselines; pre-registered verdicts (Stage-2
-    // HOLD etc.) remain on record and still govern any eventual production
-    // default. These are only consulted where a code path reads them from
-    // config — the pure-internal class defaults live on MnemicField itself.
-    mnemicField: {
-      // §20 H4 merge journal (observation-only; path set in daemon boot).
-      mergeJournal: true,
-    },
-    consolidation: { tiered: 'cascade' },
     fieldBridge: {
       // TCP drainer to the GPU field engine. enabled=true is the overhaul
       // default; bail on a stock config only if the operator flips it.
@@ -50,7 +39,6 @@ const DEFAULT_CONFIG = {
       host: '127.0.0.1',
       port: 7599,
     },
-    thalamus: { gateComposite: 'cascade' },
   },
   tools: {
     allowedPaths: [

@@ -128,19 +128,9 @@ export abstract class BasePostureRunner<TPosture extends BasePosture = BasePostu
   protected onActivity?: () => void
   protected moduleDebugSessionId?: string
   protected contextBudgetCoordinator?: import('./context-budget-coordinator.js').ContextBudgetCoordinator
-  /** Thalamus for context curation during long-running sessions */
-  protected thalamus?: import('@cassicore/thalamus').ThalamusModule
-  /** Cross-session topic index for sharing Thalamus insights across sessions */
-  protected crossSessionIndex?: import('@cassicore/thalamus').CrossSessionTopicIndex
 
   protected pushMessage(msg: Message): void {
-    if (this.thalamus) {
-      const index = this.messages.length
-      const annotated = this.thalamus.process(this.sessionId, msg, index)
-      this.messages.push(annotated as Message)
-    } else {
-      this.messages.push(msg)
-    }
+    this.messages.push(msg)
   }
 
   protected onStreamChunk?(tokensSoFar: number, textAccumulated: string, hasToolUse: boolean): void
@@ -168,8 +158,6 @@ export abstract class BasePostureRunner<TPosture extends BasePosture = BasePostu
     postureSlot?: string
     moduleDebugSessionId?: string
     contextBudgetCoordinator?: import('./context-budget-coordinator.js').ContextBudgetCoordinator
-    thalamus?: import('@cassicore/thalamus').ThalamusModule
-    crossSessionIndex?: import('@cassicore/thalamus').CrossSessionTopicIndex
   }) {
     this.posture = opts.posture
     this.handle = opts.handle
@@ -189,8 +177,6 @@ export abstract class BasePostureRunner<TPosture extends BasePosture = BasePostu
     this.postureSlot = opts.postureSlot
     this.moduleDebugSessionId = opts.moduleDebugSessionId
     this.contextBudgetCoordinator = opts.contextBudgetCoordinator
-    this.thalamus = opts.thalamus
-    this.crossSessionIndex = opts.crossSessionIndex
     this.lastModelConfig = { provider: opts.handle.provider, model: opts.handle.model }
   }
 
@@ -231,20 +217,7 @@ export abstract class BasePostureRunner<TPosture extends BasePosture = BasePostu
         : undefined,
     }
 
-    let inferenceMessages = this.messages
-    if (this.thalamus && this.messages.length > 10) {
-      try {
-        const curation = await this.thalamus.curate(this.sessionId, this.messages, {
-          excludeSessionPrefixes: [],
-        })
-        inferenceMessages = curation.messages
-        if (this.crossSessionIndex && curation.meta.topicSummaries?.length) {
-          try {
-            await this.crossSessionIndex.publish(this.sessionId, curation.meta.topicSummaries)
-          } catch { /* non-critical */ }
-        }
-      } catch { /* fall back to full messages */ }
-    }
+    const inferenceMessages = this.messages
 
     try {
       for await (const chunk of this.handle.stream(inferenceMessages, opts)) {
@@ -455,11 +428,6 @@ export abstract class BasePostureRunner<TPosture extends BasePosture = BasePostu
             this.sessionId,
           )
           const durationMs = Date.now() - startMs
-          if (this.thalamus) {
-            const outputBytes = Buffer.byteLength(result.content, 'utf8')
-            this.thalamus.getTemporalRegistry(this.sessionId)
-              .recordToolMetrics(tc.id, durationMs, outputBytes)
-          }
           this.store?.saveToolCall(
             this.sessionId, this.getAgentLabel(), tc.name, tc.id, false,
             tc.input, this.truncateToolResult(result.content), result.isError,

@@ -16,6 +16,7 @@ export async function main(): Promise<void> {
     // Same explicit opt-in the spine uses; the spawned child inherits the env.
     // Default remains off and therefore bit-identical/no-socket.
     fieldTelemetry: process.env.CASSI_THALAMUS_FIELD_SHADOW === '1',
+    fieldIntelligenceUrl: process.env.CASSI_FI_PROVIDER_URL,
   })
 
   let shutdownRequested = false

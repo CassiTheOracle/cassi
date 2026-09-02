@@ -14,7 +14,6 @@ import type { Message, ContentBlock, CompletionChunk } from '../vendor/types/run
 import type { ModelHandle } from '@cassicore/model-pool/types'
 import type { ToolExecutor } from '@cassicore/tools'
 import type { ToolRegistry } from '@cassicore/tools'
-import type { ThalamusModule } from '@cassicore/thalamus'
 
 import {
   getCodeConsolidatedToolSchema,
@@ -55,10 +54,6 @@ export interface SoloRunnerOpts {
   customHandlers?: Record<string, (input: Record<string, unknown>) => Promise<ToolCallResult>>
   /** Custom tool schemas (replaces default consolidated + memory tools when provided) */
   customToolSchemas?: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>
-  /** Thalamus for context curation during long-running sessions */
-  thalamus?: ThalamusModule
-  /** Cross-session topic index for sharing Thalamus insights across sessions */
-  crossSessionIndex?: import('@cassicore/thalamus').CrossSessionTopicIndex
 }
 
 export interface ToolCallResult {
@@ -87,7 +82,7 @@ export async function runSoloExplorer(opts: SoloRunnerOpts): Promise<SoloRunnerR
   const {
     sessionId, name, instruction, handle, toolExecutor, toolRegistry,
     maxIterations, logger, signal, memoryContext, onActivity,
-    customHandlers, customToolSchemas, thalamus,
+    customHandlers, customToolSchemas,
   } = opts
 
   const log = logger.child(`solo:${name}`)
@@ -99,7 +94,7 @@ export async function runSoloExplorer(opts: SoloRunnerOpts): Promise<SoloRunnerR
   const tools = customToolSchemas ?? buildToolSchemas(toolRegistry)
   const messages: Message[] = buildInitialMessages(instruction, memoryContext, sessionId)
 
-  log.info('Solo explorer starting', { name, maxIterations, model: `${handle.provider}/${handle.model}`, thalamosEnabled: !!thalamus })
+  log.info('Solo explorer starting', { name, maxIterations, model: `${handle.provider}/${handle.model}` })
 
   try {
     while (iterations < maxIterations) {
@@ -110,36 +105,7 @@ export async function runSoloExplorer(opts: SoloRunnerOpts): Promise<SoloRunnerR
 
       iterations++
 
-      // Curate context through the Thalamus for long-running sessions.
-      // The canonical messages array keeps growing; the Thalamus trims it
-      // to fit the model's context window by scoring and selecting the
-      // most relevant messages while preserving the recent window.
-      let inferenceMessages = messages
-      if (thalamus) {
-        try {
-          const curation = await thalamus.curate(sessionId, messages, {
-            excludeSessionPrefixes: [],
-          })
-          inferenceMessages = curation.messages
-          if (iterations % 20 === 0) {
-            log.debug('Thalamus curation', {
-              iteration: iterations,
-              original: curation.meta.originalCount,
-              curated: curation.meta.curatedCount,
-              compressed: curation.meta.compressed,
-              dropped: curation.meta.dropped,
-            })
-          }
-          // Publish topic summaries to cross-session index
-          if (opts.crossSessionIndex && curation.meta.topicSummaries?.length) {
-            try {
-              await opts.crossSessionIndex.publish(sessionId, curation.meta.topicSummaries)
-            } catch { /* non-critical */ }
-          }
-        } catch (err) {
-          log.debug('Thalamus curation failed, using full messages', { error: String(err) })
-        }
-      }
+      const inferenceMessages = messages
 
       // Stream inference to capture both text and tool_use chunks
       const { blocks, tokens } = await streamInference(handle, inferenceMessages, tools, signal, name)

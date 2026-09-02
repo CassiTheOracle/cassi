@@ -1,30 +1,16 @@
-/**
- * @cassicore/mind-runtime — MnemicField-backed memory adapter (plan §3).
- *
- * The ohmypi memory-backend contract, behaviorally, is `status / search / save`
- *   - save           → `field.store({ content, nodeType, metadata, provenance })`
- *   - search         → `field.retrieve(query, { limit, sessionId })` (kindling) with a
- *                      `searchText` fallback when kindling yields nothing
- *   - searchReadOnly → `field.searchTextStrict(query)` without retrieval-event
- *                      persistence, activation, broadcast, query logging, or
- *                      swallowed backend failures; used for attention candidates
- *   - status         → `field.stats()` (+ `getLightningStatus()` when relevant)
- *
- * Both ohmypi's built-ins (recall/retain/reflect/memory_edit) and the mind's own
- * memory ops hit the SAME field through this adapter (plan §3.2). The channel
- * memory endpoints (`/v1/memory/*`) are thin passthroughs into these methods.
- *
- * [VERIFY] Per plan §3.2 / brief Open Item 9: whether the ohmypi backend must
- * also expose a `memory://` URI resolver + an optional `learn` path is undecided
- * (local backends expose them; structured backends center on recall/retain/
- * reflect/memory_edit). This adapter implements `status/search/save` only; a
- * `memory://` read resolver would proxy `field.get`/`searchByProvenance` over a
- * future `/v1/memory/read` endpoint. Default (this phase): not wired.
- */
+/** Exact Mnemic record adapter for the mind runtime memory surface. */
 
 import { createHash } from 'node:crypto'
 
-import type { MnemicField, MnemicRetrievalHit } from '@cassicore/mnemic-field'
+import {
+  mnemicRecordRevision,
+  type MnemicActionFinish,
+  type MnemicActionStart,
+  type MnemicExactStore,
+  type MnemicFeedbackOutcome,
+  type MnemicFieldCandidate,
+  type MnemicFieldToolResult,
+} from '@cassicore/mnemic-field'
 
 const MAX_FTS_INPUT_CHARS = 1024
 const MAX_FTS_TERMS = 12
@@ -61,88 +47,56 @@ function sessionMetadata(metadata: Record<string, unknown> | undefined): Record<
   const sessionId = metadata?.sessionId
   return typeof sessionId === 'string' ? { sessionId: sessionId.slice(0, 128) } : {}
 }
-
-/** Structural stop-words the kindling fallback uses when text search returns nothing. */
 export interface MnemicMemoryAdapterOptions {
-  /** Cap the `search` fallback's raw `searchText` result pool. */
   searchTextLimit?: number
 }
+
 
 /** The retained `save` entry shape (mapped onto EngramCreate). */
 export interface MemorySaveEntry {
   content: string
   type?: string
   metadata?: Record<string, unknown>
+  tags?: string[]
+  provenance?: string
   sessionId?: string
 }
 
-interface AttentionSearchField {
-  searchTextStrictAsync?: (query: string, limit: number, timeoutMs: number) => Promise<Array<{
-    engram: {
-      id: string
-      content: string
-      nodeType?: string | null
-      metadata?: Record<string, unknown>
-    }
-    score?: number
-  }>>
-
-}
 
 /** A mapped retrieval hit exposed over the channel (`ids/content/score/metadata`). */
 export interface MemoryHitView {
   id: string
   content: string
+  revision?: string
   score: number
   nodeType?: string | null
   metadata?: Record<string, unknown>
 }
 
-/**
- * Adapter implementing the ohmypi memory-backend surface (`status/search/save`)
- * over a live MnemicField. Instantiated by boot.ts and shared by the channel's
- * `/v1/memory/*` endpoints and (spine-side) `ctx.memory` wiring.
- */
+/** Runtime memory surface over exact SQLite records; adaptive ranking lives in CassiFI. */
 export class MnemicMemoryAdapter {
   private activeReadOnlySearches = 0
   private static readonly MAX_CONCURRENT_READ_ONLY_SEARCHES = 2
   constructor(
-    private readonly field: MnemicField,
+    private readonly field: MnemicExactStore,
     private readonly opts: MnemicMemoryAdapterOptions = {},
   ) { }
 
-  /** status() — field stats (+ lightning when the indexer is active). */
-  status(): { backend: 'mnemic-field'; stats: Record<string, unknown> | null; lightning: Record<string, unknown> | null } {
+  status(): { backend: 'mnemic-field'; stats: Record<string, unknown> | null } {
     let stats: Record<string, unknown> | null = null
-    let lightning: Record<string, unknown> | null = null
     try {
-      const s = this.field.stats()
-      stats = (s as unknown as Record<string, unknown>) ?? {}
+      stats = this.field.stats() as unknown as Record<string, unknown>
     } catch {
       stats = null
     }
-    try {
-      lightning = this.field.getLightningStatus() as unknown as Record<string, unknown>
-    } catch {
-      lightning = null
-    }
-    return { backend: 'mnemic-field', stats, lightning }
+    return { backend: 'mnemic-field', stats }
   }
 
-  /** search(query, opts) — kindling retrieve with a searchText fallback. */
+  /** Deterministic exact-text lookup; no second learned retrieval path. */
   async search(query: string, opts?: { limit?: number; type?: string; sessionId?: string }): Promise<MemoryHitView[]> {
-    const limit = opts?.limit ?? 5
     if (!query || !query.trim()) return []
     try {
-      const hits = await this.field.retrieve(query, { limit, sessionId: opts?.sessionId })
-      const views = hits.map(hit => this.toView(hit))
-      if (views.length > 0) return views
-    } catch {
-      // fall through to strict FTS
-    }
-    // Kindling may be unavailable (no embeddings) — fall back to bounded FTS.
-    try {
-      return await this.searchTextViews(query, limit)
+      return await this.searchTextViews(query, opts?.limit ?? 5)
     } catch {
       return []
     }
@@ -181,6 +135,8 @@ export class MnemicMemoryAdapter {
       // EngramCreate.nodeType is a rich enum union; the adapter's `type` string is
       // validated by the caller (ohmypi memory backend) and defaults to 'fact'.
       nodeType: (entry.type ?? 'fact') as unknown as never,
+      tags: entry.tags,
+      provenance: entry.provenance,
       metadata: { ...(entry.metadata ?? {}), ...(entry.sessionId ? { sessionId: entry.sessionId } : {}) },
     })
     return engram.id
@@ -194,6 +150,7 @@ export class MnemicMemoryAdapter {
       return {
         id: engram.id,
         content: engram.content,
+        revision: mnemicRecordRevision(engram),
         score: typeof engram.potentiation === 'number' ? engram.potentiation : 0,
         nodeType: (engram.nodeType as string | null | undefined) ?? null,
         metadata: (engram.metadata ?? {}) as Record<string, unknown>,
@@ -202,29 +159,60 @@ export class MnemicMemoryAdapter {
       return null
     }
   }
+
+  getMany(ids: readonly string[]): MemoryHitView[] {
+    return this.field.getMany(ids).map(engram => ({
+      id: safeOpaqueId(engram.id),
+      revision: mnemicRecordRevision(engram),
+      content: engram.content.slice(0, MAX_CONTEXT_CONTENT_CHARS),
+      score: 0,
+      nodeType: engram.nodeType,
+      metadata: sessionMetadata(engram.metadata),
+    }))
+  }
+
+  rememberContextTurn(
+    sessionId: string,
+    turnId: number,
+    query: string,
+    candidates: readonly MnemicFieldCandidate[],
+  ): void {
+    this.field.rememberContextTurn(sessionId, turnId, query, candidates)
+  }
+
+  consumeContextFeedback(
+    sessionId: string,
+    turnId: number,
+    includedCandidateIds: readonly string[],
+    outcome: MnemicFeedbackOutcome,
+    toolResult?: MnemicFieldToolResult,
+  ): void {
+    this.field.consumeContextFeedback(sessionId, turnId, includedCandidateIds, outcome, toolResult)
+  }
+
+  startActionEpisode(input: MnemicActionStart): void {
+    this.field.startActionEpisode(input)
+  }
+
+  finishActionEpisode(input: MnemicActionFinish): void {
+    this.field.finishActionEpisode(input)
+  }
+
+  latestCompactionCandidateIds(sessionId: string): string[] {
+    return this.field.latestCompactionCandidateIds(sessionId)
+  }
   private async searchTextViews(query: string, limit: number, deadlineMs = 300): Promise<MemoryHitView[]> {
     const ftsQuery = literalFtsQuery(query)
     if (!ftsQuery) return []
     const resultLimit = Math.min(Math.max(1, this.opts.searchTextLimit ?? limit * 2), MAX_FTS_RESULTS)
-    const strict = (this.field as MnemicField & AttentionSearchField).searchTextStrictAsync
-    if (!strict) throw new Error('mnemic-strict-search-unavailable')
-    const results = await strict.call(this.field, ftsQuery, resultLimit, deadlineMs)
+    const results = await this.field.searchTextStrictAsync(ftsQuery, resultLimit, deadlineMs)
     return results.slice(0, Math.min(limit, MAX_FTS_RESULTS)).map(result => ({
       id: safeOpaqueId(result.engram.id),
+      revision: mnemicRecordRevision(result.engram),
       content: result.engram.content.slice(0, MAX_CONTEXT_CONTENT_CHARS),
       score: typeof result.score === 'number' ? result.score : 0,
       nodeType: (result.engram.nodeType as string | null | undefined)?.slice(0, 64) ?? null,
       metadata: sessionMetadata(result.engram.metadata as Record<string, unknown> | undefined),
     }))
-  }
-
-  private toView(hit: MnemicRetrievalHit): MemoryHitView {
-    return {
-      id: hit.id,
-      content: hit.content,
-      score: typeof hit.score === 'number' ? hit.score : 0,
-      nodeType: (hit as { nodeType?: string | null }).nodeType ?? null,
-      metadata: ((hit as { metadata?: unknown }).metadata ?? {}) as Record<string, unknown>,
-    }
   }
 }

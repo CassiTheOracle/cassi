@@ -15,6 +15,12 @@
  * `@cassicore/mind-runtime` never imports spine. These types form the stable seam
  * between the always-on runtime (host-agnostic core) and the ohmypi adapter.
  */
+import type {
+  MnemicFieldJournalVerification,
+  MnemicFieldStreamStatus,
+  MnemicUnresolvedActionEpisode,
+} from '@cassicore/mnemic-field'
+
 
 /** Lifecycle event a session mirror can carry. Mirrors recon §1.7 post-events. */
 export type SessionMirrorEvent = 'start' | 'switch' | 'branch' | 'compact' | 'shutdown'
@@ -109,7 +115,6 @@ export interface MindSnapshot {
 export interface SnapshotMemory {
   engrams?: number
   stats?: Record<string, unknown> | null
-  lightning?: Record<string, unknown> | null
 }
 
 /** `GET /v1/health` (plain) + `POST /v1/health` (verbose). */
@@ -117,7 +122,6 @@ export interface HealthResponse extends ChannelResponse {
   status: 'ok'
   uptimeMs: number
   fieldStats?: Record<string, unknown> | null
-  lightningStatus?: Record<string, unknown> | null
   /** P5 retained mind-health read slice (admin-api fold): cortex/pineal/thalamus/memory/replay/observability. */
   retained?: MindHealthSnapshot
 }
@@ -141,17 +145,10 @@ export interface MindHealthSnapshot {
     facets?: number
     pinned?: number
   }
-  thalamus: {
-    available: boolean
-    activeSession?: string | null
-    contextStats?: Record<string, unknown> | null
-  }
   memory: {
     available: boolean
     engrams?: number
     stats?: Record<string, unknown> | null
-    lightning?: Record<string, unknown> | null
-    harmony?: Record<string, unknown> | null
   }
   replay: {
     available: boolean
@@ -198,6 +195,8 @@ export interface MemorySaveRequest extends ChannelRequest {
   content: string
   type?: string
   metadata?: Record<string, unknown>
+  tags?: string[]
+  provenance?: string
   sessionId?: string
 }
 export interface MemorySaveResponse extends ChannelResponse {
@@ -250,13 +249,19 @@ export interface ContextCandidatesResponse extends ChannelResponse {
   fieldAdvisory: FieldAdvisory | null
 }
 
-/** Turn-level plan outcome for the feedback channel — ID-only, never raw text. */
-export type ContextFeedbackOutcome = 'completed' | 'error' | 'unknown'
+/** Turn-level plan outcome for the feedback channel. */
+export type ContextFeedbackOutcome = 'completed' | 'error' | 'unknown' | 'cancelled'
+
+/** Latest bounded development-tool outcome for the turn; never carries output text. */
+export interface ContextFeedbackToolResult {
+  id: string
+  name: string
+  isError: boolean
+}
 
 /**
- * `POST /v1/context/feedback` — turn-level plan receipt: IDs + plan outcome
- * only. No raw transcript text is accepted, stored, or forwarded; retrieval
- * outcomes are never fabricated.
+ * `POST /v1/context/feedback` — turn-level plan receipt plus the latest exact,
+ * text-free tool outcome when the turn exercised a tool.
  */
 export interface ContextFeedbackRequest extends ChannelRequest {
   sessionId: string
@@ -266,8 +271,117 @@ export interface ContextFeedbackRequest extends ChannelRequest {
   /** Candidate IDs the turn-level plan included (≤ 64). */
   includedCandidateIds: string[]
   outcome: ContextFeedbackOutcome
+  toolResult?: ContextFeedbackToolResult
 }
 
 export interface ContextFeedbackResponse extends ChannelResponse {
   ack: true
+}
+
+/** Exact, text-free action lifecycle observed before execution and after outcome. */
+export type ContextActionRequest = ChannelRequest & (
+  | {
+    operation: 'start'
+    sessionId: string
+    turnId: number
+    planId: string
+    toolCallId: string
+    toolName: string
+    argumentsSha256: string
+    /** Deterministic Thalamus authority available to this action, in [0, 1]. */
+    requiredAuthority: number
+    /** True only when the shared native tool policy classifies this call as read-only. */
+    reversible: boolean
+  }
+  | {
+    operation: 'outcome'
+    sessionId: string
+    turnId: number
+    planId: string
+    toolCallId: string
+    isError: boolean
+  }
+)
+
+export interface ContextActionResponse extends ChannelResponse {
+  ack: true
+}
+
+export type ContextFieldFailureCode =
+  | 'action-error'
+  | 'authority'
+  | 'invalid-response'
+  | 'journal-conflict'
+  | 'journal-hash'
+  | 'provider-http'
+  | 'provider-timeout'
+  | 'provider-unavailable'
+
+export interface ContextCounterflowBucket {
+  evaluated: number
+  predicted: number
+  improved: number
+  proposals: number
+  precision: number | null
+  coverage: number | null
+}
+
+export interface ContextCounterflowStatus {
+  schemaVersion: 1
+  features: {
+    failureInhibition: boolean
+    actionRoleAbstraction: boolean
+    lineageRoleAbstraction: boolean
+    multiActionTrajectories: boolean
+  }
+  pending: boolean
+  receipts: Record<string, number>
+  residuals: {
+    evaluated: number
+    predictionLast: number | null
+    predictionMean: number | null
+    identityLast: number | null
+    identityMean: number | null
+    improved: number
+  }
+  proposals: {
+    count: number
+    supportLast: number | null
+    supportMean: number | null
+    marginLast: number | null
+    marginMean: number | null
+  }
+  latencyMs: {
+    count: number
+    last: number | null
+    mean: number | null
+    max: number | null
+  }
+  failures: Record<ContextFieldFailureCode, number>
+  supportBuckets: Record<string, ContextCounterflowBucket>
+  shadowThreshold: {
+    support: number | null
+    metrics: ContextCounterflowBucket
+  }
+  lastAbstention: { code: string; evidence: Record<string, unknown> } | null
+}
+
+export interface ContextStatusResponse extends ChannelResponse {
+  schemaVersion: 1
+  candidates: {
+    cachedFieldShadow: {
+      available: boolean
+      capturedAt: number | null
+      ageMs: number | null
+    }
+    refreshInFlight: boolean
+    lastRefreshAt: number | null
+    telemetryEnabled: boolean
+    counterflow: ContextCounterflowStatus | null
+  }
+  journal: {
+    stream: MnemicFieldStreamStatus
+    verification: MnemicFieldJournalVerification
+    unresolvedActions: MnemicUnresolvedActionEpisode[]
+  }
 }

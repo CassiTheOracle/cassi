@@ -28,6 +28,7 @@ import {
   fakeAttentionReset,
   fakeState,
   type FakeAttentionObservation,
+  type FakeAttentionAuthority,
 } from './fake-attention.js'
 
 vi.mock('@cassicore/thalamus/attention', async () => {
@@ -46,8 +47,24 @@ function userMsg(text: string, extra: Partial<UserMessage> = {}): UserMessage {
 function assistantMsg(text: string): AssistantMessage {
   return { role: 'assistant', content: [{ type: 'text', text }], timestamp: 2 }
 }
-function toolMsg(text: string, toolName = 'read'): ToolResultMessage {
-  return { role: 'toolResult', toolCallId: 'tc-1', toolName, content: [{ type: 'text', text }], isError: false, timestamp: 3 }
+function assistantToolMsg(
+  id = 'tc-1',
+  name = 'read',
+  args: Record<string, unknown> = { path: 'src/file.ts', line: 1 },
+): AssistantMessage {
+  return {
+    role: 'assistant',
+    content: [{ type: 'toolCall', id, name, arguments: args }],
+    timestamp: 2,
+  }
+}
+function toolMsg(
+  text: string,
+  toolName = 'read',
+  isError = false,
+  toolCallId = 'tc-1',
+): ToolResultMessage {
+  return { role: 'toolResult', toolCallId, toolName, content: [{ type: 'text', text }], isError, timestamp: 3 }
 }
 
 type CandidatesFn = (req: Record<string, unknown>) => Promise<Record<string, unknown>>
@@ -55,11 +72,18 @@ interface ClientMocks {
   client: ChannelClient
   candidatesCalls: Array<Record<string, unknown>>
   feedbackCalls: Array<Record<string, unknown>>
+  actionCalls: Array<Record<string, unknown>>
+  memorySaveCalls: Array<Record<string, unknown>>
 }
 
-function makeClient(overrides: { candidates?: CandidatesFn } = {}): ClientMocks {
+function makeClient(overrides: {
+  candidates?: CandidatesFn
+  action?: (req: Record<string, unknown>) => Promise<Record<string, unknown>>
+} = {}): ClientMocks {
   const candidatesCalls: Array<Record<string, unknown>> = []
   const feedbackCalls: Array<Record<string, unknown>> = []
+  const actionCalls: Array<Record<string, unknown>> = []
+  const memorySaveCalls: Array<Record<string, unknown>> = []
   const client = {
     executeTool: async () => ({ ok: true, result: '' }),
     mirrorSession: async () => {},
@@ -67,7 +91,10 @@ function makeClient(overrides: { candidates?: CandidatesFn } = {}): ClientMocks 
     postEvent: async () => ({}),
     memoryStatus: async () => ({ backend: 'mnemic-field', stats: {} }),
     memorySearch: async () => ({ results: [] }),
-    memorySave: async () => ({ id: 'm1' }),
+    memorySave: async (req: Record<string, unknown>) => {
+      memorySaveCalls.push(req)
+      return { id: 'm1' }
+    },
     ping: async () => true,
     contextCandidates: async (req: Record<string, unknown>) => {
       candidatesCalls.push(req)
@@ -82,8 +109,12 @@ function makeClient(overrides: { candidates?: CandidatesFn } = {}): ClientMocks 
       feedbackCalls.push(req)
       return { ack: true }
     },
+    contextAction: async (req: Record<string, unknown>) => {
+      actionCalls.push(req)
+      return overrides.action ? overrides.action(req) : { ack: true }
+    },
   } as unknown as ChannelClient
-  return { client, candidatesCalls, feedbackCalls }
+  return { client, candidatesCalls, feedbackCalls, actionCalls, memorySaveCalls }
 }
 
 /** Drive the legacy notification-first order too; the controller remains order-tolerant. */
@@ -259,6 +290,118 @@ describe('plan freezing', () => {
   })
 })
 
+describe('exact action lifecycle', () => {
+  it('awaits a text-free durable start before recording the matching outcome', async () => {
+    const stub = createStubPi()
+    const mocks = makeClient()
+    cassiSpine(stub.pi, {
+      client: mocks.client,
+      noAutoSpawn: true,
+      attentionMode: 'inject',
+      attentionCandidateWaitMs: 20,
+    })
+    await stub.fire('message_end', { type: 'message_end', message: userMsg('inspect the file') })
+    await stub.fire('turn_start', { type: 'turn_start', turnIndex: 1, timestamp: 100 })
+    await stub.fire('context', { type: 'context', messages: [userMsg('inspect the file')] })
+
+    await stub.fire('message_end', {
+      type: 'message_end',
+      message: assistantToolMsg('tc-action', 'read', { line: 7, path: 'src/file.ts' }),
+    })
+    expect(mocks.actionCalls).toHaveLength(1)
+    expect(mocks.actionCalls[0]).toMatchObject({
+      operation: 'start',
+      sessionId: 'sess-test-1',
+      turnId: 1,
+      planId: 'plan-sess-test-1-1-1',
+      toolCallId: 'tc-action',
+      toolName: 'read',
+      argumentsSha256: expect.stringMatching(/^[0-9a-f]{64}$/),
+      requiredAuthority: 1,
+      reversible: true,
+    })
+    expect(JSON.stringify(mocks.actionCalls[0])).not.toContain('src/file.ts')
+
+    await stub.fire('message_end', {
+      type: 'message_end',
+      message: toolMsg('file contents stay out of the journal', 'read', false, 'tc-action'),
+    })
+    expect(mocks.actionCalls[1]).toEqual({
+      operation: 'outcome',
+      sessionId: 'sess-test-1',
+      turnId: 1,
+      planId: 'plan-sess-test-1-1-1',
+      toolCallId: 'tc-action',
+      isError: false,
+    })
+    expect(JSON.stringify(mocks.actionCalls[1])).not.toContain('file contents')
+  })
+
+  it.each([
+    ['direct_user', 1],
+    ['agent', 0.8],
+    ['tool', 0.6],
+    ['memory', 0.4],
+    ['external_data', 0.2],
+  ] satisfies Array<[FakeAttentionAuthority, number]>)(
+    'converts %s attention provenance once into normalized action authority %s',
+    async (authority, requiredAuthority) => {
+      fakeState.planAuthority = authority
+      const stub = createStubPi()
+      const mocks = makeClient()
+      cassiSpine(stub.pi, {
+        client: mocks.client,
+        noAutoSpawn: true,
+        attentionMode: 'inject',
+        attentionCandidateWaitMs: 20,
+      })
+      await stub.fire('message_end', {
+        type: 'message_end',
+        message: userMsg(`plan from ${authority}`),
+      })
+      await stub.fire('turn_start', {
+        type: 'turn_start',
+        turnIndex: 1,
+        timestamp: 100,
+      })
+      await stub.fire('context', {
+        type: 'context',
+        messages: [userMsg(`plan from ${authority}`)],
+      })
+      await stub.fire('message_end', {
+        type: 'message_end',
+        message: assistantToolMsg(`tc-${authority}`, 'read', { path: 'src/file.ts' }),
+      })
+
+      expect(mocks.actionCalls[0]).toMatchObject({
+        operation: 'start',
+        requiredAuthority,
+      })
+    },
+  )
+
+  it('rejects the message event when the exact start cannot be made durable', async () => {
+    const stub = createStubPi()
+    const mocks = makeClient({
+      action: async () => { throw new Error('journal unavailable') },
+    })
+    cassiSpine(stub.pi, {
+      client: mocks.client,
+      noAutoSpawn: true,
+      attentionMode: 'inject',
+      attentionCandidateWaitMs: 20,
+    })
+    await stub.fire('message_end', { type: 'message_end', message: userMsg('inspect the file') })
+    await stub.fire('turn_start', { type: 'turn_start', turnIndex: 1, timestamp: 100 })
+    await stub.fire('context', { type: 'context', messages: [userMsg('inspect the file')] })
+
+    await expect(stub.fire('message_end', {
+      type: 'message_end',
+      message: assistantToolMsg('tc-action'),
+    })).rejects.toThrow('exact action start must be durable before execution')
+  })
+})
+
 describe('real OMP event order', () => {
   it('plans before turn_start, then attributes the receipt and feedback to the emitted turn', async () => {
     const stub = createStubPi()
@@ -354,10 +497,29 @@ describe('runtime candidate timeout/down fail open', () => {
   })
 })
 
+describe('live field candidate timing', () => {
+  it('gives an explicitly enabled CassiFI ranker enough time to affect the turn', async () => {
+    const previous = process.env.CASSI_FI_PROVIDER_URL
+    process.env.CASSI_FI_PROVIDER_URL = 'http://127.0.0.1:8086'
+    try {
+      const stub = createStubPi()
+      const mocks = makeClient()
+      cassiSpine(stub.pi, { client: mocks.client, noAutoSpawn: true, attentionMode: 'inject' })
+
+      await runTurn(stub, [userMsg('field-ranked context')])
+
+      expect(mocks.candidatesCalls[0]).toMatchObject({ deadlineMs: 2_500 })
+    } finally {
+      if (previous === undefined) delete process.env.CASSI_FI_PROVIDER_URL
+      else process.env.CASSI_FI_PROVIDER_URL = previous
+    }
+  })
+})
+
 // ── one receipt/feedback per turn ───────────────────────────────────────────
 
 describe('receipts and feedback', () => {
-  it('appends one text-free receipt and sends one ID-only feedback per completed turn', async () => {
+  it('appends one text-free receipt and sends one ID/outcome-only feedback per completed turn', async () => {
     const stub = createStubPi()
     const mocks = makeClient()
     cassiSpine(stub.pi, { client: mocks.client, noAutoSpawn: true, attentionMode: 'inject', attentionCandidateWaitMs: 20 })
@@ -384,6 +546,105 @@ describe('receipts and feedback', () => {
       deadlineMs: 100,
       includeFieldShadow: false,
     })
+  })
+
+  it('credits the latest successful tool after an expected failing reproduction', async () => {
+    const stub = createStubPi()
+    const mocks = makeClient()
+    cassiSpine(stub.pi, {
+      client: mocks.client,
+      noAutoSpawn: true,
+      attentionMode: 'inject',
+      attentionCandidateWaitMs: 20,
+    })
+
+    await stub.fire('message_end', { type: 'message_end', message: userMsg('repair it') })
+    await stub.fire('turn_start', { type: 'turn_start', turnIndex: 1, timestamp: 100 })
+    await stub.fire('context', { type: 'context', messages: [userMsg('repair it')] })
+    await stub.fire('message_end', {
+      type: 'message_end',
+      message: toolMsg('EXPECTED-FAILURE-OUTPUT', 'pytest', true, 'tc-fail'),
+    })
+    await stub.fire('message_end', {
+      type: 'message_end',
+      message: toolMsg('PASS-OUTPUT', 'pytest', false, 'tc-pass'),
+    })
+    await stub.fire('turn_end', {
+      type: 'turn_end',
+      turnIndex: 1,
+      message: assistantMsg('fixed'),
+      toolResults: [],
+    })
+
+    expect(mocks.feedbackCalls).toHaveLength(1)
+    expect(mocks.feedbackCalls[0]).toMatchObject({
+      outcome: 'completed',
+      toolResult: { id: 'tc-pass', name: 'pytest', isError: false },
+    })
+    expect(JSON.stringify(mocks.feedbackCalls[0])).not.toContain('PASS-OUTPUT')
+    expect(JSON.stringify(mocks.feedbackCalls[0])).not.toContain('EXPECTED-FAILURE-OUTPUT')
+  })
+
+  it('reports the final exact tool failure without its output text', async () => {
+    const stub = createStubPi()
+    const mocks = makeClient()
+    cassiSpine(stub.pi, {
+      client: mocks.client,
+      noAutoSpawn: true,
+      attentionMode: 'inject',
+      attentionCandidateWaitMs: 20,
+    })
+
+    await stub.fire('message_end', { type: 'message_end', message: userMsg('verify it') })
+    await stub.fire('turn_start', { type: 'turn_start', turnIndex: 2, timestamp: 100 })
+    await stub.fire('context', { type: 'context', messages: [userMsg('verify it')] })
+    await stub.fire('message_end', {
+      type: 'message_end',
+      message: toolMsg('PRIVATE-STACK-TRACE', 'pytest', true, 'tc-error'),
+    })
+    await stub.fire('turn_end', {
+      type: 'turn_end',
+      turnIndex: 2,
+      message: assistantMsg('still failing'),
+      toolResults: [],
+    })
+
+    expect(mocks.feedbackCalls).toHaveLength(1)
+    expect(mocks.feedbackCalls[0]).toMatchObject({
+      outcome: 'error',
+      toolResult: { id: 'tc-error', name: 'pytest', isError: true },
+    })
+    expect(JSON.stringify(mocks.feedbackCalls[0])).not.toContain('PRIVATE-STACK-TRACE')
+  })
+
+  it('omits a successful tool outcome when packet rendering failed', async () => {
+    const stub = createStubPi()
+    const mocks = makeClient()
+    fakeState.renderError = new Error('render failed')
+    cassiSpine(stub.pi, {
+      client: mocks.client,
+      noAutoSpawn: true,
+      attentionMode: 'inject',
+      attentionCandidateWaitMs: 20,
+    })
+
+    await stub.fire('message_end', { type: 'message_end', message: userMsg('render it') })
+    await stub.fire('turn_start', { type: 'turn_start', turnIndex: 3, timestamp: 100 })
+    await stub.fire('context', { type: 'context', messages: [userMsg('render it')] })
+    await stub.fire('message_end', {
+      type: 'message_end',
+      message: toolMsg('PASS-OUTPUT', 'pytest', false, 'tc-pass'),
+    })
+    await stub.fire('turn_end', {
+      type: 'turn_end',
+      turnIndex: 3,
+      message: assistantMsg('render failed'),
+      toolResults: [],
+    })
+
+    expect(mocks.feedbackCalls).toHaveLength(1)
+    expect(mocks.feedbackCalls[0]).toMatchObject({ outcome: 'error' })
+    expect(mocks.feedbackCalls[0]).not.toHaveProperty('toolResult')
   })
 
   it('does not double-emit for the same turn', async () => {
@@ -486,6 +747,15 @@ describe('session.compacting contribution', () => {
       checkpoint: ['compact:sess-test-1'],
     })
     expect(JSON.stringify(checkpoint)).not.toContain('SECRET-USER-CONTENT')
+    expect(mocks.memorySaveCalls).toEqual([
+      expect.objectContaining({
+        type: 'session',
+        provenance: 'cassi-context-compaction',
+        sessionId: 'sess-test-1',
+        metadata: expect.objectContaining({ candidateIds: ['cand-1'] }),
+      }),
+    ])
+    expect(JSON.stringify(mocks.memorySaveCalls)).not.toContain('SECRET-USER-CONTENT')
   })
 
   it('observe mode records compaction internally but contributes no provider or preserve context', async () => {
@@ -622,6 +892,53 @@ describe('session lifecycle cleanup', () => {
     await runTurn(stub, [userMsg('q2')])
     expect(fakeState.instances).toHaveLength(2)
     expect(fakeState.instances[1].sessionId).toBe('sess-test-2')
+  })
+
+  it('sends cancelled feedback when a frozen plan is abandoned', async () => {
+    const stub = createStubPi()
+    const mocks = makeClient()
+    cassiSpine(stub.pi, { client: mocks.client, noAutoSpawn: true, attentionMode: 'inject', attentionCandidateWaitMs: 20 })
+
+    await stub.fire('agent_start', { type: 'agent_start' })
+    await stub.fire('context', { type: 'context', messages: [userMsg('q1')] })
+    await stub.fire('turn_start', { type: 'turn_start', turnIndex: 0, timestamp: 100 })
+    await stub.fire('message_end', { type: 'message_end', message: userMsg('q1') })
+    expect(mocks.feedbackCalls).toHaveLength(0)
+
+    stub.setSessionId('sess-test-2')
+    await stub.fire('session_switch', { type: 'session_switch', reason: 'resume', previousSessionFile: 'x.jsonl' })
+    expect(mocks.feedbackCalls).toEqual([expect.objectContaining({
+      sessionId: 'sess-test-1',
+      turnId: 0,
+      outcome: 'cancelled',
+    })])
+  })
+
+  it('invalidates an awaiting old window before deferred candidates resolve', async () => {
+    const candidates = Promise.withResolvers<Record<string, unknown>>()
+    const stub = createStubPi()
+    const mocks = makeClient({ candidates: () => candidates.promise })
+    cassiSpine(stub.pi, { client: mocks.client, noAutoSpawn: true, attentionMode: 'inject', attentionCandidateWaitMs: 10_000 })
+
+    const staleContext = stub.fire('context', { type: 'context', messages: [userMsg('old query')] })
+    await vi.waitFor(() => expect(mocks.candidatesCalls).toHaveLength(1))
+    stub.setSessionId('sess-test-2')
+    await stub.fire('session_switch', { type: 'session_switch', reason: 'resume', previousSessionFile: 'x.jsonl' })
+    candidates.resolve({
+      candidates: [{ id: 'stale', source: 'mnemic', text: 'stale candidate', score: 1 }],
+      sources: [{ source: 'mnemic', status: 'ready', latencyMs: 1 }],
+      fieldAdvisory: null,
+    })
+
+    expect(await staleContext).toEqual([undefined])
+    expect(mocks.feedbackCalls).toEqual([{
+      sessionId: 'sess-test-1',
+      turnId: 0,
+      planId: 'stale-context',
+      includedCandidateIds: [],
+      outcome: 'cancelled',
+    }])
+    expect(fakeState.instances[0].calls.plan).toHaveLength(0)
   })
 
   it('session_branch resets abandoned-leaf state and rehydrates the canonical tail', async () => {

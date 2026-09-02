@@ -125,6 +125,7 @@ Defines the channel-contract types (spine imports them; runtime imports zero ohm
 | `src/boot.ts` | composition root (paths ports, intelligence layer, MnemicField + injections, unified loop, retained tool deps) |
 | `src/channel/server.ts` / `protocol.ts` | the 11-endpoint localhost channel (§3.2) + contract types |
 | `src/memory/backend.ts` | `MnemicMemoryAdapter` — status/search/save over MnemicField |
+| `src/context/candidates.ts` | durable exact-journal drain to CassiFI context observation, counterflow planning, and field ranking; only an `update` carrying distinct persisted before/after revisions becomes a transition, while snapshots and unrelated events produce `no_transition_data`; acknowledgement waits for both provider calls so restart retries cannot skip planning |
 | `src/session-store.ts` | `MindSessionMirror` — ohmypi session mirrors |
 | `src/run.ts` | `cassi-mind` bin |
 | tests | 22 vitest (boot + retained-tools runtime + channel contract + bearer auth) |

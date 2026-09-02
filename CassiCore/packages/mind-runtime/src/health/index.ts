@@ -15,7 +15,7 @@
  * field or intelligence. Writes stay ohmypi-side (collect_thoughts / harness tools).
  */
 
-import type { MnemicField } from '@cassicore/mnemic-field'
+import type { MnemicExactStore } from '@cassicore/mnemic-field'
 import type { IEventBus } from '@cassicore/foundation'
 
 import type { MindRuntime } from '../boot.js'
@@ -38,20 +38,12 @@ export interface PinealHealth {
   pinned?: number
 }
 
-/** Read-only snapshot of the retained thalamus discipline (brain-state/attention). */
-export interface ThalamusHealth {
-  available: boolean
-  activeSession?: string | null
-  contextStats?: Record<string, unknown> | null
-}
 
-/** Read-only snapshot of the retained memory discipline (the MnemicField). */
+/** Read-only snapshot of exact durable Mnemic records. */
 export interface MemoryHealth {
   available: boolean
   engrams?: number
   stats?: Record<string, unknown> | null
-  lightning?: Record<string, unknown> | null
-  harmony?: Record<string, unknown> | null
 }
 
 /** Read-only snapshot of the retained replay discipline (episodic/loop reads). */
@@ -74,7 +66,6 @@ export interface ObservabilityHealth {
 export interface MindHealthSnapshot {
   cortex: CortexHealth
   pineal: PinealHealth
-  thalamus: ThalamusHealth
   memory: MemoryHealth
   replay: ReplayHealth
   observability: ObservabilityHealth
@@ -109,7 +100,7 @@ function num(v: number | undefined): number | undefined {
  */
 export function collectMindHealth(runtime: MindRuntime): MindHealthSnapshot {
   const intel = runtime.intelligence as unknown as SubsystemShape
-  const field = runtime.field as MnemicField | undefined
+  const field = runtime.field as MnemicExactStore | undefined
 
   // ── cortex ───────────────────────────────────────────────────────────────
   let cortex: CortexHealth = { available: false }
@@ -160,34 +151,16 @@ export function collectMindHealth(runtime: MindRuntime): MindHealthSnapshot {
     }
   } catch { /* pineal unavailable */ }
 
-  // ── thalamus / brain-state ──────────────────────────────────────────────
-  let thalamus: ThalamusHealth = { available: false }
-  try {
-    const activeId = runtime.sessions.currentSessionId
-    const ctxRegistry = (intel as unknown as { contextManager?: { stats?: () => Record<string, unknown> } }).contextManager
-    const contextStats = ctxRegistry?.stats?.() ?? null
-    if (activeId || contextStats) {
-      thalamus = { available: true, activeSession: activeId ?? null, contextStats }
-    }
-  } catch { /* thalamus unavailable */ }
 
-  // ── memory (MnemicField) ────────────────────────────────────────────────
+  // ── exact durable memory ─────────────────────────────────────────────────
   let memory: MemoryHealth = { available: false }
   if (field) {
     try {
-      const stats = field.stats ? field.stats() : null
-      const lightning = field.getLightningStatus ? field.getLightningStatus() : null
-      let harmony: Record<string, unknown> | null = null
-      try {
-        const h = field.computeHarmony ? field.computeHarmony() : null
-        harmony = h as Record<string, unknown> | null
-      } catch { harmony = null }
+      const stats = field.stats()
       memory = {
         available: true,
-        engrams: (stats?.engramCount as number | undefined) ?? undefined,
-        stats: stats as Record<string, unknown> | null,
-        lightning: lightning as Record<string, unknown> | null,
-        harmony,
+        engrams: stats.engramCount,
+        stats: stats as unknown as Record<string, unknown>,
       }
     } catch { memory = { available: false } }
   }
@@ -217,7 +190,7 @@ export function collectMindHealth(runtime: MindRuntime): MindHealthSnapshot {
     }
   } catch { observability = { available: false } }
 
-  return { cortex, pineal, thalamus, memory, replay, observability }
+  return { cortex, pineal, memory, replay, observability }
 }
 
 /** Best-effort count of events seen on the retained bus. */

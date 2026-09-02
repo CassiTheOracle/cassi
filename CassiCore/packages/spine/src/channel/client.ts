@@ -9,6 +9,8 @@
 import { createCipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 
 import type {
+  ContextActionRequest,
+  ContextActionResponse,
   ContextCandidatesRequest,
   ContextCandidatesResponse,
   ContextFeedbackRequest,
@@ -163,6 +165,10 @@ export class ChannelClient {
    */
   async contextFeedback(req: ContextFeedbackRequest, opts?: { timeoutMs?: number }): Promise<ContextFeedbackResponse> {
     return (await this.post('/v1/context/feedback', req, opts?.timeoutMs)) as ContextFeedbackResponse
+  }
+
+  async contextAction(req: ContextActionRequest, opts?: { timeoutMs?: number }): Promise<ContextActionResponse> {
+    return (await this.post('/v1/context/action', req, opts?.timeoutMs)) as ContextActionResponse
   }
 
   private async post(path: string, body: unknown, timeoutMs?: number): Promise<unknown> {

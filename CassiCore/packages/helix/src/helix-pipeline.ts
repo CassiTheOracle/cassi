@@ -121,8 +121,6 @@ export interface HelixPipelineOpts {
   teamId?: string
   moduleDebugSessionId?: string
 
-  /** Thalamus for context curation during long-running sessions */
-  thalamus?: import('@cassicore/thalamus').ThalamusModule
 
   /** Cross-session topic index for sharing Thalamus insights across sessions */
   crossSessionIndex?: import('@cassicore/thalamus').CrossSessionTopicIndex
@@ -493,8 +491,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     brainstem,
     helixSynapse,
     contextChunkIndex: unityChunkIndex,
-    thalamus: opts.thalamus,
-    crossSessionIndex: opts.crossSessionIndex,
     postureModule: unityPostureModule,
     telemetry: helixTelemetry,
     aurora: conductor?.aurora,
@@ -514,8 +510,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     brainstem,
     helixSynapse,
     contextChunkIndex: yangChunkIndex,
-    thalamus: opts.thalamus,
-    crossSessionIndex: opts.crossSessionIndex,
     postureModule: yangPostureModule,
     telemetry: helixTelemetry,
     aurora: conductor?.aurora,
@@ -535,8 +529,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     brainstem,
     helixSynapse,
     contextChunkIndex: yinChunkIndex,
-    thalamus: opts.thalamus,
-    crossSessionIndex: opts.crossSessionIndex,
     postureModule: yinPostureModule,
     telemetry: helixTelemetry,
     aurora: conductor?.aurora,

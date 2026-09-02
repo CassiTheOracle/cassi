@@ -35,11 +35,13 @@
  * `/cassi-context` command: `status|explain|mode <off|observe|inject>|pin <text>|
  * unpin <unitId>|reset`, answered through `ctx.ui.notify`.
  */
+import { createHash } from 'node:crypto'
 import { setTimeout as delay } from 'node:timers/promises'
 
 
 import type {
   AgentMessage,
+  ToolCallBlock,
   AgentStartEvent,
   ContextEvent,
   ContextEventResult,
@@ -59,6 +61,7 @@ import {
   contextCandidateUnitId,
   ThalamusAttentionSession,
   type AttentionObservation,
+  type AttentionAuthority,
   type ContextCandidate,
   type ContextFrame,
   type ContextPlan,
@@ -68,12 +71,19 @@ import {
   type ThalamusAttentionConfig,
   type ThalamusMode,
 } from '@cassicore/thalamus/attention'
+import { isReadTool } from '@cassicore/thalamus/classifier'
+
+interface ContextFeedbackToolResult {
+  id: string
+  name: string
+  isError: boolean
+}
 
 /** Controller options. Mode + the first-context wait deadline live HERE (SpineOptions), not in the kernel config. */
 export interface ContextControllerOptions {
   /** Attention mode: `off` (no-op), `observe` (build attention, never touch provider context), `inject` (insert one synthetic agent packet per turn). Default `'observe'`. */
   mode?: ThalamusMode
-  /** Short deadline (ms) waited on the FIRST context event for the prefetched candidates. Default 75. */
+  /** First-context wait for prefetched candidates. Default 75ms, or 2500ms when the live CassiFI ranker is enabled. */
   candidateWaitMs?: number
   /** Candidate prefetch limit. Default 5. */
   candidateLimit?: number
@@ -114,6 +124,10 @@ interface TurnWindow {
   userSourceId: string | null
   /** turnIndexes already receipted+fed back (one receipt/feedback per turn). */
   settledTurns: Set<number>
+  /** Latest text-free development-tool outcome observed in this window. */
+  lastToolResult: ContextFeedbackToolResult | null
+  /** Tool calls with an acknowledged exact start and awaiting an outcome. */
+  startedActions: Set<string>
 }
 
 interface SessionState {
@@ -130,6 +144,15 @@ const DEFAULT_CANDIDATE_WAIT_MS = 75
 const DEFAULT_CANDIDATE_LIMIT = 5
 const DEFAULT_MAX_OBSERVE_CHARS = 4000
 const DEFAULT_MAX_TOOL_RESULT_CHARS = 2000
+// Attention labels are ordered context provenance, not action authorization ranks.
+// Convert them once at the spine seam into the exact store's normalized [0, 1] level.
+const ACTION_AUTHORIZATION_LEVEL_BY_ATTENTION_AUTHORITY: Record<AttentionAuthority, number> = {
+  direct_user: 1,
+  agent: 0.8,
+  tool: 0.6,
+  memory: 0.4,
+  external_data: 0.2,
+}
 
 function emptyWindow(): TurnWindow {
   return {
@@ -148,12 +171,32 @@ function emptyWindow(): TurnWindow {
     candidateUnitIds: new Map(),
     userSourceId: null,
     settledTurns: new Set(),
+    lastToolResult: null,
+    startedActions: new Set(),
   }
 }
 
 function truncate(text: string, max: number): string {
   if (max <= 0 || text.length <= max) return text
   return `${text.slice(0, max)}…`
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null'
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
+  const object = value as Record<string, unknown>
+  return `{${Object.keys(object).sort().map(key => `${JSON.stringify(key)}:${canonicalJson(object[key])}`).join(',')}}`
+}
+
+function toolCalls(msg: AgentMessage): ToolCallBlock[] {
+  if (!Array.isArray(msg.content)) return []
+  return msg.content.filter((block): block is ToolCallBlock => (
+    typeof block === 'object'
+    && block !== null
+    && block.type === 'toolCall'
+    && typeof block.id === 'string'
+    && typeof block.name === 'string'
+  ))
 }
 
 /** Extract the plain-text content of a message (string content or `text` blocks). */
@@ -227,7 +270,7 @@ export class ContextController {
     this.mode = options.mode ?? DEFAULT_MODE
     const candidateWaitMs = options.candidateWaitMs
     this.candidateWaitMs = typeof candidateWaitMs === 'number' && Number.isFinite(candidateWaitMs)
-      ? Math.min(1_000, Math.max(0, Math.floor(candidateWaitMs)))
+      ? Math.min(10_000, Math.max(0, Math.floor(candidateWaitMs)))
       : DEFAULT_CANDIDATE_WAIT_MS
     const candidateLimit = options.candidateLimit
     this.candidateLimit = typeof candidateLimit === 'number' && Number.isFinite(candidateLimit)
@@ -276,7 +319,7 @@ export class ContextController {
 
   // ── event handlers ─────────────────────────────────────────────────────────
 
-  handleMessageEnd(e: MessageEndEvent, ctx: ExtensionContext): void {
+  async handleMessageEnd(e: MessageEndEvent, ctx: ExtensionContext): Promise<void> {
     if (this.mode === 'off') return
     const msg = e.message
     if (!msg || typeof msg.role !== 'string') return
@@ -295,11 +338,11 @@ export class ContextController {
           timestamp: msg.timestamp,
         })
       } else {
-        this.openWindow(st, msg)
+        this.openWindow(ctx.sessionManager.getSessionId(), st, msg)
       }
       return
     }
-    this.observeMessage(st, ctx, msg)
+    await this.observeMessage(st, ctx, msg)
   }
 
   handleAgentStart(ctx: ExtensionContext): void {
@@ -310,6 +353,7 @@ export class ContextController {
     // stale packet or inherit receipt deduplication from the prior run.
     const st = this.sessions.get(ctx.sessionManager.getSessionId())
     if (!st) return
+    this.cancelWindow(ctx.sessionManager.getSessionId(), st)
     st.nextTurnIndex = 0
     st.agentRunStarted = true
     st.window = emptyWindow()
@@ -331,6 +375,7 @@ export class ContextController {
   async handleContext(e: ContextEvent, ctx: ExtensionContext): Promise<ContextEventResult | void> {
     if (this.mode === 'off') return undefined
     try {
+      const sessionId = ctx.sessionManager.getSessionId()
       const st = this.stateFor(ctx)
       let w = st.window
       const messages = e.messages ?? []
@@ -355,7 +400,7 @@ export class ContextController {
           ))
         )
       ) {
-        this.openWindow(st, directUser)
+        this.openWindow(sessionId, st, directUser)
         w = st.window
       }
       if (directUser) st.agentRunStarted = false
@@ -386,6 +431,10 @@ export class ContextController {
       if (w.frozenPlan) return this.packetResult(e, ctx, st, w)
 
       const pref = await this.awaitPrefetch(w)
+      if (this.sessions.get(sessionId) !== st || st.window !== w) {
+        this.sendFeedbackForSession(sessionId, w.turnId, 'stale-context', [], 'cancelled')
+        return undefined
+      }
       w.candidateIds = pref.candidates.map(c => c.id)
       w.candidateUnitIds = new Map(pref.candidates.map(candidate => [
         contextCandidateUnitId(candidate),
@@ -434,12 +483,30 @@ export class ContextController {
     try {
       receipt = { ...st.attention.receipt(plan), turnId: e.turnIndex }
     } catch {
-      this.sendFeedback(ctx, e.turnIndex, plan.id, this.includedCandidateIds(w, plan), 'error')
+      this.sendFeedback(
+        ctx,
+        e.turnIndex,
+        plan.id,
+        this.includedCandidateIds(w, plan),
+        'error',
+        w.lastToolResult?.isError ? w.lastToolResult : undefined,
+      )
       return
     }
     // Text-free receipt — appended once per completed turn.
     this.pi.appendEntry('cassi.context.plan', receipt)
-    this.sendFeedback(ctx, e.turnIndex, plan.id, this.includedCandidateIds(w, plan), w.planFailed ? 'error' : 'completed')
+    const outcome = w.planFailed || w.lastToolResult?.isError ? 'error' : 'completed'
+    const toolResult = w.lastToolResult?.isError === (outcome === 'error')
+      ? w.lastToolResult
+      : undefined
+    this.sendFeedback(
+      ctx,
+      e.turnIndex,
+      plan.id,
+      this.includedCandidateIds(w, plan),
+      outcome,
+      toolResult,
+    )
   }
 
   handleCompacting(e: SessionCompactingEvent, ctx: ExtensionContext): void {
@@ -450,19 +517,35 @@ export class ContextController {
       turnId: st.window.turnId,
       sourceId: 'session.compacting',
       timestamp: Date.now(),
+      text: 'context compacted',
     })
     if (this.mode !== 'inject') return
 
-    // OMP keeps only the last non-empty `session.compacting` handler result, so
-    // returning context/preserveData here could silently discard another extension's
-    // compaction contract. Persist our text-free checkpoint separately instead.
-    this.pi.appendEntry('cassi.context.compaction', {
-      sessionId: ctx.sessionManager.getSessionId(),
+    const sessionId = ctx.sessionManager.getSessionId()
+    const candidateIds = st.window.frozenPlan
+      ? this.includedCandidateIds(st.window, st.window.frozenPlan)
+      : st.window.candidateIds
+    const checkpoint = {
+      sessionId,
       revision: st.attention.status().revision,
       turnId: st.window.turnId,
       latestPlanId: st.window.frozenPlan?.id ?? null,
+      candidateIds,
       checkpoint: st.attention.compactContext(),
-    })
+    }
+    this.pi.appendEntry('cassi.context.compaction', checkpoint)
+    if (candidateIds.length > 0) {
+      void this.client.memorySave({
+        content: `Cassi context checkpoint ${sessionId}:${st.window.turnId}`,
+        type: 'session',
+        tags: ['cassi-context', 'compaction'],
+        provenance: 'cassi-context-compaction',
+        sessionId,
+        metadata: checkpoint,
+      }).catch(err => {
+        ctx.logger?.warn?.(`cassi-context checkpoint save failed: ${String(err)}`)
+      })
+    }
   }
 
   handleSwitch(_e: SessionSwitchEvent, ctx: ExtensionContext): void {
@@ -476,7 +559,8 @@ export class ContextController {
   }
 
   handleShutdown(): void {
-    for (const st of this.sessions.values()) {
+    for (const [sessionId, st] of this.sessions) {
+      this.cancelWindow(sessionId, st)
       try { st.attention.reset() } catch { /* best-effort */ }
     }
     this.sessions.clear()
@@ -487,6 +571,7 @@ export class ContextController {
   dropSession(sessionId: string): void {
     const st = this.sessions.get(sessionId)
     if (!st) return
+    this.cancelWindow(sessionId, st)
     try { st.attention.reset() } catch { /* best-effort */ }
     this.sessions.delete(sessionId)
   }
@@ -509,20 +594,10 @@ export class ContextController {
     return st
   }
 
-  private openWindow(st: SessionState, msg: AgentMessage): void {
-    const w = st.window
+  private openWindow(sessionId: string, st: SessionState, msg: AgentMessage): void {
+    this.cancelWindow(sessionId, st)
+    const w = emptyWindow()
     w.turnId = st.nextTurnIndex
-    w.frozenPlan = null
-    w.planFailed = false
-    w.planError = null
-    w.packetContent = null
-    w.packetTimestamp = null
-    w.beginTurnDone = false
-    w.prefetch = null
-    w.tailObserved = false
-    w.candidateIds = []
-    w.candidateUnitIds.clear()
-    w.settledTurns.clear()
     w.userSourceId = messageId(msg)
     w.query = truncate(messageText(msg), this.maxObserveChars)
     w.pendingUser = {
@@ -532,13 +607,76 @@ export class ContextController {
       text: w.query,
       timestamp: msg.timestamp,
     }
+    st.window = w
     // Prefetch starts at turn_start (turn id known); the first-context fallback covers
     // windows without a turn_start.
   }
 
-  private observeMessage(st: SessionState, _ctx: ExtensionContext, msg: AgentMessage): void {
+  private async startActionEpisodes(
+    w: TurnWindow,
+    ctx: ExtensionContext,
+    msg: AgentMessage,
+  ): Promise<void> {
+    const plan = w.frozenPlan
+    if (!plan) return
+    await Promise.all(toolCalls(msg).map(async call => {
+      if (w.startedActions.has(call.id)) return
+      try {
+        await this.client.contextAction({
+          operation: 'start',
+          sessionId: ctx.sessionManager.getSessionId(),
+          turnId: w.turnId,
+          planId: plan.id,
+          toolCallId: call.id,
+          toolName: call.name,
+          argumentsSha256: createHash('sha256')
+            .update(canonicalJson(call.arguments))
+            .digest('hex'),
+          requiredAuthority: Math.max(
+            ...plan.items.map(item => ACTION_AUTHORIZATION_LEVEL_BY_ATTENTION_AUTHORITY[item.authority]),
+            0,
+          ),
+          reversible: isReadTool(call.name),
+        }, { timeoutMs: 250 })
+        w.startedActions.add(call.id)
+      } catch (error) {
+        ctx.logger?.warn?.(`cassi-context exact action start failed: ${String(error)}`)
+        throw new Error('exact action start must be durable before execution', { cause: error })
+      }
+    }))
+  }
+
+  private async finishActionEpisode(
+    w: TurnWindow,
+    ctx: ExtensionContext,
+    msg: Extract<AgentMessage, { role: 'toolResult' }>,
+  ): Promise<void> {
+    const plan = w.frozenPlan
+    if (!plan || !w.startedActions.has(msg.toolCallId)) return
+    try {
+      await this.client.contextAction({
+        operation: 'outcome',
+        sessionId: ctx.sessionManager.getSessionId(),
+        turnId: w.turnId,
+        planId: plan.id,
+        toolCallId: msg.toolCallId,
+        isError: msg.isError,
+      }, { timeoutMs: 250 })
+      w.startedActions.delete(msg.toolCallId)
+    } catch (error) {
+      ctx.logger?.warn?.(`cassi-context exact action outcome failed: ${String(error)}`)
+      throw new Error('exact action outcome must be durable', { cause: error })
+    }
+  }
+
+  private async observeMessage(
+    st: SessionState,
+    ctx: ExtensionContext,
+    msg: AgentMessage,
+  ): Promise<void> {
     const w = st.window
     if (msg.role === 'assistant') {
+      await this.startActionEpisodes(w, ctx, msg)
       const text = truncate(messageText(msg), this.maxObserveChars)
       if (!text) return
       st.attention.observe({
@@ -549,6 +687,12 @@ export class ContextController {
         timestamp: msg.timestamp,
       })
     } else if (msg.role === 'toolResult') {
+      await this.finishActionEpisode(w, ctx, msg)
+      w.lastToolResult = {
+        id: msg.toolCallId,
+        name: msg.toolName,
+        isError: msg.isError,
+      }
       const text = truncate(messageText(msg), this.maxToolResultChars)
       if (!text) return
       st.attention.observe({
@@ -698,14 +842,46 @@ export class ContextController {
     return [...ids]
   }
 
+  private cancelWindow(sessionId: string, st: SessionState): void {
+    const { window: w } = st
+    const plan = w.frozenPlan
+    if (!plan || w.settledTurns.has(w.turnId)) return
+    w.settledTurns.add(w.turnId)
+    this.sendFeedbackForSession(
+      sessionId,
+      w.turnId,
+      plan.id,
+      this.includedCandidateIds(w, plan),
+      'cancelled',
+    )
+  }
+
   private sendFeedback(
     ctx: ExtensionContext,
     turnIndex: number,
     planId: string,
     includedCandidateIds: string[],
-    outcome: 'completed' | 'error' | 'unknown',
+    outcome: 'completed' | 'error' | 'unknown' | 'cancelled',
+    toolResult?: ContextFeedbackToolResult,
   ): void {
-    const sessionId = ctx.sessionManager.getSessionId()
+    this.sendFeedbackForSession(
+      ctx.sessionManager.getSessionId(),
+      turnIndex,
+      planId,
+      includedCandidateIds,
+      outcome,
+      toolResult,
+    )
+  }
+
+  private sendFeedbackForSession(
+    sessionId: string,
+    turnIndex: number,
+    planId: string,
+    includedCandidateIds: string[],
+    outcome: 'completed' | 'error' | 'unknown' | 'cancelled',
+    toolResult?: ContextFeedbackToolResult,
+  ): void {
     // Fire-and-forget: advisory, never a same-turn critical dependency.
     void this.client.contextFeedback({
       sessionId,
@@ -713,6 +889,7 @@ export class ContextController {
       planId,
       includedCandidateIds,
       outcome,
+      ...(toolResult ? { toolResult } : {}),
     }, { timeoutMs: 250 }).catch(() => { /* best-effort */ })
   }
 

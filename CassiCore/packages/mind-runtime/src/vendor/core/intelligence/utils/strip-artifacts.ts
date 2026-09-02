@@ -7,9 +7,7 @@
  *   - <think>...<think> blocks
  *   - Enumerated thinking processes: "Here's a thinking process: 1. Analyze User Input: ..."
  *
- * This is a shared utility used by SmartCompactionEngine, ThalamusModule,
- * ContextDistiller, and any other component that calls background LLMs for
- * summarization.
+ * Shared by retained compaction/distillation code that calls background LLMs.
  */
 
 export function stripThinkingArtifacts(text: string): string {

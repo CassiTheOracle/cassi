@@ -123,9 +123,11 @@ export const fakeState: {
   instances: FakeThalamusAttentionSession[]
   planError: Error | null
   renderError: Error | null
+  planAuthority: FakeAttentionAuthority | null
 } = {
   instances: [],
   planError: null,
+  planAuthority: null,
   renderError: null,
 }
 
@@ -133,6 +135,7 @@ export function fakeAttentionReset(): void {
   fakeState.instances = []
   fakeState.planError = null
   fakeState.renderError = null
+  fakeState.planAuthority = null
 }
 export function contextCandidateUnitId(candidate: Pick<FakeContextCandidate, 'source' | 'id'>): string {
   return `candidate:${candidate.source}:${candidate.id}`
@@ -197,7 +200,7 @@ export class FakeThalamusAttentionSession {
     const items: FakePlannedAttentionItem[] = this.units.slice(-3).map(u => ({
       unitId: u.unitId,
       kind: 'goal',
-      authority: 'direct_user',
+      authority: fakeState.planAuthority ?? 'direct_user',
       text: u.text,
       reason: 'recent user goal',
       estimatedTokens: 10,
@@ -208,7 +211,7 @@ export class FakeThalamusAttentionSession {
       items.push({
         unitId: contextCandidateUnitId(c),
         kind: 'evidence',
-        authority: 'memory',
+        authority: fakeState.planAuthority ?? 'memory',
         text: c.text,
         reason: 'runtime candidate',
         estimatedTokens: 8,

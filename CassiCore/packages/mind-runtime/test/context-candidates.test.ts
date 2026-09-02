@@ -16,10 +16,11 @@ import {
   ContextRequestError,
   RuntimeContextCandidateService,
   type ContextFieldTelemetrySurface,
+  type ContextFieldRanker,
   type ContextMemorySurface,
   type RuntimeContextCandidateServiceOptions,
 } from '../src/context/candidates.js'
-import type { ContextCandidatesRequest, ContextFeedbackRequest } from '../src/channel/protocol.js'
+import type { ContextActionRequest, ContextCandidatesRequest, ContextFeedbackRequest } from '../src/channel/protocol.js'
 import type { MemoryHitView } from '../src/memory/backend.js'
 import { MnemicMemoryAdapter } from '../src/memory/backend.js'
 
@@ -47,19 +48,53 @@ function feedback(overrides: Partial<ContextFeedbackRequest> = {}): ContextFeedb
   }
 }
 
-/** Fake non-persisting memory surface capturing every search call. */
+/** Fake exact memory surface with durable-turn semantics for service tests. */
 function makeMemory(
   impl: (query: string, opts?: { limit?: number; type?: string; sessionId?: string; deadlineMs?: number }) => Promise<MemoryHitView[]>,
-): { memory: ContextMemorySurface; calls: Array<{ query: string; limit?: number; sessionId?: string }> } {
+): {
+  memory: ContextMemorySurface
+  calls: Array<{ query: string; limit?: number; sessionId?: string }>
+  feedbackEvents: Array<Record<string, unknown>>
+} {
   const calls: Array<{ query: string; limit?: number; sessionId?: string }> = []
+  const feedbackEvents: Array<Record<string, unknown>> = []
+  const eligibility = new Map<string, {
+    query: string
+    candidates: ReadonlyArray<{
+      id: string
+      recordId: string
+      startByte: number
+      endByte: number
+      text: string
+      revision: string
+    }>
+  }>()
   return {
     memory: {
       searchReadOnly: async (query, opts) => {
         calls.push({ query, limit: opts?.limit, sessionId: opts?.sessionId })
         return impl(query, opts)
       },
+      rememberContextTurn: (sessionId, turnId, query, candidates) => {
+        eligibility.set(`${sessionId}\0${turnId}`, { query, candidates })
+      },
+      consumeContextFeedback: (sessionId, turnId, includedCandidateIds, outcome, toolResult) => {
+        const key = `${sessionId}\0${turnId}`
+        const remembered = eligibility.get(key)
+        eligibility.delete(key)
+        if (!remembered) return
+        const included = new Set(includedCandidateIds)
+        feedbackEvents.push({
+          sessionId,
+          query: remembered.query,
+          candidates: remembered.candidates.filter(candidate => included.has(candidate.id)),
+          outcome,
+          ...(toolResult ? { toolResult } : {}),
+        })
+      },
     },
     calls,
+    feedbackEvents,
   }
 }
 
@@ -101,17 +136,17 @@ function shadowSnapshot(step = 42): unknown {
     helicalScan: { canonicalSpiral: false, bestValue: 0.9, bestAxis: 'x', bestMode: 2, modeZero: [0.1, 0.2, 0.3], samples: 64 },
   }
 }
-
 function makeService(
   memory: ContextMemorySurface,
   opts: RuntimeContextCandidateServiceOptions = {},
   telemetry?: ContextFieldTelemetrySurface,
   bus?: IEventBus,
+  fieldRanker?: ContextFieldRanker,
 ): RuntimeContextCandidateService {
   const events: unknown[] = []
   const fakeBus = bus ?? ({ emit: async (e: never) => { events.push(e) } } as unknown as IEventBus)
   return new RuntimeContextCandidateService(
-    { memory, bus: fakeBus, logger: quietLogger, fieldTelemetry: telemetry },
+    { memory, bus: fakeBus, logger: quietLogger, fieldTelemetry: telemetry, fieldRanker },
     opts,
   )
 }
@@ -125,7 +160,7 @@ async function waitFor(fn: () => boolean, timeoutMs = 2000): Promise<void> {
 }
 
 describe('MnemicMemoryAdapter — read-only candidate lookup', () => {
-  it('uses worker-isolated literal FTS and propagates backend failures without recording retrieval telemetry', async () => {
+  it('uses bounded literal FTS and propagates backend failures without retrieval telemetry', async () => {
     const retrieve = vi.fn(async () => { throw new Error('retrieve must not run') })
     const searchTextStrictAsync = vi.fn(async () => [{
       engram: {
@@ -170,7 +205,7 @@ describe('RuntimeContextCandidateService — Mnemic candidates', () => {
     expect(typeof res.sources[0].latencyMs).toBe('number')
   })
 
-  it('caps candidate count and truncates long content', async () => {
+  it('caps candidate count and returns bounded exact spans', async () => {
     const longContent = 'x'.repeat(500)
     const { memory } = makeMemory(async () => [
       hit('a', longContent, 0.9, 'prior-session'),
@@ -182,13 +217,30 @@ describe('RuntimeContextCandidateService — Mnemic candidates', () => {
 
     const res = await svc.candidates(req({ limit: 5 }))
     expect(res.candidates).toHaveLength(2)
-    for (const c of res.candidates) {
-      expect(c.text.length).toBeLessThanOrEqual(100)
-      expect(c.metadata?.truncated).toBe(true)
+    for (const candidate of res.candidates) {
+      expect(Buffer.byteLength(candidate.text)).toBeLessThanOrEqual(100)
+      expect(candidate.metadata?.exactSpan).toBe(true)
+      expect(candidate.endByte! - candidate.startByte!).toBe(Buffer.byteLength(candidate.text))
     }
-    // Oversized caller limit is clamped to the service cap.
     const clamped = await svc.candidates(req({ limit: 999 }))
     expect(clamped.candidates.length).toBeLessThanOrEqual(2)
+  })
+
+  it('selects a query-bearing UTF-8 span with exact revision byte offsets', async () => {
+    const content = `${'α'.repeat(20)}\nquiet section\nneedle 😀 payload\n${'ω'.repeat(20)}`
+    const { memory } = makeMemory(async () => [
+      { ...hit('unicode-record', content, 0.9, 'prior-session'), revision: 'a'.repeat(64) },
+    ])
+    const svc = makeService(memory, { maxCandidates: 4, maxCandidateChars: 24 })
+
+    const res = await svc.candidates(req({ query: 'needle payload', limit: 4 }))
+    const candidate = res.candidates[0]!
+    const bytes = Buffer.from(content)
+    expect(candidate.id).toMatch(/^span:[0-9a-f]{32}$/)
+    expect(candidate.recordId).toBe('unicode-record')
+    expect(candidate.revision).toBe('a'.repeat(64))
+    expect(candidate.text).toContain('needle')
+    expect(bytes.subarray(candidate.startByte, candidate.endByte).toString('utf8')).toBe(candidate.text)
   })
 
   it('truncates the query to the configured cap before Mnemic lookup', async () => {
@@ -256,12 +308,112 @@ describe('RuntimeContextCandidateService — Mnemic candidates', () => {
       { ...feedback(), includedCandidateIds: [1 as never] },
       { ...feedback(), planId: '  ' },
       { ...feedback(), outcome: 'maybe' as never },
+      {
+        ...feedback(),
+        toolResult: { id: 'tc-1', name: 'bash', isError: true },
+      },
+      {
+        ...feedback({ outcome: 'error' }),
+        toolResult: { id: 'tc-1', name: 'bash', isError: true, text: 'forbidden' } as never,
+      },
     ]
     for (const b of badFeedback) {
       await expect(svc.feedback(b as ContextFeedbackRequest)).rejects.toMatchObject({ statusCode: 400 })
     }
   })
 })
+
+describe('RuntimeContextCandidateService — field ranking', () => {
+  it('lets the live field reorder Mnemic candidates without adding ranking state', async () => {
+    const { memory } = makeMemory(async () => [
+      hit('fts-first', 'lexically first', 0.9, 'prior-session'),
+      hit('field-first', 'field continuation', 0.5, 'prior-session'),
+    ])
+    const fieldRanker = vi.fn<ContextFieldRanker>(async request => {
+      expect(request.sessionId).toBe('sess-1')
+      expect(request.query).toBe('golden thought')
+      expect(request.candidates.map(candidate => candidate.id)).toEqual(['fts-first', 'field-first'])
+      return {
+        ranked: [
+          { id: 'field-first', score: 0.95 },
+          { id: 'fts-first', score: 0.1 },
+        ],
+        working: [],
+      }
+    })
+    const svc = makeService(memory, {}, undefined, undefined, fieldRanker)
+
+    const response = await svc.candidates(req())
+
+    expect(response.candidates.map(candidate => candidate.id)).toEqual(['field-first', 'fts-first'])
+    expect(response.candidates.map(candidate => candidate.score)).toEqual([0.95, 0.1])
+    expect(response.sources[1]).toMatchObject({ source: 'field', status: 'ready' })
+    expect(fieldRanker).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    {
+      name: 'provider failure',
+      ranker: (async () => { throw new Error('provider unavailable') }) as ContextFieldRanker,
+      status: 'error',
+    },
+    {
+      name: 'provider timeout',
+      ranker: (async () => {
+        await delay(150)
+        return { ranked: [], working: [] }
+      }) as ContextFieldRanker,
+      status: 'timeout',
+    },
+  ])('keeps deterministic FTS order on $name', async ({ ranker, status }) => {
+    const { memory } = makeMemory(async () => [
+      hit('a', 'alpha', 0.9, 'prior-session'),
+      hit('b', 'beta', 0.8, 'prior-session'),
+    ])
+    const svc = makeService(memory, {}, undefined, undefined, ranker)
+
+    const response = await svc.candidates(req({ deadlineMs: 100 }))
+
+    expect(response.candidates.map(candidate => candidate.id)).toEqual(['a', 'b'])
+    expect(response.candidates.map(candidate => candidate.score)).toEqual([0.9, 0.8])
+    expect(response.sources[1]).toMatchObject({ source: 'field', status })
+  })
+})
+
+  it('merges field-owned work while persisting only record-backed eligibility', async () => {
+    const { memory, feedbackEvents } = makeMemory(async () => [
+      hit('memory-a', 'stored memory', 0.8, 'prior-session'),
+    ])
+    const fieldRanker = vi.fn<ContextFieldRanker>(async () => ({
+      ranked: [{ id: 'memory-a', score: 0.2 }],
+      working: [{
+        id: 'working:artifact:a',
+        revision: 'a'.repeat(64),
+        source: 'field',
+        text: 'tool pytest artifact tc-1',
+        score: 0.9,
+        sourceRefs: ['working:artifact:a'],
+        workingKind: 'artifact',
+      }],
+    }))
+    const svc = makeService(memory, {}, undefined, undefined, fieldRanker)
+
+    const response = await svc.candidates(req())
+    expect(response.candidates.map(candidate => candidate.id)).toEqual([
+      'working:artifact:a',
+      'memory-a',
+    ])
+    expect(response.candidates[0]).toMatchObject({
+      source: 'field',
+      workingKind: 'artifact',
+      score: 0.9,
+    })
+
+    await svc.feedback(feedback({
+      includedCandidateIds: ['working:artifact:a', 'memory-a'],
+    }))
+    expect(feedbackEvents[0].candidates).toMatchObject([{ id: 'memory-a' }])
+  })
 
 describe('RuntimeContextCandidateService — field shadow', () => {
   it('first miss returns null advisory + schedules a refresh; next hit returns the cached advisory', async () => {
@@ -346,14 +498,22 @@ describe('RuntimeContextCandidateService — field shadow', () => {
 })
 
 describe('RuntimeContextCandidateService — feedback', () => {
-  it('acks, publishes an ID-only bus event, and never writes raw text', async () => {
+  it('acks, publishes an ID-only outcome event, and never writes raw text', async () => {
     const events: unknown[] = []
     const bus = { emit: async (e: never) => { events.push(e) } } as unknown as IEventBus
-    const { memory } = makeMemory(async () => [])
+    const { memory, feedbackEvents } = makeMemory(async () => [
+      hit('id-1', 'selected exact memory', 0.9, 'prior-session'),
+      hit('id-x', 'unused exact memory', 0.8, 'prior-session'),
+    ])
     const { telemetry, readCount } = makeTelemetry({ result: () => shadowSnapshot(), delayMs: 10 })
     const svc = makeService(memory, {}, telemetry, bus)
+    await svc.candidates(req())
 
-    const res = await svc.feedback(feedback({ includedCandidateIds: ['id-1', 'id-2'], outcome: 'error' }))
+    const res = await svc.feedback(feedback({
+      includedCandidateIds: ['id-1', 'id-2'],
+      outcome: 'error',
+      toolResult: { id: 'tc-1', name: 'pytest', isError: true },
+    }))
     expect(res).toEqual({ ack: true })
 
     const ev = events[0] as Record<string, unknown>
@@ -363,11 +523,26 @@ describe('RuntimeContextCandidateService — feedback', () => {
     expect(ev.planId).toBe('plan-1')
     expect(ev.includedCandidateIds).toEqual(['id-1', 'id-2'])
     expect(ev.outcome).toBe('error')
+    expect(ev.toolResult).toEqual({ id: 'tc-1', name: 'pytest', isError: true })
     expect(ev.timestamp).toBeInstanceOf(Date)
     // ID-only: no transcript text ever enters the event.
     for (const forbidden of ['content', 'text', 'query']) {
       expect(Object.keys(ev)).not.toContain(forbidden)
     }
+    expect(feedbackEvents).toEqual([{
+      sessionId: 'sess-1',
+      query: 'golden thought',
+      candidates: [{
+        id: 'id-1',
+        recordId: 'id-1',
+        startByte: 0,
+        endByte: Buffer.byteLength('selected exact memory'),
+        text: 'selected exact memory',
+        revision: expect.stringMatching(/^[0-9a-f]{64}$/),
+      }],
+      outcome: 'error',
+      toolResult: { id: 'tc-1', name: 'pytest', isError: true },
+    }])
 
     // Feedback with an empty cache triggers the next cached field refresh.
     expect(readCount()).toBe(1)
@@ -380,5 +555,76 @@ describe('RuntimeContextCandidateService — feedback', () => {
     const svc = makeService(memory, {}, undefined, bus)
 
     await expect(svc.feedback(feedback({ includedCandidateIds: [] }))).resolves.toEqual({ ack: true })
+  })
+})
+
+describe('RuntimeContextCandidateService — exact actions', () => {
+  it('writes the start before accepting its matching text-free outcome', async () => {
+    const startActionEpisode = vi.fn()
+    const finishActionEpisode = vi.fn()
+    const memory: ContextMemorySurface = {
+      searchReadOnly: async () => [],
+      startActionEpisode,
+      finishActionEpisode,
+    }
+    const svc = makeService(memory)
+    const start: ContextActionRequest = {
+      operation: 'start',
+      sessionId: 'sess-1',
+      turnId: 3,
+      planId: 'plan-3',
+      toolCallId: 'call-3',
+      toolName: 'read',
+      argumentsSha256: 'a'.repeat(64),
+      requiredAuthority: 0.8,
+      reversible: true,
+    }
+
+    await expect(svc.action(start)).resolves.toEqual({ ack: true })
+    expect(startActionEpisode).toHaveBeenCalledWith({
+      contextSessionId: 'sess-1',
+      turnId: 3,
+      planId: 'plan-3',
+      toolCallId: 'call-3',
+      toolName: 'read',
+      argumentsSha256: 'a'.repeat(64),
+      requiredAuthority: 0.8,
+      reversible: true,
+    })
+    await expect(svc.action({
+      operation: 'outcome',
+      sessionId: 'sess-1',
+      turnId: 3,
+      planId: 'plan-3',
+      toolCallId: 'call-3',
+      isError: false,
+    })).resolves.toEqual({ ack: true })
+    expect(finishActionEpisode).toHaveBeenCalledWith({
+      contextSessionId: 'sess-1',
+      turnId: 3,
+      planId: 'plan-3',
+      toolCallId: 'call-3',
+      isError: false,
+    })
+  })
+
+  it('rejects malformed action provenance before touching exact memory', async () => {
+    const startActionEpisode = vi.fn()
+    const svc = makeService({
+      searchReadOnly: async () => [],
+      startActionEpisode,
+    })
+    await expect(svc.action({
+      operation: 'start',
+      sessionId: 'sess-1',
+      turnId: 1,
+      planId: 'plan-1',
+      toolCallId: 'call-1',
+      toolName: 'read',
+      argumentsSha256: 'not-a-digest',
+      requiredAuthority: 0.8,
+      reversible: true,
+    })).rejects.toMatchObject({ statusCode: 400 })
+    expect(startActionEpisode).not.toHaveBeenCalled()
   })
 })

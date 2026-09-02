@@ -1,10 +1,9 @@
 /**
  * @cassicore/mind-runtime — boot smoke test.
  *
- * Asserts `createMindRuntime` constructs the retained intelligence layer + MnemicField
- * + retained mind-tool registry WITHOUT provider access, on an isolated temp home;
- * injections (MnemicField wiring, retained mind tools) are present; `close()` releases
- * the DB. No live ohmypi / spine — host-agnostic core only.
+ * Asserts `createMindRuntime` constructs the retained intelligence layer, exact
+ * Mnemic record store, and mind-tool registry without provider access on an
+ * isolated temp home. No live ohmypi / spine is required.
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -20,7 +19,7 @@ const quietLogger: ILogger = {
   child: () => quietLogger,
 }
 
-describe('mind-runtime boot (retained core, no providers)', () => {
+describe('mind-runtime boot (exact memory, no providers)', () => {
   let home: string
   let rt: MindRuntime
 
@@ -39,11 +38,18 @@ describe('mind-runtime boot (retained core, no providers)', () => {
     try { rmSync(home, { recursive: true, force: true }) } catch { /* Windows file-lock — best effort */ }
   })
 
-  it('opens the MnemicField under CASSICORE_HOME and exposes stats', () => {
+  it('opens exact Mnemic records under CASSICORE_HOME and exposes stats', () => {
     const status = rt.memory.status()
     expect(status.backend).toBe('mnemic-field')
     expect(rt.field).toBeDefined()
     expect(rt.field.stats).toBeTypeOf('function')
+  })
+
+  it('does not construct the retired adaptive Mnemic subsystems', () => {
+    const field = rt.field as unknown as Record<string, unknown>
+    for (const retired of ['kindle', 'consolidate', 'lightningStatus', 'computeHarmony']) {
+      expect(field[retired]).toBeUndefined()
+    }
   })
 
   it('registers the retained mind tools (P5: _reflect/_remember/remember/memory_search deleted)', () => {
@@ -63,7 +69,7 @@ describe('mind-runtime boot (retained core, no providers)', () => {
     expect(names).not.toContain('list_subagents')
   })
 
-  it('wires injected MnemicField slices onto the intelligence layer modules', () => {
+  it('exposes the exact record store to retained tool slices', () => {
     const inf = rt.intelligence as never as { __mnemicField?: unknown }
     expect(inf.__mnemicField).toBe(rt.field)
   })

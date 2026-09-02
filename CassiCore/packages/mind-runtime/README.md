@@ -52,6 +52,10 @@ token from `CASSI_MIND_TOKEN`. `requestId` is echoed verbatim.
 | `POST /v1/memory/status` | memory adapter `status()` | `{}` → `{backend, stats}` |
 | `POST /v1/memory/search` | memory adapter `search()` | `{query, limit?, type?}` → `{results:[{id,content,score,metadata}]}` |
 | `POST /v1/memory/save` | memory adapter `save()` | `{content, type?, metadata?, sessionId?}` → `{id}` |
+| `POST /v1/context/candidates` | assemble Thalamus-constrained exact context | `{sessionId, turnId, query, …}` → `{candidates, sources, fieldAdvisory}` |
+| `POST /v1/context/feedback` | journal exact selected IDs and outcome | `{sessionId, turnId, planId, includedCandidateIds, outcome}` → `{ack:true}` |
+| `POST /v1/context/action` | journal a text-free action start/outcome | start includes Thalamus `requiredAuthority` and native-policy `reversible` → `{ack:true}` |
+| `POST /v1/context/status` | read-only counterflow and recovery status | `{}` → `{schemaVersion, candidates:{counterflow}, journal:{stream, verification, unresolvedActions}}` |
 | `POST /v1/shutdown` | graceful stop | `{}` → `{ok}` |
 
 ## Config (brief Open Item 10)
@@ -64,6 +68,10 @@ Read direct from env — **no** `Config.load()` / watcher / layered config:
 - `CASSI_MIND_QUIET=1` — suppress log output (for detached spawn).
 - `CASSI_MIND_LIGHTNING` / `CASSI_MIND_RERANKER` — MnemicField mode overrides.
 - Field telemetry is API-configured and default off: pass `fieldTelemetry: true` or a `FieldTelemetryConfig` to `createMindRuntime`. It is lazy, so construction performs no network access.
+- `CASSI_FI_PROVIDER_URL` — optional CassiFI loopback provider. When absent, exact journaling continues and counterflow is off.
+- `CASSI_MNEMIC_VERIFY_JOURNAL=1` — explicitly verify raw canonical journal bytes at startup. An invalid acknowledged prefix blocks new action starts; ordinary exact reads remain available.
+- `CASSI_COUNTERFLOW_FEATURES` — comma-separated default-off experiments: `failure-inhibition`, `action-roles`, `lineage-roles`, and `multi-action`.
+- `CASSI_COUNTERFLOW_SHADOW_SUPPORT` — nonnegative support threshold reported in calibration status only; it never gates predictions or proposals.
 
 ## Model access (P4 boundary)
 
