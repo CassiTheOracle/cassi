@@ -125,14 +125,15 @@ H_{\nabla\Upsilon,v}
 \frac{|\Gamma_{v,\mathbf k}|^2}{|\mathbf k|^2}.
 $$
 
-The frozen normalized source gives
+At the frozen constant-amplitude point $K_v=2.3$, $u_v=0.9$, with the
+declared zero-mean source, the conditional gradient cost is
 
 $$
 H_{\nabla\Upsilon,v}=4.670076740822.
 $$
 
-This normalized value verifies the declared algebra and carries no calibrated
-particle-energy interpretation.
+This conditional normalized value verifies the declared algebra and carries no
+calibrated particle-energy interpretation.
 
 ## 5. Scope and Decision
 
@@ -143,7 +144,7 @@ The result establishes:
 - exact endpoint, rail-difference, and charge-source normalization;
 - local stationary source support by endpoint current divergence;
 - a zero-mode obstruction for every closed periodic or no-flux endpoint domain;
-- a positive nonlocal gradient cost for every reconstructible source when $K_v>0$ and $u_v>0$;
+- for constant-amplitude periodic data with $K_v>0$ and $u_v>0$, a positive nonlocal gradient cost for every reconstructible zero-mean source;
 - covariance under the declared time-independent local relative-frame transformations.
 
 The result leaves open:
