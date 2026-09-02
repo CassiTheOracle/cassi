@@ -8,12 +8,13 @@ The flat stack construction places every layer's two-hump pair at a fixed
 azimuth (translated along z, per-layer phase theta_i = i*dtheta applied to
 the (rho, eps) doublet).  The helix construction rotates the pair's
 azimuth with z instead: layer n's pair sits at azimuth n*dtheta around the
-cylinder axis, with the same per-layer phase.  r0 = SEP/2 = 6 cells is the
-flat construction's own hump radius (the flat pair straddles the axis with
-its humps at radius SEP/2), so the helix keeps the exact flat radii:
-strand A at radius r0, azimuth n*dtheta; strand B at radius r0, azimuth
-n*dtheta + pi.  No new free parameters -- at dtheta = 0 the construction
-reduces bit-exactly to the flat stack (the h0 equivalence control).
+cylinder axis, with the same per-layer phase.  r0 = SEP/2 = 6 cells uses
+the SEP supplied by the L1 flat-stack geometry: the flat pair straddles the
+axis with its humps at radius SEP/2, and the helix keeps those radii.
+The pitch angles and layer counts are declared arm values.  Strand A sits at
+radius r0 and azimuth n*dtheta; strand B sits at radius r0 and azimuth
+n*dtheta + pi.  At dtheta = 0 the construction reduces bit-exactly to the
+flat stack (the h0 equivalence control).
 
 Observables.  The z,y-integrated density of a rotating pair is azimuthally
 uniform ("powder" projection): the transverse two-hump contrast C_abs of
@@ -78,14 +79,14 @@ STEPS = 40000                 # t = 40 = 2/lambda (lock timescale)
 
 SIG, SEP, E_RIDGE, BETA, RHO0 = L1.SIG, L1.SEP, L1.E_RIDGE, L1.BETA, L1.RHO0
 
-# Helix geometry fixed by the declared SEP construction:
-# r0 = SEP/2: the flat construction's hump radius -- the flat pair
-# straddles the axis with both humps at radius SEP/2, so the helix keeps
-# each strand at that radius and only rotates the azimuth.
+# R0 is fixed by construction once the L1 geometry supplies SEP; the pitch
+# angles below are declared scan values.  The flat pair straddles the axis
+# with both humps at radius SEP/2, so the helix keeps each strand at that
+# radius and only rotates the azimuth.
 R0 = SEP / 2.0
 
-DTH_36 = 2.0 * np.pi / 10.0        # P = 10 pitch (36 deg)
-DTH_DNA = 2.0 * np.pi / 10.5       # P = 10.5 pitch (34.2857 deg)
+DTH_36 = 2.0 * np.pi / 10.0        # declared P = 10 arm (36 deg)
+DTH_DNA = 2.0 * np.pi / 10.5       # declared P = 10.5 arm (34.2857 deg)
 
 
 def helix_init(solver, M, dtheta, r0=R0, clamp=True):
