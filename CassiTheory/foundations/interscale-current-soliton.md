@@ -636,9 +636,11 @@ $\Lambda_{\mathrm{link},v}=2\kappa_v|\Upsilon_v|M(\alpha_v)$. A dressed
 quarter-turn phase and selected coupling ratio realize the declared golden
 two-port matrix at one $k_\star$. Combining that match with current capacity
 and positive fixed-amplitude phase stiffness gives the conditional bound
-$k_\star>0.0964640362$ for the unbiased proton branch. Source-action
-elimination of endpoint fluctuations gives the Nambu Schur response in
-`foundations/endpoint-link-and-localization-boundary.md` §3.9. The separately
+$k_\star>0.0964640362$ for the unbiased proton branch. First-order
+source-action elimination of endpoint fluctuations from EL9 gives the Nambu
+Schur response with covariance under constant relative-frame rotations in
+`foundations/endpoint-link-and-localization-boundary.md` §3.9. The second-order
+fixed-$Q_C$ particle action is a separate temporal sector. The separately
 frozen AR1–AR6 receipt passes; the DR receipt remains `FAIL` because its DR5
 endpoint block has the opposite source-action sign. A closed homogeneous
 conservative time-harmonic endpoint extremum has zero coherent conversion

@@ -78,7 +78,7 @@ STEPS = 40000                 # t = 40 = 2/lambda (lock timescale)
 
 SIG, SEP, E_RIDGE, BETA, RHO0 = L1.SIG, L1.SEP, L1.E_RIDGE, L1.BETA, L1.RHO0
 
-# Helix geometry constants (no free parameters):
+# Helix geometry fixed by the declared SEP construction:
 # r0 = SEP/2: the flat construction's hump radius -- the flat pair
 # straddles the axis with both humps at radius SEP/2, so the helix keeps
 # each strand at that radius and only rotates the azimuth.

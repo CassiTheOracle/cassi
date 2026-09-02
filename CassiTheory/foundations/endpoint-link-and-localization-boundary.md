@@ -798,18 +798,29 @@ $$
 \tag{ELR14}
 $$
 
-Positive endpoint curvature requires
-$A_v(\mathbf q)>|B_v|$. With fields proportional to $e^{-i\omega t}$ and
-$\gamma_v=0$, the conservative poles are
-$\omega=\pm\omega_{\mathrm{end}}(\mathbf q)$. The declared retarded
-continuation moves them to
+Positive endpoint curvature requires $A_v(\mathbf q)>|B_v|$. With fields
+proportional to $e^{-i\omega t}$ and $\gamma_v=0$, the conservative poles are
+$\omega=\pm\omega_{\mathrm{end}}(\mathbf q)$.
+
+For the phenomenological retarded continuation of the first-order
+Schrödinger/Berry action, $\gamma_v\ge0$ has angular-frequency units,
+$[\gamma_v]=T^{-1}$, and
+
+$$
+\mathcal K_v^R
+:=
+\mathcal Z_v(\omega+i\gamma_v)\sigma_3-\mathcal H_v.
+$$
+
+This continuation supplies no second-order inertial coefficient and selects no
+microscopic bath. Its poles are
 $\omega=\pm\omega_{\mathrm{end}}(\mathbf q)-i\gamma_v$ in the lower
-half-plane; the advanced poles lie at
+half-plane. Conjugate continuation gives
+$\mathcal K_v^A=\mathcal Z_v(\omega-i\gamma_v)\sigma_3-\mathcal H_v
+=(\mathcal K_v^R)^\dagger$ for real $\omega$, with poles
 $\omega=\pm\omega_{\mathrm{end}}(\mathbf q)+i\gamma_v$ in the upper
-half-plane. The limit $\gamma_v\to0$ recovers the conservative kernel. This
-damping continuation is a response convention; (EL9) does not select its
-microscopic bath.
-Define the equivalent endpoint energy kernel
+half-plane. The limit $\gamma_v\to0$ recovers the conservative kernel. Define
+the equivalent endpoint energy kernel
 $\mathcal D_v^R:=\mathcal H_v-\mathcal Z_v(\omega+i\gamma_v)\sigma_3$,
 so $\mathcal K_v^R=-\mathcal D_v^R$.
 

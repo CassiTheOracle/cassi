@@ -328,13 +328,17 @@ $\Lambda_{\mathrm{link},v}=2\kappa_vu_vM(\alpha_v)$. A dressed quarter-turn
 phase and $2\kappa_vu_v/(K_{\mathfrak s}k_\star)=\tau_\varphi$ realize the
 declared golden matrix at one selected $k_\star$. Requiring the simultaneous
 unbiased proton current to remain below capacity with positive fixed-amplitude
-phase stiffness gives the conditional bound $k_\star>0.0964640362$. The active
-endpoint Hessian is explicit. Source-action elimination gives its Nambu Schur
-response, and the separately frozen AR1–AR6 receipt passes. The DR receipt
-remains `FAIL` because its DR5 endpoint block has the opposite source-action
-sign. The endpoint potential, nonzero-current background, damping law, trace
-normalization, port assignment, dressed phase, matching point, and full
-coupled fluctuation spectrum remain physical inputs.
+phase stiffness gives the conditional bound $k_\star>0.0964640362$.
+The active first-order endpoint Hessian is explicit. Source-action elimination
+of the first-order Schrödinger/Berry endpoint action (EL9) gives its Nambu
+Schur response around a declared nonzero rail background, with response-kernel
+covariance under constant relative-frame rotations. The source-free
+second-order particle action remains a separate temporal sector. The endpoint
+potential, nonzero-current background, microscopic damping channel, temporal
+relative-gauge connection, doubled port-flux law, and full coupled fluctuation
+spectrum remain open. The one registered coupled coefficient point therefore
+provides a numerical boundary for the declared model, while a physically
+qualified particle solution remains open.
 
 The scalar phases in (GM11) are fixed-frame representatives of endpoint
 intertwiners. Under a relative $U(1)_Q$ frame change, each $S_v$ must transform

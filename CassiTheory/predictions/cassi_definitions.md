@@ -918,10 +918,10 @@ an external datum does not confirm the canonical PDE or an optional sector closu
 
 
 **Unified Lagrangian (structural assembly; optional sector closure):** The displayed
-action is an algebraic assembly of named sectors. Its structural subset carries the
-zero-free-parameter claim; external, calibrated, mapped, and solver inputs remain
-documented in their own registries. The assembly does not prove that every sector
-is derived from the canonical PDE.
+action is an algebraic assembly of named sectors. Its structural coefficients
+and inputs are catalogued in `parameter-inventory.md`; external, calibrated,
+mapped, and solver inputs retain their recorded statuses. The assembly does not
+prove that every sector is derived from the canonical PDE.
 See `foundations/unified-lagrangian.md` for the complete derivation.
 
 $$
@@ -971,7 +971,7 @@ New theory documents:
 | `experiments/cassi_life.py` | Speculative self-sustaining Qi-condensate mapping (parent repo) |
 | `experiments/cassi_spacetime_variable_geff.py` | Optional spatially varying $G_{\rm eff}(r)$ closure (parent repo) |
 | `experiments/cassi_accretion_disk.py` | Conditional accretion-disk emission mapping (parent repo) |
-| `foundations/unified-lagrangian.md` | Structural action assembly for named sectors; it does not establish all-sector unification or zero-free-parameter predictions |
+| `foundations/unified-lagrangian.md` | Structural action assembly for named sectors; it does not establish all-sector unification or parameter-independent predictions |
 | `standard-model/su2-gauge-extension.md` | Hypothesized SU(2) × U(1)_Y gauge extension with φ-VEV |
 | `two-fluid/cassi_su2_bridge.py` | Hypothesized SU(2) gauge bridge with φ-governed weak-force mapping |
 | `two-fluid/run_electroweak.py` | Electroweak comparison runner for the W/Z mass mapping |

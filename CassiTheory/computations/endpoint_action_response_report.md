@@ -132,9 +132,20 @@ $$
 :=\frac{\sqrt{A_v^2-|B_v|^2}}{\mathcal Z_v}.
 $$
 
-The declared retarded kernel
-$\mathcal K_v^R=\mathcal Z_v(\omega+i\gamma_v)\sigma_3-\mathcal H_v$
-has poles $\omega=\pm\omega_{\mathrm{end}}-i\gamma_v$ in the lower half-plane. Its advanced partner has poles $\omega=\pm\omega_{\mathrm{end}}+i\gamma_v$ in the upper half-plane, and $\gamma_v\to0$ recovers the conservative kernel. For $\gamma_v=0$, real pole-free $\omega$, and $A_v>|B_v|$, the response is Hermitian. For $\gamma_v>0$ the retarded response is generally non-Hermitian and obeys $\mathbb\Lambda^A=(\mathbb\Lambda^R)^\dagger$. A microscopic damping channel remains unselected.
+The nonnegative quantity $\gamma_v\ge0$ has angular-frequency units,
+$[\gamma_v]=T^{-1}$. It is a phenomenological retarded continuation of the
+first-order Schrödinger/Berry endpoint action,
+$\mathcal K_v^R=\mathcal Z_v(\omega+i\gamma_v)\sigma_3-\mathcal H_v$; it
+supplies no second-order inertial coefficient and selects no microscopic bath.
+The retarded poles are
+$\omega=\pm\omega_{\mathrm{end}}-i\gamma_v$ in the lower half-plane. Conjugate
+continuation gives
+$\mathcal K_v^A=\mathcal Z_v(\omega-i\gamma_v)\sigma_3-\mathcal H_v
+=(\mathcal K_v^R)^\dagger$ for real $\omega$, with poles
+$\omega=\pm\omega_{\mathrm{end}}+i\gamma_v$ in the upper half-plane and
+$\mathbb\Lambda^A=(\mathbb\Lambda^R)^\dagger$. The limit $\gamma_v\to0$
+recovers the separate conservative kernel and its real pole pair. A
+microscopic damping channel remains unselected.
 
 ## 5. Research Boundary
 

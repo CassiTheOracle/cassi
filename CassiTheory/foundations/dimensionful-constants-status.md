@@ -53,7 +53,7 @@ These two equations link $c$, $\hbar$, $G$, and $\ell_{\text{Pl}}$ but leave one
 
 This is a structural limitation shared by any theory with a single dimensionful anchor. The Cassi framework identifies $\ell_{\text{Pl}}$ as that anchor and expresses $c$ in terms of $\ell_{\text{Pl}}$ and the convention-fixed $\lambda$, conditional on the Hypothesized attenuation map; the status of dimensionless couplings remains governed by their individual derivation chains.
 
-### 1.3 Status of "zero free parameters" claims
+### 1.3 Status of parameter-origin claims
 
 The closed subset of dimensionless parameters is fixed by $\varphi$ and the cascade after the declared framework/C-class convention $\lambda=0.1$ is supplied; the `TwoFluid3DGPU` constructor default $\lambda=0.02$ is a separate implementation choice. Other $\varphi$-power quantities retain their ledger status: $\sin^2\theta_W$ is an asserted boundary, $\mu_*$ is Calibrated, and fitted exponents are Mapped. The Wu Xing signal criterion and its $w=5$ intersection are conditional on the declared/Hypothesized per-rung signal map; the linkage $\lambda=1/(2w)$ remains Hypothesized because $w=5$ does not independently define a cycle time or rate. Three dimensionful constants ($c$, $\hbar$, $G$) remain external because a dimensionless constant cannot determine a reference scale.
 
@@ -390,7 +390,7 @@ $\lambda = 0.1$ is the solver's normalization/timescale convention. The equality
 |----------|-------|-------------------|
 | `gravity/quantum-gravity.md` §3 | $\sigma = \ell_{\text{Pl}}/\varphi^3$ is the regularization scale | $M_{\text{Pl}}$ remains external (dimensionful); $\sigma = \ell_{\text{Pl}}/\varphi^3$ is **Derived conditional** on the noise–signal identification, the Hypothesized cascade-dephasing family ($d_i=\varphi^{-i-\delta}$), and the selected $d=3$ domain; only the $\varphi^{-3}$ arithmetic follows once $\delta=3$ is selected. Not a derived gravity prediction |
 | `gravity/quantum-gravity.md` | "The Theory of Everything is complete" | The closed dimensionless subset has derived origins; $\sin^2\theta_W$ remains an asserted boundary, while $c$, $\hbar$, $G$ remain external |
-| `foundations/xi-derivation.md` §5 | "zero free parameters" | Zero free inputs within the closed subset after the quadratic-coupling condition; asserted boundaries and mapped entries retain their ledger statuses |
+| `foundations/xi-derivation.md` §5 | Closed-subset parameter closure | The subset introduces no additional fitted coefficient after the quadratic-coupling condition is supplied; asserted boundaries and mapped entries retain their ledger statuses |
 | `open-questions-cassi-answers.md` F5 | $\lambda$ is fixed by the measured Hubble | $\lambda = 0.1$ is the solver normalization/timescale convention; $\lambda = 1/(2w)$ is a Hypothesized Wu Xing linkage requiring independent cycle-time/dynamical closure |
 
 ### 5.2 Registry status
@@ -423,7 +423,7 @@ In `open-questions-cassi-answers.md`, the F5 entry records $\lambda = 0.1$ as th
 - `parameter-inventory.md` §4—External constant classification
 - `foundations/deriving-remaining-gaps.md` §5—parameter assessment status
 - `gravity/quantum-gravity.md`—$\sigma$-regularization, Planck-scale status
-- `foundations/xi-derivation.md`—$\xi = \varphi^6$, zero-free-parameter claims
+- `foundations/xi-derivation.md`—$\xi = \varphi^6$, parameter-origin accounting
 - `foundations/unified-lagrangian.md`—Full Lagrangian, declares $\hbar = c = 1$, $\lambda = 0.1$
 - `foundations/cassi-first-principles.md`—two-fluid PDE, canonical solver normalization $\lambda=0.1$; $\lambda = 1/(2w)$ is a Hypothesized linkage
 - `foundations/dimensionful-cascade.md`—cascade table (292 = today's horizon rung), empirical $N$

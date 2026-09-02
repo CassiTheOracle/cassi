@@ -735,11 +735,14 @@ with $\mathbb\Lambda_{0,v}$, $\mathcal C_v$, and $\mathcal H_v$ given in
 second-order fixed-$Q_C$ particle action supplies no coefficient to this
 Bogoliubov–de Gennes response. With fields proportional to $e^{-i\omega t}$,
 $\gamma_v=0$, real pole-free $\omega$, and
-$A_v(\mathbf q)>|B_v|$, the conservative response is Hermitian. For
-$\gamma_v>0$, the retarded poles lie at
-$\omega=\pm\omega_{\mathrm{end}}-i\gamma_v$ in the lower half-plane and the
-advanced poles lie at $\omega=\pm\omega_{\mathrm{end}}+i\gamma_v$ in the upper
-half-plane; $\gamma_v\to0$ recovers the conservative kernel. Generic nonzero
+$A_v(\mathbf q)>|B_v|$, the conservative response is Hermitian. The
+phenomenological first-order retarded continuation uses $\gamma_v\ge0$ with
+$[\gamma_v]=T^{-1}$ and selects no microscopic bath or second-order inertial
+coefficient. Its poles lie at
+$\omega=\pm\omega_{\mathrm{end}}-i\gamma_v$ in the lower half-plane.
+Conjugate/adjoint continuation gives the advanced kernel and poles
+$\omega=\pm\omega_{\mathrm{end}}+i\gamma_v$ in the upper half-plane;
+$\gamma_v\to0$ recovers the conservative kernel. Generic nonzero
 rail backgrounds generate anomalous particle-hole blocks. The ordinary
 $2\times2$ Cayley family in §4.2 therefore describes the frozen endpoint or a
 special active branch whose anomalous blocks cancel. A generic active branch
