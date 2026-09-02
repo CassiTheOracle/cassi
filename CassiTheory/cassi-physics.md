@@ -315,15 +315,23 @@ trajectories reparametrize a fixed linear GKSL flow and preserve the positive
 cone.
 
 The open dynamical-geometry synthesis assembles the conservative currents,
-conversion flow, endpoint channels, and declared reservoir terms into one
-effective matrix balance. DG1–DG7 pass. At every finite density with
-$\lambda>0$, undriven nonzero transverse coherence decays, so a stationary
-phase-bearing state requires an identified support term. The result is an
-effective open-system closure; one microscopic action, total
-field-plus-reservoir stress, geometry backreaction, and the interface to the
-separate local-$SU(2)_Q$ particle branch remain open. See
-`foundations/yin-yang-qi-dynamical-geometry.md` and
-`computations/dynamical_geometry_closure_report.md`.
+conversion flow, endpoint channels, declared reservoir terms, and a bounded
+two-domain source interface in one effective matrix balance. DG1–DG7 and
+EC1–EC7 pass. At every finite density with $\lambda>0$, undriven nonzero
+transverse coherence decays, so a stationary phase-bearing state requires an
+identified support term. The enlarged positive interior/exterior fibre derives
+one such term from cross-coherence $\mathsf C_{\rm io}$ and reciprocal coupling
+$V$. Independent relative frames require two-sided transport
+$K_{a+1}=L_aK_aR_a^\dagger$; one-sided and symmetric routed assignments give
+distinct $\varphi^{-N/2}$ and $\varphi^{-N}$ cross-coherence attenuation.
+The interface closes enlarged number and relative charge and supplies capacity
+and phase conditions for $S_c^{\rm ext}$. Its physical exterior, transfer
+factors, reservoir dynamics, total field-plus-reservoir stress, geometry
+backreaction, and connection to the separate local-$SU(2)_Q$ particle branch
+remain open. See `foundations/yin-yang-qi-dynamical-geometry.md`,
+`computations/dynamical_geometry_closure_report.md`,
+`computations/cross_scale_coherence_interface_check.py`, and
+`computations/cross_scale_coherence_interface_report.md`.
 The charged coherent endpoint action also fixes the stationary spatial boundary:
 $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v
 =-\mathcal I_{\mathrm{link},v}/2$. Every periodic, no-flux, or sufficiently
@@ -893,7 +901,11 @@ The framework records evidence and limitations in `audit.md`; the gate-sign conv
 - `foundations/dimensionful-cascade.md`—the 292-step cascade table and scale-assignment provenance
 - `foundations/bubble-lattice-fabric.md`—the condensation field as universal organizing geometry
 - `foundations/yin-yang-qi-dynamical-geometry.md`—integrated open-system
-  geometry and the finite-density coherence-support boundary
+  geometry, finite-density support boundary, and bounded two-domain interface
+- `computations/cross_scale_coherence_interface_check.py`—deterministic
+  EC1–EC7 interface witness
+- `computations/cross_scale_coherence_interface_report.md`—positive
+  cross-domain source, exchange, attenuation, and support closure
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation and the hierarchy resolutions
 - `foundations/wu-xing-derivation.md`—why $w = 5$
 - `foundations/wu-xing-cycle-structure.md`—the two 5-cycles, the control ring, the 5↔13 partition

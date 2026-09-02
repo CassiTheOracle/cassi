@@ -929,6 +929,14 @@ and does not define a linear completely positive map or semigroup. The exact
 factorization and finite-density sign boundary are derived in
 `foundations/yin-yang-qi-dynamical-geometry.md` §§5–7.
 
+The bounded two-domain realization in the same synthesis extends the transverse
+source sector. Equations (GM44)–(GM51) continue to govern the local fibre. A
+positive cross-coherence block and reciprocal interface coupling generate the
+reduced source while closing the enlarged number and relative-charge ledgers.
+Its exterior dynamics and physical transfer factors remain open; see
+`computations/cross_scale_coherence_interface_check.py` and
+`computations/cross_scale_coherence_interface_report.md`.
+
 Writing (GM51) in components gives
 
 $$
@@ -1563,6 +1571,9 @@ layers. Physical completion requires the solution specified in §10.
   boundary
 - `computations/dynamical_geometry_closure_report.md`—DG1–DG7 analytic and
   deterministic closure receipt
+- `computations/cross_scale_coherence_interface_prereg.md`—frozen positive-interface, exchange, attenuation, and support criteria
+- `computations/cross_scale_coherence_interface_check.py`—deterministic EC1–EC7 first-execution witness
+- `computations/cross_scale_coherence_interface_report.md`—two-domain interface derivation and scoped PASS verdict
 - `foundations/loop-to-bubble-projection-theorem.md`—carrier projection and species Gram matrix
 - `foundations/string-bubble-projective-map.md`—projective shell and affine bubble geometry
 - `foundations/interscale-current-soliton.md`—conditional scale current, mixed

@@ -54,7 +54,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point coupled campaign |
 | 43 | `particle-stationary-action-closure.md` | Source-free temporal particle action, Gauss constraint, fixed-charge functional, and variational boundary | Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries / Tested one-point numerical boundary |
 | 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, source-action Nambu response, and routed quadratic-flux attenuation | Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026 |
-| 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated canonical conversion, coherence fibre, relative-phase transport, endpoint ledgers, and open-system support boundary | Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, and conditional coherence-support boundary—September 2026 |
+| 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated canonical conversion, coherence fibre, relative-phase transport, endpoint ledgers, open-system support boundary, and bounded cross-domain source interface | Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, and bounded cross-domain interface—September 2026 |
 
 ## Document Summaries
 
@@ -587,20 +587,25 @@ geometry.
 ### `yin-yang-qi-dynamical-geometry.md`—Yin–Yang–Qi Open Dynamical Geometry
 
 Assembles the canonical $E_Y,E_I,q$ conversion law, positive Hermitian
-coherence fibre, relative-$U(1)_Q$ currents, and endpoint/Wilson channels into
-one explicit open-system matrix balance. The two-jump conversion factorizes
-into a nonnegative state-dependent rate and a fixed linear GKSL generator, so
-the nonlinear trajectories preserve the positive cone and reproduce the
-canonical diagonal PDE exactly. For every finite density with $\lambda>0$,
-undriven nonzero transverse coherence decays; a stationary phase-bearing state
-therefore requires an identified coherent source, protected sector, boundary
-or transport influx, modified reservoir, or different lift. DG1–DG7 pass by
-exact analysis plus the frozen deterministic receipt. One microscopic action,
-total field-plus-reservoir stress, geometry backreaction, interface to the
-separate local-$SU(2)_Q$ particle branch, and a qualified stationary matter
-solution remain open. Status: Hypothesized integrated open-system geometry /
-Derived exact diagonal reduction, positivity-preserving conversion flow,
-covariance, ledger closure, and conditional coherence-support boundary.
+coherence fibre, relative-$U(1)_Q$ currents, endpoint/Wilson channels, and a
+bounded two-domain source interface in one explicit open-system matrix balance.
+The two-jump conversion factorizes into a nonnegative state-dependent rate and
+a fixed linear GKSL generator, so the nonlinear trajectories preserve the
+positive cone and reproduce the canonical diagonal PDE exactly. For every
+finite density with $\lambda>0$, undriven nonzero transverse coherence decays;
+a stationary phase-bearing state therefore requires an identified support
+term. A positive enlarged interior/exterior fibre derives one such term from
+cross-coherence and reciprocal Hamiltonian exchange. Independent relative
+frames force a two-sided transfer law, and one-sided and symmetric routed port
+assignments give distinct $\varphi^{-N/2}$ and $\varphi^{-N}$ attenuation.
+DG1–DG7 and EC1–EC7 pass by exact analysis plus frozen deterministic receipts.
+The physical exterior, interface coefficient, transfer factors, microscopic
+action, total field-plus-reservoir stress, geometry backreaction, connection
+to the separate local-$SU(2)_Q$ particle branch, and a qualified stationary
+matter solution remain open. Status: Hypothesized integrated open-system
+geometry / Derived exact diagonal reduction, positivity-preserving conversion
+flow, covariance, ledger closure, conditional coherence-support boundary, and
+bounded cross-domain interface.
 
 ### `endpoint-link-and-localization-boundary.md`—Gauge-Covariant Endpoint Closure and the Localization Boundary
 

@@ -1159,12 +1159,22 @@ reparametrization. For every finite density with $\lambda>0$, the undriven
 minimal lift strictly damps nonzero transverse coherence. A stationary
 phase-bearing state therefore requires an identified support term.
 
+The bounded two-domain realization places the interior and exterior fibres in
+one positive block. Reciprocal cross-coherence generates a conditional
+transverse source, while independent relative frames require two-sided
+transport. EC1–EC7 pass for positivity, covariance, enlarged number and
+relative charge, separated attenuation cases, source capacity, phase controls,
+and exact conservative evolution. The physical exterior and sustaining
+dynamics remain open.
+
 This ansatz completes the mathematical maps among the declared layers.
-Physical scale normalization, endpoint microphysics, the conversion
-reservoir, localized solutions, the observation map, particle quantum
-numbers, and decay rates remain open. See
-`foundations/geometric-manifold-completion.md` and
-`foundations/yin-yang-qi-dynamical-geometry.md`.
+Physical scale normalization, endpoint microphysics, the conversion reservoir,
+the exterior realization, localized solutions, the observation map, particle
+quantum numbers, and decay rates remain open. See
+`foundations/geometric-manifold-completion.md`,
+`foundations/yin-yang-qi-dynamical-geometry.md`,
+`computations/cross_scale_coherence_interface_check.py`, and
+`computations/cross_scale_coherence_interface_report.md`.
 
 ### 10.6 Wake-Wave Mechanism
 

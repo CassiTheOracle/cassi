@@ -556,6 +556,13 @@ conversion reservoir remain open. The integrated balance and exact
 finite-density support boundary are derived in
 `foundations/yin-yang-qi-dynamical-geometry.md`.
 
+The bounded two-domain realization in §7.4 of that synthesis derives one
+conditional transverse source from a positive cross-coherence block and a
+reciprocal interface coupling. Its EC1–EC7 receipt closes the enlarged number
+and relative-charge ledgers and verifies the source-capacity and phase
+conditions. The physical exterior and microscopic reservoir remain open
+sectors.
+
 ---
 
 ## 5. Constitutive blocks for becoming
@@ -1466,6 +1473,8 @@ The compact physical-becoming equation is therefore a research contract. It says
   matrix balance and finite-density coherence-support boundary.
 - `computations/dynamical_geometry_closure_report.md`—DG1–DG7 analytic and
   deterministic closure receipt.
+- `computations/cross_scale_coherence_interface_check.py`—deterministic EC1–EC7 interface witness.
+- `computations/cross_scale_coherence_interface_report.md`—positive two-domain source, exchange, attenuation, and support closure.
 - `foundations/unified-lagrangian.md`—optional microscopic action assembly and its dimensional/covariant blockers.
 - `foundations/dimensionful-constants-status.md`—physical-unit and external-constant boundaries.
 - `computations/verify_physical_becoming_reduction.py`—symbolic checks of the exact conversion, mobility, covariance null mode, response eigenmodes, reference-state $\Gamma_0=\lambda/3$, physical fixed-$\rho$ wedge, and conditional FDT normalization.

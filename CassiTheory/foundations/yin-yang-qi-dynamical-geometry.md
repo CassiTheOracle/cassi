@@ -1,12 +1,12 @@
 # Yin–Yang–Qi Open Dynamical Geometry
 
-## Status: Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, and conditional coherence-support boundary—September 2026
+## Status: Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, and bounded cross-domain interface—September 2026
 
 ## Abstract
 
 Cassi has one canonical local state and several conditional geometric extensions. The canonical variables are the nonnegative Yang and Yin densities $E_Y,E_I$ and the bounded scalar Qi diagnostic $q(E_Y,E_I)$. The geometric completion places those densities on the diagonal of a positive Hermitian fibre, adds an optional off-diagonal coherence $c$, transports relative phase with a conditional $U(1)_Q$ connection, and closes the scale graph through endpoint sectors. These elements form an explicit **open-system effective closure**. They do not yet arise from one microscopic action.
 
-This paper assembles the existing sectors without merging their epistemic status. The state-dependent two-jump conversion law is a nonlinear pointwise Lindblad-form vector field. Its trajectories preserve the positive cone by a monotone time reparametrization of a fixed linear GKSL flow, while its diagonal entries reproduce the canonical $q$-gated PDE exactly. A new conditional boundary follows: for finite density and $\lambda>0$, the minimal undriven conversion lift has a strictly positive transverse-coherence decay rate, so a stationary phase-bearing state requires a coherent source, protected sector, boundary or transport influx, modified reservoir, or different lift. The endpoint and Wilson sectors close number and relative-charge ledgers conditionally. Physical force still requires a complete Noether stress, and dynamical geometry still requires backreaction equations sourced by the full field-plus-reservoir stress. The separate local-$SU(2)_Q$ fixed-charge particle action remains a downstream branch pending an explicit interface with the Abelian first-order graph sector.
+This paper assembles the existing sectors without merging their epistemic status. The state-dependent two-jump conversion law is a nonlinear pointwise Lindblad-form vector field. Its trajectories preserve the positive cone by a monotone time reparametrization of a fixed linear GKSL flow, while its diagonal entries reproduce the canonical $q$-gated PDE exactly. For finite density and $\lambda>0$, the minimal undriven conversion lift has a strictly positive transverse-coherence decay rate, so a stationary phase-bearing state requires a coherent source, protected sector, boundary or transport influx, modified reservoir, or different lift. A bounded two-domain realization supplies such a source conditionally: positive cross-coherence and a reciprocal Hamiltonian interface close enlarged number and relative-charge ledgers, while a two-sided transfer law distinguishes closed propagation from one-sided and symmetric routed attenuation. The endpoint and Wilson sectors close their own number and relative-charge ledgers conditionally. The exterior domain and transfer factors remain unselected physical sectors. Physical force still requires a complete Noether stress, and dynamical geometry still requires backreaction equations sourced by the full field-plus-reservoir stress. The separate local-$SU(2)_Q$ fixed-charge particle action remains a downstream branch pending an explicit interface with the Abelian first-order graph sector.
 
 ## 1. Scope and Source Boundary
 
@@ -602,7 +602,217 @@ $$
 \tag{DG41}
 $$
 
-Equation (DG41) does not select the source. It specifies the minimum role that the missing mechanism must perform.
+Equation (DG41) specifies the minimum support role. Section 7.4 gives one conditional two-domain realization whose physical exterior and sustaining dynamics remain open.
+
+### 7.4 Positive two-domain source realization
+
+A finite interior source can be derived from a larger positive state. Let
+
+$$
+A:=\Gamma_{\rm in},
+\qquad
+B:=\Gamma_{\rm out},
+\qquad
+\Gamma_{\rm io}
+:=
+\begin{pmatrix}
+A&\mathsf C_{\rm io}\\
+\mathsf C_{\rm io}^\dagger&B
+\end{pmatrix}
+\succeq0.
+$$
+
+For $A,B\succ0$, write
+
+$$
+\boxed{
+\mathsf C_{\rm io}
+=
+A^{1/2}K_{\rm io}B^{1/2},
+\qquad
+\|K_{\rm io}\|_{\rm op}\le1.}
+\tag{DG41a}
+$$
+
+This contraction condition is equivalent to positivity of
+$\Gamma_{\rm io}$. If $B$ is singular, positivity additionally requires
+
+$$
+(I-BB^+)\mathsf C_{\rm io}^\dagger=0,
+\qquad
+A-\mathsf C_{\rm io}B^+\mathsf C_{\rm io}^\dagger\succeq0.
+$$
+
+Independent relative frames act on both indices:
+
+$$
+\boxed{
+\begin{aligned}
+\mathsf C_{\rm io}
+&\longmapsto
+U_{\rm in}\mathsf C_{\rm io}U_{\rm out}^\dagger,\\
+K_{\rm io}
+&\longmapsto
+U_{\rm in}K_{\rm io}U_{\rm out}^\dagger,\\
+V
+&\longmapsto
+U_{\rm in}VU_{\rm out}^\dagger.
+\end{aligned}}
+\tag{DG41b}
+$$
+
+The cross-domain block is therefore a bimodule object. A single left Wilson
+matrix cannot transport it covariantly between independent frames.
+
+The smallest reciprocal conservative interface is
+
+$$
+H_{\rm io}
+:=
+\begin{pmatrix}
+H_{\rm in}&V\\
+V^\dagger&H_{\rm out}
+\end{pmatrix}
+=H_{\rm io}^\dagger,
+\qquad
+\dot\Gamma_{\rm io}
+=-\frac{i}{\hbar}[H_{\rm io},\Gamma_{\rm io}].
+$$
+
+Its diagonal exchange sources are
+
+$$
+\boxed{
+\begin{aligned}
+\mathcal S_{\rm in}
+&=
+-\frac{i}{\hbar}
+\left(
+V\mathsf C_{\rm io}^\dagger
+-\mathsf C_{\rm io}V^\dagger
+\right),\\
+\mathcal S_{\rm out}
+&=
+-\frac{i}{\hbar}
+\left(
+V^\dagger\mathsf C_{\rm io}
+-\mathsf C_{\rm io}^\dagger V
+\right).
+\end{aligned}}
+\tag{DG41c}
+$$
+
+Both are Hermitian and obey
+
+$$
+\boxed{
+\operatorname{tr}\mathcal S_{\rm in}
++
+\operatorname{tr}\mathcal S_{\rm out}
+=0.}
+\tag{DG41d}
+$$
+
+For relative-charge generators satisfying
+$Q_{\rm in}V=VQ_{\rm out}$, they also obey
+
+$$
+\boxed{
+\operatorname{tr}(Q_{\rm in}\mathcal S_{\rm in})
++
+\operatorname{tr}(Q_{\rm out}\mathcal S_{\rm out})
+=0.}
+\tag{DG41e}
+$$
+
+The reduced transverse source in (DG39) can therefore be
+
+$$
+\boxed{
+S_c^{\rm ext}:=(\mathcal S_{\rm in})_{IY}.}
+\tag{DG41f}
+$$
+
+It satisfies the capacity bound
+
+$$
+\|\mathcal S_{\rm in}\|_F
+\le
+\frac{2}{\hbar}
+\|V\|_{\rm op}
+\|\mathsf C_{\rm io}\|_F.
+$$
+
+Combining this inequality with (DG41) gives the necessary condition
+
+$$
+\boxed{
+\frac{2}{\hbar}
+\|V\|_{\rm op}
+\|\mathsf C_{\rm io,N}\|_F
+\ge
+\gamma_{c,\min}\|c_{\rm in}\|_2.}
+\tag{DG41g}
+$$
+
+Equation (DG40) still supplies the phase-sensitive condition. Source capacity
+alone cannot support stationary coherence when
+$\operatorname{Re}\int c_{\rm in}^*S_c^{\rm ext}$ is zero or negative.
+
+Cross-scale transport of the normalized block must act on both sides:
+
+$$
+\boxed{
+K_{a+1}=L_aK_aR_a^\dagger,
+\qquad
+\|K_N\|_F
+\le
+\left(
+\prod_{a=0}^{N-1}
+\|L_a\|_{\rm op}\|R_a\|_{\rm op}
+\right)
+\|K_0\|_F.}
+\tag{DG41h}
+$$
+
+With $T_\varphi=\varphi^{-1}$ as a declared forward-power fraction, the
+separate assignments give
+
+$$
+\frac{\|K_N\|_F}{\|K_0\|_F}
+=
+\begin{cases}
+1,
+&L_a,R_a\ \text{unitary},\\
+\varphi^{-N/2},
+&L_a=\sqrt{T_\varphi}U_a,\ R_a\ \text{unitary},\\
+\varphi^{-N},
+&L_a=\sqrt{T_\varphi}U_a,\
+R_a=\sqrt{T_\varphi}W_a.
+\end{cases}
+\tag{DG41i}
+$$
+
+The routed-power ledger
+$P_N^{\rm fwd}=\varphi^{-N}P_0^{\rm fwd}$ remains a separate quantity. The
+matching exponent in the symmetric case supplies no carrier or normalization
+map between $\|K\|_F$ and physical power.
+
+No $q$ dependence is assigned to $L_a$, $R_a$, $V$, or
+$\mathsf C_{\rm io}$. The scalar $q$ enters this support problem only through
+the local rate $\gamma_c=(\varphi^2/2)\lambda(1-q)$. Pure block-unitary
+evolution redistributes coherence between the two domains; sustained interior
+support requires exterior dynamics, boundary data, or a reservoir capable of
+maintaining the needed cross block. Spatial boundary flux, scale-graph
+current, and this reduced two-domain source remain distinct realizations until
+a declared reduction relates them. Momentum transfer belongs to the complete
+mixed Noether stress in §9.
+
+The EC1–EC7 receipt verifies positivity, independent-frame covariance, number
+and relative-charge ledgers, the separated attenuation exponents, the source
+capacity and phase controls, and exact conservative evolution. See
+`computations/cross_scale_coherence_interface_check.py` and
+`computations/cross_scale_coherence_interface_report.md`.
 
 ## 8. Endpoint and Wilson Closure
 
@@ -743,6 +953,10 @@ The present roles can be stated without merging the variables:
 | $q$ | bounded density-and-composition diagnostic that gates conversion |
 | $c$ | optional transverse coherence in the positive Hermitian lift |
 | $B_A$ | optional relative-phase comparison connection |
+| $\Gamma_{\rm out}$ | optional exterior positive Hermitian fibre |
+| $\mathsf C_{\rm io},K_{\rm io}$ | bounded cross-domain coherence and its normalized contraction |
+| $V$ | conditional reciprocal interface coupling |
+| $L_a,R_a$ | two-sided cross-scale transfer maps |
 | $G_{AB}$ | optional relative-connection curvature |
 | $J_Q$ | relative-charge flow through the scale sector |
 | $\mathbf J_{\Upsilon,v}$ | endpoint number flow through physical space |
@@ -750,7 +964,7 @@ The present roles can be stated without merging the variables:
 | $T_{i\mathfrak s}$ | mixed spatial momentum flux through scale |
 | $\mathbf X=D\mathbf n$ | affine observation image of normalized coherence state |
 
-The hypothesis that $c$, $B_A$, $G_{AB}$, and $J_Q$ are successive manifestations of one microscopic Qi degree of freedom remains open. The scalar $q$ does not establish that identification.
+The hypotheses connecting $c$, $B_A$, $G_{AB}$, $J_Q$, and $\mathsf C_{\rm io}$ to one microscopic Qi degree of freedom remain open. The scalar $q$ controls the canonical conversion rate and supplies no identification among those conditional sectors.
 
 ## 11. Minimal Testable Boundary-Value Problem
 
@@ -800,6 +1014,22 @@ A candidate qualifies only if it satisfies all of the following:
 
 This is an open-system stationary problem. It is not an extremization of one conservative energy unless the reservoir is promoted to explicit dynamical fields.
 
+### 11.4 Cross-domain source realization
+
+When the two-domain realization in §7.4 is selected, add
+$\Gamma_{\rm out}$ and $\mathsf C_{\rm io}$ to the unknowns and declare $V$
+before solving. Impose $\Gamma_{\rm io}\succeq0$ everywhere and set
+
+$$
+S_c=(\mathcal S_{\rm in})_{IY}
+$$
+
+from (DG41c), rather than fitting $S_c$ independently. Any scale propagation
+of the cross block must declare both $L_a$ and $R_a$. Initial or boundary data
+for the exterior fibre and cross block are part of the problem. A stationary
+interior solution must close the enlarged number, relative-charge, energy,
+and momentum ledgers, including every exterior or reservoir flux.
+
 ## 12. Interface Requirements for a Microscopic Particle Branch
 
 A future connection to the fixed-charge local-$SU(2)_Q$ particle action requires all of the following:
@@ -815,11 +1045,7 @@ Absent those maps, the two sectors remain separate conditional branches.
 
 ## 13. Derived, Hypothesized, and Open Results
 
-The frozen DG1–DG7 receipt returns **PASS**. The universal finite-state $q$
-bound and the strict undriven-coherence sign follow from the exact
-factorization in §§5 and 7; the deterministic checker supplies the registered
-implementation witness. See
-`computations/dynamical_geometry_closure_report.md`.
+The frozen DG1–DG7 and EC1–EC7 receipts return **PASS**. The universal finite-state $q$ bound and strict undriven-coherence sign follow from the exact factorization in §§5 and 7. The cross-domain positivity, covariance, reciprocal exchange, two-sided attenuation, and source-capacity statements follow from §7.4. The deterministic checkers supply the registered implementation witnesses. See `computations/dynamical_geometry_closure_check.py`, `computations/dynamical_geometry_closure_report.md`, `computations/cross_scale_coherence_interface_check.py`, and `computations/cross_scale_coherence_interface_report.md`.
 
 | Statement | Status |
 |---|---|
@@ -830,6 +1056,9 @@ implementation witness. See
 | $\gamma_c=\gamma_\varepsilon/2$ | **Derived within the declared lift** |
 | Strict finite-density decay of undriven $c$ | **Derived conditional boundary** |
 | Coherence-support budget (DG40) | **Derived conditional stationary identity** |
+| Positive cross-domain block and independent-frame covariance (DG41a–DG41b) | **Derived conditional interface algebra / Hypothesized physical exterior** |
+| Reciprocal source and enlarged number/relative-charge ledgers (DG41c–DG41g) | **Derived conditional exchange algebra / Hypothesized physical coupling** |
+| Two-sided attenuation families (DG41h–DG41i) | **Derived from declared port factors / Physical transfer selection open** |
 | Relative-$U(1)_Q$ connection and graph currents | **Hypothesized physical sector / Derived covariance algebra** |
 | Endpoint spatial flux and Wilson ledgers | **Derived conditional conservation / Hypothesized physical coefficients** |
 | One microscopic action producing all sectors | **Open** |
@@ -852,12 +1081,15 @@ $$
 \text{endpoint channels}
 \quad+
 \quad
+\text{bounded two-domain cross coherence}
+\quad+
+\quad
 \text{declared reservoir terms}.
 $$
 
-The scalar $q$ controls the speed of canonical composition relaxation. The optional off-diagonal $c$ describes transverse coherence in the positive Hermitian lift. The relative connection transports its phase frame, while endpoint and Wilson channels close conditional number and charge ledgers. These roles are compatible and remain physically distinct.
+The scalar $q$ controls the speed of canonical composition relaxation. The optional off-diagonal $c$ describes transverse coherence in the positive Hermitian lift. The relative connection transports its phase frame, while endpoint and Wilson channels close conditional number and charge ledgers. A bounded two-domain cross-coherence block supplies an explicit reciprocal source realization and a two-sided attenuation law. These roles are compatible and remain physically distinct.
 
-Putting the existing sectors together produces a specific requirement: finite-density transverse coherence decays in the undriven minimal conversion lift. A phase-bearing stationary object therefore needs an identified support term whose real coherence injection balances the positive decay budget. The microscopic source of that term, the total stress sourcing geometry, and the interface to a qualified particle branch are the next derivation targets.
+Putting the sectors together produces a specific requirement: finite-density transverse coherence decays in the undriven minimal conversion lift. A phase-bearing stationary object therefore needs an identified support term whose real coherence injection balances the positive decay budget. The two-domain interface derives one such term from $\mathsf C_{\rm io}$ and $V$, with positivity, capacity, phase, and enlarged-ledger conditions. Its exterior dynamics, total stress sourcing geometry, reservoir reduction, physical transfer factors, and interface to a qualified particle branch are the next derivation targets.
 
 ## References
 
@@ -869,5 +1101,9 @@ Putting the existing sectors together produces a specific requirement: finite-de
 - `foundations/endpoint-link-and-localization-boundary.md`—endpoint continuity, spatial flux, and Wilson transport.
 - `foundations/particle-stationary-action-closure.md`—separate fixed-charge local-$SU(2)_Q$ particle branch.
 - `computations/dynamical_geometry_closure_prereg.md`—frozen DG1–DG7 reduction and ledger criteria.
+- `computations/dynamical_geometry_closure_check.py`—deterministic DG1–DG7 first-execution witness.
 - `computations/dynamical_geometry_closure_report.md`—DG1–DG7 analytic proof,
   first-execution receipt, and scoped PASS verdict.
+- `computations/cross_scale_coherence_interface_prereg.md`—frozen EC1–EC7 positive-interface, exchange, attenuation, and support criteria.
+- `computations/cross_scale_coherence_interface_check.py`—deterministic EC1–EC7 first-execution witness.
+- `computations/cross_scale_coherence_interface_report.md`—analytic interface derivation, exact receipt, and scoped PASS verdict.
