@@ -9,7 +9,7 @@ Can the canonical Yin/Yang density dynamics, the positive Hermitian coherence fi
 This receipt tests seven conditional claims:
 
 1. the canonical scalar $q(E_Y,E_I)$ satisfies $0\le q<1$ for every finite nonnegative density state;
-2. the two-jump completely positive conversion generator reduces exactly to the canonical $q$-gated diagonal PDE and preserves total density;
+2. the two-jump nonlinear pointwise Lindblad-form conversion vector field reduces exactly to the canonical $q$-gated diagonal PDE, preserves the positive cone, and preserves total density;
 3. the conversion generator is covariant under the declared relative $U(1)_Q$ frame transformation;
 4. its normalized Bloch-coordinate reduction gives the registered composition and transverse-coherence rates;
 5. the undriven homogeneous minimal lift cannot support nonzero stationary transverse coherence at finite density when $\lambda>0$;
@@ -24,7 +24,7 @@ The frozen authorities are:
 
 - `foundations/cassi-first-principles.md` §§1.3 and 2.1—the canonical real-density state, scalar $q$, and gated rank-one conversion;
 - `foundations/physical-becoming-hierarchy.md` §4—the gradient-flow form, optional Markov bath, response functional, and reservoir boundary;
-- `foundations/geometric-manifold-completion.md` §§2–4—the two-rail scale graph, positive Hermitian fibre, conditional relative-$U(1)_Q$ action, matrix continuity ansatz, and minimal completely positive conversion lift;
+- `foundations/geometric-manifold-completion.md` §§2–4—the two-rail scale graph, positive Hermitian fibre, conditional relative-$U(1)_Q$ action, matrix continuity ansatz, and minimal two-jump conversion lift;
 - `foundations/interscale-stress-attenuation-boundary.md` §§2–4—the distinction between number current, gauge current, mixed momentum stress, and physical force;
 - `foundations/endpoint-link-and-localization-boundary.md` §§3.9–3.11—the endpoint continuity law, closed-domain zero mode, and separately declared Wilson transport;
 - `foundations/particle-stationary-action-closure.md` §§1 and 8–9—the separate local-$SU(2)_Q$, second-order, fixed-$Q_C$ particle branch and its registered numerical boundary.
@@ -132,7 +132,15 @@ $$
 \end{aligned}}
 $$
 
-Its diagonal reduction must agree exactly with the canonical PDE conversion block. Nonnegative jump rates and the displayed GKSL form provide the conditional positivity-preserving lift; the checker tests the component identities and rates rather than substituting a finite-step numerical integrator for that analytic statement.
+Its diagonal reduction must agree exactly with the canonical PDE conversion block. Because $\gamma_{\rm conv}$ depends on $\Gamma$ through $q$, the full vector field is nonlinear. At fixed $q$, the displayed generator is an ordinary linear GKSL generator and defines a completely positive semigroup. For the state-dependent flow,
+
+$$
+\mathcal L_{\rm conv}[\Gamma]
+=
+\gamma_{\rm conv}(\Gamma)\,\mathcal L_0[\Gamma],
+$$
+
+with $\gamma_{\rm conv}\ge0$ and fixed linear GKSL generator $\mathcal L_0$. Each trajectory is a nondecreasing time reparametrization of the $\mathcal L_0$ flow, so the positive cone is preserved. The nonlinear evolution is not itself a linear completely positive map or semigroup. The checker tests the component identities, nonnegative rate, and time-reparametrization factor rather than substituting a finite-step numerical integrator for this analytic statement.
 
 ## 5. Relative-Frame Covariance
 
