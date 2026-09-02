@@ -994,6 +994,14 @@ func _prepare_target(target: Dictionary) -> Dictionary:
 			lengths.append(total)
 		prepared["_arc_lengths"] = lengths
 		prepared["_arc_total"] = total
+	elif target.type == "ring":
+		var basis := _axis_basis(target.normal)
+		prepared["_basis_0"] = basis[0]
+		prepared["_basis_1"] = basis[1]
+	elif target.type in ["helix", "double_helix"]:
+		var basis := _axis_basis(target.axis)
+		prepared["_basis_0"] = basis[0]
+		prepared["_basis_1"] = basis[1]
 	return prepared
 
 func _axis_basis(axis: Vector3) -> Array[Vector3]:
@@ -1027,9 +1035,8 @@ func _target_position(target: Dictionary, index: int, count: int, source: Vector
 		var amount := 0.5 if count == 1 else float(index) / float(count - 1)
 		return target.center + target.direction * float(target.length) * (amount - 0.5)
 	if kind == "ring":
-		var basis := _axis_basis(target.normal)
 		var angle := float(target.phase) + TAU * float(index) / float(count)
-		return target.center + float(target.radius) * (basis[0] * cos(angle) + basis[1] * sin(angle))
+		return target.center + float(target.radius) * (target._basis_0 * cos(angle) + target._basis_1 * sin(angle))
 	if kind == "sphere":
 		var y := 1.0 - 2.0 * (float(index) + 0.5) / float(count)
 		var radial := sqrt(maxf(0.0, 1.0 - y * y))
@@ -1048,8 +1055,7 @@ func _target_position(target: Dictionary, index: int, count: int, source: Vector
 		var strand_index := index / 2 if kind == "double_helix" else index
 		var amount := 0.5 if strand_count <= 1 else float(strand_index) / float(strand_count - 1)
 		var angle := float(target.phase) + TAU * float(target.turns) * amount + PI * float(strand)
-		var basis := _axis_basis(target.axis)
-		return target.center + target.axis * (float(target.pitch) * float(target.turns) * (amount - 0.5)) + float(target.radius) * (basis[0] * cos(angle) + basis[1] * sin(angle))
+		return target.center + target.axis * (float(target.pitch) * float(target.turns) * (amount - 0.5)) + float(target.radius) * (target._basis_0 * cos(angle) + target._basis_1 * sin(angle))
 	if kind == "point_cloud":
 		return _point_cloud_target(target, index, count)
 	if kind == "translate":
@@ -1079,6 +1085,8 @@ func _arrangement_plan(args: Dictionary, buffers: Dictionary) -> Dictionary:
 	var target_max := Vector3(-INF, -INF, -INF)
 	var sample: Array[Vector3] = []
 	var sample_count := mini(PREVIEW_SAMPLE_LIMIT, ids.size())
+	var target_positions := PackedVector3Array()
+	target_positions.resize(ids.size())
 	var next_sample := 0
 	for order in range(ids.size()):
 		var particle := int(ids[order])
@@ -1086,6 +1094,7 @@ func _arrangement_plan(args: Dictionary, buffers: Dictionary) -> Dictionary:
 		if not source.is_finite():
 			return _fail("nonfinite_particle_state")
 		var resolved := _target_position(target, order, ids.size(), source)
+		target_positions[order] = resolved
 		if not _target_in_bounds(resolved, buffers):
 			return _fail("particle_target_out_of_bounds", {"particle": particle, "target": resolved})
 		var displacement := source.distance_to(resolved)
@@ -1101,6 +1110,7 @@ func _arrangement_plan(args: Dictionary, buffers: Dictionary) -> Dictionary:
 	return _ok({
 		"ids": ids,
 		"target": target,
+		"target_positions": target_positions,
 		"target_sample": sample,
 		"target_bounds": {"min": target_min, "max": target_max},
 		"maximum_displacement": maximum_displacement,
@@ -1109,11 +1119,12 @@ func _arrangement_plan(args: Dictionary, buffers: Dictionary) -> Dictionary:
 
 func _apply_arrangement(command: Dictionary, buffers: Dictionary, plan: Dictionary) -> Dictionary:
 	var ids: PackedInt32Array = plan.ids
+	var target_positions: PackedVector3Array = plan.target_positions
 	for order in range(ids.size()):
 		var particle := int(ids[order])
 		var offset := particle * 4
 		var source := Vector3(buffers.pos[offset], buffers.pos[offset + 1], buffers.pos[offset + 2])
-		var target := _target_position(plan.target, order, ids.size(), source)
+		var target := target_positions[order]
 		if command.args.motion.type == "exact":
 			buffers.pos[offset] = target.x
 			buffers.pos[offset + 1] = target.y
