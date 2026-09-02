@@ -661,12 +661,25 @@ Linearizing the first-order endpoint action (EL9) exposes the background
 requirement behind the frozen current-turning law. The second-order fixed-$Q_C$
 particle action in `foundations/particle-stationary-action-closure.md` is a
 separate temporal sector and supplies no coefficient to the Hessian or pole law
-below. The endpoint equation from (EL9) is
+below.
+
+The frozen endpoint-response protocols abbreviate the charge-$-g_Q$ spatial
+derivative as
+
+$$
+\boxed{
+D_i^{(-)}
+:=D_i^{(-g_Q)}
+=\partial_i+ig_QB_i(v).}
+\tag{ELR9a}
+$$
+
+The endpoint equation from (EL9) is
 
 $$
 i\hbar\partial_t\Upsilon
 =
--\frac{K_v}{2}D_i^{(-)}D_i^{(-)}\Upsilon
+-\frac{K_v}{2}D_i^{(-g_Q)}D_i^{(-g_Q)}\Upsilon
 +U_v'(|\Upsilon|^2)\Upsilon
 -\kappa_v\psi_Y^*\psi_I.
 \tag{ELR10}
@@ -702,6 +715,27 @@ Neither quantity includes the relative charge. The gauge-weighted rail source
 is $g_Q\Gamma_v$, distinct from the bulk gauge-source current
 $\mathcal I_{\mathfrak s}=g_QJ_Q$. On the stationary oriented circuit,
 $\Gamma_v=\sigma_v\mathcal J_Q$.
+
+The spatially resolved coefficient multiplies a delta source in the rail
+scale-continuity equation:
+
+$$
+\boxed{
+\Gamma(\mathfrak s,\mathbf x,t)
+=\sum_{v\in\{v_-,v_+\}}
+\Gamma_v(\mathbf x,t)\,
+\delta(\mathfrak s-v),
+\qquad
+\Gamma_v
+=-\mathcal J_{c,v}\sin(\vartheta-\alpha_v)
+=\sigma_v\mathcal J_Q
+\quad\text{on the stationary circuit}.}
+\tag{ELR10b}
+$$
+
+The last equality is the EL15–EL19 sign map. The rail number current is
+$J_Q$, its stationary value is $\mathcal J_Q$, and the corresponding
+gauge/Noether current is $\mathcal I_{\mathfrak s}=g_QJ_Q$.
 
 For a homogeneous time-harmonic background whose rail bilinear shares the
 endpoint carrier,
@@ -988,6 +1022,11 @@ J_{\Upsilon,v}^i
 \right].}
 \tag{ELR18}
 $$
+
+This is a spatial current on the vertex slice $\mathfrak s=v$. Action (EL9)
+contains no $D_{\mathfrak s}\Upsilon_v$ term and defines no
+$\Upsilon_v$-carried interscale current; $J_Q$ remains the rail interscale
+number current.
 
 Multiplying (ELR10) by $\Upsilon_v^*$, subtracting its conjugate, and using
 (ELR10a) gives the exact local balance
@@ -1629,10 +1668,12 @@ localized solution, or defect sector.
 The gauge transformations, source cancellation, capacity inequality,
 frozen-link Robin reduction, Cayley unitarity, selected-point golden match,
 conditional current-capacity lower bound, closed homogeneous current boundary,
-first-order active mixed Hessian, zero-background source-action order and sign
-boundary, endpoint pole law, Nambu Schur response, Markov rate ratio, coherence
-half-rate, cohomology groups, reduced-radius algebra, and point-core exterior
-coefficient are executable analytic checks. No numerical PDE run currently realizes the
+stationary spatial continuity and source normalization, closed-domain zero
+mode, positive spatial-flux gradient cost, first-order active mixed Hessian,
+zero-background source-action order and sign boundary, endpoint pole law,
+Nambu Schur response, Markov rate ratio, coherence half-rate, cohomology
+groups, reduced-radius algebra, and point-core exterior coefficient are
+executable analytic checks. No numerical PDE run currently realizes the
 charged endpoint field, open endpoint channel, or a finite-energy point
 defect. The toroidal experiments test different conservative spatial
 constructions and do not instantiate (EL9) or (EL28).
@@ -1674,15 +1715,28 @@ The separately frozen source-action execution of
 | AR5 $\mathcal K/\mathcal D$ equivalence, elimination, constant-frame kernel covariance, and anomalous block | $0$, $1.511\times10^{-17}$, $2.220\times10^{-16}$, and $0.390450933151$ |
 | AR6 conservative Hermiticity, damped non-Hermiticity, and advanced adjoint | $3.103\times10^{-17}$, $0.360569701415$, and $6.206\times10^{-17}$ |
 
+The frozen first execution of
+`computations/endpoint_spatial_flux_check.py` has verdict **PASS**:
+
+| Gate | Numerical receipt |
+|---|---:|
+| SF1 source normalization and relative-charge cancellation | $0$ and $0$ |
+| SF2 stationary endpoint equation, link source, and local continuity | $1.570\times10^{-16}$, $3.886\times10^{-16}$, and $1.193\times10^{-15}$ |
+| SF3 analytic time-independent local covariance | $2.776\times10^{-17}$ invariant-gradient, $5.594\times10^{-17}$ covariant-derivative, $1.144\times10^{-16}$ covariant-Laplacian, $1.388\times10^{-16}$ current, $1.665\times10^{-16}$ source, and $4.518\times10^{-16}$ transformed-equation residuals |
+| SF4 periodic inverse-divergence reconstruction | $1.804\times10^{-16}$ phase residual; $8.224\times10^{-18}$ source mean |
+| SF5 closed-domain zero-mode obstruction | $0$ bad-source mean error; $8.224\times10^{-18}$ reconstructed-divergence mean; $1.027\times10^{-15}$ uniform-residual error |
+| SF6 positive gradient-cost identity | direct, $\Gamma_v$-spectral, and $\mathcal I_{\mathrm{link},v}$-spectral values all $4.670076740822$; $1.902\times10^{-16}$ relative residual |
+
 The executable label `stable matched-link k_min` denotes the current-capacity
 threshold where the frozen-amplitude phase stiffness vanishes. The endpoint
 potential, nonzero-current background, damping law, and full coupled
 fluctuation spectrum remain open.
 
-No new prediction number is introduced. Existing EL-2 in
-`predictions/falsifiable-predictions.md` records the conditional response and
-its open premises. A physical discriminator still requires a selected endpoint
-normalization, support sector, solution, and observable map.
+Prediction EL-2 in `predictions/falsifiable-predictions.md` records the
+conditional frozen and active response. Prediction EL-10 records the
+stationary spatial-flux, zero-mode, and gradient-cost boundary. A physical
+discriminator still requires a selected endpoint normalization, support
+sector, coupled solution, transport channel, and observable map.
 
 ---
 
