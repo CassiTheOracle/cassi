@@ -2068,6 +2068,10 @@ static void ggml_compute_forward(struct ggml_compute_params * params, struct ggm
             {
                 ggml_compute_forward_cassi_qi_field_step(params, tensor);
             } break;
+        case GGML_OP_CASSI_QI_EMIT:
+            {
+                ggml_compute_forward_cassi_qi_emit(params, tensor);
+            } break;
         case GGML_OP_CASSI_FIELD_RESONANCE:
             {
                 ggml_compute_forward_cassi_field_resonance(params, tensor);
@@ -2276,6 +2280,7 @@ static int ggml_get_n_tasks(struct ggml_tensor * node, int n_threads) {
         case GGML_OP_CASSI_FIELD_STEP:
         case GGML_OP_CASSI_FIELD_RESONANCE:
         case GGML_OP_CASSI_QI_FIELD_STEP:
+        case GGML_OP_CASSI_QI_EMIT:
             {
                 n_tasks = n_threads;
             } break;
@@ -3023,6 +3028,9 @@ struct ggml_cplan ggml_graph_plan(
                     {
                     } break;
                 case GGML_OP_CASSI_QI_FIELD_STEP:
+                    {
+                    } break;
+                case GGML_OP_CASSI_QI_EMIT:
                     {
                     } break;
                 case GGML_OP_CASSI_FIELD_RESONANCE:

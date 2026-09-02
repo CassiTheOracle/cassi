@@ -10,11 +10,14 @@ the new native recurrence rather than claiming dense-grid bit identity.
 from __future__ import annotations
 
 import math
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Iterable
 
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from l18_field_output_systems import DIMENSION, GRID_N, MODE_COUNT, PHI, canonical_modes
 
 

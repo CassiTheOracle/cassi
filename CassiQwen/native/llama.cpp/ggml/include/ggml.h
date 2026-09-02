@@ -593,6 +593,7 @@ extern "C" {
         GGML_OP_CASSI_MODAL,
         GGML_OP_CASSI_FIELD_STEP,
         GGML_OP_CASSI_QI_FIELD_STEP,
+        GGML_OP_CASSI_QI_EMIT,
         GGML_OP_CASSI_FIELD_RESONANCE,
 
         GGML_OP_COUNT,
@@ -2593,13 +2594,13 @@ extern "C" {
         float                 coupling,
         int64_t               steps);
 
-    // Native profile uses shared physical mode coordinates: scale 0 is fastest
-    // and external sense writes only scale 0; increasing scale is slower/+z.
-    // Packed output: flux [2*M,T], state [9*M*S,B], diagnostics [10*S,B].
+    // Native profile uses shared physical state coordinates: scale 0 is fastest
+    // and external sense writes only scale 0. The state width M is taken from
+    // mode_params; the complex boundary width W is sense.ne[0]/2 and W <= M.
+    // Packed output: flux [2*W,T], state [9*M*S,B], diagnostics [10*S,B].
     // State offset is flux_count + sequence*state_stride + (scale*M + mode)*9.
     // Diagnostics per sequence use [rho,q,chi,j_temporal,j_scale,read_gate,
-    // cross_scale_coherence,write_gate,consolidation_gate,available] per scale,
-    // at flux_count + state_count + sequence*(10*S) + scale*10 + component.
+    // cross_scale_coherence,write_gate,consolidation_gate,available] per scale.
     GGML_API struct ggml_tensor * ggml_cassi_qi_field_step(
         struct ggml_context * ctx,
         struct ggml_tensor  * sense,
@@ -2617,6 +2618,20 @@ extern "C" {
         float                 energy_floor,
         float                 read_floor,
         int64_t               steps);
+
+    // Field-owned vocabulary logits. Each score is a deterministic function of
+    // the persistent Qi state and immutable token id; no model logit or LM-head
+    // weight is an input. State layout is [9*M*S, sequence].
+    GGML_API struct ggml_tensor * ggml_cassi_qi_emit(
+        struct ggml_context * ctx,
+        struct ggml_tensor  * state,
+        struct ggml_tensor  * seq_ids,
+        int64_t               vocab_size,
+        int64_t               wave_mode_count,
+        int64_t               scale_count,
+        float                 phi,
+        float                 scale_ratio,
+        float                 read_floor);
 
     GGML_API struct ggml_tensor * ggml_cassi_field_resonance(
         struct ggml_context * ctx,

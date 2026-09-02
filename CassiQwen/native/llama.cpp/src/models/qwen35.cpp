@@ -135,7 +135,10 @@ std::unique_ptr<llm_graph_context> llama_model_qwen35::build_arch_graph(const ll
 }
 
 llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_params & params) :
-    llm_build_delta_net_base(params), model(model) {
+    llm_build_delta_net_base(params),
+    model(model),
+    qi_displacement(params.cassi_qi != nullptr ? params.cassi_qi->displacement_level : 0),
+    qi_layer(params.cassi_qi != nullptr ? params.cassi_qi->layer_index : 0) {
     const int64_t n_embd_head = hparams.n_embd_head_v();
 
     GGML_ASSERT(n_embd_head == hparams.n_embd_head_k());
@@ -158,81 +161,85 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
     // MTP/NextN layers are loaded as extra decoder blocks but not executed in the main pass.
     for (int il = 0; il < n_layer; ++il) {
         res->t_layer_inp[il] = inpL;
+        const bool bypass_attention = qi_displacement >= 4 && (uint32_t) il >= qi_layer;
+        const bool bypass_block = qi_displacement >= 5 && (uint32_t) il >= qi_layer;
 
-        ggml_tensor * inpSA = inpL;
+        if (!bypass_attention) {
+            ggml_tensor * inpSA = inpL;
+            cur = build_norm(inpL, model.layers[il].attn_norm, nullptr, LLM_NORM_RMS, il);
+            cb(cur, "attn_norm", il);
+            ggml_build_forward_expand(gf, cur);
 
-        cur = build_norm(inpL, model.layers[il].attn_norm, nullptr, LLM_NORM_RMS, il);
-        cb(cur, "attn_norm", il);
+            if (hparams.is_recr(il)) {
+                cur = build_layer_attn_linear(inp->get_recr(), cur, il);
+            } else {
+                cur = build_layer_attn(inp->get_attn(), cur, inp_pos, sections, il);
+            }
 
-        ggml_build_forward_expand(gf, cur);
-
-        // Determine layer type and build appropriate attention mechanism
-        if (hparams.is_recr(il)) {
-            // Linear attention layer (gated delta net)
-            cur = build_layer_attn_linear(inp->get_recr(), cur, il);
+            if (il == n_layer - 1 && inp_out_ids && cparams.embeddings_nextn_masked) {
+                cur   = ggml_get_rows(ctx0, cur,   inp_out_ids);
+                inpSA = ggml_get_rows(ctx0, inpSA, inp_out_ids);
+            }
+            cur = ggml_add(ctx0, cur, inpSA);
+            cb(cur, "attn_residual", il);
         } else {
-            // Full attention layer
-            cur = build_layer_attn(inp->get_attn(), cur, inp_pos, sections, il);
+            cur = inpL;
+            if (il == n_layer - 1 && inp_out_ids && cparams.embeddings_nextn_masked) {
+                cur = ggml_get_rows(ctx0, cur, inp_out_ids);
+            }
+            cb(cur, "cassi_qi_attention_bypass", il);
         }
 
-        if (il == n_layer - 1 && inp_out_ids && cparams.embeddings_nextn_masked) {
-            cur   = ggml_get_rows(ctx0, cur,   inp_out_ids);
-            inpSA = ggml_get_rows(ctx0, inpSA, inp_out_ids);
+        if (!bypass_block) {
+            ggml_tensor * ffn_residual = cur;
+            ggml_tensor * attn_post_norm = build_norm(
+                cur, model.layers[il].attn_post_norm, nullptr, LLM_NORM_RMS, il);
+            cb(attn_post_norm, "attn_post_norm", il);
+            cur = build_layer_ffn(attn_post_norm, il);
+            cb(cur, "ffn_out", il);
+            cur = ggml_add(ctx0, cur, ffn_residual);
+            cb(cur, "post_ffn", il);
+        } else {
+            cb(cur, "cassi_qi_block_bypass", il);
         }
-
-        // Residual connection
-        cur = ggml_add(ctx0, cur, inpSA);
-        cb(cur, "attn_residual", il);
-
-        // Save the tensor before post-attention norm for residual connection
-        ggml_tensor * ffn_residual = cur;
-
-        // Post-attention norm
-        ggml_tensor * attn_post_norm = build_norm(cur, model.layers[il].attn_post_norm, nullptr, LLM_NORM_RMS, il);
-        cb(attn_post_norm, "attn_post_norm", il);
-
-        // Dense FFN layer - without residual connection
-        cur = build_layer_ffn(attn_post_norm, il);
-        cb(cur, "ffn_out", il);
-
-        // Residual connection for FFN - add to the tensor from before post_attention_layernorm
-        cur = ggml_add(ctx0, cur, ffn_residual);
-        cb(cur, "post_ffn", il);
 
         cur = build_cvec(cur, il);
         cb(cur, "l_out", il);
-
-        // Input for next layer
         inpL = cur;
     }
     cur = inpL;
 
     if (params.cassi_qi != nullptr && params.cassi_qi->enabled) {
-        const uint32_t mode_count = params.cassi_qi->mode_count;
+        const uint32_t state_mode_count = params.cassi_qi->mode_count;
+        const uint32_t wave_mode_count = params.cassi_qi->wave_mode_count;
         const uint32_t n_tokens = ubatch.n_tokens;
         const uint32_t n_seqs = std::max(1u, ubatch.n_seqs_unq);
         const uint32_t qi_layer = params.cassi_qi->layer_index;
         GGML_ASSERT(qi_layer < (uint32_t) n_layer);
         GGML_ASSERT(res->t_layer_inp[qi_layer] != nullptr);
-        GGML_ASSERT(mode_count * 2 == (uint32_t) hparams.n_embd);
+        GGML_ASSERT(2 * wave_mode_count >= (uint32_t) hparams.n_embd);
+        GGML_ASSERT(wave_mode_count <= state_mode_count);
 
         auto inp_qi = std::make_unique<llm_graph_input_cassi_modal>(
             static_cast<const llm_cassi_modal_config *>(params.cassi_qi), n_seqs);
         inp_qi->state = ggml_new_tensor_4d(ctx0, GGML_TYPE_F32,
                 params.cassi_qi->state_stride, n_seqs, 1, 1);
         inp_qi->mode_params = ggml_new_tensor_4d(ctx0, GGML_TYPE_F32,
-                mode_count, 1, 1, 1);
+                state_mode_count, 1, 1, 1);
         inp_qi->seq_ids = ggml_new_tensor_1d(ctx0, GGML_TYPE_I32, n_tokens);
         ggml_set_input(inp_qi->state);
         ggml_set_input(inp_qi->mode_params);
         ggml_set_input(inp_qi->seq_ids);
         auto * qi_inp = static_cast<llm_graph_input_cassi_modal *>(res->add_input(std::move(inp_qi)));
 
-        // Qi receives the full pre-layer residual with a fixed RMS boundary.
+        // The bridge uses the exact CassiFI boundary: one L2-unit Qwen residual
+        // packed into the first 2560 complex modes and zero-padded to W=3072.
         ggml_tensor * sense_raw = ggml_reshape_2d(
             ctx0, res->t_layer_inp[qi_layer], hparams.n_embd, n_tokens);
         ggml_tensor * sense = ggml_rms_norm(ctx0, sense_raw, hparams.f_norm_rms_eps);
-        cb(sense, "cassi_qi_sense_rms", qi_layer);
+        sense = ggml_scale(ctx0, sense, 1.0f / std::sqrt((float) hparams.n_embd));
+        sense = ggml_pad(ctx0, sense, 2 * wave_mode_count - hparams.n_embd, 0, 0, 0);
+        cb(sense, "cassi_qi_sense_l2_padded", qi_layer);
         ggml_tensor * t_qi = ggml_cassi_qi_field_step(
             ctx0, sense, qi_inp->state, qi_inp->mode_params, qi_inp->seq_ids,
             params.cassi_qi->scale_count,
@@ -251,7 +258,26 @@ llama_model_qwen35::graph::graph(const llama_model & model, const llm_graph_para
 
         ggml_tensor * correction = ggml_view_2d(
             ctx0, t_qi, hparams.n_embd, n_tokens,
-            (size_t) hparams.n_embd * sizeof(float), 0);
+            (size_t) 2 * wave_mode_count * sizeof(float), 0);
+        if (params.cassi_qi->displacement_level >= 6) {
+            const size_t flux_bytes = (size_t) 2 * wave_mode_count * n_tokens * sizeof(float);
+            ggml_tensor * state_after = ggml_view_2d(
+                ctx0, t_qi, params.cassi_qi->state_stride, n_seqs,
+                (size_t) params.cassi_qi->state_stride * sizeof(float), flux_bytes);
+            cur = ggml_cassi_qi_emit(
+                ctx0, state_after, qi_inp->seq_ids, (int64_t) model.vocab.n_tokens(),
+                wave_mode_count, params.cassi_qi->scale_count, params.cassi_qi->phi,
+                params.cassi_qi->scale_ratio, params.cassi_qi->read_floor);
+            if (inp_out_ids != nullptr) {
+                cur = ggml_get_rows(ctx0, cur, inp_out_ids);
+                correction = ggml_get_rows(ctx0, correction, inp_out_ids);
+            }
+            res->t_embd = correction;
+            cb(cur, "cassi_qi_field_logits", -1);
+            res->t_logits = cur;
+            ggml_build_forward_expand(gf, cur);
+            return;
+        }
         cur = build_norm(cur, model.output_norm, nullptr, LLM_NORM_RMS, -1);
         cb(cur, "h_nextn", -1);
         res->t_h_nextn = cur;
@@ -555,6 +581,9 @@ ggml_tensor * llama_model_qwen35::graph::build_layer_attn_linear(
     GGML_ASSERT(n_seqs != 0);
     GGML_ASSERT(ubatch.equal_seqs());
     GGML_ASSERT(ubatch.n_tokens == n_seq_tokens * n_seqs);
+    const bool write_recurrent_state =
+        qi_displacement < 3 ||
+        (qi_displacement == 3 ? (uint32_t) il != qi_layer : (uint32_t) il < qi_layer);
 
     // Input projections
     auto qkvz = build_qkvz(cur, il);
@@ -588,7 +617,8 @@ ggml_tensor * llama_model_qwen35::graph::build_layer_attn_linear(
     const int64_t conv_kernel_size = conv_kernel->ne[0];
     const int64_t conv_channels    = d_inner + 2 * hparams.ssm_n_group * hparams.ssm_d_state;
 
-    ggml_tensor * conv_input = build_conv_state(inp, conv_states_all, qkv_mixed, conv_kernel_size, conv_channels, il);
+    ggml_tensor * conv_input = build_conv_state(
+        inp, conv_states_all, qkv_mixed, conv_kernel_size, conv_channels, il, write_recurrent_state);
 
     ggml_tensor * state = build_rs(inp, ssm_states_all, hparams.n_embd_s(), n_seqs);
     state = ggml_reshape_4d(ctx0, state, head_v_dim, head_v_dim, num_v_heads, n_seqs);
@@ -650,7 +680,8 @@ ggml_tensor * llama_model_qwen35::graph::build_layer_attn_linear(
     cb(k_conv, "k_conv_predelta", il);
     cb(v_conv, "v_conv_predelta", il);
 
-    ggml_tensor * output = build_recurrent_attn(inp, ssm_states_all, q_conv, k_conv, v_conv, gate, beta, state, il);
+    ggml_tensor * output = build_recurrent_attn(
+        inp, ssm_states_all, q_conv, k_conv, v_conv, gate, beta, state, il, write_recurrent_state);
 
     // z: [head_dim, n_heads, n_tokens, n_seqs] -> [n_heads * n_tokens * n_seqs, head_dim]
     ggml_tensor * z_2d = ggml_reshape_4d(ctx0, z, head_v_dim, num_v_heads, n_seq_tokens, n_seqs);

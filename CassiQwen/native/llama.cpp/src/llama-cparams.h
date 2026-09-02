@@ -66,6 +66,7 @@ struct llama_cparams {
     uint32_t cassi_field_layer;
     uint32_t cassi_qi_field_layer;
     uint32_t cassi_qi_field_scales;
+    uint32_t cassi_qi_displacement;
 
     std::vector<bool> embeddings_layer_inp; // [n_layer()] extract input embeddings for layer
 

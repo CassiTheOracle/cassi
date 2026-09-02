@@ -2,18 +2,34 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import numpy as np
 
-from cassi_modal_reference import (
-    DIMENSION,
-    LAYER_COUNT,
-    MODE_COUNT,
-    ModalFieldState,
-    ModalFieldError,
-    direction_modes,
-    laplacian_symbol,
-    transition_matrices,
-)
+if __package__:
+    from .cassi_modal_reference import (
+        DIMENSION,
+        LAYER_COUNT,
+        MODE_COUNT,
+        ModalFieldError,
+        ModalFieldState,
+        direction_modes,
+        laplacian_symbol,
+        transition_matrices,
+    )
+else:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from native.reference.cassi_modal_reference import (
+        DIMENSION,
+        LAYER_COUNT,
+        MODE_COUNT,
+        ModalFieldError,
+        ModalFieldState,
+        direction_modes,
+        laplacian_symbol,
+        transition_matrices,
+    )
 
 
 def test_shader_symbol_and_transition_identity() -> None:

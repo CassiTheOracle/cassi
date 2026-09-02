@@ -131,6 +131,7 @@ llama_context::llama_context(
     cparams.cassi_field_layer = params.cassi_field_layer;
     cparams.cassi_qi_field_layer = params.cassi_qi_field_layer;
     cparams.cassi_qi_field_scales = params.cassi_qi_field_scales;
+    cparams.cassi_qi_displacement = params.cassi_qi_displacement;
     cparams.cassi_modal_retained_weight = params.cassi_modal_retained_weight;
     cparams.cassi_modal_phi             = params.cassi_modal_phi;
     cparams.cassi_modal_dt              = params.cassi_modal_dt;
@@ -168,18 +169,28 @@ llama_context::llama_context(
     cassi_field.omega2          = cparams.cassi_modal_omega2;
     cassi_field.coupling        = cparams.cassi_modal_coupling;
 
-    cassi_qi.enabled      = cparams.cassi_qi_field;
-    cassi_qi.n_seq_max    = cparams.n_seq_max;
-    cassi_qi.n_embd       = hparams.n_embd;
-    cassi_qi.mode_count   = hparams.n_embd / 2;
-    cassi_qi.layer_index  = cparams.cassi_qi_field_layer;
-    cassi_qi.scale_count  = cparams.cassi_qi_field_scales;
-    cassi_qi.profile_id   = 1;
-    cassi_qi.steps        = 1;
-    cassi_qi.state_stride = 9 * cassi_qi.mode_count * cassi_qi.scale_count;
-    cassi_qi.phi          = cparams.cassi_modal_phi;
-    cassi_qi.dt           = cparams.cassi_modal_dt;
-    cassi_qi.coupling     = cparams.cassi_modal_coupling;
+    cassi_qi.enabled          = cparams.cassi_qi_field;
+    cassi_qi.n_seq_max        = cparams.n_seq_max;
+    cassi_qi.n_embd           = hparams.n_embd;
+    cassi_qi.mode_count       = 6144;
+    cassi_qi.wave_mode_count  = 3072;
+    cassi_qi.layer_index      = cparams.cassi_qi_field_layer;
+    cassi_qi.scale_count      = cparams.cassi_qi_field_scales;
+    cassi_qi.profile_id       = 2;
+    cassi_qi.displacement_level = cparams.cassi_qi_displacement;
+    cassi_qi.steps            = 1;
+    cassi_qi.state_stride     = 9 * cassi_qi.mode_count * cassi_qi.scale_count;
+    cassi_qi.phi              = 1.618033988749895f;
+    cassi_qi.dt               = 0.005f;
+    cassi_qi.coupling         = 0.5f;
+    cassi_qi.damping_min      = 0.01f;
+    cassi_qi.damping_max      = 0.5f;
+    cassi_qi.epsilon_tau      = 0.618033988749895f;
+    cassi_qi.scale_ratio      = 4.2360679775f;
+    cassi_qi.energy_floor     = 1.0e-6f;
+    cassi_qi.read_floor       = 0.05f;
+    cassi_qi.mode_param_min   = cassi_qi.damping_min;
+    cassi_qi.mode_param_max   = cassi_qi.damping_max;
 
     if (cassi_field.enabled && (cassi_field.layer_index >= hparams.n_layer() ||
             (hparams.n_embd & 1) != 0 || cassi_field.mode_count == 0 ||
@@ -200,7 +211,9 @@ llama_context::llama_context(
             !std::isfinite(cassi_modal.coupling) || cassi_modal.coupling <= 0.0f)) {
         throw std::runtime_error("invalid Cassi modal configuration");
     }
-    if (cassi_qi.enabled && ((hparams.n_embd & 1) != 0 || cassi_qi.mode_count == 0 ||
+    if (cassi_qi.enabled && (cassi_qi.mode_count == 0 || cassi_qi.wave_mode_count == 0 ||
+            cassi_qi.displacement_level > 6 ||
+            2 * cassi_qi.wave_mode_count < hparams.n_embd || cassi_qi.wave_mode_count > cassi_qi.mode_count ||
             cassi_qi.layer_index >= hparams.n_layer() || cassi_qi.scale_count < 1 || cassi_qi.scale_count > 4 ||
             !std::isfinite(cassi_qi.phi) || cassi_qi.phi <= 0.0f ||
             !std::isfinite(cassi_qi.dt) || cassi_qi.dt <= 0.0f ||
@@ -760,6 +773,7 @@ void llama_context::sched_reserve() {
 
         n_splits_tg = ggml_backend_sched_get_n_splits(sched.get());
         n_nodes_tg  = ggml_graph_n_nodes(gf);
+        cassi_qi_graph_nodes_tg = cassi_qi.enabled ? n_nodes_tg : -1;
     }
 
     // reserve again with pp graph to avoid ggml-alloc reallocations during inference
@@ -969,7 +983,7 @@ void llama_context::queue_cassi_qi_field_state(const llm_graph_result * res, con
     }
     const uint32_t n_seqs = ubatch.n_seqs_unq;
     const size_t state_bytes = (size_t) cassi_qi.state_stride * sizeof(float);
-    const size_t flux_count = (size_t) 2 * cassi_qi.mode_count * ubatch.n_tokens;
+    const size_t flux_count = (size_t) 2 * cassi_qi.wave_mode_count * ubatch.n_tokens;
     const size_t state_count = (size_t) n_seqs * cassi_qi.state_stride;
     const size_t diag_count = (size_t) 10 * cassi_qi.scale_count * n_seqs;
     GGML_ASSERT(t_qi->type == GGML_TYPE_F32);
@@ -1593,6 +1607,77 @@ bool llama_context::set_adapter_cvec(
     sched_need_reserve = true;
 
     return res;
+}
+
+size_t llama_context::cassi_qi_state_size() const {
+    return cassi_qi.enabled ? cassi_qi.state_stride : 0;
+}
+
+int32_t llama_context::cassi_qi_graph_node_count() const {
+    return cassi_qi.enabled ? cassi_qi_graph_nodes_tg : -1;
+}
+
+bool llama_context::set_cassi_qi_state(llama_seq_id seq_id, const float * data, size_t count) {
+    if (!cassi_qi.enabled || data == nullptr || seq_id < 0 ||
+            (uint32_t) seq_id >= cassi_qi.n_seq_max || count != cassi_qi.state_stride) {
+        return false;
+    }
+    complete_cassi_qi_field_state();
+    std::memcpy(
+        cassi_qi.state + (size_t) seq_id * cassi_qi.state_stride,
+        data,
+        count * sizeof(float));
+    return true;
+}
+
+bool llama_context::get_cassi_qi_state(llama_seq_id seq_id, float * data, size_t count) {
+    if (!cassi_qi.enabled || data == nullptr || seq_id < 0 ||
+            (uint32_t) seq_id >= cassi_qi.n_seq_max || count != cassi_qi.state_stride) {
+        return false;
+    }
+    complete_cassi_qi_field_state();
+    std::memcpy(
+        data,
+        cassi_qi.state + (size_t) seq_id * cassi_qi.state_stride,
+        count * sizeof(float));
+    return true;
+}
+
+float llama_context::score_cassi_qi_token(llama_seq_id seq_id, llama_token token) {
+    if (!cassi_qi.enabled || seq_id < 0 || (uint32_t) seq_id >= cassi_qi.n_seq_max || token < 0) {
+        return -INFINITY;
+    }
+    complete_cassi_qi_field_state();
+    const uint32_t M = cassi_qi.mode_count;
+    const uint32_t W = cassi_qi.wave_mode_count;
+    const size_t seq_base = (size_t) seq_id * cassi_qi.state_stride;
+    uint32_t mixed = (uint32_t) token * 2654435761u + 2246822519u;
+    const float phase = 6.2831853071795864769f * (float) (mixed & 0x00ffffffu) / 16777216.0f;
+    const float phase_re = std::cos(phase);
+    const float phase_im = std::sin(phase);
+    float score = 0.0f;
+    float scale_weight = 1.0f;
+    for (uint32_t s = 0; s < cassi_qi.scale_count; ++s) {
+        const uint32_t active_mode = mixed % W;
+        const size_t active = seq_base + ((size_t) s * M + active_mode) * 9;
+        const float context_re = cassi_qi.state[active + 0] - cassi_qi.phi * cassi_qi.state[active + 2];
+        const float context_im = cassi_qi.state[active + 1] - cassi_qi.phi * cassi_qi.state[active + 3];
+        const float context_norm = std::sqrt(context_re * context_re + context_im * context_im);
+        score += scale_weight * (context_re * phase_re + context_im * phase_im)
+            / std::max(cassi_qi.read_floor, context_norm);
+        if (M > W) {
+            const uint32_t memory_mode = W + ((mixed ^ (mixed >> 16)) % (M - W));
+            const size_t memory = seq_base + ((size_t) s * M + memory_mode) * 9;
+            const float memory_re = cassi_qi.phi * cassi_qi.state[memory + 0] + cassi_qi.state[memory + 2];
+            const float memory_im = cassi_qi.phi * cassi_qi.state[memory + 1] + cassi_qi.state[memory + 3];
+            const float memory_norm = std::sqrt(memory_re * memory_re + memory_im * memory_im);
+            score += 0.5f * scale_weight * (memory_re * phase_re + memory_im * phase_im)
+                / std::max(cassi_qi.read_floor, memory_norm);
+        }
+        scale_weight /= cassi_qi.scale_ratio;
+        mixed = mixed * 1664525u + 1013904223u;
+    }
+    return std::isfinite(score) ? score : -INFINITY;
 }
 
 llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, llm_graph_type gtype, llama_memory_context_i * mctx, ggml_status & ret) {
@@ -4162,6 +4247,7 @@ llama_context_params llama_context_default_params() {
         /*.cassi_field_layer           =*/ 32,
         /*.cassi_qi_field_layer        =*/ 32,
         /*.cassi_qi_field_scales       =*/ 4,
+        /*.cassi_qi_displacement        =*/ 0,
         /*.samplers                    =*/ nullptr,
         /*.n_samplers                  =*/ 0,
         /*.ctx_other                   =*/ nullptr,
@@ -4558,6 +4644,65 @@ int32_t llama_set_adapter_cvec(
     bool res = ctx->set_adapter_cvec(data, len, n_embd, il_start, il_end);
 
     return res ? 0 : -1;
+}
+
+size_t llama_cassi_qi_state_size(const llama_context * ctx) {
+    return ctx != nullptr ? ctx->cassi_qi_state_size() : 0;
+}
+
+int32_t llama_cassi_qi_graph_nodes(const llama_context * ctx) {
+    return ctx != nullptr ? ctx->cassi_qi_graph_node_count() : -1;
+}
+
+bool llama_cassi_qi_state_set(
+        llama_context * ctx,
+        llama_seq_id seq_id,
+        const float * data,
+        size_t count) {
+    if (ctx == nullptr) {
+        return false;
+    }
+    ctx->synchronize();
+    return ctx->set_cassi_qi_state(seq_id, data, count);
+}
+
+bool llama_cassi_qi_state_get(
+        llama_context * ctx,
+        llama_seq_id seq_id,
+        float * data,
+        size_t count) {
+    if (ctx == nullptr) {
+        return false;
+    }
+    ctx->synchronize();
+    return ctx->get_cassi_qi_state(seq_id, data, count);
+}
+
+float llama_cassi_qi_score_token(
+        llama_context * ctx,
+        llama_seq_id seq_id,
+        llama_token token) {
+    if (ctx == nullptr) {
+        return -INFINITY;
+    }
+    ctx->synchronize();
+    return ctx->score_cassi_qi_token(seq_id, token);
+}
+
+bool llama_cassi_qi_score_tokens(
+        llama_context * ctx,
+        llama_seq_id seq_id,
+        const llama_token * tokens,
+        float * scores,
+        size_t count) {
+    if (ctx == nullptr || tokens == nullptr || scores == nullptr) {
+        return false;
+    }
+    ctx->synchronize();
+    for (size_t i = 0; i < count; ++i) {
+        scores[i] = ctx->score_cassi_qi_token(seq_id, tokens[i]);
+    }
+    return true;
 }
 
 //

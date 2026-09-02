@@ -1852,7 +1852,8 @@ struct vk_op_cassi_field_step_push_constants {
 };
 
 struct vk_op_cassi_qi_field_step_push_constants {
-    uint32_t mode_count;
+    uint32_t state_mode_count;
+    uint32_t wave_mode_count;
     uint32_t sequence_count;
     uint32_t token_count;
     uint32_t scale_count;
@@ -12449,6 +12450,7 @@ static void ggml_vk_cassi_qi_field_step(ggml_backend_vk_context * ctx, vk_contex
     const ggml_tensor * seq_ids = dst->src[3];
     const vk_op_cassi_qi_field_step_push_constants pc = {
         (uint32_t) mode_params->ne[0],
+        (uint32_t) (sense->ne[0] / 2),
         (uint32_t) state->ne[1],
         (uint32_t) seq_ids->ne[0],
         (uint32_t) ggml_get_op_params_i32(dst, 0),
@@ -18723,7 +18725,8 @@ static bool ggml_backend_vk_device_supports_op(ggml_backend_dev_t dev, const ggm
                 const ggml_tensor * state = op->src[1];
                 const ggml_tensor * mode_params = op->src[2];
                 const ggml_tensor * seq_ids = op->src[3];
-                const int64_t mode_count = mode_params->ne[0];
+                const int64_t state_mode_count = mode_params->ne[0];
+                const int64_t wave_mode_count = sense->ne[0] / 2;
                 const int64_t token_count = sense->ne[1];
                 const int64_t sequence_count = state->ne[1];
                 const int64_t scale_count = ggml_get_op_params_i32(op, 0);
@@ -18737,8 +18740,11 @@ static bool ggml_backend_vk_device_supports_op(ggml_backend_dev_t dev, const ggm
                 const float scale_ratio = ggml_get_op_params_f32(op, 8);
                 const float energy_floor = ggml_get_op_params_f32(op, 9);
                 const float read_floor = ggml_get_op_params_f32(op, 10);
-                if (mode_count <= 0 || token_count <= 0 || sequence_count <= 0 ||
-                    mode_count > std::numeric_limits<uint32_t>::max() ||
+                if (state_mode_count <= 0 || wave_mode_count <= 0 ||
+                    wave_mode_count > state_mode_count ||
+                    token_count <= 0 || sequence_count <= 0 ||
+                    state_mode_count > std::numeric_limits<uint32_t>::max() ||
+                    wave_mode_count > std::numeric_limits<uint32_t>::max() ||
                     token_count > std::numeric_limits<uint32_t>::max() ||
                     sequence_count > std::numeric_limits<uint32_t>::max() ||
                     scale_count < 1 || scale_count > 4 || steps < 1 ||
@@ -18751,15 +18757,15 @@ static bool ggml_backend_vk_device_supports_op(ggml_backend_dev_t dev, const ggm
                     !std::isfinite(scale_ratio) || scale_ratio <= 0.0f ||
                     !std::isfinite(energy_floor) || energy_floor < 0.0f ||
                     !std::isfinite(read_floor) || read_floor < 0.0f ||
-                    sense->ne[0] != 2 * mode_count || sense->ne[2] != 1 || sense->ne[3] != 1 ||
-                    state->ne[0] != 9 * mode_count * scale_count || state->ne[2] != 1 || state->ne[3] != 1 ||
+                    sense->ne[0] != 2 * wave_mode_count || sense->ne[2] != 1 || sense->ne[3] != 1 ||
+                    state->ne[0] != 9 * state_mode_count * scale_count || state->ne[2] != 1 || state->ne[3] != 1 ||
                     mode_params->ne[1] != 1 || mode_params->ne[2] != 1 || mode_params->ne[3] != 1 ||
                     seq_ids->ne[0] != token_count || seq_ids->ne[1] != 1 || seq_ids->ne[2] != 1 || seq_ids->ne[3] != 1 ||
                     op->ne[1] != 1 || op->ne[2] != 1 || op->ne[3] != 1) {
                     return false;
                 }
-                const int64_t flux_count = 2 * mode_count * token_count;
-                const int64_t state_count = 9 * mode_count * scale_count * sequence_count;
+                const int64_t flux_count = 2 * wave_mode_count * token_count;
+                const int64_t state_count = 9 * state_mode_count * scale_count * sequence_count;
                 const int64_t diag_count = 10 * scale_count * sequence_count;
                 if (flux_count > std::numeric_limits<int64_t>::max() - state_count ||
                     flux_count + state_count > std::numeric_limits<int64_t>::max() - diag_count) {

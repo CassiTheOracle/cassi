@@ -452,7 +452,8 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
         ggml_tensor *        qkv_mixed,
         int64_t              conv_kernel_size,
         int64_t              conv_channels,
-        int                  il) {
+        int                  il,
+        bool                 write_state) {
     const auto * mctx_cur = inp->mctx;
 
     const auto kv_head  = mctx_cur->get_head();
@@ -471,6 +472,9 @@ ggml_tensor * llm_build_delta_net_base::build_conv_state(
 
     ggml_tensor * conv_input = ggml_concat(ctx0, conv_states, qkv_mixed, 0);
     cb(conv_input, "conv_input", il);
+    if (!write_state) {
+        return conv_input;
+    }
 
     const int64_t row_count = (conv_kernel_size - 1) * conv_channels;
 
@@ -533,7 +537,8 @@ ggml_tensor * llm_build_delta_net_base::build_recurrent_attn(
         ggml_tensor *        g,
         ggml_tensor *        b,
         ggml_tensor *        s,
-        int                  il) {
+        int                  il,
+        bool                 write_state) {
     const auto * mctx_cur   = inp->mctx;
     const auto   kv_head    = mctx_cur->get_head();
     const uint32_t mem_size = mctx_cur->get_size();
@@ -552,10 +557,12 @@ ggml_tensor * llm_build_delta_net_base::build_recurrent_attn(
         cb(output, "attn_output", il);
         cb(new_state, "new_state", il);
 
-        ggml_build_forward_expand(gf,
-                ggml_cpy(ctx0, new_state,
-                    ggml_view_2d(ctx0, ssm_states_all, hparams.n_embd_s(), n_seqs, ssm_states_all->nb[1],
-                        kv_head * hparams.n_embd_s() * ggml_element_size(ssm_states_all))));
+        if (write_state) {
+            ggml_build_forward_expand(gf,
+                    ggml_cpy(ctx0, new_state,
+                        ggml_view_2d(ctx0, ssm_states_all, hparams.n_embd_s(), n_seqs, ssm_states_all->nb[1],
+                            kv_head * hparams.n_embd_s() * ggml_element_size(ssm_states_all))));
+        }
 
         return output;
     }
@@ -600,7 +607,9 @@ ggml_tensor * llm_build_delta_net_base::build_recurrent_attn(
         (size_t) mem_size * row_size,
         (size_t) kv_head * row_size);
 
-    ggml_build_forward_expand(gf, ggml_cpy(ctx0, src, dst));
+    if (write_state) {
+        ggml_build_forward_expand(gf, ggml_cpy(ctx0, src, dst));
+    }
 
     return output;
 }

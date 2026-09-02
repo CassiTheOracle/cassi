@@ -731,7 +731,7 @@ struct llm_cassi_modal_config {
     bool enabled = false;
 
     uint32_t n_seq_max         = 0;
-    uint32_t mode_count        = 0; // M = n_embd / 2
+    uint32_t mode_count        = 0;
     uint32_t layer_count       = 0;
     uint32_t steps_per_layer   = 4;
     uint32_t state_stride      = 0; // 8 * mode_count for modal/field
@@ -741,22 +741,26 @@ struct llm_cassi_modal_config {
     float dt              = 0.005f;
     float omega2          = 20.0f;
     float coupling        = 1.0f;
+    float mode_param_min  = 0.0f; // equal endpoints select the legacy cube profile
+    float mode_param_max  = 0.0f;
 
     float * state = nullptr; // [n_seq_max][state_stride], context-owned
 };
 
 struct llm_cassi_qi_field_config : llm_cassi_modal_config {
-    uint32_t n_embd      = 0;
-    uint32_t scale_count = 4;
-    uint32_t layer_index = 32;
-    uint32_t profile_id  = 1; // native physical-mode Qi profile; not Python codebook profile
-    uint32_t steps       = 1;
-    float damping_min    = 0.01f;
-    float damping_max    = 4.0f;
-    float epsilon_tau    = 0.618033988749895f;
-    float scale_ratio    = 4.2360679775f;
-    float energy_floor   = 1.0e-6f;
-    float read_floor     = 1.0e-4f;
+    uint32_t n_embd          = 0;
+    uint32_t wave_mode_count = 3072;
+    uint32_t scale_count     = 4;
+    uint32_t displacement_level = 0;
+    uint32_t layer_index     = 32;
+    uint32_t profile_id      = 2; // cassi.qi.native-bridge.v1 over canonical Qi state layout
+    uint32_t steps           = 1;
+    float damping_min        = 0.01f;
+    float damping_max        = 0.5f;
+    float epsilon_tau        = 0.618033988749895f;
+    float scale_ratio        = 4.2360679775f;
+    float energy_floor       = 1.0e-6f;
+    float read_floor         = 0.05f;
 };
 
 // Field-step config shares the modal state layout and input plumbing, but
@@ -924,8 +928,9 @@ struct llm_graph_params {
                     cassi->retained_weight == other.cassi->retained_weight &&
                     cassi->phi             == other.cassi->phi &&
                     cassi->dt              == other.cassi->dt &&
-                    cassi->omega2          == other.cassi->omega2 &&
-                    cassi->coupling        == other.cassi->coupling;
+                    cassi->coupling        == other.cassi->coupling &&
+                    cassi->mode_param_min  == other.cassi->mode_param_min &&
+                    cassi->mode_param_max  == other.cassi->mode_param_max;
             }() &&
             [&]() {
                 if (cassi_field == nullptr || other.cassi_field == nullptr) {
@@ -941,8 +946,9 @@ struct llm_graph_params {
                     cassi_field->retained_weight == other.cassi_field->retained_weight &&
                     cassi_field->phi             == other.cassi_field->phi &&
                     cassi_field->dt              == other.cassi_field->dt &&
-                    cassi_field->omega2          == other.cassi_field->omega2 &&
-                    cassi_field->coupling        == other.cassi_field->coupling;
+                    cassi_field->coupling        == other.cassi_field->coupling &&
+                    cassi_field->mode_param_min  == other.cassi_field->mode_param_min &&
+                    cassi_field->mode_param_max  == other.cassi_field->mode_param_max;
             }() &&
             [&]() {
                 if (cassi_qi == nullptr || other.cassi_qi == nullptr) {
@@ -952,8 +958,10 @@ struct llm_graph_params {
                     cassi_qi->enabled == other.cassi_qi->enabled &&
                     cassi_qi->state == other.cassi_qi->state &&
                     cassi_qi->n_seq_max == other.cassi_qi->n_seq_max &&
+                    cassi_qi->displacement_level == other.cassi_qi->displacement_level &&
                     cassi_qi->n_embd == other.cassi_qi->n_embd &&
                     cassi_qi->mode_count == other.cassi_qi->mode_count &&
+                    cassi_qi->wave_mode_count == other.cassi_qi->wave_mode_count &&
                     cassi_qi->scale_count == other.cassi_qi->scale_count &&
                     cassi_qi->layer_index == other.cassi_qi->layer_index &&
                     cassi_qi->profile_id == other.cassi_qi->profile_id &&
@@ -967,7 +975,9 @@ struct llm_graph_params {
                     cassi_qi->epsilon_tau == other.cassi_qi->epsilon_tau &&
                     cassi_qi->scale_ratio == other.cassi_qi->scale_ratio &&
                     cassi_qi->energy_floor == other.cassi_qi->energy_floor &&
-                    cassi_qi->read_floor == other.cassi_qi->read_floor;
+                    cassi_qi->read_floor == other.cassi_qi->read_floor &&
+                    cassi_qi->mode_param_min == other.cassi_qi->mode_param_min &&
+                    cassi_qi->mode_param_max == other.cassi_qi->mode_param_max;
             }();
     }
 };

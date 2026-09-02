@@ -1022,6 +1022,9 @@ static struct ggml_backend_meta_split_state ggml_backend_meta_get_split_state(
             case GGML_OP_CASSI_QI_FIELD_STEP: {
                 split_state = handle_cassi_qi_field_step(src_ss);
             } break;
+            case GGML_OP_CASSI_QI_EMIT: {
+                split_state = handle_generic(src_ss, /*scalar_only =*/ true);
+            } break;
             case GGML_OP_CASSI_FIELD_RESONANCE: {
                 split_state = handle_cassi_field_resonance(src_ss);
             } break;

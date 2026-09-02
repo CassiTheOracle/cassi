@@ -408,6 +408,7 @@ extern "C" {
         uint32_t cassi_field_layer; // captured layer input index, default 32
         uint32_t cassi_qi_field_layer; // Qi captured layer input index, default 32
         uint32_t cassi_qi_field_scales; // fixed profile scales, 1..4
+        uint32_t cassi_qi_displacement; // 0 additive; 3 recurrent write; 4 attention/KV; 5 blocks; 6 LM head
         // [EXPERIMENTAL]
         // backend sampler chain configuration (make sure the caller keeps the sampler chains alive)
         // note: the samplers must be sampler chains (i.e. use llama_sampler_chain_init)
@@ -741,6 +742,36 @@ extern "C" {
                          int32_t   il_start,
                          int32_t   il_end);
 
+    // Cassi Qi bridge state uses the native contiguous layout [sequence, scale, mode, plane].
+    // Counts are float elements, not bytes. These functions fail closed unless Qi is enabled
+    // and count exactly matches the configured per-sequence state size.
+    LLAMA_API size_t llama_cassi_qi_state_size(const struct llama_context * ctx);
+    LLAMA_API bool llama_cassi_qi_state_set(
+            struct llama_context * ctx,
+                   llama_seq_id   seq_id,
+                   const float * data,
+                        size_t   count);
+    LLAMA_API bool llama_cassi_qi_state_get(
+            struct llama_context * ctx,
+                   llama_seq_id   seq_id,
+                         float * data,
+                        size_t   count);
+    // Number of nodes in the reserved single-token Qi inference graph.
+    // Returns -1 when Qi is disabled or no graph has been reserved.
+    LLAMA_API int32_t llama_cassi_qi_graph_nodes(const struct llama_context * ctx);
+
+    // Deterministic field-owned score for token ownership. The score reads only
+    // the persistent Qi state and immutable token id; model logits are not consulted.
+    LLAMA_API float llama_cassi_qi_score_token(
+            struct llama_context * ctx,
+                   llama_seq_id   seq_id,
+                    llama_token   token);
+    LLAMA_API bool llama_cassi_qi_score_tokens(
+            struct llama_context * ctx,
+                   llama_seq_id   seq_id,
+              const llama_token * tokens,
+                         float * scores,
+                        size_t   count);
     //
     // Memory
     //

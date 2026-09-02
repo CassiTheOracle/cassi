@@ -504,6 +504,7 @@ struct common_params {
     bool cassi_qi_field = false;
     int32_t cassi_qi_field_layer = 32;
     int32_t cassi_qi_field_scales = 4;
+    std::string cassi_qi_field_state;
 
 
     struct common_params_model model;

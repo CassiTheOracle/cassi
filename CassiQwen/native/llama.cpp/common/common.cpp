@@ -1379,6 +1379,28 @@ common_init_result::common_init_result(common_params & params, bool model_only) 
 
     pimpl->context.reset(lctx);
 
+    if (!params.cassi_qi_field_state.empty()) {
+        const size_t state_count = llama_cassi_qi_state_size(lctx);
+        const size_t expected_bytes = state_count * sizeof(float);
+        std::ifstream stream(params.cassi_qi_field_state, std::ios::binary | std::ios::ate);
+        if (!stream || state_count == 0 || stream.tellg() != static_cast<std::streamoff>(expected_bytes)) {
+            COM_ERR("Cassi Qi state '%s' must contain exactly %zu raw F32 bytes\n",
+                    params.cassi_qi_field_state.c_str(), expected_bytes);
+            pimpl->context.reset();
+            return;
+        }
+        stream.seekg(0);
+        std::vector<float> state(state_count);
+        stream.read(reinterpret_cast<char *>(state.data()), static_cast<std::streamsize>(expected_bytes));
+        if (!stream || !llama_cassi_qi_state_set(lctx, 0, state.data(), state.size())) {
+            COM_ERR("failed to load Cassi Qi state '%s'\n", params.cassi_qi_field_state.c_str());
+            pimpl->context.reset();
+            return;
+        }
+        COM_INF("loaded Cassi Qi bridge state: %s (%zu floats)\n",
+                params.cassi_qi_field_state.c_str(), state_count);
+    }
+
     set_process_priority(params.cpuparams.priority);
 
     pimpl->threadpools.init(lctx, params);

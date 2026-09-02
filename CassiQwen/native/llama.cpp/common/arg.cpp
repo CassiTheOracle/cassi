@@ -2596,6 +2596,19 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
             params.cassi_qi_field_scales = value;
         }
     ).set_env("LLAMA_ARG_CASSI_QI_FIELD_SCALES").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
+    add_opt(common_arg(
+        {"--cassi-qi-field-state"}, "FILE",
+        "load an exact raw F32 [scale, mode, plane] Cassi Qi bridge state for sequence 0",
+        [](common_params & params, const std::string & value) {
+            if (value.empty()) {
+                throw std::invalid_argument("error: --cassi-qi-field-state requires a file\n");
+            }
+            params.cassi_qi_field_state = value;
+            params.cassi_qi_field = true;
+            params.cassi_modal = false;
+            params.cassi_field_step = false;
+        }
+    ).set_env("LLAMA_ARG_CASSI_QI_FIELD_STATE").set_examples({LLAMA_EXAMPLE_CLI, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_PERPLEXITY, LLAMA_EXAMPLE_COMMON}));
     if (ex == LLAMA_EXAMPLE_SERVER) {
         // this is to make sure this option appears in the server-specific section of the help message
         add_opt(common_arg(

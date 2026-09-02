@@ -11120,9 +11120,10 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
                 ggml_is_contiguous(src2) && ggml_is_contiguous(src3) &&
                 ggml_is_contiguous(dst));
 
-    const int64_t mode_count = src0->ne[0] / 2;
+    const int64_t wave_mode_count = src0->ne[0] / 2;
     const int64_t token_count = src0->ne[1];
     const int64_t sequence_count = src1->ne[1];
+    const int64_t state_mode_count = src2->ne[0];
     const int64_t scale_count = ggml_get_op_params_i32(dst, 0);
     const int64_t steps = ggml_get_op_params_i32(dst, 1);
     const float phi = ggml_get_op_params_f32(dst, 2);
@@ -11134,11 +11135,12 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
     const float scale_ratio = ggml_get_op_params_f32(dst, 8);
     const float energy_floor = ggml_get_op_params_f32(dst, 9);
     const float read_floor = ggml_get_op_params_f32(dst, 10);
-    GGML_ASSERT(mode_count > 0 && scale_count >= 1 && scale_count <= 4);
-    GGML_ASSERT(src1->ne[0] == 9 * mode_count * scale_count);
-    GGML_ASSERT(src2->ne[0] == mode_count && src3->ne[0] == token_count);
-    GGML_ASSERT(dst->ne[0] == 2 * mode_count * token_count +
-                9 * mode_count * scale_count * sequence_count +
+    GGML_ASSERT(wave_mode_count > 0 && state_mode_count >= wave_mode_count &&
+                scale_count >= 1 && scale_count <= 4);
+    GGML_ASSERT(src1->ne[0] == 9 * state_mode_count * scale_count);
+    GGML_ASSERT(src3->ne[0] == token_count);
+    GGML_ASSERT(dst->ne[0] == 2 * wave_mode_count * token_count +
+                9 * state_mode_count * scale_count * sequence_count +
                 10 * scale_count * sequence_count);
 
     const float * sense = (const float *) src0->data;
@@ -11146,11 +11148,11 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
     const float * mode_params = (const float *) src2->data;
     const int32_t * seq_ids = (const int32_t *) src3->data;
     float * output = (float *) dst->data;
-    const int64_t flux_count = 2 * mode_count * token_count;
-    const int64_t state_stride = 9 * mode_count * scale_count;
+    const int64_t flux_count = 2 * wave_mode_count * token_count;
+    const int64_t state_stride = 9 * state_mode_count * scale_count;
     const int64_t state_count = state_stride * sequence_count;
     const int64_t diag_stride = 10 * scale_count;
-    const int64_t sense_stride = 2 * mode_count;
+    const int64_t sense_stride = 2 * wave_mode_count;
     const int64_t dr = (sequence_count + params->nth - 1) / params->nth;
     const int64_t seq_start = dr * params->ith;
     const int64_t seq_end = std::min(seq_start + dr, sequence_count);
@@ -11161,7 +11163,7 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
         float * state_out = output + flux_count + sequence * state_stride;
         float * diag_out = output + flux_count + state_count + sequence * diag_stride;
         float diag_sum[4][10] = {};
-        for (int64_t mode = 0; mode < mode_count; ++mode) {
+        for (int64_t mode = 0; mode < state_mode_count; ++mode) {
             float work[4 * 9] = {};
             float last_write[4] = {};
             float last_consolidation[4] = {};
@@ -11170,14 +11172,14 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
                 last_consolidation[scale] = 0.0f;
                 for (int64_t component = 0; component < 9; ++component) {
                     work[scale * 9 + component] = cassi_qi_state_value(
-                        state_in[sequence * state_stride + (scale * mode_count + mode) * 9 + component]);
+                        state_in[sequence * state_stride + (scale * state_mode_count + mode) * 9 + component]);
                 }
             }
 
             for (int64_t token = 0; token < token_count; ++token) {
                 const int32_t seq_id = seq_ids[token];
                 if (seq_id < 0 || seq_id >= sequence_count) {
-                    if (sequence == 0) {
+                    if (sequence == 0 && mode < wave_mode_count) {
                         output[token * sense_stride + 2 * mode + 0] = 0.0f;
                         output[token * sense_stride + 2 * mode + 1] = 0.0f;
                     }
@@ -11217,16 +11219,18 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
                 }
                 const float cross = available_count > 1 ? cassi_qi_clamp(phase_sum / float(available_count - 1), 0.0f, 1.0f) : (available_count == 1 ? 1.0f : 0.0f);
                 const float read_gate = available_count > 0 ? cassi_qi_clamp((chi_sum / float(available_count)) * cross, 0.0f, 1.0f) : 0.0f;
-                if (read_gate >= read_floor && available_count > 0) {
-                    output[token * sense_stride + 2 * mode + 0] = coupling * read_gate * read_re / float(available_count);
-                    output[token * sense_stride + 2 * mode + 1] = coupling * read_gate * read_im / float(available_count);
-                } else {
-                    output[token * sense_stride + 2 * mode + 0] = 0.0f;
-                    output[token * sense_stride + 2 * mode + 1] = 0.0f;
+                if (mode < wave_mode_count) {
+                    if (read_gate >= read_floor && available_count > 0) {
+                        output[token * sense_stride + 2 * mode + 0] = coupling * read_gate * read_re / float(available_count);
+                        output[token * sense_stride + 2 * mode + 1] = coupling * read_gate * read_im / float(available_count);
+                    } else {
+                        output[token * sense_stride + 2 * mode + 0] = 0.0f;
+                        output[token * sense_stride + 2 * mode + 1] = 0.0f;
+                    }
                 }
 
-                const float signal_re = sense[token * sense_stride + 2 * mode + 0];
-                const float signal_im = sense[token * sense_stride + 2 * mode + 1];
+                const float signal_re = mode < wave_mode_count ? sense[token * sense_stride + 2 * mode + 0] : 0.0f;
+                const float signal_im = mode < wave_mode_count ? sense[token * sense_stride + 2 * mode + 1] : 0.0f;
                 float chirp_re = 1.0f, chirp_im = 0.0f;
                 cassi_qi_chirp(0, (uint32_t) mode, chirp_re, chirp_im);
                 const float source_re = chirp_re * signal_re - chirp_im * signal_im;
@@ -11324,12 +11328,14 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
                 const float final_gate = final_available > 0
                     ? cassi_qi_clamp(final_chi_sum / float(final_available), 0.0f, 1.0f)
                     : 0.0f;
-                if (final_available > 0 && final_gate >= read_floor) {
-                    output[token * sense_stride + 2 * mode + 0] = coupling * final_gate * final_read_re / float(final_available);
-                    output[token * sense_stride + 2 * mode + 1] = coupling * final_gate * final_read_im / float(final_available);
-                } else {
-                    output[token * sense_stride + 2 * mode + 0] = 0.0f;
-                    output[token * sense_stride + 2 * mode + 1] = 0.0f;
+                if (mode < wave_mode_count) {
+                    if (final_available > 0 && final_gate >= read_floor) {
+                        output[token * sense_stride + 2 * mode + 0] = coupling * final_gate * final_read_re / float(final_available);
+                        output[token * sense_stride + 2 * mode + 1] = coupling * final_gate * final_read_im / float(final_available);
+                    } else {
+                        output[token * sense_stride + 2 * mode + 0] = 0.0f;
+                        output[token * sense_stride + 2 * mode + 1] = 0.0f;
+                    }
                 }
             }
 
@@ -11387,13 +11393,13 @@ static void ggml_compute_forward_cassi_qi_field_step_f32(
                 diag_sum[scale][8] += scale > 0 ? cassi_qi_clamp(last_consolidation[scale], 0.0f, 1.0f) : 0.0f;
                 diag_sum[scale][9] += available ? 1.0f : 0.0f;
                 for (int component = 0; component < 9; ++component) {
-                    state_out[(scale * mode_count + mode) * 9 + component] = work[scale * 9 + component];
+                    state_out[(scale * state_mode_count + mode) * 9 + component] = work[scale * 9 + component];
                 }
             }
         }
         for (int64_t scale = 0; scale < scale_count; ++scale) {
             for (int component = 0; component < 10; ++component) {
-                diag_out[scale * 10 + component] = diag_sum[scale][component] / float(mode_count);
+                diag_out[scale * 10 + component] = diag_sum[scale][component] / float(state_mode_count);
             }
         }
     }
@@ -11412,6 +11418,64 @@ void ggml_compute_forward_cassi_qi_field_step(
         ggml_compute_forward_cassi_qi_field_step_f32(params, dst);
     } else {
         GGML_ABORT("fatal error");
+    }
+}
+
+void ggml_compute_forward_cassi_qi_emit(
+        const ggml_compute_params * params,
+        ggml_tensor * dst) {
+    const ggml_tensor * state = dst->src[0];
+    const ggml_tensor * seq_ids = dst->src[1];
+    GGML_ASSERT(state->type == GGML_TYPE_F32 && seq_ids->type == GGML_TYPE_I32);
+    GGML_ASSERT(dst->type == GGML_TYPE_F32);
+    const int64_t W = ggml_get_op_params_i32(dst, 0);
+    const int64_t S = ggml_get_op_params_i32(dst, 1);
+    const float phi = ggml_get_op_params_f32(dst, 2);
+    const float scale_ratio = ggml_get_op_params_f32(dst, 3);
+    const float read_floor = ggml_get_op_params_f32(dst, 4);
+    const int64_t M = state->ne[0] / (9 * S);
+    const int64_t n_vocab = dst->ne[0];
+    const int64_t n_tokens = dst->ne[1];
+    GGML_ASSERT(W > 0 && W <= M && seq_ids->ne[0] == n_tokens);
+
+    const int64_t total = n_vocab * n_tokens;
+    const int64_t begin = total * params->ith / params->nth;
+    const int64_t end = total * (params->ith + 1) / params->nth;
+    const int32_t * sequence_ids = static_cast<const int32_t *>(seq_ids->data);
+    for (int64_t index = begin; index < end; ++index) {
+        const int64_t token_index = index / n_vocab;
+        const uint32_t token = (uint32_t) (index - token_index * n_vocab);
+        const int32_t sequence = sequence_ids[token_index];
+        GGML_ASSERT(sequence >= 0 && sequence < state->ne[1]);
+        const float * sequence_state = reinterpret_cast<const float *>(
+            reinterpret_cast<const char *>(state->data) + (size_t) sequence * state->nb[1]);
+        uint32_t mixed = token * 2654435761u + 2246822519u;
+        const float phase = 6.2831853071795864769f * float(mixed & 0x00ffffffu) / 16777216.0f;
+        const float phase_re = std::cos(phase);
+        const float phase_im = std::sin(phase);
+        float score = 0.0f;
+        float scale_weight = 1.0f;
+        for (int64_t scale = 0; scale < S; ++scale) {
+            const int64_t active_mode = mixed % (uint32_t) W;
+            const float * active = sequence_state + (scale * M + active_mode) * 9;
+            const float context_re = active[0] - phi * active[2];
+            const float context_im = active[1] - phi * active[3];
+            const float context_norm = std::sqrt(context_re * context_re + context_im * context_im);
+            score += scale_weight * (context_re * phase_re + context_im * phase_im)
+                / std::max(read_floor, context_norm);
+            if (M > W) {
+                const int64_t memory_mode = W + ((mixed ^ (mixed >> 16)) % (uint32_t) (M - W));
+                const float * memory = sequence_state + (scale * M + memory_mode) * 9;
+                const float memory_re = phi * memory[0] + memory[2];
+                const float memory_im = phi * memory[1] + memory[3];
+                const float memory_norm = std::sqrt(memory_re * memory_re + memory_im * memory_im);
+                score += 0.5f * scale_weight * (memory_re * phase_re + memory_im * phase_im)
+                    / std::max(read_floor, memory_norm);
+            }
+            scale_weight /= scale_ratio;
+            mixed = mixed * 1664525u + 1013904223u;
+        }
+        reinterpret_cast<float *>(dst->data)[index] = std::isfinite(score) ? score : -INFINITY;
     }
 }
 

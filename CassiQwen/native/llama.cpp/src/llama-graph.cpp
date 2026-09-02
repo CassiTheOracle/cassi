@@ -142,21 +142,28 @@ void llm_graph_input_cassi_modal::set_input(const llama_ubatch * ubatch) {
 
     std::fill(host_state.begin(), host_state.end(), 0.0f);
 
-    // Use the same cube finite-difference symbol as the dense field shader.
-    // The mode ordering is deterministic for arbitrary hidden widths; the
-    // frozen Qwen3.8 width (M=2560) covers the canonical 32^3 mode budget.
-    constexpr float grid_n = 32.0f;
-    constexpr float two_pi = 6.2831853071795864769f;
-    for (uint32_t m = 0; m < config->mode_count; ++m) {
-        const uint32_t x = m % 32u;
-        const uint32_t y = (m / 32u) % 32u;
-        const uint32_t z = (m / (32u * 32u)) % 32u;
-        const float cx = std::cos(two_pi * (float) x / grid_n);
-        const float cy = std::cos(two_pi * (float) y / grid_n);
-        const float cz = std::cos(two_pi * (float) z / grid_n);
-        const float symbol = (1.0f / 3.0f) * ((cx - 1.0f) + (cy - 1.0f) + (cz - 1.0f))
-                           + (2.0f / 3.0f) * ((cx * cy - 1.0f) + (cy * cz - 1.0f) + (cz * cx - 1.0f));
-        host_mode_params[m] = std::isfinite(symbol) ? symbol : 0.0f;
+    if (config->mode_param_max > config->mode_param_min) {
+        const float denominator = config->mode_count > 1 ? float(config->mode_count - 1) : 1.0f;
+        for (uint32_t m = 0; m < config->mode_count; ++m) {
+            const float alpha = float(m) / denominator;
+            host_mode_params[m] = config->mode_param_min
+                + alpha * (config->mode_param_max - config->mode_param_min);
+        }
+    } else {
+        // Legacy modal and dense-field profiles use the cube finite-difference symbol.
+        constexpr float grid_n = 32.0f;
+        constexpr float two_pi = 6.2831853071795864769f;
+        for (uint32_t m = 0; m < config->mode_count; ++m) {
+            const uint32_t x = m % 32u;
+            const uint32_t y = (m / 32u) % 32u;
+            const uint32_t z = (m / (32u * 32u)) % 32u;
+            const float cx = std::cos(two_pi * (float) x / grid_n);
+            const float cy = std::cos(two_pi * (float) y / grid_n);
+            const float cz = std::cos(two_pi * (float) z / grid_n);
+            const float symbol = (1.0f / 3.0f) * ((cx - 1.0f) + (cy - 1.0f) + (cz - 1.0f))
+                               + (2.0f / 3.0f) * ((cx * cy - 1.0f) + (cy * cz - 1.0f) + (cz * cx - 1.0f));
+            host_mode_params[m] = std::isfinite(symbol) ? symbol : 0.0f;
+        }
     }
 
     const uint32_t n_tokens = ubatch != nullptr ? ubatch->n_tokens : 0;

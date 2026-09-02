@@ -1101,9 +1101,10 @@ static const char * GGML_OP_NAME[GGML_OP_COUNT] = {
     "CASSI_MODAL",
     "CASSI_FIELD_STEP",
     "CASSI_QI_FIELD_STEP",
+    "CASSI_QI_EMIT",
     "CASSI_FIELD_RESONANCE",
 };
-static_assert(GGML_OP_COUNT == 105, "GGML_OP_COUNT != 105");
+static_assert(GGML_OP_COUNT == 106, "GGML_OP_COUNT != 106");
 
 static const char * GGML_OP_SYMBOL[GGML_OP_COUNT] = {
     "none",
@@ -1219,9 +1220,10 @@ static const char * GGML_OP_SYMBOL[GGML_OP_COUNT] = {
     "cassi_modal(layer_modes, state, mode_params)",
     "cassi_field_step(sense, state, mode_params, seq_ids)",
     "cassi_qi_field_step(sense, state, mode_params, seq_ids)",
+    "cassi_qi_emit(state, seq_ids)",
     "cassi_field_resonance(field, probes, phi, velocity_scale)",
 };
-static_assert(GGML_OP_COUNT == 105, "GGML_OP_COUNT != 105");
+static_assert(GGML_OP_COUNT == 106, "GGML_OP_COUNT != 106");
 
 static_assert(GGML_OP_POOL_COUNT == 2, "GGML_OP_POOL_COUNT != 2");
 
@@ -6455,18 +6457,18 @@ struct ggml_tensor * ggml_cassi_qi_field_step(
     GGML_ASSERT(energy_floor >= 0.0f && read_floor >= 0.0f);
     GGML_ASSERT(steps >= 1 && steps <= INT32_MAX);
 
-    const int64_t mode_count = sense->ne[0] / 2;
+    const int64_t wave_mode_count = sense->ne[0] / 2;
+    const int64_t state_mode_count = mode_params->ne[0];
     const int64_t token_count = sense->ne[1];
     const int64_t sequence_count = state->ne[1];
-    GGML_ASSERT(mode_count > 0);
-    GGML_ASSERT(state->ne[0] == 9 * mode_count * scale_count);
-    GGML_ASSERT(mode_params->ne[0] == mode_count);
+    GGML_ASSERT(wave_mode_count > 0 && state_mode_count >= wave_mode_count);
+    GGML_ASSERT(state->ne[0] == 9 * state_mode_count * scale_count);
     GGML_ASSERT(seq_ids->ne[0] == token_count);
 
-    GGML_ASSERT(token_count <= INT64_MAX / (2 * mode_count));
-    GGML_ASSERT(sequence_count <= INT64_MAX / (9 * mode_count * scale_count));
-    const int64_t flux_count = 2 * mode_count * token_count;
-    const int64_t state_count = 9 * mode_count * scale_count * sequence_count;
+    GGML_ASSERT(token_count <= INT64_MAX / (2 * wave_mode_count));
+    GGML_ASSERT(sequence_count <= INT64_MAX / (9 * state_mode_count * scale_count));
+    const int64_t flux_count = 2 * wave_mode_count * token_count;
+    const int64_t state_count = 9 * state_mode_count * scale_count * sequence_count;
     const int64_t diag_count = 10 * scale_count * sequence_count;
     GGML_ASSERT(flux_count <= INT64_MAX - state_count);
     GGML_ASSERT(flux_count + state_count <= INT64_MAX - diag_count);
@@ -6490,6 +6492,39 @@ struct ggml_tensor * ggml_cassi_qi_field_step(
     result->src[1] = state;
     result->src[2] = mode_params;
     result->src[3] = seq_ids;
+    return result;
+}
+
+struct ggml_tensor * ggml_cassi_qi_emit(
+        struct ggml_context * ctx,
+        struct ggml_tensor  * state,
+        struct ggml_tensor  * seq_ids,
+        int64_t               vocab_size,
+        int64_t               wave_mode_count,
+        int64_t               scale_count,
+        float                 phi,
+        float                 scale_ratio,
+        float                 read_floor) {
+    GGML_ASSERT(state->type == GGML_TYPE_F32 && seq_ids->type == GGML_TYPE_I32);
+    GGML_ASSERT(ggml_is_contiguous(state) && ggml_is_contiguous(seq_ids));
+    GGML_ASSERT(vocab_size > 0 && vocab_size <= INT32_MAX);
+    GGML_ASSERT(wave_mode_count > 0 && wave_mode_count <= INT32_MAX);
+    GGML_ASSERT(scale_count >= 1 && scale_count <= 4);
+    GGML_ASSERT(state->ne[0] % (9 * scale_count) == 0);
+    GGML_ASSERT(wave_mode_count <= state->ne[0] / (9 * scale_count));
+    GGML_ASSERT(state->ne[1] > 0 && state->ne[2] == 1 && state->ne[3] == 1);
+    GGML_ASSERT(seq_ids->ne[0] > 0 && seq_ids->ne[1] == 1 && seq_ids->ne[2] == 1 && seq_ids->ne[3] == 1);
+    GGML_ASSERT(phi > 0.0f && scale_ratio > 0.0f && read_floor >= 0.0f);
+
+    struct ggml_tensor * result = ggml_new_tensor_2d(ctx, GGML_TYPE_F32, vocab_size, seq_ids->ne[0]);
+    ggml_set_op_params_i32(result, 0, (int32_t) wave_mode_count);
+    ggml_set_op_params_i32(result, 1, (int32_t) scale_count);
+    ggml_set_op_params_f32(result, 2, phi);
+    ggml_set_op_params_f32(result, 3, scale_ratio);
+    ggml_set_op_params_f32(result, 4, read_floor);
+    result->op = GGML_OP_CASSI_QI_EMIT;
+    result->src[0] = state;
+    result->src[1] = seq_ids;
     return result;
 }
 

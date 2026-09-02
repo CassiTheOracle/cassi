@@ -74,7 +74,8 @@ struct llm_build_delta_net_base : public llm_graph_context {
             ggml_tensor *        qkv_mixed,
             int64_t              conv_kernel_size,
             int64_t              conv_channels,
-            int                  il);
+            int                  il,
+            bool                 write_state = true);
 
     // run delta-net attention and write the new recurrent state(s) back to ssm_states_all
     // s: (head_v_dim, head_v_dim, num_v_heads, n_seqs); returns output: (head_v_dim, num_v_heads, n_seq_tokens, n_seqs)
@@ -87,7 +88,8 @@ struct llm_build_delta_net_base : public llm_graph_context {
             ggml_tensor *        g,
             ggml_tensor *        b,
             ggml_tensor *        s,
-            int                  il);
+            int                  il,
+            bool                 write_state = true);
 };
 
 struct llm_build_rwkv6_base : public llm_graph_context {
@@ -2218,6 +2220,8 @@ struct llama_model_qwen35 : public llama_model_base {
                             int   il);
 
         const llama_model & model;
+        uint32_t qi_displacement;
+        uint32_t qi_layer;
     };
 
     struct graph_mtp : public llm_graph_context {

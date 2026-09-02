@@ -130,6 +130,12 @@ struct llama_context {
                 int32_t   il_start,
                 int32_t   il_end);
 
+    size_t cassi_qi_state_size() const;
+    int32_t cassi_qi_graph_node_count() const;
+    bool set_cassi_qi_state(llama_seq_id seq_id, const float * data, size_t count);
+    bool get_cassi_qi_state(llama_seq_id seq_id, float * data, size_t count);
+    float score_cassi_qi_token(llama_seq_id seq_id, llama_token token);
+
     // process a single ubatch with a specific graph type
     // if memory_context is provided, it will be applied first to the context's memory
     // ret contains the status of the graph computation
@@ -293,6 +299,7 @@ private:
 
     llm_cassi_qi_field_config cassi_qi;
     std::vector<float> cassi_qi_state;
+    int32_t cassi_qi_graph_nodes_tg = -1;
 
     struct cassi_modal_pending {
         bool valid = false;

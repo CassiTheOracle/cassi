@@ -6,7 +6,8 @@ layout(binding = 2) readonly buffer ModeParams { float values[]; } mode_params;
 layout(binding = 3) readonly buffer SequenceIds { int values[]; } sequence_ids;
 layout(binding = 4) writeonly buffer Output { float values[]; } output_data;
 layout(push_constant) uniform parameter {
-    uint mode_count;
+    uint state_mode_count;
+    uint wave_mode_count;
     uint sequence_count;
     uint token_count;
     uint scale_count;
@@ -48,9 +49,9 @@ void qi_metrics(float yr, float yi, float ir, float ii, float ema,
 void main() {
     uint sequence = gl_GlobalInvocationID.x;
     if (sequence >= pc.sequence_count || pc.scale_count == 0u || pc.scale_count > 4u) return;
-    uint mode_stride = 2u * pc.mode_count;
-    uint state_stride = 9u * pc.mode_count * pc.scale_count;
-    uint flux_count = mode_stride * pc.token_count;
+    uint wave_stride = 2u * pc.wave_mode_count;
+    uint state_stride = 9u * pc.state_mode_count * pc.scale_count;
+    uint flux_count = wave_stride * pc.token_count;
     uint state_count = state_stride * pc.sequence_count;
     uint diag_stride = 10u * pc.scale_count;
     float dt_base = qi_clamp(pc.dt, 1.0e-6, 0.25);
@@ -58,7 +59,7 @@ void main() {
     float diag_sum[40];
     for (uint i = 0u; i < 40u; ++i) diag_sum[i] = 0.0;
 
-    for (uint mode = 0u; mode < pc.mode_count; ++mode) {
+    for (uint mode = 0u; mode < pc.state_mode_count; ++mode) {
         float work[36];
         float last_write[4];
         float last_consolidation[4];
@@ -66,15 +67,15 @@ void main() {
         for (uint scale = 0u; scale < pc.scale_count; ++scale) {
             last_write[scale] = 0.0; last_consolidation[scale] = 0.0;
             for (uint component = 0u; component < 9u; ++component) {
-                uint off = sequence * state_stride + (scale * pc.mode_count + mode) * 9u + component;
+                uint off = sequence * state_stride + (scale * pc.state_mode_count + mode) * 9u + component;
                 work[scale * 9u + component] = qi_state_value(state_in.values[off]);
             }
         }
         for (uint token = 0u; token < pc.token_count; ++token) {
             int seq_id = sequence_ids.values[token];
             if (seq_id < 0 || seq_id >= int(pc.sequence_count)) {
-                if (sequence == 0u) {
-                    uint off = token * mode_stride + 2u * mode;
+                if (sequence == 0u && mode < pc.wave_mode_count) {
+                    uint off = token * wave_stride + 2u * mode;
                     output_data.values[off + 0u] = 0.0;
                     output_data.values[off + 1u] = 0.0;
                 }
@@ -106,16 +107,18 @@ void main() {
             }
             float cross = available_count > 1u ? qi_clamp(phase_sum / float(available_count - 1u), 0.0, 1.0) : (available_count == 1u ? 1.0 : 0.0);
             float read_gate = available_count > 0u ? qi_clamp((chi_sum / float(available_count)) * cross, 0.0, 1.0) : 0.0;
-            uint flux_off = token * mode_stride + 2u * mode;
-            if (available_count > 0u && read_gate >= pc.read_floor) {
-                output_data.values[flux_off + 0u] = pc.coupling * read_gate * read_re / float(available_count);
-                output_data.values[flux_off + 1u] = pc.coupling * read_gate * read_im / float(available_count);
-            } else {
-                output_data.values[flux_off + 0u] = 0.0;
-                output_data.values[flux_off + 1u] = 0.0;
+            if (mode < pc.wave_mode_count) {
+                uint flux_off = token * wave_stride + 2u * mode;
+                if (available_count > 0u && read_gate >= pc.read_floor) {
+                    output_data.values[flux_off + 0u] = pc.coupling * read_gate * read_re / float(available_count);
+                    output_data.values[flux_off + 1u] = pc.coupling * read_gate * read_im / float(available_count);
+                } else {
+                    output_data.values[flux_off + 0u] = 0.0;
+                    output_data.values[flux_off + 1u] = 0.0;
+                }
             }
-            float sr = sense.values[token * mode_stride + 2u * mode + 0u];
-            float si = sense.values[token * mode_stride + 2u * mode + 1u];
+            float sr = mode < pc.wave_mode_count ? sense.values[token * wave_stride + 2u * mode + 0u] : 0.0;
+            float si = mode < pc.wave_mode_count ? sense.values[token * wave_stride + 2u * mode + 1u] : 0.0;
             float cr, ci; qi_chirp(0u, mode, cr, ci);
             float source_re = cr * sr - ci * si;
             float source_im = cr * si + ci * sr;
@@ -185,13 +188,15 @@ void main() {
                 }
             }
             float final_gate = final_available > 0u ? qi_clamp(final_chi_sum / float(final_available), 0.0, 1.0) : 0.0;
-            uint final_flux_off = token * mode_stride + 2u * mode;
-            if (final_available > 0u && final_gate >= pc.read_floor) {
-                output_data.values[final_flux_off + 0u] = pc.coupling * final_gate * final_read_re / float(final_available);
-                output_data.values[final_flux_off + 1u] = pc.coupling * final_gate * final_read_im / float(final_available);
-            } else {
-                output_data.values[final_flux_off + 0u] = 0.0;
-                output_data.values[final_flux_off + 1u] = 0.0;
+            if (mode < pc.wave_mode_count) {
+                uint final_flux_off = token * wave_stride + 2u * mode;
+                if (final_available > 0u && final_gate >= pc.read_floor) {
+                    output_data.values[final_flux_off + 0u] = pc.coupling * final_gate * final_read_re / float(final_available);
+                    output_data.values[final_flux_off + 1u] = pc.coupling * final_gate * final_read_im / float(final_available);
+                } else {
+                    output_data.values[final_flux_off + 0u] = 0.0;
+                    output_data.values[final_flux_off + 1u] = 0.0;
+                }
             }
         }
         float rho_final[4]; uint avail_final[4];
@@ -216,10 +221,10 @@ void main() {
             diag_sum[off + 7u] += available != 0u ? qi_clamp(last_write[scale], 0.0, 1.0) : 0.0;
             diag_sum[off + 8u] += scale > 0u ? qi_clamp(last_consolidation[scale], 0.0, 1.0) : 0.0;
             diag_sum[off + 9u] += available != 0u ? 1.0 : 0.0;
-            uint state_off = flux_count + sequence * state_stride + (scale * pc.mode_count + mode) * 9u;
+            uint state_off = flux_count + sequence * state_stride + (scale * pc.state_mode_count + mode) * 9u;
             for (uint component = 0u; component < 9u; ++component) output_data.values[state_off + component] = work[scale * 9u + component];
         }
     }
     uint diag_base = flux_count + state_count + sequence * diag_stride;
-    for (uint i = 0u; i < diag_stride; ++i) output_data.values[diag_base + i] = diag_sum[i] / float(pc.mode_count);
+    for (uint i = 0u; i < diag_stride; ++i) output_data.values[diag_base + i] = diag_sum[i] / float(pc.state_mode_count);
 }
