@@ -844,8 +844,8 @@ The first class leaves unresolved:
 - higher scale and transverse modes omitted by a reduced ansatz;
 - topology-changing paths outside the represented basins;
 - infinite-domain existence;
-- the full constrained Hessian;
-- real-time decay and tunnelling;
+- the full fixed-charge, gauge-quotiented Hessian and mixed dynamical spectrum;
+- real-time decay, tunnelling, and continuum thresholds;
 - quantum spin and statistics.
 
 Every numerical report must retain this list and add any sectors removed by its
@@ -873,6 +873,54 @@ ordering and is unscored. The frozen verdict is
 methods at this point or solutions at other points. The complete receipt is
 recorded in `computations/particle-stationary-bvp-report.md`.
 
+### 8.6 Full constrained fluctuation qualification
+
+A qualified stationary background determines one joint perturbation space
+$\mathcal V_Q$ satisfying the linearized fixed-charge, Gauss, boundary, and
+gauge conditions. If $P_{\rm phys}$ is the orthogonal projector onto that
+space, the physical energetic Hessian is
+
+$$
+\mathbb K_Q^{(2)}
+:=
+P_{\rm phys}\,
+\delta^2\!\left(\widehat E-\widehat\omega_Cq_C\right)
+P_{\rm phys}\big|_{\mathcal V_Q}.
+\tag{PA42}
+$$
+
+When separately constructed charge and gauge projectors commute,
+$P_{\rm phys}=P_QP_{\rm gf}$; otherwise the joint constraint space must be
+constructed directly. Energetic stability requires no negative physical
+eigenvalue, with every zero mode assigned to an exact symmetry or removed
+gauge direction.
+
+The action has second-order temporal terms for the charged fields and a
+first-order term for the neutral carrier. Its full linearization is therefore
+the mixed pencil
+
+$$
+\boxed{
+\mathbb P_Q(\omega)
+=\mathbb K_Q^{(2)}
+-i\omega\mathbb G_Q
+-\omega^2\mathbb M_Q,}
+\tag{PA43}
+$$
+
+where $\mathbb M_Q$ follows from the positive charged-field temporal
+coefficients and $\mathbb G_Q$ contains the carrier symplectic term and any
+gyroscopic mixing. For the convention $e^{-i\omega t}$, a qualified isolated
+solution requires no mode with $\operatorname{Im}\omega>0$, no undeclared
+Jordan growth, and converged discrete and continuum spectra.
+
+The reduced CC29 separation mode and CC47 frozen line-density modes give
+positive curvature under their stated premises. MCC9 verifies one such point.
+Those modes are proper subspaces of (PA42)--(PA43). Because the registered
+campaign has no Q2-qualified background, neither operator can yet be assembled
+for the full variational class. The complete boundary and convention map are
+given in `foundations/matter-completion-boundary.md` §10.
+
 ---
 
 ## 9. What is closed and what remains open
@@ -890,6 +938,7 @@ recorded in `computations/particle-stationary-bvp-report.md`.
 | Is a numerical coefficient point selected? | Yes for the registered fixed-charge campaign; its physical calibration remains open |
 | Does a converged separated, merged, loop, or lump solution exist? | Not established; all twelve primary/domain arms fail Q2 |
 | Is any basin the unrestricted global minimum? | Undetermined and not established by finite controls |
+| Is the full physical Hessian or mixed dynamical spectrum evaluated? | No; PA42–PA43 require a Q2-qualified stationary background |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 
 The action and stationary boundary inventory define the registered
@@ -934,6 +983,8 @@ twelve primary/domain arms do not meet the stationary-quality gate. Any
 further campaign requires a separately frozen numerical method or coefficient
 point; the current receipt supports no basin ordering. Particle masses, radii,
 spectra, and lifetimes remain downstream of a converged localized solution.
+The stationary and fluctuation qualification operators are explicit in
+(PA42)--(PA43), while their evaluation remains downstream of that background.
 
 ---
 
@@ -942,6 +993,8 @@ spectra, and lifetimes remain downstream of a converged localized solution.
 - `foundations/interscale-current-soliton.md`—conditional scale current and soliton-pinch boundary.
 - `foundations/nonabelian-magnetic-core-boundary.md`—auxiliary smooth core and confinement boundary.
 - `foundations/core-trapped-charge-support.md`—neutral-carrier support and reduced finite-separation theorem.
+- `foundations/matter-completion-boundary.md`—nine-part interface and full
+  stationary-spectrum qualification boundary.
 - `foundations/cassi-theory-reference.md`—particle-sector reference context.
 - `foundations/unified-lagrangian.md`—optional conservative-sector bookkeeping.
 - `parameter-inventory.md`—coefficient and boundary-data registry.

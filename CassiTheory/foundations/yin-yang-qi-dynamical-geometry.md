@@ -1,6 +1,6 @@
 # Yin–Yang–Qi Open Dynamical Geometry
 
-## Status: Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, and bounded cross-domain interface—September 2026
+## Status: Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary—September 2026
 
 ## Abstract
 
@@ -243,9 +243,16 @@ $$
 \Psi\mapsto
 \exp\!\left(-\frac{i\alpha}{2}\sigma_3\right)\Psi,
 \qquad
-B_A\mapsto B_A+\frac1{g_Q}\partial_A\alpha.
+B_A\mapsto B_A-\frac1{g_Q}\partial_A\alpha.
 \tag{DG13}
 $$
+
+This uses the dimensionless particle angle $\alpha$. The endpoint source
+papers use $\beta=-\alpha/g_Q$, so their equivalent convention is
+$\Psi\mapsto\exp(+ig_Q\beta\sigma_3/2)\Psi$ and
+$B_A\mapsto B_A+\partial_A\beta$. The two formulae describe the same
+relative-frame transformation; `foundations/matter-completion-boundary.md`
+§9.2 records the bridge.
 
 On the coherence fibre,
 
@@ -1030,18 +1037,36 @@ for the exterior fibre and cross block are part of the problem. A stationary
 interior solution must close the enlarged number, relative-charge, energy,
 and momentum ledgers, including every exterior or reservoir flux.
 
-## 12. Interface Requirements for a Microscopic Particle Branch
+## 12. Boundary to the Microscopic Particle Branch
 
-A future connection to the fixed-charge local-$SU(2)_Q$ particle action requires all of the following:
+`foundations/matter-completion-boundary.md` derives the common conditional
+interface to the fixed-charge local-$SU(2)_Q$ action:
 
-1. an explicit embedding or reduction relating the Abelian relative connection to the local $SU(2)_Q$ connection;
-2. a map between first-order graph symplectic structure and second-order charged-field time dynamics;
-3. a charge map relating rail/endpoint relative charge to the fixed carrier charge $Q_C$;
-4. one shared stress tensor and geometry source;
-5. compatible boundary conditions and gauge constraints;
-6. a reservoir reduction reproducing (DG2) without violating the particle Gauss law.
+1. the exterior is the complementary Stinespring output of the selected
+   reduced channel, with physical carrier and topology still open;
+2. the lowest-order local reciprocal interface is the bilinear Hermitian
+   coupling (MB6), while its coefficients remain microscopic inputs;
+3. a single routed forward carrier selects the one-sided cross-block law
+   $\|K_N\|_F/\|K_0\|_F=\varphi^{-N/2}$ and quadratic power
+   $P_N/P_0=\varphi^{-N}$;
+4. physical power is fixed by stress flux, with the amplitude square derived
+   for one canonically normalized mode;
+5. repeated fresh return modes give the conditional reservoir rate and a
+   maintained cross-coherence solution when an explicit source is supplied;
+6. a closed dilation action gives conserved total Hilbert stress and
+   equal-and-opposite reduced exchange;
+7. that total stress consistently sources the constant-$G$
+   Einstein–Hilbert branch;
+8. the Gram map embeds the coherence fibre in the particle doublet, and the
+   Cartan convention bridge keeps relative charge separate from $Q_C$;
+9. PA20–PA28 and the joint physical fluctuation pencil define the stationary
+   and spectral qualification problem.
 
-Absent those maps, the two sectors remain separate conditional branches.
+The MCC1–MCC9 receipt passes. A physical action producing the exterior,
+interface, reservoir, stress components, and carrier normalization remains
+unselected. The particle campaign has no Q2-qualified stationary background,
+so the full existence and spectrum verdict remains
+`INCONCLUSIVE—NUMERICAL QUALITY`.
 
 ## 13. Derived, Hypothesized, and Open Results
 
@@ -1058,14 +1083,14 @@ The frozen DG1–DG7 and EC1–EC7 receipts return **PASS**. The universal finit
 | Coherence-support budget (DG40) | **Derived conditional stationary identity** |
 | Positive cross-domain block and independent-frame covariance (DG41a–DG41b) | **Derived conditional interface algebra / Hypothesized physical exterior** |
 | Reciprocal source and enlarged number/relative-charge ledgers (DG41c–DG41g) | **Derived conditional exchange algebra / Hypothesized physical coupling** |
-| Two-sided attenuation families (DG41h–DG41i) | **Derived from declared port factors / Physical transfer selection open** |
+| Closed, one-sided routed, and symmetric transport families (DG41h–DG41i) | **Derived from declared port factors; single-forward-carrier readout selects the one-sided amplitude law / Physical routing open** |
 | Relative-$U(1)_Q$ connection and graph currents | **Hypothesized physical sector / Derived covariance algebra** |
 | Endpoint spatial flux and Wilson ledgers | **Derived conditional conservation / Hypothesized physical coefficients** |
-| One microscopic action producing all sectors | **Open** |
-| Complete Noether stress and geometry backreaction | **Open** |
+| One microscopic action producing all sectors | **Allowed lowest-order interface form and closed-action Ward boundary Derived conditionally / Physical action open** |
+| Complete Noether stress and geometry backreaction | **Conditional total-stress identity and constant-$G$ branch Derived / Stress components and gravity selection open** |
 | Local scale-bulk endpoint mediator | **Open** |
-| Interface to the local-$SU(2)_Q$ fixed-charge particle branch | **Open** |
-| Qualified stationary matter solution | **Not established** |
+| Interface to the local-$SU(2)_Q$ fixed-charge particle branch | **Gram, Cartan-convention, and charge-separation map Derived conditionally / Physical identification open** |
+| Qualified stationary matter solution and full spectrum | **Not established—`INCONCLUSIVE—NUMERICAL QUALITY`** |
 
 ## 14. Conclusion
 
@@ -1087,9 +1112,19 @@ $$
 \text{declared reservoir terms}.
 $$
 
-The scalar $q$ controls the speed of canonical composition relaxation. The optional off-diagonal $c$ describes transverse coherence in the positive Hermitian lift. The relative connection transports its phase frame, while endpoint and Wilson channels close conditional number and charge ledgers. A bounded two-domain cross-coherence block supplies an explicit reciprocal source realization and a two-sided attenuation law. These roles are compatible and remain physically distinct.
-
-Putting the sectors together produces a specific requirement: finite-density transverse coherence decays in the undriven minimal conversion lift. A phase-bearing stationary object therefore needs an identified support term whose real coherence injection balances the positive decay budget. The two-domain interface derives one such term from $\mathsf C_{\rm io}$ and $V$, with positivity, capacity, phase, and enlarged-ledger conditions. Its exterior dynamics, total stress sourcing geometry, reservoir reduction, physical transfer factors, and interface to a qualified particle branch are the next derivation targets.
+The scalar $q$ controls the speed of canonical composition relaxation. The
+optional off-diagonal $c$ describes transverse coherence in the positive
+Hermitian lift. The relative connection transports its phase frame, while
+endpoint and Wilson channels close conditional number and charge ledgers. A
+bounded two-domain cross-coherence block supplies an explicit reciprocal
+source realization. The matter-completion boundary then separates the closed
+unitary carrier from the routed forward record, derives the single-mode
+power law, closes the conditional total-stress and constant-$G$ geometry
+ledgers, and maps the coherence fibre into the particle doublet. Finite-density
+transverse coherence still requires an identified source. A physical exterior,
+reservoir action, calibrated particle coefficients, and a Q2-qualified
+stationary background remain required before a full particle spectrum can be
+computed.
 
 ## References
 
@@ -1100,6 +1135,8 @@ Putting the sectors together produces a specific requirement: finite-density tra
 - `foundations/interscale-stress-attenuation-boundary.md`—mixed momentum stress and force boundary.
 - `foundations/endpoint-link-and-localization-boundary.md`—endpoint continuity, spatial flux, and Wilson transport.
 - `foundations/particle-stationary-action-closure.md`—separate fixed-charge local-$SU(2)_Q$ particle branch.
+- `foundations/matter-completion-boundary.md`—nine-part conditional interface
+  from exterior dilation through the fixed-charge fluctuation problem.
 - `computations/dynamical_geometry_closure_prereg.md`—frozen DG1–DG7 reduction and ledger criteria.
 - `computations/dynamical_geometry_closure_check.py`—deterministic DG1–DG7 first-execution witness.
 - `computations/dynamical_geometry_closure_report.md`—DG1–DG7 analytic proof,

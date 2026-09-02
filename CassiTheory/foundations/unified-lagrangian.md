@@ -453,6 +453,14 @@ exchange terms would be required for a variable coupling; an Einstein
 equation containing only $G_{\text{eff}}T_{\mu\nu}$ with separate
 Bianchi conservation is not derived here.
 
+For the constant-$G$ branch, a local closed dilation action
+$S_{\rm closed}=S_{\rm in}+S_{\rm out}+S_{\rm int}+S_{\rm env}$ supplies
+$\nabla^\mu T^{\rm closed}_{\mu\nu}=0$ on shell. The standard
+Einstein–Hilbert equation can therefore use the conserved total source. An
+interior stress exchanging energy-momentum with the exterior cannot source the
+geometry alone. `foundations/matter-completion-boundary.md` §§7–8 derives this
+conditional Ward and Bianchi closure; MCC6–MCC7 pass.
+
 ### 3.2 Candidate Qi-Modified Newton Constant (Calibrated/conditional interpretation)
 
 The candidate effective Newton constant is parameterized by the local scalar Qi coherence and the canonical density imbalance:
@@ -504,10 +512,25 @@ The use of this coefficient as the physical Qi-gravity coupling is Calibrated/co
 ### 3.4 Energy-Momentum Tensor
 
 $$
-T_{\mu\nu} = \frac{2}{\sqrt{-g}}\frac{\delta S_{\text{matter}}}{\delta g^{\mu\nu}}
+T_{\mu\nu} = -\frac{2}{\sqrt{-g}}\frac{\delta S_{\text{matter}}}{\delta g^{\mu\nu}}
 $$
 
 The extended-action matter tensor includes the canonical two-fluid contribution together with optional Dirac and gauge contributions:
+
+When the matter sector is reduced from a closed exterior/interface/reservoir
+action, the geometric source is
+
+$$
+T^{\rm closed}_{\mu\nu}
+=T^{\rm in}_{\mu\nu}+T^{\rm out}_{\mu\nu}
++T^{\rm int}_{\mu\nu}+T^{\rm env}_{\mu\nu},
+\qquad
+\nabla^\mu T^{\rm closed}_{\mu\nu}=0.
+$$
+
+The reduced interior and its complement carry equal-and-opposite divergence
+$\mp J_\nu^{\rm io}$. Explicit components remain conditional on the metric
+dependence of the exterior, interface, and reservoir actions.
 
 $$
 T_{\mu\nu}^{\text{TF}} = \partial_\mu\Psi_\alpha\partial_\nu\Psi_\alpha
@@ -846,12 +869,26 @@ $$
 $$
 This formal equation inherits the dimensionally incomplete projection in §5.2; it does not establish a physical $\kappa_s$ or an equilibration timescale until a sourced normalization makes the brackets homogeneous.
 
-### 7.3 Einstein Equation (conditional Qi-gravity interpretation)
+### 7.3 Einstein Equations
+
+The minimal covariant branch uses constant $G$ and the complete closed stress:
+
+$$
+\boxed{
+G_{\mu\nu}+\Lambda g_{\mu\nu}
+=8\pi G\,T^{\rm closed}_{\mu\nu}.}
+$$
+
+The candidate Qi-gravity interpretation retains its frozen-background or
+locally constant form
 
 $$
 G_{\mu\nu} = 8\pi G_{\text{eff}}\,T_{\mu\nu},
-\qquad G_{\text{eff}} = G\cdot\frac{\pi}{\rho}\cdot(1+(\varphi^{6}-1)q)
+\qquad G_{\text{eff}} = G\cdot\frac{\pi}{\rho}\cdot(1+(\varphi^{6}-1)q).
 $$
+
+A covariant variable-$G_{\rm eff}$ equation requires the additional variation
+terms stated in §3.1 and remains unselected.
 
 ### 7.4 Gauge Field Equations (optional gauge extension)
 
@@ -943,6 +980,8 @@ The optional Dirac↔two-fluid projection remains a dimensionally incomplete **H
   `TwoFluid3DGPU` default $\lambda=0.02$ and named $\lambda=0.1$ experiment
   convention remain solver parameter choices
 - `foundations/dimensionful-constants-status.md`—external dimensionful constants, parameter accounting
+- `foundations/matter-completion-boundary.md`—conditional total-stress Ward
+  identity and constant-$G$ geometry branch
 - `standard-model/su2-gauge-extension.md`—SM gauge sector, Weinberg angle
 - `standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$
 - `particles/cassi-yang-yin-particles.md`—optional Hypothesized complex-field/NLS particle-interference extension and its conditional Dirac mapping

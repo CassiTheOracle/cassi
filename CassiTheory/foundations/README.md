@@ -599,13 +599,19 @@ cross-coherence and reciprocal Hamiltonian exchange. Independent relative
 frames force a two-sided transfer law, and one-sided and symmetric routed port
 assignments give distinct $\varphi^{-N/2}$ and $\varphi^{-N}$ attenuation.
 DG1–DG7 and EC1–EC7 pass by exact analysis plus frozen deterministic receipts.
-The physical exterior, interface coefficient, transfer factors, microscopic
-action, total field-plus-reservoir stress, geometry backreaction, connection
-to the separate local-$SU(2)_Q$ particle branch, and a qualified stationary
-matter solution remain open. Status: Hypothesized integrated open-system
-geometry / Derived exact diagonal reduction, positivity-preserving conversion
-flow, covariance, ledger closure, conditional coherence-support boundary, and
-bounded cross-domain interface.
+The physical exterior carrier, microscopic coefficient, port-power
+identification, multimode flux map, and reservoir action remain open.
+`foundations/matter-completion-boundary.md` derives the complementary-space
+meaning of the exterior, the allowed bilinear interface, the routed
+single-carrier exponent, canonical single-mode power, repeated-interaction
+support equation, total-stress Ward identity, constant-$G$ geometry branch,
+Gram/Cartan particle map, and stationary-spectrum qualification problem.
+MCC1–MCC9 pass. Explicit reservoir stress, gravity selection, physical
+particle identity, and a Q2-qualified stationary solution remain open.
+Status: Hypothesized integrated open-system geometry / Derived exact diagonal
+reduction, positivity-preserving conversion flow, covariance, ledger closure,
+conditional coherence-support boundary, bounded cross-domain interface, and
+nine-part conditional matter boundary.
 
 ### `endpoint-link-and-localization-boundary.md`—Gauge-Covariant Endpoint Closure and the Localization Boundary
 
@@ -706,10 +712,41 @@ first-order Yang/Yin time term gives an unavoidable condensate Gauss source.
 The selected source-free branch instead uses second-order covariant temporal
 kinetics for the charged fields, derives the Gauss constraint and fixed-$Q_C$
 stationary equations, and reduces to the registered static energy. Its
-normalization-invariant groups and first variational class are explicit. The
-first registered coefficient point returns `INCONCLUSIVE—NUMERICAL QUALITY`;
-every arm fails Q2, so no qualified stationary field or basin ordering is
-established.
+normalization-invariant groups, first variational class, joint physical
+Hessian, and mixed dynamical eigenvalue pencil are explicit. The first
+registered coefficient point returns `INCONCLUSIVE—NUMERICAL QUALITY`; every
+arm fails Q2, so no qualified stationary field, basin ordering, constrained
+spectrum, or lifetime is established.
+
+### `matter-completion-boundary.md`—Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
+
+Connects the positive two-domain coherence interface to the fixed-charge
+particle calculation without assigning unselected physical content. The
+registered single-excitation golden channel has a rank-two minimal
+Stinespring environment. Locality, zero-derivative bilinearity, Hermiticity,
+enlarged-number conservation, and independent-frame covariance fix the
+reciprocal interface form. Closed forward-plus-return transport remains
+unitary; one routed forward carrier gives
+$\|K_N\|_F/\|K_0\|_F=\varphi^{-N/2}$ and quadratic power
+$P_N/P_0=\varphi^{-N}$.
+
+The paper derives canonical single-mode power from stress flux, the
+fresh-return collision rate, a maintained cross-coherence solution, the
+closed-action total-stress Ward identity, and the constant-$G$
+Einstein–Hilbert source equation. It maps the positive coherence fibre into
+the particle doublet by $\Gamma_\Psi=\Psi\Psi^\dagger$, reconciles the endpoint
+and particle Cartan-angle conventions, and keeps global $Q_C$ distinct from
+relative Cartan charge.
+
+The fixed-charge stationary boundary includes the joint constrained energetic
+Hessian and the mixed second-/first-order dynamical pencil. MCC1–MCC9 pass for
+the finite algebraic and reduced analytic witnesses. The physical exterior,
+microscopic coefficients, multimode carrier map, reservoir action, explicit
+reservoir stress, gravity selection, and particle identity remain open. The
+registered campaign has no Q2-qualified stationary background, so the full
+particle and spectrum verdict remains `INCONCLUSIVE—NUMERICAL QUALITY`.
+Status: Derived conditional boundary / Hypothesized physical realization /
+Tested reduced receipts.
 
 ## Cross-References
 
@@ -722,4 +759,5 @@ established.
 - `gravity/quantum-gravity.md`—the $\sigma = \ell_{\text{Pl}}/\varphi^3$ regularization that anchors the cascade
 - `standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$
 - `cosmology/observational_constraints.md`—CMB and large-scale-structure tests referenced by the geometry docs
+- `foundations/matter-completion-boundary.md`—nine-part conditional interface from exterior dilation through fixed-charge spectral qualification
 - `turbulence/kolmogorov-from-phi.md`—φ-RG applied to turbulence

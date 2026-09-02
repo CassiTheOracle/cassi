@@ -321,17 +321,25 @@ EC1–EC7 pass. At every finite density with $\lambda>0$, undriven nonzero
 transverse coherence decays, so a stationary phase-bearing state requires an
 identified support term. The enlarged positive interior/exterior fibre derives
 one such term from cross-coherence $\mathsf C_{\rm io}$ and reciprocal coupling
-$V$. Independent relative frames require two-sided transport
-$K_{a+1}=L_aK_aR_a^\dagger$; one-sided and symmetric routed assignments give
-distinct $\varphi^{-N/2}$ and $\varphi^{-N}$ cross-coherence attenuation.
-The interface closes enlarged number and relative charge and supplies capacity
-and phase conditions for $S_c^{\rm ext}$. Its physical exterior, transfer
-factors, reservoir dynamics, total field-plus-reservoir stress, geometry
-backreaction, and connection to the separate local-$SU(2)_Q$ particle branch
-remain open. See `foundations/yin-yang-qi-dynamical-geometry.md`,
-`computations/dynamical_geometry_closure_report.md`,
-`computations/cross_scale_coherence_interface_check.py`, and
-`computations/cross_scale_coherence_interface_report.md`.
+$V$.
+
+`foundations/matter-completion-boundary.md` derives the next conditional
+links. The mathematical exterior is the complementary Stinespring output of
+the selected reduced channel. The lowest-order local reciprocal interface is
+bilinear and Hermitian. For one routed forward carrier,
+$\|K_N\|_F/\|K_0\|_F=\varphi^{-N/2}$ while canonical single-mode power is
+$\varphi^{-N}$; closed forward-plus-return transport remains unitary. Fresh
+return modes give the half-rate coherence law and a maintained solution when a
+source is supplied. A local closed dilation action gives conserved total
+Hilbert stress, which consistently sources the constant-$G$
+Einstein–Hilbert branch. The Gram/Cartan map then embeds the coherence fibre in
+the local-$SU(2)_Q$ particle doublet while keeping global $Q_C$ separate.
+MCC1–MCC9 pass. Physical carrier selection, microscopic transfer factors,
+multimode flux normalization, reservoir action, explicit reservoir stress,
+gravity selection, and particle identity remain open. See
+`foundations/yin-yang-qi-dynamical-geometry.md`,
+`foundations/matter-completion-boundary.md`, and
+`computations/matter_completion_boundary_report.md`.
 The charged coherent endpoint action also fixes the stationary spatial boundary:
 $\nabla\cdot\mathbf J_{\Upsilon,v}=\Gamma_v
 =-\mathcal I_{\mathrm{link},v}/2$. Every periodic, no-flux, or sufficiently
@@ -363,27 +371,33 @@ the root lies beyond core overlap. Direct local gauging of the first-order
 Yang/Yin time term is source-free Gauss-obstructed. The separate branch in
 `foundations/particle-stationary-action-closure.md` uses second-order temporal
 kinetics for the charged fields, supplies positive electric-curvature terms and
-Gauss's law, and defines the coupled fixed-$Q_C$ stationary functional.
+Gauss's law, and defines the coupled fixed-$Q_C$ stationary functional. Its
+joint fixed-charge, gauge-quotiented energetic Hessian and mixed
+second-/first-order dynamical pencil state the full fluctuation qualification
+problem.
 
 The construction is a **Hypothesized completion ansatz** with **Derived
 canonical reduction, conditional fibre geometry, endpoint response,
 stationary spatial-flux and zero-mode boundaries, Wilson-link covariance,
 transport and relative-charge conservation, exterior point-flux support,
 smooth-core and confinement boundaries, a conditional reduced conserved-charge
-support theorem, and conditional action, Gauss, stationary, and
-nondimensional boundaries**, plus **Tested one-point numerical boundaries**.
-The physical reservoir, scale metric, endpoint
-normalization, physical calibration of the normalization-invariant coefficient
-point, a qualified transverse carrier mode, backreacted composite, observation
-map, quantum numbers, fluctuation spectrum, and decay rate remain open. See
+support theorem, conditional action and Gauss equations, nine-part
+matter-interface boundary, and energetic and dynamical qualification
+operators**, plus **Tested reduced and one-point numerical boundaries**.
+The physical reservoir, scale metric, endpoint normalization, calibrated
+coefficient point, qualified transverse carrier mode, backreacted composite,
+observation map, quantum numbers, full fluctuation spectrum, and decay rate
+remain open. Every registered stationary arm fails Q2, so no qualified
+background exists for the full operators and the physical verdict remains
+`INCONCLUSIVE—NUMERICAL QUALITY`. See
 `foundations/geometric-manifold-completion.md`,
 `foundations/endpoint-link-and-localization-boundary.md`,
 `foundations/point-core-flux-sector.md`,
 `foundations/nonabelian-magnetic-core-boundary.md`,
 `foundations/core-trapped-charge-support.md`,
 `foundations/particle-stationary-action-closure.md`,
-`computations/endpoint_spatial_flux_report.md`,
-`computations/endpoint_intervertex_transport_report.md`, and
+`foundations/matter-completion-boundary.md`,
+`computations/matter_completion_boundary_report.md`, and
 `computations/particle-stationary-bvp-report.md`.
 
 ---
@@ -730,32 +744,36 @@ conditional reduced root under its support, retention, and thin-tube matching
 inequalities. Direct first-order local gauging is source-free
 Gauss-obstructed; a separate second-order charged-field branch supplies the
 temporal action, Gauss constraint, coupled stationary equations, and
-normalization-invariant variational class. One dimensionless coefficient point
-is tested, but all twelve primary/domain arms fail Q2. Physical endpoint
-normalization, scale tension, coefficient calibration, a qualified bound
-transverse carrier mode, full proton solution, proton quantum numbers,
-fluctuation spectrum, and winding-changing rate remain open
+normalization-invariant variational class. The matter-completion boundary adds
+the Gram/Cartan particle map, joint constrained energetic Hessian, and mixed
+dynamical pencil. One dimensionless coefficient point is tested, but all
+twelve primary/domain arms fail Q2. Physical endpoint normalization, scale
+tension, coefficient calibration, a qualified bound transverse carrier mode,
+full proton solution, proton quantum numbers, evaluated fluctuation spectrum,
+and winding-changing rate remain open
 (`foundations/endpoint-link-and-localization-boundary.md`;
 `foundations/point-core-flux-sector.md`;
 `foundations/nonabelian-magnetic-core-boundary.md`;
 `foundations/core-trapped-charge-support.md`;
 `foundations/particle-stationary-action-closure.md`;
+`foundations/matter-completion-boundary.md`;
+`computations/matter_completion_boundary_report.md`;
 `computations/particle-stationary-bvp-report.md`;
 `foundations/interscale-current-soliton.md` §4.5;
 `foundations/proton-coherence-budget.md` §10).
 
 **Epistemic status:** the $N_{\text{max}}$ product and lifetime conversion are
 **Derived conditional** on the **Mapped** span and **Hypothesized** $q_i$
-profile. The two-rail current, energy, endpoint capacity, open-rate ratio,
 point-flux coefficient, support inequality, auxiliary adjoint core,
 condensate-confinement boundary, first-order Gauss obstruction, temporal gauge
-covariance, Gauss constraint, and stationary equations are **Derived
-conditional** on their declared actions and sectors. One dimensionless
-stationary point is **Tested** with verdict
-`INCONCLUSIVE—NUMERICAL QUALITY`. Identifying either construction with physical
-proton stability, selecting endpoint and calibrated action data, obtaining a
-qualified stationary composite and fluctuation spectrum, and deriving a decay
-rate are **Hypothesized/Open**.
+covariance, Gauss constraint, stationary equations, Cartan convention bridge,
+and fluctuation qualification operators are **Derived conditional** on their
+declared actions and sectors. MCC1–MCC9 pass for the finite algebraic and
+reduced analytic boundary. One dimensionless stationary point is **Tested**
+with verdict `INCONCLUSIVE—NUMERICAL QUALITY`. Identifying either construction
+with physical proton stability, selecting endpoint and calibrated action data,
+obtaining a qualified stationary composite, evaluating the full constrained
+spectrum, and deriving a decay rate are **Hypothesized/Open**.
 
 For the neutron–proton–electron trio as a whole—their scale coordinates, sectors, and framework-level distinctions—see `particles/matter-organization.md`.
 
@@ -906,6 +924,10 @@ The framework records evidence and limitations in `audit.md`; the gate-sign conv
   EC1–EC7 interface witness
 - `computations/cross_scale_coherence_interface_report.md`—positive
   cross-domain source, exchange, attenuation, and support closure
+- `foundations/matter-completion-boundary.md`—nine-part conditional boundary
+  from complementary exterior through fixed-charge spectral qualification
+- `computations/matter_completion_boundary_report.md`—MCC1–MCC9 receipt and
+  retained physical particle verdict
 - `foundations/cascade-suppression-formula.md`—$\varphi^{-N}$ attenuation and the hierarchy resolutions
 - `foundations/wu-xing-derivation.md`—why $w = 5$
 - `foundations/wu-xing-cycle-structure.md`—the two 5-cycles, the control ring, the 5↔13 partition

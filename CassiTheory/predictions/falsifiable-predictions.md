@@ -641,6 +641,30 @@ assigning a particle realization.
 `computations/particle_action_closure_check.py`.
 
 
+## 16. Conditional Matter-Completion Tests
+
+These checks register the nine compatibility boundaries connecting the
+cross-domain coherence interface to the fixed-charge particle calculation.
+They add no particle-existence prediction.
+
+| ID | Observable | Conditional Cassi result | Current status | Falsifier |
+|----|------------|--------------------------|----------------|-----------|
+| **MB-1** | Reduced golden channel and minimal complementary space in the vacuum/single-excitation sector | The amplitude-damping channel has Kraus and Choi rank two; a two-dimensional return mode dilates it, and unitary environment-basis rotations preserve the reduced channel | **Derived conditional / MCC1 tested.** Physical exterior carrier, topology, and boundary dynamics remain open | The registered Kraus family is not trace preserving, has a different minimal rank, or the displayed two-port dilation fails to reproduce it |
+| **MB-2** | Lowest-order reciprocal interface and sampled transfer generator | Locality, zero-derivative bilinearity, Hermiticity, enlarged-number conservation, and independent-frame covariance give $\mathcal H_{\rm int}=\Psi_{\rm in}^\dagger V\Psi_{\rm out}+\mathrm{h.c.}$ with $V\mapsto U_{\rm in}VU_{\rm out}^\dagger$; a sampled unitary retains logarithm-branch ambiguity | **Derived conditional form / MCC2 tested.** Coefficients and physical carrier remain open | The term violates the declared covariance or conservation premises, or one sampled unitary uniquely fixes the continuous generator without added spectral information |
+| **MB-3** | Closed and routed interface depth laws | Closed forward-plus-return transport is unitary. One routed forward carrier gives $\|K_N\|_F/\|K_0\|_F=\varphi^{-N/2}$ and forward power $\varphi^{-N}$; two routed legs give the symmetric cross-block exponent $\varphi^{-N}$ | **Derived from declared port factors and routing / MCC3 tested.** Physical non-re-entry and golden port-power identification remain open | The displayed unitary fails its ledger, or the declared one-leg map produces a different norm or power exponent |
+| **MB-4** | Carrier amplitude-to-power normalization | Physical power is stress flux; one canonically normalized mode obeys $P=\hbar\omega\dot N$ and $P_{\rm out}/P_{\rm in}=|t|^2$. Equal-Frobenius-norm multimode states can carry unequal power | **Derived single-mode law / MCC4 tested.** Multimode flux operator and $K$ embedding remain open | A canonical one-mode scattering state violates the amplitude square, or Frobenius norm alone determines power for every positive nondegenerate mode-energy operator |
+| **MB-5** | Fresh-return collision channel and maintained cross coherence | With $T$ applied every $\Delta t$, $\gamma_{\rm route}=-\ln T/\Delta t$; occupation decays at $\gamma_{\rm route}$ and coherence at $\gamma_{\rm route}/2$. A source $F_{\rm io}$ gives $C_*=F_{\rm io}/(\gamma_{\rm route}/2+i\Omega_{\rm io})$ | **Derived conditional response / MCC5 tested.** Bath action, spectrum, temperature, correlation time, and source remain open | Repeated application of the declared channel gives different population or coherence factors, or the displayed stationary solution has nonzero residual |
+| **MB-6** | Total Hilbert stress and reduced exchange | A local closed dilation action gives $\nabla^\mu T^{\rm closed}_{\mu\nu}=0$; interior and complementary divergences are equal and opposite through $J_\nu^{\rm io}$ | **Derived conditional Ward identity / MCC6 tested.** Explicit reservoir stress requires a metric-dependent reservoir action | The complete action is diffeomorphism invariant and on shell while its total Hilbert stress has nonzero divergence |
+| **MB-7** | Geometry sourced by an exchanging coherence system | The constant-$G$ Einstein–Hilbert branch is compatible with conserved total stress. A direct $G\mapsto G_{\rm eff}(q)$ replacement creates $(\nabla^\mu G_{\rm eff})T_{\mu\nu}$ and needs additional covariant dynamics | **Derived conditional compatibility / MCC7 tested.** Gravity selection remains open | A conserved total source violates the Bianchi identity in the declared branch, or a generic varying scalar coupling adds no divergence without extra field terms |
+| **MB-8** | Coherence-fibre embedding and Cartan convention bridge | $\Gamma_\Psi=\Psi\Psi^\dagger$ is a positive rank-one fibre; Gram sums produce full rank. The particle angle $U=e^{-i\alpha T^3}$ requires $B_A\mapsto B_A-g_Q^{-1}\partial_A\alpha$ and is equivalent to EL1 under $\alpha=-g_Q\beta$. Global $Q_C$ remains distinct from relative Cartan charge | **Derived conditional representation map / MCC8 tested.** Physical particle identity remains open | The minus law fails covariance for the particle-angle convention, the Gram matrices lose positivity, or $Q_C$ transforms as the relative Cartan charge |
+| **MB-9** | Reduced stationary curvature and full-spectrum qualification | The frozen CC29 branch has one bounded positive-curvature root and positive nonconstant CC47 line modes. A full claim requires a Q2-qualified PA32 background, joint constrained Hessian, mixed temporal pencil, and converged continuum | **Reduced analytic support / MCC9 tested / Full verdict `INCONCLUSIVE—NUMERICAL QUALITY`.** No full particle or spectrum claim | The frozen reduced equations lack their registered root or positive modes; a full claim is also falsified by any negative physical mode, growing dynamical mode, unassigned Jordan chain, or failed continuum convergence |
+
+**Source:** `foundations/matter-completion-boundary.md`;
+`computations/matter_completion_boundary_prereg.md`;
+`computations/matter_completion_boundary_check.py`; and
+`computations/matter_completion_boundary_report.md`.
+
+
 ---
 
 ## Notes

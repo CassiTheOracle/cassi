@@ -232,9 +232,13 @@ bounds, and reduced curvature $1.496039$. The smallest nonconstant frozen
 line-density eigenvalue is $0.975736$.
 
 These numbers verify the length and frozen line-density sectors. The registered
-particle campaign's twelve arms all fail Q2, so no eligible PA32 background,
-basin ordering, transverse spectrum, gauge spectrum, topology-changing
-comparison, continuum limit, or dynamical lifetime follows from MCC9.
+particle campaign's twelve arms all fail Q2, so no eligible PA32 background or
+basin ordering follows from MCC9. The unresolved particle sectors remain:
+non-axisymmetric deformations and knots; arbitrary multicore and
+fragmented-charge configurations; higher scale and transverse modes;
+topology-changing paths; infinite-domain existence; the full fixed-charge,
+gauge-quotiented Hessian and mixed dynamical spectrum; real-time decay,
+tunnelling, and continuum thresholds; and quantum spin and statistics.
 
 ## 6. Present boundary
 
