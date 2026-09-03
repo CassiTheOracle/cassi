@@ -24,7 +24,7 @@ Here $M$ fixes the Dirichlet shell and $\mathcal P_{C_4}$ preserves the register
 
 The independent preflight reconstructed all five source artifacts, reproduced their physical diagnostics, verified their hashes, and recovered the fixed charge through the direct coordinate with maximum round-trip error below $5\times10^{-12}$. It reported zero mismatches before the evidentiary calculation began.
 
-The canonical field-map interface accepts the stationary solver's charge argument, applies the required scalar projector, and writes to a separate evidentiary output path. The bound execution amendment records this interface and its non-evidentiary callable receipt (`computations/particle-carrier-direct-coordinate-execution-amendment.md`). The interface definition affects no physical or numerical decision rule.
+The canonical field-map interface accepts the stationary solver's charge argument, applies the required scalar projector, and writes to the declared evidentiary output path. Its requirements are frozen by `computations/particle-carrier-direct-coordinate-execution-amendment.md`. The physical inputs, statistics, thresholds, and decision branches are those declared in the preregistration.
 
 The canonical execution is bound by these receipts:
 
@@ -87,13 +87,13 @@ The density-depletion coefficient remains an uncalibrated model input selected b
 ## References
 
 - `computations/particle-carrier-direct-coordinate-prereg.md`—frozen physical question, coefficient order, endpoint conditions, and verdict tree.
-- `computations/particle-carrier-direct-coordinate-execution-amendment.md`—interface repair and fresh evidentiary output path.
+- `computations/particle-carrier-direct-coordinate-execution-amendment.md`—frozen canonical field-map interface requirements.
 - `computations/particle-carrier-direct-coordinate-receipt-binding.md`—canonical downstream receipt and artifact hashes.
 - `computations/particle_carrier_direct_coordinate.py`—primary recovery calculation.
 - `computations/verify_particle_carrier_direct_coordinate.py`—independent artifact and verdict verifier.
 - `computations/particle-carrier-localization-report.md`—source scan and carrier-residual diagnosis.
 - `computations/particle-carrier-resolution-recovery-prereg.md`—frozen same-domain refinement sequence, convergence statistics, tolerances, and verdict tree.
-- `computations/particle-carrier-resolution-recovery-verification-amendment.md`—bound verifier schema and non-evidentiary receipt.
+- `computations/particle-carrier-resolution-recovery-verification-amendment.md`—frozen verifier schema requirements.
 - `computations/particle_carrier_resolution_recovery_manifest.json`—hash-bound resolution code, source artifacts, grids, and optimizer schedule.
 - `computations/particle-carrier-resolution-recovery-report.md`—independently verified refinement measurements and present finite-grid boundary.
 - `foundations/particle-stationary-action-closure.md`—complete stationary action and particle-completion criteria.

@@ -20,7 +20,7 @@ on $N\in\{17,21,25,29\}$ grids. The two inherited endpoints are immutable source
 
 ## 2. Execution and verification
 
-The verifier schema retains only independently reproducible physical diagnostics for inherited source levels and reads analytic-seed conversion from the established `source_reconstruction` field. The bound verification amendment records these requirements and the non-evidentiary receipt (`computations/particle-carrier-resolution-recovery-verification-amendment.md`). The canonical result uses this schema, which affects no physical input, statistic, threshold, or decision branch.
+The verifier schema retains only independently reproducible physical diagnostics for inherited source levels and reads analytic-seed conversion from the established `source_reconstruction` field. Its requirements are frozen by `computations/particle-carrier-resolution-recovery-verification-amendment.md`. The canonical result satisfies this schema, while the physical inputs, statistics, thresholds, and decision branches remain those declared in the preregistration.
 
 The canonical campaign passes independent preflight, completes both new refinements in their first continuation blocks, and passes independent final verification with zero mismatches. The verifier reconstructs source and refinement fields from the stored artifacts, recomputes physical diagnostics, re-evaluates qualification and localization, checks optimizer budgets and stopping, recomputes adjacent-grid statistics and energy-difference contraction, and derives the verdict without importing the primary resolution driver.
 
@@ -90,7 +90,7 @@ The next calculation should evaluate the constrained physical Hessian on the fin
 ## References
 
 - `computations/particle-carrier-resolution-recovery-prereg.md`—frozen resolution ladder, diagnostics, tolerances, stopping rule, and verdict tree.
-- `computations/particle-carrier-resolution-recovery-verification-amendment.md`—bound receipt defect and frozen schema repair.
+- `computations/particle-carrier-resolution-recovery-verification-amendment.md`—frozen verifier schema requirements.
 - `computations/particle_carrier_resolution_recovery_manifest.json`—hash-bound code, source artifacts, coefficients, grids, and schedules.
 - `computations/particle_carrier_resolution_recovery.py`—primary deterministic refinement driver.
 - `computations/verify_particle_carrier_resolution_recovery.py`—independent final verifier.
