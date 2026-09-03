@@ -620,9 +620,10 @@ The current exterior action supplies none of the core data and its
 nonzero-condensate outer condition conflicts with isolated point flux. A
 radial or axisymmetric point-core solve therefore selects missing physics
 through its boundary conditions; no standalone boundary-value experiment is
-well posed in this sector. The separate coupled fixed-charge campaign tests
-one auxiliary-completed coefficient point, but every arm fails Q2 and the run
-does not qualify a point-core background.
+well posed in this sector. The separate coupled fixed-charge campaign tests one
+auxiliary-completed coefficient point and supplies a Q2-qualified finite-grid
+primary background. The field fails localization and carrier retention and
+does not qualify a point-core solution.
 
 ---
 
@@ -670,8 +671,10 @@ endpoint boundary conditions, and the second variation in every coupled
 channel. The separate conditional action in
 `foundations/particle-stationary-action-closure.md` supplies second-order
 charged-field kinetics, positive temporal curvatures, and Gauss's law. One
-coefficient point is tested, but no arm produces a Q2-qualified stationary
-background. Static positivity of (PF39) therefore cannot yet be converted into
+coefficient point has a Q2-qualified finite-grid primary background, permitting
+construction of the finite-grid constrained Hessian. Core data, the complete
+gauge quotient, domain and resolution convergence, and the evaluated operator
+remain open. Static positivity of (PF39) therefore does not establish
 gauge-mode frequencies.
 
 The exact result available in this sector is the positive one-dimensional
@@ -691,7 +694,7 @@ variation.
 | Does the current Abelian action smooth the point core? | No; $dG=0$ forces zero flux through a smooth ball |
 | Does the registered condensate admit an isolated finite-energy monopole? | No; the nonzero charged asymptotic sections give divergent angular kinetic energy |
 | Is a scalar radial matter solve available? | No; $j\geq|N_G|/2$ and the core/outer data are incomplete |
-| Is the full fluctuation spectrum defined? | No; one coupled coefficient point is tested, but the campaign produces no Q2-qualified stationary background and the core data, complete gauge fixing, and constrained second variation remain open |
+| Is the full fluctuation spectrum defined? | No; one coupled coefficient point has a Q2-qualified finite-grid primary background, while core data, localization, domain and resolution convergence, complete gauge fixing, and the constrained second variation remain open |
 
 The algebraic and spectral identities are checked by
 `computations/point_core_flux_check.py`. They create no numbered physical
@@ -728,8 +731,10 @@ conditional reduced support term $A_C/L$. The strict inequality $A_C>C_Q$
 gives one finite root with positive length curvature when carrier retention
 and thin-tube matching also hold. The separate particle action supplies the
 complete fixed-charge stationary formulation and Gauss constraint. One
-coefficient point is tested, but every arm fails Q2. No qualified backreacted
-solution, basin ordering, or fluctuation spectrum is established.
+coefficient point has a Q2-qualified finite-grid primary background. The field
+is diffuse, fails carrier retention, and lacks domain and resolution
+qualification; unrestricted basin ordering and the fluctuation spectrum remain
+open.
 
 ---
 
@@ -757,4 +762,5 @@ solution, basin ordering, or fluctuation spectrum is established.
   action, Gauss constraint, stationary equations, and variational boundary
 - `computations/particle_action_closure_check.py`—action-algebra and
   nondimensionalization checker
-- `computations/particle-stationary-bvp-report.md`—registered coupled one-point campaign and numerical-quality verdict
+- `computations/particle-stationary-bvp-report.md`—registered source campaign receipt
+- `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary background and retained localization, domain, and resolution boundaries

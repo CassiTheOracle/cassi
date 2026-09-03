@@ -383,13 +383,14 @@ transport and relative-charge conservation, exterior point-flux support,
 smooth-core and confinement boundaries, a conditional reduced conserved-charge
 support theorem, conditional action and Gauss equations, nine-part
 matter-interface boundary, and energetic and dynamical qualification
-operators**, plus **Tested reduced and one-point numerical boundaries**.
-The physical reservoir, scale metric, endpoint normalization, calibrated
-coefficient point, qualified transverse carrier mode, backreacted composite,
-observation map, quantum numbers, full fluctuation spectrum, and decay rate
-remain open. Every registered stationary arm fails Q2, so no qualified
-background exists for the full operators and the physical verdict remains
-`INCONCLUSIVE—NUMERICAL QUALITY`. See
+operators**, plus **Tested reduced, one-point numerical, and finite-grid
+Q2-background boundaries**. The physical reservoir, scale metric, endpoint
+normalization, calibrated coefficient point, qualified transverse carrier
+mode, localized backreacted composite, observation map, quantum numbers, full
+fluctuation spectrum, and decay rate remain open. Canonical-preimage
+continuation supplies a Q2-qualified finite-grid primary background. The
+selected field fails localization and carrier retention, while every domain
+arm and the selected high-resolution arm fails Q2. See
 `foundations/geometric-manifold-completion.md`,
 `foundations/endpoint-link-and-localization-boundary.md`,
 `foundations/point-core-flux-sector.md`,
@@ -397,8 +398,9 @@ background exists for the full operators and the physical verdict remains
 `foundations/core-trapped-charge-support.md`,
 `foundations/particle-stationary-action-closure.md`,
 `foundations/matter-completion-boundary.md`,
-`computations/matter_completion_boundary_report.md`, and
-`computations/particle-stationary-bvp-report.md`.
+`computations/matter_completion_boundary_report.md`,
+`computations/particle-stationary-bvp-report.md`, and
+`computations/particle-stationary-q2-recovery-report.md`.
 
 ---
 
@@ -746,9 +748,11 @@ Gauss-obstructed; a separate second-order charged-field branch supplies the
 temporal action, Gauss constraint, coupled stationary equations, and
 normalization-invariant variational class. The matter-completion boundary adds
 the Gram/Cartan particle map, joint constrained energetic Hessian, and mixed
-dynamical pencil. One dimensionless coefficient point is tested, but all
-twelve primary/domain arms fail Q2. Physical endpoint normalization, scale
-tension, coefficient calibration, a qualified bound transverse carrier mode,
+dynamical pencil. One dimensionless coefficient point has a Q2-qualified
+finite-grid primary background. The selected field fails localization and
+carrier retention, and every domain plus high-resolution arm fails Q2.
+Physical endpoint normalization, scale tension, coefficient calibration, a
+qualified bound transverse carrier mode, domain and resolution convergence,
 full proton solution, proton quantum numbers, evaluated fluctuation spectrum,
 and winding-changing rate remain open
 (`foundations/endpoint-link-and-localization-boundary.md`;
@@ -759,6 +763,7 @@ and winding-changing rate remain open
 `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_report.md`;
 `computations/particle-stationary-bvp-report.md`;
+`computations/particle-stationary-q2-recovery-report.md`;
 `foundations/interscale-current-soliton.md` §4.5;
 `foundations/proton-coherence-budget.md` §10).
 
@@ -770,10 +775,11 @@ covariance, Gauss constraint, stationary equations, Cartan convention bridge,
 and fluctuation qualification operators are **Derived conditional** on their
 declared actions and sectors. MCC1–MCC9 pass for the finite algebraic and
 reduced analytic boundary. One dimensionless stationary point is **Tested**
-with verdict `INCONCLUSIVE—NUMERICAL QUALITY`. Identifying either construction
-with physical proton stability, selecting endpoint and calibrated action data,
-obtaining a qualified stationary composite, evaluating the full constrained
-spectrum, and deriving a decay rate are **Hypothesized/Open**.
+with verdict `PASS—Q2-QUALIFIED PRIMARY BACKGROUND`. Identifying the
+construction with physical proton stability, selecting endpoint and calibrated
+action data, establishing carrier localization and domain/resolution
+convergence, evaluating the full constrained spectrum, and deriving a decay
+rate are **Hypothesized/Open**.
 
 For the neutron–proton–electron trio as a whole—their scale coordinates, sectors, and framework-level distinctions—see `particles/matter-organization.md`.
 

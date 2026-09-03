@@ -11,13 +11,15 @@ routed transport, single-mode power normalization, maintained open-system
 coherence, total stress, constant-$G$ backreaction, the Cartan embedding in the
 particle branch, and the reduced fixed-charge stability criteria.
 
-The physical particle verdict remains
-`INCONCLUSIVE—NUMERICAL QUALITY`. The registered stationary campaign has no
-Q2-qualified background, so a full constrained spectrum cannot be evaluated.
+The MCC1–MCC9 receipt carries no PA32 solve and therefore makes no stationary
+background claim by itself. The independent canonical-preimage continuation
+campaign supplies a Q2-qualified finite-grid primary background with verdict
+`PASS—Q2-QUALIFIED PRIMARY BACKGROUND`. The selected field fails localization
+and carrier retention, while every domain plus high-resolution arm fails Q2.
 The physical exterior, microscopic interface coefficients, golden port-power
 identification, multimode carrier normalization, reservoir, local reservoir
-stress, state-dependent gravity, and coherence-fibre particle identity also
-remain open.
+stress, state-dependent gravity, coherence-fibre particle identity, domain and
+resolution convergence, and full constrained spectrum remain open.
 
 ## 1. Frozen execution
 
@@ -63,7 +65,7 @@ line-density sector.
 | MCC6 | Enlarged unitary evolution conserves total energy and number; interior and complementary exchange vectors close the Ward ledger | **PASS** | Local reservoir stress components require a closed metric-dependent action |
 | MCC7 | The constant-$G$ linearized Einstein witness is transverse; a variable scalar coupling creates an extra divergence | **PASS** | State-dependent gravity open |
 | MCC8 | The Cartan connection requires the minus-sign transformation; rank-one and full-rank Gram fibres are positive; $Q_C$ remains an independent singlet charge | **PASS** | Physical coherence-fibre particle identity open |
-| MCC9 | The frozen CC29 branch has one bounded positive-curvature root and positive nonconstant CC47 line modes | **PASS** | Q2-qualified full background and constrained spectrum absent |
+| MCC9 | The frozen CC29 branch has one bounded positive-curvature root and positive nonconstant CC47 line modes | **PASS** | MCC9 contains no PA32 solve; separate recovery supplies a Q2-qualified finite-grid primary background, while localization, domain/resolution convergence, and the constrained spectrum remain absent |
 
 ## 4. Literal first-execution output
 
@@ -231,14 +233,17 @@ with CC36 residual $4.441\times10^{-16}$, positive distance from both CC38
 bounds, and reduced curvature $1.496039$. The smallest nonconstant frozen
 line-density eigenvalue is $0.975736$.
 
-These numbers verify the length and frozen line-density sectors. The registered
-particle campaign's twelve arms all fail Q2, so no eligible PA32 background or
-basin ordering follows from MCC9. The unresolved particle sectors remain:
-non-axisymmetric deformations and knots; arbitrary multicore and
-fragmented-charge configurations; higher scale and transverse modes;
-topology-changing paths; infinite-domain existence; the full fixed-charge,
-gauge-quotiented Hessian and mixed dynamical spectrum; real-time decay,
-tunnelling, and continuum thresholds; and quantum spin and statistics.
+These numbers verify the length and frozen line-density sectors.
+Canonical-preimage continuation of the registered particle endpoints supplies
+five structural primary arms that pass Q1–Q4. The frozen rule selects
+`P:separated_core`. That field fails localization and carrier retention, and
+every domain plus high-resolution arm fails Q2. MCC9 therefore supplies no
+domain-stable basin ordering or spectrum qualification. The unresolved
+particle sectors remain: non-axisymmetric deformations and knots; arbitrary
+multicore and fragmented-charge configurations; higher scale and transverse
+modes; topology-changing paths; infinite-domain existence; the full
+fixed-charge, gauge-quotiented Hessian and mixed dynamical spectrum; real-time
+decay, tunnelling, and continuum thresholds; and quantum spin and statistics.
 
 ## 6. Present boundary
 
@@ -258,9 +263,11 @@ $$
 \end{aligned}
 $$
 
-Each arrow states its assumptions and remaining physical input. The next
-particle computation requires a Q2-qualified stationary background before the
-projected Hessian in the full variational class can be evaluated.
+Each arrow states its assumptions and remaining physical input. The selected
+Q2-qualified primary artifact permits construction of the finite-grid
+projected Hessian. Carrier localization, domain and resolution convergence,
+the full gauge quotient, and selected temporal groups remain independent
+qualification requirements.
 
 ## References
 
@@ -278,5 +285,8 @@ projected Hessian in the full variational class can be evaluated.
   action and variational class.
 - `foundations/core-trapped-charge-support.md`—reduced support and stability
   theorem.
-- `computations/particle-stationary-bvp-report.md`—frozen Q2 and numerical
-  quality boundary.
+- `computations/particle-stationary-bvp-report.md`—registered source campaign
+  receipt.
+- `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary
+  background and retained localization, domain, resolution, and spectrum
+  boundaries.

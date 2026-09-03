@@ -1,6 +1,6 @@
 # Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
-## Status: Derived conditional boundary / Hypothesized physical realization / Tested reduced receipts—September 2026
+## Status: Derived conditional boundary / Hypothesized physical realization / Tested reduced receipts and one-point Q2-qualified primary background—September 2026
 
 ## Abstract
 
@@ -28,9 +28,10 @@ fluctuation qualification problem.
 
 MCC1–MCC9 pass in the frozen receipt. The physical exterior, microscopic
 coefficients, multimode carrier map, reservoir action, state-dependent gravity,
-and particle identification remain open. The registered stationary campaign
-has no Q2-qualified background, so the full particle existence and spectrum
-verdict remains `INCONCLUSIVE—NUMERICAL QUALITY`.
+and particle identification remain open. Canonical-preimage continuation of
+the registered PA32 point supplies an independently verified Q2-qualified
+primary background. Domain and resolution convergence, localization, and the
+full constrained spectrum remain open.
 
 ## 1. The nine-part boundary
 
@@ -48,7 +49,7 @@ without assigning physical meaning that the action or data have not selected.
 | Stress | Conserved Hilbert stress of the complete dilation action and equal-and-opposite reduced exchange | Metric dependence of the exterior, interface, and reservoir actions |
 | Geometry | Constant-$G$ Einstein backreaction sourced by conserved total stress | Selected gravity sector; extra dynamics for any $q$-dependent coupling |
 | Particle map | Gram map into the $SU(2)_Q$ doublet, Cartan convention bridge, and independent global $Q_C$ | Physical identification, coefficients, quantum numbers, and calibrated charge |
-| Stationary spectrum | Fixed-charge variational equations, finite-energy boundaries, joint physical Hessian, and mixed dynamical eigenvalue pencil | Q2-qualified background, converged full solution, and evaluated physical spectrum |
+| Stationary spectrum | Fixed-charge variational equations, finite-energy boundaries, joint physical Hessian, and mixed dynamical eigenvalue pencil | Domain-and-resolution-qualified background, localized carrier, evaluated joint Hessian, selected temporal groups, and evaluated physical spectrum |
 
 These results are collected in one statement.
 
@@ -59,8 +60,8 @@ These results are collected in one statement.
 > define a mutually compatible route from two-domain coherence to the full
 > fixed-charge stationary and fluctuation problem. MCC1–MCC9 verify the finite
 > algebraic and reduced analytic parts. Physical matter requires independent
-> selection of the listed inputs and a Q2-qualified solution of the PA32
-> boundary-value problem.
+> selection of the listed inputs, domain and resolution control of the PA32
+> solution, and a qualified spectrum.
 
 No new universal constant or fitted coefficient enters this theorem.
 
@@ -794,20 +795,25 @@ and mixed temporal spectrum remain unevaluated.
 
 ### 10.5 Current solver verdict
 
-The registered PA32 campaign tested twelve primary/domain arms. Every arm
-failed Q2, with scaled gradient ratios between $1.43$ and $13.8$ times the
-preregistered threshold. No high-resolution arm was eligible. The campaign
-therefore provides no stationary background on which to assemble (MB41) or
-(MB42).
+Canonical-preimage continuation of the registered PA32 endpoints preserves the
+action, coefficient point, charge, grids, field class, diagnostics, and gates.
+Five structural primary arms pass Q1–Q4. The frozen energy rule selects
+`P:separated_core`, with physical gradient RMS
+$1.93697\times10^{-4}$ and cutoff virial
+$1.89101\times10^{-3}$. The independent verifier reports zero mismatches.
 
-The current full-state verdict is
+Every outer-domain arm and the selected high-resolution arm fails Q2. The
+selected primary also fails the registered carrier-localization and retention
+conditions. The current stationary-background verdict is
 
 $$
-\boxed{\mathrm{INCONCLUSIVE\text{-}NUMERICAL\ QUALITY}.}
+\boxed{\mathrm{PASS\text{—}Q2\text{-}QUALIFIED\ PRIMARY\ BACKGROUND}.}
 \tag{MB48}
 $$
 
-This verdict carries no particle-existence claim.
+This verdict permits a finite-grid construction of (MB41). It carries no
+particle-existence, localization, stability, domain-convergence, or
+resolution-convergence claim.
 
 ## 11. MCC1–MCC9 receipt
 
@@ -827,9 +833,10 @@ gates pass:
 | MCC8 | minus-law covariance residual $1.390\times10^{-17}$; inconsistent-pair residual $0.1207$ | **PASS** |
 | MCC9 | reduced root $1.269522140245$; curvature $1.496039$; minimum line mode $0.975736$ | **PASS** |
 
-The receipt establishes consistency of the conditional boundary. Its scope
-flags keep every unresolved physical input false, including the Q2-qualified
-background and full constrained spectrum.
+The receipt establishes consistency of the conditional boundary. Its own scope
+flags leave every unresolved physical input false because MCC1–MCC9 do not
+perform the PA32 solve. The independent PA32 recovery supplies a Q2-qualified
+primary background; the full constrained spectrum remains unevaluated.
 
 ## 12. What remains to form matter
 
@@ -842,10 +849,13 @@ auxiliary mechanism.
    the return routing and canonical flux normalization.
 3. Calibrate the particle-action coefficients and $Q_C$ sector to a declared
    physical target without using the target as an unledgered fit.
-4. Obtain a Q2-qualified PA32 stationary solution with outer-domain and
-   resolution convergence.
-5. Assemble the joint constraint space, evaluate (MB41), solve (MB42), and test
-   the continuum and nonlinear lifetime.
+4. Extend the Q2 qualification to the outer-domain and high-resolution grids,
+   and satisfy the carrier-localization and retention conditions.
+5. Assemble the joint finite-grid constraint space on the selected primary
+   background, evaluate (MB41), and classify every physical zero and negative
+   mode.
+6. Select the temporal groups, solve (MB42), and test domain, resolution,
+   continuum, and nonlinear-lifetime stability.
 
 Until these steps are complete, Cassi has a mathematically connected matter
 calculation and reduced support theorems. A physical finite-energy particle is
@@ -869,8 +879,10 @@ an open result.
   line-density stability boundary.
 - `foundations/particle-stationary-action-closure.md`—PA1 action, fixed-charge
   equations, boundary data, and PA32 variational class.
-- `computations/particle-stationary-bvp-report.md`—registered numerical-quality
-  verdict.
+- `computations/particle-stationary-bvp-report.md`—registered source campaign
+  receipt.
+- `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary
+  background and retained domain, resolution, and localization boundaries.
 - `computations/matter_completion_boundary_prereg.md`—frozen MCC1–MCC9
   protocol.
 - `computations/matter_completion_boundary_report.md`—literal first execution

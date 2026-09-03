@@ -1,6 +1,6 @@
 # Non-Abelian Magnetic Core and the Confined-Defect Boundary
 
-## Status: Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Tested one-point coupled campaign—September 2026
+## Status: Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Tested one-point Q2-qualified primary background—September 2026
 
 ## Abstract
 
@@ -50,9 +50,10 @@ positive length curvature.
 The source-free particle action in
 `foundations/particle-stationary-action-closure.md` combines these sectors,
 derives the coupled Euler and Gauss equations, and declares the first
-fixed-$Q_C$ variational class. One coefficient point is tested, but every arm
-fails Q2. A qualified carrier mode, backreacted tube, and fixed-charge
-configuration comparison remain required.
+fixed-$Q_C$ variational class. Canonical-preimage continuation at one
+coefficient point supplies a Q2-qualified finite-grid primary background.
+A qualified carrier mode, backreacted tube, domain and resolution convergence,
+and fixed-charge configuration comparison remain required.
 
 The resulting boundary is sharp. A smooth magnetic core is available in the
 adjoint-only or vanishing-condensate branch. The registered Cassi fields alone
@@ -765,16 +766,18 @@ slope. A persistent finite pair is not derived.
 | Adjoint-only BPS unit core | Yes, analytically solved | Equations (MC22)-(MC24) give the exact solution and boundary limits |
 | Adjoint-only non-BPS core | Not numerically selected | $\beta_Q$ and any scale dependence are free |
 | Isolated core with $\rho\to\rho_0>0$ | No | Finite-energy isolated magnetic boundary data do not exist |
-| Fixed-separation monopole-antimonopole string with registered fields | Conditional constrained problem; one coupled point tested | The registered $C_4$ campaign co-optimizes tube, core, and carrier fields, but no arm passes Q2 |
-| Carrier-supported fixed-$Q_C$ pair | Reduced problem solved analytically; coupled point returns numerical-quality failure | `foundations/core-trapped-charge-support.md` gives the unique reduced length root under $A_C>C_Q$, carrier retention, and matching conditions; the coupled campaign does not establish a qualified field solution |
-| Full stationary particle | One numerical point tested; no qualified solution obtained in this campaign | The conditional action supplies the Euler and Gauss equations; all twelve primary/domain arms fail Q2, so no high-resolution arm or basin ordering is eligible |
+| Fixed-separation monopole-antimonopole string with registered fields | Conditional constrained problem; one coupled point tested | The registered $C_4$ campaign co-optimizes tube, core, and carrier fields and supplies a Q2-qualified primary background; localization and domain/resolution convergence fail |
+| Carrier-supported fixed-$Q_C$ pair | Reduced problem solved analytically; coupled point has a Q2-qualified primary background | `foundations/core-trapped-charge-support.md` gives the unique reduced length root under $A_C>C_Q$; the finite-grid field fails carrier retention and does not establish the reduced-to-field matching |
+| Full stationary particle | Finite-grid stationarity qualified; physical particle open | The conditional action supplies the Euler and Gauss equations; five structural primary arms pass Q1–Q4, while localization, domain/resolution convergence, and the constrained spectrum remain open |
 
 Numerical integration of the exact BPS profile or the reduced carrier root adds
 no physical information at the declared boundary. The registered coupled
 campaign freezes one dimensionless point, charge, domain pair, and six
-initialization basins. All twelve primary/domain arms fail the
-stationary-quality gate Q2. No
-high-resolution arm, localization verdict, or basin ordering is eligible.
+initialization basins. Five structural primary arms pass Q1–Q4 after frozen
+continuation, and `P:separated_core` is selected. Every domain arm and the
+selected high-resolution arm fails Q2, while the selected primary fails
+localization and carrier retention. No domain-stable localization verdict or
+robust basin ordering is established.
 
 ### 6.2 Static BPS Hessian
 
@@ -803,13 +806,14 @@ $\mathcal F_{ti}^a$ and $\mathcal F_{t\mathfrak s}^a$ terms, second-order
 charged-field time kinetics, and the complete Gauss constraint. A physical
 fluctuation spectrum still requires, in order:
 
-1. a selected full fixed-$Q_C$ carrier-and-tube background;
-2. selected temporal groups $c_\Psi,c_\Phi,e_{tx},e_{t\mathfrak s}$;
-3. an $SU(2)_Q$ endpoint lift or replacement where the circuit boundary is
+1. the selected finite-grid fixed-$Q_C$ carrier-and-tube background;
+2. the joint fixed-charge, linearized-Gauss, boundary, and gauge quotient;
+3. selected temporal groups $c_\Psi,c_\Phi,e_{tx},e_{t\mathfrak s}$;
+4. an $SU(2)_Q$ endpoint lift or replacement where the circuit boundary is
    retained;
-4. a declared gauge condition;
 5. the second variation in adjoint, doublet, gauge, endpoint, carrier, and scale
-   channels.
+   channels;
+6. domain, resolution, and continuum convergence.
 
 The temporal action makes frequencies definable after the stationary
 background and temporal point are selected. It does not remove the
@@ -825,20 +829,21 @@ nonzero-condensate monopole obstruction.
 | Exact point-core flux and exterior coefficient matching | **PASS** | (MC16) and (MC31) |
 | Exact BPS solution after coupling $\Psi_\infty\ne0$ | **FAIL** | Fundamental kinetic and composition terms source the BPS equations |
 | Isolated finite-energy monopole with $\rho_0>0$ | **FAIL** | Trivial full stabilizer, $\pi_2=0$, and positive London mass |
-| Finite net-zero monopole-antimonopole configuration | **CONDITIONAL / tested point unqualified** | Requires a resolved flux tube and qualified coupled fields; every registered primary/domain arm fails Q2 |
+| Finite net-zero monopole-antimonopole configuration | **CONDITIONAL / finite-grid primary qualified** | The selected primary passes Q1–Q4; a resolved flux tube, carrier localization, and domain/resolution convergence remain open |
 | Persistent finite-separation composite from registered fields | **FAIL in the registered asymptotic branch** | Strictly positive slope (MC47); no registered support term |
 | Carrier-supported separation coordinate | **PASS conditionally in the reduced branch** | $A_C>C_Q$, carrier retention, and thin-tube matching in `foundations/core-trapped-charge-support.md` |
-| Full stationary particle solver | **TESTED one point / INCONCLUSIVE—NUMERICAL QUALITY** | The source-free action fixes the variational equations and boundaries; all twelve primary/domain arms fail Q2 and no high-resolution or ordering branch is eligible |
+| Full stationary particle solver | **TESTED one point / PASS—Q2-QUALIFIED PRIMARY BACKGROUND** | Five structural primary arms pass Q1–Q4; the selected field fails localization and retention, and all domain plus high-resolution arms fail Q2 |
 | Static adjoint BPS stability | **PASS conditionally** | Nonnegative factorized quadratic energy (MC48) |
-| Full dynamical fluctuation spectrum | **UNSOLVED** | The tested class produces no Q2-qualified stationary background; the complete constrained second variation remains open |
+| Full dynamical fluctuation spectrum | **UNSOLVED** | A finite-grid Q2 background exists; the complete constrained second variation, temporal point, and converged spectrum remain open |
 
 The auxiliary carrier supplies the first explicit conserved support sector and
 passes $E'(L_*)=0$, $E''(L_*)>0$ in the frozen-mode thin-tube reduction. The
 source-free temporal branch supplies the coupled fixed-charge functional and
-Gauss constraint. Its first registered point returns
-`INCONCLUSIVE—NUMERICAL QUALITY`; the measured fields do not qualify a
-stationary background. A coupled gauge spectrum remains downstream of a
-Q2-qualified background and the complete constrained second variation.
+Gauss constraint. Its registered point has an independently verified
+Q2-qualified primary background. The field is diffuse, fails carrier
+retention, and lacks domain and resolution qualification. A coupled gauge
+spectrum requires the complete constrained second variation and selected
+temporal groups.
 
 ---
 
@@ -881,10 +886,10 @@ $A_C>C_Q$, provided the carrier remains below its bulk threshold and the root
 lies beyond core overlap. The separate action in
 `foundations/particle-stationary-action-closure.md` supplies the complete
 backreaction equations, temporal gauge sector, Gauss constraint, and
-fixed-charge variational boundary. One coefficient point and six basins are
-tested on primary and domain grids, but every arm fails Q2. A qualified
-transverse mode, stationary field solution, fixed-charge configuration
-comparison, and fluctuation spectrum remain open.
+fixed-charge variational boundary. One coefficient point has a Q2-qualified
+finite-grid primary background. A qualified transverse mode, localized and
+domain-converged field solution, robust fixed-charge configuration comparison,
+and fluctuation spectrum remain open.
 
 ---
 
@@ -908,7 +913,8 @@ comparison, and fluctuation spectrum remain open.
   action, Gauss constraint, stationary equations, and variational boundary
 - `computations/particle_action_closure_check.py`—action-algebra and
   nondimensionalization checker
-- `computations/particle-stationary-bvp-report.md`—registered one-point campaign receipt and numerical-quality verdict
+- `computations/particle-stationary-bvp-report.md`—registered source campaign receipt
+- `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary background and retained localization, domain, and resolution boundaries
 - G. 't Hooft, “Magnetic Monopoles in Unified Gauge Theories,” *Nuclear Physics
   B* **79** (1974), 276–284
 - A. M. Polyakov, “Particle Spectrum in Quantum Field Theory,” *JETP Letters*

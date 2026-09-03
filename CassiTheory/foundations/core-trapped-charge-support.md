@@ -1,6 +1,6 @@
 # Core-Trapped Noether Charge and the Finite-Composite Boundary
 
-## Status: Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point coupled campaign—September 2026
+## Status: Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point Q2-qualified primary background—September 2026
 
 ## Abstract
 
@@ -15,8 +15,8 @@ registered scale-circuit winding acts along the independent scale coordinate
 and contributes spatial tube tension rather than inverse-length support.
 A gauge-electric dyon belongs to the separate conditional temporal branch in
 `foundations/particle-stationary-action-closure.md`. Its registered static
-$a_0=0$ point returns `INCONCLUSIVE—NUMERICAL QUALITY`; no qualified
-stationary configuration is selected.
+$a_0=0$ point has a Q2-qualified finite-grid primary background, while no
+stationary dyonic configuration is selected.
 
 The selected auxiliary branch is a neutral complex carrier $\chi_C$ with a
 global $U(1)_C$ phase, its own first-order time term, a positive bulk gap, and
@@ -49,11 +49,11 @@ $$
 Carrier localization adds the independent chemical-potential condition
 $\hbar\omega_C<\varepsilon_{C,\rm out}$. These results establish a conditional
 reduced support branch. The separate particle action supplies complete carrier
-backreaction, Gauss's law, and the fixed-$Q_C$ stationary equations. Its first
-registered point co-optimizes the carrier, condensate, adjoint core, and gauge
-connection across twelve primary/domain arms, but every arm fails Q2. A
-qualified stationary particle, robust basin ordering, and physical
-calibration remain open.
+backreaction, Gauss's law, and the fixed-$Q_C$ stationary equations.
+Canonical-preimage continuation at the registered point supplies a
+Q2-qualified primary background. That field fails the carrier-localization and
+retention conditions, while domain and resolution convergence, robust basin
+ordering, and physical calibration remain open.
 
 ---
 
@@ -118,7 +118,7 @@ electric charge, baryon number, lepton number, or an observed particle.
 | CC-F | Positive carrier self-repulsion gives $A_C/L$ on the uniform fixed-charge tube branch | Derived thin-tube identity |
 | CC-G | $A_C>C_Q$ gives one statically stable finite separation in the reduced length coordinate | Derived conditional theorem |
 | CC-H | Localization, scale separation, and core-overlap bounds remain independent conditions | Derived evidence boundary |
-| CC-I | The conditional particle action defines the full coupled equations; one coefficient point is tested, every arm fails Q2, and no qualified stationary solution or physical mass is selected | Tested numerical boundary / open physical realization |
+| CC-I | The conditional particle action defines the full coupled equations; one coefficient point has a Q2-qualified finite-grid primary background, while localization, domain and resolution convergence, the physical spectrum, and physical mass remain open | Tested numerical boundary / open physical realization |
 
 ---
 
@@ -183,9 +183,8 @@ The source-free action in
 `foundations/particle-stationary-action-closure.md` specifies temporal gauge
 components, electric curvature energy, charged source kinetics, and the Gauss
 constraint. The theory coefficients remain uncalibrated. The registered
-campaign freezes one static $a_0=0$ point and produces no Q2-qualified
-background, so it selects no dyonic or asymptotic electric support
-coefficient.
+static $a_0=0$ point has a Q2-qualified primary background, but it selects no
+dyonic or asymptotic electric support coefficient and fails carrier retention.
 
 ### 2.4 Minimal selected branch
 
@@ -813,8 +812,9 @@ A numerical transverse solve of (CC17) requires:
 4. a declared tube cross-section and scale measure.
 
 The registered campaign fixes one finite-box coefficient point and co-optimizes
-the carrier with the other fields, but no arm passes Q2. It therefore supplies
-no qualified magnetic-tube background or standalone transverse eigenmode.
+the carrier with the other fields. Its selected primary passes Q2, but fails
+the carrier-localization and retention conditions. It therefore supplies no
+qualified standalone transverse eigenmode or localized magnetic-tube claim.
 
 ### 8.3 Full coupled stationary problem
 
@@ -832,11 +832,15 @@ A full fixed-$Q_C$ solve uses the action and equations in
    candidate.
 
 The registered campaign freezes these choices for five structural basins and
-one delocalized control on both primary and domain grids. All twelve arms fail
-Q2, so no high-resolution arm, localization verdict, or basin ordering is
-eligible. The complete receipt is recorded in
-`computations/particle-stationary-bvp-report.md`. The reduced-support checker
-and action checker retain their separate algebraic scopes.
+one delocalized control on the primary and domain grids. Five structural
+primary arms pass Q1–Q4, and the frozen rule selects `P:separated_core`.
+Every domain arm and the selected high-resolution arm fails Q2. The selected
+primary also fails the carrier-localization and retention conditions, so no
+domain-stable localization verdict or robust basin ordering is established.
+The complete receipts are recorded in
+`computations/particle-stationary-bvp-report.md` and
+`computations/particle-stationary-q2-recovery-report.md`. The reduced-support
+checker and action checker retain their separate algebraic scopes.
 
 ---
 
@@ -852,7 +856,7 @@ and action checker retain their separate algebraic scopes.
 | Is there a finite reduced separation? | Yes when $A_C>C_Q$, uniquely, with bounds (CC38) and positive curvature (CC39) |
 | Is the carrier retained at that separation? | Only when the chemical-potential condition (CC42) also holds |
 | Is the reduced root outside core overlap? | Only when a matching condition such as (CC40) holds |
-| Is a full stationary particle established? | No; one coefficient point is tested, but all twelve arms fail Q2 and transverse binding, topology-changing competitors, continuum convergence, and physical calibration remain unresolved |
+| Is a full stationary particle established? | No; one coefficient point has a Q2-qualified finite-grid primary background, but transverse binding, carrier retention, topology-changing competitors, domain and continuum convergence, the constrained spectrum, and physical calibration remain unresolved |
 | Is a physical mass or parameter-free numerical prediction obtained? | No |
 
 The reduced support claims are checked by
@@ -882,9 +886,10 @@ $$
 provided the carrier remains below its bulk threshold and the stationary
 length exceeds the core-overlap scale. This closes the reduced support
 question conditionally. The particle action closes the coupled variational
-formulation, and one coefficient point is now tested. No Q2-qualified
-stationary field solution, basin ordering, spectrum, or physical
-interpretation is established.
+formulation, and one coefficient point has a Q2-qualified finite-grid primary
+background. That field is diffuse and fails carrier retention; domain and
+resolution convergence, unrestricted basin ordering, the constrained spectrum,
+and physical interpretation remain open.
 
 ---
 
@@ -896,4 +901,5 @@ interpretation is established.
 4. A. M. Polyakov, “Particle spectrum in quantum field theory,” *JETP Letters* **20** (1974), 194–195.
 5. B. Julia and A. Zee, “Poles with both magnetic and electric charges in non-Abelian gauge theory,” *Physical Review D* **11** (1975), 2227–2232.
 6. `foundations/particle-stationary-action-closure.md`—coupled fixed-charge action and variational boundary.
-7. `computations/particle-stationary-bvp-report.md`—registered one-point campaign receipt and numerical-quality verdict.
+7. `computations/particle-stationary-bvp-report.md`—registered source campaign receipt.
+8. `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary background and retained localization, domain, and resolution boundaries.

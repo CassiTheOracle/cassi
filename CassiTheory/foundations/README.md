@@ -25,7 +25,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 13 | `spin-fibonacci-spiral.md` | Spin as spiral winding | Derivation |
 | 14 | `phi_attractor_synthesis.md` | Analytical N-body paths | Derived |
 | 15 | `wa-pentagon-gate.md` | $w_a$ sign tension | Derived / Hypothesized |
-| 16 | `proton-coherence-budget.md` | Proton stability: coherence budget and Planck-to-proton scale circuit | Mapped coordinate / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms / Tested one-point coupled campaign |
+| 16 | `proton-coherence-budget.md` | Proton stability: coherence budget and Planck-to-proton scale circuit | Mapped coordinate / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms / Tested one-point Q2-qualified primary background |
 | 17 | `quantum-measurement-derivation.md` | Quantum dynamics and measurement | Derived conditional (regulated quantum mechanics and finite carrier projection); Hypothesized CassiFI and carrier physical identifications |
 | 18 | `strong-cp-derivation.md` | Strong CP | Derivation |
 | 19 | `quark-confinement.md` | Confinement | Derived conditional (tube extensivity + cell quantization); Hypothesized tube/coherence inputs; conditional normalization $\kappa=2\pi$ on the optional $2\pi$-per-rung winding convention |
@@ -46,15 +46,16 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
 | 36 | `loop-to-bubble-projection-theorem.md` | Shared-support Yang/Yin loop, canonical zero-mode projection, coherence ball, and internal spectrum | Derived conditional projection, bubble map, and population spectrum / Hypothesized microscopic physical identification |
-| 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action / Derived conditional endpoint, source-action response, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point coupled campaign |
-| 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, two-rail scale graph, canonical reduction, and open-system coherence lift | Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry / Tested one-point stationary campaign |
+| 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action / Derived conditional endpoint, source-action response, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point Q2-qualified primary background |
+| 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, two-rail scale graph, canonical reduction, and open-system coherence lift | Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry / Tested one-point Q2-qualified primary background |
 | 39 | `endpoint-link-and-localization-boundary.md` | Gauge-covariant endpoint closure, frozen-link and source-action Nambu response, stationary spatial-flux and zero-mode boundary, full-fibre invariant classification, and smooth-sector localization boundary | Derived conditional endpoint closure, response, and spatial-flux identities / Derived minimal-sector localization no-go |
 | 40 | `point-core-flux-sector.md` | Quantized point-core exterior energy, finite-energy obstruction, and stationary-solver boundary | Derived conditional exterior support / Derived current-action completion no-go |
-| 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary smooth magnetic core, condensate topology, London confinement, and composite-stability boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Tested one-point coupled campaign |
-| 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point coupled campaign |
-| 43 | `particle-stationary-action-closure.md` | Source-free temporal particle action, Gauss constraint, fixed-charge functional, and variational boundary | Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries / Tested one-point numerical boundary |
+| 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary smooth magnetic core, condensate topology, London confinement, and composite-stability boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Tested one-point Q2-qualified primary background |
+| 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point Q2-qualified primary background |
+| 43 | `particle-stationary-action-closure.md` | Source-free temporal particle action, Gauss constraint, fixed-charge functional, and variational boundary | Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries / Tested one-point Q2-qualified primary background |
 | 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, source-action Nambu response, and routed quadratic-flux attenuation | Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026 |
-| 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated canonical conversion, coherence fibre, relative-phase transport, endpoint ledgers, open-system support boundary, and bounded cross-domain source interface | Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, and bounded cross-domain interface—September 2026 |
+| 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated canonical conversion, coherence fibre, relative-phase transport, endpoint ledgers, open-system support boundary, and bounded cross-domain source interface | Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary / Tested one-point Q2-qualified primary background—September 2026 |
+| 46 | `matter-completion-boundary.md` | Nine-part conditional boundary from exterior dilation through fixed-charge spectral qualification | Derived conditional boundary / Hypothesized physical realization / Tested reduced receipts and one-point Q2-qualified primary background—September 2026 |
 
 ## Document Summaries
 
@@ -305,12 +306,14 @@ conditional exterior coefficient. An auxiliary adjoint $SU(2)_Q$ branch
 supplies a smooth local core and matches that coefficient, while the registered
 condensate confines flux and gives no persistent pair by itself. A neutral core
 carrier supplies one conditional reduced separation under support, retention,
-and matching inequalities. One coupled coefficient point is tested, but every
-arm fails Q2. Physical endpoint normalization, scale tension, coefficient
-calibration, a qualified bound transverse carrier mode, a supported proton
-solution, temporal gauge dynamics, quantum numbers, and decay rate remain
-open. Status: Mapped coordinate / Derived conditional arithmetic and identities
-/ Hypothesized physical mechanisms / Tested one-point coupled campaign.
+and matching inequalities. One coupled coefficient point has a Q2-qualified
+finite-grid primary background. The selected field fails localization and
+carrier retention, while every domain plus high-resolution arm fails Q2.
+Physical endpoint normalization, scale tension, coefficient calibration, a
+qualified bound transverse carrier mode, a supported proton solution, temporal
+gauge dynamics, quantum numbers, and decay rate remain open. Status: Mapped
+coordinate / Derived conditional arithmetic and identities / Hypothesized
+physical mechanisms / Tested one-point Q2-qualified primary background.
 
 ### `quantum-measurement-derivation.md`—CassiFI Quantum Dynamics and Measurement
 
@@ -507,12 +510,14 @@ one conditional reduced separation under support, retention, and matching
 inequalities. Direct local gauging of the first-order time term is source-free
 Gauss-obstructed; the separate particle action supplies the temporal gauge and
 Gauss sectors and defines the fixed-$Q_C$ stationary problem. One coefficient
-point is tested, but every primary/domain arm fails Q2. Physical endpoint
-normalization, scale tension, a bound transverse carrier mode, qualified
-supported proton solution, fluctuation spectrum, compact winding, mass
-scaling, particle identification, and decay rate remain open. Status:
-Hypothesized action with Derived conditional identities and completion
-boundaries, plus a Tested one-point numerical boundary.
+point has a Q2-qualified finite-grid primary background. The selected field
+fails localization and carrier retention, while domain and resolution
+qualification remains open. Physical endpoint normalization, scale tension, a
+bound transverse carrier mode, qualified supported proton solution,
+fluctuation spectrum, compact winding, mass scaling, particle identification,
+and decay rate remain open. Status: Hypothesized action with Derived
+conditional identities and completion boundaries, plus a Tested one-point
+Q2-qualified primary background.
 
 ### `interscale-stress-attenuation-boundary.md`—Interscale Stress Transfer and the Attenuation Boundary
 
@@ -606,12 +611,15 @@ meaning of the exterior, the allowed bilinear interface, the routed
 single-carrier exponent, canonical single-mode power, repeated-interaction
 support equation, total-stress Ward identity, constant-$G$ geometry branch,
 Gram/Cartan particle map, and stationary-spectrum qualification problem.
-MCC1–MCC9 pass. Explicit reservoir stress, gravity selection, physical
-particle identity, and a Q2-qualified stationary solution remain open.
-Status: Hypothesized integrated open-system geometry / Derived exact diagonal
+MCC1–MCC9 pass. Explicit reservoir stress, gravity selection, and physical
+particle identity remain open. The separate particle campaign supplies a
+Q2-qualified finite-grid primary background; localization, domain and
+resolution convergence, and the constrained spectrum remain open. Status:
+Hypothesized integrated open-system geometry / Derived exact diagonal
 reduction, positivity-preserving conversion flow, covariance, ledger closure,
 conditional coherence-support boundary, bounded cross-domain interface, and
-nine-part conditional matter boundary.
+nine-part conditional matter boundary / Tested one-point Q2-qualified primary
+background—September 2026.
 
 ### `endpoint-link-and-localization-boundary.md`—Gauge-Covariant Endpoint Closure and the Localization Boundary
 
@@ -688,8 +696,11 @@ trivial gauge stabilizer, removes the magnetic $\pi_2$ sector, and gives a
 positive London mass. A finite monopole-antimonopole tube is conditional and
 shrinks in the registered long-distance energy because positive string tension
 and the attractive screened tail produce no finite-separation minimum. The
-carrier-support handoff is explicit. Status: Hypothesized auxiliary completion
-with Derived conditional smooth-core and confinement boundaries.
+carrier-support handoff is explicit, and the coupled particle campaign has a
+Q2-qualified finite-grid primary background without localization or
+domain/resolution qualification. Status: Hypothesized auxiliary completion
+with Derived conditional smooth-core and confinement boundaries / Tested
+one-point Q2-qualified primary background.
 
 ### `core-trapped-charge-support.md`—Core-Trapped Noether Charge and the Finite-Composite Boundary
 
@@ -700,9 +711,10 @@ transverse-mode reduction, the positive term $A_C/L$ with
 $A_C=\Lambda_CQ_C^2/2$. The condition $A_C>C_Q$ gives one finite root with
 positive length curvature. Carrier retention,
 $\hbar\omega_C<\varepsilon_{C,\rm out}$, and separation beyond core overlap
-remain independent requirements. One coupled coefficient point is tested, but
-all twelve primary/domain arms fail Q2 and no qualified full solution is
-established.
+remain independent requirements. One coupled coefficient point has a
+Q2-qualified finite-grid primary background. The selected field fails
+localization and carrier retention, while every domain plus high-resolution
+arm fails Q2; no physical full solution is established.
 
 ### `particle-stationary-action-closure.md`—Particle-Sector Action and Fixed-Charge Variational Closure
 
@@ -713,10 +725,11 @@ The selected source-free branch instead uses second-order covariant temporal
 kinetics for the charged fields, derives the Gauss constraint and fixed-$Q_C$
 stationary equations, and reduces to the registered static energy. Its
 normalization-invariant groups, first variational class, joint physical
-Hessian, and mixed dynamical eigenvalue pencil are explicit. The first
-registered coefficient point returns `INCONCLUSIVE—NUMERICAL QUALITY`; every
-arm fails Q2, so no qualified stationary field, basin ordering, constrained
-spectrum, or lifetime is established.
+Hessian, and mixed dynamical eigenvalue pencil are explicit.
+Canonical-preimage continuation at the registered coefficient point supplies
+a Q2-qualified finite-grid primary background. The selected field fails
+localization and carrier retention, every domain plus high-resolution arm
+fails Q2, and no constrained spectrum or lifetime is established.
 
 ### `matter-completion-boundary.md`—Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
@@ -743,10 +756,11 @@ Hessian and the mixed second-/first-order dynamical pencil. MCC1–MCC9 pass for
 the finite algebraic and reduced analytic witnesses. The physical exterior,
 microscopic coefficients, multimode carrier map, reservoir action, explicit
 reservoir stress, gravity selection, and particle identity remain open. The
-registered campaign has no Q2-qualified stationary background, so the full
-particle and spectrum verdict remains `INCONCLUSIVE—NUMERICAL QUALITY`.
-Status: Derived conditional boundary / Hypothesized physical realization /
-Tested reduced receipts.
+particle campaign supplies a Q2-qualified finite-grid primary background.
+Localization, carrier retention, domain and resolution convergence, and the
+full constrained spectrum remain open. Status: Derived conditional boundary /
+Hypothesized physical realization / Tested reduced receipts and one-point
+Q2-qualified primary background.
 
 ## Cross-References
 

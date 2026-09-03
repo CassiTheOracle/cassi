@@ -1,6 +1,6 @@
 # Cassi Geometric Manifold Completion Ansatz
 
-## Status: Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry / Tested one-point stationary campaign—September 2026
+## Status: Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry / Tested one-point Q2-qualified primary background—September 2026
 
 ## Abstract
 
@@ -54,9 +54,10 @@ retention, and matching inequalities
 (`foundations/core-trapped-charge-support.md`). The separate source-free
 temporal action combines the charged and carrier sectors, derives Gauss's law,
 and defines the fixed-$Q_C$ stationary variational problem
-(`foundations/particle-stationary-action-closure.md`). One registered
-coefficient point is tested; all twelve primary/domain arms fail Q2, so no
-qualified stationary solution is established.
+(`foundations/particle-stationary-action-closure.md`). Canonical-preimage
+continuation at the registered coefficient point supplies a Q2-qualified
+finite-grid primary background. Localization, domain and resolution
+convergence, robust basin ordering, and the constrained spectrum remain open.
 
 ---
 
@@ -1457,7 +1458,7 @@ No numbered prediction is added to
 | Scale tension and endpoint selection | Capacity bound and one-way rate ratio Derived conditionally; physical couplings, rates, and scale selection open |
 | Mixed-curvature inward force | Conditional restricted-sector result |
 | Physical bubble identification | Hypothesized observation map |
-| Stable spatially localized solution | Absent in the minimal smooth zero-Chern and registered confined-pair sectors; point-core flux supplies a conditional exterior coefficient, an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, and a neutral fixed-$Q_C$ carrier supplies one statically stable reduced separation under support, retention, and matching inequalities. A separate source-free temporal action defines the coupled stationary variational problem. One coefficient point is tested, but every arm fails Q2 and no qualified stationary solution is established |
+| Stable spatially localized solution | Absent in the minimal smooth zero-Chern and registered confined-pair sectors; point-core flux supplies a conditional exterior coefficient, an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, and a neutral fixed-$Q_C$ carrier supplies one statically stable reduced separation under support, retention, and matching inequalities. A separate source-free temporal action defines the coupled stationary variational problem. One coefficient point has a Q2-qualified finite-grid primary background, while localization, carrier retention, domain and resolution convergence, and the constrained spectrum remain open |
 | Particle mass, charge, color, spin, statistics, and decay rate | Open |
 | Covariant gravity and physical scale metric | Open |
 

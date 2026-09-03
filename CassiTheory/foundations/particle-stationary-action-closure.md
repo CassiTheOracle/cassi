@@ -1,6 +1,6 @@
 # Particle-Sector Action and Fixed-Charge Variational Closure
 
-## Status: Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries / Tested one-point numerical boundary—September 2026
+## Status: Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries / Tested one-point Q2-qualified primary background—September 2026
 
 ## Abstract
 
@@ -26,11 +26,13 @@ $\mathcal A_0^a=0$.
 
 The fixed-$Q_C$ stationary functional, coupled Euler equations, boundary
 inventory, source-unit dimensions, normalization-invariant dimensionless
-groups, and first numerical variational class are derived below. The first
-registered coefficient point is tested in
-`computations/particle-stationary-bvp-report.md` and returns
-`INCONCLUSIVE—NUMERICAL QUALITY`. A qualified stationary field configuration,
-mass, radius, spectrum, lifetime, and particle identification remain open.
+groups, and first numerical variational class are derived below. At the
+registered coefficient point, canonical-preimage continuation produces an
+independently verified Q2-qualified primary background in the finite-grid
+$C_4$ class. Domain and resolution convergence, localization, mass, radius,
+spectrum, lifetime, and particle identification remain open. The numerical
+receipt is recorded in
+`computations/particle-stationary-q2-recovery-report.md`.
 
 ---
 
@@ -851,7 +853,7 @@ The first class leaves unresolved:
 Every numerical report must retain this list and add any sectors removed by its
 implementation.
 
-### 8.5 Registered fixed-charge campaign
+### 8.5 Registered fixed-charge campaigns
 
 The first registered point sets
 $\alpha_{\mathfrak s}=\gamma_x=\gamma_{\mathfrak s}
@@ -860,18 +862,24 @@ $u_\rho=u_\varphi=u_H=4$, $e_C=0.75$, $h_C=1.50$, $q_C=4$, and
 $L_{\mathfrak s}=1$ in the $\mathfrak s$-independent, $a_0=0$ class.
 The primary and domain grids are $(R,N)=(4,17)$ and $(5,21)$.
 
-All twelve primary/domain arms pass charge, boundary, gauge, and outer-flux
-gates Q1, Q3, and Q4. Every arm fails the stationary-quality gate Q2:
-the physical gradient RMS spans $4.297\times10^{-4}$ to
-$4.140\times10^{-3}$ against the $3\times10^{-4}$ ceiling. No primary
-structural basin is eligible for the high-resolution arm. PA40 is not scored
-downstream of Q2; the measured
-$\widehat\omega_C\in[0.8887,0.9666]$ also does not satisfy its raw
-$\widehat\omega_C<e_C=0.75$ retention bound. PA41 has no Q2-eligible basin
-ordering and is unscored. The frozen verdict is
-`INCONCLUSIVE—NUMERICAL QUALITY`; it does not exclude stronger numerical
-methods at this point or solutions at other points. The complete receipt is
-recorded in `computations/particle-stationary-bvp-report.md`.
+Canonical-preimage continuation preserves the action, coefficient point,
+charge, grids, seeds, field class, projectors, diagnostics, and gate
+thresholds. Five structural primary arms pass Q1–Q4. The frozen
+lowest-energy rule selects `P:separated_core`, with
+physical gradient RMS $1.93697\times10^{-4}$ and cutoff virial
+$1.89101\times10^{-3}$ against the Q2 ceilings $3\times10^{-4}$ and $0.08$.
+The primary and independent verifier both return
+`PASS—Q2-QUALIFIED PRIMARY BACKGROUND`.
+
+Every domain arm and the selected high-resolution arm fails Q2, so the
+stronger domain-and-resolution qualification fails. The selected field also
+has $R_C=2.56816>R/2$, outer carrier fraction $0.0154769>10^{-3}$, and
+$\widehat\omega_C=0.961914>e_C=0.75$. It therefore supplies a finite-grid
+stationary background without establishing localization or carrier retention.
+The primary energy selection is not a domain-stable basin ordering. The
+complete receipts are recorded in
+`computations/particle-stationary-bvp-report.md` and
+`computations/particle-stationary-q2-recovery-report.md`.
 
 ### 8.6 Full constrained fluctuation qualification
 
@@ -916,10 +924,13 @@ Jordan growth, and converged discrete and continuum spectra.
 
 The reduced CC29 separation mode and CC47 frozen line-density modes give
 positive curvature under their stated premises. MCC9 verifies one such point.
-Those modes are proper subspaces of (PA42)--(PA43). Because the registered
-campaign has no Q2-qualified background, neither operator can yet be assembled
-for the full variational class. The complete boundary and convention map are
-given in `foundations/matter-completion-boundary.md` §10.
+Those modes are proper subspaces of (PA42)--(PA43). The selected
+`P:separated_core` artifact supplies a Q2-qualified finite-grid background on
+which (PA42) can be assembled. The joint constrained Hessian has not been
+evaluated, its domain and resolution limits remain unqualified, and the
+temporal groups required by (PA43) remain unselected. The complete boundary
+and convention map are given in
+`foundations/matter-completion-boundary.md` §10.
 
 ---
 
@@ -936,16 +947,18 @@ given in `foundations/matter-completion-boundary.md` §10.
 | Are carrier backreaction and the density trap in one variational problem? | Yes, (PA21)--(PA23) |
 | Is the stationary problem nondimensionalized without gauge-normalization dials? | Yes, (PA29)--(PA37) |
 | Is a numerical coefficient point selected? | Yes for the registered fixed-charge campaign; its physical calibration remains open |
-| Does a converged separated, merged, loop, or lump solution exist? | Not established; all twelve primary/domain arms fail Q2 |
+| Does a Q2-qualified finite-grid configuration exist in the registered class? | Yes; five structural primary arms pass Q1–Q4, and the frozen rule selects `P:separated_core` |
 | Is any basin the unrestricted global minimum? | Undetermined and not established by finite controls |
-| Is the full physical Hessian or mixed dynamical spectrum evaluated? | No; PA42–PA43 require a Q2-qualified stationary background |
+| Is the full physical Hessian or mixed dynamical spectrum evaluated? | No; the background is available, but the joint physical projector, Hessian, and temporal pencil remain unevaluated |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 
 The action and stationary boundary inventory define the registered
-mathematical boundary-value experiment at one dimensionless point. The frozen
-run-time source snapshot at commit `474b4596` has an independently verified
-receipt with verdict `INCONCLUSIVE—NUMERICAL QUALITY`. Stationary existence,
-localization, and basin ordering remain open.
+mathematical boundary-value experiment at one dimensionless point.
+Canonical-preimage continuation yields the independently verified verdict
+`PASS—Q2-QUALIFIED PRIMARY BACKGROUND`. The result establishes stationarity
+inside the finite-grid represented class. Localization, carrier retention,
+domain and resolution convergence, unrestricted basin ordering, and physical
+identification remain open.
 
 ---
 
