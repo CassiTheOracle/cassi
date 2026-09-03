@@ -4,7 +4,7 @@
 
 ## Abstract
 
-A direct fixed-charge carrier coordinate removes the softplus saturation that hid a large physical carrier residual in the stationary particle calculation. At the Mapped density-depletion coupling $h_C=2.9598260763447164$ and fixed carrier charge $q_C=4$, the recovered primary field is physically stationary to gradient RMS $1.07\times10^{-7}$, nodeless, localized, and energetically retained below the exterior threshold. The localized branch also passes a larger-domain control and survives four same-domain resolutions. The two finest adjacent comparisons satisfy the frozen observable tolerances, while the absolute energy drift contracts twice across the four-grid sequence. The result is a three-level finite-grid resolution-consistent stationary branch; continuum convergence, constrained stability, real-time persistence, and physical particle identity remain open.
+A direct fixed-charge carrier coordinate removes the softplus saturation that hid a large physical carrier residual in the stationary particle calculation. At the Mapped density-depletion coupling $h_C=2.9598260763447164$ and fixed carrier charge $q_C=4$, the recovered primary field is physically stationary, nodeless, localized, and energetically retained below the exterior threshold. The branch passes a larger-domain control and survives four same-domain resolutions; the two finest adjacent comparisons satisfy the frozen observable tolerances, and the absolute energy drift contracts twice. The finest $N=29$ artifact's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes. The symmetry mode retains high-frequency odd-even structure, so localized Hessian resolution, continuum existence, PA43 dynamics, and physical particle identity remain open.
 
 ## 1. Question and intervention
 
@@ -80,7 +80,7 @@ The resolution-recovery manifest, primary result, and independent verification h
 
 The direct-coordinate and resolution-recovery calculations establish a nodeless, localized, fixed-charge stationary solution of the complete registered finite-grid action at the Mapped density-depletion coupling. The branch is independently reproducible from the analytic separated-core basin, insensitive to the tested box enlargement, and resolution-consistent across the three finest same-domain grids.
 
-The evidence remains finite-grid: four same-domain grids do not establish a continuum limit as $\Delta x\to0$. The localized branch also has no constrained physical Hessian or real-time perturbation receipt. Its next discriminating calculation is the constrained physical Hessian on the finest localized artifact, with the fixed-charge direction, gauge image, shell mask, and global carrier phase treated explicitly.
+The constrained physical Hessian on the finest localized artifact has no negative mode among the six independently matched lowest modes. Its sole near-zero mode is the global carrier phase, and the first positive eigenvalue is $0.01527618220595$ above the uncertainty $6.092903959\times10^{-4}$. The phase mode's high-frequency fraction $0.8744032081$ fails the frozen spatial cutoff, and no localized Hessian-resolution sequence exists. The finite-grid PA42 sign classification therefore remains separate from continuum energetic stability and PA43 temporal stability.
 
 The density-depletion coefficient remains an uncalibrated model input selected by the numerical search. The carrier charge is an auxiliary global $U(1)_C$ number with no demonstrated identification as electric charge, baryon number, lepton number, spin, or a Standard Model species. Dynamic persistence, topology-changing formation, annihilation, and observable quantum-number matching remain separate requirements.
 
@@ -96,4 +96,5 @@ The density-depletion coefficient remains an uncalibrated model input selected b
 - `computations/particle-carrier-resolution-recovery-verification-amendment.md`—frozen verifier schema requirements.
 - `computations/particle_carrier_resolution_recovery_manifest.json`—hash-bound resolution code, source artifacts, grids, and optimizer schedule.
 - `computations/particle-carrier-resolution-recovery-report.md`—independently verified refinement measurements and present finite-grid boundary.
+- `computations/particle-localized-physical-hessian-report.md`—constrained finite-grid spectrum of the finest localized artifact.
 - `foundations/particle-stationary-action-closure.md`—complete stationary action and particle-completion criteria.

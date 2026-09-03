@@ -13,13 +13,16 @@ strict-shell, $C_4$, coupled-gauge quotient. Primary and independent sparse
 eigensolvers agree on the six lowest modes to
 $3.11\times10^{-14}$ in absolute eigenvalue.
 
-The matched spectrum contains one near-zero global-$U(1)_C$ phase mode and five
-positive modes. No verified negative physical mode occurs. The frozen
-finite-matrix verdict is
+The six matched lowest eigenpairs contain one numerically near-zero
+global-$U(1)_C$ carrier-phase symmetry mode, no negative mode, and five positive
+modes. The frozen finite-matrix receipt label is
 
 $$
 \boxed{\mathrm{PASS\text{—}NONNEGATIVE\ C4\ FINITE\text{-}GRID\ PA42\ HESSIAN}}.
 $$
+
+Under H5–H6, this label is operationally limited to the absence of a negative
+mode among those six independently matched lowest eigenpairs.
 
 The near-zero phase mode carries a high-frequency fraction of $0.33454$, above
 the registered $0.20$ cutoff. Its separate spatial verdict is
@@ -242,11 +245,14 @@ $$
 | H6 | one global-phase near-zero mode and five positive matched modes | **PASS** |
 | H7 | every negative or near-zero mode passes the spatial diagnostic | **FAIL** |
 
-The finite-grid scientific verdict is
+The frozen finite-grid receipt label is
 
 $$
 \boxed{\mathrm{PASS\text{—}NONNEGATIVE\ C4\ FINITE\text{-}GRID\ PA42\ HESSIAN}}.
 $$
+
+Its operational scope is the absence of a negative mode among the six
+independently matched lowest eigenpairs.
 
 The separate domain-and-resolution verdict is
 
@@ -282,10 +288,11 @@ The environment is Python 3.12.10, NumPy 2.5.1, SciPy 1.18.0, PyTorch
 
 ## 11. Scientific boundary
 
-This campaign fixes the PA42 sign classification for one registered finite
-matrix in one $C_4$ symmetry class. It establishes a nonnegative matched
-low-spectrum branch within the frozen uncertainty and identifies its sole
-near-zero mode with global carrier phase.
+This campaign fixes the six-mode PA42 low-spectrum sign classification for one
+registered finite matrix in one $C_4$ symmetry class. Its six independently
+matched lowest eigenpairs contain one numerically near-zero global carrier-phase
+symmetry mode, no negative mode, and five positive modes within the frozen
+uncertainty.
 
 The following remain open:
 

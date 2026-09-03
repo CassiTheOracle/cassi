@@ -12,19 +12,22 @@ fixed-charge stability. All nine boundaries pass. The receipt labels them
 MCC1–MCC9 for traceability.
 
 This reduced calculation contains no stationary-field solve and therefore makes
-no stationary background claim by itself. The canonical-preimage continuation at
-$h_C=1.50$ supplies a finite-grid diffuse background that passes the structural
-and physical-gradient conditions while failing carrier localization and
-retention. Its finite-grid physical quotient and constrained Hessian have a
-nonnegative matched low spectrum. A separate direct-coordinate calculation at
-the Mapped coupling $h_C=2.9598260763447164$ supplies a localized, nodeless,
-carrier-retaining stationary branch across four same-domain resolutions and
-one larger-domain comparison. The localized branch has no constrained Hessian
-or real-time perturbation receipt. The physical exterior, microscopic interface
-coefficients, golden port-power identification, multimode carrier
-normalization, reservoir, local reservoir stress, state-dependent gravity,
-coherence-fibre particle identity, continuum limit, localized-branch
-stability, and physical particle identity remain open.
+no stationary background claim by itself. The canonical-preimage continuation
+at $h_C=1.50$ supplies a finite-grid diffuse background that passes the
+structural and physical-gradient conditions while failing carrier localization
+and retention. Its independently matched lowest energetic eigenpairs contain
+no negative mode on the finite-grid physical quotient. The Mapped coupling
+$h_C=2.9598260763447164$ supplies a localized, nodeless, carrier-retaining
+stationary branch across four same-domain resolutions and one larger-domain
+comparison. The finest localized artifact's six independently matched lowest
+constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero
+mode consistent with the analytic global carrier-phase symmetry, no negative
+mode, and five positive modes. The symmetry mode exposes unresolved odd-even
+carrier structure, and no localized Hessian-resolution sequence exists.
+The physical exterior, microscopic interface coefficients, golden port-power
+identification, multimode carrier normalization, reservoir, local reservoir
+stress, state-dependent gravity, coherence-fibre particle identity, continuum
+limit, PA43 temporal stability, and physical particle identity remain open.
 
 ## 1. Frozen execution
 
@@ -70,7 +73,7 @@ line-density sector.
 | MCC6 | Enlarged unitary evolution conserves total energy and number; interior and complementary exchange vectors close the Ward ledger | **PASS** | Local reservoir stress components require a closed metric-dependent action |
 | MCC7 | The constant-$G$ linearized Einstein witness is transverse; a variable scalar coupling creates an extra divergence | **PASS** | State-dependent gravity open |
 | MCC8 | The Cartan connection requires the minus-sign transformation; rank-one and full-rank Gram fibres are positive; $Q_C$ remains an independent singlet charge | **PASS** | Physical coherence-fibre particle identity open |
-| MCC9 | The frozen CC29 branch has one bounded positive-curvature root and positive nonconstant CC47 line modes | **PASS** | MCC9 contains no stationary-field solve. The diffuse $h_C=1.50$ branch has a nonnegative matched finite-grid Hessian but fails localization and retention; the localized $h_C=2.9598260763447164$ branch is resolution-consistent on three finest finite grids and has no constrained Hessian or real-time perturbation receipt |
+| MCC9 | The frozen CC29 branch has one bounded positive-curvature root and positive nonconstant CC47 line modes | **PASS** | MCC9 contains no stationary-field solve. The independently matched lowest energetic eigenpairs of the diffuse $h_C=1.50$ branch contain no negative mode, while that field fails localization and retention. The localized $h_C=2.9598260763447164$ branch is resolution-consistent across the three finest finite grids; its six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes. The symmetry mode has unresolved odd-even spatial structure, and PA43 dynamics remain open |
 
 ## 4. Literal first-execution output
 
@@ -243,19 +246,22 @@ the length and frozen line-density sectors. The
 canonical-preimage continuation at $h_C=1.50$ supplies five structural primary
 arms that pass the first four stationary-field conditions and selects the
 separated-core field. That diffuse field fails localization and carrier
-retention, while its finite-grid physical quotient has a nonnegative matched
-low Hessian spectrum. The distinct direct-coordinate branch at
-$h_C=2.9598260763447164$ is physically stationary, nodeless, localized, and
-carrier-retaining across four same-domain resolutions and one larger-domain
-comparison. Its two finest adjacent comparisons pass the frozen tolerances,
-and its absolute energy drift contracts twice.
+retention; its independently matched lowest energetic eigenpairs contain no
+negative mode on its finite-grid physical quotient. The distinct
+direct-coordinate branch at $h_C=2.9598260763447164$ is physically stationary,
+nodeless, localized, and carrier-retaining across four same-domain resolutions
+and one larger-domain comparison. Its two finest adjacent comparisons pass the
+frozen tolerances, and its absolute energy drift contracts twice. Its finest
+field's six independently matched lowest constrained $C_4$ PA42 eigenpairs
+contain one numerically near-zero carrier-phase symmetry mode, no negative
+mode, and five positive modes.
 
-The unresolved particle sectors include the localized branch's constrained
-Hessian and mixed dynamical spectrum; non-axisymmetric deformations and knots;
-arbitrary multicore and fragmented-charge configurations; higher scale and
-transverse modes; topology-changing paths; infinite-domain existence;
-real-time decay, tunnelling, and continuum thresholds; and quantum spin and
-statistics.
+The unresolved particle sectors include a localized Hessian resolution
+sequence and the mixed dynamical spectrum; perturbations beyond $C_4$;
+non-axisymmetric deformations and knots; arbitrary multicore and
+fragmented-charge configurations; higher scale and transverse modes;
+topology-changing paths; infinite-domain existence; real-time decay,
+tunnelling, and continuum thresholds; and quantum spin and statistics.
 
 ## 6. Present boundary
 
@@ -276,13 +282,16 @@ $$
 $$
 
 The conditional matter chain states its assumptions and remaining physical
-input at every step. The diffuse
-$h_C=1.50$ artifact supplies the finite-grid projected Hessian and its
-nonnegative matched low spectrum. The localized $h_C=2.9598260763447164$
-artifact closes finite-grid localization, retention, and three-level
-resolution consistency, while its constrained Hessian, continuum limit,
-full gauge quotient, and selected temporal groups remain independent
-qualification requirements.
+input at every step. The independently matched lowest energetic eigenpairs of
+the diffuse $h_C=1.50$ artifact contain no negative mode on its finite-grid
+projected Hessian, while the field fails localization and retention. The
+localized $h_C=2.9598260763447164$ artifact closes finite-grid localization,
+retention, three-level resolution consistency, and the six-mode $C_4$
+finite-matrix PA42 low-spectrum sign classification. Its numerically near-zero
+carrier-phase symmetry mode has high-frequency fraction $0.8744032081$;
+spatial spectral convergence, perturbations beyond $C_4$, the continuum limit,
+and selected PA43 temporal groups remain independent qualification
+requirements.
 
 ## References
 
@@ -309,3 +318,6 @@ qualification requirements.
   nodeless, carrier-retaining fixed-charge branch and larger-domain control.
 - `computations/particle-carrier-resolution-recovery-report.md`—independently
   verified same-domain refinement sequence and finite-grid resolution verdict.
+- `computations/particle-localized-physical-hessian-report.md`—independently
+  verified constrained spectrum and spatial boundary of the finest localized
+  artifact.

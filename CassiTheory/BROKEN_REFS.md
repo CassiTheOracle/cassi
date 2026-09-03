@@ -125,6 +125,7 @@ where available, and the scripts needed to regenerate current receipts.
 | `computations/particle-carrier-direct-coordinate-prereg.md`; `computations/particle-carrier-localization-report.md` | `runs/20260902_particle_carrier_localization/`, `runs/20260902_particle_carrier_localization_residual_analysis/` |
 | `computations/particle-carrier-direct-coordinate-execution-amendment.md`; `computations/particle-carrier-direct-coordinate-receipt-binding.md`; `computations/particle-carrier-resolution-recovery-prereg.md` | `runs/20260902_particle_carrier_direct_coordinate/`, `runs/20260902_particle_carrier_direct_coordinate_v2/` |
 | `computations/particle-carrier-resolution-recovery-report.md`; `computations/particle-carrier-resolution-recovery-verification-amendment.md` | `runs/20260902_particle_carrier_resolution_recovery_verifier_defect/`, `runs/20260902_particle_carrier_resolution_recovery/` |
+| `computations/particle-localized-physical-hessian-prereg.md`; `computations/particle-localized-physical-hessian-report.md` | `runs/20260903_particle_localized_physical_hessian/` |
 
 ## References to `CassiCosmos/` (the space sim, in the unified workspace)
 

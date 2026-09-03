@@ -237,14 +237,16 @@ temporal branch, Gauss's law, the coupled fixed-$Q_C$ stationary equations, and
 the first variational class. At the Mapped coupling
 $h_C=2.9598260763447164$, the fixed-charge action has a localized, nodeless,
 carrier-retaining stationary branch across four same-domain finite grids and
-one larger-domain comparison. Adjacent principal observables agree and its
-absolute energy differences decrease twice. A distinct diffuse
-$h_C=1.50$ background has a nonnegative matched low energetic spectrum on one
-strict-shell $C_4$ physical quotient, while its global phase direction remains
-concentrated at grid scale. The localized branch still requires its own
-constrained energetic and mixed dynamical spectra, continuum qualification,
-physical proton quantum numbers, real-time formation, and a winding-changing
-rate (`foundations/endpoint-link-and-localization-boundary.md`;
+one larger-domain comparison. Its finest artifact's six independently matched
+lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically
+near-zero carrier-phase symmetry mode, no negative mode, and five positive
+modes. The symmetry mode retains high-frequency odd-even structure. The
+independently matched lowest energetic eigenpairs of a distinct diffuse
+$h_C=1.50$ background also contain no negative mode while that field fails
+localization and retention. Localized Hessian resolution, perturbations beyond
+$C_4$, continuum qualification, PA43 dynamics, physical proton quantum
+numbers, real-time formation, and a winding-changing rate remain open
+(`foundations/endpoint-link-and-localization-boundary.md`;
 `foundations/point-core-flux-sector.md`;
 `foundations/nonabelian-magnetic-core-boundary.md`;
 `foundations/core-trapped-charge-support.md`;
@@ -252,6 +254,7 @@ rate (`foundations/endpoint-link-and-localization-boundary.md`;
 `computations/particle-carrier-direct-coordinate-report.md`;
 `computations/particle-carrier-resolution-recovery-report.md`;
 `computations/particle-physical-hessian-precision-v2-report.md`;
+`computations/particle-localized-physical-hessian-report.md`;
 `foundations/proton-coherence-budget.md` §10). Current null searches are
 compatible with these candidates and select none of them.
 

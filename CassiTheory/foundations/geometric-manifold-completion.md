@@ -1,6 +1,6 @@
 # Cassi Geometric Manifold Completion Ansatz
 
-## Status: Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry / Mapped selected carrier coupling / Tested resolution-consistent localized retained finite-grid branch and a separate nonnegative $C_4$ low energetic spectrum on a diffuse finite-grid quotient—September 2026
+## Status: Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry / Mapped selected carrier coupling / Tested resolution-consistent localized retained finite-grid branch and six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026
 
 ## Abstract
 
@@ -57,12 +57,16 @@ and defines the fixed-$Q_C$ stationary variational problem
 (`foundations/particle-stationary-action-closure.md`). At the Mapped coupling
 $h_C=2.9598260763447164$, that action has a localized, nodeless,
 carrier-retaining stationary branch across four same-domain finite grids and
-one larger-domain comparison. Adjacent principal observables agree and the
-absolute energy differences decrease twice. A distinct diffuse coefficient
-point has a $13622$-dimensional physical quotient with one near-zero global
-carrier-phase mode and five positive matched low energetic modes. The phase
-mode remains concentrated at grid scale. Continuum existence, the localized
-branch's constrained energetic and mixed dynamical spectra, robust basin
+one larger-domain comparison. Its finest field has a
+$77000$-dimensional fixed-charge $C_4$ physical quotient. Its six
+independently matched lowest PA42 eigenpairs contain one numerically near-zero
+mode aligned with the analytic carrier-phase symmetry, no negative mode, and
+five positive modes. The symmetry mode's high-frequency fraction
+$0.8744032081>0.20$ leaves the spatial classification inconclusive. The
+independently matched lowest energetic eigenpairs of a distinct diffuse
+coefficient point also contain no negative mode while that field fails
+localization and retention. Localized Hessian resolution,
+perturbations beyond $C_4$, continuum existence, PA43 dynamics, robust basin
 ordering, and physical particle identification remain open.
 
 ---
@@ -345,15 +349,17 @@ covariance under constant relative-frame rotations. The source-free
 second-order particle action remains a separate temporal sector. At
 $h_C=2.9598260763447164$, it supports a localized, nodeless,
 carrier-retaining stationary branch across four same-domain finite grids and
-one larger-domain comparison. A distinct diffuse $h_C=1.50$ background has a
-$13622$-dimensional strict-shell $C_4$ physical quotient. Independent
-eigensolvers find one near-zero global phase mode and five positive matched low
-energetic modes with no verified negative mode; the phase direction exceeds
-the registered high-frequency cutoff. The endpoint potential,
-nonzero-current background, microscopic damping channel, temporal
-relative-gauge connection, doubled port-flux law, continuum qualification, the
-localized branch's constrained energetic and mixed dynamical spectra, and the
-full coupled fluctuation problem remain open.
+one larger-domain comparison. Its finest artifact's six independently matched
+lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically
+near-zero carrier-phase symmetry mode, no negative mode, and five positive
+modes. The symmetry mode retains high-frequency odd-even structure. The
+independently matched lowest energetic eigenpairs of a distinct diffuse
+$h_C=1.50$ background also contain no negative mode while that field fails
+localization and retention. The endpoint
+potential, nonzero-current background, microscopic damping channel, temporal
+relative-gauge connection, doubled port-flux law, continuum qualification,
+localized Hessian resolution, perturbations beyond $C_4$, the PA43 mixed
+dynamical spectrum, and the full coupled fluctuation problem remain open.
 
 The scalar phases in (GM11) are fixed-frame representatives of endpoint
 intertwiners. Under a relative $U(1)_Q$ frame change, each $S_v$ must transform
@@ -1470,7 +1476,7 @@ No numbered prediction is added to
 | Scale tension and endpoint selection | Capacity bound and one-way rate ratio Derived conditionally; physical couplings, rates, and scale selection open |
 | Mixed-curvature inward force | Conditional restricted-sector result |
 | Physical bubble identification | Hypothesized observation map |
-| Stable spatially localized solution | Absent in the minimal smooth zero-Chern and registered confined-pair sectors. Point-core flux supplies a conditional exterior coefficient, an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, and a neutral fixed-$Q_C$ carrier supplies one stable reduced separation under support, retention, and matching inequalities. The separate source-free temporal action has a localized, nodeless, carrier-retaining branch at the Mapped coupling $h_C=2.9598260763447164$ across four same-domain finite grids and one larger-domain comparison. A distinct diffuse coefficient point has a nonnegative matched low energetic spectrum on one physical quotient. Continuum existence and the localized branch's constrained energetic and mixed dynamical spectra remain open |
+| Stable spatially localized solution | Absent in the minimal smooth zero-Chern and registered confined-pair sectors. Point-core flux supplies a conditional exterior coefficient, an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, and a neutral fixed-$Q_C$ carrier supplies one stable reduced separation under support, retention, and matching inequalities. The separate source-free temporal action has a localized, nodeless, carrier-retaining branch at the Mapped coupling $h_C=2.9598260763447164$ across four same-domain finite grids and one larger-domain comparison. Its finest artifact's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes; that mode retains unresolved odd-even structure. Continuum existence, localized Hessian resolution, perturbations beyond $C_4$, and PA43 dynamics remain open |
 | Particle mass, charge, color, spin, statistics, and decay rate | Open |
 | Covariant gravity and physical scale metric | Open |
 
@@ -1615,6 +1621,7 @@ layers. Physical completion requires the solution specified in §10.
 - `computations/particle-physical-hessian-precision-v2-report.md`—matched low energetic spectrum and spatial classification on the diffuse background
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence and independently verified adjacent convergence
+- `computations/particle-localized-physical-hessian-report.md`—constrained localized PA42 spectrum and spatial qualification
 - `foundations/unified-lagrangian.md`—optional conservative sector bookkeeping
 - `field-experience/toroidal-coherence-survival-report.md`—spatial torus survival verdict
 - `field-experience/toroidal-connected-hierarchy-report.md`—connected hierarchy result

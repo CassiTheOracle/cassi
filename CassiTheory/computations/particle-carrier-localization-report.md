@@ -174,11 +174,14 @@ refinements support the same branch on four same-domain grids and one
 larger-domain grid; the two finest adjacent comparisons pass their frozen
 tolerances, and the absolute energy drift contracts twice.
 
-The result remains finite-grid and coefficient-selected. The localized
-branch's constrained Hessian, continuum existence, unrestricted symmetry,
-topology-changing competitors, spatially resolved phase mode, mixed temporal
-spectrum, decay channels, lifetime, physical carrier identity, units, spin,
-and statistics remain open.
+The result remains finite-grid and coefficient-selected. The finest localized
+artifact's six independently matched lowest constrained $C_4$ finite-grid PA42
+eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no
+negative mode, and five positive modes. The symmetry mode retains
+high-frequency odd-even structure. Localized Hessian resolution, perturbations
+beyond $C_4$, continuum existence, topology-changing competitors, the PA43
+mixed temporal spectrum, decay channels, lifetime, physical carrier identity,
+units, spin, and statistics remain open.
 
 ## References
 
@@ -193,6 +196,8 @@ and statistics remain open.
   carrier recovery, larger-domain control, and mapped coefficient.
 - `computations/particle-carrier-resolution-recovery-report.md`—independently
   verified same-domain refinements and finite-grid resolution verdict.
+- `computations/particle-localized-physical-hessian-report.md`—constrained
+  finite-grid PA42 spectrum and spatial qualification.
 - `computations/particle-stationary-precision-v5-report.md`—hash-bound source
   stationary field.
 - `foundations/core-trapped-charge-support.md`—carrier binding and retention

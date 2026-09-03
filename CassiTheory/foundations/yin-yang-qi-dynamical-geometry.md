@@ -1,6 +1,6 @@
 # Yin–Yang–Qi Open Dynamical Geometry
 
-## Status: Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary / Mapped selected carrier coupling / Tested resolution-consistent localized retained finite-grid branch and a separate nonnegative $C_4$ low energetic spectrum on a diffuse finite-grid quotient—September 2026
+## Status: Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary / Mapped selected carrier coupling / Tested resolution-consistent localized retained finite-grid branch and six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026
 
 ## Abstract
 
@@ -79,13 +79,14 @@ The fixed-charge particle functional therefore remains a downstream
 alternative boundary-value problem. At the Mapped coupling
 $h_C=2.9598260763447164$, it has a localized, nodeless, carrier-retaining
 stationary branch across four same-domain finite grids and one larger-domain
-comparison. Adjacent principal observables agree and the absolute energy
-differences decrease twice. A distinct diffuse $h_C=1.50$ background has a
-$13622$-dimensional strict-shell $C_4$ physical quotient with one near-zero
-global carrier-phase mode and five positive matched low energetic modes. The
-phase direction remains concentrated at grid scale. Continuum existence and
-the localized branch's constrained energetic and mixed dynamical spectra
-remain open.
+comparison. Its finest field's six independently matched lowest constrained
+$C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero
+carrier-phase symmetry mode, no negative mode, and five positive modes. The
+symmetry mode retains high-frequency odd-even structure. The independently
+matched lowest energetic eigenpairs of a distinct diffuse $h_C=1.50$
+background also contain no negative mode, while that field fails localization
+and retention. Localized Hessian resolution, perturbations beyond $C_4$,
+continuum existence, and the PA43 mixed dynamical spectrum remain open.
 
 ## 2. Geometry of the Local State
 
@@ -1077,11 +1078,14 @@ action producing the exterior, interface, reservoir, stress components, and
 carrier normalization remains unselected. At the Mapped coupling
 $h_C=2.9598260763447164$, the particle action has a localized, nodeless,
 carrier-retaining stationary branch across four same-domain finite grids and
-one larger-domain comparison. A distinct diffuse field has a nonnegative
-matched low energetic spectrum on one strict-shell $C_4$ physical quotient.
-The global phase direction on that diffuse field remains concentrated at grid
-scale. Continuum qualification and the localized branch's constrained
-energetic and mixed dynamical spectra remain open.
+one larger-domain comparison. Its finest artifact's six independently matched
+lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically
+near-zero carrier-phase symmetry mode, no negative mode, and five positive
+modes. The symmetry mode retains high-frequency odd-even structure. The
+independently matched lowest energetic eigenpairs of a distinct diffuse field
+also contain no negative mode, while that field fails localization and
+retention. Localized Hessian resolution, continuum qualification, perturbations
+beyond $C_4$, and the PA43 mixed dynamical spectrum remain open.
 
 ## 13. Derived, Hypothesized, and Open Results
 
@@ -1105,7 +1109,7 @@ The frozen DG1–DG7 and EC1–EC7 receipts return **PASS**. The universal finit
 | Complete Noether stress and geometry backreaction | **Conditional total-stress identity and constant-$G$ branch Derived / Stress components and gravity selection open** |
 | Local scale-bulk endpoint mediator | **Open** |
 | Interface to the local-$SU(2)_Q$ fixed-charge particle branch | **Gram, Cartan-convention, and charge-separation map Derived conditionally / Physical identification open** |
-| Qualified stationary matter solution and full spectrum | **Mapped $h_C=2.9598260763447164$ supports a localized, nodeless, carrier-retaining branch across four same-domain finite grids and one larger-domain comparison. A distinct diffuse field has a nonnegative matched low energetic spectrum on one $C_4$ finite-grid physical quotient, with a grid-concentrated global phase direction. Continuum existence and the localized branch's constrained energetic and mixed dynamical spectra remain open** |
+| Qualified stationary matter solution and low spectrum | **Mapped $h_C=2.9598260763447164$ supports a localized, nodeless, carrier-retaining branch across four same-domain finite grids and one larger-domain comparison. Its finest artifact's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes; the symmetry mode retains unresolved odd-even structure. The independently matched lowest energetic eigenpairs of a distinct diffuse field also contain no negative mode, while that field fails localization and retention. Localized Hessian resolution, perturbations beyond $C_4$, continuum existence, and PA43 dynamics remain open** |
 
 ## 14. Conclusion
 
@@ -1139,13 +1143,16 @@ ledgers, and maps the coherence fibre into the particle doublet. Finite-density
 transverse coherence still requires an identified source. At
 $h_C=2.9598260763447164$, the separate particle action supplies a localized,
 nodeless, carrier-retaining stationary branch across four same-domain finite
-grids and one larger-domain comparison. A distinct diffuse field has a
-nonnegative matched low energetic spectrum on one finite-grid physical
-quotient, while its near-zero global carrier-phase direction remains
-concentrated at grid scale. A physical exterior, reservoir action, calibrated
-particle coefficients, continuum qualification, the localized branch's
-constrained energetic and mixed dynamical spectra, and physical particle
-identification remain required for a full particle spectrum.
+grids and one larger-domain comparison. Its finest field's six independently
+matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one
+numerically near-zero carrier-phase symmetry mode, no negative mode, and five
+positive modes. The symmetry mode retains high-frequency odd-even structure.
+The independently matched lowest energetic eigenpairs of a distinct diffuse
+field also contain no negative mode, while that field fails localization and
+retention. A physical exterior, reservoir action, calibrated particle
+coefficients, localized Hessian resolution, perturbations beyond $C_4$,
+continuum qualification, PA43 dynamics, and physical particle identification
+remain required for a full particle spectrum.
 
 ## References
 
@@ -1163,6 +1170,7 @@ identification remain required for a full particle spectrum.
 - `computations/particle-physical-hessian-precision-v2-report.md`—matched low energetic spectrum and spatial classification on the diffuse background.
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence and independently verified adjacent convergence.
+- `computations/particle-localized-physical-hessian-report.md`—constrained localized PA42 spectrum and spatial qualification.
 - `computations/dynamical_geometry_closure_prereg.md`—frozen DG1–DG7 reduction and ledger criteria.
 - `computations/dynamical_geometry_closure_check.py`—deterministic DG1–DG7 first-execution witness.
 - `computations/dynamical_geometry_closure_report.md`—DG1–DG7 analytic proof,

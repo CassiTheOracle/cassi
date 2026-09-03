@@ -1,6 +1,6 @@
 # Particle-Sector Action and Fixed-Charge Variational Closure
 
-## Status: Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, variational, and fluctuation-qualification boundaries / Tested resolution-consistent localized retained finite-grid branch; nonnegative $C_4$ finite-grid energetic Hessian on a distinct diffuse branch—September 2026
+## Status: Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, variational, and fluctuation-qualification boundaries / Tested resolution-consistent localized retained finite-grid branch and six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026
 
 ## Abstract
 
@@ -27,17 +27,21 @@ $\mathcal A_0^a=0$.
 The fixed-$Q_C$ stationary functional, coupled Euler equations, boundary
 inventory, source-unit dimensions, normalization-invariant dimensionless
 groups, and first numerical variational class are derived below. At
-$h_C=1.50$, one diffuse finite-grid background has a nonnegative matched low
-energetic Hessian on its $13622$-dimensional strict-shell $C_4$ physical
-quotient, although its near-zero global carrier-phase mode remains concentrated
+$h_C=1.50$, the independently matched lowest energetic eigenpairs of one
+diffuse finite-grid background contain no negative mode on its
+$13622$-dimensional strict-shell $C_4$ physical quotient, although its
+numerically near-zero global carrier-phase symmetry mode remains concentrated
 at grid scale.
 
 At the numerically selected $h_C=2.9598260763447164$, a distinct stationary
 field is nodeless, localized, and carrier-retaining on $N=17,21,25,29$
-same-domain grids and passes one larger-domain comparison. Adjacent principal
-observables agree and the absolute energy differences contract twice. The
-localized branch still requires its own constrained energetic Hessian,
-continuum qualification, and mixed dynamical spectrum.
+same-domain grids and passes one larger-domain comparison. Its finest
+artifact's six independently matched lowest constrained $C_4$ finite-grid
+PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode,
+no negative mode, and five positive modes. The symmetry mode carries unresolved
+odd-even spatial structure; localized Hessian resolution, continuum
+qualification, perturbations beyond $C_4$, and the PA43 mixed dynamical
+spectrum remain open.
 
 ---
 
@@ -940,19 +944,27 @@ background, quotient, phase direction, Hessian symmetry, and directional
 curvatures.
 
 Two independent eigensolvers agree on the six matched lowest eigenvalues to
-$3.11\times10^{-14}$. They identify one near-zero global carrier-phase mode
-and five positive modes, with no verified negative mode. The phase direction
-has high-frequency fraction $0.33454>0.20$, so its spatial interpretation
+$3.11\times10^{-14}$. They identify one numerically near-zero global
+carrier-phase symmetry mode, no negative mode, and five positive modes. The
+phase direction has high-frequency fraction $0.33454>0.20$, so its spatial
+interpretation
 remains unresolved. The larger-domain and finer-grid fields at this
 coefficient point do not qualify, and the temporal groups remain unselected.
 
-The localized $h_C=2.9598260763447164$ branch is a different stationary
-configuration. No Hessian eigenvalue from the diffuse background transfers to
-it. Static stability now requires reconstructing the fixed-charge physical
-quotient and evaluating (PA42) on the finest localized artifact before the
-mixed temporal pencil (PA43) can carry a particle-stability claim. See
-`computations/particle-physical-hessian-precision-v2-report.md` and
-`computations/particle-carrier-resolution-recovery-report.md`.
+The localized $h_C=2.9598260763447164$ branch has its own
+$77000$-dimensional fixed-charge $C_4$ physical quotient after removal of the
+rank-$11775$ complete allowed gauge image. Independent eigensolvers agree on
+the six matched lowest eigenvalues to $6.00\times10^{-14}$. They identify one
+numerically near-zero global carrier-phase symmetry mode, no negative mode,
+and five positive modes; the first positive value is $0.01527618220595$,
+compared with
+$\epsilon_\lambda=6.092903959\times10^{-4}$. The phase mode is entirely
+carrier-imaginary and has high-frequency fraction $0.8744032081>0.20$, so its
+spatial classification remains inconclusive. A localized Hessian-resolution
+sequence and the temporal groups are unavailable. See
+`computations/particle-physical-hessian-precision-v2-report.md`,
+`computations/particle-carrier-resolution-recovery-report.md`, and
+`computations/particle-localized-physical-hessian-report.md`.
 
 ---
 
@@ -971,18 +983,20 @@ mixed temporal pencil (PA43) can carry a particle-stability claim. See
 | Is a numerical coefficient point selected? | Yes; $h_C=2.9598260763447164$ is selected by a frozen ordered numerical scan, so its physical calibration remains open and its status is Mapped |
 | Does a physically stationary, localized, retained finite-grid configuration exist in the registered class? | Yes; one nodeless branch qualifies on four same-domain resolutions and one larger-domain comparison |
 | Is any basin the unrestricted global minimum? | Undetermined and not established by finite controls |
-| Is the full physical Hessian or mixed dynamical spectrum evaluated? | The diffuse $h_C=1.50$ background has a nonnegative matched low energetic spectrum on one strict-shell $C_4$ finite-grid quotient. The localized branch has no evaluated constrained Hessian, and neither branch has a qualified mixed dynamical spectrum |
+| Is the full physical Hessian or mixed dynamical spectrum evaluated? | No. The independently matched lowest energetic eigenpairs of the diffuse $h_C=1.50$ background contain no negative mode on its strict-shell $C_4$ finite-grid quotient. The localized $h_C=2.9598260763447164$ branch has six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs containing one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes. Both phase-symmetry modes fail the frozen high-frequency spatial cutoff. Neither branch has a qualified Hessian-resolution sequence or mixed dynamical spectrum |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 
 The action and stationary boundary inventory define a complete mathematical
 boundary-value experiment in the registered variational class. A numerically
 selected coefficient point supports a localized, nodeless, carrier-retaining
 finite-grid branch across four same-domain resolutions and one larger-domain
-comparison. A separate diffuse coefficient point supplies a nonnegative
-matched low energetic spectrum, but that local curvature result does not
-establish stability of the localized branch. Continuum existence, the
-localized branch's constrained Hessian, unrestricted basin ordering, mixed
-dynamics, formation, and physical identification remain open.
+comparison. Its finest artifact's six independently matched lowest constrained
+$C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero
+carrier-phase symmetry mode, no negative mode, and five positive modes. The
+symmetry mode exposes unresolved odd-even spatial structure. Continuum
+existence, localized Hessian resolution, perturbations beyond $C_4$,
+unrestricted basin ordering, PA43 mixed dynamics, formation, and physical
+identification remain open.
 
 ---
 
@@ -1002,9 +1016,12 @@ The analytic closure fails if any of the following is shown:
 
 The numerical receipts do not falsify the analytic closure. They establish one
 localized, carrier-retaining finite-grid stationary branch at a Mapped
-coefficient point. A negative constrained mode on that branch, failed further
-domain or continuum refinement, or real-time decay would reject progressively
-stronger particle interpretations without changing the action identities above.
+coefficient point. Its finest artifact's six independently matched lowest
+constrained $C_4$ PA42 eigenpairs contain one numerically near-zero
+carrier-phase symmetry mode, no negative mode, and five positive modes. Failed
+Hessian refinement, a negative mode beyond $C_4$, failed further domain or
+continuum refinement, or real-time decay would reject progressively stronger
+particle interpretations without changing the action identities above.
 
 ---
 
@@ -1017,18 +1034,22 @@ its unavoidable gauge charge, while the selected second-order charged-field
 kinetics give a time-local gauge symmetry and a Gauss-compatible static sector.
 The neutral carrier remains first order and supplies the exact fixed charge.
 
-The registered numerical program now supplies two distinct stationary
-backgrounds. The diffuse $h_C=1.50$ field has a nonnegative matched low
-energetic spectrum on one strict-shell $C_4$ physical quotient, while its
-global carrier-phase mode remains concentrated at grid scale. The selected
-$h_C=2.9598260763447164$ field is nodeless, localized, and retained across
-four same-domain resolutions, passes one larger-domain comparison, and has
-twice-contracting absolute energy differences.
+The registered numerical program supplies two distinct stationary
+backgrounds. The independently matched lowest energetic eigenpairs of the
+diffuse $h_C=1.50$ field contain no negative mode on one strict-shell $C_4$
+physical quotient, while its global carrier-phase direction remains
+concentrated at grid scale. The selected $h_C=2.9598260763447164$ field is
+nodeless, localized, and retained across four same-domain resolutions, passes
+one larger-domain comparison, and has twice-contracting absolute energy
+differences. Its finest field's six independently matched lowest constrained
+$C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero mode
+aligned with the analytic carrier-phase symmetry, no negative mode, and five
+positive modes. The symmetry mode retains high-frequency odd-even structure.
 
-The localized field has no constrained Hessian or mixed dynamical spectrum.
-A continuum limit, broader basin search, real-time persistence and formation,
-physical calibration, and particle masses, radii, spins, statistics, and
-lifetimes remain downstream.
+Localized Hessian resolution, perturbations beyond $C_4$, a continuum limit,
+broader basin search, PA43 real-time persistence and formation, physical
+calibration, and particle masses, radii, spins, statistics, and lifetimes
+remain downstream.
 
 ---
 
@@ -1048,3 +1069,4 @@ lifetimes remain downstream.
 - `computations/particle-physical-hessian-precision-v2-report.md`—matched low energetic spectrum and spatial classification on the diffuse background.
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid refinement and independently verified resolution consistency.
+- `computations/particle-localized-physical-hessian-report.md`—matched constrained spectrum and spatial qualification of the finest localized field.

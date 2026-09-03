@@ -397,21 +397,26 @@ length, and frequency satisfy the frozen tolerances, while the absolute energy
 differences decrease from $0.12339$ to $0.04261$ to $0.01899$. Independent
 artifact reconstruction reports zero mismatches.
 
-A different diffuse field at $h_C=1.50$ has one near-zero global carrier-phase
-mode and five positive matched low energetic modes on a $13622$-dimensional
-strict-shell $C_4$ physical quotient, with no verified negative mode. Its
-near-zero phase direction remains concentrated at grid scale. Because this
-Hessian is local to the diffuse background, it does not determine static
-stability of the localized branch.
+The finest localized field has a $77000$-dimensional fixed-charge $C_4$
+physical quotient. Independent eigensolvers find six matched lowest eigenpairs
+containing one numerically near-zero global carrier-phase symmetry mode, no
+negative mode, and five positive modes.
+The first positive eigenvalue is $0.01527618220595$, compared with uncertainty
+$6.092903959\times10^{-4}$. The phase mode is entirely carrier-imaginary and
+has high-frequency fraction $0.8744032081$, leaving the spatial classification
+inconclusive. A different diffuse field at $h_C=1.50$ has its own nonnegative
+matched low energetic spectrum while failing localization and retention.
 
 The physical carrier, calibrated coefficients, exterior realization,
-reservoir action and stress, gravity choice, continuum limit, constrained
-energetic and mixed dynamical spectra of the localized branch, particle
-identity, and formation history remain open. The full derivations and receipts
-are in `foundations/matter-completion-boundary.md`,
+reservoir action and stress, gravity choice, localized Hessian resolution,
+perturbations beyond $C_4$, continuum qualification, the PA43 mixed dynamical
+spectrum, particle identity, and formation history remain open. The full
+derivations and receipts are in
+`foundations/matter-completion-boundary.md`,
 `foundations/particle-stationary-action-closure.md`,
-`computations/particle-carrier-resolution-recovery-report.md`, and
-`computations/particle-physical-hessian-precision-v2-report.md`.
+`computations/particle-carrier-resolution-recovery-report.md`,
+`computations/particle-physical-hessian-precision-v2-report.md`, and
+`computations/particle-localized-physical-hessian-report.md`.
 
 ---
 
@@ -773,20 +778,23 @@ At the Mapped coupling $h_C=2.9598260763447164$, the separate source-free
 fixed-charge particle action has a localized, nodeless, carrier-retaining
 stationary branch across four same-domain finite grids and one larger-domain
 comparison. Adjacent principal observables agree and the absolute energy drift
-decreases twice. A distinct diffuse background at $h_C=1.50$ has a
-nonnegative matched low energetic spectrum on one strict-shell $C_4$
-finite-grid physical quotient, but its global phase direction remains
-concentrated at grid scale and its Hessian does not establish stability of the
-localized branch.
+decreases twice. Its finest artifact's six independently matched lowest
+constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero
+carrier-phase symmetry mode, no negative mode, and five positive modes. The
+symmetry mode retains high-frequency odd-even structure. The independently
+matched lowest energetic eigenpairs of a distinct diffuse background at
+$h_C=1.50$ also contain no negative mode, while that field fails localization
+and retention.
 
 The physical endpoint section, normalized scale stiffness, proton quantum
-numbers, continuum qualification, constrained Hessian and mixed dynamics of
-the localized branch, real-time formation, and the decay-rate map remain open.
-See `foundations/proton-coherence-budget.md` §10,
+numbers, localized Hessian resolution, perturbations beyond $C_4$, continuum
+qualification, PA43 mixed dynamics, real-time formation, and the decay-rate
+map remain open. See `foundations/proton-coherence-budget.md` §10,
 `foundations/interscale-current-soliton.md` §4.5,
 `foundations/particle-stationary-action-closure.md`,
-`computations/particle-carrier-resolution-recovery-report.md`, and
-`computations/particle-physical-hessian-precision-v2-report.md`.
+`computations/particle-carrier-resolution-recovery-report.md`,
+`computations/particle-physical-hessian-precision-v2-report.md`, and
+`computations/particle-localized-physical-hessian-report.md`.
 
 **Epistemic status:** the $N_{\text{max}}$ product and lifetime conversion are
 **Derived conditional** on the **Mapped** span and **Hypothesized** $q_i$
@@ -802,11 +810,15 @@ The density-depletion coupling $h_C=2.9598260763447164$ is **Mapped** by a
 frozen ordered numerical scan. Its localized, nodeless, carrier-retaining
 stationary branch is **Tested** across four same-domain finite grids and one
 larger-domain comparison, with independently verified adjacent agreement and
-twice-contracting energy differences. A distinct diffuse coefficient point
-has a **Tested** nonnegative matched low energetic spectrum on one finite-grid
-physical quotient. Physical proton identification, calibrated action data, a
-continuum limit, the localized branch's constrained energetic and mixed
-dynamical spectra, real-time formation, and a decay rate are
+twice-contracting energy differences. Its finest field's six independently
+matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one
+numerically near-zero carrier-phase symmetry mode, no negative mode, and five
+positive modes. The symmetry mode retains unresolved odd-even structure. The
+independently matched lowest energetic eigenpairs of a distinct diffuse
+coefficient point also contain no negative mode, while that field fails
+localization and retention. Physical proton identification, calibrated action
+data, localized Hessian resolution, perturbations beyond $C_4$, a continuum
+limit, PA43 mixed dynamics, real-time formation, and a decay rate are
 **Hypothesized/Open**.
 
 For the neutron–proton–electron trio as a whole—their scale coordinates, sectors, and framework-level distinctions—see `particles/matter-organization.md`.

@@ -1,6 +1,6 @@
 # Quantized Point-Core Flux and the Persistent-Defect Boundary
 
-## Status: Derived conditional exterior support / Derived current-action completion no-go / Mapped selected carrier coupling / Tested resolution-consistent localized retained finite-grid branch and a separate nonnegative $C_4$ low energetic spectrum on a diffuse finite-grid quotient—September 2026
+## Status: Derived conditional exterior support / Derived current-action completion no-go / Mapped selected carrier coupling / Tested resolution-consistent localized retained finite-grid branch and six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026
 
 ## Abstract
 
@@ -50,9 +50,14 @@ its support inequality, and the positive reduced breathing curvature. The
 auxiliary adjoint $SU(2)_Q$ branch in
 `foundations/nonabelian-magnetic-core-boundary.md` resolves the local core and
 matches this exterior coefficient. Its registered nonzero fundamental
-condensate removes the isolated magnetic sector and confines the flux, so a
-finite-energy stationary particle and dynamical fluctuation spectrum still
-require a supported net-zero completion.
+condensate removes the isolated magnetic sector and confines the flux. The
+neutral-carrier fixed-charge completion supplies a resolution-consistent
+localized retained finite-grid branch. Its finest artifact's six independently
+matched lowest constrained $C_4$ PA42 eigenpairs contain one numerically
+near-zero carrier-phase symmetry mode, no negative mode, and five positive
+modes. The symmetry mode remains spatially unresolved, and the physical core
+identity, continuum limit, perturbations beyond $C_4$, and PA43 dynamics stay
+open.
 
 ---
 
@@ -623,11 +628,11 @@ through its boundary conditions; no standalone boundary-value experiment is
 well posed in this sector. The separate coupled fixed-charge action has a
 localized, nodeless, carrier-retaining stationary branch at the Mapped coupling
 $h_C=2.9598260763447164$ across four same-domain finite grids and one
-larger-domain comparison. A distinct diffuse $h_C=1.50$ background has a
-nonnegative matched low energetic spectrum on its strict-shell $C_4$ physical
-quotient, while its global phase direction remains concentrated at grid scale.
-Neither branch supplies the missing point-core boundary data or qualifies a
-point-core solution.
+larger-domain comparison. The independently matched lowest energetic
+eigenpairs of a distinct diffuse $h_C=1.50$ background contain no negative
+mode on its strict-shell $C_4$ physical quotient, while its global phase
+direction remains concentrated at grid scale. Neither branch supplies the
+missing point-core boundary data or qualifies a point-core solution.
 
 ---
 
@@ -677,18 +682,20 @@ channel. The separate conditional action in
 charged-field kinetics, positive temporal curvatures, and Gauss's law. At the
 Mapped coupling $h_C=2.9598260763447164$, this action has a localized,
 nodeless, carrier-retaining stationary branch across four same-domain finite
-grids and one larger-domain comparison. Adjacent principal observables agree
-and the absolute energy differences decrease twice.
+grids and one larger-domain comparison. Its finest artifact defines a
+$77000$-dimensional fixed-charge $C_4$ physical quotient after removal of the
+rank-$11775$ complete allowed gauge image.
 
-A distinct diffuse $h_C=1.50$ background has a $13622$-dimensional
-strict-shell $C_4$ fixed-charge physical quotient after removal of the
-rank-$1677$ coupled gauge image. Independent eigensolvers find one near-zero
-global carrier-phase mode and five positive matched low energetic modes, with
-no verified negative mode. The phase direction remains concentrated at grid
-scale. Core data, perturbations outside $C_4$, continuum qualification, and
-the localized branch's constrained energetic and mixed dynamical spectra
-remain open. Static positivity on the diffuse background supplies no
-dynamical-frequency claim for the localized field.
+Independent eigensolvers find six matched lowest eigenpairs containing one
+numerically near-zero global carrier-phase symmetry mode, no negative mode,
+and five positive modes. The positive gap is $0.01527618220595$ against
+uncertainty $6.092903959\times10^{-4}$. The symmetry mode is entirely
+carrier-imaginary and has high-frequency fraction $0.8744032081$, leaving its
+spatial interpretation inconclusive. The independently matched lowest
+energetic eigenpairs of a distinct diffuse $h_C=1.50$ background also contain
+no negative mode while that field fails localization and retention. Core
+identity, perturbations outside $C_4$, localized Hessian resolution, continuum
+qualification, and the PA43 mixed dynamical spectrum remain open.
 
 ---
 
@@ -702,7 +709,7 @@ dynamical-frequency claim for the localized field.
 | Does the current Abelian action smooth the point core? | No; $dG=0$ forces zero flux through a smooth ball |
 | Does the registered condensate admit an isolated finite-energy monopole? | No; the nonzero charged asymptotic sections give divergent angular kinetic energy |
 | Is a scalar radial matter solve available? | No; $j\geq|N_G|/2$ and the core/outer data are incomplete |
-| Is the full fluctuation spectrum defined? | Partly. The diffuse $h_C=1.50$ background has a complete strict-shell $C_4$ physical quotient and a nonnegative matched low energetic spectrum, while its near-zero global phase direction remains concentrated at grid scale. The localized $h_C=2.9598260763447164$ branch has no constrained energetic or mixed dynamical spectrum. Core data, continuum qualification, and perturbations outside $C_4$ remain open |
+| Is the full fluctuation spectrum defined? | Partly. The diffuse $h_C=1.50$ background and localized $h_C=2.9598260763447164$ branch each have a complete strict-shell $C_4$ physical quotient whose independently matched lowest energetic eigenpairs contain no negative mode on one finite grid. For the localized branch, the six matched lowest eigenpairs contain one numerically near-zero mode aligned with the analytic carrier-phase symmetry and five positive modes; its high-frequency fraction leaves the spatial classification inconclusive. Core identity, localized Hessian resolution, continuum qualification, perturbations beyond $C_4$, and PA43 dynamics remain open |
 
 The algebraic and spectral identities are checked by
 `computations/point_core_flux_check.py`. They create no numbered physical
@@ -742,10 +749,15 @@ complete fixed-charge stationary formulation and Gauss constraint. At the
 Mapped coupling $h_C=2.9598260763447164$, it has a localized, nodeless,
 carrier-retaining branch across four same-domain finite grids and one
 larger-domain comparison, with twice-contracting absolute energy differences.
-A distinct diffuse $h_C=1.50$ background has a nonnegative matched low
-energetic spectrum on its explicit physical quotient. Continuum qualification,
-unrestricted basin ordering, and the localized branch's constrained energetic
-and mixed dynamical spectra remain open.
+Its finest field's six independently matched lowest constrained $C_4$
+finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase
+symmetry mode, no negative mode, and five positive modes. The symmetry mode
+retains high-frequency odd-even structure. The independently matched lowest
+energetic eigenpairs of a distinct diffuse $h_C=1.50$ background also contain
+no negative mode.
+Localized Hessian resolution, perturbations beyond $C_4$, continuum
+qualification, unrestricted basin ordering, and the PA43 mixed dynamical
+spectrum remain open.
 
 ---
 
@@ -780,3 +792,4 @@ and mixed dynamical spectra remain open.
 - `computations/particle-physical-hessian-precision-v2-report.md`—matched low energetic spectrum on the diffuse background
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained branch and larger-domain comparison
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence and independently verified adjacent convergence
+- `computations/particle-localized-physical-hessian-report.md`—constrained localized PA42 spectrum and spatial qualification

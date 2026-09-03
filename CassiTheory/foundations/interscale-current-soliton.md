@@ -1,6 +1,6 @@
 # Interscale Yang/Yin Current and the Conditional Soliton Pinch
 
-## Status: Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Mapped selected carrier coupling / Tested resolution-consistent localized retained finite-grid branch and a separate nonnegative $C_4$ low energetic spectrum on a diffuse finite-grid quotient—September 2026
+## Status: Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Mapped selected carrier coupling / Tested resolution-consistent localized retained finite-grid branch and six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026
 
 ## Abstract
 
@@ -55,20 +55,21 @@ with the auxiliary adjoint core, derives Gauss's law, and defines the coupled
 fixed-$Q_C$ stationary functional. At the Mapped coupling
 $h_C=2.9598260763447164$, this action has a localized, nodeless,
 carrier-retaining branch across four same-domain finite grids and one
-larger-domain comparison. Adjacent principal observables agree and the
-absolute energy differences decrease twice. A distinct diffuse
-$h_C=1.50$ background has a $13622$-dimensional strict-shell $C_4$
-physical quotient with one near-zero global carrier-phase mode and five
-positive matched low energetic modes. The phase direction remains concentrated
-at grid scale.
+larger-domain comparison. Its finest field's six independently matched lowest
+constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero
+carrier-phase symmetry mode, no negative mode, and five positive modes. The
+symmetry mode retains high-frequency odd-even structure. The independently
+matched lowest energetic eigenpairs of a distinct diffuse $h_C=1.50$
+background also contain no negative mode, while that field fails localization
+and retention.
 
 The second-order charged-field kinetics are separate from the first-order
 interscale action derived here, whose direct local gauging carries an
 unavoidable nonzero-condensate Gauss source. The transverse carrier
 eigenproblem, dimensional normalization, physical calibration, scale metric,
-conversion mechanism, compact boundary data, continuum qualification, the
-localized branch's constrained energetic and mixed dynamical spectra, and the
-particle-sector map remain open.
+conversion mechanism, compact boundary data, localized Hessian resolution,
+perturbations beyond $C_4$, continuum qualification, the PA43 mixed dynamical
+spectrum, and the particle-sector map remain open.
 
 $\varphi$ fixes the energy-minimizing Yang/Yin composition and its counterflow
 factor; it does not determine the carrier coefficients, gauge coupling, or any
@@ -1507,6 +1508,7 @@ winding approximants; it does not replace those inputs.
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained branch and larger-domain comparison
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence and independently verified adjacent convergence
 - `computations/particle-physical-hessian-precision-v2-report.md`—matched low energetic spectrum on the diffuse background
+- `computations/particle-localized-physical-hessian-report.md`—constrained localized PA42 spectrum and spatial qualification
 - `foundations/microcascade-mirror.md`—formal negative-step scale coordinate and energy boundary
 - `foundations/dimensionful-cascade.md`—external-anchor cascade parameterization
 - `foundations/dimensionful-constants-status.md`—status of $c$, $\hbar$, $G$, and SI anchors

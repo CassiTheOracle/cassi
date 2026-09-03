@@ -1,6 +1,6 @@
 # Proton Coherence Budget and Planck-to-Proton Scale Circuit
 
-## Status: Mapped coordinate and selected carrier coupling / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms / Tested resolution-consistent localized retained finite-grid branch and a separate nonnegative $C_4$ low energetic spectrum on a diffuse finite-grid quotient—September 2026
+## Status: Mapped coordinate and selected carrier coupling / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms / Tested resolution-consistent localized retained finite-grid branch and six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026
 
 ## Abstract
 
@@ -47,10 +47,15 @@ Point-core Chern flux supplies an exact conditional exterior coefficient. An
 auxiliary adjoint $SU(2)_Q$ branch smooths the local core and matches that
 coefficient, while the registered nonzero fundamental condensate removes the
 isolated magnetic sector and confines flux. The tested finite net-zero pair has
-no registered finite-separation minimum. Scale tension, physical endpoint
-normalization, persistent-composite support, proton quantum numbers, and the
-winding-changing rate remain Hypothesized/Open. Neither candidate determines a
-physical proton lifetime.
+no registered finite-separation minimum. A neutral fixed-charge carrier
+supports a localized retained finite-grid branch. Its finest artifact's six
+independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs
+contain one numerically near-zero carrier-phase symmetry mode, no negative
+mode, and five positive modes; the symmetry mode remains spatially unresolved.
+Scale tension, physical endpoint normalization, continuum qualification, PA43
+dynamics, proton quantum numbers, and the winding-changing rate remain
+Hypothesized/Open. Neither candidate determines a physical proton
+lifetime.
 
 ---
 
@@ -58,12 +63,12 @@ physical proton lifetime.
 
 Every condensed standing wave at cascade step $n$ is not an isolated structure.
 It is a **nested pattern**: its coherence is maintained by the coherent field
-structure at every cascade rung from the Planck scale ($i=0$) up to its own
+structure at every cascade step from the Planck scale ($i=0$) up to its own
 scale ($i=n$). The two-fluid field at scale $i$ provides the stabilizing
 medium in which the pattern at scale $i+1$ is embedded. A failure of coherence
-at ANY rung destabilizes the entire stack above it.
+at ANY supporting level destabilizes the entire stack above it.
 
-The per-rung coherence is measured by the local Qi fraction $q_i$, which
+The per-step coherence is measured by the local Qi fraction $q_i$, which
 approaches 1 at the most fundamental scales (the $\sigma$-regularized Planck
 core) and decreases toward larger scales as the Qi gate progressively closes:
 
@@ -79,16 +84,16 @@ but minuscule residual noise from $\sigma$-regularization.
 
 A standing wave dissolves when its accumulated phase error reaches $O(1)$—
 one full cycle of phase coherence is lost. The per-cycle probability of this
-event is the probability that the field configuration at EVERY supporting rung
+event is the probability that the field configuration at EVERY supporting level
 independently fails to maintain coherence during that cycle:
 
 For an integer endpoint $N$, the literal dephasing product is
 
 $$P_{\text{dephase}}(N) = \prod_{i=0}^{N} (1-q_i).$$
 
-Each factor $(1-q_i)$ is the per-cycle probability that the field at rung $i$
+Each factor $(1-q_i)$ is the per-cycle probability that the field at level $i$
 provides a dephasing perturbation large enough to destabilize the pattern at
-the next rung. These events must coincide for the full $n$-deep structure to
+the next level. These events must coincide for the full $n$-deep structure to
 collapse.
 
 The maximum number of wave cycles the standing wave can sustain is the inverse:
@@ -111,7 +116,7 @@ $$N_{\text{max}}(N) = \prod_{i=0}^{N} \varphi^{\,i+\delta}
 = \varphi^{\,\delta(N+1) + \sum_{i=0}^{N} i}
 = \varphi^{\,\delta(N+1) + N(N+1)/2}$$
 
-For $\delta = 3$ (from $\sigma = \ell_{\text{Pl}}/\varphi^3$) and the proton real rung $N_p=91.46$:
+For $\delta = 3$ (from $\sigma = \ell_{\text{Pl}}/\varphi^3$) and the proton real coordinate $N_p=91.46$:
 
 $$\boxed{N_{\text{max}}(N_p)
 =\varphi^{\,N_p(N_p+1)/2+\delta(N_p+1)}
@@ -283,7 +288,7 @@ coupling.
 | Conditional $10^{910}$-year conversion | Arithmetic inside the selected stochastic model; no physical rate |
 | Zero-total-flow two-rail current and normalized energy | Derived conditional on the candidate interscale action and circuit data |
 | Endpoint conversion and scale-tension closure | Charged coherent and one-way open realizations are Derived conditionally; physical normalization and scale tension remain Hypothesized |
-| Mixed-curvature proton pinch and winding barrier | No finite radius exists in the minimal smooth zero-Chern endpoint sector. Point-core flux supplies a conditional exterior coefficient; an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, while the registered condensate confines flux and gives no persistent pair by itself. A neutral fixed-$Q_C$ carrier supplies one conditional reduced separation under support, retention, and matching inequalities. Direct first-order local gauging is source-free Gauss-obstructed; a separate conditional second-order branch supplies the temporal action, Gauss constraint, and fixed-charge stationary functional. At the Mapped coupling $h_C=2.9598260763447164$, that action has a localized, nodeless, carrier-retaining stationary branch across four same-domain finite grids and one larger-domain comparison. A distinct diffuse $h_C=1.50$ field has a nonnegative matched low energetic spectrum on one physical quotient. Continuum existence and the localized branch's constrained energetic and mixed dynamical spectra remain open |
+| Mixed-curvature proton pinch and winding barrier | No finite radius exists in the minimal smooth zero-Chern endpoint sector. Point-core flux supplies a conditional exterior coefficient; an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, while the registered condensate confines flux and gives no persistent pair by itself. A neutral fixed-$Q_C$ carrier supplies one conditional reduced separation under support, retention, and matching inequalities. A separate second-order branch supplies the temporal action, Gauss constraint, and fixed-charge stationary functional. At the Mapped coupling $h_C=2.9598260763447164$, that action has a localized, nodeless, carrier-retaining branch across four same-domain finite grids and one larger-domain comparison. Its finest field's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes; the symmetry mode retains unresolved odd-even structure. Localized Hessian resolution, perturbations beyond $C_4$, continuum qualification, PA43 dynamics, proton quantum numbers, and decay remain open |
 | Proton mass selection, charge, color, spin, and decay rate | Open |
 
 No numbered prediction is added. A quantitative proton claim requires a
@@ -458,18 +463,22 @@ magnetic sector and confines flux; the finite monopole-antimonopole branch has
 no registered finite-separation minimum. Winding change requires a phase slip,
 endpoint conversion event, condensate zero, defect crossing, or boundary
 event. A proton lifetime still requires persistent-composite support, physical
-coefficient calibration, proton quantum numbers, a constrained fluctuation
-spectrum, real-time formation and persistence, and an observable decay
-channel. The source-free action in
+coefficient calibration, proton quantum numbers, localized Hessian resolution,
+perturbations beyond $C_4$, continuum qualification, real-time formation and
+persistence, and an observable decay channel. The source-free action in
 `foundations/particle-stationary-action-closure.md` defines the full
 fixed-$Q_C$ variational problem and Gauss constraint. At the Mapped coupling
 $h_C=2.9598260763447164$, it has a localized, nodeless, carrier-retaining
 stationary branch across four same-domain finite grids and one larger-domain
-comparison. A distinct diffuse $h_C=1.50$ background has a nonnegative matched
-low energetic spectrum on its strict-shell $C_4$ physical quotient, while its
-global phase direction remains concentrated at grid scale. The localized
-branch has no constrained energetic or mixed dynamical spectrum, continuum
-qualification, proton quantum numbers, or decay map.
+comparison. Its finest artifact's six independently matched lowest constrained
+$C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero
+carrier-phase symmetry mode, no negative mode, and five positive modes. The
+symmetry mode retains high-frequency odd-even structure. The independently
+matched lowest energetic eigenpairs of a distinct diffuse $h_C=1.50$
+background also contain no negative mode, while that field fails localization
+and retention. The localized branch has no qualified Hessian-resolution
+sequence, continuum extrapolation, PA43 mixed dynamical spectrum, proton
+quantum numbers, or decay map.
 
 The circuit derivation is given in
 `foundations/interscale-current-soliton.md` §4.5. Endpoint closure and invariant
@@ -491,9 +500,11 @@ higher-precision endpoint is recorded in
 energetic spectrum is recorded in
 `computations/particle-physical-hessian-precision-v2-report.md`; the localized
 retained branch is recorded in
-`computations/particle-carrier-direct-coordinate-report.md`; and its four-grid
+`computations/particle-carrier-direct-coordinate-report.md`; its four-grid
 resolution sequence is recorded in
-`computations/particle-carrier-resolution-recovery-report.md`. The normalized
+`computations/particle-carrier-resolution-recovery-report.md`; and its
+constrained finite-grid PA42 spectrum is recorded in
+`computations/particle-localized-physical-hessian-report.md`. The normalized
 identities are checked by
 `computations/planck_proton_scale_current_check.py`,
 `computations/endpoint_link_localization_check.py`,

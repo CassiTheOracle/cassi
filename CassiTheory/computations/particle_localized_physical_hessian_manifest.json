@@ -1,0 +1,109 @@
+{
+  "schema": "cassi.particle-localized-physical-hessian.manifest.v1",
+  "campaign": "particle_localized_physical_hessian",
+  "frozen_utc": "2026-09-03T20:25:02Z",
+  "protocol": {
+    "artifact": "runs/20260902_particle_carrier_resolution_recovery/fields_resolution_X2_block01.npz",
+    "artifact_sha256": "db42c53c5ca0f5a984fc2614168198417f95b289911904596b96cd4c5e8988c0",
+    "background": {
+      "physical_energy": 1.5251878559994063,
+      "physical_gradient_rms": 3.090108443313949e-07,
+      "cutoff_virial": 9.092469919592924e-08,
+      "omega_c": 0.0034164531971490053,
+      "charge": 4.0,
+      "gauge_fixing_energy": 5.97271232511152e-11,
+      "carrier_radius": 1.6314313026374387,
+      "core_length": 2.2977937729044924,
+      "outer_carrier_fraction": 0.00010708172350337447,
+      "max_density_depletion": 0.9856286941942967,
+      "negative_norm_fraction": 0.0
+    },
+    "coefficients": {
+      "phi": 1.618033988749895,
+      "alpha_s": 1.0,
+      "u_rho": 4.0,
+      "u_phi": 4.0,
+      "gamma_x": 1.0,
+      "gamma_s": 1.0,
+      "u_H": 4.0,
+      "k_Cx": 1.0,
+      "k_Cs": 1.0,
+      "e_C": 0.75,
+      "h_C": 2.9598260763447164,
+      "u_C": 1.0,
+      "q_C": 4.0,
+      "L_s": 1.0,
+      "xi_gf": 1.0
+    },
+    "grid": {
+      "R": 4.0,
+      "N": 29,
+      "dx": 0.2857142857142857,
+      "dv": 0.02332361516034985
+    },
+    "dimensions": {
+      "scalar_c4": 4941,
+      "vector_c4": 14769,
+      "alpha_per_color": 3925,
+      "gauge": 11775,
+      "base": 88775,
+      "physical": 77000
+    },
+    "gauge_lift": 8.0,
+    "finite_difference_steps": [
+      0.0002,
+      0.0001,
+      0.00005
+    ],
+    "primary_eigensolver": {
+      "k": 8,
+      "which": "SA",
+      "ncv": 40,
+      "tolerance": 1e-09,
+      "maxiter": 2000,
+      "seed": 424242
+    },
+    "independent_eigensolver": {
+      "k": 6,
+      "which": "SA",
+      "ncv": 32,
+      "tolerance": 1e-09,
+      "maxiter": 2000,
+      "seed": 314159
+    },
+    "source_hashes": {
+      "manifest": "8d1f18cb18d3635960ec7be1076688bcbd1f1fbc5fda1d86e851c46f8b3ff853",
+      "results": "b22a6e4b84aa68d099c2eb9930aa10213a28826b852a74f7e7b6a044a93c66ca",
+      "verification": "7a500585beb44430402987ef9b5cb990619462463161e42d03980ef9ba855b3c"
+    },
+    "source_verdict": "EMERGES—THREE-LEVEL RESOLUTION-CONSISTENT LOCALIZED RETAINED BRANCH"
+  },
+  "sha256": {
+    "computations/particle-localized-physical-hessian-prereg.md": "7cf7a8cdcc301ecebab7abc753e13698ebebe3e58d6024311d458a6ad7bd5869",
+    "computations/particle_localized_physical_hessian.py": "98e2e7c406c6cefdbeadca67e08407940c83777cca99669b4e74e8fd69f241cd",
+    "computations/verify_particle_localized_physical_hessian.py": "24699c79727ae25f17a5fd0d7d110f678f898108d07254e4c5d0d1a91a49bab6",
+    "computations/particle_stationary_bvp.py": "3143682f8a1052c60243c906b029a5f291a5d767d17b4ebe622deb23d22c5ad1",
+    "computations/particle_carrier_resolution_recovery_manifest.json": "8d1f18cb18d3635960ec7be1076688bcbd1f1fbc5fda1d86e851c46f8b3ff853",
+    "computations/particle-carrier-resolution-recovery-prereg.md": "9bdda6b3822a33c14c47528396860e148421eb2e1f05619f1ad7302e9d2ddb8c",
+    "computations/particle-carrier-resolution-recovery-verification-amendment.md": "7174362fea6759098929476893f4deb549566d337781fbdf96d6d26fdcc86e3c",
+    "computations/particle_carrier_resolution_recovery.py": "f7bd6781fadd51a4a26c8b56dcbe801a33da712e23ed928e72b117763cdfaed9",
+    "computations/verify_particle_carrier_resolution_recovery.py": "24dc2045969a0c71b32b011618092b427c999079640ce04aec28b350b86c0c5c",
+    "computations/particle-carrier-direct-coordinate-prereg.md": "b9d95ff44dede34c74f125d3aab9a33ac8c8d08ad136f70ec5995741cc6c5000",
+    "computations/particle-carrier-direct-coordinate-execution-amendment.md": "a8917f7c3afcba47a7f8405774b649b9a10cfd2111fd0f700df55387ace0ed48",
+    "computations/particle-carrier-direct-coordinate-receipt-binding.md": "11df269190735bb9b54dc333b0deb897bafccc18835f5ac00603946c85f840be",
+    "computations/particle_carrier_direct_coordinate.py": "339344108cc710e382e423968fa1402ca4bb22b1bf9ceaba36c8169a881d69bf",
+    "computations/verify_particle_carrier_direct_coordinate.py": "d9d6f41788161911a4a3c987289e17d0f78a2feda1ffcb7c296f18ba9cbeaac9",
+    "computations/particle_carrier_direct_coordinate_manifest.json": "d602e50f0a8d9a4c8f306930017d92101b797d695daaf3315a79a423c6f20f77",
+    "computations/particle_carrier_localization.py": "e0a9965d817d2bb10218ab6a18b35e89b3f9a510a0f3c7c5d2a56349e4b37797",
+    "computations/verify_particle_carrier_localization.py": "111f4eaaa1b1435d76391301a9c9d48c4444d6f91cffe8a6c994fb4840bfd153",
+    "computations/particle_stationary_q2_recovery_v2.py": "10e269fd2a669f58fbec0c20f4076d9e07f4a693de4ca40221d5bd29cca3a2a9",
+    "computations/verify_particle_stationary_q2_recovery_v2.py": "787520fcf3abb2ccbb66cc61a5ced29c39e1a9e75976468706ca58bae3de4707",
+    "runs/20260902_particle_carrier_resolution_recovery/results.json": "b22a6e4b84aa68d099c2eb9930aa10213a28826b852a74f7e7b6a044a93c66ca",
+    "runs/20260902_particle_carrier_resolution_recovery/verification.json": "7a500585beb44430402987ef9b5cb990619462463161e42d03980ef9ba855b3c",
+    "runs/20260902_particle_carrier_resolution_recovery/fields_resolution_X2_block01.npz": "db42c53c5ca0f5a984fc2614168198417f95b289911904596b96cd4c5e8988c0",
+    "runs/20260902_particle_carrier_direct_coordinate_v2/results.json": "7372f85679cb3924f7ac9b39e3789f316b442ad30f214ed5836461beb691cab4",
+    "runs/20260902_particle_carrier_direct_coordinate_v2/verification.json": "7a8b4da9e6706525db13b8a3ce7e72d0bece83bdd2061a2c842a92f79d31f614",
+    "runs/20260902_particle_carrier_direct_coordinate_v2/fields_primary_half_reference_block01.npz": "c32beb4ee7bc7746a4fc18b63bc04ef7db12cc18505c9bee8ce2d298ddc25837",
+    "runs/20260902_particle_carrier_direct_coordinate_v2/fields_comparison_H_block01.npz": "8aa65f3c08167c902660f9e8d09c0ce921d43c7f0af152b31aae79db6875810f"
+  }
+}
