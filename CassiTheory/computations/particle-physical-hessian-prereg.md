@@ -7,9 +7,10 @@
 This campaign computes the PA42 constrained energetic Hessian of the selected
 Q2-qualified stationary background. The operator is the second variation of
 the gauge-invariant physical energy at fixed carrier charge, restricted to the
-registered finite Cartesian grid, fixed boundary values, $C_4$-equivariant
-field class, and a discrete Coulomb representative of each gauge orbit. The
-numerical gauge-fixing penalty is excluded from the operator.
+registered finite Cartesian grid, fixed boundary values, and
+$C_4$-equivariant field class, followed by the orthogonal quotient of every
+boundary-preserving local $SU(2)_Q$ gauge direction. The numerical
+gauge-fixing penalty is excluded from the operator.
 
 The calculation uses exact reverse-over-reverse automatic-differentiation
 Hessian-vector products, a separately implemented verifier, three finite-
@@ -25,35 +26,40 @@ The primary question is:
 
 > Does the selected `P:separated_core` background have a negative physical
 > energetic mode in the complete registered $C_4$ finite-grid tangent space
-> after imposing fixed charge, fixed boundary values, and a discrete Coulomb
-> gauge slice?
+> after imposing fixed charge and fixed boundary values and quotienting every
+> boundary-preserving local gauge direction?
 
-The operator is
+The reduced symmetric-definite pencil is
 
 $$
-\mathcal H_{\rm phys}
- = \left.
- \frac{1}{\Delta V}B^{\mathsf T}
- \nabla^2\!\left(\widehat E_{\rm phys}
-                  -\widehat\omega_C Q_C\right)
- B\right|_{\bar\Phi},
+\begin{aligned}
+\mathcal K_{\rm phys}
+&=\left.
+\frac{1}{\Delta V}B^{\mathsf T}
+\nabla^2\!\left(\widehat E_{\rm phys}
+                 -\widehat\omega_C Q_C\right)
+B\right|_{\bar\Phi},\\
+\mathcal M_{\rm phys}&=B^{\mathsf T}B,\\
+\mathcal K_{\rm phys}v&=\lambda\mathcal M_{\rm phys}v.
+\end{aligned}
 \tag{PH1}
 $$
 
-where $B$ injects reduced physical coordinates into full real field arrays,
-$\bar\Phi$ is the frozen background, and
+Here $B$ injects quotient coordinates into the fixed-boundary, fixed-charge
+base tangent, $\bar\Phi$ is the frozen background, and
 
 $$
 Q_C=\Delta V\sum_{\mathbf n}|\chi_{\mathbf n}|^2=4.
 \tag{PH2}
 $$
 
-The $1/\Delta V$ factor makes (PH1) self-adjoint in the discrete physical
+The $1/\Delta V$ factor and the positive metric
+$\mathcal M_{\rm phys}$ make (PH1) self-adjoint in the discrete physical
 inner product
 
 $$
 \langle u,v\rangle_{L^2_h}
- =\Delta V\sum_{\mathbf n,A}u_{\mathbf n A}v_{\mathbf n A}.
+=\Delta V\sum_{\mathbf n,A}u_{\mathbf n A}v_{\mathbf n A}.
 \tag{PH3}
 $$
 
@@ -237,45 +243,56 @@ $$
 \tag{PH11}
 $$
 
-The all-grid scalar orbit basis $U_S^{\rm all}$ has 1241 columns and includes
-boundary orbits for representing the divergence constraint.
+### 4.2 Boundary-preserving gauge domain
 
-### 4.2 Discrete Coulomb slice
+The frozen stationary source calls
+`torch.gradient(..., edge_order=2)` for every spatial first derivative.
+Both Hessian implementations use that exact one-sided shell stencil and
+centered interior stencil.
 
-Let $D$ be the source `edge_order=2` divergence from boundary-zero interior
-vector values to all $17^3$ scalar grid values. The reduced one-color
-constraint matrix is
+The continuum boundary authority permits gauge-equivalent pure-gauge
+representatives and requires quotient transformations to approach the
+identity. The finite registered source selects the strict representative
+$a_i^a=0$ on every shell node, and §4.1 fixes every perturbation there.
+This campaign therefore quotients only infinitesimal transformations whose
+complete $\delta a_i^a$ also vanishes on the numerical shell. Induced
+pure-gauge shell values define a different finite-boundary class and are
+excluded.
+
+Start from one boundary-zero scalar $C_4$ gauge parameter
+$\alpha=U_Sz$. Because $\bar a=0$ on the shell, boundary preservation requires
+the source-stencil gradient of $\alpha$ to vanish there. Let
+$B_{\partial}$ extract the three shell components of that gradient:
 
 $$
-C_A=(U_S^{\rm all})^{\mathsf T}DU_V.
+B_{\partial}z
+=\left.(\partial_x,\partial_y,\partial_z)U_Sz\right|_{\partial\Omega}.
 \tag{PH12}
 $$
 
-Its frozen structural rank is 1188 at the relative singular-value cutoff
-$10^{-11}\sigma_{\max}$. The rank must remain 1188 at cutoffs
-$10^{-10}\sigma_{\max}$ and $10^{-12}\sigma_{\max}$. The design calculation
-gives
+Its frozen structural rank is 296 at
+$10^{-11}\sigma_{\max}$ and remains 296 at the relative cutoffs $10^{-10}$
+and $10^{-12}$. The design singular values are
 
 $$
-\sigma_{\max}=4.56558164970823,
-\qquad
-\sigma_{1188}=0.37222442008723217,
-\qquad
-\sigma_{1189}\le3.24\times10^{-15}.
+\sigma_{\max}(B_{\partial})=7.141428428542849,
+\quad
+\sigma_{296}=4.123105625617637,
+\quad
+\sigma_{297}\le6.35\times10^{-15}.
 \tag{PH13}
 $$
 
-A full right-null basis $Z_A$ must satisfy
+The orthonormal right-null basis $Z_{\alpha}$ has 559 columns and must satisfy
 
 $$
-Z_A^{\mathsf T}Z_A=I_{1347},
+\|Z_{\alpha}^{\mathsf T}Z_{\alpha}-I\|_{\max}\le10^{-11},
 \qquad
-\|C_AZ_A\|_2\le10^{-11}.
+\|B_{\partial}Z_{\alpha}\|_2\le10^{-11}.
 \tag{PH14}
 $$
 
-The same spatial null basis is applied independently to the three gauge
-colors. The Coulomb slice removes $3\times1188=3564$ coordinates.
+Each gauge color uses this same boundary-preserving parameter domain.
 
 ### 4.3 Fixed carrier charge and global phase
 
@@ -309,32 +326,107 @@ is retained as an exact symmetry direction. Its straight-line Hessian
 Rayleigh quotient must have magnitude at most $10^{-10}$, and its full
 Hessian residual is reported against the finite stationarity residual.
 
-The complete reduced dimension is
+Before the local gauge quotient, the base tangent has
 
 $$
-7(855)+3(1347)+854+855=11735.
+n_{\rm base}=7(855)+3(2535)+854+855=15299
 \tag{PH17}
 $$
 
-The total nontrivial linear constraint rank is $3565$: 3564 Coulomb
-conditions plus one fixed-charge condition. The static Gauss rank is zero.
+coordinates. The fixed-charge condition has rank one. The static Gauss rank
+is zero.
 
-### 4.4 Gauge-slice completeness
+### 4.4 Coupled orthogonal gauge quotient
 
-Preflight independently constructs the infinitesimal $C_4$ gauge map
+For $\alpha=U_SZ_{\alpha}\beta$, the full infinitesimal transformation in
+source conventions is
 
 $$
-(\delta_\alpha a)_i^a
-=-\partial_i\alpha^a-\epsilon^{abc}\bar a_i^b\alpha^c
+\begin{aligned}
+\delta_\alpha\psi&=i\alpha^aT^a\bar\psi,\\
+\delta_\alpha h&=\bar h\times\alpha,\\
+(\delta_\alpha a)_i&=\partial_i\alpha+\bar a_i\times\alpha,\\
+\delta_\alpha\chi&=0.
+\end{aligned}
 \tag{PH18}
 $$
 
-for three boundary-zero scalar gauge parameters. The combined map reports the
-fixed-boundary values of $\delta_\alpha a$ and the all-grid divergence
-$D\delta_\alpha a$. It must have full column rank $3\times855=2565$ at the
-same $10^{-11}\sigma_{\max}$ cutoff, retain that rank at $10^{-10}$ and
-$10^{-12}$, and have smallest singular value above $10^{-6}$. These tests
-exclude a residual $C_4$ gauge orbit from the Coulomb representative.
+The coupled gauge matrix has 13,590 nonzero target rows,
+$7(855)+3(2535)$, and $3\times559=1677$ parameter columns. Embedding its zero
+carrier rows gives $G\in\mathbb R^{15299\times1677}$. The design calculation
+includes every $\delta\psi$, $\delta h$, and $\delta a$ component. It gives
+full rank 1677 at all three relative cutoffs $10^{-10}$, $10^{-11}$, and
+$10^{-12}$, with
+
+$$
+\sigma_{\min}(G)=0.8176573203083152,
+\qquad
+\sigma_{\max}(G)=3.5702938387634995.
+$$
+
+For the first normalized allowed parameter column, the design norms
+$(\|\delta\psi\|_2,\|\delta h\|_2,\|\delta a\|_2)$ are
+$(0.4997025943382308,1.0000001146783537,2.460424947556975)$ and the maximum
+shell residual is $5.10\times10^{-16}$. Preflight reconstructs this coupled
+map independently and requires rank 1677, smallest singular value above
+$10^{-6}$, rank stability at the three frozen cutoffs, and shell residual at
+most $10^{-12}$.
+
+The physical finite-grid tangent is the orthogonal complement
+
+$$
+\mathcal V_{\rm phys}=\ker C,
+\qquad
+C=G^{\mathsf T}.
+$$
+
+The noncarrier complement has dimension $13590-1677=11913$. Adding the 854
+real-carrier tangent coordinates and all 855 imaginary-carrier coordinates
+gives
+
+$$
+\dim\mathcal V_{\rm phys}=11913+854+855=13622.
+$$
+
+The orthogonal complement of the complete coupled gauge image is the sole
+local-gauge quotient. Coulomb constraints are absent from this construction.
+
+A column-pivoted QR factorization of $C$ selects 1677 pivot coordinates $P$
+and 13622 free coordinates $F$. With
+
+$$
+T=-C_P^{-1}C_F,
+\qquad
+x_P=Ty,
+\qquad
+x_F=y,
+$$
+
+$B$ is the resulting implicit injection $y\mapsto x$. The frozen design
+values are
+
+$$
+\kappa_2(C_P)=105.7581581240739,
+\qquad
+\|T\|_2=64.48593292493692,
+\qquad
+\|C_P T+C_F\|_{\max}\le5.20\times10^{-15}.
+$$
+
+Preflight requires $\kappa_2(C_P)\le10^3$ and a relative constraint residual
+at most $10^{-10}$. The reduced metric and its inverse are applied as
+
+$$
+\mathcal M_{\rm phys}=I+T^{\mathsf T}T,
+\qquad
+\mathcal M_{\rm phys}^{-1}
+=I-T^{\mathsf T}(I+TT^{\mathsf T})^{-1}T.
+$$
+
+This construction removes exactly the coupled gauge image and leaves every
+orthogonal physical direction. The total quotient rank relative to the
+unconstrained complex-carrier base is 1678: one fixed-charge normal plus 1677
+local gauge directions.
 
 The global carrier phase in (PH16) is the only declared continuous physical
 symmetry direction in the represented class. Exact spatial translations are
@@ -342,7 +434,7 @@ broken by the fixed cube, axial translation remains only an approximate
 diagnostic, and the background is invariant under the represented discrete
 quarter turns. Every near-zero eigenmode must therefore be assigned to the
 one-dimensional global-$U(1)_C$ symmetry subspace or remain unresolved after
-its charge, boundary, Coulomb, gauge-orbit, and numerical residual diagnostics
+its charge, boundary, gauge-orthogonality, and numerical residual diagnostics
 are reported.
 
 ## 5. Primary operator and eigensolve
@@ -351,29 +443,30 @@ are reported.
 
 The primary program imports the frozen stationary grid and noncarrier energy
 implementation. It evaluates the complex carrier terms in (PH7) directly,
-builds the reduced injection implicitly, and never materializes the full
-$88434\times11735$ matrix $B$.
+builds the base injection and quotient map implicitly, and never materializes
+the full $88434\times13622$ matrix $B$.
 
-For each requested reduced vector $v$, PyTorch `float64`
+For each requested quotient vector $v$, PyTorch `float64`
 reverse-over-reverse automatic differentiation evaluates
 
 $$
-\mathcal H_{\rm phys}v
-=\frac1{\Delta V}\nabla_y
- \left[v^{\mathsf T}\nabla_y
- \left(\widehat E_{\rm phys}(\bar\Phi+B y)
-       -\widehat\omega_C Q_C(\bar\chi+B_\chi y)
- \right)\right]_{y=0}.
+\mathcal K_{\rm phys}v
+=\frac1{\Delta V}B^{\mathsf T}
+\nabla_x^2
+\left(\widehat E_{\rm phys}(\bar\Phi+x)
+      -\widehat\omega_C Q_C(\bar\chi+x_\chi)\right)_{x=0}
+Bv.
 \tag{PH19}
 $$
 
-The projected augmented-gradient RMS at $y=0$ must be at most
-$3\times10^{-4}$. The operator symmetry probe uses four deterministic pairs
+The quotient augmented-gradient RMS is
+$\sqrt{g_y^{\mathsf T}\mathcal M_{\rm phys}^{-1}g_y/13622}$ and must be at
+most $3\times10^{-4}$. The operator symmetry probe uses four deterministic
 $(u,v)$ and requires
 
 $$
-\frac{|u^{\mathsf T}\mathcal Hv-v^{\mathsf T}\mathcal Hu|}
- {\max(|u^{\mathsf T}\mathcal Hv|,|v^{\mathsf T}\mathcal Hu|,1)}
+\frac{|u^{\mathsf T}\mathcal Kv-v^{\mathsf T}\mathcal Ku|}
+ {\max(|u^{\mathsf T}\mathcal Kv|,|v^{\mathsf T}\mathcal Ku|,1)}
 \le10^{-9}.
 \tag{PH20}
 $$
@@ -384,7 +477,7 @@ The primary SciPy `eigsh` call is frozen as follows:
 
 | Setting | Value |
 |---|---:|
-| reduced dimension | 11735 |
+| reduced dimension | 13622 |
 | requested eigenpairs | 12 |
 | selector | `which="SA"` |
 | Krylov dimension | `ncv=48` |
@@ -392,18 +485,20 @@ The primary SciPy `eigsh` call is frozen as follows:
 | maximum iterations | 2000 |
 | initial-vector seed | 424242 |
 
-Eigenvalues are sorted algebraically. Each normalized eigenvector must have
-relative residual
+Eigenvalues are sorted algebraically. SciPy `eigsh` receives
+$\mathcal K_{\rm phys}$, $\mathcal M_{\rm phys}$, and the frozen Woodbury
+inverse of $\mathcal M_{\rm phys}$. Each eigenvector must have relative
+generalized residual
 
 $$
-r_j=\frac{\|\mathcal Hv_j-\lambda_jv_j\|_2}
-          {\max(|\lambda_j|,1)}\le10^{-6},
+r_j=\frac{\|\mathcal K v_j-\lambda_j\mathcal M v_j\|_2}
+{\max(|\lambda_j|\|\mathcal Mv_j\|_2,1)}\le10^{-6},
 \tag{PH21}
 $$
 
-and the maximum orthogonality residual must satisfy
-$\|V^{\mathsf T}V-I\|_{\max}\le10^{-8}$. A nonconverged ARPACK return is an
-execution failure even if it contains partial eigenpairs.
+and the maximum metric-orthogonality residual must satisfy
+$\|V^{\mathsf T}\mathcal M V-I\|_{\max}\le10^{-8}$. A nonconverged ARPACK
+return is an execution failure even if it contains partial eigenpairs.
 
 ## 6. Independent verification and finite differences
 
@@ -416,7 +511,7 @@ recovery verifier. It independently implements:
 - NPZ schema and authority checks;
 - grid, Pauli matrices, coefficients, and physical energy;
 - scalar and vector $C_4$ orbit bases;
-- boundary, charge, divergence, and gauge-slice matrices;
+- boundary, charge, boundary-preserving gauge, and orthogonal-quotient matrices;
 - augmented-gradient and exact Hessian-vector products;
 - eigenpair residual, constraint, Fourier, and participation diagnostics.
 
@@ -432,13 +527,13 @@ $$
 
 ### 6.2 Frozen directional probes
 
-Both implementations use three deterministic normalized Gaussian directions;
-the primary seed is 271828 and the verifier seed is 161803. For each direction
-they compare the exact automatic-differentiation product with the centered
-gradient difference
+Both implementations use three deterministic Gaussian directions normalized
+by $v^{\mathsf T}\mathcal M_{\rm phys}v=1$; the primary seed is 271828 and
+the verifier seed is 161803. For each direction they compare the exact
+automatic-differentiation product with the centered gradient difference
 
 $$
-\mathcal H_hv
+\mathcal K_hv
 =\frac{g(hv)-g(-hv)}{2h\Delta V},
 \qquad
 h\in\{2\times10^{-4},10^{-4},5\times10^{-5}\}.
@@ -448,8 +543,8 @@ $$
 The smallest-step vector relative error must satisfy
 
 $$
-\frac{\|\mathcal H_hv-\mathcal Hv\|_2}
- {\max(\|\mathcal Hv\|_2,1)}\le5\times10^{-5}.
+\frac{\|\mathcal K_hv-\mathcal Kv\|_2}
+ {\max(\|\mathcal Kv\|_2,1)}\le5\times10^{-5}.
 \tag{PH24}
 $$
 
@@ -463,11 +558,11 @@ $$
 $$
 
 At $h=5\times10^{-5}$ it must agree with
-$v^{\mathsf T}\mathcal Hv$ under
+$v^{\mathsf T}\mathcal Kv$ under
 
 $$
-|\kappa_h-v^{\mathsf T}\mathcal Hv|
-\le5\times10^{-5}+5\times10^{-4}|v^{\mathsf T}\mathcal Hv|.
+|\kappa_h-v^{\mathsf T}\mathcal Kv|
+\le5\times10^{-5}+5\times10^{-4}|v^{\mathsf T}\mathcal Kv|.
 \tag{PH26}
 $$
 
@@ -521,18 +616,18 @@ Every reported mode must satisfy:
 
 - fixed-shell maximum residual $\le10^{-12}$;
 - relative carrier-tangent residual $\le10^{-11}$;
-- relative all-grid Coulomb residual $\le10^{-10}$;
-- reduced-coordinate normalization residual $\le10^{-10}$;
-- gauge-orbit overlap bound $\le10^{-8}$ after projection to the frozen slice.
+- relative gauge-orthogonality residual
+  $\|G^{\mathsf T}x\|_2/\max(\|x\|_2,1)\le10^{-10}$;
+- metric-normalization residual
+  $|v^{\mathsf T}\mathcal Mv-1|\le10^{-10}$.
 
 Every near-zero mode additionally reports component energy fractions,
 overlap with the exact global-$U(1)_C$ generator, overlap with discrete $x$,
-$y$, and $z$ translation probes, overlap with the axial-rotation probe,
-overlap with the carrier charge normal, and overlap with the gauge-image
-singular vectors. The symmetry assignment requires a one-dimensional
-near-zero eigenspace and $|\langle v_j,v_{U(1)}\rangle|\ge0.90$; the remaining
-labels are diagnostics and cannot change a positive or negative
-classification.
+$y$, and $z$ translation probes, overlap with the axial-rotation probe, and
+overlap with the carrier charge normal. The symmetry assignment requires a
+one-dimensional near-zero eigenspace and
+$|\langle v_j,v_{U(1)}\rangle_{L^2_h}|\ge0.90$; the remaining labels cannot
+change a positive or negative classification.
 
 ### 7.3 Spatial-resolution diagnostic
 
@@ -572,7 +667,7 @@ Evaluate these gates in order:
 | Gate | Pass condition |
 |---|---|
 | H1 | Manifest, selected NPZ, background values, schema, $C_4$, boundary, charge, and coefficient checks all pass |
-| H2 | Scalar/vector dimensions, Coulomb rank 1188, rank stability, null residuals, total reduced dimension 11735, and full-rank gauge-slice checks pass |
+| H2 | Scalar/vector dimensions, boundary-gradient rank 296, allowed gauge-parameter dimension 1677, coupled gauge rank 1677, quotient dimension 13622, pivot conditioning, metric inversion, and constraint residuals all pass |
 | H3 | Augmented-gradient, global-$U(1)_C$ Rayleigh, operator symmetry, directional HVP, and energy-curvature preflights pass in both implementations |
 | H4 | Both eigensolves converge; residual, orthogonality, constraint, finiteness, and six-value comparison checks pass |
 | H5 | The six matched lowest modes contain no verified negative mode |
@@ -582,7 +677,7 @@ Evaluate these gates in order:
 The scientific verdict follows the first applicable branch:
 
 1. H1 failure: `INCONCLUSIVE—IMPLEMENTATION PREFLIGHT`.
-2. H1 passes and H2 fails: `INCONCLUSIVE—GAUGE SLICE`.
+2. H1 passes and H2 fails: `INCONCLUSIVE—GAUGE QUOTIENT`.
 3. H1–H2 pass and H3 fails: `INCONCLUSIVE—HESSIAN PREFLIGHT`.
 4. H1–H3 pass and H4 fails:
    `INCONCLUSIVE—EIGENSOLVER OR VERIFICATION`.
@@ -623,7 +718,7 @@ Frozen run directory:
 Required artifacts:
 
 - `preflight_verification.json`—independent manifest, background, quotient,
-  gauge-slice, HVP, and finite-difference receipt;
+  gauge-quotient, HVP, and finite-difference receipt;
 - `results.json`—primary operator, spectrum, mode diagnostics, gates, and
   verdict receipt;
 - `eigenmodes.npz`—twelve eigenvalues, reduced eigenvectors, and full-grid
