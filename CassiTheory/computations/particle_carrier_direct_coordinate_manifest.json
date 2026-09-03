@@ -1,0 +1,108 @@
+{
+  "schema": "cassi.particle-carrier-direct-coordinate.manifest.v1",
+  "source": {
+    "results": "runs/20260902_particle_carrier_localization/results.json",
+    "results_sha256": "5a90e405d9d6851a1e445633adc0523de9c94d64e9ed27c139f177f92432a2d0",
+    "verification": "runs/20260902_particle_carrier_localization/verification.json",
+    "verification_sha256": "f30f95e71ab8a66b6aac1fd84001dba82771257a3ead73e200fd32c85eb5d4ad",
+    "source_verification_pass": true,
+    "source_verdict": "INCONCLUSIVE—NUMERICAL EXECUTION OR VERIFICATION",
+    "artifacts": [
+      {
+        "label": "half_reference",
+        "h_C": 2.9598260763447164,
+        "artifact": "fields_primary_half_reference_block04.npz",
+        "artifact_sha256": "9f9c37cd75d0b6ccbe427c2afaa10aa8659c9cb532868cbe41183a11bddfea83",
+        "source_block": 4
+      },
+      {
+        "label": "three_quarters_reference",
+        "h_C": 4.439739114517074,
+        "artifact": "fields_primary_three_quarters_reference_block04.npz",
+        "artifact_sha256": "534bbe5a6ce04b7ad36975a97e507388b15a2fe7533312a81ee1e15202c742b5",
+        "source_block": 4
+      },
+      {
+        "label": "reference",
+        "h_C": 5.919652152689433,
+        "artifact": "fields_primary_reference_block04.npz",
+        "artifact_sha256": "fea3d1dc1e40817d65b68c13edd52f18e163ef6ca0cc0e48ce05932f99fde8d2",
+        "source_block": 4
+      },
+      {
+        "label": "five_quarters_reference",
+        "h_C": 7.399565190861791,
+        "artifact": "fields_primary_five_quarters_reference_block04.npz",
+        "artifact_sha256": "3241d9b5ee33765a867073231c0cd55f614e7b33ade41a3c0fa2e622fa3f8232",
+        "source_block": 4
+      },
+      {
+        "label": "three_halves_reference",
+        "h_C": 8.879478229034149,
+        "artifact": "fields_primary_three_halves_reference_block04.npz",
+        "artifact_sha256": "262e5bb08c15a26970f7095b1477ac9d782c9fba864a41ced498b003ec7f44d7",
+        "source_block": 4
+      }
+    ]
+  },
+  "fixed_coefficients": {
+    "phi": 1.618033988749895,
+    "alpha_s": 1.0,
+    "u_rho": 4.0,
+    "u_phi": 4.0,
+    "gamma_x": 1.0,
+    "gamma_s": 1.0,
+    "u_H": 4.0,
+    "k_Cx": 1.0,
+    "k_Cs": 1.0,
+    "e_C": 0.75,
+    "u_C": 1.0,
+    "q_C": 4.0,
+    "L_s": 1.0,
+    "xi_gf": 1.0
+  },
+  "parameterization": {
+    "name": "direct_shell_masked_fixed_charge",
+    "roundtrip_tolerance": 5e-12,
+    "negative_norm_fraction_limit": 1e-12
+  },
+  "schedule": {
+    "precision_gradient_limit": 0.00012,
+    "omega_limit": 0.73,
+    "primary_max_blocks": 8,
+    "comparison_max_blocks": 8,
+    "primary_families": [
+      "P"
+    ],
+    "comparison_families": [
+      "D",
+      "H"
+    ],
+    "comparison_basin": "separated_core",
+    "continuation": {
+      "max_iter": 880,
+      "max_eval": 1100,
+      "history_size": 20,
+      "tolerance_grad": 1e-10,
+      "tolerance_change": 1e-12,
+      "line_search_fn": "strong_wolfe"
+    }
+  },
+  "sha256": {
+    "computations/particle-carrier-direct-coordinate-prereg.md": "b9d95ff44dede34c74f125d3aab9a33ac8c8d08ad136f70ec5995741cc6c5000",
+    "computations/particle_carrier_direct_coordinate.py": "4c31f90324bbc53bdfca7a60db8024da0006e9713e5de02f3dec567543c211e0",
+    "computations/verify_particle_carrier_direct_coordinate.py": "ee285a5d539423b686fd51a57611c60c7b75e13d9645a9d8e3c008e64ad1944e",
+    "computations/particle_carrier_localization.py": "e0a9965d817d2bb10218ab6a18b35e89b3f9a510a0f3c7c5d2a56349e4b37797",
+    "computations/verify_particle_carrier_localization.py": "111f4eaaa1b1435d76391301a9c9d48c4444d6f91cffe8a6c994fb4840bfd153",
+    "computations/particle_stationary_bvp.py": "3143682f8a1052c60243c906b029a5f291a5d767d17b4ebe622deb23d22c5ad1",
+    "computations/particle_stationary_q2_recovery_v2.py": "10e269fd2a669f58fbec0c20f4076d9e07f4a693de4ca40221d5bd29cca3a2a9",
+    "computations/verify_particle_stationary_q2_recovery_v2.py": "787520fcf3abb2ccbb66cc61a5ced29c39e1a9e75976468706ca58bae3de4707",
+    "runs/20260902_particle_carrier_localization/results.json": "5a90e405d9d6851a1e445633adc0523de9c94d64e9ed27c139f177f92432a2d0",
+    "runs/20260902_particle_carrier_localization/verification.json": "f30f95e71ab8a66b6aac1fd84001dba82771257a3ead73e200fd32c85eb5d4ad",
+    "runs/20260902_particle_carrier_localization/fields_primary_half_reference_block04.npz": "9f9c37cd75d0b6ccbe427c2afaa10aa8659c9cb532868cbe41183a11bddfea83",
+    "runs/20260902_particle_carrier_localization/fields_primary_three_quarters_reference_block04.npz": "534bbe5a6ce04b7ad36975a97e507388b15a2fe7533312a81ee1e15202c742b5",
+    "runs/20260902_particle_carrier_localization/fields_primary_reference_block04.npz": "fea3d1dc1e40817d65b68c13edd52f18e163ef6ca0cc0e48ce05932f99fde8d2",
+    "runs/20260902_particle_carrier_localization/fields_primary_five_quarters_reference_block04.npz": "3241d9b5ee33765a867073231c0cd55f614e7b33ade41a3c0fa2e622fa3f8232",
+    "runs/20260902_particle_carrier_localization/fields_primary_three_halves_reference_block04.npz": "262e5bb08c15a26970f7095b1477ac9d782c9fba864a41ced498b003ec7f44d7"
+  }
+}
