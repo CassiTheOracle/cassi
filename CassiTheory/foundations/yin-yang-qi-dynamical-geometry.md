@@ -1,6 +1,6 @@
 # Yin–Yang–Qi Open Dynamical Geometry
 
-## Status: Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary / Tested one-point precision-qualified background and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
+## Status: Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary / Mapped selected carrier coupling / Tested resolution-consistent localized retained finite-grid branch and a separate nonnegative $C_4$ low energetic spectrum on a diffuse finite-grid quotient—September 2026
 
 ## Abstract
 
@@ -75,7 +75,17 @@ The scalar $q$, off-diagonal $c$, connection $B_A$, curvature $G_{AB}$, and scal
 
 `foundations/particle-stationary-action-closure.md` uses a local $SU(2)_Q$ gauge sector, second-order charged-field time derivatives, a neutral fixed-$Q_C$ carrier, and its own Gauss closure. The Abelian graph action in `foundations/geometric-manifold-completion.md` uses a first-order complex doublet and relative $U(1)_Q$ connection. No interface currently identifies their fields, charges, temporal symplectic structures, or stress tensors.
 
-The fixed-charge particle functional therefore remains a downstream alternative boundary-value problem. At its registered coefficient point, a higher-precision continuation supplies a Q1–Q4 finite-grid background. The selected field fails localization and carrier retention. Its $13622$-dimensional strict-shell $C_4$ physical quotient has one near-zero global-$U(1)_C$ phase mode and five positive matched PA42 modes with no verified negative mode, giving `PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The phase mode remains grid-scale; domain and resolution convergence, PA43, and global existence remain open.
+The fixed-charge particle functional therefore remains a downstream
+alternative boundary-value problem. At the Mapped coupling
+$h_C=2.9598260763447164$, it has a localized, nodeless, carrier-retaining
+stationary branch across four same-domain finite grids and one larger-domain
+comparison. Adjacent principal observables agree and the absolute energy
+differences decrease twice. A distinct diffuse $h_C=1.50$ background has a
+$13622$-dimensional strict-shell $C_4$ physical quotient with one near-zero
+global carrier-phase mode and five positive matched low energetic modes. The
+phase direction remains concentrated at grid scale. Continuum existence and
+the localized branch's constrained energetic and mixed dynamical spectra
+remain open.
 
 ## 2. Geometry of the Local State
 
@@ -1062,14 +1072,16 @@ interface to the fixed-charge local-$SU(2)_Q$ action:
 9. PA20–PA28 and the joint physical fluctuation pencil define the stationary
    and spectral qualification problem.
 
-The MCC1–MCC9 receipt passes. A physical action producing the exterior,
-interface, reservoir, stress components, and carrier normalization remains
-unselected. The particle campaign has a higher-precision Q1–Q4 finite-grid
-background. Localization, carrier retention, and domain and resolution
-convergence remain open. Its complete strict-shell $C_4$ physical quotient
-has a nonnegative matched low PA42 spectrum within the frozen uncertainty.
-The global phase mode remains grid-scale, and the PA43 mixed dynamical
-spectrum remains open.
+The nine-part finite algebraic and reduced analytic receipt passes. A physical
+action producing the exterior, interface, reservoir, stress components, and
+carrier normalization remains unselected. At the Mapped coupling
+$h_C=2.9598260763447164$, the particle action has a localized, nodeless,
+carrier-retaining stationary branch across four same-domain finite grids and
+one larger-domain comparison. A distinct diffuse field has a nonnegative
+matched low energetic spectrum on one strict-shell $C_4$ physical quotient.
+The global phase direction on that diffuse field remains concentrated at grid
+scale. Continuum qualification and the localized branch's constrained
+energetic and mixed dynamical spectra remain open.
 
 ## 13. Derived, Hypothesized, and Open Results
 
@@ -1093,7 +1105,7 @@ The frozen DG1–DG7 and EC1–EC7 receipts return **PASS**. The universal finit
 | Complete Noether stress and geometry backreaction | **Conditional total-stress identity and constant-$G$ branch Derived / Stress components and gravity selection open** |
 | Local scale-bulk endpoint mediator | **Open** |
 | Interface to the local-$SU(2)_Q$ fixed-charge particle branch | **Gram, Cartan-convention, and charge-separation map Derived conditionally / Physical identification open** |
-| Qualified stationary matter solution and full spectrum | **Higher-precision finite-grid Q1–Q4 background and one-point `PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN` / global phase mode grid-scale / localization, retention, domain and resolution convergence, PA43, and physical spectrum open** |
+| Qualified stationary matter solution and full spectrum | **Mapped $h_C=2.9598260763447164$ supports a localized, nodeless, carrier-retaining branch across four same-domain finite grids and one larger-domain comparison. A distinct diffuse field has a nonnegative matched low energetic spectrum on one $C_4$ finite-grid physical quotient, with a grid-concentrated global phase direction. Continuum existence and the localized branch's constrained energetic and mixed dynamical spectra remain open** |
 
 ## 14. Conclusion
 
@@ -1124,13 +1136,16 @@ source realization. The matter-completion boundary then separates the closed
 unitary carrier from the routed forward record, derives the single-mode
 power law, closes the conditional total-stress and constant-$G$ geometry
 ledgers, and maps the coherence fibre into the particle doublet. Finite-density
-transverse coherence still requires an identified source. A higher-precision
-finite-grid particle background and physical quotient now have a nonnegative
-matched low PA42 spectrum within the frozen uncertainty. The near-zero
-global-$U(1)_C$ phase mode remains grid-scale. A physical exterior, reservoir
-action, calibrated particle coefficients, carrier localization and retention,
-domain and resolution convergence, selected PA43 temporal groups, and
-continuum qualification remain required for a full particle spectrum.
+transverse coherence still requires an identified source. At
+$h_C=2.9598260763447164$, the separate particle action supplies a localized,
+nodeless, carrier-retaining stationary branch across four same-domain finite
+grids and one larger-domain comparison. A distinct diffuse field has a
+nonnegative matched low energetic spectrum on one finite-grid physical
+quotient, while its near-zero global carrier-phase direction remains
+concentrated at grid scale. A physical exterior, reservoir action, calibrated
+particle coefficients, continuum qualification, the localized branch's
+constrained energetic and mixed dynamical spectra, and physical particle
+identification remain required for a full particle spectrum.
 
 ## References
 
@@ -1143,13 +1158,11 @@ continuum qualification remain required for a full particle spectrum.
 - `foundations/particle-stationary-action-closure.md`—separate fixed-charge local-$SU(2)_Q$ particle branch.
 - `foundations/matter-completion-boundary.md`—nine-part conditional interface
   from exterior dilation through the fixed-charge fluctuation problem.
-- `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary
-  particle background and retained localization, domain, and resolution
-  boundaries.
-- `computations/particle-stationary-precision-v5-report.md`—higher-precision
-  finite-grid stationary background.
-- `computations/particle-physical-hessian-precision-v2-report.md`—paired PA42
-  eigenspectrum and spatial classification.
+- `computations/particle-stationary-q2-recovery-report.md`—first physically stationary particle background and its retained numerical boundaries.
+- `computations/particle-stationary-precision-v5-report.md`—higher-precision diffuse finite-grid background.
+- `computations/particle-physical-hessian-precision-v2-report.md`—matched low energetic spectrum and spatial classification on the diffuse background.
+- `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
+- `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence and independently verified adjacent convergence.
 - `computations/dynamical_geometry_closure_prereg.md`—frozen DG1–DG7 reduction and ledger criteria.
 - `computations/dynamical_geometry_closure_check.py`—deterministic DG1–DG7 first-execution witness.
 - `computations/dynamical_geometry_closure_report.md`—DG1–DG7 analytic proof,

@@ -1,6 +1,6 @@
 # Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
-## Status: Derived conditional boundary / Hypothesized physical realization / Tested reduced receipts, one-point precision-qualified background, and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
+## Status: Derived conditional boundary / Hypothesized physical realization / Tested reduced receipts and a resolution-consistent localized retained finite-grid branch; nonnegative $C_4$ finite-grid energetic Hessian on a distinct diffuse branch—September 2026
 
 ## Abstract
 
@@ -28,11 +28,14 @@ fluctuation qualification problem.
 
 MCC1–MCC9 pass in the frozen receipt. The physical exterior, microscopic
 coefficients, multimode carrier map, reservoir action, state-dependent gravity,
-and particle identification remain open. The particle campaign supplies a
-higher-precision Q1–Q4 background and a nonnegative matched low PA42 spectrum
-on its strict-shell $C_4$ physical quotient. The global phase mode remains
-grid-scale. Localization, carrier retention, domain and resolution convergence,
-and PA43 remain open.
+and particle identification remain open. At the numerically selected
+$h_C=2.9598260763447164$, the fixed-charge particle action has a localized,
+nodeless, carrier-retaining stationary branch on four same-domain resolutions
+and one larger-domain comparison. Its adjacent principal observables agree and
+its absolute energy drift decreases twice. A distinct diffuse background at
+$h_C=1.50$ has a nonnegative matched low energetic Hessian on one strict-shell
+$C_4$ physical quotient. The localized branch still requires its own
+constrained Hessian, a continuum limit, and the mixed dynamical spectrum.
 
 ## 1. The nine-part boundary
 
@@ -794,48 +797,43 @@ line-density modes. The transverse core and carrier profiles, non-axisymmetric
 fields, gauge sector, topology-changing paths, scale dependence, continuum,
 and mixed temporal spectrum remain unevaluated.
 
-### 10.5 Current solver verdict
+### 10.5 Current numerical boundary
 
-The higher-precision continuation of `P:separated_core` preserves the action,
-coefficient point, charge, field class, projectors, diagnostics, and Q1–Q4
-thresholds. Its independently verified values are
+The $h_C=1.50$ separated-core background reaches physical-gradient RMS
+$5.471248126403572\times10^{-5}$ and cutoff virial
+$1.348199143828711\times10^{-4}$. Its carrier reaches the outer boundary and
+its frequency exceeds the bulk retention threshold. The associated
+larger-domain and finer-grid fields do not satisfy the frozen physical
+qualification, so this coefficient point supplies no localized
+domain-and-resolution sequence.
 
-$$
-\|\delta\widehat E\|_{\rm RMS}
-=5.471248126403572\times10^{-5},
-\qquad
-\mathcal V_{\rm cutoff}
-=1.348199143828711\times10^{-4}.
-$$
+The strict-shell $C_4$ fluctuation space on that diffuse background gives a
+$13622$-dimensional fixed-charge physical quotient after removal of the
+rank-$1677$ coupled gauge image. Two independent eigensolvers agree on the six
+matched lowest eigenvalues to $3.11\times10^{-14}$ and find one near-zero
+global carrier-phase mode plus five positive modes, with no verified negative
+mode. The finite-matrix result is recorded as
+`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The phase direction has
+high-frequency fraction $0.33454>0.20$ and therefore remains concentrated at
+grid scale.
 
-Every outer-domain arm and the selected high-resolution arm fails Q2. The
-selected primary also fails the registered carrier-localization and retention
-conditions. Its stationary-background verdict is
+The numerically selected $h_C=2.9598260763447164$ branch answers a different
+question. Its nodeless carrier is localized and retained on $N=17,21,25,29$
+grids at fixed $R=4$, and a separate $R=5$ comparison also qualifies. The
+carrier radius remains $1.56$–$1.64$, while the outer carrier fraction stays
+below $5.1\times10^{-4}$. Adjacent same-domain energy differences decrease
+from $0.12339$ to $0.04261$ to $0.01899$; the carrier radius, core length, and
+frequency also satisfy every frozen adjacent-grid tolerance. Independent
+artifact reconstruction returns zero mismatches and the verdict
+`EMERGES—THREE-LEVEL RESOLUTION-CONSISTENT LOCALIZED RETAINED BRANCH`.
 
-$$
-\boxed{\mathrm{PASS\text{—}HIGHER\text{-}PRECISION\ BACKGROUND}}
-\tag{MB48}
-$$
-
-The strict-shell $C_4$ fluctuation space gives a $13622$-dimensional
-fixed-charge physical quotient after removal of the rank-$1677$ coupled gauge
-image. Independent preflight gives augmented quotient-gradient RMS
-$1.122864422122550\times10^{-4}<3\times10^{-4}$, so H1–H3 pass.
-Primary and independent eigensolvers agree on the six matched lowest
-eigenvalues to $3.11\times10^{-14}$. They find one near-zero
-global-$U(1)_C$ phase mode and five positive modes, with no verified negative
-mode. The one-point finite-matrix verdict is
-
-$$
-\boxed{\mathrm{PASS\text{—}NONNEGATIVE\ C4\ FINITE\text{-}GRID\ PA42\ HESSIAN}}.
-$$
-
-The phase mode has participation number $423.58$ and high-frequency fraction
-$0.33454>0.20$. H7 therefore fails, giving the separate spatial verdict
-`INCONCLUSIVE—GRID-SCALE CLASSIFIED MODE`. No Q2-qualified D/H background
-exists, so domain and resolution convergence remain untested. See
-`computations/particle-stationary-precision-v5-report.md` and
-`computations/particle-physical-hessian-precision-v2-report.md`.
+The energetic spectrum of the diffuse field does not determine the curvature
+of the localized field. A new fixed-charge physical quotient and Hessian must
+be constructed on the localized artifact before static stability can be
+claimed. See `computations/particle-stationary-precision-v5-report.md`,
+`computations/particle-physical-hessian-precision-v2-report.md`,
+`computations/particle-carrier-direct-coordinate-report.md`, and
+`computations/particle-carrier-resolution-recovery-report.md`.
 
 ## 11. MCC1–MCC9 receipt
 
@@ -855,12 +853,13 @@ gates pass:
 | MCC8 | minus-law covariance residual $1.390\times10^{-17}$; inconsistent-pair residual $0.1207$ | **PASS** |
 | MCC9 | reduced root $1.269522140245$; curvature $1.496039$; minimum line mode $0.975736$ | **PASS** |
 
-The receipt establishes consistency of the conditional boundary. Its own scope
-flags leave every unresolved physical input false because MCC1–MCC9 do not
-perform the stationary or fluctuation solves. The independent campaigns supply
-a higher-precision primary background and a nonnegative one-point PA42 low
-spectrum. Spatial, localization, retention, domain/resolution, and PA43
-qualification remain open.
+The receipt establishes consistency of the conditional nine-part boundary.
+Its scope flags remain unresolved because the algebraic witnesses do not
+perform a stationary or fluctuation solve. Separate numerical campaigns now
+supply a localized, retained four-resolution stationary branch and, on a
+different diffuse background, one nonnegative finite-grid low energetic
+spectrum. Neither calculation establishes a continuum particle, and the
+localized branch has no constrained energetic or mixed dynamical spectrum.
 
 ## 12. What remains to form matter
 
@@ -873,16 +872,19 @@ The next discriminating evidence is:
    return routing and canonical flux normalization;
 3. calibrate the particle-action coefficients and $Q_C$ sector to a declared
    physical target with every empirical input ledgered;
-4. obtain Q2-qualified outer-domain and finer-grid stationary backgrounds and
-   satisfy the carrier-localization and retention conditions;
-5. repeat the physical quotient and PA42 spectrum on those backgrounds and
-   determine whether the global phase direction becomes spatially resolved;
-6. select the temporal groups, solve PA43, and test continuum and nonlinear
-   lifetime stability.
+4. extend the localized branch through additional domain growth and finer
+   grids until an infinite-domain and continuum extrapolation can be tested;
+5. construct the fixed-charge physical quotient on the localized branch,
+   evaluate its constrained energetic Hessian, and determine whether every
+   symmetry direction is spatially resolved;
+6. select the temporal groups, solve the mixed dynamical pencil, and test
+   perturbed real-time persistence and formation from nonstationary initial
+   data.
 
 Until these steps are complete, Cassi has a connected matter calculation,
-reduced support theorems, and one nonnegative finite-grid PA42 low-spectrum
-branch. A physical finite-energy particle remains open.
+reduced support theorems, and one resolution-consistent localized retained
+finite-grid branch. A distinct diffuse field has a nonnegative low energetic
+spectrum on one finite grid. A physical finite-energy particle remains open.
 
 ## References
 
@@ -904,11 +906,13 @@ branch. A physical finite-energy particle remains open.
   equations, boundary data, and PA32 variational class.
 - `computations/particle-stationary-bvp-report.md`—registered source campaign
   receipt.
-- `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary
-  background and retained domain, resolution, and localization boundaries.
+- `computations/particle-stationary-q2-recovery-report.md`—first physically
+  stationary particle background and retained numerical boundaries.
 - `computations/matter_completion_boundary_prereg.md`—frozen MCC1–MCC9
   protocol.
 - `computations/matter_completion_boundary_report.md`—literal first execution
   and measured verdict.
-- `computations/particle-stationary-precision-v5-report.md`—higher-precision Q1–Q4 background.
-- `computations/particle-physical-hessian-precision-v2-report.md`—paired PA42 eigenspectrum and verdict tree.
+- `computations/particle-stationary-precision-v5-report.md`—higher-precision diffuse finite-grid background.
+- `computations/particle-physical-hessian-precision-v2-report.md`—matched low energetic spectrum and spatial classification on the diffuse background.
+- `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
+- `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence, contracting energy differences, and independent verification.

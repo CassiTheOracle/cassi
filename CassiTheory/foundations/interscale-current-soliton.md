@@ -1,6 +1,6 @@
 # Interscale Yang/Yin Current and the Conditional Soliton Pinch
 
-## Status: Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point precision-qualified background and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
+## Status: Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Mapped selected carrier coupling / Tested resolution-consistent localized retained finite-grid branch and a separate nonnegative $C_4$ low energetic spectrum on a diffuse finite-grid quotient—September 2026
 
 ## Abstract
 
@@ -52,22 +52,24 @@ when $A_C>C_Q$, the carrier remains below its bulk threshold, and the root lies
 beyond core overlap. The separate source-free temporal branch in
 `foundations/particle-stationary-action-closure.md` combines this static sector
 with the auxiliary adjoint core, derives Gauss's law, and defines the coupled
-fixed-$Q_C$ stationary functional. Its registered coefficient point has a
-higher-precision Q1–Q4 finite-grid background. The selected field fails
-localization and carrier retention, and every domain plus high-resolution arm
-fails Q2. Its $13622$-dimensional strict-shell $C_4$ physical quotient has
-one near-zero global-$U(1)_C$ phase mode and five positive matched PA42 modes
-with no verified negative mode, giving
-`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The phase mode remains
-grid-scale under the frozen diagnostic. Its second-order charged-field
-kinetics are separate from the first-order interscale action derived here,
-whose direct local gauging carries an unavoidable nonzero-condensate Gauss
-source.
+fixed-$Q_C$ stationary functional. At the Mapped coupling
+$h_C=2.9598260763447164$, this action has a localized, nodeless,
+carrier-retaining branch across four same-domain finite grids and one
+larger-domain comparison. Adjacent principal observables agree and the
+absolute energy differences decrease twice. A distinct diffuse
+$h_C=1.50$ background has a $13622$-dimensional strict-shell $C_4$
+physical quotient with one near-zero global carrier-phase mode and five
+positive matched low energetic modes. The phase direction remains concentrated
+at grid scale.
 
-The transverse carrier mode, dimensional normalization, physical calibration,
-scale metric, conversion mechanism, compact boundary data, localized
-domain-and-resolution-qualified field solution, PA43 mixed spectrum, and
+The second-order charged-field kinetics are separate from the first-order
+interscale action derived here, whose direct local gauging carries an
+unavoidable nonzero-condensate Gauss source. The transverse carrier
+eigenproblem, dimensional normalization, physical calibration, scale metric,
+conversion mechanism, compact boundary data, continuum qualification, the
+localized branch's constrained energetic and mixed dynamical spectra, and the
 particle-sector map remain open.
+
 $\varphi$ fixes the energy-minimizing Yang/Yin composition and its counterflow
 factor; it does not determine the carrier coefficients, gauge coupling, or any
 SI scale.
@@ -1502,6 +1504,9 @@ winding approximants; it does not replace those inputs.
   variational boundary
 - `computations/particle_action_closure_check.py`—fundamental and adjoint covariance, temporal matter-source and static gauge-current signs, fixed-charge algebraic variation, source units, and dimensionless-group invariance checker
 - `computations/particle-stationary-bvp-report.md`—registered one-point campaign receipt and numerical-quality verdict
+- `computations/particle-carrier-direct-coordinate-report.md`—localized retained branch and larger-domain comparison
+- `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence and independently verified adjacent convergence
+- `computations/particle-physical-hessian-precision-v2-report.md`—matched low energetic spectrum on the diffuse background
 - `foundations/microcascade-mirror.md`—formal negative-step scale coordinate and energy boundary
 - `foundations/dimensionful-cascade.md`—external-anchor cascade parameterization
 - `foundations/dimensionful-constants-status.md`—status of $c$, $\hbar$, $G$, and SI anchors

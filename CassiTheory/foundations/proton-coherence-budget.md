@@ -1,6 +1,6 @@
 # Proton Coherence Budget and Planck-to-Proton Scale Circuit
 
-## Status: Mapped coordinate / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms / Tested one-point precision-qualified background and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
+## Status: Mapped coordinate and selected carrier coupling / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms / Tested resolution-consistent localized retained finite-grid branch and a separate nonnegative $C_4$ low energetic spectrum on a diffuse finite-grid quotient—September 2026
 
 ## Abstract
 
@@ -283,7 +283,7 @@ coupling.
 | Conditional $10^{910}$-year conversion | Arithmetic inside the selected stochastic model; no physical rate |
 | Zero-total-flow two-rail current and normalized energy | Derived conditional on the candidate interscale action and circuit data |
 | Endpoint conversion and scale-tension closure | Charged coherent and one-way open realizations are Derived conditionally; physical normalization and scale tension remain Hypothesized |
-| Mixed-curvature proton pinch and winding barrier | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux supplies a conditional exterior coefficient; an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, while the registered condensate confines flux and gives no persistent pair by itself; a neutral fixed-$Q_C$ carrier supplies one conditional reduced separation under support, retention, and matching inequalities. Direct first-order local gauging is source-free Gauss-obstructed; a separate conditional second-order branch supplies the temporal action, Gauss constraint, and fixed-charge stationary functional. One registered coefficient point has a higher-precision Q1–Q4 finite-grid background and explicit physical quotient. Its matched low PA42 spectrum is nonnegative within the frozen uncertainty, while the global phase mode remains grid-scale; localization, carrier retention, domain and resolution convergence, PA43, and continuum qualification remain open |
+| Mixed-curvature proton pinch and winding barrier | No finite radius exists in the minimal smooth zero-Chern endpoint sector. Point-core flux supplies a conditional exterior coefficient; an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, while the registered condensate confines flux and gives no persistent pair by itself. A neutral fixed-$Q_C$ carrier supplies one conditional reduced separation under support, retention, and matching inequalities. Direct first-order local gauging is source-free Gauss-obstructed; a separate conditional second-order branch supplies the temporal action, Gauss constraint, and fixed-charge stationary functional. At the Mapped coupling $h_C=2.9598260763447164$, that action has a localized, nodeless, carrier-retaining stationary branch across four same-domain finite grids and one larger-domain comparison. A distinct diffuse $h_C=1.50$ field has a nonnegative matched low energetic spectrum on one physical quotient. Continuum existence and the localized branch's constrained energetic and mixed dynamical spectra remain open |
 | Proton mass selection, charge, color, spin, and decay rate | Open |
 
 No numbered prediction is added. A quantitative proton claim requires a
@@ -457,17 +457,19 @@ sector. The registered nonzero fundamental condensate removes the isolated
 magnetic sector and confines flux; the finite monopole-antimonopole branch has
 no registered finite-separation minimum. Winding change requires a phase slip,
 endpoint conversion event, condensate zero, defect crossing, or boundary
-event. A proton lifetime still requires persistent-composite support, a
-localized domain-and-resolution-qualified finite-energy stationary solution,
-physical coefficient calibration and fluctuation spectrum, proton quantum
-numbers, and an observable decay channel. The source-free action in
+event. A proton lifetime still requires persistent-composite support, physical
+coefficient calibration, proton quantum numbers, a constrained fluctuation
+spectrum, real-time formation and persistence, and an observable decay
+channel. The source-free action in
 `foundations/particle-stationary-action-closure.md` defines the full
-fixed-$Q_C$ variational problem and Gauss constraint. One coefficient point
-has a higher-precision Q1–Q4 finite-grid background and a nonnegative matched
-low PA42 spectrum on its explicit strict-shell $C_4$ physical quotient. The
-global phase mode remains grid-scale, the field fails localization and carrier
-retention, no Q2-qualified D/H background exists, and PA43 remains
-unevaluated. None of the required physical proton data is established.
+fixed-$Q_C$ variational problem and Gauss constraint. At the Mapped coupling
+$h_C=2.9598260763447164$, it has a localized, nodeless, carrier-retaining
+stationary branch across four same-domain finite grids and one larger-domain
+comparison. A distinct diffuse $h_C=1.50$ background has a nonnegative matched
+low energetic spectrum on its strict-shell $C_4$ physical quotient, while its
+global phase direction remains concentrated at grid scale. The localized
+branch has no constrained energetic or mixed dynamical spectrum, continuum
+qualification, proton quantum numbers, or decay map.
 
 The circuit derivation is given in
 `foundations/interscale-current-soliton.md` §4.5. Endpoint closure and invariant
@@ -482,12 +484,16 @@ fixed-$Q_C$ support branch is given in
 stationary boundary is given in
 `foundations/particle-stationary-action-closure.md`. The registered source
 receipt is recorded in `computations/particle-stationary-bvp-report.md`; the
-Q2-qualified continuation is recorded in
-`computations/particle-stationary-q2-recovery-report.md`; the higher-precision
-endpoint is recorded in
-`computations/particle-stationary-precision-v5-report.md`; and the paired PA42
-eigenspectrum is recorded in
-`computations/particle-physical-hessian-precision-v2-report.md`. The normalized
+first physically stationary continuation is recorded in
+`computations/particle-stationary-q2-recovery-report.md`; the diffuse
+higher-precision endpoint is recorded in
+`computations/particle-stationary-precision-v5-report.md`; its matched low
+energetic spectrum is recorded in
+`computations/particle-physical-hessian-precision-v2-report.md`; the localized
+retained branch is recorded in
+`computations/particle-carrier-direct-coordinate-report.md`; and its four-grid
+resolution sequence is recorded in
+`computations/particle-carrier-resolution-recovery-report.md`. The normalized
 identities are checked by
 `computations/planck_proton_scale_current_check.py`,
 `computations/endpoint_link_localization_check.py`,

@@ -234,18 +234,24 @@ conditional reduced root when $A_C>C_Q$ and its retention and matching
 inequalities hold. Direct first-order local gauging is source-free
 Gauss-obstructed; the separate particle action supplies a second-order charged
 temporal branch, Gauss's law, the coupled fixed-$Q_C$ stationary equations, and
-the first variational class. One coefficient point has a Q2-qualified
-finite-grid primary background. The selected field fails localization and
-carrier retention, and domain and resolution convergence remain absent. A
-qualified bound transverse carrier mode, full backreacted proton solution,
-quantum numbers, fluctuation spectrum, and winding-changing rate remain open
-(`foundations/endpoint-link-and-localization-boundary.md`;
+the first variational class. At the Mapped coupling
+$h_C=2.9598260763447164$, the fixed-charge action has a localized, nodeless,
+carrier-retaining stationary branch across four same-domain finite grids and
+one larger-domain comparison. Adjacent principal observables agree and its
+absolute energy differences decrease twice. A distinct diffuse
+$h_C=1.50$ background has a nonnegative matched low energetic spectrum on one
+strict-shell $C_4$ physical quotient, while its global phase direction remains
+concentrated at grid scale. The localized branch still requires its own
+constrained energetic and mixed dynamical spectra, continuum qualification,
+physical proton quantum numbers, real-time formation, and a winding-changing
+rate (`foundations/endpoint-link-and-localization-boundary.md`;
 `foundations/point-core-flux-sector.md`;
 `foundations/nonabelian-magnetic-core-boundary.md`;
 `foundations/core-trapped-charge-support.md`;
 `foundations/particle-stationary-action-closure.md`;
-`computations/particle-stationary-bvp-report.md`;
-`computations/particle-stationary-q2-recovery-report.md`;
+`computations/particle-carrier-direct-coordinate-report.md`;
+`computations/particle-carrier-resolution-recovery-report.md`;
+`computations/particle-physical-hessian-precision-v2-report.md`;
 `foundations/proton-coherence-budget.md` §10). Current null searches are
 compatible with these candidates and select none of them.
 

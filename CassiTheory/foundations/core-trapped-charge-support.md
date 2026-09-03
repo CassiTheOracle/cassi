@@ -1,6 +1,6 @@
 # Core-Trapped Noether Charge and the Finite-Composite Boundary
 
-## Status: Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point precision-qualified background and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
+## Status: Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested resolution-consistent localized retained finite-grid branch; static Hessian tested on a distinct diffuse branch—September 2026
 
 ## Abstract
 
@@ -12,12 +12,17 @@ mechanism compatible with the present first-order matter action.
 The existing common Yang/Yin number does not localize: a fixed excess can
 spread through the nonzero bulk condensate with energy tending to zero. The
 registered scale-circuit winding acts along the independent scale coordinate
-and contributes spatial tube tension rather than inverse-length support.
-A gauge-electric dyon belongs to the separate conditional temporal branch in
-`foundations/particle-stationary-action-closure.md`. Its registered static
-$a_0=0$ point has a higher-precision Q1–Q4 finite-grid background and a
-nonnegative matched low PA42 spectrum on its strict-shell $C_4$ quotient;
-no stationary dyonic configuration is selected.
+and contributes spatial tube tension rather than inverse-length support. A
+gauge-electric dyon belongs to the separate conditional temporal branch in
+`foundations/particle-stationary-action-closure.md`.
+
+The source-free fixed-charge action now has two numerical witnesses. At
+$h_C=1.50$, a diffuse finite-grid background has a nonnegative matched low
+energetic Hessian on its strict-shell $C_4$ physical quotient. At the
+numerically selected $h_C=2.9598260763447164$, a distinct nodeless field is
+localized and carrier-retaining on four same-domain resolutions; its adjacent
+observables agree and its absolute energy drift decreases twice. The localized
+branch has no computed physical Hessian or dynamical spectrum.
 
 The selected auxiliary branch is a neutral complex carrier $\chi_C$ with a
 global $U(1)_C$ phase, its own first-order time term, a positive bulk gap, and
@@ -51,12 +56,14 @@ Carrier localization adds the independent chemical-potential condition
 $\hbar\omega_C<\varepsilon_{C,\rm out}$. These results establish a conditional
 reduced support branch. The separate particle action supplies complete carrier
 backreaction, Gauss's law, and the fixed-$Q_C$ stationary equations.
-The higher-precision continuation at the registered point passes Q1–Q4 with
-physical-gradient RMS $5.47125\times10^{-5}$. Its strict-shell $C_4$
-physical quotient has a nonnegative matched low PA42 spectrum within the
-frozen uncertainty. The global phase mode remains grid-scale, the selected
-field fails carrier localization and retention, and no Q2-qualified
-outer-domain or finer-grid background exists.
+The diffuse $h_C=1.50$ continuation has a nonnegative matched low energetic
+spectrum on its strict-shell $C_4$ physical quotient, while its global
+carrier-phase direction remains concentrated at grid scale. At the Mapped
+$h_C=2.9598260763447164$, a distinct field is localized, nodeless, and
+carrier-retaining across four same-domain finite grids and one larger-domain
+comparison. Adjacent observables agree and its absolute energy drift decreases
+twice. Continuum existence and the localized branch's constrained energetic
+and mixed dynamical spectra remain open.
 
 ---
 
@@ -121,7 +128,7 @@ electric charge, baryon number, lepton number, or an observed particle.
 | CC-F | Positive carrier self-repulsion gives $A_C/L$ on the uniform fixed-charge tube branch | Derived thin-tube identity |
 | CC-G | $A_C>C_Q$ gives one statically stable finite separation in the reduced length coordinate | Derived conditional theorem |
 | CC-H | Localization, scale separation, and core-overlap bounds remain independent conditions | Derived evidence boundary |
-| CC-I | The conditional particle action defines the full coupled equations; one coefficient point has a higher-precision Q1–Q4 finite-grid background and `PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. Localization, carrier retention, spatial resolution of the global phase mode, domain and resolution convergence, PA43, and physical mass remain open | Tested numerical boundary / open physical realization |
+| CC-I | The conditional particle action defines the full coupled equations. At the Mapped coupling $h_C=2.9598260763447164$, one localized, nodeless, carrier-retaining branch qualifies across four same-domain finite grids and one larger-domain comparison, with twice-contracting energy differences. A distinct diffuse $h_C=1.50$ field has a nonnegative matched low energetic spectrum on one strict-shell $C_4$ physical quotient. Continuum existence and the localized branch's constrained energetic and mixed dynamical spectra remain open | Tested resolution-consistent localized finite-grid branch and separate diffuse-background energetic spectrum / open physical realization |
 
 ---
 
@@ -185,11 +192,13 @@ identification that the current framework does not define.
 The source-free action in
 `foundations/particle-stationary-action-closure.md` specifies temporal gauge
 components, electric curvature energy, charged source kinetics, and the Gauss
-constraint. The theory coefficients remain uncalibrated. The registered
-static $a_0=0$ point has a higher-precision Q1–Q4 primary background and a
-nonnegative matched low PA42 spectrum on its strict-shell $C_4$ quotient, but
-it selects no dyonic or asymptotic electric support coefficient and fails
-carrier retention.
+constraint. The theory coefficients remain uncalibrated. At the Mapped
+$h_C=2.9598260763447164$, one localized, nodeless, carrier-retaining branch
+qualifies across four same-domain finite grids and one larger-domain
+comparison. A distinct static $a_0=0$ field at $h_C=1.50$ has a nonnegative
+matched low energetic spectrum on its strict-shell $C_4$ quotient, but it
+selects no dyonic or asymptotic electric support coefficient. Neither branch
+determines the gauge-electric support sector.
 
 ### 2.4 Minimal selected branch
 
@@ -792,10 +801,12 @@ $$
 
 The reduced $E''(L_*)$ is a length-coordinate curvature only. The separate
 source-free particle action supplies temporal gauge curvature and Gauss's law.
-At the registered static point, the strict-shell $C_4$ PA42 low spectrum is
-nonnegative within the frozen uncertainty. A full collective inertia and PA43
-coupled dynamical spectrum remain uncomputed. Equation (CC39) remains a static
-curvature statement.
+The diffuse $h_C=1.50$ background has a nonnegative matched low energetic
+Hessian on one strict-shell $C_4$ finite-grid quotient. That calculation does
+not determine the stability of the localized $h_C=2.9598260763447164$ branch,
+because a Hessian is local to the field configuration being perturbed. A full
+collective inertia, a constrained Hessian on the localized branch, and the
+coupled dynamical spectrum remain uncomputed.
 
 ---
 
@@ -817,10 +828,12 @@ A numerical transverse solve of (CC17) requires:
 3. spatial and scale boundary conditions;
 4. a declared tube cross-section and scale measure.
 
-The registered campaign fixes one finite-box coefficient point and co-optimizes
-the carrier with the other fields. Its selected primary passes Q2, but fails
-the carrier-localization and retention conditions. It therefore supplies no
-qualified standalone transverse eigenmode or localized magnetic-tube claim.
+The direct normalized carrier-coordinate campaign fixes one finite-box
+coefficient point and co-optimizes the carrier with every other stationary
+field. Its nodeless solution is localized and retained on $N=17,21,25,29$
+same-domain grids. This supplies a qualified carrier inside the full coupled
+stationary ansatz, but it does not separately solve the linear transverse
+eigenproblem (CC17) on a prescribed magnetic tube.
 
 ### 8.3 Full coupled stationary problem
 
@@ -837,20 +850,29 @@ A full fixed-$Q_C$ solve uses the action and equations in
 5. localization, outer-domain, and core-overlap checks on every converged
    candidate.
 
-The registered campaign freezes these choices for five structural basins and
-one delocalized control on the primary and domain grids. The higher-precision
-continuation selects `P:separated_core` with physical-gradient RMS
-$5.471248126403572\times10^{-5}$ and preserves Q1–Q4. Every domain arm and
-the selected high-resolution arm fails Q2. The selected primary also fails the
-carrier-localization and retention conditions, so no domain-stable
-localization verdict or robust basin ordering is established. Its
+The first registered coefficient point, $h_C=1.50$, supplies a diffuse
+higher-precision finite-grid background with physical-gradient RMS
+$5.471248126403572\times10^{-5}$. Its carrier reaches the outer boundary and
+its frequency lies above the bulk retention threshold. The corresponding
 $13622$-dimensional strict-shell $C_4$ physical quotient has one near-zero
-global phase mode and five positive matched PA42 modes, with no verified
-negative mode. The phase mode remains grid-scale. The complete receipts are
-recorded in `computations/particle-stationary-bvp-report.md`,
-`computations/particle-stationary-q2-recovery-report.md`,
-`computations/particle-stationary-precision-v5-report.md`, and
-`computations/particle-physical-hessian-precision-v2-report.md`.
+global carrier-phase mode and five positive matched low energetic modes, with
+no verified negative mode. The phase mode remains concentrated at grid scale.
+
+A distinct coefficient point selected by the frozen density-depletion scan,
+$h_C=2.9598260763447164$, supports a localized, nodeless, carrier-retaining
+stationary branch. The branch passes a larger-domain comparison and survives
+same-domain refinement through $N=17,21,25,29$. Its carrier radius remains
+$1.56$–$1.64$, its outer carrier fraction remains below
+$5.1\times10^{-4}$, adjacent energy differences shrink from $0.12339$ to
+$0.04261$ to $0.01899$, and independent artifact reconstruction reports no
+mismatch. These results establish finite-grid localization, retention, and
+three adjacent resolution comparisons for this branch. Continuum existence,
+additional domain growth, unrestricted basin ordering, and its constrained
+energetic and dynamical spectra remain open. Complete receipts are recorded in
+`computations/particle-stationary-precision-v5-report.md`,
+`computations/particle-physical-hessian-precision-v2-report.md`,
+`computations/particle-carrier-direct-coordinate-report.md`, and
+`computations/particle-carrier-resolution-recovery-report.md`.
 
 ---
 
@@ -866,7 +888,7 @@ recorded in `computations/particle-stationary-bvp-report.md`,
 | Is there a finite reduced separation? | Yes when $A_C>C_Q$, uniquely, with bounds (CC38) and positive curvature (CC39) |
 | Is the carrier retained at that separation? | Only when the chemical-potential condition (CC42) also holds |
 | Is the reduced root outside core overlap? | Only when a matching condition such as (CC40) holds |
-| Is a full stationary particle established? | No; one coefficient point has a higher-precision Q1–Q4 background and a nonnegative one-point $C_4$ PA42 low spectrum, but transverse binding, carrier retention, spatial resolution of the phase mode, topology-changing competitors, domain and continuum convergence, PA43, and physical calibration remain unresolved |
+| Is a full stationary particle established? | No; one numerically selected coefficient point has a localized, nodeless, carrier-retaining finite-grid branch across four same-domain resolutions and one larger-domain comparison, but continuum existence, the constrained Hessian and dynamical spectrum of that branch, topology-changing competitors, physical calibration, and particle identification remain unresolved |
 | Is a physical mass or parameter-free numerical prediction obtained? | No |
 
 The reduced support claims are checked by
@@ -879,29 +901,29 @@ parameter-free numerical prediction.
 
 ## 10. Present conclusion
 
-The registered currents do not supply spatial finite-composite support. The
-common Yang/Yin number disperses through the bulk and scale winding contributes
-tube tension. The separate source-free temporal branch defines
-gauge-electric dynamics and Gauss's law. Its registered static $a_0=0$ point
-does not test a stationary dyonic configuration.
+The registered common Yang/Yin number does not supply spatial finite-composite
+support because it disperses through the bulk, while scale winding contributes
+tube tension. The separate source-free temporal branch defines gauge-electric
+dynamics and Gauss's law.
 
-One neutral core carrier with a positive bulk gap and global $U(1)_C$ number
-is the smallest explicit support branch. Its repulsive fixed-charge energy
-produces a unique statically stable separation when
+A neutral core carrier with a positive bulk gap and global $U(1)_C$ number is
+the smallest explicit support branch. Its repulsive fixed-charge energy
+produces a unique stable separation in the reduced length coordinate when
 
 $$
 \frac{\Lambda_CQ_C^2}{2}>C_Q,
 $$
 
 provided the carrier remains below its bulk threshold and the stationary
-length exceeds the core-overlap scale. This closes the reduced support
-question conditionally. The particle action closes the coupled variational
-formulation, and one coefficient point has a higher-precision finite-grid
-background with a nonnegative matched low PA42 spectrum on its strict-shell
-$C_4$ physical quotient. The global phase mode remains grid-scale, the field
-is diffuse and fails carrier retention, and no Q2-qualified D/H background
-exists. Domain and resolution convergence, unrestricted basin ordering, PA43,
-and physical interpretation remain open.
+length exceeds the core-overlap scale. The full fixed-charge calculation now
+contains a numerically selected branch that realizes localization and
+retention across four same-domain finite grids, passes one larger-domain
+comparison, and shows two successive reductions in absolute energy drift.
+
+The existing nonnegative low energetic Hessian belongs to a different diffuse
+background. Static stability of the localized branch, a continuum limit,
+additional domain growth, unrestricted basin ordering, the mixed dynamical
+spectrum, and physical particle interpretation remain open.
 
 ---
 
@@ -914,6 +936,8 @@ and physical interpretation remain open.
 5. B. Julia and A. Zee, “Poles with both magnetic and electric charges in non-Abelian gauge theory,” *Physical Review D* **11** (1975), 2227–2232.
 6. `foundations/particle-stationary-action-closure.md`—coupled fixed-charge action and variational boundary.
 7. `computations/particle-stationary-bvp-report.md`—registered source campaign receipt.
-8. `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary background and retained localization, domain, and resolution boundaries.
-9. `computations/particle-stationary-precision-v5-report.md`—higher-precision finite-grid stationary background.
-10. `computations/particle-physical-hessian-precision-v2-report.md`—paired PA42 low spectrum and spatial verdict.
+8. `computations/particle-stationary-q2-recovery-report.md`—first physically stationary particle background and retained numerical boundaries.
+9. `computations/particle-stationary-precision-v5-report.md`—higher-precision diffuse finite-grid stationary background.
+10. `computations/particle-physical-hessian-precision-v2-report.md`—matched low energetic spectrum and spatial classification on the diffuse background.
+11. `computations/particle-carrier-direct-coordinate-report.md`—localized retained branch and larger-domain comparison.
+12. `computations/particle-carrier-resolution-recovery-report.md`—four-grid refinement, contracting energy differences, and independent verification.

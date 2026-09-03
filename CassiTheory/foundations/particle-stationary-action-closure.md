@@ -1,6 +1,6 @@
 # Particle-Sector Action and Fixed-Charge Variational Closure
 
-## Status: Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, variational, and fluctuation-qualification boundaries / Tested one-point precision-qualified background and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
+## Status: Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, variational, and fluctuation-qualification boundaries / Tested resolution-consistent localized retained finite-grid branch; nonnegative $C_4$ finite-grid energetic Hessian on a distinct diffuse branch—September 2026
 
 ## Abstract
 
@@ -26,17 +26,18 @@ $\mathcal A_0^a=0$.
 
 The fixed-$Q_C$ stationary functional, coupled Euler equations, boundary
 inventory, source-unit dimensions, normalization-invariant dimensionless
-groups, and first numerical variational class are derived below. The registered
-coefficient point now has an independently verified higher-precision
-finite-grid background with physical-gradient RMS
-$5.47125\times10^{-5}$. On its $13622$-dimensional strict-shell $C_4$
-physical quotient, independent PA42 eigensolvers find one near-zero
-global-$U(1)_C$ phase mode and five positive matched modes, with no verified
-negative mode. The finite-matrix verdict is
-`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The phase mode remains
-grid-scale under the frozen spatial diagnostic. Localization, carrier
-retention, domain and resolution convergence, and the PA43 mixed dynamical
-spectrum remain open.
+groups, and first numerical variational class are derived below. At
+$h_C=1.50$, one diffuse finite-grid background has a nonnegative matched low
+energetic Hessian on its $13622$-dimensional strict-shell $C_4$ physical
+quotient, although its near-zero global carrier-phase mode remains concentrated
+at grid scale.
+
+At the numerically selected $h_C=2.9598260763447164$, a distinct stationary
+field is nodeless, localized, and carrier-retaining on $N=17,21,25,29$
+same-domain grids and passes one larger-domain comparison. Adjacent principal
+observables agree and the absolute energy differences contract twice. The
+localized branch still requires its own constrained energetic Hessian,
+continuum qualification, and mixed dynamical spectrum.
 
 ---
 
@@ -849,9 +850,12 @@ The first class leaves unresolved:
 - arbitrary multicore and fragmented-charge configurations;
 - higher scale and transverse modes omitted by a reduced ansatz;
 - topology-changing paths outside the represented basins;
-- infinite-domain existence;
-- a domain- and resolution-converged PA42 energetic Hessian and the PA43 mixed dynamical spectrum;
-- real-time decay, tunnelling, and continuum thresholds;
+- infinite-domain existence and a continuum limit;
+- a domain- and resolution-converged constrained energetic Hessian on the
+  localized branch;
+- the mixed dynamical spectrum, including spatial qualification of every
+  symmetry mode;
+- real-time decay, tunnelling, formation, and continuum thresholds;
 - quantum spin and statistics.
 
 Every numerical report must retain this list and add any sectors removed by its
@@ -863,26 +867,27 @@ The first registered point sets
 $\alpha_{\mathfrak s}=\gamma_x=\gamma_{\mathfrak s}
 =k_{Cx}=k_{C\mathfrak s}=u_C=1$,
 $u_\rho=u_\varphi=u_H=4$, $e_C=0.75$, $h_C=1.50$, $q_C=4$, and
-$L_{\mathfrak s}=1$ in the $\mathfrak s$-independent, $a_0=0$ class.
-The primary and domain grids are $(R,N)=(4,17)$ and $(5,21)$.
+$L_{\mathfrak s}=1$ in the $\mathfrak s$-independent, $a_0=0$ class. Its
+higher-precision separated-core endpoint has physical-gradient RMS
+$5.471248126403572\times10^{-5}$ and energy $3.854183410304055$.
+The field remains diffuse, its carrier frequency exceeds the bulk threshold,
+and neither the larger-domain nor finer-grid comparison qualifies. This
+background is retained as the input to the existing one-point energetic
+Hessian calculation.
 
-The higher-precision continuation preserves the action, coefficient point,
-charge, grid, field class, projectors, diagnostics, and Q1–Q4 thresholds. It
-selects `P:separated_core` at
-
-- physical gradient RMS $5.471248126403572\times10^{-5}$,
-- cutoff virial $1.348199143828711\times10^{-4}$,
-- energy $3.854183410304055$,
-- multiplier $\widehat\omega_C=0.9619139451720478$.
-
-The independent precision verifier passes HP-A through HP-D and returns
-`PASS—HIGHER-PRECISION BACKGROUND`. The field still fails localization and
-carrier retention, and the Q2 campaign supplies no qualified D/H domain or
-resolution background. This endpoint is the registered input for the
-one-point PA42 calculation. The complete receipts are recorded in
-`computations/particle-stationary-bvp-report.md`,
-`computations/particle-stationary-q2-recovery-report.md`, and
-`computations/particle-stationary-precision-v5-report.md`.
+The direct normalized carrier-coordinate campaign preserves the same action,
+charge, boundary class, and all other fixed coefficients while selecting
+$h_C=2.9598260763447164$ through a frozen ordered density-depletion scan. The
+fixed-charge map represents the carrier without saturated nonnegative
+coordinates. Its stationary endpoint is nodeless, localized, and retained on
+$N=17,21,25,29$ grids at $R=4$, and a separate $R=5$ comparison also
+qualifies. The carrier radius stays between $1.56$ and $1.64$, and the
+same-domain absolute energy differences decrease from $0.12339$ to $0.04261$
+to $0.01899$. Independent reconstruction verifies every stored field,
+diagnostic, adjacent comparison, and stopping decision. See
+`computations/particle-stationary-precision-v5-report.md`,
+`computations/particle-carrier-direct-coordinate-report.md`, and
+`computations/particle-carrier-resolution-recovery-report.md`.
 
 ### 8.6 Full constrained fluctuation qualification
 
@@ -927,24 +932,27 @@ Jordan growth, and converged discrete and continuum spectra.
 
 The reduced CC29 separation mode and CC47 frozen line-density modes give
 positive curvature under their stated premises. MCC9 verifies one such point.
-Those modes are proper subspaces of (PA42)--(PA43). On the higher-precision
-`P:separated_core` background, the strict-shell $C_4$ fluctuation space gives
-a $13622$-dimensional fixed-charge physical quotient after removal of the
-rank-$1677$ coupled gauge image. Independent preflight reproduces the
+Those modes are proper subspaces of (PA42)--(PA43). On the diffuse $h_C=1.50$
+background, the strict-shell $C_4$ fluctuation space gives a
+$13622$-dimensional fixed-charge physical quotient after removal of the
+rank-$1677$ coupled gauge image. Independent construction reproduces the
 background, quotient, phase direction, Hessian symmetry, and directional
-curvatures, with augmented quotient-gradient RMS
-$1.122864422122550\times10^{-4}<3\times10^{-4}$.
+curvatures.
 
-Primary and independent eigensolvers agree on the six matched lowest
-eigenvalues to $3.11\times10^{-14}$. They identify one near-zero
-global-$U(1)_C$ phase mode and five positive modes, with no verified negative
-mode. The one-point finite-matrix verdict is
-`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The phase mode has
-high-frequency fraction $0.33454>0.20$, so the separate spatial verdict is
-`INCONCLUSIVE—GRID-SCALE CLASSIFIED MODE`. No Q2-qualified D/H background
-exists, and the PA43 temporal groups remain unselected. See
+Two independent eigensolvers agree on the six matched lowest eigenvalues to
+$3.11\times10^{-14}$. They identify one near-zero global carrier-phase mode
+and five positive modes, with no verified negative mode. The phase direction
+has high-frequency fraction $0.33454>0.20$, so its spatial interpretation
+remains unresolved. The larger-domain and finer-grid fields at this
+coefficient point do not qualify, and the temporal groups remain unselected.
+
+The localized $h_C=2.9598260763447164$ branch is a different stationary
+configuration. No Hessian eigenvalue from the diffuse background transfers to
+it. Static stability now requires reconstructing the fixed-charge physical
+quotient and evaluating (PA42) on the finest localized artifact before the
+mixed temporal pencil (PA43) can carry a particle-stability claim. See
 `computations/particle-physical-hessian-precision-v2-report.md` and
-`foundations/matter-completion-boundary.md` §10.
+`computations/particle-carrier-resolution-recovery-report.md`.
 
 ---
 
@@ -960,19 +968,21 @@ exists, and the PA43 temporal groups remain unselected. See
 | Does the neutral fixed-charge stationary sector satisfy Gauss's law? | Yes, by (PA16)--(PA17) |
 | Are carrier backreaction and the density trap in one variational problem? | Yes, (PA21)--(PA23) |
 | Is the stationary problem nondimensionalized without gauge-normalization dials? | Yes, (PA29)--(PA37) |
-| Is a numerical coefficient point selected? | Yes for the registered fixed-charge campaign; its physical calibration remains open |
-| Does a Q2-qualified finite-grid configuration exist in the registered class? | Yes; five structural primary arms pass Q1–Q4, and the frozen rule selects `P:separated_core` |
+| Is a numerical coefficient point selected? | Yes; $h_C=2.9598260763447164$ is selected by a frozen ordered numerical scan, so its physical calibration remains open and its status is Mapped |
+| Does a physically stationary, localized, retained finite-grid configuration exist in the registered class? | Yes; one nodeless branch qualifies on four same-domain resolutions and one larger-domain comparison |
 | Is any basin the unrestricted global minimum? | Undetermined and not established by finite controls |
-| Is the full physical Hessian or mixed dynamical spectrum evaluated? | PA42 has a nonnegative matched low spectrum at one strict-shell $C_4$ finite-grid point; the phase mode remains grid-scale, domain/resolution convergence is absent, and PA43 remains unevaluated |
+| Is the full physical Hessian or mixed dynamical spectrum evaluated? | The diffuse $h_C=1.50$ background has a nonnegative matched low energetic spectrum on one strict-shell $C_4$ finite-grid quotient. The localized branch has no evaluated constrained Hessian, and neither branch has a qualified mixed dynamical spectrum |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 
-The action and stationary boundary inventory define the registered
-mathematical boundary-value experiment at one dimensionless point. Its
-higher-precision finite-grid background passes Q1–Q4, and PA42 supplies a
-nonnegative matched low spectrum on the corresponding physical quotient.
-Localization, carrier retention, spatial resolution of the phase mode, domain
-and resolution convergence, unrestricted basin ordering, and physical
-identification remain open.
+The action and stationary boundary inventory define a complete mathematical
+boundary-value experiment in the registered variational class. A numerically
+selected coefficient point supports a localized, nodeless, carrier-retaining
+finite-grid branch across four same-domain resolutions and one larger-domain
+comparison. A separate diffuse coefficient point supplies a nonnegative
+matched low energetic spectrum, but that local curvature result does not
+establish stability of the localized branch. Continuum existence, the
+localized branch's constrained Hessian, unrestricted basin ordering, mixed
+dynamics, formation, and physical identification remain open.
 
 ---
 
@@ -990,9 +1000,11 @@ The analytic closure fails if any of the following is shown:
    dimension or gauge-normalization dependence;
 7. the coupled stationary equations omit a variation of (PA12).
 
-The current numerical-quality receipt does not falsify the algebra above. It
-evaluates the declared optimizer at the tested coefficient point and qualifies
-no basin; stronger numerical methods and other coefficient points remain open.
+The numerical receipts do not falsify the analytic closure. They establish one
+localized, carrier-retaining finite-grid stationary branch at a Mapped
+coefficient point. A negative constrained mode on that branch, failed further
+domain or continuum refinement, or real-time decay would reject progressively
+stronger particle interpretations without changing the action identities above.
 
 ---
 
@@ -1005,13 +1017,18 @@ its unavoidable gauge charge, while the selected second-order charged-field
 kinetics give a time-local gauge symmetry and a Gauss-compatible static sector.
 The neutral carrier remains first order and supplies the exact fixed charge.
 
-The registered one-point campaign now supplies an independently verified
-higher-precision finite-grid background and a nonnegative matched low PA42
-spectrum on its strict-shell $C_4$ physical quotient. The near-zero global
-phase mode remains grid-scale. The selected field is not localized or retained,
-and no Q2-qualified domain or resolution background exists. Particle masses,
-radii, spins, statistics, and lifetimes remain downstream of a localized
-converged solution. The PA43 mixed pencil remains unevaluated.
+The registered numerical program now supplies two distinct stationary
+backgrounds. The diffuse $h_C=1.50$ field has a nonnegative matched low
+energetic spectrum on one strict-shell $C_4$ physical quotient, while its
+global carrier-phase mode remains concentrated at grid scale. The selected
+$h_C=2.9598260763447164$ field is nodeless, localized, and retained across
+four same-domain resolutions, passes one larger-domain comparison, and has
+twice-contracting absolute energy differences.
+
+The localized field has no constrained Hessian or mixed dynamical spectrum.
+A continuum limit, broader basin search, real-time persistence and formation,
+physical calibration, and particle masses, radii, spins, statistics, and
+lifetimes remain downstream.
 
 ---
 
@@ -1028,4 +1045,6 @@ converged solution. The PA43 mixed pencil remains unevaluated.
 - `predictions/falsifiable-predictions.md`—particle prediction and evidence registry.
 - `computations/particle_action_closure_check.py`—deterministic covariance, source, stationary-variation, unit, and dimensionless-group checker.
 - `computations/particle-stationary-precision-v5-report.md`—higher-precision finite-grid background and independent gates.
-- `computations/particle-physical-hessian-precision-v2-report.md`—paired one-point PA42 eigenspectrum and spatial classification.
+- `computations/particle-physical-hessian-precision-v2-report.md`—matched low energetic spectrum and spatial classification on the diffuse background.
+- `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
+- `computations/particle-carrier-resolution-recovery-report.md`—four-grid refinement and independently verified resolution consistency.

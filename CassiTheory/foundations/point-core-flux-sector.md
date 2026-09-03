@@ -1,6 +1,6 @@
 # Quantized Point-Core Flux and the Persistent-Defect Boundary
 
-## Status: Derived conditional exterior support / Derived current-action completion no-go / Tested one-point precision-qualified background and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
+## Status: Derived conditional exterior support / Derived current-action completion no-go / Mapped selected carrier coupling / Tested resolution-consistent localized retained finite-grid branch and a separate nonnegative $C_4$ low energetic spectrum on a diffuse finite-grid quotient—September 2026
 
 ## Abstract
 
@@ -620,12 +620,14 @@ The current exterior action supplies none of the core data and its
 nonzero-condensate outer condition conflicts with isolated point flux. A
 radial or axisymmetric point-core solve therefore selects missing physics
 through its boundary conditions; no standalone boundary-value experiment is
-well posed in this sector. The separate coupled fixed-charge campaign tests one
-auxiliary-completed coefficient point and supplies a higher-precision Q1–Q4
-finite-grid background with a nonnegative matched low PA42 spectrum on its
-strict-shell $C_4$ quotient. The field fails localization and carrier
-retention, the global phase mode remains grid-scale, and no Q2-qualified D/H
-background exists. It does not qualify a point-core solution.
+well posed in this sector. The separate coupled fixed-charge action has a
+localized, nodeless, carrier-retaining stationary branch at the Mapped coupling
+$h_C=2.9598260763447164$ across four same-domain finite grids and one
+larger-domain comparison. A distinct diffuse $h_C=1.50$ background has a
+nonnegative matched low energetic spectrum on its strict-shell $C_4$ physical
+quotient, while its global phase direction remains concentrated at grid scale.
+Neither branch supplies the missing point-core boundary data or qualifies a
+point-core solution.
 
 ---
 
@@ -672,20 +674,21 @@ A full spectrum requires a stationary background, gauge fixing, core and
 endpoint boundary conditions, and the second variation in every coupled
 channel. The separate conditional action in
 `foundations/particle-stationary-action-closure.md` supplies second-order
-charged-field kinetics, positive temporal curvatures, and Gauss's law. Its
-higher-precision finite-grid background has a $13622$-dimensional strict-shell
-$C_4$ fixed-charge physical quotient after removal of the rank-$1677$
-coupled gauge image. Independent preflight passes the background, quotient,
-symmetry, phase-Rayleigh, directional-curvature, and augmented-gradient gates.
+charged-field kinetics, positive temporal curvatures, and Gauss's law. At the
+Mapped coupling $h_C=2.9598260763447164$, this action has a localized,
+nodeless, carrier-retaining stationary branch across four same-domain finite
+grids and one larger-domain comparison. Adjacent principal observables agree
+and the absolute energy differences decrease twice.
 
-Primary and independent PA42 eigensolvers find one near-zero
-global-$U(1)_C$ phase mode and five positive matched modes, with no verified
-negative mode. The finite-matrix verdict is
-`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The phase mode remains
-grid-scale under the frozen spatial diagnostic. Core data, carrier
-localization and retention, domain and resolution convergence, perturbations
-outside $C_4$, and the PA43 temporal coefficients remain open. Static
-positivity of (PF39) therefore supplies no complete dynamical frequency claim.
+A distinct diffuse $h_C=1.50$ background has a $13622$-dimensional
+strict-shell $C_4$ fixed-charge physical quotient after removal of the
+rank-$1677$ coupled gauge image. Independent eigensolvers find one near-zero
+global carrier-phase mode and five positive matched low energetic modes, with
+no verified negative mode. The phase direction remains concentrated at grid
+scale. Core data, perturbations outside $C_4$, continuum qualification, and
+the localized branch's constrained energetic and mixed dynamical spectra
+remain open. Static positivity on the diffuse background supplies no
+dynamical-frequency claim for the localized field.
 
 ---
 
@@ -699,7 +702,7 @@ positivity of (PF39) therefore supplies no complete dynamical frequency claim.
 | Does the current Abelian action smooth the point core? | No; $dG=0$ forces zero flux through a smooth ball |
 | Does the registered condensate admit an isolated finite-energy monopole? | No; the nonzero charged asymptotic sections give divergent angular kinetic energy |
 | Is a scalar radial matter solve available? | No; $j\geq|N_G|/2$ and the core/outer data are incomplete |
-| Is the full fluctuation spectrum defined? | Partly: one higher-precision coupled background has a complete strict-shell $C_4$ physical quotient and `PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The near-zero global phase mode remains grid-scale; core data, localization, carrier retention, domain and resolution convergence, perturbations outside $C_4$, and PA43 remain open |
+| Is the full fluctuation spectrum defined? | Partly. The diffuse $h_C=1.50$ background has a complete strict-shell $C_4$ physical quotient and a nonnegative matched low energetic spectrum, while its near-zero global phase direction remains concentrated at grid scale. The localized $h_C=2.9598260763447164$ branch has no constrained energetic or mixed dynamical spectrum. Core data, continuum qualification, and perturbations outside $C_4$ remain open |
 
 The algebraic and spectral identities are checked by
 `computations/point_core_flux_check.py`. They create no numbered physical
@@ -735,12 +738,14 @@ The neutral carrier in `foundations/core-trapped-charge-support.md` supplies a
 conditional reduced support term $A_C/L$. The strict inequality $A_C>C_Q$
 gives one finite root with positive length curvature when carrier retention
 and thin-tube matching also hold. The separate particle action supplies the
-complete fixed-charge stationary formulation and Gauss constraint. One
-coefficient point has a higher-precision Q1–Q4 finite-grid background and a
-nonnegative matched low PA42 spectrum on its explicit physical quotient. The
-field is diffuse, fails carrier retention, and lacks domain and resolution
-qualification. The global phase mode remains grid-scale; unrestricted basin
-ordering, PA43, and continuum qualification remain open.
+complete fixed-charge stationary formulation and Gauss constraint. At the
+Mapped coupling $h_C=2.9598260763447164$, it has a localized, nodeless,
+carrier-retaining branch across four same-domain finite grids and one
+larger-domain comparison, with twice-contracting absolute energy differences.
+A distinct diffuse $h_C=1.50$ background has a nonnegative matched low
+energetic spectrum on its explicit physical quotient. Continuum qualification,
+unrestricted basin ordering, and the localized branch's constrained energetic
+and mixed dynamical spectra remain open.
 
 ---
 
@@ -769,8 +774,9 @@ ordering, PA43, and continuum qualification remain open.
 - `computations/particle_action_closure_check.py`—action-algebra and
   nondimensionalization checker
 - `computations/particle-stationary-bvp-report.md`—registered source campaign receipt
-- `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary background and retained localization, domain, and resolution boundaries
-- `computations/particle-physical-hessian-report.md`—initial finite-grid physical
-  quotient and preflight campaign.
-- `computations/particle-stationary-precision-v5-report.md`—higher-precision finite-grid stationary background.
-- `computations/particle-physical-hessian-precision-v2-report.md`—paired PA42 eigenspectrum and verdict tree.
+- `computations/particle-stationary-q2-recovery-report.md`—first physically stationary particle background and retained numerical boundaries
+- `computations/particle-physical-hessian-report.md`—initial finite-grid physical quotient and preflight campaign
+- `computations/particle-stationary-precision-v5-report.md`—higher-precision diffuse finite-grid stationary background
+- `computations/particle-physical-hessian-precision-v2-report.md`—matched low energetic spectrum on the diffuse background
+- `computations/particle-carrier-direct-coordinate-report.md`—localized retained branch and larger-domain comparison
+- `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence and independently verified adjacent convergence

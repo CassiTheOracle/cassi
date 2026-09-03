@@ -316,8 +316,9 @@ cone.
 
 The open dynamical-geometry synthesis assembles the conservative currents,
 conversion flow, endpoint channels, declared reservoir terms, and a bounded
-two-domain source interface in one effective matrix balance. DG1–DG7 and
-EC1–EC7 pass. At every finite density with $\lambda>0$, undriven nonzero
+two-domain source interface in one effective matrix balance. Independent finite
+checks reproduce its canonical reduction, positivity, covariance, and
+bounded-source identities (DG1–DG7; EC1–EC7). At every finite density with $\lambda>0$, undriven nonzero
 transverse coherence decays, so a stationary phase-bearing state requires an
 identified support term. The enlarged positive interior/exterior fibre derives
 one such term from cross-coherence $\mathsf C_{\rm io}$ and reciprocal coupling
@@ -334,7 +335,7 @@ source is supplied. A local closed dilation action gives conserved total
 Hilbert stress, which consistently sources the constant-$G$
 Einstein–Hilbert branch. The Gram/Cartan map then embeds the coherence fibre in
 the local-$SU(2)_Q$ particle doublet while keeping global $Q_C$ separate.
-MCC1–MCC9 pass. Physical carrier selection, microscopic transfer factors,
+Independent finite checks reproduce all nine algebraic and reduced analytic requirements (MCC1–MCC9). Physical carrier selection, microscopic transfer factors,
 multimode flux normalization, reservoir action, explicit reservoir stress,
 gravity selection, and particle identity remain open. See
 `foundations/yin-yang-qi-dynamical-geometry.md`,
@@ -353,7 +354,7 @@ conservative inter-vertex channel. It carries equal-and-opposite endpoint
 number current, closes the registered homogeneous circuit when
 $I_{-\to+}=\mathcal J_Q$, and preserves the local relative-charge ledger
 through a charge-$-g_Q$ scale-edge current. Its fixed-amplitude capacity is
-$I_c=2t_\Upsilon u_-u_+/\hbar$; IT1–IT6 pass at one normalized point. The
+$I_c=2t_\Upsilon u_-u_+/\hbar$. Independent evaluation at one normalized point reproduces covariance, conservation, circuit closure, and capacity (IT1–IT6). The
 coupling $t_\Upsilon$, its microscopic origin, and a local scale-bulk
 completion remain Hypothesized.
 Point-core Chern flux supplies the sharp exterior coefficient
@@ -376,42 +377,40 @@ joint fixed-charge, gauge-quotiented energetic Hessian and mixed
 second-/first-order dynamical pencil state the full fluctuation qualification
 problem.
 
-The construction is a **Hypothesized completion ansatz** with **Derived
-canonical reduction, conditional fibre geometry, endpoint response,
-stationary spatial-flux and zero-mode boundaries, Wilson-link covariance,
-transport and relative-charge conservation, exterior point-flux support,
-smooth-core and confinement boundaries, a conditional reduced conserved-charge
-support theorem, conditional action and Gauss equations, nine-part
-matter-interface boundary, and energetic and dynamical qualification
-operators**, plus **Tested reduced, one-point numerical, higher-precision
-Q1–Q4 background, and nonnegative $C_4$ finite-grid PA42 low-spectrum
-boundaries**. The physical reservoir, scale metric, endpoint normalization,
-calibrated coefficient point, qualified transverse carrier mode, localized
-backreacted composite, observation map, quantum numbers, PA43 spectrum, and
-decay rate remain open.
+The conditional matter boundary is explicit through nine linked requirements.
+The mathematical exterior is the complementary Stinespring output of a chosen
+interior channel; the reciprocal interface is bilinear; one routed forward
+carrier fixes the one-sided exponent; canonical single-mode power is
+$\hbar\Omega|b|^2$; repeated interactions give a support equation; a closed
+action gives conserved total stress; constant $G$ is the compatible gravity
+branch; Gram/Cartan matrices connect the coherence fibre to the particle
+doublet; and the fixed-charge functional supplies the full energetic Hessian
+and mixed temporal qualification problem. The frozen algebraic receipt passes
+all nine checks.
 
-The higher-precision continuation of `P:separated_core` reaches
-physical-gradient RMS $5.471248126403572\times10^{-5}$ and cutoff virial
-$1.348199143828711\times10^{-4}$ while preserving Q1–Q4. The selected field
-fails localization and carrier retention, and every D/H arm fails Q2. Its
-strict-shell $C_4$ fluctuation space gives a $13622$-dimensional fixed-charge
-physical quotient after removal of the rank-$1677$ coupled gauge image.
-Independent PA42 eigensolvers identify one near-zero global-$U(1)_C$ phase
-mode and five positive matched modes with no verified negative mode. The
-finite-matrix verdict is
-`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The phase mode exceeds the
-registered high-frequency cutoff, so its spatial verdict is
-`INCONCLUSIVE—GRID-SCALE CLASSIFIED MODE`. Domain and resolution convergence
-remain untested, and PA43 remains open. See
-`foundations/geometric-manifold-completion.md`,
-`foundations/endpoint-link-and-localization-boundary.md`,
-`foundations/point-core-flux-sector.md`,
-`foundations/nonabelian-magnetic-core-boundary.md`,
-`foundations/core-trapped-charge-support.md`,
+The reduced point-flux and neutral-carrier branches derive conditional
+inverse-length support. At the Mapped density-depletion coupling
+$h_C=2.9598260763447164$, the source-free fixed-charge action has a localized,
+nodeless, carrier-retaining stationary field on $N=17,21,25,29$ same-domain
+grids and one larger-domain comparison. Adjacent energy, carrier radius, core
+length, and frequency satisfy the frozen tolerances, while the absolute energy
+differences decrease from $0.12339$ to $0.04261$ to $0.01899$. Independent
+artifact reconstruction reports zero mismatches.
+
+A different diffuse field at $h_C=1.50$ has one near-zero global carrier-phase
+mode and five positive matched low energetic modes on a $13622$-dimensional
+strict-shell $C_4$ physical quotient, with no verified negative mode. Its
+near-zero phase direction remains concentrated at grid scale. Because this
+Hessian is local to the diffuse background, it does not determine static
+stability of the localized branch.
+
+The physical carrier, calibrated coefficients, exterior realization,
+reservoir action and stress, gravity choice, continuum limit, constrained
+energetic and mixed dynamical spectra of the localized branch, particle
+identity, and formation history remain open. The full derivations and receipts
+are in `foundations/matter-completion-boundary.md`,
 `foundations/particle-stationary-action-closure.md`,
-`foundations/matter-completion-boundary.md`,
-`computations/matter_completion_boundary_report.md`,
-`computations/particle-stationary-precision-v5-report.md`, and
+`computations/particle-carrier-resolution-recovery-report.md`, and
 `computations/particle-physical-hessian-precision-v2-report.md`.
 
 ---
@@ -591,10 +590,10 @@ constant-frame-covariant Nambu Schur response
 $\mathbb\Lambda_{\mathrm{eff}}^R
 =\mathbb\Lambda_0-\mathcal C^\dagger(\mathcal K^R)^{-1}\mathcal C
 =\mathbb\Lambda_0+\mathcal C^\dagger(\mathcal D^R)^{-1}\mathcal C$, where
-$\mathcal K^R=-\mathcal D^R$, with analytic endpoint poles. The frozen
-AR1–AR6 source-action receipt passes; the DR receipt remains `FAIL` because its
-DR5 endpoint block has the opposite source-action sign. At the symmetric zero
-background, the eliminated source action begins at quartic rail order with a
+$\mathcal K^R=-\mathcal D^R$, with analytic endpoint poles. Independent
+source-action checks reproduce the covariance, pole, and Schur-response
+algebra. A separate dynamical-response implementation remains `FAIL` because its endpoint block carries the opposite source-action sign (AR1–AR6; DR5).
+At the symmetric zero background, the eliminated source action begins at quartic rail order with a
 positive coefficient when $\mu_{v,0}:=W_v'(0)>0$; physical energy, stress,
 inertial mass, and stability signs remain open. The potential, nonzero-current
 background, microscopic damping channel, temporal relative-gauge connection,
@@ -760,44 +759,55 @@ Gauss-obstructed; a separate second-order charged-field branch supplies the
 temporal action, Gauss constraint, coupled stationary equations, and
 normalization-invariant variational class. The matter-completion boundary adds
 the Gram/Cartan particle map, joint constrained energetic Hessian, and mixed
-dynamical pencil. One dimensionless coefficient point has a higher-precision
-Q1–Q4 finite-grid background and a nonnegative matched low PA42 spectrum on
-its strict-shell $C_4$ physical quotient. The selected field fails localization
-and carrier retention, every domain plus high-resolution arm fails Q2, and the
-near-zero global phase mode remains grid-scale. Physical endpoint
-normalization, scale tension, coefficient calibration, a qualified bound
-transverse carrier mode, domain and resolution convergence, full proton
-solution, proton quantum numbers, PA43 spectrum, and winding-changing rate
-remain open
-(`foundations/endpoint-link-and-localization-boundary.md`;
-`foundations/point-core-flux-sector.md`;
-`foundations/nonabelian-magnetic-core-boundary.md`;
-`foundations/core-trapped-charge-support.md`;
-`foundations/particle-stationary-action-closure.md`;
-`foundations/matter-completion-boundary.md`;
-`computations/matter_completion_boundary_report.md`;
-`computations/particle-stationary-precision-v5-report.md`;
-`computations/particle-physical-hessian-precision-v2-report.md`;
-`foundations/interscale-current-soliton.md` §4.5;
-`foundations/proton-coherence-budget.md` §10).
+fluctuation pencil.
+
+The endpoint dynamics now have both coherent and one-way open completions:
+
+- a charge-$-g_Q$ endpoint section closes the finite scale window coherently
+  when $|D_A\chi|^2+|D_B\chi|^2\le\rho_{\rm end}$;
+- a one-way two-level Markov channel
+  $\dot p_Y=-\Gamma p_Y$, $\dot p_I=+\Gamma p_Y$ closes populations while
+  damping endpoint coherence at $\Gamma/2$.
+
+At the Mapped coupling $h_C=2.9598260763447164$, the separate source-free
+fixed-charge particle action has a localized, nodeless, carrier-retaining
+stationary branch across four same-domain finite grids and one larger-domain
+comparison. Adjacent principal observables agree and the absolute energy drift
+decreases twice. A distinct diffuse background at $h_C=1.50$ has a
+nonnegative matched low energetic spectrum on one strict-shell $C_4$
+finite-grid physical quotient, but its global phase direction remains
+concentrated at grid scale and its Hessian does not establish stability of the
+localized branch.
+
+The physical endpoint section, normalized scale stiffness, proton quantum
+numbers, continuum qualification, constrained Hessian and mixed dynamics of
+the localized branch, real-time formation, and the decay-rate map remain open.
+See `foundations/proton-coherence-budget.md` §10,
+`foundations/interscale-current-soliton.md` §4.5,
+`foundations/particle-stationary-action-closure.md`,
+`computations/particle-carrier-resolution-recovery-report.md`, and
+`computations/particle-physical-hessian-precision-v2-report.md`.
 
 **Epistemic status:** the $N_{\text{max}}$ product and lifetime conversion are
 **Derived conditional** on the **Mapped** span and **Hypothesized** $q_i$
-point-flux coefficient, support inequality, auxiliary adjoint core,
+profile. The relative-current profile, endpoint dynamics, point-flux
+coefficient, support inequality, auxiliary adjoint core,
 condensate-confinement boundary, first-order Gauss obstruction, temporal gauge
 covariance, Gauss constraint, stationary equations, Cartan convention bridge,
 and fluctuation qualification operators are **Derived conditional** on their
-declared actions and sectors. MCC1–MCC9 pass for the finite algebraic and
-reduced analytic boundary. One dimensionless stationary point is **Tested**
-with verdict `PASS—HIGHER-PRECISION BACKGROUND`. Its strict-shell $C_4$
-physical quotient has a matched low PA42 spectrum that is nonnegative within
-the frozen uncertainty, with one near-zero global phase mode and five positive
-matched modes. The finite-matrix verdict is
-`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`; the phase mode remains
-grid-scale. Identifying the construction with physical proton stability,
-selecting endpoint and calibrated action data, establishing carrier
-localization and domain/resolution convergence, selecting PA43 temporal
-groups, and deriving a decay rate are **Hypothesized/Open**.
+declared actions and sectors. The finite algebraic and reduced analytic
+boundary passes its nine frozen checks.
+
+The density-depletion coupling $h_C=2.9598260763447164$ is **Mapped** by a
+frozen ordered numerical scan. Its localized, nodeless, carrier-retaining
+stationary branch is **Tested** across four same-domain finite grids and one
+larger-domain comparison, with independently verified adjacent agreement and
+twice-contracting energy differences. A distinct diffuse coefficient point
+has a **Tested** nonnegative matched low energetic spectrum on one finite-grid
+physical quotient. Physical proton identification, calibrated action data, a
+continuum limit, the localized branch's constrained energetic and mixed
+dynamical spectra, real-time formation, and a decay rate are
+**Hypothesized/Open**.
 
 For the neutron–proton–electron trio as a whole—their scale coordinates, sectors, and framework-level distinctions—see `particles/matter-organization.md`.
 
