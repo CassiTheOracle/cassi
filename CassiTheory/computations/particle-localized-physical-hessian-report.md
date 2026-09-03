@@ -262,8 +262,8 @@ for a finer-grid spectral sequence before a continuum interpretation.
 
 The analytic phase direction is proportional to the stationary carrier field.
 Its high-frequency fraction identifies odd-even structure in the localized
-carrier profile. Among these six matched modes, no second null direction
-appears. The tested low-spectrum sign remains valid, while the spatial
+carrier profile. No second matched near-zero direction appears among these six
+eigenpairs. The tested low-spectrum sign remains valid, while the spatial
 interpretation stays inconclusive.
 
 ## 9. Frozen verdict tree
@@ -301,16 +301,17 @@ $$
 
 ## 10. Receipt hashes and execution
 
-The immutable evidence directory is
-`runs/20260903_particle_localized_physical_hessian/`. Its canonical receipts
-are:
+The local evidence directory used for the verified run is
+`runs/20260903_particle_localized_physical_hessian/`. Text receipt hashes
+normalize CRLF to LF without parsing or reserializing JSON; the binary archive
+hash is byte-exact:
 
 | Evidence | SHA-256 convention | SHA-256 |
 |---|---|---|
-| `preflight_verification.json` | canonical text | `3e7a79e982ba007c020f6c83a84f9cd3f6026e854cf8137436fdb8417218d0f0` |
-| `results.json` | canonical text | `07041ed86f266ba45ef967a4b16f12454e19495e5965a24680ed38d96f0ecb35` |
+| `preflight_verification.json` | CRLF-normalized text | `3e7a79e982ba007c020f6c83a84f9cd3f6026e854cf8137436fdb8417218d0f0` |
+| `results.json` | CRLF-normalized text | `07041ed86f266ba45ef967a4b16f12454e19495e5965a24680ed38d96f0ecb35` |
 | `eigenmodes.npz` | byte-exact | `f612ff2eab683f830920386bac838bfb39ee988247c246765eca28de2a2cb9f7` |
-| `verification.json` | canonical text | `0ac3bf82aaaaa8c391c424dbda053d4242e2e83394b37431f2339b80b60bac08` |
+| `verification.json` | CRLF-normalized text | `0ac3bf82aaaaa8c391c424dbda053d4242e2e83394b37431f2339b80b60bac08` |
 
 The commands are:
 

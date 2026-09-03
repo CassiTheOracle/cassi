@@ -256,15 +256,16 @@ $$
 ## 10. Receipt hashes and execution
 
 The evidence directory is
-`runs/20260903_particle_physical_hessian_precision_v2/`. Its current verified
-receipts are:
+`runs/20260903_particle_physical_hessian_precision_v2/`. Text receipt hashes
+normalize CRLF to LF without parsing or reserializing JSON; the binary archive
+hash is byte-exact:
 
 | Evidence | SHA-256 convention | SHA-256 |
 |---|---|---|
-| `preflight_verification.json` | canonical text | `236ace4ec3aa5bc40b09011dfc9425c003c1420f77585e7c2fd80d42f1265bfa` |
-| `results.json` | canonical text | `9f0ff0a06093e4359da1cc769741fc61c58597b957c85181ae3147c3a329da24` |
+| `preflight_verification.json` | CRLF-normalized text | `236ace4ec3aa5bc40b09011dfc9425c003c1420f77585e7c2fd80d42f1265bfa` |
+| `results.json` | CRLF-normalized text | `9f0ff0a06093e4359da1cc769741fc61c58597b957c85181ae3147c3a329da24` |
 | `eigenmodes.npz` | byte-exact | `233ce5d86b309fe3ba918ac062dfde00bd1a75efe32875e5132bafe6c0d5172a` |
-| `verification.json` | canonical text | `933452203fd3169d73bab625dccd551f2b59281db72646cdaa6efa7057a60769` |
+| `verification.json` | CRLF-normalized text | `933452203fd3169d73bab625dccd551f2b59281db72646cdaa6efa7057a60769` |
 
 The commands are:
 
