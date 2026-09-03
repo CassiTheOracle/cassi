@@ -1,0 +1,89 @@
+{
+  "schema": "cassi.particle-carrier-localization.manifest.v1",
+  "source": {
+    "artifact": "runs/20260902_particle_stationary_precision_v5/fields_block01.npz",
+    "artifact_sha256": "ac4c54fa0e5ed61f73cb86b5e83d0061806fc2e5d1725894bad9e8e89457a61e",
+    "results": "runs/20260902_particle_stationary_precision_v5/results.json",
+    "results_sha256": "9decc9a751d7c833f92754eb3e5187da9056bc5ddda0c9bd125e188f4e90cfa5",
+    "verification": "runs/20260902_particle_stationary_precision_v5/verification.json",
+    "verification_sha256": "7667c9617c3e4bd237e77e84226c78805d224002a18a192f25cce24cd2ce4b32",
+    "selected_block": 1,
+    "source_h_C": 1.5
+  },
+  "fixed_coefficients": {
+    "phi": 1.618033988749895,
+    "alpha_s": 1.0,
+    "u_rho": 4.0,
+    "u_phi": 4.0,
+    "gamma_x": 1.0,
+    "gamma_s": 1.0,
+    "u_H": 4.0,
+    "k_Cx": 1.0,
+    "k_Cs": 1.0,
+    "e_C": 0.75,
+    "u_C": 1.0,
+    "q_C": 4.0,
+    "L_s": 1.0,
+    "xi_gf": 1.0
+  },
+  "candidates": [
+    {
+      "label": "half_reference",
+      "multiplier": 0.5,
+      "h_C": 2.9598260763447164
+    },
+    {
+      "label": "three_quarters_reference",
+      "multiplier": 0.75,
+      "h_C": 4.439739114517074
+    },
+    {
+      "label": "reference",
+      "multiplier": 1.0,
+      "h_C": 5.919652152689433
+    },
+    {
+      "label": "five_quarters_reference",
+      "multiplier": 1.25,
+      "h_C": 7.399565190861791
+    },
+    {
+      "label": "three_halves_reference",
+      "multiplier": 1.5,
+      "h_C": 8.879478229034149
+    }
+  ],
+  "schedule": {
+    "precision_gradient_limit": 0.00012,
+    "omega_limit": 0.73,
+    "primary_max_blocks": 4,
+    "comparison_max_blocks": 6,
+    "primary_families": [
+      "P"
+    ],
+    "comparison_families": [
+      "D",
+      "H"
+    ],
+    "comparison_basin": "separated_core",
+    "continuation": {
+      "max_iter": 880,
+      "max_eval": 1100,
+      "history_size": 20,
+      "tolerance_grad": 1e-10,
+      "tolerance_change": 1e-12,
+      "line_search_fn": "strong_wolfe"
+    }
+  },
+  "sha256": {
+    "computations/particle-carrier-localization-prereg.md": "f6f270b00afc5940fa406f4b6db52c4a8d0f7d064afdd78de60ec55ad5b0c80e",
+    "computations/particle_carrier_localization.py": "e0a9965d817d2bb10218ab6a18b35e89b3f9a510a0f3c7c5d2a56349e4b37797",
+    "computations/verify_particle_carrier_localization.py": "111f4eaaa1b1435d76391301a9c9d48c4444d6f91cffe8a6c994fb4840bfd153",
+    "computations/particle_stationary_bvp.py": "3143682f8a1052c60243c906b029a5f291a5d767d17b4ebe622deb23d22c5ad1",
+    "computations/particle_stationary_q2_recovery_v2.py": "10e269fd2a669f58fbec0c20f4076d9e07f4a693de4ca40221d5bd29cca3a2a9",
+    "computations/verify_particle_stationary_q2_recovery_v2.py": "787520fcf3abb2ccbb66cc61a5ced29c39e1a9e75976468706ca58bae3de4707",
+    "runs/20260902_particle_stationary_precision_v5/fields_block01.npz": "ac4c54fa0e5ed61f73cb86b5e83d0061806fc2e5d1725894bad9e8e89457a61e",
+    "runs/20260902_particle_stationary_precision_v5/results.json": "9decc9a751d7c833f92754eb3e5187da9056bc5ddda0c9bd125e188f4e90cfa5",
+    "runs/20260902_particle_stationary_precision_v5/verification.json": "7667c9617c3e4bd237e77e84226c78805d224002a18a192f25cce24cd2ce4b32"
+  }
+}
