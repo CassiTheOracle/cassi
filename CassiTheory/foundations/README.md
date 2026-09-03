@@ -672,8 +672,8 @@ transport. Around a nonzero rail
 background, first-order source-action elimination gives a Nambu Schur response
 covariant under constant relative-frame rotations, with analytic endpoint
 poles. The independently frozen source-action response passes all six physical
-and algebraic checks. The initial dynamical-response receipt fails because its
-endpoint block carries the opposite source-action sign. At
+and algebraic checks. The dynamical-response receipt fails because its endpoint
+block carries the opposite source-action sign. At
 the symmetric zero background, the eliminated source action begins at quartic
 rail order with a positive coefficient when $\mu_{v,0}:=W_v'(0)>0$; physical
 energy, stress, inertial mass, and stability signs remain open. The potential,

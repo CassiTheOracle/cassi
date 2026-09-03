@@ -20,9 +20,9 @@ on $N\in\{17,21,25,29\}$ grids. The two inherited endpoints are immutable source
 
 ## 2. Execution and verification
 
-An initial completed execution exposed two receipt-shape defects: optimizer-coordinate gradients were copied into a physical source receipt, and the verifier looked for the analytic-seed conversion under the wrong established field name. `computations/particle-carrier-resolution-recovery-verification-amendment.md` binds that failed receipt, freezes the schema-only repair, and requires a full rerun. No physical input, statistic, threshold, or decision branch changed.
+The verifier schema retains only independently reproducible physical diagnostics for inherited source levels and reads analytic-seed conversion from the established `source_reconstruction` field. The bound verification amendment records these requirements and the non-evidentiary receipt (`computations/particle-carrier-resolution-recovery-verification-amendment.md`). The canonical result uses this schema, which affects no physical input, statistic, threshold, or decision branch.
 
-The canonical rerun passed independent preflight, completed both new refinements in their first continuation blocks, and passed independent final verification with zero mismatches. The verifier reconstructed source and refinement fields from the stored artifacts, recomputed physical diagnostics, re-evaluated qualification and localization, checked optimizer budgets and stopping, recomputed adjacent-grid statistics and energy-difference contraction, and derived the verdict without importing the primary resolution driver.
+The canonical campaign passes independent preflight, completes both new refinements in their first continuation blocks, and passes independent final verification with zero mismatches. The verifier reconstructs source and refinement fields from the stored artifacts, recomputes physical diagnostics, re-evaluates qualification and localization, checks optimizer budgets and stopping, recomputes adjacent-grid statistics and energy-difference contraction, and derives the verdict without importing the primary resolution driver.
 
 | Canonical receipt | SHA-256 |
 |---|---|

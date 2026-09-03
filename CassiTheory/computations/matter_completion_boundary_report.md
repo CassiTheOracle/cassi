@@ -4,25 +4,27 @@
 
 ## Abstract
 
-This report records the first and sole execution of the frozen MCC1–MCC9
-receipt. All nine conditional gates pass. The receipt closes the mathematical
-boundary connecting a minimal exterior dilation, reciprocal interface,
-routed transport, single-mode power normalization, maintained open-system
-coherence, total stress, constant-$G$ backreaction, the Cartan embedding in the
-particle branch, and the reduced fixed-charge stability criteria.
+The frozen calculation tests nine conditional boundaries connecting a minimal
+exterior dilation, reciprocal interface, routed transport, single-mode power
+normalization, maintained open-system coherence, total stress, constant-$G$
+backreaction, the Cartan embedding in the particle branch, and reduced
+fixed-charge stability. All nine boundaries pass. The receipt labels them
+MCC1–MCC9 for traceability.
 
-The MCC1–MCC9 receipt carries no PA32 solve and therefore makes no stationary
-background claim by itself. The independent canonical-preimage continuation
-campaign supplies a Q2-qualified finite-grid primary background with verdict
-`PASS—Q2-QUALIFIED PRIMARY BACKGROUND`. The selected field fails localization
-and carrier retention, while every domain plus high-resolution arm fails Q2.
-Its finite-grid PA42 physical quotient and Hessian action pass independent
-structural checks, while the augmented-gradient preflight stops before
-eigenvalue evaluation. The physical exterior, microscopic interface
+This reduced calculation contains no stationary-field solve and therefore makes
+no stationary background claim by itself. The canonical-preimage continuation at
+$h_C=1.50$ supplies a finite-grid diffuse background that passes the structural
+and physical-gradient conditions while failing carrier localization and
+retention. Its finite-grid physical quotient and constrained Hessian have a
+nonnegative matched low spectrum. A separate direct-coordinate calculation at
+the Mapped coupling $h_C=2.9598260763447164$ supplies a localized, nodeless,
+carrier-retaining stationary branch across four same-domain resolutions and
+one larger-domain comparison. The localized branch has no constrained Hessian
+or real-time perturbation receipt. The physical exterior, microscopic interface
 coefficients, golden port-power identification, multimode carrier
 normalization, reservoir, local reservoir stress, state-dependent gravity,
-coherence-fibre particle identity, domain and resolution convergence, and full
-constrained spectrum remain open.
+coherence-fibre particle identity, continuum limit, localized-branch
+stability, and physical particle identity remain open.
 
 ## 1. Frozen execution
 
@@ -68,7 +70,7 @@ line-density sector.
 | MCC6 | Enlarged unitary evolution conserves total energy and number; interior and complementary exchange vectors close the Ward ledger | **PASS** | Local reservoir stress components require a closed metric-dependent action |
 | MCC7 | The constant-$G$ linearized Einstein witness is transverse; a variable scalar coupling creates an extra divergence | **PASS** | State-dependent gravity open |
 | MCC8 | The Cartan connection requires the minus-sign transformation; rank-one and full-rank Gram fibres are positive; $Q_C$ remains an independent singlet charge | **PASS** | Physical coherence-fibre particle identity open |
-| MCC9 | The frozen CC29 branch has one bounded positive-curvature root and positive nonconstant CC47 line modes | **PASS** | MCC9 contains no PA32 solve; separate recovery supplies a Q2-qualified finite-grid primary background and explicit physical quotient, while the PA42 augmented-gradient preflight, localization, domain/resolution convergence, and the constrained spectrum remain open |
+| MCC9 | The frozen CC29 branch has one bounded positive-curvature root and positive nonconstant CC47 line modes | **PASS** | MCC9 contains no stationary-field solve. The diffuse $h_C=1.50$ branch has a nonnegative matched finite-grid Hessian but fails localization and retention; the localized $h_C=2.9598260763447164$ branch is resolution-consistent on three finest finite grids and has no constrained Hessian or real-time perturbation receipt |
 
 ## 4. Literal first-execution output
 
@@ -236,17 +238,24 @@ with CC36 residual $4.441\times10^{-16}$, positive distance from both CC38
 bounds, and reduced curvature $1.496039$. The smallest nonconstant frozen
 line-density eigenvalue is $0.975736$.
 
-These numbers verify the length and frozen line-density sectors.
-Canonical-preimage continuation of the registered particle endpoints supplies
-five structural primary arms that pass Q1–Q4. The frozen rule selects
-`P:separated_core`. That field fails localization and carrier retention, and
-every domain plus high-resolution arm fails Q2. MCC9 therefore supplies no
-domain-stable basin ordering or spectrum qualification. The unresolved
-particle sectors remain: non-axisymmetric deformations and knots; arbitrary
-multicore and fragmented-charge configurations; higher scale and transverse
-modes; topology-changing paths; infinite-domain existence; the full
-fixed-charge, gauge-quotiented Hessian and mixed dynamical spectrum; real-time
-decay, tunnelling, and continuum thresholds; and quantum spin and statistics.
+The reduced separation curvature and nonconstant line-density eigenvalue verify
+the length and frozen line-density sectors. The
+canonical-preimage continuation at $h_C=1.50$ supplies five structural primary
+arms that pass the first four stationary-field conditions and selects the
+separated-core field. That diffuse field fails localization and carrier
+retention, while its finite-grid physical quotient has a nonnegative matched
+low Hessian spectrum. The distinct direct-coordinate branch at
+$h_C=2.9598260763447164$ is physically stationary, nodeless, localized, and
+carrier-retaining across four same-domain resolutions and one larger-domain
+comparison. Its two finest adjacent comparisons pass the frozen tolerances,
+and its absolute energy drift contracts twice.
+
+The unresolved particle sectors include the localized branch's constrained
+Hessian and mixed dynamical spectrum; non-axisymmetric deformations and knots;
+arbitrary multicore and fragmented-charge configurations; higher scale and
+transverse modes; topology-changing paths; infinite-domain existence;
+real-time decay, tunnelling, and continuum thresholds; and quantum spin and
+statistics.
 
 ## 6. Present boundary
 
@@ -266,10 +275,13 @@ $$
 \end{aligned}
 $$
 
-Each arrow states its assumptions and remaining physical input. The selected
-Q2-qualified primary artifact permits construction of the finite-grid
-projected Hessian. Carrier localization, domain and resolution convergence,
-the full gauge quotient, and selected temporal groups remain independent
+The conditional matter chain states its assumptions and remaining physical
+input at every step. The diffuse
+$h_C=1.50$ artifact supplies the finite-grid projected Hessian and its
+nonnegative matched low spectrum. The localized $h_C=2.9598260763447164$
+artifact closes finite-grid localization, retention, and three-level
+resolution consistency, while its constrained Hessian, continuum limit,
+full gauge quotient, and selected temporal groups remain independent
 qualification requirements.
 
 ## References
@@ -293,3 +305,7 @@ qualification requirements.
 - `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary
   background and retained localization, domain, resolution, and spectrum
   boundaries.
+- `computations/particle-carrier-direct-coordinate-report.md`—localized,
+  nodeless, carrier-retaining fixed-charge branch and larger-domain control.
+- `computations/particle-carrier-resolution-recovery-report.md`—independently
+  verified same-domain refinement sequence and finite-grid resolution verdict.

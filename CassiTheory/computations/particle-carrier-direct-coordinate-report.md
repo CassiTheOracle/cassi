@@ -4,7 +4,7 @@
 
 ## Abstract
 
-A direct fixed-charge carrier coordinate removes the softplus saturation that hid a large physical carrier residual in the stationary particle calculation. At density-depletion coupling $h_C=2.9598260763447164$ and fixed carrier charge $q_C=4$, the recovered primary field is physically stationary to gradient RMS $1.07\times10^{-7}$, nodeless, localized, and energetically retained below the exterior threshold. The same branch survives a larger domain and a finer grid as a qualified localized solution. The larger-domain observables agree with the primary calculation, while the finer-grid energy differs by $8.43\%$, above the frozen $5\%$ tolerance. The measured conclusion is therefore a finite-grid stationary branch, not a resolution-qualified continuum solution.
+A direct fixed-charge carrier coordinate removes the softplus saturation that hid a large physical carrier residual in the stationary particle calculation. At the Mapped density-depletion coupling $h_C=2.9598260763447164$ and fixed carrier charge $q_C=4$, the recovered primary field is physically stationary to gradient RMS $1.07\times10^{-7}$, nodeless, localized, and energetically retained below the exterior threshold. The localized branch also passes a larger-domain control and survives four same-domain resolutions. The two finest adjacent comparisons satisfy the frozen observable tolerances, while the absolute energy drift contracts twice across the four-grid sequence. The result is a three-level finite-grid resolution-consistent stationary branch; continuum convergence, constrained stability, real-time persistence, and physical particle identity remain open.
 
 ## 1. Question and intervention
 
@@ -24,7 +24,7 @@ Here $M$ fixes the Dirichlet shell and $\mathcal P_{C_4}$ preserves the register
 
 The independent preflight reconstructed all five source artifacts, reproduced their physical diagnostics, verified their hashes, and recovered the fixed charge through the direct coordinate with maximum round-trip error below $5\times10^{-12}$. It reported zero mismatches before the evidentiary calculation began.
 
-A callable-interface defect produced a non-evidentiary receipt before any optimization block started. The frozen repair in `computations/particle-carrier-direct-coordinate-execution-amendment.md` made the field map accept the stationary solver's charge argument, applied the already-required scalar projector, and moved the calculation to a fresh output directory. No physical or numerical decision rule changed.
+The canonical field-map interface accepts the stationary solver's charge argument, applies the required scalar projector, and writes to a separate evidentiary output path. The bound execution amendment records this interface and its non-evidentiary callable receipt (`computations/particle-carrier-direct-coordinate-execution-amendment.md`). The interface definition affects no physical or numerical decision rule.
 
 The canonical execution is bound by these receipts:
 
@@ -54,29 +54,35 @@ The first frozen coefficient candidate, $h_C=2.9598260763447164$, converged in o
 
 The branch passes charge and boundary control, gauge control, outer-flux control, physical stationarity, localization, density depletion, carrier retention, and the nodeless condition. Its stored field artifact has SHA-256 `c32beb4ee7bc7746a4fc18b63bc04ef7db12cc18505c9bee8ce2d298ddc25837`.
 
-The physical residual falls by more than three orders of magnitude from the same source field's $6.08\times10^{-4}$ residual. Because the action and coefficient are unchanged between that source and this endpoint, the improvement isolates the carrier parameterization as the numerical obstruction. It does not establish that the selected coefficient follows from the theory or corresponds to a measured particle.
+The physical residual falls by more than three orders of magnitude from the same source field's $6.08\times10^{-4}$ residual. Because the action and coefficient are unchanged between that source and this endpoint, the improvement demonstrates that carrier parameterization materially obstructed the optimization. Residuals on positive carrier cells also contribute to the carrier-sector diagnosis, so this comparison does not establish the parameterization as the sole obstruction. The selected coefficient has no theoretical derivation or measured-particle calibration.
 
 ## 4. Domain and resolution comparisons
 
-A larger box at the same lattice spacing converged independently from the frozen analytic separated-core seed. It remained physically stationary, nodeless, localized, and retained. Relative to the primary branch, its energy differed by $0.740\%$, its carrier radius by $0.881\%$, its core length by $0.0213$, and its carrier frequency by $0.00374$. Every larger-domain comparison passed, so the localized branch is not set by the primary box boundary at this spacing.
+A larger box at the same lattice spacing converges independently from the frozen analytic separated-core seed. It remains physically stationary, nodeless, localized, and retained. Relative to the primary branch, its energy differs by $0.740\%$, its carrier radius by $0.881\%$, its core length by $0.0213$, and its carrier frequency by $0.00374$. Every larger-domain comparison passes, so the localized branch is not set by the primary box boundary at this spacing.
 
-A finer grid on the original box also converged independently from the analytic seed. It passed the same stationarity, nodelessness, localization, retention, gauge, boundary, and outer-flux conditions. Its carrier radius differed by $3.89\%$, its core length by $0.110$, and its carrier frequency by $0.0353$, all within their frozen tolerances. Its physical energy was $1.4635886842$, which differs from the primary energy by $8.43\%$ and exceeds the frozen $5\%$ tolerance.
+On the original $R=4$ box, the $N=21$ endpoint also converges independently from the analytic seed and passes stationarity, nodelessness, localization, retention, gauge, boundary, and outer-flux conditions. Its energy differs from the $N=17$ endpoint by $8.43\%$, outside the direct-coordinate campaign's frozen $5\%$ pairwise tolerance. Two further independently seeded refinements at $N=25$ and $N=29$ resolve that finite-grid boundary: their adjacent energy differences are $2.829\%$ and $1.245\%$, and their carrier-radius, core-length, and carrier-frequency differences all pass the frozen tolerances.
 
-| Grid | Domain radius | Spacing | Physical gradient RMS | Energy | Carrier radius | $\widehat\omega_C$ |
-|---|---:|---:|---:|---:|---:|---:|
-| primary | $4$ | $0.5$ | $1.07\times10^{-7}$ | $1.3402012490$ | $1.5607471807$ | $-0.0448188349$ |
-| larger domain | $5$ | $0.5$ | $6.62\times10^{-10}$ | $1.3302846266$ | $1.5746156666$ | $-0.0485608421$ |
-| finer grid | $4$ | $0.4$ | $1.59\times10^{-7}$ | $1.4635886842$ | $1.6238815830$ | $-0.0095220668$ |
+| Role | $N$ | Domain radius | Spacing | Physical gradient RMS | Energy | Carrier radius | $\widehat\omega_C$ |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| primary | 17 | $4$ | $0.5$ | $1.07\times10^{-7}$ | $1.3402012490$ | $1.5607471807$ | $-0.0448188349$ |
+| larger domain | 21 | $5$ | $0.5$ | $6.62\times10^{-10}$ | $1.3302846266$ | $1.5746156666$ | $-0.0485608421$ |
+| first same-domain refinement | 21 | $4$ | $0.4$ | $1.59\times10^{-7}$ | $1.4635886842$ | $1.6238815830$ | $-0.0095220668$ |
+| second same-domain refinement | 25 | $4$ | $1/3$ | $2.40\times10^{-7}$ | $1.5062009945$ | $1.6167873281$ | $0.0019425599$ |
+| third same-domain refinement | 29 | $4$ | $2/7$ | $3.09\times10^{-7}$ | $1.5251878560$ | $1.6314313026$ | $0.0034164532$ |
 
-The larger-domain artifact hash is `54ea983bb78783f2e0619851741f47167a2c9d6fb08757ce70361b0d1369c460`; the finer-grid artifact hash is `8aa65f3c08167c902660f9e8d09c0ce921d43c7f0af152b31aae79db6875810f`.
+The same-domain absolute energy differences contract from $0.1233874$ to $0.0426123$ and then to $0.0189869$. The frozen resolution-recovery decision tree therefore returns `EMERGES—THREE-LEVEL RESOLUTION-CONSISTENT LOCALIZED RETAINED BRANCH`.
+
+The larger-domain artifact hash is `54ea983bb78783f2e0619851741f47167a2c9d6fb08757ce70361b0d1369c460`. The same-domain refinement artifact hashes are `8aa65f3c08167c902660f9e8d09c0ce921d43c7f0af152b31aae79db6875810f` at $N=21$, `c75a4255da2008a90268fcda83fcdbdca5a8386f9f580f854737668b664e8393` at $N=25$, and `db42c53c5ca0f5a984fc2614168198417f95b289911904596b96cd4c5e8988c0` at $N=29$.
+
+The resolution-recovery manifest, primary result, and independent verification have SHA-256 hashes `8d1f18cb18d3635960ec7be1076688bcbd1f1fbc5fda1d86e851c46f8b3ff853`, `11b6518897683636f0890936ae31d2d17516b9b79716a97b4919cbc60e0b6121`, and `94dcc278ef3418c00ca4cb71fa9066712713216c8c645a0db45dff8f45a39170`, respectively. The independent verification passes with zero mismatches.
 
 ## 5. Result and remaining boundary
 
-The calculation establishes a nodeless, localized, fixed-charge stationary solution of the complete registered finite-grid action at the first tested density-depletion coefficient. The solution is independently reproducible from a separate basin on all three tested grids, physically stationary under the full constrained first variation, and insensitive to enlarging the box at fixed spacing.
+The direct-coordinate and resolution-recovery calculations establish a nodeless, localized, fixed-charge stationary solution of the complete registered finite-grid action at the Mapped density-depletion coupling. The branch is independently reproducible from the analytic separated-core basin, insensitive to the tested box enlargement, and resolution-consistent across the three finest same-domain grids.
 
-The calculation does not yet establish a continuum particle. The finer-grid energy fails the registered cross-grid agreement condition even though the field remains localized and stationary. The next discriminating calculation must extend the same-domain resolution sequence at the selected coefficient and decide whether the energy difference contracts toward a common limit or remains resolution dependent.
+The evidence remains finite-grid: four same-domain grids do not establish a continuum limit as $\Delta x\to0$. The localized branch also has no constrained physical Hessian or real-time perturbation receipt. Its next discriminating calculation is the constrained physical Hessian on the finest localized artifact, with the fixed-charge direction, gauge image, shell mask, and global carrier phase treated explicitly.
 
-The density-depletion coefficient remains an uncalibrated model input selected by this numerical search. The carrier charge is an auxiliary global $U(1)_C$ number with no demonstrated identification as electric charge, baryon number, lepton number, spin, or a Standard Model species. Dynamic persistence, fluctuation stability, topology-changing formation, annihilation, and observable quantum-number matching remain separate requirements.
+The density-depletion coefficient remains an uncalibrated model input selected by the numerical search. The carrier charge is an auxiliary global $U(1)_C$ number with no demonstrated identification as electric charge, baryon number, lepton number, spin, or a Standard Model species. Dynamic persistence, topology-changing formation, annihilation, and observable quantum-number matching remain separate requirements.
 
 ## References
 
@@ -86,4 +92,8 @@ The density-depletion coefficient remains an uncalibrated model input selected b
 - `computations/particle_carrier_direct_coordinate.py`—primary recovery calculation.
 - `computations/verify_particle_carrier_direct_coordinate.py`—independent artifact and verdict verifier.
 - `computations/particle-carrier-localization-report.md`—source scan and carrier-residual diagnosis.
+- `computations/particle-carrier-resolution-recovery-prereg.md`—frozen same-domain refinement sequence, convergence statistics, tolerances, and verdict tree.
+- `computations/particle-carrier-resolution-recovery-verification-amendment.md`—bound verifier schema and non-evidentiary receipt.
+- `computations/particle_carrier_resolution_recovery_manifest.json`—hash-bound resolution code, source artifacts, grids, and optimizer schedule.
+- `computations/particle-carrier-resolution-recovery-report.md`—independently verified refinement measurements and present finite-grid boundary.
 - `foundations/particle-stationary-action-closure.md`—complete stationary action and particle-completion criteria.

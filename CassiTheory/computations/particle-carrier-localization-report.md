@@ -18,11 +18,14 @@ $$
 \boxed{\mathrm{INCONCLUSIVE\text{—}NUMERICAL\ EXECUTION\ OR\ VERIFICATION}}.
 $$
 
-The failure is localized to the carrier optimization coordinate. The positive
-softplus field suppresses the optimizer gradient as the carrier tail becomes
-small, while the corresponding fixed-charge physical residual remains large.
-A direct normalized carrier coordinate is the next numerical intervention; the
-completed coefficient scan remains immutable and supplies its source artifacts.
+The failed physical-stationarity condition is dominated by the carrier sector.
+Softplus saturation suppresses optimizer gradients where the carrier tail
+approaches zero and is a demonstrated contributor to that obstruction.
+Positive carrier cells also retain a measurable residual, so the coordinate
+map is not established as the sole cause. A direct normalized carrier
+coordinate supplies the discriminating calculation and supports a distinct
+localized, retained branch at the weakest scanned coupling; this coefficient
+scan remains immutable as its source and diagnostic record.
 
 ## 1. Physical question
 
@@ -153,27 +156,29 @@ The evidence directories are
 `runs/20260902_particle_carrier_localization/` and
 `runs/20260902_particle_carrier_localization_residual_analysis/`.
 
-## 5. Scientific boundary and next calculation
+## 5. Scientific boundary and resolved numerical intervention
 
 The scan shows that density-depletion binding can produce compact carrier
 profiles within the static action, including a buffered multiplier and a small
 outer norm at the weakest tested increase. This statement concerns measured
-shapes along an incomplete optimization path. A stationary localized branch is
-still unestablished because the physical carrier first variation remains above
-the frozen threshold.
+shapes along incomplete softplus-coordinate optimization paths. None of the
+five scan endpoints qualifies as a stationary localized branch because its
+physical carrier first variation remains above the frozen threshold.
 
-The next calculation keeps the functional, field class, source artifacts,
-charge, grids, coupling values, and physical stationarity statistic fixed. It
-replaces the saturated positive coordinate with a direct shell-masked carrier
-field normalized to $q_C$. That coordinate has a nonsingular first-order map on
-small carrier tails and matches the unconstrained fixed-charge residual already
-used for endpoint qualification. Any rerun requires its own preregistration,
-manifest, source chain, stopping rule, independent verification, and immutable
-verdict.
+The direct shell-masked carrier coordinate normalized to $q_C$ keeps the
+functional, field class, source artifacts, charge, grids, coupling value, and
+physical-stationarity statistic fixed while removing the singular tail
+suppression. At $h_C=2.9598260763447164$, that calculation reaches a physically
+stationary, nodeless, localized, carrier-retaining endpoint. Independent
+refinements support the same branch on four same-domain grids and one
+larger-domain grid; the two finest adjacent comparisons pass their frozen
+tolerances, and the absolute energy drift contracts twice.
 
-Physical carrier identity, units, continuum existence, unrestricted symmetry,
-topology-changing competitors, a spatially resolved phase mode, the mixed
-temporal spectrum, decay channels, lifetime, spin, and statistics remain open.
+The result remains finite-grid and coefficient-selected. The localized
+branch's constrained Hessian, continuum existence, unrestricted symmetry,
+topology-changing competitors, spatially resolved phase mode, mixed temporal
+spectrum, decay channels, lifetime, physical carrier identity, units, spin,
+and statistics remain open.
 
 ## References
 
@@ -184,6 +189,10 @@ temporal spectrum, decay channels, lifetime, spin, and statistics remain open.
   coefficient-aware verifier.
 - `computations/analyze_particle_carrier_localization_residual.py`—post-result
   decomposition of the physical first variation.
+- `computations/particle-carrier-direct-coordinate-report.md`—direct normalized
+  carrier recovery, larger-domain control, and mapped coefficient.
+- `computations/particle-carrier-resolution-recovery-report.md`—independently
+  verified same-domain refinements and finite-grid resolution verdict.
 - `computations/particle-stationary-precision-v5-report.md`—hash-bound source
   stationary field.
 - `foundations/core-trapped-charge-support.md`—carrier binding and retention
