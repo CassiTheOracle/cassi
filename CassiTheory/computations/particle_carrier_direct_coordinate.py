@@ -20,7 +20,7 @@ import particle_stationary_q2_recovery_v2 as recovery  # pyright: ignore[reportM
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RUN_DIR = ROOT / "runs" / "20260902_particle_carrier_direct_coordinate"
+RUN_DIR = ROOT / "runs" / "20260902_particle_carrier_direct_coordinate_v2"
 PREFLIGHT_PATH = RUN_DIR / "preflight_verification.json"
 RESULTS_PATH = RUN_DIR / "results.json"
 MANIFEST_PATH = ROOT / "computations" / "particle_carrier_direct_coordinate_manifest.json"
@@ -92,16 +92,17 @@ def configure_coefficients(h_c: float) -> dict[str, float]:
 
 
 def direct_physical_fields(
-    raw: Mapping[str, torch.Tensor], grid: stationary.Grid
+    raw: Mapping[str, torch.Tensor],
+    grid: stationary.Grid,
+    charge: float = stationary.COEFFICIENTS["q_C"],
 ) -> dict[str, torch.Tensor]:
-    fields = SOFTPLUS_PHYSICAL_FIELDS(raw, grid)
-    carrier_shape = grid.mask * raw["w"]
-    carrier_norm = torch.sqrt(torch.sum(carrier_shape**2) * grid.dv)
-    fields["c"] = (
-        math.sqrt(stationary.COEFFICIENTS["q_C"])
-        * carrier_shape
-        / carrier_norm
-    )
+    fields = SOFTPLUS_PHYSICAL_FIELDS(raw, grid, charge)
+    if charge == 0.0:
+        fields["c"] = torch.zeros_like(grid.mask)
+    else:
+        carrier_shape = grid.mask * stationary.project_scalar(raw["w"])
+        carrier_norm = torch.sqrt(torch.sum(carrier_shape**2) * grid.dv)
+        fields["c"] = math.sqrt(charge) * carrier_shape / carrier_norm
     return fields
 
 
@@ -171,7 +172,7 @@ def directize_analytic_seed(
 
 def verify_manifest() -> tuple[dict[str, Any], str]:
     manifest = prior.read_json(MANIFEST_PATH)
-    if manifest.get("schema") != "cassi.particle-carrier-direct-coordinate.manifest.v1":
+    if manifest.get("schema") != "cassi.particle-carrier-direct-coordinate.manifest.v2":
         raise CampaignFailure("direct-coordinate manifest schema mismatch")
     expected_source = {
         "results": str(SOURCE_RESULTS.relative_to(ROOT)).replace("\\", "/"),
@@ -485,7 +486,7 @@ def run() -> dict[str, Any]:
         raise CampaignFailure("independent preflight manifest hash mismatch")
 
     receipt: dict[str, Any] = {
-        "schema": "cassi.particle-carrier-direct-coordinate.results.v1",
+        "schema": "cassi.particle-carrier-direct-coordinate.results.v2",
         "status": "in_progress",
         "manifest": manifest,
         "manifest_sha256": manifest_sha256,
@@ -682,7 +683,7 @@ if __name__ == "__main__":
         prior.write_json(
             RUN_DIR / "failure.json",
             {
-                "schema": "cassi.particle-carrier-direct-coordinate.failure.v1",
+                "schema": "cassi.particle-carrier-direct-coordinate.failure.v2",
                 "error": f"{type(error).__name__}: {error}",
             },
         )

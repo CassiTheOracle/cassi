@@ -1,5 +1,5 @@
 {
-  "schema": "cassi.particle-carrier-direct-coordinate.manifest.v1",
+  "schema": "cassi.particle-carrier-direct-coordinate.manifest.v2",
   "source": {
     "results": "runs/20260902_particle_carrier_localization/results.json",
     "results_sha256": "5a90e405d9d6851a1e445633adc0523de9c94d64e9ed27c139f177f92432a2d0",
@@ -89,9 +89,10 @@
     }
   },
   "sha256": {
+    "computations/particle-carrier-direct-coordinate-execution-amendment.md": "a8917f7c3afcba47a7f8405774b649b9a10cfd2111fd0f700df55387ace0ed48",
     "computations/particle-carrier-direct-coordinate-prereg.md": "b9d95ff44dede34c74f125d3aab9a33ac8c8d08ad136f70ec5995741cc6c5000",
-    "computations/particle_carrier_direct_coordinate.py": "4c31f90324bbc53bdfca7a60db8024da0006e9713e5de02f3dec567543c211e0",
-    "computations/verify_particle_carrier_direct_coordinate.py": "ee285a5d539423b686fd51a57611c60c7b75e13d9645a9d8e3c008e64ad1944e",
+    "computations/particle_carrier_direct_coordinate.py": "339344108cc710e382e423968fa1402ca4bb22b1bf9ceaba36c8169a881d69bf",
+    "computations/verify_particle_carrier_direct_coordinate.py": "d9d6f41788161911a4a3c987289e17d0f78a2feda1ffcb7c296f18ba9cbeaac9",
     "computations/particle_carrier_localization.py": "e0a9965d817d2bb10218ab6a18b35e89b3f9a510a0f3c7c5d2a56349e4b37797",
     "computations/verify_particle_carrier_localization.py": "111f4eaaa1b1435d76391301a9c9d48c4444d6f91cffe8a6c994fb4840bfd153",
     "computations/particle_stationary_bvp.py": "3143682f8a1052c60243c906b029a5f291a5d767d17b4ebe622deb23d22c5ad1",

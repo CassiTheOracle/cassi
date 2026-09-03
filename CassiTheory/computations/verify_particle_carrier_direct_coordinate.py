@@ -15,7 +15,7 @@ import verify_particle_carrier_localization as prior  # pyright: ignore[reportMi
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RUN_DIR = ROOT / "runs" / "20260902_particle_carrier_direct_coordinate"
+RUN_DIR = ROOT / "runs" / "20260902_particle_carrier_direct_coordinate_v2"
 PREFLIGHT_PATH = RUN_DIR / "preflight_verification.json"
 RESULTS_PATH = RUN_DIR / "results.json"
 VERIFICATION_PATH = RUN_DIR / "verification.json"
@@ -112,7 +112,7 @@ def verify_manifest(
         out,
         "manifest.schema",
         manifest.get("schema"),
-        "cassi.particle-carrier-direct-coordinate.manifest.v1",
+        "cassi.particle-carrier-direct-coordinate.manifest.v2",
     )
     prior.independent.compare_tree(
         out, "manifest.source", manifest.get("source"), expected_source_manifest()
@@ -322,7 +322,7 @@ def run_preflight() -> int:
     manifest, manifest_sha256 = verify_manifest(mismatches)
     sources = verify_sources(mismatches)
     report = {
-        "schema": "cassi.particle-carrier-direct-coordinate.preflight.v1",
+        "schema": "cassi.particle-carrier-direct-coordinate.preflight.v2",
         "pass": not mismatches
         and manifest is not None
         and len(sources) == len(SOURCE_ARTIFACTS),
@@ -590,7 +590,7 @@ def run_final_verification() -> int:
         mismatches,
         "results.schema",
         results.get("schema"),
-        "cassi.particle-carrier-direct-coordinate.results.v1",
+        "cassi.particle-carrier-direct-coordinate.results.v2",
     )
     prior.independent.compare_tree(
         mismatches, "results.status", results.get("status"), "complete"
@@ -838,7 +838,7 @@ def run_final_verification() -> int:
         )
 
     report = {
-        "schema": "cassi.particle-carrier-direct-coordinate.verification.v1",
+        "schema": "cassi.particle-carrier-direct-coordinate.verification.v2",
         "pass": not mismatches,
         "manifest_sha256": manifest_sha256,
         "mismatches": mismatches,
