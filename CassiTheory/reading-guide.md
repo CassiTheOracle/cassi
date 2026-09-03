@@ -59,7 +59,8 @@ numerical limit.
 `foundations/particle-stationary-action-closure.md` →
 `foundations/matter-completion-boundary.md` →
 `computations/matter_completion_boundary_report.md` →
-`computations/particle-stationary-bvp-report.md`.
+`computations/particle-stationary-bvp-report.md` →
+`computations/particle-stationary-q2-recovery-report.md`.
 
 ### The skeptic or referee
 
