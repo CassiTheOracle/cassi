@@ -32,8 +32,8 @@ The canonical execution is bound by these receipts:
 |---|---|
 | manifest | `d602e50f0a8d9a4c8f306930017d92101b797d695daaf3315a79a423c6f20f77` |
 | preflight | `7d95a1cc48b5fcb287e3af4d296e481ff34150c8be0ac5fa9b4d9b1519247404` |
-| primary result | `ee88c4275dc7bd22e0ecff6f710484fb1a822b9a92a4737a758d20eb27fa6e78` |
-| independent verification | `d92194885210941dfce85c00fc2b0d6b1124570ec40a34803964199899a2b556` |
+| primary result | `59f39d6e565ab24faab705094ea5ee1001d7ab3939d8a923db091dc903e44c73` |
+| independent verification | `b858d05df7db577896f6f5ff325efba2922d90cc9359c9a7264631ad1c314629` |
 
 The independent final verifier reproduced every terminal diagnostic and comparison from the stored arrays, confirmed every source and terminal artifact hash, reconstructed the stopping rule and verdict, and reported zero mismatches.
 
@@ -82,6 +82,7 @@ The density-depletion coefficient remains an uncalibrated model input selected b
 
 - `computations/particle-carrier-direct-coordinate-prereg.md`—frozen physical question, coefficient order, endpoint conditions, and verdict tree.
 - `computations/particle-carrier-direct-coordinate-execution-amendment.md`—interface repair and fresh evidentiary output path.
+- `computations/particle-carrier-direct-coordinate-receipt-binding.md`—canonical downstream receipt and artifact hashes.
 - `computations/particle_carrier_direct_coordinate.py`—primary recovery calculation.
 - `computations/verify_particle_carrier_direct_coordinate.py`—independent artifact and verdict verifier.
 - `computations/particle-carrier-localization-report.md`—source scan and carrier-residual diagnosis.
