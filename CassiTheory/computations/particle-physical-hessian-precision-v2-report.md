@@ -77,7 +77,8 @@ The frozen source digests are:
 | PA42 operator engine | `4a0e324142ba937388498890cb73089b677f7c3c1e9d8f6c3e3c54295b702b35` |
 | precision-background manifest | `1307cc689272eb0100655299232719079ca34697e6e6f74451efb50270d6fc33` |
 
-Text digests canonicalize CRLF to LF; binary artifacts use byte-exact hashes.
+Text digests replace CRLF with LF before UTF-8 hashing; binary artifacts use
+byte-exact hashes.
 The independent verifier imports neither the primary PA42 program nor the
 stationary optimizer. It separately constructs the PA32 energy, symmetry
 bases, fixed-charge tangent, allowed coupled gauge map, quotient metric,
@@ -213,9 +214,9 @@ The first eigenvalue lies inside this near-zero band. Its minimum global
 $U(1)_C$ overlap across the two implementations is $0.9999973509913581$.
 The next five matched modes lie above the positive threshold, and their
 smallest-step directional curvatures are independently positive. H5 and H6
-pass: there is no verified negative mode, exactly one matched near-zero mode is
-identified with the global phase direction, and the other five matched modes are
-positive.
+pass: there is no verified negative mode, exactly one near-zero mode is matched
+between the two implementations and identified with the global phase direction,
+and the other five matched modes are positive.
 
 The near-zero mode has:
 
@@ -256,9 +257,11 @@ $$
 ## 10. Receipt hashes and execution
 
 The evidence directory is
-`runs/20260903_particle_physical_hessian_precision_v2/`. Text receipt hashes
-normalize CRLF to LF without parsing or reserializing JSON; the binary archive
-hash is byte-exact:
+`runs/20260903_particle_physical_hessian_precision_v2/`. The SHA-256 values
+below were computed externally over each named evidence file; they are not
+values read from hash fields inside the JSON files. For each JSON file, CRLF
+pairs are replaced with LF in the UTF-8 text before hashing; the JSON is neither
+parsed nor reserialized. `eigenmodes.npz` is hashed byte-for-byte:
 
 | Evidence | SHA-256 convention | SHA-256 |
 |---|---|---|

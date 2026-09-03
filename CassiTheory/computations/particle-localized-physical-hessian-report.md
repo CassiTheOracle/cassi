@@ -127,7 +127,8 @@ The frozen implementation digests are:
 | stationary action engine | `3143682f8a1052c60243c906b029a5f291a5d767d17b4ebe622deb23d22c5ad1` |
 | source campaign manifest | `8d1f18cb18d3635960ec7be1076688bcbd1f1fbc5fda1d86e851c46f8b3ff853` |
 
-Text digests canonicalize CRLF to LF; NPZ digests are byte-exact. Both programs
+Text digests replace CRLF with LF before UTF-8 hashing; NPZ digests are
+byte-exact. Both programs
 validate the manifest before constructing the operator. The independent
 verifier imports neither the primary Hessian driver nor the stationary or
 resolution-recovery driver. It separately implements the physical energy,
@@ -262,7 +263,7 @@ for a finer-grid spectral sequence before a continuum interpretation.
 
 The analytic phase direction is proportional to the stationary carrier field.
 Its high-frequency fraction identifies odd-even structure in the localized
-carrier profile. No second matched near-zero direction appears among these six
+carrier profile. No second near-zero eigenpair appears among these six
 eigenpairs. The tested low-spectrum sign remains valid, while the spatial
 interpretation stays inconclusive.
 
@@ -302,9 +303,11 @@ $$
 ## 10. Receipt hashes and execution
 
 The local evidence directory used for the verified run is
-`runs/20260903_particle_localized_physical_hessian/`. Text receipt hashes
-normalize CRLF to LF without parsing or reserializing JSON; the binary archive
-hash is byte-exact:
+`runs/20260903_particle_localized_physical_hessian/`. The SHA-256 values below
+were computed externally over each named evidence file; they are not values
+read from hash fields inside the JSON files. For each JSON file, CRLF pairs are
+replaced with LF in the UTF-8 text before hashing; the JSON is neither parsed
+nor reserialized. `eigenmodes.npz` is hashed byte-for-byte:
 
 | Evidence | SHA-256 convention | SHA-256 |
 |---|---|---|
