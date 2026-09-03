@@ -1,6 +1,6 @@
 # Yin–Yang–Qi Open Dynamical Geometry
 
-## Status: Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary / Tested one-point Q2-qualified primary background—September 2026
+## Status: Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary / Tested one-point precision-qualified background and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
 
 ## Abstract
 
@@ -75,7 +75,7 @@ The scalar $q$, off-diagonal $c$, connection $B_A$, curvature $G_{AB}$, and scal
 
 `foundations/particle-stationary-action-closure.md` uses a local $SU(2)_Q$ gauge sector, second-order charged-field time derivatives, a neutral fixed-$Q_C$ carrier, and its own Gauss closure. The Abelian graph action in `foundations/geometric-manifold-completion.md` uses a first-order complex doublet and relative $U(1)_Q$ connection. No interface currently identifies their fields, charges, temporal symplectic structures, or stress tensors.
 
-The fixed-charge particle functional therefore remains a downstream alternative boundary-value problem. At its registered coefficient point, canonical-preimage continuation supplies a Q2-qualified finite-grid primary background. The selected field fails localization and carrier retention. Its physical quotient and Hessian action pass independent structural checks, while the augmented-gradient gate gives `INCONCLUSIVE—HESSIAN PREFLIGHT` before eigenvalue evaluation. Domain and resolution convergence, the constrained spectrum, and global existence remain open.
+The fixed-charge particle functional therefore remains a downstream alternative boundary-value problem. At its registered coefficient point, a higher-precision continuation supplies a Q1–Q4 finite-grid background. The selected field fails localization and carrier retention. Its $13622$-dimensional strict-shell $C_4$ physical quotient has one near-zero global-$U(1)_C$ phase mode and five positive matched PA42 modes with no verified negative mode, giving `PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The phase mode remains grid-scale; domain and resolution convergence, PA43, and global existence remain open.
 
 ## 2. Geometry of the Local State
 
@@ -1064,12 +1064,12 @@ interface to the fixed-charge local-$SU(2)_Q$ action:
 
 The MCC1–MCC9 receipt passes. A physical action producing the exterior,
 interface, reservoir, stress components, and carrier normalization remains
-unselected. The particle campaign has a Q2-qualified finite-grid primary
+unselected. The particle campaign has a higher-precision Q1–Q4 finite-grid
 background. Localization, carrier retention, and domain and resolution
-convergence remain open. The complete finite-grid physical quotient and
-Hessian action pass independent structural checks, while the augmented-gradient
-gate returns `INCONCLUSIVE—HESSIAN PREFLIGHT` before eigenvalue evaluation.
-The mixed dynamical spectrum remains open.
+convergence remain open. Its complete strict-shell $C_4$ physical quotient
+has a nonnegative matched low PA42 spectrum within the frozen uncertainty.
+The global phase mode remains grid-scale, and the PA43 mixed dynamical
+spectrum remains open.
 
 ## 13. Derived, Hypothesized, and Open Results
 
@@ -1093,7 +1093,7 @@ The frozen DG1–DG7 and EC1–EC7 receipts return **PASS**. The universal finit
 | Complete Noether stress and geometry backreaction | **Conditional total-stress identity and constant-$G$ branch Derived / Stress components and gravity selection open** |
 | Local scale-bulk endpoint mediator | **Open** |
 | Interface to the local-$SU(2)_Q$ fixed-charge particle branch | **Gram, Cartan-convention, and charge-separation map Derived conditionally / Physical identification open** |
-| Qualified stationary matter solution and full spectrum | **Finite-grid Q2 primary background and physical quotient established / PA42 augmented-gradient preflight, localization, convergence, and physical spectrum open** |
+| Qualified stationary matter solution and full spectrum | **Higher-precision finite-grid Q1–Q4 background and one-point `PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN` / global phase mode grid-scale / localization, retention, domain and resolution convergence, PA43, and physical spectrum open** |
 
 ## 14. Conclusion
 
@@ -1124,13 +1124,13 @@ source realization. The matter-completion boundary then separates the closed
 unitary carrier from the routed forward record, derives the single-mode
 power law, closes the conditional total-stress and constant-$G$ geometry
 ledgers, and maps the coherence fibre into the particle doublet. Finite-density
-transverse coherence still requires an identified source. A Q2-qualified
-finite-grid primary particle background, physical quotient, and structurally
-verified Hessian action exist. The augmented-gradient preflight stops before
-the PA42 eigenspectrum. A physical exterior, reservoir action, calibrated
-particle coefficients, carrier localization, domain and resolution
-convergence, the PA42 eigenspectrum, and selected temporal groups remain
-required before a full particle spectrum can be computed.
+transverse coherence still requires an identified source. A higher-precision
+finite-grid particle background and physical quotient now have a nonnegative
+matched low PA42 spectrum within the frozen uncertainty. The near-zero
+global-$U(1)_C$ phase mode remains grid-scale. A physical exterior, reservoir
+action, calibrated particle coefficients, carrier localization and retention,
+domain and resolution convergence, selected PA43 temporal groups, and
+continuum qualification remain required for a full particle spectrum.
 
 ## References
 
@@ -1144,10 +1144,12 @@ required before a full particle spectrum can be computed.
 - `foundations/matter-completion-boundary.md`—nine-part conditional interface
   from exterior dilation through the fixed-charge fluctuation problem.
 - `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary
-  particle background and retained localization, domain, resolution, and
-  spectrum boundaries.
-- `computations/particle-physical-hessian-report.md`—finite-grid quotient,
-  Hessian-action checks, and the augmented-gradient stopping verdict.
+  particle background and retained localization, domain, and resolution
+  boundaries.
+- `computations/particle-stationary-precision-v5-report.md`—higher-precision
+  finite-grid stationary background.
+- `computations/particle-physical-hessian-precision-v2-report.md`—paired PA42
+  eigenspectrum and spatial classification.
 - `computations/dynamical_geometry_closure_prereg.md`—frozen DG1–DG7 reduction and ledger criteria.
 - `computations/dynamical_geometry_closure_check.py`—deterministic DG1–DG7 first-execution witness.
 - `computations/dynamical_geometry_closure_report.md`—DG1–DG7 analytic proof,

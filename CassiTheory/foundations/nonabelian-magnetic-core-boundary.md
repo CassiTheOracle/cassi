@@ -1,6 +1,6 @@
 # Non-Abelian Magnetic Core and the Confined-Defect Boundary
 
-## Status: Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Tested one-point Q2-qualified primary background—September 2026
+## Status: Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Tested one-point precision-qualified background and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
 
 ## Abstract
 
@@ -50,20 +50,21 @@ positive length curvature.
 The source-free particle action in
 `foundations/particle-stationary-action-closure.md` combines these sectors,
 derives the coupled Euler and Gauss equations, and declares the first
-fixed-$Q_C$ variational class. Canonical-preimage continuation at one
-coefficient point supplies a Q2-qualified finite-grid primary background.
-A qualified carrier mode, backreacted tube, domain and resolution convergence,
-and fixed-charge configuration comparison remain required.
+fixed-$Q_C$ variational class. The higher-precision continuation at one
+coefficient point supplies a Q1–Q4 finite-grid background. Its strict-shell
+$C_4$ physical quotient has one near-zero global-$U(1)_C$ phase mode and five
+positive matched PA42 modes with no verified negative mode. The finite-matrix
+verdict is `PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`, while the phase
+mode remains grid-scale.
 
-The resulting boundary is sharp. A smooth magnetic core is available in the
-adjoint-only or vanishing-condensate branch. The registered Cassi fields alone
-supply no isolated finite-energy point defect or persistent net-zero
-composite. The auxiliary carrier closes the one-coordinate support condition
-only under its declared inequalities. The particle action makes a full
-stationary solve well posed once its dimensionless data are selected; no such
-point or solution is presently registered. A dynamical fluctuation spectrum
-additionally requires a stationary background, temporal coefficients, and
-gauge fixing.
+The resulting boundary is specific. The adjoint-only branch has a smooth
+magnetic core and exact exterior coefficient. The registered nonzero
+fundamental condensate removes the isolated magnetic sector and confines flux.
+The registered pair branch has no finite-separation minimum by itself. A
+neutral core-trapped carrier can supply one reduced stable separation under
+its support, retention, and matching inequalities. The full coupled point
+still fails carrier localization and retention, lacks a Q2-qualified domain or
+resolution family, and has no PA43 dynamical classification.
 
 ---
 
@@ -766,16 +767,17 @@ slope. A persistent finite pair is not derived.
 | Adjoint-only BPS unit core | Yes, analytically solved | Equations (MC22)-(MC24) give the exact solution and boundary limits |
 | Adjoint-only non-BPS core | Not numerically selected | $\beta_Q$ and any scale dependence are free |
 | Isolated core with $\rho\to\rho_0>0$ | No | Finite-energy isolated magnetic boundary data do not exist |
-| Fixed-separation monopole-antimonopole string with registered fields | Conditional constrained problem; one coupled point tested | The registered $C_4$ campaign co-optimizes tube, core, and carrier fields and supplies a Q2-qualified primary background; localization and domain/resolution convergence fail |
-| Carrier-supported fixed-$Q_C$ pair | Reduced problem solved analytically; coupled point has a Q2-qualified primary background | `foundations/core-trapped-charge-support.md` gives the unique reduced length root under $A_C>C_Q$; the finite-grid field fails carrier retention and does not establish the reduced-to-field matching |
-| Full stationary particle | Finite-grid stationarity qualified; physical particle open | The conditional action supplies the Euler and Gauss equations; five structural primary arms pass Q1–Q4, while localization, domain/resolution convergence, and the constrained spectrum remain open |
+| Fixed-separation monopole-antimonopole string with registered fields | Conditional constrained problem; one coupled point tested | The registered $C_4$ campaign co-optimizes tube, core, and carrier fields and supplies a higher-precision Q1–Q4 background with nonnegative matched low PA42 spectrum; localization and domain/resolution convergence fail |
+| Carrier-supported fixed-$Q_C$ pair | Reduced problem solved analytically; coupled point has a higher-precision background and one-point PA42 sign classification | `foundations/core-trapped-charge-support.md` gives the unique reduced length root under $A_C>C_Q$; the finite-grid field fails carrier retention and does not establish the reduced-to-field matching |
+| Full stationary particle | One-point finite-grid PA42 sign classified; physical particle open | The conditional action supplies the Euler and Gauss equations; no verified negative mode occurs among the six matched lowest $C_4$ modes, while localization, carrier retention, spatial resolution of the phase mode, domain/resolution convergence, PA43, and continuum qualification remain open |
 
 Numerical integration of the exact BPS profile or the reduced carrier root adds
 no physical information at the declared boundary. The registered coupled
 campaign freezes one dimensionless point, charge, domain pair, and six
-initialization basins. Five structural primary arms pass Q1–Q4 after frozen
-continuation, and `P:separated_core` is selected. Every domain arm and the
-selected high-resolution arm fails Q2, while the selected primary fails
+initialization basins. The higher-precision continuation selects
+`P:separated_core` with physical-gradient RMS
+$5.471248126403572\times10^{-5}$ and preserves Q1–Q4. Every domain arm and
+the selected high-resolution arm fails Q2, while the primary fails
 localization and carrier retention. No domain-stable localization verdict or
 robust basin ordering is established.
 
@@ -829,21 +831,21 @@ nonzero-condensate monopole obstruction.
 | Exact point-core flux and exterior coefficient matching | **PASS** | (MC16) and (MC31) |
 | Exact BPS solution after coupling $\Psi_\infty\ne0$ | **FAIL** | Fundamental kinetic and composition terms source the BPS equations |
 | Isolated finite-energy monopole with $\rho_0>0$ | **FAIL** | Trivial full stabilizer, $\pi_2=0$, and positive London mass |
-| Finite net-zero monopole-antimonopole configuration | **CONDITIONAL / finite-grid primary qualified** | The selected primary passes Q1–Q4; a resolved flux tube, carrier localization, and domain/resolution convergence remain open |
+| Finite net-zero monopole-antimonopole configuration | **CONDITIONAL / one-point PA42 sign classified** | The selected primary passes Q1–Q4 and has a nonnegative matched low $C_4$ Hessian spectrum; a resolved retained carrier and domain/resolution convergence remain open |
 | Persistent finite-separation composite from registered fields | **FAIL in the registered asymptotic branch** | Strictly positive slope (MC47); no registered support term |
 | Carrier-supported separation coordinate | **PASS conditionally in the reduced branch** | $A_C>C_Q$, carrier retention, and thin-tube matching in `foundations/core-trapped-charge-support.md` |
-| Full stationary particle solver | **TESTED one point / PASS—Q2-QUALIFIED PRIMARY BACKGROUND** | Five structural primary arms pass Q1–Q4; the selected field fails localization and retention, and all domain plus high-resolution arms fail Q2 |
+| Full stationary particle solver | **TESTED one point / PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN** | The higher-precision background passes Q1–Q4; one near-zero global phase mode and five positive matched PA42 modes occur with no verified negative mode; localization, retention, and all D/H qualification fail |
 | Static adjoint BPS stability | **PASS conditionally** | Nonnegative factorized quadratic energy (MC48) |
-| Full dynamical fluctuation spectrum | **UNSOLVED** | A finite-grid Q2 background exists; the complete constrained second variation, temporal point, and converged spectrum remain open |
+| Full dynamical fluctuation spectrum | **UNSOLVED** | The one-point energetic PA42 branch is nonnegative within its uncertainty; the phase mode remains grid-scale, temporal groups are unselected, and PA43 plus domain/resolution convergence remain open |
 
 The auxiliary carrier supplies the first explicit conserved support sector and
 passes $E'(L_*)=0$, $E''(L_*)>0$ in the frozen-mode thin-tube reduction. The
 source-free temporal branch supplies the coupled fixed-charge functional and
 Gauss constraint. Its registered point has an independently verified
-Q2-qualified primary background. The field is diffuse, fails carrier
-retention, and lacks domain and resolution qualification. A coupled gauge
-spectrum requires the complete constrained second variation and selected
-temporal groups.
+higher-precision background and a nonnegative matched low PA42 spectrum on the
+strict-shell $C_4$ quotient. The field is diffuse, fails carrier retention,
+and lacks domain and resolution qualification. The global phase mode remains
+grid-scale, and the temporal groups required for PA43 are unselected.
 
 ---
 
@@ -886,10 +888,12 @@ $A_C>C_Q$, provided the carrier remains below its bulk threshold and the root
 lies beyond core overlap. The separate action in
 `foundations/particle-stationary-action-closure.md` supplies the complete
 backreaction equations, temporal gauge sector, Gauss constraint, and
-fixed-charge variational boundary. One coefficient point has a Q2-qualified
-finite-grid primary background. A qualified transverse mode, localized and
-domain-converged field solution, robust fixed-charge configuration comparison,
-and fluctuation spectrum remain open.
+fixed-charge variational boundary. One coefficient point has a higher-precision
+finite-grid background and a nonnegative matched low PA42 spectrum on its
+strict-shell $C_4$ physical quotient. A qualified transverse mode, localized
+and domain-converged field solution, spatially resolved phase mode, robust
+fixed-charge configuration comparison, PA43 spectrum, and continuum
+qualification remain open.
 
 ---
 
@@ -915,6 +919,8 @@ and fluctuation spectrum remain open.
   nondimensionalization checker
 - `computations/particle-stationary-bvp-report.md`—registered source campaign receipt
 - `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary background and retained localization, domain, and resolution boundaries
+- `computations/particle-stationary-precision-v5-report.md`—higher-precision finite-grid stationary background.
+- `computations/particle-physical-hessian-precision-v2-report.md`—paired PA42 eigenspectrum and verdict tree.
 - G. 't Hooft, “Magnetic Monopoles in Unified Gauge Theories,” *Nuclear Physics
   B* **79** (1974), 276–284
 - A. M. Polyakov, “Particle Spectrum in Quantum Field Theory,” *JETP Letters*

@@ -1,6 +1,6 @@
 # Interscale Yang/Yin Current and the Conditional Soliton Pinch
 
-## Status: Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point Q2-qualified primary background—September 2026
+## Status: Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Tested one-point precision-qualified background and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
 
 ## Abstract
 
@@ -53,18 +53,21 @@ beyond core overlap. The separate source-free temporal branch in
 `foundations/particle-stationary-action-closure.md` combines this static sector
 with the auxiliary adjoint core, derives Gauss's law, and defines the coupled
 fixed-$Q_C$ stationary functional. Its registered coefficient point has a
-Q2-qualified finite-grid primary background. The selected field fails
+higher-precision Q1–Q4 finite-grid background. The selected field fails
 localization and carrier retention, and every domain plus high-resolution arm
-fails Q2. Its finite-grid physical quotient and Hessian action pass independent
-structural checks, while the augmented-gradient preflight stops before
-eigenvalue evaluation. Its second-order charged-field kinetics are separate
-from the first-order interscale action derived here, whose direct local gauging
-carries an unavoidable nonzero-condensate Gauss source.
+fails Q2. Its $13622$-dimensional strict-shell $C_4$ physical quotient has
+one near-zero global-$U(1)_C$ phase mode and five positive matched PA42 modes
+with no verified negative mode, giving
+`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The phase mode remains
+grid-scale under the frozen diagnostic. Its second-order charged-field
+kinetics are separate from the first-order interscale action derived here,
+whose direct local gauging carries an unavoidable nonzero-condensate Gauss
+source.
 
 The transverse carrier mode, dimensional normalization, physical calibration,
 scale metric, conversion mechanism, compact boundary data, localized
-domain-and-resolution-qualified field solution, constrained spectrum, and
-particle-sector map remain open. In particular,
+domain-and-resolution-qualified field solution, PA43 mixed spectrum, and
+particle-sector map remain open.
 $\varphi$ fixes the energy-minimizing Yang/Yin composition and its counterflow
 factor; it does not determine the carrier coefficients, gauge coupling, or any
 SI scale.

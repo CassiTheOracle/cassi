@@ -1,6 +1,6 @@
 # Quantized Point-Core Flux and the Persistent-Defect Boundary
 
-## Status: Derived conditional exterior support / Derived current-action completion no-go—September 2026
+## Status: Derived conditional exterior support / Derived current-action completion no-go / Tested one-point precision-qualified background and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
 
 ## Abstract
 
@@ -621,9 +621,11 @@ nonzero-condensate outer condition conflicts with isolated point flux. A
 radial or axisymmetric point-core solve therefore selects missing physics
 through its boundary conditions; no standalone boundary-value experiment is
 well posed in this sector. The separate coupled fixed-charge campaign tests one
-auxiliary-completed coefficient point and supplies a Q2-qualified finite-grid
-primary background. The field fails localization and carrier retention and
-does not qualify a point-core solution.
+auxiliary-completed coefficient point and supplies a higher-precision Q1–Q4
+finite-grid background with a nonnegative matched low PA42 spectrum on its
+strict-shell $C_4$ quotient. The field fails localization and carrier
+retention, the global phase mode remains grid-scale, and no Q2-qualified D/H
+background exists. It does not qualify a point-core solution.
 
 ---
 
@@ -670,21 +672,20 @@ A full spectrum requires a stationary background, gauge fixing, core and
 endpoint boundary conditions, and the second variation in every coupled
 channel. The separate conditional action in
 `foundations/particle-stationary-action-closure.md` supplies second-order
-charged-field kinetics, positive temporal curvatures, and Gauss's law. One
-coefficient point has a Q2-qualified finite-grid primary background. Its
-strict-shell $C_4$ construction gives a $13622$-dimensional fixed-charge
-physical quotient after removing the rank-$1677$ coupled gauge image. The
-independent Hessian action passes symmetry, phase-Rayleigh, and directional
-finite-difference checks. The augmented-gradient gate gives
-`INCONCLUSIVE—HESSIAN PREFLIGHT`, so eigenvalues are not evaluated. Core data,
-domain and resolution convergence, and temporal coefficients remain open.
-Static positivity of (PF39) therefore does not establish gauge-mode
-frequencies.
+charged-field kinetics, positive temporal curvatures, and Gauss's law. Its
+higher-precision finite-grid background has a $13622$-dimensional strict-shell
+$C_4$ fixed-charge physical quotient after removal of the rank-$1677$
+coupled gauge image. Independent preflight passes the background, quotient,
+symmetry, phase-Rayleigh, directional-curvature, and augmented-gradient gates.
 
-The exact result available in this sector is the positive one-dimensional
-scaling curvature. The full fluctuation spectrum requires a finite-energy
-background, selected temporal groups, gauge fixing, and the complete second
-variation.
+Primary and independent PA42 eigensolvers find one near-zero
+global-$U(1)_C$ phase mode and five positive matched modes, with no verified
+negative mode. The finite-matrix verdict is
+`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The phase mode remains
+grid-scale under the frozen spatial diagnostic. Core data, carrier
+localization and retention, domain and resolution convergence, perturbations
+outside $C_4$, and the PA43 temporal coefficients remain open. Static
+positivity of (PF39) therefore supplies no complete dynamical frequency claim.
 
 ---
 
@@ -698,7 +699,7 @@ variation.
 | Does the current Abelian action smooth the point core? | No; $dG=0$ forces zero flux through a smooth ball |
 | Does the registered condensate admit an isolated finite-energy monopole? | No; the nonzero charged asymptotic sections give divergent angular kinetic energy |
 | Is a scalar radial matter solve available? | No; $j\geq|N_G|/2$ and the core/outer data are incomplete |
-| Is the full fluctuation spectrum defined? | No; one coupled coefficient point has a Q2-qualified finite-grid primary background and a complete strict-shell $C_4$ physical quotient. The augmented-gradient preflight stops before eigenvalue evaluation; core data, localization, domain and resolution convergence, and the PA43 temporal coefficients remain open |
+| Is the full fluctuation spectrum defined? | Partly: one higher-precision coupled background has a complete strict-shell $C_4$ physical quotient and `PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The near-zero global phase mode remains grid-scale; core data, localization, carrier retention, domain and resolution convergence, perturbations outside $C_4$, and PA43 remain open |
 
 The algebraic and spectral identities are checked by
 `computations/point_core_flux_check.py`. They create no numbered physical
@@ -735,11 +736,11 @@ conditional reduced support term $A_C/L$. The strict inequality $A_C>C_Q$
 gives one finite root with positive length curvature when carrier retention
 and thin-tube matching also hold. The separate particle action supplies the
 complete fixed-charge stationary formulation and Gauss constraint. One
-coefficient point has a Q2-qualified finite-grid primary background and
-explicit physical quotient. The field is diffuse, fails carrier retention,
-and lacks domain and resolution qualification. The augmented-gradient
-preflight stops before the PA42 eigenspectrum; unrestricted basin ordering and
-the fluctuation spectrum remain open.
+coefficient point has a higher-precision Q1–Q4 finite-grid background and a
+nonnegative matched low PA42 spectrum on its explicit physical quotient. The
+field is diffuse, fails carrier retention, and lacks domain and resolution
+qualification. The global phase mode remains grid-scale; unrestricted basin
+ordering, PA43, and continuum qualification remain open.
 
 ---
 
@@ -769,5 +770,7 @@ the fluctuation spectrum remain open.
   nondimensionalization checker
 - `computations/particle-stationary-bvp-report.md`—registered source campaign receipt
 - `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary background and retained localization, domain, and resolution boundaries
-- `computations/particle-physical-hessian-report.md`—finite-grid physical
-  quotient and Hessian-preflight verdict.
+- `computations/particle-physical-hessian-report.md`—initial finite-grid physical
+  quotient and preflight campaign.
+- `computations/particle-stationary-precision-v5-report.md`—higher-precision finite-grid stationary background.
+- `computations/particle-physical-hessian-precision-v2-report.md`—paired PA42 eigenspectrum and verdict tree.

@@ -1,6 +1,6 @@
 # Core-Trapped Noether Charge and the Finite-Composite Boundary
 
-## Status: Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point Q2-qualified primary background—September 2026
+## Status: Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Tested one-point precision-qualified background and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
 
 ## Abstract
 
@@ -15,8 +15,9 @@ registered scale-circuit winding acts along the independent scale coordinate
 and contributes spatial tube tension rather than inverse-length support.
 A gauge-electric dyon belongs to the separate conditional temporal branch in
 `foundations/particle-stationary-action-closure.md`. Its registered static
-$a_0=0$ point has a Q2-qualified finite-grid primary background, while no
-stationary dyonic configuration is selected.
+$a_0=0$ point has a higher-precision Q1–Q4 finite-grid background and a
+nonnegative matched low PA42 spectrum on its strict-shell $C_4$ quotient;
+no stationary dyonic configuration is selected.
 
 The selected auxiliary branch is a neutral complex carrier $\chi_C$ with a
 global $U(1)_C$ phase, its own first-order time term, a positive bulk gap, and
@@ -50,10 +51,12 @@ Carrier localization adds the independent chemical-potential condition
 $\hbar\omega_C<\varepsilon_{C,\rm out}$. These results establish a conditional
 reduced support branch. The separate particle action supplies complete carrier
 backreaction, Gauss's law, and the fixed-$Q_C$ stationary equations.
-Canonical-preimage continuation at the registered point supplies a
-Q2-qualified primary background. That field fails the carrier-localization and
-retention conditions, while domain and resolution convergence, robust basin
-ordering, and physical calibration remain open.
+The higher-precision continuation at the registered point passes Q1–Q4 with
+physical-gradient RMS $5.47125\times10^{-5}$. Its strict-shell $C_4$
+physical quotient has a nonnegative matched low PA42 spectrum within the
+frozen uncertainty. The global phase mode remains grid-scale, the selected
+field fails carrier localization and retention, and no Q2-qualified
+outer-domain or finer-grid background exists.
 
 ---
 
@@ -118,7 +121,7 @@ electric charge, baryon number, lepton number, or an observed particle.
 | CC-F | Positive carrier self-repulsion gives $A_C/L$ on the uniform fixed-charge tube branch | Derived thin-tube identity |
 | CC-G | $A_C>C_Q$ gives one statically stable finite separation in the reduced length coordinate | Derived conditional theorem |
 | CC-H | Localization, scale separation, and core-overlap bounds remain independent conditions | Derived evidence boundary |
-| CC-I | The conditional particle action defines the full coupled equations; one coefficient point has a Q2-qualified finite-grid primary background, while localization, domain and resolution convergence, the physical spectrum, and physical mass remain open | Tested numerical boundary / open physical realization |
+| CC-I | The conditional particle action defines the full coupled equations; one coefficient point has a higher-precision Q1–Q4 finite-grid background and `PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. Localization, carrier retention, spatial resolution of the global phase mode, domain and resolution convergence, PA43, and physical mass remain open | Tested numerical boundary / open physical realization |
 
 ---
 
@@ -183,8 +186,10 @@ The source-free action in
 `foundations/particle-stationary-action-closure.md` specifies temporal gauge
 components, electric curvature energy, charged source kinetics, and the Gauss
 constraint. The theory coefficients remain uncalibrated. The registered
-static $a_0=0$ point has a Q2-qualified primary background, but it selects no
-dyonic or asymptotic electric support coefficient and fails carrier retention.
+static $a_0=0$ point has a higher-precision Q1–Q4 primary background and a
+nonnegative matched low PA42 spectrum on its strict-shell $C_4$ quotient, but
+it selects no dyonic or asymptotic electric support coefficient and fails
+carrier retention.
 
 ### 2.4 Minimal selected branch
 
@@ -786,10 +791,11 @@ $$
 $$
 
 The reduced $E''(L_*)$ is a length-coordinate curvature only. The separate
-source-free particle action supplies temporal gauge curvature and Gauss's law
-and tests one static coefficient point, but no arm passes Q2. A full collective
-inertia and coupled gauge-mode spectrum therefore remain uncomputed. Equation
-(CC39) is a static curvature statement.
+source-free particle action supplies temporal gauge curvature and Gauss's law.
+At the registered static point, the strict-shell $C_4$ PA42 low spectrum is
+nonnegative within the frozen uncertainty. A full collective inertia and PA43
+coupled dynamical spectrum remain uncomputed. Equation (CC39) remains a static
+curvature statement.
 
 ---
 
@@ -832,15 +838,19 @@ A full fixed-$Q_C$ solve uses the action and equations in
    candidate.
 
 The registered campaign freezes these choices for five structural basins and
-one delocalized control on the primary and domain grids. Five structural
-primary arms pass Q1–Q4, and the frozen rule selects `P:separated_core`.
-Every domain arm and the selected high-resolution arm fails Q2. The selected
-primary also fails the carrier-localization and retention conditions, so no
-domain-stable localization verdict or robust basin ordering is established.
-The complete receipts are recorded in
-`computations/particle-stationary-bvp-report.md` and
-`computations/particle-stationary-q2-recovery-report.md`. The reduced-support
-checker and action checker retain their separate algebraic scopes.
+one delocalized control on the primary and domain grids. The higher-precision
+continuation selects `P:separated_core` with physical-gradient RMS
+$5.471248126403572\times10^{-5}$ and preserves Q1–Q4. Every domain arm and
+the selected high-resolution arm fails Q2. The selected primary also fails the
+carrier-localization and retention conditions, so no domain-stable
+localization verdict or robust basin ordering is established. Its
+$13622$-dimensional strict-shell $C_4$ physical quotient has one near-zero
+global phase mode and five positive matched PA42 modes, with no verified
+negative mode. The phase mode remains grid-scale. The complete receipts are
+recorded in `computations/particle-stationary-bvp-report.md`,
+`computations/particle-stationary-q2-recovery-report.md`,
+`computations/particle-stationary-precision-v5-report.md`, and
+`computations/particle-physical-hessian-precision-v2-report.md`.
 
 ---
 
@@ -856,7 +866,7 @@ checker and action checker retain their separate algebraic scopes.
 | Is there a finite reduced separation? | Yes when $A_C>C_Q$, uniquely, with bounds (CC38) and positive curvature (CC39) |
 | Is the carrier retained at that separation? | Only when the chemical-potential condition (CC42) also holds |
 | Is the reduced root outside core overlap? | Only when a matching condition such as (CC40) holds |
-| Is a full stationary particle established? | No; one coefficient point has a Q2-qualified finite-grid primary background, but transverse binding, carrier retention, topology-changing competitors, domain and continuum convergence, the constrained spectrum, and physical calibration remain unresolved |
+| Is a full stationary particle established? | No; one coefficient point has a higher-precision Q1–Q4 background and a nonnegative one-point $C_4$ PA42 low spectrum, but transverse binding, carrier retention, spatial resolution of the phase mode, topology-changing competitors, domain and continuum convergence, PA43, and physical calibration remain unresolved |
 | Is a physical mass or parameter-free numerical prediction obtained? | No |
 
 The reduced support claims are checked by
@@ -886,9 +896,11 @@ $$
 provided the carrier remains below its bulk threshold and the stationary
 length exceeds the core-overlap scale. This closes the reduced support
 question conditionally. The particle action closes the coupled variational
-formulation, and one coefficient point has a Q2-qualified finite-grid primary
-background. That field is diffuse and fails carrier retention; domain and
-resolution convergence, unrestricted basin ordering, the constrained spectrum,
+formulation, and one coefficient point has a higher-precision finite-grid
+background with a nonnegative matched low PA42 spectrum on its strict-shell
+$C_4$ physical quotient. The global phase mode remains grid-scale, the field
+is diffuse and fails carrier retention, and no Q2-qualified D/H background
+exists. Domain and resolution convergence, unrestricted basin ordering, PA43,
 and physical interpretation remain open.
 
 ---
@@ -903,3 +915,5 @@ and physical interpretation remain open.
 6. `foundations/particle-stationary-action-closure.md`—coupled fixed-charge action and variational boundary.
 7. `computations/particle-stationary-bvp-report.md`—registered source campaign receipt.
 8. `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary background and retained localization, domain, and resolution boundaries.
+9. `computations/particle-stationary-precision-v5-report.md`—higher-precision finite-grid stationary background.
+10. `computations/particle-physical-hessian-precision-v2-report.md`—paired PA42 low spectrum and spatial verdict.

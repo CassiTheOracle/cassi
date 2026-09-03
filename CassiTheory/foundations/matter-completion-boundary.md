@@ -1,6 +1,6 @@
 # Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
-## Status: Derived conditional boundary / Hypothesized physical realization / Tested reduced receipts and one-point Q2-qualified primary background—September 2026
+## Status: Derived conditional boundary / Hypothesized physical realization / Tested reduced receipts, one-point precision-qualified background, and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
 
 ## Abstract
 
@@ -28,10 +28,11 @@ fluctuation qualification problem.
 
 MCC1–MCC9 pass in the frozen receipt. The physical exterior, microscopic
 coefficients, multimode carrier map, reservoir action, state-dependent gravity,
-and particle identification remain open. Canonical-preimage continuation of
-the registered PA32 point supplies an independently verified Q2-qualified
-primary background. Domain and resolution convergence, localization, and the
-full constrained spectrum remain open.
+and particle identification remain open. The particle campaign supplies a
+higher-precision Q1–Q4 background and a nonnegative matched low PA42 spectrum
+on its strict-shell $C_4$ physical quotient. The global phase mode remains
+grid-scale. Localization, carrier retention, domain and resolution convergence,
+and PA43 remain open.
 
 ## 1. The nine-part boundary
 
@@ -49,7 +50,7 @@ without assigning physical meaning that the action or data have not selected.
 | Stress | Conserved Hilbert stress of the complete dilation action and equal-and-opposite reduced exchange | Metric dependence of the exterior, interface, and reservoir actions |
 | Geometry | Constant-$G$ Einstein backreaction sourced by conserved total stress | Selected gravity sector; extra dynamics for any $q$-dependent coupling |
 | Particle map | Gram map into the $SU(2)_Q$ doublet, Cartan convention bridge, and independent global $Q_C$ | Physical identification, coefficients, quantum numbers, and calibrated charge |
-| Stationary spectrum | Fixed-charge variational equations, finite-energy boundaries, joint physical Hessian, and mixed dynamical eigenvalue pencil | Domain-and-resolution-qualified background, localized carrier, evaluated joint Hessian, selected temporal groups, and evaluated physical spectrum |
+| Stationary spectrum | Fixed-charge variational equations, finite-energy boundaries, joint physical Hessian, and mixed dynamical eigenvalue pencil; one-point strict-shell $C_4$ PA42 low spectrum is nonnegative within the frozen uncertainty | Domain-and-resolution-qualified background, localized retained carrier, spatially resolved phase mode, selected temporal groups, PA43 spectrum, and continuum qualification |
 
 These results are collected in one statement.
 
@@ -795,25 +796,46 @@ and mixed temporal spectrum remain unevaluated.
 
 ### 10.5 Current solver verdict
 
-Canonical-preimage continuation of the registered PA32 endpoints preserves the
-action, coefficient point, charge, grids, field class, diagnostics, and gates.
-Five structural primary arms pass Q1–Q4. The frozen energy rule selects
-`P:separated_core`, with physical gradient RMS
-$1.93697\times10^{-4}$ and cutoff virial
-$1.89101\times10^{-3}$. The independent verifier reports zero mismatches.
+The higher-precision continuation of `P:separated_core` preserves the action,
+coefficient point, charge, field class, projectors, diagnostics, and Q1–Q4
+thresholds. Its independently verified values are
+
+$$
+\|\delta\widehat E\|_{\rm RMS}
+=5.471248126403572\times10^{-5},
+\qquad
+\mathcal V_{\rm cutoff}
+=1.348199143828711\times10^{-4}.
+$$
 
 Every outer-domain arm and the selected high-resolution arm fails Q2. The
 selected primary also fails the registered carrier-localization and retention
-conditions. The current stationary-background verdict is
+conditions. Its stationary-background verdict is
 
 $$
-\boxed{\mathrm{PASS\text{—}Q2\text{-}QUALIFIED\ PRIMARY\ BACKGROUND}.}
+\boxed{\mathrm{PASS\text{—}HIGHER\text{-}PRECISION\ BACKGROUND}}
 \tag{MB48}
 $$
 
-This verdict permits a finite-grid construction of (MB41). It carries no
-particle-existence, localization, stability, domain-convergence, or
-resolution-convergence claim.
+The strict-shell $C_4$ fluctuation space gives a $13622$-dimensional
+fixed-charge physical quotient after removal of the rank-$1677$ coupled gauge
+image. Independent preflight gives augmented quotient-gradient RMS
+$1.122864422122550\times10^{-4}<3\times10^{-4}$, so H1–H3 pass.
+Primary and independent eigensolvers agree on the six matched lowest
+eigenvalues to $3.11\times10^{-14}$. They find one near-zero
+global-$U(1)_C$ phase mode and five positive modes, with no verified negative
+mode. The one-point finite-matrix verdict is
+
+$$
+\boxed{\mathrm{PASS\text{—}NONNEGATIVE\ C4\ FINITE\text{-}GRID\ PA42\ HESSIAN}}.
+$$
+
+The phase mode has participation number $423.58$ and high-frequency fraction
+$0.33454>0.20$. H7 therefore fails, giving the separate spatial verdict
+`INCONCLUSIVE—GRID-SCALE CLASSIFIED MODE`. No Q2-qualified D/H background
+exists, so domain and resolution convergence remain untested. See
+`computations/particle-stationary-precision-v5-report.md` and
+`computations/particle-physical-hessian-precision-v2-report.md`.
 
 ## 11. MCC1–MCC9 receipt
 
@@ -835,31 +857,32 @@ gates pass:
 
 The receipt establishes consistency of the conditional boundary. Its own scope
 flags leave every unresolved physical input false because MCC1–MCC9 do not
-perform the PA32 solve. The independent PA32 recovery supplies a Q2-qualified
-primary background; the full constrained spectrum remains unevaluated.
+perform the stationary or fluctuation solves. The independent campaigns supply
+a higher-precision primary background and a nonnegative one-point PA42 low
+spectrum. Spatial, localization, retention, domain/resolution, and PA43
+qualification remain open.
 
 ## 12. What remains to form matter
 
-The equations now identify the next required evidence without adding another
-auxiliary mechanism.
+The next discriminating evidence is:
 
-1. Select one physical carrier and derive $S_{\rm out}+S_{\rm int}+S_{\rm env}$
-   with units, boundary conditions, and metric dependence.
-2. Derive the golden or another measured port law from that action, including
-   the return routing and canonical flux normalization.
-3. Calibrate the particle-action coefficients and $Q_C$ sector to a declared
-   physical target without using the target as an unledgered fit.
-4. Extend the Q2 qualification to the outer-domain and high-resolution grids,
-   and satisfy the carrier-localization and retention conditions.
-5. Assemble the joint finite-grid constraint space on the selected primary
-   background, evaluate (MB41), and classify every physical zero and negative
-   mode.
-6. Select the temporal groups, solve (MB42), and test domain, resolution,
-   continuum, and nonlinear-lifetime stability.
+1. select one physical carrier and derive
+   $S_{\rm out}+S_{\rm int}+S_{\rm env}$ with units, boundary conditions, and
+   metric dependence;
+2. derive the golden or another measured port law from that action, including
+   return routing and canonical flux normalization;
+3. calibrate the particle-action coefficients and $Q_C$ sector to a declared
+   physical target with every empirical input ledgered;
+4. obtain Q2-qualified outer-domain and finer-grid stationary backgrounds and
+   satisfy the carrier-localization and retention conditions;
+5. repeat the physical quotient and PA42 spectrum on those backgrounds and
+   determine whether the global phase direction becomes spatially resolved;
+6. select the temporal groups, solve PA43, and test continuum and nonlinear
+   lifetime stability.
 
-Until these steps are complete, Cassi has a mathematically connected matter
-calculation and reduced support theorems. A physical finite-energy particle is
-an open result.
+Until these steps are complete, Cassi has a connected matter calculation,
+reduced support theorems, and one nonnegative finite-grid PA42 low-spectrum
+branch. A physical finite-energy particle remains open.
 
 ## References
 
@@ -887,3 +910,5 @@ an open result.
   protocol.
 - `computations/matter_completion_boundary_report.md`—literal first execution
   and measured verdict.
+- `computations/particle-stationary-precision-v5-report.md`—higher-precision Q1–Q4 background.
+- `computations/particle-physical-hessian-precision-v2-report.md`—paired PA42 eigenspectrum and verdict tree.

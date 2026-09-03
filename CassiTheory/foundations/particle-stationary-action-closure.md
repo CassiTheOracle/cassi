@@ -1,6 +1,6 @@
 # Particle-Sector Action and Fixed-Charge Variational Closure
 
-## Status: Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, and variational boundaries / Tested one-point Q2-qualified primary background—September 2026
+## Status: Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, variational, and fluctuation-qualification boundaries / Tested one-point precision-qualified background and nonnegative $C_4$ finite-grid PA42 Hessian—September 2026
 
 ## Abstract
 
@@ -26,13 +26,17 @@ $\mathcal A_0^a=0$.
 
 The fixed-$Q_C$ stationary functional, coupled Euler equations, boundary
 inventory, source-unit dimensions, normalization-invariant dimensionless
-groups, and first numerical variational class are derived below. At the
-registered coefficient point, canonical-preimage continuation produces an
-independently verified Q2-qualified primary background in the finite-grid
-$C_4$ class. Domain and resolution convergence, localization, mass, radius,
-spectrum, lifetime, and particle identification remain open. The numerical
-receipt is recorded in
-`computations/particle-stationary-q2-recovery-report.md`.
+groups, and first numerical variational class are derived below. The registered
+coefficient point now has an independently verified higher-precision
+finite-grid background with physical-gradient RMS
+$5.47125\times10^{-5}$. On its $13622$-dimensional strict-shell $C_4$
+physical quotient, independent PA42 eigensolvers find one near-zero
+global-$U(1)_C$ phase mode and five positive matched modes, with no verified
+negative mode. The finite-matrix verdict is
+`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The phase mode remains
+grid-scale under the frozen spatial diagnostic. Localization, carrier
+retention, domain and resolution convergence, and the PA43 mixed dynamical
+spectrum remain open.
 
 ---
 
@@ -846,7 +850,7 @@ The first class leaves unresolved:
 - higher scale and transverse modes omitted by a reduced ansatz;
 - topology-changing paths outside the represented basins;
 - infinite-domain existence;
-- the full fixed-charge, gauge-quotiented Hessian and mixed dynamical spectrum;
+- a domain- and resolution-converged PA42 energetic Hessian and the PA43 mixed dynamical spectrum;
 - real-time decay, tunnelling, and continuum thresholds;
 - quantum spin and statistics.
 
@@ -862,24 +866,23 @@ $u_\rho=u_\varphi=u_H=4$, $e_C=0.75$, $h_C=1.50$, $q_C=4$, and
 $L_{\mathfrak s}=1$ in the $\mathfrak s$-independent, $a_0=0$ class.
 The primary and domain grids are $(R,N)=(4,17)$ and $(5,21)$.
 
-Canonical-preimage continuation preserves the action, coefficient point,
-charge, grids, seeds, field class, projectors, diagnostics, and gate
-thresholds. Five structural primary arms pass Q1–Q4. The frozen
-lowest-energy rule selects `P:separated_core`, with
-physical gradient RMS $1.93697\times10^{-4}$ and cutoff virial
-$1.89101\times10^{-3}$ against the Q2 ceilings $3\times10^{-4}$ and $0.08$.
-The primary and independent verifier both return
-`PASS—Q2-QUALIFIED PRIMARY BACKGROUND`.
+The higher-precision continuation preserves the action, coefficient point,
+charge, grid, field class, projectors, diagnostics, and Q1–Q4 thresholds. It
+selects `P:separated_core` at
 
-Every domain arm and the selected high-resolution arm fails Q2, so the
-stronger domain-and-resolution qualification fails. The selected field also
-has $R_C=2.56816>R/2$, outer carrier fraction $0.0154769>10^{-3}$, and
-$\widehat\omega_C=0.961914>e_C=0.75$. It therefore supplies a finite-grid
-stationary background without establishing localization or carrier retention.
-The primary energy selection is not a domain-stable basin ordering. The
-complete receipts are recorded in
-`computations/particle-stationary-bvp-report.md` and
-`computations/particle-stationary-q2-recovery-report.md`.
+- physical gradient RMS $5.471248126403572\times10^{-5}$,
+- cutoff virial $1.348199143828711\times10^{-4}$,
+- energy $3.854183410304055$,
+- multiplier $\widehat\omega_C=0.9619139451720478$.
+
+The independent precision verifier passes HP-A through HP-D and returns
+`PASS—HIGHER-PRECISION BACKGROUND`. The field still fails localization and
+carrier retention, and the Q2 campaign supplies no qualified D/H domain or
+resolution background. This endpoint is the registered input for the
+one-point PA42 calculation. The complete receipts are recorded in
+`computations/particle-stationary-bvp-report.md`,
+`computations/particle-stationary-q2-recovery-report.md`, and
+`computations/particle-stationary-precision-v5-report.md`.
 
 ### 8.6 Full constrained fluctuation qualification
 
@@ -924,12 +927,23 @@ Jordan growth, and converged discrete and continuum spectra.
 
 The reduced CC29 separation mode and CC47 frozen line-density modes give
 positive curvature under their stated premises. MCC9 verifies one such point.
-Those modes are proper subspaces of (PA42)--(PA43). The selected
-`P:separated_core` artifact supplies a Q2-qualified finite-grid background on
-which (PA42) can be assembled. The joint constrained Hessian has not been
-evaluated, its domain and resolution limits remain unqualified, and the
-temporal groups required by (PA43) remain unselected. The complete boundary
-and convention map are given in
+Those modes are proper subspaces of (PA42)--(PA43). On the higher-precision
+`P:separated_core` background, the strict-shell $C_4$ fluctuation space gives
+a $13622$-dimensional fixed-charge physical quotient after removal of the
+rank-$1677$ coupled gauge image. Independent preflight reproduces the
+background, quotient, phase direction, Hessian symmetry, and directional
+curvatures, with augmented quotient-gradient RMS
+$1.122864422122550\times10^{-4}<3\times10^{-4}$.
+
+Primary and independent eigensolvers agree on the six matched lowest
+eigenvalues to $3.11\times10^{-14}$. They identify one near-zero
+global-$U(1)_C$ phase mode and five positive modes, with no verified negative
+mode. The one-point finite-matrix verdict is
+`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The phase mode has
+high-frequency fraction $0.33454>0.20$, so the separate spatial verdict is
+`INCONCLUSIVE—GRID-SCALE CLASSIFIED MODE`. No Q2-qualified D/H background
+exists, and the PA43 temporal groups remain unselected. See
+`computations/particle-physical-hessian-precision-v2-report.md` and
 `foundations/matter-completion-boundary.md` §10.
 
 ---
@@ -949,15 +963,15 @@ and convention map are given in
 | Is a numerical coefficient point selected? | Yes for the registered fixed-charge campaign; its physical calibration remains open |
 | Does a Q2-qualified finite-grid configuration exist in the registered class? | Yes; five structural primary arms pass Q1–Q4, and the frozen rule selects `P:separated_core` |
 | Is any basin the unrestricted global minimum? | Undetermined and not established by finite controls |
-| Is the full physical Hessian or mixed dynamical spectrum evaluated? | No; the background is available, but the joint physical projector, Hessian, and temporal pencil remain unevaluated |
+| Is the full physical Hessian or mixed dynamical spectrum evaluated? | PA42 has a nonnegative matched low spectrum at one strict-shell $C_4$ finite-grid point; the phase mode remains grid-scale, domain/resolution convergence is absent, and PA43 remains unevaluated |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 
 The action and stationary boundary inventory define the registered
-mathematical boundary-value experiment at one dimensionless point.
-Canonical-preimage continuation yields the independently verified verdict
-`PASS—Q2-QUALIFIED PRIMARY BACKGROUND`. The result establishes stationarity
-inside the finite-grid represented class. Localization, carrier retention,
-domain and resolution convergence, unrestricted basin ordering, and physical
+mathematical boundary-value experiment at one dimensionless point. Its
+higher-precision finite-grid background passes Q1–Q4, and PA42 supplies a
+nonnegative matched low spectrum on the corresponding physical quotient.
+Localization, carrier retention, spatial resolution of the phase mode, domain
+and resolution convergence, unrestricted basin ordering, and physical
 identification remain open.
 
 ---
@@ -991,13 +1005,13 @@ its unavoidable gauge charge, while the selected second-order charged-field
 kinetics give a time-local gauge symmetry and a Gauss-compatible static sector.
 The neutral carrier remains first order and supplies the exact fixed charge.
 
-The registered one-point campaign executes this variational class, but its
-twelve primary/domain arms do not meet the stationary-quality gate. Any
-further campaign requires a separately frozen numerical method or coefficient
-point; the current receipt supports no basin ordering. Particle masses, radii,
-spectra, and lifetimes remain downstream of a converged localized solution.
-The stationary and fluctuation qualification operators are explicit in
-(PA42)--(PA43), while their evaluation remains downstream of that background.
+The registered one-point campaign now supplies an independently verified
+higher-precision finite-grid background and a nonnegative matched low PA42
+spectrum on its strict-shell $C_4$ physical quotient. The near-zero global
+phase mode remains grid-scale. The selected field is not localized or retained,
+and no Q2-qualified domain or resolution background exists. Particle masses,
+radii, spins, statistics, and lifetimes remain downstream of a localized
+converged solution. The PA43 mixed pencil remains unevaluated.
 
 ---
 
@@ -1013,3 +1027,5 @@ The stationary and fluctuation qualification operators are explicit in
 - `parameter-inventory.md`—coefficient and boundary-data registry.
 - `predictions/falsifiable-predictions.md`—particle prediction and evidence registry.
 - `computations/particle_action_closure_check.py`—deterministic covariance, source, stationary-variation, unit, and dimensionless-group checker.
+- `computations/particle-stationary-precision-v5-report.md`—higher-precision finite-grid background and independent gates.
+- `computations/particle-physical-hessian-precision-v2-report.md`—paired one-point PA42 eigenspectrum and spatial classification.

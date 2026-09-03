@@ -383,22 +383,26 @@ transport and relative-charge conservation, exterior point-flux support,
 smooth-core and confinement boundaries, a conditional reduced conserved-charge
 support theorem, conditional action and Gauss equations, nine-part
 matter-interface boundary, and energetic and dynamical qualification
-operators**, plus **Tested reduced, one-point numerical, finite-grid
-Q2-background, and PA42 quotient boundaries**. The physical reservoir, scale
-metric, endpoint normalization, calibrated coefficient point, qualified
-transverse carrier mode, localized backreacted composite, observation map,
-quantum numbers, full fluctuation spectrum, and decay rate remain open.
-Canonical-preimage continuation supplies a Q2-qualified finite-grid primary
-background. The selected field fails localization and carrier retention,
-while every domain arm and the selected high-resolution arm fails Q2. Its
+operators**, plus **Tested reduced, one-point numerical, higher-precision
+Q1–Q4 background, and nonnegative $C_4$ finite-grid PA42 low-spectrum
+boundaries**. The physical reservoir, scale metric, endpoint normalization,
+calibrated coefficient point, qualified transverse carrier mode, localized
+backreacted composite, observation map, quantum numbers, PA43 spectrum, and
+decay rate remain open.
+
+The higher-precision continuation of `P:separated_core` reaches
+physical-gradient RMS $5.471248126403572\times10^{-5}$ and cutoff virial
+$1.348199143828711\times10^{-4}$ while preserving Q1–Q4. The selected field
+fails localization and carrier retention, and every D/H arm fails Q2. Its
 strict-shell $C_4$ fluctuation space gives a $13622$-dimensional fixed-charge
-physical quotient after removal of the rank-$1677$ coupled gauge image. The
-Hessian action passes independent algebraic and directional checks, but the
-augmented quotient-gradient RMS
-$3.975253382771617\times10^{-4}$ exceeds the frozen
-$3\times10^{-4}$ preflight limit. The verdict is
-`INCONCLUSIVE—HESSIAN PREFLIGHT`; no PA42 eigenvalue or PA43 temporal mode is
-evaluated. See
+physical quotient after removal of the rank-$1677$ coupled gauge image.
+Independent PA42 eigensolvers identify one near-zero global-$U(1)_C$ phase
+mode and five positive matched modes with no verified negative mode. The
+finite-matrix verdict is
+`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. The phase mode exceeds the
+registered high-frequency cutoff, so its spatial verdict is
+`INCONCLUSIVE—GRID-SCALE CLASSIFIED MODE`. Domain and resolution convergence
+remain untested, and PA43 remains open. See
 `foundations/geometric-manifold-completion.md`,
 `foundations/endpoint-link-and-localization-boundary.md`,
 `foundations/point-core-flux-sector.md`,
@@ -407,9 +411,8 @@ evaluated. See
 `foundations/particle-stationary-action-closure.md`,
 `foundations/matter-completion-boundary.md`,
 `computations/matter_completion_boundary_report.md`,
-`computations/particle-stationary-bvp-report.md`,
-`computations/particle-stationary-q2-recovery-report.md`, and
-`computations/particle-physical-hessian-report.md`.
+`computations/particle-stationary-precision-v5-report.md`, and
+`computations/particle-physical-hessian-precision-v2-report.md`.
 
 ---
 
@@ -757,13 +760,15 @@ Gauss-obstructed; a separate second-order charged-field branch supplies the
 temporal action, Gauss constraint, coupled stationary equations, and
 normalization-invariant variational class. The matter-completion boundary adds
 the Gram/Cartan particle map, joint constrained energetic Hessian, and mixed
-dynamical pencil. One dimensionless coefficient point has a Q2-qualified
-finite-grid primary background. The selected field fails localization and
-carrier retention, and every domain plus high-resolution arm fails Q2.
-Physical endpoint normalization, scale tension, coefficient calibration, a
-qualified bound transverse carrier mode, domain and resolution convergence,
-full proton solution, proton quantum numbers, evaluated fluctuation spectrum,
-and winding-changing rate remain open
+dynamical pencil. One dimensionless coefficient point has a higher-precision
+Q1–Q4 finite-grid background and a nonnegative matched low PA42 spectrum on
+its strict-shell $C_4$ physical quotient. The selected field fails localization
+and carrier retention, every domain plus high-resolution arm fails Q2, and the
+near-zero global phase mode remains grid-scale. Physical endpoint
+normalization, scale tension, coefficient calibration, a qualified bound
+transverse carrier mode, domain and resolution convergence, full proton
+solution, proton quantum numbers, PA43 spectrum, and winding-changing rate
+remain open
 (`foundations/endpoint-link-and-localization-boundary.md`;
 `foundations/point-core-flux-sector.md`;
 `foundations/nonabelian-magnetic-core-boundary.md`;
@@ -771,8 +776,8 @@ and winding-changing rate remain open
 `foundations/particle-stationary-action-closure.md`;
 `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_report.md`;
-`computations/particle-stationary-bvp-report.md`;
-`computations/particle-stationary-q2-recovery-report.md`;
+`computations/particle-stationary-precision-v5-report.md`;
+`computations/particle-physical-hessian-precision-v2-report.md`;
 `foundations/interscale-current-soliton.md` §4.5;
 `foundations/proton-coherence-budget.md` §10).
 
@@ -784,13 +789,15 @@ covariance, Gauss constraint, stationary equations, Cartan convention bridge,
 and fluctuation qualification operators are **Derived conditional** on their
 declared actions and sectors. MCC1–MCC9 pass for the finite algebraic and
 reduced analytic boundary. One dimensionless stationary point is **Tested**
-with verdict `PASS—Q2-QUALIFIED PRIMARY BACKGROUND`. Its strict-shell $C_4$
-physical quotient and Hessian action pass independent structural checks, while
-the augmented-gradient gate gives `INCONCLUSIVE—HESSIAN PREFLIGHT` before
-eigenvalue evaluation. Identifying the construction with physical proton
-stability, selecting endpoint and calibrated action data, establishing carrier
-localization and domain/resolution convergence, evaluating the full
-constrained spectrum, and deriving a decay rate are **Hypothesized/Open**.
+with verdict `PASS—HIGHER-PRECISION BACKGROUND`. Its strict-shell $C_4$
+physical quotient has a matched low PA42 spectrum that is nonnegative within
+the frozen uncertainty, with one near-zero global phase mode and five positive
+matched modes. The finite-matrix verdict is
+`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`; the phase mode remains
+grid-scale. Identifying the construction with physical proton stability,
+selecting endpoint and calibrated action data, establishing carrier
+localization and domain/resolution convergence, selecting PA43 temporal
+groups, and deriving a decay rate are **Hypothesized/Open**.
 
 For the neutron–proton–electron trio as a whole—their scale coordinates, sectors, and framework-level distinctions—see `particles/matter-organization.md`.
 
