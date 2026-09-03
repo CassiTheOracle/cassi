@@ -49,8 +49,10 @@ Start with the program criterion, then move from the canonical substrate to the 
 ### The matter and particle builder
 
 Follow the coherence geometry into the endpoint, support, particle action, and
-nine-part qualification boundary. The final two reports record the localized
-branch and its independently verified resolution sequence.
+nine-part qualification boundary. The final three reports cover the localized
+branch, its independently verified field-resolution comparisons, and its
+six-mode constrained low-spectrum result; the last report leaves localized
+Hessian resolution open.
 
 `foundations/yin-yang-qi-dynamical-geometry.md` §7.4 →
 `foundations/interscale-stress-attenuation-boundary.md` →

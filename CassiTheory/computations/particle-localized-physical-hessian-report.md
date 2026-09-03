@@ -159,10 +159,16 @@ $2.2204460493\times10^{-16}$. LH1 passes.
 ## 5. LH2—sparse physical quotient
 
 The two implementations independently recover the dimensions in §2. The
-allowed gauge map has shape $88775\times11775$ and full registered column
-count. Its sparse Gram matrix is positive definite at the measured extremal
-eigenvalues $0.6199901283$ and $37.5079296417$. Projector, gauge-orthogonality,
-fixed-charge, shell, and $C_4$ probes pass. LH2 passes.
+receipt stores the coupled gauge map as a compressed noncarrier block
+`noncarrier_shape=[78894,11775]`; its conceptual full embedding is
+`embedded_shape=[88775,11775]`. Equation (LH17) sets
+$\delta_\alpha\chi=0$, so the omitted carrier rows are implicit exact zeros:
+$88775-78894=(N_S-1)+N_S=9881$. The two shape fields therefore describe one
+map in compressed and embedded storage, not different quotient dimensions.
+The allowed gauge map has full registered column count. Its sparse Gram matrix
+is positive definite at the measured extremal eigenvalues $0.6199901283$ and
+$37.5079296417$. Projector, gauge-orthogonality, fixed-charge, shell, and
+$C_4$ probes pass. LH2 passes.
 
 ## 6. LH3—operator preflight
 
@@ -235,16 +241,30 @@ and LH6 pass.
 
 The near-zero phase mode has participation number $209.1593672342$, above the
 minimum 16, and high-frequency fraction $0.8744032081$, above the maximum
-$0.20$. LH7 fails. Four of the five matched positive modes also exceed the
-high-frequency cutoff; LH7 applies to negative and near-zero modes, so those
-positive classifications do not enter the frozen gate. They reinforce the
-need for a finer-grid spectral sequence before a continuum interpretation.
+$0.20$. The six-mode spatial-resolution fields are:
+
+| JSON index | $\lambda$ classification | Primary `spatially_resolved` | Independent `spatially_resolved` |
+|---:|---|:---:|:---:|
+| 0 | near-zero carrier phase | `false` | `false` |
+| 1 | positive $0.01527618220595$ | `false` | `false` |
+| 2 | positive $0.45730378563470$ | `true` | `true` |
+| 3 | positive $0.47260645541897$ | `false` | `false` |
+| 4 | positive $0.48490557377777$ | `false` | `false` |
+| 5 | positive $0.49759354785925$ | `false` | `false` |
+
+Thus only JSON index 2 passes the spatially resolved gate among the six
+matched modes. The global-phase mode and the $0.0153$ positive mode fail it,
+as do indices 3–5. Four of the five positive modes exceed the high-frequency
+cutoff, but high-frequency fraction is not itself the spatial-resolution
+criterion. LH7 applies to negative and near-zero modes, so the positive
+classification flags do not alter the frozen LH7 gate; they reinforce the need
+for a finer-grid spectral sequence before a continuum interpretation.
 
 The analytic phase direction is proportional to the stationary carrier field.
 Its high-frequency fraction identifies odd-even structure in the localized
-carrier profile. No second null direction appears.
-The tested low-spectrum sign remains valid, while the spatial interpretation
-stays inconclusive.
+carrier profile. Among these six matched modes, no second null direction
+appears. The tested low-spectrum sign remains valid, while the spatial
+interpretation stays inconclusive.
 
 ## 9. Frozen verdict tree
 

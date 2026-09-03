@@ -404,8 +404,10 @@ negative mode, and five positive modes.
 The first positive eigenvalue is $0.01527618220595$, compared with uncertainty
 $6.092903959\times10^{-4}$. The phase mode is entirely carrier-imaginary and
 has high-frequency fraction $0.8744032081$, leaving the spatial classification
-inconclusive. A different diffuse field at $h_C=1.50$ has its own nonnegative
-matched low energetic spectrum while failing localization and retention.
+inconclusive.
+A different diffuse field at $h_C=1.50$ has independently matched lowest
+energetic eigenpairs containing no negative mode while failing localization and
+retention.
 
 The physical carrier, calibrated coefficients, exterior realization,
 reservoir action and stress, gravity choice, localized Hessian resolution,

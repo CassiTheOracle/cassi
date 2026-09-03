@@ -15,22 +15,19 @@ $3.11\times10^{-14}$ in absolute eigenvalue.
 
 The six matched lowest eigenpairs contain one numerically near-zero
 global-$U(1)_C$ carrier-phase symmetry mode, no negative mode, and five positive
-modes. The frozen finite-matrix receipt label is
-
-$$
-\boxed{\mathrm{PASS\text{—}NONNEGATIVE\ C4\ FINITE\text{-}GRID\ PA42\ HESSIAN}}.
-$$
-
-Under H5–H6, this label is operationally limited to the absence of a negative
-mode among those six independently matched lowest eigenpairs.
+modes. The frozen finite-matrix receipt uses the operational label
+`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`; under H5–H6, that label records
+only the absence of a negative mode among those six independently matched
+lowest eigenpairs.
 
 The near-zero phase mode carries a high-frequency fraction of $0.33454$, above
 the registered $0.20$ cutoff. Its separate spatial verdict is
-`INCONCLUSIVE—GRID-SCALE CLASSIFIED MODE`. No Q2-qualified outer-domain or
-finer-grid background exists, so domain and resolution convergence remain
-inconclusive. This result supplies a one-point finite-matrix sign
-classification; it does not establish continuum stability, localization,
-carrier retention, or PA43 dynamical stability.
+`INCONCLUSIVE—GRID-SCALE CLASSIFIED MODE`. The localized X2 $N=29$ background
+and its separate constrained low-spectrum result are recorded in
+`computations/particle-localized-physical-hessian-report.md`; this diffuse
+campaign remains a one-point finite-matrix sign classification. It does not
+establish continuum stability, localization, carrier retention, or PA43
+dynamical stability.
 
 ## 1. Frozen question and background
 
@@ -217,7 +214,8 @@ $U(1)_C$ overlap across the two implementations is $0.9999973509913581$.
 The next five matched modes lie above the positive threshold, and their
 smallest-step directional curvatures are independently positive. H5 and H6
 pass: there is no verified negative mode, exactly one matched near-zero mode is
-the global phase direction, and the other five matched modes are positive.
+identified with the global phase direction, and the other five matched modes are
+positive.
 
 The near-zero mode has:
 
@@ -245,16 +243,11 @@ $$
 | H6 | one global-phase near-zero mode and five positive matched modes | **PASS** |
 | H7 | every negative or near-zero mode passes the spatial diagnostic | **FAIL** |
 
-The frozen finite-grid receipt label is
+The frozen finite-grid receipt uses the operational label
+`PASS—NONNEGATIVE C4 FINITE-GRID PA42 HESSIAN`. Its scope is the absence of a
+negative mode among the six independently matched lowest eigenpairs.
 
-$$
-\boxed{\mathrm{PASS\text{—}NONNEGATIVE\ C4\ FINITE\text{-}GRID\ PA42\ HESSIAN}}.
-$$
-
-Its operational scope is the absence of a negative mode among the six
-independently matched lowest eigenpairs.
-
-The separate domain-and-resolution verdict is
+The separate domain-and-resolution verdict for this diffuse campaign is
 
 $$
 \boxed{\mathrm{INCONCLUSIVE\text{—}NO\ Q2\ DOMAIN/RESOLUTION\ BACKGROUNDS}}.
@@ -297,7 +290,8 @@ uncertainty.
 The following remain open:
 
 - a spatially resolved representation of the global phase mode;
-- Q2-qualified outer-domain and finer-grid backgrounds;
+- additional outer-domain and finer-grid backgrounds for this diffuse campaign;
+- the localized X2 branch's Hessian-resolution sequence and continuum comparison;
 - domain and resolution convergence of the quotient spectrum;
 - carrier localization and the retention inequality;
 - perturbations outside the $C_4$ class and represented finite box;
@@ -315,4 +309,5 @@ The following remain open:
 - `foundations/particle-stationary-action-closure.md` §8.6—PA42 energetic Hessian and PA43 mixed pencil.
 - `foundations/matter-completion-boundary.md` §10—particle-spectrum qualification boundary.
 - `foundations/core-trapped-charge-support.md`—retained-charge support boundary.
+- `computations/particle-localized-physical-hessian-report.md`—localized X2 $N=29$ constrained PA42 spectrum and spatial qualification.
 - `foundations/nonabelian-magnetic-core-boundary.md`—non-Abelian core and confinement boundary.

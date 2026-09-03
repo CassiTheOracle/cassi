@@ -847,7 +847,7 @@ selected. It does not remove the nonzero-condensate monopole obstruction.
 | Persistent finite-separation composite from registered fields | **FAIL in the registered asymptotic branch** | Strictly positive slope (MC47); no registered support term |
 | Carrier-supported separation coordinate | **PASS conditionally in the reduced branch** | $A_C>C_Q$, carrier retention, and thin-tube matching in `foundations/core-trapped-charge-support.md` |
 | Full stationary particle solver | **TESTED resolution-consistent localized retained finite-grid branch and six-mode constrained PA42 low-spectrum sign** | At $h_C=2.9598260763447164$, one nodeless branch qualifies on four same-domain finite grids and one larger-domain comparison, with adjacent agreement and twice-contracting absolute energy differences. Its finest field's six independently matched lowest constrained $C_4$ PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes. The independently matched lowest energetic eigenpairs of a distinct diffuse field also contain no negative mode |
-| Static adjoint BPS stability | **PASS conditionally** | Nonnegative factorized quadratic energy (MC48) |
+| Static adjoint BPS stability | **PASS conditionally** | The factorized static adjoint quadratic form is nonnegative conditionally (MC48) |
 | Full dynamical fluctuation spectrum | **UNSOLVED** | The localized branch's numerically near-zero carrier-phase symmetry mode retains high-frequency odd-even structure, no localized Hessian-resolution sequence exists, perturbations beyond $C_4$ are unevaluated, and the PA43 temporal groups remain unselected |
 
 The auxiliary carrier supplies the first explicit conserved support sector and

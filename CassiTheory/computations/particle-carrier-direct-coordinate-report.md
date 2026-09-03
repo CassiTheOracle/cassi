@@ -80,7 +80,15 @@ The resolution-recovery manifest, primary result, and independent verification h
 
 The direct-coordinate and resolution-recovery calculations establish a nodeless, localized, fixed-charge stationary solution of the complete registered finite-grid action at the Mapped density-depletion coupling. The branch is independently reproducible from the analytic separated-core basin, insensitive to the tested box enlargement, and resolution-consistent across the three finest same-domain grids.
 
-The constrained physical Hessian on the finest localized artifact has no negative mode among the six independently matched lowest modes. Its sole near-zero mode is the global carrier phase, and the first positive eigenvalue is $0.01527618220595$ above the uncertainty $6.092903959\times10^{-4}$. The phase mode's high-frequency fraction $0.8744032081$ fails the frozen spatial cutoff, and no localized Hessian-resolution sequence exists. The finite-grid PA42 sign classification therefore remains separate from continuum energetic stability and PA43 temporal stability.
+The constrained physical Hessian on the finest localized artifact has no
+negative mode among the six independently matched lowest modes. Its one
+numerically near-zero mode is identified with the analytic global carrier-phase
+direction, and the first positive eigenvalue is $0.01527618220595$ above the
+uncertainty $6.092903959\times10^{-4}$. The phase mode's high-frequency
+fraction $0.8744032081$ fails the frozen spatial cutoff, and no localized
+Hessian-resolution sequence exists. The finite-grid PA42 sign classification
+therefore remains separate from continuum energetic stability and PA43 temporal
+stability.
 
 The density-depletion coefficient remains an uncalibrated model input selected by the numerical search. The carrier charge is an auxiliary global $U(1)_C$ number with no demonstrated identification as electric charge, baryon number, lepton number, spin, or a Standard Model species. Dynamic persistence, topology-changing formation, annihilation, and observable quantum-number matching remain separate requirements.
 
