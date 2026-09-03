@@ -87,8 +87,9 @@
   },
   "sha256": {
     "computations/particle-carrier-resolution-recovery-prereg.md": "9bdda6b3822a33c14c47528396860e148421eb2e1f05619f1ad7302e9d2ddb8c",
-    "computations/particle_carrier_resolution_recovery.py": "ae8ce9737594fc976e863470e815c83c3cacf770d9d53db65c466b88bd470dc6",
-    "computations/verify_particle_carrier_resolution_recovery.py": "e2879f27cce9b4236ce072827acf5bae8cb757204e21c9da1d3c774ee0ee5e83",
+    "computations/particle-carrier-resolution-recovery-verification-amendment.md": "7174362fea6759098929476893f4deb549566d337781fbdf96d6d26fdcc86e3c",
+    "computations/particle_carrier_resolution_recovery.py": "f7bd6781fadd51a4a26c8b56dcbe801a33da712e23ed928e72b117763cdfaed9",
+    "computations/verify_particle_carrier_resolution_recovery.py": "24dc2045969a0c71b32b011618092b427c999079640ce04aec28b350b86c0c5c",
     "computations/particle-carrier-direct-coordinate-prereg.md": "b9d95ff44dede34c74f125d3aab9a33ac8c8d08ad136f70ec5995741cc6c5000",
     "computations/particle-carrier-direct-coordinate-execution-amendment.md": "a8917f7c3afcba47a7f8405774b649b9a10cfd2111fd0f700df55387ace0ed48",
     "computations/particle-carrier-direct-coordinate-receipt-binding.md": "11df269190735bb9b54dc333b0deb897bafccc18835f5ac00603946c85f840be",

@@ -66,6 +66,7 @@ COMPARISON_PROTOCOL = {
 
 REQUIRED_HASH_PATHS = (
     "computations/particle-carrier-resolution-recovery-prereg.md",
+    "computations/particle-carrier-resolution-recovery-verification-amendment.md",
     "computations/particle_carrier_resolution_recovery.py",
     "computations/verify_particle_carrier_resolution_recovery.py",
     "computations/particle-carrier-direct-coordinate-prereg.md",
@@ -130,7 +131,7 @@ def source_level_receipt(results: Mapping[str, Any], family: str) -> dict[str, A
         "terminal_block": arm["terminal_block"],
         "terminal_artifact": expected["artifact"],
         "terminal_artifact_sha256": expected["artifact_sha256"],
-        "diagnostics": arm["diagnostics"],
+        "diagnostics": direct.physical_diagnostics_only(arm["diagnostics"]),
         "quality_checks": arm["quality_checks"],
         "localization_checks": arm["localization_checks"],
         "nodeless_check": arm["nodeless_check"],

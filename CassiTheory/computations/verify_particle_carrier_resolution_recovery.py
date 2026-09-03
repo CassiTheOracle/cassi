@@ -69,6 +69,7 @@ NEGATIVE_NORM_LIMIT = 1.0e-12
 BASE = direct_verify.prior.independent
 REQUIRED_HASH_PATHS = (
     "computations/particle-carrier-resolution-recovery-prereg.md",
+    "computations/particle-carrier-resolution-recovery-verification-amendment.md",
     "computations/particle_carrier_resolution_recovery.py",
     "computations/verify_particle_carrier_resolution_recovery.py",
     "computations/particle-carrier-direct-coordinate-prereg.md",
@@ -477,7 +478,11 @@ def validate_arm(
     }
     for name, expected in exact.items():
         BASE.compare_tree(out, f"{path}.{name}", arm.get(name), expected)
-    validate_reconstruction(out, f"{path}.reconstruction", arm.get("reconstruction"))
+    validate_reconstruction(
+        out,
+        f"{path}.source_reconstruction",
+        arm.get("source_reconstruction"),
+    )
     BASE.validate_initial_optimizer(arm.get("initial_optimizer"), f"{path}.initial_optimizer", out)
     blocks = arm.get("blocks")
     if not isinstance(blocks, list) or not (1 <= len(blocks) <= MAX_BLOCKS):
