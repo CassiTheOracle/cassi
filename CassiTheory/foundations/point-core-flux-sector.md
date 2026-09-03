@@ -671,11 +671,15 @@ endpoint boundary conditions, and the second variation in every coupled
 channel. The separate conditional action in
 `foundations/particle-stationary-action-closure.md` supplies second-order
 charged-field kinetics, positive temporal curvatures, and Gauss's law. One
-coefficient point has a Q2-qualified finite-grid primary background, permitting
-construction of the finite-grid constrained Hessian. Core data, the complete
-gauge quotient, domain and resolution convergence, and the evaluated operator
-remain open. Static positivity of (PF39) therefore does not establish
-gauge-mode frequencies.
+coefficient point has a Q2-qualified finite-grid primary background. Its
+strict-shell $C_4$ construction gives a $13622$-dimensional fixed-charge
+physical quotient after removing the rank-$1677$ coupled gauge image. The
+independent Hessian action passes symmetry, phase-Rayleigh, and directional
+finite-difference checks. The augmented-gradient gate gives
+`INCONCLUSIVE—HESSIAN PREFLIGHT`, so eigenvalues are not evaluated. Core data,
+domain and resolution convergence, and temporal coefficients remain open.
+Static positivity of (PF39) therefore does not establish gauge-mode
+frequencies.
 
 The exact result available in this sector is the positive one-dimensional
 scaling curvature. The full fluctuation spectrum requires a finite-energy
@@ -694,7 +698,7 @@ variation.
 | Does the current Abelian action smooth the point core? | No; $dG=0$ forces zero flux through a smooth ball |
 | Does the registered condensate admit an isolated finite-energy monopole? | No; the nonzero charged asymptotic sections give divergent angular kinetic energy |
 | Is a scalar radial matter solve available? | No; $j\geq|N_G|/2$ and the core/outer data are incomplete |
-| Is the full fluctuation spectrum defined? | No; one coupled coefficient point has a Q2-qualified finite-grid primary background, while core data, localization, domain and resolution convergence, complete gauge fixing, and the constrained second variation remain open |
+| Is the full fluctuation spectrum defined? | No; one coupled coefficient point has a Q2-qualified finite-grid primary background and a complete strict-shell $C_4$ physical quotient. The augmented-gradient preflight stops before eigenvalue evaluation; core data, localization, domain and resolution convergence, and the PA43 temporal coefficients remain open |
 
 The algebraic and spectral identities are checked by
 `computations/point_core_flux_check.py`. They create no numbered physical
@@ -731,10 +735,11 @@ conditional reduced support term $A_C/L$. The strict inequality $A_C>C_Q$
 gives one finite root with positive length curvature when carrier retention
 and thin-tube matching also hold. The separate particle action supplies the
 complete fixed-charge stationary formulation and Gauss constraint. One
-coefficient point has a Q2-qualified finite-grid primary background. The field
-is diffuse, fails carrier retention, and lacks domain and resolution
-qualification; unrestricted basin ordering and the fluctuation spectrum remain
-open.
+coefficient point has a Q2-qualified finite-grid primary background and
+explicit physical quotient. The field is diffuse, fails carrier retention,
+and lacks domain and resolution qualification. The augmented-gradient
+preflight stops before the PA42 eigenspectrum; unrestricted basin ordering and
+the fluctuation spectrum remain open.
 
 ---
 
@@ -764,3 +769,5 @@ open.
   nondimensionalization checker
 - `computations/particle-stationary-bvp-report.md`—registered source campaign receipt
 - `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary background and retained localization, domain, and resolution boundaries
+- `computations/particle-physical-hessian-report.md`—finite-grid physical
+  quotient and Hessian-preflight verdict.

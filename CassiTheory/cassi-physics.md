@@ -383,14 +383,22 @@ transport and relative-charge conservation, exterior point-flux support,
 smooth-core and confinement boundaries, a conditional reduced conserved-charge
 support theorem, conditional action and Gauss equations, nine-part
 matter-interface boundary, and energetic and dynamical qualification
-operators**, plus **Tested reduced, one-point numerical, and finite-grid
-Q2-background boundaries**. The physical reservoir, scale metric, endpoint
-normalization, calibrated coefficient point, qualified transverse carrier
-mode, localized backreacted composite, observation map, quantum numbers, full
-fluctuation spectrum, and decay rate remain open. Canonical-preimage
-continuation supplies a Q2-qualified finite-grid primary background. The
-selected field fails localization and carrier retention, while every domain
-arm and the selected high-resolution arm fails Q2. See
+operators**, plus **Tested reduced, one-point numerical, finite-grid
+Q2-background, and PA42 quotient boundaries**. The physical reservoir, scale
+metric, endpoint normalization, calibrated coefficient point, qualified
+transverse carrier mode, localized backreacted composite, observation map,
+quantum numbers, full fluctuation spectrum, and decay rate remain open.
+Canonical-preimage continuation supplies a Q2-qualified finite-grid primary
+background. The selected field fails localization and carrier retention,
+while every domain arm and the selected high-resolution arm fails Q2. Its
+strict-shell $C_4$ fluctuation space gives a $13622$-dimensional fixed-charge
+physical quotient after removal of the rank-$1677$ coupled gauge image. The
+Hessian action passes independent algebraic and directional checks, but the
+augmented quotient-gradient RMS
+$3.975253382771617\times10^{-4}$ exceeds the frozen
+$3\times10^{-4}$ preflight limit. The verdict is
+`INCONCLUSIVE—HESSIAN PREFLIGHT`; no PA42 eigenvalue or PA43 temporal mode is
+evaluated. See
 `foundations/geometric-manifold-completion.md`,
 `foundations/endpoint-link-and-localization-boundary.md`,
 `foundations/point-core-flux-sector.md`,
@@ -399,8 +407,9 @@ arm and the selected high-resolution arm fails Q2. See
 `foundations/particle-stationary-action-closure.md`,
 `foundations/matter-completion-boundary.md`,
 `computations/matter_completion_boundary_report.md`,
-`computations/particle-stationary-bvp-report.md`, and
-`computations/particle-stationary-q2-recovery-report.md`.
+`computations/particle-stationary-bvp-report.md`,
+`computations/particle-stationary-q2-recovery-report.md`, and
+`computations/particle-physical-hessian-report.md`.
 
 ---
 
@@ -775,11 +784,13 @@ covariance, Gauss constraint, stationary equations, Cartan convention bridge,
 and fluctuation qualification operators are **Derived conditional** on their
 declared actions and sectors. MCC1–MCC9 pass for the finite algebraic and
 reduced analytic boundary. One dimensionless stationary point is **Tested**
-with verdict `PASS—Q2-QUALIFIED PRIMARY BACKGROUND`. Identifying the
-construction with physical proton stability, selecting endpoint and calibrated
-action data, establishing carrier localization and domain/resolution
-convergence, evaluating the full constrained spectrum, and deriving a decay
-rate are **Hypothesized/Open**.
+with verdict `PASS—Q2-QUALIFIED PRIMARY BACKGROUND`. Its strict-shell $C_4$
+physical quotient and Hessian action pass independent structural checks, while
+the augmented-gradient gate gives `INCONCLUSIVE—HESSIAN PREFLIGHT` before
+eigenvalue evaluation. Identifying the construction with physical proton
+stability, selecting endpoint and calibrated action data, establishing carrier
+localization and domain/resolution convergence, evaluating the full
+constrained spectrum, and deriving a decay rate are **Hypothesized/Open**.
 
 For the neutron–proton–electron trio as a whole—their scale coordinates, sectors, and framework-level distinctions—see `particles/matter-organization.md`.
 

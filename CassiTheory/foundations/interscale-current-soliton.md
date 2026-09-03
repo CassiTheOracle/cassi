@@ -55,9 +55,11 @@ with the auxiliary adjoint core, derives Gauss's law, and defines the coupled
 fixed-$Q_C$ stationary functional. Its registered coefficient point has a
 Q2-qualified finite-grid primary background. The selected field fails
 localization and carrier retention, and every domain plus high-resolution arm
-fails Q2. Its second-order charged-field kinetics are separate from the
-first-order interscale action derived here, whose direct local gauging carries
-an unavoidable nonzero-condensate Gauss source.
+fails Q2. Its finite-grid physical quotient and Hessian action pass independent
+structural checks, while the augmented-gradient preflight stops before
+eigenvalue evaluation. Its second-order charged-field kinetics are separate
+from the first-order interscale action derived here, whose direct local gauging
+carries an unavoidable nonzero-condensate Gauss source.
 
 The transverse carrier mode, dimensional normalization, physical calibration,
 scale metric, conversion mechanism, compact boundary data, localized

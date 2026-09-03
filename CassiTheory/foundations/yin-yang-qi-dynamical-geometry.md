@@ -75,7 +75,7 @@ The scalar $q$, off-diagonal $c$, connection $B_A$, curvature $G_{AB}$, and scal
 
 `foundations/particle-stationary-action-closure.md` uses a local $SU(2)_Q$ gauge sector, second-order charged-field time derivatives, a neutral fixed-$Q_C$ carrier, and its own Gauss closure. The Abelian graph action in `foundations/geometric-manifold-completion.md` uses a first-order complex doublet and relative $U(1)_Q$ connection. No interface currently identifies their fields, charges, temporal symplectic structures, or stress tensors.
 
-The fixed-charge particle functional therefore remains a downstream alternative boundary-value problem. At its registered coefficient point, canonical-preimage continuation supplies a Q2-qualified finite-grid primary background. The selected field fails localization and carrier retention, while domain and resolution convergence, the constrained spectrum, and global existence remain open.
+The fixed-charge particle functional therefore remains a downstream alternative boundary-value problem. At its registered coefficient point, canonical-preimage continuation supplies a Q2-qualified finite-grid primary background. The selected field fails localization and carrier retention. Its physical quotient and Hessian action pass independent structural checks, while the augmented-gradient gate gives `INCONCLUSIVE—HESSIAN PREFLIGHT` before eigenvalue evaluation. Domain and resolution convergence, the constrained spectrum, and global existence remain open.
 
 ## 2. Geometry of the Local State
 
@@ -1065,8 +1065,11 @@ interface to the fixed-charge local-$SU(2)_Q$ action:
 The MCC1–MCC9 receipt passes. A physical action producing the exterior,
 interface, reservoir, stress components, and carrier normalization remains
 unselected. The particle campaign has a Q2-qualified finite-grid primary
-background. Localization, domain and resolution convergence, the complete
-physical Hessian, and the mixed dynamical spectrum remain open.
+background. Localization, carrier retention, and domain and resolution
+convergence remain open. The complete finite-grid physical quotient and
+Hessian action pass independent structural checks, while the augmented-gradient
+gate returns `INCONCLUSIVE—HESSIAN PREFLIGHT` before eigenvalue evaluation.
+The mixed dynamical spectrum remains open.
 
 ## 13. Derived, Hypothesized, and Open Results
 
@@ -1090,7 +1093,7 @@ The frozen DG1–DG7 and EC1–EC7 receipts return **PASS**. The universal finit
 | Complete Noether stress and geometry backreaction | **Conditional total-stress identity and constant-$G$ branch Derived / Stress components and gravity selection open** |
 | Local scale-bulk endpoint mediator | **Open** |
 | Interface to the local-$SU(2)_Q$ fixed-charge particle branch | **Gram, Cartan-convention, and charge-separation map Derived conditionally / Physical identification open** |
-| Qualified stationary matter solution and full spectrum | **Finite-grid Q2 primary background established / localized, converged physical solution and spectrum open** |
+| Qualified stationary matter solution and full spectrum | **Finite-grid Q2 primary background and physical quotient established / PA42 augmented-gradient preflight, localization, convergence, and physical spectrum open** |
 
 ## 14. Conclusion
 
@@ -1122,10 +1125,12 @@ unitary carrier from the routed forward record, derives the single-mode
 power law, closes the conditional total-stress and constant-$G$ geometry
 ledgers, and maps the coherence fibre into the particle doublet. Finite-density
 transverse coherence still requires an identified source. A Q2-qualified
-finite-grid primary particle background exists. A physical exterior, reservoir
-action, calibrated particle coefficients, carrier localization, domain and
-resolution convergence, the joint constrained Hessian, and selected temporal
-groups remain required before a full particle spectrum can be computed.
+finite-grid primary particle background, physical quotient, and structurally
+verified Hessian action exist. The augmented-gradient preflight stops before
+the PA42 eigenspectrum. A physical exterior, reservoir action, calibrated
+particle coefficients, carrier localization, domain and resolution
+convergence, the PA42 eigenspectrum, and selected temporal groups remain
+required before a full particle spectrum can be computed.
 
 ## References
 
@@ -1141,6 +1146,8 @@ groups remain required before a full particle spectrum can be computed.
 - `computations/particle-stationary-q2-recovery-report.md`—Q2-qualified primary
   particle background and retained localization, domain, resolution, and
   spectrum boundaries.
+- `computations/particle-physical-hessian-report.md`—finite-grid quotient,
+  Hessian-action checks, and the augmented-gradient stopping verdict.
 - `computations/dynamical_geometry_closure_prereg.md`—frozen DG1–DG7 reduction and ledger criteria.
 - `computations/dynamical_geometry_closure_check.py`—deterministic DG1–DG7 first-execution witness.
 - `computations/dynamical_geometry_closure_report.md`—DG1–DG7 analytic proof,

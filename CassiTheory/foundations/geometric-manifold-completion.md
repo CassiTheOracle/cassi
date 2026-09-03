@@ -56,8 +56,11 @@ temporal action combines the charged and carrier sectors, derives Gauss's law,
 and defines the fixed-$Q_C$ stationary variational problem
 (`foundations/particle-stationary-action-closure.md`). Canonical-preimage
 continuation at the registered coefficient point supplies a Q2-qualified
-finite-grid primary background. Localization, domain and resolution
-convergence, robust basin ordering, and the constrained spectrum remain open.
+finite-grid primary background and an explicit $13622$-dimensional physical
+quotient. The Hessian action passes independent structural checks, while the
+augmented-gradient preflight stops before eigenvalue evaluation. Localization,
+domain and resolution convergence, robust basin ordering, and the constrained
+spectrum remain open.
 
 ---
 
@@ -336,12 +339,14 @@ The active first-order endpoint Hessian is explicit. Source-action elimination
 of the first-order Schrödinger/Berry endpoint action (EL9) gives its Nambu
 Schur response around a declared nonzero rail background, with response-kernel
 covariance under constant relative-frame rotations. The source-free
-second-order particle action remains a separate temporal sector. The endpoint
-potential, nonzero-current background, microscopic damping channel, temporal
-relative-gauge connection, doubled port-flux law, and full coupled fluctuation
-spectrum remain open. The one registered coupled coefficient point therefore
-provides a numerical boundary for the declared model, while a physically
-qualified particle solution remains open.
+second-order particle action remains a separate temporal sector. Its
+finite-grid physical quotient and Hessian action pass independent structural
+checks, while the augmented-gradient preflight stops before the PA42
+eigenspectrum. The endpoint potential, nonzero-current background, microscopic
+damping channel, temporal relative-gauge connection, doubled port-flux law,
+and full coupled fluctuation spectrum remain open. The one registered coupled
+coefficient point therefore provides a numerical boundary for the declared
+model, while a physically qualified particle solution remains open.
 
 The scalar phases in (GM11) are fixed-frame representatives of endpoint
 intertwiners. Under a relative $U(1)_Q$ frame change, each $S_v$ must transform
@@ -1458,7 +1463,7 @@ No numbered prediction is added to
 | Scale tension and endpoint selection | Capacity bound and one-way rate ratio Derived conditionally; physical couplings, rates, and scale selection open |
 | Mixed-curvature inward force | Conditional restricted-sector result |
 | Physical bubble identification | Hypothesized observation map |
-| Stable spatially localized solution | Absent in the minimal smooth zero-Chern and registered confined-pair sectors; point-core flux supplies a conditional exterior coefficient, an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, and a neutral fixed-$Q_C$ carrier supplies one statically stable reduced separation under support, retention, and matching inequalities. A separate source-free temporal action defines the coupled stationary variational problem. One coefficient point has a Q2-qualified finite-grid primary background, while localization, carrier retention, domain and resolution convergence, and the constrained spectrum remain open |
+| Stable spatially localized solution | Absent in the minimal smooth zero-Chern and registered confined-pair sectors; point-core flux supplies a conditional exterior coefficient, an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, and a neutral fixed-$Q_C$ carrier supplies one statically stable reduced separation under support, retention, and matching inequalities. A separate source-free temporal action defines the coupled stationary variational problem. One coefficient point has a Q2-qualified finite-grid primary background and explicit physical quotient. The augmented-gradient preflight stops before eigenvalue evaluation; localization, carrier retention, domain and resolution convergence, and the constrained spectrum remain open |
 | Particle mass, charge, color, spin, statistics, and decay rate | Open |
 | Covariant gravity and physical scale metric | Open |
 

@@ -16,10 +16,13 @@ background claim by itself. The independent canonical-preimage continuation
 campaign supplies a Q2-qualified finite-grid primary background with verdict
 `PASS—Q2-QUALIFIED PRIMARY BACKGROUND`. The selected field fails localization
 and carrier retention, while every domain plus high-resolution arm fails Q2.
-The physical exterior, microscopic interface coefficients, golden port-power
-identification, multimode carrier normalization, reservoir, local reservoir
-stress, state-dependent gravity, coherence-fibre particle identity, domain and
-resolution convergence, and full constrained spectrum remain open.
+Its finite-grid PA42 physical quotient and Hessian action pass independent
+structural checks, while the augmented-gradient preflight stops before
+eigenvalue evaluation. The physical exterior, microscopic interface
+coefficients, golden port-power identification, multimode carrier
+normalization, reservoir, local reservoir stress, state-dependent gravity,
+coherence-fibre particle identity, domain and resolution convergence, and full
+constrained spectrum remain open.
 
 ## 1. Frozen execution
 
@@ -65,7 +68,7 @@ line-density sector.
 | MCC6 | Enlarged unitary evolution conserves total energy and number; interior and complementary exchange vectors close the Ward ledger | **PASS** | Local reservoir stress components require a closed metric-dependent action |
 | MCC7 | The constant-$G$ linearized Einstein witness is transverse; a variable scalar coupling creates an extra divergence | **PASS** | State-dependent gravity open |
 | MCC8 | The Cartan connection requires the minus-sign transformation; rank-one and full-rank Gram fibres are positive; $Q_C$ remains an independent singlet charge | **PASS** | Physical coherence-fibre particle identity open |
-| MCC9 | The frozen CC29 branch has one bounded positive-curvature root and positive nonconstant CC47 line modes | **PASS** | MCC9 contains no PA32 solve; separate recovery supplies a Q2-qualified finite-grid primary background, while localization, domain/resolution convergence, and the constrained spectrum remain absent |
+| MCC9 | The frozen CC29 branch has one bounded positive-curvature root and positive nonconstant CC47 line modes | **PASS** | MCC9 contains no PA32 solve; separate recovery supplies a Q2-qualified finite-grid primary background and explicit physical quotient, while the PA42 augmented-gradient preflight, localization, domain/resolution convergence, and the constrained spectrum remain open |
 
 ## 4. Literal first-execution output
 

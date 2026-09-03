@@ -238,7 +238,8 @@ The following sectors remain unresolved:
 - temporal fields and fluctuation modes;
 - knots and topology-changing paths outside the six represented seeds;
 - infinite-domain existence and a converged continuum limit;
-- the full constrained Hessian;
+- the PA42 eigenspectrum, stopped by the augmented-gradient preflight after
+  construction of the finite-grid physical quotient and Hessian action;
 - real-time decay and tunnelling;
 - quantum spin and statistics;
 - physical calibration of the dimensionless coefficient point.
@@ -251,3 +252,5 @@ The following sectors remain unresolved:
 - `foundations/particle-stationary-action-closure.md`—stationary action and fixed-charge variational authority.
 - `foundations/nonabelian-magnetic-core-boundary.md`—magnetic-core boundary authority.
 - `foundations/core-trapped-charge-support.md`—neutral-carrier support authority.
+- `computations/particle-physical-hessian-report.md`—finite-grid quotient,
+  Hessian-action checks, and the preflight stopping verdict.

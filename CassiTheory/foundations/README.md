@@ -510,12 +510,15 @@ one conditional reduced separation under support, retention, and matching
 inequalities. Direct local gauging of the first-order time term is source-free
 Gauss-obstructed; the separate particle action supplies the temporal gauge and
 Gauss sectors and defines the fixed-$Q_C$ stationary problem. One coefficient
-point has a Q2-qualified finite-grid primary background. The selected field
-fails localization and carrier retention, while domain and resolution
-qualification remains open. Physical endpoint normalization, scale tension, a
-bound transverse carrier mode, qualified supported proton solution,
-fluctuation spectrum, compact winding, mass scaling, particle identification,
-and decay rate remain open. Status: Hypothesized action with Derived
+point has a Q2-qualified finite-grid primary background and an explicit
+physical quotient. The selected field fails localization and carrier
+retention, while domain and resolution qualification remains open. The
+Hessian action passes independent structural checks, while the
+augmented-gradient preflight stops before eigenvalue evaluation. Physical
+endpoint normalization, scale tension, a bound transverse carrier mode,
+qualified supported proton solution, fluctuation spectrum, compact winding,
+mass scaling, particle identification, and decay rate remain open. Status:
+Hypothesized action with Derived
 conditional identities and completion boundaries, plus a Tested one-point
 Q2-qualified primary background.
 
@@ -613,8 +616,11 @@ support equation, total-stress Ward identity, constant-$G$ geometry branch,
 Gram/Cartan particle map, and stationary-spectrum qualification problem.
 MCC1–MCC9 pass. Explicit reservoir stress, gravity selection, and physical
 particle identity remain open. The separate particle campaign supplies a
-Q2-qualified finite-grid primary background; localization, domain and
-resolution convergence, and the constrained spectrum remain open. Status:
+Q2-qualified finite-grid primary background and an explicit physical quotient.
+Its Hessian action passes independent structural checks, while the
+augmented-gradient gate gives `INCONCLUSIVE—HESSIAN PREFLIGHT` before
+eigenvalue evaluation. Localization and domain and resolution convergence
+remain open. Status:
 Hypothesized integrated open-system geometry / Derived exact diagonal
 reduction, positivity-preserving conversion flow, covariance, ledger closure,
 conditional coherence-support boundary, bounded cross-domain interface, and
@@ -697,10 +703,11 @@ positive London mass. A finite monopole-antimonopole tube is conditional and
 shrinks in the registered long-distance energy because positive string tension
 and the attractive screened tail produce no finite-separation minimum. The
 carrier-support handoff is explicit, and the coupled particle campaign has a
-Q2-qualified finite-grid primary background without localization or
-domain/resolution qualification. Status: Hypothesized auxiliary completion
-with Derived conditional smooth-core and confinement boundaries / Tested
-one-point Q2-qualified primary background.
+Q2-qualified finite-grid primary background and physical quotient. The
+augmented-gradient preflight stops before the eigenspectrum; localization and
+domain/resolution qualification remain open. Status: Hypothesized auxiliary
+completion with Derived conditional smooth-core and confinement boundaries /
+Tested one-point Q2-qualified primary background.
 
 ### `core-trapped-charge-support.md`—Core-Trapped Noether Charge and the Finite-Composite Boundary
 
@@ -712,9 +719,10 @@ $A_C=\Lambda_CQ_C^2/2$. The condition $A_C>C_Q$ gives one finite root with
 positive length curvature. Carrier retention,
 $\hbar\omega_C<\varepsilon_{C,\rm out}$, and separation beyond core overlap
 remain independent requirements. One coupled coefficient point has a
-Q2-qualified finite-grid primary background. The selected field fails
-localization and carrier retention, while every domain plus high-resolution
-arm fails Q2; no physical full solution is established.
+Q2-qualified finite-grid primary background and explicit physical quotient.
+The selected field fails localization and carrier retention, while every
+domain plus high-resolution arm fails Q2. The augmented-gradient preflight
+stops before the eigenspectrum; no physical full solution is established.
 
 ### `particle-stationary-action-closure.md`—Particle-Sector Action and Fixed-Charge Variational Closure
 
@@ -726,10 +734,19 @@ kinetics for the charged fields, derives the Gauss constraint and fixed-$Q_C$
 stationary equations, and reduces to the registered static energy. Its
 normalization-invariant groups, first variational class, joint physical
 Hessian, and mixed dynamical eigenvalue pencil are explicit.
-Canonical-preimage continuation at the registered coefficient point supplies
-a Q2-qualified finite-grid primary background. The selected field fails
-localization and carrier retention, every domain plus high-resolution arm
-fails Q2, and no constrained spectrum or lifetime is established.
+Canonical-preimage recovery supplies five Q2-qualified primary backgrounds and
+selects `P:separated_core`; the field remains diffuse and fails carrier
+retention, while the domain and high-resolution arms fail Q2. Its strict-shell
+$C_4$ physical tangent has dimension $13622$ after removing the rank-$1677$
+coupled local-gauge image. Independent checks validate the quotient and
+Hessian action, while the augmented-gradient preflight returns
+`INCONCLUSIVE—HESSIAN PREFLIGHT` before eigenvalue evaluation. A localized,
+domain-and-resolution-qualified stationary background, unrestricted
+multistart basin study, physical calibration, the PA42 eigenspectrum, and the
+PA43 dynamical pencil remain open. See
+`computations/particle-stationary-q2-recovery-report.md`,
+`computations/particle-physical-hessian-report.md`, and
+`foundations/matter-completion-boundary.md` for the full current boundary.
 
 ### `matter-completion-boundary.md`—Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
@@ -756,9 +773,11 @@ Hessian and the mixed second-/first-order dynamical pencil. MCC1–MCC9 pass for
 the finite algebraic and reduced analytic witnesses. The physical exterior,
 microscopic coefficients, multimode carrier map, reservoir action, explicit
 reservoir stress, gravity selection, and particle identity remain open. The
-particle campaign supplies a Q2-qualified finite-grid primary background.
-Localization, carrier retention, domain and resolution convergence, and the
-full constrained spectrum remain open. Status: Derived conditional boundary /
+particle campaign supplies a Q2-qualified finite-grid primary background and
+an explicit finite-grid physical quotient. Its Hessian action passes
+independent structural checks, while the augmented-gradient preflight stops
+before eigenvalue evaluation. Localization, carrier retention, domain and
+resolution convergence, and the constrained spectrum remain open. Status:
 Hypothesized physical realization / Tested reduced receipts and one-point
 Q2-qualified primary background.
 
