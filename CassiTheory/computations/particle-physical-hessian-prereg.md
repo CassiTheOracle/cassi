@@ -106,7 +106,10 @@ residual at most $5\times10^{-12}$ in relative infinity norm.
 
 ### 2.2 Frozen authority hashes
 
-The source manifest records these exact pre-execution SHA-256 values:
+The source manifest records these pre-execution SHA-256 values. Text
+authorities (`.md`, `.py`, and `.json`) are hashed after canonicalizing CRLF
+line endings to LF; the binary NPZ is hashed byte for byte. This preserves the
+same authority identity across Git checkout line-ending policies.
 
 | Authority | SHA-256 |
 |---|---|
@@ -124,11 +127,11 @@ The source manifest records these exact pre-execution SHA-256 values:
 | core-support boundary | `b18f94ab7cac17cfcac1dcbcb62e24970c3479dbbec2f62b24e331d711c6f01b` |
 | magnetic-core boundary | `f23cfd51d261fb34e6742baace93c5a81f9fda7fcd5e17ca0cab048b352860a1` |
 
-The implementation freeze adds the SHA-256 hashes of this preregistration,
-the primary Hessian program, and the independent verifier to
-`computations/particle_physical_hessian_manifest.json`. Preflight requires an
-exact match for every listed byte stream. Any mismatch stops before an
-operator or eigenvalue is evaluated.
+The implementation freeze adds the canonical SHA-256 hashes of this
+preregistration, the primary Hessian program, and the independent verifier to
+`computations/particle_physical_hessian_manifest.json`. Preflight applies the
+same text canonicalization and requires every listed digest to match. Any
+mismatch stops before an operator or eigenvalue is evaluated.
 
 ## 3. Frozen functional and discretization
 
@@ -621,7 +624,7 @@ Every reported mode must satisfy:
 - metric-normalization residual
   $|v^{\mathsf T}\mathcal Mv-1|\le10^{-10}$.
 
-Every near-zero mode additionally reports component energy fractions,
+Every near-zero mode additionally reports component norm fractions,
 overlap with the exact global-$U(1)_C$ generator, overlap with discrete $x$,
 $y$, and $z$ translation probes, overlap with the axial-rotation probe, and
 overlap with the carrier charge normal. The symmetry assignment requires a
