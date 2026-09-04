@@ -229,7 +229,7 @@ The framework supplies a substantive computational interpretation: if reality is
 - `foundations/xi-derivation.md`—$\xi = \varphi^6$ and the Qi-gravity coupling
 - `foundations/dimensionful-constants-status.md`—external constants, parameter classification
 - `principles/de-resonance-principle.md`—$\varphi$ as maximally irrational engine stabilizer
-- `gravity/quantum-gravity.md`—$\sigma$-regulated propagator, no trans-Planckian modes, UV finiteness
+- `gravity/quantum-gravity.md`—Euclidean free-propagator damping and a UV-convergent radial one-loop prototype at nonzero infrared cutoff; interacting renormalizability, Lorentzian unitarity, and the composite-graviton mapping remain open
 - `predictions/falsifiable-predictions.md`—wake-wave prediction $\Delta(\ln k) = \ln\varphi$
 - `consciousness/chakras-as-cascade-bubbles.md`—13-node gate chain, $P_\parallel = 2$
 - `consciousness/trauma-as-frozen-gate.md`—wake-lock as a frozen gate

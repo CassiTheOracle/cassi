@@ -1,6 +1,6 @@
 # Physical Becoming: A Causal State Hierarchy for Cassi
 
-## Status: Hypothesized architecture / Derived canonical reduction—August 2026
+## Status: Hypothesized architecture / Derived canonical reduction—September 2026
 
 ## Abstract
 
@@ -173,7 +173,7 @@ $$
 \tag{PB}
 $$
 
-This is one block equation in the direct-sum state space. Each symbol has a load-bearing condition:
+This is one block equation in the direct-sum state space. Each symbol has a specific condition:
 
 - $\mathbb C=\mathbb C^*\succeq0$ is a capacity/metric operator. It supplies the dimensional conversion between rates and generalized forces. Its null rows correspond to algebraic constraints. If $N_{\mathbb C}$ spans $\ker\mathbb C^*$, a DAE solution also requires
   $N_{\mathbb C}^*\bigl([\mathbb J-\mathbb R]\delta\mathscr A/\delta\mathcal Z+\mathbb B_{\mathrm{env}}u_{\mathrm{env}}+\mathbb B_{\mathrm{act}}a^*+\eta\bigr)=0$; $\mathcal K=0$ must enforce these compatibility and tangent constraints.
@@ -1282,6 +1282,27 @@ $$
 
 Cassini measured $\gamma_{\mathrm{PPN}}-1=(2.1\pm2.3)\times10^{-5}$. The order-unity astrophysical change in (GR6) and the local fifth-force amplitude in (GR7) are distinct observables. Connecting them requires an explicit mass, weak-coupling, or environmental-screening profile. No such profile, scalar source law, or weak-field matching is currently derived. The river-flow law is likewise a phenomenological Newtonian closure until it follows from (GR1) with a declared coordinate and matter map. The covariant Cassi gravity branch therefore remains **REJECTED** as a completed theory; (GR1)–(GR7) state the conditions for reconsideration.
 
+
+The weak-field quantum-matter boundary is independently fixed by a supplied
+uniform potential. For inertial coefficient $m_i$, gravitational response
+coefficient $m_g$, source field $g$, and ideal closed half-time $T$, the
+centre-of-mass phase is
+
+$$
+\Delta\phi=-\frac{m_g^2g^2T^3}{3\hbar m_i}.
+\tag{GR8}
+$$
+
+Universal minimal matter coupling in the constant-$G_N$ metric branch gives
+$m_g=m_i$ and the standard Quantum Galileo Interferometer result
+([doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045)).
+Universal Jordan-frame coupling in (GR1) can change the sourced metric and add
+scalar exchange, but $F(\chi)R$ does not by itself assign a body-dependent
+$m_g/m_i$. Such dependence requires a completed matter-sensitivity and
+screening calculation. Same-arm acceleration calibration also removes the
+separate source and response factors, so the measured phase cannot be inverted
+to a Cassi $q$. The full source/test separation is derived in
+`foundations/quantum-free-fall-correspondence.md`.
 
 ### 7.5 Radiative and coarse-graining boundaries
 

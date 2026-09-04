@@ -1,208 +1,163 @@
 #!/usr/bin/env python3
-"""
-Cassi Quantum Gravity—UV-Finite from σ-Regularized Two-Field Quantization.
+"""Plot the registered free-propagator and dispersion diagnostics.
 
-THE MISSING PILLAR: quantize the two-fluid PDE and show that:
-  1. No fundamental graviton (σ-regularized Poisson emergence, Derived);
-     the graviton is a composite spin-2 SO(2) two-fluid excitation in the
-     quantized extension (Hypothesized)
-  2. Loop corrections to G_eff are UV-finite (σ-regulator)
-  3. At low energy E << 1/σ, standard GR is recovered
-  4. At high energy E ~ 1/σ, quantum corrections become important but finite
+This script evaluates two declared, conditional objects from
+``gravity/quantum-gravity.md``:
 
-NO singularities, NO infinities, NO fine-tuning.
+* the normalized Euclidean propagator damping ``k² G_E = exp(-(kσ)²/2)``;
+* the Hypothesized dispersion
+  ``ω² = k² + ω₀² (1 - exp(-(kσ)²))``.
+
+It also integrates the displayed radial one-loop prototype with an explicit
+nonzero infrared cutoff. The calculation demonstrates ultraviolet convergence
+of that prototype only. It supplies no interacting vertices, all-loop
+renormalization result, Lorentzian unitarity proof, or physical graviton
+identification.
 """
 
 import math
-import numpy as np
+
 import matplotlib
-matplotlib.use('Agg')
+import numpy as np
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+
 PHI = (1.0 + math.sqrt(5.0)) / 2.0
-M_PL = 1.22e19  # GeV (Planck mass)
-SIGMA = 1.0 / (PHI**3 * M_PL)  # σ = ℓ_Pl/φ³ per registry G1 (2026-08-03); natural units
+M_PL = 1.22e19  # GeV
+SIGMA = 1.0 / (PHI**3 * M_PL)  # GeV^-1
+MU = M_PL * SIGMA  # ω₀σ = φ^-3
 
 
-def free_propagator(k_squared, sigma=SIGMA):
-    """Free two-fluid propagator with σ-regularization.
-    
-    G(k²) = exp(-k²·σ²/2) / k²
-    
-    The Gaussian factor exp(-k²·σ²/2) regularizes the UV.
-    At k << 1/σ: G ~ 1/k² (standard massless propagator)
-    At k >> 1/σ: G ~ 0 (soft cutoff)
+def propagator_damping(x):
+    """Return the dimensionless ratio k² G_E for x = kσ."""
+    x = np.asarray(x, dtype=float)
+    return np.exp(-0.5 * x * x)
+
+
+def radial_loop_prototype(x_ir, *, x_max=20.0, samples=20_000):
+    """Integrate exp(-x²)/x /(8π²) from a positive IR cutoff.
+
+    The dimensionless variable is x = qσ. The upper tail beyond ``x_max=20``
+    is negligible in double precision. The integral diverges logarithmically
+    as ``x_ir`` approaches zero.
     """
-    return np.exp(-k_squared * sigma**2 / 2) / (k_squared + 1e-30)
+    if not 0.0 < x_ir < x_max:
+        raise ValueError("require 0 < x_ir < x_max")
+    x = np.geomspace(x_ir, x_max, samples)
+    return np.trapezoid(np.exp(-x * x) / x, x) / (8.0 * math.pi**2)
 
 
-def loop_integral_1loop(omega, sigma=SIGMA, G_const=1.0):
-    """One-loop correction to Newton's constant.
-    
-    ΔG = G² · ∫ d⁴q G(q)G(k-q) [vertex factor]
-    
-    In the IR limit (k → 0):
-    ΔG = G² · ∫ d⁴q exp(-q²·σ²) / (q² + 1e-30)²
-    
-    This integral is UV-finite because exp(-q²·σ²) kills high momentum.
-    
-    With Feynman parameterization and spherical integration:
-    ΔG/G = G · 1/(16π²) · [exp(0) ... ]
-    
-    Full result: ΔG/G = G · [1/(16π²·σ²)] · O(1)
-    """
-    # Euclidean loop integral in 4D with σ-regulator
-    # ∫ d⁴q exp(-q²σ²) / (q²)²  → finite!
-    # Spherical: (2π²) ∫₀^∞ q³ dq · exp(-q²σ²) / q⁴
-    # = 2π² ∫₀^∞ dq exp(-q²σ²) / q = π² · Ei(-q²σ²)|₀^∞
-    # Wait, this diverges at q=0 (IR) not UV. Let me check.
-    
-    # The proper integral with σ-regulator:
-    # ∫ d⁴q e^{-q²σ²} / (q² + m²)²  is finite at both UV and IR
-    # UV finite because e^{-q²σ²} kills high q
-    # IR finite because m² > 0 (mass gap from φ-potential)
-    
-    # For numerical demonstration (1D slice)
-    qs = np.logspace(-2, 4, 1000) * omega  # momentum scale around omega
-    integrand = np.exp(-qs**2 * sigma**2) / (qs**2 + omega**2)**2 * qs**3
-    integral = np.trapezoid(integrand, qs)
-    
-    return integral
-
-
-def graviton_mode_energy(k, sigma=SIGMA):
-    """Energy of a graviton mode from the two-fluid.
-    
-    The graviton is a composite spin-2 SO(2) excitation of the EY/EI fields
-    in the quantized two-fluid extension (Hypothesized). There is no
-    fundamental graviton: the classical layer is σ-regularized Poisson
-    emergence (Derived).
-    Its dispersion relation is:
-    
-    ω²(k) = k² · exp(k²·σ²/2) + ω₀²·(1 - exp(-k²·σ²/2))
-    
-    At k << 1/σ: ω ≈ k (massless—standard GR)
-    At k ~ 1/σ: ω deviates from linear (quantum dispersion)
-    At k >> 1/σ: ω → constant (max frequency—no trans-Planckian modes)
-    """
-    omega0 = M_PL  # φ-resonance frequency = rung-0 cascade scale (independent of σ)
-    return np.sqrt(k**2 + omega0**2 * (1 - np.exp(-k**2 * sigma**2)))
+def dispersion_ratios(x):
+    """Return ω/k and dω/dk for the registered Hypothesized dispersion."""
+    x = np.asarray(x, dtype=float)
+    if np.any(x <= 0.0):
+        raise ValueError("x must be positive")
+    one_minus_exp = -np.expm1(-x * x)
+    phase = np.sqrt(1.0 + MU * MU * one_minus_exp / (x * x))
+    group = (1.0 + MU * MU * np.exp(-x * x)) / phase
+    return phase, group
 
 
 def main():
-    print("=" * 65)
-    print("CASSI QUANTUM GRAVITY—UV-Finite Two-Fluid Quantization")
-    print("=" * 65)
-    
-    print(f"\n  σ = ℓ_Pl/φ³ = {SIGMA:.2e} GeV⁻¹ (the fundamental length; registry G1)")
-    print(f"  UV cutoff: Λ_UV = 1/σ = φ³·M_Pl ≈ {PHI**3 * M_PL:.2e} GeV")
-    
-    # 1. Free propagator
-    print("\n1. Free propagator G(k²) = exp(-k²·σ²/2)/k²:")
-    for k in [1e-4, 1e-2, 1.0, 1e2, 1e4]:
-        G = free_propagator(k**2)
-        print(f"  k = {k:8.2e} GeV:  G = {G:.4e}")
-        if k < 0.1:
-            print(f"    → ~ 1/k² (standard GR)")
-        elif k > 10:
-            print(f"    → ~ 0 (σ-cutoff active)")
-    
-    # 2. One-loop UV finiteness
-    print("\n2. One-loop correction to G_eff:")
-    omega_range = [1e-4, 1e-2, 1.0, 1e2]
-    for omega in omega_range:
-        integral = loop_integral_1loop(omega)
-        print(f"  IR energy scale ω = {omega:8.2e} GeV:  loop integral = {integral:.4e}")
-    print(f"  → The loop integral is FINITE at all scales!")
-    print(f"  → No UV divergence → Cassi quantum gravity is predictive")
-    
-    # 3. Graviton dispersion
-    print("\n3. Graviton dispersion relation:")
-    ks = [1e-4, 1e-2, 1.0, 1e2, 1e4, 1e6]
-    for k in ks:
-        omega = graviton_mode_energy(k)
-        ratio = omega / k if k > 1e-10 else float('inf')
-        print(f"  k = {k:8.2e} GeV:  ω = {omega:8.2e} GeV  (c_eff = {ratio:.4f})")
-    
-    # 4. Plot
-    print("\n4. Generating plots...")
-    ks = np.logspace(-4, 6, 200)
-    
-    # Propagator
-    Gs = np.array([free_propagator(k**2) for k in ks])
-    
-    # Graviton dispersion
-    omegas = np.array([graviton_mode_energy(k) for k in ks])
-    
-    # Loop integrand at different scales
-    integrands = []
-    for omega in [0.1, 1.0, 10.0, 100.0]:
-        qs = np.logspace(-2, 3, 200) * omega
-        integrand = np.exp(-qs**2 * SIGMA**2) / (qs**2 + omega**2)**2 * qs**3
-        integrands.append((omega, qs, integrand))
-    
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # Propagator
+    print("=" * 72)
+    print("CASSI FREE-PROPAGATOR DIAGNOSTIC—CONDITIONAL OBJECTS")
+    print("=" * 72)
+    print(f"σ = ℓ_Pl/φ³ = {SIGMA:.6e} GeV⁻¹")
+    print(f"1/σ = φ³ M_Pl = {1.0 / SIGMA:.6e} GeV")
+    print(f"μ = ω₀σ = φ⁻³ = {MU:.12f}")
+
+    sample_x = np.array([1.0e-3, 0.1, 1.0, 3.0, 10.0])
+
+    print("\n1. Normalized Euclidean propagator damping, k²G_E:")
+    for x, damping in zip(sample_x, propagator_damping(sample_x)):
+        print(f"  kσ = {x:8.3g}: exp[-(kσ)²/2] = {damping:.12e}")
+
+    print("\n2. Radial one-loop prototype with explicit IR cutoff:")
+    for x_ir in [1.0e-1, 1.0e-2, 1.0e-3, 1.0e-4]:
+        value = radial_loop_prototype(x_ir)
+        print(f"  x_IR = {x_ir:8.1e}: I = {value:.12e}")
+    print("  Each nonzero-cutoff value is UV convergent.")
+    print("  Growth as x_IR decreases records the logarithmic IR divergence.")
+    print("  This prototype does not establish all-loop renormalizability.")
+
+    print("\n3. Hypothesized mode dispersion:")
+    phase, group = dispersion_ratios(sample_x)
+    for x, phase_ratio, group_ratio in zip(sample_x, phase, group):
+        print(
+            f"  kσ = {x:8.3g}: ω/k = {phase_ratio:.12f}, "
+            f"dω/dk = {group_ratio:.12f}"
+        )
+    print("  At high k, ω/k and dω/dk approach 1; there is no energy cap.")
+    print(
+        "  At low k, the 2.75% speed excess is rejected for an "
+        "astrophysical graviton by GW170817."
+    )
+
+    print("\n4. Generating dimensionless diagnostic plots...")
+    x = np.geomspace(1.0e-4, 20.0, 500)
+    damping = propagator_damping(x)
+    phase, group = dispersion_ratios(x)
+    loop_integrand = np.exp(-x * x) / x / (8.0 * math.pi**2)
+    x_ir = np.geomspace(1.0e-4, 1.0, 160)
+    loop_values = np.array(
+        [radial_loop_prototype(cutoff, samples=4_000) for cutoff in x_ir]
+    )
+
+    fig, axes = plt.subplots(2, 2, figsize=(13, 9))
+
     ax = axes[0, 0]
-    ax.loglog(ks, Gs, 'b-', lw=2)
-    ax.axvline(1/SIGMA, color='r', ls='--', alpha=0.5, label=f'σ⁻¹ = φ³·M_Pl')
-    ax.set_xlabel('k (GeV)'); ax.set_ylabel('G(k²)')
-    ax.set_title('Two-Fluid Propagator (σ-regularized)')
-    ax.legend(); ax.grid(True, alpha=0.3)
-    
-    # Graviton dispersion
+    ax.loglog(x, damping, linewidth=2)
+    ax.axvline(1.0, color="black", linestyle="--", alpha=0.5)
+    ax.set_xlabel(r"$x=k\sigma$")
+    ax.set_ylabel(r"$k^2G_E=e^{-x^2/2}$")
+    ax.set_title("Euclidean free-propagator damping")
+    ax.grid(True, alpha=0.3)
+
     ax = axes[0, 1]
-    ax.loglog(ks, omegas, 'b-', lw=2, label='Cassi graviton')
-    ax.plot(ks, ks, 'r--', lw=1.5, alpha=0.7, label='GR (ω = k)')
-    ax.axhline(M_PL, color='g', ls=':', alpha=0.5, label=f'M_Pl = {M_PL:.1e} GeV')
-    ax.set_xlabel('k (GeV)'); ax.set_ylabel('ω(k)')
-    ax.set_title('Graviton Dispersion (φ-regularized)')
-    ax.legend(); ax.grid(True, alpha=0.3)
-    
-    # Loop integrand (UV convergence)
+    ax.semilogx(x, phase, label=r"$\omega/k$", linewidth=2)
+    ax.semilogx(x, group, label=r"$d\omega/dk$", linewidth=2)
+    ax.axhline(1.0, color="black", linestyle="--", alpha=0.5)
+    ax.set_xlabel(r"$x=k\sigma$")
+    ax.set_ylabel("ratio")
+    ax.set_title("Hypothesized dispersion ratios")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
     ax = axes[1, 0]
-    colors = plt.cm.viridis(np.linspace(0.2, 0.9, len(integrands)))
-    for i, (omega, qs, integrand) in enumerate(integrands):
-        ax.loglog(qs, integrand, color=colors[i], lw=1.5, label=f'E_IR = {omega:.0f}')
-    ax.set_xlabel('q (GeV)'); ax.set_ylabel('Loop integrand')
-    ax.set_title('1-Loop Integral: UV-Finite (σ-cuts off UV)')
-    ax.legend(); ax.grid(True, alpha=0.3)
-    
-    # Effective G vs energy
+    ax.loglog(x, loop_integrand, linewidth=2)
+    ax.axvline(1.0, color="black", linestyle="--", alpha=0.5)
+    ax.set_xlabel(r"$x=q\sigma$")
+    ax.set_ylabel(r"$e^{-x^2}/(8\pi^2x)$")
+    ax.set_title("Displayed radial loop integrand")
+    ax.grid(True, alpha=0.3)
+
     ax = axes[1, 1]
-    G_eff = 1.0 + np.array([loop_integral_1loop(k) / M_PL**2 for k in ks])
-    ax.semilogx(ks, G_eff, 'b-', lw=2)
-    ax.axhline(1.0, color='r', ls='--', alpha=0.5, label='GR (G = 1)')
-    ax.axvline(1/SIGMA, color='g', ls=':', alpha=0.5, label=f'σ⁻¹ = φ³·M_Pl')
-    ax.set_xlabel('Energy scale (GeV)'); ax.set_ylabel('G_eff / G_N')
-    ax.set_title('Running of Newton\'s Constant')
-    ax.set_xlim(1e-4, 1e6)
-    ax.legend(); ax.grid(True, alpha=0.3)
-    
-    plt.suptitle('Cassi Quantum Gravity—UV-Finite from σ-Regularization', fontsize=13)
-    plt.tight_layout()
-    plt.savefig('cassi_quantum_gravity.png', dpi=150)
-    plt.close()
+    ax.semilogx(x_ir, loop_values, linewidth=2)
+    ax.invert_xaxis()
+    ax.set_xlabel(r"infrared cutoff $x_{\rm IR}$")
+    ax.set_ylabel(r"$I(x_{\rm IR})$")
+    ax.set_title("Finite at fixed cutoff; IR-divergent as cutoff vanishes")
+    ax.grid(True, alpha=0.3)
+
+    fig.suptitle("Cassi conditional free-propagator diagnostics", fontsize=13)
+    fig.tight_layout()
+    fig.savefig("cassi_quantum_gravity.png", dpi=150)
+    plt.close(fig)
     print("  Saved: cassi_quantum_gravity.png")
-    
-    # Summary
-    print(f"\n{'='*65}")
-    print("CASSI QUANTUM GRAVITY—SUMMARY")
-    print("="*65)
-    print("  • Two-fluid fields (EY, EI) are quantized canonically")
-    print("  • σ acts as a NATURAL UV regulator (no renormalization needed)")
-    print("  • No fundamental graviton (σ-regularized Poisson, Derived)")
-    print("  • Composite spin-2 SO(2) EY/EI excitation in the quantized")
-    print("    two-fluid extension (Hypothesized)")
-    print("  • At k << 1/σ: standard GR (ω = k, massless graviton)")
-    print("  • At k ~ 1/σ: quantum dispersion (ω ≠ k)")
-    print("  • At k >> 1/σ: maximal frequency (no trans-Planckian modes)")
-    print("  • Loop corrections to G are UV-FINITE (σ-cuts all diagrams)")
-    print("  • NO infinities → NO fine-tuning → PREDICTIVE quantum gravity")
-    print("  • This is the missing third pillar: Dirac + GR + Gauge + NOW QG")
-    print(f"{'='*65}")
+
+    print("\n" + "=" * 72)
+    print("STATUS BOUNDARY")
+    print("=" * 72)
+    print("  • The Gaussian suppresses the declared Euclidean free propagator.")
+    print("  • The displayed radial prototype is UV convergent for x_IR > 0.")
+    print("  • The uncut prototype remains logarithmically IR divergent.")
+    print("  • Interacting and all-loop conclusions require specified vertices.")
+    print("  • Lorentzian causality and unitarity remain open.")
+    print("  • The composite-graviton identification remains Hypothesized.")
+    print("  • The implemented low-k dispersion is rejected for observed GWs.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

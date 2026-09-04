@@ -1,10 +1,32 @@
 # Cassi Quantum Gravity: A $\sigma$-Regularized Two-Fluid Candidate (Free-Propagator Analysis)
 
-## Status: Derived conditional on the noise–signal identification, the Hypothesized cascade-dephasing family ($d_i=\varphi^{-i-\delta}$), and a selected $d = 3$ computational/physical domain ($\sigma = \ell_{\text{Pl}}/\varphi^3$; noise–signal crossover at the Planck core, §2.1) / Hypothesized (the $d = 3$ geometric reading, two-fluid quantization, composite graviton)—August 2026
+## Status: Derived conditional on the noise–signal identification, the Hypothesized cascade-dephasing family ($d_i=\varphi^{-i-\delta}$), and a selected $d = 3$ computational/physical domain ($\sigma = \ell_{\text{Pl}}/\varphi^3$; noise–signal crossover at the Planck core, §2.1) / Hypothesized (the $d = 3$ geometric reading, two-fluid quantization, composite graviton)—September 2026
 
 ## Abstract
 
-General relativity breaks down at the Planck scale: perturbative quantization of the graviton diverges in the ultraviolet. Cassi quantum gravity addresses this at two layers. The classical layer (Derived conditional on the noise–signal identification, the Hypothesized cascade-dephasing family ($d_i=\varphi^{-i-\delta}$), and the selected $d = 3$ computational/physical domain; $\sigma = \ell_{\text{Pl}}/\varphi^3$ from the noise–signal crossover at the Planck core, §2.1) provides a $\sigma$-regularized Poisson emergence sector—an emergent classical gravity description—and the Gaussian propagator $G_E(k_E^2) = e^{-k_E^2\sigma^2/2}/k_E^2$ supplies high-momentum suppression. The quantized two-fluid extension (Hypothesized) models the graviton as a composite spin-2 excitation assembled from the two real Yang/Yin component fields,…
+Perturbative quantum general relativity is a nonrenormalizable effective field
+theory whose loop expansion requires higher-dimension counterterms
+([doi:10.1103/PhysRevD.50.3874](https://doi.org/10.1103/PhysRevD.50.3874);
+[arXiv:gr-qc/9405057](https://arxiv.org/abs/gr-qc/9405057)). This
+document studies a Cassi candidate at two sharply separated levels. The
+Derived-conditional level assigns
+$\sigma=\ell_{\text{Pl}}/\varphi^3$ under the registered noise–signal and
+$d=3$ assumptions, uses it in a Gaussian-damped free Euclidean propagator,
+and evaluates one radial loop prototype with a nonzero infrared cutoff. The
+Hypothesized level supplies the interacting two-fluid quantization, composite
+spin-2 identification, Lorentzian continuation, and curved-spacetime physics.
+The free propagator alone establishes none of renormalizability, Lorentzian
+unitarity, a Page curve, or an exterior metric match.
+
+The published Quantum Galileo Interferometer supplies a complementary
+low-energy boundary. The conditional centre-of-mass Schrödinger sector
+reproduces its ideal phase after the uniform Earth potential is supplied. The
+experiment does not probe the $\sigma$ regulator, resolve a gravitational
+field superposition, or test the proposed composite excitation. It also gives
+no numerical $q$ because no atomic state map or completed Cassi gravity
+response is available. See
+`foundations/quantum-free-fall-correspondence.md` and
+[doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045).
 
 ---
 
@@ -12,7 +34,33 @@ General relativity breaks down at the Planck scale: perturbative quantization of
 
 General relativity is a classical field theory that breaks down at the Planck scale $M_{\text{Pl}} = 1.22\times10^{19}$ GeV. When quantized perturbatively, graviton loop diagrams generate ultraviolet divergences and require an unbounded tower of counterterms, so the perturbative theory loses predictivity.
 
-Every approach to quantum gravity (string theory, loop quantum gravity, asymptotic safety) introduces new structure to cure these divergences. The Cassi framework proposes a simpler candidate: **the canonical state is the two real Yang/Yin density components**, and their natural length scale $\sigma = \ell_{\text{Pl}}/\varphi^3$ regularizes the displayed propagator and its evaluated loop integrals under the stated IR and interaction assumptions. The canonical Qi variables are $\rho = E_Y + E_I$, $\varepsilon = E_Y - \varphi E_I$, and $q = \rho^2/(\rho^2+\varphi^{-2}+\varepsilon^2)$. The signed density imbalance $\pi = E_Y - E_I$ is a separate density-component diagnostic used for the attractor signal. Their density-space flow is $\mathbf{J}_d=E_Y\nabla E_I-E_I\nabla E_Y=(E_Y^2+E_I^2)\nabla\theta_d$, with $\theta_d=\operatorname{atan2}(E_I,E_Y)$. A separate optional positive-root amplitude lift, $\Psi=(\sqrt{E_Y},\sqrt{E_I})$, defines $\mathbf{J}_\Psi=\Psi_0\nabla\Psi_1-\Psi_1\nabla\Psi_0=\rho\nabla\theta_\Psi$. Neither coordinate angle is an intrinsic complex phase of the real canonical fields. A named spatial projection carries direction or sign; a compact phase and inter-rung transport require separate Hypothesized extensions.
+Every approach to quantum gravity introduces structure beyond perturbative
+general relativity. Cassi's candidate starts from two real Yang/Yin density
+components and assigns
+$\sigma=\ell_{\text{Pl}}/\varphi^3$ to the displayed regulated free
+propagator. The loop statements below retain their explicit infrared and
+vertex conditions. For physical-density variables, the canonical diagnostics
+are
+
+$$
+\rho=E_Y+E_I,\qquad
+\varepsilon=E_Y-\varphi E_I,\qquad
+q=\frac{\rho^2}
+{\rho^2+\varphi^{-2}\rho_\star^2+\varepsilon^2}.
+$$
+
+The solver convention sets $\rho_\star=1$ after reference normalization. The
+signed density imbalance $\pi=E_Y-E_I$ is a separate diagnostic used for the
+attractor composition, and
+$\mathbf J_d=E_Y\nabla E_I-E_I\nabla E_Y
+=(E_Y^2+E_I^2)\nabla\theta_d$ with
+$\theta_d=\operatorname{atan2}(E_I,E_Y)$. A separate optional positive-root
+amplitude lift, $\Psi=(\sqrt{E_Y},\sqrt{E_I})$, defines
+$\mathbf J_\Psi=\Psi_0\nabla\Psi_1-\Psi_1\nabla\Psi_0
+=\rho\nabla\theta_\Psi$. Neither coordinate angle is an intrinsic complex
+phase of the real canonical fields. A named spatial projection carries
+direction or sign; compact phase and interscale transport require separate
+Hypothesized extensions.
 
 ---
 
@@ -168,7 +216,16 @@ Writing $x = k\sigma$ and $\mu = \omega_0\sigma = \varphi^{-3}$, the phase ratio
 | $k = 1/\sigma$ | $\omega/k \approx 1.0175$ ($\omega \approx 4.31\,M_{\text{Pl}}$) | $c_{\text{eff}} \approx 1.0030$ |
 | $k \gg 1/\sigma$ | $\omega \sim k$ | $c_{\text{eff}} \to 1$ (Gaussian amplitude suppression; no energy cap) |
 
-**GW170817 rejection:** The low-$k$ group speed $c_{\text{eff}}/c = \sqrt{1+\varphi^{-6}} \approx 1.0275$ ($+2.75\times10^{-2}$) is a directly measured astrophysical quantity, not a front-velocity subtlety. GW170817/GRB170817A constrains $-3\times10^{-15} \le (v_g-c)/c \le +7\times10^{-16}$ (Abbott et al., ApJL 848 L13, arXiv:1710.05834). If this mode is the astrophysical graviton, the implemented dispersion exceeds the upper bound by a factor $>3.9\times10^{13}$ and is rejected. Front-velocity/causality caveats do not rescue the observed group delay. The extension remains viable only if modified to recover $c$ at low $k$ or decoupled from observed gravitational waves.
+**GW170817 rejection.** The low-$k$ group speed
+$c_{\text{eff}}/c=\sqrt{1+\varphi^{-6}}\approx1.0275$ differs from unity by
+$2.75\times10^{-2}$. GW170817/GRB170817A constrains
+$-3\times10^{-15}\le(v_g-c)/c\le+7\times10^{-16}$
+([arXiv:1710.05834](https://arxiv.org/abs/1710.05834);
+[doi:10.3847/2041-8213/aa920c](https://doi.org/10.3847/2041-8213/aa920c)).
+If this mode is the astrophysical graviton, the implemented dispersion exceeds
+the upper bound by more than $3.9\times10^{13}$ and is rejected. The extension
+therefore requires a low-$k$ recovery of $c$ or a mode decoupled from observed
+gravitational waves.
 
 ### 4.3 Why This Is a Graviton
 
@@ -191,23 +248,27 @@ At low energy ($k \ll 1/\sigma$), the composite excitation is *assigned* the two
 
 ---
 
-## 5. UV-Finite Loop Corrections
+## 5. Free-Propagator Loop Prototype and Conditional Power Counting
 
-### 5.1 The One-Loop Correction
+### 5.1 Displayed One-Loop Prototype
 
-The one-loop correction to Newton's constant in the Cassi framework:
-
-$$
-\Delta G = G^2 \int \frac{d^4q}{(2\pi)^4}\, G(q) G(k-q) \mathcal{V}(k,q)
-$$
-
-where $\mathcal{V}$ is the vertex factor from the two-fluid self-interaction. With the $\sigma$-regulator $G(q) = e^{-q^2\sigma^2/2}/q^2$:
+A schematic Euclidean convolution built from two regulated free propagators
+would have the form
 
 $$
-\Delta G \propto G^2 \int d^4q \frac{e^{-q^2\sigma^2}}{q^4} \times (\text{vertex})
+\mathcal I(k)
+=
+\int \frac{d^4q_E}{(2\pi)^4}\,
+D_E(q_E)D_E(k_E-q_E)\mathcal V(k_E,q_E),
+\qquad
+D_E(q_E)=\frac{e^{-q_E^2\sigma^2/2}}{q_E^2}.
 $$
 
-The displayed one-loop integral is UV-finite for a polynomially bounded vertex because the Gaussian $e^{-q_E^2\sigma^2}$ kills all high-momentum contributions; an exponentially growing nonlocal vertex can overcome the Gaussian suppression, so finiteness beyond the displayed prototype requires a net negative-definite Gaussian in every independent Euclidean loop momentum. In Euclidean 4-momentum space:
+The interaction vertex $\mathcal V$ is unspecified, so $\mathcal I(k)$ is not
+a calculated correction to Newton's constant. The evaluated object below
+drops the external-momentum structure and uses a constant prototype vertex.
+Its Gaussian suppresses the ultraviolet region; an exponentially growing
+nonlocal vertex could overcome that suppression.
 
 $$
 I_{\text{loop}}(k_{\text{IR}}) = \int_{k_{\text{IR}}}^{\infty} \frac{d^4q_E}{(2\pi)^4}\frac{e^{-q_E^2\sigma^2}}{(q_E^2)^2}
@@ -233,29 +294,31 @@ explicitly supplied $k_{\text{IR}}>0$.
 
 For the displayed Gaussian propagator with polynomially bounded vertices, $n$-loop integrals remain UV-finite provided each independent loop momentum sees a net negative-definite Gaussian: each propagator carries a Gaussian factor $e^{-k^2\sigma^2/2}$, products of Gaussians are Gaussians, and polynomial vertex factors cannot overcome the exponential suppression. This guarantee fails for exponentially growing nonlocal vertices or if gauge/measure structure alters the power counting; in those cases only the displayed one-loop prototype (§5.1) is shown to be finite. Extending the result to the interacting quantized theory requires explicit vertices and an interaction completion.
 
-**Conditional result:** The displayed free-propagator one-loop integral (§5.1) is UV-finite for $k_{\text{IR}}>0$; an all-orders no-renormalization conclusion additionally requires polynomially bounded vertices, a net negative-definite Gaussian in every independent loop momentum, and an explicit quantized interaction.
+**Conditional result:** The displayed radial one-loop prototype (§5.1) is
+UV-finite for $k_{\text{IR}}>0$. Extending ultraviolet convergence to higher
+loops requires polynomially bounded vertices and a net negative-definite
+Gaussian in every independent loop momentum. Renormalizability additionally
+requires a specified interaction, symmetries, measure, and counterterm basis.
 
-### 5.3 Running of $G$
+### 5.3 Running of $G$ Remains Unspecified
 
-The effective Newton constant runs with energy:
+The Gaussian free propagator does not determine a beta function for Newton's
+constant. A running coupling requires declared interaction vertices, gauge
+fixing and measure, counterterm basis, renormalization condition, and
+continuation prescription. None is supplied by the present candidate.
+
+The arithmetic combination
 
 $$
-G_{\text{eff}}(E) = G \left(1 + \frac{G}{16\pi^2\sigma^2} \cdot f(E\sigma) + \cdots \right)
+\frac{\varphi^6}{16\pi^2}\approx0.114
 $$
 
-where $f(x)$ is a finite, computable function that approaches a constant at high energy:
-
-$$
-\lim_{E\to\infty}G_{\text{eff}}(E)
-=G\left(1+\frac{\varphi^6}{16\pi^2}f(\infty)+\cdots\right)
-=G\left(1+0.114\,f(\infty)+\cdots\right),
-$$
-
-where $f(\infty)=\mathcal{O}(1)$ is a dimensionless function fixed by the
-unspecified vertex and interaction completion. The prefactor
-$\varphi^6/(16\pi^2)\approx0.114$ is therefore a scaling estimate, not a
-derived $11\%$ correction. A numerical running of $G$ requires the
-quantized interaction.
+is therefore only a dimensionless scale formed from the optional
+$\xi=\varphi^6$ factor and a one-loop normalization. It is not an $11\%$
+correction, the ultraviolet limit of $G$, or the coefficient of a computable
+function $f(E\sigma)$. A completed interaction would have to derive
+$G_R(\mu)$ and its scheme-independent observables before any energy-running
+claim could enter the prediction registry.
 
 ---
 
@@ -415,13 +478,20 @@ This possible non-thermality is cataloged as prediction 49 of `predictions/falsi
 |----------|---------|---------------|-----|-------------------|
 | UV complete | **Hypothesized** | Yes | ? | Yes (non-pert) |
 | Free parameters | **Unclosed**—interaction completion, IR prescription, scalar sector, and matching are unspecified, so no meaningful parameter-count comparison is possible (only the $\lambda=0.1$ solver normalization is fixed) | Many | 1 (Barbero-Immirzi) | 1 (fixed point) |
-| Graviton | Composite | Fundamental | Emergent | Fundamental |
+| Graviton | Composite identification (**Hypothesized**) | Fundamental | Emergent | Fundamental |
 | Regulator | $\sigma = \ell_{\text{Pl}}/\varphi^3$ | Strings | Area/Volume | Nothing explicit |
-| Renormalization | **Conditional on $k_{\text{IR}}>0$ and an explicit interaction** | Yes (worldsheet) | Yes (spin foam) | Yes (fixed point) |
-| Testable | Yes, conditional | ? | ? | ? |
+| Renormalization | **Open**—one radial prototype is UV convergent at fixed nonzero $k_{\text{IR}}$; no interacting renormalizability result | Yes (worldsheet) | Yes (spin foam) | Yes (fixed point) |
+| Testable | Conditional observables; the implemented low-$k$ dispersion is rejected as an astrophysical graviton | ? | ? | ? |
 | Unifies with SM | **Proposed gauge-pillar connection (Hypothesized)** | Yes | ? | ? |
 
-The comparison above is indicative, not quantitative: Cassi's interaction, IR prescription, scalar-sector, and matching completion are unclosed, so a dimensionless-parameter count is not meaningful. The named canonical $\lambda=0.1$ is a solver normalization/timescale convention, $c$, $\hbar$, and $G$ remain external, and the displayed propagator has a built-in Gaussian regulator. Finiteness of the displayed loop integrals remains conditional on $k_{\text{IR}}>0$ and a specified quantized interaction.
+The comparison above is indicative, not quantitative: Cassi's interaction,
+infrared prescription, scalar sector, and matching completion are unclosed, so
+a dimensionless-parameter count is not meaningful. The named canonical
+$\lambda=0.1$ is a solver normalization/timescale convention, while $c$,
+$\hbar$, and $G$ remain external. The Gaussian suppresses the displayed free
+Euclidean propagator, and the radial one-loop prototype is UV convergent at a
+declared nonzero $k_{\text{IR}}$. No interacting renormalizability conclusion
+follows.
 
 ---
 
@@ -429,16 +499,16 @@ The comparison above is indicative, not quantitative: Cassi's interaction, IR pr
 
 | Property | Value |
 |----------|-------|
-| Fundamental length | $\sigma = \ell_{\text{Pl}}/\varphi^3 \approx 3.82\times10^{-36}$ m |
+| Candidate regulator length | $\sigma = \ell_{\text{Pl}}/\varphi^3 \approx 3.82\times10^{-36}$ m |
 | Gaussian suppression scale | $\Lambda_{\text{supp}} = 1/\sigma = \varphi^3 M_{\text{Pl}} \approx 5.17\times10^{19}$ GeV |
 | Regulator type | Gaussian $e^{-k^2\sigma^2/2}$ in propagator |
-| UV behavior | UV-finite for the displayed propagator with $k_{\text{IR}}>0$; quantized interaction unspecified |
-| Graviton nature | Composite EY/EI excitation |
+| UV behavior | Gaussian suppression of the displayed free Euclidean propagator; the radial one-loop prototype is UV convergent at declared $k_{\text{IR}}>0$ |
+| Graviton nature | Composite EY/EI excitation (**Hypothesized**) |
 | Graviton dispersion | $\omega^2 = k^2 + M_{\text{Pl}}^2(1 - e^{-k^2\sigma^2})$ |
 | Low energy | $\omega/k \to \sqrt{1+\varphi^{-6}} \approx 1.0275$ (implemented probe; **rejected by GW170817** as an astrophysical graviton dispersion—viable only if modified to recover $c$ or decoupled from observed GWs) |
 | High energy | $\omega \sim k$, $c_{\text{eff}}\to1$ (Gaussian amplitude suppression; no energy cap) |
-| Running of $G$ | Prefactor $\varphi^6/16\pi^2\approx0.114$; full correction depends on $f$ and the interaction completion |
-| Renormalization | **Conditional**—displayed loop integrals are finite for $k_{\text{IR}}>0$; interaction completion required |
+| Running of $G$ | **Uncomputed**—no beta function or running function is derived; $\varphi^6/(16\pi^2)\approx0.114$ is only an arithmetic scale |
+| Renormalization | **Open**—the interaction, measure, symmetries, and counterterm basis are unspecified |
 | Free parameters | **Unclosed**—only the $\lambda=0.1$ solver normalization is fixed; interaction, IR prescription, scalar sector, and matching completions are unspecified, so no parameter count is meaningful ($c$, $\hbar$, $G$ external) |
 
 ### Falsifiable Predictions
@@ -449,8 +519,8 @@ The comparison above is indicative, not quantitative: Cassi's interaction, IR pr
 | GW dispersion | None ($\omega = k$) | Implemented probe gives $c_{\text{eff}}/c \to \sqrt{1+\varphi^{-6}} \approx 1.0275$ at low $k$; **rejected by GW170817** (exceeds upper bound by $>3.9\times10^{13}$). Viable only if modified to recover $c$ or decoupled from observed GWs | LIGO high-frequency / GW170817 |
 | Black hole singularity | Yes ($r=0$) | **Conditional**: flat-space kernel finite at the origin, but no black-hole solution derived | GW ringdown |
 | Information loss | Yes (Hawking) | **Open**: no S-matrix, unitarity proof, or Page-curve computation exists; requires interaction + curved-spacetime completion | Hawking evaporation endpoint / BH mass gap |
-| Hawking spectrum | Exactly thermal | **Potential Gaussian-regulator imprint (Hypothesized; prediction 49; curved-spacetime calculation required)** | Analogue Hawking platform only (Procopio et al., *Nature* **655**, 336–341 (2026), DOI 10.1038/s41586-026-10720-3, arXiv:2504.17671); **not** evidence for the Cassi Gaussian form—an optical backreaction test-bed, not a gravitational measurement |
-| Planck-scale $G$ | Divergent | **Uncomputed**: scaling prefactor $\varphi^6/16\pi^2\approx0.114$ only; full running depends on $f$ and the interaction completion | Indirect (inflation) |
+| Hawking spectrum | Exactly thermal | **Potential Gaussian-regulator imprint (Hypothesized; prediction 49; curved-spacetime calculation required)** | Analogue Hawking platform only (Procopio et al., *Nature* **655**, 336–341 (2026), [doi:10.1038/s41586-026-10720-3](https://doi.org/10.1038/s41586-026-10720-3); [arXiv:2504.17671](https://arxiv.org/abs/2504.17671)); an optical backreaction test bed supplies no measurement of the Cassi Gaussian form |
+| Planck-scale $G$ | Divergent perturbative-EFT expansion | **Uncomputed**: no Cassi beta function or scheme-independent running observable is derived | Requires a completed interaction before an experimental target can be named |
 
 ---
 
@@ -476,6 +546,7 @@ The displayed construction is not yet a complete physical theory; the remaining 
 
 - `open-questions-cassi-answers.md`—epistemic registry (G1: σ-regularized Poisson emergence; σ = ℓ_Pl/φ³ Derived conditional on the noise–signal identification and d = 3—§2.1; G2: black-hole information paradox)
 - `foundations/unified-lagrangian.md`—the two-fluid Lagrangian on curved backgrounds used in §7.4
+- `foundations/quantum-free-fall-correspondence.md`—conditional low-energy matter-wave correspondence and the boundary on Cassi-specific gravity inference
 - `foundations/cassi-theory-reference.md` §7—the gravity sector and the σ-regularization
 - `foundations/dimensionful-constants-status.md`—dimensionful constants and the remaining gaps
 - `foundations/cascade-suppression-formula.md`—per-rung dephasing $d_i = \varphi^{-i-\delta}$ (legacy symbol $1-q_i$ in source) used for the black-hole capacity bound
@@ -486,5 +557,6 @@ The displayed construction is not yet a complete physical theory; the remaining 
 - `foundations/bubble-lattice-fabric.md` §6—the bubble/void checkerboard that becomes the σ-regularized harmonic regime
 - `analyses/gwtc4-mass-ladder.md`—the black-hole mass-to-rung map applied to the GWTC-4.0 catalog
 - `two-fluid/cassi_two_fluid_3d_gpu.py`—the existing two-fluid PDE solver (flat/FLRW backgrounds)
-- B. P. Abbott et al. (LIGO Scientific Collaboration and Virgo Collaboration), "Gravitational Waves and Gamma-Rays from a Binary Neutron Star Merger: GW170817 and GRB 170817A," *ApJL* **848**, L13 (2017), arXiv:1710.05834, DOI:10.3847/2041-8213/aa920c—joint GW/GRB constraint $-3\times10^{-15} \le (v_g-c)/c \le +7\times10^{-16}$ on the graviton group speed.
-- L. M. Procopio, R. Aguero-Santacruz, D. Bermudez, and U. Leonhardt, "Backreaction of stimulated Hawking radiation in an optical analogue," *Nature* **655**, 336–341 (2026), DOI 10.1038/s41586-026-10720-3 (published 1 July 2026)—optical analogue test-bed for stimulated Hawking radiation backreaction; **not** a measurement of the Cassi Gaussian-regulator form.
+- B. P. Abbott et al. (LIGO Scientific Collaboration and Virgo Collaboration), “Gravitational Waves and Gamma-Rays from a Binary Neutron Star Merger: GW170817 and GRB 170817A,” *ApJL* **848**, L13 (2017), [arXiv:1710.05834](https://arxiv.org/abs/1710.05834); [doi:10.3847/2041-8213/aa920c](https://doi.org/10.3847/2041-8213/aa920c)—joint GW/GRB constraint $-3\times10^{-15}\le(v_g-c)/c\le+7\times10^{-16}$ on the graviton group speed.
+- L. M. Procopio, R. Aguero-Santacruz, D. Bermudez, and U. Leonhardt, “Backreaction of stimulated Hawking radiation in an optical analogue,” *Nature* **655**, 336–341 (2026), [doi:10.1038/s41586-026-10720-3](https://doi.org/10.1038/s41586-026-10720-3); [arXiv:2504.17671](https://arxiv.org/abs/2504.17671)—optical analogue test bed for stimulated Hawking-radiation backreaction; it supplies no measurement of the Cassi Gaussian-regulator form.
+- J. F. Donoghue, “General relativity as an effective field theory: The leading quantum corrections,” *Physical Review D* **50**, 3874–3888 (1994), [doi:10.1103/PhysRevD.50.3874](https://doi.org/10.1103/PhysRevD.50.3874); [arXiv:gr-qc/9405057](https://arxiv.org/abs/gr-qc/9405057).

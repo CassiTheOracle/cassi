@@ -297,11 +297,11 @@ independent of $\lambda$ and of the gate shape. Its extremes are the Yang limit 
 
 | Limit | Condition | Effective Theory |
 |-------|-----------|-----------------|
-| $q \to 0$ on the $\varphi$-line (dilute attractor: $\varepsilon = 0$, $\rho \to 0$; $q \to 0$ alone is $\rho \to 0$ or large $|\varepsilon|$, not equilibrium—at the reference fixed point $q = q_{\text{eq}} \approx 0.873$) | Optional Qi-gravity extension with $\pi/\rho = \varphi^{-3}$ and boost $\to 1$ | GR with $G_{\text{eff}} = \varphi^{-3}G \approx 0.236\,G$ |
-| $q \to 0$ on the $\varphi$-line, $\hbar \to 0$ | Optional Qi-gravity/force closure plus the classical dilute limit | Newtonian gravity |
+| $q \to 0$ on the $\varphi$-line (the dilute endpoint of the composition attractor: $\varepsilon = 0$, $\rho \to 0$; $q \to 0$ alone is $\rho \to 0$ or large $|\varepsilon|$, while the reference fixed point has $q = q_{\text{eq}} \approx 0.873$) | Optional Qi-gravity expression with $\pi/\rho = \varphi^{-3}$ and boost $\to 1$ | Formal coupling-magnitude endpoint $\mathcal G_C=\varphi^{-3}$; a GR interpretation requires an independently completed metric and matter map |
+| $q \to 0$ on the $\varphi$-line, $\hbar \to 0$ | Optional Qi-gravity response and force closure plus the classical limit | Classical test-particle motion in the selected external potential; Newtonian source gravity requires an additional attractive source or metric closure |
 | Regulated CassiFI Hamiltonian with a self-adjoint configuration-space quantization | Positive CassiFI metric and an adiabatic centre-of-mass band | Linear Schrödinger equation with $G_{ij}=M\delta_{ij}$ |
 | $\lambda \to 0$ | Optional pressure/force/source closure with conversion removed | Euler-Poisson system |
-| $\xi \to 0$ | Optional Qi-gravity sector switched off | Standard GR |
+| $\xi \to 0$ | Optional Qi multiplicative boost switched off | Selected baseline gravity sector, if independently supplied; this limit alone does not construct standard GR |
 
 ---
 
@@ -854,11 +854,19 @@ Eliminates singularities. The $\sigma$-regulator also enters the quantum gravity
 
 ### 7.2 Black Holes and Quantum Gravity
 
-$\sigma$-regularized harmonic cores. Exterior metric matches GR. The free propagator is UV-finite:
+The optional $\sigma$-regularized kernel gives a finite harmonic core under
+its stated force convention. No covariant solution currently establishes an
+exterior metric match to general relativity. At the free Euclidean-propagator
+level, the candidate
 
-$$G(k^2) = \frac{e^{-k^2\sigma^2/2}}{k^2+i\epsilon}$$
+$$G_E(k_E^2)=\frac{e^{-k_E^2\sigma^2/2}}{k_E^2}$$
 
-The Gaussian regulator makes all loop diagrams finite—no renormalization needed. No trans-Planckian modes (dispersion $\omega \to M_{\text{Pl}}$ asymptotically). S-matrix unitary by construction. Coherence capacity $\mathcal{C} \sim M^2/M_{\text{Pl}}^2$ matches Bekenstein-Hawking entropy. No firewall: $\sigma$ caps all mode energies.
+suppresses high momentum and adds no finite-momentum pole. This free
+two-point function does not establish finite interacting loop amplitudes, a
+positive spectral representation, an optical theorem, a unitary interacting
+$S$-matrix, black-hole entropy, or horizon regularity. Those claims require a
+specified interacting completion and a covariant horizon calculation
+(`gravity/quantum-gravity.md`).
 
 ### 7.3 Three-Body Problem
 
@@ -879,8 +887,33 @@ $G_{\text{eff},j}\to\varphi^{-3}G$. The displayed negative sign is a separate
 attractive point-particle force convention. The canonical density PDE does not
 supply that sign: its optional $+\pi\,\nabla\Phi$ branch is outward for
 $\Phi=-GM/r$ and $\pi>0$, so an attractive Newtonian/GR interpretation
-requires an additional **Hypothesized** sign/force closure. Off the fixed point,
-masses evolve via conversion and $G_{\text{eff}}$ is body-dependent.
+requires an additional **Hypothesized** sign or force closure.
+Off the fixed point, the diagnostic varies with the body state. Interpreting
+that variation as a body-dependent gravitational response requires a separate
+matter-state map and force or metric closure; canonical conversion alone does
+not supply that identification.
+
+### 7.4 Quantum Free Fall
+
+For a supplied uniform external potential $V_g=m_ggz$, the conditional
+centre-of-mass Schrödinger sector gives the ideal closed ballistic phase
+
+$$
+\Delta\phi=-\frac{m_g^2g^2T^3}{3\hbar m_i}.
+$$
+
+The equivalence value $m_g=m_i=m$ reproduces
+$\Delta\phi=-mg^2T^3/(3\hbar)$. Expressing the phase through the same
+ballistic preparation's local acceleration
+$g_b=(m_g/m_i)g$ gives
+$\Delta\phi=-m_ig_b^2T^3/(3\hbar)$, so that channel cannot separately
+identify source strength and response. A differential ballistic/held
+response requires independent preparation calibration. The published
+Quantum Galileo Interferometer result is therefore a conditional weak-field
+correspondence check, not a numerical measurement of $q$ or a test of the
+$\sigma$ regulator or composite-graviton hypothesis
+(`foundations/quantum-free-fall-correspondence.md`;
+[doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045)).
 
 ---
 

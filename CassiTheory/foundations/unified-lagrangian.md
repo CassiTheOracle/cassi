@@ -1,6 +1,6 @@
 # The Cassi Unified Lagrangian
 
-## Status: Hypothesized—August 2026
+## Status: Hypothesized—September 2026
 
 ## Abstract
 
@@ -364,6 +364,25 @@ still require an independently calibrated reference clock, $\rho_\star$ for
 the physical-density form of $q$, and the model-time conversion described in
 `foundations/dimensionful-constants-status.md`. The candidate introduces no
 derivation of $c$, $\hbar$, $G$, a light cone, or a spatial metric.
+
+A constant common lapse supplies no matter-wave phase anomaly when the
+duration is read by that same physical clock. For $d\tau=N\,dt$ and
+$V_g=m_ggz$, the ideal closed-path coordinate expression is
+
+$$
+\Delta\phi_N
+=-\frac{N^3m_g^2g^2T^3}{3\hbar m_i}
+=-\frac{m_g^2g^2\mathcal T^3}{3\hbar m_i},
+\qquad \mathcal T:=NT.
+$$
+
+The coordinate factor $N^3$ is absorbed by the physical half-duration
+$\mathcal T$. A clock test therefore requires paths that sample different
+$N_q$ together with an independently calibrated clock sector and the full
+variational $N$–$q$ constraint. The published Quantum Galileo Interferometer
+([doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045))
+contains no resolved $q$ contrast and is not a CT-2 implementation
+(`foundations/quantum-free-fall-correspondence.md` §8).
 
 The cross-clock discriminator is registered as CT-2 in
 `predictions/falsifiable-predictions.md`.

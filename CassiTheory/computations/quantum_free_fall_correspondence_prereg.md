@@ -40,7 +40,13 @@ The verifier must use only these declared objects:
    $$
 4. a reference path held at $z_r=0$ by a separately calibrated linear
    magnetic potential;
-5. Cassi's constitutive quantities
+5. Cassi's canonical field and constitutive quantities
+   $$
+   E_Y,E_I\ge0,\qquad
+   \rho=E_Y+E_I,\qquad
+   \pi=E_Y-E_I,\qquad
+   \varepsilon=E_Y-\varphi E_I,
+   $$
    $$
    s=\frac{\pi}{\rho},\qquad
    q=\frac{\rho^2}{\rho^2+\varphi^{-2}\rho_\star^2+\varepsilon^2},\qquad
@@ -166,10 +172,17 @@ an independent clock comparison.
 
 ### QF7—Attractor-line normalization
 
-On $\varepsilon=0$ with $\rho_\star=1$, the verifier must show
+Starting from the canonical definitions in §2, the verifier must impose
+$\varepsilon=0$ and derive
 
 $$
-s=\varphi^{-3},\qquad
+E_Y=\varphi E_I,\qquad
+s=\frac{\varphi-1}{\varphi+1}=\varphi^{-3}.
+$$
+
+With $\rho_\star=1$, it must then show
+
+$$
 q_{\mathrm{eq}}(\rho)=\frac{\rho^2}{\rho^2+\varphi^{-2}},
 $$
 
@@ -179,7 +192,7 @@ point $\rho=\varphi$ it must show
 $$
 q_{\mathrm{eq}}=\frac{\varphi^2}{3}\approx0.872678,
 \qquad
-\mathcal G_C\approx3.72678.
+\mathcal G_C=\frac{5\sqrt5}{3}\approx3.72678.
 $$
 
 This gate distinguishes the composition attractor line from a selected density
@@ -216,5 +229,5 @@ The verifier must print:
 4. `VERDICT: PASS` only after every gate succeeds;
 5. `ALL CHECKS PASSED` as its final line.
 
-The report must preserve the first run's stdout, state the decision-tree
-outcome, and record the independent recomputation separately.
+The report must preserve the verifier stdout, state the decision-tree outcome,
+and record the independent recomputation separately.

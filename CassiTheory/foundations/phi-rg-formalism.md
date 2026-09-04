@@ -1,16 +1,23 @@
 # The Golden Ratio as a Renormalization Group Fixed Point
 
-## Status: Hypothesized—July 2026
+## Status: Hypothesized—September 2026
 
 ---
 
 ## Abstract
 
-The Cassi framework organizes physical scales as a φ-spaced hierarchy: $\omega_i = \omega_0 \cdot \varphi^i$, $\rho_i = \rho_0 \cdot \varphi^{-i}$, and empirically all dimensionless couplings lie near φ-powers. This is formalized as a **discrete Wilsonian renormalization group** with scale factor $b = \varphi$. The single-step RG transformation is:
+The Cassi framework organizes candidate physical scales as a
+$\varphi$-spaced hierarchy. This document explores a discrete Wilsonian-RG
+interpretation with scale factor $b=\varphi$:
 
-$$\mathcal{R}_\varphi[\mathcal{L}_k] = \mathcal{L}_{k/\varphi}$$
+$$\mathcal{R}_\varphi[\mathcal{L}_k] = \mathcal{L}_{k/\varphi}.$$
 
-The derivation of the beta function for the effective coupling $g(k)$ shows that $\alpha_c = \varphi^{-1}$ is the unique stable fixed point of the φ-RG flow, and all SM φ-power predictions ($\sin^2\theta_W$, $\alpha_{\text{GUT}}$, $\xi = \varphi^6$, etc.) are IR values of the RG trajectory from this fixed point. The de-resonance principle obtains a rigorous field-theoretic foundation: φ is the maximally irrational scale factor, ensuring the RG flow never hits a rational resonance.
+The proposed beta function, fixed-point selection, Standard Model $\varphi$
+charges, and de-resonance interpretation are Hypothesized ansätze. A
+microscopic coarse-graining map and independently derived running couplings
+are still required. Maximal irrationality is an arithmetic property of
+$\varphi$; by itself it does not establish a field-theoretic RG flow or
+exclude physical resonances.
 
 ---
 
@@ -178,14 +185,29 @@ $\mu_* \approx 233$ GeV.
 
 ### 4.3 Qi-Gravity Coupling $\xi = \varphi^6$
 
-From `foundations/xi-derivation.md`, the Qi-gravity coupling $\xi = \varphi^6$ emerges from the dimensional reduction of the 4D two-fluid action to the 3D effective potential. In φ-RG language:
+The identity $\xi=\varphi^6$ is conditionally derived for the optional
+Qi-gravity constitutive factor in `foundations/xi-derivation.md`. It does not
+by itself define a momentum-space renormalization-group trajectory. The
+state-space coupling-magnitude diagnostic is
 
-The gravitational coupling $G_{\text{eff}}(k) = (\pi/\rho)(1 + (\varphi^{6}-1)q(k)) G$ has two fixed-point values:
+$$
+\mathcal G_C(E_Y,E_I)
+=
+\frac{\pi}{\rho}\left[1+(\varphi^6-1)q\right].
+$$
 
-- **UV fixed point** ($q \to 0$, small scales): $G_{\text{eff}} \to \varphi^{-3} G$
-- **IR fixed point** ($q \to 1$, large scales): $G_{\text{eff}} \to \varphi^3 G$
+On the composition line $\varepsilon=0$, $\pi/\rho=\varphi^{-3}$ while $q$
+continues to vary with density. The dilute endpoint gives
+$\mathcal G_C\to\varphi^{-3}$; the registered reference-density point gives
+$q=\varphi^2/3$ and $\mathcal G_C=5\sqrt5/3$; the high-density
+same-composition endpoint gives $\mathcal G_C\to\varphi^3$. The ratio of the
+two formal density endpoints is $\varphi^6$.
 
-The ratio between them is $\varphi^6$, which is $\xi$. The RG flow of $G_{\text{eff}}$ between these fixed points is determined by the Qi quality $q(k)$.
+Calling these endpoints ultraviolet and infrared fixed points requires a
+separate, frozen map $k\mapsto(E_Y,E_I,\rho_\star)$ and a physical gravity
+completion. Neither follows from the local definition of $q$. Until that map
+exists, $\mathcal G_C$ is a state-space diagnostic rather than a running
+Newton coupling (`foundations/quantum-free-fall-correspondence.md` §7).
 
 ### 4.4 CP Violation Phase
 

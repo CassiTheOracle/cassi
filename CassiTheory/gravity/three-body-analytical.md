@@ -1,12 +1,15 @@
 # The Three-Body Problem in Cassi Two-Fluid Gravity
 
-## Status: Derived conditional on the selected $d = 3$ computational/physical domain and displayed PDE force sign—August 2026
+## Status: Derived conditional on the selected $d = 3$ computational/physical domain and displayed PDE force sign—September 2026
 
 ## Abstract
 
-The Cassi two-fluid PDE with Qi-enhanced gravity reduces, for well-separated blobs in the selected $d = 3$ computational/physical domain, to point-particle ODEs with the displayed PDE force convention and body-dependent coupling
-$G_{\text{eff},j} = \alpha_j(1+(\varphi^{6}-1)q_j)G$ and dynamically evolving
-masses. With $\Phi=-G\sum_iM_i/|\mathbf{x}-\mathbf{X}_i|$, the canonical
+The Cassi two-fluid PDE with Qi-enhanced gravity reduces, for well-separated
+blobs in the selected $d=3$ computational/physical domain, to point-particle
+ODEs with the displayed PDE force convention and the state-dependent
+coupling-magnitude coefficient
+$G_{\text{eff},j}=\alpha_j[1+(\varphi^6-1)q_j]G$.
+With $\Phi=-G\sum_iM_i/|\mathbf{x}-\mathbf{X}_i|$, the canonical
 $+\pi[1+(\varphi^6-1)q]\nabla\Phi$ branch is outward for positive $\alpha_j$;
 it does not reduce to attractive Newtonian gravity. At the $\varphi$-fixed
 point $\alpha_j = \varphi^{-3}$ each blob carries its equilibrium coherence
@@ -19,8 +22,10 @@ $G_{\text{eff}} = \varphi^{-3}G$ ($\rho_j \to 0$, $q_j \to 0$), while the
 canonical velocity-force sign remains outward. Classical non-integrability and
 attractive-orbit comparisons therefore apply only conditionally; an attractive
 point-particle branch requires a separate Hypothesized sign-changing force
-extension. Away from the fixed point the coupling is body-dependent and the
-masses evolve through the retained spatial fluxes, a non-Newtonian dynamics.
+extension. Away from the fixed point, the internal coefficient and retained
+blob masses vary with the field state. Interpreting that coefficient as a
+body-dependent gravitational-to-inertial response requires a separate
+matter-state map and gravity closure.
 In conversion-dominated blob reductions, the conversion term tends to drive
 each internal ratio toward the fixed point on the timescale
 $\tau_\lambda \sim 1/[\lambda(1-q)(1+\varphi)]$.
@@ -47,11 +52,13 @@ computationally (Paths 1–9: $R_\infty(d)$, precession, Lagrange points,
 stability, rotation curves) only as a conditional comparison; an attractive
 orbital branch requires the separate Hypothesized sign extension.
 >
-> The conversion terms carry the canonical Qi gate factor $(1-q)$ (PDE-verified
-in `consciousness/trauma-as-frozen-gate.md` §10.4), and $q$ is the canonical
-coherence $q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$. At the
-$\varphi$-fixed point $E_Y = \varphi E_I$ the conversion term vanishes for any
-gate openness.
+> The conversion terms carry the canonical Qi gate factor $(1-q)$
+> (PDE-verified in `consciousness/trauma-as-frozen-gate.md` §10.4). In the
+> dimensionless solver normalization $\rho_\star=1$,
+> $q=\rho^2/(\rho^2+\varphi^{-2}+\varepsilon^2)$; physical-density variables
+> restore the denominator term $\varphi^{-2}\rho_\star^2$. At the
+> $\varphi$-fixed point $E_Y=\varphi E_I$, the conversion term vanishes for
+> every gate openness.
 
 ---
 
@@ -332,9 +339,10 @@ comparisons rather than established orbital regimes:**
   $T_{\text{orbit}} \gg \tau_\lambda$, the internal state is near the
   $\varphi$-fixed point; the canonical branch itself remains outward-sign.
 - If $T_{\text{orbit}} \ll \tau_\lambda$ in that conditional comparison, each
-  blob has approximately constant $\alpha_j \neq \varphi^{-3}$, giving the
-  body-dependent coupling magnitude
-  $G_{{\rm eff},j} = \alpha_j(1+(\varphi^{6}-1)q_j)\,G$.
+  blob has approximately constant $\alpha_j\neq\varphi^{-3}$, giving the
+  state-dependent internal coupling-magnitude coefficient
+  $G_{{\rm eff},j}=\alpha_j[1+(\varphi^6-1)q_j]G$. A physical
+  body-dependent response requires the separate matter and gravity maps.
 - If $T_{\text{orbit}} \sim \tau_\lambda$, the conditional system retains at least the 24 position, velocity, mass, and Yang-excess degrees of freedom counted in Appendix B, plus any unresolved profile-closure variables. Integrability is therefore not established. No attractive orbit is derived from the canonical PDE sign.
 
 ---

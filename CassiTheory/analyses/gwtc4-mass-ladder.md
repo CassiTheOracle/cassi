@@ -1,6 +1,6 @@
 # GWTC-4.0 and the Cascade Ladder: Black-Hole Masses as Rung Diagnostics
 
-## Status: Speculative—August 2026
+## Status: Speculative—September 2026
 
 ## Abstract
 
@@ -123,20 +123,22 @@ This coordinate is assigned to decrease at nuclear and horizon densities. The
 canonical, reference-normalized solver diagnostic is
 
 $$q(\rho,\varepsilon) =
-\frac{\rho^2}{\rho^2+\varphi^{-2}+\varepsilon^2},$$
+\frac{\rho^2}{\rho^2+\varphi^{-2}\rho_\star^2+\varepsilon^2},$$
 
-which approaches $1$ as $\rho$ grows at fixed relative imbalance
-$\varepsilon$. A separately supplied and measured constitutive map
-$q=\mathcal{M}(q_{\rm proxy}^{\rm halo},\rho,\varepsilon)$ is required before
-the halo proxy can enter
-$G_{\text{eff}} = (\pi/\rho)(1+(\varphi^{6}-1)q)G$. The compact-density branch
-therefore leaves compact-density ringdown frequencies as an open Hypothesized
-prediction. The updated quantum-gravity probe supplies
-Gaussian UV suppression, a low-$k$ slope
-$c_{\text{eff}}\to\sqrt{1+\varphi^{-6}}\approx1.0275$, and a finite
-$\mathcal{O}(11\%)$ running correction at the $\sigma$ scale; it leaves
-high-$k$ mode energies uncapped and has no curved-spacetime ringdown
-calculation (`gravity/quantum-gravity.md` §§4.2, 5.3, 6).
+which approaches $1$ as $\rho/\rho_\star$ grows at fixed relative imbalance
+$\varepsilon/\rho$. The solver convention sets $\rho_\star=1$ only after
+reference normalization. A separately supplied and measured constitutive map
+$q=\mathcal{M}(q_{\rm proxy}^{\rm halo},\rho,\varepsilon,\rho_\star)$ is
+required before the halo proxy can enter the optional coupling-magnitude
+expression
+$\mathcal G_C=(\pi/\rho)[1+(\varphi^{6}-1)q]$. The compact-density branch
+therefore leaves ringdown frequencies as an open Hypothesized prediction. The
+quantum-gravity probe supplies Gaussian free-propagator suppression and the
+implemented low-$k$ slope
+$c_{\text{eff}}\to\sqrt{1+\varphi^{-6}}\approx1.0275$, which is rejected for
+observed gravitational waves. It derives no running of $G$, caps no high-$k$
+mode energies, and supplies no curved-spacetime ringdown calculation
+(`gravity/quantum-gravity.md` §§4.2, 5.3, 6).
 
 GW230814_230901—the loudest event ever recorded, SNR 42.1—is the available
 high-leverage observation for this open question. Its single-detector analysis
@@ -195,7 +197,7 @@ not be retrofitted casually:
 | $N_{\mathrm{BH}} = \log_\varphi(M/M_{\mathrm{Pl}})$ | Hypothesized information-storage proxy | Exploratory mapping only; not Derived and no evidentiary verdict |
 | Stellar-BH zone rungs 182–194 | Hypothesized (new) | Unmapped territory; face-value placements only |
 | Integer-rung mass peaks | Speculative (new) | No retained v4 posterior, prior-weighted rerun, or receipt; unresolved |
-| Compact-density ringdown response | Hypothesized (constitutive map and curved-spacetime calculation required) | $q_{\mathrm{proxy}}^{\mathrm{halo}}\to q$ is uncalibrated; the updated flat-space dispersion has a 1.0275 low-$k$ slope and $\mathcal{O}(11\%)$ $\sigma$-scale running correction; GW230814_230901 hint remains uncorroborated |
+| Compact-density ringdown response | Hypothesized (constitutive map and curved-spacetime calculation required) | $q_{\mathrm{proxy}}^{\mathrm{halo}}\to q$ is uncalibrated; the flat-space dispersion has a 1.0275 low-$k$ slope rejected for observed gravitational waves, derives no running of $G$, and supplies no ringdown calculation; the GW230814_230901 hint remains uncorroborated |
 | Halo strain $\le10\times$ (pred. 17) | Hypothesized (constitutive ansatz) | Unverified script/model bound with no LVK source or retained prior-weighted rerun; no evidentiary verdict |
 | Breathing-mode polarization (pred. 29) | Hypothesized | Untested (single-detector loud events) |
 | Rate-$z$, spin-width-$z$, NS mass spread |—| No framework prediction; NS output is conditional toy with no EOS baseline; do not retrofit |

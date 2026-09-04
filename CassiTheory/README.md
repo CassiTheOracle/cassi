@@ -180,6 +180,7 @@ Choose the path that matches your question:
 |---|---|
 | Understand the project and core physics | `cassi-physics.md` → `foundations/cassi-first-principles.md` |
 | Follow the derivation structure | `foundations/README.md` → `foundations/dimensionful-cascade.md` → `foundations/cascade-suppression-formula.md` |
+| Study quantum free fall and gravity boundaries | `foundations/quantum-free-fall-correspondence.md` → `foundations/physical-becoming-hierarchy.md` §7.4 → `gravity/quantum-gravity.md` |
 | Evaluate the evidence | `open-questions-cassi-answers.md` → `audit.md` → `predictions/falsifiable-predictions.md` |
 | Study mind and field intelligence | `cassi-psychology.md` → `foundations/qi-flow-double-helix.md` → `field-experience/probe-outcome-ledger.md` |
 | Browse the complete document graph | `reading-guide.md` |
@@ -190,7 +191,7 @@ Choose the path that matches your question:
 
 | Path | Contents |
 |---|---|
-| `foundations/` | Canonical field definitions, the cascade wedges, and load-bearing derivations |
+| `foundations/` | Canonical field definitions, the cascade wedges, and core derivations |
 | `principles/` | Cross-cutting principles, including de-resonance |
 | `standard-model/`, `particles/`, `gravity/`, `cosmology/`, `turbulence/` | Domain applications and their calculations |
 | `consciousness/` | Hypothesized and speculative mappings from field dynamics to mind and embodied experience |

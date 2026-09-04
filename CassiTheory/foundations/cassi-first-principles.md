@@ -1,6 +1,6 @@
 # Cassi First Principles
 
-## Status: Canonical defined/selected PDE and Qi diagnostic; algebraic consequences Derived conditional on the stated attractor/gated equations; Asserted single-channel g(q) input—August 2026
+## Status: Canonical defined/selected PDE and Qi diagnostic; algebraic consequences Derived conditional on the stated attractor/gated equations; Asserted single-channel g(q) input—September 2026
 
 ## Abstract
 
@@ -839,11 +839,11 @@ conversion conservation, rank-one relaxation, and the scalar Qi coherence diagno
 
 | Limit | Condition and required extension | Effective theory | Status |
 |-------|----------------------------------|------------------|--------|
-| $q \to 0$ on the $\varphi$-line (the dilute attractor limit: $\varepsilon = 0$, $\rho \to 0$; $q \to 0$ alone means $\rho \to 0$ or large $|\varepsilon|$, while the reference fixed point has $q=q_{\text{eq}}\approx0.873$) | $\pi/\rho=\varphi^{-3}$ and optional Qi-gravity boost $\to1$ | GR-like limit with $G_{\text{eff}}=\varphi^{-3}G\approx0.236\,G$ | **Derived conditional** |
-| $q \to 0$ on the $\varphi$-line, $\hbar \to 0$ | Optional Qi-gravity extension plus classical limit | Newtonian gravity | **Derived conditional** |
+| $q \to 0$ on the $\varphi$-line (the dilute endpoint of the composition attractor: $\varepsilon = 0$, $\rho \to 0$; $q \to 0$ alone means $\rho \to 0$ or large $|\varepsilon|$, while the reference fixed point has $q=q_{\text{eq}}\approx0.873$) | $\pi/\rho=\varphi^{-3}$ and optional Qi-gravity boost $\to1$ | Formal coupling-magnitude endpoint $\mathcal G_C=\varphi^{-3}$; a GR interpretation requires an independently completed metric and matter map | **Derived conditional algebra / Hypothesized gravity mapping** |
+| $q \to 0$ on the $\varphi$-line, $\hbar \to 0$ | Optional Qi-gravity response and force closure plus the classical limit | Classical test-particle motion in the selected external potential; Newtonian source gravity additionally requires an attractive source/metric closure | **Derived conditional test-particle limit / Hypothesized gravity completion** |
 | Regulated CassiFI Hamiltonian, self-adjoint $\hat H_Q$, and an adiabatic centre-of-mass band | Configuration-space quantization with $G_{ij}=M\delta_{ij}$ | Linear Schrödinger equation, $E=\hbar^2k^2/(2M)$, and $\lambda_{\mathrm{dB}}=h/(Mv)$ | **Derived conditional**; CassiFI physical identification **Hypothesized** |
 | $\lambda \to 0$ | Optional pressure, force, and source closure with conversion removed | Euler–Poisson system | **Derived conditional** |
-| $\xi \to 0$ | Optional Qi-gravity sector switched off | Standard GR | **Derived conditional** |
+| $\xi \to 0$ | Optional Qi multiplicative boost switched off | Selected baseline gravity sector, if independently supplied; $\xi\to0$ alone does not construct standard GR | **Derived switch-off identity / Hypothesized gravity selection** |
 | $\chi \to 0$ | Optional chemotaxis sector with its scalar closure | Passive scalar advection | **Derived conditional** |
 
 These entries are sector-specific conditional limits and mappings. The

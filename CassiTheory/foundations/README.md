@@ -12,15 +12,15 @@ This directory holds the foundational derivations of the Cassi framework: the di
 |---|----------|--------|-----------|
 | 1 | `dimensionful-cascade.md` | Scales from φ | Derived |
 | 2 | `cascade-suppression-formula.md` | Conditional attenuation families | Derived conditional product algebra; uniform input and signal/routed-port maps Hypothesized |
-| 3 | `unified-lagrangian.md` | Formal assembled Lagrangian around the canonical core | Hypothesized (canonical core; optional sector extensions) |
-| 4 | `cassi-first-principles.md` | Postulate and two-fluid PDE | Derived PDE; asserted single-channel g(q) input |
+| 3 | `unified-lagrangian.md` | Formal assembled Lagrangian around the canonical core | Hypothesized—September 2026 |
+| 4 | `cassi-first-principles.md` | Postulate and two-fluid PDE | Derived PDE; C / Asserted $q$ definition; Asserted single-channel $g(q)$ input—September 2026 |
 | 5 | `cassi-theory-reference.md` | Compact framework reference | Reference |
 | 6 | `xi-derivation.md` | Qi-gravity coupling | Derived conditional on the quadratic-coupling input |
 | 7 | `why-three-dimensions.md` | Spatial dimension count | Hypothesis |
 | 8 | `qi-flow-double-helix.md` | Canonical two-density state, $q$ diagnostic, and exact spatial lifts; conditional four-channel and double-helix geometry | Derived ($q$ and spatial lifts) / Hypothesized (channel lift, constitutive map, $P_\parallel=2$, double helix) |
 | 9 | `wu-xing-derivation.md` | Wu Xing number $w = 5$ | Derived conditional (arithmetic, gap, $r_0$); Hypothesized coordinate/phenomenological cycle; Calibrated $w_0$ |
 | 10 | `dimensionful-constants-status.md` | $c$, $\hbar$, $G$ status | Hypothesized |
-| 11 | `phi-rg-formalism.md` | φ as RG fixed point | Hypothesized |
+| 11 | `phi-rg-formalism.md` | Hypothesized discrete $\varphi$-RG and state-space/gravity boundary | Hypothesized—September 2026 |
 | 12 | `spiral-dynamics.md` | Hubble, gravity, $c$ from spiral | Hypothesized |
 | 13 | `spin-fibonacci-spiral.md` | Spin as spiral winding | Derivation |
 | 14 | `phi_attractor_synthesis.md` | Analytical N-body paths | Derived |
@@ -42,7 +42,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 30 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
 | 31 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
 | 32 | `qi-as-spatial-spacing-signal.md` | The φ-spacing as a coherence-field (Qi) property; channel principle | Derived conditional (phase/coherence) / Hypothesized (channel transmission) |
-| 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction |
+| 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction—September 2026 |
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
 | 36 | `loop-to-bubble-projection-theorem.md` | Shared-support Yang/Yin loop, canonical zero-mode projection, coherence ball, and internal spectrum | Derived conditional projection, bubble map, and population spectrum / Hypothesized microscopic physical identification |
@@ -56,6 +56,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, source-action response, and routed quadratic-flux attenuation | Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026 |
 | 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated canonical conversion, coherence fibre, relative-phase transport, endpoint ledgers, open-system support boundary, and bounded cross-domain source interface | Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary / Mapped selected carrier coupling / Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026 |
 | 46 | `matter-completion-boundary.md` | Nine-part conditional boundary from exterior dilation through fixed-charge spectral qualification | Derived conditional boundary / Hypothesized physical realization / Mapped selected carrier coupling / Tested reduced receipts, a resolution-consistent localized retained finite-grid branch, and a six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026 |
+| 47 | `quantum-free-fall-correspondence.md` | Ideal Quantum Galileo Interferometer action, source/test-response separation, Qi-gravity normalization, and common-lapse boundary | Derived conditional external-potential correspondence / Hypothesized Cassi atomic state, gravity-response, and common-lapse mappings—September 2026 |
 
 ## Document Summaries
 
@@ -83,7 +84,7 @@ $$\boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\te
 
 with structural dimensionless couplings expressed as $\varphi$-powers where specified, the canonical solver normalization $\lambda = 0.1$, and three external dimensionful constants ($c$, $\hbar$, $G$). The canonical two-fluid sector is the nonnegative density pair $E_Y,E_I\ge0$ with $\rho=E_Y+E_I$, $\pi=E_Y-E_I$, $\varepsilon=E_Y-\varphi E_I$, and gated rank-one conversion; its attractor term in density variables is $(\lambda/2)(E_Y-\varphi E_I)^2$. The positive-root amplitude lift $\Psi_\alpha^{(+)}=\sqrt{E_\alpha}$ and SO(2) language belong to optional coordinate/action extensions. The Bohm quantum potential belongs to an optional Derived-conditional amplitude/action extension. Its canonical conversion is a rank-one relaxation conserving $\rho$ with eigenvalues $0$ and $-\lambda(1-q)(1+\varphi)$. The Dirac, gravity, Standard Model, and mixing sectors are optional conditional extensions with their own statuses; the application-level gravity ansatz uses $G_{\text{eff}} = G(\pi/\rho)(1 + (\varphi^{6}-1)q)$ with the exact algebraic identity $\xi = \varphi^6 = \varphi^5 + \varphi^4$. The Standard Model section records the asserted boundary $\sin^2\theta_W = \varphi^{-3} \approx 0.236$ and the mixing-sector terms; its coupling-normalization blocker is in `standard-model/su2-gauge-extension.md` §3.2.1. Status: Hypothesized.
 
-The same document defines candidate physical time relationally as $d\tau_{\mathrm{phys}}(x)/d\tau_\star=(1-q(x))/(1-q_\star)$, with a Derived conditional conversion-clock ratio, a Hypothesized universal common-lapse interpretation, and the CT-2 cross-clock falsifier.
+The same document defines candidate physical time relationally as $d\tau_{\mathrm{phys}}(x)/d\tau_\star=(1-q(x))/(1-q_\star)$, with a Derived conditional conversion-clock ratio, a Hypothesized universal common-lapse interpretation, and the CT-2 cross-clock falsifier. A constant common lapse cancels from the ideal free-fall phase when the duration is expressed in the same physical clock; QGI therefore supplies a correspondence boundary rather than a CT-2 measurement.
 
 Here “canonical solver normalization” denotes the declared framework/C-class
 convention, not the implementation default: `TwoFluid3DGPU` constructs with
@@ -110,7 +111,21 @@ Separates microscopic actual physics, mesoscopic open-system dynamics, and agent
 
 ### `cassi-theory-reference.md`—The Cassi Framework (Compact Reference)
 
-The audited compact reference: one document restating the postulate, the two-fluid PDE, Qi coherence ($q = \rho^2/(\rho^2 + \varphi^{-2} + \varepsilon^2)$), the Qi gate with its sign convention (conversion runs hard when $q \to 0$; the gate determines $w(a)$), the cascade, and the framework constants—$G_{\text{eff}} = G(\pi/\rho)(1 + (\varphi^{6}-1)q)$ with $\xi = \varphi^6$, the asserted boundary $\sin^2\theta_W = \varphi^{-3}$, and a proposed Frenet–Serret frame conditional on an assumed three-dimensional embedding. Physical-axis identification, the $d=3$ mapping, and optional spiral-phase conventions retain Hypothesized/conditional status. The gate sign is established by the PDE tests in `consciousness/trauma-as-frozen-gate.md` §10.4. Use it as the map before reading the individual derivations. Status: Reference.
+The audited compact reference restates the postulate, the two-fluid PDE, the
+constitutive Qi coherence diagnostic
+$q=\rho^2/(\rho^2+\varphi^{-2}+\varepsilon^2)$, the Qi gate with its sign
+convention, and the cascade. It records the optional coupling-magnitude
+diagnostic
+$\mathcal G_C=(\pi/\rho)[1+(\varphi^6-1)q]$ with
+$\xi=\varphi^6$, the asserted electroweak boundary
+$\sin^2\theta_W=\varphi^{-3}$, and a proposed Frenet–Serret frame conditional
+on an assumed three-dimensional embedding. A physical gravity
+interpretation of $\mathcal G_C$ requires a matter-state map and a force or
+metric closure. Physical-axis identification, the $d=3$ mapping, and optional
+spiral-phase conventions retain Hypothesized or conditional status. The gate
+sign is established by the PDE tests in
+`consciousness/trauma-as-frozen-gate.md` §10.4. Use this document as the map
+before reading the individual derivations. Status: Reference.
 
 ### `xi-derivation.md`—Derivation of $\xi = \varphi^6$: The Last Free Parameter
 
@@ -218,11 +233,19 @@ The $\lambda=0.1$ statement is the declared framework/C-class convention; the `T
 
 ### `phi-rg-formalism.md`—The Golden Ratio as a Renormalization Group Fixed Point
 
-Formalizes the $\varphi$-spaced hierarchy as a discrete Wilsonian renormalization group with scale factor $b = \varphi$:
+Explores a discrete Wilsonian-RG ansatz with scale factor $b=\varphi$:
 
 $$\boxed{\mathcal{R}_\varphi[\mathcal{L}_k] = \mathcal{L}_{k/\varphi}}$$
 
-with the discrete beta function $\beta_\varphi(g) = [g(k/\varphi) - g(k)]/\ln\varphi$, recovering the continuous beta function in the limit $\varphi \to 1^+$. The critical coupling $\boxed{\alpha_c = \varphi^{-1}}$ is the unique stable fixed point of the flow, and the SM $\varphi$-power predictions ($\sin^2\theta_W$, $\alpha_{\text{GUT}}$, $\xi = \varphi^6$) are IR values of trajectories from it. The de-resonance principle gains a field-theoretic foundation: $\varphi$'s maximal irrationality ensures the flow never hits a rational resonance. Status: Hypothesized.
+The displayed discrete beta function is a definition once a coarse-graining
+map is supplied. The selection of $\alpha_c=\varphi^{-1}$, the Standard Model
+$\varphi$ charges, and the de-resonance interpretation remain Hypothesized;
+maximal irrationality alone neither generates a field-theoretic flow nor
+excludes physical resonance. The optional Qi-gravity expression varies over
+state space. Calling its density endpoints ultraviolet and infrared fixed
+points requires an additional map from momentum scale to
+$(E_Y,E_I,\rho_\star)$ and a physical gravity completion. Status:
+Hypothesized—September 2026.
 
 ### `spiral-dynamics.md`—Spiral Dynamics: Hubble, Gravity, and $c$ from Fibonacci Spiral Geometry
 
@@ -868,6 +891,30 @@ reduced receipts, a resolution-consistent localized retained finite-grid
 branch, and a six-mode constrained $C_4$ finite-grid PA42 low-spectrum
 sign—September 2026.
 
+### `quantum-free-fall-correspondence.md`—Quantum Free Fall as a Cassi Correspondence Boundary
+
+Derives the ideal closed Quantum Galileo Interferometer phase from the
+conditional centre-of-mass Schrödinger sector after the uniform Earth
+potential is supplied. With distinct inertial and gravitational coefficients,
+the result is
+$\Delta\phi=-m_g^2g^2T^3/(3\hbar m_i)$; the equivalence value gives
+$-mg^2T^3/(3\hbar)$. The accelerated-frame gauge phase, kinetic and potential
+actions, same-arm acceleration degeneracy, and differential ballistic/held
+response ratio are verified independently.
+
+The paper separates a universal constant-$G_N$ metric correspondence from a
+variable scalar-tensor source sector and a distinct direct-response-charge
+hypothesis. It also distinguishes the full $\varepsilon=0$ composition line
+from its dilute $q\to0$ endpoint, records
+$q_{\mathrm{eq}}=\varphi^2/3$ and
+$\mathcal G_C=5\sqrt5/3$ at the reference-density point, and proves that a
+constant common lapse cancels when the duration is expressed in the same
+physical clock. The published rubidium measurement
+([doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045))
+supplies no atomic $(E_Y,E_I,q)$ map or Cassi-specific verdict. Status:
+Derived conditional external-potential correspondence / Hypothesized Cassi
+atomic state, gravity-response, and common-lapse mappings—September 2026.
+
 ## Cross-References
 
 - `foundations/dimensionful-cascade.md`—the cascade wedge (entry point for this directory)
@@ -876,7 +923,7 @@ sign—September 2026.
 - `parameter-inventory.md`—parameter registry
 - `predictions/falsifiable-predictions.md`—the 56-entry prediction catalog
 - `cassi-physics.md`—framework overview and the gap $g = 1 - \varphi^{-5}$ derivation
-- `gravity/quantum-gravity.md`—the $\sigma = \ell_{\text{Pl}}/\varphi^3$ regularization that anchors the cascade
+- `gravity/quantum-gravity.md`—the conditional $\sigma=\ell_{\text{Pl}}/\varphi^3$ candidate regulator, free-propagator damping, and open interacting-completion boundary
 - `standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$
 - `cosmology/observational_constraints.md`—CMB and large-scale-structure tests referenced by the geometry docs
 - `foundations/matter-completion-boundary.md`—nine-part conditional interface from exterior dilation through fixed-charge spectral qualification

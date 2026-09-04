@@ -711,6 +711,30 @@ clustering limit, Mercury limit, or PPN limit for the canonical branch.
 
 **Epistemic status:** the fixed-point force identity is **Derived conditional** on the optional Qi-gravity constitutive law and the stated canonical $q$; the nearest-integer $\varphi^{-183}$ receipt is **Mapped** (3.5% from the observed coupling); the $\xi=\varphi^6$ scale-coordinate identity is **Derived conditional** and its empirical pin is **Calibrated**; physical gravity amplification and any attractive halo, cosmological, rotation-curve, clustering, Mercury, or PPN interpretation are **Hypothesized**, with fit-dependent quantities retaining their source-specific **Mapped** or **Calibrated** labels.
 
+### 12.1 Quantum free-fall correspondence boundary
+
+The conditional centre-of-mass quantum sector reproduces the ideal Quantum
+Galileo Interferometer phase once a uniform Earth potential is supplied:
+
+$$
+\Delta\phi=-\frac{m_g^2g^2T^3}{3\hbar m_i},
+\qquad
+m_g=m_i=m\ \Longrightarrow\
+\Delta\phi=-\frac{mg^2T^3}{3\hbar}.
+$$
+
+This is a low-energy correspondence result. Written in terms of the same
+ballistic arm's locally calibrated acceleration
+$g_b=(m_g/m_i)g$, the phase is
+$-m_ig_b^2T^3/(3\hbar)$, which removes separate access to the source field and
+response ratio. A Cassi-specific comparison requires an independently frozen
+map from atomic preparations to $(E_Y,E_I,q)$ and a complete gravity branch.
+The published rubidium measurement
+([doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045))
+therefore gives no numerical $q$, clock lapse, $\sigma$-regulator, or
+composite-graviton verdict. The derivation and differential response
+observable are given in `foundations/quantum-free-fall-correspondence.md`.
+
 ## 13. Proton Stability
 
 The measured proton mass maps to the precise coordinate

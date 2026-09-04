@@ -845,10 +845,20 @@ flowchart TD
 
 The classical gravitational field follows from density gradients in a $\sigma$-regularized Poisson equation (see Primer), with $G_{\text{eff}} = (\pi/\rho)(1 + (\varphi^{6}-1)q)\,G_N$ depending on local Qi density and matter density. The softening parameter $\sigma = \ell_{\text{Pl}}/\varphi^3$ comes from the cascade. A quantized two-fluid extension (Hypothesized) may contain a composite spin-2 excitation assembled from the two real Yang/Yin component fields; its dispersion and relation to the low-energy GR limit require an interacting quantization and remain open.
 
+The published Quantum Galileo Interferometer
+([doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045))
+fixes a low-energy correspondence
+boundary. The conditional centre-of-mass Schrödinger sector reproduces
+$\Delta\phi=-m_g^2g^2T^3/(3\hbar m_i)$ after a uniform Earth potential is
+supplied. This checks quantum matter in an external weak field; it does not
+measure Cassi $q$, probe the $\sigma$ regulator, or test a composite graviton.
+Those inferences require an atomic state map and a completed source/response
+gravity branch.
+
 | **Cassi Answer** | At the classical field level, gravity follows $\sigma$-regularized Poisson emergence and Qi enhancement (Derived conditional on the noise–signal identification, G1). A quantized two-fluid extension (Hypothesized) may contain a composite spin-2 excitation; its dispersion and GR limit remain open |
 | **Mechanism** | $G_{\text{eff}}=(\pi/\rho)(1+(\varphi^{6}-1)q)G_N$; the classical field emerges from density gradients, while the quantized extension and its low-energy response require additional structure |
 | **Epistemic** | **Derived conditional on the noise–signal identification**—$\sigma=\ell_{\text{Pl}}/\varphi^3$ ($\delta=3$) from the Planck-core noise–signal crossover: per-rung dephasing $1-q_0=\varphi^{-\delta}$ equals the equilibrium excess $(\pi/\rho)_{\text{eq}}=\varphi^{-3}$ (the same $\alpha_0$ whose inverse square is $\xi=\varphi^6$), so $\delta=3$; the geometric reading $\delta=d=3$ is conditional and Hypothesized. The composite excitation, dispersion, and GR limit remain Hypothesized; a complete interacting treatment remains open. `gravity/quantum-gravity.md` §2.1 |
-| **Reference** | `foundations/unified-lagrangian.md`, `gravity/quantum-gravity.md` |
+| **Reference** | `foundations/unified-lagrangian.md`, `foundations/quantum-free-fall-correspondence.md`, `gravity/quantum-gravity.md` |
 
 ### G2: Black hole information paradox
 
@@ -932,10 +942,10 @@ The observed universe has three spatial dimensions and one time dimension; that 
 
 ```mermaid
 flowchart TD
-    A[Density/composition inputs] --> B[External low-q or fixed-imbalance comparison]
-    A --> C[Reference attractor: G_eff ≈ 3.73 G_N]
-    A --> D[Formal fixed-imbalance q→1 ratio: φ⁶]
-    B --> E[Gravity is variable, not weak]
+    A[Density and composition inputs] --> B[Optional coupling-magnitude diagnostic]
+    A --> C[Reference point: G_C ≈ 3.73]
+    A --> D[Dilute and high-density formal endpoints]
+    B --> E[Physical gravity map remains open]
     C --> E
     D --> E
 ```
@@ -943,12 +953,12 @@ flowchart TD
 **Visual:** The optional coupling map varies with density and composition. The formal $\varphi^6$ ratio holds only when $\pi/\rho$ is held fixed while $q\to1$; the canonical state changes both through $q(\rho,\pi/\rho)$.
 
 
-Gravity is staggeringly weaker than the other forces—a small refrigerator magnet easily overpowers the gravitational pull of the entire Earth. In natural units, Newton's constant $G_N$ is about $10^{-38}$. Cassi's optional coupling map $G_{\mathrm{eff}}=(\pi/\rho)[1+(\varphi^6-1)q]G_N$ carries density and composition dependence. The reference attractor gives $G_{\mathrm{eff}}/G_N\approx3.73$ under the stated normalization; low-density and halo values used in applications are source-specific comparisons, not a canonical proof of variable gravity or an attractive force.
+Gravity is staggeringly weaker than the other forces: a small refrigerator magnet easily overpowers the gravitational pull of the entire Earth. In natural units, Newton's constant $G_N$ is about $10^{-38}$. Cassi's optional coupling-magnitude diagnostic $\mathcal G_C=(\pi/\rho)[1+(\varphi^6-1)q]$ depends on density and composition. The composition attractor is the full $\varepsilon=0$ line, where $\pi/\rho=\varphi^{-3}$; $q\to0$ is only its dilute endpoint. At the registered reference-density point, $q=\varphi^2/3\approx0.873$ and $\mathcal G_C=5\sqrt5/3\approx3.73$. Neither point establishes variable physical gravity, an attractive force, or a laboratory matter response.
 
 | **Cassi Answer** | Optional Qi-gravity coupling map with a finite reference-attractor value; endpoint ratios are formal external comparisons |
 | **Mechanism** | Density/composition-dependent coupling magnitude; attractive or observational interpretations require a separate **Hypothesized** branch |
 | **Epistemic** | **Derived conditional** on the constitutive coupling and canonical $q$ / **Calibrated** ($\xi$ pin—ledger) / **Hypothesized** (physical gravity interpretation) |
-| **Reference** | `foundations/unified-lagrangian.md` |
+| **Reference** | `foundations/unified-lagrangian.md`, `foundations/quantum-free-fall-correspondence.md` |
 
 ---
 
@@ -998,13 +1008,21 @@ $\lambda$ as the intrinsic relaxation rate per unit physical time. A
 uniform-time kinetic gate, $K=1-q$ and $N=1$, gives the same conversion
 trajectory, so independent clocks must decide between them.
 
+For a constant common lapse, the ideal matter-wave phase expressed in the
+same physical clock is unchanged: the coordinate factor $N^3$ is absorbed by
+the physical half-duration $\mathcal T=NT$. The published Quantum Galileo
+Interferometer
+([doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045))
+contains no resolved $q$ contrast or independent clock sectors, so it is a
+gravity correspondence check rather than a CT-2 test.
+
 | | |
 |---|---|
 | **Cassi Answer** | Canonical inter-fluid conversion supplies an openness-weighted worldline age and monotone arrow; the same openness ratio is the candidate physical-time lapse |
 | **Mechanism** | $d\tau_F=(1-q)dt$ exactly on the isolated conversion subflow; candidate universality requires one common lapse in every independent clock sector |
 | **Epistemic** | **Derived conditional** for the conversion age, relative rate, and imbalance arrow / **Hypothesized** for candidate physical time as a universal common lapse |
 | **Falsifier** | CT-2: a resolved independent clock-rate ratio that disagrees with $(1-q)/(1-q_\star)$ while the conversion receipt remains valid |
-| **Reference** | `foundations/cassi-first-principles.md` §2.6; `foundations/unified-lagrangian.md` §1.7; `predictions/falsifiable-predictions.md` CT-2; `hypotheses/scalar-time-reparameterization-applications.md` |
+| **Reference** | `foundations/cassi-first-principles.md` §2.6; `foundations/unified-lagrangian.md` §1.7; `foundations/quantum-free-fall-correspondence.md` §8; `predictions/falsifiable-predictions.md` CT-2; `hypotheses/scalar-time-reparameterization-applications.md` |
 
 ### F3: Unification of forces
 
@@ -1417,6 +1435,13 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   and the carrier jump generator without duplicating the density sector. The
   carrier-to-mesoscopic projection is Derived conditional; this preceding map
   remains Open.
+- **Quantum-free-fall state and response map.** The supplied external-potential
+  centre-of-mass sector reproduces the ideal Quantum Galileo Interferometer
+  phase. A Cassi-specific prediction still requires a normalized atomic
+  projection to $(E_Y,E_I,\rho_\star,\text{carrier data})$, a selected
+  covariant or direct-charge gravity branch, and a differential response
+  fixed before the apparatus data are examined. See
+  `foundations/quantum-free-fall-correspondence.md`.
 - **Pipelines needed:** $H_0$ shift (C3/T4) requires $w(a) \to H(z)$ integration; $\sigma_8$ (T3) requires modified $G_{\text{eff}}(k,q)$ in Boltzmann code; galaxy mass function (T2) requires PDE wake-wave + Qi-gravity N-body; BH Page curve requires curved-spacetime PDE solver.
 - **Primordial Yang-Yin ratio $r_{\text{Planck}}$.** **Derived.** The Wu Xing number $w = 5$ follows from a single input—the coherence criterion applied to ALL cycle sizes: $w\min_p|\varphi - p/w| \leq \varphi^{-w}$ holds only for $w \in \{1,2,3,5\}$ (continued-fraction optimality; verified to $w = 2000$), and $\varphi$-geometry selects $w \geq 5$. The gap $g = 1 - \varphi^{-5}$ and $r_0 = \varphi^{-5}/(2-\varphi^{-5}) \approx 0.0472$ follow from this input. The named C-class/framework convention $\lambda=0.1$ is Asserted, the implementation class default is $\lambda=0.02$, and the relation $\lambda=1/(2w)$ is a Hypothesized Wu Xing linkage requiring independent cycle-time and dynamical closure. Dimensionless quantities retain mixed accounting—Derived structural forms alongside asserted normalizations, calibrated anchors, mapped exponents, and external constants; $c$, $\hbar$, and $G$ remain external.
 
@@ -1450,3 +1475,4 @@ All Cassi theory documents are organized in the subdirectories listed above. Key
 - `foundations/bubble-edge-geometry.md`—bubble edge profile, condensation threshold, anisotropic void ellipticity
 - `consciousness/consciousness-from-phi.md`—full consciousness theory
 - `foundations/quantum-measurement-derivation.md`—measurement problem resolution
+- `foundations/quantum-free-fall-correspondence.md`—ideal matter-wave free-fall correspondence, source/test separation, and Cassi state-map boundary

@@ -455,11 +455,12 @@ Sorted by detection likelihood (most definitive first):
 | Biophysics (chakra) | Qi density gradient at chakra boundary | **1.7072×** directional proxy steepness, conditional on a measured or selected $\theta_{\mathrm{cond}}$ | Not yet tested; canonical $q$ requires a separately measured constitutive map | **Laboratory** |
 | Anatomy (fascial planes) | Ultrasound elastography boundary stiffness ratio | **1.7072×** directional proxy anisotropy, conditional on a measured or selected $\theta_{\mathrm{cond}}$ | Not yet tested; canonical-field identification is not supplied | **Laboratory** |
 
-## 9. Quantum-Sector Compatibility—Sodium-Nanoparticle Interference
+## 9. Quantum-Sector Compatibility—Matter-Wave Interference
 
 | ID | Observable | Conditional Cassi result | Current status | Falsifier |
 |----|------------|--------------------------|----------------|-----------|
 | CT-1 | Talbot-Lau harmonic multiplier for a 172 kDa sodium nanoparticle | $R_\ell^{\mathrm{CassiFI}}=1$ for every integer $\ell$ before ordinary environmental and apparatus factors; therefore the same visibility as linear quantum mechanics under the same calibrated grating model | **Derived conditional** on QF1-QF4; compatible with the 2026 observed visibilities $0.10\pm0.01$ and $0.08\pm0.01$ and the reported macrorealist bound $\tau_e\geq2.84\times10^{15}$ s ($\mu=15.45$). This is a compatibility constraint rather than a Cassi-specific deviation. | Any intrinsic CassiFI localization term producing a reproducible $R_\ell\neq1$, or failure of the regulated Hamiltonian to reproduce $E=\hbar^2k^2/(2M)$ |
+| **QGI-1** | Ideal closed Quantum Galileo Interferometer phase and ballistic/held preparation response ratio | For the supplied Hamiltonian $p^2/(2m_i)+m_ggz$, $\Delta\phi=-m_g^2g^2T^3/(3\hbar m_i)$; $m_g=m_i=m$ gives $-mg^2T^3/(3\hbar)$. With ballistic response $r_b$ and held response $r_r$ to one source, $\mathcal R_{br}:=\sqrt{-3\hbar\Delta\phi_b/(m_iT^3a_h^2)}=|r_b/r_r|$. Universal minimal metric coupling gives $\mathcal R_{br}=1$. | **Derived conditional** on QF1–QF8 and the supplied uniform external potential; compatible with the published $^{87}\mathrm{Rb}$ phase at its reported few-percent apparatus sensitivity ([doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045)). The experiment supplies no atom-to-$(E_Y,E_I,q)$ map, so it gives no Cassi-specific or numerical-$q$ verdict. | Failure of the conditional COM sector to reproduce the ideal phase or the full calibrated apparatus action; after a state map and gravity completion are frozen, a reproducible $\mathcal R_{br}$ inconsistent with the predicted state response |
 
 **Configuration-bridge boundary:** The DQ9 audit registers no Cassi-specific,
 
@@ -478,6 +479,14 @@ The physical state map between the QF1 complex field and the carrier
 occupations is Open, so no carrier-derived Cassi-specific discriminator is
 registered.
 
+**Quantum-free-fall boundary:** QGI-1 derives the standard ideal phase from the
+conditional COM sector only after the Earth potential is supplied. Expressing
+the phase in the same arm's locally calibrated acceleration removes the
+separate source-field and response factors. A Cassi field test therefore
+requires an independently frozen atomic state map, gravity completion, and
+differential preparation; fringe visibility does not define $q$.
+
+
 **Geometric boundary:** GQ7 certifies generic integer $U(1)$ winding and finds
 no source-derived Cassi-specific connection or no-fit holonomy. The projective
 shell construction now executes a finite part of the adopted moment-map/Kähler
@@ -495,6 +504,17 @@ additional quantum-sector discriminator or physical-identification promotion.
 `computations/verify_cassifi_quantum_bridge.py`; “Quantum interference of
 sodium nanoparticles,” *Nature* (2026),
 https://doi.org/10.1038/s41586-025-09917-9.
+
+**QGI source:** `foundations/quantum-free-fall-correspondence.md`;
+`computations/quantum_free_fall_correspondence_prereg.md`;
+`computations/verify_quantum_free_fall_correspondence.py`;
+`computations/quantum_free_fall_correspondence_cleanroom_receipt.md`;
+`computations/quantum_free_fall_correspondence_report.md`; “Observation of the
+quantum phase of free fall and the consistency with the equivalence principle,”
+*Science Advances* (2026),
+[doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045);
+accessible derivation at
+[arXiv:2502.14535](https://arxiv.org/abs/2502.14535).
 
 ## 10. Candidate Physical-Time Cross-Clock Test
 
@@ -710,7 +730,7 @@ They add no particle-existence prediction.
   fitted or calibrated comparisons, null results, rejected entries, and open
   hypotheses. Rows without a registered derivation are marked **Not
   predicted**; no aggregate success count is assigned across those classes.
-- **Conditional test rows (CT-n, SB-n, LP-n, DR-n, GM-n, and EL-n):**
+- **Conditional test rows (CT-n, QGI-n, SB-n, LP-n, DR-n, GM-n, and EL-n):**
   these rows are unnumbered conditional discriminators outside the 1–N
   numbered prediction sequence and do not alter its count. EL-1–EL-11 register
   endpoint representation and response, open-channel laws, state and bundle

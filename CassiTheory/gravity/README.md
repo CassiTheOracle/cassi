@@ -1,10 +1,22 @@
 # Gravity—Quantum Gravity and Analytical Three-Body Results
 
-## Status: Index—August 2026
+## Status: Index—September 2026
 
 ## Abstract
 
-This directory takes the Cassi two-fluid framework to the gravitational extremes: proposing a Hypothesized UV-finite quantization of the two-fluid and asking whether the Qi-enhanced two-fluid gravity PDE admits a useful point-particle reduction. `quantum-gravity.md` develops the Hypothesized two-fluid quantization on top of the Derived-conditional $\sigma$-regularized classical layer; `three-body-analytical.md` derives the well-separated-blob ODEs under the displayed PDE force convention. Its canonical $+\nabla\Phi$ branch with $\Phi = -G\sum_i M_i/|\mathbf{x}-\mathbf{X}_i|$ gives outward acceleration for positive $\alpha_j$; an attractive/orbital branch is a separate Hypothesized sign-changing extension. At the $\varphi$-fixed point the coupling remains body- and density-dependent, while the dilute-limit coupling magnitude is $\varphi^{-3}G$ with the same outward sign. The algebraic reduction and fixed-point identities are Derived; the attractive branch is Hypothesized. Read in alphabetical order: the pillar first, then its analytical assessment.
+This directory develops a $\sigma$-regularized free-propagator candidate and
+the point-particle reduction of the optional Qi-weighted force law.
+`quantum-gravity.md` separates the Derived-conditional regulator identities
+from the Hypothesized interacting quantization and composite excitation.
+`three-body-analytical.md` derives well-separated-blob ODEs under the displayed
+PDE force convention. The canonical $+\nabla\Phi$ branch with
+$\Phi=-G\sum_iM_i/|\mathbf{x}-\mathbf{X}_i|$ gives outward acceleration for
+positive $\alpha_j$; an attractive or metric branch requires a separate
+Hypothesized closure. The internal coupling-magnitude coefficient varies with
+blob state and density, but a body-dependent physical response requires a
+matter-state map. `foundations/quantum-free-fall-correspondence.md` supplies
+the low-energy matter-wave boundary. Read the free-propagator analysis, the
+reduction assessment, and then that correspondence boundary.
 
 ## Document Index
 
@@ -17,15 +29,43 @@ This directory takes the Cassi two-fluid framework to the gravitational extremes
 
 ### `quantum-gravity.md`—$\sigma$-Regularized Two-Fluid Quantum Gravity
 
-Quantizes the two real Yang/Yin density components with the fundamental separation scale $\boxed{\sigma = \ell_{\text{Pl}}/\varphi^3 \approx 1.93\times 10^{-20}\ \text{GeV}^{-1} \approx 3.82\times 10^{-36}\ \text{m}}$ as a Gaussian regulator in the propagator. The Hypothesized quantized composite sector may use an optional SO(2) extension, separate from the canonical real-density PDE; its implemented probe uses $\omega_k^2 = k^2 + \omega_0^2(1-e^{-k^2\sigma^2})$ with $\omega_0 = M_{\text{Pl}}$, so $1/\sigma = \varphi^3M_{\text{Pl}}$ is a suppression scale rather than a hard mode-energy cutoff. At $k \ll 1/\sigma$, $\omega/k \to \sqrt{1+\varphi^{-6}} \approx 1.0275$; at $k=1/\sigma$, $\omega \approx 4.31\,M_{\text{Pl}}$ and $c_{\text{eff}}\approx 1.0030$; at $k \gg 1/\sigma$, $\omega\sim k$ with Gaussian amplitude suppression and no energy cap. **GW170817 rejection:** the low-$k$ group speed $c_{\text{eff}}/c\to\sqrt{1+\varphi^{-6}}\approx1.0275$ exceeds the Abbott et al. upper bound $+7\times10^{-16}$ by $>3.9\times10^{13}$, so this dispersion is rejected as an astrophysical graviton signal; it is viable only if modified to recover $c$ or decoupled from observed GWs. For the displayed Gaussian propagator, loop integrals are UV-finite at all orders once an IR cutoff $q_{\text{IR}}>0$ is supplied; the quantized interaction and its IR completion remain unspecified, so the no-renormalization statement is conditional. The probe reports an illustrative approximately 11% correction to $G$ at the $\sigma$ scale. For black holes, the Hypothesized $\sigma$-regulated S-matrix mechanism is intended to preserve unitarity; it derives an interior coherence capacity $\mathcal{C}_{\text{BH}}\sim\varphi^{N_{\text{BH}}+1}\sim M/M_{\text{Pl}}$, with the Bekenstein-Hawking correspondence still open, while the full Page curve and horizon-level demonstration await a curved-spacetime two-fluid PDE solver. Epistemic tier: Hypothesized—the quantized sector, curved-spacetime predictions, and headline observational signatures remain untested.
+The candidate uses
+$\sigma=\ell_{\text{Pl}}/\varphi^3$ as a Gaussian factor in a free Euclidean
+propagator. The Hypothesized composite sector uses
+$\omega_k^2=k^2+\omega_0^2(1-e^{-k^2\sigma^2})$ with
+$\omega_0=M_{\text{Pl}}$. Its low-$k$ speed ratio
+$\sqrt{1+\varphi^{-6}}\approx1.0275$ is rejected as an observed
+astrophysical-graviton dispersion by GW170817
+([arXiv:1710.05834](https://arxiv.org/abs/1710.05834)); at high $k$ the
+dispersion approaches $\omega\sim k$ and supplies no energy cap. The Gaussian
+makes the displayed radial Euclidean one-loop prototype UV convergent for a
+declared nonzero infrared cutoff. It does not establish all-order finiteness,
+renormalizability, Lorentzian unitarity, black-hole information retention, or
+a Page curve because the interacting vertices, contour prescription, and
+covariant horizon solution remain open. The composite-graviton identification
+and curved-spacetime predictions remain Hypothesized.
 
 ### `three-body-analytical.md`—The Three-Body Problem in Two-Fluid Gravity
 
-Reduces the Cassi two-fluid PDE (continuity, momentum, Poisson, and the Qi gate with canonical variables $\rho=E_Y+E_I$, $\varepsilon=E_Y-\varphi E_I$, $\pi=E_Y-E_I$, and $q=\rho^2/(\rho^2+\varphi^{-2}+\varepsilon^2)$) to point-particle ODEs for well-separated Gaussian blobs, with the boxed equation of motion $\boxed{\ddot{\mathbf{X}}_j=+G\,\alpha_j(1+(\varphi^6-1)q_j)\sum_{i\neq j}M_i(\mathbf{X}_j-\mathbf{X}_i)/|\mathbf{X}_j-\mathbf{X}_i|^3}$ and mass and signed Yang-imbalance $\alpha_j=\Pi_j/M_j$ as dynamical variables. Here the displayed $+\nabla\Phi$ convention is outward for positive $\alpha_j$. At the $\varphi$-fixed point $\alpha_j=\varphi^{-3}$, each blob carries equilibrium coherence $q_j=q_{\text{eq}}(\rho_j)=\rho_j^2/(\rho_j^2+\varphi^{-2})$ (approximately 0.873 at the reference density), giving $G_{\text{eff},j}=\varphi^{-3}(1+(\varphi^6-1)q_{\text{eq}}(\rho_j))G\approx3.73\,G$; in the dilute fixed point $(\rho_j\to0,\ q_j\to0)$ the coupling magnitude is $\varphi^{-3}G\approx0.236\,G$, but its sign remains outward. The algebraic reduction, fixed-point proof, and 24-dimensional phase-space count are Derived; attractive/orbital dynamics require a separate Hypothesized sign-changing force extension.
+Reduces the dimensionless Cassi two-fluid PDE, with solver normalization
+$\rho_\star=1$, to point-particle ODEs for well-separated Gaussian blobs.
+Physical-density variables restore
+$q=\rho^2/(\rho^2+\varphi^{-2}\rho_\star^2+\varepsilon^2)$. The boxed
+equation has the state-dependent internal coefficient
+$\alpha_j[1+(\varphi^6-1)q_j]G$ and evolving mass and signed Yang-imbalance
+$\alpha_j=\Pi_j/M_j$. At the reference-density point on the composition line,
+$q_j\approx0.873$ and the coefficient magnitude is about $3.73G$; at the
+dilute endpoint it approaches $0.236G$. These are formal state-space values,
+not measured Newton constants or body-response ratios. The displayed
+$+\nabla\Phi$ convention is outward for positive $\alpha_j$. The algebraic
+reduction, fixed-point proof, and 24-dimensional phase-space count are
+Derived; a physical attractive or metric branch and matter-state map remain
+Hypothesized.
 
 ## Cross-References
 
-- `predictions/falsifiable-predictions.md`—the 56-entry prediction catalog; the optional gravity extension's GW-speed entry is now undetermined (no covariant wave equation) and its breathing-mode entry is Hypothesized (requires metric-perturbation derivation), while the historical GW170817 probe is recorded as rejected in `audit.md` §3
+- `predictions/falsifiable-predictions.md`—the 56-entry prediction catalog; the optional gravity extension's GW-speed branch is undetermined without a covariant wave equation, its breathing-mode entry is Hypothesized, and the implemented low-$k$ dispersion is rejected by the GW170817 speed bound in `audit.md` §3
+- `foundations/quantum-free-fall-correspondence.md`—conditional low-energy matter-wave phase, source/test separation, and the boundary between standard correspondence and a Cassi-specific response
 - `open-questions-cassi-answers.md`—the 42-entry epistemic registry (quantum-gravity cites G2, the Page curve question)
 - `foundations/cassi-first-principles.md`—first-principles foundation for the two-fluid quantization
 - `foundations/dimensionful-cascade.md`—the cascade ladder that anchors the dimensionful cascade and the $\sigma$ separation scale
