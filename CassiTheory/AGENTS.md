@@ -162,7 +162,7 @@ Docstring with run command → NumPy + Matplotlib (**Agg backend set early**) �
 
 - **Python 3** with NumPy + Matplotlib (Agg); **PyTorch** for `two-fluid/` PDE scripts; **Manim Community** for `resonant_pond.py` only. No `requirements.txt`/`pyproject.toml`—keep scripts dependency-light and standalone.
 - Windows environment (paths like `C:/Users/Carina/...`); scripts are OS-agnostic.
-- Git: `master` branch; **push after every commit**. Identity: `CassiTheOracle <bingapplesauce@gmail.com>`—frozen; changing it means rewriting all history and force-pushing.
+- Git: `master` branch; **push after every commit**. Identity: `CassiTheOracle <265646798+CassiTheOracle@users.noreply.github.com>`.
 - Do not introduce build systems, package manifests, or test frameworks without being asked.
 
 </runtime-and-tooling-preferences>
