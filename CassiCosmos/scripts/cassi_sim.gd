@@ -12,6 +12,8 @@ const PHI_6: float = CassiTreeConsts.PHI_6  # φ⁶ ≈ 17.94427191 (computed sp
 const CassiFieldIntelligenceRuntime = preload("res://scripts/cassi_field_intelligence.gd")
 const PI_CLAMP_MAX: float = 0.72  # (π/ρ) upper clamp (stability; telemetry counts hits)
 const LN2: float = 0.6931471805599453  # ln 2 — degenerate rainbow v_scale fallback (0.95·ln2)
+const FIELD_PARTICLE_PROXY_CAPACITY := 64
+const FIELD_PARTICLE_DT := 0.01
 # Cadence/timeout consts (hoisted from the bare literals — review_sim.md #10;
 # zero behavior change — same values the literals carried).
 const COM_TRACK_CADENCE_MS := 2000          # window COM tracker cadence (2 s)
@@ -384,6 +386,11 @@ func _ml_boxless_on() -> bool:
 		var query_ready := bool(_physics_engine.get("_meshless_query_ready"))
 		return boxless_field and meshless_mode and ready_mesh and query_ready
 	return boxless_field and meshless_mode and ready_mesh
+
+## Default-off PA12 field-authoritative particle runtime. When enabled, the
+## canonical state is the localized gauge-carrier field; the 64 legacy slots
+## are observational render proxies only. Gravity stays unmapped.
+@export var field_particle_authority: bool = false
 
 ## Run the physics on the standalone engine's worker thread (decoupled
 ## producer: the engine owns a local RenderingDevice on its own thread and
@@ -1153,6 +1160,28 @@ func _apply_vsync() -> void:
 		DisplayServer.VSYNC_ENABLED if _vsync_enabled else DisplayServer.VSYNC_DISABLED)
 
 func _ready() -> void:
+	if field_particle_authority:
+		if not physics_decoupled:
+			push_error("[CassiSim] field-particle authority requires physics_decoupled=true")
+			return
+		for property in get_property_list():
+			if StringName(property.get("name", "")) == &"rotation_stress_enabled":
+				set(&"rotation_stress_enabled", false)
+				break
+		N_particles = FIELD_PARTICLE_PROXY_CAPACITY
+		dt = FIELD_PARTICLE_DT
+		particle_merge = false
+		black_holes_enabled = false
+		bh_accretion = false
+		gridless_physics = false
+		meshless_mode = false
+		meshless_gravity = false
+		boxless_field = false
+		home_window_enabled = false
+		tracking_envelope = false
+		field_attractor_init = false
+		source_strength = 0.0
+		print("[CassiSim] field-particle authority selected: dt=0.01, 64 render-only proxies, gravity unmapped")
 	_apply_vsync()  # mirror the export (scene load may have set it before ready)
 	_fit_initial_condition_to_domain()
 	if field_intelligence_enabled and (physics_decoupled or gridless_physics or meshless_mode):
@@ -1874,6 +1903,8 @@ func _barrier(cl: int) -> void:
 ## the sync path always reads; the frame path reads at the cadence.
 func _engine_read_publish(force_telemetry: bool) -> Dictionary:
 	var eng: Object = _physics_engine
+	if field_particle_authority and not eng.refresh_field_particle_readout():
+		push_error("[CassiSim] field-particle publish readout failed")
 	var pub := {"executed": eng._executed, "step_count": eng._step_count, "t": eng._time}
 	if force_telemetry:
 		pub["telemetry"] = eng.readback_telemetry()
@@ -1938,6 +1969,7 @@ func _decoupled_start_engine() -> bool:
 		"meshless_mode": meshless_mode, "meshless_gravity": meshless_gravity,
 		"tree_hierarchical_refit": tree_hierarchical_refit,
 		"gridless_physics": gridless_physics,
+		"field_particle_authority": field_particle_authority,
 		"winding_coupling": winding_coupling,
 		"q_weighted_com": q_weighted_com,
 		"coherence_theta": coherence_theta,

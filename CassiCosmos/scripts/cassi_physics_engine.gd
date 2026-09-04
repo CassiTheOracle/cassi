@@ -44,6 +44,9 @@ extends RefCounted
 ##   cleanup API is therefore `shutdown()`.
 
 const PHI: float = CassiTreeConsts.PHI
+const FieldParticleEngine = preload("res://scripts/cassi_field_particle_engine.gd")
+const FIELD_PARTICLE_PROXY_CAPACITY := 64
+const FIELD_PARTICLE_RENDER_WEIGHT := 1.0
 const PHI_INV3: float = (PHI - 1.0) / (PHI + 1.0)   # φ⁻³ = attractor π/ρ ≈ 0.236068
 const PHI_INV2: float = 0.3819660112501051  # φ⁻² — q decoherence threshold
 const PHI_6: float = CassiTreeConsts.PHI_6  # φ⁶ ≈ 17.94427191 (computed spelling — see CassiTreeConsts)
@@ -123,6 +126,9 @@ var meshless_gravity: bool = true # site-native tree/N-body when gridless_physic
 var tree_hierarchical_refit: bool = false # retained-tree bottom-up moments; full build after site-topology changes
 var gridless_physics: bool = false # authoritative site field/force/BH path
 var mode: int = 0                 # display mode (shared PC slot 7; render-side but encoded in PCs)
+# Default-off PA12 field-authoritative runtime. Canonical particles are field
+# states; point objects occupy the legacy buffers only as render proxies.
+var field_particle_authority: bool = false
 # Cassi particle merge — "dust -> object" (particle_merge_design.md): two
 # particles within R_m = ½·h₀ = extent/grid_N coalesce (mass + momentum
 # conserved, SINK-rule pair resolution) ONLY where the local coherence
@@ -214,6 +220,9 @@ var _seed_set: bool = false
 var _seed: int = 0
 var _cfg_spirv: Dictionary = {}   # path → RDShaderSPIRV (pre-extracted on main thread)
 var _freed := false
+var _field_particle_engine: RefCounted = null
+var _field_particle_catalog_cache: Array[Dictionary] = []
+var _field_particle_publish_count := 0
 
 # ═══════════════════════════════════════════════════════════════════════
 # GPU resources (physics side only)
@@ -613,6 +622,10 @@ func setup(cfg: Dictionary) -> bool:
 	coherence_theta = bool(cfg.get("coherence_theta", coherence_theta))
 	coherence_theta_alpha = float(cfg.get("coherence_theta_alpha", coherence_theta_alpha))
 	mode = int(cfg.get("mode", mode))
+	field_particle_authority = bool(cfg.get(
+		"field_particle_authority", field_particle_authority))
+	if field_particle_authority:
+		cfg["rotation_stress_enabled"] = false
 	particle_merge = bool(cfg.get("particle_merge", particle_merge))
 	merge_cadence_steps = int(cfg.get("merge_cadence_steps", 0))
 	_merge_global_initialized = false
@@ -625,11 +638,21 @@ func setup(cfg: Dictionary) -> bool:
 		meshless_gravity = true
 		boxless_field = true
 	cascade_level = bool(cfg.get("cascade_level", cascade_level))
-	if gridless_physics and cascade_level:
+	if not field_particle_authority and gridless_physics and cascade_level:
 		push_error("[PhysicsEngine] cascade_level has no site-native operator; refusing a silent no-op")
 		return false
 	bh_accretion = bool(cfg.get("bh_accretion", bh_accretion))
 	bh_accretion_radius = float(cfg.get("bh_accretion_radius", bh_accretion_radius))
+	if field_particle_authority:
+		N_particles = FIELD_PARTICLE_PROXY_CAPACITY
+		particle_merge = false
+		black_holes_enabled = false
+		bh_accretion = false
+		gridless_physics = false
+		meshless_mode = false
+		meshless_gravity = false
+		boxless_field = false
+		cascade_level = false
 	# Tree cadence (the sim's _tree_local_cadence) — the in-list tree job gate.
 	_tree_cadence = int(cfg.get("tree_cadence", 1))
 	_tree_job_counter = 0
@@ -681,6 +704,8 @@ func setup(cfg: Dictionary) -> bool:
 	_upload_particles()
 	_init_field()
 	_apply_gravity_calibration()
+	if not _setup_field_particle_runtime():
+		return false
 	_grav_warmup = true  # fill the acc cache with a fresh force before step 1
 	_setup_compute_done = true   # the local path defers nothing
 	_setup_done = true
@@ -737,10 +762,111 @@ func finish_setup() -> bool:
 	var _t4 := Time.get_ticks_msec()
 	_apply_gravity_calibration()
 	var _t5 := Time.get_ticks_msec()
+	if not _setup_field_particle_runtime():
+		_setup_compute_done = false
+		return false
 	_grav_warmup = true  # fill the acc cache with a fresh force before step 1
 	_setup_compute_done = true
 	print("[PhysicsEngine] finish_setup ms: buffers=%d shaders=%d upload=%d field=%d calib=%d total=%d" % [_t1 - _t0, _t2 - _t1, _t3 - _t2, _t4 - _t3, _t5 - _t4, _t5 - _t0])
 	return true
+
+func _setup_field_particle_runtime() -> bool:
+	if not field_particle_authority:
+		return true
+	if _field_particle_engine != null:
+		return true
+	_field_particle_engine = FieldParticleEngine.new()
+	if not _field_particle_engine.setup({
+			"rd": _rd,
+			"rd_global": _rd_global,
+			"owns_rd": false,
+			"dt": dt,
+			"spirv": _cfg_spirv,
+		}):
+		_field_particle_engine = null
+		push_error("[PhysicsEngine] field-particle runtime setup failed")
+		return false
+	if not refresh_field_particle_readout():
+		_field_particle_engine.shutdown()
+		_field_particle_engine = null
+		push_error("[PhysicsEngine] field-particle proxy publication failed")
+		return false
+	print("[PhysicsEngine] field-particle authority active; legacy dynamics disabled, gravity unmapped")
+	return true
+
+
+func field_particle_active() -> bool:
+	return field_particle_authority and _field_particle_engine != null
+
+
+func refresh_field_particle_readout() -> bool:
+	if not field_particle_active() or _rd == null \
+			or not _pos_buf.is_valid() or not _vel_buf.is_valid() or not _acc_buf.is_valid():
+		return false
+	var catalog: Array[Dictionary] = _field_particle_engine.object_catalog()
+	var positions := PackedFloat32Array()
+	var velocities := PackedFloat32Array()
+	var accelerations := PackedFloat32Array()
+	positions.resize(N_particles * 4)
+	velocities.resize(N_particles * 4)
+	accelerations.resize(N_particles * 4)
+	var published := mini(catalog.size(), N_particles)
+	for index in range(published):
+		var center := Vector3(catalog[index].get("center", Vector3.ZERO))
+		var velocity := Vector3(catalog[index].get("velocity", Vector3.ZERO))
+		var base := index * 4
+		positions[base] = center.x
+		positions[base + 1] = center.y
+		positions[base + 2] = center.z
+		positions[base + 3] = FIELD_PARTICLE_RENDER_WEIGHT
+		velocities[base] = velocity.x
+		velocities[base + 1] = velocity.y
+		velocities[base + 2] = velocity.z
+	_rd.buffer_update(_pos_buf, 0, positions.size() * 4, positions.to_byte_array())
+	_rd.buffer_update(_vel_buf, 0, velocities.size() * 4, velocities.to_byte_array())
+	_rd.buffer_update(_acc_buf, 0, accelerations.size() * 4, accelerations.to_byte_array())
+	_field_particle_catalog_cache.clear()
+	_field_particle_catalog_cache.assign(catalog)
+	_field_particle_publish_count += 1
+	return true
+
+
+func field_particle_catalog() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if not field_particle_active():
+		return result
+	for object in _field_particle_catalog_cache:
+		result.append(object.duplicate(true))
+	return result
+
+
+func field_particle_observables() -> Dictionary:
+	if not field_particle_active():
+		return {}
+	return _field_particle_engine.observables()
+
+
+func field_particle_legacy_dispatch_counts() -> Dictionary:
+	if not field_particle_active():
+		return {}
+	return _field_particle_engine.legacy_dispatch_counts()
+
+
+func field_particle_state_bytes() -> PackedByteArray:
+	return _field_particle_engine.state_bytes() \
+		if field_particle_active() else PackedByteArray()
+
+
+func field_particle_velocity_bytes() -> PackedByteArray:
+	return _field_particle_engine.velocity_bytes() \
+		if field_particle_active() else PackedByteArray()
+
+
+func _field_particle_catalog_charge() -> float:
+	var charge := 0.0
+	for object in _field_particle_catalog_cache:
+		charge += float(object.get("charge", 0.0))
+	return charge
 
 
 ## Record the full per-step chain n times. On a global RD the list is
@@ -768,6 +894,13 @@ func record_pending_steps(cl: int, target: int) -> int:
 	var steps := target - _executed
 	if steps <= 0:
 		return 0
+	if field_particle_authority:
+		steps = mini(steps, JOB_STEP_CAP)
+		var recorded: int = _field_particle_engine.record_steps(cl, steps, dt)
+		_executed += recorded
+		_step_count = _field_particle_engine.step_count()
+		_time = _field_particle_engine.simulation_time()
+		return recorded
 	# Render topology is an asynchronous visualization payload. It may be
 	# invalid while the worker rebuilds labels/CSR, but the site-native physics
 	# chain owns its live Voronoi buffers and must continue stepping.
@@ -814,6 +947,10 @@ func run_steps(n: int, wait := true, tree_in_list := false) -> void:
 	if wait:
 		_rd.sync()
 		_local_pending = false
+	if field_particle_authority:
+		if wait:
+			refresh_field_particle_readout()
+		return
 	if mesh_rebuild_due():
 		_mesh_rebuild()
 	run_merge_if_due()
@@ -1238,6 +1375,19 @@ func _site_q_cpu_lookup(world: Vector3, sites: PackedFloat32Array,
 func read_com() -> Array:
 	if _rd == null or not _ready:
 		return []
+	if field_particle_active():
+		if _field_particle_catalog_cache.is_empty():
+			refresh_field_particle_readout()
+		var center := Vector3.ZERO
+		var charge := 0.0
+		for object in _field_particle_catalog_cache:
+			var object_charge := float(object.get("charge", 0.0))
+			center += Vector3(object.get("center", Vector3.ZERO)) * object_charge
+			charge += object_charge
+		if charge <= 0.0:
+			return []
+		center /= charge
+		return [center.x, center.y, center.z]
 	var np1 := maxi(N_particles, 1)
 	var posf: PackedFloat32Array = _rd.buffer_get_data(_pos_buf, 0, np1 * 16).to_float32_array()
 	var com := Vector3.ZERO
@@ -1284,11 +1434,9 @@ func read_com() -> Array:
 	return [com.x / float(cnt), com.y / float(cnt), com.z / float(cnt)]
 
 
-## PROBE-ONLY (M0b-P-FX): the snapshot readback survives solely for the
-## _diag/m0b_parity.gd parity probe (fp32 pos/vel + field_q + pot) — the
-## decoupled path's render reads the engine's live buffers directly (P3),
-## so NO production caller reads snapshots. The fp16 pack transport died
-## with the mirrors; packed=true now falls through to the fp32 path.
+## Field-authoritative snapshots expose the complete canonical field and
+## observational catalog. The legacy probe path retains fp32 pos/vel plus
+## field_q and potential; packed=true still falls through to fp32.
 func readback_snapshot(packed := false) -> Dictionary:
 	if _rd == null or not _ready:
 		return {}
@@ -1296,6 +1444,23 @@ func readback_snapshot(packed := false) -> Dictionary:
 		_rd.sync()   # local RD: execute any un-synced submission before reading
 		_local_pending = false
 	var np1 := maxi(N_particles, 1)
+	if field_particle_active():
+		refresh_field_particle_readout()
+		return {
+			"field_particle_authority": true,
+			"canonical_state": _field_particle_engine.state_bytes(),
+			"canonical_velocity": _field_particle_engine.velocity_bytes(),
+			"manifest": _field_particle_engine.manifest(),
+			"observables": _field_particle_engine.observables(),
+			"catalog": field_particle_catalog(),
+			"legacy_dispatches": _field_particle_engine.legacy_dispatch_counts(),
+			"gravity_status": "unmapped",
+			"pos": _rd.buffer_get_data(_pos_buf, 0, np1 * 16).to_float32_array(),
+			"vel": _rd.buffer_get_data(_vel_buf, 0, np1 * 16).to_float32_array(),
+			"t": _time,
+			"step_count": _step_count,
+			"packed": false,
+		}
 	var pos := _rd.buffer_get_data(_pos_buf, 0, np1 * 16).to_float32_array()
 	var vel := _rd.buffer_get_data(_vel_buf, 0, np1 * 16).to_float32_array()
 	if gridless_physics:
@@ -1343,6 +1508,25 @@ func readback_telemetry(field_q_override: PackedFloat32Array = PackedFloat32Arra
 	if not _rd_global and _local_pending:
 		_rd.sync()
 		_local_pending = false
+	if field_particle_active():
+		if _field_particle_catalog_cache.is_empty():
+			refresh_field_particle_readout()
+		return {
+			"q_mean": 0.0, "q_min": 0.0, "q_max": 0.0,
+			"pi_min": 0.0, "pi_max": 0.0,
+			"pi_sat_hi_frac": 0.0, "pi_sat_lo_frac": 0.0,
+			"rho_guard_hits": 0,
+			"field_pi_sat_hi": 0, "field_pi_sat_lo": 0,
+			"field_rho_guard_hits": 0,
+			"eps_mean": 0.0, "hubble": 0.0, "scale_factor": 1.0,
+			"gn_eff": 0.0,
+			"rotation_stress_enabled": false,
+			"field_particle_authority": true,
+			"field_particle_gravity_status": "unmapped",
+			"field_particle_object_count": _field_particle_catalog_cache.size(),
+			"field_particle_charge": _field_particle_catalog_charge(),
+			"field_particle_publish_count": _field_particle_publish_count,
+		}
 	var tel := _rd.buffer_get_data(_tel_buf, 0, 48)
 	if tel.size() >= 32:
 		_pi_sat_hi_frac = float(tel.decode_u32(0))
@@ -1452,6 +1636,8 @@ func start_threaded(cfg: Dictionary) -> bool:
 			"res://compute/cassi_particle_program_apply.glsl"]
 	if bool(cfg.get("cascade_level", cascade_level)):
 		shader_paths.append("res://compute/cassi_coarse_grad.glsl")
+	if bool(cfg.get("field_particle_authority", field_particle_authority)):
+		shader_paths.append(FieldParticleEngine.SHADER_PATH)
 	for p in shader_paths:
 		var sf := load(p) as RDShaderFile
 		if sf == null or sf.get_spirv() == null:
@@ -1490,6 +1676,19 @@ func workbench_ready() -> bool:
 func workbench_read_buffers() -> Dictionary:
 	if not workbench_ready():
 		return {}
+	if field_particle_active():
+		return {
+			"field_particle_authority": true,
+			"grid_N": _field_particle_engine.grid_n,
+			"extent": _field_particle_engine.extent,
+			"state": _field_particle_engine.state_bytes().to_float32_array(),
+			"velocity": _field_particle_engine.velocity_bytes().to_float32_array(),
+			"pos": _rd.buffer_get_data(_pos_buf).to_float32_array(),
+			"pvel": _rd.buffer_get_data(_vel_buf).to_float32_array(),
+			"acc": _rd.buffer_get_data(_acc_buf).to_float32_array(),
+			"catalog": field_particle_catalog(),
+			"gravity_status": "unmapped",
+		}
 	return {
 		"grid_N": grid_N,
 		"extents": _extents(),
@@ -1563,6 +1762,8 @@ func _workbench_gpu_commit_particles(pos: PackedFloat32Array,
 func workbench_write_buffers(buffers: Dictionary, particle_only := false) -> Dictionary:
 	if not workbench_ready():
 		return {"ok": false, "error": "engine_authority_not_ready"}
+	if field_particle_active():
+		return {"ok": false, "error": "field_particle_canonical_write_requires_field_state"}
 	if not buffers.has_all(["ey", "ei", "q", "vel", "pos", "pvel", "acc"]):
 		return {"ok": false, "error": "engine_authority_buffers_missing"}
 	var cells := grid_N * grid_N * grid_N
@@ -1641,6 +1842,9 @@ func _threaded_main(wcfg: Dictionary) -> void:
 ## Free buffers/pipes/shaders/uniform sets and, when owns_rd, the device itself.
 func shutdown() -> void:
 	stop_render_topology_worker()
+	if _field_particle_engine != null:
+		_field_particle_engine.shutdown()
+		_field_particle_engine = null
 	if _freed:
 		_clear_gpu_handles()
 		return
@@ -1693,6 +1897,9 @@ func _clear_gpu_handles() -> void:
 	_setup_done = false
 	_setup_compute_done = false
 	_pipes_done = false
+	_field_particle_engine = null
+	_field_particle_catalog_cache.clear()
+	_field_particle_publish_count = 0
 	_ready = false
 	_ml_ready = false
 	_ml_tree_nsrc = 0
@@ -3724,6 +3931,12 @@ func _site_step_dispatches(cl: int) -> void:
 
 
 func _step_dispatches(cl: int) -> void:
+	if field_particle_authority:
+		if _field_particle_engine != null:
+			_field_particle_engine.record_steps(cl, 1, dt)
+			_step_count = _field_particle_engine.step_count()
+			_time = _field_particle_engine.simulation_time()
+		return
 	if gridless_physics:
 		_site_step_dispatches(cl)
 		return

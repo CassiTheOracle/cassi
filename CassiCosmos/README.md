@@ -32,6 +32,38 @@ wall. If you raise
 separation fits the site window; startup now auto-fits an invalid Gaussian or
 Plummer support before GPU setup.
 
+## Experimental field-authoritative particle runtime
+
+`field_particle_authority` is a default-off `CassiSim` mode in which the
+canonical particle state is the localized non-Abelian gauge–Higgs–carrier
+field, evolved by the complete PA12 spatial Hamiltonian and coupled RK4
+temporal update. The pinned seed and its provenance live under
+`data/field_particles/`; `tools/build_field_particle_seed.py` regenerates the
+runtime bytes from the hash-bound CassiTheory artifact.
+
+When the mode is on, the legacy particle deposit, KDK, accretion, merge,
+site/tree, rotation, and gravity chains do not run. Connected carrier cores
+produce an observational object catalog. Up to 64 catalog objects are copied
+into the existing position/velocity buffers for rendering only; those proxies
+never alter the canonical field. Snapshots retain the complete 18-scalar field
+state, 16-scalar velocity state, manifest, observables, and catalog.
+
+The runtime deliberately reports gravity as `unmapped`. PA42/PA43 does not yet
+select a physical carrier mass or a cross-sector gravitational coupling, so
+catalog charge, PA12 energy, radius, and render weight are not deposited as
+mass. The unit temporal coefficients are an experimental normalization, not a
+theory selection.
+
+Run the production-path verification windowed:
+
+```powershell
+& "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" `
+  --path . res://scenes/verify_field_particle_integration.tscn
+```
+
+The implementation and measured boundaries are recorded in
+`research/field_particles/`.
+
 ## Box geometry: the φ-aspect box
 
 The simulation box is **per-axis rectangular** (`box_aspect` export on

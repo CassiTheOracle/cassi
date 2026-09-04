@@ -45,6 +45,30 @@ RenderingDevice/GPU/readback dependency, makes no production/default-path
 common-lapse change, and reports implementation/reparameterization PASS/FAIL
 only—not evidence for universal physical time.
 
+## Standalone field-particle verification (not ARMS members)
+
+The field-authoritative particle runtime has two separate windowed scenes. They
+remain outside `ARMS` so the configured runner continues to prove default-off
+compatibility without changing its established contract:
+
+```
+"C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" --path . res://scenes/verify_field_particles.tscn
+"C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" --path . res://scenes/verify_field_particle_integration.tscn
+```
+
+`verify_field_particles` checks the hash-bound seed, PA12 energy and
+Hamiltonian gradient, zero-time identity, stationary/boost/vacuum evolution,
+field-derived catalogs, and independent NumPy reconstruction.
+`verify_field_particle_integration` exercises the real `CassiSim` shared-RD
+renderer and proves that field authority bypasses every legacy particle
+dynamics chain, publishes observational proxies, snapshots the canonical
+field, and keeps gravitational coupling explicitly unmapped.
+
+Both must exit 0 after a field-runtime change. Changes to
+`cassi_physics_engine.gd`, `cassi_sim.gd`, or the field shader also require the
+full configured battery before release. Frozen registrations and measured results
+live in `research/field_particles/`.
+
 ## The arms
 
 The authoritative arm list is the `ARMS` const in `verify/run_all.gd` (38 arms).
