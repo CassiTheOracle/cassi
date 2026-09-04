@@ -61,8 +61,8 @@ changing its established contract:
 `verify_field_particle_integration` checks the hidden single-particle control
 through the real `CassiSim` renderer. `verify_field_particles_motion` checks
 that the public setting displays two field particles, moves both in the
-expected directions, preserves their field charge, and keeps point-particle
-physics off.
+expected directions, preserves their field charge, keeps point-particle
+physics off, and switches cleanly off and back on.
 
 All three must exit 0 after a Field Particles change. Changes to
 `cassi_physics_engine.gd`, `cassi_sim.gd`, or the field shader also require the

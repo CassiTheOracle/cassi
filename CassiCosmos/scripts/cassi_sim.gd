@@ -387,6 +387,28 @@ func _ml_boxless_on() -> bool:
 		return boxless_field and meshless_mode and ready_mesh and query_ready
 	return boxless_field and meshless_mode and ready_mesh
 
+const FIELD_PARTICLES_SETTINGS: Dictionary = {
+	"physics_decoupled": true,
+	"N_particles": FIELD_PARTICLE_PROXY_CAPACITY,
+	"num_clusters": 1,
+	"cluster_radius": 4.0,
+	"cluster_separation": 0.0,
+	"particle_size": 2.5,
+	"dt": FIELD_PARTICLE_DT,
+	"particle_merge": false,
+	"black_holes_enabled": false,
+	"bh_accretion": false,
+	"gridless_physics": false,
+	"meshless_mode": false,
+	"meshless_gravity": false,
+	"boxless_field": false,
+	"home_window_enabled": false,
+	"tracking_envelope": false,
+	"field_attractor_init": false,
+	"source_strength": 0.0,
+}
+var _field_particles_saved_settings: Dictionary = {}
+
 ## Particles are simulated as moving patterns in the field instead of point objects.
 @export var field_particles: bool = false
 # Keeps the pinned single object available to verification scenes without
@@ -1160,28 +1182,42 @@ func _apply_vsync() -> void:
 	DisplayServer.window_set_vsync_mode(
 		DisplayServer.VSYNC_ENABLED if _vsync_enabled else DisplayServer.VSYNC_DISABLED)
 
-func _ready() -> void:
-	if field_particles:
-		if not physics_decoupled:
-			push_error("[CassiSim] Field Particles requires the standalone physics engine")
-			return
+func _apply_field_particles_settings() -> void:
+	if _field_particles_saved_settings.is_empty():
+		for property_name in FIELD_PARTICLES_SETTINGS:
+			_field_particles_saved_settings[property_name] = get(property_name)
 		for property in get_property_list():
 			if StringName(property.get("name", "")) == &"rotation_stress_enabled":
-				set(&"rotation_stress_enabled", false)
+				_field_particles_saved_settings["rotation_stress_enabled"] = get(
+					&"rotation_stress_enabled")
 				break
-		N_particles = FIELD_PARTICLE_PROXY_CAPACITY
-		dt = FIELD_PARTICLE_DT
-		particle_merge = false
-		black_holes_enabled = false
-		bh_accretion = false
-		gridless_physics = false
-		meshless_mode = false
-		meshless_gravity = false
-		boxless_field = false
-		home_window_enabled = false
-		tracking_envelope = false
-		field_attractor_init = false
-		source_strength = 0.0
+	for property_name in FIELD_PARTICLES_SETTINGS:
+		set(property_name, FIELD_PARTICLES_SETTINGS[property_name])
+	if _field_particles_saved_settings.has("rotation_stress_enabled"):
+		set(&"rotation_stress_enabled", false)
+
+
+func _restore_field_particles_settings() -> void:
+	for property_name in _field_particles_saved_settings:
+		set(property_name, _field_particles_saved_settings[property_name])
+	_field_particles_saved_settings.clear()
+
+
+## Switch modes from the live control and rebuild the matching engine and display.
+func set_field_particles_enabled(enabled: bool) -> void:
+	if enabled == field_particles:
+		return
+	field_particles = enabled
+	if enabled:
+		_apply_field_particles_settings()
+	else:
+		_restore_field_particles_settings()
+	reinit()
+
+
+func _ready() -> void:
+	if field_particles:
+		_apply_field_particles_settings()
 		print("[CassiSim] Field Particles enabled: moving field objects, point-particle physics off")
 	_apply_vsync()  # mirror the export (scene load may have set it before ready)
 	_fit_initial_condition_to_domain()
@@ -7666,6 +7702,7 @@ func reinit() -> void:
 		_physics_engine.stop_threaded()
 	_free_uniform_sets()  # cached sets reference the buffers being freed
 	_free_buffers()
+	_decoupled_active = physics_decoupled
 	# The MultiMesh instance buffer is sized at _setup_multimesh from the
 	# THEN-current N_particles, and rebuilt when the FORMAT must change:
 	# N/size (legacy) or the color-as-LUT flag flipped (use_colors/

@@ -16,6 +16,8 @@ var _initial_charge := 0.0
 var _motion_started := false
 var _checked := false
 var _failures := 0
+var _toggle_phase := 0
+var _previous_cluster_separation := NAN
 
 
 func _ready() -> void:
@@ -36,6 +38,9 @@ func _process(_delta: float) -> void:
 	var engine = _sim.get("_physics_engine")
 	if engine == null or not engine.workbench_ready():
 		return
+	if _toggle_phase > 0:
+		_advance_toggle_cycle(engine)
+		return
 	if not _motion_started:
 		_capture_initial_state(engine)
 		if _failures > 0:
@@ -49,6 +54,54 @@ func _process(_delta: float) -> void:
 		return
 	_sim.set("playing", false)
 	_run_contract(engine)
+	if _failures > 0:
+		_finish()
+		return
+	print("[VerifyFieldParticlesMotion] cycling the live Field Particles setting")
+	var saved_settings: Dictionary = _sim.get("_field_particles_saved_settings")
+	_previous_cluster_separation = float(saved_settings.get("cluster_separation", NAN))
+	_sim.call(&"set_field_particles_enabled", false)
+	_toggle_phase = 1
+
+
+func _advance_toggle_cycle(engine: Object) -> void:
+	if _toggle_phase == 1:
+		_check("MP11: the live setting turns off",
+			not bool(_sim.get("field_particles")),
+			"field_particles=%s" % _sim.get("field_particles"))
+		_check("MP11: point particles replace the field runtime",
+			not engine.field_particles_active(),
+			"engine_active=%s" % engine.field_particles_active())
+		_check("MP11: the previous framing is restored",
+			is_finite(_previous_cluster_separation)
+			and is_equal_approx(
+				float(_sim.get("cluster_separation")), _previous_cluster_separation),
+			"separation=%.6f expected=%.6f" % [
+				float(_sim.get("cluster_separation")), _previous_cluster_separation])
+		if _failures > 0:
+			_finish()
+			return
+		_sim.call(&"set_field_particles_enabled", true)
+		_toggle_phase = 2
+		return
+	var catalog: Array = engine.field_particle_catalog()
+	_check("MP12: the live setting turns back on",
+		bool(_sim.get("field_particles")),
+		"field_particles=%s" % _sim.get("field_particles"))
+	_check("MP12: the field runtime restores two particles",
+		engine.field_particles_active() and catalog.size() == 2,
+		"engine_active=%s objects=%d" % [engine.field_particles_active(), catalog.size()])
+	_check("MP12: Field Particles framing is restored",
+		int(_sim.get("num_clusters")) == 1
+		and is_equal_approx(float(_sim.get("cluster_radius")), 4.0)
+		and is_zero_approx(float(_sim.get("cluster_separation"))),
+		"clusters=%d radius=%.6f separation=%.6f" % [
+			int(_sim.get("num_clusters")),
+			float(_sim.get("cluster_radius")),
+			float(_sim.get("cluster_separation"))])
+	if _failures > 0:
+		_finish()
+		return
 	_checked = true
 	_surface_ready_ms = Time.get_ticks_msec()
 	_sim.set("playing", true)

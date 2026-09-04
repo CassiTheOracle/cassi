@@ -34,7 +34,7 @@ Plummer support before GPU setup.
 
 ## Field Particles
 
-`Field Particles` is off by default.
+`Field Particles` is off by default. Turn it on in the **System** tab.
 
 > Particles are simulated as moving patterns in the field instead of point objects.
 

@@ -244,6 +244,7 @@ const TAB_NAMES: Array[String] = ["Setup", "Visuals", "System", "Workbench"]
 ## exposes. reinit=true ones call sim.reinit() after setting; live ones
 ## apply next frame (the sim re-encodes its PC/bh header from the property).
 const EXTRA_TOGGLES: Array[Dictionary] = [
+	{"id": "field_particles",       "prop": "field_particles",       "reinit": true,  "caption": "Field Particles", "tooltip": "Particles are simulated as moving patterns in the field instead of point objects."},
 	{"id": "particle_merge",        "prop": "particle_merge",        "reinit": true,  "caption": "Particle merge", "tooltip": "Dust→object particle merging (init-time buffers — applies on reinit)."},
 	{"id": "bh_accretion",          "prop": "bh_accretion",          "reinit": false, "caption": "BH accretion",   "tooltip": "Black-hole mass accretion from the field (init-time shader — live once built)."},
 	{"id": "meshless_gravity",      "prop": "meshless_gravity",      "reinit": false, "caption": "Meshless gravity","tooltip": "Tree-walk gravity on the moving Voronoi mesh (live; works when Meshless mode is on)."},
@@ -900,6 +901,9 @@ func _on_extra_toggle_changed(on: bool, id: String) -> void:
 		return
 	var e: Dictionary = _extra_toggle_ids.get(id, {})
 	if e.is_empty():
+		return
+	if id == "field_particles" and sim.has_method("set_field_particles_enabled"):
+		sim.call("set_field_particles_enabled", on)
 		return
 	if e.get("reinit", false):
 		sim.set(String(e.prop), on)

@@ -45,6 +45,25 @@ func _ready() -> void:
 	else:
 		_checks += 1
 
+	_checks += 1
+	var field_particles := ui.find_child("field_particlesToggle", true, false)
+	if field_particles == null or not field_particles is CheckButton:
+		push_error("validate_sim_ui: missing Field Particles toggle")
+		_failures += 1
+	else:
+		_checks += 1
+		if field_particles.text != "Field Particles":
+			push_error("validate_sim_ui: Field Particles caption changed")
+			_failures += 1
+		_checks += 1
+		if field_particles.tooltip_text != "Particles are simulated as moving patterns in the field instead of point objects.":
+			push_error("validate_sim_ui: Field Particles description changed")
+			_failures += 1
+		_checks += 1
+		if field_particles.button_pressed:
+			push_error("validate_sim_ui: Field Particles defaulted ON without a simulation")
+			_failures += 1
+
 	ui._set_mode_highlight(1)
 	var field_visible: bool = bool(ui._viz_texture_rect.visible)
 	ui._set_mode_highlight(2)
