@@ -538,7 +538,7 @@ $$
 
 The displayed pillar construction shares the $\varphi$-governed two-fluid PDE as its proposed common base. The named canonical $\lambda=0.1$ is a solver normalization/timescale convention; the relation $\lambda=1/(2w)$ with $w=5$ is Hypothesized and requires independent cycle-time/dynamical closure; and three dimensionful constants ($c$, $\hbar$, $G$) remain external. Because the interaction, IR prescription, scalar sector, and matching completions are unclosed, the quantum-gravity pillar's dimensionless-parameter count is not meaningful.
 
-The displayed construction is not yet a complete physical theory; the remaining gaps are catalogued in `foundations/dimensionful-constants-status.md`.
+A complete physical theory requires the remaining gaps catalogued in `foundations/dimensionful-constants-status.md`.
 
 ---
 
@@ -549,8 +549,8 @@ The displayed construction is not yet a complete physical theory; the remaining 
 - `foundations/quantum-free-fall-correspondence.md`—conditional low-energy matter-wave correspondence and the boundary on Cassi-specific gravity inference
 - `foundations/cassi-theory-reference.md` §7—the gravity sector and the σ-regularization
 - `foundations/dimensionful-constants-status.md`—dimensionful constants and the remaining gaps
-- `foundations/cascade-suppression-formula.md`—per-rung dephasing $d_i = \varphi^{-i-\delta}$ (legacy symbol $1-q_i$ in source) used for the black-hole capacity bound
-- `foundations/proton-coherence-budget.md`—per-rung dephasing $d_i = \varphi^{-i-\delta}$ (legacy symbol $1-q_i$ in source), the noise side of the §2.1 derivation
+- `foundations/cascade-suppression-formula.md`—per-rung dephasing $d_i = \varphi^{-i-\delta}$ used for the black-hole capacity bound
+- `foundations/proton-coherence-budget.md`—per-rung dephasing $d_i = \varphi^{-i-\delta}$, the noise side of the §2.1 derivation
 - `foundations/xi-derivation.md`—$\xi = \alpha_0^{-2}$ from the same fixed-point imbalance (cross-check (i))
 - `foundations/why-three-dimensions.md`—$d = 3$ from the spiral's Frenet–Serret frame (geometric reading, conditional)
 - `computations/sigma_delta_derivation.py`—numerical verification of §2.1: identities, crossover, saturation, and the optional phase-slip ansatz
