@@ -789,6 +789,8 @@ a=0 control xG(x1),xG(x2), difference= 1.0 1.0 0.0
 for $ax_1=1$, $ax_2=2$. The primary verifier ended
 
 ```text
+QFC4 ax=1: xG=0.367879441171; ax=2: xG=0.135335283237
+QFC4 two-point difference=-0.232544157935: PASS
 QFC4 standard positive spectral interpretation at sigma>0: REJECT
 QFC1-QFC4: PASS
 ALL CHECKS PASSED

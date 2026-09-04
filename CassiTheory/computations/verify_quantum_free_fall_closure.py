@@ -90,7 +90,14 @@ def main() -> None:
     if slope.is_negative is not True:
         raise AssertionError("QFC4 Gaussian slope is not strictly negative")
     equal("QFC4 zero-regulator massless control", gaussian.subs(a, 0), 1 / x)
-    print(f"QFC4 ax=1: xG={float(sp.exp(-1)):.12f}; ax=2: xG={float(sp.exp(-2)):.12f}")
+    scaled_gaussian = x * gaussian
+    witness_first = sp.simplify(scaled_gaussian.subs(x, 1 / a))
+    witness_second = sp.simplify(scaled_gaussian.subs(x, 2 / a))
+    witness_difference = sp.simplify(witness_second - witness_first)
+    if witness_difference.is_negative is not True:
+        raise AssertionError("QFC4 two-point Gaussian witness is not decreasing")
+    print(f"QFC4 ax=1: xG={float(witness_first):.12f}; ax=2: xG={float(witness_second):.12f}")
+    print(f"QFC4 two-point difference={float(witness_difference):.12f}: PASS")
     print("QFC4 standard positive spectral interpretation at sigma>0: REJECT")
     print("QFC1-QFC4: PASS")
     print("ALL CHECKS PASSED")

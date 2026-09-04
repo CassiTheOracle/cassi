@@ -1,21 +1,15 @@
 #!/usr/bin/env python3
 """
-Cassi Nuclear—σ-Regularized Soliton Dynamics at the Sub-Femtometer Scale.
+Cassi Nuclear—Exploratory Force and Binding Model.
 
 This exploratory model applies a softened force at an assigned nuclear scale.
 It does not derive a physical nuclear interaction or validate decay channels.
 
-Gravity:    σ ~ 0.1-1 kpc, G_eff(r) varies over galactic scales → rotation curves
-Strong:     σ ~ 0.1-1 fm,  G_eff(r) varies over nuclear scales → binding energy
-
-EXPLORATORY MODEL CLAIMS:
-1. The strong force IS gravity at the σ-scale—same PDE, different σ
-2. Nuclei = solitons in the two-fluid at σ ≈ 0.5 fm
-3. Binding energy = energy cost of confining EY/EI within the soliton
-4. Fission = soliton splitting at a Qi node
-5. Fusion = soliton merging (two → one, releases binding energy)
-6. Half-life = Qi coherence decay time of the nuclear soliton
-7. Radioactivity = EY/EI rearrangement toward lower-energy configuration
+The assigned fm-scale width, attractive kernel, and binding coefficients are
+toy inputs. No gravity-to-strong-interaction identification, physical soliton
+nucleus, isotope fit, decay mechanism, neutron-star model, or QGP prediction
+is established here. The physical particle and interaction requirements are
+listed in foundations/quantum-free-fall-correspondence.md section 11.1.
 """
 
 import math
@@ -26,7 +20,7 @@ import matplotlib.pyplot as plt
 
 PHI = (1.0 + math.sqrt(5.0)) / 2.0
 PHI_INV = 1.0 / PHI
-XI = PHI ** 6                  # ξ = φ⁶ ≈ 17.944—derived Qi-gravity coupling
+XI = PHI ** 6                  # Assigned toy coupling; no nuclear matching
 
 # Nuclear scale
 SIGMA_NUCLEAR = 0.5  # fm (femtometers)
@@ -34,12 +28,10 @@ M_NUCLEON = 938.272  # MeV/c²
 
 
 def cassi_force_nuclear(r, sigma=SIGMA_NUCLEAR, xi=XI):
-    """Cassi force at nuclear scale.
-    
-    Same formula as gravity, just different σ.
-    F(r) = -φ⁶/r² · [erf(r/(σ√2)) - √(2/π)·(r/σ)·exp(-r²/(2σ²))]
-    (the q → 1 saturation ceiling of the chord 1+(φ⁶−1)q;
-    `foundations/xi-derivation.md`)
+    """Toy attractive kernel with s = r / (sigma * sqrt(2)).
+
+    F(r) = -xi * [erf(s) - sqrt(2/pi) * s * exp(-s*s)] / r**2.
+    This expression is not a derived physical nuclear interaction.
     """
     if r < 1e-10:
         return 0.0
@@ -49,31 +41,23 @@ def cassi_force_nuclear(r, sigma=SIGMA_NUCLEAR, xi=XI):
 
 
 def nuclear_potential(r, sigma=SIGMA_NUCLEAR, xi=XI):
-    """Effective potential for nuclear interaction.
-    
-    At r >> σ:  V → -φ⁶/r  (Coulomb-like, chord saturation)
-    At r << σ:  V → harmonic (no singularity)
-    At r ≈ σ:  transition region (the "strong force" well)
-    """
+    """Integrate the toy kernel to the supplied numerical cutoff."""
     from scipy.integrate import quad
     V, _ = quad(lambda s: cassi_force_nuclear(s + 1e-10, sigma, xi), r, 100, limit=200)
     return V
 
 
 def nuclear_binding_energy(A, Z, sigma=SIGMA_NUCLEAR, xi=XI):
-    """Estimated nuclear binding energy from Cassi.
-    
-    Semi-empirical mass formula analog:
-    B = a_v·A − a_s·A^(2/3) − a_c·Z(Z-1)/A^(1/3) − a_a·(A-2Z)²/A
-    
-    In Cassi: the volume term a_v comes from the depth of the
-    σ-regularized potential well at r ≈ σ.
+    """Return an uncalibrated mass-formula analogue and its value per A.
+
+    The coefficients are assigned model inputs, with the volume term scaled
+    by the toy potential at r = sigma. No isotope fit is established here.
     """
-    # Depth of Cassi potential at r = σ (the "strong force well")
+    # Toy potential magnitude at the assigned width
     V_well = abs(nuclear_potential(sigma, sigma, xi))
     
     # Volume energy (dominant term)
-    a_v = V_well * 0.1  # scaling factor from numerical fit
+    a_v = V_well * 0.1  # Assigned toy scale
     B_volume = a_v * A
     
     # Surface term (nucleons at surface feel less binding)
@@ -91,24 +75,21 @@ def nuclear_binding_energy(A, Z, sigma=SIGMA_NUCLEAR, xi=XI):
 
 
 def binding_energy_per_nucleon(A, Z):
-    """Cassi prediction for binding energy per nucleon (MeV).
-    
-    Should peak around A ≈ 56 (iron) like real nuclear data.
-    """
+    """Return the toy binding analogue per A, without isotope calibration."""
     B, B_per_A = nuclear_binding_energy(A, Z)
     return B_per_A
 
 
 def main():
     print("=" * 65)
-    print("CASSI NUCLEAR—σ-Regularized Soliton Dynamics")
+    print("CASSI NUCLEAR—Exploratory Force and Binding Model")
     print("=" * 65)
     print("Exploratory toy model; no physical nuclear or decay closure is derived.")
     
     print(f"\n  σ_nuclear = {SIGMA_NUCLEAR} fm")
     print(f"  σ_gravity ≈ 1 kpc")
     print(f"  Ratio: σ_grav/σ_nuclear = {1e3 * 3.086e19 / 1e-15:.1e}")
-    print(f"  Same PDE, different σ—unification!")
+    print("  Assigned scale comparison; no interaction unification is derived.")
     
     # Force comparison
     print("\n1. Force comparison at different scales:")
@@ -126,8 +107,8 @@ def main():
         print(f"  r = {r:.2f} fm:  V(r) = {V:.3f}")
     
     # Binding energy curve
-    print("\n3. Binding energy per nucleon (Cassi prediction):")
-    print(f"  {'A':>4s}  {'Z':>3s}  {'Element':>6s}  {'B/A (MeV)':>10s}  {'Expected':>10s}")
+    print("\n3. Toy binding-energy analogue (uncalibrated model units):")
+    print(f"  {'A':>4s}  {'Z':>3s}  {'Element':>6s}  {'B/A':>10s}")
     nuclei = [
         (2, 1, '²H'),
         (4, 2, '⁴He'),
@@ -140,23 +121,13 @@ def main():
     ]
     for A, Z, name in nuclei:
         B_per_A = binding_energy_per_nucleon(A, Z)
-        print(f"  {A:4d}  {Z:3d}  {name:>6s}  {B_per_A:10.2f}  {'(should be ~8)':>10s}")
+        print(f"  {A:4d}  {Z:3d}  {name:>6s}  {B_per_A:10.2f}")
     
-    # Half-life estimate
-    print("\n4. Half-life = Qi coherence decay time:")
-    print(f"  τ_½ = ln(2) / λ_q  where λ_q = decoherence rate of nuclear soliton")
-    print(f"  Different decay modes = different Qi rearrangement paths:")
-    print(f"  • Alpha decay: splitting off a ⁴He soliton (most stable fragment)")
+    print("\n4. Physical scope:")
+    print("  No nuclear spectra, decay amplitudes or lifetimes are computed.")
     print("  Beta decay requires a weak charge-changing sector; canonical q is nonnegative.")
-    print(f"  • Gamma decay: releasing excess Qi as a photon (EY/EI wave)")
-    
-    print("\n5. Cassi predictions for nuclear physics:")
-    print("  • No 'strong force' as a separate force—it's σ-regularized gravity")
-    print("  • Fusion releases energy = merging solitons → lower total Qi cost")
-    print("  • Fission releases energy = splitting at Qi node → two stable solitons")
-    print("  • Iron (⁵⁶Fe) is the most stable = the deepest soliton well")
-    print("  • Neutron stars = soliton matter at maximum density")
-    print("  • Quark-gluon plasma = Qi fluid above the σ-resolution limit")
+    print("  Physical particle and interaction requirements:")
+    print("  foundations/quantum-free-fall-correspondence.md section 11.1.")
     
     print("\n" + "=" * 65)
 

@@ -900,7 +900,7 @@ stress, backreaction and entropy calculation remain open.
 
 | **Cassi Answer** | UV damping is a free Euclidean result. Physical quantum-gravity completion and information retention remain open; the standard positive physical-covariance interpretation is excluded at nonzero $\sigma$ |
 | **Mechanism** | The Gaussian adds no finite-momentum poles, but $xG_E(x)$ decreases, excluding an unsubtracted nonnegative scalar spectral measure. Alternative physical/auxiliary interpretations require a separate observable-sector construction before interacting and horizon claims |
-| **Epistemic** | **Derived conditional obstruction / Hypothesized information mechanism**—the obstruction has the precise physical-covariance assumptions in §3.1; it is not a general interacting nonunitarity theorem. Page-curve and curved-spacetime completion remain open |
+| **Epistemic** | **Derived conditional obstruction / Hypothesized interacting completion**—the obstruction has the precise physical-covariance assumptions in §3.1; it is not a general interacting nonunitarity theorem. No physical information-retention mechanism is selected; Page-curve and curved-spacetime completion remain open |
 | **Reference** | `gravity/quantum-gravity.md` §§3.1,7; `foundations/quantum-free-fall-correspondence.md` §11.5 |
 
 ### G3: Black hole singularities
