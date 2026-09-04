@@ -12,6 +12,12 @@ const DEFAULT_MANIFEST_PATH := "res://data/field_particles/localized_x2_n29.json
 const PINNED_MANIFEST_SHA256 := "280b44e7962e228a4791c6bb3506479395ccefe5068c1f0e4aa8a1a2c245ae8c"
 const PINNED_SOURCE_SHA256 := "db42c53c5ca0f5a984fc2614168198417f95b289911904596b96cd4c5e8988c0"
 const PINNED_OUTPUT_SHA256 := "5d43794099f52f4343486a2f1b38787356301153bd48d033d0d42451160ab6d3"
+const PAIR_STATE_PATH := "res://data/field_particles/moving_pair_n57_state.f32"
+const PAIR_VELOCITY_PATH := "res://data/field_particles/moving_pair_n57_velocity.f32"
+const PAIR_MANIFEST_PATH := "res://data/field_particles/moving_pair_n57.json"
+const PINNED_PAIR_MANIFEST_SHA256 := "c07dfad59a696c2c9f9e6d474db8fb498ab100b1f7c3f5595493ca6f70b60919"
+const PINNED_PAIR_STATE_SHA256 := "17b45f77d5014374a27fe806a895af2f4c56352931f201794025a6b6e4061d07"
+const PINNED_PAIR_VELOCITY_SHA256 := "5e203d68d9ac3e1922846c4dee9cceeddefc0b46b1bb524bd74a94bee7f5558a"
 const PINNED_FIELD_ORDER := [
 	"psi_0_real", "psi_0_imag", "psi_1_real", "psi_1_imag",
 	"h_1", "h_2", "h_3", "chi_real", "chi_imag",
@@ -69,6 +75,7 @@ var _shutdown := false
 var _pc := PackedByteArray()
 var _manifest: Dictionary = {}
 var _seed_bytes := PackedByteArray()
+var _seed_velocity_bytes := PackedByteArray()
 var _step_count := 0
 var _time := 0.0
 var _catalog_cache: Array[Dictionary] = []
@@ -105,6 +112,8 @@ func setup(cfg: Dictionary) -> bool:
 	var seed_path := str(cfg.get("seed_path", DEFAULT_SEED_PATH))
 	if not _load_manifest(manifest_path, seed_path):
 		return false
+	if bool(cfg.get("moving_pair", false)) and not _load_pair_fixture():
+		return false
 	if not _load_pipeline(cfg):
 		return false
 	if not _make_buffers():
@@ -112,7 +121,8 @@ func setup(cfg: Dictionary) -> bool:
 	_fill_push_constants(dt, 0)
 	_ready = true
 	print("[FieldParticleEngine] ready N=%d cells=%d dt=%.6f state_sha256=%s" % [
-		grid_n, cells, dt, str(_manifest.get("output_sha256", ""))])
+		grid_n, cells, dt,
+		str(_manifest.get("state_sha256", _manifest.get("output_sha256", "")))])
 	return true
 
 
@@ -185,6 +195,7 @@ func _load_manifest(manifest_path: String, seed_path: String) -> bool:
 		push_error("[FieldParticleEngine] temporal inertias must be positive")
 		return false
 
+	_seed_velocity_bytes = PackedByteArray()
 	_seed_bytes = FileAccess.get_file_as_bytes(seed_path)
 	var expected_bytes := cells * STATE_STRIDE * 4
 	if _seed_bytes.size() != expected_bytes or int(_manifest.get("bytes", -1)) != expected_bytes:
@@ -197,6 +208,84 @@ func _load_manifest(manifest_path: String, seed_path: String) -> bool:
 	if not _validate_state(_seed_bytes):
 		push_error("[FieldParticleEngine] seed has non-finite values or a non-vacuum shell")
 		return false
+	return true
+
+func _load_pair_fixture() -> bool:
+	if FileAccess.get_sha256(PAIR_MANIFEST_PATH) != PINNED_PAIR_MANIFEST_SHA256:
+		push_error("[FieldParticleEngine] refusing an unregistered moving-pair manifest")
+		return false
+	var text := FileAccess.get_file_as_string(PAIR_MANIFEST_PATH)
+	var parsed = JSON.parse_string(text)
+	if not parsed is Dictionary:
+		push_error("[FieldParticleEngine] invalid moving-pair manifest")
+		return false
+	var pair: Dictionary = parsed
+	var field_order = pair.get("field_order", [])
+	var coefficients = pair.get("coefficients", {})
+	var temporal = pair.get("temporal_coefficients", {})
+	var metadata_ok: bool = (
+		str(pair.get("schema", "")) == "cassi.field-particles-pair.v1"
+		and str(pair.get("source", "")) == "data/field_particles/localized_x2_n29.f32"
+		and str(pair.get("source_sha256", "")) == PINNED_OUTPUT_SHA256
+		and str(pair.get("state", "")) == "data/field_particles/moving_pair_n57_state.f32"
+		and str(pair.get("state_sha256", "")) == PINNED_PAIR_STATE_SHA256
+		and str(pair.get("velocity", "")) == "data/field_particles/moving_pair_n57_velocity.f32"
+		and str(pair.get("velocity_sha256", "")) == PINNED_PAIR_VELOCITY_SHA256
+		and field_order is Array
+		and field_order == PINNED_FIELD_ORDER
+		and coefficients is Dictionary
+		and temporal is Dictionary
+		and int(pair.get("grid_n", 0)) == 57
+		and int(pair.get("cells", 0)) == 57 * 57 * 57
+		and absf(float(pair.get("radius", NAN)) - 8.0) <= 1.0e-12
+		and absf(float(pair.get("extent", NAN)) - 16.0) <= 1.0e-12
+		and absf(float(pair.get("dx", NAN)) - (2.0 / 7.0)) <= 1.0e-15
+		and absf(float(pair.get("speed", NAN)) - 0.25) <= 1.0e-15
+	)
+	if metadata_ok:
+		metadata_ok = (
+			absf(float(coefficients.get("h_C", NAN)) - h_c) <= 1.0e-15
+			and absf(float(coefficients.get("q_C", NAN)) - u_rho) <= 1.0e-15
+			and absf(float(temporal.get("c_psi", NAN)) - c_psi) <= 1.0e-15
+			and absf(float(temporal.get("c_h", NAN)) - c_h) <= 1.0e-15
+			and absf(float(temporal.get("e_tx", NAN)) - e_tx) <= 1.0e-15
+		)
+	if not metadata_ok:
+		push_error("[FieldParticleEngine] moving-pair manifest does not match its frozen contract")
+		return false
+
+	_manifest = pair
+	grid_n = int(pair["grid_n"])
+	cells = grid_n * grid_n * grid_n
+	radius = float(pair["radius"])
+	extent = float(pair["extent"])
+	dx = float(pair["dx"])
+	_seed_bytes = FileAccess.get_file_as_bytes(PAIR_STATE_PATH)
+	_seed_velocity_bytes = FileAccess.get_file_as_bytes(PAIR_VELOCITY_PATH)
+	var expected_state_bytes := cells * STATE_STRIDE * 4
+	var expected_velocity_bytes := cells * VELOCITY_STRIDE * 4
+	if _seed_bytes.size() != expected_state_bytes \
+			or int(pair.get("state_bytes", -1)) != expected_state_bytes \
+			or int(pair.get("bytes", -1)) != expected_state_bytes:
+		push_error("[FieldParticleEngine] moving-pair state byte count mismatch")
+		return false
+	if _seed_velocity_bytes.size() != expected_velocity_bytes \
+			or int(pair.get("velocity_bytes", -1)) != expected_velocity_bytes:
+		push_error("[FieldParticleEngine] moving-pair velocity byte count mismatch")
+		return false
+	if FileAccess.get_sha256(PAIR_STATE_PATH) != PINNED_PAIR_STATE_SHA256:
+		push_error("[FieldParticleEngine] moving-pair state SHA-256 mismatch")
+		return false
+	if FileAccess.get_sha256(PAIR_VELOCITY_PATH) != PINNED_PAIR_VELOCITY_SHA256:
+		push_error("[FieldParticleEngine] moving-pair velocity SHA-256 mismatch")
+		return false
+	if not _validate_state(_seed_bytes):
+		push_error("[FieldParticleEngine] moving-pair state has non-finite values or a non-vacuum shell")
+		return false
+	for value in _seed_velocity_bytes.to_float32_array():
+		if is_nan(value) or is_inf(value):
+			push_error("[FieldParticleEngine] moving-pair velocity has non-finite values")
+			return false
 	return true
 
 
@@ -225,13 +314,16 @@ func _load_pipeline(cfg: Dictionary) -> bool:
 func _make_buffers() -> bool:
 	var state_bytes := cells * STATE_STRIDE * 4
 	var velocity_bytes := cells * VELOCITY_STRIDE * 4
+	var initial_velocity := _seed_velocity_bytes
+	if initial_velocity.is_empty():
+		initial_velocity.resize(velocity_bytes)
 	var zero_velocity := PackedByteArray()
 	zero_velocity.resize(velocity_bytes)
 	var zero_state := PackedByteArray()
 	zero_state.resize(state_bytes)
 	for index in 3:
 		_state[index] = _rd.storage_buffer_create(state_bytes, _seed_bytes)
-		_velocity[index] = _rd.storage_buffer_create(velocity_bytes, zero_velocity)
+		_velocity[index] = _rd.storage_buffer_create(velocity_bytes, initial_velocity)
 	_gradient = _rd.storage_buffer_create(state_bytes, zero_state)
 	_state_accumulator = _rd.storage_buffer_create(state_bytes, zero_state)
 	_velocity_accumulator = _rd.storage_buffer_create(velocity_bytes, zero_velocity)
@@ -386,7 +478,7 @@ func hamiltonian_gradient_bytes() -> PackedByteArray:
 
 
 func reset_seed() -> bool:
-	return set_state(_seed_bytes)
+	return set_state(_seed_bytes, _seed_velocity_bytes)
 
 
 func set_state(bytes: PackedByteArray, velocities := PackedByteArray()) -> bool:

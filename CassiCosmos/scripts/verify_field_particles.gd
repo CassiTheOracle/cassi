@@ -208,7 +208,7 @@ func _run_contract() -> void:
 		retained_fraction >= 0.99, "retained=%.12f" % retained_fraction)
 
 	var legacy: Dictionary = _engine.legacy_dispatch_counts()
-	_check("FP8: field authority records no legacy dispatches",
+	_check("FP8: Field Particles records no point-particle dispatches",
 		int(legacy["deposit"]) == 0 and int(legacy["kdk"]) == 0
 		and int(legacy["accretion"]) == 0 and int(legacy["merge"]) == 0,
 		str(legacy))

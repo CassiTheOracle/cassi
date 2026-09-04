@@ -42,7 +42,7 @@ func _process(_delta: float) -> void:
 func _run_contract(engine: Object) -> void:
 	_sim.set("playing", false)
 	_check("PI0: shared-RD producer is active", bool(_sim.get("_decoupled_active")))
-	_check("PI1: field authority is active", engine.field_particle_active())
+	_check("PI1: Field Particles is active", engine.field_particles_active())
 	_check("PI2: proxy capacity is fixed",
 		int(engine.get("N_particles")) == 64,
 		"capacity=%d" % int(engine.get("N_particles")))
@@ -84,8 +84,8 @@ func _run_contract(engine: Object) -> void:
 		"bytes=%d" % velocity.size())
 	_check("PI7: snapshot keeps gravity explicitly unmapped",
 		str(snapshot.get("gravity_status", "")) == "unmapped")
-	_check("PI7: snapshot reports field authority",
-		bool(snapshot.get("field_particle_authority", false)))
+	_check("PI7: snapshot reports Field Particles",
+		bool(snapshot.get("field_particles", false)))
 
 	var positions: PackedFloat32Array = snapshot.get("pos", PackedFloat32Array())
 	var proxy_ok := positions.size() == 64 * 4 and catalog.size() == 1

@@ -45,29 +45,29 @@ RenderingDevice/GPU/readback dependency, makes no production/default-path
 common-lapse change, and reports implementation/reparameterization PASS/FAIL
 only—not evidence for universal physical time.
 
-## Standalone field-particle verification (not ARMS members)
+## Standalone Field Particles verification (not ARMS members)
 
-The field-authoritative particle runtime has two separate windowed scenes. They
-remain outside `ARMS` so the configured runner continues to prove default-off
-compatibility without changing its established contract:
+Field Particles has three separate windowed scenes. They remain outside `ARMS`
+so the configured runner continues to prove default-off compatibility without
+changing its established contract:
 
 ```
 "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" --path . res://scenes/verify_field_particles.tscn
 "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" --path . res://scenes/verify_field_particle_integration.tscn
+"C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" --path . res://scenes/verify_field_particles_motion.tscn
 ```
 
-`verify_field_particles` checks the hash-bound seed, PA12 energy and
-Hamiltonian gradient, zero-time identity, stationary/boost/vacuum evolution,
-field-derived catalogs, and independent NumPy reconstruction.
-`verify_field_particle_integration` exercises the real `CassiSim` shared-RD
-renderer and proves that field authority bypasses every legacy particle
-dynamics chain, publishes observational proxies, snapshots the canonical
-field, and keeps gravitational coupling explicitly unmapped.
+`verify_field_particles` checks the pinned source field and its evolution.
+`verify_field_particle_integration` checks the hidden single-particle control
+through the real `CassiSim` renderer. `verify_field_particles_motion` checks
+that the public setting displays two field particles, moves both in the
+expected directions, preserves their field charge, and keeps point-particle
+physics off.
 
-Both must exit 0 after a field-runtime change. Changes to
+All three must exit 0 after a Field Particles change. Changes to
 `cassi_physics_engine.gd`, `cassi_sim.gd`, or the field shader also require the
-full configured battery before release. Frozen registrations and measured results
-live in `research/field_particles/`.
+full configured battery before release. Frozen registrations and measured
+results live in `research/field_particles/`.
 
 ## The arms
 

@@ -32,33 +32,31 @@ wall. If you raise
 separation fits the site window; startup now auto-fits an invalid Gaussian or
 Plummer support before GPU setup.
 
-## Experimental field-authoritative particle runtime
+## Field Particles
 
-`field_particle_authority` is a default-off `CassiSim` mode in which the
-canonical particle state is the localized non-Abelian gauge–Higgs–carrier
-field, evolved by the complete PA12 spatial Hamiltonian and coupled RK4
-temporal update. The pinned seed and its provenance live under
-`data/field_particles/`; `tools/build_field_particle_seed.py` regenerates the
-runtime bytes from the hash-bound CassiTheory artifact.
+`Field Particles` is off by default.
 
-When the mode is on, the legacy particle deposit, KDK, accretion, merge,
-site/tree, rotation, and gravity chains do not run. Connected carrier cores
-produce an observational object catalog. Up to 64 catalog objects are copied
-into the existing position/velocity buffers for rendering only; those proxies
-never alter the canonical field. Snapshots retain the complete 18-scalar field
-state, 16-scalar velocity state, manifest, observables, and catalog.
+> Particles are simulated as moving patterns in the field instead of point objects.
 
-The runtime deliberately reports gravity as `unmapped`. PA42/PA43 does not yet
-select a physical carrier mass or a cross-sector gravitational coupling, so
-catalog charge, PA12 energy, radius, and render weight are not deposited as
-mass. The unit temporal coefficients are an experimental normalization, not a
-theory selection.
+When it is on, the simulation starts with two field particles moving toward
+each other. The points on screen follow those field patterns; they do not
+control them. Regular point-particle physics is turned off.
 
-Run the production-path verification windowed:
+Gravity is not connected to field particles yet.
+
+The pinned field data lives under `data/field_particles/`.
+`tools/build_field_particle_seed.py` rebuilds the source particle and
+`tools/build_field_particles_pair.py` rebuilds the moving pair.
+
+Run the three field-particle checks windowed:
 
 ```powershell
 & "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" `
+  --path . res://scenes/verify_field_particles.tscn
+& "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" `
   --path . res://scenes/verify_field_particle_integration.tscn
+& "C:/Users/Carina/AppData/Local/Microsoft/WinGet/Packages/GodotEngine.GodotEngine.Mono_Microsoft.Winget.Source_8wekyb3d8bbwe/Godot_v4.7.1-stable_mono_win64/Godot_v4.7.1-stable_mono_win64_console.exe" `
+  --path . res://scenes/verify_field_particles_motion.tscn
 ```
 
 The implementation and measured boundaries are recorded in

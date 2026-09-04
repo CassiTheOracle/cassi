@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3]
 
-[ext_resource type="Script" path="res://scripts/verify_field_particle_integration.gd" id="1_verify"]
+[ext_resource type="Script" path="res://scripts/verify_field_particles_motion.gd" id="1_verify"]
 [ext_resource type="Script" path="res://scripts/cassi_sim.gd" id="2_sim"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_field"]
@@ -21,7 +21,7 @@ glow_enabled = true
 glow_intensity = 0.8
 glow_strength = 0.9
 
-[node name="VerifyFieldParticleIntegration" type="Node3D"]
+[node name="VerifyFieldParticlesMotion" type="Node3D"]
 script = ExtResource("1_verify")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
@@ -34,8 +34,8 @@ fov = 55.0
 
 [node name="CassiSim" type="Node3D" parent="."]
 script = ExtResource("2_sim")
+playing = false
 field_particles = true
-field_particles_single_seed = true
 N_particles = 64
 dt = 0.01
 particle_size = 2.5

@@ -387,10 +387,11 @@ func _ml_boxless_on() -> bool:
 		return boxless_field and meshless_mode and ready_mesh and query_ready
 	return boxless_field and meshless_mode and ready_mesh
 
-## Default-off PA12 field-authoritative particle runtime. When enabled, the
-## canonical state is the localized gauge-carrier field; the 64 legacy slots
-## are observational render proxies only. Gravity stays unmapped.
-@export var field_particle_authority: bool = false
+## Particles are simulated as moving patterns in the field instead of point objects.
+@export var field_particles: bool = false
+# Keeps the pinned single object available to verification scenes without
+# adding a second user-facing setting.
+@export_storage var field_particles_single_seed: bool = false
 
 ## Run the physics on the standalone engine's worker thread (decoupled
 ## producer: the engine owns a local RenderingDevice on its own thread and
@@ -1160,9 +1161,9 @@ func _apply_vsync() -> void:
 		DisplayServer.VSYNC_ENABLED if _vsync_enabled else DisplayServer.VSYNC_DISABLED)
 
 func _ready() -> void:
-	if field_particle_authority:
+	if field_particles:
 		if not physics_decoupled:
-			push_error("[CassiSim] field-particle authority requires physics_decoupled=true")
+			push_error("[CassiSim] Field Particles requires the standalone physics engine")
 			return
 		for property in get_property_list():
 			if StringName(property.get("name", "")) == &"rotation_stress_enabled":
@@ -1181,7 +1182,7 @@ func _ready() -> void:
 		tracking_envelope = false
 		field_attractor_init = false
 		source_strength = 0.0
-		print("[CassiSim] field-particle authority selected: dt=0.01, 64 render-only proxies, gravity unmapped")
+		print("[CassiSim] Field Particles enabled: moving field objects, point-particle physics off")
 	_apply_vsync()  # mirror the export (scene load may have set it before ready)
 	_fit_initial_condition_to_domain()
 	if field_intelligence_enabled and (physics_decoupled or gridless_physics or meshless_mode):
@@ -1903,8 +1904,8 @@ func _barrier(cl: int) -> void:
 ## the sync path always reads; the frame path reads at the cadence.
 func _engine_read_publish(force_telemetry: bool) -> Dictionary:
 	var eng: Object = _physics_engine
-	if field_particle_authority and not eng.refresh_field_particle_readout():
-		push_error("[CassiSim] field-particle publish readout failed")
+	if field_particles and not eng.refresh_field_particle_readout():
+		push_error("[CassiSim] Field Particles readout failed")
 	var pub := {"executed": eng._executed, "step_count": eng._step_count, "t": eng._time}
 	if force_telemetry:
 		pub["telemetry"] = eng.readback_telemetry()
@@ -1969,7 +1970,8 @@ func _decoupled_start_engine() -> bool:
 		"meshless_mode": meshless_mode, "meshless_gravity": meshless_gravity,
 		"tree_hierarchical_refit": tree_hierarchical_refit,
 		"gridless_physics": gridless_physics,
-		"field_particle_authority": field_particle_authority,
+		"field_particles": field_particles,
+		"field_particles_single_seed": field_particles_single_seed,
 		"winding_coupling": winding_coupling,
 		"q_weighted_com": q_weighted_com,
 		"coherence_theta": coherence_theta,

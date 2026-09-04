@@ -1,0 +1,78 @@
+{
+  "bytes": 13333896,
+  "catalog_core_centers": [
+    -4.000000000000007,
+    3.9999999999999982
+  ],
+  "cells": 185193,
+  "centers": [
+    -4.0,
+    4.0
+  ],
+  "coefficients": {
+    "e_C": 0.75,
+    "gamma_x": 1.0,
+    "h_C": 2.9598260763447164,
+    "k_Cx": 1.0,
+    "phi": 1.618033988749895,
+    "q_C": 4.0,
+    "u_C": 1.0,
+    "u_H": 4.0,
+    "u_phi": 4.0,
+    "u_rho": 4.0
+  },
+  "copy_charges_float64": [
+    3.9999999624808673,
+    3.9999999624808673
+  ],
+  "directions": [
+    1.0,
+    -1.0
+  ],
+  "dtype": "little-endian float32",
+  "dx": 0.2857142857142856,
+  "extent": 15.999999999999993,
+  "field_order": [
+    "psi_0_real",
+    "psi_0_imag",
+    "psi_1_real",
+    "psi_1_imag",
+    "h_1",
+    "h_2",
+    "h_3",
+    "chi_real",
+    "chi_imag",
+    "a_x_1",
+    "a_x_2",
+    "a_x_3",
+    "a_y_1",
+    "a_y_2",
+    "a_y_3",
+    "a_z_1",
+    "a_z_2",
+    "a_z_3"
+  ],
+  "grid_n": 57,
+  "omega_c": 0.0034164531971490053,
+  "pair_charge_float32": 7.999999882947008,
+  "radius": 7.9999999999999964,
+  "schema": "cassi.field-particles-pair.v1",
+  "source": "data/field_particles/localized_x2_n29.f32",
+  "source_charge_float32": 3.999999962480867,
+  "source_sha256": "5d43794099f52f4343486a2f1b38787356301153bd48d033d0d42451160ab6d3",
+  "speed": 0.25,
+  "state": "data/field_particles/moving_pair_n57_state.f32",
+  "state_bytes": 13333896,
+  "state_layout": "z,y,x,component; 18 interleaved scalars per cell",
+  "state_sha256": "17b45f77d5014374a27fe806a895af2f4c56352931f201794025a6b6e4061d07",
+  "temporal_coefficients": {
+    "c_h": 1.0,
+    "c_psi": 1.0,
+    "e_tx": 1.0,
+    "status": "experimental unit normalization; PA43 selection remains open"
+  },
+  "velocity": "data/field_particles/moving_pair_n57_velocity.f32",
+  "velocity_bytes": 11852352,
+  "velocity_layout": "z,y,x,component; 16 interleaved scalars per cell",
+  "velocity_sha256": "5e203d68d9ac3e1922846c4dee9cceeddefc0b46b1bb524bd74a94bee7f5558a"
+}
