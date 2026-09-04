@@ -180,7 +180,7 @@ Choose the path that matches your question:
 |---|---|
 | Understand the project and core physics | `cassi-physics.md` → `foundations/cassi-first-principles.md` |
 | Follow the derivation structure | `foundations/README.md` → `foundations/dimensionful-cascade.md` → `foundations/cascade-suppression-formula.md` |
-| Study quantum free fall and gravity boundaries | `foundations/quantum-free-fall-correspondence.md` → `foundations/physical-becoming-hierarchy.md` §7.4 → `gravity/quantum-gravity.md` |
+| Study quantum free fall and the remaining closure requirements | `foundations/quantum-free-fall-correspondence.md` §§9–12 → `foundations/physical-becoming-hierarchy.md` §7.4 → `gravity/quantum-gravity.md` §3.1 |
 | Evaluate the evidence | `open-questions-cassi-answers.md` → `audit.md` → `predictions/falsifiable-predictions.md` |
 | Study mind and field intelligence | `cassi-psychology.md` → `foundations/qi-flow-double-helix.md` → `field-experience/probe-outcome-ledger.md` |
 | Browse the complete document graph | `reading-guide.md` |

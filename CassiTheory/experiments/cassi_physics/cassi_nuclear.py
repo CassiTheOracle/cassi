@@ -2,13 +2,13 @@
 """
 Cassi Nuclear—σ-Regularized Soliton Dynamics at the Sub-Femtometer Scale.
 
-Nuclear forces emerge from the same σ-regularized two-fluid dynamics as gravity
-— but at the fm scale instead of the kpc scale.
+This exploratory model applies a softened force at an assigned nuclear scale.
+It does not derive a physical nuclear interaction or validate decay channels.
 
 Gravity:    σ ~ 0.1-1 kpc, G_eff(r) varies over galactic scales → rotation curves
 Strong:     σ ~ 0.1-1 fm,  G_eff(r) varies over nuclear scales → binding energy
 
-KEY CLAIMS:
+EXPLORATORY MODEL CLAIMS:
 1. The strong force IS gravity at the σ-scale—same PDE, different σ
 2. Nuclei = solitons in the two-fluid at σ ≈ 0.5 fm
 3. Binding energy = energy cost of confining EY/EI within the soliton
@@ -103,6 +103,7 @@ def main():
     print("=" * 65)
     print("CASSI NUCLEAR—σ-Regularized Soliton Dynamics")
     print("=" * 65)
+    print("Exploratory toy model; no physical nuclear or decay closure is derived.")
     
     print(f"\n  σ_nuclear = {SIGMA_NUCLEAR} fm")
     print(f"  σ_gravity ≈ 1 kpc")
@@ -146,7 +147,7 @@ def main():
     print(f"  τ_½ = ln(2) / λ_q  where λ_q = decoherence rate of nuclear soliton")
     print(f"  Different decay modes = different Qi rearrangement paths:")
     print(f"  • Alpha decay: splitting off a ⁴He soliton (most stable fragment)")
-    print(f"  • Beta decay: flipping local q sign (neutron → proton)")
+    print("  Beta decay requires a weak charge-changing sector; canonical q is nonnegative.")
     print(f"  • Gamma decay: releasing excess Qi as a photon (EY/EI wave)")
     
     print("\n5. Cassi predictions for nuclear physics:")

@@ -215,6 +215,12 @@ The 2026-08-27 driven-wave campaign sharpens this boundary: the tuned second-ord
 **Prediction 49 (Gaussian Hawking-spectrum deviation):** The $\sigma$-regularized free propagator suggests a Gaussian high-frequency suppression ansatz for horizon-analogue spectra: $\Delta N_k/N_k^{\text{thermal}} = e^{-(\omega/\Lambda)^2/\varphi^6}$, equivalently $\ln(\Delta N_k/N_k)$ linear in $\omega^2$ with slope $-1/(\varphi^6\Lambda^2)$. This is a **conditional transfer ansatz**: the coefficient $\varphi^6 \approx 17.944$ is the rung-3 Yang/Yin coupling, but $\Lambda$ is an independently fixed UV cutoff (for the gravitational case the natural scale is the $\sigma$-regulator $\Lambda = \varphi^3 M_{\text{Pl}} \approx 5.17\times10^{19}$ GeV, with no energy cap derived), and the mapping from the flat-space propagator to a curved-horizon Hawking flux is not specified. The Nature fibre-optic analogue (Procopio et al., *Nature* **655**, 336–341 (2026)) is an optical backreaction test-bed only—**not** evidence for the Cassi Gaussian form. **Status: not a derived gravity prediction until the curved-horizon transfer is specified.**
 
 **Source:** `gravity/quantum-gravity.md` §7 (free-propagator analysis; S-matrix/Page curve/capacity/no-firewall all open—no curved-horizon transfer derived); `open-questions-cassi-answers.md` G2; the Nature fibre-optic analogue study (July 2026)—optical test-bed only, not a gravitational measurement; script `experiments/cassi_physics/cassi_hawking_spectrum.py`.
+The underlying free Gaussian also fails the standard unsubtracted positive
+physical-covariance interpretation at nonzero $\sigma$
+(`gravity/quantum-gravity.md` §3.1). A horizon-analogue transfer ansatz
+does not resolve that obstruction; a gravity prediction needs the selected
+physical quantum sector and curved-space transfer.
+
 
 **Prediction 50 (spiral pitch tangent):** The coordinate-spiral ansatz proposes the radial/azimuthal rate ratio $\tan(\text{pitch})=\gamma/\Omega_S=\varphi^2=2.618$ (pitch angle 69.1°), with $\gamma=\lambda(1-q_0)(1+\varphi)=\lambda/3$ and $\Omega_S=\lambda(1-q_0)=\lambda\varphi^{-2}/3=H_{\text{empty}}$. The $\varphi^2$ identity is Derived arithmetic; its realization as a dynamical rate ratio is Hypothesized and tested separately. The wake-geometry reading is $\gamma/\Omega_S=\ell_{n+1}/\Lambda_I$ in Yin-wake units. The claim matches none of the posted forks $\{0,0.0766,0.3063,0.1988\}$ (08's ratified fourth value included)—a new discriminator (69.1° vs 0°, 4.38°, 17.03°, 11.24°). Measured 2026-08-07—the dynamical realization is rejected: measured winding rates do not realize the $\varphi^2$ ratio (9–11× off under every normalization): $|\omega|/\Omega_S=11.04$ (measured $|\omega|=0.0281$ vs derived $\Omega_S=2.55\times10^{-3}$) and $\gamma_{\text{env}}=7.4\times10^{-4}$ vs derived $\gamma=6.67\times10^{-3}$ (9.0× below); no stated convention lands within ±10% of 2.618 (closest: geometric turns/rung 2.909, +11.1%, and direct $|a_\theta/a_r|=2.986$, +14.0%—both in the $\varepsilon\to0$ window, which is not a clean damped rotator); $dn_S=\Omega_S/2\pi$ sits 11.04× below the measured winding rate under all four rung normalizations (the measured 0.323 turns/rung is the generator's bare 0.382 friction-reduced, not the re-read clock). The identity remains Derived arithmetic; the dynamical realization is refuted by the winding and probe data (winding record: §4 fork measurement; probe record: `foundations/rung-offset-mechanism.md`). |
 **Source:** `foundations/spiral-dynamics.md` §2.2 (coordinate-spiral pitch ansatz: $\gamma=\lambda/3$, $\Omega_S=\lambda\varphi^{-2}/3=H_{\text{empty}}$, gate value $(1-q_0)=\varphi^{-2}/3$); `foundations/wake-geometry.md` §1(c) (composite closure in Yin-wake units, $\ell_{n+1}/\Lambda_I=\varphi^2$). |
@@ -485,6 +491,14 @@ the phase in the same arm's locally calibrated acceleration removes the
 separate source-field and response factors. A Cassi field test therefore
 requires an independently frozen atomic state map, gravity completion, and
 differential preparation; fringe visibility does not define $q$.
+The preparation map must retain the spatial state and effective internal/
+centre-of-mass action: canonical $q$ alone loses signed composition, and
+nonlinear $q$ does not commute with averaging. The actual switched-state
+pulse sequence and its calibration covariance must be reconstructed before
+testing a state-dependent response. The forty-three closure requirements
+are separated by route in
+`foundations/quantum-free-fall-correspondence.md` §11; QFC1–QFC4 are
+algebraic boundary checks and add no numbered experimental prediction.
 
 
 **Geometric boundary:** GQ7 certifies generic integer $U(1)$ winding and finds
@@ -509,6 +523,8 @@ https://doi.org/10.1038/s41586-025-09917-9.
 `computations/quantum_free_fall_correspondence_prereg.md`;
 `computations/verify_quantum_free_fall_correspondence.py`;
 `computations/quantum_free_fall_correspondence_cleanroom_receipt.md`;
+`computations/quantum_free_fall_closure_prereg.md`;
+`computations/verify_quantum_free_fall_closure.py`;
 `computations/quantum_free_fall_correspondence_report.md`; “Observation of the
 quantum phase of free fall and the consistency with the equivalence principle,”
 *Science Advances* (2026),

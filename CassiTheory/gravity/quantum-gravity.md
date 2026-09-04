@@ -1,6 +1,6 @@
 # Cassi Quantum Gravity: A $\sigma$-Regularized Two-Fluid Candidate (Free-Propagator Analysis)
 
-## Status: Derived conditional on the noise–signal identification, the Hypothesized cascade-dephasing family ($d_i=\varphi^{-i-\delta}$), and a selected $d = 3$ computational/physical domain ($\sigma = \ell_{\text{Pl}}/\varphi^3$; noise–signal crossover at the Planck core, §2.1) / Hypothesized (the $d = 3$ geometric reading, two-fluid quantization, composite graviton)—September 2026
+## Status: Derived conditional on the noise–signal identification, cascade-dephasing family and selected $d=3$ domain; Derived conditional obstruction to the Gaussian's standard positive spectral interpretation / Hypothesized two-fluid quantization, composite graviton and interacting completion—September 2026
 
 ## Abstract
 
@@ -17,6 +17,12 @@ Hypothesized level supplies the interacting two-fluid quantization, composite
 spin-2 identification, Lorentzian continuation, and curved-spacetime physics.
 The free propagator alone establishes none of renormalizability, Lorentzian
 unitarity, a Page curve, or an exterior metric match.
+At nonzero $\sigma$, the displayed Gaussian covariance fails a necessary
+condition for an unsubtracted positive scalar spectral representation
+(§3.1). Treating it as a physical positive-metric two-point function therefore
+requires a changed covariance or changed assumptions. An auxiliary or
+regulator-only interpretation instead requires a separately established
+physical sector.
 
 The published Quantum Galileo Interferometer supplies a complementary
 low-energy boundary. The conditional centre-of-mass Schrödinger sector
@@ -182,7 +188,63 @@ The Gaussian factor $e^{-k_E^2\sigma^2/2}$ is the $\sigma$-regulator:
 | $k_E \approx 1/\sigma$ | $G_E(k_E^2) \approx e^{-1/2}/k_E^2 \approx 0.607/k_E^2$ | Onset of quantum effects |
 | $k_E \gg 1/\sigma$ | $G_E(k_E^2) \approx 0$ | UV modes suppressed exponentially |
 
-For the free Euclidean expression, the denominator has only the intended massless pole at $k_E^2=0$, and the entire Gaussian factor adds no finite-$k_E$ poles; this formal Euclidean-momentum check finds no additional ghost/tachyon poles in the Euclidean sector. Because the Lorentzian continuation is open, this no-extra-poles check does not establish Lorentzian causality or unitarity; causality and unitarity are conditional on specifying the quantized interaction and analyzing its full nonlocal Lorentzian response, and the $c_{\text{eff}}>1$ probe result leaves the front-velocity bound open.
+The free denominator has a massless pole at $k_E^2=0$; the entire Gaussian
+adds no finite-momentum poles. This is a pole-counting statement. It
+establishes neither positive norms nor a causal or unitary Lorentzian
+theory. The standard positive physical-covariance interpretation also faces
+the independent obstruction below.
+
+### 3.1 Positive spectral interpretation
+
+Let $x=k_E^2>0$ and $a=\sigma^2/2>0$. Suppose the displayed expression is
+the Euclidean two-point covariance of a physical positive-metric scalar
+observable with the standard translation/Euclidean-rotation-invariant,
+unsubtracted Källén–Lehmann representation
+
+$$
+G_E(x)=\int_{[0,\infty)}\frac{d\mu(u)}{x+u},\qquad d\mu(u)\geq0,
+$$
+
+finite for each $x>0$. For $x_2>x_1>0$,
+
+$$
+x_2G_E(x_2)-x_1G_E(x_1)
+=\int_{[0,\infty)}
+\frac{u(x_2-x_1)}{(x_2+u)(x_1+u)}\,d\mu(u)\geq0.
+$$
+
+Thus $xG_E(x)$ is nondecreasing for every such positive measure. The
+Gaussian candidate instead gives
+
+$$
+xG_E(x)=e^{-ax},\qquad
+\frac{d}{dx}[xG_E(x)]=-ae^{-ax}<0.
+$$
+
+The contradiction holds for every $a>0$. At $a=0$, $G_E=1/x$ has the
+positive massless measure and $xG_E=1$, so the obstruction concerns the
+nonzero regulator. This uses the standard spectral/Euclidean reconstruction
+framework ([doi:10.1007/BF02783624](https://doi.org/10.1007/BF02783624);
+[doi:10.1007/BF01645738](https://doi.org/10.1007/BF01645738)).
+
+**Scope.** Under these assumptions the displayed covariance cannot be the
+positive physical two-point function; its associated standard scalar
+reflection-positive interpretation is excluded. The proof does not establish
+a general theorem of interacting nonunitarity. A gauge-fixed graviton line
+may be auxiliary and indefinite; physical observables must then be
+identified through a complete gauge/constraint construction and checked
+separately. Added contact terms, non-Euclidean-rotation-invariant theories,
+modified inner products or nonlocal continuation prescriptions are outside
+the stated representation and need their own physical qualification.
+
+The kernel may also serve only as an intermediate regulator, provided the
+physical covariance and regulator-removal limit are specified. If finite
+$\sigma$ is retained as a physical length, that use cannot by itself supply
+the omitted physical covariance. No alternative is selected here.
+`computations/quantum_free_fall_closure_prereg.md` QFC4 and
+`computations/verify_quantum_free_fall_closure.py` verify the kernel
+identity, Gaussian sign and zero-regulator control; the independent receipt
+is in `foundations/quantum-free-fall-correspondence.md` §12.
 
 ---
 
@@ -346,20 +408,23 @@ The black hole information paradox is the most acute test of any quantum gravity
 
 In the flat-space model the $\sigma$-regularized kernel is finite at the origin, but no black-hole solution is derived; the information paradox concerns the **horizon**, not the singularity: how does information in interior degrees of freedom escape in the Hawking flux? For astrophysical black holes with $M \gg M_{\text{Pl}}$, the horizon curvature $R \sim 1/r_s^2 = 1/(4G^2M^2) \ll 1/\sigma^2$, so semiclassical GR applies at the horizon; the $\sigma$-regularized core (radius $\sim \sigma$) lies deep inside the black hole. The Cassi resolution must therefore address the horizon directly. The $\sigma$-regulated two-fluid supplies a candidate S-matrix mechanism and Gaussian high-momentum suppression; unitarity and any correlations encoded in outgoing radiation require the missing interaction and horizon calculation.
 
-### 7.2 Conditional S-Matrix Consistency Argument
+### 7.2 Interacting S-matrix requirements
 
-A conditional pole-level consistency argument is available:
+A physical scattering theory requires a positive state space, specified
+interactions, a Lorentzian prescription and amplitudes satisfying the
+optical theorem. The Gaussian's absence of additional finite-momentum poles
+establishes none of these requirements. At nonzero $\sigma$, §3.1 excludes
+its standard unsubtracted positive physical-covariance interpretation.
 
-> **Conditional claim (Cassi QG S-matrix unitarity).** For the free $\sigma$-regulated propagator $G(k^2) = e^{-k^2\sigma^2/2}/(k^2 + i\epsilon)$, the entire Gaussian factor adds no finite-plane poles or branch cuts and the denominator has only the intended massless pole. If the two-fluid quantized interaction can be specified with a positive spectral representation and an optical theorem, then the resulting S-matrix would be unitary; neither condition is established by the propagator alone.
+A gauge-fixed or regulator-only use needs a separately constructed
+physical-observable sector. Interactions can also alter the free pole and
+cut structure. A full amplitude and nonlocal-response analysis must
+establish interacting unitarity and causality; no all-order result follows
+from the free expression.
 
-*Scope of the conditional argument.* The entire-function observation does not establish a Källén-Lehmann representation, the optical theorem, absence of interacting ghost or tachyon modes, or a causal front velocity. Those require an explicit quantized interaction and full nonlocal-response analysis; no all-order unitarity proof follows from the free propagator.
-
-This is not a computation of the Page curve; it is a **conditional pole-level consistency argument**. In standard semiclassical gravity, Hawking's information loss argument relies on the approximation that (a) gravity is classical and (b) the Planck scale can be ignored. Cassi supplies a composite two-fluid excitation and a built-in UV regulator, but whether exact quantum evolution is unitary and how it manifests in the semiclassical limit remain Hypothesized pending the interaction and curved-spacetime calculations.
-
-### 7.3 Why Hawking's Calculation Is Incomplete in Cassi
+### 7.3 Hawking-flux calculation boundary
 
 Hawking's thermal spectrum derivation requires tracing over modes that are exponentially blueshifted near the horizon—modes whose frequency at formation exceeds $M_{\text{Pl}}$. The implemented dispersion does not remove these trans-Planckian modes: for large $k$, $\omega(k) \sim k$, while the Gaussian propagator attenuates high-momentum amplitudes. The standard derivation of exactly thermal Hawking radiation therefore cannot be declared inapplicable; determining any regulator correction requires the curved-spacetime two-fluid calculation in §7.4.
-
 No Hawking-flux correction follows from the flat-space dispersion alone. Its normalization and frequency dependence require the curved-spacetime calculation; over the lifetime of an evaporating black hole, any accumulation of regulator-induced correlations remains part of the Hypothesized Page-curve mechanism in §7.4.
 
 ### 7.4 Required Calculation: Page Curve via Two-Fluid PDE
@@ -459,7 +524,7 @@ The curved-spacetime calculation must determine whether regulator-induced correl
 
 | Statement | Status | Evidence |
 |-----------|--------|----------|
-| Cassi QG S-matrix is unitary | **Hypothesized / open** | Conditional pole-level argument; the interaction, optical theorem, and horizon response are not established |
+| Cassi QG S-matrix is unitary | **Hypothesized / open** | The nonzero-$\sigma$ Gaussian fails the standard positive physical-covariance interpretation (§3.1); a separately qualified physical sector, interaction and optical theorem are required |
 | BH information capacity vs Bekenstein-Hawking | **Open (capacity scaling)** | The computed $\mathcal{C} \sim \varphi^{N+1} \sim M/M_{\text{Pl}}$ is not $O(M^2/M_{\text{Pl}}^2)$; the $S_{\text{BH}}$ correspondence needs an additional $\sim\varphi^N$ factor (§7.5) |
 | Hawking flux is not exactly thermal | **Open / Hypothesized** | No curved-spacetime calculation; Gaussian suppression does not remove trans-Planckian modes |
 | Page curve is unitary (final state pure) | **Hypothesized** | Conditional on a unitary interacting S-matrix plus the capacity bound |
@@ -468,7 +533,11 @@ The curved-spacetime calculation must determine whether regulator-induced correl
 
 This possible non-thermality is cataloged as prediction 49 of `predictions/falsifiable-predictions.md`, but its transfer from the flat-space regulator to Hawking flux remains Hypothesized and requires the curved-spacetime calculation.
 
-**Bottom line:** Cassi supplies a built-in Gaussian UV regulator and a concrete computational program to compute the Page curve from first principles; a unitary interacting S-matrix and the Page curve remain Hypothesized until the quantized interaction and curved-spacetime response are specified and calculated.
+The Gaussian supplies Euclidean UV damping. A Page-curve calculation
+requires a physical quantum sector that addresses §3.1, a defined
+interaction and Lorentzian prescription, and the curved-spacetime state
+and response. Those objects and the resulting information dynamics remain
+Hypothesized.
 
 ---
 
@@ -509,11 +578,12 @@ follows.
 | High energy | $\omega \sim k$, $c_{\text{eff}}\to1$ (Gaussian amplitude suppression; no energy cap) |
 | Running of $G$ | **Uncomputed**—no beta function or running function is derived; $\varphi^6/(16\pi^2)\approx0.114$ is only an arithmetic scale |
 | Renormalization | **Open**—the interaction, measure, symmetries, and counterterm basis are unspecified |
+| Positive physical covariance | The nonzero-$\sigma$ Gaussian fails the standard unsubtracted positive scalar spectral representation (§3.1); auxiliary or regulator interpretations require separately qualified physical observables |
 | Free parameters | **Unclosed**—only the $\lambda=0.1$ solver normalization is fixed; interaction, IR prescription, scalar sector, and matching completions are unspecified, so no parameter count is meaningful ($c$, $\hbar$, $G$ external) |
 
 ### Falsifiable Predictions
 
-| Observable | GR | Cassi QG | Test |
+| Prediction | GR | Cassi | Test |
 |-----------|-----|----------|------|
 | Graviton polarization | $+$, $\times$ | $+$, $\times$ **imposed as a transverse-traceless composite input**; not derived from the canonical density equations | LIGO high-SNR |
 | GW dispersion | None ($\omega = k$) | Implemented probe gives $c_{\text{eff}}/c \to \sqrt{1+\varphi^{-6}} \approx 1.0275$ at low $k$; **rejected by GW170817** (exceeds upper bound by $>3.9\times10^{13}$). Viable only if modified to recover $c$ or decoupled from observed GWs | LIGO high-frequency / GW170817 |
@@ -538,6 +608,15 @@ $$
 
 The displayed pillar construction shares the $\varphi$-governed two-fluid PDE as its proposed common base. The named canonical $\lambda=0.1$ is a solver normalization/timescale convention; the relation $\lambda=1/(2w)$ with $w=5$ is Hypothesized and requires independent cycle-time/dynamical closure; and three dimensionful constants ($c$, $\hbar$, $G$) remain external. Because the interaction, IR prescription, scalar sector, and matching completions are unclosed, the quantum-gravity pillar's dimensionless-parameter count is not meaningful.
 
+**The displayed Gaussian is excluded as a standard unsubtracted positive
+physical covariance at nonzero $\sigma$ (§3.1).** Its use as an auxiliary
+line, an intermediate regulator, or a nonstandard physical construction
+requires the corresponding gauge sector, removal limit, or alternative
+positivity argument. Interacting renormalizability, Lorentzian unitarity,
+gauge symmetry, the physical composite-graviton sector and horizon physics
+remain open. `foundations/quantum-free-fall-correspondence.md` §11.5 gives
+the interacting completion inventory separately from the low-energy atom
+and source requirements.
 A complete physical theory requires the remaining gaps catalogued in `foundations/dimensionful-constants-status.md`.
 
 ---
@@ -551,7 +630,6 @@ A complete physical theory requires the remaining gaps catalogued in `foundation
 - `foundations/dimensionful-constants-status.md`—dimensionful constants and the remaining gaps
 - `foundations/cascade-suppression-formula.md`—per-rung dephasing $d_i = \varphi^{-i-\delta}$ used for the black-hole capacity bound
 - `foundations/proton-coherence-budget.md`—per-rung dephasing $d_i = \varphi^{-i-\delta}$, the noise side of the §2.1 derivation
-- `foundations/xi-derivation.md`—$\xi = \alpha_0^{-2}$ from the same fixed-point imbalance (cross-check (i))
 - `foundations/why-three-dimensions.md`—$d = 3$ from the spiral's Frenet–Serret frame (geometric reading, conditional)
 - `computations/sigma_delta_derivation.py`—numerical verification of §2.1: identities, crossover, saturation, and the optional phase-slip ansatz
 - `foundations/bubble-lattice-fabric.md` §6—the bubble/void checkerboard that becomes the σ-regularized harmonic regime
@@ -560,3 +638,5 @@ A complete physical theory requires the remaining gaps catalogued in `foundation
 - B. P. Abbott et al. (LIGO Scientific Collaboration and Virgo Collaboration), “Gravitational Waves and Gamma-Rays from a Binary Neutron Star Merger: GW170817 and GRB 170817A,” *ApJL* **848**, L13 (2017), [arXiv:1710.05834](https://arxiv.org/abs/1710.05834); [doi:10.3847/2041-8213/aa920c](https://doi.org/10.3847/2041-8213/aa920c)—joint GW/GRB constraint $-3\times10^{-15}\le(v_g-c)/c\le+7\times10^{-16}$ on the graviton group speed.
 - L. M. Procopio, R. Aguero-Santacruz, D. Bermudez, and U. Leonhardt, “Backreaction of stimulated Hawking radiation in an optical analogue,” *Nature* **655**, 336–341 (2026), [doi:10.1038/s41586-026-10720-3](https://doi.org/10.1038/s41586-026-10720-3); [arXiv:2504.17671](https://arxiv.org/abs/2504.17671)—optical analogue test bed for stimulated Hawking-radiation backreaction; it supplies no measurement of the Cassi Gaussian-regulator form.
 - J. F. Donoghue, “General relativity as an effective field theory: The leading quantum corrections,” *Physical Review D* **50**, 3874–3888 (1994), [doi:10.1103/PhysRevD.50.3874](https://doi.org/10.1103/PhysRevD.50.3874); [arXiv:gr-qc/9405057](https://arxiv.org/abs/gr-qc/9405057).
+- H. Lehmann, “Über Eigenschaften von Ausbreitungsfunktionen und Renormierungskonstanten quantisierter Felder,” *Il Nuovo Cimento* **11**, 342–357 (1954), [doi:10.1007/BF02783624](https://doi.org/10.1007/BF02783624).
+- K. Osterwalder and R. Schrader, “Axioms for Euclidean Green's functions,” *Communications in Mathematical Physics* **31**, 83–112 (1973), [doi:10.1007/BF01645738](https://doi.org/10.1007/BF01645738).

@@ -451,25 +451,129 @@ contains no resolved $q$ contrast and does not implement CT-2.
 
 ## 9. Atomic state-map requirement
 
-A Cassi-specific prediction requires a frozen projection
+A Cassi-specific prediction requires a physical preparation map that supplies
+the spatial state and its effective action:
 
 $$
 \mathfrak M_{\mathrm{atom}}:
 (\text{species},F,m_F,\rho_{\mathrm{atom}},
-\text{interactions},\text{environment})
+\text{interactions},\text{environment},\text{frame},\text{resolution})
 \longrightarrow
-X_B=(E_Y,E_I,\rho_\star,\text{carrier data}),
+\left(X_B(\mathbf x),S_B^{\mathrm{eff}}\right),
 \tag{QG33}
 $$
 
-followed by a derivation of either the scalar-tensor body sensitivity in
-(QG21) or the direct response in (QG23). Matter-wave visibility and condensate
-fraction are separate observables and do not define $q$.
+where $X_B$ contains $E_Y,E_I,\rho_\star$, carrier amplitudes, phases,
+currents, and any additional state needed by the observable. The induced
+action must determine the inertial coefficient, internal energies, magnetic
+response, and whichever gravity branch is selected in §6. A phenomenological
+map may use independently measured inputs, with that calibration declared;
+a first-principles claim must derive the same inputs from the physical carrier.
+Matter-wave visibility and condensate fraction are separate observables.
 
-The current localized carrier branch establishes a finite variational
-configuration within one regulated class. Its physical particle identity,
-continuum qualification, calibrated coefficients, and gravity selection remain
-open. It therefore supplies no rubidium map for (QG33).
+The localized carrier branch establishes a finite variational configuration
+within one regulated class. Its six-mode constrained low-spectrum result
+leaves continuum, unrestricted dynamical stability, physical particle
+identity, and calibrated atomic interactions open
+(`foundations/matter-completion-boundary.md` §§9–12). It supplies no
+rubidium realization of (QG33).
+
+### 9.1 Physical domain and information loss
+
+The canonical density restrictions place a stronger bound on $q$ than
+$0\leq q<1$. With $\rho_\star>0$ and $\rho>0$,
+
+$$
+E_Y=\frac{\varphi\rho+\varepsilon}{1+\varphi},\qquad
+E_I=\frac{\rho-\varepsilon}{1+\varphi},\qquad
+-\varphi\rho\leq\varepsilon\leq\rho,
+$$
+
+so
+
+$$
+\boxed{
+\frac{\rho^2}{(1+\varphi^2)\rho^2+\varphi^{-2}\rho_\star^2}
+\leq q\leq
+\frac{\rho^2}{\rho^2+\varphi^{-2}\rho_\star^2}<1.
+}
+\tag{QG34}
+$$
+
+At fixed nonzero density, composition changes cannot send $q$ to zero.
+For fixed positive $\rho_\star$, the canonical $q\to0$ limit requires
+$\rho/\rho_\star\to0$. The high-density lower endpoint is
+$1/(1+\varphi^2)=0.276393202250\ldots$. These bounds concern the
+instantaneous canonical $\varepsilon^2$ diagnostic; an optional
+memory-replaced diagnostic requires its own state and domain.
+
+Equal $q$ also leaves the signed composition unresolved. The two admissible
+states $\rho=\rho_\star=1$, $\varepsilon=\pm1/2$ give
+
+| $\varepsilon$ | $E_Y$ | $E_I$ | $q$ | $s=\pi/\rho$ | $\mathcal G_C$ |
+|---|---:|---:|---:|---:|---:|
+| $+1/2$ | 0.809016994375 | 0.190983005625 | 0.612757859604 | 0.618033988750 | 7.034917602017 |
+| $-1/2$ | 0.427050983125 | 0.572949016875 | 0.612757859604 | -0.145898033750 | -1.660718770186 |
+
+Here
+
+$$
+s_\pm=\frac{\varphi^{-1}\pm1}{\varphi^2}.
+\tag{QG35}
+$$
+
+Thus $q$ alone does not even determine the sign of the optional coupling
+diagnostic. Neither entry in the last column is a physical gravitational
+response. Retaining $(q,s)$ still leaves dimensional normalization, spatial
+profiles, currents, quantum phases, and the gravity action to be supplied.
+
+Spatial averaging loses additional information. For two equal-volume cells
+in the states above,
+
+$$
+\left\langle q\right\rangle=0.612757859604\ldots,\qquad
+q(\langle E_Y\rangle,\langle E_I\rangle)
+=0.723606797750\ldots.
+\tag{QG36}
+$$
+
+An atomic map must therefore specify the averaging kernel, frame, and
+resolution, and control the discarded correlations. A scalar evaluated on
+mean densities cannot be substituted for the mean local scalar without
+that closure. The existing many-to-one loop projection has the same
+observable-sufficiency requirement
+(`foundations/loop-to-bubble-projection-theorem.md` §§2,7).
+
+### 9.2 Internal energy and the quantum equivalence principle
+
+Composite atoms require a response law for internal energy as well as for
+centre-of-mass motion. In the standard weak-field test framework, introduce
+rest, inertial, and gravitational mass-energy operators,
+
+$$
+\widehat M_\alpha=m_\alpha I+\frac{\widehat H_{\mathrm{int},\alpha}}{c^2},
+\quad \alpha\in\{r,i,g\},\qquad
+\widehat H_{\mathrm{test}}
+=\widehat M_r c^2+\frac{\widehat p^2}{2\widehat M_i}
++\widehat M_g\Phi+\widehat H_{\mathrm{EM}}.
+\tag{QG37}
+$$
+
+This notation assumes internal operators commute with the centre-of-mass
+coordinates before position-dependent environmental couplings are added.
+It is the external test framework of Zych and Brukner
+([doi:10.1038/s41567-018-0197-6](https://doi.org/10.1038/s41567-018-0197-6);
+[arXiv:1502.00971](https://arxiv.org/abs/1502.00971)), with the apparatus
+electromagnetic control written explicitly.
+
+Equality of the three mass-energy operators, with a consistent rest-energy
+reference, is stronger than equality of selected diagonal mass values.
+Off-diagonal matrix elements can affect coherent internal-state evolution.
+The scalar $m_i,m_g$ action in §2 is its fixed-state leading-order
+specialization. Reproducing that action supplies no general test of all
+operator-valued equivalence conditions. A Cassi atom model must specify the
+internal operators and their couplings before applying a state-dependent
+response to the interferometer's microwave and magnetic pulse sequence.
 
 ## 10. Falsifiable QGI boundary
 
@@ -488,8 +592,10 @@ A useful experimental sequence reverses the ballistic and held internal states,
 repeats the geometry with a second isotope or species, and fits the phase and
 trajectory channels jointly. A direct-charge map is rejected when its predicted
 state-dependent $\mathcal R_{br}$ is absent at the pre-registered sensitivity.
-A universal minimally coupled metric branch predicts the standard response
-apart from its completed scalar-screening corrections.
+A universal minimally coupled metric branch predicts the standard
+point-particle response. Additional scalar forces belong to the separately
+specified scalar-tensor branch; their range, strength, and screening require
+its completed source and body solutions.
 
 The published QGI result passes the standard correspondence target at its
 reported sensitivity. It supplies no Cassi-specific verdict because
@@ -519,11 +625,191 @@ The Cassi atomic state map, variable-coupling gravity completion, direct-charge
 matching, screening solution, path-dependent common lapse, and distinctive
 experimental signal remain **Hypothesized**.
 
+## 11. Closure dependency inventory
+
+The remaining work separates into material realization, gravity, clocks,
+apparatus inference, and quantum gravity. The inventory covers the interfaces
+used by the correspondence theorem and the linked quantum-gravity proposal;
+it makes no claim to enumerate every open question in physics. Each row
+states a missing object and an observable or mathematical closure criterion.
+Existing finite or conditional results retain their stated scope.
+
+**Route distinction.** The ideal external-field phase needs the supplied
+Hamiltonian and closed paths already verified in §10. An effective Cassi
+atomic test may use independently calibrated atomic physics, provided its
+state-response map is fixed before the tested data. A first-principles atomic
+claim additionally needs the carrier-to-atom derivation below. The clock
+requirements apply only to a physical common-lapse claim. The quantum-gravity
+requirements apply to the interacting quantum-gravity and black-hole claims;
+they are not prerequisites for ordinary weak-field atomic interferometry.
+
+### 11.1 Material realization
+
+The finite carrier construction and conditional quantum sector supply useful
+starting objects. They do not select a physical rubidium atom.
+
+| ID | Missing object | Current boundary and closure criterion |
+|---|---|---|
+| A01 | Physical density-to-carrier dictionary | The positive-root lift and loop projection retain only selected information. Supply a phase-bearing spatial state and projection with controlled errors for every retained observable; identify which unresolved variables are needed by (QG33). Sources: `foundations/cassi-first-principles.md` §§1–2; `foundations/loop-to-bubble-projection-theorem.md` §§2,7. |
+| A02 | Physical density units, frame, and coarse-graining | $\rho_\star$ is external and $q$ is nonlinear. Fix the measured density normalization, observer/slicing, smoothing scale, and sufficient state before computing $q$ or $\mathcal G_C$; control the mismatch in (QG36). Source: §9.1 and `foundations/cassi-first-principles.md` §2.1. |
+| A03 | Physical carrier, exterior, interface, and environment action | The closed-action ledger is conditional. Supply $S_{\mathrm{out}},S_{\mathrm{int}},S_{\mathrm{env}}$, physical units, boundary realization, metric dependence, and the port/flux law. Derive energy and particle transfer from those actions rather than identifying a matrix norm with power. Source: `foundations/matter-completion-boundary.md` §§5,7–9,12. |
+| A04 | Continuum and full dynamical particle qualification | Localization is supported on the sampled finite grids; the constrained six-mode spectrum is a restricted finite-grid result. Qualify domain/resolution limits, tails, Gauss and charge constraints, sectors outside $C_4$, the phase mode's high-frequency content, the mixed dynamical pencil, and real-time persistence or formation. Source: `foundations/matter-completion-boundary.md` §§10–12. |
+| A05 | Kinetic metric and physical inertial mass | The COM Schrödinger equation assumes a positive metric and its mass coefficient. Derive the collective-coordinate kinetic metric, zero-mode normalization, dispersion, and physical unit map from the selected carrier; separate measured $\hbar,c$ and mass calibrations from derived dimensionless ratios. Source: `foundations/quantum-measurement-derivation.md` §§1–3,8; §2 here. |
+| A06 | Physical particle sectors and statistics | The neutral carrier $U(1)_C$ charge is not an electric, baryon, or lepton charge. Derive the relevant spin/statistics, gauge representation, conserved charges, and physical Hilbert-space sectors before identifying electrons or nuclear constituents. Source: `foundations/particle-stationary-action-closure.md` §1.3; `foundations/matter-completion-boundary.md` §9.3. |
+| A07 | Many-body binding and the rubidium spectrum | A retained carrier is not a nucleus or a bound atom. Derive interactions, exchange, nuclear/electronic binding, isotope content, and the $^{87}\mathrm{Rb}$ internal spectrum, or explicitly import measured atomic structure for an effective test. Source: `foundations/matter-completion-boundary.md` §§9,12; (QG33). |
+| A08 | Hyperfine and electromagnetic response | The experiment distinguishes $F,m_F$ states through microwave transitions and Zeeman forces. Supply transition matrix elements, magnetic moments, quadratic Zeeman terms, interaction energies, and their dependence on the mapped state; reproduce independent spectroscopy and force calibrations. Sources: (QG37); the published QGI Methods. |
+| A09 | Total mass-energy and physical readout | Derive how constituent, binding, field, and environment energies enter inertial/rest energy and the measured atom record. Use one energy partition so Qi is not counted both as added source matter and as a coupling enhancement. The conditional Born/instrument construction still requires physical state and apparatus identification. Sources: `foundations/quantum-measurement-derivation.md` §§2,8; `foundations/matter-completion-boundary.md` §§7–9; `open-questions-cassi-answers.md` C2. |
+
+### 11.2 Classical gravity and material response
+
+The constant-$G_N$ metric branch, variable scalar-tensor branch, and
+direct-charge ansatz are distinct alternatives. A completion must choose and
+close the applicable branch; it need not implement all three.
+
+| ID | Missing object | Current boundary and closure criterion |
+|---|---|---|
+| G01 | Selected gravity action and branch | The scalar-tensor template supplies equations, not selected functions. Specify $F(\chi),K_{AB}(\chi),U(\chi),S_m$, dimensions, background and boundary terms, or retain the constant-$G_N$ minimally coupled branch. A direct-charge alternative needs its own reciprocal action. Source: `foundations/physical-becoming-hierarchy.md` §7.4; §6 here. |
+| G02 | Healthy scalar and tensor modes | For the scalar branch require $F>0$, positive Einstein-frame field metric, a declared stable vacuum, and a physical scalar spectrum. Normalize perturbation modes and couplings with explicit units; a general curved field-space metric need not admit globally canonical coordinates. Source: `foundations/physical-becoming-hierarchy.md` §7.4, no-ghost conditions. |
+| G03 | Total stress tensor and conservation | The constant-$G_N$ Ward/Bianchi witness is conditional on a completed metric-dependent action. Derive the source from all carrier, exterior, interface, environment, and scalar terms and verify their joint conservation. Substituting $G_{\mathrm{eff}}(q)T_{\mu\nu}$ alone leaves derivative terms unclosed. Source: `foundations/matter-completion-boundary.md` §§7–8. |
+| G04 | Physical source solution and boundary data | Supply the Earth or other source's material state, scalar asymptotics/flux, interface conditions, initial constraints, and metric boundary data. Solve for the exterior field and its uniqueness or stated solution class. A supplied uniform $g$ in the QGI Hamiltonian bypasses this calculation. Sources: `foundations/physical-becoming-hierarchy.md` §7.4; `foundations/matter-completion-boundary.md` §7. |
+| G05 | Attractive sign and reciprocal interaction | The displayed PDE has $+\nabla\Phi$ and is outward for positive imbalance when $\Phi=-GM/r$. Derive any attractive extension and both source/test charges from one action, including field momentum or a symmetric conservative two-body limit. A target-only multiplier in an external field is not a closed reciprocal gravity law. Source: `gravity/three-body-analytical.md` §§1–3; §6.3 here. |
+| G06 | Body sensitivities and scalar profiles | $F(\chi)R$ does not determine atomic response. Derive body masses/charges as functions of the normalized ambient scalar, solve source and body profiles, and determine range, strength, and any screening. Heavy, weakly coupled, and screened scalars are alternative limits; local bounds do not uniquely select screening. Source: `foundations/physical-becoming-hierarchy.md` §7.4; §6.2 here. |
+| G07 | Cavendish normalization and weak-field bounds | Match the action to measured $G_N$, including scalar exchange when present, and compute the applicable post-Newtonian and finite-range observables. $F(\chi_0)=(8\pi G_N)^{-1}$ alone is a valid laboratory identification only when the additional exchange is negligible in that regime. Source: `foundations/physical-becoming-hierarchy.md` §7.4, local PPN boundary. |
+| G08 | Extended-body, mass-flow, and tidal closure | The blob ODE assumes relaxed, separated profiles; retained masses and imbalance evolve through flux and conversion. Derive profile/width evolution, boundary flux, self-energy, scalar charge and leading multipoles, with a controlled point-body limit. A regulator length alone supplies no material tidal coefficient. Source: `gravity/three-body-analytical.md` §§2–4. |
+| G09 | Internal-energy equivalence and response matching | In the universal metric branch, complete internal energy contributes equally to metric weight and inertia. A scalar/direct-charge branch must derive the response of each internal energy increment, including off-diagonal operators when relevant. Match (QG37) and the source-normalized effective response without mistaking a universal rescaling for differential violation. Sources: §9.2; `foundations/matter-completion-boundary.md` §§7–9. |
+
+### 11.3 Physical clocks
+
+The canonical conversion trace fixes a product of kinetic and clock factors.
+It supplies no independent measurement that the same factor governs other
+physical clocks.
+
+| ID | Missing object | Current boundary and closure criterion |
+|---|---|---|
+| C01 | Separation of kinetics from lapse | Conversion determines $K(q)N(q)=1-q$. Distinguish a universal lapse from gated kinetics with independent sectors and fixed intrinsic calibrations; another conversion receipt measures the same product. Source: `foundations/unified-lagrangian.md` §§1.6–1.7. |
+| C02 | Complete variational lapse action | Supply the lapse constraint, its multiplier/backreaction, spatial metric, shift and boundary terms, then vary the complete action. Applying $N_q$ to selected solver updates establishes only sector-specific gating. Source: `foundations/unified-lagrangian.md` §1.7. |
+| C03 | Metric and operational reference matching | Define $q$ covariantly or declare its observer/foliation, relate $N_q$ to worldline proper time and the reference clock, and retain transport and memory transformations. A constant common lapse cancels in physical QGI durations; any observable contrast needs a resolved path/location dependence or external clock comparison. Sources: §8; `hypotheses/scalar-time-reparameterization-applications.md` §§3–11. |
+| C04 | Cross-clock calibration and measurability | Calibrate the conversion rate and at least two non-conversion clocks against the same reference, with resolved $q$ contrast, transport subtraction, declared memory and uncertainty. Exact $\varepsilon=0$ provides no logarithmic conversion tick; use a resolved perturbation/relaxation measurement where justified or report the missing clock receipt. Sources: `predictions/falsifiable-predictions.md` CT-2; `hypotheses/scalar-time-reparameterization-applications.md` §§11–12. |
+
+### 11.4 Apparatus and inference
+
+The published measurement contains state switches, finite forces and a phase
+readout referenced to the apparatus. Its ideal cubic phase is only one limit
+of that calculation.
+
+| ID | Missing local bridge | Completion criterion |
+|---|---|---|
+| E01 | State-resolved pulse history | Propagate the actual $F=1,m_F=0$ and $F=2,m_F=1$ states through preparation, kicks, microwave swaps and recombination using (QG37). During kicks the arm/state assignments change; one constant response per entire arm is insufficient when testing state dependence. Source: published QGI Methods and author manuscript Methods. |
+| E02 | Finite-pulse trajectories and wave-packet overlap | Include kick/delay/holding waveforms, magnetic curvature, expansion/rotation, residual second-order Zeeman forces, mean-field interactions, and final position/momentum/shape overlap. Reproduce the supplied apparatus model before attributing residual phase or lost visibility to Cassi. Source: published QGI Experiment, Results and Methods. |
+| E03 | Complete measured phase | Compute propagation, internal-energy, microwave/control and separation phases with one port/sign convention and detection model. Recover the ideal action when the corresponding limits are taken; frame or gauge changes must leave the final probability invariant. Source: §§2–4; published QGI Methods. |
+| E04 | Calibration covariance and identifiable likelihood | Jointly model phase, trajectories, holding acceleration, magnetic/current and timing calibrations, atom number and nuisance uncertainties. Distinguish an independent prediction from tuning within an uncertainty band. The few-percent apparatus residual is not a standalone bound on $q$ or a fundamental coupling. Source: published QGI Results; §5 here. |
+| E05 | Frozen contrast and independent source normalization | Select a preparation/source comparison predicted to distinguish the chosen branch, freeze its state map before the tested data, and account for field calibration. The ideal local channel gives $m_i g_b^2$, while the differential channel gives only $\lvert r_b/r_r\rvert$; its square root loses the response sign. Use trajectory direction and additional controls where needed. Source: §5 and QGI-1. |
+| E06 | Reproducible local data/model receipt | Acquire and identify the published data, pulse/calibration inputs and reconstruction code; reproduce the phase extraction and uncertainty accounting with source/version provenance. The article states that data and code are in the paper and/or supplement. The publisher supplement returned an access failure during this inventory; the accessible author manuscript is a separate version. No local shot-level reanalysis or claim that the authors' data are absent is made. Source: article Data, code, and materials availability; [arXiv:2502.14535v4](https://arxiv.org/abs/2502.14535v4). |
+
+The article's finite levitation-mismatch expression,
+$\Delta\phi=ma(a-2g)T^3/(3\hbar)$ in its signed ideal convention,
+also illustrates why the holding calibration is part of the observable.
+At $a=g$ it reduces to the ideal phase here, with a quadratic mismatch
+$m(a-g)^2T^3/(3\hbar)$. This is a supplied apparatus result, not a
+Cassi-specific force law.
+
+### 11.5 Interacting quantum gravity
+
+The free Euclidean candidate and the finite quantum construction leave the
+following requirements for a physical interacting gravity theory. The
+spectral row is a conditional obstruction; the remaining rows describe open
+constructions or qualifications, with the rejected dispersion explicitly
+identified.
+
+| ID | Missing object or obstruction | Current boundary and closure criterion |
+|---|---|---|
+| U01 | Interacting action and vertices | Supply fields, units, regulator interpretation, interaction terms and vertices from one action. The constant-vertex radial prototype does not determine them. Source: `gravity/quantum-gravity.md` §§4–5. |
+| U02 | Gauge symmetry, constraints and measure | Derive the constraint algebra, gauge fixing, measure and BRST or equivalent physical-sector construction; verify Ward identities. Imposed transverse-traceless conditions do not supply this structure. Source: `gravity/quantum-gravity.md` §§4.3,5. |
+| U03 | Physical spin-2 excitation | Identify a physical operator, positive-norm massless pole, helicities and conserved-stress coupling, with extra modes constrained or consistently accounted for. The composite label alone does not derive two graviton polarizations. Source: `gravity/quantum-gravity.md` §4. |
+| U04 | Lorentzian continuation | Specify the nonlocal contour, $i\epsilon$, growth conditions, vacuum and retarded/Feynman distributions. Derive consistency with the Euclidean object and any dispersion law; the separately assigned dispersion is not derived from the displayed propagator. Source: `gravity/quantum-gravity.md` §§3–4. |
+| U05 | Standard positive spectral interpretation | At $\sigma>0$, $G_E(x)=e^{-\sigma^2x/2}/x$ fails the monotonicity required by an unsubtracted positive scalar spectral measure. A completion must change the physical covariance or the stated assumptions, or use this expression only as a regulator/auxiliary line and separately establish positivity of physical observables. This is not a general theorem of interacting nonunitarity. Source: `gravity/quantum-gravity.md` §3.1. |
+| U06 | Causal response and observed propagation | Compute retarded support and front velocity in the selected Lorentzian theory. The implemented low-momentum speed $c_{\mathrm{eff}}/c\simeq1.0275$ is already rejected as the observed GW mode; a viable identified mode must recover the measured speed or the probe must be physically decoupled. Source: `gravity/quantum-gravity.md` §4.2; `audit.md` §3. |
+| U07 | Interacting unitarity | With a defined physical state space and interaction, verify the optical theorem/cutting relations and exclude pathological interacting modes. Absence of extra free poles is insufficient, and the obstruction in U05 must first be addressed in the physical sector. Source: `gravity/quantum-gravity.md` §7.2. |
+| U08 | Ultraviolet completion and counterterms | Determine the net vertex/propagator behavior, regulator or finite-$\sigma$ theory, symmetry-compatible counterterms and higher-loop observables. A single UV-convergent integral at supplied nonzero infrared cutoff is only a prototype. Source: `gravity/quantum-gravity.md` §§5.1–5.2. |
+| U09 | Infrared and zero-mode prescription | Supply physical soft-mode, boundary or finite-volume treatment and demonstrate the claimed observable's infrared behavior. The uncut displayed radial integral is logarithmically infrared divergent; an external cosmological scale is an additional input. Source: `gravity/quantum-gravity.md` §5.1. |
+| U10 | Renormalized Newton coupling | Define a measurable matching observable and its scale dependence, then compute any running of $G$. The number $\varphi^6/(16\pi^2)$ supplies no beta function. Source: `gravity/quantum-gravity.md` §5.3. |
+| U11 | Low-energy general-relativistic matching | Recover the normalized tensor kinetic term, universal conserved-stress coupling, attractive Newtonian limit, observed propagation and required weak-field metric observables. Use G01–G09 as the classical matching target. Source: `gravity/quantum-gravity.md` §§4,9. |
+| U12 | Physical interacting continuum sectors | Establish domains, regulator/refinement limits, physical gauge/particle sectors and convergent interacting observables. Finite self-adjointness and conditional COM dynamics do not establish the physical continuum theory. Source: `foundations/quantum-measurement-derivation.md` §§1–3,8. |
+| U13 | Curved regulator, stress and backreaction | Derive a covariant regulator or a complete foliation theory, its metric/foliation variation and renormalized stress, and couple it consistently to geometry. The optional spatial hyperdiffusion term has no established $\sigma$ matching and supplies no closed covariant stress by itself. Source: `gravity/quantum-gravity.md` §7.4.2. |
+| U14 | Horizon solution, state and Hawking flux | Construct the geometry and horizon boundary problem, select a definite vacuum/initial state, and compute mode propagation and renormalized flux with backreaction where claimed. Boulware and Unruh states are different boundary choices. A finite flat-space core proves neither horizon regularity nor modified Hawking radiation. Source: `gravity/quantum-gravity.md` §§7.1,7.3–7.4. |
+| U15 | Entropy, capacity and information recovery | Define the relevant subsystem/state and compute entropy, purity and the evaporation endpoint. Derive the missing state-counting factor needed to relate the linear mass capacity estimate to area-law entropy, and control regulator dependence. A Page curve cannot be inferred from pole counting or core softening. Source: `gravity/quantum-gravity.md` §§7.4–7.6. |
+
+### 11.6 Dependency order and usable stopping points
+
+The shortest effective atomic route fixes the physical preparation/response
+map and its calibrations, chooses the gravity branch, and reconstructs the
+standard pulse-and-readout model. Only then can a preregistered contrast
+between preparations or sources test a distinct Cassi response. A first-
+principles claim must additionally derive the carrier, physical particle
+sectors and bound atom before those inputs can be called predictions.
+
+The universal metric branch is a valid conditional null target:
+$\mathcal R_{br}=1$ in the ideal point-particle regime. Scalar/direct-charge
+alternatives require their source and material response before predicting a
+departure. The common-lapse branch additionally needs an independent
+cross-clock comparison. The interacting quantum-gravity programme requires
+its own physical covariance, gauge and interaction choices before expensive
+loop or horizon calculations are informative.
+
+These are separate stopping points. A conditional COM phase does not close
+an atom map; an atom map does not close a source law; an external-field
+experiment does not close interacting quantum gravity.
+
+## 12. Algebraic verification and independent calculation
+
+The physical-domain, state-information and spectral boundaries follow from
+the frozen obligations in
+`computations/quantum_free_fall_closure_prereg.md`, evaluated by
+`computations/verify_quantum_free_fall_closure.py`. This calculation uses no
+experimental fit and changes none of the ideal-QGI proof obligations.
+
+| Obligation | Result | Measured or exact receipt |
+|---|---|---|
+| QFC1 physical interval | **PASS** | Both density endpoints and both positive-denominator difference identities vanish exactly; the dense lower endpoint is $0.276393202250\ldots$ |
+| QFC2 equal-$q$ counterexample | **PASS** | Two positive density pairs have $q=0.612757859604\ldots$ and opposite signs of $s,\mathcal G_C$, as tabulated in §9.1 |
+| QFC3 coarse-graining | **PASS** | $q(\langle E\rangle)-\langle q(E)\rangle=0.110848938146\ldots$ for the declared two-cell witness |
+| QFC4 positive spectral obstruction | **PASS** | Positive spectral kernels make $xG_E$ nondecreasing; the Gaussian derivative is strictly negative for $a>0$. The $a=0$ massless control passes |
+
+Independent calculations used the preregistered definitions without reading
+or importing the verifier. The material-state calculation reconstructed both
+density pairs, the two endpoint factorizations, and the averaged-state
+mismatch. A separate spectral calculation obtained
+
+```text
+xG(x1),xG(x2)= 0.36787944117144233 0.1353352832366127
+finite difference xG2-xG1= -0.23254415793482963 expected <0
+a=0 control xG(x1),xG(x2), difference= 1.0 1.0 0.0
+```
+
+for $ax_1=1$, $ax_2=2$. The primary verifier ended
+
+```text
+QFC4 standard positive spectral interpretation at sigma>0: REJECT
+QFC1-QFC4: PASS
+ALL CHECKS PASSED
+```
+
+The four algebraic boundaries are **ADOPT** within their declared
+assumptions. The **REJECT** applies specifically to the nonzero-$\sigma$
+unsubtracted positive physical covariance, as detailed in
+`gravity/quantum-gravity.md` §3.1. The state map, physical source/response,
+clock universality, interacting quantum theory, and experimental discriminator
+retain the open scopes listed in §11.
+
 ## References
 
-- Y. Margalit *et al.*, “Observation of the quantum phase of free fall and the consistency with the equivalence principle,” *Science Advances* (2026), [doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045); accessible derivation at [arXiv:2502.14535](https://arxiv.org/abs/2502.14535).
+- O. Dobkowski *et al.*, “Observation of the quantum phase of free fall and the consistency with the equivalence principle,” *Science Advances* (2026), [doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045); accessible author manuscript at [arXiv:2502.14535v4](https://arxiv.org/abs/2502.14535v4).
+- M. Zych and Č. Brukner, “Quantum formulation of the Einstein equivalence principle,” *Nature Physics* **14**, 1027–1031 (2018), [doi:10.1038/s41567-018-0197-6](https://doi.org/10.1038/s41567-018-0197-6); [arXiv:1502.00971](https://arxiv.org/abs/1502.00971).
+- H. Lehmann, “Über Eigenschaften von Ausbreitungsfunktionen und Renormierungskonstanten quantisierter Felder,” *Il Nuovo Cimento* **11**, 342–357 (1954), [doi:10.1007/BF02783624](https://doi.org/10.1007/BF02783624).
+- K. Osterwalder and R. Schrader, “Axioms for Euclidean Green's functions,” *Communications in Mathematical Physics* **31**, 83–112 (1973), [doi:10.1007/BF01645738](https://doi.org/10.1007/BF01645738).
 - `foundations/quantum-measurement-derivation.md`—conditional regulated quantum mechanics and centre-of-mass reduction.
 - `foundations/physical-becoming-hierarchy.md`—covariant scalar-tensor completion boundary and local PPN constraint.
 - `foundations/matter-completion-boundary.md`—constant-$G_N$ closed-action gravity branch and particle-state boundary.
 - `foundations/unified-lagrangian.md`—candidate common-lapse action criterion.
 - `predictions/falsifiable-predictions.md`—QGI-1 and CT-2 experimental contracts.
+- `gravity/quantum-gravity.md`—Gaussian physical-covariance obstruction and interacting quantum-gravity boundary.

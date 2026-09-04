@@ -56,7 +56,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, source-action response, and routed quadratic-flux attenuation | Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026 |
 | 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated canonical conversion, coherence fibre, relative-phase transport, endpoint ledgers, open-system support boundary, and bounded cross-domain source interface | Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary / Mapped selected carrier coupling / Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026 |
 | 46 | `matter-completion-boundary.md` | Nine-part conditional boundary from exterior dilation through fixed-charge spectral qualification | Derived conditional boundary / Hypothesized physical realization / Mapped selected carrier coupling / Tested reduced receipts, a resolution-consistent localized retained finite-grid branch, and a six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026 |
-| 47 | `quantum-free-fall-correspondence.md` | Ideal Quantum Galileo Interferometer action, source/test-response separation, Qi-gravity normalization, and common-lapse boundary | Derived conditional external-potential correspondence / Hypothesized Cassi atomic state, gravity-response, and common-lapse mappings—September 2026 |
+| 47 | `quantum-free-fall-correspondence.md` | Ideal QGI action and inference boundary; physical-$q$ bounds and information loss; forty-three closure requirements and QFC1–QFC4 receipts | Derived conditional external-potential correspondence / Hypothesized Cassi atomic state, gravity-response, and common-lapse mappings—September 2026 |
 
 ## Document Summaries
 
@@ -914,6 +914,14 @@ physical clock. The published rubidium measurement
 supplies no atomic $(E_Y,E_I,q)$ map or Cassi-specific verdict. Status:
 Derived conditional external-potential correspondence / Hypothesized Cassi
 atomic state, gravity-response, and common-lapse mappings—September 2026.
+
+Section 9 derives the physical-$q$ interval and gives admissible equal-$q$
+states with opposite signed coupling diagnostics, plus a noncommuting
+coarse-graining witness. Section 11 separates forty-three material,
+gravity, clock, apparatus and interacting-quantum requirements into the
+effective-test and first-principles routes. Section 12 records independent
+QFC1–QFC4 calculations, including the standard positive-spectral
+obstruction for the Gaussian propagator at nonzero $\sigma$.
 
 ## Cross-References
 

@@ -854,6 +854,16 @@ supplied. This checks quantum matter in an external weak field; it does not
 measure Cassi $q$, probe the $\sigma$ regulator, or test a composite graviton.
 Those inferences require an atomic state map and a completed source/response
 gravity branch.
+The Gaussian physical-covariance interpretation has a sharper boundary:
+for $\sigma>0$, $G_E(x)=e^{-\sigma^2x/2}/x$ cannot admit the standard
+unsubtracted nonnegative scalar spectral measure, because $xG_E(x)$
+decreases rather than being nondecreasing. This is a **Derived conditional
+obstruction**, not a general interacting-unitarity theorem. A regulator or
+auxiliary interpretation requires separately qualified physical observables
+(`gravity/quantum-gravity.md` §3.1). The material, gravity, clock, apparatus
+and interacting-quantum requirements are catalogued in
+`foundations/quantum-free-fall-correspondence.md` §11.
+
 
 | **Cassi Answer** | At the classical field level, gravity follows $\sigma$-regularized Poisson emergence and Qi enhancement (Derived conditional on the noise–signal identification, G1). A quantized two-fluid extension (Hypothesized) may contain a composite spin-2 excitation; its dispersion and GR limit remain open |
 | **Mechanism** | $G_{\text{eff}}=(\pi/\rho)(1+(\varphi^{6}-1)q)G_N$; the classical field emerges from density gradients, while the quantized extension and its low-energy response require additional structure |
@@ -864,21 +874,34 @@ gravity branch.
 
 ```mermaid
 flowchart TD
-    A[σ-regularized free propagator] --> B[UV suppression]
-    B --> C[Conditional pole-level consistency]
-    C --> D[Interacting completion and horizon response required]
-    D --> E[Page curve remains open]
+    A[Gaussian free Euclidean kernel] --> B[UV damping and no extra finite poles]
+    A --> C[Standard positive physical covariance excluded at nonzero sigma]
+    B --> D[Physical sector and interacting completion required]
+    C --> D
+    D --> E[Horizon state and backreaction calculation]
+    E --> F[Page curve remains open]
 ```
 
-**Visual:** The $\sigma$-regularized free propagator supplies high-momentum suppression. A unitary interacting completion and a curved-spacetime horizon calculation remain required before any information-retention conclusion.
+**Visual:** The Gaussian suppresses high Euclidean momentum, while its
+standard unsubtracted positive physical-covariance interpretation fails.
+A physical quantum sector and a covariant horizon calculation must precede
+an information-retention conclusion.
 
-The black hole information paradox concerns whether evaporation can preserve the quantum information carried by infalling matter. Cassi currently supplies a $\sigma$-regularized free propagator and a conditional pole-level consistency argument. The Gaussian factor $G(k^2)=e^{-k^2\sigma^2/2}/(k^2+i\epsilon)$ suppresses high momentum and adds no finite-$k$ poles, but the propagator alone does not establish a positive spectral representation, an optical theorem, a unitary interacting S-matrix, or a Page curve. The two-fluid condensate capacity estimate and any correlated Hawking flux require an explicitly specified interaction completion and a curved-spacetime response calculation.
+Black-hole information retention requires a defined state, observable
+algebra, interaction and evaporation dynamics. The supplied free kernel
+$G_E(x)=e^{-\sigma^2x/2}/x$ adds no finite-momentum poles but fails the
+positive scalar spectral monotonicity condition for $\sigma>0$. This
+obstruction applies under the assumptions of
+`gravity/quantum-gravity.md` §3.1. A gauge-fixed auxiliary line or
+intermediate regulator may have a different interpretation; neither
+supplies positivity or unitarity of physical observables by itself.
+The optical theorem, causal Lorentzian response, horizon state, renormalized
+stress, backreaction and entropy calculation remain open.
 
-| **Cassi Answer** | The $\sigma$-regularized free propagator provides UV suppression and a conditional pole-level consistency check; information retention, an interacting S-matrix, and the Page curve remain open |
-| **Mechanism** | The Gaussian regulator suppresses high-momentum amplitudes without adding finite-$k$ poles. A positive spectral representation, optical theorem, specified interactions, nonlocal response, and horizon calculation are still required for a unitarity or information-retention result |
-| **Epistemic** | **Hypothesized**—the free-propagator argument is conditional; the interacting quantum theory and Page-curve calculation require the curved-spacetime PDE infrastructure defined in `gravity/quantum-gravity.md` §7.4 and remain open |
-| **Reference** | `gravity/quantum-gravity.md` §7 |
-
+| **Cassi Answer** | UV damping is a free Euclidean result. Physical quantum-gravity completion and information retention remain open; the standard positive physical-covariance interpretation is excluded at nonzero $\sigma$ |
+| **Mechanism** | The Gaussian adds no finite-momentum poles, but $xG_E(x)$ decreases, excluding an unsubtracted nonnegative scalar spectral measure. Alternative physical/auxiliary interpretations require a separate observable-sector construction before interacting and horizon claims |
+| **Epistemic** | **Derived conditional obstruction / Hypothesized information mechanism**—the obstruction has the precise physical-covariance assumptions in §3.1; it is not a general interacting nonunitarity theorem. Page-curve and curved-spacetime completion remain open |
+| **Reference** | `gravity/quantum-gravity.md` §§3.1,7; `foundations/quantum-free-fall-correspondence.md` §11.5 |
 
 ### G3: Black hole singularities
 
@@ -954,6 +977,16 @@ flowchart TD
 
 
 Gravity is staggeringly weaker than the other forces: a small refrigerator magnet easily overpowers the gravitational pull of the entire Earth. In natural units, Newton's constant $G_N$ is about $10^{-38}$. Cassi's optional coupling-magnitude diagnostic $\mathcal G_C=(\pi/\rho)[1+(\varphi^6-1)q]$ depends on density and composition. The composition attractor is the full $\varepsilon=0$ line, where $\pi/\rho=\varphi^{-3}$; $q\to0$ is only its dilute endpoint. At the registered reference-density point, $q=\varphi^2/3\approx0.873$ and $\mathcal G_C=5\sqrt5/3\approx3.73$. Neither point establishes variable physical gravity, an attractive force, or a laboratory matter response.
+
+For nonnegative canonical densities at fixed $\rho>0$ and
+$\rho_\star>0$, composition is bounded:
+$-\varphi\rho\leq\varepsilon\leq\rho$. Thus
+$q\geq\rho^2/[(1+\varphi^2)\rho^2+\varphi^{-2}\rho_\star^2]>0$;
+composition changes alone cannot reach $q=0$. Equal $q$ can also have
+opposite signs of $\pi/\rho$ and $\mathcal G_C$, and $q$ does not commute
+with spatial averaging. QFC1–QFC3 are independently verified conditional
+identities, not measured body-response laws
+(`foundations/quantum-free-fall-correspondence.md` §§9.1,12).
 
 | **Cassi Answer** | Optional Qi-gravity coupling map with a finite reference-attractor value; endpoint ratios are formal external comparisons |
 | **Mechanism** | Density/composition-dependent coupling magnitude; attractive or observational interpretations require a separate **Hypothesized** branch |
@@ -1427,7 +1460,7 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
 - **The 13-band chakra count.** The count uses a 26-rung window / 2-rung $P_\parallel=2$ coordinate cycle = 13 nodes (crown at step 166, body boundary at step 168). The coordinate-cycle mapping is Hypothesized; the mapping of specific colors to specific chakras via Fibonacci-resonant sub-rungs remains Hypothesized (open computational scan). See `consciousness/chakras-as-cascade-bubbles.md`.
 - **The internal$\to$physical axis map.** A coordinate spiral's Frenet-Serret vectors $\{\mathbf{T}, \mathbf{N}, \mathbf{B}\}$ provide a candidate projection into three physical directions; the physical identification remains Hypothesized. See `foundations/why-three-dimensions.md` §2.2 and §6.1.
 - **Bubble edge profile.** The physical gradient in $q$, $\rho$, and $G_{\text{eff}}$ across the condensation boundary is derived from the chord lattice geometry but the condensation threshold $\theta_{\text{cond}}$ and the density exponent $\nu$ require PDE computation. See `foundations/bubble-edge-geometry.md`.
-- **BH information Page curve.** The $\sigma$-regularized free propagator supplies UV suppression and a conditional pole-level consistency argument; it does not establish an interacting unitary S-matrix. The full Page curve computation requires a curved-spacetime two-fluid PDE solver that does not yet exist. See `gravity/quantum-gravity.md` §7.
+- **BH information Page curve.** The free Gaussian supplies Euclidean UV damping but fails the standard unsubtracted positive physical-covariance interpretation at nonzero $\sigma$. A physical-sector construction and interacting, curved-spacetime evaporation calculation are required before a Page curve is defined. See `gravity/quantum-gravity.md` §§3.1,7 and `foundations/quantum-free-fall-correspondence.md` §11.5.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state

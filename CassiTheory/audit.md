@@ -71,6 +71,12 @@ Neutrino masses are not cleanly derivable from $\varphi$ alone. The seesaw mecha
 | Solar-System $q(r)$ | No canonical profile |—| ⚠️ **Undetermined**—the quoted MESSENGER value $1.1\times10^{-6}$ has no registered derivation |
 | Gravitational-wave strain | Optional chord sensitivity scenario |—| ⚠️ **Hypothesized**—no Cassi metric, waveform derivation, or sourced event-level precision input |
 | GW dispersion (GW170817) | Implemented probe $c_{\text{eff}}/c \to \sqrt{1+\varphi^{-6}} \approx 1.0275$ at low $k$ | $-3\times10^{-15} \le (v_g-c)/c \le +7\times10^{-16}$ (Abbott et al.) | ❌ **Rejected**—exceeds upper bound by $>3.9\times10^{13}$; viable only if modified to recover $c$ or decoupled from observed GWs |
+| Gaussian physical covariance | $G_E(x)=e^{-\sigma^2x/2}/x$ gives decreasing $xG_E(x)$ for $\sigma>0$ | A standard unsubtracted nonnegative scalar spectral measure requires nondecreasing $xG_E(x)$ | **REJECT under the declared physical-covariance assumptions**—QFC4 and an independent calculation establish the obstruction; auxiliary/regulator uses and interacting unitarity require separate physical qualification (`gravity/quantum-gravity.md` §3.1) |
+
+The material, source/response, clock, apparatus and interacting-quantum
+closure inventory is in `foundations/quantum-free-fall-correspondence.md`
+§11. Its canonical-domain and information-loss checks QFC1–QFC3 pass;
+they supply no numerical atomic $q$ or gravitational response.
 
 ---
 

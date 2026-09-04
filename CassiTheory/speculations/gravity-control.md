@@ -276,4 +276,4 @@ unscaled device scenario.
 - `foundations/unified-lagrangian.md` §1.7—candidate common-lapse action criterion and CT-2.
 - `foundations/xi-derivation.md`—conditional derivation of $\xi=\varphi^6$ and reference-state normalization.
 - `predictions/falsifiable-predictions.md`—QGI-1 and CT-2 experimental contracts.
-- Y. Margalit *et al.*, “Observation of the quantum phase of free fall and the consistency with the equivalence principle,” *Science Advances* (2026), [doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045); accessible derivation at [arXiv:2502.14535](https://arxiv.org/abs/2502.14535).
+- O. Dobkowski *et al.*, “Observation of the quantum phase of free fall and the consistency with the equivalence principle,” *Science Advances* (2026), [doi:10.1126/sciadv.aec8045](https://doi.org/10.1126/sciadv.aec8045); accessible author manuscript at [arXiv:2502.14535v4](https://arxiv.org/abs/2502.14535v4).

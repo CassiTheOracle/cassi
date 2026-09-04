@@ -846,31 +846,40 @@ force, linear potential by extensivity (independent of the gate shape). Flux tub
 
 ### 7.1 $\sigma$-Regularization
 
-Gravitational kernel: $1/\sqrt{|r|^2 + \sigma^2}$ with $\sigma = \ell_{\text{Pl}}/\varphi^3$. Large $r$: inverse-square. Small $r$:
-
-$$F \propto -\frac{r}{3\sigma^3} \cdot (1 + (\varphi^{6}-1)q)$$
-
-Eliminates singularities. The $\sigma$-regulator also enters the quantum gravity propagator (§7.2).
+The flat-space kernel $\Phi(r)=-GM/\sqrt{r^2+\sigma^2}$ is finite at
+the origin and has a gradient that vanishes there. In the canonical
+optional force branch, $+\Gamma\nabla\Phi$ points outward for
+$\Gamma>0$; an attractive force requires a separate sign or action
+closure. The softened potential does not establish a covariant horizon,
+curvature regularity or a relation to the Gaussian propagator's regulator
+(`gravity/three-body-analytical.md` §§1–3;
+`gravity/quantum-gravity.md` §7).
 
 ### 7.2 Black Holes and Quantum Gravity
 
 The optional $\sigma$-regularized kernel gives a finite harmonic core under
 its stated force convention. No covariant solution currently establishes an
 exterior metric match to general relativity. At the free Euclidean-propagator
-level, the candidate
+level, the candidate propagator is
 
 $$G_E(k_E^2)=\frac{e^{-k_E^2\sigma^2/2}}{k_E^2}$$
 
-suppresses high momentum and adds no finite-momentum pole. This free
-two-point function does not establish finite interacting loop amplitudes, a
-positive spectral representation, an optical theorem, a unitary interacting
+This is a free Euclidean expression. It adds no finite-momentum poles, but
+at nonzero $\sigma$ it fails the standard unsubtracted positive scalar
+spectral representation: $k_E^2G_E(k_E^2)$ decreases, whereas a positive
+spectral measure makes that quantity nondecreasing
+(`gravity/quantum-gravity.md` §3.1). An auxiliary or regulator-only
+interpretation needs a separately established physical sector.
+The composite spin-2 identification, Lorentzian continuation and
+interacting quantum theory remain Hypothesized.
+Neither the softened core nor the free propagator derives an interacting
 $S$-matrix, black-hole entropy, or horizon regularity. Those claims require a
 specified interacting completion and a covariant horizon calculation
 (`gravity/quantum-gravity.md`).
 
 ### 7.3 Three-Body Problem
 
-Point-particle reduction of the two-fluid PDE gives:
+A separate attractive point-particle comparison law is:
 
 $$\ddot{\mathbf{X}}_j = -G\,\alpha_j\,(1+(\varphi^{6}-1)q_j)\,\sum_{i\neq j} M_i\frac{\mathbf{X}_j - \mathbf{X}_i}{|\mathbf{X}_j - \mathbf{X}_i|^3}$$
 

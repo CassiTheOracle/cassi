@@ -139,21 +139,41 @@ Speculative candidate direction: the framework's accelerated early structure for
 #### 43. Information Paradox
 Hawking's semiclassical calculation makes evaporating black holes emit exactly thermal radiation, apparently discarding the information that fell in.
 Standard status: unitarity is believed to hold; the mechanism (the Page curve) is not computed.
-**[Framework claim]**—the $\sigma$-regularized free propagator supplies high-momentum suppression and a conditional pole-level consistency check, but the S-matrix, the condensate's coherence capacity, and the Page curve remain open; information retention requires a curved-spacetime horizon calculation that does not yet exist (registry G2, **Hypothesized**).
-`gravity/quantum-gravity.md` §7 (free-propagator analysis; S-matrix/Page curve/capacity/no-firewall all open).
+**[Framework claim]**—the free Euclidean Gaussian supplies high-momentum
+damping and no additional finite-momentum poles. At nonzero $\sigma$ it
+fails the standard unsubtracted positive scalar physical-covariance
+interpretation. A separately qualified physical sector, interacting
+$S$-matrix and covariant evaporation calculation are required before
+information retention or a Page curve can be claimed (registry G2).
+`gravity/quantum-gravity.md` §§3.1,7; `foundations/quantum-free-fall-correspondence.md` §11.5.
 #### 44. Firewalls
 The AMPS argument claims that unitarity plus the no-drama requirement forces an energetic firewall at the horizon.
 Standard status: the firewall argument is debated; no resolution.
-**[Framework claim]**—the $\sigma$-regularized free propagator suppresses high momentum without adding finite-$k$ poles, but it does not establish a positive spectral representation, an optical theorem, or a unitary interacting S-matrix; the horizon response and the firewall question remain open (the framework has no energy cap and no curved-horizon transfer calculation).
-`gravity/quantum-gravity.md` §7 (free-propagator analysis; horizon response/firewall open).
+**[Framework claim]**—the nonzero-$\sigma$ Gaussian fails the standard
+unsubtracted positive physical-covariance interpretation. Auxiliary or
+regulator-only uses require a separately constructed physical sector.
+The optical theorem, causal interacting response and horizon state remain
+open, so no conclusion about a firewall follows.
+`gravity/quantum-gravity.md` §§3.1,7.
 #### 45. Final Parsec Problem
 Dynamical friction stalls two merging supermassive black holes at roughly a parsec, and the mechanism that brings them into the gravitational-wave regime is unknown.
 Standard status: gas, stars, and triple interactions are proposed; no consensus.
-**[No framework claim]**—Speculative candidate direction: compact-object gravity in the framework is GR-exact ($q \to 0$ at nuclear densities; `analyses/gwtc4-mass-ladder.md` §4), so the framework expects the stall to be resolved by the standard mechanisms and contributes no new dynamics at that separation.
+**[No framework claim]**—there is no derived Cassi binary-environment
+model or compact-object metric for this question. A canonical
+$q\to0$ limit requires dilute density relative to $\rho_\star$; nuclear
+density alone supplies no such limit and establishes no GR-exact
+compact-object sector. Standard gas, stellar and multiple-body mechanisms
+remain the comparison models
+(`foundations/quantum-free-fall-correspondence.md` §§9.1,11.2;
+`analyses/gwtc4-mass-ladder.md` §4).
 #### 46. Binary Black-Hole Merger Channels
 Whether compact binaries form through isolated stellar evolution or dynamical assembly in dense environments is unresolved.
 Standard status: both channels are active; their relative mix is open.
-**[Consistent mapping]**—the only framework contact is the Speculative rung-map analysis of the GWTC-4.0 population (`analyses/gwtc4-mass-ladder.md`, Speculative): the 173-event posterior search finds no $\varphi$-periodic comb at the predicted period ($p \approx 1.0$) and a marginal rung-fraction excess ($p \approx 0.02$), so the rungs 182–194 zone stays unmapped; formation channels themselves are untouched.
+**[No framework prediction]**—the linked GWTC-4.0 mass-coordinate analysis
+is Speculative and has no retained posterior input, checksum, or result
+receipt supporting a full-catalog statistical verdict. Its displayed
+mass-coordinate comparisons are descriptive; no formation-channel
+prediction follows (`analyses/gwtc4-mass-ladder.md` §§2–3,6).
 #### 47. Naked Singularities and Cosmic Censorship
 Cosmic censorship conjectures that singularities always hide behind horizons; whether naked singularities can form is unproven.
 Standard status: the conjecture is unproven in either direction.

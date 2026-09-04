@@ -261,13 +261,28 @@ q=\frac{\rho_{\mathrm{phys}}^2}
 \qquad \rho_* \text{ external}.
 $$
 
-No reference-density scale is derived here. Qi ranges from $q \to 0$ (far
-from $\varphi$-equilibrium, large deviation $|\varepsilon|$) toward the
-finite-density equilibrium value $q_{\mathrm{eq}}(\rho)=\rho^2/(\rho^2+\varphi^{-2})<1$
-when $\varepsilon\to0$. The limit $q\to1$ additionally requires $\rho\gg\varphi^{-1}$;
-at the $\varphi$-equilibrium ($\varepsilon=0$; the solver's reference state
-$E_Y=1$, $E_I=\varphi^{-1}$ gives $\rho=\varphi$), the coherence and the gate
-openness are:
+No reference-density scale is derived here. Nonnegative $E_Y,E_I$ at
+fixed $\rho>0$ require $-\varphi\rho\leq\varepsilon\leq\rho$. Consequently,
+for the instantaneous canonical diagnostic,
+
+$$
+\frac{\rho^2}{(1+\varphi^2)\rho^2+\varphi^{-2}\rho_\star^2}
+\leq q\leq
+\frac{\rho^2}{\rho^2+\varphi^{-2}\rho_\star^2}<1.
+$$
+
+The lower endpoint is $E_Y=0$, and the upper endpoint is the composition
+line $\varepsilon=0$. Composition changes at a fixed nonzero density cannot
+make $q$ arbitrarily small; with a fixed positive $\rho_\star$, the
+canonical $q\to0$ limit requires $\rho/\rho_\star\to0$. The upper bound
+approaches one only at high density near the composition line. Equal $q$
+can have opposite signed imbalance, and $q$ does not commute with spatial
+averaging (`foundations/quantum-free-fall-correspondence.md` §9.1; QFC1–QFC3).
+Optional memory-replaced diagnostics have an enlarged state and need
+separate bounds.
+
+At the registered reference normalization $\rho_\star=1$, $\rho=\varphi$,
+and $\varepsilon=0$, the coherence and complementary openness are:
 
 
 

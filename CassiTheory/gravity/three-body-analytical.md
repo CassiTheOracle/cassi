@@ -111,8 +111,11 @@ q = \frac{\rho^2}{\rho^2 + \varphi^{-2} + \varepsilon^2},
 $$
 
 (the canonical coherence of `foundations/cassi-theory-reference.md` §2.4).
-$q \to 1$ at high density near $\varphi$-equilibrium; $q \to 0$ far from it
-or at low density. At the $\varphi$-fixed point ($\varepsilon = 0$) the
+$q\to1$ at high density near $\varphi$-equilibrium. In the nonnegative
+canonical density domain, $q\to0$ requires $\rho/\rho_\star\to0$;
+composition changes at fixed nonzero density have a strictly positive
+lower bound (`foundations/quantum-free-fall-correspondence.md` §9.1).
+At the $\varphi$-fixed point ($\varepsilon=0$) the
 coherence is the equilibrium value $q_{\text{eq}}(\rho) = \rho^2/(\rho^2+\varphi^{-2})$
 (density-dependent; $\approx 0.873$ at the reference density $\rho = \varphi$,
 theory-reference §2.4), giving
@@ -392,8 +395,10 @@ $$
 = -\lambda(1-q_j)\bigl[(1+\varphi)\Pi_j-\varphi^{-1}M_j\bigr].
 $$
 
-The gate factor is $(1-q_j)$. It is near 1 for a low-density or
-large-mismatch local state. On the fixed-point line it remains density-dependent;
+The gate factor $(1-q_j)$ approaches one in the dilute limit.
+At fixed nonzero density, composition mismatch changes its value only within
+the canonical bounds in `foundations/quantum-free-fall-correspondence.md`
+§9.1. On the fixed-point line it remains density-dependent;
 at the reference density $\rho_j=\varphi$,
 $(1-q_{\text{eq}})=\varphi^{-2}/(\varphi^2+\varphi^{-2})
 =\varphi^{-2}/3\approx0.127$, while it approaches 1 in the dilute limit.

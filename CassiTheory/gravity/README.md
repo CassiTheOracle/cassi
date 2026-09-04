@@ -44,6 +44,13 @@ renormalizability, Lorentzian unitarity, black-hole information retention, or
 a Page curve because the interacting vertices, contour prescription, and
 covariant horizon solution remain open. The composite-graviton identification
 and curved-spacetime predictions remain Hypothesized.
+Under the standard unsubtracted positive scalar spectral interpretation,
+the nonzero-$\sigma$ Gaussian is excluded: $xG_E(x)$ decreases, whereas
+every nonnegative spectral measure makes it nondecreasing (§3.1).
+The exact kernel identity, sign and $\sigma=0$ control pass QFC4 and an
+independent calculation. A gauge-fixed auxiliary or regulator-only
+interpretation needs separately qualified physical observables; the result
+is not a general interacting-unitarity theorem.
 
 ### `three-body-analytical.md`—The Three-Body Problem in Two-Fluid Gravity
 
@@ -65,7 +72,7 @@ Hypothesized.
 ## Cross-References
 
 - `predictions/falsifiable-predictions.md`—the 56-entry prediction catalog; the optional gravity extension's GW-speed branch is undetermined without a covariant wave equation, its breathing-mode entry is Hypothesized, and the implemented low-$k$ dispersion is rejected by the GW170817 speed bound in `audit.md` §3
-- `foundations/quantum-free-fall-correspondence.md`—conditional low-energy matter-wave phase, source/test separation, and the boundary between standard correspondence and a Cassi-specific response
+- `foundations/quantum-free-fall-correspondence.md`—conditional phase and source/test separation; physical-$q$ bounds and information loss; forty-three material, gravity, clock, apparatus and interacting-quantum closure requirements; independent QFC1–QFC4 receipts
 - `open-questions-cassi-answers.md`—the 42-entry epistemic registry (quantum-gravity cites G2, the Page curve question)
 - `foundations/cassi-first-principles.md`—first-principles foundation for the two-fluid quantization
 - `foundations/dimensionful-cascade.md`—the cascade ladder that anchors the dimensionful cascade and the $\sigma$ separation scale
