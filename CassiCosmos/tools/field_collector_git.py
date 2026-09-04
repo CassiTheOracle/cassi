@@ -115,8 +115,10 @@ def durability_r(subject: str) -> float:
     first = subject.strip().lower()
     if not first:
         return TYPE_R["default"]
-    if first.startswith("merge") or first.startswith("import"):
+    if first.startswith("merge"):
         return TYPE_R["merge"]
+    if first.startswith("import"):
+        return TYPE_R["import"]
     token = first.split(":", 1)[0].split("(", 1)[0].strip()
     return TYPE_R.get(token, TYPE_R["default"])
 
@@ -340,6 +342,8 @@ def self_test() -> int:
     gate_g1(rows)
     gate_g2(rows)
     gate_g3(rows)
+    assert durability_r("Merge branch 'x'") == TYPE_R["merge"]
+    assert durability_r("Import upstream history") == TYPE_R["import"]
     # duplicate-subject determinism: identical message/branch → same theta/z
     a = encode_commit("x", "t", "master", "same msg", "same", 1)
     b = encode_commit("y", "t2", "master", "same msg", "same", 1)

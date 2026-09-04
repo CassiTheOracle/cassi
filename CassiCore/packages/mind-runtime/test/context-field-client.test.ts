@@ -40,11 +40,12 @@ interface FieldCandidateBody {
   end_byte: number
   text: string
   revision: string
+  field_address?: string
 }
 
 interface MemoryPayloadBody {
   kind: 'memory'
-  record: { content: string }
+  record: { content: string; field_address?: string }
 }
 
 interface FeedbackPayloadBody {
@@ -78,7 +79,7 @@ interface TestRequestBody {
   event_id?: string
   payload?: MemoryPayloadBody | FeedbackPayloadBody
   query?: string
-  candidates?: FieldCandidateBody[]
+  addresses?: string[]
   observations?: CounterflowObservationBody[]
   observation?: CounterflowObservationBody
   acknowledgment?: {
@@ -239,21 +240,15 @@ async function startFieldServer(
       }))
       return
     }
-    if (req.url === '/v1/context/rank') {
-      const candidates = parsed.candidates
-      if (!candidates) throw new Error('candidates must be an array')
+    if (req.url === '/v1/context/recall') {
+      const addresses = parsed.addresses
+      if (!addresses) throw new Error('addresses must be an array')
       res.end(JSON.stringify({
-        ranked: candidates.map((candidate, index) => ({
-          id: candidate.id,
-          score: candidates.length - index,
-        })),
-        working: [{
-          id: 'working:goal:test',
-          revision: 'c'.repeat(64),
-          text: 'prior goal',
-          kind: 'goal',
-          score: 0.5,
-        }],
+        schema: 'cassi.mnemic.field-recall.v1',
+        address: addresses[0] ?? null,
+        signal: addresses.length > 0 ? 1 : 0,
+        selection_margin: addresses.length > 0 ? 1 : 0,
+        availability: addresses.length > 0 ? 1 : 0,
       }))
       return
     }
@@ -275,7 +270,7 @@ async function startFieldServer(
 }
 
 describe('HTTP context field client', () => {
-  it('drains exact events before ranking and bounds multibyte text by UTF-8 bytes', async () => {
+  it('drains exact events before recall and sends only opaque manifest addresses', async () => {
     const server = await startFieldServer()
     const store = new MnemicExactStore(logger, ':memory:')
     try {
@@ -288,6 +283,7 @@ describe('HTTP context field client', () => {
         nodeType: 'fact',
         metadata: { sessionId: 'session-a' },
       })
+      const address = store.fieldAddressManifest()[0]!.address
       store.rememberContextTurn('session-a', 1, longQuery, [{
         id: 'memory-a',
         recordId: 'memory-a',
@@ -295,84 +291,63 @@ describe('HTTP context field client', () => {
         endByte: Buffer.byteLength(longCandidate),
         text: longCandidate,
         revision: 'a'.repeat(64),
+        fieldAddress: address,
       }])
       store.consumeContextFeedback('session-a', 1, ['memory-a'], 'completed')
 
       const client = createHttpContextFieldClient(server.url, store)
       store.onFieldEvent = client.notify
-      const ranked = await client.rank({
+      const recalled = await client.recall({
         sessionId: 'session-b',
         query: longQuery,
-        candidates: [
-          {
-            id: 'memory-a',
-            recordId: 'memory-a',
-            startByte: 0,
-            endByte: Buffer.byteLength(longCandidate),
-            revision: 'a'.repeat(64),
-            source: 'mnemic',
-            text: longCandidate,
-            score: 0,
-          },
-          {
-            id: 'memory-b',
-            recordId: 'memory-b',
-            startByte: 0,
-            endByte: Buffer.byteLength('beta memory'),
-            revision: 'b'.repeat(64),
-            source: 'mnemic',
-            text: 'beta memory',
-            score: 0,
-          },
-        ],
+        addresses: [address],
         deadlineMs: 1_000,
       })
       await client.close()
 
-      expect(ranked.ranked.map(item => item.id)).toEqual(['memory-a', 'memory-b'])
-      expect(ranked.working).toEqual([{
-        id: 'working:goal:test',
-        revision: 'c'.repeat(64),
-        source: 'field',
-        text: 'prior goal',
-        score: 0.5,
-        sourceRefs: ['working:goal:test'],
-        workingKind: 'goal',
-      }])
+      expect(recalled).toEqual({
+        address,
+        signal: 1,
+        selectionMargin: 1,
+        availability: 1,
+      })
       const observations = server.requests.filter(request => request.path === '/v1/context/observe')
       const counterflow = server.requests.filter(request => request.path === '/v1/counterflow/plan')
       expect(observations).toHaveLength(2)
       expect(counterflow).toHaveLength(2)
       expect(counterflow.every(request => request.body.observations?.length === 0)).toBe(true)
-      expect(server.requests.findIndex(request => request.path === '/v1/context/rank'))
+      expect(server.requests.findIndex(request => request.path === '/v1/context/recall'))
         .toBeGreaterThan(server.requests.lastIndexOf(counterflow[1]))
       expect(server.requests.every(request => request.body.user === 'cassicore-context')).toBe(true)
 
       const memoryPayload = observations[0]?.body.payload
       const feedbackPayload = observations[1]?.body.payload
-      const rankRequest = server.requests.find(request => request.path === '/v1/context/rank')?.body
+      const recallRequest = server.requests.find(request => request.path === '/v1/context/recall')?.body
       if (memoryPayload?.kind !== 'memory') throw new Error('missing memory payload')
       if (feedbackPayload?.kind !== 'feedback') throw new Error('missing feedback payload')
-      if (!rankRequest?.candidates || typeof rankRequest.query !== 'string') throw new Error('missing rank payload')
+      if (!recallRequest?.addresses || typeof recallRequest.query !== 'string') {
+        throw new Error('missing recall payload')
+      }
       const feedbackCandidate = feedbackPayload.candidates[0]
-      const rankCandidate = rankRequest.candidates[0]
-      if (!feedbackCandidate || !rankCandidate) throw new Error('missing candidate payload')
+      if (!feedbackCandidate) throw new Error('missing candidate payload')
 
       expect(Buffer.byteLength(feedbackPayload.query)).toBe(8 * 1_024)
-      expect(Buffer.byteLength(rankRequest.query)).toBe(8 * 1_024)
+      expect(Buffer.byteLength(recallRequest.query)).toBe(8 * 1_024)
       expect(Buffer.byteLength(memoryPayload.record.content)).toBe(16 * 1_024)
       expect(Buffer.byteLength(feedbackCandidate.text)).toBeLessThanOrEqual(16 * 1_024)
-      expect(Buffer.byteLength(rankCandidate.text)).toBeLessThanOrEqual(16 * 1_024)
       expect(feedbackCandidate.end_byte - feedbackCandidate.start_byte)
         .toBe(Buffer.byteLength(feedbackCandidate.text))
-      expect(rankCandidate.end_byte - rankCandidate.start_byte)
-        .toBe(Buffer.byteLength(rankCandidate.text))
+      expect(memoryPayload.record.field_address).toBe(address)
+      expect(feedbackCandidate.field_address).toBe(address)
+      expect(recallRequest.addresses).toEqual([address])
+      expect(recallRequest.candidates).toBeUndefined()
+      expect(JSON.stringify(recallRequest)).not.toContain(longCandidate)
+      expect(JSON.stringify(recallRequest)).not.toContain(longMemory)
       for (const text of [
         feedbackPayload.query,
-        rankRequest.query,
+        recallRequest.query,
         memoryPayload.record.content,
         feedbackCandidate.text,
-        rankCandidate.text,
       ]) expect(text).not.toContain('\uFFFD')
     } finally {
       store.close()
@@ -927,31 +902,17 @@ describe('HTTP context field client', () => {
       store.store({ id: 'memory-a', content: 'alpha', nodeType: 'fact' })
       const client = createHttpContextFieldClient(server.url, store)
       await expect(client.flush()).rejects.toThrow()
-      await expect(client.rank({
+      const address = store.fieldAddressManifest()[0]!.address
+      await expect(client.recall({
         sessionId: 'session-a',
         query: 'alpha',
-        candidates: [{
-          id: 'memory-a',
-          recordId: 'memory-a',
-          startByte: 0,
-          endByte: Buffer.byteLength('alpha'),
-          revision: 'a'.repeat(64),
-          source: 'mnemic',
-          text: 'alpha',
-          score: 0,
-        }],
+        addresses: [address],
         deadlineMs: 1_000,
       })).resolves.toEqual({
-        ranked: [{ id: 'memory-a', score: 1 }],
-        working: [{
-          id: 'working:goal:test',
-          revision: 'c'.repeat(64),
-          source: 'field',
-          text: 'prior goal',
-          score: 0.5,
-          sourceRefs: ['working:goal:test'],
-          workingKind: 'goal',
-        }],
+        address,
+        signal: 1,
+        selectionMargin: 1,
+        availability: 1,
       })
       expect(server.requests.filter(request => request.path === '/v1/context/observe')).toHaveLength(1)
       expect(store.fieldStreamStatus()).toMatchObject({ headSequence: 1, acknowledgedSequence: 1 })

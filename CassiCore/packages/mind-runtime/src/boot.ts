@@ -110,7 +110,7 @@ export interface MindRuntimeOptions {
   disableOscillation?: boolean
   /** Optional, default-off read-only 7599 field telemetry. */
   fieldTelemetry?: FieldTelemetryConfig | boolean
-  /** Optional loopback CassiFI provider used to rank Mnemic context candidates. */
+  /** Optional loopback CassiFI provider with sole authority over Mnemic relevance. */
   fieldIntelligenceUrl?: string
   /** Explicit startup verification; ordinary Mnemic reads remain available on failure. */
   verifyMnemicJournal?: boolean
@@ -267,12 +267,12 @@ export async function createMindRuntime(opts: MindRuntimeOptions = {}): Promise<
   const memory = new MnemicMemoryAdapter(field)
   const registry = new ToolRegistry()
 
-  // Exact records stay in Mnemic; CassiFI alone owns adaptive ordering and
-  // successful-use consolidation. Provider failure leaves deterministic FTS.
+  // Exact Mnemic records supply only opaque addresses and resolved bytes;
+  // CassiFI alone selects relevance, and provider failure abstains.
   const context = new RuntimeContextCandidateService({
     memory,
     fieldTelemetry,
-    fieldRanker: fieldClient?.rank,
+    fieldRecall: fieldClient?.recall,
     bus,
     counterflowStatus: fieldClient?.status,
     logger: logger.child('context'),

@@ -114,18 +114,18 @@ hybrid shape plan §1.1/§4: a thin ohmypi **spine** extension wrapping a host-a
 ### 30. `@cassicore/mind-runtime` — the focused always-on cognitive process
 
 The retained composition from `@cassicore/host`'s daemon (plan §5 verdict 26) MINUS
-providers/sessions/CLI/ACP/admin-api. Owns `MnemicField` + the retained intelligence
-layer (`createIntelligence`), the orchestration bus + unified loop, the retained
-mind-tool deps → `registerMindTools` (the P3 retained-mind seam split from
+providers/sessions/CLI/ACP/admin-api. Owns `MnemicExactStore` plus the retained
+intelligence layer (`createIntelligence`), the orchestration bus + unified loop, the
+retained mind-tool deps → `registerMindTools` (the P3 retained-mind seam split from
 `registerCoreTools`, which is unchanged), and a narrow `127.0.0.1:7273` channel.
 Defines the channel-contract types (spine imports them; runtime imports zero ohmypi/spine).
 
 | area | detail |
 |---|---|
-| `src/boot.ts` | composition root (paths ports, intelligence layer, MnemicField + injections, unified loop, retained tool deps) |
-| `src/channel/server.ts` / `protocol.ts` | the 11-endpoint localhost channel (§3.2) + contract types |
-| `src/memory/backend.ts` | `MnemicMemoryAdapter` — status/search/save over MnemicField |
-| `src/context/candidates.ts` | durable exact-journal drain to CassiFI context observation, counterflow planning, and field ranking; only an `update` carrying distinct persisted before/after revisions becomes a transition, while snapshots and unrelated events produce `no_transition_data`; acknowledgement waits for both provider calls so restart retries cannot skip planning |
+| `src/boot.ts` | composition root (paths ports, retained intelligence layer, exact Mnemic records, unified loop, retained tool deps) |
+| `src/channel/server.ts` / `protocol.ts` | bounded localhost channel + contract types |
+| `src/memory/backend.ts` | `MnemicMemoryAdapter` — exact status/search/save plus opaque field-address manifest resolution |
+| `src/context/candidates.ts` | durable exact-journal drain to CassiFI condensation and counterflow planning; CassiFI's one persisted Qi tensor selects a whole opaque address or abstains, then CassiCore resolves exact bytes. No FTS relevance fallback exists, and acknowledgement waits for the provider checkpoint before advancing the exact journal. |
 | `src/session-store.ts` | `MindSessionMirror` — ohmypi session mirrors |
 | `src/run.ts` | `cassi-mind` bin |
 | tests | 22 vitest (boot + retained-tools runtime + channel contract + bearer auth) |

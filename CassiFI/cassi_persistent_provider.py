@@ -22,6 +22,10 @@ from typing import Any, Final
 
 import torch
 
+from cassi_mnemic_condensation import (
+    MnemicCondensationConfig,
+    MnemicCondensationController,
+)
 from cassi_counterflow_runtime import DerivedCounterflowRuntime
 from cassi_fi_paths import ARTIFACT_DIR, CONFIG_DIR
 from cassi_phi_harmonic_language import (
@@ -60,7 +64,7 @@ from cassi_universal_data import (
 )
 
 PROTOCOL = "Cassi Phi-harmonic field provider"
-VERSION = 7
+VERSION = 8
 MODEL_NAME = "cassi-phi-harmonic-language-v1"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8086
@@ -69,6 +73,10 @@ MAX_CONTEXT_MESSAGES = 128
 MAX_SESSION_ID = 256
 MAX_REQUEST_BYTES = 4 * 1024 * 1024
 DEFAULT_INGRESS_MAX_BYTES = 64 * 1024 * 1024
+LEGACY_PROVIDER_VERSION = 7
+LEGACY_SHARED_FIELD_SESSION_SCHEMA = "cassi.shared-field-provider-session.v3"
+LEGACY_SHARED_FIELD_LAYOUT_SCHEMA = "cassi.shared-field-layout.v1"
+LEGACY_CONTEXT_ASSOCIATION_FORMAT = "cassi.context.association.v2"
 _INGRESS_REQUEST_METADATA_BYTES = 64 * 1024
 MAX_INGRESS_REPLAY_ENTRIES = 1024
 MAX_CONTEXT_CANDIDATES = 32
@@ -77,12 +85,13 @@ MAX_CONTEXT_CANDIDATE_BYTES = 16 * 1024
 MAX_CONTEXT_FEEDBACK_CANDIDATES = 8
 MAX_CONTEXT_STREAMS = 16
 MAX_CONTEXT_EVENT_BYTES = 256 * 1024
+MAX_MNEMIC_RECALL_ADDRESSES = 65_536
 MAX_SESSION_METADATA_BYTES = 3 * 1024 * 1024
 EMPTY_CONTEXT_EVENT_ID = "0" * 64
 
 PHI_PROVIDER_CONFIG_SCHEMA = "cassi.phi-harmonic-language-config.v1"
-SHARED_FIELD_SESSION_SCHEMA = "cassi.shared-field-provider-session.v3"
-SHARED_FIELD_LAYOUT_SCHEMA = "cassi.shared-field-layout.v1"
+SHARED_FIELD_SESSION_SCHEMA = "cassi.shared-field-provider-session.v4"
+SHARED_FIELD_LAYOUT_SCHEMA = "cassi.shared-field-layout.v2"
 CONTEXT_STREAM_METADATA_KEY = "context_streams_v1"
 COUNTERFLOW_COMMIT_METADATA_KEY = "counterflow_commits_v1"
 WORLD_TURNS_METADATA_KEY = "particle_world_turns_v1"
@@ -90,7 +99,6 @@ WORLD_RESULTS_METADATA_KEY = "particle_world_results_v1"
 WORLD_EXCHANGES_METADATA_KEY = "particle_world_exchanges_v1"
 WORLD_LEDGER_LIMIT = 32
 LAST_COMPLETION_METADATA_KEY = "last_completion_v1"
-CONTEXT_ASSOCIATION_FORMAT = "cassi.context.association.v2"
 INGRESS_RECEIPT_SCHEMA = "cassi.provider.ingress-receipt.v1"
 INGRESS_REPLAY_SCHEMA = "cassi.provider.ingress-replay.v1"
 _INGRESS_CODECS: Final[tuple[str, ...]] = (
@@ -151,7 +159,6 @@ _JOURNAL_REFERENCE_KEYS: Final[frozenset[str]] = frozenset(
         "source_sequence",
     }
 )
-_CONTEXT_ASSOCIATION_METADATA_PROMPT = CONTEXT_ASSOCIATION_FORMAT.encode("ascii")
 
 _SESSION_MAGIC: Final[bytes] = b"CASSI-SHARED-FIELD-SESSION\x00"
 _SESSION_DIGEST_BYTES: Final[int] = hashlib.sha256().digest_size
@@ -250,15 +257,17 @@ def _sha256(value: Any) -> str:
 
 @dataclass(frozen=True)
 class SharedFieldLayout:
-    """Fixed slices of one native QiFieldState."""
+    """Fixed views of one canonical QiFieldState tensor."""
 
     phi_shape: tuple[int, int, int]
     counterflow_shape: tuple[int, int, int]
+    mnemic_shape: tuple[int, int, int]
 
     def __post_init__(self) -> None:
         for name, shape in (
             ("phi_shape", self.phi_shape),
             ("counterflow_shape", self.counterflow_shape),
+            ("mnemic_shape", self.mnemic_shape),
         ):
             if (
                 not isinstance(shape, tuple)
@@ -279,10 +288,12 @@ class SharedFieldLayout:
         cls,
         phi: QiFieldState,
         counterflow: QiFieldState,
+        mnemic: QiFieldState,
     ) -> "SharedFieldLayout":
         return cls(
             phi_shape=cls._state_shape(phi, label="Phi"),
             counterflow_shape=cls._state_shape(counterflow, label="counterflow"),
+            mnemic_shape=cls._state_shape(mnemic, label="mnemic"),
         )
 
     @staticmethod
@@ -307,7 +318,23 @@ class SharedFieldLayout:
         return math.prod(self.counterflow_shape)
 
     @property
+    def mnemic_size(self) -> int:
+        return math.prod(self.mnemic_shape)
+
+    @property
+    def counterflow_offset(self) -> int:
+        return self.phi_size
+
+    @property
+    def mnemic_offset(self) -> int:
+        return self.phi_size + self.counterflow_size
+
+    @property
     def shared_shape(self) -> tuple[int, int, int]:
+        return (1, self.phi_size + self.counterflow_size + self.mnemic_size, 1)
+
+    @property
+    def legacy_shared_shape(self) -> tuple[int, int, int]:
         return (1, self.phi_size + self.counterflow_size, 1)
 
     @property
@@ -315,6 +342,18 @@ class SharedFieldLayout:
         return _sha256(
             {
                 "schema": SHARED_FIELD_LAYOUT_SCHEMA,
+                "phi_shape": self.phi_shape,
+                "counterflow_shape": self.counterflow_shape,
+                "mnemic_shape": self.mnemic_shape,
+                "packing": "flat-contiguous-phi-then-counterflow-then-mnemic",
+            }
+        )
+
+    @property
+    def legacy_fingerprint(self) -> str:
+        return _sha256(
+            {
+                "schema": LEGACY_SHARED_FIELD_LAYOUT_SCHEMA,
                 "phi_shape": self.phi_shape,
                 "counterflow_shape": self.counterflow_shape,
                 "packing": "flat-contiguous-phi-then-counterflow",
@@ -335,6 +374,22 @@ class SharedFieldLayout:
             )
         if not bool(torch.isfinite(state.field).all().item()):
             raise ProviderError("shared field contains non-finite values")
+
+    def validate_legacy(self, state: QiFieldState) -> None:
+        if not isinstance(state, QiFieldState) or not torch.is_tensor(state.field):
+            raise ProviderError("legacy shared state must be a QiFieldState")
+        if (
+            state.field.layout != torch.strided
+            or tuple(state.field.shape) != self.legacy_shared_shape
+            or not state.field.is_contiguous()
+            or state.field.dtype not in (torch.float32, torch.float64)
+        ):
+            raise ProviderError(
+                "legacy shared field must be contiguous "
+                f"{self.legacy_shared_shape} float32 or float64"
+            )
+        if not bool(torch.isfinite(state.field).all().item()):
+            raise ProviderError("legacy shared field contains non-finite values")
 
     @staticmethod
     def _validate_component(
@@ -360,6 +415,34 @@ class SharedFieldLayout:
         self,
         phi: QiFieldState,
         counterflow: QiFieldState,
+        mnemic: QiFieldState,
+    ) -> QiFieldState:
+        self._validate_component(phi, self.phi_shape)
+        self._validate_component(counterflow, self.counterflow_shape)
+        self._validate_component(mnemic, self.mnemic_shape)
+        if (
+            phi.field.device != counterflow.field.device
+            or phi.field.device != mnemic.field.device
+            or phi.field.dtype != counterflow.field.dtype
+            or phi.field.dtype != mnemic.field.dtype
+        ):
+            raise ProviderError("field components must share one device and dtype")
+        state = QiFieldState(
+            field=torch.cat(
+                (
+                    phi.field.reshape(-1),
+                    counterflow.field.reshape(-1),
+                    mnemic.field.reshape(-1),
+                )
+            ).reshape(self.shared_shape)
+        )
+        self.validate(state)
+        return state
+
+    def legacy_join(
+        self,
+        phi: QiFieldState,
+        counterflow: QiFieldState,
     ) -> QiFieldState:
         self._validate_component(phi, self.phi_shape)
         self._validate_component(counterflow, self.counterflow_shape)
@@ -367,13 +450,13 @@ class SharedFieldLayout:
             phi.field.device != counterflow.field.device
             or phi.field.dtype != counterflow.field.dtype
         ):
-            raise ProviderError("field components must share one device and dtype")
+            raise ProviderError("legacy field components must share one device and dtype")
         state = QiFieldState(
             field=torch.cat(
                 (phi.field.reshape(-1), counterflow.field.reshape(-1))
-            ).reshape(self.shared_shape)
+            ).reshape(self.legacy_shared_shape)
         )
-        self.validate(state)
+        self.validate_legacy(state)
         return state
 
     def _component(
@@ -394,8 +477,33 @@ class SharedFieldLayout:
     def counterflow(self, state: QiFieldState) -> QiFieldState:
         return self._component(
             state,
-            offset=self.phi_size,
+            offset=self.counterflow_offset,
             shape=self.counterflow_shape,
+        )
+
+    def mnemic(self, state: QiFieldState) -> QiFieldState:
+        return self._component(
+            state,
+            offset=self.mnemic_offset,
+            shape=self.mnemic_shape,
+        )
+
+    def legacy_phi(self, state: QiFieldState) -> QiFieldState:
+        self.validate_legacy(state)
+        return QiFieldState(
+            field=state.field.reshape(-1).narrow(0, 0, self.phi_size).view(
+                self.phi_shape
+            )
+        )
+
+    def legacy_counterflow(self, state: QiFieldState) -> QiFieldState:
+        self.validate_legacy(state)
+        return QiFieldState(
+            field=state.field.reshape(-1).narrow(
+                0,
+                self.counterflow_offset,
+                self.counterflow_size,
+            ).view(self.counterflow_shape)
         )
 
     def _replace(
@@ -429,8 +537,20 @@ class SharedFieldLayout:
         return self._replace(
             state,
             counterflow,
-            offset=self.phi_size,
+            offset=self.counterflow_offset,
             shape=self.counterflow_shape,
+        )
+
+    def with_mnemic(
+        self,
+        state: QiFieldState,
+        mnemic: QiFieldState,
+    ) -> QiFieldState:
+        return self._replace(
+            state,
+            mnemic,
+            offset=self.mnemic_offset,
+            shape=self.mnemic_shape,
         )
 
     def state_sha256(self, state: QiFieldState) -> str:
@@ -440,6 +560,22 @@ class SharedFieldLayout:
             _canonical(
                 {
                     "layout_fingerprint": self.fingerprint,
+                    "dtype": str(owned.dtype),
+                    "shape": tuple(owned.shape),
+                }
+            )
+        )
+        digest.update(b"\x00")
+        digest.update(owned.numpy().tobytes(order="C"))
+        return digest.hexdigest()
+
+    def legacy_state_sha256(self, state: QiFieldState) -> str:
+        self.validate_legacy(state)
+        owned = state.field.detach().cpu().contiguous()
+        digest = hashlib.sha256(
+            _canonical(
+                {
+                    "layout_fingerprint": self.legacy_fingerprint,
                     "dtype": str(owned.dtype),
                     "shape": tuple(owned.shape),
                 }
@@ -768,24 +904,36 @@ class SharedFieldSessionStore:
         root: Path,
         controller: PhiHarmonicLanguageController,
         counterflow_runtime: DerivedCounterflowRuntime,
+        mnemic_controller: MnemicCondensationController,
+        initial_mnemic_state: QiFieldState,
         layout: SharedFieldLayout,
         *,
         provider_fingerprint: str,
+        legacy_provider_fingerprint: str,
         engine_fingerprint: str,
         device: torch.device,
     ) -> None:
         if not _is_digest(provider_fingerprint):
             raise ProviderError("provider fingerprint must be a SHA-256 digest")
+        if not _is_digest(legacy_provider_fingerprint):
+            raise ProviderError("legacy provider fingerprint must be a SHA-256 digest")
         if not _is_digest(engine_fingerprint):
             raise ProviderError("engine fingerprint must be a SHA-256 digest")
         if not isinstance(layout, SharedFieldLayout):
             raise ProviderError("layout must be a SharedFieldLayout")
+        try:
+            mnemic_controller.validate_state(initial_mnemic_state)
+        except QiFieldError as error:
+            raise ProviderError(f"initial mnemic field is invalid: {error}") from error
         self.root = Path(root)
         self.controller = controller
         self.provider_fingerprint = provider_fingerprint
+        self.legacy_provider_fingerprint = legacy_provider_fingerprint
         self.engine_fingerprint = engine_fingerprint
         self.counterflow_runtime = counterflow_runtime
         self.initial_counterflow_state = counterflow_runtime.initial_state()
+        self.mnemic_controller = mnemic_controller
+        self.initial_mnemic_state = initial_mnemic_state.clone()
         self.layout = layout
         self.device = device
         self.root.mkdir(parents=True, exist_ok=True)
@@ -839,11 +987,13 @@ class SharedFieldSessionStore:
             header = json.loads(raw[header_start:header_end].decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
             raise ProviderError(f"shared field session header is invalid: {error}") from error
-        expected_keys = {
+        current_keys = {
             "codebook_fingerprint",
             "config_fingerprint",
             "counterflow_config_fingerprint",
             "counterflow_state_sha256",
+            "mnemic_config_fingerprint",
+            "mnemic_state_sha256",
             "field_bytes",
             "field_dtype",
             "field_payload_sha256",
@@ -857,7 +1007,20 @@ class SharedFieldSessionStore:
             "session_id",
             "shared_state_sha256",
         }
-        if not isinstance(header, dict) or set(header) != expected_keys:
+        legacy_keys = current_keys - {
+            "mnemic_config_fingerprint",
+            "mnemic_state_sha256",
+        }
+        if not isinstance(header, dict):
+            raise ProviderError("shared field session header must be an object")
+        expected_keys = (
+            current_keys
+            if header.get("schema") == SHARED_FIELD_SESSION_SCHEMA
+            else legacy_keys
+            if header.get("schema") == LEGACY_SHARED_FIELD_SESSION_SCHEMA
+            else set()
+        )
+        if set(header) != expected_keys:
             raise ProviderError("shared field session header key set is invalid")
         field_length = header.get("field_bytes")
         metadata_length = header.get("metadata_bytes")
@@ -899,10 +1062,17 @@ class SharedFieldSessionStore:
             raise ProviderError("session checkpoint engine identity is invalid")
         return path, _sha256(raw), str(fingerprint)
 
+
+    def is_compatible_provider_fingerprint(self, value: str) -> bool:
+        return value in {
+            self.provider_fingerprint,
+            self.legacy_provider_fingerprint,
+        }
     def initial(self, phi: QiFieldState) -> QiFieldState:
         return self.layout.join(
             phi,
             QiFieldState(field=self.initial_counterflow_state.field.clone()),
+            self.initial_mnemic_state.clone(),
         )
 
     def load(
@@ -918,11 +1088,21 @@ class SharedFieldSessionStore:
         except OSError as error:
             raise ProviderError(f"could not read session checkpoint: {error}") from error
         header, field_payload, metadata_payload = self._decode_frame(raw)
-        if header.get("schema") != SHARED_FIELD_SESSION_SCHEMA:
+        schema = header.get("schema")
+        legacy = schema == LEGACY_SHARED_FIELD_SESSION_SCHEMA
+        if schema not in {
+            SHARED_FIELD_SESSION_SCHEMA,
+            LEGACY_SHARED_FIELD_SESSION_SCHEMA,
+        }:
             raise ProviderError("shared field session schema mismatch")
         if header.get("session_id") != session_id:
             raise ProviderError("shared field session identity mismatch")
-        if header.get("provider_fingerprint") != self.provider_fingerprint:
+        expected_provider_fingerprint = (
+            self.legacy_provider_fingerprint
+            if legacy
+            else self.provider_fingerprint
+        )
+        if header.get("provider_fingerprint") != expected_provider_fingerprint:
             raise ProviderError("shared field session provider fingerprint mismatch")
         if header.get("config_fingerprint") != self.controller.config_fingerprint:
             raise ProviderError("Phi component config fingerprint mismatch")
@@ -933,9 +1113,22 @@ class SharedFieldSessionStore:
             != self.counterflow_runtime.config_fingerprint
         ):
             raise ProviderError("counterflow component config fingerprint mismatch")
-        if header.get("layout_fingerprint") != self.layout.fingerprint:
+        if not legacy and (
+            header.get("mnemic_config_fingerprint")
+            != self.mnemic_controller.config_fingerprint
+        ):
+            raise ProviderError("mnemic component config fingerprint mismatch")
+        expected_layout_fingerprint = (
+            self.layout.legacy_fingerprint if legacy else self.layout.fingerprint
+        )
+        expected_shape = (
+            self.layout.legacy_shared_shape
+            if legacy
+            else self.layout.shared_shape
+        )
+        if header.get("layout_fingerprint") != expected_layout_fingerprint:
             raise ProviderError("shared field layout fingerprint mismatch")
-        if header.get("field_shape") != list(self.layout.shared_shape):
+        if header.get("field_shape") != list(expected_shape):
             raise ProviderError("shared field shape mismatch")
         dtype_name = header.get("field_dtype")
         if not isinstance(dtype_name, str):
@@ -946,7 +1139,7 @@ class SharedFieldSessionStore:
         }.get(dtype_name)
         if dtype is None:
             raise ProviderError("shared field dtype is invalid")
-        expected_bytes = math.prod(self.layout.shared_shape) * torch.empty(
+        expected_bytes = math.prod(expected_shape) * torch.empty(
             (), dtype=dtype
         ).element_size()
         if len(field_payload) != expected_bytes:
@@ -961,23 +1154,45 @@ class SharedFieldSessionStore:
             field = (
                 torch.frombuffer(bytearray(field_payload), dtype=dtype)
                 .clone()
-                .reshape(self.layout.shared_shape)
+                .reshape(expected_shape)
                 .to(self.device)
             )
-            state = QiFieldState(field=field)
-            self.layout.validate(state)
-            phi = self.layout.phi(state)
-            counterflow = self.layout.counterflow(state)
+            packed = QiFieldState(field=field)
+            if legacy:
+                self.layout.validate_legacy(packed)
+                phi = self.layout.legacy_phi(packed)
+                counterflow = self.layout.legacy_counterflow(packed)
+                packed_sha256 = self.layout.legacy_state_sha256(packed)
+                initial_mnemic = QiFieldState(
+                    field=self.initial_mnemic_state.field.to(
+                        device=self.device,
+                        dtype=dtype,
+                    ).clone()
+                )
+                state = self.layout.join(phi, counterflow, initial_mnemic)
+                mnemic_sha256 = self.mnemic_controller.state_sha256(
+                    initial_mnemic
+                )
+            else:
+                self.layout.validate(packed)
+                state = packed
+                phi = self.layout.phi(state)
+                counterflow = self.layout.counterflow(state)
+                mnemic = self.layout.mnemic(state)
+                packed_sha256 = self.layout.state_sha256(state)
+                mnemic_sha256 = self.mnemic_controller.state_sha256(mnemic)
             phi_sha256 = self.controller.state_sha256(phi)
             counterflow_sha256 = self.counterflow_runtime.state_sha256(counterflow)
         except (ProviderError, QiFieldError, RuntimeError) as error:
             raise ProviderError(f"shared field state is invalid: {error}") from error
-        if self.layout.state_sha256(state) != header.get("shared_state_sha256"):
+        if packed_sha256 != header.get("shared_state_sha256"):
             raise ProviderError("shared field state hash mismatch")
         if phi_sha256 != header.get("phi_state_sha256"):
             raise ProviderError("Phi component state hash mismatch")
         if counterflow_sha256 != header.get("counterflow_state_sha256"):
             raise ProviderError("counterflow component state hash mismatch")
+        if not legacy and mnemic_sha256 != header.get("mnemic_state_sha256"):
+            raise ProviderError("mnemic component state hash mismatch")
         normalized_metadata = _metadata(decoded_metadata)
         self._validate_metadata_identity(session_id, normalized_metadata)
         return state, normalized_metadata, path, _sha256(raw)
@@ -998,8 +1213,10 @@ class SharedFieldSessionStore:
         try:
             phi = self.layout.phi(state)
             counterflow = self.layout.counterflow(state)
+            mnemic = self.layout.mnemic(state)
             phi_sha256 = self.controller.state_sha256(phi)
             counterflow_sha256 = self.counterflow_runtime.state_sha256(counterflow)
+            mnemic_sha256 = self.mnemic_controller.state_sha256(mnemic)
         except (ProviderError, QiFieldError) as error:
             raise ProviderError(f"could not validate shared field state: {error}") from error
         owned = state.field.detach().cpu().contiguous()
@@ -1013,10 +1230,12 @@ class SharedFieldSessionStore:
             "counterflow_config_fingerprint": (
                 self.counterflow_runtime.config_fingerprint
             ),
+            "mnemic_config_fingerprint": self.mnemic_controller.config_fingerprint,
             "layout_fingerprint": self.layout.fingerprint,
             "shared_state_sha256": self.layout.state_sha256(state),
             "phi_state_sha256": phi_sha256,
             "counterflow_state_sha256": counterflow_sha256,
+            "mnemic_state_sha256": mnemic_sha256,
             "field_dtype": str(owned.dtype),
             "field_shape": list(owned.shape),
             "field_payload_sha256": _sha256(field_payload),
@@ -1043,28 +1262,10 @@ class SharedFieldSessionStore:
         return path, _sha256(serialized)
 
 
-@dataclass(frozen=True)
-class _Association:
-    event_id: str
-    sequence: int
-    candidate_id: str
-    context_session_id: str
-    record_id: str
-    revision: str
-    kind: str
-    prompt: bytes
-    text: str
-    continuation: bytes
-    metadata_continuation: bytes
-    event_count: int
-
-    @property
-    def identity(self) -> tuple[str, str]:
-        return (self.event_id, self.candidate_id)
 
 
 class PersistentFieldProvider:
-    """Hash-pinned seven-pool engine with one shared native field state."""
+    """Hash-pinned engine with one canonical multi-band Qi field tensor."""
 
     def __init__(
         self,
@@ -1083,6 +1284,7 @@ class PersistentFieldProvider:
         self.engine: PhiHarmonicTextEngine | None = None
         self.store: SharedFieldSessionStore | None = None
         self.counterflow_runtime: DerivedCounterflowRuntime | None = None
+        self.mnemic_controller: MnemicCondensationController | None = None
         self.ingress_journal: QiIngressJournal | None = None
         self.initial_state: QiFieldState | None = None
         self.initial_checkpoint_sha256: str | None = None
@@ -1131,13 +1333,53 @@ class PersistentFieldProvider:
             checkpoint_sha256 = _sha256(checkpoint_payload)
             counterflow_runtime = DerivedCounterflowRuntime(device=device)
             initial_counterflow_state = counterflow_runtime.initial_state()
+            mnemic_controller = MnemicCondensationController(
+                MnemicCondensationConfig(cue_dimensions=256)
+            )
+            initial_mnemic_state = mnemic_controller.initial_state(
+                device=device,
+                dtype=initial_state.field.dtype,
+            )
             layout = SharedFieldLayout.from_states(
                 initial_state,
                 initial_counterflow_state,
+                initial_mnemic_state,
             )
             initial_shared_state = layout.join(
                 initial_state,
                 initial_counterflow_state,
+                initial_mnemic_state,
+            )
+            initial_legacy_shared_state = layout.legacy_join(
+                initial_state,
+                initial_counterflow_state,
+            )
+            legacy_provider_fingerprint = _sha256(
+                {
+                    "protocol": PROTOCOL,
+                    "version": LEGACY_PROVIDER_VERSION,
+                    "model": MODEL_NAME,
+                    "engine_fingerprint": engine.fingerprint,
+                    "initial_checkpoint_sha256": checkpoint_sha256,
+                    "initial_state_sha256": controller.state_sha256(initial_state),
+                    "initial_tape_sha256": controller.tape_sha256(initial_state),
+                    "context_association_format": (
+                        LEGACY_CONTEXT_ASSOCIATION_FORMAT
+                    ),
+                    "session_schema": LEGACY_SHARED_FIELD_SESSION_SCHEMA,
+                    "shared_layout_fingerprint": layout.legacy_fingerprint,
+                    "initial_shared_state_sha256": layout.legacy_state_sha256(
+                        initial_legacy_shared_state
+                    ),
+                    "counterflow_config_fingerprint": (
+                        counterflow_runtime.config_fingerprint
+                    ),
+                    "initial_counterflow_state_sha256": (
+                        counterflow_runtime.state_sha256(
+                            initial_counterflow_state
+                        )
+                    ),
+                }
             )
             provider_fingerprint = _sha256(
                 {
@@ -1148,7 +1390,6 @@ class PersistentFieldProvider:
                     "initial_checkpoint_sha256": checkpoint_sha256,
                     "initial_state_sha256": controller.state_sha256(initial_state),
                     "initial_tape_sha256": controller.tape_sha256(initial_state),
-                    "context_association_format": CONTEXT_ASSOCIATION_FORMAT,
                     "session_schema": SHARED_FIELD_SESSION_SCHEMA,
                     "shared_layout_fingerprint": layout.fingerprint,
                     "initial_shared_state_sha256": layout.state_sha256(
@@ -1160,14 +1401,23 @@ class PersistentFieldProvider:
                     "initial_counterflow_state_sha256": (
                         counterflow_runtime.state_sha256(initial_counterflow_state)
                     ),
+                    "mnemic_config_fingerprint": (
+                        mnemic_controller.config_fingerprint
+                    ),
+                    "initial_mnemic_state_sha256": (
+                        mnemic_controller.state_sha256(initial_mnemic_state)
+                    ),
                 }
             )
             store = SharedFieldSessionStore(
                 self.config.state_dir,
                 controller,
                 counterflow_runtime,
+                mnemic_controller,
+                initial_mnemic_state,
                 layout,
                 provider_fingerprint=provider_fingerprint,
+                legacy_provider_fingerprint=legacy_provider_fingerprint,
                 engine_fingerprint=engine.fingerprint,
                 device=device,
             )
@@ -1188,6 +1438,7 @@ class PersistentFieldProvider:
             self.provider_fingerprint = provider_fingerprint
             self.store = store
             self.counterflow_runtime = counterflow_runtime
+            self.mnemic_controller = mnemic_controller
             self.ingress_journal = ingress_journal
             self._started = True
 
@@ -1197,6 +1448,7 @@ class PersistentFieldProvider:
             self.store = None
             self.ingress_journal = None
             self.counterflow_runtime = None
+            self.mnemic_controller = None
             self.engine = None
             self.controller = None
             self.initial_state = None
@@ -2113,17 +2365,18 @@ class PersistentFieldProvider:
 
     @staticmethod
     def _validate_record(record: Any) -> dict[str, str]:
-        if not isinstance(record, Mapping) or set(record) != {
-            "id",
-            "content",
-            "node_type",
-            "revision",
-        }:
+        required_keys = {"id", "content", "node_type", "revision"}
+        if (
+            not isinstance(record, Mapping)
+            or not required_keys <= set(record)
+            or not set(record) <= required_keys | {"field_address"}
+        ):
             raise ProviderError("memory record is invalid")
         record_id = record.get("id")
         content = record.get("content")
         node_type = record.get("node_type")
         revision = record.get("revision")
+        field_address = record.get("field_address")
         if (
             not isinstance(record_id, str)
             or not record_id
@@ -2139,12 +2392,21 @@ class PersistentFieldProvider:
             raise ProviderError("memory node_type is invalid")
         if not _is_digest(revision):
             raise ProviderError("memory record revision is invalid")
-        return {
+        if field_address is not None and (
+            not isinstance(field_address, str)
+            or len(field_address) != 32
+            or any(character not in "0123456789abcdef" for character in field_address)
+        ):
+            raise ProviderError("memory record field_address is invalid")
+        normalized = {
             "id": record_id,
             "content": content,
             "node_type": node_type,
             "revision": str(revision),
         }
+        if field_address is not None:
+            normalized["field_address"] = field_address
+        return normalized
 
     @staticmethod
     def _validate_candidates(
@@ -2158,7 +2420,7 @@ class PersistentFieldProvider:
             raise ProviderError(f"{label} candidates are invalid")
         normalized: list[dict[str, Any]] = []
         seen: set[str] = set()
-        expected_keys = {
+        required_keys = {
             "id",
             "record_id",
             "revision",
@@ -2167,16 +2429,19 @@ class PersistentFieldProvider:
             "text",
         }
         for index, candidate in enumerate(candidates):
-            if not isinstance(candidate, Mapping) or set(candidate) != expected_keys:
-                raise ProviderError(
-                    f"{label} candidate {index} must be an exact revision span"
-                )
+            if (
+                not isinstance(candidate, Mapping)
+                or not required_keys <= set(candidate)
+                or not set(candidate) <= required_keys | {"field_address"}
+            ):
+                raise ProviderError(f"{label} candidate {index} has an unexpected key set")
             candidate_id = candidate.get("id")
             record_id = candidate.get("record_id")
             revision = candidate.get("revision")
             start_byte = candidate.get("start_byte")
             end_byte = candidate.get("end_byte")
             text = candidate.get("text")
+            field_address = candidate.get("field_address")
             text_bytes = text.encode("utf-8") if isinstance(text, str) else b""
             if (
                 not isinstance(candidate_id, str)
@@ -2196,19 +2461,31 @@ class PersistentFieldProvider:
                 or end_byte - start_byte != len(text_bytes)
                 or not text_bytes
                 or len(text_bytes) > MAX_CONTEXT_CANDIDATE_BYTES
+                or (
+                    field_address is not None
+                    and (
+                        not isinstance(field_address, str)
+                        or len(field_address) != 32
+                        or any(
+                            character not in "0123456789abcdef"
+                            for character in field_address
+                        )
+                    )
+                )
             ):
                 raise ProviderError(f"{label} candidate {index} is invalid")
             seen.add(candidate_id)
-            normalized.append(
-                {
-                    "id": candidate_id,
-                    "record_id": record_id,
-                    "revision": str(revision),
-                    "start_byte": start_byte,
-                    "end_byte": end_byte,
-                    "text": text,
-                }
-            )
+            item = {
+                "id": candidate_id,
+                "record_id": record_id,
+                "revision": str(revision),
+                "start_byte": start_byte,
+                "end_byte": end_byte,
+                "text": text,
+            }
+            if field_address is not None:
+                item["field_address"] = field_address
+            normalized.append(item)
         return normalized
 
     @staticmethod
@@ -2319,9 +2596,6 @@ class PersistentFieldProvider:
                 normalized["effects"] = normalized_effects
         return normalized
 
-    @staticmethod
-    def _context_prompt(context_session_id: str, query: str) -> bytes:
-        return _canonical([context_session_id, query])
 
     @classmethod
     def _validate_context_payload(
@@ -2456,303 +2730,83 @@ class PersistentFieldProvider:
             [candidate["id"] for candidate in normalized_candidates],
         )
 
-    @staticmethod
-    def _association_metadata(
-        *,
-        candidate_id: str,
-        record_id: str,
-        revision: str,
-        kind: str,
-        sequence: int,
-        event_id: str,
-        prompt: bytes,
-        text: bytes,
-    ) -> bytes:
-        return _canonical(
-            {
-                "candidate_id": candidate_id,
-                "event_id": event_id,
-                "kind": kind,
-                "prompt_sha256": hashlib.sha256(prompt).hexdigest(),
-                "record_id": record_id,
-                "revision": revision,
-                "sequence": sequence,
-                "text_sha256": hashlib.sha256(text).hexdigest(),
-            }
-        )
-
-    @classmethod
-    def _association_from_exchanges(
-        cls,
-        controller: PhiHarmonicLanguageController,
-        semantic: tuple[bytes, bytes],
-        metadata: tuple[bytes, bytes],
-    ) -> _Association:
-        prompt, continuation = semantic
-        metadata_prompt, metadata_continuation = metadata
-        try:
-            prompt_value = json.loads(prompt.decode("utf-8"))
-            text = continuation.decode("utf-8")
-            value = json.loads(metadata_continuation.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as error:
-            raise ProviderError("stored context association is malformed") from error
-        expected = {
-            "candidate_id",
-            "event_id",
-            "kind",
-            "prompt_sha256",
-            "record_id",
-            "revision",
-            "sequence",
-            "text_sha256",
-        }
-        if (
-            metadata_prompt != _CONTEXT_ASSOCIATION_METADATA_PROMPT
-            or not isinstance(prompt_value, list)
-            or len(prompt_value) != 2
-            or not all(isinstance(item, str) for item in prompt_value)
-            or not isinstance(value, dict)
-            or set(value) != expected
-        ):
-            raise ProviderError("stored context association is malformed")
-        context_session_id = cls._validate_context_session_id(prompt_value[0])
-        query = prompt_value[1]
-        candidate_id = value.get("candidate_id")
-        event_id = value.get("event_id")
-        kind = value.get("kind")
-        record_id = value.get("record_id")
-        revision = value.get("revision")
-        sequence = value.get("sequence")
-        if (
-            not query
-            or len(query.encode("utf-8")) > MAX_CONTEXT_QUERY_BYTES
-            or not isinstance(candidate_id, str)
-            or not candidate_id
-            or len(candidate_id.encode("utf-8")) > MAX_SESSION_ID
-            or not _is_digest(event_id)
-            or kind not in {"record", "memory", "goal", "artifact", "failure"}
-            or not isinstance(record_id, str)
-            or not record_id
-            or len(record_id.encode("utf-8")) > MAX_SESSION_ID
-            or not _is_digest(revision)
-            or isinstance(sequence, bool)
-            or not isinstance(sequence, int)
-            or sequence < 1
-            or not text
-            or len(continuation) > MAX_CONTEXT_CANDIDATE_BYTES
-            or value.get("prompt_sha256") != hashlib.sha256(prompt).hexdigest()
-            or value.get("text_sha256") != hashlib.sha256(continuation).hexdigest()
-        ):
-            raise ProviderError("stored context association is malformed")
-        return _Association(
-            event_id=str(event_id),
-            sequence=sequence,
-            candidate_id=candidate_id,
-            context_session_id=context_session_id,
-            record_id=record_id,
-            revision=str(revision),
-            kind=str(kind),
-            prompt=prompt,
-            text=text,
-            continuation=continuation,
-            metadata_continuation=metadata_continuation,
-            event_count=(
-                len(controller.codec.encode_training_exchange(prompt, continuation))
-                + len(
-                    controller.codec.encode_training_exchange(
-                        _CONTEXT_ASSOCIATION_METADATA_PROMPT,
-                        metadata_continuation,
-                    )
-                )
-            ),
-        )
-
-    @classmethod
-    def _resident_associations(
-        cls,
-        controller: PhiHarmonicLanguageController,
-        initial: QiFieldState,
-        state: QiFieldState,
-    ) -> list[_Association]:
-        base = controller.learned_exchanges(initial)
-        resident = controller.learned_exchanges(state)
-        if resident[: len(base)] != base:
-            raise ProviderError("Phi session changed the learned base tape")
-        retained = resident[len(base) :]
-        if len(retained) % 2 != 0:
-            raise ProviderError("stored context association pair is incomplete")
-        return [
-            cls._association_from_exchanges(
-                controller,
-                retained[position],
-                retained[position + 1],
-            )
-            for position in range(0, len(retained), 2)
-        ]
-
-    @staticmethod
-    def _selected_associations(
-        controller: PhiHarmonicLanguageController,
-        initial: QiFieldState,
-        associations: Sequence[_Association],
-    ) -> list[_Association]:
-        available = (
-            controller.config.trajectory_capacity
-            - len(controller.learned_events(initial))
-        )
-        selected: list[_Association] = []
-        used = 0
-        for association in reversed(associations):
-            if association.event_count <= available - used:
-                selected.append(association)
-                used += association.event_count
-        selected.reverse()
-        return selected
 
 
-    def rank_context(self, request: Mapping[str, Any]) -> dict[str, Any]:
+
+
+
+    def recall_context(self, request: Mapping[str, Any]) -> dict[str, Any]:
         started = time.perf_counter()
         if not isinstance(request, Mapping):
-            raise ProviderError("context ranking request must be an object")
+            raise ProviderError("context recall request must be an object")
         query = request.get("query")
         if (
             not isinstance(query, str)
-            or not query
+            or not query.strip()
             or len(query.encode("utf-8")) > MAX_CONTEXT_QUERY_BYTES
         ):
             raise ProviderError("query must be bounded nonempty text")
         context_session_id = self._validate_context_session_id(
-            request.get("context_session_id", "")
+            request.get("context_session_id")
         )
-        candidates = self._validate_candidates(
-            request.get("candidates"),
-            limit=MAX_CONTEXT_CANDIDATES,
-            label="ranking",
-        )
-        validation_ms = (time.perf_counter() - started) * 1_000
-        controller, _, initial, store, _ = self._require()
-        encoding_started = time.perf_counter()
-        prompt = self._context_prompt(context_session_id, query)
-        encoding_ms = (time.perf_counter() - encoding_started) * 1_000
+        raw_addresses = request.get("addresses")
+        if (
+            not isinstance(raw_addresses, Sequence)
+            or isinstance(raw_addresses, (str, bytes, bytearray))
+            or len(raw_addresses) > MAX_MNEMIC_RECALL_ADDRESSES
+        ):
+            raise ProviderError("field address manifest is invalid")
+        addresses: list[bytes] = []
+        seen: set[str] = set()
+        for index, value in enumerate(raw_addresses):
+            if (
+                not isinstance(value, str)
+                or len(value) != 32
+                or any(character not in "0123456789abcdef" for character in value)
+            ):
+                raise ProviderError(f"field address {index} is invalid")
+            if value in seen:
+                continue
+            seen.add(value)
+            addresses.append(bytes.fromhex(value))
         session_id = _session_id(request)
+        _controller, _, initial, store, _ = self._require()
+        mnemic_controller = self.mnemic_controller
+        if mnemic_controller is None:
+            raise ProviderError("persistent field provider is not started")
         with self._session_lock(session_id):
             load_started = time.perf_counter()
             loaded = store.load(session_id)
             shared = store.initial(initial) if loaded is None else loaded[0]
-            state = store.layout.phi(shared)
-            state_sha256 = controller.state_sha256(state)
+            mnemic = store.layout.mnemic(shared)
             load_ms = (time.perf_counter() - load_started) * 1_000
             scoring_started = time.perf_counter()
-            resident = [
-                association
-                for association in self._resident_associations(
-                    controller, initial, state
+            try:
+                recall = mnemic_controller.recall(
+                    mnemic,
+                    query,
+                    candidate_addresses=addresses,
                 )
-                if association.context_session_id == context_session_id
-            ]
-            memory_by_key = {
-                (association.candidate_id, association.revision): association
-                for association in resident
-                if association.kind == "memory"
-            }
-            exact_prompt_keys = {
-                (association.candidate_id, association.revision)
-                for association in resident
-                if (
-                    association.kind == "memory"
-                    and association.prompt == prompt
-                )
-            }
-            candidate_associations = [
-                memory_by_key.get((candidate["id"], candidate["revision"]))
-                for candidate in candidates
-            ]
-            probed_candidates = [
-                (position, association)
-                for position, association in enumerate(candidate_associations)
-                if association is not None
-            ]
-            probe_indices = [position for position, _ in probed_candidates]
-            working_associations = [
-                association
-                for association in resident
-                if association.kind not in {"record", "memory"}
-            ]
-            probe_continuations = [
-                association.continuation
-                for _, association in probed_candidates
-            ] + [
-                association.continuation for association in working_associations
-            ]
-            work_scores: list[float] = []
-            if probe_continuations:
-                work = controller.batch_candidate_sequence_work(
-                    state, prompt, probe_continuations
-                )
-                work_scores = [float(score.item()) for score in work]
-            scores_by_position = {
-                position: work_scores[work_position]
-                for work_position, position in enumerate(probe_indices)
-            }
-            scored = [
-                {
-                    "id": candidate["id"],
-                    "score": (
-                        scores_by_position.get(position, 0.0)
-                        + float(
-                            (candidate["id"], candidate["revision"])
-                            in exact_prompt_keys
-                        )
-                    )
-                    / 2.0,
-                    "position": position,
-                }
-                for position, candidate in enumerate(candidates)
-            ]
-            working_scored = [
-                {
-                    "id": association.candidate_id,
-                    "revision": association.revision,
-                    "text": association.text,
-                    "kind": association.kind,
-                    "score": work_scores[len(probe_indices) + position],
-                    "sequence": association.sequence,
-                }
-                for position, association in enumerate(working_associations)
-                if work_scores[len(probe_indices) + position] > 0.0
-            ]
-            if controller.state_sha256(state) != state_sha256:
-                raise ProviderError("context ranking mutated the field state")
-            scored.sort(key=lambda item: (-item["score"], item["position"]))
-            working_scored.sort(
-                key=lambda item: (-item["score"], -item["sequence"], item["id"])
-            )
+            except QiFieldError as error:
+                raise ProviderError(f"mnemic field recall failed: {error}") from error
             scoring_ms = (time.perf_counter() - scoring_started) * 1_000
-        total_ms = (time.perf_counter() - started) * 1_000
         return {
+            "schema": "cassi.mnemic.field-recall.v1",
             "session_id": session_id,
-            "state_sha256": state_sha256,
-            "ranked": [
-                {"id": item["id"], "score": item["score"]} for item in scored
-            ],
-            "working": [
-                {
-                    "id": item["id"],
-                    "revision": item["revision"],
-                    "text": item["text"],
-                    "kind": item["kind"],
-                    "score": item["score"],
-                }
-                for item in working_scored[:MAX_CONTEXT_CANDIDATES]
-            ],
+            "context_session_id": context_session_id,
+            "address": None if recall.address is None else recall.address.hex(),
+            "signal": recall.signal,
+            "selection_margin": recall.selection_margin,
+            "availability": recall.availability,
+            "minimum_bit_margin": recall.minimum_bit_margin,
+            "mean_bit_margin": recall.mean_bit_margin,
+            "state_sha256": store.layout.state_sha256(shared),
+            "mnemic_state_sha256": recall.state_sha256,
+            "candidate_count": len(addresses),
             "timings_ms": {
-                "validation": validation_ms,
-                "encoding": encoding_ms,
                 "load": load_ms,
                 "scoring": scoring_ms,
-                "total": total_ms,
-                "candidate_count": len(candidates),
-                "working_count": len(working_scored),
+                "total": (time.perf_counter() - started) * 1_000,
             },
         }
 
@@ -2786,45 +2840,43 @@ class PersistentFieldProvider:
             raise ProviderError("context journal event hash mismatch")
         if len(_canonical(request)) > MAX_CONTEXT_EVENT_BYTES:
             raise ProviderError("context journal event exceeds the bounded limit")
-
         event_id_text = str(event_id)
-        controller, _, initial, store, _ = self._require()
+        _controller, _, initial, store, _ = self._require()
+        mnemic_controller = self.mnemic_controller
+        if mnemic_controller is None:
+            raise ProviderError("persistent field provider is not started")
         session_id = _session_id(request)
         with self._session_lock(session_id):
             loaded = store.load(session_id)
             shared = store.initial(initial) if loaded is None else loaded[0]
-            state = store.layout.phi(shared)
             metadata = _metadata(None if loaded is None else loaded[1])
             committed_sequence, committed_event_id = self._stream_watermark(
                 metadata, stream_id
             )
-            previous_associations = self._resident_associations(
-                controller, initial, state
-            )
+            mnemic = store.layout.mnemic(shared)
+            state_in_sha256 = store.layout.state_sha256(shared)
+            mnemic_in_sha256 = mnemic_controller.state_sha256(mnemic)
             if sequence == committed_sequence and event_id == committed_event_id:
                 path = store.path_for(session_id)
-                checkpoint_sha256 = _sha256(path.read_bytes())
-                state_sha256 = controller.state_sha256(state)
-                tape_sha256 = controller.tape_sha256(state)
+                if not path.is_file():
+                    raise ProviderError("committed context checkpoint is missing")
                 return {
+                    "schema": "cassi.mnemic.field-observation.v1",
                     "session_id": session_id,
-                    "state_in_sha256": state_sha256,
-                    "state_out_sha256": state_sha256,
-                    "tape_in_sha256": tape_sha256,
-                    "tape_out_sha256": tape_sha256,
-                    "forgotten_symbols": 0,
-                    "forgotten_journal_events": 0,
-                    "consolidated": False,
+                    "state_in_sha256": state_in_sha256,
+                    "state_out_sha256": state_in_sha256,
+                    "mnemic_state_in_sha256": mnemic_in_sha256,
+                    "mnemic_state_out_sha256": mnemic_in_sha256,
+                    "condensed": False,
                     "selected_ids": requested_ids,
-                    "context_episode_count": len(previous_associations),
                     "duplicate": True,
                     "stream": {
                         "stream_id": stream_id,
-                        "sequence": committed_sequence,
-                        "event_id": committed_event_id,
+                        "sequence": sequence,
+                        "event_id": event_id_text,
                     },
                     "checkpoint": str(path),
-                    "checkpoint_sha256": checkpoint_sha256,
+                    "checkpoint_sha256": _sha256(path.read_bytes()),
                 }
             if (
                 sequence != committed_sequence + 1
@@ -2837,262 +2889,108 @@ class PersistentFieldProvider:
             if stream_id not in streams and len(streams) >= MAX_CONTEXT_STREAMS:
                 raise ProviderError("context stream limit reached")
 
-            def association(
-                *,
-                candidate_id: str,
-                context_session_id: str,
-                record_id: str,
-                revision: str,
-                kind: str,
-                prompt: bytes,
-                text: str,
-            ) -> _Association:
-                continuation = text.encode("utf-8")
-                metadata_continuation = self._association_metadata(
-                    candidate_id=candidate_id,
-                    record_id=record_id,
-                    revision=revision,
-                    kind=kind,
-                    sequence=sequence,
-                    event_id=event_id_text,
-                    prompt=prompt,
-                    text=continuation,
+            working = mnemic
+            transitions: list[dict[str, Any]] = []
+
+            def inhibit(cue: str, address: str) -> None:
+                nonlocal working
+                if not cue.strip():
+                    return
+                working = mnemic_controller.inhibit(
+                    working,
+                    cue=cue,
+                    address=bytes.fromhex(address),
                 )
-                return _Association(
-                    event_id=event_id_text,
-                    sequence=sequence,
-                    candidate_id=candidate_id,
-                    context_session_id=context_session_id,
-                    record_id=record_id,
-                    revision=revision,
-                    kind=kind,
-                    prompt=prompt,
-                    text=text,
-                    continuation=continuation,
-                    metadata_continuation=metadata_continuation,
-                    event_count=(
-                        len(
-                            controller.codec.encode_training_exchange(
-                                prompt, continuation
-                            )
-                        )
-                        + len(
-                            controller.codec.encode_training_exchange(
-                                _CONTEXT_ASSOCIATION_METADATA_PROMPT,
-                                metadata_continuation,
-                            )
-                        )
-                    ),
+                transitions.append(
+                    {"operation": "inhibit", "address": address}
                 )
 
-            state_in_sha256 = controller.state_sha256(state)
-            tape_in_sha256 = controller.tape_sha256(state)
-            associations = list(previous_associations)
-            if payload["kind"] == "memory":
-                context_session_id = payload["context_session_id"]
-                record = payload["record"]
-                record_id = record["id"]
-                associations = [
-                    existing
-                    for existing in associations
-                    if existing.record_id != record_id
-                    or (
-                        context_session_id
-                        and existing.context_session_id != context_session_id
-                    )
-                ]
-                if (
-                    payload["operation"] not in {"delete", "disconnect"}
-                    and record["content"]
-                ):
-                    associations.append(
-                        association(
-                            candidate_id=f"record:{record_id}",
-                            context_session_id=context_session_id,
-                            record_id=record_id,
-                            revision=record["revision"],
-                            kind="record",
-                            prompt=self._context_prompt(
-                                context_session_id, "memory record"
-                            ),
-                            text=record["content"],
-                        )
-                    )
-
-            additions: list[_Association] = []
-            if payload["kind"] == "feedback":
-                context_session_id = payload["context_session_id"]
-                prompt = self._context_prompt(
-                    context_session_id, payload["query"]
+            def condense(cue: str, address: str) -> None:
+                nonlocal working
+                if not cue.strip():
+                    return
+                working, receipt = mnemic_controller.condense(
+                    working,
+                    cue=cue,
+                    address=bytes.fromhex(address),
                 )
-                active_records = {
-                    (
-                        existing.context_session_id,
-                        existing.record_id,
-                        existing.revision,
-                    ): existing
-                    for existing in associations
-                    if existing.kind == "record"
-                }
-                for candidate in payload["candidates"]:
-                    candidate_id = candidate["id"]
-                    revision = candidate["revision"]
-                    associations = [
-                        existing
-                        for existing in associations
-                        if not (
-                            existing.kind == "memory"
-                            and existing.prompt == prompt
-                            and existing.candidate_id == candidate_id
-                            and existing.revision == revision
-                        )
-                    ]
-                    record = active_records.get(
-                        (
-                            context_session_id,
-                            candidate["record_id"],
-                            revision,
-                        )
-                    ) or active_records.get(
-                        ("", candidate["record_id"], revision)
-                    )
-                    if (
-                        completed
-                        and record is not None
-                        and record.text.encode("utf-8")[
-                            candidate["start_byte"] : candidate["end_byte"]
-                        ]
-                        == candidate["text"].encode("utf-8")
-                    ):
-                        additions.append(
-                            association(
-                                candidate_id=candidate_id,
-                                context_session_id=context_session_id,
-                                record_id=candidate["record_id"],
-                                revision=revision,
-                                kind="memory",
-                                prompt=prompt,
-                                text=candidate["text"],
-                            )
-                        )
-
-                associations = [
-                    existing
-                    for existing in associations
-                    if not (
-                        existing.kind == "goal"
-                        and existing.context_session_id == context_session_id
-                        and existing.prompt == prompt
-                    )
-                ]
-                additions.append(
-                    association(
-                        candidate_id=f"working:goal:{event_id_text}",
-                        context_session_id=context_session_id,
-                        record_id=f"working:turn:{payload['turn_id']}",
-                        revision=event_id_text,
-                        kind="goal",
-                        prompt=prompt,
-                        text=payload["query"],
-                    )
+                transitions.append(
+                    {
+                        "operation": "condense",
+                        "address": address,
+                        "prediction_signal": receipt.prediction_signal,
+                        "residual_rms": receipt.residual_rms,
+                        "slow_energy_before": receipt.slow_energy_before,
+                        "slow_energy_after": receipt.slow_energy_after,
+                    }
                 )
-                tool_result = payload.get("tool_result")
-                if tool_result is not None:
-                    tool_record_id = f"working:tool:{tool_result['id']}"
-                    associations = [
-                        existing
-                        for existing in associations
-                        if not (
-                            existing.context_session_id == context_session_id
-                            and existing.record_id == tool_record_id
-                        )
-                    ]
-                    kind = "failure" if tool_result["is_error"] else "artifact"
-                    additions.append(
-                        association(
-                            candidate_id=f"{tool_record_id}:{event_id_text}",
-                            context_session_id=context_session_id,
-                            record_id=tool_record_id,
-                            revision=event_id_text,
-                            kind=kind,
-                            prompt=prompt,
-                            text=f"tool {tool_result['name']} {payload['outcome']}",
-                        )
-                    )
-                associations.extend(additions)
 
-            selected = self._selected_associations(
-                controller, initial, associations
-            )
-            selected_identities = {
-                existing.identity for existing in selected
-            }
-            forgotten_symbols = sum(
-                existing.event_count
-                for existing in previous_associations
-                if existing.identity not in selected_identities
-            )
-            learned_ids = [
-                existing.candidate_id
-                for existing in additions
-                if existing.kind == "memory"
-                and existing.identity in selected_identities
-            ]
-            working = controller.rebuild_exchanges(
-                state,
-                initial,
-                [
-                    exchange
-                    for existing in selected
-                    for exchange in (
-                        (existing.prompt, existing.continuation),
-                        (
-                            _CONTEXT_ASSOCIATION_METADATA_PROMPT,
-                            existing.metadata_continuation,
-                        ),
-                    )
-                ],
-            )
-            streams[stream_id] = {
-                "sequence": sequence,
-                "event_id": event_id_text,
-            }
-            metadata[CONTEXT_STREAM_METADATA_KEY] = streams
             try:
-                checkpoint, checkpoint_sha256 = store.save(
-                    session_id,
-                    store.layout.with_phi(shared, working),
-                    metadata,
-                )
-            except (
-                ProviderError,
-                QiFieldError,
-                CassiFieldLanguageError,
-            ) as error:
-                raise ProviderError(
-                    "Phi context observation failed; prior checkpoint retained: "
-                    f"{error}"
-                ) from error
-            return {
-                "session_id": session_id,
-                "state_in_sha256": state_in_sha256,
-                "state_out_sha256": controller.state_sha256(working),
-                "tape_in_sha256": tape_in_sha256,
-                "tape_out_sha256": controller.tape_sha256(working),
-                "forgotten_symbols": forgotten_symbols,
-                "forgotten_journal_events": 0,
-                "consolidated": bool(learned_ids),
-                "selected_ids": learned_ids if completed else requested_ids,
-                "context_episode_count": len(selected),
-                "duplicate": False,
-                "stream": {
-                    "stream_id": stream_id,
+                if payload["kind"] == "memory":
+                    operation = payload["operation"]
+                    record = payload["record"]
+                    field_address = record.get("field_address")
+                    if operation == "update":
+                        previous_record = payload.get("previous_record")
+                        if (
+                            isinstance(previous_record, Mapping)
+                            and isinstance(previous_record.get("field_address"), str)
+                        ):
+                            inhibit(
+                                str(previous_record["content"]),
+                                str(previous_record["field_address"]),
+                            )
+                    if operation == "delete" and isinstance(field_address, str):
+                        inhibit(record["content"], field_address)
+                    elif (
+                        operation in {"store", "update"}
+                        and isinstance(field_address, str)
+                    ):
+                        condense(record["content"], field_address)
+                elif payload["kind"] == "feedback" and completed:
+                    for candidate in payload["candidates"]:
+                        field_address = candidate.get("field_address")
+                        if isinstance(field_address, str):
+                            condense(payload["query"], field_address)
+
+                shared_out = store.layout.with_mnemic(shared, working)
+                streams[stream_id] = {
                     "sequence": sequence,
                     "event_id": event_id_text,
-                },
-                "checkpoint": str(checkpoint),
-                "checkpoint_sha256": checkpoint_sha256,
-            }
+                }
+                metadata[CONTEXT_STREAM_METADATA_KEY] = streams
+                checkpoint, checkpoint_sha256 = store.save(
+                    session_id,
+                    shared_out,
+                    metadata,
+                )
+            except (ProviderError, QiFieldError, OSError) as error:
+                raise ProviderError(
+                    "mnemic context observation failed; prior checkpoint retained: "
+                    f"{error}"
+                ) from error
+        return {
+            "schema": "cassi.mnemic.field-observation.v1",
+            "session_id": session_id,
+            "state_in_sha256": state_in_sha256,
+            "state_out_sha256": store.layout.state_sha256(shared_out),
+            "mnemic_state_in_sha256": mnemic_in_sha256,
+            "mnemic_state_out_sha256": mnemic_controller.state_sha256(working),
+            "condensed": any(
+                transition["operation"] == "condense"
+                for transition in transitions
+            ),
+            "selected_ids": requested_ids,
+            "transitions": transitions,
+            "duplicate": False,
+            "stream": {
+                "stream_id": stream_id,
+                "sequence": sequence,
+                "event_id": event_id_text,
+            },
+            "checkpoint": str(checkpoint),
+            "checkpoint_sha256": checkpoint_sha256,
+        }
 
     def context_status(self, request: Mapping[str, Any]) -> dict[str, Any]:
         if not isinstance(request, Mapping):
@@ -3118,7 +3016,7 @@ class PersistentFieldProvider:
                     },
                 }
             _, checkpoint_sha256, checkpoint_fingerprint = store.inspect(session_id)
-            if checkpoint_fingerprint != provider_fingerprint:
+            if not store.is_compatible_provider_fingerprint(checkpoint_fingerprint):
                 return {
                     "session_id": session_id,
                     "engine_fingerprint": provider_fingerprint,
@@ -3489,7 +3387,7 @@ class _Handler(http.server.BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         routes = {
             "/v1/chat/completions",
-            "/v1/context/rank",
+            "/v1/context/recall",
             "/v1/context/observe",
             "/v1/context/status",
             "/v1/context/reset",
@@ -3560,8 +3458,8 @@ class _Handler(http.server.BaseHTTPRequestHandler):
                 self._send_json(200, self.provider.context_status(request))
             elif self.path == "/v1/context/reset":
                 self._send_json(200, self.provider.reset_context(request))
-            elif self.path == "/v1/context/rank":
-                self._send_json(200, self.provider.rank_context(request))
+            elif self.path == "/v1/context/recall":
+                self._send_json(200, self.provider.recall_context(request))
             elif self.path == "/v1/context/observe":
                 self._send_json(200, self.provider.observe_context(request))
             else:

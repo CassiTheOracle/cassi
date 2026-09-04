@@ -1,32 +1,40 @@
-# Cassi: Field-Owned Intelligence in a Persistent Multiscale Yang–Yin Dynamical System
+# Cassi: Continual Learning, Persistent Memory, and Explicit Non-Settlement in a Multiscale Dynamical Field
 
 ## 1. Abstract
 
-Cassi is a deterministic field-intelligence architecture in which all adaptive persistent state resides in one active multiscale Qi-field tensor, with the reference layout \(F_t \in \mathbb{R}^{S\times 9M\times B}\). Its component planes carry complex Yang and Yin amplitudes, their velocity components, and `epsilon2_ema`, a running squared-imbalance estimate. Surface-specific fixed geometry, codebooks, codecs, numerical operators, schemas, and policy constraints govern how observations enter the field, how field state evolves and consolidates, and how queries produce readouts. Surface-specific versioned checkpoints bind the complete adaptive tensor to runtime identity; the persistent-provider and v3 frames additionally verify content hashes. A deterministic OpenAI-compatible protocol adapter exposes the implemented provider runtime.
+Continual-learning systems face three coupled problems: incorporating new experience without erasing earlier capabilities, preserving adaptive memory across calls and restarts, and withholding commitment when available evidence is absent, conflicting, or outside the system's representational support. Cassi investigates these problems with one versioned multiscale Qi-field tensor as its adaptive persistent state. Fixed geometry, codecs, numerical operators, candidate languages, validation, and policy define the computation around that state; exact records preserve source evidence separately. Concentrating adaptive state in one tensor is an experimental constraint rather than a capability claim. It makes retention, interference, persistence, and non-settlement directly inspectable through state hashes, controlled interventions, and replay.
 
-Evaluation tests whether measured capabilities are causally owned by the field. Deterministic replay, field-only counterfactuals and lesions, held-out grounded transitions, restart checks, read-only inference, and long-horizon stability provide that test. In exact-edge experiments, a frozen field composes independently learned one-action fragments into held-out multistep trajectories, while removal of a necessary edge eliminates the corresponding solution. Across relational-basis and typed-program experiments, field-selected operators transfer across renamed, reordered, and translated scenes within the tested interior regimes. Supported symbolic laws transfer exactly, and the field abstains when the tested grammar supplies no supported natural-prose continuation. Checkpoints reproduce exactly, inference preserves trained state, and repeated updates remain finite over the measured horizons.
+In the integrated bounded gauntlet, thirteen registered task families were learned sequentially and retained 4/4 exact held-out accuracy per family, with minimum retained accuracy \(1.0\) and maximum observed drop \(0\). The result demonstrates isolation and retention in disjoint field namespaces; it does not test catastrophic forgetting under shared capacity or contradictory updates. Checkpoint reload was byte- and field-exact on the tested CPU path, later inference preserved the trained state, and journal ingress replayed exactly after restart. Decision surfaces distinguished `selected`, `ambiguous`, `exhausted`, and `unsupported` outcomes. Registered negative controls withheld output appropriately, while hidden-relevance and autoregressive natural-language experiments exposed cases of false settlement. These positive and negative results make “knowing when it does not know” a measurable selective-risk problem rather than a label inferred from silence.
 
-These measurements establish persistent field-owned adaptation, grounded composition, exact symbolic transfer, and explicit abstention in bounded tasks. Cassi provides an inspectable experimental platform for extending those capabilities while preserving a single adaptive state.
+Additional experiments show exact compatible-edge composition, bounded relational transfer, typed-program selection, and registered JSON–raster correspondence under explicit candidate and codec constraints. Field lesions, shuffled evidence, matched untrained state, and missing-edge controls establish causal dependence on deposited adaptive state. The current evidence supports bounded sequential retention, exact persistent memory, and explicit non-settlement mechanisms; it does not establish interference-resistant continual learning, unbounded memory, generally calibrated uncertainty, open-ended language acquisition, or broader readiness. The integrated receipt therefore remains `not_ready`.
 
-## 2. Introduction: Why Field-Owned Intelligence?
+## 2. Introduction: Three Persistent Problems in Adaptive Systems
 
-An intelligent system persists by carrying the effects of experience forward. In Cassi, that continuity is a concrete computational property: an observation changes a field, later queries encounter the changed state, and the consequences of an executed action become new observations. The architecture centers this causal chain in one adaptive object so that learning, recall, inference, and selection can be studied as transformations of the same state.
+A system that learns over time must do more than improve on the latest batch. It must preserve useful earlier behavior while absorbing new evidence, carry the adaptive consequences of experience across operational boundaries, and refrain from treating every query as answerable. Failures in these three areas appear as catastrophic interference, fragmented or irreproducible memory, and confident action beyond the support of the learned state.
 
-The resulting research program asks a direct question: how much intelligent behavior can arise when adaptive persistence is concentrated in a bounded dynamical field? Cassi approaches the question through an implemented runtime, exact state serialization, grounded environments, and interventions on the field itself. Its evidence consists of reproducible state transitions, held-out outcomes, counterfactual field states, lesions, abstentions, and restart receipts.
+These problems interact. A memory mechanism that merely stores every observation does not determine which earlier experience should influence the present decision. A continual learner that retains old tasks but cannot detect conflict may preserve accuracy while becoming overconfident. An abstaining system that loses its learned state at restart cannot maintain a stable boundary between known and unknown cases. Cassi therefore studies continual learning, persistent adaptive memory, and non-settlement as properties of one stateful computation rather than as independent wrappers around a predictor.
 
-### 2.1 Adaptive state across contemporary agents
+The architecture assigns every experience-dependent value used by later calls to a versioned dynamical field. Exact source records, schemas, candidate generators, numerical operators, and action policy remain separately identified fixed or evidentiary machinery. This assignment does not make the phrase *field-owned* meaningful by itself. Its purpose is methodological: with one adaptive state, an experiment can measure what changed during learning, whether earlier state was preserved, whether a restart recovered the same memory, and whether removing specific support changes a later decision.
 
-A deployed AI agent can carry state in several places. Trained parameters encode regularities acquired during model training. A prompt or context window carries the current episode. A retrieval system supplies selected records from earlier episodes. Workflow state tracks plans, tool calls, and pending actions. External services may contribute their own learned representations and mutable histories. Each component has a distinct update rule, lifetime, and authority.
+Cassi approaches those questions through an implemented runtime, exact state serialization, grounded environments, typed decision outcomes, and interventions on the adaptive field. Its evidence consists of sequential retention curves, state and checkpoint identities, held-out outcomes, field counterfactuals and lesions, abstentions, false settlements, and restart receipts. The same instrumentation also exposes where the present architecture fails.
 
-This distribution is useful for engineering, but it complicates scientific attribution. A successful response may reflect parameter memory, retrieved text, a hand-coded transition, cached output, or current context. Adding a field module to such a stack establishes its presence; causal ownership requires stronger evidence. The relevant test changes the field while holding the remaining computation fixed and observes whether the committed result changes in the predicted way.
+### 2.1 Continual learning, persistent memory, and non-settlement
 
-Cassi adopts that stronger criterion as an architectural constraint. Experience-dependent persistence is concentrated in one field state. The surrounding machinery provides fixed geometry, deterministic encodings, numerical evolution, validation, persistence, and policy. This arrangement turns adaptive state into an inspectable experimental variable. It can be saved exactly, restored exactly, held fixed during inference, altered counterfactually, or lesioned at a specific functional region.
+**Continual learning** requires a sequence of updates to preserve or improve earlier capabilities while incorporating later experience. The relevant measurement is not final accuracy alone. Accuracy must be evaluated after every update, interference must be localized, capacity use must be reported, and contradictory or overlapping evidence must be tested. Cassi's current gauntlet measures sequential retention across disjoint namespaces; that is a bounded positive result and a starting point for, rather than a solution to, catastrophic forgetting.
 
-The constraint also gives “memory” a precise meaning inside Cassi. Memory is the part of the field produced by prior observations that changes a later readout or action proposal. A transcript, receipt, or exact external record supplies evidence to the runtime, while the field carries the adaptive effect of that evidence. The distinction allows storage, computation, and authority to remain explicit as the field-intelligence runtime connects to the Mnemic Field and CassiCosmos layers.
+**Persistent adaptive memory** requires the effect of an earlier observation to remain available after the call that received it and after the process that held it has ended. Cassi separates this adaptive effect from exact evidence. Journals and Mnemic references preserve what occurred; the Qi field carries how prior observations alter later selection, recall, or action. Versioned checkpoints, content identities, fresh-process reload, and mutation checks make that distinction testable.
 
-### 2.2 The Cassi hypothesis
+**Non-settlement** requires the runtime to distinguish a supported decision from insufficient support, unresolved competition, exhausted capacity or candidates, and an unsupported input contract. Cassi reports these conditions through typed outcomes rather than collapsing them into one confidence scalar. The evidentiary target is selective behavior: answer when support is adequate, abstain or expose an equivalence set when it is not, and count every unsupported emitted answer as a false settlement.
 
-For this study, *field-owned intelligence* denotes adaptive behavior produced by steering coherence through a persistent dynamical state. The definition supplies an operational criterion for the experiments: sensing, memory formation, inference, selection, and emission must depend causally on that state. “Coherence” is expressed in the implementation through field amplitudes, relative phase, energy-like quantities, Yang–Yin balance, write gates, interscale relations, and query-dependent readout. These quantities determine how an observation enters the field, how its influence moves and consolidates, and which stored structure becomes available to a later query.
+The current evidence and its limits can be summarized before the architectural details:
+
+| Machine-learning problem | Required observable | Current measured result | Unresolved test |
+|---|---|---|---|
+| Sequential retention | Accuracy after every learning update, localized interference, and bounded state growth | Thirteen family deposits were evaluated stepwise with minimum retained accuracy \(1.0\) and maximum observed drop \(0\); all families remained exact at the one recorded checkpoint after two additional control deposits | Overlapping field support, contradictory updates, recurrences after delay, and continual-learning baselines |
+| Persistent adaptive memory | Exact state lineage, restart recovery, later behavioral continuity, and mutation-controlled inference | Exact CPU checkpoint reload, exact ingress replay, preserved inference state, and retained post-restart behavior | Crash recovery, multiple writers, capacity growth, cross-device parity, and independent replication |
+| Reliable non-settlement | Distinct supported, ambiguous, exhausted, and unsupported outcomes; coverage and false-settlement accounting | Correct non-settlement in registered negative controls; explicit equivalence sets in bounded typed cases | Hidden relevance caused 10/16 false-confident choices, and the autoregressive next-symbol path falsely settled 16/16 natural continuations |
+
+### 2.2 Architectural response: one persistent adaptive field
 
 The adaptive state has the general form
 
@@ -34,63 +42,69 @@ The adaptive state has the general form
 F_t \in \mathbb{R}^{S\times 9M\times B}.
 \]
 
-The reference v2 tensor uses nine planes at each scale for complex Yang and Yin amplitudes, their velocity components, and `epsilon2_ema`. Scale zero is its fastest and finest mode bank; increasing scale index represents slower and coarser structure, and fixed codebooks map observations and queries into those mode coordinates. The profile-governed v3 surface retains the nine-plane order but assigns profile-declared active prefixes to periodic spatial sheets. In both surfaces, the values of the active tensor carry the accumulated effects of experience; their geometry and transition semantics come from the named surface.
+The reference v2 tensor uses nine planes at each scale for complex Yang and Yin amplitudes, their velocity components, and `epsilon2_ema`. Scale zero is its fastest and finest mode bank; increasing scale index represents slower and coarser structure, and fixed codebooks map observations and queries into those mode coordinates. The profile-governed v3 surface retains the nine-plane order but assigns profile-declared active prefixes to periodic spatial sheets. In both surfaces, experience changes the active tensor while geometry and transition semantics remain fixed under a named runtime identity.
 
-On the v2 reference cognition surface, a field cycle begins with a validated observation. A deterministic codec maps that observation into boundary data, and the controller combines typed source trust with field coherence to gate a scale-zero deposit. `evolve` advances local damped nonlinear modes. A separate consolidation step can transfer supported bindings toward slower scales. A query then produces a phase-sensitive readout from the current field, and fixed selection logic can convert that readout into a prediction, explanation, trajectory, abstention, or typed action proposal. An executed action affects later field state only when an implemented integration returns its observed consequence as another validated observation.
+On the v2 cognition surface, a validated observation is mapped into boundary data and admitted through a coherence- and trust-dependent write gate. `evolve` advances local damped nonlinear modes. Explicit consolidation can move supported bindings toward slower scales. A query produces a phase-sensitive readout, and fixed selection logic converts that readout into a prediction, explanation, trajectory, typed action proposal, or non-settling status. An executed action becomes new learning evidence only when an implemented integration returns its observed consequence as another validated observation.
 
-This organization gives the hypothesis three testable properties. First, every adaptive result has a concrete predecessor state and surface-specific transition. Second, the complete adaptive tensor can cross a process boundary in a versioned checkpoint bound to the selected runtime's configuration or profile fingerprints; the persistent-provider and v3 formats add explicit content-integrity hashes. Third, field interventions provide causal tests: a relevant lesion should remove a capability, while an unrelated lesion should preserve it. Cassi therefore makes field ownership measurable rather than metaphorical.
+This organization gives the three central problems a common experimental surface:
 
-The implemented OpenAI-compatible provider supplies familiar request and streaming conventions while the Qi field supplies adaptive computation. Exact Mnemic references, grounded world observations, and authorized CassiCosmos outcomes remain independently identified integration inputs. They enter a field transition only through an explicit adapter, and later sections distinguish implemented and measured adapters from design-stage boundaries.
+1. **Continual learning:** every accepted experience has a predecessor and successor field, so retention and interference can be measured after each update.
+2. **Persistent memory:** the complete tensor crosses a process boundary in a versioned checkpoint bound to configuration or profile identity, with additional content hashes on the persistent-provider and v3 paths.
+3. **Non-settlement:** readout support, eligibility, margins, equivalence, and capacity conditions produce distinct typed outcomes whose errors can be counted.
 
-### 2.3 Research question
+The implementation calls the location of adaptive variation *field ownership*. In this paper that phrase is only a causal-accounting rule: a relevant field intervention should remove a learned capability, while an unrelated intervention should preserve it. It is not offered as an independent measure of intelligence or as evidence that every fixed operation surrounding the field was learned.
+
+The OpenAI-compatible provider supplies request and streaming conventions while the Qi field supplies the adaptive state. Exact Mnemic references, grounded world observations, and authorized CassiCosmos outcomes remain independently identified inputs. They enter a field transition only through an explicit adapter, and later sections distinguish implemented and measured adapters from design-stage boundaries.
+
+### 2.3 Research questions
 
 The primary research question is:
 
-> To what extent can one bounded persistent field acquire and express useful structure across sensing, memory, inference, and action while remaining causally inspectable?
+> Can one bounded persistent dynamical state support sequential learning, durable adaptive memory, and reliable non-settlement while remaining causally testable?
 
 The implementation divides this question into six measurable parts:
 
-1. **State ownership.** Does experience alter the field, and does that alteration causally change a later committed result?
-2. **Grounding.** Can field state connect symbols and instructions to exact observed changes in a world?
-3. **Composition.** Can independently observed transition fragments support a held-out multistep trajectory?
-4. **Relational transfer.** Can the field select a relation or typed operation that remains valid across renamed entities, reordered observations, translated scenes, and other controlled changes?
-5. **Continuity.** Do checkpoint, restart, replay, and read-only inference preserve the intended state and behavior exactly?
-6. **Epistemic control.** Can the runtime distinguish supported settlement, ambiguity, exhaustion, unsupported input, and abstention from one another?
+1. **Sequential retention.** Do earlier held-out capabilities survive later updates, and under which capacity and overlap conditions?
+2. **Memory continuity.** Do checkpoint, restart, replay, and read-only inference preserve the intended adaptive state and behavior?
+3. **Epistemic control.** Can the runtime distinguish supported settlement, ambiguity, exhaustion, unsupported input, and abstention, and how often does it settle falsely?
+4. **Grounded composition.** Can observed transition fragments support a held-out multistep trajectory whose necessary edges remain causally identifiable?
+5. **Relational transfer.** Can selected relations or typed operations remain valid across renamed entities, reordered observations, translated scenes, and controlled representation changes?
+6. **Causal attribution.** Does changing the adaptive field while holding code, configuration, input, and policy fixed change the committed result in the predicted way?
 
-Each part is evaluated through observable state and outcome contracts. Exact tasks use exact successor revisions or exact symbolic outputs. Relational tasks separate training worlds, selection evidence, and held-out worlds. Persistence tasks compare serialized bytes, field hashes, and post-restart behavior. Causal tests intervene on field state rather than inferring ownership from a plausible response.
+Each question is evaluated through observable state and outcome contracts. The current continual-learning gauntlet reevaluates prior positive-family holdouts after every positive-family deposit and once more after both control deposits. Persistence tests compare serialized bytes, field hashes, and post-restart behavior. Selective-decision tests report coverage, abstentions, ambiguity, exhaustion, unsupported cases, and false settlements separately. Grounded tasks use exact successor revisions or symbolic outputs, and causal tests intervene on adaptive state rather than inferring learning from a plausible response.
 
-The experiments also map the domain in which a learned structure applies. Interior affine motion, boundary clamping, moving targets, missing intermediate observations, coordinate noise, passive roles, indistinguishable distractors, symbolic transformations, and natural prose place different demands on the same architecture. Reporting them separately preserves the meaning of each result.
+The experiments also map the domain in which a learned structure applies. Disjoint and overlapping capacity, interior and boundary dynamics, moving targets, missing intermediate observations, coordinate noise, passive roles, indistinguishable distractors, symbolic transformations, and natural prose place different demands on the architecture. Reporting them separately preserves the meaning of each result.
 
 ### 2.4 Contributions
 
 This paper makes eight technical contributions:
 
-1. **A single-state field-intelligence architecture.** Cassi places all adaptive persistent state in one active tensor under each selected field-runtime surface and gives fixed runtime machinery explicit responsibility for geometry, encoding, evolution, validation, and policy.
-2. **A deterministic multiscale Yang–Yin field.** The reference controller defines complex paired fields, velocity components, scale orientation, bounded evolution, consolidation, and phase-sensitive readout in one inspectable state space.
-3. **A reference causal cycle.** The v2 cognition path composes sensing, deposition, local evolution, readout, selection, optional correction, and consolidation around one `QiFieldState`; external action consequences re-enter only through implemented typed-observation adapters.
-4. **Grounded counterflow composition.** Exact observed action fragments form compatible effect-to-precondition edges from which a frozen field can settle held-out multistep trajectories.
-5. **Field-selected relational and typed structure.** Bounded experiments place relation evidence, operator support, program ranking, confirmation, and regime information inside the field and test transfer under controlled changes.
-6. **Exact persistence and runtime identity.** Surface-specific versioned framing, configuration and profile fingerprints, provider and v3 content hashes, atomic provider-checkpoint replacement, component identities, and deterministic receipts make the adaptive state reproducible across process restarts.
-7. **A causal evaluation method.** Field-only counterfactuals, targeted lesions, shuffled controls, held-out worlds, read-only inference, long-horizon runs, and forbidden-surface sentinels test whether the field owns the measured behavior.
-8. **A measured capability map.** The experiments establish grounded composition, relational transfer in tested regimes, exact symbolic-law transfer, persistent replay, and explicit abstention, while locating the boundary conditions that guide the next experiments.
+1. **A unified adaptive-state architecture.** One versioned tensor carries the experience-dependent state used across calls, making update-by-update retention, persistence, and decision support directly inspectable.
+2. **A bounded continual-learning result.** Thirteen registered task families are acquired sequentially with exact retention in disjoint namespaces, together with an explicit account of why this does not yet establish resistance to catastrophic interference.
+3. **Exact persistent-memory contracts.** Surface-specific checkpoints, runtime fingerprints, content identities, atomic replacement on the provider path, replay, and mutation checks connect stored state identity to later behavior.
+4. **Typed non-settlement semantics.** `selected`, `ambiguous`, `exhausted`, and `unsupported` remain distinct, while abstentions, equivalence sets, and false settlements are measured instead of being hidden inside aggregate accuracy.
+5. **Grounded composition and bounded transfer.** Exact observed action fragments support held-out compatible-edge trajectories, and registered relational or typed structures transfer across controlled changes.
+6. **A deterministic multiscale Yang–Yin field.** Complex paired amplitudes, velocity components, scale orientation, bounded evolution, consolidation, and phase-sensitive readout occupy one inspectable state space.
+7. **A causal evaluation method.** Matched untrained fields, targeted lesions, shuffled controls, held-out worlds, read-only inference, long-horizon checks, and forbidden-surface sentinels distinguish adaptive-state effects from fixed machinery and alternate learned systems.
+8. **A failure-preserving capability map.** Positive results are reported beside false confidence, natural-language failure, boundary failure, hidden relevance, fixed-codec limits, and the current `not_ready` assessment.
 
-These contributions form one systems result. The mathematical field defines the possible state transitions; the grounded tasks determine what those transitions mean; persistence preserves their history; and causal intervention tests whether the resulting behavior belongs to the field.
+Together these contributions evaluate an architectural hypothesis about long-lived learning. The field supplies persistent adaptive state; fixed machinery defines how observations and queries interact with it; exact records preserve provenance; and explicit outcome contracts reveal both retained competence and unsupported decisions.
 
 ### 2.5 Scope of the evidence
 
-The paper studies the live Cassi field-intelligence prototype through bounded tasks with explicit observations, candidate spaces, outcome contracts, and holdouts. This scope supports exact causal comparisons: the predecessor field is known, the intervention is reproducible, and the expected world revision or symbolic result is measurable. Natural-prose continuation and cross-view experiments extend the same discipline to domains where the present field has less support.
+The paper studies the live Cassi field-intelligence prototype through bounded tasks with explicit observations, candidate spaces, outcome contracts, and holdouts. This scope supports exact causal comparisons, sequential retention measurements, state-identity checks, and complete accounting of abstention and false settlement. It does not support a general claim that Cassi has solved continual learning, memory capacity, uncertainty calibration, or open-domain reasoning.
 
-The unit of evidence is a reproducible relationship among observation, field transition, readout, and outcome. Recognizable output alone carries little weight; an exact receipt, a field-dependent counterfactual, or a successful held-out consequence supplies the relevant evidence. Broader interpretations of intelligence can therefore be discussed from a concrete base of measured capabilities.
+The unit of evidence is a reproducible relationship among observation, adaptive-state transition, later readout, and outcome. Recognizable output alone carries little weight. A retention trajectory, exact restart continuation, field-dependent counterfactual, or correctly withheld decision supplies relevant evidence only for its declared task and state surface.
 
-Cassi joins three technical domains within one field framework. Mnemic Field preserves exact records and supplies revision-specific references. CassiCosmos supplies a physical field-and-particle world and executes validated programs. The field-intelligence runtime turns typed observations from those environments into adaptive field state and returns predictions, explanations, abstentions, or inert proposals. Each cross-layer result in this paper is tied to the specific live path that produced it.
+Cassi joins three technical domains within one program. Mnemic Field preserves exact records and supplies revision-specific references. CassiCosmos supplies a physical field-and-particle world and executes validated programs. CassiFI turns typed observations from those environments into adaptive state and returns predictions, explanations, typed proposals, or non-settling outcomes. Each cross-layer result in this paper is tied to the specific live path that produced it.
 
-The sections that follow formalize field ownership, derive the multiscale state and its operators, trace the complete computational cycle, describe grounding and counterflow, present persistence and protocol contracts, and evaluate the resulting capabilities through causal interventions and held-out measurements.
+The sections that follow define the adaptive-state boundary, derive the multiscale field and its operators, trace the computational cycle, describe grounding and counterflow, examine continual learning and persistent memory, and evaluate when the runtime settles, abstains, or fails to recognize that support is absent.
 
-## 3. Operational Definition of Field Ownership
+## 3. Operational Criteria for Adaptive State and Memory
 
-Field ownership is a study definition that makes Cassi's central architectural claim testable. It identifies where experience-dependent state resides, how that state crosses time and process boundaries, and what evidence establishes its role in a measured capability. The definition serves as an accounting rule for the field-intelligence implementation and experiments presented in this paper.
+The single-state constraint makes the paper's machine-learning questions falsifiable. It identifies which values may accumulate experience, how adaptive memory crosses calls and process boundaries, and what evidence connects that memory to later retention or non-settlement. *Field ownership* is retained only as shorthand for this accounting rule; it is not treated as a capability on its own.
 
-For this study, a value is **adaptive persistent state** when it satisfies three conditions: experience can change it, it can survive beyond the call that changed it, and the changed value can influence a later result without being supplied again as part of the current observation. Within Cassi's field-intelligence runtime, every value with those properties is assigned to the Qi field. Configuration, codecs, numerical operators, validation, and policy remain fixed; exact records retain evidence and provenance; temporary computations are derived from the current field and request.
+For this study, a value is **adaptive persistent state** when it satisfies three conditions: experience can change it, it can survive beyond the call that changed it, and the changed value can influence a later result without being supplied again as part of the current observation. Within Cassi's field-intelligence runtime, every value with those properties is assigned to the Qi field. Configuration, codecs, numerical operators, validation, and policy remain fixed; exact records retain evidence and provenance; temporary computations are derived from the current field and request. This separation lets retention, forgetting, restart continuity, and decision support be measured against one complete adaptive state.
 
 ### 3.1 The shared adaptive tensor and versioned runtime surfaces
 
@@ -161,7 +175,7 @@ The state boundary can be summarized as follows:
 
 This classification is behavioral rather than nominal. A cache is derived working data when it can be regenerated from fixed configuration together with the current field or request and carries no experience-dependent value beyond the selected surface's canonical checkpoint. A diagnostic has the same status while later decisions remain independent of its retained value. If a new component acquires experience-dependent persistence within the field-intelligence runtime, that information must move into the active surface's tensor.
 
-### 3.4 State ownership boundary
+### 3.4 Adaptive-state boundary
 
 Cassi uses three kinds of information alongside the adaptive field. **Fixed structure** defines the selected transition law and is identified by configuration, profile, geometry, schedule, or codebook fingerprints. **Exact evidence** preserves observations, revisions, actions, outcomes, and provenance under stable addresses. **Transient derived data** supports the current calculation and can be regenerated from the active field and request. Together, these categories provide the machinery required to operate and audit the field while keeping the location of adaptive persistence unambiguous.
 
@@ -171,9 +185,9 @@ Training utilities may accumulate counters, losses, or aggregate measurements wh
 
 The implementation checks this boundary directly. Dependency and runtime sentinels monitor model-provider calls, optimizer construction, subprocesses, network use, and other alternate compute surfaces in scenarios where the field-only contract applies. Checkpoint inspection accounts for the complete serialized adaptive payload. Restart tests then load only the declared field state and matching fixed configuration or profile before repeating the measured behavior.
 
-### 3.5 Causal ownership criterion
+### 3.5 Causal attribution criterion
 
-A capability is field-owned when controlled intervention shows that its learned variation resides in the field. Let \(R_{C,\sigma}(F,x)\) denote the readout produced by fixed identity \(C\), runtime surface \(\sigma\), field \(F\), and query \(x\). For a field \(F^\star\) trained on evidence relevant to a capability, construct a counterfactual or lesion \(L(F^\star)\) that removes the corresponding field support while preserving the query, surface, and fixed runtime. The central necessity test is
+A learned capability is attributed to adaptive field content when controlled intervention changes that capability while preserving the executable computation around it. Let \(R_{C,\sigma}(F,x)\) denote the readout produced by fixed identity \(C\), runtime surface \(\sigma\), field \(F\), and query \(x\). For a field \(F^\star\) trained on evidence relevant to a capability, construct a counterfactual or lesion \(L(F^\star)\) that removes the corresponding field support while preserving the query, surface, and fixed runtime. The central necessity test is
 
 \[
 R_{C,\sigma}(F^\star,x) \ne R_{C,\sigma}\!\left(L(F^\star),x\right)
@@ -189,11 +203,11 @@ Five additional conditions complete the operational test:
 4. **Read-only stability:** inference returns a byte-identical trained field while producing its readout.
 5. **Bounded evolution:** repeated transitions remain finite and within the selected surface's declared amplitude and energy limits over the measured horizon.
 
-The fixed controller, codec, query, and policy participate in every result; the field supplies the experience-dependent term in that computation. Field ownership locates learned variation within the complete transition. This formulation supports precise comparisons: the same runtime can be evaluated with an untrained field, a trained field, a targeted lesion, a shuffled field, or a restored checkpoint.
+The fixed controller, codec, query, and policy participate in every result; the field supplies the experience-dependent term in that computation. Causal attribution locates learned variation within the complete transition. This formulation supports precise comparisons: the same runtime can be evaluated with an untrained field, a trained field, a targeted lesion, a shuffled field, or a restored checkpoint.
 
 Receipts make each comparison auditable. They identify the predecessor and successor state, configuration and component identities, input or event identity, readout support, selected trajectory or program, mutation status, and abstention reason where applicable. A reported capability is tied to those artifacts and to the held-out condition under which it was expressed.
 
-This operational definition establishes the evidentiary standard used throughout the paper. Section 4 next develops the mathematical structure whose state is being trained, intervened upon, and measured.
+These criteria establish the evidentiary standard used throughout the paper. Section 4 next develops the mathematical structure whose state is trained, preserved, intervened upon, and measured.
 
 ## 4. Mathematical Field Model
 
@@ -1105,7 +1119,7 @@ Three read semantics remain distinct:
 
 The third case is query-dependent state evolution, but it does not create a second adaptive query store. Working context remains in the field or is reproducible from the predecessor and request; learned variation remains confined to the declared field-memory coordinates.
 
-### 5.5 Selection, bounded output, and abstention
+### 5.5 Decision, non-settlement, and bounded output
 
 Selection applies fixed eligibility and decisiveness rules to readout:
 
@@ -1117,6 +1131,8 @@ w_k.
 \]
 
 A result is emitted only if the winner is supported, eligible, and sufficiently separated from the runner-up. Otherwise the runtime returns a typed abstention, clarification, unavailable status, or bounded error according to that interface.
+
+These outcomes operationalize one part of “knowing when not to answer,” but they are not a claim of self-awareness and they are not calibrated probabilities. Their quality is measured behaviorally: coverage on answerable cases, correct abstention or equivalence on underdetermined cases, and false-settlement rate when an emitted result lacks support. A system can fail by withholding a supported result or by settling when the observation and learned state do not justify one; both outcomes are retained.
 
 For grounded action selection, candidates are sorted by descending work and then by action identifier for deterministic ties. Let \(w_{(1)}\) and \(w_{(2)}\) be the largest two work values. The live rule accepts the winner only when
 
@@ -1289,7 +1305,7 @@ The principal commit invariants are:
 7. **Atomic file replacement:** a checkpoint path exposes either the prior complete frame or the successor complete frame, not a partially written payload.
 
 The next operation begins by loading and validating the persisted frame against its exact surface identity. A load or configuration mismatch prevents admission; a rejected candidate, unresolved selection, unauthorized proposal, or invalid observed result produces no successor save. Failure of an individual atomic save exposes the complete frame that preceded that save, not a partial payload, but it does not roll back an earlier successful save in a multi-save API call. These explicit boundaries make the causal chain inspectable from observation through field transition to each persisted consequence.
-## 6. Representation Without Learned Embeddings
+## 6. Representation, Provenance, and Semantic Boundaries
 
 Cassi separates exact acquisition, fixed interpretation, and adaptive field response. Acquired data first enters a content-addressed packet and journal. A selected fixed adapter then exposes a typed view of that packet. Only a task-specific field operator can turn the view into experience-dependent behavior. No learned embedding model lies between these stages, and codec conformance is not counted as learned semantics.
 
@@ -1959,7 +1975,7 @@ The fragment-order check in this scenario proves that neither target sequence wa
 
 ## 9. Relational Basis Selection
 
-The current relational capability is selection within a fixed candidate library. The system does not invent a coordinate transformation, infer an unlimited relation vocabulary, or discover action labels from raw data. Candidate maps, action identities, evidence terms, and score weights are fixed; grouped action operators and accumulated selection evidence reside in the field. This bounded construction makes the ownership claim inspectable while keeping its scope explicit.
+The current relational capability is selection within a fixed candidate library. The system does not invent a coordinate transformation, infer an unlimited relation vocabulary, or discover action labels from raw data. Candidate maps, action identities, evidence terms, and score weights are fixed; grouped action operators and accumulated selection evidence reside in the adaptive field. This bounded construction makes the learned dependency inspectable while keeping its scope explicit.
 
 ### 9.1 Exact relational inputs and candidate frames
 
@@ -2273,7 +2289,7 @@ Calling this capability “generative abstraction” is justified only in the na
 
 ## 11. Natural-Language Boundary Experiments
 
-The text comparison asks whether the same field-owned selection principle extends from exact symbolic laws to unrestricted continuation. Its negative result is part of the capability map: fixed byte-span and surface-role grammars transfer perfectly when the target law is inside their candidate set, but neither grammar explains held-out natural prose. A next-symbol field with high teacher-forced training accuracy also fails autoregressively, while a stricter Phi field abstains.
+The text comparison asks whether the same adaptive-state selection mechanism extends from exact symbolic laws to unrestricted continuation. Its negative result is part of the capability map: fixed byte-span and surface-role grammars transfer perfectly when the target law is inside their candidate set, but neither grammar explains held-out natural prose. A next-symbol field with high teacher-forced training accuracy also fails autoregressively, while a stricter Phi field abstains.
 
 ### 11.1 Corpus and exact continuation contract
 
@@ -2391,19 +2407,21 @@ Causal controls support that interpretation. Clearing a selected positive-contro
 There was deliberately no fallback to a language model. A fallback could produce fluent output, but the resulting continuation would not establish that the Cassi field or its measured candidate grammar owned the behavior. The supported conclusion is therefore negative and specific: the current field surfaces can learn and transfer exact bounded symbolic laws, but they do not yet support exact held-out natural-language continuation. Their safe behaviors at this boundary are explicit exhaustion or field abstention, not ungrounded fluency.
 
 
-## 12. Training and Experience Deposition
+## 12. Continual Learning and Experience Deposition
 
-The word *training* needs a narrower meaning here than it has in a parameterized neural model. CassiFI does not optimize a second set of weights and then copy their predictions into a field. In the measured task gauntlet, fixed code constructs a bounded candidate set, evaluates those candidates against supplied examples, and deposits the resulting evidence into designated rows of one `QiFieldState.field`. The tensor is the sole adaptive object, while the candidate grammar, evaluation rule, field layout, and update rule remain fixed machinery.
+The continual-learning question is how a sequence of accepted experiences changes later behavior while preserving capabilities acquired earlier in the sequence. CassiFI makes every update explicit: the predecessor field is identified, fixed code evaluates a bounded candidate set against supplied examples, and the resulting evidence is deposited into designated rows of a successor `QiFieldState.field`. Earlier holdouts can then be reevaluated after every deposit.
 
-This separation also distinguishes three operations that can otherwise be conflated:
+The word *training* has a narrower meaning here than it has in a parameterized neural model. CassiFI does not optimize a second set of weights and copy their predictions into the field. The tensor is the adaptive object, while the candidate grammar, evaluation rule, layout, and update rule remain fixed machinery. This arrangement exposes retention and interference directly, but the current use of disjoint namespaces also prevents the experiment from exercising shared-capacity catastrophic forgetting.
+
+Three operations remain distinct:
 
 1. **experience construction** supplies exact inputs and target outcomes;
 2. **evidence deposition** changes the adaptive tensor;
 3. **checkpoint commitment** durably records that successor tensor and its provenance.
 
-Only the second operation is learning in the field-state sense. A receipt, journal entry, corpus manifest, or Python metric can influence or document an update without becoming a parallel learned state.
+Evidence deposition is the only mutation on the normal learning path. Causal interventions deliberately create separate modified states, while receipts, journal entries, corpus manifests, and Python metrics can influence or document an update without becoming parallel adaptive memory.
 
-### 12.1 Training without learned weights
+### 12.1 Evidence deposition without learned weights
 
 For a regime \(r\), the text-task controller enumerates its fixed program set \(\mathcal P_r\). Each program \(p\) is executed on every training example and assigned support \(n_p\), position accuracy \(a^{\mathrm{pos}}_p\), edit similarity \(a^{\mathrm{edit}}_p\), exact-match rate \(a^{\mathrm{exact}}_p\), outcome error
 
@@ -2440,7 +2458,7 @@ S_p,\,
 
 `learn_regime()` clones the predecessor tensor and replaces only the rows allocated to \(r\). Each row contains the regime identifier, program identifier, canonical token length, numeric token encoding, and \(m_{r,p}\). Selection is subsequently recomputed read-only from those field records. No optimizer, gradient tape, learned embedding table, replay model, or mutable program store participates.
 
-The limitation is as important as the ownership result. Targets are supervised by fixed task-generating functions, and the controller computes all candidate executions and statistics. The field owns the persistent comparative evidence; it does not discover the task family, synthesize the grammar, or learn the scoring law. The gauntlet accordingly identifies its candidate space as `bounded_fixed_program_grammar` and explicitly reports both `semantic_acquisition: false` and `task_independent_learner: false`.
+The limitation is as important as the retention result. Targets are supervised by fixed task-generating functions, and the controller computes all candidate executions and statistics. The field retains persistent comparative evidence; it does not discover the task family, synthesize the grammar, or learn the scoring law. The gauntlet accordingly identifies its candidate space as `bounded_fixed_program_grammar` and explicitly reports both `semantic_acquisition: false` and `task_independent_learner: false`.
 
 ### 12.2 Curriculum construction
 
@@ -2481,40 +2499,40 @@ The completed receipt therefore reports the four-source list under `raw_receipt_
 
 The renamed and composed controls answer still different questions. Renaming tests whether a result survives changed identifiers. Composition tests whether selected primitive programs can be called in sequence. Neither establishes that an unseen semantic operation was inferred. Likewise, 13/13 exact results under each of the four holdout codecs establish invariance under fixed registered projections only. The run reports learned cross-view transfer as `unsupported` with reason `fixed_projection_only`.
 
-### 12.4 Retention and interference
+### 12.4 Sequential retention and interference
 
-The retention probe begins with an empty task field, where every supported family is `exhausted` and scores 0/4. It then deposits the thirteen supported regimes sequentially. After every update, the runner hashes every unrelated regime namespace, requires those rows to remain byte-identical, and reevaluates all previously learned holdouts. Natural and deliberately ambiguous control regimes are deposited afterward, bringing the total to fifteen sequential updates.
+The retention probe begins with an empty task field, where every supported family is `exhausted` and scores 0/4. It then deposits the thirteen supported regimes sequentially. After each family deposit, the runner hashes every unrelated regime namespace, requires those rows to remain byte-identical, and reevaluates all previously learned holdouts. It records thirteen such stepwise checkpoints. Natural and deliberately ambiguous control regimes are then deposited into the mainline state, bringing the mutation count to fifteen, followed by one additional evaluation of all thirteen positive families. The retained artifact does not include a separate positive-family evaluation between the two control deposits.
 
-For family \(j\) after update \(k\), let \(A_{j,k}\) be exact holdout accuracy and \(A_j^\star\) its accuracy immediately after learning. The reported retention summaries are
+For family \(j\) at recorded checkpoint \(k\), let \(A_{j,k}\) be exact holdout accuracy and \(A_j^\star\) its accuracy immediately after learning. Over the thirteen family checkpoints and the final post-control checkpoint, the reported summaries are
 
 \[
-A_{\min}=\min_{j,k\ge j}A_{j,k}=1.0,
+A_{\min}=\min_{j,k}A_{j,k}=1.0,
 \qquad
-\Delta_{\max}=\max_{j,k\ge j}\left(A_j^\star-A_{j,k}\right)=0.0.
+\Delta_{\max}=\max_{j,k}\left(A_j^\star-A_{j,k}\right)=0.0.
 \]
 
 All thirteen supported families finished at 4/4 exact. The three compositions absent from direct training each finished at 4/4 exact. The natural control remained `exhausted` at 0/4, the conflicting case-map control remained `ambiguous` at 0/4, and outcome-shuffled training remained `exhausted`.
 
-The lesion control establishes local causal ownership. Clearing program 8, the eligible `suffix4` row, changed `suffix4` selection to `exhausted`, while `ascii_upper` remained at accuracy 1.0. This supports retention by disjoint field namespace in the current fixed layout. It does not establish resistance to catastrophic interference when two experiences compete for the same rows, when candidate definitions change, or when noisy online updates replace the stored evidence.
+The intervention controls branch away from that mainline state. Outcome-shuffled training begins from a new empty field. The lesion path begins from the trained mainline field, and `clear_program()` clones the tensor before zeroing the eligible `suffix4` row. That cloned lesion changed `suffix4` selection to `exhausted`, while `ascii_upper` remained at accuracy 1.0; neither intervention changed the state later checkpointed. Together with byte-identical unrelated namespaces, this establishes an isolation baseline for continual learning in the current fixed layout. It does not establish resistance to catastrophic interference when two experiences compete for the same rows, when candidate definitions change, or when noisy online updates replace stored evidence.
 
 ### 12.5 Long-horizon behavior
 
-The long-horizon probe first serializes and reloads the trained field byte-exactly, then confirms that all inference paths preserve the state hash. It subsequently applies 256 cyclic repetitions of the already learned family updates. Because each update deterministically replaces its regime rows with the same evidence derived from the same curriculum, the final tensor returns the same exact state identity:
+The long-horizon probe first serializes and reloads the trained mainline field byte-exactly, then confirms that all inference paths preserve the state hash. It subsequently applies 256 cyclic redepositions of already learned family evidence. The final tensor has the same exact state identity as the pre-probe field:
 
 | Field property | Completed-run result |
 |---|---:|
 | Shape | \([1,6606,1]\) |
 | Dtype/device | `torch.float64` / CPU |
-| Sequential curriculum updates | 15 |
-| Long-horizon updates | 256 |
+| Sequential updates | 15: thirteen positive-family deposits followed by natural and ambiguous control deposits |
+| Long-horizon redepositions | 256 |
 | Maximum absolute stored value | 30.0 |
 | Checkpoint reload exact | true |
 | Inference preserved state | true |
-| Long-horizon fixed point | true |
+| Receipt field and observed endpoint | `long_horizon_fixed_point: true`; final state digest exactly equals the pre-probe digest |
 | State SHA-256 | `c0d1a222c89ec3a400ddae312f47657165f2d479185f3755d1b9d4619fc560f5` |
 | Checkpoint SHA-256 | `0e55ad09949dd4ce287f0169c4941b6d871b3970822d8e9ba0f62ad86e9e0a7b` |
 
-This is an idempotence result for repeated exact deposition, not a convergence theorem for arbitrary experience streams. The run does not vary labels, add stochastic noise, alter the grammar, or repeatedly merge contradictory evidence. Boundedness at 30.0 is an observed property of this finite trajectory, not a global stability proof.
+This is an exact endpoint-recurrence result for the full 256-update sequence. The retained receipt does not provide intermediate hashes, so the paper does not infer that every redeposition was individually a fixed point. The run also does not vary labels, add stochastic noise, alter the grammar, or repeatedly merge contradictory evidence. Boundedness at 30.0 is an observed property of this finite trajectory, not a convergence theorem or global stability proof.
 
 The associated exact ingress journal contained 35 entries, had head digest `388da60c29911c58661cda5ca6803c8cd774312fbd1e738e05f961ba65c12026`, and replayed exactly after restart. The completed `cassi.general-task-gauntlet-result.v2` receipt itself had SHA-256 `42eee4352d8076a15f7716919880d1fee679bcab58945860a27f4ad746a44de5`.
 
@@ -2533,11 +2551,11 @@ The test harness enforces this boundary at runtime. Its sentinels observed one a
 
 All diagnostic checks passed, but capability readiness did not. The receipt remains `not_ready`, with `learned_cross_view_transfer` as the missing capability. That negative readiness result prevents exact bounded program learning, fixed codec invariance, and program composition from being overstated as open-ended task learning.
 
-## 13. Persistence and Provider Architecture
+## 13. Persistent Adaptive Memory and Provider Architecture
 
-Persistence is not one interchangeable CassiFI file format. The profile-governed Qi-flow state and the live language provider solve related but different problems. `QiFlowStateV3` is a portable single-tensor state whose meaning is pinned by an explicit `QiFlowProfile`. The provider stores a composite `QiFieldState` containing the active Phi-language, counterflow, and mnemic-condensation regions plus bounded operational metadata. A loader for one format must not accept the other.
+Persistent memory requires more than writing a tensor to disk. The stored state must retain its runtime meaning, survive a process boundary, reproduce the intended later behavior, and remain unchanged during operations declared read-only. CassiFI implements those requirements through versioned state frames, configuration and profile identities, content hashes on the stronger formats, exact reload tests, and explicit predecessor-to-successor receipts.
 
-This distinction corrects two common ambiguities. First, a profile hash identifies a complete semantic and numerical contract, not merely a tensor shape. Second, an OpenAI-shaped model identifier identifies a protocol endpoint; it does not imply that a conventional language-model object or weight checkpoint exists behind it.
+The profile-governed Qi-flow state and the live language provider use different persistence contracts. `QiFlowStateV3` is a portable single-tensor state whose meaning is pinned by an explicit `QiFlowProfile`. The provider stores a composite `QiFieldState` containing active Phi-language, counterflow, and mnemic-condensation regions plus bounded operational metadata. A loader for one format must not accept the other. A profile hash binds a semantic and numerical contract rather than only a shape, and an OpenAI-shaped model identifier names a protocol endpoint rather than implying a conventional language-model checkpoint.
 
 ### 13.1 Versioned field profiles
 
@@ -2811,9 +2829,9 @@ No inspected receipt demonstrates bidirectional learning across the CassiFI and 
 
 The integration tests run for this section comprised 19 CassiCore client/telemetry tests, one CassiCore canonical-wire fixture test, and five focused CassiFI provider tests. They establish the component behaviors listed above while preserving the end-to-end limitations.
 
-## 15. Experimental Methodology
+## 15. Evaluation Methodology for Learning, Memory, and Non-Settlement
 
-CassiFI experiments use deterministic scenarios, exact evidence artifacts, and causal controls rather than treating a passing task output as sufficient evidence of field ownership. A result is reported only at the scope supported by a named retained receipt or a focused behavioral test. Its evidence description identifies the tested implementation, initial field, fixed configuration, input set, intervention, mutation allowance, outcome rule, and artifact when those dimensions apply. If a retained artifact omits a dimension, the claim is narrowed rather than filling the gap by inference. A useful experiment record is
+CassiFI experiments evaluate three primary claims: whether sequential updates preserve earlier behavior, whether adaptive memory survives and resumes across declared boundaries, and whether the runtime withholds commitment when learned support is inadequate. Deterministic scenarios, exact evidence artifacts, and causal controls prevent a passing task output from standing in for those measurements. A result is reported only at the scope supported by a named retained receipt or focused behavioral test. Its evidence description identifies the implementation, initial field, fixed configuration, input set, intervention, mutation allowance, outcome rule, and artifact when those dimensions apply. If a retained artifact omits a dimension, the claim is narrowed rather than filling the gap by inference. A useful experiment record is
 
 \[
 \mathcal E=
@@ -2834,9 +2852,9 @@ where \(H_C\) is the configuration or contract identity, \(H_{F_0}\) and \(H_{F_
 
 Where selection semantics apply, outcomes retain the runtime taxonomy `selected`, `ambiguous`, `exhausted`, and `unsupported`. Other experiments use their exact domain status rather than forcing it into that vocabulary. Exact success counts, abstentions, false settlements, residual maxima, and worst-case margins are reported separately. Deterministic enumerations use counts and extrema; they are not assigned sampling \(p\)-values.
 
-### 15.1 Causal field dependence
+### 15.1 Causal attribution of learned behavior
 
-The primary question is whether the measured capability changes when the adaptive field changes while the executable code, configuration, input, and random seed remain fixed. Let
+Causal attribution tests whether a measured retention, recall, composition, or decision outcome changes when the adaptive field changes while executable code, configuration, input, and random seed remain fixed. Let
 
 \[
 Y(F;X,C)
@@ -2948,7 +2966,7 @@ N_{\mathrm{bad}}=\sum_{t=0}^{H}
 \mathbf 1[\neg\operatorname{finite}(F_t)],
 \]
 
-together with clamp or saturation counts, state drift, terminal outcome, and the exact update count. If \(H\) repeated redepositions return the initial trained hash, the result is an exact fixed point for that frozen evidence. It does not estimate a convergence rate or prove a global stability region. A numerical bound observed on one trajectory is reported as an observed maximum, not a universal bound.
+together with clamp or saturation counts, state drift, terminal outcome, and the exact update count. If \(H\) repeated redepositions return the initial trained hash, the result is exact endpoint recurrence under that \(H\)-step sequence. Without intermediate state hashes, it does not establish that each update is individually idempotent, estimate a convergence rate, or prove a global stability region. A numerical bound observed on one trajectory is reported as an observed maximum, not a universal bound.
 
 ### 15.8 Forbidden-surface monitoring
 
@@ -2987,9 +3005,19 @@ Evidence aggregation follows artifact lineage. Phase receipts nested in a top-le
 
 Capability and readiness are evaluated at the scope of the experiment. The dedicated paired JSON–raster scenario can establish bounded bidirectional transfer within `cross_view_scope: registered_relational_task_only`, while the general-task gauntlet separately reports `learned_cross_view: unsupported` because its four-codec comparison uses only fixed projections. The gauntlet's `not_ready` status therefore marks the absence of broader learned semantic cross-view transfer; it does not erase the narrower paired-transfer result.
 
-## 16. Results
+## 16. Results: Continual Learning, Memory, and Non-Settlement
 
 The results below are deterministic evaluated cases, not population estimates. The primary integrated artifact is `CassiFI/artifacts/general-task-gauntlet/receipt.json`, schema `cassi.general-task-gauntlet-result.v2`. Its exact 51,118 stored bytes have SHA-256 `42eee4352d8076a15f7716919880d1fee679bcab58945860a27f4ad746a44de5`. The nested reproduction phase is retained as `CassiFI/artifacts/general-task-gauntlet/reproduction.json`; both artifacts record `diagnostic_checks_passed: true` and `readiness_validated: false`. The reproduction `*_OK` strings are harness-completion markers, so the capability claims below use their nested counts and controls. The nested phase belongs to the same gauntlet lineage and is not counted as an independent replication.
+
+The three central machine-learning results are:
+
+| Problem | Positive evidence | Measured boundary |
+|---|---|---|
+| Continual learning | Thirteen registered families were deposited sequentially; all earlier held-outs were reevaluated after each family deposit; minimum retained accuracy was \(1.0\) and maximum observed drop was \(0\) | Families occupy disjoint namespaces and updates replace designated rows, so shared-capacity interference and contradictory learning remain untested |
+| Persistent adaptive memory | Checkpoint reload was byte- and field-exact on the tested CPU path; post-restart ingress replay was exact; inference preserved trained state; later supported behavior returned after reload | No claim of unbounded capacity, multi-writer correctness, full crash durability, cross-device identity, or independent cross-machine replication |
+| Non-settlement | Registered missing-support, tied-candidate, malformed-input, and required-edge controls returned distinct `exhausted`, `ambiguous`, or `unsupported` outcomes without inventing a result | Hidden relevance caused 10/16 false-confident choices, and the autoregressive next-symbol surface produced 16/16 false settlements on held-out natural continuation |
+
+The remaining results characterize the grounded, compositional, relational, representational, and language tasks on which those three properties were tested.
 
 The grounded action, spatial, reference, and temporal curricula have separate retained receipts at:
 
@@ -3002,7 +3030,7 @@ Counterflow composition is execution evidence from the standalone command `cd Ca
 
 | Research question | Measured result | Present interpretation |
 |---|---|---|
-| Field causality and deterministic replay | 52/52 held-out cases across 13 registered task families were exact after field training; the matched untrained field was 0/52, shuffled outcomes exhausted, and a targeted lesion removed the affected family while preserving unrelated accuracy at 1.0 | Supported for the bounded candidate catalog and verified CPU state |
+| Causal attribution and deterministic replay | 52/52 held-out cases across 13 registered task families were exact after field training; the matched untrained field was 0/52, shuffled outcomes exhausted, and a targeted lesion removed the affected family while preserving unrelated accuracy at 1.0 | Supported for the bounded candidate catalog and verified CPU state |
 | Grounded transition learning | Action, spatial, reference, and temporal held-outs were exact in their registered curricula; shuffled, unknown-name, and substituted-layout controls changed or withheld the result as specified | Supported for finite grounded vocabularies |
 | Exact compatible-edge composition | Both held-out three-action branches were composed from single-edge observations; deleting one required consequence prevented settlement, and changing the goal changed all three proposed actions | Supported for the tested two-branch graph |
 | Relational basis selection | `target_minus_self` was selected from four coordinate hypotheses and reached exact world revisions on 32/32 held-out renamed examples; the minimum role margin exceeded 0.13 and maximum constraint residual remained below 0.005 | Supported for the registered basis family |
@@ -3011,18 +3039,18 @@ Counterflow composition is execution evidence from the standalone command `cd Ca
 | Typed generative abstraction | A 12-program typed grammar produced an exact 12/12 boundary composition with zero false settlements and zero maximum residual; evidence and operator ablations exhausted | Supported as bounded program discovery, not unrestricted synthesis |
 | Universal data and codecs | A paired JSON–raster experiment learned 32 source pairs, then answered 16/16 JSON→raster and 16/16 raster→JSON held-outs exactly; shuffled, missing-identity, and hash-only pairing controls failed. Its scope is `registered_relational_task_only`. Four gauntlet codecs separately produced 52/52 fixed-projection invariance cases | Bounded paired transfer and fixed-codec invariance supported; unrestricted semantic cross-view learning unsupported |
 | Natural language | Four field surfaces and two target-aware oracle surfaces each achieved 0/16 exact continuations. Byte-span, surface-role, and Phi-harmonic field paths abstained 16/16; the next-symbol field and both target-aware oracles falsely settled 16/16 | Negative result; open-ended continuation unsupported |
-| Retention, restart, and horizon | All 13 gauntlet families retained accuracy 1.0 with maximum drop 0; checkpoint reload was exact; 256 deterministic redepositions remained finite and reached an exact fixed point with maximum absolute field value 30 | Supported for the finite measured sequence |
+| Retention, restart, and horizon | All 13 gauntlet families retained accuracy 1.0 with maximum drop 0; checkpoint reload was exact; after 256 deterministic redepositions the field remained finite and returned to the pre-probe state digest with maximum absolute value 30 | Supported for the finite measured sequence; intermediate hashes were not retained |
 | Current readiness | The integrated receipt reports `diagnostic_checks_passed: true`, `readiness_validated: false`, and `status: not_ready`; its sole missing item is `learned_cross_view_transfer` | Surface diagnostics passed, but the gauntlet does not validate broader learned semantic cross-view readiness |
 
-### 16.1 Field causality and deterministic replay
+### 16.1 Causal attribution and deterministic replay
 
 The general-task gauntlet used a bounded fixed grammar containing 10 text programs and 12 surface-role programs, with one adaptive field of shape \([1,6606,1]\). Thirteen learnable families contributed four held-out cases each. After the registered observations were deposited, field selection and deterministic execution were exact on all 52 cases. Repeating the same 52 cases against the matched untrained field produced no selections and no exact outputs: every family exhausted.
 
 The selected corpus split used `leave_one_source_out`: 30 selected training episodes, four selected holdout episodes, and `wikitext103-train` as the holdout source. The receipt therefore records `source_disjoint: true` and an empty `selected_split_source_overlap`. Its broader raw receipt provenance still has nonempty `raw_receipt_source_overlap` across `light-novels`, `textbook-train`, `tinystories-instruct-train`, and `wikitext103-train`. Source disjointness applies to the selected split, not to every raw receipt record.
 
-The causal controls isolated the trained field content rather than merely comparing two initializations. Shuffling the observed outcomes produced `exhausted`. Clearing the field support associated with `suffix4` changed that family from `selected` to `exhausted`, while an unrelated family remained exact with accuracy 1.0. The ambiguous control retained two equivalent program identities, zero margin, and status `ambiguous`; it was not promoted to a winner.
+The controls use distinct state lineages. The ambiguous and natural regimes are deposited into the trained mainline state; all thirteen positive families are evaluated once after both deposits. Shuffled-outcome training starts from a new empty field and produces `exhausted`. The lesion path calls `clear_program()` on the trained mainline state, but that method clones the tensor before clearing `suffix4`; the clone exhausts that family while an unrelated family remains exact with accuracy 1.0. The mainline state is then serialized, so neither shuffled training nor the lesion mutates the checkpointed field.
 
-The retained persistence phase reports exact checkpoint reload and an unchanged field across inference; ingress replay after restart is also exact. The runtime sentinel record reports one adaptive field state, no preloaded forbidden modules, zero forbidden-import attempts, and zero Qwen, teacher, optimizer, socket, and subprocess calls during the instrumented gauntlet interval. Together controls remove the relevant field result while preserving an unrelated result, which supports a causal field-dependence claim at this bounded surface. They do not show that the fixed program catalog was itself learned.
+The retained persistence phase reports exact checkpoint reload and an unchanged field across inference; ingress replay after restart is also exact. The runtime sentinel record reports one adaptive field state, no preloaded forbidden modules, zero forbidden-import attempts, and zero Qwen, teacher, optimizer, socket, and subprocess calls during the instrumented gauntlet interval. The isolated lesion removes the relevant result while preserving an unrelated result, which supports a causal field-dependence claim at this bounded surface. It does not show that the fixed program catalog was itself learned.
 
 ### 16.2 Grounded transition learning
 
@@ -3096,9 +3124,9 @@ The negative result is not explained solely by abstention thresholds or ranking.
 
 The measured boundary is therefore specific: the field can select and compose registered transformations over text-shaped data, but the current candidate languages do not express open-ended natural continuation.
 
-### 16.10 Retention, restart, and long-horizon stability
+### 16.10 Sequential retention, persistent restart, and long-horizon stability
 
-The gauntlet trained the 13 positive families sequentially. After each addition, every previously trained family was reevaluated. Minimum retained accuracy remained 1.0 at every stage, and the maximum observed accuracy drop was 0. The final field exactly selected all 13 families after the ambiguity, natural-language, lesion, and shuffled-outcome controls.
+The gauntlet trained the 13 positive families sequentially. After each family deposit, every previously trained family was reevaluated; minimum retained accuracy remained 1.0 and maximum observed accuracy drop remained 0 across those thirteen checkpoints. The mainline then received the natural and ambiguous control deposits, after which one full evaluation again found all 13 positive families exact. The shuffled-outcome control used a new empty field, and the lesion used a cloned branch, so neither altered the mainline state that was checkpointed.
 
 Checkpoint persistence was byte- and field-exact for the tested CPU runtime. Reload restored the field shape and state digest exactly, and `inference_preserved_state` confirms that subsequent evaluation did not change the trained field. The grounded curriculum chain independently retained earlier action, spatial, and reference capabilities as later stages were added.
 
@@ -3106,7 +3134,7 @@ The long-horizon probe cycled through the 13 supported families for 256 total de
 
 ### 16.11 Current readiness assessment
 
-The integrated gauntlet provides bounded evidence for sole adaptive field ownership, multi-family competence, held-out correctness, targeted negative controls, exact restart persistence, bounded long-horizon behavior, fixed-codec invariance, and the cross-task compositions reported in §16.8. Its registered natural control exhausted rather than selecting a program. Runtime sentinels observed no forbidden imports or Qwen, teacher, optimizer, socket, or subprocess use during the measured interval.
+The integrated gauntlet provides bounded evidence on the paper's three central problems: exact sequential retention in disjoint namespaces, exact restart persistence on the tested CPU path, and correct non-settlement for registered ambiguity and missing-support controls. It also reports multi-family held-out correctness, fixed-codec invariance, and the cross-task compositions in §16.8. Causal controls attribute the relevant learned variation to the adaptive field, and runtime sentinels observed no forbidden imports or Qwen, teacher, optimizer, socket, or subprocess use during the measured interval.
 
 The same receipt returns:
 
@@ -3119,11 +3147,11 @@ missing: learned_cross_view_transfer
 
 Those literal fields require scope. Surface diagnostics completed, but readiness was not validated. The dedicated JSON–raster experiment measured learned paired transfer from 32 source experience pairs: JSON→raster was 16/16 exact, raster→JSON was 16/16 exact, and shuffled, missing-identity, and hash-only controls failed. What remains unsupported is the broader capability expected by the general-task gauntlet: learned semantic correspondence beyond `registered_relational_task_only` and beyond fixed projections of the same information. The bounded positive result and the broader negative readiness result are therefore compatible.
 
-The current evidence supports field-owned selection, bounded relational abstraction, exact registered composition, persistence, and carefully delimited transfer. It does not support open-ended natural language, arbitrary hidden-relevance inference, unrestricted program synthesis, or a measured CassiFI–CassiCosmos cognitive/physical loop. `not_ready` is consequently the appropriate readiness status even though the individual bounded capabilities above are reproducible.
+The current evidence supports exact retention under isolated allocation, persistent adaptive state on the tested paths, typed non-settlement for declared controls, bounded relational abstraction, exact registered composition, and carefully delimited transfer. It does not support shared-capacity resistance to catastrophic forgetting, unbounded or concurrent memory, generally calibrated uncertainty, open-ended natural language, arbitrary hidden-relevance inference, unrestricted program synthesis, or a measured CassiFI–CassiCosmos cognitive/physical loop. `not_ready` is consequently the appropriate readiness status even though the individual bounded capabilities above are reproducible.
 
 ## 17. Related Work
 
-The relevant comparison is architectural and evidentiary. CassiFI has not been evaluated head to head against the systems below, and the bounded exact tasks in §16 are not substitutes for their published benchmarks. This section therefore compares where experience-dependent state resides, which transformations are fixed or learned, how memory is retrieved, and which behaviors have actually been measured.
+The central comparisons concern continual learning, persistent memory, and selective prediction. The paper also draws on dynamical computation, associative memory, program induction, grounding, and agent architectures because they determine how those three problems are represented and tested. CassiFI has not been evaluated head to head against the cited systems, and its bounded exact tasks are not substitutes for their published benchmarks. The comparisons below identify where experience-dependent state resides, how earlier information is preserved and retrieved, how unsupported decisions are withheld, which transformations are fixed or learned, and which behaviors have actually been measured.
 
 The scope distinction is especially important for the word *field*. The §16 cognition results use the CPU `QiFieldState.field`, normally in `float64`, with deterministic codecs, fixed transition machinery, and bounded candidate languages. CassiCosmos separately evolves a three-dimensional two-fluid GPU field. No retained experiment closes a bidirectional learning loop between those state spaces. Comparisons to neural fields, reaction–diffusion systems, and spatially local computation consequently position the Cassi research program; they do not recast the current cognitive results as measurements of a physical PDE substrate.
 
@@ -3181,7 +3209,7 @@ The same limit applies to embodiment. The current provider can stage a typed wor
 
 CassiFI's typed-generative experiment is substantially narrower. A deterministic generator supplies 12 canonical programs from a fixed typed grammar, a fixed interpreter evaluates them, and evidence deposited in the field determines support, confirmation, and selection. Held-out boundary behavior and operator-trajectory ablation show that the selected composition depends on the relevant field evidence. The receipt nevertheless records `semantic_acquisition: false` and `task_independent_learner: false`. Primitive invention, library growth, and unconstrained search are outside the demonstrated result.
 
-The comparison locates the contribution precisely: CassiFI measures field-owned selection and consolidation of a bounded relational program, including exact negative controls. It has not yet measured the acquisition of a new operator or the growth of its own candidate language.
+The comparison locates the bounded result precisely: CassiFI selects and consolidates a registered relational program through persistent adaptive evidence and exact negative controls. It has not yet measured the acquisition of a new operator or the growth of its own candidate language.
 
 ### 17.8 Retrieval, agent memory, and tool use
 
@@ -3189,7 +3217,7 @@ Contemporary agent architectures commonly divide adaptive authority across a pre
 
 Cassi's separation of authorities takes a different form. CassiCore can preserve an exact record and resolve exact content; a CassiFI field can accumulate the adaptive effect of observations and select a relevant address or action proposal; fixed policy code validates what may be emitted or committed. Within the §16 gauntlet, the monitored sentinels recorded zero model-provider calls, teacher or Qwen calls, optimizer steps, socket creations, subprocess starts, and forbidden imports. As §15.8 specifies, that result applies only to the instrumented process and interval; it cannot exclude an uninstrumented native extension, state loaded before the audit, or an entrypoint that was not executed. Field intervention therefore supplies a direct attribution test for the monitored run, but it does not confer the broad language and tool competence supplied by pretrained models.
 
-The negative evidence matters to the comparison. CassiFI's current natural-continuation surfaces and even target-aware bounded oracles achieved 0/16 exact continuations, and the live provider-to-CassiCosmos executor is absent. The architecture should therefore be compared on state ownership, transaction semantics, exact replay, and bounded grounded behavior—not on open-domain generation, autonomous tool use, or general agent performance.
+The negative evidence matters to the comparison. CassiFI's current natural-continuation surfaces and even target-aware bounded oracles achieved 0/16 exact continuations, and the live provider-to-CassiCosmos executor is absent. The architecture should therefore be compared on sequential retention, adaptive-state continuity, selective errors, transaction semantics, exact replay, and bounded grounded behavior—not on open-domain generation, autonomous tool use, or general agent performance.
 
 ### 17.9 Continual learning
 
@@ -3197,7 +3225,13 @@ Continual-learning methods change learned parameters while attempting to preserv
 
 CassiFI instead assigned the 13 gauntlet families to disjoint namespaces and deterministically replaced the rows for the family being deposited. All earlier holdouts remained exact, and unrelated rows were required to remain byte-identical. This is a useful state-isolation and retention result, but it does not exercise the central difficulty addressed by continual learning: competing tasks that require overlapping capacity and mutually interfering updates. The current outcome should not be presented as a catastrophic-forgetting solution until shared-support, contradictory, noisy, and capacity-limited sequences are tested against continual-learning baselines.
 
-### 17.10 Comparative synthesis
+### 17.10 Selective prediction, abstention, and calibration
+
+[Geifman and El-Yaniv's selective-classification formulation](https://arxiv.org/abs/1705.08500) treats rejection as a risk–coverage tradeoff: a classifier may reduce covered cases in order to maintain a declared error risk. [Guo et al.](https://arxiv.org/abs/1706.04599) distinguish confidence calibration from raw accuracy by asking whether predicted probabilities match empirical correctness frequencies. Together these traditions make “knowing when not to answer” an observable decision property rather than a verbal description.
+
+CassiFI currently exposes discrete settlement states rather than a calibrated correctness probability. Its `ambiguous`, `exhausted`, and `unsupported` outcomes permit coverage, selective error, and false-settlement counts, but the present receipts do not estimate a risk–coverage curve or expected calibration error. The registered negative controls are positive evidence for explicit abstention semantics; the 10/16 hidden-relevance false-confident choices and 16/16 autoregressive natural-language false settlements show that those semantics are not yet generally calibrated. A direct comparison requires matched answerable and unanswerable streams with declared coverage, selective risk, and calibration procedures.
+
+### 17.11 Comparative synthesis
 
 The cited families can be summarized by the state whose change explains later behavior:
 
@@ -3212,16 +3246,19 @@ The cited families can be summarized by the state whose change explains later be
 | Program synthesis ([Ellis et al., 2021](https://doi.org/10.1145/3453483.3454080)) | Candidate programs, learned search guidance, and sometimes a growing library | Compositional symbolic execution and reusable abstractions | The measured grammar has 12 fixed candidates and does not grow |
 | Retrieval and agent systems ([Lewis et al., 2020](https://arxiv.org/abs/2005.11401); [Park et al., 2023](https://doi.org/10.1145/3586183.3606763); [Yao et al., 2022](https://arxiv.org/abs/2210.03629); [Schick et al., 2023](https://arxiv.org/abs/2302.04761)) | Model parameters, document or event memory, context, and workflow state | Recall, planning, external action, and persistent experience | Exact records and adaptive relevance remain separate; open-domain language and tool use are unsupported |
 | Continual learning ([Kirkpatrick et al., 2017](https://doi.org/10.1073/pnas.1611835114)) | Shared learned parameters plus anti-forgetting constraints | Sequential acquisition and retention measurement | Present retention relies on disjoint namespaces and deterministic replacement |
+| Selective prediction and calibration ([Geifman and El-Yaniv, 2017](https://arxiv.org/abs/1705.08500); [Guo et al., 2017](https://arxiv.org/abs/1706.04599)) | A predictor, selection or rejection function, and optionally calibrated confidence | Abstention, ambiguity, coverage, and error among settled cases | CassiFI exposes typed statuses but has no calibrated probability or risk–coverage benchmark |
 
-Across these comparisons, CassiFI's present contribution is an experimental constraint and its instrumentation: within a selected runtime, one checkpointed field is the sole experience-dependent adaptive object, while codecs, candidate languages, numerical operators, validation, and policy remain fixed and named. The field can then be saved, frozen, replayed, lesioned, or replaced counterfactually while the rest of the computation is held constant.
+Across these comparisons, CassiFI combines three concerns that are often evaluated separately. A versioned adaptive field carries state across sequential updates and process boundaries; exact evidence remains separately identifiable; and typed decision outcomes expose non-settlement rather than forcing every readout into a prediction. The single-field constraint supports causal measurement of those properties by allowing the adaptive state to be frozen, saved, replayed, lesioned, or replaced while fixed code and inputs remain constant.
 
-That constraint is narrower than many neighboring systems and does not establish priority, universality, biological fidelity, or benchmark superiority. Its value is causal resolution. The current results identify which bounded selections, relations, compositions, and retention effects survive field interventions, and they preserve failures as part of the capability map. The next discriminating comparison is therefore experimental rather than terminological: matched tasks should vary whether learned information resides in Cassi's field, in a trained readout, in a parameterized transition rule, or in an external retrieval index while preserving the same observations, candidate budget, and output contract.
+That organization does not establish benchmark superiority, universality, biological fidelity, or a general solution to forgetting and uncertainty. Its current value is a transparent baseline: exact retention under disjoint allocation, exact persistence on declared runtime paths, and explicit success and failure states for bounded tasks. The next discriminating comparison should therefore place CassiFI, a shared-parameter continual learner, a replay or retrieval system, and a nonadaptive lookup baseline under the same capacity, sequential experience, delayed recurrence, restart, and selective-risk protocol.
 
 ### References
 
 - Amari, Shun-ichi. 1977. “[Dynamics of pattern formation in lateral-inhibition type neural fields](https://doi.org/10.1007/BF00337259).” *Biological Cybernetics*.
 - Ellis, Kevin, et al. 2021. “[DreamCoder: bootstrapping inductive program synthesis with wake-sleep library learning](https://doi.org/10.1145/3453483.3454080).” *Proceedings of the 42nd ACM SIGPLAN International Conference on Programming Language Design and Implementation*.
 - Friston, Karl, et al. 2017. “[Active Inference: A Process Theory](https://doi.org/10.1162/neco_a_00912).” *Neural Computation*.
+- Geifman, Yonatan, and Ran El-Yaniv. 2017. “[Selective Classification for Deep Neural Networks](https://arxiv.org/abs/1705.08500).” *arXiv:1705.08500*.
+- Guo, Chuan, Geoff Pleiss, Yu Sun, and Kilian Q. Weinberger. 2017. “[On Calibration of Modern Neural Networks](https://arxiv.org/abs/1706.04599).” *Proceedings of the 34th International Conference on Machine Learning*.
 - Ha, David, and Jürgen Schmidhuber. 2018. “[Recurrent World Models Facilitate Policy Evolution](https://arxiv.org/abs/1809.01999).” *arXiv:1809.01999*.
 - Hopfield, John J. 1982. “[Neural networks and physical systems with emergent collective computational abilities](https://doi.org/10.1073/pnas.79.8.2554).” *Proceedings of the National Academy of Sciences*.
 - Kanerva, Pentti. 2009. “[Hyperdimensional Computing: An Introduction to Computing in Distributed Representation with High-Dimensional Random Vectors](https://doi.org/10.1007/s12559-009-9009-8).” *Cognitive Computation*.
@@ -3238,13 +3275,13 @@ That constraint is narrower than many neighboring systems and does not establish
 
 ## 18. Limitations and Open Problems
 
-The present system has reproducible bounded capabilities and equally specific failure modes. The integrated receipt reports `diagnostic_checks_passed: true`, `readiness_validated: false`, and `status: not_ready`. This section identifies the mechanisms behind that assessment and states the measurements required to extend the supported capability boundary. A proposed capability remains open until a retained artifact distinguishes it from fixed procedural structure, exact lookup, target leakage, or an external model.
+The most consequential limits follow the paper's three central problems. Sequential retention currently avoids shared-capacity interference, persistent memory has been validated only on bounded single-owner runtime paths, and explicit non-settlement fails on important hidden-relevance and autoregressive cases. The integrated receipt additionally reports `diagnostic_checks_passed: true`, `readiness_validated: false`, and `status: not_ready`. A proposed capability remains open until a retained artifact distinguishes it from fixed procedural structure, exact lookup, target leakage, or an external model.
 
 ### 18.1 Bounded candidate libraries
 
 Most positive results depend on a finite hypothesis space supplied by fixed code. The field accumulates and retains comparative evidence within that space; it does not currently construct the space itself.
 
-| Surface | Fixed candidate structure | Field-owned quantity | Unsupported extension |
+| Surface | Fixed candidate structure | Adaptive field quantity | Unsupported extension |
 |---|---|---|---|
 | Relational basis selection | Four coordinate hypotheses and a fixed score equation | Operator moments, evidence sums, support, and selected-basis dependence | Discovery of a new coordinate family |
 | Byte-span text | Ten programs with at most three tokens | Program support, fit statistics, eligibility, and selection | A transformation absent from the ten programs |
@@ -3254,7 +3291,7 @@ Most positive results depend on a finite hypothesis space supplied by fixed code
 
 This boundary changes the interpretation of “learning.” Exact held-out execution establishes that deposited field evidence selected and retained the appropriate member of a declared family. It does not establish that the field invented the basis, interpreter, primitive operators, score law, or task family. A larger enumerated library would broaden coverage while leaving this limitation intact.
 
-A decisive extension must withhold the successful composite from the enumerated candidate set while leaving reusable primitives available. The field would have to retain a newly assembled variable-length structure, reuse it on a new task instance, survive checkpoint reload, and lose the capability under a targeted field lesion. Any acquired structure stored in a Python object, cache, generated source file, or learned side model would fail the single-field ownership requirement.
+A decisive extension must withhold the successful composite from the enumerated candidate set while leaving reusable primitives available. The field would have to retain a newly assembled variable-length structure, reuse it on a new task instance, survive checkpoint reload, and lose the capability under a targeted field lesion. Any acquired structure stored in a Python object, cache, generated source file, or learned side model would violate the declared adaptive-state boundary.
 
 ### 18.2 Fixed codecs and experimenter-supplied semantics
 
@@ -3321,11 +3358,11 @@ The strongest relational result uses an intervention: one calibrated action iden
 
 These outcomes expose two separate problems. Passive role assignment lacks the action cue used by the successful binder. Hidden relevance is absent from the registered observable dynamics, so several candidates can be behaviorally equivalent while only one is labeled relevant by withheld information. In such cases, forced selection converts missing information into false confidence.
 
-The immediate requirement is calibrated ambiguity, not a higher raw choice rate. A suitable experiment should randomize passive roles and hidden relevance independently of identifier order, guarantee that some cases are observationally equivalent, and reveal an additional cue only in a second phase. Before the cue, the correct result for indistinguishable cases is an explicit equivalence set or abstention. After the cue, the field should update the relevant relation, select correctly on held-out identities, and retain the uncertainty boundary when the cue is absent.
+The immediate requirement is correct ambiguity handling with selective-error measurement, not a higher raw choice rate. A suitable experiment should randomize passive roles and hidden relevance independently of identifier order, guarantee that some cases are observationally equivalent, and reveal an additional cue only in a second phase. Before the cue, the correct result for indistinguishable cases is an explicit equivalence set or abstention. After the cue, the field should update the relevant relation, select correctly on held-out identities, and preserve unrelated capabilities.
 
 ### 18.7 Runtime scale and hardware profile
 
-The integrated gauntlet receipt records device `cpu`, dtype `torch.float64`, and one field of shape \([1,6606,1]\). The run covers 13 positive task families with four held-out cases each, 15 sequential curriculum updates, and 256 repeated redepositions. These are useful reproducibility coordinates, not a scaling study; the receipt does not record a thread count or process topology.
+The integrated gauntlet receipt records device `cpu`, dtype `torch.float64`, and one field of shape \([1,6606,1]\). The run applies 15 mainline updates—13 positive-family deposits followed by natural and ambiguous controls—and 256 repeated redepositions. Positive-family retention is evaluated after each of the 13 family deposits and once after both controls, not separately between the two controls. These are useful reproducibility coordinates, not a scaling study; the receipt does not record a thread count or process topology.
 
 The current evidence does not report:
 
@@ -3337,7 +3374,7 @@ The current evidence does not report:
 - thread count, process topology, or multi-process update behavior;
 - a complete processor, operating-system, and numerical-library fingerprint in the gauntlet receipt.
 
-The 256-update result is deterministic redeposition of already learned evidence. Returning to the same digest proves an exact fixed point for that operation; it does not establish autonomous dynamical stability, unbounded memory, or continual adaptation. Likewise, minimum retained accuracy 1.0 across 13 disjoint namespaces does not measure competition for shared capacity.
+The 256-update result is deterministic redeposition of already learned evidence. The final digest exactly matches the pre-probe digest, establishing endpoint recurrence under the complete recorded sequence. Because the retained artifact omits intermediate state hashes, it does not establish that each individual update is a fixed point, nor does it establish autonomous dynamical stability, unbounded memory, or continual adaptation. Likewise, minimum retained accuracy 1.0 across 13 disjoint namespaces does not measure competition for shared capacity.
 
 CassiCosmos does not fill this evidence gap. Its physical field uses GPU `float32` buffers, and its canonical-Qi mirror has a separate fixed snapshot contract. Neither is a GPU execution of the measured CassiFI cognition gauntlet. No CPU/GPU parity result currently compares field trajectories, discrete selections, or toleranced observables for the same cognitive workload.
 
@@ -3384,22 +3421,24 @@ Any future consciousness claim requires an explicit operational target, alternat
 
 ### 18.11 Prioritized measurement program
 
-The open problems can be ordered by how directly they block the current architecture claim:
+The open problems are ordered by how directly they test continual learning, persistent memory, and reliable non-settlement:
 
 | Priority | Missing capability | Next discriminating measurement | Minimum evidence required |
 |---:|---|---|---|
-| 1 | Learned semantic cross-view transfer | Learn a mapping between views for which no fixed projection or shared identity solves the task | Source- and identity-held-out transfer, shuffled-pair failure, fixed-adapter failure, field lesion, exact replay |
-| 2 | Field-grown composition | Withhold a successful variable-length composite from the generator while retaining reusable primitives | New field-resident structure, held-out reuse, checkpoint survival, targeted lesion, no sidecar state |
-| 3 | Natural-language continuation | Train and decode on source-disjoint variable-length text with no model fallback | Exact and approximate metrics, abstention and false-settlement counts, autoregressive evaluation, lookup and oracle diagnostics |
-| 4 | Calibrated partial observability | Separate cases with identifiable roles from deliberately indistinguishable cases | Correct equivalence or abstention before a cue, correct held-out selection after it, no identifier-order shortcut |
-| 5 | Boundary-law transfer | Train on interior dynamics and test unseen boundary families without a supplied boundary program | Exact successors, residual and clamp telemetry, zero unsupported settlements, transfer across domain sizes |
-| 6 | Capacity and hardware scaling | Sweep field size, batch width, task count, support overlap, horizon, and CPU/GPU execution | Accuracy, interference, drift, clamps, throughput, memory, and clearly separated exact/toleranced parity |
-| 7 | Closed cognitive–physical loop | Run CassiCore, CassiFI, and CassiCosmos through one authorized observation–action lineage | Bound source hashes and checkpoints, real physical execution, consequence-driven field update, restart and duplicate recovery |
-| 8 | Independent replication | Reconstruct the registered results from fresh processes and declared source artifacts | Matching categorical outcomes and declared numerical tolerances without sharing a live runtime or hidden cache |
+| 1 | Shared-capacity continual learning | Train a bounded sequence whose recurring and contradictory tasks compete for overlapping field support | Per-update accuracy, forward and backward transfer, maximum forgetting, occupancy and interference traces, delayed recurrence, matched replay/EWC/lookup baselines |
+| 2 | Reliable non-settlement under uncertainty | Interleave answerable, ambiguous, unsupported, and distribution-shifted cases without revealing their class to the selector | Coverage, selective risk, false-settlement and false-abstention rates, equivalence quality, post-cue recovery, threshold sweep |
+| 3 | Durable memory under growth and failure | Extend one adaptive lineage across capacity pressure, clean restarts, interrupted commits, and duplicate delivery | Exact state lineage, behavioral continuity, bounded growth, corruption rejection, rollback, idempotent recovery, single- versus multi-writer scope |
+| 4 | Learned semantic cross-view transfer | Learn a mapping between views for which no fixed projection or shared identity solves the task | Source- and identity-held-out transfer, shuffled-pair failure, fixed-adapter failure, field lesion, exact replay |
+| 5 | Field-grown composition | Withhold a successful variable-length composite from the generator while retaining reusable primitives | New field-resident structure, held-out reuse, checkpoint survival, targeted lesion, no sidecar state |
+| 6 | Natural-language continuation | Train and decode on source-disjoint variable-length text with no model fallback | Exact and approximate metrics, abstention and false-settlement counts, autoregressive evaluation, lookup and oracle diagnostics |
+| 7 | Boundary-law transfer | Train on interior dynamics and test unseen boundary families without a supplied boundary program | Exact successors, residual and clamp telemetry, zero unsupported settlements, transfer across domain sizes |
+| 8 | Capacity and hardware scaling | Sweep field size, batch width, task count, support overlap, horizon, and CPU/GPU execution | Accuracy, interference, drift, clamps, throughput, memory, and clearly separated exact/toleranced parity |
+| 9 | Closed cognitive–physical loop | Run CassiCore, CassiFI, and CassiCosmos through one authorized observation–action lineage | Bound source hashes and checkpoints, real physical execution, consequence-driven field update, restart and duplicate recovery |
+| 10 | Independent replication | Reconstruct the registered results from fresh processes and declared source artifacts | Matching categorical outcomes and declared numerical tolerances without sharing a live runtime or hidden cache |
 
-The first priority follows the literal readiness record: broader `learned_cross_view_transfer` is the sole item in `readiness.missing` within `CassiFI/artifacts/general-task-gauntlet/receipt.json`. Passing the cross-view experiment would remove one specific readiness blocker.
+This order reflects the paper's scientific focus rather than the gauntlet's product-readiness field. Broader `learned_cross_view_transfer` remains the sole literal item in `readiness.missing` within `CassiFI/artifacts/general-task-gauntlet/receipt.json`; passing that experiment would remove one specific blocker but would not establish shared-capacity continual learning, reliable non-settlement under distribution shift, or durable memory at scale.
 
-The nested `CassiFI/artifacts/general-task-gauntlet/reproduction.json` separately records `readiness_validated: false`. Neither result by itself resolves language, open-ended concept formation, scaling, embodiment, consciousness, or general intelligence, all of which require their own evidence.
+The nested `CassiFI/artifacts/general-task-gauntlet/reproduction.json` separately records `readiness_validated: false`. Neither result resolves language, open-ended concept formation, scaling, embodiment, consciousness, or general intelligence, all of which require their own evidence.
 
 ## 19. Reproducibility
 
@@ -3508,7 +3547,7 @@ The complete CPU gauntlet is:
 python CassiFI/run_general_task_gauntlet.py --phase full --output CassiFI/_diag/reproduction/general-task-gauntlet.json
 ```
 
-The expected successful diagnostic result has schema `cassi.general-task-gauntlet-result.v2`, `diagnostic_checks_passed: true`, `readiness_validated: false`, `readiness.status: not_ready`, and `readiness.missing: ["learned_cross_view_transfer"]`. It contains 13 supported families at 4/4 exact each; three untrained bounded compositions at 4/4 each; four codec views at 13/13 each; minimum retained accuracy 1.0; an exact checkpoint reload; an unchanged field across inference; exact ingress replay after restart; 15 sequential updates; and a finite fixed point across 256 repeated redepositions. The field-only audit records one CPU field and zero forbidden import, subprocess, socket, optimizer, teacher, and Qwen calls or attempts within its declared sentinel scope.
+The expected successful diagnostic result has schema `cassi.general-task-gauntlet-result.v2`, `diagnostic_checks_passed: true`, `readiness_validated: false`, `readiness.status: not_ready`, and `readiness.missing: ["learned_cross_view_transfer"]`. It contains 13 supported families at 4/4 exact each; three untrained bounded compositions at 4/4 each; four codec views at 13/13 each; minimum retained accuracy 1.0 over thirteen per-family checkpoints and one final post-control checkpoint; an exact checkpoint reload; an unchanged field across inference; exact ingress replay after restart; 15 mainline updates; and exact endpoint recurrence after 256 repeated redepositions. The field-only audit records one CPU field and zero forbidden import, subprocess, socket, optimizer, teacher, and Qwen calls or attempts within its declared sentinel scope.
 
 Exit status has two meanings. Without `--require-ready`, the retained result exits 0 because its diagnostics pass even though broader readiness does not. Adding `--require-ready` must produce exit 2 while `learned_cross_view_transfer` remains missing:
 
@@ -3544,7 +3583,7 @@ The following entry points are the shortest executable path to each result class
 | Field-selected relational basis | `python CassiFI/run_learned_relational_basis.py` | exit 0; `FIELD_SELECTED_RELATIONAL_BASIS_OK`; restart, lesion, and held-out relational checks pass |
 | Relational boundary and partial-observability stress | `python CassiFI/run_relational_stress_tests.py` | exit 0; `RELATIONAL_STRESS_TESTS_OK`; the positive and negative counts remain explicit in the JSON |
 | Bounded typed generation and universal-data pairing | `python CassiFI/run_generative_abstraction.py` | exit 0; top-level `UNIVERSAL_FIELD_INTELLIGENCE_OK` with nested `GENERATIVE_ABSTRACTION_OK` and `UNIVERSAL_DATA_FIELD_OK` |
-| Memory and restart behavior | `python CassiFI/run_general_task_gauntlet.py --phase persistence --output CassiFI/_diag/reproduction/persistence.json` | exact checkpoint reload, unchanged inference state, exact journal replay, and the recorded 256-update fixed point |
+| Memory and restart behavior | `python CassiFI/run_general_task_gauntlet.py --phase persistence --output CassiFI/_diag/reproduction/persistence.json` | exact checkpoint reload, unchanged inference state, exact journal replay, and final-state identity after the recorded 256-update redeposition sequence |
 | Causal ablations and negative controls | `python CassiFI/run_general_task_gauntlet.py --phase controls --output CassiFI/_diag/reproduction/controls.json` | lesion and shuffled outcomes `exhausted`, induced ambiguity `ambiguous`, malformed input `unsupported`, and unrelated-family accuracy 1.0 |
 
 Only the general-task gauntlet among these standalone scenario runners accepts `--output` and persists its own receipt. `run_text_abstraction_comparison.py`, `run_generative_abstraction.py`, and `run_grounded_counterflow_deliberation.py` print their results to standard output; they do not create standalone receipt files. The other non-gauntlet scenario runners in the table likewise emit live output. A reproduction must capture stdout, stderr, and exit status explicitly. The table states the required live observation and does not imply that every row has a committed or retained receipt snapshot. The gauntlet's retained `reproduction` object separately embeds selected text-abstraction, generative-abstraction, and universal-data results; it does not embed the grounded-counterflow run.
@@ -3576,18 +3615,22 @@ A reproduction attempt should proceed in this order:
 
 The publication capsule required for independent replication comprises both repository commits and any dirty patches; the exact schema payloads and their hashes; the field profile and corpus manifest; a legally redistributable source bundle or stable acquisition instructions with licenses and digests; a dependency and interpreter lock; all checkpoints and receipts; the command transcript and exit codes; the complete CPU, GPU, thread, and allocator record; and a path map that removes dependence on source-era absolute directories. The general-task checkpoint bytes must also be retained rather than only their hash.
 
-Until that capsule exists and a fresh environment reconstructs the results, the present evidence supports local artifact audit and bounded same-system reproduction, not independent cross-machine replication. The missing package does not alter the recorded outcomes, but it keeps independent replication open as Priority 8 in §18.11.
+Until that capsule exists and a fresh environment reconstructs the results, the present evidence supports local artifact audit and bounded same-system reproduction, not independent cross-machine replication. The missing package does not alter the recorded outcomes, but it keeps independent replication open as Priority 10 in §18.11.
 
 ## 20. Conclusion
 
-This paper asked whether useful adaptive behavior can be made causally dependent on one persistent dynamical field. Within the measured CassiFI surfaces, the answer is bounded but affirmative. Experience changes coordinates of the active Qi field; those changes survive the tested checkpoint paths; and later selection, composition, and abstention depend on the resulting field state. Matched untrained fields, targeted lesions, shuffled associations, missing-edge interventions, and read-only-inference checks locate that dependence in the field rather than in a learned side model or persistent candidate cache.
+This paper evaluated a single persistent-state architecture against three problems that determine whether a learner can remain useful over time: retaining earlier capabilities while learning sequentially, preserving adaptive memory across operational boundaries, and withholding commitment when its evidence does not support an answer. Cassi makes those questions inspectable by placing experience-dependent state in one versioned multiscale field while keeping codecs, numerical operators, candidate languages, validation, exact records, and policy explicit.
 
-The field-owned operations are specific. The field retains evidence over registered candidates and grounded transition fragments, supports query-dependent readout, selects relational bases and bounded typed programs, composes compatible edges into held-out trajectories, and preserves learned families across sequential deposition. The integrated gauntlet was exact on 52/52 held-out cases across 13 registered task families after field training, while the matched untrained field produced 0/52 exact outputs. Separate experiments composed both held-out three-action paths, reached exact world revisions in 32/32 relational-basis cases, executed 12/12 bounded boundary-program cases, and transferred 16/16 cases in each direction for the registered paired JSON–raster task. Exact restart and field-state checks show that these capabilities persisted through their tested CPU execution paths.
+For continual learning, the integrated gauntlet acquired thirteen registered families sequentially and reevaluated every earlier holdout after each family deposit. Minimum retained accuracy remained \(1.0\), maximum observed drop remained \(0\), all 52 final held-out cases were exact, and a targeted lesion on a cloned branch removed one family without damaging an unrelated family. Both later control deposits entered the mainline state, after which all thirteen positive families were evaluated together and remained exact. This establishes exact retention and isolation at the recorded checkpoints in the tested disjoint namespaces. Because the allocation prevents two families from competing for the same rows, it does not establish resistance to catastrophic forgetting under shared capacity, contradictory evidence, or nonstationary streams.
 
-The ownership boundary is equally specific. Fixed code defines sensors, codecs, field geometry, transition operators, candidate generators, interpreters, eligibility thresholds, world dynamics, and action policy. Exact journals, source records, and world revisions remain independently identified evidence. The adaptive field accumulates support and reusable operator information within those declared structures; the present system has not demonstrated invention of the structures, primitive semantics, or task families themselves.
+For persistent adaptive memory, the tested CPU paths connected predecessor and successor fields to versioned checkpoint frames, runtime identities, exact hashes, and later behavior. Reload restored field bytes and state identity, inference left trained state unchanged, exact journal ingress replayed after restart, and retained capabilities returned from the restored state. The result demonstrates continuity for bounded single-owner paths. Memory capacity, replacement under host failure, concurrent writers, cross-device identity, and independent cross-machine reconstruction remain open.
 
-The negative results mark the current capability frontier. All six natural-continuation paths produced 0/16 exact held-out continuations. Passive role assignment, hidden relevance, unseen boundary laws, arbitrary semantic alignment, open-ended concept formation, and unrestricted program synthesis remain unsupported. The experiments do not establish a learned generative world model, general intelligence, consciousness, unbounded memory, cross-device numerical parity, or a measured bidirectional CassiFI–CassiCosmos learning loop. The integrated receipt therefore correctly remains `not_ready` even though its bounded diagnostics pass.
+For non-settlement, the architecture distinguishes `selected`, `ambiguous`, `exhausted`, and `unsupported` rather than forcing every readout into a prediction. Missing evidence, tied candidates, absent required edges, and malformed input produced appropriately distinct outcomes in registered controls. The failures are equally important: hidden relevance produced 10/16 false-confident choices, and the autoregressive next-symbol path produced 16/16 false settlements on held-out natural continuation. Cassi therefore has an explicit vocabulary for “I do not have support,” but it does not yet recognize that condition reliably across task boundaries or supply a calibrated correctness probability.
 
-The next decisive experiment is learned semantic cross-view transfer without a fixed projection or shared answer-bearing identity. Two information-equivalent views should receive separately permuted or nonlinear organizations, with source identities, pair identities, and semantic compositions separated between training and evaluation. Success requires a trained field to transfer across the held-out correspondence while shuffled or missing pairs, a fixed-projection baseline, and a targeted alignment lesion fail; unrelated capabilities must remain intact, inference must preserve field state, and exact checkpoint replay must recover the result. This directly tests `learned_cross_view_transfer`, the sole capability listed in the current gauntlet receipt's `readiness.missing` field.
+The grounded composition, relational-basis, typed-program, and paired JSON–raster experiments show what the same state architecture can support around those three concerns. Both held-out three-action paths were composed from observed edges; relational selection reached exact revisions in 32/32 registered cases; bounded typed programs were exact in 12/12 boundary cases; and registered paired transfer was 16/16 exact in each direction. Matched untrained state, shuffled evidence, missing-edge controls, and targeted lesions show that the adaptive field matters to these outcomes. This causal attribution is the useful content behind *field ownership*; the phrase alone is not a machine-learning capability.
 
-Cassi's present contribution is an implemented and inspectable method for testing field-owned computation: one adaptive tensor, explicit fixed machinery, exact state lineage, and interventions that determine whether a measured capability disappears when its field support is removed. The results establish persistent field-owned adaptation, grounded compatible-edge composition, bounded relational and typed-program selection, exact registered transfer, and calibrated non-settlement within declared task families. Extending that boundary requires the same standard applied here—held-out behavior, preserved provenance, targeted causal controls, restart persistence, and claims restricted to what the resulting artifacts measure.
+The present system remains bounded by fixed candidate libraries, experimenter-defined codecs and semantics, incomplete cross-view alignment, natural-language failure, weak hidden-relevance handling, limited scale evidence, and an unclosed CassiFI–CassiCosmos learning loop. It demonstrates neither a learned generative world model nor general intelligence or consciousness. The integrated receipt correctly remains `not_ready`; `learned_cross_view_transfer` remains its sole literal missing readiness item, and passing that item would not resolve the broader learning, memory, and selective-risk limits.
+
+The next experiment most directly testing this paper's thesis is a fixed-capacity continual stream in which recurring and contradictory task families compete for overlapping field support. Answerable, ambiguous, unsupported, and distribution-shifted probes should be interleaved without revealing their class, and the process should cross clean restarts and interrupted commits. The receipt should report per-update accuracy, forward and backward transfer, maximum forgetting, field occupancy and interference, checkpoint continuity, coverage, selective risk, false settlement, and false abstention. Matched replay, elastic-regularization, exact-lookup, and untrained baselines would determine whether the field architecture improves the tradeoff rather than merely allocating around it.
+
+Cassi's contribution is therefore bounded evidence and an inspectable evaluation framework for continual learning, persistent adaptive memory, and explicit non-settlement. Its unified adaptive state makes those properties causally testable, but the measurements—not the location or name of the state—determine what has been achieved. Future capability claims should continue to require held-out behavior, complete state lineage, restart persistence, targeted intervention, selective-error accounting, and retained failures.

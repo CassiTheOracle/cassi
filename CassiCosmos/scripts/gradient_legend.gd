@@ -97,7 +97,7 @@ func _process(_delta: float) -> void:
 	# phase/direction modes 5/6 must not retain stale markers/readouts.
 	var base := int(sim.particle_color_mode) & 0xF if sim != null else 0
 	if sim == null or base < 1 or base > 4:
-		if base >= 5:
+		if base >= 5 and (not _markers.is_empty() or not _engine.is_empty()):
 			_clear_markers()
 			queue_redraw()
 		return

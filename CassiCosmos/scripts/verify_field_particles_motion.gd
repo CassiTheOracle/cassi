@@ -4,6 +4,7 @@ const EXPECTED_STATE_BYTES := 57 * 57 * 57 * 18 * 4
 const EXPECTED_VELOCITY_BYTES := 57 * 57 * 57 * 16 * 4
 const REQUIRED_STEPS := 32
 const MINIMUM_MOVEMENT := 0.01
+const MINIMUM_TRANSVERSE_MOVEMENT := 0.01
 const MINIMUM_CHARGE_RETENTION := 0.98
 const TIMEOUT_MS := 220_000
 const SURFACE_HOLD_MS := 4_000
@@ -134,6 +135,12 @@ func _run_contract(engine: Object) -> void:
 			"dx=%.6f" % left_motion)
 		_check("MP3: right particle moves left", right_motion <= -MINIMUM_MOVEMENT,
 			"dx=%.6f" % right_motion)
+		var left_transverse := final_centers[0].y - _initial_centers[0].y
+		var right_transverse := final_centers[1].y - _initial_centers[1].y
+		_check("MP3: both particles retain shared transverse motion",
+			left_transverse >= MINIMUM_TRANSVERSE_MOVEMENT
+			and right_transverse >= MINIMUM_TRANSVERSE_MOVEMENT,
+			"dy=(%.6f, %.6f)" % [left_transverse, right_transverse])
 	var final_charge := _catalog_charge(catalog)
 	var retention := final_charge / _initial_charge if _initial_charge > 0.0 else 0.0
 	_check("MP4: field charge remains", retention >= MINIMUM_CHARGE_RETENTION,

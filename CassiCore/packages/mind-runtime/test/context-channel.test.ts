@@ -1,18 +1,16 @@
 /**
- * @cassicore/mind-runtime — context endpoints channel test.
- *
- * Asserts the P8 shared context seam over the real 127.0.0.1 channel:
- * `/v1/context/candidates` (typed Mnemic candidates, source statuses, cached
- * field advisory, requestId echo), `/v1/context/feedback` (ID-only ack +
- * observable retained bus event), and `/v1/context/action` (exact text-free
- * start/outcome), plus malformed → 400 and missing bearer token → 401. Uses an
- * in-process harness (server + runtime) — no external process, no 7599 socket.
+ * @cassicore/mind-runtime — field-native context endpoints over the real
+ * 127.0.0.1 channel. Verifies explicit disabled/no-fallback behavior, opaque
+ * address selection through a loopback field provider, exact byte resolution,
+ * feedback delivery, status, validation, and bearer authentication.
  */
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { once } from 'node:events'
 import { mkdtempSync, rmSync } from 'node:fs'
+import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { createMindRuntime, MindChannelServer, type MindRuntime } from '../src/index.js'
 import type { ILogger } from '@cassicore/foundation'
@@ -35,6 +33,114 @@ async function postJson(port: number, path: string, body: unknown, token?: strin
   let json: unknown
   try { json = JSON.parse(text) } catch { json = text }
   return { status: res.status, json }
+}
+
+async function startFieldRecallServer(): Promise<{
+  url: string
+  observed: Array<Record<string, unknown>>
+  requests: Array<{ path: string; body: Record<string, unknown> }>
+  close(): Promise<void>
+}> {
+  const observed: Array<Record<string, unknown>> = []
+  const requests: Array<{ path: string; body: Record<string, unknown> }> = []
+  let remoteSequence = 0
+  let remoteEventId = '0'.repeat(64)
+  const fieldServer = createServer(async (req, res) => {
+    const chunks: Buffer[] = []
+    for await (const chunk of req) chunks.push(Buffer.from(chunk))
+    const body = JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>
+    res.setHeader('content-type', 'application/json')
+    requests.push({ path: req.url ?? '', body })
+    if (req.url === '/v1/context/status') {
+      res.end(JSON.stringify({
+        checkpoint: {
+          status: 'compatible',
+          sha256: 'a'.repeat(64),
+          engine_fingerprint: 'b'.repeat(64),
+        },
+        stream: {
+          stream_id: body.stream_id,
+          sequence: remoteSequence,
+          event_id: remoteEventId,
+        },
+      }))
+      return
+    }
+    if (req.url === '/v1/context/observe') {
+      const sequence = body.sequence
+      const previousEventId = body.previous_event_id
+      const eventId = body.event_id
+      if (
+        typeof sequence !== 'number'
+        || typeof previousEventId !== 'string'
+        || typeof eventId !== 'string'
+      ) {
+        res.statusCode = 400
+        res.end(JSON.stringify({ error: 'invalid field event' }))
+        return
+      }
+      if (sequence === remoteSequence + 1 && previousEventId === remoteEventId) {
+        remoteSequence = sequence
+        remoteEventId = eventId
+        observed.push(body)
+      } else if (sequence !== remoteSequence || eventId !== remoteEventId) {
+        res.statusCode = 409
+        res.end(JSON.stringify({ error: 'journal divergence' }))
+        return
+      }
+      res.end(JSON.stringify({
+        stream: {
+          stream_id: body.stream_id,
+          sequence: remoteSequence,
+          event_id: remoteEventId,
+        },
+      }))
+      return
+    }
+    if (req.url === '/v1/counterflow/plan') {
+      res.end(JSON.stringify({
+        schema: 'cassi.counterflow.derived-runtime.v2',
+        schema_version: 2,
+        mode: body.mode,
+        status: 'no_transition_data',
+        derived: true,
+        persistent_state: false,
+        session_id: 'cassicore-context',
+        state_sha256: 'd'.repeat(64),
+        primary_field_sha256: 'd'.repeat(64),
+        counterflow_state_sha256: 'e'.repeat(64),
+      }))
+      return
+    }
+    if (req.url === '/v1/context/recall') {
+      const addresses = Array.isArray(body.addresses)
+        ? body.addresses.filter((address): address is string => typeof address === 'string')
+        : []
+      res.end(JSON.stringify({
+        schema: 'cassi.mnemic.field-recall.v1',
+        address: addresses[0] ?? null,
+        signal: addresses.length > 0 ? 1 : 0,
+        selection_margin: addresses.length > 0 ? 1 : 0,
+        availability: addresses.length > 0 ? 1 : 0,
+      }))
+      return
+    }
+    res.statusCode = 404
+    res.end(JSON.stringify({ error: 'not found' }))
+  })
+  fieldServer.listen(0, '127.0.0.1')
+  await once(fieldServer, 'listening')
+  const address = fieldServer.address()
+  if (!address || typeof address === 'string') throw new Error('field test server has no TCP address')
+  return {
+    url: `http://127.0.0.1:${address.port}`,
+    observed,
+    requests,
+    close: async () => {
+      fieldServer.close()
+      await once(fieldServer, 'close')
+    },
+  }
 }
 
 describe('mind-runtime context channel (P8 shared context seam)', () => {
@@ -79,12 +185,12 @@ describe('mind-runtime context channel (P8 shared context seam)', () => {
     }
     expect(Array.isArray(r.candidates)).toBe(true)
     expect(r.sources.some(s => s.source === 'mnemic')).toBe(true)
-    expect(r.sources[0].status).toMatch(/ready|timeout/)
+    expect(r.sources[0].status).toBe('disabled')
     expect(r.fieldAdvisory).toBeNull()
     expect(r.requestId).toBe('r1')
   })
 
-  it('candidates returns a saved engram as a typed Mnemic candidate', async () => {
+  it('does not fall back to lexical retrieval when field recall is disabled', async () => {
     await postJson(port, '/v1/memory/save', {
       content: 'the purple candidate parrot returns at dawn',
       type: 'fact',
@@ -97,15 +203,86 @@ describe('mind-runtime context channel (P8 shared context seam)', () => {
       query: 'purple parrot',
     }, 'sekrit')
     expect(status).toBe(200)
-    const r = json as { candidates: Array<{ id: string; text: string; source: string; score: number }> }
-    expect(r.candidates.length).toBeGreaterThan(0)
-    for (const c of r.candidates) {
-      expect(typeof c.id).toBe('string')
-      expect(typeof c.text).toBe('string')
-      expect(c.source).toBe('mnemic')
-      expect(typeof c.score).toBe('number')
+    expect(json).toMatchObject({
+      candidates: [],
+      sources: [{ source: 'mnemic', status: 'disabled' }],
+    })
+  })
+
+  it('resolves a field-selected address through the public channel and delivers feedback', async () => {
+    const liveHome = mkdtempSync(join(tmpdir(), 'cassimind-field-context-'))
+    const field = await startFieldRecallServer()
+    let liveRuntime: MindRuntime | null = null
+    let liveChannel: MindChannelServer | null = null
+    try {
+      liveRuntime = await createMindRuntime({
+        logger: quietLogger,
+        homePath: liveHome,
+        disableUnifiedLoop: true,
+        disableOscillation: true,
+        token: 'field-secret',
+        verifyMnemicJournal: true,
+        fieldIntelligenceUrl: field.url,
+      })
+      liveChannel = new MindChannelServer(liveRuntime, {
+        logger: quietLogger,
+        port: 0,
+        token: 'field-secret',
+      })
+      const livePort = await liveChannel.listen()
+      const saved = await postJson(livePort, '/v1/memory/save', {
+        content: 'the exact cobalt crossing opens at sunrise',
+        type: 'fact',
+        sessionId: 'prior-session',
+      }, 'field-secret')
+      expect(liveRuntime.field.fieldAddressManifest({
+        excludeSessionId: 'current-session',
+      })).toHaveLength(1)
+      expect(saved.status).toBe(200)
+
+      const recalled = await postJson(livePort, '/v1/context/candidates', {
+        sessionId: 'current-session',
+        turnId: 7,
+        query: 'cobalt crossing',
+      }, 'field-secret')
+      expect(recalled.status).toBe(200)
+      const response = recalled.json as {
+        candidates: Array<{ id: string; text: string; fieldAddress?: string }>
+        sources: Array<{ source: string; status: string }>
+      }
+      expect(
+        response.sources,
+        JSON.stringify({ observed: field.observed, requests: field.requests, response }, null, 2),
+      ).toContainEqual(expect.objectContaining({
+        source: 'mnemic',
+        status: 'ready',
+      }))
+      expect(response.candidates).toHaveLength(1)
+      expect(response.candidates[0]?.text).toBe('the exact cobalt crossing opens at sunrise')
+      expect(response.candidates[0]?.fieldAddress).toMatch(/^[0-9a-f]{32}$/)
+
+      const feedback = await postJson(livePort, '/v1/context/feedback', {
+        sessionId: 'current-session',
+        turnId: 7,
+        planId: 'field-plan',
+        includedCandidateIds: [response.candidates[0]!.id],
+        outcome: 'completed',
+      }, 'field-secret')
+      expect(feedback).toEqual({ status: 200, json: { ack: true } })
+      await postJson(livePort, '/v1/context/candidates', {
+        sessionId: 'current-session',
+        turnId: 8,
+        query: 'cobalt crossing',
+      }, 'field-secret')
+      expect(field.observed.some(event => (
+        (event.payload as { kind?: string } | undefined)?.kind === 'feedback'
+      ))).toBe(true)
+    } finally {
+      if (liveChannel) await liveChannel.close()
+      if (liveRuntime) await liveRuntime.close()
+      await field.close()
+      try { rmSync(liveHome, { recursive: true, force: true }) } catch { /* Windows native-store lock — best effort */ }
     }
-    expect(r.candidates.some(c => c.text.includes('purple candidate parrot'))).toBe(true)
   })
 
   it('exposes read-only counterflow, verification, and recovery status', async () => {

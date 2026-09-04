@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd
 // Cassi Presentation Macro-Site LOD — writes one MultiMesh record per
 // topology site, gated by coherence. Presentation-only and default-off
 // (CassiSim enables it alongside the particle presentation profile);

@@ -5,7 +5,19 @@
 [ext_resource type="Script" uid="uid://c3iwrspepbm45" path="res://scripts/sim_ui.gd" id="3_ui"]
 [ext_resource type="Script" uid="uid://cynpds3q8x7fc" path="res://scripts/cassi_presentation_director.gd" id="4_dir"]
 
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
+sky_top_color = Color(0.006, 0.012, 0.035, 1)
+sky_horizon_color = Color(0.025, 0.05, 0.11, 1)
+ground_bottom_color = Color(0.006, 0.012, 0.035, 1)
+ground_horizon_color = Color(0.025, 0.05, 0.11, 1)
+sun_angle_max = 0.0
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("ProceduralSkyMaterial_main")
+
 [sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("Sky_main")
 tonemap_mode = 2
 glow_enabled = true
 glow_intensity = 0.65
@@ -28,31 +40,27 @@ script = ExtResource("4_dir")
 
 [node name="CassiSim" type="Node3D" parent="." unique_id=822736192]
 script = ExtResource("2_sim")
-particle_size = 3.0
-cluster_radius = 50.0
-num_clusters = 10
-cluster_separation = 250.0
+dt = 0.1
+particle_size = 50.0
+num_clusters = 50
+cluster_separation = 1500.0
 particle_merge = true
+rotation_stress_enabled = true
 bh_accretion = false
 vsync_enabled = true
 river_calibrate_gn = true
 field_attractor_init = true
-initial_condition = 1
 gridless_physics = true
 tree_hierarchical_refit = true
+q_weighted_com = true
+field_particles = true
 presentation_profile = true
 presentation_color_scheme = 1
-presentation_macro_lod_enabled = true
-presentation_lod_enter = 3000.0
-presentation_lod_exit = 7000.0
 presentation_trails_enabled = true
-presentation_trail_speed_threshold = 0.1
-presentation_trail_shutter_seconds = 0.16
 presentation_volume_history_enabled = true
 qi_cycle = Vector2(0.005, 1)
 qi_approach = Vector2(0.8, 1)
 volume_dynamic_resolution = true
-camera_far_plane = 10000000.0
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=1258460337]
 

@@ -1,5 +1,5 @@
 #[compute]
-// canonical layout: scripts/contracts/layout.gd §PC — 26 floats (104 B); set 0: bindings 0-24
+// canonical layout: scripts/contracts/layout.gd §PC — 26 floats (104 B); set 0: bindings 0-29
 #version 450
 // Cassi Particle Merge — "dust -> object": two particles within a merge
 // radius R_m coalesce (mass + total momentum conserved, survivor = mass-
@@ -53,15 +53,16 @@
 // GPU pair-resolution (race-free by the SINK rule, see design §5):
 // each "cycle" = (fold, count, fill, best, hop)
 //   fold  survivors take their accumulated centroid/momentum
-//   count+fill  rebuild the spatial hash (cell grid sized to R_m, the
-//               mass-deposit world->grid map convention)
-//   best  each alive i records best[i] = min index over qualified neighbors
+//   count+fill  rebuild the spatial hash (cells are at least R_m wide)
+//   best  small gates exhaust their 27-cell neighborhood; live clouds
+//         time-slice one (neighbor cell, entry) phase per cadence
 //   sink  sink[i] = (best[i] == i) — i has no LOWER qualified neighbor
 //   hop   i merges into best[i] ONLY IF sink[best[i]] (a receiver is never
 //         also a forwarder in the same cycle -> momentum/mass conserved).
-// The host loops cycles until mergeCount == 0 (or a cap); finalize writes
-// pos.w = survivor masses / 0 for dead (the deposit/instancer/nbody all
-// already read pos.w and skip mass <= 0).
+// Large-cloud phase state persists across cadences, so every occupied entry
+// is revisited without putting the full pair search in one TDR-sized dispatch.
+// Finalize writes survivor masses to pos.w and zeroes dead slots; deposit,
+// instancer, and nbody already skip mass <= 0.
 //
 // ONE shader, pass_mode selector (mirrors cassi_nbody_gravity.glsl), with
 // ONE persistent per-particle state family (alive/mass/mom/cen/spin) plus
@@ -101,6 +102,15 @@ layout(set = 0, binding = 21, std430) readonly buffer ML_GradY { vec4 ml_grad_y[
 layout(set = 0, binding = 22, std430) readonly buffer ML_GradI { vec4 ml_grad_i[]; };  // AREPO ∇EI (mode-12 solve), .w=1
 layout(set = 0, binding = 23, std430) readonly buffer ML_PiY { float ml_piy[]; };      // site EY momentum
 layout(set = 0, binding = 24, std430) readonly buffer ML_PiI { float ml_pii[]; };      // site EI momentum
+// Exact accelerated nearest-site query.  The shortlist is forced to contain
+// every live site while boxless merge is enabled; .w maps compact slots back
+// to the full site-field arrays.  Hash positions are tile-local, while
+// SiteHashCfg.xyz carries the tile's world-space center.
+layout(set = 0, binding = 25, std430) readonly buffer SiteQueryPositions { vec4 site_query[]; };
+layout(set = 0, binding = 26, std430) readonly buffer SiteHashStart { uint site_cell_start[]; };
+layout(set = 0, binding = 27, std430) readonly buffer SiteHashSites { uint site_cell_sites[]; };
+layout(set = 0, binding = 28, std430) readonly buffer SiteHashCfg { vec4 site_hash_cfg[]; };
+layout(set = 0, binding = 29, std430) readonly buffer SiteQueryCount { uint site_query_count[]; };
 
 layout(push_constant, std430) uniform PC {
     float N;             // particle count
@@ -135,21 +145,20 @@ layout(push_constant, std430) uniform PC {
 } pc;
 
 const float PHI_INV2 = 0.3819660112501051;
-// Per-cell neighbor scan ceiling for pass_best (2026-08-16, TDR guard):
-// under a dense confluence (many particles in one hash cell ~ a tight-wisp
-// meeting / central pile-up) the 27-cell brute-force scan is O(cc_cell) per
-// particle -> O(N²) overall, and ONE pass_best dispatch froze the GPU past
-// the Windows TDR window (measured: 100k in a r=1.5 sphere -> "Vulkan device
-// was lost", the owner's silent freeze-close). Bounding the per-cell scan
-// caps pass_best at 27*MAX_CELL_SCAN per particle; the SINK invariant stays
-// safe because a capped dearth only DEFERS a merge (an i whose best isn't a
-// sink hops nowhere) — never corrupts mass/momentum. A dense blob then
-// coalesces progressively across frames instead of one GPU-starving instant.
-// Tune 16..256; 64 keeps the verified small-N gates exact (cells there hold
-// <= 8). Physically the merge radius R_m needs no more than the few nearest
-// braid neighbors, so this does not change the dust->object outcome, only
-// how many coalesce per pass.
+// Small verification problems scan all 27 cells × 64 entries in one pass.
+// Live clouds time-slice one source shard and one neighbor-cell entry. The
+// host encodes the 512 × 27 lane in pass_mode's fractional bits and the entry
+// round in cyc_slot. Both are exact for the shader's existing float N/index
+// range (N < 2^24), so selected slots wrap by actual cell occupancy without
+// the old permanent 64-entry truncation. Inactive sources publish themselves
+// as sinks, preserving the receiver-not-forwarder invariant while bounding
+// expensive site-coherence queries and contended hops to ceil(N/512) active
+// sources per pass.
 #define MAX_CELL_SCAN 64
+#define MERGE_NEIGHBOR_CELLS 27
+#define MERGE_SOURCE_SHARDS 512
+#define MERGE_PHASE_LANES (MERGE_NEIGHBOR_CELLS * MERGE_SOURCE_SHARDS)
+#define MERGE_LANE_DENOMINATOR 16384.0
 // Size-by-mass law — mirror of cassi_instancer.glsl SIZE_BY_MASS (same
 // constants, "no second convention"): s = clamp(SIZE_K·cbrt(m), MIN, MAX).
 const float SIZE_K = 0.62;
@@ -190,24 +199,116 @@ void corners_at(vec3 wp, out int c000, out int c100, out int c010, out int c110,
     c001 = c001_; c101 = c101_; c011 = c011_; c111 = c111_;
 }
 
-// ── Boxless site-direct read (merge_boxless_prereg.md §4) ───────────────
-// The moving-Voronoi site whose cell contains `wp` (nearest site over the live
-// _ml_sites). Coordinate-independent — no window, no extent, no %N. Brute-force
-// 8192-site scan is fine here: the merge is CADENCED (1/2 · R_m reaction
-// budget), not per-frame, so O(N_pairs × 8192) is nowhere near the instancer's
-// per-particle hot path. The site partition is one steer-cadence stale (like the
-// shortlist/hash); merges are cadenced within that budget.
+// ── Boxless indexed site read (merge_boxless_prereg.md §4) ──────────────
+// The production shortlist/hash is rebuilt with every site when boxless merge
+// is enabled.  A true point-to-AABB lower bound terminates the expanding-shell
+// query only after every unvisited hash region is provably farther away.  This
+// keeps the original exact nearest-site contract without the O(site_count)
+// loop in every candidate-pair invocation.
+float point_aabb_distance2(vec3 p, vec3 lo, vec3 hi) {
+    vec3 d = max(max(lo - p, p - hi), vec3(0.0));
+    return dot(d, d);
+}
+
+float unscanned_site_bound2(vec3 p, ivec3 c0, int ring, int H, vec3 cs, vec3 domain_hi) {
+    ivec3 lo_cell = max(c0 - ivec3(ring), ivec3(0));
+    ivec3 hi_cell = min(c0 + ivec3(ring), ivec3(H - 1));
+    float bound2 = 1e30;
+    if (lo_cell.x > 0) {
+        bound2 = min(bound2, point_aabb_distance2(
+            p, vec3(0.0), vec3(float(lo_cell.x) * cs.x, domain_hi.y, domain_hi.z)));
+    }
+    if (hi_cell.x < H - 1) {
+        bound2 = min(bound2, point_aabb_distance2(
+            p, vec3(float(hi_cell.x + 1) * cs.x, 0.0, 0.0), domain_hi));
+    }
+    if (lo_cell.y > 0) {
+        bound2 = min(bound2, point_aabb_distance2(
+            p, vec3(0.0), vec3(domain_hi.x, float(lo_cell.y) * cs.y, domain_hi.z)));
+    }
+    if (hi_cell.y < H - 1) {
+        bound2 = min(bound2, point_aabb_distance2(
+            p, vec3(0.0, float(hi_cell.y + 1) * cs.y, 0.0), domain_hi));
+    }
+    if (lo_cell.z > 0) {
+        bound2 = min(bound2, point_aabb_distance2(
+            p, vec3(0.0), vec3(domain_hi.x, domain_hi.y, float(lo_cell.z) * cs.z)));
+    }
+    if (hi_cell.z < H - 1) {
+        bound2 = min(bound2, point_aabb_distance2(
+            p, vec3(0.0, 0.0, float(hi_cell.z + 1) * cs.z), domain_hi));
+    }
+    return bound2;
+}
+
+int nearest_site_exhaustive(vec3 wp, int ns, vec3 center, vec3 ext) {
+    int best = -1;
+    float best_d2 = 1e30;
+    for (int s = 0; s < ns; s++) {
+        vec3 sw = ml_sites[s].xyz - ext + center;
+        vec3 d = sw - wp;
+        float d2 = dot(d, d);
+        if (d2 < best_d2 || (d2 == best_d2 && (best < 0 || s < best))) {
+            best_d2 = d2;
+            best = s;
+        }
+    }
+    return best;
+}
+
 int nearest_site(vec3 wp) {
     int ns = int(pc.n_sites);
     if (ns <= 0) return -1;
-    int best = 0;
-    float bd = 1e30;
-    for (int s = 0; s < ns; s++) {
-        vec3 d = ml_sites[s].xyz - wp;
-        float d2 = dot(d, d);
-        if (d2 < bd) { bd = d2; best = s; }
+    vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
+    vec4 cfg = site_hash_cfg[0];
+    vec3 center = cfg.xyz;
+    int nq = int(site_query_count[0]);
+    if (nq != ns || cfg.w <= 0.0) {
+        return nearest_site_exhaustive(wp, ns, center, ext);
     }
-    return best;
+
+    int H = int(round((2.0 * ext.x) / cfg.w));
+    if (H <= 0) return nearest_site_exhaustive(wp, ns, center, ext);
+    vec3 domain_hi = 2.0 * ext;
+    vec3 cs_site = domain_hi / float(H);
+    vec3 tile_wp = wp - center + ext;
+    ivec3 c0 = clamp(ivec3(floor(tile_wp / cs_site)), ivec3(0), ivec3(H - 1));
+    int best = -1;
+    float best_d2 = 1e30;
+
+    for (int ring = 0; ring < H; ring++) {
+        for (int dz = -ring; dz <= ring; dz++) {
+            for (int dy = -ring; dy <= ring; dy++) {
+                for (int dx = -ring; dx <= ring; dx++) {
+                    if (max(max(abs(dx), abs(dy)), abs(dz)) != ring) continue;
+                    ivec3 hc = c0 + ivec3(dx, dy, dz);
+                    if (any(lessThan(hc, ivec3(0))) || any(greaterThanEqual(hc, ivec3(H)))) continue;
+                    int cell = hc.x + H * (hc.y + H * hc.z);
+                    uint begin = site_cell_start[cell];
+                    uint end = site_cell_start[cell + 1];
+                    for (uint at = begin; at < end; at++) {
+                        uint slot = site_cell_sites[at];
+                        if (slot >= uint(nq)) continue;
+                        int s = int(round(site_query[slot].w));
+                        if (s < 0 || s >= ns) continue;
+                        vec3 sw = site_query[slot].xyz - ext + center;
+                        vec3 d = sw - wp;
+                        float d2 = dot(d, d);
+                        if (d2 < best_d2 || (d2 == best_d2 && (best < 0 || s < best))) {
+                            best_d2 = d2;
+                            best = s;
+                        }
+                    }
+                }
+            }
+        }
+        // Strict inequality preserves the lowest-index tie rule.
+        if (best >= 0 && best_d2 < unscanned_site_bound2(
+                tile_wp, c0, ring, H, cs_site, domain_hi)) {
+            return best;
+        }
+    }
+    return best >= 0 ? best : nearest_site_exhaustive(wp, ns, center, ext);
 }
 bool boxless_on() { return pc.boxless >= 0.5; }
 
@@ -332,12 +433,23 @@ bool virialized(int j) {
     return 2.0 * K >= W;
 }
 
-// ── min-image separation (periodic box, matching the deposit/nbody wrap) ─
+// Boxless sites live in unbounded world coordinates. The grid path is the
+// periodic particle domain and therefore uses its minimum-image separation.
 vec3 sep(vec3 a, vec3 b) {
-    vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
     vec3 d = a - b;
+    if (boxless_on()) return d;
+    vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
     d -= round(d / (2.0 * ext)) * (2.0 * ext);
     return d;
+}
+
+// Midpoint on the same periodic image used by sep(). Arithmetic (a+b)/2 is
+// wrong for a pair straddling opposite faces: it lands near the box center
+// and samples unrelated coherence. Keep points in [-extent,+extent).
+vec3 wrap_point(vec3 wp) {
+    vec3 ext = vec3(pc.extent_x, pc.extent_y, pc.extent_z);
+    vec3 period = 2.0 * ext;
+    return wp - floor((wp + ext) / period) * period;
 }
 
 // ── spatial-hash cell of a world point (mass-deposit world->grid map).
@@ -358,16 +470,20 @@ int cell_of(vec3 wp) {
     return cx + nx * (cy + ny * cz);
 }
 
-// ── pass 0: reset the persistent merge state from the src particle mass ──
+// ── pass 0: reset fold accumulators; preserve canonical spin on live slots ──
 void pass_reset() {
     uint i = gl_GlobalInvocationID.x;
     if (int(i) >= int(pc.N)) return;
-    alive[i] = 1.0;
+    alive[i] = pos[i].w > 0.0 ? 1.0 : 0.0;
     mass[i] = pos[i].w;
     // canonical momentum & centroid numerators (fold on cycle 1 is identity)
     mom[i] = vec4(vel[i].xyz * pos[i].w, 0.0);
     cen[i] = vec4(pos[i].xyz * pos[i].w, 0.0);
-    spin[i] = vec4(0.0);
+    if (pos[i].w <= 0.0) {
+        spin[i] = vec4(0.0);
+    } else {
+        spin[i].w = 0.0;
+    }
     best[i] = int(i);
     sink[i] = 1.0;
     if (i == 0u) { for (int k = 0; k < 16; k++) mc[k] = 0u; cc[0] = 0u; }
@@ -380,6 +496,7 @@ void pass_fold() {
     if (int(i) >= int(pc.N)) return;
     if (alive[i] > 0.5 && mass[i] > 0.0) {
         vec3 p = cen[i].xyz / mass[i];
+        if (!boxless_on()) p = wrap_point(p);
         vec3 v = mom[i].xyz / mass[i];
         pos[i] = vec4(p, pos[i].w);
         vel[i] = vec4(v, 0.0);
@@ -426,6 +543,19 @@ void pass_best() {
     uint i = gl_GlobalInvocationID.x;
     if (int(i) >= int(pc.N)) return;
     if (alive[i] < 0.5) { sink[i] = 0.0; best[i] = int(i); return; }
+    bool time_sliced = int(pc.N) > MAX_CELL_SCAN;
+    int phase_lane = clamp(int(round(fract(pc.pass_mode) * MERGE_LANE_DENOMINATOR)),
+                           0, MERGE_PHASE_LANES - 1);
+    int selected_cell = phase_lane % MERGE_NEIGHBOR_CELLS;
+    int selected_shard = phase_lane / MERGE_NEIGHBOR_CELLS;
+    int selected_round = max(int(pc.cyc_slot), 0);
+    // An inactive source is a sink for this phase: it may receive, but cannot
+    // forward, so active sources retain the same race-free hop invariant.
+    if (time_sliced && int(i) % MERGE_SOURCE_SHARDS != selected_shard) {
+        best[i] = int(i);
+        sink[i] = 1.0;
+        return;
+    }
     int nx = int(pc.hash_nx), ny = int(pc.hash_ny), nz = int(pc.hash_nz);
     // own cell via the SAME wrapped formula as cell_of (F4) — decompose the
     // packed wrapped index so the neighborhood below wraps per axis too.
@@ -436,68 +566,67 @@ void pass_best() {
     int ibest = int(i);
     vec3 pi = pos[i].xyz;
     float mi = mass[i];
-    for (int dx = -1; dx <= 1; dx++) {
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                int cx = (ci + dx + nx) % nx;
-                int cy = (cj + dy + ny) % ny;
-                int cz = (ck + dz + nz) % nz;
-                int c = cx + nx * (cy + ny * cz);
-                int ncnt = int(cc[c]);
-                if (ncnt > MAX_CELL_SCAN) ncnt = MAX_CELL_SCAN;   // TDR guard
-                int base = int(cs[c]);
-                for (int k = 0; k < ncnt; k++) {
-                    int j = int(cl[base + k]);
-                    if (j == int(i) || alive[j] < 0.5) continue;
-                    vec3 pj = pos[j].xyz;
-                    vec3 dsep = sep(pi, pj);
-                    float d = length(dsep);
-                    if (d <= 0.0 || d > pc.R_m) continue;
-                    vec3 mid = (pi + pj) * 0.5;
-                    // F5 (perf): gate on the cheap q_coh first. Since q_ord <= 1,
-                    // if q_coh <= threshold the order-selective product can never
-                    // pass — skip the expensive qord_at (~32 trilinear fetches).
-                    float qm = qcoh_at(mid);
-                    if (qm <= pc.q_threshold) continue;
-                    // KEEP the qg check: with f_order ON, q_ord < 1 can pull
-                    // qm·q_ord below threshold even when qm exceeds it — so this
-                    // second gate is NOT redundant (only the f_order-off branch
-                    // re-checks an already-passing qm, harmlessly).
-                    float qg = qm;
-                    if (f_order_on()) qg = qm * qord_at(mid);
-                    if (qg <= pc.q_threshold) continue;
-                    // gravitational binding: ½μ|v_rel|²·d < G·m₁·m₂, G = g_n
-                    // (NEWTONIAN — the Cassi physics is fully carried by the
-                    // coherence gate above: only q_sel > φ⁻² regions arm a
-                    // merge, and q_sel is already coherence-condensed, so
-                    // amplifying the mechanical pair-binding by φ⁶ on TOP of
-                    // arming double-counts coherence and over-coalesces
-                    // structures the cloud's own dynamics hold. Measured on a
-                    // Newtonian-supported rotating ring (box_scale 20, R_m
-                    // ≈6.07): φ⁶-amplified binding coalesced 4000→194; the
-                    // Newtonian binding keeps it 4000→3799 (95% — an expanding/
-                    // rotating ring has positive energy and must not collapse).
-                    // The virial stopping scale below uses the same Newtonian
-                    // G, so a grown object's self-support trips at the correct
-                    // threshold. The nbody force keeps its (φ⁶−1)·q coupling —
-                    // that is the field's dynamical enhancement; the merge's
-                    // two-particle binding question is physical, not field-
-                    // amplified.)
-                    float mj = mass[j];
-                    if (mj <= 0.0) continue;
-                    vec3 vr = vel[i].xyz - vel[j].xyz;
-                    float mu = (mi * mj) / (mi + mj);
-                    float g_eff = pc.g_n;
-                    if (0.5 * mu * dot(vr, vr) * d >= g_eff * mi * mj) continue;
-                    // subsonic inflow: |v_t| < c_s = h0/dt
-                    if (f_subsonic_on()) {
-                        vec3 dh = dsep / d;
-                        vec3 vt = vr - dot(vr, dh) * dh;
-                        if (length(vt) >= pc.h0 / max(pc.dt, 1e-9)) continue;
+    float r_m2 = pc.R_m * pc.R_m;
+    int neighbor_index = 0;
+    // Cell 0 is the particle's own cell; cells 1..26 are the surrounding
+    // shell. Large clouds evaluate one (cell,entry) phase per cadence, while
+    // small-N gates retain the original exhaustive scan.
+    for (int ring = 0; ring <= 1; ring++) {
+        for (int dx = -ring; dx <= ring; dx++) {
+            for (int dy = -ring; dy <= ring; dy++) {
+                for (int dz = -ring; dz <= ring; dz++) {
+                    if (max(max(abs(dx), abs(dy)), abs(dz)) != ring) continue;
+                    bool visit_cell = !time_sliced || neighbor_index == selected_cell;
+                    neighbor_index++;
+                    if (!visit_cell) continue;
+                    int cx = (ci + dx + nx) % nx;
+                    int cy = (cj + dy + ny) % ny;
+                    int cz = (ck + dz + nz) % nz;
+                    int c = cx + nx * (cy + ny * cz);
+                    int ncnt = int(cc[c]);
+                    if (ncnt <= 0) continue;
+                    int first = time_sliced ? (selected_round % ncnt) : 0;
+                    int last = time_sliced ? (first + 1) : min(ncnt, MAX_CELL_SCAN);
+                    for (int k = first; k < last; k++) {
+                        int j = int(cl[int(cs[c]) + k]);
+                        // Only a lower index can become this particle's sink.
+                        if (j >= int(i) || alive[j] < 0.5) continue;
+                        float mj = mass[j];
+                        if (mj <= 0.0) continue;
+                        vec3 pj = pos[j].xyz;
+                        vec3 dsep = sep(pi, pj);
+                        float d2 = dot(dsep, dsep);
+                        if (d2 <= 0.0 || d2 > r_m2) continue;
+                        float d = sqrt(d2);
+                        // Reject mechanically impossible pairs before querying
+                        // the field. This exact reordering keeps expensive site
+                        // queries off the overwhelmingly unbound live cloud.
+                        vec3 vr = vel[i].xyz - vel[j].xyz;
+                        float mu = (mi * mj) / (mi + mj);
+                        float g_eff = pc.g_n;
+                        if (0.5 * mu * dot(vr, vr) * d >= g_eff * mi * mj) continue;
+                        // subsonic inflow: |v_t| < c_s = h0/dt
+                        if (f_subsonic_on()) {
+                            vec3 dh = dsep / d;
+                            vec3 vt = vr - dot(vr, dh) * dh;
+                            if (length(vt) >= pc.h0 / max(pc.dt, 1e-9)) continue;
+                        }
+                        vec3 mid = boxless_on()
+                            ? 0.5 * (pi + pj)
+                            : wrap_point(pi - 0.5 * dsep);
+                        // q_coh is cheaper than q_ord. Since q_ord <= 1, a
+                        // failing q_coh can never pass the product gate.
+                        float qm = qcoh_at(mid);
+                        if (qm <= pc.q_threshold) continue;
+                        // KEEP the product check: q_ord can pull an otherwise
+                        // passing q_coh below the threshold.
+                        float qg = qm;
+                        if (f_order_on()) qg = qm * qord_at(mid);
+                        if (qg <= pc.q_threshold) continue;
+                        // virial stopping scale: skip relaxed targets
+                        if (f_virial_on() && virialized(j)) continue;
+                        if (j < ibest) ibest = j;
                     }
-                    // virial stopping scale: skip relaxed targets
-                    if (f_virial_on() && virialized(j)) continue;
-                    if (j < ibest) ibest = j;
                 }
             }
         }
@@ -525,15 +654,18 @@ void pass_hop() {
     atomicAdd(mom[b].z, mv.z);
     // mom/best .w and cen .w are SPARE (never read anywhere — F6 removed the
     // old mom[b].w receive-counter atomicAdd). The vec4 slots are kept so the
-    // buffer/PC layout needs no renumbering.
-    vec3 mp = mass[i] * pos[i].xyz;
+    // buffer/PC layout needs no renumbering. Accumulate i on the periodic
+    // image nearest b; raw coordinates would send a seam-straddling pair's
+    // centroid through the box center.
+    vec3 dsep = sep(pos[i].xyz, pos[b].xyz);
+    vec3 pi_image = boxless_on() ? pos[i].xyz : pos[b].xyz + dsep;
+    vec3 mp = mass[i] * pi_image;
     atomicAdd(cen[b].x, mp.x);
     atomicAdd(cen[b].y, mp.y);
     atomicAdd(cen[b].z, mp.z);
     // spin: i's accumulated spin + the pair's orbital L about its COM.
     // μ uses the SURVIVOR's pre-hop mass (mprev[b], stashed at fold) so the
     // transfer is exact and independent of concurrent forwarders' ordering.
-    vec3 dsep = sep(pos[i].xyz, pos[b].xyz);
     vec3 vr = vel[i].xyz - vel[b].xyz;
     float mi = mass[i];
     float mb = mprev[b];
@@ -587,7 +719,9 @@ void pass_finalize() {
     uint i = gl_GlobalInvocationID.x;
     if (int(i) >= int(pc.N)) return;
     if (alive[i] > 0.5 && mass[i] > 0.0) {
-        pos[i] = vec4(cen[i].xyz / mass[i], mass[i]);   // folded centroid + mass
+        vec3 p = cen[i].xyz / mass[i];
+        if (!boxless_on()) p = wrap_point(p);
+        pos[i] = vec4(p, mass[i]);
         vel[i] = vec4(mom[i].xyz / mass[i], 0.0);
     } else {
         pos[i] = vec4(pos[i].xyz, 0.0);                 // dead: zero mass
@@ -595,7 +729,7 @@ void pass_finalize() {
 }
 
 void main() {
-    int m = int(pc.pass_mode + 0.5);
+    int m = int(pc.pass_mode); // fractional bits encode large-N neighbor cell
     if (m == 0) { pass_reset(); return; }
     if (m == 1) { pass_fold(); return; }
     if (m == 2) { pass_count(); return; }

@@ -151,12 +151,14 @@ func _make_buffers() -> void:
 		_u_storage(12, _ch_buf), _u_storage(13, _cl_buf),
 		_u_storage(14, _mc_buf), _u_storage(15, _spin_buf),
 		_u_storage(16, _fvel_buf), _u_storage(17, _mprev_buf),
-		# Boxless site-read set (merge_boxless_prereg.md §4) — all 7 bindings
-		# present for set validation; unindexed when the boxless flag is off.
+		# Boxless site/query set (bindings 18-29). Dummies satisfy descriptor
+		# validation; the boxless flag is off in this verifier.
 		_u_storage(18, _site_dummy_buf), _u_storage(19, _site_dummy_buf),
 		_u_storage(20, _site_dummy_buf), _u_storage(21, _site_dummy_buf),
 		_u_storage(22, _site_dummy_buf), _u_storage(23, _site_dummy_buf),
-		_u_storage(24, _site_dummy_buf),
+		_u_storage(24, _site_dummy_buf), _u_storage(25, _site_dummy_buf),
+		_u_storage(26, _site_dummy_buf), _u_storage(27, _site_dummy_buf),
+		_u_storage(28, _site_dummy_buf), _u_storage(29, _site_dummy_buf),
 	], _shader, 0)
 
 

@@ -1952,10 +1952,9 @@ export class Cortex {
   }
 
   close(): void {
-    try {
-      this.db.close()
-      this.logger.info('Mnemic Cortex closed')
-    } catch { /* already closed */ }
+    if (!this.db.open) return
+    this.db.close()
+    this.logger.info('Mnemic Cortex closed')
   }
 }
 

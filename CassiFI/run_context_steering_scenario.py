@@ -1,4 +1,4 @@
-"""Exercise live field-owned context relevance, outcome steering, and restart."""
+"""Exercise field-native Mnemic condensation, exact recall, and restart."""
 
 from __future__ import annotations
 
@@ -9,17 +9,16 @@ import tempfile
 from pathlib import Path
 from typing import Any, Sequence
 
-
 from cassi_fi_paths import ARTIFACT_DIR, CONFIG_DIR
+from cassi_mnemic_condensation import mnemic_field_address
 from cassi_persistent_provider import (
     EMPTY_CONTEXT_EVENT_ID,
     PersistentFieldProvider,
     ProviderConfig,
 )
 
-_CONTEXT_SESSION_ID = "live-steering-context"
-_TARGET_ID = "typescript"
-_STEERING_QUERY = "repair tsc compilation failures"
+_CONTEXT_SESSION_ID = "live-mnemic-context"
+_ALIAS_QUERY = "repair tsc compilation failures"
 _TOPICS = (
     (
         "typescript",
@@ -33,10 +32,24 @@ _TOPICS = (
     ),
     (
         "gpu",
-        "reduce GPU context ranking latency",
-        "batch independent candidate lanes on the live Qi field",
+        "reduce GPU context recall latency",
+        "batch complete opaque addresses against the live Qi field",
     ),
 )
+
+
+def _revision(record_id: str, text: str) -> str:
+    return hashlib.sha256(f"{record_id}\0fact\0{text}".encode("utf-8")).hexdigest()
+
+
+def _address(record_id: str, text: str, revision: str) -> str:
+    return mnemic_field_address(
+        record_id=record_id,
+        revision=revision,
+        start_byte=0,
+        end_byte=len(text.encode("utf-8")),
+        semantic_kind="fact",
+    ).hex()
 
 
 def _event(
@@ -64,33 +77,20 @@ def _event(
     return {**identity, "event_id": event_id, "user": user}
 
 
-def _rank(
+def _recall(
     provider: PersistentFieldProvider,
     *,
     user: str,
     query: str,
-    candidates: Sequence[dict[str, Any]],
-    context_session_id: str = _CONTEXT_SESSION_ID,
+    addresses: Sequence[str],
 ) -> dict[str, Any]:
-    result = provider.rank_context({
-        "user": user,
-        "context_session_id": context_session_id,
-        "query": query,
-        "candidates": candidates,
-    })
-    return {
-        "state_sha256": result["state_sha256"],
-        "ranked": result["ranked"],
-        "working": result["working"],
-        "timings_ms": result["timings_ms"],
-    }
-
-
-def _score(snapshot: dict[str, Any], candidate_id: str) -> float:
-    return next(
-        float(item["score"])
-        for item in snapshot["ranked"]
-        if item["id"] == candidate_id
+    return provider.recall_context(
+        {
+            "user": user,
+            "context_session_id": _CONTEXT_SESSION_ID,
+            "query": query,
+            "addresses": list(addresses),
+        }
     )
 
 
@@ -100,25 +100,23 @@ def run(
     corpus_checkpoint_path: Path,
     device: str,
 ) -> dict[str, Any]:
-    user = "live-context-steering"
-    stream_id = "live-context-steering-stream"
-    candidates = []
-    for candidate_id, _, text in _TOPICS:
-        revision = hashlib.sha256(
-            f"{candidate_id}\0fact\0{text}".encode("utf-8")
-        ).hexdigest()
-        candidates.append({
-            "id": candidate_id,
-            "record_id": candidate_id,
-            "revision": revision,
-            "start_byte": 0,
-            "end_byte": len(text.encode("utf-8")),
-            "text": text,
-        })
+    user = "live-mnemic-recall"
+    stream_id = "live-mnemic-recall-stream"
+    records = []
+    for record_id, query, text in _TOPICS:
+        revision = _revision(record_id, text)
+        records.append(
+            {
+                "id": record_id,
+                "query": query,
+                "text": text,
+                "revision": revision,
+                "address": _address(record_id, text, revision),
+            }
+        )
+    addresses = [record["address"] for record in records]
 
-    with tempfile.TemporaryDirectory(
-        prefix="cassi-context-steering-"
-    ) as state_dir:
+    with tempfile.TemporaryDirectory(prefix="cassi-mnemic-recall-") as state_dir:
         config = ProviderConfig(
             phi_config_path=phi_config_path,
             corpus_checkpoint_path=corpus_checkpoint_path,
@@ -130,9 +128,9 @@ def run(
         provider.start()
         previous_event_id = EMPTY_CONTEXT_EVENT_ID
         sequence = 1
-        observations: list[dict[str, Any]] = []
         try:
-            for candidate in candidates:
+            receipts = []
+            for record in records:
                 event = _event(
                     user=user,
                     stream_id=stream_id,
@@ -143,97 +141,69 @@ def run(
                         "context_session_id": "",
                         "operation": "store",
                         "record": {
-                            "id": candidate["record_id"],
+                            "id": record["id"],
                             "node_type": "fact",
-                            "revision": candidate["revision"],
-                            "content": candidate["text"],
+                            "revision": record["revision"],
+                            "content": record["text"],
+                            "field_address": record["address"],
                         },
                     },
                 )
-                provider.observe_context(event)
+                receipts.append(provider.observe_context(event))
                 previous_event_id = event["event_id"]
                 sequence += 1
 
-            for turn, ((_, query, _), candidate) in enumerate(
-                zip(_TOPICS, candidates), start=1
-            ):
-                event = _event(
-                    user=user,
-                    stream_id=stream_id,
-                    sequence=sequence,
-                    previous_event_id=previous_event_id,
-                    payload={
-                        "kind": "feedback",
-                        "context_session_id": _CONTEXT_SESSION_ID,
-                        "turn_id": turn,
-                        "query": query,
-                        "candidates": [candidate],
-                        "outcome": "completed",
-                    },
-                )
-                provider.observe_context(event)
-                previous_event_id = event["event_id"]
-                sequence += 1
-
-            baseline = _rank(
-                provider,
-                user=user,
-                query=_STEERING_QUERY,
-                candidates=candidates,
-            )
-
-            target = candidates[0]
-            stages: list[tuple[str, str, bool]] = [
-                ("successful_feedback", "completed", False),
-                ("error_feedback", "error", True),
-                ("recovery_feedback", "completed", False),
-            ]
-            snapshots: dict[str, dict[str, Any]] = {"baseline": baseline}
-            for turn, (stage, outcome, is_error) in enumerate(
-                stages, start=10
-            ):
-                event = _event(
-                    user=user,
-                    stream_id=stream_id,
-                    sequence=sequence,
-                    previous_event_id=previous_event_id,
-                    payload={
-                        "kind": "feedback",
-                        "context_session_id": _CONTEXT_SESSION_ID,
-                        "turn_id": turn,
-                        "query": _STEERING_QUERY,
-                        "candidates": [target],
-                        "outcome": outcome,
-                        "tool_result": {
-                            "id": f"tc-steer-{turn}",
-                            "name": "pytest",
-                            "is_error": is_error,
-                        },
-                    },
-                )
-                observed = provider.observe_context(event)
-                observations.append({
-                    "stage": stage,
-                    "selected_ids": observed["selected_ids"],
-                    "forgotten_symbols": observed["forgotten_symbols"],
-                    "state_out_sha256": observed["state_out_sha256"],
-                })
-                previous_event_id = event["event_id"]
-                sequence += 1
-                snapshots[stage] = _rank(
+            exact = {
+                record["id"]: _recall(
                     provider,
                     user=user,
-                    query=_STEERING_QUERY,
-                    candidates=candidates,
+                    query=record["text"],
+                    addresses=addresses,
                 )
-
-            isolated = _rank(
+                for record in records
+            }
+            target = records[0]
+            feedback = _event(
+                user=user,
+                stream_id=stream_id,
+                sequence=sequence,
+                previous_event_id=previous_event_id,
+                payload={
+                    "kind": "feedback",
+                    "context_session_id": _CONTEXT_SESSION_ID,
+                    "turn_id": 10,
+                    "query": _ALIAS_QUERY,
+                    "candidates": [
+                        {
+                            "id": target["id"],
+                            "record_id": target["id"],
+                            "revision": target["revision"],
+                            "start_byte": 0,
+                            "end_byte": len(target["text"].encode("utf-8")),
+                            "text": target["text"],
+                            "field_address": target["address"],
+                        }
+                    ],
+                    "outcome": "completed",
+                },
+            )
+            feedback_receipt = provider.observe_context(feedback)
+            alias = _recall(
                 provider,
                 user=user,
-                query=_STEERING_QUERY,
-                candidates=candidates,
-                context_session_id="isolated-context",
+                query=_ALIAS_QUERY,
+                addresses=addresses,
             )
+            checkpoint = Path(feedback_receipt["checkpoint"])
+            checkpoint_before_read = checkpoint.read_bytes()
+            repeated = _recall(
+                provider,
+                user=user,
+                query=_ALIAS_QUERY,
+                addresses=addresses,
+            )
+            if checkpoint.read_bytes() != checkpoint_before_read:
+                raise AssertionError("field recall mutated the persistent checkpoint")
             engine_fingerprint = provider.provider_fingerprint
         finally:
             provider.close()
@@ -241,45 +211,44 @@ def run(
         restarted_provider = PersistentFieldProvider(config)
         restarted_provider.start()
         try:
-            restarted = _rank(
+            restarted = _recall(
                 restarted_provider,
                 user=user,
-                query=_STEERING_QUERY,
-                candidates=candidates,
+                query=_ALIAS_QUERY,
+                addresses=addresses,
             )
         finally:
             restarted_provider.close()
 
-    successful = snapshots["successful_feedback"]
-    errored = snapshots["error_feedback"]
-    recovered = snapshots["recovery_feedback"]
-    if successful["ranked"][0]["id"] != _TARGET_ID:
-        raise AssertionError("successful feedback did not steer the target to top-1")
-    if _score(successful, _TARGET_ID) <= _score(baseline, _TARGET_ID):
-        raise AssertionError("successful feedback did not increase target relevance")
-    if _score(errored, _TARGET_ID) >= _score(successful, _TARGET_ID):
-        raise AssertionError("error feedback did not remove exact target credit")
-    if recovered["ranked"][0]["id"] != _TARGET_ID:
-        raise AssertionError("recovery feedback did not restore target top-1")
-    if _score(recovered, _TARGET_ID) <= _score(errored, _TARGET_ID):
-        raise AssertionError("recovery feedback did not restore target credit")
-    if any(float(item["score"]) != 0.0 for item in isolated["ranked"]):
-        raise AssertionError("context steering leaked across sessions")
-    if restarted["state_sha256"] != recovered["state_sha256"]:
-        raise AssertionError("restart changed the field state")
-    if restarted["ranked"] != recovered["ranked"]:
-        raise AssertionError("restart changed the context ranking")
+    for record in records:
+        if exact[record["id"]]["address"] != record["address"]:
+            raise AssertionError(f"exact cue missed {record['id']}")
+    if alias["address"] != records[0]["address"]:
+        raise AssertionError("successful-use condensation missed the target address")
+    for key in ("address", "signal", "selection_margin", "availability", "state_sha256"):
+        if repeated[key] != alias[key]:
+            raise AssertionError(f"read-only recall changed {key}")
+    if restarted["address"] != alias["address"]:
+        raise AssertionError("restart changed the recalled exact address")
+    if restarted["mnemic_state_sha256"] != alias["mnemic_state_sha256"]:
+        raise AssertionError("restart changed the Mnemic Qi field")
 
     return {
-        "scenario": "live-field-context-steering",
+        "schema": "cassi.mnemic.live-recall-scenario.v1",
         "device": device,
         "engine_fingerprint": engine_fingerprint,
-        "query": _STEERING_QUERY,
-        "target_id": _TARGET_ID,
-        "candidate_ids": [candidate["id"] for candidate in candidates],
-        "observations": observations,
-        "snapshots": snapshots,
-        "isolated": isolated,
+        "candidate_addresses": addresses,
+        "write_receipts": [
+            {
+                "state_out_sha256": receipt["state_out_sha256"],
+                "mnemic_state_out_sha256": receipt["mnemic_state_out_sha256"],
+                "transitions": receipt["transitions"],
+            }
+            for receipt in receipts
+        ],
+        "exact": exact,
+        "feedback": feedback_receipt,
+        "alias": alias,
         "restarted": restarted,
     }
 

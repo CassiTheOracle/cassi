@@ -96,8 +96,8 @@ func _check_host(L: GDScript) -> void:
 			_fail += 1
 			printerr("[assert_layout] FAIL host: cannot read %s" % hp)
 			continue
-		# Float-count allocations: _x_pc_bytes = PackedByteArray(); resize(N * 4)
-		var re_f := RegEx.create_from_string(r'(_\w+_pc_bytes)\s*=\s*PackedByteArray\(\);\s*\w+\.resize\((\d+)\s*\*\s*4\)')
+		# Float-count allocations: _x_pc[_bytes] = PackedByteArray(); resize(N * 4)
+		var re_f := RegEx.create_from_string(r'(_\w+_pc(?:_bytes)?)\s*=\s*PackedByteArray\(\);\s*\w+\.resize\((\d+)\s*\*\s*4\)')
 		for mm in re_f.search_all(src):
 			var vn := mm.get_string(1)
 			var n := int(mm.get_string(2))

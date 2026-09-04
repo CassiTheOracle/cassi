@@ -27,6 +27,7 @@ export interface MnemicFieldCandidate {
   endByte: number
   text: string
   revision: string
+  fieldAddress?: string
 }
 export interface MnemicFieldToolResult {
   id: string
@@ -45,6 +46,7 @@ export interface MnemicFieldEventCandidate {
   end_byte: number
   text: string
   revision: string
+  field_address?: string
 }
 
 export interface MnemicObservationInput {
@@ -123,6 +125,7 @@ interface MnemicFieldEventRecord {
   content: string
   node_type: string
   revision: string
+  field_address?: string
 }
 
 
@@ -211,6 +214,34 @@ export interface MnemicUnresolvedActionEpisode {
   startedAt: number
 }
 
+export interface MnemicFieldAddressInput {
+  recordId: string
+  revision: string
+  startByte: number
+  endByte: number
+  semanticKind: string
+}
+
+export interface MnemicFieldAddressEntry {
+  address: string
+  recordId: string
+  fieldRecordId: string
+  revision: string
+  startByte: number
+  endByte: number
+  semanticKind: string
+  contentSha256: string
+}
+
+export interface MnemicFieldAddressManifestOptions {
+  maxEntries?: number
+  excludeSessionId?: string
+}
+
+export interface MnemicFieldAddressResolution extends MnemicFieldAddressEntry {
+  record: Engram
+}
+
 export class MnemicFieldJournalError extends Error {
   readonly code = 'mnemic-journal-invalid'
 
@@ -223,6 +254,9 @@ export class MnemicFieldJournalError extends Error {
 const EMPTY_EVENT_ID = '0'.repeat(64)
 const MAX_FIELD_CONTENT_BYTES = 16 * 1_024
 const MAX_FIELD_QUERY_BYTES = 8 * 1_024
+const MAX_MNEMIC_FIELD_ADDRESSES = 65_536
+
+export const MNEMIC_CONDENSATION_ADDRESS_SCHEMA = 'cassicore.mnemic.condensation-address.v1'
 
 export const MNEMIC_FIELD_CANONICAL_SCHEMA = 'cassicore.mnemic.field-canonical-json.v1'
 export function mnemicFieldCanonicalJson(value: unknown): string {
@@ -230,6 +264,38 @@ export function mnemicFieldCanonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(mnemicFieldCanonicalJson).join(',')}]`
   const object = value as Record<string, unknown>
   return `{${Object.keys(object).sort().map(key => `${JSON.stringify(key)}:${mnemicFieldCanonicalJson(object[key])}`).join(',')}}`
+}
+
+export function mnemicFieldAddress(input: MnemicFieldAddressInput): string {
+  if (!input.recordId || Buffer.byteLength(input.recordId) > 256) {
+    throw new Error('field address recordId must be bounded nonempty UTF-8 text')
+  }
+  exactSha256(input.revision, 'field address revision')
+  if (
+    !Number.isInteger(input.startByte)
+    || !Number.isInteger(input.endByte)
+    || input.startByte < 0
+    || input.endByte < input.startByte
+  ) throw new Error('field address span must be an ordered byte interval')
+  if (!input.semanticKind || Buffer.byteLength(input.semanticKind) > 128) {
+    throw new Error('field address semanticKind must be bounded nonempty UTF-8 text')
+  }
+  return createHash('sha256')
+    .update(mnemicFieldCanonicalJson([
+      MNEMIC_CONDENSATION_ADDRESS_SCHEMA,
+      input.recordId,
+      input.revision,
+      input.startByte,
+      input.endByte,
+      input.semanticKind,
+    ]))
+    .digest('hex')
+    .slice(0, 32)
+}
+
+function exactFieldAddress(value: string, name: string): string {
+  if (!/^[0-9a-f]{32}$/.test(value)) throw new Error(`${name} must be a lowercase 16-byte field address`)
+  return value
 }
 function exactSha256(value: string, name: string): string {
   if (!/^[0-9a-f]{64}$/.test(value)) throw new Error(`${name} must be a lowercase SHA-256 digest`)
@@ -295,8 +361,12 @@ function truncateUtf8(value: string, maxBytes: number): string {
   return new TextDecoder().decode(bytes.subarray(0, maxBytes)).replace(/\uFFFD$/u, '')
 }
 
+function isBoundedOpaqueId(value: unknown): value is string {
+  return typeof value === 'string' && /^[A-Za-z0-9._:-]{1,128}$/.test(value)
+}
+
 function safeOpaqueId(value: string): string {
-  if (/^[A-Za-z0-9._:-]{1,128}$/.test(value)) return value
+  if (isBoundedOpaqueId(value)) return value
   return `sha256:${createHash('sha256').update(value).digest('hex').slice(0, 32)}`
 }
 
@@ -316,12 +386,24 @@ export function mnemicRecordRevision(record: {
 
 function fieldEventRecord(
   record: { id: string; content: string; nodeType: string },
+  recallable = false,
 ): MnemicFieldEventRecord {
+  const id = safeOpaqueId(record.id)
+  const revision = mnemicRecordRevision(record)
   return {
-    id: safeOpaqueId(record.id),
+    id,
     content: truncateUtf8(record.content, MAX_FIELD_CONTENT_BYTES),
     node_type: record.nodeType.slice(0, 64),
-    revision: mnemicRecordRevision(record),
+    revision,
+    ...(recallable ? {
+      field_address: mnemicFieldAddress({
+        recordId: id,
+        revision,
+        startByte: 0,
+        endByte: Buffer.byteLength(record.content),
+        semanticKind: record.nodeType,
+      }),
+    } : {}),
   }
 }
 
@@ -362,7 +444,10 @@ export class MnemicExactStore {
         initialPotentiation: 0,
         embedding: null,
       }),
-      record => this.memoryPayload('store', record, record.metadata.sessionId),
+      record => {
+        this.upsertFieldAddress(record)
+        return this.memoryPayload('store', record, record.metadata.sessionId, undefined, true)
+      },
     )
   }
 
@@ -380,6 +465,101 @@ export class MnemicExactStore {
       if (record) records.push(record)
     }
     return records
+  }
+
+  fieldAddressManifest(
+    options: MnemicFieldAddressManifestOptions = {},
+  ): MnemicFieldAddressEntry[] {
+    const {
+      maxEntries = MAX_MNEMIC_FIELD_ADDRESSES,
+      excludeSessionId,
+    } = options
+    if (!Number.isInteger(maxEntries) || maxEntries < 1 || maxEntries > MAX_MNEMIC_FIELD_ADDRESSES) {
+      throw new Error(`maxEntries must be an integer in [1, ${MAX_MNEMIC_FIELD_ADDRESSES}]`)
+    }
+    if (excludeSessionId !== undefined && !isBoundedOpaqueId(excludeSessionId)) {
+      throw new Error('excludeSessionId must be a bounded opaque identifier when supplied')
+    }
+    const excluded = excludeSessionId ?? null
+    const count = this.db.prepare(`
+      SELECT COUNT(*) AS count
+      FROM mnemic_field_address_manifest AS manifest
+      INNER JOIN engrams AS records ON records.id = manifest.record_id
+      WHERE ? IS NULL
+        OR COALESCE(json_extract(records.metadata, '$.sessionId'), '') <> ?
+    `).get(excluded, excluded) as { count: number }
+    if (count.count > maxEntries) {
+      throw new Error(`exact field address manifest exceeds the ${maxEntries}-entry request bound`)
+    }
+    const rows = this.db.prepare(`
+      SELECT
+        manifest.address,
+        manifest.record_id,
+        manifest.field_record_id,
+        manifest.revision,
+        manifest.start_byte,
+        manifest.end_byte,
+        manifest.semantic_kind,
+        manifest.content_sha256
+      FROM mnemic_field_address_manifest AS manifest
+      INNER JOIN engrams AS records ON records.id = manifest.record_id
+      WHERE ? IS NULL
+        OR COALESCE(json_extract(records.metadata, '$.sessionId'), '') <> ?
+      ORDER BY manifest.address ASC
+    `).all(excluded, excluded) as Array<{
+      address: string
+      record_id: string
+      field_record_id: string
+      revision: string
+      start_byte: number
+      end_byte: number
+      semantic_kind: string
+      content_sha256: string
+    }>
+    return rows.map(row => ({
+      address: row.address,
+      recordId: row.record_id,
+      fieldRecordId: row.field_record_id,
+      revision: row.revision,
+      startByte: row.start_byte,
+      endByte: row.end_byte,
+      semanticKind: row.semantic_kind,
+      contentSha256: row.content_sha256,
+    }))
+  }
+
+  resolveFieldAddress(address: string): MnemicFieldAddressResolution | null {
+    const exactAddress = exactFieldAddress(address, 'address')
+    const row = this.db.prepare(`
+      SELECT
+        address, record_id, field_record_id, revision,
+        start_byte, end_byte, semantic_kind, content_sha256
+      FROM mnemic_field_address_manifest
+      WHERE address = ?
+    `).get(exactAddress) as {
+      address: string
+      record_id: string
+      field_record_id: string
+      revision: string
+      start_byte: number
+      end_byte: number
+      semantic_kind: string
+      content_sha256: string
+    } | undefined
+    if (!row) return null
+    const record = this.cortex.getEngram(row.record_id)
+    if (!record) throw new Error('field address manifest references a missing exact record')
+    const expected = this.fieldAddressEntry(record)
+    if (
+      row.address !== expected.address
+      || row.field_record_id !== expected.fieldRecordId
+      || row.revision !== expected.revision
+      || row.start_byte !== expected.startByte
+      || row.end_byte !== expected.endByte
+      || row.semantic_kind !== expected.semanticKind
+      || row.content_sha256 !== expected.contentSha256
+    ) throw new Error('field address manifest does not match its exact record')
+    return { ...expected, record }
   }
   rememberObservation(input: MnemicObservationInput): MnemicFieldEvent {
     if (!input.recordId || Buffer.byteLength(input.recordId) > 256) {
@@ -439,9 +619,17 @@ export class MnemicExactStore {
         y: 0,
         z: 0,
       }),
-      record => record
-        ? this.memoryPayload('update', record, record.metadata.sessionId, previous ?? undefined)
-        : null,
+      record => {
+        if (!record) return null
+        this.upsertFieldAddress(record)
+        return this.memoryPayload(
+          'update',
+          record,
+          record.metadata.sessionId,
+          previous ?? undefined,
+          true,
+        )
+      },
     )
   }
 
@@ -451,9 +639,17 @@ export class MnemicExactStore {
         const previous = this.cortex.getEngram(id)
         return { previous, removed: previous ? this.cortex.deleteEngram(id) : false }
       },
-      ({ previous, removed }) => removed && previous
-        ? this.memoryPayload('delete', previous, previous.metadata.sessionId)
-        : null,
+      ({ previous, removed }) => {
+        if (!removed || !previous) return null
+        this.deleteFieldAddress(previous.id)
+        return this.memoryPayload(
+          'delete',
+          previous,
+          previous.metadata.sessionId,
+          undefined,
+          true,
+        )
+      },
     )
     return result.removed
   }
@@ -514,26 +710,6 @@ export class MnemicExactStore {
     }))
   }
 
-  latestCompactionCandidateIds(sessionId: string): string[] {
-    const row = this.db.prepare(`
-      SELECT metadata FROM engrams
-      WHERE provenance = 'cassi-context-compaction'
-        AND json_extract(metadata, '$.sessionId') = ?
-      ORDER BY created_at DESC, rowid DESC
-      LIMIT 1
-    `).get(sessionId) as { metadata?: unknown } | undefined
-    if (!row || typeof row.metadata !== 'string') return []
-    try {
-      const metadata: unknown = JSON.parse(row.metadata)
-      if (!metadata || typeof metadata !== 'object' || !('candidateIds' in metadata)) return []
-      const candidateIds = metadata.candidateIds
-      if (!Array.isArray(candidateIds)) return []
-      return candidateIds.filter((id): id is string => typeof id === 'string').slice(0, 16)
-    } catch {
-      return []
-    }
-  }
-
   rememberContextTurn(
     sessionId: string,
     turnId: number,
@@ -568,6 +744,9 @@ export class MnemicExactStore {
             start_byte: candidate.startByte,
             end_byte: candidate.startByte + Buffer.byteLength(text),
             text,
+            ...(candidate.fieldAddress
+              ? { field_address: exactFieldAddress(candidate.fieldAddress, 'candidate fieldAddress') }
+              : {}),
           }
         })),
         Date.now(),
@@ -1189,6 +1368,21 @@ export class MnemicExactStore {
         event_sequence INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS mnemic_field_address_manifest (
+        address TEXT PRIMARY KEY,
+        record_id TEXT NOT NULL UNIQUE REFERENCES engrams(id) ON DELETE CASCADE,
+        field_record_id TEXT NOT NULL,
+        revision TEXT NOT NULL,
+        start_byte INTEGER NOT NULL,
+        end_byte INTEGER NOT NULL,
+        semantic_kind TEXT NOT NULL,
+        content_sha256 TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS mnemic_field_address_announcements (
+        address TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL UNIQUE,
+        announced_at INTEGER NOT NULL
+      );
       CREATE UNIQUE INDEX IF NOT EXISTS idx_mnemic_action_state_session_action
         ON mnemic_action_state(session_id, action_id);
       CREATE TABLE IF NOT EXISTS mnemic_action_episodes (
@@ -1232,6 +1426,54 @@ export class MnemicExactStore {
         (singleton, stream_id, last_sequence, head_event_id)
       VALUES (1, ?, 0, ?)
     `).run(randomUUID(), EMPTY_EVENT_ID)
+    this.db.transaction(() => {
+      const records = this.db.prepare(`
+        SELECT id, content, node_type FROM engrams ORDER BY id
+      `).all() as Array<{ id: string; content: string; node_type: string }>
+      for (const record of records) {
+        this.upsertFieldAddress({
+          id: record.id,
+          content: record.content,
+          nodeType: record.node_type,
+        })
+      }
+
+      const historical = this.db.prepare(`
+        SELECT
+          json_extract(events.payload, '$.record.field_address') AS address,
+          events.event_id,
+          events.created_at
+        FROM mnemic_field_events AS events
+        INNER JOIN mnemic_field_address_manifest AS manifest
+          ON manifest.address = json_extract(events.payload, '$.record.field_address')
+        WHERE json_type(events.payload, '$.record.field_address') = 'text'
+        ORDER BY events.sequence
+      `).all() as Array<{ address: string; event_id: string; created_at: number }>
+      for (const event of historical) {
+        this.recordFieldAddressAnnouncement(event.address, event.event_id, event.created_at)
+      }
+
+      const unannounced = this.db.prepare(`
+        SELECT manifest.record_id
+        FROM mnemic_field_address_manifest AS manifest
+        LEFT JOIN mnemic_field_address_announcements AS announcements
+          ON announcements.address = manifest.address
+        WHERE announcements.address IS NULL
+        ORDER BY manifest.record_id
+      `).all() as Array<{ record_id: string }>
+      for (const row of unannounced) {
+        const record = this.cortex.getEngram(row.record_id)
+        if (!record) throw new Error('field address manifest record is missing')
+        const event = this.appendFieldEvent(this.memoryPayload(
+          'store',
+          record,
+          record.metadata.sessionId,
+          undefined,
+          true,
+        ))
+        this.announceFieldEvent(event)
+      }
+    })()
   }
 
   private actionEffects(
@@ -1344,7 +1586,8 @@ export class MnemicExactStore {
       const result = mutate()
       const payload = payloadFor(result)
       if (payload) {
-        this.appendFieldEvent(payload)
+        const event = this.appendFieldEvent(payload)
+        this.announceFieldEvent(event)
         appended = true
       }
       return result
@@ -1353,11 +1596,90 @@ export class MnemicExactStore {
     return value
   }
 
+  private fieldAddressEntry(
+    record: { id: string; content: string; nodeType: string },
+  ): MnemicFieldAddressEntry {
+    const fieldRecordId = safeOpaqueId(record.id)
+    const revision = mnemicRecordRevision(record)
+    const startByte = 0
+    const endByte = Buffer.byteLength(record.content)
+    const semanticKind = record.nodeType
+    return {
+      address: mnemicFieldAddress({
+        recordId: fieldRecordId,
+        revision,
+        startByte,
+        endByte,
+        semanticKind,
+      }),
+      recordId: record.id,
+      fieldRecordId,
+      revision,
+      startByte,
+      endByte,
+      semanticKind,
+      contentSha256: createHash('sha256').update(record.content).digest('hex'),
+    }
+  }
+
+  private upsertFieldAddress(
+    record: { id: string; content: string; nodeType: string },
+  ): void {
+    const entry = this.fieldAddressEntry(record)
+    const existing = this.db.prepare(`
+      SELECT
+        address, field_record_id, revision, start_byte, end_byte,
+        semantic_kind, content_sha256
+      FROM mnemic_field_address_manifest
+      WHERE record_id = ?
+    `).get(entry.recordId) as {
+      address: string
+      field_record_id: string
+      revision: string
+      start_byte: number
+      end_byte: number
+      semantic_kind: string
+      content_sha256: string
+    } | undefined
+    if (
+      existing?.address === entry.address
+      && existing.field_record_id === entry.fieldRecordId
+      && existing.revision === entry.revision
+      && existing.start_byte === entry.startByte
+      && existing.end_byte === entry.endByte
+      && existing.semantic_kind === entry.semanticKind
+      && existing.content_sha256 === entry.contentSha256
+    ) return
+    this.db.prepare('DELETE FROM mnemic_field_address_manifest WHERE record_id = ?')
+      .run(entry.recordId)
+    this.db.prepare(`
+      INSERT INTO mnemic_field_address_manifest (
+        address, record_id, field_record_id, revision,
+        start_byte, end_byte, semantic_kind, content_sha256
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      entry.address,
+      entry.recordId,
+      entry.fieldRecordId,
+      entry.revision,
+      entry.startByte,
+      entry.endByte,
+      entry.semanticKind,
+      entry.contentSha256,
+    )
+  }
+
+  private deleteFieldAddress(recordId: string): void {
+    this.db.prepare('DELETE FROM mnemic_field_address_manifest WHERE record_id = ?')
+      .run(recordId)
+  }
+
   private memoryPayload(
     operation: MnemicRecordOperation,
     record: { id: string; content: string; nodeType: string },
     contextSessionId?: unknown,
     previousRecord?: { id: string; content: string; nodeType: string },
+    recallable = false,
   ): MnemicFieldEventPayload {
     const payload: Extract<MnemicFieldEventPayload, { kind: 'memory' }> = {
       kind: 'memory',
@@ -1365,11 +1687,32 @@ export class MnemicExactStore {
         ? contextSessionId.slice(0, 256)
         : '',
       operation,
-      record: fieldEventRecord(record),
+      record: fieldEventRecord(record, recallable),
     }
-    if (previousRecord) payload.previous_record = fieldEventRecord(previousRecord)
+    if (previousRecord) {
+      payload.previous_record = fieldEventRecord(previousRecord, recallable)
+    }
     return payload
   }
+  private recordFieldAddressAnnouncement(
+    address: string,
+    eventId: string,
+    announcedAt = Date.now(),
+  ): void {
+    this.db.prepare(`
+      INSERT OR IGNORE INTO mnemic_field_address_announcements
+        (address, event_id, announced_at)
+      VALUES (?, ?, ?)
+    `).run(address, eventId, announcedAt)
+  }
+
+  private announceFieldEvent(event: MnemicFieldEvent): void {
+    if (event.payload.kind !== 'memory') return
+    const address = event.payload.record.field_address
+    if (!address) return
+    this.recordFieldAddressAnnouncement(address, event.eventId)
+  }
+
 
   private appendFieldEvent(payload: MnemicFieldEventPayload): MnemicFieldEvent {
     const stream = this.db.prepare(`

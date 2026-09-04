@@ -35,6 +35,8 @@ extends Node
 ##       distinct direct phase hues, matching the shader's intrinsic formula.
 ##   [7] VELOCITY-DIRECTION (mode 6): compass direction changes hue while
 ##       speed relative to the host v_ref changes non-saturated lightness.
+##   [8] DECOUPLED ENVELOPE BOOT: before the engine's live position set is
+##       bound, the tracker refuses to sample the dormant sim position buffer.
 ##
 ## Exits 0 on all checks passing, 1 on any failure.
 
@@ -117,6 +119,7 @@ func _ready() -> void:
 	# The first populated instancer list must restore the MultiMesh before this
 	# test pauses the sim. Remaining checks use manual repaint/readback.
 	_check_decoupled_initial_visibility()
+	_check_decoupled_envelope_boot_gate()
 	sim.playing = false
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -131,6 +134,21 @@ func _check_decoupled_initial_visibility() -> void:
 		return
 	_failures += 1
 	push_error("decoupled initial render: MultiMesh remains hidden after bootstrap")
+
+func _check_decoupled_envelope_boot_gate() -> void:
+	_checks += 1
+	var saved_boot_wait: bool = sim._decoupled_boot_wait
+	var saved_dc_set: RID = sim._us_occ_0_dc
+	sim._decoupled_boot_wait = true
+	sim._us_occ_0_dc = RID()
+	var captured_dormant_positions: bool = sim._capture_envelope_sample()
+	sim._us_occ_0_dc = saved_dc_set
+	sim._decoupled_boot_wait = saved_boot_wait
+	if not captured_dormant_positions:
+		print("[PASS] decoupled envelope boot: dormant sim positions rejected")
+		return
+	_failures += 1
+	push_error("decoupled envelope boot: tracker sampled dormant sim positions")
 
 
 # ── helpers ────────────────────────────────────────────────────────────

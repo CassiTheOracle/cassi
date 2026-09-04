@@ -5,10 +5,13 @@ import path from 'node:path'
 import Database from 'better-sqlite3'
 import { describe, expect, it, vi } from 'vitest'
 
+import { initMnemicFieldSchema } from '../src/schema.js'
 import {
   MnemicExactStore,
   MnemicFieldJournalError,
+  mnemicFieldAddress,
   mnemicFieldCanonicalJson,
+  mnemicRecordRevision,
 } from '../src/exact-store.js'
 import { mockLogger } from './helpers.js'
 
@@ -50,7 +53,6 @@ describe('MnemicExactStore', () => {
       provenance: 'cassi-context-compaction',
       metadata: { sessionId: 'session-a', candidateIds: ['memory-a', 'memory-b'] },
     })
-    expect(store.latestCompactionCandidateIds('session-a')).toEqual(['memory-a', 'memory-b'])
     expect(store.getMany(['memory-b', 'memory-a', 'memory-b']).map(record => record.id))
       .toEqual(['memory-b', 'memory-a'])
     expect(store.delete('memory-a')).toBe(true)
@@ -118,6 +120,237 @@ describe('MnemicExactStore', () => {
     expect(db.prepare('SELECT COUNT(*) AS count FROM engram_rtree').get()).toEqual({ count: 0 })
     expect(store.fieldStreamStatus()).toMatchObject({ headSequence: 0, acknowledgedSequence: 0 })
     store.close()
+  })
+
+  it('tracks a collision-checked exact address manifest transactionally', () => {
+    const db = new Database(':memory:')
+    const store = new MnemicExactStore(mockLogger(), db)
+    const first = store.store({
+      id: 'memory-a',
+      content: 'alpha exact memory',
+      nodeType: 'fact',
+    })
+    const [initial] = store.fieldAddressManifest()
+    expect(initial).toMatchObject({
+      recordId: first.id,
+      fieldRecordId: first.id,
+      revision: createHash('sha256')
+        .update(first.id)
+        .update('\0')
+        .update(first.nodeType)
+        .update('\0')
+        .update(first.content)
+        .digest('hex'),
+      startByte: 0,
+      endByte: Buffer.byteLength(first.content),
+      semanticKind: first.nodeType,
+      contentSha256: createHash('sha256').update(first.content).digest('hex'),
+    })
+    expect(store.resolveFieldAddress(initial!.address)?.record.content)
+      .toBe('alpha exact memory')
+    const queryPlan = db.prepare(`
+      EXPLAIN QUERY PLAN
+      SELECT record_id FROM mnemic_field_address_manifest WHERE address = ?
+    `).all(initial!.address) as Array<{ detail: string }>
+    expect(queryPlan.some(row => row.detail.includes('SEARCH mnemic_field_address_manifest'))).toBe(true)
+
+    store.update(first.id, { content: 'alpha exact memory updated' })
+    const [updated] = store.fieldAddressManifest()
+    expect(updated!.address).not.toBe(initial!.address)
+    expect(store.resolveFieldAddress(initial!.address)).toBeNull()
+    expect(store.resolveFieldAddress(updated!.address)?.record.content)
+      .toBe('alpha exact memory updated')
+
+    store.delete(first.id)
+    expect(store.fieldAddressManifest()).toEqual([])
+    expect(store.resolveFieldAddress(updated!.address)).toBeNull()
+    store.close()
+  })
+
+  it('excludes current-session records before field address recall', () => {
+    const store = new MnemicExactStore(mockLogger(), ':memory:')
+    store.store({
+      id: 'current',
+      content: 'current session memory',
+      nodeType: 'fact',
+      metadata: { sessionId: 'session-a' },
+    })
+    store.store({
+      id: 'prior',
+      content: 'prior session memory',
+      nodeType: 'fact',
+      metadata: { sessionId: 'session-b' },
+    })
+    store.store({
+      id: 'unscoped',
+      content: 'unscoped memory',
+      nodeType: 'fact',
+    })
+
+    expect(
+      store.fieldAddressManifest({ excludeSessionId: 'session-a' })
+        .map(entry => entry.recordId)
+        .sort(),
+    ).toEqual(['prior', 'unscoped'])
+    expect(() => store.fieldAddressManifest({ excludeSessionId: '' }))
+      .toThrow('excludeSessionId must be a bounded opaque identifier')
+    expect(() => store.fieldAddressManifest({ excludeSessionId: 'x'.repeat(129) }))
+      .toThrow('excludeSessionId must be a bounded opaque identifier')
+    store.close()
+  })
+
+  it('announces legacy exact records to the field exactly once', () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'mnemic-address-migration-'))
+    const databasePath = path.join(directory, 'field.db')
+    let store: MnemicExactStore | null = null
+    let database: Database.Database | null = null
+    const durableCounts = (): { events: number; announcements: number; head: number } => {
+      const inspection = new Database(databasePath, { readonly: true })
+      try {
+        const events = inspection.prepare(`
+          SELECT COUNT(*) AS count FROM mnemic_field_events
+        `).get() as { count: number }
+        const announcements = inspection.prepare(`
+          SELECT COUNT(*) AS count FROM mnemic_field_address_announcements
+        `).get() as { count: number }
+        const stream = inspection.prepare(`
+          SELECT last_sequence FROM mnemic_field_stream WHERE singleton = 1
+        `).get() as { last_sequence: number }
+        return {
+          events: events.count,
+          announcements: announcements.count,
+          head: stream.last_sequence,
+        }
+      } finally {
+        inspection.close()
+      }
+    }
+    try {
+      database = new Database(databasePath)
+      initMnemicFieldSchema(database)
+      const record = {
+        id: 'legacy-memory',
+        content: 'legacy exact content',
+        nodeType: 'fact',
+      }
+      database.prepare(`
+        INSERT INTO engrams (id, content, node_type, created_at, metadata)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(
+        record.id,
+        record.content,
+        record.nodeType,
+        new Date(0).toISOString(),
+        JSON.stringify({ sessionId: 'legacy-session' }),
+      )
+      const streamId = 'legacy-field-stream'
+      const previousEventId = '0'.repeat(64)
+      const payload = {
+        kind: 'memory',
+        context_session_id: 'legacy-session',
+        operation: 'store',
+        record: {
+          id: record.id,
+          content: record.content,
+          node_type: record.nodeType,
+          revision: mnemicRecordRevision(record),
+        },
+      }
+      const eventId = createHash('sha256').update(mnemicFieldCanonicalJson({
+        stream_id: streamId,
+        sequence: 1,
+        previous_event_id: previousEventId,
+        payload,
+      })).digest('hex')
+      database.exec(`
+        CREATE TABLE mnemic_field_stream (
+          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+          stream_id TEXT NOT NULL UNIQUE,
+          last_sequence INTEGER NOT NULL,
+          head_event_id TEXT NOT NULL
+        );
+        CREATE TABLE mnemic_field_events (
+          stream_id TEXT NOT NULL,
+          sequence INTEGER NOT NULL,
+          previous_event_id TEXT NOT NULL,
+          event_id TEXT NOT NULL UNIQUE,
+          payload TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          acknowledged_at INTEGER,
+          PRIMARY KEY (stream_id, sequence)
+        );
+      `)
+      database.prepare(`
+        INSERT INTO mnemic_field_stream
+          (singleton, stream_id, last_sequence, head_event_id)
+        VALUES (1, ?, 1, ?)
+      `).run(streamId, eventId)
+      database.prepare(`
+        INSERT INTO mnemic_field_events
+          (stream_id, sequence, previous_event_id, event_id, payload, created_at)
+        VALUES (?, 1, ?, ?, ?, ?)
+      `).run(
+        streamId,
+        previousEventId,
+        eventId,
+        mnemicFieldCanonicalJson(payload),
+        Date.now(),
+      )
+      database.close()
+      database = null
+
+      store = new MnemicExactStore(mockLogger(), databasePath)
+      const address = store.fieldAddressManifest()[0]?.address
+      const migrated = store.fieldEventsAfter(0)
+      expect(migrated).toHaveLength(2)
+      expect(migrated[0]?.payload).toMatchObject({
+        kind: 'memory',
+        record: { id: record.id },
+      })
+      expect(
+        migrated[0]?.payload.kind === 'memory'
+          ? migrated[0].payload.record.field_address
+          : undefined,
+      ).toBeUndefined()
+      expect(migrated[1]?.payload).toMatchObject({
+        kind: 'memory',
+        operation: 'store',
+        record: {
+          id: record.id,
+          field_address: address,
+        },
+      })
+      store.close()
+      store = null
+      expect(durableCounts()).toEqual({ events: 2, announcements: 1, head: 2 })
+
+      store = new MnemicExactStore(mockLogger(), databasePath)
+      expect(store.fieldEventsAfter(0)).toHaveLength(2)
+      store.close()
+      store = null
+      expect(durableCounts()).toEqual({ events: 2, announcements: 1, head: 2 })
+
+      store = new MnemicExactStore(mockLogger(), databasePath)
+      expect(store.fieldEventsAfter(0)).toHaveLength(2)
+      store.close()
+      store = null
+      expect(durableCounts()).toEqual({ events: 2, announcements: 1, head: 2 })
+    } finally {
+      if (database?.open) database.close()
+      store?.close()
+      fs.rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+
+  it('matches the CassiFI condensation address codec', () => {
+    expect(mnemicFieldAddress({
+      recordId: 'memory-a',
+      revision: '1'.repeat(64),
+      startByte: 0,
+      endByte: 18,
+      semanticKind: 'fact',
+    })).toBe('c8c53e532f28b177acd4d477e0660fc0')
   })
 
   it('retains feedback eligibility across long delays and process restart', () => {

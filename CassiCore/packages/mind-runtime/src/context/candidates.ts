@@ -7,12 +7,12 @@
  *
  * Hard guarantees:
  * - Bounded + validated request fields (malformed → `ContextRequestError` 400).
- * - Mnemic lookup uses the adapter's strict, read-only FTS path. A provider-bound
- *   prompt is never persisted as retrieval telemetry or broadcast/activation state,
- *   and backend failures remain observable as source errors.
- * - Results are post-filtered to exclude the requesting session.
- * - Hard request-side deadline: the search races the deadline and FAILS OPEN —
- *   a timeout returns 200 with empty candidates + `sources[].status === 'timeout'`,
+ * - The exact store exposes only a bounded opaque address manifest. CassiFI's
+ *   Qi field selects one whole address or abstains; exact bytes are resolved
+ *   only after selection. There is no FTS relevance fallback.
+ * - Provider failures remain observable as source errors and return no memory.
+ * - Hard request-side deadline: recall races the deadline and FAILS OPEN — a
+ *   timeout returns 200 with empty candidates plus a timeout source status,
  *   never a 5xx and never a stalled request.
  * - Optional field shadow (`includeFieldShadow`): a CACHED, bounded summary of
  *   the 7599 readout (`mode:'shadow'`). It is advisory-only — it never alters
@@ -57,14 +57,10 @@ import type {
   ContextFieldFailureCode,
 } from '../channel/protocol.js'
 
-/** Exact, non-persisting memory reads used by the context service. */
+/** Exact address manifest and record resolution used by field-native recall. */
 export interface ContextMemorySurface {
-  searchReadOnly(
-    query: string,
-    opts?: { limit?: number; type?: string; sessionId?: string; deadlineMs?: number },
-  ): Promise<MemoryHitView[]>
-  getMany?(ids: readonly string[]): MemoryHitView[]
-  latestCompactionCandidateIds?(sessionId: string): string[]
+  fieldAddressManifest(excludeSessionId: string): readonly string[]
+  resolveFieldAddress(address: string): MemoryHitView | null
   rememberContextTurn?(
     sessionId: string,
     turnId: number,
@@ -88,17 +84,19 @@ export interface ContextFieldTelemetrySurface {
   status(): FieldTelemetryStatus
 }
 
-export interface ContextFieldRankResult {
-  ranked: readonly { id: string; score: number }[]
-  working: readonly ContextCandidate[]
+export interface ContextFieldRecallResult {
+  address: string | null
+  signal: number
+  selectionMargin: number
+  availability: number
 }
 
-export type ContextFieldRanker = (request: {
+export type ContextFieldRecaller = (request: {
   sessionId: string
   query: string
-  candidates: readonly ContextCandidate[]
+  addresses: readonly string[]
   deadlineMs: number
-}) => Promise<ContextFieldRankResult>
+}) => Promise<ContextFieldRecallResult>
 
 
 export interface ContextCounterflowFeatures {
@@ -131,7 +129,7 @@ export class ContextFieldClientError extends Error {
 
 export interface ContextFieldClientOptions extends ContextCounterflowFeatures {}
 export interface ContextFieldClient {
-  rank: ContextFieldRanker
+  recall: ContextFieldRecaller
   notify(): void
   flush(): Promise<void>
   close(): Promise<void>
@@ -140,7 +138,6 @@ export interface ContextFieldClient {
 
 const SHARED_CONTEXT_FIELD_SESSION = 'cassicore-context'
 const FIELD_QUERY_MAX_BYTES = 8 * 1_024
-const FIELD_CANDIDATE_MAX_BYTES = 16 * 1_024
 
 function truncateUtf8(value: string, maxBytes: number): string {
   let bytes = 0
@@ -668,14 +665,14 @@ export function createHttpContextFieldClient(
   let latencyLast: number | null = null
   let latencyMax: number | null = null
   let lastAbstention: { code: string; evidence: Record<string, unknown> } | null = null
-  const rankEndpoint = new URL('/v1/context/rank', baseUrl)
+  const recallEndpoint = new URL('/v1/context/recall', baseUrl)
   const observeEndpoint = new URL('/v1/context/observe', baseUrl)
   const statusEndpoint = new URL('/v1/context/status', baseUrl)
   const resetEndpoint = new URL('/v1/context/reset', baseUrl)
   const counterflowEndpoint = new URL('/v1/counterflow/plan', baseUrl)
   const counterflowCommitEndpoint = new URL('/v1/counterflow/commit', baseUrl)
   for (const endpoint of [
-    rankEndpoint,
+    recallEndpoint,
     observeEndpoint,
     statusEndpoint,
     resetEndpoint,
@@ -988,74 +985,42 @@ export function createHttpContextFieldClient(
     })
   }
 
-  const rankImpl: ContextFieldRanker = async request => {
+  const recallImpl: ContextFieldRecaller = async request => {
     await drain()
-    const body = await postJson(rankEndpoint, {
+    const addresses = [...new Set(request.addresses)]
+    const body = await postJson(recallEndpoint, {
       context_session_id: request.sessionId.slice(0, 256),
       query: truncateUtf8(request.query, FIELD_QUERY_MAX_BYTES),
-      candidates: request.candidates.map(candidate => {
-        const text = truncateUtf8(candidate.text, FIELD_CANDIDATE_MAX_BYTES)
-        const startByte = candidate.startByte ?? 0
-        return {
-          id: candidate.id,
-          record_id: candidate.recordId ?? candidate.id,
-          revision: candidate.revision,
-          start_byte: startByte,
-          end_byte: startByte + Buffer.byteLength(text),
-          text,
-        }
-      }),
+      addresses,
     }, request.deadlineMs)
+    const address = body.address
     if (
-      !('ranked' in body)
-      || !Array.isArray(body.ranked)
-      || !('working' in body)
-      || !Array.isArray(body.working)
-    ) throw new Error('field-context-ranker-invalid-response')
-    const ranked = body.ranked.map((item, index) => {
-      if (
-        !item
-        || typeof item !== 'object'
-        || !('id' in item)
-        || typeof item.id !== 'string'
-        || !('score' in item)
-        || typeof item.score !== 'number'
-        || !Number.isFinite(item.score)
-      ) throw new Error(`field-context-ranker-invalid-item-${index}`)
-      return { id: item.id, score: item.score }
-    })
-    const working = body.working.map((item, index): ContextCandidate => {
-      if (
-        !item
-        || typeof item !== 'object'
-        || Object.keys(item).sort().join(',') !== 'id,kind,revision,score,text'
-        || typeof item.id !== 'string'
-        || !isBoundedOpaque(item.id)
-        || typeof item.revision !== 'string'
-        || !/^[0-9a-f]{64}$/.test(item.revision)
-        || typeof item.text !== 'string'
-        || !item.text
-        || Buffer.byteLength(item.text) > FIELD_CANDIDATE_MAX_BYTES
-        || (item.kind !== 'goal' && item.kind !== 'artifact' && item.kind !== 'failure')
-        || typeof item.score !== 'number'
-        || !Number.isFinite(item.score)
-      ) throw new Error(`field-context-ranker-invalid-working-${index}`)
-      return {
-        id: item.id,
-        revision: item.revision,
-        source: 'field',
-        text: item.text,
-        score: item.score,
-        sourceRefs: [item.id],
-        workingKind: item.kind,
-      }
-    })
-    return { ranked, working }
+      address !== null
+      && (
+        typeof address !== 'string'
+        || !/^[0-9a-f]{32}$/.test(address)
+        || !addresses.includes(address)
+      )
+    ) throw new Error('field-context-recall-invalid-address')
+    if (
+      typeof body.signal !== 'number'
+      || !Number.isFinite(body.signal)
+      || typeof body.selection_margin !== 'number'
+      || !Number.isFinite(body.selection_margin)
+      || typeof body.availability !== 'number'
+      || !Number.isFinite(body.availability)
+    ) throw new Error('field-context-recall-invalid-response')
+    return {
+      address,
+      signal: body.signal,
+      selectionMargin: body.selection_margin,
+      availability: body.availability,
+    }
   }
 
-  const rank: ContextFieldRanker = async request => {
+  const recall: ContextFieldRecaller = async request => {
     try {
-      return await rankImpl(request)
+      return await recallImpl(request)
     } catch (error) {
       recordFailure(error)
       throw error
@@ -1111,7 +1076,7 @@ export function createHttpContextFieldClient(
   })
 
   return {
-    rank,
+    recall,
     notify,
     flush: drain,
     status,
@@ -1174,7 +1139,7 @@ interface ServiceDeps {
   bus: IEventBus
   logger: ILogger
   fieldTelemetry?: ContextFieldTelemetrySurface
-  fieldRanker?: ContextFieldRanker
+  fieldRecall?: ContextFieldRecaller
   counterflowStatus?: () => ContextCounterflowStatus
 }
 
@@ -1203,7 +1168,7 @@ export class RuntimeContextCandidateService {
   private readonly bus: IEventBus
   private readonly logger: ILogger
   private readonly fieldTelemetry: ContextFieldTelemetrySurface | undefined
-  private readonly fieldRanker: ContextFieldRanker | undefined
+  private readonly fieldRecall: ContextFieldRecaller | undefined
   private readonly counterflowStatus: (() => ContextCounterflowStatus) | undefined
   private readonly opts: ResolvedOptions
 
@@ -1217,7 +1182,7 @@ export class RuntimeContextCandidateService {
     this.bus = deps.bus
     this.logger = deps.logger
     this.fieldTelemetry = deps.fieldTelemetry
-    this.fieldRanker = deps.fieldRanker
+    this.fieldRecall = deps.fieldRecall
     this.counterflowStatus = deps.counterflowStatus
     this.opts = resolveOptions(opts)
   }
@@ -1232,81 +1197,68 @@ export class RuntimeContextCandidateService {
     const started = Date.now()
     const deadline = started + deadlineMs
 
-    // ── Mnemic source: exact compaction re-evocation + bounded FTS ─────────
+    // The exact store supplies only opaque addresses. The Qi field is the sole
+    // relevance authority and may either select one whole address or abstain.
     let candidates: ContextCandidate[] = []
-    let mnemic: ContextSourceStatus = { source: 'mnemic', status: 'ready', latencyMs: 0 }
-    try {
-      const compactedIds = this.memory.latestCompactionCandidateIds?.(sessionId) ?? []
-      if (compactedIds.length > 0 && this.memory.getMany) {
-        candidates = toCandidates(
-          this.memory.getMany(compactedIds),
-          sessionId,
-          this.opts.maxCandidates,
-          this.opts.maxCandidateChars,
-          query,
-          false,
-        )
-      }
-    } catch (err) {
-      this.logger.warn('compacted context re-evocation failed (non-fatal)', { error: String(err) })
-    }
-    try {
-      const raw = await withDeadline(
-        () => this.memory.searchReadOnly(query, {
-          limit: this.opts.maxCandidates * 2,
-          sessionId,
-          deadlineMs: Math.max(1, deadline - Date.now()),
-        }),
-        deadline,
-      )
-      candidates = mergeCandidates(
-        candidates,
-        toCandidates(raw, sessionId, this.opts.maxCandidates, this.opts.maxCandidateChars, query),
-        this.opts.maxCandidates,
-      )
-      mnemic = { source: 'mnemic', status: 'ready', latencyMs: Date.now() - started }
-    } catch (err) {
-      const timedOut = err instanceof DeadlineExceededError || (err instanceof Error && err.name === 'AbortError')
+    let mnemic: ContextSourceStatus
+    if (!this.fieldRecall) {
       mnemic = {
         source: 'mnemic',
-        status: timedOut ? 'timeout' : 'error',
-        latencyMs: Date.now() - started,
-        error: timedOut ? 'mnemic-deadline-exceeded' : 'mnemic-search-failed',
+        status: 'disabled',
+        latencyMs: 0,
+        error: 'field-native-recall-disabled',
       }
-    }
-
-    let fieldRankerStatus: ContextSourceStatus | null = null
-    if (this.fieldRanker) {
-      const rankStarted = Date.now()
+    } else {
       try {
+        const addresses = this.memory.fieldAddressManifest(sessionId)
         const fieldResult = await withDeadline(
-          () => this.fieldRanker!({
+          () => this.fieldRecall!({
             sessionId,
             query,
-            candidates,
+            addresses,
             deadlineMs: Math.max(1, deadline - Date.now()),
           }),
           deadline,
         )
-        const combined = [
-          ...applyFieldRanking(candidates, fieldResult.ranked),
-          ...fieldResult.working,
-        ].map((candidate, position) => ({ candidate, position }))
-          .sort((a, b) => b.candidate.score - a.candidate.score || a.position - b.position)
-          .map(item => item.candidate)
-        candidates = mergeCandidates(combined, [], this.opts.maxCandidates)
-        fieldRankerStatus = {
-          source: 'field',
+        if (fieldResult.address !== null) {
+          if (!addresses.includes(fieldResult.address)) {
+            throw new Error('field-selected-address-not-in-request-manifest')
+          }
+          const hit = this.memory.resolveFieldAddress(fieldResult.address)
+          if (!hit) throw new Error('field-selected-address-not-in-exact-manifest')
+          if (hit.metadata?.sessionId === sessionId) {
+            throw new Error('field-selected-address-is-not-session-eligible')
+          }
+          candidates = toCandidates(
+            [hit],
+            sessionId,
+            this.opts.maxCandidates,
+            this.opts.maxCandidateChars,
+            query,
+            true,
+          ).map(candidate => ({
+            ...candidate,
+            score: fieldResult.signal,
+          }))
+        }
+        mnemic = {
+          source: 'mnemic',
           status: 'ready',
-          latencyMs: Date.now() - rankStarted,
+          latencyMs: Date.now() - started,
         }
       } catch (err) {
-        const timedOut = err instanceof DeadlineExceededError || (err instanceof Error && err.name === 'TimeoutError')
-        fieldRankerStatus = {
-          source: 'field',
+        const timedOut = err instanceof DeadlineExceededError
+          || (err instanceof Error && (
+            err.name === 'AbortError'
+            || err.name === 'TimeoutError'
+          ))
+        mnemic = {
+          source: 'mnemic',
           status: timedOut ? 'timeout' : 'error',
-          latencyMs: Date.now() - rankStarted,
-          error: timedOut ? 'field-ranking-deadline-exceeded' : 'field-ranking-failed',
+          latencyMs: Date.now() - started,
+          error: timedOut
+            ? 'field-recall-deadline-exceeded'
+            : 'field-recall-failed',
         }
       }
     }
@@ -1316,20 +1268,19 @@ export class RuntimeContextCandidateService {
         sessionId,
         turnId,
         query,
-        candidates
-          .filter(candidate => candidate.source === 'mnemic')
-          .map(candidate => ({
-            id: candidate.id,
-            recordId: candidate.recordId ?? candidate.id,
-            startByte: candidate.startByte ?? 0,
-            endByte: candidate.endByte ?? Buffer.byteLength(candidate.text),
-            text: candidate.text,
-            revision: candidate.revision ?? createHash('sha256')
-              .update(candidate.id)
-              .update('\0')
-              .update(candidate.text)
-              .digest('hex'),
-          })),
+        candidates.map(candidate => ({
+          id: candidate.id,
+          recordId: candidate.recordId ?? candidate.id,
+          startByte: candidate.startByte ?? 0,
+          endByte: candidate.endByte ?? Buffer.byteLength(candidate.text),
+          text: candidate.text,
+          revision: candidate.revision ?? createHash('sha256')
+            .update(candidate.id)
+            .update('\0')
+            .update(candidate.text)
+            .digest('hex'),
+          fieldAddress: candidate.fieldAddress,
+        })),
       )
     } catch (err) {
       this.logger.warn('context feedback eligibility persistence failed (non-fatal)', { error: String(err) })
@@ -1349,8 +1300,7 @@ export class RuntimeContextCandidateService {
     }
 
     const sources: ContextSourceStatus[] = [mnemic]
-    if (fieldRankerStatus) sources.push(fieldRankerStatus)
-    else if (includeFieldShadow) sources.push(this.fieldShadowStatus())
+    if (includeFieldShadow) sources.push(this.fieldShadowStatus())
 
     this.logger.debug('[context] candidates', {
       sessionId,
@@ -1525,28 +1475,6 @@ export class RuntimeContextCandidateService {
   }
 }
 
-function applyFieldRanking(
-  candidates: ContextCandidate[],
-  ranked: readonly { id: string; score: number }[],
-): ContextCandidate[] {
-  const scores = new Map<string, number>()
-  for (const item of ranked) {
-    if (!Number.isFinite(item.score) || scores.has(item.id)) {
-      throw new Error('field-context-ranker-invalid-ranking')
-    }
-    scores.set(item.id, item.score)
-  }
-  if (scores.size !== candidates.length || candidates.some(candidate => !scores.has(candidate.id))) {
-    throw new Error('field-context-ranker-incomplete-ranking')
-  }
-  return candidates
-    .map((candidate, position) => ({
-      candidate: { ...candidate, score: scores.get(candidate.id)! },
-      position,
-    }))
-    .sort((a, b) => b.candidate.score - a.candidate.score || a.position - b.position)
-    .map(item => item.candidate)
-}
 
 // ── validation ────────────────────────────────────────────────────────────────
 
@@ -1763,6 +1691,7 @@ function toCandidates(
         revision,
         startByte: span.startByte,
         endByte: span.endByte,
+        fieldAddress: hit.fieldAddress,
         source: 'mnemic' as const,
         text: span.text,
         score: hit.score,
@@ -1788,21 +1717,6 @@ function toCandidates(
     if (!found) break
   }
   return out
-}
-function mergeCandidates(
-  first: readonly ContextCandidate[],
-  second: readonly ContextCandidate[],
-  limit: number,
-): ContextCandidate[] {
-  const merged: ContextCandidate[] = []
-  const seen = new Set<string>()
-  for (const candidate of [...first, ...second]) {
-    if (seen.has(candidate.id)) continue
-    seen.add(candidate.id)
-    merged.push(candidate)
-    if (merged.length >= limit) break
-  }
-  return merged
 }
 
 function safeOpaqueId(value: string): string {

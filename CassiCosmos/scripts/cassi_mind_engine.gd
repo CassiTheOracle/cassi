@@ -182,12 +182,12 @@ func _step_pde() -> void:
 	# the field 1-ULP nondeterministic — this is the determinism fix.
 	_fill_pc()
 	_pc[14] = 0.0  # pass A
-	_rd.compute_list_set_push_constant(cl, _pc.to_byte_array(), _pc.size() * 4)
+	var pc_bytes := _pc.to_byte_array()
+	_rd.compute_list_set_push_constant(cl, pc_bytes, pc_bytes.size())
 	_rd.compute_list_dispatch(cl, grid_n / 4, grid_n / 4, grid_n / 4)
 	_rd.compute_list_add_barrier(cl)
-	_fill_pc()
-	_pc[14] = 1.0  # pass B
-	_rd.compute_list_set_push_constant(cl, _pc.to_byte_array(), _pc.size() * 4)
+	pc_bytes.encode_float(14 * 4, 1.0)  # pass B
+	_rd.compute_list_set_push_constant(cl, pc_bytes, pc_bytes.size())
 	_rd.compute_list_dispatch(cl, grid_n / 4, grid_n / 4, grid_n / 4)
 	_rd.compute_list_end()
 	_rd.submit()
@@ -702,15 +702,18 @@ func _poll_bridge() -> void:
 			continue
 		var acc: PackedByteArray = _peer_buf[p]
 		acc.append_array(data[1])
+		var consumed := 0
 		while true:
-			var nl := acc.find(10)
+			var nl := acc.find(10, consumed)
 			if nl < 0:
 				break
-			var line := acc.slice(0, nl).get_string_from_utf8()
-			acc = acc.slice(nl + 1)
+			var line := acc.slice(consumed, nl).get_string_from_utf8()
+			consumed = nl + 1
 			var resp := _handle_line(line)
 			if resp != "":
 				p.put_data((resp + "\n").to_utf8_buffer())
+		if consumed > 0:
+			acc = acc.slice(consumed)
 		_peer_buf[p] = acc
 	for d in dead:
 		_peers.erase(d)

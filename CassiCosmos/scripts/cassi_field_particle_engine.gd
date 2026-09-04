@@ -524,8 +524,8 @@ func load_vacuum() -> bool:
 
 
 ## Apply a low-speed translational initialization without creating point state.
-## Second-order fields receive -v·grad(q); the carrier receives the standard
-## unit-dispersion phase exp(i v·x).
+## Second-order fields add -v·grad(q) to their existing motion; the carrier
+## receives the standard unit-dispersion phase exp(i v·x).
 func apply_boost(direction: Vector3, speed: float) -> bool:
 	if not _ready or speed < 0.0 or direction.length_squared() <= 0.0:
 		return false
@@ -533,8 +533,7 @@ func apply_boost(direction: Vector3, speed: float) -> bool:
 	var bytes := state_bytes()
 	var source := bytes.to_float32_array()
 	var boosted := source.duplicate()
-	var velocities := PackedFloat32Array()
-	velocities.resize(cells * VELOCITY_STRIDE)
+	var velocities := velocity_bytes().to_float32_array()
 	for z in range(grid_n):
 		for y in range(grid_n):
 			for x in range(grid_n):
@@ -559,7 +558,7 @@ func apply_boost(direction: Vector3, speed: float) -> bool:
 						+ unit.y * _derivative(source, x, y, z, component, 1)
 						+ unit.z * _derivative(source, x, y, z, component, 2)
 					)
-					velocities[cell * VELOCITY_STRIDE + velocity_component] = -speed * directional
+					velocities[cell * VELOCITY_STRIDE + velocity_component] += -speed * directional
 	return set_state(boosted.to_byte_array(), velocities.to_byte_array())
 
 

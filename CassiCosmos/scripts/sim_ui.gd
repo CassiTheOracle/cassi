@@ -228,6 +228,7 @@ const EXTRA_PARAMS: Array[Dictionary] = [
 	{"id": "particle_size",            "prop": "particle_size",            "caption": "Particle size:",    "token": "sep",     "min": 0.05,  "max": 2.0,    "step": 0.05,   "reinit": true,  "tooltip": "Rendered particle size (px). Changing it rebuilds the MultiMesh — reinit applies."},
 	{"id": "sim_speed",                "prop": "sim_speed",                "caption": "Sim speed ×:",      "token": "sep",     "min": 0.05,  "max": 10.0,   "step": 0.05,   "reinit": false, "tooltip": "Simulation time-rate multiplier (1.0 = real time). Live; changes the step accumulator rate."},
 	{"id": "physics_frame_budget",     "prop": "physics_frame_budget",     "caption": "Frame budget:",     "token": "sep",     "min": 0.0,   "max": 1.0,    "step": 0.05,   "reinit": false, "tooltip": "Fraction of measured frame time budgeted to physics steps per frame (0 = unlimited, default 0.6)."},
+	{"id": "presentation_particle_opacity", "prop": "presentation_particle_opacity", "caption": "Layer opacity:", "token": "mint", "min": 0.01, "max": 1.0, "step": 0.01, "reinit": false, "tooltip": "Upper bound for each presentation particle's additive contribution. It scales down automatically with particle count so deep stacks remain transmissive. Live, no reinit."},
 	# ── Physics / color numeric ──────────────────────────────────────────
 	{"id": "qi_condensation_threshold","prop": "qi_condensation_threshold","caption": "Condensation:",    "token": "mint",    "min": 0.001, "max": 10.0,   "step": 0.001,  "reinit": false, "tooltip": "Qi density above which BH nucleation triggers (the white point when the approach tracks the threshold)."},
 	{"id": "bh_acc_rate",              "prop": "bh_acc_rate",              "caption": "BH acc. rate:",     "token": "mint",    "min": 0.0,   "max": 1.0,    "step": 0.001,  "reinit": false, "tooltip": "Black-hole mass growth per step from the field (0.01 default). Live."},
@@ -961,9 +962,9 @@ func _on_presentation_director_mode_changed(next_mode: int, next_preset: int) ->
 const ROW_WIDTH: int = 132
 
 
-## Build the Visuals page: Color mapping (rainbow/source/fit + auto/save/
-## reset) and the Particle appearance grid of the four VFX toggles. The
-## large GradientLegend lives in the rail footer (not per-tab).
+## Build the Visuals page: Color mapping, particle presentation controls,
+## and the four compatibility VFX flags. The large GradientLegend lives in
+## the rail footer (not per-tab).
 func _build_visuals_page() -> void:
 	# ── Color mapping ───────────────────────────────────────────
 	var color_sec := _add_section(_visuals_page, "Color mapping", "LIVE")
@@ -1054,8 +1055,9 @@ func _build_visuals_page() -> void:
 	# visible here too so a collapsed section still telegraphs the band.
 	# (`_scale_label` is created in the footer; this is the readout text.)
 
-	# ── Particle appearance (four VFX flags; live, default-off) ─
+	# ── Particle appearance (presentation + VFX; live) ──────────
 	var vfx_sec := _add_section(_visuals_page, "Particle appearance", "LIVE")
+	vfx_sec.add_child(_ensure_param("presentation_particle_opacity"))
 	var vfx_grid := GridContainer.new()
 	vfx_grid.columns = 2
 	vfx_grid.add_theme_constant_override("h_separation", 10)

@@ -14,10 +14,10 @@ extends Node
 ## −20 ≠ 0) so G-S4's momentum tolerance is meaningful; the merge physics
 ## (v_rel, internal L, binding) is unchanged.
 ##
-## Checked BEFORE merge: L = m0·p0×v0 + m1·p1×v1 = (0,0,−16) about the origin
-## (the merged body's spin carries the whole pair-internal −16z; the COM now
-## moves, so total L about the origin is the sum of internal spin plus the
-## orbital term of the moving COM — still exactly conserved).
+## Checked BEFORE merge: the origin-frame total is
+## L₀,z = 10·5·3 + 10·5.4·(−5) = −120. The moving COM carries orbital
+## L_COM,z = 5.2·(−20) = −104, while the merged body's spin carries the
+## pair-internal −16; their sum remains exactly −120.
 ##
 ## Gates:
 ##   G-S1  pair merges (alive loss == 1)
@@ -148,12 +148,14 @@ func _make_buffers() -> void:
 		_u_storage(12, _ch_buf), _u_storage(13, _cl_buf),
 		_u_storage(14, _mc_buf), _u_storage(15, _spin_buf),
 		_u_storage(16, _fvel_buf), _u_storage(17, _mprev_buf),
-		# Boxless site-read set (merge_boxless_prereg.md §4) — all 7 bindings
-		# present for set validation; unindexed when the boxless flag is off.
+		# Boxless site/query set (bindings 18-29). Dummies satisfy descriptor
+		# validation; the boxless flag is off in this verifier.
 		_u_storage(18, _site_dummy_buf), _u_storage(19, _site_dummy_buf),
 		_u_storage(20, _site_dummy_buf), _u_storage(21, _site_dummy_buf),
 		_u_storage(22, _site_dummy_buf), _u_storage(23, _site_dummy_buf),
-		_u_storage(24, _site_dummy_buf),
+		_u_storage(24, _site_dummy_buf), _u_storage(25, _site_dummy_buf),
+		_u_storage(26, _site_dummy_buf), _u_storage(27, _site_dummy_buf),
+		_u_storage(28, _site_dummy_buf), _u_storage(29, _site_dummy_buf),
 	], _shader, 0)
 
 
@@ -296,7 +298,7 @@ func _check_gates(merges: int) -> void:
 	# the spin target, so compare against the analytic constant of the test
 	# data: L_int = μ·d×v_rel (a conserved internal quantity, independent of
 	# the COM translation added for G-S4). μ = m0·m1/(m0+m1) = 5,
-	# d = p0−p1, v_rel = v0−v1 → L_int = 5·(−0.4,0,0)×(0,10,0) = (0,0,−20).
+	# d = p0−p1, v_rel = v0−v1 → L_int = 5·(−0.4,0,0)×(0,8,0) = (0,0,−16).
 	var mu: float = _input_mass[0] * _input_mass[1] / (_input_mass[0] + _input_mass[1])
 	var pv0 := Vector3(_input_pos[0], _input_pos[1], _input_pos[2])
 	var pv1 := Vector3(_input_pos[4], _input_pos[5], _input_pos[6])

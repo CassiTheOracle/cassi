@@ -6,25 +6,80 @@ class_name CassiMergeCommon
 ## drifted once (the per-cycle cc-zero, F1); centralising them so the two
 ## twins cannot diverge again.
 ##
-## Two helpers:
-##   hash_geometry(extents, r_m)  — the spatial-hash sizing math (must stay
-##     fp-identical to the old _setup_buffers inline code).
-##   merge_pc_values(dict)        — the 26-float merge push constant (the
-##     shader PC block ends at n_sites@25 — 104 B, NOT 26 floats).
+## Shared surfaces:
+##   next_pair_phase(phase, count) — large-cloud cursor over every possible
+##     cell entry, paired with pair_phase_pc().
+##   merge_batch_result(counts, first, count) — summed count + final slot for
+##     a submitted batch, including batches after the first four cycles.
+##   hash_geometry(extents, r_m)   — bounded anisotropic spatial-hash sizing.
+##   merge_pc_values(dict)         — the 26-float merge push constant (the
+##     shader PC block ends at n_sites@25 — 104 B).
 ##
 ## pass_mode@15 and cyc_slot@23 are left as 0.0 here; each caller fills them
 ## per dispatch (they vary every dispatch).
 
+## Large-N pass_best visits one bounded source shard and one neighbor-cell
+## entry per cadence. The host keeps a 64-bit linear cursor, but sends its
+## (source shard, cell) lane in pass_mode's fractional bits and its entry
+## round in cyc_slot. Since a cell cannot contain more than N particles, this
+## exhausts the actual occupancy for every cloud supported by the shader's
+## existing float N/index ABI (N < 2^24), rather than imposing the old
+## 64-entry cap. Five hundred twelve source shards bound site-coherence and
+## contended hop work to ceil(N/512) active sources per pass while every
+## particle still receives or forwards only under the same sink invariant.
+const FULL_PAIR_SCAN_PARTICLE_LIMIT := 64
+const PAIR_NEIGHBOR_CELLS := 27
+const PAIR_SOURCE_SHARDS := 512
+const PAIR_PHASE_LANES := PAIR_NEIGHBOR_CELLS * PAIR_SOURCE_SHARDS
+const PAIR_LANE_DENOMINATOR := 16384.0
+const FLOAT_EXACT_INDEX_LIMIT := 1 << 24
 
-## Merge spatial-hash geometry from the box half-extents and the merge radius
-## R_m (= ½·h₀, the shortest-axis cube-equivalent cell). Reproduces the
-## `_setup_buffers` formulas EXACTLY (fp-identical): per axis
-## nx = max(⌊2·extent_i/R_m⌋, 8), cell_w = 2·extent_i/nx.
+
+static func next_pair_phase(phase: int, particle_count: int) -> int:
+	var phase_count: int = PAIR_PHASE_LANES * maxi(particle_count, 1)
+	return (phase + 1) % phase_count
+
+
+static func pair_phase_pc(phase: int) -> Vector2:
+	var lane := phase % PAIR_PHASE_LANES
+	var entry_round := phase / PAIR_PHASE_LANES
+	return Vector2(4.0 + float(lane) / PAIR_LANE_DENOMINATOR, float(entry_round))
+
+## Return (sum, final-slot count) for one submitted merge-cycle batch.
+## Keeping the offset in this shared helper prevents the two drivers from
+## accidentally rereading slots 0..count after the first batch.
+static func merge_batch_result(
+		counts: PackedInt32Array, first: int, count: int) -> Vector2i:
+	var merged := 0
+	var end := first + count
+	for slot in range(first, end):
+		merged += counts[slot]
+	return Vector2i(merged, counts[end - 1])
+
+
+## Merge spatial-hash geometry from the box half-extents and merge radius
+## R_m (= ½·h₀). Raw per-axis dimensions make cell widths >= R_m, which is
+## the exact 27-neighbor coverage condition. An anisotropic box used to
+## multiply the dense count/scan allocation by its aspect volume (8.88 M
+## cells at the default φ:1:φ² box). Uniformly coarsen those dimensions to
+## at most the shortest-axis cube: this keeps physical hash cells isotropic,
+## preserves cell_w >= R_m and periodic 27-neighbor coverage, and bounds the
+## dense scan independently of box aspect. Large-N pass_best time-slices the
+## full cell occupancy, so coarser cells do not introduce a 64-entry omission.
+## Cubic boxes are unchanged, including the existing verifier geometry.
 ## Returns { nx, ny, nz, total, cell_wx, cell_wy, cell_wz }.
 static func hash_geometry(extents: Vector3, r_m: float) -> Dictionary:
 	var nx := maxi(int(floor(2.0 * extents.x / r_m)), 8)
 	var ny := maxi(int(floor(2.0 * extents.y / r_m)), 8)
 	var nz := maxi(int(floor(2.0 * extents.z / r_m)), 8)
+	var raw_total: int = nx * ny * nz
+	var shortest_n := mini(nx, mini(ny, nz))
+	var target_total: int = shortest_n * shortest_n * shortest_n
+	if raw_total > target_total:
+		var scale := pow(float(raw_total) / float(target_total), 1.0 / 3.0)
+		nx = maxi(int(floor(float(nx) / scale)), 8)
+		ny = maxi(int(floor(float(ny) / scale)), 8)
+		nz = maxi(int(floor(float(nz) / scale)), 8)
 	var total: int = nx * ny * nz
 	return {
 		"nx": nx, "ny": ny, "nz": nz, "total": total,

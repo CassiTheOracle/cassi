@@ -380,6 +380,16 @@ float tri_phase(vec3 wp) {
 bool boxless_active(void) { return flag.y > 0.5; }
 
 bool open_world_active(void) { return flag.z > 0.5; }
+// Rendering-only support for site-field colour. The finite site window is an
+// axis-aligned compute tile, but exposing its hard faces through the colour
+// fallback paints a box across round particle clouds. Use a broad ellipsoidal
+// feather in the window-relative coordinate frame; callers blend to a
+// particle-local mass colour instead of mapping "no site" to the q=0 endpoint.
+float field_color_support(vec3 wp) {
+    if (!boxless_active() || !open_world_active()) return 1.0;
+    vec3 ext = max(vec3(pc.extent_x, pc.extent_y, pc.extent_z), vec3(1e-4));
+    return 1.0 - smoothstep(0.65, 1.0, length(wp / ext));
+}
 // Returns the site index of the nearest shortlisted site; -1 if the shortlist
 // is empty. (GLSL has no int -1 from a 0-min scan failure — use a flag.)
 // BOXLESS HASH (boxless_site_hash_prereg.md): a growing-Chebyshev-ring query
@@ -397,14 +407,15 @@ int nearest_shortlist_site(vec3 wp, out bool found) {
             vec3(1e-4));
     uint n = cnt;
     if (n == 0u) return 0;
-    // Escaped particles keep their world position, but have no site field
-    // value in the open-window policy. Return immediately instead of
-    // clamping to the edge cell, which made a visible shell and charged
-    // every escaped particle with boundary-site lookup work.
+    // In open-world mode the finite site tile is a computational window, not
+    // a periodic domain. Escaped particles deliberately have no site field
+    // value; they keep the deterministic fallback (0.0 at callers). Returning
+    // immediately avoids clamping every out-of-domain particle onto edge
+    // cells, which made a visible shell boundary and charged every escaped
+    // particle with a boundary-site lookup.
     if (open_world_active()
-            && (any(lessThan(wp, -ext)) || any(greaterThanEqual(wp, ext)))) {
+            && (any(lessThan(wp, -ext)) || any(greaterThan(wp, ext))))
         return 0;
-    }
     vec3 tile_wp = wp + ext;
     int H = max(int(round(2.0 * pc.extent_x / max(cfg.w, 1e-9))), 1);
     vec3 cs = 2.0 * ext / max(float(H), 1.0);
@@ -569,6 +580,8 @@ void main() {
     }
     int bmode = cm_base();
     int flags = cm_flags();
+    float field_support = (bmode >= 2 && bmode <= 5)
+            ? field_color_support(p.xyz) : 1.0;
 
     // Legacy compatibility scenes fold escaped particles into their
     // periodic tile. The site-native path is open-world: preserve the actual
@@ -623,17 +636,23 @@ void main() {
         // so the Auto-Track band and the finite hi-handle can never run away
         // behind a growing concentration front. Sampled trilinearly at the
         // particle (EY/EI bindings 4/5) — same convention as tri_rho/tri_q.
-        x_axis = clamp(tri_coherence(pos[i].xyz), 0.0, 1.0);
+        // Outside the rounded visual support, the final branch uses a
+        // particle-local mass fallback and avoids an unnecessary site query.
+        x_axis = field_support > 0.0
+                ? clamp(tri_coherence(pos[i].xyz), 0.0, 1.0) : 0.0;
     }
     if (flag.x > 0.5) {
         // LUT mode: no per-instance color math — bake the band position
         // plus the shared VFX factors (0/1 when the flags are off).
         float u;
+        float mass_u = clamp((log2(m) + 2.0) * 0.25, 0.0, 1.0);
         if (bmode == 0) {
             // legacy mass-temperature ramp key (the LUT bakes the same curve)
-            u = clamp((log2(m) + 2.0) * 0.25, 0.0, 1.0);
+            u = mass_u;
         } else {
             u = band_u(x_axis);
+            if (bmode >= 2 && bmode <= 3)
+                u = mix(mass_u, u, field_support);
         }
         float glow_boost = 0.0;   // F_GL off → no glow (material mixes 0)
         float depth_fade = 1.0;   // F_DP off → no depth fade (material × 1)
@@ -672,8 +691,9 @@ void main() {
             // = bounded q_coh so coherent regions are bright and the void
             // dims toward the dark field. No band calibration required —
             // phase wraps by construction.
-            float q = clamp(tri_coherence(pos[i].xyz), 0.0, 1.0);
-            float ph = tri_phase(pos[i].xyz);
+            float q = field_support > 0.0
+                    ? clamp(tri_coherence(pos[i].xyz), 0.0, 1.0) : 0.0;
+            float ph = field_support > 0.0 ? tri_phase(pos[i].xyz) : 0.0;
             float h5 = mod(ph + pc.hue_offset, 1.0);   // phase → hue (rotate start)
             float l5 = 0.08 + 0.85 * q;                // q → lightness (void dims)
             color = vec4(hsl2rgb(vec3(h5, 1.0, l5)), 1.0);
@@ -720,7 +740,8 @@ void main() {
             // on) still dominates near the white point — the two-axis lift rides
             // under it so a condensation glow is never dimmed by a low ρ cell.
             if (bmode == 4) {
-                float rho = rho_norm(tri_rho(pos[i].xyz));   // TRUE ρ = EY+EI
+                float rho = field_support > 0.0
+                        ? rho_norm(tri_rho(pos[i].xyz)) : 0.0;   // TRUE ρ = EY+EI
                 float l2 = clamp(l + RHO_GAIN * (rho - 0.5), 0.0, 1.0);
                 l = mix(l, l2, 1.0 - inA);
             }
@@ -733,6 +754,18 @@ void main() {
             float cg = mix(0.25, 0.6,  log_m);
             float cb = mix(1.0,  0.15, log_m);
             color = vec4(cr, cg, cb, 1.0);
+        }
+        // Site-field modes have no physical sample beyond the finite open
+        // window. Blend through a broad rounded support to the existing
+        // particle-local mass temperature; never expose the rectangular tile
+        // by painting every escaped particle with the q=0 endpoint colour.
+        if (bmode >= 2 && bmode <= 5 && field_support < 1.0) {
+            float fallback_m = clamp((log2(m) + 2.0) * 0.25, 0.0, 1.0);
+            vec3 fallback_rgb = vec3(
+                    mix(0.15, 1.0, fallback_m * fallback_m),
+                    mix(0.25, 0.6, fallback_m),
+                    mix(1.0, 0.15, fallback_m));
+            color.rgb = mix(fallback_rgb, color.rgb, field_support);
         }
         // Additive-glow (flag 0x20): bright-core additive treatment over ANY
         // base color mode — q near the white point (bright core) → lightness

@@ -25,8 +25,9 @@ const float GLOW_A_MAX = 1.0;    // same as cassi_instancer.glsl
 varying vec3 v_lut_vfx;   // (u, glow_boost, depth_fade) — INSTANCE_CUSTOM is vertex-only
 
 void vertex() {
-	vec3 cr = normalize(vec3(VIEW_MATRIX[0][0], VIEW_MATRIX[1][0], VIEW_MATRIX[2][0]));
-	vec3 cu = normalize(vec3(VIEW_MATRIX[0][1], VIEW_MATRIX[1][1], VIEW_MATRIX[2][1]));
+	// VIEW_MATRIX is orthonormal; avoid two normalizations for every quad vertex.
+	vec3 cr = vec3(VIEW_MATRIX[0][0], VIEW_MATRIX[1][0], VIEW_MATRIX[2][0]);
+	vec3 cu = vec3(VIEW_MATRIX[0][1], VIEW_MATRIX[1][1], VIEW_MATRIX[2][1]);
 	vec3 v = cr * VERTEX.x * size + cu * VERTEX.y * size;
 	VERTEX = v;
 	v_lut_vfx = vec3(INSTANCE_CUSTOM.x, INSTANCE_CUSTOM.y, INSTANCE_CUSTOM.z);

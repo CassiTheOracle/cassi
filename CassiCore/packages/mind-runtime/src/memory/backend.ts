@@ -71,6 +71,7 @@ export interface MemoryHitView {
   score: number
   nodeType?: string | null
   metadata?: Record<string, unknown>
+  fieldAddress?: string
 }
 
 /** Runtime memory surface over exact SQLite records; adaptive ranking lives in CassiFI. */
@@ -171,6 +172,25 @@ export class MnemicMemoryAdapter {
     }))
   }
 
+  fieldAddressManifest(excludeSessionId: string): string[] {
+    return this.field.fieldAddressManifest({ excludeSessionId }).map(entry => entry.address)
+  }
+
+  resolveFieldAddress(address: string): MemoryHitView | null {
+    const resolved = this.field.resolveFieldAddress(address)
+    if (!resolved) return null
+    const engram = resolved.record
+    return {
+      id: safeOpaqueId(engram.id),
+      revision: resolved.revision,
+      content: engram.content,
+      score: 0,
+      nodeType: engram.nodeType,
+      metadata: sessionMetadata(engram.metadata),
+      fieldAddress: resolved.address,
+    }
+  }
+
   rememberContextTurn(
     sessionId: string,
     turnId: number,
@@ -198,9 +218,6 @@ export class MnemicMemoryAdapter {
     this.field.finishActionEpisode(input)
   }
 
-  latestCompactionCandidateIds(sessionId: string): string[] {
-    return this.field.latestCompactionCandidateIds(sessionId)
-  }
   private async searchTextViews(query: string, limit: number, deadlineMs = 300): Promise<MemoryHitView[]> {
     const ftsQuery = literalFtsQuery(query)
     if (!ftsQuery) return []

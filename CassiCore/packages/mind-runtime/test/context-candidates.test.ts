@@ -16,7 +16,7 @@ import {
   ContextRequestError,
   RuntimeContextCandidateService,
   type ContextFieldTelemetrySurface,
-  type ContextFieldRanker,
+  type ContextFieldRecaller,
   type ContextMemorySurface,
   type RuntimeContextCandidateServiceOptions,
 } from '../src/context/candidates.js'
@@ -48,16 +48,26 @@ function feedback(overrides: Partial<ContextFeedbackRequest> = {}): ContextFeedb
   }
 }
 
-/** Fake exact memory surface with durable-turn semantics for service tests. */
+/** Fake exact manifest plus field recall with durable-turn semantics. */
+type TestMemory = ContextMemorySurface & { fieldRecall: ContextFieldRecaller }
+
 function makeMemory(
-  impl: (query: string, opts?: { limit?: number; type?: string; sessionId?: string; deadlineMs?: number }) => Promise<MemoryHitView[]>,
+  impl: (query: string, opts?: { limit?: number; sessionId?: string; deadlineMs?: number }) => Promise<MemoryHitView[]>,
 ): {
-  memory: ContextMemorySurface
+  memory: TestMemory
+  addresses: string[]
   calls: Array<{ query: string; limit?: number; sessionId?: string }>
   feedbackEvents: Array<Record<string, unknown>>
+  manifestSessions: string[]
 } {
+  const addresses = Array.from(
+    { length: 32 },
+    (_, index) => (index + 1).toString(16).padStart(32, '0'),
+  )
   const calls: Array<{ query: string; limit?: number; sessionId?: string }> = []
   const feedbackEvents: Array<Record<string, unknown>> = []
+  const manifestSessions: string[] = []
+  const resolved = new Map<string, MemoryHitView>()
   const eligibility = new Map<string, {
     query: string
     candidates: ReadonlyArray<{
@@ -67,35 +77,62 @@ function makeMemory(
       endByte: number
       text: string
       revision: string
+      fieldAddress?: string
     }>
   }>()
-  return {
-    memory: {
-      searchReadOnly: async (query, opts) => {
-        calls.push({ query, limit: opts?.limit, sessionId: opts?.sessionId })
-        return impl(query, opts)
-      },
-      rememberContextTurn: (sessionId, turnId, query, candidates) => {
-        eligibility.set(`${sessionId}\0${turnId}`, { query, candidates })
-      },
-      consumeContextFeedback: (sessionId, turnId, includedCandidateIds, outcome, toolResult) => {
-        const key = `${sessionId}\0${turnId}`
-        const remembered = eligibility.get(key)
-        eligibility.delete(key)
-        if (!remembered) return
-        const included = new Set(includedCandidateIds)
-        feedbackEvents.push({
-          sessionId,
-          query: remembered.query,
-          candidates: remembered.candidates.filter(candidate => included.has(candidate.id)),
-          outcome,
-          ...(toolResult ? { toolResult } : {}),
-        })
-      },
+  const memory: TestMemory = {
+    fieldAddressManifest: sessionId => {
+      manifestSessions.push(sessionId)
+      return addresses
     },
-    calls,
-    feedbackEvents,
+    resolveFieldAddress: address => resolved.get(address) ?? null,
+    fieldRecall: async request => {
+      calls.push({
+        query: request.query,
+        limit: request.addresses.length,
+        sessionId: request.sessionId,
+      })
+      const hits = await impl(request.query, {
+        limit: request.addresses.length,
+        sessionId: request.sessionId,
+        deadlineMs: request.deadlineMs,
+      })
+      resolved.clear()
+      let selected: MemoryHitView | null = null
+      for (const [index, value] of hits.entries()) {
+        const address = addresses[index]!
+        const recalled = { ...value, fieldAddress: address }
+        resolved.set(address, recalled)
+        if (!selected && value.metadata?.sessionId !== request.sessionId) {
+          selected = recalled
+        }
+      }
+      return {
+        address: selected?.fieldAddress ?? null,
+        signal: selected?.score ?? 0,
+        selectionMargin: selected ? 1 : 0,
+        availability: selected ? 1 : 0,
+      }
+    },
+    rememberContextTurn: (sessionId, turnId, query, candidates) => {
+      eligibility.set(`${sessionId}\0${turnId}`, { query, candidates })
+    },
+    consumeContextFeedback: (sessionId, turnId, includedCandidateIds, outcome, toolResult) => {
+      const key = `${sessionId}\0${turnId}`
+      const remembered = eligibility.get(key)
+      eligibility.delete(key)
+      if (!remembered) return
+      const included = new Set(includedCandidateIds)
+      feedbackEvents.push({
+        sessionId,
+        query: remembered.query,
+        candidates: remembered.candidates.filter(candidate => included.has(candidate.id)),
+        outcome,
+        ...(toolResult ? { toolResult } : {}),
+      })
+    },
   }
+  return { memory, addresses, calls, feedbackEvents, manifestSessions }
 }
 
 /** Fake 7599 client surface; counts reads, optional delay, configurable result. */
@@ -141,12 +178,18 @@ function makeService(
   opts: RuntimeContextCandidateServiceOptions = {},
   telemetry?: ContextFieldTelemetrySurface,
   bus?: IEventBus,
-  fieldRanker?: ContextFieldRanker,
+  fieldRecall?: ContextFieldRecaller,
 ): RuntimeContextCandidateService {
   const events: unknown[] = []
   const fakeBus = bus ?? ({ emit: async (e: never) => { events.push(e) } } as unknown as IEventBus)
   return new RuntimeContextCandidateService(
-    { memory, bus: fakeBus, logger: quietLogger, fieldTelemetry: telemetry, fieldRanker },
+    {
+      memory,
+      bus: fakeBus,
+      logger: quietLogger,
+      fieldTelemetry: telemetry,
+      fieldRecall: fieldRecall ?? (memory as Partial<TestMemory>).fieldRecall,
+    },
     opts,
   )
 }
@@ -185,24 +228,26 @@ describe('MnemicMemoryAdapter — read-only candidate lookup', () => {
 })
 
 describe('RuntimeContextCandidateService — Mnemic candidates', () => {
-  it('maps hits to typed candidates and applies same-session filtering', async () => {
-    const { memory } = makeMemory(async () => [
+  it('returns the whole exact record selected by field address', async () => {
+    const { memory, manifestSessions } = makeMemory(async () => [
       hit('a', 'alpha', 0.9, 'sess-1'),
       hit('b', 'beta', 0.8, 'sess-2'),
       hit('c', 'gamma', 0.7),
-      hit('d', 'delta', 0.6, 'sess-1'),
     ])
     const svc = makeService(memory)
 
     const res = await svc.candidates(req({ limit: 3 }))
-    expect(res.candidates.map(c => c.id)).toEqual(['b', 'c'])
-    expect(res.candidates.every(c => c.source === 'mnemic')).toBe(true)
-    expect(res.candidates.find(c => c.id === 'b')?.text).toBe('beta')
-    expect(res.candidates.find(c => c.id === 'b')?.score).toBe(0.8)
-    expect(res.candidates.find(c => c.id === 'b')?.sourceRefs).toEqual(['b'])
+    expect(res.candidates.map(candidate => candidate.id)).toEqual(['b'])
+    expect(manifestSessions).toEqual(['sess-1'])
+    expect(res.candidates[0]).toMatchObject({
+      source: 'mnemic',
+      text: 'beta',
+      score: 0.8,
+      sourceRefs: ['b'],
+      fieldAddress: expect.stringMatching(/^[0-9a-f]{32}$/),
+    })
     expect(res.sources).toHaveLength(1)
     expect(res.sources[0]).toMatchObject({ source: 'mnemic', status: 'ready' })
-    expect(typeof res.sources[0].latencyMs).toBe('number')
   })
 
   it('caps candidate count and returns bounded exact spans', async () => {
@@ -266,13 +311,13 @@ describe('RuntimeContextCandidateService — Mnemic candidates', () => {
     expect(res.sources[0]).toMatchObject({
       source: 'mnemic',
       status: 'timeout',
-      error: 'mnemic-deadline-exceeded',
+      error: 'field-recall-deadline-exceeded',
     })
     expect(typeof res.sources[0].latencyMs).toBe('number')
   })
 
   it('reports a strict Mnemic backend failure instead of labelling it ready', async () => {
-    const { memory } = makeMemory(async () => { throw new Error('fts unavailable with PRIVATE_QUERY') })
+    const { memory } = makeMemory(async () => { throw new Error('field unavailable with PRIVATE_QUERY') })
     const svc = makeService(memory)
 
     const res = await svc.candidates(req())
@@ -280,7 +325,7 @@ describe('RuntimeContextCandidateService — Mnemic candidates', () => {
     expect(res.sources[0]).toMatchObject({
       source: 'mnemic',
       status: 'error',
-      error: 'mnemic-search-failed',
+      error: 'field-recall-failed',
     })
     expect(JSON.stringify(res.sources)).not.toContain('PRIVATE_QUERY')
   })
@@ -323,97 +368,100 @@ describe('RuntimeContextCandidateService — Mnemic candidates', () => {
   })
 })
 
-describe('RuntimeContextCandidateService — field ranking', () => {
-  it('lets the live field reorder Mnemic candidates without adding ranking state', async () => {
-    const { memory } = makeMemory(async () => [
-      hit('fts-first', 'lexically first', 0.9, 'prior-session'),
-      hit('field-first', 'field continuation', 0.5, 'prior-session'),
+describe('RuntimeContextCandidateService — field-native recall', () => {
+  it('resolves only the opaque address selected by the field', async () => {
+    const { memory, addresses } = makeMemory(async () => [
+      hit('first', 'first exact record', 0.9, 'prior-session'),
+      hit('selected', 'field-selected record', 0.5, 'prior-session'),
     ])
-    const fieldRanker = vi.fn<ContextFieldRanker>(async request => {
-      expect(request.sessionId).toBe('sess-1')
+    const fieldRecall = vi.fn<ContextFieldRecaller>(async request => {
       expect(request.query).toBe('golden thought')
-      expect(request.candidates.map(candidate => candidate.id)).toEqual(['fts-first', 'field-first'])
-      return {
-        ranked: [
-          { id: 'field-first', score: 0.95 },
-          { id: 'fts-first', score: 0.1 },
-        ],
-        working: [],
-      }
+      expect(request.addresses).toEqual(addresses)
+      const selected = await memory.fieldRecall(request)
+      return { ...selected, address: addresses[1]!, signal: 0.95 }
     })
-    const svc = makeService(memory, {}, undefined, undefined, fieldRanker)
+    const svc = makeService(memory, {}, undefined, undefined, fieldRecall)
 
     const response = await svc.candidates(req())
 
-    expect(response.candidates.map(candidate => candidate.id)).toEqual(['field-first', 'fts-first'])
-    expect(response.candidates.map(candidate => candidate.score)).toEqual([0.95, 0.1])
-    expect(response.sources[1]).toMatchObject({ source: 'field', status: 'ready' })
-    expect(fieldRanker).toHaveBeenCalledOnce()
+    expect(response.candidates.map(candidate => candidate.id)).toEqual(['selected'])
+    expect(response.candidates[0]?.score).toBe(0.95)
+    expect(response.sources).toEqual([
+      expect.objectContaining({ source: 'mnemic', status: 'ready' }),
+    ])
+    expect(fieldRecall).toHaveBeenCalledOnce()
+  })
+
+  it('rejects a field address omitted from the exact request manifest', async () => {
+    const eligible = '1'.repeat(32)
+    const omitted = '2'.repeat(32)
+    const resolveFieldAddress = vi.fn(() => hit('omitted', 'must not resolve', 1, 'prior-session'))
+    const memory: ContextMemorySurface = {
+      fieldAddressManifest: sessionId => {
+        expect(sessionId).toBe('sess-1')
+        return [eligible]
+      },
+      resolveFieldAddress,
+    }
+    const fieldRecall = vi.fn<ContextFieldRecaller>(async request => {
+      expect(request.addresses).toEqual([eligible])
+      return { address: omitted, signal: 1, selectionMargin: 1, availability: 1 }
+    })
+    const svc = makeService(memory, {}, undefined, undefined, fieldRecall)
+
+    const response = await svc.candidates(req())
+
+    expect(response.candidates).toEqual([])
+    expect(response.sources[0]).toMatchObject({ source: 'mnemic', status: 'error' })
+    expect(resolveFieldAddress).not.toHaveBeenCalled()
+  })
+
+  it('rejects a selected address whose exact record becomes current-session ineligible', async () => {
+    const eligible = '1'.repeat(32)
+    const memory: ContextMemorySurface = {
+      fieldAddressManifest: () => [eligible],
+      resolveFieldAddress: () => hit('current', 'current-session record', 1, 'sess-1'),
+    }
+    const fieldRecall = vi.fn<ContextFieldRecaller>(async () => ({
+      address: eligible,
+      signal: 1,
+      selectionMargin: 1,
+      availability: 1,
+    }))
+    const svc = makeService(memory, {}, undefined, undefined, fieldRecall)
+
+    const response = await svc.candidates(req())
+
+    expect(response.candidates).toEqual([])
+    expect(response.sources[0]).toMatchObject({ source: 'mnemic', status: 'error' })
   })
 
   it.each([
     {
       name: 'provider failure',
-      ranker: (async () => { throw new Error('provider unavailable') }) as ContextFieldRanker,
+      recall: (async () => { throw new Error('provider unavailable') }) as ContextFieldRecaller,
       status: 'error',
     },
     {
       name: 'provider timeout',
-      ranker: (async () => {
+      recall: (async () => {
         await delay(150)
-        return { ranked: [], working: [] }
-      }) as ContextFieldRanker,
+        return { address: null, signal: 0, selectionMargin: 0, availability: 0 }
+      }) as ContextFieldRecaller,
       status: 'timeout',
     },
-  ])('keeps deterministic FTS order on $name', async ({ ranker, status }) => {
+  ])('returns no memory instead of bypassing the field on $name', async ({ recall, status }) => {
     const { memory } = makeMemory(async () => [
       hit('a', 'alpha', 0.9, 'prior-session'),
-      hit('b', 'beta', 0.8, 'prior-session'),
     ])
-    const svc = makeService(memory, {}, undefined, undefined, ranker)
+    const svc = makeService(memory, {}, undefined, undefined, recall)
 
     const response = await svc.candidates(req({ deadlineMs: 100 }))
 
-    expect(response.candidates.map(candidate => candidate.id)).toEqual(['a', 'b'])
-    expect(response.candidates.map(candidate => candidate.score)).toEqual([0.9, 0.8])
-    expect(response.sources[1]).toMatchObject({ source: 'field', status })
+    expect(response.candidates).toEqual([])
+    expect(response.sources[0]).toMatchObject({ source: 'mnemic', status })
   })
 })
-
-  it('merges field-owned work while persisting only record-backed eligibility', async () => {
-    const { memory, feedbackEvents } = makeMemory(async () => [
-      hit('memory-a', 'stored memory', 0.8, 'prior-session'),
-    ])
-    const fieldRanker = vi.fn<ContextFieldRanker>(async () => ({
-      ranked: [{ id: 'memory-a', score: 0.2 }],
-      working: [{
-        id: 'working:artifact:a',
-        revision: 'a'.repeat(64),
-        source: 'field',
-        text: 'tool pytest artifact tc-1',
-        score: 0.9,
-        sourceRefs: ['working:artifact:a'],
-        workingKind: 'artifact',
-      }],
-    }))
-    const svc = makeService(memory, {}, undefined, undefined, fieldRanker)
-
-    const response = await svc.candidates(req())
-    expect(response.candidates.map(candidate => candidate.id)).toEqual([
-      'working:artifact:a',
-      'memory-a',
-    ])
-    expect(response.candidates[0]).toMatchObject({
-      source: 'field',
-      workingKind: 'artifact',
-      score: 0.9,
-    })
-
-    await svc.feedback(feedback({
-      includedCandidateIds: ['working:artifact:a', 'memory-a'],
-    }))
-    expect(feedbackEvents[0].candidates).toMatchObject([{ id: 'memory-a' }])
-  })
 
 describe('RuntimeContextCandidateService — field shadow', () => {
   it('first miss returns null advisory + schedules a refresh; next hit returns the cached advisory', async () => {
@@ -493,7 +541,7 @@ describe('RuntimeContextCandidateService — field shadow', () => {
     const withoutShadow = await svc.candidates(req())
     expect(withoutShadow.fieldAdvisory).toBeNull()
     expect(withoutShadow.candidates).toEqual(withShadow.candidates)
-    expect(withShadow.candidates.map(c => c.score)).toEqual([0.9, 0.8])
+    expect(withShadow.candidates.map(candidate => candidate.score)).toEqual([0.9])
   })
 })
 
@@ -539,6 +587,7 @@ describe('RuntimeContextCandidateService — feedback', () => {
         endByte: Buffer.byteLength('selected exact memory'),
         text: 'selected exact memory',
         revision: expect.stringMatching(/^[0-9a-f]{64}$/),
+        fieldAddress: expect.stringMatching(/^[0-9a-f]{32}$/),
       }],
       outcome: 'error',
       toolResult: { id: 'tc-1', name: 'pytest', isError: true },
@@ -563,7 +612,8 @@ describe('RuntimeContextCandidateService — exact actions', () => {
     const startActionEpisode = vi.fn()
     const finishActionEpisode = vi.fn()
     const memory: ContextMemorySurface = {
-      searchReadOnly: async () => [],
+      fieldAddressManifest: () => [],
+      resolveFieldAddress: () => null,
       startActionEpisode,
       finishActionEpisode,
     }
@@ -611,7 +661,8 @@ describe('RuntimeContextCandidateService — exact actions', () => {
   it('rejects malformed action provenance before touching exact memory', async () => {
     const startActionEpisode = vi.fn()
     const svc = makeService({
-      searchReadOnly: async () => [],
+      fieldAddressManifest: () => [],
+      resolveFieldAddress: () => null,
       startActionEpisode,
     })
     await expect(svc.action({

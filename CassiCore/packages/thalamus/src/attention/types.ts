@@ -54,6 +54,8 @@ export interface ContextCandidate {
   recordId?: string
   startByte?: number
   endByte?: number
+  /** Opaque exact-manifest address selected by the adaptive Qi field. */
+  fieldAddress?: string
   source: 'mnemic' | 'aurora' | 'pineal' | 'field'
   text: string
   score: number

@@ -42,15 +42,16 @@ float fbm(vec2 p) {
 	return v;
 }
 
-float star_field(vec2 uv) {
-	vec2 cells = uv * vec2(960.0, 480.0);
-	vec2 id = floor(cells);
-	vec2 f = fract(cells) - 0.5;
+float star_field(vec2 cells, vec2 id) {
 	float selected = step(1.0 - star_density, hash12(id));
+	if (selected < 0.5) {
+		return 0.0;
+	}
+	vec2 f = fract(cells) - 0.5;
 	float radius = mix(0.035, 0.18, hash12(id + 7.13));
 	float d = length(f);
 	float aa = max(fwidth(d), 0.003);
-	return selected * (1.0 - smoothstep(radius, radius + aa * 1.8, d));
+	return 1.0 - smoothstep(radius, radius + aa * 1.8, d);
 }
 
 void vertex() {
@@ -74,9 +75,15 @@ void fragment() {
 	float haze = band * smoothstep(0.44, 0.73, cloud) * nebula_strength;
 	background += mix(nebula_color_a, nebula_color_b, cloud) * haze;
 
-	float star = star_field(uv);
-	float temperature = hash12(floor(uv * vec2(960.0, 480.0)) + 19.7);
-	vec3 star_color = mix(vec3(0.42, 0.62, 1.0), vec3(1.0, 0.78, 0.58), temperature);
+	vec2 star_cells = uv * vec2(960.0, 480.0);
+	vec2 star_id = floor(star_cells);
+	float star = star_field(star_cells, star_id);
+	vec3 star_emission = vec3(0.0);
+	if (star > 0.0) {
+		float temperature = hash12(star_id + 19.7);
+		vec3 star_color = mix(vec3(0.42, 0.62, 1.0), vec3(1.0, 0.78, 0.58), temperature);
+		star_emission = star_color * star * star_intensity;
+	}
 	ALBEDO = background;
-	EMISSION = background * 0.26 + star_color * star * star_intensity;
+	EMISSION = background * 0.26 + star_emission;
 }

@@ -39,6 +39,10 @@ const PC := {
 	"cassi_poisson": 7,           # 28 B — N, axis, dir, mode, extent_xyz
 	"cassi_qhist": 15,            # 60 B — histogram + extent_xyz + win_xyz + boxless + n_sites
 	"cassi_occupancy": 10,        # 40 B — lim_xyz, ext_xyz, pads
+	"cassi_rotation_stress": 24, # 96 B — conservative vector stress and scale reservoirs
+	"cassi_rotation_orientation_instancer": 4, # 16 B — renderer-only object axes
+	"cassi_presentation_macro_lod": 4, # 16 B — renderer-only site billboards
+	"cassi_presentation_trails": 16, # 64 B — renderer-only velocity ribbons
 	"cassi_tree_build": 19,       # 76 B — S, bmin_xyz, half, eps2, PHI, PHI_6, leaf/maxlevels, modes 10-13, grid_N, ext_xyz, floor
 	"cassi_tree_gravity": 8,      # 32 B — Np, theta, eps2, pad, tnm + Arm 2 q_cent, alpha, coherence_theta
 	"cassi_tree_momcon": 3,       # 12 B — N_f, op, pad
@@ -51,6 +55,7 @@ const PC := {
 	"cassi_site_shortlist": 3,    # 12 B — n_sites, q_floor, mode (Arm 1 coherence-filtered site shortlist)
 	"cassi_site_hash": 9,         # 36 B — ext_xyz, H, shortlist bound, tile origin xyz, mode
 	"cassi_voronoi_render_topology": 8, # 32 B — N, site count, mode/read, jump, tile extents
+	"cassi_voronoi_render_adjacency": 4, # 16 B — open-label adjacency bitset pass
 	"cassi_voronoi_adjacency_csr": 8, # 32 B — site count, words, mode, capacity, generation, pads
 	"cassi_voronoi_optical_payload": 8, # 32 B — site count, extents, opacity, pads
 	"cassi_voronoi_fused_volume": 32, # 128 B — camera/ray, topology, traversal, reserved controls
@@ -63,17 +68,29 @@ const PC := {
 ## allocated in BYTES via resize(20), the others via resize(N * 4)).
 const HOST_PC_FLOATS := {
 	"_merge_pc_bytes": 26,
+	"_merge_scan_pc_bytes": 4,
 	"_nbody_pc_bytes": 15,
 	"_instancer_pc_bytes": 32,
 	"_md_pc_bytes": 9,
 	"_topology_pc_bytes": 8,
 	"_volume_pc_bytes": 32,
+	"_volume_resolve_pc_bytes": 32,
+	"_shortlist_pc_bytes": 3,
+	"_hash_pc_bytes": 9,
 	"_topology_optical_pc_bytes": 8,
 	"_workbench_field_pc": 14,
+	"_topology_adj_pc_bytes": 4,
 	"_workbench_particle_pc": 14,
 	"_cell_pc_bytes": 18,
 	"_jfa_pc_bytes": 8,
+	"_raster_pc_bytes": 8,
+	"_tree_build_pc_bytes": 19,
+	"_tree_grav_pc_bytes": 8,
 	"_cond_pc_bytes": 4,
+	"_rotation_pc_bytes": 24,
+	"_rotation_axis_pc": 4,
+	"_macro_lod_pc": 4,
+	"_trail_pc": 16,
 }
 const HOST_PC_BYTES := {
 	"_blend_pc": 20,   # 5 floats
@@ -95,7 +112,7 @@ const BH_EXTENT_FLOAT := 36         # bh[2].y
 ## Binding maps per shader: set -> [binding, ...]. From the GLSL
 ## `layout(set = S, binding = B, ...)` declarations.
 const BINDINGS := {
-	"cassi_particle_merge": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]},
+	"cassi_particle_merge": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]},
 	"cassi_nbody_gravity": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 1: [0, 1, 2, 3], 2: [0, 1]},
 	"cassi_instancer": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]},
 	"cassi_blend_pos": {0: [0, 1, 2]},
@@ -104,6 +121,10 @@ const BINDINGS := {
 	"cassi_poisson": {0: [0, 1, 2, 3]},
 	"cassi_qhist": {0: [0, 1, 2, 3, 4, 5, 6, 7]},
 	"cassi_occupancy": {0: [0, 1, 2]},
+	"cassi_rotation_stress": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]},
+	"cassi_rotation_orientation_instancer": {0: [0, 1, 2]},
+	"cassi_presentation_macro_lod": {0: [0, 1, 2]},
+	"cassi_presentation_trails": {0: [0, 1, 2]},
 	"cassi_tree_build": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]},
 	"cassi_tree_gravity": {0: [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14]},
 	"cassi_tree_momcon": {0: [0, 1, 2, 3]},
@@ -114,6 +135,7 @@ const BINDINGS := {
 	"cassi_field_render": {0: [0, 1, 2, 3, 4, 5], 2: [0]},
 	"cassi_field_learn": {0: [0, 1, 2]},
 	"cassi_voronoi_render_topology": {0: [0, 1, 2, 3]},
+	"cassi_voronoi_render_adjacency": {0: [0, 1]},
 	"cassi_voronoi_adjacency_csr": {0: [0, 1, 2, 3, 4]},
 	"cassi_voronoi_optical_payload": {0: [0, 1, 2, 3, 4, 5]},
 	"cassi_voronoi_fused_volume": {0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]},
@@ -131,7 +153,10 @@ const COVERED := [
 	"cassi_poisson", "cassi_qhist", "cassi_occupancy", "cassi_tree_build",
 	"cassi_tree_gravity", "cassi_tree_momcon", "cassi_coarse_grad", "cassi_voronoi_cells",
 	"cassi_jfa", "cassi_condensation", "cassi_field_render", "cassi_site_shortlist",
-	"cassi_site_hash", "cassi_voronoi_render_topology", "cassi_voronoi_adjacency_csr",
+	"cassi_site_hash", "cassi_voronoi_render_topology", "cassi_voronoi_render_adjacency",
+	"cassi_voronoi_adjacency_csr",
+	"cassi_rotation_stress", "cassi_rotation_orientation_instancer",
+	"cassi_presentation_macro_lod", "cassi_presentation_trails",
 	"cassi_voronoi_optical_payload", "cassi_voronoi_fused_volume",
 	"cassi_workbench_field", "cassi_workbench_particle", "cassi_field_learn",
 ]

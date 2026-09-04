@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd
 // ═══════════════════════════════════════════════════════════════════════
 // CASSI PRESENTATION VELOCITY TRAILS — bounded instantaneous-velocity
 // ribbon generator (presentation-only, default-off; no solver coupling).

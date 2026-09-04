@@ -47,6 +47,7 @@ const PHI: float = CassiTreeConsts.PHI
 const FieldParticleEngine = preload("res://scripts/cassi_field_particle_engine.gd")
 const FIELD_PARTICLE_PROXY_CAPACITY := 64
 const FIELD_PARTICLE_RENDER_WEIGHT := 1.0
+const FIELD_PARTICLE_TRANSVERSE_DRIFT_SPEED := 0.1  # nonzero COM keeps the post-collision field observable moving
 const PHI_INV3: float = (PHI - 1.0) / (PHI + 1.0)   # φ⁻³ = attractor π/ρ ≈ 0.236068
 const PHI_INV2: float = 0.3819660112501051  # φ⁻² — q decoherence threshold
 const PHI_6: float = CassiTreeConsts.PHI_6  # φ⁶ ≈ 17.94427191 (computed spelling — see CassiTreeConsts)
@@ -72,6 +73,8 @@ const ML_TREE_THETA := CassiTreeConsts.ML_TREE_THETA
 # ── Meshless (moving-Voronoi) arm — MESHLESS_PLAN.md §10 (ported verbatim) ──
 const ML_N1 := 16              # BCC sublattice count → 2·16³ = 8192 sites at N=64
 const ML_REBUILD := 25         # steering + remap + JFA-refresh cadence (steps)
+const ML_REBUILD_CELL_MODES := [7.0, 3.0, 4.0, 5.0, 6.0, 8.0, 9.0]
+const ML_JFA_JUMPS := [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1, 1, 1]
 const SS_Q_FLOOR := 0.3819660112501051   # Arm 1 shortlist q threshold — φ⁻² (coherent-site floor)
 const TREE_JOB_STEP_CAP := 8   # perf-decomp 2026-08-15: cap a tree-cadence job's step budget so the tree staging readbacks drain a SHORT engine queue (freeze duration stops growing with the backlog)
 const JOB_STEP_CAP := 64       # perf-decomp 2026-08-15: GENERAL per-job cap — a coalesced backlog drains over many short jobs instead of ONE monster chain (measured 500k live: jobs 203→662→2381→6540→14004→28481 steps, ~85 s GPU chains freezing the render flush; 64 steps ≈ ≤0.25 s chain — a hitch, not a freeze; throughput is unchanged, the backlog just drains in bounded slices)
@@ -152,14 +155,13 @@ var particle_merge: bool = false
 # rejects fast fly-bys), so halving the pass rate does not change merge
 # physics. Validated: T1/T2 sweeps (2026-08-14) showed cadence >= 28
 # flattens the +109-135% ms/step slope (progressive slowdown) to 0-4%;
-# the STEP-1 any-candidate early-out (2026-08-15) makes that moot — the
-# pre-registered A/B (per-job vs AUTO) showed per-job (1) survives 60 s
-# with no TDR ×2 AND catches the job-1 IC-overlap coalesce (1+33 merges
-# at job 1), so the sim now defaults to 1 (per job) and AUTO stays for
-# coarser-cadence users.
+# Local-RD runs retain the STEP-1 any-candidate early-out. Global-RD live
+# clouds instead run one persisted 512-source-shard/cell/entry phase per job;
+# the full 2.5-million-particle path measured 97 ms without a TDR. The sim
+# therefore keeps the per-job default; AUTO remains for coarser cadence.
 var merge_cadence_steps: int = 1
 var _merge_step_counter := 0
-var _merge_global_initialized := false
+var _merge_pair_phase := 0
 # merge is on, these gate which of the four layer criteria apply. Default on
 # = the realistic merge; off recreates the legacy (distance + q_coh only) for
 # the §3d falsifier A/B tests.
@@ -168,9 +170,27 @@ var merge_virial: bool = true     # hypothesis: virialised targets stop accretin
 var merge_sel_gate: bool = true   # doctrine: order-selective q_sel = q_coh·q_ord
 # Boxless field read (boxless_field_prereg.md): when ON (with particle_merge),
 # the merge coherence gate reads the moving-Voronoi site's cell-averaged field +
-# AREPO gradient + momentum density instead of the periodic grid (merge_boxless_prereg.md).
-# Default OFF = grid trilinear, byte-identical. Mirrors the sim's export.
+# AREPO gradient + momentum density instead of the periodic grid
+# (merge_boxless_prereg.md). Standalone engine configs default OFF; CassiSim
+# passes its exported setting explicitly.
 var boxless_field: bool = false
+# Default-off vector Qi momentum/stress sector. It owns independent coarse-grid
+# displacement, momentum, scale transfer, intrinsic-spin ledger, heat, and
+# object orientation state; it never aliases FieldVel or site scalar momenta.
+var rotation_stress_enabled: bool = false
+var rotation_grid_N: int = 16
+var rotation_rungs: int = 4
+var rotation_field_inertia: float = 1.0
+var rotation_c_t: float = 0.5
+var rotation_c_l: float = 0.8
+var rotation_scale_omega: float = 0.5
+var rotation_attenuation: float = 1.0 / PHI
+# Viscous exchange is opt-in until the recorded heat has a live dynamical
+# return path; otherwise every rotation-enabled run asymptotes to rest.
+var rotation_exchange_rate: float = 0.0
+var rotation_reservoir_inertia: float = 1.0
+var rotation_lower_reservoir_coupling: float = 0.0
+var rotation_upper_reservoir_coupling: float = 0.0
 # Cascade-multigrid arm (research/cascade_multigrid/multigrid_design.md): a
 # coarse long-range Poisson level at N_c = grid_N/2 (the radix-2 Stockham
 # constraint — the φ-ideal N_c = round(N_f/φ)=40 is NOT radix-2; see the
@@ -284,6 +304,8 @@ var _jfa_pc_bytes: PackedByteArray    # JFA PC (8 floats: N, jump, read_a, n_sit
 var _cell_pc_bytes: PackedByteArray   # cell PC (18 floats: mode, N, n_sites, dt, hx, hy, hz, C2, OM2, PHI, source_s, rho_floor, drift_cap, kappa, lam, T_steer, lloyd_p, J_wind)
 var _raster_pc_bytes: PackedByteArray # raster PC (8 floats: N, n_sites, hx, hy, hz, pad×3)
 var _ml_sites_cpu := PackedFloat32Array()
+var _ml_sites_bmin := Vector3.INF
+var _ml_sites_bmax := -Vector3.INF
 var _ml_ready := false
 var _ml_tree_nsrc := 0
 # ── Arm 1 (coherence_adaptive_prereg.md): the coherence-filtered site
@@ -306,6 +328,7 @@ var _hash_cell_count: RID   # uint[n_cells] — histogram / scatter cursor
 var _hash_cfg: RID          # vec4 — (box_min.x, box_min.y, box_min.z, cell_side)
 var _us_hash: RID
 var _hash_pc_bytes: PackedByteArray   # 9 floats (36 B): ext_xyz, H, shortlist, tile origin xyz, mode
+var _hash_cfg_bytes: PackedByteArray
 ## Production open-render topology. These buffers are immutable per published
 ## generation; a rebuild writes scratch/current resources and publishes only
 ## after all barriers complete. The sim consumes these RIDs directly on the
@@ -325,6 +348,8 @@ var _topology_optical_shader: RID; var _topology_optical_pipe: RID
 var _us_topology: RID; var _us_topology_adj: RID
 var _us_topology_csr: RID; var _us_topology_optical: RID
 var _topology_pc_bytes: PackedByteArray
+var _topology_adj_pc_bytes: PackedByteArray
+var _topology_status_zero: PackedByteArray
 var _topology_status: RID       # uint[4]: generation, required_edges, overflow, site_count
 var _topology_meta: RID         # vec4[2]: window origin, half extents
 var _topology_generation: int = 0
@@ -395,6 +420,8 @@ var _tl_tic: RID
 var _tree_bld_sh: RID; var _tree_bld_pipe: RID
 var _tree_walk_sh: RID; var _tree_walk_pipe: RID
 var _us_tree_bld: RID; var _us_tree_walk: RID
+var _tree_build_pc_bytes: PackedByteArray  # build PC (19 floats)
+var _tree_grav_pc_bytes: PackedByteArray   # walk PC (8 floats)
 # Tree MOMENTUM-CONSERVATION pass (cassi_tree_momcon.glsl, 2026-08-15): the
 # per-particle (π/ρ) prefactor breaks action–reaction (Σm·a ≠ 0) → net
 # self-impulse → the cloud ballistically drifts off the window ("all vanish").
@@ -452,7 +479,26 @@ var _merge_hash_nx: int = 1; var _merge_hash_ny: int = 1; var _merge_hash_nz: in
 var _merge_hash_total: int = 1
 var _merge_cell_wx: float = 0.0; var _merge_cell_wy: float = 0.0; var _merge_cell_wz: float = 0.0
 var _merge_cycles_run := 0
+var _merge_first_record_tick_ms := 0
 var _merge_pc_bytes: PackedByteArray  # merge PC (26 floats = 104 B; F8: pre-sized, encoded in place per dispatch)
+var _merge_scan_pc_bytes: PackedByteArray  # exclusive-scan PC (4 floats, reused across passes)
+# ── Conservative rotation stress (research/rotation/rotation_prereg.md) ──
+var _rotation_shader: RID; var _rotation_pipe: RID; var _us_rotation: RID
+var _rotation_displacement_buf: RID
+var _rotation_momentum_buf: RID
+var _rotation_momentum_next_buf: RID
+var _rotation_spin_heat_buf: RID  # xyz intrinsic angular-momentum ledger; w heat
+var _rotation_matter_buf: RID
+var _rotation_impulse_buf: RID
+var _rotation_orientation_buf: RID
+var _rotation_merge_spin_dummy: RID
+var _rotation_telemetry_buf: RID
+var _rotation_reservoir_displacement_buf: RID
+var _rotation_reservoir_momentum_buf: RID
+var _rotation_reservoir_momentum_next_buf: RID
+var _rotation_cells: int = 0
+var _rotation_field_count: int = 0
+var _rotation_reservoir_count: int = 0
 # ── On-GPU exclusive scan (compute/cassi_exclusive_scan.glsl; FIX B): replaces
 # the host CPU prefix-sum (cc readback + cs/ch uploads) with 4 GPU passes. The
 # scratch buffer holds L1 block totals + L2 (two-level carry) regions. ──
@@ -484,11 +530,15 @@ var _pipes_done := false            # M0b-P-FX: the shader/pipeline creation ran
 # M0b-P: the IC host arrays — the worker generates them (CPU); the main
 # thread uploads them in finish_setup (global-RD buffer_update is
 # render-thread-only).
+const PARTICLE_INIT_PARALLEL_THRESHOLD := 262_144
+const PARTICLE_INIT_PARALLEL_CHUNKS := 8
+
 var _host_pos := PackedFloat32Array()
 var _host_vel := PackedFloat32Array()
 var _host_acc := PackedFloat32Array()
 var _host_cluster := PackedFloat32Array()
 var _host_cluster_recs := 0
+var _init_chunk_stats: Array = []
 var _cond_step_counter: int = 0
 
 # — pre-allocated push-constant byte buffers (hitch-free: no per-step allocs) —
@@ -506,6 +556,7 @@ var _tel_reset_bytes: PackedByteArray
 var _site_nbody_pc_bytes: PackedByteArray
 var _site_cond_pc_bytes: PackedByteArray
 var _site_bh_int_pc_bytes: PackedByteArray
+var _rotation_pc_bytes: PackedByteArray  # 24 floats = 96 B
 # — step state —
 var _time: float = 0.0
 var _step_count: int = 0
@@ -629,12 +680,49 @@ func setup(cfg: Dictionary) -> bool:
 	if field_particles:
 		cfg["rotation_stress_enabled"] = false
 	particle_merge = bool(cfg.get("particle_merge", particle_merge))
-	merge_cadence_steps = int(cfg.get("merge_cadence_steps", 0))
-	_merge_global_initialized = false
+	merge_cadence_steps = int(cfg.get("merge_cadence_steps", merge_cadence_steps))
+	_merge_pair_phase = 0
+	_merge_cycles_run = 0
+	_merge_first_record_tick_ms = 0
 	merge_subsonic = bool(cfg.get("merge_subsonic", merge_subsonic))
 	merge_virial = bool(cfg.get("merge_virial", merge_virial))
 	merge_sel_gate = bool(cfg.get("merge_sel_gate", merge_sel_gate))
 	boxless_field = bool(cfg.get("boxless_field", boxless_field))
+	rotation_stress_enabled = bool(cfg.get("rotation_stress_enabled", rotation_stress_enabled))
+	rotation_grid_N = int(cfg.get("rotation_grid_N", rotation_grid_N))
+	rotation_rungs = int(cfg.get("rotation_rungs", rotation_rungs))
+	rotation_field_inertia = float(cfg.get("rotation_field_inertia", rotation_field_inertia))
+	rotation_c_t = float(cfg.get("rotation_c_t", rotation_c_t))
+	rotation_c_l = float(cfg.get("rotation_c_l", rotation_c_l))
+	rotation_scale_omega = float(cfg.get("rotation_scale_omega", rotation_scale_omega))
+	rotation_attenuation = float(cfg.get("rotation_attenuation", rotation_attenuation))
+	rotation_exchange_rate = float(cfg.get("rotation_exchange_rate", rotation_exchange_rate))
+	rotation_reservoir_inertia = float(cfg.get(
+		"rotation_reservoir_inertia", rotation_reservoir_inertia))
+	rotation_lower_reservoir_coupling = float(cfg.get(
+		"rotation_lower_reservoir_coupling", rotation_lower_reservoir_coupling))
+	rotation_upper_reservoir_coupling = float(cfg.get(
+		"rotation_upper_reservoir_coupling", rotation_upper_reservoir_coupling))
+	if rotation_stress_enabled:
+		if rotation_grid_N < 4 or rotation_grid_N > 32:
+			push_error("[PhysicsEngine] rotation_grid_N must be in [4, 32]")
+			return false
+		if rotation_rungs < 2 or rotation_rungs > 8:
+			push_error("[PhysicsEngine] rotation_rungs must be in [2, 8]")
+			return false
+		if rotation_field_inertia <= 0.0 or rotation_reservoir_inertia <= 0.0 \
+				or rotation_c_t < 0.0 or rotation_c_l < rotation_c_t \
+				or rotation_scale_omega < 0.0 \
+				or rotation_attenuation <= 0.0 or rotation_attenuation > 1.0 \
+				or rotation_exchange_rate < 0.0 \
+				or rotation_lower_reservoir_coupling < 0.0 \
+				or rotation_upper_reservoir_coupling < 0.0:
+			push_error("[PhysicsEngine] invalid rotation-stress constitutive parameter")
+			return false
+		var rotation_h_min: float = 2.0 * _extent_min() / float(rotation_grid_N)
+		if rotation_c_l * dt / rotation_h_min > 0.35:
+			push_error("[PhysicsEngine] rotation-stress CFL exceeds 0.35")
+			return false
 	if gridless_physics:
 		meshless_mode = true
 		meshless_gravity = true
@@ -746,6 +834,8 @@ func finish_setup() -> bool:
 		]:
 			if not item[1].is_valid():
 				missing.append(str(item[0]))
+		if rotation_stress_enabled and not _rotation_pipe.is_valid():
+			missing.append("rotation_stress")
 		push_error("[PhysicsEngine] finish_setup: pipes missing=%s (spirv dict size=%d)" % [
 			str(missing), _cfg_spirv.size()])
 		return false
@@ -761,6 +851,7 @@ func finish_setup() -> bool:
 	_upload_particles()
 	var _t3 := Time.get_ticks_msec()
 	_init_field()
+
 	var _t4 := Time.get_ticks_msec()
 	_apply_gravity_calibration()
 	var _t5 := Time.get_ticks_msec()
@@ -788,6 +879,12 @@ func _setup_field_particle_runtime() -> bool:
 		}):
 		_field_particle_engine = null
 		push_error("[PhysicsEngine] field-particle runtime setup failed")
+		return false
+	if not field_particles_single_seed and not _field_particle_engine.apply_boost(
+			Vector3.UP, FIELD_PARTICLE_TRANSVERSE_DRIFT_SPEED):
+		_field_particle_engine.shutdown()
+		_field_particle_engine = null
+		push_error("[PhysicsEngine] field-particle transverse drift setup failed")
 		return false
 	if not refresh_field_particle_readout():
 		_field_particle_engine.shutdown()
@@ -973,9 +1070,9 @@ func run_merge_if_due() -> void:
 ## M0b-P global-RD merge recording: the decoupled producer shares the
 ## renderer's one open command list, so it cannot use _run_merge_pass()
 ## (that path intentionally submits/syncs for the local-RD battery). Keep
-## one complete fold→zero→count→scan→fill→best→hop→finalize cycle in the
-## caller's list. Merge state is initialized once per engine setup and then
-## persists across frames, so finalized dead slots are not resurrected.
+## one complete rebase→fold→zero→count→scan→fill→best→hop→finalize cycle
+## in the caller's list. Every cadence rebases mass/momentum/centroid from the
+## current canonical pos/vel; pos.w preserves dead slots and live spin survives.
 ## There is no CPU mirror/copy and no host readback in this path.
 func record_merge_if_due(cl: int) -> bool:
 	if not _rd_global or not merge_due():
@@ -984,24 +1081,35 @@ func record_merge_if_due(cl: int) -> bool:
 			or not _scan_pipe.is_valid() or not _us_scan_0.is_valid() \
 			or not _merge_alive_buf.is_valid():
 		return false
-	if not _merge_global_initialized:
-		_merge_bind_dispatch(cl, 0.0)
-		_rd.compute_list_add_barrier(cl)
-		_merge_global_initialized = true
+	_merge_step_counter = 0
+	var first_phase := _merge_cycles_run == 0
+	if first_phase:
+		_merge_first_record_tick_ms = Time.get_ticks_msec()
+		print("[PhysicsEngine] particle-merge phase 0 recorded: N=%d hash_cells=%d source_shard=0 cell=0 entry=0" % [
+			N_particles, _merge_hash_total])
+	_fill_merge_pc()
+	_merge_bind_dispatch(cl, 0.0)
+	_rd.compute_list_add_barrier(cl)
 	_merge_bind_dispatch(cl, 1.0)
 	_rd.compute_list_add_barrier(cl)
-	_merge_bind_dispatch(cl, 8.0)
+	# Mode 8 only saves work when the local path can read its flag back.
+	# The global path cannot read inside this open command list, so zero the
+	# hash counts directly instead of doing an unconditional N*site_count scan.
+	_merge_bind_dispatch(cl, 7.0)
 	_rd.compute_list_add_barrier(cl)
 	_merge_bind_dispatch(cl, 2.0)
 	_rd.compute_list_add_barrier(cl)
 	_merge_scan_into(cl)
 	_merge_bind_dispatch(cl, 3.0)
 	_rd.compute_list_add_barrier(cl)
-	_merge_bind_dispatch(cl, 4.0)
+	var pair_phase := _merge_pair_phase
+	_merge_pair_phase = CassiMergeCommon.next_pair_phase(_merge_pair_phase, N_particles)
+	_merge_bind_dispatch(cl, 4.0, pair_phase)
 	_rd.compute_list_add_barrier(cl)
 	_merge_bind_dispatch(cl, 5.0, 0)
 	_rd.compute_list_add_barrier(cl)
 	_merge_bind_dispatch(cl, 6.0)
+	_merge_cycles_run += 1
 	return true
 
 
@@ -1151,7 +1259,8 @@ func publish_render_query(shift_delta: Vector3 = Vector3.ZERO) -> bool:
 	_rd.buffer_update(_hash_cell_sites, 0, ns * 4, cell_sites.to_byte_array())
 	_rd.buffer_update(_hash_cell_count, 0, hcells * 4, zero_counts.to_byte_array())
 	_rd.buffer_update(_hash_cfg, 0, 16,
-		PackedFloat32Array([0.0, 0.0, 0.0, hx]).to_byte_array())
+		PackedFloat32Array([_render_query_center.x, _render_query_center.y,
+			_render_query_center.z, hx]).to_byte_array())
 	_render_query_generation += 1
 	_topology_site_count = ns
 	if _topology_status.is_valid():
@@ -1361,7 +1470,12 @@ func _site_q_cpu_lookup(world: Vector3, sites: PackedFloat32Array,
 				var ci := cx + HASH_H * (cy + HASH_H * cz)
 				if ci < 0 or ci + 1 >= starts.size():
 					continue
-				for k in range(starts[ci], min(starts[ci + 1], hs.size())):
+				var begin := starts[ci]
+				var end := starts[ci + 1]
+				if begin < 0 or end < begin or begin >= hs.size():
+					continue
+				end = mini(end, hs.size())
+				for k in range(begin, end):
 					var si := hs[k]
 					if si < 0 or si * 4 + 2 >= sites.size() or si >= qf.size():
 						continue
@@ -1394,7 +1508,6 @@ func read_com() -> Array:
 	var np1 := maxi(N_particles, 1)
 	var posf: PackedFloat32Array = _rd.buffer_get_data(_pos_buf, 0, np1 * 16).to_float32_array()
 	var com := Vector3.ZERO
-	var cnt := 0
 	if q_weighted_com:
 		var ext := _extents()
 		var qf: PackedFloat32Array
@@ -1412,29 +1525,32 @@ func read_com() -> Array:
 			qf = _rd.buffer_get_data(_field_q, 0, nc * 4).to_float32_array()
 		var wsum := 0.0
 		var i := 0
-		while i + 2 < posf.size():
-			var p := Vector3(posf[i], posf[i + 1], posf[i + 2])
-			var q := _site_q_cpu_lookup(p, sites, qf, starts, hs, ext) if gridless_physics else qf[
-				clampi(int(floorf((p.x - _window_center.x) / maxf(ext.x, 1e-4) * grid_N * 0.5 + grid_N * 0.5)), 0, grid_N - 1)
-				+ grid_N * (clampi(int(floorf((p.y - _window_center.y) / maxf(ext.y, 1e-4) * grid_N * 0.5 + grid_N * 0.5)), 0, grid_N - 1)
-				+ grid_N * clampi(int(floorf((p.z - _window_center.z) / maxf(ext.z, 1e-4) * grid_N * 0.5 + grid_N * 0.5)), 0, grid_N - 1))]
-			com += p * q
-			wsum += q
-			cnt += 1
+		while i + 3 < posf.size():
+			if posf[i + 3] > 0.0:
+				var p := Vector3(posf[i], posf[i + 1], posf[i + 2])
+				var q := _site_q_cpu_lookup(p, sites, qf, starts, hs, ext) if gridless_physics else qf[
+					clampi(int(floorf((p.x - _window_center.x) / maxf(ext.x, 1e-4) * grid_N * 0.5 + grid_N * 0.5)), 0, grid_N - 1)
+					+ grid_N * (clampi(int(floorf((p.y - _window_center.y) / maxf(ext.y, 1e-4) * grid_N * 0.5 + grid_N * 0.5)), 0, grid_N - 1)
+					+ grid_N * clampi(int(floorf((p.z - _window_center.z) / maxf(ext.z, 1e-4) * grid_N * 0.5 + grid_N * 0.5)), 0, grid_N - 1))]
+				com += p * q
+				wsum += q
 			i += 32 * 4
-		if cnt <= 0 or wsum <= 0.0:
+		if wsum <= 0.0:
 			return []
 		return [com.x / wsum, com.y / wsum, com.z / wsum]
+	var mass_sum := 0.0
 	var i := 0
-	while i < posf.size():
-		com.x += posf[i]
-		com.y += posf[i + 1]
-		com.z += posf[i + 2]
-		cnt += 1
+	while i + 3 < posf.size():
+		var mass := posf[i + 3]
+		if mass > 0.0:
+			com.x += posf[i] * mass
+			com.y += posf[i + 1] * mass
+			com.z += posf[i + 2] * mass
+			mass_sum += mass
 		i += 32 * 4
-	if cnt <= 0:
+	if mass_sum <= 0.0:
 		return []
-	return [com.x / float(cnt), com.y / float(cnt), com.z / float(cnt)]
+	return [com.x / mass_sum, com.y / mass_sum, com.z / mass_sum]
 
 
 ## Field-authoritative snapshots expose the complete canonical field and
@@ -1574,7 +1690,7 @@ func readback_telemetry(field_q_override: PackedFloat32Array = PackedFloat32Arra
 	var field_rho_guard_hits := int(tel.decode_u32(36)) if tel.size() >= 40 else 0
 	var field_pi_sat_hi := int(tel.decode_u32(32)) if tel.size() >= 36 else 0
 	var field_pi_sat_lo := int(tel.decode_u32(44)) if tel.size() >= 48 else 0
-	return {
+	var result := {
 		"q_mean": _q_mean, "q_min": _q_min, "q_max": _q_max,
 		"pi_min": _pi_min, "pi_max": _pi_max,
 		"pi_sat_hi_frac": _pi_sat_hi_frac, "pi_sat_lo_frac": _pi_sat_lo_frac,
@@ -1583,7 +1699,21 @@ func readback_telemetry(field_q_override: PackedFloat32Array = PackedFloat32Arra
 		"field_rho_guard_hits": field_rho_guard_hits,
 		"eps_mean": _eps_mean, "hubble": _hubble, "scale_factor": _scale_factor,
 		"gn_eff": _gn_eff,
+		"rotation_stress_enabled": rotation_stress_enabled,
 	}
+	if rotation_stress_enabled and _rotation_telemetry_buf.is_valid():
+		var rotation_tel := _rd.buffer_get_data(_rotation_telemetry_buf, 0, 16 * 4)
+		if rotation_tel.size() >= 10 * 4:
+			result["rotation_exchange_impulse"] = rotation_tel.decode_float(0)
+			result["rotation_heat_step"] = rotation_tel.decode_float(4)
+			result["rotation_spatial_impulse"] = rotation_tel.decode_float(8)
+			result["rotation_scale_impulse"] = rotation_tel.decode_float(12)
+			result["rotation_spin_transfer"] = rotation_tel.decode_float(16)
+			result["rotation_occupied_cells"] = rotation_tel.decode_float(20)
+			result["rotation_invalid"] = rotation_tel.decode_float(28)
+			result["rotation_lower_reservoir_impulse"] = rotation_tel.decode_float(32)
+			result["rotation_upper_reservoir_impulse"] = rotation_tel.decode_float(36)
+	return result
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1639,6 +1769,8 @@ func start_threaded(cfg: Dictionary) -> bool:
 			"res://compute/cassi_particle_program_apply.glsl"]
 	if bool(cfg.get("cascade_level", cascade_level)):
 		shader_paths.append("res://compute/cassi_coarse_grad.glsl")
+	if bool(cfg.get("rotation_stress_enabled", rotation_stress_enabled)):
+		shader_paths.append("res://compute/cassi_rotation_stress.glsl")
 	if bool(cfg.get("field_particles", field_particles)):
 		shader_paths.append(FieldParticleEngine.SHADER_PATH)
 	for p in shader_paths:
@@ -1799,6 +1931,159 @@ func workbench_write_buffers(buffers: Dictionary, particle_only := false) -> Dic
 		"particle_only": particle_only,
 	}
 
+## Read or seed the independent vector-Qi sector without aliasing the
+## canonical two-fluid FieldVel buffer. Writes are intentionally local-RD
+## only; the production global-RD path remains renderer-owned.
+func _rotation_update_buffer(state: Dictionary, key: String, buffer: RID,
+		float_count: int) -> bool:
+	if not state.has(key):
+		return true
+	var value: Variant = state[key]
+	var bytes := PackedByteArray()
+	if value is PackedFloat32Array:
+		var floats: PackedFloat32Array = value
+		bytes = floats.to_byte_array()
+	elif value is PackedByteArray:
+		bytes = value
+	else:
+		return false
+	if bytes.size() != float_count * 4:
+		return false
+	_rd.buffer_update(buffer, 0, bytes.size(), bytes)
+	return true
+
+
+func rotation_write_state(state: Dictionary) -> bool:
+	if not workbench_ready() or _rd_global or not rotation_stress_enabled:
+		return false
+	var field_floats := _rotation_field_count * 4
+	var reservoir_floats := _rotation_reservoir_count * 4
+	var particle_floats := maxi(N_particles, 1) * 4
+	var spin_source: RID = _merge_spin_buf \
+			if particle_merge and _merge_spin_buf.is_valid() else _rotation_merge_spin_dummy
+	return (
+		_rotation_update_buffer(state, "displacement",
+			_rotation_displacement_buf, field_floats)
+		and _rotation_update_buffer(state, "momentum",
+			_rotation_momentum_buf, field_floats)
+		and _rotation_update_buffer(state, "momentum_next",
+			_rotation_momentum_next_buf, field_floats)
+		and _rotation_update_buffer(state, "spin_heat",
+			_rotation_spin_heat_buf, field_floats)
+		and _rotation_update_buffer(state, "reservoir_displacement",
+			_rotation_reservoir_displacement_buf, reservoir_floats)
+		and _rotation_update_buffer(state, "reservoir_momentum",
+			_rotation_reservoir_momentum_buf, reservoir_floats)
+		and _rotation_update_buffer(state, "reservoir_momentum_next",
+			_rotation_reservoir_momentum_next_buf, reservoir_floats)
+		and _rotation_update_buffer(state, "orientation",
+			_rotation_orientation_buf, particle_floats)
+		and _rotation_update_buffer(state, "merge_spin",
+			spin_source, particle_floats)
+	)
+
+
+## Zero-readback GPU resource view for renderer-only production consumers.
+## RIDs never enter the CPU publication snapshot.
+func rotation_render_resources() -> Dictionary:
+	if not workbench_ready() or not rotation_stress_enabled:
+		return {"enabled": false}
+	return {
+		"enabled": true,
+		"orientation_buffer": _rotation_orientation_buf,
+		"particle_count": N_particles,
+	}
+
+
+## Bounded production publication: 16 telemetry floats plus at most the
+## requested leading quaternions. Full field/particle readback remains an
+## explicit verifier-only operation in rotation_readback().
+func rotation_publish_state(sample_count := 16) -> Dictionary:
+	if not workbench_ready() or not rotation_stress_enabled:
+		return {"enabled": false}
+	if not _rd_global and _local_pending:
+		_rd.sync()
+		_local_pending = false
+	var count := mini(maxi(sample_count, 0), maxi(N_particles, 0))
+	var telemetry := _rd.buffer_get_data(
+		_rotation_telemetry_buf, 0, 16 * 4).to_float32_array()
+	var orientation := PackedFloat32Array()
+	if count > 0:
+		orientation = _rd.buffer_get_data(
+			_rotation_orientation_buf, 0, count * 16).to_float32_array()
+	return {
+		"enabled": true,
+		"grid_N": rotation_grid_N,
+		"rungs": rotation_rungs,
+		"cells": _rotation_cells,
+		"reservoir_count": _rotation_reservoir_count,
+		"reservoir_inertia": rotation_reservoir_inertia,
+		"lower_reservoir_coupling": rotation_lower_reservoir_coupling,
+		"upper_reservoir_coupling": rotation_upper_reservoir_coupling,
+		"telemetry_count": telemetry.size(),
+		"telemetry": telemetry,
+		"orientation_sample_count": count,
+		"orientation_sample": orientation,
+	}
+
+
+func rotation_readback(include_particles := true) -> Dictionary:
+	if not workbench_ready() or not rotation_stress_enabled:
+		return {"enabled": false}
+	if not _rd_global and _local_pending:
+		_rd.sync()
+		_local_pending = false
+	var state := {
+		"enabled": true,
+		"grid_N": rotation_grid_N,
+		"rungs": rotation_rungs,
+		"cells": _rotation_cells,
+		"reservoir_count": _rotation_reservoir_count,
+		"reservoir_inertia": rotation_reservoir_inertia,
+		"lower_reservoir_coupling": rotation_lower_reservoir_coupling,
+		"upper_reservoir_coupling": rotation_upper_reservoir_coupling,
+		"displacement": _rd.buffer_get_data(
+			_rotation_displacement_buf).to_float32_array(),
+		"momentum": _rd.buffer_get_data(
+			_rotation_momentum_buf).to_float32_array(),
+		"momentum_next": _rd.buffer_get_data(
+			_rotation_momentum_next_buf).to_float32_array(),
+		"spin_heat": _rd.buffer_get_data(
+			_rotation_spin_heat_buf).to_float32_array(),
+		"reservoir_displacement": _rd.buffer_get_data(
+			_rotation_reservoir_displacement_buf).to_float32_array(),
+		"reservoir_momentum": _rd.buffer_get_data(
+			_rotation_reservoir_momentum_buf).to_float32_array(),
+		"reservoir_momentum_next": _rd.buffer_get_data(
+			_rotation_reservoir_momentum_next_buf).to_float32_array(),
+		"orientation": _rd.buffer_get_data(
+			_rotation_orientation_buf).to_float32_array(),
+		"telemetry": _rd.buffer_get_data(
+			_rotation_telemetry_buf).to_float32_array(),
+	}
+	if include_particles:
+		state["pos"] = _rd.buffer_get_data(_pos_buf).to_float32_array()
+		state["vel"] = _rd.buffer_get_data(_vel_buf).to_float32_array()
+		var spin_source: RID = _merge_spin_buf \
+				if particle_merge and _merge_spin_buf.is_valid() else _rotation_merge_spin_dummy
+		state["merge_spin"] = _rd.buffer_get_data(spin_source).to_float32_array()
+	return state
+
+
+## Isolated real-GPU workbench step used by the registered rotation gates.
+## It advances only this sector and never mutates the engine's time counter.
+func rotation_step_only(steps := 1) -> bool:
+	if not workbench_ready() or _rd_global or not rotation_stress_enabled or steps < 1:
+		return false
+	var compute_list := _rd.compute_list_begin()
+	for _step in range(steps):
+		_rotation_dispatches(compute_list)
+	_rd.compute_list_end()
+	_rd.submit()
+	_rd.sync()
+	_local_pending = false
+	return true
+
 
 
 ## Stop the threaded runner (reinit / exit). MAIN thread: joins the worker
@@ -1860,6 +2145,7 @@ func shutdown() -> void:
 	free_uniforms.append_array([_us_site_physics, _us_site_mass, _us_site_nbody_0,
 		_us_site_nbody_1, _us_site_nbody_2, _us_site_cond_0, _us_site_cond_1,
 		_us_site_bh_int_0, _us_site_bh_int_1])
+	free_uniforms.append(_us_rotation)
 	for rid in free_uniforms:
 		if rid.is_valid() and _rd.uniform_set_is_valid(rid) and not seen.has(rid):
 			seen[rid] = true
@@ -1867,6 +2153,7 @@ func shutdown() -> void:
 	var free_pipes := [_two_fluid_pipe, _nbody_pipe, _poisson_pipe, _mass_deposit_pipe, _cond_pipe, _bh_int_pipe, _jfa_pipe, _cell_pipe, _raster_pipe, _shortlist_pipe, _hash_pipe, _merge_pipe, _scan_pipe, _bh_acc_pipe, _topology_pipe, _topology_adj_pipe, _topology_csr_pipe, _topology_optical_pipe, _tree_bld_pipe, _tree_walk_pipe, _tree_mc_pipe, _cf_grad_pipe, _workbench_particle_pipe]
 	free_pipes.append_array([_site_physics_pipe, _site_mass_pipe, _site_nbody_pipe,
 		_site_cond_pipe, _site_bh_int_pipe])
+	free_pipes.append(_rotation_pipe)
 	for rid in free_pipes:
 		if rid.is_valid() and not seen.has(rid):
 			seen[rid] = true
@@ -1874,6 +2161,7 @@ func shutdown() -> void:
 	var free_shaders := [_two_fluid_shader, _nbody_shader, _poisson_shader, _mass_deposit_shader, _cond_shader, _bh_int_shader, _merge_shader, _scan_shader, _bh_acc_shader, _cf_grad_shader, _jfa_shader, _cell_shader, _shortlist_shader, _hash_shader, _raster_shader, _topology_shader, _topology_adj_shader, _topology_csr_shader, _topology_optical_shader, _tree_bld_sh, _tree_walk_sh, _tree_mc_sh, _workbench_particle_shader]
 	free_shaders.append_array([_site_physics_shader, _site_mass_shader, _site_nbody_shader,
 		_site_cond_shader, _site_bh_int_shader])
+	free_shaders.append(_rotation_shader)
 	for rid in free_shaders:
 		if rid.is_valid() and not seen.has(rid):
 			seen[rid] = true
@@ -1881,6 +2169,16 @@ func shutdown() -> void:
 	var free_buffers := [_acc_buf, _bh_buf, _cf_density_buf, _cf_fft_buf, _cf_grad_buf, _cluster_buf, _fft_buf, _field_ei, _field_ey, _field_q, _field_scratch, _field_vel, _grad_buf, _grad_buf2, _hash_cell_count, _hash_cell_sites, _hash_cell_start, _hash_cfg, _mass_density_buf, _mass_density_fix, _merge_alive_buf, _merge_best_buf, _merge_cc_buf, _merge_cen_buf, _merge_ch_buf, _merge_cl_buf, _merge_cs_buf, _merge_mass_buf, _merge_mc_buf, _merge_mom_buf, _merge_mprev_buf, _merge_scr_buf, _merge_sink_buf, _merge_spin_buf, _ml_cen, _ml_grad_i, _ml_grad_y, _ml_labels_a, _ml_labels_b, _ml_lap_i, _ml_lap_y, _ml_lsm_i, _ml_lsm_y, _ml_pi_i, _ml_pi_y, _ml_psi_i, _ml_psi_y, _ml_remap, _ml_sites, _ml_tmp_i, _ml_tmp_pi, _ml_tmp_py, _ml_tmp_y, _ml_vol, _pos_buf, _shortlist_count, _shortlist_sites, _tel_buf, _tl_cf, _tl_ctr, _tl_key, _tl_nq, _tl_nqq, _tl_nr, _tl_nw, _tl_order, _tl_src, _tl_srcw, _tl_tic, _topology_adjacency, _topology_degree, _topology_meta, _topology_neighbors, _topology_offsets, _topology_open_labels, _topology_open_labels_scratch_a, _topology_open_labels_scratch_b, _topology_optical, _topology_status, _tree_grad, _tree_mc_buf, _vel_buf]
 	free_buffers.append_array([_ml_sites_world, _ml_mass_fix, _ml_mass, _ml_q, _ml_eps])
 	free_buffers.append(_fi_fallback_buf)
+	free_buffers.append_array([
+		_rotation_displacement_buf, _rotation_momentum_buf,
+		_rotation_momentum_next_buf, _rotation_spin_heat_buf,
+		_rotation_matter_buf, _rotation_impulse_buf,
+		_rotation_orientation_buf, _rotation_merge_spin_dummy,
+		_rotation_telemetry_buf,
+		_rotation_reservoir_displacement_buf,
+		_rotation_reservoir_momentum_buf,
+		_rotation_reservoir_momentum_next_buf,
+	])
 	var free_cascade_buffers := [_cf_density_fix_buf]
 	for rid in free_cascade_buffers:
 		if rid.is_valid() and not seen.has(rid):
@@ -1949,6 +2247,16 @@ func _clear_gpu_handles() -> void:
 	_merge_cl_buf = RID(); _merge_mc_buf = RID(); _merge_spin_buf = RID()
 	_merge_mprev_buf = RID(); _merge_scr_buf = RID()
 	_cf_density_buf = RID(); _cf_density_fix_buf = RID(); _cf_fft_buf = RID(); _cf_grad_buf = RID()
+	_rotation_displacement_buf = RID(); _rotation_momentum_buf = RID()
+	_rotation_momentum_next_buf = RID(); _rotation_spin_heat_buf = RID()
+	_rotation_matter_buf = RID(); _rotation_impulse_buf = RID()
+	_rotation_orientation_buf = RID(); _rotation_merge_spin_dummy = RID()
+	_rotation_telemetry_buf = RID()
+	_rotation_reservoir_displacement_buf = RID()
+	_rotation_reservoir_momentum_buf = RID()
+	_rotation_reservoir_momentum_next_buf = RID()
+	_rotation_cells = 0; _rotation_field_count = 0; _rotation_reservoir_count = 0
+	_rotation_pc_bytes = PackedByteArray()
 	_jfa_shader = RID(); _jfa_pipe = RID(); _cell_shader = RID(); _cell_pipe = RID()
 	_raster_shader = RID(); _raster_pipe = RID()
 	_shortlist_shader = RID(); _shortlist_pipe = RID()
@@ -1969,6 +2277,7 @@ func _clear_gpu_handles() -> void:
 	_scan_shader = RID(); _scan_pipe = RID()
 	_bh_acc_shader = RID(); _bh_acc_pipe = RID()
 	_cf_grad_shader = RID(); _cf_grad_pipe = RID()
+	_rotation_shader = RID(); _rotation_pipe = RID()
 	_workbench_particle_shader = RID(); _workbench_particle_pipe = RID()
 	_site_physics_shader = RID(); _site_physics_pipe = RID()
 	_site_mass_shader = RID(); _site_mass_pipe = RID()
@@ -1988,6 +2297,7 @@ func _clear_gpu_handles() -> void:
 	_us_poisson_0 = RID(); _us_cond_0 = RID(); _us_cond_1 = RID()
 	_us_bh_int_0 = RID(); _us_bh_int_1 = RID()
 	_us_merge_0 = RID(); _us_scan_0 = RID(); _us_bh_acc_0 = RID(); _us_cf_grad_0 = RID()
+	_us_rotation = RID()
 	_us_poisson_c = RID(); _us_mass_dep_c = RID()
 	
 # ═══════════════════════════════════════════════════════════════════════
@@ -2223,9 +2533,10 @@ func _setup_buffers() -> void:
 	_topology_ready = false
 	_meshless_query_ready = false
 	_mesh_rebuild_pending = false
-	var topo_zero := PackedByteArray()
-	topo_zero.resize(16); topo_zero.fill(0)
-	_rd.buffer_update(_topology_status, 0, topo_zero.size(), topo_zero)
+	_topology_status_zero = PackedByteArray()
+	_topology_status_zero.resize(16)
+	_rd.buffer_update(
+		_topology_status, 0, _topology_status_zero.size(), _topology_status_zero)
 	var topo_meta_zero := PackedByteArray()
 	topo_meta_zero.resize(32); topo_meta_zero.fill(0)
 	_rd.buffer_update(_topology_meta, 0, topo_meta_zero.size(), topo_meta_zero)
@@ -2279,15 +2590,20 @@ func _setup_buffers() -> void:
 	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(18 * 4)
 	_raster_pc_bytes = PackedByteArray(); _raster_pc_bytes.resize(8 * 4)
 	_hash_pc_bytes = PackedByteArray(); _hash_pc_bytes.resize(9 * 4)  # ext_xyz, H, shortlist, tile origin xyz, mode
+	_hash_cfg_bytes = PackedByteArray(); _hash_cfg_bytes.resize(4 * 4)
+	_shortlist_pc_bytes = PackedByteArray(); _shortlist_pc_bytes.resize(3 * 4)
+	_topology_pc_bytes = PackedByteArray(); _topology_pc_bytes.resize(8 * 4)
+	_topology_adj_pc_bytes = PackedByteArray(); _topology_adj_pc_bytes.resize(4 * 4)
 	_ml_ready = false
 
 	# ── Particle-merge buffers (INIT-TIME: allocated only when particle_merge)
 	# The merge kernel's persistent per-particle state (alive/mass/mom/cen/
 	# best/sink) + the spatial-hash scratch (cc/cs/ch/cl) + the merge counter.
-	# Hash sized so each cell width ≥ R_m (the 27-neighbor pass_best provably
-	# covers every in-range pair): hash_nx_i = ⌊2·extent_i/R_m⌋, which at the
-	# default cube is exactly 2·grid_N per axis. R_m = ½·h₀ with h₀ =
-	# 2·extent_min/grid_N (matches the sim's convention).
+	# Cell widths stay ≥ R_m, so the wrapped 27-neighbor walk covers every
+	# in-range pair. The shared helper uniformly coarsens anisotropic raw
+	# dimensions to the shortest-axis cube; large-N pass_best time-slices the
+	# actual cell occupancy, avoiding both the old aspect-volume scan blow-up
+	# and its 64-entry omission. Cubic verifier geometry is unchanged.
 	if particle_merge and N_particles > 0:
 		# Hash geometry via the shared helper (dedup — identical to the sim's
 		# twin; see CassiMergeCommon.hash_geometry).
@@ -2322,8 +2638,81 @@ func _setup_buffers() -> void:
 		_merge_cell_wx = geom["cell_wx"]
 		_merge_cell_wy = geom["cell_wy"]
 		_merge_cell_wz = geom["cell_wz"]
+		print("[PhysicsEngine] particle-merge hash: %dx%dx%d = %d cells, widths=%s (R_m=%.4f)" % [
+			_merge_hash_nx, _merge_hash_ny, _merge_hash_nz, _merge_hash_total,
+			Vector3(_merge_cell_wx, _merge_cell_wy, _merge_cell_wz),
+			_extent_min() / float(maxi(grid_N, 1))])
 		_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(26 * 4)   # 26 floats = 104 B (n_sites@25) — F8: pre-sized, never reassigned
+		_merge_scan_pc_bytes = PackedByteArray(); _merge_scan_pc_bytes.resize(4 * 4)
 
+	# Rotation-stress buffers exist only for the enabled arm. The coarse field
+	# is independent of the canonical two-fluid grid and FieldVel semantics.
+	if rotation_stress_enabled:
+		_rotation_cells = rotation_grid_N * rotation_grid_N * rotation_grid_N
+		_rotation_field_count = _rotation_cells * rotation_rungs
+		_rotation_reservoir_count = 2 * _rotation_cells
+		var rotation_field_bytes: int = _rotation_field_count * 16
+		var rotation_cell_bytes: int = _rotation_cells * 16
+		var rotation_reservoir_bytes: int = _rotation_reservoir_count * 16
+		var rotation_particle_bytes: int = maxi(N_particles, 1) * 16
+		var rotation_field_zero := PackedByteArray()
+		rotation_field_zero.resize(rotation_field_bytes)
+		rotation_field_zero.fill(0)
+		var rotation_reservoir_zero := PackedByteArray()
+		rotation_reservoir_zero.resize(rotation_reservoir_bytes)
+		rotation_reservoir_zero.fill(0)
+		var rotation_cell_zero := PackedByteArray()
+		rotation_cell_zero.resize(rotation_cell_bytes)
+		rotation_cell_zero.fill(0)
+		var rotation_particle_zero := PackedByteArray()
+		rotation_particle_zero.resize(rotation_particle_bytes)
+		rotation_particle_zero.fill(0)
+		var rotation_orientation := PackedFloat32Array()
+		rotation_orientation.resize(maxi(N_particles, 1) * 4)
+		for rotation_particle in range(maxi(N_particles, 1)):
+			rotation_orientation[rotation_particle * 4 + 3] = 1.0
+		var rotation_telemetry_zero := PackedByteArray()
+		rotation_telemetry_zero.resize(16 * 4)
+		rotation_telemetry_zero.fill(0)
+		_rotation_displacement_buf = _rd.storage_buffer_create(rotation_field_bytes)
+		_rotation_momentum_buf = _rd.storage_buffer_create(rotation_field_bytes)
+		_rotation_momentum_next_buf = _rd.storage_buffer_create(rotation_field_bytes)
+		_rotation_spin_heat_buf = _rd.storage_buffer_create(rotation_field_bytes)
+		_rotation_matter_buf = _rd.storage_buffer_create(rotation_cell_bytes)
+		_rotation_impulse_buf = _rd.storage_buffer_create(rotation_cell_bytes)
+		_rotation_orientation_buf = _rd.storage_buffer_create(rotation_particle_bytes)
+		_rotation_merge_spin_dummy = _rd.storage_buffer_create(rotation_particle_bytes)
+		_rotation_telemetry_buf = _rd.storage_buffer_create(16 * 4)
+		_rotation_reservoir_displacement_buf = _rd.storage_buffer_create(
+			rotation_reservoir_bytes)
+		_rotation_reservoir_momentum_buf = _rd.storage_buffer_create(
+			rotation_reservoir_bytes)
+		_rotation_reservoir_momentum_next_buf = _rd.storage_buffer_create(
+			rotation_reservoir_bytes)
+		for rotation_buffer in [
+			_rotation_displacement_buf, _rotation_momentum_buf,
+			_rotation_momentum_next_buf, _rotation_spin_heat_buf,
+		]:
+			_rd.buffer_update(rotation_buffer, 0, rotation_field_bytes, rotation_field_zero)
+		for rotation_reservoir_buffer in [
+			_rotation_reservoir_displacement_buf,
+			_rotation_reservoir_momentum_buf,
+			_rotation_reservoir_momentum_next_buf,
+		]:
+			_rd.buffer_update(rotation_reservoir_buffer, 0,
+				rotation_reservoir_bytes, rotation_reservoir_zero)
+		_rd.buffer_update(_rotation_matter_buf, 0, rotation_cell_bytes, rotation_cell_zero)
+		_rd.buffer_update(_rotation_impulse_buf, 0, rotation_cell_bytes, rotation_cell_zero)
+		_rd.buffer_update(_rotation_orientation_buf, 0, rotation_particle_bytes,
+			rotation_orientation.to_byte_array())
+		_rd.buffer_update(_rotation_merge_spin_dummy, 0, rotation_particle_bytes, rotation_particle_zero)
+		_rd.buffer_update(_rotation_telemetry_buf, 0, 16 * 4, rotation_telemetry_zero)
+		if particle_merge and _merge_spin_buf.is_valid():
+			_rd.buffer_update(_merge_spin_buf, 0, rotation_particle_bytes, rotation_particle_zero)
+		_rotation_pc_bytes = PackedByteArray()
+		_rotation_pc_bytes.resize(24 * 4)
+	_tree_build_pc_bytes = PackedByteArray(); _tree_build_pc_bytes.resize(19 * 4)
+	_tree_grav_pc_bytes = PackedByteArray(); _tree_grav_pc_bytes.resize(8 * 4)
 	# Pre-allocate push-constant byte buffers (hitch-free pattern)
 	_pc_bytes = PackedByteArray(); _pc_bytes.resize(11 * 4)
 	_nbody_pc_bytes = PackedByteArray(); _nbody_pc_bytes.resize(15 * 4)
@@ -2358,6 +2747,7 @@ func _pipelines_ready() -> bool:
 		and (not particle_merge or _scan_pipe.is_valid())
 		and (not bh_accretion or _bh_acc_pipe.is_valid())
 		and (not cascade_level or _cf_grad_pipe.is_valid())
+		and (not rotation_stress_enabled or _rotation_pipe.is_valid())
 		and _jfa_pipe.is_valid() and _cell_pipe.is_valid() and _raster_pipe.is_valid()
 		and _topology_pipe.is_valid() and _topology_adj_pipe.is_valid()
 		and _topology_csr_pipe.is_valid() and _topology_optical_pipe.is_valid()
@@ -2426,6 +2816,10 @@ func _create_pipelines() -> void:
 		_scan_shader = _shader_create("res://compute/cassi_exclusive_scan.glsl")
 		if _scan_shader.is_valid():
 			_scan_pipe = _rd.compute_pipeline_create(_scan_shader)
+	if rotation_stress_enabled:
+		_rotation_shader = _shader_create("res://compute/cassi_rotation_stress.glsl")
+		if _rotation_shader.is_valid():
+			_rotation_pipe = _rd.compute_pipeline_create(_rotation_shader)
 	# BH accretion (only when bh_accretion; the pipeline + set are created on
 	# the init-time toggle so the default-off path is bit-identical)
 	if bh_accretion:
@@ -2563,9 +2957,9 @@ func _setup_shaders() -> void:
 		_us_bh_int_1 = _rd.uniform_set_create([
 			_uniform_storage(0, _bh_buf),
 		], _bh_int_shader, 1)
-	# Particle merge (set 0: all 15 bindings — pos/vel + per-particle state +
-	# EY/EI coherence field + hash scratch + merge counter). Gated on the
-	# init-time toggle (its buffers only exist then).
+	# Particle merge (set 0: all 30 bindings — pos/vel + per-particle state,
+	# coherence fields, particle-hash scratch, and indexed boxless site query).
+	# Gated on the init-time toggle (its buffers only exist then).
 	if particle_merge and _merge_shader.is_valid() and _merge_alive_buf.is_valid():
 		_us_merge_0 = _rd.uniform_set_create([
 			_uniform_storage(0, _pos_buf), _uniform_storage(1, _vel_buf),
@@ -2584,6 +2978,9 @@ func _setup_shaders() -> void:
 			_uniform_storage(20, _ml_psi_i), _uniform_storage(21, _ml_grad_y),
 			_uniform_storage(22, _ml_grad_i), _uniform_storage(23, _ml_pi_y),
 			_uniform_storage(24, _ml_pi_i),
+			_uniform_storage(25, _shortlist_sites), _uniform_storage(26, _hash_cell_start),
+			_uniform_storage(27, _hash_cell_sites), _uniform_storage(28, _hash_cfg),
+			_uniform_storage(29, _shortlist_count),
 		], _merge_shader, 0)
 	# On-GPU scan set (FIX B): cc(15) → cs(16) + scr(17) two-level + ch(18).
 	if particle_merge and _scan_shader.is_valid() and _merge_scr_buf.is_valid():
@@ -2712,6 +3109,25 @@ func _setup_shaders() -> void:
 		_us_site_bh_int_1 = _rd.uniform_set_create([
 			_uniform_storage(0, _bh_buf),
 		], _site_bh_int_shader, 1)
+	if rotation_stress_enabled and _rotation_shader.is_valid():
+		var rotation_spin_source: RID = _merge_spin_buf \
+				if particle_merge and _merge_spin_buf.is_valid() else _rotation_merge_spin_dummy
+		_us_rotation = _rd.uniform_set_create([
+			_uniform_storage(0, _pos_buf),
+			_uniform_storage(1, _vel_buf),
+			_uniform_storage(2, _rotation_displacement_buf),
+			_uniform_storage(3, _rotation_momentum_buf),
+			_uniform_storage(4, _rotation_momentum_next_buf),
+			_uniform_storage(5, _rotation_spin_heat_buf),
+			_uniform_storage(6, _rotation_matter_buf),
+			_uniform_storage(7, _rotation_impulse_buf),
+			_uniform_storage(8, _rotation_orientation_buf),
+			_uniform_storage(9, rotation_spin_source),
+			_uniform_storage(10, _rotation_telemetry_buf),
+			_uniform_storage(11, _rotation_reservoir_displacement_buf),
+			_uniform_storage(12, _rotation_reservoir_momentum_buf),
+			_uniform_storage(13, _rotation_reservoir_momentum_next_buf),
+		], _rotation_shader, 0)
 	_ready = (
 		_two_fluid_pipe.is_valid() and _nbody_pipe.is_valid()
 		and _poisson_pipe.is_valid() and _mass_deposit_pipe.is_valid()
@@ -2731,6 +3147,16 @@ func _setup_shaders() -> void:
 			and _us_poisson_c.is_valid() and _us_mass_dep_c.is_valid()
 			and _cf_density_buf.is_valid() and _cf_density_fix_buf.is_valid()
 			and _cf_fft_buf.is_valid() and _cf_grad_buf.is_valid()))
+		and (not rotation_stress_enabled or (
+			_rotation_pipe.is_valid() and _us_rotation.is_valid()
+			and _rotation_displacement_buf.is_valid()
+			and _rotation_momentum_buf.is_valid()
+			and _rotation_momentum_next_buf.is_valid()
+			and _rotation_spin_heat_buf.is_valid()
+			and _rotation_orientation_buf.is_valid()
+			and _rotation_reservoir_displacement_buf.is_valid()
+			and _rotation_reservoir_momentum_buf.is_valid()
+			and _rotation_reservoir_momentum_next_buf.is_valid()))
 		and _jfa_pipe.is_valid() and _cell_pipe.is_valid() and _raster_pipe.is_valid()
 		and _topology_pipe.is_valid() and _topology_adj_pipe.is_valid()
 		and _topology_csr_pipe.is_valid() and _topology_optical_pipe.is_valid()
@@ -2896,129 +3322,54 @@ func _init_particles_cpu() -> void:
 	var out_box := 0
 	var total_mass: float = 0.0
 
-	# ── Hoisted per-particle constants (the sim's interpreter-cost fix) ──
-	var salp_exp: float = 1.0 - 2.35
-	var salp_a: float = pow(0.3, salp_exp)
-	var salp_b: float = pow(30.0, salp_exp)
-	var salp_inv: float = 1.0 / salp_exp
-	var s2: float = sqrt(2.0) * maxf(cluster_radius, 1e-6)  # √2·σ
-	var s2_inv: float = 1.0 / s2
+	# Keep small verification arms byte-stable and avoid thread-pool overhead.
+	# Production-sized initial states use fixed deterministic chunks so the
+	# expensive scalar sampling work occupies the CPU instead of one GDScript
+	# worker for several seconds.
+	var s2: float = sqrt(2.0) * maxf(cluster_radius, 1e-6)
 	var two_over_sqrt_pi: float = 2.0 / sqrt(PI)
-	var a2: float = cluster_radius * cluster_radius
 	var a_s: float = maxf(cluster_radius, 1e-6)
-	var third: float = 1.0 / 3.0
-	var minus_two_thirds: float = -2.0 / 3.0
-
-	for i in range(N_particles):
-		var i4 := i * 4
-		var cidx := mini(int(i / per_cluster), nc - 1)
-		var center: Vector3 = centers[cidx]
-		var bv: Vector3 = bulk_vels[cidx]
-
-		# Salpeter IMF: dN/dM ∝ M^(-2.35), range [0.3, 30.0] M☉
-		var m := pow(salp_a - rng.randf() * (salp_a - salp_b), salp_inv)
-		pos[i4 + 3] = m
-		total_mass += m
-
-		# ── Position draw (per initial-condition profile) ──
-		var lx := 0.0; var ly := 0.0; var lz := 0.0
-		var r := 0.0
-		var r_max_eff: float = r_max_list[cidx]
-		if initial_condition == 0:
-			# Truncated Plummer — REJECTION-FREE inverse CDF
-			var u_hi: float = u_max_list[cidx]
-			var u := rng.randf_range(0.001, maxf(u_hi, 0.0011))
-			r = cluster_radius / sqrt(pow(u, minus_two_thirds) - 1.0)
-			var th := acos(2.0 * rng.randf() - 1.0)
-			var ph := rng.randf() * PI * 2.0
-			lx = r * sin(th) * cos(ph)
-			ly = r * sin(th) * sin(ph)
-			lz = r * cos(th)
-		elif initial_condition == 1:
-			# Gaussian ball — REJECTION-FREE truncated N(0, σ) draw
-			var z_max: float = r_max_eff * s2_inv
-			if z_max <= 0.0:
-				r = 0.0
-			else:
-				var u: float = rng.randf() * maxf(gauss_u_max_list[cidx], 1e-30)
-				var z_lo := 0.0
-				var z_hi: float = z_max
-				for _b in range(16):
-					var z_m: float = 0.5 * (z_lo + z_hi)
-					var f_m: float = _erf_approx(z_m) - two_over_sqrt_pi * z_m * exp(-z_m * z_m)
-					if f_m < u:
-						z_lo = z_m
-					else:
-						z_hi = z_m
-				var z: float = 0.5 * (z_lo + z_hi)
-				r = s2 * z
-			var th := acos(2.0 * rng.randf() - 1.0)
-			var ph := rng.randf() * PI * 2.0
-			lx = r * sin(th) * cos(ph)
-			ly = r * sin(th) * sin(ph)
-			lz = r * cos(th)
-		else:
-			# Uniform sphere — REJECTION-FREE truncated draw
-			var u_trunc: float = minf(1.0, pow(r_max_eff / a_s, 3.0))
-			var u := rng.randf() * u_trunc
-			r = a_s * pow(u, third)
-			var th := acos(2.0 * rng.randf() - 1.0)
-			var ph := rng.randf() * PI * 2.0
-			lx = r * sin(th) * cos(ph)
-			ly = r * sin(th) * sin(ph)
-			lz = r * cos(th)
-		pos[i4] = lx + center.x
-		pos[i4 + 1] = ly + center.y
-		pos[i4 + 2] = lz + center.z
-
-		# ── Multi-rung cascade seeding (CASCADE_GRID.md §3.3) ──
-		if multi_rung_seed and multi_rung_count > 0:
-			var wx: float = pos[i4]
-			var wy: float = pos[i4 + 1]
-			var wz: float = pos[i4 + 2]
-			var k_base: float = TAU / (multi_rung_base_scale * maxf(cluster_radius, 1e-6))
-			for mr in range(multi_rung_count):
-				var km: float = k_base * pow(PHI, float(mr))
-				var d: Vector3 = _fib_sphere_dir(mr, multi_rung_count)
-				var ph_m: float = float(mr) * (TAU / (PHI * PHI))
-				var s: float = sin(km * (d.x * wx + d.y * wy + d.z * wz) + ph_m)
-				var amp: float = multi_rung_amp / km
-				wx += amp * s * d.x
-				wy += amp * s * d.y
-				wz += amp * s * d.z
-			pos[i4] = wx
-			pos[i4 + 1] = wy
-			pos[i4 + 2] = wz
-
-		var rr: float = sqrt(lx * lx + ly * ly + lz * lz)
-		max_r = maxf(max_r, rr)
-		var mc: float = maxf(absf(pos[i4]), maxf(absf(pos[i4 + 1]), absf(pos[i4 + 2])))
-		max_comp = maxf(max_comp, mc)
-		if absf(pos[i4]) > ext_box.x or absf(pos[i4 + 1]) > ext_box.y or absf(pos[i4 + 2]) > ext_box.z:
-			out_box += 1
-
-		# ── Circular velocity around cluster center + bulk ──
-		var r2p := r * r + eps2
-		var M_enc: float = 0.0
-		if initial_condition == 0:
-			M_enc = float(per_cluster) * (r2p * r) / ((r2p + a2) * sqrt(r2p + a2))
-		elif initial_condition == 1:
-			var z: float = sqrt(r2p) * s2_inv
-			M_enc = float(per_cluster) * (_erf_approx(z) - two_over_sqrt_pi * z * exp(-z * z))
-		else:
-			M_enc = float(per_cluster) * minf(1.0, pow(sqrt(r2p) / a_s, 3.0))
-		var v_circ := sqrt(G * M_enc / maxf(r, 0.01)) * initial_v_circ_factor
-		var nx := -ly; var ny := lx; var nz := 0.0
-		var nl := sqrt(nx * nx + ny * ny + nz * nz)
-		if nl > 0.001:
-			nx /= nl; ny /= nl; nz /= nl
-		else:
-			nx = 1.0; ny = 0.0; nz = 0.0
-		var pert := 0.05
-		vel[i4] = (nx + rng.randf_range(-pert, pert)) * v_circ + bv.x
-		vel[i4 + 1] = (ny + rng.randf_range(-pert, pert)) * v_circ + bv.y
-		vel[i4 + 2] = (nz + rng.randf_range(-pert, pert)) * v_circ + bv.z
-		vel[i4 + 3] = 0.0
+	var chunk_count := PARTICLE_INIT_PARALLEL_CHUNKS \
+			if N_particles >= PARTICLE_INIT_PARALLEL_THRESHOLD else 1
+	var chunk_size := ceili(float(N_particles) / float(chunk_count))
+	var init_context := {
+		"chunk_size": chunk_size,
+		"seed": int(rng.seed),
+		"centers": centers,
+		"bulk_vels": bulk_vels,
+		"per_cluster": per_cluster,
+		"cluster_count": nc,
+		"u_max_list": u_max_list,
+		"gauss_u_max_list": gauss_u_max_list,
+		"r_max_list": r_max_list,
+		"ext_box": ext_box,
+		"pos": pos,
+		"vel": vel,
+		"fast_direction": chunk_count > 1,
+	}
+	_init_chunk_stats.clear()
+	_init_chunk_stats.resize(chunk_count)
+	var init_started_ms := Time.get_ticks_msec()
+	if chunk_count == 1:
+		_init_particle_chunk(0, init_context)
+	else:
+		var group_id := WorkerThreadPool.add_group_task(
+				_init_particle_chunk.bind(init_context),
+				chunk_count,
+				mini(chunk_count, maxi(OS.get_processor_count(), 1)),
+				true,
+				"Cassi particle initial conditions")
+		WorkerThreadPool.wait_for_group_task_completion(group_id)
+	for chunk_stats in _init_chunk_stats:
+		max_r = maxf(max_r, float(chunk_stats["max_r"]))
+		max_comp = maxf(max_comp, float(chunk_stats["max_comp"]))
+		out_box += int(chunk_stats["out_box"])
+		total_mass += float(chunk_stats["total_mass"])
+	_init_chunk_stats.clear()
+	print("[PhysicsEngine] Particle IC generation: %d ms (%d fixed chunk%s)" % [
+			Time.get_ticks_msec() - init_started_ms,
+			chunk_count,
+			"" if chunk_count == 1 else "s"])
 
 	# M0b-P: the IC arrays stay HOST-side (the worker cannot buffer_update
 	# the global RD — render-thread-only); finish_setup's _upload_particles
@@ -3049,6 +3400,158 @@ func _init_particles_cpu() -> void:
 	print("[PhysicsEngine] IC [%s]: retained=%.4f  max_radius=%.1f  max|comp|=%.1f  out_of_box=%d (fr=%.2f, extent_min=%.1f, aspect=%s)" % [
 		ic_name, retained, max_r, max_comp, out_box, fr, extent_min, str(box_aspect)])
 	print("[PhysicsEngine] Particles initialized: %d (Σm=%.1f, m_mean=%.4f)" % [N_particles, total_mass, total_mass / float(maxi(N_particles, 1))])
+
+func _init_particle_chunk(chunk_index: int, context: Dictionary) -> void:
+	var chunk_size: int = int(context["chunk_size"])
+	var start_index := chunk_index * chunk_size
+	var end_index := mini(start_index + chunk_size, N_particles)
+	var pos: PackedFloat32Array = context["pos"]
+	var vel: PackedFloat32Array = context["vel"]
+	var centers: Array = context["centers"]
+	var bulk_vels: Array = context["bulk_vels"]
+	var per_cluster: float = float(context["per_cluster"])
+	var nc: int = int(context["cluster_count"])
+	var u_max_list: Array = context["u_max_list"]
+	var gauss_u_max_list: Array = context["gauss_u_max_list"]
+	var r_max_list: Array = context["r_max_list"]
+	var ext_box: Vector3 = context["ext_box"]
+	var fast_direction: bool = bool(context["fast_direction"])
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(context["seed"]) + chunk_index * 1_000_003
+	var eps2 := softening * softening
+	var salp_exp: float = 1.0 - 2.35
+	var salp_a: float = pow(0.3, salp_exp)
+	var salp_b: float = pow(30.0, salp_exp)
+	var salp_inv: float = 1.0 / salp_exp
+	var s2: float = sqrt(2.0) * maxf(cluster_radius, 1e-6)
+	var s2_inv: float = 1.0 / s2
+	var two_over_sqrt_pi: float = 2.0 / sqrt(PI)
+	var a2: float = cluster_radius * cluster_radius
+	var a_s: float = maxf(cluster_radius, 1e-6)
+	var third: float = 1.0 / 3.0
+	var minus_two_thirds: float = -2.0 / 3.0
+	var max_r := 0.0
+	var max_comp := 0.0
+	var out_box := 0
+	var total_mass := 0.0
+
+	for i in range(start_index, end_index):
+		var i4 := i * 4
+		var cidx := mini(int(i / per_cluster), nc - 1)
+		var center: Vector3 = centers[cidx]
+		var bv: Vector3 = bulk_vels[cidx]
+
+		# Salpeter IMF: dN/dM ∝ M^(-2.35), range [0.3, 30.0] M☉
+		var m := pow(salp_a - rng.randf() * (salp_a - salp_b), salp_inv)
+		pos[i4 + 3] = m
+		total_mass += m
+
+		# Rejection-free radius draw for the selected initial-condition profile.
+		var r := 0.0
+		var r_max_eff: float = r_max_list[cidx]
+		if initial_condition == 0:
+			var u_hi: float = u_max_list[cidx]
+			var u := rng.randf_range(0.001, maxf(u_hi, 0.0011))
+			r = cluster_radius / sqrt(pow(u, minus_two_thirds) - 1.0)
+		elif initial_condition == 1:
+			var z_max: float = r_max_eff * s2_inv
+			if z_max > 0.0:
+				var u: float = rng.randf() * maxf(gauss_u_max_list[cidx], 1e-30)
+				var z_lo := 0.0
+				var z_hi: float = z_max
+				for _b in range(16):
+					var z_m: float = 0.5 * (z_lo + z_hi)
+					var f_m: float = _erf_approx(z_m) - two_over_sqrt_pi * z_m * exp(-z_m * z_m)
+					if f_m < u:
+						z_lo = z_m
+					else:
+						z_hi = z_m
+				r = s2 * 0.5 * (z_lo + z_hi)
+		else:
+			var u_trunc: float = minf(1.0, pow(r_max_eff / a_s, 3.0))
+			r = a_s * pow(rng.randf() * u_trunc, third)
+
+		var lx := 0.0
+		var ly := 0.0
+		var lz := 0.0
+		if fast_direction:
+			# cos(theta) is uniform; avoid the previous acos→sin/cos round trip.
+			var cos_theta := 2.0 * rng.randf() - 1.0
+			var sin_theta := sqrt(maxf(1.0 - cos_theta * cos_theta, 0.0))
+			var phi := rng.randf() * TAU
+			lx = r * sin_theta * cos(phi)
+			ly = r * sin_theta * sin(phi)
+			lz = r * cos_theta
+		else:
+			# Preserve the legacy seeded stream/rounding in small verification arms.
+			var theta := acos(2.0 * rng.randf() - 1.0)
+			var phi := rng.randf() * PI * 2.0
+			lx = r * sin(theta) * cos(phi)
+			ly = r * sin(theta) * sin(phi)
+			lz = r * cos(theta)
+		pos[i4] = lx + center.x
+		pos[i4 + 1] = ly + center.y
+		pos[i4 + 2] = lz + center.z
+
+		if multi_rung_seed and multi_rung_count > 0:
+			var wx: float = pos[i4]
+			var wy: float = pos[i4 + 1]
+			var wz: float = pos[i4 + 2]
+			var k_base: float = TAU / (multi_rung_base_scale * maxf(cluster_radius, 1e-6))
+			for mr in range(multi_rung_count):
+				var km: float = k_base * pow(PHI, float(mr))
+				var d: Vector3 = _fib_sphere_dir(mr, multi_rung_count)
+				var ph_m: float = float(mr) * (TAU / (PHI * PHI))
+				var s: float = sin(km * (d.x * wx + d.y * wy + d.z * wz) + ph_m)
+				var amp: float = multi_rung_amp / km
+				wx += amp * s * d.x
+				wy += amp * s * d.y
+				wz += amp * s * d.z
+			pos[i4] = wx
+			pos[i4 + 1] = wy
+			pos[i4 + 2] = wz
+
+		var rr := sqrt(lx * lx + ly * ly + lz * lz)
+		max_r = maxf(max_r, rr)
+		var mc := maxf(absf(pos[i4]), maxf(absf(pos[i4 + 1]), absf(pos[i4 + 2])))
+		max_comp = maxf(max_comp, mc)
+		if absf(pos[i4]) > ext_box.x or absf(pos[i4 + 1]) > ext_box.y or absf(pos[i4 + 2]) > ext_box.z:
+			out_box += 1
+
+		# Circular velocity around the owning cluster plus its bulk motion.
+		var r2p := r * r + eps2
+		var mass_enclosed := 0.0
+		if initial_condition == 0:
+			mass_enclosed = float(per_cluster) * (r2p * r) / ((r2p + a2) * sqrt(r2p + a2))
+		elif initial_condition == 1:
+			var z: float = sqrt(r2p) * s2_inv
+			mass_enclosed = float(per_cluster) * (_erf_approx(z) - two_over_sqrt_pi * z * exp(-z * z))
+		else:
+			mass_enclosed = float(per_cluster) * minf(1.0, pow(sqrt(r2p) / a_s, 3.0))
+		var v_circ := sqrt(mass_enclosed / maxf(r, 0.01)) * initial_v_circ_factor
+		var nx := -ly
+		var ny := lx
+		var nz := 0.0
+		var tangent_length := sqrt(nx * nx + ny * ny)
+		if tangent_length > 0.001:
+			nx /= tangent_length
+			ny /= tangent_length
+		else:
+			nx = 1.0
+			ny = 0.0
+		var perturbation := 0.05
+		vel[i4] = (nx + rng.randf_range(-perturbation, perturbation)) * v_circ + bv.x
+		vel[i4 + 1] = (ny + rng.randf_range(-perturbation, perturbation)) * v_circ + bv.y
+		vel[i4 + 2] = (nz + rng.randf_range(-perturbation, perturbation)) * v_circ + bv.z
+		vel[i4 + 3] = 0.0
+
+	_init_chunk_stats[chunk_index] = {
+		"max_r": max_r,
+		"max_comp": max_comp,
+		"out_box": out_box,
+		"total_mass": total_mass,
+	}
 
 
 ## M0b-P: the IC host arrays → the GPU buffers. MAIN THREAD (the global
@@ -3116,23 +3619,33 @@ func _meshless_init() -> void:
 	var sy: float = Ly / float(ML_N1)
 	var sz: float = Lz / float(ML_N1)
 	var sites := PackedFloat32Array()
+	sites.resize(ml_ns * 4)
+	var site_offset := 0
 	for i in range(ML_N1):
 		for j in range(ML_N1):
 			for k in range(ML_N1):
-				sites.append_array(PackedFloat32Array([
-					float(i) * sx + rng.randf_range(-0.2, 0.2) * sx,
-					float(j) * sy + rng.randf_range(-0.2, 0.2) * sy,
-					float(k) * sz + rng.randf_range(-0.2, 0.2) * sz,
-					0.0]))
-				sites.append_array(PackedFloat32Array([
-					(float(i) + 0.5) * sx + rng.randf_range(-0.2, 0.2) * sx,
-					(float(j) + 0.5) * sy + rng.randf_range(-0.2, 0.2) * sy,
-					(float(k) + 0.5) * sz + rng.randf_range(-0.2, 0.2) * sz,
-					0.0]))
+				sites[site_offset] = float(i) * sx + rng.randf_range(-0.2, 0.2) * sx
+				sites[site_offset + 1] = float(j) * sy + rng.randf_range(-0.2, 0.2) * sy
+				sites[site_offset + 2] = float(k) * sz + rng.randf_range(-0.2, 0.2) * sz
+				site_offset += 4
+				sites[site_offset] = (float(i) + 0.5) * sx + rng.randf_range(-0.2, 0.2) * sx
+				sites[site_offset + 1] = (float(j) + 0.5) * sy + rng.randf_range(-0.2, 0.2) * sy
+				sites[site_offset + 2] = (float(k) + 0.5) * sz + rng.randf_range(-0.2, 0.2) * sz
+				site_offset += 4
+	_ml_sites_bmin = Vector3.INF
+	_ml_sites_bmax = -Vector3.INF
 	for m in range(sites.size() / 4):
 		sites[m * 4] = fposmod(sites[m * 4], Lx)
 		sites[m * 4 + 1] = fposmod(sites[m * 4 + 1], Ly)
 		sites[m * 4 + 2] = fposmod(sites[m * 4 + 2], Lz)
+		var site_pos := Vector3(
+			sites[m * 4], sites[m * 4 + 1], sites[m * 4 + 2])
+		_ml_sites_bmin.x = minf(_ml_sites_bmin.x, site_pos.x)
+		_ml_sites_bmin.y = minf(_ml_sites_bmin.y, site_pos.y)
+		_ml_sites_bmin.z = minf(_ml_sites_bmin.z, site_pos.z)
+		_ml_sites_bmax.x = maxf(_ml_sites_bmax.x, site_pos.x)
+		_ml_sites_bmax.y = maxf(_ml_sites_bmax.y, site_pos.y)
+		_ml_sites_bmax.z = maxf(_ml_sites_bmax.z, site_pos.z)
 	_ml_sites_cpu = sites
 	_rd.buffer_update(_ml_sites, 0, sites.size() * 4, sites.to_byte_array())
 	var world_sites := PackedFloat32Array()
@@ -3365,10 +3878,14 @@ func _ml_jfa_pass(jp: int, read_a: int) -> void:
 	var N := grid_N
 	var ml_ns := 2 * ML_N1 * ML_N1 * ML_N1
 	var ext := _extents()
-	var pcb := PackedFloat32Array([float(N), float(jp), float(read_a),
-		float(ml_ns), 2.0 * ext.x / float(N), 2.0 * ext.y / float(N),
-		2.0 * ext.z / float(N), 0.0])
-	_jfa_pc_bytes = pcb.to_byte_array()
+	_jfa_pc_bytes.encode_float(0, float(N))
+	_jfa_pc_bytes.encode_float(4, float(jp))
+	_jfa_pc_bytes.encode_float(8, float(read_a))
+	_jfa_pc_bytes.encode_float(12, float(ml_ns))
+	_jfa_pc_bytes.encode_float(16, 2.0 * ext.x / float(N))
+	_jfa_pc_bytes.encode_float(20, 2.0 * ext.y / float(N))
+	_jfa_pc_bytes.encode_float(24, 2.0 * ext.z / float(N))
+	_jfa_pc_bytes.encode_float(28, 0.0)
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _jfa_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_jfa_0, 0)
@@ -3396,15 +3913,29 @@ func _ml_cell_pc(mode: float) -> PackedByteArray:
 	var hz: float = 2.0 * ext.z / float(N)
 	var h_min: float = minf(hx, minf(hy, hz))
 	var c2: float = h_min * h_min  # the grid's 19-point stencil reads h₀²∇² — match it
-	var pcb := PackedFloat32Array([mode, float(N), float(ml_ns), dt,
-		hx, hy, hz, c2, ML_OM2, PHI, source_strength,
-		ML_RHO_FLOOR, ML_MAX_DRIFT, ML_KAPPA, ML_LAM,
-		dt * float(ML_REBUILD), ML_LLOYD_P, winding_coupling])
-	return pcb.to_byte_array()
+	_cell_pc_bytes.encode_float(0, mode)
+	_cell_pc_bytes.encode_float(4, float(N))
+	_cell_pc_bytes.encode_float(8, float(ml_ns))
+	_cell_pc_bytes.encode_float(12, dt)
+	_cell_pc_bytes.encode_float(16, hx)
+	_cell_pc_bytes.encode_float(20, hy)
+	_cell_pc_bytes.encode_float(24, hz)
+	_cell_pc_bytes.encode_float(28, c2)
+	_cell_pc_bytes.encode_float(32, ML_OM2)
+	_cell_pc_bytes.encode_float(36, PHI)
+	_cell_pc_bytes.encode_float(40, source_strength)
+	_cell_pc_bytes.encode_float(44, ML_RHO_FLOOR)
+	_cell_pc_bytes.encode_float(48, ML_MAX_DRIFT)
+	_cell_pc_bytes.encode_float(52, ML_KAPPA)
+	_cell_pc_bytes.encode_float(56, ML_LAM)
+	_cell_pc_bytes.encode_float(60, dt * float(ML_REBUILD))
+	_cell_pc_bytes.encode_float(64, ML_LLOYD_P)
+	_cell_pc_bytes.encode_float(68, winding_coupling)
+	return _cell_pc_bytes
 
 
 func _ml_cell_dispatch(mode: float, groups: int) -> void:
-	_cell_pc_bytes = _ml_cell_pc(mode)
+	_ml_cell_pc(mode)
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
@@ -3417,13 +3948,16 @@ func prepare_mesh_rebuild() -> bool:
 	if _rd == null or not _ready:
 		return false
 	if _topology_status.is_valid():
-		var invalid := PackedByteArray(); invalid.resize(16); invalid.fill(0)
-		_rd.buffer_update(_topology_status, 0, invalid.size(), invalid)
+		_rd.buffer_update(
+			_topology_status, 0, _topology_status_zero.size(), _topology_status_zero)
 	if _hash_pipe.is_valid() and _hash_cfg.is_valid():
 		var ext_p := _extents()
 		var hcs_cfg := (2.0 * ext_p.x) / float(HASH_H)
-		_rd.buffer_update(_hash_cfg, 0, 16,
-			PackedFloat32Array([0.0, 0.0, 0.0, hcs_cfg]).to_byte_array())
+		_hash_cfg_bytes.encode_float(0, _window_center.x)
+		_hash_cfg_bytes.encode_float(4, _window_center.y)
+		_hash_cfg_bytes.encode_float(8, _window_center.z)
+		_hash_cfg_bytes.encode_float(12, hcs_cfg)
+		_rd.buffer_update(_hash_cfg, 0, _hash_cfg_bytes.size(), _hash_cfg_bytes)
 	return true
 
 ## Record the complete meshless rebuild into an existing command list when
@@ -3453,78 +3987,114 @@ func _mesh_rebuild(existing_cl: int = -1) -> void:
 		cl = _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
-	for cell_mode in [7.0, 3.0, 4.0, 5.0, 6.0, 8.0, 9.0]:
-		_cell_pc_bytes = _ml_cell_pc(cell_mode)
+	for cell_mode in ML_REBUILD_CELL_MODES:
+		_ml_cell_pc(cell_mode)
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1 if cell_mode == 3.0 or cell_mode == 8.0 else wgs, 1, 1)
 		_barrier(cl)
 	_rd.compute_list_bind_compute_pipeline(cl, _jfa_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_jfa_0, 0)
 	var read_a := 1
-	for jp in [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1, 1, 1]:
-		_jfa_pc_bytes = PackedFloat32Array([float(N), float(jp), float(read_a), float(ml_ns), hx_rb, hy_rb, hz_rb, 0.0]).to_byte_array()
+	_jfa_pc_bytes.encode_float(0, float(N))
+	_jfa_pc_bytes.encode_float(12, float(ml_ns))
+	_jfa_pc_bytes.encode_float(16, hx_rb)
+	_jfa_pc_bytes.encode_float(20, hy_rb)
+	_jfa_pc_bytes.encode_float(24, hz_rb)
+	_jfa_pc_bytes.encode_float(28, 0.0)
+	for jp in ML_JFA_JUMPS:
+		_jfa_pc_bytes.encode_float(4, float(jp))
+		_jfa_pc_bytes.encode_float(8, float(read_a))
 		_rd.compute_list_set_push_constant(cl, _jfa_pc_bytes, _jfa_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
 		_barrier(cl)
 		read_a = 1 - read_a
-	_jfa_pc_bytes = PackedFloat32Array([float(N), 0.0, 0.0,
-		float(ml_ns), hx_rb, hy_rb, hz_rb, 0.0]).to_byte_array()
+	_jfa_pc_bytes.encode_float(4, 0.0)
+	_jfa_pc_bytes.encode_float(8, 0.0)
 	_rd.compute_list_set_push_constant(cl, _jfa_pc_bytes, _jfa_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg1, 1, 1)
 	_barrier(cl)
 	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
-	_cell_pc_bytes = _ml_cell_pc(2.0)
+	_ml_cell_pc(2.0)
 	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg1, 1, 1)
 	_barrier(cl)
 	_rd.compute_list_bind_compute_pipeline(cl, _topology_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_topology, 0)
-	_topology_pc_bytes = PackedFloat32Array([float(N), float(ml_ns), 0.0,
-		0.0, 0.0, 0.0, 0.0, 0.0]).to_byte_array()
+	_topology_pc_bytes.encode_float(0, float(N))
+	_topology_pc_bytes.encode_float(4, float(ml_ns))
+	_topology_pc_bytes.encode_float(8, 0.0)
+	_topology_pc_bytes.encode_float(12, 0.0)
+	_topology_pc_bytes.encode_float(16, 0.0)
+	_topology_pc_bytes.encode_float(20, 0.0)
+	_topology_pc_bytes.encode_float(24, 0.0)
+	_topology_pc_bytes.encode_float(28, 0.0)
 	_rd.compute_list_set_push_constant(cl, _topology_pc_bytes, _topology_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg1, 1, 1)
 	_barrier(cl)
-	_topology_pc_bytes = PackedFloat32Array([float(N), float(ml_ns), 1.0,
-		0.0, 0.0, ext_rb.x, ext_rb.y, ext_rb.z]).to_byte_array()
+	_topology_pc_bytes.encode_float(8, 1.0)
+	_topology_pc_bytes.encode_float(20, ext_rb.x)
+	_topology_pc_bytes.encode_float(24, ext_rb.y)
+	_topology_pc_bytes.encode_float(28, ext_rb.z)
 	_rd.compute_list_set_push_constant(cl, _topology_pc_bytes, _topology_pc_bytes.size())
+	_rd.compute_list_dispatch(cl, wgs, 1, 1)
+	_barrier(cl)
 	var open_read_a := 1.0
 	var open_jump := 1
 	while open_jump < N: open_jump *= 2
 	open_jump /= 2
 	while open_jump >= 1:
-		_topology_pc_bytes = PackedFloat32Array([float(N), float(ml_ns), 2.0,
-			open_read_a, float(open_jump), ext_rb.x, ext_rb.y, ext_rb.z]).to_byte_array()
+		_topology_pc_bytes.encode_float(8, 2.0)
+		_topology_pc_bytes.encode_float(12, open_read_a)
+		_topology_pc_bytes.encode_float(16, float(open_jump))
 		_rd.compute_list_set_push_constant(cl, _topology_pc_bytes, _topology_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1); _barrier(cl)
 		open_read_a = 1.0 - open_read_a
 		open_jump /= 2
-	_topology_pc_bytes = PackedFloat32Array([float(N), float(ml_ns), 3.0,
-		open_read_a, 0.0, ext_rb.x, ext_rb.y, ext_rb.z]).to_byte_array()
+	_topology_pc_bytes.encode_float(8, 3.0)
+	_topology_pc_bytes.encode_float(12, open_read_a)
+	_topology_pc_bytes.encode_float(16, 0.0)
 	_rd.compute_list_set_push_constant(cl, _topology_pc_bytes, _topology_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg1, 1, 1); _barrier(cl)
 	_rd.compute_list_bind_compute_pipeline(cl, _topology_adj_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_topology_adj, 0)
-	_topology_pc_bytes = PackedFloat32Array([float(N), float(ml_ns), float(topo_words), 0.0]).to_byte_array()
-	_rd.compute_list_set_push_constant(cl, _topology_pc_bytes, _topology_pc_bytes.size())
+	_topology_adj_pc_bytes.encode_float(0, float(N))
+	_topology_adj_pc_bytes.encode_float(4, float(ml_ns))
+	_topology_adj_pc_bytes.encode_float(8, float(topo_words))
+	_topology_adj_pc_bytes.encode_float(12, 0.0)
+	_rd.compute_list_set_push_constant(cl, _topology_adj_pc_bytes, _topology_adj_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, maxi(int(ceil(float(ml_ns * topo_words) / 64.0)), 1), 1, 1); _barrier(cl)
-	_topology_pc_bytes = PackedFloat32Array([float(N), float(ml_ns), float(topo_words), 1.0]).to_byte_array()
-	_rd.compute_list_set_push_constant(cl, _topology_pc_bytes, _topology_pc_bytes.size())
+	_topology_adj_pc_bytes.encode_float(12, 1.0)
+	_rd.compute_list_set_push_constant(cl, _topology_adj_pc_bytes, _topology_adj_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg1, 1, 1); _barrier(cl)
 	_rd.compute_list_bind_compute_pipeline(cl, _topology_csr_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_topology_csr, 0)
-	_topology_pc_bytes = PackedFloat32Array([float(ml_ns), float(topo_words), 0.0, float(_topology_neighbor_capacity), float(next_generation), 0.0, 0.0, 0.0]).to_byte_array()
+	_topology_pc_bytes.encode_float(0, float(ml_ns))
+	_topology_pc_bytes.encode_float(4, float(topo_words))
+	_topology_pc_bytes.encode_float(8, 0.0)
+	_topology_pc_bytes.encode_float(12, float(_topology_neighbor_capacity))
+	_topology_pc_bytes.encode_float(16, float(next_generation))
+	_topology_pc_bytes.encode_float(20, 0.0)
+	_topology_pc_bytes.encode_float(24, 0.0)
+	_topology_pc_bytes.encode_float(28, 0.0)
 	_rd.compute_list_set_push_constant(cl, _topology_pc_bytes, _topology_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wgs, 1, 1); _barrier(cl)
-	_topology_pc_bytes = PackedFloat32Array([float(ml_ns), float(topo_words), 2.0, float(_topology_neighbor_capacity), float(next_generation), 0.0, 0.0, 0.0]).to_byte_array()
+	_topology_pc_bytes.encode_float(8, 2.0)
 	_rd.compute_list_set_push_constant(cl, _topology_pc_bytes, _topology_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, 1, 1, 1); _barrier(cl)
-	_topology_pc_bytes = PackedFloat32Array([float(ml_ns), float(topo_words), 1.0, float(_topology_neighbor_capacity), float(next_generation), 0.0, 0.0, 0.0]).to_byte_array()
+	_topology_pc_bytes.encode_float(8, 1.0)
 	_rd.compute_list_set_push_constant(cl, _topology_pc_bytes, _topology_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wgs, 1, 1); _barrier(cl)
 	_rd.compute_list_bind_compute_pipeline(cl, _topology_optical_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_topology_optical, 0)
-	_topology_pc_bytes = PackedFloat32Array([float(ml_ns), ext_rb.x, ext_rb.y, ext_rb.z, 1.0, 0.0, 0.0, 0.0]).to_byte_array()
+	_topology_pc_bytes.encode_float(0, float(ml_ns))
+	_topology_pc_bytes.encode_float(4, ext_rb.x)
+	_topology_pc_bytes.encode_float(8, ext_rb.y)
+	_topology_pc_bytes.encode_float(12, ext_rb.z)
+	_topology_pc_bytes.encode_float(16, 1.0)
+	_topology_pc_bytes.encode_float(20, 0.0)
+	_topology_pc_bytes.encode_float(24, 0.0)
+	_topology_pc_bytes.encode_float(28, 0.0)
 	_rd.compute_list_set_push_constant(cl, _topology_pc_bytes, _topology_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wgs, 1, 1); _barrier(cl)
 	# Arm 1 shortlist: rebuild the coherence-filtered tile-local site list
@@ -3533,12 +4103,14 @@ func _mesh_rebuild(existing_cl: int = -1) -> void:
 	if _shortlist_pipe.is_valid() and _us_shortlist.is_valid():
 		_rd.compute_list_bind_compute_pipeline(cl, _shortlist_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_shortlist, 0)
-		var shortlist_floor := 0.0 if gridless_physics else SS_Q_FLOOR
-		_shortlist_pc_bytes = PackedFloat32Array([float(ml_ns), shortlist_floor, 0.0]).to_byte_array()
+		var shortlist_floor := 0.0 if gridless_physics or (particle_merge and boxless_field) else SS_Q_FLOOR
+		_shortlist_pc_bytes.encode_float(0, float(ml_ns))
+		_shortlist_pc_bytes.encode_float(4, shortlist_floor)
+		_shortlist_pc_bytes.encode_float(8, 0.0)
 		_rd.compute_list_set_push_constant(cl, _shortlist_pc_bytes, _shortlist_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, 1, 1, 1)
 		_rd.compute_list_add_barrier(cl)
-		_shortlist_pc_bytes = PackedFloat32Array([float(ml_ns), shortlist_floor, 1.0]).to_byte_array()
+		_shortlist_pc_bytes.encode_float(8, 1.0)
 		_rd.compute_list_set_push_constant(cl, _shortlist_pc_bytes, _shortlist_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wgs, 1, 1)
 		_rd.compute_list_add_barrier(cl)
@@ -3547,8 +4119,6 @@ func _mesh_rebuild(existing_cl: int = -1) -> void:
 	# 2·extent/H, and origin=(0,0,0) because _ml_sites are tile-local
 	# [0,2·extent). This remains correct when the render window is translated.
 	if _hash_pipe.is_valid() and _us_hash.is_valid():
-		_hash_pc_bytes = PackedFloat32Array([ext_rb.x, ext_rb.y, ext_rb.z,
-			float(HASH_H), float(ml_ns), 0.0, 0.0, 0.0, 0.0]).to_byte_array()
 		_hash_pc_bytes.encode_float(0, ext_rb.x)
 		_hash_pc_bytes.encode_float(4, ext_rb.y)
 		_hash_pc_bytes.encode_float(8, ext_rb.z)
@@ -3627,15 +4197,10 @@ func _tree_run_in_list(cl: int) -> void:
 	# structure-rooted cube engages only after the geometry actually
 	# re-fits (the sim's envelope tracker re-fit — box_scale != 1.0 — or a
 	# moved window origin).
-	var bmin := Vector3.INF
-	var bmax := -Vector3.INF
 	var root_offset := (-ext + _window_center) if gridless_physics else Vector3.ZERO
-	for si in range(S):
-		var site_pos := Vector3(
-			_ml_sites_cpu[si * 4], _ml_sites_cpu[si * 4 + 1], _ml_sites_cpu[si * 4 + 2]) + root_offset
-		bmin.x = minf(bmin.x, site_pos.x); bmin.y = minf(bmin.y, site_pos.y); bmin.z = minf(bmin.z, site_pos.z)
-		bmax.x = maxf(bmax.x, site_pos.x); bmax.y = maxf(bmax.y, site_pos.y); bmax.z = maxf(bmax.z, site_pos.z)
-	var box_half: float = maxf(ext.x, maxf(ext.y, maxf(ext.z, ext.z))) * 1.000001
+	var bmin := _ml_sites_bmin + root_offset
+	var bmax := _ml_sites_bmax + root_offset
+	var box_half: float = maxf(ext.x, maxf(ext.y, ext.z)) * 1.000001
 	var window_refit: bool = _home_window and (box_scale != 1.0 \
 			or _window_center != Vector3.ZERO)
 	if not window_refit:
@@ -3647,30 +4212,28 @@ func _tree_run_in_list(cl: int) -> void:
 	var bhalf: float = 0.5 * maxf(bmax.x - bmin.x, maxf(bmax.y - bmin.y, bmax.z - bmin.z)) * 1.000001 + 1e-6
 	var eps2: float = ML_TREE_EPS2_FRAC * ML_TREE_EPS2_FRAC * _extent_min() * _extent_min()
 	var tnm: int = ML_TREE_NODE_MAX_MULT * S + 64
-	var bpc := PackedFloat32Array()
-	bpc.resize(19)
-	bpc[0] = float(S)
-	bpc[1] = bmin.x; bpc[2] = bmin.y; bpc[3] = bmin.z
-	bpc[4] = bhalf
-	bpc[5] = eps2
-	bpc[6] = PHI
-	bpc[7] = PHI_6
-	bpc[8] = float(ML_TREE_LEAF_CAP)
-	bpc[9] = float(ML_TREE_MAX_LEVELS)
-	bpc[14] = float(grid_N)
-	bpc[15] = ext.x; bpc[16] = ext.y; bpc[17] = ext.z
-	bpc[18] = -ML_TREE_FIELD_FLOOR if gridless_physics else ML_TREE_FIELD_FLOOR
-	var gpc := PackedFloat32Array()
-	gpc.resize(8)
-	gpc[0] = float(N_particles)
-	gpc[1] = ML_TREE_THETA
-	gpc[2] = eps2
-	gpc[3] = 1.0
-	gpc[4] = float(tnm)
+	var bpc := _tree_build_pc_bytes
+	bpc.encode_float(0, float(S))
+	bpc.encode_float(4, bmin.x); bpc.encode_float(8, bmin.y); bpc.encode_float(12, bmin.z)
+	bpc.encode_float(16, bhalf)
+	bpc.encode_float(20, eps2)
+	bpc.encode_float(24, PHI)
+	bpc.encode_float(28, PHI_6)
+	bpc.encode_float(32, float(ML_TREE_LEAF_CAP))
+	bpc.encode_float(36, float(ML_TREE_MAX_LEVELS))
+	bpc.encode_float(56, float(grid_N))
+	bpc.encode_float(60, ext.x); bpc.encode_float(64, ext.y); bpc.encode_float(68, ext.z)
+	bpc.encode_float(72, -ML_TREE_FIELD_FLOOR if gridless_physics else ML_TREE_FIELD_FLOOR)
+	var gpc := _tree_grav_pc_bytes
+	gpc.encode_float(0, float(N_particles))
+	gpc.encode_float(4, ML_TREE_THETA)
+	gpc.encode_float(8, eps2)
+	gpc.encode_float(12, 1.0)
+	gpc.encode_float(16, float(tnm))
 	# Arm 2 (coherence-adaptive θ): q_cent (running field mean q), α, toggle.
-	gpc[5] = _q_mean
-	gpc[6] = coherence_theta_alpha
-	gpc[7] = 1.0 if coherence_theta else 0.0
+	gpc.encode_float(20, _q_mean)
+	gpc.encode_float(24, coherence_theta_alpha)
+	gpc.encode_float(28, 1.0 if coherence_theta else 0.0)
 	var pg := int(ceil(float(S) / 64.0))
 	var pall := int(ceil(float(tnm) / 64.0))
 	var use_hierarchical_refit := (
@@ -3682,65 +4245,65 @@ func _tree_run_in_list(cl: int) -> void:
 	if use_hierarchical_refit:
 		# Refresh live sources, solve leaves directly, then combine child
 		# moments deepest-to-root. The retained topology is untouched.
-		bpc[10] = 11.0
+		bpc.encode_float(40, 11.0)
 		_rd.compute_list_bind_compute_pipeline(cl, _tree_bld_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_tree_bld, 0)
-		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		_rd.compute_list_set_push_constant(cl, bpc, bpc.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
 		_rd.compute_list_add_barrier(cl)
-		bpc[10] = 12.0
-		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		bpc.encode_float(40, 12.0)
+		_rd.compute_list_set_push_constant(cl, bpc, bpc.size())
 		_rd.compute_list_dispatch(cl, pall, 1, 1)
 		_rd.compute_list_add_barrier(cl)
 		for depth in range(ML_TREE_MAX_LEVELS - 1, -1, -1):
-			bpc[10] = 13.0
-			bpc[11] = float(depth)
-			_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+			bpc.encode_float(40, 13.0)
+			bpc.encode_float(44, float(depth))
+			_rd.compute_list_set_push_constant(cl, bpc, bpc.size())
 			_rd.compute_list_dispatch(cl, pall, 1, 1)
 			_rd.compute_list_add_barrier(cl)
 		_tree_hier_refit_count += 1
 	else:
 		# Mode 9 CTR_RESET + mode 10 ROOT_SEED: the on-GPU counter/root
 		# seeding, then gather + sort + split + direct moments.
-		bpc[10] = 9.0
+		bpc.encode_float(40, 9.0)
 		_rd.compute_list_bind_compute_pipeline(cl, _tree_bld_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_tree_bld, 0)
-		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		_rd.compute_list_set_push_constant(cl, bpc, bpc.size())
 		_rd.compute_list_dispatch(cl, 1, 1, 1)
 		_rd.compute_list_add_barrier(cl)
-		bpc[10] = 10.0
-		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		bpc.encode_float(40, 10.0)
+		_rd.compute_list_set_push_constant(cl, bpc, bpc.size())
 		_rd.compute_list_dispatch(cl, 1, 1, 1)
 		_rd.compute_list_add_barrier(cl)
-		bpc[10] = 7.0
-		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		bpc.encode_float(40, 7.0)
+		_rd.compute_list_set_push_constant(cl, bpc, bpc.size())
 		_rd.compute_list_dispatch(cl, pg, 1, 1)
 		_rd.compute_list_add_barrier(cl)
 		var k := 2
 		while k <= S:
 			var j := k >> 1
 			while j >= 1:
-				bpc[10] = 1.0
-				bpc[11] = float(k)
-				bpc[12] = float(j)
-				bpc[13] = 1.0
-				_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+				bpc.encode_float(40, 1.0)
+				bpc.encode_float(44, float(k))
+				bpc.encode_float(48, float(j))
+				bpc.encode_float(52, 1.0)
+				_rd.compute_list_set_push_constant(cl, bpc, bpc.size())
 				_rd.compute_list_dispatch(cl, pg, 1, 1)
 				_rd.compute_list_add_barrier(cl)
 				j = j >> 1
 			k = k << 1
 		_rd.compute_list_add_barrier(cl)
 		for _d in range(ML_TREE_MAX_LEVELS):
-			bpc[10] = 5.0
-			_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+			bpc.encode_float(40, 5.0)
+			_rd.compute_list_set_push_constant(cl, bpc, bpc.size())
 			_rd.compute_list_dispatch(cl, pall, 1, 1)
 			_rd.compute_list_add_barrier(cl)
-			bpc[10] = 8.0
-			_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+			bpc.encode_float(40, 8.0)
+			_rd.compute_list_set_push_constant(cl, bpc, bpc.size())
 			_rd.compute_list_dispatch(cl, 1, 1, 1)
 			_rd.compute_list_add_barrier(cl)
-		bpc[10] = 6.0
-		_rd.compute_list_set_push_constant(cl, bpc.to_byte_array(), bpc.size() * 4)
+		bpc.encode_float(40, 6.0)
+		_rd.compute_list_set_push_constant(cl, bpc, bpc.size())
 		_rd.compute_list_dispatch(cl, pall, 1, 1)
 		_rd.compute_list_add_barrier(cl)
 		if tree_hierarchical_refit and _tree_built_topology_generation >= 0 \
@@ -3753,7 +4316,7 @@ func _tree_run_in_list(cl: int) -> void:
 	# walk — one thread per particle, writes _tree_grad for the step chain
 	_rd.compute_list_bind_compute_pipeline(cl, _tree_walk_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_tree_walk, 0)
-	_rd.compute_list_set_push_constant(cl, gpc.to_byte_array(), gpc.size() * 4)
+	_rd.compute_list_set_push_constant(cl, gpc, gpc.size())
 	_rd.compute_list_dispatch(cl, int(ceil(float(N_particles) / 64.0)), 1, 1)
 	_rd.compute_list_add_barrier(cl)   # walk's _tree_grad writes → the step chain's reads
 
@@ -3933,6 +4496,67 @@ func _site_step_dispatches(cl: int) -> void:
 		_rd.compute_list_add_barrier(cl)
 
 
+func _rotation_encode_pc(pass_mode: float) -> void:
+	var rotation_extent := _extents()
+	var radius_scale := _extent_min() / float(maxi(rotation_grid_N, 1))
+	_rotation_pc_bytes.encode_float(0, pass_mode)
+	_rotation_pc_bytes.encode_float(4, float(N_particles))
+	_rotation_pc_bytes.encode_float(8, float(rotation_grid_N))
+	_rotation_pc_bytes.encode_float(12, float(rotation_rungs))
+	_rotation_pc_bytes.encode_float(16, dt)
+	_rotation_pc_bytes.encode_float(20, rotation_extent.x)
+	_rotation_pc_bytes.encode_float(24, rotation_extent.y)
+	_rotation_pc_bytes.encode_float(28, rotation_extent.z)
+	_rotation_pc_bytes.encode_float(32, _window_center.x)
+	_rotation_pc_bytes.encode_float(36, _window_center.y)
+	_rotation_pc_bytes.encode_float(40, _window_center.z)
+	_rotation_pc_bytes.encode_float(44, rotation_field_inertia)
+	_rotation_pc_bytes.encode_float(48, rotation_c_t)
+	_rotation_pc_bytes.encode_float(52, rotation_c_l)
+	_rotation_pc_bytes.encode_float(56, rotation_scale_omega)
+	_rotation_pc_bytes.encode_float(60, rotation_attenuation)
+	_rotation_pc_bytes.encode_float(64, rotation_exchange_rate)
+	_rotation_pc_bytes.encode_float(68,
+		1.0 if particle_merge and _merge_spin_buf.is_valid() else 0.0)
+	_rotation_pc_bytes.encode_float(72, radius_scale)
+	_rotation_pc_bytes.encode_float(76, 0.5 * radius_scale)
+	_rotation_pc_bytes.encode_float(80, 4.0 * radius_scale)
+	_rotation_pc_bytes.encode_float(84, rotation_reservoir_inertia)
+	_rotation_pc_bytes.encode_float(88, rotation_lower_reservoir_coupling)
+	_rotation_pc_bytes.encode_float(92, rotation_upper_reservoir_coupling)
+
+
+func _rotation_dispatch_mode(compute_list: int, pass_mode: float, groups: int) -> void:
+	_rotation_pc_bytes.encode_float(0, pass_mode)
+	_rd.compute_list_set_push_constant(
+		compute_list, _rotation_pc_bytes, _rotation_pc_bytes.size())
+	_rd.compute_list_dispatch(compute_list, maxi(groups, 1), 1, 1)
+	_barrier(compute_list)
+
+
+func _rotation_dispatches(compute_list: int) -> void:
+	if not rotation_stress_enabled or not _rotation_pipe.is_valid() \
+			or not _us_rotation.is_valid():
+		return
+	_rotation_encode_pc(0.0)
+	var cell_groups := ceili(float(maxi(_rotation_cells, 16)) / 64.0)
+	var field_groups := ceili(float(_rotation_field_count) / 64.0)
+	var particle_groups := maxi(ceili(float(N_particles) / 64.0), 1)
+	_rd.compute_list_bind_compute_pipeline(compute_list, _rotation_pipe)
+	_rd.compute_list_bind_uniform_set(compute_list, _us_rotation, 0)
+	_rotation_dispatch_mode(compute_list, 0.0, cell_groups)
+	if rotation_exchange_rate > 0.0:
+		_rotation_dispatch_mode(compute_list, 1.0, particle_groups)
+	_rotation_dispatch_mode(compute_list, 2.0, field_groups)
+	_rotation_dispatch_mode(compute_list, 3.0, field_groups)
+	if rotation_exchange_rate > 0.0:
+		_rotation_dispatch_mode(compute_list, 4.0, cell_groups)
+		_rotation_dispatch_mode(compute_list, 5.0, particle_groups)
+	_rotation_dispatch_mode(compute_list, 6.0, particle_groups)
+
+
+
+
 func _step_dispatches(cl: int) -> void:
 	if field_particles:
 		if _field_particle_engine != null:
@@ -3942,6 +4566,7 @@ func _step_dispatches(cl: int) -> void:
 		return
 	if gridless_physics:
 		_site_step_dispatches(cl)
+		_rotation_dispatches(cl)
 		return
 	_time += dt
 	_step_count += 1
@@ -4105,27 +4730,33 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
 		# grad zero → lap (the lap pass also accumulates the least-squares M+b)
-		_cell_pc_bytes = _ml_cell_pc(10.0)
+		_ml_cell_pc(10.0)
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, int(ceil(float(ml_ns) / 64.0)), 1, 1)
 		_barrier(cl)  # grad zero → lap
-		_cell_pc_bytes = _ml_cell_pc(0.0)
+		_ml_cell_pc(0.0)
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
 		_barrier(cl)  # lap → leapfrog
-		_cell_pc_bytes = _ml_cell_pc(1.0)
+		_ml_cell_pc(1.0)
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, int(ceil(float(ml_ns) / 64.0)), 1, 1)
 		_barrier(cl)  # leapfrog → gradient solve
 		# least-squares solve g = M⁻¹·b per site (into grad)
-		_cell_pc_bytes = _ml_cell_pc(12.0)
+		_ml_cell_pc(12.0)
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, int(ceil(float(ml_ns) / 64.0)), 1, 1)
 		_barrier(cl)  # solve → raster
 		_rd.compute_list_bind_compute_pipeline(cl, _raster_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_raster_0, 0)
-		_raster_pc_bytes = PackedFloat32Array([float(grid_N), float(ml_ns),
-			hxr, hyr, hzr, 0.0, 0.0, 0.0]).to_byte_array()
+		_raster_pc_bytes.encode_float(0, float(grid_N))
+		_raster_pc_bytes.encode_float(4, float(ml_ns))
+		_raster_pc_bytes.encode_float(8, hxr)
+		_raster_pc_bytes.encode_float(12, hyr)
+		_raster_pc_bytes.encode_float(16, hzr)
+		_raster_pc_bytes.encode_float(20, 0.0)
+		_raster_pc_bytes.encode_float(24, 0.0)
+		_raster_pc_bytes.encode_float(28, 0.0)
 		_rd.compute_list_set_push_constant(cl, _raster_pc_bytes, _raster_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
 	elif _two_fluid_shader.is_valid() and not freeze_field:
@@ -4291,6 +4922,7 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_set_push_constant(cl, _tree_mc_pc_bytes, _tree_mc_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, pg64, 1, 1)
 		_rd.compute_list_add_barrier(cl)
+	_rotation_dispatches(cl)
 
 
 # load+x → FFT(y) → FFT(z) → Φ̂=−ρ̂/k² (k=0 nulled) → IFFT(z) → IFFT(y) → IFFT(x)
@@ -4462,16 +5094,9 @@ func _dispatch_cascade(cl: int) -> void:
 # sync style (engine: explicit submit+sync; sim: readback self-stall).
 # ═══════════════════════════════════════════════════════════════════════
 const MERGE_MAX_CYCLES := 16
-## How many merge cycles run per compute-list batch (FIX 1, perf-decomp
-## 2026-08-14): each cycle's fold→zero-cc→count→scan→fill→best→hop chain is
-## recorded into ONE list with intra-list barriers, and the batch ends with
-## ONE submit+sync + ONE 64 B count readback — vs the old 3 submits + 1
-## device-sync readback + 1 host update PER CYCLE. The old per-cycle drain
-## is the TDR trigger on the shared three-RD GPU (device-lost backtraces
-## land in _merge_read_uint); batching collapses ~5 drains/cycle into 1.
-## Results are identical (a 0-merge cycle is a deterministic no-op: fold is
-## idempotent after re-basing, so the batch's last-zero count stops the
-## loop with exactly the per-cycle early-exit semantics). Tune 2..8.
+## Small verification problems batch this many complete merge cycles before
+## their count readback. Large clouds ignore the batch size and run exactly
+## one persisted pair phase per cadence.
 const MERGE_BATCH_CYCLES := 4
 
 
@@ -4483,19 +5108,18 @@ const MERGE_BATCH_CYCLES := 4
 ## readback. The old per-cycle flow did 3 submits + 1 device-sync readback +
 ## 1 host buffer_update PER CYCLE — that drain burst is the TDR trigger on
 ## the shared three-RD GPU (device-lost backtraces land in _merge_read_uint).
-## Results are bit-identical: a 0-merge cycle is a deterministic no-op (the
-## fold re-bases mom/cen onto the canonical state, so it is idempotent), so
-## the batch's last cycle reading 0 stops the loop with exactly the old
-## per-cycle early-exit semantics. The scan is folded into the batch list
-## (its 4 passes barrier internally); cc is re-zeroed ON-GPU per cycle (mode
-## 7) — the old flow zeroed cc once per pass, which left cc dirty (2x counts)
-## for multi-cycle passes; the batched flow is exact.
+## Small verification problems retain the established batched early-exit
+## behavior. Production clouds execute exactly one persisted
+## (neighbor-cell, entry) phase per cadence, so no local-RD call can expand
+## back into a multi-cycle TDR burst. The scan stays inside the list (four
+## internally-barriered passes), and mode 7 clears cc before every count.
 func _run_merge_pass() -> int:
 	if not particle_merge or not _merge_shader.is_valid() or not _merge_pipe.is_valid() \
 			or not _us_merge_0.is_valid() or not _merge_alive_buf.is_valid() \
 			or not _scan_pipe.is_valid() or not _us_scan_0.is_valid() \
 			or N_particles <= 0:
 		return 0
+	_fill_merge_pc()
 	# reset in its own list + submit/sync (its per-particle state writes must
 	# be visible to the first cycle's fold)
 	# F1: cc is re-zeroed ON-GPU per cycle (mode 7 at the top of the cycle
@@ -4503,31 +5127,24 @@ func _run_merge_pass() -> int:
 	# the batched mode-7 zero and is gone (mc still needs the pre-loop zero).
 	_zero_merge_bytes(_merge_mc_buf, MERGE_MAX_CYCLES)
 	var cl0 := _rd.compute_list_begin()
-	_merge_bind_dispatch(cl0, 0.0)   # reset: alive=1, mass=pos.w, mom/cen=m p/m v
+	_merge_bind_dispatch(cl0, 0.0)   # rebase: alive=pos.w>0, mass=pos.w, mom=m v, cen=m p
 	_rd.compute_list_end()
 	_rd.submit(); _rd.sync()
-	# STEP 1 (perf-decomp 2026-08-15): GPU any-candidate early-out — ONE
-	# dispatch (mode 8) sets cc[0] iff ANY alive mass>0 particle sits at
-	# q_coh > q_threshold; ONE 4 B readback decides. On 0: this pass CANNOT
-	# merge (q_sel(mid) > φ⁻² with qord ≤ 1 requires q_coh(mid) > φ⁻², so the
-	# per-particle q gate is a necessary condition) — skip the whole
-	# fold/count/scan/fill/best/hop chain AND the per-cycle count readbacks,
-	# i.e. the ~40-dispatch burst that starved the shared three-RD GPU on
-	# near-empty passes (the measured TDR trigger; backtraces landed in
-	# _merge_read_counts). cc[0] is borrowed: reset zeroed it, pass_zerocc
-	# clears it before the first count, and nothing else reads it here.
-	# Skipping a pass with a false-negative flag only DELAYS a merge (pos/vel
-	# are untouched — reset wrote only the merge scratch), never corrupts.
-	var cla := _rd.compute_list_begin()
-	_merge_bind_dispatch(cla, 8.0)
-	_rd.compute_list_end()
-	_rd.submit(); _rd.sync()
-	if int(_rd.buffer_get_data(_merge_cc_buf, 0, 4).decode_u32(0)) == 0:
-		return 0
+	# The any-q readback is worthwhile for small verification problems. At
+	# production counts it would query every particle before the deliberately
+	# time-sliced pair pass, duplicating the hot work we are bounding.
+	if N_particles <= CassiMergeCommon.FULL_PAIR_SCAN_PARTICLE_LIMIT:
+		var cla := _rd.compute_list_begin()
+		_merge_bind_dispatch(cla, 8.0)
+		_rd.compute_list_end()
+		_rd.submit(); _rd.sync()
+		if int(_rd.buffer_get_data(_merge_cc_buf, 0, 4).decode_u32(0)) == 0:
+			return 0
 	var total := 0
 	var cyc := 0
+	var time_sliced := N_particles > CassiMergeCommon.FULL_PAIR_SCAN_PARTICLE_LIMIT
 	while cyc < MERGE_MAX_CYCLES:
-		var ncyc := mini(MERGE_BATCH_CYCLES, MERGE_MAX_CYCLES - cyc)
+		var ncyc := 1 if time_sliced else mini(MERGE_BATCH_CYCLES, MERGE_MAX_CYCLES - cyc)
 		var cl := _rd.compute_list_begin()
 		for c in range(ncyc):
 			_merge_bind_dispatch(cl, 1.0)              # fold → canonical pos/vel
@@ -4539,21 +5156,21 @@ func _run_merge_pass() -> int:
 			_merge_scan_into(cl)                       # 4 scan passes (barriers inside)
 			_merge_bind_dispatch(cl, 3.0)              # fill per-cell lists
 			_rd.compute_list_add_barrier(cl)
-			_merge_bind_dispatch(cl, 4.0)              # best[i], sink[i]
+			var pair_phase := _merge_pair_phase
+			_merge_pair_phase = CassiMergeCommon.next_pair_phase(_merge_pair_phase, N_particles)
+			_merge_bind_dispatch(cl, 4.0, pair_phase)   # best[i], sink[i]
 			_rd.compute_list_add_barrier(cl)
 			_merge_bind_dispatch(cl, 5.0, cyc + c)     # hop → mc[cyc+c]
 			_rd.compute_list_add_barrier(cl)           # next cycle's fold sees this hop
 		_rd.compute_list_end()
 		_rd.submit(); _rd.sync()
 		var counts := _merge_read_counts()
-		var batch_merges := 0
-		for c in range(ncyc):
-			batch_merges += counts[c]
-		total += batch_merges
+		var batch_result := CassiMergeCommon.merge_batch_result(counts, cyc, ncyc)
+		total += batch_result.x
 		_merge_cycles_run += ncyc
 		cyc += ncyc
-		if counts[ncyc - 1] == 0:
-			break   # last cycle no-op → all later cycles are deterministic no-ops
+		if time_sliced or batch_result.y == 0:
+			break   # large clouds resume at the next phase/cadence
 	var clf := _rd.compute_list_begin()
 	_merge_bind_dispatch(clf, 6.0)   # finalize: survivor masses → pos.w / dead = 0
 	_rd.compute_list_end()
@@ -4563,11 +5180,10 @@ func _run_merge_pass() -> int:
 	return total
 
 
-## The merge push constant as 24 floats (shader layout: N, phi, phi_inv2,
+## The merge push constant as 26 floats (shader layout: N, phi, phi_inv2,
 ## q_threshold, R_m, extent.xyz, grid_N, hash_nxyz, cell_w.xyz, pass_mode@15,
-## g_n, xi, h0, dt, f_subsonic, f_virial, f_order, cyc_slot@23 — the §3
-## redesign + the batched-merge cycle slot). Deduped via CassiMergeCommon so
-## the sim twin cannot drift (the F1-class divergence guard).
+## g_n, xi, h0, dt, f_subsonic, f_virial, f_order, cyc_slot@23, boxless@24,
+## n_sites@25). Deduped via CassiMergeCommon so the sim twin cannot drift.
 func _merge_pc_values() -> PackedFloat32Array:
 	return CassiMergeCommon.merge_pc_values(_merge_pc_dict())
 
@@ -4585,22 +5201,31 @@ func _merge_pc_dict() -> Dictionary:
 		"g_n": _bh_init_bytes.decode_float(28),   # G_N (bh[1].w) — single source of truth
 		"xi": xi, "dt": dt,
 		"subsonic": merge_subsonic, "virial": merge_virial, "order": merge_sel_gate,
-		"boxless": _ml_ready and boxless_field and particle_merge,   # gated: boxless mesh live AND merge on → site-direct read (merge_boxless_prereg.md)
+		"boxless": _ml_ready and boxless_field and particle_merge \
+			and (not _rd_global or _meshless_query_ready),
 		"n_sites": _ml_sites_cpu.size() / 4,                         # Voronoi site count (nearest-site read guard)
 	}
 
+## Encode the invariant portion once per merge chain. Individual dispatches
+## only change the pass selector and cycle/phase slot.
+func _fill_merge_pc() -> void:
+	var values := _merge_pc_values()
+	for i in range(26):
+		_merge_pc_bytes.encode_float(i * 4, values[i])
+
 
 ## Bind the merge pipeline/set/PC and dispatch one pass mode into the open
-## list `cl`. F8: the PC is ENCODED INTO the pre-sized `_merge_pc_bytes` member
-## (26 floats = 104 B) — never reassigned — so dispatches stay hitch-free.
-## The caller adds barriers between consecutive in-list passes and
-## submit+sync across lists.
+## list `cl`. The caller fills the invariant PC fields once per chain; only
+## the selector fields change between dispatches.
 func _merge_bind_dispatch(cl: int, pass_mode: float, cyc_slot := 0) -> void:
-	var pf := _merge_pc_values()
-	pf[15] = pass_mode
-	pf[23] = float(cyc_slot)
-	for i in range(26):
-		_merge_pc_bytes.encode_float(i * 4, pf[i])
+	var encoded_mode := pass_mode
+	var encoded_slot := float(cyc_slot)
+	if int(pass_mode) == 4 and N_particles > CassiMergeCommon.FULL_PAIR_SCAN_PARTICLE_LIMIT:
+		var phase_pc := CassiMergeCommon.pair_phase_pc(int(cyc_slot))
+		encoded_mode = phase_pc.x
+		encoded_slot = phase_pc.y
+	_merge_pc_bytes.encode_float(15 * 4, encoded_mode)
+	_merge_pc_bytes.encode_float(23 * 4, encoded_slot)
 	_rd.compute_list_bind_compute_pipeline(cl, _merge_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_merge_0, 0)
 	_rd.compute_list_set_push_constant(cl, _merge_pc_bytes, _merge_pc_bytes.size())
@@ -4627,31 +5252,33 @@ func _merge_scan_into(cl: int) -> void:
 	var E := _merge_hash_total
 	var nb1 := (E + 255) / 256
 	var nb2 := _merge_nb2
-	var pc := PackedFloat32Array()
-	pc.resize(4)
-	pc[2] = float(_merge_nb1a)
+	_merge_scan_pc_bytes.encode_float(2 * 4, float(_merge_nb1a))
 	# pass 1: cc -> cs (block-local exclusive) + L1 totals -> scr[b]
-	pc[0] = float(E); pc[1] = 1.0
-	_scan_dispatch(cl, pc, nb1)
+	_merge_scan_pc_bytes.encode_float(0, float(E))
+	_merge_scan_pc_bytes.encode_float(4, 1.0)
+	_scan_dispatch(cl, nb1)
 	_rd.compute_list_add_barrier(cl)
 	# pass 2: scan scr(L1) in place -> loc1 + L2 totals -> scr[nb1a + bb]
-	pc[0] = float(nb1); pc[1] = 2.0
-	_scan_dispatch(cl, pc, nb2)
+	_merge_scan_pc_bytes.encode_float(0, float(nb1))
+	_merge_scan_pc_bytes.encode_float(4, 2.0)
+	_scan_dispatch(cl, nb2)
 	_rd.compute_list_add_barrier(cl)
 	# pass 3: single workgroup scan of L2 -> exclusive (nb2 <= 256)
-	pc[0] = float(nb2); pc[1] = 3.0
-	_scan_dispatch(cl, pc, 1)
+	_merge_scan_pc_bytes.encode_float(0, float(nb2))
+	_merge_scan_pc_bytes.encode_float(4, 3.0)
+	_scan_dispatch(cl, 1)
 	_rd.compute_list_add_barrier(cl)
 	# pass 4: cs += carries; ch = cs
-	pc[0] = float(E); pc[1] = 4.0
-	_scan_dispatch(cl, pc, nb1)
+	_merge_scan_pc_bytes.encode_float(0, float(E))
+	_merge_scan_pc_bytes.encode_float(4, 4.0)
+	_scan_dispatch(cl, nb1)
 	_rd.compute_list_add_barrier(cl)
 
 
-func _scan_dispatch(cl: int, pc: PackedFloat32Array, groups: int) -> void:
+func _scan_dispatch(cl: int, groups: int) -> void:
 	_rd.compute_list_bind_compute_pipeline(cl, _scan_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_scan_0, 0)
-	_rd.compute_list_set_push_constant(cl, pc.to_byte_array(), pc.size() * 4)
+	_rd.compute_list_set_push_constant(cl, _merge_scan_pc_bytes, _merge_scan_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, maxi(groups, 1), 1, 1)
 
 

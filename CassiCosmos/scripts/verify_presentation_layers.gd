@@ -43,13 +43,22 @@ func _run() -> void:
 	_check("decoupled boxless renderer booted", booted)
 	if not booted:
 		return
+	# Saved operator color defaults load after the scene pins. Force the
+	# compatibility depth-fade flag here so the far-view regression cannot be
+	# accidentally weakened by user:// state.
+	sim.particle_color_mode = 2 | 0x40
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# Prove the base particle layer at a distant oblique view before optional
+	# macro/ribbon layers exist, so those layers cannot mask a culling failure.
+	await _check_sky_follows_camera()
+	_check_particle_profile()
+
 	# Boot against the ordinary particle path first. The optional layers are
 	# then activated live, which proves their allocation never participates in
 	# the decoupled engine's startup dependency chain.
 	sim.presentation_macro_lod_enabled = true
 	sim.presentation_trails_enabled = true
-
-
 	# Give the normal render sequence time to publish the query and write both
 	# presentation MultiMeshes after their lazily created uniform sets exist.
 	var layers_ready := false
@@ -62,8 +71,6 @@ func _run() -> void:
 	if not layers_ready:
 		return
 
-	await _check_sky_follows_camera()
-	_check_particle_profile()
 	await _check_macro_records()
 	_check_trail_records()
 	await _capture_presentation_frame_if_requested()
@@ -122,20 +129,121 @@ func _layers_ready() -> bool:
 
 func _check_sky_follows_camera() -> void:
 	await get_tree().process_frame
+	var original_transform: Transform3D = camera.global_transform
 	var initial_match := sky.global_position.distance_to(camera.global_position) < 1e-3
 	camera.global_position += Vector3(3.0, 0.0, -2.0)
 	await get_tree().process_frame
 	var moved_match := sky.global_position.distance_to(camera.global_position) < 1e-3
-	var radius := sky.scale.x
 	_check("procedural sky follows the active camera", initial_match and moved_match)
+
+	var base_far: float = camera.far
+	var cloud_center: Vector3 = sim.get("_window_center")
+	var extreme_distance := maxf(base_far * 1.1, 20_000_000.0)
+	camera.global_position = cloud_center + Vector3(1.0, 0.1, 0.0).normalized() * extreme_distance
+	camera.look_at(cloud_center, Vector3.UP)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var cloud_radius: float = sim._extents().length() * 1.25
+	var needed_far: float = camera.global_position.distance_to(cloud_center) + cloud_radius
+	_check("camera projection stays finite at extreme presentation distance",
+			is_finite(camera.far) and camera.far > base_far and camera.far <= 1_000_001.0)
+	_check("extreme particle view extends beyond the finite camera plane",
+			needed_far > camera.far)
+
+	var mm: MultiMesh = sim.get("_mm")
+	var camera_render_position: Vector3 = camera.global_position - sim._render_window_origin()
+	var cull_box := mm.custom_aabb if mm != null else AABB()
+	var min_half_extent := minf(minf(cull_box.size.x, cull_box.size.y), cull_box.size.z) * 0.5
+	_check("particle cull volume follows distant camera angles",
+			mm != null and cull_box.has_point(camera_render_position)
+			and cull_box.get_center().distance_to(camera_render_position) <= 1.0
+			and min_half_extent >= camera.far)
+
+	# With the scene's compatibility depth-fade flag enabled, only the
+	# presentation shader's range-owned alpha can leave these particles visible.
+	# Hide the procedural stars so one bright central pixel proves the particle
+	# MultiMesh reached the rasterizer at this distant oblique view.
+	sky.visible = false
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var image := get_viewport().get_texture().get_image()
+	var peak := _central_rgb_peak(image, 48)
+	_check("presentation particles remain visible at distant camera angles", peak > 0.08)
+
+	# The production scene carries millions of particles, so its count-scaled
+	# source contribution is much lower than this focused arm's. Exercise that
+	# real opacity at the mid-range where motes are sparse enough not to hide a
+	# perceptual fade through aggregate overdraw.
+	var mmi: MultiMeshInstance3D = sim.get("_mmi")
+	var material := mmi.material_override as ShaderMaterial if mmi != null else null
+	var material_opacity := 0.0
+	var material_distant_opacity := 0.0
+	var production_opacity: float = sim._effective_presentation_particle_opacity(2_500_100)
+	var production_distant_opacity := minf(production_opacity * 2.0, 0.04)
+	if material != null:
+		material_opacity = float(material.get_shader_parameter("stack_opacity"))
+		material_distant_opacity = float(material.get_shader_parameter("distant_opacity"))
+		material.set_shader_parameter("stack_opacity", production_opacity)
+		material.set_shader_parameter("distant_opacity", production_distant_opacity)
+	camera.global_position = cloud_center + Vector3(0.0, 0.0, 600.0)
+	camera.look_at(cloud_center, Vector3.UP)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var production_image := get_viewport().get_texture().get_image()
+	var production_peak := _central_rgb_peak(production_image, 96)
+	if material != null:
+		material.set_shader_parameter("stack_opacity", material_opacity)
+		material.set_shader_parameter("distant_opacity", material_distant_opacity)
+	sky.visible = true
+	print("[Presentation] production-density retreat stack=%.5f distant=%.5f peak=%.5f" % [
+			production_opacity, production_distant_opacity, production_peak])
+	_check("production-density particles remain visible after camera retreat",
+			material != null and production_peak > 0.04)
+
+	camera.global_transform = original_transform
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var radius := sky.scale.x
 	_check("procedural sky remains inside camera far plane", radius > 0.0 and radius < camera.far)
 
+func _central_rgb_peak(image: Image, radius: int) -> float:
+	if image.is_empty():
+		return 0.0
+	var center := Vector2i(image.get_width() / 2, image.get_height() / 2)
+	var peak := 0.0
+	for y in range(maxi(center.y - radius, 0), mini(center.y + radius + 1, image.get_height())):
+		for x in range(maxi(center.x - radius, 0), mini(center.x + radius + 1, image.get_width())):
+			var pixel := image.get_pixel(x, y)
+			peak = maxf(peak, maxf(pixel.r, maxf(pixel.g, pixel.b)))
+	return peak
 
 func _check_particle_profile() -> void:
 	var mmi: MultiMeshInstance3D = sim.get("_mmi")
 	var material := mmi.material_override as ShaderMaterial if mmi != null else null
 	var expected := load("res://shaders/particle_billboard_presentation.gdshader") as Shader
 	_check("particle presentation shader is selected", material != null and material.shader == expected)
+	if material == null:
+		_check("particle stack opacity is density-normalized", false)
+		_check("particle stack opacity updates live", false)
+		return
+	var configured_opacity: float = sim.presentation_particle_opacity
+	var effective_opacity: float = sim._effective_presentation_particle_opacity()
+	var material_opacity := float(material.get_shader_parameter("stack_opacity"))
+	_check("particle stack opacity is density-normalized",
+			material_opacity > 0.0 and material_opacity <= configured_opacity
+			and is_equal_approx(material_opacity, effective_opacity))
+	var material_max_radius := float(material.get_shader_parameter("max_pixel_radius"))
+	var dense_max_radius: float = sim._effective_presentation_max_pixel_radius(10_000_000)
+	_check("particle radius cap contracts at production density",
+			is_equal_approx(material_max_radius, sim._effective_presentation_max_pixel_radius())
+			and dense_max_radius <= 2.0 and dense_max_radius < material_max_radius)
+	sim.presentation_particle_opacity = configured_opacity * 0.5
+	var changed_opacity := float(material.get_shader_parameter("stack_opacity"))
+	_check("particle stack opacity updates live",
+			changed_opacity > 0.0 and changed_opacity < material_opacity
+			and is_equal_approx(changed_opacity, sim._effective_presentation_particle_opacity()))
+	sim.presentation_particle_opacity = configured_opacity
 
 
 

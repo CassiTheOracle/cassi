@@ -902,19 +902,22 @@ void main() {
         }
         vec3 v_new = v_half + grav_acc * hdt;
 
-        // SAFETY GUARD (mode-5 tree arm ONLY): a bad close encounter must
-        // never eject a particle or overflow float32 (the pre-fix unsoftened
-        // tree quadrupole wiped the galaxy to |p| ~ 1e9 then NaN, 2026-08-13).
-        // Bounds are WIDE (far beyond any legitimate escape/halo orbit) so
-        // real dynamics are untouched; the river path (mode < 5) is identical.
+        // SAFETY GUARD (mode-5 tree arm ONLY): limit velocity after a bad
+        // close encounter without imposing a position boundary. Every finite
+        // escaped position remains open-world and must not be reabsorbed.
         if (pc.gravity_mode > 4.5) {
             float emax = max(max(bh[2].y, bh[2].z), bh[2].w); // box half-ext max
-            float vcap = 120.0 * emax;      // |v| cap - far above v_escape
-            float vl = length(v_new);
-            if (vl > vcap) v_new *= vcap / vl;
-            float R_safe = 1e4 * emax;      // position reabsorb sphere
-            float pl = length(p_new);
-            if (pl > R_safe) p_new *= R_safe / pl;
+            if (emax > 0.0 && !isnan(emax) && !isinf(emax)) {
+                float vcap = 120.0 * emax;  // |v| cap - far above v_escape
+                float vl = length(v_new);
+                if (vl > vcap) v_new *= vcap / vl;
+            }
+        }
+        if (any(isnan(p_new)) || any(isinf(p_new))) {
+            p_new = pxyz;
+        }
+        if (any(isnan(v_new)) || any(isinf(v_new))) {
+            v_new = vec3(0.0);
         }
 
         pos[i] = vec4(p_new, pos[i].w);

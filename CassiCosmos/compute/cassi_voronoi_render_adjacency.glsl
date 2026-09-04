@@ -1,4 +1,5 @@
 #[compute]
+// canonical layout: scripts/contracts/layout.gd
 // Sampled-JFA render adjacency — open-tile topology.
 // mode 0 clears the symmetric bitset. mode 1 emits differing valid labels
 // across interior +x/+y/+z faces. Boundary faces are intentionally dropped.

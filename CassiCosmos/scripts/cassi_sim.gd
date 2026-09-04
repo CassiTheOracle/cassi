@@ -116,15 +116,14 @@ const Q_1: float = 0.95        # Qi-rainbow bounded-channel band top = the fit-s
 ## config 180/64/0.05 → budget 56 → cadence 28, i.e. every ~2 of the
 ## ~16-20-step jobs); any positive value = an explicit step cadence. Gates
 ## BOTH the decoupled engine merge (passed via cfg) and the inline
-## _render_frame hook. DEFAULT = 1 (per job): the STEP-1 any-candidate
-## early-out (mode 8) makes 0-candidate passes ~2 dispatches, so per-job
-## cadence is affordable AND catches the job-1 IC-overlap coalesce — the
-## pre-registered A/B (2026-08-15, S1A/S1B vs S2A/S2B) showed per-job:
-## no TDR over 60 s ×2, merges printing at job 1 (1+33 / 2+29), flat
-## ~50 ms/step; AUTO (28): 0 merge prints (coalesce missed), same TDR
-## survival. AUTO stays for users who want the coarser cadence.
+## _render_frame hook. DEFAULT = 1 (per job): the local path retains the
+## STEP-1 any-candidate early-out, while large decoupled/global clouds run one
+## bounded source-shard/cell/entry phase per job. The latter measured 97 ms
+## for 2.5 million particles, so per-job cadence remains responsive and still
+## catches initial overlap; AUTO stays available for coarser-cadence users.
 @export_range(0, 200, 1) var merge_cadence_steps: int = 1
 var _merge_step_counter := 0
+var _merge_pair_phase := 0
 # Physical-merge redesign (coherence_merge_rnd.md §3, 2026-08-15): which of
 # the four layer criteria apply when the merge is on. Default on = the
 # realistic merge; off recreates the legacy (distance + q_coh only) for the
@@ -133,6 +132,28 @@ var _merge_step_counter := 0
 @export var merge_subsonic: bool = true   # hypothesis: |v_t| < c_s (no fly-by merges)
 @export var merge_virial: bool = true     # hypothesis: virialised targets stop accreting
 @export var merge_sel_gate: bool = true   # doctrine: order-selective q_sel = q_coh·q_ord
+
+# Conservative vector-Qi stress and interscale momentum transfer. This sector
+# is independent of FieldVel, runs only in the decoupled physics engine, and
+# stays allocation-free and byte-inert while disabled. Reinitialize to apply.
+@export var rotation_stress_enabled: bool = false
+@export_range(4, 32, 1) var rotation_grid_N: int = 16
+@export_range(2, 8, 1) var rotation_rungs: int = 4
+@export_range(0.01, 100.0, 0.01) var rotation_field_inertia: float = 1.0
+@export_range(0.0, 10.0, 0.01) var rotation_c_t: float = 0.5
+@export_range(0.0, 10.0, 0.01) var rotation_c_l: float = 0.8
+@export_range(0.0, 10.0, 0.01) var rotation_scale_omega: float = 0.5
+@export_range(0.01, 1.0, 0.001) var rotation_attenuation: float = 1.0 / PHI
+## Viscous matter↔field exchange is opt-in. Its heat ledger has no live
+## pressure/thermal return path yet, so a nonzero default irreversibly
+## thermalizes long runs even though momentum remains conserved.
+@export_range(0.0, 10.0, 0.01) var rotation_exchange_rate: float = 0.0
+@export_range(0.01, 100.0, 0.01) var rotation_reservoir_inertia: float = 1.0
+@export_range(0.0, 10.0, 0.001) var rotation_lower_reservoir_coupling: float = 0.0
+@export_range(0.0, 10.0, 0.001) var rotation_upper_reservoir_coupling: float = 0.0
+## Read-only compact-object orientation axes. Requires rotation stress and
+## reinitialization; writes only a renderer-owned MultiMesh.
+@export var rotation_orientation_render_enabled: bool = false
 # M3 live level-swap (MACHINE_PLAN.md §6 M3): when true, apply_level(dir) can
 # hot-swap the box/extents/field/particle ICs from a cascade-tree level dir
 # instead of a full restart. Default OFF → apply_level is a no-op and the
@@ -344,7 +365,7 @@ var _vsync_enabled: bool = true
 ## particle's FIELD coherence q (the coherent core dominates; stray void
 ## particles contribute ~nothing) — the tracking envelope follows the field,
 ## not the raw cloud. Live (no reinit). Default OFF = plain mass COM, bit-identical.
-@export var q_weighted_com: bool = true
+@export var q_weighted_com: bool = false
 
 ## Coherence-gated adaptive compute (coherence_adaptive_prereg.md Arm 3b): when
 ## ON, the moving-Voronoi mesh rebuilds LESS often when the field's mean
@@ -510,7 +531,21 @@ const ENVELOPE_SAMPLE_MAX: int = 8192
 			return
 		_presentation_profile = value
 		_apply_particle_presentation_profile()
+		_update_particle_cull_bounds()
 		_invalidate_volume_render_cache()
+
+## Upper bound for one presentation particle's additive contribution at the
+## 1,000-particle reference density. The renderer reduces it as particle count
+## grows, so stacked layers stay luminous without becoming an opaque surface.
+@export_range(0.01, 1.0, 0.01) var presentation_particle_opacity: float = 0.35:
+	get:
+		return _presentation_particle_opacity
+	set(value):
+		var next_opacity := clampf(value, 0.01, 1.0)
+		if is_equal_approx(_presentation_particle_opacity, next_opacity):
+			return
+		_presentation_particle_opacity = next_opacity
+		_apply_particle_presentation_opacity()
 
 ## Presentation palette applied consistently to particles, macro sites,
 ## velocity ribbons, and the profile-gated site-volume renderer. Color source
@@ -690,6 +725,8 @@ var _shaders_ready: bool = false
 var _setup_retry_counter: int = 0
 var _volume_pc_bytes: PackedByteArray
 var _volume_stats_zero: PackedByteArray
+var _volume_resolve_pc_bytes: PackedByteArray
+var _volume_history_state_bytes: PackedByteArray
 
 # True temporal volume history is a separate default-off path. The live
 # fused-volume shader and its fixed 32-float ABI remain the compatibility
@@ -782,6 +819,7 @@ var _merge_hash_nx: int = 1; var _merge_hash_ny: int = 1; var _merge_hash_nz: in
 var _merge_hash_total: int = 1
 var _merge_cell_wx: float = 0.0; var _merge_cell_wy: float = 0.0; var _merge_cell_wz: float = 0.0
 var _merge_cycles_run: int = 0   # lifetime merge-cycle count (verify/battery diag)
+var _merge_dc_first_completion_logged := false
 # ── On-GPU exclusive scan (compute/cassi_exclusive_scan.glsl; FIX B): replaces
 # the host CPU prefix-sum (cc readback + cs/ch uploads) with 4 GPU passes. ──
 var _scan_shader: RID; var _scan_pipe: RID; var _us_scan_0: RID
@@ -857,6 +895,7 @@ var _poisson_pc_bytes: PackedByteArray  # poisson PC (7 floats: N, axis, dir, mo
 var _occ_pc_bytes: PackedByteArray    # occupancy PC (10 floats: np, n_sample, stride, lim_x/y/z, ext_x/y/z, pad)
 var _occ_zero_bytes: PackedByteArray  # occupancy counter reset (32 B of zeros)
 var _merge_pc_bytes: PackedByteArray  # merge PC (26 floats: N, phi, phi_inv2, q_th, R_m, ext.xyz, grid_N, hash_nxyz, cell_w.xyz, pass_mode, cyc_slot, boxless, n_sites)
+var _merge_scan_pc_bytes: PackedByteArray  # exclusive-scan PC (4 floats, reused across passes)
 # Instancer dedicated PC (32 floats = 128 B — the AMD RDNA3 Vulkan cap;
 # EXACTLY 128, nothing more) — the consolidated gradient engine: the shared
 # 11 + color_mode@11 + prog_mode@12 + ref@13 + the up-to-3 cycle segments
@@ -875,6 +914,7 @@ var _instancer_pc_bytes: PackedByteArray  # instancer PC (32 floats: 11 shared +
 # division of labor). Cube-box scope: the mesh world is [0, 2·extent_min)³.
 const ML_N1 := 16              # BCC sublattice count → 2·16³ = 8192 sites at N=64
 const ML_REBUILD := 25         # steering + remap + JFA-refresh cadence (steps)
+const ML_JFA_JUMPS := [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1, 1, 1]
 const ML_KAPPA := 0.5          # Lloyd-style centroid relaxation fraction
 const ML_LAM := 8.0            # super-Lagrangian momentum ride
 const ML_RHO_FLOOR := 0.005    # steering guard: rho = EY+EI can hit ~0 in the live field
@@ -932,7 +972,8 @@ var _hash_shader: RID; var _hash_pipe: RID
 var _hash_cell_start: RID; var _hash_cell_sites: RID; var _hash_cell_count: RID
 var _hash_cfg: RID
 var _us_hash: RID
-var _hash_pc_bytes: PackedByteArray   # 6 floats (24 B): ext_xyz, h, n_shortlist, mode
+var _hash_pc_bytes: PackedByteArray   # 9 floats: ext_xyz, H, shortlist, tile origin xyz, mode
+var _hash_cfg_bytes: PackedByteArray  # 4 floats: world origin xyz, hash cell side
 var _us_jfa_0: RID
 var _us_cell_0: RID
 var _us_raster_0: RID
@@ -1065,6 +1106,7 @@ var _last_p0_rb_ms: int = 0              # wall-time gate for the p[0] debug pri
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 var _presentation_profile: bool = false
 var _presentation_color_scheme: int = 0
+var _presentation_particle_opacity: float = 0.35
 var _particle_compat_shader: Shader = null
 var _particle_presentation_shader: Shader = null
 var _presentation_viewport_height: float = -1.0
@@ -1080,9 +1122,8 @@ var _macro_lod_mmi: MultiMeshInstance3D = null
 var _macro_lod_mm: MultiMesh = null
 var _macro_lod_rd_rid: RID
 var _macro_lod_material: ShaderMaterial = null
-var _macro_lod_set_generation: int = -1
-var _macro_lod_set_site_count: int = -1
 var _macro_lod_last_scheme: int = -1
+var _macro_lod_last_range := Vector2(INF, INF)
 
 var _trail_shader: RID; var _trail_pipe: RID
 var _us_trail_0: RID; var _us_trail_0_dc: RID
@@ -1092,6 +1133,25 @@ var _trail_mm: MultiMesh = null
 var _trail_rd_rid: RID
 var _trail_material: ShaderMaterial = null
 var _trail_last_scheme: int = -1
+
+var _rotation_axis_shader: RID; var _rotation_axis_pipe: RID
+var _us_rotation_axis_0: RID
+var _rotation_axis_pc: PackedByteArray
+var _rotation_axis_mmi: MultiMeshInstance3D = null
+var _rotation_axis_mm: MultiMesh = null
+var _rotation_axis_rd_rid: RID
+var _rotation_snapshot: Dictionary = {"enabled": false}
+# GPU-written open-world particle transforms are not bounded by the adaptive
+# high-Q field envelope. Keep the documented conservative support box while
+# still allowing a genuinely larger simulation envelope to expand the AABB.
+const PARTICLE_CULL_MIN_HALF_EXTENT: float = 5000.0
+const PRESENTATION_OPACITY_REFERENCE_PARTICLES: float = 1000.0
+const PRESENTATION_MIN_PIXEL_RADIUS: float = 1.6
+const PRESENTATION_MAX_PIXEL_RADIUS: float = 18.0
+# Forward+ light-frustum reconstruction loses precision beyond this range on
+# the Windows/Vulkan presentation path. Presentation particles clamp their own
+# clip depth, so the camera projection can stay finite while viewing farther.
+const PRESENTATION_SAFE_CAMERA_FAR: float = 1_000_000.0
 var _mm_particle_size: float = -1.0  # particle_size the multimesh was built with (reinit rebuild check)
 var _rainbow_vref: float = 1.0  # rainbow speed reference: mean initial |v| (set in _init_particles; fallback 1.0)
 var _rainbow_vscale: float = 0.95 * LN2  # rainbow hue scale: 0.95/ln(1+v_max/v_ref) (set in _init_particles; degenerate fallback 0.95·ln2)
@@ -1224,6 +1284,9 @@ func _ready() -> void:
 	if field_intelligence_enabled and (physics_decoupled or gridless_physics or meshless_mode):
 		push_error("[CassiSim] Field intelligence requires the inline grid field (physics_decoupled=false, gridless_physics=false, meshless_mode=false)")
 		return
+	if rotation_stress_enabled and not physics_decoupled:
+		push_error("[CassiSim] Rotation stress requires physics_decoupled=true; the inline duplicate is intentionally unchanged")
+		return
 	if not _setup_rendering_device():
 		push_error("[CassiSim] Aborting startup: no RenderingDevice (headless/dummy renderer?)")
 		return
@@ -1248,6 +1311,9 @@ func _ready() -> void:
 		else:
 			if gridless_physics:
 				_fail_gridless_physics("engine start failed")
+				return
+			if rotation_stress_enabled:
+				push_error("[CassiSim] rotation-stress engine start failed; refusing an inline no-op fallback")
 				return
 			push_error("[CassiSim] decoupled engine failed to start — falling back to the inline path")
 			_decoupled_active = false
@@ -1371,6 +1437,9 @@ func _process(delta: float) -> void:
 	if _gridless_failure:
 		return
 	_update_particle_presentation_viewport()
+	_apply_camera_view_range()
+	if presentation_profile:
+		_update_particle_cull_bounds()
 
 
 	# Optional presentation layers are renderer-only and allocate lazily.
@@ -1378,6 +1447,7 @@ func _process(delta: float) -> void:
 	# invalidate a set currently bound by the render/physics chain.
 	_sync_presentation_macro_lod()
 	_sync_presentation_trails()
+	_sync_rotation_orientation_layer()
 	_sync_presentation_volume_history()
 	# First-run import race: on a fresh cache the .glsl imports may not have
 	# finished when _ready ran — retry until every shader compiles.
@@ -1688,24 +1758,23 @@ func _ensure_synced() -> void:
 ## per-cycle in-list cc zero). The two differ only in sync style (this sim:
 ## readback self-stall; engine: explicit submit+sync).
 ##
-## FIX 1 (perf-decomp 2026-08-14): cycles execute in BATCHES of
-## MERGE_BATCH_CYCLES — every cycle's fold→zero-cc→count→scan→fill→best→hop
-## chain is recorded into ONE compute list with intra-list barriers, ending
-## with ONE self-stalling count readback (the only sync legal on the global
-## RD from the frame context). The old flow did 3 lists + 1 readback + 1 host
-## update PER CYCLE — that drain burst is the TDR trigger on the shared
-## three-RD GPU. Results are bit-identical: a 0-merge cycle is a
-## deterministic no-op (the fold re-bases mom/cen onto the canonical state,
-## so it is idempotent), so the batch's last cycle reading 0 stops the loop
-## with exactly the old per-cycle early-exit semantics. cc is re-zeroed
-## ON-GPU per cycle (mode 7) — exact for multi-cycle passes (the old flow
-## zeroed cc once per pass, leaving it dirty for cycles >= 2).
+## Small verification problems execute merge cycles in batches of
+## MERGE_BATCH_CYCLES, retaining the established early-exit behavior and one
+## self-stalling count readback per batch. Production clouds execute exactly
+## one persisted (neighbor-cell, entry) phase per cadence; no single frame can
+## expand back into a multi-cycle TDR burst. Both paths keep the complete
+## fold→zero-cc→count→scan→fill→best→hop chain in one compute list with
+## barriers, and mode 7 clears cc before every count.
+##
+## The large-cloud phase is split across pass_mode's fractional bits (cell)
+## and cyc_slot (entry round), keeping both fields exact throughout N entries.
 func _run_merge_pass() -> int:
 	if not particle_merge or not _merge_shader.is_valid() or not _merge_pipe.is_valid() \
 			or not _us_merge_0.is_valid() or not _merge_alive_buf.is_valid() \
 			or not _scan_pipe.is_valid() or not _us_scan_0.is_valid() \
 			or N_particles <= 0:
 		return 0
+	_fill_merge_pc()
 	# reset in its own list; force its completion + visibility with a readback
 	# (global RD: separate compute_list_end()s don't guarantee cross-list
 	# memory visibility; buffer_get_data self-stalls and executes pending
@@ -1718,26 +1787,19 @@ func _run_merge_pass() -> int:
 	_merge_bind_dispatch(cl0, 0.0)   # reset: alive=1, mass=pos.w, mom/cen=m p/m v
 	_rd.compute_list_end()
 	_merge_read_uint()   # forced sync → reset visible
-	# STEP 1 (perf-decomp 2026-08-15): GPU any-candidate early-out — ONE
-	# dispatch (mode 8) sets cc[0] iff ANY alive mass>0 particle sits at
-	# q_coh > q_threshold; ONE 4 B self-stall readback decides. On 0: this
-	# pass CANNOT merge (q_sel(mid) > φ⁻² with qord ≤ 1 requires
-	# q_coh(mid) > φ⁻², so the per-particle q gate is a necessary condition)
-	# — skip the whole fold/count/scan/fill/best/hop chain AND the per-cycle
-	# count readbacks, i.e. the ~40-dispatch burst that starved the shared
-	# three-RD GPU on near-empty passes (the measured TDR trigger). cc[0] is
-	# borrowed: reset zeroed it, pass_zerocc clears it before the first
-	# count, and nothing else reads it here. Skipping with a false-negative
-	# flag only DELAYS a merge (pos/vel untouched), never corrupts.
-	var cla := _rd.compute_list_begin()
-	_merge_bind_dispatch(cla, 8.0)
-	_rd.compute_list_end()
-	if int(_rd.buffer_get_data(_merge_cc_buf, 0, 4).decode_u32(0)) == 0:
-		return 0
+	# Keep the any-q readback for small gates. At production counts it would
+	# query every particle before the deliberately time-sliced pair pass.
+	if N_particles <= CassiMergeCommon.FULL_PAIR_SCAN_PARTICLE_LIMIT:
+		var cla := _rd.compute_list_begin()
+		_merge_bind_dispatch(cla, 8.0)
+		_rd.compute_list_end()
+		if int(_rd.buffer_get_data(_merge_cc_buf, 0, 4).decode_u32(0)) == 0:
+			return 0
 	var total := 0
 	var cyc := 0
+	var time_sliced := N_particles > CassiMergeCommon.FULL_PAIR_SCAN_PARTICLE_LIMIT
 	while cyc < MERGE_MAX_CYCLES:
-		var ncyc := mini(MERGE_BATCH_CYCLES, MERGE_MAX_CYCLES - cyc)
+		var ncyc := 1 if time_sliced else mini(MERGE_BATCH_CYCLES, MERGE_MAX_CYCLES - cyc)
 		var cl := _rd.compute_list_begin()
 		for c in range(ncyc):
 			_merge_bind_dispatch(cl, 1.0)              # fold → canonical pos/vel
@@ -1749,20 +1811,20 @@ func _run_merge_pass() -> int:
 			_merge_scan_into(cl)                       # 4 scan passes (barriers inside)
 			_merge_bind_dispatch(cl, 3.0)              # fill per-cell lists
 			_rd.compute_list_add_barrier(cl)
-			_merge_bind_dispatch(cl, 4.0)              # best[i], sink[i]
+			var pair_phase := _merge_pair_phase
+			_merge_pair_phase = CassiMergeCommon.next_pair_phase(_merge_pair_phase, N_particles)
+			_merge_bind_dispatch(cl, 4.0, pair_phase)   # best[i], sink[i]
 			_rd.compute_list_add_barrier(cl)
 			_merge_bind_dispatch(cl, 5.0, cyc + c)     # hop → mc[cyc+c]
 			_rd.compute_list_add_barrier(cl)           # next cycle's fold sees this hop
 		_rd.compute_list_end()
 		var counts := _merge_read_counts()   # self-stalling: executes the batch + reads all slots
-		var batch_merges := 0
-		for c in range(ncyc):
-			batch_merges += counts[c]
-		total += batch_merges
+		var batch_result := CassiMergeCommon.merge_batch_result(counts, cyc, ncyc)
+		total += batch_result.x
 		_merge_cycles_run += ncyc
 		cyc += ncyc
-		if counts[ncyc - 1] == 0:
-			break   # last cycle no-op → all later cycles are deterministic no-ops
+		if time_sliced or batch_result.y == 0:
+			break   # large clouds resume at the next phase/cadence
 	var clf := _rd.compute_list_begin()
 	_merge_bind_dispatch(clf, 6.0)   # finalize: survivor masses → pos.w / dead = 0
 	_rd.compute_list_end()
@@ -1776,27 +1838,23 @@ const MERGE_MAX_CYCLES := 16
 
 ## Effective merge cadence in STEPS: the explicit export, else AUTO = 1/2
 ## of the R_m reaction budget (see the merge_cadence_steps export comment).
-## Default 1 = per job — the STEP-1 early-out made frequent passes cheap
-## and catches the job-1 IC-overlap coalesce (validated A/B, 2026-08-15).
+## Default 1 = per job — local runs keep the STEP-1 early-out and large clouds
+## bound each job to one persisted source-shard/cell/entry phase.
 ## Cheap: a few multiplies, called once per gate check.
 func _merge_cadence_eff() -> int:
 	if merge_cadence_steps > 0:
 		return merge_cadence_steps
 	return maxi(1, int(0.5 * _extent_min() / float(maxi(grid_N, 1)) / maxf(dt, 1e-6)))
-## How many merge cycles run per compute-list batch (FIX 1, perf-decomp
-## 2026-08-14): each cycle's fold→zero-cc→count→scan→fill→best→hop chain is
-## recorded into ONE list with intra-list barriers, and the batch ends with
-## ONE self-stalling count readback — vs the old 3 lists + 1 readback + 1
-## host update PER CYCLE on the global RD. Results identical (0-merge cycles
-## are deterministic no-ops). Tune 2..8.
+## Small verification problems batch this many complete merge cycles before
+## their count readback. Large clouds ignore the batch size and run exactly
+## one persisted pair phase per cadence.
 const MERGE_BATCH_CYCLES := 4
 
 
-## The merge push constant as 24 floats (shader layout: N, phi, phi_inv2,
-## q_threshold, R_m, extent.xyz, grid_N, hash_nxyz, cell_w.xyz, pass_mode@15,
-## g_n, xi, h0, dt, f_subsonic, f_virial, f_order, cyc_slot@23 — the §3
-## redesign + the batched-merge cycle slot). Deduped via CassiMergeCommon so
-## the engine twin cannot drift (the F1-class divergence guard).
+## The merge PC as 26 floats: pass_mode@15 uses fractional bits for the
+## large-cloud neighbor-cell phase, cyc_slot@23 carries its entry round,
+## boxless@24 selects site-direct coherence, and n_sites@25 guards that read.
+## CassiMergeCommon owns the layout so the engine twin cannot drift.
 func _merge_pc_values() -> PackedFloat32Array:
 	return CassiMergeCommon.merge_pc_values(_merge_pc_dict())
 
@@ -1818,18 +1876,26 @@ func _merge_pc_dict() -> Dictionary:
 		"n_sites": _ml_sites_cpu.size() / 4,               # Voronoi site count (nearest-site read guard)
 	}
 
+## Encode the invariant portion once per merge pass. Individual dispatches
+## only change the pass selector and cycle/phase slot.
+func _fill_merge_pc() -> void:
+	var values := _merge_pc_values()
+	for i in range(26):
+		_merge_pc_bytes.encode_float(i * 4, values[i])
+
 
 ## Bind the merge pipeline/set/PC and dispatch one pass mode into the open
-## compute list `cl` (N_particles threads). F8: the PC is ENCODED INTO the
-## pre-sized `_merge_pc_bytes` member (26 floats = 104 B) — never reassigned —
-## so the dispatches stay hitch-free. The caller adds barriers between
-## consecutive in-list passes and readbacks to sync across lists.
+## compute list `cl` (N_particles threads). The caller fills the invariant PC
+## fields once per chain; only the selector fields change between dispatches.
 func _merge_bind_dispatch(cl: int, pass_mode: float, cyc_slot := 0) -> void:
-	var f := _merge_pc_values()
-	f[15] = pass_mode
-	f[23] = float(cyc_slot)
-	for i in range(26):
-		_merge_pc_bytes.encode_float(i * 4, f[i])
+	var encoded_mode := pass_mode
+	var encoded_slot := float(cyc_slot)
+	if int(pass_mode) == 4 and N_particles > CassiMergeCommon.FULL_PAIR_SCAN_PARTICLE_LIMIT:
+		var phase_pc := CassiMergeCommon.pair_phase_pc(int(cyc_slot))
+		encoded_mode = phase_pc.x
+		encoded_slot = phase_pc.y
+	_merge_pc_bytes.encode_float(15 * 4, encoded_mode)
+	_merge_pc_bytes.encode_float(23 * 4, encoded_slot)
 	_rd.compute_list_bind_compute_pipeline(cl, _merge_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_merge_0, 0)
 	_rd.compute_list_set_push_constant(cl, _merge_pc_bytes, _merge_pc_bytes.size())
@@ -1846,31 +1912,33 @@ func _merge_scan_into(cl: int) -> void:
 	var E := _merge_hash_total
 	var nb1 := (E + 255) / 256
 	var nb2 := _merge_nb2
-	var pc := PackedFloat32Array()
-	pc.resize(4)
-	pc[2] = float(_merge_nb1a)
+	_merge_scan_pc_bytes.encode_float(2 * 4, float(_merge_nb1a))
 	# pass 1: cc -> cs (block-local exclusive) + L1 totals -> scr[b]
-	pc[0] = float(E); pc[1] = 1.0
-	_scan_dispatch(cl, pc, nb1)
+	_merge_scan_pc_bytes.encode_float(0, float(E))
+	_merge_scan_pc_bytes.encode_float(4, 1.0)
+	_scan_dispatch(cl, nb1)
 	_rd.compute_list_add_barrier(cl)
 	# pass 2: scan scr(L1) in place -> loc1 + L2 totals -> scr[nb1a + bb]
-	pc[0] = float(nb1); pc[1] = 2.0
-	_scan_dispatch(cl, pc, nb2)
+	_merge_scan_pc_bytes.encode_float(0, float(nb1))
+	_merge_scan_pc_bytes.encode_float(4, 2.0)
+	_scan_dispatch(cl, nb2)
 	_rd.compute_list_add_barrier(cl)
 	# pass 3: single workgroup scan of L2 -> exclusive (nb2 <= 256)
-	pc[0] = float(nb2); pc[1] = 3.0
-	_scan_dispatch(cl, pc, 1)
+	_merge_scan_pc_bytes.encode_float(0, float(nb2))
+	_merge_scan_pc_bytes.encode_float(4, 3.0)
+	_scan_dispatch(cl, 1)
 	_rd.compute_list_add_barrier(cl)
 	# pass 4: cs += carries; ch = cs
-	pc[0] = float(E); pc[1] = 4.0
-	_scan_dispatch(cl, pc, nb1)
+	_merge_scan_pc_bytes.encode_float(0, float(E))
+	_merge_scan_pc_bytes.encode_float(4, 4.0)
+	_scan_dispatch(cl, nb1)
 	_rd.compute_list_add_barrier(cl)
 
 
-func _scan_dispatch(cl: int, pc: PackedFloat32Array, groups: int) -> void:
+func _scan_dispatch(cl: int, groups: int) -> void:
 	_rd.compute_list_bind_compute_pipeline(cl, _scan_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_scan_0, 0)
-	_rd.compute_list_set_push_constant(cl, pc.to_byte_array(), pc.size() * 4)
+	_rd.compute_list_set_push_constant(cl, _merge_scan_pc_bytes, _merge_scan_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, maxi(groups, 1), 1, 1)
 
 
@@ -1900,13 +1968,6 @@ func _zero_merge_bytes(buf: RID, count: int) -> void:
 	_rd.buffer_update(buf, 0, z.size(), z)
 
 
-func _read_merge_uints(buf: RID, count: int) -> PackedInt32Array:
-	return _rd.buffer_get_data(buf, 0, count * 4).to_int32_array()
-
-
-func _read_merge_uint(buf: RID) -> int:
-	var d := _rd.buffer_get_data(buf, 0, 4)
-	return int(d.decode_u32(0)) if d.size() >= 4 else 0
 
 
 # Full memory barrier inside an open compute list. Consecutive dispatches
@@ -1945,6 +2006,8 @@ func _engine_read_publish(force_telemetry: bool) -> Dictionary:
 	var pub := {"executed": eng._executed, "step_count": eng._step_count, "t": eng._time}
 	if force_telemetry:
 		pub["telemetry"] = eng.readback_telemetry()
+		if rotation_stress_enabled:
+			pub["rotation"] = eng.rotation_publish_state(16)
 		if home_window_enabled and Time.get_ticks_msec() - _win_track_last_ms >= COM_TRACK_CADENCE_MS:
 			var c: Array = eng.read_com()
 			if not c.is_empty():
@@ -1959,6 +2022,7 @@ func _fail_gridless_physics(reason: String) -> void:
 	# fail-closed gridless transition cannot leave stale presentation RIDs.
 	_free_macro_lod_multimesh()
 	_free_trail_multimesh()
+	_free_rotation_orientation_multimesh()
 	_free_volume_history_resources()
 	_decoupled_boot_wait = false
 	if _physics_engine != null:
@@ -1976,6 +2040,7 @@ func _fail_gridless_physics(reason: String) -> void:
 ## (the render then binds the engine's live buffers directly — no mirror
 ## upload).
 func _decoupled_start_engine() -> bool:
+	_rotation_snapshot = {"enabled": false}
 	if _physics_engine == null:
 		_physics_engine = load("res://scripts/cassi_physics_engine.gd").new()
 	var cfg := {
@@ -2008,6 +2073,7 @@ func _decoupled_start_engine() -> bool:
 		"gridless_physics": gridless_physics,
 		"field_particles": field_particles,
 		"field_particles_single_seed": field_particles_single_seed,
+		"boxless_field": boxless_field,
 		"winding_coupling": winding_coupling,
 		"q_weighted_com": q_weighted_com,
 		"coherence_theta": coherence_theta,
@@ -2018,6 +2084,18 @@ func _decoupled_start_engine() -> bool:
 		"merge_subsonic": merge_subsonic,
 		"merge_virial": merge_virial,
 		"merge_sel_gate": merge_sel_gate,
+		"rotation_stress_enabled": rotation_stress_enabled,
+		"rotation_grid_N": rotation_grid_N,
+		"rotation_rungs": rotation_rungs,
+		"rotation_field_inertia": rotation_field_inertia,
+		"rotation_c_t": rotation_c_t,
+		"rotation_c_l": rotation_c_l,
+		"rotation_scale_omega": rotation_scale_omega,
+		"rotation_attenuation": rotation_attenuation,
+		"rotation_exchange_rate": rotation_exchange_rate,
+		"rotation_reservoir_inertia": rotation_reservoir_inertia,
+		"rotation_lower_reservoir_coupling": rotation_lower_reservoir_coupling,
+		"rotation_upper_reservoir_coupling": rotation_upper_reservoir_coupling,
 		"bh_accretion": bh_accretion,
 		"bh_accretion_radius": bh_accretion_radius,
 	}
@@ -2051,6 +2129,8 @@ func _decoupled_start_engine() -> bool:
 	_batch_ema_ms = 16.7
 	_step_count = 0
 	_merge_step_counter = 0
+	_merge_pair_phase = 0
+	_merge_dc_first_completion_logged = false
 	_time = 0.0
 	_decoupled_initial_render_pending = true
 	_decoupled_boot_wait = true
@@ -2093,6 +2173,9 @@ func _apply_decoupled_publish(pub: Dictionary) -> void:
 		_hubble = float(tel.get("hubble", _hubble))
 		_scale_factor = float(tel.get("scale_factor", _scale_factor))
 		_gn_eff = float(tel.get("gn_eff", _gn_eff))
+	if pub.has("rotation"):
+		var rotation_pub: Dictionary = pub["rotation"]
+		_rotation_snapshot = rotation_pub.duplicate(true)
 	# P3 (M0b-P one-RD): the publish carries NO snapshot — the render reads
 	# the ENGINE's live buffers directly (the render sets re-point on the
 	# shared RD); the mirrors + 12 MB uploads + the pot mirror are gone.
@@ -2182,7 +2265,16 @@ func _capture_envelope_sample() -> bool:
 	var stride := maxi(32, int(N_particles / maxi(n_sample, 1)))
 	var ext := _extents()
 	var lim := ext * 0.85
-	var occ_set: RID = _us_occ_0_dc if (_decoupled_active and _us_occ_0_dc.is_valid()) else _us_occ_0
+	var occ_set: RID
+	if _decoupled_active:
+		# Never sample the dormant sim buffer while the decoupled engine is
+		# booting. Its zero positions look like a real point envelope and
+		# collapse the live site window to the one-unit minimum.
+		if _decoupled_boot_wait or not _us_occ_0_dc.is_valid():
+			return false
+		occ_set = _us_occ_0_dc
+	else:
+		occ_set = _us_occ_0
 	if not occ_set.is_valid():
 		return false
 	_occ_pc_bytes.encode_float(0, float(N_particles))
@@ -2211,7 +2303,8 @@ func _capture_envelope_sample() -> bool:
 
 func _track_envelope_window() -> void:
 	if not tracking_envelope or not _decoupled_active or _physics_engine == null \
-			or not _physics_engine.setup_ready():
+			or not _physics_engine.setup_ready() or _decoupled_boot_wait \
+			or not _us_occ_0_dc.is_valid():
 		return
 	var now := Time.get_ticks_msec()
 	if now - _env_track_last_ms < ENV_TRACK_CADENCE_MS:
@@ -2229,6 +2322,10 @@ func _track_envelope_window() -> void:
 		_env_target_center = _window_center
 		_env_target_scale = _env_applied_scale
 	var eng: Object = _physics_engine
+	if q_weighted_com and (
+			not bool(eng.get("_ml_ready"))
+			or not bool(eng.get("_meshless_query_ready"))):
+		return
 	if not _capture_envelope_sample():
 		return
 	var posf: PackedFloat32Array = _envelope_sample_positions
@@ -2249,13 +2346,16 @@ func _track_envelope_window() -> void:
 		qsites = _rd.buffer_get_data(eng._ml_sites, 0, qns * 16).to_float32_array()
 		qstarts = _rd.buffer_get_data(eng._hash_cell_start, 0, (HASH_H * HASH_H * HASH_H + 1) * 4).to_int32_array()
 		qhs = _rd.buffer_get_data(eng._hash_cell_sites, 0, qns * 4).to_int32_array()
-		if qf.size() >= qns and qsites.size() >= qns * 4:
+		if qf.size() >= qns and qsites.size() >= qns * 4 \
+				and qstarts.size() >= HASH_H * HASH_H * HASH_H + 1 \
+				and qhs.size() >= qns:
 			q_gate = maxf(float(eng._q_mean) * 0.5, 1e-4)
 	var cnt := 0
 	var i := 0
-	while i + 2 < posf.size() and cnt < s.size() / 4.0:
+	while i + 3 < posf.size():
 		var p := Vector3(posf[i], posf[i + 1], posf[i + 2])
-		var near_window := absf(p.x - _window_center.x) <= track_ext.x \
+		var near_window := posf[i + 3] > 0.0 \
+				and absf(p.x - _window_center.x) <= track_ext.x \
 				and absf(p.y - _window_center.y) <= track_ext.y \
 				and absf(p.z - _window_center.z) <= track_ext.z
 		if near_window and q_gate > 0.0:
@@ -2448,18 +2548,17 @@ func _decoupled_poll_and_render() -> void:
 			and _rd.uniform_set_is_valid(_us_macro_lod_0) \
 			and _macro_lod_mm != null and _macro_lod_mm.instance_count > 0:
 		var macro_count := _macro_lod_mm.instance_count
-		_macro_lod_pc = PackedFloat32Array([
-			float(macro_count),
-			clampf(presentation_macro_min_coherence, 0.0, 1.0),
-			maxf(cluster_radius * 0.08, 1.5),
-			1.0,
-		]).to_byte_array()
+		_macro_lod_pc.encode_float(0, float(macro_count))
+		_macro_lod_pc.encode_float(4, clampf(presentation_macro_min_coherence, 0.0, 1.0))
+		_macro_lod_pc.encode_float(8, maxf(cluster_radius * 0.08, 1.5))
+		_macro_lod_pc.encode_float(12, 1.0)
 		_rd.compute_list_bind_compute_pipeline(cl, _macro_lod_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_macro_lod_0, 0)
 		_rd.compute_list_set_push_constant(cl, _macro_lod_pc, _macro_lod_pc.size())
 		_rd.compute_list_dispatch(cl, ceili(float(macro_count) / 256.0), 1, 1)
 		_rd.compute_list_add_barrier(cl)
 	_record_presentation_trails(cl, _us_trail_0_dc)
+	_record_rotation_orientation(cl)
 
 	# ── q-histogram (auto color-align; RENDER variant reads pos_render —
 	var color_base_dc: int = int(particle_color_mode) & 0xF
@@ -2506,6 +2605,13 @@ func _decoupled_poll_and_render() -> void:
 	if _pub_counter == 1 or _pub_counter % maxi(mirror_publish_cadence, 1) == 0:
 		pub = _engine_read_publish(true)
 	_apply_decoupled_publish(pub)
+	if not _merge_dc_first_completion_logged and _physics_engine != null \
+			and int(_physics_engine.get("_merge_cycles_run")) > 0:
+		_merge_dc_first_completion_logged = true
+		var merge_elapsed_ms := Time.get_ticks_msec() \
+			- int(_physics_engine.get("_merge_first_record_tick_ms"))
+		print("[CassiSim] particle-merge phase 0 completed in %d ms at step %d" % [
+			merge_elapsed_ms, int(pub.get("step_count", 0))])
 
 
 ## P3 (M0b-P one-RD): the decoupled render sets bind the ENGINE's live
@@ -2875,14 +2981,17 @@ func _setup_buffers() -> void:
 	_jfa_pc_bytes = PackedByteArray(); _jfa_pc_bytes.resize(8 * 4)
 	_cell_pc_bytes = PackedByteArray(); _cell_pc_bytes.resize(18 * 4)  # mode,N,n_sites,dt,hx,hy,hz,C2,OM2,PHI,src,rho_floor,drift_cap,kappa,lam,T_steer,lloyd_p,J_wind
 	_raster_pc_bytes = PackedByteArray(); _raster_pc_bytes.resize(8 * 4)
+	_shortlist_pc_bytes = PackedByteArray(); _shortlist_pc_bytes.resize(3 * 4)
+	_hash_pc_bytes = PackedByteArray(); _hash_pc_bytes.resize(9 * 4)
+	_hash_cfg_bytes = PackedByteArray(); _hash_cfg_bytes.resize(4 * 4)
 	# ── Particle-merge buffers (INIT-TIME: allocated only when particle_merge)
 	# The merge kernel's persistent per-particle state (alive/mass/mom/cen/
 	# best/sink) + the spatial-hash scratch (cc/cs/ch/cl) + the merge counter.
-	# Hash sized so each cell width ≥ R_m (the 27-neighbor pass_best provably
-	# covers every in-range pair): hash_nx_i = floor(2·extent_i / R_m), which
-	# at the default cube is exactly 2·grid_N per axis. R_m = ½·h₀ with
-	# h₀ = 2·extent_min/grid_N (the shortest-axis cube-equivalent cell —
-	# matches the verify's single-extent convention on the cubic default).
+	# Cell widths stay ≥ R_m, so the wrapped 27-neighbor walk covers every
+	# in-range pair. The shared helper uniformly coarsens anisotropic raw
+	# dimensions to the shortest-axis cube; large-N pass_best time-slices the
+	# actual cell occupancy, avoiding both the old aspect-volume scan blow-up
+	# and its 64-entry omission. Cubic verifier geometry is unchanged.
 	if particle_merge and N_particles > 0:
 		# Hash geometry via the shared helper (dedup — identical to the engine
 		# twin; see CassiMergeCommon.hash_geometry).
@@ -2918,7 +3027,12 @@ func _setup_buffers() -> void:
 		_merge_cell_wx = geom["cell_wx"]
 		_merge_cell_wy = geom["cell_wy"]
 		_merge_cell_wz = geom["cell_wz"]
+		print("[CassiSim] particle-merge hash: %dx%dx%d = %d cells, widths=%s (R_m=%.4f)" % [
+			_merge_hash_nx, _merge_hash_ny, _merge_hash_nz, _merge_hash_total,
+			Vector3(_merge_cell_wx, _merge_cell_wy, _merge_cell_wz),
+			_extent_min() / float(maxi(grid_N, 1))])
 		_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(26 * 4)   # 26 floats = 104 B (n_sites@25) — F8: pre-sized, never reassigned
+		_merge_scan_pc_bytes = PackedByteArray(); _merge_scan_pc_bytes.resize(4 * 4)
 	# ── Tree-gravity buffers (allocated always; used when meshless_gravity) ──
 	# Sources = the Voronoi sites (ml_ns); targets = the N-body particles.
 	# Node cap NODE_MAX = ML_TREE_NODE_MAX_MULT·nsrc + slack — the octree of
@@ -2961,7 +3075,12 @@ func _setup_buffers() -> void:
 	# Godot reflects the 2-float push-constant block as exactly 8 bytes
 	# (verified empirically — 4.7 hard-errors on any size mismatch).
 	_blend_pc = PackedByteArray(); _blend_pc.resize(20)  # alpha@0, packed@4, win@8/12/16 (movable home-window)
-	_volume_pc_bytes = PackedByteArray(); _volume_pc_bytes.resize(128); _volume_pc_bytes.fill(0)
+	_macro_lod_pc = PackedByteArray(); _macro_lod_pc.resize(4 * 4)
+	_trail_pc = PackedByteArray(); _trail_pc.resize(16 * 4)
+	_rotation_axis_pc = PackedByteArray(); _rotation_axis_pc.resize(4 * 4)
+	_volume_pc_bytes = PackedByteArray(); _volume_pc_bytes.resize(32 * 4); _volume_pc_bytes.fill(0)
+	_volume_resolve_pc_bytes = PackedByteArray(); _volume_resolve_pc_bytes.resize(32 * 4)
+	_volume_history_state_bytes = PackedByteArray(); _volume_history_state_bytes.resize(20 * 4)
 	_volume_stats_zero = PackedByteArray(); _volume_stats_zero.resize(32); _volume_stats_zero.fill(0)
 	_volume_stats = _rd.storage_buffer_create(32)
 	_rd.buffer_update(_volume_stats, 0, 32, _volume_stats_zero)
@@ -3063,7 +3182,8 @@ func _free_uniform_sets() -> void:
 				_us_qhist_0, _us_qhist_0_render, _us_jfa_0, _us_cell_0,
 				_us_raster_0, _us_shortlist, _us_hash, _us_volume_0,
 				_us_volume_history_0, _us_volume_reproject_ab, _us_volume_reproject_ba,
-				_us_macro_lod_0, _us_trail_0, _us_trail_0_dc]:
+				_us_macro_lod_0, _us_trail_0, _us_trail_0_dc,
+				_us_rotation_axis_0]:
 		if rid.is_valid() and _rd.uniform_set_is_valid(rid) and not seen.has(rid):
 			seen[rid] = true
 			_rd.free_rid(rid)
@@ -3094,6 +3214,7 @@ func _free_uniform_sets() -> void:
 	_us_macro_lod_0 = RID()
 	_us_trail_0 = RID()
 	_us_trail_0_dc = RID()
+	_us_rotation_axis_0 = RID()
 	_volume_clear_signature()
 
 func _free_shaders() -> void:
@@ -3107,7 +3228,8 @@ func _free_shaders() -> void:
 			_rd.free_rid(rid)
 	for rid in [_volume_history_pipe, _volume_reproject_pipe,
 				_volume_history_shader, _volume_reproject_shader,
-				_macro_lod_pipe, _macro_lod_shader, _trail_pipe, _trail_shader]:
+				_macro_lod_pipe, _macro_lod_shader, _trail_pipe, _trail_shader,
+				_rotation_axis_pipe, _rotation_axis_shader]:
 		if rid.is_valid() and not seen.has(rid):
 			seen[rid] = true
 			_rd.free_rid(rid)
@@ -3121,6 +3243,8 @@ func _free_shaders() -> void:
 	_macro_lod_pipe = RID()
 	_trail_shader = RID()
 	_trail_pipe = RID()
+	_rotation_axis_shader = RID()
+	_rotation_axis_pipe = RID()
 	_invalidate_volume_history_state()
 func _invalidate_volume_render_cache() -> void:
 	_volume_cache_valid = false
@@ -3308,6 +3432,12 @@ func _setup_shaders() -> void:
 	if _trail_shader.is_valid():
 		_trail_pipe = _rd.compute_pipeline_create(_trail_shader)
 		print("[CassiSim] presentation trail pipeline ready")
+	if rotation_stress_enabled and rotation_orientation_render_enabled:
+		_rotation_axis_shader = _shader_from_file(
+			"res://compute/cassi_rotation_orientation_instancer.glsl")
+		if _rotation_axis_shader.is_valid():
+			_rotation_axis_pipe = _rd.compute_pipeline_create(_rotation_axis_shader)
+			print("[CassiSim] rotation orientation-axis pipeline ready")
 	_volume_history_shader = _shader_from_file("res://compute/cassi_voronoi_fused_volume_history.glsl")
 	if _volume_history_shader.is_valid():
 		_volume_history_pipe = _rd.compute_pipeline_create(_volume_history_shader)
@@ -3551,6 +3681,9 @@ func _cache_uniform_sets() -> void:
 			_uniform_storage(20, _ml_psi_i), _uniform_storage(21, _ml_grad_y),
 			_uniform_storage(22, _ml_grad_i), _uniform_storage(23, _ml_pi_y),
 			_uniform_storage(24, _ml_pi_i),
+			_uniform_storage(25, _shortlist_sites), _uniform_storage(26, _hash_cell_start),
+			_uniform_storage(27, _hash_cell_sites), _uniform_storage(28, _hash_cfg),
+			_uniform_storage(29, _shortlist_count),
 		], _merge_shader, 0)
 	# On-GPU scan set (FIX B): cc(15) → cs(16) + scr(17) two-level + ch(18).
 	if particle_merge and _scan_shader.is_valid() and _merge_scr_buf.is_valid():
@@ -4020,13 +4153,24 @@ func _find_sibling_camera() -> Camera3D:
 	return null
 
 
-## Apply the extended far plane to the sibling camera so very large
-## structures stay visible (Camera3D's default far = 4000 culls them).
-## Called once at _ready. near is untouched.
+## Keep the sibling camera's far plane beyond both the tracked cloud and the
+## current viewpoint. `camera_far_plane` is a floor, not a ceiling. Within a
+## display profile the range only grows; entering presentation may clamp an
+## unsafe Forward+ projection because its particle shader carries far depth.
 func _apply_camera_view_range() -> void:
 	if _sim_cam == null:
 		return
-	_sim_cam.far = camera_far_plane
+	var cloud_radius: float = maxf(_extents().length() * 1.25, 1.0)
+	var required_far: float = (
+			_sim_cam.global_position.distance_to(_window_center) + cloud_radius) * 1.25
+	if is_finite(required_far):
+		var target_far := maxf(camera_far_plane, required_far)
+		if presentation_profile:
+			target_far = minf(target_far, PRESENTATION_SAFE_CAMERA_FAR)
+			if _sim_cam.far > PRESENTATION_SAFE_CAMERA_FAR:
+				_sim_cam.far = PRESENTATION_SAFE_CAMERA_FAR
+		if target_far > _sim_cam.far:
+			_sim_cam.far = target_far
 
 
 ## Hotkey F (added 2026-08-15): the old auto pull-back limit was scrapped —
@@ -4052,6 +4196,7 @@ func _frame_camera_on_cloud() -> void:
 	var fwd: Vector3 = -_sim_cam.global_transform.basis.z   # camera's forward
 	_sim_cam.global_position = target - fwd * dist
 	_sim_cam.look_at(target, Vector3.UP)
+	_apply_camera_view_range()
 	print("[CassiSim] F: camera centered on cloud (%.1f, %.1f, %.1f) at %.1f u" % [
 		target.x, target.y, target.z, dist])
 
@@ -4081,19 +4226,19 @@ func _meshless_init() -> void:
 	var sy: float = Ly / float(ML_N1)
 	var sz: float = Lz / float(ML_N1)
 	var sites := PackedFloat32Array()
+	sites.resize(ml_ns * 4)
+	var site_offset := 0
 	for i in range(ML_N1):
 		for j in range(ML_N1):
 			for k in range(ML_N1):
-				sites.append_array(PackedFloat32Array([
-					float(i) * sx + rng.randf_range(-0.2, 0.2) * sx,
-					float(j) * sy + rng.randf_range(-0.2, 0.2) * sy,
-					float(k) * sz + rng.randf_range(-0.2, 0.2) * sz,
-					0.0]))
-				sites.append_array(PackedFloat32Array([
-					(float(i) + 0.5) * sx + rng.randf_range(-0.2, 0.2) * sx,
-					(float(j) + 0.5) * sy + rng.randf_range(-0.2, 0.2) * sy,
-					(float(k) + 0.5) * sz + rng.randf_range(-0.2, 0.2) * sz,
-					0.0]))
+				sites[site_offset] = float(i) * sx + rng.randf_range(-0.2, 0.2) * sx
+				sites[site_offset + 1] = float(j) * sy + rng.randf_range(-0.2, 0.2) * sy
+				sites[site_offset + 2] = float(k) * sz + rng.randf_range(-0.2, 0.2) * sz
+				site_offset += 4
+				sites[site_offset] = (float(i) + 0.5) * sx + rng.randf_range(-0.2, 0.2) * sx
+				sites[site_offset + 1] = (float(j) + 0.5) * sy + rng.randf_range(-0.2, 0.2) * sy
+				sites[site_offset + 2] = (float(k) + 0.5) * sz + rng.randf_range(-0.2, 0.2) * sz
+				site_offset += 4
 	for m in range(sites.size() / 4):
 		sites[m * 4] = fposmod(sites[m * 4], Lx)
 		sites[m * 4 + 1] = fposmod(sites[m * 4 + 1], Ly)
@@ -4257,7 +4402,7 @@ func _ml_cell_pc(mode: float) -> PackedByteArray:
 
 
 func _ml_cell_dispatch(mode: float, groups: int) -> void:
-	_cell_pc_bytes = _ml_cell_pc(mode)
+	_ml_cell_pc(mode)
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
@@ -4281,14 +4426,18 @@ func _mesh_rebuild() -> void:
 	var hz_rb: float = 2.0 * ext_rb.z / float(N)
 	var wg1 = N * N * N / 64
 	var wgs = int(ceil(float(ml_ns) / 64.0))
-	_cell_pc_bytes = _ml_cell_pc(7.0)
+	_ml_cell_pc(7.0)
 	# The hash config is a host-written buffer and must be updated before
 	# opening the command list; RenderingDevice forbids buffer_update while
 	# any compute list is being recorded.
 	var hext_s: Vector3 = _extents()
 	var hcells_s := HASH_H * HASH_H * HASH_H
-	_rd.buffer_update(_hash_cfg, 0, 16,
-		PackedFloat32Array([0.0, 0.0, 0.0, 0.0]).to_byte_array())
+	var hcs_cfg := (2.0 * hext_s.x) / float(HASH_H)
+	_hash_cfg_bytes.encode_float(0, _window_center.x)
+	_hash_cfg_bytes.encode_float(4, _window_center.y)
+	_hash_cfg_bytes.encode_float(8, _window_center.z)
+	_hash_cfg_bytes.encode_float(12, hcs_cfg)
+	_rd.buffer_update(_hash_cfg, 0, _hash_cfg_bytes.size(), _hash_cfg_bytes)
 	
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
@@ -4298,30 +4447,30 @@ func _mesh_rebuild() -> void:
 	_rd.compute_list_dispatch(cl, wgs, 1, 1)
 	_rd.compute_list_add_barrier(cl)
 	# 2. centroid accumulate (the OLD mesh)
-	_cell_pc_bytes = _ml_cell_pc(3.0)
+	_ml_cell_pc(3.0)
 	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg1, 1, 1)
 	_rd.compute_list_add_barrier(cl)
 	# 3. steer: new sites + remap index (reads the OLD labels)
-	_cell_pc_bytes = _ml_cell_pc(4.0)
+	_ml_cell_pc(4.0)
 	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wgs, 1, 1)
 	_rd.compute_list_add_barrier(cl)
 	# 4. ALE remap: state → temp → gathered state
-	_cell_pc_bytes = _ml_cell_pc(5.0)
+	_ml_cell_pc(5.0)
 	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wgs, 1, 1)
 	_rd.compute_list_add_barrier(cl)
-	_cell_pc_bytes = _ml_cell_pc(6.0)
+	_ml_cell_pc(6.0)
 	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wgs, 1, 1)
 	_rd.compute_list_add_barrier(cl)
 	# 5. labels clear + scatter (the NEW sites)
-	_cell_pc_bytes = _ml_cell_pc(8.0)
+	_ml_cell_pc(8.0)
 	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg1, 1, 1)
 	_rd.compute_list_add_barrier(cl)
-	_cell_pc_bytes = _ml_cell_pc(9.0)
+	_ml_cell_pc(9.0)
 	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wgs, 1, 1)
 	_rd.compute_list_add_barrier(cl)
@@ -4329,49 +4478,45 @@ func _mesh_rebuild() -> void:
 	_rd.compute_list_bind_compute_pipeline(cl, _jfa_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_jfa_0, 0)
 	var read_a := 1
-	for jp in [1, 2, 4, 8, 16, 32, 16, 8, 4, 2, 1, 1, 1]:
-		_jfa_pc_bytes.encode_float(0, float(N))
-		_jfa_pc_bytes.encode_float(4, float(jp))
-		_jfa_pc_bytes.encode_float(8, float(read_a))
-		_jfa_pc_bytes.encode_float(12, float(ml_ns))
-		_jfa_pc_bytes.encode_float(16, hx_rb)
-		_jfa_pc_bytes.encode_float(20, hy_rb)
-		_jfa_pc_bytes.encode_float(24, hz_rb)
-		_jfa_pc_bytes.encode_float(28, 0.0)
-		_rd.compute_list_set_push_constant(cl, _jfa_pc_bytes, _jfa_pc_bytes.size())
-		_rd.compute_list_dispatch(cl, wg1, 1, 1)
-		_rd.compute_list_add_barrier(cl)
-		read_a = 1 - read_a
 	_jfa_pc_bytes.encode_float(0, float(N))
-	_jfa_pc_bytes.encode_float(4, 0.0)
-	_jfa_pc_bytes.encode_float(8, 0.0)
 	_jfa_pc_bytes.encode_float(12, float(ml_ns))
 	_jfa_pc_bytes.encode_float(16, hx_rb)
 	_jfa_pc_bytes.encode_float(20, hy_rb)
 	_jfa_pc_bytes.encode_float(24, hz_rb)
 	_jfa_pc_bytes.encode_float(28, 0.0)
+	for jp in ML_JFA_JUMPS:
+		_jfa_pc_bytes.encode_float(4, float(jp))
+		_jfa_pc_bytes.encode_float(8, float(read_a))
+		_rd.compute_list_set_push_constant(cl, _jfa_pc_bytes, _jfa_pc_bytes.size())
+		_rd.compute_list_dispatch(cl, wg1, 1, 1)
+		_rd.compute_list_add_barrier(cl)
+		read_a = 1 - read_a
+	_jfa_pc_bytes.encode_float(4, 0.0)
+	_jfa_pc_bytes.encode_float(8, 0.0)
 	_rd.compute_list_set_push_constant(cl, _jfa_pc_bytes, _jfa_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg1, 1, 1)
 	_rd.compute_list_add_barrier(cl)
 	# 7. volume accumulate (the NEW mesh)
 	_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
-	_cell_pc_bytes = _ml_cell_pc(2.0)
+	_ml_cell_pc(2.0)
 	_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, wg1, 1, 1)
 	_rd.compute_list_add_barrier(cl)
-	# 8. Arm 1: coherence-filtered site shortlist (on the steer cadence). Reset
-	# the atomic count, then compact sites with q_coh ≥ q_floor into the dense
-	# list the per-frame boxless instancer scans (off by construction when the
-	# instancer's flag.y = 0).
+	# 8. Arm 1: site shortlist (on the steer cadence). Boxless merge needs the
+	# full list for its exact indexed nearest-site query; otherwise retain the
+	# coherence-filtered list consumed by the per-frame boxless instancer.
 	if _shortlist_pipe.is_valid() and _us_shortlist.is_valid():
 		_rd.compute_list_bind_compute_pipeline(cl, _shortlist_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_shortlist, 0)
-		_shortlist_pc_bytes = PackedFloat32Array([float(ml_ns), SS_Q_FLOOR, 0.0]).to_byte_array()
+		var shortlist_floor := 0.0 if particle_merge and boxless_field else SS_Q_FLOOR
+		_shortlist_pc_bytes.encode_float(0, float(ml_ns))
+		_shortlist_pc_bytes.encode_float(4, shortlist_floor)
+		_shortlist_pc_bytes.encode_float(8, 0.0)
 		_rd.compute_list_set_push_constant(cl, _shortlist_pc_bytes, _shortlist_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, 1, 1, 1)
 		_rd.compute_list_add_barrier(cl)
-		_shortlist_pc_bytes = PackedFloat32Array([float(ml_ns), SS_Q_FLOOR, 1.0]).to_byte_array()
+		_shortlist_pc_bytes.encode_float(8, 1.0)
 		_rd.compute_list_set_push_constant(cl, _shortlist_pc_bytes, _shortlist_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wgs, 1, 1)
 		_rd.compute_list_add_barrier(cl)
@@ -4383,9 +4528,15 @@ func _mesh_rebuild() -> void:
 		# _hash_cfg was reset before compute_list_begin() above.
 		_rd.compute_list_bind_compute_pipeline(cl, _hash_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_hash, 0)
-		_hash_pc_bytes = PackedFloat32Array([
-			hext_s.x, hext_s.y, hext_s.z, float(HASH_H), float(ml_ns),
-			0.0, 0.0, 0.0, 0.0]).to_byte_array()
+		_hash_pc_bytes.encode_float(0, hext_s.x)
+		_hash_pc_bytes.encode_float(4, hext_s.y)
+		_hash_pc_bytes.encode_float(8, hext_s.z)
+		_hash_pc_bytes.encode_float(12, float(HASH_H))
+		_hash_pc_bytes.encode_float(16, float(ml_ns))
+		_hash_pc_bytes.encode_float(20, 0.0)
+		_hash_pc_bytes.encode_float(24, 0.0)
+		_hash_pc_bytes.encode_float(28, 0.0)
+		_hash_pc_bytes.encode_float(32, 0.0)
 		_rd.compute_list_set_push_constant(cl, _hash_pc_bytes, _hash_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, ceili(float(hcells_s) / 64.0), 1, 1)
 		_rd.compute_list_add_barrier(cl)
@@ -5208,17 +5359,47 @@ func _apply_particle_presentation_profile() -> void:
 		# QuadMesh already carries particle_size; the presentation shader's
 		# screen-space correction operates from that single physical scale.
 		mat.set_shader_parameter("size", 1.0)
-		mat.set_shader_parameter("min_pixel_radius", 1.60)
-		mat.set_shader_parameter("max_pixel_radius", 18.0)
+		mat.set_shader_parameter("min_pixel_radius", PRESENTATION_MIN_PIXEL_RADIUS)
+		mat.set_shader_parameter("max_pixel_radius", _effective_presentation_max_pixel_radius())
 		mat.set_shader_parameter("halo_strength", 0.45)
 		mat.set_shader_parameter("emission_strength", 1.75)
 		mat.set_shader_parameter("core_radius", 0.30)
 		mat.set_shader_parameter("color_scheme", float(_presentation_color_scheme))
+		_apply_particle_presentation_opacity()
 	else:
 		# Restore the legacy shader's historical default if the live toggle is
 		# switched off after the presentation material was active.
 		mat.set_shader_parameter("size", 1.5)
 	_apply_lut_material()
+
+
+func _effective_presentation_max_pixel_radius(particle_count: int = -1) -> float:
+	var count := N_particles if particle_count < 0 else particle_count
+	# Keep million-particle layers as individually moving motes instead of
+	# letting capped billboards overlap into one opaque, apparently static wall.
+	var count_scale := sqrt(PRESENTATION_OPACITY_REFERENCE_PARTICLES / maxf(
+			float(count), PRESENTATION_OPACITY_REFERENCE_PARTICLES))
+	return maxf(PRESENTATION_MIN_PIXEL_RADIUS, PRESENTATION_MAX_PIXEL_RADIUS * count_scale)
+
+
+func _effective_presentation_particle_opacity(particle_count: int = -1) -> float:
+	var count := N_particles if particle_count < 0 else particle_count
+	# Count scaling keeps nearby layers from saturating. The shader may lift
+	# sub-pixel motes slightly, but that floor remains count-scaled too.
+	var count_scale := sqrt(PRESENTATION_OPACITY_REFERENCE_PARTICLES / maxf(
+			float(count), PRESENTATION_OPACITY_REFERENCE_PARTICLES))
+	return clampf(_presentation_particle_opacity * count_scale, 0.0001, 1.0)
+
+
+func _apply_particle_presentation_opacity() -> void:
+	if not presentation_profile or _mmi == null or not is_instance_valid(_mmi):
+		return
+	var mat := _mmi.material_override as ShaderMaterial
+	if mat == null or mat.shader != _particle_presentation_shader:
+		return
+	var stack_opacity := _effective_presentation_particle_opacity()
+	mat.set_shader_parameter("stack_opacity", stack_opacity)
+	mat.set_shader_parameter("distant_opacity", minf(stack_opacity * 2.0, 0.04))
 
 
 func _presentation_layers_ready() -> bool:
@@ -5248,9 +5429,13 @@ func _sync_presentation_macro_lod() -> void:
 	if _macro_lod_last_scheme != scheme:
 		_macro_lod_material.set_shader_parameter("color_scheme", float(scheme))
 		_macro_lod_last_scheme = scheme
-	_macro_lod_material.set_shader_parameter("lod_enter", minf(presentation_lod_enter, presentation_lod_exit))
-	_macro_lod_material.set_shader_parameter("lod_exit", maxf(presentation_lod_enter, presentation_lod_exit))
-	_macro_lod_material.set_shader_parameter("base_size", 1.0)
+	var lod_range := Vector2(
+		minf(presentation_lod_enter, presentation_lod_exit),
+		maxf(presentation_lod_enter, presentation_lod_exit))
+	if lod_range != _macro_lod_last_range:
+		_macro_lod_material.set_shader_parameter("lod_enter", lod_range.x)
+		_macro_lod_material.set_shader_parameter("lod_exit", lod_range.y)
+		_macro_lod_last_range = lod_range
 	_sync_macro_lod_uniform_set()
 
 
@@ -5289,6 +5474,7 @@ func _setup_macro_lod_multimesh() -> void:
 		_free_macro_lod_multimesh()
 		return
 	_macro_lod_material.render_priority = 0
+	_macro_lod_material.set_shader_parameter("base_size", 1.0)
 	_macro_lod_mmi.material_override = _macro_lod_material
 	_macro_lod_last_scheme = -1
 	_update_particle_cull_bounds()
@@ -5299,8 +5485,7 @@ func _free_macro_lod_multimesh() -> void:
 			and _rd.uniform_set_is_valid(_us_macro_lod_0):
 		_rd.free_rid(_us_macro_lod_0)
 	_us_macro_lod_0 = RID()
-	_macro_lod_set_generation = -1
-	_macro_lod_set_site_count = -1
+	_macro_lod_last_range = Vector2(INF, INF)
 	if _macro_lod_mmi != null and is_instance_valid(_macro_lod_mmi):
 		remove_child(_macro_lod_mmi)
 		_macro_lod_mmi.free()
@@ -5352,12 +5537,6 @@ func _sync_presentation_trails() -> void:
 	if _trail_last_scheme != scheme:
 		_trail_material.set_shader_parameter("color_scheme", float(scheme))
 		_trail_last_scheme = scheme
-	_trail_material.set_shader_parameter("emission_strength", 0.85)
-	_trail_material.set_shader_parameter("alpha_scale", 0.55)
-	_trail_material.set_shader_parameter("width_softness", 0.5)
-	_trail_material.set_shader_parameter("taper_power", 1.5)
-	_trail_material.set_shader_parameter("depth_fade_near", 200.0)
-	_trail_material.set_shader_parameter("depth_fade_far", 2000.0)
 	if _decoupled_active:
 		_sync_trail_dc_uniform_set()
 	else:
@@ -5395,6 +5574,12 @@ func _setup_trail_multimesh() -> void:
 		_free_trail_multimesh()
 		return
 	_trail_material.render_priority = 0
+	_trail_material.set_shader_parameter("emission_strength", 0.85)
+	_trail_material.set_shader_parameter("alpha_scale", 0.55)
+	_trail_material.set_shader_parameter("width_softness", 0.5)
+	_trail_material.set_shader_parameter("taper_power", 1.5)
+	_trail_material.set_shader_parameter("depth_fade_near", 200.0)
+	_trail_material.set_shader_parameter("depth_fade_far", 2000.0)
 	_trail_mmi.material_override = _trail_material
 	_trail_last_scheme = -1
 	_update_particle_cull_bounds()
@@ -5460,19 +5645,145 @@ func _record_presentation_trails(cl, uniform_set: RID) -> void:
 	var min_length := maxf(cluster_radius * 0.02, 0.5)
 	var max_length := maxf(cluster_radius * 0.12, 6.0)
 	var width := maxf(cluster_radius * 0.004, 0.10)
-	_trail_pc = PackedFloat32Array([
-		float(N_particles), float(_trail_mm.instance_count),
-		maxf(presentation_trail_speed_threshold, 0.0),
-		maxf(presentation_trail_shutter_seconds, 0.0),
-		min_length, max_length, width,
-		maxf(_rainbow_vmax, presentation_trail_speed_threshold * 1.05),
-		forward.x, forward.y, forward.z, 1337.0,
-		right.x, right.y, right.z, 1.0,
-	]).to_byte_array()
+	_trail_pc.encode_float(0, float(N_particles))
+	_trail_pc.encode_float(4, float(_trail_mm.instance_count))
+	_trail_pc.encode_float(8, maxf(presentation_trail_speed_threshold, 0.0))
+	_trail_pc.encode_float(12, maxf(presentation_trail_shutter_seconds, 0.0))
+	_trail_pc.encode_float(16, min_length)
+	_trail_pc.encode_float(20, max_length)
+	_trail_pc.encode_float(24, width)
+	_trail_pc.encode_float(28,
+		maxf(_rainbow_vmax, presentation_trail_speed_threshold * 1.05))
+	_trail_pc.encode_float(32, forward.x)
+	_trail_pc.encode_float(36, forward.y)
+	_trail_pc.encode_float(40, forward.z)
+	_trail_pc.encode_float(44, 1337.0)
+	_trail_pc.encode_float(48, right.x)
+	_trail_pc.encode_float(52, right.y)
+	_trail_pc.encode_float(56, right.z)
+	_trail_pc.encode_float(60, 1.0)
 	_rd.compute_list_bind_compute_pipeline(cl, _trail_pipe)
 	_rd.compute_list_bind_uniform_set(cl, uniform_set, 0)
 	_rd.compute_list_set_push_constant(cl, _trail_pc, _trail_pc.size())
 	_rd.compute_list_dispatch(cl, ceili(float(_trail_mm.instance_count) / 256.0), 1, 1)
+	_rd.compute_list_add_barrier(cl)
+
+func _rotation_orientation_requested() -> bool:
+	return rotation_stress_enabled and rotation_orientation_render_enabled
+
+
+func _ensure_rotation_orientation_pipeline() -> bool:
+	if not _rotation_orientation_requested() or _rd == null:
+		return false
+	if not _rotation_axis_shader.is_valid():
+		_rotation_axis_shader = _shader_from_file(
+			"res://compute/cassi_rotation_orientation_instancer.glsl")
+	if _rotation_axis_shader.is_valid() and not _rotation_axis_pipe.is_valid():
+		_rotation_axis_pipe = _rd.compute_pipeline_create(_rotation_axis_shader)
+		if _rotation_axis_pipe.is_valid():
+			print("[CassiSim] rotation orientation-axis pipeline ready")
+	return _rotation_axis_shader.is_valid() and _rotation_axis_pipe.is_valid()
+
+
+func _rotation_orientation_wanted() -> bool:
+	return _presentation_layers_ready() and _decoupled_active \
+			and _physics_engine != null and _ensure_rotation_orientation_pipeline()
+
+
+func _sync_rotation_orientation_layer() -> void:
+	if not _rotation_orientation_requested() or not _rotation_orientation_wanted():
+		_free_rotation_orientation_multimesh()
+		return
+	if _rotation_axis_mmi == null or not is_instance_valid(_rotation_axis_mmi):
+		_setup_rotation_orientation_multimesh()
+	if _rotation_axis_mmi == null:
+		return
+	_rotation_axis_mmi.visible = true
+	_sync_rotation_orientation_uniform_set()
+
+
+func _setup_rotation_orientation_multimesh() -> void:
+	if _rotation_axis_mmi != null and is_instance_valid(_rotation_axis_mmi):
+		return
+	var box := BoxMesh.new()
+	box.size = Vector3.ONE
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.14, 0.86, 1.0, 1.0)
+	material.emission_enabled = true
+	material.emission = Color(0.08, 0.66, 1.0)
+	material.emission_energy_multiplier = 1.6
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.vertex_color_use_as_albedo = true
+	box.material = material
+	_rotation_axis_mm = MultiMesh.new()
+	_rotation_axis_mm.transform_format = MultiMesh.TRANSFORM_3D
+	_rotation_axis_mm.use_colors = true
+	_rotation_axis_mm.use_custom_data = false
+	_rotation_axis_mm.mesh = box
+	_rotation_axis_mm.instance_count = maxi(N_particles, 1)
+	var zero_records := PackedFloat32Array()
+	zero_records.resize(_rotation_axis_mm.instance_count * 16)
+	_rotation_axis_mm.buffer = zero_records
+	_rotation_axis_mmi = MultiMeshInstance3D.new()
+	_rotation_axis_mmi.name = "RotationOrientationAxes"
+	_rotation_axis_mmi.multimesh = _rotation_axis_mm
+	add_child(_rotation_axis_mmi)
+	_rotation_axis_rd_rid = RenderingServer.multimesh_get_buffer_rd_rid(
+		_rotation_axis_mm.get_rid())
+	if not _rotation_axis_rd_rid.is_valid():
+		push_error("[CassiSim] rotation orientation layer could not acquire its MultiMesh RD buffer")
+		_free_rotation_orientation_multimesh()
+		return
+	_update_particle_cull_bounds()
+
+
+func _free_rotation_orientation_multimesh() -> void:
+	if _rd != null and _us_rotation_axis_0.is_valid() \
+			and _rd.uniform_set_is_valid(_us_rotation_axis_0):
+		_rd.free_rid(_us_rotation_axis_0)
+	_us_rotation_axis_0 = RID()
+	if _rotation_axis_mmi != null and is_instance_valid(_rotation_axis_mmi):
+		remove_child(_rotation_axis_mmi)
+		_rotation_axis_mmi.free()
+	_rotation_axis_mmi = null
+	_rotation_axis_mm = null
+	_rotation_axis_rd_rid = RID()
+
+
+func _sync_rotation_orientation_uniform_set() -> bool:
+	if _rd == null or not _rotation_axis_rd_rid.is_valid() \
+			or _physics_engine == null:
+		return false
+	if _us_rotation_axis_0.is_valid() and _rd.uniform_set_is_valid(_us_rotation_axis_0):
+		return true
+	var resources: Dictionary = _physics_engine.rotation_render_resources()
+	var orientation: RID = resources.get("orientation_buffer", RID())
+	if not bool(resources.get("enabled", false)) \
+			or not _pos_render_buf.is_valid() or not orientation.is_valid():
+		return false
+	_us_rotation_axis_0 = _rd.uniform_set_create([
+		_uniform_storage(0, _pos_render_buf),
+		_uniform_storage(1, orientation),
+		_uniform_storage(2, _rotation_axis_rd_rid),
+	], _rotation_axis_shader, 0)
+	return _us_rotation_axis_0.is_valid()
+
+
+func _record_rotation_orientation(cl) -> void:
+	if not _rotation_orientation_wanted() \
+			or not _us_rotation_axis_0.is_valid() \
+			or not _rd.uniform_set_is_valid(_us_rotation_axis_0) \
+			or _rotation_axis_mm == null:
+		return
+	_rotation_axis_pc.encode_float(0, float(N_particles))
+	_rotation_axis_pc.encode_float(4, maxf(particle_size * 2.5, 0.25))
+	_rotation_axis_pc.encode_float(8, maxf(particle_size * 0.12, 0.03))
+	_rotation_axis_pc.encode_float(12, 0.0)
+	_rd.compute_list_bind_compute_pipeline(cl, _rotation_axis_pipe)
+	_rd.compute_list_bind_uniform_set(cl, _us_rotation_axis_0, 0)
+	_rd.compute_list_set_push_constant(
+		cl, _rotation_axis_pc, _rotation_axis_pc.size())
+	_rd.compute_list_dispatch(cl, ceili(float(maxi(N_particles, 1)) / 256.0), 1, 1)
 	_rd.compute_list_add_barrier(cl)
 
 func _update_particle_presentation_viewport() -> void:
@@ -6037,20 +6348,20 @@ func _step_dispatches(cl: int) -> void:
 		_rd.compute_list_bind_compute_pipeline(cl, _cell_pipe)
 		_rd.compute_list_bind_uniform_set(cl, _us_cell_0, 0)
 		# grad zero → lap (the lap pass also accumulates the least-squares M+b)
-		_cell_pc_bytes = _ml_cell_pc(10.0)
+		_ml_cell_pc(10.0)
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, int(ceil(float(ml_ns) / 64.0)), 1, 1)
 		_barrier(cl)  # grad zero → lap
-		_cell_pc_bytes = _ml_cell_pc(0.0)
+		_ml_cell_pc(0.0)
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, wg1, 1, 1)
 		_barrier(cl)  # lap → leapfrog
-		_cell_pc_bytes = _ml_cell_pc(1.0)
+		_ml_cell_pc(1.0)
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, int(ceil(float(ml_ns) / 64.0)), 1, 1)
 		_barrier(cl)  # leapfrog → gradient solve
 		# least-squares solve g = M⁻¹·b per site (into grad)
-		_cell_pc_bytes = _ml_cell_pc(12.0)
+		_ml_cell_pc(12.0)
 		_rd.compute_list_set_push_constant(cl, _cell_pc_bytes, _cell_pc_bytes.size())
 		_rd.compute_list_dispatch(cl, int(ceil(float(ml_ns) / 64.0)), 1, 1)
 		_barrier(cl)  # solve → raster
@@ -6464,7 +6775,7 @@ func _tree_worker_frame() -> void:
 	for si in range(S):
 		bmin.x = minf(bmin.x, sites[si * 4]); bmin.y = minf(bmin.y, sites[si * 4 + 1]); bmin.z = minf(bmin.z, sites[si * 4 + 2])
 		bmax.x = maxf(bmax.x, sites[si * 4]); bmax.y = maxf(bmax.y, sites[si * 4 + 1]); bmax.z = maxf(bmax.z, sites[si * 4 + 2])
-	var half: float = maxf(ext.x, maxf(ext.y, maxf(ext.z, ext.z))) * 1.000001   # box-cube fallback
+	var half: float = maxf(ext.x, maxf(ext.y, ext.z)) * 1.000001   # box-cube fallback
 	# Gated on the tracked window's ACTUAL RE-FIT state, not the enable
 	# flags: OFF (default) stays bit-identical (the legacy box root), AND a
 	# flag ON with the tracker no-oping (a filling structure — the envelope
@@ -6794,14 +7105,29 @@ func _store_volume_history_state(origin: Vector3, transform: Transform3D, fov: f
 	var right := transform.basis.x.normalized()
 	var up := transform.basis.y.normalized()
 	var forward := -transform.basis.z.normalized()
-	var state := PackedFloat32Array([
-		origin.x, origin.y, origin.z, fov,
-		right.x, right.y, right.z, float(_rt_size.x),
-		up.x, up.y, up.z, float(_rt_size.y),
-		forward.x, forward.y, forward.z, 0.0,
-		float(generation), float(query_generation), key, 1.0,
-	]).to_byte_array()
-	_rd.buffer_update(_volume_history_state, 0, state.size(), state)
+	_volume_history_state_bytes.encode_float(0, origin.x)
+	_volume_history_state_bytes.encode_float(4, origin.y)
+	_volume_history_state_bytes.encode_float(8, origin.z)
+	_volume_history_state_bytes.encode_float(12, fov)
+	_volume_history_state_bytes.encode_float(16, right.x)
+	_volume_history_state_bytes.encode_float(20, right.y)
+	_volume_history_state_bytes.encode_float(24, right.z)
+	_volume_history_state_bytes.encode_float(28, float(_rt_size.x))
+	_volume_history_state_bytes.encode_float(32, up.x)
+	_volume_history_state_bytes.encode_float(36, up.y)
+	_volume_history_state_bytes.encode_float(40, up.z)
+	_volume_history_state_bytes.encode_float(44, float(_rt_size.y))
+	_volume_history_state_bytes.encode_float(48, forward.x)
+	_volume_history_state_bytes.encode_float(52, forward.y)
+	_volume_history_state_bytes.encode_float(56, forward.z)
+	_volume_history_state_bytes.encode_float(60, 0.0)
+	_volume_history_state_bytes.encode_float(64, float(generation))
+	_volume_history_state_bytes.encode_float(68, float(query_generation))
+	_volume_history_state_bytes.encode_float(72, key)
+	_volume_history_state_bytes.encode_float(76, 1.0)
+	_rd.buffer_update(
+		_volume_history_state, 0,
+		_volume_history_state_bytes.size(), _volume_history_state_bytes)
 	_volume_history_has_state = true
 	_volume_history_last_origin = origin
 	_volume_history_last_forward = forward
@@ -6826,6 +7152,44 @@ func _make_render_textures() -> void:
 	_volume_history_neutral = _make_render_texture(_rt_size.x, _rt_size.y)
 	var clear := PackedByteArray(); clear.resize(_rt_size.x * _rt_size.y * 16); clear.fill(0)
 	_rd.texture_update(_volume_history_neutral, 0, clear)
+
+
+func _fill_volume_pc(origin: Vector3, transform: Transform3D, forward: Vector3,
+		fov: float, site_count: int, ext: Vector3, generation: int,
+		query_generation: int, profile_enabled: bool) -> void:
+	_volume_pc_bytes.encode_float(0, origin.x)
+	_volume_pc_bytes.encode_float(4, origin.y)
+	_volume_pc_bytes.encode_float(8, origin.z)
+	_volume_pc_bytes.encode_float(12, fov)
+	_volume_pc_bytes.encode_float(16, transform.basis.x.x)
+	_volume_pc_bytes.encode_float(20, transform.basis.x.y)
+	_volume_pc_bytes.encode_float(24, transform.basis.x.z)
+	_volume_pc_bytes.encode_float(28, float(_rt_size.x))
+	_volume_pc_bytes.encode_float(32, transform.basis.y.x)
+	_volume_pc_bytes.encode_float(36, transform.basis.y.y)
+	_volume_pc_bytes.encode_float(40, transform.basis.y.z)
+	_volume_pc_bytes.encode_float(44, float(_rt_size.y))
+	_volume_pc_bytes.encode_float(48, forward.x)
+	_volume_pc_bytes.encode_float(52, forward.y)
+	_volume_pc_bytes.encode_float(56, forward.z)
+	_volume_pc_bytes.encode_float(60, float(site_count))
+	_volume_pc_bytes.encode_float(64, ext.x)
+	_volume_pc_bytes.encode_float(68, ext.y)
+	_volume_pc_bytes.encode_float(72, ext.z)
+	_volume_pc_bytes.encode_float(76, float(grid_N))
+	_volume_pc_bytes.encode_float(80, float(generation))
+	_volume_pc_bytes.encode_float(84, float(query_generation))
+	_volume_pc_bytes.encode_float(88, 1.0 if profile_enabled else 0.0)
+	_volume_pc_bytes.encode_float(92, float(_presentation_color_scheme))
+	_volume_pc_bytes.encode_float(96, 0.0)
+	_volume_pc_bytes.encode_float(100, 128.0)
+	_volume_pc_bytes.encode_float(104, 1e-3)
+	_volume_pc_bytes.encode_float(108, float(generation))
+	_volume_pc_bytes.encode_float(112, 0.0)
+	_volume_pc_bytes.encode_float(116, 0.0)
+	_volume_pc_bytes.encode_float(120, 0.0)
+	_volume_pc_bytes.encode_float(124, 1.0)
+
 func _render_site_volume() -> void:
 	# A selected temporal path must never fall through to the current-only
 	# pipeline while its own topology uniforms are still being built. Keeping
@@ -6861,23 +7225,9 @@ func _render_site_volume() -> void:
 	var started := Time.get_ticks_usec()
 	var origin := cam.global_position - _window_center
 	var forward := -transform.basis.z
-	# Keep the full 32-float fused-volume contract in one local packed array.
-	# The local serialization avoids relying on class-member PackedByteArray
-	# encode_float mutation, while preserving the existing first 12 slots.
-	var volume_pc: PackedFloat32Array = PackedFloat32Array([
-		origin.x, origin.y, origin.z, fov,
-		transform.basis.x.x, transform.basis.x.y, transform.basis.x.z, float(_rt_size.x),
-		transform.basis.y.x, transform.basis.y.y, transform.basis.y.z, float(_rt_size.y),
-		forward.x, forward.y, forward.z, float(site_count),
-		ext.x, ext.y, ext.z, float(grid_N),
-		float(generation), float(generation),
-		1.0 if presentation_profile else 0.0, float(_presentation_color_scheme),
-		0.0, 128.0,
-		1e-3, float(generation),
-		0.0, 0.0,
-		0.0, 1.0,
-	])
-	_volume_pc_bytes = volume_pc.to_byte_array()
+	_fill_volume_pc(
+		origin, transform, forward, fov, site_count, ext,
+		generation, generation, presentation_profile)
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _volume_pipe); _rd.compute_list_bind_uniform_set(cl, _us_volume_0, 0)
 	_rd.compute_list_set_push_constant(cl, _volume_pc_bytes, 128); _rd.compute_list_dispatch(cl, ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1); _rd.compute_list_end()
@@ -6926,42 +7276,43 @@ func _render_site_volume_history() -> bool:
 		return true
 	var reject_history := _volume_history_reject_current(
 			origin, forward, fov, generation, query_generation, key)
-	var volume_pc := PackedFloat32Array([
-		origin.x, origin.y, origin.z, fov,
-		transform.basis.x.x, transform.basis.x.y, transform.basis.x.z, float(_rt_size.x),
-		transform.basis.y.x, transform.basis.y.y, transform.basis.y.z, float(_rt_size.y),
-		forward.x, forward.y, forward.z, float(site_count),
-		ext.x, ext.y, ext.z, float(grid_N),
-		float(generation), float(query_generation),
-		1.0, float(_presentation_color_scheme),
-		0.0, 128.0,
-		1e-3, float(generation),
-		0.0, 0.0,
-		0.0, 1.0,
-	]).to_byte_array()
-	var resolve_pc := PackedFloat32Array([
-		origin.x, origin.y, origin.z, fov,
-		transform.basis.x.x, transform.basis.x.y, transform.basis.x.z, float(_rt_size.x),
-		transform.basis.y.x, transform.basis.y.y, transform.basis.y.z, float(_rt_size.y),
-		forward.x, forward.y, forward.z, float(generation),
-		float(query_generation), key,
-		history_weight,
-		history_depth_tolerance,
-		0.0 if reject_history else 1.0,
-		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-		0.0,
-	]).to_byte_array()
+	_fill_volume_pc(
+		origin, transform, forward, fov, site_count, ext,
+		generation, query_generation, true)
+	_volume_resolve_pc_bytes.fill(0)
+	_volume_resolve_pc_bytes.encode_float(0, origin.x)
+	_volume_resolve_pc_bytes.encode_float(4, origin.y)
+	_volume_resolve_pc_bytes.encode_float(8, origin.z)
+	_volume_resolve_pc_bytes.encode_float(12, fov)
+	_volume_resolve_pc_bytes.encode_float(16, transform.basis.x.x)
+	_volume_resolve_pc_bytes.encode_float(20, transform.basis.x.y)
+	_volume_resolve_pc_bytes.encode_float(24, transform.basis.x.z)
+	_volume_resolve_pc_bytes.encode_float(28, float(_rt_size.x))
+	_volume_resolve_pc_bytes.encode_float(32, transform.basis.y.x)
+	_volume_resolve_pc_bytes.encode_float(36, transform.basis.y.y)
+	_volume_resolve_pc_bytes.encode_float(40, transform.basis.y.z)
+	_volume_resolve_pc_bytes.encode_float(44, float(_rt_size.y))
+	_volume_resolve_pc_bytes.encode_float(48, forward.x)
+	_volume_resolve_pc_bytes.encode_float(52, forward.y)
+	_volume_resolve_pc_bytes.encode_float(56, forward.z)
+	_volume_resolve_pc_bytes.encode_float(60, float(generation))
+	_volume_resolve_pc_bytes.encode_float(64, float(query_generation))
+	_volume_resolve_pc_bytes.encode_float(68, key)
+	_volume_resolve_pc_bytes.encode_float(72, history_weight)
+	_volume_resolve_pc_bytes.encode_float(76, history_depth_tolerance)
+	_volume_resolve_pc_bytes.encode_float(80, 0.0 if reject_history else 1.0)
 	var started := Time.get_ticks_usec()
 	var history_set: RID = _us_volume_reproject_ab if _volume_history_prev_is_a else _us_volume_reproject_ba
 	var cl := _rd.compute_list_begin()
 	_rd.compute_list_bind_compute_pipeline(cl, _volume_history_pipe)
 	_rd.compute_list_bind_uniform_set(cl, _us_volume_history_0, 0)
-	_rd.compute_list_set_push_constant(cl, volume_pc, volume_pc.size())
+	_rd.compute_list_set_push_constant(cl, _volume_pc_bytes, _volume_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1)
 	_barrier(cl)
 	_rd.compute_list_bind_compute_pipeline(cl, _volume_reproject_pipe)
 	_rd.compute_list_bind_uniform_set(cl, history_set, 0)
-	_rd.compute_list_set_push_constant(cl, resolve_pc, resolve_pc.size())
+	_rd.compute_list_set_push_constant(
+		cl, _volume_resolve_pc_bytes, _volume_resolve_pc_bytes.size())
 	_rd.compute_list_dispatch(cl, ceili(_rt_size.x / 8.0), ceili(_rt_size.y / 8.0), 1)
 	_rd.compute_list_end()
 	_volume_history_prev_is_a = not _volume_history_prev_is_a
@@ -7010,6 +7361,7 @@ func _free_multimesh() -> void:
 	# (callers free them first — see reinit).
 	_free_macro_lod_multimesh()
 	_free_trail_multimesh()
+	_free_rotation_orientation_multimesh()
 	if _mmi != null and is_instance_valid(_mmi):
 		remove_child(_mmi)
 		_mmi.free()
@@ -7021,19 +7373,40 @@ func _free_multimesh() -> void:
 func _update_particle_cull_bounds() -> void:
 	var ext := _extents()
 	var local_center := _window_center - _render_window_origin()
-	if _mm != null:
-		var margin := maxf(_mm_particle_size * 4.0, 1.0)
-		var bound := ext + Vector3.ONE * margin
-		# The instancer writes positions relative to the render window origin.
-		# When tracking moves physics only, the rendered cloud is offset by the
-		# physical center in that local space; keep the MultiMesh AABB with it.
-		_mm.custom_aabb = AABB(local_center - bound, bound * 2.0)
+	var margin := maxf(_mm_particle_size * 4.0, 1.0)
+	var particle_bound := Vector3(
+		maxf(ext.x, PARTICLE_CULL_MIN_HALF_EXTENT),
+		maxf(ext.y, PARTICLE_CULL_MIN_HALF_EXTENT),
+		maxf(ext.z, PARTICLE_CULL_MIN_HALF_EXTENT)
+	) + Vector3.ONE * margin
+	var particle_aabb := AABB(local_center - particle_bound, particle_bound * 2.0)
 	var presentation_margin := maxf(cluster_radius * 0.15, 8.0)
 	var presentation_bound := ext + Vector3.ONE * presentation_margin
-	if _macro_lod_mm != null:
-		_macro_lod_mm.custom_aabb = AABB(local_center - presentation_bound, presentation_bound * 2.0)
-	if _trail_mm != null:
-		_trail_mm.custom_aabb = AABB(local_center - presentation_bound, presentation_bound * 2.0)
+	var presentation_aabb := AABB(
+		local_center - presentation_bound, presentation_bound * 2.0)
+
+	# GPU-written particle positions cannot provide a cheap CPU-side bounds
+	# reduction. In presentation mode, bound every potentially visible point
+	# by the active camera's far-volume instead. Because the camera remains
+	# inside this AABB, rotating or retreating can never frustum-cull the whole
+	# MultiMesh before its individual particles reach the rasterizer.
+	if presentation_profile and _sim_cam != null and is_instance_valid(_sim_cam):
+		var camera_center := _sim_cam.global_position - _render_window_origin()
+		var camera_half_extent := maxf(
+			_sim_cam.far * 1.05, PARTICLE_CULL_MIN_HALF_EXTENT)
+		var camera_bound := Vector3.ONE * camera_half_extent
+		var camera_aabb := AABB(camera_center - camera_bound, camera_bound * 2.0)
+		particle_aabb = camera_aabb
+		presentation_aabb = camera_aabb
+
+	if _mm != null and _mm.custom_aabb != particle_aabb:
+		_mm.custom_aabb = particle_aabb
+	if _macro_lod_mm != null and _macro_lod_mm.custom_aabb != presentation_aabb:
+		_macro_lod_mm.custom_aabb = presentation_aabb
+	if _trail_mm != null and _trail_mm.custom_aabb != presentation_aabb:
+		_trail_mm.custom_aabb = presentation_aabb
+	if _rotation_axis_mm != null and _rotation_axis_mm.custom_aabb != presentation_aabb:
+		_rotation_axis_mm.custom_aabb = presentation_aabb
 
 func _setup_multimesh() -> void:
 	# Color-as-LUT (Tier-2): the MultiMesh FORMAT is static per build —
@@ -7060,20 +7433,12 @@ func _setup_multimesh() -> void:
 	_mm.mesh = qm
 	_mm.instance_count = max(N_particles, 1)
 	if physics_decoupled:
-		# Godot's renderer-owned buffer needs one ordinary MultiMesh upload
-		# before a global-RD compute writer can hand it live records to the
-		# rasterizer. The decoupled engine owns the initial positions, so it
-		# cannot use _init_particles' full CPU upload; seed valid identity
-		# records here, while the first render list replaces them GPU-direct.
+		# The renderer-owned buffer needs one ordinary upload before global-RD
+		# compute can write it. The MultiMesh stays hidden until that first
+		# compute list completes, so zeroed records allocate the same buffer
+		# without an interpreted identity-fill loop over every particle.
 		var seed_inst := PackedFloat32Array()
 		seed_inst.resize(max(N_particles, 1) * 16)
-		for i in range(max(N_particles, 1)):
-			var b := i * 16
-			seed_inst[b] = 1.0
-			seed_inst[b + 5] = 1.0
-			seed_inst[b + 10] = 1.0
-			seed_inst[b + 12] = 0.5
-			seed_inst[b + 14] = 1.0
 		_mm.buffer = seed_inst
 	_mm_particle_size = particle_size
 	_update_particle_cull_bounds()
@@ -7689,7 +8054,15 @@ func _workbench_write_buffers(buffers: Dictionary, particle_only := false) -> Di
 # Public API (for UI to call)
 # ═══════════════════════════════════════════════════════════════════════
 
+## Latest bounded rotation publication. The deep copy prevents UI/verifier
+## callers from mutating the stored production snapshot.
+func rotation_snapshot() -> Dictionary:
+	return _rotation_snapshot.duplicate(true)
+
+
 func reinit() -> void:
+	if field_particles:
+		_apply_field_particles_settings()
 	if field_workbench != null:
 		field_workbench.invalidate_state()
 	_workbench_cursor_world = _window_center
@@ -7742,6 +8115,8 @@ func reinit() -> void:
 	_grav_warmup = true  # fresh acc cache for the regenerated positions
 	_step_count = 0
 	_merge_step_counter = 0
+	_merge_pair_phase = 0
+	_merge_dc_first_completion_logged = false
 	_cond_step_counter = 0
 	_dropped_steps = 0
 	_time = 0.0
@@ -7856,6 +8231,8 @@ func apply_level(dir_path: String) -> bool:
 	_cond_step_counter = 0
 	_step_count = 0
 	_merge_step_counter = 0
+	_merge_pair_phase = 0
+	_merge_dc_first_completion_logged = false
 	_dropped_steps = 0
 	_time = 0.0
 	_level = int(lv.get("level", -1))
@@ -7908,6 +8285,8 @@ func _realloc_particle_buffers(n: int) -> void:
 		# encode-in-place never targets an empty buffer (covers init N=0 → swap N>0).
 		if _merge_pc_bytes.size() != 26 * 4:
 			_merge_pc_bytes = PackedByteArray(); _merge_pc_bytes.resize(26 * 4)
+		if _merge_scan_pc_bytes.size() != 4 * 4:
+			_merge_scan_pc_bytes = PackedByteArray(); _merge_scan_pc_bytes.resize(4 * 4)
 
 
 ## Recompute the merge spatial-hash geometry from the CURRENT extents/R_m and

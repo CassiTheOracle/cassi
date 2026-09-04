@@ -15,6 +15,7 @@ from typing import Any, cast
 import pytest
 import torch
 
+import cassi_persistent_provider as provider_module
 from cassi_persistent_provider import (
     CONTEXT_STREAM_METADATA_KEY,
     DEFAULT_INGRESS_MAX_BYTES,
@@ -34,6 +35,7 @@ from cassi_persistent_provider import (
     _Handler,
     _canonical as provider_canonical,
 )
+from cassi_mnemic_condensation import mnemic_field_address
 from cassi_phi_harmonic_language import (
     PhiHarmonicLanguageConfig,
     PhiHarmonicLanguageController,
@@ -149,6 +151,21 @@ def test_cross_language_canonical_wire_fixtures() -> None:
 def _revision(record_id: str, text: str) -> str:
     return hashlib.sha256(f"{record_id}\0{text}".encode()).hexdigest()
 
+def _field_address(
+    record_id: str,
+    text: str,
+    revision: str,
+    *,
+    semantic_kind: str = "fact",
+) -> str:
+    return mnemic_field_address(
+        record_id=record_id,
+        revision=revision,
+        start_byte=0,
+        end_byte=len(text.encode("utf-8")),
+        semantic_kind=semantic_kind,
+    ).hex()
+
 
 def _event(
     *,
@@ -190,6 +207,7 @@ def _memory_payload(
             "content": text,
             "node_type": "fact",
             "revision": revision,
+            "field_address": _field_address(record_id, text, revision),
         },
     }
 
@@ -230,6 +248,11 @@ def _candidate(
         "start_byte": start_byte,
         "end_byte": start_byte + len(text.encode("utf-8")),
         "text": text,
+        "field_address": _field_address(
+            record_id,
+            text,
+            revision,
+        ),
     }
 
 
@@ -338,7 +361,157 @@ def test_provider_identity_and_cli_defaults() -> None:
     assert args.phi_config.name == "cassi-phi-harmonic-language.json"
     assert MODEL_NAME == "cassi-phi-harmonic-language-v1"
     assert PROTOCOL == "Cassi Phi-harmonic field provider"
-    assert VERSION == 7
+    assert VERSION == 8
+
+
+def test_startup_builds_one_shared_tensor_with_mnemic_view(tmp_path: Path) -> None:
+    provider = _start(tmp_path)
+    try:
+        assert provider.store is not None
+        assert provider.initial_state is not None
+        assert provider.mnemic_controller is not None
+        shared = provider.store.initial(provider.initial_state)
+        provider.store.layout.validate(shared)
+        mnemic = provider.store.layout.mnemic(shared)
+        assert mnemic.field.untyped_storage().data_ptr() == shared.field.untyped_storage().data_ptr()
+        assert provider.mnemic_controller.state_sha256(mnemic) == (
+            provider.mnemic_controller.state_sha256(
+                provider.store.initial_mnemic_state
+            )
+        )
+    finally:
+        provider.close()
+
+def test_legacy_two_band_checkpoint_upgrades_on_live_observation_and_replays(
+    tmp_path: Path,
+) -> None:
+    provider = _start(tmp_path)
+    try:
+        assert provider.store is not None
+        assert provider.initial_state is not None
+        store = provider.store
+        legacy = store.layout.legacy_join(
+            provider.initial_state,
+            store.initial_counterflow_state,
+        )
+        owned = legacy.field.detach().cpu().contiguous()
+        field_payload = owned.numpy().tobytes(order="C")
+        metadata_payload = provider_module._canonical(
+            {CONTEXT_STREAM_METADATA_KEY: {}}
+        )
+        header = {
+            "schema": provider_module.LEGACY_SHARED_FIELD_SESSION_SCHEMA,
+            "session_id": "legacy",
+            "provider_fingerprint": store.legacy_provider_fingerprint,
+            "config_fingerprint": store.controller.config_fingerprint,
+            "codebook_fingerprint": store.controller.codebook_fingerprint,
+            "counterflow_config_fingerprint": (
+                store.counterflow_runtime.config_fingerprint
+            ),
+            "layout_fingerprint": store.layout.legacy_fingerprint,
+            "field_shape": list(store.layout.legacy_shared_shape),
+            "field_dtype": str(owned.dtype),
+            "field_bytes": len(field_payload),
+            "field_payload_sha256": hashlib.sha256(field_payload).hexdigest(),
+            "shared_state_sha256": store.layout.legacy_state_sha256(legacy),
+            "phi_state_sha256": store.controller.state_sha256(
+                store.layout.legacy_phi(legacy)
+            ),
+            "counterflow_state_sha256": store.counterflow_runtime.state_sha256(
+                store.layout.legacy_counterflow(legacy)
+            ),
+            "metadata_bytes": len(metadata_payload),
+            "metadata_sha256": hashlib.sha256(metadata_payload).hexdigest(),
+        }
+        def encode_frame(
+            frame_header: Mapping[str, Any],
+            frame_metadata: bytes,
+        ) -> bytes:
+            header_payload = provider_module._canonical(frame_header)
+            body = (
+                provider_module._SESSION_MAGIC
+                + len(header_payload).to_bytes(8, "big")
+                + header_payload
+                + field_payload
+                + frame_metadata
+            )
+            return body + hashlib.sha256(body).digest()
+
+        raw = encode_frame(header, metadata_payload)
+        path = store.path_for("legacy")
+        invalid_metadata = provider_module._canonical(
+            {
+                CONTEXT_STREAM_METADATA_KEY: {},
+                "legacy_context_associations": {},
+            }
+        )
+        invalid_header = {
+            **header,
+            "metadata_bytes": len(invalid_metadata),
+            "metadata_sha256": hashlib.sha256(invalid_metadata).hexdigest(),
+        }
+        path.write_bytes(encode_frame(invalid_header, invalid_metadata))
+        with pytest.raises(
+            ProviderError,
+            match="session metadata contains unsupported keys",
+        ):
+            store.load("legacy")
+
+        path.write_bytes(raw)
+
+        status = provider.context_status(
+            {"user": "legacy", "stream_id": "legacy-stream"}
+        )
+        assert status["checkpoint"]["status"] == "compatible"
+        assert path.read_bytes() == raw
+        loaded = store.load("legacy")
+        assert loaded is not None
+        migrated, _metadata, _, _ = loaded
+        store.layout.validate(migrated)
+        assert store.controller.state_sha256(store.layout.phi(migrated)) == (
+            header["phi_state_sha256"]
+        )
+        assert store.counterflow_runtime.state_sha256(
+            store.layout.counterflow(migrated)
+        ) == header["counterflow_state_sha256"]
+        assert provider.mnemic_controller is not None
+        assert provider.mnemic_controller.state_sha256(
+            store.layout.mnemic(migrated)
+        ) == provider.mnemic_controller.state_sha256(
+            store.initial_mnemic_state
+        )
+        assert path.read_bytes() == raw
+
+        text = "legacy checkpoint live migration memory"
+        revision = _revision("legacy-record", text)
+        event = _event(
+            user="legacy",
+            stream_id="legacy-stream",
+            sequence=1,
+            previous_event_id=EMPTY_CONTEXT_EVENT_ID,
+            payload=_memory_payload("store", "legacy-record", text, revision),
+        )
+        observed = provider.observe_context(event)
+        assert observed["duplicate"] is False
+        upgraded_raw = path.read_bytes()
+        upgraded_header, _, _ = store._decode_frame(upgraded_raw)
+        assert upgraded_header["schema"] == provider_module.SHARED_FIELD_SESSION_SCHEMA
+        assert upgraded_header["provider_fingerprint"] == store.provider_fingerprint
+        assert upgraded_header["phi_state_sha256"] == header["phi_state_sha256"]
+        assert upgraded_header["counterflow_state_sha256"] == (
+            header["counterflow_state_sha256"]
+        )
+        assert "mnemic_state_sha256" in upgraded_header
+
+        replayed = provider.observe_context(event)
+        assert replayed["duplicate"] is True
+        assert replayed["state_in_sha256"] == observed["state_out_sha256"]
+        assert replayed["state_out_sha256"] == observed["state_out_sha256"]
+        assert replayed["checkpoint_sha256"] == observed["checkpoint_sha256"]
+        assert path.read_bytes() == upgraded_raw
+    finally:
+        provider.close()
+
 
 def test_authenticated_particle_world_turn_and_result_are_idempotent(
     tmp_path: Path,
@@ -713,488 +886,131 @@ def test_restart_continues_successor_and_failure_retains_checkpoint(
         second_provider.close()
 
 
-def test_context_observe_ranks_from_same_tensor_and_restart_preserves_it(
+def test_context_store_condenses_recall_and_restart_preserve_one_shared_field(
     tmp_path: Path,
 ) -> None:
     config = _provider_config(tmp_path)
     provider = PersistentFieldProvider(config)
     provider.start()
-    stream = "context-stream"
     user = "cassicore-context"
-    query = "which memory"
-    alpha_text = "Alpha memory"
-    beta_text = "Beta memory"
-    alpha_revision = _revision("alpha", alpha_text)
-    beta_revision = _revision("beta", beta_text)
-    alpha = _candidate("alpha", alpha_text, alpha_revision)
-    beta = _candidate("beta", beta_text, beta_revision)
-    rank_request = {
+    stream = "mnemic-store"
+    text = "golden lattice memory binds the quiet river"
+    revision = _revision("record-a", text)
+    address = _field_address("record-a", text, revision)
+    request = {
         "user": user,
-        "context_session_id": "context",
-        "query": query,
-        "candidates": [beta, alpha],
+        "context_session_id": "context-a",
+        "query": text,
+        "addresses": [address],
     }
-
     try:
-        missing_rank = provider.rank_context(rank_request)
-        assert missing_rank["ranked"] == [
-            {"id": "beta", "score": 0.0},
-            {"id": "alpha", "score": 0.0},
-        ]
-        assert provider.store is not None
-        assert not provider.store.path_for(user).exists()
-
+        assert provider.recall_context(request)["address"] is None
         stored = _event(
             user=user,
             stream_id=stream,
             sequence=1,
             previous_event_id=EMPTY_CONTEXT_EVENT_ID,
-            payload=_memory_payload(
-                "store", "alpha", alpha_text, alpha_revision
-            ),
+            payload=_memory_payload("store", "record-a", text, revision),
         )
-        stored_result = provider.observe_context(stored)
-        assert stored_result["consolidated"] is False
-        feedback = _event(
-            user=user,
-            stream_id=stream,
-            sequence=2,
-            previous_event_id=stored["event_id"],
-            payload=_feedback_payload(query, [alpha, beta]),
-        )
-        learned = provider.observe_context(feedback)
-        assert learned["consolidated"] is True
-        assert learned["selected_ids"] == ["alpha"]
-        checkpoint = Path(learned["checkpoint"])
-        before_rank = checkpoint.read_bytes()
-        ranked = provider.rank_context(rank_request)
-        assert ranked["ranked"][0]["id"] == "alpha"
-        assert ranked["ranked"][0]["score"] > 0.0
-        assert ranked["ranked"][0]["score"] > ranked["ranked"][1]["score"]
-        isolated_request = dict(rank_request)
-        isolated_request["context_session_id"] = "other-context"
-        assert all(
-            item["score"] == 0.0
-            for item in provider.rank_context(isolated_request)["ranked"]
-        )
-        assert checkpoint.read_bytes() == before_rank
+        receipt = provider.observe_context(stored)
+        assert receipt["condensed"] is True
+        assert receipt["transitions"][0]["operation"] == "condense"
+        checkpoint = Path(receipt["checkpoint"])
+        committed = checkpoint.read_bytes()
 
-        duplicate = provider.observe_context(feedback)
+        recalled = provider.recall_context(request)
+        assert recalled["address"] == address
+        assert recalled["signal"] > 0.0
+        assert recalled["availability"] > 0.0
+        assert checkpoint.read_bytes() == committed
+
+        duplicate = provider.observe_context(stored)
         assert duplicate["duplicate"] is True
-        assert checkpoint.read_bytes() == before_rank
+        assert checkpoint.read_bytes() == committed
     finally:
         provider.close()
 
     restarted = PersistentFieldProvider(config)
     restarted.start()
     try:
-        status = restarted.context_status(
-            {"user": user, "stream_id": stream}
-        )
-        assert status["checkpoint"]["status"] == "compatible"
-        assert status["stream"] == {
-            "stream_id": stream,
-            "sequence": 2,
-            "event_id": feedback["event_id"],
-        }
-        assert restarted.rank_context(rank_request)["ranked"][0]["id"] == "alpha"
+        checkpoint = restarted.store.path_for(user) if restarted.store else None
+        assert checkpoint is not None
+        before_recall = checkpoint.read_bytes()
+        assert restarted.recall_context(request)["address"] == address
+        assert checkpoint.read_bytes() == before_recall
         assert restarted.store is not None
         loaded = restarted.store.load(user)
         assert loaded is not None
-        state, metadata, _, _ = loaded
-        assert set(metadata) == {CONTEXT_STREAM_METADATA_KEY}
-        assert restarted.controller is not None
-        assert restarted.initial_state is not None
-        associations = restarted._resident_associations(
-            restarted.controller,
-            restarted.initial_state,
-            restarted.store.layout.phi(state),
+        shared = loaded[0]
+        mnemic = restarted.store.layout.mnemic(shared)
+        assert mnemic.field.untyped_storage().data_ptr() == (
+            shared.field.untyped_storage().data_ptr()
         )
-        assert [association.kind for association in associations] == [
-            "record",
-            "memory",
-            "goal",
-        ]
-        assert [association.text for association in associations] == [
-            alpha_text,
-            alpha_text,
-            query,
-        ]
-        serialized_metadata = _canonical(metadata)
-        assert alpha_text.encode() not in serialized_metadata
-        assert query.encode() not in serialized_metadata
-        assert b"cursor" not in serialized_metadata
     finally:
         restarted.close()
 
 
-def test_exact_field_association_precedes_unbound_field_work(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def test_context_feedback_condenses_query_to_exact_manifest_address(
+    tmp_path: Path,
 ) -> None:
     provider = _start(tmp_path)
-    user = "exact-binding"
-    stream = "exact-binding-stream"
-    alpha_text = "alpha continuation"
-    beta_text = "beta continuation"
-    alpha = _candidate("alpha", alpha_text, _revision("alpha", alpha_text))
-    beta = _candidate("beta", beta_text, _revision("beta", beta_text))
-    previous_event_id = EMPTY_CONTEXT_EVENT_ID
-
-    try:
-        for sequence, candidate in enumerate((alpha, beta), start=1):
-            event = _event(
-                user=user,
-                stream_id=stream,
-                sequence=sequence,
-                previous_event_id=previous_event_id,
-                payload=_memory_payload(
-                    "store",
-                    candidate["record_id"],
-                    candidate["text"],
-                    candidate["revision"],
-                ),
-            )
-            provider.observe_context(event)
-            previous_event_id = event["event_id"]
-
-        queries = ("select alpha", "select beta")
-        for sequence, (query, candidate) in enumerate(
-            zip(queries, (alpha, beta)), start=3
-        ):
-            event = _event(
-                user=user,
-                stream_id=stream,
-                sequence=sequence,
-                previous_event_id=previous_event_id,
-                payload=_feedback_payload(
-                    query, [candidate], turn_id=sequence
-                ),
-            )
-            provider.observe_context(event)
-            previous_event_id = event["event_id"]
-
-        assert provider.controller is not None
-        assert provider.store is not None
-        checkpoint = provider.store.path_for(user)
-        before_rank = checkpoint.read_bytes()
-
-        def biased_work(
-            state: Any, _: bytes, continuations: list[bytes]
-        ) -> torch.Tensor:
-            return torch.tensor(
-                [0.1, 0.9, *([0.2] * (len(continuations) - 2))],
-                device=state.field.device,
-                dtype=state.field.dtype,
-            )
-
-        monkeypatch.setattr(
-            provider.controller, "batch_candidate_sequence_work", biased_work
-        )
-
-        request = {
-            "user": user,
-            "context_session_id": "context",
-            "candidates": [alpha, beta],
-        }
-        alpha_rank = provider.rank_context({
-            **request,
-            "query": queries[0],
-        })["ranked"]
-        assert [item["id"] for item in alpha_rank] == ["alpha", "beta"]
-        assert alpha_rank[0]["score"] == pytest.approx(0.55)
-        assert alpha_rank[1]["score"] == pytest.approx(0.45)
-
-        unbound_rank = provider.rank_context({
-            **request,
-            "query": "unseen query",
-        })["ranked"]
-        assert [item["id"] for item in unbound_rank] == ["beta", "alpha"]
-        assert unbound_rank[0]["score"] == pytest.approx(0.45)
-        assert unbound_rank[1]["score"] == pytest.approx(0.05)
-        assert checkpoint.read_bytes() == before_rank
-    finally:
-        provider.close()
-
-
-def test_context_feedback_learns_exact_utf8_revision_span(tmp_path: Path) -> None:
-    provider = _start(tmp_path)
     user = "cassicore-context"
-    stream = "spans"
-    query = "find the exact payload"
-    prefix = "prefix 😀 "
-    span_text = "exact payload"
-    content = f"{prefix}{span_text} suffix"
-    revision = _revision("record", content)
-    candidate = _candidate(
-        "record",
-        span_text,
-        revision,
-        candidate_id="span:0123456789abcdef0123456789abcdef",
-        start_byte=len(prefix.encode("utf-8")),
-    )
-    rank_request = {
+    stream = "mnemic-feedback"
+    text = "alpha retained memory"
+    revision = _revision("record-a", text)
+    address = _field_address("record-a", text, revision)
+    query = "saffron portal"
+    recall_request = {
         "user": user,
         "context_session_id": "context",
         "query": query,
-        "candidates": [candidate],
+        "addresses": [address],
     }
-
     try:
         stored = _event(
             user=user,
             stream_id=stream,
             sequence=1,
             previous_event_id=EMPTY_CONTEXT_EVENT_ID,
-            payload=_memory_payload("store", "record", content, revision),
+            payload=_memory_payload("store", "record-a", text, revision),
         )
         provider.observe_context(stored)
+        assert provider.recall_context(recall_request)["address"] is None
+
         feedback = _event(
             user=user,
             stream_id=stream,
             sequence=2,
             previous_event_id=stored["event_id"],
-            payload=_feedback_payload(query, [candidate]),
+            payload=_feedback_payload(
+                query,
+                [_candidate("record-a", text, revision)],
+            ),
         )
         learned = provider.observe_context(feedback)
-
-        assert learned["consolidated"] is True
-        assert learned["selected_ids"] == [candidate["id"]]
-        ranked = provider.rank_context(rank_request)["ranked"]
-        assert ranked[0]["id"] == candidate["id"]
-        assert ranked[0]["score"] > 0.0
+        assert learned["condensed"] is True
+        assert learned["selected_ids"] == ["record-a"]
+        recalled = provider.recall_context(recall_request)
+        assert recalled["address"] == address
+        assert recalled["selection_margin"] > 0.0
     finally:
         provider.close()
 
 
-def test_tool_outcomes_revise_credit_and_drive_field_owned_working_set(
-    tmp_path: Path,
-) -> None:
-    config = _provider_config(tmp_path)
-    provider = PersistentFieldProvider(config)
-    provider.start()
-    user = "cassicore-context"
-    stream = "tool-outcomes"
-    query = "repair the runtime"
-    text = "exact runtime evidence"
-    revision = _revision("runtime", text)
-    candidate = _candidate("runtime", text, revision)
-    rank_request = {
-        "user": user,
-        "context_session_id": "context",
-        "query": query,
-        "candidates": [candidate],
-    }
-
-    try:
-        malformed = _event(
-            user=user,
-            stream_id=stream,
-            sequence=1,
-            previous_event_id=EMPTY_CONTEXT_EVENT_ID,
-            payload=_feedback_payload(
-                query,
-                [],
-                tool_result={
-                    "id": "tc-invalid",
-                    "name": "bash",
-                    "is_error": False,
-                    "text": "raw output is forbidden",
-                },
-            ),
-        )
-        with pytest.raises(ProviderError, match="tool_result"):
-            provider.observe_context(malformed)
-
-        stored = _event(
-            user=user,
-            stream_id=stream,
-            sequence=1,
-            previous_event_id=EMPTY_CONTEXT_EVENT_ID,
-            payload=_memory_payload("store", "runtime", text, revision),
-        )
-        provider.observe_context(stored)
-        succeeded = _event(
-            user=user,
-            stream_id=stream,
-            sequence=2,
-            previous_event_id=stored["event_id"],
-            payload=_feedback_payload(
-                query,
-                [candidate],
-                tool_result={"id": "tc-1", "name": "bash", "is_error": False},
-            ),
-        )
-        learned = provider.observe_context(succeeded)
-        assert learned["selected_ids"] == [candidate["id"]], learned
-        successful_rank = provider.rank_context(rank_request)
-        assert successful_rank["ranked"][0]["score"] > 0.0, successful_rank
-        assert {item["kind"] for item in successful_rank["working"]} == {
-            "goal",
-            "artifact",
-        }
-
-        failed = _event(
-            user=user,
-            stream_id=stream,
-            sequence=3,
-            previous_event_id=succeeded["event_id"],
-            payload=_feedback_payload(
-                query,
-                [candidate],
-                turn_id=2,
-                outcome="error",
-                tool_result={"id": "tc-2", "name": "pytest", "is_error": True},
-            ),
-        )
-        provider.observe_context(failed)
-        failed_rank = provider.rank_context(rank_request)
-        assert failed_rank["ranked"][0]["score"] == 0.0
-        assert {item["kind"] for item in failed_rank["working"]} == {
-            "goal",
-            "artifact",
-            "failure",
-        }
-
-        recovered = _event(
-            user=user,
-            stream_id=stream,
-            sequence=4,
-            previous_event_id=failed["event_id"],
-            payload=_feedback_payload(
-                query,
-                [candidate],
-                turn_id=3,
-                tool_result={"id": "tc-3", "name": "pytest", "is_error": False},
-            ),
-        )
-        provider.observe_context(recovered)
-        recovered_rank = provider.rank_context(rank_request)
-        assert recovered_rank["ranked"][0]["score"] > 0.0
-        isolated = dict(rank_request)
-        isolated["context_session_id"] = "other-context"
-        isolated_rank = provider.rank_context(isolated)
-        assert isolated_rank["ranked"][0]["score"] == 0.0
-        assert isolated_rank["working"] == []
-    finally:
-        provider.close()
-
-    restarted = PersistentFieldProvider(config)
-    restarted.start()
-    try:
-        assert restarted.store is not None
-        checkpoint = restarted.store.path_for(user)
-        checkpoint_before_rank = checkpoint.read_bytes()
-        restarted_rank = restarted.rank_context(rank_request)
-        assert restarted_rank["ranked"] == recovered_rank["ranked"]
-        assert restarted_rank["working"] == recovered_rank["working"]
-        assert checkpoint.read_bytes() == checkpoint_before_rank
-
-        loaded = restarted.store.load(user)
-        assert loaded is not None
-        _, metadata, _, _ = loaded
-        assert restarted.initial_state is not None
-        restarted.store.save(
-            user,
-            restarted.store.initial(restarted.initial_state),
-            metadata,
-        )
-        counterfactual = restarted.rank_context(rank_request)
-        assert counterfactual["ranked"][0]["score"] == 0.0
-        assert counterfactual["working"] == []
-    finally:
-        restarted.close()
-
-
-def test_field_working_set_evicts_oldest_entries_at_trajectory_capacity(
-    tmp_path: Path,
-) -> None:
-    config = _provider_config(tmp_path)
-    provider = PersistentFieldProvider(config)
-    provider.start()
-    user = "cassicore-context"
-    stream = "working-capacity"
-    previous_event_id = EMPTY_CONTEXT_EVENT_ID
-    forgotten_symbols = 0
-
-    try:
-        last_event: dict[str, Any] | None = None
-        for index in range(40):
-            last_event = _event(
-                user=user,
-                stream_id=stream,
-                sequence=index + 1,
-                previous_event_id=previous_event_id,
-                payload=_feedback_payload(
-                    f"active goal {index} " + ("x" * 24),
-                    [],
-                    turn_id=index,
-                    tool_result={
-                        "id": f"tc-{index}",
-                        "name": "pytest",
-                        "is_error": False,
-                    },
-                ),
-            )
-            observed = provider.observe_context(last_event)
-            forgotten_symbols += observed["forgotten_symbols"]
-            previous_event_id = last_event["event_id"]
-
-        assert last_event is not None
-        assert forgotten_symbols > 0
-        ranked = provider.rank_context({
-            "user": user,
-            "context_session_id": "context",
-            "query": "continue repair",
-            "candidates": [],
-        })
-        working_ids = [item["id"] for item in ranked["working"]]
-        assert len(working_ids) <= 32
-        assert any("working:tool:tc-39:" in item for item in working_ids)
-        assert all("working:tool:tc-0:" not in item for item in working_ids)
-    finally:
-        provider.close()
-
-    restarted = PersistentFieldProvider(config)
-    restarted.start()
-    try:
-        replayed = restarted.rank_context({
-            "user": user,
-            "context_session_id": "context",
-            "query": "continue repair",
-            "candidates": [],
-        })
-        assert replayed["working"] == ranked["working"]
-    finally:
-        restarted.close()
-
-def test_context_update_and_delete_rebuild_dynamic_tape(
+def test_context_update_and_delete_inhibit_obsolete_field_cues(
     tmp_path: Path,
 ) -> None:
     provider = _start(tmp_path)
-    stream = "updates"
     user = "cassicore-context"
-    query = "current value"
-    old_text = "old value"
-    new_text = "new value"
+    stream = "mnemic-update-delete"
+    old_text = "old violet river memory"
+    new_text = "new copper mountain memory"
     old_revision = _revision("record", old_text)
     new_revision = _revision("record", new_text)
-    old_candidate = _candidate("record", old_text, old_revision)
-    new_candidate = _candidate("record", new_text, new_revision)
-    old_rank_request = {
-        "user": user,
-        "context_session_id": "context",
-        "query": query,
-        "candidates": [old_candidate],
-    }
-    new_rank_request = {
-        "user": user,
-        "context_session_id": "context",
-        "query": query,
-        "candidates": [new_candidate],
-    }
-
+    old_address = _field_address("record", old_text, old_revision)
+    new_address = _field_address("record", new_text, new_revision)
     try:
-        first = _event(
+        stored = _event(
             user=user,
             stream_id=stream,
             sequence=1,
@@ -1203,63 +1019,198 @@ def test_context_update_and_delete_rebuild_dynamic_tape(
                 "store", "record", old_text, old_revision
             ),
         )
+        provider.observe_context(stored)
+        update_payload = _memory_payload(
+            "update", "record", new_text, new_revision
+        )
+        update_payload["previous_record"] = _memory_payload(
+            "store", "record", old_text, old_revision
+        )["record"]
+        updated = _event(
+            user=user,
+            stream_id=stream,
+            sequence=2,
+            previous_event_id=stored["event_id"],
+            payload=update_payload,
+        )
+        update_receipt = provider.observe_context(updated)
+        assert [item["operation"] for item in update_receipt["transitions"]] == [
+            "inhibit",
+            "condense",
+        ]
+        assert provider.recall_context(
+            {
+                "user": user,
+                "context_session_id": "context",
+                "query": new_text,
+                "addresses": [new_address],
+            }
+        )["address"] == new_address
+        assert provider.recall_context(
+            {
+                "user": user,
+                "context_session_id": "context",
+                "query": old_text,
+                "addresses": [old_address],
+            }
+        )["address"] is None
+
+        deleted = _event(
+            user=user,
+            stream_id=stream,
+            sequence=3,
+            previous_event_id=updated["event_id"],
+            payload=_memory_payload(
+                "delete", "record", new_text, new_revision
+            ),
+        )
+        delete_receipt = provider.observe_context(deleted)
+        assert delete_receipt["condensed"] is False
+        assert delete_receipt["transitions"] == [
+            {"operation": "inhibit", "address": new_address}
+        ]
+        assert provider.recall_context(
+            {
+                "user": user,
+                "context_session_id": "context",
+                "query": new_text,
+                "addresses": [new_address],
+            }
+        )["address"] is None
+    finally:
+        provider.close()
+
+
+def test_context_delete_inhibits_only_the_address_being_deleted(
+    tmp_path: Path,
+) -> None:
+    provider = _start(tmp_path)
+    user = "cassicore-address-specific-delete"
+    stream = "mnemic-address-specific-delete"
+    first_text = "shared cobalt crossing alpha memory"
+    second_text = "shared cobalt crossing beta memory"
+    first_revision = _revision("record-a", first_text)
+    second_revision = _revision("record-b", second_text)
+    first_address = _field_address("record-a", first_text, first_revision)
+    second_address = _field_address("record-b", second_text, second_revision)
+    try:
+        first = _event(
+            user=user,
+            stream_id=stream,
+            sequence=1,
+            previous_event_id=EMPTY_CONTEXT_EVENT_ID,
+            payload=_memory_payload(
+                "store", "record-a", first_text, first_revision
+            ),
+        )
         provider.observe_context(first)
         second = _event(
             user=user,
             stream_id=stream,
             sequence=2,
             previous_event_id=first["event_id"],
-            payload=_feedback_payload(query, [old_candidate]),
+            payload=_memory_payload(
+                "store", "record-b", second_text, second_revision
+            ),
         )
         provider.observe_context(second)
-        assert provider.rank_context(old_rank_request)["ranked"][0]["score"] > 0
+        assert provider.recall_context(
+            {
+                "user": user,
+                "context_session_id": "context",
+                "query": second_text,
+                "addresses": [first_address, second_address],
+            }
+        )["address"] == second_address
+        for context_session_id in ("context-a", "context-b"):
+            manifest_bound = provider.recall_context(
+                {
+                    "user": user,
+                    "context_session_id": context_session_id,
+                    "query": second_text,
+                    "addresses": [first_address],
+                }
+            )
+            assert manifest_bound["address"] in {None, first_address}
+            assert manifest_bound["address"] != second_address
 
-        update_payload = _memory_payload(
-            "update", "record", new_text, new_revision
-        )
-        update_payload["previous_record"] = {
-            "id": "record",
-            "content": old_text,
-            "node_type": "fact",
-            "revision": old_revision,
-        }
-        third = _event(
+        deleted = _event(
             user=user,
             stream_id=stream,
             sequence=3,
             previous_event_id=second["event_id"],
-            payload=update_payload,
-        )
-        update_result = provider.observe_context(third)
-        assert update_result["forgotten_symbols"] > 0
-        assert provider.rank_context(old_rank_request)["ranked"][0]["score"] == 0.0
-
-        fourth = _event(
-            user=user,
-            stream_id=stream,
-            sequence=4,
-            previous_event_id=third["event_id"],
-            payload=_feedback_payload(
-                query, [new_candidate], turn_id=2
-            ),
-        )
-        provider.observe_context(fourth)
-        assert provider.rank_context(new_rank_request)["ranked"][0]["score"] > 0
-
-        fifth = _event(
-            user=user,
-            stream_id=stream,
-            sequence=5,
-            previous_event_id=fourth["event_id"],
             payload=_memory_payload(
-                "delete", "record", new_text, new_revision
+                "delete", "record-a", first_text, first_revision
             ),
         )
-        delete_result = provider.observe_context(fifth)
-        assert delete_result["forgotten_symbols"] > 0
-        assert provider.rank_context(new_rank_request)["ranked"][0]["score"] == 0.0
+        provider.observe_context(deleted)
+        assert provider.recall_context(
+            {
+                "user": user,
+                "context_session_id": "context",
+                "query": first_text,
+                "addresses": [first_address],
+            }
+        )["address"] is None
+        assert provider.recall_context(
+            {
+                "user": user,
+                "context_session_id": "context",
+                "query": first_text,
+                "addresses": [first_address, second_address],
+            }
+        )["address"] != first_address
+        assert provider.recall_context(
+            {
+                "user": user,
+                "context_session_id": "context",
+                "query": second_text,
+                "addresses": [first_address, second_address],
+            }
+        )["address"] == second_address
     finally:
         provider.close()
+
+
+def test_context_recall_rejects_malformed_addresses_without_mutation(
+    tmp_path: Path,
+) -> None:
+    provider = _start(tmp_path)
+    user = "cassicore-context"
+    text = "address validation memory"
+    revision = _revision("record", text)
+    stored = _event(
+        user=user,
+        stream_id="mnemic-address-validation",
+        sequence=1,
+        previous_event_id=EMPTY_CONTEXT_EVENT_ID,
+        payload=_memory_payload("store", "record", text, revision),
+    )
+    try:
+        receipt = provider.observe_context(stored)
+        checkpoint = Path(receipt["checkpoint"])
+        committed = checkpoint.read_bytes()
+        with pytest.raises(ProviderError, match="field address 0"):
+            provider.recall_context(
+                {
+                    "user": user,
+                    "context_session_id": "context",
+                    "query": text,
+                    "addresses": ["not-an-address"],
+                }
+            )
+        assert checkpoint.read_bytes() == committed
+    finally:
+        provider.close()
+
+
+
+
+
+
+
+
+
 
 
 def test_empty_memory_record_advances_stream_and_updates_to_content(
@@ -1281,6 +1232,7 @@ def test_empty_memory_record_advances_stream_and_updates_to_content(
             )
         )
         assert stored["stream"]["sequence"] == 1
+        assert stored["condensed"] is False
 
         update_payload = _memory_payload(
             "update", "record", "filled", filled_revision
@@ -1301,6 +1253,7 @@ def test_empty_memory_record_advances_stream_and_updates_to_content(
             )
         )
         assert updated["stream"]["sequence"] == 2
+        assert updated["condensed"] is True
     finally:
         provider.close()
 
@@ -1327,6 +1280,7 @@ def test_context_accepts_exact_text_free_action_start_and_outcome(
             "store", record_id, "", pending_revision
         )
         start_payload["record"]["node_type"] = "action"
+        start_payload["record"].pop("field_address")
         start_payload["action"] = action
         started = provider.observe_context(
             _event(
@@ -1343,6 +1297,7 @@ def test_context_accepts_exact_text_free_action_start_and_outcome(
             "update", record_id, "completed", completed_revision
         )
         outcome_payload["record"]["node_type"] = "action"
+        outcome_payload["record"].pop("field_address")
         outcome_payload["previous_record"] = {
             "id": record_id,
             "content": "",
@@ -1422,38 +1377,6 @@ def test_context_rejects_previous_record_outside_same_record_update(
         provider.close()
 
 
-def test_context_rejects_noncanonical_field_association_without_mutation(
-    tmp_path: Path,
-) -> None:
-    provider = _start(tmp_path)
-    try:
-        assert provider.controller is not None
-        assert provider.initial_state is not None
-        assert provider.store is not None
-        state = provider.controller.rebuild_exchanges(
-            provider.initial_state,
-            provider.initial_state,
-            ((b'["context","query"]', b"not-canonical"),),
-        )
-        path, checkpoint_sha256 = provider.store.save(
-            "malformed-association",
-            provider.store.initial(state),
-            {CONTEXT_STREAM_METADATA_KEY: {}},
-        )
-        with pytest.raises(
-            ProviderError, match="association (is malformed|pair is incomplete)"
-        ):
-            provider.rank_context(
-                {
-                    "user": "malformed-association",
-                    "context_session_id": "context",
-                    "query": "query",
-                    "candidates": [],
-                }
-            )
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == checkpoint_sha256
-    finally:
-        provider.close()
 
 
 @pytest.mark.parametrize(
@@ -1664,10 +1587,12 @@ def test_counterflow_observed_commit_is_persistent_idempotent_and_plan_is_frozen
         provider.store.layout.validate(shared)
         phi = provider.store.layout.phi(shared)
         counterflow = provider.store.layout.counterflow(shared)
+        mnemic = provider.store.layout.mnemic(shared)
         assert (
             shared.field.untyped_storage().data_ptr()
             == phi.field.untyped_storage().data_ptr()
             == counterflow.field.untyped_storage().data_ptr()
+            == mnemic.field.untyped_storage().data_ptr()
         )
         assert provider.controller.state_sha256(phi) == primary_sha256
         assert (
@@ -1676,10 +1601,15 @@ def test_counterflow_observed_commit_is_persistent_idempotent_and_plan_is_frozen
             == committed["counterflow_state_out_sha256"]
         )
         header, field_payload, _ = provider.store._decode_frame(committed_bytes)
-        assert header["schema"] == "cassi.shared-field-provider-session.v3"
+        assert header["schema"] == "cassi.shared-field-provider-session.v4"
         assert header["field_bytes"] == len(field_payload)
         assert "phi_payload_sha256" not in header
         assert "counterflow_payload_sha256" not in header
+        assert header["mnemic_state_sha256"] == (
+            provider.mnemic_controller.state_sha256(mnemic)
+            if provider.mnemic_controller is not None
+            else None
+        )
         duplicate = _post_provider(server, "/v1/counterflow/commit", commit_request)
         assert duplicate["status"] == "duplicate"
         assert duplicate["consolidated"] is False

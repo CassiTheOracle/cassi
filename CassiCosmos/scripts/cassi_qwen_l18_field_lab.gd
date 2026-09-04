@@ -93,17 +93,20 @@ func _poll_server() -> void:
 			continue
 		var accumulated: PackedByteArray = _peer_buf[peer]
 		accumulated.append_array(packet[1])
+		var consumed: int = 0
 		while true:
-			var newline: int = accumulated.find(10)
+			var newline: int = accumulated.find(10, consumed)
 			if newline < 0:
 				break
-			var line: String = accumulated.slice(0, newline).get_string_from_utf8()
-			accumulated = accumulated.slice(newline + 1)
+			var line: String = accumulated.slice(consumed, newline).get_string_from_utf8()
+			consumed = newline + 1
 			var response: String = _handle_line(line)
 			if response != "":
 				peer.put_data((response + "\n").to_utf8_buffer())
 			if _closing:
 				break
+		if consumed > 0:
+			accumulated = accumulated.slice(consumed)
 		_peer_buf[peer] = accumulated
 		if _closing:
 			break

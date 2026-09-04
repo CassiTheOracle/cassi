@@ -17,33 +17,37 @@ function parseJson(value, fallback) {
 const { dbPath, query, limit } = workerData
 try {
   const db = new Database(dbPath, { readonly: true, fileMustExist: true })
-  try {
-    db.pragma('query_only = ON')
-    db.pragma('busy_timeout = 50')
-    const rows = db.prepare(`
-      SELECT e.id, e.content, e.node_type, e.metadata FROM engrams_fts fts
-      JOIN engrams e ON e.rowid = fts.rowid
-      WHERE engrams_fts MATCH ?
-      ORDER BY rank LIMIT ?
-    `).all(query, limit)
-    const results = rows
-      .filter(row => row.node_type !== 'bridge')
-      .map((row, index) => {
-        const metadata = parseJson(row.metadata, {})
-        return {
-          engram: {
-            id: safeOpaqueId(row.id),
-            content: String(row.content).slice(0, MAX_CONTENT_CHARS),
-            nodeType: String(row.node_type).slice(0, 64),
-            x: 0, y: 0, z: 0, t: 0, potentiation: 0, clusterId: null,
-            embedding: null, tags: [], provenance: '', createdAt: '', accessedAt: null,
-            metadata: typeof metadata.sessionId === 'string' ? { sessionId: metadata.sessionId.slice(0, 128) } : {},
-          },
-          score: 1 - (index / limit),
-        }
-      })
-    parentPort?.postMessage({ ok: true, results })
-  } finally { db.close() }
+  const results = (() => {
+    try {
+      db.pragma('query_only = ON')
+      db.pragma('busy_timeout = 50')
+      const rows = db.prepare(`
+        SELECT e.id, e.content, e.node_type, e.metadata FROM engrams_fts fts
+        JOIN engrams e ON e.rowid = fts.rowid
+        WHERE engrams_fts MATCH ?
+        ORDER BY rank LIMIT ?
+      `).all(query, limit)
+      return rows
+        .filter(row => row.node_type !== 'bridge')
+        .map((row, index) => {
+          const metadata = parseJson(row.metadata, {})
+          return {
+            engram: {
+              id: safeOpaqueId(row.id),
+              content: String(row.content).slice(0, MAX_CONTENT_CHARS),
+              nodeType: String(row.node_type).slice(0, 64),
+              x: 0, y: 0, z: 0, t: 0, potentiation: 0, clusterId: null,
+              embedding: null, tags: [], provenance: '', createdAt: '', accessedAt: null,
+              metadata: typeof metadata.sessionId === 'string' ? { sessionId: metadata.sessionId.slice(0, 128) } : {},
+            },
+            score: 1 - (index / limit),
+          }
+        })
+    } finally {
+      db.close()
+    }
+  })()
+  parentPort?.postMessage({ ok: true, results })
 } catch {
   parentPort?.postMessage({ ok: false, error: 'fts-search-failed' })
 }

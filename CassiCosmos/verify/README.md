@@ -1,6 +1,6 @@
 # Verify battery — one-command runner
 
-Runs the whole Cassi GPU-sim verify battery (38 arms) in sequence, captures each
+Runs the whole Cassi GPU-sim verify battery (40 arms) in sequence, captures each
 arm's exit code, and exits 0 only when every arm passes.
 
 ## How to run
@@ -18,7 +18,7 @@ Godot console exe:
   `--path . res://scenes/<scene>.tscn`; child commands never receive
   `--headless`. Both the sim's global RenderingDevice and the arms' local
   RenderingDevices require a real window on this rig.
-- Exit code: `0` = all 38 passed; `1` = at least one failed.
+- Exit code: `0` = all 40 passed; `1` = at least one failed.
 - The runner prints a progress line per arm and a summary table; failed arms
   get their last 15 stdout/stderr lines printed.
 - Per-arm logs: `res://_diag/battery_logs/armNN_<name>.log` (gitignored).
@@ -71,7 +71,7 @@ results live in `research/field_particles/`.
 
 ## The arms
 
-The authoritative arm list is the `ARMS` const in `verify/run_all.gd` (38 arms).
+The authoritative arm list is the `ARMS` const in `verify/run_all.gd` (40 arms).
 The table below documents each arm:
 
 | # | Scene | What it verifies |
@@ -106,7 +106,7 @@ The table below documents each arm:
 | 28 | verify_mind_engine | Mind-engine no-op gate: attractor-ratio deposit stays at the fp32 floor; off-ratio evolution conserves charge; full-field seeding resets state with exact EY/EI readback and stable RIDs; canonical native Qi snapshots are hash-bound, monotonic, idempotent, projected deterministically, and isolated exactly from the PDE field |
 | 29 | verify_field_intelligence | Default-off bit identity; fixed P/e and 128-byte header ABI; finite bounded learning; six-target learned-vs-clear controls; exact snapshot/restore; render purity; same-list visual receipt; reinitialization ownership (FI0–FI9) |
 | 30 | verify_bh_accretion_engine | BH accretion in the standalone engine (local RD): exact mass conservation (G55), swallowed-dead/no-deposit (G56), toggle-off bit-identity (G57) |
-| 31 | verify_merge_engine | Particle merge in the standalone engine (local RD): merge count + mass conservation (G52), dead-marking/no-deposit (G53), φ⁻² low-q no-merge gate (G54) |
+| 31 | verify_merge_engine | Particle merge in the standalone engine: local-RD merge count + mass conservation (G52), dead-marking/no-deposit (G53), φ⁻² low-q no-merge (G54), global no-readback list conservation/cadence/query-readiness (G102), and two-cadence canonical motion preservation (G103) |
 | 32 | verify_multigrid_engine | Cascade-multigrid engine: coarse Φ reference, near-field recovery, and placement-bias ring metric (G58–G60) |
 | 33 | verify_rho_front | φ-locked density-front speed and radial-symmetry gates |
 | 34 | verify_eps_gap | Pure-ε decoupling, gap frequency, and non-propagation gates |
@@ -114,6 +114,8 @@ The table below documents each arm:
 | 36 | verify_omega_invariant | ω₀²-independent density-front speed and widened ε-gap gate |
 | 37 | verify_tree_hier_refit_engine | Default-off retained-tree moment refit: 32 finite engine steps, forced-full force parity, pre-transition refits, and mandatory full rebuild on the first preparation after a site-topology generation change (G72) |
 | 38 | verify_particle_world_agent | Canonical particle-program validation, pure preview, decoupled-engine authoritative Apply, cache/render publication, idempotency and conflict rejection, one explicit step, and byte-exact automatic Undo (PWA0–PWA8) |
+| 39 | verify_rotation_stress | Default-off engine byte identity; conservative matter–Qi linear/angular exchange and heat ledger; φ⁻¹ interscale transfer/null controls; merge-spin quaternion orientation; 64-step finite stability; explicit conservative scale-boundary reservoirs with a byte-zero closed contract (G78–G82, G101) |
+| 40 | verify_rotation_end_to_end | Repeatable live production regression: a real merge acquires canonical orbital angular momentum, persistent spin causally advances resolved orientation, bounded publication matches the GPU state, and particle/environment momentum ledgers close (G97–G100) |
 
 ## Expected runtime
 

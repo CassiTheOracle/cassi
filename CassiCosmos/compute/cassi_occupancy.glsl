@@ -6,9 +6,9 @@
 // Replaces the per-0.5 s full position-buffer readback (N x 16 B, 64 MB at
 // 4M particles) + CPU classification loop: one strided pass over the
 // particle buffer writes 5 atomic counters and a compact sampled-position
-// mirror. The host reads the counters from binding 1 plus at most 8192 vec4
-// samples from binding 2 instead of the whole buffer. Classification mirrors
-// _sample_occupancy's CPU logic exactly:
+// mirror. Dead/merged slots remain in the compact mirror with w <= 0 so the
+// envelope tracker can skip them, and are excluded from occupancy counters.
+// Classification mirrors _sample_occupancy's CPU logic exactly:
 //   out:    |x_i| > extent_i for any axis
 //   inner:  max_i |x_i|/lim_i < 1          (lim_i = 0.85 x extent_i)
 //   corner: all three |x_i| >= lim_i
@@ -36,11 +36,13 @@ void main() {
     int s = int(gl_GlobalInvocationID.x);
     if (s >= int(pc.n_sample)) return;
     int idx = s * int(pc.stride);
+    vec4 particle = pos[idx];
     if (s < int(pc.sample_n)) {
-        sample_pos[s] = pos[idx];
+        sample_pos[s] = particle;
     }
-    atomicAdd(c[4], 1u);  // every classified sample (before any early-out)
-    vec3 a = abs(pos[idx].xyz);
+    if (particle.w <= 0.0) return;
+    atomicAdd(c[4], 1u);  // every live classified sample
+    vec3 a = abs(particle.xyz);
     if (a.x > pc.ext_x || a.y > pc.ext_y || a.z > pc.ext_z) {
         atomicAdd(c[3], 1u);
         return;

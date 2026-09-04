@@ -4,11 +4,11 @@
 // Site-native N-body force/integrator.
 //
 // Sites are tile coordinates in [0, 2*extent); particles and BH records are
-// world coordinates. The current window center is bh[0].yzw. This is the
-// open-boundary site path: a particle is mapped into the live window without
-// periodic wrapping, and particles outside that window receive no site force.
-// That keeps an escaped cloud in world space instead of turning the site
-// window into a hidden torus with a force/render seam at the borders.
+// world coordinates. The current window center is bh[0].yzw. Site-local field
+// state is sampled only inside the live window and never wraps periodically.
+// The exact per-particle tree gradient remains valid outside that window, so
+// its chord factor approaches the vacuum attractor π/ρ = φ^-3 there instead
+// of switching gravity off on six rectangular faces.
 //
 // HashStart is an H^3+1 exclusive prefix and HashSites contains site indices
 // (not shortlist slots); the host publishes a valid hash together with the
@@ -432,11 +432,18 @@ vec3 heuristic_field_acc(SiteSample ss) {
     return bh[1].w * pi_over_rho * ss.grad;
 }
 
-vec3 site_tree_acc(SiteSample ss, int particle_index, inout TeleStats stats) {
-    if (!ss.found) {
-        return vec3(0.0);
+vec3 site_tree_acc(SiteSample ss, vec3 particle_world, vec3 extent,
+        int particle_index, inout TeleStats stats) {
+    float pi_over_rho = PHI_INV3;
+    if (ss.found) {
+        float site_ratio = site_pi_over_rho(ss, stats);
+        vec3 rel = (particle_world - bh[0].yzw) / max(extent, vec3(1.0e-6));
+        // Blend the local chord state into its asymptotic attractor through
+        // an ellipsoidal shell. The tree force stays open-boundary while the
+        // finite site tile cannot expose an axis-aligned force discontinuity.
+        float vacuum_mix = smoothstep(0.85, 1.0, length(rel));
+        pi_over_rho = mix(site_ratio, PHI_INV3, vacuum_mix);
     }
-    float pi_over_rho = site_pi_over_rho(ss, stats);
     float G_N = bh[1].w;
     float tree_scale = bh[3].w;
     return G_N * tree_scale * pi_over_rho * tree_grad[particle_index].xyz;
@@ -466,9 +473,10 @@ vec3 realsim_dissipation(SiteSample ss, vec3 velocity,
 vec3 gravity_at(vec3 particle_world, int particle_index,
         out SiteSample ss, inout TeleStats stats) {
     vec3 extent = max(abs(bh[2].yzw), vec3(1.0e-6));
-    // Every particle goes through the bounded periodic site lookup, including
-    // the analytic Plummer fallback.  This keeps all site-native modes on one
-    // deterministic query path and gives RealSim the same site state as tree.
+    // Every particle uses the same finite, open site query, including the
+    // analytic Plummer fallback. Outside particles receive the explicit
+    // no-site sample rather than wrapping across the box, so RealSim and tree
+    // consume identical site state.
     ss = sample_site(particle_world, extent);
 
     vec3 result = vec3(0.0);
@@ -484,7 +492,7 @@ vec3 gravity_at(vec3 particle_world, int particle_index,
         // Modes 0/3/4/5 are the site-native tree family.  Mode 4 adds
         // RealSim dissipation in the caller; mode 5 is the explicit tree-river
         // selector used by meshless integration.
-        result += site_tree_acc(ss, particle_index, stats);
+        result += site_tree_acc(ss, particle_world, extent, particle_index, stats);
     }
     return result;
 }
@@ -519,10 +527,9 @@ void warmup_main() {
 }
 
 void apply_tree_safety(inout vec3 particle_position, inout vec3 particle_velocity) {
-    // Existing broad tree guard: deliberately far beyond a legitimate escape
-    // orbit, but sufficient to stop one bad close-encounter force from ejecting
-    // a particle to float overflow.  The site integration uses gravity_mode 5
-    // for the tree path, matching the legacy tree-river guard.
+    // Limit a bad tree close encounter without imposing a position boundary.
+    // Site-native coordinates are open-world: every finite escaped position
+    // must continue unaltered rather than accumulating on a reabsorption sphere.
     float emax = max(max(bh[2].y, bh[2].z), bh[2].w);
     if (!(emax > 0.0) || !finite_float(emax)) {
         return;
@@ -531,11 +538,6 @@ void apply_tree_safety(inout vec3 particle_position, inout vec3 particle_velocit
     float velocity_length = length(particle_velocity);
     if (velocity_length > velocity_cap) {
         particle_velocity *= velocity_cap / velocity_length;
-    }
-    float position_cap = 1.0e4 * emax;
-    float position_length = length(particle_position);
-    if (position_length > position_cap) {
-        particle_position *= position_cap / position_length;
     }
 }
 

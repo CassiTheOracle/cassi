@@ -22,41 +22,61 @@ describe('context compaction restart', () => {
 
     try {
       const before = new MnemicExactStore(logger, database)
-      before.store({
-        id: 'selected-memory',
-        content: 'the hidden cobalt procedure uses clockwise turns',
-        nodeType: 'fact',
-        metadata: { sessionId: 'session-a' },
-      })
-      before.store({
-        id: 'checkpoint',
-        content: 'Cassi context checkpoint session-a:4',
-        nodeType: 'session',
-        provenance: 'cassi-context-compaction',
-        metadata: { sessionId: 'session-a', candidateIds: ['selected-memory'] },
-      })
-      before.close()
+      try {
+        before.store({
+          id: 'selected-memory',
+          content: 'the hidden cobalt procedure uses clockwise turns',
+          nodeType: 'fact',
+          metadata: { sessionId: 'session-prior' },
+        })
+        before.store({
+          id: 'checkpoint',
+          content: 'Cassi context checkpoint session-a:4',
+          nodeType: 'session',
+          provenance: 'cassi-context-compaction',
+          metadata: { sessionId: 'session-a', candidateIds: ['selected-memory'] },
+        })
+      } finally {
+        before.close()
+      }
 
       const after = new MnemicExactStore(logger, database)
-      const service = new RuntimeContextCandidateService({
-        memory: new MnemicMemoryAdapter(after),
-        bus,
-        logger,
-      })
-      const response = await service.candidates({
-        sessionId: 'session-a',
-        turnId: 5,
-        query: 'lexically unrelated zephyr',
-      })
+      try {
+        const service = new RuntimeContextCandidateService({
+          memory: new MnemicMemoryAdapter(after),
+          bus,
+          logger,
+          fieldRecall: async request => {
+            const address = request.addresses.find(candidate =>
+              after.resolveFieldAddress(candidate)?.record.id === 'selected-memory'
+            ) ?? null
+            return {
+              address,
+              signal: address ? 1 : 0,
+              selectionMargin: address ? 1 : 0,
+              availability: address ? 1 : 0,
+            }
+          },
+        })
+        try {
+          const response = await service.candidates({
+            sessionId: 'session-a',
+            turnId: 5,
+            query: 'lexically unrelated zephyr',
+          })
 
-      expect(response.candidates).toEqual([
-        expect.objectContaining({
-          id: 'selected-memory',
-          text: 'the hidden cobalt procedure uses clockwise turns',
-        }),
-      ])
-      service.close()
-      after.close()
+          expect(response.candidates).toEqual([
+            expect.objectContaining({
+              id: 'selected-memory',
+              text: 'the hidden cobalt procedure uses clockwise turns',
+            }),
+          ])
+        } finally {
+          service.close()
+        }
+      } finally {
+        after.close()
+      }
     } finally {
       rmSync(directory, { recursive: true, force: true })
     }

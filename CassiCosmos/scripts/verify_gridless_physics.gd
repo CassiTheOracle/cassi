@@ -8,7 +8,9 @@ extends Node3D
 
 var _sim: Node
 var _started := false
+var _outside_probe_started := false
 var _frames := 0
+var _outside_probe_position := Vector3.ZERO
 
 func _enter_tree() -> void:
 	_sim = get_node("CassiSim")
@@ -45,6 +47,29 @@ func _process(_delta: float) -> void:
 		_sim._run_physics_steps(3)
 		return
 	if _frames < 16:
+		return
+	if not _outside_probe_started:
+		_outside_probe_started = true
+		# Put one target just beyond the +X site face. Black-hole point forces
+		# are disabled for this extra step so only the production site-tree
+		# path can accelerate it; the first three steps retain the BH gate.
+		var ext: Vector3 = eng._extents()
+		var probe_record: PackedFloat32Array = eng._rd.buffer_get_data(
+				eng._pos_buf, 0, 16).to_float32_array()
+		if probe_record.size() < 4:
+			_fail("outside-force probe position readback failed")
+			return
+		var center: Vector3 = eng.get("_window_center")
+		_outside_probe_position = center + Vector3(ext.x * 1.05, 0.0, 0.0)
+		probe_record[0] = _outside_probe_position.x
+		probe_record[1] = _outside_probe_position.y
+		probe_record[2] = _outside_probe_position.z
+		eng._rd.buffer_update(eng._pos_buf, 0, 16, probe_record.to_byte_array())
+		var zero_record := PackedFloat32Array([0.0, 0.0, 0.0, 0.0]).to_byte_array()
+		eng._rd.buffer_update(eng._vel_buf, 0, 16, zero_record)
+		eng._rd.buffer_update(eng._acc_buf, 0, 16, zero_record)
+		eng.set("black_holes_enabled", false)
+		_sim._run_physics_steps(1)
 		return
 	var result := _check(eng)
 	print("[GridlessPhysics] %s" % [JSON.stringify(result)])
@@ -90,6 +115,9 @@ func _check(eng: RefCounted) -> Dictionary:
 		if is_finite(acc[i]) and Vector3(acc[i], acc[i + 1], acc[i + 2]).length_squared() > 1e-14:
 			acc_nonzero = true
 			break
+	var outside_acc := Vector3(acc[0], acc[1], acc[2])
+	var outside_force_ok := is_finite(outside_acc.x) and is_finite(outside_acc.y) \
+			and is_finite(outside_acc.z) and outside_acc.length_squared() > 1e-14
 	var bh: PackedFloat32Array = eng._rd.buffer_get_data(eng._bh_buf, 0, 36 * 16).to_float32_array()
 	var bh_mass := 0.0
 	for slot in range(15):
@@ -102,6 +130,7 @@ func _check(eng: RefCounted) -> Dictionary:
 	var status: PackedInt32Array = eng._rd.buffer_get_data(eng._topology_status, 0, 16).to_int32_array()
 	var pass_gate := bool(eng.gridless_physics) and bool(eng.meshless_mode) and ns > 0 \
 		and finite and q_ok and vol_ok and mass_sum > 0.0 and acc_nonzero and bh_ok \
+		and outside_force_ok \
 		and status.size() >= 4 and status[0] > 0 and status[2] == 0 and status[3] == ns \
 		and is_finite(float(tel.get("q_mean", NAN))) and int(snap.get("generation", 0)) > 0
 	return {"pass": pass_gate, "sites": ns, "mass_sum": mass_sum, "bh_mass": bh_mass,
@@ -109,7 +138,9 @@ func _check(eng: RefCounted) -> Dictionary:
 		"first_pos": first_pos, "first_tile": first_tile, "first_hash": first_hash,
 		"hash_cfg": hash_cfg, "hash_start0": hash_starts[0] if not hash_starts.is_empty() else -1,
 		"hash_start_last": hash_starts[hash_starts.size() - 1] if not hash_starts.is_empty() else -1,
-		"acc_nonzero": acc_nonzero, "topology": status, "telemetry": tel,
+		"acc_nonzero": acc_nonzero, "outside_probe_position": _outside_probe_position,
+		"outside_acc": outside_acc, "outside_force_ok": outside_force_ok,
+		"topology": status, "telemetry": tel,
 		"snapshot_generation": snap.get("generation", 0)}
 
 func _fail(reason: String) -> void:
