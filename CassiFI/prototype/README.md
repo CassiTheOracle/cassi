@@ -28,13 +28,18 @@ never imported by the active implementation.
 
 ## Verify and run
 
-Use Python 3.12 with NumPy, PyTorch, and pytest installed. Verify the exact
-local bundle before comparing or reproducing results:
+Use Python 3.12 with NumPy, PyTorch, and pytest installed. The exact verifier
+requires the owner-local retained artifact tree, including corpus-bound evidence
+and state receipts; it cannot run from a source-only clone. Run it only when
+that local tree is present:
 
 ```powershell
 cd CassiFI/prototype
 python verification/verify_paper_bundle.py
 ```
+
+A source-only clone can inspect the implementation and run the focused
+surfaces below, but cannot establish the private local evidence lineage.
 
 Run the focused implementation surfaces:
 
