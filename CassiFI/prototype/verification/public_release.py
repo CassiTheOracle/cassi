@@ -1,4 +1,4 @@
-"""Build, smoke, and verify a public-safe CassiFI paper candidate."""
+"""Build, smoke, and verify a distribution-safe CassiFI bundle."""
 from __future__ import annotations
 
 import argparse
@@ -24,7 +24,6 @@ SCHEMA = "cassi.fi.public-paper-bundle.v1"
 
 _ROOT_FILES = (
     "cassi-technical-paper.md",
-    "IMPLEMENTATION-AND-PUBLICATION-PLAN.md",
     "public-release-policy.json",
 )
 _OPTIONAL_FILES = ("cassi-technical-paper.pdf", "LICENSE", "LICENSE-PAPER", "NOTICE", "CITATION.cff", ".zenodo.json")
@@ -128,7 +127,6 @@ def _load_reference_summary(path: Path, *, check_local: bool = False) -> dict[st
             or {gap: value.get("status") for gap, value in local_gaps.items()} != statuses
             or not isinstance(local_readiness, dict)
             or local_readiness.get("blocking_gaps") != blockers
-            or local_readiness.get("publication_status") != readiness["system_readiness"]
         ):
             raise ValueError("public reference summary does not match the local receipt")
     return reference
@@ -138,7 +136,7 @@ def _load_public_corpus_provenance(path: Path, *, check_local: bool = False) -> 
     provenance = _load_json(path)
     sources = provenance.get("sources")
     if (
-        provenance.get("schema") != "cassi.fi.public-corpus-provenance.v1"
+        provenance.get("schema") != "cassi.fi.public-corpus-provenance.v2"
         or provenance.get("corpus_bytes_included") is not False
         or not isinstance(sources, list)
         or len(sources) != len(_CORPUS_HASHES)
@@ -154,7 +152,7 @@ def _load_public_corpus_provenance(path: Path, *, check_local: bool = False) -> 
             or source.get("sha256") not in _CORPUS_HASHES
             or source.get("included") is not False
             or source.get("redistribution_status") != "unknown"
-            or source.get("publication_authorization") != "none"
+            or source.get("redistribution_permission") != "none"
         ):
             raise ValueError("public corpus source summary is invalid")
     if len({source["sha256"] for source in sources}) != len(_CORPUS_HASHES):
@@ -173,7 +171,7 @@ def _load_public_corpus_provenance(path: Path, *, check_local: bool = False) -> 
                 "sha256": source["expected_sha256"],
                 "included": False,
                 "redistribution_status": source["redistribution_status"],
-                "publication_authorization": source["publication_authorization"],
+                "redistribution_permission": source["redistribution_permission"],
             }
             for source in local_sources
         ]
@@ -197,10 +195,6 @@ def _source_files() -> list[tuple[Path, Path]]:
         if not source.is_file():
             raise FileNotFoundError(source)
         pairs.append((source, Path(relative)))
-    public_readme = SOURCE_ROOT / "PUBLIC-RELEASE.md"
-    if not public_readme.is_file():
-        raise FileNotFoundError(public_readme)
-    pairs.append((public_readme, Path("README.md")))
 
     for path in sorted(SOURCE_ROOT.glob("*.py")):
         if path.is_file():
@@ -434,34 +428,21 @@ def _assert_public_tree(root: Path, *, generated: bool) -> list[dict[str, Any]]:
     return entries
 
 
-def _publication_blockers(root: Path, policy: Mapping[str, Any]) -> list[str]:
-    paper = (root / "cassi-technical-paper.md").read_text(encoding="utf-8")
-    blockers: list[str] = []
-    if "[REQUIRED BEFORE PUBLICATION:" in paper:
-        blockers.append("author metadata incomplete")
-    if policy.get("author_approved") is not True:
-        blockers.append("final author approval absent")
-    if not policy.get("code_license") or not (root / "LICENSE").is_file():
-        blockers.append("code license not declared")
-    manuscript_license = policy.get("manuscript_license")
-    if not manuscript_license or f"**Manuscript license:** {manuscript_license}" not in paper:
-        blockers.append("manuscript license not declared in paper")
-    return blockers
-
-
-def _validate_policy(policy: Mapping[str, Any]) -> None:
+def _validate_policy(root: Path, policy: Mapping[str, Any]) -> None:
     if policy.get("schema") != "cassi.fi.public-release-policy.v1":
         raise ValueError("unsupported public release policy")
-    if policy.get("publication_action") != "none":
-        raise ValueError("candidate build cannot perform a publication action")
     if policy.get("corpus_distribution", {}).get("policy") != "exclude_all_bytes":
-        raise ValueError("public candidate must exclude all corpus bytes")
+        raise ValueError("distributable bundle must exclude all corpus bytes")
     if policy.get("checkpoint_distribution", {}).get("policy") != "synthetic_fixture_only":
-        raise ValueError("public candidate must exclude trained and historical checkpoints")
+        raise ValueError("distributable bundle must exclude trained and historical checkpoints")
     if policy.get("historical_evidence_distribution", {}).get("policy") != "exclude_raw_history":
-        raise ValueError("public candidate must exclude raw historical evidence")
+        raise ValueError("distributable bundle must exclude raw historical evidence")
     if policy.get("third_party_packages_bundled") is not False:
-        raise ValueError("public candidate cannot bundle third-party packages")
+        raise ValueError("distributable bundle cannot contain third-party packages")
+    if policy.get("code_license") != "Apache-2.0" or not (root / "LICENSE").is_file():
+        raise ValueError("code license is missing or inconsistent")
+    if policy.get("paper_license") != "CC BY 4.0" or not (root / "LICENSE-PAPER").is_file():
+        raise ValueError("paper license is missing or inconsistent")
 
 
 def build(output: Path, *, archive: bool) -> dict[str, Any]:
@@ -481,28 +462,24 @@ def build(output: Path, *, archive: bool) -> dict[str, Any]:
         _write_json(output / "evidence" / "synthetic-public-fixture.json", synthetic_receipt)
 
         policy = _load_json(output / "public-release-policy.json")
-        _validate_policy(policy)
+        _validate_policy(output, policy)
         entries = _assert_public_tree(output, generated=True)
         reference = _load_reference_summary(output / _PUBLIC_REFERENCE_EVALUATION)
         public_evaluation = _load_json(output / "evidence" / "public-synthetic-evaluation.json")
-        blockers = _publication_blockers(output, policy)
         manifest = {
             "schema": SCHEMA,
             "release_id": policy["release_id"],
-            "publication_action": "none",
-            "publication_readiness": "ready" if not blockers else "blocked",
-            "publication_blockers": blockers,
             "licenses": {
                 "code_and_metadata": {
                     "spdx": policy["code_license"],
                     "path": "LICENSE",
                 },
-                "manuscript_and_original_figures": {
-                    "name": policy["manuscript_license"],
+                "paper_and_original_figures": {
+                    "name": policy["paper_license"],
                     "path": "LICENSE-PAPER",
                 },
             },
-            "system_readiness": "not_ready",
+            "system_readiness": reference["readiness"]["system_readiness"],
             "system_blockers": reference["readiness"]["blocking_gaps"],
             "corpus_bytes_included": False,
             "trained_or_historical_checkpoints_included": False,
@@ -527,7 +504,6 @@ def build(output: Path, *, archive: bool) -> dict[str, Any]:
             "schema": "cassi.fi.public-paper-digest.v1",
             "release_id": manifest["release_id"],
             "manifest_sha256": _sha256(output / MANIFEST_NAME),
-            "publication_action": "none",
         }
         _write_json(output / DIGEST_NAME, digest)
         verified = verify(output)
@@ -552,15 +528,13 @@ def verify(root: Path) -> dict[str, Any]:
     digest = _load_json(root / DIGEST_NAME)
     if manifest.get("schema") != SCHEMA:
         raise ValueError("unsupported public manifest")
-    if manifest.get("publication_action") != "none" or digest.get("publication_action") != "none":
-        raise ValueError("candidate unexpectedly records a publication action")
     if digest.get("release_id") != manifest.get("release_id"):
         raise ValueError("public digest release identity mismatch")
     if digest.get("manifest_sha256") != _sha256(root / MANIFEST_NAME):
         raise ValueError("public manifest digest mismatch")
     if manifest.get("licenses") != {
         "code_and_metadata": {"spdx": "Apache-2.0", "path": "LICENSE"},
-        "manuscript_and_original_figures": {"name": "CC BY 4.0", "path": "LICENSE-PAPER"},
+        "paper_and_original_figures": {"name": "CC BY 4.0", "path": "LICENSE-PAPER"},
     }:
         raise ValueError("public manifest license declarations are inconsistent")
 
@@ -577,23 +551,20 @@ def verify(root: Path) -> dict[str, Any]:
         raise ValueError("public manifest or digest is missing")
 
     policy = _load_json(root / "public-release-policy.json")
-    _validate_policy(policy)
-    blockers = _publication_blockers(root, policy)
-    expected_readiness = "ready" if not blockers else "blocked"
+    _validate_policy(root, policy)
+    _load_public_corpus_provenance(root / _PUBLIC_CORPUS_PROVENANCE)
+    reference = _load_reference_summary(root / manifest["reference_evaluation"]["path"])
     if (
-        manifest.get("publication_blockers") != blockers
-        or manifest.get("publication_readiness") != expected_readiness
-        or manifest.get("system_readiness") != "not_ready"
+        manifest.get("system_readiness") != reference["readiness"]["system_readiness"]
+        or manifest.get("system_blockers") != reference["readiness"]["blocking_gaps"]
         or manifest.get("corpus_bytes_included") is not False
         or manifest.get("trained_or_historical_checkpoints_included") is not False
         or manifest.get("synthetic_checkpoint_retained") is not False
         or manifest.get("raw_historical_evidence_included") is not False
         or manifest.get("third_party_packages_bundled") is not False
     ):
-        raise ValueError("public readiness status contradicts the candidate contents")
+        raise ValueError("public bundle metadata contradicts its contents")
 
-    _load_public_corpus_provenance(root / _PUBLIC_CORPUS_PROVENANCE)
-    reference = _load_reference_summary(root / manifest["reference_evaluation"]["path"])
     public_evaluation = _load_json(root / manifest["public_synthetic_evaluation"]["path"])
     if reference.get("deterministic_sha256") != manifest["reference_evaluation"]["deterministic_sha256"]:
         raise ValueError("public reference evaluation identity mismatch")
@@ -612,9 +583,7 @@ def verify(root: Path) -> dict[str, Any]:
 
     return {
         "release_id": manifest["release_id"],
-        "status": "release_verified" if manifest["publication_readiness"] == "ready" else "candidate_verified",
-        "publication_readiness": manifest["publication_readiness"],
-        "publication_blockers": blockers,
+        "status": "verified",
         "system_readiness": manifest["system_readiness"],
         "system_blockers": manifest["system_blockers"],
         "files_verified": len(expected),

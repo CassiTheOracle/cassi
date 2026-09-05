@@ -58,7 +58,7 @@ def render() -> str:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="source-sha256" content="{paper_sha256}">
-<meta name="author" content="Carina Gardner">
+<meta name="dc.creator" content="Carina Gardner">
 <meta name="description" content="A mechanism-first account of persistent field learning, exact evidence, uncertainty, transparent nonverbal planning, and computational efficiency.">
 <meta name="keywords" content="field intelligence, continual learning, associative memory, exact evidence, uncertainty, nonverbal reasoning, planning, interpretability, computational efficiency">
 <meta name="license" content="CC BY 4.0">

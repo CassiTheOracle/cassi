@@ -17,18 +17,18 @@ DEFAULT_VERIFICATION = ROOT / "_diag" / "native-qi-release-verification.json"
 DEFAULT_COSMOS = WORKSPACE / "CassiCosmos" / "_diag" / "qi_state_bridge_receipt.json"
 DEFAULT_MIND_GATE = WORKSPACE / "CassiCosmos" / "_diag" / "mind_engine_gpu.json"
 DEFAULT_FIELD_DEPENDENCE = (
-    WORKSPACE / "CassiFI" / "artifacts" / "qwen-displacement"
+    WORKSPACE / "CassiFI" / "prototype" / "artifacts" / "qwen-displacement"
     / "qi-field-order-dependence.json"
 )
 CANONICAL_CONTRACT_FILE_SHA256 = "90ae65d322a0fc697a63a2949546e141f195f954b9221e617cce4222960fb32f"
 
 
 SOURCE_PATHS = (
-    "CassiFI/cassi_qi_field.py",
-    "CassiFI/tests/test_cassi_field_language.py",
-    "CassiFI/verification/canonical_native_qi_oracle.py",
-    "CassiFI/verification/export_canonical_native_qi_fixture.py",
-    "CassiFI/verification/measure_cassi_field_order_dependence.py",
+    "CassiFI/prototype/cassi_qi_field.py",
+    "CassiFI/prototype/tests/test_cassi_field_language.py",
+    "CassiFI/prototype/verification/canonical_native_qi_oracle.py",
+    "CassiFI/prototype/verification/export_canonical_native_qi_fixture.py",
+    "CassiFI/prototype/verification/measure_cassi_field_order_dependence.py",
     "CassiQwen/native/llama.cpp/common/arg.cpp",
     "CassiQwen/native/llama.cpp/common/common.cpp",
     "CassiQwen/native/llama.cpp/common/common.h",

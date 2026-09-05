@@ -464,21 +464,17 @@ python prototype/verification/public_release.py smoke --root cassifi-paper-publi
 
 The smoke run uses no private corpus bytes and retains no generated checkpoint. `paper-version.json` and the manifests under `artifacts/portable-release/` bind the larger local evidence lineage. Each generated public release contains its exact inventory in *public-manifest.json*.
 
-Source code and public metadata are licensed under Apache-2.0. The manuscript and original figure are licensed under CC BY 4.0. The intended repository is [github.com/CassiTheOracle/cassi](https://github.com/CassiTheOracle/cassi), under `CassiFI/prototype`.
+Source code and public metadata are licensed under Apache-2.0. The paper and original figure are licensed under CC BY 4.0. Repository materials are available at [github.com/CassiTheOracle/cassi](https://github.com/CassiTheOracle/cassi), under `CassiFI/prototype`.
 
-## Author Declarations
+## Declarations
 
-**Author contributions:** Carina Gardner: conceptualization, methodology, software, investigation, visualization, writing—original draft, and writing—review and editing.
+**Funding:** No external funding.
 
-**Funding:** This work received no external funding.
+**Competing interests:** None.
 
-**Competing interests:** The author declares no competing interests.
+**Data availability:** No private corpus bytes or corpus-derived trained checkpoints are included in the distributable bundle. Source identifiers, byte counts, and SHA-256 values allow independently permitted copies to be verified.
 
-**Acknowledgments:** None.
-
-**Data availability:** No private corpus bytes or corpus-derived trained checkpoints are included in the public release. The release records source identifiers, byte counts, and SHA-256 values so independently authorized users can bind lawfully obtained copies.
-
-**Manuscript license:** CC BY 4.0. Copyright 2026 Carina Gardner. The manuscript and original figure may be shared and adapted with attribution under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).
+**Licensing:** Source code and public metadata are licensed under Apache-2.0. The paper and original figure are licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Copyright 2026 Carina Gardner.
 
 ## References
 

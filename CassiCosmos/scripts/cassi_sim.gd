@@ -534,19 +534,6 @@ const ENVELOPE_SAMPLE_MAX: int = 8192
 		_update_particle_cull_bounds()
 		_invalidate_volume_render_cache()
 
-## Upper bound for one presentation particle's additive contribution at the
-## 1,000-particle reference density. The renderer reduces it as particle count
-## grows, so stacked layers stay luminous without becoming an opaque surface.
-@export_range(0.01, 1.0, 0.01) var presentation_particle_opacity: float = 0.35:
-	get:
-		return _presentation_particle_opacity
-	set(value):
-		var next_opacity := clampf(value, 0.01, 1.0)
-		if is_equal_approx(_presentation_particle_opacity, next_opacity):
-			return
-		_presentation_particle_opacity = next_opacity
-		_apply_particle_presentation_opacity()
-
 ## Presentation palette applied consistently to particles, macro sites,
 ## velocity ribbons, and the profile-gated site-volume renderer. Color source
 ## remains particle_color_mode; this changes only the display mapping.
@@ -1106,7 +1093,6 @@ var _last_p0_rb_ms: int = 0              # wall-time gate for the p[0] debug pri
 var _mmi: MultiMeshInstance3D; var _mm: MultiMesh
 var _presentation_profile: bool = false
 var _presentation_color_scheme: int = 0
-var _presentation_particle_opacity: float = 0.35
 var _particle_compat_shader: Shader = null
 var _particle_presentation_shader: Shader = null
 var _presentation_viewport_height: float = -1.0
@@ -1145,12 +1131,10 @@ var _rotation_snapshot: Dictionary = {"enabled": false}
 # high-Q field envelope. Keep the documented conservative support box while
 # still allowing a genuinely larger simulation envelope to expand the AABB.
 const PARTICLE_CULL_MIN_HALF_EXTENT: float = 5000.0
-const PRESENTATION_OPACITY_REFERENCE_PARTICLES: float = 1000.0
 const PRESENTATION_MIN_PIXEL_RADIUS: float = 1.6
 const PRESENTATION_MAX_PIXEL_RADIUS: float = 18.0
-# Forward+ light-frustum reconstruction loses precision beyond this range on
-# the Windows/Vulkan presentation path. Presentation particles clamp their own
-# clip depth, so the camera projection can stay finite while viewing farther.
+# Forward+ light-frustum reconstruction loses precision at extreme ranges on
+# the Windows/Vulkan presentation path, so keep that projection finite.
 const PRESENTATION_SAFE_CAMERA_FAR: float = 1_000_000.0
 var _mm_particle_size: float = -1.0  # particle_size the multimesh was built with (reinit rebuild check)
 var _rainbow_vref: float = 1.0  # rainbow speed reference: mean initial |v| (set in _init_particles; fallback 1.0)
@@ -5360,46 +5344,16 @@ func _apply_particle_presentation_profile() -> void:
 		# screen-space correction operates from that single physical scale.
 		mat.set_shader_parameter("size", 1.0)
 		mat.set_shader_parameter("min_pixel_radius", PRESENTATION_MIN_PIXEL_RADIUS)
-		mat.set_shader_parameter("max_pixel_radius", _effective_presentation_max_pixel_radius())
+		mat.set_shader_parameter("max_pixel_radius", PRESENTATION_MAX_PIXEL_RADIUS)
 		mat.set_shader_parameter("halo_strength", 0.45)
 		mat.set_shader_parameter("emission_strength", 1.75)
 		mat.set_shader_parameter("core_radius", 0.30)
 		mat.set_shader_parameter("color_scheme", float(_presentation_color_scheme))
-		_apply_particle_presentation_opacity()
 	else:
 		# Restore the legacy shader's historical default if the live toggle is
 		# switched off after the presentation material was active.
 		mat.set_shader_parameter("size", 1.5)
 	_apply_lut_material()
-
-
-func _effective_presentation_max_pixel_radius(particle_count: int = -1) -> float:
-	var count := N_particles if particle_count < 0 else particle_count
-	# Keep million-particle layers as individually moving motes instead of
-	# letting capped billboards overlap into one opaque, apparently static wall.
-	var count_scale := sqrt(PRESENTATION_OPACITY_REFERENCE_PARTICLES / maxf(
-			float(count), PRESENTATION_OPACITY_REFERENCE_PARTICLES))
-	return maxf(PRESENTATION_MIN_PIXEL_RADIUS, PRESENTATION_MAX_PIXEL_RADIUS * count_scale)
-
-
-func _effective_presentation_particle_opacity(particle_count: int = -1) -> float:
-	var count := N_particles if particle_count < 0 else particle_count
-	# Count scaling keeps nearby layers from saturating. The shader may lift
-	# sub-pixel motes slightly, but that floor remains count-scaled too.
-	var count_scale := sqrt(PRESENTATION_OPACITY_REFERENCE_PARTICLES / maxf(
-			float(count), PRESENTATION_OPACITY_REFERENCE_PARTICLES))
-	return clampf(_presentation_particle_opacity * count_scale, 0.0001, 1.0)
-
-
-func _apply_particle_presentation_opacity() -> void:
-	if not presentation_profile or _mmi == null or not is_instance_valid(_mmi):
-		return
-	var mat := _mmi.material_override as ShaderMaterial
-	if mat == null or mat.shader != _particle_presentation_shader:
-		return
-	var stack_opacity := _effective_presentation_particle_opacity()
-	mat.set_shader_parameter("stack_opacity", stack_opacity)
-	mat.set_shader_parameter("distant_opacity", minf(stack_opacity * 2.0, 0.04))
 
 
 func _presentation_layers_ready() -> bool:

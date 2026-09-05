@@ -1,9 +1,12 @@
-# Retired CassiFI prototype material
+# Archived CassiFI experiments
 
-This archive contains root-level code and older flow/model-assisted experiments outside the retained paper prototype dependency closure. Historical diagnostics and generated caches have also been moved here so that the CassiFI root is clear for new development.
+This directory contains reference-only sources, diagnostics, and
+model-assisted experiments outside the active CassiFI import closure.
 
-The supported paper implementation is [`../../prototype/`](../../prototype/README.md). Its `paper-version.json` records the original-to-current Python source map. The former root overview is preserved unchanged as `README.pre-consolidation.md`.
+The active reference implementation is [`../../prototype/`](../../prototype/README.md).
+Archived modules are not supported entry points, compatibility shims, or
+runtime fallbacks. Do not add this directory to the active Python path.
 
-Archive code is reference material. Imports, old workstation paths, and recorded receipts are preserved where practical; these are not supported launchers, compatibility shims, or dependencies of the active prototype. Do not add this directory to the active Python path. Model downloads and an old working environment are not bundled for archived experiments.
-
-No archived result is promoted into a current capability claim. Historical evidence used by the paper remains inside the paper bundle, separately from new portability receipts.
+Recorded paths and receipts remain available for provenance. No archived
+result is treated as evidence for current runtime behavior unless a current
+verifier explicitly binds it.

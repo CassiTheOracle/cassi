@@ -84,12 +84,12 @@ def _verify_receipts(
             bound[key] != entry[key] for key in ("bytes", "sha256", "classification")
         ):
             raise ValueError(f"source closure is not manifest-bound: {entry['path']}")
-    historical = closure["historical_parent"]
-    parent_path = root / historical["path"]
+    historical = closure["historical_baseline"]
+    baseline_path = root / historical["path"]
     if historical.get("status") != "byte_identical" or historical.get("mismatches"):
         raise ValueError("historical byte comparison did not pass")
-    if _sha256(parent_path) != historical["sha256"]:
-        raise ValueError("historical parent manifest hash mismatch")
+    if _sha256(baseline_path) != historical["sha256"]:
+        raise ValueError("historical evidence baseline hash mismatch")
     if closure["archive_boundary"] != {
         "path": "../legacy/prototype",
         "canonical": False,
@@ -101,16 +101,15 @@ def _verify_receipts(
     if (
         licensing.get("schema") != "cassi.fi.licensing-receipt.v1"
         or licensing.get("status") != "blocked"
-        or licensing.get("publication_authorized") is not False
+        or licensing.get("private_corpus_redistribution_permitted") is not False
         or licensing.get("private_corpus_hashes_verified") is not True
-        or licensing.get("publication_action") != "none"
     ):
         raise ValueError("licensing receipt does not fail closed")
     repository_license = licensing.get("repository_license", {})
-    manuscript_license = licensing.get("manuscript_license", {})
+    paper_license = licensing.get("paper_license", {})
     for declared, expected_path, expected_name, expected_distribution in (
         (repository_license, "LICENSE", "Apache-2.0", "Apache-2.0"),
-        (manuscript_license, "LICENSE-PAPER", "CC BY 4.0", "CC-BY-4.0"),
+        (paper_license, "LICENSE-PAPER", "CC BY 4.0", "CC-BY-4.0"),
     ):
         bound = entries.get(expected_path)
         declared_name = declared.get("spdx") or declared.get("name")
@@ -121,7 +120,7 @@ def _verify_receipts(
             or declared_name != expected_name
             or bound is None
             or bound["sha256"] != declared.get("sha256")
-            or bound["publication_distribution"] != expected_distribution
+            or bound["distribution"] != expected_distribution
         ):
             raise ValueError(f"declared license is inconsistent: {expected_path}")
     for relative in (
@@ -129,21 +128,21 @@ def _verify_receipts(
         "cassi-technical-paper.pdf",
         "figures/field-intelligence-loop.svg",
     ):
-        if entries.get(relative, {}).get("publication_distribution") != "CC-BY-4.0":
-            raise ValueError(f"manuscript material license is inconsistent: {relative}")
+        if entries.get(relative, {}).get("distribution") != "CC-BY-4.0":
+            raise ValueError(f"paper material license is inconsistent: {relative}")
     for source in licensing.get("sources", []):
         if (
-            source.get("included_in_publication_bundle") is not False
-            or source.get("publication_authorization") != "none"
+            source.get("included_in_distributable_bundle") is not False
+            or source.get("redistribution_permission") != "none"
             or source.get("local_hash_verified") is not True
         ):
-            raise ValueError(f"unsafe corpus publication state: {source.get('id')}")
+            raise ValueError(f"unsafe corpus distribution state: {source.get('id')}")
         bound = entries.get(source["local_path"])
         if (
             bound is None
             or bound["sha256"] != source["sha256"]
             or bound["bytes"] != source["bytes"]
-            or bound["publication_distribution"] != "excluded_rights_unresolved"
+            or bound["distribution"] != "excluded_rights_unresolved"
         ):
             raise ValueError(f"corpus is not safely manifest-bound: {source['id']}")
 
@@ -166,13 +165,9 @@ def _verify_receipts(
         raise ValueError("evaluation gap receipts are incomplete")
     blockers = sorted(key for key, value in gaps.items() if value["status"] != "supported")
     readiness = evaluation["readiness"]
-    # This retained evaluation predates the manuscript rewrite; the manifest
-    # below owns current paper status, while this receipt keeps capture-time status.
     if (
         sorted(readiness.get("blocking_gaps", [])) != blockers
         or readiness.get("implementation_complete") is not (not blockers)
-        or readiness.get("paper_rewrite_started") is not False
-        or readiness.get("publication_status") != "not_ready"
         or readiness.get("gap_receipts_complete") is not True
         or readiness.get("evaluation_receipts_complete") is not True
     ):
@@ -337,12 +332,16 @@ def _verify_receipts(
     if (
         digest.get("schema") != "cassi.fi.release-digest.v1"
         or digest.get("release_id") != manifest["release_id"]
-        or digest.get("publication_action") != "none"
         or any(digest.get(key) != value for key, value in expected_digests.items())
     ):
         raise ValueError("release digest chain mismatch")
     return {
         "gap_statuses": {key: value["status"] for key, value in gaps.items()},
+        "blocking_gaps": blockers,
+        "canonical_runtime_complete": readiness["canonical_runtime_complete"],
+        "implementation_complete": readiness["implementation_complete"],
+        "gap_receipts_complete": readiness["gap_receipts_complete"],
+        "evaluation_receipts_complete": readiness["evaluation_receipts_complete"],
         "historical_files_verified": historical["files_compared"],
         "reproduction": reproduction["status"],
         "licensing": licensing["status"],
@@ -385,25 +384,35 @@ def verify(root: Path) -> dict[str, Any]:
             f"missing={sorted(actual - entries.keys())}, "
             f"absent={sorted(entries.keys() - actual)}"
         )
-    for name in ("paper", "plan"):
-        bound = manifest[name]
-        entry = entries.get(bound["path"])
-        if entry is None or entry["sha256"] != bound["sha256"]:
-            raise ValueError(f"{name} identity is not manifest-bound")
-    status = manifest["status"]
-    if (
-        status.get("paper_rewrite_started") is not True
-        or status.get("publication_readiness") != "not_ready"
-    ):
-        raise ValueError("current manuscript or publication status is inconsistent")
+    bound = manifest["paper"]
+    entry = entries.get(bound["path"])
+    if entry is None or entry["sha256"] != bound["sha256"]:
+        raise ValueError("paper identity is not manifest-bound")
 
     receipts = _verify_receipts(root, manifest, entries)
+    expected_status = {
+        "canonical_runtime": (
+            "supported" if receipts["canonical_runtime_complete"] else "not_ready"
+        ),
+        "system_readiness": (
+            "ready" if receipts["implementation_complete"] else "not_ready"
+        ),
+        "blocking_gaps": receipts["blocking_gaps"],
+        "evaluation_receipts": (
+            "complete"
+            if receipts["gap_receipts_complete"]
+            and receipts["evaluation_receipts_complete"]
+            else "incomplete"
+        ),
+    }
+    if manifest.get("status") != expected_status:
+        raise ValueError("bundle status contradicts its evaluation receipts")
     return {
         "release_id": manifest["release_id"],
         "files_verified": len(entries),
         "bytes_verified": total_bytes,
         **receipts,
-        "publication_readiness": status["publication_readiness"],
+        "system_readiness": manifest["status"]["system_readiness"],
         "status": "verified",
     }
 

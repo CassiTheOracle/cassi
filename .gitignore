@@ -19,6 +19,7 @@ CassiFI/prototype/data/corpora/
 CassiFI/prototype/data/corpus-provenance.json
 CassiFI/prototype/evidence/external/
 CassiFI/legacy/prototype/generated-caches/
+CassiFI/**/.pytest_cache/
 # CassiQwen model/runtime downloads and native build trees.
 CassiQwen/*.bin
 CassiQwen/*.ckpt

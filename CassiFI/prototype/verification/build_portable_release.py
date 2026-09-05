@@ -18,7 +18,7 @@ from typing import Any, Iterable, Mapping, Sequence
 ROOT = Path(__file__).resolve().parents[1]
 RELEASE_DIR = ROOT / "artifacts" / "portable-release"
 MANIFEST_PATH = ROOT / "paper-version.json"
-PARENT_MANIFEST_PATH = RELEASE_DIR / "paper-version-portable-2.json"
+HISTORICAL_BASELINE_PATH = ROOT / "verification" / "historical-evidence-baseline.json"
 SOURCE_CLOSURE_PATH = RELEASE_DIR / "source-closure.json"
 LICENSING_PATH = RELEASE_DIR / "licensing-receipt.json"
 REPRODUCTION_PATH = RELEASE_DIR / "clean-process-reproduction.json"
@@ -116,13 +116,13 @@ def _classification(relative: str) -> str:
         return "documentation"
     return "asset"
 
-def _publication_distribution(relative: str, classification: str) -> str:
+def _distribution(relative: str, classification: str) -> str:
     if classification == "private_corpus":
         return "excluded_rights_unresolved"
     if classification == "private_metadata":
         return "excluded_private_metadata"
     if classification in {"historical_evidence", "portable_evidence"}:
-        return "excluded_from_public_candidate"
+        return "excluded_from_public_bundle"
     if (
         relative in {"cassi-technical-paper.md", "cassi-technical-paper.pdf", "LICENSE-PAPER"}
         or relative.startswith("figures/")
@@ -150,9 +150,7 @@ def _inventory(
                 "bytes": path.stat().st_size,
                 "sha256": _sha_file(path, cache),
                 "classification": classification,
-                "publication_distribution": _publication_distribution(
-                    relative, classification
-                ),
+                "distribution": _distribution(relative, classification),
             }
         )
     return entries
@@ -223,8 +221,8 @@ def _licensing_receipt(
                 "local_size_matches": local_size_matches,
                 "local_hash_verified": hash_matches,
                 "redistribution_status": source["redistribution_status"],
-                "publication_authorization": source["publication_authorization"],
-                "included_in_publication_bundle": False,
+                "redistribution_permission": source["redistribution_permission"],
+                "included_in_distributable_bundle": False,
                 "acquisition_instruction": (
                     "Obtain the exact bytes from a lawfully authorized source, place "
                     f"them at {relative}, and verify this SHA-256 before use."
@@ -234,11 +232,11 @@ def _licensing_receipt(
     if not CODE_LICENSE_PATH.is_file() or "Apache License" not in CODE_LICENSE_PATH.read_text(encoding="utf-8"):
         raise ValueError("Apache-2.0 code license is missing or invalid")
     if not PAPER_LICENSE_PATH.is_file() or "CC BY 4.0" not in PAPER_LICENSE_PATH.read_text(encoding="utf-8"):
-        raise ValueError("CC BY 4.0 manuscript license is missing or invalid")
+        raise ValueError("CC BY 4.0 paper license is missing or invalid")
     return {
         "schema": "cassi.fi.licensing-receipt.v1",
         "status": "blocked",
-        "publication_authorized": False,
+        "private_corpus_redistribution_permitted": False,
         "repository_license": {
             "status": "declared",
             "license_file_present": True,
@@ -246,7 +244,7 @@ def _licensing_receipt(
             "path": CODE_LICENSE_PATH.relative_to(ROOT).as_posix(),
             "sha256": _sha_file(CODE_LICENSE_PATH, cache),
         },
-        "manuscript_license": {
+        "paper_license": {
             "status": "declared",
             "license_file_present": True,
             "name": "CC BY 4.0",
@@ -256,7 +254,6 @@ def _licensing_receipt(
         "corpus_redistribution": provenance["redistribution"],
         "private_corpus_hashes_verified": verify_private_corpora,
         "sources": sources,
-        "publication_action": "none",
     }
 
 
@@ -380,9 +377,9 @@ def _clean_process_reproduction() -> dict[str, Any]:
 
 
 def _historical_comparison(
-    parent_manifest: Mapping[str, Any], inventory: Sequence[Mapping[str, Any]]
+    baseline_manifest: Mapping[str, Any], inventory: Sequence[Mapping[str, Any]]
 ) -> dict[str, Any]:
-    parent = {entry["path"]: entry for entry in parent_manifest["files"]}
+    parent = {entry["path"]: entry for entry in baseline_manifest["files"]}
     compared = 0
     mismatches: list[str] = []
     for entry in inventory:
@@ -403,11 +400,12 @@ def _historical_comparison(
 
 
 def build(*, verify_private_corpora: bool) -> dict[str, Any]:
-    RELEASE_DIR.mkdir(parents=True, exist_ok=True)
-    if not PARENT_MANIFEST_PATH.exists():
-        shutil.copyfile(MANIFEST_PATH, PARENT_MANIFEST_PATH)
-    parent_bytes = PARENT_MANIFEST_PATH.read_bytes()
-    parent_manifest = json.loads(parent_bytes)
+    if not HISTORICAL_BASELINE_PATH.is_file():
+        raise FileNotFoundError(HISTORICAL_BASELINE_PATH)
+    baseline_bytes = HISTORICAL_BASELINE_PATH.read_bytes()
+    baseline_manifest = json.loads(baseline_bytes)
+    if baseline_manifest.get("schema") != "cassi.fi.historical-evidence-baseline.v1":
+        raise ValueError("unsupported historical evidence baseline")
     cache: dict[Path, str] = {}
 
     licensing = _licensing_receipt(
@@ -416,12 +414,41 @@ def build(*, verify_private_corpora: bool) -> dict[str, Any]:
     _write_json(LICENSING_PATH, licensing)
     reproduction = _clean_process_reproduction()
     _write_json(REPRODUCTION_PATH, reproduction)
+    evaluation = json.loads(EVALUATION_PATH.read_text(encoding="utf-8"))
+    gap_statuses = {
+        key: value["status"] for key, value in evaluation["gaps"].items()
+    }
+    _write_json(
+        PUBLIC_REFERENCE_PATH,
+        {
+            "schema": "cassi.fi.public-reference-evaluation.v1",
+            "source_receipt": {
+                "local_path": EVALUATION_PATH.relative_to(ROOT).as_posix(),
+                "sha256": _sha_file(EVALUATION_PATH, cache),
+                "included": False,
+            },
+            "deterministic_sha256": evaluation["deterministic_sha256"],
+            "gap_statuses": gap_statuses,
+            "readiness": {
+                "system_readiness": (
+                    "ready"
+                    if evaluation["readiness"]["implementation_complete"]
+                    else "not_ready"
+                ),
+                "blocking_gaps": evaluation["readiness"]["blocking_gaps"],
+            },
+            "scope": (
+                "Hash-bound summary for the corpus-free distributable bundle. "
+                "Raw local state, trained checkpoints, and the complete local "
+                "receipt are excluded."
+            ),
+        },
+    )
 
     source_paths = _files_with_suffix(ROOT, ".py")
     dependencies = _dependency_inventory(source_paths)
     inventory = _inventory(cache, include_portable_evidence=False)
-    historical = _historical_comparison(parent_manifest, inventory)
-    evaluation = json.loads(EVALUATION_PATH.read_text(encoding="utf-8"))
+    historical = _historical_comparison(baseline_manifest, inventory)
     source_closure = {
         "schema": "cassi.fi.source-closure.v1",
         "root": ".",
@@ -429,9 +456,9 @@ def build(*, verify_private_corpora: bool) -> dict[str, Any]:
         "file_count": len(inventory),
         "total_bytes": sum(entry["bytes"] for entry in inventory),
         "python_dependencies": dependencies,
-        "historical_parent": {
-            "path": PARENT_MANIFEST_PATH.relative_to(ROOT).as_posix(),
-            "sha256": hashlib.sha256(parent_bytes).hexdigest(),
+        "historical_baseline": {
+            "path": HISTORICAL_BASELINE_PATH.relative_to(ROOT).as_posix(),
+            "sha256": hashlib.sha256(baseline_bytes).hexdigest(),
             **historical,
         },
         "archive_boundary": {
@@ -446,7 +473,6 @@ def build(*, verify_private_corpora: bool) -> dict[str, Any]:
     file_map = {entry["path"]: entry for entry in inventory}
     required = {
         "cassi-technical-paper.md",
-        "IMPLEMENTATION-AND-PUBLICATION-PLAN.md",
         "cassi_canonical_runtime.py",
         "cassi_persistent_provider.py",
         "verification/run_implementation_evaluation.py",
@@ -476,18 +502,24 @@ def build(*, verify_private_corpora: bool) -> dict[str, Any]:
         "release_id": "cassifi-implementation-portable-3",
         "root": ".",
         "paper": file_map["cassi-technical-paper.md"],
-        "plan": file_map["IMPLEMENTATION-AND-PUBLICATION-PLAN.md"],
         "status": {
-            "implementation": "not_ready",
-            "implementation_blockers": evaluation["readiness"]["blocking_gaps"],
-            "evaluation_reports": "all_eight_reported_with_explicit_blockers",
-            "paper_rewrite_started": True,
-            "publication_readiness": "not_ready",
-            "publication_blockers": [
-                "corpus redistribution rights unresolved for the complete local bundle",
-                "real authenticated CassiFI-CassiCosmos adapter and windowed receipt absent",
-                "energy and FLOP measurements unavailable",
-            ],
+            "canonical_runtime": (
+                "supported"
+                if evaluation["readiness"]["canonical_runtime_complete"]
+                else "not_ready"
+            ),
+            "system_readiness": (
+                "ready"
+                if evaluation["readiness"]["implementation_complete"]
+                else "not_ready"
+            ),
+            "blocking_gaps": evaluation["readiness"]["blocking_gaps"],
+            "evaluation_receipts": (
+                "complete"
+                if evaluation["readiness"]["gap_receipts_complete"]
+                and evaluation["readiness"]["evaluation_receipts_complete"]
+                else "incomplete"
+            ),
         },
         "runtime_dependencies": dependencies,
         "entrypoints": [
@@ -496,8 +528,8 @@ def build(*, verify_private_corpora: bool) -> dict[str, Any]:
             ["python", "verification/verify_paper_bundle.py"],
         ],
         "lineage": {
-            "parent_manifest": PARENT_MANIFEST_PATH.relative_to(ROOT).as_posix(),
-            "parent_manifest_sha256": hashlib.sha256(parent_bytes).hexdigest(),
+            "historical_baseline": HISTORICAL_BASELINE_PATH.relative_to(ROOT).as_posix(),
+            "historical_baseline_sha256": hashlib.sha256(baseline_bytes).hexdigest(),
             "historical_bytes": historical,
             "historical_absolute_path_receipts": "preserved_byte_identically",
             "portable_receipts": "manifest_relative",
@@ -506,9 +538,7 @@ def build(*, verify_private_corpora: bool) -> dict[str, Any]:
             "path": EVALUATION_PATH.relative_to(ROOT).as_posix(),
             "sha256": file_map[EVALUATION_PATH.relative_to(ROOT).as_posix()]["sha256"],
             "deterministic_sha256": evaluation["deterministic_sha256"],
-            "gap_statuses": {
-                key: value["status"] for key, value in evaluation["gaps"].items()
-            },
+            "gap_statuses": gap_statuses,
         },
         "reproduction": {
             "path": REPRODUCTION_PATH.relative_to(ROOT).as_posix(),
@@ -518,14 +548,16 @@ def build(*, verify_private_corpora: bool) -> dict[str, Any]:
         "licensing": {
             "path": LICENSING_PATH.relative_to(ROOT).as_posix(),
             "status": licensing["status"],
-            "publication_authorized": licensing["publication_authorized"],
+            "private_corpus_redistribution_permitted": licensing[
+                "private_corpus_redistribution_permitted"
+            ],
         },
         "inventory_policy": {
             "sha256": "raw file bytes",
             "paths": "relative to prototype root",
             "manifest_excluded_from_own_inventory": True,
             "release_digest_excluded_from_manifest": True,
-            "private_corpus_bytes_bound_but_excluded_from_publication": True,
+            "private_corpus_bytes_bound_but_excluded_from_public_bundle": True,
             "ignored": ["**/__pycache__/**", "**/.pytest_cache/**", "*.pyc", ".pi/**"],
         },
         "files": inventory,
@@ -540,7 +572,6 @@ def build(*, verify_private_corpora: bool) -> dict[str, Any]:
         "licensing_receipt_sha256": _sha_file(LICENSING_PATH, {}),
         "reproduction_receipt_sha256": _sha_file(REPRODUCTION_PATH, {}),
         "evaluation_receipt_sha256": _sha_file(EVALUATION_PATH, {}),
-        "publication_action": "none",
     }
     _write_json(RELEASE_DIGEST_PATH, digest)
     return {
@@ -551,7 +582,7 @@ def build(*, verify_private_corpora: bool) -> dict[str, Any]:
         "clean_process_reproduction": reproduction["status"],
         "deterministic_sha256": reproduction["deterministic_sha256"],
         "licensing": licensing["status"],
-        "publication_readiness": manifest["status"]["publication_readiness"],
+        "system_readiness": manifest["status"]["system_readiness"],
     }
 
 

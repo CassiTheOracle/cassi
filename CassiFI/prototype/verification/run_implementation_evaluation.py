@@ -106,7 +106,7 @@ def _action_request(
         "value": 0.75,
         "authority": 1.0,
         "required_authority": 0.5,
-        "authorization_path": ["publication-evaluation.explicit-authorization"],
+        "authorization_path": ["implementation-evaluation.explicit-authorization"],
         "plan_receipt_sha256": plan["receipt_sha256"],
     }
 
@@ -1062,8 +1062,6 @@ def run(state_dir: Path) -> dict[str, Any]:
                 ),
                 "implementation_complete": not blocking_gaps,
                 "blocking_gaps": blocking_gaps,
-                "paper_rewrite_started": False,
-                "publication_status": "not_ready",
             },
         }
         return result
@@ -1073,7 +1071,7 @@ def run(state_dir: Path) -> dict[str, Any]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run the canonical implementation and publication evaluation."
+        description="Run the canonical implementation evaluation."
     )
     parser.add_argument(
         "--state-dir",
