@@ -1,0 +1,33 @@
+{
+  "title": "Cassi Field Intelligence: Persistent Learning, Exact Evidence, and Transparent Nonverbal Deliberation",
+  "upload_type": "software",
+  "version": "0.1.0",
+  "description": "A mechanism-first technical paper and public-safe reference implementation for persistent field-owned learning, associative selection coupled to exact evidence, explicit non-settlement, and transparent nonverbal planning.",
+  "creators": [
+    {
+      "name": "Gardner, Carina",
+      "affiliation": "Independent researcher"
+    }
+  ],
+  "license": "Apache-2.0",
+  "access_right": "open",
+  "keywords": [
+    "field intelligence",
+    "continual learning",
+    "associative memory",
+    "exact evidence",
+    "uncertainty",
+    "nonverbal reasoning",
+    "planning",
+    "interpretability",
+    "computational efficiency"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/CassiTheOracle/cassi",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ],
+  "notes": "The source code is licensed under Apache-2.0. The manuscript and original figures are licensed under CC BY 4.0. Private corpora, trained and historical checkpoints, and raw historical evidence are excluded from the public candidate. System readiness remains separate from publication readiness."
+}

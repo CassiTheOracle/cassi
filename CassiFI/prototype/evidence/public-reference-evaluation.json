@@ -1,0 +1,27 @@
+{
+  "schema": "cassi.fi.public-reference-evaluation.v1",
+  "source_receipt": {
+    "local_path": "artifacts/portable-release/implementation-evaluation.json",
+    "sha256": "d66d8a0fcc4cbbf176387349540db56ed23eb52e8c97849e64a29ec537e89abb",
+    "included": false
+  },
+  "deterministic_sha256": "9c45afcefd2e79ca0a659eed5a9dc4a3f7054eb3cdad43e6f294c9e944a94db6",
+  "gap_statuses": {
+    "1_capacity_contradiction_supersession": "supported",
+    "2_target_blind_variable_length_language": "supported",
+    "3_risk_coverage_calibration": "supported",
+    "4_learned_cross_view_alignment": "supported",
+    "5_composition_representation_shift": "supported",
+    "6_matched_resource_benchmarks": "not_ready",
+    "7_orthogonal_lesions_and_baselines": "supported",
+    "8_cassifi_cassicosmos_bridge": "not_ready"
+  },
+  "readiness": {
+    "system_readiness": "not_ready",
+    "blocking_gaps": [
+      "6_matched_resource_benchmarks",
+      "8_cassifi_cassicosmos_bridge"
+    ]
+  },
+  "scope": "Hash-bound summary for the corpus-free public release. Raw local state, trained checkpoints, and the full local receipt are excluded."
+}

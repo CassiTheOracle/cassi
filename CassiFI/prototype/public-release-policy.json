@@ -1,0 +1,25 @@
+{
+  "schema": "cassi.fi.public-release-policy.v1",
+  "release_id": "cassifi-paper-public-1",
+  "publication_action": "none",
+  "author_approved": true,
+  "code_license": "Apache-2.0",
+  "manuscript_license": "CC BY 4.0",
+  "corpus_distribution": {
+    "policy": "exclude_all_bytes",
+    "reason": "Redistribution authorization is unresolved for every local corpus."
+  },
+  "checkpoint_distribution": {
+    "policy": "synthetic_fixture_only",
+    "reason": "Trained and historical checkpoints are excluded. The candidate evaluation uses one declared synthetic prompt/continuation exchange generated from fixed public text."
+  },
+  "historical_evidence_distribution": {
+    "policy": "exclude_raw_history",
+    "reason": "Historical artifacts may contain private paths, large derived state, or distribution-uncleared material."
+  },
+  "reference_receipts": [
+    "evidence/public-reference-evaluation.json"
+  ],
+  "third_party_packages_bundled": false,
+  "notes": "Carina Gardner approved the author metadata, declarations, licenses, content, exclusion boundary, and external publication of version 0.1.0. The build itself performs no publication action."
+}

@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use CassiFI or its technical paper, please cite this work."
+title: "Cassi Field Intelligence"
+type: software
+version: 0.1.0
+authors:
+  - family-names: Gardner
+    given-names: Carina
+    affiliation: Independent researcher
+repository-code: "https://github.com/CassiTheOracle/cassi"
+url: "https://github.com/CassiTheOracle/cassi/tree/master/CassiFI/prototype"
+license: Apache-2.0
+keywords:
+  - field intelligence
+  - continual learning
+  - associative memory
+  - exact evidence
+  - uncertainty
+  - nonverbal reasoning
+  - planning
+  - interpretability
+  - computational efficiency
+preferred-citation:
+  type: article
+  title: "Cassi Field Intelligence: Persistent Learning, Exact Evidence, and Transparent Nonverbal Deliberation"
+  authors:
+    - family-names: Gardner
+      given-names: Carina
+      affiliation: Independent researcher
+  year: 2026
+  url: "https://github.com/CassiTheOracle/cassi/blob/master/CassiFI/prototype/cassi-technical-paper.pdf"

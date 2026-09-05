@@ -1,0 +1,8 @@
+CassiFI
+Copyright 2026 Carina Gardner
+
+Except for material covered by LICENSE-PAPER or an identified third-party license, files in the CassiFI public candidate—including source code, release metadata, and public evaluation receipts—are licensed under the Apache License 2.0.
+
+The manuscript "Cassi Field Intelligence: Persistent Learning, Exact Evidence, and Transparent Nonverbal Deliberation" and its original figures are licensed separately under CC BY 4.0. See LICENSE-PAPER.
+
+Third-party Python packages are dependencies and are not bundled in the public candidate. Private corpora, trained and historical checkpoints, and raw historical evidence are excluded.
