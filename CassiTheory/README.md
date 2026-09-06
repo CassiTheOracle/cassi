@@ -83,6 +83,12 @@ Its selected population-256 angular and phase sectors support on four
 grids, but one of eight spatial comparisons fails; combined scalar-parent
 spatial qualification remains `INCONCLUSIVE`. Physical normalization,
 interacting creation and particle quantum numbers remain unselected.
+Matching one external vacuum mass, speed and internal generator unit
+leaves a family of scalar normalizations. At the fixed coefficients, the
+additional scalar core-cell assignment is contradicted. The proposed
+Dirac chiral-scalar density map also has independently checked positivity
+and Hermiticity obstructions, so its physical coupling remains open
+(`computations/matter-formation-continuum-report.md` §12).
 
 ## The reality-simulation program
 

@@ -854,15 +854,39 @@ verdict is `INCONCLUSIVE`. The first-order carrier law preserves exactly
 empty data under closed boundaries; prepared binding supplies no microscopic
 production mechanism (`computations/matter-formation-continuum-report.md`).
 
+The normalization campaign in `computations/matter-formation-continuum-report.md`
+§12 imposes the same external vacuum scalar mass $0.511\ \mathrm{MeV}$,
+propagation speed $c$, and one unit of the internal scalar $U(1)$ generator
+for each of $a=1/64,1/32,1/16$. The resulting core lengths are respectively
+$2.23505\times10^{-12}$, $1.61542\times10^{-12}$, and
+$1.19022\times10^{-12}\ \mathrm m$, so the result is conditional
+one-mass normalization nonuniqueness. It does not identify an electron or
+electromagnetic charge. The selected scalar electron-core assignment is
+`CONTRADICTS`: $\ell_Q=\lambda_*$ has no positive root, and the minimum
+allowed $\ell_Q=6.789391938\times10^{-13}\ \mathrm m$ exceeds the mapped
+cell upper endpoint $6.014112161\times10^{-13}\ \mathrm m$. The same campaign
+finds $B_R=L^\dagger R$, $B_L=R^\dagger L=B_R^*$; real nonnegative values
+therefore have equality, making a nonzero $\varphi$ ratio impossible. Scalar
+and Dirac fields retain $2\pi$ phases $+1$ and $-1$, respectively; the
+bilinears have dimension $[M]^3$ while condensate squares have $[M]^2$, and
+the displayed linear and ordinary-square projection terms are generically
+non-Hermitian. Normalization cannot repair this map. The inherited scalar
+parent spatial verdict remains `INCONCLUSIVE` with seven of eight comparisons
+passing; a common unit rescaling preserves its failed difference/tolerance
+ratio $4.96010644$.
+
 The physical endpoint section, normalized scale stiffness, proton quantum
-numbers, localized Hessian resolution, perturbations beyond $C_4$, continuum
-qualification, PA43 mixed dynamics, real-time formation, and the decay-rate
-map remain open. See `foundations/proton-coherence-budget.md` §10,
+numbers, localized Hessian resolution, perturbations beyond $C_4$,
+continuum qualification, PA43 mixed dynamics, real-time formation, and the
+decay-rate map remain open. The campaign adds no physical $\kappa$ interaction,
+equilibration time, transport $\chi$, production prediction, or microscopic
+particle identity. See `foundations/proton-coherence-budget.md` §10,
 `foundations/interscale-current-soliton.md` §4.5,
 `foundations/particle-stationary-action-closure.md`,
 `computations/particle-carrier-resolution-recovery-report.md`,
 `computations/particle-physical-hessian-precision-v2-report.md`, and
 `computations/particle-localized-physical-hessian-report.md`.
+
 
 **Epistemic status:** the $N_{\text{max}}$ product and lifetime conversion are
 **Derived conditional** on the **Mapped** span and **Hypothesized** $q_i$
@@ -922,13 +946,31 @@ $$\Delta(\ln k)=\ln\varphi\approx0.4812$$
 
 This is a zero-parameter prediction **of that optional map**, orthogonal to BAO: the Cassi modulation has constant period in $\ln k$-space, where BAO has constant period in $k$-space. The search procedure is to subtract the BAO template and search the residual for $\ln\varphi$ periodicity. Current status: DESI DR2 shows a marginal 2–3$\sigma$ hint; Euclid (2027) is the definitive test (the >5$\sigma$ target is conditional on the proposed signal). Extending the same period to physiological signals along the spine, neuronal avalanche distributions, or emotional self-report factor structure is a separate **Hypothesized** cross-domain mapping, not a consequence of the cosmological modulation or of $q$ alone. See `predictions/falsifiable-predictions.md` §5.
 
-The sector-coupling source supplies only a coefficient-free arithmetic scale candidate:
+The current source is `foundations/sector-coupling-derivation.md`,
+“Conditional Sector Scale and the Dirac Density Obstruction.” It supplies
+coefficient-free scale arithmetic conditional on $\delta=3$:
 
-$$\kappa_{s,\mathrm{scale}}=\frac{\varphi^{-6}}{v_0^2}\approx0.92\ \mathrm{TeV}^{-2},\qquad M_{s,\mathrm{scale}}=\kappa_{s,\mathrm{scale}}^{-1/2}=\varphi^3v_0\approx1.04\ \mathrm{TeV}$$
+$$\kappa_{s,\mathrm{scale}}=\frac{\varphi^{-6}}{v_0^2}\approx0.92\ \mathrm{TeV}^{-2},
+\qquad M_{s,\mathrm{scale}}=\varphi^3v_0\approx1.04\ \mathrm{TeV}.$$
 
-Conditional on $\delta=3$, the scale form and step-77 placement are **Derived conditional** arithmetic. The optional Dirac↔two-fluid projection is a **Hypothesized**, dimensionally incomplete ansatz: it subtracts a spinor density of dimension $[M]^3$ from a condensate square of dimension $[M]^2$. No physical $\kappa_s$, equilibration timescale, or $\chi$ bridge follows from the displayed expression; the normalization repair and full coupling remain unresolved (`foundations/sector-coupling-derivation.md`).
+The scale form and cascade-coordinate identity are **Derived conditional**
+arithmetic with a **Calibrated** electroweak anchor. The displayed
+Dirac-to-two-fluid projection is **Hypothesized** and excluded as a physical
+map: $B_R$ and $B_L$ are conjugate chiral scalars, their dimensions differ
+from condensate squares, and the displayed linear and ordinary-square terms
+are generically non-Hermitian. A dimensional bridge addresses only units;
+it selects no physical $\kappa_s$, equilibration timescale, transport
+coefficient, or interaction. The normalization evidence and its particle
+boundary are recorded in `computations/matter-formation-continuum-report.md`
+§12.
 
-**Epistemic status:** the modulation period is **Derived conditional** on the optional signal map; its physical wake imprint and cross-domain extensions are **Hypothesized** and being tested. The coefficient-free sector scale and scale-coordinate identity are **Derived conditional** on $\delta=3$; the optional projection and any physical coupling are **Hypothesized**, with normalization, timescale, and $\chi$ bridge unresolved.
+**Epistemic status:** the modulation period is **Derived conditional** on the
+optional signal map; its physical wake imprint and cross-domain extensions
+are **Hypothesized** and being tested. The sector scale is **Derived
+conditional** arithmetic on $\delta=3$ with a **Calibrated** electroweak
+anchor. The displayed projection is excluded by the stated dimensional,
+conjugacy and Hermiticity obstructions. A distinct admissible physical
+coupling remains **Hypothesized** and unselected.
 
 ## 18. Quantum Gravity Without Singularities
 

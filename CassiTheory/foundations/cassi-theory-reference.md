@@ -449,7 +449,7 @@ Dimensionless couplings are expressed as $\varphi$-powers, with individual statu
 | $K_{fm}$ | $\lambda\varphi^2$ | $0.262$ | Fire melts Metal |
 | $K_{md}$ | $3\varphi^2$ | $7.85$ | Metal cuts Wood |
 | $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| Irreducible cosmological baseline—the factor $1/3$ is **Derived conditional** on an assumed isotropic three-dimensional model ($d=3$); the $\lambda\varphi^{-2}$ factor inherits the **C-class** solver normalization/timescale convention, while any physical cosmological-rate interpretation is **Hypothesized** |
-| $\kappa_s$ | $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ (formal $C=1$ candidate) | Coefficient-free arithmetic scale candidate at proposed rung $77=154/2=80-3$, **Derived conditional** on $\delta=3$; the optional projection is dimensionally incomplete and establishes no physical $\kappa_s$ or equilibration scale (`foundations/sector-coupling-derivation.md` §§1–3) |
+| $\kappa_s$ | $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ (formal $C=1$ candidate) | **Mapped** conditional arithmetic scale candidate at proposed rung $77=154/2=80-3$; the exact Dirac-to-two-fluid obstruction leaves the physical coupling and equilibration scale unresolved (`foundations/sector-coupling-derivation.md` §§1–3) |
 
 ---
 
@@ -461,8 +461,8 @@ For fixed-charge particle work, the action authority is
 `foundations/particle-stationary-action-closure.md`. That conditional branch
 combines the registered interscale, adjoint-core, and neutral-carrier static
 terms, selects a source-free second-order temporal gauge completion, and
-excludes the aggregate optional action and dimensionally incomplete mixing
-term displayed in this section.
+excludes the aggregate optional action and the chiral scalar-to-Dirac
+enforcement terms discussed below.
 
 $$S_{\text{Cassi}} = \int d^4x\sqrt{-g}\,(\mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}})$$
 
@@ -494,13 +494,37 @@ The regulated quantum action in §5.1 acts on a wavefunctional over the full
 CassiFI configuration space. Its derived quantum potential
 $Q_G=-\hbar^2\Delta_GR/(2R)$ remains inside that configuration-space action.
 
-### 4.2 Dirac Sector $\mathcal{L}_{\text{D}}$ (optional coupling extension)
+### 4.2 Dirac Sector $\mathcal{L}_{\text{D}}$ (optional free-fermion extension)
 
-This sector is an optional **Hypothesized** fermion-coupling extension. The canonical density pair supplies the $\Psi_\alpha$ coordinate lift; the fermion identification below is an additional ansatz.
+This sector is an optional **Hypothesized** free-fermion extension. The
+canonical density pair supplies the $\Psi_\alpha$ coordinate lift; the
+chiral bilinear boundary below is an additional diagnostic, not a fermion
+identification.
 
-$$\mathcal{L}_{\text{D}} = \bar\psi(i\gamma^\mu\partial_\mu - m)\psi - \frac{\varphi^{-1}}{2}(\bar\psi\psi)\cdot M + \bar\psi(\hat{P}_Y\Psi_0^2 + \hat{P}_I\Psi_1^2)\psi$$
+$$\mathcal{L}_{\text{D}} = \bar\psi(i\gamma^\mu\partial_\mu - m)\psi$$
 
-For this ansatz, $\hat{P}_Y = (1+\gamma^5)/2$ and $\hat{P}_I = (1-\gamma^5)/2$ are algebraic chiral-projector definitions, while the mapping $\Psi_0^2 = \bar\psi\hat{P}_Y\psi$, $\Psi_1^2 = \bar\psi\hat{P}_I\psi$ is **Hypothesized** and conditional; the canonical density PDE supplies no such fermion mapping.
+The optional fermion sector retains this free Dirac action. In the Weyl
+convention $\psi=(L,R)$, the chiral scalars are
+
+$$
+B_R=\bar\psi P_R\psi=L^\dagger R,\qquad
+B_L=\bar\psi P_L\psi=R^\dagger L=B_R^\ast,
+\qquad
+(\gamma^0P_R)^\dagger=\gamma^0P_L.
+$$
+
+These bilinears are Lorentz scalars rather than positive frame densities
+$n_R=R^\dagger R$ and $n_L=L^\dagger L$. A common real positive
+normalization preserves their conjugacy, so real nonnegative mapped values
+are equal; a nonzero relation $B_R=\varphi B_L$ is therefore unavailable.
+The formal chiral enforcement also compares a spinor bilinear of dimension
+$[M]^3$ with a condensate square of dimension $[M]^2$, and its ordinary
+linear and squared forms are generically non-Hermitian for unequal targets.
+It supplies no admissible density map or interaction term for the displayed
+action. A local invertible normalization preserves the scalar phase $+1$,
+whereas the Dirac representation has phase $-1$ under a $2\pi$ rotation;
+fermionic topological sectors would require separate configuration-space
+and quantization data.
 
 ### 4.3 Gravity Sector $\mathcal{L}_{\text{GR}}$ (optional gravity extension)
 This sector is an optional **Hypothesized** gravity extension. Its displayed
@@ -582,10 +606,26 @@ Fermion mass hierarchy ($y_f = y_0 \cdot \varphi^{-n_f}$):
 | 1 (up/down) | 3 | $\varphi^{-3}$ |
 
 ### 4.5 Mixing Terms $\mathcal{L}_{\text{mix}}$ (optional extension)
-This mixing term is an optional **Hypothesized** extension of the action. Any matching of its displayed terms is **Derived conditional** on this ansatz, with no canonical density-PDE transport or fermion-mapping implication.
 
-$$\mathcal{L}_{\text{mix}} = \frac{\xi q}{16\pi G}R\sqrt{-g} + \frac{\kappa_s}{2}\sum_{\pm}\left(\bar\psi\frac{1\pm\gamma^5}{2}\psi - \Psi_{0,1}^2\right)^2 + \left(|D_\mu\Psi|^2 - |\partial_\mu\Psi|^2\right)$$
-The Dirac↔two-fluid bracket here is dimensionally incomplete: it subtracts a spinor density of dimension $[M]^3$ from a condensate square of dimension $[M]^2$. No physical $\kappa_s$ or equilibration scale follows without a sourced, ledgered normalization (`foundations/sector-coupling-derivation.md` §1).
+The optional mixing structures retain a candidate curvature coupling and a
+covariant kinetic replacement, under their declared normalization and
+field-content assumptions:
+
+$$
+\mathcal{L}_{\text{mix}}
+=\frac{\xi q}{16\pi G}R
++\left(|D_\mu\Psi|^2-|\partial_\mu\Psi|^2\right).
+$$
+
+The curvature expression requires the separate scalar–tensor interpretation
+of `foundations/unified-lagrangian.md` §5.1 and the common action measure; it
+is not added to an already assembled $G_{\rm eff}$ ansatz. The gauge term is
+a declared covariant kinetic replacement. The chiral-projector enforcement
+term has the obstruction in §4.2. A physical fermion-to-density coupling
+requires a distinct dimensionally homogeneous Hermitian interaction,
+suitable observables and state-dependent matching. The conditional scale
+$\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2$ remains a formal $C=1$
+candidate without a physical coupling or equilibration time.
 
 ---
 
@@ -1255,6 +1295,24 @@ Continuum positivity identities retain their exact nodelessness,
 monotonicity and boundary assumptions
 (`foundations/particle-stationary-action-closure.md` §8.11;
 `computations/matter-formation-continuum-report.md` §11).
+The measured normalization campaign keeps this boundary explicit. For the
+three admissible values $a=1/64,1/32,1/16$, the scalar parent can be assigned
+the same external vacuum scalar mass $0.511\ \mathrm{MeV}$, propagation speed
+$c$, and one unit of its internal scalar $U(1)$ generator while retaining
+distinct core scales
+$\ell_Q=(2.23505,1.61542,1.19022)\times10^{-12}\ \mathrm m$.
+This supports conditional one-mass normalization nonuniqueness; it supplies
+neither an electron identity nor an electromagnetic charge assignment.
+The exact choice $\ell_Q=\lambda_*$ has no positive root at the selected
+coefficients. The smallest allowed core scale under the existing
+global-vacuum bound is $6.789391938\times10^{-13}\ \mathrm m$ at cascade
+coordinate $108.25197355$, above the mapped cell $[107,108]$ upper endpoint
+$6.014112161\times10^{-13}\ \mathrm m$, so the selected scalar core-cell
+assignment is contradicted. The same campaign witnesses the conjugacy,
+positivity and Hermiticity boundary for the chiral-scalar map and records the
+scalar $2\pi$ phase $+1$ versus the Dirac phase $-1$, with fermionic
+topological sectors requiring separate quantization data
+(`computations/matter-formation-continuum-report.md` §12).
 
 ### 10.6 Wake-Wave Mechanism
 

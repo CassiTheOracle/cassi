@@ -74,9 +74,10 @@ An optional positive-inertia carrier parent has a signed charge and a
 Gaussian particle–antiparticle channel.
 Its 31 prescribed-background trajectories pass a standard scalar
 mass-quench correspondence check. The parent coefficient and quantum action
-normalization remain unselected; interacting localized formation is open
+normalization remain unselected; the measured scalar-parent normalizations
+are conditional and nonunique, and interacting localized formation is open
 (`foundations/particle-stationary-action-closure.md` §8.8;
-`computations/matter-formation-continuum-report.md` §8).
+`computations/matter-formation-continuum-report.md` §§8, 12).
 The classical parent-vacuum condition and the restriction on neutral
 stationary localization follow in
 `foundations/particle-stationary-action-closure.md` §8.9. In three dimensions
@@ -95,6 +96,20 @@ Seven of eight spatial comparisons pass; the dipole nonsymmetry gap fails
 its domain comparison, leaving combined scalar-parent spatial qualification
 `INCONCLUSIVE`. The conditional continuum identities require assumptions
 that the sampled profiles do not establish.
+
+The normalization campaign in `computations/matter-formation-continuum-report.md`
+§12 gives three admissible scalar-parent normalizations
+($a=1/64,1/32,1/16$) with the same external vacuum scalar mass
+$0.511\ \mathrm{MeV}$, speed $c$, and one unit of internal scalar $U(1)$
+generator, while the core lengths differ:
+$(2.23505,1.61542,1.19022)\times10^{-12}\ \mathrm m$,
+respectively. This establishes conditional one-mass normalization
+nonuniqueness; electron and electromagnetic identity remain unestablished.
+The selected scalar electron-core assignment is `CONTRADICTS`; the
+chiral-scalar map also fails because $B_R=L^\dagger R$ and
+$B_L=R^\dagger L=B_R^*$; the displayed projection terms are dimensionally
+mismatched and generically non-Hermitian. The inherited scalar-parent spatial
+result remains `INCONCLUSIVE` with seven of eight comparisons passing.
 
 ### The skeptic or referee
 
@@ -186,7 +201,7 @@ The central derivations; the wedge documents `foundations/dimensionful-cascade.m
 - `foundations/quark-confinement.md`—Quark Confinement from the Saturated-Gate Flux Tube at the QCD Scale. Derived (tube extensivity + cell quantization; inputs: gate saturation, one-cell quantization). With the QCD scale at cascade step 95, the conversion channel saturates between separated color charges ($q \to 0$), forming a flux tube whose energy is extensive in its length: $E(r) = \mu r$ with $\mu = \kappa(M_{\text{Pl}}/\varphi^{95})^2 = \kappa\Lambda_{\text{QCD}}^2$, $\kappa = O(1)$ open—a constant force, i.e. a linear potential, by tube extensivity (independent of the gate shape).
 - `foundations/refined-numeric-predictions.md`—Refined Numeric Predictions for the 19 Hypothesized Questions. Active derivation. Refines the specific numeric predictions ($\varphi^{-N}$ cascade-span forms) for each of the 19 Hypothesized questions in the open-questions catalog, and tightens the mechanistic argument for questions whose answer is structural rather than numeric.
 - `foundations/rung-offset-mechanism.md`—Why Observables Sit Between Rungs: The Two-Fluid Phase Mechanism for Fractional Cascade Offsets. Derived envelope quantization, Hypothesized phase-to-rung mapping and selection, Empirical catalog. Explains the wake-envelope crossing positions and pool-cell quantization; $\delta n$ is a Hypothesized coordinate mapping of a local phase lag, while the exact relaxation-angle bound is $|\Delta\theta_d|\leq\operatorname{atan}(\varphi)\approx1.017$ rad; the empirical catalog places the lightest state of each terminated sector at wake-envelope crossing positions; the mapped $\pm0.162$-rung reading remains distinct from the PDE-derived angle bound.
-- `foundations/sector-coupling-derivation.md`—The Sector-Coupling Scale: $\kappa_s = \varphi^{-6}/v_0^2$. Derived conditional on $\delta = 3$ (rung identity; coupling form as documented), coefficient Hypothesized (v₀ input Calibrated, N_pde normalization Mapped—ledger)—August 2026. Derives the candidate scale $\kappa_s=C\varphi^{-6}/v_0^2=C M_{\text{Pl}}^{-2}\varphi^{154}$ at rung $77=154/2=80-3$ (the same $\delta=3$ offset as $\sigma=\ell_{\text{Pl}}/\varphi^3$); the displayed $C=1$ candidate gives $M_s\approx1.04$ TeV, while the O(1) coefficient and exact bridge to $\chi$ remain open.
+- `foundations/sector-coupling-derivation.md`—Conditional Sector Scale and the Dirac Density Obstruction. Derived conditional scale arithmetic and chiral-scalar obstruction / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026. Conditional on $\delta=3$, $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2\approx0.92\ \mathrm{TeV}^{-2}$ and $M_{s,\mathrm{scale}}\approx1.04\ \mathrm{TeV}$ are arithmetic. The displayed Dirac-to-two-fluid projection is excluded by dimensional, conjugacy, and Hermiticity obstructions; no physical $\kappa_s$, equilibration time, transport coefficient, or interaction follows.
 - `foundations/spin-fibonacci-spiral.md`—Spin from the Yang/Yin Doublet Half-Angle: The amplitude-plane phase coordinate. Derived conditional on the doublet postulate, asserted pitch convention, equilibrium ratio, and minimal-span principle; the phase-to-rung mapping and particle identifications remain Hypothesized. Uses $\theta_\Psi$ and $\Theta_S=2\theta_\Psi\pmod{2\pi}$; $s=\Delta n/2$ and the $P_\parallel=2$ cycle are conditional coordinate conventions, with no fundamental $3/2$ claim under the minimal-span decomposition.
 - `foundations/spiral-dynamics.md`—Spiral Dynamics: Hubble, Gravity, and $c$ from Fibonacci Spiral Geometry. Hypothesized. Proposes a coordinate Fibonacci spiral built from the amplitude-plane phase and scale advance as a common structure behind cosmic expansion, gravitational attraction, and the speed of light; the spiral mapping's dynamical interpretation remains Hypothesized.
 - `foundations/strong-cp-derivation.md`—Strong CP: Why $\bar{\theta} \approx 0$ from Cascade De-Resonance. Derivation. Resolves the strong CP problem via cascade de-resonance: the $\varphi$-attractor fixed point is CP-symmetric, and CP-violating departures seeded at the GUT scale are cascade-suppressed over ~81 rungs to $\bar\theta \approx 1.2\times10^{-17}$ at the QCD scale.

@@ -9,9 +9,10 @@ energy, but its source authorities do not yet define one time-local gauge action
 for a coupled particle solve. This document closes that specific boundary. It
 combines the registered Yang/Yin composition energy, the conditional adjoint
 $SU(2)_Q$ core, and the neutral trapped carrier into one particle-sector action.
-The branch excludes the optional Dirac projection and the dimensionally
-incomplete mixing ansatz in `foundations/cassi-theory-reference.md` and
-`foundations/unified-lagrangian.md`.
+The branch is separate from the optional sector assembly in
+`foundations/cassi-theory-reference.md` and
+`foundations/unified-lagrangian.md`; its microscopic carrier is a declared
+gauge singlet with an independent global charge.
 
 Gauging the registered first-order Yang/Yin time term produces a nonzero
 $SU(2)_Q$ charge density in every nonzero fundamental condensate. A source-free
@@ -1565,6 +1566,132 @@ The resulting domain and combined scalar-parent spatial verdicts are
 positivity or monotonicity proof. The complete measurements and immutable
 identities are in `computations/matter-formation-continuum-report.md` §11.
 
+### 8.12 Physical normalization and particle identification
+
+A physical mass anchor fixes a conversion between dimensionless and measured
+frequencies. It does not by itself select the carrier action, core size or
+particle representation. For the scalar parent, the time, action and energy
+scales are
+
+$$
+t_Q=\frac{\hbar\ell_Q^2}{K_x},\qquad
+\mathcal N_Q=\rho_0\ell_Q^3,\qquad
+E_Q=\frac{\hbar\mathcal N_Q}{t_Q}.
+$$
+
+In the canonical rotating variables of §8.8, the carrier speed and vacuum
+frequency are
+
+$$
+v_{\rm car}=\frac{\ell_Q}{t_Q}\sqrt{\frac{k_{Cx}}{2a_C}},
+\qquad
+\omega_{\rm vac}^{\rm phys}=\frac{M_a(1)}{t_Q},
+\qquad
+M_a^2(1)=\frac{1}{4a_C^2}+\frac{e_C}{a_C}.
+$$
+
+Impose a common physical cone $v_{\rm car}=c$ and an external vacuum scalar
+rest-energy target $\mathscr E_*=\hbar\omega_{\rm vac}^{\rm phys}$. Writing
+$\lambda_*=\hbar c/\mathscr E_*$ gives the conditional family
+
+$$
+\boxed{
+\frac{\ell_Q(a_C)}{\lambda_*}
+=\sqrt{\frac{1/(2a_C)+2e_C}{k_{Cx}}},
+\qquad
+t_Q=\frac{\ell_Q}{c}\sqrt{\frac{k_{Cx}}{2a_C}}.}
+$$
+
+For a selected stationary profile, $N=\int c^2\,d^3\widehat x$ and
+$\mathcal Q=\sqrt{1+4a_C\omega_C}\,N$. Assigning one unit to this internal
+Noether generator fixes $\mathcal N_Q=1/\mathcal Q$ and
+$\rho_0=\mathcal N_Q/\ell_Q^3$. The independent parameter $a_C$ remains.
+The construction selects no electromagnetic charge normalization and leaves
+the dimensionless coefficients, including the Mapped $h_C$, unchanged.
+An observed mass and its Compton wavelength are the same input expressed in
+two units.
+
+Core scale, carrier decay length and Compton wavelength describe different
+quantities. The stationary exterior equation gives
+
+$$
+\ell_{\rm tail}
+=\ell_Q\sqrt{\frac{k_{Cx}}{2(e_C-\omega_C)}},
+\qquad
+\frac{\ell_{\rm tail}}{\lambda_*}
+=\frac{M_a(1)}{\sqrt{M_a^2(1)-\Omega^2}}>1
+$$
+
+for a nonzero-charge embedding with $1+4a_C\omega_C>0$. The additional
+assignment $\ell_Q=\lambda_*$ would require
+$a_C=[2(k_{Cx}-2e_C)]^{-1}$. At $k_{Cx}=1,e_C=3/4$ this has no positive
+solution. When the global-vacuum condition bounds $a_C\le a_{\rm vac}$,
+the smallest allowed core scale follows by evaluating the decreasing
+$\ell_Q(a_C)$ at $a_{\rm vac}$. Comparing that bound with a mapped cascade
+cell tests the extra core-cell assignment at the selected coefficients.
+A different $h_C$, $e_C$ or $k_{Cx}$ defines a different dimensionless
+problem and requires its own profile and stability calculation.
+
+The phase rotation also changes the Hamiltonian by a conserved charge.
+For the stationary profile,
+
+$$
+H_{\rm orig}=E_{\rm sc}+a_C\omega^2N,\qquad
+H_{\rm can}=E_{\rm sc}
++\left(\frac1{2a_C}+\omega_C\right)N,
+$$
+
+$$
+\boxed{
+H_{\rm can}-H_{\rm orig}=\frac{\mathcal Q}{2a_C},
+\qquad
+H_{\rm can}-\Omega\mathcal Q=E_{\rm sc}-\omega_CN.}
+$$
+
+The physical canonical energy is $E_QH_{\rm can}$; $\hbar\Omega/t_Q$
+is a chemical-potential frequency scale. For an exact localized stationary
+continuum solution, write $E_{\rm sc}=T+V$ with $T$ the positive gradient
+energy. Dilation of $E_{\rm sc}-\omega_CN$ gives
+$T+3(V-\omega_CN)=0$, hence
+$E_{\rm sc}-\omega_CN=2T/3>0$ for a nonconstant profile.
+Its total energy therefore exceeds its chemical potential times charge.
+The choice of physical time generator must be explicit when assigning a
+mass; a time-dependent field rotation does not identify those energies.
+
+A common change of units multiplies an eigenvalue difference and its
+dimensionally converted tolerance by the same positive factor. It leaves
+the accepted domain-comparison verdict invariant. Assigning a different
+normalization to each numerical box would compare different physical
+models.
+
+Finally, local invertible normalization preserves the Lorentz representation
+of the elementary carrier. The topologically trivial scalar restriction
+contains bosonic scalar quanta under its usual canonical quantization.
+It supplies no Dirac spin representation or fermionic statistics.
+Fermionic topological solitons require a specified configuration space and
+quantization beyond this restriction. The separate chiral-scalar Dirac
+density assignment also has an algebraic obstruction: its two bilinears
+are complex conjugates, so simultaneous real positive values are equal
+(`foundations/sector-coupling-derivation.md` §1).
+
+The frozen calculation in
+`computations/matter-formation-normalization-prereg.md` is independently
+verified. At the external $0.511\ \mathrm{MeV}$ vacuum scalar mass target,
+the witnesses $a_C=1/64,1/32,1/16$ give distinct lengths
+$(2.2350537582,1.6154167965,1.1902203530)\times10^{-12}\ \mathrm m$
+while reproducing the same mass, speed and internal generator unit.
+The result is `SUPPORTS—conditional one-mass normalization nonuniqueness`.
+The global-vacuum bound gives
+$\ell_Q\ge6.7893919382\times10^{-13}\ \mathrm m$, above the mapped
+electron-cell upper endpoint $6.0141121609\times10^{-13}\ \mathrm m$.
+The additional assignment has verdict
+`CONTRADICTS—selected scalar electron-core assignment`.
+Unit changes leave the failed spatial difference/tolerance ratio
+$4.9601064407$ invariant. The chiral-scalar density and action-reality
+checks also give their scoped `CONTRADICTS` verdicts. Complete numerical
+values, assumptions and receipt identities are in
+`computations/matter-formation-continuum-report.md` §12.
+
 ## 9. What is closed and what remains open
 
 | Question | Result |
@@ -1586,6 +1713,7 @@ identities are in `computations/matter-formation-continuum-report.md` §11.
 | Can that scalar parent support an energetically stable single-frequency localized state with zero signed charge? | No, under the regularity, finite-energy, constant-vacuum and three-dimensional scalar assumptions of §8.9. Charged, multi-frequency, quantum and additional topological sectors remain outside that statement |
 | Does fixed signed parent charge support the measured radial amplitudes? | Yes on all 24 frozen finite-grid embeddings, with independent spectral verification. Nine of twelve domain/resolution comparisons pass; aggregate radial-domain qualification remains `INCONCLUSIVE` because the population-16 domain comparisons fail. Population 256 meets its measured radial comparisons |
 | Do the selected scalar-parent angular and phase sectors qualify? | Yes on all four population-256 finite grids, with 96 independently matched eigenvalues. Seven of eight spatial comparisons pass; the dipole nonsymmetry gap fails the domain comparison, leaving combined scalar-parent spatial qualification `INCONCLUSIVE`. Exact continuum positivity identities remain conditional on nodelessness, strict monotonicity and boundary assumptions |
+| Does one imposed vacuum mass, propagation speed and internal generator unit determine the scalar action? | No. Three independently reconstructed admissible temporal coefficients give different physical lengths. The selected scalar core assignment to the mapped electron cell is contradicted; spin, statistics and electric charge are unassigned |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 
 The action defines a fixed-charge boundary-value problem and an exact
@@ -1696,3 +1824,7 @@ requirements.
 - `computations/matter-formation-parent-spatial-prereg.md`—conditional angular and phase identities, frozen symmetry and domain criteria.
 - `computations/matter_formation_parent_spatial.py`—primary scalar angular and phase spectra with charged-radial inheritance.
 - `computations/verify_matter_formation_parent_spatial.py`—independent banded/tridiagonal spectra and primary-vector verification.
+- `computations/matter-formation-normalization-prereg.md`—frozen physical normalization and microscopic identification boundaries.
+- `computations/matter_formation_normalization.py`—scalar unit family, energy conversion and chiral-scalar witnesses.
+- `computations/verify_matter_formation_normalization.py`—independent physical scales, energy quadrature and bilinear checks.
+- `foundations/sector-coupling-derivation.md` §1—Dirac chiral-scalar density and interaction obstructions.

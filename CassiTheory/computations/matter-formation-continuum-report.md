@@ -14,6 +14,8 @@ At fixed signed parent charge, all 24 frozen radial embeddings have positive mea
 
 The selected population-256 parent subset also supports the measured angular and phase sectors on all four finite grids. All 96 eigenvalues agree with an independent operator construction. Seven of eight spatial domain/resolution comparisons pass; the first non-translation dipole eigenvalue fails the domain comparison. The combined scalar-parent spatial verdict is `INCONCLUSIVE`. Exact nodelessness and monotonicity give conditional continuum positivity identities, whose assumptions are not established by these sampled profiles.
 
+An independently verified physical-unit calculation leaves a family of scalar models at one imposed vacuum mass, speed and internal generator unit. At the fixed dimensionless coefficients, the extra scalar core-cell assignment is contradicted. The proposed Dirac chiral-scalar map also has exact positivity and Hermiticity obstructions. These results distinguish unit calibration from microscopic particle identification.
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -516,7 +518,123 @@ The raw primary receipt SHA-256 is `9445ff33b33b664bf15e09b499bb185f18bfeb9f8a93
 
 The registered missing-source control invokes both actual programs against an empty source directory. Both return exit code 1 and preserve failed JSON receipts with zero eigenvalue rows. The primary records all four missing-source errors and the incomplete comparison schedule; the verifier rejects the failed input and retains its errors without eigensolves. These control receipts reside under `control_missing_sources/` and carry no scientific stability conclusion. The canonical receipts and source files remain unchanged.
 
-## 12. Reproduction and retained boundary
+## 12. Physical normalization and microscopic identity
+
+The scalar model admits several physical unit assignments with the same imposed vacuum mass, propagation speed and internal generator unit. Those assignments leave its temporal coefficient free. The independent calculation also excludes the selected core-cell assignment and the displayed chiral-scalar positive-density map. These are identification results; they supply no interacting formation trajectory or measured particle identity.
+
+### 12.1 Fixed inputs and independent reconstruction
+
+The frozen specification is `computations/matter-formation-normalization-prereg.md`. It retains the dimensionless coefficients $u_\rho=4$, $u_C=1$, $k_{Cx}=1$, $e_C=0.75$ and the Mapped $h_C=2.9598260763447164$. The single input is the population-256 profile at $R=12,n=768$, raw SHA-256 `95df301fcea98304434b95e9dd63a9cec987495ddda9af46e5940891672dc77a`. Both implementations validate its accepted spatial receipt chain. Neither relaxes a field or recomputes a spatial eigenvalue.
+
+The primary uses NumPy shell quadrature and four-component Weyl matrices. The independent verifier reconstructs population and energy by direct face and local-potential loops, and spinor bilinears by two-component contractions. Both receipts have `numerical_pass: true` and empty failures. They reproduce
+
+$$
+N=256,\qquad
+\omega_C=-0.422077842309661,\qquad
+E_{\rm sc}=-55.50990756715602,\qquad
+T=78.81491551669352
+$$
+
+to the registered tolerance. The negative $E_{\rm sc}$ is the dimensionless static functional; its value alone is not a physical rest energy.
+
+### 12.2 One mass leaves a normalization family
+
+The external target is $\mathscr E_*=0.511\ \mathrm{MeV}$, taken from the electron mass entry. It is imposed as the *vacuum canonical scalar mass* $\hbar M_a(1)/t_Q$. The common propagation speed is set to $c$, and the scalar's own $U(1)$ generator is assigned one unit by $\mathcal N_Q\mathcal Q=1$. This generator is distinct from electric charge. No electron spin, statistics or interaction is assumed.
+
+The conditional identities in `foundations/particle-stationary-action-closure.md` §8.12 give
+
+$$
+\frac{\ell_Q}{\lambda_*}
+=\sqrt{\frac{1/(2a)+2e_C}{k_{Cx}}},
+\qquad
+t_Q=\frac{\ell_Q}{c}\sqrt{\frac{k_{Cx}}{2a}},
+\qquad
+\mathcal N_Q=\frac1{\sqrt{1+4a\omega_C}\,N},
+\qquad
+\lambda_*=\frac{\hbar c}{\mathscr E_*}.
+$$
+
+All three preregistered witnesses satisfy the mass, speed, charge and Hamiltonian identities with normalized residuals below $10^{-10}$:
+
+| $a$ | $\ell_Q$ (m) | $t_Q$ (s) | $\ell_{\rm tail}$ (m) | $E_QH_{\rm can}/\mathscr E_*$ |
+|---|---:|---:|---:|---:|
+| $1/64$ | $2.2350537582\times10^{-12}$ | $4.2173753918\times10^{-20}$ | $1.4598046666\times10^{-12}$ | 0.9707310816 |
+| $1/32$ | $1.6154167965\times10^{-12}$ | $2.1553801684\times10^{-20}$ | $1.0550945226\times10^{-12}$ | 0.9432196612 |
+| $1/16$ | $1.1902203530\times10^{-12}$ | $1.1229273589\times10^{-20}$ | $7.7738140264\times10^{-13}$ | 0.8927907492 |
+
+The distinct lengths at identical imposed mass, speed and generator unit give
+
+$$
+\boxed{\text{SUPPORTS—conditional one-mass normalization nonuniqueness}.}
+$$
+
+The last column is a conditional soliton-energy conversion. The mass calibration fixes a vacuum frequency, while the soliton energy includes its spatial and temporal energy. The ratios are outputs with no particle-matching threshold. A one-unit classical generator normalization does not establish a one-fermion quantum state or justify a semiclassical approximation.
+
+### 12.3 The selected scalar core-cell assignment fails
+
+An additional identification of the scale $\ell_Q$ with the target Compton wavelength requires $a=[2(k_{Cx}-2e_C)]^{-1}$. Its denominator is $-1$ at the fixed coefficients, so no positive root exists. The external target gives $\lambda_*=3.8615847424\times10^{-13}\ \mathrm m$ and cascade coordinate $107.0793429067$ under the declared Planck convention.
+
+The global-vacuum inequality permits $a\le a_{\rm vac}=0.3142233130$. Since $\ell_Q(a)$ decreases with $a$, the full allowed interval has
+
+$$
+\ell_Q\ge6.7893919382\times10^{-13}\ \mathrm m,
+\qquad
+n_{\ell_Q}\ge108.2519735475.
+$$
+
+The mapped electron cell $[107,108]$ spans $[3.7169257276,6.0141121609]\times10^{-13}\ \mathrm m$. Its upper endpoint is smaller than this minimum. Both implementations therefore give
+
+$$
+\boxed{\text{CONTRADICTS—selected scalar electron-core assignment}.}
+$$
+
+The excluded assignment concerns $\ell_Q$ at these selected coefficients. The carrier decay length, profile radius and Compton wavelength are separately defined observables. The measured electron mass and its descriptive cascade coordinate retain their external and Mapped provenance.
+
+### 12.4 Changing units preserves the failed spatial comparison
+
+The failed domain comparison in §11 has difference $0.12420897766027794$ and tolerance $0.02504159520461554$. Their ratio is $4.960106440718456$. Multiplying both spectral endpoints and the tolerance by $10^{-12}$, $1$ or $10^{12}$ preserves this ratio to floating-point precision and leaves all three comparisons failed. The inherited verdict remains exactly `INCONCLUSIVE—finite-grid scalar parent spatial energetic qualification`. A unit assignment changes no dimensionless stability evidence.
+
+### 12.5 Chiral scalars cannot supply the proposed positive densities
+
+The obstruction follows from the adjoint identity, independently of a mass scale. In the Weyl convention $\psi=(L,R)$,
+
+$$
+B_R=\bar\psi P_R\psi=L^\dagger R,
+\qquad
+B_L=\bar\psi P_L\psi=R^\dagger L=B_R^*.
+$$
+
+The adjunction residual is zero. Simultaneous real nonnegative values imply equality; imposing $B_R=\varphi B_L$ then forces both to vanish. The five registered spinors include the explicit pairs $(i,-i)$, $(-1,-1)$, $(1,1)$ and $(0,0)$. A spinor with positive frame-density ratio $n_R/n_L=\varphi$ instead gives $B_R=B_L=\sqrt\varphi$. The positive frame densities $R^\dagger R,L^\dagger L$ are different observables.
+
+Even after factoring out a hypothetical common mass bridge, the displayed ordinary-square interaction is generally complex. At the registered complex witness and real targets $A=\varphi,B=1$,
+
+$$
+AB_R+BB_L=0.6180339887498949\,i,
+\qquad
+\frac{(B_R-A)^2+(B_L-B)^2}{2}
+=0.8090169943749475-0.6180339887498949\,i.
+$$
+
+These finite-dimensional witnesses confirm the exact conjugacy and reality obstructions:
+
+- `CONTRADICTS—chiral-scalar nonnegative-density identification`;
+- `CONTRADICTS—displayed chiral projection interaction as a physical real action`.
+
+They are algebraic checks of the specified map and interaction, with no fermion-production simulation. The conditional sector-scale arithmetic survives, but it selects no admissible operator or transport rate (`foundations/sector-coupling-derivation.md` §1). A local scalar normalization also preserves its $2\pi$ rotation phase $+1$, whereas a Dirac spinor has phase $-1$. Fermionic topological solitons would require a separate configuration space and quantization absent from this scalar restriction.
+
+### 12.6 Accepted identities and failed-input control
+
+The canonical CRLF-to-LF SHA-256 identities are:
+
+- Primary: `a27972cb109215ceea48a938659045e1f901cd30b992830dfbbfef42744702f0`.
+- Independent verifier: `57242571fb9c5e48f58054dbcbf02c299ac37bd814d0468e16fd35002fbf1e5b`.
+- Preregistration: `35dcaac325932c32f486bace0f8ad71a232dc4f87fb1aa85893fa0cb81dac732`.
+
+The raw primary receipt SHA-256 is `3c1fba6f2ea5cedf3d774a2dfcf33d7691add503dd56588ae41f1afe315bca0b`; the independent receipt SHA-256 is `81962ce27615f5da0603cac665b75138ca9fb19bff689d7d58d3443b757880eb`. They are retained in `runs/20260906_matter_formation_normalization/`. The independent receipt binds the primary raw hash and recomputes every numerical payload field.
+
+The registered empty-source control invokes both actual programs. Both exit 1 and preserve their failed receipts with empty source summaries, unit families, core assignments, rescaling results and spinor results. The primary reports the missing field; the verifier rejects the failed primary input. All control verdicts are bare `INCONCLUSIVE` and carry no scientific conclusion.
+
+## 13. Reproduction and retained boundary
 
 Run from the repository root into new, explicitly named output directories when the default receipts already exist:
 
@@ -537,6 +655,8 @@ python computations/matter_formation_charged_stability.py
 python computations/verify_matter_formation_charged_stability.py
 python computations/matter_formation_parent_spatial.py
 python computations/verify_matter_formation_parent_spatial.py
+python computations/matter_formation_normalization.py
+python computations/verify_matter_formation_normalization.py
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
@@ -567,6 +687,11 @@ The remaining physical requirements are a selected microscopic production action
 - `computations/matter_formation_parent_spatial.py`—primary dense angular and phase spectra on the immutable population-256 subset.
 - `computations/verify_matter_formation_parent_spatial.py`—independent banded and tridiagonal operators, primary-vector checks and radial inheritance verification.
 - `runs/20260906_matter_formation_parent_spatial/results.json` and `runs/20260906_matter_formation_parent_spatial/verification.json`—accepted finite-grid sector support and inconclusive combined scalar-parent spatial qualification.
+- `computations/matter-formation-normalization-prereg.md`—frozen mass-unit, core-cell and chiral-scalar identification checks.
+- `computations/matter_formation_normalization.py`—primary scalar energy, normalization family and matrix-bilinear witnesses.
+- `computations/verify_matter_formation_normalization.py`—independent face quadrature, unit reconstruction and two-component witnesses.
+- `runs/20260906_matter_formation_normalization/results.json` and `runs/20260906_matter_formation_normalization/verification.json`—accepted conditional normalization nonuniqueness and scoped identification exclusions.
+- `foundations/sector-coupling-derivation.md` §1—dimensional, positivity and Hermiticity boundaries of the displayed Dirac identification.
 - `foundations/particle-stationary-action-closure.md` §8.7—continuity law, conditional scalar reduction, radial equations and ultraviolet boundary.
 - `foundations/matter-completion-boundary.md`—full matter-formation requirements.
 - `computations/particle-carrier-resolution-recovery-report.md`—four stored Cartesian endpoints.

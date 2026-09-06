@@ -229,7 +229,7 @@ nodes, but the specific value awaits formal cascade boundary dynamics.
 
 ---
 
-## 4. The Activated Step Set $\{1, 2, 3, 5, 6, 26, 80\}$
+## 4. The Activated Step Set $\{1, 2, 3, 5, 6, 26, 80, 89, 95.5, 96\}$
 
 ### 4.1 What "Activated" Means
 
@@ -246,7 +246,7 @@ appears in a **verified physical quantity**.
 | 1 | 1.618 | Fundamental ratio $r = E_Y/E_I$ | Postulate |
 | 2 | 2.618 | Qi gate normalization denominator | PDE structure |
 | 3 | 4.236 | $\sin^2\theta_W = \varphi^{-3}$, Yang fraction $\varphi^{-3}$ | 2.1% (tree) |
-| 3 | 4.24 | $\kappa_s^{-1/2} = \varphi^3 v_0 \approx 1.04$ TeV (sector coupling) | 5.5% (vs rung 77); coefficient $C$ open |
+| 3 | 4.24 | Formal $\kappa_{s,\mathrm{scale}}^{-1/2} = \varphi^3 v_0 \approx 1.04$ TeV sector-scale candidate | Conditional $C=1$ arithmetic only; the exact projection obstruction leaves the physical $\kappa_s$, operator and equilibration scale unresolved |
 | 5 | 11.09 | Wu Xing scale, gap $g = 1-\varphi^{-5}$ | $w_0 = -0.87$ ($2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INF]) |
 | 6 | 17.94 | $\xi = \varphi^6$ (Qi-gravity coupling) | $v_C/v_B = 2.8$–$3.0$ (~0.4σ) |
 | 26 | $2.7\times 10^5$ | $m_e/v_0 \approx \varphi^{-26}$ (human cascade depth) | 25% (integer rung 26); the half-step 26.5 is a fit to the observed mass, not a derivation (§2.2) |
@@ -273,27 +273,28 @@ measured physical couplings or scale ratios. They may correspond to:
 
 ### 4.4 Activated vs Fibonacci
 
-The first four activated steps $\{1, 2, 3, 5\}$ are the first four Fibonacci
-numbers. Step 6 is the product of Fibonacci primes $2 \times 3$. The larger
-steps (26, 80, 96) are not Fibonacci-related in any obvious way—they emerge
-from the cascade depth rather than number-theoretic properties. Step 89 is
-Fibonacci ($F_{11}$) and a golden-angle closure level: the J/ψ placement at
-$n = 88.98$ (1.0%, 2026-08-03) is the first mass-catalog hit on a closure
-level (`foundations/wake-geometry.md` §3).
+The small labels $\{1,2,3,5\}$ are the first four distinct positive
+Fibonacci numbers, and $6=2\times3$ is a product of Fibonacci primes.
+The larger selected labels $26,80,95.5,96$ have no stated Fibonacci
+selection mechanism. The integer $89=F_{11}$ is Fibonacci and a supplied
+golden-angle closure level; the measured J/ψ coordinate $n=88.98$ lies
+near it (`foundations/wake-geometry.md` §3). This is a Mapped catalogue
+placement.
 
-The Fibonacci pattern at low $n$ is likely coincidental: $\varphi^n$ for
-small integer $n$ naturally approximates Fibonacci ratios $\varphi^n \approx
-F_{n+1} / F_n$ with increasing accuracy as $n$ grows, but this is a
-mathematical identity, not a physical selection mechanism.
+The exact identity
+$\varphi^n=F_n\varphi+F_{n-1}$ holds for $n\ge1$, while
+$F_{n+1}/F_n\to\varphi$ as $n\to\infty$. These identities describe the
+arithmetic of the chosen scale basis. A physical selection mechanism
+must additionally determine which observables occupy its coordinates.
 
 ### 4.5 Derivation Status
 
 | Aspect | Status |
 |--------|--------|
 | Which steps are activated | **Empirical**—observed from verified $\varphi$-power predictions |
-| Why $\{1, 2, 3, 5\}$ and not $\{4, 7, 8\}$ | **Not derivable**—these are the exponents that happen to map to observable couplings in our universe |
-| Fibonacci coincidence at low $n$ | **Mathematical identity**—$\varphi^n \approx F_{n+1}/F_n$, not a physical selection |
-| Dark steps (4, 7, 8-25, 27-79, 81-88, 90-95, 97+) | **Prediction**—these correspond to unobserved scales/couplings; their darkness is a testable feature (89 and 96 were dark until the 2026-08-03 mass scan placed J/ψ and μ) |
+| Why $\{1,2,3,5\}$ are used for these observables | **Open**—the catalogue records selected assignments; it supplies no physical selection law |
+| Fibonacci arithmetic at low $n$ | **Derived identity**—$\varphi^n=F_n\varphi+F_{n-1}$, with $F_{n+1}/F_n\to\varphi$; physical coordinate selection remains open |
+| Unassigned steps in the catalogue | **Empirical catalogue boundary**—an empty entry supplies no prediction of a particle, coupling or absence of either |
 
 **Conclusion**: The activated step set is an empirical catalog, not a
 $\varphi$-derivation. It tells us which $\varphi$-powers correspond to
@@ -312,20 +313,22 @@ $\varphi$-cascade.
 | $v_0/M_{\text{Pl}}$ | $5.3\%$ (integer exponent 80) | Cascade discretization residual ($\delta n = 0.11$, EW boundary) | **Identified**: mechanism understood, exact value not derived |
 | Activated step set | No derivation | Empirical catalog of $\varphi$-powers in verified quantities | **Empirical**: not derivable, catalog of our universe |
 
-### Classification: No Registry Changes
+### Classification against the current registry
 
-None of the four assessments reclassifies a parameter. The registry
-(`parameter-inventory.md` §5) holds the accurate classes:
+The four gap assessments retain their registered classes. The sector-scale
+entry is recorded with its current **Mapped** status: its expression supplies
+conditional arithmetic, while the exact dimension, positivity and Hermiticity
+obstruction leaves a physical coupling and equilibration scale unresolved.
 
 | Parameter | Class | Rationale |
 |-----------|-------|-----------|
 | $\alpha_s(M_Z)$ | **E** | Partial: RGE from $\alpha_{\text{GUT}}$ needs particle content (§1) |
 | $m_e/v_0$ | **E** | $\varphi^{-26}$ misses by 25%; the half-step 26.5 is a fit, not a derivation (§2; pool-cell half-rung mechanism Hypothesized, `foundations/rung-offset-mechanism.md` §4.1) |
 | $v_0/M_{\text{Pl}}$ | **E** | $\varphi^{-80}$ within 5.3% is a numerical coincidence, not a derivation |
-| $\kappa_s$ (sector coupling) | **D** | Already derived: $\varphi^{-6}/v_0^2$ (coefficient Hypothesized) |
+| $\kappa_s$ (sector coupling) | **M** | $\varphi^{-6}/v_0^2$ is a formal $C=1$ arithmetic scale candidate; the optional projection is dimensionally incomplete and generically non-Hermitian, so no physical coupling or equilibration scale is established |
 | Activated steps | **E** | Empirical catalog of observables that happen to be $\varphi$-powers |
 
-Legend: **F1 / D24 / C0 / E7 / I6 / N8 / Total 46**.
+Legend: **F1 / D7 / C5 / M10 / E9 / I7 / N8 / Total 47**.
 
 The assessments narrow the gaps without moving classes: $\alpha_s$ requires a
 specific particle content between the EW and GUT scales, and $m_e$ and
@@ -338,7 +341,7 @@ constant—this is a feature of any theory, not a bug.
 
 ## References
 
-- `parameter-inventory.md` §4—parameter classes (F/D/C/E/I/N)
+- `parameter-inventory.md` §§5, 7—parameter classes (F/D/C/M/E/I/N) and the canonical inventory counts
 - `foundations/dimensionful-constants-status.md`—status of $c$, $\hbar$, $G$
 - `foundations/wake-geometry.md` §3—$M_{\text{Pl}}$-anchored mass ladder
 - `foundations/dimensionful-cascade.md`—cascade table, rung labels

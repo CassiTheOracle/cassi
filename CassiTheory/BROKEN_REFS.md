@@ -133,6 +133,7 @@ where available, and the scripts needed to regenerate current receipts.
 | `computations/matter-formation-parent-vacuum-prereg.md`; `computations/matter-formation-continuum-report.md` | `runs/20260906_matter_formation_parent_vacuum/` (classical parent-potential, signed-charge and spatial-dilation receipts, with all independent minimizer endpoints and quadrature diagnostics) |
 | `computations/matter-formation-charged-stability-prereg.md`; `computations/matter-formation-continuum-report.md` | `runs/20260906_matter_formation_charged_stability/` (24 parent radial spectra, eight hash-bound spectral arrays, independent complete base spectra, 144 inertia brackets and radial domain/resolution comparisons) |
 | `computations/matter-formation-parent-spatial-prereg.md`; `computations/matter-formation-continuum-report.md` | `runs/20260906_matter_formation_parent_spatial/` (96 angular/phase eigenvalues, four hash-bound spectral arrays, independent banded/tridiagonal verification, eight spatial comparisons and isolated missing-source failure receipts) |
+| `computations/matter-formation-normalization-prereg.md`; `computations/matter-formation-continuum-report.md` | `runs/20260906_matter_formation_normalization/` (conditional physical-unit family, fixed scalar core-cell exclusion, chiral-scalar bilinear/action witnesses, independent reconstruction and isolated failed-input receipts) |
 
 ## References to `CassiCosmos/` (the space sim, in the unified workspace)
 

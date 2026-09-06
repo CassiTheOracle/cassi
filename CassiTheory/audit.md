@@ -194,6 +194,31 @@ positivity identities do not establish exact nodelessness, monotonicity or
 nonlinear stability for these sampled profiles
 (`computations/matter-formation-continuum-report.md` §11).
 
+**Physical normalization and carrier identity.** The same imposed
+$0.511\ \mathrm{MeV}$ vacuum scalar mass, propagation speed $c$ and one
+internal $U(1)$ generator unit admit three independently reconstructed
+temporal coefficients with distinct physical core scales. Their canonical
+soliton energies are $0.9707310816$, $0.9432196612$ and $0.8927907492$
+times the imposed vacuum mass target. This leaves particle identification
+and the temporal coefficient unselected. At the fixed coefficients, the
+smallest core scale allowed by the global-vacuum inequality is
+$6.7893919382\times10^{-13}\ \mathrm m$, above the mapped electron-cell
+upper endpoint $6.0141121609\times10^{-13}\ \mathrm m$; the extra core-cell
+assignment is contradicted. Changing units preserves the failed spatial
+difference/tolerance ratio $4.9601064407$.
+
+The proposed Dirac chiral scalars are conjugates,
+$B_R^\dagger=B_L$, so their simultaneous real positive values are equal.
+They cannot realize a nonzero $\varphi$ density ratio. The displayed
+linear and ordinary-square projection interactions are generically
+non-Hermitian even with a common mass bridge. Independent matrix and
+two-component witnesses confirm these exact obstructions. The formal
+$\varphi^{-6}/v_0^2$ sector scale supplies no microscopic operator or
+equilibration prediction. The scalar's internal generator has no selected
+electromagnetic identification, and its normalization supplies no fermion
+spin or statistics (`computations/matter-formation-continuum-report.md` §12;
+`foundations/sector-coupling-derivation.md` §1).
+
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 
 | Claim | Tested result | Status |

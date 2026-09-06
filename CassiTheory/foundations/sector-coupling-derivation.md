@@ -1,220 +1,174 @@
-# Coefficient-Free Sector Scale: $\kappa_{s,\mathrm{scale}} = \varphi^{-6}/v_0^2$
+# Conditional Sector Scale and the Dirac Density Obstruction
 
-## Status: Derived conditional on $\delta = 3$ (coefficient-free $\varphi$ scale and rung identity); optional Dirac↔two-fluid projection is a dimensionally incomplete Hypothesized ansatz (no physical $\kappa_s$ or $\chi$ value established; $v_0$ input Calibrated, $\mathcal{N}_{\mathrm{pde}}$ repair unresolved and not sourced/ledgered)—August 2026
+## Status: Derived conditional scale arithmetic and chiral-scalar obstruction / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
 
 ## Abstract
 
-The cascade supplies a coefficient-free arithmetic scale form $\kappa_{s,\mathrm{scale}} = \varphi^{-6}/v_0^2 = M_{\text{Pl}}^{-2}\varphi^{154}$ conditional on $\delta = 3$, with the formal mass scale $M_{s,\mathrm{scale}} = \kappa_{s,\mathrm{scale}}^{-1/2} = \varphi^3 v_0$ at rung $77 = 154/2$ (rung 77 ≈ 1.04 TeV). It does not establish a physical Dirac↔two-fluid coupling: the proposed projection below subtracts a spinor density of dimension $[M]^3$ from a condensate square of dimension $[M]^2$, and no sourced or ledgered normalization/mass scale repairs that mismatch. The values 1.04 TeV and 0.92 TeV$^{-2}$ are reported only as formal $C = 1$ arithmetic candidates; the full coupling and the bridge to $\chi$ remain unresolved.
+The arithmetic scale $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2$ follows from the stipulated offset $\delta=3$ and the external electroweak anchor $v_0$. Its inverse square root is $\varphi^3v_0\approx1.04\ \mathrm{TeV}$. This scale does not define an interaction. The proposed Dirac-to-two-fluid identification has two separate obstructions: it compares fields of different mass dimension, and its chiral-scalar bilinears are complex conjugates rather than independent nonnegative densities. Real positive values of those bilinears are equal, so they cannot realize a nonzero Yang/Yin ratio $\varphi$. The displayed squared enforcement interaction is also non-Hermitian for general unequal condensates, even after a common mass normalization. A physical fermion coupling requires different observables and a dimensionally homogeneous Hermitian action.
 
-## 1. The Optional Projection Ansatz and Its Symbol
+## 1. The projection and its mathematical boundary
 
-The proposed Dirac↔two-fluid projection is presented only as an optional ansatz for identifying the unresolved dictionary:
-
-$$
-\boxed{\mathcal{L}_{D\to TF}^{\mathrm{optional}} = \frac{\kappa_s}{2}\sum_{\pm}\left(\bar\psi P_{\pm}\psi - \Psi_{0,1}^2\right)^2}
-$$
-
-The displayed ansatz is not a dimensionally valid Lagrangian: the bracket subtracts quantities with different mass dimensions. It is therefore a dimensionally incomplete Hypothesized ansatz, not an established interaction from which a physical $\kappa_s$, equilibration timescale, or $\chi$ bridge can be inferred.
-
-with $P_{\pm} = (1\pm\gamma^5)/2$ the chiral projectors. The plus term is intended to tie the right-handed density to the Yang condensate square $\Psi_0^2$, and the minus term the left-handed density to the Yin condensate square $\Psi_1^2$. No numerical coupling or timescale follows until a sourced and ledgered field/mass normalization makes the projection homogeneous.
-
-### The symbol
-
-The symbol $\kappa$ is shared with two other established constants. The Wu Xing pentagram transmission $\kappa = \varphi^{-1} = K_{fw}$ ("Water damps Fire", the control-cycle coefficient fixed by the pentagon side/diagonal ratio) is a different, derived constant documented in `foundations/wu-xing-cycle-structure.md` §1.3, and a charge-density constant appears as $\kappa$ in the Qi charge/current definitions of `predictions/cassi_definitions.md` ($\rho = -\kappa\nabla^2 q$, $J = \kappa\,\partial_t\nabla q$). This document uses $\kappa_s$ (s = sector) for a future repaired Dirac↔two-fluid coupling; no physical $\kappa_s$ value is established by the optional ansatz.
-
-### Dimensions
-
-The bracket in the optional ansatz attempts to subtract a $[M]^3$ spinor density from a $[M]^2$ condensate square, so it is undefined before any square is taken. No sourced or ledgered normalization/mass scale is specified. Consequently the intended mass dimension $-2$ and the interpretation of $\kappa_s$ as a stiffness or equilibration rate cannot be assigned from this expression; only the coefficient-free cascade arithmetic is reported below.
-
-## 2. The scale: three rungs above electroweak
-
-The cascade supplies a coefficient-free scale form, not a measured full coupling: conditional on $\delta = 3$, it places the formal $C = 1$ scale candidate at three rungs above the electroweak VEV. A physical $\kappa_s$ would require a dimensionally valid projection and a sourced normalization; neither is supplied here.
-
-### The cascade tool
-
-Energy rungs follow the cascade ladder `foundations/dimensionful-cascade.md` §2,
+The distinction between a chiral scalar and a chiral density determines whether the proposed field map can describe the canonical state. The canonical two-fluid variables satisfy $E_Y,E_I\ge0$. The optional spinor correspondence uses
 
 $$
-E_n = M_{\text{Pl}}\cdot\varphi^{-n},
+B_R=\bar\psi P_R\psi,\qquad B_L=\bar\psi P_L\psi,
+\qquad P_{R,L}=\frac{1\pm\gamma^5}{2}.
 $$
 
-with $M_{\text{Pl}} = 1.2209\times10^{19}$ GeV. Each step down in $n$ multiplies the scale by $\varphi$.
+### 1.1 Dimensions and the sector symbol
 
-### The electroweak anchor
-
-The VEV $v_0 = 246$ GeV sits at $n = 79.89 \approx 80$: rung 80 is $E_{80} = M_{\text{Pl}}\varphi^{-80} = 233.2$ GeV, a $-5.22\%$ offset from $v_0$, the same discretization-residual class documented as the "5.3% gap" in `foundations/deriving-remaining-gaps.md` §3.3 ($\delta n = 0.11$ steps, a soft boundary between cascade regimes). The coefficient-free scale candidate inherits this placement.
-
-### Three rungs up: rung 77
-
-The coefficient-free scale candidate sits three rungs above the electroweak rung:
+In four-dimensional natural units, $[\psi]=[M]^{3/2}$, $[B_{R,L}]=[M]^3$, and the optional condensate squares $\Psi_0^2,\Psi_1^2$ have dimension $[M]^2$. The formal expression
 
 $$
-E_{77} = M_{\text{Pl}}\cdot\varphi^{-77} = 987.7\ \text{GeV}.
+\mathcal L_{\rm proj}^{\rm formal}
+=\frac{\kappa_s}{2}\left[(B_R-\Psi_0^2)^2+(B_L-\Psi_1^2)^2\right]
 $$
 
-The round 1 TeV is $+1.24\%$ off this rung ($\log_\varphi(M_{\text{Pl}}/1\,\text{TeV}) = 76.97$).
+therefore subtracts quantities of different dimensions. A common real mass scale $\mu$ could make the brackets homogeneous by replacing $\Psi_\alpha^2$ with $\mu\Psi_\alpha^2$. That operation addresses dimensions; the algebraic obstructions below remain for every positive real $\mu$.
 
-### The rung identity: why 77
+The symbol $\kappa_s$ denotes a proposed sector interaction coefficient. It is distinct from the geometric pentagram transmission $K_{fw}=\varphi^{-1}$ in `foundations/wu-xing-cycle-structure.md` §1.3 and the charge-density coefficient in `predictions/cassi_definitions.md`. The mass dimension $-2$ would apply to a homogeneous dimension-six interaction. The formal scale in §2 selects no such interaction or coefficient.
 
-The placement is not an independent "three rungs up" assertion—it follows from the exponent arithmetic of the coefficient-free scale form $\kappa_{s,\mathrm{scale}} = \varphi^{-6}/v_0^2$. The VEV sits at rung 80,
+### 1.2 Conjugacy and positivity
 
-$$
-v_0 = M_{\text{Pl}}\,\varphi^{-80} \quad (\text{rung } 80),
-$$
-
-and squaring doubles the rung index ($80 \to 2\cdot 80 = 160$):
+The adjoint of one chiral-scalar bilinear is the other. Since $\gamma^0P_R=P_L\gamma^0$,
 
 $$
-v_0^2 = M_{\text{Pl}}^2\,\varphi^{-160}.
+\boxed{B_R^\dagger=B_L.}
 $$
 
-Inserting into $\kappa_{s,\mathrm{scale}}$,
+For ordinary complex spinors in the Weyl basis, $\psi=(L,R)$ gives
 
 $$
-\kappa_{s,\mathrm{scale}} = \frac{\varphi^{-6}}{v_0^2}
-        = \varphi^{-6}\,M_{\text{Pl}}^{-2}\,\varphi^{160}
-        = M_{\text{Pl}}^{-2}\,\varphi^{154}.
+B_R=L^\dagger R,\qquad B_L=R^\dagger L=B_R^*.
 $$
 
-The $\varphi$-exponent of $\kappa_{s,\mathrm{scale}}$ relative to the $M_{\text{Pl}}^{-2}$ base is $+154$—not the naive $-160 - 6 = -166$, because $v_0^2$ carries the dimensionful base $M_{\text{Pl}}^2$ and the $\varphi^{-6}$ stands in the numerator. The associated formal scale is
+These quantities need not be real or positive. Taking $L=(1,0)$ and $R=(i,0)$ gives $(B_R,B_L)=(i,-i)$; taking $R=-L$ gives $(-1,-1)$. A pure left-handed spinor has both scalar bilinears zero despite a nonzero spinor density. The operator adjoint identity also constrains quantum expectation values. It supplies no two independent Hermitian positive-density operators.
+
+If a common real normalization identifies both bilinears with real nonnegative condensate squares, conjugacy forces those squares to be equal. For $z=B_R$, the required golden ratio would impose
 
 $$
-M_{s,\mathrm{scale}} = \kappa_{s,\mathrm{scale}}^{-1/2} = M_{\text{Pl}}\,\varphi^{-154/2} = M_{\text{Pl}}\,\varphi^{-77}
+z=\varphi z^*.
 $$
 
-sits at rung $77 = 154/2$: halving the exponent inverts the squaring. Equivalently, $M_{s,\mathrm{scale}} = \varphi^3 v_0$: multiplying the VEV by $\varphi^3$ climbs three rungs ($E_{n-3} = E_n\,\varphi^3$), so $n(M_{s,\mathrm{scale}}) = n(v_0) - 3 = 80 - 3 = 77$.
-
-**The offset is $\delta = 3$—the same $\delta$ as the gravity regulator.** Write the placement as
+Its real and imaginary parts obey $(1-\varphi)\operatorname{Re}z=0$ and $(1+\varphi)\operatorname{Im}z=0$. Therefore
 
 $$
-\boxed{\delta = n_{v_0} - n_{s,\mathrm{scale}} = 80 - 77 = 3}
+\boxed{B_R=\varphi B_L,\quad B_L=B_R^*
+\quad\Longrightarrow\quad B_R=B_L=0.}
 $$
 
-with $n_{s,\mathrm{scale}}$ the rung of the formal $M_{s,\mathrm{scale}}$. This is the same 3-rung offset as $\sigma = \ell_{\text{Pl}}/\varphi^3$ (`gravity/quantum-gravity.md` §2.1), where $\delta = 3 = d$ is derived conditional on the three-dimensional phase-resolution postulate. **The rung-77 placement is therefore derived conditional on $\delta = 3$**: with the shared offset $\delta$ the coefficient-free scale form is $\kappa_{s,\mathrm{scale}} = \varphi^{-2\delta}/v_0^2$ at rung $80 - \delta$; a future repaired coupling would be $C\,\kappa_{s,\mathrm{scale}}$. The reverse cross-check appears in `gravity/quantum-gravity.md` §2.1 (ii).
+Independent unequal bridge coefficients would insert the desired density ratio into the dictionary as an additional selected input. They would still need a real positive observable assignment for general states.
 
-The rung identity is exact in the exponent arithmetic ($154/2 = 77$). The *formal $C = 1$ scale* $M_{s,\mathrm{scale}} = \varphi^3 v_0 = 1042.07$ GeV inherits the VEV's discretization residual, sitting $\delta n = 0.11$ steps below rung 77 ($+5.50\%$ above $E_{77}$)—the same residual class as the EW anchor itself. All values are verified as arithmetic for this formal candidate in `computations/kappa_s_rung_identity.py`.
+The frame densities $n_R=R^\dagger R$ and $n_L=L^\dagger L$ are nonnegative for ordinary complex spinors and can have ratio $\varphi$. They are components of chiral currents referred to a timelike observer, rather than the Lorentz scalars used above. A physical use of those currents requires an observer or foliation, a quantum-state and particle/antiparticle prescription, and an evolution law connecting them to the canonical conversion dynamics. None is selected by the arithmetic sector scale.
 
-### The VEV-anchored form
+### 1.3 Reality of the displayed interaction
 
-Equivalently, the scale is $\varphi^3$ times the electroweak VEV:
-
-$$
-\boxed{M_{s,\mathrm{scale}} = \kappa_{s,\mathrm{scale}}^{-1/2} \approx \varphi^3 v_0 \approx 1.04\ \text{TeV}}
-$$
-
-with $\varphi^3 = 4.23607$, giving $\varphi^3 v_0 = 1042.07$ GeV—$+5.50\%$ off rung 77, the same discretization-residual class as the EW anchor itself. Inverting the coefficient-free scale form,
+A mass scale also leaves the action's adjoint problem unchanged. After factoring out a common dimensional bridge, write $B_R=x+iy$, $B_L=x-iy$ and let $A,B$ be real condensate targets. Then
 
 $$
-\boxed{\kappa_{s,\mathrm{scale}} = \frac{\varphi^{-6}}{v_0^2} = \frac{1}{\xi\, v_0^2} = 9.21\times10^{-7}\ \text{GeV}^{-2} = 0.92\ \text{TeV}^{-2}}
+\operatorname{Im}(AB_R+BB_L)=(A-B)y,
 $$
-The displayed inversion is a formal $C = 1$ scale evaluation; without a dimensionally valid projection and sourced normalization, it is not a physical $\kappa_s$ value.
-
-where $\xi = \varphi^6 = 17.94427191$ is the Qi-gravity coupling.
-
-### Observation, not mechanism
-
-The suppression $\kappa_{s,\mathrm{scale}} \propto \varphi^{-6}$ is the reciprocal of the Qi-gravity enhancement $\xi = \varphi^6$ at the electroweak anchor (`foundations/unified-lagrangian.md` §5.1). This reciprocity is an observation about the arithmetic, not a claimed mechanism; a physical coefficient remains blocked by the optional projection's dimensional defect.
-
-### A dark step answered
-
-Rung 77 is a "dark step"—a rung the activated set $\{1,2,3,5,6,26,80,292\}$ leaves unlabeled. `foundations/dimensionful-cascade.md` §9 Q2 asks whether dark steps carry physical meaning (sterile neutrino masses, dark sector couplings). This document supplies a conditional formal $C = 1$ scale-form candidate at rung 77; interpreting it as the Dirac↔two-fluid equilibration scale remains a plausible hypothesis blocked by the dimensionally incomplete projection.
-
-### Consistency with the inventory
-
-`parameter-inventory.md` §3.3's slogan "$\kappa \sim 1/\text{TeV}^2$" is not pinned to a unique physical coupling. The exact scale form gives the formal $C = 1$ candidate $\kappa_{s,\mathrm{scale}} = 0.92$ TeV$^{-2}$—the same order of magnitude as the inventory's estimate—while the alternatives in §3 and the dimensional repair remain open.
-
-## 3. Optional Coefficient Fork: Projection Remains Dimensionally Incomplete
-
-The coefficient-free scale form is derived conditional on $\delta = 3$, but assigning it to a physical $\kappa_s$ requires a dimensionally valid projection. The optional ansatz in §1 supplies no homogeneous bracket and no sourced or ledgered normalization.
-
-If a future repair supplies that missing normalization, one could write $\kappa_s = C\,\kappa_{s,\mathrm{scale}}$ with $C$ an O(1) coefficient. The following are formal candidate readings only:
-
-| $C$ | Reading | Formal $\kappa_s$ candidate | Formal $M_s$ candidate |
-|-----|---------|----------------------------|-------------------------|
-| $1$ | Pure $\xi^{-1}$ | 0.921 TeV$^{-2}$ | 1.042 TeV |
-| $\varphi^{-1} = K_{fw}$ | One pentagram transmission | 0.569 TeV$^{-2}$ | 1.326 TeV |
-| $\varphi^{-2}$ | Two transmissions | 0.352 TeV$^{-2}$ | 1.686 TeV |
-
-All three are formal values inside the "$\sim 1/\text{TeV}^2$" band; the inventory's order-of-magnitude slogan cannot discriminate between them, and none is an established physical coupling.
-
-The canonical solver's rational normalization $\lambda = 0.1$ and the Hypothesized Wu Xing linkage do not select $C$. The de-resonance posture (`principles/de-resonance-principle.md` §6) likewise leaves the leading coefficient to dynamics that have not been specified.
-
-Conclusion: the coefficient-free scale arithmetic is Derived conditional on $\delta = 3$; the projection and all physical coefficient readings are dimensionally incomplete optional Hypotheses. The $\chi$ bridge remains blocked.
-
-## 4. The $\chi$ Bridge: Blocked Pending Dimensional Repair
-
-The inventory's bridge from a sector coupling to the chemotactic mobility $\chi$ cannot be closed while the projection in §1 is dimensionally incomplete.
-
-### Dimensional failure of the as-written bridge
-
-`parameter-inventory.md` §3.3 writes
-
-$$
-\chi = \frac{\kappa\,\varphi^{-1}}{m_e(1+\varphi)}.
-$$
-
-The expression is dimensionally inconsistent: a putative $\kappa_s$ has intended $[M]^{-2}$ while $m_e$ has $[M]$, so the right-hand side carries $[M]^{-3}$, not dimensionless $\chi$. A formal substitution of the $C = 1$ scale number yields $4.25\times10^{-4}$ in mixed units; it is not a $\chi$ value and cannot be compared with the calibrated band.
-
-### Conditional bridge if a sourced repair is supplied
-
-A dimensionful field/mass normalization would be required before the bridge can be evaluated. No such normalization is sourced or ledgered here, and an $\mathcal{N}_{\mathrm{pde}}$ factor cannot by itself repair the undefined bracket. If a future repair supplies both, the formal bridge would be
-
-$$
-\boxed{\chi = \mathcal{N}_{\mathrm{pde}}\cdot\frac{\kappa_s\,\varphi^{-1}}{m_e(1+\varphi)}}
-$$
-
-where $\mathcal{N}_{\mathrm{pde}}$ would be the solver normalization factor. Its value and the resulting $\chi$ remain unresolved.
-
-### The computational follow-up
-
-Computing $\mathcal{N}_{\mathrm{pde}}$ is downstream of the missing dimensional repair: it is not enough to read constants from `two-fluid/cassi_two_fluid_3d_gpu.py` while the Lagrangian bracket remains undefined. Until the repair is sourced and ledgered, $\chi$ remains a C-class solver parameter and the bridge is open.
-
-### The falsifiable check after repair
-
-Only after the normalization and projection are made dimensionally valid can the chain be tested against $\chi \in [0.5, 1.0]$.
-
-## 5. Conditional Arithmetic and Blocked Predictions
-
-| # | Prediction | Status |
-|---|------------|--------|
-| K1 | The formal coefficient-free scale is $M_{s,\mathrm{scale}} = \varphi^3 v_0 \approx 1.04$ TeV (rung 77 = 987.7 GeV; formal $\kappa_{s,\mathrm{scale}} = 0.92$ TeV$^{-2}$). | Derived arithmetic conditional on $\delta = 3$; not a physical coupling; no K2 closure |
-| K2 | A repaired bridge could test $\chi = \mathcal{N}_{\mathrm{pde}}\cdot\kappa_s\varphi^{-1}/[m_e(1+\varphi)] \in [0.5, 1.0]$ after a sourced dimensional normalization exists. | Blocked Hypothesis; concrete computation remains downstream |
-| K3 | Rung 77 is a formal coefficient-free candidate for a Dirac↔two-fluid equilibration scale. | Plausible Hypothesis only; physical interpretation blocked |
-
-The K-numbers (letter K for the formal scale notation) do not collide with the numbered prediction catalog or the consciousness-doc prediction ranges.
-
-## 6. Epistemic Boundaries
-
-- **Supported by Verified Arithmetic**: the coefficient-free rung-77 placement ($E_n = M_{\text{Pl}}\varphi^{-n}$; $v_0^2 = M_{\text{Pl}}^2\varphi^{-160}$; $\kappa_{s,\mathrm{scale}} = M_{\text{Pl}}^{-2}\varphi^{154}$; $77 = 154/2$); the formal $C = 1$ scale's order-of-magnitude consistency; the dimensional failure of the optional projection and as-written $\chi$ bridge.
-- **Derived conditional on $\delta = 3$**: the coefficient-free scale form $\kappa_{s,\mathrm{scale}} = \varphi^{-6}/v_0^2$ and its placement at rung 77, inherited from $\sigma = \ell_{\text{Pl}}/\varphi^3$ (`gravity/quantum-gravity.md` §2.1, itself conditional on $d = 3$). With $\delta \neq 3$ the scale form would be $\varphi^{-2\delta}/v_0^2$ at rung $80 - \delta$.
-- **Hypothesized but dimensionally incomplete**: the optional Dirac↔two-fluid projection, any physical $\kappa_s=C\,\kappa_{s,\mathrm{scale}}$ assignment, and the associated equilibration interpretation. No sourced normalization repairs the bracket.
-- **Blocked Hypothesis (test exists after repair)**: the $\mathcal{N}_{\mathrm{pde}}$ computation and any $\chi \in [0.5, 1.0]$ result.
-- **Speculative**: TeV-scale phenomenology of the sector-coupling enforcement dynamics.
-- **Not Supported**: any claim that the O(1) coefficient or physical coupling is determined without a dimensionally valid mechanism (no discriminator between $C = 1$, $\varphi^{-1}$, $\varphi^{-2}$).
-
-**Inputs.**
 
 $$
 \boxed{
-\begin{aligned}
-&\text{(a) cascade ladder } E_n = M_{\text{Pl}}\,\varphi^{-n} && \text{framework-derived (foundations/dimensionful-cascade.md §2)}\\
-&\text{(b) } v_0 = 246\ \text{GeV at rung 80} && \text{calibrated anchor } (n(v_0) = 79.89 \approx 80;\ E_{80} = 233.2\ \text{GeV})\\
-&\text{(c) coefficient-free scale form } \kappa_{s,\mathrm{scale}} = \varphi^{-6}/v_0^2 && \text{exact conditional arithmetic (reciprocal of } \xi = \varphi^6 \text{ at the anchor)}\\
-&\text{(d) } \delta = 3 && \text{inherited from } \sigma = \ell_{\text{Pl}}/\varphi^3 \text{ (gravity/quantum-gravity.md §2.1, conditional on } d = 3)
-\end{aligned}
-}
+\operatorname{Im}\left\{\frac{\kappa_s}{2}
+\left[(B_R-A)^2+(B_L-B)^2\right]\right\}
+=\kappa_s(B-A)y.}
 $$
 
-Output of the exact conditional $\varphi$ arithmetic: $M_{s,\mathrm{scale}} = M_{\text{Pl}}\,\varphi^{-77}$ (rung $77 = 154/2$) and $\kappa_{s,\mathrm{scale}} = 9.21\times10^{-7}\ \text{GeV}^{-2} = 0.92\ \text{TeV}^{-2}$. These are formal scale values, not a physical $\kappa_s$, $\chi$, or repaired Lagrangian coupling.
+Both terms are generically complex when the condensates differ. They cannot define a real classical interaction or a Hermitian quantum interaction for arbitrary fields. Replacing an ordinary square by an absolute square would define a different interaction and would not make the two incompatible scalar targets simultaneously attainable.
+
+The registered matrix and independent two-component calculations both have valid numerical receipts with empty failures. At $A=\varphi,B=1$ and $(B_R,B_L)=(i,-i)$, the linear interaction has imaginary part $+0.6180339887498949$ and the squared expression with unit coefficient has imaginary part $-0.6180339887498949$. The exact verdicts are `CONTRADICTS—chiral-scalar nonnegative-density identification` and `CONTRADICTS—displayed chiral projection interaction as a physical real action`. The five fixed witnesses, independent constructions and immutable identities are recorded in `computations/matter-formation-continuum-report.md` §12. These are checks of the specified algebraic identification and interaction; physical fermion production remains unselected.
+
+### 1.4 Elementary carrier identity
+
+A local invertible normalization preserves a field's Lorentz representation. The scalar carrier restriction in `foundations/particle-stationary-action-closure.md` has scalar elementary quanta under its stated canonical quantization. A Dirac field has a spinorial representation and fermionic quantization supplied as additional microscopic content. Matching a scalar mass to the electron mass supplies neither property. Fermionic topological solitons require a separate configuration space and quantization; this statement concerns the topologically trivial scalar restriction.
+
+## 2. The conditional scale and electroweak anchor
+
+The cascade arithmetic determines a scale once its dimensionful anchor and offset are declared. With $E_n=M_{\rm Pl}\varphi^{-n}$, the exact step-80 value is $E_{80}=233.2\ \mathrm{GeV}$ at the displayed precision. The calibrated $v_0=246\ \mathrm{GeV}$ instead has coordinate $n(v_0)\approx79.89$. These two inputs define two related scale evaluations.
+
+Using the exact cascade value gives
+
+$$
+\kappa_{s,80}=\frac{\varphi^{-6}}{E_{80}^2}
+=M_{\rm Pl}^{-2}\varphi^{154},\qquad
+\kappa_{s,80}^{-1/2}=E_{77}\approx987.7\ \mathrm{GeV}.
+$$
+
+The exponent identity $154/2=77$ follows exactly from the declared offset $\delta=3$. Using the calibrated VEV gives the formal coefficient-free candidate
+
+$$
+\boxed{
+\kappa_{s,\mathrm{scale}}=\frac{\varphi^{-6}}{v_0^2}
+\approx9.21\times10^{-7}\ \mathrm{GeV}^{-2}
+=0.921\ \mathrm{TeV}^{-2},\qquad
+M_{s,\mathrm{scale}}=\varphi^3v_0\approx1042.07\ \mathrm{GeV}.}
+$$
+
+Its coordinate is $n(v_0)-3\approx76.89$, and its mass lies $5.50\%$ above $E_{77}$. The inherited electroweak offset is explicit. The equality to an integer cascade coordinate applies to the $E_{80}$-anchored expression.
+
+More generally, a stipulated offset $\delta$ gives $\varphi^{-2\delta}/v_0^2$ and $\varphi^\delta v_0$. The choice $\delta=3$ is shared with the conditional phase-resolution construction in `gravity/quantum-gravity.md` §2.1. It selects no microscopic operator, matrix element or interaction rate. The reciprocity between $\varphi^{-6}$ and the Qi-gravity factor $\xi=\varphi^6$ is arithmetic. The numerical evaluations are recorded by `computations/kappa_s_rung_identity.py`.
+
+## 3. Optional coefficient choices
+
+An interaction coefficient requires an interaction to multiply. The formal readings $C\kappa_{s,\mathrm{scale}}$ below are scale conventions without a selected physical operator:
+
+| $C$ | Formal coefficient | Formal inverse-square-root scale |
+|---|---:|---:|
+| $1$ | $0.921\ \mathrm{TeV}^{-2}$ | $1.042\ \mathrm{TeV}$ |
+| $\varphi^{-1}$ | $0.569\ \mathrm{TeV}^{-2}$ | $1.326\ \mathrm{TeV}$ |
+| $\varphi^{-2}$ | $0.352\ \mathrm{TeV}^{-2}$ | $1.686\ \mathrm{TeV}$ |
+
+The order-of-magnitude phrase $1/\mathrm{TeV}^2$ does not discriminate among them. The solver convention $\lambda=0.1$, its Hypothesized Wu Xing interpretation and the de-resonance principle supply no operator selection or physical value of $C$. A viable Dirac/two-fluid coupling needs a dimensionally homogeneous Hermitian interaction built from suitable observables, followed by matching to the canonical density dynamics.
+
+## 4. The transport-mobility bridge
+
+A dimensional inconsistency also prevents the displayed sector scale from predicting the dimensionless solver mobility. The expression
+
+$$
+\chi=\frac{\kappa_s\varphi^{-1}}{m_e(1+\varphi)}
+$$
+
+would have dimension $[M]^{-3}$ if $[\kappa_s]=[M]^{-2}$. A normalization factor would need dimension $[M]^3$ before the result could be compared with a dimensionless $\chi$:
+
+$$
+\chi=\mathcal N_{\rm pde}
+\frac{\kappa_s\varphi^{-1}}{m_e(1+\varphi)}.
+$$
+
+The expression specifies neither that factor's physical origin nor a matching calculation. The formal substitution $C=1$ yields $4.25\times10^{-4}$ in mixed units, which is not a dimensionless mobility. The back-solved numerical normalization $\mathcal N_{\rm pde}\approx2.35\times10^3$ is Mapped in `parameter-inventory.md` §10. Its apparent closure depends on solver conventions and does not define a microscopic coupling (`computations/n_pde_bridge_check.py`).
+
+A physical bridge requires a specified Hermitian microscopic interaction, selected current or density observables, state preparation, and a coarse-graining calculation. Reading numerical grid constants cannot supply those missing ingredients. The solver's $\chi\in[0.5,1.0]$ remains a calibrated numerical target.
+
+## 5. Conditional arithmetic and open predictions
+
+| Label | Statement | Status |
+|---|---|---|
+| K1 | $M_{s,\mathrm{scale}}=\varphi^3v_0\approx1.04\ \mathrm{TeV}$ and $\kappa_{s,\mathrm{scale}}\approx0.921\ \mathrm{TeV}^{-2}$; the exact cascade-anchor counterpart is $E_{77}$ | Derived conditional arithmetic / Calibrated VEV input |
+| K2 | A microscopic coupling and coarse-graining could predict a dimensionless solver mobility | Hypothesized; operator, normalization and state-dependent matching are unselected |
+| K3 | A physical Dirac/two-fluid equilibration scale is associated with the proposed offset | Hypothesized; the scale arithmetic supplies no dynamics |
+
+The K labels identify conditional scale statements and remain separate from the numbered prediction catalog. The excluded chiral-scalar positive-density identification and non-Hermitian enforcement expression provide no prediction for particle production, equilibration or transport.
+
+## 6. Epistemic boundaries
+
+The exact results are the conditional scale arithmetic, the field dimensions, the chiral-scalar adjoint identity, the nonnegative-density obstruction and the interaction-reality obstruction. The external $v_0$ anchor is Calibrated. Selected coefficient readings and the back-solved numerical bridge retain their ledgered status. The physical coupling, state preparation, microscopic production process and mapping to the canonical density dynamics remain Hypothesized or open.
+
+The two-fluid's real-density description supplies no Dirac field by itself. Adding the standard Dirac kinetic action introduces fermionic microscopic content as an independent assumption. A physical mass fit, a cascade coordinate and a formal coefficient-free scale do not select that content or its interaction.
 
 ## References
 
-- `foundations/unified-lagrangian.md`—§5.2/§5.5/§6/§7.2: optional Dirac→two-fluid projection ansatz (dimensionally incomplete), full mixing Lagrangian, complete action, Dirac equation of motion
-- `foundations/dimensionful-cascade.md`—§2–§3: rung ladder $E_n = M_{\text{Pl}}\varphi^{-n}$; §9: dark-step open questions
-- `gravity/quantum-gravity.md`—§2.1: $\sigma = \ell_{\text{Pl}}/\varphi^3$ with $\delta = 3 = d$ (the shared offset; cross-check (ii) points here)
-- `computations/kappa_s_rung_identity.py`—numerical verification of the rung identity and every value in §2
-- `foundations/deriving-remaining-gaps.md`—§3.3: EW discretization residual class ($n = 79.89$, 5.3% gap)
-- `foundations/dimensionful-constants-status.md`—§2.1: canonical $\lambda = 0.1$ solver normalization and Hypothesized $\lambda = 1/(2w)$ linkage (rational, not a $\varphi$-power)
-- `foundations/wu-xing-cycle-structure.md`—§1.3: the other $\kappa$ (pentagram transmission $K_{fw} = \varphi^{-1}$)
-- `principles/de-resonance-principle.md`—$\varphi$-baseline posture: attractor sets leading order, dynamics supply corrections
-- `parameter-inventory.md`—§3.3: status of $\chi$ and $\kappa$ (free, $\sim 1/\text{TeV}^2$)
+- `foundations/unified-lagrangian.md` §§2, 5–7—optional fermion sector and action assembly.
+- `foundations/particle-stationary-action-closure.md` §8.12—scalar physical-normalization and particle-identity boundary.
+- `computations/matter-formation-normalization-prereg.md`—frozen unit-normalization, bilinear and action-reality checks.
+- `computations/matter-formation-continuum-report.md` §12—independently verified normalization family and microscopic-identification exclusions.
+- `foundations/dimensionful-cascade.md` §§2–3—cascade scales and coordinates.
+- `gravity/quantum-gravity.md` §2.1—conditional shared offset $\delta=3$.
+- `computations/kappa_s_rung_identity.py`—formal sector-scale arithmetic.
+- `computations/n_pde_bridge_check.py`—solver-convention dependence of the numerical mobility bridge.
+- `foundations/deriving-remaining-gaps.md` §3.3—electroweak anchor offset.
+- `foundations/dimensionful-constants-status.md` §2.1—solver normalization and external scales.
+- `foundations/wu-xing-cycle-structure.md` §1.3—distinct pentagram transmission coefficient.
+- `principles/de-resonance-principle.md`—physical selection assumptions.
+- `parameter-inventory.md` §§3.3, 10—mobility status and Fit-Status Ledger.

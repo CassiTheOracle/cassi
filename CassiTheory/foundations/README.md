@@ -11,9 +11,16 @@ calculation with prepared static binding at $Q_C=16$ and $256$, independently
 reproduced by collocation. Its first-order carrier law preserves an exactly
 empty sector. The stored Cartesian carrier sequence fails the frozen
 smooth-field diagnostic, and the smooth $Q_C=16$ combined spatial-stability
-verdict is `INCONCLUSIVE`. The derivation and measured scope are in
-`foundations/particle-stationary-action-closure.md` §8.7 and
-`computations/matter-formation-continuum-report.md`.
+verdict is `INCONCLUSIVE`. The normalization campaign in
+`computations/matter-formation-continuum-report.md` §12 supports conditional
+one-mass normalization nonuniqueness: three values of $a$ share the external
+vacuum scalar mass, speed $c$, and one unit of internal scalar $U(1)$
+generator, while their core lengths differ. The scalar electron-core
+assignment and the displayed chiral-scalar density map are `CONTRADICTS`;
+this does not establish an electron, electromagnetic charge, or a physical
+interaction. The derivation and measured scope are in
+`foundations/particle-stationary-action-closure.md` §§8.7, 8.12 and
+`computations/matter-formation-continuum-report.md` §§11–12.
 
 ## Document Index
 
@@ -46,7 +53,7 @@ verdict is `INCONCLUSIVE`. The derivation and measured scope are in
 | 25 | `microcascade-mirror.md` | Formal negative-step coordinate; physical realization open | Hypothesized |
 | 26 | `refined-numeric-predictions.md` | Pinned φ-powers | Active derivation |
 | 27 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
-| 28 | `sector-coupling-derivation.md` | Dirac↔two-fluid sector coupling | Derived conditional on $\delta = 3$ (coefficient-free scale/rung identity); Hypothesized dimensionally incomplete projection; physical coupling blocked |
+| 28 | `sector-coupling-derivation.md` | Conditional Sector Scale and the Dirac Density Obstruction | Derived conditional scale arithmetic and chiral-scalar obstruction / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026 |
 | 29 | `wake-geometry.md` | Wake geometry | Derived supplied-wave structure; tested conditional second-order realization; physical condensation open |
 | 30 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
 | 31 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
@@ -102,6 +109,13 @@ named C-class experiment.
 The gated rank-one wording denotes the selected canonical/theory form; the
 base `TwoFluid3DGPU.rhs` is ungated and the expanding solver applies the gate
 only with `qi_gate=True` (`qi_gate=False` by default).
+
+The displayed Dirac chiral-scalar projection and mixing expressions remain
+excluded as physical interactions: the chiral bilinears are conjugate rather
+than independent nonnegative densities, their dimension differs from
+condensate squares, and the displayed linear and ordinary-square terms are
+generically non-Hermitian. A dimensional bridge alone cannot select a
+physical $\kappa_s$ or repair the microscopic particle map.
 
 ### `cassi-first-principles.md`—Cassi First Principles
 
@@ -471,13 +485,21 @@ Takes the Hypothesized entries of the open-questions catalog and refines the spe
 
 Catalogues the remaining underived quantities in the framework and assesses each derivation for whether it fully resolves, partially narrows, or hits an irreducible barrier. The headline result: the strong coupling gap at $M_Z$ is $2.0\times$—pure SM running from $\alpha_{\text{GUT}} = \varphi^{-3}/4\pi$ gives $\alpha_s(M_Z) = 0.058$ versus the observed 0.118, requiring an effective beta coefficient $b_{\text{eff}} = 8.70$, i.e. $\Delta b = 1.70$ from roughly one vector-like colored fermion pair plus two colored scalars, or three KK levels. Three of the four gaps are resolved and one is narrowed with the residual barrier identified. Status: custom (four derivations, three resolved, one narrowed).
 
-### `sector-coupling-derivation.md`—Coefficient-Free Sector Scale: Dirac↔Two-Fluid Equilibration from $\varphi$
+### `sector-coupling-derivation.md`—Conditional Sector Scale and the Dirac Density Obstruction
 
-Derives the coefficient-free formal scale $\kappa_{s,\mathrm{scale}}$ from the Qi-gravity coupling and Higgs VEV, conditional on $\delta = 3$:
+The source derives coefficient-free scale arithmetic conditional on
+$\delta=3$ and the calibrated electroweak anchor:
 
-$$\boxed{\kappa_{s,\mathrm{scale}} = \frac{\varphi^{-6}}{v_0^2} = M_{\mathrm{Pl}}^{-2}\varphi^{154} \approx 0.92\ \text{TeV}^{-2}}$$
+$$\boxed{\kappa_{s,\mathrm{scale}}=\frac{\varphi^{-6}}{v_0^2}
+\approx0.92\ \mathrm{TeV}^{-2},\qquad
+M_{s,\mathrm{scale}}=\varphi^3v_0\approx1.04\ \mathrm{TeV}.}$$
 
-so the formal scale $M_{s,\mathrm{scale}} = \kappa_{s,\mathrm{scale}}^{-1/2} = \varphi^3 v_0 = 1042$ GeV sits +5.5% off cascade rung 77 (987.7 GeV)—the same residual class as the documented electroweak placement (rung 80, −5.2%). Cycle-factor variants remain formal candidate readings, giving 1.042/1.326/1.686 TeV for $C = 1,\varphi^{-1},\varphi^{-2}$. The optional Dirac↔two-fluid projection is dimensionally incomplete: it subtracts a spinor density of dimension $[M]^3$ from condensate squares of dimension $[M]^2$, leaving physical $\kappa_s$ and the equilibration interpretation unresolved. The as-written chemotactic bridge $\chi = \kappa_s\varphi^{-1}/[m_e(1+\varphi)]$ has mixed dimensions ($\chi \approx 4\times10^{-4}$ cannot be compared with the calibrated 0.5–1.0); a solver normalization factor $\mathcal{N}_{\mathrm{pde}} \approx 2.35\times10^{3}$ requires a sourced dimensional repair before it can be evaluated. Status: Derived conditional coefficient-free scale; Hypothesized dimensionally incomplete projection; physical $\kappa_s$ and $\chi$ blocked.
+This arithmetic selects no physical operator. The displayed Dirac-to-two-fluid
+projection is excluded by its dimensional mismatch, chiral-bilinear
+conjugacy, and generic non-Hermiticity; no physical $\kappa_s$,
+equilibration timescale, transport coefficient, or interaction follows.
+The normalization and particle-identity boundary is measured in
+`computations/matter-formation-continuum-report.md` §12.
 
 ### `wake-geometry.md`—The Wake Geometry: Composite-Wavelength Closure and the Horizon Rung
 
@@ -809,10 +831,13 @@ concentrated at grid scale.
 At the Mapped coupling $h_C=2.9598260763447164$, the stored Cartesian
 localized branch has a matched six-mode constrained finite-grid spectrum
 and fails the smooth-carrier diagnostic. The exact scalar reduction gives
-independently reproduced static binding at prepared $Q_C\in\{16,256\}$; smooth
-$Q_C=16$ constrained spatial stability is INCONCLUSIVE. The first-order
-carrier law preserves empty-sector data, leaving microscopic creation and
-physical normalization open. See `computations/matter-formation-continuum-report.md`,
+independently reproduced static binding at prepared $Q_C\in\{16,256\}$;
+smooth $Q_C=16$ constrained spatial stability is INCONCLUSIVE. The first-order
+carrier law preserves empty-sector data. The normalization campaign gives
+three admissible scalar-parent normalization witnesses with the same external
+vacuum scalar mass, speed $c$, and one unit of internal scalar $U(1)$ generator,
+but distinct core lengths; physical normalization is therefore conditional
+and nonunique. See `computations/matter-formation-continuum-report.md` §12,
 `computations/particle-stationary-precision-v5-report.md`,
 `computations/particle-physical-hessian-precision-v2-report.md`,
 `computations/particle-carrier-direct-coordinate-report.md`,

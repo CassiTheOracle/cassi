@@ -933,6 +933,23 @@ monotonicity and boundary assumptions that these arrays do not establish
 (`foundations/particle-stationary-action-closure.md` §8.11;
 `computations/matter-formation-continuum-report.md` §11).
 
+A physical mass calibration leaves further choices within this scalar
+parent. Three independently reconstructed temporal coefficients give the
+same imposed $0.511\ \mathrm{MeV}$ vacuum scalar mass, speed $c$ and one
+internal generator unit, with different length scales. The smallest
+$\ell_Q$ compatible with the selected global-vacuum inequality exceeds
+the mapped electron cell, so that extra core-cell assignment is
+contradicted. No electromagnetic charge or fermionic identity is supplied.
+Changing units leaves the failed dimensionless spatial comparison unchanged.
+The separate proposed Dirac chiral-scalar density map also fails:
+conjugacy forces simultaneous real positive values to be equal, and the
+displayed enforcement action is generically non-Hermitian. A physically
+admissible microscopic interface therefore requires independently selected
+observables and interactions
+(`foundations/particle-stationary-action-closure.md` §8.12;
+`foundations/sector-coupling-derivation.md` §1;
+`computations/matter-formation-continuum-report.md` §12).
+
 The remaining physical requirements are:
 
 1. identify the microscopic carrier and derive its production interaction,

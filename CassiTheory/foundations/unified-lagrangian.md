@@ -9,7 +9,7 @@ The canonical Cassi state is the real-density pair $E_Y,E_I\ge 0$ with $\rho=E_Y
 $$
 \boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}
 $$
-The displayed sum is an optional extended-action bookkeeping identity. The canonical two-fluid sector is read through the real-density state and its gated rank-one conversion; $\mathcal{L}_{\text{D}}$, projection terms, and particle-linked portions of $\mathcal{L}_{\text{SM}}$ and $\mathcal{L}_{\text{mix}}$ require the conditional extension.
+The displayed sum is an optional extended-action bookkeeping identity. The canonical two-fluid sector is read through the real-density state and its gated rank-one conversion. The Dirac and gauge sectors require independently declared field content and interactions. The chiral-scalar positive-density identification and its enforcement interaction are excluded by the algebraic and dimensional results in §§2.2 and 5.2.
 The q-gated rank-one expression is the selected canonical/theory form. In the
 implementation, `TwoFluid3DGPU.rhs` uses ungated $-\lambda\varepsilon$;
 `ExpandingTwoFluid3DGPU` defaults to `qi_gate=False` and applies $(1-q)$ only
@@ -391,7 +391,7 @@ The cross-clock discriminator is registered as CT-2 in
 
 ## 2. Optional Dirac/Particle Extension $\mathcal{L}_{\text{D}}$ (Hypothesized—August 2026)
 
-An optional conditional extension adds the Dirac 4-spinor $\psi$ as quantum matter. Its Lagrangian is the standard Dirac action with a proposed Yang/Yin projection term; this sector is external to the canonical density derivation.
+An optional conditional extension adds a Dirac four-spinor as independently specified quantum matter. Its free action is standard; its spin, statistics and mass are inputs. The canonical density equation supplies no microscopic identification with that spinor.
 
 ### 2.1 Dirac Kinetic and Mass Terms
 
@@ -401,52 +401,55 @@ $$
 
 where $\gamma^\mu$ are the Dirac gamma matrices satisfying $\{\gamma^\mu, \gamma^\nu\} = 2\eta^{\mu\nu}$.
 
-### 2.2 Yang/Yin Density Mapping
+### 2.2 Chiral-Scalar Density Obstruction
 
-Within the optional extension, a proposed formal, unnormalized connection between the Dirac spinor and the two-fluid uses **Yang/Yin density operators**. In natural units $[\bar\psi\hat P\psi]=[M]^3$ while $[\Psi_\alpha^2]=[M]^2$; no dimensionful bridge scale is specified, so this correspondence does not define a dimensionally complete field identification or action:
-
-$$
-E_Y \overset{\mathrm{formal}}{\longleftrightarrow} \bar\psi\,\hat{P}_Y\,\psi,\qquad
-E_I \overset{\mathrm{formal}}{\longleftrightarrow} \bar\psi\,\hat{P}_I\,\psi
-$$
-
-Within this extension, $\hat{P}_Y$ and $\hat{P}_I$ are projection operators assigned to the 4-spinor. Right-moving/particle-like and left-moving/anti-particle-like labels, together with the chiral representation, are extension assumptions; the canonical density equations contain no such labels.
+The proposed spinor identification does not supply the canonical nonnegative
+Yang/Yin densities. With $P_{R,L}=(1\pm\gamma^5)/2$, define
 
 $$
-\hat{P}_Y = \frac{1+\gamma^5}{2},\qquad
-\hat{P}_I = \frac{1-\gamma^5}{2}
+B_R=\bar\psi P_R\psi,\qquad B_L=\bar\psi P_L\psi.
 $$
 
-Within this optional extension, one may represent the two-fluid densities by the following **formal chiral projection correspondence**; the missing bridge scale remains an explicit dimensional-closure blocker:
+These chiral scalars have mass dimension three, while $\Psi_\alpha^2$ has
+dimension two. They also satisfy the adjoint identity
 
 $$
-\boxed{\Psi_0^2 \overset{\mathrm{formal}}{\longleftrightarrow} \bar\psi\frac{1+\gamma^5}{2}\psi,\qquad
-\Psi_1^2 \overset{\mathrm{formal}}{\longleftrightarrow} \bar\psi\frac{1-\gamma^5}{2}\psi}
+\boxed{B_R^\dagger=B_L.}
 $$
 
-Within this extension, the condition $E_Y/E_I = \varphi$ supplies the proposed $\varphi$-VEV mapping.
+For ordinary complex spinors $\psi=(L,R)$, they are $L^\dagger R$ and
+$R^\dagger L$. They can be complex or negative. If both are real and
+nonnegative under a common real normalization, they are equal; imposing
+$B_R=\varphi B_L$ then forces both to vanish.
 
-### 2.3 φ-Damping
+The positive frame densities $R^\dagger R,L^\dagger L$ are different
+observables and require a current/observer and quantum-state prescription.
+The canonical $E_Y,E_I\ge0$ and their algebraic $q$ remain defined by §1.
+No fermion density dictionary or production mechanism follows from the
+chiral-scalar assignment (`foundations/sector-coupling-derivation.md` §1).
 
-Within the optional extension, the Dirac evolution includes $\varphi$-damped dynamics:
+### 2.3 Scalar Interaction and Dissipation Boundary
+
+The expression $-\varphi^{-1}(\bar\psi\psi)\rho/2$ has mass dimension five
+with a dimensionless prefactor. A physical four-dimensional interaction
+would require an additional coefficient of mass dimension $-1$. A real
+Hermitian scalar-bilinear interaction would be conservative; it supplies
+no dissipative rate without an open-system derivation. The component count
+of a Dirac spinor selects neither coefficient nor damping law.
+
+### 2.4 Declared Optional Dirac Action
+
+The separately specified free Dirac contribution is
 
 $$
-\mathcal{L}_{\text{D,damp}} = -\frac{\varphi^{-1}}{2}(\bar\psi\psi)\cdot\rho
+\boxed{\mathcal L_{\rm D}=\bar\psi(i\gamma^\mu\partial_\mu-m)\psi.}
 $$
 
-Under the optional density mapping, $\rho=E_Y+E_I=\Psi_0^2+\Psi_1^2$, so this coupling uses the same two-fluid density as the canonical state. It remains a formal source ansatz only; without a specified dimensionful bridge scale, it does not close a dimensionally complete Dirac action.
-
-### 2.4 Full Dirac Lagrangian
-
-$$
-\boxed{\mathcal{L}_{\text{D}} = \bar\psi(i\gamma^\mu\partial_\mu - m)\psi
-- \frac{\varphi^{-1}}{2}(\bar\psi\psi)\cdot\rho
-+ \bar\psi\left(\hat{P}_Y\Psi_0^2 + \hat{P}_I\Psi_1^2\right)\psi}
-$$
-
-Because the bridge scale is unspecified, the displayed damping and projection terms are formal ansätze; $\mathcal{L}_{\text{D}}$ is not a dimensionally complete physical action.
-
----
+Its spin representation, anticommutation relations and mass are microscopic
+inputs. Gauge and Yukawa interactions require the corresponding declared
+extensions in §4. A direct interaction identifying this field with the
+two-fluid densities is unselected; the expressions in §2.2 and §5.2 are
+excluded by their stated algebraic and dimensional obstructions.
 
 ## 3. GR/Gravity Sector $\mathcal{L}_{\text{GR}}$
 
@@ -747,16 +750,28 @@ $$
 
 This display is not an algebraic replacement for the phenomenological $G_{\text{eff}}$ of Section 3.2. Adding it directly to the Einstein-Hilbert term would produce an inverse-gravity coefficient proportional to $(1+\xi q)/G$, whereas Section 3.2 defines $G_{\text{eff}}=G\cdot(\pi/\rho)\cdot(1+\xi q)$; these forms are not equivalent without an explicit normalization, sign choice, and density bridge. A complete covariant action therefore remains conditional on those inputs.
 
-### 5.2 Dirac → Two-Fluid Projection (optional conditional extension—Hypothesized—August 2026)
+### 5.2 Chiral Projection Interaction Obstruction
 
-Within the optional extension, the Dirac spinor's chiral densities are proposed as sources for the two-fluid:
+The displayed enforcement expression
 
 $$
-\boxed{\mathcal{L}_{\text{D→TF}} = \frac{\kappa_s}{2}\left(\bar\psi\frac{1+\gamma^5}{2}\psi - \Psi_0^2\right)^2
-+ \frac{\kappa_s}{2}\left(\bar\psi\frac{1-\gamma^5}{2}\psi - \Psi_1^2\right)^2}
+\mathcal L_{\rm proj}^{\rm formal}
+=\frac{\kappa_s}{2}
+\left[(\bar\psi P_R\psi-\Psi_0^2)^2
++(\bar\psi P_L\psi-\Psi_1^2)^2\right]
 $$
 
-The optional ansatz remains a dimensionally incomplete **Hypothesized** ansatz: each bracket subtracts a spinor density of dimension $[M]^3$ from a condensate square of dimension $[M]^2$. No physical $\kappa_s$ or equilibration timescale follows until a sourced, ledgered normalization makes the projection homogeneous.
+does not define a physical action. It subtracts dimension-three spinor
+bilinears and dimension-two condensate squares. A common real mass bridge
+would leave a separate reality obstruction: for conjugate bilinears
+$x\pm iy$ and unequal real targets $A,B$, its imaginary part is
+$\kappa_s(B-A)y$. The linear expression $A B_R+B B_L$ likewise has imaginary
+part $(A-B)y$. These terms are generically non-Hermitian.
+
+The conditional scale $\varphi^{-6}/v_0^2$ remains arithmetic based on the
+stipulated offset and calibrated VEV. It supplies no admissible microscopic
+operator, fermion-to-density map, equilibration rate or transport mobility
+(`foundations/sector-coupling-derivation.md` §§1–4).
 
 ### 5.3 Gauge → Two-Fluid Coupling
 
@@ -801,11 +816,10 @@ $$
 \begin{aligned}
 \mathcal{L}_{\text{mix}} &=
 \frac{\xi q}{16\pi G}R \\
-&\quad + \frac{\kappa_s}{2}\sum_{\pm}\left(\bar\psi\frac{1\pm\gamma^5}{2}\psi - \Psi_{0,1}^2\right)^2 \\
 &\quad + \left(|D_\mu\Psi|^2 - |\partial_\mu\Psi|^2\right)
 \end{aligned}}
 $$
-The $\kappa_s$ term in this full mixing form inherits the dimensional defect in §5.2. The $\xi q R/G$ term is the same schematic candidate from §5.1, not an algebraic replacement for the phenomenological $G_{\text{eff}}$. Both remain optional **Hypothesized** structures; no physical $\kappa_s$ or equilibration timescale is established without a sourced, ledgered normalization, and the covariant gravity action requires the normalization/sign/density bridge stated in §5.1.
+The $\xi qR/G$ term is the schematic candidate from §5.1 and retains its normalization, sign and density-bridge conditions. The gauge-kinetic difference is the optional extension in §5.3. Both have their stated Hypothesized scope. The chiral projection expression in §5.2 contributes no admissible term to this mixing action.
 
 ---
 
@@ -818,7 +832,7 @@ S_{\text{Cassi}} = \int d^4x\sqrt{-g}\,
 }
 $$
 
-This displayed sum is optional bookkeeping, not a complete action: the Dirac density mapping and projection/damping terms retain the unspecified dimensionful bridge identified in §2.2.
+This displayed sum organizes conditional sectors. A consistent use must select their field content, count each kinetic term once and supply the physical normalization and couplings. The chiral-scalar density map and enforcement interaction are inadmissible for the reasons in §§2.2 and 5.2; a mass-unit assignment leaves their positivity and Hermiticity obstructions unchanged.
 
 ### 6.1 Compact Form
 
@@ -830,25 +844,22 @@ $$
 \mathcal{L}_{\text{Cassi}}
 &= \underbrace{\frac{1}{2}(\partial\Psi)^2 - \frac{g}{4}|\Psi|^4
    - \frac{\lambda}{2}(\Psi_0^2 - \varphi\Psi_1^2)^2}_{\text{Two-fluid core}} \\
-&\quad + \underbrace{A_B B(x,t)|\Psi|^2}_{\text{optional breath extension}} \\
-&\quad + \underbrace{\bar\psi(i\gamma^\mu\partial_\mu - m)\psi
-   - \frac{\varphi^{-1}}{2}(\bar\psi\psi)\cdot\rho}_{\text{Dirac matter—optional extension}} \\
+&\quad + \underbrace{\frac{A_B}{2} B(x,t)|\Psi|^2}_{\text{optional breath extension}} \\
+&\quad + \underbrace{\bar\psi(i\gamma^\mu\partial_\mu - m)\psi}_{\text{Dirac matter—optional extension}} \\
 &\quad + \underbrace{\frac{1}{16\pi G_{\text{eff}}}R}_{\text{Gravity}} \\
 &\quad + \underbrace{-\frac{1}{4g_s^2}G^2 - \frac{1}{4g^2}W^2
    - \frac{1}{4g'^2}B^2}_{\text{Gauge kinetic—listed extension}} \\
 &\quad + \underbrace{|D_\mu\Psi|^2
    - \lambda_\phi(|\Psi|^2 - v_0^2/2)^2
-   - y_f\bar\psi_f\Psi\psi_f'}_{\text{Higgs + Yukawa—optional extension}} \\
-&\quad + \underbrace{\frac{\kappa_s}{2}\sum_{\pm}
-   \left(\bar\psi P_{\pm}\psi - \Psi_{0,1}^2\right)^2}_{\text{Sector coupling—optional extension}}
+   - y_f\bar\psi_f\Psi\psi_f'}_{\text{Higgs + Yukawa—optional extension}}
 \end{aligned}}
 $$
 
 The configuration-space quantum action from §1.3 is a separate action on
-$\Psi[Q,t]$ and is therefore outside this local four-dimensional bookkeeping
-sum. The compact action repeats the optional sector-coupling ansatz and its
-dimensional blocker; no physical $\kappa_s$ or equilibration timescale is
-established from the displayed term.
+$\Psi[Q,t]$ and is outside this local four-dimensional bookkeeping sum.
+The displayed sectors introduce no direct Dirac-to-two-fluid projection:
+the candidate in §5.2 is dimensionally inhomogeneous and generically
+non-Hermitian. A physical microscopic interaction remains unselected.
 
 ### 6.2 Subsector Actions
 
@@ -860,7 +871,10 @@ The table separates the canonical two-fluid core from optional Dirac, gauge, and
 | Dirac matter (optional extension) | $S_{\text{D}} = \int\mathcal{L}_{\text{D}}$ | `two-fluid/cassi_dirac_bridge.py`, `particles/cassi-yang-yin-particles.md` |
 | Gravity | $S_{\text{GR}} = \int\mathcal{L}_{\text{GR}}$ | `foundations/xi-derivation.md`, `(external—see archive/theory/qi-fluid-formalism.md in physics repo)` |
 | SM gauge | $S_{\text{SM}} = \int\mathcal{L}_{\text{SM}}$ | `standard-model/su2-gauge-extension.md`, `standard-model/sm-from-phi.md` |
-| Mixing | $S_{\text{mix}} = \int\mathcal{L}_{\text{mix}}$ | This document |
+| Mixing (optional Hypothesized structures) | $S_{\text{mix}} = \int\mathcal{L}_{\text{mix}}$ | This document §5.5; direct Dirac/two-fluid identification has dimensional, positivity and Hermiticity obstructions |
+
+## 7. Conditional equations of motion
+
 The following coupled equations belong to the optional extended action and its
 amplitude-action lift. The canonical solver is stated in the real-density
 variables $E_Y,E_I$ with gated rank-one conversion. These equations add no
@@ -876,17 +890,29 @@ two-component equation:
 
 $$
 \partial^2\Psi_\alpha + \kappa_4\nabla^4\Psi_\alpha
-+ g|\Psi|^2\Psi_\alpha + 2\lambda(\Psi_0^2 - \varphi\Psi_1^2)\frac{\partial}{\partial\Psi_\alpha}(\Psi_0^2 - \varphi\Psi_1^2) \\
-:= A_B B(x,t)\Psi_\alpha + J_\alpha^{\text{gauge}} + J_\alpha^{\text{Dirac}}
++ g|\Psi|^2\Psi_\alpha + \lambda(\Psi_0^2 - \varphi\Psi_1^2)\frac{\partial}{\partial\Psi_\alpha}(\Psi_0^2 - \varphi\Psi_1^2) \\
+= A_B B(x,t)\Psi_\alpha + J_\alpha^{\text{gauge}} + J_\alpha^{\text{Dirac}}
 $$
 
-### 7.2 Dirac Equation (optional conditional extension)
+Here the breath function is a prescribed external drive in the variation.
+Any $J_\alpha^{\rm Dirac}$ contribution must come from a separately specified
+Yukawa interaction; the free Dirac sector and the excluded chiral projection
+provide none. Declared gauge forces are accounted for in their chosen
+action.
+
+### 7.2 Dirac Equation for the Declared Extension
+
+The separately specified free or gauge-covariant Dirac sector obeys
 
 $$
-(i\gamma^\mu D_\mu - m)\psi - \frac{\varphi^{-1}}{2}\rho\psi
-+ \kappa_s\left(\bar\psi P_{\pm}\psi - \Psi_{0,1}^2\right)P_{\pm}\psi = 0
+(i\gamma^\mu D_\mu-m)\psi=0.
 $$
-This formal equation inherits the dimensionally incomplete projection in §5.2; it does not establish a physical $\kappa_s$ or an equilibration timescale until a sourced normalization makes the brackets homogeneous.
+
+A selected Yukawa action adds its explicit variational source. No
+chiral-scalar enforcement force or dimensionless $\varphi$ damping term
+follows from the action stated here. The Dirac field is introduced as
+independent microscopic content; its presence does not derive the
+canonical two-fluid conversion law.
 
 ### 7.3 Einstein Equations
 
@@ -938,7 +964,7 @@ The action assembly contains a mixture of canonical-core, conditional-extension,
 | $H_{\text{empty}}$ | $\lambda\varphi^{-2}/3$ |—| Candidate cosmological baseline—the factor $1/3$ is algebraically **Derived conditional on the assumed spatial dimension $d=3$** (`cosmology/cosmology-from-phi.md` §1); the separate $d=3$ geometry construction is Hypothesized and the assumption is not derived from canonical conversion; the $\lambda\varphi^{-2}$ rate uses the selected solver-family parameter (constructor default $\lambda=0.02$; $\lambda=0.1$ only when explicitly passed); any physical $H_{\text{empty}}$ linkage is **Hypothesized/conditional** |
 | $K_{fw}$ | $\varphi^{-1}$ | $0.618$ | **Derived arithmetic; Wu Xing/PDE role Hypothesized/conditional optional lift** |
 | $K_{md}$ | $3\varphi^2$ | $7.85$ | **Derived arithmetic; Wu Xing/PDE role Hypothesized/conditional optional lift** |
-| $\kappa_s$ | $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ (formal $C=1$ candidate) | **Derived conditional scale arithmetic; the optional projection is dimensionally incomplete, so no physical $\kappa_s$ or equilibration timescale is established; coefficient Hypothesized** |
+| $\kappa_s$ | $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2$ | $0.92$ TeV$^{-2}$ (formal $C=1$ candidate) | **Derived conditional scale arithmetic; displayed chiral-scalar identification has dimensional, positivity and Hermiticity obstructions; a physical interaction and coefficient remain unselected** |
 | $\lambda$ | $0.02$ (`TwoFluid3DGPU` default); $0.1$ when explicitly passed | PDE conversion-rate parameter; $\lambda=1/(2w)$ with $w=5$ is a **Hypothesized** Wu Xing linkage requiring independent cycle-time/dynamical closure | **Asserted default; named experiment convention; Hypothesized linkage** |
 | $G_{\text{eff}}$ | $G\cdot(\pi/\rho)\cdot(1+(\varphi^{6}-1)q)$ |—| **Calibrated/conditional Qi-gravity interpretation**; $\pi/\rho$ and $q$ are dimensionless canonical inputs, with the physical scale anchored by ledger row 498 |
 
@@ -962,7 +988,7 @@ $$
 
 where $N_f$ counts field degrees of freedom and $N_b$ counts background "binding" factors. This pattern is listed for the canonical core and for the optional extensions:
 
-- Two-fluid core: 2 fields $\times$ 1 component = $\varphi^{2}$ → $\varphi^{-1}$ damping
+- Two-fluid core: the two-component count is a proposed arithmetic assignment; it determines no physical damping coefficient or open-system reduction.
 - Dirac sector (optional extension): 4 spinor components × 3 generations = $\varphi^{12}$ → $\varphi^{-11}$ seesaw
 - Gravity: the $2\times3$ field-component/frame-direction count is a secondary **Hypothesized** geometric reading of $\varphi^6$, conditional on $d=3$; it does not derive the physical $\xi$
 - Gauge sector (optional extension): SU(2) has three generators, while the relative U(1) normalization required for $\sin^2\theta_W = \varphi^{-3}$ remains an asserted boundary; the curvature–orbit candidate is tested in `standard-model/su2-gauge-extension.md` §3.2.1.
@@ -977,7 +1003,9 @@ The Cassi action assembly records the canonical real-density two-fluid core toge
 
 The following observables retain their listed statuses, with the gauge-sector entries belonging to the optional conditional extension:
 
-The optional Dirac↔two-fluid projection remains a dimensionally incomplete **Hypothesized** ansatz; its coefficient-free scale candidate does not establish a physical $\kappa_s$ or equilibration timescale.
+The Dirac/two-fluid chiral-scalar assignment has dimensional, positivity and Hermiticity obstructions. Its conditional scale candidate is $M_{s,\mathrm{scale}}=\varphi^3v_0\approx1.042$ TeV with the calibrated electroweak anchor; the exact cascade-anchor counterpart gives $E_{77}$. These arithmetic statements select no physical interaction, particle-production process or equilibration time.
+
+The physical normalization check gives three scalar models with the same imposed $0.511\ \mathrm{MeV}$ vacuum mass, speed $c$ and one internal generator unit, but different core scales. Its additional core-cell assignment is contradicted at the fixed coefficients. The independent spinor witnesses confirm the density and interaction obstructions. These results leave physical production and particle identity open (`computations/matter-formation-continuum-report.md` §12).
 
 | Observable | Cassi | SM | Detectable at |
 |-----------|-------|-----|---------------|
@@ -999,6 +1027,8 @@ The optional Dirac↔two-fluid projection remains a dimensionally incomplete **H
   `TwoFluid3DGPU` default $\lambda=0.02$ and named $\lambda=0.1$ experiment
   convention remain solver parameter choices
 - `foundations/dimensionful-constants-status.md`—external dimensionful constants, parameter accounting
+- `foundations/sector-coupling-derivation.md`—conditional sector-scale arithmetic and chiral-scalar density/action obstruction.
+- `computations/matter-formation-continuum-report.md` §12—independent physical-normalization and microscopic-identity evidence.
 - `foundations/matter-completion-boundary.md`—conditional total-stress Ward
   identity and constant-$G$ geometry branch
 - `standard-model/su2-gauge-extension.md`—SM gauge sector, Weinberg angle

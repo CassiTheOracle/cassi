@@ -31,7 +31,7 @@ Every force lives at a characteristic rung of the ladder, with one exception: gr
 |-------|--------------|---------------|------|
 | Gravity | every rung | $\alpha_G(n) \sim \varphi^{-2n}$: the proton at $n = 91.5$ lands at $\varphi^{-183} \approx 5.9\times10^{-39}$, the observed $\alpha_G$—an identity once the mass sits at its rung, so the reading is ledgered **Mapped**, not a test; the Qi-modified Newton constant $G_{\text{eff}} = G\,(\pi/\rho)(1 + (\varphi^{6}-1)q)$ with $\xi = \varphi^6 \approx 17.94$ | $G_{\text{eff}}$ form Derived; coupling reading Mapped (ledger) |
 | GUT | $n \approx 13$–$15$ ($M_{\text{GUT}} \approx 10^{16}$–$2\times10^{16}$ GeV) | $\alpha_{\text{GUT}} = \varphi^{-3}/(4\pi) \approx 1/53$ | Derived within optional gauge extension; Cassi link Hypothesized |
-| Sector coupling | rung 77 | $\kappa_s = \varphi^{-6}/v_0^2 \approx 0.92$ TeV$^{-2}$ ($\kappa_s^{-1/2} \approx 1.04$ TeV), the scale assigned to an optional Dirac↔two-fluid extension | Derived scale, Hypothesized conditional coefficient |
+| Sector coupling | rung 77 | $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2 \approx 0.92$ TeV$^{-2}$, a formal $C=1$ arithmetic scale candidate for an optional Dirac↔two-fluid construction | **Mapped** conditional scale candidate; the exact projection obstruction leaves the physical $\kappa_s$ and equilibration scale unresolved |
 | Electroweak | rung 80 | $v_0 = 246$ GeV; $\sin^2\theta_W = \varphi^{-3} \approx 0.236$, exact at $\mu_* = 233$ GeV (2.1% above the measured 0.23122 at $m_Z$); $m_W/m_Z = 0.874$ tree-level, 0.878 with the $\rho$ correction | Derived within optional gauge extension; Cassi link Hypothesized |
 | QCD | rung 95 | $E_{95}=M_{\text{Pl}}\varphi^{-95}\approx171\ \text{MeV}$ (the conventional $\Lambda_{\text{QCD}}\sim200\ \text{MeV}$ label is an external anchor); $\sigma_{\text{tube}}=2\pi E_{95}^2\approx0.184\ \text{GeV}^2$ | Rung scale Derived; conventional $\Lambda_{\text{QCD}}$ anchor Calibrated; tension Hypothesized (per `foundations/quark-confinement.md` §3) |
 
@@ -273,13 +273,30 @@ The neutron is the neutral sibling at $n=91.459$. Its $\sim1.3$ MeV mass excess 
 
 ### 3.4 The electron
 
-The electron carries three placements, in three frames:
+The catalog records three mapped placements for the externally specified
+electron mass target in three frames; these are mass/cascade bookkeeping, not
+a particle derivation:
 
 1. **Compton near-miss.** On the $M_{\text{Pl}}$-anchored ladder, $n = 107.079$—3.9% off rung 107, the rung of the reduced Compton wavelength ($\ell_{107} = 3.72\times10^{-13}$ m vs $\hbar/m_ec = 3.86\times10^{-13}$ m, 3.7% off). Not a catalog hit, unlike the muon (0.01%) and J/ψ (1.0%).
 2. **Yukawa half-rung.** In the mass-generation frame, $n = \log_\varphi\big((v_0/\sqrt2)/m_e\big) = 26.47 \approx 26.5$, 1.4%—but class **E**: the half-step is solved from the observed mass, a fit, not a prediction (`foundations/deriving-remaining-gaps.md` §2.2). Within the conditional extension, pool-cell quantization assigns half-rung positions wave-mechanical status through a fundamental-mode antinode; it leaves the cell placement open, so why $[26, 27]$ and not $[25, 26]$ remains empirical.
-3. **Lattice void.** The sharp placement: $e = m_{102}/11.5$ at 0.19%—the sharpest void reading in the catalog, the $k = 11.5 = 23/2$ sub-lattice void at $n = 107.075$ inside the electron's own Compton cell $[107, 108]$. The lepton tower terminates at a void rather than a node, and the up quark sits on the same void family three rungs up ($u = m_{99}/11.5$, 0.40%): the two lightest first-generation fermions share the void index.
+3. **Lattice void.** The sharp placement: $e = m_{102}/11.5$ at 0.19%—the sharpest void reading in the catalog, the $k = 11.5 = 23/2$ sub-lattice void at $n = 107.075$ inside the mapped Compton cell $[107, 108]$. The lepton tower terminates at a void rather than a node, and the up quark sits on the same void family three rungs up ($u = m_{99}/11.5$, 0.40%): the two lightest first-generation fermions share the void index.
 
-Within the conditional complex-field extension, the implied wake phase is $\psi = (A_0 - \delta n)/B_0 = -0.095$ rad (the catalog table rounds to −0.09); the canonical density state has no phase variable.
+Within the conditional complex-field extension, the implied wake phase is
+$\psi = (A_0 - \delta n)/B_0 = -0.095$ rad (the catalog table rounds to −0.09); the canonical density state has no phase variable.
+
+The normalization campaign uses the external electron rest-energy target and
+the mapped Compton cell only as declared inputs. Its three scalar witnesses
+share that mass, speed $c$ and one unit of an internal scalar $U(1)$ generator
+while retaining distinct core lengths
+$\ell_Q=(2.23505,1.61542,1.19022)\times10^{-12}\ \mathrm m$
+(`computations/matter-formation-continuum-report.md` §12). This conditional
+normalization nonuniqueness does not identify the scalar with the electron or
+with electric charge. The separate assignment $\ell_Q=\lambda_*$ has no
+positive root; the allowed minimum $\ell_Q=6.789391938\times10^{-13}\ \mathrm m$
+at $n=108.25197355$ exceeds the mapped cell's upper endpoint
+$6.014112161\times10^{-13}\ \mathrm m$, so that extra scalar core-cell
+assignment is contradicted at the selected coefficients. No electron
+identity or particle formation follows.
 
 ### 3.5 Differences and purposes
 
