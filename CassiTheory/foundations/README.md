@@ -834,6 +834,13 @@ energetically stable regular finite-energy lump by spatial dilation
 (`foundations/particle-stationary-action-closure.md` §8.9). Charged,
 multi-frequency, quantum and additional topological sectors retain their
 separate scope.
+At fixed signed charge, all 24 frozen parent embeddings have independently
+verified positive finite-grid radial curvature. Nine of twelve
+domain/resolution comparisons pass; the population-16 domain failures
+leave aggregate radial-domain qualification INCONCLUSIVE. Population 256
+meets its measured radial comparisons. The derivation is in §8.10 and the
+accepted receipts are summarized in `computations/matter-formation-continuum-report.md`
+§10; full spatial and dynamical stability remain open.
 
 ### `matter-completion-boundary.md`—Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
@@ -861,13 +868,16 @@ algebraic and reduced analytic witnesses pass all nine registered checks.
 The separate particle action has an exact empty-sector invariant, a
 parity-concentrated Cartesian branch and independently reproduced smooth
 scalar binding at prepared population. Its smooth constrained spatial
-stability result is INCONCLUSIVE. Physical exterior and reservoir actions,
-coefficient calibration, gravity selection, microscopic production and
-particle identity remain open
+stability result is INCONCLUSIVE. The optional temporal parent has verified
+Gaussian pair correspondence, a conditional neutral stationary-localization
+obstruction and positive measured finite-grid charged radial curvature.
+Its aggregate radial-domain qualification remains INCONCLUSIVE. Physical
+exterior and reservoir actions, coefficient calibration, gravity selection,
+microscopic production and particle identity remain open
 (`computations/matter-formation-continuum-report.md`). Status: Derived
-conditional boundary / Hypothesized physical realization / Mapped selected
-carrier coupling / Tested reduced receipts, finite-grid spectrum and
-conditional smooth scalar binding—September 2026.
+conditional boundary / Hypothesized physical realization / Mapped carrier
+coupling / Tested reduced receipts, prepared binding, finite-grid spectra
+and parent correspondences—September 2026.
 
 ### `quantum-free-fall-correspondence.md`—Quantum Free Fall as a Cassi Correspondence Boundary
 

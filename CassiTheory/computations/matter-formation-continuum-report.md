@@ -1,6 +1,6 @@
 # Carrier Creation and Continuum Density Trapping
 
-## Status: Derived conditional carrier identities / Hypothesized physical completion / Tested prepared binding, spatial spectrum and Gaussian correspondence—September 2026
+## Status: Derived conditional carrier, parent-vacuum, dilation and fixed-charge identities / Hypothesized physical completion / Tested prepared binding, spatial spectra and parent correspondences—September 2026
 
 ## Abstract
 
@@ -9,6 +9,8 @@ The first-order carrier action preserves an exactly empty closed carrier sector.
 A Hypothesized positive-inertia carrier parent has a signed conserved charge and a low-frequency limit matching the first-order equation. Its prescribed-background Gaussian calculation reproduces the standard scalar pair-production correspondence across 31 mode trajectories. The temporal coefficient and action normalization remain unselected, and the calculation omits interacting backreaction and localized production.
 
 The same parent's classical scalar potential has an exact global vacuum boundary. In three dimensions, spatial dilation excludes an energetically stable regular localized single-frequency state with zero signed Noether charge. This restriction leaves charged prepared states, multi-frequency dynamics, quantum bound states and additional topological sectors outside its scope. Ten parent-coefficient witnesses pass independent homogeneous minimization, charge-energy reconstruction and radial-dilation quadrature.
+
+At fixed signed parent charge, all 24 frozen radial embeddings have positive measured amplitude curvature. Independent banded spectra and rank-one inertia brackets verify this finite-grid result. Nine of twelve domain/resolution comparisons pass; the three population-16 domain comparisons fail. The aggregate radial domain qualification remains `INCONCLUSIVE`, and the calculation supplies no all-sector or real-time stability conclusion.
 
 ## 1. Scope and frozen evidence
 
@@ -338,7 +340,7 @@ The canonical CRLF-to-LF source identities are:
 - Independent verifier: `9efbcd5242324b235180e7eac90e4ad9e5f6579cf2a1f6b58f5422a202ae8f5a`.
 - Preregistration: `0ee3ced90d43c41c96cd85aaff2627f84d40ec39b3217613ee5b70c2f0e9d7ef`.
 
-The raw primary receipt SHA-256 is `509d590dd5e1db61c9455f676e6a4d9fd861b6411e83a83e4a89aec23b7e8015`. Both receipts, every optimizer endpoint and the independent quadrature error estimates are retained in `runs/20260906_matter_formation_parent_vacuum/`. Rejection smokes reject altered minima, missing rows, source-identity mismatches, contradictory reported failures, a Boolean row index and an altered dilation energy. Both programs refuse existing receipts; these checks leave the accepted bytes unchanged.
+The raw primary receipt SHA-256 is `509d590dd5e1db61c9455f676e6a4d9fd861b6411e83a83e4a89aec23b7e8015`. Both receipts, every optimizer endpoint and the independent quadrature error estimates are retained in `runs/20260906_matter_formation_parent_vacuum/`. The verifier explicitly checks reported values, complete row schedules, source identities, failure flags and row types. Both programs refuse existing receipts.
 
 ### 9.2 Consequence for neutral stationary matter
 
@@ -348,7 +350,85 @@ In three dimensions, spatial dilation then gives $E(\lambda)=\lambda\mathcal T+\
 
 Thus the declared classical scalar parent cannot supply an energetically stable, regular, localized single-frequency zero-signed-charge stationary particle. The result is a conditional application of Derrick's scaling argument. It leaves charged stationary binding, spatially separated opposite charges, multi-frequency evolution, quantum bound states and additional gauge, scale or topological structures as distinct mechanisms requiring evidence. The finite Gaussian integration profiles check the energy functional and scaling law; they are not stationary solutions.
 
-## 10. Reproduction and retained boundary
+## 10. Radial energetic stability at fixed signed parent charge
+
+The temporal energy needed to maintain a nonzero signed charge can stabilize a population-changing direction. The relevant constraint is the parent's $\mathcal Q$, while its spatial carrier population $N=\int c^2$ may vary. Minimizing over carrier velocities gives
+
+$$
+\mathscr E_{\mathcal Q}=E_{\rm sc}+\frac{(N-\mathcal Q)^2}{4aN},
+\qquad
+H_{\mathcal Q}=H_0+\frac{1+4a\omega_C}{2aN}gg^T,
+\qquad g=\nabla N.
+$$
+
+Here $H_0$ is the unprojected amplitude Hessian of $E_{\rm sc}-\omega_CN$. The derivation in `foundations/particle-stationary-action-closure.md` §8.10 includes the velocity minimization, stationary signed-charge embedding, conditional charge-slope criterion and fixed-charge dilation energy. No physical temporal coefficient or charge normalization is selected.
+
+### 10.1 Frozen schedule and independent operators
+
+The calculation in `computations/matter-formation-charged-stability-prereg.md` uses eight qualified immutable fields: prepared populations 16 and 256, each at $(R,n)=(12,192),(12,384),(12,768),(24,768)$. Each field is embedded at $a=1/64,1/32,1/16$, giving 24 parent rows. No field is relaxed. All source residuals pass; the largest is $6.7560\times10^{-5}$ against $10^{-4}$.
+
+The primary implementation assembles dense mass-weighted matrices and calculates the six lowest base and parent eigenpairs. The independent implementation assembles an interleaved symmetric banded operator, computes the complete base spectrum, solves the population response independently and brackets every parent eigenvalue using the rank-one inertia identity. All 144 eigenvalue brackets pass. Both receipts report numerical **`PASS`**, with zero failures.
+
+| Numerical check | Largest measured discrepancy or residual | Frozen limit |
+|---|---:|---:|
+| Independent base-eigenvalue absolute difference | $1.0498\times10^{-11}$ | $10^{-7}\max(1,|\lambda|)$ |
+| Eigenpair relative residual across both implementations | $3.6169\times10^{-11}$ | $10^{-8}$ |
+| Eigenvector orthonormality error | $2.4425\times10^{-15}$ | $10^{-8}$ |
+| Base response-solve relative residual | $8.4425\times10^{-12}$ | $10^{-8}$ |
+| Shifted banded-solve relative residual | $1.3213\times10^{-11}$ | $10^{-8}$ |
+| Scaled independent population-response difference | $4.8142\times10^{-12}$ | $10^{-8}$ |
+| Scaled direct-versus-closed dilation-energy difference | $1.7607\times10^{-11}$ | $10^{-8}$ |
+
+Every base operator has exactly one resolved negative eigenvalue and no unresolved zero. Its population response $S=g^TH_0^{-1}g$ is negative. The 24 factors $1+\gamma S$ range from $-234.68944$ to $-15.81224$, agreeing with the positive parent spectra under the checked one-negative-index hypothesis. This is a finite-grid response calculation; it supplies no continuum branch derivative.
+
+### 10.2 Measured curvature and domain qualification
+
+Every frozen embedding supports radial energetic stability on its own finite grid. The measured minimum eigenvalues are:
+
+| Prepared $N$ | Domain $R$ | Cells | $a=1/64$ | $a=1/32$ | $a=1/16$ |
+|---:|---:|---:|---:|---:|---:|
+| 16 | 12 | 192 | 0.9589907397 | 0.9577469155 | 0.9551534094 |
+| 16 | 12 | 384 | 0.9580731065 | 0.9568219660 | 0.9542133831 |
+| 16 | 12 | 768 | 0.9578429000 | 0.9565899198 | 0.9539775461 |
+| 16 | 24 | 768 | 0.9317264859 | 0.9312207337 | 0.9301194666 |
+| 256 | 12 | 192 | 1.9565876296 | 1.8838741027 | 1.7309992899 |
+| 256 | 12 | 384 | 1.9573637360 | 1.8846467876 | 1.7317432938 |
+| 256 | 12 | 768 | 1.9575574044 | 1.8848396143 | 1.7319289729 |
+| 256 | 24 | 768 | 1.9573543271 | 1.8846429818 | 1.7317426072 |
+
+All minima exceed the row's stationary-error threshold $\eta$, whose maximum is $6.7560\times10^{-4}$. The finite-grid aggregate is
+
+$$
+\boxed{\text{SUPPORTS—finite-grid radial fixed-charge energetic stability}.}
+$$
+
+All six resolution comparisons pass. All three population-256 domain comparisons also pass, with minimum-eigenvalue differences from $6.8662\times10^{-7}$ to $9.4089\times10^{-6}$. The population-16 domain comparisons fail:
+
+| Parent coefficient | Same-spacing $R=12$ versus $24$ difference | Frozen tolerance |
+|---|---:|---:|
+| $1/64$ | 0.0263466206 | 0.0095807311 |
+| $1/32$ | 0.0256012323 | 0.0095682197 |
+| $1/16$ | 0.0240939164 | 0.0095421338 |
+
+These domain comparisons use 384 cells at $R=12$ and 768 cells at $R=24$. Nine of twelve frozen comparisons pass, so the separate aggregate remains
+
+$$
+\boxed{\text{INCONCLUSIVE—radial domain/resolution qualification}.}
+$$
+
+The population-256 subset meets the measured radial comparison criteria. Neither subset establishes all angular and phase sectors, real-time persistence, nonlinear orbital stability, infinite-volume coercivity or localized creation. The fixed-population spatial verdict in §7 remains `INCONCLUSIVE—constrained smooth-branch spatial stability`. Finite-grid radial support does not select a physical particle size, charge, mass or statistics.
+
+### 10.3 Accepted evidence identities
+
+The canonical CRLF-to-LF SHA-256 identities are:
+
+- Primary: `383cc899ee3638762d63050f3c34bd4a8a688cfa81a3fe864f09e40e7b8f57ec`.
+- Independent verifier: `be1d8837d9dc85125020a6eb7ed53b2f9faa7a7d4f37252f5ee27043d7d09e80`.
+- Preregistration: `97f8e8db7bb7912832920a776189fc5adbc3db55d4465fc0826037b94b43a874`.
+
+The raw primary receipt SHA-256 is `540bf259441b42ac476189dcd8593ae3b57a4fe25bb8fe17c846d5465068b0bc`. The primary receipt, eight hash-bound spectral arrays, complete independent base spectra, 288 shifted-solve diagnostics, all dilation energies and independent verification are retained in `runs/20260906_matter_formation_charged_stability/`. Existing own receipts and primary spectral artifacts cannot be overwritten by either reproduction program.
+
+## 11. Reproduction and retained boundary
 
 Run from the repository root into new, explicitly named output directories when the default receipts already exist:
 
@@ -365,11 +445,13 @@ python computations/matter_formation_hyperbolic_parent.py
 python computations/verify_matter_formation_hyperbolic_parent.py
 python computations/matter_formation_parent_vacuum.py
 python computations/verify_matter_formation_parent_vacuum.py
+python computations/matter_formation_charged_stability.py
+python computations/verify_matter_formation_charged_stability.py
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
 
-The remaining physical requirements are a selected microscopic production action and quantum state, absolute normalization, interacting backreaction, particle identities and statistics, real-time localized formation and nonlinear stability, scale-dependent sectors, and empirical discrimination. The conditional hyperbolic parent supplies one explicitly normalized Gaussian correspondence. Its physical coefficient and action normalization remain open, and the spatial stability result retains the frozen inconclusive verdict above.
+The remaining physical requirements are a selected microscopic production action and quantum state, absolute normalization, interacting backreaction, particle identities and statistics, real-time localized formation and nonlinear stability, scale-dependent sectors, and empirical discrimination. The conditional hyperbolic parent supplies one explicitly normalized Gaussian correspondence and measured finite-grid radial fixed-charge support. Its physical coefficient and action normalization remain open. The fixed-population spatial and signed-charge radial-domain calculations retain their separate inconclusive aggregate verdicts.
 
 ## References
 
@@ -387,6 +469,10 @@ The remaining physical requirements are a selected microscopic production action
 - `computations/matter_formation_parent_vacuum.py`—closed-form potential and Gaussian energy reconstruction.
 - `computations/verify_matter_formation_parent_vacuum.py`—independent two-variable minimization and radial quadrature.
 - `runs/20260906_matter_formation_parent_vacuum/results.json` and `runs/20260906_matter_formation_parent_vacuum/verification.json`—accepted classical parent-boundary receipts.
+- `computations/matter-formation-charged-stability-prereg.md`—frozen signed-charge Hessian, response, inertia brackets and radial qualification schedule.
+- `computations/matter_formation_charged_stability.py`—primary dense radial spectra and fixed-charge dilation energies.
+- `computations/verify_matter_formation_charged_stability.py`—independent banded spectra, response solves and rank-one inertia brackets.
+- `runs/20260906_matter_formation_charged_stability/results.json` and `runs/20260906_matter_formation_charged_stability/verification.json`—accepted finite-grid radial support and inconclusive aggregate radial-domain qualification.
 - `foundations/particle-stationary-action-closure.md` §8.7—continuity law, conditional scalar reduction, radial equations and ultraviolet boundary.
 - `foundations/matter-completion-boundary.md`—full matter-formation requirements.
 - `computations/particle-carrier-resolution-recovery-report.md`—four stored Cartesian endpoints.

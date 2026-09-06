@@ -1239,6 +1239,14 @@ single-frequency state with zero signed charge in three dimensions;
 the carrier's gauge-singlet representation does not impose zero signed
 charge. More general dynamical and quantum matter states require separate
 mechanisms (`foundations/particle-stationary-action-closure.md` §8.9).
+Fixing nonzero signed charge adds a positive rank-one population penalty to
+the radial amplitude Hessian. All 24 frozen parent embeddings have
+independently verified positive finite-grid radial curvature. Nine of
+twelve domain/resolution comparisons pass; the population-16 domain
+failures leave aggregate qualification `INCONCLUSIVE`. Population 256
+meets its measured radial comparisons, without closing all-sector stability
+or physical formation (`foundations/particle-stationary-action-closure.md`
+§8.10; `computations/matter-formation-continuum-report.md` §10).
 
 ### 10.6 Wake-Wave Mechanism
 

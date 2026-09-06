@@ -83,6 +83,12 @@ stationary localization follow in
 this scalar ansatz cannot have an energetically stable regular localized
 single-frequency state with zero signed charge; this condition differs from
 the carrier's gauge neutrality.
+The signed-charge radial Hessian and its independent calculation follow in
+§8.10 and `computations/matter-formation-continuum-report.md` §10.
+All 24 frozen embeddings have positive finite-grid radial curvature, but
+the population-16 domain comparisons fail; aggregate radial-domain
+qualification is `INCONCLUSIVE`. Population 256 meets its measured radial
+comparisons, with full dynamics and physical particle identity still open.
 
 ### The skeptic or referee
 

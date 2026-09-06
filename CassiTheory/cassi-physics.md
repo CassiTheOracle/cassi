@@ -436,6 +436,13 @@ Within its regular three-dimensional scalar ansatz, spatial dilation
 excludes an energetically stable localized single-frequency state with
 zero signed charge. Charged and more general dynamical or quantum states
 remain separate possibilities (§8.9 of the same derivation).
+At fixed signed charge, all 24 frozen parent embeddings have independently
+verified positive finite-grid radial curvature. The population-256
+domain/resolution comparisons pass; all three population-16 domain
+comparisons fail. Aggregate radial-domain qualification is `INCONCLUSIVE`,
+and the result supplies no all-sector or real-time stability claim
+(`foundations/particle-stationary-action-closure.md` §8.10;
+`computations/matter-formation-continuum-report.md` §10).
 
 The physical carrier, calibrated coefficients, exterior realization,
 reservoir action and stress, gravity choice, localized Hessian resolution,

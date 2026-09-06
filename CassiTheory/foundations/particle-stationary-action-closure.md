@@ -1,6 +1,6 @@
 # Particle-Sector Action and Fixed-Charge Variational Closure
 
-## Status: Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, variational, empty-sector, and scalar-reduction boundaries / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026
+## Status: Hypothesized temporal completion / Derived conditional action, scalar-reduction, parent-vacuum, dilation and fixed-charge identities / Mapped carrier coupling / Tested prepared binding, finite-grid spectra and parent correspondences—September 2026
 
 ## Abstract
 
@@ -59,6 +59,13 @@ Its classical scalar potential has an exact global vacuum boundary.
 Spatial dilation excludes an energetically stable, regular, localized
 single-frequency state with zero signed charge in three dimensions (§8.9).
 Gauge neutrality alone does not impose zero signed charge.
+At fixed signed parent charge, the minimized temporal energy contributes a
+positive rank-one population penalty. All 24 frozen embeddings have
+independently verified positive finite-grid radial curvature. Nine of twelve
+domain/resolution comparisons pass, leaving aggregate radial-domain
+qualification `INCONCLUSIVE` because the population-16 domain comparisons
+fail (§8.10). This result supplies no full spatial or dynamical stability
+claim.
 
 ---
 
@@ -1338,6 +1345,112 @@ fixed-population binding in §8.7 retain their separate scopes. A stable
 neutral matter interpretation requires a mechanism beyond this stationary
 scalar ansatz.
 
+### 8.10 Fixed signed charge and the parent amplitude Hessian
+
+A nonzero conserved parent charge changes the variational problem. The
+carrier population $N=Q_C=\int|\chi|^2$ can vary while its signed charge
+$\mathcal Q$ stays fixed; the necessary temporal energy must vary with it.
+Minimizing that energy over carrier velocities, with zero mediator
+velocity, gives the exact reduced Hamiltonian
+
+$$
+\boxed{\mathscr E_{\mathcal Q}[f,c]
+=E_{\rm sc}[f,c]+\frac{(N-\mathcal Q)^2}{4aN},\qquad N>0.}
+$$
+
+Here $E_{\rm sc}$ is the explicit spatial functional in §8.7 and energies
+are divided by $\mathcal N_Q$. The minimizing velocity is
+$\dot\chi=i(N-\mathcal Q)\chi/(2aN)$. Additional allowed velocity components
+give a nonnegative kinetic excess. The canonical Hamiltonian differs by
+the constant $\mathcal Q/(2a)$, so it has the same energetic ordering at
+fixed signed charge.
+
+Write the temporal term as $G(N)$. Its derivatives are
+
+$$
+G'(N)=\frac{1-\mathcal Q^2/N^2}{4a},
+\qquad
+G''(N)=\frac{\mathcal Q^2}{2aN^3}.
+$$
+
+At a prepared stationary profile of $E_{\rm sc}-\omega_C N$, stationarity
+of the parent requires $G'=-\omega_C$. Thus the positive-charge branch has
+$D=1+4a\omega_C>0$, $\mathcal Q=\sqrt D\,N$ and the frequency in §8.8.
+For real amplitude variations in Euclidean mass-weighted coordinates,
+let $H_0$ be the full Hessian of $E_{\rm sc}-\omega_C N$ and
+$g=\nabla N=(0,2\sqrt Vc)^T$. The chain rule then gives
+
+$$
+\boxed{H_{\mathcal Q}=H_0+\gamma gg^T,\qquad
+\gamma=\frac{D}{2aN}>0.}
+$$
+
+The extra term is a positive rank-one penalty for changing population.
+The population-changing direction remains in this operator.
+As $a\to0^+$ on the low-frequency branch, the penalty diverges and its finite
+energetic modes approach the fixed-population tangent problem. Angular
+modes with zero angular average and imaginary carrier variations have no
+first-order population change, so this rank-one term does not settle their
+separate qualification.
+
+The response of the stationary branch gives an independent criterion for
+this correction. When $H_0$ is invertible, differentiating
+$\nabla E_{\rm sc}-\omega_C\nabla N=0$ yields
+$H_0\,\partial_{\omega_C}(f,c)=g$. Therefore
+$S=g^TH_0^{-1}g=dN/d\omega_C$ on an exact differentiable branch.
+If $H_0$ has exactly one negative direction and no zero direction, the
+rank-one inertia identity implies
+
+$$
+H_{\mathcal Q}>0
+\quad\Longleftrightarrow\quad
+1+\gamma S<0
+\quad\Longleftrightarrow\quad
+\frac{d\mathcal Q}{d\omega}=2aN+DS<0.
+$$
+
+The negative-index and invertibility hypotheses are essential. A positive
+constrained radial spectrum alone does not supply them, and a finite-grid
+linear response does not establish a continuum branch derivative.
+
+The charged dilation energy shows how the neutral restriction is avoided
+within a specified family of profiles. With static gradient and potential
+energies $\mathcal T$ and $\mathcal U$,
+
+$$
+\mathscr E_{\mathcal Q}(\lambda)
+=\lambda\mathcal T+
+\lambda^3\left(\mathcal U+\frac N{4a}\right)
+-\frac{\mathcal Q}{2a}
++\frac{\mathcal Q^2}{4aN}\lambda^{-3}.
+$$
+
+For nonzero $\mathcal Q$ and a nonnegative canonical potential, this
+function is strictly convex for $\lambda>0$: the last term resists
+contraction, and the gradient and canonical-potential terms resist
+expansion. At a continuum stationary state its curvature is
+$-2\mathcal T+9\mathcal Q^2/(2aN)$. The selected charge and trial profile
+remain inputs. This one-parameter result determines no physical particle
+size and does not prove positivity in every field direction.
+
+The frozen calculation in `computations/matter-formation-charged-stability-prereg.md`
+uses eight qualified population-16 and population-256 fields, with three
+unselected parent coefficients per field. All 24 parent radial minima are
+positive, from $0.93011947$ to $1.95755740$. The independent banded
+calculation confirms all 144 reported parent eigenvalue brackets, the
+one-negative-index base spectra and the negative charge-slope factors.
+Both receipts pass their numerical requirements.
+
+The finite-grid radial verdict is
+`SUPPORTS—finite-grid radial fixed-charge energetic stability`.
+Nine of twelve domain/resolution comparisons pass. All three population-16
+domain comparisons fail, so the separate aggregate is
+`INCONCLUSIVE—radial domain/resolution qualification`.
+Population 256 meets its measured radial comparisons. The results and
+source identities are in `computations/matter-formation-continuum-report.md`
+§10. The complete spatial, real-time, nonlinear and physical-matter questions
+retain their separate requirements.
+
 ## 9. What is closed and what remains open
 
 | Question | Result |
@@ -1357,6 +1470,7 @@ scalar ansatz.
 | Can carriers form from an exactly empty closed sector? | No; the homogeneous first-order carrier equation preserves $Q_C=0$. A microscopic production action and quantum content are missing |
 | Does the optional carrier parent define a classical vacuum condition? | Yes, conditionally: $h_C-e_C-1/(4a)\le\sqrt{u_\rho u_C/2}$ is necessary and sufficient for nonnegative homogeneous canonical scalar potential |
 | Can that scalar parent support an energetically stable single-frequency localized state with zero signed charge? | No, under the regularity, finite-energy, constant-vacuum and three-dimensional scalar assumptions of §8.9. Charged, multi-frequency, quantum and additional topological sectors remain outside that statement |
+| Does fixed signed parent charge support the measured radial amplitudes? | Yes on all 24 frozen finite-grid embeddings, with independent spectral verification. Nine of twelve domain/resolution comparisons pass; aggregate radial-domain qualification remains `INCONCLUSIVE` because the population-16 domain comparisons fail. Population 256 meets its measured radial comparisons |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 
 The action defines a fixed-charge boundary-value problem and an exact
@@ -1364,9 +1478,11 @@ creation obstruction. Its continuum-consistent scalar sector supplies
 independently reproduced static binding for two prepared populations at the
 selected coefficients. The stored Cartesian branch retains its finite-grid
 scope and fails the smooth-carrier diagnostic. The smooth constrained spatial
-calculation remains inconclusive under its frozen criteria. Neither set of
-measurements determines a physical production channel, normalized particle
-spectrum or formation history.
+calculation remains inconclusive under its frozen criteria. The optional
+parent has a verified Gaussian pair correspondence and positive measured
+fixed-signed-charge radial curvature, with inconclusive aggregate radial-domain
+qualification. These measurements determine no physical production channel,
+normalized particle spectrum or formation history.
 
 ---
 
@@ -1457,3 +1573,6 @@ requirements.
 - `computations/matter_formation_parent_vacuum.py`—closed-form potential, charge-energy and Gaussian dilation witnesses.
 - `computations/verify_matter_formation_parent_vacuum.py`—independent unreduced minimization and radial quadrature.
 - [Derrick, *Comments on Nonlinear Wave Equations as Models for Elementary Particles*](https://doi.org/10.1063/1.1704233)—finite-energy spatial-dilation restriction.
+- `computations/matter-formation-charged-stability-prereg.md`—fixed-signed-charge Hessian, response, inertia and dilation specification.
+- `computations/matter_formation_charged_stability.py`—dense primary radial parent spectra and charge-response calculation.
+- `computations/verify_matter_formation_charged_stability.py`—independent banded-operator and rank-one-inertia verification.

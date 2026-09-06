@@ -174,6 +174,16 @@ multi-frequency dynamics, quantum bound states and additional topological
 sectors require separate treatment
 (`foundations/particle-stationary-action-closure.md` §8.9).
 
+**Charged radial energetic support.** Fixing the parent's signed charge
+adds a derived positive rank-one population penalty to the amplitude
+Hessian. All 24 frozen embeddings have positive finite-grid radial
+curvature, confirmed by independent banded operators and 144 eigenvalue
+brackets. Nine of twelve domain/resolution comparisons pass; all three
+population-16 domain comparisons fail. The aggregate radial-domain verdict
+is `INCONCLUSIVE`. Population 256 meets its radial comparison criteria,
+without establishing all-sector, real-time or nonlinear stability
+(`computations/matter-formation-continuum-report.md` §10).
+
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 
 | Claim | Tested result | Status |

@@ -727,6 +727,13 @@ single-frequency scalar lumps with zero signed charge. This restricts that
 ansatz without predicting a physical particle or excluding charged,
 multi-frequency, quantum or additional topological constructions
 (`foundations/particle-stationary-action-closure.md` §8.9).
+Its fixed-signed-charge radial calculation also gives positive finite-grid
+curvature in all 24 frozen embeddings, with independent spectral
+verification. Nine of twelve domain/resolution comparisons pass, while the
+population-16 domain failures leave aggregate qualification `INCONCLUSIVE`.
+The population-256 subset meets the measured radial comparisons. This
+conditional result adds no physical mass, charge, statistics or production
+prediction (`computations/matter-formation-continuum-report.md` §10).
 
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;

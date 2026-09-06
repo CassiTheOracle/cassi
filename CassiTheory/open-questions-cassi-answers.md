@@ -826,6 +826,14 @@ The gauge-singlet carrier need not have zero signed charge. Charged states,
 multi-frequency dynamics and additional field sectors require their own
 analysis; no proton conclusion follows from this restricted obstruction
 (`foundations/particle-stationary-action-closure.md` §8.9).
+The parent's fixed-signed-charge radial calculation supports finite-grid
+energetic stability in all 24 frozen embeddings. Independent banded spectra
+and inertia brackets agree. Nine of twelve domain/resolution comparisons
+pass; the three population-16 domain failures leave aggregate radial-domain
+qualification `INCONCLUSIVE`. This conditional scalar result supplies no
+proton assignment or production history
+(`foundations/particle-stationary-action-closure.md` §8.10;
+`computations/matter-formation-continuum-report.md` §10).
 
 ### Q10: Spin—what is it?
 
@@ -1262,6 +1270,15 @@ cannot be an energetic local minimum in three dimensions, by spatial
 dilation. This conditional restriction leaves charged, multi-frequency,
 quantum and additional topological matter mechanisms unclosed
 (`foundations/particle-stationary-action-closure.md` §8.9).
+At fixed signed parent charge, minimizing over temporal velocities adds a
+positive rank-one population penalty to the radial amplitude Hessian.
+All 24 frozen embeddings have independently verified positive finite-grid
+curvature. Nine of twelve radial domain/resolution comparisons pass, with
+aggregate qualification `INCONCLUSIVE` because all population-16 domain
+comparisons fail. Population 256 meets its measured radial comparisons;
+all-sector stability, interacting creation and physical particle identity
+remain open (`foundations/particle-stationary-action-closure.md` §8.10;
+`computations/matter-formation-continuum-report.md` §10).
 
 
 ### F5: Dimensionful constants ($c$, $\hbar$, $G$) and $\lambda$

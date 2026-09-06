@@ -1,6 +1,6 @@
 # Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
-## Status: Derived conditional boundary / Hypothesized physical realization / Tested reduced receipts, finite-grid spectrum and conditional smooth scalar binding—September 2026
+## Status: Derived conditional boundary / Hypothesized physical realization / Mapped carrier coupling / Tested reduced receipts, prepared binding, finite-grid spectra and parent correspondences—September 2026
 
 ## Abstract
 
@@ -914,6 +914,15 @@ gauge-singlet carrier may have nonzero Noether charge. The result therefore
 leaves charged states, multi-frequency dynamics, quantum bound states and
 additional topological sectors as distinct questions
 (`foundations/particle-stationary-action-closure.md` §8.9).
+At fixed signed charge, the parent amplitude Hessian has a positive
+rank-one population penalty. All 24 frozen radial embeddings have
+independently verified positive finite-grid curvature. Nine of twelve
+domain/resolution comparisons pass, but all three population-16 domain
+comparisons fail, leaving aggregate radial-domain qualification
+`INCONCLUSIVE`. Population 256 meets its measured radial comparisons.
+This supplies no all-sector, real-time or nonlinear stability conclusion
+(`foundations/particle-stationary-action-closure.md` §8.10;
+`computations/matter-formation-continuum-report.md` §10).
 
 The remaining physical requirements are:
 
@@ -931,8 +940,9 @@ The remaining physical requirements are:
    predictions.
 
 The framework has conditional support identities, measured smooth static
-density trapping at selected dimensionless coefficients, and an independently
-verified Gaussian correspondence for one Hypothesized parent family.
+density trapping at selected dimensionless coefficients, independently
+verified Gaussian correspondence and finite-grid radial fixed-charge
+energetic support for one Hypothesized parent family.
 Physical matter formation remains open.
 
 ## References
@@ -966,4 +976,4 @@ Physical matter formation remains open.
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence, contracting energy differences, and independent verification.
 - `computations/particle-localized-physical-hessian-report.md`—constrained localized PA42 spectrum, carrier-phase symmetry assignment, and spatial qualification.
-- `computations/matter-formation-continuum-report.md`—empty-sector obstruction, Cartesian ultraviolet diagnosis, and independently reproduced continuum density trapping.
+- `computations/matter-formation-continuum-report.md`—empty-sector obstruction, Cartesian ultraviolet diagnosis, prepared scalar binding, Gaussian parent correspondence and classical parent-vacuum/localization boundaries.
