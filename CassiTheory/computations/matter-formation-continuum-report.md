@@ -596,9 +596,13 @@ Run once in `runs/20260906_matter_formation_spatial_domain_v2/`. All 14 original
 
 ### 11.8 Receipt-qualified execution and retained-source agreement
 
-The receipt-qualified generation passes the same 14 spatial comparisons. Its 36 compared physical quantities—seven spectral metrics, energy and frequency on each grid—agree exactly with the §11.6 floating-point values. The separate unchanged-source check passes all 24 retained eigenvalue comparisons, with maximum absolute difference $9.7434\times10^{-13}$. The field is not relaxed for that check.
+The receipt-qualified generation passes the same 14 spatial comparisons. Its 36 compared physical quantities—seven spectral metrics, energy and frequency on each grid—agree exactly with the §11.6 floating-point values. The separate unchanged-source check passes all 24 retained eigenvalue comparisons, with maximum absolute difference $9.7433\times10^{-13}$. The field is not relaxed for that check.
 
 `computations/verify_matter_formation_spatial_domain_receipts.py` passes 21 receipt, source-identity, spectral-continuity and failure-control checks. Injected NaN and signed infinities produce four explicit failed-row records, null-valued JSON diagnostics, retained nonfinite raw field arrays, an inconclusive result and exit code one. Attempting to reuse the accepted output directory is refused without changing its receipt hash. These controls qualify error reporting; they add no physical stability claim.
+
+The control replaces `matter_formation_spatial_domain_v2.continue_stationary` only during the verifier's invocation. It writes NaN to `f[0]`, positive infinity to `c[0]`, negative infinity to `c[1]`, and the same three nonfinite categories to the Newton trace, then raises the declared `FloatingPointError`. The verifier restores the function in `finally`. The accepted physical run has no injected fields.
+
+In the spatial executable, `numerical_pass` records completion of the numerical schedule without computational failures. Scientific interpretation requires the separate `verdict`: all sectors and comparisons support the stated qualification, a qualified negative angular/phase mode contradicts it, and the remaining cases retain the explicit `INCONCLUSIVE` value. A zero process exit alone therefore establishes no positive physical conclusion.
 
 The source implementing finite failure receipts is `computations/matter_formation_spatial_domain_v2.py`; the sealed §11.5 source remains intact for its accepted evidence. Receipt provenance is:
 
@@ -1234,7 +1238,7 @@ The unchanged §16.5 protocol hash is `e5db32d371e04e6df3625670485611e106ee07cf6
 
 ## 17. Reproduction and retained boundary
 
-Run from the repository root into new, explicitly named output directories when the default receipts already exist:
+The following block records the calculation commands and their retained evidence destinations. Existing output directories are immutable. Reproduction requires fresh output paths and matching input paths for dependent verifiers. The curvature and receipt-continuity checks consume named accepted evidence; their inputs are fixed in their sources.
 
 ```text
 python computations/matter_formation_lattice.py
@@ -1267,6 +1271,14 @@ python computations/matter_formation_spatial_domain_curvature_check.py
 python computations/matter_formation_spatial_domain_v2.py
 python computations/verify_matter_formation_spatial_domain_receipts.py
 python computations/matter_formation_scalar_vacuum_sign_check.py --output-dir runs/20260906_matter_formation_scalar_vacuum_sign_recovery
+```
+
+For the receipt-qualified spatial calculation and scalar sign check, these invocations use separate reproduction destinations. Choose unused directory names before executing them. The receipt verifier below checks the named accepted spatial evidence and writes a fresh control receipt; it does not read the reproduction directory.
+
+```text
+python computations/matter_formation_spatial_domain_v2.py --output-dir runs/repro_matter_formation_spatial_domain_v2
+python computations/verify_matter_formation_spatial_domain_receipts.py --output-dir runs/repro_matter_formation_spatial_receipt_checks
+python computations/matter_formation_scalar_vacuum_sign_check.py --output-dir runs/repro_matter_formation_scalar_vacuum_sign
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
