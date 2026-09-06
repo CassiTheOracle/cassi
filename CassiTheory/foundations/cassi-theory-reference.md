@@ -1233,6 +1233,12 @@ scalar pair-production correspondence. The physical extension remains
 Hypothesized, with unselected temporal coefficient and action normalization.
 Interacting localized formation and physical particle identity remain open
 (`foundations/particle-stationary-action-closure.md` §8.8).
+The classical scalar potential has an exact global-vacuum condition.
+Spatial dilation excludes an energetically stable regular localized
+single-frequency state with zero signed charge in three dimensions;
+the carrier's gauge-singlet representation does not impose zero signed
+charge. More general dynamical and quantum matter states require separate
+mechanisms (`foundations/particle-stationary-action-closure.md` §8.9).
 
 ### 10.6 Wake-Wave Mechanism
 

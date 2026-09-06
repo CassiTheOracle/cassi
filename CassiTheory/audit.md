@@ -165,6 +165,14 @@ interaction and mediator backreaction without establishing their effects as
 negligible. The stationary profiles carry a different conserved charge in
 the parent, so existing fixed-population stability results do not transfer
 to its full dynamics (`computations/matter-formation-continuum-report.md` §8).
+The same classical scalar action has a nonnegative canonical potential
+exactly when $h_C-e_C-1/(4a)\le\sqrt{u_\rho u_C/2}$. In three dimensions,
+spatial dilation excludes an energetically stable, regular finite-energy
+single-frequency state with zero signed charge. Gauge neutrality alone
+does not imply this charge condition. Charged stationary states,
+multi-frequency dynamics, quantum bound states and additional topological
+sectors require separate treatment
+(`foundations/particle-stationary-action-closure.md` §8.9).
 
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 

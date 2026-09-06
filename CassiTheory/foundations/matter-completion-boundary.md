@@ -905,6 +905,15 @@ stability calculation does not close the enlarged dynamics. The Gaussian
 benchmark omits the quartic interaction and mediator backreaction without
 establishing them as negligible; interacting localized formation remains
 open (`foundations/particle-stationary-action-closure.md` §8.8).
+Its classical scalar potential is nonnegative precisely when
+$h_C-e_C-1/(4a)\le\sqrt{u_\rho u_C/2}$. Independently of this parameter
+condition, spatial dilation excludes an energetically stable regular
+localized single-frequency state with zero signed charge in three spatial
+dimensions. Here neutrality refers to the global Noether charge; a
+gauge-singlet carrier may have nonzero Noether charge. The result therefore
+leaves charged states, multi-frequency dynamics, quantum bound states and
+additional topological sectors as distinct questions
+(`foundations/particle-stationary-action-closure.md` §8.9).
 
 The remaining physical requirements are:
 

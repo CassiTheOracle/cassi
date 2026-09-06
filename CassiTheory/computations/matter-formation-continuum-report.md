@@ -8,6 +8,8 @@ The first-order carrier action preserves an exactly empty closed carrier sector.
 
 A Hypothesized positive-inertia carrier parent has a signed conserved charge and a low-frequency limit matching the first-order equation. Its prescribed-background Gaussian calculation reproduces the standard scalar pair-production correspondence across 31 mode trajectories. The temporal coefficient and action normalization remain unselected, and the calculation omits interacting backreaction and localized production.
 
+The same parent's classical scalar potential has an exact global vacuum boundary. In three dimensions, spatial dilation excludes an energetically stable regular localized single-frequency state with zero signed Noether charge. This restriction leaves charged prepared states, multi-frequency dynamics, quantum bound states and additional topological sectors outside its scope. Ten parent-coefficient witnesses pass independent homogeneous minimization, charge-energy reconstruction and radial-dilation quadrature.
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -274,7 +276,79 @@ The correspondence verdict is **`PASS`** in both receipts, with zero independent
 
 The accepted source and specification identities, all 31 raw trajectories and the independent verification are in `runs/20260906_matter_formation_hyperbolic_parent/`. The stationary fields are fixed inputs; the binding and spatial-stability verdicts retain their stated scope.
 
-## 9. Reproduction and retained boundary
+## 9. Classical parent vacuum and neutral stationary localization
+
+The status of the exterior vacuum is a separate requirement for interpreting carrier excitations as physical matter. The zero-signed-charge sector has an exact classical potential condition, derived in `foundations/particle-stationary-action-closure.md` §8.9. With $z=f^2$, $n=|\chi|^2$ and $B=e_C+1/(4a)$,
+
+$$
+V_a(z,n)=\frac{u_\rho}{4}(z-1)^2+
+[B-h_C(1-z)]n+\frac{u_C}{2}n^2.
+$$
+
+This potential is nonnegative for all $z,n\ge0$ exactly when
+
+$$
+\boxed{h_C-e_C-\frac1{4a}\le\sqrt{\frac{u_\rho u_C}{2}}.}
+$$
+
+At the Mapped coefficient point, the classical vacuum boundary and the separate depleted-background mass crossing are
+
+$$
+a_{\rm vac}=\frac1{4(h_C-e_C-\sqrt{u_\rho u_C/2})}
+=0.3142233129944425,
+\qquad
+a_{\rm dep}=\frac1{4(h_C-e_C)}
+=0.113131075190101.
+$$
+
+The three coefficients used in the Gaussian pair correspondence lie below both boundaries. A negative instantaneous carrier mass squared at an externally held depleted mediator can occur while the full coupled potential remains nonnegative. Above $a_{\rm vac}$, a homogeneous carrier-populated phase has lower classical energy than the exterior vacuum; the exterior remains a local potential minimum. This supplies no nucleation rate, formation history or quantum-vacuum conclusion.
+
+### 9.1 Independent numerical checks
+
+The frozen specification is `computations/matter-formation-parent-vacuum-prereg.md`. The primary program uses polynomial identities and closed Gaussian integrals. The independent verifier minimizes the unreduced two-variable potential from all 25 starts at each of ten coefficients and integrates the original radial energy densities. All 250 minimizations report success; their largest projected-gradient norm is $3.9968\times10^{-15}$.
+
+| Parent coefficient | Global canonical potential minimum |
+|---|---:|
+| $1/64$ | 0 |
+| $1/32$ | 0 |
+| $1/16$ | 0 |
+| $1/8$ | 0 |
+| $1/4$ | 0 |
+| $0.9a_{\rm vac}$ | 0 |
+| $a_{\rm vac}$ | 0 analytically; numerical value $-2.2204\times10^{-16}$ |
+| $1.1a_{\rm vac}$ | −0.1049035183501719 |
+| $1/2$ | −0.4617526056741839 |
+| $1$ | −0.9204591247603631 |
+
+Both receipts report **`PASS`**, with zero independent mismatches. The complete finite schedule contains 60 weighted complex charge-energy witnesses and 50 three-dimensional Gaussian dilation integrals. The largest independent discrepancies are:
+
+| Quantity | Maximum discrepancy |
+|---|---:|
+| Scaled polynomial factorization residual | $7.6521\times10^{-16}$ |
+| Scaled signed-charge residual | $4.4409\times10^{-16}$ |
+| Scaled canonical/original Hamiltonian-shift residual | $3.5527\times10^{-15}$ |
+| Scaled kinetic-bound residual | $2.6866\times10^{-14}$ |
+| Absolute global-minimum difference | $2.2204\times10^{-16}$ |
+| Scaled closed-integral versus independent-quadrature energy difference | $6.7472\times10^{-16}$ |
+| Scaled direct versus spatial-dilation energy difference | $6.5600\times10^{-16}$ |
+
+The canonical CRLF-to-LF source identities are:
+
+- Primary: `8ef9b8d78163b12da265b61516bf456025e9f51e9809d90b7b7875f0dc72640e`.
+- Independent verifier: `9efbcd5242324b235180e7eac90e4ad9e5f6579cf2a1f6b58f5422a202ae8f5a`.
+- Preregistration: `0ee3ced90d43c41c96cd85aaff2627f84d40ec39b3217613ee5b70c2f0e9d7ef`.
+
+The raw primary receipt SHA-256 is `509d590dd5e1db61c9455f676e6a4d9fd861b6411e83a83e4a89aec23b7e8015`. Both receipts, every optimizer endpoint and the independent quadrature error estimates are retained in `runs/20260906_matter_formation_parent_vacuum/`. Rejection smokes reject altered minima, missing rows, source-identity mismatches, contradictory reported failures, a Boolean row index and an altered dilation energy. Both programs refuse existing receipts; these checks leave the accepted bytes unchanged.
+
+### 9.2 Consequence for neutral stationary matter
+
+Zero signed Noether charge imposes a stronger restriction than gauge neutrality. The carrier is a gauge singlet even when its signed global charge is nonzero. For a single-frequency stationary carrier, $\mathcal Q_a=(1+2a\omega)Q_C$, so a nonzero profile with $\mathcal Q_a=0$ requires $\omega=-1/(2a)$ and is static in canonical variables.
+
+In three dimensions, spatial dilation then gives $E(\lambda)=\lambda\mathcal T+\lambda^3\mathcal U$. A stationary state must satisfy $\mathcal T+3\mathcal U=0$. When $V_a\ge0$, the nonnegative terms exclude a nontrivial regular finite-energy solution. If a stationary solution exists where the potential can be negative, its dilation curvature is $E''(1)=-2\mathcal T<0$. The dilation preserves zero signed charge.
+
+Thus the declared classical scalar parent cannot supply an energetically stable, regular, localized single-frequency zero-signed-charge stationary particle. The result is a conditional application of Derrick's scaling argument. It leaves charged stationary binding, spatially separated opposite charges, multi-frequency evolution, quantum bound states and additional gauge, scale or topological structures as distinct mechanisms requiring evidence. The finite Gaussian integration profiles check the energy functional and scaling law; they are not stationary solutions.
+
+## 10. Reproduction and retained boundary
 
 Run from the repository root into new, explicitly named output directories when the default receipts already exist:
 
@@ -289,6 +363,8 @@ python computations/verify_matter_formation_stability.py --input-dir runs/202609
 python computations/matter_formation_scaling.py
 python computations/matter_formation_hyperbolic_parent.py
 python computations/verify_matter_formation_hyperbolic_parent.py
+python computations/matter_formation_parent_vacuum.py
+python computations/verify_matter_formation_parent_vacuum.py
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
@@ -307,6 +383,10 @@ The remaining physical requirements are a selected microscopic production action
 - `computations/matter_formation_hyperbolic_parent.py`—primary oscillator trajectories, stationary embeddings and finite correspondence checks.
 - `computations/verify_matter_formation_hyperbolic_parent.py`—independent raw-array reconstruction and source-work quadrature.
 - `runs/20260906_matter_formation_hyperbolic_parent/results.json` and `runs/20260906_matter_formation_hyperbolic_parent/verification.json`—accepted primary and independent correspondence receipts.
+- `computations/matter-formation-parent-vacuum-prereg.md`—frozen classical vacuum, charge-energy and dilation identities and numerical checks.
+- `computations/matter_formation_parent_vacuum.py`—closed-form potential and Gaussian energy reconstruction.
+- `computations/verify_matter_formation_parent_vacuum.py`—independent two-variable minimization and radial quadrature.
+- `runs/20260906_matter_formation_parent_vacuum/results.json` and `runs/20260906_matter_formation_parent_vacuum/verification.json`—accepted classical parent-boundary receipts.
 - `foundations/particle-stationary-action-closure.md` §8.7—continuity law, conditional scalar reduction, radial equations and ultraviolet boundary.
 - `foundations/matter-completion-boundary.md`—full matter-formation requirements.
 - `computations/particle-carrier-resolution-recovery-report.md`—four stored Cartesian endpoints.
@@ -321,3 +401,4 @@ The remaining physical requirements are a selected microscopic production action
 - [Heeck and Sokhashvili, *Revisiting the Friedberg–Lee–Sirlin soliton model*](https://arxiv.org/abs/2303.09566)—relativistic charged complex-scalar and real-mediator comparison; published March 2023.
 - [Das, Galante and Myers, *Smooth and fast versus instantaneous quenches in quantum field theory*](https://arxiv.org/abs/1505.05224)—standard scalar tanh-quench correspondence.
 - [Camilo and Abdalla, *Momentum-space entanglement after smooth quenches*](https://doi.org/10.1140/epjc/s10052-019-6581-2)—general in/out-mass profile and exact Bogoliubov occupation.
+- [Derrick, *Comments on Nonlinear Wave Equations as Models for Elementary Particles*](https://doi.org/10.1063/1.1704233)—finite-energy spatial-dilation restriction.

@@ -77,6 +77,12 @@ mass-quench correspondence check. The parent coefficient and quantum action
 normalization remain unselected; interacting localized formation is open
 (`foundations/particle-stationary-action-closure.md` §8.8;
 `computations/matter-formation-continuum-report.md` §8).
+The classical parent-vacuum condition and the restriction on neutral
+stationary localization follow in
+`foundations/particle-stationary-action-closure.md` §8.9. In three dimensions
+this scalar ansatz cannot have an energetically stable regular localized
+single-frequency state with zero signed charge; this condition differs from
+the carrier's gauge neutrality.
 
 ### The skeptic or referee
 

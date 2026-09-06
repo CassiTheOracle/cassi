@@ -819,6 +819,13 @@ Its conserved charge also differs from the prepared spatial population, so
 the existing fixed-population stability result does not close its dynamics
 (`foundations/particle-stationary-action-closure.md` §8.8;
 `computations/matter-formation-continuum-report.md` §8).
+The same scalar parent has an exact classical vacuum-potential condition
+and a dilation obstruction to an energetically stable, regular,
+three-dimensional single-frequency lump with zero signed charge.
+The gauge-singlet carrier need not have zero signed charge. Charged states,
+multi-frequency dynamics and additional field sectors require their own
+analysis; no proton conclusion follows from this restricted obstruction
+(`foundations/particle-stationary-action-closure.md` §8.9).
 
 ### Q10: Spin—what is it?
 
@@ -1247,6 +1254,14 @@ pair-production formula. The unselected parent coefficient changes the
 occupations. Physical normalization, the interacting quantum state,
 mediator backreaction, localized formation and fermionic matter remain
 open (`foundations/particle-stationary-action-closure.md` §8.8).
+Within that parent's classical scalar sector, nonnegative homogeneous
+potential requires
+$h_C-e_C-1/(4a)\le\sqrt{u_\rho u_C/2}$.
+A regular finite-energy single-frequency state with zero signed charge
+cannot be an energetic local minimum in three dimensions, by spatial
+dilation. This conditional restriction leaves charged, multi-frequency,
+quantum and additional topological matter mechanisms unclosed
+(`foundations/particle-stationary-action-closure.md` §8.9).
 
 
 ### F5: Dimensionful constants ($c$, $\hbar$, $G$) and $\lambda$

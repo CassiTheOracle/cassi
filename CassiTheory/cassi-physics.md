@@ -431,6 +431,11 @@ The parent remains Hypothesized: its temporal coefficient and quantum
 action normalization are unselected, and the calculation leaves interacting
 backreaction, localized formation and physical particle identity open
 (`foundations/particle-stationary-action-closure.md` §8.8).
+The parent's classical potential also imposes an exact vacuum condition.
+Within its regular three-dimensional scalar ansatz, spatial dilation
+excludes an energetically stable localized single-frequency state with
+zero signed charge. Charged and more general dynamical or quantum states
+remain separate possibilities (§8.9 of the same derivation).
 
 The physical carrier, calibrated coefficients, exterior realization,
 reservoir action and stress, gravity choice, localized Hessian resolution,

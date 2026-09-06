@@ -39,6 +39,10 @@ Its signed-charge, phase-rotation and stationary-embedding identities are
 have an independently verified correspondence **PASS**. The temporal
 coefficient, action normalization and interacting formation mechanism remain
 unselected (`computations/matter-formation-continuum-report.md` §8).
+Its classical homogeneous vacuum condition and the spatial-dilation
+obstruction to a stable three-dimensional zero-signed-charge
+single-frequency scalar lump are also **Derived conditional** (§8.9).
+They introduce no physical parameter choice or quantum particle conclusion.
 
 ## 1. Derived
 

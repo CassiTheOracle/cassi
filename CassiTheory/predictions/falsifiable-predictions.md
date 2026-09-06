@@ -721,6 +721,12 @@ the action normalization. The scalar benchmark omits interacting
 backreaction and localized capture. It adds no physical particle-existence,
 mass or production-rate prediction (`foundations/particle-stationary-action-closure.md`
 §8.8; `computations/matter-formation-continuum-report.md` §8).
+The parent has a conditional classical vacuum-potential boundary and a
+spatial-dilation obstruction to stable regular three-dimensional
+single-frequency scalar lumps with zero signed charge. This restricts that
+ansatz without predicting a physical particle or excluding charged,
+multi-frequency, quantum or additional topological constructions
+(`foundations/particle-stationary-action-closure.md` §8.9).
 
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;

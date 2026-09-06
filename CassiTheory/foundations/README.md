@@ -827,6 +827,13 @@ pass the independently reconstructed scalar pair-production benchmark.
 The extension remains Hypothesized; physical temporal and action
 normalization, interacting backreaction, localized formation and particle
 identity are open (`foundations/particle-stationary-action-closure.md` §8.8).
+The same derivation gives a necessary and sufficient classical condition
+for a nonnegative homogeneous parent potential. Its three-dimensional
+zero-signed-charge, single-frequency scalar stationary ansatz admits no
+energetically stable regular finite-energy lump by spatial dilation
+(`foundations/particle-stationary-action-closure.md` §8.9). Charged,
+multi-frequency, quantum and additional topological sectors retain their
+separate scope.
 
 ### `matter-completion-boundary.md`—Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 

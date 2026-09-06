@@ -55,6 +55,10 @@ pass an independently reconstructed scalar pair-production benchmark.
 The physical parent coefficient and action normalization are unselected;
 interacting backreaction, localized creation and fermionic matter remain
 open (§8.8).
+Its classical scalar potential has an exact global vacuum boundary.
+Spatial dilation excludes an energetically stable, regular, localized
+single-frequency state with zero signed charge in three dimensions (§8.9).
+Gauge neutrality alone does not impose zero signed charge.
 
 ---
 
@@ -1216,6 +1220,124 @@ assignment. Physical coefficient selection, quantum normalization,
 renormalized backreaction, localized production and full stability remain
 separate requirements for a matter-formation mechanism.
 
+### 8.9 Neutral-vacuum and stationary-localization boundary
+
+The proposed parent has a classical vacuum condition and a separate
+restriction on neutral scalar localization. Both follow from the same action;
+neither selects its physical temporal coefficient or quantum normalization.
+This section retains the scale-independent scalar sector, positive spatial
+stiffness, regular finite-energy fields and the constant exterior vacuum.
+The parent Hamiltonian includes the nonnegative mediator kinetic energy.
+Here neutral means zero signed global charge $\mathcal Q_a$. The carrier's
+singlet representation under the internal gauge group does not impose
+$\mathcal Q_a=0$.
+All energies below are divided by the positive factor $\mathcal N_Q$.
+
+For $Q_C>0$, Cauchy–Schwarz applied to the charge in §8.8 gives
+
+$$
+a\int|\dot\chi|^2\,d^3x
+\ge\frac{(Q_C-\mathcal Q_a)^2}{4aQ_C}.
+$$
+
+At $\mathcal Q_a=0$, equality requires
+$\dot\chi=i\chi/(2a)$. Direct completion of the temporal square gives
+$H_{\rm can}/\mathcal N_Q=H_{\rm original}/\mathcal N_Q+
+\mathcal Q_a/(2a)$, so both Hamiltonians agree in this sector.
+The least temporal energy adds $|\chi|^2/(4a)$ to the static potential.
+With $z=f^2\ge0$, $n=|\chi|^2\ge0$,
+$B=e_C+1/(4a)$ and $s=\sqrt{u_\rho u_C/2}$, that potential is
+
+$$
+V_a(z,n)=\frac{u_\rho}{4}(z-1)^2+
+[B-h_C(1-z)]n+\frac{u_C}{2}n^2.
+$$
+
+Its nonnegativity can be decided exactly. The factorization
+
+$$
+V_a=
+\left[\frac{\sqrt{u_\rho}}2(1-z)-\sqrt{\frac{u_C}{2}}n\right]^2+
+\left[B-(h_C-s)(1-z)\right]n
+$$
+
+is nonnegative when $h_C-B\le s$. If $h_C\ge s$, the second coefficient
+is smallest at $z=0$; if $h_C<s$, it is positive on $0\le z\le1$,
+while the original polynomial is nonnegative at $z\ge1$.
+Conversely, when $h_C-B>s$, the point
+$z=0,\ n=(h_C-B)/u_C$ has negative potential. Thus, for the positive
+coefficients used here,
+
+$$
+\boxed{
+V_a(z,n)\ge0\ \text{for all }z,n\ge0
+\quad\Longleftrightarrow\quad
+h_C-e_C-\frac1{4a}\le\sqrt{\frac{u_\rho u_C}{2}}.}
+$$
+
+When $h_C>e_C+s$, the exterior global-vacuum interval is
+$0<a\le a_{\rm vac}=1/[4(h_C-e_C-s)]$. If $h_C\le e_C+s$,
+every positive $a$ meets this classical potential condition.
+Minimizing first over $z$ gives
+$z_*=\max(0,1-2h_Cn/u_\rho)$. On the active interval the reduced
+potential is $Bn+(u_C/2-h_C^2/u_\rho)n^2$.
+A negative global minimum requires $h_C>B+s>s$, making this part
+concave. Its endpoints and the remaining $z=0$ parabola then give
+
+$$
+\min V_a=
+\min\left(0,\frac{u_\rho}{4}
+-\frac{[\max(h_C-B,0)]^2}{2u_C}\right).
+$$
+
+At $a=a_{\rm vac}$ the exterior vacuum is degenerate with the homogeneous
+state $z=0,\ n=\sqrt{u_\rho/(2u_C)}$. Above this boundary, a lower
+homogeneous phase exists. The exterior $(f,\chi)=(1,0)$ remains a local
+minimum of the classical potential: its quadratic mediator and carrier
+terms are positive. The lower phase supplies no nucleation rate or
+localized formation history. The condition also differs from the sign of
+$M_a^2(0)$ at an externally held depleted mediator, whose crossing is
+$a_{\rm dep}=1/[4(h_C-e_C)]$ when $h_C>e_C$.
+Renormalized quantum corrections require their own calculation.
+
+A regular single-frequency neutral stationary lump has an additional
+obstruction. For $\chi=e^{-i\omega t}c(\mathbf x)$ with $Q_C>0$,
+zero signed charge fixes $\omega=-1/(2a)$, so the canonical carrier
+and mediator are static. Let $\mathcal T$ be their nonnegative gradient
+energy and $\mathcal U=\int V_a$. In $d$ spatial dimensions, dilating both
+profiles by $\mathbf x\mapsto\mathbf x/\lambda$ gives
+
+$$
+E(\lambda)=\lambda^{d-2}\mathcal T+\lambda^d\mathcal U,
+\qquad
+(d-2)\mathcal T+d\mathcal U=0
+$$
+
+at a stationary solution. For $d>2$, a nonnegative potential excludes any
+nontrivial finite-energy solution of this ansatz. If the potential takes
+negative values and a nontrivial stationary solution exists, its dilation
+curvature is
+
+$$
+\boxed{E''(1)=-2(d-2)\mathcal T<0.}
+$$
+
+The dilation preserves zero signed charge. Thus the specified scalar parent
+has no energetically stable, regular, localized single-frequency
+zero-signed-charge stationary lump in three spatial dimensions, for any
+positive $a$. This is the conditional application of the Derrick scaling
+argument. It does not exclude charged stationary states, whose fixed-charge
+constraint changes under this dilation; oppositely charged separated
+excitations; multi-frequency dynamics; quantum bound states; or additional
+gauge, topological and scale sectors.
+
+`computations/matter-formation-parent-vacuum-prereg.md` freezes independent
+polynomial minimization, charge-energy and radial-dilation checks.
+The prescribed-background pair correspondence in §8.8 and the prepared
+fixed-population binding in §8.7 retain their separate scopes. A stable
+neutral matter interpretation requires a mechanism beyond this stationary
+scalar ansatz.
+
 ## 9. What is closed and what remains open
 
 | Question | Result |
@@ -1233,6 +1355,8 @@ separate requirements for a matter-formation mechanism.
 | Is any basin the unrestricted global minimum? | Undetermined and not established by finite controls |
 | Is the full physical Hessian or mixed dynamical spectrum evaluated? | No. The stored Cartesian fields have independently matched low energetic spectra in a finite-grid $C_4$ quotient. Their phase modes have grid-scale structure. The separate smooth $Q_C=16$ constrained spatial study has no resolved negative mode on four tested grids, but its combined verdict is `INCONCLUSIVE` because the coarse symmetry and domain comparisons fail. Full temporal and nonlinear stability remain open |
 | Can carriers form from an exactly empty closed sector? | No; the homogeneous first-order carrier equation preserves $Q_C=0$. A microscopic production action and quantum content are missing |
+| Does the optional carrier parent define a classical vacuum condition? | Yes, conditionally: $h_C-e_C-1/(4a)\le\sqrt{u_\rho u_C/2}$ is necessary and sufficient for nonnegative homogeneous canonical scalar potential |
+| Can that scalar parent support an energetically stable single-frequency localized state with zero signed charge? | No, under the regularity, finite-energy, constant-vacuum and three-dimensional scalar assumptions of §8.9. Charged, multi-frequency, quantum and additional topological sectors remain outside that statement |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 
 The action defines a fixed-charge boundary-value problem and an exact
@@ -1296,6 +1420,16 @@ density trapping while leaving continuum and temporal stability, actual
 formation, physical normalization, particle quantum numbers and statistics
 open.
 
+The optional positive-inertia carrier parent supplies a signed charge and a
+verified prescribed-background Gaussian pair correspondence. Its classical
+potential places an exact constraint on the unselected temporal coefficient.
+The zero-signed-charge single-frequency scalar ansatz has a separate
+localization obstruction: a nonnegative potential excludes a nontrivial
+stationary lump, and any such lump with an available negative-potential
+region has a negative dilation direction. A supported physical matter
+mechanism must address the corresponding charge, dynamics or field-content
+requirements.
+
 ---
 
 ## References
@@ -1319,3 +1453,7 @@ open.
 - `computations/matter-formation-hyperbolic-parent-prereg.md`—optional temporal parent, quantum normalization and frozen free-mode schedule.
 - `computations/matter_formation_hyperbolic_parent.py`—primary oscillator trajectories and stationary embeddings.
 - `computations/verify_matter_formation_hyperbolic_parent.py`—independent raw-array, charge and energy-work verification.
+- `computations/matter-formation-parent-vacuum-prereg.md`—classical parent-vacuum and neutral stationary-localization identities with frozen numerical checks.
+- `computations/matter_formation_parent_vacuum.py`—closed-form potential, charge-energy and Gaussian dilation witnesses.
+- `computations/verify_matter_formation_parent_vacuum.py`—independent unreduced minimization and radial quadrature.
+- [Derrick, *Comments on Nonlinear Wave Equations as Models for Elementary Particles*](https://doi.org/10.1063/1.1704233)—finite-energy spatial-dilation restriction.
