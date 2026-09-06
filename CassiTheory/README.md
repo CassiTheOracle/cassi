@@ -90,6 +90,16 @@ Dirac chiral-scalar density map also has independently checked positivity
 and Hermiticity obstructions, so its physical coupling remains open
 (`computations/matter-formation-continuum-report.md` §12).
 
+A separate positive spinor component map has an exact chiral-current
+interpretation. Its closed Dirac evolution does not reproduce the canonical
+population conversion. With the specified minimal conversion channel, a
+nonzero Dirac mass moves the stationary ratio below $\varphi$, and the
+channel permits leakage from the positive-energy one-particle subspace.
+These independently verified finite-dimensional results leave physical
+energy-density normalization, a reservoir interaction and a controlled
+quantum reduction open (`foundations/sector-coupling-derivation.md`
+§§1.5–1.6; `computations/matter-formation-continuum-report.md` §13).
+
 ## The reality-simulation program
 
 The reality simulator turns theoretical statements into dynamics that can be perturbed and measured. Its target is a field engine that supports local evolution, structure formation, gravity, particles, scale coupling, and cosmological behavior without changing the underlying computational vocabulary at every domain boundary.
