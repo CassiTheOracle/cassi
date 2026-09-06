@@ -1364,12 +1364,14 @@ python computations/matter_formation_yukawa_bulk.py
 python computations/verify_matter_formation_yukawa_bulk.py
 ```
 
-For the receipt-qualified spatial calculation and scalar sign check, these invocations use separate reproduction destinations. Choose unused directory names before executing them. The receipt verifier below checks the named accepted spatial evidence and writes a fresh control receipt; it does not read the reproduction directory.
+These reproduction commands use separate destinations. Choose unused directory names before executing them. The spatial-receipt verifier checks the named accepted spatial evidence and writes a fresh control receipt. The collective-binding verifier receives matching explicit input and output directories for the newly generated primary result.
 
 ```text
 python computations/matter_formation_spatial_domain_v2.py --output-dir runs/repro_matter_formation_spatial_domain_v2
 python computations/verify_matter_formation_spatial_domain_receipts.py --output-dir runs/repro_matter_formation_spatial_receipt_checks
 python computations/matter_formation_scalar_vacuum_sign_check.py --output-dir runs/repro_matter_formation_scalar_vacuum_sign
+python computations/matter_formation_yukawa_bulk.py --output-dir runs/repro_matter_formation_yukawa_bulk
+python computations/verify_matter_formation_yukawa_bulk.py --input-dir runs/repro_matter_formation_yukawa_bulk --output-dir runs/repro_matter_formation_yukawa_bulk
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
@@ -1404,6 +1406,8 @@ The pending public-document set contains these 14 paths:
 - `reading-guide.md`
 
 The three registries and `audit.md` contain draft integration of the finite-mode production, continuum and scalar-vacuum results in this record's §§14–16. The numbered body of `foundations/matter-completion-boundary.md` reaches §12; its integrated treatment of those results remains pending. The full document set has no verified agreement with the current working record. These uncommitted hunks are unfinished integration work, with no claim-adoption decision implied by their presence.
+
+The collective-binding exclusion in §§15.6–15.7 is also pending public propagation. The consolidated checkpoint must carry its restricted local-density, $|m|\le1$ and specified-vacuum-prescription scope into `EPISTEMIC-MAP.md`, `audit.md`, and the relevant existing matter-formation entries in `open-questions-cassi-answers.md` and `predictions/falsifiable-predictions.md`. This calculation supplies a conditional model constraint; it introduces no new experiment-ready physical prediction.
 
 Preserve this set separately from local research commits. A consolidated publication checkpoint must reconcile the registries, `EPISTEMIC-MAP.md`, `audit.md`, domain treatment and supporting indexes before these hunks enter a public commit. Their present status is explicitly handed off; no bulk staging, silent reversion or intermediate propagation is authorized.
 
