@@ -766,6 +766,64 @@ The tested expressions and target choices are transcribed explicitly in the froz
 
 The registered empty-source control invokes both actual programs. Both exit 1 and preserve their failed receipts with empty source summaries, unit families, core assignments, rescaling results and spinor results. The primary reports the missing field; the verifier rejects the failed primary input. All control verdicts are bare `INCONCLUSIVE` and carry no scientific conclusion.
 
+### 12.7 Scalar configuration topology: pre-execution criteria
+
+A fermionic carrier needs a specified quantum representation. This calculation checks whether the full canonical positive-density configuration space supplies a Finkelstein–Rubinstein sign, meaning a topological minus sign assigned to a closed rotation or exchange path. It addresses the missing statistics input before any additional formation simulation. The scalar variables come from `foundations/cassi-first-principles.md` §1 and the optional fourth-gradient energy from `foundations/unified-lagrangian.md` §1.1. The gauge extension has a separate configuration space and is excluded from this calculation.
+
+**Declared domains.** On a finite grid, use nonnegative component densities with fixed population $N=\sum_{a,s}w_sE_{a,s}$ and positive diagonal cell weights $w_s$. The continuum density domain is
+
+$$
+\mathcal C_N^F
+=\left\{E_a\ge0:\ E_a\in L^1,\quad
+\sqrt{E_a}\in H^1_0(\Omega),\quad
+\sum_a\int_\Omega E_a=N\right\},
+$$
+
+with the $L^1$ topology, on a bounded Lipschitz domain. The finite Fisher energy is an invariant domain condition; continuity in a stronger root-$H^1$ topology is not assumed. Periodic boundaries and $H^1(\mathbb R^3)$ decay give corresponding homogeneous classes. $N=0$ is the singleton empty configuration.
+
+For the optional fourth-gradient term, declare a separate amplitude domain
+
+$$
+\mathcal A_N^{2,+}
+=\left\{u_a\ge0:\ u_a\in H^2\cap L^4,\quad
+\sum_a\int u_a^2=N>0\right\},
+\qquad u_a=\sqrt{E_a},
+$$
+
+with the $H^2\cap L^4$ topology and periodic, homogeneous zero boundary data, or $H^2(\mathbb R^3)\cap L^4(\mathbb R^3)$ decay. Population uses the diagonal $L^2$ inner product, independently of any configuration-space metric. Fixed nonzero Dirichlet data, singular potentials excluding field zeros, topological boundary charge, gauge quotients and restrictions to separated low-energy lumps are outside these domains.
+
+**Candidate contractions.** For a fixed reference density $F$, test the affine path $H_t(E)=(1-t)E+tF$. Its Fisher certificate, with $u,v$ the nonnegative roots and $a,b$ one component of their gradients, is
+
+$$
+\begin{aligned}
+&[(1-t)a^2+tb^2][(1-t)u^2+tv^2]
+-[(1-t)ua+tvb]^2\\
+&\hspace{30mm}=t(1-t)(va-ub)^2.
+\end{aligned}
+$$
+
+For the separate root-$H^2$ domain use
+
+$$
+w_t=(1-t)u+tu_b,\qquad
+T_tu=\frac{\sqrt N\,w_t}{\|w_t\|_2},
+\qquad
+\|w_t\|_2^2-\frac N2
+=2N\left(t-\frac12\right)^2
++2t(1-t)\langle u,u_b\rangle\ge0.
+$$
+
+Here $E_t=(T_tu)^2$ is a different path from the affine density homotopy. The normalization is spatially constant, so the Laplacian interpolates linearly before normalization. The relevant Jensen gap is
+$ (1-t)a^2+tb^2-[(1-t)a+tb]^2=t(1-t)(a-b)^2 $.
+
+**Executable checks and stopping rule.** `computations/matter_formation_scalar_topology.py` will run eight fixed exact-algebra groups: the Fisher gap; the factor-four root-gradient identity; the weighted amplitude norm expansion and equal-population floor; the Laplacian Jensen gap; the sharp disjoint-support norm-floor witness; a positive-definite nondiagonal-metric counterexample; a nonzero-boundary counterexample; and scalar/vector versus spinor $2\pi$ rotations. The two counterexamples prevent extending the contraction beyond its declared assumptions. Use SymPy exact expressions and rational inputs, with no parameter search or numerical tolerance.
+
+The metric counterexample is $G=\left(\begin{smallmatrix}1&-9/10\\-9/10&1\end{smallmatrix}\right)$ with endpoints $(1,0),(0,1)$. The boundary counterexample uses equal-population endpoints $(1,1,0),(1,0,1)$ and their common first coordinate as the boundary value. Both are evaluated at $t=1/2$. The rotation control compares the real spatial rotation matrix with $\exp(-i\theta\sigma_3/2)$ at $\theta=2\pi$.
+
+All eight groups passing permits only `SUPPORTS—algebraic certificates for the declared scalar configuration-space contractions`. A failed group, missing record, or frozen-section hash mismatch gives `INCONCLUSIVE` and a nonzero exit. The registered missing-record control must emit an empty scientific payload and exit nonzero. The program records its own canonical CRLF-to-LF hash and the frozen section hash in an exclusive-write receipt. Existing output directories are immutable. No rejected physical campaign is repeated.
+
+The continuous homotopies and the resulting fundamental-group argument require an explicit mathematical proof alongside the receipt. Finite algebra checks alone do not measure a homotopy group, establish a quantum field theory, or identify a physical particle. The target conclusion is conditional absence of an FR sign in these full scalar domains under ordinary scalar pullback quantization. Berry phases, extra spinor structure, gauge sectors, and quantum topological order require their own dynamics and quantization.
+
 ## 13. Positive spinor observables and the conversion boundary
 
 ### 13.1 Comparison convention and independent methods
