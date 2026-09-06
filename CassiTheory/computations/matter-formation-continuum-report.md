@@ -1285,6 +1285,37 @@ The lattice diagnostic and algebraic witness are in `runs/20260906_matter_format
 
 The remaining physical requirements are a selected microscopic production action and quantum state, absolute normalization, physically matched quantum backreaction, particle identities and statistics, real-time localized formation and nonlinear stability, scale-dependent sectors, and empirical discrimination. The conditional hyperbolic parent supplies one explicitly normalized Gaussian correspondence, finite-grid radial fixed-charge support and selected population-256 angular/phase support. Its physical coefficient and action normalization remain open. The separately declared finite-mode Yukawa model supplies verified fermionic pair excitation and semiclassical feedback, with physical matching, continuum quantum control and localization open. The fixed-population spatial, signed-charge radial-domain and selected scalar-parent spatial calculations retain their distinct inconclusive aggregate verdicts.
 
+### 17.1 Microscopic model-selection boundary
+
+The evidence assembled here leaves the production action, initial quantum state, absolute normalization and physical particle identification unselected. The finite-mode Yukawa action and the scalar temporal parent describe distinct candidate systems. The cited Friedberg–Lee–Sirlin and chiral Yukawa constructions provide comparison models with explicitly supplied microscopic field content. The recorded Cassi substrate supplies no demonstrated rule that selects those ingredients or their physical matching.
+
+A further formation campaign therefore requires a specified candidate action and a physical justification for its state, normalization and particle assignment. Any imposed choice retains its stated assumption status. More spectral qualification of the prepared scalar branch cannot determine these missing inputs. The sealed spatial, domain and continuum receipts remain reusable evidence with their individual verdicts; this boundary authorizes no repeat of a rejected hypothesis at full cost.
+
+### 17.2 Pending document integration and local publication status
+
+**Working-tree status—6 September 2026: partial integration, without a consolidated cross-document consistency verdict.** The research commits remain local by the owner's explicit publication choice. This working record is the sole intermediate research record.
+
+The pending public-document set contains these 14 paths:
+
+- `BROKEN_REFS.md`
+- `EPISTEMIC-MAP.md`
+- `README.md`
+- `audit.md`
+- `cassi-physics.md`
+- `computations/matter_completion_boundary_report.md`
+- `foundations/README.md`
+- `foundations/cassi-theory-reference.md`
+- `foundations/sector-coupling-derivation.md`
+- `foundations/unified-lagrangian.md`
+- `open-questions-cassi-answers.md`
+- `parameter-inventory.md`
+- `predictions/falsifiable-predictions.md`
+- `reading-guide.md`
+
+The three registries and `audit.md` contain draft integration of the finite-mode production, continuum and scalar-vacuum results in this record's §§14–16. The numbered body of `foundations/matter-completion-boundary.md` reaches §12; its integrated treatment of those results remains pending. The full document set has no verified agreement with the current working record. These uncommitted hunks are unfinished integration work, with no claim-adoption decision implied by their presence.
+
+Preserve this set separately from local research commits. A consolidated publication checkpoint must reconcile the registries, `EPISTEMIC-MAP.md`, `audit.md`, domain treatment and supporting indexes before these hunks enter a public commit. Their present status is explicitly handed off; no bulk staging, silent reversion or intermediate propagation is authorized.
+
 ## References
 
 - `computations/matter-formation-continuum-prereg.md`—frozen continuum, lattice and creation calculations.
