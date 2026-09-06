@@ -1108,6 +1108,55 @@ field and return all scientific verdicts `INCONCLUSIVE`. These are
 input-validation controls; the accepted scientific receipts remain
 unchanged.
 
+### 15.6 Collective binding in the declared Yukawa model: pre-execution criteria
+
+Fermions can bind collectively even when their pair potential has no two-body level. This calculation tests that remaining channel in a definite restriction of the same scalar–Dirac candidate used in §§14–16. Keep $m_0=1$, $y=1/4$, $\Omega=3$, canonical scalar gradient normalization and the specified local one-loop potential $\mathcal U(m)$ in §16. The physical assignment of these benchmark inputs remains unselected. The model choice preserves the recorded interaction and vacuum prescription, allowing a discrimination without a new coupling, fitted mass or stabilizing term.
+
+Use the static local-density approximation to the occupied positive-energy Dirac spectrum, with $m(x)=1+yf(x)$, $f\to0$, and $|m(x)|\le1$. This covers the mass-depleting bag branch, including a change in the sign of the Dirac mass. The renormalized sea contribution is the existing local $\mathcal V_R(m)$; no vacuum term is discarded. The nonlocal determinant, exchange, gradients of the fermionic state and few-body quantization remain outside this approximation. The global large-field instability in §16 retains its separate scope.
+
+For degeneracy $d$, the homogeneous zero-temperature Fermi sea has number density $n=d k^3/(6\pi^2)$ and occupied energy density
+$$
+\epsilon_d(k,s)=\frac{d}{2\pi^2}\int_0^k p^2\sqrt{p^2+s^2}\,dp,\qquad s=|m|.
+$$
+Here $d=2$ describes one particle-sign sector. Allowing $d=4$ minimizes the occupied energy over both particle and antiparticle signs at fixed total excitation number; it is a favorable relaxation of separate population constraints. Total excitation number is distinct from the conserved vector charge, and fixing it supplies no physical annihilation suppression.
+
+At the free-particle threshold $\mu=m_0=1$, every allowed local phase-space occupation satisfies
+$$
+\epsilon-n\ge-P_d(s;1),\qquad
+P_d(s;\mu)=\frac{d}{6\pi^2}\int_s^\mu(E^2-s^2)^{3/2}\,dE
+\quad(0\le s\le\mu).
+$$
+The inequality follows mode by mode from $(E-1)\nu\ge\min(E-1,0)$ for $0\le\nu\le1$. The minimizer fills $p<k_*=\sqrt{1-s^2}$. Thus the pressure comparison supplies a bound for every population, rather than a density scan. With $\delta=1-s$,
+$$
+P_d(s;1)\le\frac{2d\sqrt2}{15\pi^2}\delta^{5/2}
+\le\frac d{45}\delta^2.
+$$
+The first inequality uses $E+s\le2$; the second follows from $0\le\delta\le1$, $\sqrt2<3/2$ and $\pi>3$.
+
+The specified one-loop remainder is nonnegative throughout this mass interval. For $0<m<1$, its exact form is
+$$
+\mathcal V_R(m)=\frac1{8\pi^2}\int_m^1\frac{(t-m)^4}{t}\,dt\ge0,
+\qquad \mathcal V_R(0)=\frac1{32\pi^2}.
+$$
+For $m=-s$ with $0\le s\le1$, the subtraction polynomial obeys
+$$
+P(-1-s)=\frac12+\frac83s+6s^2+8s^3+\frac{25}{6}s^4,
+$$
+and $s^4\log(s^2)\le0$. Also $(1-m)^2\ge(1-|m|)^2$. These identities give the candidate all-population bound
+$$
+\boxed{\mathcal U(m)+\epsilon-n
+\ge\left(72-\frac d{45}\right)(1-|m|)^2\ge0,\qquad d\in\{2,4\}.}
+$$
+The scalar gradient term adds a nonnegative contribution. If qualified, this excludes energy below the separated-particle threshold for the stated local-density functional on the mass-depleting branch. It establishes no exact finite-fermion spectrum, absence of above-threshold metastability, dynamical formation verdict or physical particle selection.
+
+Before execution, freeze this section verbatim. `computations/matter_formation_yukawa_bulk.py` uses SymPy for twelve named exact checks: the harmonic coefficient; fifth derivative of $m^4\log(m^2)$; positive-mass integral remainder; zero-mass remainder; negative-mass polynomial; mirrored harmonic cost; pressure derivative with respect to $\mu$; occupied-energy derivative with respect to $k$; the pressure power integral; the rational $\pi$ lower bound; the rational square-root upper bound; and the positive binding margins for $d=2,4$. Prove $\pi>3$ using $\sum_{j=0}^{7}(-x^2)^j=(1-x^{16})/(1+x^2)$ on $[0,1]$ and the exact rational integral, without symbolic Boolean inequality solvers.
+
+The fixed numerical witnesses use 80 decimal digits and tolerance $10^{-35}\max(1,|a|,|b|)$. At $d=4$, compare pressure formulas for $s=(0,1/4,1/2,3/4,15/16,1)$; compare loop remainders for $m=(-1,-3/4,-1/2,-1/4,0,1/4,1/2,3/4,15/16,1)$; and compare $\epsilon_d-n$ at each nonnegative mass with $k=k_*,1/2,2$. Retain six pressure rows, ten remainder rows and eighteen grand-energy rows. The massless and threshold endpoint limits are exact controls. No mass, density, coupling or degeneracy optimization is permitted.
+
+`computations/verify_matter_formation_yukawa_bulk.py` independently reconstructs every numerical row by momentum quadrature and the integral or positive-polynomial remainder. It imports no primary functions. Both programs bind this frozen text, their canonical source identities, the accepted scalar-vacuum receipt and both model preregistrations. The accepted scalar receipt SHA-256 is `b2932913890ee3c97f1d8e05f6d94e08eebbdd34d48b438a9fc647fe2c990dc5`. The primary also retains its exact symbolic expressions. All twelve exact predicates and all 34 numerical rows must qualify, and independent reconstruction must agree, before the verdict is `SUPPORTS—absence of subthreshold collective binding in the declared mass-depleting local-density Yukawa functional`. Any failed or unavailable predicate gives `INCONCLUSIVE`.
+
+Execute once in `runs/20260906_matter_formation_yukawa_bulk/`, with distinct primary `results.json` and independent `verification.json`. Output is finite JSON, exclusive-create and hash-bound. Missing-note controls use fresh directories, exit one and retain empty scientific payloads. Preserve any failed attempt and its source revision. This is a new collective-binding question using accepted evidence; the sealed pair, spatial and vacuum campaigns are not rerun. Record the outcome in this working file alone and keep the commits local.
+
 ## 16. Global static scalar-vacuum energy boundary
 
 ### 16.1 Necessary energy criterion
