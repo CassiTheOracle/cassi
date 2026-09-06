@@ -385,7 +385,7 @@ Every base operator has exactly one resolved negative eigenvalue and no unresolv
 
 Every frozen embedding supports radial energetic stability on its own finite grid. The measured minimum eigenvalues are:
 
-| Prepared $N$ | Domain $R$ | Cells | $a=1/64$ | $a=1/32$ | $a=1/16$ |
+| Prepared $Q_C$ | Domain $R$ | Cells | $a=1/64$ | $a=1/32$ | $a=1/16$ |
 |---:|---:|---:|---:|---:|---:|
 | 16 | 12 | 192 | 0.9589907397 | 0.9577469155 | 0.9551534094 |
 | 16 | 12 | 384 | 0.9580731065 | 0.9568219660 | 0.9542133831 |
