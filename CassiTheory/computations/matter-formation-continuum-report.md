@@ -26,6 +26,8 @@ The specified scalar–fermion model also has independently verified continuum r
 
 The specified harmonic scalar potential plus the subtracted one-loop vacuum remainder also fails a global energy requirement. Sixteen algebraic checks establish positive reference curvature and an exact negative-potential witness. A widening neutral trial bubble drives the explicitly local static functional to arbitrarily negative energy. This conditional result leaves the full nonlocal spatial quantum model, metastability and physical particle matching open.
 
+The declared full positive-density configuration spaces are contractible, including a separate root-$H^2$ domain that preserves fourth-gradient energy. Eight exact-algebra groups qualify the contraction certificates and their boundary/metric restrictions. A regular scale-independent zero-flux gauge subspace also has a trivial ordinary $2\pi$ rotation class after projection. These scoped results constrain routes to a fermionic sign; the physical statistics and particle identification required for matter formation remain open (§§12.7–12.9).
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -949,6 +951,94 @@ Setting $\mathcal A=0$ while varying the orientation generally produces a genuin
 
 The charge–monopole mechanism requires the corresponding electric excitation, magnetic sector and combined spatial/internal rotation. The present stationary branch has a gauge-neutral carrier, zero outer magnetic charge and vanishing static electric fields. It supplies no such half-spin assignment. Exchange statistics for localized excitations still require a specified multiparticle sector, quantum representation and relation between exchange and spatial rotation. The demonstrated result is the trivial FR class of the standard $2\pi$ rotation in the declared regular zero-flux sector. No new numerical campaign or physical particle identification is implied.
 
+
+### 12.10 Large-gauge winding and separated exchange sectors
+
+Large-gauge winding and exchange of separated particles concern different loops. They can be evaluated without selecting a new production model or changing the accepted scalar protocol.
+
+**Inclusion before projection.** Let $\mathcal X_N$ be an admissible unquotiented full field space containing the regular subspace $\mathcal D_N$ of §12.9, with continuous inclusion $\iota:\mathcal D_N\hookrightarrow\mathcal X_N$. For any specified full gauge quotient $q:\mathcal X_N\to\mathcal X_N/\mathcal G$, the relevant map is
+
+$$
+p=q\circ\iota.
+$$
+
+The full gauge group need not preserve $\mathcal D_N$. A disc in $\mathcal D_N$ still maps to a disc through this composition. Restricting to a quotient defined within $\mathcal D_N$ instead requires the subgroup preserving its scale-independent, $\mathcal A_{\mathfrak s}=0$ and boundary conditions. The full scale-dependent space and the axisymmetric, gauge-fixed variational class (PA38) are not identified with $\mathcal D_N$. A loop whose only lift closes through a scale-dependent gauge transformation has not been covered by the ordinary closed-lift construction.
+
+**Based gauge components.** For the three-dimensional subgroup of smooth $SU(2)_Q$ maps tending to the identity at infinity, compactification gives
+
+$$
+\mathcal G_*=\operatorname{Map}_*(S^3,SU(2)),
+\qquad
+\pi_0(\mathcal G_*)=\pi_3(SU(2))=\mathbb Z.
+$$
+
+The integer is the degree of the gauge map. The subgroup connected to the identity has only its zero-degree component. The notation $\mathcal G_0$ in (PA38) specifies approach to the outer identity without fully selecting which components are quotiented, so these two choices must remain distinct.
+
+For a free principal quotient with connected, simply connected total space, the homotopy exact sequence identifies $\pi_1$ of the quotient with $\pi_0$ of the acting group. This statement explains how large-gauge loops may occur; the rotation result uses the explicit projected disc and requires no principal-bundle classification.
+
+There is also no nontrivial based gauge transformation fixing an ordinary connection representative. If $\mathcal A^U=\mathcal A$, (PA7) gives
+
+$$
+dU-i g_Q[\mathcal A,U]=0.
+$$
+
+Parallel transport preserves the conjugation-invariant norm of $U-I$. Its boundary value is zero, so $U=I$ throughout the connected spatial domain. In particular, appending a nonzero-degree gauge transformation cannot make the exactly returned endpoint of a standard $2\pi$ scalar/vector rotation into a different closure of that same representative. A large-gauge character $e^{i\vartheta\,\deg U}$ evaluates to $1$ on this ordinary rotation. Other quotient loops require their own physical construction.
+
+**Separated identical particles.** Fix an integer lump count $n\ge2$, excluding collisions, on unbounded three-dimensional space. This is an additional configuration-space choice, independent of the continuous population $N$. Define
+
+$$
+F_n(\mathbb R^3)=\{(x_1,\ldots,x_n):x_i\ne x_j\},
+\qquad
+Q_n=F_n(\mathbb R^3)/S_n.
+$$
+
+The collision diagonals have codimension three. A spanning disc for a loop in the ambient $\mathbb R^{3n}$ can be perturbed relative to its boundary to avoid these diagonals, because the disc has dimension two. Thus the ordered space is simply connected. Its free permutation quotient has
+
+$$
+\boxed{\pi_1(Q_n)=S_n.}
+$$
+
+The trivial and permutation-sign characters supply bosonic and fermionic exchange choices for a scalar wavefunction on this restricted space. Topology permits both choices; it does not select one. For two particles the relative coordinate gives
+$Q_2\simeq\mathbb R^3\times\mathbb R_+\times\mathbb{RP}^2$.
+A half-turn of the relative vector exchanges the particles and represents the nontrivial $\mathbb Z_2$ loop. A full $2\pi$ rotation lifts to a closed loop of ordered points and contracts. Exchange and physical spin therefore still require a specified relation.
+
+Allowing collisions instead gives the symmetric product
+$(\mathbb R^3)^n/S_n$, which contracts through the permutation-equivariant map $x_i\mapsto(1-t)x_i$. In the full scalar field domain, overlapping or merged profiles have finite energy under the assumptions of §§12.7–12.8, and no conserved lump count is supplied. A separated-lump exchange sign consequently needs a justified restricted quantum sector. A finite classical barrier can motivate an approximation at measured energies; it does not establish an exact superselection rule.
+
+Removing field zeros also has no universal topological consequence. The direction of the two-component nonnegative root field lies on a quarter-circle, an interval. A nonvanishing positive-root pair still supplies no compact $S^3$ target. A complex field, adjoint direction, constrained nonlinear target or gauge quotient needs its own target-space calculation.
+
+### 12.11 Fourth-gradient selection: pre-execution criteria
+
+The optional fourth-gradient term changes a spatial scaling test. This calculation asks whether that term alone can support a static localized particle in the specified positive-root action. It does not add the term to the gauge-carrier action or rerun a soliton campaign.
+
+Use exactly the source-free, zero-vacuum positive-root terms in `foundations/unified-lagrangian.md` §§1.1–1.2, with $\kappa_4\ge0$, $g\ge0$, $\lambda\ge0$, no breath field and no external potential. On $\mathbb R^3$, let $u=(u_0,u_1)\ge0$ belong to $H^2\cap L^4$ and have finite $L^2$ norm. Write
+
+$$
+\begin{aligned}
+T_2&=\frac12\int|\nabla u|^2,&
+T_4&=\frac{\kappa_4}{2}\int|\Delta u|^2,\\
+V_4&=\int\left[\frac g4|u|^4+
+\frac\lambda2(u_0^2-\varphi u_1^2)^2\right],&
+\mathcal E[u]&=T_2+T_4+V_4.
+\end{aligned}
+$$
+
+All three terms are nonnegative. The nonzero finite-norm field has $T_2>0$: zero gradient would give a spatial constant, whose finite norm on $\mathbb R^3$ forces it to vanish. A coefficient-zero edge is permitted for $T_4$ or $V_4$.
+
+**Fixed algebra schedule.** `computations/matter_formation_kappa4_selection.py` will construct the scaling powers from the three-dimensional volume Jacobian, derivative order and amplitude power. It will run four exact groups:
+
+1. Fixed-amplitude spatial dilation $u_L(x)=u(x/L)$ gives powers $(1,-1,3)$ for $(T_2,T_4,V_4)$.
+2. Amplitude variation $u_a=au$ gives the first derivative at $a=1$ as a positive linear combination of the energy terms.
+3. Fixed-population dilution $u_L=L^{-3/2}u(x/L)$ gives powers $(-2,-4,-3)$, a strictly negative first derivative at $L=1$, and zero limiting energy as $L\to\infty$.
+4. The formal positive energy triple $(T_2,T_4,V_4)=(1,4,1)$ has a stationary, positive-curvature fixed-amplitude dilation while its amplitude derivative remains positive. This is an algebraic control distinguishing a one-direction scaling minimum from a stationary field.
+
+Use SymPy exact arithmetic, with no coefficient search or numerical tolerance. All four groups passing permits `SUPPORTS—absence of static localization in the declared source-free positive-root energy`. A failed group, missing record, or frozen-section hash mismatch gives `INCONCLUSIVE` and a nonzero exit. A missing-record control must exit nonzero with an empty scientific payload. The source and frozen section are hash-recorded; output directories are exclusive-write and immutable.
+
+**Scope and stopping rule.** The analytic variational proof must accompany the algebra receipt. Fixed-population dilution is evaluated as a mathematical constraint; the real positive-root action does not thereby gain a conserved quantum particle number. Finite containers, a nonzero condensate vacuum, negative or shifted potentials, additional charge terms, time-dependent states and driven fields are outside this calculation.
+
+The values $u_\rho=u_\varphi=u_H=4$ in §1 are coefficients of the separate gauge-carrier potential. They are not the spatial scaling powers in this calculation and supply no coefficient or field-space map for importing $\kappa_4$ into that action. The local one-loop functional in §16 is also a different energy. A successful scaling check here neither repairs its global unboundedness nor changes the chosen gauge vacuum's trivial $\pi_2$ and confined monopole flux.
+
+After the four groups and missing-record control, stop. No new topological soliton, compact target, quantum sign or physical particle is selected by this calculation.
 ## 13. Positive spinor observables and the conversion boundary
 
 ### 13.1 Comparison convention and independent methods
@@ -1604,6 +1694,8 @@ Preserve this set separately from local research commits. A consolidated publica
 - `computations/verify_matter_formation_yukawa_bulk.py`—independent momentum-space reconstruction and frozen-evidence qualification.
 - `computations/matter_formation_scalar_topology.py`—frozen exact-algebra certificates and excluded-assumption controls for the scalar contractions.
 - [Cork and Harland, *Finkelstein–Rubinstein constraints from ADHM data and rational maps*](https://arxiv.org/html/2401.16494v2)—configuration-space loop classes and FR wavefunction signs in the Skyrme comparison model.
+- `runs/20260906_matter_formation_scalar_topology/results.json`—eight-group exact-algebra receipt for the scalar-domain contractions.
+- `runs/20260906_matter_formation_scalar_topology_missing_record/results.json`—missing-record failure control with empty scientific payload.
 - `foundations/particle-stationary-action-closure.md` §§1–6—optional gauge action, fixed carrier population, Gauss constraint and outer/scale boundary inventory.
 
 - `computations/matter-formation-continuum-prereg.md`—frozen continuum, lattice and creation calculations.
