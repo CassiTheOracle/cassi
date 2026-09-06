@@ -824,6 +824,131 @@ All eight groups passing permits only `SUPPORTS—algebraic certificates for the
 
 The continuous homotopies and the resulting fundamental-group argument require an explicit mathematical proof alongside the receipt. Finite algebra checks alone do not measure a homotopy group, establish a quantum field theory, or identify a physical particle. The target conclusion is conditional absence of an FR sign in these full scalar domains under ordinary scalar pullback quantization. Berry phases, extra spinor structure, gauge sectors, and quantum topological order require their own dynamics and quantization.
 
+### 12.8 Contractible scalar domains and qualified algebra
+
+The full scalar domains declared above have no nontrivial rotation or exchange class from which to assign an FR minus sign. This is a conditional mathematical result about those domains; the canonical density PDE itself supplies no quantum-state prescription.
+
+**Finite-grid and Fisher-domain proof.** The nonnegative fixed-population grid is a convex simplex. Affine interpolation to any reference point is a strong deformation retract. In the continuum, write the root of an interpolated density as the Euclidean norm of the two-component Sobolev function
+$(\sqrt{1-t}\,u,\sqrt t\,v)$. The norm is a Lipschitz map fixing zero, so its composition belongs to $H^1$ and preserves a zero trace. Its weak-gradient bound, including the zero set, gives
+
+$$
+I(E):=\sum_a\int\frac{|\nabla E_a|^2}{E_a}
+=4\sum_a\int|\nabla\sqrt{E_a}|^2,
+\qquad
+I(H_t(E))\le(1-t)I(E)+tI(F).
+$$
+
+The quotient is interpreted through the root-gradient expression at zeros. Population, nonnegativity and the homogeneous boundary class are preserved. The affine map is jointly continuous in the declared $L^1$ topology, fixes $F$, and ends at $F$. Thus $\mathcal C_N^F$ is contractible. This proof makes no claim that affine interpolation preserves the fourth-gradient domain.
+
+**Root-$H^2$ proof.** Nonnegative components and the population inner product imply $\langle u,u_b\rangle\ge0$. The exact norm-floor identity therefore gives
+
+$$
+\|w_t\|_2^2\ge\frac N2,\qquad
+0<\frac{\sqrt N}{\|w_t\|_2}\le\sqrt2.
+$$
+
+Consequently $T_t$ is jointly continuous in $H^2\cap L^4$, remains nonnegative, preserves population and the declared homogeneous boundaries, and satisfies $T_0u=u$, $T_1u=u_b$, $T_tu_b=u_b$. Spatially constant normalization gives the finite-energy bound
+
+$$
+\|\Delta T_tu\|_2^2
+\le2\left[(1-t)\|\Delta u\|_2^2
++t\|\Delta u_b\|_2^2\right].
+$$
+
+The other Sobolev terms and the quartic potential stay finite by linear interpolation and bounded scalar multiplication. Hence $\mathcal A_N^{2,+}$, and its density image with the induced root-$H^2\cap L^4$ topology, are contractible. The path generally rescales a nonzero boundary trace and is not admissible for fixed nonzero Dirichlet data.
+
+**Rotation and exchange.** For any based loop $\gamma(s)$ in either domain, choose its base point as the contraction reference. Then $K(s,t)=H_t(\gamma(s))$, or $T_t(\gamma(s))$ in the amplitude domain, contracts the loop while keeping its base point fixed. Exchanging two density lumps is such a loop when the full field configuration returns to its starting value; overlap and merged configurations remain allowed. Thus
+
+$$
+\boxed{\pi_1(\mathcal C_N^F)=0,\qquad
+\pi_1(\mathcal A_N^{2,+})=0.}
+$$
+
+Every FR sign homomorphism from these fundamental groups is trivial. Independently, the scalar pullback
+$(U(R)\mathcal W)[E]=\mathcal W[R^{-1}\!\cdot E]$
+has $U(2\pi)=+1$, since a $2\pi$ spatial rotation fixes every scalar field pointwise. An internal two-component label does not change this spatial representation. The Skyrme FR construction instead uses a specified nonlinear target and configuration space; its nontrivial loop class and chosen wavefunction sign are separate inputs.
+
+A low-energy restriction that forbids overlap, a nontrivial gauge quotient, a Berry connection, an added spinor bundle or quantum topological order changes the problem. These scalar contractions supply no theorem excluding such mechanisms in other microscopic models. They show that scalar normalization and the declared unrestricted positive-density topology do not provide them.
+
+**Executed qualification.** All eight exact-algebra groups pass, with an empty failure list. The disjoint-support case attains the norm floor $N/2$. The nondiagonal-metric control has positive determinant $19/100$ but negative cross inner product $-9/10$, reducing the midpoint norm to $1/20$ at unit endpoint norm. The common nonzero boundary coordinate changes from squared value $1$ to $4/3$ under normalized interpolation. These controls identify genuine excluded assumptions. The spatial rotation is exactly $I_3$ at $2\pi$, while the spinor control is $-I_2$.
+
+The executable verdict is `SUPPORTS—algebraic certificates for the declared scalar configuration-space contractions`. The topological conclusion follows from the explicit homotopies above, rather than from sampling loops.
+
+| Evidence | Identity |
+|---|---|
+| Source commit | `bb699805` |
+| Canonical program SHA-256 | `5823832bdc49152c98ec8a04395e0a6f2e7d316866d3536a7b782830556a5c41` |
+| Frozen §12.7 SHA-256 | `6282acadafd451a53097bb6bec37635c98418583aac360a661dc0eec9bbe394e` |
+| Raw `runs/20260906_matter_formation_scalar_topology/results.json` SHA-256 | `3a1a02aa92e93da4a9908af9d353957ad6abac626632b5bd14bb2e04e51abd1e` |
+| Raw missing-record control SHA-256 | `37d87be5d25e57f7a362507a5c2b23b88a2c362ad5ca3863934890edfb092ed1` |
+
+The successful process exits zero. The control in `runs/20260906_matter_formation_scalar_topology_missing_record/results.json` exits one with `INCONCLUSIVE`, no checks and no identities. The protocol is preserved beside the successful receipt as `protocol.txt`.
+
+### 12.9 Standard rotations in a regular zero-flux gauge sector
+
+The optional gauge action requires its own statistics analysis because gauge identification can change configuration topology. A sufficient regular subspace nevertheless admits a direct result for the ordinary $2\pi$ rotation of a complete field configuration. The result concerns one specified loop and does not classify the full gauge quotient.
+
+**Action and domain.** Use `foundations/particle-stationary-action-closure.md` (PA7), (PA8), (PA12) and §6. All fields are scale independent and $\mathcal A_{\mathfrak s}=0$, so the covariant scale no-flux conditions hold identically. Absorb the fixed scale-interval measure into the population norm. Work on $\mathbb R^3$, with
+
+$$
+(\mathcal A_i,\Psi-\Psi_0,\Phi-\Phi_0)\in H^3,
+\qquad
+\chi_C\in H^3(\mathbb R^3;\mathbb C),
+\qquad
+\|\chi_C\|_2^2=N>0.
+$$
+
+The outer Higgs representative is fixed, the spatial bundle is trivial, and the outer magnetic charge is zero. A rotation-invariant finite ball with all perturbations supported away from its boundary gives another sufficient class. The $H^3$ choice provides continuous first derivatives and decay; it is a sufficient regularity assumption, with no identification of this subspace with every finite-energy field. No angular-symmetry, nonvanishing-Higgs, fixed-core-count or energy-sublevel restriction is imposed.
+
+The unquotiented space has the product form
+
+$$
+\mathcal D_N=\mathcal B\times S_N(V),
+\qquad
+S_N(V)=\{\chi\in V:\|\chi\|_2^2=N\},
+$$
+
+where $\mathcal B$ is the affine space of gauge and Higgs perturbations and $V$ is the complex carrier Sobolev space. Its fixed population is the neutral first-order carrier norm. It is distinct from the signed charge of the optional temporal parent.
+
+**Finite energy and admissibility.** In three dimensions the declared Sobolev class controls the fields in $L^\infty$, their first derivatives in $L^2$, and their relevant products in $L^2$ or $L^1$. Thus $d\mathcal A+\mathcal A\wedge\mathcal A$, the covariant Higgs gradients, the vacuum-subtracted polynomial potentials and the carrier terms all have finite integrals. The composition scalar (PA2) contains the fixed denominator $v_Q$; it has no singular division by a field amplitude. Affine interpolation preserves the vacuum boundary, permits Higgs zeros and merged cores, and stays finite in every term. At each configuration, zero charged-field velocities and zero electric field satisfy the static Gauss constraint; the neutral carrier contributes no gauge charge.
+
+The homotopy parameter below is a configuration-space coordinate, not physical time. The contraction need not follow the equations of motion, remain stationary, stay localized at a chosen radius, or stay below a specified energy barrier. It remains within the stated full regular finite-energy class. Interpolating general scale-dependent fields would require a separate proof for the nonlinear covariant scale boundary conditions.
+
+**Carrier-sphere loop contraction.** Let $\chi(s)$ be any continuous loop in $S_N(V)$ with the Sobolev topology. Its negative image is compact. The population sphere in the infinite-dimensional Sobolev space is noncompact, so it contains a reference $v$ outside that image. Define
+
+$$
+F(s,t)=
+\frac{\sqrt N\,[(1-t)\chi(s)+tv]}
+{\|(1-t)\chi(s)+tv\|_2}.
+$$
+
+The denominator could vanish only at $t=1/2$ with $v=-\chi(s)$, which the choice of reference excludes. It therefore has a positive minimum on the compact parameter square. The path preserves the carrier norm and Sobolev boundary class and contracts the loop freely to $v$. The free nullhomotopy fills a disc, establishing triviality in the based fundamental group as well. The affine factor contracts independently, hence
+
+$$
+\boxed{\pi_1(\mathcal D_N)=0.}
+$$
+
+For a finite carrier regulator with $K\ge2$ complex modes, the carrier sphere is $S^{2K-1}$ and is also simply connected. A one-complex-mode truncation instead has an $S^1$ carrier phase; it cannot supply the continuum topology by itself.
+
+**Projection of the rotation loop.** An ordinary spatial rotation pulls back $\Psi,\Phi,\chi_C$ as spatial scalars and rotates $\mathcal A_i$ as a spatial vector. Internal $SU(2)_Q$ indices remain internal. On this rotation-invariant domain, a $2\pi$ rotation returns exactly the same unquotiented fields. Its closed lift $\widetilde\gamma$ therefore bounds a disc in $\mathcal D_N$. For every continuous admissible gauge-quotient projection $p$, the projected disc fills $p\circ\widetilde\gamma$. Thus
+
+$$
+\boxed{[p\circ\widetilde\gamma_{2\pi}]=1,
+\qquad
+\chi_{\mathrm{FR}}([p\circ\widetilde\gamma_{2\pi}])=+1.}
+$$
+
+The conclusion holds for this projected loop even when the quotient has other nontrivial loops. Gauge transformations of nonzero winding, quotienting the carrier's global phase, or a vacuum-orbit phase loop do not turn this explicit disc into a nontrivial ordinary rotation class. A proposed physical loop that closes only up to a gauge transformation requires a separate lift and analysis.
+
+A varying vacuum orientation is gauge equivalent to a constant vacuum only with its compensating connection:
+$\mathcal A_U=-(i/g_Q)(\partial U)U^{-1}$,
+$\Psi_U=U\Psi_0$, $\Phi_U=R(U)\Phi_0$.
+Setting $\mathcal A=0$ while varying the orientation generally produces a genuine gradient-energy texture. Topology of the vacuum orientation alone consequently supplies no classification of the full gauge-field configuration space.
+
+**Quantization boundary.** An FR character is a homotopy-class assignment. A Berry connection can have nonzero holonomy on a contractible loop and must be evaluated from a specified quantization and symmetry lift. The carrier's first-order action supplies a classical symplectic form and global-$U(1)_C$ moment map; fixed charge alone selects no fermionic spatial representation. Removing Higgs zeros, excluding core merger, using an orbifold quantum sector, introducing magnetic boundary charge or imposing a separated-core moduli space also changes the admissible configuration space.
+
+The charge–monopole mechanism requires the corresponding electric excitation, magnetic sector and combined spatial/internal rotation. The present stationary branch has a gauge-neutral carrier, zero outer magnetic charge and vanishing static electric fields. It supplies no such half-spin assignment. Exchange statistics for localized excitations still require a specified multiparticle sector, quantum representation and relation between exchange and spatial rotation. The demonstrated result is the trivial FR class of the standard $2\pi$ rotation in the declared regular zero-flux sector. No new numerical campaign or physical particle identification is implied.
+
 ## 13. Positive spinor observables and the conversion boundary
 
 ### 13.1 Comparison convention and independent methods
@@ -1420,6 +1545,7 @@ python computations/verify_matter_formation_spatial_domain_receipts.py
 python computations/matter_formation_scalar_vacuum_sign_check.py --output-dir runs/20260906_matter_formation_scalar_vacuum_sign_recovery
 python computations/matter_formation_yukawa_bulk.py
 python computations/verify_matter_formation_yukawa_bulk.py
+python computations/matter_formation_scalar_topology.py
 ```
 
 These reproduction commands use separate destinations. Choose unused directory names before executing them. The spatial-receipt verifier checks the named accepted spatial evidence and writes a fresh control receipt. The collective-binding verifier receives matching explicit input and output directories for the newly generated primary result.
@@ -1430,6 +1556,7 @@ python computations/verify_matter_formation_spatial_domain_receipts.py --output-
 python computations/matter_formation_scalar_vacuum_sign_check.py --output-dir runs/repro_matter_formation_scalar_vacuum_sign
 python computations/matter_formation_yukawa_bulk.py --output-dir runs/repro_matter_formation_yukawa_bulk
 python computations/verify_matter_formation_yukawa_bulk.py --input-dir runs/repro_matter_formation_yukawa_bulk --output-dir runs/repro_matter_formation_yukawa_bulk
+python computations/matter_formation_scalar_topology.py --output-dir runs/repro_matter_formation_scalar_topology
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
@@ -1467,12 +1594,17 @@ The three registries and `audit.md` contain draft integration of the finite-mode
 
 The collective-binding exclusion in §§15.6–15.7 is also pending public propagation. The consolidated checkpoint must carry its restricted local-density, $|m|\le1$ and specified-vacuum-prescription scope into `EPISTEMIC-MAP.md`, `audit.md`, and the relevant existing matter-formation entries in `open-questions-cassi-answers.md` and `predictions/falsifiable-predictions.md`. This calculation supplies a conditional model constraint; it introduces no new experiment-ready physical prediction.
 
+The scalar and gauge rotation results in §§12.7–12.9 also remain in this working record pending the same consolidated checkpoint. Their domain, quantization and boundary assumptions must accompany any later propagation; they establish no universal exclusion of emergent fermions and no experiment-ready prediction.
+
 Preserve this set separately from local research commits. A consolidated publication checkpoint must reconcile the registries, `EPISTEMIC-MAP.md`, `audit.md`, domain treatment and supporting indexes before these hunks enter a public commit. Their present status is explicitly handed off; no bulk staging, silent reversion or intermediate propagation is authorized.
 
 ## References
 
 - `computations/matter_formation_yukawa_bulk.py`—exact and high-precision collective-binding criterion for the declared local-density scalar–Dirac candidate.
 - `computations/verify_matter_formation_yukawa_bulk.py`—independent momentum-space reconstruction and frozen-evidence qualification.
+- `computations/matter_formation_scalar_topology.py`—frozen exact-algebra certificates and excluded-assumption controls for the scalar contractions.
+- [Cork and Harland, *Finkelstein–Rubinstein constraints from ADHM data and rational maps*](https://arxiv.org/html/2401.16494v2)—configuration-space loop classes and FR wavefunction signs in the Skyrme comparison model.
+- `foundations/particle-stationary-action-closure.md` §§1–6—optional gauge action, fixed carrier population, Gauss constraint and outer/scale boundary inventory.
 
 - `computations/matter-formation-continuum-prereg.md`—frozen continuum, lattice and creation calculations.
 - `computations/matter-formation-stability-prereg.md`—frozen constrained spatial operators and decision tree.
