@@ -1247,6 +1247,14 @@ failures leave aggregate qualification `INCONCLUSIVE`. Population 256
 meets its measured radial comparisons, without closing all-sector stability
 or physical formation (`foundations/particle-stationary-action-closure.md`
 §8.10; `computations/matter-formation-continuum-report.md` §10).
+All four selected population-256 grids also support the angular and phase
+sectors, with 96 independently matched eigenvalues. Seven of eight spatial
+comparisons pass; the dipole nonsymmetry gap fails its domain comparison.
+Combined scalar-parent spatial qualification remains `INCONCLUSIVE`.
+Continuum positivity identities retain their exact nodelessness,
+monotonicity and boundary assumptions
+(`foundations/particle-stationary-action-closure.md` §8.11;
+`computations/matter-formation-continuum-report.md` §11).
 
 ### 10.6 Wake-Wave Mechanism
 

@@ -923,6 +923,15 @@ comparisons fail, leaving aggregate radial-domain qualification
 This supplies no all-sector, real-time or nonlinear stability conclusion
 (`foundations/particle-stationary-action-closure.md` §8.10;
 `computations/matter-formation-continuum-report.md` §10).
+The selected population-256 subset also supports the angular and phase
+sectors on all four finite grids, with independent agreement on 96
+eigenvalues. Seven of eight spatial comparisons pass; the first
+non-translation dipole eigenvalue fails its domain comparison. Combined
+scalar-parent spatial qualification is therefore `INCONCLUSIVE`.
+The derived continuum positivity identities require exact nodelessness,
+monotonicity and boundary assumptions that these arrays do not establish
+(`foundations/particle-stationary-action-closure.md` §8.11;
+`computations/matter-formation-continuum-report.md` §11).
 
 The remaining physical requirements are:
 
@@ -941,8 +950,10 @@ The remaining physical requirements are:
 
 The framework has conditional support identities, measured smooth static
 density trapping at selected dimensionless coefficients, independently
-verified Gaussian correspondence and finite-grid radial fixed-charge
-energetic support for one Hypothesized parent family.
+verified Gaussian correspondence, finite-grid radial fixed-charge support
+and selected angular/phase support for one Hypothesized parent family.
+Its aggregate radial-domain and combined scalar-parent spatial
+qualifications are separately inconclusive.
 Physical matter formation remains open.
 
 ## References

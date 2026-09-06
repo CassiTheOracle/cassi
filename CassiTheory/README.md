@@ -77,6 +77,12 @@ negative mode on the measured grids, but the frozen combined stability
 verdict is `INCONCLUSIVE`. Physical production, particle identity and
 normalization remain open
 (`computations/matter-formation-continuum-report.md`).
+An optional positive-inertia scalar parent has independently verified
+Gaussian pair correspondence and finite-grid charged radial support.
+Its selected population-256 angular and phase sectors support on four
+grids, but one of eight spatial comparisons fails; combined scalar-parent
+spatial qualification remains `INCONCLUSIVE`. Physical normalization,
+interacting creation and particle quantum numbers remain unselected.
 
 ## The reality-simulation program
 

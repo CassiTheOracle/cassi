@@ -443,6 +443,15 @@ comparisons fail. Aggregate radial-domain qualification is `INCONCLUSIVE`,
 and the result supplies no all-sector or real-time stability claim
 (`foundations/particle-stationary-action-closure.md` §8.10;
 `computations/matter-formation-continuum-report.md` §10).
+The remaining scalar angular and phase sectors support on all four
+selected population-256 grids, with 96 independently matched eigenvalues.
+Seven of eight spatial comparisons pass; the dipole nonsymmetry gap fails
+its domain comparison, leaving combined scalar-parent spatial qualification
+`INCONCLUSIVE`. The continuum positivity identities are conditional on
+exact nodelessness, monotonicity and boundary assumptions; the numerical
+profiles do not establish them
+(`foundations/particle-stationary-action-closure.md` §8.11;
+`computations/matter-formation-continuum-report.md` §11).
 
 The physical carrier, calibrated coefficients, exterior realization,
 reservoir action and stress, gravity choice, localized Hessian resolution,

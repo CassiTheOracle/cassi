@@ -841,6 +841,12 @@ leave aggregate radial-domain qualification INCONCLUSIVE. Population 256
 meets its measured radial comparisons. The derivation is in §8.10 and the
 accepted receipts are summarized in `computations/matter-formation-continuum-report.md`
 §10; full spatial and dynamical stability remain open.
+The scalar angular and phase operators and their conditional continuum
+positivity identities follow in §8.11. All four selected population-256
+grids support these sectors, with 96 independently matched eigenvalues.
+Seven of eight spatial comparisons pass; the dipole nonsymmetry gap fails
+its domain comparison. Combined scalar-parent spatial qualification is
+INCONCLUSIVE (`computations/matter-formation-continuum-report.md` §11).
 
 ### `matter-completion-boundary.md`—Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
@@ -871,9 +877,12 @@ scalar binding at prepared population. Its smooth constrained spatial
 stability result is INCONCLUSIVE. The optional temporal parent has verified
 Gaussian pair correspondence, a conditional neutral stationary-localization
 obstruction and positive measured finite-grid charged radial curvature.
-Its aggregate radial-domain qualification remains INCONCLUSIVE. Physical
-exterior and reservoir actions, coefficient calibration, gravity selection,
-microscopic production and particle identity remain open
+Its aggregate radial-domain qualification remains INCONCLUSIVE. Its selected
+population-256 angular and phase sectors support on four grids, while one
+failed domain comparison leaves combined scalar-parent spatial qualification
+INCONCLUSIVE. Physical exterior and reservoir actions, coefficient
+calibration, gravity selection, microscopic production and particle identity
+remain open
 (`computations/matter-formation-continuum-report.md`). Status: Derived
 conditional boundary / Hypothesized physical realization / Mapped carrier
 coupling / Tested reduced receipts, prepared binding, finite-grid spectra

@@ -184,6 +184,16 @@ is `INCONCLUSIVE`. Population 256 meets its radial comparison criteria,
 without establishing all-sector, real-time or nonlinear stability
 (`computations/matter-formation-continuum-report.md` §10).
 
+**Scalar angular and phase support.** All four selected population-256
+grids support the remaining scalar sectors; the independent operator
+construction matches all 96 eigenvalues. Seven of eight spatial comparisons
+pass. Doubling the box changes the first non-translation dipole eigenvalue
+by $0.1242089777$, exceeding the $0.0250415952$ tolerance. The combined
+scalar-parent spatial verdict is `INCONCLUSIVE`. Conditional continuum
+positivity identities do not establish exact nodelessness, monotonicity or
+nonlinear stability for these sampled profiles
+(`computations/matter-formation-continuum-report.md` §11).
+
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 
 | Claim | Tested result | Status |

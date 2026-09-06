@@ -12,6 +12,8 @@ The same parent's classical scalar potential has an exact global vacuum boundary
 
 At fixed signed parent charge, all 24 frozen radial embeddings have positive measured amplitude curvature. Independent banded spectra and rank-one inertia brackets verify this finite-grid result. Nine of twelve domain/resolution comparisons pass; the three population-16 domain comparisons fail. The aggregate radial domain qualification remains `INCONCLUSIVE`, and the calculation supplies no all-sector or real-time stability conclusion.
 
+The selected population-256 parent subset also supports the measured angular and phase sectors on all four finite grids. All 96 eigenvalues agree with an independent operator construction. Seven of eight spatial domain/resolution comparisons pass; the first non-translation dipole eigenvalue fails the domain comparison. The combined scalar-parent spatial verdict is `INCONCLUSIVE`. Exact nodelessness and monotonicity give conditional continuum positivity identities, whose assumptions are not established by these sampled profiles.
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -416,7 +418,7 @@ $$
 \boxed{\text{INCONCLUSIVE—radial domain/resolution qualification}.}
 $$
 
-The population-256 subset meets the measured radial comparison criteria. Neither subset establishes all angular and phase sectors, real-time persistence, nonlinear orbital stability, infinite-volume coercivity or localized creation. The fixed-population spatial verdict in §7 remains `INCONCLUSIVE—constrained smooth-branch spatial stability`. Finite-grid radial support does not select a physical particle size, charge, mass or statistics.
+The population-256 subset meets the measured radial comparison criteria. The radial calculation alone supplies no angular or phase qualification; those sectors are evaluated separately in §11. Real-time persistence, nonlinear orbital stability, infinite-volume coercivity and localized creation remain open. The fixed-population spatial verdict in §7 remains `INCONCLUSIVE—constrained smooth-branch spatial stability`. Finite-grid radial support does not select a physical particle size, charge, mass or statistics.
 
 ### 10.3 Accepted evidence identities
 
@@ -428,7 +430,93 @@ The canonical CRLF-to-LF SHA-256 identities are:
 
 The raw primary receipt SHA-256 is `540bf259441b42ac476189dcd8593ae3b57a4fe25bb8fe17c846d5465068b0bc`. The primary receipt, eight hash-bound spectral arrays, complete independent base spectra, 288 shifted-solve diagnostics, all dilation energies and independent verification are retained in `runs/20260906_matter_formation_charged_stability/`. Existing own receipts and primary spectral artifacts cannot be overwritten by either reproduction program.
 
-## 11. Reproduction and retained boundary
+## 11. Scalar-parent angular and phase qualification
+
+The four population-256 profiles support the measured remaining scalar spatial sectors on each finite grid, while their domain comparison leaves the combined result inconclusive. The calculation selects these immutable fields because all twelve inherited charged radial embeddings and all six corresponding radial comparisons qualify. It does not repeat the population-16 calculation or alter its verdict.
+
+### 11.1 Conditional continuum identities and frozen operators
+
+The fixed-signed-charge Hamiltonian supplies the angular amplitude and carrier-phase operators without a new coefficient. The population penalty contributes a rank-one correction only to the real radial amplitude. The other sectors retain the spatial multiplier $\omega_C=\omega+a\omega^2$, including its temporal-inertia contribution. The general carrier stiffness is $k_{Cx}D_\ell$.
+
+For an exact nodeless stationary carrier, the phase operator has a nonnegative quadratic form and a global-phase zero direction. An exact positive radial profile with strictly increasing mediator amplitude and strictly decreasing carrier amplitude also has a cooperative nonnegative dipole form, with translation as its possible kernel. Positive angular ordering extends this statement to higher angular degrees. These are conditional identities with regularity and vanishing-boundary-term assumptions (`foundations/particle-stationary-action-closure.md` §8.11).
+
+The frozen numerical specification is `computations/matter-formation-parent-spatial-prereg.md`. It uses prepared $Q_C=256$ at $(R,n)=(12,192),(12,384),(12,768),(24,768)$, without relaxation or interpolation. Each source passes the first-variation and population checks. The largest source residual is $2.5246\times10^{-5}$ against $10^{-4}$; the largest relative population error is $3.3307\times10^{-16}$ against $10^{-10}$. Every source uses $\eta=5\times10^{-4}$.
+
+Six lowest algebraic eigenpairs are computed for each of the dipole and quadrupole amplitude operators $H_1,H_2$ and phase operators $L_0,L_1$. The primary uses dense mass-weighted matrices. The independent verifier constructs face conductances directly, uses an interleaved symmetric banded amplitude matrix and tridiagonal phase matrix, and checks the primary vectors against these independent operators. The translation and phase candidates are identified by maximum absolute overlap among the six eigenvectors; their signs are checked before excluding either candidate from a nonsymmetry gap.
+
+Both receipts have numerical **`PASS`** and zero failures:
+
+| Numerical check | Largest measured value | Frozen limit |
+|---|---:|---:|
+| Primary versus independent eigenvalue difference, 96 values | $7.6343\times10^{-12}$ | $10^{-7}\max(1,|\lambda|)$ |
+| Primary normalized eigenpair residual | $2.5807\times10^{-11}$ | $10^{-8}$ |
+| Independent normalized eigenpair residual | $2.4569\times10^{-11}$ | $10^{-8}$ |
+| Primary-vector residual against the independent operator | $2.5922\times10^{-11}$ | $10^{-8}$ |
+| Largest orthonormality error across both constructions | $5.1159\times10^{-15}$ | $10^{-8}$ |
+
+### 11.2 Symmetry candidates and measured spatial gaps
+
+Every grid passes its angular and phase energetic criteria. The table lists the identified translation eigenvalue, the first amplitude eigenvalue excluding that candidate, the quadrupole minimum, the first phase eigenvalue excluding the global-phase candidate, and the dipole-phase minimum:
+
+| Domain $R$ | Cells | Translation eigenvalue | $H_1$ nonsymmetry gap | $\min H_2$ | $L_0$ nonsymmetry gap | $\min L_1$ |
+|---:|---:|---:|---:|---:|---:|---:|
+| 12 | 192 | 0.0001089316 | 2.5042184055 | 0.3210196012 | 1.4267000631 | 0.3693591472 |
+| 12 | 384 | 0.0000272588 | 2.5041595205 | 0.3209348770 | 1.4271586155 | 0.3693626985 |
+| 12 | 768 | 0.0000067325 | 2.5041448207 | 0.3209135875 | 1.4272735335 | 0.3693635299 |
+| 24 | 768 | 0.0000272397 | 2.3799505428 | 0.3209348571 | 1.4271584571 | 0.3693626916 |
+
+The minimum translation overlap is $0.9999994547$. Every phase overlap exceeds $0.99999999999998$, and the largest absolute phase eigenvalue is $8.7881\times10^{-13}$. All four nonsymmetry metrics exceed $\eta$ on every grid; no lowest eigenvalue is below $-\eta$.
+
+The symmetry-vector diagnostics distinguish close overlap from an exact null vector. The sampled translation-vector operator residual ranges from $0.00353488$ to $0.01037067$ and is not monotone under refinement. These are descriptive residuals, distinct from the eigenpair residuals and frozen symmetry-eigenvalue tests. Sampled mediator differences include small negative values; the largest-box carrier has zero-valued samples and small positive differences. These arrays do not establish the exact positivity and strict monotonicity assumptions of the continuum identities.
+
+The sector verdict is therefore
+
+$$
+\boxed{\text{SUPPORTS—finite-grid scalar angular and phase energetic qualification}.}
+$$
+
+### 11.3 Domain qualification and parent interpretation
+
+The frozen domain comparison prevents a finite-grid positive spectrum from being presented as a domain-converged stability result. Resolution compares $R=12$ at 384 and 768 cells; domain size compares $(R,n)=(12,384)$ and $(24,768)$ at the same spacing. Each tolerance is the greater of one percent of the larger absolute metric and the two source thresholds.
+
+| Metric | Resolution difference | Resolution tolerance | Domain difference | Domain tolerance | Resolution / domain |
+|---|---:|---:|---:|---:|---|
+| $H_1$ nonsymmetry gap | $1.4700\times10^{-5}$ | 0.0250415952 | 0.1242089777 | 0.0250415952 | PASS / FAIL |
+| $\min H_2$ | $2.1290\times10^{-5}$ | 0.0032093488 | $1.9850\times10^{-8}$ | 0.0032093488 | PASS / PASS |
+| $L_0$ nonsymmetry gap | $1.1492\times10^{-4}$ | 0.0142727353 | $1.5848\times10^{-7}$ | 0.0142715862 | PASS / PASS |
+| $\min L_1$ | $8.3142\times10^{-7}$ | 0.0036936353 | $6.9331\times10^{-9}$ | 0.0036936270 | PASS / PASS |
+
+Seven of eight comparisons pass. The dipole nonsymmetry gap changes from $2.5041595205$ to $2.3799505428$, exceeding its domain tolerance. Both values are positive and above their respective exterior carrier spatial gaps, approximately $2.34418$. The comparison does not identify a negative mode or establish the infinite-volume spectral character of this eigenvector. Its frozen domain result remains failed.
+
+The inherited radial qualification is satisfied, but the spatial comparison is not. Both implementations therefore give
+
+$$
+\boxed{\text{INCONCLUSIVE—scalar spatial domain/resolution qualification}}
+$$
+
+and
+
+$$
+\boxed{\text{INCONCLUSIVE—finite-grid scalar parent spatial energetic qualification}.}
+$$
+
+All three temporal witnesses $a=1/64,1/32,1/16$ lie below $a_{\rm dep}=0.1131310752$ and $a_{\rm vac}=0.3142233130$. Across the twelve embeddings, the canonical exterior frequency gap squared $(e_C-\omega_C)/a$ ranges from $18.75324548$ to $75.01684870$; the depleted-mediator carrier mass squared ranges from $28.64278278$ to $882.57113111$. These positive conditional quantities select no physical temporal coefficient or action normalization.
+
+The measured result concerns the scale-independent scalar restriction. Continuum coercivity, nonlinear orbital stability, real-time formation, gauge and scale sectors, quantum backreaction and particle identity remain separate requirements. Neither the population-16 radial-domain result nor its fixed-population spatial result is changed by this selected population-256 calculation.
+
+### 11.4 Accepted identities and failure control
+
+The canonical CRLF-to-LF SHA-256 identities are:
+
+- Primary: `3593f57f660e43b59cb13d0e448ce2bd293f2c6bc3cf1e72dcb606681189a27a`.
+- Independent verifier: `6ed3b31684e65d73c828cb8854075c8d0f7b7f1d14a4a8f7669f938aead4ba98`.
+- Preregistration: `df72e1873a25a0787d19492e09eba2433b0c9786398ee1b9f56803fd1e44d2a1`.
+
+The raw primary receipt SHA-256 is `9445ff33b33b664bf15e09b499bb185f18bfeb9f8a9393c388afef7c7affa79c`; the independent receipt SHA-256 is `2994e44ee2566ecc4e7ce660dc5d0510a088b694e0224086792eda2854f148dd`. Both receipts, four hash-bound spectral arrays, all symmetry diagnostics and the eight comparisons are retained in `runs/20260906_matter_formation_parent_spatial/`. The independent receipt binds the primary raw hash and verifies the accepted charged-radial receipt chain.
+
+The registered missing-source control invokes both actual programs against an empty source directory. Both return exit code 1 and preserve failed JSON receipts with zero eigenvalue rows. The primary records all four missing-source errors and the incomplete comparison schedule; the verifier rejects the failed input and retains its errors without eigensolves. These control receipts reside under `control_missing_sources/` and carry no scientific stability conclusion. The canonical receipts and source files remain unchanged.
+
+## 12. Reproduction and retained boundary
 
 Run from the repository root into new, explicitly named output directories when the default receipts already exist:
 
@@ -447,11 +535,13 @@ python computations/matter_formation_parent_vacuum.py
 python computations/verify_matter_formation_parent_vacuum.py
 python computations/matter_formation_charged_stability.py
 python computations/verify_matter_formation_charged_stability.py
+python computations/matter_formation_parent_spatial.py
+python computations/verify_matter_formation_parent_spatial.py
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
 
-The remaining physical requirements are a selected microscopic production action and quantum state, absolute normalization, interacting backreaction, particle identities and statistics, real-time localized formation and nonlinear stability, scale-dependent sectors, and empirical discrimination. The conditional hyperbolic parent supplies one explicitly normalized Gaussian correspondence and measured finite-grid radial fixed-charge support. Its physical coefficient and action normalization remain open. The fixed-population spatial and signed-charge radial-domain calculations retain their separate inconclusive aggregate verdicts.
+The remaining physical requirements are a selected microscopic production action and quantum state, absolute normalization, interacting backreaction, particle identities and statistics, real-time localized formation and nonlinear stability, scale-dependent sectors, and empirical discrimination. The conditional hyperbolic parent supplies one explicitly normalized Gaussian correspondence, finite-grid radial fixed-charge support and selected population-256 angular/phase support. Its physical coefficient and action normalization remain open. The fixed-population spatial, signed-charge radial-domain and selected scalar-parent spatial calculations retain their distinct inconclusive aggregate verdicts.
 
 ## References
 
@@ -473,6 +563,10 @@ The remaining physical requirements are a selected microscopic production action
 - `computations/matter_formation_charged_stability.py`—primary dense radial spectra and fixed-charge dilation energies.
 - `computations/verify_matter_formation_charged_stability.py`—independent banded spectra, response solves and rank-one inertia brackets.
 - `runs/20260906_matter_formation_charged_stability/results.json` and `runs/20260906_matter_formation_charged_stability/verification.json`—accepted finite-grid radial support and inconclusive aggregate radial-domain qualification.
+- `computations/matter-formation-parent-spatial-prereg.md`—frozen scalar angular and phase operators, symmetry criteria and combined domain qualification.
+- `computations/matter_formation_parent_spatial.py`—primary dense angular and phase spectra on the immutable population-256 subset.
+- `computations/verify_matter_formation_parent_spatial.py`—independent banded and tridiagonal operators, primary-vector checks and radial inheritance verification.
+- `runs/20260906_matter_formation_parent_spatial/results.json` and `runs/20260906_matter_formation_parent_spatial/verification.json`—accepted finite-grid sector support and inconclusive combined scalar-parent spatial qualification.
 - `foundations/particle-stationary-action-closure.md` §8.7—continuity law, conditional scalar reduction, radial equations and ultraviolet boundary.
 - `foundations/matter-completion-boundary.md`—full matter-formation requirements.
 - `computations/particle-carrier-resolution-recovery-report.md`—four stored Cartesian endpoints.

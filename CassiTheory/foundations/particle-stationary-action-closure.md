@@ -66,6 +66,10 @@ domain/resolution comparisons pass, leaving aggregate radial-domain
 qualification `INCONCLUSIVE` because the population-16 domain comparisons
 fail (§8.10). This result supplies no full spatial or dynamical stability
 claim.
+The selected population-256 subset supports all tested angular and phase
+sectors on four finite grids. Seven of eight spatial comparisons pass;
+the dipole nonsymmetry gap fails the domain comparison. The combined
+scalar-parent spatial verdict is `INCONCLUSIVE` (§8.11).
 
 ---
 
@@ -1451,6 +1455,116 @@ source identities are in `computations/matter-formation-continuum-report.md`
 §10. The complete spatial, real-time, nonlinear and physical-matter questions
 retain their separate requirements.
 
+### 8.11 Angular and phase sectors of the scalar parent
+
+The signed-charge penalty affects the spherically symmetric real amplitude.
+The remaining scalar spatial sectors can be derived directly from the
+same reduced Hamiltonian. Write $k=k_{Cx}>0$, $U=e_C-h_C(1-f^2)$ and
+$D_\ell=-\partial_r^2-2r^{-1}\partial_r+\ell(\ell+1)/r^2$.
+For angular degree $\ell\ge1$, the amplitude operator is
+
+$$
+H_\ell=
+\begin{pmatrix}
+D_\ell+u_\rho(3f^2-1)+2h_Cc^2&4h_Cfc\\
+4h_Cfc&kD_\ell+2(U-\omega_C)+6u_Cc^2
+\end{pmatrix}.
+$$
+
+The imaginary carrier operator at every angular degree is
+
+$$
+L_\ell=kD_\ell+2(U-\omega_C)+2u_Cc^2.
+$$
+
+These curvatures contain the spatial multiplier
+$\omega_C=\omega+a\omega^2$. Their equality with the corresponding
+fixed-population spatial operators follows from $G'=-\omega_C$ and the
+vanishing first-order population change of these perturbations. Replacing
+$\omega_C$ by the parent's temporal frequency $\omega$ would change the
+operator. The fixed-population specification in
+`computations/matter-formation-stability-prereg.md` uses the explicit
+$k_{Cx}=1$ specialization; the carrier stiffness is $k_{Cx}D_\ell$ in the
+general expression.
+
+For an exact nodeless stationary carrier, $L_0c=0$. A compactly supported
+phase perturbation $b=c\vartheta$ obeys
+
+$$
+\langle b,L_\ell b\rangle
+=4\pi k\int_0^\infty
+\left[r^2c^2(\vartheta')^2+\ell(\ell+1)c^2\vartheta^2\right]dr\ge0.
+$$
+
+The global phase is the $\ell=0$ zero direction. The angular amplitude
+sector has a related conditional identity. Suppose an exact radial
+stationary profile has $f,c>0$, $f'>0$ and $c'<0$ for $0<r<\infty$.
+Differentiating the radial field equations gives
+$H_1(f',c')^T=0$. Set $v=(f',-c')^T$, $B=4h_Cfc>0$,
+$J=\operatorname{diag}(1,-1)$ and
+$y=(v_1\xi_1,v_2\xi_2)^T$. Integration by parts gives
+
+$$
+\boxed{
+\langle y,JH_1Jy\rangle
+=4\pi\int_0^\infty r^2\left[
+v_1^2(\xi_1')^2+k v_2^2(\xi_2')^2+
+Bv_1v_2(\xi_1-\xi_2)^2\right]dr\ge0.}
+$$
+
+This formula starts on compactly supported regular perturbations and
+extends only to form-domain limits with vanishing boundary terms.
+Strict positivity of $v$ and coupling on the connected interior leaves
+the translation direction as the possible $\ell=1$ kernel. Since
+
+$$
+H_\ell-H_1=
+\frac{\ell(\ell+1)-2}{r^2}\operatorname{diag}(1,k)\ge0
+\qquad(\ell\ge2),
+$$
+
+the same assumptions exclude negative higher-angular amplitude directions.
+These are conditional continuum identities. Finite-box sampled derivatives
+do not establish the hypotheses or an exact translation zero.
+
+The exterior energetic gaps are $2u_\rho$ and
+$2(e_C-\omega_C)$. In the canonical carrier variables the positive
+stationary frequency is $\Omega=\sqrt{1+4a\omega_C}/(2a)$, and
+
+$$
+M_a^2(1)-\Omega^2=\frac{e_C-\omega_C}{a},
+\qquad
+M_a^2(0)=\frac1{4a^2}+\frac{e_C-h_C}{a}.
+$$
+
+The second expression is the carrier's canonical mass squared at a fully
+depleted mediator, rather than a mediator fluctuation mass. These
+quantities distinguish the exterior decay condition from an interior
+carrier gap. Positive scalar spatial curvature, positive temporal kinetic
+energy and coercivity modulo phase and translations would support an
+energetic stability argument under a well-posed evolution. Establishing
+that coercivity, continuum existence and nonlinear persistence requires
+separate evidence. Scale-dependent, gauge, topological and quantum sectors
+are outside this scalar statement.
+
+The frozen population-256 calculation in
+`computations/matter-formation-parent-spatial-prereg.md` evaluates four
+immutable radial profiles and inherits twelve qualified charged radial
+embeddings. All four grids give
+`SUPPORTS—finite-grid scalar angular and phase energetic qualification`.
+The dense primary and independent banded/tridiagonal constructions agree
+on all 96 eigenvalues, with maximum discrepancy $7.6343\times10^{-12}$.
+Both receipts have numerical `PASS` and no failures.
+
+Seven of eight new spatial domain/resolution comparisons pass. At fixed
+spacing, the first non-translation dipole eigenvalue changes from
+$2.5041595205$ at $R=12$ to $2.3799505428$ at $R=24$. The difference
+$0.1242089777$ exceeds the frozen tolerance $0.0250415952$.
+The resulting domain and combined scalar-parent spatial verdicts are
+`INCONCLUSIVE`. Sampled symmetry overlap supplies no exact continuum
+positivity or monotonicity proof. The complete measurements and immutable
+identities are in `computations/matter-formation-continuum-report.md` §11.
+
 ## 9. What is closed and what remains open
 
 | Question | Result |
@@ -1471,6 +1585,7 @@ retain their separate requirements.
 | Does the optional carrier parent define a classical vacuum condition? | Yes, conditionally: $h_C-e_C-1/(4a)\le\sqrt{u_\rho u_C/2}$ is necessary and sufficient for nonnegative homogeneous canonical scalar potential |
 | Can that scalar parent support an energetically stable single-frequency localized state with zero signed charge? | No, under the regularity, finite-energy, constant-vacuum and three-dimensional scalar assumptions of §8.9. Charged, multi-frequency, quantum and additional topological sectors remain outside that statement |
 | Does fixed signed parent charge support the measured radial amplitudes? | Yes on all 24 frozen finite-grid embeddings, with independent spectral verification. Nine of twelve domain/resolution comparisons pass; aggregate radial-domain qualification remains `INCONCLUSIVE` because the population-16 domain comparisons fail. Population 256 meets its measured radial comparisons |
+| Do the selected scalar-parent angular and phase sectors qualify? | Yes on all four population-256 finite grids, with 96 independently matched eigenvalues. Seven of eight spatial comparisons pass; the dipole nonsymmetry gap fails the domain comparison, leaving combined scalar-parent spatial qualification `INCONCLUSIVE`. Exact continuum positivity identities remain conditional on nodelessness, strict monotonicity and boundary assumptions |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 
 The action defines a fixed-charge boundary-value problem and an exact
@@ -1479,10 +1594,12 @@ independently reproduced static binding for two prepared populations at the
 selected coefficients. The stored Cartesian branch retains its finite-grid
 scope and fails the smooth-carrier diagnostic. The smooth constrained spatial
 calculation remains inconclusive under its frozen criteria. The optional
-parent has a verified Gaussian pair correspondence and positive measured
-fixed-signed-charge radial curvature, with inconclusive aggregate radial-domain
-qualification. These measurements determine no physical production channel,
-normalized particle spectrum or formation history.
+parent has a verified Gaussian pair correspondence, positive measured
+fixed-signed-charge radial curvature and selected population-256 angular
+and phase support. The radial-domain and combined scalar-parent spatial
+aggregates are separately inconclusive. These measurements determine no
+physical production channel, normalized particle spectrum or formation
+history.
 
 ---
 
@@ -1576,3 +1693,6 @@ requirements.
 - `computations/matter-formation-charged-stability-prereg.md`—fixed-signed-charge Hessian, response, inertia and dilation specification.
 - `computations/matter_formation_charged_stability.py`—dense primary radial parent spectra and charge-response calculation.
 - `computations/verify_matter_formation_charged_stability.py`—independent banded-operator and rank-one-inertia verification.
+- `computations/matter-formation-parent-spatial-prereg.md`—conditional angular and phase identities, frozen symmetry and domain criteria.
+- `computations/matter_formation_parent_spatial.py`—primary scalar angular and phase spectra with charged-radial inheritance.
+- `computations/verify_matter_formation_parent_spatial.py`—independent banded/tridiagonal spectra and primary-vector verification.

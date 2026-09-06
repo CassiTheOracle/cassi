@@ -89,6 +89,12 @@ All 24 frozen embeddings have positive finite-grid radial curvature, but
 the population-16 domain comparisons fail; aggregate radial-domain
 qualification is `INCONCLUSIVE`. Population 256 meets its measured radial
 comparisons, with full dynamics and physical particle identity still open.
+The remaining scalar angular and phase calculation follows in §8.11 and
+report §11. All four selected population-256 grids support those sectors.
+Seven of eight spatial comparisons pass; the dipole nonsymmetry gap fails
+its domain comparison, leaving combined scalar-parent spatial qualification
+`INCONCLUSIVE`. The conditional continuum identities require assumptions
+that the sampled profiles do not establish.
 
 ### The skeptic or referee
 

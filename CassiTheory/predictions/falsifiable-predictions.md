@@ -734,6 +734,14 @@ population-16 domain failures leave aggregate qualification `INCONCLUSIVE`.
 The population-256 subset meets the measured radial comparisons. This
 conditional result adds no physical mass, charge, statistics or production
 prediction (`computations/matter-formation-continuum-report.md` §10).
+All four selected population-256 grids support the scalar angular and phase
+sectors, with 96 independently matched eigenvalues. Seven of eight spatial
+comparisons pass; the dipole nonsymmetry gap fails its domain comparison.
+Combined scalar-parent spatial qualification remains `INCONCLUSIVE`.
+Conditional continuum positivity identities establish no physical particle
+prediction or nonlinear persistence for these sampled profiles
+(`foundations/particle-stationary-action-closure.md` §8.11;
+`computations/matter-formation-continuum-report.md` §11).
 
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;
