@@ -508,6 +508,16 @@ The K labels identify conditional scale statements and remain separate from the 
 
 The exact results are the conditional scale arithmetic, the field dimensions, the chiral-scalar adjoint and interaction-reality obstructions, the chiral-current identities, the closed-population obstruction, and the stationary and positive-energy boundaries of the specified massive conversion lift. The external $v_0$ anchor is Calibrated. Selected coefficient readings and the back-solved numerical bridge retain their ledgered status. The physical coupling, state preparation, microscopic production process and controlled reduction to canonical density dynamics remain Hypothesized or open.
 
+The declared scalar–fermion model additionally supplies exact overlap,
+charge and energy identities, continuum asymptotes, a specified static
+subtraction, an initial-overlap logarithm and a sufficient two-body
+no-binding condition. Independent computations verify finite-mode
+production and feedback as well as those continuum restrictions
+(`computations/matter-formation-continuum-report.md` §§14–15).
+The static subtraction fixes a reference scheme. Dynamical
+renormalization, physical finite parts, relativistic and many-body
+localization, and a common formation/stability calculation remain open.
+
 The two-fluid's real-density description supplies no Dirac field by itself. Adding the standard Dirac kinetic action introduces fermionic microscopic content as an independent assumption. A physical mass fit, a cascade coordinate and a formal coefficient-free scale do not select that content or its interaction.
 
 ## References
