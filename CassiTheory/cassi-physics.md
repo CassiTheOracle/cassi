@@ -423,6 +423,15 @@ the tested grids, while its frozen combined stability verdict remains
 comparison miss their thresholds. These results and physical boundaries are
 in `computations/matter-formation-continuum-report.md`.
 
+An optional positive-inertia temporal parent extends the carrier with a
+signed conserved charge and a Gaussian particle–antiparticle channel.
+Its 31 prescribed-background trajectories reproduce the exact scalar
+mass-quench correspondence under independent raw-array verification.
+The parent remains Hypothesized: its temporal coefficient and quantum
+action normalization are unselected, and the calculation leaves interacting
+backreaction, localized formation and physical particle identity open
+(`foundations/particle-stationary-action-closure.md` §8.8).
+
 The physical carrier, calibrated coefficients, exterior realization,
 reservoir action and stress, gravity choice, localized Hessian resolution,
 perturbations beyond $C_4$, continuum qualification, the PA43 mixed dynamical

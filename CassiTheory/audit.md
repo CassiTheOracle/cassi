@@ -154,6 +154,18 @@ symmetry and domain comparisons. No physical matter-production,
 particle-mass or spin/statistics claim follows
 (`computations/matter-formation-continuum-report.md`).
 
+**Conditional quantum carrier parent.** An optional positive temporal
+stiffness gives a signed conserved charge and a low-frequency limit matching
+the first-order carrier equation. Its 31 prescribed-background Gaussian
+trajectories reproduce the exact scalar pair-production correspondence with
+zero independent mismatches. This is a conditional numerical `PASS`; the
+physical extension remains Hypothesized. The temporal coefficient and
+action normalization are unselected, and the calculation drops the quartic
+interaction and mediator backreaction without establishing their effects as
+negligible. The stationary profiles carry a different conserved charge in
+the parent, so existing fixed-population stability results do not transfer
+to its full dynamics (`computations/matter-formation-continuum-report.md` §8).
+
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 
 | Claim | Tested result | Status |

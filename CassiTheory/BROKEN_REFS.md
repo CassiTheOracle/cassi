@@ -129,6 +129,7 @@ where available, and the scripts needed to regenerate current receipts.
 | `computations/matter-formation-continuum-prereg.md`; `computations/matter-formation-continuum-report.md` | `runs/20260906_matter_formation/`, `runs/20260906_matter_formation_radial/` |
 | `computations/matter-formation-stability-prereg.md`; `computations/matter-formation-continuum-report.md`; `computations/matter_formation_stability_execution.json` | `runs/20260906_matter_formation_stability_corrected/` (accepted measurements), `runs/20260906_matter_formation_stability_source_seal/` (exact source copies), `runs/20260906_matter_formation_stability/` (excluded execution receipts) |
 | `computations/matter-formation-scaling-prereg.md`; `computations/matter-formation-continuum-report.md` | `runs/20260906_matter_formation_scaling/scaling.json` (post-campaign descriptive statistics from immutable radial arrays) |
+| `computations/matter-formation-hyperbolic-parent-prereg.md`; `computations/matter-formation-continuum-report.md` | `runs/20260906_matter_formation_hyperbolic_parent/` (31 Gaussian trajectories, stationary embedding tables and independent correspondence verification) |
 
 ## References to `CassiCosmos/` (the space sim, in the unified workspace)
 

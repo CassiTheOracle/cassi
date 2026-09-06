@@ -876,9 +876,9 @@ boundaries recorded in `computations/matter-formation-continuum-report.md`.
 ## 12. What remains to form matter
 
 The first-order carrier equation has an exact creation boundary:
-$Q_C(0)=0$ implies $\chi_C(t)=0$ under closed boundaries. Its nonnegative
-population requires additional microscopic degrees of freedom and interactions
-before it can describe signed charge and particle–antiparticle production.
+$Q_C(0)=0$ implies $\chi_C(t)=0$ under closed boundaries. A microscopic
+particle–antiparticle description must supply a signed physical charge and
+its dynamics.
 
 The immutable Cartesian localized sequence is parity-concentrated: its finest
 carrier puts $99.98631608\%$ of its norm on one of eight sublattices, and its
@@ -895,6 +895,17 @@ The derivation and receipts are in
 `foundations/particle-stationary-action-closure.md` §8.7 and
 `computations/matter-formation-continuum-report.md`.
 
+An optional positive-inertia temporal parent supplies a signed global
+charge and a conditional quadratic quantum channel. Its 31
+prescribed-background trajectories reproduce the standard scalar
+pair-production correspondence with independent raw-array verification.
+The parent coefficient and action normalization remain unselected. Its
+stationary embedding changes the conserved charge, so the original spatial
+stability calculation does not close the enlarged dynamics. The Gaussian
+benchmark omits the quartic interaction and mediator backreaction without
+establishing them as negligible; interacting localized formation remains
+open (`foundations/particle-stationary-action-closure.md` §8.8).
+
 The remaining physical requirements are:
 
 1. identify the microscopic carrier and derive its production interaction,
@@ -910,9 +921,10 @@ The remaining physical requirements are:
 6. derive particle identity, spin, statistics and empirically discriminating
    predictions.
 
-The framework has conditional support identities and measured smooth static
-density trapping at selected dimensionless coefficients. Physical matter
-formation remains open.
+The framework has conditional support identities, measured smooth static
+density trapping at selected dimensionless coefficients, and an independently
+verified Gaussian correspondence for one Hypothesized parent family.
+Physical matter formation remains open.
 
 ## References
 

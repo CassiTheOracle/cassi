@@ -809,6 +809,17 @@ Grand unified theories motivate proton-lifetime searches. Cassi has two conditio
 | **Epistemic** | **Mapped** proton coordinate and selected $h_C$ / **Derived conditional** current, endpoint, flux, reduced support, gauge, Gauss and stationary identities, empty-sector invariant and trivial-sector scalar reduction / **Tested** Cartesian finite-grid low spectrum and ultraviolet obstruction; independently reproduced prepared smooth scalar binding and INCONCLUSIVE constrained spatial stability / **Hypothesized/Open** microscopic production, physical normalization, full continuum and temporal stability, proton identity and decay rate |
 | **Reference** | `foundations/proton-coherence-budget.md` §10; `foundations/interscale-current-soliton.md` §4.5; `foundations/endpoint-link-and-localization-boundary.md`; `foundations/point-core-flux-sector.md`; `foundations/nonabelian-magnetic-core-boundary.md`; `foundations/core-trapped-charge-support.md`; `foundations/particle-stationary-action-closure.md`; `computations/particle-carrier-direct-coordinate-report.md`; `computations/particle-carrier-resolution-recovery-report.md`; `computations/particle-physical-hessian-precision-v2-report.md`; `computations/particle-localized-physical-hessian-report.md`; `computations/matter-formation-continuum-report.md` |
 
+An optional positive-inertia carrier parent supplies a signed global charge
+and a conditional Gaussian particle–antiparticle channel. Its 31 frozen
+prescribed-background trajectories reproduce the exact scalar mass-quench
+correspondence with independent raw-array verification. The parent remains
+Hypothesized: its temporal coefficient and action normalization are
+unselected, and its scalar excitations establish no proton assignment.
+Its conserved charge also differs from the prepared spatial population, so
+the existing fixed-population stability result does not close its dynamics
+(`foundations/particle-stationary-action-closure.md` §8.8;
+`computations/matter-formation-continuum-report.md` §8).
+
 ### Q10: Spin—what is it?
 
 ```mermaid
@@ -1228,6 +1239,14 @@ $Q_C=16$ constrained spatial calculation has no resolved negative mode
 on its tested grids and an `INCONCLUSIVE` combined stability verdict.
 These results leave physical production, microscopic quantum content and
 normalization open (`computations/matter-formation-continuum-report.md`).
+
+A positive-inertia temporal parent provides one Hypothesized extension with
+signed charge. Its normalized quadratic quantum theory passes a 31-trajectory
+prescribed-background correspondence check against the exact scalar
+pair-production formula. The unselected parent coefficient changes the
+occupations. Physical normalization, the interacting quantum state,
+mediator backreaction, localized formation and fermionic matter remain
+open (`foundations/particle-stationary-action-closure.md` §8.8).
 
 
 ### F5: Dimensionful constants ($c$, $\hbar$, $G$) and $\lambda$

@@ -70,6 +70,14 @@ reproduced smooth density trapping at selected prepared charges.
 `computations/particle-localized-physical-hessian-report.md` →
 `computations/matter-formation-continuum-report.md`.
 
+An optional positive-inertia carrier parent has a signed charge and a
+Gaussian particle–antiparticle channel.
+Its 31 prescribed-background trajectories pass a standard scalar
+mass-quench correspondence check. The parent coefficient and quantum action
+normalization remain unselected; interacting localized formation is open
+(`foundations/particle-stationary-action-closure.md` §8.8;
+`computations/matter-formation-continuum-report.md` §8).
+
 ### The skeptic or referee
 
 Start with the audit, then the tier discipline that governs every claim, then check the code yourself.

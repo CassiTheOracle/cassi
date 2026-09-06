@@ -1226,6 +1226,14 @@ constrained spatial stability remains INCONCLUSIVE. Microscopic production,
 full dynamics and physical particle identity are unclosed
 (`computations/matter-formation-continuum-report.md`).
 
+An optional positive-inertia carrier parent has a signed global charge and
+a low-frequency branch matching the first-order equation. Its 31
+prescribed-background Gaussian trajectories pass an independently verified
+scalar pair-production correspondence. The physical extension remains
+Hypothesized, with unselected temporal coefficient and action normalization.
+Interacting localized formation and physical particle identity remain open
+(`foundations/particle-stationary-action-closure.md` §8.8).
+
 ### 10.6 Wake-Wave Mechanism
 
 An optional compact-phase/wake construction can pair sheets through an anti-phase assignment ($\Delta\phi=\pi$), producing paired sheets flanking a central void. This is a **Hypothesized** phenomenological extension; the canonical rank-one real-density conversion has no phase or anti-phase structural property.

@@ -48,6 +48,14 @@ verdict is `INCONCLUSIVE`. Microscopic production, full temporal and nonlinear
 stability, physical normalization and particle identity remain open
 (`computations/matter-formation-continuum-report.md`).
 
+An optional positive-inertia carrier parent has a signed conserved charge,
+a canonical complex-scalar representation and a stationary embedding of the
+same spatial profiles. Its 31 prescribed-background Gaussian trajectories
+pass an independently reconstructed scalar pair-production benchmark.
+The physical parent coefficient and action normalization are unselected;
+interacting backreaction, localized creation and fermionic matter remain
+open (§8.8).
+
 ---
 
 ## 1. Scope and source ledger
@@ -1100,6 +1108,114 @@ asymptotically separated population-16 lumps under the same reference.
 This specific comparison supplies no universal fission or dynamical merger
 result (`computations/matter-formation-continuum-report.md` §6).
 
+### 8.8 A conditional hyperbolic carrier parent
+
+A positive carrier temporal stiffness supplies a candidate signed-charge
+extension whose low-frequency branch approaches the first-order equation.
+The microscopic choice of this extension is Hypothesized. Its conditional
+identities can be derived without selecting a physical carrier or mass.
+The source-unit addition is $C_C|\partial_t\chi_C|^2$, where
+$C_C>0$ and $[C_C]=\hbar T$. Its dimensionless coefficient and the
+overall action normalization are
+
+$$
+a_C=\frac{C_CK_x}{\hbar^2\ell_Q^2},
+\qquad \mathcal N_Q=\rho_0\ell_Q^3.
+$$
+
+Write $a=a_C$ and $\chi$ for the dimensionless carrier in the
+scale-independent scalar sector. The numerical convention for $Q_C$
+is the normalized integral in §8.7; source-unit charges also contain
+$\mathcal N_Q$. With $U_C(f)=e_C-h_C(1-f^2)$, the carrier Lagrangian is
+
+$$
+\mathcal L_a=a|\dot\chi|^2+
+\frac{i}{2}(\chi^*\dot\chi-\dot\chi^*\chi)
+-\frac{k_{Cx}}2|\nabla\chi|^2
+-U_C(f)|\chi|^2-\frac{u_C}{2}|\chi|^4.
+$$
+
+Variation and the global phase symmetry give
+
+$$
+a\ddot\chi-i\dot\chi-\frac{k_{Cx}}2\Delta\chi+
+[U_C(f)+u_C|\chi|^2]\chi=0,
+$$
+
+$$
+\boxed{
+\rho_a=|\chi|^2-2a\,\operatorname{Im}(\chi^*\dot\chi),
+\qquad
+\partial_t\rho_a+\nabla\cdot\mathbf j_a=0,
+\qquad
+\mathbf j_a=k_{Cx}\operatorname{Im}(\chi^*\nabla\chi).}
+$$
+
+The conserved density has both signs. For a stationary carrier
+$\chi=e^{-i\omega t}c$, the spatial multiplier and normalized conserved
+charge satisfy
+
+$$
+\boxed{
+\omega+a\omega^2=\omega_C,\qquad
+\omega=\frac{2\omega_C}{1+\sqrt{1+4a\omega_C}},
+\qquad
+\mathcal Q_a=(1+2a\omega)Q_C.}
+$$
+
+These identities require $1+4a\omega_C>0$. The second root has the opposite
+sign of $1+2a\omega$. The existing stationary profiles therefore have a
+conditional embedding with a different conserved charge. Their fixed-$Q_C$
+spatial Hessians do not settle the enlarged fixed-$\mathcal Q_a$ dynamical
+problem.
+
+The uniform phase rotation
+$\phi=\sqrt{\mathcal N_Qa}\,e^{-it/(2a)}\chi$ puts the carrier action
+in canonical second-order form:
+
+$$
+\frac{S_C}{\hbar}=\int dt\,d^3x\left[
+|\dot\phi|^2-v_a^2|\nabla\phi|^2-M_a^2(f)|\phi|^2
+-\frac{u_C}{2\mathcal N_Qa^2}|\phi|^4\right],
+\qquad
+v_a^2=\frac{k_{Cx}}{2a},
+\quad
+M_a^2(f)=\frac1{4a^2}+\frac{U_C(f)}a.
+$$
+
+The time-dependent phase rotation shifts the Hamiltonian by a constant
+multiple of the conserved global charge. The zero-charge pair sector has
+the same energy balance in both descriptions. Its particle and antiparticle
+labels refer to the positive-energy modes of the canonical quadratic
+field.
+
+The neutral carrier remains a singlet of the internal gauge group.
+Matching its principal propagation speed to the Yang/Yin field requires
+$a=k_{Cx}c_\Psi/2$ under the temporal convention in §7.3; the other gauge and
+adjoint sectors also require compatible temporal coefficients. This
+condition relates free inputs and establishes no measured causal speed.
+The action normalization $\mathcal N_Q$ controls vacuum field amplitudes
+and the canonical interaction strength. It remains physically unselected.
+
+An exactly zero classical field with zero velocity still remains zero.
+In the quadratic quantum theory, a prescribed time-dependent mediator
+changes $M_a^2$ and mixes positive- and negative-frequency modes.
+The in-vacuum can then contain equal particle and antiparticle
+occupations relative to the out-vacuum while total signed charge stays
+zero. This supplies a conditional creation channel with a specified quantum
+state and externally supplied history. The full quartic interaction and
+mediator backreaction are omitted by that Gaussian truncation; their effects
+are not established as negligible. The canonical interaction coefficient
+$u_C/(\mathcal N_Qa^2)$ remains unselected, so a free-mode calculation alone
+supplies no controlled interacting production rate.
+
+`computations/matter-formation-hyperbolic-parent-prereg.md` specifies the
+finite correspondence calculation and its standard tanh-quench benchmark.
+The parent family introduces no electric, baryonic, spin or fermionic
+assignment. Physical coefficient selection, quantum normalization,
+renormalized backreaction, localized production and full stability remain
+separate requirements for a matter-formation mechanism.
+
 ## 9. What is closed and what remains open
 
 | Question | Result |
@@ -1199,4 +1315,7 @@ open.
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid refinement and independently verified resolution consistency.
 - `computations/particle-localized-physical-hessian-report.md`—matched constrained spectrum and spatial qualification of the finest localized field.
-- `computations/matter-formation-continuum-report.md`—empty-sector invariant, ultraviolet diagnosis, smooth prepared binding and constrained stability.
+- `computations/matter-formation-continuum-report.md`—empty-sector invariant, ultraviolet diagnosis, smooth prepared binding, constrained stability and conditional Gaussian parent correspondence.
+- `computations/matter-formation-hyperbolic-parent-prereg.md`—optional temporal parent, quantum normalization and frozen free-mode schedule.
+- `computations/matter_formation_hyperbolic_parent.py`—primary oscillator trajectories and stationary embeddings.
+- `computations/verify_matter_formation_hyperbolic_parent.py`—independent raw-array, charge and energy-work verification.

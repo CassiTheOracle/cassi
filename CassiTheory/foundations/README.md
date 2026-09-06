@@ -820,6 +820,14 @@ physical normalization open. See `computations/matter-formation-continuum-report
 `computations/particle-localized-physical-hessian-report.md`, and
 `foundations/matter-completion-boundary.md`.
 
+An optional positive-inertia carrier parent has a signed conserved charge,
+a canonical scalar representation and a conditional embedding of the same
+stationary profiles. Its 31 prescribed-background Gaussian trajectories
+pass the independently reconstructed scalar pair-production benchmark.
+The extension remains Hypothesized; physical temporal and action
+normalization, interacting backreaction, localized formation and particle
+identity are open (`foundations/particle-stationary-action-closure.md` §8.8).
+
 ### `matter-completion-boundary.md`—Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
 Connects the positive two-domain coherence interface to the fixed-charge

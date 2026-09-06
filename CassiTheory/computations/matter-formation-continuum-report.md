@@ -1,10 +1,12 @@
 # Carrier Creation and Continuum Density Trapping
 
-## Status: Tested—September 2026
+## Status: Derived conditional carrier identities / Hypothesized physical completion / Tested prepared binding, spatial spectrum and Gaussian correspondence—September 2026
 
 ## Abstract
 
 The first-order carrier action preserves an exactly empty closed carrier sector. Its stored Cartesian localized fields fail a smooth-carrier diagnostic: the squared-spacing-weighted edge energy stays nearly constant while the carrier concentrates on one parity sublattice. A separate continuum-consistent radial calculation independently reproduces static binding at prepared $Q_C=16$ and $256$. The population-256 endpoint has lower energy per carrier, a larger RMS radius and a more strongly depleted mediator core than the population-16 endpoint. These two qualified endpoint measurements establish no preferred particle size, scaling law or quantum-number assignment. The $Q_C=4$ profiles spread with the domain, and the stopped $Q_C=64$ endpoint is unqualified. Smooth $Q_C=16$ constrained spatial stability remains `INCONCLUSIVE`. Microscopic production, full dynamics, normalization and physical particle identity remain open.
+
+A Hypothesized positive-inertia carrier parent has a signed conserved charge and a low-frequency limit matching the first-order equation. Its prescribed-background Gaussian calculation reproduces the standard scalar pair-production correspondence across 31 mode trajectories. The temporal coefficient and action normalization remain unselected, and the calculation omits interacting backreaction and localized production.
 
 ## 1. Scope and frozen evidence
 
@@ -201,7 +203,78 @@ At the trivial constant-composition representative, orientation gradients, gauge
 
 A positive quadratic energy on the physical quotient of a finite closed Hamiltonian system, together with positive inertia, would exclude exponential linear growth. The measured approximate spatial Hessians do not establish those hypotheses for the infinite-volume field theory. Continuum coercivity, mixed temporal dynamics and nonlinear orbital stability remain open.
 
-## 8. Reproduction and retained boundary
+## 8. Conditional hyperbolic-parent correspondence
+
+A positive temporal stiffness supplies a candidate quantum creation channel while retaining the first-order spatial equation in its low-frequency limit. The parent action, signed charge, common-cone condition and stationary embedding are derived in `foundations/particle-stationary-action-closure.md` §8.8. This physical extension is Hypothesized. The finite benchmark fixes the mathematical action normalization; the physical prefactor $\mathcal N_Q=\rho_0\ell_Q^3$ remains open.
+
+For the prescribed homogeneous mediator transition, the canonical quadratic modes obey
+
+$$
+f^2(t)=\frac{1-\tanh(t/T)}2,\qquad
+\ddot u_k+\Omega_k^2(t)u_k=0,
+\qquad
+\Omega_k^2(t)=\frac{k^2}{2a}+\frac1{4a^2}
++\frac{e_C-h_C[1-f^2(t)]}{a}.
+$$
+
+The in-vacuum is normalized by $u_k=e^{-i\Omega_{\rm in}t}/\sqrt{2\Omega_{\rm in}}$ at the finite start. The standard exact occupation for this tanh history is
+
+$$
+n_k^{\rm exact}=
+\frac{\sinh^2[\pi T(\Omega_{\rm out}-\Omega_{\rm in})/2]}
+{\sinh(\pi T\Omega_{\rm in})\sinh(\pi T\Omega_{\rm out})}.
+$$
+
+Particle and antiparticle occupations are equal by the global symmetry, so the produced pairs carry zero net signed charge. The quantum in-vacuum has nonzero fluctuations. Exactly zero classical field and velocity still remain zero under the parent equation.
+
+### 8.1 Measured mode correspondence
+
+All 31 frozen mode trajectories and their independent raw-array reconstruction pass. They comprise 27 combinations of $a\in\{1/16,1/32,1/64\}$, $k\in\{0,1,2\}$ and $T\in\{0.05,0.25,1\}$, three constant-background controls and one extended-time-window control. The coefficients and schedule are fixed numerical witnesses; no witness value is selected as physical.
+
+At $k=0,\ T=0.05$, the measured occupations are:
+
+| Parent coefficient $a$ | $\Omega_{\rm in}$ | $\Omega_{\rm out}$ | Occupation per particle/antiparticle mode |
+|---|---:|---:|---:|
+| $1/16$ | 8.7177978871 | 5.3518952511 | 0.0412273297560 |
+| $1/32$ | 16.7332005307 | 13.6119640595 | 0.00212720576601 |
+| $1/64$ | 32.7414110875 | 29.7080987462 | 0.0000127085600700 |
+
+The largest discrepancies across the complete finite schedule are:
+
+| Check | Largest measured discrepancy | Frozen limit |
+|---|---:|---|
+| Absolute occupation error against the exact formula | $4.0246\times10^{-16}$ | $10^{-10}+10^{-7}n_k^{\rm exact}$ |
+| Sampled Wronskian defect | $6.0618\times10^{-14}$ | $10^{-8}$ |
+| Bogoliubov normalization defect | $6.0174\times10^{-14}$ | $10^{-8}$ |
+| Energy-work defect divided by $\max(1,|E_i|,|E_f|,|W|)$ | $5.7215\times10^{-14}$ | $10^{-8}$ |
+| Independent Simpson-work discrepancy divided by $\max(1,|W|)$ | $6.0026\times10^{-15}$ | $10^{-7}$ |
+| Constant-background occupation | $8.5573\times10^{-30}$ | $10^{-12}$ |
+| Extended-window occupation difference | $5.9674\times10^{-16}$ | $10^{-9}$ |
+
+Every sampled $T=1$ occupation lies below its $T=0.05$ counterpart by the required absolute margin. Very small adiabatic occupations are qualified only by the absolute-error criterion; the calculation assigns no relative precision to values below numerical resolution.
+
+The finite-mode energy includes its vacuum reference. For the $a=1/16$ fast witness, $E_i=8.7177978871$, $E_f=5.7931839517$ and external work is $-2.9246139353$. The out-vacuum energy is $\Omega_{\rm out}=5.3518952511$, leaving positive excitation energy $E_f-\Omega_{\rm out}=0.4412887007$. Lowering the mode frequency lowers its vacuum reference while producing excitations relative to the final vacuum. These are finite-mode quantities; a renormalized continuum stress tensor is outside the calculation.
+
+### 8.2 Stationary embedding and physical scope
+
+The same two qualified spatial profiles have a conditional stationary embedding in each parent. The frequency equation is $\omega+a\omega^2=\omega_C$, and the normalized signed charge is $\mathcal Q_a=(1+2a\omega)Q_C$:
+
+| Prepared spatial $Q_C$ | $a$ | Parent frequency $\omega$ | Parent signed charge $\mathcal Q_a$ |
+|---:|---|---:|---:|
+| 16 | $1/16$ | 0.2829190680 | 16.5658381361 |
+| 16 | $1/32$ | 0.2853767711 | 16.2853767711 |
+| 16 | $1/64$ | 0.2866379970 | 16.1433189985 |
+| 256 | $1/16$ | −0.4338414950 | 242.1170721606 |
+| 256 | $1/32$ | −0.4277969110 | 249.1552494245 |
+| 256 | $1/64$ | −0.4248987635 | 252.6008098916 |
+
+The physical charge normalization also contains $\mathcal N_Q$. The enlarged fixed-charge dynamical constraint differs from the original fixed-$Q_C$ spatial calculation, whose frozen stability verdict remains `INCONCLUSIVE`.
+
+The correspondence verdict is **`PASS`** in both receipts, with zero independent mismatches. It verifies the supplied quadratic equations, input identities and finite numerical schedule. The parent coefficient materially changes the measured occupations, and the current first-order action does not select it. The Gaussian calculation omits the quartic interaction and mediator backreaction without establishing their effects as negligible; its canonical interaction strength $u_C/(\mathcal N_Qa^2)$ remains unselected. Perturbative excitations of the canonical field are scalar bosons. Interacting production, localized capture, fermionic matter, physical quantum numbers, normalization and empirical matching require additional supported mechanisms.
+
+The accepted source and specification identities, all 31 raw trajectories and the independent verification are in `runs/20260906_matter_formation_hyperbolic_parent/`. The stationary fields are fixed inputs; the binding and spatial-stability verdicts retain their stated scope.
+
+## 9. Reproduction and retained boundary
 
 Run from the repository root into new, explicitly named output directories when the default receipts already exist:
 
@@ -214,11 +287,13 @@ python computations/verify_matter_formation_radial.py
 python computations/matter_formation_stability.py --output-dir runs/20260906_matter_formation_stability_corrected
 python computations/verify_matter_formation_stability.py --input-dir runs/20260906_matter_formation_stability_corrected
 python computations/matter_formation_scaling.py
+python computations/matter_formation_hyperbolic_parent.py
+python computations/verify_matter_formation_hyperbolic_parent.py
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
 
-The remaining physical questions are the carrier-production action and quantum state, absolute normalization, particle identities and statistics, real-time formation and nonlinear stability, scale-dependent sectors, and empirical discrimination. The spatial stability result retains the frozen inconclusive verdict above.
+The remaining physical requirements are a selected microscopic production action and quantum state, absolute normalization, interacting backreaction, particle identities and statistics, real-time localized formation and nonlinear stability, scale-dependent sectors, and empirical discrimination. The conditional hyperbolic parent supplies one explicitly normalized Gaussian correspondence. Its physical coefficient and action normalization remain open, and the spatial stability result retains the frozen inconclusive verdict above.
 
 ## References
 
@@ -228,6 +303,10 @@ The remaining physical questions are the carrier-production action and quantum s
 - `computations/matter-formation-scaling-prereg.md`—post-campaign descriptive scope with frozen input identities.
 - `computations/matter_formation_scaling.py`—population, radius, depletion, bulk and specific-partition summaries.
 - `runs/20260906_matter_formation_scaling/scaling.json`—hash-bound descriptive results; parent verdicts unchanged.
+- `computations/matter-formation-hyperbolic-parent-prereg.md`—frozen temporal-parent family, Gaussian schedule and correspondence decision.
+- `computations/matter_formation_hyperbolic_parent.py`—primary oscillator trajectories, stationary embeddings and finite correspondence checks.
+- `computations/verify_matter_formation_hyperbolic_parent.py`—independent raw-array reconstruction and source-work quadrature.
+- `runs/20260906_matter_formation_hyperbolic_parent/results.json` and `runs/20260906_matter_formation_hyperbolic_parent/verification.json`—accepted primary and independent correspondence receipts.
 - `foundations/particle-stationary-action-closure.md` §8.7—continuity law, conditional scalar reduction, radial equations and ultraviolet boundary.
 - `foundations/matter-completion-boundary.md`—full matter-formation requirements.
 - `computations/particle-carrier-resolution-recovery-report.md`—four stored Cartesian endpoints.
@@ -240,3 +319,5 @@ The remaining physical questions are the carrier-production action and quantum s
 - `runs/20260906_matter_formation_stability_corrected/results.json`—accepted constrained spatial measurements and comparisons.
 - `runs/20260906_matter_formation_stability_corrected/verification.json`—independent spectral agreement and inconclusive scientific verdict.
 - [Heeck and Sokhashvili, *Revisiting the Friedberg–Lee–Sirlin soliton model*](https://arxiv.org/abs/2303.09566)—relativistic charged complex-scalar and real-mediator comparison; published March 2023.
+- [Das, Galante and Myers, *Smooth and fast versus instantaneous quenches in quantum field theory*](https://arxiv.org/abs/1505.05224)—standard scalar tanh-quench correspondence.
+- [Camilo and Abdalla, *Momentum-space entanglement after smooth quenches*](https://doi.org/10.1140/epjc/s10052-019-6581-2)—general in/out-mass profile and exact Bogoliubov occupation.

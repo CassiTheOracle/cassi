@@ -32,6 +32,14 @@ verdict is `INCONCLUSIVE`. The physical matter-formation mechanism remains
 Hypothesized; the mapped coupling, quantum identity and normalization
 retain their boundaries (`computations/matter-formation-continuum-report.md`).
 
+The optional positive-inertia carrier parent in
+`foundations/particle-stationary-action-closure.md` §8.8 is **Hypothesized**.
+Its signed-charge, phase-rotation and stationary-embedding identities are
+**Derived conditional**; its 31 prescribed-background Gaussian trajectories
+have an independently verified correspondence **PASS**. The temporal
+coefficient, action normalization and interacting formation mechanism remain
+unselected (`computations/matter-formation-continuum-report.md` §8).
+
 ## 1. Derived
 
 | Document | Status | Summary |

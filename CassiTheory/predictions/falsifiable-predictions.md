@@ -713,6 +713,15 @@ spatial-stability verdict is `INCONCLUSIVE`. These measurements introduce
 no particle mass, production-rate or existence prediction. They are
 documented in `computations/matter-formation-continuum-report.md`.
 
+The optional positive-inertia carrier parent supplies a conditional Gaussian
+pair-production correspondence, with 31 prescribed-background trajectories
+passing independent reconstruction. Its temporal coefficient materially
+changes the occupations and remains physically unselected, together with
+the action normalization. The scalar benchmark omits interacting
+backreaction and localized capture. It adds no physical particle-existence,
+mass or production-rate prediction (`foundations/particle-stationary-action-closure.md`
+§8.8; `computations/matter-formation-continuum-report.md` §8).
+
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;
 `computations/matter_completion_boundary_check.py`;
