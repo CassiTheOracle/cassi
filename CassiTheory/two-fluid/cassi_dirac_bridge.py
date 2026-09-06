@@ -4,13 +4,13 @@ Dirac Bridge: Relativistic extension of CassiBridgeV2
 ======================================================
 
 Implements the Dirac equation on a 3D grid with exact k-space
-propagation, 4-spinor wavefunctions, spin-orbit coupling, and
-fine-structure analysis.
+propagation, 4-spinor wavefunctions, and spin/current diagnostics.
+The speed of light and mass are inputs in atomic units.
 
-Pillars:
-  1. Dirac relativistic QM (H_D = -i c α·∇ + β mc²)
-  2. Yang/Yin mapping from 4-spinor → φ-based fine-structure constant
-  3. Spin-orbit coupling via Dirac bilinear currents
+The component-quadratic Yang/Yin observables and ratio-based alpha
+diagnostic are selected mappings. They supply no derived identification
+with kinetic/rest energies, canonical two-fluid conversion, or the
+measured fine-structure constant.
 
 Usage:
     python two-fluid/cassi_dirac_bridge.py --help
@@ -85,8 +85,8 @@ class DiracBridge(CassiBridgeV2):
         # Override c (the base class sets 137.036 in _init_dirac)
         self.c = c_light
 
-        # φ-based fine-structure coupling constant
-        # α_φ = φ⁻³/(4π) ≈ 1/53 (slightly larger than α ≈ 1/137)
+        # Selected dimensionless diagnostic coefficient.
+        # This value does not determine the electromagnetic coupling.
         self.alpha_phi = PHI_INV ** 3 / (4.0 * np.pi)
 
     # ── 4-Spinor Helpers ─────────────────────────────────────────────────
@@ -104,11 +104,13 @@ class DiracBridge(CassiBridgeV2):
     # ── Yang / Yin Density from 4-Spinor ────────────────────────────────
 
     def yang_yin_density(self, psi):
-        """Compute Yang (kinetic-dominant) and Yin (rest-mass-dominant) densities.
+        """Compute nonnegative component-quadratic density diagnostics.
 
-        From the 4-spinor ψ = (ψ_L, ψ_S):
-          - Yang: E_Y ∝ |ψ_L - ψ_S|²  →  kinetic dominance, r > φ
-          - Yin:  E_I ∝ |ψ_L + ψ_S|²  →  rest-mass dominance, r < φ
+        For the upper/lower two-component blocks u, v:
+          yang = ||u - v||², yin = ||u + v||²,
+          yang + yin = 2 ψ†ψ.
+        The pair has no established kinetic/rest-energy interpretation
+        or physical normalization to the canonical two-fluid densities.
 
         Returns
         -------
@@ -126,23 +128,23 @@ class DiracBridge(CassiBridgeV2):
         return yang, yin
 
     def yang_yin_ratio(self, psi):
-        """E_Y / E_I—ratio of kinetic to rest-mass density.
+        """Return the pointwise ratio of the two quadratic diagnostics.
 
-        At the φ-point: E_Y = φ · E_I, which implies the fine-structure
-        constant emerges from the golden ratio.
+        A ratio equal to PHI is an algebraic condition on the spinor.
+        It supplies no electromagnetic coupling or conversion law.
         """
         yang, yin = self.yang_yin_density(psi)
         ratio = yang / (yin + 1e-30)
         return ratio
 
     def emergent_alpha(self, psi):
-        """Estimate the fine-structure constant from the Yang/Yin ratio.
+        """Evaluate the selected ratio-based dimensionless alpha diagnostic.
 
         α_eff = α_φ · 2 · E_Y / (E_Y + φ·E_I)
 
-        At the φ-point critical ratio (E_Y = φ·E_I), this gives α_eff = α_φ.
-        The formula interpolates between 0 (all yin) and 2·α_φ (all yang),
-        with the physical fine-structure constant emerging at the balance point.
+        At E_Y = φ · E_I this gives the selected coefficient α_φ.
+        It ranges from 0 to 2 α_φ for nonnegative inputs. A physical
+        fine-structure interpretation requires a separate derivation.
         """
         yang, yin = self.yang_yin_density(psi)
         ratio = yang / (yin + 1e-30)
@@ -194,8 +196,8 @@ class DiracBridge(CassiBridgeV2):
     def spin_density(self, psi):
         """Compute spin density (s_x, s_y, s_z) from Pauli expectation values.
 
-        For each spin operator S_i = ½ σ_i (in the large-component subspace):
-            s_i = ψ† · S_i · ψ   summed over volume
+        For each spin operator S_i = ½ diag(σ_i, σ_i):
+            s_i = ψ† · S_i · ψ, evaluated pointwise
         For a 4-spinor:  s_i = ½ (ψ_L† σ_i ψ_L + ψ_S† σ_i ψ_S)
         """
         psi_L, psi_S = self._spinor_slices(psi)
@@ -218,11 +220,11 @@ class DiracBridge(CassiBridgeV2):
     # ── Spin Current from Dirac Bilinear ────────────────────────────────
 
     def compute_spin_current(self, psi):
-        """Compute the spin contribution to the probability current.
+        """Evaluate the Dirac alpha bilinear in each spatial direction.
 
-        From the Dirac bilinear j^μ = ψ̄ γ^μ ψ:
-          j_spin = ψ† α ψ  → (jx_s, jy_s, jz_s)
-        where α_i are the Dirac alpha matrices (4×4).
+        The returned ψ† α_i ψ needs a factor c for the probability
+        current. It carries no separate spin/orbital decomposition.
+        Here α_i are the Dirac alpha matrices (4×4).
 
         Returns tuple (jx, jy, jz) each shaped (N, N, N).
         """
@@ -322,8 +324,10 @@ class DiracBridge(CassiBridgeV2):
 
         Returns
         -------
-        dict with 'E_j_lower', 'E_j_upper', 'splitting_Eh', 'splitting_eV',
-             'alpha_phi_prediction', 'experimental_target_eV'
+        dict with 'E_j_lower_Eh', 'E_j_upper_Eh', 'splitting_Eh', 'splitting_eV',
+             'alpha_phi_prediction_eV', 'experimental_target_eV'.
+        The alpha_phi entry is a selected diagnostic substitution;
+        its physical fine-structure interpretation is unestablished.
         """
         c = self.c
         E_lower = self.dirac_energy_level(n, 0.5, Z, c)  # j=1/2 (2S₁/₂, 2P₁/₂)
@@ -332,7 +336,7 @@ class DiracBridge(CassiBridgeV2):
         splitting_Eh = E_upper - E_lower
         splitting_eV = splitting_Eh * 27.211386245988  # 1 E_h = 27.2114 eV
 
-        # φ-based α prediction: ΔE = α_φ² R_y / 16
+        # Selected alpha diagnostic substituted into the n=2 formula.
         R_y = 0.5  # Rydberg energy in Hartree
         alpha_phi = PHI_INV ** 3 / (4.0 * np.pi)
         pred_Eh = alpha_phi ** 2 * R_y / 16.0
@@ -588,7 +592,7 @@ def test_initialization(grid=32, L=20.0, sigma=1.5):
     print(f"  Yang density mean: {float(yang.mean()):.6f}")
     print(f"  Yin density mean:  {float(yin.mean()):.6f}")
     ratio = solver.emergent_alpha(psi)
-    print(f"  Emergent α (from φ): {ratio:.6f}  (α_QED = {1/137.036:.6f})")
+    print(f"  Selected α diagnostic: {ratio:.6f}  (α_QED input = {1/solver.c:.6f})")
 
     # Test fine-structure splitting
     fs = solver.fine_structure_splitting(n=2)
@@ -596,7 +600,7 @@ def test_initialization(grid=32, L=20.0, sigma=1.5):
     print(f"    E(j=1/2) = {fs['E_j_lower_Eh']:+.8f} E_h")
     print(f"    E(j=3/2) = {fs['E_j_upper_Eh']:+.8f} E_h")
     print(f"    ΔE = {fs['splitting_eV']:.6e} eV")
-    print(f"    φ-based prediction: {fs['alpha_phi_prediction_eV']:.6e} eV")
+    print(f"    Selected α substitution (n=2 formula): {fs['alpha_phi_prediction_eV']:.6e} eV")
     print(f"    Experimental target: {fs['experimental_target_eV']:.6e} eV")
 
     return solver
