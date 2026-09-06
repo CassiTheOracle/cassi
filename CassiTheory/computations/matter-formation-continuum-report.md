@@ -14,6 +14,8 @@ At fixed signed parent charge, all 24 frozen radial embeddings have positive mea
 
 The selected population-256 parent subset also supports the measured angular and phase sectors on all four finite grids. All 96 eigenvalues agree with an independent operator construction. Seven of eight spatial domain/resolution comparisons pass; the first non-translation dipole eigenvalue fails the domain comparison. The combined scalar-parent spatial verdict is `INCONCLUSIVE`. Exact nodelessness and monotonicity give conditional continuum positivity identities, whose assumptions are not established by these sampled profiles.
 
+A separate extended-domain calculation at prepared population 256 passes all 14 angular, phase and radial-parent comparisons. Its drifting dipole eigenvector approaches the exterior-continuum box scaling. This supplies finite-grid scalar spatial energetic qualification on the fixed larger-domain schedule; exact continuum existence, nonlinear stability and formation remain open (§11.6).
+
 An independently verified physical-unit calculation leaves a family of scalar models at one imposed vacuum mass, speed and internal generator unit. At the fixed dimensionless coefficients, the extra scalar core-cell assignment is contradicted. The proposed Dirac chiral-scalar map also has exact positivity and Hermiticity obstructions. These results distinguish unit calibration from microscopic particle identification.
 
 The helper's positive component quadratics are twice the chiral-current number densities in its declared spinor representation. Closed Dirac evolution depends on relative coherence and does not supply the canonical population conversion. Adding the specified minimal conversion channel to a massive Dirac Hamiltonian shifts the stationary ratio away from $\varphi$ and allows leakage from the positive-energy one-particle subspace. Independent finite-dimensional witnesses verify these conditional boundaries; a physical reservoir, quantum-state prescription and production interaction remain unselected.
@@ -21,6 +23,8 @@ The helper's positive component quadratics are twice the chiral-current number d
 A separately declared real scalar mass source produces fermion pairs in a finite-mode quantum model with reciprocal semiclassical feedback. Independent four-component and Bloch-vector calculations agree on 32 quench/pulse rows and six retained trajectories. The finest closed trajectory reaches occupation $0.5729566253$ per spin in one mode, with relative energy error $5.6211\times10^{-5}$ and second-order time convergence. This establishes conditional energy-accounted excitation. The supplied source, fermion content, selected coefficients and fixed-reference subtraction remain separate from physical Cassi matter; continuum renormalization, spatial localization and particle identification are open.
 
 The specified scalar–fermion model also has independently verified continuum restrictions. Sudden mass changes and square pulses give linearly divergent pair density and quadratically divergent positive excitation energy. A specified fourth-order static subtraction has a finite verified remainder, while the static-to-first-adiabatic initial-state overlap has logarithmically divergent excitation energy. At the unchanged coupling and mass ratio, a sufficient trace bound excludes every two-body bound level in the leading nonrelativistic Yukawa reduction. These results constrain the supplied extension; renormalized spatial formation, many-body stability and physical identification remain open.
+
+The specified harmonic scalar potential plus the subtracted one-loop vacuum remainder also fails a global energy requirement. Sixteen algebraic checks establish positive reference curvature and an exact negative-potential witness. A widening neutral trial bubble drives the explicitly local static functional to arbitrarily negative energy. This conditional result leaves the full nonlocal spatial quantum model, metastability and physical particle matching open.
 
 ## 1. Scope and frozen evidence
 
@@ -36,6 +40,12 @@ $$
 The coefficient $h_C$ is Mapped: it is selected numerically in the particle-support campaign. The charges $4,16,64,256$ are prepared dimensionless populations. They carry no identification with electric charge, baryon number, a particle count, or a measured rest mass. No coefficient is fitted or scanned in this calculation.
 
 A complete matter mechanism requires a physically specified microscopic action and production channel, finite-energy continuum states, their stability and formation dynamics, physical normalization, particle quantum numbers and statistics, and independent empirical discrimination. Static density trapping addresses one part of this chain.
+
+### 1.1 Working research record
+
+This file is the single working record for the matter-formation investigation. Intermediate derivations, unsuccessful approaches, pre-execution assumptions and decision rules, measured results, source revisions and receipt paths stay here with the relevant calculation code. Raw receipts remain immutable. Registries, indexes and public summaries receive a consolidated update at a coherent scientific checkpoint.
+
+The central unresolved task is to obtain production, localization and stability within one physically justified model. The prepared scalar branch has a supported extended-domain finite-grid spatial spectrum (§11.6), while exact continuum and nonlinear stability remain open. The finite-mode fermionic production model has continuum and local-vacuum restrictions (§§14–16). Their separate successes cannot establish a common matter-formation mechanism.
 
 ## 2. Empty-sector obstruction
 
@@ -523,6 +533,54 @@ The canonical CRLF-to-LF SHA-256 identities are:
 The raw primary receipt SHA-256 is `9445ff33b33b664bf15e09b499bb185f18bfeb9f8a9393c388afef7c7affa79c`; the independent receipt SHA-256 is `2994e44ee2566ecc4e7ce660dc5d0510a088b694e0224086792eda2854f148dd`. Both receipts, four hash-bound spectral arrays, all symmetry diagnostics and the eight comparisons are retained in `runs/20260906_matter_formation_parent_spatial/`. The independent receipt binds the primary raw hash and verifies the accepted charged-radial receipt chain.
 
 The registered missing-source control invokes both actual programs against an empty source directory. Both return exit code 1 and preserve failed JSON receipts with zero eigenvalue rows. The primary records all four missing-source errors and the incomplete comparison schedule; the verifier rejects the failed input and retains its errors without eigensolves. These control receipts reside under `control_missing_sources/` and carry no scientific stability conclusion. The canonical receipts and source files remain unchanged.
+
+### 11.5 Extended-domain calculation: pre-execution criteria
+
+The measured dipole nonsymmetry eigenvalue lies above the exterior carrier threshold $2(e_C-\omega_C)$. A finite box discretizes exterior scattering states, whose eigenvalues can approach that threshold with an $R^{-2}$ correction. This motivates a targeted larger-domain calculation. The completed eight-comparison result in §11.3 retains its own failed domain comparison.
+
+Keep the population $N=256$ and every coefficient in §1. Start each continuation from `runs/20260906_matter_formation_radial/q256_R24_n768_refine.npz`, raw SHA-256 `7f839b59fa3a0a4c9ca6897ec3962aec2b7f62d20a1751968482349a22742b66`. The fixed schedule is $(R,n)=(24,768),(48,1536),(48,3072),(96,3072)$. Interpolate the same source with its stated exterior values, normalize only the initial carrier, then solve the finite-volume stationary equations and population constraint by bordered banded Newton iteration. There is no coefficient scan, new seed selection or larger-domain continuation beyond this schedule.
+
+Newton has at most 20 iterations and 24 step halvings per iteration. No field clipping is permitted. Successful sources require nonnegative sampled fields, relative population error below $10^{-12}$ and both independently reconstructed normalized first-variation residuals below $10^{-8}$. Failure preserves the attempted fields and diagnostics and gives an inconclusive qualification. The repeated $(24,768)$ source must agree with the retained source's energy and frequency to $10^{-4}\max(1,|x|,|y|)$; this checks continuation of the prepared branch.
+
+Reconstruct the same six lowest eigenpairs of $H_1,H_2,L_0,L_1$. Use interleaved symmetric banded amplitude matrices and tridiagonal phase matrices; independently apply their actions by face fluxes and local potentials to check every eigenvector. Normalized residuals and orthonormality errors must be below $10^{-8}$. Retain the symmetry-overlap, sign, nonsymmetry-gap and angular-ordering criteria in §11.2 with $\eta=\max(5\times10^{-4},10r_f,10r_c)$. Numerical source monotonicity remains descriptive.
+
+Recompute the radial fixed-signed-charge sector for $a=1/64,1/32,1/16$. Its operator is $K_0+\gamma gg^T$, where $g=(0,2\sqrt Vc)$ in interleaved coordinates and $\gamma=(1+4a\omega_C)/(2aN)$. A banded solve and rank-one inertia identity at shift $\eta$ must establish zero eigenvalues below that shift. A shift-invert eigenpair supplies the minimum, checked by the direct quadratic operator with normalized residual below $10^{-8}$. Failure to establish the inertia statement leaves radial qualification inconclusive; no positive minimum is assumed.
+
+The eight angular/phase comparisons and six radial-parent comparisons use the unchanged tolerance $\max(0.01\max(|x|,|y|),\eta_x,\eta_y)$. Resolution compares $(48,1536)$ with $(48,3072)$; domain size compares $(48,1536)$ with $(96,3072)$. Every comparison and every source sector must pass to support extended-domain finite-grid scalar spatial energetic qualification. A qualified negative eigenmode below $-\eta$ contradicts that finite-grid qualification. Other cases are inconclusive. No threshold is adjusted after execution.
+
+For the first nonsymmetry dipole eigenvector, record its carrier fraction, probability outside $r=6$ and $r=R/2$, RMS radius, $\lambda-2(e_C-\omega_C)$ and $R^2[\lambda-2(e_C-\omega_C)]$. These measurements characterize the drifting box mode; they supply no proof of an infinite-volume scattering state. Exact continuum existence, coercivity, nonlinear stability, production and physical particle identity remain outside this calculation.
+
+The executable is `computations/matter_formation_spatial_domain.py`. Before calculation it freezes this section verbatim and hashes it, itself, imported computational sources and input evidence in `runs/20260906_matter_formation_spatial_domain/`. It preserves field and spectral arrays and a finite JSON receipt, refuses to overwrite output, records each attempted row, and stops after the fixed schedule. A source defect requires a separately named recovery directory with the original attempt retained. Results are added to this research record without propagating intermediate claims into the public document graph.
+
+### 11.6 Extended-domain result and the drifting dipole mode
+
+The prepared population-256 scalar branch passes the fixed larger-domain qualification. All four stationary continuations converge in one or two Newton steps. The largest independently reconstructed source residual is $3.9581\times10^{-12}$ and the largest relative population error is $2.2205\times10^{-15}$. Every sampled field is nonnegative. All 14 resolution/domain comparisons pass under the frozen one-percent/source-error tolerance; the largest difference is 0.28032 times its tolerance.
+
+The direct face-flux applications check all 96 angular/phase eigenpairs and twelve radial-parent eigenpairs. Their largest normalized residual is $4.3016\times10^{-11}$. Each radial operator has zero eigenvalues below $\eta=5\times10^{-4}$ by the finite-matrix rank-one inertia calculation. The twelve radial minima range from $1.7317425857$ to $1.9575479691$. The angular/phase signs, symmetry overlaps and nonsymmetry gaps also satisfy the frozen criteria.
+
+The dipole eigenvector spreads into the exterior as the box grows. At fixed spacing $\Delta r=1/32$, the exterior carrier threshold is $\mu_\infty=2(e_C-\omega_C)=2.3441798524$:
+
+| Radius $R$ | Dipole nonsymmetry eigenvalue $\lambda$ | $R^2(\lambda-\mu_\infty)$ | Eigenvector RMS radius divided by $R$ | Weight outside $r=6$ |
+|---:|---:|---:|---:|---:|
+| 24 | 2.3799505722 | 20.60393458 | 0.61897243 | 0.99116463 |
+| 48 | 2.3529672702 | 20.24621058 | 0.61305199 | 0.99966819 |
+| 96 | 2.3463714568 | 20.19782624 | 0.61218175 | 0.99998903 |
+
+For a free exterior dipole in a Dirichlet sphere, the first spherical-Bessel zero obeys $j_1(\alpha_1)=0$, with $\alpha_1=4.4934094579$. Its reference values are $\alpha_1^2=20.1907285564$ and RMS radius divided by box radius $0.6120509802$. Direct radial quadrature agrees with the analytic Bessel integrals within $3.5\times10^{-18}$. The measured large-box trend is consistent with a discretized exterior-continuum mode. It does not prove the infinite-volume spectral character or absence of embedded eigenstates.
+
+The exact scoped verdict is
+`SUPPORTS—extended-domain finite-grid scalar spatial energetic qualification`.
+The eight-comparison calculation in §11.3 retains its own inconclusive verdict. This calculation supplies separately qualified larger-domain evidence for the prepared scalar branch; exact continuum existence, nonlinear orbital stability, formation from an initially empty sector, quantum backreaction and physical particle identification remain open.
+
+A separate check perturbs each of the twelve retained radial eigenvectors in the full nonlinear fixed-signed-charge energy,
+$E_{\rm sc}+[N-\mathcal Q]^2/(4aN)$, with $\mathcal Q$ held fixed. At perturbation amplitudes $0.01$ and $0.005$, all 24 central-difference curvatures agree with their spectral values within the pre-execution check tolerance $10^{-4}$. The maximum relative discrepancy is $2.6949\times10^{-6}$. This checks the physical energy curvature independently of the banded eigenvalue assembly.
+
+Evidence is retained in `runs/20260906_matter_formation_spatial_domain/`: four field/spectral archives, `inputs.json`, the frozen `protocol.txt`, `results.json`, and the nonlinear energy check with its exact executed source. All four archive hashes and all computational source identities agree with the receipt. The key SHA-256 values are:
+
+- Frozen §11.5 text: `5b37fa884dac6a9788f7cc9cbe5992dc8c14b2a030fa1d94deff1bb2991d65eb`.
+- Canonical program source: `dcbfd57ffc03081d435f48e853b56a283bea5e555ee1994b95672504d4c8f518`.
+- Raw primary receipt: `aa743746d1a3155640914e8856f41f73fab5468ae7330689e764bb1817e4663d`.
+- Raw nonlinear-curvature check: `8bf6bf3ab6f8cc0340d30c6c0c569b00e8ca272762538521cacd2c3259dec92c`.
 
 ## 12. Physical normalization and microscopic identity
 
@@ -1018,7 +1076,109 @@ field and return all scientific verdicts `INCONCLUSIVE`. These are
 input-validation controls; the accepted scientific receipts remain
 unchanged.
 
-## 16. Reproduction and retained boundary
+## 16. Global static scalar-vacuum energy boundary
+
+### 16.1 Necessary energy criterion
+
+A localized ground-state calculation requires an energy functional with
+a lower bound in the relevant sector. The frozen calculation in
+`computations/matter-formation-scalar-vacuum-prereg.md` retains the
+static one-loop remainder from §15 and the supplied harmonic scalar
+energy, at $m_0=1$, $y=1/4$ and $\Omega=3$:
+
+$$
+\mathcal U(m)=72(m-1)^2+\mathcal V_R(m),\qquad
+\mathcal E[f]=\int_{\mathbb R^3}
+\left[\frac12|\nabla f|^2+\mathcal U(1+yf)\right]d^3x.
+$$
+
+This explicitly local static functional omits the full spatial
+nonlocal fermionic determinant and higher derivative terms. The
+calculation introduces no source history, coupling scan, physical
+matching or real-time evolution.
+
+### 16.2 Exact negative bulk-energy witness
+
+The reference is locally stable in its scalar potential direction:
+$\mathcal U(1)=\mathcal U'(1)=0$ and
+$y^2\mathcal U''(1)=9$. Its large-field behavior nevertheless satisfies
+
+$$
+\lim_{m\to\infty}\frac{\mathcal U(m)}{m^4\log(m^2)}
+=-\frac1{16\pi^2}.
+$$
+
+At the single frozen mass-coordinate witness $m=64$, write
+$d=63$ and $P(d)=2d+7d^2+\tfrac{26}{3}d^3+\tfrac{25}{6}d^4$.
+Strict convexity of $1/x$ on $[1,2]$ gives $\log2>2/3$;
+$\pi<22/7$ gives $\pi^2<10$. Exact rational arithmetic then yields
+
+$$
+8\,64^4-P(63)=\frac{132770815}{2}>0,\qquad
+\boxed{\mathcal U(64)<72\,63^2-\frac{132770815}{320}
+=-\frac{8265011}{64}<0.}
+$$
+
+Direct evaluation gives $\mathcal U(64)=-168382.922633654$.
+The zero-loop control has positive potential $285768$ at the same
+witness. These dimensionless values identify neither a physical mass
+nor a preferred field amplitude.
+
+### 16.3 Spatial consequence and scope
+
+A family of finite-energy fields makes the volume consequence
+explicit. Set $f=252$ for $r\le R$, let it fall linearly to zero over
+$w=\sqrt R$, and use zero exterior. The negative core energy is
+$4\pi\mathcal U(64)R^3/3$. Its exact gradient energy is
+
+$$
+E_\nabla=2\pi(252)^2\left(\frac{R^2}{w}+R+\frac w3\right).
+$$
+
+Continuity of $\mathcal U$ on $[1,64]$ bounds the shell potential
+by $4\pi M(R^2w+Rw^2+w^3/3)$ for finite
+$M=\max_{1\le m\le64}|\mathcal U(m)|$.
+The gradient and shell terms divided by $R^3$ both tend to zero.
+Thus this local functional has no global lower bound, despite
+positive local reference curvature.
+
+The exact verdict is
+`CONTRADICTS—global lower boundedness of the specified local static one-loop scalar energy`.
+A full quantum completion inherits this argument only if it retains
+the same bulk energy and has subextensive interface energy. A
+fixed-nonzero-charge extension additionally requires a separated,
+charge-preserving finite-energy valence construction.
+No fermionic spectrum is solved here. Local extrema, metastable
+lumps, formation dynamics, lifetimes and physical matter remain open.
+
+### 16.4 Reproducible algebraic evidence
+
+`computations/verify_matter_formation_scalar_vacuum.py` passes all
+16 symbolic and exact-rational checks, including the gradient
+integral, the two spatial scaling limits and the zero-loop control.
+SymPy verifies the differential and asymptotic identities;
+`fractions.Fraction` supplies the logarithm-free sign bound and is
+compared with separate symbolic arithmetic. This is one algebraic
+qualification program, with no independent spatial simulation.
+
+The frozen source and protocol commit is `d547b996`.
+`runs/20260906_matter_formation_scalar_vacuum/results.json` records
+`numerical_pass: true`, empty failures and canonical CRLF-to-LF hashes:
+
+| Source | SHA-256 |
+|---|---|
+| Program | `3e27b6be60541524944ec4d524d4b5825e8192123149c88154b024264dd5b6d2` |
+| Preregistration | `be6760a8044d909101be87b112c6d0c21a00106951b1a5d93282751cba8e31f0` |
+| Unchanged continuum preregistration | `8876f61dfd966fe016caa0dd712bddf2e076c4569d3d1827756b3ffb6704535b` |
+
+The raw receipt hash is
+`b2932913890ee3c97f1d8e05f6d94e08eebbdd34d48b438a9fc647fe2c990dc5`.
+The missing-preregistration control exits one with empty scientific
+payload and `INCONCLUSIVE`; its raw receipt hash is
+`22290beea652d3a0f88745a77617d62e72b566b113dbb17268cb3c62c0a8b0f1`.
+The accepted continuum-production receipts are unchanged.
+
+## 17. Reproduction and retained boundary
 
 Run from the repository root into new, explicitly named output directories when the default receipts already exist:
 
@@ -1047,6 +1207,7 @@ python computations/matter_formation_fermion_production.py --output-dir runs/202
 python computations/verify_matter_formation_fermion_production.py --input-dir runs/20260906_matter_formation_fermion_production_implementation_recovery --output-dir runs/20260906_matter_formation_fermion_production_implementation_recovery
 python computations/matter_formation_continuum_admissibility.py --output-dir runs/20260906_matter_formation_continuum_admissibility
 python computations/verify_matter_formation_continuum_admissibility.py --input-dir runs/20260906_matter_formation_continuum_admissibility --output-dir runs/20260906_matter_formation_continuum_admissibility
+python computations/verify_matter_formation_scalar_vacuum.py --output-dir runs/20260906_matter_formation_scalar_vacuum
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
@@ -1113,3 +1274,5 @@ The remaining physical requirements are a selected microscopic production action
 - `computations/verify_matter_formation_continuum_admissibility.py`—independent composite quadrature and typed evidence comparisons.
 - [Bargmann, *On the Number of Bound States in a Central Field of Force*](https://doi.org/10.1073/pnas.38.11.961)—sufficient partial-wave counting bound.
 - [Farhi, Graham, Jaffe and Weigel, *Searching for Quantum Solitons in a 3+1 Dimensional Chiral Yukawa Model*](https://arxiv.org/abs/hep-th/0112217)—localized fixed-fermion-number energy including the renormalized sea.
+- `computations/matter-formation-scalar-vacuum-prereg.md`—fixed local static potential, exact sign criterion and scope.
+- `computations/verify_matter_formation_scalar_vacuum.py`—symbolic and rational global lower-boundedness qualification.
