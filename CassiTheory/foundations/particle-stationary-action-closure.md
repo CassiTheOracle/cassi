@@ -1091,10 +1091,10 @@ gradient. The scoped spatial verdict is
 eigenpairs remain scoped to that lattice stationary field. The scalar
 continuum calculation supplies a distinct variational discretization.
 
-The qualified scalar endpoints at prepared $Q_C=16$ and $256$ have increasing
-radius and decreasing energy per carrier. Their mediator cores become more
-strongly depleted. This finite comparison is consistent with charge-dependent
-condensate-like droplets and establishes no preferred particle size.
+At the two qualified prepared scalar populations, the population-256 endpoint
+has a larger RMS radius, lower energy per carrier and a more strongly
+depleted mediator core than the population-16 endpoint. The two endpoint
+measurements establish no preferred particle size or scaling law.
 The population-256 lump has lower energy than the trial state of sixteen
 asymptotically separated population-16 lumps under the same reference.
 This specific comparison supplies no universal fission or dynamical merger

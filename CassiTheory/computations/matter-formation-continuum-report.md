@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The first-order carrier action preserves an exactly empty closed carrier sector. Its stored Cartesian localized fields fail a smooth-carrier diagnostic: the squared-spacing-weighted edge energy stays nearly constant while the carrier concentrates on one parity sublattice. A separate continuum-consistent radial calculation independently reproduces static binding at prepared $Q_C=16$ and $256$. Between these qualified endpoints, energy per carrier falls and the lump grows with a more strongly depleted mediator core. These measurements are consistent with charge-dependent condensate-like droplets; they establish no preferred particle size or quantum-number assignment. The $Q_C=4$ profiles spread with the domain, and the stopped $Q_C=64$ endpoint is unqualified. Smooth $Q_C=16$ constrained spatial stability remains `INCONCLUSIVE`. Microscopic production, full dynamics, normalization and physical particle identity remain open.
+The first-order carrier action preserves an exactly empty closed carrier sector. Its stored Cartesian localized fields fail a smooth-carrier diagnostic: the squared-spacing-weighted edge energy stays nearly constant while the carrier concentrates on one parity sublattice. A separate continuum-consistent radial calculation independently reproduces static binding at prepared $Q_C=16$ and $256$. The population-256 endpoint has lower energy per carrier, a larger RMS radius and a more strongly depleted mediator core than the population-16 endpoint. These two qualified endpoint measurements establish no preferred particle size, scaling law or quantum-number assignment. The $Q_C=4$ profiles spread with the domain, and the stopped $Q_C=64$ endpoint is unqualified. Smooth $Q_C=16$ constrained spatial stability remains `INCONCLUSIVE`. Microscopic production, full dynamics, normalization and physical particle identity remain open.
 
 ## 1. Scope and frozen evidence
 
@@ -136,7 +136,7 @@ These expressions use the declared quartic convention $u_Cn^2/2$. They neglect i
 
 ### 6.1. Measured charge dependence
 
-The qualified endpoints become larger and more strongly depleted as prepared population increases. The following post-campaign descriptive calculation reads immutable arrays without relaxation or changes to any verdict (`computations/matter-formation-scaling-prereg.md`; `computations/matter_formation_scaling.py`):
+The qualified population-256 endpoint is larger and more strongly depleted than the population-16 endpoint. The following post-campaign descriptive calculation reads immutable arrays without relaxation or changes to any verdict (`computations/matter-formation-scaling-prereg.md`; `computations/matter_formation_scaling.py`):
 
 | Prepared $Q_C$ | Qualification | $E/Q_C$ | $r_{C,\mathrm{rms}}$ | $r_{C,\mathrm{rms}}/Q_C^{1/3}$ | $\min f$ | $\max c^2$ |
 |---:|---|---:|---:|---:|---:|---:|
@@ -145,7 +145,7 @@ The qualified endpoints become larger and more strongly depleted as prepared pop
 | 64 | Stopped continuation, unqualified | 0.1475110862 | 1.8999249908 | 0.4749812477 | 0.0436415096 | 1.9012591373 |
 | 256 | Qualified, bound | −0.2168355764 | 2.7549255181 | 0.4338735814 | 0.0029885727 | 1.7815422848 |
 
-The qualified population-16 and population-256 endpoints show decreasing energy per carrier, increasing radius and greater depletion. The stopped population-64 values lie between them in energy per carrier and radius but supply no qualified stationary result. This is consistent with a condensate-like droplet branch whose size depends on its prepared population. The finite charge set establishes neither a preferred particle size nor an asymptotic $Q_C^{1/3}$ law; it does not exclude additional branches or extrema between the sampled populations.
+The comparison of bound states is restricted to the two qualified endpoints at prepared populations 16 and 256. The stopped population-64 values supply no qualified stationary result, and the population-4 states are diffuse. This descriptive analysis assigns no morphology classification or scaling exponent. The finite charge set leaves the size dependence between sampled populations, any asymptotic law and any preferred particle size undetermined.
 
 The large bound endpoint is also independent of the tested box size at fixed spacing. Direct reconstruction gives:
 
