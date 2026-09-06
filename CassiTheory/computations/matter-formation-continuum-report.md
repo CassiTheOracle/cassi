@@ -556,6 +556,8 @@ The executable is `computations/matter_formation_spatial_domain.py`. Before calc
 
 The prepared population-256 scalar branch passes the fixed larger-domain qualification. All four stationary continuations converge in one or two Newton steps. The largest independently reconstructed source residual is $3.9581\times10^{-12}$ and the largest relative population error is $2.2205\times10^{-15}$. Every sampled field is nonnegative. All 14 resolution/domain comparisons pass under the frozen one-percent/source-error tolerance; the largest difference is 0.28032 times its tolerance.
 
+The largest comparison fraction is the dipole domain pair: its $6.5958\times10^{-3}$ difference is below the $2.3530\times10^{-2}$ tolerance. This remaining drift agrees with the leading box correction $\alpha_1^2(48^{-2}-96^{-2})=6.5725\times10^{-3}$. Passing the one-percent criterion leaves a finite box correction; it does not establish an exactly domain-independent level.
+
 The direct face-flux applications check all 96 angular/phase eigenpairs and twelve radial-parent eigenpairs. Their largest normalized residual is $4.3016\times10^{-11}$. Each radial operator has zero eigenvalues below $\eta=5\times10^{-4}$ by the finite-matrix rank-one inertia calculation. The twelve radial minima range from $1.7317425857$ to $1.9575479691$. The angular/phase signs, symmetry overlaps and nonsymmetry gaps also satisfy the frozen criteria.
 
 The dipole eigenvector spreads into the exterior as the box grows. At fixed spacing $\Delta r=1/32$, the exterior carrier threshold is $\mu_\infty=2(e_C-\omega_C)=2.3441798524$:
@@ -572,8 +574,8 @@ The exact scoped verdict is
 `SUPPORTS—extended-domain finite-grid scalar spatial energetic qualification`.
 The eight-comparison calculation in §11.3 retains its own inconclusive verdict. This calculation supplies separately qualified larger-domain evidence for the prepared scalar branch; exact continuum existence, nonlinear orbital stability, formation from an initially empty sector, quantum backreaction and physical particle identification remain open.
 
-A separate check perturbs each of the twelve retained radial eigenvectors in the full nonlinear fixed-signed-charge energy,
-$E_{\rm sc}+[N-\mathcal Q]^2/(4aN)$, with $\mathcal Q$ held fixed. At perturbation amplitudes $0.01$ and $0.005$, all 24 central-difference curvatures agree with their spectral values within the pre-execution check tolerance $10^{-4}$. The maximum relative discrepancy is $2.6949\times10^{-6}$. This checks the physical energy curvature independently of the banded eigenvalue assembly.
+A post-campaign check perturbs each of the twelve retained radial eigenvectors in the full nonlinear fixed-signed-charge energy,
+$E_{\rm sc}+[N-\mathcal Q]^2/(4aN)$, with $\mathcal Q$ held fixed. Its tolerance $10^{-4}$ is fixed in the check source before that check executes; it is separate from the frozen §11.5 protocol. At perturbation amplitudes $0.01$ and $0.005$, all 24 central-difference curvatures agree with their spectral values within that tolerance. The maximum relative discrepancy is $2.6949\times10^{-6}$. This checks the physical energy curvature independently of the banded eigenvalue assembly. `computations/matter_formation_spatial_domain_curvature_check.py` is a byte-identical copy of the executed source, SHA-256 `675e42ee08169f8bba8e0a3414aab865d5aa2d19aef8a445246732f067aeeb21`.
 
 Evidence is retained in `runs/20260906_matter_formation_spatial_domain/`: four field/spectral archives, `inputs.json`, the frozen `protocol.txt`, `results.json`, and the nonlinear energy check with its exact executed source. All four archive hashes and all computational source identities agree with the receipt. The key SHA-256 values are:
 
@@ -581,6 +583,32 @@ Evidence is retained in `runs/20260906_matter_formation_spatial_domain/`: four f
 - Canonical program source: `dcbfd57ffc03081d435f48e853b56a283bea5e555ee1994b95672504d4c8f518`.
 - Raw primary receipt: `aa743746d1a3155640914e8856f41f73fab5468ae7330689e764bb1817e4663d`.
 - Raw nonlinear-curvature check: `8bf6bf3ab6f8cc0340d30c6c0c569b00e8ca272762538521cacd2c3259dec92c`.
+
+### 11.7 Receipt qualification supplement: pre-execution criteria
+
+The sealed §11.5 program has a failure-path defect: strict JSON serialization can reject nonfinite diagnostics and leave no final receipt. The successful numerical evidence in §11.6 has finite diagnostics. Preserve that program, its protocol and its receipts byte-for-byte. `computations/matter_formation_spatial_domain_v2.py` is a separate receipt-qualified generation; its stationary equations, operators, coefficients, schedule and physical criteria remain those of §11.5.
+
+Use the existing finite-JSON convention from `computations/verify_matter_formation_parent_spatial.py`. Nonfinite diagnostics become explicit nulls with a recorded numerical failure and an inconclusive verdict; raw failed-field arrays remain retained. Write the final receipt from the run's `finally` block. Exercise the failure path by injecting NaN and both signed infinities into a Newton failure in a fresh control directory. Require four failed-row records, finite parseable JSON, retained nonfinite raw arrays, exit one and no scientific support. Refusal to overwrite an existing output directory must leave its receipt hash unchanged.
+
+Before the fixed numerical schedule, pass the immutable $(24,768)$ source through the new banded extraction without Newton relaxation. Compare all 24 $H_1,H_2,L_0,L_1$ eigenvalues with the retained independent verifier receipt at absolute tolerance $10^{-10}$. This checks identical fields and avoids conflating tighter stationarity with an operator change. Hash the sealed program, its frozen §11.5 text, this section, the new executable, imported sources and retained evidence before calculation.
+
+Run once in `runs/20260906_matter_formation_spatial_domain_v2/`. All 14 original comparisons and all source-sector requirements still apply. This is a qualification of receipt handling and computational continuity, with no new physical parameter, larger domain, relaxed tolerance or replacement of either frozen spatial verdict. Add its outcome in a separate subsection.
+
+### 11.8 Receipt-qualified execution and retained-source agreement
+
+The receipt-qualified generation passes the same 14 spatial comparisons. Its 36 compared physical quantities—seven spectral metrics, energy and frequency on each grid—agree exactly with the §11.6 floating-point values. The separate unchanged-source check passes all 24 retained eigenvalue comparisons, with maximum absolute difference $9.7434\times10^{-13}$. The field is not relaxed for that check.
+
+`computations/verify_matter_formation_spatial_domain_receipts.py` passes 21 receipt, source-identity, spectral-continuity and failure-control checks. Injected NaN and signed infinities produce four explicit failed-row records, null-valued JSON diagnostics, retained nonfinite raw field arrays, an inconclusive result and exit code one. Attempting to reuse the accepted output directory is refused without changing its receipt hash. These controls qualify error reporting; they add no physical stability claim.
+
+The source implementing finite failure receipts is `computations/matter_formation_spatial_domain_v2.py`; the sealed §11.5 source remains intact for its accepted evidence. Receipt provenance is:
+
+| Item | SHA-256 |
+|---|---|
+| Frozen §11.7 text | `3a53cd7e1e9342b430448e0ec33366991038fb00ca444dbfef44ab4871d6911a` |
+| Canonical receipt-qualified program | `40a93b073a79088a2d7d4c55ce4c0b14162032f228fd9e0dcac4c8b32b0ba9d4` |
+| `runs/20260906_matter_formation_spatial_domain_v2/results.json` | `0d482ea4a77dbe80cd83db006144cab7761677035d7a860f0c22925eaeaf472c` |
+| `runs/20260906_matter_formation_spatial_receipt_checks/results.json` | `81e211265a7c60710616f1254c9e452bbe00df5a4fe0471c91f278dd350e9b00` |
+| Nonfinite Newton control receipt in `runs/20260906_matter_formation_spatial_receipt_checks/nonfinite_newton/` | `e1355e56e7dbd93358bf6bc577fa8133111f6d9151449dd7570f6cca8a9869e5` |
 
 ## 12. Physical normalization and microscopic identity
 
@@ -1178,6 +1206,32 @@ payload and `INCONCLUSIVE`; its raw receipt hash is
 `22290beea652d3a0f88745a77617d62e72b566b113dbb17268cb3c62c0a8b0f1`.
 The accepted continuum-production receipts are unchanged.
 
+### 16.5 Rational inequality supplement: pre-execution criteria
+
+The negative-energy witness requires $\pi<22/7$ and $\log2>2/3$. An independent exact check in `computations/matter_formation_scalar_vacuum_sign_check.py` qualifies their directions without changing the sealed §16.4 program or its sixteen checks. On $1\le x\le2$,
+$$
+\frac1x-\frac23+\frac49\left(x-\frac32\right)
+=\frac{(2x-3)^2}{9x}
+\ge\frac{(2x-3)^2}{18}.
+$$
+The last expression integrates to $1/54>0$. On $0\le x\le1$, the Dalzell integrand satisfies
+$$
+\frac{x^4(1-x)^4}{1+x^2}\ge\frac{x^4(1-x)^4}{2},
+$$
+whose integral is $1/1260>0$.
+
+Before execution, freeze this section and hash the independent script and the accepted scalar-vacuum receipt. Check both rational identities, the two exact positive lower integrals, the two symbolic integral identities, and the resulting $m=64$ witness. Require exact equality or rational positivity for each check. Preserve the seven-check result in `runs/20260906_matter_formation_scalar_vacuum_sign/`; any failed check gives an inconclusive algebraic qualification. This supplements the specified local one-loop energy argument and supplies no framework-wide obstruction or new localization result.
+
+### 16.6 Rational-check execution record
+
+The first supplementary receipt, `runs/20260906_matter_formation_scalar_vacuum_sign/results.json`, passes five of seven checks and is algebraically unqualified. Its two failed predicates compare SymPy's Boolean result directly with `False`. SymPy 1.14 returns the unsimplified contradictions $(1\le x\le2)\wedge(x>2\lor x<0)$ and $(0\le x\le1)\wedge(x>1\lor x<-1)$. The rational identities, positive integrals and negative witness pass. This is a Boolean-representation defect in the supplemental checker.
+
+The failed source is retained at commit `2bcecd0a` and byte-for-byte in its run directory. Its canonical source hash is `c54862ff13cc7537dcc99b5a1e0b31b28b810f6af34c173e1f34dbfb27371f5a`; the raw failed receipt hash is `b9b45ecb516add8285f3d43f835c4bb988d6fd9f1c4e32fb672e3d492d08d7a7`. The recovery compares each exact real solution set with `EmptySet`, leaving the seven mathematical conditions and the frozen §16.5 text unchanged. Execute once with `--output-dir runs/20260906_matter_formation_scalar_vacuum_sign_recovery`; retain both receipts. The accepted scalar-vacuum and continuum programs, protocols and receipts remain unchanged.
+
+The recovery passes all seven exact checks. The real counterexample sets are empty, the positive rational margins are $1/54$ and $1/1260$, and the bulk-energy upper bound remains $-8265011/64<0$. This completes the independent strict-sign qualification for the specified local one-loop witness.
+
+The unchanged §16.5 protocol hash is `e5db32d371e04e6df3625670485611e106ee07cf63b7d19117a731ab09c40ca2`. The qualified checker's canonical source hash is `e33c732289735a25882017473c501c5315744131fed06f85163c42c1daa5c4c7`. The raw receipt `runs/20260906_matter_formation_scalar_vacuum_sign_recovery/results.json` has SHA-256 `dd715edbb6c5385ae26d057426bcd5a8f39a9b0fa68e9bc482e7fedf3690d19d`.
+
 ## 17. Reproduction and retained boundary
 
 Run from the repository root into new, explicitly named output directories when the default receipts already exist:
@@ -1208,6 +1262,11 @@ python computations/verify_matter_formation_fermion_production.py --input-dir ru
 python computations/matter_formation_continuum_admissibility.py --output-dir runs/20260906_matter_formation_continuum_admissibility
 python computations/verify_matter_formation_continuum_admissibility.py --input-dir runs/20260906_matter_formation_continuum_admissibility --output-dir runs/20260906_matter_formation_continuum_admissibility
 python computations/verify_matter_formation_scalar_vacuum.py --output-dir runs/20260906_matter_formation_scalar_vacuum
+python computations/matter_formation_spatial_domain.py
+python computations/matter_formation_spatial_domain_curvature_check.py
+python computations/matter_formation_spatial_domain_v2.py
+python computations/verify_matter_formation_spatial_domain_receipts.py
+python computations/matter_formation_scalar_vacuum_sign_check.py --output-dir runs/20260906_matter_formation_scalar_vacuum_sign_recovery
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.

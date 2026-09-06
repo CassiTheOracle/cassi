@@ -66,12 +66,12 @@ def run(output: Path) -> int:
 
         log_counterexample = sp.reduce_inequalities([x >= 1, x <= 2, log_integrand < log_lower], x)
         check("log_rational_identity_and_lower_bound",
-              sp.simplify(log_integrand - (2 * x - 3) ** 2 / (9 * x)) == 0 and log_counterexample == sp.false,
+              sp.simplify(log_integrand - (2 * x - 3) ** 2 / (9 * x)) == 0 and log_counterexample.as_set() == sp.EmptySet,
               sp.factor(log_integrand - log_lower))
         pi_counterexample = sp.reduce_inequalities([x >= 0, x <= 1, pi_integrand < pi_lower], x)
         check("pi_rational_identity_and_lower_bound",
               sp.simplify(pi_integrand - pi_lower - x ** 4 * (1 - x) ** 4 * (1 - x ** 2) / (2 * (1 + x ** 2))) == 0
-              and pi_counterexample == sp.false, sp.factor(pi_integrand - pi_lower))
+              and pi_counterexample.as_set() == sp.EmptySet, sp.factor(pi_integrand - pi_lower))
         log_margin = sp.integrate(log_lower, (x, 1, 2))
         pi_margin = sp.integrate(pi_lower, (x, 0, 1))
         check("strict_positive_log_margin", log_margin == sp.Rational(1, 54) and log_margin > 0, log_margin)
