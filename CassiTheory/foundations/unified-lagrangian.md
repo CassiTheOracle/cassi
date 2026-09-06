@@ -428,11 +428,15 @@ The canonical $E_Y,E_I\ge0$ and their algebraic $q$ remain defined by §1.
 No fermion density dictionary or production mechanism follows from the
 chiral-scalar assignment (`foundations/sector-coupling-derivation.md` §1).
 
-The component helper `two-fluid/cassi_dirac_bridge.py` also supplies the
-nonnegative quadratic pair $\|u-v\|^2,\|u+v\|^2$ in its upper/lower-component
-convention. Their algebraic positivity leaves their physical density
-interpretation and canonical dynamical matching open
-(`foundations/sector-coupling-derivation.md` §1.2).
+The component helper `two-fluid/cassi_dirac_bridge.py` supplies twice the
+chiral-current densities through its squared-difference and squared-sum
+quadratics. Closed Dirac evolution retains relative coherence and fails
+the canonical two-population conversion law. The specified minimal chiral
+conversion jumps, combined with a Dirac mass, change the golden fixed point
+and permit leakage from the positive-energy one-particle subspace.
+Canonical energy-density normalization, reservoir and Fock-space matching
+remain open (`foundations/sector-coupling-derivation.md` §§1.5–1.6;
+`computations/matter-formation-continuum-report.md` §13).
 
 ### 2.3 Scalar Interaction and Dissipation Boundary
 
@@ -1033,8 +1037,8 @@ The physical normalization check gives three scalar models with the same imposed
   `TwoFluid3DGPU` default $\lambda=0.02$ and named $\lambda=0.1$ experiment
   convention remain solver parameter choices
 - `foundations/dimensionful-constants-status.md`—external dimensionful constants, parameter accounting
-- `foundations/sector-coupling-derivation.md`—conditional sector-scale arithmetic and chiral-scalar density/action obstruction.
-- `computations/matter-formation-continuum-report.md` §12—independent physical-normalization and microscopic-identity evidence.
+- `foundations/sector-coupling-derivation.md`—conditional scale, chiral-scalar density/action obstruction, positive chiral-current map and microscopic conversion boundaries.
+- `computations/matter-formation-continuum-report.md` §§12–13—independent physical-normalization, microscopic-identity and spinor-closure evidence.
 - `foundations/matter-completion-boundary.md`—conditional total-stress Ward
   identity and constant-$G$ geometry branch
 - `standard-model/su2-gauge-extension.md`—SM gauge sector, Weinberg angle

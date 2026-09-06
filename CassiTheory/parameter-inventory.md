@@ -173,11 +173,17 @@ normalization or a numerical grid factor does not determine these inputs.
 
 The existing Dirac helper evaluates nonnegative squared-sum and
 squared-difference observables, together with spin and current bilinears
-(`two-fluid/cassi_dirac_bridge.py`;
-`foundations/sector-coupling-derivation.md` §1.2). These are separate from
-the excluded chiral scalars. Their physical matching to the canonical
-densities, a transport rate and the fine-structure constant is outside
-the normalization calculation and remains unestablished.
+(`two-fluid/cassi_dirac_bridge.py`). The quadratics are twice the chiral
+number densities in the declared component convention. Their closed Dirac
+evolution retains relative coherence; it does not give the canonical
+two-population conversion law. Combining a Dirac mass with the specified
+minimal conversion jumps shifts the golden population fixed point and
+permits leakage from the positive-energy one-particle subspace
+(`foundations/sector-coupling-derivation.md` §§1.5–1.6).
+The finite-dimensional witness masses and rates are selected numerical
+inputs, with no physical fit or addition to the §7 parameter count.
+Canonical energy-density normalization, reservoir matching and the
+helper's fine-structure interpretation remain unestablished.
 
 **$D$ and $\nu$ (scalar density diffusion and velocity viscosity)** are
 numerical solver coefficients. In the canonical equations, $D\nabla^2E_{Y/I}$
@@ -625,8 +631,8 @@ fails the quality bar. Tier definitions: `open-questions-cassi-answers.md`
 | $\alpha_{\text{halo}} \approx 0.7$ | Hardcoded nominal (path8:65, path9:60); registry says "(SPARC fits)" | Hardcoded `ALPHA_HALO = 0.7`; no SPARC fit of α in repo; the real v9 Yang fractions peak at 0.17–0.53 | (claimed) SPARC rotation curves | 04-grav.md:16, 160; 01-core.md:164 | Mapped |
 | Halo $q \approx 0.7$ (0.61–0.71) | $q \approx 0.67$ (registry G-series); GW row constrains $q < 0.1$–$0.3$ | $q(\rho)$ law with environment-tuned $\rho_{\text{ref}}$ (free per environment); boost $v_C/v_B = \sqrt{\alpha(1+\xi q)}$ needs $q = 0.61$–$0.71$ | MW rotation-curve boost $2.7 \pm 0.5$ | 04-grav.md:29-58, 159 | Mapped |
 | $\theta_{\text{cond}} = 0.45$ | "fixed point, not a free parameter" (§9 symbol table) | Calibrated to ~0.45 at step 285 using phenomenology; the P(k) wake-wave amplitude band (1–3%) is set by it | Bubble-edge condensation phenomenology; DESI P(k) amplitude | 01-core.md:164; 03-cosmo.md:92 | Calibrated |
-| $\chi$ (sector-coupling mobility) | C-class solver parameter ($\chi = 1.0$); "Empirical—no independent derivation" | Value set empirically (range 0.5–1.0); no derivation; this remains a PDE-solver mobility, not a physical Dirac↔PDE coupling | PDE solver phenomenology; no sourced microscopic interaction or positive-density map | 01-core.md:164; 02-sm.md:148-150; `foundations/sector-coupling-derivation.md` §§2–4; `computations/matter-formation-continuum-report.md` §12 | Calibrated |
-| $N_{\text{pde}} \approx 2.35\times10^3$ | Back-solved normalization | Chosen so the $\kappa_s \to \chi$ bridge lands in the calibrated band: $4.254\times10^{-4} \times 2.35\times10^3 = 0.9997$; bridge check 2026-08-05 (`computations/n_pde_bridge_check.py`): the convention is underdetermined—closes in $[0.5, 1.0]$ only under the $N^2$ (2D section) reading ($\chi = 0.980$); the literal 3D count gives $\chi = 47$; the "exact closure" 2350.6 is a back-solved constant rearrangement ($m_e v_0^2 \varphi^9$); the documented $L/dt$ values appear in no run script; code-default $N=64$ gives $\chi = 1.74$ (out of band). This arithmetic bridge does not establish a physical $\chi$: a distinct dimensionally homogeneous Hermitian interaction and positive-density map are still required | Calibrated $\chi$ band $[0.5, 1.0]$ | 02-sm.md:148-150; `foundations/sector-coupling-derivation.md` §§2–4 | Mapped |
+| $\chi$ (sector-coupling mobility) | C-class solver parameter ($\chi = 1.0$); "Empirical—no independent derivation" | Value set empirically (range 0.5–1.0); no derivation; this remains a PDE-solver mobility, with physical Dirac↔PDE matching unselected | PDE solver phenomenology; the helper's chiral-current map has no physical energy-density normalization or controlled canonical conversion reduction | 01-core.md:164; 02-sm.md:148-150; `foundations/sector-coupling-derivation.md` §§1.5–1.6, 2–4; `computations/matter-formation-continuum-report.md` §§12–13 | Calibrated |
+| $N_{\text{pde}} \approx 2.35\times10^3$ | Back-solved normalization | Chosen so the $\kappa_s \to \chi$ bridge lands in the calibrated band: $4.254\times10^{-4} \times 2.35\times10^3 = 0.9997$; bridge check 2026-08-05 (`computations/n_pde_bridge_check.py`): the convention is underdetermined—closes in $[0.5, 1.0]$ only under the $N^2$ (2D section) reading ($\chi = 0.980$); the literal 3D count gives $\chi = 47$; the "exact closure" 2350.6 is a back-solved constant rearrangement ($m_e v_0^2 \varphi^9$); the documented $L/dt$ values appear in no run script; code-default $N=64$ gives $\chi = 1.74$ (out of band). Physical $\chi$ matching requires a dimensionally homogeneous Hermitian interaction, energy-density normalization and controlled reduced dynamics | Calibrated $\chi$ band $[0.5, 1.0]$ | 02-sm.md:148-150; `foundations/sector-coupling-derivation.md` §§1.5–1.6, 2–4 | Mapped |
 | $\Delta b = 1.70$ | "Ongoing" (catalog row 9) | Free beyond-SM particle content chosen to close the $\alpha_s$ gap: ~1 vector-like colored fermion pair + 2 colored scalars, or ~3 KK levels—three incompatible options, none chosen; the same content is reused for $M_{\text{GUT}}$, the quark-mass gaps, and the proton lifetime | $\alpha_s(M_Z) = 0.118$ | 02-sm.md:79-83; 01-core.md:110, 149 | Mapped |
 | $\mu_* = 233$ GeV | $\sin^2\theta_W$ crossing output | Measured Z-pole couplings plus SM one-loop beta functions and asserted $\varphi^{-3}$ give $\mu_* = 232.6$–$251.1$ GeV across threshold/scheme conventions; the EW rung-80 placement is a calibrated consistency check, not an independent selection (`computations/mu_star_crossing_audit.py`) | Measured running $\sin^2\theta_W(\mu)$ | 02-sm.md:11-23; 01-core.md:149 | Calibrated |
 | μ, J/ψ rung placements ($n = 96.000$, 89) | "Prediction 45 (closure-ladder mass placements)" | Discovered by the 2026-08-03 38-state mass scan; the muon's $\delta = -0.0002$ is the sharpest of ~40 draws ($P(\text{any within } \pm 0.0002) \approx 1.5\%$); $n = 96$ is not on the closure ladder | 38 measured masses (PDG) | 01-core.md:76-80; 02-sm.md:108-140 | Mapped |

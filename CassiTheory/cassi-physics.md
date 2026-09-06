@@ -964,6 +964,17 @@ coefficient, or interaction. The normalization evidence and its particle
 boundary are recorded in `computations/matter-formation-continuum-report.md`
 §12.
 
+The helper's separate positive component quadratics are twice the
+chiral-current number densities. Their closed Dirac dynamics depends on
+relative coherence and does not reproduce the canonical two-density
+conversion. The specified massive Dirac Hamiltonian and minimal conversion
+lift shift the stationary ratio below $\varphi$ and allow leakage from the
+positive-energy one-particle subspace. The independently verified scope is
+recorded in `foundations/sector-coupling-derivation.md` §§1.5–1.6 and
+`computations/matter-formation-continuum-report.md` §13. A physical reservoir,
+quantum-state prescription and controlled energy-density reduction remain
+open.
+
 **Epistemic status:** the modulation period is **Derived conditional** on the
 optional signal map; its physical wake imprint and cross-domain extensions
 are **Hypothesized** and being tested. The sector scale is **Derived

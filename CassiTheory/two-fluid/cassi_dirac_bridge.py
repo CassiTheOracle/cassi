@@ -140,11 +140,13 @@ class DiracBridge(CassiBridgeV2):
     def emergent_alpha(self, psi):
         """Evaluate the selected ratio-based dimensionless alpha diagnostic.
 
-        α_eff = α_φ · 2 · E_Y / (E_Y + φ·E_I)
+        Return the unweighted grid mean of
+        α_eff = 2 α_φ E_Y / (E_Y + φ·(E_I + 10⁻³⁰)).
 
-        At E_Y = φ · E_I this gives the selected coefficient α_φ.
-        It ranges from 0 to 2 α_φ for nonnegative inputs. A physical
-        fine-structure interpretation requires a separate derivation.
+        For E_Y = φ·E_I and E_I well above the denominator regularizer,
+        the local value approaches α_φ. It ranges from 0 to 2 α_φ for
+        nonnegative inputs; low-density cells affect the grid mean.
+        A physical fine-structure interpretation requires a separate derivation.
         """
         yang, yin = self.yang_yin_density(psi)
         ratio = yang / (yin + 1e-30)

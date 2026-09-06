@@ -433,8 +433,8 @@ def failure_receipt(ids: Mapping[str, Any], input_hash: str, failures: list[str]
     }
 
 
-def assess_science(payload: Mapping[str, Any], label: str) -> tuple[dict[str, str], list[str]]:
-    rejected: dict[str, list[str]] = {key: [] for key in VERDICTS}
+def assess_science(payload: Mapping[str, Any], label: str, supported: Mapping[str, str]) -> tuple[dict[str, str], list[str]]:
+    rejected: dict[str, list[str]] = {key: [] for key in supported}
 
     def mark(keys: Sequence[str], condition: bool, detail: str) -> None:
         if not condition:
@@ -489,7 +489,7 @@ def assess_science(payload: Mapping[str, Any], label: str) -> tuple[dict[str, st
                 mark(massive, 0.0 < row["imbalance"] < row["target_imbalance"], f"{where} massive bound")
             if row["gate_residual"] is not None:
                 mark(massive, row["gate_residual"] <= IDENTITY_TOL, f"{where} gate identity")
-    decisions = {key: "INCONCLUSIVE" if rejected[key] else value for key, value in VERDICTS.items()}
+    decisions = {key: "INCONCLUSIVE" if rejected[key] else value for key, value in supported.items()}
     failures = [f"{label}.{key}: {reason}" for key, reasons in rejected.items() for reason in reasons]
     return decisions, failures
 
@@ -531,8 +531,8 @@ def run(input_dir: Path, output_dir: Path, bridge_source: Path) -> int:
                 compare_recursive(primary[field], value, field, mismatches, comparisons)
         if mismatches:
             raise ValueError("independent scientific payload comparison failed")
-        primary_decisions, primary_failures = assess_science(primary, "primary")
-        independent_decisions, independent_failures = assess_science(expected, "independent")
+        primary_decisions, primary_failures = assess_science(primary, "primary", expected["verdicts"])
+        independent_decisions, independent_failures = assess_science(expected, "independent", expected["verdicts"])
         compare_recursive(primary["verdicts"], primary_decisions, "verdicts", mismatches, comparisons)
         if mismatches or primary["numerical_pass"] != (not primary_failures):
             raise ValueError("primary verdicts disagree with its witness evidence")
@@ -540,7 +540,7 @@ def run(input_dir: Path, output_dir: Path, bridge_source: Path) -> int:
         science["verdicts"] = {
             key: value if primary_decisions[key] == value and independent_decisions[key] == value
             else "INCONCLUSIVE"
-            for key, value in VERDICTS.items()
+            for key, value in expected["verdicts"].items()
         }
         science_failures.extend(primary_failures)
         science_failures.extend(independent_failures)

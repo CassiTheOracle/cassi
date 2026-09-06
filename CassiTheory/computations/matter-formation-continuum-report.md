@@ -1,6 +1,6 @@
 # Carrier Creation and Continuum Density Trapping
 
-## Status: Derived conditional carrier, parent-vacuum, dilation and fixed-charge identities / Hypothesized physical completion / Tested prepared binding, spatial spectra and parent correspondences—September 2026
+## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge and chiral-current identities / Hypothesized physical completion / Tested prepared binding, spatial spectra and microscopic boundaries—September 2026
 
 ## Abstract
 
@@ -15,6 +15,8 @@ At fixed signed parent charge, all 24 frozen radial embeddings have positive mea
 The selected population-256 parent subset also supports the measured angular and phase sectors on all four finite grids. All 96 eigenvalues agree with an independent operator construction. Seven of eight spatial domain/resolution comparisons pass; the first non-translation dipole eigenvalue fails the domain comparison. The combined scalar-parent spatial verdict is `INCONCLUSIVE`. Exact nodelessness and monotonicity give conditional continuum positivity identities, whose assumptions are not established by these sampled profiles.
 
 An independently verified physical-unit calculation leaves a family of scalar models at one imposed vacuum mass, speed and internal generator unit. At the fixed dimensionless coefficients, the extra scalar core-cell assignment is contradicted. The proposed Dirac chiral-scalar map also has exact positivity and Hermiticity obstructions. These results distinguish unit calibration from microscopic particle identification.
+
+The helper's positive component quadratics are twice the chiral-current number densities in its declared spinor representation. Closed Dirac evolution depends on relative coherence and does not supply the canonical population conversion. Adding the specified minimal conversion channel to a massive Dirac Hamiltonian shifts the stationary ratio away from $\varphi$ and allows leakage from the positive-energy one-particle subspace. Independent finite-dimensional witnesses verify these conditional boundaries; a physical reservoir, quantum-state prescription and production interaction remain unselected.
 
 ## 1. Scope and frozen evidence
 
@@ -654,7 +656,7 @@ These finite-dimensional witnesses confirm the exact conjugacy and reality obstr
 
 They are algebraic checks of the specified map and interaction, with no fermion-production simulation. The conditional sector-scale arithmetic survives, but it selects no admissible operator or transport rate (`foundations/sector-coupling-derivation.md` §1). A local scalar normalization also preserves its $2\pi$ rotation phase $+1$, whereas a Dirac spinor has phase $-1$. Fermionic topological solitons would require a separate configuration space and quantization absent from this scalar restriction.
 
-Other nonnegative spinor observables remain available. The existing `two-fluid/cassi_dirac_bridge.py` evaluates $\|u-v\|^2,\|u+v\|^2$ for its upper/lower two-component blocks, as well as Pauli spin and current bilinears. The two nonnegative forms sum to $2\psi^\dagger\psi$ and are separate from the tested $B_R,B_L$ (`foundations/sector-coupling-derivation.md` §1.2). Their physical density dictionary, conversion dynamics and fine-structure interpretation are outside this frozen experiment and remain unestablished.
+Other nonnegative spinor observables remain available. The existing `two-fluid/cassi_dirac_bridge.py` evaluates $\|u-v\|^2,\|u+v\|^2$ for its upper/lower two-component blocks, as well as Pauli spin and current bilinears. The two nonnegative forms sum to $2\psi^\dagger\psi$ and are separate from the tested $B_R,B_L$. Their chiral-current interpretation and dynamical boundary are the subject of the distinct frozen calculation in §13 (`foundations/sector-coupling-derivation.md` §§1.5–1.6). Physical energy-density normalization and fine-structure interpretation remain unestablished.
 
 ### 12.6 Accepted identities and failed-input control
 
@@ -670,7 +672,100 @@ The tested expressions and target choices are transcribed explicitly in the froz
 
 The registered empty-source control invokes both actual programs. Both exit 1 and preserve their failed receipts with empty source summaries, unit families, core assignments, rescaling results and spinor results. The primary reports the missing field; the verifier rejects the failed primary input. All control verdicts are bare `INCONCLUSIVE` and carry no scientific conclusion.
 
-## 13. Reproduction and retained boundary
+## 13. Positive spinor observables and the conversion boundary
+
+### 13.1 Comparison convention and independent methods
+
+The positive component map admits an exact current interpretation, with a separately declared normalization for comparison to the canonical density law. In the Dirac representation write $\psi_D=(u,v)$ and transform to $L=(u-v)/\sqrt2$, $R=(u+v)/\sqrt2$. The helper returns
+
+$$
+Y_{\rm bridge}=2L^\dagger L,\qquad I_{\rm bridge}=2R^\dagger R.
+$$
+
+The witnesses use $E_Y=L^\dagger L$, $E_I=R^\dagger R$, $z=L^\dagger R$ and natural units $\hbar=c=1$. This is a bookkeeping convention for classical complex amplitudes. It supplies no physical conversion from spinor number density to energy density and no quantum particle/antiparticle prescription.
+
+The frozen protocol is `computations/matter-formation-spinor-closure-prereg.md`. The primary evaluates four-component matrix identities and direct stationary linear systems. The independent implementation uses two-component evolution, explicit positive-energy spinors and scalar stationary equations; it imports no primary routines. The schedule contains eight phase-sensitive states, five positive-energy states, three frozen-rate stationary states and six self-consistent gated stationary states. Every mass frequency, density and rate is a selected numerical witness input.
+
+### 13.2 Relative coherence prevents closed two-population dynamics
+
+The Dirac mass transfers chiral population according to the phase of the cross-bilinear. With selected mass frequency $\mu$,
+
+$$
+\boxed{
+\partial_tE_Y+\nabla\cdot\mathbf j_Y=2\mu\operatorname{Im}z,\qquad
+\partial_tE_I+\nabla\cdot\mathbf j_I=-2\mu\operatorname{Im}z,}
+$$
+
+where $\mathbf j_Y=-L^\dagger\boldsymbol\sigma L$ and $\mathbf j_I=R^\dagger\boldsymbol\sigma R$. The phase witnesses have spatially constant bilinears, hence zero current divergence. The pair $L=\sqrt p(1,0)$, $R=\pm i\sqrt{1-p}(1,0)$ has identical populations and currents but opposite Dirac sources. At $p=\varphi^{-1}$ and $\mu=1$, the measured sources are $\dot E_Y=\pm0.9717365435132914$ while the canonical imbalance vanishes.
+
+The positive-energy restriction also supplies a discrepancy without the unrestricted phase preparation. All five free eigenspinors have stationary densities. At rest, $E_Y=E_I=1/2$, whereas the selected canonical law with $\lambda=0.02$ gives $q=0.6768384136$ and
+
+$$
+(\dot E_Y,\dot E_I)_{\rm can}
+=(+0.00199724844245,-0.00199724844245).
+$$
+
+The general projector argument in `foundations/sector-coupling-derivation.md` §1.5 explains the missing state information. For a fixed Hermitian Hamiltonian, a projected derivative depending only on two complementary populations for every density matrix must vanish. A nonzero autonomous reduced conversion therefore requires extra dynamical state, a restricted preparation or a controlled open-system reduction.
+
+### 13.3 The massive minimal lift changes the stationary ratio
+
+The canonical two-jump dissipator reproduces its declared density equations as a conversion subflow. A homogeneous Dirac mass adds the off-diagonal Hamiltonian $H=\mu\sigma_x$ in the chiral basis. For fixed trace $\rho$, define $\delta=E_Y-E_I$, $s=1+\varphi$ and $\delta_*=(\varphi-1)\rho/s$. At frozen positive rate $\kappa$, the combined stationary equations give
+
+$$
+\boxed{
+\delta_{\rm st}=\frac{\delta_*}{1+8\mu^2/(s^2\kappa^2)},\qquad
+z_{\rm st}=-\frac{2i\mu\delta_{\rm st}}{s\kappa}.}
+$$
+
+The primary solves the stationary matrix equation directly. The independent program evaluates this formula and, for $\kappa=\lambda(1-q)$, solves the scalar self-consistency equation. The latter has one root between zero and $\delta_*$ for $\mu>0$. The registered massless controls recover $\varphi$; every massive row has a ratio strictly between one and $\varphi$.
+
+| Rate prescription | $\rho$ | $\mu$ | $E_Y/E_I$ | $\delta_{\rm st}/\delta_*$ |
+|---|---:|---:|---:|---:|
+| Frozen $\kappa=0.02$ | 1 | 0 | 1.618033989 | 1 |
+| Frozen $\kappa=0.02$ | 1 | 0.01 | 1.447213595 | 0.774115996 |
+| Frozen $\kappa=0.02$ | 1 | 0.1 | 1.015767540 | 0.033134958 |
+| Gated, $\lambda=0.02$ | 1 | 0 | 1.618033989 | 1 |
+| Gated, $\lambda=0.02$ | 1 | 0.01 | 1.120476214 | 0.240674914 |
+| Gated, $\lambda=0.02$ | 1 | 0.1 | 1.001681928 | 0.003559386 |
+| Gated, $\lambda=0.02$ | 4 | 0 | 1.618033989 | 1 |
+| Gated, $\lambda=0.02$ | 4 | 0.01 | 1.016230776 | 0.034100596 |
+| Gated, $\lambda=0.02$ | 4 | 0.1 | 1.000183731 | 0.000389112 |
+
+All nine stationary fibres are positive; their smallest measured eigenvalue is $0.3819660112501051$. These are stationary identities and finite-dimensional witnesses. The combined state-dependent Hamiltonian/dissipator flow has no all-time stability result in this calculation.
+
+### 13.4 Positive-energy leakage has a separate physical meaning
+
+The same chiral conversion jumps fail to preserve the positive-energy one-particle subspace. For a normalized positive-energy rest state $\psi_+$, the negative-energy projector gives
+
+$$
+\boxed{
+\ell_-=\sum_a\|P_-J_a\psi_+\|^2
+=\frac{1+\varphi}{4}\kappa>0.}
+$$
+
+The primary obtains $\ell_-$ from the full dissipator trace; the verifier sums transition amplitudes. At the selected rest-state gate, $\kappa=0.00646323172772$ and $\ell_-=0.00423024008509$. This diagnostic is a transition between amplitude subspaces. A physical interpretation requires a Fock-space state, occupations, Pauli blocking, an energy source and charge conservation. The diagnostic itself supplies no pair-production rate.
+
+### 13.5 Accepted receipts and scoped verdicts
+
+The accepted primary and independent receipts are in `runs/20260906_matter_formation_spinor_closure_implementation_recovery/`. Both processes exit 0, both receipts have `numerical_pass: true` and empty failures, and all 520 recursive comparisons pass. The largest independent scalar difference is $7.08\times10^{-16}$ and the largest primary identity residual is $2.22\times10^{-16}$. The raw receipt SHA-256 values are:
+
+- Primary: `2fe4e3d8783c3efaf8f9dcc91cb0491b528a0a35fa7f454d787b3d63939902e9`.
+- Independent: `34cb48325e86d904093c86ba7e00c311021bfd0f32e0b625d488065cc91fdf5c`.
+
+The independent receipt binds the primary raw hash. Both bind the canonical source identities of the two programs, scientific preregistration and two bridge files. The scientific protocol's canonical SHA-256 is `5dbf22bd9f3c316f0b5b05a8945310c11b57a24fc77684efa0dd4f8a3ec8302d`.
+
+The recovery record `computations/matter-formation-spinor-closure-implementation-recovery.md` identifies the preserved primary attempt, its source revision and an independent-process name-resolution defect. The scientific definitions and decision rules are unchanged, and the two primary scientific payloads are exactly equal. The two registered missing-input controls both exit 1 with empty scientific payloads. The final bridge source also passes its CPU initialization smoke at grid size four; that execution supplies no full-grid propagation or physical validation.
+
+The exact scientific verdicts are:
+
+- `SUPPORTS—nonnegative chiral-current interpretation of the component map`.
+- `CONTRADICTS—closed Dirac realization of canonical two-density conversion`.
+- `CONTRADICTS—golden population fixed point for the specified massive Dirac and minimal conversion lift`.
+- `CONTRADICTS—positive-energy invariance of the specified chiral conversion channel`.
+
+These conclusions constrain the stated observable map, free Dirac dynamics and minimal jump construction. They leave alternative physical interactions and controlled coarse-graining open. Full matter formation still requires a microscopic production law and its energy/charge ledgers, physical normalization, quantum-state and particle identities, interacting backreaction, localized formation and continuum temporal stability.
+
+## 14. Reproduction and retained boundary
 
 Run from the repository root into new, explicitly named output directories when the default receipts already exist:
 
@@ -693,6 +788,8 @@ python computations/matter_formation_parent_spatial.py
 python computations/verify_matter_formation_parent_spatial.py
 python computations/matter_formation_normalization.py
 python computations/verify_matter_formation_normalization.py
+python computations/matter_formation_spinor_closure.py --output-dir runs/20260906_matter_formation_spinor_closure_implementation_recovery
+python computations/verify_matter_formation_spinor_closure.py --input-dir runs/20260906_matter_formation_spinor_closure_implementation_recovery --output-dir runs/20260906_matter_formation_spinor_closure_implementation_recovery
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
@@ -727,8 +824,12 @@ The remaining physical requirements are a selected microscopic production action
 - `computations/matter_formation_normalization.py`—primary scalar energy, normalization family and matrix-bilinear witnesses.
 - `computations/verify_matter_formation_normalization.py`—independent face quadrature, unit reconstruction and two-component witnesses.
 - `runs/20260906_matter_formation_normalization/results.json` and `runs/20260906_matter_formation_normalization/verification.json`—accepted conditional normalization nonuniqueness and scoped identification exclusions.
-- `foundations/sector-coupling-derivation.md` §1—dimensional, positivity and Hermiticity boundaries of the displayed Dirac identification.
-- `two-fluid/cassi_dirac_bridge.py`—alternative component-quadratic, spin and current diagnostics outside the frozen experiment; physical density and fine-structure interpretations remain unestablished.
+- `computations/matter-formation-spinor-closure-prereg.md`—frozen chiral-current, closed-conversion, massive stationary and positive-energy checks.
+- `computations/matter-formation-spinor-closure-implementation-recovery.md`—source provenance, implementation defect, accepted receipts and controls.
+- `computations/matter_formation_spinor_closure.py`—primary matrix identities and direct stationary linear solves.
+- `computations/verify_matter_formation_spinor_closure.py`—independent component dynamics, scalar stationary equations and transition amplitudes.
+- `foundations/sector-coupling-derivation.md` §1—dimensional, positivity, Hermiticity, chiral-current and dynamical-closure boundaries of the displayed Dirac identifications.
+- `two-fluid/cassi_dirac_bridge.py`—component-quadratic, spin and current diagnostics; physical energy-density and fine-structure interpretations remain unestablished.
 - `foundations/particle-stationary-action-closure.md` §8.7—continuity law, conditional scalar reduction, radial equations and ultraviolet boundary.
 - `foundations/matter-completion-boundary.md`—full matter-formation requirements.
 - `computations/particle-carrier-resolution-recovery-report.md`—four stored Cartesian endpoints.

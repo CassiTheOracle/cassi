@@ -526,6 +526,18 @@ whereas the Dirac representation has phase $-1$ under a $2\pi$ rotation;
 fermionic topological sectors would require separate configuration-space
 and quantization data.
 
+The helper's distinct positive component quadratics equal twice the
+chiral-current number densities. Their closed Dirac evolution depends on
+relative coherence and does not yield the canonical conversion law.
+Combining a nonzero Dirac mass with the specified minimal chiral conversion
+lift changes its stationary population ratio and permits leakage from the
+positive-energy one-particle subspace. The conditional identities and
+independent finite-dimensional witnesses are in
+`foundations/sector-coupling-derivation.md` §§1.5–1.6 and
+`computations/matter-formation-continuum-report.md` §13.
+Physical normalization, a reservoir interaction and quantum-state reduction
+remain open.
+
 ### 4.3 Gravity Sector $\mathcal{L}_{\text{GR}}$ (optional gravity extension)
 This sector is an optional **Hypothesized** gravity extension. Its displayed
 relations and fixed-point evaluations are **Derived conditional** on the ansatz

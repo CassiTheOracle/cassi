@@ -53,7 +53,7 @@ interaction. The derivation and measured scope are in
 | 25 | `microcascade-mirror.md` | Formal negative-step coordinate; physical realization open | Hypothesized |
 | 26 | `refined-numeric-predictions.md` | Pinned φ-powers | Active derivation |
 | 27 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
-| 28 | `sector-coupling-derivation.md` | Conditional Sector Scale and the Dirac Density Obstruction | Derived conditional scale arithmetic and chiral-scalar obstruction / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026 |
+| 28 | `sector-coupling-derivation.md` | Conditional Sector Scale and the Dirac Density Obstruction | Derived conditional scale, chiral-current and closure identities / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026 |
 | 29 | `wake-geometry.md` | Wake geometry | Derived supplied-wave structure; tested conditional second-order realization; physical condensation open |
 | 30 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
 | 31 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
@@ -500,6 +500,14 @@ conjugacy, and generic non-Hermiticity; no physical $\kappa_s$,
 equilibration timescale, transport coefficient, or interaction follows.
 The conditional normalization and particle-identity algebra has independent numerical checks in
 `computations/matter-formation-continuum-report.md` §12.
+The helper's separate nonnegative component quadratics are chiral-current
+densities. Closed Dirac evolution depends on coherence and fails the canonical
+population law, including for stationary positive-energy rest states.
+Combining the Dirac mass with the specified minimal chiral conversion jumps
+shifts the population fixed point and permits transitions out of the
+positive-energy one-particle subspace. These conditional identities constrain
+that completion; a physical interaction, reservoir and density reduction
+remain open (§§1.5–1.6 of the source).
 
 ### `wake-geometry.md`—The Wake Geometry: Composite-Wavelength Closure and the Horizon Rung
 

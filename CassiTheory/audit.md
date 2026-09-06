@@ -219,6 +219,20 @@ electromagnetic identification, and its normalization supplies no fermion
 spin or statistics (`computations/matter-formation-continuum-report.md` §12;
 `foundations/sector-coupling-derivation.md` §1).
 
+**Positive spinor observables and conversion.** The helper's component
+quadratics are twice the chiral-current number densities in the declared
+representation. The exact Dirac population source depends on relative
+coherence. At the golden population ratio, phase-opposed witnesses have
+sources $\pm0.9717365435$ while the canonical source vanishes. A
+positive-energy rest state has stationary Dirac populations and a nonzero
+canonical source. The specified massive Dirac Hamiltonian plus minimal
+conversion lift also shifts the stationary ratio below $\varphi$ and
+permits positive-energy leakage. All 520 independent payload comparisons
+pass for the frozen witnesses. The physical reservoir, energy-density
+normalization, quantum occupations and production interaction remain open
+(`foundations/sector-coupling-derivation.md` §§1.5–1.6;
+`computations/matter-formation-continuum-report.md` §13).
+
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 
 | Claim | Tested result | Status |

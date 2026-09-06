@@ -1,10 +1,10 @@
 # Conditional Sector Scale and the Dirac Density Obstruction
 
-## Status: Derived conditional scale arithmetic and chiral-scalar obstruction / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
+## Status: Derived conditional scale, chiral-current and closure identities / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
 
 ## Abstract
 
-The arithmetic scale $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2$ follows from the stipulated offset $\delta=3$ and the external electroweak anchor $v_0$. Its inverse square root is $\varphi^3v_0\approx1.04\ \mathrm{TeV}$. This scale does not define an interaction. The proposed Dirac-to-two-fluid identification has two separate obstructions: it compares fields of different mass dimension, and its chiral-scalar bilinears are complex conjugates rather than independent nonnegative densities. Real positive values of those bilinears are equal, so they cannot realize a nonzero Yang/Yin ratio $\varphi$. The displayed squared enforcement interaction is also non-Hermitian for general unequal condensates, even after a common mass normalization. A physical fermion coupling requires different observables and a dimensionally homogeneous Hermitian action.
+The arithmetic scale $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2$ follows from the stipulated offset $\delta=3$ and the external electroweak anchor $v_0$. Its inverse square root is $\varphi^3v_0\approx1.04\ \mathrm{TeV}$. A physical interaction requires further microscopic input. The proposed chiral-scalar identification compares fields of different mass dimension and uses complex-conjugate bilinears whose simultaneous real positive values must be equal. Its displayed squared enforcement expression is generically non-Hermitian. The separate component-quadratic observables in the Dirac helper are nonnegative chiral-current densities. Their closed evolution depends on relative coherence; stationary positive-energy states also fail the proposed canonical population conversion. Adding the existing minimal conversion lift to a nonzero Dirac mass changes the golden population fixed point and allows transitions out of the positive-energy one-particle subspace. These are conditional boundaries on the specified microscopic and reduced descriptions. A physical fermion coupling requires an admissible interaction, a state and reservoir prescription, and a controlled density reduction.
 
 ## 1. The projection and its mathematical boundary
 
@@ -24,7 +24,7 @@ $$
 =\frac{\kappa_s}{2}\left[(B_R-\Psi_0^2)^2+(B_L-\Psi_1^2)^2\right]
 $$
 
-therefore subtracts quantities of different dimensions. A common real mass scale $\mu$ could make the brackets homogeneous by replacing $\Psi_\alpha^2$ with $\mu\Psi_\alpha^2$. That operation addresses dimensions; the algebraic obstructions below remain for every positive real $\mu$.
+therefore subtracts quantities of different dimensions. A common real bridge mass $M_b$ could make the brackets homogeneous by replacing $\Psi_\alpha^2$ with $M_b\Psi_\alpha^2$. That operation addresses dimensions; the algebraic obstructions below remain for every positive real $M_b$.
 
 The symbol $\kappa_s$ denotes a proposed sector interaction coefficient. It is distinct from the geometric pentagram transmission $K_{fw}=\varphi^{-1}$ in `foundations/wu-xing-cycle-structure.md` §1.3 and the charge-density coefficient in `predictions/cassi_definitions.md`. The mass dimension $-2$ would apply to a homogeneous dimension-six interaction. The formal scale in §2 selects no such interaction or coefficient.
 
@@ -61,15 +61,7 @@ Independent unequal bridge coefficients would insert the desired density ratio i
 
 The frame densities $n_R=R^\dagger R$ and $n_L=L^\dagger L$ are nonnegative for ordinary complex spinors and can have ratio $\varphi$. They are components of chiral currents referred to a timelike observer, rather than the Lorentz scalars used above. A physical use of those currents requires an observer or foliation, a quantum-state and particle/antiparticle prescription, and an evolution law connecting them to the canonical conversion dynamics. None is selected by the arithmetic sector scale.
 
-An existing component-level implementation supplies a separate nonnegative pair. In `two-fluid/cassi_dirac_bridge.py`, `yang_yin_density` splits the Dirac spinor into upper and lower two-component blocks $u,v$ (the code's large/small convention) and evaluates
-
-$$
-Y_{\rm bridge}=\|u-v\|^2,\qquad
-I_{\rm bridge}=\|u+v\|^2,\qquad
-Y_{\rm bridge}+I_{\rm bridge}=2\psi^\dagger\psi.
-$$
-
-For ordinary complex amplitudes, both quadratic forms are positive-semidefinite: either can vanish for a nonzero spinor. The blocks $u,v$ are distinct from the Weyl chirality labels $L,R$ used in the excluded chiral-scalar map. The helper also evaluates Pauli spin and $\psi^\dagger\alpha_i\psi$ current bilinears. Algebraic positivity of the pair leaves physical state preparation, observer dependence, quantum interpretation and matching to the canonical conversion law open. These diagnostics are outside the frozen normalization experiment; the helper's fine-structure interpretation has no adopted derivation or validation in this calculation.
+The helper `two-fluid/cassi_dirac_bridge.py` implements a separate nonnegative component-quadratic pair. Its chiral-current identification, normalization convention and dynamical closure limits are developed in §§1.5–1.6. Its spin and current diagnostics supply no established physical fine-structure interpretation.
 
 ### 1.3 Reality of the displayed interaction
 
@@ -93,6 +85,87 @@ The registered matrix and independent two-component calculations both have valid
 ### 1.4 Elementary carrier identity
 
 A local invertible normalization preserves a field's Lorentz representation. The scalar carrier restriction in `foundations/particle-stationary-action-closure.md` has scalar elementary quanta under its stated canonical quantization. A Dirac field has a spinorial representation and fermionic quantization supplied as additional microscopic content. Matching a scalar mass to the electron mass supplies neither property. Fermionic topological solitons require a separate configuration space and quantization; this statement concerns the topologically trivial scalar restriction.
+
+### 1.5 Chiral currents and the closed-density obstruction
+
+The positive component map has a precise current interpretation once a spinor representation and observer frame are fixed. Use natural units $\hbar=c=1$, with the Dirac Hamiltonian
+
+$$
+H_D=\boldsymbol\alpha\cdot\mathbf p+\mu\beta,\qquad
+\alpha_i=\begin{pmatrix}0&\sigma_i\\\sigma_i&0\end{pmatrix},\quad
+\beta=\begin{pmatrix}1_2&0\\0&-1_2\end{pmatrix},\quad
+\gamma^5=\begin{pmatrix}0&1_2\\1_2&0\end{pmatrix}.
+$$
+
+Here $\mu$ is the selected Dirac mass frequency in these units. The chiral components are $L=(u-v)/\sqrt2$ and $R=(u+v)/\sqrt2$. Thus the helper's two quadratics are twice the respective chiral number densities. For the algebra below choose the bookkeeping normalization $E_Y=Y_{\rm bridge}/2=L^\dagger L$ and $E_I=I_{\rm bridge}/2=R^\dagger R$. This convention supplies no physical conversion from spinor number density to the canonical energy densities.
+
+Writing $z=L^\dagger R$, the Dirac equation gives the exact local balance
+
+$$
+\boxed{
+\partial_tE_Y+\nabla\cdot\mathbf j_Y=2\mu\operatorname{Im}z,\qquad
+\partial_tE_I+\nabla\cdot\mathbf j_I=-2\mu\operatorname{Im}z,}
+$$
+
+$$
+\mathbf j_Y=-L^\dagger\boldsymbol\sigma L,\qquad
+\mathbf j_I=R^\dagger\boldsymbol\sigma R.
+$$
+
+Restoring units multiplies these currents by $c$ and replaces $\mu$ in the source by $mc^2/\hbar$. A common real potential term $V(x,t)1_4$ cancels from both population derivatives. A Lorentz-scalar mass interaction instead changes the off-diagonal mass term and its source. These are classical complex-amplitude identities; quantum states, normal ordering and gauge anomalies require their own specification.
+
+Relative coherence is essential to the conversion source. The constant-amplitude plane waves $L=\sqrt p(1,0)$ and $R=\pm i\sqrt{1-p}(1,0)$ have equal populations and currents between the two signs, but opposite sources $\dot E_Y=\pm2\mu\sqrt{p(1-p)}$. At $p=\varphi^{-1}$ the canonical imbalance $\varepsilon=E_Y-\varphi E_I$ is zero, while both massive Dirac sources remain nonzero. A state described only by the two densities therefore loses information needed for its subsequent closed Dirac evolution.
+
+The closure obstruction has a general finite-dimensional form. For a fixed orthogonal density projector $P$ and a fixed Hermitian Hamiltonian, the population derivative is $\operatorname{tr}(i[H,P]\varrho)$. The commutator has zero diagonal blocks in the $P\oplus(1-P)$ decomposition. If this derivative depends only on the two populations for every positive density matrix, it must vanish: block-diagonal states realize every population pair and have zero derivative, while any nonzero off-diagonal commutator distinguishes states with the same populations. A nonzero autonomous two-population conversion law needs additional reduced-state structure or an open-system construction.
+
+The obstruction also appears within the positive-energy free-particle sector, without the unrestricted phases of the preceding witness. A positive-energy plane wave is stationary in all its quadratic densities. For momentum $(0,0,p_z)$, helicity $h=\pm1$ and energy $E=\sqrt{\mu^2+p_z^2}$,
+
+$$
+E_Y=\frac{1-hp_z/E}{2},\qquad
+E_I=\frac{1+hp_z/E}{2}.
+$$
+
+At rest both are $1/2$. The canonical source $-\lambda(1-q)(E_Y-\varphi E_I)$ is then nonzero at finite density and $\lambda>0$. The free Dirac law supplies no relaxation toward a universal golden chiral population ratio. Its helicity and momentum dependence remains explicit. These plane-wave statements establish neither a localized particle nor microscopic production.
+
+### 1.6 The Dirac mass changes the minimal lift
+
+The existing positive-fibre conversion flow reproduces the canonical diagonal law when its declared Hamiltonian commutes with the population projectors (`foundations/geometric-manifold-completion.md` §4.4). A Dirac mass introduces an off-diagonal Hamiltonian in the chiral basis. Its effect can be calculated in one homogeneous spin sector:
+
+$$
+\Gamma=\begin{pmatrix}E_Y&z^*\\z&E_I\end{pmatrix},\qquad
+H=\mu\sigma_x,\qquad \operatorname{tr}\Gamma=\rho.
+$$
+
+With the two jumps $\sqrt\kappa|I\rangle\langle Y|$ and $\sqrt{\varphi\kappa}|Y\rangle\langle I|$, the component equations are
+
+$$
+\dot E_Y=2\mu\operatorname{Im}z-\kappa\varepsilon,\qquad
+\dot E_I=-\dot E_Y,\qquad
+\dot z=-i\mu(E_Y-E_I)-\frac{1+\varphi}{2}\kappa z.
+$$
+
+For a frozen positive rate $\kappa$, define $\delta=E_Y-E_I$, $s=1+\varphi$ and $\delta_*=(\varphi-1)\rho/s$. Solving the stationary equations gives
+
+$$
+\boxed{
+\delta_{\rm st}=\frac{\delta_*}{1+8\mu^2/(s^2\kappa^2)},\qquad
+z_{\rm st}=-\frac{2i\mu\delta_{\rm st}}{s\kappa}.}
+$$
+
+Every finite-rate massive stationary state has $0<\delta_{\rm st}<\delta_*$ for $\rho>0$. Its population ratio lies between unity and $\varphi$. The massless control recovers the canonical ratio. With the canonical rate $\kappa(\delta)=\lambda[1-q(\delta)]$, the same stationary equation has a unique root in $(0,\delta_*)$: on that interval $\varepsilon=s(\delta-\delta_*)/2$, the rate decreases with $\delta$, and the right-hand side of the boxed fixed-point equation decreases while its left-hand side increases. This is a stationary result; stability of the combined nonlinear flow requires a separate calculation.
+
+The positive-energy restriction introduces another constraint on this particular jump construction. Let $\varrho_+$ be the normalized positive-energy rest spinor and $P_-=(1-H_D/\mu)/2$. The instantaneous leakage under the dissipator is
+
+$$
+\boxed{
+\operatorname{tr}\!\left(P_-\dot\varrho_+\right)_{\rm conv}
+=\sum_a\|P_-J_a\psi_+\|^2
+=\frac{1+\varphi}{4}\kappa>0.}
+$$
+
+This transition leaves the positive-energy one-particle subspace. Interpreting it physically requires a Fock-space state, occupation and Pauli constraints, energy and charge ledgers, and a reservoir interaction. The amplitude-space leakage alone supplies no pair-production rate.
+
+These equations constrain the combination of the standard Dirac mass and the specified minimal chiral conversion jumps. They leave alternative interactions, restricted preparations and controlled coarse-graining as separate microscopic possibilities. The frozen witnesses are independently reconstructed with no mismatches in `computations/matter-formation-continuum-report.md` §13; `computations/matter-formation-spinor-closure-prereg.md` supplies their definitions and stopping rule.
 
 ## 2. The conditional scale and electroweak anchor
 
@@ -163,7 +236,7 @@ The K labels identify conditional scale statements and remain separate from the 
 
 ## 6. Epistemic boundaries
 
-The exact results are the conditional scale arithmetic, the field dimensions, the chiral-scalar adjoint identity, the nonnegative-density obstruction and the interaction-reality obstruction. The external $v_0$ anchor is Calibrated. Selected coefficient readings and the back-solved numerical bridge retain their ledgered status. The physical coupling, state preparation, microscopic production process and mapping to the canonical density dynamics remain Hypothesized or open.
+The exact results are the conditional scale arithmetic, the field dimensions, the chiral-scalar adjoint and interaction-reality obstructions, the chiral-current identities, the closed-population obstruction, and the stationary and positive-energy boundaries of the specified massive conversion lift. The external $v_0$ anchor is Calibrated. Selected coefficient readings and the back-solved numerical bridge retain their ledgered status. The physical coupling, state preparation, microscopic production process and controlled reduction to canonical density dynamics remain Hypothesized or open.
 
 The two-fluid's real-density description supplies no Dirac field by itself. Adding the standard Dirac kinetic action introduces fermionic microscopic content as an independent assumption. A physical mass fit, a cascade coordinate and a formal coefficient-free scale do not select that content or its interaction.
 
@@ -172,7 +245,12 @@ The two-fluid's real-density description supplies no Dirac field by itself. Addi
 - `foundations/unified-lagrangian.md` §§2, 5–7—optional fermion sector and action assembly.
 - `foundations/particle-stationary-action-closure.md` §8.12—scalar physical-normalization and particle-identity boundary.
 - `computations/matter-formation-normalization-prereg.md`—frozen unit-normalization, bilinear and action-reality checks.
-- `computations/matter-formation-continuum-report.md` §12—independently verified normalization family and microscopic-identification exclusions.
+- `computations/matter-formation-continuum-report.md` §§12–13—independently verified normalization, identification and microscopic closure boundaries.
+- `computations/matter-formation-spinor-closure-prereg.md`—frozen positive-observable, closed-conversion, massive fixed-point and positive-energy witnesses.
+- `computations/matter-formation-spinor-closure-implementation-recovery.md`—execution provenance and accepted receipt location under the scientific preregistration's recovery rule.
+- `computations/matter_formation_spinor_closure.py` and `computations/verify_matter_formation_spinor_closure.py`—independent four-component and reduced-component witnesses.
+- `foundations/geometric-manifold-completion.md` §4.4—minimal positive-fibre conversion lift.
+- `foundations/yin-yang-qi-dynamical-geometry.md` §§5–7—off-diagonal coherence and declared Hamiltonian scope.
 - `two-fluid/cassi_dirac_bridge.py`—exploratory Dirac kinetics and nonnegative quadratic, spin and current diagnostics; physical density and fine-structure interpretations remain unestablished.
 - `foundations/dimensionful-cascade.md` §§2–3—cascade scales and coordinates.
 - `gravity/quantum-gravity.md` §2.1—conditional shared offset $\delta=3$.

@@ -950,6 +950,20 @@ observables and interactions
 `foundations/sector-coupling-derivation.md` §1;
 `computations/matter-formation-continuum-report.md` §12).
 
+The helper's separate positive component quadratics have an exact
+chiral-current interpretation. Their closed Dirac evolution depends on
+relative coherence and fails the canonical population conversion even for
+a stationary positive-energy rest state. Adding the existing minimal
+chiral conversion jumps to a nonzero Dirac mass shifts the stationary ratio
+below $\varphi$ and permits leakage from the positive-energy one-particle
+subspace. Independent finite-dimensional witnesses verify each statement
+(`foundations/sector-coupling-derivation.md` §§1.5–1.6;
+`computations/matter-formation-continuum-report.md` §13).
+The positive observable map therefore leaves the microscopic interaction,
+physical energy-density normalization and controlled reduction unselected.
+An amplitude-space leakage rate supplies no Fock-space matter-production
+calculation.
+
 The remaining physical requirements are:
 
 1. identify the microscopic carrier and derive its production interaction,

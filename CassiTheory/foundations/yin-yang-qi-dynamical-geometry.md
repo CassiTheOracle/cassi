@@ -439,6 +439,18 @@ $$
 
 The half-rate relation is a property of this two-jump lift. It is not fixed by the canonical diagonal PDE alone.
 
+These diagonal equations describe the conversion subflow. They also remain
+the full population law when an added Hamiltonian commutes with the species
+projectors. A Dirac mass is off-diagonal in the chiral basis, so identifying
+this fibre with chiral-current densities adds a coherence-dependent
+population source. The specified massive Hamiltonian and two-jump lift have
+a stationary ratio below $\varphi$, and the jumps permit leakage from the
+positive-energy one-particle subspace. These conditional identities and
+independent witnesses are in `foundations/sector-coupling-derivation.md`
+§§1.5–1.6 and `computations/matter-formation-continuum-report.md` §13.
+They constrain that microscopic identification without changing the declared
+mesoscopic conversion subflow.
+
 ### 5.4 Relative-frame covariance
 
 The jumps acquire opposite phases under $U_Q$:

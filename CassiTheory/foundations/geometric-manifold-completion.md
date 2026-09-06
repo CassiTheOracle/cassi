@@ -989,9 +989,19 @@ $$
 $$
 
 The first two lines reproduce the canonical conversion exactly. The third is
-an added conditional result of this minimal lift. Hamiltonian phase drives,
-pure-dephasing channels, correlated jumps, and coherent reservoirs can change
-the transverse equation while leaving the diagonal reduction unchanged.
+an added conditional result of this minimal lift. A Hamiltonian diagonal in
+the species basis and pure dephasing preserve these diagonal equations.
+Other jumps and coherent reservoirs require a separate reduction.
+
+A massive Dirac Hamiltonian is off-diagonal in its chiral basis and changes
+the population equations. When the fibre is identified with chiral-current
+densities, adding that Hamiltonian to (GM51) shifts every finite-rate massive
+stationary ratio below $\varphi$. The same chiral jumps also permit leakage
+from the positive-energy one-particle subspace. The exact identities and
+independently verified witnesses are in
+`foundations/sector-coupling-derivation.md` §1.6 and
+`computations/matter-formation-continuum-report.md` §13. A physical fermionic
+reservoir and controlled density reduction remain open.
 
 For frozen $q$ with $\gamma_{\rm conv}>0$ and unit trace, the unique
 stationary state of the minimal lift is
