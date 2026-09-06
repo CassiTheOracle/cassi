@@ -28,9 +28,9 @@ at selected prepared $Q_C=16$ and $256$, reproduced by independent
 collocation. The supplied first-order action preserves an exactly empty
 carrier sector. Its stored Cartesian localized sequence fails the frozen
 smooth-carrier diagnostic, and the smooth $Q_C=16$ combined stability verdict
-is `INCONCLUSIVE`. The normalization campaign in
-`computations/matter-formation-continuum-report.md` §12 supports conditional
-one-mass normalization nonuniqueness: $a=1/64,1/32,1/16$ share the external
+is `INCONCLUSIVE`. The normalization construction is **Derived conditional**;
+`computations/matter-formation-continuum-report.md` §12 supplies independent
+numerical consistency checks on its nonuniqueness: $a=1/64,1/32,1/16$ share the external
 vacuum scalar mass, speed $c$, and one unit of internal scalar $U(1)$
 generator, while their core lengths differ. The selected scalar electron-core
 assignment and displayed chiral-scalar map are `CONTRADICTS`; no electron,

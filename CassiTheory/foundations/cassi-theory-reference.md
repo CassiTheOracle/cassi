@@ -1295,14 +1295,14 @@ Continuum positivity identities retain their exact nodelessness,
 monotonicity and boundary assumptions
 (`foundations/particle-stationary-action-closure.md` §8.11;
 `computations/matter-formation-continuum-report.md` §11).
-The measured normalization campaign keeps this boundary explicit. For the
+The conditional normalization construction keeps this boundary explicit. For the
 three admissible values $a=1/64,1/32,1/16$, the scalar parent can be assigned
 the same external vacuum scalar mass $0.511\ \mathrm{MeV}$, propagation speed
 $c$, and one unit of its internal scalar $U(1)$ generator while retaining
 distinct core scales
 $\ell_Q=(2.23505,1.61542,1.19022)\times10^{-12}\ \mathrm m$.
-This supports conditional one-mass normalization nonuniqueness; it supplies
-neither an electron identity nor an electromagnetic charge assignment.
+These numerical witnesses check Derived conditional one-mass normalization
+nonuniqueness; electron and electromagnetic identity remain unestablished.
 The exact choice $\ell_Q=\lambda_*$ has no positive root at the selected
 coefficients. The smallest allowed core scale under the existing
 global-vacuum bound is $6.789391938\times10^{-13}\ \mathrm m$ at cascade

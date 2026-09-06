@@ -74,8 +74,8 @@ An optional positive-inertia carrier parent has a signed charge and a
 Gaussian particle–antiparticle channel.
 Its 31 prescribed-background trajectories pass a standard scalar
 mass-quench correspondence check. The parent coefficient and quantum action
-normalization remain unselected; the measured scalar-parent normalizations
-are conditional and nonunique, and interacting localized formation is open
+normalization remain unselected; the scalar-parent normalization family
+is Derived conditional, with numerical consistency checks, and interacting localized formation is open
 (`foundations/particle-stationary-action-closure.md` §8.8;
 `computations/matter-formation-continuum-report.md` §§8, 12).
 The classical parent-vacuum condition and the restriction on neutral
@@ -103,8 +103,8 @@ The normalization campaign in `computations/matter-formation-continuum-report.md
 $0.511\ \mathrm{MeV}$, speed $c$, and one unit of internal scalar $U(1)$
 generator, while the core lengths differ:
 $(2.23505,1.61542,1.19022)\times10^{-12}\ \mathrm m$,
-respectively. This establishes conditional one-mass normalization
-nonuniqueness; electron and electromagnetic identity remain unestablished.
+respectively. These are numerical consistency checks on Derived conditional
+one-mass normalization nonuniqueness; electron and electromagnetic identity remain unestablished.
 The selected scalar electron-core assignment is `CONTRADICTS`; the
 chiral-scalar map also fails because $B_R=L^\dagger R$ and
 $B_L=R^\dagger L=B_R^*$; the displayed projection terms are dimensionally

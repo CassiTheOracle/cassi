@@ -147,9 +147,9 @@ gravitational potential:
 $$\partial_t E_I \supset +\chi\,\nabla\cdot(E_I\nabla\Phi)$$
 
 The optional sector construction supplies the formal scale
-$\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2\approx0.92\
-\mathrm{TeV}^{-2}$, conditional on the external $v_0$ anchor and selected
-offset. The displayed chiral-scalar identification has dimensional,
+$\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2\approx0.92\ \mathrm{TeV}^{-2}$,
+conditional on the external $v_0$ anchor and selected offset. The displayed
+chiral-scalar identification has dimensional,
 positivity and Hermiticity obstructions. It supplies no physical coupling
 or equilibration time (`foundations/sector-coupling-derivation.md` §§1–4).
 
@@ -653,7 +653,7 @@ fails the quality bar. Tier definitions: `open-questions-cassi-answers.md`
 | WX2 κ³ damping signature (wu-xing-cycle-structure WX2) | "κ³ = 23.6% per cycle" | Test 2026-08-06 (same script): per-P0 retention 0.944 vs 0.764 predicted; gate-level mean 0.389 vs 0.764; sub-critical direction holds (decay, no self-sustain); ke ring adds no locked-channel damping (Δγ < 0.001) | PDE run (runs/20260806_001658_trigger_wx2/) | run_trigger_wx2_tests.py | Not matched |
 | Wake structural trio (P44 checkerboard, P43 closure, F₂/F₁ sharpening) | "Not yet tested" (catalog rows 43–44) | Probes 2026-08-06 (`two-fluid/run_wake_structural_probes.py`, commit 168a11a): P44 nulls at (m+½)ℓ_{n+1} to 0.0023 grid precision, beats at m·ℓ_{n+1} to 0.00015; P43 beats land on m·ℓ_{n+1} to grid scale; F₂/F₁ = 0.617621 vs 1/φ = 0.618034 (−0.07%), cross-ratio φ³ exact, requires the documented Π∇Φ force form | PDE probes (commit 168a11a) | run_wake_structural_probes.py | Supported (PDE-verified) |
 | Scalar-parent vacuum mass normalization ($\mathscr E_*=0.511$ MeV, $v_{\rm car}=c$) | Selected conditional demonstrator normalization; physical scalar mass and particle identity remain open | Three distinct $a_C=1/64,1/32,1/16$ witnesses reproduce the imposed vacuum scalar mass and propagation speed while retaining distinct $\ell_Q$ values; no $h_C$ refit | External electron rest-energy target and registered $c$ | `runs/20260906_matter_formation_normalization/results.json`; `runs/20260906_matter_formation_normalization/verification.json`; `computations/matter-formation-normalization-prereg.md` | Mapped (conditional normalization) |
-| One unit of the internal scalar $U(1)$ generator ($\mathcal N_Q\mathcal Q=1$) | Selected conditional scalar-sector unit convention; no electric-charge identification | Each normalization witness sets $\mathcal N_Q=1/\mathcal Q$ with zero charge residual; the unit is internal to the scalar parent and does not establish a fermion or observed-particle charge | Declared one-unit generator normalization in the preregistration | `runs/20260906_matter_formation_normalization/results.json`; `runs/20260906_matter_formation_normalization/verification.json`; `computations/matter-formation-normalization-prereg.md` | Mapped (conditional normalization) |
+| One unit of the internal scalar $U(1)$ generator ($\mathcal N_Q\mathcal Q=1$) | Selected conditional scalar-sector unit convention; no electric-charge identification | Each normalization witness sets $\mathcal N_Q=1/\mathcal Q$ within the registered numerical tolerance; the unit is internal to the scalar parent and does not establish a fermion or observed-particle charge | Declared one-unit generator normalization in the preregistration | `runs/20260906_matter_formation_normalization/results.json`; `runs/20260906_matter_formation_normalization/verification.json`; `computations/matter-formation-normalization-prereg.md` | Mapped (conditional normalization) |
 | Scalar core-cell assignment ($\ell_Q=\lambda_*$; mapped cell $[107,108]$) | **CONTRADICTS** selected scalar electron-core assignment | The exact-root denominator is $2(k_{Cx}-2e_C)=-1$ (no positive root); the global-vacuum minimum is $\ell_Q=6.7893919382\times10^{-13}$ m at $n=108.25197355$, above the cell upper endpoint $6.0141121609\times10^{-13}$ m | Mapped electron Compton cell and external $0.511$ MeV anchor | `runs/20260906_matter_formation_normalization/results.json`; `runs/20260906_matter_formation_normalization/verification.json`; `computations/matter-formation-normalization-prereg.md` | Mapped (assignment rejected) |
 
 
@@ -663,6 +663,13 @@ independent derivation replaces the fit; the status propagates to documents
 that cite the quantity. The three scalar-parent normalization rows above are
 selection records for a conditional demonstrator, not additional independent
 parameters in the §7 total.
+Their Mapped tiers apply to the imposed target, generator normalization and
+core-cell identification. The algebraic implication that a free admissible
+$a_C$ yields a nonunique length is **Derived conditional**. Its registered
+numerical consistency verdict is
+`SUPPORTS—conditional one-mass normalization nonuniqueness`. Neither the
+derivative identity nor this implementation check derives the selected
+physical inputs or changes their ledger tiers.
 
 ## 11. Unfitted Experimental Inputs
 

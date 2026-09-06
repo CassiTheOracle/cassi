@@ -11,9 +11,9 @@ calculation with prepared static binding at $Q_C=16$ and $256$, independently
 reproduced by collocation. Its first-order carrier law preserves an exactly
 empty sector. The stored Cartesian carrier sequence fails the frozen
 smooth-field diagnostic, and the smooth $Q_C=16$ combined spatial-stability
-verdict is `INCONCLUSIVE`. The normalization campaign in
-`computations/matter-formation-continuum-report.md` §12 supports conditional
-one-mass normalization nonuniqueness: three values of $a$ share the external
+verdict is `INCONCLUSIVE`. The normalization construction is Derived conditional;
+`computations/matter-formation-continuum-report.md` §12 supplies numerical
+consistency checks on its nonuniqueness: three values of $a$ share the external
 vacuum scalar mass, speed $c$, and one unit of internal scalar $U(1)$
 generator, while their core lengths differ. The scalar electron-core
 assignment and the displayed chiral-scalar density map are `CONTRADICTS`;
@@ -345,8 +345,8 @@ J_Q=\mathcal J_Q.
 $$
 
 At $E_Y/E_I=\varphi$, the uniform current is
-$\mathcal J_{Q,m}=K_{\mathfrak s}\rho\Delta_m/
-$(\hbar\varphi^3\mathfrak s_p)$. Endpoint conversion closes the two rails, and
+$\mathcal J_{Q,m}=K_{\mathfrak s}\rho\Delta_m/(\hbar\varphi^3\mathfrak s_p)$.
+Endpoint conversion closes the two rails, and
 the relative current can source a mixed-curvature pinch. Point flux supplies a
 conditional exterior coefficient. An auxiliary adjoint $SU(2)_Q$ branch
 supplies a smooth local core and matches that coefficient, while the registered
@@ -498,7 +498,7 @@ This arithmetic selects no physical operator. The displayed Dirac-to-two-fluid
 projection is excluded by its dimensional mismatch, chiral-bilinear
 conjugacy, and generic non-Hermiticity; no physical $\kappa_s$,
 equilibration timescale, transport coefficient, or interaction follows.
-The normalization and particle-identity boundary is measured in
+The conditional normalization and particle-identity algebra has independent numerical checks in
 `computations/matter-formation-continuum-report.md` §12.
 
 ### `wake-geometry.md`—The Wake Geometry: Composite-Wavelength Closure and the Horizon Rung
@@ -833,11 +833,11 @@ localized branch has a matched six-mode constrained finite-grid spectrum
 and fails the smooth-carrier diagnostic. The exact scalar reduction gives
 independently reproduced static binding at prepared $Q_C\in\{16,256\}$;
 smooth $Q_C=16$ constrained spatial stability is INCONCLUSIVE. The first-order
-carrier law preserves empty-sector data. The normalization campaign gives
-three admissible scalar-parent normalization witnesses with the same external
-vacuum scalar mass, speed $c$, and one unit of internal scalar $U(1)$ generator,
-but distinct core lengths; physical normalization is therefore conditional
-and nonunique. See `computations/matter-formation-continuum-report.md` §12,
+carrier law preserves empty-sector data. Conditional normalization leaves
+$a$ free algebraically; three numerical witnesses check the same imposed vacuum
+mass, speed $c$ and internal scalar $U(1)$ generator unit at distinct core
+lengths. This nonuniqueness is Derived conditional. See
+`computations/matter-formation-continuum-report.md` §12,
 `computations/particle-stationary-precision-v5-report.md`,
 `computations/particle-physical-hessian-precision-v2-report.md`,
 `computations/particle-carrier-direct-coordinate-report.md`,

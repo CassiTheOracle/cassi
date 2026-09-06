@@ -1608,6 +1608,24 @@ Noether generator fixes $\mathcal N_Q=1/\mathcal Q$ and
 $\rho_0=\mathcal N_Q/\ell_Q^3$. The independent parameter $a_C$ remains.
 The construction selects no electromagnetic charge normalization and leaves
 the dimensionless coefficients, including the Mapped $h_C$, unchanged.
+
+This remaining choice survives the source-unit redundancy (PA36)–(PA37).
+The combinations $\ell_Q=(g_Qv_Q)^{-1}$, $a_C$, $\mathcal N_Q$, the
+canonical interaction coefficient $u_C/(\mathcal N_Qa_C^2)$ and the
+frequency ratio
+$\Omega^2/M_a^2(1)=(1+4a_C\omega_C)/(1+4a_Ce_C)$ are invariant under
+that redundancy. Individually chosen $g_Q,v_Q,\mu_{x,\mathfrak s}$ and
+$\lambda_H$ do not select these combinations. Varying $a_C$ across the
+conditional family changes invariant dynamics, rather than only choosing
+a representative of one source-unit orbit.
+
+The nonuniqueness is **Derived conditional**. At fixed target and positive
+$k_{Cx}$, differentiation gives
+$d(\ell_Q^2)/da_C=-\lambda_*^2/(2k_{Cx}a_C^2)<0$, so distinct admissible
+$a_C$ values necessarily yield distinct lengths. The registered numerical
+witnesses check this construction and its implementation; they supply no
+independent empirical evidence for the physical assignment.
+
 An observed mass and its Compton wavelength are the same input expressed in
 two units.
 
@@ -1622,8 +1640,11 @@ $$
 =\frac{M_a(1)}{\sqrt{M_a^2(1)-\Omega^2}}>1
 $$
 
-for a nonzero-charge embedding with $1+4a_C\omega_C>0$. The additional
-assignment $\ell_Q=\lambda_*$ would require
+The strict inequality holds for
+$a_C>0$, $k_{Cx}>0$, $e_C>\omega_C$ and $1+4a_C\omega_C>0$.
+The first three conditions make the decay length real, while the last
+makes the canonical stationary frequency real. A further identification
+$\ell_Q=\lambda_*$ would require
 $a_C=[2(k_{Cx}-2e_C)]^{-1}$. At $k_{Cx}=1,e_C=3/4$ this has no positive
 solution. When the global-vacuum condition bounds $a_C\le a_{\rm vac}$,
 the smallest allowed core scale follows by evaluating the decreasing
@@ -1636,17 +1657,22 @@ The phase rotation also changes the Hamiltonian by a conserved charge.
 For the stationary profile,
 
 $$
-H_{\rm orig}=E_{\rm sc}+a_C\omega^2N,\qquad
+H_{\rm original}=E_{\rm sc}+a_C\omega^2N,\qquad
 H_{\rm can}=E_{\rm sc}
 +\left(\frac1{2a_C}+\omega_C\right)N,
 $$
 
 $$
 \boxed{
-H_{\rm can}-H_{\rm orig}=\frac{\mathcal Q}{2a_C},
+H_{\rm can}-H_{\rm original}=\frac{\mathcal Q}{2a_C},
 \qquad
 H_{\rm can}-\Omega\mathcal Q=E_{\rm sc}-\omega_CN.}
 $$
+
+Both Hamiltonians use the same zero: the homogeneous field $f=1$, $C=0$
+with zero velocity has $E_{\rm sc}=H_{\rm original}=H_{\rm can}=0$.
+Their difference is the displayed charge-dependent phase-rotation shift;
+no separate vacuum or profile-dependent subtraction is introduced.
 
 The physical canonical energy is $E_QH_{\rm can}$; $\hbar\Omega/t_Q$
 is a chemical-potential frequency scale. For an exact localized stationary
@@ -1680,7 +1706,10 @@ verified. At the external $0.511\ \mathrm{MeV}$ vacuum scalar mass target,
 the witnesses $a_C=1/64,1/32,1/16$ give distinct lengths
 $(2.2350537582,1.6154167965,1.1902203530)\times10^{-12}\ \mathrm m$
 while reproducing the same mass, speed and internal generator unit.
-The result is `SUPPORTS—conditional one-mass normalization nonuniqueness`.
+The registered numerical consistency verdict is
+`SUPPORTS—conditional one-mass normalization nonuniqueness`.
+The monotonicity implication is Derived conditional; the selected
+demonstrator inputs retain their Mapped Fit-Status Ledger entries.
 The global-vacuum bound gives
 $\ell_Q\ge6.7893919382\times10^{-13}\ \mathrm m$, above the mapped
 electron-cell upper endpoint $6.0141121609\times10^{-13}\ \mathrm m$.

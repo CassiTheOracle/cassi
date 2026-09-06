@@ -520,7 +520,7 @@ The registered missing-source control invokes both actual programs against an em
 
 ## 12. Physical normalization and microscopic identity
 
-The scalar model admits several physical unit assignments with the same imposed vacuum mass, propagation speed and internal generator unit. Those assignments leave its temporal coefficient free. The independent calculation also excludes the selected core-cell assignment and the displayed chiral-scalar positive-density map. These are identification results; they supply no interacting formation trajectory or measured particle identity.
+The scalar model has a **Derived conditional** family of physical unit assignments with the same imposed vacuum mass, propagation speed and internal generator unit. The free temporal coefficient and its invariant frequency ratios distinguish these models. The registered numerical witnesses are consistency checks on that algebraic construction. The core-cell exclusion and chiral-scalar obstruction are also conditional algebraic results with independently reconstructed numerical witnesses; they supply no interacting formation trajectory or measured particle identity.
 
 ### 12.1 Fixed inputs and independent reconstruction
 
@@ -536,6 +536,11 @@ T=78.81491551669352
 $$
 
 to the registered tolerance. The negative $E_{\rm sc}$ is the dimensionless static functional; its value alone is not a physical rest energy.
+
+Both energy reconstructions use the homogeneous state $f=1$, $C=0$ at zero velocity as their common zero. The same static functional supplies
+$H_{\rm original}=E_{\rm sc}+a\omega^2N$ and
+$H_{\rm can}=E_{\rm sc}+[1/(2a)+\omega_C]N$, with
+$\omega=\Omega-1/(2a)$. There is no independent offset fitted to either Hamiltonian.
 
 ### 12.2 One mass leaves a normalization family
 
@@ -554,7 +559,25 @@ t_Q=\frac{\ell_Q}{c}\sqrt{\frac{k_{Cx}}{2a}},
 \lambda_*=\frac{\hbar c}{\mathscr E_*}.
 $$
 
-All three preregistered witnesses satisfy the mass, speed, charge and Hamiltonian identities with normalized residuals below $10^{-10}$:
+All three preregistered witnesses satisfy the mass, speed, charge and Hamiltonian identities with normalized residuals below $10^{-10}$. These residuals check identities enforced by the construction. Define the implied mass energy and speed by
+$m_{\rm imp}=\hbar M_a(1)/t_Q$ and
+$v_{\rm imp}=(\ell_Q/t_Q)\sqrt{k_{Cx}/(2a)}$.
+For the dimensionless energy checks, let
+$A_H=H_{\rm can}-H_{\rm original}$,
+$B_H=\mathcal Q/(2a)$,
+$A_\mu=H_{\rm can}-\Omega\mathcal Q$ and
+$B_\mu=E_{\rm sc}-\omega_CN$.
+The denominators fixed in the preregistration and used by both programs are:
+
+| Receipt field | Absolute numerator | Denominator |
+|---|---|---|
+| `mass_residual` | $\lvert m_{\rm imp}-\mathscr E_*\rvert$ | $\mathscr E_*$ |
+| `speed_residual` | $\lvert v_{\rm imp}-c\rvert$ | $c$ |
+| `charge_residual` | $\lvert\mathcal N_Q\mathcal Q-1\rvert$ | $1$ |
+| `energy_shift_residual` | $\lvert A_H-B_H\rvert$ | $\max(1,\lvert H_{\rm can}\rvert,\lvert H_{\rm original}\rvert,\lvert\mathcal Q/(2a)\rvert)$ |
+| `chemical_energy_residual` | $\lvert A_\mu-B_\mu\rvert$ | $\max(1,\lvert H_{\rm can}\rvert,\lvert\Omega\mathcal Q\rvert,\lvert E_{\rm sc}\rvert,\lvert\omega_CN\rvert)$ |
+
+The unit floor in the final two rows belongs to the dimensionless energy convention. The receipt uses `exterior_mass` for $M_a(1)$, `canonical_frequency` for $\Omega$, `charge` for $\mathcal Q$, and the source summary's `N`, `omega_C` and `static_energy` for $N$, $\omega_C$ and $E_{\rm sc}$. Direct reconstruction of all 30 stored residuals agrees exactly with the retained values; their maximum is $2.220446049250313\times10^{-16}$.
 
 | $a$ | $\ell_Q$ (m) | $t_Q$ (s) | $\ell_{\rm tail}$ (m) | $E_QH_{\rm can}/\mathscr E_*$ |
 |---|---:|---:|---:|---:|
@@ -562,13 +585,20 @@ All three preregistered witnesses satisfy the mass, speed, charge and Hamiltonia
 | $1/32$ | $1.6154167965\times10^{-12}$ | $2.1553801684\times10^{-20}$ | $1.0550945226\times10^{-12}$ | 0.9432196612 |
 | $1/16$ | $1.1902203530\times10^{-12}$ | $1.1229273589\times10^{-20}$ | $7.7738140264\times10^{-13}$ | 0.8927907492 |
 
-The distinct lengths at identical imposed mass, speed and generator unit give
+Strict monotonicity, $d(\ell_Q^2)/da=-\lambda_*^2/(2k_{Cx}a^2)<0$, proves the nonuniqueness for distinct admissible $a$. The numerical consistency checks return the frozen verdict
 
 $$
 \boxed{\text{SUPPORTS—conditional one-mass normalization nonuniqueness}.}
 $$
 
+The verdict labels the registered numerical consistency check. The
+monotonicity implication is Derived conditional, while the selected mass,
+one-generator convention and core-cell assignment retain their Mapped
+Fit-Status Ledger entries. These statuses describe different objects.
+
 The last column is a conditional soliton-energy conversion. The mass calibration fixes a vacuum frequency, while the soliton energy includes its spatial and temporal energy. The ratios are outputs with no particle-matching threshold. A one-unit classical generator normalization does not establish a one-fermion quantum state or justify a semiclassical approximation.
+
+The source-unit transformations in `foundations/particle-stationary-action-closure.md` (PA36)–(PA37) preserve $\ell_Q$, $a$, $\mathcal N_Q$, $u_C/(\mathcal N_Qa^2)$ and $\Omega^2/M_a^2(1)$. The displayed family changes invariant quantities; it does not merely enumerate redundant choices of $g_Q$, $v_Q$, $\mu_{x,\mathfrak s}$ or $\lambda_H$. The tail comparison uses $a>0$, $k_{Cx}>0$, $e_C>\omega_C$ and $1+4a\omega_C>0$, all satisfied by the registered witnesses.
 
 ### 12.3 The selected scalar core-cell assignment fails
 
@@ -631,6 +661,8 @@ The canonical CRLF-to-LF SHA-256 identities are:
 - Preregistration: `35dcaac325932c32f486bace0f8ad71a232dc4f87fb1aa85893fa0cb81dac732`.
 
 The raw primary receipt SHA-256 is `3c1fba6f2ea5cedf3d774a2dfcf33d7691add503dd56588ae41f1afe315bca0b`; the independent receipt SHA-256 is `81962ce27615f5da0603cac665b75138ca9fb19bff689d7d58d3443b757880eb`. They are retained in `runs/20260906_matter_formation_normalization/`. The independent receipt binds the primary raw hash and recomputes every numerical payload field.
+
+The tested expressions and target choices are transcribed explicitly in the frozen preregistration §§3–4. Its hash binds that algebra together with the two executable implementations. The receipt does not hash the mutable explanatory source documents; their citations locate the derivation and interpretation, while the preregistration supplies the tested expressions.
 
 The registered empty-source control invokes both actual programs. Both exit 1 and preserve their failed receipts with empty source summaries, unit families, core assignments, rescaling results and spinor results. The primary reports the missing field; the verifier rejects the failed primary input. All control verdicts are bare `INCONCLUSIVE` and carry no scientific conclusion.
 

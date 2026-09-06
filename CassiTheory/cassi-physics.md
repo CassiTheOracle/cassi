@@ -859,9 +859,9 @@ The normalization campaign in `computations/matter-formation-continuum-report.md
 propagation speed $c$, and one unit of the internal scalar $U(1)$ generator
 for each of $a=1/64,1/32,1/16$. The resulting core lengths are respectively
 $2.23505\times10^{-12}$, $1.61542\times10^{-12}$, and
-$1.19022\times10^{-12}\ \mathrm m$, so the result is conditional
-one-mass normalization nonuniqueness. It does not identify an electron or
-electromagnetic charge. The selected scalar electron-core assignment is
+$1.19022\times10^{-12}\ \mathrm m$. These numerical witnesses check
+Derived conditional one-mass normalization nonuniqueness; electron and
+electromagnetic identity remain open. The selected scalar electron-core assignment is
 `CONTRADICTS`: $\ell_Q=\lambda_*$ has no positive root, and the minimum
 allowed $\ell_Q=6.789391938\times10^{-13}\ \mathrm m$ exceeds the mapped
 cell upper endpoint $6.014112161\times10^{-13}\ \mathrm m$. The same campaign

@@ -74,6 +74,7 @@ These refer to older formalism files that lived in the root-level `theory/` dire
 | Source Document | Reference |
 |----------------|-----------|
 | `predictions/cassi_definitions.md` | `theory/qi-fluid-formalism.md` |
+| `foundations/unified-lagrangian.md` | `theory/qi-fluid-formalism.md` |
 | `predictions/falsifiable-predictions.md` | `theory/five-element-pde-derivation.md` |
 
 ## References via `../../`
