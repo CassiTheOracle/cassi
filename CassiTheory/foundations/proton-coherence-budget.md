@@ -51,7 +51,7 @@ no registered finite-separation minimum. The separate neutral-carrier action
 preserves an exactly empty closed sector. At the Mapped coupling, its
 Cartesian localized branch has a matched finite-grid low spectrum but fails
 the smooth-carrier diagnostic. Separate continuum-consistent scalar binding
-at prepared $Q_C=16,256$ is reproduced independently; smooth $Q_C=16$
+at prepared $Q_C\in\{16,256\}$ is reproduced independently; smooth $Q_C=16$
 constrained spatial stability is INCONCLUSIVE. These dimensionless prepared
 populations have no identified physical charge or particle count. Microscopic
 production, full stability, scale tension, endpoint normalization, proton
@@ -289,7 +289,7 @@ coupling.
 | Conditional $10^{910}$-year conversion | Arithmetic inside the selected stochastic model; no physical rate |
 | Zero-total-flow two-rail current and normalized energy | Derived conditional on the candidate interscale action and circuit data |
 | Endpoint conversion and scale-tension closure | Charged coherent and one-way open realizations are Derived conditionally; physical normalization and scale tension remain Hypothesized |
-| Mixed-curvature proton pinch and winding barrier | Point flux, an auxiliary adjoint core and a neutral carrier supply conditional reduced support, while the minimal smooth zero-Chern sector has no finite radius. The separate temporal action supplies Gauss and stationary equations but preserves an empty carrier sector. Its Cartesian branch fails the smooth-carrier diagnostic. Independent continuum calculations at the same Mapped coupling support prepared scalar binding at $Q_C=16,256$ with INCONCLUSIVE smooth $Q_C=16$ constrained spatial stability. Production, full dynamics, physical normalization, proton identity and decay remain open |
+| Mixed-curvature proton pinch and winding barrier | Point flux, an auxiliary adjoint core and a neutral carrier supply conditional reduced support, while the minimal smooth zero-Chern sector has no finite radius. The separate temporal action supplies Gauss and stationary equations but preserves an empty carrier sector. Its Cartesian branch fails the smooth-carrier diagnostic. Independent continuum calculations at the same Mapped coupling support prepared scalar binding at $Q_C\in\{16,256\}$ with INCONCLUSIVE smooth $Q_C=16$ constrained spatial stability. Production, full dynamics, physical normalization, proton identity and decay remain open |
 | Proton mass selection, charge, color, spin, and decay rate | Open |
 
 No numbered prediction is added. A quantitative proton claim requires a
@@ -476,7 +476,7 @@ near-zero carrier-phase mode and five positive modes. Its finest carrier norm
 is $99.98631608\%$ on one parity sublattice, and the edge-gradient diagnostic
 contradicts a smooth-carrier interpretation on the measured sequence.
 A separate continuum-consistent scalar calculation supports static binding
-at prepared $Q_C=16,256$, reproduced by independent collocation.
+at prepared $Q_C\in\{16,256\}$, reproduced by independent collocation.
 Smooth $Q_C=16$ constrained spatial stability is INCONCLUSIVE because its
 coarse translation and domain criteria fail. No negative mode is resolved on
 the tested grids. Prepared dimensionless populations, static binding and a

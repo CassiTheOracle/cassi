@@ -57,7 +57,7 @@ constrained $C_4$ PA42 eigenpairs contain one numerically near-zero
 carrier-phase symmetry mode, no negative mode, and five positive modes. The
 Cartesian artifact is ultraviolet-dominated: $99.98631608\%$ of its carrier
 norm lies on one parity sublattice, with the frozen verdict
-`CONTRADICTS` for smooth-carrier interpretation on the measured sequence.
+`CONTRADICTS—smooth-carrier interpretation on the measured sequence`.
 Under closed boundaries, $Q_C(0)=0\Rightarrow\chi_C(t)=0$, so the source-free
 first-order action supplies no carrier-creation mechanism. Separately, a
 continuum scalar density-trap calculation at the same $h_C$ finds prepared
@@ -641,7 +641,7 @@ $h_C=2.9598260763447164$ across four same-domain finite grids and one
 larger-domain comparison. Its six-mode constrained $C_4$ PA42 result is
 finite-grid only. The Cartesian artifact is ultraviolet-dominated, with
 $99.98631608\%$ of its carrier norm on one parity sublattice and the frozen
-verdict `CONTRADICTS` for smooth-carrier interpretation on the measured sequence.
+verdict `CONTRADICTS—smooth-carrier interpretation on the measured sequence`.
 The independently matched lowest energetic eigenpairs of a distinct diffuse
 $h_C=1.50$ background contain no negative mode on its strict-shell $C_4$
 physical quotient, while its global phase direction remains concentrated at
@@ -708,7 +708,7 @@ and five positive modes. The positive gap is $0.01527618220595$ against
 uncertainty $6.092903959\times10^{-4}$. The Cartesian artifact is
 ultraviolet-dominated: $99.98631608\%$ of its carrier norm lies on one parity
 sublattice, with edge energy growing as $\Delta x^{-2}$; the frozen verdict is
-`CONTRADICTS` for smooth-carrier interpretation on the measured sequence.
+`CONTRADICTS—smooth-carrier interpretation on the measured sequence`.
 The independently matched lowest energetic eigenpairs of a distinct diffuse
 $h_C=1.50$ background also contain no negative mode while that field fails
 localization and retention. A separate continuum scalar calculation finds
@@ -775,7 +775,7 @@ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase
 symmetry mode, no negative mode, and five positive modes. The Cartesian
 artifact is ultraviolet-dominated, with $99.98631608\%$ of its carrier norm
 on one parity sublattice and frozen verdict
-`CONTRADICTS` for smooth-carrier interpretation on the measured sequence.
+`CONTRADICTS—smooth-carrier interpretation on the measured sequence`.
 Under closed boundaries, $Q_C(0)=0\Rightarrow\chi_C(t)=0$, so this source-free
 action does not establish carrier creation. A separate continuum scalar
 calculation finds prepared static binding at $Q_C=16$ and $256$, while

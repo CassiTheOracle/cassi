@@ -249,7 +249,7 @@ six-mode constrained finite-grid low spectrum. Its finest carrier norm is
 $99.98631608\%$ on one parity sublattice, and the measured edge-gradient
 energy contradicts a smooth-carrier interpretation on the tested sequence.
 A separate continuum-consistent scalar calculation at the same coefficients
-supports prepared $Q_C=16,256$ binding, reproduced by independent collocation.
+supports prepared $Q_C\in\{16,256\}$ binding, reproduced by independent collocation.
 Smooth $Q_C=16$ constrained spatial stability is INCONCLUSIVE. The
 first-order carrier law preserves $Q_C=0$ under closed boundaries, leaving
 microscopic production, full continuum and temporal stability, physical

@@ -816,7 +816,7 @@ The endpoint dynamics now have both coherent and one-way open completions:
 
 At the Mapped coupling $h_C=2.9598260763447164$, the stored Cartesian
 fixed-charge branch has a matched finite-grid low spectrum but
-parity-concentrated carrier structure that fails the smooth-continuum
+parity-concentrated carrier structure that fails the smooth-carrier
 diagnostic. A continuum-consistent scalar reduction at the same coefficients
 supports static binding at prepared $Q_C=16$ and $256$, reproduced by
 independent collocation. Its smooth $Q_C=16$ constrained spatial stability

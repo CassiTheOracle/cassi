@@ -1,10 +1,10 @@
 # Carrier Creation and Continuum Density Trapping
 
-## Status: Hypothesized—September 2026
+## Status: Tested—September 2026
 
 ## Abstract
 
-The first-order carrier action preserves an exactly empty carrier sector under closed boundaries. It supplies no microscopic carrier-production mechanism. Its stored Cartesian localized fields concentrate more than 99.98% of the finest carrier norm on one of eight parity sublattices; a nearest-neighbour gradient diagnostic rejects a smooth-carrier interpretation on the measured sequence. A separate continuum-consistent radial calculation of the same scalar density-trap action finds qualified self-bound solutions at prepared charges $Q_C=16$ and $256$, reproduced by an independent continuum boundary-value solver. The registered $Q_C=4$ profiles spread with the domain. The $Q_C=64$ calculation is inconclusive because the finest density-field residual exceeds its frozen threshold. The smooth $Q_C=16$ branch has no resolved negative constrained spatial mode on the tested grids, while its combined stability verdict is `INCONCLUSIVE` because the coarse translation mode and domain comparison miss their criteria. These results establish conditional static self-binding at selected dimensionless coefficients and an exact creation obstruction. Physical matter formation remains open.
+The first-order carrier action preserves an exactly empty closed carrier sector. Its stored Cartesian localized fields fail a smooth-carrier diagnostic: the squared-spacing-weighted edge energy stays nearly constant while the carrier concentrates on one parity sublattice. A separate continuum-consistent radial calculation independently reproduces static binding at prepared $Q_C=16$ and $256$. Between these qualified endpoints, energy per carrier falls and the lump grows with a more strongly depleted mediator core. These measurements are consistent with charge-dependent condensate-like droplets; they establish no preferred particle size or quantum-number assignment. The $Q_C=4$ profiles spread with the domain, and the stopped $Q_C=64$ endpoint is unqualified. Smooth $Q_C=16$ constrained spatial stability remains `INCONCLUSIVE`. Microscopic production, full dynamics, normalization and physical particle identity remain open.
 
 ## 1. Scope and frozen evidence
 
@@ -50,6 +50,8 @@ The nearest-neighbour gradient exposes structure that the centred derivative fai
 
 The finest source has $99.98631608\%$ of its carrier norm on one parity sublattice. Its high-frequency fraction agrees with the localized Hessian's recorded phase diagnostic within $2\times10^{-9}$. The two finest edge-to-centred energy ratios exceed the threshold of four, and their $\Delta x^2T_{\rm edge}$ values agree much more closely than the required 20%.
 
+The scaled edge energy changes by approximately $0.18\%$ across the four grids, while the unscaled edge energy grows from $47.84$ to $146.79$. This combination identifies persistent lattice-scale structure in the stored fields. It does not exclude other localized solutions of a continuum-consistent action.
+
 For a centred derivative,
 
 $$
@@ -60,7 +62,7 @@ $$
 
 The Nyquist zero allows oscillatory fields to have small centred-gradient energy. In contrast, the edge energy has symbol $4\sin^2(k\Delta x/2)/\Delta x^2$. The periodic alternating control has centred energy zero and edge energy 8192. The smooth Gaussian controls have edge-to-centred ratios near one and negligible high-frequency power. Thus the measurement distinguishes a smooth profile from the stored parity-concentrated carrier.
 
-The frozen verdict is
+The machine-readable scientific verdict is `CONTRADICTS`. Its scoped label is
 
 $$
 \boxed{\text{CONTRADICTS—smooth-carrier interpretation on the measured sequence}.}
@@ -80,13 +82,13 @@ An independent implementation recomputes all finite-volume quantities from raw a
 
 ## 5. Measured static results
 
-The original prepared charge spreads, while larger prepared populations can bind at these selected coefficients. The finest $R=12$ finite-volume results are:
+The original prepared population spreads, while larger prepared populations can bind at these selected coefficients. The table contains the finest $R=12$ endpoints, including the unqualified, stopped $Q_C=64$ continuation:
 
 | Prepared $Q_C$ | Energy | Exterior threshold $e_CQ_C$ | Frequency $\omega_C$ | Carrier RMS radius | Verdict |
 |---:|---:|---:|---:|---:|---|
 | 4 | 3.1263033611 | 3 | 0.7787659711 | 6.2447280124 | DOES NOT EMERGE in tested basins |
 | 16 | 10.6754974802 | 12 | 0.2879217680 | 1.6393501068 | EMERGES, conditional static binding |
-| 64 | 9.4407095155 | 48 | −0.1784742340 | 1.8999249908 | INCONCLUSIVE, residual qualification fails |
+| 64 | 9.4407095155 | 48 | −0.1784742340 | 1.8999249908 | INCONCLUSIVE; stopped continuation, unqualified |
 | 256 | −55.5099075672 | 192 | −0.4220778423 | 2.7549255181 | EMERGES, conditional static binding |
 
 For $Q_C=4$, all four coarse endpoints are qualified and diffuse. Increasing the domain from $R=12$ to $R=24$ changes the RMS radius from 6.2447 to 12.6305, the energy from 3.1263 to 3.0329, and the frequency from 0.77877 to 0.75789. The carrier follows the box while its energy approaches the exterior threshold of 3. The tested profiles do not produce a localized bound branch. This finite search does not prove nonexistence at $Q_C=4$.
@@ -108,26 +110,69 @@ Both collocation solves converge at the frozen tolerance, use 1536 nodes and sat
 
 ## 6. Energy normalization and physical meaning
 
-The selected polynomial has a lower homogeneous depleted phase, which explains why large prepared populations can have negative dimensionless energy relative to the chosen exterior reference. At $f=0$, writing $n=c^2$ gives
+The homogeneous potential separates local density minimization from the density of a zero-pressure bulk droplet. Writing $n=c^2$ in the fully depleted $f=0$ profile gives
 
 $$
-V(0,n)=1+(0.75-h_C)n+\frac12n^2.
+V(0,n)=\frac{u_\rho}{4}+(e_C-h_C)n+\frac{u_C}{2}n^2.
 $$
 
-Its local minimum is
+Minimizing this energy density over $n$ yields
 
 $$
-n_*=h_C-0.75=2.2098260763,
-\qquad V(0,n_*)=-1.4416656438.
+n_*=\frac{h_C-e_C}{u_C}=2.2098260763,\qquad
+V(0,n_*)=\frac{u_\rho}{4}-\frac{(h_C-e_C)^2}{2u_C}
+=-1.4416656438.
 $$
 
-This homogeneous calculation omits gradients and interfaces. The large-charge bulk energy per carrier approaches the trial value $e_C-h_C+\sqrt{u_\rho u_C/2}=-0.7956125140$. The finite droplet energy includes its interface cost. A negative energy in this selected charge-conserving functional is not a measured negative particle mass. Adding a constant energy per conserved carrier shifts both $E$ and the exterior threshold by the same amount while leaving the fixed-charge profile and relative binding unchanged. Physical rest-energy normalization therefore requires additional input.
+For a fixed carrier population with variable bulk volume, minimizing $V/n$ instead gives the zero-pressure values
+
+$$
+n_{\rm sat}=\sqrt{\frac{u_\rho}{2u_C}}=1.4142135624,\qquad
+e_{\rm sat}=e_C-h_C+\sqrt{\frac{u_\rho u_C}{2}}
+=-0.7956125140.
+$$
+
+These expressions use the declared quartic convention $u_Cn^2/2$. They neglect interfaces and gradients. The local energy-density minimizer $n_*$ is not the zero-pressure density of a large finite-population droplet. The negative values are relative to the declared homogeneous exterior reference; no absolute mass scale follows.
+
+### 6.1. Measured charge dependence
+
+The qualified endpoints become larger and more strongly depleted as prepared population increases. The following post-campaign descriptive calculation reads immutable arrays without relaxation or changes to any verdict (`computations/matter-formation-scaling-prereg.md`; `computations/matter_formation_scaling.py`):
+
+| Prepared $Q_C$ | Qualification | $E/Q_C$ | $r_{C,\mathrm{rms}}$ | $r_{C,\mathrm{rms}}/Q_C^{1/3}$ | $\min f$ | $\max c^2$ |
+|---:|---|---:|---:|---:|---:|---:|
+| 4 | Qualified, diffuse | 0.7815758403 | 6.2447280124 | 3.9339321369 | 0.9969615518 | 0.0041890641 |
+| 16 | Qualified, bound | 0.6672185925 | 1.6393501068 | 0.6505765210 | 0.3255853164 | 1.3788520596 |
+| 64 | Stopped continuation, unqualified | 0.1475110862 | 1.8999249908 | 0.4749812477 | 0.0436415096 | 1.9012591373 |
+| 256 | Qualified, bound | −0.2168355764 | 2.7549255181 | 0.4338735814 | 0.0029885727 | 1.7815422848 |
+
+The qualified population-16 and population-256 endpoints show decreasing energy per carrier, increasing radius and greater depletion. The stopped population-64 values lie between them in energy per carrier and radius but supply no qualified stationary result. This is consistent with a condensate-like droplet branch whose size depends on its prepared population. The finite charge set establishes neither a preferred particle size nor an asymptotic $Q_C^{1/3}$ law; it does not exclude additional branches or extrema between the sampled populations.
+
+The large bound endpoint is also independent of the tested box size at fixed spacing. Direct reconstruction gives:
+
+| Prepared $Q_C$ | Relative energy difference, $R=12$ versus $24$ | Relative RMS-radius difference | Interpretation |
+|---:|---:|---:|---|
+| 4 | $2.9865\times10^{-2}$ | $5.0558\times10^{-1}$ | The carrier spreads with the box |
+| 16 | $2.7482\times10^{-9}$ | $3.0284\times10^{-7}$ | Bound endpoint agrees at the tested spacing |
+| 256 | $2.4654\times10^{-11}$ | $2.5548\times10^{-10}$ | Bound endpoint agrees at the tested spacing |
+
+These comparisons use $R=12$ with 384 cells and $R=24$ with 768 cells. Agreement of the static profile does not establish domain-converged fluctuation spectra.
+
+At total prepared population 256, the qualified single-lump energy is $-55.5099075672$. Sixteen asymptotically separated population-16 lumps have trial energy $16E(16)=170.8079596834$ under the common exterior reference and negligible interactions. This particular energetic comparison favors the single large lump by $226.3178672506$. It supplies no real-time merger result and no stability test against every possible partition. Population 8 is absent, so there is no population-16 two-lump fission calculation. The diffuse population-4 box states cannot serve as localized fragments.
+
+### 6.2. Physical identification boundary
 
 The density-depletion mechanism is related to scalar non-topological soliton constructions such as the Friedberg–Lee–Sirlin model. Heeck and Sokhashvili study a relativistic second-order complex carrier with a Noether charge and a real-scalar mediator. Here $c$ is the nonnegative modulus of a first-order, gauge-neutral carrier with explicit self-repulsion and a conserved nonnegative population. The stationary ansatz has a rotating global carrier phase, while the measured binding is conditional density-trap self-binding at prepared population. Its microscopic interpretation, signed charge content and quantization require separate specification. A radial scalar profile supplies no derivation of fermionic spin, exchange statistics or the observed particle spectrum.
 
 ## 7. Constrained smooth-branch spectrum
 
 The smooth $Q_C=16$ solution has positive measured fixed-charge radial curvature, but the registered calculation does not establish domain-converged stability. The protocol in `computations/matter-formation-stability-prereg.md` fixes four raw stationary fields, six lowest eigenpairs per operator, the charge constraint, symmetry tests and resolution comparisons before evaluation. The mass-weighted amplitude Hessians $H_0|_{T_Q}$ and $H_1$ cover radial and dipole perturbations; a separate operator covers the carrier's imaginary component. Higher angular degrees add a nonnegative diagonal term to $H_1$ within this discretization.
+
+For an exact positive stationary carrier, the ground-state identity in
+`foundations/particle-stationary-action-closure.md` §8.7 makes the phase
+quadratic form nonnegative and assigns its zero mode to the global carrier
+phase. The numerical phase spectrum therefore checks the operator and
+stationarity; it supplies no independent resolution of the coupled-amplitude
+stability question. The frozen numerical criteria below remain unchanged.
 
 | Domain $R$ | Cells | $\lambda_{\min}(H_0|_{T_Q})$ | Dipole translation eigenvalue | Carrier phase eigenvalue | Per-grid verdict |
 |---:|---:|---:|---:|---:|---|
@@ -168,6 +213,7 @@ python computations/matter_formation_radial.py
 python computations/verify_matter_formation_radial.py
 python computations/matter_formation_stability.py --output-dir runs/20260906_matter_formation_stability_corrected
 python computations/verify_matter_formation_stability.py --input-dir runs/20260906_matter_formation_stability_corrected
+python computations/matter_formation_scaling.py
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
@@ -179,6 +225,9 @@ The remaining physical questions are the carrier-production action and quantum s
 - `computations/matter-formation-continuum-prereg.md`—frozen continuum, lattice and creation calculations.
 - `computations/matter-formation-stability-prereg.md`—frozen constrained spatial operators and decision tree.
 - `computations/matter_formation_stability_execution.json`—accepted source identities and numerical correction scope.
+- `computations/matter-formation-scaling-prereg.md`—post-campaign descriptive scope with frozen input identities.
+- `computations/matter_formation_scaling.py`—population, radius, depletion, bulk and specific-partition summaries.
+- `runs/20260906_matter_formation_scaling/scaling.json`—hash-bound descriptive results; parent verdicts unchanged.
 - `foundations/particle-stationary-action-closure.md` §8.7—continuity law, conditional scalar reduction, radial equations and ultraviolet boundary.
 - `foundations/matter-completion-boundary.md`—full matter-formation requirements.
 - `computations/particle-carrier-resolution-recovery-report.md`—four stored Cartesian endpoints.

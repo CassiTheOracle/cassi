@@ -74,7 +74,7 @@ The finest Cartesian artifact has $99.98631608\%$ of its carrier norm on one
 parity sublattice; the nearest-neighbour diagnostic identifies the centred
 derivative's Nyquist pathology, with edge energy growing like
 $\Delta x^{-2}$. The frozen verdict is
-`CONTRADICTS` for smooth-carrier interpretation on the measured sequence.
+`CONTRADICTS—smooth-carrier interpretation on the measured sequence`.
 A separate continuum scalar density-trap calculation at the same $h_C$
 finds prepared static binding for $Q_C=16$ and $256$, while $Q_C=4$ spreads
 in tested basins and $Q_C=64$ is inconclusive because its residual fails.
@@ -831,7 +831,7 @@ the analytic carrier-phase symmetry and five positive modes. The finest
 Cartesian artifact's $99.98631608\%$ parity concentration and
 $\Delta x^{-2}$ edge-energy growth expose the centred-derivative Nyquist
 pathology; the frozen verdict is
-`CONTRADICTS` for smooth-carrier interpretation on the measured sequence.
+`CONTRADICTS—smooth-carrier interpretation on the measured sequence`.
 A separate continuum scalar calculation finds prepared static binding at
 $Q_C=16$ and $256$, while $Q_C=4$ spreads in tested basins and $Q_C=64$ is
 inconclusive because its residual fails. The smooth $Q_C=16$ constrained
@@ -930,7 +930,7 @@ Complete receipts are recorded in
 | Is there a finite reduced separation? | Yes when $A_C>C_Q$, uniquely, with bounds (CC38) and positive curvature (CC39) |
 | Is the carrier retained at that separation? | Only when the chemical-potential condition (CC42) also holds |
 | Is the reduced root outside core overlap? | Only when a matching condition such as (CC40) holds |
-| Is a full stationary particle established? | No. The stored Cartesian branch has a matched six-mode finite-grid spectrum but fails its smooth-carrier diagnostic. Separate continuum-consistent scalar binding at prepared $Q_C=16,256$ is independently reproduced; smooth $Q_C=16$ constrained spatial stability is INCONCLUSIVE. The closed-boundary action preserves $Q_C=0$. Production, full continuum and temporal stability, normalization, topology-changing competitors and physical particle identity remain open |
+| Is a full stationary particle established? | No. The stored Cartesian branch has a matched six-mode finite-grid spectrum but fails its smooth-carrier diagnostic. Separate continuum-consistent scalar binding at prepared $Q_C\in\{16,256\}$ is independently reproduced; smooth $Q_C=16$ constrained spatial stability is INCONCLUSIVE. The closed-boundary action preserves $Q_C=0$. Production, full continuum and temporal stability, normalization, topology-changing competitors and physical particle identity remain open |
 | Is a physical mass or parameter-free numerical prediction obtained? | No |
 
 The reduced support claims are checked by
@@ -968,7 +968,7 @@ no negative mode, and five positive modes.
 The finest Cartesian carrier places $99.98631608\%$ of its norm on one
 parity sublattice, and its edge-gradient energy contradicts the
 smooth-carrier interpretation on the measured sequence. Separate
-continuum-consistent scalar binding at prepared $Q_C=16,256$ is reproduced by
+continuum-consistent scalar binding at prepared $Q_C\in\{16,256\}$ is reproduced by
 independent collocation. Smooth $Q_C=16$ constrained spatial stability is
 INCONCLUSIVE because the coarse translation and domain criteria fail.
 The first-order carrier action preserves an exactly empty closed sector.

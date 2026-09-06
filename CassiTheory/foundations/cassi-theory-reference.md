@@ -1221,7 +1221,7 @@ quantum numbers and decay rates remain open. See
 The separate particle action preserves an exactly empty closed carrier sector.
 Its Cartesian localized sequence fails the smooth-carrier diagnostic.
 A continuum-consistent scalar reduction independently reproduces static
-binding at prepared $Q_C=16,256$ at a Mapped coupling; smooth $Q_C=16$
+binding at prepared $Q_C\in\{16,256\}$ at a Mapped coupling; smooth $Q_C=16$
 constrained spatial stability remains INCONCLUSIVE. Microscopic production,
 full dynamics and physical particle identity are unclosed
 (`computations/matter-formation-continuum-report.md`).

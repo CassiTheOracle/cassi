@@ -1056,6 +1056,25 @@ $$
 $$
 
 with $f'(0)=c'(0)=0$, $f(R)=1$, $c(R)=0$, and fixed $Q_C$.
+
+For an exact nodeless stationary carrier, the imaginary-component quadratic
+form is nonnegative by a ground-state identity. Set
+$U_C=e_C-h_C(1-f^2)$ and
+$H_{\rm phase}=-\Delta+2(U_C-\omega_C)+2u_Cc^2$, so the carrier equation gives
+$H_{\rm phase}c=0$. For a real perturbation $b=c\vartheta$ with vanishing
+boundary terms, integration by parts yields
+
+$$
+\langle b,H_{\rm phase}b\rangle
+=\int c^2|\nabla\vartheta|^2\,d^3x\ge0.
+$$
+
+The global carrier phase has $b\propto c$ and zero curvature. This identity
+applies to admissible perturbations of the positive stationary profile;
+it makes the numerical phase spectrum a check of the operator and
+stationarity. The coupled amplitude operators still carry the unresolved
+spatial stability question.
+
 `computations/matter-formation-continuum-report.md` records the finite-volume
 and independent collocation calculation at the selected coefficients.
 
@@ -1067,10 +1086,19 @@ energies grow from $107.8149354$ to $146.7857405$, while their
 $\Delta x^2$-weighted values remain $11.9794373$ and $11.9825094$.
 The centred derivative has symbol $i\sin(k\Delta x)/\Delta x$, including a
 Nyquist zero; its squared energy does not uniformly control a nearest-neighbour
-gradient. The frozen spatial diagnostic returns `CONTRADICTS` for a smooth
-carrier interpretation on this measured sequence. The finite-grid PA42
+gradient. The scoped spatial verdict is
+`CONTRADICTS—smooth-carrier interpretation on the measured sequence`. The finite-grid PA42
 eigenpairs remain scoped to that lattice stationary field. The scalar
 continuum calculation supplies a distinct variational discretization.
+
+The qualified scalar endpoints at prepared $Q_C=16$ and $256$ have increasing
+radius and decreasing energy per carrier. Their mediator cores become more
+strongly depleted. This finite comparison is consistent with charge-dependent
+condensate-like droplets and establishes no preferred particle size.
+The population-256 lump has lower energy than the trial state of sixteen
+asymptotically separated population-16 lumps under the same reference.
+This specific comparison supplies no universal fission or dynamical merger
+result (`computations/matter-formation-continuum-report.md` §6).
 
 ## 9. What is closed and what remains open
 
@@ -1087,7 +1115,7 @@ continuum calculation supplies a distinct variational discretization.
 | Is a numerical coefficient point selected? | Yes; $h_C=2.9598260763447164$ is selected by a frozen ordered numerical scan, so its physical calibration remains open and its status is Mapped |
 | Does a physically stationary, localized, retained finite-grid configuration exist in the registered class? | Yes; the Cartesian branch qualifies under its centred-difference action, while the edge-gradient diagnostic contradicts a smooth-carrier interpretation on that sequence. A separate continuum-consistent scalar calculation supports prepared static binding at $Q_C=16$ and $256$ |
 | Is any basin the unrestricted global minimum? | Undetermined and not established by finite controls |
-| Is the full physical Hessian or mixed dynamical spectrum evaluated? | No. The stored Cartesian fields have independently matched low energetic spectra in a finite-grid $C_4$ quotient. Their phase modes have grid-scale structure. The separate smooth $Q_C=16$ constrained spatial study has no resolved negative mode on four tested grids, but its combined verdict is INCONCLUSIVE because the coarse symmetry and domain comparisons fail. Full temporal and nonlinear stability remain open |
+| Is the full physical Hessian or mixed dynamical spectrum evaluated? | No. The stored Cartesian fields have independently matched low energetic spectra in a finite-grid $C_4$ quotient. Their phase modes have grid-scale structure. The separate smooth $Q_C=16$ constrained spatial study has no resolved negative mode on four tested grids, but its combined verdict is `INCONCLUSIVE` because the coarse symmetry and domain comparisons fail. Full temporal and nonlinear stability remain open |
 | Can carriers form from an exactly empty closed sector? | No; the homogeneous first-order carrier equation preserves $Q_C=0$. A microscopic production action and quantum content are missing |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 

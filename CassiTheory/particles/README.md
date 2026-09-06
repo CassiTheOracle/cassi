@@ -1,6 +1,6 @@
 # Particles—Conditional Interference and DFT Benchmarks
 
-## Status: Index—August 2026
+## Status: Index—September 2026
 
 ## Abstract
 

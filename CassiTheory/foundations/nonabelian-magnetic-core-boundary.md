@@ -61,7 +61,7 @@ is ultraviolet-dominated: $99.98631608\%$ of its carrier norm lies on one
 parity sublattice, and the nearest-neighbour diagnostic exposes the centred
 derivative's Nyquist pathology with edge energy growing as $\Delta x^{-2}$.
 The frozen verdict is
-`CONTRADICTS` for smooth-carrier interpretation on the measured sequence.
+`CONTRADICTS—smooth-carrier interpretation on the measured sequence`.
 Under closed boundaries, $Q_C(0)=0\Rightarrow\chi_C(t)=0$, so the
 source-free first-order action supplies no carrier-creation mechanism.
 Separately, a continuum scalar density-trap calculation at the same $h_C$
@@ -835,7 +835,7 @@ with the analytic global carrier-phase symmetry, no negative mode, and five
 positive modes. The phase mode is not a resolved continuum mode: the finest
 Cartesian artifact has $99.98631608\%$ of its carrier norm on one parity
 sublattice and the frozen verdict is
-`CONTRADICTS` for smooth-carrier interpretation on the measured sequence.
+`CONTRADICTS—smooth-carrier interpretation on the measured sequence`.
 
 A physical dynamical spectrum still requires:
 
@@ -880,7 +880,7 @@ PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode,
 no negative mode, and five positive modes. The Cartesian artifact is
 ultraviolet-dominated with $99.98631608\%$ of its carrier norm on one parity
 sublattice, so the frozen smooth-carrier verdict is
-`CONTRADICTS` on the measured sequence.
+`CONTRADICTS—smooth-carrier interpretation on the measured sequence`.
 The closed-boundary law preserves the empty carrier sector. A separate
 continuum scalar calculation finds prepared static binding at $Q_C=16$ and
 $256$, while $Q_C=4$ spreads and $Q_C=64$ is inconclusive because its residual
@@ -937,7 +937,7 @@ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase
 symmetry mode, no negative mode, and five positive modes. The Cartesian
 artifact is ultraviolet-dominated, with $99.98631608\%$ of its carrier norm
 on one parity sublattice and the frozen verdict
-`CONTRADICTS` for smooth-carrier interpretation on the measured sequence.
+`CONTRADICTS—smooth-carrier interpretation on the measured sequence`.
 Under closed boundaries, $Q_C(0)=0\Rightarrow\chi_C(t)=0$. A separate
 continuum scalar calculation finds prepared static binding at $Q_C=16$ and
 $256$, while $Q_C=4$ spreads in tested basins and $Q_C=64$ is inconclusive.

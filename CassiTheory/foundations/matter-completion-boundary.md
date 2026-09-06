@@ -31,7 +31,7 @@ exterior, microscopic coefficients, multimode carrier map, reservoir action,
 state-dependent gravity and particle identification remain open. At the
 Mapped coupling $h_C=2.9598260763447164$, the stored Cartesian localized
 branch has a matched six-mode constrained finite-grid spectrum, but its
-parity-concentrated carrier fails the smooth-continuum diagnostic.
+parity-concentrated carrier fails the smooth-carrier diagnostic.
 A separate continuum-consistent scalar calculation supports static binding
 at prepared $Q_C=16$ and $256$, reproduced by independent collocation.
 The smooth $Q_C=16$ constrained spatial stability verdict is `INCONCLUSIVE`.
@@ -883,7 +883,7 @@ before it can describe signed charge and particle–antiparticle production.
 The immutable Cartesian localized sequence is parity-concentrated: its finest
 carrier puts $99.98631608\%$ of its norm on one of eight sublattices, and its
 nearest-neighbour gradient energy grows approximately as $\Delta x^{-2}$.
-The registered smooth-carrier interpretation is `CONTRADICTS` on this sequence.
+The scoped verdict is `CONTRADICTS—smooth-carrier interpretation on the measured sequence`.
 A separate continuum-consistent scalar reduction of the same trivial-sector
 action finds bound prepared populations at $Q_C=16$ and $256$, reproduced by
 independent collocation. The $Q_C=4$ profiles spread with the domain; the

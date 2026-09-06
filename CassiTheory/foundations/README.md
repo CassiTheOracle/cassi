@@ -341,7 +341,7 @@ carrier supplies one conditional reduced separation under support, retention,
 and matching inequalities. The separate particle action preserves an exactly
 empty carrier sector. Its stored Cartesian branch has a matched finite-grid
 spectrum but fails the smooth-carrier diagnostic. A continuum-consistent
-scalar calculation supports prepared $Q_C=16,256$ binding, with INCONCLUSIVE
+scalar calculation supports prepared $Q_C\in\{16,256\}$ binding, with INCONCLUSIVE
 smooth $Q_C=16$ constrained spatial stability
 (`computations/matter-formation-continuum-report.md`). Physical endpoint
 normalization, scale tension, proton quantum numbers, production and decay
@@ -548,7 +548,7 @@ problem.
 
 At the Mapped coupling $h_C=2.9598260763447164$, the separate particle action
 has a parity-concentrated Cartesian localized branch and independently
-reproduced smooth scalar binding at prepared $Q_C=16,256$. The former fails
+reproduced smooth scalar binding at prepared $Q_C\in\{16,256\}$. The former fails
 the smooth-carrier diagnostic; the latter has an INCONCLUSIVE constrained
 spatial stability result at $Q_C=16$. The first-order carrier population
 cannot emerge from exactly empty closed-sector data. Physical endpoint
@@ -659,9 +659,9 @@ map, and full fluctuation problem. Its nine finite algebraic and reduced
 analytic checks pass.
 
 The separate carrier action has an exact empty-sector invariant. Its stored
-Cartesian branch is parity-concentrated and fails the smooth-continuum
+Cartesian branch is parity-concentrated and fails the smooth-carrier
 diagnostic. A continuum-consistent scalar calculation supports prepared
-$Q_C=16,256$ binding with independent collocation agreement; smooth
+$Q_C\in\{16,256\}$ binding with independent collocation agreement; smooth
 $Q_C=16$ constrained spatial stability remains INCONCLUSIVE. Reservoir
 stress, gravity selection, microscopic production and physical particle
 identity remain open (`computations/matter-formation-continuum-report.md`).
@@ -780,7 +780,7 @@ $\hbar\omega_C<\varepsilon_{C,\rm out}$, and separation beyond core overlap
 remain independent requirements. The full carrier action conserves its
 nonnegative population and preserves an exactly empty closed sector. Its
 Cartesian branch fails the smooth-carrier diagnostic, while a separate
-continuum-consistent scalar calculation binds prepared $Q_C=16,256$ with
+continuum-consistent scalar calculation binds prepared $Q_C\in\{16,256\}$ with
 independent collocation agreement. Smooth $Q_C=16$ constrained spatial
 stability remains INCONCLUSIVE; creation, full dynamics and physical identity
 remain open (`computations/matter-formation-continuum-report.md`). Status:
@@ -809,7 +809,7 @@ concentrated at grid scale.
 At the Mapped coupling $h_C=2.9598260763447164$, the stored Cartesian
 localized branch has a matched six-mode constrained finite-grid spectrum
 and fails the smooth-carrier diagnostic. The exact scalar reduction gives
-independently reproduced static binding at prepared $Q_C=16,256$; smooth
+independently reproduced static binding at prepared $Q_C\in\{16,256\}$; smooth
 $Q_C=16$ constrained spatial stability is INCONCLUSIVE. The first-order
 carrier law preserves empty-sector data, leaving microscopic creation and
 physical normalization open. See `computations/matter-formation-continuum-report.md`,
