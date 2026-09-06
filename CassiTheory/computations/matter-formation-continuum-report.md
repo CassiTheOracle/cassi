@@ -542,6 +542,8 @@ $H_{\rm original}=E_{\rm sc}+a\omega^2N$ and
 $H_{\rm can}=E_{\rm sc}+[1/(2a)+\omega_C]N$, with
 $\omega=\Omega-1/(2a)$. There is no independent offset fitted to either Hamiltonian.
 
+The receipt field `original_frequency` is $\omega=(\sqrt{1+4a\omega_C}-1)/(2a)$, the branch solving $\omega+a\omega^2=\omega_C$ with positive $1+2a\omega$. The fixed profile supplies the common $\omega_C$; each selected $a$ therefore has its own $\omega$ and charge $\mathcal Q=N\sqrt{1+4a\omega_C}$.
+
 ### 12.2 One mass leaves a normalization family
 
 The external target is $\mathscr E_*=0.511\ \mathrm{MeV}$, taken from the electron mass entry. It is imposed as the *vacuum canonical scalar mass* $\hbar M_a(1)/t_Q$. The common propagation speed is set to $c$, and the scalar's own $U(1)$ generator is assigned one unit by $\mathcal N_Q\mathcal Q=1$. This generator is distinct from electric charge. No electron spin, statistics or interaction is assumed.
@@ -652,6 +654,8 @@ These finite-dimensional witnesses confirm the exact conjugacy and reality obstr
 
 They are algebraic checks of the specified map and interaction, with no fermion-production simulation. The conditional sector-scale arithmetic survives, but it selects no admissible operator or transport rate (`foundations/sector-coupling-derivation.md` §1). A local scalar normalization also preserves its $2\pi$ rotation phase $+1$, whereas a Dirac spinor has phase $-1$. Fermionic topological solitons would require a separate configuration space and quantization absent from this scalar restriction.
 
+Other nonnegative spinor observables remain available. The existing `two-fluid/cassi_dirac_bridge.py` evaluates $\|u-v\|^2,\|u+v\|^2$ for its upper/lower two-component blocks, as well as Pauli spin and current bilinears. The two nonnegative forms sum to $2\psi^\dagger\psi$ and are separate from the tested $B_R,B_L$ (`foundations/sector-coupling-derivation.md` §1.2). Their physical density dictionary, conversion dynamics and fine-structure interpretation are outside this frozen experiment and remain unestablished.
+
 ### 12.6 Accepted identities and failed-input control
 
 The canonical CRLF-to-LF SHA-256 identities are:
@@ -724,6 +728,7 @@ The remaining physical requirements are a selected microscopic production action
 - `computations/verify_matter_formation_normalization.py`—independent face quadrature, unit reconstruction and two-component witnesses.
 - `runs/20260906_matter_formation_normalization/results.json` and `runs/20260906_matter_formation_normalization/verification.json`—accepted conditional normalization nonuniqueness and scoped identification exclusions.
 - `foundations/sector-coupling-derivation.md` §1—dimensional, positivity and Hermiticity boundaries of the displayed Dirac identification.
+- `two-fluid/cassi_dirac_bridge.py`—alternative component-quadratic, spin and current diagnostics outside the frozen experiment; physical density and fine-structure interpretations remain unestablished.
 - `foundations/particle-stationary-action-closure.md` §8.7—continuity law, conditional scalar reduction, radial equations and ultraviolet boundary.
 - `foundations/matter-completion-boundary.md`—full matter-formation requirements.
 - `computations/particle-carrier-resolution-recovery-report.md`—four stored Cartesian endpoints.

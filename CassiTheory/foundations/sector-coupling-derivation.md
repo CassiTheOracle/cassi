@@ -42,7 +42,7 @@ $$
 B_R=L^\dagger R,\qquad B_L=R^\dagger L=B_R^*.
 $$
 
-These quantities need not be real or positive. Taking $L=(1,0)$ and $R=(i,0)$ gives $(B_R,B_L)=(i,-i)$; taking $R=-L$ gives $(-1,-1)$. A pure left-handed spinor has both scalar bilinears zero despite a nonzero spinor density. The operator adjoint identity also constrains quantum expectation values. It supplies no two independent Hermitian positive-density operators.
+These quantities need not be real or positive. Taking $L=(1,0)$ and $R=(i,0)$ gives $(B_R,B_L)=(i,-i)$; taking $R=-L$ gives $(-1,-1)$. A pure left-handed spinor has both scalar bilinears zero despite a nonzero spinor density. The operator adjoint identity also constrains quantum expectation values. These two chiral scalars supply no two independent Hermitian positive-density operators.
 
 If a common real normalization identifies both bilinears with real nonnegative condensate squares, conjugacy forces those squares to be equal. For $z=B_R$, the required golden ratio would impose
 
@@ -60,6 +60,16 @@ $$
 Independent unequal bridge coefficients would insert the desired density ratio into the dictionary as an additional selected input. They would still need a real positive observable assignment for general states.
 
 The frame densities $n_R=R^\dagger R$ and $n_L=L^\dagger L$ are nonnegative for ordinary complex spinors and can have ratio $\varphi$. They are components of chiral currents referred to a timelike observer, rather than the Lorentz scalars used above. A physical use of those currents requires an observer or foliation, a quantum-state and particle/antiparticle prescription, and an evolution law connecting them to the canonical conversion dynamics. None is selected by the arithmetic sector scale.
+
+An existing component-level implementation supplies a separate nonnegative pair. In `two-fluid/cassi_dirac_bridge.py`, `yang_yin_density` splits the Dirac spinor into upper and lower two-component blocks $u,v$ (the code's large/small convention) and evaluates
+
+$$
+Y_{\rm bridge}=\|u-v\|^2,\qquad
+I_{\rm bridge}=\|u+v\|^2,\qquad
+Y_{\rm bridge}+I_{\rm bridge}=2\psi^\dagger\psi.
+$$
+
+For ordinary complex amplitudes, both quadratic forms are positive-semidefinite: either can vanish for a nonzero spinor. The blocks $u,v$ are distinct from the Weyl chirality labels $L,R$ used in the excluded chiral-scalar map. The helper also evaluates Pauli spin and $\psi^\dagger\alpha_i\psi$ current bilinears. Algebraic positivity of the pair leaves physical state preparation, observer dependence, quantum interpretation and matching to the canonical conversion law open. These diagnostics are outside the frozen normalization experiment; the helper's fine-structure interpretation has no adopted derivation or validation in this calculation.
 
 ### 1.3 Reality of the displayed interaction
 
@@ -163,6 +173,7 @@ The two-fluid's real-density description supplies no Dirac field by itself. Addi
 - `foundations/particle-stationary-action-closure.md` §8.12—scalar physical-normalization and particle-identity boundary.
 - `computations/matter-formation-normalization-prereg.md`—frozen unit-normalization, bilinear and action-reality checks.
 - `computations/matter-formation-continuum-report.md` §12—independently verified normalization family and microscopic-identification exclusions.
+- `two-fluid/cassi_dirac_bridge.py`—exploratory Dirac kinetics and nonnegative quadratic, spin and current diagnostics; physical density and fine-structure interpretations remain unestablished.
 - `foundations/dimensionful-cascade.md` §§2–3—cascade scales and coordinates.
 - `gravity/quantum-gravity.md` §2.1—conditional shared offset $\delta=3$.
 - `computations/kappa_s_rung_identity.py`—formal sector-scale arithmetic.

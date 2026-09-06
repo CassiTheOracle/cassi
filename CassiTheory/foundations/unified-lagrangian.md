@@ -428,6 +428,12 @@ The canonical $E_Y,E_I\ge0$ and their algebraic $q$ remain defined by §1.
 No fermion density dictionary or production mechanism follows from the
 chiral-scalar assignment (`foundations/sector-coupling-derivation.md` §1).
 
+The component helper `two-fluid/cassi_dirac_bridge.py` also supplies the
+nonnegative quadratic pair $\|u-v\|^2,\|u+v\|^2$ in its upper/lower-component
+convention. Their algebraic positivity leaves their physical density
+interpretation and canonical dynamical matching open
+(`foundations/sector-coupling-derivation.md` §1.2).
+
 ### 2.3 Scalar Interaction and Dissipation Boundary
 
 The expression $-\varphi^{-1}(\bar\psi\psi)\rho/2$ has mass dimension five
@@ -868,7 +874,7 @@ The table separates the canonical two-fluid core from optional Dirac, gauge, and
 | Sector | Action | Document |
 |--------|--------|----------|
 | Two-fluid core | $S_{\text{TF}} = \int\mathcal{L}_{\text{TF}}$ | `foundations/cassi-first-principles.md` |
-| Dirac matter (optional extension) | $S_{\text{D}} = \int\mathcal{L}_{\text{D}}$ | `two-fluid/cassi_dirac_bridge.py`, `particles/cassi-yang-yin-particles.md` |
+| Dirac matter (optional extension) | $S_{\text{D}} = \int\mathcal{L}_{\text{D}}$ | This document §2.4; `two-fluid/cassi_dirac_bridge.py` as a Dirac-kinetic implementation reference only, with physical density and fine-structure interpretations unestablished; `particles/cassi-yang-yin-particles.md` for the optional particle interpretation |
 | Gravity | $S_{\text{GR}} = \int\mathcal{L}_{\text{GR}}$ | `foundations/xi-derivation.md`, `(external—see archive/theory/qi-fluid-formalism.md in physics repo)` |
 | SM gauge | $S_{\text{SM}} = \int\mathcal{L}_{\text{SM}}$ | `standard-model/su2-gauge-extension.md`, `standard-model/sm-from-phi.md` |
 | Mixing (optional Hypothesized structures) | $S_{\text{mix}} = \int\mathcal{L}_{\text{mix}}$ | This document §5.5; direct Dirac/two-fluid identification has dimensional, positivity and Hermiticity obstructions |

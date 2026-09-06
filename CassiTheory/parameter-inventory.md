@@ -171,6 +171,14 @@ Hermitian microscopic interaction, suitable positive-density or current
 observables, preparation and coarse-grained transport matching. A mass
 normalization or a numerical grid factor does not determine these inputs.
 
+The existing Dirac helper evaluates nonnegative squared-sum and
+squared-difference observables, together with spin and current bilinears
+(`two-fluid/cassi_dirac_bridge.py`;
+`foundations/sector-coupling-derivation.md` §1.2). These are separate from
+the excluded chiral scalars. Their physical matching to the canonical
+densities, a transport rate and the fine-structure constant is outside
+the normalization calculation and remains unestablished.
+
 **$D$ and $\nu$ (scalar density diffusion and velocity viscosity)** are
 numerical solver coefficients. In the canonical equations, $D\nabla^2E_{Y/I}$
 acts on the density fields, while $\nu\nabla^2\mathbf u$ acts on the shared
