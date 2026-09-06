@@ -111,6 +111,15 @@ subtraction are supplied assumptions; physical Cassi matching,
 continuum renormalization and localized matter formation remain open
 (`computations/matter-formation-continuum-report.md` §14).
 
+The continuum calculation narrows this model's scope. Sudden mass
+changes and square pulses produce ultraviolet-divergent excitation
+energy. A specified static subtraction is verified, while compatible
+initial states and dynamical renormalization remain required. The
+unchanged coupling excludes two-body binding in the leading
+nonrelativistic Yukawa approximation. All 645 independent comparisons
+pass; relativistic and many-body localization remain open
+(`computations/matter-formation-continuum-report.md` §15).
+
 ## The reality-simulation program
 
 The reality simulator turns theoretical statements into dynamics that can be perturbed and measured. Its target is a field engine that supports local evolution, structure formation, gravity, particles, scale coupling, and cosmological behavior without changing the underlying computational vocabulary at every domain boundary.

@@ -53,7 +53,7 @@ interaction. The derivation and measured scope are in
 | 25 | `microcascade-mirror.md` | Formal negative-step coordinate; physical realization open | Hypothesized |
 | 26 | `refined-numeric-predictions.md` | Pinned φ-powers | Active derivation |
 | 27 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
-| 28 | `sector-coupling-derivation.md` | Conditional Sector Scale and the Dirac Density Obstruction | Derived conditional scale, chiral-current, closure and fermionic identities / Tested finite-mode production / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026 |
+| 28 | `sector-coupling-derivation.md` | Conditional Sector Scale and the Dirac Density Obstruction | Derived conditional sector and fermionic identities / Tested finite-mode production and continuum restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026 |
 | 29 | `wake-geometry.md` | Wake geometry | Derived supplied-wave structure; tested conditional second-order realization; physical condensation open |
 | 30 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
 | 31 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
@@ -522,6 +522,15 @@ six trajectories, with all 1,185 checks passing
 The finite-mode model assumes its spinor field, scalar source, coupling,
 state and subtraction. Physical identification, continuum quantum dynamics
 and localized matter formation remain open.
+
+The continuum witness independently verifies the sudden-source
+ultraviolet divergence, a specified static subtraction and a
+logarithmic initial-overlap mismatch. At the unchanged parameters,
+$B=0.00165786399054<1$ excludes two-body binding in the leading
+nonrelativistic Yukawa reduction. All 645 comparisons pass.
+Renormalized dynamics, relativistic and many-body localization and
+physical matching remain open
+(`computations/matter-formation-continuum-report.md` §15).
 
 ### `wake-geometry.md`—The Wake Geometry: Composite-Wavelength Closure and the Horizon Rung
 

@@ -754,6 +754,16 @@ matching, continuum renormalization and localized formation remain
 open, so this result supplies no additional physical prediction
 (`computations/matter-formation-continuum-report.md` §14).
 
+The corresponding continuum calculation is restrictive. Sudden
+quench and pulse preparations have ultraviolet-divergent excitation
+densities, and the unchanged normalized Yukawa interaction has no
+two-body bound state in its leading nonrelativistic reduction.
+All 645 independent comparisons verify the stated asymptotes,
+static subtraction, initial overlap and sufficient binding bound.
+These conditional restrictions add no physical prediction or fitted
+parameter; renormalized spatial formation and particle matching
+remain open (`computations/matter-formation-continuum-report.md` §15).
+
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;
 `computations/matter_completion_boundary_check.py`;

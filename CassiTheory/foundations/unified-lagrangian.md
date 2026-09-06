@@ -497,6 +497,18 @@ canonical density conversion or physical production rate. Its field
 content, physical scales and interaction matching remain independent
 microscopic assumptions.
 
+The continuum witness establishes additional requirements at these
+unchanged parameters. Sudden mass changes and square pulses have
+linearly divergent pair density and quadratically divergent excitation
+energy. A specified fourth-order static subtraction has a verified
+finite remainder; initial-state and kinetic divergences require their
+own compatible renormalization. The static nonrelativistic pair
+reduction has a sufficient no-binding bound
+$B=0.00165786399054<1$. This result leaves relativistic and many-body
+localization open. All 645 independent comparisons pass
+(`foundations/sector-coupling-derivation.md` §§1.8–1.9;
+`computations/matter-formation-continuum-report.md` §15).
+
 ## 3. GR/Gravity Sector $\mathcal{L}_{\text{GR}}$
 
 Gravity is an optional Einstein–Hilbert extension with a candidate

@@ -1,12 +1,14 @@
 # Conditional Sector Scale and the Dirac Density Obstruction
 
-## Status: Derived conditional scale, chiral-current, closure and fermionic identities / Tested finite-mode production / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
+## Status: Derived conditional sector and fermionic identities / Tested finite-mode production and continuum restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
 
 ## Abstract
 
 The arithmetic scale $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2$ follows from the stipulated offset $\delta=3$ and the external electroweak anchor $v_0$. Its inverse square root is $\varphi^3v_0\approx1.04\ \mathrm{TeV}$. A physical interaction requires further microscopic input. The proposed chiral-scalar identification compares fields of different mass dimension and uses complex-conjugate bilinears whose simultaneous real positive values must be equal. Its displayed squared enforcement expression is generically non-Hermitian. The separate component-quadratic observables in the Dirac helper are nonnegative chiral-current densities. Their closed evolution depends on relative coherence; stationary positive-energy states also fail the proposed canonical population conversion. Adding the existing minimal conversion lift to a nonzero Dirac mass changes the golden population fixed point and allows transitions out of the positive-energy one-particle subspace. These are conditional boundaries on the specified microscopic and reduced descriptions. A physical fermion coupling requires an admissible interaction, a state and reservoir prescription, and a controlled density reduction.
 
 A separately declared real scalar mass interaction admits a fermionic vacuum and an explicit production-energy ledger. Its finite-mode covariance evolution preserves Pauli bounds and vector charge, while a classical scalar mean field can supply coherent pair excitation with reciprocal feedback. This construction assumes its spinor content, vacuum, scalar source and finite-volume subtraction. Physical normalization, canonical density reduction, continuum quantum dynamics and localized particle formation remain open.
+
+Independent continuum quadratures verify the sudden-source ultraviolet divergence, a specified static one-loop subtraction and a logarithmic initial-state overlap mismatch. At the unchanged coupling, a sufficient bound excludes two-body binding in the leading nonrelativistic scalar-exchange reduction. The renormalized spatial quantum model and its physical identification remain open.
 
 ## 1. The projection and its mathematical boundary
 
@@ -289,6 +291,152 @@ Physical mode content and scales, a two-fluid identification, the
 accuracy of the mean-field approximation, spatially localized production
 and measured particle identities remain unselected.
 
+### 1.8 Continuum vacuum and initial-state requirements
+
+Adding arbitrarily high momenta exposes contributions that a finite set
+of modes cannot resolve. For the explicitly declared isotropic measure
+$\int_{\mathbf p}^{\Lambda}=(2\pi^2)^{-1}\int_0^\Lambda p^2dp$,
+occupation $n$ remains per spin. The pair density is
+$N_{\rm pair}=2\int_{\mathbf p}^{\Lambda}n$, the combined particle and
+antiparticle density is $N_{\rm exc}=2N_{\rm pair}$, and their positive
+excitation energy is $\rho_{\rm exc}=4\int_{\mathbf p}^{\Lambda}E_{\rm out}n$.
+
+A sudden mass change has $n_q=\delta^2/(4p^2)+O(p^{-4})$, where
+$\delta=m_1-m_0$. Its pair density therefore diverges linearly and its
+excitation energy quadratically. A cyclic square pulse at any fixed
+positive duration has twice the leading coefficients:
+
+$$
+\boxed{\begin{array}{c|cc}
+&N_{\rm pair}/\Lambda&\rho_{\rm exc}/\Lambda^2\\\hline
+\text{sudden change}&\delta^2/(4\pi^2)&\delta^2/(4\pi^2)\\
+\text{square pulse}&\delta^2/(2\pi^2)&\delta^2/(2\pi^2)
+\end{array}\quad(\Lambda\to\infty).}
+$$
+
+The pulse energy also has an oscillatory $O(\Lambda)$ cutoff term.
+These positive out-particle energies depend on source preparation;
+subtracting a static vacuum energy does not make the sudden histories
+finite-energy continuum preparations.
+
+The instantaneous negative-energy sea has a separate local divergence.
+Including both spin states, its fixed-reference energy per momentum cell is
+
+$$
+v(p,m)=2\left[\frac{p^2+mm_0}{E_0}-E\right]
+=-\frac{\delta^2}{p}
++\frac{\tfrac32m_0^2\delta^2+m_0\delta^3+\delta^4/4}{p^3}
++O(p^{-5}).
+$$
+
+Its integrated leading term is $-\delta^2\Lambda^2/(4\pi^2)$.
+The scalar mass, cubic and quartic local contributions consequently
+require counterterms after the constant and linear reference terms have
+been fixed. A specified static subtraction can remove the Taylor
+polynomial $T_4v$ through fourth order in $\delta$ and impose zero
+reference derivatives through that order. Its finite remainder is
+
+$$
+\mathcal V_R(m)=
+-\frac{m^4\log(m^2/m_0^2)-2m_0^3\delta-7m_0^2\delta^2
+-\tfrac{26}{3}m_0\delta^3-\tfrac{25}{6}\delta^4}{16\pi^2}.
+$$
+
+This condition fixes a static one-loop subtraction scheme. Physical
+finite parts and a globally viable scalar potential require matching.
+Baacke, Heitmann and Pätzold use $m=g\phi$ with no additive bare fermion
+mass; their model-specific absence of an infinite scalar-mass counterterm
+does not apply to the present expansion $m=m_0+yf$.
+
+Time dependence also introduces a kinetic divergence. The first
+adiabatic correction to a negative-energy Bloch vector is
+$r_y^{(1)}=-p\dot m/(2E^3)$, giving energy
+$\dot m^2 I_\Lambda/4$ at the reference, where
+
+$$
+I_\Lambda=\frac{\operatorname{arsinh}(\Lambda/m_0)-u-u^3/3}{2\pi^2},
+\qquad u=\frac{\Lambda}{\sqrt{\Lambda^2+m_0^2}}.
+$$
+
+A local scalar kinetic counterterm has
+$\delta Z_\Lambda=-y^2I_\Lambda/2$ in this reference convention.
+Its logarithmic normalization agrees with the homogeneous one-loop
+counterterm of Baacke, Heitmann and Pätzold, Eq. (4.24).
+
+Initial-state regularity is an additional requirement. At nonzero
+$\nu=\dot m(0)$, the pure normalized first-adiabatic-direction state
+has overlap occupation
+$n_{\rm ov}=\tfrac12[1-(1+b^2)^{-1/2}]$ relative to the static vacuum,
+where $b=p\nu/(2E_0^3)$. Thus
+$n_{\rm ov}=\nu^2/(16p^4)+O(p^{-6})$, and the overlap excitation energy
+has logarithmic coefficient $\nu^2/(8\pi^2)$. This comparison diagnoses
+the ultraviolet mismatch between the two specified preparations; it
+does not compute renormalized time-dependent production.
+Even when $\dot m(0)=0$, higher initial derivatives can generate
+initial singularities: the cited one-loop construction treats the
+$\ddot m(0)$ term in its Eq. (5.1) by a Bogoliubov preparation.
+
+The cutoff sequence, independent quadratures and exact-identity
+requirements are fixed in
+`computations/matter-formation-continuum-admissibility-prereg.md`.
+A renormalized dynamical energy ledger still requires compatible
+initial data, common counterterms in force and stress, and controlled
+regulator removal.
+
+### 1.9 Localized fermionic states and the two-body reduction
+
+Pair excitation supplies particles that may propagate apart. Binding
+requires a separate spatial mechanism and a total-energy comparison.
+In the stated static leading nonrelativistic reduction, the scalar
+equation and its Green function are
+
+$$
+(-\nabla^2+\Omega^2)f=-y\rho_s,\qquad
+G_\Omega(r)=\frac{e^{-\Omega r}}{4\pi r}.
+$$
+
+Eliminating the scalar contributes
+$-\tfrac12y^2\int d^3x\,d^3x'\rho_s(x)G_\Omega(x-x')\rho_s(x')$.
+After absorbing the one-body self-energies in the reference mass, the
+cross term gives $V_Y(r)=-\alpha_Ye^{-\Omega r}/r$ with
+$\alpha_Y=y^2/(4\pi)$ and reduced mass $\mu_{\rm red}=m_0/2$.
+For each partial wave, the positive zero-energy
+Birman–Schwinger kernel has trace
+
+$$
+\boxed{\operatorname{tr}K_\ell
+=\frac{2\mu_{\rm red}}{2\ell+1}\int_0^\infty r|V_Y|\,dr
+=\frac{B}{2\ell+1},\qquad
+B=\frac{\mu_{\rm red}y^2}{2\pi\Omega}.}
+$$
+
+If $B<1$, no eigenvalue reaches unity and no negative-energy two-body
+level exists in any partial wave. The converse is not implied.
+This sufficient Bargmann bound concerns the stated pairwise
+nonrelativistic Hamiltonian. Relativistic effects, annihilation,
+vacuum polarization and cooperative many-body states require their
+own calculations.
+
+A spatial scalar–Dirac candidate needs a normalized microscopic action,
+a scalar tending to its vacuum at infinity, occupied Dirac gap levels,
+consistent Pauli filling and signed fermion number, and a renormalized
+sea contribution in the same energy functional. Its fixed-charge
+energy must lie below the relevant free-particle and fragmentation
+thresholds. Constrained spatial and dynamical stability then have to
+be established, followed by a real-time formation channel with energy
+and charge accounting. Farhi, Graham, Jaffe and Weigel illustrate why
+the sea energy is indispensable in three spatial dimensions.
+The prepared scalar carrier charge $Q_C$ supplies no identification
+with this fermion number or spin representation.
+
+At the frozen normalized inputs $m_0=1$, $y=0.25$ and $\Omega=3$,
+independent quadratures give $B=0.00165786399054<1$.
+The continuum and two-body calculation passes all 645 independent
+payload comparisons, including 539 numerical values and ten symbolic
+identities in each program. Its exact scoped verdicts, finite-cutoff
+errors and source identities are recorded in
+`computations/matter-formation-continuum-report.md` §15.
+
 ## 2. The conditional scale and electroweak anchor
 
 The cascade arithmetic determines a scale once its dimensionful anchor and offset are declared. With $E_n=M_{\rm Pl}\varphi^{-n}$, the exact step-80 value is $E_{80}=233.2\ \mathrm{GeV}$ at the displayed precision. The calibrated $v_0=246\ \mathrm{GeV}$ instead has coordinate $n(v_0)\approx79.89$. These two inputs define two related scale evaluations.
@@ -374,6 +522,9 @@ The two-fluid's real-density description supplies no Dirac field by itself. Addi
 - `computations/matter-formation-fermion-production-prereg.md`—real scalar mass source, fermionic state, finite-volume energy ledger and frozen independent witnesses.
 - Patrick B. Greene and Lev Kofman, *Preheating of Fermions* (1998), [arXiv:hep-ph/9807339](https://arxiv.org/abs/hep-ph/9807339)—standard coherent fermion excitation and Pauli-bounded occupation.
 - Juergen Baacke, Katrin Heitmann and Carsten Pätzold, *Nonequilibrium dynamics of fermions in a spatially homogeneous scalar background field* (1998), [arXiv:hep-ph/9806205](https://arxiv.org/abs/hep-ph/9806205)—one-loop backreaction, renormalization and initial-state requirements.
+- `computations/matter-formation-continuum-admissibility-prereg.md`—frozen continuum asymptotes, static subtraction, initial overlap and two-body localization criterion.
+- V. Bargmann, *On the Number of Bound States in a Central Field of Force* (1952), [doi:10.1073/pnas.38.11.961](https://doi.org/10.1073/pnas.38.11.961)—sufficient partial-wave bound-state counting.
+- E. Farhi, N. Graham, R. L. Jaffe and H. Weigel, *Searching for Quantum Solitons in a 3+1 Dimensional Chiral Yukawa Model* (2001), [arXiv:hep-th/0112217](https://arxiv.org/abs/hep-th/0112217)—localized fixed-fermion-number energies including the renormalized sea.
 - `foundations/geometric-manifold-completion.md` §4.4—minimal positive-fibre conversion lift.
 - `foundations/yin-yang-qi-dynamical-geometry.md` §§5–7—off-diagonal coherence and declared Hamiltonian scope.
 - `two-fluid/cassi_dirac_bridge.py`—exploratory Dirac kinetics and nonnegative quadratic, spin and current diagnostics; physical density and fine-structure interpretations remain unestablished.

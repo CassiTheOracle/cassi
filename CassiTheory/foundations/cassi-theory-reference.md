@@ -551,6 +551,18 @@ particle formation remain open
 (`foundations/sector-coupling-derivation.md` §1.7;
 `computations/matter-formation-continuum-report.md` §14).
 
+The specified continuum histories and pair interaction impose
+additional boundaries. Sudden mass changes and square pulses have
+ultraviolet-divergent excitation densities. Static subtraction and
+initial-overlap identities are independently verified, while a
+renormalized dynamical model remains open. The sufficient bound
+$B=0.00165786399054<1$ excludes two-body binding in the leading
+nonrelativistic scalar-exchange approximation. All 645 independent
+comparisons pass; relativistic and cooperative many-body localization
+remain separate questions
+(`foundations/sector-coupling-derivation.md` §§1.8–1.9;
+`computations/matter-formation-continuum-report.md` §15).
+
 ### 4.3 Gravity Sector $\mathcal{L}_{\text{GR}}$ (optional gravity extension)
 This sector is an optional **Hypothesized** gravity extension. Its displayed
 relations and fixed-point evaluations are **Derived conditional** on the ansatz

@@ -325,6 +325,17 @@ continuum renormalization and localized particle formation remain open;
 the selected source, field content and coefficients are independent
 inputs (`computations/matter-formation-continuum-report.md` §14).
 
+The same parameters have verified continuum restrictions. Sudden
+source histories produce ultraviolet-divergent pair and excitation
+energy densities. A specified static subtraction is finite, but
+initial-state preparation and dynamical renormalization remain
+additional requirements. In the leading static nonrelativistic
+Yukawa reduction, $B=0.00165786399054<1$ excludes every two-body
+bound level. All 645 independent comparisons pass.
+Relativistic and cooperative many-body localization, physical
+matching and a common formation/stability energy functional remain
+open (`computations/matter-formation-continuum-report.md` §15).
+
 ## References
 
 - `computations/matter_completion_boundary_prereg.md`—frozen MCC1–MCC9

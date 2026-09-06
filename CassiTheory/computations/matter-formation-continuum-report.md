@@ -20,6 +20,8 @@ The helper's positive component quadratics are twice the chiral-current number d
 
 A separately declared real scalar mass source produces fermion pairs in a finite-mode quantum model with reciprocal semiclassical feedback. Independent four-component and Bloch-vector calculations agree on 32 quench/pulse rows and six retained trajectories. The finest closed trajectory reaches occupation $0.5729566253$ per spin in one mode, with relative energy error $5.6211\times10^{-5}$ and second-order time convergence. This establishes conditional energy-accounted excitation. The supplied source, fermion content, selected coefficients and fixed-reference subtraction remain separate from physical Cassi matter; continuum renormalization, spatial localization and particle identification are open.
 
+The specified scalar–fermion model also has independently verified continuum restrictions. Sudden mass changes and square pulses give linearly divergent pair density and quadratically divergent positive excitation energy. A specified fourth-order static subtraction has a finite verified remainder, while the static-to-first-adiabatic initial-state overlap has logarithmically divergent excitation energy. At the unchanged coupling and mass ratio, a sufficient trace bound excludes every two-body bound level in the leading nonrelativistic Yukawa reduction. These results constrain the supplied extension; renormalized spatial formation, many-body stability and physical identification remain open.
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -860,7 +862,163 @@ The retained dynamics contains no spatially localized formation channel. Its hom
 
 Neither the Yukawa coefficient nor the mode/source choices follow from the canonical two-density equations. A physical Cassi matter mechanism still needs a microscopic identification and normalized interaction, a controlled quantum and density reduction, continuum formation of localized states with stability, particle quantum numbers, and empirical discrimination. The scalar binding evidence and this homogeneous fermion-production evidence remain separate conditional constructions.
 
-## 15. Reproduction and retained boundary
+## 15. Continuum admissibility and the two-body localization boundary
+
+### 15.1 Frozen scope and independent qualification
+
+The continuum calculation asks whether the finite-mode source histories
+define finite densities when arbitrarily high momenta are included.
+It also checks a sufficient binding criterion at the unchanged
+$m_0=1$, $y=0.25$ and $\Omega=3$.
+The isotropic measure, cutoff sequence
+$\Lambda=(32,64,128,256,512)$, masses $(0.5,2)$ and pulse durations
+$(0.25,1,3)$ are supplied inputs in
+`computations/matter-formation-continuum-admissibility-prereg.md`.
+No coefficient, cutoff counterterm or source history is fitted.
+
+The primary calculation uses adaptive SciPy quadrature. The independent
+program uses composite eight-point Gauss–Legendre radial blocks of width
+at most 0.25 and a separate 32-point Taylor-parameter quadrature.
+Its quench and overlap kernels use half-angle representations, and its
+reference-vacuum kernel uses the Taylor-integral identity.
+The accepted evidence contains 42 occupation rows, including two zero
+controls, ten static-vacuum rows, five kinetic rows, four overlap slopes
+and one binding result. Both programs pass ten exact symbolic identities
+and all 15 aggregate qualifications. Every one of the 645 independent
+payload comparisons passes, including 539 numerical scalar comparisons;
+the largest absolute numerical difference is $2.1828\times10^{-11}$.
+
+### 15.2 Sudden histories have divergent continuum excitation
+
+The high-momentum occupation tails produce positive divergences whose
+coefficients agree with the frozen analytic limits. With
+$\delta=m_1-m_0$, pair density means the number of particles, equal to the
+number of antiparticles. Their combined number is twice that density.
+The limiting pair-density coefficient and excitation-energy coefficient
+are both $\delta^2/(4\pi^2)$ for a sudden change and
+$\delta^2/(2\pi^2)$ for a cyclic square pulse:
+
+$$
+N_{\rm pair}=C_N\Lambda+o(\Lambda),\qquad
+\rho_{\rm exc}=C_E\Lambda^2+o(\Lambda^2).
+$$
+
+At $\Lambda=512$, the largest relative pair and energy coefficient
+errors over the eight nonzero histories are respectively 0.74286 and
+0.78047 percent, within the frozen 3 percent tolerance.
+For the $m_1=2$ quench, the pair density is $12.8785725687$ and excitation
+energy density is $6639.38204621$. The $m_1=2$, $T=0.25$ cyclic pulse
+gives $25.9348108987$ and $13381.9486726$, respectively.
+These are dimensionless densities in the supplied normalization.
+
+For a single instantaneous change, the fixed initial covariance satisfies
+$v+4En_q=0$ pointwise: its positive excitation energy cancels the
+unrenormalized reference-vacuum difference in that ledger.
+A local static vacuum subtraction leaves the state-dependent positive
+excitation divergence. For a cyclic pulse, the final mass equals the
+reference mass and the excitation divergence remains directly in the
+final fermion energy.
+The scoped verdict is
+`CONTRADICTS—ultraviolet-finite sudden-source continuum completion`.
+
+### 15.3 Static subtraction and initial-state regularity
+
+The reference-vacuum energy has the predicted negative quadratic
+divergence. At the largest cutoff its leading-coefficient error is at
+most 0.012094 percent. Subtracting the specified fourth-order mass Taylor
+polynomial gives the following finite remainders:
+
+| Final mass | Subtracted density at $\Lambda=512$ | Exact static continuum limit |
+|---|---|---|
+| $0.5$ | $0.0000869234629568$ | $0.0000869255389166$ |
+| $2$ | $-0.00219970248578$ | $-0.00219978703343$ |
+
+The largest absolute limit error is $8.4548\times10^{-8}$, below the
+frozen $2\times10^{-6}$ threshold.
+This supports the specified static one-loop subtraction identities.
+It fixes a reference scheme; physical finite parts, a viable total
+scalar potential and time-dependent renormalization require matching.
+
+The initial quantum preparation supplies an additional ultraviolet
+condition. For the frozen initial mass derivative $\nu=0.75$, the
+static-vacuum overlap with the normalized first-adiabatic-direction
+state has logarithmically divergent positive excitation energy.
+The measured doubling slope from $\Lambda=256$ to $512$ is
+$0.00712399869971$, versus the analytic
+$\nu^2/(8\pi^2)=0.00712414572485$, a relative difference of
+0.0020638 percent. The kinetic integral at cutoff 512 is
+$I_\Lambda=0.283605249670$ and the specified finite-cutoff factor is
+$Z_\Lambda=0.991137335948$; it is positive on all five cutoffs.
+The exact verdicts are
+`SUPPORTS—specified static one-loop subtraction identities` and
+`SUPPORTS—logarithmic initial adiabatic overlap-energy mismatch`.
+
+These qualifications compute static and initial-overlap diagnostics.
+A renormalized dynamical calculation still needs a compatible
+higher-adiabatic or Bogoliubov initial state, counterterms shared by force
+and stress, and controlled regulator removal. The derivation and
+one-loop literature conventions are in
+`foundations/sector-coupling-derivation.md` §1.8.
+
+### 15.4 The stated pair interaction does not bind
+
+The leading static nonrelativistic scalar exchange gives
+$V_Y(r)=-\alpha_Ye^{-\Omega r}/r$ with
+$\alpha_Y=y^2/(4\pi)$. Its zero-energy partial-wave kernel has trace
+$B/(2\ell+1)$, where
+
+$$
+\boxed{B=\frac{\mu_{\rm red}y^2}{2\pi\Omega}
+=0.00165786399054<1,\qquad \mu_{\rm red}=m_0/2.}
+$$
+
+No partial wave can reach the unit kernel eigenvalue required for a
+negative-energy two-body level. Independent infinite-range and
+finite-range-plus-exact-tail quadratures agree on
+$\int r|V_Y|\,dr=0.00165786399054$.
+The verdict is
+`SUPPORTS—absence of two-body binding in the stated nonrelativistic Yukawa reduction`.
+The result leaves relativistic, annihilation, vacuum-polarization and
+cooperative many-body channels outside its scope.
+A localized scalar–Dirac state requires its occupied spectrum,
+renormalized sea, fixed-charge energy, fragmentation thresholds,
+spatial stability and formation dynamics in one consistent model
+(`foundations/sector-coupling-derivation.md` §1.9).
+
+### 15.5 Evidence identities and failure controls
+
+The accepted pair of receipts is in
+`runs/20260906_matter_formation_continuum_admissibility/`.
+Both commands exit zero with `numerical_pass: true`, empty failures and
+zero comparison mismatches. The frozen protocol is committed as
+`0b7cb919` and the programs as `0ea7e189`.
+
+| Source | Canonical CRLF-to-LF SHA-256 |
+|---|---|
+| Primary | `51aeca3f3af6369fbb420191a6dde780dc577efc43b45c57f6c8d63046d9eddf` |
+| Independent | `5e423d2ef228454c17fc2fcda8fbf1b2fb7c0daf813a13bb0dbde4fe8a2a498b` |
+| Continuum preregistration | `8876f61dfd966fe016caa0dd712bddf2e076c4569d3d1827756b3ffb6704535b` |
+| Unchanged finite-mode preregistration | `45be88814f41327feef41abe79b586b41e61f11a8f880081a691c469b9776bf8` |
+
+The raw primary receipt hash is
+`8a9d300adee9e3213f9be412a83ab3f1e528e6b7d8d6c1bb0810f63b2e10040d`;
+the independent receipt hash is
+`ee7ddd535d75a4cd4b94168872f54868769448c302f828a34c96a804a958ff64`.
+The independent receipt binds the primary hash as its input.
+Both missing-input controls exit one with empty scientific payloads.
+The hashes of `control_missing_prereg/results.json` and
+`control_missing_primary/verification.json` are respectively
+`eb340738793fb4f565dd3fbe990e80308d4bc8737ef27646242d539d504ca8de` and
+`040b6e5c6e694c83cf31df8e95fc89b37a76cd101344683a3227ffeb18565cc1`.
+
+Two isolated verifier controls also reject malformed copied evidence:
+`control_boolean` replaces a cutoff by a boolean, and `control_schema`
+changes only the schema label. Both exit one, identify the changed
+field and return all scientific verdicts `INCONCLUSIVE`. These are
+input-validation controls; the accepted scientific receipts remain
+unchanged.
+
+## 16. Reproduction and retained boundary
 
 Run from the repository root into new, explicitly named output directories when the default receipts already exist:
 
@@ -887,6 +1045,8 @@ python computations/matter_formation_spinor_closure.py --output-dir runs/2026090
 python computations/verify_matter_formation_spinor_closure.py --input-dir runs/20260906_matter_formation_spinor_closure_implementation_recovery --output-dir runs/20260906_matter_formation_spinor_closure_implementation_recovery
 python computations/matter_formation_fermion_production.py --output-dir runs/20260906_matter_formation_fermion_production_implementation_recovery
 python computations/verify_matter_formation_fermion_production.py --input-dir runs/20260906_matter_formation_fermion_production_implementation_recovery --output-dir runs/20260906_matter_formation_fermion_production_implementation_recovery
+python computations/matter_formation_continuum_admissibility.py --output-dir runs/20260906_matter_formation_continuum_admissibility
+python computations/verify_matter_formation_continuum_admissibility.py --input-dir runs/20260906_matter_formation_continuum_admissibility --output-dir runs/20260906_matter_formation_continuum_admissibility
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
@@ -948,3 +1108,8 @@ The remaining physical requirements are a selected microscopic production action
 - [Das, Galante and Myers, *Smooth and fast versus instantaneous quenches in quantum field theory*](https://arxiv.org/abs/1505.05224)—standard scalar tanh-quench correspondence.
 - [Camilo and Abdalla, *Momentum-space entanglement after smooth quenches*](https://doi.org/10.1140/epjc/s10052-019-6581-2)—general in/out-mass profile and exact Bogoliubov occupation.
 - [Derrick, *Comments on Nonlinear Wave Equations as Models for Elementary Particles*](https://doi.org/10.1063/1.1704233)—finite-energy spatial-dilation restriction.
+- `computations/matter-formation-continuum-admissibility-prereg.md`—frozen continuum and two-body qualification.
+- `computations/matter_formation_continuum_admissibility.py`—primary adaptive quadrature and exact identities.
+- `computations/verify_matter_formation_continuum_admissibility.py`—independent composite quadrature and typed evidence comparisons.
+- [Bargmann, *On the Number of Bound States in a Central Field of Force*](https://doi.org/10.1073/pnas.38.11.961)—sufficient partial-wave counting bound.
+- [Farhi, Graham, Jaffe and Weigel, *Searching for Quantum Solitons in a 3+1 Dimensional Chiral Yukawa Model*](https://arxiv.org/abs/hep-th/0112217)—localized fixed-fermion-number energy including the renormalized sea.

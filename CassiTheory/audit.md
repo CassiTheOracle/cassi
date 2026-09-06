@@ -245,6 +245,18 @@ and scales, continuum renormalization, a canonical density reduction
 and localized particle formation remain open
 (`computations/matter-formation-continuum-report.md` §14).
 
+The continuum witness passes all 645 independent comparisons,
+including 539 numerical values, with largest absolute discrepancy
+$2.1828\times10^{-11}$. Sudden quench/pulse pair density diverges
+linearly and excitation energy quadratically. The specified static
+subtraction has largest cutoff-512 limit error $8.4548\times10^{-8}$;
+the initial-overlap energy grows logarithmically. At unchanged
+parameters, $B=0.00165786399054<1$ excludes every two-body bound level
+in the leading nonrelativistic Yukawa reduction. This leaves
+renormalized dynamics, relativistic and many-body binding, and
+physical particle matching open
+(`computations/matter-formation-continuum-report.md` §15).
+
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 
 | Claim | Tested result | Status |

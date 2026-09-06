@@ -199,6 +199,17 @@ the frozen correspondence and energy criteria, with 1,185 checks agreeing
 (`computations/matter-formation-continuum-report.md` §14). This numerical
 qualification supplies no fitted or derived physical value for the inputs.
 
+The continuum-admissibility calculation retains exactly
+$m_0=1$, $y=0.25$ and $\Omega=3$, with initial mass derivative
+$\dot m(0)=0.75$. Its cutoffs, mass histories and quadratures are
+numerical witness choices; the fourth-order static subtraction is a
+specified renormalization condition. No observation is fitted and no
+new physical parameter is classified. The verified initial-state and
+kinetic divergences leave dynamical renormalization open, and the
+two-body trace bound $B=0.00165786399054$ applies only to the stated
+nonrelativistic reduction
+(`computations/matter-formation-continuum-report.md` §15).
+
 **$D$ and $\nu$ (scalar density diffusion and velocity viscosity)** are
 numerical solver coefficients. In the canonical equations, $D\nabla^2E_{Y/I}$
 acts on the density fields, while $\nu\nabla^2\mathbf u$ acts on the shared

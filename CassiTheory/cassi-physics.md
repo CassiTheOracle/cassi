@@ -987,6 +987,16 @@ localized particle formation remain open; the source and model
 parameters are supplied assumptions
 (`computations/matter-formation-continuum-report.md` §14).
 
+The continuum restriction is also verified: sudden-source histories
+have linearly divergent pair density and quadratically divergent
+excitation energy. Static subtraction and initial-overlap identities
+pass independent quadrature, but dynamical renormalization remains
+open. At the unchanged parameters, the sufficient bound
+$B=0.00165786399054<1$ excludes two-body binding in the leading
+nonrelativistic Yukawa reduction. Relativistic and many-body
+localization need separate qualification
+(`computations/matter-formation-continuum-report.md` §15).
+
 **Epistemic status:** the modulation period is **Derived conditional** on the
 optional signal map; its physical wake imprint and cross-domain extensions
 are **Hypothesized** and being tested. The sector scale is **Derived
