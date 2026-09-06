@@ -1157,6 +1157,46 @@ The fixed numerical witnesses use 80 decimal digits and tolerance $10^{-35}\max(
 
 Execute once in `runs/20260906_matter_formation_yukawa_bulk/`, with distinct primary `results.json` and independent `verification.json`. Output is finite JSON, exclusive-create and hash-bound. Missing-note controls use fresh directories, exit one and retain empty scientific payloads. Preserve any failed attempt and its source revision. This is a new collective-binding question using accepted evidence; the sealed pair, spatial and vacuum campaigns are not rerun. Record the outcome in this working file alone and keep the commits local.
 
+### 15.7 Qualified collective-binding result
+
+The declared Yukawa candidate has no state below the separated-particle threshold in its mass-depleting local-density functional. The accepted result includes the specified local one-loop sea energy. It uses an analytic bound for every admissible local occupation; the numerical witnesses check the formulas and endpoint limits.
+
+For the favorable fourfold particle/antiparticle occupation space, the qualified bound is
+$$
+\boxed{\mathcal E_{\mathrm{LDA}}-N_{\mathrm{exc}}
+\ge\frac12\int|\nabla f|^2\,d^3x
++\frac{3236}{45}\int(1-|m|)^2\,d^3x\ge0,
+\qquad |m(x)|\le1.}
+$$
+For a single particle-sign sector the coefficient is $3238/45$. The unit free-particle rest energy is fixed by $m_0=1$. Re-expressing this candidate in physical units preserves the sign of the energy difference; a different microscopic normalization, interaction or vacuum prescription constitutes a different candidate.
+
+The verdict is **SUPPORTS—absence of subthreshold collective binding in the declared mass-depleting local-density Yukawa functional**. This restricts the proposed continuation from the finite-mode production calculation to a collectively bound fermion bag. An exact finite-fermion state, above-threshold metastability, nonlocal vacuum polarization, exchange, mass-enhancing configurations and physical particle assignment remain outside the result. The large-field unboundedness in §16 retains its stated scope.
+
+|Qualification|Measured result|
+|---|---|
+|Exact predicates|12/12 in the primary and independent calculations|
+|Pressure witnesses|6/6, including both endpoint limits|
+|Signed-mass loop remainders|10/10|
+|Occupied-energy and duality witnesses|18/18|
+|Independent receipt checks|10/10|
+|Independently reconstructed numerical fields|166/166 within the frozen tolerance|
+|Maximum absolute reconstruction difference|$6.127491297\times10^{-81}$|
+|Missing-note controls|Both exit one with `INCONCLUSIVE` and empty scientific payloads|
+
+The rational proof margins are explicit: the alternating-polynomial construction gives $4I-3=769/45045>0$, the square-root bound gives $9/4-2=1/4>0$, and the fourfold-degeneracy binding coefficient is $3236/45>0$. The loop remainder is nonnegative on the tested branch by the integral and polynomial identities in §15.6.
+
+The frozen protocol is retained in local commit `db777160`; the executed sources are retained in local commit `ac089936`. The primary and independent reconstruction each ran once. These are separate from the accepted pair, spatial and vacuum calculations, which were reused without re-execution. The code and working record remain local; the pending public-document set in §17.2 is unchanged.
+
+|Evidence identity|SHA-256|
+|---|---|
+|Frozen §15.6 text|`2d88b59e469260e4949c3090bc7f7042ddfd461453ad653e5e16769a4b55ff26`|
+|Primary canonical source|`08dbbe5a4eafd1d24da3efad2b8e70230cf9afb1dcd227d3b43bbe19f82e6670`|
+|Independent canonical source|`b689a0836072a8b57dbeff05fb4f45f5dff5850770b3204b470007210840cb04`|
+|`runs/20260906_matter_formation_yukawa_bulk/results.json`|`71b4d97e1e8c06676c176e66411f4a7b99bc5f1e938ee164f0bfcfa25de05e3b`|
+|`runs/20260906_matter_formation_yukawa_bulk/verification.json`|`82f2b2ccae1ac02608b9abb24b892793e458ec5cfee47610ff8fc60ceb34b408`|
+|`runs/20260906_matter_formation_yukawa_bulk_primary_missing_note/results.json`|`6000f23ae699c5653254a0f6a3f010213a32c7f7eca64442be77f899d949b840`|
+|`runs/20260906_matter_formation_yukawa_bulk_verifier_missing_note/verification.json`|`eb1767eb1299028f2dca4c1ba0db51ce86a1a5825d84d9029a679c7c14612377`|
+
 ## 16. Global static scalar-vacuum energy boundary
 
 ### 16.1 Necessary energy criterion
@@ -1320,6 +1360,8 @@ python computations/matter_formation_spatial_domain_curvature_check.py
 python computations/matter_formation_spatial_domain_v2.py
 python computations/verify_matter_formation_spatial_domain_receipts.py
 python computations/matter_formation_scalar_vacuum_sign_check.py --output-dir runs/20260906_matter_formation_scalar_vacuum_sign_recovery
+python computations/matter_formation_yukawa_bulk.py
+python computations/verify_matter_formation_yukawa_bulk.py
 ```
 
 For the receipt-qualified spatial calculation and scalar sign check, these invocations use separate reproduction destinations. Choose unused directory names before executing them. The receipt verifier below checks the named accepted spatial evidence and writes a fresh control receipt; it does not read the reproduction directory.
@@ -1366,6 +1408,9 @@ The three registries and `audit.md` contain draft integration of the finite-mode
 Preserve this set separately from local research commits. A consolidated publication checkpoint must reconcile the registries, `EPISTEMIC-MAP.md`, `audit.md`, domain treatment and supporting indexes before these hunks enter a public commit. Their present status is explicitly handed off; no bulk staging, silent reversion or intermediate propagation is authorized.
 
 ## References
+
+- `computations/matter_formation_yukawa_bulk.py`—exact and high-precision collective-binding criterion for the declared local-density scalar–Dirac candidate.
+- `computations/verify_matter_formation_yukawa_bulk.py`—independent momentum-space reconstruction and frozen-evidence qualification.
 
 - `computations/matter-formation-continuum-prereg.md`—frozen continuum, lattice and creation calculations.
 - `computations/matter-formation-stability-prereg.md`—frozen constrained spatial operators and decision tree.
