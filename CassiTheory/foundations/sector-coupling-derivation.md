@@ -1,10 +1,12 @@
 # Conditional Sector Scale and the Dirac Density Obstruction
 
-## Status: Derived conditional scale, chiral-current and closure identities / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
+## Status: Derived conditional scale, chiral-current, closure and fermionic identities / Tested finite-mode production / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
 
 ## Abstract
 
 The arithmetic scale $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2$ follows from the stipulated offset $\delta=3$ and the external electroweak anchor $v_0$. Its inverse square root is $\varphi^3v_0\approx1.04\ \mathrm{TeV}$. A physical interaction requires further microscopic input. The proposed chiral-scalar identification compares fields of different mass dimension and uses complex-conjugate bilinears whose simultaneous real positive values must be equal. Its displayed squared enforcement expression is generically non-Hermitian. The separate component-quadratic observables in the Dirac helper are nonnegative chiral-current densities. Their closed evolution depends on relative coherence; stationary positive-energy states also fail the proposed canonical population conversion. Adding the existing minimal conversion lift to a nonzero Dirac mass changes the golden population fixed point and allows transitions out of the positive-energy one-particle subspace. These are conditional boundaries on the specified microscopic and reduced descriptions. A physical fermion coupling requires an admissible interaction, a state and reservoir prescription, and a controlled density reduction.
+
+A separately declared real scalar mass interaction admits a fermionic vacuum and an explicit production-energy ledger. Its finite-mode covariance evolution preserves Pauli bounds and vector charge, while a classical scalar mean field can supply coherent pair excitation with reciprocal feedback. This construction assumes its spinor content, vacuum, scalar source and finite-volume subtraction. Physical normalization, canonical density reduction, continuum quantum dynamics and localized particle formation remain open.
 
 ## 1. The projection and its mathematical boundary
 
@@ -167,6 +169,126 @@ This transition leaves the positive-energy one-particle subspace. Interpreting i
 
 These equations constrain the combination of the standard Dirac mass and the specified minimal chiral conversion jumps. They leave alternative interactions, restricted preparations and controlled coarse-graining as separate microscopic possibilities. The frozen witnesses are independently reconstructed with no mismatches in `computations/matter-formation-continuum-report.md` §13; `computations/matter-formation-spinor-closure-prereg.md` supplies their definitions and stopping rule.
 
+### 1.7 A real scalar mass source and its quantum production ledger
+
+A Hermitian mass interaction supplies a conditional production candidate once the quantum field and source are independently specified. Let a real scalar $f$ couple through
+
+$$
+\boxed{\mathcal L_\psi=
+\bar\psi[i\gamma^\mu\partial_\mu-(m_0+yf)]\psi.}
+$$
+
+In four spacetime dimensions, $[f]=[m_0]=M$, $[\psi]=M^{3/2}$ and the real coefficient $y$ is dimensionless. The interaction preserves vector $U(1)$ charge. Its source field, coefficient, fermionic anticommutation relations and vacuum are additional inputs. The canonical $E_Y,E_I$ equations do not select them.
+
+In a homogeneous source, each retained momentum block has
+$H_j(f)=\boldsymbol\alpha\cdot\mathbf p_j+(m_0+yf)\beta$,
+$E_j=\sqrt{\mathbf p_j^2+(m_0+yf)^2}$ and spectral projectors
+$P_{j,\pm}=(1_4\pm H_j/E_j)/2$. The covariance
+$(C_j)_{ab}=\langle\hat\psi_{j,b}^\dagger\hat\psi_{j,a}\rangle$
+evolves by $\dot C_j=-i[H_j,C_j]$. The reference vacuum is
+$C_{j,0}=P_{j,-}(f=0)$. It has zero particle and hole excitations
+and a rank-two covariance. Setting an ordinary classical spinor amplitude
+to zero specifies a different state object.
+
+The projector occupations retain the pair and charge information. Per spin state,
+
+$$
+n_j^+=\tfrac12\operatorname{tr}(P_{j,+}C_j),\qquad
+n_j^-=\tfrac12\operatorname{tr}[P_{j,-}(1_4-C_j)],
+$$
+
+and therefore
+
+$$
+\boxed{2(n_j^+-n_j^-)=\operatorname{tr}C_j-2=0.}
+$$
+
+Unitary covariance evolution preserves $C_j^2=C_j$ and $0\le C_j\le1_4$,
+so each occupation remains in $[0,1]$. Exciting a particle and an
+oppositely charged hole preserves the vector charge. An instantaneous
+particle projector in a driven source is a specified diagnostic; constant
+initial and final Hamiltonians give unambiguous endpoint comparisons.
+
+A sudden positive-mass change has a direct overlap formula. For
+$E_a=\sqrt{p^2+m_a^2}$, the occupation per spin after
+$m_0\to m_1$ is
+
+$$
+n_{\rm quench}=\frac12\left(1-\frac{p^2+m_0m_1}{E_0E_1}\right).
+$$
+
+A cyclic square pulse, with excursion mass $m_1$ for duration $T$ and
+return to $m_0$, gives
+
+$$
+\boxed{n_{\rm pulse}=
+\frac{p^2(m_1-m_0)^2}{E_0^2E_1^2}\sin^2(E_1T),\qquad
+W_{\rm pulse}=2E_0n_{\rm pulse}.}
+$$
+
+Here $W_{\rm pulse}$ is the source's two-quench work per spin.
+The formula has exact zero-production controls at $p=0$ and $m_1=m_0$.
+Its oscillatory dependence on duration retains coherent return and
+Pauli bounds; it supplies no irreversible conversion law.
+
+Reciprocal scalar feedback follows from a specified finite-volume
+Hamiltonian. Let $\Pi=V\dot f$, take a selected oscillator frequency
+$\Omega$, and subtract the fixed reference covariance:
+
+$$
+\mathcal H=\frac{\Pi^2}{2V}+\frac{V\Omega^2f^2}{2}
++\sum_j\operatorname{tr}\{H_j(f)[C_j-C_{j,0}]\}.
+$$
+
+The subtraction fixes a constant and a linear scalar term. It makes
+$f=\Pi=0,\ C_j=C_{j,0}$ stationary in the selected finite model.
+The reciprocal equations are
+
+$$
+\dot f=\Pi/V,\qquad
+\dot\Pi=-V\Omega^2f-y\sum_j\operatorname{tr}\{\beta(C_j-C_{j,0})\}.
+$$
+
+Together with the covariance commutator, these equations give
+$d\mathcal H/dt=0$: the scalar force cancels the source-dependent
+fermion work, while $\operatorname{tr}(H_j[H_j,C_j])=0$.
+The energy partition is
+
+$$
+\boxed{\mathcal H=\mathcal E_s+\Delta\mathcal E_{\rm vac}
++\mathcal E_{\rm exc},\qquad
+\mathcal E_{\rm exc}=\sum_j4E_jn_j^+,}
+$$
+
+with $\mathcal E_s=\Pi^2/(2V)+V\Omega^2f^2/2$ and
+$\Delta\mathcal E_{\rm vac}
+=\sum_j[-2E_j-\operatorname{tr}(H_jC_{j,0})]$.
+The vacuum-polarization contribution may be negative. Scalar energy
+loss therefore includes both polarization and excitation energy.
+
+This is a semiclassical finite-mode construction: the scalar is a
+classical mean field and the fermion state remains Gaussian.
+Its reference subtraction establishes no renormalized continuum limit.
+Renormalized homogeneous fermion backreaction also requires ultraviolet
+counterterms and a compatible initial quantum state; Baacke, Heitmann and
+Pätzold give such a one-loop construction and treat its initial
+singularities [arXiv:hep-ph/9806205](https://arxiv.org/abs/hep-ph/9806205).
+The specified witness box, four retained momentum cells, coupling and
+oscillator schedule are in
+`computations/matter-formation-fermion-production-prereg.md`.
+Independent full-covariance and Bloch-vector calculations reproduce all
+32 exact quench/pulse rows and six trajectories. The finest closed
+trajectory reaches per-spin occupation $0.5729566253$ with relative
+energy error $5.6211\times10^{-5}$ and time-convergence ratio $4.00277$;
+reciprocal feedback changes the normalized scalar trajectory by $0.03464$.
+All 1,185 verification checks pass, including 1,494,186 raw scalar
+comparisons. The exact scoped verdicts, source-bound receipts and
+implementation provenance are in
+`computations/matter-formation-continuum-report.md` §14.
+Physical mode content and scales, a two-fluid identification, the
+accuracy of the mean-field approximation, spatially localized production
+and measured particle identities remain unselected.
+
 ## 2. The conditional scale and electroweak anchor
 
 The cascade arithmetic determines a scale once its dimensionful anchor and offset are declared. With $E_n=M_{\rm Pl}\varphi^{-n}$, the exact step-80 value is $E_{80}=233.2\ \mathrm{GeV}$ at the displayed precision. The calibrated $v_0=246\ \mathrm{GeV}$ instead has coordinate $n(v_0)\approx79.89$. These two inputs define two related scale evaluations.
@@ -249,6 +371,9 @@ The two-fluid's real-density description supplies no Dirac field by itself. Addi
 - `computations/matter-formation-spinor-closure-prereg.md`—frozen positive-observable, closed-conversion, massive fixed-point and positive-energy witnesses.
 - `computations/matter-formation-spinor-closure-implementation-recovery.md`—execution provenance and accepted receipt location under the scientific preregistration's recovery rule.
 - `computations/matter_formation_spinor_closure.py` and `computations/verify_matter_formation_spinor_closure.py`—independent four-component and reduced-component witnesses.
+- `computations/matter-formation-fermion-production-prereg.md`—real scalar mass source, fermionic state, finite-volume energy ledger and frozen independent witnesses.
+- Patrick B. Greene and Lev Kofman, *Preheating of Fermions* (1998), [arXiv:hep-ph/9807339](https://arxiv.org/abs/hep-ph/9807339)—standard coherent fermion excitation and Pauli-bounded occupation.
+- Juergen Baacke, Katrin Heitmann and Carsten Pätzold, *Nonequilibrium dynamics of fermions in a spatially homogeneous scalar background field* (1998), [arXiv:hep-ph/9806205](https://arxiv.org/abs/hep-ph/9806205)—one-loop backreaction, renormalization and initial-state requirements.
 - `foundations/geometric-manifold-completion.md` §4.4—minimal positive-fibre conversion lift.
 - `foundations/yin-yang-qi-dynamical-geometry.md` §§5–7—off-diagonal coherence and declared Hamiltonian scope.
 - `two-fluid/cassi_dirac_bridge.py`—exploratory Dirac kinetics and nonnegative quadratic, spin and current diagnostics; physical density and fine-structure interpretations remain unestablished.

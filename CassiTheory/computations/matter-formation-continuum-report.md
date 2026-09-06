@@ -1,6 +1,6 @@
 # Carrier Creation and Continuum Density Trapping
 
-## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge and chiral-current identities / Hypothesized physical completion / Tested prepared binding, spatial spectra and microscopic boundaries—September 2026
+## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge and fermionic identities / Hypothesized physical completion / Tested prepared binding, spatial spectra, microscopic boundaries and finite-mode production—September 2026
 
 ## Abstract
 
@@ -17,6 +17,8 @@ The selected population-256 parent subset also supports the measured angular and
 An independently verified physical-unit calculation leaves a family of scalar models at one imposed vacuum mass, speed and internal generator unit. At the fixed dimensionless coefficients, the extra scalar core-cell assignment is contradicted. The proposed Dirac chiral-scalar map also has exact positivity and Hermiticity obstructions. These results distinguish unit calibration from microscopic particle identification.
 
 The helper's positive component quadratics are twice the chiral-current number densities in its declared spinor representation. Closed Dirac evolution depends on relative coherence and does not supply the canonical population conversion. Adding the specified minimal conversion channel to a massive Dirac Hamiltonian shifts the stationary ratio away from $\varphi$ and allows leakage from the positive-energy one-particle subspace. Independent finite-dimensional witnesses verify these conditional boundaries; a physical reservoir, quantum-state prescription and production interaction remain unselected.
+
+A separately declared real scalar mass source produces fermion pairs in a finite-mode quantum model with reciprocal semiclassical feedback. Independent four-component and Bloch-vector calculations agree on 32 quench/pulse rows and six retained trajectories. The finest closed trajectory reaches occupation $0.5729566253$ per spin in one mode, with relative energy error $5.6211\times10^{-5}$ and second-order time convergence. This establishes conditional energy-accounted excitation. The supplied source, fermion content, selected coefficients and fixed-reference subtraction remain separate from physical Cassi matter; continuum renormalization, spatial localization and particle identification are open.
 
 ## 1. Scope and frozen evidence
 
@@ -763,9 +765,102 @@ The exact scientific verdicts are:
 - `CONTRADICTS—golden population fixed point for the specified massive Dirac and minimal conversion lift`.
 - `CONTRADICTS—positive-energy invariance of the specified chiral conversion channel`.
 
-These conclusions constrain the stated observable map, free Dirac dynamics and minimal jump construction. They leave alternative physical interactions and controlled coarse-graining open. Full matter formation still requires a microscopic production law and its energy/charge ledgers, physical normalization, quantum-state and particle identities, interacting backreaction, localized formation and continuum temporal stability.
+These conclusions constrain the stated observable map, free Dirac dynamics and minimal jump construction. They leave alternative physical interactions and controlled coarse-graining open. Full matter formation still requires a physically selected microscopic production law and its energy/charge ledgers, physical normalization, quantum-state and particle identities, physically matched interacting backreaction, localized formation and continuum temporal stability.
 
-## 14. Reproduction and retained boundary
+## 14. Finite-mode fermion production with semiclassical feedback
+
+### 14.1 Declared microscopic model and quantum state
+
+A real scalar can transfer energy into particle–antiparticle excitations when the fermionic field and vacuum are specified. The conditional interaction is
+
+$$
+\mathcal L_\psi=\bar\psi[i\gamma^\mu\partial_\mu-(m_0+yf)]\psi,
+\qquad
+H_j(f)=p_j\alpha_z+(m_0+yf)\beta.
+$$
+
+The calculation uses natural units scaled by an uncalibrated reference mass, $m_0=1$, box lengths $(1,1,4\pi)$, volume $V=4\pi$, and four selected momentum cells $p_j=(0,0.5,1,2)$ along the third direction. Each cell contains two spin states. This finite set supplies no continuum quadrature or isotropic ultraviolet cutoff. The scalar oscillator has $\Omega=3$ and Yukawa coefficient $y=0.25$.
+
+The initial covariance is the filled negative-energy projector, $C_{j,0}=P_{j,-}(0)$, with zero particle and hole excitation. It evolves through $\dot C_j=-i[H_j,C_j]$. Per-spin occupations are $n_j^+=\operatorname{tr}(P_{j,+}C_j)/2$ and $n_j^-=\operatorname{tr}[P_{j,-}(1-C_j)]/2$. Unitarity preserves the Pauli bounds and the exact vector-charge identity $2(n_j^+-n_j^-)=\operatorname{tr}C_j-2=0$.
+
+The scalar and fermions share the specified Hamiltonian
+
+$$
+\boxed{\mathcal H=\frac{\Pi^2}{2V}+\frac{V\Omega^2f^2}{2}
++\sum_j\operatorname{tr}\{H_j(f)(C_j-C_{j,0})\},\qquad
+\dot\Pi=-V\Omega^2f-y\sum_j\operatorname{tr}\{\beta(C_j-C_{j,0})\}.}
+$$
+
+The fixed-reference subtraction makes the vacuum at $f=\Pi=0$ stationary. With $\dot f=\Pi/V$, the continuous-time equations conserve $\mathcal H$. The primary evolves full four-component covariances; the independent program evolves two-component Bloch vectors by exact rotations and integrates their force analytically. Both use the frozen symmetric exact-subflow composition and retain every time step. The initial driven state has $f(0)=0$, $\Pi(0)=3V$ and $\mathcal H(0)=56.5486677646$. The protocol is `computations/matter-formation-fermion-production-prereg.md`.
+
+### 14.2 Exact quench and pulse correspondence
+
+The source work agrees with the exact quantum overlap formulas. The eight positive-mass quench rows and 24 cyclic-pulse rows cover the registered momenta, excursion masses $(0.5,2)$ and pulse durations $(0.25,1,3)$. Their maximum primary occupation discrepancy is $1.5266\times10^{-16}$ and maximum work-balance residual is $5.7246\times10^{-16}$. Zero-momentum rows have no resolved production; every other analytic row exceeds its frozen $10^{-8}$ floor.
+
+For a cyclic pulse, the occupation and source work per spin are
+
+$$
+\boxed{n_{\rm pulse}=
+\frac{p^2(m_1-m_0)^2}{E_0^2E_1^2}\sin^2(E_1T),\qquad
+W_{\rm pulse}=2E_0n_{\rm pulse}.}
+$$
+
+These coherent oscillations allow excitation and return. They supply neither a Markovian conversion rate nor irreversible equilibration. The exact scoped verdict is `SUPPORTS—finite-mode fermion pair correspondence`.
+
+### 14.3 Closed production and the energy ledger
+
+Reciprocal feedback changes the scalar trajectory while preserving the total energy to the registered time-discretization accuracy. All runs end at $t=12$:
+
+| Trajectory | Time step | Maximum relative total-energy error |
+|---|---:|---:|
+| Closed coarse | $0.02$ | $8.9930113\times10^{-4}$ |
+| Closed medium | $0.01$ | $2.2482447\times10^{-4}$ |
+| Closed fine | $0.005$ | $5.6210611\times10^{-5}$ |
+| Fermion feedback omitted | $0.005$ | $6.4918770\times10^{-2}$ |
+| Coupling zero | $0.005$ | $5.6249988\times10^{-5}$ |
+| Scalar pump zero | $0.005$ | $7.2908346\times10^{-13}$ |
+
+Relative errors use $\max(1,|\mathcal H(0)|)$ as denominator. The frozen $2\times10^{-4}$ energy threshold applies to the fine closed trajectory and the two zero-production controls. The feedback-omitted trajectory has no conservation threshold: its drift diagnoses the missing reciprocal force.
+
+The all-common-time coarse–medium and medium–fine differences are $0.0039379599943$ and $0.0009838075727$, giving ratio $4.0027746317$. The comparison vector contains $f$, $\Pi/(3V)$ and all four per-spin particle occupations. The maximum closed-fine versus feedback-omitted difference in $(f,\Pi/(3V))$ is $0.0346369248$. The closed-fine peak occupation over nonzero momenta is $0.5729566253$, attained in the $p=1$ cell at the final registered time. Both production and feedback exceed the frozen $10^{-6}$ thresholds.
+
+At that endpoint the per-spin occupations, in increasing momentum order, are numerically $(0,\ 0.0408331118,\ 0.5729566253,\ 0.0024300639)$. Particle and hole occupations agree within the charge tolerance. The scalar, vacuum-polarization and excitation energies are
+
+$$
+\mathcal E_s=53.5586098895,\qquad
+\Delta\mathcal E_{\rm vac}=-0.0582379857,\qquad
+\mathcal E_{\rm exc}=3.0452651896,
+$$
+
+whose sum is $\mathcal H(12)=56.5456370934$. The negative polarization contribution is part of the ledger; scalar energy loss alone does not equal positive excitation energy. The closed-fine effective mass stays between $0.7503820221$ and $1.2500120944$, so the instantaneous particle projector remains gapped.
+
+Across both implementations and all six trajectories, the largest projector, normalized-trace and charge residuals are respectively $2.8232\times10^{-13}$, $2.8710\times10^{-13}$ and $2.8712\times10^{-13}$. The maximum energy-partition residual is $5.8883\times10^{-13}$. Pauli bounds, Hermiticity, strictly positive masses, zero-momentum occupation, and both all-time zero-production controls satisfy their registered criteria without clipping. The exact scoped verdict is `SUPPORTS—energy-accounted semiclassical fermion production in the specified finite-mode model`.
+
+### 14.4 Independent receipts and implementation provenance
+
+The accepted evidence is in `runs/20260906_matter_formation_fermion_production_implementation_recovery/`. Both programs exit zero with `numerical_pass: true` and empty failures. The independent program checks primary-array diagnostics and separately reconstructs its own dynamics. All 1,185 checks pass, including 1,494,186 raw scalar comparisons; the largest raw-array discrepancy is $2.6645\times10^{-13}$. Each receipt binds all six generated archives and these canonical CRLF-to-LF source identities:
+
+| Source | SHA-256 |
+|---|---|
+| Primary program | `0fb80197950dcb2d731935985ac43a373598ece7743b007cb943d168410e8935` |
+| Independent program | `56569589d9cced141d903713d5e73efd0c64121a353ba538167cc7ce4cbafb11` |
+| Scientific preregistration | `45be88814f41327feef41abe79b586b41e61f11a8f880081a691c469b9776bf8` |
+
+The accepted raw primary receipt hash is `e1b4e74a5b9da451de47603d07a73e758956921becd4a395c7152922aeb10db3`; the independent receipt hash is `dce846286edafd81215b4cc28121e6dfa8a1587f2c6d651252edb98e2b48aa01`. The latter binds the former as its input. Both missing-input controls exit one with empty scientific payloads: `runs/20260906_matter_formation_fermion_production_implementation_recovery/control_missing_prereg/results.json` lacks the preregistration, and `runs/20260906_matter_formation_fermion_production_implementation_recovery/control_missing_primary/output/verification.json` reads an isolated copied input set lacking the closed-coarse trajectory archive. Their raw hashes are respectively `8f1d488575d658e28c669848681e5abc9e46dfad778d4dad7a9cc3bff3e5a00c` and `39cfbfc37d0f7d4be332438699f87f09622727db3edcc151aea9525004bacbb7`.
+
+The preserved comparison-failure evidence is in `runs/20260906_matter_formation_fermion_production/`, bound to source revision `4a0ec190`. Its independent program has canonical hash `457bf1060063cb49a53da6e41b1ef79e5664baa72be6298cd00ba7dc4580c61a`. All retained raw arrays agree, but eleven comparisons of `energy_partition_residual` fail because a NumPy `float64` diagnostic reaches an exact-type branch against a JSON `float`. The isolated saved-array reproduction gives equal values, $3.5527136788\times10^{-14}$, and zero numerical difference. Source revision `cc036e7c` normalizes this diagnostic to a Python float. The same reproduction then passes. The accepted primary scientific payload and all six primary artifact hashes are exactly equal to the preserved attempt. The protocol's implementation-recovery rule covers this change; its model, schedule, tolerances and decision tree are identical.
+
+The preserved primary and independent receipt hashes are `6d963b16f9931f1b8ca7b3f4b2802f5f07933780b84a575c17b18abe785d2dc5` and `4e982d66ef08ea236e386fa511525dc9e8de3e6550d1de568a87babd3ac3a572`. They retain their execution status and are excluded from the accepted numerical qualification.
+
+### 14.5 Physical identification and localization remain open
+
+This result establishes pair excitation and reciprocal energy exchange within the supplied model. The spinor representation, anticommutation relations, scalar source, vacuum, coupling, oscillator, box and mode set are independent assumptions. The scalar is a classical mean field and the fermion state remains Gaussian. Its fixed-reference subtraction supplies no ultraviolet renormalization or controlled continuum limit. Renormalized fermion backreaction also requires a compatible initial quantum state and counterterms; the homogeneous one-loop construction of Baacke, Heitmann and Pätzold is relevant context.
+
+The retained dynamics contains no spatially localized formation channel. Its homogeneous scalar and momentum-diagonal covariances preserve translation invariance. In the declared plane-wave particle basis, the expected total particle-plus-hole number density is the spatial constant $4V^{-1}\sum_j n_j^+(t)$. This statement concerns the one-body density of this homogeneous construction; it establishes no exclusion of localized quantum states in a different model.
+
+Neither the Yukawa coefficient nor the mode/source choices follow from the canonical two-density equations. A physical Cassi matter mechanism still needs a microscopic identification and normalized interaction, a controlled quantum and density reduction, continuum formation of localized states with stability, particle quantum numbers, and empirical discrimination. The scalar binding evidence and this homogeneous fermion-production evidence remain separate conditional constructions.
+
+## 15. Reproduction and retained boundary
 
 Run from the repository root into new, explicitly named output directories when the default receipts already exist:
 
@@ -790,11 +885,13 @@ python computations/matter_formation_normalization.py
 python computations/verify_matter_formation_normalization.py
 python computations/matter_formation_spinor_closure.py --output-dir runs/20260906_matter_formation_spinor_closure_implementation_recovery
 python computations/verify_matter_formation_spinor_closure.py --input-dir runs/20260906_matter_formation_spinor_closure_implementation_recovery --output-dir runs/20260906_matter_formation_spinor_closure_implementation_recovery
+python computations/matter_formation_fermion_production.py --output-dir runs/20260906_matter_formation_fermion_production_implementation_recovery
+python computations/verify_matter_formation_fermion_production.py --input-dir runs/20260906_matter_formation_fermion_production_implementation_recovery --output-dir runs/20260906_matter_formation_fermion_production_implementation_recovery
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
 
-The remaining physical requirements are a selected microscopic production action and quantum state, absolute normalization, interacting backreaction, particle identities and statistics, real-time localized formation and nonlinear stability, scale-dependent sectors, and empirical discrimination. The conditional hyperbolic parent supplies one explicitly normalized Gaussian correspondence, finite-grid radial fixed-charge support and selected population-256 angular/phase support. Its physical coefficient and action normalization remain open. The fixed-population spatial, signed-charge radial-domain and selected scalar-parent spatial calculations retain their distinct inconclusive aggregate verdicts.
+The remaining physical requirements are a selected microscopic production action and quantum state, absolute normalization, physically matched quantum backreaction, particle identities and statistics, real-time localized formation and nonlinear stability, scale-dependent sectors, and empirical discrimination. The conditional hyperbolic parent supplies one explicitly normalized Gaussian correspondence, finite-grid radial fixed-charge support and selected population-256 angular/phase support. Its physical coefficient and action normalization remain open. The separately declared finite-mode Yukawa model supplies verified fermionic pair excitation and semiclassical feedback, with physical matching, continuum quantum control and localization open. The fixed-population spatial, signed-charge radial-domain and selected scalar-parent spatial calculations retain their distinct inconclusive aggregate verdicts.
 
 ## References
 
@@ -828,6 +925,12 @@ The remaining physical requirements are a selected microscopic production action
 - `computations/matter-formation-spinor-closure-implementation-recovery.md`—source provenance, implementation defect, accepted receipts and controls.
 - `computations/matter_formation_spinor_closure.py`—primary matrix identities and direct stationary linear solves.
 - `computations/verify_matter_formation_spinor_closure.py`—independent component dynamics, scalar stationary equations and transition amplitudes.
+- `computations/matter-formation-fermion-production-prereg.md`—frozen real scalar source, fermionic vacuum, exact correspondences and finite-mode feedback schedule.
+- `computations/matter_formation_fermion_production.py`—primary full Dirac covariance evolution and energy accounting.
+- `computations/verify_matter_formation_fermion_production.py`—independent Bloch-vector dynamics, raw-array reconstruction and qualification.
+- `runs/20260906_matter_formation_fermion_production_implementation_recovery/results.json` and `runs/20260906_matter_formation_fermion_production_implementation_recovery/verification.json`—accepted finite-mode production, backreaction and source-bound verification.
+- [Greene and Kofman, *Preheating of Fermions*](https://arxiv.org/abs/hep-ph/9807339)—coherent fermion production and Pauli-bounded occupation.
+- [Baacke, Heitmann and Pätzold, *Nonequilibrium dynamics of fermions in a spatially homogeneous scalar background field*](https://arxiv.org/abs/hep-ph/9806205)—one-loop backreaction, renormalization and initial-state requirements.
 - `foundations/sector-coupling-derivation.md` §1—dimensional, positivity, Hermiticity, chiral-current and dynamical-closure boundaries of the displayed Dirac identifications.
 - `two-fluid/cassi_dirac_bridge.py`—component-quadratic, spin and current diagnostics; physical energy-density and fine-structure interpretations remain unestablished.
 - `foundations/particle-stationary-action-closure.md` §8.7—continuity law, conditional scalar reduction, radial equations and ultraviolet boundary.

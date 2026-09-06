@@ -494,9 +494,9 @@ The regulated quantum action in §5.1 acts on a wavefunctional over the full
 CassiFI configuration space. Its derived quantum potential
 $Q_G=-\hbar^2\Delta_GR/(2R)$ remains inside that configuration-space action.
 
-### 4.2 Dirac Sector $\mathcal{L}_{\text{D}}$ (optional free-fermion extension)
+### 4.2 Dirac Sector $\mathcal{L}_{\text{D}}$ (optional fermionic extension)
 
-This sector is an optional **Hypothesized** free-fermion extension. The
+This sector is an optional **Hypothesized** fermionic extension. The
 canonical density pair supplies the $\Psi_\alpha$ coordinate lift; the
 chiral bilinear boundary below is an additional diagnostic, not a fermion
 identification.
@@ -537,6 +537,19 @@ independent finite-dimensional witnesses are in
 `computations/matter-formation-continuum-report.md` §13.
 Physical normalization, a reservoir interaction and quantum-state reduction
 remain open.
+
+A separately declared real scalar mass source has a Hermitian Yukawa
+interaction, a specified fermionic vacuum and reciprocal semiclassical
+feedback. Independent four-component and Bloch-vector calculations
+verify 32 quench/pulse rows and six finite-mode trajectories, with all
+1,185 checks passing. The finest closed trajectory has per-spin peak
+occupation $0.5729566253$ and relative energy error $5.6211\times10^{-5}$,
+with second-order time convergence. The scalar, vacuum-polarization
+and excitation energies share one ledger. Physical field identification,
+continuum renormalization, a canonical density reduction and localized
+particle formation remain open
+(`foundations/sector-coupling-derivation.md` §1.7;
+`computations/matter-formation-continuum-report.md` §14).
 
 ### 4.3 Gravity Sector $\mathcal{L}_{\text{GR}}$ (optional gravity extension)
 This sector is an optional **Hypothesized** gravity extension. Its displayed

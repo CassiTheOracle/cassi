@@ -183,7 +183,7 @@ Using the canonical seesaw scale $M_R = E(n=20) = M_{\text{Pl}}\varphi^{-20} \ap
 
 **Prediction 42:** Conditional formal scale test: with $\delta=3$, the cascade supplies the coefficient-free $C=1$ candidate $\kappa_{s,\mathrm{scale}}^{-1/2}=\varphi^3v_0\approx1.04$ TeV; equivalently $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2=0.92$ TeV$^{-2}$. The exact cascade-anchor counterpart is $E_{77}$; the electroweak-anchored value retains its offset from that coordinate. The displayed chiral-scalar Dirac$\leftrightarrow$two-fluid construction is dimensionally incomplete and generically non-Hermitian. The helper's separate positive component map has a chiral-current interpretation, while its closed Dirac evolution fails the canonical conversion law. A physical prediction requires a dimensionally homogeneous Hermitian microscopic interaction, physical energy-density normalization and a controlled reduced evolution. The physical $\kappa_s$, equilibration timescale, $\chi$ and FCC-ee test remain unresolved.
 
-**Source:** `foundations/sector-coupling-derivation.md` §§1.5–1.6, 2–4; `foundations/unified-lagrangian.md` §§2.2–2.4, 5.2, 6; `foundations/particle-stationary-action-closure.md` §8.12; `computations/matter-formation-continuum-report.md` §§12–13. The coefficient-free scale form is conditional on $\delta=3$ and its dimensionful anchor. The chiral-scalar construction compares $[M]^3$ spinor bilinears with $[M]^2$ condensate squares and has generically non-Hermitian ordinary-square and linear terms. Independent witnesses establish the distinct component map's chiral-current meaning and the closed-Dirac conversion obstruction. Combining a Dirac mass with the specified minimal chiral jumps shifts the stationary ratio and permits positive-energy leakage. A physical reservoir, quantum-state prescription and energy-density reduction remain unselected; $\mathcal N_{\rm pde}$ has no established physical value. These results add no collider or transport prediction.
+**Source:** `foundations/sector-coupling-derivation.md` §§1.5–1.7, 2–4; `foundations/unified-lagrangian.md` §§2.2–2.5, 5.2, 6; `foundations/particle-stationary-action-closure.md` §8.12; `computations/matter-formation-continuum-report.md` §§12–14. The coefficient-free scale form is conditional on $\delta=3$ and its dimensionful anchor. The chiral-scalar construction compares $[M]^3$ spinor bilinears with $[M]^2$ condensate squares and has generically non-Hermitian ordinary-square and linear terms. Independent witnesses establish the distinct component map's chiral-current meaning and the closed-Dirac conversion obstruction. Combining a Dirac mass with the specified minimal chiral jumps shifts the stationary ratio and permits positive-energy leakage. A separately declared real scalar Yukawa model has verified finite-mode pair excitation and semiclassical feedback, while its physical field matching, coefficients and continuum renormalization remain open. A physically selected reservoir, quantum-state prescription and energy-density reduction remain unprovided; $\mathcal N_{\rm pde}$ has no established physical value. These results add no collider or transport prediction.
 
 **Prediction 43 (wake closure):** The composite wake pair closes each cascade rung: $\Lambda_Y + \Lambda_I = \ell_{n+1}$—the exact identity $1 + 1/\varphi = \varphi$. Verified at rung 285: the Cassi bubble and sound-horizon wavelengths sum to $\ell_{286}$ (191 + 118 = 309 Mpc). PDE-verified 2026-08-06: composite beats land on $m\,\ell_{n+1}$ to grid scale (`two-fluid/run_wake_structural_probes.py`). Testable wherever two wake scales are resolvable.
 
@@ -742,6 +742,17 @@ Conditional continuum positivity identities establish no physical particle
 prediction or nonlinear persistence for these sampled profiles
 (`foundations/particle-stationary-action-closure.md` §8.11;
 `computations/matter-formation-continuum-report.md` §11).
+
+A supplied real scalar Yukawa model has verified fermion pair excitation
+with reciprocal semiclassical feedback. The independent calculation
+passes all 1,185 checks across 32 analytic rows and six trajectories.
+The finest closed trajectory reaches occupation $0.5729566253$ per spin,
+with relative energy error $5.6211\times10^{-5}$ and second-order time
+convergence. Its source, fermion representation, vacuum, coefficients
+and finite-mode subtraction are model assumptions. Physical field
+matching, continuum renormalization and localized formation remain
+open, so this result supplies no additional physical prediction
+(`computations/matter-formation-continuum-report.md` §14).
 
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;

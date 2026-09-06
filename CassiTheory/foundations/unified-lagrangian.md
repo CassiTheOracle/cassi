@@ -456,10 +456,46 @@ $$
 $$
 
 Its spin representation, anticommutation relations and mass are microscopic
-inputs. Gauge and Yukawa interactions require the corresponding declared
-extensions in §4. A direct interaction identifying this field with the
-two-fluid densities is unselected; the expressions in §2.2 and §5.2 are
-excluded by their stated algebraic and dimensional obstructions.
+inputs. Gauge and Higgs-sector interactions require the corresponding
+declared extensions in §4. The real scalar mass-source candidate in §2.5
+has a separate finite-mode specification. A physical interaction
+identifying this field with the two-fluid densities remains unselected;
+the expressions in §2.2 and §5.2 have their stated algebraic and dimensional
+obstructions.
+
+### 2.5 Conditional real scalar mass-source witness
+
+A separately supplied real scalar field can exchange energy with a
+fermionic vacuum through the Hermitian interaction
+$\mathcal L_{\rm int}=-yf\bar\psi\psi$. With $[f]=M$ and real
+dimensionless $y$, it preserves the vector $U(1)$ symmetry and gives
+the mass $m(f)=m_0+yf$. This is an explicitly selected microscopic
+candidate; its scalar field and coefficients have no derived identification
+with the canonical two-fluid state.
+
+For the specified homogeneous finite-volume reduction, a Gaussian fermion
+covariance evolves by $\dot C_j=-i[H_j(f),C_j]$. The filled negative-energy
+reference covariance has zero particle and hole excitation number.
+Its evolution preserves Pauli bounds and zero net vector charge while a
+time-dependent source can excite pairs. A classical scalar mean field
+with reciprocal force and a fixed-reference subtraction has a conserved
+continuous-time Hamiltonian. Its energy contains scalar, vacuum-polarization
+and positive excitation contributions. The derivation is in
+`foundations/sector-coupling-derivation.md` §1.7; the exact mode set,
+normalization, controls and time-step schedule are frozen in
+`computations/matter-formation-fermion-production-prereg.md`.
+The independent finite-mode calculation verifies 32 analytic rows and six
+trajectories, including zero-pump, zero-coupling and feedback-omitted
+controls. Its finest closed trajectory has peak occupation $0.5729566253$
+per spin, relative energy error $5.6211\times10^{-5}$ and second-order
+time convergence. All 1,185 verification checks pass
+(`computations/matter-formation-continuum-report.md` §14).
+
+This finite-mode construction supplies no continuum renormalization,
+quantum-error bound for the mean field, localized particle formation,
+canonical density conversion or physical production rate. Its field
+content, physical scales and interaction matching remain independent
+microscopic assumptions.
 
 ## 3. GR/Gravity Sector $\mathcal{L}_{\text{GR}}$
 

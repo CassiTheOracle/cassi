@@ -975,6 +975,18 @@ recorded in `foundations/sector-coupling-derivation.md` §§1.5–1.6 and
 quantum-state prescription and controlled energy-density reduction remain
 open.
 
+The separately declared real scalar mass-source model has a verified
+finite-mode production mechanism: a fermionic vacuum develops matched
+particle and hole occupations, and reciprocal scalar feedback closes
+the specified energy ledger. Independent calculations pass all 1,185
+checks across 32 analytic rows and six trajectories. The finest closed
+trajectory reaches per-spin occupation $0.5729566253$ with relative
+energy error $5.6211\times10^{-5}$ and second-order time convergence.
+Its physical field identification, continuum renormalization and
+localized particle formation remain open; the source and model
+parameters are supplied assumptions
+(`computations/matter-formation-continuum-report.md` §14).
+
 **Epistemic status:** the modulation period is **Derived conditional** on the
 optional signal map; its physical wake imprint and cross-domain extensions
 are **Hypothesized** and being tested. The sector scale is **Derived

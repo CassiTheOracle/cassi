@@ -233,6 +233,18 @@ normalization, quantum occupations and production interaction remain open
 (`foundations/sector-coupling-derivation.md` §§1.5–1.6;
 `computations/matter-formation-continuum-report.md` §13).
 
+A separately declared real scalar mass source gives conditional
+fermion pair excitation with reciprocal semiclassical feedback.
+Independent full-covariance and Bloch-vector dynamics agree on all
+32 analytic rows and six trajectories; all 1,185 checks pass, covering
+1,494,186 raw scalar comparisons. The finest closed trajectory reaches
+per-spin occupation $0.5729566253$ with relative energy error
+$5.6211\times10^{-5}$ and time-convergence ratio $4.00277$. This establishes
+the specified finite-mode energy/charge ledger. Physical field content
+and scales, continuum renormalization, a canonical density reduction
+and localized particle formation remain open
+(`computations/matter-formation-continuum-report.md` §14).
+
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 
 | Claim | Tested result | Status |

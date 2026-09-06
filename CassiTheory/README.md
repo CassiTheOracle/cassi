@@ -100,6 +100,17 @@ energy-density normalization, a reservoir interaction and a controlled
 quantum reduction open (`foundations/sector-coupling-derivation.md`
 §§1.5–1.6; `computations/matter-formation-continuum-report.md` §13).
 
+A separately specified real scalar can excite fermion pairs from a
+declared vacuum while receiving reciprocal feedback. Independent
+full-covariance and Bloch-vector calculations agree on 32 analytic
+quench/pulse rows and six retained trajectories, with all 1,185 checks
+passing. The finest closed trajectory reaches occupation $0.5729566253$
+per spin with relative energy error $5.6211\times10^{-5}$ and second-order
+time convergence. The source, spinor field, coefficients and finite-mode
+subtraction are supplied assumptions; physical Cassi matching,
+continuum renormalization and localized matter formation remain open
+(`computations/matter-formation-continuum-report.md` §14).
+
 ## The reality-simulation program
 
 The reality simulator turns theoretical statements into dynamics that can be perturbed and measured. Its target is a field engine that supports local evolution, structure formation, gravity, particles, scale coupling, and cosmological behavior without changing the underlying computational vocabulary at every domain boundary.

@@ -313,6 +313,18 @@ domain comparison fail the frozen criteria. These conditional results and the
 required microscopic production law are recorded in
 `computations/matter-formation-continuum-report.md`.
 
+A separately supplied real scalar mass source excites fermion pairs in
+a homogeneous finite-mode model with reciprocal semiclassical feedback.
+The four-component and independent Bloch-vector calculations agree on
+32 analytic rows and six trajectories, with all 1,185 checks passing.
+The finest closed trajectory reaches per-spin occupation $0.5729566253$
+with relative energy error $5.6211\times10^{-5}$ and second-order time
+convergence. Its energy ledger includes scalar, vacuum-polarization and
+positive excitation contributions. Physical Cassi identification,
+continuum renormalization and localized particle formation remain open;
+the selected source, field content and coefficients are independent
+inputs (`computations/matter-formation-continuum-report.md` §14).
+
 ## References
 
 - `computations/matter_completion_boundary_prereg.md`—frozen MCC1–MCC9

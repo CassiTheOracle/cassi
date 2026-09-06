@@ -53,7 +53,7 @@ interaction. The derivation and measured scope are in
 | 25 | `microcascade-mirror.md` | Formal negative-step coordinate; physical realization open | Hypothesized |
 | 26 | `refined-numeric-predictions.md` | Pinned φ-powers | Active derivation |
 | 27 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
-| 28 | `sector-coupling-derivation.md` | Conditional Sector Scale and the Dirac Density Obstruction | Derived conditional scale, chiral-current and closure identities / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026 |
+| 28 | `sector-coupling-derivation.md` | Conditional Sector Scale and the Dirac Density Obstruction | Derived conditional scale, chiral-current, closure and fermionic identities / Tested finite-mode production / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026 |
 | 29 | `wake-geometry.md` | Wake geometry | Derived supplied-wave structure; tested conditional second-order realization; physical condensation open |
 | 30 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
 | 31 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
@@ -508,6 +508,20 @@ shifts the population fixed point and permits transitions out of the
 positive-energy one-particle subspace. These conditional identities constrain
 that completion; a physical interaction, reservoir and density reduction
 remain open (§§1.5–1.6 of the source).
+
+A separately declared real scalar mass source has a Hermitian interaction
+and a specified fermionic vacuum. Its covariance evolution preserves
+Pauli bounds and vector charge; exact quench and cyclic-pulse identities
+relate excitation to source work. Reciprocal classical scalar feedback
+has a conditional finite-volume energy ledger containing vacuum
+polarization as well as positive excitation energy (§1.7 of the source).
+Independent full-covariance and Bloch-vector calculations verify this
+finite-mode production and feedback model across 32 analytic rows and
+six trajectories, with all 1,185 checks passing
+(`computations/matter-formation-continuum-report.md` §14).
+The finite-mode model assumes its spinor field, scalar source, coupling,
+state and subtraction. Physical identification, continuum quantum dynamics
+and localized matter formation remain open.
 
 ### `wake-geometry.md`—The Wake Geometry: Composite-Wavelength Closure and the Horizon Rung
 

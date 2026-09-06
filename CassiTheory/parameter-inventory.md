@@ -185,6 +185,20 @@ inputs, with no physical fit or addition to the §7 parameter count.
 Canonical energy-density normalization, reservoir matching and the
 helper's fine-structure interpretation remain unestablished.
 
+The separate real scalar mass-source benchmark selects dimensionless
+$m_0=1$, Yukawa coefficient $y=0.25$, oscillator frequency $\Omega=3$,
+box volume $V=4\pi$, four retained momentum cells and an initial scalar
+velocity of $3$. Its length and energy units are set by an uncalibrated
+reference mass. These are numerical model inputs with no empirical fit
+or addition to the §7 physical parameter count. The canonical two-fluid
+equations select neither the additional scalar/fermion content nor these
+values (`computations/matter-formation-fermion-production-prereg.md`;
+`foundations/sector-coupling-derivation.md` §1.7).
+Independent finite-mode pair-production and feedback calculations pass
+the frozen correspondence and energy criteria, with 1,185 checks agreeing
+(`computations/matter-formation-continuum-report.md` §14). This numerical
+qualification supplies no fitted or derived physical value for the inputs.
+
 **$D$ and $\nu$ (scalar density diffusion and velocity viscosity)** are
 numerical solver coefficients. In the canonical equations, $D\nabla^2E_{Y/I}$
 acts on the density fields, while $\nu\nabla^2\mathbf u$ acts on the shared
