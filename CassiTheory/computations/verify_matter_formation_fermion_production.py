@@ -291,7 +291,7 @@ def diagnose(case: str, f: np.ndarray, pi: np.ndarray,
         "max_total_energy_error": max_error,
         "relative_energy_error": max_error / max(1.0, abs(initial_total)),
         "final_scalar_energy": float(scalar[-1]), "final_vacuum_energy": float(vacuum[-1]),
-        "final_excitation_energy": float(excitation[-1]), "energy_partition_residual": partition,
+        "final_excitation_energy": float(excitation[-1]), "energy_partition_residual": float(partition),
     }
     return summary, {"particle": particles, "hole": holes}
 
