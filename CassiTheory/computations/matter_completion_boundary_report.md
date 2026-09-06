@@ -22,9 +22,12 @@ stationary branch across four same-domain resolutions and one larger-domain
 comparison. The finest localized artifact's six independently matched lowest
 constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero
 mode consistent with the analytic global carrier-phase symmetry, no negative
-mode, and five positive modes. The symmetry mode exposes unresolved odd-even
-carrier structure, and no localized Hessian-resolution sequence exists.
-The physical exterior, microscopic interface coefficients, golden port-power
+mode, and five positive modes. The Cartesian carrier field has measured
+parity-concentrated ultraviolet structure: $99.98631608\%$ of its norm lies
+on one of eight parity sublattices, and its nearest-neighbour edge energy
+grows approximately as $\Delta x^{-2}$ on the two finest grids.
+No Cartesian localized Hessian-resolution sequence exists. The physical exterior,
+microscopic interface coefficients, golden port-power
 identification, multimode carrier normalization, reservoir, local reservoir
 stress, state-dependent gravity, coherence-fibre particle identity, continuum
 limit, PA43 temporal stability, and physical particle identity remain open.
@@ -73,7 +76,7 @@ line-density sector.
 | MCC6 | Enlarged unitary evolution conserves total energy and number; interior and complementary exchange vectors close the Ward ledger | **PASS** | Local reservoir stress components require a closed metric-dependent action |
 | MCC7 | The constant-$G$ linearized Einstein witness is transverse; a variable scalar coupling creates an extra divergence | **PASS** | State-dependent gravity open |
 | MCC8 | The Cartan connection requires the minus-sign transformation; rank-one and full-rank Gram fibres are positive; $Q_C$ remains an independent singlet charge | **PASS** | Physical coherence-fibre particle identity open |
-| MCC9 | The frozen CC29 branch has one bounded positive-curvature root and positive nonconstant CC47 line modes | **PASS** | MCC9 contains no stationary-field solve. The independently matched lowest energetic eigenpairs of the diffuse $h_C=1.50$ branch contain no negative mode, while that field fails localization and retention. The localized $h_C=2.9598260763447164$ branch is resolution-consistent across the three finest finite grids; its six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes. The symmetry mode has unresolved odd-even spatial structure, and PA43 dynamics remain open |
+| MCC9 | The frozen CC29 branch has one bounded positive-curvature root and positive nonconstant CC47 line modes | **PASS** | MCC9 contains no stationary-field solve. The independently matched lowest energetic eigenpairs of the diffuse $h_C=1.50$ branch contain no negative mode, while that field fails localization and retention. The localized $h_C=2.9598260763447164$ branch is resolution-consistent across the three finest finite grids; its six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes. The symmetry mode has measured parity-concentrated ultraviolet structure: $99.98631608\%$ of the finest carrier norm lies on one of eight parity sublattices, with nearest-neighbour edge energy growing approximately as $\Delta x^{-2}$ on the two finest grids. The smooth-carrier interpretation is contradicted on that measured Cartesian sequence, and PA43 dynamics remain open |
 
 ## 4. Literal first-execution output
 
@@ -265,7 +268,7 @@ tunnelling, and continuum thresholds; and quantum spin and statistics.
 
 ## 6. Present boundary
 
-The nine sectors now have one shared conditional chain:
+The nine sectors have one shared conditional chain:
 
 $$
 \begin{aligned}
@@ -288,10 +291,27 @@ projected Hessian, while the field fails localization and retention. The
 localized $h_C=2.9598260763447164$ artifact closes finite-grid localization,
 retention, three-level resolution consistency, and the six-mode $C_4$
 finite-matrix PA42 low-spectrum sign classification. Its numerically near-zero
-carrier-phase symmetry mode has high-frequency fraction $0.8744032081$;
-spatial spectral convergence, perturbations beyond $C_4$, the continuum limit,
-and selected PA43 temporal groups remain independent qualification
-requirements.
+carrier-phase symmetry mode has high-frequency fraction $0.8744032081$ and,
+on the stored Cartesian sequence, the finest field places $99.98631608\%$ of
+its carrier norm on one of eight parity sublattices while nearest-neighbour
+edge energy grows approximately as $\Delta x^{-2}$ on the two finest grids.
+The measured ultraviolet boundary therefore contradicts a smooth-carrier
+interpretation on that sequence; it does not convert the finite-grid sign
+classification into a continuum stability result. Spatial spectral
+convergence, perturbations beyond $C_4$, the continuum limit, and selected PA43
+temporal groups remain independent qualification requirements.
+
+The carrier creation and continuum calculation has a sharper boundary:
+the first-order action preserves an exactly empty carrier sector. The
+continuum-consistent scalar reduction supports prepared static density traps
+at $Q_C=16$ and $256$ with independent collocation agreement. Its tested
+$Q_C=4$ profiles spread, and $Q_C=64$ remains inconclusive at the frozen
+residual tolerance. The separate smooth $Q_C=16$ constrained spatial study
+finds no resolved negative mode on four tested grids, but its combined verdict
+remains INCONCLUSIVE because the coarse translation mode and same-spacing
+domain comparison fail the frozen criteria. These conditional results and the
+required microscopic production law are recorded in
+`computations/matter-formation-continuum-report.md`.
 
 ## References
 
@@ -321,3 +341,5 @@ requirements.
 - `computations/particle-localized-physical-hessian-report.md`—independently
   verified constrained spectrum and spatial boundary of the finest localized
   artifact.
+
+- `computations/matter-formation-continuum-report.md`—carrier creation obstruction, measured Cartesian ultraviolet boundary, separate continuum scalar binding, and smooth-branch stability results.

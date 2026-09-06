@@ -4,13 +4,7 @@
 
 ## Abstract
 
-Increasing the carrier-to-density coupling changes the registered diffuse
-finite-grid state into compact, strongly retained carrier profiles across the
-entire frozen scan. Every terminal profile satisfies the four measured shape
-conditions: small outer-shell norm, radius below half the box, carrier
-multiplier below the exterior threshold with its declared buffer, and deep
-Yang/Yin density depletion. None reaches the required physical first-variation
-precision, so no profile is accepted as a stationary localized branch.
+Increasing the carrier-to-density coupling changes the registered diffuse finite-grid state into compact, strongly retained carrier profiles across the entire frozen scan. Every terminal profile satisfies the four measured shape conditions: small outer-shell norm, radius below half the box, carrier multiplier below the exterior threshold with its declared buffer, and deep Yang/Yin density depletion. None reaches the required physical first-variation precision, so no profile is accepted as a stationary localized branch. The scan therefore establishes compact finite-grid shapes along incomplete optimization paths, not a continuum carrier solution.
 
 The primary and independent verifier therefore return
 
@@ -25,7 +19,16 @@ Positive carrier cells also retain a measurable residual, so the coordinate
 map is not established as the sole cause. A direct normalized carrier
 coordinate supplies the discriminating calculation and supports a distinct
 localized, retained branch at the weakest scanned coupling; this coefficient
-scan remains immutable as its source and diagnostic record.
+scan remains immutable as its source and diagnostic record. The stored
+Cartesian sequence for that distinct branch has a measured ultraviolet
+obstruction: $99.98631608\%$ of the finest carrier norm lies on one parity
+sublattice and nearest-neighbour edge energy grows approximately as
+$\Delta x^{-2}$ on the two finest grids. The smooth-carrier interpretation is
+therefore contradicted on that measured sequence, without changing this
+scan's frozen verdict.
+The separate continuum-consistent scalar calculation at the same $h_C$
+supports prepared static binding at $Q_C=16$ and $256$, while tested $Q_C=4$
+profiles spread and $Q_C=64$ remains inconclusive.
 
 ## 1. Physical question
 
@@ -172,16 +175,38 @@ suppression. At $h_C=2.9598260763447164$, that calculation reaches a physically
 stationary, nodeless, localized, carrier-retaining endpoint. Independent
 refinements support the same branch on four same-domain grids and one
 larger-domain grid; the two finest adjacent comparisons pass their frozen
-tolerances, and the absolute energy drift contracts twice.
+tolerances, and the absolute energy drift contracts twice. Those are
+finite-grid resolution results and do not establish continuum convergence.
 
 The result remains finite-grid and coefficient-selected. The finest localized
 artifact's six independently matched lowest constrained $C_4$ finite-grid PA42
 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no
-negative mode, and five positive modes. The symmetry mode retains
-high-frequency odd-even structure. Localized Hessian resolution, perturbations
-beyond $C_4$, continuum existence, topology-changing competitors, the PA43
-mixed temporal spectrum, decay channels, lifetime, physical carrier identity,
+negative mode, and five positive modes. The carrier-gradient measurement
+reported in `computations/matter-formation-continuum-report.md` places
+$99.98631608\%$ of the finest carrier norm on one of eight parity sublattices
+and finds nearest-neighbour edge energy growing approximately as
+$\Delta x^{-2}$ on the two finest grids. The frozen spatial diagnostic therefore
+returns `CONTRADICTS—smooth-carrier interpretation on the measured sequence`;
+this is a boundary on the immutable Cartesian arrays, not a modification of
+the scan or direct-coordinate verdicts.
+
+The separate continuum-consistent scalar calculation at the same $h_C$
+supports prepared static binding at $Q_C=16$ and $256$, while tested $Q_C=4$
+profiles spread and $Q_C=64$ remains inconclusive at the frozen residual
+tolerance. Its smooth $Q_C=16$ constrained spatial study finds no resolved
+negative mode on four tested grids, but the combined verdict remains
+INCONCLUSIVE because the coarse translation mode and same-spacing domain
+comparison fail the frozen criteria. That scalar branch and its stability
+study are distinct from the stored Cartesian branch. Carrier creation,
+physical normalization, continuum existence or spectral convergence,
+perturbations beyond $C_4$, topology-changing competitors, the PA43 mixed
+temporal spectrum, decay channels, lifetime, physical carrier identity,
 units, spin, and statistics remain open.
+Under closed boundaries, the first-order carrier continuity law gives
+$Q_C(0)=0\Rightarrow\chi_C(t)=0$; the recovered $Q_C=4$ branch is therefore
+prepared rather than dynamically created by the specified action. The charge
+remains an auxiliary nonnegative population, not a demonstrated physical
+particle charge.
 
 ## References
 
@@ -202,7 +227,7 @@ units, spin, and statistics remain open.
   stationary field.
 - `foundations/core-trapped-charge-support.md`—carrier binding and retention
   conditions.
-- `foundations/particle-stationary-action-closure.md`—static functional and
-  fixed-charge variational boundary.
+- `foundations/particle-stationary-action-closure.md` §8.7—carrier creation obstruction, scalar reduction, and fixed-charge variational boundary.
 - `foundations/matter-completion-boundary.md`—remaining conditions for a
   physical matter claim.
+- `computations/matter-formation-continuum-report.md`—carrier creation obstruction, measured Cartesian ultraviolet boundary, and separate continuum scalar binding and smooth-branch stability results.

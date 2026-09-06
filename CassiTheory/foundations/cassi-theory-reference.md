@@ -1211,12 +1211,20 @@ dynamics remain open.
 
 This ansatz completes the mathematical maps among the declared layers.
 Physical scale normalization, endpoint microphysics, the conversion reservoir,
-the exterior realization, localized solutions, the observation map, particle
-quantum numbers, and decay rates remain open. See
+the exterior realization, physical localized particles, the observation map,
+quantum numbers and decay rates remain open. See
 `foundations/geometric-manifold-completion.md`,
 `foundations/yin-yang-qi-dynamical-geometry.md`,
 `computations/cross_scale_coherence_interface_check.py`, and
 `computations/cross_scale_coherence_interface_report.md`.
+
+The separate particle action preserves an exactly empty closed carrier sector.
+Its Cartesian localized sequence fails the smooth-carrier diagnostic.
+A continuum-consistent scalar reduction independently reproduces static
+binding at prepared $Q_C=16,256$ at a Mapped coupling; smooth $Q_C=16$
+constrained spatial stability remains INCONCLUSIVE. Microscopic production,
+full dynamics and physical particle identity are unclosed
+(`computations/matter-formation-continuum-report.md`).
 
 ### 10.6 Wake-Wave Mechanism
 

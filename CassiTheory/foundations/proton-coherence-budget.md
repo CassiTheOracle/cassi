@@ -1,6 +1,6 @@
 # Proton Coherence Budget and Planck-to-Proton Scale Circuit
 
-## Status: Mapped coordinate and selected carrier coupling / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms / Tested resolution-consistent localized retained finite-grid branch and six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026
+## Status: Mapped coordinate and selected carrier coupling / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026
 
 ## Abstract
 
@@ -47,15 +47,16 @@ Point-core Chern flux supplies an exact conditional exterior coefficient. An
 auxiliary adjoint $SU(2)_Q$ branch smooths the local core and matches that
 coefficient, while the registered nonzero fundamental condensate removes the
 isolated magnetic sector and confines flux. The tested finite net-zero pair has
-no registered finite-separation minimum. A neutral fixed-charge carrier
-supports a localized retained finite-grid branch. Its finest artifact's six
-independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs
-contain one numerically near-zero carrier-phase symmetry mode, no negative
-mode, and five positive modes; the symmetry mode remains spatially unresolved.
-Scale tension, physical endpoint normalization, continuum qualification, PA43
-dynamics, proton quantum numbers, and the winding-changing rate remain
-Hypothesized/Open. Neither candidate determines a physical proton
-lifetime.
+no registered finite-separation minimum. The separate neutral-carrier action
+preserves an exactly empty closed sector. At the Mapped coupling, its
+Cartesian localized branch has a matched finite-grid low spectrum but fails
+the smooth-carrier diagnostic. Separate continuum-consistent scalar binding
+at prepared $Q_C=16,256$ is reproduced independently; smooth $Q_C=16$
+constrained spatial stability is INCONCLUSIVE. These dimensionless prepared
+populations have no identified physical charge or particle count. Microscopic
+production, full stability, scale tension, endpoint normalization, proton
+quantum numbers and a physical lifetime remain open
+(`computations/matter-formation-continuum-report.md`).
 
 ---
 
@@ -288,7 +289,7 @@ coupling.
 | Conditional $10^{910}$-year conversion | Arithmetic inside the selected stochastic model; no physical rate |
 | Zero-total-flow two-rail current and normalized energy | Derived conditional on the candidate interscale action and circuit data |
 | Endpoint conversion and scale-tension closure | Charged coherent and one-way open realizations are Derived conditionally; physical normalization and scale tension remain Hypothesized |
-| Mixed-curvature proton pinch and winding barrier | No finite radius exists in the minimal smooth zero-Chern endpoint sector. Point-core flux supplies a conditional exterior coefficient; an auxiliary adjoint $SU(2)_Q$ branch supplies a smooth local core, while the registered condensate confines flux and gives no persistent pair by itself. A neutral fixed-$Q_C$ carrier supplies one conditional reduced separation under support, retention, and matching inequalities. A separate second-order branch supplies the temporal action, Gauss constraint, and fixed-charge stationary functional. At the Mapped coupling $h_C=2.9598260763447164$, that action has a localized, nodeless, carrier-retaining branch across four same-domain finite grids and one larger-domain comparison. Its finest field's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes; the symmetry mode retains unresolved odd-even structure. Localized Hessian resolution, perturbations beyond $C_4$, continuum qualification, PA43 dynamics, proton quantum numbers, and decay remain open |
+| Mixed-curvature proton pinch and winding barrier | Point flux, an auxiliary adjoint core and a neutral carrier supply conditional reduced support, while the minimal smooth zero-Chern sector has no finite radius. The separate temporal action supplies Gauss and stationary equations but preserves an empty carrier sector. Its Cartesian branch fails the smooth-carrier diagnostic. Independent continuum calculations at the same Mapped coupling support prepared scalar binding at $Q_C=16,256$ with INCONCLUSIVE smooth $Q_C=16$ constrained spatial stability. Production, full dynamics, physical normalization, proton identity and decay remain open |
 | Proton mass selection, charge, color, spin, and decay rate | Open |
 
 No numbered prediction is added. A quantitative proton claim requires a
@@ -462,23 +463,25 @@ sector. The registered nonzero fundamental condensate removes the isolated
 magnetic sector and confines flux; the finite monopole-antimonopole branch has
 no registered finite-separation minimum. Winding change requires a phase slip,
 endpoint conversion event, condensate zero, defect crossing, or boundary
-event. A proton lifetime still requires persistent-composite support, physical
-coefficient calibration, proton quantum numbers, localized Hessian resolution,
-perturbations beyond $C_4$, continuum qualification, real-time formation and
-persistence, and an observable decay channel. The source-free action in
-`foundations/particle-stationary-action-closure.md` defines the full
-fixed-$Q_C$ variational problem and Gauss constraint. At the Mapped coupling
-$h_C=2.9598260763447164$, it has a localized, nodeless, carrier-retaining
-stationary branch across four same-domain finite grids and one larger-domain
-comparison. Its finest artifact's six independently matched lowest constrained
-$C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero
-carrier-phase symmetry mode, no negative mode, and five positive modes. The
-symmetry mode retains high-frequency odd-even structure. The independently
-matched lowest energetic eigenpairs of a distinct diffuse $h_C=1.50$
-background also contain no negative mode, while that field fails localization
-and retention. The localized branch has no qualified Hessian-resolution
-sequence, continuum extrapolation, PA43 mixed dynamical spectrum, proton
-quantum numbers, or decay map.
+event. A proton lifetime requires a microscopic production and decay channel,
+physical coefficient calibration, proton quantum numbers, qualified
+continuum states, full stability and a measured observable. The action in
+`foundations/particle-stationary-action-closure.md` supplies the fixed-$Q_C$
+variational problem and Gauss constraint, while its neutral first-order
+carrier preserves an exactly empty closed sector.
+
+At the Mapped coupling $h_C=2.9598260763447164$, the stored Cartesian branch
+has six matched lowest constrained finite-grid eigenpairs containing a
+near-zero carrier-phase mode and five positive modes. Its finest carrier norm
+is $99.98631608\%$ on one parity sublattice, and the edge-gradient diagnostic
+contradicts a smooth-carrier interpretation on the measured sequence.
+A separate continuum-consistent scalar calculation supports static binding
+at prepared $Q_C=16,256$, reproduced by independent collocation.
+Smooth $Q_C=16$ constrained spatial stability is INCONCLUSIVE because its
+coarse translation and domain criteria fail. No negative mode is resolved on
+the tested grids. Prepared dimensionless populations, static binding and a
+finite-grid low-spectrum sign supply no proton quantum numbers or lifetime
+(`computations/matter-formation-continuum-report.md`).
 
 The circuit derivation is given in
 `foundations/interscale-current-soliton.md` §4.5. Endpoint closure and invariant
@@ -512,3 +515,12 @@ identities are checked by
 `computations/magnetic_core_completion_check.py`,
 `computations/core_trapped_charge_check.py`, and
 `computations/particle_action_closure_check.py`.
+
+## References
+
+- `foundations/cascade-suppression-formula.md`—conditional attenuation tool.
+- `foundations/interscale-current-soliton.md`—two-rail current and endpoint assumptions.
+- `foundations/endpoint-link-and-localization-boundary.md`—endpoint covariance, transport and minimal-sector localization boundary.
+- `foundations/core-trapped-charge-support.md`—conditional fixed-population support.
+- `foundations/particle-stationary-action-closure.md`—temporal action, empty-sector invariant, scalar reduction and fluctuation boundary.
+- `computations/matter-formation-continuum-report.md`—Cartesian ultraviolet obstruction, prepared smooth scalar binding and constrained spatial stability.

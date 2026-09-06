@@ -5,13 +5,13 @@
 ## Abstract
 
 This report measures the constrained static curvature of the finest localized,
-nodeless, carrier-retaining stationary field in the PA42 particle action. The
-frozen background is the independently verified $N=29$, $R=4$ field at the
-Mapped coupling $h_C=2.9598260763447164$. The physical fluctuation space keeps
-fixed charge $Q_C=4$, fixes the outer shell, preserves $C_4$, retains the full
-complex carrier, and quotients the complete allowed local-$SU(2)_Q$ gauge
-image. The numerical gauge-fixing energy is excluded from the physical
-functional.
+nodeless, carrier-retaining finite-grid stationary field in the PA42 particle
+action. The frozen background is the independently verified $N=29$, $R=4$
+field at the Mapped coupling $h_C=2.9598260763447164$. The physical
+fluctuation space keeps fixed charge $Q_C=4$, fixes the outer shell, preserves
+$C_4$, retains the full complex carrier, and quotients the complete allowed
+local-$SU(2)_Q$ gauge image. The numerical gauge-fixing energy is excluded
+from the physical functional.
 
 Independent sparse implementations construct the same 77,000-dimensional
 physical operator. Their six lowest eigenvalues agree within
@@ -27,13 +27,17 @@ $$
 $$
 
 The phase mode has high-frequency fraction $0.8744032081$, above the frozen
-$0.20$ cutoff. Its field weight is entirely in the carrier-imaginary component,
-so the diagnostic exposes the localized carrier's odd-even grid structure.
+$0.20$ cutoff. Its field weight is entirely in the carrier-imaginary component.
+The corresponding stored Cartesian carrier sequence has measured
+parity-concentrated ultraviolet structure: $99.98631608\%$ of the finest
+carrier norm lies on one of eight parity sublattices, and nearest-neighbour
+edge energy grows approximately as $\Delta x^{-2}$ on the two finest grids.
 The separate spatial verdict is
 `INCONCLUSIVE—GRID-SCALE CLASSIFIED MODE`. A localized Hessian resolution
 sequence is unavailable. The result qualifies six matched lowest eigenpairs in
-one finite-grid symmetry class; continuum energetic stability and PA43 temporal
-stability remain open.
+one finite-grid symmetry class; the measured ultraviolet obstruction and the
+absence of a Hessian sequence leave continuum energetic stability and PA43
+temporal stability open.
 
 ## 1. Frozen question and source field
 
@@ -262,10 +266,15 @@ classification flags do not alter the frozen LH7 gate; they reinforce the need
 for a finer-grid spectral sequence before a continuum interpretation.
 
 The analytic phase direction is proportional to the stationary carrier field.
-Its high-frequency fraction identifies odd-even structure in the localized
-carrier profile. No second near-zero eigenpair appears among these six
-eigenpairs. The tested low-spectrum sign remains valid, while the spatial
-interpretation stays inconclusive.
+Its high-frequency fraction identifies the carrier's parity-concentrated
+ultraviolet structure: the finest stored Cartesian field places $99.98631608\%$
+of its norm on one of eight parity sublattices, while nearest-neighbour edge
+energy grows approximately as $\Delta x^{-2}$ on the two finest grids. The
+frozen spatial diagnostic therefore returns
+`CONTRADICTS—smooth-carrier interpretation on the measured sequence` for the
+stored Cartesian sequence. No second near-zero eigenpair appears among these
+six eigenpairs. The tested low-spectrum sign remains valid for this finite-grid
+operator, while continuum spectral interpretation remains unqualified.
 
 ## 9. Frozen verdict tree
 
@@ -342,7 +351,7 @@ The current boundary comprises:
 
 - a localized Hessian sequence on finer grids and, where affordable, a larger
   domain;
-- removal or convergence of the carrier's odd-even spatial structure;
+- a spatial action that controls the measured carrier ultraviolet structure, including its parity concentration and nearest-neighbour gradient growth;
 - perturbations beyond $C_4$ and the represented finite box;
 - infinite-domain existence and continuum spectral convergence;
 - temporal coefficient groups and the PA43 mixed dynamical pencil;
@@ -350,10 +359,31 @@ The current boundary comprises:
 - physical calibration of mass, radius, charge, spin, and statistics;
 - a formation mechanism and basin measure.
 
-The next discriminating static calculation is a localized Hessian-resolution
-campaign that tracks the phase-mode high-frequency fraction and the positive
-gap together. Temporal stability becomes meaningful after that spatial
-sequence resolves or identifies a persistent lattice branch.
+Temporal and continuum particle claims require a spatial action that controls
+the carrier's ultraviolet gradients, along with physically selected temporal
+coefficients and an appropriate perturbation sector.
+
+The immutable carrier-gradient calculation in
+`computations/matter-formation-continuum-report.md` quantifies the spatial
+limitation: $99.98631608\%$ of the finest carrier norm occupies one of eight
+parity sublattices, and the two finest nearest-neighbour gradient energies
+grow approximately as $\Delta x^{-2}$. Its frozen verdict is `CONTRADICTS`
+for a smooth-carrier interpretation on the measured sequence. The LH1–LH7
+receipt remains a finite-grid classification of the specified artifact.
+
+The continuum-consistent scalar calculation is a separate stationary field. At
+the same $h_C$, it supports prepared static binding at $Q_C=16$ and $256$,
+while tested $Q_C=4$ profiles spread and $Q_C=64$ remains inconclusive at the
+frozen residual tolerance. Its smooth $Q_C=16$ constrained spatial study
+finds no resolved negative mode on four tested grids, but the combined verdict
+remains INCONCLUSIVE because the coarse translation mode and same-spacing
+domain comparison fail the frozen criteria. These scalar results do not
+qualify the Cartesian Hessian or establish continuum energetic or temporal
+stability.
+Under closed boundaries, the first-order carrier continuity law gives
+$Q_C(0)=0\Rightarrow\chi_C(t)=0$; the prepared $Q_C=4$ field is not a
+demonstrated product of the specified action. The carrier population remains
+an auxiliary nonnegative number pending physical normalization and identity.
 
 ## References
 
@@ -362,7 +392,8 @@ sequence resolves or identifies a persistent lattice branch.
 - `computations/verify_particle_localized_physical_hessian.py`—independent preflight and six-mode verifier.
 - `computations/particle-carrier-resolution-recovery-report.md`—source localized-field resolution sequence.
 - `computations/particle-physical-hessian-precision-v2-report.md`—separate diffuse-background PA42 spectrum.
-- `foundations/particle-stationary-action-closure.md` §8.6—PA42 energetic Hessian and PA43 mixed pencil.
+- `foundations/particle-stationary-action-closure.md` §8.6–§8.7—PA42 energetic Hessian, PA43 mixed pencil, carrier creation obstruction, and scalar reduction.
 - `foundations/matter-completion-boundary.md` §10—particle-spectrum qualification boundary.
 - `foundations/core-trapped-charge-support.md`—retained-charge support boundary.
 - `foundations/nonabelian-magnetic-core-boundary.md`—non-Abelian core and confinement boundary.
+- `computations/matter-formation-continuum-report.md`—carrier creation obstruction, measured Cartesian ultraviolet boundary, and separate continuum scalar binding and smooth-branch stability results.

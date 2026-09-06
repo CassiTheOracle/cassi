@@ -1,6 +1,6 @@
 # Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
-## Status: Derived conditional boundary / Hypothesized physical realization / Tested reduced receipts, a resolution-consistent localized retained finite-grid branch, and a six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026
+## Status: Derived conditional boundary / Hypothesized physical realization / Tested reduced receipts, finite-grid spectrum and conditional smooth scalar binding—September 2026
 
 ## Abstract
 
@@ -26,19 +26,17 @@ Gram matrix, with an explicit bridge between the endpoint and particle Cartan
 conventions. The fixed-charge action supplies the stationary and full
 fluctuation qualification problem.
 
-MCC1–MCC9 pass in the frozen receipt. The physical exterior, microscopic
-coefficients, multimode carrier map, reservoir action, state-dependent gravity,
-and particle identification remain open. At the numerically selected
-$h_C=2.9598260763447164$, the fixed-charge particle action has a localized,
-nodeless, carrier-retaining stationary branch on four same-domain resolutions
-and one larger-domain comparison. Its finest artifact's six independently
-matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one
-numerically near-zero mode consistent with the analytic global carrier-phase
-symmetry, no negative mode, and five positive modes. The symmetry mode carries
-unresolved odd-even spatial structure. The independently matched lowest
-energetic eigenpairs of a distinct diffuse background at $h_C=1.50$ also
-contain no negative mode. Localized Hessian resolution, a continuum limit, and
-the PA43 mixed dynamical spectrum remain open.
+The frozen algebraic receipt passes all nine conditional checks. The physical
+exterior, microscopic coefficients, multimode carrier map, reservoir action,
+state-dependent gravity and particle identification remain open. At the
+Mapped coupling $h_C=2.9598260763447164$, the stored Cartesian localized
+branch has a matched six-mode constrained finite-grid spectrum, but its
+parity-concentrated carrier fails the smooth-continuum diagnostic.
+A separate continuum-consistent scalar calculation supports static binding
+at prepared $Q_C=16$ and $256$, reproduced by independent collocation.
+The smooth $Q_C=16$ constrained spatial stability verdict is `INCONCLUSIVE`.
+The first-order carrier action preserves an exactly empty closed sector,
+so these prepared configurations supply no microscopic production mechanism.
 
 ## 1. The nine-part boundary
 
@@ -56,7 +54,7 @@ without assigning physical meaning that the action or data have not selected.
 | Stress | Conserved Hilbert stress of the complete dilation action and equal-and-opposite reduced exchange | Metric dependence of the exterior, interface, and reservoir actions |
 | Geometry | Constant-$G$ Einstein backreaction sourced by conserved total stress | Selected gravity sector; extra dynamics for any $q$-dependent coupling |
 | Particle map | Gram map into the $SU(2)_Q$ doublet, Cartan convention bridge, and independent global $Q_C$ | Physical identification, coefficients, quantum numbers, and calibrated charge |
-| Stationary spectrum | Fixed-charge variational equations, finite-energy boundaries, joint physical Hessian, and mixed dynamical eigenvalue pencil; the six independently matched lowest strict-shell $C_4$ PA42 eigenpairs on one localized finite-grid field contain no negative mode | Localized Hessian resolution, perturbations beyond $C_4$, spatially resolved phase mode, selected temporal groups, PA43 spectrum, and continuum qualification |
+| Stationary spectrum | Fixed-charge variational equations, finite-energy boundaries, physical Hessian and mixed dynamical pencil; matched Cartesian finite-grid low spectrum; separate smooth scalar prepared binding and INCONCLUSIVE constrained spatial stability | Continuum and domain-converged spectra, full temporal and nonlinear stability, physical coefficient selection and actual formation |
 
 These results are collected in one statement.
 
@@ -865,44 +863,56 @@ gates pass:
 | MCC9 | reduced root $1.269522140245$; curvature $1.496039$; minimum line mode $0.975736$ | **PASS** |
 
 The receipt establishes consistency of the conditional nine-part boundary.
-Its scope flags remain unresolved because the algebraic witnesses do not
-perform a stationary or fluctuation solve. Separate numerical campaigns supply
-a localized, retained four-resolution stationary branch. Its finest
-artifact's six independently matched lowest constrained $C_4$ finite-grid
-PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode,
-no negative mode, and five positive modes. The symmetry mode retains grid-scale
-odd-even structure. The independently matched lowest energetic eigenpairs of a
-diffuse background also contain no negative mode while that field fails
-localization and retention. Neither finite-grid result establishes a continuum
-particle or a qualified PA43 mixed dynamical spectrum.
+Its algebraic witnesses do not perform a stationary or fluctuation solve.
+Separate numerical campaigns supply a Cartesian localized branch whose
+six matched lowest constrained finite-grid eigenpairs contain a near-zero
+phase mode and five positive modes. The carrier's parity concentration and
+edge-gradient divergence contradict a smooth interpretation on that measured
+sequence. A continuum-consistent scalar reduction independently supports
+prepared static binding; the smooth branch's constrained spatial stability
+verdict remains inconclusive. These are distinct measurements with the
+boundaries recorded in `computations/matter-formation-continuum-report.md`.
 
 ## 12. What remains to form matter
 
-The next discriminating evidence is:
+The first-order carrier equation has an exact creation boundary:
+$Q_C(0)=0$ implies $\chi_C(t)=0$ under closed boundaries. Its nonnegative
+population requires additional microscopic degrees of freedom and interactions
+before it can describe signed charge and particle–antiparticle production.
 
-1. select one physical carrier and derive
-   $S_{\rm out}+S_{\rm int}+S_{\rm env}$ with units, boundary conditions, and
-   metric dependence;
-2. derive the golden or another measured port law from that action, including
-   return routing and canonical flux normalization;
-3. calibrate the particle-action coefficients and $Q_C$ sector to a declared
-   physical target with every empirical input ledgered;
-4. extend the localized branch through additional domain growth and finer
-   grids until an infinite-domain and continuum extrapolation can be tested;
-5. compute the constrained localized Hessian along that refinement sequence
-   and determine whether the phase-mode high-frequency fraction vanishes while
-   the positive gap persists;
-6. expand the energetic quotient beyond $C_4$, select the temporal groups,
-   solve the PA43 mixed dynamical pencil, and test perturbed real-time
-   persistence and formation from nonstationary initial data.
+The immutable Cartesian localized sequence is parity-concentrated: its finest
+carrier puts $99.98631608\%$ of its norm on one of eight sublattices, and its
+nearest-neighbour gradient energy grows approximately as $\Delta x^{-2}$.
+The registered smooth-carrier interpretation is `CONTRADICTS` on this sequence.
+A separate continuum-consistent scalar reduction of the same trivial-sector
+action finds bound prepared populations at $Q_C=16$ and $256$, reproduced by
+independent collocation. The $Q_C=4$ profiles spread with the domain; the
+$Q_C=64$ finest density-field residual fails the frozen qualification threshold.
+The smooth $Q_C=16$ constrained spatial calculation has no resolved negative
+mode on its tested grids, but the coarse translation-mode and domain
+comparisons fail the frozen criteria; the combined verdict is `INCONCLUSIVE`.
+The derivation and receipts are in
+`foundations/particle-stationary-action-closure.md` §8.7 and
+`computations/matter-formation-continuum-report.md`.
 
-Until these steps are complete, Cassi has a connected matter calculation,
-reduced support theorems, and one resolution-consistent localized retained
-finite-grid branch. Its finest field's six independently matched lowest
-constrained $C_4$ PA42 eigenpairs contain one numerically near-zero
-carrier-phase symmetry mode, no negative mode, and five positive modes. The
-symmetry mode retains unresolved odd-even structure. A physical finite-energy
-particle remains open.
+The remaining physical requirements are:
+
+1. identify the microscopic carrier and derive its production interaction,
+   quantum state, energy source and signed physical charge;
+2. derive $S_{\rm out}+S_{\rm int}+S_{\rm env}$, including a measured port law,
+   canonical flux normalization, return routing and metric dependence;
+3. normalize the action coefficients, physical length and energy scales and
+   $Q_C$ sector to a declared target with every empirical input ledgered;
+4. establish infinite-domain existence and stability in the required topology,
+   scale and perturbation sectors of a continuum-consistent action;
+5. solve physically normalized real-time evolution and test nonlinear
+   persistence, production rates and formation basins;
+6. derive particle identity, spin, statistics and empirically discriminating
+   predictions.
+
+The framework has conditional support identities and measured smooth static
+density trapping at selected dimensionless coefficients. Physical matter
+formation remains open.
 
 ## References
 
@@ -935,3 +945,4 @@ particle remains open.
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence, contracting energy differences, and independent verification.
 - `computations/particle-localized-physical-hessian-report.md`—constrained localized PA42 spectrum, carrier-phase symmetry assignment, and spatial qualification.
+- `computations/matter-formation-continuum-report.md`—empty-sector obstruction, Cartesian ultraviolet diagnosis, and independently reproduced continuum density trapping.

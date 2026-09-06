@@ -12,7 +12,7 @@ This directory separates the canonical real-density two-fluid solver from two do
 |---|----------|--------|-----------|
 | 1 | `cassi-yang-yin-particles.md` | Conditional particle-interference extension | Hypothesized |
 | 2 | `dft-benchmarks.md` | Conventional computational chemistry benchmark | Calibrated |
-| 3 | `matter-organization.md` | Matter organization and cascade bookkeeping | Synthesis |
+| 3 | `matter-organization.md` | Matter organization, cascade bookkeeping and formation boundary | Derived conditional relations / Mapped scale assignments / Hypothesized physical realization |
 
 ## Document Summaries
 
@@ -30,7 +30,7 @@ describe supplied canonical dynamics.
 
 ### `matter-organization.md`—Matter Organization: Forces, Lattice Pools, and the Neutron–Proton–Electron Trio
 
-Synthesis (August 2026) of force-channel and cascade bookkeeping, including gravity, GUT, sector, electroweak, and QCD rung assignments; the 38-state mass catalog; lattice node/void bookkeeping; and the proton, neutron, and electron placements. The particle-pooling, standing-wave, wake-phase, propagation, and soliton readings are identified as conditional **Hypothesized** extension content, while independent empirical and mapped cascade results retain their stated tiers.
+Synthesizes force-channel and cascade bookkeeping, the 38-state mass catalog, lattice node/void assignments, and proton, neutron and electron placements. Derived conditional relations, Mapped scale assignments and Hypothesized physical realization retain their source tiers—September 2026. The particle action's empty-sector invariant, the Cartesian ultraviolet diagnostic, separate prepared smooth binding and INCONCLUSIVE constrained spatial stability delimit the matter-formation claim (`computations/matter-formation-continuum-report.md`).
 
 ### `dft-benchmarks.md`—DFT Benchmarks: CassiBridgeV2 Real-Space Performance
 

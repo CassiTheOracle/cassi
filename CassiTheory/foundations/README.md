@@ -6,6 +6,15 @@
 
 This directory holds the foundational derivations of the Cassi framework: the dimensionful cascade $\ell_n = \ell_{\text{Pl}} \times \varphi^n$ and the cascade suppression law $\mathcal{D} = \varphi^{-N}$ (the two wedge documents), the assembled unified Lagrangian and the two-fluid first principles behind it, the Yin–Yang–Qi triad (`qi-flow-double-helix.md`), and the derivation family—spin, the Qi-gravity coupling $\xi = \varphi^6$, the Wu Xing number $w = 5$, proton stability, measurement, strong CP, confinement, generations, neutrino masses, baryon asymmetry, and the bubble-lattice geometry that structures every rung. Reading order: start with `dimensionful-cascade.md` and `cascade-suppression-formula.md`, then `unified-lagrangian.md` and `cassi-first-principles.md` (with `cassi-theory-reference.md` as the compact map), then `qi-flow-double-helix.md` for the triad, then the structural-constant derivations, the spiral-dynamics family, the coherence-budget derivations, the particle-physics derivations, the bubble geometry, and finally the numeric-refinement and gap-closing documents. Epistemic tiers below are taken verbatim from each document's own Status header: most are Derived or Derivation, a smaller set (dimensionful constants, φ-RG, spiral dynamics, three generations, microcascade) are Hypothesized, and none are Speculative.
 
+The particle-action density trap has a continuum-consistent scalar
+calculation with prepared static binding at $Q_C=16$ and $256$, independently
+reproduced by collocation. Its first-order carrier law preserves an exactly
+empty sector. The stored Cartesian carrier sequence fails the frozen
+smooth-field diagnostic, and the smooth $Q_C=16$ combined spatial-stability
+verdict is `INCONCLUSIVE`. The derivation and measured scope are in
+`foundations/particle-stationary-action-closure.md` §8.7 and
+`computations/matter-formation-continuum-report.md`.
+
 ## Document Index
 
 | # | Document | Domain | Epistemic |
@@ -25,7 +34,7 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 13 | `spin-fibonacci-spiral.md` | Spin as spiral winding | Derivation |
 | 14 | `phi_attractor_synthesis.md` | Analytical N-body paths | Derived |
 | 15 | `wa-pentagon-gate.md` | $w_a$ sign tension | Derived / Hypothesized |
-| 16 | `proton-coherence-budget.md` | Proton stability: coherence budget and Planck-to-proton scale circuit | Mapped proton coordinate and selected carrier coupling / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms / Tested resolution-consistent localized retained finite-grid branch and six-mode constrained $C_4$ PA42 low-spectrum sign |
+| 16 | `proton-coherence-budget.md` | Proton stability: coherence budget and Planck-to-proton scale circuit | Mapped proton coordinate and selected carrier coupling / Derived conditional arithmetic and endpoint boundaries / Hypothesized mechanisms / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 17 | `quantum-measurement-derivation.md` | Quantum dynamics and measurement | Derived conditional (regulated quantum mechanics and finite carrier projection); Hypothesized CassiFI and carrier physical identifications |
 | 18 | `strong-cp-derivation.md` | Strong CP | Derivation |
 | 19 | `quark-confinement.md` | Confinement | Derived conditional (tube extensivity + cell quantization); Hypothesized tube/coherence inputs; conditional normalization $\kappa=2\pi$ on the optional $2\pi$-per-rung winding convention |
@@ -46,16 +55,16 @@ This directory holds the foundational derivations of the Cassi framework: the di
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
 | 36 | `loop-to-bubble-projection-theorem.md` | Shared-support Yang/Yin loop, canonical zero-mode projection, coherence ball, and internal spectrum | Derived conditional projection, bubble map, and population spectrum / Hypothesized microscopic physical identification |
-| 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Mapped selected carrier coupling / Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign |
-| 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, two-rail scale graph, canonical reduction, and open-system coherence lift | Hypothesized completion ansatz / Derived canonical reduction and conditional fibre geometry / Mapped selected carrier coupling / Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign |
-| 39 | `endpoint-link-and-localization-boundary.md` | Gauge-covariant endpoint closure, frozen-link and source-action response, stationary spatial-flux boundary, invariant classification, and smooth-sector localization boundary | Hypothesized Wilson-link extension / Derived conditional endpoint, response, transport, and localization boundaries / Tested separate fixed-charge six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign |
-| 40 | `point-core-flux-sector.md` | Quantized point-core exterior energy, finite-energy obstruction, and stationary-solver boundary | Derived conditional exterior support / Derived current-action completion no-go / Mapped selected carrier coupling / Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign |
-| 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary smooth magnetic core, condensate topology, London confinement, and composite-stability boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Mapped selected carrier coupling / Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign |
-| 42 | `core-trapped-charge-support.md` | Neutral bulk-gapped carrier, conserved core charge, and finite-composite support boundary | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Mapped selected carrier coupling / Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign |
-| 43 | `particle-stationary-action-closure.md` | Source-free temporal particle action, Gauss constraint, fixed-charge functional, variational boundary, and fluctuation qualification | Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, variational, and fluctuation-qualification boundaries / Mapped selected carrier coupling / Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign |
+| 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action and Wilson-link extension / Derived conditional current, endpoint and support boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
+| 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, scale graph and canonical reduction | Hypothesized completion / Derived conditional fibre geometry and canonical reduction / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
+| 39 | `endpoint-link-and-localization-boundary.md` | Conditional endpoint covariance, response, transport and localization boundary | Hypothesized Wilson extension / Derived conditional endpoint and localization boundaries / Tested finite-grid spectrum and conditional smooth scalar binding |
+| 40 | `point-core-flux-sector.md` | Quantized exterior energy and finite-energy core boundary | Derived conditional exterior support and current-action completion no-go / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
+| 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary core, condensate confinement and composite boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
+| 42 | `core-trapped-charge-support.md` | Conserved carrier population and conditional finite-composite support | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
+| 43 | `particle-stationary-action-closure.md` | Temporal action, Gauss, empty-sector invariant, scalar reduction and fluctuation boundary | Hypothesized temporal completion / Derived conditional gauge, Gauss, stationary, empty-sector and scalar-reduction boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, source-action response, and routed quadratic-flux attenuation | Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026 |
-| 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated canonical conversion, coherence fibre, relative-phase transport, endpoint ledgers, open-system support boundary, and bounded cross-domain source interface | Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary / Mapped selected carrier coupling / Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026 |
-| 46 | `matter-completion-boundary.md` | Nine-part conditional boundary from exterior dilation through fixed-charge spectral qualification | Derived conditional boundary / Hypothesized physical realization / Mapped selected carrier coupling / Tested reduced receipts, a resolution-consistent localized retained finite-grid branch, and a six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026 |
+| 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated conversion, coherence, transport, endpoint and bounded source interface | Hypothesized integrated realization / Derived canonical reduction, positivity, covariance and conditional interface ledgers / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026 |
+| 46 | `matter-completion-boundary.md` | Nine-part conditional boundary and complete matter-formation requirements | Derived conditional boundary / Hypothesized physical realization / Mapped selected carrier coupling / Tested reduced receipts, finite-grid spectrum and conditional smooth scalar binding—September 2026 |
 | 47 | `quantum-free-fall-correspondence.md` | Ideal QGI action and inference boundary; physical-$q$ bounds and information loss; forty-three closure requirements and QFC1–QFC4 receipts | Derived conditional external-potential correspondence / Hypothesized Cassi atomic state, gravity-response, and common-lapse mappings—September 2026 |
 
 ## Document Summaries
@@ -329,23 +338,17 @@ conditional exterior coefficient. An auxiliary adjoint $SU(2)_Q$ branch
 supplies a smooth local core and matches that coefficient, while the registered
 condensate confines flux and gives no persistent pair by itself. A neutral core
 carrier supplies one conditional reduced separation under support, retention,
-and matching inequalities. At the Mapped coupling
-$h_C=2.9598260763447164$, the coupled fixed-charge action has a localized,
-nodeless, carrier-retaining stationary branch across four same-domain finite
-grids and one larger-domain comparison. Adjacent principal observables agree
-and its absolute energy differences decrease twice. On its finest artifact, six
-independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs
-contain one numerically near-zero carrier-phase symmetry mode, no negative
-mode, and five positive modes. That mode retains high-frequency odd-even
-structure. A distinct diffuse $h_C=1.50$ background also has no negative mode
-among its independently matched lowest computed eigenpairs while failing
-localization and retention. Physical endpoint normalization, scale tension,
-coefficient calibration, proton quantum numbers, localized Hessian resolution,
-perturbations beyond $C_4$, continuum qualification, PA43 dynamics, real-time
-formation, and decay rate remain open. Status: Mapped coordinate and selected
-carrier coupling / Derived conditional arithmetic and identities /
-Hypothesized physical mechanisms / Tested six-mode constrained $C_4$
-finite-grid PA42 low-spectrum sign—September 2026.
+and matching inequalities. The separate particle action preserves an exactly
+empty carrier sector. Its stored Cartesian branch has a matched finite-grid
+spectrum but fails the smooth-carrier diagnostic. A continuum-consistent
+scalar calculation supports prepared $Q_C=16,256$ binding, with INCONCLUSIVE
+smooth $Q_C=16$ constrained spatial stability
+(`computations/matter-formation-continuum-report.md`). Physical endpoint
+normalization, scale tension, proton quantum numbers, production and decay
+rate remain open. Status: Mapped coordinate and selected carrier coupling /
+Derived conditional arithmetic and identities / Hypothesized physical
+mechanisms / Tested finite-grid spectrum and conditional smooth scalar
+binding—September 2026.
 
 ### `quantum-measurement-derivation.md`—CassiFI Quantum Dynamics and Measurement
 
@@ -543,23 +546,18 @@ matching inequalities. The separate source-free particle action supplies the
 temporal gauge and Gauss sectors and defines the fixed-$Q_C$ stationary
 problem.
 
-At the Mapped coupling $h_C=2.9598260763447164$, the fixed-charge action has a
-localized, nodeless, carrier-retaining branch across four same-domain finite
-grids and one larger-domain comparison; adjacent observables agree and its
-absolute energy drift decreases twice. On its finest artifact, the six
-independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs
-contain one numerically near-zero carrier-phase symmetry mode, no negative
-mode, and five positive modes. That mode retains high-frequency odd-even
-structure. A distinct diffuse coefficient point also has no negative mode
-among its independently matched lowest computed eigenpairs while failing
-localization and retention. Localized Hessian resolution, perturbations beyond
-$C_4$, continuum qualification, and PA43 dynamics remain open. Physical
-endpoint normalization, scale tension, carrier identity, compact winding, mass
-scaling, proton identification, and decay rate also remain open. Status:
-Hypothesized action and Wilson-link extension / Derived conditional endpoint,
-response, transport, localization, smooth-core, confinement, and
+At the Mapped coupling $h_C=2.9598260763447164$, the separate particle action
+has a parity-concentrated Cartesian localized branch and independently
+reproduced smooth scalar binding at prepared $Q_C=16,256$. The former fails
+the smooth-carrier diagnostic; the latter has an INCONCLUSIVE constrained
+spatial stability result at $Q_C=16$. The first-order carrier population
+cannot emerge from exactly empty closed-sector data. Physical endpoint
+normalization, scale tension, carrier identity, mass scaling, production and
+decay rate remain open (`computations/matter-formation-continuum-report.md`).
+Status: Hypothesized action and Wilson-link extension / Derived conditional
+endpoint, response, transport, localization, smooth-core, confinement and
 carrier-support boundaries / Mapped selected carrier coupling / Tested
-six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026.
+finite-grid spectrum and conditional smooth scalar binding—September 2026.
 
 ### `interscale-stress-attenuation-boundary.md`—Interscale Stress Transfer and the Attenuation Boundary
 
@@ -626,21 +624,15 @@ Point-core Chern flux supplies a conditional exterior coefficient. An
 auxiliary adjoint $SU(2)_Q$ branch smooths that core and matches its flux, while
 the registered nonzero fundamental condensate removes the isolated magnetic
 sector and confines flux into a tube. A neutral carrier supplies conditional
-reduced support. At $h_C=2.9598260763447164$, the separate fixed-charge action
-has a localized, nodeless, carrier-retaining branch across four same-domain
-finite grids and one larger-domain comparison. On its finest artifact, six
-independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs
-contain one numerically near-zero carrier-phase symmetry mode, no negative
-mode, and five positive modes. That mode retains high-frequency odd-even
-structure. A different diffuse field also has no negative mode among its
-independently matched lowest computed eigenpairs while failing localization
-and retention. The physical scale metric, endpoint normalization, reservoir,
-localized Hessian resolution, perturbations beyond $C_4$, continuum
-qualification, PA43 dynamics, observation map, particle quantum numbers, and
-decay rate remain open. Status: Hypothesized completion ansatz / Derived
-canonical reduction and conditional fibre geometry / Mapped selected carrier
-coupling / Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum
-sign—September 2026.
+reduced support. The separate fixed-charge action preserves an empty carrier
+sector. Its Cartesian localized sequence fails the smooth-carrier diagnostic;
+independently reproduced scalar binding at prepared populations has
+INCONCLUSIVE smooth $Q_C=16$ constrained spatial stability. Physical scale,
+endpoint, reservoir, observation and particle maps remain open
+(`computations/matter-formation-continuum-report.md`). Status: Hypothesized
+completion ansatz / Derived canonical reduction and conditional fibre
+geometry / Mapped selected carrier coupling / Tested finite-grid spectrum
+and conditional smooth scalar binding—September 2026.
 
 ### `yin-yang-qi-dynamical-geometry.md`—Yin–Yang–Qi Open Dynamical Geometry
 
@@ -666,24 +658,18 @@ total-stress Ward identity, constant-$G$ geometry branch, Gram/Cartan particle
 map, and full fluctuation problem. Its nine finite algebraic and reduced
 analytic checks pass.
 
-At the Mapped coupling $h_C=2.9598260763447164$, the separate fixed-charge
-action has a localized, nodeless, carrier-retaining stationary branch across
-four same-domain finite grids and one larger-domain comparison. Adjacent
-observables agree and the absolute energy differences decrease twice. On its
-finest artifact, six independently matched lowest constrained $C_4$
-finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase
-symmetry mode, no negative mode, and five positive modes. That mode retains
-high-frequency odd-even structure. A distinct diffuse field also has no
-negative mode among its independently matched lowest computed eigenpairs while
-failing localization and retention. Explicit reservoir stress, gravity
-selection, physical particle identity, localized Hessian resolution,
-perturbations beyond $C_4$, continuum qualification, and PA43 dynamics remain
-open. Status: Hypothesized integrated open-system geometry / Derived exact
-diagonal reduction, positivity-preserving conversion flow, covariance, ledger
-closure, conditional coherence-support boundary, bounded cross-domain
-interface, and nine-part conditional matter boundary / Mapped selected carrier
-coupling / Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum
-sign—September 2026.
+The separate carrier action has an exact empty-sector invariant. Its stored
+Cartesian branch is parity-concentrated and fails the smooth-continuum
+diagnostic. A continuum-consistent scalar calculation supports prepared
+$Q_C=16,256$ binding with independent collocation agreement; smooth
+$Q_C=16$ constrained spatial stability remains INCONCLUSIVE. Reservoir
+stress, gravity selection, microscopic production and physical particle
+identity remain open (`computations/matter-formation-continuum-report.md`).
+Status: Hypothesized integrated open-system geometry / Derived exact diagonal
+reduction, positivity-preserving conversion flow, covariance, ledger closure,
+conditional coherence-support boundary, bounded cross-domain interface and
+nine-part conditional matter boundary / Mapped selected carrier coupling /
+Tested finite-grid spectrum and conditional smooth scalar binding—September 2026.
 
 ### `endpoint-link-and-localization-boundary.md`—Gauge-Covariant Endpoint Closure and the Localization Boundary
 
@@ -729,18 +715,15 @@ positive $1/R$ core energy, so the smooth zero-Chern sector has no finite
 Derrick radius. Point-core flux supplies a conditional exterior coefficient.
 An auxiliary adjoint $SU(2)_Q$ branch supplies a regular local core, while the
 registered condensate confines flux and gives no persistent pair by itself.
-The neutral carrier supplies conditional reduced support, and the separate
-fixed-charge action realizes one localized, nodeless, retained branch across
-four same-domain grids and one larger-domain comparison. On its finest
-artifact, the six independently matched lowest constrained $C_4$ finite-grid
-PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode,
-no negative mode, and five positive modes. That mode retains unresolved
-odd-even structure. Physical endpoint normalization, localized Hessian
-resolution, perturbations beyond $C_4$, continuum qualification, and PA43
-dynamics remain open. Status: Hypothesized Wilson-link extension / Derived
-conditional endpoint closure, response, transport, and minimal-sector
-localization no-go / Tested separate fixed-charge six-mode constrained $C_4$
-finite-grid PA42 low-spectrum sign—September 2026.
+The neutral carrier supplies conditional reduced support. Its separate
+fixed-charge action preserves empty-sector data, has an ultraviolet Cartesian
+localized branch and independently reproduced smooth scalar binding at
+prepared population. The smooth $Q_C=16$ constrained spatial result is
+INCONCLUSIVE; physical endpoint normalization, production and full dynamics
+remain open (`computations/matter-formation-continuum-report.md`). Status:
+Hypothesized Wilson-link extension / Derived conditional endpoint closure,
+response, transport and minimal-sector localization no-go / Tested
+finite-grid spectrum and conditional smooth scalar binding—September 2026.
 
 ### `point-core-flux-sector.md`—Quantized Point-Core Flux and the Persistent-Defect Boundary
 
@@ -753,18 +736,15 @@ identity prevents a smooth core, and the nonzero charged condensate gives a
 linear angular-energy divergence at infinity. The auxiliary $SU(2)_Q$ branch
 resolves the local core in its adjoint sector; coupling the registered
 condensate confines the flux and supplies no persistent pair by itself. The
-neutral fixed-$Q_C$ carrier supplies a conditional reduced separation. At the
-Mapped coupling $h_C=2.9598260763447164$, the separate fixed-charge action has
-a localized, nodeless, carrier-retaining branch across four same-domain grids
-and one larger-domain comparison. On its finest field, the six independently
-matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one
-numerically near-zero carrier-phase symmetry mode, no negative mode, and five
-positive modes. That mode retains high-frequency odd-even structure. Physical
-matching, localized Hessian resolution, perturbations beyond $C_4$, continuum
-existence, and PA43 dynamics remain open. Status: Derived conditional exterior
-support / Derived current-action completion no-go / Mapped selected carrier
-coupling / Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum
-sign—September 2026.
+neutral fixed-$Q_C$ carrier supplies a conditional reduced separation. Its
+stored Cartesian localized fields are parity-concentrated and fail the
+smooth-carrier diagnostic. A separate smooth scalar calculation binds
+prepared populations, while empty-sector invariance excludes creation in the
+supplied first-order law. Smooth constrained spatial stability remains
+INCONCLUSIVE (`computations/matter-formation-continuum-report.md`). Status:
+Derived conditional exterior support / Derived current-action completion
+no-go / Mapped selected carrier coupling / Tested finite-grid spectrum and
+conditional smooth scalar binding—September 2026.
 
 ### `nonabelian-magnetic-core-boundary.md`—Non-Abelian Magnetic Core and the Confined-Defect Boundary
 
@@ -777,20 +757,16 @@ trivial gauge stabilizer, removes the magnetic $\pi_2$ sector, and gives a
 positive London mass. A finite monopole-antimonopole tube is conditional and
 shrinks in the registered long-distance energy because positive string tension
 and the attractive screened tail produce no finite-separation minimum. The
-carrier-support handoff is explicit. At the Mapped coupling
-$h_C=2.9598260763447164$, the full fixed-charge action has a localized,
-nodeless, carrier-retaining branch across four same-domain grids and one
-larger-domain comparison. On its finest field, the six independently matched
-lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically
-near-zero carrier-phase symmetry mode, no negative mode, and five positive
-modes. That mode retains high-frequency odd-even structure. A different
-diffuse field also has no negative mode among its independently matched lowest
-computed eigenpairs while failing localization and retention. Localized
-Hessian resolution, perturbations beyond $C_4$, continuum qualification, and
-PA43 dynamics remain open. Status: Hypothesized auxiliary completion / Derived
-conditional smooth-core and confinement boundaries / Mapped selected carrier
-coupling / Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum
-sign—September 2026.
+carrier-support boundary is explicit. The separate particle action preserves
+an empty carrier sector. Its Cartesian branch has a measured finite-grid
+low-spectrum sign but fails the smooth-carrier diagnostic. Independent
+continuum calculations support prepared scalar binding; smooth constrained
+spatial stability remains INCONCLUSIVE. The carrier configurations have no
+established magnetic-pair or physical-particle identification
+(`computations/matter-formation-continuum-report.md`). Status: Hypothesized
+auxiliary completion / Derived conditional smooth-core and confinement
+boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum
+and conditional smooth scalar binding—September 2026.
 
 ### `core-trapped-charge-support.md`—Core-Trapped Noether Charge and the Finite-Composite Boundary
 
@@ -801,19 +777,16 @@ transverse-mode reduction, the positive term $A_C/L$ with
 $A_C=\Lambda_CQ_C^2/2$. The condition $A_C>C_Q$ gives one finite root with
 positive length curvature. Carrier retention,
 $\hbar\omega_C<\varepsilon_{C,\rm out}$, and separation beyond core overlap
-remain independent requirements. At the Mapped coupling
-$h_C=2.9598260763447164$, the full fixed-charge action has a localized,
-nodeless, carrier-retaining branch across four same-domain grids and one
-larger-domain comparison. Adjacent principal observables agree and the absolute
-energy differences decrease twice. On its finest field, the six independently
-matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one
-numerically near-zero carrier-phase symmetry mode, no negative mode, and five
-positive modes. That mode retains high-frequency odd-even structure. Localized
-Hessian resolution, perturbations beyond $C_4$, continuum existence, and PA43
-dynamics remain open. Status: Hypothesized auxiliary carrier / Derived
-conditional thin-tube support boundary / Mapped selected carrier coupling /
-Tested six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September
-2026.
+remain independent requirements. The full carrier action conserves its
+nonnegative population and preserves an exactly empty closed sector. Its
+Cartesian branch fails the smooth-carrier diagnostic, while a separate
+continuum-consistent scalar calculation binds prepared $Q_C=16,256$ with
+independent collocation agreement. Smooth $Q_C=16$ constrained spatial
+stability remains INCONCLUSIVE; creation, full dynamics and physical identity
+remain open (`computations/matter-formation-continuum-report.md`). Status:
+Hypothesized auxiliary carrier / Derived conditional thin-tube support
+boundary / Mapped selected carrier coupling / Tested finite-grid spectrum and
+conditional smooth scalar binding—September 2026.
 
 ### `particle-stationary-action-closure.md`—Particle-Sector Action and Fixed-Charge Variational Closure
 
@@ -833,16 +806,13 @@ containing one numerically near-zero global carrier-phase symmetry mode, no
 negative mode, and five positive modes. The phase direction remains
 concentrated at grid scale.
 
-At the Mapped coupling $h_C=2.9598260763447164$, a distinct stationary field
-is nodeless, localized, and carrier-retaining on four same-domain resolutions
-and one larger-domain comparison. Adjacent energy, carrier radius, core length,
-and frequency agree within the frozen tolerances, and the absolute energy
-differences decrease twice. On its finest artifact, the six independently
-matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one
-numerically near-zero carrier-phase symmetry mode, no negative mode, and five
-positive modes. That mode retains high-frequency odd-even structure. Localized
-Hessian resolution, perturbations beyond $C_4$, the continuum limit, broader
-basin study, and PA43 dynamics remain open. See
+At the Mapped coupling $h_C=2.9598260763447164$, the stored Cartesian
+localized branch has a matched six-mode constrained finite-grid spectrum
+and fails the smooth-carrier diagnostic. The exact scalar reduction gives
+independently reproduced static binding at prepared $Q_C=16,256$; smooth
+$Q_C=16$ constrained spatial stability is INCONCLUSIVE. The first-order
+carrier law preserves empty-sector data, leaving microscopic creation and
+physical normalization open. See `computations/matter-formation-continuum-report.md`,
 `computations/particle-stationary-precision-v5-report.md`,
 `computations/particle-physical-hessian-precision-v2-report.md`,
 `computations/particle-carrier-direct-coordinate-report.md`,
@@ -872,24 +842,17 @@ relative Cartan charge.
 
 The fixed-charge stationary boundary includes the joint constrained energetic
 Hessian and the mixed second-/first-order dynamical pencil. The finite
-algebraic and reduced analytic witnesses pass all nine registered checks. At
-the Mapped coupling $h_C=2.9598260763447164$, the full stationary action has a
-localized, nodeless, carrier-retaining branch across four same-domain finite
-grids and one larger-domain comparison; adjacent observables agree and the
-absolute energy drift decreases twice. On its finest artifact, the six
-independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs
-contain one numerically near-zero carrier-phase symmetry mode, no negative
-mode, and five positive modes. That mode retains high-frequency odd-even
-structure. A distinct diffuse coefficient point also has no negative mode
-among its independently matched lowest computed eigenpairs while failing
-localization and retention. The physical exterior, calibrated coefficients,
-reservoir action and stress, gravity selection, localized Hessian resolution,
-perturbations beyond $C_4$, continuum qualification, PA43 dynamics, formation,
-and particle identity remain open. Status: Derived conditional boundary /
-Hypothesized physical realization / Mapped selected carrier coupling / Tested
-reduced receipts, a resolution-consistent localized retained finite-grid
-branch, and a six-mode constrained $C_4$ finite-grid PA42 low-spectrum
-sign—September 2026.
+algebraic and reduced analytic witnesses pass all nine registered checks.
+The separate particle action has an exact empty-sector invariant, a
+parity-concentrated Cartesian branch and independently reproduced smooth
+scalar binding at prepared population. Its smooth constrained spatial
+stability result is INCONCLUSIVE. Physical exterior and reservoir actions,
+coefficient calibration, gravity selection, microscopic production and
+particle identity remain open
+(`computations/matter-formation-continuum-report.md`). Status: Derived
+conditional boundary / Hypothesized physical realization / Mapped selected
+carrier coupling / Tested reduced receipts, finite-grid spectrum and
+conditional smooth scalar binding—September 2026.
 
 ### `quantum-free-fall-correspondence.md`—Quantum Free Fall as a Cassi Correspondence Boundary
 

@@ -1,12 +1,21 @@
 # Matter Organization: Forces, Lattice Pools, and the Neutron–Proton–Electron Trio
 
-## Status: Synthesis—September 2026
+## Status: Derived conditional relations / Mapped scale assignments / Hypothesized physical realization—September 2026
 
 Every claim below retains the epistemic tier of its source document; this document adds no new claims.
 
 ## Abstract
 
 Matter organization in Cassi combines canonical two-fluid density bookkeeping with cascade assignments. The canonical state is the real-density pair $E_Y,E_I\ge 0$, with $\rho=E_Y+E_I$, $\varepsilon=E_Y-\varphi E_I$, gated coherence $q$, and rank-one conversion. Particle-like interference, counterpropagation, standing-wave solitons, and NLS self-focusing belong to a **Hypothesized** conditional complex-field extension. The four forces enter as binding channels, each living at its own cascade rung—gravity everywhere, the GUT sector at $n \approx 13$–$15$, the sector coupling at rung 77, electroweak at rung 80, QCD at rung 95. The trio that makes ordinary matter is the baryon pair at rung 91.5—the proton as the coherence-robust baryon pool, the neutron as its neutral sibling—and the electron as the lightest charged pool, terminating the lepton tower at a lattice void. The substrate is the canonical density pair and Qi flow; the particle-interference interpretation remains conditional.
+
+The particle action supplies a precise formation boundary. Its conserved
+nonnegative carrier population remains zero from exactly empty closed-sector
+data. The stored Cartesian localized branch has an ultraviolet obstruction
+to smooth interpretation. Separate continuum calculations support static
+scalar binding at prepared population, while their constrained spatial
+stability verdict remains INCONCLUSIVE. Microscopic production, full
+dynamics, normalization, statistics and physical particle identity remain
+open (`computations/matter-formation-continuum-report.md`).
 
 ---
 
@@ -235,17 +244,16 @@ inequalities hold. Direct first-order local gauging is source-free
 Gauss-obstructed; the separate particle action supplies a second-order charged
 temporal branch, Gauss's law, the coupled fixed-$Q_C$ stationary equations, and
 the first variational class. At the Mapped coupling
-$h_C=2.9598260763447164$, the fixed-charge action has a localized, nodeless,
-carrier-retaining stationary branch across four same-domain finite grids and
-one larger-domain comparison. Its finest artifact's six independently matched
-lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically
-near-zero carrier-phase symmetry mode, no negative mode, and five positive
-modes. The symmetry mode retains high-frequency odd-even structure. The
-independently matched lowest energetic eigenpairs of a distinct diffuse
-$h_C=1.50$ background also contain no negative mode while that field fails
-localization and retention. Localized Hessian resolution, perturbations beyond
-$C_4$, continuum qualification, PA43 dynamics, physical proton quantum
-numbers, real-time formation, and a winding-changing rate remain open
+$h_C=2.9598260763447164$, the Cartesian fixed-charge branch has a matched
+six-mode constrained finite-grid low spectrum. Its finest carrier norm is
+$99.98631608\%$ on one parity sublattice, and the measured edge-gradient
+energy contradicts a smooth-carrier interpretation on the tested sequence.
+A separate continuum-consistent scalar calculation at the same coefficients
+supports prepared $Q_C=16,256$ binding, reproduced by independent collocation.
+Smooth $Q_C=16$ constrained spatial stability is INCONCLUSIVE. The
+first-order carrier law preserves $Q_C=0$ under closed boundaries, leaving
+microscopic production, full continuum and temporal stability, physical
+normalization, proton quantum numbers, statistics and decay rate open
 (`foundations/endpoint-link-and-localization-boundary.md`;
 `foundations/point-core-flux-sector.md`;
 `foundations/nonabelian-magnetic-core-boundary.md`;
@@ -255,6 +263,7 @@ numbers, real-time formation, and a winding-changing rate remain open
 `computations/particle-carrier-resolution-recovery-report.md`;
 `computations/particle-physical-hessian-precision-v2-report.md`;
 `computations/particle-localized-physical-hessian-report.md`;
+`computations/matter-formation-continuum-report.md`;
 `foundations/proton-coherence-budget.md` §10). Current null searches are
 compatible with these candidates and select none of them.
 
@@ -353,3 +362,4 @@ of these phase, propagation, selected-coordinate, or NLS structures.
 - `predictions/falsifiable-predictions.md`—#10, #43, #44, #45, #46
 - `parameter-inventory.md`—parameter classes (E); Fit-Status Ledger
 - `cassi-physics.md`—physics guide; gravitational coupling and proton stability
+- `computations/matter-formation-continuum-report.md`—empty-sector obstruction, Cartesian ultraviolet diagnostic, prepared smooth binding and constrained stability.

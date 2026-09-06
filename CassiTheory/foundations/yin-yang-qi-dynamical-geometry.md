@@ -1,6 +1,6 @@
 # Yin–Yang–Qi Open Dynamical Geometry
 
-## Status: Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary / Mapped selected carrier coupling / Tested resolution-consistent localized retained finite-grid branch and six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026
+## Status: Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026
 
 ## Abstract
 
@@ -76,17 +76,30 @@ The scalar $q$, off-diagonal $c$, connection $B_A$, curvature $G_{AB}$, and scal
 `foundations/particle-stationary-action-closure.md` uses a local $SU(2)_Q$ gauge sector, second-order charged-field time derivatives, a neutral fixed-$Q_C$ carrier, and its own Gauss closure. The Abelian graph action in `foundations/geometric-manifold-completion.md` uses a first-order complex doublet and relative $U(1)_Q$ connection. No interface currently identifies their fields, charges, temporal symplectic structures, or stress tensors.
 
 The fixed-charge particle functional therefore remains a downstream
-alternative boundary-value problem. At the Mapped coupling
-$h_C=2.9598260763447164$, it has a localized, nodeless, carrier-retaining
-stationary branch across four same-domain finite grids and one larger-domain
-comparison. Its finest field's six independently matched lowest constrained
-$C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero
-carrier-phase symmetry mode, no negative mode, and five positive modes. The
-symmetry mode retains high-frequency odd-even structure. The independently
-matched lowest energetic eigenpairs of a distinct diffuse $h_C=1.50$
-background also contain no negative mode, while that field fails localization
-and retention. Localized Hessian resolution, perturbations beyond $C_4$,
-continuum existence, and the PA43 mixed dynamical spectrum remain open.
+alternative boundary-value problem. The stored Cartesian branch preserves the
+original localized finite-grid observables across four same-domain grids and
+one larger-domain comparison. Its six-mode constrained $C_4$ PA42 spectrum
+contains one numerically near-zero carrier-phase mode, no negative mode, and
+five positive modes. Its finest field is nevertheless
+ultraviolet-dominated: $99.98631608\%$ of the carrier norm lies on one parity
+sublattice and the edge energy grows like $\Delta x^{-2}$. The frozen verdict
+is **CONTRADICTS—smooth-carrier interpretation on the measured sequence**;
+this finite-grid spectrum does not establish continuum stability or full
+Hessian positivity.
+
+Separately, the continuum-consistent scalar calculation at the same Mapped
+$h_C=2.9598260763447164$ reproduces prepared static binding for $Q_C=16$ and
+$256$ by independent collocation. The tested $Q_C=4$ profiles spread with the
+domain, and $Q_C=64$ is inconclusive because its residual fails qualification.
+The smooth $Q_C=16$ constrained spatial study has no resolved negative mode on
+four grids but remains **INCONCLUSIVE** because its coarse translation mode and
+same-spacing domain comparison fail the frozen criteria. Under closed
+boundaries, first-order carrier invariance gives
+$Q_C(0)=0\Rightarrow\chi_C(t)=0$, so this action supplies no creation
+mechanism. Formation, normalization, quantum numbers, statistics, nonlinear
+stability, and physical particle identification remain open.
+The prepared $Q_C$ values are dimensionless populations, not electric charge,
+baryon number, particle number, or measured rest mass.
 
 ## 2. Geometry of the Local State
 
@@ -1075,17 +1088,19 @@ interface to the fixed-charge local-$SU(2)_Q$ action:
 
 The nine-part finite algebraic and reduced analytic receipt passes. A physical
 action producing the exterior, interface, reservoir, stress components, and
-carrier normalization remains unselected. At the Mapped coupling
-$h_C=2.9598260763447164$, the particle action has a localized, nodeless,
-carrier-retaining stationary branch across four same-domain finite grids and
-one larger-domain comparison. Its finest artifact's six independently matched
-lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically
-near-zero carrier-phase symmetry mode, no negative mode, and five positive
-modes. The symmetry mode retains high-frequency odd-even structure. The
-independently matched lowest energetic eigenpairs of a distinct diffuse field
-also contain no negative mode, while that field fails localization and
-retention. Localized Hessian resolution, continuum qualification, perturbations
-beyond $C_4$, and the PA43 mixed dynamical spectrum remain open.
+carrier normalization remains unselected. The stored Cartesian branch retains
+its finite-grid observables and six-mode $C_4$ spectrum, but its finest field
+has $99.98631608\%$ of the carrier norm on one parity sublattice and an edge
+energy that grows like $\Delta x^{-2}$. The frozen verdict is
+**CONTRADICTS—smooth-carrier interpretation on the measured sequence**.
+Separately, continuum-consistent scalar prepared binding is reproduced for
+$Q_C=16$ and $256$ at the same $h_C$; the smooth $Q_C=16$ spatial stability
+verdict remains **INCONCLUSIVE** despite no resolved negative mode, because the
+coarse translation and same-spacing domain criteria fail. Empty-sector
+invariance under closed boundaries gives
+$Q_C(0)=0\Rightarrow\chi_C(t)=0$ and therefore no carrier-creation mechanism.
+Continuum formation, full dynamical and nonlinear stability, normalization,
+quantum numbers, statistics, and physical identification remain open.
 
 ## 13. Derived, Hypothesized, and Open Results
 
@@ -1109,7 +1124,7 @@ The frozen DG1–DG7 and EC1–EC7 receipts return **PASS**. The universal finit
 | Complete Noether stress and geometry backreaction | **Conditional total-stress identity and constant-$G$ branch Derived / Stress components and gravity selection open** |
 | Local scale-bulk endpoint mediator | **Open** |
 | Interface to the local-$SU(2)_Q$ fixed-charge particle branch | **Gram, Cartan-convention, and charge-separation map Derived conditionally / Physical identification open** |
-| Qualified stationary matter solution and low spectrum | **Mapped $h_C=2.9598260763447164$ supports a localized, nodeless, carrier-retaining branch across four same-domain finite grids and one larger-domain comparison. Its finest artifact's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes; the symmetry mode retains unresolved odd-even structure. The independently matched lowest energetic eigenpairs of a distinct diffuse field also contain no negative mode, while that field fails localization and retention. Localized Hessian resolution, perturbations beyond $C_4$, continuum existence, and PA43 dynamics remain open** |
+| Qualified stationary matter solution and low spectrum | The stored Cartesian branch has a valid finite-grid spectrum for its discretization but is parity-concentrated at the finest grid, with $99.98631608\%$ of carrier norm on one sublattice and frozen verdict **CONTRADICTS—smooth-carrier interpretation on the measured sequence**. Separately, continuum-consistent scalar prepared binding is reproduced for $Q_C=16$ and $256$; smooth $Q_C=16$ constrained spatial stability is **INCONCLUSIVE** because the coarse translation and same-spacing domain criteria fail, despite no resolved negative mode. Empty-sector invariance blocks creation from $Q_C=0$; continuum formation, full stability, normalization, quantum numbers, statistics, and physical identification remain open** |
 
 ## 14. Conclusion
 
@@ -1140,19 +1155,20 @@ source realization. The matter-completion boundary then separates the closed
 unitary carrier from the routed forward record, derives the single-mode
 power law, closes the conditional total-stress and constant-$G$ geometry
 ledgers, and maps the coherence fibre into the particle doublet. Finite-density
-transverse coherence still requires an identified source. At
-$h_C=2.9598260763447164$, the separate particle action supplies a localized,
-nodeless, carrier-retaining stationary branch across four same-domain finite
-grids and one larger-domain comparison. Its finest field's six independently
-matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one
-numerically near-zero carrier-phase symmetry mode, no negative mode, and five
-positive modes. The symmetry mode retains high-frequency odd-even structure.
-The independently matched lowest energetic eigenpairs of a distinct diffuse
-field also contain no negative mode, while that field fails localization and
-retention. A physical exterior, reservoir action, calibrated particle
-coefficients, localized Hessian resolution, perturbations beyond $C_4$,
-continuum qualification, PA43 dynamics, and physical particle identification
-remain required for a full particle spectrum.
+transverse coherence still requires an identified source.
+
+The separate particle action's stored Cartesian branch remains a finite-grid
+result: its six-mode $C_4$ spectrum is retained for that discretization, while
+the finest field has $99.98631608\%$ of its carrier norm on one parity
+sublattice and the frozen verdict **CONTRADICTS—smooth-carrier interpretation
+on the measured sequence**. A continuum-consistent scalar calculation at the
+same $h_C$ reproduces prepared binding for $Q_C=16$ and $256$; smooth
+$Q_C=16$ constrained spatial stability remains **INCONCLUSIVE** because the
+coarse translation and same-spacing domain criteria fail. Closed-boundary
+first-order carrier invariance gives $Q_C(0)=0\Rightarrow\chi_C(t)=0$, so
+prepared binding is not a creation law. A physical exterior, reservoir action,
+carrier normalization, continuum formation, full stability, quantum numbers,
+statistics, and physical particle identification remain required.
 
 ## References
 
@@ -1171,6 +1187,7 @@ remain required for a full particle spectrum.
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence and independently verified adjacent convergence.
 - `computations/particle-localized-physical-hessian-report.md`—constrained localized PA42 spectrum and spatial qualification.
+- `computations/matter-formation-continuum-report.md`—Cartesian ultraviolet/parity diagnostic, empty-sector conservation, continuum-consistent prepared binding, and inconclusive smooth $Q_C=16$ spatial stability.
 - `computations/dynamical_geometry_closure_prereg.md`—frozen DG1–DG7 reduction and ledger criteria.
 - `computations/dynamical_geometry_closure_check.py`—deterministic DG1–DG7 first-execution witness.
 - `computations/dynamical_geometry_closure_report.md`—DG1–DG7 analytic proof,

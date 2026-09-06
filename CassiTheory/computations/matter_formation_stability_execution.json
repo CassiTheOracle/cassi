@@ -1,0 +1,14 @@
+{
+  "schema": "cassi.matter-formation-stability.execution.v1",
+  "date": "2026-09-06",
+  "preregistration": "computations/matter-formation-stability-prereg.md",
+  "original_receipts": "runs/20260906_matter_formation_stability",
+  "accepted_receipt_directory": "runs/20260906_matter_formation_stability_corrected",
+  "numerical_reason": "The original primary source identity changed during the execution window. The original independent first variation omitted the nonzero outer Dirichlet load for f(R)=1. Exact executed primary bytes could not be recovered. Both original receipts are retained but cannot provide an accepted independent provenance chain.",
+  "scope": "Repeat deterministic measurement only with the same immutable NPZ fields, mathematical operators, charge, coefficients, thresholds and comparisons. No field relaxation or physical scan. Numerical matching is separate from an INCONCLUSIVE scientific verdict.",
+  "source_sha256": {
+    "computations/matter_formation_stability.py": "779c4fc01bcce88d1b8dcb3f1b74702ae531c3780b0b4cc2bf7b1aec99ac7e44",
+    "computations/verify_matter_formation_stability.py": "03743fa16a44a889efab901da16bde3816d7301d324f0ed091ad9c79d24eb940",
+    "computations/matter-formation-stability-prereg.md": "19b8721ad5ebad5a207975505c51faad979045049c6563a929929060b6fe904c"
+  }
+}

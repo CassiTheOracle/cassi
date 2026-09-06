@@ -1,6 +1,6 @@
 # Quantized Point-Core Flux and the Persistent-Defect Boundary
 
-## Status: Derived conditional exterior support / Derived current-action completion no-go / Mapped selected carrier coupling / Tested resolution-consistent localized retained finite-grid branch and six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026
+## Status: Derived conditional exterior support / Derived current-action completion no-go / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026
 
 ## Abstract
 
@@ -51,13 +51,23 @@ auxiliary adjoint $SU(2)_Q$ branch in
 `foundations/nonabelian-magnetic-core-boundary.md` resolves the local core and
 matches this exterior coefficient. Its registered nonzero fundamental
 condensate removes the isolated magnetic sector and confines the flux. The
-neutral-carrier fixed-charge completion supplies a resolution-consistent
-localized retained finite-grid branch. Its finest artifact's six independently
-matched lowest constrained $C_4$ PA42 eigenpairs contain one numerically
-near-zero carrier-phase symmetry mode, no negative mode, and five positive
-modes. The symmetry mode remains spatially unresolved, and the physical core
-identity, continuum limit, perturbations beyond $C_4$, and PA43 dynamics stay
-open.
+neutral-carrier fixed-charge completion supplies a localized retained
+finite-grid branch whose finest artifact's six independently matched lowest
+constrained $C_4$ PA42 eigenpairs contain one numerically near-zero
+carrier-phase symmetry mode, no negative mode, and five positive modes. The
+Cartesian artifact is ultraviolet-dominated: $99.98631608\%$ of its carrier
+norm lies on one parity sublattice, with the frozen verdict
+`CONTRADICTS` for smooth-carrier interpretation on the measured sequence.
+Under closed boundaries, $Q_C(0)=0\Rightarrow\chi_C(t)=0$, so the source-free
+first-order action supplies no carrier-creation mechanism. Separately, a
+continuum scalar density-trap calculation at the same $h_C$ finds prepared
+static binding at $Q_C=16$ and $256$; $Q_C=4$ spreads in tested basins and
+$Q_C=64$ is inconclusive because its residual fails. These prepared
+dimensionless populations have no identified physical charge or particle
+count. Smooth $Q_C=16$ constrained spatial stability is INCONCLUSIVE because
+its coarse translation and domain criteria fail. Physical core identity,
+full continuum and temporal stability, and microscopic production remain
+open (`computations/matter-formation-continuum-report.md`).
 
 ---
 
@@ -628,11 +638,17 @@ through its boundary conditions; no standalone boundary-value experiment is
 well posed in this sector. The separate coupled fixed-charge action has a
 localized, nodeless, carrier-retaining stationary branch at the Mapped coupling
 $h_C=2.9598260763447164$ across four same-domain finite grids and one
-larger-domain comparison. The independently matched lowest energetic
-eigenpairs of a distinct diffuse $h_C=1.50$ background contain no negative
-mode on its strict-shell $C_4$ physical quotient, while its global phase
-direction remains concentrated at grid scale. Neither branch supplies the
-missing point-core boundary data or qualifies a point-core solution.
+larger-domain comparison. Its six-mode constrained $C_4$ PA42 result is
+finite-grid only. The Cartesian artifact is ultraviolet-dominated, with
+$99.98631608\%$ of its carrier norm on one parity sublattice and the frozen
+verdict `CONTRADICTS` for smooth-carrier interpretation on the measured sequence.
+The independently matched lowest energetic eigenpairs of a distinct diffuse
+$h_C=1.50$ background contain no negative mode on its strict-shell $C_4$
+physical quotient, while its global phase direction remains concentrated at
+grid scale. A separate continuum scalar calculation finds prepared static
+binding at $Q_C=16$ and $256$; $Q_C=4$ spreads and $Q_C=64$ is inconclusive.
+Neither branch supplies the missing point-core boundary data or qualifies a
+point-core solution.
 
 ---
 
@@ -689,13 +705,18 @@ rank-$11775$ complete allowed gauge image.
 Independent eigensolvers find six matched lowest eigenpairs containing one
 numerically near-zero global carrier-phase symmetry mode, no negative mode,
 and five positive modes. The positive gap is $0.01527618220595$ against
-uncertainty $6.092903959\times10^{-4}$. The symmetry mode is entirely
-carrier-imaginary and has high-frequency fraction $0.8744032081$, leaving its
-spatial interpretation inconclusive. The independently matched lowest
-energetic eigenpairs of a distinct diffuse $h_C=1.50$ background also contain
-no negative mode while that field fails localization and retention. Core
-identity, perturbations outside $C_4$, localized Hessian resolution, continuum
-qualification, and the PA43 mixed dynamical spectrum remain open.
+uncertainty $6.092903959\times10^{-4}$. The Cartesian artifact is
+ultraviolet-dominated: $99.98631608\%$ of its carrier norm lies on one parity
+sublattice, with edge energy growing as $\Delta x^{-2}$; the frozen verdict is
+`CONTRADICTS` for smooth-carrier interpretation on the measured sequence.
+The independently matched lowest energetic eigenpairs of a distinct diffuse
+$h_C=1.50$ background also contain no negative mode while that field fails
+localization and retention. A separate continuum scalar calculation finds
+prepared static binding at $Q_C=16$ and $256$, while $Q_C=4$ spreads and
+$Q_C=64$ is inconclusive. Under closed boundaries,
+$Q_C(0)=0\Rightarrow\chi_C(t)=0$. Core identity, perturbations outside $C_4$,
+localized Hessian resolution, continuum qualification, and the PA43 mixed
+dynamical spectrum remain open.
 
 ---
 
@@ -709,7 +730,7 @@ qualification, and the PA43 mixed dynamical spectrum remain open.
 | Does the current Abelian action smooth the point core? | No; $dG=0$ forces zero flux through a smooth ball |
 | Does the registered condensate admit an isolated finite-energy monopole? | No; the nonzero charged asymptotic sections give divergent angular kinetic energy |
 | Is a scalar radial matter solve available? | No; $j\geq|N_G|/2$ and the core/outer data are incomplete |
-| Is the full fluctuation spectrum defined? | Partly. The diffuse $h_C=1.50$ background and localized $h_C=2.9598260763447164$ branch each have a complete strict-shell $C_4$ physical quotient whose independently matched lowest energetic eigenpairs contain no negative mode on one finite grid. For the localized branch, the six matched lowest eigenpairs contain one numerically near-zero mode aligned with the analytic carrier-phase symmetry and five positive modes; its high-frequency fraction leaves the spatial classification inconclusive. Core identity, localized Hessian resolution, continuum qualification, perturbations beyond $C_4$, and PA43 dynamics remain open |
+| Is the full fluctuation spectrum defined? | Partly, at finite-grid scope. The diffuse $h_C=1.50$ background and localized $h_C=2.9598260763447164$ branch each have a complete strict-shell $C_4$ physical quotient whose independently matched lowest energetic eigenpairs contain no negative mode on one finite grid. For the localized branch, six matched lowest eigenpairs contain one numerically near-zero mode aligned with the analytic carrier-phase symmetry and five positive modes. The finest Cartesian artifact is ultraviolet-dominated, with $99.98631608\%$ of its carrier norm on one parity sublattice and frozen verdict `CONTRADICTS—smooth-carrier interpretation on the measured sequence`; a separate continuum scalar calculation finds prepared static binding at $Q_C=16$ and $256$. Core identity, localized Hessian resolution, continuum qualification, perturbations beyond $C_4$, and PA43 dynamics remain open |
 
 The algebraic and spectral identities are checked by
 `computations/point_core_flux_check.py`. They create no numbered physical
@@ -751,13 +772,18 @@ carrier-retaining branch across four same-domain finite grids and one
 larger-domain comparison, with twice-contracting absolute energy differences.
 Its finest field's six independently matched lowest constrained $C_4$
 finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase
-symmetry mode, no negative mode, and five positive modes. The symmetry mode
-retains high-frequency odd-even structure. The independently matched lowest
-energetic eigenpairs of a distinct diffuse $h_C=1.50$ background also contain
-no negative mode.
-Localized Hessian resolution, perturbations beyond $C_4$, continuum
-qualification, unrestricted basin ordering, and the PA43 mixed dynamical
-spectrum remain open.
+symmetry mode, no negative mode, and five positive modes. The Cartesian
+artifact is ultraviolet-dominated, with $99.98631608\%$ of its carrier norm
+on one parity sublattice and frozen verdict
+`CONTRADICTS` for smooth-carrier interpretation on the measured sequence.
+Under closed boundaries, $Q_C(0)=0\Rightarrow\chi_C(t)=0$, so this source-free
+action does not establish carrier creation. A separate continuum scalar
+calculation finds prepared static binding at $Q_C=16$ and $256$, while
+$Q_C=4$ spreads in tested basins and $Q_C=64$ is inconclusive because its
+residual fails. Smooth $Q_C=16$ constrained spatial stability is INCONCLUSIVE;
+no negative mode is resolved, while the coarse translation and domain
+criteria fail. Physical core identity, full continuum and temporal stability,
+unrestricted basin ordering and microscopic production remain open.
 
 ---
 
@@ -793,3 +819,4 @@ spectrum remain open.
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained branch and larger-domain comparison
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence and independently verified adjacent convergence
 - `computations/particle-localized-physical-hessian-report.md`—constrained localized PA42 spectrum and spatial qualification
+- `computations/matter-formation-continuum-report.md`—empty-sector creation obstruction, Cartesian ultraviolet boundary, prepared continuum scalar binding, and constrained smooth-branch stability evidence.

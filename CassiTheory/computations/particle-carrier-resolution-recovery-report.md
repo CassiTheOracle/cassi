@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The source-free fixed-charge particle action supports one localized, nodeless, carrier-retaining stationary branch across four same-domain spatial resolutions. Two refinements at $N=25$ and $N=29$ independently converge from the same analytic separated-core seed, pass every frozen physical qualification, agree with their adjacent coarser solutions, and reduce the absolute energy drift at each step. Independent artifact reconstruction finds no mismatch. The result establishes a three-comparison finite-grid resolution-consistent branch at the numerically selected coefficient $h_C=2.9598260763447164$. Its finest artifact's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes. The symmetry mode exposes unresolved odd-even carrier structure, and no localized Hessian-resolution sequence exists. Continuum existence, PA43 temporal stability, formation, and proton identity remain open.
+The source-free fixed-charge particle action supports one localized, nodeless, carrier-retaining stationary branch across four same-domain finite grids at the Mapped coefficient $h_C=2.9598260763447164$. The frozen principal observables agree on the registered refinement sequence, and independent artifact reconstruction finds no mismatch. Six matched lowest constrained $C_4$ finite-grid eigenpairs contain a near-zero carrier-phase mode and five positive modes. The finest carrier norm is $99.98631608\%$ on one parity sublattice; the measured edge-gradient energy contradicts a smooth-carrier interpretation on this sequence. Separate continuum-consistent scalar calculations support static binding at prepared population, with an INCONCLUSIVE smooth constrained spatial stability result. Empty-sector invariance, microscopic production, physical normalization and particle identity delimit the formation claim (`computations/matter-formation-continuum-report.md`).
 
 ## 1. Question and fixed system
 
@@ -81,11 +81,21 @@ $$
 
 This verdict means that one numerically selected coefficient point of the registered source-free fixed-charge action has a localized, nodeless, carrier-retaining stationary solution whose principal observables agree across three adjacent same-domain resolution comparisons and whose absolute energy drift decreases twice. The result closes the finite-grid localization, carrier-retention, and tested resolution-consistency questions for this branch.
 
-The finest localized field's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero mode consistent with the analytic global $U(1)_C$ carrier-phase symmetry, no negative mode, and five positive modes. The positive gap is $0.01527618220595$ against the registered uncertainty $6.092903959\times10^{-4}$. The symmetry mode has high-frequency fraction $0.8744032081$, so its spatial verdict is `INCONCLUSIVE—GRID-SCALE CLASSIFIED MODE`; a localized Hessian-resolution sequence is unavailable. Continuum existence, PA43 real-time stability, robustness across basins and coefficients, physical normalization, particle quantum numbers, formation from generic initial data, and identification with the proton remain separate requirements.
+The finest localized field's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero mode consistent with the analytic global $U(1)_C$ carrier-phase symmetry, no negative mode, and five positive modes. The positive gap is $0.01527618220595$ against the registered uncertainty $6.092903959\times10^{-4}$. The symmetry mode has high-frequency fraction $0.8744032081$, so its spatial verdict is `INCONCLUSIVE—GRID-SCALE CLASSIFIED MODE`; a Cartesian localized Hessian-resolution sequence is unavailable. The separate continuum-consistent scalar branch has the INCONCLUSIVE constrained spatial result reported below. Full continuum and temporal stability, robustness across basins and coefficients, physical normalization, particle quantum numbers, formation from generic initial data and identification with the proton remain separate requirements.
 
-## 6. Next discriminating calculation
+## 6. Continuum qualification
 
-The next static calculation should repeat the constrained physical Hessian along a localized refinement sequence while tracking the numerically near-zero phase-symmetry mode's high-frequency fraction and the positive gap. Spatial convergence would qualify the PA42 energetic result for a continuum study; persistent odd-even structure would identify a lattice branch requiring a revised discretization or stationary field. The PA43 mixed dynamical pencil and real-time perturbation campaign follow only after the localized spatial spectrum resolves.
+The carrier-only nearest-neighbour diagnostic in
+`computations/matter-formation-continuum-report.md` identifies persistent
+ultraviolet structure on all four stored grids. At $N=29$, one parity
+sublattice contains $99.98631608\%$ of the carrier norm. The two finest
+edge-gradient energies grow approximately as $\Delta x^{-2}$ while their
+centred-gradient energies remain small. The frozen diagnostic returns
+`CONTRADICTS` for a smooth-carrier interpretation on the measured sequence.
+The finite-grid verdict in §5 retains its stated scope. The same report
+contains a continuum-consistent scalar density-trap calculation with
+independently reproduced binding at prepared $Q_C=16$ and $256$; the tested
+$Q_C=4$ profiles spread with the domain.
 
 ## References
 

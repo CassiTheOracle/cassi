@@ -403,11 +403,25 @@ containing one numerically near-zero global carrier-phase symmetry mode, no
 negative mode, and five positive modes.
 The first positive eigenvalue is $0.01527618220595$, compared with uncertainty
 $6.092903959\times10^{-4}$. The phase mode is entirely carrier-imaginary and
-has high-frequency fraction $0.8744032081$, leaving the spatial classification
-inconclusive.
+has high-frequency fraction $0.8744032081$. Its frozen spatial verdict is
+`INCONCLUSIVE—GRID-SCALE CLASSIFIED MODE`; the carrier-array diagnostic below
+identifies the ultraviolet obstruction to smooth interpretation.
 A different diffuse field at $h_C=1.50$ has independently matched lowest
 energetic eigenpairs containing no negative mode while failing localization and
 retention.
+
+The continuum qualification separates carrier creation from prepared
+self-binding. The first-order action preserves an exactly empty carrier
+sector. Its stored Cartesian branch has parity-concentrated ultraviolet
+structure, and the frozen smooth-carrier diagnostic returns `CONTRADICTS`.
+A continuum-consistent scalar reduction gives bound prepared populations
+at $Q_C=16$ and $256$, reproduced by independent collocation; the tested
+$Q_C=4$ profiles spread and $Q_C=64$ misses its residual tolerance.
+The smooth $Q_C=16$ spatial spectrum has no resolved negative eigenvalue on
+the tested grids, while its frozen combined stability verdict remains
+`INCONCLUSIVE` because the coarse translation eigenvalue and larger-domain
+comparison miss their thresholds. These results and physical boundaries are
+in `computations/matter-formation-continuum-report.md`.
 
 The physical carrier, calibrated coefficients, exterior realization,
 reservoir action and stress, gravity choice, localized Hessian resolution,
@@ -800,17 +814,15 @@ The endpoint dynamics now have both coherent and one-way open completions:
   $\dot p_Y=-\Gamma p_Y$, $\dot p_I=+\Gamma p_Y$ closes populations while
   damping endpoint coherence at $\Gamma/2$.
 
-At the Mapped coupling $h_C=2.9598260763447164$, the separate source-free
-fixed-charge particle action has a localized, nodeless, carrier-retaining
-stationary branch across four same-domain finite grids and one larger-domain
-comparison. Adjacent principal observables agree and the absolute energy drift
-decreases twice. Its finest artifact's six independently matched lowest
-constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero
-carrier-phase symmetry mode, no negative mode, and five positive modes. The
-symmetry mode retains high-frequency odd-even structure. The independently
-matched lowest energetic eigenpairs of a distinct diffuse background at
-$h_C=1.50$ also contain no negative mode, while that field fails localization
-and retention.
+At the Mapped coupling $h_C=2.9598260763447164$, the stored Cartesian
+fixed-charge branch has a matched finite-grid low spectrum but
+parity-concentrated carrier structure that fails the smooth-continuum
+diagnostic. A continuum-consistent scalar reduction at the same coefficients
+supports static binding at prepared $Q_C=16$ and $256$, reproduced by
+independent collocation. Its smooth $Q_C=16$ constrained spatial stability
+verdict is `INCONCLUSIVE`. The first-order carrier law preserves exactly
+empty data under closed boundaries; prepared binding supplies no microscopic
+production mechanism (`computations/matter-formation-continuum-report.md`).
 
 The physical endpoint section, normalized scale stiffness, proton quantum
 numbers, localized Hessian resolution, perturbations beyond $C_4$, continuum
@@ -833,19 +845,14 @@ declared actions and sectors. The finite algebraic and reduced analytic
 boundary passes its nine frozen checks.
 
 The density-depletion coupling $h_C=2.9598260763447164$ is **Mapped** by a
-frozen ordered numerical scan. Its localized, nodeless, carrier-retaining
-stationary branch is **Tested** across four same-domain finite grids and one
-larger-domain comparison, with independently verified adjacent agreement and
-twice-contracting energy differences. Its finest field's six independently
-matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one
-numerically near-zero carrier-phase symmetry mode, no negative mode, and five
-positive modes. The symmetry mode retains unresolved odd-even structure. The
-independently matched lowest energetic eigenpairs of a distinct diffuse
-coefficient point also contain no negative mode, while that field fails
-localization and retention. Physical proton identification, calibrated action
-data, localized Hessian resolution, perturbations beyond $C_4$, a continuum
-limit, PA43 mixed dynamics, real-time formation, and a decay rate are
-**Hypothesized/Open**.
+frozen ordered numerical scan. The stored Cartesian finite-grid observables
+and constrained low spectrum are **Tested**, alongside the measured
+ultraviolet obstruction. Independently reproduced smooth scalar binding at
+prepared population is also **Tested**, with an **INCONCLUSIVE** constrained
+spatial stability verdict. The empty-sector invariant is **Derived
+conditional** on the supplied first-order action and closed boundaries.
+Physical proton identification, coefficient calibration, production, full
+continuum and temporal stability, and a decay rate remain **Hypothesized/Open**.
 
 For the neutron–proton–electron trio as a whole—their scale coordinates, sectors, and framework-level distinctions—see `particles/matter-organization.md`.
 

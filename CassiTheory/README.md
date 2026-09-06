@@ -66,6 +66,18 @@ declared constitutive dynamics. The full definitions and equations live in
 
 The continued-fraction extremality of $\varphi$ is a Derived number-theory result. Its proposed physical role as a scale-separation target that resists resonant locking is Hypothesized and must be evaluated under explicit dynamics and comparison controls. The reference density and the dimensionful constants $c$, $\hbar$, and $G$ remain external inputs. Yang and Yin are neutral component names in the canonical PDE; expansive and contractive readings are phenomenological mappings unless a specific model supplies those dynamics.
 
+The carrier-creation and continuum calculation makes the particle boundary
+explicit. The first-order action preserves an exactly empty carrier sector,
+and its stored Cartesian localized sequence is dominated by odd-even
+ultraviolet structure. A continuum-consistent scalar calculation gives
+independently reproduced static self-binding at prepared $Q_C=16$ and $256$;
+the tested $Q_C=4$ profiles spread and $Q_C=64$ remains numerically
+inconclusive. The smooth $Q_C=16$ constrained spectra contain no resolved
+negative mode on the measured grids, but the frozen combined stability
+verdict is `INCONCLUSIVE`. Physical production, particle identity and
+normalization remain open
+(`computations/matter-formation-continuum-report.md`).
+
 ## The reality-simulation program
 
 The reality simulator turns theoretical statements into dynamics that can be perturbed and measured. Its target is a field engine that supports local evolution, structure formation, gravity, particles, scale coupling, and cosmological behavior without changing the underlying computational vocabulary at every domain boundary.

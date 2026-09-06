@@ -4,7 +4,7 @@
 
 ## Abstract
 
-A direct fixed-charge carrier coordinate removes the softplus saturation that hid a large physical carrier residual in the stationary particle calculation. At the Mapped density-depletion coupling $h_C=2.9598260763447164$ and fixed carrier charge $q_C=4$, the recovered primary field is physically stationary, nodeless, localized, and energetically retained below the exterior threshold. The branch passes a larger-domain control and survives four same-domain resolutions; the two finest adjacent comparisons satisfy the frozen observable tolerances, and the absolute energy drift contracts twice. The finest $N=29$ artifact's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes. The symmetry mode retains high-frequency odd-even structure, so localized Hessian resolution, continuum existence, PA43 dynamics, and physical particle identity remain open.
+A direct fixed-charge carrier coordinate removes the softplus saturation that hid a large physical carrier residual in the stationary particle calculation. At the Mapped density-depletion coupling $h_C=2.9598260763447164$ and fixed carrier charge $q_C=4$, the recovered primary field is physically stationary, nodeless, localized, and energetically retained below the exterior threshold. The branch passes a larger-domain control and survives four same-domain resolutions; the two finest adjacent comparisons satisfy the frozen observable tolerances, and the absolute energy drift contracts twice. The finest $N=29$ artifact's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes. The phase mode has high-frequency fraction $0.8744032081$, and the corresponding stored Cartesian carrier places $99.98631608\%$ of its norm on one parity sublattice while its nearest-neighbour gradient energy grows with refinement. These are finite-grid results; they do not establish a smooth-carrier continuum branch. A separate continuum-consistent scalar calculation at the same $h_C$ finds prepared static binding at $Q_C=16$ and $256$, while $Q_C=4$ spreads and $Q_C=64$ remains inconclusive.
 
 ## 1. Question and intervention
 
@@ -78,7 +78,7 @@ The resolution-recovery manifest, primary result, and independent verification h
 
 ## 5. Result and remaining boundary
 
-The direct-coordinate and resolution-recovery calculations establish a nodeless, localized, fixed-charge stationary solution of the complete registered finite-grid action at the Mapped density-depletion coupling. The branch is independently reproducible from the analytic separated-core basin, insensitive to the tested box enlargement, and resolution-consistent across the three finest same-domain grids.
+The direct-coordinate and resolution-recovery calculations establish a nodeless, localized, fixed-charge stationary solution of the complete registered finite-grid action at the Mapped density-depletion coupling. The branch is independently reproducible from the analytic separated-core basin, insensitive to the tested box enlargement at the measured lattice spacings, and resolution-consistent across the three finest same-domain grids. The resolution result does not remove the separate ultraviolet limitation measured on the stored Cartesian sequence.
 
 The constrained physical Hessian on the finest localized artifact has no
 negative mode among the six independently matched lowest modes. Its one
@@ -89,6 +89,8 @@ fraction $0.8744032081$ fails the frozen spatial cutoff, and no localized
 Hessian-resolution sequence exists. The finite-grid PA42 sign classification
 therefore remains separate from continuum energetic stability and PA43 temporal
 stability.
+
+The carrier-gradient calculation in `computations/matter-formation-continuum-report.md` measures $99.98631608\%$ of the finest carrier norm on one of eight parity sublattices and nearest-neighbour edge energy growing approximately as $\Delta x^{-2}$ on the two finest grids. Its frozen verdict is `CONTRADICTS—smooth-carrier interpretation on the measured sequence`; this diagnostic applies to the immutable Cartesian arrays and does not change the finite-grid branch verdict above. The separate continuum-consistent scalar calculation at the same $h_C$ supports prepared static binding at $Q_C=16$ and $256$, finds tested $Q_C=4$ profiles spreading, and leaves $Q_C=64$ inconclusive. Its smooth $Q_C=16$ constrained spatial study finds no resolved negative mode on four tested grids, but the combined verdict remains INCONCLUSIVE because the coarse translation mode and same-spacing domain comparison fail the frozen criteria. The scalar branch is distinct from the stored Cartesian field. Under closed boundaries, the first-order carrier continuity law gives $Q_C(0)=0\Rightarrow\chi_C(t)=0$, so the recovered $Q_C=4$ branch is prepared rather than dynamically created by the specified action. Neither calculation supplies physical normalization, quantum numbers, continuum spectral convergence, or nonlinear/temporal stability.
 
 The density-depletion coefficient remains an uncalibrated model input selected by the numerical search. The carrier charge is an auxiliary global $U(1)_C$ number with no demonstrated identification as electric charge, baryon number, lepton number, spin, or a Standard Model species. Dynamic persistence, topology-changing formation, annihilation, and observable quantum-number matching remain separate requirements.
 
@@ -105,4 +107,5 @@ The density-depletion coefficient remains an uncalibrated model input selected b
 - `computations/particle_carrier_resolution_recovery_manifest.json`—hash-bound resolution code, source artifacts, grids, and optimizer schedule.
 - `computations/particle-carrier-resolution-recovery-report.md`—independently verified refinement measurements and present finite-grid boundary.
 - `computations/particle-localized-physical-hessian-report.md`—constrained finite-grid spectrum of the finest localized artifact.
-- `foundations/particle-stationary-action-closure.md`—complete stationary action and particle-completion criteria.
+- `foundations/particle-stationary-action-closure.md` §8.7—carrier creation obstruction, scalar reduction, and particle-completion criteria.
+- `computations/matter-formation-continuum-report.md`—carrier creation obstruction, measured Cartesian ultraviolet boundary, and separate continuum scalar binding results.

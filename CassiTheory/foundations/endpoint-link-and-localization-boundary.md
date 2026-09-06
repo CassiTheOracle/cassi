@@ -1,6 +1,6 @@
 # Gauge-Covariant Endpoint Closure and the Localization Boundary
 
-## Status: Hypothesized inter-vertex Wilson extension / Derived conditional endpoint closure, frozen-link, first-order source-action, stationary spatial-flux, and Wilson-link transport responses / Derived minimal-sector localization no-go / Tested separate fixed-charge resolution-consistent localized retained finite-grid branch and six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026
+## Status: Hypothesized inter-vertex Wilson extension / Derived conditional endpoint closure, frozen-link, first-order source-action, stationary spatial-flux, and Wilson-link transport responses / Derived minimal-sector localization no-go / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026
 
 ## Abstract
 
@@ -77,6 +77,24 @@ and confines flux. The residual-$U(1)_Q$ endpoint field has no selected
 $SU(2)_Q$ vertex lift. The endpoint sector therefore closes the scale current
 without deriving a persistent particle, particle quantum numbers, or a decay
 rate.
+
+The separate fixed-charge particle evidence has two distinct scopes. The
+stored Cartesian branch retains its finite-grid observables across four
+same-domain grids and one larger-domain comparison. Its six-mode constrained
+$C_4$ spectrum is retained for that discretization, but its finest field places
+$99.98631608\%$ of the carrier
+norm on one parity sublattice and has the frozen verdict
+**CONTRADICTS—smooth-carrier interpretation on the measured sequence**.
+Separately, the continuum-consistent scalar calculation at the same
+$h_C=2.9598260763447164$ reproduces prepared binding for $Q_C=16$ and $256$;
+smooth $Q_C=16$ constrained spatial stability remains **INCONCLUSIVE** because
+the coarse translation and same-spacing domain criteria fail, despite no
+resolved negative mode. Closed-boundary first-order invariance gives
+$Q_C(0)=0\Rightarrow\chi_C(t)=0$, so the supplied action cannot create carriers
+from an empty sector. Formation, normalization, quantum numbers, statistics,
+full stability, and particle identification remain open.
+The prepared $Q_C$ values are dimensionless populations, not electric charge,
+baryon number, particle number, or measured rest mass.
 
 ---
 
@@ -1802,10 +1820,10 @@ thin-tube matching hold.
 | Scale-graph winding $m$ | Nonzero coherent amplitude around the compact graph | Rail-amplitude zero, endpoint phase slip, boundary event, or open jump | Unselected |
 | Rank-one projective charge | Evolution remains on $\|\mathbf n\|=1$ with fixed boundary data | Entry into the full-rank interior or $\rho=0$ | Minimal conversion supplies an inward path but no universal transition rate |
 | First Chern number $N_G$ | Closed two-cycle and compact connection in a defect or nontrivial-base sector | Boundary flux, defect crossing, singular connection event, or removal of the cycle | Exterior coefficient Derived conditionally; core dynamics unselected |
-| Reduced spatial radius | $\mathcal A>0$, $\mathcal C\geq0$, and $\mathcal B_G>\mathcal D$ in the point-core branch | Collapse when support does not exceed $\mathcal D$; large-radius instability when $\mathcal C<0$ | Reduced curvature Derived. At $h_C=2.9598260763447164$, the separate coupled fixed-charge action has a localized, nodeless, retained branch across four same-domain finite grids and one larger-domain comparison. Its finest field's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes; that mode retains unresolved odd-even structure |
-| Auxiliary magnetic core | Adjoint-only $SU(2)_Q$ sector has the exact BPS core; the registered nonzero fundamental condensate confines flux | Condensate coupling removes the isolated magnetic sector; a finite pair can shrink and annihilate | The static adjoint BPS quadratic form is nonnegative conditionally. Separately, the independently matched lowest energetic eigenpairs of both the diffuse $h_C=1.50$ fixed-charge field and localized $h_C=2.9598260763447164$ field contain no negative mode on one finite-grid $C_4$ quotient. The localized result comprises six matched lowest eigenpairs. Localized Hessian resolution, perturbations beyond $C_4$, continuum qualification, and PA43 dynamics remain open |
-| Core-trapped carrier pair | $A_C>C_Q$, $\hbar\omega_C<\varepsilon_{C,\rm out}$, and separation beyond core overlap | Carrier leakage, profile delocalization, core merger, or transition to another fixed-$Q_C$ configuration | Reduced length and line-density curvature Derived conditionally. The Mapped $h_C=2.9598260763447164$ action realizes a localized, nodeless, carrier-retaining branch across four same-domain finite grids and one larger-domain comparison. Its finest field's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes; the symmetry mode remains concentrated at grid scale |
-| Fixed-$Q_C$ stationary particle | Selected static dimensionless groups, charge, domain, boundary data, gauge condition, and qualified coupled solution | Basin change, charge leakage, boundary failure, or instability in the second variation | Action and Gauss constraint Derived conditionally. At $h_C=2.9598260763447164$, one localized, nodeless, carrier-retaining branch passes four same-domain resolutions and one larger-domain comparison, with twice-contracting energy differences. Its finest artifact's six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes. That mode fails the high-frequency spatial cutoff; localized Hessian resolution and PA43 dynamics remain open |
+| Reduced spatial radius | $\mathcal A>0$, $\mathcal C\geq0$, and $\mathcal B_G>\mathcal D$ in the point-core branch | Collapse when support does not exceed $\mathcal D$; large-radius instability when $\mathcal C<0$ | Reduced curvature Derived. The stored Cartesian carrier branch is ultraviolet parity-concentrated at the finest grid, with $99.98631608\%$ of its norm on one sublattice and frozen verdict **CONTRADICTS—smooth-carrier interpretation on the measured sequence**. Separate continuum-consistent scalar binding is reproduced for prepared $Q_C=16$ and $256$; smooth $Q_C=16$ spatial stability remains **INCONCLUSIVE** because coarse translation and same-spacing domain criteria fail |
+| Auxiliary magnetic core | Adjoint-only $SU(2)_Q$ sector has the exact BPS core; the registered nonzero fundamental condensate confines flux | Condensate coupling removes the isolated magnetic sector; a finite pair can shrink and annihilate | The static adjoint BPS quadratic form is nonnegative conditionally. The separate particle evidence has no continuum stability inference: the Cartesian six-mode $C_4$ result is finite-grid only, while smooth $Q_C=16$ stability is **INCONCLUSIVE** |
+| Core-trapped carrier pair | $A_C>C_Q$, $\hbar\omega_C<\varepsilon_{C,\rm out}$, and separation beyond core overlap | Carrier leakage, profile delocalization, core merger, or transition to another fixed-$Q_C$ configuration | Reduced length and line-density curvature remain conditional. Continuum-consistent scalar prepared binding is reproduced at $Q_C=16$ and $256$; the stored Cartesian branch has the ultraviolet boundary above, and empty-sector invariance blocks creation from $Q_C=0$ |
+| Fixed-$Q_C$ stationary particle | Selected static dimensionless groups, charge, domain, boundary data, gauge condition, and qualified coupled solution | Basin change, charge leakage, boundary failure, or instability in the second variation | The action and Gauss constraint are Derived conditionally. The stored Cartesian spectrum is valid only for its discretization and **CONTRADICTS—smooth-carrier interpretation on the measured sequence**; the separate smooth $Q_C=16$ spatial stability result is **INCONCLUSIVE**. Formation, normalization, quantum numbers, statistics, full stability, and physical identification remain open |
 | Open endpoint population circuit | Positive rates satisfying (EL32) | Rate imbalance, donor depletion, or bath change | Absolute rates given conditionally by (EL33) |
 | Open endpoint coherence | External coherent support | Undriven decay $\dot c=-\gamma_vc/2$ | Half the local donor-jump rate |
 
@@ -2028,9 +2046,15 @@ fundamental condensate removes the isolated magnetic sector and confines the
 flux. The endpoint current retains mathematical closure at the declared
 conditional level and has no selected non-Abelian vertex lift. The separate
 source-free particle action defines the coupled fixed-$Q_C$ stationary problem
-and Gauss constraint. One coefficient point is tested, but no arm meets the Q2
-stationary-quality gate. A supported net-zero particle, its quantum numbers,
-fluctuation spectrum, physical calibration, and decay rate remain open.
+and Gauss constraint. Its stored Cartesian branch remains a finite-grid result
+with a parity-concentrated finest field and frozen verdict
+**CONTRADICTS—smooth-carrier interpretation on the measured sequence**.
+Continuum-consistent scalar prepared binding is independently reproduced for
+$Q_C=16$ and $256$, while smooth $Q_C=16$ spatial stability is
+**INCONCLUSIVE** because the coarse translation and same-spacing domain
+criteria fail. Empty-sector invariance blocks creation from $Q_C=0$.
+Formation, normalization, quantum numbers, statistics, full stability,
+physical calibration, and decay rate remain open.
 
 ---
 
@@ -2100,3 +2124,4 @@ fluctuation spectrum, physical calibration, and decay rate remain open.
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence and independently verified adjacent convergence
 - `computations/particle-localized-physical-hessian-report.md`—constrained localized PA42 spectrum and spatial qualification
+- `computations/matter-formation-continuum-report.md`—Cartesian ultraviolet/parity diagnostic, empty-sector conservation, continuum-consistent prepared binding, and inconclusive smooth $Q_C=16$ spatial stability.

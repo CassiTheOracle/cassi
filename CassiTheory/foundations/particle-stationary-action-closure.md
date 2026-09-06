@@ -1,6 +1,6 @@
 # Particle-Sector Action and Fixed-Charge Variational Closure
 
-## Status: Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, variational, and fluctuation-qualification boundaries / Tested resolution-consistent localized retained finite-grid branch and six-mode constrained $C_4$ finite-grid PA42 low-spectrum sign—September 2026
+## Status: Hypothesized source-free temporal completion / Derived gauge, Gauss, stationary, variational, empty-sector, and scalar-reduction boundaries / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026
 
 ## Abstract
 
@@ -33,15 +33,20 @@ $13622$-dimensional strict-shell $C_4$ physical quotient, although its
 numerically near-zero global carrier-phase symmetry mode remains concentrated
 at grid scale.
 
-At the numerically selected $h_C=2.9598260763447164$, a distinct stationary
-field is nodeless, localized, and carrier-retaining on $N=17,21,25,29$
-same-domain grids and passes one larger-domain comparison. Its finest
-artifact's six independently matched lowest constrained $C_4$ finite-grid
-PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode,
-no negative mode, and five positive modes. The symmetry mode carries unresolved
-odd-even spatial structure; localized Hessian resolution, continuum
-qualification, perturbations beyond $C_4$, and the PA43 mixed dynamical
-spectrum remain open.
+At the Mapped coupling $h_C=2.9598260763447164$, the stored Cartesian
+stationary branch is nodeless, localized and carrier-retaining under its
+finite-grid action. Its six matched lowest constrained $C_4$ energetic
+eigenpairs contain a near-zero carrier-phase mode and five positive modes.
+The carrier concentrates on one parity sublattice, and its edge-gradient
+energy contradicts a smooth-carrier interpretation on the measured sequence.
+
+The same action has an exact empty-sector invariant: under closed boundaries,
+$Q_C(0)=0$ implies $\chi_C(t)=0$. A continuum-consistent scalar reduction
+supports static binding at prepared $Q_C=16$ and $256$, reproduced by
+independent collocation. The smooth $Q_C=16$ constrained spatial stability
+verdict is `INCONCLUSIVE`. Microscopic production, full temporal and nonlinear
+stability, physical normalization and particle identity remain open
+(`computations/matter-formation-continuum-report.md`).
 
 ---
 
@@ -968,6 +973,105 @@ sequence and the temporal groups are unavailable. See
 
 ---
 
+### 8.7 Carrier creation and the continuum scalar sector
+
+The carrier law conserves a nonnegative population. Under closed spatial and
+scale boundaries its continuity equation is
+
+$$
+\partial_t|\chi_C|^2+\nabla_x\cdot\mathbf j_x+\partial_s j_s=0,
+\qquad
+\mathbf j_x=\frac{K_{Cx}}{\hbar}\operatorname{Im}
+(\chi_C^*\nabla_x\chi_C),
+\qquad
+j_s=\frac{K_{Cs}}{\hbar}\operatorname{Im}
+(\chi_C^*\partial_s\chi_C).
+$$
+
+All potential terms cancel in this identity. Consequently,
+
+$$
+\boxed{Q_C(0)=0\ \Longrightarrow\ Q_C(t)=0
+\ \Longrightarrow\ \chi_C(t)=0\quad\text{almost everywhere}.}
+$$
+
+The implication assumes a well-posed evolution and no carrier flux through the
+boundary. The normal-ordered first-order carrier Hamiltonian also commutes with
+carrier number: hopping, density coupling, and carrier self-repulsion preserve
+the empty number sector. A time-dependent density trap alone cannot populate
+it. Physical pair production requires microscopic degrees of freedom and
+interactions that the present carrier action does not specify. Its nonnegative
+norm also requires a separate identification before it can represent a signed
+physical charge.
+
+The static density-trap question admits an exact simplification in the
+scale-independent sector with constant vacuum boundary data and a topology
+class admitting a globally constant composition representative. Set
+$f=\sqrt{\psi^\dagger\psi}$ and $c=|\chi_C|$. Covariant diamagnetism gives
+$|\partial_i f|\leq|D_i\psi|$, while
+$|\partial_i c|\leq|\partial_i\chi_C|$. Gauge curvature, adjoint gradients,
+adjoint radial potential, and the composition square contribute nonnegative
+energy. Their lower bound is attained by
+
+$$
+\psi=f\psi_0,\qquad
+\psi_0=(\varphi^{-1/2},\varphi^{-1})^T,\qquad
+h=h_0=(0,0,1),\qquad a_i=a_{\mathfrak s}=0.
+$$
+
+Here $\|\psi_0\|=1$ and $\delta_\varphi(f\psi_0,h_0)=0$ for every $f$.
+The Hermitian generators make all gauge currents vanish in this real-amplitude
+representative. The adjoint and composition variations vanish; the remaining
+field equations are the coupled amplitude equations. For unit scale measure
+and $k_{Cx}=1$, the energy infimum in this class therefore equals the scalar
+infimum
+
+$$
+E_{\rm sc}=\int_{\mathbb R^3}\left[
+\frac12|\nabla f|^2+\frac12|\nabla c|^2+
+\frac{u_\rho}{4}(f^2-1)^2+
+\bigl(e_C-h_C(1-f^2)\bigr)c^2+\frac{u_C}{2}c^4
+\right]d^3x,
+\qquad Q_C=\int c^2\,d^3x.
+$$
+
+Clipping $f$ to $[0,1]$ cannot increase this energy. With $w=1-f$ and
+$g(w)=2w-w^2$, the interaction is $-h_Cg(w)c^2$. Symmetric decreasing
+rearrangement of $w$ and $c$ decreases both Dirichlet energies, preserves their
+individual potential integrals and charge, and increases
+$\int g(w)c^2$ by the Hardy–Littlewood inequality. Thus the infimum has a radial
+representative under the required Sobolev and decay conditions. On a ball,
+zero extension of $w,c\in H^1_0(B_R)$ preserves the specified boundary traces.
+These infimum identities do not prove attainment on infinite space, uniqueness,
+fission stability, or real-time formation. Forced magnetic charge, boundary
+holonomy, and scale winding require their own variational classes.
+
+The radial stationary equations used in the continuum calculation are
+
+$$
+-\Delta_r f+u_\rho(f^2-1)f+2h_Cc^2f=0,
+\qquad
+-\frac12\Delta_r c+
+\bigl[e_C-h_C(1-f^2)+u_Cc^2\bigr]c=\omega_Cc,
+$$
+
+with $f'(0)=c'(0)=0$, $f(R)=1$, $c(R)=0$, and fixed $Q_C$.
+`computations/matter-formation-continuum-report.md` records the finite-volume
+and independent collocation calculation at the selected coefficients.
+
+The stored Cartesian carrier sequence has a separate ultraviolet obstruction.
+At $N=25,29$, its high-frequency norm fractions are $0.8741672013$ and
+$0.8744032064$. At $N=29$, one of eight parity sublattices contains
+$99.98631608\%$ of the carrier norm. The nearest-neighbour carrier gradient
+energies grow from $107.8149354$ to $146.7857405$, while their
+$\Delta x^2$-weighted values remain $11.9794373$ and $11.9825094$.
+The centred derivative has symbol $i\sin(k\Delta x)/\Delta x$, including a
+Nyquist zero; its squared energy does not uniformly control a nearest-neighbour
+gradient. The frozen spatial diagnostic returns `CONTRADICTS` for a smooth
+carrier interpretation on this measured sequence. The finite-grid PA42
+eigenpairs remain scoped to that lattice stationary field. The scalar
+continuum calculation supplies a distinct variational discretization.
+
 ## 9. What is closed and what remains open
 
 | Question | Result |
@@ -981,22 +1085,20 @@ sequence and the temporal groups are unavailable. See
 | Are carrier backreaction and the density trap in one variational problem? | Yes, (PA21)--(PA23) |
 | Is the stationary problem nondimensionalized without gauge-normalization dials? | Yes, (PA29)--(PA37) |
 | Is a numerical coefficient point selected? | Yes; $h_C=2.9598260763447164$ is selected by a frozen ordered numerical scan, so its physical calibration remains open and its status is Mapped |
-| Does a physically stationary, localized, retained finite-grid configuration exist in the registered class? | Yes; one nodeless branch qualifies on four same-domain resolutions and one larger-domain comparison |
+| Does a physically stationary, localized, retained finite-grid configuration exist in the registered class? | Yes; the Cartesian branch qualifies under its centred-difference action, while the edge-gradient diagnostic contradicts a smooth-carrier interpretation on that sequence. A separate continuum-consistent scalar calculation supports prepared static binding at $Q_C=16$ and $256$ |
 | Is any basin the unrestricted global minimum? | Undetermined and not established by finite controls |
-| Is the full physical Hessian or mixed dynamical spectrum evaluated? | No. The independently matched lowest energetic eigenpairs of the diffuse $h_C=1.50$ background contain no negative mode on its strict-shell $C_4$ finite-grid quotient. The localized $h_C=2.9598260763447164$ branch has six independently matched lowest constrained $C_4$ finite-grid PA42 eigenpairs containing one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes. Both phase-symmetry modes fail the frozen high-frequency spatial cutoff. Neither branch has a qualified Hessian-resolution sequence or mixed dynamical spectrum |
+| Is the full physical Hessian or mixed dynamical spectrum evaluated? | No. The stored Cartesian fields have independently matched low energetic spectra in a finite-grid $C_4$ quotient. Their phase modes have grid-scale structure. The separate smooth $Q_C=16$ constrained spatial study has no resolved negative mode on four tested grids, but its combined verdict is INCONCLUSIVE because the coarse symmetry and domain comparisons fail. Full temporal and nonlinear stability remain open |
+| Can carriers form from an exactly empty closed sector? | No; the homogeneous first-order carrier equation preserves $Q_C=0$. A microscopic production action and quantum content are missing |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 
-The action and stationary boundary inventory define a complete mathematical
-boundary-value experiment in the registered variational class. A numerically
-selected coefficient point supports a localized, nodeless, carrier-retaining
-finite-grid branch across four same-domain resolutions and one larger-domain
-comparison. Its finest artifact's six independently matched lowest constrained
-$C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero
-carrier-phase symmetry mode, no negative mode, and five positive modes. The
-symmetry mode exposes unresolved odd-even spatial structure. Continuum
-existence, localized Hessian resolution, perturbations beyond $C_4$,
-unrestricted basin ordering, PA43 mixed dynamics, formation, and physical
-identification remain open.
+The action defines a fixed-charge boundary-value problem and an exact
+creation obstruction. Its continuum-consistent scalar sector supplies
+independently reproduced static binding for two prepared populations at the
+selected coefficients. The stored Cartesian branch retains its finite-grid
+scope and fails the smooth-carrier diagnostic. The smooth constrained spatial
+calculation remains inconclusive under its frozen criteria. Neither set of
+measurements determines a physical production channel, normalized particle
+spectrum or formation history.
 
 ---
 
@@ -1014,14 +1116,14 @@ The analytic closure fails if any of the following is shown:
    dimension or gauge-normalization dependence;
 7. the coupled stationary equations omit a variation of (PA12).
 
-The numerical receipts do not falsify the analytic closure. They establish one
-localized, carrier-retaining finite-grid stationary branch at a Mapped
-coefficient point. Its finest artifact's six independently matched lowest
-constrained $C_4$ PA42 eigenpairs contain one numerically near-zero
-carrier-phase symmetry mode, no negative mode, and five positive modes. Failed
-Hessian refinement, a negative mode beyond $C_4$, failed further domain or
-continuum refinement, or real-time decay would reject progressively stronger
-particle interpretations without changing the action identities above.
+The finite-grid measurements leave the action identities intact. The
+Cartesian edge-gradient diagnostic contradicts a smooth interpretation of the
+stored localized sequence. The separate scalar calculation supports prepared
+static binding, with an inconclusive constrained spatial stability result.
+A negative qualified continuum mode, collapse or dispersion under the
+declared temporal action, or incompatibility with particle observations would
+reject stronger physical interpretations without changing the conditional
+conservation and gauge identities.
 
 ---
 
@@ -1034,22 +1136,21 @@ its unavoidable gauge charge, while the selected second-order charged-field
 kinetics give a time-local gauge symmetry and a Gauss-compatible static sector.
 The neutral carrier remains first order and supplies the exact fixed charge.
 
-The registered numerical program supplies two distinct stationary
-backgrounds. The independently matched lowest energetic eigenpairs of the
-diffuse $h_C=1.50$ field contain no negative mode on one strict-shell $C_4$
-physical quotient, while its global carrier-phase direction remains
-concentrated at grid scale. The selected $h_C=2.9598260763447164$ field is
-nodeless, localized, and retained across four same-domain resolutions, passes
-one larger-domain comparison, and has twice-contracting absolute energy
-differences. Its finest field's six independently matched lowest constrained
-$C_4$ finite-grid PA42 eigenpairs contain one numerically near-zero mode
-aligned with the analytic carrier-phase symmetry, no negative mode, and five
-positive modes. The symmetry mode retains high-frequency odd-even structure.
+The carrier's nonnegative conserved population cannot be generated from
+exactly empty closed-sector data. This is an algebraic restriction of the
+supplied action. Physical production requires further microscopic degrees of
+freedom and interactions.
 
-Localized Hessian resolution, perturbations beyond $C_4$, a continuum limit,
-broader basin search, PA43 real-time persistence and formation, physical
-calibration, and particle masses, radii, spins, statistics, and lifetimes
-remain downstream.
+At the selected dimensionless coefficients, the continuum-consistent scalar
+problem has independently reproduced static bound states at prepared
+$Q_C=16$ and $256$. The tested $Q_C=4$ profiles spread, and $Q_C=64$ fails
+stationary qualification. The smooth $Q_C=16$ branch has no resolved negative
+constrained spatial mode on the tested grids; its combined stability verdict
+is `INCONCLUSIVE`. The Cartesian localized sequence is parity-concentrated
+and fails its smooth-carrier diagnostic. These outcomes establish conditional
+density trapping while leaving continuum and temporal stability, actual
+formation, physical normalization, particle quantum numbers and statistics
+open.
 
 ---
 
@@ -1070,3 +1171,4 @@ remain downstream.
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid refinement and independently verified resolution consistency.
 - `computations/particle-localized-physical-hessian-report.md`—matched constrained spectrum and spatial qualification of the finest localized field.
+- `computations/matter-formation-continuum-report.md`—empty-sector invariant, ultraviolet diagnosis, smooth prepared binding and constrained stability.
