@@ -1886,6 +1886,52 @@ r_{\rm phys}=\sqrt{\beta/\alpha}\,r_{\rm dimless},
 $$
 The last ratio controls the action in quantum units. Neither the classical stationary solution nor the optional negative loop character fixes it. A physical normalization, a canonical density-to-target mechanism, interaction charges and a specified quantum production state remain necessary before this comparison model can become a Cassi matter-formation claim.
 
+### 18.4 Direct-angle radial evidence
+
+The compact-target trial identities pass, but the direct-angle stationary calculation is numerically unqualified. The aggregate verdict under §18.2 is `INCONCLUSIVE`. All three boundary solves report mesh-budget exhaustion; their maximum relative RMS residuals exceed the frozen $1.1\times10^{-8}$ ceiling. The independent verifier reconstructs the primary measurements and returns the same verdict. Its 110 checks contain 107 passes and the three failed profile qualifications.
+
+|Outer radius|Primary nodes|Maximum RMS residual|Independent $E/(12\pi^2)$|Independent half-angle radius|
+|---|---:|---:|---:|---:|
+|16|24,668|$8.58246010\times10^{-6}$|1.231445697432158|0.876314345565396|
+|32|24,013|$7.73760158\times10^{-6}$|1.231445697432149|0.876314349498786|
+|64|22,737|$7.32942125\times10^{-6}$|1.231445697432151|0.876314349521118|
+
+Both programs pass all six exact controls. Their reconstructed degree is one within the frozen tolerance, and every finite radial eigenvalue is positive. At $h=0.02$, the primary/independent pairs are $0.0766423462820/0.0766422498041$, $0.0196457260536/0.0196457186087$ and $0.00492708472055/0.00492708421272$ at the three outer radii. These finite-grid spectra remain conditional on an unqualified stationary background. Their decreasing lowest value as the domain grows supplies no positive infinite-volume spectral gap. The primary whole-interval quadrature also emits a roundoff warning; piecewise independent integration agrees within the frozen comparison tolerance.
+
+The primary and verifier are `computations/matter_formation_compact_carrier.py` and `computations/verify_matter_formation_compact_carrier.py`, with canonical source hashes `f2838f3d4bbcbd2f6fd93a44db9059b54f34d1a1ba608d361838b781460b3ce3` and `f248e2d84715ea8264e33665f80804ccde896bcf181b0539f6ca9307f8d418e3`. The frozen §18.2 hash is `c13cdd8b8a3f6f704e0cb0a25f2412acdbd9f5ea7a4ad109babf4140eaca3a57`. Source commit `6e39cd97` provides the executable versions for these receipts. The environment is Python 3.12.10, NumPy 2.4.3, SciPy 1.17.1 and SymPy 1.14.0.
+
+|Receipt|Raw SHA-256|
+|---|---|
+|`runs/20260906_matter_formation_compact_carrier/results.json`|`91fb84409803a2a9574bbf01a733eabf30b730c8ca47ecaab78d76a77277e646`|
+|`runs/20260906_matter_formation_compact_carrier_verification/results.json`|`32e0d0487b6916e00e2ac5f2d6986c81deb2be012945ccca7b2b91e4ecfb4d49`|
+|`runs/20260906_matter_formation_compact_carrier_missing_record/results.json`|`51a52efa24141979de880d4f3561810c5b5bc6023ff4c194b2ec17c1a7d48b80`|
+|`runs/20260906_matter_formation_compact_carrier_altered_energy_control/results.json`|`7ff696cda19513fe13b9f3a1568eb485ff0664113ce0e111f60b78dfa8d84abd`|
+|`runs/20260906_matter_formation_compact_carrier_missing_profile_control/results.json`|`f77a013c03e54fe577326322e29ba37d82e68c5fae38463f4a15487207111f21`|
+
+All five invocations exit 1. The missing-record control contains no scientific rows. The altered-energy input adds exactly one to the stored $L=16$ $E_2$ value, leaving all raw profiles unchanged; the verifier reports the two explicit reconstructed-$E_2$ mismatches in addition to the existing profile qualifications. The missing-profile input omits `profile_L16.npz` and fails before reconstructing a profile. These controls establish rejection of the specified malformed evidence; they do not change the scientific verdict.
+
+### 18.5 Shifted-angle precision calculation: pre-execution criteria
+
+This calculation tests a numerically better-conditioned coordinate for the same radial equation. Define $\theta=\pi-f$. Substitution gives
+$$
+(r^2+2\sin^2\theta)\theta''+2r\theta'
++\sin(2\theta)\left(\theta'^2-1-\frac{\sin^2\theta}{r^2}\right)=0.
+$$
+The inner value is small in this coordinate, so nearby samples need not be obtained by subtracting numbers close to $\pi$ inside the boundary solver. The boundary conditions are
+$\theta(\epsilon)-\epsilon\theta'(\epsilon)=0$ and
+$\theta'(L)-2[\pi-\theta(L)]/L=0$.
+The exact initial profile is $\theta=2\arctan(r/R_*)$ with $R_*=1/\sqrt2$.
+
+The baseline is the complete frozen §18.2 schedule and all its numerical thresholds, identified by SHA-256 `c13cdd8b8a3f6f704e0cb0a25f2412acdbd9f5ea7a4ad109babf4140eaca3a57`. No radius, spacing, endpoint, solver tolerance, mesh budget, eigenvalue threshold or physical equation changes. The two named programs now bind both this section and the baseline section before execution. The direct-angle receipts and their source commit remain unchanged. This coordinate change and the piecewise quadrature below are explicitly declared numerical changes.
+
+The raw profiles store float64 arrays `x`, `theta`, `thetap`, `rms_residuals`. The full two-component shifted-angle Hermite interpolant reconstructs the solver residual. The physical scalar interpolant is $\pi$ minus the scalar Hermite polynomial for $\theta$; its derivatives are the negatives of the corresponding polynomial derivatives. All physical measurements, inner/outer extensions, centered-flux spectra and independent unintegrated finite-element spectra retain the definitions in §18.2. Physical boundary residuals are evaluated from the displayed shifted conditions with the overall minus sign, avoiding an additional near-$\pi$ subtraction at the inner endpoint.
+
+Both programs add an exact symbolic control named `shifted_euler_equivalence`: substituting $f=\pi-\theta$ and its derivative signs into the original Euler equation must give minus the displayed equation exactly. There are seven exact controls in total. Each program also records the midpoint of the maximum stored RMS interval in each of the three hash-bound direct-angle profiles from §18.4. Those locations are descriptive diagnostics; they do not select a radius, tolerance or subset.
+
+Primary and independent energy/degree quadrature split at every Hermite knot and retain absolute/relative tolerances at most $10^{-9}$. A quadrature warning causes an unsuccessful receipt. This prevents apparent whole-interval agreement from concealing an unmet quadrature request. All three shifted profiles must also agree with the corresponding independently reconstructed direct-angle total energies, origin slopes and half-angle radii to $10^{-6}\max(1,|a|,|b|)$. This is a same-branch check against the fixed §18.4 verification receipt, whose raw hash is `32e0d0487b6916e00e2ac5f2d6986c81deb2be012945ccca7b2b91e4ecfb4d49`.
+
+The stopping rule is one complete shifted schedule, one independent verification, and the same three fresh-output failure controls as §18.2. All baseline predicates, both section identities, the seventh exact control and all same-branch comparisons are required for `SUPPORTS—finite-domain stationary and radial energetic qualification of the declared compact-target carrier`. A qualified negative radial eigenvalue has the baseline `CONTRADICTS` verdict; any unresolved numerical or identity prerequisite gives `INCONCLUSIVE`. No threshold is relaxed to recover the direct-angle calculation, and successful qualification remains restricted to the supplied comparison model.
+
 ## References
 
 - [Houghton, Manton and Sutcliffe, *Rational Maps, Monopoles and Skyrmions*](https://arxiv.org/abs/hep-th/9705151)—standard compact-target action, hedgehog energy and topological normalization used as an explicitly supplied comparison model.
