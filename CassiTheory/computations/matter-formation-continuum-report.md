@@ -2011,7 +2011,158 @@ This statement permits nonlocal and derivative-dependent bridges when they are c
 
 The global result still permits carrier–anticarrier pairs with zero total degree, as the explicit path in §18.3 shows. It does not establish such a pair's dynamics, and it does not exclude a fermionic phase supplied by a different microscopic quantum mechanism. It identifies why the independently supplied compact field cannot be relabeled as a consequence of the two densities. Selecting and deriving the extra physical state or the changed configuration-space domain is the outstanding microscopic input; radial refinement cannot supply it.
 
+## 19. Physical relative orientation in the conditional gauge sector
+
+### 19.1 What the phase-bearing doublet adds
+
+The optional complex doublet contains two phase variables that the canonical real densities do not carry. For $\rho=E_Y+E_I>0$, define
+$$
+z=\frac{1}{\sqrt\rho}
+\begin{pmatrix}\sqrt{E_Y}e^{i\theta_Y}\\
+\sqrt{E_I}e^{i\theta_I}\end{pmatrix},
+\qquad
+G(z)=\begin{pmatrix}z_1&-z_2^*\\z_2&z_1^*\end{pmatrix}.
+$$
+Then $z^\dagger z=1$, $G(z)\in SU(2)$ and $G(z)e_1=z$. These are identities of the phase-bearing extension in `foundations/geometric-manifold-completion.md` and `foundations/interscale-current-soliton.md`. They do not supply the phases from a pointwise function of the densities.
+
+A hard pointwise constraint $\rho=\rho_0>0$, a fixed outer value and an ungauged $z$ give an $S^3$ target. A fixed global integral $\int\rho$ does not impose that target: amplitudes can vary, and zeros make $z$ undefined. A nonzero uniform outer density also has infinite total population on $\mathbb R^3$; finite excess population or a container requires its own definition. Extending the positive-root Laplacian-squared energy to $z$ would supply a different four-derivative functional from the commutator energy in §18. Its radial equation and stability cannot inherit the Skyrme receipts.
+
+The existing conditional $SU(2)_Q$ theory acts locally on the doublet. Under $h\in SU(2)_Q$, $G(hz)=hG(z)$, so $G(z)$ itself is gauge covariant. Its winding cannot be assigned the gauge-singlet carrier interpretation of §18 without examining the complete gauge quotient.
+
+### 19.2 Relative target and vacuum set
+
+The fundamental and adjoint together have a physical relative orientation whenever both norms are nonzero. Write $\Psi=\sqrt{\rho_0}z$, $\Phi=v_Q n$, $|n|=1$, and define
+$$
+N^a\sigma_a=G(z)^\dagger(n^a\sigma_a)G(z).
+$$
+This matrix is gauge invariant, Hermitian, traceless and squares to $I$, so $N\in S^2$. The gauge transformation $G(z)^{-1}$ sends each pair to the unique representative $(e_1,N)$. Consequently
+$$
+\boxed{(S^3\times S^2)/SU(2)_Q\simeq S^2.}
+$$
+Gauge fixing the nonzero fundamental removes gauge directions; it does not remove the adjoint's relative excitation.
+
+The composition potential selects a circle within this target. In the declared action `foundations/particle-stationary-action-closure.md` (PA2), (PA12),
+$$
+\Delta_\varphi
+=\frac{\rho_0(1+\varphi)}{2}(N_3-c),
+\qquad c=\frac{\varphi-1}{\varphi+1}=\varphi^{-3}.
+$$
+Thus the fixed-norm minimum set after gauge quotient is $N_3=c$, an $S^1$, consistent with `foundations/nonabelian-magnetic-core-boundary.md` §5.1. Fixing its common-number phase gives one vacuum point. This vacuum manifold is distinct from the full fixed-norm target. A finite composition penalty permits $N_3\ne c$ in a localized excitation; it leaves the full target $S^2$. Setting that penalty to zero leaves the same sphere. Its azimuthal circles shrink at $N_3=\pm1$, so the sphere cannot be replaced by a product of a closed interval and a circle.
+
+With fixed $N_\infty$, the restricted nonvanishing sector therefore permits maps $S^3_{\rm space}\to S^2_{\rm relative}$ and their Hopf classes. A hard composition constraint throughout space would restrict the map to $S^1$ and remove this $\pi_3$ class. In the unrestricted action, zeros of either field make the normalized relative description fail and permit escape from the restricted sector. Neither restriction supplies a physical charge or a quantum-statistics choice.
+
+A jointly rotated vacuum carries no relative texture. For a smooth based $h(\mathbf x)$, set
+$$
+\Psi=h\Psi_*,\qquad
+\Phi^a\sigma_a=h(\Phi_*^a\sigma_a)h^{-1},\qquad
+\mathcal A_i=-\frac{i}{g_Q}(\partial_i h)h^{-1}.
+$$
+Then $D_i\Psi=D_i\Phi=\mathcal F_{ij}=0$ and $N=N_*$. The adjoint direction by itself can have nonzero Hopf invariant in such a representative, while the invariant relative field remains constant. This construction cancels the joint gauge orbit exactly. It does not cancel a nonconstant $N$.
+
+### 19.3 Full fixed-norm energy and the induced derivative term
+
+The complete static action supplies an exact restricted energy for the relative field and connection. Take unit scale measure, no scale dependence, $\mathcal A_{\mathfrak s}=0$, $\chi_C=0$, the hard norms above, and the fundamental gauge $\Psi=\sqrt{\rho_0}e_1$. Define $a_i=g_Q\mathcal A_i$ in adjoint-vector notation and
+$$
+\begin{aligned}
+E[N,a]&=\int d^3x\left[
+p\sum_i|a_i|^2+
+q\sum_i|\partial_iN+a_i\times N|^2+
+\gamma\sum_{i<j}|f_{ij}|^2+
+w(N_3-c)^2\right],\\
+f_{ij}&=\partial_i a_j-\partial_j a_i+a_i\times a_j,\\
+p&=\frac{K_x\rho_0}{8},\qquad
+q=\frac{v_Q^2}{2\mu_x},\qquad
+\gamma=\frac{1}{2\mu_xg_Q^2},\qquad
+w=\frac{\lambda_\varphi\rho_0^2(1+\varphi)^2}{8}.
+\end{aligned}
+$$
+All coefficients are positive in the declared model. The factors use $T^a=\sigma^a/2$ and an unordered spatial-pair sum in the curvature energy. Density and adjoint potentials vanish on this fixed-norm subdomain. Allowing their amplitudes to vary restores additional physical variations.
+
+Dropping the curvature term only for the leading algebraic connection equation gives
+$$
+a_i^*=-t\,N\times\partial_iN,\qquad
+t=\frac{q}{p+q},\qquad
+\alpha=\frac{pq}{p+q}.
+$$
+The corresponding curvature is
+$$
+f_{ij}[a^*]=-t(2-t)\,N H_{ij},
+\qquad H_{ij}=N\cdot(\partial_iN\times\partial_jN).
+$$
+Substitution therefore gives the positive local expression
+$$
+E_{\rm loc}[N]=
+\alpha A+\gamma t^2(2-t)^2B+V,\quad
+A=\int\sum_i|\partial_iN|^2,\quad
+B=\int\sum_{i<j}H_{ij}^2,\quad
+V=\int w(N_3-c)^2.
+$$
+It is an exact trial-connection energy and the leading terms of a slow-gradient elimination. Since the full connection can relax, it is an upper bound on $\inf_a E[N,a]$. Positivity of this trial expression alone establishes no lower bound with a positive Hopf-dependent energy.
+
+The derivative expansion has a direct scale test. At constant $N$, connection components parallel to $N$ have the spatial screening mass $m_\parallel^2=p/\gamma$; perpendicular components have $m_\perp^2=(p+q)/\gamma$. These are static screening scales, with the physical transverse-spatial polarization understood, rather than temporal frequencies. The induced curvature is internally parallel to $N$. A controlled elimination requires small gradients relative to the parallel screening scale as well as the other omitted scales.
+
+For a stationary finite-energy solution of the local truncated energy, spatial dilation gives $E_4=E_2+3V$. Define the curvature-weighted inverse length $k_H^2=B/A$ when $A>0$. Then
+$$
+\frac{k_H^2}{m_\parallel^2}
+\ge\frac{1}{t(2-t)^2},
+\qquad
+\frac{32}{27}-t(2-t)^2
+=\left(t-\frac23\right)^2\left(\frac83-t\right)\ge0
+\quad(0<t<1).
+$$
+Consequently
+$$
+\boxed{\frac{k_H}{m_\parallel}\ge\sqrt{\frac{27}{32}}.}
+$$
+No ratio of the two stiffnesses makes this inverse length parametrically smaller than the light screening mass at the local energy's stationary scale. A positive composition energy strengthens the bound. The local four-derivative balance therefore supplies no controlled prediction of a carrier in the full gauge theory. This scale diagnosis does not exclude a solution of the untruncated equations.
+
+### 19.4 Collapse channel and limits of an instability conclusion
+
+The full fixed-norm energy has zero infimum in every Hopf class represented by a smooth map constant outside a ball. Choose such a map $N_0$ and the admissible connection $a=0$. The family $N_L(\mathbf x)=N_0(\mathbf x/L)$ preserves its Hopf number for every $L>0$ and obeys
+$$
+E[N_L,0]=qA_0L+V_0L^3\longrightarrow0
+\quad\text{as }L\downarrow0.
+$$
+Each member has smooth nonzero fields and finite energy. The zero-size limit is singular and need not belong to the configuration space. Nonnegativity then makes zero the sector infimum, unattained by a nonconstant smooth relative map. A positive absolute energy minimum protected by Hopf number is absent in this action even before amplitude zeros are admitted.
+
+This shrinking sequence does not prove that every positive-energy stationary configuration has a negative Hessian direction. A useful scope check retains an adjustable connection $a_i=-sN_L\times\partial_iN_L$. For a fixed shape,
+$$
+E(L,s)=A_0(p+q)L(s^2-2ts+t)
++\frac{\gamma B_0}{L}s^2(2-s)^2+V_0L^3.
+$$
+With $\ell_0^2=\gamma B_0/[A_0(p+q)]$, $x=L/\ell_0$ and
+$\kappa=V_0\gamma B_0/[A_0^2(p+q)^2]$, the energy in units
+$\sqrt{A_0(p+q)\gamma B_0}$ is
+$$
+\mathscr E(x,s)=xM(s)+\frac{F(s)}x+\kappa x^3,
+\qquad
+M=s^2-2ts+t,\qquad F=s^2(2-s)^2.
+$$
+A local minimum in these two coordinates, if present, would coexist with the shrinking family $s=0$, $x\downarrow0$. It would test neither arbitrary changes of shape nor the radial-amplitude, scale, gauge, quantum or dynamical sectors.
+
+### 19.5 Relative-orientation algebra: pre-execution criteria
+
+This calculation qualifies the exact identities and restricted-energy boundaries in §§19.1–19.4. It does not solve a field equation or qualify a matter carrier. The program is `computations/matter_formation_relative_orientation.py`. It follows the fresh-output, canonical CRLF-to-LF source identity and heading-delimited frozen-section convention of `computations/matter_formation_kappa4_selection.py`. The frozen section includes this heading through the next heading of level three or higher, strips final trailing whitespace and appends one LF. A missing or altered section must fail before scientific evaluation.
+
+The fixed schedule contains eight exact-algebra groups:
+
+1. Verify $G(z)^\dagger G(z)=(z^\dagger z)I$, its determinant and the equivariance $G(hz)=hG(z)$ using unconstrained complex doublet coordinates and the quaternion form of an $SU(2)$ matrix.
+2. Verify the gauge-invariant relative matrix, the section $(e_1,N)$, the equality $N_3=z^\dagger(n\cdot\sigma)z$ for normalized $z$, and the composition minimum $c=\varphi^{-3}$. The topology statement uses the explicit global section; the program checks its matrix certificates.
+3. Use the smooth rational representative $h=[(r^2-1)I+2i\mathbf x\cdot\boldsymbol\sigma]/(r^2+1)$. Reconstruct all three connection components and verify every $D_i\Psi$, $D_i\Phi$ and $\mathcal F_{ij}$ exactly, with $g_Q=1$, $\Psi_*=e_1$ and $\Phi_*\cdot\sigma=c\sigma_3+d\sigma_1$. Check the constant relative matrix and the nonzero ordinary-gradient cost at the origin when the connection is omitted. No finite sampling may replace these rational identities.
+4. Minimize $p|a|^2+q|v+a\times N|^2$ for tangent $v$ in the $N=e_3$ frame. Independently differentiate the component polynomial and verify $a^*$, $\alpha$ and the parallel/perpendicular quadratic stiffnesses.
+5. Reconstruct the induced curvature from derivative and commutator pieces using two independent tangent vectors. Verify the coefficient $-t(2-t)$ and its square. A control that drops the commutator contribution must produce a nonzero symbolic residual.
+6. Reconstruct the dilation identity of $E_{\rm loc}$, the displayed screening-ratio inequality and the exact factorization bounding $t(2-t)^2$. Equality of the latter occurs at $t=2/3$; no numerical parameter scan is used.
+7. Verify the exact full-energy shrinking weights, zero limiting energy and positive derivative with respect to $L$ for $A_0>0$, $V_0\ge0$. The Hopf-class invariance follows from the orientation-preserving spatial dilation for every $L>0$.
+8. Test the distinction between zero infimum and local metastability in a restricted family. Freeze the purely algebraic witness $t=99/100$, $s=19/20$. Derive $x^2=-F'/M'$ and $\kappa=(F-Mx^2)/(3x^4)$ from the two stationary equations, then require $x>0$, $\kappa>0$, both first derivatives zero and a positive-definite two-coordinate Hessian by exact principal minors. These rational inputs are a scope control, with no physical coefficient selection, fitted observation, field-equation solution or full-stability interpretation.
+
+All eight groups and their exact subidentities must pass for `SUPPORTS—relative-target, screening-scale and collapse boundaries of the declared fixed-norm gauge energy`. Any failed identity, witness predicate or provenance check gives `INCONCLUSIVE`. Run one scientific invocation and two separate missing/altered-section failure controls. Both failure controls must exit unsuccessfully with empty scientific rows. Preserve all receipts and stop after this schedule; do not change the witness or thresholds in response to its outcome. Independent reconciliation uses the displayed matrix/variational formulas without importing the program.
+
 ## References
+
+- `computations/matter_formation_relative_orientation.py`—exact relative-target, gauge-screening, derivative-expansion and full-energy collapse calculation.
+- `foundations/geometric-manifold-completion.md`—optional phase-bearing doublet and normalized fibre.
+- `foundations/interscale-current-soliton.md`—phase, composition and gradient assumptions.
+- `foundations/nonabelian-magnetic-core-boundary.md` §5.1—fixed-composition vacuum set and gauge stabilizer.
 
 - [Houghton, Manton and Sutcliffe, *Rational Maps, Monopoles and Skyrmions*](https://arxiv.org/abs/hep-th/9705151)—standard compact-target action, hedgehog energy and topological normalization used as an explicitly supplied comparison model.
 - `computations/matter_formation_compact_carrier.py`—shifted-angle stationary carrier qualification with the frozen direct-angle conditioning comparison.
