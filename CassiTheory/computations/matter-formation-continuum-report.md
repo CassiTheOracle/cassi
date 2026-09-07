@@ -2316,8 +2316,169 @@ Both provenance controls exit 1 with empty scientific rows. The program contains
 python computations/matter_formation_relative_trial.py --output-dir runs/<fresh-relative-trial-name>
 ```
 
+## 20. Full spatial variations and the soft-adjoint domain
+
+### 20.1 Stationarity and the complete fixed-norm quadratic form
+
+A stationary carrier must resist arbitrary spatial changes of its relative field and connection. Size and constant-connection variations sample only two such directions. This section uses the exact energy and positive coefficients of §19.3, with $D_iv=\partial_iv+a_i\times v$, $f_{ji}=-f_{ij}$ and $f_{ii}=0$. Perturbations are smooth and compactly supported, or obey boundary and decay conditions that remove integration-by-parts surface terms.
+
+For $|N|=1$, let $P_N=I-NN^{\mathsf T}$. The independent Euler equations are
+$$
+\boxed{
+P_N\left[-q\sum_iD_iD_iN+w(N_3-c)e_3\right]=0,
+\qquad
+pa_j+qN\times D_jN-\gamma\sum_iD_if_{ij}=0.
+}
+$$
+The variation of the gradient term with respect to $a_j$ gives $2qN\times D_jN$. For the curvature term, the unordered-pair convention gives
+$$
+\delta f_{ij}=D_ib_j-D_jb_i,\qquad
+\sum_{i<j}f_{ij}\cdot\delta f_{ij}
+=\sum_{i,j}f_{ij}\cdot D_ib_j
+\longmapsto-\sum_jb_j\cdot\sum_iD_if_{ij}.
+$$
+This fixes the coefficient and sign of the connection equation.
+
+The second variation must include the mixed relative-field/connection terms. Use a pointwise geodesic through $N$ and a straight connection perturbation,
+$$
+N_\epsilon=N+\epsilon\xi-\frac{\epsilon^2}{2}|\xi|^2N+O(\epsilon^3),
+\quad \xi\cdot N=0,\qquad a_{i,\epsilon}=a_i+\epsilon b_i.
+$$
+Writing $E_\epsilon=E+\epsilon\,\delta E+\epsilon^2\mathcal Q+O(\epsilon^3)$ gives
+$$
+\begin{aligned}
+\mathcal Q={}&\int d^3x\,
+\Bigg\{p\sum_i|b_i|^2\\
+&+q\sum_i\left[
+|D_i\xi+b_i\times N|^2
++2D_iN\cdot(b_i\times\xi)
+-|\xi|^2|D_iN|^2\right]\\
+&+\gamma\sum_{i<j}\left[
+|D_ib_j-D_jb_i|^2+2f_{ij}\cdot(b_i\times b_j)\right]\\
+&+w\left[\xi_3^2-N_3(N_3-c)|\xi|^2\right]\Bigg\}.
+\end{aligned}
+$$
+Here $d^2E_\epsilon/d\epsilon^2|_0=2\mathcal Q$. The identity $N\cdot D_iN=0$ removes the derivative of $|\xi|^2$ from the displayed quadratic form. At a stationary solution, $\mathcal Q\ge0$ for every admissible $(\xi,b)$ is a necessary energetic-stability condition. Positivity on a finite set of trial directions supplies no full spectrum. The fundamental unitary gauge has no residual local $SU(2)_Q$ freedom; admissible translation and spatial-rotation zero modes follow from the spatial symmetries and chosen boundary. Adjoint/fundamental amplitudes, scale dependence and the temporal system require additional variations.
+
+### 20.2 Shape-independent virial conditions
+
+The full energy has a useful necessary stability condition that does not choose a Hopf profile. Define the integrated coefficients
+$$
+\begin{aligned}
+T_0&=q\int\sum_i|\partial_iN|^2,&
+T_1&=2q\int\sum_i\partial_iN\cdot(a_i\times N),\\
+T_2&=\int\sum_i\left[p|a_i|^2+q|a_i\times N|^2\right],&
+V&=w\int(N_3-c)^2,\\
+U_2&=\gamma\int\sum_{i<j}|\partial_ia_j-\partial_ja_i|^2,&
+U_3&=2\gamma\int\sum_{i<j}(\partial_ia_j-\partial_ja_i)\cdot(a_i\times a_j),\\
+U_4&=\gamma\int\sum_{i<j}|a_i\times a_j|^2.
+\end{aligned}
+$$
+All integrals use $d^3x$. The coefficients with even subscripts and $V$ are nonnegative; the cross terms may have either sign. Cauchy–Schwarz and $|a_i\times N|^2\le|a_i|^2$ imply
+$$
+T_1^2\le4\frac{q}{p+q}T_0T_2,\qquad U_3^2\le4U_2U_4.
+$$
+For $N_{L}(x)=N(x/L)$ and $a_{L,s}(x)=s\,a(x/L)/L$,
+$$
+\mathcal E(L,s)=L(T_0+sT_1+s^2T_2)
++L^{-1}(s^2U_2+s^3U_3+s^4U_4)+L^3V.
+$$
+Put $T=T_0+T_1+T_2$, $U=U_2+U_3+U_4$ and $B=T_1+2T_2$. Stationarity at $(L,s)=(1,1)$ requires
+$$
+T-U+3V=0,\qquad B+2U_2+3U_3+4U_4=0.
+$$
+At such a point, the restricted Hessian is
+$$
+\boxed{
+H_{LL}=2U+6V,\qquad H_{Ls}=2B,\qquad
+H_{ss}=2T_2+2U_2+6U_3+12U_4.
+}
+$$
+Both principal minors must be nonnegative at a local minimum. These identities and Gram inequalities alone give no universal instability theorem. An algebraic scope control at $q/(p+q)=4/5$ uses
+$$
+(T_0,T_1,T_2,U_2,U_3,U_4,V)=(1,-1,1,113,-209,100,1).
+$$
+It satisfies the two stationarity conditions and strict Gram inequalities, while its $2\times2$ Hessian is positive definite. This tuple is an integrated-coefficient consistency control. No field realizing it is asserted; the differential compatibility of the coefficients and all other perturbations remain outside that control.
+
+### 20.3 Finite-energy escape when the adjoint norm is soft
+
+The polynomial adjoint potential in (PA12) permits the relative vector to pass through zero while the fundamental stays nonzero. In the same global fundamental gauge, write $\Phi=v_Qh$ with $h\in\mathbb R^3$ and keep $\Psi=\sqrt{\rho_0}e_1$. The source-unit energy in this subspace is
+$$
+E_{\rm soft}[h,a]=\int d^3x\left[
+p\sum_i|a_i|^2+q\sum_i|D_ih|^2
++\gamma\sum_{i<j}|f_{ij}|^2
++w(h_3-c)^2+u(|h|^2-1)^2\right],
+\qquad u=\frac{\lambda_Hv_Q^4}{4}.
+$$
+The other coefficients are those of §19.3. Under the dimensionless normalization of (PA33), the norm-potential coefficient is $u_H/4$. Its value is finite and nonnegative here; no physical value is selected. The density potential vanishes because the fundamental norm remains fixed, and $\chi_C=0$ throughout.
+
+Fix $N_\infty\in S^2$ with $(N_\infty)_3=c$. A sufficient configuration domain is
+$$
+\mathcal V=\{(h,a):h-N_\infty\in H^3(\mathbb R^3;\mathbb R^3),
+\quad a\in H^3(\mathbb R^3;\mathbb R^9)\}.
+$$
+It includes smooth fields equal to the vacuum outside a ball. The $H^3$ topology controls multiplication and supplies bounded fields; every term in the displayed energy is finite and continuous. This is a sufficient regular finite-energy domain, without a claim that it exhausts every finite-energy configuration.
+
+The affine path
+$$
+h_\tau=(1-\tau)h+\tau N_\infty,\qquad a_\tau=(1-\tau)a,
+\qquad 0\le\tau\le1
+$$
+stays in $\mathcal V$ and contracts it to the vacuum. With $k=1-\tau$,
+$$
+D^{(\tau)}_ih_\tau
+=k\left[\partial_ih+a_i\times N_\infty+k\,a_i\times(h-N_\infty)\right],
+\qquad
+f_{ij}^{(\tau)}=k(\partial_ia_j-\partial_ja_i)+k^2a_i\times a_j,
+$$
+and $(h_\tau)_3-c=k(h_3-c)$. For unit initial $h=N$,
+$$
+|h_\tau|^2-1=-2\tau(1-\tau)(1-N\cdot N_\infty).
+$$
+The adjoint reaches zero at $\tau=1/2$ wherever $N=-N_\infty$. A nonzero Hopf map is surjective: omitting any point of $S^2$ would put its image in a contractible punctured sphere. The path therefore supplies a finite-energy escape from every nonzero Hopf class in this domain. It is a configuration-space path; neither monotonic energy decrease nor a solution of a temporal field equation is claimed.
+
+For a loop based at $(h_b,a_b)$, affine interpolation to that base configuration gives a basepoint-preserving nullhomotopy directly. Thus $\mathcal V$ is contractible, and any hard-norm rotation or exchange loop included in this soft subspace bounds a disc there. Projection of this disc into any specified continuous full gauge quotient preserves its nullhomotopy; §12.10 gives the distinction between all based gauge components and the identity component.
+
+In the hard based-map space, the relevant fundamental group is $\pi_4(S^2)=\mathbb Z_2$. Krusch and Speight's Faddeev–Hopf analysis permits fermionic FR quantization for odd Hopf charge. The inclusion into $\mathcal V$ sends that loop class to the identity. Its nontrivial FR character therefore cannot extend as a homotopy character over this soft domain. The classical polynomial action supplies no such statistics assignment. A separately derived quantum symmetry lift, Berry connection, singular or hard field restriction, or additional microscopic sector requires its own evidence; the contraction excludes none of those mechanisms in a different quantum theory.
+
+### 20.4 First-order amplitude descent for every hard-norm Hopf field
+
+A hard-norm Hopf configuration also fails a stronger local stationarity requirement in the polynomial action, irrespective of its spatial shape or gauge response. Let $N$ be any smooth nonzero-Hopf map in the domain above, with the declared $0<c<1$ and $w>0$. Surjectivity supplies a nonempty open region with $N_3>c$. Choose a nonzero smooth $\eta\ge0$ compactly supported in that region, keep $a$ and the fundamental fixed, and vary
+$$
+h_\epsilon=(1-\epsilon\eta)N.
+$$
+Because $N\cdot D_iN=0$, derivatives of the cutoff contribute only from order $\epsilon^2$. The norm potential is at its minimum at $\epsilon=0$, so its first derivative vanishes for every finite $u$. Consequently
+$$
+\boxed{
+\left.\frac{dE_{\rm soft}[h_\epsilon,a]}{d\epsilon}\right|_0
+=-2\int d^3x\,\eta
+\left[q\sum_i|D_iN|^2+wN_3(N_3-c)\right]<0.
+}
+$$
+For sufficiently small positive $\epsilon$, the adjoint stays nonzero and the normalized relative direction is still $N$. Thus the first-order energy descent occurs even before the topology-changing zero is reached. A finite norm penalty cannot make any exact unit-adjoint, nonzero-Hopf field stationary in the full soft-adjoint action.
+
+This conclusion covers arbitrary shapes and connections on the stated hard-norm slice. It leaves open a solution whose adjoint amplitude has already relaxed away from one, its possible metastability, and every production or quantum-identification question. A strict hard constraint removes the amplitude variation and defines a different configuration domain.
+
+### 20.5 Full-variation algebra: pre-execution criteria
+
+The program `computations/matter_formation_full_variations.py` will qualify the algebra supporting §§20.1–20.4. It uses the fresh-output and canonical CRLF-to-LF source-identity convention of `computations/matter_formation_relative_orientation.py`. The frozen section includes this heading through the next heading of level three or higher, strips final whitespace and appends one LF. Missing or altered frozen input must fail before scientific evaluation.
+
+Run six fixed exact-algebra groups:
+
+1. **First variations.** Differentiate the fundamental mass, covariant-gradient, curvature and composition densities. Verify the scalar-triple-product and antisymmetric integration-by-parts identities that give both Euler equations. No surface term is discarded without the stated boundary condition.
+2. **Geodesic second variation.** Expand the same densities through order $\epsilon^2$ with $N_\epsilon=N+\epsilon\xi-\epsilon^2|\xi|^2N/2$ and $a_\epsilon=a+\epsilon b$. At a point use an orthonormal frame $N=e_3$, arbitrary tangent $\xi$, and arbitrary spatial jets satisfying $\partial_i(N\cdot\xi)=0$. Keep the potential axis arbitrary in this frame. Check every term of $\mathcal Q$, including both mixed terms and the second-derivative factor two.
+3. **General virial family.** Reconstruct the $L$ and $s$ polynomial from the derivative and volume scalings, differentiate it, and verify the two stationarity identities and all three stationary Hessian entries.
+4. **Virial scope control.** Use exactly $(T_0,T_1,T_2,U_2,U_3,U_4,V)=(1,-1,1,113,-209,100,1)$ and $q/(p+q)=4/5$. Require positive diagonal coefficients, strict Gram inequalities, zero first derivatives and positive Hessian principal minors. This is an algebraic coefficient control; no field realization or stable carrier is inferred.
+5. **Soft-adjoint contraction.** Verify the potential coefficient from (PA2), the affine covariant-gradient and non-Abelian curvature formulas, the general squared norm and its unit-field specialization, the composition identity, and both endpoints of the vacuum contraction and the basepoint-preserving loop contraction. The functional-domain and homotopy proofs are analytical; polynomial checks alone do not establish topology.
+6. **Amplitude descent.** Independently expand the exact density difference for $h_\epsilon=(1-\epsilon\eta)N$ using $N\cdot D_iN=0$. Verify the linear coefficient above, the quadratic coefficient
+   $q[\eta^2\sum_i|D_iN|^2+|\nabla\eta|^2]+w\eta^2N_3^2+4u\eta^2$,
+   and the norm-potential cubic and quartic coefficients. Establish the strict sign using $\eta>0$, $q>0$, $w>0$, $0<c<N_3$ and a nonnegative gradient norm; do not substitute a fitted profile or physical coefficient.
+
+All identities and predicates in all six groups must pass for `SUPPORTS—full-variation identities and the hard-Hopf soft-amplitude obstruction`. Any failed identity, predicate or provenance prerequisite gives `INCONCLUSIVE`. Run one scientific invocation and separate missing-section and altered-section controls; both controls must exit unsuccessfully with empty scientific rows. Preserve all receipts and stop after this schedule. Do not change the inputs, witness or criteria in response to a result. Independent analytical derivations are reconciled against the displayed equations without importing the program. This calculation supplies no full-field numerical stationary solution, temporal trajectory, physical normalization or quantum-statistics selection.
+
 ## References
 
+- [Krusch and Speight, *Fermionic quantization of Hopf solitons*](https://arxiv.org/abs/hep-th/0503067)—hard-target configuration-space loops and the conditional fermionic FR quantization for odd Hopf charge.
 - `computations/matter_formation_relative_trial.py`—registered-coefficient finite-energy Hopf trial, exact instability criterion and independent radial quadrature.
 - `runs/20260906_matter_formation_relative_trial/results.json`—four-group trial receipt with exact integrals and qualified family-specific verdict.
 - `computations/matter_formation_relative_orientation.py`—exact relative-target, gauge-screening, derivative-expansion and full-energy collapse calculation.
