@@ -1845,6 +1845,47 @@ The frozen qualification predicates are:
 
 If all predicates pass, the aggregate verdict is `SUPPORTS—finite-domain stationary and radial energetic qualification of the declared compact-target carrier`. A resolved negative radial eigenvalue below $-10^{-6}$ with the other numerical prerequisites qualified gives `CONTRADICTS—radial energetic stability of the declared compact-target carrier`. Any failed identity, unresolved numerical prerequisite or verification failure gives `INCONCLUSIVE`. The run stops after this fixed schedule and its three failure controls. A result does not justify rerunning the same candidate with tuned thresholds or changing these criteria. Implementation defects retain their unsuccessful receipts and require explicit source-change disclosure before an independent recovery run.
 
+### 18.3 Quantization, pair accessibility and energy supply
+
+The compact target admits a fermionic quantization, while the classical action leaves its sign choice unspecified. For the component $\mathcal C_B$ of based continuous maps $S^3\to S^3$ with degree $B$, translation by a fixed group-valued map identifies the components. The loop-space adjunction gives
+$$
+\pi_1(\mathcal C_B)\cong\pi_4(S^3)\cong\mathbb Z_2.
+$$
+The two one-dimensional unitary characters send the nontrivial loop to $+1$ or $-1$. Quantization on the double cover with the negative character is the Finkelstein–Rubinstein choice. For the hedgehog, a $2\pi$ spatial rotation represents the nontrivial loop; that choice therefore permits half-integer angular momentum. The same choice gives a minus sign for exchange of two unit-degree carriers. Cork and Harland's configuration-space treatment supplies these loop and quantization results. The static energy functional and its positive coefficients select neither character. No quantum-mechanical spin value, Standard Model representation or observed particle identity follows from the radial stability calculation.
+
+A carrier–anticarrier configuration lies in the vacuum's degree component. To exhibit a regular finite-energy path, choose a smooth unit-degree map $U_c$ equal to $I$ outside a ball. Such a map follows from a hedgehog profile that has its regular odd expansion about $\pi$ at the origin and vanishes smoothly at a finite outer radius. For a fixed spatial direction $\widehat{\mathbf z}$, define
+$$
+U_a(\mathbf x)=
+U_c(\mathbf x-a\widehat{\mathbf z})\,
+U_c(\mathbf x+a\widehat{\mathbf z})^{-1},
+\qquad a\ge0.
+$$
+At $a=0$, $U_a=I$ exactly. Translation preserves degree, inversion reverses it and multiplication adds it, so $B_{\rm top}[U_a]=0$ throughout. Smoothness, compact support of the currents and finite energy persist for every finite $a$. When the two supports are disjoint, the localized degrees are exactly $+1,-1$ and the static energy is $2E[U_c]\ge24\pi^2$ in dimensionless units. This construction establishes connectedness and an available field-space path. It supplies no claim that $a(t)$ solves the field equations.
+
+The action's energy budget identifies the missing production input. Write $R_\mu=i\mathbf a_\mu\cdot\boldsymbol\sigma$. The trace identities $\operatorname{Tr}(\sigma_a\sigma_b)=2\delta_{ab}$ and $[i\mathbf a\cdot\boldsymbol\sigma,i\mathbf b\cdot\boldsymbol\sigma]=-2i(\mathbf a\times\mathbf b)\cdot\boldsymbol\sigma$ give
+$$
+\mathcal L=K-\mathcal V,\qquad
+K=\alpha|\mathbf a_0|^2+
+\beta\sum_i|\mathbf a_0\times\mathbf a_i|^2,
+\qquad
+\mathcal V=\alpha\sum_i|\mathbf a_i|^2+
+\beta\sum_{i<j}|\mathbf a_i\times\mathbf a_j|^2.
+$$
+The Hamiltonian density is $K+\mathcal V\ge0$, since the velocity dependence is quadratic. With fixed boundaries and no external work, its integral is conserved for regular solutions. An exact zero-energy vacuum cannot evolve into a positive-energy pair. A prepared incoming excitation, time-dependent coupling or another explicitly budgeted energy transfer is required. Positivity alone does not prove global well-posedness of high-gradient evolution.
+
+For the displayed pair path, $\partial_aU_a|_{a=0}=-2R_z[U_c]$. Thus starting the path with $\dot a\ne0$ already supplies a spatially structured, nonzero field velocity despite $U=I$ at that instant. Starting with both $U=I$ and zero velocity leaves the autonomous classical vacuum unchanged. A future production experiment must state this distinction in its initial data and verify that any localized output draws its energy from the declared input.
+
+Finally, the scale transformation of §18.1 leaves every dimensionless radial result unchanged while varying both the physical carrier energy and radius:
+$$
+E_{\rm phys}=\sqrt{\alpha\beta}\,E_{\rm dimless},
+\qquad
+r_{\rm phys}=\sqrt{\beta/\alpha}\,r_{\rm dimless},
+\qquad
+\frac{\mathcal E_{\rm top}\ell_{\rm top}}{\hbar c}
+=\frac{\beta}{\hbar c}.
+$$
+The last ratio controls the action in quantum units. Neither the classical stationary solution nor the optional negative loop character fixes it. A physical normalization, a canonical density-to-target mechanism, interaction charges and a specified quantum production state remain necessary before this comparison model can become a Cassi matter-formation claim.
+
 ## References
 
 - [Houghton, Manton and Sutcliffe, *Rational Maps, Monopoles and Skyrmions*](https://arxiv.org/abs/hep-th/9705151)—standard compact-target action, hedgehog energy and topological normalization used as an explicitly supplied comparison model.
