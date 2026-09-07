@@ -28,7 +28,11 @@ The specified harmonic scalar potential plus the subtracted one-loop vacuum rema
 
 The declared full positive-density configuration spaces are contractible, including a separate root-$H^2$ domain that preserves fourth-gradient energy. Eight exact-algebra groups qualify the contraction certificates and their boundary/metric restrictions. A regular scale-independent zero-flux gauge subspace also has a trivial ordinary $2\pi$ rotation class after projection. These scoped results constrain routes to a fermionic sign; the physical statistics and particle identification required for matter formation remain open (§§12.7–12.9).
 
+The separated-lump configuration space with collisions excluded admits permutation classes and both trivial and sign characters. Large based gauge components admit integer winding characters. These restricted topologies permit quantum phase choices without selecting one (§12.10).
+
 Four exact scaling groups also qualify a static localization obstruction for the source-free, zero-vacuum positive-root energy with nonnegative coefficients. Its fourth-gradient term permits a spatial scaling balance, but amplitude reduction lowers the unconstrained energy and fixed-population dilution lowers all terms toward zero. A compact-target or charged soliton requires additional field-space and action assumptions (§§12.11–12.12).
+
+An explicitly supplied compact $SU(2)_{\rm top}$ target with positive two- and four-derivative energy passes an independent finite-domain stationary and radial energetic qualification. The model admits a unit-degree carrier and permits a fermionic quantization choice. Its physical normalization, canonical Cassi coupling, full spatial stability and dynamical production remain unestablished (§18).
 
 ## 1. Scope and frozen evidence
 
@@ -1070,6 +1074,8 @@ $$
 
 Dilation is strongly continuous in the stated Sobolev class, so arbitrarily small increases of $L$ provide nearby lower-energy configurations. The energy approaches zero as $L\to\infty$. Its infimum at nonzero fixed population is therefore zero and is unattained by a localized finite-norm field. An additional nonnegative quadratic mass term would be constant at fixed population and would leave this dilution argument unchanged.
 
+For sufficiently regular localized constrained stationary fields, the same obstruction also follows from the two variational identities for $\mathcal E-\mu\int|u|^2$. Amplitude variation gives $2T_2+2T_4+4V_4-2\mu N=0$, while fixed-amplitude spatial dilation gives $T_2-T_4+3V_4-3\mu N=0$. Subtracting three halves of the first identity from the second requires $-2T_2-4T_4-3V_4=0$, contrary to $T_2>0$ and nonnegative remaining terms. Thus an excited constrained stationary state cannot evade the obstruction when these amplitude and dilation identities apply. Fields with different asymptotics, additional charges or inadmissible dilation retain their separate domains.
+
 **Why the fourth derivative is insufficient.** At fixed amplitude, spatial dilation instead gives
 
 $$
@@ -1780,6 +1786,8 @@ E_{\rm top}=\int d^3x\left[
 $$
 Here $[\alpha]={\rm energy}/{\rm length}$ and $[\beta]={\rm energy}\,{\rm length}$. Writing $\ell_{\rm top}=\sqrt{\beta/\alpha}$ and $\mathcal E_{\rm top}=\sqrt{\alpha\beta}$ reduces the static calculation to $\alpha=\beta=1$. These two physical scales remain undetermined. Houghton, Manton and Sutcliffe, *Rational Maps, Monopoles and Skyrmions*, supplies this comparison model and its normalization.
 
+The negative-bulk-energy family of §16 belongs to a different local scalar–Dirac functional. It is absent from this decoupled compact-target energy, whose displayed terms are nonnegative. Coupling the compact field to that scalar sector would require a fresh boundedness analysis of the full combined energy.
+
 The fixed outer value compactifies space to $S^3$. Continuous finite-energy fields with the stated regularity carry the integer degree
 $$
 B_{\rm top}=-\frac{1}{24\pi^2}
@@ -1932,9 +1940,83 @@ Primary and independent energy/degree quadrature split at every Hermite knot and
 
 The stopping rule is one complete shifted schedule, one independent verification, and the same three fresh-output failure controls as §18.2. All baseline predicates, both section identities, the seventh exact control and all same-branch comparisons are required for `SUPPORTS—finite-domain stationary and radial energetic qualification of the declared compact-target carrier`. A qualified negative radial eigenvalue has the baseline `CONTRADICTS` verdict; any unresolved numerical or identity prerequisite gives `INCONCLUSIVE`. No threshold is relaxed to recover the direct-angle calculation, and successful qualification remains restricted to the supplied comparison model.
 
+### 18.6 Qualified compact-target radial carrier
+
+The shifted-angle calculation passes every frozen stationary and radial energetic criterion. Its independently reconstructed aggregate verdict is `SUPPORTS—finite-domain stationary and radial energetic qualification of the declared compact-target carrier`. The primary passes 34 checks and the verifier passes 121, with seven exact controls in each and empty failure lists. Both processes exit zero. This is a numerical reproduction of the supplied massless Skyrme comparison model.
+
+|Outer radius|Converged nodes|Maximum RMS residual|Independent $E/(12\pi^2)$|Half-angle radius|
+|---|---:|---:|---:|---:|
+|16|1,962|$9.96654646\times10^{-9}$|1.231445697432158|0.876314345565396|
+|32|1,923|$9.80629144\times10^{-9}$|1.231445697432149|0.876314349498786|
+|64|1,870|$9.71276183\times10^{-9}$|1.231445697432151|0.876314349521118|
+
+The reconstructed $L=64$ energy pieces are $E_2=72.92329124800327$ and $E_4=72.92329125294366$, giving total energy $145.8465825009469$ and a virial defect of $3.3874\times10^{-11}$. The degree is $0.9999999999999987$ and the origin slope is $-2.007528222698183$. All energy, slope and half-angle-radius comparisons to the hash-bound direct-angle profiles satisfy the separate same-branch criterion.
+
+|Outer radius|Fine-grid flux lowest eigenvalue|Fine-grid finite-element lowest eigenvalue|
+|---|---:|---:|
+|16|0.0766423462808|0.0766422498040|
+|32|0.0196457260527|0.0196457186091|
+|64|0.00492708471827|0.00492708421337|
+
+All twelve finite radial eigenvalues are positive; the largest reconstructed algebraic residual is below $1.8\times10^{-10}$. Both discretizations pass their spacing checks and agree at the fine spacing. The finite-element form retains the mixed $\eta\eta'$ term, while the flux form differentiates it into the potential, providing independent operator constructions. No nonradial fluctuation is included.
+
+The conditioning diagnostic places the maximum direct-angle residual intervals at radii $1.02482263\times10^{-5}$, $1.04015732\times10^{-5}$ and $1.05670690\times10^{-5}$, close to the inner endpoint $\epsilon=10^{-5}$. Shifting the stored angle lowers the residual below the unchanged criterion with fewer mesh nodes and preserves the physical profile measurements. This supports the coordinate-conditioning explanation at the tested precision. The direct-angle verdict in §18.4 remains `INCONCLUSIVE`.
+
+The source commit is `1ff101c6`. The primary and verifier canonical source hashes are `1ebf2e4f655f1d09554bad230e76512be3827d284db8807c336c67211989e20b` and `91d79f46910522c42444545a4d9dbb40a429823ae8a929bcaa2fc637c0e22390`. The frozen §18.5 hash is `3fbb5a53a15dc9309e98c9ca08277522d96dc0aa61a534913fbc8c8f52fa8406`; both programs also validate the unchanged §18.2 hash.
+
+|Receipt|Raw SHA-256|
+|---|---|
+|`runs/20260906_matter_formation_compact_carrier_shifted/results.json`|`b28ec9939b47b21beca63378ed39163fa6b8451809bacf0289798fae4847ccb5`|
+|`runs/20260906_matter_formation_compact_carrier_shifted_verification/results.json`|`329d6f830f2dd73307cf7637437808ed205c323ff5080b9126824d52b2e92379`|
+|`runs/20260906_matter_formation_compact_carrier_shifted_missing_record/results.json`|`5257ab157a7c170d449157f312776a4775a56994fa1b9d1516a9c59c52a88d58`|
+|`runs/20260906_matter_formation_compact_carrier_shifted_altered_energy_control/results.json`|`8a8b0ed187048d82e6b680945508767693267c781020941091faf4afb33540b6`|
+|`runs/20260906_matter_formation_compact_carrier_shifted_missing_profile_control/results.json`|`5cf6655a817c80bf48e6f54cef7bbdee2696bba95755cd52645a823f1e3a54e0`|
+
+All three failure controls exit 1 with `INCONCLUSIVE`. The missing-record control has no scientific rows. Adding exactly one to the stored $L=16$ $E_2$ produces exactly the two independent-$E_2$ mismatch failures, with 118 of 120 checks passing; the numerical profile qualifications themselves pass. Omitting `profile_L16.npz` causes a missing-file failure before profile reconstruction. Original and altered inputs occupy separate directories, and no receipt is overwritten.
+
+The executed scientific commands, from the repository root, are:
+
+```text
+python computations/matter_formation_compact_carrier.py --output-dir runs/20260906_matter_formation_compact_carrier_shifted
+python computations/verify_matter_formation_compact_carrier.py --input-dir runs/20260906_matter_formation_compact_carrier_shifted --output-dir runs/20260906_matter_formation_compact_carrier_shifted_verification
+```
+
+Reproduction requires the retained §18.4 primary and independent receipts and their raw direct-angle profiles, because the conditioning and same-branch checks bind those inputs. Use fresh output-directory names; the programs intentionally refuse to reuse the listed directories. The direct-angle executable versions are retained at source commit `6e39cd97`.
+
+The qualified object is a dimensionless radial carrier in an independently supplied compact field. The calculation supplies a well-conditioned reference for subsequent perturbation or production studies. It establishes neither a dynamical trajectory from a declared incoming state nor an observed particle mass, interaction charge or quantum statistic. The canonical density-to-target mechanism, combined-energy boundedness, nonradial and nonlinear stability, quantum sign selection and physical normalization remain necessary before matter formation is solved.
+
+### 18.7 Canonical density-to-target bridge boundary
+
+A smooth pointwise function of the two canonical real densities cannot produce the compact carrier's degree density. Let
+$U(\mathbf x)=F(E_Y(\mathbf x),E_I(\mathbf x))$
+for a single-valued differentiable map $F$ into $SU(2)_{\rm top}$, with no extra spatial arguments or derivatives. Its currents have the form
+$$
+R_i=A_Y\,\partial_iE_Y+A_I\,\partial_iE_I,
+\qquad
+A_a=(\partial_aF)F^{-1}.
+$$
+At each point the three currents lie in a subspace spanned by at most two Lie-algebra vectors. The alternating cubic form therefore vanishes:
+$$
+\epsilon_{ijk}\operatorname{Tr}(R_iR_jR_k)=0.
+$$
+For a regular field with the declared boundary, this implies $B_{\rm top}=0$ and rules out even a local nonzero degree density from this pointwise two-input bridge. A singular map, an added orientation variable, explicit spatial structure or derivative-dependent construction changes these assumptions and requires its own analysis.
+
+There is also a global restriction on continuous configuration-space bridges. Let $\mathcal D$ be one of the contractible density domains qualified in §12.8, and let $\mathcal F:\mathcal D\to\mathcal C$ be continuous into the based compact-target configuration space. Suppose a reference $u_b$ maps to $I$. Composing the density contraction $T_tu$ with $\mathcal F$ gives a homotopy from $\mathcal F(u)$ to $I$ through admissible compact-target fields. Consequently
+$$
+B_{\rm top}[\mathcal F(u)]=0,\qquad
+\mathcal F_*:\pi_1(\mathcal D)\longrightarrow\pi_1(\mathcal C)
+\quad\hbox{has trivial image}.
+$$
+This statement permits nonlocal and derivative-dependent bridges when they are continuous on the entire declared domain. A bridge that instead assigns nonzero degree to its reference already supplies a prepared topological sector. A bridge undefined on part of the contraction, a restricted low-energy domain or an independent compact field changes the domain and can evade the conclusion.
+
+The global result still permits carrier–anticarrier pairs with zero total degree, as the explicit path in §18.3 shows. It does not establish such a pair's dynamics, and it does not exclude a fermionic phase supplied by a different microscopic quantum mechanism. It identifies why the independently supplied compact field cannot be relabeled as a consequence of the two densities. Selecting and deriving the extra physical state or the changed configuration-space domain is the outstanding microscopic input; radial refinement cannot supply it.
+
 ## References
 
 - [Houghton, Manton and Sutcliffe, *Rational Maps, Monopoles and Skyrmions*](https://arxiv.org/abs/hep-th/9705151)—standard compact-target action, hedgehog energy and topological normalization used as an explicitly supplied comparison model.
+- `computations/matter_formation_compact_carrier.py`—shifted-angle stationary carrier qualification with the frozen direct-angle conditioning comparison.
+- `computations/verify_matter_formation_compact_carrier.py`—independent raw-profile reconstruction and unintegrated radial finite-element energy qualification.
+- `runs/20260906_matter_formation_compact_carrier_shifted_verification/results.json`—accepted finite-domain radial compact-target receipt and source/artifact identities.
 - `computations/matter_formation_yukawa_bulk.py`—exact and high-precision collective-binding criterion for the declared local-density scalar–Dirac candidate.
 - `computations/verify_matter_formation_yukawa_bulk.py`—independent momentum-space reconstruction and frozen-evidence qualification.
 - `computations/matter_formation_scalar_topology.py`—frozen exact-algebra certificates and excluded-assumption controls for the scalar contractions.
