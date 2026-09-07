@@ -2492,6 +2492,91 @@ The derived result is a boundary on the supplied conditional action. A hard-norm
 
 Raw calculation, failure-control and independent-derivation artifacts are retained under `runs/20260907_matter_formation_full_variations/`, `runs/20260907_matter_formation_full_variations_missing_record/` and `runs/20260907_matter_formation_full_variations_altered_record/`. The reconciliation receipt binds their identities and analytical scope. The public-document evidence map is in §17.2.
 
+## 21. Excitations of the homogeneous density–velocity state
+
+The existing density and velocity equations determine which small disturbances can propagate, relax or grow near a uniform background. This calculation includes the solenoidal velocity degrees of freedom and distinguishes the two Python solver classes. Its conclusions concern this background and the specified implementation; the site-based Godot simulator, nonlinear localized backgrounds and independently supplied microscopic fields require their own calculations.
+
+### 21.1 Complete projected Fourier generator
+
+Use `two-fluid/cassi_two_fluid_3d_gpu.py` with no external density or modified Poisson kernel. Let $E_{Y0}=\varphi\rho_0/(1+\varphi)$, $E_{I0}=\rho_0/(1+\varphi)$, $\rho_0>0$, and let the background velocity $U$ be constant. For a supported nonzero wavevector $k$, write $K=|k|^2$, $\Omega=k\cdot U$ and $X=(\delta\rho,\delta\epsilon,v_1,v_2)$, where $\epsilon=E_Y-\varphi E_I$ and the two velocity components are transverse to $k$.
+
+The Poisson symbol is $\delta\Phi=-\delta\rho/K$. The projector $P_k=I-kk^T/K$ annihilates the linear force $\pi_0 ik\delta\Phi$ and the pressure gradient. The expanding class's saturation factor is quadratic in the perturbation force, so its gravitational force starts at cubic order here. Scalar advection by the perturbed velocity vanishes at a uniform background; advection by $U$ supplies $-i\Omega$.
+
+For `TwoFluid3DGPU`, define
+$$
+\gamma=(1+\varphi)\lambda,\qquad
+b=\mathbf1_{\chi\ne0},\qquad
+s=\frac{b\rho_0}{1+\varphi}(\chi-\varphi\chi_Y),\qquad
+B=\frac{b\varphi\rho_0}{1+\varphi}(\chi+\chi_Y).
+$$
+The indicator is the actual source guard: $\chi=0$ disables both chemotactic fluxes even when $\chi_Y>0$. Transforming the ungated conversion and both fluxes gives
+$$
+\boxed{
+A_{\rm base}=-i\Omega I+
+\begin{pmatrix}
+-DK+s&0&0&0\\
+-B&-DK-\gamma&0&0\\
+0&0&-\nu K&0\\
+0&0&0&-\nu K
+\end{pmatrix}.}
+$$
+Matched mobilities $\chi_Y=\chi/\varphi$ give $s=0$ and $B=\rho_0\chi$ when $\chi>0$. Total-density drift cancels while composition remains forced. Attraction excess can give real density growth when $s>DK$. At $s=-\gamma$ and $B>0$, the scalar block has a Jordan response proportional to $t\exp[(-DK-\gamma-i\Omega)t]$.
+
+For `ExpandingTwoFluid3DGPU`, freeze $a=1$, $H=0$ through `hubble_mode='friedmann'`, `H0=0`; disable Qi memory and Wu Xing and select the instantaneous single gate. Its density equations contain no chemotactic flux. With the exact constructor parameter $c_g=0.382$,
+$$
+g_0=\frac{c_g}{\rho_0^2+c_g},\qquad
+\gamma_g=(1+\varphi)\lambda g_0,\qquad h=\nu_4K^2,
+$$
+where $\nu_4$ denotes the code's `hyper_nu`. For a disabled gate set $g_0=1$. The complete transverse generator is
+$$
+\boxed{
+A_{\rm expanding}=-i\Omega I+
+\operatorname{diag}(-DK-h,\,-DK-h-\gamma_g,\,-\nu K-h,\,-\nu K-h).}
+$$
+The rounding $c_g=0.382$ is retained in numerical comparisons. It is not replaced by $\varphi^{-2}$. Gate derivatives multiply the zero background imbalance and contribute no additional linear mode.
+
+At $k=0$, the source removes the Poisson zero mode: density and all three uniform velocity components are conserved, while imbalance relaxes at $\gamma$ or $\gamma_g$. The nonzero-$k$ chemotactic cancellation cannot be extended through $k=0$. The finite solver also multiplies every right-hand side by its dealias mask; a masked mode has zero update generator. This numerical freezing supplies no physical excitation. For nonzero $k$, input velocity is projected before constructing the two physical transverse coordinates.
+
+All rest-frame eigenvalues displayed above are real. The imaginary part at nonzero $U$ is the advective shift $-\Omega$. A conversion relaxation rate and a Jordan polynomial do not supply an intrinsic rest oscillation or a physically normalized particle mass.
+
+### 21.2 What a regular observable reconstruction preserves
+
+A smooth time-independent readout cannot add an independent linear mode to the state it observes. On a finite Fourier truncation, let $\dot x=Lx$ and $y=F(x)$ near a stationary background, with $J=DF(0)$. The linearized observable obeys $\dot y=JLx$. An invertible $J$ gives the similar matrix $JLJ^{-1}$; an injective lift has the same spectrum on its physical image.
+
+For a noninjective observation, an autonomous linear closure exists exactly when $\ker J$ is $L$-invariant. Then $JL=AJ$ defines the induced quotient generator, whose modes are inherited from $L$. Otherwise two underlying states with the same readout have different readout derivatives. Extending an injective lift's generator outside its image adds unprepared ambient directions, with no corresponding reconstructed state.
+
+Fixed spatial derivatives and regular Fourier multipliers are maps $J(k)$ and satisfy the same finite-mode statement. A Poisson inverse requires $k\ne0$. Singular phase maps, explicit time dependence, nonlinear harmonics, nonuniform-background dynamics and added reservoir, phase or orientation state have separate assumptions. The theorem supplies no exclusion of nonlinear localized solutions.
+
+Identifying the dissipative generator with $-iH/\hbar$ additionally requires a physical inner product, appropriate adjointness or open-system completion, and a time–energy normalization. A nonzero real eigenvalue cannot generate norm-preserving evolution under any positive-definite time-independent inner product. Fermionic representation, exchange sign and microscopic coupling also remain independent requirements.
+
+### 21.3 Canonical excitation calculation: pre-execution criteria
+
+The primary program is `computations/matter_formation_canonical_excitation.py`; the independent verifier is `computations/verify_matter_formation_canonical_excitation.py`. Both use fresh output directories and UTF-8 JSON without nonfinite values. Freeze this section from its unique heading to the next heading of level three or higher, strip final whitespace and append one LF, with CRLF normalized to LF. Bind its SHA-256 and the canonical LF source identity of `two-fluid/cassi_two_fluid_3d_gpu.py` before scientific evaluation. Record both raw and canonical source hashes. A missing or altered prerequisite gives `INCONCLUSIVE`, an unsuccessful exit and empty scientific rows.
+
+Use CPU `float64`/`complex128`, one Torch thread, $N=16$, $L=2\pi$, $\rho_0=2$, $\lambda=0.2$, $D=0.03$, $\nu=0.02$, $U=(0.2,-0.1,0.05)$ and no random initial data. Freeze eight configurations:
+
+| Identifier | Class | Distinct inputs |
+|---|---|---|
+| `base_matched` | Base | $\chi=0.4$, $\chi_Y=0.4/\varphi$ |
+| `base_attraction` | Base | $\chi=0.4$, $\chi_Y=0$ |
+| `base_repulsion` | Base | $\chi=0.4$, $\chi_Y=0.4$ |
+| `base_guard` | Base | $\chi=0$, $\chi_Y=0.4$ |
+| `base_jordan` | Base | $\chi=0.4$, $\chi_Y=[0.4+(1+\varphi)^2\lambda/\rho_0]/\varphi$ |
+| `expanding_gated` | Expanding | Single gate, $c_g=0.382$, $\nu_4=0.0004$, $c_s^2=0.7$ |
+| `expanding_ungated` | Expanding | Gate off, $\nu_4=0$, $c_s^2=0.7$ |
+| `expanding_transport` | Expanding | Single gate, $\lambda=D=\nu=\nu_4=0$, $c_s^2=0.7$ |
+
+Every expanding configuration has $\chi=0.4$, $\chi_Y=0.4/\varphi$, `hubble_mode='friedmann'`, `H0=0`, $a_0=1$, `qi_memory=False`, `wu_xing=False`, no external density and no modified Poisson kernel. Every base configuration is ungated. The coefficient choices are numerical witnesses and do not select physical parameters.
+
+Run the following fixed schedule:
+
+1. **Actual source Jacobians.** For each configuration and each integer wavevector $(1,0,0)$, $(1,1,0)$, $(1,1,1)$, $(0,0,0)$ and $(6,0,0)$, evaluate the actual solver's `rhs` on positive and negative cosine perturbations in every physical state coordinate. Use amplitudes $10^{-3}$ and $5\times10^{-4}$; save both signed projected Fourier responses, the two central Jacobians and their Richardson combination $(4J_{h/2}-J_h)/3$. Use state coordinates $(\delta\rho,\delta\epsilon,v_1,v_2)$ for nonzero $k$ and $(\delta\rho,\delta\epsilon,v_x,v_y,v_z)$ for $k=0$. A transverse basis uses the normalized cross product of $k/|k|$ with its least-aligned Cartesian axis, followed by the cross product of $k/|k|$ with that first basis vector. The zero-mode Fourier extraction is the mean; nonzero cosine extraction is twice the positive-mode coefficient divided by $N^3$. Save the source wavevector and mask. Require maximum entrywise residual divided by $\max(1,\max|A|)$ at most $5\times10^{-6}$ for the finer central Jacobian and $10^{-8}$ for Richardson, against §21.1. Qualify the Jordan case through its matrix and characteristic polynomial; unstable numerical eigenvector sorting is not a criterion.
+2. **Direct time evolution.** Use `expanding_gated`, wavevector $(1,1,0)$ and initial coordinate amplitudes $\pm10^{-4}(1,0.7,0.3,-0.2)$. Evolve the actual `rk2_step` to $T=10$ separately at $\Delta t=0.04,0.02,0.01$. Save every step's projected complex coordinate, field minima, total-density mean, scale factor and Hubble rate, including both signs. Compare the odd response to both $\exp(TA)X_0$ and the exact linear RK2 polynomial $[I+\Delta t A+(\Delta t A)^2/2]^{T/\Delta t}X_0$. The maximum coordinate error relative to $\max|X_0|$ must be at most $2\times10^{-4}$ against the discrete polynomial. Require continuous-time endpoint errors to decrease by a ratio between $3.5$ and $4.5$ on each halving, field minima above $0.1$, mean-density relative drift at most $10^{-10}$, and $a=1$, $H=0$ to $10^{-12}$. This finite-time linear-response measurement is not a bound-state survival test.
+3. **Independent reconstruction.** Without importing either primary functions or the canonical solver, reconstruct the nonlinear spectral right-hand sides using NumPy Fourier operations, the displayed conversion and source force/flux formulas, and the stated basis and amplitudes. Recompute all 40 finite-difference rows and compare both signed projected responses and both central Jacobians at normalized tolerance $10^{-9}$. Independently reconstruct §21.1 matrices and the three saved trajectory endpoint comparisons from raw arrays. Bind every array by SHA-256 and reject missing arrays. This verifies source derivatives and recorded time-response calculations; it does not execute an independent nonlinear time integrator.
+4. **Exact observable algebra.** Verify the base population-to-$(\rho,\epsilon)$ transformation, characteristic polynomial, matched-mobility forcing and nonzero Jordan nilpotent part. For the four-dimensional base matrix, verify similarity under $J=I+E_{12}$, an injective five-dimensional lift appending the row $(1,2,0,0)$ with its induced generator on the image, closure of density alone, and failure of imbalance-only closure when $B\ne0$. Verify the projector identity at $k=(1,2,3)$ and the diagonal expanding spectrum. The finite-mode closure theorem and its domain qualifications are proved in §21.2; polynomial certificates are witnesses for that proof.
+
+All four groups, source identities, finite-value checks and the complete expected row sets must pass for `SUPPORTS—homogeneous canonical excitation and regular-observable boundaries`. Any scientific mismatch gives `INCONCLUSIVE`; preserve the failed evidence. Run one primary scientific invocation and one independent verifier invocation. Run separate missing-section and altered-section primary controls, plus a verifier missing-array control; each must fail before scientific output with empty rows. Stop after this schedule without changing physical inputs, witnesses or thresholds in response to a result. An implementation failure may be repaired only with its original receipts preserved and an explicit source-revision record.
+
 ## References
 
 - `computations/matter_formation_full_variations.py`—exact spatial-variation, virial and soft-amplitude qualification.
