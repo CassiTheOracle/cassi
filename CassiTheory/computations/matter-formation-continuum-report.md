@@ -38,6 +38,8 @@ The conditional fundamental-plus-adjoint gauge sector has a physical relative $S
 
 A smooth unit-Hopf trial with finite composition energy fails a stricter size/connection stability criterion at the retained dimensionless coefficient set. Four calculation groups qualify $\kappa=2128(3+\sqrt5)/27225>16/75$, which forces negative connection-amplitude curvature at every stationary point within that family. This shape-specific result leaves the stability of general relative-field configurations and their production dynamics open (§§19.7–19.9).
 
+The complete fixed-norm Euler equations and quadratic form are qualified by exact algebra. Restoring the finite adjoint-norm potential admits a finite-energy contraction through adjoint zeros and contracts the included hard-target rotation and exchange loops. Every exact unit-adjoint, nonzero-Hopf field also has a strictly energy-lowering amplitude variation, independent of its shape and connection. These results exclude that hard-norm slice as full stationary solutions and prevent its nontrivial FR character from extending over the stated soft domain. Amplitude-relaxed metastability, production dynamics and a physical quantum-statistics mechanism remain open (§20).
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -2394,7 +2396,7 @@ H_{LL}=2U+6V,\qquad H_{Ls}=2B,\qquad
 H_{ss}=2T_2+2U_2+6U_3+12U_4.
 }
 $$
-Both principal minors must be nonnegative at a local minimum. These identities and Gram inequalities alone give no universal instability theorem. An algebraic scope control at $q/(p+q)=4/5$ uses
+Every principal minor must be nonnegative at a local minimum. These identities and Gram inequalities alone give no universal instability theorem. An algebraic scope control at $q/(p+q)=4/5$ uses
 $$
 (T_0,T_1,T_2,U_2,U_3,U_4,V)=(1,-1,1,113,-209,100,1).
 $$
@@ -2476,8 +2478,44 @@ Run six fixed exact-algebra groups:
 
 All identities and predicates in all six groups must pass for `SUPPORTS—full-variation identities and the hard-Hopf soft-amplitude obstruction`. Any failed identity, predicate or provenance prerequisite gives `INCONCLUSIVE`. Run one scientific invocation and separate missing-section and altered-section controls; both controls must exit unsuccessfully with empty scientific rows. Preserve all receipts and stop after this schedule. Do not change the inputs, witness or criteria in response to a result. Independent analytical derivations are reconciled against the displayed equations without importing the program. This calculation supplies no full-field numerical stationary solution, temporal trajectory, physical normalization or quantum-statistics selection.
 
+### 20.6 Qualified variation and soft-domain result
+
+The calculation qualifies the displayed spatial-variation identities and the strict amplitude-descent sign under the declared assumptions. All six groups pass, with **59/59 exact identities** and **8/8 predicates**. The recorded verdict is **`SUPPORTS—full-variation identities and the hard-Hopf soft-amplitude obstruction`**.
+
+| Calculation group | Exact identities | Predicates |
+|---|---:|---:|
+| First variations and curvature convention | 9/9 | — |
+| Geodesic constrained second variation | 13/13 | — |
+| General dilation and connection-amplitude family | 7/7 | — |
+| Virial scope control | 2/2 | 5/5 |
+| Soft-adjoint contraction algebra | 21/21 | — |
+| Soft-amplitude descent | 7/7 | 3/3 |
+
+The coefficient-only scope control has Hessian
+$$
+H=\begin{pmatrix}14&2\\2&174\end{pmatrix},
+\qquad \det H=2432,
+$$
+with gradient and curvature Gram gaps $11/5$ and $1519$. It satisfies the necessary two-coordinate conditions without establishing a field realization. The full fixed-norm quadratic form in §20.1 remains necessary for any spatial stability calculation.
+
+Independent analytical derivations reproduce the Euler equations, constrained quadratic form, scaling relations, finite-energy contraction and amplitude-descent variation without importing the calculation program. The strong-domain multiplication and homotopy arguments in §§20.3–20.4 establish the topology statements; the exact-algebra program checks their displayed polynomial identities. These two kinds of evidence have distinct scopes.
+
+The missing-section and altered-section controls both exit with code 1, verdict `INCONCLUSIVE` and zero scientific rows. One scientific invocation is recorded with Python 3.12.10 and SymPy 1.14.0. Its canonical program SHA-256 is `f69d8b9a6d42cf69296a708971462d6d087e10242abf228b88f0a2344917949a`; its frozen §20.5 SHA-256 is `71939d995e06933f75fb8d53902a32a1388cbf696f692f9a5bc9b7a9309ca6f2`. The scientific receipt's raw SHA-256 is `1e16d74158611954caadbf5f973dddfee7bde9d21511d15dfd9acedcf23c6108`.
+
+Reproduction uses a fresh output directory:
+```bash
+python computations/matter_formation_full_variations.py --output-dir runs/<fresh-name>
+```
+
+The derived result is a boundary on the supplied conditional action. A hard-norm nonzero-Hopf texture cannot be a full stationary solution when its finite norm potential allows the displayed amplitude variation. Its hard-target FR sign also lacks an extension as a homotopy character over the stated soft configuration domain. A radially relaxed or spatially general soft-field metastable state remains possible within this analysis, but would still require a qualified stationary solution, full stability and production dynamics. Selecting a physical quantum structure, normalization and particle identity requires additional microscopic evidence. Complete matter formation remains unestablished.
+
+Raw calculation, failure-control and independent-derivation artifacts are retained under `runs/20260907_matter_formation_full_variations/`, `runs/20260907_matter_formation_full_variations_missing_record/` and `runs/20260907_matter_formation_full_variations_altered_record/`. The local reconciliation receipt binds their identities and analytical scope. Public-document propagation and publication remain deferred under §17.2.
+
 ## References
 
+- `computations/matter_formation_full_variations.py`—exact spatial-variation, virial and soft-amplitude qualification.
+- `runs/20260907_matter_formation_full_variations/results.json`—six-group exact-algebra receipt and frozen input identities.
+- `runs/20260907_matter_formation_full_variations/reconciliation.json`—raw receipt identities and independent analytical derivations.
 - [Krusch and Speight, *Fermionic quantization of Hopf solitons*](https://arxiv.org/abs/hep-th/0503067)—hard-target configuration-space loops and the conditional fermionic FR quantization for odd Hopf charge.
 - `computations/matter_formation_relative_trial.py`—registered-coefficient finite-energy Hopf trial, exact instability criterion and independent radial quadrature.
 - `runs/20260906_matter_formation_relative_trial/results.json`—four-group trial receipt with exact integrals and qualified family-specific verdict.
