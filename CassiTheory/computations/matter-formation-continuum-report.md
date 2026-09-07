@@ -34,6 +34,8 @@ Four exact scaling groups also qualify a static localization obstruction for the
 
 An explicitly supplied compact $SU(2)_{\rm top}$ target with positive two- and four-derivative energy passes an independent finite-domain stationary and radial energetic qualification. The model admits a unit-degree carrier and permits a fermionic quantization choice. Its physical normalization, canonical Cassi coupling, full spatial stability and dynamical production remain unestablished (§18).
 
+The conditional fundamental-plus-adjoint gauge sector has a physical relative $S^2$ target at fixed nonzero norms; its composition-minimizing subset is a circle. Eight exact-algebra groups qualify this distinction, exact cancellation of joint gauge rotations, an uncontrolled screening scale for the induced local four-derivative balance, and a shrinking sequence with zero energy infimum in each restricted Hopf class. A separate two-coordinate minimum prevents extending that infimum result into an unsupported assertion of universal local instability (§19).
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -2156,6 +2158,48 @@ The fixed schedule contains eight exact-algebra groups:
 8. Test the distinction between zero infimum and local metastability in a restricted family. Freeze the purely algebraic witness $t=99/100$, $s=19/20$. Derive $x^2=-F'/M'$ and $\kappa=(F-Mx^2)/(3x^4)$ from the two stationary equations, then require $x>0$, $\kappa>0$, both first derivatives zero and a positive-definite two-coordinate Hessian by exact principal minors. These rational inputs are a scope control, with no physical coefficient selection, fitted observation, field-equation solution or full-stability interpretation.
 
 All eight groups and their exact subidentities must pass for `SUPPORTS—relative-target, screening-scale and collapse boundaries of the declared fixed-norm gauge energy`. Any failed identity, witness predicate or provenance check gives `INCONCLUSIVE`. Run one scientific invocation and two separate missing/altered-section failure controls. Both failure controls must exit unsuccessfully with empty scientific rows. Preserve all receipts and stop after this schedule; do not change the witness or thresholds in response to its outcome. Independent reconciliation uses the displayed matrix/variational formulas without importing the program.
+
+### 19.6 Qualified relative-orientation boundaries
+
+All eight frozen exact-algebra groups pass, with empty failures and process exit zero. The verdict is `SUPPORTS—relative-target, screening-scale and collapse boundaries of the declared fixed-norm gauge energy`. The representative, quotient, gauge-covariant derivatives, curvature, algebraic minimization and scaling certificates have exactly zero symbolic residuals.
+
+The rational joint rotation has vanishing covariant gradients and curvature, while omitting its connection gives ordinary fundamental-gradient cost $12$ at the origin. Its invariant relative matrix is constant. This calculation checks a finite-energy based rational representative and its local identities. If the stronger $H^3$ field-difference convention of §12.9 is imposed, a smooth rotation equal to $I$ outside a ball supplies the same exact screening identities; the rational representative's $1/r$ field tail is not asserted to satisfy that additional $L^2$ condition.
+
+The local four-derivative stationary scale obeys
+$k_H/m_\parallel\ge3\sqrt6/8=0.9185586535436918$.
+This forbids a parametrically small screening ratio within the displayed truncation. The untruncated energy's shrinking sequence has zero infimum. Both conclusions retain the fixed-norm, finite-composition-penalty and constant-boundary assumptions of §§19.2–19.4.
+
+The frozen scope control is also positive in its two coordinates:
+
+|Exact quantity|Value|
+|---|---|
+|$x^2$|$399/160$|
+|$\kappa$|$62/1197$|
+|$x\,\partial_x^2\mathscr E$|$1573/1000$|
+|$x\,\partial_s^2\mathscr E$|$407/400$|
+|$\partial_x\partial_s\mathscr E$|$-4/25$|
+|$\det\nabla^2_{x,s}\mathscr E$|$24587/39900$|
+
+Both first derivatives vanish exactly. Independent rational arithmetic using Python's `fractions.Fraction`, without SymPy or a primary-program import, reproduces these values and the screening-envelope polynomial. Its retained receipt includes the complete executed source, output, empty standard error and exit zero. This verifies a restricted trial minimum only; the fields have not been shown to solve their Euler equations.
+
+Source commit `2d25b5af` contains the program and frozen section. The canonical source hash is `28029685fc971094336aee6c88c7f179aa8e1bf7eabea196e68c19e31e46b903`; the frozen §19.5 hash is `a78ae4c50977abcdd5803b94bfefa00eeb5bdfe542db492441af508c675c2c7c`. The symbolic environment is SymPy 1.14.0.
+
+|Receipt|Raw SHA-256|
+|---|---|
+|`runs/20260906_matter_formation_relative_orientation/results.json`|`2dff47b1b9715c17ebb079e393068592d273200223b233b1ceeda92b24fb15e6`|
+|`runs/20260906_matter_formation_relative_orientation_missing_record/results.json`|`94ca5a45c698511279e19dffe132e11ae8d51972d10ce74b319e6c9c151dca5c`|
+|`runs/20260906_matter_formation_relative_orientation_altered_record/results.json`|`76e65d9d396acb00fa0226687d358d469394ec8f8b8b80c695f337fb0f8eebcc`|
+|`runs/20260906_matter_formation_relative_orientation_independent/results.json`|`ec6e34f55bd684dc51b4248486051c3874e05eeec1f6879fee728436f2dd61ee`|
+
+The missing-record and altered-section controls both exit one with `INCONCLUSIVE`, empty scientific rows and the expected provenance failure. The altered input changes the frozen phrase “eight exact-algebra groups” to “nine exact-algebra groups”; it leaves the scientific source unchanged.
+
+The executed scientific command is:
+
+```text
+python computations/matter_formation_relative_orientation.py --output-dir runs/20260906_matter_formation_relative_orientation
+```
+
+Use a fresh output name for reproduction. These results identify a physical relative field within the optional gauge extension, together with limits on its proposed stabilization. They do not select a physical stiffness ratio, establish a full metastable carrier, produce matter from specified initial data, or assign observed quantum numbers.
 
 ## References
 
