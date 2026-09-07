@@ -1,6 +1,6 @@
-# Carrier Creation and Continuum Density Trapping
+# Matter Formation: Carrier Creation, Continuum Trapping, and a Conditional Baryon Benchmark
 
-## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge and fermionic identities / Hypothesized physical completion / Tested prepared binding, spatial spectra, microscopic boundaries and finite-mode production—September 2026
+## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology and completion-boundary identities / Mapped conditional baryon benchmark / Hypothesized physical completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation and microscopic boundaries—September 2026
 
 ## Abstract
 
@@ -67,6 +67,26 @@ belong to separate supplied models; their conjunction does not define one
 matter-formation mechanism. A canonical microscopic action, state rule,
 physical calibration, localized forming evolution and particle discriminator
 are additional inputs (§29).
+
+An additional normalized complex doublet and the leading compact
+$SU(2)$ chiral action define one explicit colour-neutral baryon comparison
+model. Its finite-domain degree-one hedgehog is stationary and radially
+energetically qualified. Two measured masses map the two action coefficients
+to $e_B=5.416264578979231$ and $f_B=64.29440244394192\ \mathrm{MeV}$.
+A broadened prepared degree-one profile relaxes to the stationary profile
+while sending its excess energy outward. Two out-of-fit comparisons support
+their frozen tolerances and four contradict them. An independent implementation
+passes all 78 verifier checks. The field, action, odd-degree
+Finkelstein–Rubinstein rule and two-flavour charge rule remain supplied model
+inputs (§30).
+
+The complete-mechanism adjudication applies the six physical requirements in
+`foundations/matter-completion-boundary.md` §12 to that positive conditional
+result. Canonical action and quantum-state selection remain unmet; physical
+normalization is met only inside the two-mass-mapped comparison; continuum
+all-sector stability, degree-zero production and derived particle
+identification remain partial. The conjunctive completion gate is `FAIL`, and
+physical Cassi matter formation remains **Hypothesized/Open** (§31).
 
 ## 1. Scope and frozen evidence
 
@@ -3797,7 +3817,203 @@ same dimensionless coefficients cannot resolve this inverse problem; a new
 physical postulate or empirical input must enter before another formation
 calculation is defined.
 
+## 30. Mapped conditional colour-neutral baryon benchmark
+
+The compact-target branch becomes a quantitative particle comparison only
+after an additional complex doublet, effective action and quantum-sector rules
+are supplied. This section records that strongest positive endpoint without
+transferring its assumptions into the canonical real-density theory.
+
+### 30.1 Added field, action, and interpretation rules
+
+Let $z=(z_1,z_2)^{\mathsf T}\in\mathbb C^2$ satisfy
+$z^\dagger z=1$ and define
+
+$$
+U[z]=
+\begin{pmatrix}
+z_1&-z_2^*\\
+z_2&z_1^*
+\end{pmatrix}\in SU(2),
+\qquad L_\mu=U^\dagger\partial_\mu U .
+$$
+
+The declared leading action is
+
+$$
+\boxed{
+S_B=\int d^4x\left[
+-\frac{f_B^2}{4}\operatorname{Tr}(L_\mu L^\mu)
++\frac{1}{32e_B^2}
+\operatorname{Tr}([L_\mu,L_\nu][L^\mu,L^\nu])
+\right].}
+$$
+
+The finite-energy degree
+
+$$
+B=-\frac{1}{24\pi^2}\int d^3x\,\epsilon^{ijk}
+\operatorname{Tr}(L_iL_jL_k)\in\mathbb Z
+$$
+
+is conditionally identified as baryon number. The model also supplies the
+odd-$B$ Finkelstein–Rubinstein sign and
+$Q=I_3+B/2$. These rules give a $B=1$, $J=I=1/2$ nucleon doublet, a
+$B=1$, $J=I=3/2$ Delta multiplet, proton/neutron charges $1/0$, and their
+antiparticle charges. None of the added phase information, action terms,
+configuration-space character or charge rule follows from the two canonical
+real densities.
+
+### 30.2 Stationary degree-one profile and two-mass map
+
+For
+
+$$
+U_0(\mathbf x)=\cos F(x)
++i\,\widehat{\mathbf x}\cdot\boldsymbol\sigma\sin F(x),
+\qquad x=e_Bf_Br,
+$$
+
+the shifted-origin boundary-value solve on
+$10^{-5}\le x\le64$ converges with 2,410 nodes and maximum RMS residual
+$9.9965\times10^{-9}$. It gives
+
+$$
+\mathcal E_2=72.9226205628,\qquad
+\mathcal E_4=72.9246326581,\qquad
+B=1.0000000000000013,
+$$
+
+with finite-domain virial relative residual
+$1.70047\times10^{-11}$. The moment integral is
+$\Lambda=49.9283701504$ and the dimensionless half-angle radius is
+$0.8763011778$.
+
+The nucleon mean mass $938.918754\ \mathrm{MeV}$ and Delta mass
+$1232.0\ \mathrm{MeV}$ fix the two action coefficients:
+
+$$
+\boxed{
+e_B=5.416264578979231,\qquad
+f_B=64.29440244394192\ \mathrm{MeV}.}
+$$
+
+The resulting length unit is $0.5666480972477047\ \mathrm{fm}$. Both masses
+reconstruct to relative residual below $1.9\times10^{-16}$. This is a
+**Mapped** two-input/two-coefficient calibration rather than an out-of-fit mass
+prediction.
+
+### 30.3 Conservative radial relaxation of prepared degree-one data
+
+A broadened finite-energy $B=1$ hedgehog supplies the registered
+nonstationary initial condition. The conservative radial evolution uses
+$h=0.04$, $\Delta t=0.008$, 3,750 steps, and the same outer coordinate
+$x=64$. Its half-angle radius moves from $1.6$ to a late-time mean
+$0.8764775013$, while the profile mismatch falls from $0.6534899156$ to
+$0.0011343877$. The late-to-initial inner excess-energy ratio is
+$2.93897\times10^{-5}$. The complementary outward-energy ledger closes to
+$2.51012\times10^{-4}$ of the initial total energy, maximum total-energy drift
+is $3.94766\times10^{-4}$, and degree error is
+$2.22045\times10^{-16}$.
+
+All six frozen radial gates pass. This establishes relaxation and persistence
+inside a prepared finite-domain degree-one radial sector. The evolution begins
+with $B=1$, so it contains no creation of a baryon–antibaryon pair from
+degree-zero initial data and no nonradial formation basin.
+
+### 30.4 Out-of-fit particle discriminators
+
+The same profile and two fitted coefficients determine six frozen comparisons:
+
+| Observable | Computed | Comparison | Relative residual | Verdict |
+|---|---:|---:|---:|---|
+| Isoscalar electric radius | $0.5995226395\ \mathrm{fm}$ | $0.769\ \mathrm{fm}$ | $-22.04\%$ | `CONTRADICTS` |
+| Proton magnetic moment | $1.8840418528$ | $2.7928473446$ | $-32.54\%$ | `CONTRADICTS` |
+| Neutron magnetic moment | $-1.3195706840$ | $-1.91304273$ | $-31.02\%$ | `CONTRADICTS` |
+| Magnetic-moment magnitude ratio | $1.4277688005$ | $1.459898$ | $-2.20\%$ | `SUPPORTS` |
+| Axial coupling $g_A$ | $0.9250769275$ | $1.2754$ | $-27.47\%$ | `CONTRADICTS` |
+| Pion–nucleon coupling $g_{\pi NN}$ | $13.5092954153$ | $13.0$ | $+3.92\%$ | `SUPPORTS` |
+
+The absolute electric radius, both magnetic moments and $g_A$ miss the frozen
+10-percent precision criterion. The leading comparison therefore supplies
+useful baryon-scale structure but fails as a precision nucleon model.
+
+### 30.5 Independent verification and frozen verdict
+
+The primary and independent programs share no imported implementation code.
+They separately solve the stationary boundary-value problem, reconstruct the
+integrals and calibration, compute the particle comparisons, and evolve the
+radial relaxation. The independent receipt passes all 78 checks with no failed
+row and reproduces the primary verdict:
+
+$$
+\boxed{\texttt{ADOPT—Mapped conditional leading colour-neutral chiral baryon benchmark}.}
+$$
+
+The immutable receipts are
+`runs/20260907_matter_formation_conditional_baryon/results.json` and
+`runs/20260907_matter_formation_conditional_baryon_verification/verification.json`.
+
+### 30.6 Scope of the positive result
+
+This benchmark adds an effective field and action, fixes both coefficients
+from measured masses, and supplies its spin/statistics and charge rules. It
+contains no quantum vacuum, density operator, regulator, renormalization,
+canonical Cassi coupling, complete stress exchange, infinite-domain proof,
+nonradial stability, degree-zero creation, QCD colour dynamics, baryogenesis,
+nuclear binding, or chemistry. Several absolute out-of-fit nucleon observables
+also fail their precision threshold. The benchmark is a qualified member of
+the microscopic completion class $\mathfrak M$ in §29; it does not select
+itself from the registered observables $\mathfrak D$.
+
+## 31. Complete-mechanism adjudication
+
+The completion rule is conjunctive: one model must satisfy every physical
+requirement in `foundations/matter-completion-boundary.md` §12. The
+hash-checked adjudicator reads the accepted primary and independent receipts
+and returns the following ledger:
+
+| Requirement | Present result | Status |
+|---|---|---|
+| 1. Canonical microscopic action and complete conserved stress | The successful action and complex doublet are added comparison-model inputs; canonical coupling and stress exchange are absent | **UNMET** |
+| 2. Regulator-compatible quantum-state selection | The odd-degree FR sign is supplied; no vacuum, density operator, regulator, renormalization or state-selection dynamics is given | **UNMET** |
+| 3. Physical normalization with empirical inputs ledgered | Two measured masses determine $e_B$ and $f_B$ exactly inside the added model; no canonical Cassi flux or $Q_C$ map follows | **MET CONDITIONAL** |
+| 4. Infinite-domain existence and all-sector stability | Finite-domain radial stationarity and relaxation pass; infinite-domain and nonradial qualification are absent | **PARTIAL** |
+| 5. Physically normalized localized production and persistence | Prepared $B=1$ data relax toward the soliton; degree-zero production rates and nonradial formation basins are absent | **PARTIAL** |
+| 6. Derived particle identity, spin, statistics and discriminators | The supplied FR and charge rules yield a conditional particle map; four absolute out-of-fit observables contradict the frozen precision criterion | **PARTIAL** |
+
+No row is inferred from another model. The scalar localization result, scalar
+Floquet growth, finite-mode fermion production and conditional baryon soliton
+retain their separate actions and state assumptions.
+
+The deterministic receipt validation passes, while the conjunctive completion
+gate returns
+
+$$
+\boxed{\text{complete physical Cassi matter formation: FAIL}.}
+$$
+
+Physical matter formation therefore remains **Hypothesized/Open**. This is a
+determinate theory boundary: the many-to-one microscopic projection in §29 and
+the zero-degree canonical density bridge in §18 leave the missing information
+absent from the registered equations. A new physical postulate or independent
+empirical input must select the microscopic field, action and state before a
+degree-zero continuum formation calculation is defined. Repeating the existing
+dimensionless carrier evolution cannot supply that selection.
+
+The adjudication source is
+`computations/adjudicate_matter_formation_completion.py`; its immutable receipt
+is
+`runs/20260907_matter_formation_completion_adjudication/adjudication.json`.
+
 ## References
+
+- `computations/matter-formation-conditional-baryon-prereg.md`—frozen added-field, two-mass calibration, radial relaxation, particle-discriminator and verdict protocol.
+- `computations/matter_formation_conditional_baryon.py`—primary stationary profile, mapped calibration, particle comparisons and conservative radial evolution.
+- `computations/verify_matter_formation_conditional_baryon.py`—independent stationary solve, observable reconstruction, radial evolution and raw-evidence qualification.
+- `runs/20260907_matter_formation_conditional_baryon/results.json`; `runs/20260907_matter_formation_conditional_baryon_verification/verification.json`—accepted primary and independent conditional baryon receipts.
+- `computations/adjudicate_matter_formation_completion.py`—hash-checked reconciliation against the six physical-completion requirements.
+- `runs/20260907_matter_formation_completion_adjudication/adjudication.json`—completion-gate receipt.
 
 - `computations/matter_formation_nonlinear_fragmentation.py`—primary Fourier-collocation nonlinear mediator/carrier comparison with immutable raw arrays.
 - `computations/verify_matter_formation_nonlinear_fragmentation.py`—independent finite-difference evolution, provenance checks and aggregate qualification.

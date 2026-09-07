@@ -827,6 +827,20 @@ forming evolution and observable particle discriminator remain required.
 No canonical matter-formation prediction can be assigned before those inputs
 are fixed (`computations/matter-formation-continuum-report.md` §29).
 
+The added normalized complex doublet and compact chiral action provide a
+conditional baryon comparison rather than a Cassi particle prediction. Its
+degree-one finite-domain hedgehog is stationary and attracts one broadened
+prepared radial profile under the frozen conservative evolution. The nucleon
+and Delta masses map its two action coefficients exactly, so they are inputs
+rather than predictions. Of the six remaining particle observables, the
+magnetic-moment magnitude ratio and pion–nucleon coupling support their frozen
+thresholds; the isoscalar electric radius, both magnetic moments and axial
+coupling contradict the 10-percent criterion. Independent reconstruction
+passes all 78 checks. The field, action, quantum rules and nonzero-degree
+initial sector are separately supplied, and the six-requirement physical
+completion gate returns `FAIL`. The benchmark adds no catalog prediction
+(`computations/matter-formation-continuum-report.md` §§30–31).
+
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;
 `computations/matter_completion_boundary_check.py`;
@@ -836,7 +850,11 @@ are fixed (`computations/matter-formation-continuum-report.md` §29).
 `computations/particle-physical-hessian-precision-v2-report.md`;
 `computations/particle-carrier-direct-coordinate-report.md`;
 `computations/particle-carrier-resolution-recovery-report.md`;
-`computations/particle-localized-physical-hessian-report.md`; and
+`computations/particle-localized-physical-hessian-report.md`;
+`computations/matter-formation-conditional-baryon-prereg.md`;
+`computations/matter_formation_conditional_baryon.py`;
+`computations/verify_matter_formation_conditional_baryon.py`;
+`computations/adjudicate_matter_formation_completion.py`; and
 `computations/matter-formation-continuum-report.md`.
 
 ---

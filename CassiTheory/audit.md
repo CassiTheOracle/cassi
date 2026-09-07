@@ -298,6 +298,26 @@ domain. Amplitude-relaxed metastability, production, normalization and
 physical identification remain open
 (`computations/matter-formation-continuum-report.md` §§19–20).
 
+The added compact chiral benchmark passes its frozen structural, stationary,
+calibration and radial-relaxation gates. The finite-domain degree-one hedgehog
+has virial relative residual $1.70047\times10^{-11}$. The nucleon and Delta
+masses map the two action coefficients to
+$e_B=5.416264578979231$ and
+$f_B=64.29440244394192\ \mathrm{MeV}$. A broadened prepared $B=1$ field
+relaxes toward the stationary solution with final inner excess fraction
+$2.93897\times10^{-5}$, total-energy drift below
+$3.95\times10^{-4}$ and degree error below
+$2.23\times10^{-16}$. The magnetic-moment magnitude ratio and
+pion–nucleon coupling meet their thresholds; the absolute isoscalar radius,
+proton and neutron magnetic moments, and axial coupling miss the 10-percent
+criterion. An independent implementation passes all 78 checks and reproduces
+the primary `ADOPT—Mapped conditional leading colour-neutral chiral baryon
+benchmark` verdict. The field, action, quantum rule and degree-one initial
+sector remain supplied inputs. Hash-checked reconciliation against the six
+physical-completion requirements returns `FAIL`, so complete physical matter
+formation remains open (`computations/matter-formation-continuum-report.md`
+§§30–31).
+
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 
 | Claim | Tested result | Status |

@@ -1,6 +1,6 @@
 # Particle-Sector Action and Fixed-Charge Variational Closure
 
-## Status: Hypothesized temporal completion / Derived conditional action, scalar-reduction, parent-vacuum, dilation, fixed-charge, formation-dynamics and non-identifiability identities / Mapped carrier coupling / Tested prepared binding, finite-grid spectra, parent correspondences and conditional temporal dynamics—September 2026
+## Status: Hypothesized temporal completion / Derived conditional action, scalar-reduction, parent-vacuum, dilation, fixed-charge, formation-dynamics and non-identifiability identities / Mapped carrier coupling and conditional baryon benchmark / Tested prepared binding, finite-grid spectra, parent correspondences, conditional temporal dynamics and radial baryon relaxation—September 2026
 
 ## Abstract
 
@@ -84,6 +84,16 @@ verdict. A complex-scalar parent and a Dirac parent share the same registered
 slow carrier equation despite different spin and statistics, proving that the
 observed slow dynamics do not identify a unique microscopic matter
 completion (`computations/matter-formation-continuum-report.md` §§25–29).
+
+An added normalized complex doublet and compact $SU(2)$ chiral action provide
+a separate Mapped baryon benchmark (§8.15). Its finite-domain degree-one
+hedgehog is stationary and a broadened prepared degree-one profile relaxes
+toward it under conservative radial evolution. Two measured masses fix its two
+action coefficients. Supplied Finkelstein–Rubinstein and charge rules yield
+conditional nucleon/Delta assignments, while four absolute out-of-fit
+observables miss the frozen precision criterion. Independent reconstruction
+passes all 78 checks. The benchmark does not select its field, action,
+quantum-state rule or particle map from the canonical Cassi variables.
 
 ---
 
@@ -1918,6 +1928,91 @@ recover microscopic information absent from its action and observables.
 `computations/matter-formation-continuum-report.md` §29 gives the explicit
 scalar/Dirac construction and full boundary.
 
+### 8.15 Conditional colour-neutral baryon benchmark
+
+The compact-target possibility becomes an explicit particle calculation after
+adding a normalized complex doublet
+$z=(z_1,z_2)^{\mathsf T}$ and its lift
+
+$$
+U[z]=
+\begin{pmatrix}
+z_1&-z_2^*\\
+z_2&z_1^*
+\end{pmatrix}\in SU(2).
+$$
+
+This field contains relative phase information absent from the canonical real
+densities. Its declared leading effective action is
+
+$$
+S_B=\int d^4x\left[
+-\frac{f_B^2}{4}\operatorname{Tr}(L_\mu L^\mu)
++\frac{1}{32e_B^2}
+\operatorname{Tr}([L_\mu,L_\nu][L^\mu,L^\nu])
+\right],
+\qquad L_\mu=U^\dagger\partial_\mu U.
+$$
+
+The degree
+
+$$
+B=-\frac{1}{24\pi^2}\int d^3x\,\epsilon^{ijk}
+\operatorname{Tr}(L_iL_jL_k)
+$$
+
+is an integer for finite-energy data. A supplied odd-$B$
+Finkelstein–Rubinstein sign admits half-integer spin and fermionic exchange.
+The supplied charge rule $Q=I_3+B/2$ gives proton and neutron charges in the
+lowest $B=1$, $J=I=1/2$ multiplet; the next collective multiplet has
+$J=I=3/2$ and is conditionally identified with the Delta.
+
+The shifted-origin degree-one hedgehog solve on
+$10^{-5}\le x\le64$ gives
+
+$$
+\mathcal E_2=72.9226205628,\qquad
+\mathcal E_4=72.9246326581,\qquad
+B=1.0000000000000013,
+$$
+
+and finite-domain virial relative residual
+$1.70047\times10^{-11}$. Mapping the nucleon mean and Delta masses fixes
+
+$$
+e_B=5.416264578979231,\qquad
+f_B=64.29440244394192\ \mathrm{MeV},
+$$
+
+with length unit $0.5666480972477047\ \mathrm{fm}$. This is a **Mapped**
+two-target/two-coefficient calibration.
+
+A broadened prepared degree-one profile relaxes to the stationary radial
+profile. Its inner excess energy falls to $2.93897\times10^{-5}$ of the
+initial value; total-energy drift stays below $3.95\times10^{-4}$ and degree
+error below $2.23\times10^{-16}$. The radial calculation begins in the
+$B=1$ sector and therefore establishes persistence and attraction there,
+rather than production from degree-zero data.
+
+The magnetic-moment magnitude ratio and pion–nucleon coupling meet their
+frozen tolerances. The absolute isoscalar electric radius, proton and neutron
+magnetic moments, and $g_A$ miss the 10-percent precision criterion. The
+primary and independent implementations pass all 78 verifier checks and
+return
+
+$$
+\boxed{\texttt{ADOPT—Mapped conditional leading colour-neutral chiral baryon benchmark}.}
+$$
+
+The benchmark supplies no canonical Cassi coupling or complete stress
+exchange, quantum vacuum or density operator, regulator or renormalization,
+infinite-domain or nonradial proof, degree-zero production, QCD colour
+dynamics, baryogenesis, nuclear binding, chemistry or lifetime. Its field,
+action, FR character and charge rule are additional physical assumptions.
+The six-requirement completion adjudication therefore returns `FAIL` while
+retaining the positive conditional benchmark
+(`computations/matter-formation-continuum-report.md` §§30–31).
+
 ## 9. What is closed and what remains open
 
 | Question | Result |
@@ -1947,9 +2042,9 @@ scalar/Dirac construction and full boundary.
 | Do the registered slow carrier observables select bosonic or fermionic matter? | No. Inequivalent scalar and spinor actions share the same slow equation and scalar-density evolution while retaining different spin representations and exchange statistics |
 | Does the stated local-density Yukawa candidate bind collectively below threshold? | No within its mass-depleting $|m|\le1$ functional, including the specified one-loop remainder and favorable fourfold occupation relaxation; exact finite-fermion and physical matching remain open |
 | Does the canonical scalar domain supply a rotation or exchange FR sign? | No in the tested regular domains; separated exchange, large-gauge and other quantum sectors require their own configuration spaces |
-| Does the compact $SU(2)_{\rm top}$ comparison identify a Cassi carrier? | No. It supports only finite-domain radial stationarity and radial energetic qualification, with an inconclusive direct-angle calculation and an obstructed canonical density bridge |
+| Does the compact $SU(2)_{\rm top}$ comparison identify a Cassi carrier? | No canonical identification follows. Its extended conditional baryon benchmark supplies a Mapped two-mass calibration, supplied nucleon/Delta spin and charge rules, finite-domain radial stationarity, and conservative relaxation of prepared $B=1$ data. The density-to-target bridge remains obstructed |
 | Can a hard-norm nonzero-Hopf field be a full stationary solution of PA12? | No when the adjoint norm is soft: every such field has a strict first-order amplitude descent, and the included hard-norm loops contract in the soft domain. A relaxed soft-amplitude state or separately constrained hard-norm model remains open |
-| Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
+| Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | The added baryon comparison yields Mapped nucleon/Delta masses, a physical length unit, out-of-fit radius and coupling comparisons, and conditional charge/spin assignments. These quantities belong to the supplied effective action and rules; no canonical Cassi particle identity or lifetime follows |
 
 The action defines a fixed-charge boundary-value problem and exact empty-sector
 invariants. Its continuum-consistent scalar sector supplies independently
@@ -1963,9 +2058,17 @@ phase support, an exact autonomous periodic pump, qualified carrier and
 mediator Floquet instabilities, and local signed-charge transport from
 prepared complex data. Its radial-domain, combined scalar-parent spatial and
 nonlinear formation comparisons are inconclusive under their respective
-frozen criteria. Scalar and spinor microscopic parents share the registered
-slow equation, so these measurements determine no unique production action,
-state, physical normalization, particle spectrum or formation history.
+frozen criteria.
+
+The added compact chiral benchmark supplies a stationary and radially
+attracting degree-one soliton, Mapped nucleon/Delta masses, a physical length
+unit, supplied charge/spin rules and six out-of-fit particle comparisons.
+Four absolute observables contradict their precision threshold. The field,
+action, quantum rules and degree-one initial sector remain supplied inputs.
+Scalar and spinor microscopic parents also share the registered slow equation.
+Together these results determine no unique production action, state,
+normalization, particle spectrum or formation history. The complete
+matter-formation gate remains failed.
 
 ---
 
@@ -2068,6 +2171,17 @@ soft-field metastability and physical quantization open
 (`computations/matter-formation-continuum-report.md` §§12.7–12.12, 15.6–15.7,
 18–20).
 
+The added chiral benchmark supplies the strongest particle-like endpoint in
+this comparison class. Its degree-one radial soliton persists dynamically,
+and two measured masses determine its two coefficients. Conditional
+spin/statistics and charge assignments then follow from supplied model rules.
+Independent verification reproduces the calculation, while four absolute
+out-of-fit observables miss the precision criterion. Canonical field/action
+selection, quantum-state dynamics, continuum all-sector stability and
+degree-zero formation remain open. The six-requirement completion gate is
+therefore `FAIL`, with the conditional baryon benchmark retained as
+**Mapped**.
+
 ---
 
 ## References
@@ -2087,7 +2201,11 @@ soft-field metastability and physical quantization open
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid refinement and independently verified resolution consistency.
 - `computations/particle-localized-physical-hessian-report.md`—matched constrained spectrum and spatial qualification of the finest localized field.
-- `computations/matter-formation-continuum-report.md`—empty-sector invariant, ultraviolet diagnosis, smooth prepared binding, constrained stability, autonomous formation dynamics and microscopic non-identifiability.
+- `computations/matter-formation-continuum-report.md`—empty-sector invariant, ultraviolet diagnosis, smooth prepared binding, constrained stability, autonomous formation dynamics, microscopic non-identifiability, conditional baryon benchmark and completion adjudication.
+- `computations/matter-formation-conditional-baryon-prereg.md`—frozen added-field, calibration, radial-relaxation and particle-discriminator protocol.
+- `computations/matter_formation_conditional_baryon.py`—primary stationary, calibration, particle-comparison and radial-evolution calculation.
+- `computations/verify_matter_formation_conditional_baryon.py`—independent reconstruction and 78-check qualification.
+- `computations/adjudicate_matter_formation_completion.py`—deterministic six-requirement completion gate.
 - `computations/matter-formation-hyperbolic-parent-prereg.md`—optional temporal parent, quantum normalization and frozen free-mode schedule.
 - `computations/matter_formation_hyperbolic_parent.py`—primary oscillator trajectories and stationary embeddings.
 - `computations/verify_matter_formation_hyperbolic_parent.py`—independent raw-array, charge and energy-work verification.

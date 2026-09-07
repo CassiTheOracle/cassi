@@ -51,8 +51,10 @@ Start with the program criterion, then move from the canonical substrate to the 
 Follow the coherence geometry into the endpoint, support, particle action, and
 nine-part qualification boundary. The Cartesian reports establish their
 finite-grid results. The continuum report tests the carrier's parity structure,
-derives the empty-sector creation obstruction, and records independently
-reproduced smooth density trapping at selected prepared charges.
+derives the empty-sector creation obstruction, records independently
+reproduced smooth density trapping at selected prepared charges, and closes
+with a Mapped conditional baryon benchmark plus a failed complete-mechanism
+adjudication.
 
 `foundations/yin-yang-qi-dynamical-geometry.md` §7.4 →
 `foundations/interscale-stress-attenuation-boundary.md` →
@@ -158,6 +160,21 @@ requires a canonical action, state rule, physical normalization,
 infinite-domain localization and stability, localized real-time formation and
 an observable particle discriminator.
 
+Section 30 adds a normalized complex doublet and leading compact $SU(2)$
+chiral action as an explicit conditional colour-neutral baryon model. Its
+finite-domain degree-one hedgehog is stationary, and broadened prepared
+$B=1$ data relax toward it under conservative radial evolution. The nucleon
+and Delta masses map the two action coefficients. Supplied
+Finkelstein–Rubinstein and charge rules give conditional spin/statistics and
+charge assignments; two of six out-of-fit comparisons support their
+thresholds and four contradict the 10-percent criterion. Independent
+reconstruction passes all 78 checks. Section 31 applies six requirements to
+every accepted construction. The field, action and quantum-state selection
+remain supplied, no degree-zero run forms the soliton, continuum all-sector
+stability is unproved, and no canonical Cassi particle map follows. The
+completion gate is `FAIL`, so the benchmark is retained without calling
+physical matter formation solved.
+
 
 ### The skeptic or referee
 
@@ -226,8 +243,8 @@ The central derivations; the wedge documents `foundations/dimensionful-cascade.m
 - `foundations/point-core-flux-sector.md`—Quantized Point-Core Flux and the Persistent-Defect Boundary. Conditional exterior support and current-action completion no-go Derived; carrier coupling Mapped; finite-grid spectrum and conditional smooth scalar binding Tested—September 2026. Derives the flux coefficient and support inequality, then records the empty-sector invariant, Cartesian ultraviolet limitation and unclosed physical matching.
 - `foundations/nonabelian-magnetic-core-boundary.md`—Non-Abelian Magnetic Core and the Confined-Defect Boundary. Auxiliary completion Hypothesized; conditional smooth-core and confinement boundaries Derived; carrier coupling Mapped; finite-grid spectrum and conditional smooth scalar binding Tested—September 2026. Examines the adjoint lift, BPS core, condensate confinement and pair collapse. Prepared scalar binding has no established magnetic-pair identity, and its constrained spatial stability remains INCONCLUSIVE.
 - `foundations/core-trapped-charge-support.md`—Core-Trapped Noether Charge and the Finite-Composite Boundary. Auxiliary carrier Hypothesized; conditional thin-tube support Derived; coupling Mapped; finite-grid spectrum and conditional smooth scalar binding Tested—September 2026. Derives population conservation, retention and inverse-length support. An empty closed carrier sector stays empty; separate smooth binding requires a prepared population.
-- `foundations/particle-stationary-action-closure.md`—Particle-Sector Action and Fixed-Charge Variational Closure. Temporal completion Hypothesized; gauge, Gauss, variational, empty-sector and scalar-reduction boundaries Derived conditionally; coupling Mapped; finite-grid spectrum and conditional smooth scalar binding Tested—September 2026. Supplies the action and fluctuation operators. The Cartesian branch fails its smooth-carrier diagnostic; independently reproduced scalar binding at prepared $Q_C\in\{16,256\}$ has INCONCLUSIVE smooth $Q_C=16$ constrained spatial stability. The measured charge-dependent lumps establish no preferred particle size.
-- `foundations/matter-completion-boundary.md`—Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation. Conditional boundary Derived; physical realization Hypothesized; reduced receipts, prepared binding, finite-mode production and conditional formation dynamics Tested at supplied or Mapped inputs—September 2026. Connects exterior, interface, transport, power, reservoir, stress, gravity, particle-map and spectrum conditions. The evidence includes exact empty-sector preservation, ultraviolet and continuum restrictions, scalar parametric amplification, an INCONCLUSIVE nonlinear comparison and a many-to-one microscopic projection; six independent physical inputs remain before a complete matter-formation mechanism is defined.
+- `foundations/particle-stationary-action-closure.md`—Particle-Sector Action and Fixed-Charge Variational Closure. Temporal completion Hypothesized; action, scalar-reduction, parent-vacuum, dilation, fixed-charge, formation-dynamics and non-identifiability identities Derived conditionally; carrier coupling and conditional baryon benchmark Mapped; prepared binding, finite-grid spectra, parent correspondences, conditional temporal dynamics and radial baryon relaxation Tested—September 2026. The first-order carrier preserves an empty sector; its Cartesian branch is ultraviolet-dominated, and prepared scalar spatial qualifications remain INCONCLUSIVE. An added compact chiral model supplies a stationary and radially attracting prepared degree-one soliton, a two-mass coefficient map and conditional nucleon/Delta rules. Independent verification passes all 78 checks; canonical selection and degree-zero formation remain open.
+- `foundations/matter-completion-boundary.md`—Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation. Conditional boundary and microscopic non-identifiability Derived; carrier coupling and conditional baryon benchmark Mapped; physical realization Hypothesized; reduced receipts, prepared binding, finite-grid spectra, parent correspondences and radial baryon relaxation Tested—September 2026. The evidence includes exact empty-sector preservation, ultraviolet and continuum restrictions, scalar parametric amplification, an INCONCLUSIVE nonlinear comparison, a many-to-one microscopic projection and a conditional stationary degree-one baryon endpoint. Six physical requirements remain unmet or partial; the deterministic completion gate returns `FAIL`.
 - `foundations/cascade-suppression-formula.md`—The Cascade Suppression Formula: $\varphi^{-N}$ as a conditional attenuation relation. Derived conditional on declared per-rung inputs; the uniform $\varphi^{-1}$ factor is a cascade input, while the coherence-product exponent is algebraic under its declared profile. Signal-map interpretations remain Hypothesized, with applications to proton stability, strong CP, the electroweak hierarchy, neutrino masses, and quantum measurement recorded with their own tiers.
 - `foundations/cassi-first-principles.md`—Cassi First Principles. Derived PDE; C / Asserted Qi definition; Asserted single-channel $g(q)$ input—September 2026. States the $\varphi$ postulate and the two-fluid PDE; the rational $q$ gate and its normalization are constitutive choices. Canonical density-plane conversion is rank-one relaxation with conserved $\rho=E_Y+E_I$ and eigenvalues $0$ and $-\lambda(1-q)(1+\varphi)$, rather than an SO(2) rotation. The optional gravity endpoint is a coupling-magnitude identity; a GR or Newtonian interpretation requires a separate metric, matter map, and attractive source closure.
 - `foundations/physical-becoming-hierarchy.md`—Physical Becoming: A Causal State Hierarchy for Cassi. Hypothesized architecture / Derived canonical reduction—September 2026. Separates microscopic actual physics, mesoscopic open-system dynamics, and agent-level reaction coordinates; embeds canonical rank-one conversion exactly as a positive-semidefinite gradient flow; defines body, history, shadow, possibility, attention, action, debit, and learning blocks with held-out closure and causal gates; records the conditional quantum-free-fall boundary while leaving Cassi source and response mappings open; leaves phenomenal consciousness as an open bridge.

@@ -499,6 +499,23 @@ contract in that domain. Amplitude-relaxed metastability, production,
 normalization, quantum identification and complete matter formation remain
 open (`computations/matter-formation-continuum-report.md` §§18–20).
 
+An added normalized complex doublet and leading compact $SU(2)$ chiral action
+extend that comparison into a conditional colour-neutral baryon benchmark.
+The finite-domain degree-one hedgehog is stationary with virial relative
+residual $1.70\times10^{-11}$. Mapping the nucleon and Delta masses fixes
+$e_B=5.416264578979231$ and
+$f_B=64.29440244394192\ \mathrm{MeV}$, so the normalization is
+**Mapped**. A broadened prepared degree-one field relaxes toward the
+stationary profile while satisfying the frozen energy, degree and attraction
+gates. Supplied Finkelstein–Rubinstein and charge rules assign the conditional
+nucleon/Delta spin and proton/neutron charge pattern. Two out-of-fit
+comparisons support their tolerances and four absolute observables contradict
+the 10-percent criterion. Independent reconstruction passes all 78 checks.
+The field, action, quantum rule and initial topological sector remain added
+inputs, so the deterministic six-requirement complete-mechanism gate returns
+`FAIL` (`foundations/particle-stationary-action-closure.md` §8.15;
+`computations/matter-formation-continuum-report.md` §§30–31).
+
 ---
 
 ## 4. The String: Spiral and Wakes
@@ -1081,6 +1098,28 @@ normalization, continuum-localized forming evolution and particle
 discriminator are additional inputs
 (`computations/matter-formation-continuum-report.md` §29).
 
+The added compact chiral benchmark supplies a finite-domain stationary
+degree-one soliton and conservative radial attraction from broadened prepared
+$B=1$ data. A two-mass map gives
+$e_B=5.416264578979231$ and
+$f_B=64.29440244394192\ \mathrm{MeV}$, with length unit
+$0.5666480972477047\ \mathrm{fm}$. Supplied collective-coordinate rules give
+conditional nucleon/Delta spin and proton/neutron charge assignments. Two of
+six out-of-fit comparisons support their thresholds; four absolute nucleon
+observables contradict the 10-percent criterion. The independent
+implementation passes all 78 checks. The result is an adopted **Mapped
+conditional benchmark**, while its field, action, quantum rules and
+degree-one initial sector remain additional inputs
+(`computations/matter-formation-continuum-report.md` §30).
+
+Hash-checked reconciliation against the six physical requirements finds no
+single accepted construction that selects a canonical microscopic action and
+state, forms a localized degree-one particle from degree-zero data, proves
+continuum all-sector stability, closes physical normalization and interaction
+dynamics, or derives an observable particle map. The completion gate returns
+`FAIL`; physical matter formation remains **Hypothesized/Open**
+(`computations/matter-formation-continuum-report.md` §31).
+
 **Epistemic status:** the modulation period is **Derived conditional** on the
 optional signal map; its physical wake imprint and cross-domain extensions
 are **Hypothesized** and being tested. The sector scale is **Derived
@@ -1089,10 +1128,13 @@ anchor. The displayed projection is excluded by the stated dimensional,
 conjugacy and Hermiticity obstructions. A distinct admissible physical
 coupling remains **Hypothesized** and unselected.
 The Hill/Floquet reduction, spatial dispersion relation, signed-charge
-continuity and microscopic non-identifiability are **Derived conditional** on
-their supplied parents. The linear growth rates, spatial instability and
-prepared charge separation are **Tested**; the nonlinear comparison remains
-`INCONCLUSIVE`. Physical matter formation remains **Hypothesized/Open**.
+continuity, microscopic non-identifiability, baryon degree and collective
+identities are **Derived conditional** on their supplied parents. The baryon
+coefficients are **Mapped** to two measured masses. The linear growth rates,
+spatial instability, prepared charge separation, conditional baryon profile
+and radial relaxation are **Tested**; the nonlinear comparison remains
+`INCONCLUSIVE`, and the complete-mechanism gate is `FAIL`. Physical matter
+formation remains **Hypothesized/Open**.
 
 ## 18. Quantum Gravity Without Singularities
 

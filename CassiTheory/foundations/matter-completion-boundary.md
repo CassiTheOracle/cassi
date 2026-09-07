@@ -1,6 +1,6 @@
 # Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
-## Status: Derived conditional boundary / Hypothesized physical realization / Mapped carrier coupling / Tested reduced receipts, prepared binding, finite-grid spectra and parent correspondences—September 2026
+## Status: Derived conditional boundary and microscopic non-identifiability / Mapped carrier coupling and conditional baryon benchmark / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences and radial baryon relaxation—September 2026
 
 ## Abstract
 
@@ -46,6 +46,19 @@ carrier equation while carrying inequivalent spin and statistics. The
 microscopic projection is many-to-one, so a canonical action, quantum state,
 physical normalization and particle discriminator must enter before the
 conditional results define one matter-formation mechanism.
+
+An additional normalized complex doublet and compact $SU(2)$ chiral action
+provide one explicit conditional baryon benchmark. A finite-domain
+degree-one hedgehog is stationary, a broadened prepared degree-one profile
+relaxes to it with bounded energy drift, and two measured masses map the two
+action coefficients. The supplied odd-degree Finkelstein–Rubinstein and
+two-flavour charge rules assign nucleon/Delta spin, statistics and charges.
+Four absolute out-of-fit nucleon observables contradict their frozen
+10-percent precision threshold. Independent reconstruction passes all 78
+checks. Applying the six physical requirements below leaves canonical action
+and quantum-state selection unmet, normalization met only conditionally, and
+continuum stability, degree-zero production and derived particle
+identification partial. Complete physical matter formation remains open.
 
 ## 1. The nine-part boundary
 
@@ -1077,11 +1090,64 @@ The remaining physical requirements are:
 
 The framework supplies conditional support identities, prepared smooth scalar
 density trapping, finite-grid fixed-charge spectra, scalar parametric
-amplification and homogeneous finite-mode fermion production. These results
-belong to separately supplied conditional models. Their continuum,
-localization and nonlinear qualifications remain incomplete, and the
-microscopic projection is many-to-one. Physical matter formation remains
-open pending the six additional inputs above.
+amplification, homogeneous finite-mode fermion production and a mapped
+conditional colour-neutral baryon soliton. The baryon comparison adds
+finite-domain radial relaxation, mapped masses and supplied particle rules
+inside one effective action. Its field, action and quantum rules remain
+additional inputs, and it begins with degree-one data. The other results retain
+their separate models. No accepted construction satisfies all six physical
+requirements, so physical matter formation remains open.
+
+## 13. Conditional baryon endpoint
+
+The added comparison field is a normalized complex doublet lifted to
+$U\in SU(2)$, with leading two- and four-derivative action
+
+$$
+S_B=\int d^4x\left[
+-\frac{f_B^2}{4}\operatorname{Tr}(L_\mu L^\mu)
++\frac{1}{32e_B^2}
+\operatorname{Tr}([L_\mu,L_\nu][L^\mu,L^\nu])
+\right].
+$$
+
+Its degree-one hedgehog solves the shifted-origin boundary-value problem on
+$10^{-5}\le x\le64$ with finite-domain virial relative residual
+$1.70047\times10^{-11}$. The measured nucleon and Delta masses fix
+
+$$
+\boxed{
+e_B=5.416264578979231,\qquad
+f_B=64.29440244394192\ \mathrm{MeV},}
+$$
+
+giving a length unit $0.5666480972477047\ \mathrm{fm}$. A broadened prepared
+$B=1$ profile approaches the stationary half-angle radius with
+late-to-initial inner excess-energy ratio $2.93897\times10^{-5}$, total-energy
+drift below $3.95\times10^{-4}$ and degree error below
+$2.23\times10^{-16}$. The radial result supports persistence in the prepared
+sector; it does not supply degree-zero creation.
+
+The supplied odd-$B$ Finkelstein–Rubinstein sign and
+$Q=I_3+B/2$ give conditional nucleon/Delta and proton/neutron assignments.
+The magnetic-moment magnitude ratio and pion–nucleon coupling meet their
+frozen tolerances. The absolute isoscalar electric radius, proton and neutron
+magnetic moments, and $g_A$ miss the 10-percent criterion.
+
+The primary and independent implementations yield
+
+$$
+\boxed{\texttt{ADOPT—Mapped conditional leading colour-neutral chiral baryon benchmark}.}
+$$
+
+The benchmark satisfies physical normalization only within its two-mass fit.
+It leaves the canonical field/action selection, quantum state and
+renormalization, complete stress exchange, infinite-domain and nonradial
+stability, degree-zero formation and derived particle rules unresolved.
+The deterministic six-requirement adjudication consequently returns
+`FAIL` for complete physical Cassi matter formation and preserves the
+**Hypothesized/Open** status. The evidence, limitations and source identities
+are in `computations/matter-formation-continuum-report.md` §§30–31.
 
 ## References
 
@@ -1114,4 +1180,8 @@ open pending the six additional inputs above.
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence, contracting energy differences, and independent verification.
 - `computations/particle-localized-physical-hessian-report.md`—constrained localized PA42 spectrum, carrier-phase symmetry assignment, and spatial qualification.
-- `computations/matter-formation-continuum-report.md`—complete matter-formation evidence record, conditional model comparisons, nonlinear verdict and microscopic non-identifiability proof.
+- `computations/matter-formation-conditional-baryon-prereg.md`—frozen conditional action, two-mass map, radial evolution and discriminator protocol.
+- `computations/matter_formation_conditional_baryon.py`—primary stationary, calibration, particle-comparison and radial-relaxation calculation.
+- `computations/verify_matter_formation_conditional_baryon.py`—independent reconstruction and 78-check qualification.
+- `computations/adjudicate_matter_formation_completion.py`—six-requirement completion reconciliation.
+- `computations/matter-formation-continuum-report.md`—complete evidence record, conditional model comparisons, nonlinear verdict, microscopic non-identifiability proof, mapped baryon benchmark and completion adjudication.

@@ -159,6 +159,21 @@ real-time forming evolution and an observable particle discriminator
 (`computations/matter-formation-continuum-report.md` §29;
 `foundations/matter-completion-boundary.md` §12).
 
+An added normalized complex doublet with the leading compact chiral action
+provides a concrete conditional colour-neutral baryon benchmark. Its
+finite-domain degree-one hedgehog is stationary and is approached by a
+broadened prepared $B=1$ profile under conservative radial evolution. The
+measured nucleon and Delta masses map its two action coefficients; supplied
+Finkelstein–Rubinstein and charge rules then give conditional spin/statistics
+and charge assignments. Two out-of-fit comparisons support their thresholds,
+while four absolute observables contradict the 10-percent criterion.
+Independent reconstruction passes all 78 checks. Because the benchmark adds
+the field, action, state rules and nonzero-degree initial sector rather than
+deriving them from the canonical Cassi fields, the deterministic
+six-requirement completion gate returns `FAIL`. Physical matter formation
+remains Hypothesized/Open
+(`computations/matter-formation-continuum-report.md` §§30–31).
+
 
 ## The reality-simulation program
 

@@ -50,6 +50,18 @@ evolution and a particle discriminator remain required
 (`computations/matter-formation-continuum-report.md` §§25–29;
 `foundations/matter-completion-boundary.md` §12).
 
+An added normalized complex doublet and compact chiral action provide a
+conditional colour-neutral baryon benchmark. Its finite-domain degree-one
+hedgehog is stationary, and broadened prepared $B=1$ data relax toward it
+under conservative radial evolution. Two measured masses map the action
+coefficients; supplied Finkelstein–Rubinstein and charge rules give
+conditional nucleon/Delta assignments. Two out-of-fit comparisons support
+their thresholds and four absolute observables contradict the 10-percent
+criterion. Independent reconstruction passes all 78 checks. The model begins
+with an added field, action, quantum rule and degree-one sector, so the
+six-requirement complete-mechanism adjudication returns `FAIL`
+(`computations/matter-formation-continuum-report.md` §§30–31).
+
 
 ## Document Index
 
@@ -97,10 +109,10 @@ evolution and a particle discriminator remain required
 | 40 | `point-core-flux-sector.md` | Quantized exterior energy and finite-energy core boundary | Derived conditional exterior support and current-action completion no-go / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 41 | `nonabelian-magnetic-core-boundary.md` | Auxiliary core, condensate confinement and composite boundary | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 42 | `core-trapped-charge-support.md` | Conserved carrier population and conditional finite-composite support | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
-| 43 | `particle-stationary-action-closure.md` | Temporal action, Gauss, empty-sector invariant, scalar reduction and fluctuation boundary | Hypothesized temporal completion / Derived conditional gauge, Gauss, stationary, empty-sector and scalar-reduction boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
+| 43 | `particle-stationary-action-closure.md` | Temporal action, Gauss, empty-sector invariant, scalar reduction, fluctuation boundary and conditional chiral baryon benchmark | Hypothesized temporal completion / Derived conditional action, scalar-reduction, parent-vacuum, dilation, fixed-charge, formation-dynamics and non-identifiability identities / Mapped carrier coupling and conditional baryon benchmark / Tested prepared binding, finite-grid spectra, parent correspondences, conditional temporal dynamics and radial baryon relaxation—September 2026 |
 | 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, source-action response, and routed quadratic-flux attenuation | Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026 |
 | 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated conversion, coherence, transport, endpoint and bounded source interface | Hypothesized integrated realization / Derived canonical reduction, positivity, covariance and conditional interface ledgers / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026 |
-| 46 | `matter-completion-boundary.md` | Nine-part conditional boundary and complete matter-formation requirements | Derived conditional boundary and non-identifiability / Hypothesized physical realization / Mapped selected carrier coupling / Tested reduced receipts, prepared binding, finite-mode production and conditional formation dynamics; nonlinear comparison INCONCLUSIVE—September 2026 |
+| 46 | `matter-completion-boundary.md` | Nine-part conditional boundary, conditional baryon benchmark and complete-mechanism adjudication | Derived conditional boundary and microscopic non-identifiability / Mapped carrier coupling and conditional baryon benchmark / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences and radial baryon relaxation—September 2026 |
 | 47 | `quantum-free-fall-correspondence.md` | Ideal QGI action and inference boundary; physical-$q$ bounds and information loss; forty-three closure requirements and QFC1–QFC4 receipts | Derived conditional external-potential correspondence / Hypothesized Cassi atomic state, gravity-response, and common-lapse mappings—September 2026 |
 
 ## Document Summaries
@@ -977,6 +989,20 @@ metastability, production dynamics, physical normalization, quantum
 identification and complete matter formation remain open
 (`computations/matter-formation-continuum-report.md` §§18–20).
 
+An added normalized complex doublet and compact chiral action supply the
+conditional baryon benchmark in §8.15. Its finite-domain degree-one hedgehog
+is stationary, and a broadened prepared $B=1$ profile relaxes toward it with
+the frozen energy and degree controls satisfied. The measured nucleon and
+Delta masses map $e_B=5.416264578979231$ and
+$f_B=64.29440244394192\ \mathrm{MeV}$. Supplied
+Finkelstein–Rubinstein and charge rules yield conditional spin/statistics and
+charge assignments. Two particle comparisons support their thresholds and
+four absolute observables contradict the 10-percent precision criterion.
+Independent reconstruction passes all 78 checks. The benchmark is **Mapped**
+inside its supplied effective model; canonical field/action selection,
+degree-zero formation and physical particle identity remain open
+(`computations/matter-formation-continuum-report.md` §§30–31).
+
 
 ### `matter-completion-boundary.md`—Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
@@ -1023,14 +1049,23 @@ period-sampled diagnostic identifying phase aliasing. Scalar and Dirac parents
 share the registered slow carrier equation while retaining different spin and
 statistics, establishing a many-to-one microscopic projection.
 
-Physical exterior and reservoir actions, state selection, coefficient
-calibration, gravity selection, continuum-localized forming evolution and a
-particle discriminator remain open
+The added compact chiral action supplies a separate stationary and radially
+attracting prepared degree-one baryon endpoint. Its two coefficients are
+Mapped to the measured nucleon and Delta masses, and its spin/statistics and
+charge assignments follow only after supplied quantum rules. Four of six
+out-of-fit comparisons contradict their precision criterion. The result is a
+qualified conditional benchmark, not a canonical Cassi matter completion.
+
+Physical exterior and reservoir actions, state selection, canonical
+coefficient determination, gravity selection, continuum-localized forming
+evolution from degree-zero data, all-sector stability and a particle
+discriminator remain open. The deterministic six-requirement completion gate
+returns `FAIL`
 (`computations/matter-formation-continuum-report.md`). Status: Derived
-conditional boundary and non-identifiability / Hypothesized physical
-realization / Mapped carrier coupling / Tested reduced receipts, prepared
-binding, finite-mode production and conditional formation dynamics; nonlinear
-comparison INCONCLUSIVE—September 2026.
+conditional boundary and microscopic non-identifiability / Mapped carrier
+coupling and conditional baryon benchmark / Hypothesized physical realization
+/ Tested reduced receipts, prepared binding, finite-grid spectra, parent
+correspondences and radial baryon relaxation—September 2026.
 
 ### `quantum-free-fall-correspondence.md`—Quantum Free Fall as a Cassi Correspondence Boundary
 
