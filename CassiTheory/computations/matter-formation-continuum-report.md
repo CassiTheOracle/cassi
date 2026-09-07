@@ -2708,6 +2708,69 @@ Reproduction uses a fresh output directory:
 python computations/matter_formation_density_budget.py --output-dir runs/repro_matter_formation_density_budget
 ```
 
+## 23. Nonlinear composition-to-density transfer in the base solver
+
+The base Python class permits a concentration mechanism absent from the expanding class: Yang and Yin drift in opposite directions through their shared information potential. Matching their mobilities cancels the homogeneous density drift at the equilibrium composition. A spatial composition imbalance can still transport total density.
+
+### 23.1 Exact matched-mobility transfer
+
+Use the smooth periodic continuum equations of `TwoFluid3DGPU`, with $\nabla\cdot u=0$, no external source and the unmodified Poisson law $\Delta\Phi=\rho-\bar\rho$. Let $\chi_Y=\chi/\varphi$, $\chi>0$, $\gamma=(1+\varphi)\lambda$ and $c=1/(1+\varphi)$. Direct addition and subtraction of the two source equations give
+$$
+\boxed{\begin{aligned}
+\partial_t\rho+u\cdot\nabla\rho
+&=D\Delta\rho-\frac{\chi}{\varphi}\nabla\cdot(\epsilon\nabla\Phi),\\
+\partial_t\epsilon+u\cdot\nabla\epsilon
+&=D\Delta\epsilon-\gamma\epsilon
+-\chi\nabla\cdot[(\rho-c\epsilon)\nabla\Phi].
+\end{aligned}}
+$$
+Consequently $\bar\rho$ is conserved and $\partial_t\bar\epsilon=-\gamma\bar\epsilon$. With spatial averages denoted by $\langle\cdot\rangle$, the exact quadratic budgets are
+$$
+\boxed{\begin{aligned}
+\frac12\partial_t\langle(\rho-\bar\rho)^2\rangle
+&=-D\langle|\nabla\rho|^2\rangle+
+\frac{\chi}{\varphi}\langle\epsilon\nabla\rho\cdot\nabla\Phi\rangle,\\
+\frac12\partial_t\langle\epsilon^2\rangle
+&=-D\langle|\nabla\epsilon|^2\rangle-\gamma\langle\epsilon^2\rangle+
+\chi\langle(\rho-c\epsilon)\nabla\epsilon\cdot\nabla\Phi\rangle.
+\end{aligned}}
+$$
+The density-transfer term has no universal sign. Spatially matched mean composition alone does not supply the nonincreasing-variance property of §22.
+
+An explicit positive-field witness uses $u=0$ on a $2\pi$ periodic box:
+$$
+\rho=\rho_0+r\cos x,\qquad
+\epsilon=\sigma A\cos2x,\qquad
+\Phi=-r\cos x,\qquad \sigma\in\{-1,0,1\}.
+$$
+For $\rho_0=2$, $r=0.2$ and $A=0.8$, both reconstructed populations are positive and $\bar\epsilon=0$. The density and imbalance budget derivatives are
+$$
+\boxed{\begin{aligned}
+\frac12\partial_t\langle(\rho-\rho_0)^2\rangle
+&=-\frac{Dr^2}{2}+\frac{\chi\sigma Ar^2}{4\varphi},\\
+\frac12\partial_t\langle\epsilon^2\rangle
+&=-\left(2D+\frac{\gamma}{2}\right)\sigma^2A^2
+-\frac{\chi\sigma Ar^2}{2}.
+\end{aligned}}
+$$
+For $\sigma=1$, initial density variance grows when $\chi A>2\varphi D$. The effect comes from the correlation between composition and the density/potential gradients; it does not require a nonzero mean imbalance. These are instantaneous transfer identities. The planar witness supplies no three-dimensional localization, long-time stability or microscopic particle assignment.
+
+### 23.2 Nonlinear transfer calculation: pre-execution criteria
+
+The primary program is `computations/matter_formation_chemotactic_transfer.py`; the independent verifier is `computations/verify_matter_formation_chemotactic_transfer.py`. Require fresh output directories, UTF-8 finite JSON and source/array SHA-256 identities. Freeze this unique section through the next heading of level three or higher, normalizing CRLF to LF, stripping final whitespace and appending one LF. Bind the canonical solver SHA-256 `258e8783294250b731d93e7b5869b8172558c8aa0742502330cf3dbb5e3c90cc` before evaluation. Missing or altered prerequisites give `INCONCLUSIVE`, exit one and empty scientific rows.
+
+Use the actual unmodified base solver on CPU with one Torch thread, float64 fields and complex128 Fourier coefficients. Retain the constructor's native Fourier-symbol arithmetic. Set $L=2\pi$, $D=0.03$, $\nu=0.02$, $\lambda=0.2$, $\rho_0=2$, $r=0.2$ and $A=0.8$. The four cases are `forward` ($\sigma=1$, $\chi=0.4$), `reverse` ($\sigma=-1$, $\chi=0.4$), `balanced` ($\sigma=0$, $\chi=0.4$) and `disabled` ($\sigma=1$, $\chi=0$). Every case sets the constructor's $\chi_Y=0.4/\varphi$; the disabled source guard removes both drift fluxes. Coordinates are $x=2\pi j/N$ on the final array axis. Initial fields are constant along the other two axes, $u=0$, and $E_Y=(\varphi\rho+\epsilon)/(1+\varphi)$, $E_I=(\rho-\epsilon)/(1+\varphi)$.
+
+1. **Exact algebra and instantaneous actual-source witnesses.** Qualify the population/flux transformations, periodic mean and quadratic-budget identities, and both trigonometric witness integrals exactly. At $N=16$, evaluate all four actual source right-hand sides. Save the full initial and derivative fields, projected velocity derivative, one-dimensional native symbol and mask. Reconstruct the right-hand sides independently from the one-dimensional population equations and Fourier symbols. Require normalized source reconstruction error at most $10^{-10}$, analytic continuum budget residual at most $10^{-8}$, mean-density rate and mean-imbalance rate residual at most $10^{-12}$, and projected velocity rate at most $10^{-12}$. The forward density budget must be positive; the reverse, balanced and disabled budgets must be negative.
+
+2. **Direct controlled evolution.** Run actual `rk2_step`, without clipping or rescaling, to $T=20$. Run `forward` at $(N,\Delta t)=(16,0.02),(16,0.01),(16,0.005),(32,0.01)$; run each other case at $(16,0.01)$. Save every step's Yang/Yin plane profiles, actual three-dimensional means and minima, maximum velocity, and departure from transverse uniformity. Preserve native symbols and masks. Require finite arrays, positive component minima, mean-density error at most $10^{-11}$, $\bar\epsilon(t)=\bar\epsilon(0)e^{-\gamma t}$ to $10^{-11}$, maximum velocity and transverse nonuniformity at most $10^{-10}$. No floor, saturation or normalization correction is permitted.
+
+3. **Independent dynamics and numerical qualification.** The verifier imports neither the primary program nor the canonical solver. It reconstructs the native symbol and mask, advances the two one-dimensional population equations with its own NumPy RK2 implementation, and compares all stored profile samples with normalized maximum error at most $10^{-9}$. For the three forward $N=16$ endpoints, require the coarse/medium versus medium/fine field-difference ratio between $3.5$ and $4.5$, with the fine difference above $10^{-12}$. Require the matched-step $N=16$ and $N=32$ endpoints to agree on their common nodes to $5\times10^{-4}$. All four initial witness arrays and seven complete trajectory arrays must qualify.
+
+4. **Physical comparison and scope.** On the forward $N=16$, $\Delta t=0.01$ trajectory at $t=0.1$, density variance must exceed its initial value by $10^{-5}$ and exceed the reverse-case variance by $10^{-5}$. Report the maximum variance ratio, its sample time and the endpoint ratio for every trajectory. An endpoint ratio above one means contrast remains above its initial value through this observation window; an endpoint ratio at or below one means the initial enhancement does not persist through the endpoint. Neither classification establishes a localized matter carrier, a physical mass or asymptotic stability.
+
+All groups must pass for `SUPPORTS—nonlinear composition-to-density transfer in the base solver`; any qualification mismatch gives `INCONCLUSIVE`. Run one primary scientific invocation and one independent verifier invocation. Run separate missing-section and altered-section primary controls and one verifier missing-array control; each must fail before scientific output. Preserve all attempts. Stop after this schedule; physical inputs, metrics and thresholds cannot be changed in response to the result. An implementation repair requires its immutable failure evidence and a separately recorded source revision.
+
 ## References
 
 - `computations/matter_formation_canonical_excitation.py`—actual canonical-source Jacobians, finite-time trajectories and observable-map witnesses.
