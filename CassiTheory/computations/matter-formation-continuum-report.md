@@ -28,6 +28,8 @@ The specified harmonic scalar potential plus the subtracted one-loop vacuum rema
 
 The declared full positive-density configuration spaces are contractible, including a separate root-$H^2$ domain that preserves fourth-gradient energy. Eight exact-algebra groups qualify the contraction certificates and their boundary/metric restrictions. A regular scale-independent zero-flux gauge subspace also has a trivial ordinary $2\pi$ rotation class after projection. These scoped results constrain routes to a fermionic sign; the physical statistics and particle identification required for matter formation remain open (§§12.7–12.9).
 
+Four exact scaling groups also qualify a static localization obstruction for the source-free, zero-vacuum positive-root energy with nonnegative coefficients. Its fourth-gradient term permits a spatial scaling balance, but amplitude reduction lowers the unconstrained energy and fixed-population dilution lowers all terms toward zero. A compact-target or charged soliton requires additional field-space and action assumptions (§§12.11–12.12).
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -1039,6 +1041,57 @@ Use SymPy exact arithmetic, with no coefficient search or numerical tolerance. A
 The values $u_\rho=u_\varphi=u_H=4$ in §1 are coefficients of the separate gauge-carrier potential. They are not the spatial scaling powers in this calculation and supply no coefficient or field-space map for importing $\kappa_4$ into that action. The local one-loop functional in §16 is also a different energy. A successful scaling check here neither repairs its global unboundedness nor changes the chosen gauge vacuum's trivial $\pi_2$ and confined monopole flux.
 
 After the four groups and missing-record control, stop. No new topological soliton, compact target, quantum sign or physical particle is selected by this calculation.
+
+### 12.12 Fourth-gradient qualification and variational consequence
+
+The source-free positive-root lift admits no nonzero static local energy minimum in the domain of §12.11. This conclusion follows from admissible energy-lowering paths, including when a fixed population is imposed as a mathematical constraint.
+
+**Amplitude variation.** For a nonzero finite-norm field, $T_2>0$ and the other terms are nonnegative. The path $u_a=au$ stays nonnegative and finite-energy. Its exact energy is
+
+$$
+\mathcal E[u_a]=a^2(T_2+T_4)+a^4V_4,
+\qquad
+\boxed{\left.\frac{d\mathcal E[u_a]}{da}\right|_{a=1}
+=2T_2+2T_4+4V_4>0.}
+$$
+
+An arbitrarily small reduction of $a$ lowers the energy. For a sufficiently regular static stationary solution of the unconstrained action, the same admissible variation would require the derivative to vanish, so no such nonzero solution exists in this class.
+
+**Fixed-population variation.** The dilation
+$u_L(x)=L^{-3/2}u(x/L)$ preserves $\int|u|^2$ and stays in the same homogeneous infinite-volume domain. Direct change of variables gives
+
+$$
+\mathcal E[u_L]
+=L^{-2}T_2+L^{-4}T_4+L^{-3}V_4,
+\qquad
+\boxed{\left.\frac{d\mathcal E[u_L]}{dL}\right|_{L=1}
+=-2T_2-4T_4-3V_4<0.}
+$$
+
+Dilation is strongly continuous in the stated Sobolev class, so arbitrarily small increases of $L$ provide nearby lower-energy configurations. The energy approaches zero as $L\to\infty$. Its infimum at nonzero fixed population is therefore zero and is unattained by a localized finite-norm field. An additional nonnegative quadratic mass term would be constant at fixed population and would leave this dilution argument unchanged.
+
+**Why the fourth derivative is insufficient.** At fixed amplitude, spatial dilation instead gives
+
+$$
+\mathcal E[u(x/L)]=LT_2+L^{-1}T_4+L^3V_4.
+$$
+
+The fourth-gradient term can oppose shrinking and permit a zero derivative along this one path. In the registered formal energy triple $(1,4,1)$, that derivative is zero and the curvature is $14$, while the amplitude derivative is also $14$. This control demonstrates the omitted variation. The triple is an algebraic energy example, with no identification as physical coupling values or a numerical field solution.
+
+A Skyrme comparison requires a different configuration space: for example, a physical compact target $U(x)\in SU(2)$ with fixed boundary value and a conserved map degree in $\pi_3(SU(2))$. The amplitude reduction used above is unavailable on that constrained target. A four-derivative stabilizer may then balance the two-derivative term, and the degree sector's rotation/exchange classes require a specified quantization. The existing $\kappa_4|\Delta u|^2$ term acts on an unrestricted positive-root pair; it supplies no such target, degree, FR character or physical coefficient map. A vacuum gauge orbit alone does not select these ingredients.
+
+**Executed qualification.** All four exact-algebra groups pass with an empty failure list. The verdict is `SUPPORTS—absence of static localization in the declared source-free positive-root energy`. The successful process exits zero. The missing-record control exits one with `INCONCLUSIVE`, no checks and no identities. These are algebra and variational results; no field evolution or nonlinear stability experiment is reported.
+
+| Evidence | Identity |
+|---|---|
+| Source commit | `807daab3` |
+| Canonical program SHA-256 | `af8a4bf1dfa552acc50fa795d28d122ecdb674109b7791d69ec4055a1aa4d73f` |
+| Frozen §12.11 SHA-256 | `7bdc796f77e395f0d242a34f63936a0e4b54872cfa0a6df4b58dddba02fb5333` |
+| Raw `runs/20260906_matter_formation_kappa4_selection/results.json` SHA-256 | `17faa54f8176e079b445ab82762c3e75aa921a02b267867edcd6f38863582f50` |
+| Raw missing-record control SHA-256 | `d347928f1fcc0b6dbd8092537db20685ab297db3624a3258d83f247aa4eaf176` |
+
+The full failure-control path is `runs/20260906_matter_formation_kappa4_selection_missing_record/results.json`; the successful directory also preserves the frozen `protocol.txt`. The nonzero-vacuum gauge-carrier branch, its prepared scalar states, the nonlocal quantum problem and time-dependent excitations retain their separate boundaries. This calculation changes none of their measured verdicts.
+
 ## 13. Positive spinor observables and the conversion boundary
 
 ### 13.1 Comparison convention and independent methods
@@ -1636,6 +1689,7 @@ python computations/matter_formation_scalar_vacuum_sign_check.py --output-dir ru
 python computations/matter_formation_yukawa_bulk.py
 python computations/verify_matter_formation_yukawa_bulk.py
 python computations/matter_formation_scalar_topology.py
+python computations/matter_formation_kappa4_selection.py
 ```
 
 These reproduction commands use separate destinations. Choose unused directory names before executing them. The spatial-receipt verifier checks the named accepted spatial evidence and writes a fresh control receipt. The collective-binding verifier receives matching explicit input and output directories for the newly generated primary result.
@@ -1647,6 +1701,7 @@ python computations/matter_formation_scalar_vacuum_sign_check.py --output-dir ru
 python computations/matter_formation_yukawa_bulk.py --output-dir runs/repro_matter_formation_yukawa_bulk
 python computations/verify_matter_formation_yukawa_bulk.py --input-dir runs/repro_matter_formation_yukawa_bulk --output-dir runs/repro_matter_formation_yukawa_bulk
 python computations/matter_formation_scalar_topology.py --output-dir runs/repro_matter_formation_scalar_topology
+python computations/matter_formation_kappa4_selection.py --output-dir runs/repro_matter_formation_kappa4_selection
 ```
 
 The lattice diagnostic and algebraic witness are in `runs/20260906_matter_formation/`. The 27 radial endpoint arrays, primary results, independent verification and two collocation arrays are in `runs/20260906_matter_formation_radial/`. The charge and coefficient schedule is frozen; changing an output directory does not authorize a new physical scan. The primary and independent programs preserve first-execution receipts.
@@ -1658,6 +1713,20 @@ The remaining physical requirements are a selected microscopic production action
 The evidence assembled here leaves the production action, initial quantum state, absolute normalization and physical particle identification unselected. The finite-mode Yukawa action and the scalar temporal parent describe distinct candidate systems. The cited Friedberg–Lee–Sirlin and chiral Yukawa constructions provide comparison models with explicitly supplied microscopic field content. The recorded Cassi substrate supplies no demonstrated rule that selects those ingredients or their physical matching.
 
 A further formation campaign therefore requires a specified candidate action and a physical justification for its state, normalization and particle assignment. Any imposed choice retains its stated assumption status. More spectral qualification of the prepared scalar branch cannot determine these missing inputs. The sealed spatial, domain and continuum receipts remain reusable evidence with their individual verdicts; this boundary authorizes no repeat of a rejected hypothesis at full cost.
+
+The finite source check below separates a supplied model ingredient from a physical selection by the canonical substrate. “Yes” in the first two columns means the named section explicitly supplies the ingredient as an assumption. The normalization column asks for a complete bridge from the canonical densities to physical fields and units; a model norm or external mass anchor alone does not meet it. The final column asks for a derived microscopic particle identity.
+
+| Candidate-bearing source | Fermionic action supplied? | Production quantum state supplied? | Canonical physical normalization selected? | Particle identity derived? |
+|---|---|---|---|---|
+| `foundations/unified-lagrangian.md` §§2.1–2.4 | Yes—independent free Dirac field | No | No | No—spin and mass are supplied |
+| `foundations/unified-lagrangian.md` §2.5 and this record §14 | Yes—selected scalar mass interaction | Yes—finite-mode vacuum witness | No | No—fermion content is supplied |
+| `foundations/sector-coupling-derivation.md` §§1.1–1.4 | No admissible coupling from the displayed chiral-scalar enforcement term | No | No | No |
+| `particles/cassi-yang-yin-particles.md` §§5, 7 | No—complex scalar NLS proxy | No—classical wave initial data | No | No |
+| `standard-model/sm-from-phi.md` §5 | Yes—Hypothesized Standard-Model-like extension | No production-state prescription | No | No—representations and reference couplings are supplied |
+
+This check finds explicit optional fermionic models, including the executed production witness. It finds no canonical selection of their full physical normalization and identity. The scalar topology proofs make the trivial-domain boundary explicit; they do not remove the need for those inputs. Separated exchange sectors permit a sign choice, large-gauge sectors permit degree characters, and a compact-target soliton introduces new field constraints. None is selected by the positive-root normalization or by a $\varphi$-arithmetic coefficient assignment.
+
+A further candidate must state its additional microscopic assumptions and how its own energy, vacuum sector and conserved structure address the relevant restrictions. In particular, a topology-based proposal needs a physical target and gauge quotient, an admissible nontrivial sector, a stabilizing action, a rotation/exchange quantization and a production mechanism. A supplied Dirac proposal instead needs a real density bridge, a physically justified quantum state and normalization, and a stable renormalized spatial theory. The recorded scalar-to-fermion map and local one-loop energy cannot be reused without their demonstrated obstructions.
 
 ### 17.2 Pending document integration and local publication status
 
@@ -1684,7 +1753,7 @@ The three registries and `audit.md` contain draft integration of the finite-mode
 
 The collective-binding exclusion in §§15.6–15.7 is also pending public propagation. The consolidated checkpoint must carry its restricted local-density, $|m|\le1$ and specified-vacuum-prescription scope into `EPISTEMIC-MAP.md`, `audit.md`, and the relevant existing matter-formation entries in `open-questions-cassi-answers.md` and `predictions/falsifiable-predictions.md`. This calculation supplies a conditional model constraint; it introduces no new experiment-ready physical prediction.
 
-The scalar and gauge rotation results in §§12.7–12.9 also remain in this working record pending the same consolidated checkpoint. Their domain, quantization and boundary assumptions must accompany any later propagation; they establish no universal exclusion of emergent fermions and no experiment-ready prediction.
+The topology and fourth-gradient results in §§12.7–12.12 also remain in this working record pending the same consolidated checkpoint. Their domain, quantization and boundary assumptions must accompany any later propagation; they establish no universal exclusion of emergent fermions and no experiment-ready prediction.
 
 Preserve this set separately from local research commits. A consolidated publication checkpoint must reconcile the registries, `EPISTEMIC-MAP.md`, `audit.md`, domain treatment and supporting indexes before these hunks enter a public commit. Their present status is explicitly handed off; no bulk staging, silent reversion or intermediate propagation is authorized.
 
@@ -1696,6 +1765,11 @@ Preserve this set separately from local research commits. A consolidated publica
 - [Cork and Harland, *Finkelstein–Rubinstein constraints from ADHM data and rational maps*](https://arxiv.org/html/2401.16494v2)—configuration-space loop classes and FR wavefunction signs in the Skyrme comparison model.
 - `runs/20260906_matter_formation_scalar_topology/results.json`—eight-group exact-algebra receipt for the scalar-domain contractions.
 - `runs/20260906_matter_formation_scalar_topology_missing_record/results.json`—missing-record failure control with empty scientific payload.
+- `computations/matter_formation_kappa4_selection.py`—frozen exact scaling certificates and the one-direction-minimum scope control.
+- `runs/20260906_matter_formation_kappa4_selection/results.json`—four-group exact scaling qualification.
+- `runs/20260906_matter_formation_kappa4_selection_missing_record/results.json`—missing-record scaling failure control.
+- `particles/cassi-yang-yin-particles.md` §§5, 7—supplied scalar NLS proxy and its particle-identity boundary.
+- `standard-model/sm-from-phi.md` §5—Hypothesized fermionic/gauge action with supplied representations.
 - `foundations/particle-stationary-action-closure.md` §§1–6—optional gauge action, fixed carrier population, Gauss constraint and outer/scale boundary inventory.
 
 - `computations/matter-formation-continuum-prereg.md`—frozen continuum, lattice and creation calculations.
