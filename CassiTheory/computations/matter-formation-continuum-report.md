@@ -36,6 +36,8 @@ An explicitly supplied compact $SU(2)_{\rm top}$ target with positive two- and f
 
 The conditional fundamental-plus-adjoint gauge sector has a physical relative $S^2$ target at fixed nonzero norms; its composition-minimizing subset is a circle. Eight exact-algebra groups qualify this distinction, exact cancellation of joint gauge rotations, an uncontrolled screening scale for the induced local four-derivative balance, and a shrinking sequence with zero energy infimum in each restricted Hopf class. A separate two-coordinate minimum prevents extending that infimum result into an unsupported assertion of universal local instability (§19).
 
+A smooth unit-Hopf trial with finite composition energy fails a stricter size/connection stability criterion at the retained dimensionless coefficient set. Four calculation groups qualify $\kappa=2128(3+\sqrt5)/27225>16/75$, which forces negative connection-amplitude curvature at every stationary point within that family. This shape-specific result leaves the stability of general relative-field configurations and their production dynamics open (§§19.7–19.9).
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -2235,7 +2237,7 @@ C_0&=\int(N_{0,3}-c)^2d^3x\\
 $$
 The potential coefficient in §19.4 is $V_0=wC_0$. The rational profile permits beta-integral evaluation of these convergent integrals and hence of the exact two-coordinate energy, including the freely varying connection amplitude. This tests a family in the full fixed-norm energy without integrating out the gauge field.
 
-There is a sufficient instability criterion for this family at $t=4/5$. At any stationary point of $\mathscr E(x,s)$, $M'>0$ and $F'>0$ exclude $t\le s\le1$, while their common signs exclude $s\le0$ and $s\ge2$. The remaining ranges are $0<s<t$ and $1<s<2$, where $y=x^2=-F'/M'>0$. Since $M>0$,
+There is a sufficient instability criterion for this family at $t=4/5$. The stationary amplitude equation $x^2M'+F'=0$ excludes $s\le0$, $t\le s\le1$ and $s\ge2$: in these ranges its two terms have the same weak sign and do not vanish together. The remaining ranges are $0<s<t$ and $1<s<2$, where $y=x^2=-F'/M'>0$. Since $M>0$,
 $$
 \kappa=\frac{F-My}{3y^2}<\frac{F}{3y^2}.
 $$
@@ -2272,8 +2274,52 @@ on its convergence domain. Independently integrate the rational radial densities
 
 If all algebraic and quadrature prerequisites pass and $\kappa>16/75$, return `CONTRADICTS—local minimum of the registered-coefficient Hopf size/connection trial`. If the prerequisites pass but that sufficient inequality fails, return `INCONCLUSIVE—sufficient trial instability criterion is not met`; this supplies no stability verdict. Any failed identity, quadrature or provenance prerequisite gives `INCONCLUSIVE`. Run one scientific invocation and separate missing/altered-section controls, both of which must exit unsuccessfully with empty scientific rows. Stop after this schedule. The distinct two-coordinate minimum in §19.6 remains a control against extending this coefficient-and-shape-specific result to all parameters or all fields.
 
+### 19.9 Qualified registered-coefficient trial result
+
+The explicit finite-energy Hopf trial has no local minimum in its size/connection-amplitude family at the retained dimensionless coefficients. All four calculation groups pass: 25 exact identities and three independent 50-digit radial quadratures. The frozen verdict is `CONTRADICTS—local minimum of the registered-coefficient Hopf size/connection trial`.
+
+The exact integrals are
+$$
+A_0=\frac{704\pi^2}{27},\qquad
+B_0=\frac{42560\pi^2}{729},\qquad
+C_0=\frac{64\pi^2(3-\sqrt5)}{45},
+$$
+with unit radial degree. The independently integrated values are respectively
+$257.34079623581142472812895051528927404669794009991$,
+$576.20077271654746614210690940292042842105767732808$ and
+$10.72313863310388699898257601002428805910527427743$.
+They agree with the beta-integral expressions at the working precision; the printed zero relative errors denote agreement at that precision.
+
+The dimensionless shape/connection parameter satisfies
+$$
+\boxed{
+\kappa=\frac{2128(3+\sqrt5)}{27225}
+=0.409269151739928465526491150305
+>\frac{16}{75}.
+}
+$$
+Consequently every stationary point within this family has negative curvature along the connection-amplitude direction. The endpoint argument in §19.7 applies to all positive sizes and all real constant connection amplitudes; no numerical root scan is used.
+
+This is a restricted variational result in the full fixed-norm gauge energy. Shape deformations, variable norms, spatially varying connection responses and time evolution are outside the trial. A general absence of metastable Hopf configurations does not follow. The calculation supplies no selected quantum statistics, physical normalization or matter-production trajectory. These remain requirements of the complete formation objective.
+
+Evidence identities:
+
+- Program `computations/matter_formation_relative_trial.py`, canonical CRLF-to-LF SHA-256 `1bb05b8ac9b087cc6af5f47c49ea49a24447534eb79ba04df8db23f90915553d`.
+- Frozen §19.8 SHA-256 `c8c3abd56f811291c4ef0cd2933d523a69c8499d47bea533140deec920065630`.
+- Scientific receipt `runs/20260906_matter_formation_relative_trial/results.json`, raw SHA-256 `310215f270ca34563191f87cb21623cca2e3dc0ed1b101a626edeeafc54e3b30`.
+- Missing-record control `runs/20260906_matter_formation_relative_trial_missing_record/results.json`, raw SHA-256 `070143221858d786eee097547cd9aa0a90cd19418c72bd4f6a15ebed5356dfb3`.
+- Altered-record control `runs/20260906_matter_formation_relative_trial_altered_record/results.json`, raw SHA-256 `59e4252627ae5188c79cc2b3dbcdcdea9dcb1ba64752cc9f2f4caa49b0d7c3de`.
+
+Both provenance controls exit 1 with empty scientific rows. The program contains the exact algebra and independent radial quadrature; there is no separate verifier program for this trial. Reproduction uses a fresh destination:
+
+```bash
+python computations/matter_formation_relative_trial.py --output-dir runs/<fresh-relative-trial-name>
+```
+
 ## References
 
+- `computations/matter_formation_relative_trial.py`—registered-coefficient finite-energy Hopf trial, exact instability criterion and independent radial quadrature.
+- `runs/20260906_matter_formation_relative_trial/results.json`—four-group trial receipt with exact integrals and qualified family-specific verdict.
 - `computations/matter_formation_relative_orientation.py`—exact relative-target, gauge-screening, derivative-expansion and full-energy collapse calculation.
 - `foundations/geometric-manifold-completion.md`—optional phase-bearing doublet and normalized fibre.
 - `foundations/interscale-current-soliton.md`—phase, composition and gradient assumptions.
