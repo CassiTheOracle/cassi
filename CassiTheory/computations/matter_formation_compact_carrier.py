@@ -11,19 +11,22 @@ import hashlib
 import json
 import math
 import sys
+import warnings
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import sympy as sp
-from scipy.integrate import quad, solve_bvp
+from scipy.integrate import IntegrationWarning, quad, solve_bvp
 from scipy.interpolate import CubicHermiteSpline
 from scipy.linalg import eigh_tridiagonal
 from scipy.optimize import brentq
 
-SCHEMA = "matter-formation-compact-carrier-v1"
-EXPECTED_PROTOCOL_SHA = "c13cdd8b8a3f6f704e0cb0a25f2412acdbd9f5ea7a4ad109babf4140eaca3a57"
-HEADING = "### 18.2 Radial carrier qualification: pre-execution criteria\n"
+SCHEMA = "matter-formation-compact-carrier-v2"
+EXPECTED_PROTOCOL_SHA = "3fbb5a53a15dc9309e98c9ca08277522d96dc0aa61a534913fbc8c8f52fa8406"
+HEADING = "### 18.5 Shifted-angle precision calculation: pre-execution criteria\n"
+BASE_HEADING = "### 18.2 Radial carrier qualification: pre-execution criteria\n"
+BASE_SHA = "c13cdd8b8a3f6f704e0cb0a25f2412acdbd9f5ea7a4ad109babf4140eaca3a57"
 EPSILON = 1.0e-5
 
 
@@ -55,19 +58,19 @@ def write_json_exclusive(path: Path, obj: dict[str, Any]) -> None:
     write_exclusive(path, payload.encode("utf-8"))
 
 
-def extract_protocol(note: Path) -> tuple[str, str]:
+def extract_protocol(note: Path, heading: str = HEADING) -> tuple[str, str]:
     text = note.read_bytes().decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
-    if text.count(HEADING) != 1:
+    if text.count(heading) != 1:
         raise ValueError("frozen section heading is missing or not unique")
-    start = text.index(HEADING)
+    start = text.index(heading)
     rest = text[start:]
-    if len(rest) == len(HEADING):
+    if len(rest) == len(heading):
         section = rest
     else:
         import re
 
-        match = re.search(r"\n#{1,3} ", rest[len(HEADING) :])
-        section = rest if match is None else rest[: len(HEADING) + match.start() + 1]
+        match = re.search(r"\n#{1,3} ", rest[len(heading) :])
+        section = rest if match is None else rest[: len(heading) + match.start() + 1]
     section = section.rstrip() + "\n"
     return section, sha256_bytes(section.encode("utf-8"))
 
@@ -112,6 +115,7 @@ def exact_controls() -> list[dict[str, Any]]:
     residual = sp.simplify(d_dp - sp.diff(lagrangian, ff))
     declared = sp.simplify(2 * (M * q + 2 * r * p + sp.sin(2 * ff) * (p**2 - 1 - sp.sin(ff) ** 2 / r**2)))
     euler_residual = sp.simplify(residual - declared)
+    shifted_residual = sp.trigsimp(declared.subs({ff: sp.pi - ff, p: -p, q: -q}, simultaneous=True) + declared)
 
     rows = [
         {"name": "degree", "pass": bool(sp.simplify(degree - 1) == 0), "evidence": f"symbolic degree = {degree}"},
@@ -120,6 +124,7 @@ def exact_controls() -> list[dict[str, Any]]:
         {"name": "trial_scale", "pass": bool(sp.simplify(stationary - 1 / sp.sqrt(2)) == 0), "evidence": f"stationary R = {stationary}"},
         {"name": "trial_bound_ratio", "pass": bool(sp.simplify(normalized - sp.sqrt(2)) == 0), "evidence": f"normalized minimum = {normalized}"},
         {"name": "euler_equation", "pass": bool(euler_residual == 0), "evidence": f"Euler residual after differentiation = {euler_residual}"},
+        {"name": "shifted_euler_equivalence", "pass": bool(shifted_residual == 0), "evidence": f"shifted Euler identity = {shifted_residual}"},
     ]
     return rows
 
@@ -133,30 +138,32 @@ def ode_values(r: np.ndarray, f: np.ndarray, fp: np.ndarray) -> np.ndarray:
 def solve_profile(L: float) -> tuple[dict[str, Any], np.ndarray, np.ndarray, np.ndarray, CubicHermiteSpline, np.ndarray]:
     x0 = np.geomspace(EPSILON, L, 601)
     trial_R = 1.0 / math.sqrt(2.0)
-    y0 = np.vstack((2.0 * np.arctan(trial_R / x0), -2.0 * trial_R / (x0 * x0 + trial_R * trial_R)))
+    y0 = np.vstack((2.0 * np.arctan(x0 / trial_R), 2.0 * trial_R / (x0 * x0 + trial_R * trial_R)))
 
     def fun(x: np.ndarray, y: np.ndarray) -> np.ndarray:
         return np.vstack((y[1], ode_values(x, y[0], y[1])))
 
     def bc(left: np.ndarray, right: np.ndarray) -> np.ndarray:
-        return np.array([left[0] - math.pi - EPSILON * left[1], right[1] + 2.0 * right[0] / L])
+        return np.array([left[0] - EPSILON * left[1], right[1] - 2.0 * (math.pi - right[0]) / L])
 
     sol = solve_bvp(fun, bc, x0, y0, tol=1.0e-8, max_nodes=50000, verbose=0)
-    x, f, fp = (np.asarray(sol.x, dtype=np.float64), np.asarray(sol.y[0], dtype=np.float64), np.asarray(sol.y[1], dtype=np.float64))
+    x, theta, thetap = (np.asarray(sol.x, dtype=np.float64), np.asarray(sol.y[0], dtype=np.float64), np.asarray(sol.y[1], dtype=np.float64))
     rms = np.asarray(sol.rms_residuals, dtype=np.float64)
     status = int(sol.status)
     message = str(sol.message)
-    if x.ndim != 1 or f.ndim != 1 or fp.ndim != 1 or rms.ndim != 1 or len(rms) != len(x) - 1:
+    if x.ndim != 1 or theta.ndim != 1 or thetap.ndim != 1 or rms.ndim != 1 or len(rms) != len(x) - 1:
         raise ValueError("solve_bvp returned malformed profile arrays")
-    if not all(np.all(np.isfinite(values)) for values in (x, f, fp, rms)):
+    if not all(np.all(np.isfinite(values)) for values in (x, theta, thetap, rms)):
         raise ValueError("solve_bvp returned nonfinite profile data")
-    spline = CubicHermiteSpline(x, f, fp)
-    return {"solver_status": status, "solver_message": message}, x, f, fp, spline, rms
+    spline = CubicHermiteSpline(x, theta, thetap)
+    spline.c *= -1.0
+    spline.c[-1] += math.pi
+    return {"solver_status": status, "solver_message": message}, x, theta, thetap, spline, rms
 
 
-def radial_integrals(L: float, x: np.ndarray, f: np.ndarray, fp: np.ndarray, spline: CubicHermiteSpline) -> dict[str, float]:
-    b = float(fp[0])
-    c = float(L * L * f[-1])
+def radial_integrals(L: float, x: np.ndarray, theta: np.ndarray, thetap: np.ndarray, spline: CubicHermiteSpline) -> dict[str, float]:
+    b = -float(thetap[0])
+    c = float(L * L * (math.pi - theta[-1]))
 
     def density(r: float, fv: float, pv: float) -> tuple[float, float, float]:
         s = math.sin(fv)
@@ -183,25 +190,25 @@ def radial_integrals(L: float, x: np.ndarray, f: np.ndarray, fp: np.ndarray, spl
     vals: list[float] = []
     for which in range(3):
         val = quad(lambda z: inner(which, z), 0.0, EPSILON, epsabs=1.0e-10, epsrel=1.0e-10, limit=200)[0]
-        val += quad(lambda z: middle(which, z), EPSILON, L, epsabs=1.0e-10, epsrel=1.0e-10, limit=500)[0]
+        val += quad(lambda z: middle(which, z), EPSILON, L, points=x[1:-1], epsabs=1.0e-10, epsrel=1.0e-10, limit=max(500, len(x)))[0]
         val += quad(lambda z: outer(which, z), 0.0, 1.0 / L, epsabs=1.0e-10, epsrel=1.0e-10, limit=200)[0]
         vals.append(float(val))
     half = float(brentq(lambda z: float(spline(z)) - math.pi / 2.0, EPSILON, L))
-    return {"E2": 4.0 * math.pi * vals[0], "E4": 4.0 * math.pi * vals[1], "degree": vals[2], "origin_slope": b, "outer_value": float(f[-1]), "half_angle_radius": half}
+    return {"E2": 4.0 * math.pi * vals[0], "E4": 4.0 * math.pi * vals[1], "degree": vals[2], "origin_slope": b, "outer_value": float(math.pi - theta[-1]), "half_angle_radius": half}
 
 
 def profile_row(L: int, output_dir: Path) -> tuple[dict[str, Any], CubicHermiteSpline, np.ndarray, np.ndarray, np.ndarray]:
-    info, x, f, fp, spline, rms = solve_profile(float(L))
+    info, x, theta, thetap, spline, rms = solve_profile(float(L))
     path = output_dir / f"profile_L{L}.npz"
     with path.open("xb") as handle:
-        np.savez(handle, x=np.asarray(x, dtype=np.float64), f=np.asarray(f, dtype=np.float64), fp=np.asarray(fp, dtype=np.float64), rms_residuals=np.asarray(rms, dtype=np.float64))
+        np.savez(handle, x=x, theta=theta, thetap=thetap, rms_residuals=rms)
     raw_hash = sha256_bytes(path.read_bytes())
     uniform = np.linspace(EPSILON, float(L), 10001)
     fu = np.asarray(spline(uniform), dtype=np.float64)
     fpu = np.asarray(spline(uniform, 1), dtype=np.float64)
     if not np.all(np.isfinite(fu)) or not np.all(np.isfinite(fpu)):
         raise ValueError("interpolated profile is nonfinite")
-    stats = radial_integrals(float(L), x, f, fp, spline)
+    stats = radial_integrals(float(L), x, theta, thetap, spline)
     if not all(math.isfinite(value) for value in stats.values()):
         raise ValueError("profile measurement is nonfinite")
     E2, E4 = stats["E2"], stats["E4"]
@@ -210,13 +217,13 @@ def profile_row(L: int, output_dir: Path) -> tuple[dict[str, Any], CubicHermiteS
         "artifact": {"path": path.name, "sha256": raw_hash},
         "solver_status": int(info["solver_status"]), "solver_message": info["solver_message"],
         "node_count": int(len(x)), "rms_max": float(np.max(rms)),
-        "boundary_residuals": [abs(float(f[0] - math.pi - EPSILON * fp[0])), abs(float(fp[-1] + 2.0 * f[-1] / L))],
+        "boundary_residuals": [float(-theta[0] + EPSILON * thetap[0]), float(-thetap[-1] + 2.0 * (math.pi - theta[-1]) / L)],
         "profile_min": float(np.min(fu)), "profile_max": float(np.max(fu)), "derivative_max": float(np.max(fpu)),
         "E2": float(E2), "E4": float(E4), "energy": float(E2 + E4), "normalized_energy": float((E2 + E4) / (12.0 * math.pi * math.pi)),
         "degree": float(stats["degree"]), "origin_slope": float(stats["origin_slope"]), "outer_value": float(stats["outer_value"]),
         "half_angle_radius": float(stats["half_angle_radius"]), "virial_defect": float(abs(E2 - E4) / (E2 + E4)),
     }
-    return row, spline, x, f, fp
+    return row, spline, x, theta, thetap
 
 
 def spectrum_row(L: int, h: float, spline: CubicHermiteSpline, output_dir: Path) -> dict[str, Any]:
@@ -263,6 +270,30 @@ def add_check(checks: list[dict[str, Any]], failures: list[str], name: str, cate
     if not passed:
         failures.append(name)
 
+def conditioning_evidence(root: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    direct_dir = root / "runs" / "20260906_matter_formation_compact_carrier"
+    reference_path = root / "runs" / "20260906_matter_formation_compact_carrier_verification" / "results.json"
+    primary_hash = sha256_bytes((direct_dir / "results.json").read_bytes())
+    reference_hash = sha256_bytes(reference_path.read_bytes())
+    if primary_hash != "91fb84409803a2a9574bbf01a733eabf30b730c8ca47ecaab78d76a77277e646":
+        raise ValueError("direct-angle receipt identity mismatch")
+    if reference_hash != "32e0d0487b6916e00e2ac5f2d6986c81deb2be012945ccca7b2b91e4ecfb4d49":
+        raise ValueError("direct-angle reference identity mismatch")
+    direct = json.loads((direct_dir / "results.json").read_text(encoding="utf-8"))
+    reference = json.loads(reference_path.read_text(encoding="utf-8"))
+    locations = []
+    for row in direct["profiles"]:
+        path = direct_dir / row["artifact"]["path"]
+        if sha256_bytes(path.read_bytes()) != row["artifact"]["sha256"]:
+            raise ValueError("direct-angle raw profile identity mismatch")
+        with np.load(path, allow_pickle=False) as raw:
+            x, rms = raw["x"], raw["rms_residuals"]
+            index = int(np.argmax(rms))
+            locations.append({"L": row["L"], "artifact": row["artifact"],
+                              "peak_interval": index, "peak_midpoint": float((x[index] + x[index + 1]) / 2)})
+    return {"primary_sha256": primary_hash, "reference_sha256": reference_hash, "profiles": locations}, reference["profiles"]
+
+
 def build_receipt(root: Path, note: Path, output_dir: Path, source: Path) -> dict[str, Any]:
     program_id = source_identity(root, source)
     identities: dict[str, Any] = {"program": program_id}
@@ -273,6 +304,10 @@ def build_receipt(root: Path, note: Path, output_dir: Path, source: Path) -> dic
         write_exclusive(output_dir / "protocol.txt", section.encode("utf-8"))
         if protocol_hash != EXPECTED_PROTOCOL_SHA:
             return empty_receipt(identities, ["protocol_hash_mismatch"])
+        _, baseline_hash = extract_protocol(note, BASE_HEADING)
+        identities["baseline_protocol"] = {"heading": BASE_HEADING.rstrip(), "sha256": baseline_hash}
+        if baseline_hash != BASE_SHA:
+            return empty_receipt(identities, ["baseline_protocol_hash_mismatch"])
     except Exception as exc:
         return empty_receipt(identities, [f"missing_or_invalid_frozen_record: {exc}"])
 
@@ -281,6 +316,7 @@ def build_receipt(root: Path, note: Path, output_dir: Path, source: Path) -> dic
     splines: dict[int, CubicHermiteSpline] = {}
     failures: list[str] = []
     checks: list[dict[str, Any]] = []
+    identities["conditioning"], reference_profiles = conditioning_evidence(root)
     try:
         for L in (16, 32, 64):
             row, spline, _, _, _ = profile_row(L, output_dir)
@@ -299,7 +335,7 @@ def build_receipt(root: Path, note: Path, output_dir: Path, source: Path) -> dic
         failures.append(f"spectrum_execution: {exc}")
         return {"schema": SCHEMA, "identities": identities, "exact": exact, "profiles": profiles, "spectra": spectra, "checks": checks, "failures": failures, "numerical_pass": False, "verdict": "INCONCLUSIVE"}
 
-    add_check(checks, failures, "exact_controls", "qualification", all(bool(row["pass"]) for row in exact), "all six symbolic controls pass")
+    add_check(checks, failures, "exact_controls", "qualification", all(bool(row["pass"]) for row in exact), "all seven symbolic controls pass")
     for row in profiles:
         prefix = row["label"]
         finite = all(finite_float(row[k]) for k in ("rms_max", "profile_min", "profile_max", "derivative_max", "E2", "E4", "energy", "normalized_energy", "degree", "origin_slope", "outer_value", "half_angle_radius", "virial_defect"))
@@ -307,6 +343,12 @@ def build_receipt(root: Path, note: Path, output_dir: Path, source: Path) -> dic
         add_check(checks, failures, f"{prefix}_solve", "qualification", good, f"status={row['solver_status']}, rms_max={row['rms_max']:.17g}, boundary={row['boundary_residuals']}")
         energy_ok = bool(abs(row["degree"] - 1.0) <= 1.0e-7 and 1.0 <= row["normalized_energy"] <= math.sqrt(2.0) + 1.0e-7 and row["virial_defect"] <= 1.0e-4)
         add_check(checks, failures, f"{prefix}_energy_degree", "qualification", energy_ok, f"degree={row['degree']:.17g}, normalized_energy={row['normalized_energy']:.17g}, virial_defect={row['virial_defect']:.17g}")
+        reference = next(item for item in reference_profiles if item["L"] == row["L"])
+        for field in ("energy", "origin_slope", "half_angle_radius"):
+            delta = abs(row[field] - reference[field])
+            limit = 1e-6 * max(1.0, abs(row[field]), abs(reference[field]))
+            add_check(checks, failures, f"{prefix}_same_branch_{field}", "qualification", delta <= limit,
+                      f"difference={delta:.17g}, bound={limit:.17g}")
     p32, p64 = profiles[1], profiles[2]
     for field in ("energy", "origin_slope", "half_angle_radius"):
         delta = abs(p32[field] - p64[field]) / max(1.0, abs(p32[field]), abs(p64[field]))
@@ -334,6 +376,7 @@ def build_receipt(root: Path, note: Path, output_dir: Path, source: Path) -> dic
 
 
 def main(argv: list[str] | None = None) -> int:
+    warnings.simplefilter("error", IntegrationWarning)
     parser = argparse.ArgumentParser(description=__doc__)
     root = Path(__file__).resolve().parents[1]
     parser.add_argument("--note", type=Path, default=root / "computations" / "matter-formation-continuum-report.md")

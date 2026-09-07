@@ -7,12 +7,13 @@ import hashlib
 import json
 import math
 import re
+import warnings
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import sympy as sp
-from scipy.integrate import quad
+from scipy.integrate import IntegrationWarning, quad
 from scipy.interpolate import CubicHermiteSpline
 from scipy.linalg import eigh_tridiagonal
 from scipy.optimize import brentq
@@ -20,15 +21,17 @@ from scipy.optimize import brentq
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_NOTE = ROOT / "computations" / "matter-formation-continuum-report.md"
 PRIMARY_PATH = ROOT / "computations" / "matter_formation_compact_carrier.py"
-FROZEN_HASH = "c13cdd8b8a3f6f704e0cb0a25f2412acdbd9f5ea7a4ad109babf4140eaca3a57"
-SCHEMA = "matter-formation-compact-carrier-verification-v1"
+FROZEN_HASH = "3fbb5a53a15dc9309e98c9ca08277522d96dc0aa61a534913fbc8c8f52fa8406"
+BASE_HEADING = "### 18.2 Radial carrier qualification: pre-execution criteria\n"
+BASE_HASH = "c13cdd8b8a3f6f704e0cb0a25f2412acdbd9f5ea7a4ad109babf4140eaca3a57"
+SCHEMA = "matter-formation-compact-carrier-verification-v2"
 EPSILON = 1.0e-5
 RADII = (16.0, 32.0, 64.0)
 SPACINGS = (0.04, 0.02)
 VERDICT_SUPPORTS = "SUPPORTS—finite-domain stationary and radial energetic qualification of the declared compact-target carrier"
 VERDICT_CONTRADICTS = "CONTRADICTS—radial energetic stability of the declared compact-target carrier"
 VERDICT_INCONCLUSIVE = "INCONCLUSIVE"
-EXACT_NAMES = ("degree", "trial_E2", "trial_E4", "trial_scale", "trial_bound_ratio", "euler_equation")
+EXACT_NAMES = ("degree", "trial_E2", "trial_E4", "trial_scale", "trial_bound_ratio", "euler_equation", "shifted_euler_equivalence")
 
 
 def canonical_bytes(path: Path) -> bytes:
@@ -90,9 +93,8 @@ def safe(value: Any) -> Any:
     return value
 
 
-def extract_protocol(note: Path) -> tuple[str, str]:
+def extract_protocol(note: Path, heading: str = "### 18.5 Shifted-angle precision calculation: pre-execution criteria\n") -> tuple[str, str]:
     text = canonical_bytes(note).decode("utf-8")
-    heading = "### 18.2 Radial carrier qualification: pre-execution criteria\n"
     if text.count(heading) != 1:
         raise ValueError("frozen section heading is not unique")
     start = text.index(heading)
@@ -141,6 +143,7 @@ def exact_controls() -> list[dict[str, Any]]:
         ("trial_scale", sp.solve(sp.diff(3 * sp.pi * scale + 3 * sp.pi / (2 * scale), scale), scale)[0] == sp.sqrt(2) / 2, "stationary R = 1/sqrt(2)"),
         ("trial_bound_ratio", sp.simplify(4 * sp.pi * (3 * sp.pi * scale + 3 * sp.pi / (2 * scale)).subs(scale, 1 / sp.sqrt(2)) / (12 * sp.pi**2) - sp.sqrt(2)) == 0, "minimum E/(12*pi^2) = sqrt(2)"),
         ("euler_equation", sp.simplify(euler - stated) == 0, "differentiated radial density equals stated Euler equation"),
+        ("shifted_euler_equivalence", sp.trigsimp(stated.subs({f: sp.pi - f, fp: -fp, fpp: -fpp}, simultaneous=True) + stated) == 0, "physical and shifted Euler equations differ by an overall minus sign"),
     ]
     return [{"name": name, "pass": bool(ok), "evidence": evidence} for name, ok, evidence in checks]
 
@@ -182,10 +185,17 @@ def rms_reconstruction(x: np.ndarray, f: np.ndarray, fp: np.ndarray) -> np.ndarr
     return np.sqrt(0.5 * (32.0 / 45.0 * nmid + 49.0 / 90.0 * (n1 + n2)))
 
 
-def profile_measurements(x: np.ndarray, f: np.ndarray, fp: np.ndarray) -> dict[str, float]:
-    spline = CubicHermiteSpline(x, f, fp)
-    b = float(fp[0])
-    c = float(x[-1] ** 2 * f[-1])
+def physical_spline(x: np.ndarray, theta: np.ndarray, thetap: np.ndarray) -> CubicHermiteSpline:
+    result = CubicHermiteSpline(x, theta, thetap)
+    result.c = -result.c
+    result.c[-1, :] += math.pi
+    return result
+
+
+def profile_measurements(x: np.ndarray, theta: np.ndarray, thetap: np.ndarray) -> dict[str, float]:
+    spline = physical_spline(x, theta, thetap)
+    b = -float(thetap[0])
+    c = float(x[-1] ** 2 * (math.pi - theta[-1]))
     def e2_inner(r: float) -> float:
         ff = math.pi + b * r
         return r * r * b * b + 2.0 * math.sin(ff) ** 2
@@ -221,10 +231,10 @@ def profile_measurements(x: np.ndarray, f: np.ndarray, fp: np.ndarray) -> dict[s
     degree = q_core + q_mid + q_tail
     return {
         "E2": e2, "E4": e4, "energy": e2 + e4, "normalized_energy": (e2 + e4) / (12.0 * math.pi * math.pi),
-        "degree": degree, "origin_slope": b, "outer_value": float(f[-1]), "half_angle_radius": half,
+        "degree": degree, "origin_slope": b, "outer_value": float(math.pi - theta[-1]), "half_angle_radius": half,
         "virial_defect": abs(e2 - e4) / (e2 + e4), "profile_min": float(np.min(fu)), "profile_max": float(np.max(fu)),
-        "derivative_max": float(np.max(fpu)), "rms_max_reconstructed": float(np.max(rms_reconstruction(x, f, fp))),
-        "boundary_left": float(f[0] - math.pi - x[0] * fp[0]), "boundary_right": float(fp[-1] + 2.0 * f[-1] / x[-1]),
+        "derivative_max": float(np.max(fpu)), "rms_max_reconstructed": float(np.max(rms_reconstruction(x, theta, thetap))),
+        "boundary_left": float(-theta[0] + x[0] * thetap[0]), "boundary_right": float(-thetap[-1] + 2.0 * (math.pi - theta[-1]) / x[-1]),
     }
 
 
@@ -362,7 +372,7 @@ def validate_primary_shape(primary: Any, result: dict[str, Any]) -> None:
     required = {"schema", "identities", "exact", "profiles", "spectra", "checks", "failures", "numerical_pass", "verdict"}
     if not required.issubset(primary):
         raise ValueError("primary receipt is missing required fields")
-    if primary["schema"] != "matter-formation-compact-carrier-v1":
+    if primary["schema"] != "matter-formation-compact-carrier-v2":
         raise ValueError("primary schema mismatch")
     for key in ("numerical_pass",):
         if not isinstance(primary[key], bool):
@@ -383,7 +393,33 @@ def validate_primary_shape(primary: Any, result: dict[str, Any]) -> None:
         raise ValueError("primary failure row schema mismatch")
 
 
+def conditioning_evidence(result: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    direct_path = ROOT / "runs/20260906_matter_formation_compact_carrier/results.json"
+    reference_path = ROOT / "runs/20260906_matter_formation_compact_carrier_verification/results.json"
+    direct_hash = raw_sha256(direct_path)
+    reference_hash = raw_sha256(reference_path)
+    if direct_hash != "91fb84409803a2a9574bbf01a733eabf30b730c8ca47ecaab78d76a77277e646" or reference_hash != "32e0d0487b6916e00e2ac5f2d6986c81deb2be012945ccca7b2b91e4ecfb4d49":
+        raise ValueError("direct-angle conditioning receipts are missing or altered")
+    direct, reference = strict_json(direct_path), strict_json(reference_path)
+    for path in (direct_path, reference_path):
+        result["artifact_identities"].append({"root": "repository", "path": repo_path(path), "sha256": raw_sha256(path)})
+    locations = []
+    for row in direct["profiles"]:
+        path = safe_input(direct_path.parent, row["artifact"]["path"])
+        if raw_sha256(path) != row["artifact"]["sha256"]:
+            raise ValueError("direct-angle conditioning profile hash mismatch")
+        with np.load(path, allow_pickle=False) as raw:
+            x = array_float64(raw, "x", 1)
+            rms = array_float64(raw, "rms_residuals", 1)
+        index = int(np.argmax(rms))
+        locations.append({"L": row["L"], "artifact": row["artifact"], "peak_interval": index,
+                          "peak_midpoint": float(0.5 * (x[index] + x[index + 1]))})
+        result["artifact_identities"].append({"root": "repository", "path": repo_path(path), "sha256": row["artifact"]["sha256"]})
+    return {"primary_sha256": direct_hash, "reference_sha256": reference_hash, "profiles": locations}, reference["profiles"]
+
+
 def main() -> int:
+    warnings.simplefilter("error", IntegrationWarning)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--note", type=Path, default=DEFAULT_NOTE)
     parser.add_argument("--input-dir", type=Path, required=True)
@@ -407,6 +443,11 @@ def main() -> int:
         result["identities"]["protocol"] = {"path": repo_path(args.note), "heading": heading, "sha256": protocol_hash}
         if protocol_hash != FROZEN_HASH:
             raise ValueError(f"frozen protocol hash mismatch: {protocol_hash}")
+        base_heading, base_section = extract_protocol(args.note, BASE_HEADING)
+        base_hash = hashlib.sha256(base_section.encode("utf-8")).hexdigest()
+        if base_hash != BASE_HASH:
+            raise ValueError("baseline protocol hash mismatch")
+        result["identities"]["baseline_protocol"] = {"heading": base_heading, "sha256": base_hash}
         with (output / "protocol.txt").open("x", encoding="utf-8", newline="\n") as stream:
             stream.write(protocol)
         protocol_file = args.input_dir / "protocol.txt"
@@ -427,6 +468,12 @@ def main() -> int:
             raise ValueError("primary program identity mismatch")
         if not isinstance(pprotocol, dict) or pprotocol.get("path") != repo_path(args.note) or pprotocol.get("heading") != heading or pprotocol.get("sha256") != FROZEN_HASH:
             raise ValueError("primary protocol identity mismatch")
+        if identities.get("baseline_protocol") != result["identities"]["baseline_protocol"]:
+            raise ValueError("primary baseline identity mismatch")
+        conditioning, reference_profiles = conditioning_evidence(result)
+        result["identities"]["conditioning"] = conditioning
+        if identities.get("conditioning") != conditioning:
+            raise ValueError("primary conditioning diagnostic mismatch")
         result["exact"] = exact_controls()
         for expected, stored in zip(result["exact"], primary["exact"]):
             if set(stored) != {"name", "pass", "evidence"}:
@@ -472,16 +519,16 @@ def main() -> int:
             result["artifact_identities"].append({"path": artifact["path"], "sha256": artifact["sha256"]})
             with np.load(path, allow_pickle=False) as loaded:
                 x = array_float64(loaded, "x", 1)
-                f = array_float64(loaded, "f", 1)
-                fp = array_float64(loaded, "fp", 1)
+                theta = array_float64(loaded, "theta", 1)
+                thetap = array_float64(loaded, "thetap", 1)
                 rms = array_float64(loaded, "rms_residuals", 1)
-            if len(x) < 601 or len(f) != len(x) or len(fp) != len(x) or len(rms) != len(x) - 1 or np.any(np.diff(x) <= 0) or not close(x[0], EPSILON, 1e-9) or not close(x[-1], L, 1e-9):
+            if len(x) < 601 or len(theta) != len(x) or len(thetap) != len(x) or len(rms) != len(x) - 1 or np.any(np.diff(x) <= 0) or not close(x[0], EPSILON, 1e-9) or not close(x[-1], L, 1e-9):
                 raise ValueError(f"profile {label} array shape/endpoint schema mismatch")
-            reconstructed_rms = rms_reconstruction(x, f, fp)
-            measured = profile_measurements(x, f, fp)
+            reconstructed_rms = rms_reconstruction(x, theta, thetap)
+            measured = profile_measurements(x, theta, thetap)
             if not all(finite(value) for value in measured.values()):
                 raise ValueError(f"profile {label} nonfinite reconstructed measurement")
-            profile_data[L] = (row, x, f, fp, measured, CubicHermiteSpline(x, f, fp))
+            profile_data[L] = (row, x, theta, thetap, measured, physical_spline(x, theta, thetap))
             rms_error = float(np.max(np.abs(rms - reconstructed_rms)))
             add_check(result, f"profile_{label}_provenance", "qualification", int(row["node_count"]) == len(x) and isinstance(row["solver_message"], str), f"node_count={row['node_count']}, raw_nodes={len(x)}")
             add_check(result, f"profile_{label}.rms_array", "qualification", rms_error <= 1e-10, f"max absolute RMS-array difference={rms_error}")
@@ -498,10 +545,15 @@ def main() -> int:
             compare_field(result, f"{label}.boundary_left", row["boundary_residuals"][0], measured["boundary_left"], 1e-10)
             compare_field(result, f"{label}.boundary_right", row["boundary_residuals"][1], measured["boundary_right"], 1e-10)
             add_check(result, f"profile_{label}_qualification", "qualification", int(row["solver_status"]) == 0 and measured["rms_max_reconstructed"] <= 1.1e-8 and abs(measured["boundary_left"]) <= 1e-9 and abs(measured["boundary_right"]) <= 1e-9 and measured["profile_min"] >= -1e-8 and measured["profile_max"] <= math.pi + 1e-8 and measured["derivative_max"] <= 1e-8 and abs(measured["degree"] - 1.0) <= 1e-7 and 1.0 <= measured["normalized_energy"] <= math.sqrt(2.0) + 1e-7 and measured["virial_defect"] <= 1e-4, f"status={row['solver_status']}, rms={measured['rms_max_reconstructed']}, boundary=({measured['boundary_left']},{measured['boundary_right']})")
+            reference = next(item for item in reference_profiles if item["L"] == L)
+            for field in ("energy", "origin_slope", "half_angle_radius"):
+                add_check(result, f"{label}_same_branch_{field}", "qualification",
+                          close(measured[field], reference[field], 1e-6),
+                          f"shifted={measured[field]}, direct-angle={reference[field]}")
         if set(profile_data) != set(RADII):
             raise ValueError("missing profile data")
         for L in RADII:
-            row, x, f, fp, measured, spline = profile_data[L]
+            row, x, theta, thetap, measured, spline = profile_data[L]
             for field in ("E2", "E4", "degree", "origin_slope", "half_angle_radius"):
                 compare_field(result, f"{L:g}.independent_{field}", row[field], measured[field])
         p32, p64 = profile_data[32.0][4], profile_data[64.0][4]
