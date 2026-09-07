@@ -97,7 +97,10 @@ def initial_state(rho: np.ndarray, epsilon: np.ndarray, velocity: np.ndarray):
 
 
 def independent_symbols(n: int):
-    frequencies = np.fft.fftfreq(n, d=2*np.pi/n).astype(np.float32)*np.float32(2*np.pi)
+    # Torch fftfreq rounds the reciprocal spacing before multiplying mode
+    # labels; rounding NumPy's completed frequencies gives different symbols.
+    modes = np.fft.fftfreq(n, d=1/n).astype(np.float32)
+    frequencies = 2*np.pi*(modes*np.float32(1/(2*np.pi)))
     kz, ky, kx = np.meshgrid(frequencies.astype(np.float64), frequencies.astype(np.float64),
                              frequencies.astype(np.float64), indexing="ij")
     return (kx, ky, kz), kx*kx+ky*ky+kz*kz

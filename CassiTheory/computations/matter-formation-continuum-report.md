@@ -2649,6 +2649,14 @@ Use `computations/matter_formation_density_budget.py`, with a fresh required `--
 
 One invocation executes these three groups. All exact identities, complete row sets, finite-value and numerical criteria must pass for `SUPPORTS—nonlinear density and composition budgets of the specified expanding model`; otherwise return `INCONCLUSIVE` and preserve the evidence. Run a separate missing-section control, requiring an unsuccessful exit and empty scientific rows. Stop after this schedule; no scientific input or threshold may be tuned to a result. The calculation supplies no long-time nonlinear carrier stability or matter-production trajectory.
 
+### 22.4 Native Fourier-symbol reconstruction
+
+The canonical source forms wave numbers from Torch's default float32 `fftfreq`, multiplies the returned NumPy array by $2\pi$, and stores the result as float64. A matching independent reconstruction uses integer Fourier labels multiplied by the float32 reciprocal box length before the $2\pi$ multiplication. Casting NumPy's completed float64 frequencies to float32 instead changes the order of rounding.
+
+The receipt in `runs/20260907_matter_formation_density_budget/` is `INCONCLUSIVE`. Its four nonuniform rows have quadratic-budget residuals below $4\times10^{-18}$, while their auxiliary whole-grid symbol comparison differs by $4.76837158203125\times10^{-7}$. Its seven symbolic identities, uniform-density witness and three conversion trajectories pass their individual criteria. The native-symbol reconstruction has zero discrepancy in an isolated arithmetic check.
+
+An implementation-only qualification uses the native arithmetic order for the independent symbols. It retains §22.3, the canonical solver bytes, all physical inputs, numerical thresholds and stopping schedule. Execute one scientific invocation in `runs/20260907_matter_formation_density_budget_implementation_recovery/` and one missing-section control in `runs/20260907_matter_formation_density_budget_implementation_recovery_missing_record/`. Preserve the `INCONCLUSIVE` receipt, its source copy and raw arrays; record both implementation identities. No physical parameter or criterion is selected from this discrepancy.
+
 ## References
 
 - `computations/matter_formation_full_variations.py`—exact spatial-variation, virial and soft-amplitude qualification.
