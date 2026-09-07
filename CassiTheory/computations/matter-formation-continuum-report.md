@@ -1757,8 +1757,97 @@ The topology and fourth-gradient results in §§12.7–12.12 also remain in this
 
 Preserve this set separately from local research commits. A consolidated publication checkpoint must reconcile the registries, `EPISTEMIC-MAP.md`, `audit.md`, domain treatment and supporting indexes before these hunks enter a public commit. Their present status is explicitly handed off; no bulk staging, silent reversion or intermediate propagation is authorized.
 
+## 18. Compact-target carrier candidate
+
+### 18.1 Additional microscopic assumptions
+
+A compact field target can prevent a localized configuration from continuously reducing its amplitude to zero. The candidate examined here is the standard massless Skyrme field, supplied as an independent Hypothesized extension. Its dimensionless order parameter is a gauge singlet $U(\mathbf x,t)\in SU(2)_{\rm top}$ with $U\to I$ at spatial infinity. The subscript distinguishes this target from the existing $SU(2)_Q$ gauge symmetry. Local gauge transformations of the existing Cassi fields leave $U$ unchanged. No map from the canonical density pair, no coupling to that pair and no identification with an observed particle are assumed.
+
+The field has the classical Lorentzian action
+$$
+S_{\rm top}=\int d^4x\left[
+-\frac{\alpha}{2}\operatorname{Tr}(R_\mu R^\mu)
++\frac{\beta}{16}\operatorname{Tr}
+ \bigl([R_\mu,R_\nu][R^\mu,R^\nu]\bigr)\right],
+\qquad R_\mu=(\partial_\mu U)U^{-1},
+$$
+with metric signature $(+---)$, $c=1$ and independent positive coefficients $\alpha,\beta$. Its static energy is positive:
+$$
+E_{\rm top}=\int d^3x\left[
+-\frac{\alpha}{2}\operatorname{Tr}(R_iR_i)
+-\frac{\beta}{16}\operatorname{Tr}
+ \bigl([R_i,R_j][R_i,R_j]\bigr)\right].
+$$
+Here $[\alpha]={\rm energy}/{\rm length}$ and $[\beta]={\rm energy}\,{\rm length}$. Writing $\ell_{\rm top}=\sqrt{\beta/\alpha}$ and $\mathcal E_{\rm top}=\sqrt{\alpha\beta}$ reduces the static calculation to $\alpha=\beta=1$. These two physical scales remain undetermined. Houghton, Manton and Sutcliffe, *Rational Maps, Monopoles and Skyrmions*, supplies this comparison model and its normalization.
+
+The fixed outer value compactifies space to $S^3$. Continuous finite-energy fields with the stated regularity carry the integer degree
+$$
+B_{\rm top}=-\frac{1}{24\pi^2}
+\int\epsilon_{ijk}\operatorname{Tr}(R_iR_jR_k)\,d^3x.
+$$
+The sign is chosen so that the hedgehog
+$U=\cos f+i\widehat{\mathbf x}\cdot\boldsymbol\sigma\sin f$,
+$f(0)=\pi$, $f(\infty)=0$, has $B_{\rm top}=1$.
+This is a topological degree; assigning it baryon number or electric charge requires a physical bridge. Under $U_L(\mathbf x)=U(\mathbf x/L)$, the two static energy pieces scale as $LE_2+L^{-1}E_4$. Multiplication $U\mapsto aU$ violates unitarity for $0<a<1$, so the scalar amplitude descent of §12.12 is outside this candidate's configuration space.
+
+The dimensionless hedgehog energy and its radial Euler equation are
+$$
+\frac{E}{4\pi}=\int_0^\infty
+\left[(r^2+2\sin^2f)f'^2+2\sin^2f+\frac{\sin^4f}{r^2}\right]dr,
+$$
+$$
+(r^2+2\sin^2f)f''+2rf'
++\sin(2f)\left(f'^2-1-\frac{\sin^2f}{r^2}\right)=0.
+$$
+The smooth finite-energy trial $f_R(r)=2\arctan(R/r)$ gives
+$E/(4\pi)=3\pi R+3\pi/(2R)$.
+Its minimum has $R=1/\sqrt2$ and $E/(12\pi^2)=\sqrt2$.
+The pointwise strain inequality
+$\sum_i\lambda_i^2+\sum_{i<j}\lambda_i^2\lambda_j^2
+\ge6|\lambda_1\lambda_2\lambda_3|$
+gives the model's lower bound $E\ge12\pi^2|B_{\rm top}|$.
+These statements establish a nonempty finite-energy sector and an upper bound. A stationary solution and its fluctuation spectrum require their own qualification.
+
+The compact target also imposes a production restriction. A smooth evolution with a fixed outer value preserves total $B_{\rm top}$. An isolated unit-degree carrier cannot form from the exact zero-degree vacuum within those assumptions. Formation of a carrier–anticarrier pair has zero total degree and is compatible with this conservation law; its dynamical accessibility and energy source remain to be calculated. An exact classical vacuum with zero velocity remains a solution of the autonomous field equations. Selecting fermionic quantization, identifying the physical units and obtaining a canonical Cassi coupling are separate requirements.
+
+### 18.2 Radial carrier qualification: pre-execution criteria
+
+This section freezes the first compact-target calculation before execution. It qualifies only the explicitly supplied dimensionless model of §18.1. The production mechanism, nonradial stability, quantum state, spin-statistics choice and physical matching are excluded from its verdict. The primary program is `computations/matter_formation_compact_carrier.py`; the independent verifier is `computations/verify_matter_formation_compact_carrier.py`. Both use fresh output directories, preserve every receipt and reject a missing or altered frozen section before scientific evaluation. Section extraction includes this heading through the next heading of level three or higher, normalizes CRLF to LF, strips trailing whitespace at the end and appends one LF. Programs record their canonical-LF source hashes and the section hash; the verifier also binds the primary receipt and every raw profile by raw SHA-256.
+
+The exact controls independently reconstruct the hedgehog trial's degree, energy coefficients $A=3\pi$, $C=3\pi/2$, scale $R_*=1/\sqrt2$, normalized minimum $\sqrt2$, and Euler equation from the radial energy. The primary uses symbolic radial integration. The verifier uses the beta-integral identity for the trial coefficients and differentiates the variational density independently. Exact equality is required for every identity.
+
+The stationary calculation uses outer radii $L=16,32,64$, inner endpoint $\epsilon=10^{-5}$ and the radial Euler equation. At the endpoints impose
+$f(\epsilon)-\pi-\epsilon f'(\epsilon)=0$ and
+$f'(L)+2f(L)/L=0$.
+The initial guess is the declared trial with $R=1/\sqrt2$.
+The primary uses `scipy.integrate.solve_bvp` with tolerance $10^{-8}$ and at most 50,000 nodes. Its initial grid has 601 logarithmically spaced nodes from $\epsilon$ through $L$. No solution-dependent parameter tuning, continuation to another equation or change of initial guess is permitted. Each raw profile stores the complete converged nodes and the profile and derivative there. The interpolant is the piecewise cubic Hermite polynomial determined by those values.
+
+All energy and degree integrals cover the full half-line. On $0\le r<\epsilon$ use $f=\pi+br$, $b=f'(\epsilon)$; on $r>L$ use $f=c/r^2$, $c=L^2f(L)$. The frozen boundary conditions make these extensions continuously differentiable up to their numerical residual. Integrate the outer tail with $x=1/r$ to include infinity. Store $E_2$, $E_4$, $B_{\rm top}$, the shooting slope $b$, $f(L)$ and the radius at which $f=\pi/2$. The verifier reconstructs them from the raw nodes without importing primary functions. All numerical quadrature uses absolute and relative tolerances $10^{-9}$ or smaller, with nonfinite values causing qualification failure.
+
+Across the three profiles, compute six finite radial fluctuation problems using spacings $h=0.04,0.02$ on each $[\epsilon,L]$; use $n=\lceil(L-\epsilon)/h\rceil$ equal cells. Perturbations vanish at both endpoints. Define $M=r^2+2\sin^2f$, $V=2\sin^2f+\sin^4f/r^2$ and the quadratic form
+$$
+Q[\eta]=\int_\epsilon^L
+\left[M\eta'^2+2M_f f'\eta\eta'
++\frac12(M_{ff}f'^2+V_{ff})\eta^2\right]dr.
+$$
+The positive kinetic weight is $\int M\eta^2dr$. The primary integrates the cross term by parts and uses
+$H=-\partial_r(M\partial_r)+W$,
+$W=V_{ff}/2-M_{ff}f'^2/2-M_f f''$,
+with the Hermite second derivative. It uses centered flux differences and diagonal nodal mass. The verifier instead assembles the displayed, unintegrated quadratic form with continuous piecewise-linear finite elements and three-point Gauss quadrature in each cell. It uses the corresponding lumped positive kinetic mass. Each computes the lowest eigenvalue and a normalized algebraic residual. This is a finite-grid radial energetic check; a positive lowest value does not establish a continuum spectral gap in the massless model.
+
+The frozen qualification predicates are:
+
+1. All exact controls pass. Each boundary solve exits successfully with maximum reported RMS residual at most $1.1\times10^{-8}$, endpoint residuals at most $10^{-9}$, finite raw data, and $-\!10^{-8}\le f\le\pi+10^{-8}$ with $f'\le10^{-8}$ on a 10,001-point uniform evaluation grid.
+2. Each complete profile has $|B_{\rm top}-1|\le10^{-7}$, $1\le E/(12\pi^2)\le\sqrt2+10^{-7}$, and $|E_2-E_4|/(E_2+E_4)\le10^{-4}$. Primary and independent energy pieces, degree, slope and half-angle radius agree to $10^{-7}\max(1,|a|,|b|)$.
+3. Between $L=32$ and $L=64$, total energy, origin slope and half-angle radius change by at most $10^{-4}$ relative to the larger magnitude, with denominator at least one. All three radii remain in the record; no lower-radius result is silently excluded.
+4. Every one of the twelve primary/independent finite-grid lowest eigenvalues is at least $-10^{-6}$ and has relative algebraic residual at most $10^{-8}$, measured as $\|Hv-\lambda Mv\|_2/(\|Hv\|_2+|\lambda|\|Mv\|_2+10^{-30})$. At each outer radius, halving $h$ changes the lowest eigenvalue in each discretization by at most $5\times10^{-3}\max(1,|\lambda_{\rm fine}|)$; the two fine-grid discretizations agree within that same tolerance.
+5. The independent receipt validates primary/raw identities, record counts, labels, array shapes, all stored measurements and all predicates from actual data. It rejects an altered energy measurement and a missing profile in separate fresh-output controls. A missing-record primary control exits unsuccessfully with no scientific rows.
+
+If all predicates pass, the aggregate verdict is `SUPPORTS—finite-domain stationary and radial energetic qualification of the declared compact-target carrier`. A resolved negative radial eigenvalue below $-10^{-6}$ with the other numerical prerequisites qualified gives `CONTRADICTS—radial energetic stability of the declared compact-target carrier`. Any failed identity, unresolved numerical prerequisite or verification failure gives `INCONCLUSIVE`. The run stops after this fixed schedule and its three failure controls. A result does not justify rerunning the same candidate with tuned thresholds or changing these criteria. Implementation defects retain their unsuccessful receipts and require explicit source-change disclosure before an independent recovery run.
+
 ## References
 
+- [Houghton, Manton and Sutcliffe, *Rational Maps, Monopoles and Skyrmions*](https://arxiv.org/abs/hep-th/9705151)—standard compact-target action, hedgehog energy and topological normalization used as an explicitly supplied comparison model.
 - `computations/matter_formation_yukawa_bulk.py`—exact and high-precision collective-binding criterion for the declared local-density scalar–Dirac candidate.
 - `computations/verify_matter_formation_yukawa_bulk.py`—independent momentum-space reconstruction and frozen-evidence qualification.
 - `computations/matter_formation_scalar_topology.py`—frozen exact-algebra certificates and excluded-assumption controls for the scalar contractions.
