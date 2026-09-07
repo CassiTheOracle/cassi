@@ -2577,6 +2577,78 @@ Run the following fixed schedule:
 
 All four groups, source identities, finite-value checks and the complete expected row sets must pass for `SUPPORTS—homogeneous canonical excitation and regular-observable boundaries`. Any scientific mismatch gives `INCONCLUSIVE`; preserve the failed evidence. Run one primary scientific invocation and one independent verifier invocation. Run separate missing-section and altered-section primary controls, plus a verifier missing-array control; each must fail before scientific output with empty rows. Stop after this schedule without changing physical inputs, witnesses or thresholds in response to a result. An implementation failure may be repaired only with its original receipts preserved and an explicit source-revision record.
 
+## 22. Nonlinear density contrast and composition relaxation
+
+The expanding Python model has a density constraint beyond its homogeneous spectrum. Its shared incompressible transport and equal-and-opposite conversion constrain total-density concentration at arbitrary amplitude. The argument concerns the smooth continuum equations associated with this class, before spectral truncation and post-step floors. The base class's chemotactic fluxes and the Godot site/particle equations fall outside it.
+
+### 22.1 Exact continuum budgets
+
+On a periodic comoving box, assume a smooth divergence-free $u$, spatially uniform $a(t)>0$, and $D,\nu_4,\lambda\ge0$. For the single instantaneous gate, set $c_g>0$ and
+$$
+q=\frac{\rho^2}{\rho^2+\epsilon^2+c_g},\qquad
+g=1-q.
+$$
+Adding and subtracting the expanding class's density equations gives
+$$
+\begin{aligned}
+\partial_t\rho+\frac{u}{a}\cdot\nabla\rho
+&=\frac D{a^2}\Delta\rho-\frac{\nu_4}{a^4}\Delta^2\rho,\\
+\partial_t\epsilon+\frac{u}{a}\cdot\nabla\epsilon
+&=\frac D{a^2}\Delta\epsilon-\frac{\nu_4}{a^4}\Delta^2\epsilon
+-(1+\varphi)\lambda g\epsilon.
+\end{aligned}
+$$
+The total comoving mean $\bar\rho$ is conserved. Integration by parts gives
+$$
+\boxed{\frac12\frac{d}{dt}\|\rho-\bar\rho\|_2^2
+=-\frac D{a^2}\|\nabla\rho\|_2^2
+-\frac{\nu_4}{a^4}\|\Delta\rho\|_2^2\le0,}
+$$
+$$
+\boxed{\frac12\frac{d}{dt}\|\epsilon\|_2^2
+=-\frac D{a^2}\|\nabla\epsilon\|_2^2
+-\frac{\nu_4}{a^4}\|\Delta\epsilon\|_2^2
+-(1+\varphi)\lambda\int g\epsilon^2\,d^3x\le0.}
+$$
+These identities hold even when $u$ depends nonlinearly on the densities. The force cannot add a density source through divergence-free shared advection. For the lowest nonzero box wavenumber $k_{\min}$, density variance is bounded by its initial value times
+$\exp[-2\int_0^t(Dk_{\min}^2/a^2+\nu_4k_{\min}^4/a^4)\,dt']$.
+Homogenization follows when that integral diverges. A rapidly growing scale factor can leave a finite integral; no unconditional asymptotic statement is made in that case.
+
+When $\nu_4=0$, the continuum maximum principle also prevents growth of the total-density maximum. When $D=\nu_4=0$, the flow preserves $\rho$ along trajectories and preserves every integrable spatial density histogram functional $\int F(\rho)\,d^3x$. Pure advection can still rearrange existing density contours and create finer gradients. With $\nu_4>0$, the variance identity survives but a maximum principle is unavailable. Neither the spectral mask nor the finite-step floor inherits the continuum maximum principle automatically.
+
+### 22.2 Coherence can rise at fixed total density
+
+In the inviscid density sector, each material trajectory has constant $\rho$ while its composition relaxes. Writing $D_t=\partial_t+(u/a)\cdot\nabla$, the exact derivative is
+$$
+\boxed{D_tq=
+\frac{2(1+\varphi)\lambda\rho^2\epsilon^2(\epsilon^2+c_g)}
+{(\rho^2+\epsilon^2+c_g)^3}\ge0.}
+$$
+Thus genuine field coherence can increase without total-density concentration. This statement uses the field diagnostic itself; it makes no identification with a displayed hue or a gravitational source weight.
+
+For a spatially uniform positive imbalance $\epsilon_0$, a constant $\rho$ and $\gamma=(1+\varphi)\lambda>0$, the scalar trajectory has the separable identity
+$$
+\gamma t=
+\left(1+\frac{\rho^2}{c_g}\right)\log\frac{\epsilon_0}{\epsilon(t)}
+-\frac{\rho^2}{2c_g}\log
+\frac{\epsilon_0^2+c_g}{\epsilon(t)^2+c_g}.
+$$
+It supplies an independent endpoint reference for the implemented nonlinear conversion. The density budget and this composition trajectory constrain the stated model; neither establishes a microscopic matter carrier or excludes every mechanism in the broader framework.
+
+### 22.3 Nonlinear budget calculation: pre-execution criteria
+
+Use `computations/matter_formation_density_budget.py`, with a fresh required `--output-dir` and optional `--note` and `--solver` paths. Freeze this unique section through the next heading of level three or higher, normalize CRLF to LF, strip final whitespace and append LF. Bind the section hash and the canonical source hash used in §21.3. Preserve raw/canonical source identities, source copies and raw arrays. Missing or altered prerequisites fail before scientific evaluation with `INCONCLUSIVE`, exit one and empty rows. These computations use the actual canonical solver on CPU with one Torch thread and double precision; they do not modify it.
+
+1. **Exact identities.** Use symbolic differentiation to verify equal-and-opposite total conversion, the imbalance rate, the advective product rule with divergence-free velocity, the diffusion and biharmonic integration-by-parts product identities, the material derivative of $q$, and the derivative of the separable implicit solution. The periodic boundary and smoothness assumptions supply the integration argument; finite polynomial witnesses alone do not establish a continuum theorem.
+2. **Nonuniform source budgets.** Use $N=16$, $L=2\pi$, $a=1$, $H=0$, `hubble_mode='friedmann'`, `H0=0`, the single gate with $c_g=0.382$, no Qi memory or Wu Xing, $\lambda=0.2$, $\nu=0.02$, $c_s^2=0.7$, no external density and no modified Poisson kernel. Prepare
+   $\rho=2+0.3\cos x+0.2\sin y$,
+   $\epsilon=0.4\sin z+0.1\cos(x+y)$ and
+   $u=(0.2\sin y,0.3\sin z,0.1\sin x)$.
+   Evaluate the actual `rhs` for $(D,\nu_4)=(0,0),(0.03,0),(0,0.0004),(0.03,0.0004)$. Reconstruct all density, gradient, Laplacian and gate factors independently with NumPy; compare both measured quadratic-budget derivatives to §22.1, using spatial means instead of integrals consistently. Require residuals divided by $\max(1,|\text{expected}|)$ at most $10^{-11}$, mean-density rate at most $10^{-12}$, and both budget derivatives at most $10^{-11}$. Save the input density/velocity fields and full actual density right-hand sides. Also evaluate $\rho=2$ with the same nonuniform $\epsilon,u$ and $D=\nu_4=0$; require the maximum absolute total-density right-hand side at most $10^{-12}$. These are finite-grid instantaneous budget witnesses.
+3. **Finite-amplitude conversion trajectory.** Use the same frozen-expansion class on $N=4$ with $\rho_0=2$, $\epsilon_0=0.8$, $u=0$, $\lambda=0.2$, $D=\nu=\nu_4=0$. Run actual `rk2_step` to $T=20$ at $\Delta t=0.04,0.02,0.01$. Retain every step's mean density, mean imbalance, mean diagnostic $q$, component minima, spatial-uniformity residual, $a$ and $H$. Independently solve the displayed implicit endpoint equation with SciPy `brentq` on $[10^{-15},0.8]`, with absolute root tolerance $10^{-14}$. Require endpoint imbalance errors at most $10^{-5}$ and successive error ratios between $3.5$ and $4.5$, agreement of endpoint $q$ with its independent scalar value to $10^{-6}$, no stepwise $q$ decrease beyond $10^{-13}$, density and uniformity deviations at most $10^{-12}$, component minima above $0.1$, and $a=1,H=0$ to $10^{-12}$.
+
+One invocation executes these three groups. All exact identities, complete row sets, finite-value and numerical criteria must pass for `SUPPORTS—nonlinear density and composition budgets of the specified expanding model`; otherwise return `INCONCLUSIVE` and preserve the evidence. Run a separate missing-section control, requiring an unsuccessful exit and empty scientific rows. Stop after this schedule; no scientific input or threshold may be tuned to a result. The calculation supplies no long-time nonlinear carrier stability or matter-production trajectory.
+
 ## References
 
 - `computations/matter_formation_full_variations.py`—exact spatial-variation, virial and soft-amplitude qualification.
