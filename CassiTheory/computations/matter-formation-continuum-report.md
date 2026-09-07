@@ -42,6 +42,8 @@ The complete fixed-norm Euler equations and quadratic form are qualified by exac
 
 The scalar temporal parent also admits an exact excited periodic mediator background. Independent Fourier spectra, separated-boundary shooting and one-period evolution matrices support neutral linear parametric amplification at one of three retained wave-number witnesses. The static-mediator and disabled-coupling controls remain below the frozen instability threshold. The background amplifies a nonzero carrier perturbation; exactly empty classical carrier data remain invariant. Nonlinear backreaction, localized formation, a quantum state and physical matching remain open (§25).
 
+An exact plane-wave sector makes finite mediator-to-carrier energy exchange calculable with spatially uniform densities. Its energy balances and Hamiltonian reduction pass fourteen symbolic identities. Two independent fixed-window trajectories give a sampled carrier-energy transfer near $1.043\%$ of the initial total energy, but the aggregate numerical verdict is `INCONCLUSIVE`: an independent zero-carrier orbit error and the driven linear reference's cross-method work error exceed their frozen bounds. The sampled transfer remains an unqualified diagnostic; the invariant sector supplies no localized formation or particle identity (§26).
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -1758,6 +1760,8 @@ For a separate infinite-space specialization with positive diffusion, a nonzero 
 
 Within the supplied scalar temporal parent, an exact autonomous mediator oscillation has a verified carrier instability at dimensionless wave number $k=2.6753367051$, with Floquet exponent $\mu=0.0017215449$. The result uses a homogeneous excited background and a nonzero neutral perturbation; it establishes linear amplification over a periodic orbit (§25). The temporal coefficient, initial state and physical interpretation retain their stated assumption status.
 
+The same temporal parent has an exact nonlinear plane-wave sector with conserved total energy and zero local signed charge. Both independent trajectories resolve similar transient carrier-energy growth, but the full comparison is `INCONCLUSIVE` because two control comparisons exceed their numerical tolerances (§26). Uniform spatial densities and an invariant empty-carrier state remain exact properties of this sector. The three master registries retain their existing physical-completion and coefficient-selection status.
+
 These results introduce no experiment-ready particle prediction. Amplitude-relaxed carriers, full nonlinear stability, physical production, quantum-statistics selection, normalization and observed particle identification remain open. Each additional microscopic proposal requires its own physical assumptions and evidence.
 
 ## 18. Compact-target carrier candidate
@@ -3080,8 +3084,136 @@ python computations/verify_matter_formation_autonomous_pump.py --primary-dir run
 
 Both commands require the retained hash-bound reviews; the verifier also requires their implementation contract and the primary evidence. The listed output directories already contain the fixed calculation and refuse overwrites. A fresh reconstruction must use absent output paths while preserving the coefficients, schedule and prerequisite identities. The reviews and raw receipts are generated local evidence registered in `BROKEN_REFS.md`; they are not distributed repository files.
 
+## 26. Nonlinear energy transfer in an exact plane-wave sector
+
+The carrier's growth must draw energy from the mediator once its amplitude is finite. An exact invariant sector of the scalar parent makes that feedback calculable without a spatial discretization. It also fixes the interpretation: every density in this sector is spatially uniform, so its evolution cannot demonstrate localization.
+
+### 26.1 Exact reduction and conserved energy
+
+On a periodic cube choose $\mathbf k=(k,0,0)$ with side length $2\pi/k$, and set
+$$
+f(\mathbf x,t)=f(t),\qquad z(\mathbf x,t)=y(t)e^{i\mathbf k\cdot\mathbf x},
+\qquad y,\dot y\in\mathbb R.
+$$
+The modulus $|z|^2=y^2$ is uniform. The nonlinear carrier term has the same spatial Fourier factor as $z$, and the mediator source is homogeneous. Substitution into §25.1 therefore closes exactly:
+$$
+\boxed{\begin{aligned}
+c_\Psi\ddot f+u_\rho(f^2-1)f+2h_Cfy^2&=0,\\
+a\ddot y+[D_k+h_Cf^2+u_Cy^2]y&=0,\\
+D_k&=\frac{k_{Cx}k^2}{2}+B-h_C,\qquad B=e_C+\frac1{4a}.
+\end{aligned}}
+$$
+The energy densities, with the interaction assigned to the carrier, are
+$$
+\begin{aligned}
+\mathcal E_f&=\frac{c_\Psi}{2}\dot f^2+\frac{u_\rho}{4}(f^2-1)^2,\\
+\mathcal E_y&=a\dot y^2+(D_k+h_Cf^2)y^2+\frac{u_C}{2}y^4,\\
+\dot{\mathcal E}_y&=2h_Cf\dot f\,y^2=-\dot{\mathcal E}_f.
+\end{aligned}
+$$
+The Hamiltonian variables are $p=c_\Psi\dot f$ and $r=2a\dot y$. Their canonical equations provide an independent formulation of the same trajectory. Integrating $W'=2h_Cf\dot f\,y^2$ with $W(0)=0$ gives two independently measurable balances,
+$\mathcal E_y(t)-\mathcal E_y(0)=W(t)$ and $\mathcal E_f(t)-\mathcal E_f(0)=-W(t)$.
+
+At the specified positive coefficients $D_k>0$, conservation bounds $y^2\le\mathcal E_{\rm total}/D_k$ and $f^2\le1+2\sqrt{\mathcal E_{\rm total}/u_\rho}$. The finite-dimensional trajectory has bounded amplitudes and velocities. This does not establish stability against perturbations outside the invariant sector. The signed-charge density is $-2a\,\operatorname{Im}(z^*\dot z)=0$, while its spatial current is uniform and divergence-free. Exactly zero $y,\dot y$ remain zero. The ansatz permits neither a localized energy density nor spatial separation of nonzero charge densities.
+
+### 26.2 Fixed nonlinear comparison
+
+Use the coefficients and excited mediator initial data of §25, the resolved third-gap wave number, and the primary growth exponent from its accepted receipt. Supply the real carrier seed $y(0)=10^{-6}$, $\dot y(0)=0$. This amplitude is a classical comparison input. It does not select a quantum state or physical production density.
+
+Evolve four arms: the full coupled equations; the same initial data with $h_C=0$; the full equations with zero carrier initial data; and the decoupled mediator equation driving the linear carrier equation. The last arm removes both mediator feedback and the carrier quartic interaction and is called the linear reference. Its mediator energy is constant, its carrier receives work $W$, and its total energy changes by $W$. It provides a comparison for the finite-reservoir bound, with an explicit external-work balance when the mediator trajectory is held independent of the carrier.
+
+The full and zero-carrier arms use feedback factor $b=1$. The uncoupled and linear-reference arms use $b=0$. Write $h=h_C$ except in the uncoupled arm, where $h=0$; write $u=u_C$ except in the linear reference, where $u=0$. The common equations are $c_\Psi\ddot f=-u_\rho(f^2-1)f-2bhfy^2$ and $a\ddot y=-[k_{Cx}k^2/2+B-h+hf^2+uy^2]y$. Their energy diagnostics use the same $h,u$, and satisfy $\Delta\mathcal E_f+bW=0$, $\Delta\mathcal E_y-W=0$, and $\Delta\mathcal E_{\rm total}-(1-b)W=0$.
+
+### 26.3 Nonlinear transfer calculation: pre-execution criteria
+
+Freeze this unique section through the next heading of level three or higher, normalizing CRLF to LF, stripping final whitespace and appending one LF. Bind its SHA-256 in both standalone programs. Neither program may import or execute the other's implementation. Keep the earlier scientific sources and receipts unchanged.
+
+Require the §25 primary `results.json` with SHA-256 `cad33ef760404c79807570be1269390dfb790574dc13bfe60d61d67c5b1bc9c5` and independent `results.json` with SHA-256 `a54c07d1a973f9a915355e26b7c23e7caa7ee75a468f09fda53e13a272959758`. Both must be qualified and support their frozen linear-amplification verdict; the independent mismatches must be empty. Read $k,\mu$ from the unique primary witness with $j=3$ and $P$ from its orbit. Require that witness to be resolved in both receipts. Use $u_\rho=4$, $u_C=k_{Cx}=1$, $h_C=2.9598260763447164$, $e_C=0.75$, $a=1/16$, $c_\Psi=1/8$, and $f(0)=\sqrt{3/2}$, $\dot f(0)=0$. No coefficient, wave-number or seed scan is authorized.
+
+Run the four arms in the fixed order `full`, `uncoupled`, `zero_carrier`, `linear_reference`. Their $(b,h,u,y(0))$ are respectively $(1,h_C,1,10^{-6})$, $(0,0,1,10^{-6})$, $(1,h_C,1,0)$ and $(0,h_C,0,10^{-6})$. Every arm has $\dot y(0)=W(0)=0$. Use exactly the equations and energy split in §26.2. Set $J=\lceil16/(\mu P)\rceil$, and use the common sample times $t_n=nP/16$, $n=0,\ldots,16J$. Integrate the work variable along with the fields. Preserve the complete sampled state $(f,\dot f,y,\dot y,W)$, all three energy densities, solver success, attempted arms and failure information. A finite-time trajectory is the observable; no asymptotic saturation or localization verdict is authorized.
+
+The primary solver is DOP853 in the velocity variables $(f,\dot f,y,\dot y,W)$, with relative tolerance $2\times10^{-12}$, absolute tolerances $(2\times10^{-14},2\times10^{-14},2\times10^{-20},2\times10^{-20},2\times10^{-16})$, and maximum step $P/32$. The independent solver is LSODA in the Hamiltonian variables $(f,p,y,r,W)$, with $p=c_\Psi\dot f$, $r=2a\dot y$, relative tolerance $2\times10^{-12}$, absolute tolerances $(2\times10^{-14},c_\Psi\,2\times10^{-14},2\times10^{-20},2a\,2\times10^{-20},2\times10^{-16})$, and maximum step $P/32$. Convert its momenta to the common sampled velocity variables only for output and comparison.
+
+Before numerical evolution, the independent program must verify the energy-exchange identities symbolically for general real variables and $b,h,u$. It must verify the canonical Hamiltonian equations for $b=1$ and the explicit force correction $\dot p=-\partial_f\mathcal H+2(1-b)hfy^2$ for general $b$, with $\mathcal H=\mathcal E_f+\mathcal E_y$ in momentum variables. This correction supplies the linear reference's external work. The proof must also verify the plane-wave Laplacian and modulus, vanishing local signed charge, and the constant spatial density. SymPy identities must reduce exactly to zero; a numeric spot check alone does not qualify the reduction.
+
+Qualification requires all prescribed samples and all four arms to be present and finite. For each arm let $S=\mathcal E_{\rm total}(0)$, except for the linear reference, where $S=\max[\mathcal E_{\rm total}(0),\max_n\mathcal E_y(t_n)]$. Each of the three energy/work balance residuals in §26.2, divided by $S$, must stay below $10^{-7}$ in each implementation. The uncoupled carrier's maximum fractional energy change must be below $10^{-5}$; the zero-carrier arm must retain exactly zero $y,\dot y,W$. Its mediator field and velocity must agree with the exact elliptic orbit to $2\times10^{-5}$ after division by $\max(1,\max|\text{exact component}|)$.
+
+Through sample $16\lfloor2/(\mu P)\rfloor$, full and linear-reference carrier fields and velocities must agree within $2\times10^{-3}$, separately divided by $\max(10^{-6},\max|\text{linear component}|)$ on that early interval. For the linear reference define $A(t)=\sqrt{y(t)^2+[\dot y(t)/\omega_0]^2}$, where $\omega_0^2=[k_{Cx}k^2/2+B-h_C+h_CF^2]/a$ and $F=\sqrt{3/2}$. The logarithmic amplitude slope between stroboscopic times $P\lfloor4/(\mu P)\rfloor$ and $P\lfloor6/(\mu P)\rfloor$ must agree with the accepted $\mu$ to a relative difference below $5\times10^{-3}$.
+
+The independent program reconstructs every primary energy array and summary statistic from the primary state arrays and the declared formulas. It also compares the independently evolved trajectories. For each of the first four state components the maximum inter-method difference divided by $\max(10^{-6},\max|\text{primary component}|)$ must be below $5\times10^{-4}$; for $W$ the denominator is the primary arm's $S$ and the bound is $10^{-6}$. Recomputed primary energy arrays and summary scalars must agree to $10^{-10}$ relative to $\max(1,|\text{recomputed value}|)$. All numerical qualifications and the symbolic identities must pass before accepting a physical interpretation of these trajectories.
+
+For each implementation measure the full arm's sampled carrier-energy gain $G=\max_n\mathcal E_y(t_n)/\mathcal E_y(0)$ and transferred fraction $R=[\max_n\mathcal E_y(t_n)-\mathcal E_y(0)]/\mathcal E_{\rm total}(0)$. Record the sampled peak time, endpoint energy, endpoint transfer fraction, maximum field amplitudes and the linear reference's first sampled exceedance of the full arm's initial total energy, if present. Return `SUPPORTS—neutral nonlinear energy transfer in the supplied temporal parent` only when every qualification passes and both implementations give $G\ge100$ and $R\ge10^{-5}$. Qualified trajectories below either threshold return `INCONCLUSIVE—no resolved nonlinear transfer in the fixed time window`. A failed prerequisite, symbolic identity, source identity or numerical qualification returns `INCONCLUSIVE`. These thresholds measure resolved classical energy exchange and supply no particle-formation verdict.
+
+Use fresh output directories under `runs/20260907_matter_formation_autonomous_transfer*`, refuse overwrites, and retain both source files, the frozen section, the two inherited receipts and the raw numerical arrays with SHA-256 manifests. The independent receipt must retain the primary receipt and independently reconstructed arrays as well as its own trajectories. Run one primary scientific invocation and one independent scientific invocation, followed by a missing-section control for each and a missing-primary-array control for the verifier. Each prerequisite control must fail before any symbolic or numerical science, with no scientific rows or array archive. Stop after this schedule; preserve failures without parameter tuning, clamping, extra arms or reuse of an existing output directory.
+
+### 26.4 Implementation and evidence interpretation
+
+The primary program, `computations/matter_formation_autonomous_transfer.py`, records its numerical qualification and whether its own trajectory crosses the transfer thresholds. Its provisional verdict remains `INCONCLUSIVE—awaiting independent nonlinear qualification`; a successful primary exit reports completion of that numerical calculation. The independent program, `computations/verify_matter_formation_autonomous_transfer.py`, checks the symbolic identities, reconstructs the primary evidence and supplies the final two-method verdict. This sequence applies the requirement in §26.3 that both implementations qualify before a transfer result is accepted.
+
+The exceedance diagnostic compares the linear reference's carrier energy $\mathcal E_y(t_n)$ with the full arm's initial total energy $\mathcal E_{\rm total}(0)$. This is the finite-reservoir bound on carrier amplification. The first qualifying sampled index and its time are recorded; the comparison uses no interpolation.
+
+The initial carrier seed, selected periodic cell and temporal coefficients are supplied comparison inputs. A positive transfer result would address finite classical feedback in a uniform sector. Microscopic quantum production, physical action normalization, particle identity, localized formation and stability under spatial perturbations retain the requirements in §17.1 and `foundations/matter-completion-boundary.md` §12.
+
+### 26.5 Fixed-window results and failed qualifications
+
+The reduced equations have consistent energy exchange, while the complete numerical comparison has the frozen verdict `INCONCLUSIVE`. Both programs finish all four trajectories at all $179537$ prescribed samples over $11221$ background periods, ending at $t=9294.5684541124$. The independent symbolic calculation reduces all fourteen expressions to zero: the three energy-work identities, four canonical Hamilton equations, general feedback-force correction, plane-wave Laplacian and modulus, local signed charge, and three spatial-density derivatives.
+
+The full coupled arm has initial total energy density $\mathcal E_{\rm total}(0)=0.25000000000980843$ and initial carrier energy density $\mathcal E_y(0)=9.808626281133369\times10^{-12}$. Its measured values are:
+
+| Quantity | Primary DOP853 | Independent Hamiltonian LSODA |
+|---|---:|---:|
+| Sampled carrier-energy gain $G$ | $2.6595294967\times10^8$ | $2.6595598009\times10^8$ |
+| Sampled transferred fraction $R$ | $0.01043453232724$ | $0.01043465122395$ |
+| Peak carrier energy density | $0.002608633091721$ | $0.002608662815898$ |
+| Peak sampled time | $6032.4408171453$ | $6032.4408171453$ |
+| Endpoint carrier energy density | $5.7850645084\times10^{-8}$ | $5.7848625728\times10^{-8}$ |
+| Endpoint transferred fraction | $2.3136334582\times10^{-7}$ | $2.3135526840\times10^{-7}$ |
+| Maximum total-energy balance error, divided by initial total energy | $1.3027984246\times10^{-9}$ | $3.8111815258\times10^{-8}$ |
+
+These are dimensionless finite-time diagnostics from a numerically unqualified aggregate. The approximately $1.043\%$ peak transfer falls substantially by the prescribed endpoint. Its long-time limit, capture and response to perturbations outside the invariant sector remain unmeasured.
+
+Every arm in both methods passes the individual energy-work bound $10^{-7}$. The uncoupled carrier passes its energy-constancy bound; exactly zero carrier fields and work remain exactly zero. All four physical state components in every arm pass the cross-method bound $5\times10^{-4}$. Both methods also pass the early linear comparison and the growth-rate comparison against the accepted Floquet exponent. The complete comparison nevertheless fails at two specified checks:
+
+| Failed comparison | Measured normalized error | Required bound |
+|---|---:|---:|
+| Independent zero-carrier mediator velocity against the exact elliptic orbit | $5.6691170360\times10^{-5}$ | $<2\times10^{-5}$ |
+| Linear-reference work $W$ between the two methods, divided by the primary reference's $S$ | $1.7688684682\times10^{-5}$ | $<10^{-6}$ |
+
+The primary zero-carrier velocity error is $1.7757051362\times10^{-5}$ and passes its bound. The linear reference's individual work balances pass in both methods; its cross-method work discrepancy is a separate qualification. Both reference trajectories first exceed the full arm's initial total energy at sample $138240$, $t=7156.6768954221$. The reference explicitly receives external work, so this exceedance is consistent with its energy balance.
+
+The primary receipt records `qualified=true`, `candidate_support=true` and `passed=false` under its provisional verdict. The independent receipt reconstructs every primary energy array exactly and retains two mismatches, `qualified=false`, `passed=false` and `INCONCLUSIVE`. All prescribed scientific invocations are retained. The three missing-prerequisite controls each exit 1 with `INCONCLUSIVE`, zero scientific rows and no array archive. The fixed schedule ends with those controls, with unchanged coefficients, tolerances and stopping criteria.
+
+### 26.6 Retained evidence and physical scope
+
+The source snapshots, protocol and numerical arrays identify the exact calculation. Direct reconciliation of the saved samples confirms the recorded energies, work errors, peak statistics, exact-zero carrier control and two numerical failures. The reconciliation record's `passed` field refers to that evidence consistency; its separate `scientific_qualified=false` and `scientific_verdict=INCONCLUSIVE` fields retain the physical-result boundary.
+
+| Item | SHA-256 |
+|---|---|
+| Primary program | `cf1a6e78914c20edd69f56e393c460d7a22a5d4c3fe56b0a474ce786b1a50775` |
+| Independent program | `e610db040c483ca2625f6b75a2421a67b82400fdd527f8f3e6fe64ecb794ce39` |
+| Frozen §26.3 | `82c7e628f00b275fde856c2f52b11782de12dfdd686aea3568be15efbb9f6106` |
+| Primary receipt | `fe91c7b6c1f8b4f6f65d90a68a9e7f9db79bfcad53665b4e781b659a065e1046` |
+| Independent receipt | `fb6ce7589a60cd2a6592b88ec7a9de52bc78da4fff3b258770fb07098c9f42ed` |
+
+The recorded invocations are:
+
+```bash
+python computations/matter_formation_autonomous_transfer.py --output-dir runs/20260907_matter_formation_autonomous_transfer
+python computations/verify_matter_formation_autonomous_transfer.py --primary-dir runs/20260907_matter_formation_autonomous_transfer --output-dir runs/20260907_matter_formation_autonomous_transfer_verification
+```
+
+The primary command exits 0 after its provisional qualification; the independent command exits 1 for the two numerical failures above. Both commands refuse overwrite. Reproduction requires fresh absent output directories and the hash-bound autonomous-pump receipts specified in §26.3. Changing a directory name authorizes no coefficient, seed, wave-number or stopping-rule scan.
+
+Raw receipts and arrays are under `runs/20260907_matter_formation_autonomous_transfer/` and `runs/20260907_matter_formation_autonomous_transfer_verification/`. The prerequisite invocations and direct raw-data reconciliation are retained in `runs/20260907_matter_formation_autonomous_transfer_controls/`. These local generated artifacts are registered in `BROKEN_REFS.md`; the repository distributes the derivation, sources, hashes and measured result.
+
+The exact reduction establishes finite energy-exchange identities within the supplied scalar parent. Its spatial densities remain uniform, its local signed charge remains zero, and a carrier-free initial state remains carrier-free. A microscopic action and quantum state, physical normalization, finite-energy localized production, full nonlinear stability and observed particle identification remain the separate requirements in §17.1 and `foundations/matter-completion-boundary.md` §12. This calculation selects no physical coefficient or experiment-ready particle prediction.
+
 ## References
 
+- `computations/matter_formation_autonomous_transfer.py`—four prescribed nonlinear and control trajectories in an exact plane-wave sector.
+- `computations/verify_matter_formation_autonomous_transfer.py`—independent symbolic reduction, Hamiltonian evolution and raw transfer-evidence reconstruction.
+- `runs/20260907_matter_formation_autonomous_transfer/results.json`; `runs/20260907_matter_formation_autonomous_transfer_verification/results.json`—primary diagnostics and the independently reconstructed `INCONCLUSIVE` nonlinear comparison.
+- `runs/20260907_matter_formation_autonomous_transfer_controls/`—three prerequisite failures and direct raw-data reconciliation preserving both numerical qualification failures.
 - `computations/matter_formation_autonomous_pump.py`—fixed autonomous mediator orbit, six spectral gap pairs and physical-time Floquet witnesses.
 - `computations/verify_matter_formation_autonomous_pump.py`—independent separated-boundary shooting, Radau evolution and raw-evidence qualification.
 - `runs/20260907_matter_formation_autonomous_pump/results.json`; `runs/20260907_matter_formation_autonomous_pump_verification/results.json`—qualified primary and independent neutral linear-amplification receipts.
