@@ -1721,6 +1721,35 @@ checks also give their scoped `CONTRADICTS` verdicts. Complete numerical
 values, assumptions and receipt identities are in
 `computations/matter-formation-continuum-report.md` §12.
 
+The later topology and compact-target comparisons do not complete this scalar
+parent. The regular canonical positive-density domains tested in the topology
+study are contractible and supply no Finkelstein–Rubinstein sign for rotation
+or exchange. Separated exchange sectors and large-gauge winding remain
+separate configuration-space and quantum choices. An independent massless
+$SU(2)_{\rm top}$ Skyrme comparison supports only finite-domain radial
+stationarity and radial energetic qualification; its direct-angle result is
+inconclusive, and no canonical density-to-target bridge identifies it with
+this carrier.
+
+The optional gauge-sector comparison retains a physical relative $S^2$ when
+the fundamental and adjoint norms are both nonzero. Joint gauge cancellation
+removes a common gauge orbit, not a nonconstant relative texture. Its local
+stabilizer-screening approximation is not controlled at the predicted scale.
+The full PA12 polynomial action has a strict first-order energy descent for
+every smooth hard-norm nonzero-Hopf field when the adjoint amplitude is soft,
+and the same soft domain contracts the included hard-norm loops. This does
+not rule out a solution with a relaxed adjoint amplitude or a separately
+constrained hard-norm action; those alternatives still require stationary,
+stability, production and quantum-identity evidence
+(`computations/matter-formation-continuum-report.md` §§12.7–12.12, 18–20).
+
+The collective Yukawa result is likewise restricted to its declared
+mass-depleting local-density functional, $|m|\le1$, fourfold occupation
+relaxation and specified one-loop remainder. It excludes subthreshold
+collective binding there, while exact finite-fermion, nonlocal, exchange,
+metastable and physical-matching questions remain open
+(`computations/matter-formation-continuum-report.md` §§15.6–15.7).
+
 ## 9. What is closed and what remains open
 
 | Question | Result |
@@ -1743,6 +1772,10 @@ values, assumptions and receipt identities are in
 | Does fixed signed parent charge support the measured radial amplitudes? | Yes on all 24 frozen finite-grid embeddings, with independent spectral verification. Nine of twelve domain/resolution comparisons pass; aggregate radial-domain qualification remains `INCONCLUSIVE` because the population-16 domain comparisons fail. Population 256 meets its measured radial comparisons |
 | Do the selected scalar-parent angular and phase sectors qualify? | Yes on all four population-256 finite grids, with 96 independently matched eigenvalues. Seven of eight spatial comparisons pass; the dipole nonsymmetry gap fails the domain comparison, leaving combined scalar-parent spatial qualification `INCONCLUSIVE`. Exact continuum positivity identities remain conditional on nodelessness, strict monotonicity and boundary assumptions |
 | Does one imposed vacuum mass, propagation speed and internal generator unit determine the scalar action? | No. Three independently reconstructed admissible temporal coefficients give different physical lengths. The selected scalar core assignment to the mapped electron cell is contradicted; spin, statistics and electric charge are unassigned |
+| Does the stated local-density Yukawa candidate bind collectively below threshold? | No within its mass-depleting $|m|\le1$ functional, including the specified one-loop remainder and favorable fourfold occupation relaxation; exact finite-fermion and physical matching remain open |
+| Does the canonical scalar domain supply a rotation or exchange FR sign? | No in the tested regular domains; separated exchange, large-gauge and other quantum sectors require their own configuration spaces |
+| Does the compact $SU(2)_{\rm top}$ comparison identify a Cassi carrier? | No. It supports only finite-domain radial stationarity and radial energetic qualification, with an inconclusive direct-angle calculation and an obstructed canonical density bridge |
+| Can a hard-norm nonzero-Hopf field be a full stationary solution of PA12? | No when the adjoint norm is soft: every such field has a strict first-order amplitude descent, and the included hard-norm loops contract in the soft domain. A relaxed soft-amplitude state or separately constrained hard-norm model remains open |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 
 The action defines a fixed-charge boundary-value problem and an exact
@@ -1819,6 +1852,20 @@ stationary lump, and any such lump with an available negative-potential
 region has a negative dilation direction. A supported physical matter
 mechanism must address the corresponding charge, dynamics or field-content
 requirements.
+
+The same boundary applies to the added candidate sectors. The declared
+mass-depleting local-density Yukawa functional excludes subthreshold
+collective binding at its frozen inputs, while exact finite-fermion and
+nonlocal sectors remain open. The regular scalar positive-density domains are
+contractible and supply no FR sign, while separated exchange and large-gauge
+sectors require a separately specified configuration space and quantum lift.
+The compact $SU(2)_{\rm top}$ comparison qualifies only a finite-domain radial
+branch and has no canonical density-to-target identification. In the optional
+gauge sector the relative $S^2$ survives gauge fixing; the full soft-amplitude
+PA12 action descends from every hard-norm nonzero-Hopf texture, leaving relaxed
+soft-field metastability and physical quantization open
+(`computations/matter-formation-continuum-report.md` §§12.7–12.12, 15.6–15.7,
+18–20).
 
 ---
 

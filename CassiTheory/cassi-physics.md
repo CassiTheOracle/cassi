@@ -464,6 +464,22 @@ derivations and receipts are in
 `computations/particle-physical-hessian-precision-v2-report.md`, and
 `computations/particle-localized-physical-hessian-report.md`.
 
+The compact-target extension is an explicitly supplied comparison model, not a
+derived carrier map. Its qualified radial result supports stationarity and
+energetic stability only; a smooth pointwise map of the two canonical
+densities cannot produce degree density. In the optional phase-bearing gauge sector, fixing
+nonzero fundamental and adjoint norms leaves a physical relative $S^2$ target.
+Joint gauge rotations can be screened by their connection, whereas a
+nonconstant relative texture cannot; the displayed screening scale is not
+parametrically separated at the stationary size. The registered Hopf trial
+has a negative connection-amplitude direction in its specified shape family.
+The full spatial-variation calculation extends the boundary: every exact
+hard-norm nonzero-Hopf adjoint in the stated soft-action domain has negative
+amplitude first variation, and the included hard Finkelstein–Rubinstein loops
+contract in that domain. Amplitude-relaxed metastability, production,
+normalization, quantum identification and complete matter formation remain
+open (`computations/matter-formation-continuum-report.md` §§18–20).
+
 ---
 
 ## 4. The String: Spiral and Wakes
@@ -993,9 +1009,33 @@ excitation energy. Static subtraction and initial-overlap identities
 pass independent quadrature, but dynamical renormalization remains
 open. At the unchanged parameters, the sufficient bound
 $B=0.00165786399054<1$ excludes two-body binding in the leading
-nonrelativistic Yukawa reduction. Relativistic and many-body
-localization need separate qualification
-(`computations/matter-formation-continuum-report.md` §15).
+nonrelativistic Yukawa reduction. The collective local-density Yukawa
+functional is separately qualified to have no subthreshold bound state
+under its stated mass-depleting and vacuum-prescription assumptions.
+Relativistic and other many-body localization remain outside these
+restrictions (`computations/matter-formation-continuum-report.md`
+§§15.6–15.7).
+
+The specified local static one-loop scalar energy has positive
+reference curvature but no global lower bound. Sixteen algebraic
+checks verify a negative bulk-energy witness and a finite-energy
+spatial trial family whose energy tends to $-\infty$. The full
+nonlocal spatial quantum energy and metastable matter states remain
+open (`computations/matter-formation-continuum-report.md` §16).
+
+The compact-target calculation is an explicitly supplied comparison model,
+qualified only for radial stationarity and energetic stability; the canonical
+two-density bridge cannot generate its nonzero degree density. The optional
+phase-bearing gauge sector supplies a physical relative $S^2$ at fixed
+nonzero norms. Joint gauge cancellation is distinct from a nonconstant
+relative texture, and the screening scale is not parametrically separated at
+the predicted stationary size. The registered Hopf trial is unstable only in
+its specified shape/connection family. Full spatial variations give a
+negative amplitude first variation for every exact hard-norm nonzero-Hopf
+adjoint in the stated soft-action domain, with the included hard FR loops
+contracting there. General amplitude-relaxed metastability, production,
+physical normalization, quantum identification and complete matter formation
+remain open (`computations/matter-formation-continuum-report.md` §§18–20).
 
 **Epistemic status:** the modulation period is **Derived conditional** on the
 optional signal map; its physical wake imprint and cross-domain extensions

@@ -110,6 +110,27 @@ chiral-scalar map also fails because $B_R=L^\dagger R$ and
 $B_L=R^\dagger L=B_R^*$; the displayed projection terms are dimensionally
 mismatched and generically non-Hermitian. The inherited scalar-parent spatial
 result remains `INCONCLUSIVE` with seven of eight comparisons passing.
+The collective local-density Yukawa functional is separately qualified to have
+no subthreshold bound state under its stated mass-depleting and
+vacuum-prescription assumptions (`computations/matter-formation-continuum-report.md`
+§§15.6–15.7).
+
+
+The current endpoint remains conditional. The supplied compact-target field is
+a comparison model qualified radially for stationarity and energetic
+stability, while a smooth pointwise map of the two canonical densities cannot
+provide its degree density. The optional phase-bearing gauge sector has a physical
+relative $S^2$ at fixed nonzero norms; joint gauge cancellation is distinct
+from a nonconstant relative texture, and its screening scale is not
+parametrically separated at the predicted stationary size. The registered
+Hopf trial is unstable only for its specified shape/connection family. Full
+spatial variations give a negative amplitude first variation for every exact
+hard-norm nonzero-Hopf adjoint in the stated soft-action domain, with the
+included hard FR loops contracting there. General amplitude-relaxed
+metastability, production, physical normalization, quantum identification and
+complete matter formation remain open
+(`computations/matter-formation-continuum-report.md` §§18–20).
+
 
 ### The skeptic or referee
 
@@ -201,7 +222,7 @@ The central derivations; the wedge documents `foundations/dimensionful-cascade.m
 - `foundations/quark-confinement.md`—Quark Confinement from the Saturated-Gate Flux Tube at the QCD Scale. Derived (tube extensivity + cell quantization; inputs: gate saturation, one-cell quantization). With the QCD scale at cascade step 95, the conversion channel saturates between separated color charges ($q \to 0$), forming a flux tube whose energy is extensive in its length: $E(r) = \mu r$ with $\mu = \kappa(M_{\text{Pl}}/\varphi^{95})^2 = \kappa\Lambda_{\text{QCD}}^2$, $\kappa = O(1)$ open—a constant force, i.e. a linear potential, by tube extensivity (independent of the gate shape).
 - `foundations/refined-numeric-predictions.md`—Refined Numeric Predictions for the 19 Hypothesized Questions. Active derivation. Refines the specific numeric predictions ($\varphi^{-N}$ cascade-span forms) for each of the 19 Hypothesized questions in the open-questions catalog, and tightens the mechanistic argument for questions whose answer is structural rather than numeric.
 - `foundations/rung-offset-mechanism.md`—Why Observables Sit Between Rungs: The Two-Fluid Phase Mechanism for Fractional Cascade Offsets. Derived envelope quantization, Hypothesized phase-to-rung mapping and selection, Empirical catalog. Explains the wake-envelope crossing positions and pool-cell quantization; $\delta n$ is a Hypothesized coordinate mapping of a local phase lag, while the exact relaxation-angle bound is $|\Delta\theta_d|\leq\operatorname{atan}(\varphi)\approx1.017$ rad; the empirical catalog places the lightest state of each terminated sector at wake-envelope crossing positions; the mapped $\pm0.162$-rung reading remains distinct from the PDE-derived angle bound.
-- `foundations/sector-coupling-derivation.md`—Conditional Sector Scale and the Dirac Density Obstruction. Derived conditional sector and fermionic identities / Tested finite-mode production and continuum restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026. The $\delta=3$ scale arithmetic leaves physical interactions open. The chiral-scalar projection has dimensional, conjugacy and Hermiticity obstructions. Positive component quadratics give chiral-current densities but fail canonical population closure; the specified massive conversion lift shifts the golden fixed point and permits positive-to-negative-energy transitions. The separate scalar mass-source model has verified finite-mode production and feedback with 1,185 checks. Its continuum witness passes 645 comparisons: sudden excitation is ultraviolet divergent, static subtraction and initial-overlap identities hold, and $B=0.00165786399054<1$ excludes two-body binding in the leading nonrelativistic reduction. Physical matching, dynamical renormalization, relativistic and many-body localization remain open (`computations/matter-formation-continuum-report.md` §§14–15).
+- `foundations/sector-coupling-derivation.md`—Conditional Sector Scale and the Dirac Density Obstruction. Derived conditional sector and fermionic identities / Tested finite-mode production, continuum and scalar-vacuum restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026. The $\delta=3$ scale arithmetic leaves physical interactions open. The chiral-scalar projection has dimensional, conjugacy and Hermiticity obstructions. Positive component quadratics give chiral-current densities but fail canonical population closure; the specified massive conversion lift shifts the golden fixed point and permits positive-to-negative-energy transitions. The separate scalar mass-source model has verified finite-mode production and feedback with 1,185 checks. Its continuum witness passes 645 comparisons: sudden excitation is ultraviolet divergent, static subtraction and initial-overlap identities hold, and $B=0.00165786399054<1$ excludes two-body binding in the leading nonrelativistic reduction. The specified local static one-loop energy has positive reference curvature but no global lower bound in 16 algebraic checks. Physical matching, dynamical renormalization, full nonlocal spatial energy, metastability, relativistic and many-body localization remain open (`computations/matter-formation-continuum-report.md` §§14–16).
 - `foundations/spin-fibonacci-spiral.md`—Spin from the Yang/Yin Doublet Half-Angle: The amplitude-plane phase coordinate. Derived conditional on the doublet postulate, asserted pitch convention, equilibrium ratio, and minimal-span principle; the phase-to-rung mapping and particle identifications remain Hypothesized. Uses $\theta_\Psi$ and $\Theta_S=2\theta_\Psi\pmod{2\pi}$; $s=\Delta n/2$ and the $P_\parallel=2$ cycle are conditional coordinate conventions, with no fundamental $3/2$ claim under the minimal-span decomposition.
 - `foundations/spiral-dynamics.md`—Spiral Dynamics: Hubble, Gravity, and $c$ from Fibonacci Spiral Geometry. Hypothesized. Proposes a coordinate Fibonacci spiral built from the amplitude-plane phase and scale advance as a common structure behind cosmic expansion, gravitational attraction, and the speed of light; the spiral mapping's dynamical interpretation remains Hypothesized.
 - `foundations/strong-cp-derivation.md`—Strong CP: Why $\bar{\theta} \approx 0$ from Cascade De-Resonance. Derivation. Resolves the strong CP problem via cascade de-resonance: the $\varphi$-attractor fixed point is CP-symmetric, and CP-violating departures seeded at the GUT scale are cascade-suppressed over ~81 rungs to $\bar\theta \approx 1.2\times10^{-17}$ at the QCD scale.

@@ -116,9 +116,20 @@ changes and square pulses produce ultraviolet-divergent excitation
 energy. A specified static subtraction is verified, while compatible
 initial states and dynamical renormalization remain required. The
 unchanged coupling excludes two-body binding in the leading
-nonrelativistic Yukawa approximation. All 645 independent comparisons
-pass; relativistic and many-body localization remain open
-(`computations/matter-formation-continuum-report.md` §15).
+nonrelativistic Yukawa approximation. The collective local-density Yukawa
+functional is separately qualified to have no subthreshold bound state under
+its stated mass-depleting and vacuum-prescription assumptions; relativistic
+and other many-body localization remain outside these restrictions
+(`computations/matter-formation-continuum-report.md` §§15.6–15.7).
+
+The specified local static one-loop energy has positive reference
+curvature but no global lower bound. A verified negative bulk-energy
+witness makes a widening neutral trial bubble energetically
+unbounded below. The full nonlocal quantum model and metastable
+localized states require separate work
+(`computations/matter-formation-continuum-report.md` §16).
+The compact-target and relative-orientation checks sharpen that boundary. An independently supplied compact $SU(2)_{\rm top}$ field gives a comparison result for radial stationarity and energetic stability only; a smooth pointwise map of the two canonical densities cannot supply its degree density. In the optional phase-bearing gauge sector, the physical relative target is an $S^2$ at fixed nonzero norms. Joint gauge rotations can cancel in the connection, but do not remove a nonconstant relative texture; the induced screening scale is not parametrically separated at the predicted stationary size. The registered Hopf trial is unstable in its specified shape/connection family. The full spatial-variation calculation gives a negative amplitude first variation for every exact hard-norm nonzero-Hopf adjoint in the stated soft-action domain, and the included hard Finkelstein–Rubinstein loops contract there. Amplitude-relaxed metastability, production dynamics, physical normalization, quantum identification and complete matter formation remain unestablished (`computations/matter-formation-continuum-report.md` §§18–20).
+
 
 ## The reality-simulation program
 

@@ -42,6 +42,13 @@ $+1$ and $-1$, respectively, subject to the topological-quantization caveat;
 the displayed projection also compares $[M]^3$ bilinears with $[M]^2$
 condensate squares and is generically non-Hermitian.
 
+The collective local-density Yukawa functional is separately qualified to have
+no subthreshold bound state under its stated mass-depleting and
+vacuum-prescription assumptions (`computations/matter-formation-continuum-report.md`
+§§15.6–15.7). This remains a conditional restriction of the declared model,
+not a physical matter exclusion.
+
+
 The optional positive-inertia carrier parent in
 `foundations/particle-stationary-action-closure.md` §8.8 is **Hypothesized**.
 Its signed-charge, phase-rotation and stationary-embedding identities are
@@ -68,6 +75,23 @@ the dipole nonsymmetry gap fails the domain comparison. The combined
 scalar-parent spatial qualification remains **INCONCLUSIVE**, separately
 from the radial-domain result.
 
+The compact-target calculation is a supplied comparison model, qualified only
+for radial stationarity and energetic stability; a smooth pointwise map of the
+two canonical densities cannot generate its degree density. The optional phase-bearing
+gauge sector supplies a physical relative $S^2$ at fixed nonzero norms.
+Joint gauge cancellation is distinct from a nonconstant relative texture, and
+the screening scale is not parametrically separated at the predicted
+stationary size. The registered Hopf trial is `CONTRADICTS` only for its
+specified shape/connection family. The full spatial calculation is
+**Derived conditional** with verdict `SUPPORTS—full-variation identities and
+the hard-Hopf soft-amplitude obstruction`: every exact hard-norm nonzero-Hopf
+adjoint in the stated soft-action domain has negative amplitude first
+variation, and the included hard FR loops contract there. General
+amplitude-relaxed metastability, production, physical normalization, quantum
+identification and complete matter formation remain open
+(`computations/matter-formation-continuum-report.md` §§18–20).
+
+
 ## 1. Derived
 
 | Document | Status | Summary |
@@ -90,7 +114,7 @@ from the radial-domain result.
 | `foundations/phi_attractor_synthesis.md` | Derived (attractor synthesis) / Calibrated ($\xi$ pin) / Mapped ($\alpha_{\text{halo}} = 0.7$ nominal—ledger) | $r \to \varphi$ attractor synthesis across regimes |
 | `foundations/wu-xing-derivation.md` | Derived (w = 5, gap, r₀; single input: coherence postulate—verified 2026-08-11) / Calibrated (w₀ via the DESI-anchored coupling form—ledger) | $w = 5$ derived (coherence criterion over all $w$: only $\{1,2,3,5\}$; pentagon geometry); the named C-class/framework convention $\lambda=0.1$ is Asserted, while the implementation class default is $\lambda=0.02$; $\lambda=1/(2w)$ is a Hypothesized Wu Xing linkage requiring independent cycle-time and dynamical closure (`cassi-physics.md`) |
 | `foundations/wu-xing-cycle-structure.md` | Derived (cycle geometry, coupling, ring algebra) / Tested (ke ring PDE 2026-07-31, WX1 gate level 2026-08-01) / Hypothesized (affinity gradient, clinical profile) | Two coherent 5-cycles (sheng/ke); control-ring algebra; 5↔13 chakra partition |
-| `foundations/sector-coupling-derivation.md` | Derived conditional sector and fermionic identities / Tested finite-mode production and continuum restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026 | Conditional on $\delta=3$, $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2\approx0.92\ \mathrm{TeV}^{-2}$ and $M_{s,\mathrm{scale}}\approx1.04\ \mathrm{TeV}$ are arithmetic. The chiral-scalar projection has dimensional, conjugacy and Hermiticity obstructions. Positive component quadratics give chiral-current densities but fail canonical population closure; the specified massive conversion lift shifts the golden fixed point and leaks from the positive-energy subspace. The separate scalar mass-source model has verified finite-mode production and feedback with 1,185 checks. Its continuum witness passes 645 comparisons: sudden excitation is ultraviolet divergent, static subtraction and initial-overlap identities hold, and $B=0.00165786399054<1$ excludes two-body binding in the leading nonrelativistic reduction. Physical matching, dynamical renormalization, relativistic and many-body localization remain open (`computations/matter-formation-continuum-report.md` §§14–15) |
+| `foundations/sector-coupling-derivation.md` | Derived conditional sector and fermionic identities / Tested finite-mode production, continuum and scalar-vacuum restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026 | Conditional on $\delta=3$, $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2\approx0.92\ \mathrm{TeV}^{-2}$ and $M_{s,\mathrm{scale}}\approx1.04\ \mathrm{TeV}$ are arithmetic. The chiral-scalar projection has dimensional, conjugacy and Hermiticity obstructions. Positive component quadratics give chiral-current densities but fail canonical population closure; the specified massive conversion lift shifts the golden fixed point and leaks from the positive-energy subspace. The separate scalar mass-source model has verified finite-mode production and feedback with 1,185 checks. Its continuum witness passes 645 comparisons: sudden excitation is ultraviolet divergent, static subtraction and initial-overlap identities hold, and $B=0.00165786399054<1$ excludes two-body binding in the leading nonrelativistic reduction. The specified local static one-loop energy has positive reference curvature but no global lower bound in 16 algebraic checks. Physical matching, dynamical renormalization, full nonlocal spatial energy, metastability, relativistic and many-body localization remain open (`computations/matter-formation-continuum-report.md` §§14–16) |
 | `foundations/xi-derivation.md` | Derived conditional on the quadratic-coupling input (imbalance inverse-square: $\xi=(\pi/\rho)^{-2}=\varphi^6$, $\pi/\rho=\varphi^{-3}$ from the attractor) / Calibrated empirical pin (Milky Way anchor—ledger row 498)—August 2026 | $\xi=\varphi^6=(\pi/\rho)^{-2}$ conditional on the inverse-square coupling input; at the reference state $\rho=\varphi$, $s=\pi/\rho=\varphi^{-3}$, $q=0.872677996$ and $G_{\mathrm{eff}}/G=3.726779962$; the $\varphi^3G$ value is the high-density fixed-$s$ endpoint, not a canonical free-$q$ ceiling |
 | `foundations/quark-confinement.md` | Derived (tube extensivity + cell quantization; $\kappa = 2\pi$ conditional on the pitch convention and the Hypothesized phase-to-rung coordinate mapping; inputs: gate saturation, one-cell quantization) | QCD at step 95; saturated-gate flux tube $E(r) = \mu r$, $\mu = 2\pi(M_{\text{Pl}}/\varphi^{95})^2 = 0.1836$ GeV² (+2.0% vs measured); $P_{\text{break}} \approx \varphi^{-4506}$ |
 | `foundations/proton-coherence-budget.md` | Mapped proton coordinate and selected carrier coupling / Derived conditional coherence-product arithmetic, scale-current identities, point-flux support, and auxiliary-core boundary / Hypothesized stochastic, endpoint, and proton realizations / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026 | The independent-step profile gives a conditional cycle count; a distinct scale circuit carries relative current with zero total flow. The particle action preserves an empty carrier sector. Its Cartesian branch fails the smooth-carrier diagnostic; separate prepared scalar binding has INCONCLUSIVE constrained spatial stability. Physical production, proton identity, normalization and lifetime remain open |

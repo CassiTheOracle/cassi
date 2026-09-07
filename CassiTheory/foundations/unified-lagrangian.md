@@ -509,6 +509,45 @@ localization open. All 645 independent comparisons pass
 (`foundations/sector-coupling-derivation.md` §§1.8–1.9;
 `computations/matter-formation-continuum-report.md` §15).
 
+Combining the specified static remainder with the harmonic scalar
+potential and canonical gradient term gives a local static
+functional with positive reference curvature but no global lower
+bound. The exact negative bulk-energy witness and spatial volume
+argument are verified in
+`foundations/sector-coupling-derivation.md` §1.10 and
+`computations/matter-formation-continuum-report.md` §16.
+The full nonlocal spatial quantum energy and metastable localized
+states remain separate requirements.
+
+The mass-depleting local-density Yukawa restriction also has no state below
+the separated-particle threshold for $|m|\le1$, including the specified local
+one-loop sea energy (`computations/matter-formation-continuum-report.md`
+§§15.6–15.7). The nonlocal determinant, exchange, metastability and finite
+valence spectrum remain open. These benchmark restrictions select no physical
+Cassi coupling.
+
+The scalar configuration-space and compact-target results have distinct
+domains. The declared full positive-density scalar domains are contractible
+and supply only a trivial Finkelstein–Rubinstein character. A separately
+supplied massless $SU(2)_{\rm top}$ Skyrme comparison passes finite-domain
+radial stationarity and radial energetic qualification. A continuous lift of
+the declared contractible density domains has zero degree when its reference
+maps to the target vacuum. The compact model's nonzero-degree sector therefore
+requires additional field information or a changed configuration-space domain.
+
+The optional gauge sector has a physical relative $S^2$ at fixed nonzero
+fundamental and adjoint norms. Joint gauge cancellation leaves that relative
+field constant. The registered Hopf size/connection trial has no local
+minimum at the retained coefficients. With the fundamental fixed and
+nonzero, the finite adjoint-norm potential in the original particle action
+also permits a strict amplitude descent from every smooth exact unit-adjoint
+nonzero-Hopf field and contracts the included hard-target rotation and
+exchange loops. Those hard-norm fields therefore fail full stationarity,
+and their nontrivial FR character cannot extend over the stated soft domain.
+Amplitude-relaxed metastability, physical quantum statistics and formation
+remain open (`foundations/particle-stationary-action-closure.md` (PA12);
+`computations/matter-formation-continuum-report.md` §§12.7–12.12, 18–20).
+
 ## 3. GR/Gravity Sector $\mathcal{L}_{\text{GR}}$
 
 Gravity is an optional Einstein–Hilbert extension with a candidate

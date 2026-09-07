@@ -336,6 +336,43 @@ Relativistic and cooperative many-body localization, physical
 matching and a common formation/stability energy functional remain
 open (`computations/matter-formation-continuum-report.md` §15).
 
+The specified local static one-loop scalar energy also has no global
+lower bound. Sixteen algebraic checks verify positive reference
+curvature, an exact negative bulk-energy witness and a neutral trial
+family whose volume energy dominates its boundary cost. The result
+leaves nonlocal spatial quantum energy, metastability and valence
+spectra open (`computations/matter-formation-continuum-report.md` §16).
+
+The collective restriction is separate from the two-body bound. In the
+specified mass-depleting local-density Yukawa functional, including the local
+one-loop sea remainder and allowing the favorable fourfold occupation space,
+the energy stays at or above the separated-particle threshold for
+$|m|\le1$. This excludes subthreshold collective binding only within that
+candidate approximation; exact finite-fermion states, nonlocal sea effects,
+exchange, metastability and physical matching remain open
+(`computations/matter-formation-continuum-report.md` §§15.6–15.7).
+
+The scalar topology calculation finds no rotation or exchange
+Finkelstein–Rubinstein sign in the stated regular positive-density domains.
+Separated exchange sectors and large-gauge winding require their own
+configuration spaces and quantum lifts. The independent massless
+$SU(2)_{\rm top}$ Skyrme comparison supports finite-domain radial
+stationarity and radial energetic qualification in its shifted-angle
+calculation; the direct-angle result is inconclusive. A smooth pointwise map
+of the two canonical densities cannot generate its degree density. The
+comparison therefore does not identify a physical Cassi carrier.
+
+At fixed nonzero fundamental and adjoint norms, the optional gauge sector has
+a physical relative $S^2$; joint gauge cancellation is distinct from removing
+a nonconstant relative texture. The predicted local-stabilizer screening
+approximation is not controlled at the relevant scale. The full PA12
+polynomial action has a strict first-order amplitude descent for every
+hard-norm nonzero-Hopf field, because the adjoint norm is soft. This conclusion
+does not apply to a separately constrained hard-norm domain, and a relaxed
+soft-amplitude metastable state, quantum statistics and dynamical formation
+remain open (`computations/matter-formation-continuum-report.md` §§12.7–12.12,
+18–20).
+
 ## References
 
 - `computations/matter_completion_boundary_prereg.md`—frozen MCC1–MCC9

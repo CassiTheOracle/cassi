@@ -563,6 +563,14 @@ remain separate questions
 (`foundations/sector-coupling-derivation.md` §§1.8–1.9;
 `computations/matter-formation-continuum-report.md` §15).
 
+The specified local static one-loop scalar energy has positive
+reference curvature but no global lower bound. Sixteen algebraic
+checks verify the negative bulk-energy witness and spatial
+volume argument. The full nonlocal quantum energy, metastable
+localized states and their physical identification remain open
+(`foundations/sector-coupling-derivation.md` §1.10;
+`computations/matter-formation-continuum-report.md` §16).
+
 ### 4.3 Gravity Sector $\mathcal{L}_{\text{GR}}$ (optional gravity extension)
 This sector is an optional **Hypothesized** gravity extension. Its displayed
 relations and fixed-point evaluations are **Derived conditional** on the ansatz
@@ -1350,6 +1358,26 @@ positivity and Hermiticity boundary for the chiral-scalar map and records the
 scalar $2\pi$ phase $+1$ versus the Dirac phase $-1$, with fermionic
 topological sectors requiring separate quantization data
 (`computations/matter-formation-continuum-report.md` §12).
+The collective local-density Yukawa functional is separately qualified to have
+no subthreshold bound state under its stated mass-depleting and
+vacuum-prescription assumptions
+(`computations/matter-formation-continuum-report.md` §§15.6–15.7).
+
+
+The compact-target result is an explicitly supplied comparison model: its
+qualified radial calculation addresses stationarity and energetic stability,
+while a smooth pointwise map of the two canonical densities cannot generate degree density.
+The optional phase-bearing gauge sector has a physical relative $S^2$ at fixed
+nonzero norms. Joint gauge cancellation does not remove a nonconstant relative
+texture, and the predicted stationary scale is not parametrically separated
+from the light screening scale. The registered Hopf trial is unstable in its
+specified shape/connection family. Full spatial variations give a negative
+amplitude first variation for every exact hard-norm nonzero-Hopf adjoint in the
+stated soft-action domain, and the included hard FR loops contract there.
+Amplitude-relaxed metastability, production, normalization, quantum identity
+and complete matter formation remain open
+(`computations/matter-formation-continuum-report.md` §§18–20).
+
 
 ### 10.6 Wake-Wave Mechanism
 

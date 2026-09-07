@@ -1,6 +1,6 @@
 # Conditional Sector Scale and the Dirac Density Obstruction
 
-## Status: Derived conditional sector and fermionic identities / Tested finite-mode production and continuum restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
+## Status: Derived conditional sector and fermionic identities / Tested finite-mode production, continuum and scalar-vacuum restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
 
 ## Abstract
 
@@ -9,6 +9,8 @@ The arithmetic scale $\kappa_{s,\mathrm{scale}}=\varphi^{-6}/v_0^2$ follows from
 A separately declared real scalar mass interaction admits a fermionic vacuum and an explicit production-energy ledger. Its finite-mode covariance evolution preserves Pauli bounds and vector charge, while a classical scalar mean field can supply coherent pair excitation with reciprocal feedback. This construction assumes its spinor content, vacuum, scalar source and finite-volume subtraction. Physical normalization, canonical density reduction, continuum quantum dynamics and localized particle formation remain open.
 
 Independent continuum quadratures verify the sudden-source ultraviolet divergence, a specified static one-loop subtraction and a logarithmic initial-state overlap mismatch. At the unchanged coupling, a sufficient bound excludes two-body binding in the leading nonrelativistic scalar-exchange reduction. The renormalized spatial quantum model and its physical identification remain open.
+
+The specified local static one-loop scalar energy has positive reference curvature but no global lower bound. An exact negative bulk-energy witness and a finite-energy spatial trial family establish this conditional restriction. The full nonlocal quantum energy, metastability and physical matter identification remain open.
 
 ## 1. The projection and its mathematical boundary
 
@@ -437,6 +439,75 @@ identities in each program. Its exact scoped verdicts, finite-cutoff
 errors and source identities are recorded in
 `computations/matter-formation-continuum-report.md` §15.
 
+The pairwise no-binding result does not decide a collective bag. In the
+declared static local-density restriction, with $m_0=1$, $y=1/4$,
+$\Omega=3$, $|m(x)|\le1$ and the specified one-loop remainder, the favorable
+fourfold particle/antiparticle occupation obeys
+$$
+\boxed{\mathcal E_{\mathrm{LDA}}-N_{\mathrm{exc}}
+\ge\frac12\int|\nabla f|^2\,d^3x
++\frac{3236}{45}\int(1-|m|)^2\,d^3x\ge0.}
+$$
+The single-sign sector has coefficient $3238/45$. Thus this restricted
+functional has no state below the separated-particle threshold, while exact
+finite-fermion spectra, nonlocal sea effects, exchange, metastability,
+mass-enhancing configurations and physical particle assignment remain open.
+The bound is a conditional model restriction, not a general many-body
+localization theorem (`computations/matter-formation-continuum-report.md`
+§§15.6–15.7).
+
+### 1.10 Global lower boundedness of the specified static energy
+
+Positive reference curvature alone cannot establish a globally stable
+vacuum. Combining the supplied harmonic scalar potential with the
+static remainder in §1.8 gives, at $m_0=1$, $y=1/4$ and $\Omega=3$,
+
+$$
+\mathcal U(m)=72(m-1)^2+\mathcal V_R(m),\qquad
+\mathcal U(1)=\mathcal U'(1)=0,\qquad
+y^2\mathcal U''(1)=9.
+$$
+
+The large-field asymptote has a negative leading coefficient:
+
+$$
+\lim_{m\to\infty}
+\frac{\mathcal U(m)}{m^4\log(m^2)}
+=-\frac1{16\pi^2}.
+$$
+
+A fixed finite-field witness gives an exact sign proof. At $m=64$,
+the inequalities $\log2>2/3$ and $\pi^2<10$ imply
+
+$$
+\boxed{\mathcal U(64)<-\frac{8265011}{64}<0.}
+$$
+
+The directly evaluated value is $-168382.922633654$ in the supplied
+normalization. This amplitude is an algebraic witness, with no
+identification as a physical mass or preferred field value.
+
+For the explicitly local functional
+$\mathcal E[f]=\int[\tfrac12|\nabla f|^2+\mathcal U(1+yf)]d^3x$,
+take a plateau $f=252$ inside radius $R$, a linear transition to zero
+over width $\sqrt R$, and zero exterior. Each trial field has finite
+energy and the reference boundary at infinity. Its negative core
+energy grows as $4\pi\mathcal U(64)R^3/3$. The gradient energy is
+$O(R^{3/2})$ and the absolute shell-potential bound is $O(R^{5/2})$.
+Consequently $\mathcal E\to-\infty$ along this family.
+Sixteen symbolic and exact-rational checks verify the stated
+identities and the positive zero-loop control
+(`computations/matter-formation-continuum-report.md` §16).
+
+The conclusion applies to this local static one-loop functional.
+It omits the full nonlocal fermionic determinant and higher derivative
+terms. A completion retaining the same bulk potential and a
+subextensive interface energy inherits the volume argument.
+Extension to fixed nonzero fermion charge needs a charge-preserving
+finite-energy valence construction separated from the neutral bubble.
+Local extrema, metastable configurations, formation times and their
+physical identification remain separate questions.
+
 ## 2. The conditional scale and electroweak anchor
 
 The cascade arithmetic determines a scale once its dimensionful anchor and offset are declared. With $E_n=M_{\rm Pl}\varphi^{-n}$, the exact step-80 value is $E_{80}=233.2\ \mathrm{GeV}$ at the displayed precision. The calibrated $v_0=246\ \mathrm{GeV}$ instead has coordinate $n(v_0)\approx79.89$. These two inputs define two related scale evaluations.
@@ -511,12 +582,36 @@ The exact results are the conditional scale arithmetic, the field dimensions, th
 The declared scalar–fermion model additionally supplies exact overlap,
 charge and energy identities, continuum asymptotes, a specified static
 subtraction, an initial-overlap logarithm and a sufficient two-body
-no-binding condition. Independent computations verify finite-mode
-production and feedback as well as those continuum restrictions
-(`computations/matter-formation-continuum-report.md` §§14–15).
+no-binding condition. Its specified mass-depleting local-density extension,
+including the local one-loop remainder and favorable fourfold occupation
+relaxation, also excludes subthreshold collective binding for $|m|\le1$.
+Independent computations verify finite-mode production and feedback as well as
+these continuum restrictions
+(`computations/matter-formation-continuum-report.md` §§14–15.7).
 The static subtraction fixes a reference scheme. Dynamical
 renormalization, physical finite parts, relativistic and many-body
 localization, and a common formation/stability calculation remain open.
+
+The canonical scalar topology checks find contractible regular
+positive-density domains with no rotation or exchange
+Finkelstein–Rubinstein sign. Separated exchange, large-gauge and compact
+target sectors need independently selected configuration spaces and quantum
+lifts. The massless $SU(2)_{\rm top}$ comparison supports only finite-domain
+radial stationarity and radial energetic qualification. A smooth pointwise
+map of the two canonical densities cannot generate its degree density.
+In the optional gauge sector, fixed
+nonzero fundamental and adjoint norms leave a physical relative $S^2$;
+joint gauge cancellation is distinct from a nonconstant relative texture.
+The PA12 soft adjoint amplitude gives strict first-order descent for every
+hard-norm nonzero-Hopf field and contracts the included hard-norm loops. A
+relaxed soft-amplitude state or separately constrained hard-norm model remains
+open (`computations/matter-formation-continuum-report.md` §§12.7–12.12,
+18–20).
+
+The specified local static one-loop energy has positive reference
+curvature but no global lower bound (§1.10). A physical completion
+needs a justified bulk and interface energy before it can support a
+global particle-ground-state claim.
 
 The two-fluid's real-density description supplies no Dirac field by itself. Adding the standard Dirac kinetic action introduces fermionic microscopic content as an independent assumption. A physical mass fit, a cascade coordinate and a formal coefficient-free scale do not select that content or its interaction.
 
@@ -533,6 +628,8 @@ The two-fluid's real-density description supplies no Dirac field by itself. Addi
 - Patrick B. Greene and Lev Kofman, *Preheating of Fermions* (1998), [arXiv:hep-ph/9807339](https://arxiv.org/abs/hep-ph/9807339)—standard coherent fermion excitation and Pauli-bounded occupation.
 - Juergen Baacke, Katrin Heitmann and Carsten Pätzold, *Nonequilibrium dynamics of fermions in a spatially homogeneous scalar background field* (1998), [arXiv:hep-ph/9806205](https://arxiv.org/abs/hep-ph/9806205)—one-loop backreaction, renormalization and initial-state requirements.
 - `computations/matter-formation-continuum-admissibility-prereg.md`—frozen continuum asymptotes, static subtraction, initial overlap and two-body localization criterion.
+- `computations/matter-formation-scalar-vacuum-prereg.md`—frozen local static lower-boundedness criterion.
+- `computations/verify_matter_formation_scalar_vacuum.py`—symbolic identities, exact-rational sign witness and spatial trial-energy scaling.
 - V. Bargmann, *On the Number of Bound States in a Central Field of Force* (1952), [doi:10.1073/pnas.38.11.961](https://doi.org/10.1073/pnas.38.11.961)—sufficient partial-wave bound-state counting.
 - E. Farhi, N. Graham, R. L. Jaffe and H. Weigel, *Searching for Quantum Solitons in a 3+1 Dimensional Chiral Yukawa Model* (2001), [arXiv:hep-th/0112217](https://arxiv.org/abs/hep-th/0112217)—localized fixed-fermion-number energies including the renormalized sea.
 - `foundations/geometric-manifold-completion.md` §4.4—minimal positive-fibre conversion lift.

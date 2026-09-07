@@ -964,6 +964,45 @@ physical energy-density normalization and controlled reduction unselected.
 An amplitude-space leakage rate supplies no Fock-space matter-production
 calculation.
 
+The continuum restrictions sharpen the localization boundary. At the frozen
+$m_0=1$, $y=1/4$, $\Omega=3$ inputs, the leading pairwise Yukawa reduction
+has $B=0.00165786399054<1$, excluding two-body bound levels by a sufficient
+bound. The favorable fourfold occupation space in the specified
+mass-depleting local-density functional likewise has no state below the
+separated-particle threshold for $|m|\le1$, including its local one-loop sea
+remainder. This is a restriction of that candidate approximation; exact
+finite-fermion, nonlocal, exchange, metastable and physical-identification
+questions remain open (`computations/matter-formation-continuum-report.md`
+§§15.4, 15.6–15.7).
+
+The declared full positive-density scalar domains are contractible and
+supply only a trivial Finkelstein–Rubinstein character. The separate
+source-free positive-root static energy permits amplitude descent and
+fixed-population dilution even with its positive fourth-gradient term.
+Separated exchange, large-gauge winding and compact-target proposals require
+their own configuration spaces and quantum lifts
+(`computations/matter-formation-continuum-report.md` §§12.7–12.12).
+
+The massless $SU(2)_{\rm top}$ Skyrme field is an independent comparison
+model. Its shifted-angle calculation supports finite-domain radial
+stationarity and radial energetic qualification. A continuous lift of the
+declared contractible canonical density domains has zero degree when its
+reference maps to the target vacuum. A nonzero-degree sector therefore
+requires additional field information or a changed domain. In the optional
+gauge sector, fixed nonzero fundamental and adjoint norms leave a physical
+relative $S^2$. Joint gauge cancellation leaves this relative field constant;
+the induced local-stabilizer approximation has no scale separation at its
+stationary size.
+
+With the fundamental fixed and nonzero, the original particle action's
+finite adjoint-norm potential permits a strictly negative amplitude variation
+for every smooth exact unit-adjoint nonzero-Hopf field. It also admits a
+finite-energy contraction of the included hard-target rotation and exchange
+loops, preventing their nontrivial FR character from extending over the
+stated soft domain. Amplitude-relaxed metastability, physical quantum
+statistics and formation remain open
+(`computations/matter-formation-continuum-report.md` §§18–20).
+
 The remaining physical requirements are:
 
 1. identify the microscopic carrier and derive its production interaction,

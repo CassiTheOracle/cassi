@@ -1523,7 +1523,7 @@ The verdict is **SUPPORTS—absence of subthreshold collective binding in the de
 
 The rational proof margins are explicit: the alternating-polynomial construction gives $4I-3=769/45045>0$, the square-root bound gives $9/4-2=1/4>0$, and the fourfold-degeneracy binding coefficient is $3236/45>0$. The loop remainder is nonnegative on the tested branch by the integral and polynomial identities in §15.6.
 
-The frozen protocol is retained in local commit `db777160`; the executed sources are retained in local commit `ac089936`. The primary and independent reconstruction each ran once. These are separate from the accepted pair, spatial and vacuum calculations, which were reused without re-execution. The code and working record remain local; the pending public-document set in §17.2 is unchanged.
+The primary and independent receipts bind the frozen §15.6 protocol and both program sources. Their accepted pair, spatial and vacuum inputs retain separate provenance. The public-document evidence map and physical scope are in §17.2.
 
 |Evidence identity|SHA-256|
 |---|---|
@@ -1740,34 +1740,15 @@ This check finds explicit optional fermionic models, including the executed prod
 
 A further candidate must state its additional microscopic assumptions and how its own energy, vacuum sector and conserved structure address the relevant restrictions. In particular, a topology-based proposal needs a physical target and gauge quotient, an admissible nontrivial sector, a stabilizing action, a rotation/exchange quantization and a production mechanism. A supplied Dirac proposal instead needs a real density bridge, a physically justified quantum state and normalization, and a stable renormalized spatial theory. The recorded scalar-to-fermion map and local one-loop energy cannot be reused without their demonstrated obstructions.
 
-### 17.2 Pending document integration and local publication status
+### 17.2 Evidence map and physical scope
 
-**Working-tree status—6 September 2026: partial integration, without a consolidated cross-document consistency verdict.** The research commits remain local by the owner's explicit publication choice. This working record is the sole intermediate research record.
+This record supplies the detailed assumptions, calculations and receipt identities for the matter-formation results. The physical interpretation is maintained in `open-questions-cassi-answers.md`, `parameter-inventory.md`, `predictions/falsifiable-predictions.md` and `audit.md`. The derivation-level treatments are `foundations/matter-completion-boundary.md`, `foundations/particle-stationary-action-closure.md`, `foundations/sector-coupling-derivation.md`, `foundations/unified-lagrangian.md` and `computations/matter_completion_boundary_report.md`.
 
-The pending public-document set contains these 14 paths:
+The reader-facing summaries and source indexes are `README.md`, `cassi-physics.md`, `reading-guide.md`, `EPISTEMIC-MAP.md`, `foundations/README.md`, `foundations/cassi-theory-reference.md` and `BROKEN_REFS.md`. Generated receipts remain local artifacts with explicit source identities and reproduction commands; their existence does not imply that they are tracked or distributed.
 
-- `BROKEN_REFS.md`
-- `EPISTEMIC-MAP.md`
-- `README.md`
-- `audit.md`
-- `cassi-physics.md`
-- `computations/matter_completion_boundary_report.md`
-- `foundations/README.md`
-- `foundations/cassi-theory-reference.md`
-- `foundations/sector-coupling-derivation.md`
-- `foundations/unified-lagrangian.md`
-- `open-questions-cassi-answers.md`
-- `parameter-inventory.md`
-- `predictions/falsifiable-predictions.md`
-- `reading-guide.md`
+The scalar configuration-space and fourth-gradient restrictions retain their declared domains and quantization assumptions (§§12.7–12.12). The collective-binding exclusion retains the local-density, $|m|\le1$ and specified-vacuum-prescription restrictions (§§15.6–15.7). The compact-target comparison qualifies radial stationarity and energetic stability in an independently supplied model (§18). The relative-gauge results distinguish a physical orientation from its stabilization (§19); the soft-adjoint result excludes exact unit-adjoint nonzero-Hopf stationarity and extension of the included hard-target FR character over the stated soft domain (§20).
 
-The three registries and `audit.md` contain draft integration of the finite-mode production, continuum and scalar-vacuum results in this record's §§14–16. The numbered body of `foundations/matter-completion-boundary.md` reaches §12; its integrated treatment of those results remains pending. The full document set has no verified agreement with the current working record. These uncommitted hunks are unfinished integration work, with no claim-adoption decision implied by their presence.
-
-The collective-binding exclusion in §§15.6–15.7 is also pending public propagation. The consolidated checkpoint must carry its restricted local-density, $|m|\le1$ and specified-vacuum-prescription scope into `EPISTEMIC-MAP.md`, `audit.md`, and the relevant existing matter-formation entries in `open-questions-cassi-answers.md` and `predictions/falsifiable-predictions.md`. This calculation supplies a conditional model constraint; it introduces no new experiment-ready physical prediction.
-
-The topology and fourth-gradient results in §§12.7–12.12 also remain in this working record pending the same consolidated checkpoint. Their domain, quantization and boundary assumptions must accompany any later propagation; they establish no universal exclusion of emergent fermions and no experiment-ready prediction.
-
-Preserve this set separately from local research commits. A consolidated publication checkpoint must reconcile the registries, `EPISTEMIC-MAP.md`, `audit.md`, domain treatment and supporting indexes before these hunks enter a public commit. Their present status is explicitly handed off; no bulk staging, silent reversion or intermediate propagation is authorized.
+These results introduce no experiment-ready particle prediction. Amplitude-relaxed carriers, full nonlinear stability, physical production, quantum-statistics selection, normalization and observed particle identification remain open. Each additional microscopic proposal requires its own physical assumptions and evidence.
 
 ## 18. Compact-target carrier candidate
 
@@ -2509,7 +2490,7 @@ python computations/matter_formation_full_variations.py --output-dir runs/<fresh
 
 The derived result is a boundary on the supplied conditional action. A hard-norm nonzero-Hopf texture cannot be a full stationary solution when its finite norm potential allows the displayed amplitude variation. Its hard-target FR sign also lacks an extension as a homotopy character over the stated soft configuration domain. A radially relaxed or spatially general soft-field metastable state remains possible within this analysis, but would still require a qualified stationary solution, full stability and production dynamics. Selecting a physical quantum structure, normalization and particle identity requires additional microscopic evidence. Complete matter formation remains unestablished.
 
-Raw calculation, failure-control and independent-derivation artifacts are retained under `runs/20260907_matter_formation_full_variations/`, `runs/20260907_matter_formation_full_variations_missing_record/` and `runs/20260907_matter_formation_full_variations_altered_record/`. The local reconciliation receipt binds their identities and analytical scope. Public-document propagation and publication remain deferred under §17.2.
+Raw calculation, failure-control and independent-derivation artifacts are retained under `runs/20260907_matter_formation_full_variations/`, `runs/20260907_matter_formation_full_variations_missing_record/` and `runs/20260907_matter_formation_full_variations_altered_record/`. The reconciliation receipt binds their identities and analytical scope. The public-document evidence map is in §17.2.
 
 ## References
 

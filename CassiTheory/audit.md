@@ -255,7 +255,48 @@ parameters, $B=0.00165786399054<1$ excludes every two-body bound level
 in the leading nonrelativistic Yukawa reduction. This leaves
 renormalized dynamics, relativistic and many-body binding, and
 physical particle matching open
-(`computations/matter-formation-continuum-report.md` §15).
+(`computations/matter-formation-continuum-report.md` §§15.1–15.5).
+
+The collective local-density extension also has no state below the
+separated-particle threshold on its mass-depleting $|m|\le1$ branch, including
+the specified local one-loop sea energy. This is a conditional restriction on that
+benchmark model; renormalized spatial formation, many-body dynamics and
+physical matching remain open
+(`computations/matter-formation-continuum-report.md` §§15.6–15.7).
+
+The scalar-vacuum qualification passes 16 symbolic and exact-rational
+checks. The specified local static one-loop energy has scalar
+reference curvature $9$, but
+$\mathcal U(64)<-8265011/64<0$. A neutral plateau with increasing
+radius has negative volume energy dominating its gradient and
+interface costs, so the local functional has no global lower bound.
+Its directly evaluated witness is $-168382.922633654$ in the supplied
+normalization. This restriction leaves full nonlocal quantum energy,
+metastability, valence spectra and physical matching open
+(`computations/matter-formation-continuum-report.md` §16).
+
+The compact-target comparison uses an independently supplied
+$SU(2)_{\rm top}$ field with positive static energy and degree $B_{\rm top}$.
+The shifted-angle solve supports finite-domain stationarity and radial
+energetic qualification; the direct-angle solve is `INCONCLUSIVE`. Its degree
+does not arise from a smooth pointwise bridge from the two canonical real
+densities, and the qualified contractible density domains have trivial degree
+image. The compact field, production channel and quantum statistics remain
+additional Hypothesized inputs (`computations/matter-formation-continuum-report.md`
+§§18.1–18.7).
+
+At fixed nonzero fundamental and adjoint norms, the gauge quotient leaves a
+physical relative $S^2$. Joint gauge cancellation removes a pure-gauge
+representative while leaving the invariant relative field constant; it does
+not screen a nonconstant relative texture. The registered unit-Hopf trial
+has negative connection-amplitude curvature, a shape-specific instability.
+The complete variation qualification passes six groups with $59/59$ exact
+identities and $8/8$ predicates. Every exact unit-adjoint nonzero-Hopf field
+in the stated fixed-fundamental soft action has negative first amplitude
+variation, and the included hard Faddeev–Hopf loops contract in that soft
+domain. Amplitude-relaxed metastability, production, normalization and
+physical identification remain open
+(`computations/matter-formation-continuum-report.md` §§19–20).
 
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 

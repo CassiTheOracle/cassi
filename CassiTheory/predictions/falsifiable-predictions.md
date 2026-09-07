@@ -762,7 +762,43 @@ All 645 independent comparisons verify the stated asymptotes,
 static subtraction, initial overlap and sufficient binding bound.
 These conditional restrictions add no physical prediction or fitted
 parameter; renormalized spatial formation and particle matching
-remain open (`computations/matter-formation-continuum-report.md` §15).
+remain open (`computations/matter-formation-continuum-report.md` §§15.1–15.5).
+
+The collective local-density Yukawa functional also has no state below the
+separated-particle threshold on its mass-depleting $|m|\le1$ branch, including
+the specified local one-loop sea energy. Exact finite-fermion spectra,
+nonlocal effects, metastability and physical matching remain open
+(`computations/matter-formation-continuum-report.md` §§15.6–15.7).
+
+The specified local static one-loop energy also fails global lower
+boundedness, despite positive reference curvature. Sixteen algebraic
+checks verify an exact negative bulk-energy witness and a spatial
+trial family whose energy tends to minus infinity. This is a
+conditional model restriction. It supplies no physical prediction,
+nonlocal quantum stability result or metastable lifetime
+(`computations/matter-formation-continuum-report.md` §16).
+
+The declared full positive-density scalar domains have only a trivial
+Finkelstein–Rubinstein character, and their source-free positive-root static
+energy permits amplitude descent and fixed-population dilution even with
+positive fourth-gradient stiffness. A separately supplied compact
+$SU(2)_{\rm top}$ model passes finite-domain radial stationarity and energetic
+qualification. A continuous bridge from the declared contractible density
+domains has zero degree when its reference maps to the target vacuum. A
+nonzero-degree sector requires additional field information or a changed domain
+(`computations/matter-formation-continuum-report.md` §§12.7–12.12, 18).
+
+The optional fixed-norm gauge sector has a physical relative $S^2$, but its
+induced local stabilizer has no controlled scale separation and the registered
+Hopf size/connection trial has no local minimum at the retained coefficients.
+In the stated fixed-fundamental soft action, every smooth exact unit-adjoint
+nonzero-Hopf field admits a strictly negative amplitude variation, and the
+included hard-target rotation and exchange loops contract. Their nontrivial
+FR character cannot extend over that soft domain. These conditional
+restrictions add no physical particle prediction; amplitude-relaxed
+metastability, quantum-statistics selection, production, normalization and
+particle identification remain open
+(`computations/matter-formation-continuum-report.md` §§19–20).
 
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;

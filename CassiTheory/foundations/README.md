@@ -18,9 +18,27 @@ vacuum scalar mass, speed $c$, and one unit of internal scalar $U(1)$
 generator, while their core lengths differ. The scalar electron-core
 assignment and the displayed chiral-scalar density map are `CONTRADICTS`;
 this does not establish an electron, electromagnetic charge, or a physical
-interaction. The derivation and measured scope are in
+interaction. The collective local-density Yukawa functional is separately
+qualified to have no subthreshold bound state under its stated mass-depleting
+and vacuum-prescription assumptions
+(`computations/matter-formation-continuum-report.md` §§15.6–15.7). The
+normalization construction and measured scope are in
 `foundations/particle-stationary-action-closure.md` §§8.7, 8.12 and
 `computations/matter-formation-continuum-report.md` §§11–12.
+
+The subsequent compact-target comparison is limited to a supplied $SU(2)_{\rm
+top}$ field: its qualified radial calculation addresses stationarity and
+energetic stability, while a smooth pointwise map of the two canonical
+densities cannot generate degree density. In the optional phase-bearing gauge sector,
+the fixed-norm physical relative target is $S^2$; joint gauge cancellation is
+distinct from a nonconstant relative texture, and the predicted stationary
+scale is not separated from the light screening scale. The registered Hopf
+trial is shape-specific and unstable. Full spatial variations give a negative
+amplitude first variation for every exact hard-norm nonzero-Hopf adjoint in the
+stated soft-action domain, with the included hard FR loops contracting there.
+Amplitude-relaxed metastability, production, normalization, quantum identity
+and complete matter formation remain open (`computations/matter-formation-continuum-report.md` §§18–20).
+
 
 ## Document Index
 
@@ -53,7 +71,7 @@ interaction. The derivation and measured scope are in
 | 25 | `microcascade-mirror.md` | Formal negative-step coordinate; physical realization open | Hypothesized |
 | 26 | `refined-numeric-predictions.md` | Pinned φ-powers | Active derivation |
 | 27 | `deriving-remaining-gaps.md` | Residual parameters | Resolved / narrowed |
-| 28 | `sector-coupling-derivation.md` | Conditional Sector Scale and the Dirac Density Obstruction | Derived conditional sector and fermionic identities / Tested finite-mode production and continuum restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026 |
+| 28 | `sector-coupling-derivation.md` | Conditional Sector Scale and the Dirac Density Obstruction | Derived conditional sector and fermionic identities / Tested finite-mode production, continuum and scalar-vacuum restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026 |
 | 29 | `wake-geometry.md` | Wake geometry | Derived supplied-wave structure; tested conditional second-order realization; physical condensation open |
 | 30 | `rung-offset-mechanism.md` | Rung offsets δn | Hypothesized mechanism, Empirical catalog |
 | 31 | `wu-xing-cycle-structure.md` | Wu Xing cycles, ring algebra | Derived / Tested / Hypothesized |
@@ -532,6 +550,13 @@ Renormalized dynamics, relativistic and many-body localization and
 physical matching remain open
 (`computations/matter-formation-continuum-report.md` §15).
 
+The specified local static one-loop scalar energy has positive
+reference curvature but no global lower bound. Sixteen algebraic
+checks verify a negative bulk-energy witness and the spatial volume
+argument. The full nonlocal energy, metastability and physical
+identification remain open
+(`computations/matter-formation-continuum-report.md` §16).
+
 ### `wake-geometry.md`—The Wake Geometry: Composite-Wavelength Closure and the Horizon Rung
 
 The Yang–Yin wake pair $\Lambda_Y=\varphi\Lambda_I$ closes the cascade ladder exactly through $1+1/\varphi=\varphi$: $\Lambda_Y+\Lambda_I=\ell_{n+1}$. For supplied adjacent-rung carriers, the checkerboard beat envelope has nodes at half-envelope positions and alternating demodulated sign at successive antinodes. Ordinary radial beating produces additive spacing. In the default CassiCosmos second-order wave branch, the density and imbalance channels have threshold separation $\Omega_g=\varphi\omega_{0,\mathrm{wave}}$ and reach $k_\rho/k_\epsilon=\varphi$ only under the supplied drive $\Omega_*=\varphi^{3/2}\omega_{0,\mathrm{wave}}$; the current source path supplies no selector. Uniform phase staggering remains gapless, while a declared link-magnitude modulation opens a conditional gap. Physical condensation and the node-to-link map remain open. The golden-angle closure ladder converges through Fibonacci denominators without exact closure, and the verified Yang-fraction-weighted horizon convention gives $N_\infty\approx294.2$.
@@ -890,6 +915,7 @@ energetically stable regular finite-energy lump by spatial dilation
 (`foundations/particle-stationary-action-closure.md` §8.9). Charged,
 multi-frequency, quantum and additional topological sectors retain their
 separate scope.
+
 At fixed signed charge, all 24 frozen parent embeddings have independently
 verified positive finite-grid radial curvature. Nine of twelve
 domain/resolution comparisons pass; the population-16 domain failures
@@ -903,6 +929,21 @@ grids support these sectors, with 96 independently matched eigenvalues.
 Seven of eight spatial comparisons pass; the dipole nonsymmetry gap fails
 its domain comparison. Combined scalar-parent spatial qualification is
 INCONCLUSIVE (`computations/matter-formation-continuum-report.md` §11).
+The later continuum record qualifies an independently supplied compact-target
+$SU(2)_{\rm top}$ radial field only as a comparison for stationarity and
+energetic stability; a smooth pointwise map of the two canonical densities
+cannot generate degree density. The phase-bearing gauge extension has a physical
+relative $S^2$ at fixed nonzero norms. Joint gauge cancellation is exact for a
+common gauge orbit but does not cancel nonconstant relative texture, and the
+screening-scale test gives no parametric separation at the stationary size.
+The registered Hopf trial is unstable only in its specified shape/connection
+family. Full spatial variations show a negative amplitude first variation for
+every exact hard-norm nonzero-Hopf adjoint in the stated soft-action domain,
+while the included hard FR loops contract there. General amplitude-relaxed
+metastability, production dynamics, physical normalization, quantum
+identification and complete matter formation remain open
+(`computations/matter-formation-continuum-report.md` §§18–20).
+
 
 ### `matter-completion-boundary.md`—Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
