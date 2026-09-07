@@ -44,6 +44,8 @@ The scalar temporal parent also admits an exact excited periodic mediator backgr
 
 An exact plane-wave sector makes finite mediator-to-carrier energy exchange calculable with spatially uniform densities. Its energy balances and Hamiltonian reduction pass fourteen symbolic identities. Two independent fixed-window trajectories give a sampled carrier-energy transfer near $1.043\%$ of the initial total energy, but the aggregate numerical verdict is `INCONCLUSIVE`: an independent zero-carrier orbit error and the driven linear reference's cross-method work error exceed their frozen bounds. The sampled transfer remains an unqualified diagnostic; the invariant sector supplies no localized formation or particle identity (§26).
 
+The excited mediator has an independently verified spatial instability for $0<p<\sqrt{2\sqrt7-4}$. At the prescribed mode $p=k_*/4$, its linear exponent is $0.3620371209$, about $210.3$ times the accepted carrier exponent. A cube four times the one-carrier-wavelength cell admits this faster channel. Exact nonlinear charge identities also permit initial separation of opposite local signed densities from a prepared complex carrier with zero initial charge. Empty classical carrier data remain invariant; nonlinear fragmentation, localized production and physical matching remain open (§27).
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -1762,6 +1764,8 @@ Within the supplied scalar temporal parent, an exact autonomous mediator oscilla
 
 The same temporal parent has an exact nonlinear plane-wave sector with conserved total energy and zero local signed charge. Both independent trajectories resolve similar transient carrier-energy growth, but the full comparison is `INCONCLUSIVE` because two control comparisons exceed their numerical tolerances (§26). Uniform spatial densities and an invariant empty-carrier state remain exact properties of this sector. The three master registries retain their existing physical-completion and coefficient-selection status.
 
+The same excited mediator has an independently qualified long-wavelength instability. At $p=k_*/4$, its exponent is $0.3620371209$, about $210.3$ times the accepted carrier exponent in the same dimensionless time. A larger periodic cell admits this mode while retaining $k_*$ as its fourth harmonic. The exact charge continuity law permits initial separation of opposite local signed densities from prepared complex carrier data; a common-phase real carrier retains zero signed density and current (§27). Full nonlinear spatial evolution, localized formation and physical quantum-state selection remain open.
+
 These results introduce no experiment-ready particle prediction. Amplitude-relaxed carriers, full nonlinear stability, physical production, quantum-statistics selection, normalization and observed particle identification remain open. Each additional microscopic proposal requires its own physical assumptions and evidence.
 
 ## 18. Compact-target carrier candidate
@@ -2966,7 +2970,7 @@ Here $K(m)$ is the complete elliptic integral and $\operatorname{dn}$ uses the p
 
 ### 25.2 Carrier spectral problem and physical scope
 
-Linearization around this exact background leaves the mediator unchanged at first order. A carrier Fourier mode obeys
+A pure carrier perturbation leaves the mediator unchanged at first order because its source is quadratic in $z$. Independent mediator perturbations obey the spatial fluctuation equation in §27.1. A carrier Fourier mode obeys
 $$
 \ddot y+\left[\frac{k_{Cx}k^2}{2a}+\frac1{4a^2}
 +\frac{e_C-h_C+h_Cf_0^2}{a}\right]y=0.
@@ -3208,8 +3212,156 @@ Raw receipts and arrays are under `runs/20260907_matter_formation_autonomous_tra
 
 The exact reduction establishes finite energy-exchange identities within the supplied scalar parent. Its spatial densities remain uniform, its local signed charge remains zero, and a carrier-free initial state remains carrier-free. A microscopic action and quantum state, physical normalization, finite-energy localized production, full nonlinear stability and observed particle identification remain the separate requirements in §17.1 and `foundations/matter-completion-boundary.md` §12. This calculation selects no physical coefficient or experiment-ready particle prediction.
 
+## 27. Spatial perturbations of the autonomous background
+
+The autonomous mediator can amplify its own spatial perturbations. This channel is present even with an exactly empty carrier, and determines whether a homogeneous pumping calculation remains representative when longer wavelengths are available. Spatial transport also gives a precise initial-data requirement for separating opposite signed carrier densities.
+
+### 27.1 Mediator fluctuation equation and an exact instability interval
+
+A spatial mediator perturbation changes the local oscillation while leaving the carrier empty. Set $f=f_0+\delta f$, $z=0$, and take a Fourier component $\delta f=\eta(t)e^{i\mathbf p\cdot\mathbf x}$ with $p=|\mathbf p|$. The linear equation obtained from §25.1 is
+$$
+c_\Psi\ddot\eta+[p^2+u_\rho(3f_0^2-1)]\eta=0.
+$$
+With the same supplied orbit and coefficients, $u=\Omega t$ gives
+$$
+\boxed{-\eta''+6m\,\operatorname{sn}^2(u,m)\eta
+=\Lambda_f\eta,\qquad m=\frac23,\qquad
+\Lambda_f=\frac{14+p^2}{3}.}
+$$
+Primes in this subsection denote differentiation with respect to $u$. The spatial-gradient contribution is $p^2/(c_\Psi\Omega^2)=p^2/3$. The instantaneous physical-time frequency squared is at least $(p^2+2)/c_\Psi>0$; periodic modulation is the possible source of exponential growth.
+
+The first five band edges follow from explicit eigenfunctions of this degree-two Lamé operator. Define $d=\sqrt{1-m+m^2}$, $s=\operatorname{sn}(u,m)$, $c=\operatorname{cn}(u,m)$ and $v=\operatorname{dn}(u,m)$:
+
+| Edge | Eigenvalue | Eigenfunction | Boundary condition on $2K$ |
+|---|---|---|---|
+| $E_0$ | $2(1+m)-2d$ | $1-(1+m-d)s^2$ | Periodic |
+| $E_1$ | $1+m$ | $cv$ | Antiperiodic |
+| $E_2$ | $1+4m$ | $sv$ | Antiperiodic |
+| $E_3$ | $4+m$ | $sc$ | Periodic |
+| $E_4$ | $2(1+m)+2d$ | $1-(1+m+d)s^2$ | Periodic |
+
+At $m=2/3$ these are ordered as displayed. The positive periodic ground function and the one- and two-node functions identify their Sturm indices. Degree-two Lamé theory has two finite open instability intervals, $(E_1,E_2)$ and $(E_3,E_4)$. The eigenvalue, stability and polynomial conventions are given in [DLMF §29.3](https://dlmf.nist.gov/29.3), [§29.9](https://dlmf.nist.gov/29.9) and [§29.12](https://dlmf.nist.gov/29.12); the five identities are verified directly in this calculation. The physical range $\Lambda_f\ge E_3$ intersects only the second interval, giving
+$$
+\boxed{0<p<p_{\rm c},\qquad
+p_{\rm c}^2=2\sqrt7-4.}
+$$
+At either endpoint the exponential Floquet exponent vanishes. The $p=0$ eigenfunction is proportional to $\dot f_0$, expressing time-translation freedom; a neutral endpoint can also have a secular solution. No claim about nonlinear saturation follows from this band calculation.
+
+A periodic cube admits the fundamental wave number $2\pi/L$. It contains a mode in this interval precisely when
+$$
+\boxed{L>L_{\rm c}=\frac{2\pi}{\sqrt{2\sqrt7-4}}.}
+$$
+This is a box-admissibility condition for the displayed interval. The one-carrier-wavelength cell in §26 and a cube four times its side length have different available perturbations. The latter retains the accepted carrier wave number $k_*$ as its fourth axial harmonic and admits the mediator test mode $p_*=k_*/4$. The box and mode are mathematical comparison choices, with no physical length normalization.
+
+### 27.2 Local signed-charge transport from complex initial data
+
+Zero local signed charge at one instant does not require zero charge current. For the full nonlinear carrier equation, define
+$$
+\rho_a=-2a\,\operatorname{Im}(z^*\dot z),\qquad
+\mathbf j_a=k_{Cx}\operatorname{Im}(z^*\nabla z).
+$$
+Every real multiplication term cancels, giving the exact continuity equation
+$$
+\boxed{\partial_t\rho_a+\nabla\cdot\mathbf j_a=0.}
+$$
+Thus a spatially varying current can produce opposite local signed densities while preserving the integral $\mathcal Q_a$.
+
+An explicit prepared datum on the periodic cube is
+$$
+z(x,0)=\varepsilon[\cos(px)+i\cos(2px)],\qquad
+\dot z(x,0)=0,\qquad p=\frac{2\pi}{L},\quad \varepsilon\ne0.
+$$
+It has $\rho_a(x,0)=0$ everywhere, but the full nonlinear equation gives
+$$
+\boxed{\partial_t\rho_a(x,0)
+=3k_{Cx}\varepsilon^2p^2\cos(px)\cos(2px).}
+$$
+The right-hand side takes both signs and integrates to zero over the cell. It establishes initial local charge separation under a smooth evolution from a nonempty complex carrier. It supplies no vacuum-production claim, quantized particle number or localized bound state. A common-phase real datum retains $\rho_a=\mathbf j_a=0$, and exactly empty carrier data remain empty, including when the mediator is spatially unstable.
+
+### 27.3 Spatial perturbation calculation: pre-execution criteria
+
+Freeze this unique section through the next heading of level three or higher, normalize CRLF to LF, strip final whitespace and append one LF. Bind its SHA-256 in both standalone programs. Use exactly the supplied coefficients and orbit in §25.1 and the equations and initial data in §§27.1–27.2. No coupling, amplitude, domain or wave-number search is authorized.
+
+Require the accepted autonomous-pump primary and independent receipts with raw SHA-256 `cad33ef760404c79807570be1269390dfb790574dc13bfe60d61d67c5b1bc9c5` and `a54c07d1a973f9a91555e26b7c23e7caa7ee75a468f09fda53e13a272959758`. Their sole instability-qualified witness supplies the common $k_*$; their respective exponents supply the carrier comparison. Preserve these receipts and the source action, both new source programs and the frozen section before scientific execution. The independent program must not import or execute the primary implementation.
+
+The primary computes the first five ordered Lamé edges by Fourier Galerkin in periodic and antiperiodic bases of dimensions $63,127,255$ on $2K(2/3)$. Sample the potential at eight times each basis dimension and retain the sample coordinates, potentials, Fourier coefficients and the five eigenvalues for every dimension. Order the edges as the lowest periodic value, the lowest two antiperiodic values, then the next two periodic values.
+
+Both methods evolve exactly five identity-initialized fundamental matrices, ordered as follows: oscillating mediator at $p=0$, at $p=p_{\rm c}$, at $p=p_*=k_*/4$, at $p=2p_{\rm c}$, and the equilibrium mediator $f=1$ at $p=p_*$. Retain every matrix at 1025 equally spaced physical times from $0$ through $P$. The primary integrates in $u$ with DOP853, relative tolerance $2\times10^{-12}$, absolute tolerance $2\times10^{-14}$ and maximum step $2K/128$, then converts every matrix to $(\eta,\dot\eta)$ coordinates using $\operatorname{diag}(1,\Omega)M_u\operatorname{diag}(1,\Omega^{-1})$. The independent calculation integrates the original physical-time equation with Radau, relative tolerance $2\times10^{-11}$, absolute tolerance $2\times10^{-13}$ and maximum step $P/128$. No long-time or nonlinear run belongs to this calculation.
+
+Before its numerical evolution, the independent program verifies exact symbolic identities for the mediator linearization and spectral map; all five eigenfunctions and eigenvalues using the Jacobi derivative relations; the edge-to-wave-number and box criteria; the nonlinear local charge continuity identity; and the prepared two-mode datum's zero initial charge, nonzero charge derivative and zero integral. It must also verify zero current for a common-phase real field. Record the actual symbolic residual expressions, reducing each to exactly zero. Numerical substitutions alone do not qualify these identities.
+
+Qualification requires all prescribed finite arrays and rows; every successive Galerkin edge change and every discrepancy from the five exact edges below $2\times10^{-8}$; determinant errors below $10^{-9}$ at every saved time; and independent/primary matrix discrepancies below $2\times10^{-8}$ for each arm, divided by $\max(1,\max|M_{\rm independent}|)$ over that arm. Both endpoint traces must differ from $2$ by less than $10^{-8}$. The $2p_{\rm c}$ and equilibrium controls must have $|\operatorname{tr}M|\le2+10^{-9}$. Both equilibrium matrices must agree with the analytic constant-frequency matrix at every saved time to relative discrepancy below $2\times10^{-8}$. Reconstruct all primary reported metrics from its retained arrays and verify all source, protocol and evidence identities.
+
+Return `SUPPORTS—spatial mediator instability in the supplied temporal parent` only when all qualifications and symbolic identities pass and the $p_*$ arm has $|\operatorname{tr}M|-2>10^{-8}$ in both methods. Otherwise return `INCONCLUSIVE`, preserving the failed checks. The primary result is provisional until independently qualified. Record both physical-time mediator exponents, their ratios to the respective accepted carrier exponents, and $\log(100)/\mu$ as a linear hundredfold-amplification time. Describe a tenfold-faster mediator channel only if both qualified exponent ratios exceed ten. Such a comparison assumes comparable projections onto growing modes and establishes no nonlinear fragmentation time.
+
+Use fresh absent directories under `runs/20260907_matter_formation_spatial_pump*`, refuse overwrite, and preserve raw arrays and complete SHA-256 manifests. Execute one primary and one independent scientific invocation, followed by three prerequisite controls: missing frozen section for the primary, altered frozen section for the independent program, and missing primary array for the independent program. Each control must fail before any symbolic or numerical science, retaining an empty scientific payload. Stop after this schedule without tuning thresholds or rerunning a failed scientific hypothesis; any implementation defect requires its own declared recovery with the original evidence preserved.
+
+### 27.4 Prerequisite identity recovery
+
+The prerequisite-only receipt at `runs/20260907_matter_formation_spatial_pump/results.json` is `INCONCLUSIVE` with empty scientific payloads. The independent-parent literal in §27.3 has 63 hexadecimal digits. The accepted parent receipt's raw SHA-256 is `a54c07d1a973f9a915355e26b7c23e7caa7ee75a468f09fda53e13a272959758`; its supplied literal omits the `3` between `915` and `55`. The parent receipt's data and its accepted status are unchanged. The failed receipt, source programs and identity comparison are retained under `runs/20260907_matter_formation_spatial_pump_controls/prerequisite_recovery/`.
+
+This recovery permits replacement of that prerequisite literal with the full raw hash. Freeze this unique section by the same heading-boundary and LF rule as §27.3, bind both section hashes in both programs, and retain both sections before science. Keep every equation, coefficient, mode, numerical method, tolerance, criterion and stopping rule in §27.3. Execute one primary scientific invocation at `runs/20260907_matter_formation_spatial_pump_prerequisite_recovery/` and one independent scientific invocation at `runs/20260907_matter_formation_spatial_pump_verification_prerequisite_recovery/`, then the three prescribed prerequisite controls. The independent source may read and copy primary source bytes solely for provenance; it must never import or execute that implementation. No failed scientific hypothesis is rerun under this recovery.
+
+### 27.5 Qualified spatial growth and charge identities
+
+The independent calculation returns `SUPPORTS—spatial mediator instability in the supplied temporal parent`. Both scientific invocations satisfy every frozen qualification. Direct raw-array reconciliation verifies all 18 manifested files, all five time-resolved matrix pairs and the nineteen retained exact symbolic residuals.
+
+The spectral edge calculation converges within the fixed qualification bounds. Across the prescribed basis dimensions, the maximum successive edge change is $6.9802\times10^{-12}$ and the largest discrepancy from the five exact edges is $6.3398\times10^{-12}$; each bound is $2\times10^{-8}$. The independent reconstruction of the stored Galerkin spectrum differs by at most $6.1143\times10^{-12}$.
+
+The time-evolution methods agree throughout the retained period, including the unstable and stable controls:
+
+| Mode or control | Primary $\operatorname{tr}M(P)$ | Independent $\operatorname{tr}M(P)$ | Relative full-trajectory matrix discrepancy |
+|---|---:|---:|---:|
+| $p=0$ | $2.000000000000001$ | $1.999999999999992$ | $2.5766\times10^{-12}$ |
+| $p=p_{\rm c}$ | $1.999999999999998$ | $1.999999999999992$ | $4.1676\times10^{-12}$ |
+| $p=p_*$ | $2.090605332350867$ | $2.090605332350859$ | $2.7011\times10^{-12}$ |
+| $p=2p_{\rm c}$ | $-0.469412548638054$ | $-0.469412548638049$ | $3.2968\times10^{-12}$ |
+| Equilibrium $f=1$, $p=p_*$ | $1.729526914249358$ | $1.729526914249327$ | $3.0436\times10^{-12}$ |
+
+The maximum determinant error across both methods and all saved times is $6.1047\times10^{-12}$, below $10^{-9}$. The endpoint trace discrepancy from $2$ is at most $8.2157\times10^{-15}$, below $10^{-8}$. Both equilibrium trajectories agree with the analytic constant-frequency matrix; their largest relative discrepancy is $3.0436\times10^{-12}$, below $2\times10^{-8}$. The primary zero-mode trace exceeds $2$ by $8.8818\times10^{-16}$ and gives a roundoff-scale $\operatorname{arcosh}$ estimate of $3.5979\times10^{-8}$; the exact band-edge identity has zero exponential growth rate.
+
+The prescribed spatial mode grows substantially faster than the accepted carrier witness:
+
+| Quantity | Primary | Independent |
+|---|---:|---:|
+| Spatial Floquet exponent $\mu_f$ | $0.362037120923023$ | $0.362037120923008$ |
+| Ratio to the respective accepted carrier exponent | $210.2978133760$ | $210.2978069691$ |
+| Linear hundredfold-amplification time $\log(100)/\mu_f$ | $12.7201602262$ | $12.7201602262$ |
+
+All lengths and times here use the supplied dimensionless action. The original cell has side $2.3485587048$, the critical side is $5.5288170878$, and the fourfold cell has side $9.3942348192$. The larger cell admits $p_*=0.6688341763<p_{\rm c}=1.1364429691$ while retaining the accepted carrier wave number. The growth-rate comparison assumes comparable projections onto growing modes. A nonlinear fragmentation time requires a separate calculation.
+
+The exact symbolic residuals verify the mediator linearization, Jacobi orbit, five band-edge eigenfunctions, spectral and box maps, nonlinear charge continuity law, and prepared two-mode charge-separation datum. The two-mode datum has zero initial signed density and a nonzero sign-changing time derivative with zero cell integral. This is an initial local transport result under smooth evolution. Persistence of separated charge, localization and binding remain open. Exactly empty classical carrier data remain invariant even on the spatially unstable mediator background.
+
+### 27.6 Retained evidence and physical scope
+
+The source and receipt identities are:
+
+| Item | SHA-256 |
+|---|---|
+| Primary program | `dcfbee8ded564ec793cfe5a4b0c2741b9d440136cc23da64c9b8401440a30c40` |
+| Independent program | `8431b3e8d8f7198fa07b4c86965d036de11e7bab900d4fa7888107d8de1afe0d` |
+| Frozen §27.3 | `244024bc6bc7a4822c9173dafc726ed0c152594ddbbdb5c43579c527bce0bdfd` |
+| Frozen §27.4 | `7ac1f1ed3375f4cb3607ed17114ae852d82a1a2a555b5d46cbf2222750bbd820` |
+| Primary receipt | `10c96e81220c08405392bb062e17bf4b193cdd95294d31a776b7b8c7566299e8` |
+| Independent receipt | `c2126830d1cf3845b6fc3b25948e970231175105525a3bffff01d24a305ee7c0` |
+
+The scientific invocations are:
+
+```bash
+python -B computations/matter_formation_spatial_pump.py --output-dir runs/20260907_matter_formation_spatial_pump_prerequisite_recovery
+python -B computations/verify_matter_formation_spatial_pump.py --primary-dir runs/20260907_matter_formation_spatial_pump_prerequisite_recovery --output-dir runs/20260907_matter_formation_spatial_pump_verification_prerequisite_recovery
+```
+
+The programs refuse existing output directories. Reproduction uses fresh directories with the same frozen inputs. The evidence retains one prerequisite-only attempt, two scientific invocations and three prescribed prerequisite controls. The missing-section, altered-section and missing-array controls all return `INCONCLUSIVE` with empty scientific payloads. Their raw receipts, exact invocation record and direct reconciliation are under `runs/20260907_matter_formation_spatial_pump_controls/`; the malformed-hash prerequisite evidence is retained separately within that directory.
+
+The result qualifies a faster spatial channel within the supplied scalar temporal parent. It leaves its microscopic action selection, quantum state, physical normalization, finite-energy localized formation, full nonlinear stability and observed particle identification open. The comparison wave number and box lengths introduce no physical coefficients or experiment-ready predictions. The three master registries retain their existing completion and coefficient-selection status.
+
 ## References
 
+- `computations/matter_formation_spatial_pump.py`—fixed Galerkin edges and five physical-coordinate spatial Floquet trajectories.
+- `computations/verify_matter_formation_spatial_pump.py`—independent exact identities, physical-time evolution and raw spatial-evidence qualification.
+- `runs/20260907_matter_formation_spatial_pump_prerequisite_recovery/results.json`; `runs/20260907_matter_formation_spatial_pump_verification_prerequisite_recovery/results.json`—qualified spatial mediator instability and exact charge-transport receipts.
+- `runs/20260907_matter_formation_spatial_pump_controls/`—preserved prerequisite-only failure, three prerequisite controls, invocation record and raw-array reconciliation.
 - `computations/matter_formation_autonomous_transfer.py`—four prescribed nonlinear and control trajectories in an exact plane-wave sector.
 - `computations/verify_matter_formation_autonomous_transfer.py`—independent symbolic reduction, Hamiltonian evolution and raw transfer-evidence reconstruction.
 - `runs/20260907_matter_formation_autonomous_transfer/results.json`; `runs/20260907_matter_formation_autonomous_transfer_verification/results.json`—primary diagnostics and the independently reconstructed `INCONCLUSIVE` nonlinear comparison.
