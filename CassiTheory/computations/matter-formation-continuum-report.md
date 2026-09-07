@@ -1750,6 +1750,8 @@ The scalar configuration-space and fourth-gradient restrictions retain their dec
 
 The canonical Python solver's complete homogeneous excitation spectrum contains transport and real growth or relaxation rates; regular observable reconstruction supplies no additional intrinsic rest oscillation (§21). In its expanding class, shared incompressible transport and opposite conversion give nonincreasing total-density variance, while composition relaxation can increase coherence at fixed total density (§22). These statements retain their specified solver, background and continuum assumptions.
 
+In the base class, matched Yang/Yin mobilities permit an exactly verified sign-changing composition-to-density transfer term. Its forward planar witness initially increases density variance; all seven retained trajectories end below their initial variance. Independent source and time evolution agree, while the full-field spatial comparison fails its frozen tolerance and leaves the aggregate `INCONCLUSIVE` (§23). This supplies no three-dimensional localized carrier or microscopic production mechanism.
+
 These results introduce no experiment-ready particle prediction. Amplitude-relaxed carriers, full nonlinear stability, physical production, quantum-statistics selection, normalization and observed particle identification remain open. Each additional microscopic proposal requires its own physical assumptions and evidence.
 
 ## 18. Compact-target carrier candidate
@@ -2771,8 +2773,58 @@ Use the actual unmodified base solver on CPU with one Torch thread, float64 fiel
 
 All groups must pass for `SUPPORTS—nonlinear composition-to-density transfer in the base solver`; any qualification mismatch gives `INCONCLUSIVE`. Run one primary scientific invocation and one independent verifier invocation. Run separate missing-section and altered-section primary controls and one verifier missing-array control; each must fail before scientific output. Preserve all attempts. Stop after this schedule; physical inputs, metrics and thresholds cannot be changed in response to the result. An implementation repair requires its immutable failure evidence and a separately recorded source revision.
 
+### 23.3 Independent common-node implementation qualification
+
+The common-node comparison uses all 16 samples of each $N=16$ endpoint and indices `0,2,...,30` of each $N=32$ endpoint. Concatenate the Yang and Yin differences and divide their maximum absolute value by the larger of one and the maximum absolute common-node $N=32$ population. This is the spatial statistic declared in §23.2.
+
+The excluded verifier source SHA-256 `503978df503f2edb82cd680973cf5c5514a9df17aa6ed5da84a1ba6dc707eb88` applies the stride to the $N=16$ array and attempts subtraction of shapes `(8,)` and `(32,)`. Its immutable receipt is `runs/20260907_matter_formation_chemotactic_transfer_verification/results.json`, SHA-256 `984d152df789bfeb1b71ed756f14d5522d39b9c34c767136481d08ad790d64dc`. It reports `INCONCLUSIVE`, exit one and empty scientific rows. That receipt supplies no independent numerical qualification.
+
+The common-node implementation source SHA-256 is `74d28886db88a4b8bfd57d9c5b215a2c6da0f55629b64a877d6848fc9544d319`. Its qualification schedule is one verifier invocation in `runs/20260907_matter_formation_chemotactic_transfer_verification_implementation_recovery/` and one missing-array control in `runs/20260907_matter_formation_chemotactic_transfer_verification_implementation_recovery_missing_array/`. Both consume the same primary data; the control uses the isolated copy with `witness_forward.npz` absent. The primary receipt SHA-256 is `275ea56df0db88b0640e13225da2164968e6bd4d86583c2d04495d2129070b79`. Its failed spatial criterion remains part of the evidence. The canonical solver, primary arrays, physical inputs, integration scheme, frozen section, decision thresholds and stopping rule remain unchanged. No primary rerun is authorized by this implementation qualification.
+
+### 23.4 Measured transient and spatial qualification
+
+Composition can initially sharpen the density profile in the matched-mobility base solver. The retained forward trajectories then lose that enhancement: each endpoint has less density variance than its initial state. The field-level spatial comparison exceeds its frozen tolerance, so the aggregate verdict is **`INCONCLUSIVE`**. The individual exact identities and finite-grid observations retain the scope below.
+
+Both programs qualify all 12 exact identities and all four instantaneous source witnesses. The measured density budget $\frac12\dot V$, where $V=\langle(\rho-\bar\rho)^2\rangle$, is $0.001377708764$ for the forward composition and $-0.002577708764$ for the reversed composition. The balanced and disabled controls both give $-0.000600000000$. The largest actual-source reconstruction error is $1.943\times10^{-16}$; the largest analytic budget residual is $1.111\times10^{-16}$. These results verify the sign-changing transfer term and the conditional initial-growth inequality $\chi A>2\varphi D$.
+
+All seven trajectories satisfy their finite-array, positive-population, mean, velocity and transverse-uniformity criteria. Across the actual three-dimensional runs, the smallest population is $0.3819660113$, maximum mean-density error is $8.882\times10^{-16}$, maximum mean-imbalance residual is $3.188\times10^{-16}$, maximum velocity is $1.493\times10^{-17}$ and transverse nonuniformity is zero. The independent one-dimensional NumPy reconstruction passes the $10^{-9}$ maximum-profile-error requirement on every retained sample. No clipping, density floor or normalization correction is used.
+
+The sampled variance measurements are:
+
+| Case | $N$ | $\Delta t$ | $\max_t V(t)/V(0)$ | First maximizing sample time | $V(20)/V(0)$ |
+|---|---:|---:|---:|---:|---:|
+| Forward | 16 | 0.02 | 1.172297110 | 2.000 | 0.416637718 |
+| Forward | 16 | 0.01 | 1.172302112 | 2.000 | 0.416637871 |
+| Forward | 16 | 0.005 | 1.172303760 | 2.005 | 0.416637909 |
+| Forward | 32 | 0.01 | 1.172293953 | 2.000 | 0.416634686 |
+| Reverse | 16 | 0.01 | 1.000000000 | 0.000 | 0.227653768 |
+| Balanced | 16 | 0.01 | 1.000000000 | 0.000 | 0.303681527 |
+| Disabled | 16 | 0.01 | 1.000000000 | 0.000 | 0.301194217 |
+
+At $t=0.1$ on the specified forward comparison, $V(t)-V(0)=2.823910985\times10^{-4}$ and $V_{\rm forward}(t)-V_{\rm reverse}(t)=7.618882491\times10^{-4}$; both exceed $10^{-5}$. The endpoint timestep differences are $9.649587229\times10^{-8}$ and $2.386355658\times10^{-8}$, with ratio $4.043650073$ inside $[3.5,4.5]$. The normalized common-node spatial difference is $0.001152584003$, above the required $0.0005$. The independent value is $0.001152584003$ at the displayed precision. Agreement between the two implementations does not satisfy the separate spatial-resolution criterion.
+
+Every trajectory receives `at_or_below_initial_at_endpoint`. The forward $N=16$, $\Delta t=0.01$ run shows a sampled $17.2302\%$ variance enhancement and ends at $41.6638\%$ of its initial variance. These are retained finite-grid measurements. Their close variance summaries across the two grids do not remove the failed full-field spatial comparison or establish an asymptotic decay theorem.
+
+The accepted independent reconstruction receipt is `runs/20260907_matter_formation_chemotactic_transfer_verification_implementation_recovery/results.json`, SHA-256 `f80b71cdf3774307cc781cffa3e7dc0a20251eb37ff9e2fa70c7e5aa40783bfe`. It reconstructs the complete scientific payload and reports the same aggregate `INCONCLUSIVE` verdict as the primary receipt. The numerical qualification is the only failed group. The receipt reconciliation in `runs/20260907_matter_formation_chemotactic_transfer/reconciliation.json` matches 162 metadata/metric comparisons and all 15 bound source/array identities, with no mismatches; this bookkeeping acceptance leaves the scientific verdict unchanged.
+
+The primary missing-section and altered-section controls and both source-bound verifier missing-array controls return exit one, `INCONCLUSIVE` and empty scientific payloads. Their retained directories are `runs/20260907_matter_formation_chemotactic_transfer_missing_record/`, `runs/20260907_matter_formation_chemotactic_transfer_altered_record/`, `runs/20260907_matter_formation_chemotactic_transfer_verification_missing_array/` and `runs/20260907_matter_formation_chemotactic_transfer_verification_implementation_recovery_missing_array/`. The isolated input copy is `runs/20260907_matter_formation_chemotactic_transfer_missing_array_input/`; the missing/altered section inputs are in `runs/20260907_matter_formation_chemotactic_transfer_controls/`. All attempts and source snapshots remain preserved.
+
+This calculation supplies a verified instantaneous concentration channel and sampled transient evolution in the existing base equations. Its initial data already contain positive populations and density contrast, and its invariant planar subspace has no three-dimensional localized carrier. A continuum-qualified formation basin, persistent localized state, microscopic production law, quantum statistics and physical normalization remain open. The numerical inputs are the declared solver witness values; they introduce no physical parameter determination, tier upgrade or experiment-ready particle prediction. The microscopic selection boundary in §17.1 remains in force.
+
+Reproduce the fixed calculation with fresh output directories:
+
+```text
+python computations/matter_formation_chemotactic_transfer.py --output-dir runs/repro_matter_formation_chemotactic_transfer
+python computations/verify_matter_formation_chemotactic_transfer.py --primary-dir runs/repro_matter_formation_chemotactic_transfer --output-dir runs/repro_matter_formation_chemotactic_transfer_verification
+```
+
+Both commands return exit one for the measured aggregate `INCONCLUSIVE` result. Inspect their complete `results.json` payloads to distinguish numerical qualification from missing-input or implementation failures.
+
 ## References
 
+- `computations/matter_formation_chemotactic_transfer.py`—actual three-dimensional base-solver transfer witnesses and seven controlled trajectories.
+- `computations/verify_matter_formation_chemotactic_transfer.py`—independent exact budgets, NumPy population dynamics and frozen qualification.
+- `runs/20260907_matter_formation_chemotactic_transfer/results.json`; `runs/20260907_matter_formation_chemotactic_transfer_verification_implementation_recovery/results.json`—complete primary and independent transfer receipts with aggregate inconclusive spatial qualification.
 - `computations/matter_formation_canonical_excitation.py`—actual canonical-source Jacobians, finite-time trajectories and observable-map witnesses.
 - `computations/verify_matter_formation_canonical_excitation.py`—independent NumPy right-hand-side reconstruction and frozen excitation qualification.
 - `runs/20260907_matter_formation_canonical_excitation/results.json`; `runs/20260907_matter_formation_canonical_excitation_verification_implementation_recovery/results.json`—accepted primary and independent excitation receipts.
