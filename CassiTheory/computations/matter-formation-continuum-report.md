@@ -1748,6 +1748,8 @@ The reader-facing summaries and source indexes are `README.md`, `cassi-physics.m
 
 The scalar configuration-space and fourth-gradient restrictions retain their declared domains and quantization assumptions (§§12.7–12.12). The collective-binding exclusion retains the local-density, $|m|\le1$ and specified-vacuum-prescription restrictions (§§15.6–15.7). The compact-target comparison qualifies radial stationarity and energetic stability in an independently supplied model (§18). The relative-gauge results distinguish a physical orientation from its stabilization (§19); the soft-adjoint result excludes exact unit-adjoint nonzero-Hopf stationarity and extension of the included hard-target FR character over the stated soft domain (§20).
 
+The canonical Python solver's complete homogeneous excitation spectrum contains transport and real growth or relaxation rates; regular observable reconstruction supplies no additional intrinsic rest oscillation (§21). In its expanding class, shared incompressible transport and opposite conversion give nonincreasing total-density variance, while composition relaxation can increase coherence at fixed total density (§22). These statements retain their specified solver, background and continuum assumptions.
+
 These results introduce no experiment-ready particle prediction. Amplitude-relaxed carriers, full nonlinear stability, physical production, quantum-statistics selection, normalization and observed particle identification remain open. Each additional microscopic proposal requires its own physical assumptions and evidence.
 
 ## 18. Compact-target carrier candidate
@@ -2577,6 +2579,32 @@ Run the following fixed schedule:
 
 All four groups, source identities, finite-value checks and the complete expected row sets must pass for `SUPPORTS—homogeneous canonical excitation and regular-observable boundaries`. Any scientific mismatch gives `INCONCLUSIVE`; preserve the failed evidence. Run one primary scientific invocation and one independent verifier invocation. Run separate missing-section and altered-section primary controls, plus a verifier missing-array control; each must fail before scientific output with empty rows. Stop after this schedule without changing physical inputs, witnesses or thresholds in response to a result. An implementation failure may be repaired only with its original receipts preserved and an explicit source-revision record.
 
+### 21.4 Verifier array-shape qualification
+
+The primary receipt in `runs/20260907_matter_formation_canonical_excitation/` passes all 40 Jacobian rows, the three signed trajectory pairs and the algebraic witnesses. Its frozen fine-Jacobian and Richardson maxima are $2.72684\times10^{-8}$ and $2.83722\times10^{-13}$. The independent receipt in `runs/20260907_matter_formation_canonical_excitation_verification/` is `INCONCLUSIVE` with empty scientific rows because a three-component perturbation with shape $(3,1,1)$ cannot broadcast over a three-dimensional spatial field with shape $(16,16,16)$.
+
+The independent perturbation requires component shape $(3,1,1,1)$ to form $u_d=U_d\pm h\,b_d\cos(k\cdot x)$. The implementation qualification adds this singleton spatial axis, preserving §21.3, the primary receipt and arrays, source equations, amplitudes, witnesses and tolerances. The verifier implementation with the incompatible shape has raw and canonical SHA-256 `63e89605e5e7ab4640b9f61f675091eb1a49dda22d7c5613b2e936203b06edc0`; a source snapshot accompanies its immutable failure receipt.
+
+Execute one independent scientific qualification in `runs/20260907_matter_formation_canonical_excitation_verification_implementation_recovery/` and one missing-array control in `runs/20260907_matter_formation_canonical_excitation_verification_implementation_recovery_missing_array/`. Both use the unchanged primary artifact; the control reads a separate copy omitting `jacobian_base_matched_k1_0_0.npz`. Preserve the corresponding unqualified verifier and missing-array receipts. No additional primary scientific invocation or physical parameter selection is authorized by this implementation qualification.
+
+### 21.5 Qualified homogeneous excitation result
+
+The actual Torch solver and the independent NumPy reconstruction both return `SUPPORTS—homogeneous canonical excitation and regular-observable boundaries`. All 40 Jacobian rows, ten algebraic witnesses and three signed trajectory pairs pass §21.3. The largest normalized fine-Jacobian residual is $2.72684482\times10^{-8}$; the Richardson residual is $2.83722196\times10^{-13}$. The frozen limits are $5\times10^{-6}$ and $10^{-8}$, respectively. The primary manifest's 46 file hashes match the stored bytes.
+
+At $T=1$, the normalized continuous-response errors for $\Delta t=0.04,0.02,0.01$ are $2.33780004\times10^{-6}$, $5.83915992\times10^{-7}$ and $1.45895250\times10^{-7}$. The error ratios are $4.00365817$ and $4.00229612$. The largest discrepancy from the discrete RK2 polynomial is $6.00108\times10^{-10}$; the largest relative mean-density drift is $4.44089\times10^{-16}$. All component minima exceed $0.7639$, and the scale factor and Hubble rate remain exactly at their prescribed values.
+
+The missing-section, altered-section and missing-array controls each return `INCONCLUSIVE`, exit one and leave empty scientific rows. The primary receipt SHA-256 is `fd53179ea1e89f546dc1f7ca604d994ed2e00831a384433ab2739602421f11be`; the qualified independent receipt SHA-256 is `829f878a8a909d7394946de8e184a6185f6f53b6396249ad35bf3dd11ce913e0`. The primary canonical program identity is `10a38806324f71aeca67e32ecf1ffac14d46f5167c39e78599749595ef24bce4`; the independent identity is `0baecfa290544c003beca9c24d5c08013c90dd014c8ac3f1c60b94fa1bbc1a49`. Source snapshots and arrays accompany the named receipts.
+
+The measured homogeneous modes describe density drift, composition relaxation and solenoidal transport. Their rest-frame generators contain no intrinsic oscillatory particle mode. The observable-map identities constrain regular reconstructions of this state; they supply no microscopic quantum production law. A physical matter calculation still requires a specified microscopic action and state, a stable localized carrier, physical normalization, a rotation/exchange representation and measured production dynamics. Nonlinear density concentration in the base class, nonuniform backgrounds and the site-based Godot dynamics lie outside this homogeneous calculation.
+
+The accepted independent invocation is:
+
+```text
+python computations/verify_matter_formation_canonical_excitation.py --primary-dir runs/20260907_matter_formation_canonical_excitation --output-dir runs/20260907_matter_formation_canonical_excitation_verification_implementation_recovery
+```
+
+For reproduction, run the primary program with a fresh `--output-dir`, then give that directory to the independent verifier with another fresh `--output-dir`. The existing scientific and failure receipts remain immutable.
+
 ## 22. Nonlinear density contrast and composition relaxation
 
 The expanding Python model has a density constraint beyond its homogeneous spectrum. Its shared incompressible transport and equal-and-opposite conversion constrain total-density concentration at arbitrary amplitude. The argument concerns the smooth continuum equations associated with this class, before spectral truncation and post-step floors. The base class's chemotactic fluxes and the Godot site/particle equations fall outside it.
@@ -2657,8 +2685,36 @@ The receipt in `runs/20260907_matter_formation_density_budget/` is `INCONCLUSIVE
 
 An implementation-only qualification uses the native arithmetic order for the independent symbols. It retains §22.3, the canonical solver bytes, all physical inputs, numerical thresholds and stopping schedule. Execute one scientific invocation in `runs/20260907_matter_formation_density_budget_implementation_recovery/` and one missing-section control in `runs/20260907_matter_formation_density_budget_implementation_recovery_missing_record/`. Preserve the `INCONCLUSIVE` receipt, its source copy and raw arrays; record both implementation identities. No physical parameter or criterion is selected from this discrepancy.
 
+### 22.5 Qualified nonlinear density and composition result
+
+The source-matched calculation returns `SUPPORTS—nonlinear density and composition budgets of the specified expanding model`. All seven symbolic identities, four nonuniform quadratic-budget witnesses, the uniform-density witness and three finite-amplitude conversion trajectories pass their frozen criteria. The maximum normalized quadratic-budget residual is $3.46945\times10^{-18}$; the independent native-symbol reconstruction has zero discrepancy. Uniform total density has maximum absolute rate $4.35416\times10^{-16}$ under the specified nonuniform composition and solenoidal velocity.
+
+In the spatially uniform conversion trajectory, $\rho=2$ is preserved while the imbalance decreases from $0.8$ to $0.215968212738$ at $T=20$ on the finest step. The independent implicit solution gives $0.215968182466$, an absolute error of $3.02725\times10^{-8}$. Successive error ratios are $4.00422$ and $4.00212$. Coherence increases from $0.796495420151$ to $0.903211358496$ without a detected downward step; its endpoint error is $2.66677\times10^{-9}$. The largest density deviation across all three trajectories is $8.88179\times10^{-15}$. Both components stay above $0.4583$, spatial uniformity is exact at recorded precision, and the expansion variables remain $a=1$, $H=0$.
+
+These measurements separate composition relaxation from density concentration in the specified solver. The continuum variance identity applies under §22.1's smoothness, boundary and incompressibility assumptions. The numerical witnesses test the declared finite grid and finite observation time. They supply no self-maintained localized carrier, absolute mass normalization, quantum statistics or matter-production trajectory.
+
+The scientific receipts, source snapshots and raw arrays are retained under the two scientific directories in §22.4. The corresponding missing-section directories are `runs/20260907_matter_formation_density_budget_missing_record/` and `runs/20260907_matter_formation_density_budget_implementation_recovery_missing_record/`. Both controls exit one with `INCONCLUSIVE` and empty scientific rows. Artifact hashes match their receipts. The program and scientific result identities are:
+
+| Native-symbol construction | Canonical program SHA-256 | Scientific receipt SHA-256 | Verdict |
+|---|---|---|---|
+| Completed NumPy frequencies rounded to float32 | `5dc4a4a719d1421732bdd7bfff6dd6a4e9e7340f660e5c36473f117d9b221c70` | `057103bb6267fda8a5d4cd98f9097871d5f67f7d004608871d88b2632cdde6a7` | `INCONCLUSIVE` |
+| Native reciprocal-spacing multiplication | `d9db9adda4efd33ef18a97116659887da00e97b175470cd5566d74c30d00434d` | `05a631ac038e624da6931ae8f8ef02a9f98d0f66c3a1641991a06d0a57b49bbf` | `SUPPORTS` with the scope above |
+
+Both missing-section receipts have SHA-256 `738dc77852a9b489403c2ddf8aec8a2126b7fd4d19870ad0dffeaafa1e9b3282`. The scientific runs use Python 3.12.10, NumPy 2.5.1, SciPy 1.18.0, SymPy 1.14.0 and Torch 2.12.0+rocm7.14.0 on CPU. The frozen protocol identity is `c998f007510ede9845ca51c65c30c8af496477e83e377fa743bad0603c521497`; the canonical solver identity is `258e8783294250b731d93e7b5869b8172558c8aa0742502330cf3dbb5e3c90cc`.
+
+Reproduction uses a fresh output directory:
+
+```text
+python computations/matter_formation_density_budget.py --output-dir runs/repro_matter_formation_density_budget
+```
+
 ## References
 
+- `computations/matter_formation_canonical_excitation.py`—actual canonical-source Jacobians, finite-time trajectories and observable-map witnesses.
+- `computations/verify_matter_formation_canonical_excitation.py`—independent NumPy right-hand-side reconstruction and frozen excitation qualification.
+- `runs/20260907_matter_formation_canonical_excitation/results.json`; `runs/20260907_matter_formation_canonical_excitation_verification_implementation_recovery/results.json`—accepted primary and independent excitation receipts.
+- `computations/matter_formation_density_budget.py`—source-matched nonlinear density/composition budget calculation and direct conversion trajectories.
+- `runs/20260907_matter_formation_density_budget_implementation_recovery/results.json`—qualified budget receipt, source identities and raw-array hashes.
 - `computations/matter_formation_full_variations.py`—exact spatial-variation, virial and soft-amplitude qualification.
 - `runs/20260907_matter_formation_full_variations/results.json`—six-group exact-algebra receipt and frozen input identities.
 - `runs/20260907_matter_formation_full_variations/reconciliation.json`—raw receipt identities and independent analytical derivations.
