@@ -2201,6 +2201,77 @@ python computations/matter_formation_relative_orientation.py --output-dir runs/2
 
 Use a fresh output name for reproduction. These results identify a physical relative field within the optional gauge extension, together with limits on its proposed stabilization. They do not select a physical stiffness ratio, establish a full metastable carrier, produce matter from specified initial data, or assign observed quantum numbers.
 
+### 19.7 The retained coefficient set and a finite-energy Hopf trial
+
+The dimensionless particle calculation already supplies a coefficient set that can be examined without choosing new values. In `foundations/particle-stationary-action-closure.md` (PA32)–(PA33), the choices $\gamma_x=1$ and $u_\varphi=4$ retained in §1 give
+$$
+p=\frac18,\qquad q=\frac12,\qquad\gamma=\frac12,\qquad
+t=\frac45,\qquad w=\frac{(1+\varphi)^2}{2}.
+$$
+These are dimensionless research inputs. Their use does not establish physical matching.
+
+A smooth relative Hopf trial with integrable composition energy follows from
+$$
+U_3(\mathbf x)=
+\frac{(r^6-1)I+2ir^2\mathbf x\cdot\boldsymbol\sigma}{r^6+1},
+\qquad
+N_0\cdot\sigma=U_3(N_\infty\cdot\sigma)U_3^\dagger,
+\qquad (N_\infty)_3=c.
+$$
+The numerator is polynomial in Cartesian coordinates, and the denominator is strictly positive. The profile is $f(r)=2\arctan(r^{-3})$, with regular limits $U_3(0)=-I$, $U_3(\infty)=I$ and $N_0-N_\infty=O(r^{-3})$. Projection of the unit-degree $U_3$ through the Hopf map supplies unit Hopf class, up to the fixed orientation convention. The physical doublet remains constant in this relative-field trial.
+
+Angular integration gives
+$$
+\begin{aligned}
+A_0&=\frac{32\pi}{3}\int_0^\infty
+\left(r^2f'^2+2\sin^2f\right)dr,\\
+B_0&=\frac{64\pi}{3}\int_0^\infty
+\left(2f'^2\sin^2f+\frac{\sin^4f}{r^2}\right)dr,\\
+C_0&=\int(N_{0,3}-c)^2d^3x\\
+&=4\pi\int_0^\infty r^2
+\left[\frac{4(1+7c^2)}{15}\sin^4f+
+\frac{1-c^2}{3}\sin^2(2f)\right]dr .
+\end{aligned}
+$$
+The potential coefficient in §19.4 is $V_0=wC_0$. The rational profile permits beta-integral evaluation of these convergent integrals and hence of the exact two-coordinate energy, including the freely varying connection amplitude. This tests a family in the full fixed-norm energy without integrating out the gauge field.
+
+There is a sufficient instability criterion for this family at $t=4/5$. At any stationary point of $\mathscr E(x,s)$, $M'>0$ and $F'>0$ exclude $t\le s\le1$, while their common signs exclude $s\le0$ and $s\ge2$. The remaining ranges are $0<s<t$ and $1<s<2$, where $y=x^2=-F'/M'>0$. Since $M>0$,
+$$
+\kappa=\frac{F-My}{3y^2}<\frac{F}{3y^2}.
+$$
+For $0<s<t$, the upper bound is
+$(t-s)^2/[12(1-s)^2]\le4/75$.
+For $4/3\le s<2$, it is
+$(s-t)^2/[12(s-1)^2]\le16/75$.
+Thus $\kappa>16/75$ restricts any stationary point to $1<s<4/3$.
+
+In that remaining interval,
+$$
+x\,\partial_s^2\mathscr E
+=\frac{4K(s)}{s-t},\qquad
+K(s)=2s^3-3(1+t)s^2+6ts-2t,
+$$
+$$
+K'(s)=6(s-1)(s-t)>0,\qquad K(4/3)\big|_{t=4/5}=-\frac8{135}<0.
+$$
+Every stationary point therefore has negative connection-amplitude curvature. The criterion excludes a local minimum in this particular size/connection family when its computed $\kappa$ exceeds $16/75$. It excludes no other Hopf shape and no full-field configuration outside the family.
+
+### 19.8 Registered-coefficient trial: pre-execution criteria
+
+The program `computations/matter_formation_relative_trial.py` evaluates the unchanged coefficient set and the single explicit profile in §19.7. There is no scan, fitted value, profile relaxation, alternate trial or dynamical evolution. The fresh-output and canonical heading-extraction convention is the same as §19.5, with this section as the frozen input. Preserve every receipt.
+
+The schedule has four groups:
+
+1. Reconstruct $p,q,\gamma,w,t$ from the displayed dimensionless energy at $\gamma_x=1$, $u_\varphi=4$, using $T^a=\sigma^a/2$ and the unordered curvature sum. Verify $U_3^\dagger U_3=I$, its regular endpoint matrices and the squared matrix-distance falloff. The fundamental, adjoint and density norms remain fixed.
+2. Derive the two angular derivative densities using matrix differentiation of $U=\cos f+i\widehat{\mathbf x}\cdot\sigma\sin f$ at the spatial polar axis, with a general relative reference direction. Derive the composition moment from the Rodrigues rotation and exact isotropic sphere monomial moments. Require exact agreement with all three displayed angular integrands.
+3. Substitute $\sin f=2r^3/(1+r^6)$, $\cos f=(r^6-1)/(1+r^6)$ and $f'=-6r^2/(1+r^6)$. Evaluate $A_0,B_0,C_0$ by the beta integral
+$\int_0^\infty r^m(1+r^6)^{-k}dr=
+\Gamma((m+1)/6)\Gamma(k-(m+1)/6)/(6\Gamma(k))$
+on its convergence domain. Independently integrate the rational radial densities at 50 decimal digits on $[0,1,\infty)$; require finite positive values and relative agreement at most $10^{-35}$. Compute the radial degree integral using the same declared profile, and require its exact value one.
+4. Reconstruct $\kappa=wC_0\gamma B_0/[A_0^2(p+q)^2]$. Verify the stationary-equation elimination, both rational upper bounds, the factorization of $K'$, the negative endpoint value and the resulting sign of the connection-amplitude curvature. Decide whether the computed $\kappa$ is greater than $16/75$ by exact algebra. Report the criterion's truth value without replacing the profile if it fails.
+
+If all algebraic and quadrature prerequisites pass and $\kappa>16/75$, return `CONTRADICTS—local minimum of the registered-coefficient Hopf size/connection trial`. If the prerequisites pass but that sufficient inequality fails, return `INCONCLUSIVE—sufficient trial instability criterion is not met`; this supplies no stability verdict. Any failed identity, quadrature or provenance prerequisite gives `INCONCLUSIVE`. Run one scientific invocation and separate missing/altered-section controls, both of which must exit unsuccessfully with empty scientific rows. Stop after this schedule. The distinct two-coordinate minimum in §19.6 remains a control against extending this coefficient-and-shape-specific result to all parameters or all fields.
+
 ## References
 
 - `computations/matter_formation_relative_orientation.py`—exact relative-target, gauge-screening, derivative-expansion and full-energy collapse calculation.
