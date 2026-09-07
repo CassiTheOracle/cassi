@@ -1,6 +1,6 @@
 # Particle-Sector Action and Fixed-Charge Variational Closure
 
-## Status: Hypothesized temporal completion / Derived conditional action, scalar-reduction, parent-vacuum, dilation and fixed-charge identities / Mapped carrier coupling / Tested prepared binding, finite-grid spectra and parent correspondences—September 2026
+## Status: Hypothesized temporal completion / Derived conditional action, scalar-reduction, parent-vacuum, dilation, fixed-charge, formation-dynamics and non-identifiability identities / Mapped carrier coupling / Tested prepared binding, finite-grid spectra, parent correspondences and conditional temporal dynamics—September 2026
 
 ## Abstract
 
@@ -71,6 +71,19 @@ The selected population-256 subset supports all tested angular and phase
 sectors on four finite grids. Seven of eight spatial comparisons pass;
 the dipole nonsymmetry gap fails the domain comparison. The combined
 scalar-parent spatial verdict is `INCONCLUSIVE` (§8.11).
+
+The same parent has an exact excited periodic mediator orbit. Its linear
+carrier problem has a resolved Floquet instability, while an admissible
+spatial mediator mode grows about $210.3$ times faster at the retained
+comparison point. Prepared complex carrier data transport opposite local
+signed densities with zero total charge; exactly empty carrier data remain
+empty. The frozen plane-symmetric nonlinear comparison is `INCONCLUSIVE`
+because its registered carrier coordinate aliases periodic Floquet phase.
+Period-sampled reconstruction diagnoses the alias without changing the
+verdict. A complex-scalar parent and a Dirac parent share the same registered
+slow carrier equation despite different spin and statistics, proving that the
+observed slow dynamics do not identify a unique microscopic matter
+completion (`computations/matter-formation-continuum-report.md` §§25–29).
 
 ---
 
@@ -1750,6 +1763,161 @@ collective binding there, while exact finite-fermion, nonlocal, exchange,
 metastable and physical-matching questions remain open
 (`computations/matter-formation-continuum-report.md` §§15.6–15.7).
 
+### 8.13 Autonomous periodic formation dynamics
+
+The scalar parent supplies a closed autonomous route from mediator energy to
+carrier amplification. In the unrescaled rotating variable
+$z=e^{-it/(2a)}\chi$, with $B=e_C+1/(4a)$, its
+scale-independent real-amplitude sector is
+
+$$
+\begin{aligned}
+\mathcal L={}&\frac{c_\Psi}{2}\dot f^2-\frac12|\nabla f|^2
++a|\dot z|^2-\frac{k_{Cx}}2|\nabla z|^2\\
+&-\frac{u_\rho}{4}(f^2-1)^2
+-[B-h_C+h_Cf^2]|z|^2-\frac{u_C}{2}|z|^4 .
+\end{aligned}
+$$
+
+The coupled equations and exact energy-transfer ledger are
+
+$$
+\begin{aligned}
+c_\Psi\ddot f-\Delta f+u_\rho(f^2-1)f+2h_Cf|z|^2&=0,\\
+a\ddot z-\frac{k_{Cx}}2\Delta z+
+[B-h_C+h_Cf^2+u_C|z|^2]z&=0,\\
+\dot E_z=2h_C\int f\dot f\,|z|^2\,d^3x&=-\dot E_f .
+\end{aligned}
+$$
+
+At the retained comparison point $a=1/16$, $c_\Psi=1/8$ and
+$F=\sqrt{3/2}$, the carrier-free mediator has the exact periodic solution
+
+$$
+\boxed{
+f_0(t)=F\,\operatorname{dn}(\sqrt{24}\,t,2/3),\qquad
+P=\frac{2K(2/3)}{\sqrt{24}}=0.8283190851182971.}
+$$
+
+Its carrier Fourier equation is a Lamé/Hill problem. The fixed six-gap
+schedule retains the third gap at $k_*=2.6753367051$, where independent
+DOP853 and Radau monodromy calculations give physical-time Floquet exponents
+$0.0017215448659$ and $0.0017215449183$. Both constant-mediator and
+disabled-coupling controls are stable. The frozen verdict is
+`SUPPORTS—neutral linear parametric amplification in the supplied temporal
+parent`.
+
+The mediator has an independent degree-two Lamé fluctuation problem,
+
+$$
+c_\Psi\ddot\eta+
+[p^2+u_\rho(3f_0^2-1)]\eta=0.
+$$
+
+Its physical instability interval and periodic-box condition are exact:
+
+$$
+\boxed{
+0<p<\sqrt{2\sqrt7-4},\qquad
+L>\frac{2\pi}{\sqrt{2\sqrt7-4}}.}
+$$
+
+At $p_*=k_*/4$, the primary and independent exponents are
+$0.362037120923023$ and $0.362037120923008$, about $210.3$ times the
+respective carrier exponents. This faster mode is present with an empty
+carrier and therefore limits the homogeneous-pump interpretation on boxes
+that admit it.
+
+Complex prepared carrier data can also separate signed charge locally. The
+exact density, current and continuity law are
+
+$$
+\rho_a=-2a\,\operatorname{Im}(z^*\dot z),\qquad
+\mathbf j_a=k_{Cx}\operatorname{Im}(z^*\nabla z),\qquad
+\partial_t\rho_a+\nabla\cdot\mathbf j_a=0.
+$$
+
+For
+$z(x,0)=\varepsilon[\cos(px)+i\cos(2px)]$ and $\dot z(x,0)=0$,
+
+$$
+\boxed{
+\rho_a(x,0)=0,\qquad
+\partial_t\rho_a(x,0)
+=3k_{Cx}\varepsilon^2p^2\cos(px)\cos(2px),\qquad
+\int\partial_t\rho_a\,dx=0.}
+$$
+
+Thus the parent transports prepared complex carrier phase into opposite
+local signed densities while preserving total charge. Exactly empty
+classical carrier data remain empty, and common-phase real data remain in
+the zero-local-charge invariant subspace.
+
+The full plane-symmetric finite-amplitude comparison retains mediator
+backreaction, carrier self-interaction, energy conservation and signed-charge
+conservation. Its two independent implementations return `INCONCLUSIVE`
+under the frozen protocol because the registered non-stroboscopic carrier
+coordinate crosses its threshold near $t=0.147$, before mediator entry near
+$t=13.119$, despite its tiny envelope exponent. Period-sampled reconstruction
+identifies Floquet-phase aliasing in that coordinate and leaves the frozen
+verdict unchanged. This conditional parent therefore supplies autonomous
+growth and charge transport, while finite-energy localized formation and
+nonlinear stability require a distinct calculation
+(`computations/matter-formation-continuum-report.md` §§25–28).
+
+### 8.14 Microscopic non-identifiability of the slow carrier equation
+
+The registered carrier equation determines an observable equivalence class
+rather than a microscopic particle theory. Let
+$H_{\rm slow}=-\Delta/(2m)+\mathcal V(t,\mathbf x)$ be any prescribed
+Hermitian slow operator. A complex scalar field $X$ with action
+
+$$
+S_B=\int dt\,d^3x\,
+\left[iX^*\dot X-X^*H_{\rm slow}X\right]
+$$
+
+and a multicomponent spinor field $\Psi$ with action
+
+$$
+S_F=\int dt\,d^3x\,
+\left[i\Psi^\dagger\dot\Psi-\Psi^\dagger
+H_{\rm slow}\Psi\right]
+$$
+
+obey the same componentwise equation
+
+$$
+\boxed{i\partial_t\Xi=H_{\rm slow}\Xi}
+$$
+
+whenever the potential acts as the identity on the spinor indices. Canonical
+commutators assign bosonic statistics to $X$; canonical anticommutators
+assign fermionic statistics to $\Psi$. Tensoring either field with an
+unobserved finite internal space gives further inequivalent parents with
+the same slow evolution and scalar density after a state is selected.
+A positive-energy Dirac field provides another member after its declared
+nonrelativistic reduction. The microscopic actions, state spaces, spin
+representations and exchange algebras differ while the registered slow
+carrier law agrees.
+
+Consequently, matching the slow PDE, density evolution or Floquet exponent
+cannot select a unique particle species. A complete matter-formation
+calculation requires six additional physical inputs:
+
+1. a canonical microscopic action fixing fields, symmetries and interactions;
+2. a state-selection rule fixing the initial vacuum or density operator;
+3. physical unit and coupling calibration;
+4. a finite-energy localized continuum evolution from the selected state;
+5. an admissible evolution that establishes nonlinear persistence; and
+6. an observable discriminator for mass, charge, spin, statistics and species.
+
+This is a structural non-identifiability result. More trajectories of the
+same registered slow equation can refine its conditional dynamics but cannot
+recover microscopic information absent from its action and observables.
+`computations/matter-formation-continuum-report.md` §29 gives the explicit
+scalar/Dirac construction and full boundary.
+
 ## 9. What is closed and what remains open
 
 | Question | Result |
@@ -1766,30 +1934,38 @@ metastable and physical-matching questions remain open
 | Does a physically stationary, localized, retained finite-grid configuration exist in the registered class? | Yes; the Cartesian branch qualifies under its centred-difference action, while the edge-gradient diagnostic contradicts a smooth-carrier interpretation on that sequence. A separate continuum-consistent scalar calculation supports prepared static binding at $Q_C=16$ and $256$ |
 | Is any basin the unrestricted global minimum? | Undetermined and not established by finite controls |
 | Is the full physical Hessian or mixed dynamical spectrum evaluated? | No. The stored Cartesian fields have independently matched low energetic spectra in a finite-grid $C_4$ quotient. Their phase modes have grid-scale structure. The separate smooth $Q_C=16$ constrained spatial study has no resolved negative mode on four tested grids, but its combined verdict is `INCONCLUSIVE` because the coarse symmetry and domain comparisons fail. Full temporal and nonlinear stability remain open |
-| Can carriers form from an exactly empty closed sector? | No; the homogeneous first-order carrier equation preserves $Q_C=0$. A microscopic production action and quantum content are missing |
+| Can carriers form from exactly empty closed classical data? | No. The first-order carrier preserves $Q_C=0$, and the positive-inertia parent preserves $z=\dot z=0$ even on the unstable periodic mediator. Microscopic production requires a selected quantum state or nonzero carrier data |
 | Does the optional carrier parent define a classical vacuum condition? | Yes, conditionally: $h_C-e_C-1/(4a)\le\sqrt{u_\rho u_C/2}$ is necessary and sufficient for nonnegative homogeneous canonical scalar potential |
 | Can that scalar parent support an energetically stable single-frequency localized state with zero signed charge? | No, under the regularity, finite-energy, constant-vacuum and three-dimensional scalar assumptions of §8.9. Charged, multi-frequency, quantum and additional topological sectors remain outside that statement |
 | Does fixed signed parent charge support the measured radial amplitudes? | Yes on all 24 frozen finite-grid embeddings, with independent spectral verification. Nine of twelve domain/resolution comparisons pass; aggregate radial-domain qualification remains `INCONCLUSIVE` because the population-16 domain comparisons fail. Population 256 meets its measured radial comparisons |
 | Do the selected scalar-parent angular and phase sectors qualify? | Yes on all four population-256 finite grids, with 96 independently matched eigenvalues. Seven of eight spatial comparisons pass; the dipole nonsymmetry gap fails the domain comparison, leaving combined scalar-parent spatial qualification `INCONCLUSIVE`. Exact continuum positivity identities remain conditional on nodelessness, strict monotonicity and boundary assumptions |
 | Does one imposed vacuum mass, propagation speed and internal generator unit determine the scalar action? | No. Three independently reconstructed admissible temporal coefficients give different physical lengths. The selected scalar core assignment to the mapped electron cell is contradicted; spin, statistics and electric charge are unassigned |
+| Can the supplied parent transfer mediator energy into carrier amplitude autonomously? | Yes, conditionally. Its exact periodic mediator orbit has an independently reproduced carrier Floquet exponent at the frozen wave number; finite carrier growth draws energy from the mediator |
+| Does the homogeneous periodic pump remain the fastest available linear channel? | No on boxes admitting the qualified spatial mode. The retained mediator perturbation grows about $210.3$ times faster than the corresponding carrier perturbation |
+| Can the parent separate signed carrier charge locally? | Yes from prepared spatially complex carrier data, under an exact continuity law and zero total charge. Exactly empty and common-phase real carrier data remain in invariant zero-charge subspaces |
+| Does the frozen nonlinear plane-symmetric comparison establish localized formation? | `INCONCLUSIVE`. Its registered non-stroboscopic carrier coordinate aliases periodic Floquet phase and crosses before physical envelope growth. Period-sampled reconstruction diagnoses the alias without changing the frozen verdict |
+| Do the registered slow carrier observables select bosonic or fermionic matter? | No. Inequivalent scalar and spinor actions share the same slow equation and scalar-density evolution while retaining different spin representations and exchange statistics |
 | Does the stated local-density Yukawa candidate bind collectively below threshold? | No within its mass-depleting $|m|\le1$ functional, including the specified one-loop remainder and favorable fourfold occupation relaxation; exact finite-fermion and physical matching remain open |
 | Does the canonical scalar domain supply a rotation or exchange FR sign? | No in the tested regular domains; separated exchange, large-gauge and other quantum sectors require their own configuration spaces |
 | Does the compact $SU(2)_{\rm top}$ comparison identify a Cassi carrier? | No. It supports only finite-domain radial stationarity and radial energetic qualification, with an inconclusive direct-angle calculation and an obstructed canonical density bridge |
 | Can a hard-norm nonzero-Hopf field be a full stationary solution of PA12? | No when the adjoint norm is soft: every such field has a strict first-order amplitude descent, and the included hard-norm loops contract in the soft domain. A relaxed soft-amplitude state or separately constrained hard-norm model remains open |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | No |
 
-The action defines a fixed-charge boundary-value problem and an exact
-creation obstruction. Its continuum-consistent scalar sector supplies
-independently reproduced static binding for two prepared populations at the
-selected coefficients. The stored Cartesian branch retains its finite-grid
-scope and fails the smooth-carrier diagnostic. The smooth constrained spatial
+The action defines a fixed-charge boundary-value problem and exact empty-sector
+invariants. Its continuum-consistent scalar sector supplies independently
+reproduced static binding for two prepared populations at the selected
+coefficients. The stored Cartesian branch retains its finite-grid scope and
+fails the smooth-carrier diagnostic. The smooth constrained spatial
 calculation remains inconclusive under its frozen criteria. The optional
 parent has a verified Gaussian pair correspondence, positive measured
-fixed-signed-charge radial curvature and selected population-256 angular
-and phase support. The radial-domain and combined scalar-parent spatial
-aggregates are separately inconclusive. These measurements determine no
-physical production channel, normalized particle spectrum or formation
-history.
+fixed-signed-charge radial curvature, selected population-256 angular and
+phase support, an exact autonomous periodic pump, qualified carrier and
+mediator Floquet instabilities, and local signed-charge transport from
+prepared complex data. Its radial-domain, combined scalar-parent spatial and
+nonlinear formation comparisons are inconclusive under their respective
+frozen criteria. Scalar and spinor microscopic parents share the registered
+slow equation, so these measurements determine no unique production action,
+state, physical normalization, particle spectrum or formation history.
 
 ---
 
@@ -1806,6 +1982,14 @@ The analytic closure fails if any of the following is shown:
 6. the dimensionless energy or groups in (PA29)--(PA35) retain a source-unit
    dimension or gauge-normalization dependence;
 7. the coupled stationary equations omit a variation of (PA12).
+8. the displayed mediator orbit fails the scalar field equation or the exact
+   energy and signed-charge ledgers;
+9. the carrier or mediator Floquet spectra fail independent reconstruction
+   under the frozen schedules and controls;
+10. the prepared two-mode carrier datum violates the local charge-transport
+    identity or its zero-integral boundary condition;
+11. a scalar and spinor parent with the displayed canonical algebras cannot
+    share the registered slow carrier equation.
 
 The finite-grid measurements leave the action identities intact. The
 Cartesian edge-gradient diagnostic contradicts a smooth interpretation of the
@@ -1853,6 +2037,23 @@ region has a negative dilation direction. A supported physical matter
 mechanism must address the corresponding charge, dynamics or field-content
 requirements.
 
+The autonomous temporal parent also sharpens the formation boundary. An exact
+periodic mediator orbit amplifies carrier perturbations and conserves the
+complete energy, while an admissible spatial mediator perturbation grows about
+$210.3$ times faster at the retained comparison point. Prepared complex
+carrier phase separates opposite local signed densities under the exact
+continuity law. Empty classical carrier data remain empty. The frozen
+finite-amplitude comparison is `INCONCLUSIVE` because its registered
+non-stroboscopic coordinate aliases Floquet phase; the period-sampled
+diagnostic cannot be substituted into that verdict.
+
+The slow carrier law is also microscopically non-identifying. Canonically
+quantized scalar and spinor parents can have the same componentwise
+Schrödinger equation and scalar-density trajectory while carrying different
+spin and exchange statistics. Matter formation therefore requires a selected
+microscopic action and state, physical calibration, finite-energy localized
+evolution, nonlinear persistence and an observable particle discriminator.
+
 The same boundary applies to the added candidate sectors. The declared
 mass-depleting local-density Yukawa functional excludes subthreshold
 collective binding at its frozen inputs, while exact finite-fermion and
@@ -1886,7 +2087,7 @@ soft-field metastability and physical quantization open
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid refinement and independently verified resolution consistency.
 - `computations/particle-localized-physical-hessian-report.md`—matched constrained spectrum and spatial qualification of the finest localized field.
-- `computations/matter-formation-continuum-report.md`—empty-sector invariant, ultraviolet diagnosis, smooth prepared binding, constrained stability and conditional Gaussian parent correspondence.
+- `computations/matter-formation-continuum-report.md`—empty-sector invariant, ultraviolet diagnosis, smooth prepared binding, constrained stability, autonomous formation dynamics and microscopic non-identifiability.
 - `computations/matter-formation-hyperbolic-parent-prereg.md`—optional temporal parent, quantum normalization and frozen free-mode schedule.
 - `computations/matter_formation_hyperbolic_parent.py`—primary oscillator trajectories and stationary embeddings.
 - `computations/verify_matter_formation_hyperbolic_parent.py`—independent raw-array, charge and energy-work verification.
@@ -1904,3 +2105,7 @@ soft-field metastability and physical quantization open
 - `computations/matter_formation_normalization.py`—scalar unit family, energy conversion and chiral-scalar witnesses.
 - `computations/verify_matter_formation_normalization.py`—independent physical scales, energy quadrature and bilinear checks.
 - `foundations/sector-coupling-derivation.md` §1—Dirac chiral-scalar density and interaction obstructions.
+- `computations/matter_formation_autonomous_pump.py` and `computations/verify_matter_formation_autonomous_pump.py`—independent periodic-orbit and carrier-Floquet calculations.
+- `computations/matter_formation_spatial_pump.py` and `computations/verify_matter_formation_spatial_pump.py`—spatial mediator instability and signed-charge transport.
+- `computations/matter_formation_nonlinear_fragmentation.py` and `computations/verify_matter_formation_nonlinear_fragmentation.py`—frozen finite-amplitude comparison and independent reconstruction.
+- `computations/matter_formation_nonlinear_phase_diagnostic.py`—period-sampled Floquet-phase diagnostic excluded from the frozen nonlinear verdict.

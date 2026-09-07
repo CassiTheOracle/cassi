@@ -46,6 +46,28 @@ An exact plane-wave sector makes finite mediator-to-carrier energy exchange calc
 
 The excited mediator has an independently verified spatial instability for $0<p<\sqrt{2\sqrt7-4}$. At the prescribed mode $p=k_*/4$, its linear exponent is $0.3620371209$, about $210.3$ times the accepted carrier exponent. A cube four times the one-carrier-wavelength cell admits this faster channel. Exact nonlinear charge identities also permit initial separation of opposite local signed densities from a prepared complex carrier with zero initial charge. Empty classical carrier data remain invariant; nonlinear fragmentation, localized production and physical matching remain open (§27).
 
+The frozen nonlinear plane-symmetric comparison returns `INCONCLUSIVE` in
+both methods. A non-stroboscopic carrier coordinate crosses its threshold
+near \(t=0.147\), before mediator entry near \(t=13.1195\), and the direct
+mediator slope fit fails. An excluded post-hoc stroboscopic diagnostic
+recovers both accepted Floquet exponents and places mediator entry first; it
+identifies phase aliasing in the frozen observable without changing the
+verdict. The retained trajectories conserve energy and global signed charge
+within their bounds and develop opposite local signed densities from a
+prepared complex seed. They contain no empty-sector production or localized
+finite-energy carriers (§28).
+
+An explicit scalar/Dirac construction proves that the registered slow carrier
+dynamics are compatible with inequivalent microscopic fields and canonical
+statistics. Vacuum selection and physical normalization add independent
+families of completions. The projection from microscopic models to the
+registered dimensionless observables is therefore many-to-one. The existing
+scalar localization, scalar amplification and fermionic production results
+belong to separate supplied models; their conjunction does not define one
+matter-formation mechanism. A canonical microscopic action, state rule,
+physical calibration, localized forming evolution and particle discriminator
+are additional inputs (§29).
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -3356,8 +3378,432 @@ The programs refuse existing output directories. Reproduction uses fresh directo
 
 The result qualifies a faster spatial channel within the supplied scalar temporal parent. It leaves its microscopic action selection, quantum state, physical normalization, finite-energy localized formation, full nonlinear stability and observed particle identification open. The comparison wave number and box lengths introduce no physical coefficients or experiment-ready predictions. The three master registries retain their existing completion and coefficient-selection status.
 
+
+## 28. Nonlinear competition between spatial mediator growth and carrier amplification
+
+The accepted linear exponents identify which perturbation reaches finite
+amplitude first only after their initial projections and target amplitudes are
+specified. The full plane-symmetric field equations provide the corresponding
+finite-amplitude test while retaining mediator feedback, carrier self-
+interaction, energy conservation and signed-charge conservation.
+
+### 28.1 Exact competition criterion
+
+Let \(A_f\) and \(A_z\) denote phase-space envelopes of the growing mediator
+and carrier modes during their common linear interval:
+
+$$
+A_f(t)=A_{f0}e^{\mu_f t},\qquad
+A_z(t)=A_{z0}e^{\mu_z t}.
+$$
+
+For fixed target amplitudes \(A_{f*}>A_{f0}\) and
+\(A_{z*}>A_{z0}\), their linear arrival times are
+
+$$
+t_f=\frac{\log(A_{f*}/A_{f0})}{\mu_f},\qquad
+t_z=\frac{\log(A_{z*}/A_{z0})}{\mu_z}.
+$$
+
+The mediator reaches its target first precisely when
+
+$$
+\boxed{
+A_{f0}>
+A_{f*}\left(\frac{A_{z0}}{A_{z*}}\right)^{\mu_f/\mu_z}.
+}
+$$
+
+At the accepted witnesses,
+\(\mu_f=0.362037120923008\),
+\(\mu_z=0.0017215449183269978\), and
+\(\mu_f/\mu_z=210.2978069691\). For
+\(A_{f0}=10^{-3}\), \(A_{f*}=10^{-1}\),
+\(A_{z0}=10^{-6}\), and \(A_{z*}=1.1A_{z0}\), the respective
+linear times are approximately \(12.7202\) and \(55.363\). The exact
+inequality is a conditional ordering statement. The finite-amplitude
+calculation below tests whether nonlinear coupling preserves that ordering.
+
+### 28.2 Plane-symmetric nonlinear initial-value problem
+
+Use one periodic coordinate \(x\in[0,L)\) in the scalar parent of §25:
+
+$$
+\begin{aligned}
+c_\Psi\ddot f-\partial_x^2f
++u_\rho(f^2-1)f+2h_Cf|z|^2&=0,\\
+a\ddot z-\frac{k_{Cx}}2\partial_x^2z
++[B-h_C+h_Cf^2+u_C|z|^2]z&=0.
+\end{aligned}
+$$
+
+The conserved energy and signed charge per transverse area are
+
+$$
+\begin{aligned}
+E={}&\int_0^L\left[
+\frac{c_\Psi}{2}\dot f^2+\frac12 f_x^2
++a|\dot z|^2+\frac{k_{Cx}}2|z_x|^2
++\frac{u_\rho}{4}(f^2-1)^2\right.\\
+&\left.\hspace{2.5cm}
++(B-h_C+h_Cf^2)|z|^2+\frac{u_C}{2}|z|^4
+\right]dx,\\
+\mathcal Q_a={}&-2a\int_0^L\operatorname{Im}(z^*\dot z)\,dx .
+\end{aligned}
+$$
+
+Fix \(a=1/16\), \(c_\Psi=1/8\),
+\(u_\rho=4\), \(u_C=k_{Cx}=1\),
+\(e_C=3/4\), \(B=e_C+1/(4a)\), and
+\(h_C=2.9598260763447164\). Let
+\(k_*=2.675336705149658\),
+\(p_*=k_*/4\), and \(L=2\pi/p_*\).
+The accepted mediator and carrier monodromy matrices uniquely define real
+growing phase-space eigenvectors up to sign. Normalize each vector
+\((v_0,v_1)\) by
+\(v_0^2+(v_1/\Omega)^2=1\), with \(v_0>0\), using
+\(\Omega=\sqrt{24}\).
+
+Evolve five arms:
+
+1. `homogeneous_carrier`: \(f=F=\sqrt{3/2}\), with the carrier
+   \(k_*=4p_*\) cosine seeded along its normalized growing eigenvector at
+   amplitude \(10^{-6}\).
+2. `mediator_only`: the same homogeneous background plus the
+   \(p_*\) mediator growing eigenvector at amplitude \(10^{-3}\), with
+   \(z=\dot z=0\).
+3. `competition`: the mediator and carrier seeds from the first two arms
+   together.
+4. `phase_seed`: the mediator seed together with
+   \(z=10^{-6}[\cos(4p_*x)+i\cos(5p_*x)]/\sqrt2\) and
+   \(\dot z=0\). This arm begins with zero local signed charge and permits
+   phase-dependent local charge transport.
+5. `equilibrium_control`: \(f=1+10^{-3}\cos(p_*x)\),
+   \(\dot f=z=\dot z=0\).
+
+For a Fourier mode \(n\), define its real-field phase-space envelope by
+
+$$
+\mathcal A_n[g]=
+\sqrt{\left|\frac2N\sum_{j=0}^{N-1}g_j
+e^{-2\pi i n j/N}\right|^2+
+\left|\frac2{\Omega N}\sum_{j=0}^{N-1}\dot g_j
+e^{-2\pi i n j/N}\right|^2}.
+$$
+
+Use the same expression for complex \(z\). Define the mediator nonlinear-entry
+time as the first upward crossing of
+\(\mathcal A_1[f]=10^{-1}\), with linear interpolation between retained
+samples. Define the carrier comparison time by the first upward crossing of
+\(\mathcal A_4[z]=1.1\times10^{-6}\). Retain the mediator spectrum, carrier
+spectrum, energy, charge, local charge \(L^1\) norm and these envelopes. Late
+spectral broadening and spatial concentration are descriptive diagnostics;
+they carry no pass criterion.
+
+### 28.3 Nonlinear competition calculation: pre-execution criteria
+
+Freeze this unique section through the next heading of level three or higher,
+normalizing CRLF to LF, stripping final whitespace and appending one LF. Bind
+its SHA-256 in both programs. Also bind the raw accepted pump receipts with
+SHA-256 values
+`cad33ef760404c79807570be1269390dfb790574dc13bfe60d61d67c5b1bc9c5`
+and
+`a54c07d1a973f9a915355e26b7c23e7caa7ee75a468f09fda53e13a272959758`,
+the accepted pump array with SHA-256
+`d1679676c297295d3196c2abb9a8347becbf41f8e1ee43ba889edce544baf352`,
+the accepted spatial receipts with SHA-256 values
+`10c96e81220c08405392bb062e17bf4b193cdd95294d31a776b7b8c7566299e8`
+and
+`c2126830d1cf3845b6fc3b25948e970231175105525a3bffff01d24a305ee7c0`,
+and the accepted spatial array with SHA-256
+`6c8a3e5316c3ec03535ecb2d0da511458e663fc745b2aa84b933ac35fd8dee54`.
+Require the parent receipts to retain their qualified verdicts and reconstruct
+both growing eigenvectors directly from the manifested monodromy arrays.
+
+The primary calculation uses Fourier collocation, velocity Verlet and two
+fixed discretizations: \(N=256,\Delta t=2^{-11}\) and
+\(N=512,\Delta t=2^{-12}\). The independent calculation uses the
+fourth-order periodic finite-difference Laplacian, classical fourth-order
+Runge-Kutta, \(N=512\), and \(\Delta t=2^{-12}\). Evolve every arm through
+\(t=30\). Retain common observables every \(5/1024\) time unit and full field
+snapshots every \(1/2\) time unit. Both programs derive their updates,
+diagnostics and event interpolation separately; the independent program may
+read primary source bytes for provenance but must never import or execute the
+primary program.
+
+Before evolution, verify symbolically that the reduced equations imply the
+displayed energy and charge identities, that real common-phase carrier data
+retain zero local charge, and that the `phase_seed` datum has zero initial
+charge. Numerically require every value finite. For every primary fine-grid
+arm require normalized total-energy drift below \(2\times10^{-6}\); for every
+independent arm require drift below \(10^{-5}\). Normalize by
+\(\max(1,|E(0)|)\). Require normalized global-charge drift below
+\(10^{-9}\) in the phase arm, using
+\(\max(2a\Omega L\,10^{-12},|\mathcal Q_a(0)|)\).
+
+The homogeneous-carrier arm must agree at every retained time with a direct
+DOP853 integration of the exact scalar mode equation in §25.2: the maximum
+phase-space discrepancy divided by the initial carrier envelope must be below
+\(2\times10^{-4}\) for the primary fine grid and \(5\times10^{-4}\) for the
+independent grid. The equilibrium-control mediator envelope must remain below
+\(2.0\times10^{-3}\). Fit \(\log\mathcal A_1[f]\) over the fixed interval
+\(2\times10^{-3}\le\mathcal A_1[f]\le2\times10^{-2}\); each fitted slope
+must differ from the accepted \(\mu_f\) by less than two percent.
+
+Require the primary coarse/fine nonlinear-entry times to agree within one
+percent and the independent/fine times to agree within one percent. The
+qualified competition supports mediator-first nonlinear entry only if both
+methods reach \(\mathcal A_1[f]=10^{-1}\), the carrier comparison crossing
+occurs later or remains absent through \(t=30\), and
+\(\mathcal A_4[z]<1.1\times10^{-6}\) at the mediator crossing. Require the
+`mediator_only` and `competition` entry times to agree within one percent.
+The phase arm qualifies local charge transport when its normalized
+\(\int|\rho_Q|dx\) reaches \(0.05\), with normalization
+\(2a\Omega L\,10^{-12}\), while retaining the global-charge bound.
+
+Return
+`SUPPORTS—mediator modulation reaches nonlinear entry before carrier amplification in the fixed plane-symmetric parent`
+only when every numerical and symbolic qualification passes together with the
+mediator-first conditions. Return
+`CONTRADICTS—carrier amplification reaches its fixed comparison threshold first`
+only when all numerical qualifications pass and that carrier crossing occurs
+first. Otherwise return `INCONCLUSIVE`, preserving every failed check.
+
+Use fresh absent directories under
+`runs/20260907_matter_formation_nonlinear_fragmentation*`, refuse overwrite,
+and preserve complete arrays, source copies and SHA-256 manifests. Execute one
+primary and one independent scientific invocation, followed by three
+prerequisite controls: missing frozen section for the primary, altered frozen
+section for the independent program, and missing primary array for the
+independent program. Each control must fail before symbolic or numerical
+science and retain an empty scientific payload. Stop after this schedule
+without changing seeds, thresholds, equations, grids, time steps or stopping
+time. An implementation defect requires a declared recovery that preserves the
+original evidence and every scientific setting above.
+
+### 28.4 Independent-verifier prerequisite recovery
+
+The receipt at
+`runs/20260907_matter_formation_nonlinear_fragmentation_verification/results.json`
+has `scientific_execution_started=false` and records
+`ContractError: primary nonlinear result is not qualified`. Section 28.3 makes
+an unqualified primary result an admissible `INCONCLUSIVE` outcome whose
+failed checks must be preserved. Requiring `qualified=true` before the
+independent evolution therefore prevents the prescribed method comparison
+exactly when a primary qualification fails. This is a verifier
+implementation defect; no independent scientific calculation occurred in
+that invocation.
+
+The recovery permits the independent program to read any primary receipt
+whose scientific execution started and whose manifested raw arrays are
+complete, hash-matched and finite. It binds the frozen verifier source
+retained by the primary calculation to SHA-256
+`1c59152413f8a79c9d6b8fb967bd7cdbb815dc3d4ee3ad8eaccf5d5b895692f2`,
+retains that source separately from the recovery source, and preserves the
+primary `qualified=false` value in the combined qualification. The
+independent method can consequently reproduce or dispute the measured
+events, but it cannot turn the failed primary qualification into a qualified
+verdict.
+
+Freeze this recovery section through the next heading of level three or
+higher with the same LF normalization used in §28.3. Run only the independent
+program in the fresh directory
+`runs/20260907_matter_formation_nonlinear_fragmentation_verification_prerequisite_recovery/`.
+The primary evolution and arrays remain unchanged. Every equation,
+coefficient, initial datum, threshold, grid, time step, sampling interval and
+stopping time in §28.3 remains fixed.
+
+### 28.5 Result: the frozen observable aliases Floquet phase
+
+The primary and recovered independent calculations both return
+`INCONCLUSIVE`. The primary fine grid reaches the raw carrier comparison
+crossing at \(t=0.1470094297\), while the mediator reaches its nonlinear-entry
+threshold at \(t=13.11951028\). The independent values are
+\(0.1470093437\) and \(13.11951242\). The frozen decision tree therefore
+records `carrier_first` in both methods. The direct logarithmic mediator fits
+also fail: their rates are \(0.1223814773\) and \(0.1223815143\), about
+\(66.20\%\) below the accepted Floquet exponent. Every energy, reference,
+equilibrium, charge and method-agreement qualification passes. The failed
+slope and ordering checks fix the aggregate verdict.
+
+The fixed carrier quantity \(\mathcal A_4[z]\) uses a constant velocity scale
+\(\Omega\); it is not a Floquet-normal-form norm. Its periodic micromotion
+therefore produces an early coordinate crossing even though the carrier's
+secular envelope has barely changed. A reproducible post-hoc diagnostic,
+excluded from the frozen verdict, samples at the accepted background period
+\(T=0.8283190851\). It recovers mediator rates
+\(0.3620430527\) and \(0.3620438790\), within
+\(1.87\times10^{-5}\) of the accepted exponent, and carrier rates
+\(0.0017184384\) and \(0.0017213792\), within \(0.181\%\) of the accepted
+carrier exponent. The mediator reaches its stroboscopic target near
+\(t=12.724\); the carrier remains below its target through \(t=30\), with
+stroboscopic amplitudes \(1.02144\times10^{-6}\) and
+\(1.02148\times10^{-6}\) at mediator entry. Cross-method relative
+differences are below \(3.0\times10^{-6}\) for both fitted rates and below
+\(2.3\times10^{-6}\) for the entry time.
+
+The phase-seeded trajectories reach normalized local signed-charge
+\(L^1\) values \(0.5850643\) and \(0.5850658\), while their global-charge
+drifts remain below \(8.5\times10^{-15}\). These values are retained
+diagnostics inside an unqualified aggregate calculation. The comparison
+contains no localization criterion and begins with a nonzero carrier seed.
+It consequently establishes neither fragmentation into finite-energy
+carriers nor production from the empty sector.
+
+The immutable primary receipt and arrays are under
+`runs/20260907_matter_formation_nonlinear_fragmentation/`. The initial
+prerequisite-only independent receipt and the recovered independent
+calculation are under
+`runs/20260907_matter_formation_nonlinear_fragmentation_verification/` and
+`runs/20260907_matter_formation_nonlinear_fragmentation_verification_prerequisite_recovery/`.
+The three prerequisite controls, direct raw-array reconciliation, complete
+invocation ledger and post-hoc phase diagnostic are retained under
+`runs/20260907_matter_formation_nonlinear_fragmentation_controls/`.
+
+## 29. Microscopic completion is non-identifiable from the registered dynamics
+
+The remaining production problem cannot be closed by another evolution of
+the registered equations. The information needed to choose a microscopic
+field, its statistics, its quantum state and its physical normalization is
+absent from those equations. This section gives an explicit many-to-one
+construction.
+
+### 29.1 Bosonic and fermionic parents share the measured slow equation
+
+Work in natural units and let \(U(x,t)\) be a prescribed real background. A
+complex scalar parent may be written
+
+$$
+\mathcal L_B=
+|\partial_t\Phi|^2-|\nabla\Phi|^2
+-(m^2+2mU)|\Phi|^2 .
+$$
+
+Its equation of motion is
+
+$$
+\partial_t^2\Phi-\nabla^2\Phi+(m^2+2mU)\Phi=0.
+$$
+
+For \(\Phi=e^{-imt}\psi_B/\sqrt{2m}\), this equation becomes exactly
+
+$$
+i\partial_t\psi_B=
+\left(-\frac{\nabla^2}{2m}+U\right)\psi_B
++\frac{\partial_t^2\psi_B}{2m}.
+$$
+
+The slow-envelope limit drops the last term. A separately supplied Dirac
+parent obeys
+
+$$
+i\partial_t\Psi_D=
+\left(-i\boldsymbol\alpha\cdot\nabla+\beta m+U\right)\Psi_D.
+$$
+
+Writing
+\(\Psi_D=e^{-imt}(\psi_D,\eta_D)^{\mathsf T}\) in the Dirac basis gives
+
+$$
+\begin{aligned}
+i\partial_t\psi_D&=U\psi_D-i\boldsymbol\sigma\cdot\nabla\eta_D,\\
+i\partial_t\eta_D&=(U-2m)\eta_D-i\boldsymbol\sigma\cdot\nabla\psi_D .
+\end{aligned}
+$$
+
+At frequencies and momenta small compared with \(m\),
+\(\eta_D=-i\boldsymbol\sigma\cdot\nabla\psi_D/(2m)+O(m^{-2})\), so
+
+$$
+i\partial_t\psi_D=
+\left(-\frac{\nabla^2}{2m}+U\right)\psi_D+O(m^{-2}).
+$$
+
+The scalar envelope and each fixed spin component of the Dirac envelope thus
+have the same leading density evolution, current conservation and exactly
+empty classical solution. The two parents have different Lorentz
+representations and spins. Canonical quantization further gives
+
+$$
+|\alpha_B|^2-|\beta_B|^2=1
+\quad\hbox{for bosonic commutators},\qquad
+|\alpha_F|^2+|\beta_F|^2=1
+\quad\hbox{for fermionic anticommutators}.
+$$
+
+Both vacuum calculations assign a produced occupation
+\(n=|\beta|^2\) to one mode, while stimulated occupation and saturation
+differ. A prescribed-background low-occupation trajectory can therefore
+match the same slow carrier equation without selecting Bose or Fermi
+statistics. Exchange, spin and finite-occupation measurements are required
+to distinguish the parents.
+
+### 29.2 State and normalization remain independent selections
+
+A time-dependent parent action does not by itself select a particle state.
+The positive-frequency splitting fixes the annihilation operators and hence
+the vacuum. Distinct admissible splittings produce distinct Bogoliubov
+coefficients. The finite-mode fermion calculation in §14 supplies its vacuum,
+and the scalar Gaussian calculation in §8 supplies a separate in-state.
+Neither state follows from the canonical real-density two-fluid variables.
+The divergent static-to-first-adiabatic overlap in §15.3 demonstrates that
+this choice can remain physically consequential under continuum removal.
+
+The dimensionless dynamics also survives a continuous family of unit
+assignments. Section 12 exhibits three physical scalar realizations with the
+same imposed vacuum mass and dimensionless coefficients but distinct
+\(\ell_Q\). More generally, choices of length, time and field units can be
+absorbed into the dimensionful coefficients while leaving the normalized
+equations unchanged. A measured mass, coupling or length anchor is needed
+before the dimensionless carrier energy becomes a physical particle mass or
+production density.
+
+Let \(\mathfrak M\) denote microscopic completions containing a field
+representation, canonical algebra, state prescription and physical unit
+map, and let \(\mathfrak D\) denote the registered dimensionless carrier
+observables. The constructions above prove
+
+$$
+\boxed{\mathcal P:\mathfrak M\longrightarrow\mathfrak D
+\quad\text{is many-to-one}.}
+$$
+
+The static scalar branch, scalar parametric amplifier and finite-mode
+fermionic producer are separate conditional models. Combining their
+individual successes does not define a common action or transfer a
+localization result from one model to the production result of another.
+
+### 29.3 Exact completion interface
+
+The current research boundary is therefore determinate. A physical
+matter-formation claim requires all of the following additional inputs in
+one model:
+
+1. a canonical microscopic action fixing the fields, symmetries and
+   interactions;
+2. a state-selection rule fixing the initial vacuum or density operator;
+3. physical unit and coupling calibration;
+4. finite-energy localized states with continuum and nonlinear stability;
+5. an admissible evolution that forms those states from specified initial
+   data while conserving the complete energy and charges; and
+6. an observable particle map fixing spin, statistics, charges and at least
+   one empirical discriminator.
+
+The registered Cassi laws do not select items 1–3. The prepared scalar branch
+partially addresses item 4, and the independently supplied fermion model
+partially addresses item 5 in a homogeneous finite-mode sector. No accepted
+calculation supplies all six items in one action. Further searches over the
+same dimensionless coefficients cannot resolve this inverse problem; a new
+physical postulate or empirical input must enter before another formation
+calculation is defined.
+
 ## References
 
+- `computations/matter_formation_nonlinear_fragmentation.py`—primary Fourier-collocation nonlinear mediator/carrier comparison with immutable raw arrays.
+- `computations/verify_matter_formation_nonlinear_fragmentation.py`—independent finite-difference evolution, provenance checks and aggregate qualification.
+- `computations/matter_formation_nonlinear_phase_diagnostic.py`—post-hoc stroboscopic reconstruction of the retained nonlinear trajectories, excluded from the frozen verdict.
+- `runs/20260907_matter_formation_nonlinear_fragmentation/results.json`; `runs/20260907_matter_formation_nonlinear_fragmentation_verification_prerequisite_recovery/results.json`—primary and independently reproduced `INCONCLUSIVE` nonlinear receipts.
+- `runs/20260907_matter_formation_nonlinear_fragmentation_controls/`—three prerequisite controls, raw-array reconciliation, invocation ledger and phase diagnostic.
 - `computations/matter_formation_spatial_pump.py`—fixed Galerkin edges and five physical-coordinate spatial Floquet trajectories.
 - `computations/verify_matter_formation_spatial_pump.py`—independent exact identities, physical-time evolution and raw spatial-evidence qualification.
 - `runs/20260907_matter_formation_spatial_pump_prerequisite_recovery/results.json`; `runs/20260907_matter_formation_spatial_pump_verification_prerequisite_recovery/results.json`—qualified spatial mediator instability and exact charge-transport receipts.

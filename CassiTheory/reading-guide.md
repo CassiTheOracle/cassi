@@ -110,26 +110,53 @@ chiral-scalar map also fails because $B_R=L^\dagger R$ and
 $B_L=R^\dagger L=B_R^*$; the displayed projection terms are dimensionally
 mismatched and generically non-Hermitian. The inherited scalar-parent spatial
 result remains `INCONCLUSIVE` with seven of eight comparisons passing.
+
+Section 14 supplies a separate real-scalar mass-source model with fermion
+pair excitation and reciprocal semiclassical feedback. Independent
+full-covariance and Bloch-vector calculations agree across all 1,185 checks.
+Its state, source and subtraction are supplied inputs, and the calculation is
+spatially homogeneous. Sections 15–16 then establish the ultraviolet
+divergence of sudden-source excitation, a finite specified static subtraction,
+the absence of a two-body bound level by a sufficient trace bound and the
+global unboundedness of the specified local static one-loop scalar energy.
+These conditional results leave dynamical renormalization, nonlocal quantum
+energy and localized fermion formation open.
+
 The collective local-density Yukawa functional is separately qualified to have
 no subthreshold bound state under its stated mass-depleting and
 vacuum-prescription assumptions (`computations/matter-formation-continuum-report.md`
 §§15.6–15.7).
 
 
-The current endpoint remains conditional. The supplied compact-target field is
-a comparison model qualified radially for stationarity and energetic
-stability, while a smooth pointwise map of the two canonical densities cannot
-provide its degree density. The optional phase-bearing gauge sector has a physical
-relative $S^2$ at fixed nonzero norms; joint gauge cancellation is distinct
-from a nonconstant relative texture, and its screening scale is not
-parametrically separated at the predicted stationary size. The registered
-Hopf trial is unstable only for its specified shape/connection family. Full
-spatial variations give a negative amplitude first variation for every exact
-hard-norm nonzero-Hopf adjoint in the stated soft-action domain, with the
-included hard FR loops contracting there. General amplitude-relaxed
-metastability, production, physical normalization, quantum identification and
-complete matter formation remain open
+The current endpoint remains conditional. The supplied compact-target field
+qualifies radial stationarity and energetic stability as a comparison model.
+A smooth pointwise map of the two canonical densities has zero degree density.
+The optional phase-bearing gauge sector has a physical relative $S^2$ at fixed
+nonzero norms; joint gauge cancellation leaves a nonconstant relative texture
+as independent field information, and its screening scale is comparable to
+the predicted stationary size. Every exact hard-norm nonzero-Hopf adjoint in
+the stated soft-action domain has a negative amplitude variation, and the
+included hard Finkelstein–Rubinstein loops contract there. General
+amplitude-relaxed metastability remains open
 (`computations/matter-formation-continuum-report.md` §§18–20).
+
+Sections 25–27 provide the strongest conditional formation dynamics. An
+excited periodic scalar mediator has exact carrier Floquet growth and
+reciprocal seeded transfer, while its retained spatial perturbation grows
+about $210.3$ times faster. Prepared complex carrier data separate opposite
+local signed densities with zero total charge. Exactly empty carrier data
+remain invariant, and no finite-energy localization result follows from these
+plane-symmetric calculations.
+
+Section 28 records the frozen nonlinear verdict as `INCONCLUSIVE` in two
+implementations. A post-hoc period-sampled diagnostic identifies phase
+aliasing and reproduces the accepted linear rates without changing the
+verdict. Section 29 proves the completion problem is non-identifiable from the
+registered slow observables: scalar and Dirac parents share the same carrier
+equation with different spin and statistics. Complete matter formation still
+requires a canonical action, state rule, physical normalization,
+infinite-domain localization and stability, localized real-time formation and
+an observable particle discriminator.
 
 
 ### The skeptic or referee
@@ -200,7 +227,7 @@ The central derivations; the wedge documents `foundations/dimensionful-cascade.m
 - `foundations/nonabelian-magnetic-core-boundary.md`—Non-Abelian Magnetic Core and the Confined-Defect Boundary. Auxiliary completion Hypothesized; conditional smooth-core and confinement boundaries Derived; carrier coupling Mapped; finite-grid spectrum and conditional smooth scalar binding Tested—September 2026. Examines the adjoint lift, BPS core, condensate confinement and pair collapse. Prepared scalar binding has no established magnetic-pair identity, and its constrained spatial stability remains INCONCLUSIVE.
 - `foundations/core-trapped-charge-support.md`—Core-Trapped Noether Charge and the Finite-Composite Boundary. Auxiliary carrier Hypothesized; conditional thin-tube support Derived; coupling Mapped; finite-grid spectrum and conditional smooth scalar binding Tested—September 2026. Derives population conservation, retention and inverse-length support. An empty closed carrier sector stays empty; separate smooth binding requires a prepared population.
 - `foundations/particle-stationary-action-closure.md`—Particle-Sector Action and Fixed-Charge Variational Closure. Temporal completion Hypothesized; gauge, Gauss, variational, empty-sector and scalar-reduction boundaries Derived conditionally; coupling Mapped; finite-grid spectrum and conditional smooth scalar binding Tested—September 2026. Supplies the action and fluctuation operators. The Cartesian branch fails its smooth-carrier diagnostic; independently reproduced scalar binding at prepared $Q_C\in\{16,256\}$ has INCONCLUSIVE smooth $Q_C=16$ constrained spatial stability. The measured charge-dependent lumps establish no preferred particle size.
-- `foundations/matter-completion-boundary.md`—Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation. Conditional boundary Derived; physical realization Hypothesized; reduced receipts, finite-grid spectrum and conditional smooth scalar binding Tested at a Mapped coupling—September 2026. Connects exterior, interface, transport, power, reservoir, stress, gravity, particle-map and spectrum conditions. Empty-sector preservation and the measured numerical boundaries leave microscopic matter formation open.
+- `foundations/matter-completion-boundary.md`—Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation. Conditional boundary Derived; physical realization Hypothesized; reduced receipts, prepared binding, finite-mode production and conditional formation dynamics Tested at supplied or Mapped inputs—September 2026. Connects exterior, interface, transport, power, reservoir, stress, gravity, particle-map and spectrum conditions. The evidence includes exact empty-sector preservation, ultraviolet and continuum restrictions, scalar parametric amplification, an INCONCLUSIVE nonlinear comparison and a many-to-one microscopic projection; six independent physical inputs remain before a complete matter-formation mechanism is defined.
 - `foundations/cascade-suppression-formula.md`—The Cascade Suppression Formula: $\varphi^{-N}$ as a conditional attenuation relation. Derived conditional on declared per-rung inputs; the uniform $\varphi^{-1}$ factor is a cascade input, while the coherence-product exponent is algebraic under its declared profile. Signal-map interpretations remain Hypothesized, with applications to proton stability, strong CP, the electroweak hierarchy, neutrino masses, and quantum measurement recorded with their own tiers.
 - `foundations/cassi-first-principles.md`—Cassi First Principles. Derived PDE; C / Asserted Qi definition; Asserted single-channel $g(q)$ input—September 2026. States the $\varphi$ postulate and the two-fluid PDE; the rational $q$ gate and its normalization are constitutive choices. Canonical density-plane conversion is rank-one relaxation with conserved $\rho=E_Y+E_I$ and eigenvalues $0$ and $-\lambda(1-q)(1+\varphi)$, rather than an SO(2) rotation. The optional gravity endpoint is a coupling-magnitude identity; a GR or Newtonian interpretation requires a separate metric, matter map, and attractive source closure.
 - `foundations/physical-becoming-hierarchy.md`—Physical Becoming: A Causal State Hierarchy for Cassi. Hypothesized architecture / Derived canonical reduction—September 2026. Separates microscopic actual physics, mesoscopic open-system dynamics, and agent-level reaction coordinates; embeds canonical rank-one conversion exactly as a positive-semidefinite gradient flow; defines body, history, shadow, possibility, attention, action, debit, and learning blocks with held-out closure and causal gates; records the conditional quantum-free-fall boundary while leaving Cassi source and response mappings open; leaves phenomenal consciousness as an open bridge.

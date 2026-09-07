@@ -6,6 +6,12 @@
 
 The canonical Cassi state is the real-density pair $E_Y,E_I\ge 0$ with $\rho=E_Y+E_I$, $\varepsilon=E_Y-\varphi E_I$, canonical gated coherence $q$, and rank-one conversion. This document records a formal action assembly around that core and lists optional sector extensions. The Dirac/particle link—including chiral projectors, particle/antiparticle labels, and any phase or propagation interpretation—is a **Hypothesized** conditional extension; it is not part of the canonical two-fluid derivation. The complex-field/NLS particle construction is likewise conditional. General relativity, Standard Model gauge/Higgs/Yukawa terms, and cross-couplings retain their individual statuses. Structural dimensionless couplings are expressed as $\varphi$-powers or two-fluid inputs where specified; the solver normalization $\lambda = 0.1$ is conventional, and the three dimensionful constants ($c$, $\hbar$, $G$) remain external.
 
+The separately supplied scalar mass-source parent has tested finite-mode
+production and conditional formation dynamics. A complex-scalar parent and a
+Dirac parent share the registered slow carrier equation with different spin
+and statistics, so the slow sector does not identify a unique microscopic
+matter theory (`computations/matter-formation-continuum-report.md` §§14–29).
+
 $$
 \boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}
 $$
@@ -525,6 +531,24 @@ one-loop sea energy (`computations/matter-formation-continuum-report.md`
 §§15.6–15.7). The nonlocal determinant, exchange, metastability and finite
 valence spectrum remain open. These benchmark restrictions select no physical
 Cassi coupling.
+
+At the same selected parameters, an excited periodic scalar orbit gives an
+exact carrier Floquet exponent and a faster spatial mediator instability.
+Prepared complex carrier data transport opposite local signed densities while
+preserving zero total charge; exactly empty carrier data remain invariant. A
+frozen nonlinear plane-symmetric comparison is `INCONCLUSIVE` because a
+non-stroboscopic carrier threshold precedes mediator growth in both retained
+implementations. Period-sampled reconstruction identifies phase aliasing
+without changing the frozen verdict
+(`computations/matter-formation-continuum-report.md` §§25–28).
+
+The complex-scalar and Dirac parents have the same registered slow
+Schrödinger carrier equation through the retained order despite carrying
+different spin and canonical statistics. The slow equation therefore defines
+an equivalence class rather than a unique microscopic completion. Selecting
+the physical branch requires an action, state rule, normalization and
+particle observable outside that slow sector
+(`computations/matter-formation-continuum-report.md` §29).
 
 The scalar configuration-space and compact-target results have distinct
 domains. The declared full positive-density scalar domains are contractible

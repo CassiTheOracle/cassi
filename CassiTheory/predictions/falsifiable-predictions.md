@@ -800,6 +800,33 @@ metastability, quantum-statistics selection, production, normalization and
 particle identification remain open
 (`computations/matter-formation-continuum-report.md` §§19–20).
 
+The supplied scalar temporal parent has an exact carrier Floquet instability
+about an excited periodic mediator orbit. Independent evolution reproduces
+the accepted carrier exponent and reciprocal transfer for a prepared seed.
+The same mediator has a faster spatial instability at the retained comparison
+wave number, and prepared complex carrier data separate opposite local signed
+densities while preserving zero total charge. Exactly empty carrier data
+remain invariant. These conditional effects supply no source-independent
+production, finite-energy localization, physical charge or rate prediction
+(`computations/matter-formation-continuum-report.md` §§25–27).
+
+The frozen nonlinear plane-symmetric mediator/carrier comparison returns
+`INCONCLUSIVE` in both implementations: its raw carrier coordinate crosses
+the threshold before mediator entry, and the mediator slope fit fails. A
+post-hoc period-sampled diagnostic reproduces both linear Floquet rates and
+places mediator entry first, identifying phase aliasing in the frozen
+observable. This diagnosis leaves the registered verdict unchanged and adds
+no catalog prediction (`computations/matter-formation-continuum-report.md`
+§28).
+
+Complex scalar and Dirac parents yield the same registered slow carrier
+equation with different spin and statistics. The microscopic inverse map is
+therefore many-to-one. A canonical action, state-selection rule, physical
+normalization, infinite-domain localization and stability result, localized
+forming evolution and observable particle discriminator remain required.
+No canonical matter-formation prediction can be assigned before those inputs
+are fixed (`computations/matter-formation-continuum-report.md` §29).
+
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;
 `computations/matter_completion_boundary_check.py`;
@@ -808,8 +835,9 @@ particle identification remain open
 `computations/particle-stationary-precision-v5-report.md`;
 `computations/particle-physical-hessian-precision-v2-report.md`;
 `computations/particle-carrier-direct-coordinate-report.md`;
-`computations/particle-carrier-resolution-recovery-report.md`; and
-`computations/particle-localized-physical-hessian-report.md`.
+`computations/particle-carrier-resolution-recovery-report.md`;
+`computations/particle-localized-physical-hessian-report.md`; and
+`computations/matter-formation-continuum-report.md`.
 
 ---
 

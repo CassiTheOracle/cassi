@@ -1,6 +1,6 @@
 # Conditional Sector Scale and the Dirac Density Obstruction
 
-## Status: Derived conditional sector and fermionic identities / Tested finite-mode production, continuum and scalar-vacuum restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
+## Status: Derived conditional sector, fermionic, formation-dynamics and non-identifiability identities / Tested finite-mode production, continuum, scalar-vacuum and conditional dynamical restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
 
 ## Abstract
 
@@ -11,6 +11,16 @@ A separately declared real scalar mass interaction admits a fermionic vacuum and
 Independent continuum quadratures verify the sudden-source ultraviolet divergence, a specified static one-loop subtraction and a logarithmic initial-state overlap mismatch. At the unchanged coupling, a sufficient bound excludes two-body binding in the leading nonrelativistic scalar-exchange reduction. The renormalized spatial quantum model and its physical identification remain open.
 
 The specified local static one-loop scalar energy has positive reference curvature but no global lower bound. An exact negative bulk-energy witness and a finite-energy spatial trial family establish this conditional restriction. The full nonlocal quantum energy, metastability and physical matter identification remain open.
+
+The same supplied scalar parent has an exact periodic mediator background,
+resolved carrier and spatial-mediator Floquet instabilities, and a signed-charge
+continuity law permitting local separation from prepared complex carrier data.
+Exactly empty carrier data remain empty. A frozen nonlinear comparison is
+`INCONCLUSIVE`; period-sampled reconstruction identifies phase aliasing without
+altering its verdict. Complex-scalar and Dirac parents reduce to the same slow
+carrier equation while carrying different spin and statistics. The registered
+dynamics therefore leave the microscopic action, state, normalization,
+localized forming solution and particle discriminator as independent inputs.
 
 ## 1. The projection and its mathematical boundary
 
@@ -508,6 +518,172 @@ finite-energy valence construction separated from the neutral bubble.
 Local extrema, metastable configurations, formation times and their
 physical identification remain separate questions.
 
+### 1.11 Autonomous scalar-parent dynamics
+
+The supplied scalar parent can generate its own time-dependent carrier
+coefficient. After the phase change
+$z=e^{-it/(2a)}\chi$ and the definition $B=e_C+1/(4a)$, its dimensionless
+Lagrangian is
+
+$$
+\mathcal L=
+\frac{c_\Psi}{2}\dot f^2-\frac12|\nabla f|^2
++a|\dot z|^2-\frac{k_{Cx}}2|\nabla z|^2
+-\frac{u_\rho}{4}(f^2-1)^2
+-[B-h_C+h_Cf^2]|z|^2-\frac{u_C}{2}|z|^4 .
+$$
+
+The Euler–Lagrange equations conserve the rotating-frame energy and the signed
+charge
+
+$$
+\mathcal Q_a=-2a\int\operatorname{Im}(z^\ast\dot z)\,d^3x .
+$$
+
+At $a=1/16$, $c_\Psi=1/8$, $u_\rho=4$ and carrier-free initial data, the
+mediator has the exact periodic solution
+
+$$
+\boxed{
+f_0(t)=\sqrt{\frac32}\,
+\operatorname{dn}\!\left(\sqrt{24}\,t,\frac23\right).
+}
+$$
+
+A carrier Fourier mode reduces to the Lamé/Hill problem
+
+$$
+\frac{d^2y}{du^2}
++\left[\Lambda-h_Cm\,\operatorname{sn}^2(u,m)\right]y=0,
+\qquad
+m=\frac23,\quad
+\Lambda=\frac1{6a}+\frac12+\frac{h_C}{3}+\frac{k^2}{3}.
+$$
+
+The complete fixed six-gap schedule contains one resolved accessible
+instability. Its carrier wave number is $k=2.6753367051$ and its independently
+matched physical-time Floquet exponents are
+$0.0017215448659$ and $0.0017215449183$. Constant-mediator and
+zero-coupling controls remain stable. The result is conditional linear
+amplification of a supplied nonzero classical carrier seed.
+
+The same background has a faster spatial mediator channel. A Fourier
+perturbation obeys
+
+$$
+-\eta''+6m\,\operatorname{sn}^2(u,m)\eta=\Lambda_f\eta,
+\qquad
+\Lambda_f=\frac{14+p^2}{3}.
+$$
+
+The physical interval is
+
+$$
+\boxed{
+0<p<\sqrt{2\sqrt7-4}.
+}
+$$
+
+At the registered comparison mode, the independently matched exponent is
+$0.362037120923$, about $210.3$ times the carrier exponent. This establishes a
+conditional instability of the homogeneous mediator background on boxes that
+admit the mode.
+
+Complex carrier data also have an exact local transport law:
+
+$$
+\rho_a=-2a\,\operatorname{Im}(z^\ast\dot z),\qquad
+\mathbf j_a=k_{Cx}\operatorname{Im}(z^\ast\nabla z),\qquad
+\boxed{\partial_t\rho_a+\nabla\cdot\mathbf j_a=0.}
+$$
+
+For
+$z(x,0)=\epsilon[\cos(px)+i\cos(2px)]$ and $\dot z(x,0)=0$,
+the initial charge density vanishes while
+
+$$
+\partial_t\rho_a(x,0)
+=3k_{Cx}\epsilon^2p^2\cos(px)\cos(2px),
+$$
+
+which has both signs and zero cell integral. This is transport from prepared
+complex carrier data. Exactly empty carrier data remain empty.
+
+The full plane-symmetric equations conserve energy and signed charge and were
+evolved with carrier backreaction and self-interaction. Their frozen
+cross-method verdict is `INCONCLUSIVE`: a fixed phase-space coordinate crosses
+its carrier threshold before mediator entry, while its period-sampled
+reconstruction recovers the accepted Floquet rates and mediator-first secular
+ordering. The reconstruction diagnoses phase aliasing and is excluded from the
+frozen decision. None of these spatial calculations supplies a finite-energy
+localized forming solution
+(`computations/matter-formation-continuum-report.md` §§25–28).
+
+### 1.12 Slow-sector non-identifiability
+
+The measured slow carrier equation cannot select its microscopic parent. For a
+prescribed real background $U$, the complex-scalar action
+
+$$
+\mathcal L_B=
+|\partial_t\Phi|^2-|\nabla\Phi|^2-(m^2+2mU)|\Phi|^2
+$$
+
+and the substitution $\Phi=e^{-imt}\psi_B/\sqrt{2m}$ give
+
+$$
+i\partial_t\psi_B=
+\left(-\frac{\nabla^2}{2m}+U\right)\psi_B
++\frac{\partial_t^2\psi_B}{2m}.
+$$
+
+The slow-envelope limit removes the final term. A separately supplied Dirac
+parent,
+
+$$
+i\partial_t\Psi_D=
+\left(-i\boldsymbol\alpha\cdot\nabla+\beta m+U\right)\Psi_D,
+$$
+
+has a lower component
+$\eta_D=-i\boldsymbol\sigma\cdot\nabla\psi_D/(2m)+O(m^{-2})$ and therefore
+
+$$
+i\partial_t\psi_D=
+\left(-\frac{\nabla^2}{2m}+U\right)\psi_D+O(m^{-2}).
+$$
+
+The scalar envelope and each fixed Dirac spin component consequently share
+the registered leading density evolution and current conservation. Their
+canonical algebras remain distinct:
+
+$$
+|\alpha_B|^2-|\beta_B|^2=1,\qquad
+|\alpha_F|^2+|\beta_F|^2=1.
+$$
+
+They therefore differ in spin, exchange, stimulated occupation and
+saturation even when their prescribed low-occupation slow trajectories agree.
+The state prescription remains independent because the positive-frequency
+splitting defines the vacuum. Physical units remain independent because
+length, time and field rescalings can preserve the same normalized equations.
+
+Let $\mathfrak M$ contain a microscopic field representation, canonical
+algebra, state rule and unit map, and let $\mathfrak D$ contain the registered
+dimensionless carrier observables. The two explicit parents prove
+
+$$
+\boxed{\mathcal P:\mathfrak M\longrightarrow\mathfrak D
+\quad\text{is many-to-one}.}
+$$
+
+A complete matter claim must fix one canonical action and state, calibrate its
+physical units and couplings, support continuum-localized stable states, form
+those states dynamically with conserved total energy and charges, and expose
+a particle observable that distinguishes spin, statistics and charges. The
+registered slow dynamics leave those selections open
+(`computations/matter-formation-continuum-report.md` §29).
+
 ## 2. The conditional scale and electroweak anchor
 
 The cascade arithmetic determines a scale once its dimensionful anchor and offset are declared. With $E_n=M_{\rm Pl}\varphi^{-n}$, the exact step-80 value is $E_{80}=233.2\ \mathrm{GeV}$ at the displayed precision. The calibrated $v_0=246\ \mathrm{GeV}$ instead has coordinate $n(v_0)\approx79.89$. These two inputs define two related scale evaluations.
@@ -592,6 +768,17 @@ The static subtraction fixes a reference scheme. Dynamical
 renormalization, physical finite parts, relativistic and many-body
 localization, and a common formation/stability calculation remain open.
 
+The scalar temporal parent additionally has an exact periodic orbit, a resolved
+carrier Floquet instability, a faster spatial mediator instability, exact
+energy and signed-charge ledgers, and local charge separation from prepared
+complex carrier data. Its frozen plane-symmetric nonlinear comparison remains
+`INCONCLUSIVE`. Exactly empty carrier data remain invariant. The explicit
+scalar/Dirac reduction proves that the measured slow carrier dynamics have
+multiple microscopic parents with different spin and statistics. A canonical
+action, quantum state, physical normalization, continuum-localized formation
+and observable particle discriminator remain open
+(`computations/matter-formation-continuum-report.md` §§25–29).
+
 The canonical scalar topology checks find contractible regular
 positive-density domains with no rotation or exchange
 Finkelstein–Rubinstein sign. Separated exchange, large-gauge and compact
@@ -613,14 +800,18 @@ curvature but no global lower bound (§1.10). A physical completion
 needs a justified bulk and interface energy before it can support a
 global particle-ground-state claim.
 
-The two-fluid's real-density description supplies no Dirac field by itself. Adding the standard Dirac kinetic action introduces fermionic microscopic content as an independent assumption. A physical mass fit, a cascade coordinate and a formal coefficient-free scale do not select that content or its interaction.
+The canonical real-density state and its slow carrier reductions admit scalar
+and spinor microscopic parents. A fermionic theory therefore requires the
+independent selection of a Dirac field, its canonical algebra, state and
+interaction. A physical mass fit, cascade coordinate and formal
+coefficient-scale identity leave that selection open.
 
 ## References
 
 - `foundations/unified-lagrangian.md` §§2, 5–7—optional fermion sector and action assembly.
 - `foundations/particle-stationary-action-closure.md` §8.12—scalar physical-normalization and particle-identity boundary.
 - `computations/matter-formation-normalization-prereg.md`—frozen unit-normalization, bilinear and action-reality checks.
-- `computations/matter-formation-continuum-report.md` §§12–13—independently verified normalization, identification and microscopic closure boundaries.
+- `computations/matter-formation-continuum-report.md` §§12–29—normalization and identity boundaries, scalar and fermionic production witnesses, conditional formation dynamics and the microscopic non-identifiability theorem.
 - `computations/matter-formation-spinor-closure-prereg.md`—frozen positive-observable, closed-conversion, massive fixed-point and positive-energy witnesses.
 - `computations/matter-formation-spinor-closure-implementation-recovery.md`—execution provenance and accepted receipt location under the scientific preregistration's recovery rule.
 - `computations/matter_formation_spinor_closure.py` and `computations/verify_matter_formation_spinor_closure.py`—independent four-component and reduced-component witnesses.

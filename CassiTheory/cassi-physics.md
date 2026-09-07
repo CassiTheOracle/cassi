@@ -453,26 +453,45 @@ profiles do not establish them
 (`foundations/particle-stationary-action-closure.md` §8.11;
 `computations/matter-formation-continuum-report.md` §11).
 
-The physical carrier, calibrated coefficients, exterior realization,
-reservoir action and stress, gravity choice, localized Hessian resolution,
-perturbations beyond $C_4$, continuum qualification, the PA43 mixed dynamical
-spectrum, particle identity, and formation history remain open. The full
-derivations and receipts are in
-`foundations/matter-completion-boundary.md`,
-`foundations/particle-stationary-action-closure.md`,
-`computations/particle-carrier-resolution-recovery-report.md`,
-`computations/particle-physical-hessian-precision-v2-report.md`, and
-`computations/particle-localized-physical-hessian-report.md`.
+A separately supplied real scalar mass-source parent produces finite-mode
+fermion pairs with reciprocal semiclassical backreaction and independently
+matched energy accounting. Sudden-source continuum excitation diverges; the
+specified static subtraction is finite, the leading two-body Yukawa reduction
+has no bound level by a sufficient trace bound, and the specified local
+one-loop scalar energy has no global lower bound. These are restrictions on a
+conditional parent whose quantum state, dynamical renormalization and
+localized particle interpretation remain open
+(`computations/matter-formation-continuum-report.md` §§14–16).
 
-The compact-target extension is an explicitly supplied comparison model, not a
-derived carrier map. Its qualified radial result supports stationarity and
-energetic stability only; a smooth pointwise map of the two canonical
-densities cannot produce degree density. In the optional phase-bearing gauge sector, fixing
-nonzero fundamental and adjoint norms leaves a physical relative $S^2$ target.
-Joint gauge rotations can be screened by their connection, whereas a
-nonconstant relative texture cannot; the displayed screening scale is not
-parametrically separated at the stationary size. The registered Hopf trial
-has a negative connection-amplitude direction in its specified shape family.
+The scalar temporal parent also admits an excited periodic mediator orbit with
+exact carrier Floquet growth, a faster independently reproduced spatial
+mediator instability and local separation of prepared opposite carrier
+charge. Exactly empty carrier data remain invariant. The frozen nonlinear
+plane-symmetric comparison is `INCONCLUSIVE`; a post-hoc period-sampled
+diagnostic identifies phase aliasing in its prescribed observable and leaves
+the verdict unchanged. Scalar and Dirac parents share the measured slow
+carrier equation while carrying different spin and statistics, proving that
+the registered observables do not identify one microscopic completion
+(`computations/matter-formation-continuum-report.md` §§25–29).
+
+A complete matter-formation mechanism still requires one selected canonical
+microscopic action, a regulator-compatible state rule, physical
+normalization, infinite-domain localization and stability, real-time
+localized forming evolution, and an observable particle map fixing identity,
+spin and statistics. These requirements and the full evidence chain are in
+`foundations/matter-completion-boundary.md`,
+`foundations/particle-stationary-action-closure.md`, and
+`computations/matter-formation-continuum-report.md`.
+
+The compact-target extension is an explicitly supplied comparison model whose
+qualified radial result covers stationarity and energetic stability. A smooth
+pointwise map of the two canonical densities has identically zero degree
+density. In the optional phase-bearing gauge sector, fixed nonzero fundamental
+and adjoint norms leave a physical relative $S^2$ target. Joint gauge rotations
+can be screened by their connection; a nonconstant relative texture leaves a
+residual, and the displayed screening scale is comparable to the stationary
+size. The registered Hopf trial has a negative connection-amplitude direction
+in its specified shape family.
 The full spatial-variation calculation extends the boundary: every exact
 hard-norm nonzero-Hopf adjoint in the stated soft-action domain has negative
 amplitude first variation, and the included hard Finkelstein–Rubinstein loops
@@ -1023,19 +1042,44 @@ spatial trial family whose energy tends to $-\infty$. The full
 nonlocal spatial quantum energy and metastable matter states remain
 open (`computations/matter-formation-continuum-report.md` §16).
 
-The compact-target calculation is an explicitly supplied comparison model,
-qualified only for radial stationarity and energetic stability; the canonical
-two-density bridge cannot generate its nonzero degree density. The optional
+The compact-target calculation is an explicitly supplied comparison model
+qualified for radial stationarity and energetic stability. The canonical
+two-density bridge has identically zero degree density. The optional
 phase-bearing gauge sector supplies a physical relative $S^2$ at fixed
-nonzero norms. Joint gauge cancellation is distinct from a nonconstant
-relative texture, and the screening scale is not parametrically separated at
-the predicted stationary size. The registered Hopf trial is unstable only in
-its specified shape/connection family. Full spatial variations give a
+nonzero norms. Joint gauge cancellation leaves the relative texture as an
+independent question, and the screening scale is comparable to the predicted
+stationary size. The registered Hopf trial has an unstable direction in its
+specified shape/connection family. Full spatial variations give a
 negative amplitude first variation for every exact hard-norm nonzero-Hopf
 adjoint in the stated soft-action domain, with the included hard FR loops
 contracting there. General amplitude-relaxed metastability, production,
 physical normalization, quantum identification and complete matter formation
 remain open (`computations/matter-formation-continuum-report.md` §§18–20).
+
+The supplied scalar temporal parent has a periodic excited mediator with an
+exact Floquet-unstable carrier mode. Independent evolution reproduces the
+linear exponent and reciprocal energy exchange for a prepared carrier seed.
+The same mediator has a faster spatial instability at the retained comparison
+wave number, and prepared complex carrier data separate opposite local signed
+densities while conserving zero total charge. The exactly empty carrier
+sector remains invariant (`computations/matter-formation-continuum-report.md`
+§§25–27).
+
+The frozen nonlinear plane-symmetric calculation returns `INCONCLUSIVE` in
+both implementations because the prescribed carrier coordinate enters before
+the mediator and the mediator slope fit fails. A post-hoc period-sampled
+diagnostic recovers the accepted carrier and mediator Floquet rates and
+identifies temporal phase aliasing in that coordinate. It supplies diagnostic
+evidence outside the frozen verdict
+(`computations/matter-formation-continuum-report.md` §28).
+
+Complex scalar and Dirac parents both yield the registered slow
+Schrödinger carrier equation, despite different spin and canonical
+statistics. The observed sector therefore defines an equivalence class of
+microscopic theories. A selected action, quantum state, physical
+normalization, continuum-localized forming evolution and particle
+discriminator are additional inputs
+(`computations/matter-formation-continuum-report.md` §29).
 
 **Epistemic status:** the modulation period is **Derived conditional** on the
 optional signal map; its physical wake imprint and cross-domain extensions
@@ -1044,6 +1088,11 @@ conditional** arithmetic on $\delta=3$ with a **Calibrated** electroweak
 anchor. The displayed projection is excluded by the stated dimensional,
 conjugacy and Hermiticity obstructions. A distinct admissible physical
 coupling remains **Hypothesized** and unselected.
+The Hill/Floquet reduction, spatial dispersion relation, signed-charge
+continuity and microscopic non-identifiability are **Derived conditional** on
+their supplied parents. The linear growth rates, spatial instability and
+prepared charge separation are **Tested**; the nonlinear comparison remains
+`INCONCLUSIVE`. Physical matter formation remains **Hypothesized/Open**.
 
 ## 18. Quantum Gravity Without Singularities
 

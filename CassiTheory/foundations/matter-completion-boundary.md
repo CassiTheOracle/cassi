@@ -30,13 +30,22 @@ The frozen algebraic receipt passes all nine conditional checks. The physical
 exterior, microscopic coefficients, multimode carrier map, reservoir action,
 state-dependent gravity and particle identification remain open. At the
 Mapped coupling $h_C=2.9598260763447164$, the stored Cartesian localized
-branch has a matched six-mode constrained finite-grid spectrum, but its
-parity-concentrated carrier fails the smooth-carrier diagnostic.
-A separate continuum-consistent scalar calculation supports static binding
-at prepared $Q_C=16$ and $256$, reproduced by independent collocation.
-The smooth $Q_C=16$ constrained spatial stability verdict is `INCONCLUSIVE`.
-The first-order carrier action preserves an exactly empty closed sector,
-so these prepared configurations supply no microscopic production mechanism.
+branch has a matched six-mode constrained finite-grid spectrum, while its
+parity-concentrated carrier fails the smooth-carrier diagnostic. A separate
+continuum-consistent scalar calculation supports static binding at prepared
+$Q_C=16$ and $256$, reproduced by independent collocation. Its qualified
+extended-domain finite-grid spectrum remains conditional on a prepared
+population. The same supplied scalar parent admits parametric amplification,
+spatial mediator instability and local signed-charge transport; the frozen
+nonlinear competition verdict is `INCONCLUSIVE` and exactly empty classical
+carrier data remain invariant. A separately supplied scalar–Dirac model
+produces homogeneous finite-mode fermion pairs with reciprocal backreaction,
+while its continuum, localization and physical-identification requirements
+remain open. Explicit scalar and Dirac parents share the registered slow
+carrier equation while carrying inequivalent spin and statistics. The
+microscopic projection is many-to-one, so a canonical action, quantum state,
+physical normalization and particle discriminator must enter before the
+conditional results define one matter-formation mechanism.
 
 ## 1. The nine-part boundary
 
@@ -964,6 +973,23 @@ physical energy-density normalization and controlled reduction unselected.
 An amplitude-space leakage rate supplies no Fock-space matter-production
 calculation.
 
+A separately specified real scalar mass source produces fermion pairs in a
+finite-mode Dirac model with reciprocal semiclassical backreaction. Independent
+four-component and Bloch-vector evolutions agree across all retained rows and
+trajectories, and the finest closed trajectory has relative energy error
+$5.6211\times10^{-5}$. The source, fermion representation, vacuum and
+subtraction prescription are explicit model inputs. The calculation is
+spatially homogeneous and does not inherit the prepared scalar branch's
+localization (`computations/matter-formation-continuum-report.md` §14).
+Sudden mass changes and square pulses have divergent continuum pair density
+and excitation energy. A specified static fourth-order subtraction has a
+finite remainder, while the static-to-first-adiabatic initial-state mismatch
+has logarithmically divergent excitation energy. The associated local static
+scalar functional is unbounded below through a widening neutral bubble. These
+results require a common renormalized spatial action and state prescription
+before the finite-mode production calculation defines continuum matter
+(`computations/matter-formation-continuum-report.md` §§15–16).
+
 The continuum restrictions sharpen the localization boundary. At the frozen
 $m_0=1$, $y=1/4$, $\Omega=3$ inputs, the leading pairwise Yukawa reduction
 has $B=0.00165786399054<1$, excluding two-body bound levels by a sufficient
@@ -1003,28 +1029,59 @@ stated soft domain. Amplitude-relaxed metastability, physical quantum
 statistics and formation remain open
 (`computations/matter-formation-continuum-report.md` §§18–20).
 
+The scalar temporal parent admits an excited periodic mediator orbit that
+parametrically amplifies a nonzero carrier perturbation. Its mediator mode is
+also spatially unstable: at the retained comparison wave number, the accepted
+linear exponent $0.3620371209$ is about $210.3$ times the carrier exponent.
+Prepared complex carrier data develop opposite local signed densities while
+preserving zero global charge. Exactly empty carrier data remain invariant
+through every corresponding classical equation
+(`computations/matter-formation-continuum-report.md` §§25–27).
+
+The frozen nonlinear plane-symmetric comparison returns `INCONCLUSIVE` in
+both numerical methods. Its raw carrier coordinate crosses the prescribed
+threshold before mediator entry, and its non-stroboscopic mediator slope fit
+fails. A post-hoc period-sampled diagnostic recovers both accepted Floquet
+rates and places mediator entry first, identifying periodic phase aliasing in
+the frozen observable without changing the verdict. The retained nonlinear
+trajectories begin with a carrier seed and contain no finite-energy
+localization test (`computations/matter-formation-continuum-report.md` §28).
+
+The remaining microscopic inverse problem has a formal non-identifiability
+result. A complex scalar parent and a Dirac parent both reduce to
+$i\partial_t\psi=(-\nabla^2/(2m)+U)\psi$ in the measured slow sector, while
+their spins and canonical statistics differ. Their state prescriptions and
+physical unit maps also remain independent choices. The map from microscopic
+completions to the registered dimensionless observables is consequently
+many-to-one. Calculations confined to those observables cannot select a
+unique microscopic action, vacuum, normalization or particle identity
+(`computations/matter-formation-continuum-report.md` §29).
+
 The remaining physical requirements are:
 
-1. identify the microscopic carrier and derive its production interaction,
-   quantum state, energy source and signed physical charge;
-2. derive $S_{\rm out}+S_{\rm int}+S_{\rm env}$, including a measured port law,
-   canonical flux normalization, return routing and metric dependence;
-3. normalize the action coefficients, physical length and energy scales and
-   $Q_C$ sector to a declared target with every empirical input ledgered;
-4. establish infinite-domain existence and stability in the required topology,
-   scale and perturbation sectors of a continuum-consistent action;
-5. solve physically normalized real-time evolution and test nonlinear
-   persistence, production rates and formation basins;
-6. derive particle identity, spin, statistics and empirically discriminating
-   predictions.
+1. select one canonical microscopic action fixing the carrier fields,
+   symmetries, interactions and signed physical charges, including
+   $S_{\rm out}+S_{\rm int}+S_{\rm env}$ with metric dependence and a complete
+   conserved stress;
+2. derive a state-selection rule fixing the initial vacuum or density
+   operator and its regulator-compatible renormalization;
+3. normalize the action coefficients, physical length and energy scales,
+   carrier flux and $Q_C$ sector to a declared target with every empirical
+   input ledgered;
+4. establish infinite-domain existence and stability in every required
+   topology, scale and perturbation sector of that action;
+5. solve physically normalized real-time evolution and qualify localized
+   production rates, nonlinear persistence and formation basins; and
+6. derive an observable particle map fixing identity, spin, statistics and
+   empirically discriminating predictions.
 
-The framework has conditional support identities, measured smooth static
-density trapping at selected dimensionless coefficients, independently
-verified Gaussian correspondence, finite-grid radial fixed-charge support
-and selected angular/phase support for one Hypothesized parent family.
-Its aggregate radial-domain and combined scalar-parent spatial
-qualifications are separately inconclusive.
-Physical matter formation remains open.
+The framework supplies conditional support identities, prepared smooth scalar
+density trapping, finite-grid fixed-charge spectra, scalar parametric
+amplification and homogeneous finite-mode fermion production. These results
+belong to separately supplied conditional models. Their continuum,
+localization and nonlinear qualifications remain incomplete, and the
+microscopic projection is many-to-one. Physical matter formation remains
+open pending the six additional inputs above.
 
 ## References
 
@@ -1057,4 +1114,4 @@ Physical matter formation remains open.
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained stationary branch and larger-domain comparison.
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence, contracting energy differences, and independent verification.
 - `computations/particle-localized-physical-hessian-report.md`—constrained localized PA42 spectrum, carrier-phase symmetry assignment, and spatial qualification.
-- `computations/matter-formation-continuum-report.md`—empty-sector obstruction, Cartesian ultraviolet diagnosis, prepared scalar binding, Gaussian parent correspondence and classical parent-vacuum/localization boundaries.
+- `computations/matter-formation-continuum-report.md`—complete matter-formation evidence record, conditional model comparisons, nonlinear verdict and microscopic non-identifiability proof.

@@ -74,8 +74,8 @@ independently reproduced static self-binding at prepared $Q_C=16$ and $256$;
 the tested $Q_C=4$ profiles spread and $Q_C=64$ remains numerically
 inconclusive. The smooth $Q_C=16$ constrained spectra contain no resolved
 negative mode on the measured grids, but the frozen combined stability
-verdict is `INCONCLUSIVE`. Physical production, particle identity and
-normalization remain open
+verdict is `INCONCLUSIVE`. A source-independent localized production
+mechanism, particle identity and physical normalization remain open
 (`computations/matter-formation-continuum-report.md`).
 An optional positive-inertia scalar parent has independently verified
 Gaussian pair correspondence and finite-grid charged radial support.
@@ -128,7 +128,36 @@ witness makes a widening neutral trial bubble energetically
 unbounded below. The full nonlocal quantum model and metastable
 localized states require separate work
 (`computations/matter-formation-continuum-report.md` §16).
-The compact-target and relative-orientation checks sharpen that boundary. An independently supplied compact $SU(2)_{\rm top}$ field gives a comparison result for radial stationarity and energetic stability only; a smooth pointwise map of the two canonical densities cannot supply its degree density. In the optional phase-bearing gauge sector, the physical relative target is an $S^2$ at fixed nonzero norms. Joint gauge rotations can cancel in the connection, but do not remove a nonconstant relative texture; the induced screening scale is not parametrically separated at the predicted stationary size. The registered Hopf trial is unstable in its specified shape/connection family. The full spatial-variation calculation gives a negative amplitude first variation for every exact hard-norm nonzero-Hopf adjoint in the stated soft-action domain, and the included hard Finkelstein–Rubinstein loops contract there. Amplitude-relaxed metastability, production dynamics, physical normalization, quantum identification and complete matter formation remain unestablished (`computations/matter-formation-continuum-report.md` §§18–20).
+
+The compact-target and relative-orientation checks sharpen that boundary. An
+independently supplied compact $SU(2)_{\rm top}$ field qualifies radial
+stationarity and energetic stability. A smooth pointwise map of the two
+canonical densities has zero degree density. In the optional phase-bearing
+gauge sector, the physical relative target is an $S^2$ at fixed nonzero norms.
+Joint gauge cancellation leaves a nonconstant relative texture as independent
+field information, and the induced screening scale is comparable to the
+predicted stationary size. Every exact hard-norm nonzero-Hopf adjoint in the
+stated soft-action domain has a negative amplitude variation, and the included
+hard Finkelstein–Rubinstein loops contract there. Amplitude-relaxed
+metastability remains open (`computations/matter-formation-continuum-report.md`
+§§18–20).
+
+The supplied scalar temporal parent also has an excited periodic mediator
+orbit with exact carrier Floquet growth, a faster independently reproduced
+spatial mediator instability and local separation of prepared opposite
+carrier charge. Exactly empty carrier data remain invariant. The frozen
+nonlinear plane-symmetric comparison returns `INCONCLUSIVE`; a post-hoc
+period-sampled diagnostic identifies phase aliasing while leaving that verdict
+unchanged (`computations/matter-formation-continuum-report.md` §§25–28).
+
+Scalar and Dirac parents produce the same measured slow carrier equation while
+retaining different spin and statistics. The inverse map from the registered
+observables to a microscopic theory is many-to-one. Complete matter formation
+therefore still requires one canonical action, a quantum-state rule, physical
+normalization, infinite-domain localization and stability, localized
+real-time forming evolution and an observable particle discriminator
+(`computations/matter-formation-continuum-report.md` §29;
+`foundations/matter-completion-boundary.md` §12).
 
 
 ## The reality-simulation program

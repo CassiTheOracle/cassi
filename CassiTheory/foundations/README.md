@@ -11,33 +11,44 @@ calculation with prepared static binding at $Q_C=16$ and $256$, independently
 reproduced by collocation. Its first-order carrier law preserves an exactly
 empty sector. The stored Cartesian carrier sequence fails the frozen
 smooth-field diagnostic, and the smooth $Q_C=16$ combined spatial-stability
-verdict is `INCONCLUSIVE`. The normalization construction is Derived conditional;
-`computations/matter-formation-continuum-report.md` §12 supplies numerical
-consistency checks on its nonuniqueness: three values of $a$ share the external
-vacuum scalar mass, speed $c$, and one unit of internal scalar $U(1)$
-generator, while their core lengths differ. The scalar electron-core
-assignment and the displayed chiral-scalar density map are `CONTRADICTS`;
-this does not establish an electron, electromagnetic charge, or a physical
-interaction. The collective local-density Yukawa functional is separately
-qualified to have no subthreshold bound state under its stated mass-depleting
-and vacuum-prescription assumptions
-(`computations/matter-formation-continuum-report.md` §§15.6–15.7). The
-normalization construction and measured scope are in
-`foundations/particle-stationary-action-closure.md` §§8.7, 8.12 and
-`computations/matter-formation-continuum-report.md` §§11–12.
+verdict is `INCONCLUSIVE`. Three admissible scalar normalizations share one
+externally imposed vacuum mass, propagation speed and internal generator unit
+while retaining different core lengths. The scalar electron-core assignment
+and displayed chiral-scalar density map are `CONTRADICTS`; electron identity,
+electromagnetic charge and a physical interaction remain unselected
+(`computations/matter-formation-continuum-report.md` §§11–13).
 
-The subsequent compact-target comparison is limited to a supplied $SU(2)_{\rm
-top}$ field: its qualified radial calculation addresses stationarity and
-energetic stability, while a smooth pointwise map of the two canonical
-densities cannot generate degree density. In the optional phase-bearing gauge sector,
-the fixed-norm physical relative target is $S^2$; joint gauge cancellation is
-distinct from a nonconstant relative texture, and the predicted stationary
-scale is not separated from the light screening scale. The registered Hopf
-trial is shape-specific and unstable. Full spatial variations give a negative
-amplitude first variation for every exact hard-norm nonzero-Hopf adjoint in the
-stated soft-action domain, with the included hard FR loops contracting there.
-Amplitude-relaxed metastability, production, normalization, quantum identity
-and complete matter formation remain open (`computations/matter-formation-continuum-report.md` §§18–20).
+A separate real-scalar mass-source model has verified finite-mode fermion pair
+excitation and reciprocal semiclassical feedback. Its sudden-source continuum
+excitation diverges, its leading two-body Yukawa reduction has no bound level
+by a sufficient trace bound, and its specified local one-loop scalar energy
+has no global lower bound. These conditional restrictions leave dynamical
+renormalization, nonlocal quantum energy and localized fermion formation open
+(`computations/matter-formation-continuum-report.md` §§14–16).
+
+The supplied compact $SU(2)_{\rm top}$ comparison qualifies finite-domain
+radial stationarity and energetic stability. A smooth pointwise map of the
+canonical densities has zero degree density. In the optional phase-bearing
+gauge sector, the fixed-norm physical relative target is $S^2$; joint gauge
+cancellation leaves a nonconstant relative texture as independent field
+information, and the screening scale is comparable to the predicted
+stationary size. Every exact hard-norm nonzero-Hopf adjoint in the stated soft
+action has a negative amplitude variation, and the included hard
+Finkelstein–Rubinstein loops contract there. Amplitude-relaxed metastability
+remains open (`computations/matter-formation-continuum-report.md` §§18–20).
+
+The scalar temporal parent also admits periodic carrier amplification, a
+faster spatial mediator instability and local separation of prepared opposite
+carrier charge. Exactly empty carrier data remain invariant. The frozen
+nonlinear comparison is `INCONCLUSIVE`; a post-hoc period-sampled diagnostic
+identifies phase aliasing without changing the verdict. Scalar and Dirac
+parents share the registered slow carrier equation while retaining different
+spin and statistics. Those observables therefore define a microscopic
+equivalence class. A canonical action, state rule, physical
+normalization, infinite-domain localization and stability, localized forming
+evolution and a particle discriminator remain required
+(`computations/matter-formation-continuum-report.md` §§25–29;
+`foundations/matter-completion-boundary.md` §12).
 
 
 ## Document Index
@@ -89,7 +100,7 @@ and complete matter formation remain open (`computations/matter-formation-contin
 | 43 | `particle-stationary-action-closure.md` | Temporal action, Gauss, empty-sector invariant, scalar reduction and fluctuation boundary | Hypothesized temporal completion / Derived conditional gauge, Gauss, stationary, empty-sector and scalar-reduction boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, source-action response, and routed quadratic-flux attenuation | Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026 |
 | 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated conversion, coherence, transport, endpoint and bounded source interface | Hypothesized integrated realization / Derived canonical reduction, positivity, covariance and conditional interface ledgers / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026 |
-| 46 | `matter-completion-boundary.md` | Nine-part conditional boundary and complete matter-formation requirements | Derived conditional boundary / Hypothesized physical realization / Mapped selected carrier coupling / Tested reduced receipts, finite-grid spectrum and conditional smooth scalar binding—September 2026 |
+| 46 | `matter-completion-boundary.md` | Nine-part conditional boundary and complete matter-formation requirements | Derived conditional boundary and non-identifiability / Hypothesized physical realization / Mapped selected carrier coupling / Tested reduced receipts, prepared binding, finite-mode production and conditional formation dynamics; nonlinear comparison INCONCLUSIVE—September 2026 |
 | 47 | `quantum-free-fall-correspondence.md` | Ideal QGI action and inference boundary; physical-$q$ bounds and information loss; forty-three closure requirements and QFC1–QFC4 receipts | Derived conditional external-potential correspondence / Hypothesized Cassi atomic state, gravity-response, and common-lapse mappings—September 2026 |
 
 ## Document Summaries
@@ -134,6 +145,17 @@ than independent nonnegative densities, their dimension differs from
 condensate squares, and the displayed linear and ordinary-square terms are
 generically non-Hermitian. A dimensional bridge alone cannot select a
 physical $\kappa_s$ or repair the microscopic particle map.
+
+A separately supplied real scalar mass-source parent has verified finite-mode
+fermion excitation and reciprocal semiclassical feedback. Its periodic
+continuation has exact carrier Floquet growth, faster spatial mediator growth
+and transport of prepared opposite local signed densities, while the empty
+carrier sector remains invariant. The frozen nonlinear comparison is
+`INCONCLUSIVE`. A complex-scalar parent and a Dirac parent share the registered
+slow Schrödinger carrier equation with different spin and statistics, so a
+canonical action, state rule, physical normalization and particle
+discriminator remain required
+(`computations/matter-formation-continuum-report.md` §§14–29).
 
 ### `cassi-first-principles.md`—Cassi First Principles
 
@@ -557,6 +579,17 @@ argument. The full nonlocal energy, metastability and physical
 identification remain open
 (`computations/matter-formation-continuum-report.md` §16).
 
+The same supplied scalar parent has an excited periodic mediator orbit with an
+exact carrier Floquet instability, a faster spatial mediator instability and
+local separation of prepared opposite carrier charge. Exactly empty carrier
+data remain invariant. The frozen nonlinear comparison is `INCONCLUSIVE`; a
+post-hoc period-sampled diagnostic identifies phase aliasing without changing
+that verdict (`computations/matter-formation-continuum-report.md` §§25–28).
+Complex scalar and Dirac parents then give an explicit many-to-one witness:
+both reduce to the same registered slow carrier equation while retaining
+different spin and statistics. Microscopic action, state, normalization and
+particle identity therefore require additional physical input (§29).
+
 ### `wake-geometry.md`—The Wake Geometry: Composite-Wavelength Closure and the Horizon Rung
 
 The Yang–Yin wake pair $\Lambda_Y=\varphi\Lambda_I$ closes the cascade ladder exactly through $1+1/\varphi=\varphi$: $\Lambda_Y+\Lambda_I=\ell_{n+1}$. For supplied adjacent-rung carriers, the checkerboard beat envelope has nodes at half-envelope positions and alternating demodulated sign at successive antinodes. Ordinary radial beating produces additive spacing. In the default CassiCosmos second-order wave branch, the density and imbalance channels have threshold separation $\Omega_g=\varphi\omega_{0,\mathrm{wave}}$ and reach $k_\rho/k_\epsilon=\varphi$ only under the supplied drive $\Omega_*=\varphi^{3/2}\omega_{0,\mathrm{wave}}$; the current source path supplies no selector. Uniform phase staggering remains gapless, while a declared link-magnitude modulation opens a conditional gap. Physical condensation and the node-to-link map remain open. The golden-angle closure ladder converges through Fibonacci denominators without exact closure, and the verified Yang-fraction-weighted horizon convention gives $N_\infty\approx294.2$.
@@ -969,21 +1002,35 @@ The fixed-charge stationary boundary includes the joint constrained energetic
 Hessian and the mixed second-/first-order dynamical pencil. The finite
 algebraic and reduced analytic witnesses pass all nine registered checks.
 The separate particle action has an exact empty-sector invariant, a
-parity-concentrated Cartesian branch and independently reproduced smooth
-scalar binding at prepared population. Its smooth constrained spatial
-stability result is INCONCLUSIVE. The optional temporal parent has verified
-Gaussian pair correspondence, a conditional neutral stationary-localization
-obstruction and positive measured finite-grid charged radial curvature.
-Its aggregate radial-domain qualification remains INCONCLUSIVE. Its selected
-population-256 angular and phase sectors support on four grids, while one
-failed domain comparison leaves combined scalar-parent spatial qualification
-INCONCLUSIVE. Physical exterior and reservoir actions, coefficient
-calibration, gravity selection, microscopic production and particle identity
-remain open
+parity-concentrated Cartesian branch and independently reproduced prepared
+scalar binding. Its smooth constrained spatial stability, aggregate parent
+radial-domain qualification and combined parent spatial qualification are all
+`INCONCLUSIVE`.
+
+A separately supplied real scalar mass source gives finite-mode fermion pair
+excitation with reciprocal semiclassical feedback. Its sudden-source
+continuum excitation diverges, the retained leading two-body Yukawa
+interaction has no bound level by a sufficient trace bound, and the specified
+local static one-loop scalar energy has no global lower bound. These are
+conditional restrictions without a localized fermion state or physical
+identification.
+
+The supplied scalar temporal parent has exact periodic carrier Floquet growth,
+a faster spatial mediator instability and local separation of prepared
+opposite carrier charge. Exactly empty carrier data remain invariant. The
+frozen nonlinear comparison is `INCONCLUSIVE`, with a separate post-hoc
+period-sampled diagnostic identifying phase aliasing. Scalar and Dirac parents
+share the registered slow carrier equation while retaining different spin and
+statistics, establishing a many-to-one microscopic projection.
+
+Physical exterior and reservoir actions, state selection, coefficient
+calibration, gravity selection, continuum-localized forming evolution and a
+particle discriminator remain open
 (`computations/matter-formation-continuum-report.md`). Status: Derived
-conditional boundary / Hypothesized physical realization / Mapped carrier
-coupling / Tested reduced receipts, prepared binding, finite-grid spectra
-and parent correspondences—September 2026.
+conditional boundary and non-identifiability / Hypothesized physical
+realization / Mapped carrier coupling / Tested reduced receipts, prepared
+binding, finite-mode production and conditional formation dynamics; nonlinear
+comparison INCONCLUSIVE—September 2026.
 
 ### `quantum-free-fall-correspondence.md`—Quantum Free Fall as a Cassi Correspondence Boundary
 
