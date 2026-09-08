@@ -639,9 +639,15 @@ There are three related spaces, and they must be kept distinct:
    $$
 
    where $(-\mathbf 1,-1)$ acts trivially on the reference pair.
-3. Quotienting the complete minimum set by the gauge group leaves
-   $\mathcal V_{\rm min}/SU(2)_Q\simeq U(1)_N$; fixing or superselecting that
-   common phase reduces the quotient to a point.
+3. Quotienting the complete minimum set by the gauge group leaves the
+   physical circle
+   $\mathcal V_{\rm min}/SU(2)_Q\simeq U(1)_N/\mathbb Z_2\simeq S^1$.
+   Its phase is measured by the local invariant
+   $\mathcal O_N=\Psi^T i\sigma^2(\Phi^a\sigma^a)\Psi$:
+   $\mathcal O_N=-\rho_0v_Q\sin\beta\,e^{2i\Theta}$ in the real vacuum.
+   Hence $\Theta\sim\Theta+\pi$, while
+   $\vartheta=\arg\mathcal O_N$ has period $2\pi$. This common-phase
+   identification introduces no unbroken local $\mathbb Z_2$ subgroup.
 
 All three statements give the same magnetic conclusion:
 
@@ -650,13 +656,33 @@ $$
 \qquad
 \pi_2(U(2))=0,
 \qquad
-\pi_2(U(1)_N)=0.
+\pi_2(S^1)=0.
 \tag{MC39}
 $$
 
 The global $U(1)_N$ can carry global-string data through $\pi_1$, but it does
 not restore local monopole charge. The adjoint magnetic integer of (MC14) can
 unwind once the nonzero fundamental is included.
+
+An asymptotic phase condition selects a vacuum representative while
+allowing local phase fluctuations. A fixed total common-number charge
+constrains an integral momentum, leaving nonzero-wave-number modes.
+For the second-order charged-field action, eliminating the complete
+connection and imposing the linear Gauss constraint gives
+$$
+\omega^2=\frac{J_x}{J_t}k^2+O(k^4),\qquad
+J(a,d)=\frac{4a\rho_0d v_Q^2\sin^2\beta}{a\rho_0+4d v_Q^2},
+$$
+where $J_t=J(C_\Psi,C_\Phi)$ and $J_x=J(K_x,1/\mu_x)$.
+The mode is gapless at the declared vacuum. Transverse magnetic
+screening therefore leaves a physical collective channel in the bulk.
+Its role in an endpoint/tube exterior requires the coupled solution's
+source and asymptotic matching. The derivation and independently
+reproduced linear wave are in
+`foundations/particle-stationary-action-closure.md` §4.3 and
+`computations/matter-formation-continuum-report.md` §40.
+These classical results select no quantum condensate or particle
+statistics.
 
 ### 5.2 Loss of the exact BPS branch
 

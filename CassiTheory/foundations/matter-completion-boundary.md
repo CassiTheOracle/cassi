@@ -1462,8 +1462,44 @@ These necessary conditions leave the physical action, state,
 renormalization and particle identity open. They supply no new forming
 trajectory and do not change the scalar minimizer theorem's scope.
 
+## 20. Physical common phase and collective excitations
+
+The declared charged-field vacuum has a surviving gauge-invariant
+phase. Its local observable is
+$$
+\mathcal O_N=\Psi^T i\sigma^2(\Phi^a\sigma^a)\Psi,\qquad
+|\mathcal O_N|^2=\rho^2|\Phi|^2-(\Phi^aS^a)^2.
+$$
+This charge-two composite is nonzero at the composition minimum.
+Its phase is the azimuth of the relative sphere already carried by
+the fundamental and adjoint fields. The centre identification gives
+$\Theta\sim\Theta+\pi$ and a $2\pi$-periodic invariant phase, while
+the local gauge stabilizer remains trivial.
+
+Eliminating all connection components and imposing the linear Gauss
+constraint yields a gapless common-phase branch. The supplied
+model-unit witness has long-wavelength speed squared
+$J_x/J_t=0.8649109511178478$. Three independent computations qualify
+the observable, component projection, constrained spectra and linear
+time evolution with joint verdict `PASS`
+(`computations/matter-formation-continuum-report.md` §40;
+`foundations/particle-stationary-action-closure.md` §4.3).
+An asymptotic phase condition or fixed total common-number charge
+leaves local phase fluctuations available. The magnetic screening
+scale alone therefore does not specify a fully gapped surrounding
+field.
+
+These are **Derived conditional identities / Tested linear-wave
+dynamics** in the supplied action. A nonzero classical charge-two
+observable establishes no quantum paired condensate or exchange
+statistics. No quantum state, physical normalization, localized
+particle or nonlinear formation trajectory is selected by this
+calculation. Complete physical matter formation remains
+**Hypothesized/Open**.
+
 ## References
 
+- `computations/matter-formation-continuum-report.md` §40—local common-phase observable, full gauge projection, independently reproduced linear spectrum and wave, and microscopic selection boundary.
 - `computations/matter-formation-continuum-report.md` §36—fixed continuum binding trial, full real-mediator minimizer-set proof, independent adjudication and formation boundary.
 - `computations/matter_formation_continuum_minimizer.py`—exact angular and variational identities and sufficient binding threshold.
 - `computations/verify_matter_formation_continuum_minimizer.py`—independent high-precision quadrature, symbolic qualification and frozen-input controls.

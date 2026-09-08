@@ -440,6 +440,123 @@ This is the stationary sector used by the first boundary-value problem. A
 time-dependent charged Yang/Yin or adjoint excitation requires solving
 (PA14) for $\mathcal A_0^a$.
 
+### 4.3 Gauge-invariant common phase
+
+The charged-field vacuum retains a physical phase after its gauge directions
+are removed. For nonzero fundamental and adjoint norms, define
+$$
+\mathcal O_N=\Psi^T i\sigma^2(\Phi^a\sigma^a)\Psi,
+\qquad
+|\mathcal O_N|^2=\rho^2|\Phi|^2-(\Phi^aS^a)^2.
+$$
+The Pauli matrices in this composite carry no factor of $1/2$.
+Under $SU(2)_Q$, $\mathcal O_N$ is invariant; under the common-number
+symmetry $\Psi\mapsto e^{i\alpha}\Psi$, it transforms as
+$\mathcal O_N\mapsto e^{2i\alpha}\mathcal O_N$. In the real unitary-gauge
+vacuum,
+$$
+\Psi=e^{i\Theta}\sqrt{\rho}
+\begin{pmatrix}\cos(\beta/2)\\\sin(\beta/2)\end{pmatrix},
+\qquad \Phi=v_Qe_3,
+\qquad
+\mathcal O_N=-\rho v_Q\sin\beta\,e^{2i\Theta}.
+$$
+Thus $\vartheta=\arg\mathcal O_N=2\Theta+\pi$ on the displayed branch
+$\sin\beta>0$. The centre identifies $\Theta$ modulo $\pi$, while
+$\vartheta$ has period $2\pi$. The fundamental's local stabilizer remains
+trivial. A residual local $\mathbb Z_2$ sector does not follow from this
+identification.
+
+Gauss projection determines the inertia of this phase. Use the homogeneous,
+zero-charge, zero-curvature vacuum, positive radial and composition
+curvatures, no scale dependence, and fixed nonzero norms. Minimizing the
+derivative quadratic
+$$
+\frac a2|(iu-ig_Q A^aT^a)\Psi|^2+
+\frac d2|g_Q\mathbf A\times\Phi|^2
+$$
+over all three real connection components gives
+$$
+\boxed{
+\min_{\mathbf A}\mathcal Q_{a,d}
+=\frac12J(a,d)u^2,\qquad
+J(a,d)=\frac{4a\rho\,d v_Q^2\sin^2\beta}
+{a\rho+4d v_Q^2}.}
+$$
+Here $a,d,\rho,v_Q$ and $g_Q$ are positive. The temporal and spatial
+coefficients are
+$$
+J_t=J(C_\Psi,C_\Phi),\qquad J_x=J(K_x,1/\mu_x).
+$$
+At the leading long-wavelength order, below the omitted massive-mode
+scales,
+$$
+\boxed{
+\mathcal L_{\vartheta}^{(2)}
+=\frac{J_t}{8}(\partial_t\vartheta)^2
+-\frac{J_x}{8}|\nabla\vartheta|^2,\qquad
+\omega^2=\frac{J_x}{J_t}|\mathbf k|^2+O(|\mathbf k|^4).}
+$$
+The spatial coefficient agrees with the relative-sphere metric in
+`computations/matter-formation-continuum-report.md` §19.3:
+$J_x/8=\alpha\sin^2\beta$, where $\alpha=pq/(p+q)$ in that fixed-norm
+energy. Restricting the connection to its third component gives
+$a\rho\sin^2\beta$, the rigid-adjoint limit, and overestimates $J(a,d)$
+at finite adjoint stiffness. At aligned compositions $J=0$ and
+$\mathcal O_N=0$; the phase coordinate is then undefined.
+
+The finite-wave-number calculation also retains electric curvature.
+For $\Theta=q\cos kx$, $\mathcal A_x^{1,3}=\mathbf a\sin kx$ and
+$\mathcal A_0^{1,3}=\mathbf u\cos kx$, write
+$$
+\begin{gathered}
+A_t=C_\Psi\rho,\quad A_x=K_x\rho,\quad
+\mathbf e=(\sin\beta,\cos\beta)^T,\quad
+\mathbf b_t=\frac{g_QA_t}{2}\mathbf e,\quad
+\mathbf b_x=\frac{g_QA_x}{2}\mathbf e,\\
+\mathsf M_t=g_Q^2\operatorname{diag}
+\left(A_t/4+C_\Phi v_Q^2,A_t/4\right),\\
+\mathsf M_x=g_Q^2\operatorname{diag}
+\left(A_x/4+v_Q^2/\mu_x,A_x/4\right),\qquad
+\mathsf D_k=\mathsf M_t+\epsilon_x k^2I.
+\end{gathered}
+$$
+The two nondynamical Gauss equations give
+$\mathbf u=\mathsf D_k^{-1}(\mathbf b_t\dot q-\epsilon_xk\dot{\mathbf a})$.
+With the common spatial-mode normalization factored out, the kinetic and
+stiffness matrices on $(q,a_1,a_3)$ are
+$$
+\mathsf T_k=
+\begin{pmatrix}
+A_t-\mathbf b_t^T\mathsf D_k^{-1}\mathbf b_t&
+\epsilon_xk\mathbf b_t^T\mathsf D_k^{-1}\\
+\epsilon_xk\mathsf D_k^{-1}\mathbf b_t&
+\epsilon_xI-\epsilon_x^2k^2\mathsf D_k^{-1}
+\end{pmatrix},
+\qquad
+\mathsf V_k=
+\begin{pmatrix}
+A_xk^2&k\mathbf b_x^T\\
+k\mathbf b_x&\mathsf M_x
+\end{pmatrix}.
+$$
+The homogeneous block uses constant gauge perturbations at $k=0$ and
+agrees with these matrices' continuous limit. The second gauge component
+and real-amplitude sector decouple from this phase block at quadratic
+order around the real vacuum. Their nonlinear dynamics remain separate
+qualification requirements.
+
+Independent component algebra, Gauss elimination, five spectra and a
+time-stepped linear wave pass the frozen calculation in
+`computations/matter-formation-continuum-report.md` §40.
+The existing global common-number symmetry permits local phase
+fluctuations even when the asymptotic phase or total number is fixed.
+In a quantum number eigenstate a charged one-point expectation is
+selection-rule forbidden; charge-neutral correlations can still carry
+phase information. The classical charge-two composite and its gapless
+mode establish no quantum paired condensate, exchange statistics,
+localized particle or matter-formation trajectory.
+
 ---
 
 ## 5. Fixed-charge stationary functional

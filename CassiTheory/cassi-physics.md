@@ -377,6 +377,18 @@ joint fixed-charge, gauge-quotiented energetic Hessian and mixed
 second-/first-order dynamical pencil state the full fluctuation qualification
 problem.
 
+The same charged-field vacuum retains a physical common phase. Its
+local gauge-invariant observable is
+$\mathcal O_N=\Psi^T i\sigma^2(\Phi^a\sigma^a)\Psi$, whose phase is the
+relative sphere's azimuth. The full connection projection and linear
+Gauss constraint give a gapless branch; independent spectra and wave
+solutions qualify with `PASS`
+(`foundations/particle-stationary-action-closure.md` §4.3;
+`computations/matter-formation-continuum-report.md` §40).
+Transverse magnetic screening alone therefore does not determine all
+bulk excitations. These classical results leave the quantum state,
+particle statistics and a localized formation mechanism open.
+
 The conditional matter boundary is explicit through nine linked requirements.
 The mathematical exterior is the complementary Stinespring output of a chosen
 interior channel; the reciprocal interface is bilinear; one routed forward

@@ -194,6 +194,19 @@ positivity identities do not establish exact nodelessness, monotonicity or
 nonlinear stability for these sampled profiles
 (`computations/matter-formation-continuum-report.md` §11).
 
+**Charged-field collective spectrum.** The declared fundamental-plus-adjoint
+vacuum has a gauge-invariant common-phase observable
+$\mathcal O_N=\Psi^T i\sigma^2(\Phi^a\sigma^a)\Psi$. Full connection
+projection and linear Gauss elimination retain a gapless phase branch.
+Independent spectra and wave solutions pass the frozen comparisons;
+the supplied model-unit speed squared is $0.8649109511178478$.
+Boundary-phase selection and a fixed total common-number charge allow
+local phase fluctuations. This leaves a physical bulk channel alongside
+transverse magnetic screening. No quantum condensate, physical speed
+calibration, exchange statistics or localized matter formation follows
+(`computations/matter-formation-continuum-report.md` §40;
+`foundations/matter-completion-boundary.md` §20).
+
 **Physical normalization and carrier identity.** The same imposed
 $0.511\ \mathrm{MeV}$ vacuum scalar mass, propagation speed $c$ and one
 internal $U(1)$ generator unit admit three independently reconstructed

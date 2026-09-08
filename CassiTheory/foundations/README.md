@@ -1014,6 +1014,17 @@ kinetics for the charged fields, derives the Gauss constraint and fixed-$Q_C$
 stationary equations, and reduces to the registered static energy. Its
 normalization-invariant groups, first variational class, joint physical
 Hessian, and mixed dynamical eigenvalue pencil are explicit.
+
+Its fundamental-plus-adjoint vacuum also carries the local invariant
+$\mathcal O_N=\Psi^T i\sigma^2(\Phi^a\sigma^a)\Psi$. Full connection
+projection and linear Gauss elimination retain a gapless common-phase
+branch. Independent observable algebra, spectra and linear-wave
+evolution qualify with `PASS`
+(`computations/matter-formation-continuum-report.md` §40).
+An asymptotic phase condition or fixed total common-number charge
+allows local phase fluctuations. The classical charge-two composite
+leaves quantum state and particle statistics unselected.
+
 The diffuse $h_C=1.50$ endpoint reaches physical-gradient RMS
 $5.47125\times10^{-5}$ and supplies an explicit $13622$-dimensional
 strict-shell $C_4$ physical quotient after removal of the coupled local-gauge

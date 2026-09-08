@@ -931,6 +931,20 @@ $w=(1+\varphi)^2/2$ has negative connection-amplitude curvature, a
 shape-specific result rather than a general Hopf theorem
 (`computations/matter-formation-continuum-report.md` §§19.1–19.9).
 
+The same charged-field action retains a physical common phase, measured
+by the invariant $\mathcal O_N=\Psi^T i\sigma^2(\Phi^a\sigma^a)\Psi$.
+Its phase is the relative sphere's azimuth. The full connection
+projection and linear Gauss constraint give a gapless branch
+$\omega^2=(J_x/J_t)k^2+O(k^4)$, with
+$J_x/J_t=0.8649109511178478$ at the supplied model-unit witness.
+Independent observable algebra, spectra and linear-wave evolution
+qualify with `PASS`. Fixing the asymptotic phase or total common-number
+charge allows local phase fluctuations. These are **Derived conditional
+identities / Tested linear dynamics**; quantum state, particle
+statistics and a localized forming trajectory remain open
+(`foundations/particle-stationary-action-closure.md` §4.3;
+`computations/matter-formation-continuum-report.md` §40).
+
 The complete soft-adjoint variation calculation supports all six algebraic
 groups, with $59/59$ exact identities and $8/8$ predicates. In the stated
 fixed-fundamental, positive-coefficient action, every exact unit-adjoint

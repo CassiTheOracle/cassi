@@ -6537,8 +6537,252 @@ consumers are `foundations/interscale-current-soliton.md` §5.3,
 `parameter-inventory.md` §9 and
 `predictions/falsifiable-predictions.md` §15.
 
+## 40. Gauge-invariant common phase and its collective spectrum
+
+### 40.1 Neutral-phase qualification: pre-execution criteria
+
+The charged condensate's physical phase is observable through a local
+gauge-invariant composite. This calculation determines its classical
+long-wavelength dynamics in the supplied particle action. It neither
+selects a quantum vacuum nor supplies a newly formed particle.
+
+Use `foundations/particle-stationary-action-closure.md` (PA2), (PA11),
+(PA12) and (PA14), with the vacuum (MC33) in
+`foundations/nonabelian-magnetic-core-boundary.md`. Take positive radial
+and composition curvatures, zero background carrier, zero background
+charge and curvature, and no scale dependence. Keep all three gauge
+components when projecting a common-phase derivative. The first-order
+time action in `foundations/interscale-current-soliton.md` is excluded.
+The static relative-target reduction in §19 remains a consistency check.
+
+Define the observable, with Pauli matrices rather than half-Pauli
+generators inside the composite, by
+$$
+\mathcal O_N=\Psi^T i\sigma^2(\Phi^a\sigma^a)\Psi.
+$$
+Check its invariance under all three infinitesimal $SU(2)_Q$ generators,
+its common-phase transformation
+$\mathcal O_N\mapsto e^{2i\alpha}\mathcal O_N$, and the exact identity
+$$
+|\mathcal O_N|^2
+=\rho^2|\Phi|^2-(\Phi^aS^a)^2.
+$$
+In the real unitary-gauge vacuum write
+$\Psi=e^{i\Theta}\sqrt{\rho}
+(\cos(\beta/2),\sin(\beta/2))^T$ and
+$\Phi=v_Qe_3$. Check
+$\mathcal O_N=-\rho v_Q\sin\beta\,e^{2i\Theta}$, its relation to the
+relative sphere in §19, and its vanishing at aligned compositions.
+The physical phase $\vartheta=\arg\mathcal O_N$ has period $2\pi$;
+the corresponding common phase is identified modulo $\pi$ by the
+gauge-group centre. A closed-graph centre constraint may be used as an
+exact parity check, with external boundary charges explicitly excluded.
+It cannot by itself establish the full Gauss projection or statistics.
+
+For each derivative direction minimize
+$$
+\frac a2\left|\left(iu-i g_Q A^aT^a\right)\Psi\right|^2
++\frac d2\left|g_Q\mathbf A\times\Phi\right|^2
+$$
+over the three real components of $\mathbf A$. Use
+$(a,d)=(C_\Psi,C_\Phi)$ for a homogeneous time derivative and
+$(a,d)=(K_x,1/\mu_x)$ for a spatial derivative. Differentiate the
+component quadratic independently of a proposed reduced coefficient;
+verify stationarity, the Schur complement, its positive displacement
+cost, and the aligned-composition and rigid-adjoint limits. Freezing
+$\mathbf A=0$ or suppressing its off-diagonal components must not be
+accepted as the full projection at finite adjoint stiffness.
+
+For the finite-wave-number calculation use
+$\Theta=q(t)\cos kx$,
+$\mathcal A_x^{1,3}=a_{1,3}(t)\sin kx$ and
+$\mathcal A_0^{1,3}=u_{1,3}(t)\cos kx$.
+The electric field amplitudes are $\dot{\mathbf a}+k\mathbf u$.
+Derive and solve the two nondynamical Gauss equations before computing
+the kinetic and stiffness matrices for $(q,a_1,a_3)$.
+The second gauge component and real amplitude sector decouple at
+quadratic order around this real vacuum; no assertion about their full
+nonlinear spectrum follows. Recover the zero-frequency physical phase
+at $k=0$, positive finite-$k$ eigenvalues, and the sound-speed limit from
+the ratio of the projected spatial and temporal coefficients.
+
+The supplied numerical witness is
+$$
+(\rho,K_x,\mu_x,v_Q,C_\Psi,C_\Phi,\epsilon_x,g_Q)
+=(1.2,0.83,0.8,0.9,1.3,0.7,0.6,0.71),
+\qquad \cos\beta=\varphi^{-3}.
+$$
+Use exactly $k\in\{0,0.01,0.02,0.04,0.08\}$. Independent spectra and
+component-projected coefficients must agree to $10^{-10}$ after
+division by $\max(1,|\text{reference}|)$. Require the $k=0.01$
+value of $\omega_{\min}^2/k^2$ to differ from its analytic limit by
+less than $10^{-3}$ relatively, and every generalized eigenvector's
+normalized residual to be below $10^{-10}$. Check component projection
+also at $\cos\beta=-0.7,0,0.8$, with derivative amplitude one and
+connection displacements $\pm0.1$ along each of the three axes.
+Aligned values $\cos\beta=\pm1$ are zero-stiffness algebra controls;
+do not pass their singular phase coordinate to a positive-definite
+eigensolver.
+
+Exercise the actual linear equations at $k=0.08$, with
+$(q,a_1,a_3)(0)=(10^{-3},0,0)$ and zero velocities. The primary program
+uses fixed-step RK4, $\Delta t=1/128$, through $t=32$, saving each
+integer time. An independent normal-mode solution must match every
+saved coordinate and velocity to $10^{-8}$ after division by
+$10^{-3}$. Relative conserved-energy drift must be below $10^{-9}$.
+This is a linear collective-wave calculation; it establishes no
+nonlinear formation or persistence.
+
+The primary executable is
+`computations/matter_formation_neutral_phase.py`. Independent component
+and Gauss reconstruction belongs in
+`computations/verify_matter_formation_neutral_phase.py`, which must not
+import or read the primary program or its output. Independent observable
+algebra belongs in
+`computations/verify_matter_formation_phase_observable.py`. Preserve
+their source bytes, this section and raw JSON outputs under
+`runs/20260908_matter_formation_neutral_phase/` before integration.
+Stop after this exact schedule. All required exact identities,
+spectral comparisons and wave criteria passing gives `PASS`; a failed
+identity or numerical criterion gives `FAIL`, and missing prerequisites
+give `INCONCLUSIVE`. Every receipt retains
+`complete_physical_matter_formation: false`. No quantum-state,
+fermionic-statistics, isolated-particle or physical-unit inference is
+permitted from this calculation.
+
+### 40.2 Physical observable and constrained spectrum
+
+The common phase is a physical relative orientation of the existing
+fundamental and adjoint fields. Exact component algebra gives
+$$
+\boxed{\mathcal O_N=\Psi^T i\sigma^2(\Phi^a\sigma^a)\Psi,\qquad
+|\mathcal O_N|^2=\rho^2|\Phi|^2-(\Phi^aS^a)^2.}
+$$
+It is invariant under $SU(2)_Q$ and has charge two under the global
+common-number symmetry. For the convention in §19,
+$$
+\frac{\mathcal O_N}{\rho|\Phi|}
+=\left[G(z)^\dagger(n^a\sigma^a)G(z)\right]_{21}=N_1+iN_2.
+$$
+Thus its phase is the relative sphere's azimuth. In the real vacuum it is
+$\vartheta=2\Theta+\pi$ when $\sin\beta>0$. Both aligned compositions
+have $\mathcal O_N=0$ and no defined phase.
+
+The full three-component connection minimum is smaller than the
+third-component-only minimum at finite adjoint stiffness. Direct
+differentiation and an independent symbolic reconstruction give
+$$
+J(a,d)=\frac{4a\rho\,d v_Q^2\sin^2\beta}{a\rho+4d v_Q^2},
+\qquad J_t=J(C_\Psi,C_\Phi),\quad J_x=J(K_x,1/\mu_x).
+$$
+The reduced Lagrangian is
+$\mathcal L_{\vartheta}^{(2)}
+=J_t(\partial_t\vartheta)^2/8-J_x|\nabla\vartheta|^2/8$.
+The component and finite-$k$ Gauss derivation is in
+`foundations/particle-stationary-action-closure.md` §4.3.
+The mode is gapless at long wavelength, with
+$\omega^2=(J_x/J_t)k^2+O(k^4)$.
+The supplied witness gives
+$$
+J_t=0.8727558932418558,\qquad
+J_x=0.7548561297175203,\qquad
+\frac{J_x}{J_t}=0.8649109511178478.
+$$
+These are conditional model-unit values without physical calibration.
+They introduce no fitted coefficient or numbered particle prediction.
+
+The five Gauss-constrained phase-block spectra are reproduced
+independently. The table lists squared frequencies; the homogeneous
+block is the $k=0$ limit described in the source derivation.
+
+| $k$ | Lowest $\omega^2$ | Middle $\omega^2$ | Highest $\omega^2$ |
+|---:|---:|---:|---:|
+| 0 | 0 | 0.209201500000 | 1.059870250000 |
+| 0.01 | 0.000086489128 | 0.209265346154 | 1.060026178455 |
+| 0.02 | 0.000345932911 | 0.209456884615 | 1.060493987419 |
+| 0.04 | 0.001383354403 | 0.210223038462 | 1.062365576915 |
+| 0.08 | 0.005527405459 | 0.213287653846 | 1.069857569816 |
+
+### 40.3 Reproduced linear-wave calculation
+
+The primary RK4 evolution and independent normal-mode solution agree
+at every one of the 33 saved times. All frozen criteria pass. Each
+program exits zero with `PASS`; the joint qualification is `PASS`.
+
+| Frozen comparison | Measured maximum | Required upper bound |
+|---|---:|---:|
+| Component-projected coefficient difference, normalized by $\max(1,|\mathrm{reference}|)$ | $4.9960\times10^{-16}$ | $10^{-10}$ |
+| Phase-coefficient difference, same normalization | $2.2205\times10^{-16}$ | $10^{-10}$ |
+| Squared-frequency difference, same normalization | $4.7185\times10^{-16}$ | $10^{-10}$ |
+| Generalized-eigenvector residual, primary | $1.7610\times10^{-16}$ | $10^{-10}$ |
+| Generalized-eigenvector residual, independent | $3.3668\times10^{-16}$ | $10^{-10}$ |
+| Small-$k$ relative slope error at $k=0.01$ | $2.2745\times10^{-5}$ | $10^{-3}$ |
+| Coordinate difference divided by $10^{-3}$ | $5.0342\times10^{-11}$ | $10^{-8}$ |
+| Velocity difference divided by $10^{-3}$ | $4.5356\times10^{-11}$ | $10^{-8}$ |
+| Relative energy drift, RK4 | $2.9278\times10^{-12}$ | $10^{-9}$ |
+| Relative energy drift, normal modes | $7.7860\times10^{-16}$ | $10^{-9}$ |
+
+Reproduce the calculations from the repository root:
+```text
+python computations/matter_formation_neutral_phase.py
+python computations/verify_matter_formation_neutral_phase.py
+python computations/verify_matter_formation_phase_observable.py
+```
+The evidence directory
+`runs/20260908_matter_formation_neutral_phase/` contains the frozen
+section, pre-execution source snapshots and hashes, raw JSON outputs,
+stderr records and `qualified_reconciliation.json`.
+`observable_vertex_gauss_manifest.json` identifies the qualifying
+vertex-constraint source and receipts; excluded receipts remain retained.
+The frozen section's
+SHA-256 is
+`d11840a638ba702c03ef96ff1263b9bcc3ba976faa47acbad0f86371cd31cea0`.
+
+### 40.4 Consequences for microscopic matter selection
+
+The classical vacuum manifold contains a physical phase circle. The
+centre identification $\Theta\sim\Theta+\pi$ gives this circle a
+$2\pi$-periodic coordinate $\vartheta$; the nonzero fundamental still
+has trivial local stabilizer. On a closed graph, a necessary centre
+condition at each vertex is
+$$
+p_v\prod_{\ell\ni v}c_\ell=1,\qquad
+p_v=(-1)^{N_v},\qquad c_\ell=(-1)^{2j_\ell}.
+$$
+Here $N_v$ counts fundamental matter modulo two and $j_\ell$ labels an
+electric representation. Each internal link enters twice, so multiplying
+the vertex conditions requires $\prod_vp_v=1$. A triangle's 64 joint
+site/link assignments have eight allowed centre assignments: two for
+each even site-parity pattern, with none for an odd pattern. The pure
+fundamental Wilson loop has all three $c_\ell=-1$ and satisfies every
+vertex condition. These centre conditions supply no exchange character
+or full non-Abelian Gauss projection.
+
+Fixing an asymptotic phase selects a vacuum representative while
+allowing local, nonzero-wave-number phase fluctuations. Fixing the
+total common-number charge constrains an integral momentum. It does
+not set every local phase derivative to zero. In a quantum charge
+eigenstate, the charged one-point expectation
+$\langle\widehat{\mathcal O}_N\rangle$ vanishes by the global symmetry's
+selection rule; charge-neutral correlations remain available. A
+classical charge-two observable alone therefore does not establish
+a quantum paired condensate.
+
+The surviving phase mode must be included when assessing the bulk
+environment of a proposed particle. Transverse magnetic screening
+alone does not imply a fully gapped spectrum, and a coupled
+endpoint/tube solution must determine which physical modes its
+exterior excites. This calculation selects no quantum state,
+physical normalization, exchange statistics or localized carrier.
+It supplies a verified linear wave in the declared action; complete
+physical matter formation remains **Hypothesized/Open**.
+
 ## References
 
+- `computations/matter_formation_neutral_phase.py`—full connection projection, Gauss-constrained spectra and fixed-step linear-wave evolution.
+- `computations/verify_matter_formation_neutral_phase.py`—independent component and Gauss reconstruction, generalized spectra and exact normal-mode trajectory.
+- `computations/verify_matter_formation_phase_observable.py`—independent local observable, relative-sphere, common-phase and centre algebra.
+- `runs/20260908_matter_formation_neutral_phase/`—frozen section and sources, raw JSON outputs and joint reconciliation.
 - `computations/magnetic_core_completion_check.py`—component-energy transverse screening, integrability and fixed-winding checks, together with BPS, flux and reduced pair-slope identities.
 - `computations/verify_magnetic_screening.py`—independent symbolic reconstruction of constrained phase stationarity, projected connection energy, and winding-fixed tube curvature.
 - `computations/matter_formation_statistics_selection.py`—exact rotation algebra, quantum occupation transfer, finite trajectories and chiral anomaly witnesses.
