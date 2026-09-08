@@ -551,6 +551,18 @@ A stable finite bubble, cross-scale capture and binding between bubbles
 remain open (`foundations/matter-completion-boundary.md` §15;
 `computations/matter-formation-continuum-report.md` §33).
 
+Conserved charge also permits a populated phase to coexist with the
+vacuum in the supplied scalar parent. Independent stationary calculations
+resolve their positive-amplitude planar interface with dimensionless
+surface cost $\sigma=0.8738238914$ and qualified finite-grid scalar
+energetics. For large prescribed charge, thin-interface theory gives a
+radius proportional to its cube root and favors combining large same-sign
+droplets through reduced total surface area. A finite formation trajectory,
+nonlinear persistence and the physical charge unit remain open
+(`foundations/matter-completion-boundary.md` §16;
+`computations/matter-formation-continuum-report.md` §34).
+
+
 ---
 
 ## 4. The String: Spiral and Wakes

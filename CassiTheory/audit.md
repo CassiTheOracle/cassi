@@ -359,6 +359,21 @@ capture or particle cluster. Physical matter formation remains
 **Hypothesized/Open**
 (`computations/matter-formation-continuum-report.md` §33).
 
+The supplied scalar parent also has a qualified positive-amplitude
+coexistence interface at $a=1/16$. Independent collocation and
+discrete-energy fronts agree within $1.1948\times10^{-6}$ in surface cost
+and $2.2085\times10^{-6}$ pointwise in the fields. The unpinned
+finite-grid scalar Hessians satisfy the frozen energetic criteria,
+and all four missing/altered-section controls reject invalid input.
+The positive surface cost $\sigma=0.8738238914$ enters conditional
+large-charge droplet asymptotics. Those asymptotics presuppose finite
+droplets and leave their formation, nonlinear persistence and physical
+charge selection open. The joint interface verdict is
+`SUPPORTS-conditional charged coexistence interface`; physical matter
+formation remains **Hypothesized/Open**
+(`computations/matter-formation-continuum-report.md` §34).
+
+
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 
 | Claim | Tested result | Status |

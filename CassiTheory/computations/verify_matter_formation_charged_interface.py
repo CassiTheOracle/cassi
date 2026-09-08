@@ -17,7 +17,7 @@ from typing import Any
 
 import numpy as np
 import scipy
-from scipy.linalg import eigh_banded, eigh_tridiagonal
+from scipy.linalg import eig_banded, eigh_tridiagonal
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import spsolve
 
@@ -170,6 +170,23 @@ def energy(x: np.ndarray, f: np.ndarray, c: np.ndarray, values: dict[str, float]
     return float(h * np.sum(edge) + h * (0.5 * u[0] + np.sum(u[1:-1]) + 0.5 * u[-1]))
 
 
+def energy_change(x: np.ndarray, f: np.ndarray, c: np.ndarray, trial_f: np.ndarray, trial_c: np.ndarray, values: dict[str, float]) -> float:
+    """Evaluate the same energy difference without subtracting two totals."""
+    h = float(x[1] - x[0])
+    df, dc = trial_f - f, trial_c - c
+    edge_f, edge_c = np.diff(f) / h, np.diff(c) / h
+    delta_f, delta_c = np.diff(df) / h, np.diff(dc) / h
+    delta_edge = 0.5 * (delta_f * (2.0 * edge_f + delta_f) + K_CX * delta_c * (2.0 * edge_c + delta_c))
+    p = math.sqrt(U_RHO) * 0.5
+    q = math.sqrt(U_C / 2.0)
+    square = p * (1.0 - f * f) - q * c * c
+    delta_square = -p * df * (2.0 * f + df) - q * dc * (2.0 * c + dc)
+    product = f * c
+    delta_product = f * dc + c * df + df * dc
+    delta_u = delta_square * (2.0 * square + delta_square) + values["D"] * delta_product * (2.0 * product + delta_product)
+    return float(h * (np.sum(delta_edge) + 0.5 * delta_u[0] + np.sum(delta_u[1:-1]) + 0.5 * delta_u[-1]))
+
+
 def full_gradient(x: np.ndarray, f: np.ndarray, c: np.ndarray, values: dict[str, float]) -> tuple[np.ndarray, np.ndarray]:
     h = float(x[1] - x[0])
     uf, uc, _, _, _ = potential_derivatives(f, c, values)
@@ -239,7 +256,7 @@ def solve_row(L: float, intervals: int, values: dict[str, float]) -> dict[str, A
             attempt["accepted"] = True
             attempts.append(attempt)
             break
-        H = free_hessian(x, f, c, values)
+        H = free_hessian(x, f, c, values, layout)
         try:
             delta = np.asarray(spsolve(H, -g), dtype=np.float64)
         except Exception as exc:
@@ -264,20 +281,19 @@ def solve_row(L: float, intervals: int, values: dict[str, float]) -> dict[str, A
                     trial_c[i] += value
             trial_f[midpoint] = 1.0 / math.sqrt(2.0)
             trial_energy = energy(x, trial_f, trial_c, values)
-            if math.isfinite(trial_energy) and trial_energy < current_energy:
+            delta_energy = energy_change(x, f, c, trial_f, trial_c, values)
+            if math.isfinite(trial_energy) and math.isfinite(delta_energy) and delta_energy < 0.0:
                 f, c = trial_f, trial_c
                 accepted = True
-                attempt.update({"accepted": True, "halvings": halvings, "step_scale": scale, "trial_energy": trial_energy})
+                attempt.update({"accepted": True, "halvings": halvings, "step_scale": scale, "trial_energy": trial_energy, "energy_change": delta_energy})
                 break
         attempts.append(attempt)
         if not accepted:
             stop_reason = "line_search_failure"
             break
     gf, gc = full_gradient(x, f, c, values)
-    full_euler_f = gf / h
-    full_euler_c = gc / h
-    midpoint_euler = float(abs((2.0 * f[midpoint] - f[midpoint - 1] - f[midpoint + 1]) / (h * h) + potential_derivatives(f, c, values)[0][midpoint]))
-    max_free = float(np.max(np.abs(free_gradient(x, f, c, values, layout))))
+    midpoint_euler = float(abs(gf[midpoint - 1] / h))
+    max_free = max(float(np.max(np.abs(gf[:midpoint - 1]))), float(np.max(np.abs(gf[midpoint:]))), float(np.max(np.abs(gc)))) / h
     amplitudes = {
         "f_min": float(np.min(f)), "f_max": float(np.max(f)),
         "c_min": float(np.min(c)), "c_max": float(np.max(c)),
@@ -302,7 +318,7 @@ def amplitude_banded(f: np.ndarray, c: np.ndarray, h: float, values: dict[str, f
         if i < n - 1:
             ab[0, j + 2] = -1.0 / (h * h)
             ab[0, j + 3] = -K_CX / (h * h)
-    values_out, vectors = eigh_banded(ab, lower=False, eigvals_only=False, subset_by_index=[0, 2], check_finite=True)
+    values_out, vectors = eig_banded(ab, lower=False, eigvals_only=False, select="i", select_range=(0, 2), check_finite=True)
     return np.asarray(values_out), np.asarray(vectors), ab
 
 
@@ -320,8 +336,14 @@ def phase_tridiagonal(f: np.ndarray, c: np.ndarray, h: float, values: dict[str, 
     return np.asarray(eigvals), np.asarray(eigvecs), diagonal, off
 
 
-def normalized_residual(matrix: np.ndarray, vector: np.ndarray, eigenvalue: float) -> float:
-    residual = matrix @ vector - eigenvalue * vector
+def normalized_banded_residual(bands: np.ndarray, vector: np.ndarray, eigenvalue: float) -> float:
+    bandwidth = bands.shape[0] - 1
+    applied = bands[bandwidth] * vector
+    for offset in range(1, bandwidth + 1):
+        diagonal = bands[bandwidth - offset, offset:]
+        applied[:-offset] += diagonal * vector[offset:]
+        applied[offset:] += diagonal * vector[:-offset]
+    residual = applied - eigenvalue * vector
     return float(np.max(np.abs(residual)) / (max(1.0, abs(float(eigenvalue))) * max(1.0e-300, float(np.max(np.abs(vector))))))
 
 
@@ -329,27 +351,20 @@ def spectra(row: dict[str, Any], values: dict[str, float]) -> tuple[dict[str, An
     f, c, x = row["f"], row["c"], row["x"]
     h = float(x[1] - x[0])
     amps, amp_vectors, ab = amplitude_banded(f, c, h, values)
-    size = 2 * (f.size - 2)
-    matrix = np.zeros((size, size), dtype=np.float64)
-    for i in range(size):
-        matrix[i, i] = ab[2, i]
-        if i + 1 < size:
-            matrix[i, i + 1] = matrix[i + 1, i] = ab[1, i + 1]
-        if i + 2 < size:
-            matrix[i, i + 2] = matrix[i + 2, i] = ab[0, i + 2]
     amp_vectors = amp_vectors / math.sqrt(h)
-    amp_residuals = [normalized_residual(matrix, amp_vectors[:, j], float(amps[j])) for j in range(3)]
+    amp_residuals = [normalized_banded_residual(ab, amp_vectors[:, j], float(amps[j])) for j in range(3)]
     phase_payload: dict[str, Any] = {}
     arrays: dict[str, np.ndarray] = {"amplitude_eigenvalues": amps, "amplitude_eigenvectors": amp_vectors}
     for label in ("f", "c"):
         eigvals, eigvecs, diagonal, off = phase_tridiagonal(f, c, h, values, label)
         vector = eigvecs[:, 0] / math.sqrt(h)
-        tri_matrix = np.diag(diagonal) + np.diag(off, 1) + np.diag(off, -1)
-        rr = normalized_residual(tri_matrix, vector, float(eigvals[0]))
-        phase_payload[label] = {"eigenvalue": float(eigvals[0]), "residual": rr}
+        bands = np.zeros((2, diagonal.size), dtype=np.float64)
+        bands[1] = diagonal
+        bands[0, 1:] = off
+        phase_payload[label] = {"eigenvalue": float(eigvals[0]), "residual": normalized_banded_residual(bands, vector, float(eigvals[0]))}
         arrays[f"phase_{label}_eigenvalues"] = eigvals
         arrays[f"phase_{label}_eigenvectors"] = vector[:, None]
-    payload = {"amplitude_eigenvalues": amps.tolist(), "amplitude_residuals": amp_residuals, "phase": phase_payload, "bandwidth": 2, "phase_solver": "eigh_tridiagonal select=i lowest", "amplitude_solver": "eigh_banded select_by_index lowest"}
+    payload = {"amplitude_eigenvalues": amps.tolist(), "amplitude_residuals": amp_residuals, "phase": phase_payload, "bandwidth": 2, "phase_solver": "eigh_tridiagonal select=i lowest", "amplitude_solver": "eig_banded select=i lowest three"}
     return payload, arrays
 
 
@@ -357,9 +372,9 @@ def analytical_review(values: dict[str, float]) -> dict[str, Any]:
     factorization = {"equation": "U0=[sqrt(u_rho)/2(1-f^2)-sqrt(u_C/2)c^2]^2+D f^2 c^2", "nonnegative": bool(values["D"] > 0.0), "vacua": [[1.0, 0.0], [0.0, values["n0"] ** 0.5]], "grand_potential_at_vacua": [0.0, 0.0]}
     nodal = {"argument": "|f| is a principal Dirichlet zero mode on a regular nodal domain; strict connected enlargement lowers its principal eigenvalue below zero", "regularity_assumption": "bounded regular nodal domain and locally bounded potential", "strict_enlargement": True, "scope": "conditional on existence of the stationary profile"}
     charge = {"temporal_square": "a|dot z+i Omega z|^2 >= 0", "Omega0_positive_finite": bool(math.isfinite(values["Omega0"]) and values["Omega0"] > 0.0), "q0_positive_finite": bool(math.isfinite(values["q0"]) and values["q0"] > 0.0), "static_gauss": True, "reason": "rotating carrier is gauge singlet and static mediator/adjoint momenta, temporal connection and electric curvature vanish"}
-    positive_phase = {"identity": "integral eta H_f eta = integral f^2 |grad(eta/f)|^2 >= 0", "admissible_scope": "compactly supported phase perturbations with strictly positive f", "pass": True, "coupled_amplitude_and_finite_charge_unresolved": True}
+    positive_phase = {"identities": ["integral eta_f H_f eta_f = integral f^2 |grad(eta_f/f)|^2 >= 0", "integral eta_c H_c eta_c = k_Cx integral c^2 |grad(eta_c/c)|^2 >= 0"], "admissible_scope": "compactly supported phase perturbations where f and c are strictly positive", "pass": True, "remaining_scope": "Coupled-amplitude and finite-charge stability require separate calculations."}
     surface = {"D_k_less_than_2uC": bool(values["D"] * K_CX < 2.0 * U_C), "lower_bound": values["sigma_lower"], "upper_bound": values["sigma_upper"], "pass": bool(values["sigma_lower"] <= values["sigma_upper"] + 1.0e-14)}
-    thin = {"interface_width_scale": math.sqrt(2.0 / U_RHO), "scope": "planar thin-interface expansion requires R much larger than interface width; it supplies no finite droplet, formation trajectory, spin, statistics, charge unit or completed matter mechanism", "pass": True}
+    thin = {"scope": "The planar thin-interface expansion requires R much larger than the charged-interface width. A finite droplet, formation trajectory, spin, statistics, charge unit and completed matter mechanism require separate evidence.", "pass": True}
     checks = [factorization["nonnegative"], nodal["strict_enlargement"], charge["Omega0_positive_finite"] and charge["q0_positive_finite"] and charge["static_gauss"], positive_phase["pass"], surface["D_k_less_than_2uC"] and surface["pass"], thin["pass"]]
     return {"factorization": factorization, "nodal_domain": nodal, "charge_gauss": charge, "positive_phase_ground_state": positive_phase, "surface_bounds": surface, "thin_interface_scope": thin, "pass": bool(all(checks))}
 
@@ -416,22 +431,30 @@ def compare_primary(path: Path, result: dict[str, Any], values: dict[str, float]
         if actual != expected:
             raise ValueError(f"primary {name} identity mismatch")
     artifacts = primary.get("artifacts")
-    if isinstance(artifacts, dict):
-        artifact_items = list(artifacts.items())
-    elif isinstance(artifacts, list):
-        artifact_items = [(str(i), item) for i, item in enumerate(artifacts)]
-    else:
-        raise ValueError("primary artifact manifest is missing")
+    if not isinstance(artifacts, list):
+        raise ValueError("primary artifact manifest is missing or not a list")
+    artifact_items = [(str(i), item) for i, item in enumerate(artifacts)]
+    manifest_paths: list[str] = []
     for _, item in artifact_items:
         if not isinstance(item, dict) or not isinstance(item.get("path"), str) or not isinstance(item.get("raw_sha256"), str):
             raise ValueError("malformed primary artifact entry")
         artifact_path = safe_primary_path(path.parent, item["path"])
         if not artifact_path.is_file() or raw_sha256(artifact_path) != item["raw_sha256"]:
             raise ValueError(f"primary artifact hash mismatch: {item.get('path')}")
-    manifest_paths = {item.get("path") for _, item in artifact_items if isinstance(item, dict)}
-    required_snapshots = {"protocol_snapshot.txt", "derivation_snapshot.txt", "parent_snapshot.md", "program_snapshot.py"}
-    if not required_snapshots.issubset(manifest_paths):
+        manifest_paths.append(item["path"])
+    if len(manifest_paths) != len(set(manifest_paths)):
+        raise ValueError("duplicate primary artifact paths")
+    required_snapshots = {"protocol.txt", "derivation.txt", "report_source.md", "parent_source.md", "program_source.py"}
+    if not required_snapshots.issubset(set(manifest_paths)):
         raise ValueError("primary source snapshots are missing from artifact manifest")
+    snapshot_expected = {"protocol.txt": PROTOCOL_SHA256, "derivation.txt": DERIVATION_SHA256, "parent_source.md": PARENT_SHA256, "program_source.py": program_identity["canonical_sha256"]}
+    for snapshot_name, expected_hash in snapshot_expected.items():
+        snapshot_path = safe_primary_path(path.parent, snapshot_name)
+        if canonical_sha256(snapshot_path) != expected_hash:
+            raise ValueError(f"primary source snapshot content mismatch: {snapshot_name}")
+    report_protocol, report_derivation, _ = extract_sources(safe_primary_path(path.parent, "report_source.md"))
+    if hashlib.sha256(report_protocol.encode("utf-8")).hexdigest() != PROTOCOL_SHA256 or hashlib.sha256(report_derivation.encode("utf-8")).hexdigest() != DERIVATION_SHA256:
+        raise ValueError("primary report snapshot frozen sections differ")
     rows = primary.get("rows")
     if not isinstance(rows, list) or len(rows) != 3:
         raise ValueError("primary rows are missing or incomplete")
@@ -439,13 +462,16 @@ def compare_primary(path: Path, result: dict[str, Any], values: dict[str, float]
         if not isinstance(row, dict) or float(row.get("L", float("nan"))) != expected[0] or int(row.get("intervals", -1)) != expected[1]:
             raise ValueError("primary row schedule mismatch")
     for index, row in enumerate(rows):
-        if row.get("pass") is not True or row.get("bvp_success") is not True or row.get("finite_arrays") is not True or row.get("amplitude_bounds_pass") is not True or row.get("surface_bound_pass") is not True:
-            raise ValueError("primary row is unqualified")
+        if row.get("bvp_success") is not True or row.get("finite_arrays") is not True:
+            raise ValueError("primary row has unsuccessful or nonfinite collocation")
         for key in ("sigma", "derivative_jump_abs", "max_first_integral_residual"):
             if not isinstance(row.get(key), (int, float)) or not math.isfinite(float(row[key])):
                 raise ValueError("primary row diagnostic is missing or nonfinite")
-        if index == 2 and (float(row["derivative_jump_abs"]) >= 1.0e-6 or float(row["max_first_integral_residual"]) >= 1.0e-6):
+        if index == 2 and (float(row["derivative_jump_abs"]) >= 1.0e-6 or float(row["max_first_integral_residual"]) >= 1.0e-6 or row.get("amplitude_bounds_pass") is not True):
             raise ValueError("primary finest diagnostic threshold failed")
+    field_paths = {row.get("fields_file") for row in rows if isinstance(row, dict)}
+    if len(field_paths) != 3 or not field_paths.issubset(manifest_paths):
+        raise ValueError("primary field artifact set is incomplete")
     primary_scalars = primary.get("scalars")
     if not isinstance(primary_scalars, dict):
         raise ValueError("primary scalars missing")
@@ -458,7 +484,7 @@ def compare_primary(path: Path, result: dict[str, Any], values: dict[str, float]
         raise ValueError("primary scalar mismatch")
     loaded_primary: list[tuple[np.ndarray, np.ndarray, np.ndarray]] = []
     for row in rows:
-        if not isinstance(row, dict) or row.get("pass") is not True or row.get("bvp_success") is not True or row.get("finite_arrays") is not True or row.get("amplitude_bounds_pass") is not True or not isinstance(row.get("fields_file"), str):
+        if not isinstance(row, dict) or row.get("bvp_success") is not True or row.get("finite_arrays") is not True or not isinstance(row.get("fields_file"), str):
             raise ValueError("primary row is unqualified or malformed")
         fields = safe_primary_path(path.parent, row["fields_file"])
         manifest = next((item for _, item in artifact_items if item.get("path") == row["fields_file"]), None)

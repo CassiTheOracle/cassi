@@ -978,6 +978,19 @@ The canonical positive-root domain excludes its negative-$f$ boundary
 (`foundations/matter-completion-boundary.md` §15;
 `computations/matter-formation-continuum-report.md` §33).
 
+A populated scalar phase and the exterior vacuum have a separately
+qualified coexistence interface at $a=1/16$. Independent stationary
+calculations agree on its positive dimensionless surface cost
+$\sigma=0.8738238914$, and its unpinned finite-grid scalar Hessians meet
+the frozen energetic criteria. Large-charge thin-interface energetics
+give $R\propto|\mathcal Q_a|^{1/3}$ and a positive
+$|\mathcal Q_a|^{2/3}$ surface correction, favoring combination of large
+same-sign droplets at fixed total charge. The calculation supplies no
+finite droplet trajectory, proton identity or physical charge unit
+(`foundations/matter-completion-boundary.md` §16;
+`computations/matter-formation-continuum-report.md` §34).
+
+
 ### Q10: Spin—what is it?
 
 ```mermaid

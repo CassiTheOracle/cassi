@@ -853,6 +853,18 @@ identity is established. This calculation adds no catalog prediction
 (`foundations/matter-completion-boundary.md` §15;
 `computations/matter-formation-continuum-report.md` §33).
 
+The same supplied scalar parent supports a positive-amplitude coexistence
+interface at $a=1/16$. Independent stationary solvers agree on
+$\sigma=0.8738238914$ in the dimensionless model, and its unpinned
+finite-grid scalar Hessians satisfy the frozen energetic criteria.
+The conditional large-charge radius and surface-energy laws favor
+combination of large same-sign droplets at fixed total charge.
+The result establishes no finite droplet formation, physical charge unit
+or measured particle property and adds no catalog prediction
+(`foundations/matter-completion-boundary.md` §16;
+`computations/matter-formation-continuum-report.md` §34).
+
+
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;
 `computations/matter_completion_boundary_check.py`;

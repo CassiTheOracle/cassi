@@ -113,6 +113,18 @@ fastest at zero tangential wave number. This conditional interface calculation
 supplies neither a stable finite bubble nor a selected small-bubble pattern,
 incoming-flux capture, particle clustering or complete formation (§33).
 
+The same scalar parent has two coexisting amplitude phases at
+$a=1/16$: a populated, mediator-depleted phase and the exterior vacuum.
+Independent collocation and discrete-energy calculations resolve their
+positive-amplitude planar interface, with surface cost
+$\sigma=0.8738238914$ in the supplied dimensionless units. The unrestricted
+finite-grid scalar Hessians satisfy the frozen energetic criteria.
+The joint verdict is `SUPPORTS-conditional charged coexistence interface`.
+Large-charge thin-interface energetics provide a charge-dependent radius
+and favor combining large same-sign droplets. Formation of a finite
+droplet, nonlinear persistence and the physical charge unit remain open
+(§34).
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -4660,8 +4672,347 @@ constrains this particular interface construction, while finite bubbles,
 cross-scale capture, clustering, physical quantum numbers and complete
 matter formation remain **Hypothesized/Open**.
 
+## 34. Charged phase coexistence and a finite-interface balance
+
+A boundary between a carrier-populated phase and the exterior vacuum can
+have different stability properties from a sign wall. The supplied scalar
+parent already contains both phases at an appropriate rotation frequency.
+Their interface, its surface cost and the charge-dependent radius follow
+from the existing coefficients. The microscopic selection, physical charge
+unit and particle interpretation remain open.
+
+### 34.1 Carrier loading and mediator nodes
+
+The mediator phase remains an allowed deformation when the carrier is
+populated. Write the stationary scalar representative as
+$\Psi=fv_0$, $v_0^\dagger v_0=1$, with real $f$, and
+$z=e^{-i\Omega t}c$ with real $c$. The spatial connection vanishes and the
+aligned adjoint is constant. The mediator equation gives
+$$
+H_f f=0,\qquad
+H_f=-\Delta+u_\rho(f^2-1)+2h_Cc^2.
+$$
+Along $\Psi=(f+i t\eta)v_0$, the second energy derivative is
+$$
+\boxed{\delta^2 E_f=\int\eta H_f\eta\,d^3x.}
+$$
+The carrier and its velocity are unchanged, so this path preserves its
+signed charge exactly. The static mediator and adjoint momenta, temporal
+connection and electric curvature vanish. The rotating carrier is a gauge
+singlet, so the path also satisfies the static Gauss constraint.
+
+A closed sign-changing interface has a negative phase direction under
+these assumptions. Suppose $f$ has a bounded regular nodal domain $D$ and
+the real potential in $H_f$ is locally bounded. The function $|f|$ is
+positive inside $D$, vanishes on its boundary and solves $H_f|f|=0$
+there. It is the principal Dirichlet eigenfunction, with eigenvalue zero.
+Strict enlargement to a connected bounded domain $D'$ lowers the principal
+eigenvalue below zero. Its eigenfunction, extended by zero outside $D'$,
+supplies an admissible compactly supported negative quadratic direction.
+It is nonzero on the original nodal surface, where a regular gauge-orbit
+variation vanishes. Carrier loading and curvature therefore cannot make
+such a nodal stationary interface an energy minimum in this field class.
+This statement is conditional on the existence of the stationary profile.
+
+A strictly positive mediator instead obeys the ground-state identity
+$$
+\int\eta H_f\eta\,d^3x
+=\int f^2\left|\nabla(\eta/f)\right|^2d^3x\ge0
+$$
+for compactly supported perturbations and the stated regularity. A positive
+depletion interface is therefore the relevant phase-stable candidate.
+The identity qualifies only this phase sector; coupled amplitude and
+finite-charge stability require their own checks.
+
+### 34.2 Exact charged coexistence point
+
+The rotation frequency acts as the Lagrange multiplier for signed carrier
+charge. With $a>0$ and $B=e_C+1/(4a)$, complete the temporal square:
+$$
+E-\Omega\mathcal Q_a
+=\int\left[
+\frac12|\nabla f|^2+\frac{k_{Cx}}2|\nabla c|^2+
+V_a(f,c)-a\Omega^2c^2
+\right]d^3x
+$$
+on the rotating representative. Away from that representative the carrier
+also contributes the nonnegative term
+$a|\dot z+i\Omega z|^2$. Define
+$$
+S=\sqrt{u_\rho u_C/2},\qquad
+D=h_C-S,\qquad n_0=\sqrt{u_\rho/(2u_C)}.
+$$
+For $D>0$ and $B-h_C+S>0$, the coexistence frequency and homogeneous
+charge density are
+$$
+\boxed{\Omega_0=\sqrt{\frac{B-h_C+S}{a}},\qquad
+q_0=2a\Omega_0 n_0.}
+$$
+These are conditional functions of the supplied coefficients. No measured
+mass or charge is used to select them.
+
+At this frequency, the grand-potential density factorizes:
+$$
+\begin{aligned}
+U_0(f,c)&=V_a(f,c)-a\Omega_0^2c^2\\
+&=\left[
+\frac{\sqrt{u_\rho}}2(1-f^2)
+-\sqrt{\frac{u_C}{2}}c^2
+\right]^2+D f^2c^2\ge0.
+\end{aligned}
+$$
+Its two amplitude vacua are $(f,c)=(1,0)$ and
+$(f,c)=(0,\sqrt{n_0})$. Their grand potentials and pressures are zero.
+The populated phase has energy density $\Omega_0q_0$.
+For every $c\ne0$, the factorization also gives
+$V_a/c^2\ge a\Omega_0^2$, with equality at the populated phase.
+The shared complex phases leave these two distinct amplitude vacua intact.
+
+### 34.3 Surface cost and finite-charge scaling
+
+A self-consistent planar front interpolates between the two amplitude
+vacua. Its surface grand potential is
+$$
+\sigma=\int_{-\infty}^{\infty}
+\left[\frac12f'^2+\frac{k_{Cx}}2c'^2+U_0(f,c)\right]dx.
+$$
+The stationary equations are
+$$
+f''=u_\rho(f^2-1)f+2h_Cfc^2,\qquad
+k_{Cx}c''=2(h_Cf^2-S+u_Cc^2)c,
+$$
+with $(f,c)\to(0,\sqrt{n_0})$ on the left and $(1,0)$ on the right.
+Their zero-pressure first integral is
+$f'^2/2+k_{Cx}c'^2/2=U_0$.
+
+Two analytic bounds constrain the surface cost independently of a numerical
+front. Set
+$$
+\alpha=\min\left(1,\sqrt{\frac{Dk_{Cx}}{2u_C}}\right),
+\qquad m=k_{Cx}n_0.
+$$
+Completing squares with
+$W=\sqrt2\alpha[
+\sqrt{u_\rho}(f-f^3/3)/2-\sqrt{u_C/2}\,fc^2]$
+gives the lower bound. Restricting the interpolation to
+$f=\sin\theta$, $c=\sqrt{n_0}\cos\theta$ gives the upper bound:
+$$
+\boxed{
+\frac{\sqrt{2u_\rho}}3\alpha
+\le\sigma\le
+\sqrt{2Dn_0}\,
+\frac{m^{3/2}-1}{3(m-1)}.}
+$$
+The quotient on the right is $1/2$ when $m=1$.
+
+For a large spherical droplet with a thin interface, fixed signed charge
+provides a volume scale. The leading asymptotic relations are
+$$
+R=\left(\frac{3|\mathcal Q_a|}{4\pi q_0}\right)^{1/3}+O(1),
+\qquad
+E=\Omega_0|\mathcal Q_a|
++4\pi\sigma\left(\frac{3|\mathcal Q_a|}{4\pi q_0}\right)^{2/3}
++O(|\mathcal Q_a|^{1/3}).
+$$
+The Laplace-pressure balance gives
+$\Omega-\Omega_0=2\sigma/(q_0R)+O(R^{-2})$.
+These formulas require a radius large compared with the interface width.
+The positive surface term favors combining two large same-sign droplets
+at fixed total charge within this approximation. It selects a radius for
+specified charge, while leaving the charge and particle mass unselected.
+A planar front alone establishes no finite droplet, formation trajectory
+or long-time persistence.
+
+### 34.4 Charged-interface calculation: pre-execution criteria
+
+Test the coexistence algebra, a self-consistent planar front and its
+scalar-sector spatial Hessians. This is a stationary-interface calculation.
+No nonlinear formation or quantum-particle claim is part of its verdict.
+
+Keep $u_\rho=4$, $u_C=1$, $k_{Cx}=1$, $e_C=3/4$,
+$h_C=2.9598260763447164$ and $a=1/16$. Derive all coexistence and
+surface-bound values from these inputs. Do not fit a coefficient to a
+numerical front or to the prepared finite-charge profiles.
+
+The primary program checks the potential factorization, temporal
+charge-square identity, both homogeneous stationary points, the bulk
+energy/charge relation, the two phase-operator identities and the surface
+lower-bound remainder symbolically. For the lower-bound identity use
+$Dk_{Cx}<2u_C$, the regime of the retained coefficients; separately check
+that this inequality holds.
+
+Solve the two-field front by adaptive fourth-order collocation on two
+half-intervals of length $L=6,9,12$. Use initial meshes with respectively
+129,193,257 nodes per half, relative residual tolerance $10^{-8}$ and
+at most 32768 nodes per half. Pin
+$f(0)=1/\sqrt2$ on both halves, match $c(0)$ and its physical derivative,
+and impose the two amplitude vacua at the outer endpoints. The remaining
+mediator derivative jump is a measured truncation residual, never discarded.
+Initialize from
+$f(x)=\sqrt{[1+\tanh(x)]/2}$ and
+$c(x)=\sqrt{n_0[1-\tanh(x)]/2}$.
+Save fields and physical first derivatives on uniform full-domain meshes
+with 2048,3072,4096 intervals respectively.
+
+Require successful solves and finite arrays for all three domains.
+On the finest domain require mediator derivative jump below $10^{-6}$,
+maximum absolute first-integral residual below $10^{-6}$ and amplitudes
+within $[-10^{-9},1+10^{-9}]$ for $f$ and
+$[-10^{-9},\sqrt{n_0}+10^{-9}]$ for $c$.
+Both finest-domain surface costs must lie between the analytic bounds,
+allowing $10^{-6}$ absolute numerical error. Require an absolute
+$L=9$ versus $L=12$ surface-cost difference below $10^{-5}$.
+Report all domain rows, including any unqualified row.
+
+The independent program uses the same discrete energy on uniform meshes
+with 1024,1536,2048 and 4096 full-domain intervals at $L=6,9,12,12$.
+Use edge gradient energies and trapezoidal potential weights, exact outer
+Dirichlet data and the same single midpoint phase condition.
+Solve the free stationary equations by sparse Newton steps with a
+backtracking energy-decrease line search. Limit to 100 Newton steps and
+40 halvings per step. Stop at maximum free Euler residual below $10^{-8}$.
+Use the analytic initial profile above independently at every row.
+No primary fields, derivatives, energies or operators may initialize this
+calculation. The midpoint Euler residual must also be saved.
+
+On the independent finest row require maximum midpoint Euler residual
+below $10^{-6}$ and the same amplitude bounds. Require its surface cost to
+agree with the primary $L=12$ value within $2\times10^{-4}$ and its
+maximum pointwise field difference from the primary saved uniform arrays
+below $10^{-3}$. The primary and independent arrays have the same finest
+coordinates. The independent same-domain refinement must reduce the
+surface-cost difference from the primary value, unless both errors are
+below $10^{-8}$.
+
+Reconstruct the unrestricted scalar amplitude Hessian and the two phase
+Hessians on the independent finest row. Use the full unpinned Dirichlet
+perturbation space, including the midpoint. For the amplitude Hessian use
+diagonal potentials
+$u_\rho(3f^2-1)+2h_Cc^2$ and
+$2(h_Cf^2-S)+6u_Cc^2$, cross potential $4h_Cfc$ and gradient
+coefficients $1,k_{Cx}$. The phase potentials are
+$u_\rho(f^2-1)+2h_Cc^2$ and
+$2(h_Cf^2-S+u_Cc^2)$, with the same gradient coefficients.
+Save the lowest three amplitude eigenpairs and the lowest eigenpair of
+each phase operator. Require every lowest eigenvalue to exceed
+$-2\times10^{-4}$ and every normalized eigen-equation residual to be
+below $10^{-7}$. This tolerance qualifies finite-grid scalar energetic
+evidence and is not an infinite-domain stability theorem.
+
+Both programs freeze this section and the derivation in §§34.1–34.3,
+the scalar-parent source, their own source and all imported project
+dependencies. Preserve raw arrays, source snapshots, hashes, library
+versions, attempts and finite JSON receipts in new directories under
+`runs/20260908_matter_formation_charged_interface/`.
+An independent analytical review must check charge/Gauss admissibility,
+the nodal-domain argument, the positive-phase identities, the coexistence
+factorization and the scope of the thin-interface expansion.
+
+The joint verdict is `SUPPORTS-conditional charged coexistence interface`
+only when both numerical qualifications, their frozen input identities
+and the analytical review pass. Otherwise it is `INCONCLUSIVE`.
+Missing-section and altered-section controls must exit one with empty
+scientific payloads and `INCONCLUSIVE`. Preserve every attempt and stop
+after the fixed schedule. This calculation supplies no formation rate,
+finite droplet solution, spin, statistics, charge unit or completed matter
+mechanism.
+
+### 34.5 Qualified coexistence interface
+
+The populated phase and the exterior vacuum admit a numerically resolved
+planar interface at the fixed coefficients. The two implementations agree
+without sharing an initial numerical field or a stationary solver. All
+three collocation domains and all four independent Newton grids qualify.
+The conditional coexistence quantities are
+$$
+\Omega_0=7.1603212062,\qquad q_0=1.2657779201,\qquad
+n_0=\sqrt2.
+$$
+The surface cost lies within the analytic interval
+$0.8288177695\le\sigma\le1.1471749896$.
+
+| Method | Half-domain $L$ | Full-domain intervals | Surface cost $\sigma$ |
+|---|---:|---:|---:|
+| Adaptive collocation, sampled quadrature | 6 | 2048 | 0.873823891962905 |
+| Adaptive collocation, sampled quadrature | 9 | 3072 | 0.873823891375859 |
+| Adaptive collocation, sampled quadrature | 12 | 4096 | 0.873823891375847 |
+| Independent discrete energy | 6 | 1024 | 0.873819112813540 |
+| Independent discrete energy | 9 | 1536 | 0.873819112226287 |
+| Independent discrete energy | 12 | 2048 | 0.873819112226274 |
+| Independent discrete energy | 12 | 4096 | 0.873822696608970 |
+
+The finest collocation field has mediator derivative jump
+$1.4147\times10^{-11}$ and maximum first-integral residual
+$1.7313\times10^{-11}$. Its $L=9$ to $L=12$ surface-cost difference is
+$1.2657\times10^{-14}$. The independent finest field differs pointwise by
+at most $2.2085\times10^{-6}$ and in surface cost by
+$1.1948\times10^{-6}$. Halving the independent spacing at $L=12$
+reduces that surface-cost error from $4.7791\times10^{-6}$.
+The finest midpoint Euler residual is $1.7214\times10^{-12}$.
+
+The unpinned scalar amplitude Hessian has lowest eigenvalues
+$5.6698\times10^{-9}$, $3.0736735908$ and $3.2195348866$.
+The lowest mediator-phase and carrier-phase eigenvalues are
+$0.0172163223$ and $0.0190384973$. All five exceed the frozen
+$-2\times10^{-4}$ lower threshold. Direct second-difference reconstruction
+from the saved vectors gives maximum normalized eigen-equation residual
+$5.9391\times10^{-9}$, below $10^{-7}$.
+The near-zero amplitude value and finite-box positive phase values provide
+no strictly positive infinite-domain spectral gap.
+
+The independent analytical review checks the charge and static Gauss
+constraints, nodal-domain instability, positive-phase quadratic forms,
+coexistence factorization, surface bounds and thin-interface scope.
+All 17 manifested source/array hashes agree with their receipts; the
+separate raw reconstruction passes all 19 checks. Both programs reject
+missing and altered frozen sections with exit one, empty scientific
+payloads and `INCONCLUSIVE`. The joint result is
+$$
+\boxed{\texttt{SUPPORTS-conditional charged coexistence interface}.}
+$$
+
+Evidence is retained under
+`runs/20260908_matter_formation_charged_interface/`.
+The accepted primary receipt is
+`primary_implementation_recovery/results.json`, raw SHA-256
+`678d26ece169d1ffe88d414c4efbd6a6314a51759cd4643b87a6ba600145a8ff`;
+the independent receipt is `verification/verification.json`, raw SHA-256
+`aec7e8452cb1e703ca0a2f184e1a561e63ca77043504c63e1df67839b6d6fadf`.
+The failed primary receipt and implementation record remain in `primary/`
+and `implementation_recovery.json`. Accepted sources, arrays, rejection
+controls, `raw_reconstruction.json` and `reconciliation.json` preserve the
+complete calculation and its qualification scope.
+
+Reproduction uses fresh output directories from the repository root:
+```bash
+python computations/matter_formation_charged_interface.py --output-dir runs/charged_interface_primary_reproduction
+python computations/verify_matter_formation_charged_interface.py --primary runs/charged_interface_primary_reproduction/results.json --output-dir runs/charged_interface_verification_reproduction
+```
+Both programs require the frozen §§34.1–34.4 and scalar-parent identities;
+the complete report may also contain independently added result sections.
+
+### 34.6 Consequences for finite matter
+
+Conserved charge can supply the volume scale that surface tension alone
+lacks. In the thin-interface approximation, a larger charge supports a
+larger populated region, while positive surface cost favors reducing the
+total area of large same-sign droplets. This gives a conditional
+energetic connection between carrier accumulation, finite radius and
+coalescence. The approximation presupposes the droplets and fixes their
+charge; the planar calculation establishes no nucleation trajectory,
+capture efficiency, collision outcome or preferred elementary charge.
+
+The six physical matter-completion requirements therefore remain
+unsatisfied as a joint mechanism. The interface has a derived coexistence
+condition and reproduced stationary scalar evidence. Its finite-radius
+formation and persistence still require real-time evidence in a selected
+microscopic model, together with the quantum state, physical normalization,
+spin, statistics and interactions appropriate to the identified matter.
+
 ## References
 
+- `computations/matter_formation_charged_interface.py`—exact coexistence identities and adaptive self-consistent planar interface.
+- `computations/verify_matter_formation_charged_interface.py`—independent discrete-energy front, unrestricted scalar spectra, source-bound comparison and analytical review.
 - `computations/matter_formation_interface_spectrum.py`—exact signed-wall, carrier-mode, phase-path and static Gauss calculation.
 - `computations/verify_matter_formation_interface_spectrum.py`—independent Dirichlet spectra, convergence, phase-admissibility review and primary-evidence qualification.
 - `runs/20260908_matter_formation_interface/`—source-bound primary and independent spectra, raw arrays, rejection controls and joint reconciliation.

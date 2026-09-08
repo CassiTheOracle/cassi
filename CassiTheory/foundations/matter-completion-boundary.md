@@ -1278,6 +1278,45 @@ conditional result (`computations/matter-formation-continuum-report.md`
 pattern, inter-bubble binding or particle identity. Those mechanisms and
 the six physical completion requirements remain open.
 
+## 16. Charged coexistence and finite-size balance
+
+Conserved carrier charge permits a populated phase to coexist with the
+exterior vacuum in the supplied scalar parent. Define
+$B=e_C+1/(4a)$, $S=\sqrt{u_\rho u_C/2}$,
+$D=h_C-S$ and $n_0=\sqrt{u_\rho/(2u_C)}$.
+For $D>0$ and $B-D>0$, the coexistence frequency is
+$\Omega_0=\sqrt{(B-D)/a}$ and the populated phase has signed charge-density
+magnitude $q_0=2a\Omega_0n_0$. Its rotating carrier has $c^2=n_0$
+and the mediator is depleted to $f=0$; the exterior is $(f,c)=(1,0)$.
+These amplitude phases have equal zero grand potential.
+
+The interface between these phases has reproduced scalar energetic
+evidence. At the retained coefficients and $a=1/16$, independent
+collocation and discrete-energy calculations give the dimensionless
+surface cost $\sigma=0.8738238914$ and satisfy the frozen unpinned
+amplitude and phase spectral criteria. Their joint verdict is
+`SUPPORTS-conditional charged coexistence interface`
+(`computations/matter-formation-continuum-report.md` §34).
+A strictly positive mediator has a nonnegative phase quadratic form.
+For a stationary sign-changing mediator with a bounded regular nodal
+domain, strict domain enlargement supplies a negative phase direction
+even at fixed carrier charge. This distinguishes the two amplitude-phase
+interface from the closed sign-changing candidate.
+
+Large droplets have a conditional radius balance. When the radius is
+large compared with the interface width,
+$$
+\boxed{
+R=\left(\frac{3|\mathcal Q_a|}{4\pi q_0}\right)^{1/3}+O(1),\qquad
+E=\Omega_0|\mathcal Q_a|+4\pi\sigma R^2+O(R).}
+$$
+The positive surface correction favors combining large same-sign
+droplets at fixed total charge. These asymptotics specify a radius for
+a supplied charge; they establish no finite spherical solution,
+nucleation trajectory, incoming-flux capture, nonlinear persistence
+or elementary charge selection. The microscopic model, quantum state,
+physical normalization, spin, statistics and matter identity remain open.
+
 ## References
 
 - `foundations/geometric-manifold-completion.md`—positive coherence fibre,
