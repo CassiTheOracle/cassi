@@ -1149,6 +1149,104 @@ The deterministic six-requirement adjudication consequently returns
 **Hypothesized/Open** status. The evidence, limitations and source identities
 are in `computations/matter-formation-continuum-report.md` §§30–31.
 
+## 14. Separate massive bubble-lattice comparison
+
+The massless $SU(2)_{\rm top}$ comparison in §13 and the following massive
+bubble-lattice model are separate effective theories. The massive comparison
+adds an $O(4)$ orientation field $\mathbf n\in S^3$ with
+
+$$
+\mathcal L=\frac12X-\frac{\kappa}{4}(X^2-Y)-\mu^2(1-n_0),
+\qquad \kappa=1,\qquad \mu=0.5266577616452649,
+$$
+
+on the primitive periodic geometry specified in
+`computations/matter-formation-continuum-report.md` §32.1. Here
+$X=\partial_\alpha\mathbf n\cdot\partial^\alpha\mathbf n$ and
+$Y=(\partial_\alpha\mathbf n\cdot\partial_\beta\mathbf n)
+(\partial^\alpha\mathbf n\cdot\partial^\beta\mathbf n)$, with signature
+$(+---)$. The pion reference $M_\pi=138.039\ \mathrm{MeV}$ selects $\mu$.
+The independent radial structural receipt
+records an approximately unit-degree profile, Hamiltonian energy
+$77.4452509080$ and virial relative residual $9.11\times10^{-12}$.
+The inherited radial calibration convention uses
+$E_{\mathrm{radial}}=2H_{\mathrm{radial}}=154.8905018161$.
+Its action, stress tensor and isospin current are exact
+conditional identities for this added field. They do not supply a canonical
+stress-exchange term with the Cassi density, scale-current or environment
+sectors.
+
+The same stationary profile gives a conditional three-mass calibration. The
+nucleon mean $M_N=938.918754\ \mathrm{MeV}$ and Delta mass
+$M_\Delta=1232.0\ \mathrm{MeV}$ select
+
+$$
+e_B=4.842429173417474,\qquad
+f_B=54.126511603191005\ \mathrm{MeV},
+$$
+
+with length unit $0.7528581473116732\ \mathrm{fm}$; the reconstructed pion
+residual is $1.24\times10^{-10}$ and the nucleon and Delta residuals are zero.
+This is a Mapped calibration of a supplied comparison model, distinct from
+the massless two-mass row in §13 and from a canonical Cassi parameter
+selection.
+
+The six target-bearing out-of-fit diagnostics all contradict their inherited
+precision thresholds:
+
+| Observable | Massive comparison | Target | Relative residual |
+|---|---:|---:|---:|
+| Isoscalar electric radius | $0.6815867185\ \mathrm{fm}$ | $0.769\ \mathrm{fm}$ | $-11.37\%$ (10% threshold) |
+| Proton magnetic moment | $1.9665961903$ | $2.7928473446$ | $-29.58\%$ (10% threshold) |
+| Neutron magnetic moment | $-1.2370163465$ | $-1.91304273$ | $-35.34\%$ (10% threshold) |
+| Magnetic-moment magnitude ratio | $1.5897899780$ | $1.459898$ | $+8.90\%$ (5% threshold) |
+| Axial coupling $g_A$ | $0.9732236723$ | $1.2754$ | $-23.69\%$ (10% threshold) |
+| Pion–nucleon coupling $g_{\pi NN}$ | $16.8822621422$ | $13.0$ | $+29.86\%$ (10% threshold) |
+
+The isoscalar magnetic radius is $0.9534259578\ \mathrm{fm}$, reported without
+a frozen target, so it is not counted among those six failures. The formulas
+are imported leading-order conditional chiral-model formulas, not canonical
+Cassi predictions.
+
+The finite-site configuration space for $N_s$ unrestricted sites is
+$\mathcal Q=(S^3)^{N_s}$, hence $\pi_1(\mathcal Q)=0$. Its smooth interactions
+do not enforce a continuum integer degree or an odd Finkelstein–Rubinstein
+exchange character. A scalar Laplace–Beltrami regulator can be defined, but
+the supplied calculation selects no interacting quantum state, cutoff
+counterterms or renormalization prescription. It therefore supplies no
+canonical fermionic closure or particle identification.
+
+The winding-density integral from the prescribed degree-zero classical impulse
+is resolution dependent. At $T=4$, the positive/negative integrals are
+$(0.456413,0.458736)$ at $N=48$ and $(0.273672,0.273800)$ at $N=64$; the
+centroid separations are $3.128940$ and $2.778995$. The spatial differences
+$0.182741$ and $0.184936$ exceed the frozen $0.05$ tolerance, so this
+observable cannot adjudicate formation.
+
+A signed-preimage degree calculation supplies the qualified spatial
+adjudication. Sixteen fixed regular values and the periodic Freudenthal
+triangulation pass constant-vacuum, degree-one hedgehog, separated-pair,
+orientation-reversal and reproducibility controls. Every retained trajectory
+snapshot is admissible and unambiguous, and every regular value has net degree
+zero. The $N=48$ primary/half-step and $N=48$/$N=64$ pair states agree at all
+nine common samples. Pair coverage reaches at most $10/16$ on $N=48$ and
+$9/16$ on $N=64$, while no sample has exactly one hit of each sign for every
+target. The prescribed impulse therefore has no formation time $t_*\le2$ and
+returns `DOES NOT EMERGE` through $T=4$.
+
+The verdict is confined to this supplied action, degree-zero impulse and
+sampled interval. It leaves other disturbances and actions open. The protocol,
+primary and independent verifier are
+`computations/matter-formation-geometric-degree-net-prereg.md`,
+`computations/matter_formation_geometric_degree_net.py` and
+`computations/verify_matter_formation_geometric_degree_net.py`. The primary
+and verification receipts are under
+`runs/20260907_matter_formation_geometric_degree_net/`.
+
+The six physical completion requirements retain the open canonical action,
+quantum-state, renormalization, all-sector stability and particle-identity
+mechanisms described above.
+
 ## References
 
 - `foundations/geometric-manifold-completion.md`—positive coherence fibre,
@@ -1185,3 +1283,7 @@ are in `computations/matter-formation-continuum-report.md` §§30–31.
 - `computations/verify_matter_formation_conditional_baryon.py`—independent reconstruction and 78-check qualification.
 - `computations/adjudicate_matter_formation_completion.py`—six-requirement completion reconciliation.
 - `computations/matter-formation-continuum-report.md`—complete evidence record, conditional model comparisons, nonlinear verdict, microscopic non-identifiability proof, mapped baryon benchmark and completion adjudication.
+- `runs/20260907_matter_formation_chiral_lattice/structure_recovery1/results.json`—conditional massive chiral action, radial calibration, finite-site topology and out-of-fit diagnostic receipt for the §32 comparison.
+- `computations/matter-formation-geometric-degree-net-prereg.md`—frozen signed-preimage pair-formation protocol.
+- `computations/matter_formation_geometric_degree_net.py`—primary geometric reconstruction of retained chiral-lattice fields.
+- `computations/verify_matter_formation_geometric_degree_net.py`—independent controls, reconstruction and verdict verification.

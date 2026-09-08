@@ -318,6 +318,35 @@ physical-completion requirements returns `FAIL`, so complete physical matter
 formation remains open (`computations/matter-formation-continuum-report.md`
 §§30–31).
 
+The separate massive bubble-lattice comparison has a stationary degree-one
+radial profile with virial relative residual $9.11\times10^{-12}$. Its
+Hamiltonian energy is $77.4452509080$; the inherited radial calibration
+convention uses twice that value. Three measured masses set $\mu$ and the
+effective coefficients $e_B=4.842429173417474$ and
+$f_B=54.126511603191005\ \mathrm{MeV}$, with length unit
+$0.7528581473116732\ \mathrm{fm}$. All six target-bearing out-of-fit
+diagnostics contradict their thresholds: the electric radius, proton and
+neutron magnetic moments, their magnitude ratio, axial coupling and
+pion–nucleon coupling. The magnetic radius is reported without a frozen
+target and is excluded from that count.
+
+The supplied massive action has a conserved stress tensor and isospin current,
+while a coupling to the canonical Cassi sectors remains unselected. The
+finite-site configuration space is simply connected and enforces no odd
+Finkelstein–Rubinstein character. Its classical impulse and radial profile
+therefore leave the quantum state, renormalization and physical particle
+identification open. The winding-density endpoint integrals are spatially
+unqualified, so the formation decision uses a signed-preimage degree
+calculation with 16 fixed regular values. Its vacuum, degree-one hedgehog,
+separated-pair, orientation-reversal and reproducibility controls pass. Every
+trajectory snapshot is admissible, unambiguous and net-degree zero; pair state
+agrees between the full/half time steps and the two finest spatial grids at
+all nine shared samples. No snapshot has exactly one hit of each sign for
+every target, fixing `DOES NOT EMERGE` through $T=4$ for the supplied action
+and impulse. The massive-model normalization is **Mapped**, and physical
+matter formation remains **Hypothesized/Open**
+(`computations/matter-formation-continuum-report.md` §§32.1–32.7).
+
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 
 | Claim | Tested result | Status |

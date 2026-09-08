@@ -571,8 +571,38 @@ localized states and their physical identification remain open
 (`foundations/sector-coupling-derivation.md` §1.10;
 `computations/matter-formation-continuum-report.md` §16).
 
-The same supplied scalar parent admits an excited periodic mediator orbit. Its
-carrier equation has an exact Floquet instability, its mediator has a faster
+
+The following massive bubble-lattice comparison is a separate effective
+theory. It adds an $O(4)$ orientation field $\mathbf n\in S^3$ with
+$\kappa=1$ and $\mu=0.5266577616452649$ on the periodic primitive geometry.
+Its stationary radial profile has
+$H=77.4452509080$ in the primary action normalization,
+$E=2H=154.8905018161$ in the inherited radial calibration, and virial
+relative residual $9.11\times10^{-12}$. Its conserved stress tensor and
+isospin current are internal identities of the added action; no canonical
+Cassi stress-exchange term connects them to the density, scale-current or
+environment sectors.
+
+The pion, nucleon-mean and Delta references give the **Mapped** three-mass
+normalization
+$e_B=4.842429173417474$,
+$f_B=54.126511603191005\ \mathrm{MeV}$ and length
+$0.7528581473116732\ \mathrm{fm}$. All six target-bearing out-of-fit
+diagnostics carry the `CONTRADICTS` verdict against their inherited
+thresholds. With $N_s$ unrestricted sites, the regulator has
+$\mathcal Q=(S^3)^{N_s}$ and $\pi_1(\mathcal Q)=0$; continuum degree and
+fermionic statistics are unforced by this finite-site topology. Quantum-state
+selection, renormalization and physical identity remain open. The degree-zero
+excitation returns `DOES NOT EMERGE` through $T=4$ under the qualified
+signed-preimage calculation. All controls and numerical comparisons pass, but
+no retained sample contains a resolved pair for all 16 regular values. The
+verdict is confined to the supplied action, impulse and sampled interval
+(`computations/matter-formation-continuum-report.md` §32.7;
+`foundations/matter-completion-boundary.md` §14).
+
+The scalar temporal parent of the first-order carrier action admits an excited
+periodic mediator orbit. Its carrier equation has an exact Floquet instability,
+its mediator has a faster
 spatial instability at the retained comparison wave number, and prepared
 complex carrier data separate opposite local signed densities with zero total
 charge. Exactly empty carrier data remain invariant. The frozen nonlinear
@@ -1404,6 +1434,20 @@ A complete mechanism still requires a canonical action, quantum-state rule,
 physical normalization, infinite-domain localization and stability,
 localized real-time forming evolution and an observable particle
 discriminator (`foundations/matter-completion-boundary.md` §12).
+
+The separate massive bubble-lattice comparison adds an $O(4)$ field on the
+periodic primitive geometry. Its pion, nucleon-mean and Delta references give
+the **Mapped** normalization
+$e_B=4.842429173417474$,
+$f_B=54.126511603191005\ \mathrm{MeV}$ and
+$0.7528581473116732\ \mathrm{fm}$; all six target-bearing out-of-fit
+diagnostics carry `CONTRADICTS` verdicts. Its finite-site regulator
+$\mathcal Q=(S^3)^{N_s}$ is simply connected, leaving continuum degree,
+fermionic statistics and odd exchange character unforced.
+The added action's conserved stress and isospin current have no canonical Cassi stress exchange, and quantum-state
+selection, renormalization and physical identity remain open
+(`computations/matter-formation-continuum-report.md` §32;
+`foundations/matter-completion-boundary.md` §14).
 
 
 ### 10.6 Wake-Wave Mechanism

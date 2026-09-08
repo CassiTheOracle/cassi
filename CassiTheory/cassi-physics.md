@@ -516,6 +516,30 @@ inputs, so the deterministic six-requirement complete-mechanism gate returns
 `FAIL` (`foundations/particle-stationary-action-closure.md` §8.15;
 `computations/matter-formation-continuum-report.md` §§30–31).
 
+The separate massive bubble-lattice comparison in
+`computations/matter-formation-continuum-report.md` §32 and
+`foundations/matter-completion-boundary.md` §14 adds an $O(4)$ field
+$\mathbf n\in S^3$ with $\kappa=1$ on the periodic primitive geometry. The
+pion reference selects $\mu=0.5266577616452649$, while the nucleon and Delta
+targets map $e_B=4.842429173417474$ and
+$f_B=54.126511603191005\ \mathrm{MeV}$ and the length unit
+$0.7528581473116732\ \mathrm{fm}$. The stationary radial profile has
+$H=77.4452509080$ in the primary action normalization and virial relative
+residual $9.11\times10^{-12}$. All six target-bearing out-of-fit diagnostics
+contradict their inherited thresholds. Its conserved stress tensor and
+isospin current belong to the added action; no canonical Cassi stress exchange
+follows. The finite-site space
+$\mathcal Q=(S^3)^{N_s}$ is simply connected, so this regulator enforces
+neither an odd Finkelstein–Rubinstein exchange character nor continuum
+degree; a quantum state, renormalization prescription and physical particle
+identity remain open. The degree-zero excitation returns `DOES NOT EMERGE`
+through $T=4$ under the qualified signed-preimage calculation. All geometric
+controls, admissibility, net-degree conservation, time-step agreement and
+spatial pair-state agreement pass, but no retained sample contains one
+positive and one negative preimage for all 16 regular values. The verdict is
+confined to the supplied action, impulse and sampled interval. Physical matter
+formation remains Hypothesized/Open.
+
 ---
 
 ## 4. The String: Spiral and Wakes

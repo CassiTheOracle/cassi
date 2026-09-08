@@ -948,6 +948,24 @@ six-requirement completion gate returns `FAIL`; no proton-lifetime conclusion
 follows (`foundations/particle-stationary-action-closure.md` §8.15;
 `computations/matter-formation-continuum-report.md` §§30–31).
 
+The separate massive chiral comparison places an added $O(4)$ orientation field
+on the periodic bubble-lattice geometry. Its pion, nucleon and Delta inputs
+define a **Mapped** three-mass calibration with
+$e_B=4.842429173417474$ and
+$f_B=54.126511603191005\ \mathrm{MeV}$. All six target-bearing out-of-fit
+diagnostics contradict their specified tolerances. Its finite-site
+configuration space $(S^3)^{N_s}$ is simply connected, so the specified
+regulator supplies no protected continuum degree or odd
+Finkelstein–Rubinstein exchange character. Canonical stress exchange,
+interacting quantum-state selection, renormalization and particle identity
+remain open. The degree-zero excitation returns `DOES NOT EMERGE` through
+$T=4$ under the qualified signed-preimage calculation. All geometric controls,
+admissibility, net-degree conservation and numerical comparisons pass, but no
+retained sample contains a resolved pair for all 16 regular values. The
+verdict is confined to the supplied action, impulse and sampled interval
+(`foundations/matter-completion-boundary.md` §14;
+`computations/matter-formation-continuum-report.md` §32.7).
+
 ### Q10: Spin—what is it?
 
 ```mermaid

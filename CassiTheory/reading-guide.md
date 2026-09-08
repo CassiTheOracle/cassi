@@ -56,6 +56,24 @@ reproduced smooth density trapping at selected prepared charges, and closes
 with a Mapped conditional baryon benchmark plus a failed complete-mechanism
 adjudication.
 
+The separate massive bubble-lattice comparison is indexed in
+`foundations/matter-completion-boundary.md` §14 and detailed in
+`computations/matter-formation-continuum-report.md` §32. It adds an
+$O(4)$ orientation field on $S^3$ and maps the pion, nucleon and Delta mass
+references to a massive-model calibration. Its six target-bearing out-of-fit
+diagnostics all contradict their inherited thresholds. The added action has
+conditional conserved stress and isospin current but no canonical Cassi
+stress exchange; its finite-site configuration space
+$(S^3)^{N_s}$ is simply connected, so continuum degree and odd
+Finkelstein–Rubinstein exchange are not enforced. Quantum state selection,
+renormalization and physical particle identity remain open. The degree-zero
+excitation returns `DOES NOT EMERGE` through $T=4$ under a qualified
+signed-preimage calculation. The geometric controls and numerical comparisons
+pass, but no retained sample contains a resolved degree-$+1$/degree-$-1$ pair
+for all 16 regular values. This verdict is confined to the supplied action,
+impulse and sampled interval. Physical matter formation remains
+Hypothesized/Open.
+
 `foundations/yin-yang-qi-dynamical-geometry.md` §7.4 →
 `foundations/interscale-stress-attenuation-boundary.md` →
 `foundations/endpoint-link-and-localization-boundary.md` →

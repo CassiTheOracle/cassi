@@ -62,6 +62,20 @@ with an added field, action, quantum rule and degree-one sector, so the
 six-requirement complete-mechanism adjudication returns `FAIL`
 (`computations/matter-formation-continuum-report.md` §§30–31).
 
+A separate massive bubble-lattice comparison adds an $O(4)$ orientation field
+$\mathbf n\in S^3$ with $\kappa=1$ and
+$\mu=0.5266577616452649$. The pion, nucleon-mean and Delta references give a
+**Mapped** three-mass normalization
+$e_B=4.842429173417474$,
+$f_B=54.126511603191005\ \mathrm{MeV}$ and length
+$0.7528581473116732\ \mathrm{fm}$; all six target-bearing out-of-fit
+diagnostics contradict their inherited thresholds. Its finite-site regulator
+has $\mathcal Q=(S^3)^{N_s}$ and $\pi_1(\mathcal Q)=0$, so the lattice
+geometry supplies no fermionic statistics or physical particle identity.
+Conserved stress belongs to the added action and has no canonical Cassi stress
+exchange (`computations/matter-formation-continuum-report.md`
+§32; `foundations/matter-completion-boundary.md` §14).
+
 
 ## Document Index
 
@@ -112,7 +126,7 @@ six-requirement complete-mechanism adjudication returns `FAIL`
 | 43 | `particle-stationary-action-closure.md` | Temporal action, Gauss, empty-sector invariant, scalar reduction, fluctuation boundary and conditional chiral baryon benchmark | Hypothesized temporal completion / Derived conditional action, scalar-reduction, parent-vacuum, dilation, fixed-charge, formation-dynamics and non-identifiability identities / Mapped carrier coupling and conditional baryon benchmark / Tested prepared binding, finite-grid spectra, parent correspondences, conditional temporal dynamics and radial baryon relaxation—September 2026 |
 | 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, source-action response, and routed quadratic-flux attenuation | Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026 |
 | 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated conversion, coherence, transport, endpoint and bounded source interface | Hypothesized integrated realization / Derived canonical reduction, positivity, covariance and conditional interface ledgers / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026 |
-| 46 | `matter-completion-boundary.md` | Nine-part conditional boundary, conditional baryon benchmark and complete-mechanism adjudication | Derived conditional boundary and microscopic non-identifiability / Mapped carrier coupling and conditional baryon benchmark / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences and radial baryon relaxation—September 2026 |
+| 46 | `matter-completion-boundary.md` | Nine-part conditional boundary, massless and massive conditional baryon comparisons, finite-site topology and complete-mechanism adjudication | Derived conditional boundary and microscopic non-identifiability / Mapped carrier coupling, massless benchmark and massive three-mass normalization / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences and radial baryon relaxation; all six massive out-of-fit diagnostics carry `CONTRADICTS` verdicts, finite-site regulator simply connected—September 2026 |
 | 47 | `quantum-free-fall-correspondence.md` | Ideal QGI action and inference boundary; physical-$q$ bounds and information loss; forty-three closure requirements and QFC1–QFC4 receipts | Derived conditional external-potential correspondence / Hypothesized Cassi atomic state, gravity-response, and common-lapse mappings—September 2026 |
 
 ## Document Summaries
@@ -1055,6 +1069,25 @@ Mapped to the measured nucleon and Delta masses, and its spin/statistics and
 charge assignments follow only after supplied quantum rules. Four of six
 out-of-fit comparisons contradict their precision criterion. The result is a
 qualified conditional benchmark, not a canonical Cassi matter completion.
+
+The separate massive comparison adds an $O(4)$ field on the periodic
+bubble-lattice geometry. The pion, nucleon-mean and Delta references give the
+**Mapped** normalization
+$e_B=4.842429173417474$,
+$f_B=54.126511603191005\ \mathrm{MeV}$ and length
+$0.7528581473116732\ \mathrm{fm}$; all six target-bearing out-of-fit
+diagnostics carry the `CONTRADICTS` verdict against their inherited
+thresholds. Its finite-site configuration space $\mathcal Q=(S^3)^{N_s}$ is
+simply connected, leaving continuum degree and fermionic statistics unforced
+by this regulator. The added action's conserved stress has no canonical Cassi
+stress exchange, and quantum-state selection, renormalization
+and physical identity remain open. The degree-zero excitation returns
+`DOES NOT EMERGE` through $T=4$ under the qualified signed-preimage
+calculation. All controls and numerical comparisons pass, but no retained
+sample contains a resolved pair for all 16 regular values. The verdict is
+confined to the supplied action, impulse and sampled interval
+(`computations/matter-formation-continuum-report.md` §32.7;
+`foundations/matter-completion-boundary.md` §14).
 
 Physical exterior and reservoir actions, state selection, canonical
 coefficient determination, gravity selection, continuum-localized forming

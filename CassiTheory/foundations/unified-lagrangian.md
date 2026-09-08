@@ -572,6 +572,48 @@ Amplitude-relaxed metastability, physical quantum statistics and formation
 remain open (`foundations/particle-stationary-action-closure.md` (PA12);
 `computations/matter-formation-continuum-report.md` §§12.7–12.12, 18–20).
 
+### 2.6 Separate massive bubble-lattice comparison
+
+A distinct effective comparison adds an $O(4)$ orientation field
+$\mathbf n\in S^3$ on the periodic primitive bubble-lattice geometry:
+
+$$
+\mathcal L=\frac12X-\frac{\kappa}{4}(X^2-Y)-\mu^2(1-n_0),
+\qquad \kappa=1,\qquad \mu=0.5266577616452649.
+$$
+
+Here $X=\partial_\alpha\mathbf n\cdot\partial^\alpha\mathbf n$ and
+$Y=(\partial_\alpha\mathbf n\cdot\partial_\beta\mathbf n)
+(\partial^\alpha\mathbf n\cdot\partial^\beta\mathbf n)$, with spacetime
+signature $(+---)$.
+
+The pion reference selects $\mu$ within this added-field model. Its
+stationary radial profile has $H=77.4452509080$ in the primary action
+normalization, inherited radial calibration $E=2H=154.8905018161$, and virial
+relative residual $9.11\times10^{-12}$. The associated conserved stress tensor
+and isospin current are identities of the added action; no canonical
+stress-exchange term links them to the Cassi density, scale-current or
+environment sectors (`computations/matter-formation-continuum-report.md`
+§§32.1–32.6; `foundations/matter-completion-boundary.md` §14).
+
+Mapping the pion reference, nucleon mean and Delta mass gives the **Mapped**
+three-mass normalization
+$e_B=4.842429173417474$,
+$f_B=54.126511603191005\ \mathrm{MeV}$, and length unit
+$0.7528581473116732\ \mathrm{fm}$. All six target-bearing out-of-fit
+diagnostics contradict their inherited precision thresholds. For $N_s$
+unrestricted sites, the regulator configuration space is
+$\mathcal Q=(S^3)^{N_s}$ with $\pi_1(\mathcal Q)=0$; it therefore supplies no
+enforced odd Finkelstein–Rubinstein exchange character or continuum degree.
+Quantum-state selection, cutoff counterterms, renormalization and physical
+particle identity remain open. The degree-zero excitation returns
+`DOES NOT EMERGE` through $T=4$ under the qualified signed-preimage
+calculation. All controls and numerical comparisons pass, but no retained
+sample contains a resolved pair for all 16 regular values. The verdict is
+confined to the supplied action, impulse and sampled interval
+(`computations/matter-formation-continuum-report.md` §32.7).
+
+
 ## 3. GR/Gravity Sector $\mathcal{L}_{\text{GR}}$
 
 Gravity is an optional Einstein–Hilbert extension with a candidate
@@ -1127,6 +1169,16 @@ The following observables retain their listed statuses, with the gauge-sector en
 The Dirac/two-fluid chiral-scalar assignment has dimensional, positivity and Hermiticity obstructions. Its conditional scale candidate is $M_{s,\mathrm{scale}}=\varphi^3v_0\approx1.042$ TeV with the calibrated electroweak anchor; the exact cascade-anchor counterpart gives $E_{77}$. These arithmetic statements select no physical interaction, particle-production process or equilibration time.
 
 The physical normalization check gives three scalar models with the same imposed $0.511\ \mathrm{MeV}$ vacuum mass, speed $c$ and one internal generator unit, but different core scales. Its additional core-cell assignment is contradicted at the fixed coefficients. The independent spinor witnesses confirm the density and interaction obstructions. These results leave physical production and particle identity open (`computations/matter-formation-continuum-report.md` §12).
+
+The separate massive bubble-lattice comparison belongs to this added-field
+effective model. Its three-mass normalization is **Mapped**, all six
+target-bearing out-of-fit diagnostics contradict their inherited thresholds,
+and its finite-site regulator has simply connected configuration space, so
+the lattice geometry supplies no fermionic statistics or physical identity.
+The conserved stress and isospin current remain internal identities of that
+added action rather than a canonical Cassi stress exchange
+(`computations/matter-formation-continuum-report.md` §32;
+`foundations/matter-completion-boundary.md` §14).
 
 | Observable | Cassi | SM | Detectable at |
 |-----------|-------|-----|---------------|

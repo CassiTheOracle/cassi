@@ -174,6 +174,30 @@ six-requirement completion gate returns `FAIL`. Physical matter formation
 remains Hypothesized/Open
 (`computations/matter-formation-continuum-report.md` §§30–31).
 
+The separate massive bubble-lattice comparison in
+`computations/matter-formation-continuum-report.md` §32 and
+`foundations/matter-completion-boundary.md` §14 adds an $O(4)$ orientation
+field $\mathbf n\in S^3$ with $\kappa=1$ on a periodic primitive geometry.
+The pion reference selects $\mu=0.5266577616452649$; the nucleon and Delta
+mass targets then map $e_B=4.842429173417474$ and
+$f_B=54.126511603191005\ \mathrm{MeV}$, with length unit
+$0.7528581473116732\ \mathrm{fm}$. Its stationary radial profile has
+$H=77.4452509080$ in the primary action normalization and virial relative
+residual $9.11\times10^{-12}$. The six target-bearing out-of-fit diagnostics
+contradict their inherited precision thresholds. The conserved stress
+tensor and isospin current belong to this added action; no canonical Cassi
+stress exchange follows. For $N_s$ finite sites, the regulator configuration
+space is $\mathcal Q=(S^3)^{N_s}$ with $\pi_1(\mathcal Q)=0$, so it enforces
+neither odd Finkelstein–Rubinstein exchange nor continuum degree; the quantum
+state, renormalization and physical particle identity remain open. The
+degree-zero excitation returns `DOES NOT EMERGE` through $T=4$ under the
+qualified signed-preimage calculation. All geometric controls, admissibility,
+net-degree conservation, time-step agreement and spatial pair-state agreement
+pass, but no retained sample contains one positive and one negative preimage
+for all 16 regular values. This verdict is confined to the supplied action,
+impulse and sampled window. Physical matter formation remains
+Hypothesized/Open.
+
 
 ## The reality-simulation program
 
