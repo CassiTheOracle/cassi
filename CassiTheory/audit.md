@@ -347,6 +347,18 @@ and impulse. The massive-model normalization is **Mapped**, and physical
 matter formation remains **Hypothesized/Open**
 (`computations/matter-formation-continuum-report.md` §§32.1–32.7).
 
+The supplied signed scalar interface has independently qualified
+normal-bound carrier modes and a surface-growth interval
+$0.2722637330<a\le0.3142233130$ with nonnegative bulk potential. Its
+complex-direction energetic eigenvalue is $-2$ at $u_\rho=4$, so the
+underlying wall is unstable in the stated complex-field subspace.
+Surface growth is fastest at zero tangential wave number. The 36 numerical
+eigenpairs and source-bound rejection controls qualify this conditional
+interface result; they provide no stable finite bubble, incoming-flux
+capture or particle cluster. Physical matter formation remains
+**Hypothesized/Open**
+(`computations/matter-formation-continuum-report.md` §33).
+
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 
 | Claim | Tested result | Status |

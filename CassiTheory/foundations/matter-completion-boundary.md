@@ -1247,6 +1247,37 @@ The six physical completion requirements retain the open canonical action,
 quantum-state, renormalization, all-sector stability and particle-identity
 mechanisms described above.
 
+## 15. Interface retention and boundary-driven formation
+
+A density-depleted interface can hold a carrier excitation, but particle
+formation also requires the interface to remain stable. The supplied scalar
+parent admits a stationary signed-real wall
+$f_{\rm w}=\tanh(x\sqrt{u_\rho/2})$ under imposed opposite-sign boundary
+values. Its normal carrier well has a ground bound state and, at the retained
+dimensionless coefficients, a surface-growth threshold
+$a_{\rm wall}=0.2722637330$ below the bulk-vacuum boundary
+$a_{\rm vac}=0.3142233130$. Surface growth decreases with tangential wave
+number squared, selecting no fastest-growing nonzero surface wave number.
+
+Restoring the full common complex direction gives the admissible static
+variation $\Psi=(f_{\rm w}+i\eta)v_0$ and
+$$
+\boxed{H_\perp\operatorname{sech}(x/\delta)
+=-\frac{u_\rho}{2}\operatorname{sech}(x/\delta).}
+$$
+Here $\delta=\sqrt{2/u_\rho}$ and $v_0^\dagger v_0=1$. The perturbation
+preserves vacuum composition and the static Gauss constraint. A broad
+compact surface envelope retains its negative second variation. The
+signed-real wall is therefore energetically unstable in the declared
+complex-field subspace. Its negative-$f$ boundary is also outside the
+canonical positive-root domain.
+
+Exact algebra and all 36 finite-difference eigenpairs qualify this
+conditional result (`computations/matter-formation-continuum-report.md`
+§33). It establishes no incident-flux capture, finite bubble, small-bubble
+pattern, inter-bubble binding or particle identity. Those mechanisms and
+the six physical completion requirements remain open.
+
 ## References
 
 - `foundations/geometric-manifold-completion.md`—positive coherence fibre,

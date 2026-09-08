@@ -103,6 +103,16 @@ retained sample contains a resolved degree-$+1$/degree-$-1$ pair for all 16
 regular values. The verdict is confined to the supplied action, impulse and
 sampled interval (§32).
 
+A supplied planar sign wall supports normal-bound carrier modes and a
+surface-growth interval below the bulk-vacuum threshold. Its ground carrier
+mode grows for $a>0.2722637330$, while the bulk potential remains nonnegative
+through $a=0.3142233130$. The same wall has an admissible complex-direction
+energetic eigenvalue $-2$ at $u_\rho=4$. Exact algebra and all 36 independent
+finite-difference eigenpairs qualify these statements. Surface growth is
+fastest at zero tangential wave number. This conditional interface calculation
+supplies neither a stable finite bubble nor a selected small-bubble pattern,
+incoming-flux capture, particle clustering or complete formation (§33).
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -4373,8 +4383,288 @@ production rate, statistics, physical particle identity or complete Cassi
 matter-formation mechanism.
 
 
+## 33. Boundary-localized carrier modes and interface survival
+
+A field interface can trap an excitation only if the interface itself survives
+the allowed field variations. This calculation examines a planar depletion
+layer in the supplied scalar parent of §25. It separates carrier trapping,
+growth along a surface, and stability of the underlying interface. The
+canonical density pair and the geometric proxy in
+`foundations/bubble-lattice-fabric.md` do not identify a physical sign-changing
+scalar wall.
+
+### 33.1 Declared interface and exact normal operators
+
+Extend the real mediator coordinate of §25 to signed values and impose
+$f(-\infty)=-1$, $f(+\infty)=1$, with empty carrier $z=0$. This real-coordinate
+restriction supplies a planar stationary interface with finite energy per
+area. It is an added boundary condition; the canonical positive-root domain
+has no negative-$f$ branch. Keep $u_\rho=4$, $k_{Cx}=1$, $u_C=1$,
+$e_C=3/4$ and the retained Mapped coefficient
+$h_C=2.9598260763447164$.
+
+For any positive $u_\rho$, the exact carrier-free profile and tension are
+$$
+f_{\rm w}(x)=\tanh(x/\delta),\qquad
+\delta=\sqrt{2/u_\rho},\qquad
+\sigma_{\rm w}=\frac{2\sqrt{2u_\rho}}{3}.
+$$
+The profile solves $-f_{\rm w}''+u_\rho(f_{\rm w}^2-1)f_{\rm w}=0$.
+The tension includes the mediator gradient and potential energy. This
+infinite planar background has infinite total energy and supplies no
+three-dimensional localized particle.
+
+The linear carrier separates into a normal profile and a surface Fourier
+mode with tangential wave number $p$. Define
+$$
+K=\frac{k_{Cx}u_\rho}{4},\qquad
+s(s+1)=\frac{h_C}{K},\qquad s>0,\qquad
+B=e_C+\frac{1}{4a}.
+$$
+Its normal operator and complete discrete bound spectrum are
+$$
+\begin{aligned}
+H_z&=-\frac{k_{Cx}}2\partial_x^2+B-h_C\operatorname{sech}^2(x/\delta),\\
+\lambda_n&=B-K(s-n)^2,\qquad n=0,1,\ldots,\quad n<s,\\
+a\omega_n^2(p)&=\lambda_n+\frac{k_{Cx}}2p^2.
+\end{aligned}
+$$
+The ground normal profile is proportional to
+$\operatorname{sech}^{s}(x/\delta)$. The first excited profile, when $s>1$,
+is proportional to
+$\tanh(x/\delta)\operatorname{sech}^{s-1}(x/\delta)$.
+A state at $n=s$ has no normalizable tail and is excluded. The continuum
+threshold of $H_z$ is $B$.
+
+The ground state is normal-bound for every positive $h_C$, but exponential
+growth requires the separate condition $\lambda_0<0$. If $Ks^2>e_C$, the
+surface-growth threshold and the nonnegative-bulk-potential threshold are
+$$
+a_{\rm wall}=\frac{1}{4(Ks^2-e_C)},\qquad
+a_{\rm vac}=\frac{1}{4(h_C-e_C-\sqrt{u_\rho u_C/2})},
+$$
+where the latter expression is used only when its denominator is positive.
+These expressions distinguish a bound massive surface mode from a growing
+surface mode and from a lower-energy bulk phase.
+
+When $\lambda_0<0$, the growing surface band satisfies
+$p^2<-2\lambda_0/k_{Cx}$. Its squared exponent is
+$$
+\Gamma^2(p)=\frac{-\lambda_0-k_{Cx}p^2/2}{a}.
+$$
+It decreases strictly with $p^2$. This linear mechanism favors the uniform
+surface mode and supplies no fastest-growing nonzero surface wave number.
+Nonlinear fragmentation or a localized surface object requires a separate
+calculation.
+
+### 33.2 Restoring the common complex phase
+
+A sign wall of a real restriction can lose stability when the underlying
+complex field is allowed to move around the origin. The relevant variation
+can be tested without selecting a gauge-field evolution. In the
+constant-composition, zero-connection subspace of
+`foundations/particle-stationary-action-closure.md` (PA12), write the
+normalized doublet as
+$$
+\Psi=(f_{\rm w}+i\eta)v_0,\qquad v_0^\dagger v_0=1,
+$$
+with the vacuum composition and aligned constant adjoint held fixed. Its
+composition potential remains zero because both doublet components receive
+the same complex factor. Its density is $f_{\rm w}^2+\eta^2$.
+All temporal momenta, temporal gauge fields and electric fields vanish, so
+the static Gauss constraint (PA16) is satisfied.
+
+The quadratic phase-direction energy per area is
+$$
+\delta^2 E_\perp
+=\int \eta H_\perp\eta\,dx,\qquad
+H_\perp=-\partial_x^2-u_\rho\operatorname{sech}^2(x/\delta).
+$$
+Here $\delta^2E_\perp$ denotes the second derivative with respect to the
+perturbation amplitude; the quadratic term in the energy is half this
+quantity. The normal mode $\eta_0=\operatorname{sech}(x/\delta)$ satisfies
+$$
+H_\perp\eta_0=-\frac{u_\rho}{2}\eta_0.
+$$
+It decays at both ends and gives a strict negative second variation. A broad
+compact envelope along the interface retains that negative sign while
+making the perturbation localized tangentially. This excludes energetic
+stability of this sign wall in the stated complex-field subspace.
+The calculation does not infer a physical gauge-mode growth rate from
+an unconstrained temporal phase equation.
+
+For comparison, real mediator perturbations obey
+$$
+H_\parallel=-\partial_x^2+u_\rho(3f_{\rm w}^2-1).
+$$
+Its two discrete eigenvalues are $0$ and $3u_\rho/2$, with normal profiles
+$\operatorname{sech}^2(x/\delta)$ and
+$\tanh(x/\delta)\operatorname{sech}(x/\delta)$. Its continuum begins at
+$2u_\rho$. The translation zero mode and the complex-direction negative
+mode belong to different allowed variations.
+
+### 33.3 Interface calculation: pre-execution criteria
+
+Freeze this unique section through the next heading of level three or
+higher, normalizing CRLF to LF, stripping final whitespace and appending
+one LF. Bind its SHA-256 in both standalone programs. Retain source
+snapshots, the frozen text, exact expressions, library versions and all
+numerical arrays in fresh output directories under
+`runs/20260908_matter_formation_interface/`. Neither program may import
+or execute the other's implementation. No model coefficient, boundary,
+wave-number, initial-state or stopping-rule scan is permitted.
+
+Use precisely the coefficients and operators in §§33.1–33.2. The temporal
+comparison points are $a=1/16$, $3/10$ and $1/2$; their roles are a stable
+carrier-surface comparison, an interior test of the surface/bulk threshold
+ordering, and a bulk-potential scope control. They are dimensionless
+mathematical witnesses, with no physical calibration.
+
+The primary program is
+`computations/matter_formation_interface_spectrum.py`. Check the wall
+equation, gradient/potential first integral and tension, both carrier
+eigenfunctions, the real-mediator translation and shape modes, the
+complex-direction negative mode, the phase-path energy expansion, static
+zero-momentum Gauss compatibility, and the tangential dispersion identity
+with exact symbolic algebra. Every residual must reduce to zero. Compute
+$s$, the two thresholds, the normal eigenvalues and the vacuum-potential
+condition at all three specified $a$ values with at least 40 decimal
+digits. Preserve exact expressions as well as finite JSON numbers.
+
+The independent program is
+`computations/verify_matter_formation_interface_spectrum.py`. Reconstruct
+the three differential operators directly from the displayed energy,
+without importing the primary expressions or functions. Use centred
+second-order Dirichlet differences on $[-X,X]$ with exactly
+$(X,N)=(12,512),(12,1024),(12,2048),(24,4096)$, where $N$ is the number
+of equal intervals and both endpoints are excluded from the matrix.
+Compute the two lowest carrier eigenpairs at every $a$, the lowest
+complex-direction eigenpair, and the two lowest real-mediator eigenpairs.
+Use the cell-spacing-weighted inner product and store every grid,
+potential, eigenvalue and normalized eigenvector.
+
+For each of these nine bound-eigenvalue comparisons, require absolute
+error below $4\times10^{-4}$ on $(12,2048)$, and an absolute
+$(12,2048)$ versus $(24,4096)$ difference below $10^{-4}$. The ratio of
+the $(12,512)$–$(12,1024)$ difference to the
+$(12,1024)$–$(12,2048)$ difference must lie in $[3.5,4.5]$.
+The finest-grid normalized maximum eigen-equation residual must be below
+$10^{-8}$, and the absolute overlap of each numerical mode with its
+normalized analytic profile must exceed $0.999$. Independently check
+the threshold ordering, all three carrier-growth signs and all three
+bulk-potential signs. Require a separate analytical review of the
+phase-direction admissibility and the positive-root/complex-field scope.
+
+Primary and independent qualified results, matching frozen inputs, and
+agreement of the analytical review give
+`SUPPORTS—conditional interface trapping and sign-wall instability`.
+Any missing, altered, nonfinite or numerically unqualified evidence gives
+`INCONCLUSIVE`. This verdict qualifies the stated interface criteria;
+it contains no nonlinear trajectory, incoming-flux capture measurement,
+finite bubble, cluster, production rate, quantum state, particle identity
+or complete matter-formation claim. Preserve all receipts and stop at
+the fixed verdict. Missing-section and altered-section controls must
+exit one with `INCONCLUSIVE` and empty scientific payloads.
+
+### 33.4 Qualified interface spectrum
+
+The exact normal modes agree with the independent spatial calculation on the
+entire frozen schedule. The primary receipt passes 28 algebraic and
+coefficient checks; the independent receipt passes 15 qualification checks
+and four primary-comparison groups. Its 36 saved eigenpairs reconstruct with
+cell-weighted norm error at most $1.56\times10^{-15}$ and normalized
+eigen-equation residual at most $5.44\times10^{-11}$ across all four grids.
+
+At the retained coefficients,
+$$
+s=1.2915987487003657,\qquad
+a_{\rm wall}=0.27226373303586804,\qquad
+a_{\rm vac}=0.31422331299444245.
+$$
+The wall width and tension are $\delta=0.7071067811865476$ and
+$\sigma_{\rm w}=1.8856180831641267$ in the declared dimensionless
+normalization. The two normal-bound carrier eigenvalues and the separate
+bulk-potential condition are:
+
+| $a$ | Ground $\lambda_0$ | First excited $\lambda_1$ | Carrier surface growth | Nonnegative bulk potential |
+|---|---:|---:|---|---|
+| $1/16$ | $3.08177267236$ | $4.66497016976$ | Absent | Yes |
+| $3/10$ | $-0.0848939943110$ | $1.49830350309$ | Present | Yes |
+| $1/2$ | $-0.418227327644$ | $1.16497016976$ | Present | No |
+
+All nine finest-grid comparisons satisfy the frozen absolute criteria:
+
+| Qualification | Measured bound | Required bound |
+|---|---:|---:|
+| Maximum eigenvalue error on $(12,2048)$ | $2.0274914\times10^{-4}$ | $<4\times10^{-4}$ |
+| Maximum difference between $(12,2048)$ and $(24,4096)$ | $2.9933026\times10^{-5}$ | $<10^{-4}$ |
+| Second-order convergence ratios | $4.0024973$–$4.0074880$ | $[3.5,4.5]$ |
+| Maximum normalized eigen-equation residual on $(12,2048)$ | $3.08310\times10^{-11}$ | $<10^{-8}$ |
+| Minimum weighted analytic-profile overlap on $(12,2048)$ | $0.9999566074$ | $>0.999$ |
+
+The complex-direction eigenvalue is exactly $-2$ and numerically
+$-2.00002136319$ on $(12,2048)$. The real-mediator eigenvalues are exactly
+$0$ and $6$; the small finite-difference displacement of the translation
+mode is covered by the absolute convergence test. It supplies no additional
+continuum instability.
+
+The independent analytical review accepts the phase path in §33.2. At the
+wall centre, the base doublet vanishes and the phase perturbation is nonzero;
+a regular infinitesimal gauge transformation of that base doublet vanishes
+there. The negative direction therefore survives removal of pure gauge
+variations. A smooth compact tangential envelope of width $R$ gives a
+negative normal contribution proportional to $R^2$ and a tangential gradient
+cost independent of $R$, so sufficiently broad finite envelopes preserve
+the negative sign. Static Gauss compatibility holds along this path.
+
+Both missing-section and altered-section controls exit one with
+`INCONCLUSIVE` and empty scientific payloads. An unqualified primary receipt
+and a copied primary missing its source snapshot are also rejected.
+The unqualified algebra receipt contains an unevaluated
+$\operatorname{sech}^4$ integral. The accepted source evaluates the same
+integral by $v=\tanh y$:
+$\int_{-\infty}^{\infty}\operatorname{sech}^4y\,dy
+=\int_{-1}^{1}(1-v^2)\,dv=4/3$.
+The frozen coefficients, operators, comparisons and thresholds are identical.
+
+The source-bound joint verdict is
+`SUPPORTS—conditional interface trapping and sign-wall instability`.
+Receipts, source snapshots, all spatial arrays, six rejection controls and
+the independent raw-array reconstruction are retained under
+`runs/20260908_matter_formation_interface/`. The accepted pair is
+`runs/20260908_matter_formation_interface/primary_integral_recovery/results.json`
+and `runs/20260908_matter_formation_interface/verification/verification.json`.
+The joint receipt is
+`runs/20260908_matter_formation_interface/reconciliation.json`.
+
+### 33.5 Consequences for boundary-driven formation
+
+An interface well provides one mathematically qualified way to hold energy
+near a boundary. Converting an incoming disturbance from the larger lattice
+into occupation of that mode still requires a specified coupling and an
+energy-accounted capture calculation. The supplied classical carrier
+equation preserves exactly empty carrier data.
+
+The route from a filled interface to small persistent bubbles has two
+separate requirements. A physical interface must survive the allowed
+complex-field variations, and its dynamics must select and retain a finite
+spatial structure. The declared sign wall fails the first requirement; its
+linear carrier growth supplies no preferred nonzero surface wave number.
+The geometric bubble pattern does not identify this wall or remove either
+requirement.
+
+A particle assembled from several filled bubbles additionally requires
+measured binding and a finite-size energy balance. Neither quantity is
+provided by the planar normal spectrum. The tested result therefore
+constrains this particular interface construction, while finite bubbles,
+cross-scale capture, clustering, physical quantum numbers and complete
+matter formation remain **Hypothesized/Open**.
+
 ## References
 
+- `computations/matter_formation_interface_spectrum.py`—exact signed-wall, carrier-mode, phase-path and static Gauss calculation.
+- `computations/verify_matter_formation_interface_spectrum.py`—independent Dirichlet spectra, convergence, phase-admissibility review and primary-evidence qualification.
+- `runs/20260908_matter_formation_interface/`—source-bound primary and independent spectra, raw arrays, rejection controls and joint reconciliation.
 - `computations/matter_formation_chiral_lattice.py`—three-dimensional constrained Hamiltonian evolution on the periodic primitive geometry.
 - `computations/verify_matter_formation_chiral_lattice.py`—independent analytic force, DOP853 control trajectory and raw-field diagnostic reconstruction.
 - `computations/matter_formation_chiral_lattice_structure.py`—conditional action identities, primitive metric, massive radial solution and empirical normalization.

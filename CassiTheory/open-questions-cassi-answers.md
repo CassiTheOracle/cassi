@@ -966,6 +966,18 @@ verdict is confined to the supplied action, impulse and sampled interval
 (`foundations/matter-completion-boundary.md` §14;
 `computations/matter-formation-continuum-report.md` §32.7).
 
+The supplied scalar interface has a normal-bound carrier mode and a
+surface-growth threshold $a_{\rm wall}=0.2722637330$ below the nonnegative
+bulk-potential boundary $a_{\rm vac}=0.3142233130$. Exact algebra and 36
+independent finite-difference eigenpairs qualify these conditional criteria.
+The common complex field direction gives the same signed wall a negative
+energetic eigenvalue $-u_\rho/2=-2$, while surface carrier growth is fastest
+at zero tangential wave number. This construction supplies no stable finite
+bubble, selected small-bubble pattern, capture rate or particle cluster.
+The canonical positive-root domain excludes its negative-$f$ boundary
+(`foundations/matter-completion-boundary.md` §15;
+`computations/matter-formation-continuum-report.md` §33).
+
 ### Q10: Spin—what is it?
 
 ```mermaid

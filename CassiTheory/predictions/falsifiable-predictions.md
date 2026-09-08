@@ -841,6 +841,18 @@ initial sector are separately supplied, and the six-requirement physical
 completion gate returns `FAIL`. The benchmark adds no catalog prediction
 (`computations/matter-formation-continuum-report.md` §§30–31).
 
+The supplied scalar sign wall has a qualified normal-bound carrier mode and
+surface growth for $a>a_{\rm wall}=0.2722637330$ at the retained
+dimensionless coefficients. Its bulk potential remains nonnegative through
+$a_{\rm vac}=0.3142233130$. The full complex field also admits a negative
+interface-energy direction with eigenvalue $-u_\rho/2=-2$. Surface growth
+is fastest at zero tangential wave number. Exact algebra and 36 independent
+eigenpairs qualify these conditional statements; no finite bubble,
+incident-flux capture, inter-bubble binding, production rate or particle
+identity is established. This calculation adds no catalog prediction
+(`foundations/matter-completion-boundary.md` §15;
+`computations/matter-formation-continuum-report.md` §33).
+
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;
 `computations/matter_completion_boundary_check.py`;

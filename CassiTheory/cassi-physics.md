@@ -540,6 +540,17 @@ positive and one negative preimage for all 16 regular values. The verdict is
 confined to the supplied action, impulse and sampled interval. Physical matter
 formation remains Hypothesized/Open.
 
+The supplied scalar interface calculation distinguishes trapping from
+interface survival. A normal-bound carrier mode grows above
+$a_{\rm wall}=0.2722637330$, below the nonnegative bulk-potential boundary
+$a_{\rm vac}=0.3142233130$. The same signed wall has an admissible
+complex-direction energetic eigenvalue $-2$, and its surface carrier growth
+is fastest at zero tangential wave number. Exact algebra and all 36
+finite-difference eigenpairs qualify these conditional statements.
+A stable finite bubble, cross-scale capture and binding between bubbles
+remain open (`foundations/matter-completion-boundary.md` §15;
+`computations/matter-formation-continuum-report.md` §33).
+
 ---
 
 ## 4. The String: Spiral and Wakes
