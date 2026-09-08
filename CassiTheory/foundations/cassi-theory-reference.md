@@ -650,6 +650,16 @@ slow sector alone cannot fix the microscopic action, state, physical
 normalization or particle identity
 (`computations/matter-formation-continuum-report.md` §29).
 
+Finite quantum occupation and spatial rotation constrain proposed
+microscopic identifications further. Ordinary two-mode Bose/Fermi transfers
+agree with the unsaturated carrier drift at one particle but add
+stimulation or blocking at two. A scalar half-angle operator fails the
+full spatial angular-momentum algebra. Independent exact calculations and
+finite trajectories qualify these constraints, while anomaly cancellation
+retains multiple field-content and charge choices
+(`computations/matter-formation-continuum-report.md` §38;
+`foundations/matter-completion-boundary.md` §19).
+
 ### 4.3 Gravity Sector $\mathcal{L}_{\text{GR}}$ (optional gravity extension)
 This sector is an optional **Hypothesized** gravity extension. Its displayed
 relations and fixed-point evaluations are **Derived conditional** on the ansatz

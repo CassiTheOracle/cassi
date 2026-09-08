@@ -356,7 +356,7 @@ effective gravitational constant:
 
 $$G_{\text{eff}} = G \cdot \alpha\,(1 + (\varphi^{6}-1)q)$$
 
-with $\alpha$ the local Yang fraction ($\alpha_0 = \pi/\rho = \varphi^{-3}$ at the $\varphi$-fixed point; $\alpha_{\text{halo}} \approx 0.7$ in the galactic halo regime). This is a **dimensionless modification**—it tells us how $G$ is enhanced by local Qi coherence, but it does not determine the bare $G$ itself.
+with $\alpha=\pi/\rho$ the local fractional density imbalance ($\alpha_0=\varphi^{-3}$ at the $\varphi$-fixed point; $\alpha_{\text{halo}}\approx0.7$ in the supplied galactic-halo regime). The Yang density fraction at that fixed point is $E_Y/\rho=\varphi^{-1}$. This dimensionless modification specifies how local composition and Qi coherence affect $G_{\text{eff}}/G$; the bare $G$ remains an independent dimensional input.
 
 #### The structural issue
 

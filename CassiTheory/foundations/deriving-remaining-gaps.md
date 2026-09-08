@@ -245,7 +245,7 @@ appears in a **verified physical quantity**.
 |----------|-------------|-------------------|-------------|
 | 1 | 1.618 | Fundamental ratio $r = E_Y/E_I$ | Postulate |
 | 2 | 2.618 | Qi gate normalization denominator | PDE structure |
-| 3 | 4.236 | $\sin^2\theta_W = \varphi^{-3}$, Yang fraction $\varphi^{-3}$ | 2.1% (tree) |
+| 3 | 4.236 | $\sin^2\theta_W = \varphi^{-3}$, equilibrium density imbalance $\pi/\rho=\varphi^{-3}$ | 2.1% (tree-level mixing-angle comparison); exact imbalance at $E_Y/E_I=\varphi$ |
 | 3 | 4.24 | Formal $\kappa_{s,\mathrm{scale}}^{-1/2} = \varphi^3 v_0 \approx 1.04$ TeV sector-scale candidate | Conditional $C=1$ arithmetic only; the exact projection obstruction leaves the physical $\kappa_s$, operator and equilibration scale unresolved |
 | 5 | 11.09 | Wu Xing scale, gap $g = 1-\varphi^{-5}$ | $w_0 = -0.87$ ($2\sigma$ from DESI $\approx -0.75 \pm 0.06$ [INF]) |
 | 6 | 17.94 | $\xi = \varphi^6$ (Qi-gravity coupling) | $v_C/v_B = 2.8$–$3.0$ (~0.4σ) |

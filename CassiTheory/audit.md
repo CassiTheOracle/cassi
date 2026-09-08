@@ -432,6 +432,25 @@ full-energy drift is $1.26859\times10^{-11}$. The uncoupled local-empty and
 globally empty controls give zero local population. These fixed-witness
 results carry the verdict `SUPPORTS-conditional cascade response`.
 
+The microscopic-selection calculation qualifies limits on proposed particle
+identifications. A scalar half-angle operator fails the full spatial
+angular-momentum algebra. Ordinary two-mode Bose/Fermi transfers agree with
+the canonical unsaturated drift at one carrier but differ at two; fully
+occupied fermionic modes are blocked while the canonical drift leaves their
+Pauli domain. Chiral anomaly cancellation admits multiple color counts and,
+with a right-handed neutrino, a continuous charge family. These are
+**Derived conditional** constraints on supplied microscopic constructions.
+
+The primary passes 68 checks and the independent reconstruction passes 54;
+their largest trajectory probability disagreement is
+$1.2378986724570495\times10^{-13}$. All four frozen prerequisite controls
+return `INCONCLUSIVE` with empty scientific payloads. The joint verdict is
+`SUPPORTS-conditional microscopic selection constraints`. Physical action
+selection, quantum state and renormalization, particle identity and complete
+matter formation remain **Hypothesized/Open**
+(`computations/matter-formation-continuum-report.md` §38;
+`foundations/matter-completion-boundary.md` §19).
+
 
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 

@@ -901,6 +901,18 @@ particle mass, formation epoch, spin or statistics and add no catalog
 prediction (`foundations/interscale-current-soliton.md` §12;
 `computations/matter-formation-continuum-report.md` §37).
 
+Finite occupation and spatial rotation supply additional conditional
+discriminators. The specified Bose, Fermi and unsaturated carrier transfers
+agree at one carrier and differ at two; a fully occupied fermionic pair
+cannot follow the unrestricted canonical drift. The scalar half-angle
+operator also fails the full spatial angular-momentum algebra. Chiral
+anomaly cancellation retains multiple microscopic assignments. These
+independently qualified mathematical constraints require a physical state
+and operator map before comparison with particle measurements; they add no
+numbered catalog prediction
+(`computations/matter-formation-continuum-report.md` §38;
+`foundations/matter-completion-boundary.md` §19).
+
 
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;

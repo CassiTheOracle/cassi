@@ -1,6 +1,6 @@
 # Spin and Fibonacci Spirals: An Optional Compact-Phase Extension
 
-## Status: Hypothesized—August 2026
+## Status: Hypothesized compact-phase and particle assignments / Derived conditional sign arithmetic and spatial-representation obstruction—September 2026
 
 ## Abstract
 
@@ -200,6 +200,19 @@ $\Psi(\chi+4\pi)/\Psi(\chi)=+1$. The script also evaluates the separately
 defined full-angle scalar $e^{i\chi}$, which returns to itself under
 $\chi\mapsto\chi+2\pi$. These are exact checks of the proposed ansatz, not
 measurements of the canonical two-fluid solver.
+
+Physical spatial spin requires an action of rotations about all three axes.
+Extending the scalar phase above to the entire two-component state space as
+$U_\chi(\alpha)=e^{i\alpha/2}I_2$ gives a generator
+$J_\chi=-I_2/2$ in units $\hbar=1$. Its nonzero trace prevents it from
+belonging to a finite-dimensional angular-momentum triple satisfying
+$[J_i,J_j]=i\epsilon_{ijk}J_k$: each such generator is a commutator and has
+zero trace. The supplied spin-$1/2$ matrices $J_i=\sigma_i/2$ instead satisfy
+that algebra. One prepared eigenstate can acquire the same half-angle phase
+under a single genuine spin rotation, so a single phase orbit leaves this
+distinction unresolved. The full rotation action and its physical
+identification remain additional inputs
+(`computations/matter-formation-continuum-report.md` §38.1).
 
 ### 2.2 Proposed spectrum table
 

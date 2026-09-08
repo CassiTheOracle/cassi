@@ -1,9 +1,9 @@
 """
-Verification for cosmology/cosmology-from-phi.md sec 4.2: Omega_DM/Omega_b = phi^3 + 1.
+Conditional phi^3 base and +1 capture diagnostic for cosmology/cosmology-from-phi.md sec 4.2.
 
 Part A: rung arithmetic for the phi^3 base.
   - alpha_EM^-1 rungs (repo's own placements, foundations/dimensionful-constants-status.md)
-  - xi = phi^6 (rung 6) and G_eff,max/G = phi^3 (rung 3) -- the condensate gravitational scale
+  - xi = phi^6 (step 6) and G_eff/G = phi^3 (step 3) at the fixed-composition dense endpoint
   - spans; which reading gives exactly 3 rungs?
 
 Part B: the +1 capture term against the SPARC hydrostatic condensate fits
@@ -45,7 +45,7 @@ for label, val in [('alpha_em^-1 (0 momentum)', 137.036),
                    ('alpha_em^-1 (M_GUT)',      225.0)]:
     print(f"  {label:24s} n = {rung(val):8.3f}")
 print(f"  xi = phi^6 (gravitational amplification)      n = {rung(PHI**6):8.3f} (exact 6)")
-print(f"  G_eff,max/G = phi^3 (saturation ceiling)      n = {rung(PHI**3):8.3f} (exact 3)")
+print(f"  G_eff/G = phi^3 (fixed-composition dense endpoint) n = {rung(PHI**3):8.3f} (exact 3)")
 print(f"  sin^2 theta_W = phi^-3 = fixed-point imbalance n = {rung(PHI**-3):8.3f} (exact -3)")
 print("\nSpans:")
 print(f"  xi(6)  - alpha_em^-1(0 momentum, 10.225): {6 - rung(137.036):+7.3f} rungs  (NOT 3)")
@@ -53,7 +53,8 @@ print(f"  xi(6)  - alpha_em^-1(m_Z,      10.098): {6 - rung(128.95):+7.3f} rungs
 print(f"  xi(6)  - alpha_em^-1(M_GUT,    11.255): {6 - rung(225.0):+7.3f} rungs  (NOT 3)")
 print(f"  xi(6)  - sin^2 theta_W (rung 3 in exponent catalog): {6-3:+7.1f} rungs  (EXACT)")
 print(f"  => xi * sin^2 theta_W = phi^6 * phi^-3 = phi^3 = {PHI**3:.6f} exactly")
-print(f"  => Omega_DM/Omega_b = phi^3 = alpha_0^-1 = G_eff,max/G (xi-derivation sec 2.3)")
+print("  => Conditional Omega_DM/Omega_b base = phi^3 = alpha_0^-1;"
+      " equal to the fixed-composition dense G_eff/G (xi-derivation sec 2.3)")
 print(f"  alpha_EM^-1 nearest integer rung: 10.225 -> 10 (frac +0.225); 128.95 -> 10.098; 225 -> 11.255")
 
 print()

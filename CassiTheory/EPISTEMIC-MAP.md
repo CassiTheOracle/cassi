@@ -153,6 +153,16 @@ forming evolution and particle discriminator remain additional inputs.
 Complete physical matter formation remains **Hypothesized/Open**
 (`computations/matter-formation-continuum-report.md` §29).
 
+The microscopic rotation, occupation-drift and anomaly identities are
+**Derived conditional** on the stated finite representations and jump
+operators. Their independent exact-algebra and finite-trajectory checks
+are **Tested**. One-carrier agreement does not select quantum statistics;
+at two carriers the specified transfer processes differ. A scalar
+half-angle phase does not supply the full spatial spin representation.
+Physical action, state, renormalization and particle identity remain
+**Hypothesized/Open**
+(`computations/matter-formation-continuum-report.md` §38).
+
 The added compact chiral field and action are **Hypothesized** inputs. Their
 integer degree and collective-coordinate formulas are **Derived conditional**;
 the coefficients $e_B$ and $f_B$ are **Mapped** to the measured nucleon and
@@ -249,7 +259,7 @@ matter formation remains **Hypothesized/Open**.
 | `foundations/physical-becoming-hierarchy.md` | Hypothesized architecture / Derived canonical reduction—September 2026 | Three-level hierarchy from microscopic actual physics through mesoscopic open-system fields to agent-level reaction coordinates; exact positive-semidefinite gradient-flow embedding of canonical rank-one conversion; embodiment, memory, shadow branches, attention, action, debit, and learning require held-out closure and causal gates; the gravity section records the conditional ideal quantum-free-fall boundary while the source/response completion remains open; phenomenal consciousness remains open |
 | `foundations/neutrino-masses.md` | Hypothesized mechanism / Mapped offsets—August 2026 | Seesaw at step 20; selected mapped coordinate span $n=8\rightarrow20$; physical GUT anchor $n\approx13.3$; absolute spectrum fit from oscillation differences |
 | `foundations/quantum-measurement-derivation.md` | Derived conditional (regulated quantum mechanics and finite carrier projection); Hypothesized (CassiFI and carrier physical identifications)—August 2026 | Finite CassiFI configuration-space quantization; linear Schrödinger evolution, tensor-product entanglement, current-guided actual configuration, topological records, and unique local equivariant Born density. Quantum equilibrium remains a postulate. DQ1–DQ9 rejects physical-identification promotion. GQ1–GQ7 adopts a Hypothesized moment-map/Kähler projection architecture. QC1–QC9 adopts a finite carrier reservoir as Hypothesized microphysics and derives its mesoscopic drift, fluctuation law, and finite instrument conditionally; the QF1-to-carrier state map remains Open. Under the same instrument the branch is operationally equivalent to ordinary quantum mechanics. |
-| `foundations/spin-fibonacci-spiral.md` | Hypothesized—August 2026 | Spin assignment from the optional amplitude-plane phase and Stokes double angle; phase-to-rung and particle mappings remain Hypothesized |
+| `foundations/spin-fibonacci-spiral.md` | Hypothesized compact-phase and particle assignments / Derived conditional sign arithmetic and spatial-representation obstruction—September 2026 | The added phase $\vartheta=\chi/2$ and selected span $\Delta\chi=2\pi\Delta n$ give the proposed label $s=\Delta n/2$. The positive-root density angle is restricted to $[0,\pi/2]$; full spatial rotation, exchange statistics and particle identification remain separate physical inputs |
 | `foundations/baryon-asymmetry.md` | Hypothesized mechanism / Mapped $\eta$ exponent; circuit interaction and freeze-out endpoint open | $\eta\approx\varphi^{-44}$, within 6% numerically; particle/antiparticle circuit reconnection has no selected interaction or rate, and the $\Gamma/H=1$ test yields no post-seed freeze-out |
 | `foundations/refined-numeric-predictions.md` | Active derivation (C10 magnitude Derived / direction Calibrated / boundary Hypothesized—ecliptic-degeneracy audit) | Numeric predictions for the 19 Hypothesized questions; C10 $12.2°$ magnitude closure, data-calibrated direction, and unselected boundary projection |
 | `foundations/three-generations.md` | Hypothesized (mechanism) / Derived (2+1 counting under the propagation-channel postulate) / Mapped (rung placements—ledger) | $N_{\text{gen}} = 3 = 2$ predecessor channels + 1 direct rung (Q5) |

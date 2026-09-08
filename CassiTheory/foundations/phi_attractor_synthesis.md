@@ -71,7 +71,7 @@ The effective gravitational constant in the two-fluid model is:
 
 $$\frac{G_{\text{eff}}}{G} = \frac{\pi}{\rho}\left(1 + (\varphi^{6}-1)q\right), \qquad \xi = \varphi^6 \approx 17.944$$
 
-where $\pi/\rho$ is the local Yang fraction ($\alpha_0 = \pi/\rho = \varphi^{-3} \approx 0.236$ at the $\varphi$-fixed point; $\alpha_{\text{halo}} \approx 0.7$ in the galactic halo regime), $\xi = \varphi^6$ is the derived coupling constant arising from the six-dimensional phase-space structure, and $q$ is the Qi coherence factor (Section 2.3).
+where $\pi/\rho$ is the local fractional density imbalance ($\alpha_0=\varphi^{-3}\approx0.236$ at the $\varphi$-fixed point; $\alpha_{\text{halo}}\approx0.7$ in the supplied galactic-halo regime). The Yang density fraction at that fixed point is $E_Y/\rho=\varphi^{-1}$. The coefficient $\xi=\varphi^6$ is Derived conditional on the quadratic-coupling input (`foundations/xi-derivation.md` §2), and $q$ is the Qi coherence factor (§2.3).
 
 On the $\varphi$-line the coherence takes its equilibrium value $q_{\text{eq}}(\rho) = \rho^2/(\rho^2+\varphi^{-2})$, so the fixed-point coupling is the density-dependent closed form
 

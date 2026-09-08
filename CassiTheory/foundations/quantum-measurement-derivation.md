@@ -2773,6 +2773,43 @@ claim that the two-fluid sector generates the Standard Model requires a
 separate construction of $\mathcal H_{\rm SM}$, its representations, anomaly
 cancellation, and its couplings.
 
+Quantum occupation statistics further constrain the carrier identification.
+If each density is assigned to one mode, $E_a=\eta n_a$ with $\eta>0$,
+ordinary bilinear transfers
+$J_{YI}=\sqrt{\Gamma}\,b_I^\dagger b_Y$ and
+$J_{IY}=\sqrt{\varphi\Gamma}\,b_Y^\dagger b_I$ at constant
+$\Gamma>0$ give
+
+$$
+\frac{d\langle n_Y\rangle}{dt}
+=\Gamma\left[
+\varphi\langle n_I\rangle-\langle n_Y\rangle
++\sigma(\varphi-1)\langle n_Yn_I\rangle
+\right],
+\qquad
+\sigma=+1\ \text{(Bose)},\quad -1\ \text{(Fermi)}.
+$$
+
+Final-state stimulation or blocking therefore changes the finite-occupation
+drift. All three processes agree in the one-carrier sector. The operators
+in (QC17) explicitly use occupation-space amplitudes that remove the
+final-state factor; their finite-population statistics retain that reservoir
+choice. For two fermionic modes the fully occupied state $(n_Y,n_I)=(1,1)$
+is blocked, while the canonical density drift points outside its allowed
+Pauli interval, including with the canonical gate. Thus the complete density
+wedge requires further modes, different reservoir operators, or a restricted
+state map before it can represent these fermionic occupations. The exact
+operator and stationary-distribution calculations are in
+`computations/matter-formation-continuum-report.md` §38.2.
+
+Anomaly cancellation also presupposes a gauge group and chiral field
+content. A supplied Standard-Model-like family with charged-fermion Yukawa
+couplings admits multiple color counts; adding a right-handed neutrino
+retains a continuous hypercharge family. Vectorlike pairs and neutral
+singlets add further gauge-consistent field contents. These consistency
+conditions leave the physical carrier sector unselected
+(`computations/matter-formation-continuum-report.md` §38.3).
+
 #### 8.4.8 Operational-equivalence theorem
 
 Consider any finite sequence of preparations, controls, and measurements.

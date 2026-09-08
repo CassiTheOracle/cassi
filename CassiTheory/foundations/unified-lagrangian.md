@@ -585,6 +585,16 @@ identity remain open
 (`computations/matter-formation-continuum-report.md` §§35–36;
 `foundations/matter-completion-boundary.md` §§17–18).
 
+Finite quantum occupation and rotation give further conditional
+restrictions. Ordinary two-mode Bose/Fermi transfers match the unsaturated
+carrier drift at one particle but change it at two; the filled fermionic
+pair is blocked. The scalar half-angle operator also fails the full spatial
+angular-momentum algebra. Independent algebra and trajectories qualify
+these distinctions, while anomaly cancellation retains multiple field
+contents and charge assignments. The physical action and state map remain
+unselected (`computations/matter-formation-continuum-report.md` §38;
+`foundations/matter-completion-boundary.md` §19).
+
 
 The scalar configuration-space and compact-target results have distinct
 domains. The declared full positive-density scalar domains are contractible

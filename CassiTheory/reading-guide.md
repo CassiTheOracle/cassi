@@ -220,6 +220,16 @@ physical stability of formed clouds remain open
 (`computations/matter-formation-continuum-report.md` §36;
 `foundations/matter-completion-boundary.md` §18).
 
+For microscopic selection, report §38 tests finite quantum occupation and
+the full spatial rotation algebra. The specified Bose, Fermi and unsaturated
+carrier processes agree at one carrier but differ at two. The fully
+occupied fermionic state cannot follow the unrestricted canonical drift;
+the half-angle scalar operator also cannot represent the full spatial
+rotation group. Independent algebra and trajectories qualify these
+constraints, while anomaly cancellation retains multiple charge and
+field-content choices. Read
+`foundations/matter-completion-boundary.md` §19 for their physical scope.
+
 
 Section 30 adds a normalized complex doublet and leading compact $SU(2)$
 chiral action as an explicit conditional colour-neutral baryon model. Its

@@ -157,6 +157,16 @@ causal memory and forcing from initially present amplitude and correlations.
 These Derived conditional results leave the physical boundary problem,
 formation history, quantum state and particle identity open (§37).
 
+Finite quantum occupation and rotation algebra constrain the microscopic
+identification further. Ordinary two-mode Bose and Fermi transfer agrees
+with the canonical unsaturated drift at one carrier but differs at two;
+the fully occupied fermionic state is blocked. A scalar half-angle phase
+also leaves the full spatial rotation representation unspecified.
+Independent exact algebra and finite-occupation trajectories qualify
+these constraints, while chiral anomaly cancellation retains multiple
+field-content and charge choices. Physical microscopic selection and
+complete matter formation remain open (§38).
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -2800,7 +2810,7 @@ Use `computations/matter_formation_density_budget.py`, with a fresh required `--
    $\epsilon=0.4\sin z+0.1\cos(x+y)$ and
    $u=(0.2\sin y,0.3\sin z,0.1\sin x)$.
    Evaluate the actual `rhs` for $(D,\nu_4)=(0,0),(0.03,0),(0,0.0004),(0.03,0.0004)$. Reconstruct all density, gradient, Laplacian and gate factors independently with NumPy; compare both measured quadratic-budget derivatives to §22.1, using spatial means instead of integrals consistently. Require residuals divided by $\max(1,|\text{expected}|)$ at most $10^{-11}$, mean-density rate at most $10^{-12}$, and both budget derivatives at most $10^{-11}$. Save the input density/velocity fields and full actual density right-hand sides. Also evaluate $\rho=2$ with the same nonuniform $\epsilon,u$ and $D=\nu_4=0$; require the maximum absolute total-density right-hand side at most $10^{-12}$. These are finite-grid instantaneous budget witnesses.
-3. **Finite-amplitude conversion trajectory.** Use the same frozen-expansion class on $N=4$ with $\rho_0=2$, $\epsilon_0=0.8$, $u=0$, $\lambda=0.2$, $D=\nu=\nu_4=0$. Run actual `rk2_step` to $T=20$ at $\Delta t=0.04,0.02,0.01$. Retain every step's mean density, mean imbalance, mean diagnostic $q$, component minima, spatial-uniformity residual, $a$ and $H$. Independently solve the displayed implicit endpoint equation with SciPy `brentq` on $[10^{-15},0.8]`, with absolute root tolerance $10^{-14}$. Require endpoint imbalance errors at most $10^{-5}$ and successive error ratios between $3.5$ and $4.5$, agreement of endpoint $q$ with its independent scalar value to $10^{-6}$, no stepwise $q$ decrease beyond $10^{-13}$, density and uniformity deviations at most $10^{-12}$, component minima above $0.1$, and $a=1,H=0$ to $10^{-12}$.
+3. **Finite-amplitude conversion trajectory.** Use the same frozen-expansion class on $N=4$ with $\rho_0=2$, $\epsilon_0=0.8$, $u=0$, $\lambda=0.2$, $D=\nu=\nu_4=0$. Run actual `rk2_step` to $T=20$ at $\Delta t=0.04,0.02,0.01$. Retain every step's mean density, mean imbalance, mean diagnostic $q$, component minima, spatial-uniformity residual, $a$ and $H$. Independently solve the displayed implicit endpoint equation with SciPy `brentq` on $[10^{-15},0.8]$, with absolute root tolerance $10^{-14}$. Require endpoint imbalance errors at most $10^{-5}$ and successive error ratios between $3.5$ and $4.5$, agreement of endpoint $q$ with its independent scalar value to $10^{-6}$, no stepwise $q$ decrease beyond $10^{-13}$, density and uniformity deviations at most $10^{-12}$, component minima above $0.1$, and $a=1,H=0$ to $10^{-12}$.
 
 One invocation executes these three groups. All exact identities, complete row sets, finite-value and numerical criteria must pass for `SUPPORTS—nonlinear density and composition budgets of the specified expanding model`; otherwise return `INCONCLUSIVE` and preserve the evidence. Run a separate missing-section control, requiring an unsuccessful exit and empty scientific rows. Stop after this schedule; no scientific input or threshold may be tuned to a result. The calculation supplies no long-time nonlinear carrier stability or matter-production trajectory.
 
@@ -2827,7 +2837,9 @@ The scientific receipts, source snapshots and raw arrays are retained under the 
 | Completed NumPy frequencies rounded to float32 | `5dc4a4a719d1421732bdd7bfff6dd6a4e9e7340f660e5c36473f117d9b221c70` | `057103bb6267fda8a5d4cd98f9097871d5f67f7d004608871d88b2632cdde6a7` | `INCONCLUSIVE` |
 | Native reciprocal-spacing multiplication | `d9db9adda4efd33ef18a97116659887da00e97b175470cd5566d74c30d00434d` | `05a631ac038e624da6931ae8f8ef02a9f98d0f66c3a1641991a06d0a57b49bbf` | `SUPPORTS` with the scope above |
 
-Both missing-section receipts have SHA-256 `738dc77852a9b489403c2ddf8aec8a2126b7fd4d19870ad0dffeaafa1e9b3282`. The scientific runs use Python 3.12.10, NumPy 2.5.1, SciPy 1.18.0, SymPy 1.14.0 and Torch 2.12.0+rocm7.14.0 on CPU. The frozen protocol identity is `c998f007510ede9845ca51c65c30c8af496477e83e377fa743bad0603c521497`; the canonical solver identity is `258e8783294250b731d93e7b5869b8172558c8aa0742502330cf3dbb5e3c90cc`.
+Both missing-section receipts have SHA-256 `738dc77852a9b489403c2ddf8aec8a2126b7fd4d19870ad0dffeaafa1e9b3282`. The scientific runs use Python 3.12.10, NumPy 2.5.1, SciPy 1.18.0, SymPy 1.14.0 and Torch 2.12.0+rocm7.14.0 on CPU. These retained source snapshots bind protocol identity `c998f007510ede9845ca51c65c30c8af496477e83e377fa743bad0603c521497`; their canonical solver identity is `258e8783294250b731d93e7b5869b8172558c8aa0742502330cf3dbb5e3c90cc`.
+
+The executable binds the rendered §22.3 protocol identity `4b32952d782f0fe1a488b7d284dda0d8821cc0e4f231d107fce8310eabe2ef68`. Its calculation in `runs/20260908_matter_formation_density_budget_typography/scientific/` passes all seven identities, five spatial witnesses and three conversion trajectories. Every scientific receipt value and all 53 stored arrays agree exactly with the native-symbol result above; the scientific implementation is identical apart from its protocol identity. The missing-section and altered-section controls both exit one with empty scientific payloads. Their source-bound reconciliation is `runs/20260908_matter_formation_density_budget_typography/reconciliation.json`; the calculation retains the same physical scope.
 
 Reproduction uses a fresh output directory:
 
@@ -6132,8 +6144,297 @@ charged scalar minimizer theorem in §36 retains its own specified action
 and charge sector. Every cascade-response receipt keeps
 `complete_physical_matter_formation=false`.
 
+## 38. Microscopic representation and occupation constraints
+
+Physical spin and quantum occupation give additional information that the
+two density means discard. The calculations below test specific proposed
+identifications against representation algebra, finite-mode transfer and
+gauge consistency. Their assumptions remain explicit; passing these
+necessary conditions selects no unique microscopic action or quantum state.
+
+### 38.1 A half-angle orbit and spatial rotations
+
+A phase reversal on one coordinate orbit leaves the action of rotations
+about other axes unspecified. The optional amplitude
+$\Psi(\chi)=e^{i\chi/2}v$, with fixed two-component $v$, has the exact
+signs $\Psi(\chi+2\pi)=-\Psi(\chi)$ and
+$\Psi(\chi+4\pi)=\Psi(\chi)$. Identifying its scalar phase operator
+$U_\chi(\alpha)=e^{i\alpha/2}I_2$ with a spatial rotation on the entire
+two-dimensional state space fails the angular-momentum algebra.
+In units $\hbar=1$, that operator has generator $J_\chi=-I_2/2$.
+Every finite-dimensional representation satisfying
+$[J_i,J_j]=i\epsilon_{ijk}J_k$ has $\operatorname{tr}J_k=0$,
+because the trace of a commutator vanishes.
+
+By contrast, the supplied spin-half representation
+$J_i=\sigma_i/2$ gives
+$U_i(\alpha)=\exp(-i\alpha\sigma_i/2)$.
+For $\alpha=\beta=\pi/2$,
+$$
+\boxed{
+\operatorname{tr}(U_xU_yU_x^\dagger U_y^\dagger)=1,
+\qquad
+\operatorname{tr}(U_\chi U_\chi U_\chi^\dagger U_\chi^\dagger)=2.}
+$$
+This separates the two specified operator constructions. A single
+prepared eigenstate can acquire a scalar phase under one axis of genuine
+spin rotation, so one observed phase orbit alone does not distinguish
+them. The spatial rotation action and measurements about different axes
+must be supplied. An internal Yang/Yin $SU(2)_Q$ label likewise needs a
+separate map before it represents physical angular momentum.
+
+### 38.2 Quantum transfer changes the occupation drift
+
+The canonical conversion law refers to nonnegative densities. Assigning
+each density to a single quantum-mode occupation adds a physical
+identification with measurable consequences. Let
+$E_a=\eta n_a$, with specified density increment $\eta>0$, and first
+hold the conversion rate $\Gamma>0$ constant. For two modes, take
+$$
+J_{YI}=\sqrt{\Gamma}\,b_I^\dagger b_Y,\qquad
+J_{IY}=\sqrt{\varphi\Gamma}\,b_Y^\dagger b_I,\qquad
+\mathcal L=\mathcal D[J_{YI}]+\mathcal D[J_{IY}],
+$$
+where $\mathcal D[J]\varrho=J\varrho J^\dagger-
+\{J^\dagger J,\varrho\}/2$.
+Write $\sigma=+1$ for bosonic operators and $\sigma=-1$ for
+fermionic operators. Their transition intensities are
+$\Gamma n_Y(1+\sigma n_I)$ and
+$\varphi\Gamma n_I(1+\sigma n_Y)$. Thus
+$$
+\boxed{
+\frac{d\langle n_Y\rangle}{dt}
+=\Gamma\left[
+\varphi\langle n_I\rangle-\langle n_Y\rangle
++\sigma(\varphi-1)\langle n_Yn_I\rangle
+\right],
+\qquad
+\frac{d\langle n_I\rangle}{dt}
+=-\frac{d\langle n_Y\rangle}{dt}.}
+$$
+The correlation term is an operator consequence of the stated bilinear
+jumps. Factoring it into a product of means would require a further
+state approximation. The drift agrees exactly with the unsaturated
+canonical transfer in the one-particle sector; agreement there therefore
+selects neither quantum statistics.
+
+In a fixed total-occupation sector $N$, label a bosonic basis by
+$k=n_Y=0,\ldots,N$. Its constant-rate stationary probabilities obey
+$p_{k+1}/p_k=\varphi$, hence $p_k\propto\varphi^k$.
+The occupation-shift amplitudes $\sqrt{\Gamma k}$ and
+$\sqrt{\varphi\Gamma(N-k)}$ of the declared unsaturated carrier model
+instead give $p_k\propto\binom Nk\varphi^k$. For $N=2$,
+$$
+\boxed{
+\langle n_Y\rangle_{\rm Bose}
+=\frac{\varphi+2\varphi^2}{1+\varphi+\varphi^2},
+\qquad
+\langle n_Y\rangle_{\rm shift}
+=\frac{2\varphi}{1+\varphi},
+\qquad
+\langle n_Y\rangle_{\rm Fermi}=1.}
+$$
+The last state fills both fermionic modes and permits no conversion.
+The three means refer to these separately declared finite-mode models.
+They are not physical particle abundances.
+
+The occupation-shift generator is a legitimate additional reservoir
+choice. In bosonic notation its forward jump can be realized as
+$\sqrt{\Gamma}\,b_I^\dagger(n_I+1)^{-1/2}b_Y$; the inverse occupation
+factor removes the final-state stimulation. This retains the existing
+carrier construction in
+`foundations/quantum-measurement-derivation.md` §8.4.4, whose explicit
+occupation-space operators do not assert bilinear particle conversion.
+
+A direct fermion-occupation interpretation has a sharper boundary.
+At $n_Y=n_I=1$, the canonical unsaturated law would give
+$\dot n_Y=\Gamma(\varphi-1)>0$, outside the Pauli interval.
+This persists with the canonical gate at the supplied witness
+$\eta=\lambda=1$:
+$$
+q_*=\frac{4}{4+2\varphi^{-2}},\qquad
+\Gamma_*=1-q_*=\frac{\varphi^{-2}}{2+\varphi^{-2}}>0.
+$$
+The fully occupied fermionic state remains blocked under the bilinear
+generator. Hence the full canonical density wedge cannot be identified
+with these two bounded occupations under that unsaturated drift.
+Additional mode labels, different reservoir operators or a restricted
+state domain require their own physical specification.
+
+### 38.3 Anomaly cancellation constrains a supplied chiral sector
+
+Quantum gauge consistency tests representations after the gauge group
+and chiral fields are chosen. Consider a supplied
+$SU(N_c)\times SU(2)_L\times U(1)_Y$ generation with integer
+$N_c\ge3$, and physical right-handed hypercharges
+$(y_u,y_d,y_e)$ alongside the left-handed charges $(y_Q,y_L)$.
+Use left-handed conjugates when summing anomalies. The local conditions
+are
+$$
+\begin{aligned}
+2y_Q-y_u-y_d&=0,\\
+N_c y_Q+y_L&=0,\\
+2N_c y_Q-N_c y_u-N_c y_d+2y_L-y_e&=0,\\
+2N_c y_Q^3-N_c y_u^3-N_c y_d^3+2y_L^3-y_e^3&=0.
+\end{aligned}
+$$
+Assume a scalar doublet of hypercharge $h\ne0$ and all three
+renormalizable charged-fermion Yukawa couplings:
+$y_u=y_Q+h$, $y_d=y_Q-h$, $y_e=y_L-h$.
+These premises give
+$$
+\boxed{
+y_Q=\frac h{N_c},\quad y_L=-h,\quad
+y_u=h\left(1+\frac1{N_c}\right),\quad
+y_d=h\left(\frac1{N_c}-1\right),\quad y_e=-2h.}
+$$
+The cubic anomaly then vanishes. For one such generation, the global
+$SU(2)_L$ doublet condition requires $N_c+1$ even. These conditions
+admit every odd $N_c\ge3$; identifying the measured color sector is an
+additional empirical input. They also leave the hypercharge normalization
+$h$ unselected.
+
+If a right-handed neutrino of charge $y_\nu$ and its Dirac Yukawa
+coupling are included, append $-y_\nu$ and $-y_\nu^3$ to the last two
+anomalies and set $y_\nu=y_L+h$. All local anomalies vanish for
+$y_L=-N_c y_Q$ with independent $y_Q$ and $h$.
+For $N_c=3$, this contains the usual hypercharge mixed with
+$B-L$. A gauge-invariant Majorana mass would impose the additional
+condition $y_\nu=0$. Vectorlike conjugate pairs and neutral singlets
+give further anomaly-free field-content choices.
+
+The standard global doublet obstruction concerns chiral fermions in
+the specified quantum gauge theory. A complex bosonic Yang/Yin
+doublet is outside that premise. Anomaly cancellation therefore supplies
+necessary consistency conditions for an added matter sector; it supplies
+no fermionic algebra, physical vacuum, particle masses or microscopic
+identification from the density pair.
+
+### 38.4 Microscopic selection qualification: pre-execution criteria
+
+This calculation qualifies the finite algebra and occupation witnesses
+in §§38.1–38.3. It performs no experimental fit, continuum evolution,
+formation search or quantum-state selection. Freeze the three source
+sections and this schedule before either scientific program runs.
+Use $\hbar=\Gamma=\eta=\lambda=1$ where each is named above and
+$\varphi=(1+\sqrt5)/2$. These are supplied model witnesses.
+
+1. Reconstruct the Pauli generators and all three angular-momentum
+   commutators exactly. Check their zero traces, the two-axis group
+   commutator trace $1$, the scalar-phase commutator trace $2$, and
+   the $2\pi$/$4\pi$ spinor signs. Check that the scalar-phase
+   generator has nonzero trace. Require exact identities.
+2. Construct bosonic creation/annihilation matrices with occupations
+   $0,1,2$ in each mode and fermionic matrices with a fixed
+   Jordan–Wigner ordering. Check the fermionic canonical
+   anticommutators exactly. Restrict number-preserving jumps to
+   $N=1,2$; no bosonic identity is asserted on the cutoff's excluded
+   sectors. Independently reconstruct each allowed transition from
+   occupation rules. Check the adjoint density drift, total-number
+   conservation and the unsaturated occupation-shift drift exactly.
+3. Reconstruct the stationary weights for Bose and shift $N=1,2$,
+   and the Fermi $N=1,2$ sectors. Require exact normalization,
+   zero stationary generator residual, agreement of the $N=1$
+   generators and means, and the three distinct $N=2$ means in §38.2.
+   Check the positive gated Pauli-boundary drift at $(1,1)$
+   and the exactly zero fermionic drift there.
+4. Starting at $k=0$ for Bose and shift $N=1,2$, evolve through
+   $t=3$ and sample $t=0,1/4,1,3$. Use the matrix exponential
+   of the jump-derived probability generator in the primary and
+   independently integrated occupation-rate ODEs in the verifier.
+   Require maximum absolute probability disagreement $10^{-10}$,
+   normalization error $10^{-12}$ and minimum probability at least
+   $-10^{-12}$. Require the two $N=1$ trajectories to agree to
+   $10^{-12}$. Retain generators, stationary vectors and trajectories.
+5. Reconstruct all four local anomaly polynomials before substituting
+   the Yukawa constraints. Require exact zero residuals for the
+   no-neutrino solution and the two-parameter neutrino family.
+   Check the distinct $N_c=3,5$, $h=1/2$ assignments and even
+   doublet counts. Check a conjugate vectorlike pair's cancellation
+   and even added doublet count. These checks do not select any
+   assignment as the physical Cassi field.
+6. The primary is
+   `computations/matter_formation_statistics_selection.py`; the
+   independent program is
+   `computations/verify_matter_formation_statistics_selection.py`.
+   Both use fresh directories under
+   `runs/20260908_matter_formation_statistics_selection/`, preserve
+   exact source/section snapshots, raw arrays and JSON receipts, and
+   reject mismatched frozen sections before producing scientific rows.
+   The verifier binds an explicitly supplied primary receipt SHA-256,
+   checks the retained program and array identities, and reconstructs
+   its results without importing the primary.
+7. Run a missing-source-section primary control, an altered-section
+   primary control, a wrong-primary-receipt-hash verifier control and
+   a missing-primary-array verifier control. Every control must exit
+   unsuccessfully with `INCONCLUSIVE` and empty scientific payloads.
+   Stop after this schedule without adjusting witnesses or thresholds.
+   All scientific and identity criteria passing gives
+   `SUPPORTS-conditional microscopic selection constraints`;
+   any unmet prerequisite gives `INCONCLUSIVE`. Every receipt retains
+   `complete_physical_matter_formation=false`.
+
+### 38.5 Reproduced representation and finite-occupation constraints
+
+The independent calculations agree on the angular-momentum algebra,
+occupation drift, stationary distributions and anomaly families in
+§§38.1–38.3. The primary passes all 68 checks and the independent
+reconstruction passes all 54. Their 40 retained arrays agree within the
+frozen tolerances; the largest trajectory probability disagreement is
+$1.2378986724570495\times10^{-13}$. The largest probability-normalization
+errors are $1.3322676295501878\times10^{-15}$ and
+$4.440892098500626\times10^{-16}$ respectively, and both minimum sampled
+probabilities are zero. The joint verdict is
+`SUPPORTS-conditional microscopic selection constraints`.
+
+At total occupation two, the three specified transfer models give
+different stationary Yang-mode means:
+
+| Supplied transfer model | $\langle n_Y\rangle$ at $N=2$ |
+|---|---:|
+| Bosonic bilinear jumps | $1.3090169943749475$ |
+| Unsaturated occupation-shift jumps | $1.2360679774997898$ |
+| Fermionic bilinear jumps | $1$ |
+
+All three means equal $\varphi^{-1}$ at total occupation one; the Bose and
+occupation-shift trajectories there agree exactly in each implementation.
+At the fully occupied two-fermion boundary, the unsaturated canonical
+gate gives $\dot n_Y=0.09910635852267947$ for the supplied
+$\eta=\lambda=1$, whereas the fermionic transfer gives zero. This rules out
+that unrestricted two-mode occupation identification. A physical
+coarse-graining with additional modes or different reservoir operators
+needs a separately specified state map.
+
+The half-angle scalar operator fails the full spatial angular-momentum
+algebra, while the supplied Pauli representation satisfies it. The anomaly
+conditions permit both $N_c=3$ and $N_c=5$ witnesses and the continuous
+right-handed-neutrino charge family. These results constrain proposed
+microscopic realizations without selecting one of them.
+
+The missing-section, altered-section, wrong-receipt-hash and missing-array
+controls each exit $1$ with `INCONCLUSIVE`, an error and empty scientific
+payloads. The retained joint reconciliation binds primary receipt
+SHA-256
+`51cd86a7d7999ab2ef48ea28cfaef21db5514aade9c8f36ef8e6f9f6983c55e6`
+and independent receipt SHA-256
+`6293e82c68d554af64a0465ea264a62b77b95ede4cf24ed54a00b68e40578c3c`,
+as well as program snapshots, frozen sections and raw arrays. The
+reproduction uses the two programs named in §38.4 and the stated primary
+receipt hash; the local audit is
+`runs/20260908_matter_formation_statistics_selection/audit_receipts.py`.
+
+The calculation supplies no formation trajectory, physical normalization,
+selected quantum state or particle identification. The conditional
+charged-condensate theorem in §36 keeps its specified scalar action and
+charge sector. Complete physical matter formation remains
+**Hypothesized/Open**, and every selection receipt retains
+`complete_physical_matter_formation=false`.
+
 ## References
 
+- `computations/matter_formation_statistics_selection.py`—exact rotation algebra, quantum occupation transfer, finite trajectories and chiral anomaly witnesses.
+- `computations/verify_matter_formation_statistics_selection.py`—independent matrix, transition-rule, differential-equation and symbolic reconstruction.
+- `runs/20260908_matter_formation_statistics_selection/`—frozen sections, source snapshots, raw arrays, four prerequisite-rejection controls and joint reconciliation.
 - `computations/matter_formation_cascade_response.py`—source-bound collective-phase spectra, scale modes and exterior-memory evolution.
 - `computations/verify_matter_formation_cascade_response.py`—independent Cartesian Hessian, exact pole residues and Runge–Kutta reconstruction.
 - `runs/20260908_matter_formation_cascade_response/`—source and section snapshots, raw arrays, provenance controls and joint reconciliation.

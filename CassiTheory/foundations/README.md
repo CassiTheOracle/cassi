@@ -386,25 +386,24 @@ Hypothesized—September 2026.
 
 Models cosmic expansion, gravitational attraction, and the speed of light as three projections of a Hypothesized geometric Fibonacci spiral coordinate associated with the $(E_Y, E_I)$ doublet. The coordinate is $\chi(n) = \chi_0 + (2\pi/\ln\varphi)\,n$—one full coordinate turn per cascade rung as a geometric assignment; the canonical density-plane conversion is a rank-one relaxation with no prescribed angular advance. Expansion is the spiral's unwinding rate, with $H \approx (\lambda\ln\varphi/2\pi)(1-q)$ near equilibrium and the general form $H = (\lambda/3)(\varphi-r)(1+r)/r + \lambda\varphi^{-2}/3$ (the 1/3 is the isotropic dimension factor $1/d$ at $d = 3$—Derived, `cosmology/cosmology-from-phi.md` §1; the $\lambda\varphi^{-2}$ rate asserted); gravity is gradient descent along the spiral toward coherence; $c$ is the scale-invariant product of conversion rate and coherence wavelength. Status: Hypothesized geometric coordinate.
 
-### `spin-fibonacci-spiral.md`—Spin as a Hypothesized Geometric SO(2) Coordinate
+### `spin-fibonacci-spiral.md`—Spin and Fibonacci Spirals: An Optional Compact-Phase Extension
 
-Defines spin through a Hypothesized geometric SO(2) winding coordinate $\chi(r)$ for the doublet phase along the radial logarithmic spiral
+Introduces a Hypothesized compact coordinate $\chi(r)$ with an assigned
+logarithmic Fibonacci pitch:
 
 $$\boxed{\chi(r) = \chi_0 + \frac{2\pi}{\ln\varphi} \cdot \ln\!\left(\frac{r}{\ell_n}\right)}$$
 
-The density-plane angle $\theta_d = \operatorname{atan2}(E_I,E_Y)$, the
-doublet phase $\theta_\Psi = \operatorname{atan2}(\Psi_1,\Psi_0)$, and the
-Stokes double angle $\Theta_S = 2\theta_\Psi \pmod{2\pi}$ remain
-distinct; canonical rank-one conversion does not determine this geometric
-coordinate. The total geometric winding divided by $2\pi$ is the spin,
-$\boxed{s = \Delta\chi/2\pi = \Delta n}$, and standing-wave boundary
-conditions quantize the winding to spin-0 (no winding), 1/2 (half-turn), 1
-(full turn, gauge boson), and 2 (two turns, graviton); spin-statistics emerge
-from the parity of the winding number. The nested spirals across all
-supporting rungs form a self-similar Fibonacci fractal, and the falsifiable
-imprint is a $\ln\varphi$-periodic modulation of particle form factors
-$F(q^2)$ testable in scattering data. Status: Hypothesized geometric
-coordinate convention.
+The density-plane angle, positive-root amplitude angle and Stokes double
+angle are distinct diagnostics. Canonical rank-one conversion supplies no
+independent compact phase. The added half-angle representation assigns
+$\vartheta=\chi/2$ and the proposed spin label
+$\boxed{s=\Delta\chi/(4\pi)=\Delta n/2}$ when
+$\Delta\chi=2\pi\Delta n$. Its sign reversal after a $2\pi$ coordinate
+advance follows from the chosen exponential ansatz. Spatial spin,
+particle assignments and an antisymmetric many-body exchange sector require
+additional physical structure. The proposed $\ln\varphi$-periodic
+form-factor modulation supplies a separate conditional scattering test.
+Status: Hypothesized.
 
 ### `phi_attractor_synthesis.md`—φ-Attractor Steady States and the Analytical Three-Body Problem in Cassi Gravity
 
@@ -661,6 +660,13 @@ Complex scalar and Dirac parents then give an explicit many-to-one witness:
 both reduce to the same registered slow carrier equation while retaining
 different spin and statistics. Microscopic action, state, normalization and
 particle identity therefore require additional physical input (§29).
+Finite-occupation transfer and spatial rotation provide further
+discriminators. The specified Bose, Fermi and unsaturated carrier models
+agree at one carrier but differ at two; a scalar half-angle phase fails the
+full spatial angular-momentum algebra. Independent calculations qualify
+these conditional constraints, while chiral anomaly cancellation retains
+multiple field-content and charge choices (§38).
+
 A finite-time radial witness complements these temporal and plane-symmetric
 results. For the selected positive-inertia real-mediator/complex-carrier
 action ($a=1/16$, $c_\Psi=1/8$, inherited **Mapped**

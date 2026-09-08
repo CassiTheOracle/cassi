@@ -177,16 +177,19 @@ cycle. These stochastic inputs are Hypothesized; see
 | **Strong CP** ($\bar{\theta}$) | Signal (Hypothesized map) | $n_{\text{GUT}} \approx 13.3$ with Mapped seed $\delta_{\text{CP}}=\pi\varphi^{-2}$ | $n_{\text{QCD}} = 94.7$ | $81.4$ | $\pi\varphi^{-2}\times\varphi^{-81.4}=\pi\varphi^{-83.4}$ | $\bar{\theta} \approx 1.2\times10^{-17}$ | Derived conditional on declared input and Mapped seed |
 | **Neutrino masses** | Signal (Hypothesized map) | $n_{\text{GUT}} \approx 13.3$ (GUT-scale Yukawa seed) | $n_{\text{seesaw}} \approx 20$ | $N_\nu = 20 - 13.3 \approx 6.7 \approx 7$ | $\varphi^{-N_\nu}\approx\varphi^{-6.7}$ (flavor exponents $\varphi^{-12}$ to $\varphi^{-25}$) | $m_\nu \sim 0.001$–$0.1$ eV | Hypothesized (signal map and scale-step assignment; flavor offsets Mapped) |
 | **Proton conditional cycle budget** | Coherence | $n=0$ (Planck) | $N_p^{\mathrm{budget}}=91.46$ | $91.46$ | $\varphi^{-4505.5758}\approx\varphi^{-4506}$ | $\sim10^{942}$ modeled cycles; physical rate open | Derived conditional arithmetic under the declared $q_i^{\mathrm{cascade}}$ profile; stochastic and trial-frequency maps Hypothesized |
-| **Spin ($s = \Delta n/2$)** | Geometric |—|—| $\Delta n \in \{0,1,2,4\}$ | N/A (conserved winding) | $s \in \{0,\frac12,1,2\}$ | Hypothesized |
+| **Proposed spin label ($s = \Delta n/2$)** | Optional compact-phase assignment |—|—| Selected $\Delta n \in \{0,1,2,4\}$ | N/A | Proposed $s \in \{0,\frac12,1,2\}$ | Hypothesized physical mapping; full spatial rotation and exchange sectors require additional structure |
 
 The hierarchy, strong CP, and neutrino masses use the **Hypothesized
 phenomenological/constitutive signal map** from the GUT scale. Under that
 declared map, different targets give different observed suppressions, and the
 conditional products follow $\varphi^{-N}$ with zero additional free parameters.
 
-Spin supplies a geometric limiting label through $\Delta n$ (conserved
-doublet winding, $s=\Delta n/2$;
-`foundations/spin-fibonacci-spiral.md` §2.1). Quantum measurement follows the
+The optional compact-phase construction assigns the proposed spin label
+$s=\Delta n/2$ through a selected scale span. Spatial rotation and exchange
+representations remain separate physical inputs
+(`foundations/spin-fibonacci-spiral.md` §2.1;
+`computations/matter-formation-continuum-report.md` §38).
+Quantum measurement follows the
 regulated configuration-space construction in
 `foundations/quantum-measurement-derivation.md`.
 

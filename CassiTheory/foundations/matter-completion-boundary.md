@@ -1434,6 +1434,34 @@ quantum state and creation mechanism, normalization, spin, statistics and
 particle discriminator remain unselected. Complete physical Cassi matter
 formation therefore remains **Hypothesized/Open**.
 
+## 19. Microscopic representation and occupation constraints
+
+Particle spin and quantum occupation impose requirements beyond the two
+density means. A half-angle scalar phase gives the assigned sign reversal
+on one coordinate orbit, but its generator on the full two-component state
+space has nonzero trace and cannot belong to a spatial angular-momentum
+triple. The supplied Pauli matrices satisfy that algebra. Physical rotation
+and exchange representations still require a microscopic state space.
+
+Ordinary bilinear Bose/Fermi conversion also adds final-state stimulation
+or blocking to the density drift. At one carrier, both agree with the
+declared unsaturated occupation-shift process. At two carriers their
+stationary means differ, and the fully occupied fermionic state is blocked
+while the unrestricted canonical drift points outside the Pauli interval.
+The finite reservoir remains a specified conditional model; identifying it
+with physical quantum modes requires additional modes, a different
+reservoir or a restricted state map.
+
+Independent exact algebra, finite-occupation evolution and anomaly
+calculations qualify these distinctions. The anomaly conditions retain
+multiple color counts and a continuous neutrino charge family under their
+stated premises. The verdict is
+`SUPPORTS-conditional microscopic selection constraints`
+(`computations/matter-formation-continuum-report.md` §38).
+These necessary conditions leave the physical action, state,
+renormalization and particle identity open. They supply no new forming
+trajectory and do not change the scalar minimizer theorem's scope.
+
 ## References
 
 - `computations/matter-formation-continuum-report.md` §36—fixed continuum binding trial, full real-mediator minimizer-set proof, independent adjudication and formation boundary.

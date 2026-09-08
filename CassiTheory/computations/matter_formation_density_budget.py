@@ -25,7 +25,7 @@ import torch
 
 ROOT = Path(__file__).resolve().parents[1]
 HEADING = "### 22.3 Nonlinear budget calculation: pre-execution criteria"
-PROTOCOL_SHA = "c998f007510ede9845ca51c65c30c8af496477e83e377fa743bad0603c521497"
+PROTOCOL_SHA = "4b32952d782f0fe1a488b7d284dda0d8821cc0e4f231d107fce8310eabe2ef68"
 SOLVER_SHA = "258e8783294250b731d93e7b5869b8172558c8aa0742502330cf3dbb5e3c90cc"
 VERDICT = "SUPPORTS—nonlinear density and composition budgets of the specified expanding model"
 PHI = (1 + np.sqrt(5.0)) / 2

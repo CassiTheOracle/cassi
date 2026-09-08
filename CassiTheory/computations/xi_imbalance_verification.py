@@ -10,8 +10,8 @@ inverse-square of the fixed-point imbalance (foundations/xi-derivation.md §2):
     xi      = phi^6   = alpha_0^-2 = (phi^-3)^-2        (quadratic coupling input)
 
 Consistency checks:
-  (i)   saturation ceiling G_eff,max/G = alpha_0 * xi = phi^3 = 4.236067978
-        (dwarf-spheroidal M/L ceiling, audit.md §3)
+  (i)   fixed-composition dense endpoint G_eff/G = alpha_0 * xi = phi^3
+        = 4.236067978 (dwarf-spheroidal M/L benchmark, audit.md §3)
   (ii)  empirical pin xi vs 18: 0.31% residual (Calibrated, ledger row 498)
   (iii) sin^2(theta_W) = 1/(1 + 2*phi) = phi^-3  (Weinberg angle = same
         imbalance; 1 + 2*phi = phi^3)
@@ -38,8 +38,8 @@ print("xi = phi^6                =", repr(xi))
 print("alpha_0^-2                =", repr(alpha**-2))
 print("exact identity:           ", np.isclose(xi, alpha**-2, rtol=1e-15))
 print()
-print("(i)   G_eff,max/G = alpha_0*xi = phi^3 =", repr(PHI**3),
-      " (dwarf M/L ceiling 4.2361)")
+print("(i)   Fixed-composition dense endpoint G_eff/G = alpha_0*xi = phi^3 =",
+      repr(PHI**3), " (dwarf M/L benchmark 4.2361)")
 print("(ii)  xi vs empirical pin 18: residual =", repr((18 - xi) / 18))
 print("(iii) sin^2(theta_W) = 1/(1+2*phi) =", repr(1 / (1 + 2 * PHI)),
       "; 1+2*phi == phi^3:", np.isclose(1 + 2 * PHI, PHI**3, rtol=1e-15))

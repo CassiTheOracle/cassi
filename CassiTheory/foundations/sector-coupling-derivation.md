@@ -836,6 +836,17 @@ quantum state and creation, spin/statistics and particle identity remain open
 (`computations/matter-formation-continuum-report.md` §§35–36;
 `foundations/matter-completion-boundary.md` §§17–18).
 
+Finite quantum occupation further restricts the density identification.
+Ordinary two-mode Bose/Fermi transfers agree with the specified unsaturated
+carrier process at one carrier but add stimulation or blocking at two;
+the fully occupied fermionic state cannot follow the unrestricted canonical
+drift. A scalar half-angle phase also fails the full spatial rotation
+algebra. Independently qualified anomaly identities still allow multiple
+color counts and a continuous charge family with a right-handed neutrino.
+These conditional constraints leave the physical microscopic sector and
+state map open (`computations/matter-formation-continuum-report.md` §38;
+`foundations/matter-completion-boundary.md` §19).
+
 
 The canonical scalar topology checks find contractible regular
 positive-density domains with no rotation or exchange

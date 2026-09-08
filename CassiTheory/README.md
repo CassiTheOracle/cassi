@@ -205,6 +205,15 @@ quantum rule and microscopic particle identification remain open
 `computations/matter-formation-continuum-report.md` §37).
  
 
+Quantum occupation and rotation measurements can distinguish microscopic
+models that share the same density drift. The specified Bose, Fermi and
+unsaturated carrier transfers agree at one carrier but differ at two, while
+a half-angle phase alone leaves full spatial spin unspecified. Independent
+algebra and finite-occupation trajectories qualify these constraints.
+Anomaly cancellation retains multiple field-content and charge choices;
+physical microscopic selection remains open
+(`computations/matter-formation-continuum-report.md` §38).
+
 Scalar and Dirac parents produce the same measured slow carrier equation while
 retaining different spin and statistics. The inverse map from the registered
 observables to a microscopic theory is many-to-one. Complete physical matter

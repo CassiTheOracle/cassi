@@ -602,6 +602,17 @@ physical completion remain open
 (`computations/matter-formation-continuum-report.md` §36;
 `foundations/matter-completion-boundary.md` §18).
 
+Microscopic occupation and rotation laws constrain that remaining
+identification. The supplied two-mode Bose/Fermi transfers agree with the
+unsaturated carrier drift at one particle but change it through stimulation
+or blocking at two. A scalar half-angle phase on the whole two-component
+space also fails the spatial angular-momentum algebra. Independent exact
+calculations and finite-occupation trajectories qualify these restrictions.
+Anomaly cancellation retains multiple field-content and charge choices,
+so the physical microscopic model remains open
+(`computations/matter-formation-continuum-report.md` §38;
+`foundations/matter-completion-boundary.md` §19).
+
 
 ---
 

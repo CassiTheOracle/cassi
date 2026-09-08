@@ -707,6 +707,15 @@ density and the carrier-projected density remain independent in the additive
 model; their physical state map is Open. This preserves the DQ and GQ rejection
 of physical-identification promotion.
 
+The finite carrier reservoir uses unsaturated occupation-shift operators.
+Ordinary bilinear Bose/Fermi transfers agree with its drift for one carrier
+but acquire stimulation or blocking at higher occupation. In particular,
+two fully occupied fermionic modes cannot follow the unrestricted canonical
+drift, even with its gate. Independent algebra and trajectories qualify
+this restriction; additional modes or a different reservoir require a
+specified microscopic state map
+(`computations/matter-formation-continuum-report.md` §38).
+
 The shared-support loop completion in
 `foundations/loop-to-bubble-projection-theorem.md` realizes the four carrier
 labels as Yang and Yin populations in both orientations of one closed loop.
@@ -1021,19 +1030,29 @@ $h_C$ and no additional fit
 
 ```mermaid
 flowchart TD
-    A[Optional positive-root lift $(\Psi_0,\Psi_1)$] --> B[\theta_\Psi,\Theta_S coordinate phases]
-    B --> C[Δn rungs → spin s = Δn/2]
-    C --> D[s ∈ {0, ½, 1, 2}: Δn ∈ {1, 2, 4} fundamental, s=3/2 composite]
+    A[Optional compact coordinate chi] --> B[Added half-angle phase chi/2]
+    B --> C[Selected span Delta n gives proposed s = Delta n/2]
+    C --> D[Spatial rotation action and particle assignments remain open]
 ```
 
-**Visual:** An optional positive-root amplitude lift supplies phase coordinates for a Hypothesized spin-to-rung mapping; the canonical state remains the real density pair.
+**Visual:** The proposed spin label uses an added compact phase and a selected scale span. The canonical real-density pair and its positive-root lift supply coordinate diagnostics.
 
 
-Spin is an observed property of particles. Cassi evaluates an optional positive-root amplitude lift $(\Psi_0,\Psi_1)=(\sqrt{E_Y},\sqrt{E_I})$ and a Hypothesized phase-to-rung convention with $\Delta\theta_\Psi=\pi$ and $\Delta\Theta_S=2\pi$ per coordinate rung. The proposed spans $\Delta n\in\{1,2,4\}$ map to $s\in\{\frac12,1,2\}$, while $\Delta n=3$ is treated as composite; these particle assignments remain Hypothesized and are not canonical density-PDE dynamics.
+Spin is an observed property of particles. The positive-root angle
+$\operatorname{atan2}(\sqrt{E_I},\sqrt{E_Y})\in[0,\pi/2]$ has no independent
+compact winding. Cassi's optional spin construction adds a compact coordinate
+$\chi$, a phase $\vartheta=\chi/2$ and the assignment
+$\Delta\chi=2\pi\Delta n$, giving the proposed label $s=\Delta n/2$.
+The selected spans and their particle interpretation remain Hypothesized.
+The half-angle scalar operator on the full two-component state space fails
+the spatial angular-momentum algebra; a physical spin representation requires
+rotation operators about all three axes. Exact matrix and finite-occupation
+calculations qualify these distinctions in
+`computations/matter-formation-continuum-report.md` §38.
 
-| **Cassi Answer** | Optional positive-root amplitude lift with a Hypothesized phase-to-rung convention: $\Delta n$ maps to $s=\Delta n/2$ for the proposed spans, while particle identification and the modulation amplitude remain open |
-| **Mechanism** | Within the optional lift, $\Delta\theta_\Psi=\pi$ and $\Delta\Theta_S=2\pi$ per coordinate rung; the minimal-span principle and form-factor log-periodicity are Hypothesized tests |
-| **Epistemic** | **Hypothesized** (phase-to-rung coordinate convention and minimal-span principle; $s=\Delta n/2$ and the $s=\frac32$ decomposition); the electron/quark identification and modulation amplitude $A$ remain Hypothesized (particle mapping; spiral radial profile) |
+| **Cassi Answer** | Optional compact-phase extension with a Hypothesized scale-span assignment $s=\Delta n/2$; physical spatial spin and particle identification remain open |
+| **Mechanism** | The supplied half-angle ansatz changes sign under a $2\pi$ coordinate advance. Full spatial rotation, exchange statistics, the minimal-span rule and form-factor modulation require separate physical inputs |
+| **Epistemic** | **Hypothesized** compact-phase, minimal-span and particle assignments; **Derived conditional** sign arithmetic and the obstruction to identifying the scalar phase operator with full spatial spin |
 | **Reference** | `foundations/spin-fibonacci-spiral.md`, `foundations/refined-numeric-predictions.md` |
 
 The measured smooth density-trap branch supplies a scalar amplitude profile
