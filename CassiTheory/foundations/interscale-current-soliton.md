@@ -28,6 +28,14 @@ current is present. An inward force is conditional on source sign, boundary
 conditions, and a positive static response. The positive action by itself does
 not generate a universal attractive term or guarantee a soliton.
 
+The same first-order action gives positive collective phase inertia after
+eliminating density fluctuations about a uniform condensate. Varying its
+nondynamical longitudinal connection leaves one propagating bulk branch.
+Eliminating a surrounding scale region instead gives a causal response with
+memory and forcing fixed by that region's initial state. These are
+conditional reductions of the specified action (§12); its coefficients,
+boundary state and microscopic particle interpretation remain supplied.
+
 A finite localized object requires short-distance support in addition to any
 pinch. A charged endpoint section supplies one coherent, gauge-covariant
 turning realization; its separately declared Wilson-link extension supplies
@@ -1498,6 +1506,101 @@ Hypothesized. Its free coefficients and normalization choices carry the missing
 physics. The golden ratio organizes the composition and possible compact
 winding approximants; it does not replace those inputs.
 
+## 12. Collective dynamics and the surrounding initial state
+
+A local region inherits constraints from the full scale field. The
+quadratic reduction makes those constraints explicit without selecting a
+physical formation history. Work in the flat-measure action of §2.4 with
+uniform positive density, ratio-$\varphi$ composition, flat background
+connection and positive stiffnesses. Put
+$D=\operatorname{diag}(E_{Y0},E_{I0})$,
+$a=(1,1)^T$, $b=(1,-\varphi)^T$ and
+$\sigma=K_x|\mathbf k|^2+K_{\mathfrak s}p^2$, where $p$ is the
+dimensionless scale-coordinate wave number.
+
+### 12.1 Density supplies collective phase inertia
+
+Density and phase are conjugate variables of the first-order action.
+Writing $\psi_a=\sqrt{E_{a0}+n_a}\,e^{i\theta_a}$ gives the quadratic
+density Hessian
+
+$$
+W_\sigma=\frac{\lambda_\rho}{2}aa^T
++\lambda_\varphi bb^T+\frac{\sigma}{4}D^{-1}.
+$$
+
+For $W_\sigma>0$, eliminating $n$ is exact in this quadratic sector:
+
+$$
+\boxed{
+n=-\hbar W_\sigma^{-1}\dot\theta,\qquad
+\mathcal L_{\theta,2}
+=\frac{\hbar^2}{2}\dot\theta^TW_\sigma^{-1}\dot\theta
+-\frac12\theta^TC_\sigma\theta.}
+$$
+
+Holding the connection fixed gives $C_\sigma=\sigma D$ and two
+propagating branches at nonzero $\sigma$. The action also requires the
+connection equations in §5.1. For an admissible longitudinal variation
+with $g_Q\ne0$, the connection has zero curvature and projects out the
+relative current:
+
+$$
+C_\sigma\longrightarrow
+\widetilde C_\sigma
+=\sigma\frac{E_{Y0}E_{I0}}{\rho_0}aa^T,\qquad
+\boxed{\omega_{\rm long}^2=
+\frac{\sigma\,\frac{E_{Y0}E_{I0}}{\rho_0}
+[2\lambda_\rho+\lambda_\varphi(1-\varphi)^2]+\sigma^2/4}
+{\hbar^2}.}
+$$
+
+This branch has equal Yang and Yin density fluctuations. The remaining
+linear pair has static relative density and zero phase-restoring
+curvature. Both the fixed-connection branches and the allowed
+longitudinal branch have zero frequency at $\mathbf k=p=0$. A positive
+scale-Laplacian eigenvalue can give a projected three-dimensional
+frequency gap, conditional on the boundary problem, density and
+stiffnesses. Neumann or periodic data permit a zero scale mode. Boundary
+holonomy, transverse curvature and nonuniform backgrounds require a
+separate constrained spectrum.
+
+The positive inertia belongs to condensate phase motion. Its canonical
+variables differ from the independent carrier and signed charge used in
+the scalar condensation model. It also leaves the first-order
+source-free Gauss obstruction of §2.4 unchanged.
+
+### 12.2 The exterior supplies memory and initial data
+
+An initially populated exterior can supply amplitude to a locally empty
+region while the full system conserves field number. For the
+self-adjoint quadratic split
+$H=\left(\begin{smallmatrix}H_L&V\\V^\dagger&H_E\end{smallmatrix}\right)$,
+exact elimination of exterior amplitude $y$ gives
+
+$$
+\boxed{
+i\hbar\dot x(t)=H_Lx(t)+Ve^{-iH_Et/\hbar}y_0
+-\frac{i}{\hbar}\int_0^t
+Ve^{-iH_E(t-s)/\hbar}V^\dagger x(s)\,ds.}
+$$
+
+The corresponding projected resolvent has nonnegative spectral residues
+at the full Hamiltonian's eigenenergies. A frequency Taylor expansion of
+its inverse is controlled only inside its convergence domain; roots
+outside that domain supply no additional physical modes. A finite closed
+exterior gives recurrence. Irreversible damping and a quantum creation
+interpretation require further state and dynamical assumptions.
+
+The initial exterior amplitude and its correlations enter local
+evolution independently of the Hamiltonian. Globally empty classical
+data remain empty. The density potential conserves the two integrated
+species numbers separately and therefore cannot set their global ratio
+by interconversion. Physical formation still needs the full bubble's
+boundary data, initial correlations, energy distribution and state rule.
+The exact derivation and fixed numerical qualification are in
+`computations/matter-formation-continuum-report.md` §37.
+
 ---
 
 ## References
@@ -1553,3 +1656,7 @@ winding approximants; it does not replace those inputs.
 - `foundations/interscale-stress-attenuation-boundary.md`—Noether momentum-window ledger, reciprocal scale stress, and routed-flux attenuation boundary
 - `computations/matter-formation-continuum-report.md`—Cartesian ultraviolet/parity diagnostic, empty-sector conservation, continuum-consistent prepared binding, and inconclusive smooth $Q_C=16$ spatial stability.
 - `computations/interscale_stress_attenuation_check.py`—stress and transfer-algebra checker
+- `computations/matter_formation_cascade_response.py`—quadratic phase spectra,
+  constrained connection response, exact exterior transfer and covariance.
+- `computations/verify_matter_formation_cascade_response.py`—independent
+  Cartesian Hessian, causal-memory evolution and raw-array qualification.

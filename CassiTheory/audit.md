@@ -412,6 +412,26 @@ normalization, spin, statistics, particle identity and physical completion
 remain open (`computations/matter-formation-continuum-report.md` §36;
 `foundations/matter-completion-boundary.md` §18).
 
+The Hypothesized interscale action has a conditional collective-response
+derivation. Eliminating density fluctuations gives a positive phase kinetic
+form. With admissible longitudinal connection variation, one bulk branch
+propagates and the remaining relative-density fluctuation is static.
+The zero spatial/scale mode is gapless; a projected gap depends on supplied
+scale boundary data, density and stiffnesses. Exact elimination of the
+surrounding field gives causal memory and initial forcing. These results
+constrain a local formation model while leaving the bubble's physical
+initial state, quantum rule, microscopic action selection and particle
+identity open. Complete physical matter formation remains
+**Hypothesized/Open** (`computations/matter-formation-continuum-report.md`
+§37; `foundations/interscale-current-soliton.md` §12).
+
+The primary quadratic calculation passes 28 checks and its independent
+reconstruction passes 24. Full and retarded-memory evolutions agree within
+$9.54310\times10^{-13}$ in local complex amplitude; the independent
+full-energy drift is $1.26859\times10^{-11}$. The uncoupled local-empty and
+globally empty controls give zero local population. These fixed-witness
+results carry the verdict `SUPPORTS-conditional cascade response`.
+
 
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)
 

@@ -890,6 +890,17 @@ set, or stability in extra complex-mediator and gauge fields
 (`computations/matter-formation-continuum-report.md` §36;
 `foundations/matter-completion-boundary.md` §18).
 
+The conservative interscale action conditionally determines collective
+phase inertia and the causal response of a local scale window to its
+surroundings. Varying the admissible longitudinal connection leaves one
+propagating bulk branch. Its projected frequency gap depends on the
+supplied scale boundary problem and vanishes for a zero scale mode at
+zero spatial wave number. Exterior population and covariance determine
+local injection and fluctuations. These identities supply no selected
+particle mass, formation epoch, spin or statistics and add no catalog
+prediction (`foundations/interscale-current-soliton.md` §12;
+`computations/matter-formation-continuum-report.md` §37).
+
 
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;

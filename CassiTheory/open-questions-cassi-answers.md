@@ -1460,6 +1460,19 @@ stability, microscopic action selection, quantum creation or particle
 assignment (`computations/matter-formation-continuum-report.md` §36;
 `foundations/matter-completion-boundary.md` §18).
 
+The conservative interscale action has a **Derived conditional**
+collective-response reduction. Eliminating density fluctuations gives
+positive phase inertia; admissible variation of the longitudinal
+connection leaves one propagating bulk mode with zero frequency at zero
+spatial and scale wave number. Eliminating a surrounding scale region
+gives causal memory and forcing set by its initial population and
+correlations. A finite scale-boundary gap therefore depends on supplied
+boundary data and coefficients. These results constrain a local
+formation model without selecting the scalar carrier parent, quantum
+state, formation epoch or microscopic particle identity
+(`foundations/interscale-current-soliton.md` §12;
+`computations/matter-formation-continuum-report.md` §37).
+
 A positive-inertia temporal parent provides one Hypothesized extension with
 signed charge. Its normalized quadratic quantum theory passes a 31-trajectory
 prescribed-background correspondence check against the exact scalar

@@ -729,6 +729,18 @@ compact winding, scale-metric coefficients, and particle identification remain
 conditional or open. The interscale current is separate from the canonical
 spatial diagnostic $\mathbf J_d$.
 
+The same action also constrains local dynamics through its surrounding
+field. About a uniform condensate, density fluctuations supply positive
+inertia for collective phase motion. Varying the admissible longitudinal
+connection leaves one propagating bulk mode; a finite scale-boundary
+gap depends on the imposed boundary problem and coefficients. Exact
+elimination of the exterior gives a causal memory term and forcing
+fixed by exterior initial data. These conditional results identify
+where whole-bubble dynamics and initial correlations enter the local
+problem. Physical boundary data, a formation history and microscopic
+particle selection remain open (`foundations/interscale-current-soliton.md`
+§12; `computations/matter-formation-continuum-report.md` §37).
+
 `foundations/interscale-stress-attenuation-boundary.md` introduces the separate
 spatial-momentum flux $T_{i\mathfrak s}$. The force on a finite scale window is
 the difference between this flux at its two scale boundaries. A reciprocal

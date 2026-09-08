@@ -729,6 +729,15 @@ diagnostic $\mathbf J_d$. The composition potential has a minimum at
 $E_Y/E_I=\varphi$ but conserves the two species separately, so a conversion
 sector or bath remains necessary.
 
+The first-order action also gives positive phase inertia after eliminating
+density fluctuations. Admissible longitudinal connection variation leaves
+one propagating bulk branch. Exact exterior elimination supplies causal
+memory and forcing fixed by the surrounding initial state. A projected
+scale gap depends on supplied boundary data, coefficients and density.
+These Derived conditional results constrain local initial-value models;
+physical bubble history, quantum-state selection and particle identity
+remain open (§12; `computations/matter-formation-continuum-report.md` §37).
+
 On the Mapped Planck-to-proton interval, endpoint conversion closes Yang
 outward flow and Yin return flow into a two-rail circuit. A charged coherent
 section and a one-way open channel provide explicit conditional realizations.

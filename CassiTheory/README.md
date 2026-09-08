@@ -193,6 +193,16 @@ selection, quantum state and creation, physical normalization, spin,
 statistics, particle identity and physical stability of formed clouds remain
 open (`computations/matter-formation-continuum-report.md` §36;
 `foundations/matter-completion-boundary.md` §18).
+
+The coupled scale field also determines part of the local response. Its
+first-order action gives positive inertia for collective phase motion.
+The admissible longitudinal connection leaves one propagating bulk branch,
+while the surrounding field supplies memory and initial-state information.
+A projected frequency gap depends on the supplied scale boundary problem;
+the zero scale mode remains gapless. The bubble's physical initial state,
+quantum rule and microscopic particle identification remain open
+(`foundations/interscale-current-soliton.md` §12;
+`computations/matter-formation-continuum-report.md` §37).
  
 
 Scalar and Dirac parents produce the same measured slow carrier equation while

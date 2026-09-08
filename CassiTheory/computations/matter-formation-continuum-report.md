@@ -148,6 +148,15 @@ set or prove their asymptotic capture. Complex mediator and gauge sectors,
 microscopic selection, quantum creation and physical particle assignments
 remain outside its scope (§36).
 
+The surrounding cascade constrains local dynamics through both response
+and initial-state information. The first-order interscale action gives
+positive collective phase inertia when density fluctuations are eliminated.
+Its admissible longitudinal connection leaves one propagating bulk branch;
+the zero scale mode remains gapless. Exact exterior elimination gives
+causal memory and forcing from initially present amplitude and correlations.
+These Derived conditional results leave the physical boundary problem,
+formation history, quantum state and particle identity open (§37).
+
 ## 1. Scope and frozen evidence
 
 The protocol is `computations/matter-formation-continuum-prereg.md`. Its canonical CRLF-to-LF SHA-256 is `806ce855d738325bb2596da0f7dafe4270c13992bf5690f7ab03c95f99ed245f`.
@@ -5798,8 +5807,336 @@ These commands qualify the symbolic identities and fixed trial. The
 continuum theorem depends on the explicit proof in §36.6 rather than on
 the executable verdict.
 
+## 37. Local dynamics induced by the surrounding cascade
+
+A scale window inherits both a response and initial-state information from
+the surrounding field. Two exact quadratic reductions distinguish the
+frequency dependence of a retained complex amplitude from the positive
+inertia of a collective phase. The source is the Hypothesized conservative
+interscale action in `foundations/interscale-current-soliton.md` §2.4.
+The statements below are Derived conditional consequences of that action.
+They supply no physical microscopic identification.
+
+### 37.1 Causal exterior elimination and controlled frequency expansion
+
+Eliminating surrounding degrees of freedom preserves their ability to return
+energy and inject initially present field amplitude. For a time-independent
+self-adjoint quadratic Hamiltonian, write
+
+$$
+i\hbar\frac{d}{dt}\begin{pmatrix}x\\y\end{pmatrix}
+=\begin{pmatrix}H_L&V\\V^\dagger&H_E\end{pmatrix}
+\begin{pmatrix}x\\y\end{pmatrix},
+\qquad U_E(t)=e^{-iH_Et/\hbar}.
+$$
+
+With initial time zero, exact exterior elimination gives
+
+$$
+\boxed{
+i\hbar\dot x(t)=H_Lx(t)+VU_E(t)y_0
+-\frac{i}{\hbar}\int_0^t
+VU_E(t-s)V^\dagger x(s)\,ds.}
+$$
+
+The initial-exterior term remains part of the initial-value problem.
+For complex energy $\zeta=\hbar(\omega+i0)$, the retarded projected inverse is
+
+$$
+\boxed{
+G_L^R(\zeta)=
+\left[\zeta-H_L-V(\zeta-H_E)^{-1}V^\dagger\right]^{-1}.}
+$$
+
+Suppose $H_E\ge\Delta I>0$ and $V$ is bounded. Within $|\zeta|<\Delta$,
+put $M_j=VH_E^{-(j+1)}V^\dagger$. The inverse kernel is
+
+$$
+\mathcal K_L(\zeta)=M_0-H_L
++\zeta(I+M_1)+\zeta^2M_2+\mathcal R_3(\zeta),
+\qquad
+\|\mathcal R_3\|\le
+\frac{\|V\|^2|\zeta|^3}{\Delta^4(1-|\zeta|/\Delta)}.
+$$
+
+Every $M_j$ is positive semidefinite. A root of the quadratic truncation
+outside its convergence disk has no controlled interpretation. For any
+finite self-adjoint full Hamiltonian, its exact projected resolvent has
+residues $P_L|\alpha\rangle\langle\alpha|P_L^\dagger\ge0$ at eigenenergies
+$E_\alpha$, with the residues summing to the retained identity. This
+statement also allows modes whose retained projection vanishes.
+
+An explicit supplied dimensionless example is
+$H_L=1$, $H_E=4$, $V=1$, $\hbar=1$. Its exact poles are
+$(5\pm\sqrt{13})/2$, both positive. The quadratic inverse is
+$-3/4+17\zeta/16+\zeta^2/64$, with roots
+$-34\pm2\sqrt{301}$. Its negative root lies outside $|\zeta|<4$.
+The induced second derivative in this truncation supplies no additional
+physical carrier branch. The active endpoint Nambu kernel in
+`foundations/endpoint-link-and-localization-boundary.md` §3.9 has a
+different symplectic structure and must retain its doubled variables.
+
+### 37.2 Positive collective phase inertia in the first-order action
+
+A compressible condensate already contains conjugate density and phase
+variables. Eliminating one member of each canonical pair yields genuine
+second-order dynamics for the other.
+
+Use the uniform reference composition
+$E_{Y0}=\varphi\rho_0/(1+\varphi)$,
+$E_{I0}=\rho_0/(1+\varphi)$ with $\rho_0>0$. Write
+$\psi_a=\sqrt{E_{a0}+n_a}\,e^{i\theta_a}$, and define
+
+$$
+D=\operatorname{diag}(E_{Y0},E_{I0}),\qquad
+a=\begin{pmatrix}1\\1\end{pmatrix},\qquad
+b=\begin{pmatrix}1\\-\varphi\end{pmatrix},\qquad
+\sigma=K_x|\mathbf k|^2+K_{\mathfrak s}p^2.
+$$
+
+Here $p$ is a scale-coordinate wave number. First hold the flat connection
+fixed. For each real Fourier mode, the exact quadratic Lagrangian is
+
+$$
+\mathcal L_2=-\hbar n^T\dot\theta-\frac12n^TW_\sigma n
+-\frac12\theta^TC_\sigma\theta,
+\quad
+W_\sigma=\frac{\lambda_\rho}{2}aa^T
++\lambda_\varphi bb^T+\frac{\sigma}{4}D^{-1},
+\quad C_\sigma=\sigma D.
+$$
+
+The gradient-density term follows from
+$|\partial\sqrt E|^2=(\partial E)^2/(4E)$.
+For positive density and potential curvatures, $W_\sigma>0$, so
+
+$$
+\boxed{
+n=-\hbar W_\sigma^{-1}\dot\theta,\qquad
+\mathcal L_{\theta,2}
+=\frac{\hbar^2}{2}\dot\theta^TW_\sigma^{-1}\dot\theta
+-\frac12\theta^TC_\sigma\theta.}
+$$
+
+The kinetic form is positive. This elimination preserves two real
+canonical pairs. At nonzero $\sigma$, the first-order and reduced
+second-order equations describe the same four real initial data.
+The reduced inertia is a spatial operator; discarding its density-gradient
+dependence is a separate long-wavelength approximation.
+
+At the ratio-$\varphi$ composition, $a^TDb=0$. The two squared frequencies
+for the fixed connection are therefore
+
+$$
+\boxed{
+\omega_\rho^2=
+\frac{\frac12\lambda_\rho\rho_0\,\sigma+\sigma^2/4}{\hbar^2},
+\qquad
+\omega_\varepsilon^2=
+\frac{\lambda_\varphi\varphi\rho_0\,\sigma+\sigma^2/4}{\hbar^2}.}
+$$
+
+Both vanish for $\mathbf k=p=0$. A supplied self-adjoint scale boundary
+problem can give $p^2>0$ and hence a nonzero frequency at $\mathbf k=0$.
+The boundary conditions, scale measure, stiffnesses and density determine
+that gap. They remain physical inputs to the interscale extension.
+These collective fluctuations have no independent charged-carrier field
+$z$ or signed charge $\mathcal Q_a$ of §§25–36.
+
+### 37.3 The longitudinal connection changes the mode count
+
+Varying the source action requires the spatial and scale connection
+constraints as well as the matter equation. In the uniform bulk, a
+longitudinal connection fluctuation has zero curvature. If boundary
+conditions permit its variation and $g_Q\ne0$, minimizing its quadratic
+energy projects out the relative current. With
+$r=(1,-1)^T$, the resulting phase Hessian at nonzero combined wave number is
+
+$$
+\widetilde C_\sigma
+=\sigma\left[D-\frac{Dr\,r^TD}{r^TDr}\right]
+=\sigma\frac{E_{Y0}E_{I0}}{\rho_0}aa^T.
+$$
+
+Consequently, the allowed nonzero-frequency longitudinal density
+fluctuation has $n_Y=n_I$. Its squared frequency is
+
+$$
+\boxed{
+\omega_{\rm long}^2
+=\frac{\sigma\,\frac{E_{Y0}E_{I0}}{\rho_0}
+\left[2\lambda_\rho+\lambda_\varphi(1-\varphi)^2\right]
++\sigma^2/4}{\hbar^2}.}
+$$
+
+The remaining linear pair has zero restoring phase curvature:
+the relative-density perturbation is static and its conjugate phase can
+drift. It supplies no second propagating branch. This constraint does not
+identify the two fixed-connection branches with two physical particles.
+It also leaves the homogeneous source-free Gauss obstruction unchanged
+if a time-dependent local gauge symmetry is imposed on the first-order
+action (`foundations/interscale-current-soliton.md` §2.4).
+
+The formulas assume uniform coefficients, a flat background and admissible
+longitudinal connection variations. Nontrivial boundary holonomy, transverse
+curvature, spatially varying backgrounds and a dynamical temporal
+connection require their own constrained spectral problem.
+
+### 37.4 Initial-state information carried by the exterior
+
+A surrounding population can enter a locally empty window while total
+field number is conserved. For the two-level example in §37.1, initial
+$x_0=0$, $y_0=1$ gives
+
+$$
+x(t)=-\frac{2i}{\sqrt{13}}e^{-5it/2}
+\sin\!\left(\frac{\sqrt{13}t}{2}\right),
+\qquad
+|x(t)|^2=\frac4{13}\sin^2\!\left(\frac{\sqrt{13}t}{2}\right).
+$$
+
+The transferred population returns periodically. Total norm and the full
+Hamiltonian energy are conserved. Globally zero initial data remain zero.
+A finite conservative exterior supplies memory and recurrence; irreversible
+damping requires additional limiting or open-system assumptions.
+
+For an initial ensemble with covariance $\Gamma_0$, the full quadratic
+evolution gives $\Gamma(t)=U(t)\Gamma_0U(t)^\dagger$. The initial-force
+covariance is
+
+$$
+\langle\delta f_{\rm in}(t)\delta f_{\rm in}(t')^\dagger\rangle
+=VU_E(t)\Gamma_{EE}(0)U_E(t')^\dagger V^\dagger.
+$$
+
+Initial interior–exterior correlations also enter the projected covariance.
+The Hamiltonian alone supplies no value for them. A quantum interpretation
+requires a specified state, commutators and covariance ordering.
+The conservative density potential separately conserves integrated Yang
+and Yin numbers; its ratio-$\varphi$ minimum supplies no conversion of one
+species into the other. Collective phase inertia therefore does not select
+a matter-producing initial state, a formation epoch, a particle identity
+or the independent scalar parent used for the condensation theorem.
+
+### 37.5 Cascade response qualification: pre-execution criteria
+
+This calculation qualifies exact quadratic response identities and the
+effect of supplied exterior initial data. It does not run a nonlinear
+formation experiment. The source action, algebra and interpretation are
+fixed in §§37.1–37.4 before execution.
+
+1. In dimensionless witness units use $\hbar=K_x=K_{\mathfrak s}=\rho_0=1$,
+   $\lambda_\rho=\lambda_\varphi=4$ and the exact ratio-$\varphi$
+   composition. These values are supplied numerical witnesses, with no
+   physical calibration or coefficient selection.
+2. Check the density Hessian, density elimination, both fixed-connection
+   characteristic branches and the varied-connection characteristic
+   polynomial symbolically. Every symbolic residual must vanish exactly.
+   Compare first-order and second-order numerical spectra at
+   $\sigma\in\{0,1/16,1/4,1,4\}$ with maximum absolute frequency error
+   below $10^{-10}$. Count zero modes by their characteristic polynomial.
+3. For illustration only, take a uniform scale interval of length $8$.
+   Use $p=m\pi/8$ for $m=0,1,2$. The $m=0$ Neumann mode must have zero
+   gap, and the permitted $m\ge1$ Neumann or Dirichlet modes must have
+   positive gaps. Setting $K_{\mathfrak s}=0$ must remove all these gaps.
+   No boundary condition or interval length is inferred for the bubble.
+4. For $H_L=1,H_E=4,V=1$, compare the exact projected poles and positive
+   residues with the quadratic inverse and its two roots. Check the
+   stated remainder bound at $\zeta\in\{-1,-1/2,1/2,1\}$ with tolerance
+   $10^{-12}$. The negative truncated root must lie outside $|\zeta|<4$.
+5. Evolve initial $x_0=0,y_0=1$ on $t=j/8$, $j=0,\ldots,128$.
+   The primary uses the full Hermitian eigendecomposition; independent
+   Runge–Kutta evolution of the full equations and the retarded
+   memory equation must agree with it within $10^{-9}$ in complex
+   amplitudes. Use DOP853 with relative tolerance $10^{-12}$ and
+   absolute tolerance $10^{-14}$. Norm and full-energy errors must
+   remain below $10^{-10}$. Check the closed population formula and
+   covariance transport to $10^{-10}$.
+6. The $V=0$ local-empty control and the globally zero control must have
+   zero local population to $10^{-12}$. Preserve all sampled amplitudes,
+   energies, norms, spectra and source/section hashes in fresh
+   output directories. The independent program imports no primary
+   calculation functions. It verifies the expected primary receipt hash
+   and reconstructs the physical quantities from raw arrays.
+7. Stop after these fixed checks. A failed identity, numerical tolerance
+   or source binding gives `INCONCLUSIVE`; all criteria passing gives
+   `SUPPORTS-conditional cascade response`. No parameter search or
+   formation claim follows from either outcome. Every receipt retains
+   `complete_physical_matter_formation=false`.
+
+The programs are `computations/matter_formation_cascade_response.py` and
+`computations/verify_matter_formation_cascade_response.py`.
+The retained output root is `runs/20260908_matter_formation_cascade_response/`.
+
+### 37.6 Reproduced collective response and initial-state dependence
+
+Both implementations satisfy the frozen quadratic-response criteria.
+The primary passes all 28 checks and the independent Cartesian-field,
+spectral and Runge–Kutta reconstruction passes all 24 checks. The joint
+verdict is `SUPPORTS-conditional cascade response`.
+
+| Reconstructed quantity | Maximum absolute discrepancy | Frozen tolerance |
+|---|---:|---:|
+| Fixed-connection frequencies | $1.77636\times10^{-15}$ | $10^{-10}$ |
+| Allowed longitudinal frequency | $6.66134\times10^{-16}$ | $10^{-10}$ |
+| Full primary and independent complex amplitudes | $4.10137\times10^{-12}$ | $10^{-9}$ |
+| Independent full and retarded-memory local amplitudes | $9.54310\times10^{-13}$ | $10^{-9}$ |
+| Independent total-norm drift | $2.94853\times10^{-12}$ | $10^{-10}$ |
+| Independent full-energy drift | $1.26859\times10^{-11}$ | $10^{-10}$ |
+| Independent local population and closed formula | $7.32331\times10^{-13}$ | $10^{-10}$ |
+
+The supplied interval gives longitudinal gaps
+$0$, $0.5939730022544724$ and $1.2176043112300212$ for
+$m=0,1,2$ at zero spatial wave number. Setting the scale stiffness to zero
+removes every gap. These numbers use dimensionless witness units.
+The exact response poles are $0.6972243622680053$ and
+$4.302775637731995$, with positive residues summing to one; the negative
+quadratic-truncation root is $-68.69870314579495$, outside its convergence
+disk.
+
+Incoming exterior amplitude gives a maximum sampled local population
+$0.3076787730756753$, consistent with the exact maximum $4/13$.
+The uncoupled local-empty and globally zero controls retain exactly zero
+local population. The covariance witness is
+$\Gamma_0=\left(\begin{smallmatrix}1&0.2+0.1i\\0.2-0.1i&0.7\end{smallmatrix}\right)$,
+whose smallest eigenvalue is $0.5807417596432747$. Direct reconstruction
+from the closed matrix exponential agrees with all retained primary
+amplitudes within $6.69802\times10^{-15}$ and covariances within
+$2.49156\times10^{-15}$. Missing source text, an incorrect expected receipt
+hash and altered raw-array bytes each return `INCONCLUSIVE`.
+
+The retained primary receipt is `primary_recovery/results.json`
+(SHA-256 `534f6289451629ee7a4fee2cfbcf5e505bcecc01ff107b99d7fbe638640ca874`);
+the independent receipt is `verification/verification.json`
+(SHA-256 `ccaf0a7ccb30066cfd5f6feebb942ee948200668dd2990acc4237feacc7cd44a`),
+both under `runs/20260908_matter_formation_cascade_response/`.
+`reconciliation.json` binds the receipt, source, section and array hashes
+and records the direct raw-array reconstruction. The stationarity
+predicate compares two-component vectors; `implementation_recovery.json`
+binds its implementation to the five frozen source sections.
+
+To regenerate the two qualifications, use fresh output directories and
+bind the independent run to the newly produced receipt. In PowerShell:
+
+```powershell
+python computations/matter_formation_cascade_response.py --output-dir runs/20260908_matter_formation_cascade_response/reproduced_primary
+$receiptHash = (Get-FileHash -Algorithm SHA256 runs/20260908_matter_formation_cascade_response/reproduced_primary/results.json).Hash
+python computations/verify_matter_formation_cascade_response.py --primary runs/20260908_matter_formation_cascade_response/reproduced_primary --expected-primary-sha $receiptHash --output-dir runs/20260908_matter_formation_cascade_response/reproduced_verification
+```
+
+These results give a derived conditional local evolution law once the
+surrounding state and boundary problem are supplied. They leave the
+physical initial state, microscopic action selection, quantum creation,
+physical normalization and particle assignment open. The independent
+charged scalar minimizer theorem in §36 retains its own specified action
+and charge sector. Every cascade-response receipt keeps
+`complete_physical_matter_formation=false`.
+
 ## References
 
+- `computations/matter_formation_cascade_response.py`—source-bound collective-phase spectra, scale modes and exterior-memory evolution.
+- `computations/verify_matter_formation_cascade_response.py`—independent Cartesian Hessian, exact pole residues and Runge–Kutta reconstruction.
+- `runs/20260908_matter_formation_cascade_response/`—source and section snapshots, raw arrays, provenance controls and joint reconciliation.
 - `computations/matter_formation_continuum_minimizer.py`—exact angular, variational and fixed-trial continuum binding qualification.
 - `computations/verify_matter_formation_continuum_minimizer.py`—independent symbolic checks, high-precision trial quadrature and source-bound rejection controls.
 - `runs/20260908_matter_formation_continuum_minimizer/`—retained calculations, independent analytic adjudication, input controls and byte reconciliation.
