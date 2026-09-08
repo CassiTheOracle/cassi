@@ -366,12 +366,30 @@ and $2.2085\times10^{-6}$ pointwise in the fields. The unpinned
 finite-grid scalar Hessians satisfy the frozen energetic criteria,
 and all four missing/altered-section controls reject invalid input.
 The positive surface cost $\sigma=0.8738238914$ enters conditional
-large-charge droplet asymptotics. Those asymptotics presuppose finite
-droplets and leave their formation, nonlinear persistence and physical
-charge selection open. The joint interface verdict is
-`SUPPORTS-conditional charged coexistence interface`; physical matter
-formation remains **Hypothesized/Open**
+large-charge droplet asymptotics. Their stationary scope leaves finite
+formation dynamics to a separate calculation. The joint interface verdict is
+`SUPPORTS-conditional charged coexistence interface`
 (`computations/matter-formation-continuum-report.md` §34).
+
+Diffuse initially charged clouds have independently reproduced finite-time
+radial condensation in this supplied scalar parent. Widths $4$ and $8$
+at signed charge $\mathcal Q_a=256$ retain independent mean core fractions
+$0.7476513$ and $0.5637353$, compared with $0.0545181$ and $0.1537575$
+when coupling is disabled. Both widths meet the frozen charge-retention
+and mediator-depletion criteria at every sampled time in $32\le t\le48$
+on all five schedules. All 64 spatial, domain, time-step and independent
+metric comparisons pass. Direct reconstruction of 1,078 field snapshots
+across 22 trajectory archives gives maximum normalized diagnostic error
+$2.4716341\times10^{-14}$; the five required invalid-input controls reject
+their inputs. The exact verdict is
+`EMERGES-conditional finite-charge radial condensation`.
+The calculation supplies initial charge and restricts the mediator to a real
+field. Quantum creation, microscopic action and state selection, physical
+units, nonradial and mediator-phase stability, infinite-time survival and
+particle identity remain open. Physical matter formation remains
+**Hypothesized/Open**
+(`computations/matter-formation-continuum-report.md` §35;
+`foundations/matter-completion-boundary.md` §17).
 
 
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)

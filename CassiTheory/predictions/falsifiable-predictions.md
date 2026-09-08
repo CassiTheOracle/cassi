@@ -859,10 +859,23 @@ $\sigma=0.8738238914$ in the dimensionless model, and its unpinned
 finite-grid scalar Hessians satisfy the frozen energetic criteria.
 The conditional large-charge radius and surface-energy laws favor
 combination of large same-sign droplets at fixed total charge.
-The result establishes no finite droplet formation, physical charge unit
-or measured particle property and adds no catalog prediction
-(`foundations/matter-completion-boundary.md` §16;
-`computations/matter-formation-continuum-report.md` §34).
+Its stationary scope and physical matching boundary are recorded in
+`foundations/matter-completion-boundary.md` §16 and
+`computations/matter-formation-continuum-report.md` §34.
+
+The same supplied action has independently qualified radial condensation
+from two diffuse clouds with initial signed charge $\mathcal Q_a=256$.
+Mean charge retention inside $r<8$ during $32\le t\le48$ is $74.77\%$
+and $56.37\%$ in independent evolution, compared with $5.45\%$ and
+$15.38\%$ in matched uncoupled controls. Both widths satisfy the
+pointwise-in-time retention and depletion criteria on every numerical
+schedule. Spatial, domain, time-step and independent-integrator
+comparisons pass. This finite-time classical result selects no physical
+charge unit, quantum production rule, spin, statistics or measured particle
+property; it adds no catalog prediction. All-sector long-time stability
+and physical matter formation remain open
+(`foundations/matter-completion-boundary.md` §17;
+`computations/matter-formation-continuum-report.md` §35).
 
 
 **Source:** `foundations/matter-completion-boundary.md`;

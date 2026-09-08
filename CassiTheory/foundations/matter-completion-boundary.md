@@ -1,6 +1,6 @@
 # Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
-## Status: Derived conditional boundary and microscopic non-identifiability / Mapped carrier coupling and conditional baryon benchmark / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences and radial baryon relaxation—September 2026
+## Status: Derived conditional boundary and microscopic non-identifiability / Mapped carrier coupling and conditional baryon benchmark / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences, radial baryon relaxation and finite-charge radial condensation—September 2026
 
 ## Abstract
 
@@ -46,6 +46,14 @@ carrier equation while carrying inequivalent spin and statistics. The
 microscopic projection is many-to-one, so a canonical action, quantum state,
 physical normalization and particle discriminator must enter before the
 conditional results define one matter-formation mechanism.
+
+Diffuse charged clouds also form their own depleted mediator core in the
+supplied positive-inertia scalar parent. Two initial Gaussian widths retain
+more than half their supplied charge in the core throughout the sampled
+late-time interval, reproduced by independent Runge–Kutta evolution and
+qualified against uncoupled controls. This finite-time radial condensation
+leaves microscopic creation, all-sector stability and particle identity
+open (§17).
 
 An additional normalized complex doublet and compact $SU(2)$ chiral action
 provide one explicit conditional baryon benchmark. A finite-domain
@@ -1312,10 +1320,50 @@ E=\Omega_0|\mathcal Q_a|+4\pi\sigma R^2+O(R).}
 $$
 The positive surface correction favors combining large same-sign
 droplets at fixed total charge. These asymptotics specify a radius for
-a supplied charge; they establish no finite spherical solution,
-nucleation trajectory, incoming-flux capture, nonlinear persistence
-or elementary charge selection. The microscopic model, quantum state,
-physical normalization, spin, statistics and matter identity remain open.
+a supplied charge; their variational scope leaves finite formation to the
+radial calculation in §17. Incoming-flux capture, all-sector nonlinear
+persistence and elementary charge selection remain open, together with
+the microscopic model, quantum state, physical normalization, spin,
+statistics and matter identity.
+
+## 17. Self-generated finite-charge radial condensation
+
+A diffuse charged cloud can generate its own localized mediator depletion
+in the supplied positive-inertia scalar action. With the notation of §16,
+completion of the carrier kinetic square and the nonnegative coexistence
+potential give
+$$
+\boxed{E\ge\Omega_0|\mathcal Q_a|.}
+$$
+A smooth populated-ball trial family has
+$E=\Omega_0|\mathcal Q_a|+O(|\mathcal Q_a|^{2/3})$, below the
+free exterior threshold $\Omega_\infty|\mathcal Q_a|$ for sufficiently
+large supplied charge when $\Omega_0<\Omega_\infty$.
+This bound and trial comparison leave attainment and general nonlinear
+stability as separate questions.
+
+Independent real-time radial calculations qualify formation for two
+specified diffuse preparations. Gaussian widths $4$ and $8$, each with
+initial signed charge $\mathcal Q_a=256$ and initially uniform mediator
+$f=1$, retain mean charge fractions $0.7476513$ and $0.5637353$ inside
+$r<8$ over $32\le t\le48$ in the independent evolution. The matched
+uncoupled controls retain $0.0545181$ and $0.1537575$. Both coupled clouds
+have core charge fraction at least $0.5$ and central $f^2\le0.25$
+at every sampled late time across four primary schedules and an
+independent integrator. Spatial, domain, time-step, conservation and raw
+field comparisons satisfy the frozen criteria. The result is
+`EMERGES-conditional finite-charge radial condensation`
+(`computations/matter-formation-continuum-report.md` §35).
+
+This establishes self-generated localization and finite-time radial
+retention of an initially supplied charge. It uses no imposed trap,
+damping or evolving charge normalization. Nonradial breakup,
+complex mediator-phase perturbations and infinite-time survival remain
+untested. The dimensionless charge has no physical particle assignment.
+The six requirements in §12 remain unsatisfied jointly: the canonical
+microscopic action, quantum state, physical normalization and
+spin/statistics selection do not follow from these scalar trajectories.
+Physical matter formation remains **Hypothesized/Open**.
 
 ## References
 

@@ -609,15 +609,33 @@ $$
 which has both signs and zero cell integral. This is transport from prepared
 complex carrier data. Exactly empty carrier data remain empty.
 
-The full plane-symmetric equations conserve energy and signed charge and were
-evolved with carrier backreaction and self-interaction. Their frozen
+The full plane-symmetric equations conserve energy and signed charge. The
+evolutions include carrier backreaction and self-interaction. Their frozen
 cross-method verdict is `INCONCLUSIVE`: a fixed phase-space coordinate crosses
 its carrier threshold before mediator entry, while its period-sampled
 reconstruction recovers the accepted Floquet rates and mediator-first secular
-ordering. The reconstruction diagnoses phase aliasing and is excluded from the
-frozen decision. None of these spatial calculations supplies a finite-energy
-localized forming solution
+ordering. The reconstruction diagnoses phase aliasing and leaves the
+frozen verdict unchanged. These plane-symmetric calculations supply no
+finite-energy localized forming solution
 (`computations/matter-formation-continuum-report.md` §§25–28).
+
+A separate radial calculation shows initially diffuse clouds creating their
+own depleted mediator core under the same selected positive-inertia scalar action:
+$a=1/16$, $c_\Psi=1/8$ and inherited **Mapped**
+$h_C=2.9598260763447164$. Diffuse Gaussian clouds carry supplied signed
+$\mathcal Q_a=256$ at widths $w=4,8$, distinct from prepared population $Q_C=256$.
+Starting with real mediator $f=1$, independent RK4 mean core fractions inside $r<8$
+over $32\le t\le48$ are $0.7476513029152703$ and
+$0.5637353289380143$, versus matched $h_C=0$ controls
+$0.054518103963512976$ and $0.15375753009303855$. No trap or damping is
+imposed. The result is `EMERGES-conditional finite-charge radial
+condensation` for supplied initially charged data, while physical
+normalization and units, quantum state and creation, nonradial and
+complex-mediator-phase stability, infinite-time/all-sector survival and
+particle identity remain open
+(`computations/matter-formation-continuum-report.md` §35;
+`foundations/matter-completion-boundary.md` §17).
+
 
 ### 1.12 Slow-sector non-identifiability
 
@@ -779,6 +797,23 @@ action, quantum state, physical normalization, continuum-localized formation
 and observable particle discriminator remain open
 (`computations/matter-formation-continuum-report.md` §§25–29).
 
+A distinct finite-time radial calculation qualifies `EMERGES-conditional
+finite-charge radial condensation` for the supplied positive-inertia
+real-mediator/complex-carrier action ($a=1/16$, $c_\Psi=1/8$, inherited
+**Mapped** $h_C=2.9598260763447164$). Diffuse clouds begin with supplied
+signed $\mathcal Q_a=256$ at $w=4,8$, distinct from prepared population $Q_C=256$;
+their independent-RK4 mean core fractions inside $r<8$ over
+$32\le t\le48$ are $0.7476513029152703$ and $0.5637353289380143$,
+versus matched $h_C=0$ controls $0.054518103963512976$ and
+$0.15375753009303855$. No imposed trap or damping is used. The result is
+finite-time, finite-charge radial scalar condensation. Canonical microscopic
+action selection, physical units and normalization,
+quantum state and creation, nonradial and complex-mediator-phase stability,
+infinite-time/all-sector survival and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §35;
+`foundations/matter-completion-boundary.md` §17).
+
+
 The canonical scalar topology checks find contractible regular
 positive-density domains with no rotation or exchange
 Finkelstein–Rubinstein sign. Separated exchange, large-gauge and compact
@@ -811,7 +846,8 @@ coefficient-scale identity leave that selection open.
 - `foundations/unified-lagrangian.md` §§2, 5–7—optional fermion sector and action assembly.
 - `foundations/particle-stationary-action-closure.md` §8.12—scalar physical-normalization and particle-identity boundary.
 - `computations/matter-formation-normalization-prereg.md`—frozen unit-normalization, bilinear and action-reality checks.
-- `computations/matter-formation-continuum-report.md` §§12–29—normalization and identity boundaries, scalar and fermionic production witnesses, conditional formation dynamics and the microscopic non-identifiability theorem.
+- `computations/matter-formation-continuum-report.md` §§12–29, 35—normalization and identity boundaries, scalar and fermionic production witnesses, conditional formation dynamics, the microscopic non-identifiability theorem and finite-charge radial condensation.
+- `foundations/matter-completion-boundary.md` §§12, 17—conditional completion boundary and the finite-charge radial formation scope.
 - `computations/matter-formation-spinor-closure-prereg.md`—frozen positive-observable, closed-conversion, massive fixed-point and positive-energy witnesses.
 - `computations/matter-formation-spinor-closure-implementation-recovery.md`—execution provenance and accepted receipt location under the scientific preregistration's recovery rule.
 - `computations/matter_formation_spinor_closure.py` and `computations/verify_matter_formation_spinor_closure.py`—independent four-component and reduced-component witnesses.

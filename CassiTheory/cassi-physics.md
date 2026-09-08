@@ -557,10 +557,23 @@ resolve their positive-amplitude planar interface with dimensionless
 surface cost $\sigma=0.8738238914$ and qualified finite-grid scalar
 energetics. For large prescribed charge, thin-interface theory gives a
 radius proportional to its cube root and favors combining large same-sign
-droplets through reduced total surface area. A finite formation trajectory,
-nonlinear persistence and the physical charge unit remain open
+droplets through reduced total surface area
 (`foundations/matter-completion-boundary.md` §16;
 `computations/matter-formation-continuum-report.md` §34).
+
+Diffuse charged clouds generate their own depleted mediator core in the
+same scalar parent. Two Gaussian widths at initial signed charge
+$\mathcal Q_a=256$ retain mean core fractions $74.77\%$ and $56.37\%$
+inside $r<8$ during $32\le t\le48$ in independent radial evolution.
+Their matched uncoupled controls retain $5.45\%$ and $15.38\%$.
+Both widths satisfy the retained-charge and mediator-depletion conditions
+at every sampled late time on all five numerical schedules, with
+qualified spatial, domain, time-step and independent-integrator comparisons.
+This is self-generated finite-time radial condensation of supplied charge.
+Physical quantum creation, all-sector stability, the physical charge unit
+and particle identity remain open
+(`foundations/matter-completion-boundary.md` §17;
+`computations/matter-formation-continuum-report.md` §35).
 
 
 ---

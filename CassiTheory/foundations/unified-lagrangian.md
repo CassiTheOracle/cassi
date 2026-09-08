@@ -550,6 +550,24 @@ the physical branch requires an action, state rule, normalization and
 particle observable outside that slow sector
 (`computations/matter-formation-continuum-report.md` §29).
 
+The same supplied positive-inertia real-mediator/complex-carrier scalar
+action ($a=1/16$, $c_\Psi=1/8$, inherited **Mapped**
+$h_C=2.9598260763447164$) also produces qualified finite-charge radial
+condensation. Diffuse Gaussian clouds carry supplied signed $\mathcal Q_a=256$
+at $w=4,8$, distinct from prepared population $Q_C=256$. Starting with
+real mediator $f=1$, they generate a depleted core. Independent RK4 mean core fractions inside $r<8$ over
+$32\le t\le48$ are $0.7476513029152703$ and $0.5637353289380143$,
+versus matched $h_C=0$ controls $0.054518103963512976$ and
+$0.15375753009303855$. No trap or damping is imposed. This is
+`EMERGES-conditional finite-charge radial condensation` for the supplied
+classical scalar trajectories. Canonical microscopic action selection,
+physical units and normalization, quantum state
+and creation, nonradial and complex-mediator-phase stability, all-sector
+long-time survival and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §35;
+`foundations/matter-completion-boundary.md` §17).
+
+
 The scalar configuration-space and compact-target results have distinct
 domains. The declared full positive-density scalar domains are contractible
 and supply only a trivial Finkelstein–Rubinstein character. A separately
@@ -1170,6 +1188,22 @@ The Dirac/two-fluid chiral-scalar assignment has dimensional, positivity and Her
 
 The physical normalization check gives three scalar models with the same imposed $0.511\ \mathrm{MeV}$ vacuum mass, speed $c$ and one internal generator unit, but different core scales. Its additional core-cell assignment is contradicted at the fixed coefficients. The independent spinor witnesses confirm the density and interaction obstructions. These results leave physical production and particle identity open (`computations/matter-formation-continuum-report.md` §12).
 
+The selected scalar action also has a finite-time radial witness:
+initially diffuse, supplied-charge clouds with $\mathcal Q_a=256$ and $w=4,8$
+retain independent-RK4 mean core fractions
+$0.7476513029152703$ and $0.5637353289380143$ inside $r<8$ over
+$32\le t\le48$, versus matched uncoupled controls
+$0.054518103963512976$ and $0.15375753009303855$. This
+`EMERGES-conditional finite-charge radial condensation` uses no imposed
+trap or damping. The supplied signed charge $\mathcal Q_a$ is distinct
+from the prepared population label $Q_C=256$. Microscopic action selection,
+physical units and normalization, quantum state and creation, nonradial and
+complex-mediator-phase stability, all-sector long-time survival and
+particle identity remain open
+(`computations/matter-formation-continuum-report.md` §35;
+`foundations/matter-completion-boundary.md` §17).
+
+
 The separate massive bubble-lattice comparison belongs to this added-field
 effective model. Its three-mass normalization is **Mapped**, all six
 target-bearing out-of-fit diagnostics contradict their inherited thresholds,
@@ -1201,9 +1235,8 @@ added action rather than a canonical Cassi stress exchange
   convention remain solver parameter choices
 - `foundations/dimensionful-constants-status.md`—external dimensionful constants, parameter accounting
 - `foundations/sector-coupling-derivation.md`—conditional scale, chiral-scalar density/action obstruction, positive chiral-current map and microscopic conversion boundaries.
-- `computations/matter-formation-continuum-report.md` §§12–13—independent physical-normalization, microscopic-identity and spinor-closure evidence.
-- `foundations/matter-completion-boundary.md`—conditional total-stress Ward
-  identity and constant-$G$ geometry branch
+- `computations/matter-formation-continuum-report.md` §§12–13, 35—independent physical-normalization, microscopic-identity and spinor-closure evidence plus the qualified finite-charge radial-condensation witness.
+- `foundations/matter-completion-boundary.md` §§12, 17—conditional total-stress Ward identity, constant-$G$ geometry branch and radial formation boundary.
 - `standard-model/su2-gauge-extension.md`—SM gauge sector, Weinberg angle
 - `standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$
 - `particles/cassi-yang-yin-particles.md`—optional Hypothesized complex-field/NLS particle-interference extension and its conditional Dirac mapping

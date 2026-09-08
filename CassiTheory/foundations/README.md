@@ -49,6 +49,24 @@ normalization, infinite-domain localization and stability, localized forming
 evolution and a particle discriminator remain required
 (`computations/matter-formation-continuum-report.md` §§25–29;
 `foundations/matter-completion-boundary.md` §12).
+Diffuse charged clouds create their own depleted mediator core in a separate
+finite-time radial calculation. The selected positive-inertia scalar action
+uses $a=1/16$, $c_\Psi=1/8$ and inherited **Mapped** coupling
+$h_C=2.9598260763447164$. Clouds with supplied signed charge
+$\mathcal Q_a=256$ and widths $w=4,8$ start with real mediator $f=1$.
+Independent Runge–Kutta mean charge retention inside $r<8$ over
+$32\le t\le48$ is 74.7651% and 56.3735%, versus 5.4518% and 15.3758%
+in matched $h_C=0$ controls. Every sampled late time satisfies the frozen
+retention and mediator-depletion criteria across five numerical evolutions.
+No trap, damping, absorbing layer or renormalization is imposed. The joint
+verdict is `EMERGES-conditional finite-charge radial condensation`.
+The supplied charge is distinct from the prepared population label
+$Q_C=256$. Microscopic action selection, physical normalization, quantum
+state and creation, nonradial and complex-mediator-phase stability,
+infinite-time survival and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §35;
+`foundations/matter-completion-boundary.md` §17).
+
 
 An added normalized complex doublet and compact chiral action provide a
 conditional colour-neutral baryon benchmark. Its finite-domain degree-one
@@ -615,6 +633,22 @@ Complex scalar and Dirac parents then give an explicit many-to-one witness:
 both reduce to the same registered slow carrier equation while retaining
 different spin and statistics. Microscopic action, state, normalization and
 particle identity therefore require additional physical input (§29).
+A finite-time radial witness complements these temporal and plane-symmetric
+results. For the selected positive-inertia real-mediator/complex-carrier
+action ($a=1/16$, $c_\Psi=1/8$, inherited **Mapped**
+$h_C=2.9598260763447164$), diffuse clouds with supplied signed
+$\mathcal Q_a=256$ at $w=4,8$ retain independent-RK4 mean core fractions
+$0.7476513029152703$ and $0.5637353289380143$ inside $r<8$ over
+$32\le t\le48$, versus matched $h_C=0$ controls
+$0.054518103963512976$ and $0.15375753009303855$. This is
+`EMERGES-conditional finite-charge radial condensation` from initially
+charged data, with no imposed trap or damping; it does not select a
+canonical microscopic sector or physical units, quantum state or creation
+rule, nonradial or complex-mediator-phase stability, all-sector
+long-time survival or particle identity
+(`computations/matter-formation-continuum-report.md` §35;
+`foundations/matter-completion-boundary.md` §17).
+
 
 ### `wake-geometry.md`—The Wake Geometry: Composite-Wavelength Closure and the Horizon Rung
 

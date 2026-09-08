@@ -160,18 +160,37 @@ included hard Finkelstein–Rubinstein loops contract there. General
 amplitude-relaxed metastability remains open
 (`computations/matter-formation-continuum-report.md` §§18–20).
 
-Sections 25–27 provide the strongest conditional formation dynamics. An
-excited periodic scalar mediator has exact carrier Floquet growth and
-reciprocal seeded transfer, while its retained spatial perturbation grows
-about $210.3$ times faster. Prepared complex carrier data separate opposite
-local signed densities with zero total charge. Exactly empty carrier data
-remain invariant, and no finite-energy localization result follows from these
-plane-symmetric calculations.
+Sections 25–27 establish conditional formation dynamics. An excited periodic
+scalar mediator has exact carrier Floquet growth and reciprocal seeded
+transfer, while its retained spatial perturbation grows about $210.3$ times
+faster. Prepared complex carrier data separate opposite local signed
+densities with zero total charge. Exactly empty carrier data remain invariant,
+and no finite-energy localization result follows from these plane-symmetric
+calculations.
 
 Section 28 records the frozen nonlinear verdict as `INCONCLUSIVE` in two
 implementations. A post-hoc period-sampled diagnostic identifies phase
 aliasing and reproduces the accepted linear rates without changing the
-verdict. Section 29 proves the completion problem is non-identifiable from the
+verdict.
+
+`computations/matter-formation-continuum-report.md` §35 and
+`foundations/matter-completion-boundary.md` §17 add a finite-time radial
+result in the selected positive-inertia scalar action. Initially diffuse
+complex-carrier Gaussian clouds with supplied signed charge $\mathcal Q_a=256$ and
+widths $w=4,8$ (distinct from prepared population $Q_C=256$), together
+with real mediator $f=1$, form a retained charged core inside $r<8$ by $t=48$. Independent RK4 means retain
+74.7651% and 56.3735% of the charge during $32\le t\le48$, versus 5.4518%
+and 15.3758% in matched $h_C=0$ controls. The all-sample minima are
+approximately 74.5968% and 52.0335%, and the maximum central mediator
+$f^2$ values are approximately 0.0686678 and 0.1126838. Spatial, domain, time-step and independent-integrator comparisons
+pass across all five evolutions. The verdict is
+`EMERGES-conditional finite-charge radial condensation`; the action, charge
+and normalization are supplied witnesses, and canonical microscopic
+selection, quantum state, nonradial and complex-mediator-phase stability,
+infinite-time survival, quantum creation from empty carrier data and particle
+identity remain open.
+
+Section 29 proves the completion problem is non-identifiable from the
 registered slow observables: scalar and Dirac parents share the same carrier
 equation with different spin and statistics. Complete matter formation still
 requires a canonical action, state rule, physical normalization,

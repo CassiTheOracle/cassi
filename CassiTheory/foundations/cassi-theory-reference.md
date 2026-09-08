@@ -610,6 +610,24 @@ plane-symmetric comparison is `INCONCLUSIVE`; a post-hoc period-sampled
 diagnostic identifies phase aliasing without changing that verdict
 (`computations/matter-formation-continuum-report.md` §§25–28).
 
+Diffuse charged clouds create their own depleted mediator core in a separate
+finite-time radial calculation under the supplied positive-inertia scalar
+action ($a=1/16$, $c_\Psi=1/8$, inherited **Mapped**
+$h_C=2.9598260763447164$). Diffuse initially charged clouds with
+$\mathcal Q_a=256$ and widths $w=4,8$ retain independent-RK4 mean core fractions
+$0.7476513029152703$ and $0.5637353289380143$ inside $r<8$ over
+$32\le t\le48$, versus matched $h_C=0$ controls
+$0.054518103963512976$ and $0.15375753009303855$. The verdict is
+`EMERGES-conditional finite-charge radial condensation`; charge is supplied
+initially and is distinct from the prepared population label $Q_C=256$.
+No trap or damping is imposed. This scalar radial result does not select a
+canonical microscopic action, physical units, quantum state or creation rule,
+nonradial or complex-mediator-phase stability, all-sector long-time survival
+or particle identity
+(`computations/matter-formation-continuum-report.md` §35;
+`foundations/matter-completion-boundary.md` §17).
+
+
 Complex scalar and Dirac parents both reduce to the registered slow
 Schrödinger carrier equation while retaining different spin and canonical
 statistics. This gives a conditional non-identifiability theorem: the observed
@@ -1429,6 +1447,23 @@ identifies phase aliasing and leaves the verdict unchanged. Scalar and Dirac
 parents share the registered slow carrier equation with different spin and
 statistics, making its microscopic inverse map many-to-one
 (`computations/matter-formation-continuum-report.md` §§25–29).
+
+A separate finite-time radial witness gives `EMERGES-conditional
+finite-charge radial condensation` for the supplied positive-inertia
+real-mediator/complex-carrier action. With inherited **Mapped**
+$h_C=2.9598260763447164$, supplied $\mathcal Q_a=256$, and diffuse widths $w=4,8$,
+independent RK4 mean core fractions inside $r<8$ over $32\le t\le48$ are
+$0.7476513029152703$ and $0.5637353289380143$, versus matched
+$h_C=0$ controls $0.054518103963512976$ and $0.15375753009303855$.
+The initially supplied charge is distinct from prepared population $Q_C=256$;
+the calculation imposes no trap or damping. The result qualifies finite-time
+radial scalar condensation. Microscopic action selection,
+physical normalization and units, quantum state and creation, nonradial and
+complex-mediator-phase stability, infinite-time/all-sector survival and
+particle identity remain open
+(`computations/matter-formation-continuum-report.md` §35;
+`foundations/matter-completion-boundary.md` §17).
+
 
 A complete mechanism still requires a canonical action, quantum-state rule,
 physical normalization, infinite-domain localization and stability,

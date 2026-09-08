@@ -150,6 +150,28 @@ nonlinear plane-symmetric comparison returns `INCONCLUSIVE`; a post-hoc
 period-sampled diagnostic identifies phase aliasing while leaving that verdict
 unchanged (`computations/matter-formation-continuum-report.md` §§25–28).
 
+A separate finite-time radial calculation tests self-generated condensation
+in the selected positive-inertia scalar action. Starting from real mediator
+$f=1$ and two initially diffuse complex-carrier Gaussian clouds carrying
+supplied signed charge $\mathcal Q_a=256$ (widths $w=4$ and $8$, distinct from the
+prepared population $Q_C=256$), the coupled evolution forms a retained
+charged core inside $r<8$ by $t=48$. On $32\le t\le48$, independent RK4
+means retain 74.7651% and 56.3735% of the charge in the core, versus 5.4518%
+and 15.3758% in matched $h_C=0$ controls. Across all sampled late times,
+the minimum retained fractions are approximately 74.5968% and 52.0335%;
+the maximum central mediator $f^2$ values are approximately 0.0686678 and 0.1126838. Spatial,
+domain, time-step and independent-integrator comparisons pass across all
+five evolutions. No trap, damping, absorbing layer or renormalization is
+imposed. The joint verdict is `EMERGES-conditional finite-charge radial
+condensation`; canonical microscopic selection, quantum state and physical
+normalization, nonradial and complex-mediator-phase stability, infinite-domain
+existence, infinite-time survival and particle identity remain open. The
+result is a classical, supplied-charge conditional; quantum creation from
+empty carrier data and complete physical matter formation remain outside its
+scope
+(`computations/matter-formation-continuum-report.md` §35;
+`foundations/matter-completion-boundary.md` §17).
+
 Scalar and Dirac parents produce the same measured slow carrier equation while
 retaining different spin and statistics. The inverse map from the registered
 observables to a microscopic theory is many-to-one. Complete matter formation

@@ -1,6 +1,6 @@
 # Matter Formation: Carrier Creation, Continuum Trapping, and a Conditional Baryon Benchmark
 
-## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology and completion-boundary identities / Mapped conditional baryon benchmark / Hypothesized physical completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation and microscopic boundaries—September 2026
+## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology and completion-boundary identities / Mapped conditional baryon benchmark / Hypothesized physical completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation, finite-charge radial condensation and microscopic boundaries—September 2026
 
 ## Abstract
 
@@ -121,9 +121,21 @@ $\sigma=0.8738238914$ in the supplied dimensionless units. The unrestricted
 finite-grid scalar Hessians satisfy the frozen energetic criteria.
 The joint verdict is `SUPPORTS-conditional charged coexistence interface`.
 Large-charge thin-interface energetics provide a charge-dependent radius
-and favor combining large same-sign droplets. Formation of a finite
-droplet, nonlinear persistence and the physical charge unit remain open
-(§34).
+and favor combining large same-sign droplets. These stationary interface
+results leave finite formation dynamics to a separate calculation (§34).
+The physical charge unit remains unselected.
+
+Diffuse charged clouds create their own depleted mediator core in the same
+supplied scalar parent. Two Gaussian widths at signed charge
+$\mathcal Q_a=256$ retain mean core charge fractions $0.7476513$ and
+$0.5637353$ in an independent evolution, compared with $0.0545181$ and
+$0.1537575$ when mediator coupling is disabled. Both widths satisfy the
+retention and depletion conditions at every sampled time in
+$32\le t\le48$ on all five numerical schedules. Spatial, domain, time-step,
+independent-integrator and raw-field comparisons qualify the result
+`EMERGES-conditional finite-charge radial condensation`. The charge is
+present initially; physical quantum creation, all-sector stability,
+microscopic normalization and particle identity remain open (§35).
 
 ## 1. Scope and frozen evidence
 
@@ -3847,12 +3859,13 @@ one model:
    one empirical discriminator.
 
 The registered Cassi laws do not select items 1–3. The prepared scalar branch
-partially addresses item 4, and the independently supplied fermion model
-partially addresses item 5 in a homogeneous finite-mode sector. No accepted
-calculation supplies all six items in one action. Further searches over the
-same dimensionless coefficients cannot resolve this inverse problem; a new
-physical postulate or empirical input must enter before another formation
-calculation is defined.
+partially addresses item 4. Supplied-charge radial condensation in the scalar
+parent (§35) and the separately supplied homogeneous finite-mode fermion
+producer (§14) address distinct parts of item 5. No accepted calculation
+supplies all six items in one action. Further searches over the same
+dimensionless coefficients cannot resolve this inverse problem; a new
+physical postulate or empirical input must enter before a uniquely identified
+microscopic formation calculation can be specified.
 
 ## 30. Mapped conditional colour-neutral baryon benchmark
 
@@ -5009,8 +5022,287 @@ formation and persistence still require real-time evidence in a selected
 microscopic model, together with the quantum state, physical normalization,
 spin, statistics and interactions appropriate to the identified matter.
 
+## 35. Finite-charge condensation in the scalar parent
+
+A finite charged cloud can test whether the scalar dynamics create their
+own depleted mediator core. The conserved charge is supplied in the initial
+cloud. This question concerns redistribution and retention of that charge
+within the action of §25.1; microscopic pair creation and particle
+identification remain separate requirements.
+
+### 35.1 Finite-charge energy and dynamical conditions
+
+The rotating Hamiltonian bounds the energy available for condensation.
+Let $N=\int|z|^2\,d^3x>0$ and let $\mathcal Q_a$ denote the signed
+charge in §25.1. Minimizing carrier kinetic energy at fixed charge gives
+$\dot z=-i\mathcal Q_a z/(2aN)$ and
+$$
+\mathscr E_{\mathcal Q_a}^{\rm rot}
+=E_{\rm sc}+\frac{N}{4a}+\frac{\mathcal Q_a^2}{4aN}.
+$$
+It differs from the original-frame fixed-charge energy of §10 by the
+constant $\mathcal Q_a/(2a)$. Its stationary spatial multiplier is
+$\omega_C=a\Omega^2-1/(4a)$, where
+$\Omega=\mathcal Q_a/(2aN)$. A positive localized carrier with an
+exponential exterior tail requires $|\Omega|<\Omega_\infty$,
+$\Omega_\infty=\sqrt{B/a}$. The qualified prepared profiles in §§8–11
+already provide conditional finite-profile embeddings; a planar front is
+not needed to assert those particular embeddings.
+
+The coexistence factorization supplies a global bound in the supplied
+real-mediator/complex-carrier sector. For either sign $s=\pm1$,
+$$
+\begin{aligned}
+E-s\Omega_0\mathcal Q_a
+=\int\bigg[
+&\frac{c_\Psi}{2}\dot f^2+\frac12|\nabla f|^2
++\frac{k_{Cx}}2|\nabla z|^2\\
+&+a|\dot z+is\Omega_0z|^2+U_0(f,|z|)
+\bigg]\,d^3x\ge0 .
+\end{aligned}
+$$
+Thus $E\ge\Omega_0|\mathcal Q_a|$. A smooth populated ball with a
+fixed-width interface is an admissible large-charge trial state with
+$E=\Omega_0|\mathcal Q_a|+O(|\mathcal Q_a|^{2/3})$. Since
+$\Omega_0<\Omega_\infty$ at the stated coefficients, sufficiently large
+trial charges have energy below the free exterior threshold
+$\Omega_\infty|\mathcal Q_a|$. This variational comparison supplies no
+attainment theorem, universal critical charge, formation basin or
+nonlinear stability proof. The incoming cloud can also carry excess
+energy that leaves the core in outward waves.
+
+The radial evolution preserves the full time derivatives in §25.1.
+Its local carrier current is
+$j_r=k_{Cx}\operatorname{Im}(z^*\partial_r z)$, satisfying
+$\partial_t\rho_Q+r^{-2}\partial_r(r^2j_r)=0$ with
+$\rho_Q=-2a\operatorname{Im}(z^*\dot z)$.
+Depletion, concentration and outward radiation must be measured together;
+a small central mediator value alone does not establish a retained cloud.
+
+### 35.2 Radial cloud calculation: pre-execution criteria
+
+Keep $a=1/16$, $c_\Psi=1/8$, $u_\rho=4$, $u_C=k_{Cx}=1$,
+$e_C=3/4$ and $h_C=2.9598260763447164$. Set the signed charge witness
+$\mathcal Q_a=256$. This is a supplied internal-charge value, distinct
+from the prepared population $Q_C=256$ in §§4–11. No physical charge
+unit, elementary mass, coefficient fit or additional interaction is chosen.
+
+Use radial cell centres $r_i=(i+1/2)\Delta r$, exact shell volumes
+$V_i=4\pi(r_{i+1/2}^3-r_{i-1/2}^3)/3$, face conductances
+$w_{i+1/2}=4\pi r_{i+1/2}^2/\Delta r$, zero origin flux and the
+outer Dirichlet values $(f,z)=(1,0)$. The outer half-cell conductance
+is $8\pi R^2/\Delta r$. Obtain both forces and recorded gradient
+energies from this same finite-volume action. Include the outer-face
+energy. No damping, absorbing layer, amplitude clamp, charge
+renormalization after initialization or imposed potential is permitted.
+
+For widths $w=4$ and $8$, initialize $f=1$, $\dot f=0$,
+$z=A_w\exp[-r^2/(2w^2)]$ and $\dot z=-i\Omega_\infty z$.
+Determine $A_w>0$ once on each grid from
+$2a\Omega_\infty\sum_iV_i|z_i|^2=256$.
+Evolve each cloud with the stated coupling and with $h_C=0$ as
+its matched causal control. The disabled-coupling arm retains all
+other coefficients, initial fields, self-repulsion and time steps.
+The exterior mass is independent of $h_C$ because $f=1$ initially.
+
+The primary calculation uses velocity Verlet. Evolve these four arms to
+$T=48$ on $(R,\Delta r,\Delta t)=(192,1/16,1/256)$,
+$(192,1/32,1/256)$, $(384,1/16,1/256)$ and
+$(192,1/32,1/512)$. The first grid also evolves the $w=4$ coupled
+charge-conjugate initial condition and a vacuum arm for the same duration.
+The conjugate arm has charge $-256$ and all other initial data conjugated.
+Retain every attempted arm; a failed arm does not authorize a changed
+schedule or a replacement seed. The independent program implements
+classical fourth-order Runge–Kutta, constructs the radial face operator
+separately and evolves the four cloud arms on $(192,1/32,1/512)$.
+It must not import the primary program or its force/diagnostic routines.
+
+Record diagnostics every $1/8$ time unit and all six real field/velocity
+components every integer time from zero through 48. Preserve radial
+coordinates and volumes. Diagnostics are total Hamiltonian energy,
+signed charge, absolute-charge integral, signed charge inside $r=8$,
+its fraction of initial charge, absolute-charge RMS radius inside $r=8$,
+central $f$, central $|z|^2$, and energy outside $r=128$.
+Integrate the core using cells whose centres satisfy $r_i<8$.
+The diagnostic current through the face at $r=8$ is
+$4\pi8^2 k_{Cx}\operatorname{Im}(z_L^*z_R)/\Delta r$.
+The discrete derivative of core charge must equal its negative when
+evaluated from the instantaneous equations. Retain that residual.
+Define the vacuum's charge fraction and core RMS diagnostic as zero.
+The exterior-shell energy includes cell potentials and kinetic terms for
+$r_i>128$ and gradient terms on faces with radius at least 128.
+
+Numerical qualification requires finite completed trajectories, relative
+total-energy drift below $2\times10^{-3}$ and relative signed-charge
+drift below $10^{-7}$ in every charged arm. Normalize these drifts by
+$\max(1,|E(0)|)$ and 256 respectively. The vacuum must remain within
+$10^{-12}$ of its exact fields and zero energy. On the first grid the
+conjugate arm must match the coupled $w=4$ fields and velocities after
+complex conjugation within $10^{-11}\max(1,\max|\text{component}|)$.
+Require the local current-identity residual, divided by
+$\max(1,|\text{core charge derivative}|,|\text{face current}|)$,
+below $10^{-10}$ at every recorded diagnostic time.
+
+For each cloud arm, compare its averages on $32\le t\le48$ between
+the first and second grids, first and third grids, second and fourth
+grids, and second grid and independent evolution. The compared metrics
+are core signed-charge fraction, core absolute-charge RMS radius,
+central $f^2$ and central $|z|^2$. Require an absolute discrepancy
+below $0.02\max(1,|x|,|y|)$ for each metric. All four comparisons
+must pass separately; a failed numerical comparison is inconclusive.
+Also retain extrema, complete time series and fields; averages do not
+replace trajectory evidence. The largest exterior-shell energy fraction
+must stay below $10^{-4}$ through $T=16$. Its later values diagnose
+outward propagation and do not constitute an absorbing-boundary loss.
+
+A width qualifies as retained radial condensation only if its coupled
+arm has core charge fraction at least $0.5$ and central $f^2\le0.25$
+at every diagnostic time in $32\le t\le48$ on all primary grids and
+the independent evolution. Its mean core charge fraction must exceed
+its matched disabled-coupling control by at least $0.20$ in every
+same-grid comparison. If all numerical qualifications pass and either
+width meets these conditions, return
+`EMERGES-conditional finite-charge radial condensation`.
+If all numerical qualifications pass and neither width meets them,
+return `DOES NOT EMERGE-in the fixed radial cloud schedule`.
+Otherwise return `INCONCLUSIVE`. Report both widths individually.
+No result establishes nonspherical stability, infinite-time survival,
+production from zero charge or physical matter identity.
+
+Freeze §§35.1–35.2 and §25.1 separately before execution, with unique
+headings, CRLF-to-LF normalization, final whitespace stripped and one
+terminal LF. Both programs bind their expected SHA-256 identities and
+preserve the frozen text and their own executable source in fresh
+directories under `runs/20260908_matter_formation_radial_cloud/`.
+The primary program is `computations/matter_formation_radial_cloud.py`;
+the independent program is
+`computations/verify_matter_formation_radial_cloud.py`.
+Save strict finite JSON, library versions, all raw arrays and source/array
+hashes. Refuse output overwrites. Before science, missing or altered
+frozen inputs must yield exit one, `INCONCLUSIVE` and empty scientific
+payloads. The independent program also checks the primary manifest,
+reconstructs every diagnostic at retained field times and rejects a
+missing raw array. Require raw diagnostic agreement within
+$10^{-10}\max(1,|x|,|y|)$. Run both input-section controls for each program
+and the independent missing-array control in separate directories.
+An implementation defect may be repaired in a separately named recovery
+directory while preserving the failed attempt and the complete unchanged
+scientific schedule. Stop after the qualified invocation or recorded
+scientific outcome; do not tune through a negative result.
+
+### 35.3 Reproduced radial condensation and conservation
+
+Both diffuse initial clouds develop a depleted mediator core and retain
+charge there. The primary velocity-Verlet evolutions and the independent
+Runge–Kutta evolutions satisfy all numerical criteria in §35.2. The exact
+joint verdict is
+`EMERGES-conditional finite-charge radial condensation`.
+All quantities below use the supplied dimensionless action, signed initial
+charge $256$, core radius $8$ and averaging window $32\le t\le48$.
+
+| Initial width and coupling | Mean core charge fraction | Mean core absolute-charge RMS radius | Mean central $f^2$ | Mean central $\lvert z\rvert^2$ |
+|---|---:|---:|---:|---:|
+| $w=4$, coupled | 0.7476513029 | 2.6505139582 | 0.0048029468 | 1.7912393092 |
+| $w=4$, $h_C=0$ | 0.0545181040 | 6.1434286228 | 1 | 0.0065324900 |
+| $w=8$, coupled | 0.5637353289 | 5.4197219531 | 0.0138989452 | 1.8118605731 |
+| $w=8$, $h_C=0$ | 0.1537575301 | 6.1366678417 | 1 | 0.0183656128 |
+
+These means come from the independent Runge–Kutta calculation at
+$(R,\Delta r,\Delta t)=(192,1/32,1/512)$. The retention verdict also
+uses every diagnostic time in the stated late window, rather than its
+averages alone. Across all primary grids and the independent evolution,
+the minimum core fractions are $0.7459682660$ and $0.5203346927$ for
+$w=4$ and $8$. The maximum central $f^2$ values are $0.0686678142$ and
+$0.1126838163$. The smallest same-grid mean-retention advantages over
+the uncoupled controls are $0.6931030102$ and $0.4098422238$.
+Both widths therefore meet the frozen $0.5$ retention, $0.25$ depletion
+and $0.20$ control-margin thresholds separately.
+
+Conservation and convergence support that measured scope. The largest
+primary relative energy and charge drifts are $1.7227075\times10^{-5}$
+and $1.7763568\times10^{-15}$. The largest independent drifts are
+$1.1267054\times10^{-8}$ and $9.4031904\times10^{-9}$. The normalized
+core-charge/current residual is at most $7.5273122\times10^{-14}$
+across both methods. Vacuum, charge conjugation and early exterior-energy
+checks pass. All 64 scalar metric comparisons pass across spatial
+refinement, domain doubling, time refinement and independent integration.
+No imposed trap, damping, absorbing layer or evolving charge
+renormalization enters these trajectories.
+
+The retained evidence has three distinct levels. The primary receipt is
+`runs/20260908_matter_formation_radial_cloud/primary/results.json`;
+the independent receipt is
+`runs/20260908_matter_formation_radial_cloud/verification_identity_recovery/verification.json`.
+A separate `raw_reconstruction.json` in the campaign root reconstructs
+12 scalar diagnostics at all 1,078 retained field times across 22
+trajectory archives. Its maximum normalized diagnostic discrepancy is
+$2.4716341\times10^{-14}$, and all 30 manifest identities agree.
+The five required missing-section, altered-section and missing-array
+controls return exit one with empty scientific payloads.
+`runs/20260908_matter_formation_radial_cloud/controls/control_reconciliation.json` retains their failures;
+`reconciliation.json` binds the accepted evidence and the physical
+completion assessment.
+
+Execution provenance is retained alongside the data.
+`protocol_preexecution_amendment.json` records the independent RK4
+time-step accuracy calculation: its free exterior mode already exceeds
+the charge-drift tolerance at $1/256$, while $1/512$ meets that
+prerequisite. The frozen executed schedule uses $1/512$.
+`implementation_recovery.json` records an identity-field mismatch that
+rejects the initial verifier invocation before any independent
+trajectory. Its preserved receipt contains zero scientific rows.
+The accepted independent receipt binds the unchanged derivation,
+executed protocol, parent equations and primary arrays.
+
+Reproduction uses two fresh output directories and the unchanged
+frozen sections:
+
+```bash
+python computations/matter_formation_radial_cloud.py --output-dir runs/repro_matter_formation_radial_cloud_primary
+python computations/verify_matter_formation_radial_cloud.py --primary runs/repro_matter_formation_radial_cloud_primary --output-dir runs/repro_matter_formation_radial_cloud_independent
+```
+
+### 35.4 Mechanism and physical completion
+
+The measured mechanism is reciprocal scalar condensation. Initial carrier
+population drives the mediator away from its exterior value. Mediator
+depletion reduces the carrier's local potential coefficient and permits
+charge retention; outgoing waves carry part of the initial energy and
+charge away from the core. The matched uncoupled clouds retain much less
+charge while their mediator remains at its exterior value. This causal
+comparison establishes self-generated radial localization in the supplied
+action over the measured interval.
+
+The finite-charge energy identities and the evolving clouds address
+different questions. The bound $E\ge\Omega_0|\mathcal Q_a|$ and
+large-charge trial comparison constrain candidate states. The trajectories
+show formation and finite-time retention for two specified diffuse
+preparations. Neither supplies a universal charge threshold, an
+infinite-domain minimizer or an all-sector nonlinear stability theorem.
+In particular, the reported core RMS radius is conditional on $r<8$;
+it is not the RMS radius of the entire radiating cloud.
+
+| Physical requirement | Scope of this result |
+|---|---|
+| Canonical microscopic action and conserved stress | The real-mediator/complex-carrier action and its coefficients are supplied; the canonical density map does not select that microscopic theory or its cross-sector stress exchange. |
+| Regulated quantum state and production rule | The trajectories are classical and begin with nonzero carrier charge. They specify no quantum state, regulator, counterterms or empty-vacuum pair-production rule. |
+| Physical normalization | Charge, lengths, times and energies are dimensionless witnesses. No elementary electric charge, particle mass or physical unit is inferred. |
+| Continuum existence and all-sector stability | Spatial, domain and temporal comparisons support the finite-time radial result. Nonradial perturbations, complex mediator-phase perturbations, exact infinite-domain existence and infinite-time survival remain untested. |
+| Localized production and persistence | Both diffuse supplied-charge clouds meet formation and retention criteria through $T=48$. A general formation basin, incident-flux capture and quantum creation from empty carrier data remain open. |
+| Particle identity, spin, statistics and discrimination | No physical species, half-integer spin, exchange character, electric-charge map or out-of-fit particle observable follows from this scalar calculation. |
+
+The joint physical-completion field is
+`complete_physical_matter_formation=false`. Physical Cassi matter
+formation remains **Hypothesized/Open**. The microscopic
+non-identifiability result in §29 explains why additional scalar
+trajectories alone cannot select the missing action, quantum state or
+particle interpretation.
+
 ## References
 
+- `computations/matter_formation_radial_cloud.py`—source-bound finite-volume charged-cloud evolution, conservation, controls and refinement schedule.
+- `computations/verify_matter_formation_radial_cloud.py`—independent Runge–Kutta evolution, raw-field reconstruction and frozen radial-condensation qualification.
+- `runs/20260908_matter_formation_radial_cloud/`—frozen algebra and schedule, complete raw trajectories, retained recoveries, rejection controls and joint reconciliation.
 - `computations/matter_formation_charged_interface.py`—exact coexistence identities and adaptive self-consistent planar interface.
 - `computations/verify_matter_formation_charged_interface.py`—independent discrete-energy front, unrestricted scalar spectra, source-bound comparison and analytical review.
 - `computations/matter_formation_interface_spectrum.py`—exact signed-wall, carrier-mode, phase-path and static Gauss calculation.

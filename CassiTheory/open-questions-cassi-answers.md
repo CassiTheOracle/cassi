@@ -985,10 +985,23 @@ $\sigma=0.8738238914$, and its unpinned finite-grid scalar Hessians meet
 the frozen energetic criteria. Large-charge thin-interface energetics
 give $R\propto|\mathcal Q_a|^{1/3}$ and a positive
 $|\mathcal Q_a|^{2/3}$ surface correction, favoring combination of large
-same-sign droplets at fixed total charge. The calculation supplies no
-finite droplet trajectory, proton identity or physical charge unit
-(`foundations/matter-completion-boundary.md` §16;
-`computations/matter-formation-continuum-report.md` §34).
+same-sign droplets at fixed total charge. Its stationary scope is given in
+`foundations/matter-completion-boundary.md` §16 and
+`computations/matter-formation-continuum-report.md` §34.
+
+Diffuse supplied-charge clouds also form depleted mediator cores in this
+scalar parent. At signed charge $\mathcal Q_a=256$, widths $4$ and $8$
+retain mean core fractions $0.7476513$ and $0.5637353$ in independent
+radial evolution, compared with $0.0545181$ and $0.1537575$ under disabled
+mediator coupling. Both widths pass the frozen retention and depletion
+conditions at every sampled time in $32\le t\le48$ across all five
+numerical schedules. The joint verdict is
+`EMERGES-conditional finite-charge radial condensation`.
+This is finite-time localization of initial charge in a supplied action.
+Nonspherical and mediator-phase stability, quantum production, proton
+identity, physical charge and a proton lifetime remain open
+(`foundations/matter-completion-boundary.md` §17;
+`computations/matter-formation-continuum-report.md` §35).
 
 
 ### Q10: Spin—what is it?
@@ -1409,6 +1422,18 @@ $Q_C=16$ constrained spatial calculation has no resolved negative mode
 on its tested grids and an `INCONCLUSIVE` combined stability verdict.
 These results leave physical production, microscopic quantum content and
 normalization open (`computations/matter-formation-continuum-report.md`).
+
+The supplied positive-inertia scalar parent also has independently qualified
+finite-time radial formation dynamics. Diffuse clouds with signed charge
+$\mathcal Q_a=256$ at widths $w=4,8$ create a depleted mediator core and
+retain mean core charge fractions 0.7476513 and 0.5637353 over
+$32\le t\le48$, versus 0.0545181 and 0.1537575 in matched uncoupled
+controls. The joint verdict is
+`EMERGES-conditional finite-charge radial condensation`.
+Microscopic action selection, quantum state and creation, physical
+normalization, all-sector stability and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §35;
+`foundations/matter-completion-boundary.md` §17).
 
 A positive-inertia temporal parent provides one Hypothesized extension with
 signed charge. Its normalized quadratic quantum theory passes a 31-trajectory
