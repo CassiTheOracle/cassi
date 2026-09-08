@@ -92,16 +92,17 @@ and particle identity remain open (`computations/matter-formation-continuum-repo
 
 The smooth adjoint core and the charged Yang/Yin vacuum are defined in
 `foundations/nonabelian-magnetic-core-boundary.md`. The nonzero fundamental
-condensate gives the residual connection a London inverse length
+condensate gives the homogeneous transverse connection a London inverse length
 
 $$
 \kappa_L^2
-=\frac{e_x^2K_x\rho_0}{\varphi^3}>0,
+=\frac{e_x^2K_x\rho_0}{4}>0,
 \tag{CC1}
 $$
 
-and confines one monopole flux unit to a tube. At separations above the core
-and tube widths, the registered reduced energy is
+and screens the far-field azimuthal response of the unit-flux tube. At
+separations above the core and tube widths, the reduced model assumes
+residual-vector exchange with this decay rate and an attractive tail:
 
 $$
 E_{M\bar M}(L)
@@ -116,6 +117,9 @@ $$
 
 Its displayed derivative is positive, so tension and the screened attractive
 tail both favor decreasing separation.
+The full endpoint/tube profile and tail matching remain unselected. The
+transverse kernel fixes the local penetration scale; the positive slope
+and support theorem below are conditional on (CC2).
 
 ### 1.2 Question resolved here
 

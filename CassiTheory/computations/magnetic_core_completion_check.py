@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
-"""Check the conditional non-Abelian magnetic-core identities."""
+"""Check conditional magnetic-core identities, including transverse screening.
+
+Run: python computations/magnetic_core_completion_check.py
+Screening protocol: computations/matter-formation-continuum-report.md section 39.1.
+"""
 
 import math
+
+import numpy as np
 
 PHI = (1.0 + math.sqrt(5.0)) / 2.0
 TOL = 1e-11
@@ -137,18 +143,98 @@ rescaled_lambda = lambda_h / normalization**4
 rescaled_beta_squared = 2.0 * rescaled_mu * rescaled_lambda / rescaled_g**2
 assert close(beta_squared, rescaled_beta_squared)
 
-# MC-4: the phi-composition vacuum reproduces the registered London mass and
-# confines one unit of monopole flux into one minimum-charge vortex quantum.
+# MC-4: scalar phase gradients cancel longitudinal connections only.
+# The transverse response is fixed by the total condensate density.
 rho_0 = 0.8
 k_x = 1.2
 e_y_vacuum = rho_0 / PHI
 e_i_vacuum = rho_0 / PHI**2
 assert close(e_y_vacuum + e_i_vacuum, rho_0)
 assert close(e_y_vacuum / e_i_vacuum, PHI)
-london_mass_squared = g_q**2 * k_x * e_y_vacuum * e_i_vacuum / rho_0
-assert close(london_mass_squared, g_q**2 * k_x * rho_0 / PHI**3)
+london_mass_squared = g_q**2 * k_x * rho_0 / 4.0
 penetration_inverse_squared = mu_x * london_mass_squared
 assert penetration_inverse_squared > 0.0
+
+screening_max_error = 0.0
+for yang_fraction in (0.2, 0.5, 1.0 / PHI):
+    e_y = rho_0 * yang_fraction
+    e_i = rho_0 - e_y
+    cos_beta = (e_y - e_i) / rho_0
+    for wave, connection, stiffness in (
+        ((1.0, 2.0, -1.0), (0.6, -0.3, 0.2), (k_x, k_x, k_x)),
+        ((1.0, 2.0, -1.0, 0.75), (0.6, -0.3, 0.2, 0.8), (k_x, k_x, k_x, 0.7)),
+    ):
+        wave = np.array(wave)
+        connection = np.array(connection)
+        stiffness = np.array(stiffness)
+        symbol = float(np.dot(stiffness * wave, wave))
+        projection = float(np.dot(stiffness * wave, connection)) / symbol
+        transverse = connection - projection * wave
+
+        # Minimize both species' phases directly in their original kinetic energy.
+        phase_y = g_q * projection / 2.0
+        phase_i = -phase_y
+        component_energy = 0.5 * float(np.sum(stiffness * (
+            e_y * (phase_y * wave - g_q * connection / 2.0) ** 2
+            + e_i * (phase_i * wave + g_q * connection / 2.0) ** 2
+        )))
+        projected_energy = rho_0 * g_q**2 * float(np.dot(
+            stiffness * transverse, transverse
+        )) / 8.0
+        assert close(component_energy, projected_energy)
+        if wave.size == 3:
+            response = 2.0 * component_energy / float(np.dot(transverse, transverse))
+            assert close(response, london_mass_squared)
+        screening_max_error = max(screening_max_error, abs(component_energy - projected_energy))
+        longitudinal_energy = 0.5 * float(np.sum(stiffness * (
+            e_y * (phase_y * wave - g_q * projection * wave / 2.0) ** 2
+            + e_i * (phase_i * wave + g_q * projection * wave / 2.0) ** 2
+        )))
+        assert close(longitudinal_energy)
+
+        # With the relative phase fixed, only the longitudinal counterflow
+        # term receives the composition-dependent factor 1-cos(beta)^2.
+        relative_phase = 0.37
+        c_vector = relative_phase * wave + g_q * connection
+        common_phase = cos_beta * float(np.dot(stiffness * wave, c_vector)) / (2.0 * symbol)
+        common_energies = []
+        for shift in (0.0, -0.1, 0.1):
+            phase_y = common_phase + shift - relative_phase / 2.0
+            phase_i = common_phase + shift + relative_phase / 2.0
+            common_energies.append(0.5 * float(np.sum(stiffness * (
+                e_y * (phase_y * wave - g_q * connection / 2.0) ** 2
+                + e_i * (phase_i * wave + g_q * connection / 2.0) ** 2
+            ))))
+        constrained_energy = rho_0 / 8.0 * (
+            float(np.dot(stiffness * c_vector, c_vector))
+            - cos_beta**2 * float(np.dot(stiffness * wave, c_vector)) ** 2 / symbol
+        )
+        assert close(common_energies[0], constrained_energy)
+        increment = rho_0 * symbol * 0.1**2 / 2.0
+        for shifted_energy in common_energies[1:]:
+            assert close(shifted_energy - common_energies[0], increment)
+            assert shifted_energy > common_energies[0]
+
+    # Unit tube: opposite species windings fix the common winding to zero.
+    azimuthal_connection = 0.6
+    tube_energy = k_x / 2.0 * (
+        e_y * (1.0 - g_q * azimuthal_connection / 2.0) ** 2
+        + e_i * (-1.0 + g_q * azimuthal_connection / 2.0) ** 2
+    )
+    assert close(tube_energy, k_x * rho_0 / 2.0 * (
+        1.0 - g_q * azimuthal_connection / 2.0
+    ) ** 2)
+    tube_curvature = k_x * (e_y + e_i) * g_q**2 / 4.0
+    assert close(tube_curvature, london_mass_squared)
+
+# Vanishing condensate and vanishing coupling remove the direct response.
+for density, coupling in ((0.0, g_q), (rho_0, 0.0)):
+    energy = k_x / 2.0 * density * (coupling / 2.0) ** 2
+    assert close(energy)
+
+counterflow_stiffness = k_x * e_y_vacuum * e_i_vacuum / rho_0
+assert close(counterflow_stiffness, k_x * rho_0 / PHI**3)
+assert not close(g_q**2 * counterflow_stiffness, london_mass_squared)
 
 spatial_winding_y = 1
 spatial_winding_i = -1
@@ -175,6 +261,7 @@ print(f"  unit residual flux                   = {flux:.12f}")
 print(f"  source-interval BPS mass             = {bps_mass:.12f}")
 print(f"  inverse vector-core length           = {core_inverse_length:.12f}")
 print(f"  Higgs/vector mass-ratio squared      = {beta_squared:.12f}")
-print(f"  London inverse length squared        = {penetration_inverse_squared:.12f}")
+print(f"  transverse London inverse length^2  = {penetration_inverse_squared:.12f}")
+print(f"  maximum screening energy residual   = {screening_max_error:.3e}")
 print(f"  minimum relative spatial winding     = {spatial_winding_y - spatial_winding_i}")
 print("ALL CHECKS PASSED")

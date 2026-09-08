@@ -6430,8 +6430,117 @@ charge sector. Complete physical matter formation remains
 **Hypothesized/Open**, and every selection receipt retains
 `complete_physical_matter_formation=false`.
 
+## 39. Transverse screening and phase-gradient integrability
+
+### 39.1 Screening qualification: pre-execution criteria
+
+A magnetic response calculation must minimize over single-valued scalar
+phases with the declared winding. A freely varied vector at each point has
+more degrees of freedom than a phase gradient. This calculation distinguishes
+the resulting transverse screening coefficient from the integrable
+counterflow stiffness in the optional relative-connection action.
+
+The frozen starting energy is
+
+$$
+\mathcal H_{\rm phase}
+=\frac{K_x}{2}\left[
+E_Y|\nabla\theta_Y-g_Q\mathbf B/2|^2+
+E_I|\nabla\theta_I+g_Q\mathbf B/2|^2
+\right],
+\qquad \rho=E_Y+E_I.
+$$
+
+For uniform positive densities, positive stiffnesses and a nonzero Fourier
+wave vector, minimize over the two scalar phase amplitudes. Check that a
+longitudinal connection is canceled, a transverse connection has energy
+$g_Q^2K_x\rho|\mathbf B_T|^2/8$, and its Maxwell screening coefficient is
+$\kappa_L^2=\mu_xg_Q^2K_x\rho/4$. Holding the relative phase fixed while
+minimizing the common phase must retain the separate longitudinal factor
+$1-\cos^2\beta$. The weighted four-direction calculation uses
+$W=\operatorname{diag}(K_x,K_x,K_x,K_{\mathfrak s})$ and the projector
+$W-Wkk^TW/(k^TWk)$.
+
+Extend `computations/magnetic_core_completion_check.py` with direct
+component-energy evaluations. Keep its supplied values
+$g_Q=0.83$, $\mu_x=0.71$, $\rho=0.8$ and $K_x=1.2$; use Yang fractions
+$1/5$, $1/2$ and $\varphi^{-1}$. Use the mixed spatial witness
+$k=(1,2,-1)$, $\mathbf B=(0.6,-0.3,0.2)$, and the four-direction witness
+$k=(1,2,-1,0.75)$, $B=(0.6,-0.3,0.2,0.8)$,
+$K_{\mathfrak s}=0.7$ and relative-phase amplitude $0.37$. Check stationarity
+and positive energy increments for common-phase shifts $\pm0.1$.
+Check the straight unit-flux tube with windings $(n_Y,n_I)=(1,-1)$,
+zero common winding and azimuthal connection value $0.6$. Its local
+quadratic connection coefficient must equal the transverse coefficient.
+Zero density and zero coupling must give zero screening. Retain the
+checker’s BPS, flux, normalization and positive-pair-slope checks.
+
+An independent symbolic calculation must derive the phase stationarity
+condition from the component energy and verify both projected quadratic
+forms exactly. It must also verify the winding-fixed tube coefficient.
+The supplied floating-point comparisons use relative/absolute tolerance
+$10^{-11}$; symbolic residuals must vanish exactly. Execute this fixed
+calculation once, with no parameter scan or threshold changes. The scoped
+verdict is `PASS` only if every comparison passes; otherwise it is `FAIL`.
+These are conditional action identities. No quantum-state selection,
+endpoint/tube solution or physical matter-formation trajectory is claimed.
+
+### 39.2 Verified constrained screening response
+
+The direct component-energy calculation passes every frozen comparison
+in §39.1. It gives
+
+$$
+\boxed{
+M_i^2=\frac{g_Q^2K_x\rho}{4},
+\qquad
+\kappa_L^2=\mu_xM_i^2
+=\frac{e_x^2K_x\rho}{4}.
+}
+$$
+
+At the supplied checker values, $\kappa_L^2=0.11738856$. The largest
+absolute difference between the directly minimized component energy and
+the projected connection energy is $6.939\times10^{-18}$ across the
+three compositions and both spatial/scale witnesses. The independent
+symbolic reconstruction verifies both projected quadratic forms, common-phase
+stationarity, its positive displacement cost, and the winding-fixed tube
+curvature exactly. The scoped screening verdict is **PASS**.
+
+The integrable counterflow stiffness remains
+$K_xE_YE_I/\rho=K_x\rho\sin^2\beta/4$. At the $\varphi$ composition its
+gauge-weighted value divided by $M_i^2$ is
+$4/\varphi^3=0.9442719099991588$. These coefficients measure different
+responses. A control substituting the counterflow coefficient into the
+transverse calculation fails the direct-response assertion.
+
+Reproduction from the repository root is
+`python computations/magnetic_core_completion_check.py`. Its retained
+BPS energy, flux, gauge-normalization and positive-pair-slope checks also
+pass, ending with `ALL CHECKS PASSED`.
+
+The independent symbolic source is
+`computations/verify_magnetic_screening.py`. Running
+`python computations/verify_magnetic_screening.py` reconstructs the phase
+stationarity equations and returns `PASS` for seven exact comparisons
+without importing the primary calculation.
+
+The result fixes a conditional linear response of the auxiliary
+charged-condensate action. Using its penetration scale in a
+monopole–antimonopole exchange tail requires asymptotic matching; the full
+endpoint/tube solution, quantum state, exchange statistics and physical
+particle identification remain open. It supplies no new formation
+trajectory and no additional free parameter. The derivation and its
+consumers are `foundations/interscale-current-soliton.md` §5.3,
+`foundations/nonabelian-magnetic-core-boundary.md` §5.3,
+`foundations/core-trapped-charge-support.md` §1.1,
+`parameter-inventory.md` §9 and
+`predictions/falsifiable-predictions.md` §15.
+
 ## References
 
+- `computations/magnetic_core_completion_check.py`—component-energy transverse screening, integrability and fixed-winding checks, together with BPS, flux and reduced pair-slope identities.
+- `computations/verify_magnetic_screening.py`—independent symbolic reconstruction of constrained phase stationarity, projected connection energy, and winding-fixed tube curvature.
 - `computations/matter_formation_statistics_selection.py`—exact rotation algebra, quantum occupation transfer, finite trajectories and chiral anomaly witnesses.
 - `computations/verify_matter_formation_statistics_selection.py`—independent matrix, transition-rule, differential-equation and symbolic reconstruction.
 - `runs/20260908_matter_formation_statistics_selection/`—frozen sections, source snapshots, raw arrays, four prerequisite-rejection controls and joint reconciliation.

@@ -676,27 +676,30 @@ The exact statement is narrower:
 
 ### 5.3 London confinement and spatial winding
 
-The registered common-phase minimization gives
+The homogeneous transverse response in
+`foundations/interscale-current-soliton.md` §5.3 gives
 
 $$
 M_i^2
-=g_Q^2K_x\frac{E_YE_I}{\rho}.
+=\frac{g_Q^2K_x\rho}{4}.
 \tag{MC40}
 $$
 
-At (MC35),
+At (MC35), this depends on the total condensate density:
 
 $$
 \boxed{
-M_i^2=\frac{g_Q^2K_x\rho_0}{\varphi^3},
+M_i^2=\frac{g_Q^2K_x\rho_0}{4},
 \qquad
 \kappa_L^2=\mu_xM_i^2
-=\frac{e_x^2K_x\rho_0}{\varphi^3}>0.}
+=\frac{e_x^2K_x\rho_0}{4}>0.}
 \tag{MC41}
 $$
 
-Thus the residual Abelian magnetic field is screened. Around a candidate flux
-tube, finite covariant phase energy requires
+The residual Abelian magnetic response is screened. The integrable
+counterflow stiffness is $K_x\rho_0/\varphi^3$; its phase minimizer cannot
+cancel a transverse connection. Around a candidate flux tube, finite
+covariant phase energy requires
 
 $$
 2\pi n_Y-\frac{g_Q}{2}\Phi_{\rm tube}=0,
@@ -721,6 +724,20 @@ $$
 The minimum-charge vortex therefore carries exactly one unit of the monopole
 flux. This winding is spatial and must not be identified with the separate
 scale-circuit integer $m$.
+
+These windings fix the common-phase winding to zero. Writing $\chi$ for
+the azimuthal angle, their far-field phase energy is
+
+$$
+\frac{K_x}{2}\left[
+E_Y|\nabla\chi-g_Q\mathbf B/2|^2+
+E_I|-\nabla\chi+g_Q\mathbf B/2|^2\right]
+=\frac{K_x\rho_0}{2}|\nabla\chi-g_Q\mathbf B/2|^2.
+$$
+
+Its quadratic connection coefficient is (MC40). This fixes the local
+far-field penetration scale in the declared uniform background; the
+complete winding and core profile remain a boundary-value problem.
 
 In the low-energy residual-$U(1)_Q$ truncation, a tube with a resolved core has
 positive tension
@@ -750,7 +767,7 @@ E_{M\bar M}(L)
 \tag{MC45}
 $$
 
-with the attractive massive-Abelian tail
+The residual-vector-exchange ansatz takes an attractive massive-Abelian tail
 
 $$
 V_{\rm tail}(L)
@@ -759,6 +776,12 @@ V_{\rm tail}(L)
 \frac{e^{-\kappa_LL}}{L}.
 \tag{MC46}
 $$
+
+Using (MC41) as the decay rate and the displayed flux normalization as its
+amplitude is an asymptotic matching assumption. Transverse screening alone
+does not determine the full endpoint/tube interaction: singular winding,
+core structure, other coupled modes and scale dependence must be included
+in that boundary-value calculation.
 
 Writing $C_Q:=4\pi L_{\mathfrak s}/e_x^2>0$, the long-distance slope is
 
@@ -899,8 +922,10 @@ fail. Full temporal and nonlinear stability remain uncomputed.
 3. the unit dimensionless BPS energy integral;
 4. the source-unit mass and gauge-normalization invariants;
 5. the point-core exterior coefficient;
-6. the $\varphi$-vacuum London mass and unit-flux spatial winding;
-7. the positive monopole-antimonopole separation slope.
+6. the constrained transverse response, integrable counterflow stiffness,
+   longitudinal cancellation and winding-fixed tube response;
+7. the positive monopole-antimonopole separation slope within the displayed
+   attractive-tail ansatz.
 
 These are analytic checks of a Hypothesized auxiliary completion. They create
 no numbered physical prediction. No numerical field solution is evidence for

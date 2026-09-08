@@ -900,30 +900,48 @@ pinch channel, not a universal attraction theorem.
 
 ### 5.3 London screening
 
-After local minimization of the common phase,
+Magnetic screening measures the response to a transverse connection. A
+single-valued common phase can relax only the gradient part of that
+connection. For uniform $\rho$ and $\beta$, varying $\Theta$ gives
 
 $$
-\mathcal H_{\mathrm{phase},A}^{\min}
-=\frac{K_A}{2}\frac{E_YE_I}{\rho}c_A^2
-=\frac{K_A\rho\sin^2\beta}{8}c_A^2.
+\sum_A K_A\partial_A
+\left(a_A-\frac{\cos\beta}{2}c_A\right)=0.
 $$
 
-The corresponding London coefficients are
+The pointwise condition $a_A=\cos\beta\,c_A/2$ from §4.2 requires
+integrability. At constant composition its curl is proportional to
+$\cos\beta\,g_QG_{AB}$, so nonzero curvature generally obstructs that
+condition. In a smooth zero-winding spatial Fourier sector at scale wave
+number $p=0$, write $\mathbf c=\mathbf c_L+\mathbf c_T$. Minimizing over
+the scalar common phase gives
+
+$$
+\mathcal H_{\rm phase}^{\min\Theta}
+=\frac{K_x\rho}{8}
+\left(\sin^2\beta\,|\mathbf c_L|^2+|\mathbf c_T|^2\right).
+$$
+
+For an integrable relative-phase perturbation the counterflow stiffness
+is $K_xE_YE_I/\rho=K_x\rho\sin^2\beta/4$. At the $\varphi$ composition
+it is $K_x\rho/\varphi^3$. A transverse connection instead has
+$\mathbf c_T=g_Q\mathbf B_T$, with energy
+$K_x\rho g_Q^2|\mathbf B_T|^2/8$.
+
+The homogeneous transverse London coefficients are
 
 $$
 M_i^2
-=g_Q^2K_x\frac{E_YE_I}{\rho}
-=\frac{g_Q^2K_x\rho\sin^2\beta}{4},
+=\frac{g_Q^2K_x\rho}{4},
 $$
 
 $$
 M_{\mathfrak s}^2
-=g_Q^2K_{\mathfrak s}\frac{E_YE_I}{\rho}
-=\frac{g_Q^2K_{\mathfrak s}\rho\sin^2\beta}{4}.
+=\frac{g_Q^2K_{\mathfrak s}\rho}{4}.
 $$
 
-For a transverse spatial mode with scale wave number $p$, the positive static
-operator is
+For a smooth transverse spatial mode with scale wave number $p$ and
+$B_{\mathfrak s}=0$, the positive static operator is
 
 $$
 \frac{k^2}{\mu_x}
@@ -938,15 +956,31 @@ $$
 =\mu_x\left(M_i^2+\frac{p^2}{\mu_m}\right).
 $$
 
-For a scale component varying in physical space,
+For a scale component varying in physical space at $p=0$,
 
 $$
 \kappa_{\mathfrak s}^2=\mu_mM_{\mathfrak s}^2.
 $$
 
-These local London expressions require positive coefficients, nonzero Yang and
-Yin condensates, and an integrable common-phase minimizer. Winding or boundary
-constraints can prevent the local minimizer from being realized globally.
+These London expressions require uniform nonzero total density, constant
+composition and positive coefficients. More general smooth Fourier modes
+use the stiffness-weighted projection. With
+$W=\operatorname{diag}(K_x,K_x,K_x,K_{\mathfrak s})$ and nonzero
+$k=(\mathbf k,p)$, minimizing both scalar phases gives the connection energy
+
+$$
+\mathcal H_{\rm connection}^{\min}
+=\frac{\rho g_Q^2}{8}
+B^\dagger\left(W-\frac{Wkk^TW}{k^TWk}\right)B.
+$$
+
+Harmonic modes, compact winding and spatially varying backgrounds require
+their boundary conditions in the phase solve. For the unit-flux straight
+tube with $(n_Y,n_I)=(1,-1)$, the common winding is zero; its far-field
+azimuthal response has the same transverse coefficient. The full tube
+core, endpoint interaction and stability require the coupled boundary-value
+problem. `computations/magnetic_core_completion_check.py` checks the
+component-energy projection and winding-fixed response.
 
 ---
 
@@ -1442,7 +1476,7 @@ minimum in §7.2.
 | Planck-to-proton two-rail current and normalized energy | Derived conditional on the Mapped endpoint, uniform $\varphi$ composition, compact circuit phase, and endpoint bias |
 | Cross-glued two-rail metric graph and circuit holonomy | Derived graph geometry under the Hypothesized gauge-covariant flux-unitary endpoint quotient; the physical endpoint fields and scale metric remain open (`foundations/geometric-manifold-completion.md`) |
 | Endpoint conversion, inter-vertex transport, scale tension, and proton selection | Coherent charged, Wilson-dressed transport, and one-way open endpoint realizations are Derived conditionally on their declared actions; their couplings, potentials, absolute rates, scale tension, local scale-bulk completion, and proton selection remain Hypothesized or open |
-| Healing widths and local London coefficients | Derived conditional linearization |
+| Healing widths, integrable counterflow stiffness and transverse London coefficients | Derived conditional linearization; magnetic screening uses the constrained scalar-phase projection in §5.3 |
 | Inward mixed-curvature force | Conditional on source sign, response, and restricted field sector |
 | Finite Derrick radius and loop length | No finite radius in the minimal smooth zero-Chern endpoint sector; point-core flux gives $\mathcal B_G=2\pi N_G^2\int d\mathfrak s/e_x^2$ and requires $\mathcal B_G>\mathcal D$; an auxiliary adjoint $SU(2)_Q$ core matches that exterior, while the registered condensate confines flux and gives no persistent pair by itself; a neutral fixed-$Q_C$ carrier gives one conditional reduced separation under its support, retention, and matching inequalities. The stored Cartesian carrier branch is ultraviolet parity-concentrated and has frozen verdict **CONTRADICTS—smooth-carrier interpretation on the measured sequence**; separate continuum-consistent scalar binding is reproduced for prepared $Q_C=16$ and $256$, while smooth $Q_C=16$ spatial stability remains **INCONCLUSIVE**. Empty-sector invariance blocks creation from $Q_C=0$; full loop existence, formation, normalization, and particle identification remain open |
 | Temporal gauge and Gauss sector | Direct local gauging of the first-order interscale term is source-free Gauss-obstructed for the nonzero fundamental condensate; a separate conditional second-order particle branch supplies time-dependent local $SU(2)_Q$, positive temporal curvatures, and a Gauss-compatible static sector |
