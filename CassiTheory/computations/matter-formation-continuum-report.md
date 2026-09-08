@@ -1,6 +1,6 @@
 # Matter Formation: Carrier Creation, Continuum Trapping, and a Conditional Baryon Benchmark
 
-## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology and completion-boundary identities / Mapped conditional baryon benchmark / Hypothesized physical completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation, finite-charge radial condensation and microscopic boundaries—September 2026
+## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology, continuum minimizer-set stability and completion-boundary identities / Mapped conditional baryon benchmark / Hypothesized physical completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation, finite-charge radial condensation and microscopic boundaries—September 2026
 
 ## Abstract
 
@@ -136,6 +136,17 @@ independent-integrator and raw-field comparisons qualify the result
 `EMERGES-conditional finite-charge radial condensation`. The charge is
 present initially; physical quantum creation, all-sector stability,
 microscopic normalization and particle identity remain open (§35).
+
+The supplied real-mediator/complex-carrier action also admits localized
+continuum energy minimizers. A fixed trial certifies strict binding for
+every supplied signed charge $Q>149.3602250815$, including $Q=256$.
+A model-specific compactness and conservative-flow argument establishes
+attainment and nonlinear orbital stability of the entire fixed-charge
+minimizer set under arbitrary small energy-space perturbations in three
+dimensions. This theorem does not identify the radiating clouds with that
+set or prove their asymptotic capture. Complex mediator and gauge sectors,
+microscopic selection, quantum creation and physical particle assignments
+remain outside its scope (§36).
 
 ## 1. Scope and frozen evidence
 
@@ -5298,8 +5309,502 @@ non-identifiability result in §29 explains why additional scalar
 trajectories alone cannot select the missing action, quantum state or
 particle interpretation.
 
+## 36. Continuum charged minimizers and nonradial perturbations
+
+The supplied scalar action has stable localized energy-minimizing states
+on the full three-dimensional continuum. The binding calculation and
+model-specific proof appear in §§36.5–36.6. Their scope is the complete
+fixed-charge minimizer set for the real mediator and complex carrier
+of §25.1. Whether the radiating clouds of §35 approach that set remains a
+separate formation question.
+
+### 36.1 Exact angular variational equations
+
+A spherical background permits nonspherical perturbations without changing
+the background calculation. Write $z=x+iy$, $n=x^2+y^2$ and perturb
+$(f,x,y)$ by $(u,v,w)Y_{\ell m}$. Normalize
+$\int|Y_{\ell m}|^2d\Omega=1$ and define
+$\Delta_\ell=\partial_r^2+2r^{-1}\partial_r-\ell(\ell+1)/r^2$.
+The exact first variations are
+$$
+\begin{aligned}
+c_\Psi\ddot u={}&\Delta_\ell u
+-[u_\rho(3f^2-1)+2h_C n]u-4h_C f(xv+yw),\\
+a\ddot v={}&\frac{k_{Cx}}2\Delta_\ell v
+-[B-h_C+h_C f^2+u_C(3x^2+y^2)]v\\
+&-2u_Cxyw-2h_Cfxu,\\
+a\ddot w={}&\frac{k_{Cx}}2\Delta_\ell w
+-[B-h_C+h_C f^2+u_C(x^2+3y^2)]w\\
+&-2u_Cxyv-2h_Cfyu.
+\end{aligned}
+$$
+The mass matrix is $\operatorname{diag}(c_\Psi,2a,2a)$. Multiplying the
+last two equations by two gives a symmetric potential Hessian. The angular
+gradient contribution is positive for each component. Its positivity alone
+does not bound growth in a time-dependent background. A translation of a
+smooth radial solution supplies an exact $\ell=1$ variational solution
+proportional to $(\partial_r f,\partial_r x,\partial_r y)$; a constant
+carrier phase supplies the $\ell=0$ solution $(0,-y,x)$.
+
+### 36.2 Continuum compactness and evolution obligations
+
+The charged variational problem has useful structure before a profile is
+computed. Work on $\mathbb R^3$ with $(f-1,z)\in H^1(\mathbb R^3)$,
+$(\dot f,\dot z)\in L^2(\mathbb R^3)$ and fixed positive signed charge
+$Q=\mathcal Q_a$. Let
+$$
+V(f,c)=\frac{u_\rho}{4}(f^2-1)^2
++(B-h_C+h_Cf^2)c^2+\frac{u_C}{2}c^4,\qquad
+G=\frac12\int(|\nabla f|^2+k_{Cx}|\nabla c|^2)d^3x.
+$$
+Here $c$ is a real carrier amplitude, distinct from $c_\Psi$. Eliminating
+velocities by Cauchy–Schwarz and applying the diamagnetic inequality gives
+the reduced infimum
+$$
+I(Q)=\inf_{f,c;\ N>0}
+\left[G+\int V(f,c)d^3x+\frac{Q^2}{4aN}\right],
+\qquad N=\int c^2d^3x.
+$$
+Equality in the velocity reduction requires $\dot f=0$ and
+$\dot z=-iQz/(2aN)$. In the reduced minimization one may take
+$c\ge0$ and $0\le f\le1$: replacing $z$ by its modulus, $f$ by $|f|$
+and then truncating $f$ above one cannot increase the energy. These
+operations are variational comparisons; they are never applied to an
+evolving field.
+
+The conditions $a,c_\Psi,k_{Cx},u_\rho,u_C>0$ and $B-h_C>0$ give
+positive carrier mass and control the energy space. In particular,
+$$
+V(f,c)\ge(B-h_C)c^2+\frac{u_\rho}{4}(f^2-1)^2.
+$$
+For $u=1-f$ in the reduced range,
+$\|u\|_2^2\le4E/u_\rho$ and $\|c\|_2^2\le E/(B-h_C)$.
+For a signed real mediator in the unreduced dynamics, splitting into
+$f\ge0$ and $f<0$ gives instead
+$$
+\|f-1\|_2^2\le\frac{4E}{u_\rho}
++C_S^6(2E)^3,
+$$
+where $\|g\|_6\le C_S\|\nabla g\|_2$ is the three-dimensional Sobolev
+inequality. This bound addresses the second mediator vacuum at $f=-1$.
+The local cubic wave nonlinearities and energy conservation must be used
+together to justify a global energy-space flow.
+
+A spatial dilation gives a strict binding route. For $s>1$, set
+$(f_s,c_s)(x)=(f,c)(x/s^{1/3})$ and change the prescribed charge to $sQ$.
+Then
+$$
+\mathscr E_{sQ}[f_s,c_s]
+=s\mathscr E_Q[f,c]-(s-s^{1/3})G.
+$$
+Broad dilute free clouds give $I(Q)\le\Omega_\infty Q$.
+If $I(Q)<\Omega_\infty Q$, a minimizing sequence has its gradient
+energy bounded away from zero. Indeed, if $G\to0$, its only attractive
+term obeys
+$$
+2h_C\int uc^2d^3x
+\le2h_C C_S^{3/2}\|\nabla u\|_2
+\|c\|_2^{3/2}\|\nabla c\|_2^{1/2}\longrightarrow0,
+$$
+while $BN+Q^2/(4aN)\ge\Omega_\infty Q$.
+Consequently the dilation comparison gives
+$I(sQ)<sI(Q)$ at a bound charge. This implies strict subadditivity
+$I(Q)<I(q)+I(Q-q)$ for every $0<q<Q$ whenever
+$I(Q)<\Omega_\infty Q$: a smaller bound charge has strictly larger
+energy per charge, and an unbound one has ratio $\Omega_\infty$.
+
+To turn these inequalities into an attainment and orbital-stability
+theorem, the following obligations must all hold: bounded minimizing
+sequences in the full energy space; exclusion of vanishing; exclusion of
+charge splitting by strict subadditivity; exclusion of neutral residual
+energy; strong compactness modulo translations and carrier phase; a global
+continuous energy- and charge-conserving flow; and the corresponding
+energy–charge contradiction argument for stability of the entire minimizer
+set. Radial rearrangement can help construct a minimizer, but it does not
+by itself prove compactness for unrestricted perturbations. The
+single-complex-field result of Bellazzini et al. provides a methodological
+reference; the neutral mediator and its second vacuum require their own
+argument here.
+
+For an attained regular minimizer, spatial dilation at fixed $Q$ gives
+$$
+G+3\int Vd^3x-\frac{3Q^2}{4aN}=0,\qquad
+I(Q)=\Omega Q+\frac23G,\qquad \Omega=\frac{Q}{2aN}.
+$$
+Together with the coexistence lower bound
+$V\ge a\Omega_0^2c^2$, these identities imply
+$\Omega_0<\Omega<\Omega_\infty$ for a bound nonconstant minimizer.
+An attainment or minimizer-set stability conclusion does not identify
+the radiating trajectories of §35 with that set. It also does not cover
+additional complex mediator components, gauge fields or microscopic
+particle assignments.
+
+### 36.3 Explicit continuum binding trial
+
+A fixed trial shape gives a sufficient charge bound without fitting a
+computed profile. Set $\delta=1/4$ and retain
+$n_0=\sqrt{u_\rho/(2u_C)}$. For radius parameter $R>0$, use
+$(f,c)=(0,\sqrt{n_0})$ for $r\le R$,
+$(f,c)=(t,\sqrt{n_0}(1-t))$ for
+$r=R(1+\delta t)$, $0<t<1$, and $(f,c)=(1,0)$ outside.
+This continuous piecewise-linear profile is admissible in the energy
+space. Its corners are irrelevant to its role as a trial state.
+Define
+$$
+\begin{aligned}
+N_*={}&4\pi n_0\left[\frac13+
+\delta\left(\frac13+\frac{\delta}{6}+\frac{\delta^2}{30}\right)\right],\\
+G_*={}&\frac{2\pi(1+k_{Cx}n_0)}{\delta}
+\left(1+\delta+\frac{\delta^2}{3}\right),\\
+P_*={}&4\pi\left[\frac{V(0,\sqrt{n_0})}{3}
++\delta\int_0^1(1+\delta t)^2
+V(t,\sqrt{n_0}(1-t))\,dt\right].
+\end{aligned}
+$$
+Its charge-constrained energy is exactly
+$$
+E_Q(R)=G_*R+P_*R^3+\frac{Q^2}{4aN_*R^3}.
+$$
+Choose $R_Q^3=Q/[2\sqrt{aP_*N_*}]$. This balances the potential and
+carrier kinetic contributions; it is not asserted to minimize the full
+trial energy. With
+$$
+\Omega_{\rm tr}=\sqrt{\frac{P_*}{aN_*}},\qquad
+A_*=\frac{G_*}{[2\sqrt{aP_*N_*}]^{1/3}},
+$$
+the exact trial value is
+$$
+\frac{E_Q(R_Q)}Q=\Omega_{\rm tr}+A_*Q^{-2/3}.
+$$
+If $\Omega_{\rm tr}<\Omega_\infty$, the sufficient binding threshold is
+$$
+\boxed{Q>Q_{\rm tr}:=
+\left[\frac{A_*}{\Omega_\infty-\Omega_{\rm tr}}\right]^{3/2}
+\quad\Longrightarrow\quad I(Q)<\Omega_\infty Q.}
+$$
+The threshold is an upper sufficient bound on the onset of binding.
+Failure of this trial at a charge does not exclude other bound profiles.
+At $h_C=0$, $V\ge Bc^2$ prevents this trial from satisfying the binding
+inequality.
+
+### 36.4 Continuum qualification: pre-execution criteria
+
+Use exactly the coefficients in §35.2 and the trial shape in §36.3.
+Freeze §§36.1–36.4 and the parent section §25.1 separately, with the
+same unique-heading, normalized-LF and terminal-LF convention as §35.
+The calculation is algebraic and variational; it runs no new trajectory.
+Keep the original charge-256 trajectory interpretation unchanged.
+
+The primary program is
+`computations/matter_formation_continuum_minimizer.py`. It checks the
+potential Hessian against all three angular equations, both symmetry
+variations, the velocity square, spatial dilation, the two virial
+identities and the trial integrals using exact symbolic algebra.
+It evaluates $(N_*,G_*,P_*,\Omega_{\rm tr},A_*,Q_{\rm tr},R_{256},
+E_{256}(R_{256})/256)$ with at least 60 decimal digits. Preserve symbolic
+expressions as well as finite JSON numbers. If the trial frequency is
+not below the exterior frequency, retain a null threshold and the
+explicit failed trial condition.
+
+The independent program is
+`computations/verify_matter_formation_continuum_minimizer.py`. It must
+not import the primary implementation. Independently integrate the
+piecewise trial fields with at least 50-digit arithmetic; compare all
+eight reported quantities at relative tolerance $10^{-10}$, normalized
+by $\max(1,|x|,|y|)$. Independently differentiate the original potential,
+check the angular mass-matrix factors and verify the scaling and virial
+relations. Check the disabled-coupling trial with $h_C=0$. It must have
+$P_*/N_*\ge B$ and no certified binding charge. Record the charge-256
+trial outcome whether it succeeds or fails. No shape, coefficient or
+charge scan is allowed.
+
+An independent analytic review must address each compactness and evolution
+obligation listed in §36.2. It must bind the exact derivation and parent
+hashes, state any missing proof, and distinguish stability of the
+minimizer set from stability of an identified individual profile.
+Numerical identities cannot replace this review. A full continuum
+minimizer-set conclusion requires every proof obligation to be satisfied;
+otherwise preserve the missing steps and the narrower algebraic result.
+
+Each executable retains its exact source, frozen sections, strict finite
+JSON and library versions in a fresh directory below
+`runs/20260908_matter_formation_continuum_minimizer/`. Both must reject
+missing or altered frozen sections with exit one, `INCONCLUSIVE` and
+empty scientific payloads. The independent executable also rejects a
+changed primary receipt through a separately supplied expected raw
+SHA-256. Exercise these five controls separately and preserve them.
+A source repair preserves every failed attempt and uses a new directory.
+Stop after the fixed qualification; do not tune through a negative result.
+The executable verdict qualifies the stated identities and binding
+criterion. The analytic review controls any stronger continuum theorem.
+Every receipt retains `complete_physical_matter_formation=false`.
+
+### 36.5 Qualified continuum binding calculation
+
+The fixed admissible trial lies below the energy of a dilute free cloud.
+The primary exact algebra passes all 26 checks. Independent quadrature
+and symbolic differentiation pass all nine identity groups and all eight
+numerical comparisons at the frozen tolerance. The reported values are
+in the supplied dimensionless units:
+
+| Quantity | Qualified value |
+|----------|-----------------|
+| $N_*$ | $7.599181025475039$ |
+| $G_*$ | $77.10883518277295$ |
+| $P_*$ | $25.17201080340594$ |
+| $\Omega_{\rm tr}$ | $7.280069928342280$ |
+| $A_*$ | $40.47312061463337$ |
+| $Q_{\rm tr}$ | $149.36022508149227$ |
+| $R_{256}$ | $3.332799624728784$ |
+| $E_{256}(R_{256})/256$ | $8.283930463343918$ |
+
+The exterior frequency is $\Omega_\infty=\sqrt{76}=8.717797887081348$.
+Consequently,
+$$
+\boxed{
+I(256)/256\le8.283930463343918<8.717797887081348,\qquad
+Q>Q_{\rm tr}\Longrightarrow I(Q)<\Omega_\infty Q.
+}
+$$
+The trial radius is a parameter of the explicit comparison profile.
+Neither the true minimizer radius nor the binding onset is inferred from
+it. Under the disabled-coupling control, $P_*/N_*=6.199156719821674>B=4.75$
+and the trial certifies no binding charge. The executable verdict is
+`SUPPORTS-conditional continuum binding identities`.
+
+All five frozen rejection controls exit one with empty scientific
+payloads: missing and altered sections in each executable, and an altered
+primary receipt in the independent executable. Raw reconciliation verifies
+36 retained source/section artifacts. The independent analytic review of
+the model-specific argument accepts all twelve proof obligations, including
+signed-mediator coercivity, the global flow, charge splitting and neutral
+remainders. The full argument follows so its conclusion is available
+without access to local run artifacts.
+
+### 36.6 Attainment and nonlinear minimizer-set stability
+
+Strict binding prevents a minimizing field from dispersing or dividing
+into independent charged pieces. For the positive coefficients in §35.2,
+with $B>h_C>0$, define the real energy space
+$$
+\mathcal X=
+H^1(\mathbb R^3;\mathbb R)\times H^1(\mathbb R^3;\mathbb C)
+\times L^2(\mathbb R^3;\mathbb R)\times L^2(\mathbb R^3;\mathbb C),
+\qquad X=(g,z,p,v),\quad f=1+g.
+$$
+Here $p=\dot f$, $v=\dot z$, and
+$Q(X)=-2a\,\operatorname{Im}\int\overline z\,v\,d^3x$.
+The energy is
+$$
+E(X)=\frac{c_\Psi}{2}\|p\|_2^2+a\|v\|_2^2+
+\frac12\|\nabla g\|_2^2+\frac{k_{Cx}}2\|\nabla z\|_2^2+
+\int V(1+g,|z|)\,d^3x.
+$$
+For every $Q>0$ satisfying $I(Q)<\Omega_\infty Q$, the set
+$$
+\mathcal M_Q=\{X\in\mathcal X:Q(X)=Q,\ E(X)=I(Q)\}
+$$
+is nonempty. Every fixed-$Q$ minimizing sequence has a strongly convergent
+subsequence after spatial translations, with limit in $\mathcal M_Q$.
+The entire set is invariant and Lyapunov orbitally stable in the product
+norm of $\mathcal X$, under arbitrary small perturbations in these exact
+fields. In particular, the perturbations need not be radial or preserve
+charge exactly. Translations and constant carrier phases are included in
+$\mathcal M_Q$.
+
+**Energy bounds and global evolution.** The potential controls carrier
+mass, gradients and both velocities. For the mediator, apply the Sobolev
+inequality to $g=f-1$. On $f\ge0$, $g^2\le(f^2-1)^2$; on $f<0$,
+$|g|\ge1$ and $g^2\le|g|^6$. Thus
+$$
+\|g\|_2^2\le4E/u_\rho+C_S^6(2E)^3,\qquad
+\|z\|_2^2\le E/(B-h_C).
+$$
+This controls sign-changing mediator fields and regions near the second
+vacuum $f=-1$. In shifted variables the linear equations are positive-mass
+Klein–Gordon equations, with squared masses $2u_\rho/c_\Psi$ and $B/a$.
+The remaining nonlinearities are quadratic and cubic polynomials in
+$(g,\operatorname{Re}z,\operatorname{Im}z)$. The embeddings
+$H^1\subset L^4\cap L^6$ make them locally Lipschitz from $H^1$ to $L^2$.
+Duhamel contraction gives a unique local continuous energy-space flow and
+the norm blow-up alternative. Smooth approximation gives conservation of
+$E$ and $Q$; continuity passes these identities to all energy-space data.
+The displayed bounds prevent finite-time norm blow-up, extending the flow
+to every real time. No projection, clipping, damping or absorbing boundary
+enters this argument.
+
+**Fixed-charge reduction and strict subadditivity.** For $N=\|z\|_2^2>0$,
+put $\Omega=Q/(2aN)$ and let $F_Q(g,z)$ be the spatial energy plus
+$Q^2/(4aN)$. Direct expansion gives the exact nonnegative defect
+$$
+E(X)-F_Q(g,z)=\frac{c_\Psi}{2}\|p\|_2^2+
+a\|v+i\Omega z\|_2^2.
+$$
+Taking moduli and truncating $|f|$ above one shows that the infimum of
+$F_Q$ over signed $g$ and complex $z$ equals the reduced $I(Q)$ in §36.2.
+Every reduced pair lifts to equality with $p=0$, $v=-i\Omega z$.
+On a compact positive charge interval, near-minimizers satisfy
+$Q^2/(4aE)\le N\le E/(B-h_C)$, so varying only $Q$ in $F_Q$ proves
+continuity of $I$. Broad free clouds give
+$0\le I(Q)\le\Omega_\infty Q$, including continuity at zero.
+The gradient-gap and dilation argument in §36.2 then yields, without
+assuming attainment,
+$$
+I(Q)<I(q)+I(Q-q)\qquad(0<q<Q)
+$$
+at every strictly bound charge.
+
+**A nonzero charged profile.** A spatial minimizing sequence
+$(g_n,z_n)$ is bounded in $H^1\times H^1$, with carrier populations
+bounded above and away from zero. If its carrier mass vanishes in every
+translated unit ball, the local Sobolev/interpolation estimate, summed over
+unit cubes $C_j$, gives
+$$
+\|z_n\|_{10/3}^{10/3}
+\le C\left(\sup_j\int_{C_j}|z_n|^2\right)^{2/3}
+\|z_n\|_{H^1}^2\longrightarrow0.
+$$
+Interpolation with the bounded $L^2$ norm gives $\|z_n\|_3\to0$.
+Therefore $\int g_n|z_n|^2\to0$ by Hölder's inequality. In the potential,
+all terms relative to $BN_n$ are nonnegative except
+$2h_C\int g_n|z_n|^2$, so
+$F_Q(g_n,z_n)\ge\Omega_\infty Q-o(1)$, contradicting binding.
+Translations consequently capture nonzero carrier mass. Weak compactness
+and local Rellich convergence supply a limit $(g,z)$ with
+$N_1=\|z\|_2^2>0$.
+
+**Splitting and the neutral remainder.** Write the translated sequence as
+$(g,z)+(r_n,w_n)$. The remainder converges weakly in $H^1$ and strongly
+in local $L^p$ for $2\le p<6$. Gradients and quadratic terms split by
+Hilbert orthogonality. The expanded potential is
+$$
+u_\rho g^2+u_\rho g^3+\frac{u_\rho}{4}g^4+
+B|z|^2+2h_Cg|z|^2+h_Cg^2|z|^2+\frac{u_C}{2}|z|^4.
+$$
+Every mixed cubic or quartic term between the fixed profile and remainder
+vanishes: approximate the fixed factors in $L^3$ or $L^4$ by bounded
+compactly supported functions, use local strong convergence, and control
+the tails by Hölder and the uniform $H^1$ bounds. Thus the integral of
+the complete potential splits with error $o(1)$.
+
+Let $N_{2,n}=\|w_n\|_2^2$, so $N_n=N_1+N_{2,n}+o(1)$, and distribute
+the auxiliary charge as
+$q_{1,n}=QN_1/(N_1+N_{2,n})$, $q_{2,n}=Q-q_{1,n}$.
+The denominator remains bounded away from zero, and the exact identity
+$$
+\frac{Q^2}{4a(N_1+N_{2,n})}
+=\frac{q_{1,n}^2}{4aN_1}
++\frac{q_{2,n}^2}{4aN_{2,n}}
+$$
+splits the temporal term, with a zero remainder term if $N_{2,n}=0$.
+If a subsequence has $q_{1,n}\to q\in(0,Q)$, the two infimum bounds and
+continuity give $I(Q)\ge I(q)+I(Q-q)$, contradicting strict subadditivity.
+Hence $q_{1,n}\to Q$ and $N_{2,n}\to0$. The profile has energy at least
+$I(Q)$, while the complete remainder potential $V(1+r_n,|w_n|)$ and its
+other energy terms are nonnegative. Splitting forces the profile energy
+to equal $I(Q)$ and all remainder energy to vanish. Applying the signed
+coercivity estimate to the remainder gives
+$\|r_n\|_2^2\le4E_{\rm rem}/u_\rho+C_S^6(2E_{\rm rem})^3\to0$.
+Together with vanishing gradients and carrier mass, this proves strong
+spatial convergence. It excludes neutral escaping energy, diffuse
+radiation and second-vacuum defects within a minimizing sequence.
+No radial symmetry or infinite profile decomposition is assumed.
+
+**Full compactness and the stationary fields.** The velocity defect tends
+to zero along every full minimizing sequence. Since $N_n\to N_1>0$,
+also $\Omega_n\to Q/(2aN_1)$, giving strong convergence of both velocities
+after the same translations. This proves attainment and compactness of
+all fixed-charge minimizing sequences in $\mathcal X$.
+The spatial Euler equations at a minimizer are
+$$
+\begin{aligned}
+-\Delta f+u_\rho(f^2-1)f+2h_Cf|z|^2&=0,\\
+-\frac{k_{Cx}}2\Delta z+
+[B-h_C+h_Cf^2+u_C|z|^2-a\Omega^2]z&=0.
+\end{aligned}
+$$
+Their shifted cubic right-hand sides belong to $L^2$. Elliptic estimates
+give $H^2$, bounded continuity and then smoothness by bootstrap.
+The modulus pair is also a minimizer. Its scalar Euler equations and the
+strong maximum principle give $|f|>0$ and $|z|>0$. The condition
+$f-1\in H^1$ excludes a globally negative mediator. Equality in the
+carrier diamagnetic inequality, with strictly positive amplitude on
+connected $\mathbb R^3$, fixes one spatially constant phase. Each
+minimizer therefore evolves with a stationary positive mediator and
+carrier $z(t,x)=e^{-i\Omega t}z(0,x)$. The virial identities in §36.2
+give $\Omega_0<\Omega<\Omega_\infty$. They imply no uniqueness of the
+amplitude profile.
+
+**Orbital stability.** Use distance in the ordinary product norm to the
+entire invariant set $\mathcal M_Q$. Coercivity at $E=I(Q)$ gives uniform
+norm bounds on this set; translations and carrier phases preserve that
+norm. If stability fails, there are initial states approaching
+$\mathcal M_Q$ and times at which their evolved states stay a fixed
+positive distance away. Uniform continuity of energy and charge on
+bounded energy-space balls, followed by conservation, gives
+$E(X_n(t_n))\to I(Q)$ and $Q_n\to Q>0$.
+For nearby charges replace only the evolved carrier velocity by
+$v_n'=(Q/Q_n)v_n$. This sets the charge exactly to $Q$, changes the state
+by $o(1)$, and changes energy by
+$a[(Q/Q_n)^2-1]\|v_n\|_2^2=o(1)$.
+The corrected states form a fixed-$Q$ minimizing sequence. Compactness
+returns a subsequence, modulo translations, to $\mathcal M_Q$, which
+contradicts the fixed separation. Global evolution makes the conclusion
+valid for every time. This is Lyapunov orbital stability of the complete
+minimizer set. Stability of one selected profile and asymptotic convergence
+require additional results.
+
+### 36.7 Reproduction and physical completion boundary
+
+The infinite-domain theorem resolves a stability question for the supplied
+scalar action. Its assumptions do not select that action microscopically,
+quantize its charge, choose a physical quantum state, or assign a
+particle species. The coupling remains the inherited **Mapped**
+$h_C=2.9598260763447164$; the fixed trial adds no fitted parameter or
+catalog prediction.
+
+The theorem does not establish membership in, closeness to, or asymptotic
+capture by $\mathcal M_Q$ for the radiating clouds in §35. Their
+finite-time radial formation verdict remains
+`EMERGES-conditional finite-charge radial condensation`. Nonradial and
+infinite-time survival of those formed clouds, complex-mediator and gauge
+perturbations, quantum creation, microscopic action and state selection,
+physical normalization, spin, statistics and particle identity remain
+open. Complete physical matter formation remains **Hypothesized/Open**;
+the joint receipt retains `complete_physical_matter_formation=false`.
+
+Local evidence is retained under
+`runs/20260908_matter_formation_continuum_minimizer/`: exact primary and
+independent source/section bytes, both analytic reviews and the
+model-specific supplement, all five rejection controls,
+`raw_reconciliation.json` and the joint `reconciliation.json`.
+The primary receipt's raw SHA-256 is
+`a055431dca061365f3a7776cfd29ac37daf35b3dd6f765f18cfafc2b7bff30a7`;
+the supplement's is
+`b352db326c249c1df24a895bd711259c7c6eeb66c7f438f0e24a77500f543ad9`.
+The analytic result is `ACCEPT` for all twelve obligations in §36.6.
+Local receipt availability is registered in `BROKEN_REFS.md`.
+
+The numerical qualification is reproducible from the committed programs
+and unchanged frozen sections. Use fresh output directories; in PowerShell:
+
+```powershell
+python computations/matter_formation_continuum_minimizer.py --output-dir runs/repro_continuum_minimizer/primary
+$primarySha = (Get-FileHash -Algorithm SHA256 runs/repro_continuum_minimizer/primary/results.json).Hash.ToLowerInvariant()
+python computations/verify_matter_formation_continuum_minimizer.py --primary runs/repro_continuum_minimizer/primary --expected-primary-sha $primarySha --output-dir runs/repro_continuum_minimizer/verification
+```
+
+These commands qualify the symbolic identities and fixed trial. The
+continuum theorem depends on the explicit proof in §36.6 rather than on
+the executable verdict.
+
 ## References
 
+- `computations/matter_formation_continuum_minimizer.py`—exact angular, variational and fixed-trial continuum binding qualification.
+- `computations/verify_matter_formation_continuum_minimizer.py`—independent symbolic checks, high-precision trial quadrature and source-bound rejection controls.
+- `runs/20260908_matter_formation_continuum_minimizer/`—retained calculations, independent analytic adjudication, input controls and byte reconciliation.
+- P.-L. Lions, [*The concentration-compactness principle in the calculus of variations. The locally compact case, part 1*](https://www.numdam.org/item/AIHPC_1984__1_2_109_0/), *Annales de l'Institut Henri Poincaré C* **1** (1984), 109–145—compactness and strict-subadditivity method.
+- J. Bellazzini, V. Benci, C. Bonanno and A. M. Micheletti, [*Solitons for the nonlinear Klein–Gordon equation*](https://arxiv.org/abs/0712.1103)—energy–charge minimization and orbital stability for a single complex scalar; the neutral-mediator proof is supplied in §36.6.
 - `computations/matter_formation_radial_cloud.py`—source-bound finite-volume charged-cloud evolution, conservation, controls and refinement schedule.
 - `computations/verify_matter_formation_radial_cloud.py`—independent Runge–Kutta evolution, raw-field reconstruction and frozen radial-condensation qualification.
 - `runs/20260908_matter_formation_radial_cloud/`—frozen algebra and schedule, complete raw trajectories, retained recoveries, rejection controls and joint reconciliation.

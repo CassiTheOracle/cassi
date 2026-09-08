@@ -440,7 +440,8 @@ At fixed signed charge, all 24 frozen parent embeddings have independently
 verified positive finite-grid radial curvature. The population-256
 domain/resolution comparisons pass; all three population-16 domain
 comparisons fail. Aggregate radial-domain qualification is `INCONCLUSIVE`,
-and the result supplies no all-sector or real-time stability claim
+and this finite-grid result supplies no all-sector or real-time trajectory
+stability claim
 (`foundations/particle-stationary-action-closure.md` §8.10;
 `computations/matter-formation-continuum-report.md` §10).
 The remaining scalar angular and phase sectors support on all four
@@ -474,14 +475,17 @@ carrier equation while carrying different spin and statistics, proving that
 the registered observables do not identify one microscopic completion
 (`computations/matter-formation-continuum-report.md` §§25–29).
 
-A complete matter-formation mechanism still requires one selected canonical
-microscopic action, a regulator-compatible state rule, physical
-normalization, infinite-domain localization and stability, real-time
-localized forming evolution, and an observable particle map fixing identity,
-spin and statistics. These requirements and the full evidence chain are in
-`foundations/matter-completion-boundary.md`,
+A complete physical matter-formation mechanism still requires one selected
+canonical microscopic action, a regulator-compatible state rule, physical
+normalization, localized real-time forming evolution, and an observable
+particle map fixing identity, spin and statistics. The continuum theorem
+supplies infinite-domain attainment and minimizer-set stability for its exact
+supplied scalar action and energy space; physical completion and the
+radiating-cloud interpretation remain open. These
+requirements and the full evidence chain are in `foundations/matter-completion-boundary.md`,
 `foundations/particle-stationary-action-closure.md`, and
 `computations/matter-formation-continuum-report.md`.
+
 
 The compact-target extension is an explicitly supplied comparison model whose
 qualified radial result covers stationarity and energetic stability. A smooth
@@ -570,10 +574,33 @@ Both widths satisfy the retained-charge and mediator-depletion conditions
 at every sampled late time on all five numerical schedules, with
 qualified spatial, domain, time-step and independent-integrator comparisons.
 This is self-generated finite-time radial condensation of supplied charge.
-Physical quantum creation, all-sector stability, the physical charge unit
-and particle identity remain open
+For the radiating formed-cloud trajectories, physical quantum creation,
+nonradial and complex-mediator-phase stability, infinite-time survival, the
+physical charge unit and particle identity remain open; the continuum theorem
+addresses minimizers rather than trajectories or capture
 (`foundations/matter-completion-boundary.md` §17;
 `computations/matter-formation-continuum-report.md` §35).
+
+The supplied scalar model also admits continuum localized energy minimizers.
+For the specified positive coefficients and real-mediator/full-complex-carrier
+energy space on $\mathbb R^3$, strict fixed-$Q$ binding
+$I(Q)<\Omega_\infty Q$ gives attainment and compactness of every minimizing
+sequence modulo translations and carrier phase, together with Lyapunov orbital
+stability of the entire fixed-$Q$ minimizer set under arbitrary small
+full-energy-space perturbations, including nonradial perturbations and nearby
+charges. The verified trial certifies this inequality for every
+$Q>Q_{\rm tr}$, where $Q_{\rm tr}\approx149.36022508149227$; at $Q=256$,
+$E_{\rm trial}/Q=8.283930463343918<\Omega_\infty=8.717797887081348$.
+Here $Q$ is the dimensionless supplied signed charge, distinct from prepared
+population $Q_C$; the coefficients are $a=1/16$, $c_\Psi=1/8$ and
+$h_C=2.9598260763447164$. This model-specific minimizer-set result does not
+prove uniqueness, stability of a selected profile, asymptotic convergence, or
+membership, capture or stability of the radiating clouds; it excludes complex
+mediator and gauge sectors. Physical action selection, quantum creation and
+state, physical normalization, spin, statistics, particle identity and
+physical completion remain open
+(`computations/matter-formation-continuum-report.md` §36;
+`foundations/matter-completion-boundary.md` §18).
 
 
 ---

@@ -1,6 +1,6 @@
 # Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
-## Status: Derived conditional boundary and microscopic non-identifiability / Mapped carrier coupling and conditional baryon benchmark / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences, radial baryon relaxation and finite-charge radial condensation—September 2026
+## Status: Derived conditional boundary, microscopic non-identifiability and scalar continuum minimizer-set stability / Mapped carrier coupling and conditional baryon benchmark / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences, radial baryon relaxation and finite-charge radial condensation—September 2026
 
 ## Abstract
 
@@ -54,6 +54,15 @@ late-time interval, reproduced by independent Runge–Kutta evolution and
 qualified against uncoupled controls. This finite-time radial condensation
 leaves microscopic creation, all-sector stability and particle identity
 open (§17).
+
+The same real-mediator/complex-carrier action admits continuum
+energy-minimizing localized states at supplied signed charge $Q=256$.
+Strict binding, a model-specific compactness argument and global
+conservative evolution establish nonlinear orbital stability of the entire
+fixed-charge minimizer set under arbitrary small three-dimensional
+energy-space perturbations. Stability or asymptotic capture of the
+simulated radiating cores, additional mediator/gauge components and physical
+particle assignments remain separate requirements (§18).
 
 An additional normalized complex doublet and compact $SU(2)$ chiral action
 provide one explicit conditional baryon benchmark. A finite-domain
@@ -1339,8 +1348,8 @@ A smooth populated-ball trial family has
 $E=\Omega_0|\mathcal Q_a|+O(|\mathcal Q_a|^{2/3})$, below the
 free exterior threshold $\Omega_\infty|\mathcal Q_a|$ for sufficiently
 large supplied charge when $\Omega_0<\Omega_\infty$.
-This bound and trial comparison leave attainment and general nonlinear
-stability as separate questions.
+At a strictly bound charge, the continuum argument in §18 establishes
+attainment and nonlinear orbital stability of the full minimizer set.
 
 Independent real-time radial calculations qualify formation for two
 specified diffuse preparations. Gaussian widths $4$ and $8$, each with
@@ -1357,16 +1366,79 @@ field comparisons satisfy the frozen criteria. The result is
 
 This establishes self-generated localization and finite-time radial
 retention of an initially supplied charge. It uses no imposed trap,
-damping or evolving charge normalization. Nonradial breakup,
-complex mediator-phase perturbations and infinite-time survival remain
-untested. The dimensionless charge has no physical particle assignment.
+damping or evolving charge normalization. For these formed clouds,
+nonradial breakup, complex mediator-phase perturbations and infinite-time
+survival remain untested. The dimensionless charge has no physical
+particle assignment.
 The six requirements in §12 remain unsatisfied jointly: the canonical
 microscopic action, quantum state, physical normalization and
 spin/statistics selection do not follow from these scalar trajectories.
 Physical matter formation remains **Hypothesized/Open**.
 
+## 18. Continuum localized minimizers and nonlinear stability
+
+The supplied scalar action supports localized states that remain close to
+the complete energy-minimizing set after arbitrary small perturbations.
+This result holds on $\mathbb R^3$ for the real mediator and full complex
+carrier, with the coefficients $a=1/16$, $c_\Psi=1/8$ and the inherited
+**Mapped** coupling $h_C=2.9598260763447164$.
+For a positive supplied signed charge $Q=\mathcal Q_a$, let $I(Q)$ be the
+infimum of the full Hamiltonian at that charge and let $\mathcal M_Q$ be
+the entire set attaining it. The model-specific theorem is
+$$
+\boxed{
+I(Q)<\Omega_\infty Q
+\ \Longrightarrow\
+\mathcal M_Q\ne\varnothing
+\text{ and }\mathcal M_Q\text{ is Lyapunov orbitally stable}.
+}
+$$
+The metric is the product norm of
+$(f-1,z,\dot f,\dot z)\in H^1\times H^1\times L^2\times L^2$.
+Distance is measured to the whole set, including its translations and
+constant carrier phases. Perturbations may be nonspherical, sign-changing
+in the real mediator, and carry a nearby signed charge.
+
+Binding is certified by a fixed piecewise-linear populated-ball trial.
+Exact algebra and independent high-precision quadrature give
+$$
+\boxed{
+Q>Q_{\rm tr}\ \Longrightarrow\ I(Q)<\Omega_\infty Q,\qquad
+I(256)/256\le8.283930463343918<\sqrt{76}.
+}
+$$
+Here $Q_{\rm tr}\approx149.36022508149227$ is a sufficient threshold from
+one trial shape; it does not locate the true binding onset or determine the
+minimizing radius. Disabling mediator
+coupling removes this trial's binding certificate. The calculation adds
+no fitted coefficient or catalog prediction.
+
+The proof controls the full energy-space norm even when the mediator
+approaches its second vacuum. The cubic wave equations then admit a global
+continuous energy- and charge-conserving flow. Strict binding excludes
+vanishing carrier mass; a dilation comparison proves strict charge
+subadditivity. A nonzero charged weak profile, exact polynomial energy
+splitting and nonnegative remainder energy establish strong compactness
+of every minimizing sequence modulo translations, including exclusion of
+neutral escaping energy. Conservation and this compactness yield orbital
+stability of $\mathcal M_Q$. The independent analytic review accepts all
+twelve obligations. The complete proof and reproducible trial calculation
+are in `computations/matter-formation-continuum-report.md` §36.
+
+The theorem concerns the entire mathematical minimizer set. Uniqueness,
+stability of one selected profile, capture of the radiating cores in §17,
+and complex-mediator or gauge-sector stability do not follow. Supplied
+charge $Q$ is distinct from a prepared carrier population $Q_C$ and has
+no identified physical charge unit. The canonical microscopic action,
+quantum state and creation mechanism, normalization, spin, statistics and
+particle discriminator remain unselected. Complete physical Cassi matter
+formation therefore remains **Hypothesized/Open**.
+
 ## References
 
+- `computations/matter-formation-continuum-report.md` §36—fixed continuum binding trial, full real-mediator minimizer-set proof, independent adjudication and formation boundary.
+- `computations/matter_formation_continuum_minimizer.py`—exact angular and variational identities and sufficient binding threshold.
+- `computations/verify_matter_formation_continuum_minimizer.py`—independent high-precision quadrature, symbolic qualification and frozen-input controls.
 - `foundations/geometric-manifold-completion.md`—positive coherence fibre,
   Gram moment map, and conditional graph action.
 - `foundations/yin-yang-qi-dynamical-geometry.md`—open dynamical geometry,

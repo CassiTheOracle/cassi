@@ -384,12 +384,33 @@ $2.4716341\times10^{-14}$; the five required invalid-input controls reject
 their inputs. The exact verdict is
 `EMERGES-conditional finite-charge radial condensation`.
 The calculation supplies initial charge and restricts the mediator to a real
-field. Quantum creation, microscopic action and state selection, physical
-units, nonradial and mediator-phase stability, infinite-time survival and
-particle identity remain open. Physical matter formation remains
-**Hypothesized/Open**
+field. Quantum creation, microscopic action and state selection, and physical
+units remain open. For these radiating trajectories, nonradial and
+mediator-phase stability, infinite-time survival and particle identity remain
+open; the continuum minimizer theorem below is a separate result. Physical
+matter formation remains **Hypothesized/Open**
 (`computations/matter-formation-continuum-report.md` §35;
 `foundations/matter-completion-boundary.md` §17).
+
+The supplied scalar action admits localized continuum energy minimizers.
+For the specified positive coefficients and real-mediator/full-complex-carrier
+energy space on $\mathbb R^3$, strict binding $I(Q)<\Omega_\infty Q$ implies attainment
+and compactness of all minimizing sequences modulo translations and carrier
+phase, and Lyapunov orbital stability of the entire fixed-$Q$ minimizer set
+under arbitrary small full-energy-space perturbations, including nonradial
+perturbations and nearby charges. The verified trial certifies this inequality
+for every $Q>Q_{\rm tr}$, with $Q_{\rm tr}\approx149.36022508149227$; at $Q=256$,
+$E_{\rm trial}/Q=8.283930463343918<\Omega_\infty=8.717797887081348$.
+Here $Q$ is the dimensionless supplied signed charge, distinct from prepared
+$Q_C$; the action coefficients are $a=1/16$, $c_\Psi=1/8$ and
+$h_C=2.9598260763447164$. This conditional minimizer-set theorem is distinct
+from the finite-time radiating-cloud trajectories above: it does not prove
+uniqueness, selected profile stability, asymptotic convergence, or cloud
+membership, capture or stability, and it excludes complex mediator and gauge
+sectors. Physical action selection, quantum creation and state, physical
+normalization, spin, statistics, particle identity and physical completion
+remain open (`computations/matter-formation-continuum-report.md` §36;
+`foundations/matter-completion-boundary.md` §18).
 
 
 ## 6. Mechanism Layer: Two-Fluid Gate Drive Physics (PDE-tested)

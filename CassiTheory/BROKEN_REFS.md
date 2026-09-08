@@ -169,17 +169,20 @@ where available, and the scripts needed to regenerate current receipts.
 | `computations/matter-formation-continuum-report.md` §33; `foundations/matter-completion-boundary.md` §15 | `runs/20260908_matter_formation_interface/` (exact normal-mode and phase-path algebra, independent four-grid spectra, source snapshots, preserved unqualified integral receipt, accepted `primary_integral_recovery/` and `verification/` receipts, six rejection controls, raw-array reconstruction and joint `reconciliation.json`) |
 | `computations/matter-formation-continuum-report.md` §34; `foundations/matter-completion-boundary.md` §16 | `runs/20260908_matter_formation_charged_interface/` (frozen coexistence algebra and planar-front calculation, accepted `primary_implementation_recovery/` and independent `verification/`, retained failed `primary/` receipt, four rejection controls, raw fields and spectra, direct `raw_reconstruction.json` and joint `reconciliation.json`) |
 | `computations/matter-formation-continuum-report.md` §35; `foundations/matter-completion-boundary.md` §17; `parameter-inventory.md` §10 | `runs/20260908_matter_formation_radial_cloud/` (frozen finite-charge algebra and executed radial schedule, pre-execution RK4 accuracy amendment, accepted `primary/` and `verification_identity_recovery/` receipts, retained identity-only verifier failure and `implementation_recovery.json`, 22 trajectory archives, five required rejection controls, direct `raw_reconstruction.json` and joint `reconciliation.json`) |
+| `computations/matter-formation-continuum-report.md` §36; `foundations/matter-completion-boundary.md` §18 | `runs/20260908_matter_formation_continuum_minimizer/` (frozen binding trial, exact primary and independent source/section bytes, all five rejection controls, raw artifact reconciliation, model-specific analytic supplement and its independent twelve-obligation review, joint `reconciliation.json`; the complete theorem is published in report §36.6) |
 
 ## References to external matter-comparison literature
 
 The matter-formation report cites these external papers for comparison-model
-topology, radial energetics and configuration-space quantization. The links
+topology, radial energetics, configuration-space quantization and continuum
+energy minimization. The links
 are provenance citations; they do not make the comparison models part of the
 Cassi action or establish a physical particle interpretation.
 
 | Source Document | External literature |
 |----------------|---------------------|
 | `computations/matter-formation-continuum-report.md` §§18, 19.7, 20.6 | [Houghton, Manton and Sutcliffe, *Rational Maps, Monopoles and Skyrmions*](https://arxiv.org/abs/hep-th/9705151); [Krusch and Speight, *Fermionic quantization of Hopf solitons*](https://arxiv.org/abs/hep-th/0503067); [Cork and Harland, *Finkelstein–Rubinstein constraints from ADHM data and rational maps*](https://arxiv.org/html/2401.16494v2) |
+| `computations/matter-formation-continuum-report.md` §36 | [Friedberg, Lee and Sirlin, *Class of scalar-field soliton solutions in three space dimensions*](https://doi.org/10.1103/PhysRevD.13.2739); [Lions, *The concentration-compactness principle in the calculus of variations. The locally compact case, part 1*](https://www.numdam.org/item/AIHPC_1984__1_2_109_0/); [Bellazzini, Benci, Bonanno and Micheletti, *Solitons for the nonlinear Klein–Gordon equation*](https://arxiv.org/abs/0712.1103) |
 
 
 ## References to `CassiCosmos/` (the space sim, in the unified workspace)

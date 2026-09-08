@@ -620,12 +620,27 @@ $32\le t\le48$, versus matched $h_C=0$ controls
 $0.054518103963512976$ and $0.15375753009303855$. The verdict is
 `EMERGES-conditional finite-charge radial condensation`; charge is supplied
 initially and is distinct from the prepared population label $Q_C=256$.
-No trap or damping is imposed. This scalar radial result does not select a
-canonical microscopic action, physical units, quantum state or creation rule,
-nonradial or complex-mediator-phase stability, all-sector long-time survival
-or particle identity
-(`computations/matter-formation-continuum-report.md` §35;
-`foundations/matter-completion-boundary.md` §17).
+No trap or damping is imposed. This scalar radial result concerns finite-time
+radiating trajectories. A separate conditional continuum theorem applies to
+the supplied positive-inertia real-mediator/full-complex-carrier scalar action:
+strict binding $I(Q)<\Omega_\infty Q$ implies attainment, compactness of
+minimizing sequences modulo translations and carrier phase, and nonlinear
+orbital stability of the entire fixed-$Q$ minimizer set. The proof in
+`computations/matter-formation-continuum-report.md` §36.6 establishes the
+global conservative flow and excludes dispersion, splitting and escaping
+neutral energy in the full energy space. Perturbations may be nonradial
+and may change the charge slightly. The
+fixed trial's charge threshold and its $Q=256$ strict-binding benchmark are
+reported in `computations/matter-formation-continuum-report.md` §36.5. Here
+$Q$ is the dimensionless supplied signed charge, distinct from prepared
+carrier population $Q_C$. The theorem does not prove uniqueness, stability
+of a selected profile, asymptotic convergence, or membership, capture or
+stability of the radiating clouds simulated in the report's §35; their
+nonradial and long-time behavior remains open, as do complex mediator/gauge
+sectors, physical action selection, quantum state and creation, physical
+normalization, spin/statistics and particle identity
+(`computations/matter-formation-continuum-report.md` §§35–36;
+`foundations/matter-completion-boundary.md` §§17–18).
 
 
 Complex scalar and Dirac parents both reduce to the registered slow
@@ -1393,9 +1408,10 @@ the radial amplitude Hessian. All 24 frozen parent embeddings have
 independently verified positive finite-grid radial curvature. Nine of
 twelve domain/resolution comparisons pass; the population-16 domain
 failures leave aggregate qualification `INCONCLUSIVE`. Population 256
-meets its measured radial comparisons, without closing all-sector stability
-or physical formation (`foundations/particle-stationary-action-closure.md`
-§8.10; `computations/matter-formation-continuum-report.md` §10).
+meets its measured radial comparisons, without closing stability or physical
+formation of a selected profile or radiating cloud
+(`foundations/particle-stationary-action-closure.md` §8.10;
+`computations/matter-formation-continuum-report.md` §§10, 36).
 All four selected population-256 grids also support the angular and phase
 sectors, with 96 independently matched eigenvalues. Seven of eight spatial
 comparisons pass; the dipole nonsymmetry gap fails its domain comparison.
@@ -1456,19 +1472,22 @@ independent RK4 mean core fractions inside $r<8$ over $32\le t\le48$ are
 $0.7476513029152703$ and $0.5637353289380143$, versus matched
 $h_C=0$ controls $0.054518103963512976$ and $0.15375753009303855$.
 The initially supplied charge is distinct from prepared population $Q_C=256$;
-the calculation imposes no trap or damping. The result qualifies finite-time
-radial scalar condensation. Microscopic action selection,
-physical normalization and units, quantum state and creation, nonradial and
-complex-mediator-phase stability, infinite-time/all-sector survival and
-particle identity remain open
-(`computations/matter-formation-continuum-report.md` §35;
-`foundations/matter-completion-boundary.md` §17).
+the calculation imposes no trap or damping. This verdict concerns the
+finite-time radial trajectories. The conditional §36 theorem concerns the
+entire fixed-$Q$ minimizer set at strictly bound charge in the specified
+energy space; it does not establish membership, capture,
+nonradial behavior or long-time stability of these radiating clouds, and it
+does not cover complex mediator or gauge sectors. Physical action selection,
+physical normalization and units, quantum state and creation, spin/statistics
+and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §§35–36;
+`foundations/matter-completion-boundary.md` §§17–18).
 
 
 A complete mechanism still requires a canonical action, quantum-state rule,
-physical normalization, infinite-domain localization and stability,
-localized real-time forming evolution and an observable particle
-discriminator (`foundations/matter-completion-boundary.md` §12).
+physical normalization, infinite-domain localized formation, stability or
+capture of the radiating clouds, and an observable particle discriminator
+(`foundations/matter-completion-boundary.md` §§12, 18).
 
 The separate massive bubble-lattice comparison adds an $O(4)$ field on the
 periodic primitive geometry. Its pion, nucleon-mean and Delta references give

@@ -45,10 +45,12 @@ identifies phase aliasing without changing the verdict. Scalar and Dirac
 parents share the registered slow carrier equation while retaining different
 spin and statistics. Those observables therefore define a microscopic
 equivalence class. A canonical action, state rule, physical
-normalization, infinite-domain localization and stability, localized forming
-evolution and a particle discriminator remain required
-(`computations/matter-formation-continuum-report.md` §§25–29;
-`foundations/matter-completion-boundary.md` §12).
+normalization, infinite-domain localized formation and a particle
+discriminator remain required; the conditional continuum theorem below
+qualifies stability only for a mathematical fixed-charge minimizer set of the
+supplied scalar action
+(`computations/matter-formation-continuum-report.md` §§25–29, 36;
+`foundations/matter-completion-boundary.md` §§12, 18).
 Diffuse charged clouds create their own depleted mediator core in a separate
 finite-time radial calculation. The selected positive-inertia scalar action
 uses $a=1/16$, $c_\Psi=1/8$ and inherited **Mapped** coupling
@@ -61,11 +63,33 @@ retention and mediator-depletion criteria across five numerical evolutions.
 No trap, damping, absorbing layer or renormalization is imposed. The joint
 verdict is `EMERGES-conditional finite-charge radial condensation`.
 The supplied charge is distinct from the prepared population label
-$Q_C=256$. Microscopic action selection, physical normalization, quantum
-state and creation, nonradial and complex-mediator-phase stability,
-infinite-time survival and particle identity remain open
-(`computations/matter-formation-continuum-report.md` §35;
-`foundations/matter-completion-boundary.md` §17).
+$Q_C=256$. The continuum theorem applies to the mathematical minimizer set,
+not automatically to these radiating clouds: their membership or capture,
+nonradial and complex-mediator-phase behavior, infinite-time survival and
+particle identity remain open
+(`computations/matter-formation-continuum-report.md` §§35–36;
+`foundations/matter-completion-boundary.md` §§17–18).
+
+For the supplied positive-inertia real-mediator/full-complex-carrier scalar
+action on $\mathbb R^3$, strict binding $I(Q)<\Omega_\infty Q$ implies
+attainment, compactness of every minimizing sequence modulo translations
+and carrier phase, and nonlinear orbital stability of the entire
+fixed-$Q$ minimizer set. The proof establishes a global continuous
+energy- and charge-conserving flow and excludes dispersion, charge
+splitting and escaping neutral energy. Stability holds in the full
+real-mediator/complex-carrier energy space, including nonradial and
+nearby-charge perturbations. The fixed trial's charge threshold and the $Q=256$
+strict-binding benchmark are reported in
+`computations/matter-formation-continuum-report.md` §36.5. Here $Q$ is the
+dimensionless supplied signed charge, distinct from prepared carrier
+population $Q_C$. The theorem does not prove uniqueness, stability of a
+selected profile, asymptotic convergence, or membership/capture/stability of
+the §35 radiating clouds, and covers no complex mediator or gauge sector.
+Their nonradial and long-time behavior remains open. Physical action
+selection, quantum state and creation, physical normalization, spin/statistics
+and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §36;
+`foundations/matter-completion-boundary.md` §18).
 
 
 An added normalized complex doublet and compact chiral action provide a
@@ -200,6 +224,10 @@ slow Schrödinger carrier equation with different spin and statistics, so a
 canonical action, state rule, physical normalization and particle
 discriminator remain required
 (`computations/matter-formation-continuum-report.md` §§14–29).
+The conditional continuum theorem in §36 establishes Lyapunov orbital
+stability only for the entire fixed-charge minimizer set of the supplied
+scalar action under its stated hypotheses; it does not classify the §35
+radiating clouds or add a physical action, state or particle assignment.
 
 ### `cassi-first-principles.md`—Cassi First Principles
 
@@ -642,12 +670,14 @@ $0.7476513029152703$ and $0.5637353289380143$ inside $r<8$ over
 $32\le t\le48$, versus matched $h_C=0$ controls
 $0.054518103963512976$ and $0.15375753009303855$. This is
 `EMERGES-conditional finite-charge radial condensation` from initially
-charged data, with no imposed trap or damping; it does not select a
-canonical microscopic sector or physical units, quantum state or creation
-rule, nonradial or complex-mediator-phase stability, all-sector
-long-time survival or particle identity
-(`computations/matter-formation-continuum-report.md` §35;
-`foundations/matter-completion-boundary.md` §17).
+charged data, with no imposed trap or damping. The result concerns those
+finite-time radial trajectories. The conditional continuum theorem instead
+concerns the entire minimizer set at strictly bound charge in the specified
+energy space; it does not establish membership, capture,
+nonradial behavior or long-time stability of the radiating clouds, and it
+does not cover complex mediator or gauge sectors
+(`computations/matter-formation-continuum-report.md` §§35–36;
+`foundations/matter-completion-boundary.md` §§17–18).
 
 
 ### `wake-geometry.md`—The Wake Geometry: Composite-Wavelength Closure and the Horizon Rung
@@ -1015,8 +1045,8 @@ domain/resolution comparisons pass; the population-16 domain failures
 leave aggregate radial-domain qualification INCONCLUSIVE. Population 256
 meets its measured radial comparisons. The derivation is in §8.10 and the
 accepted receipts are summarized in `computations/matter-formation-continuum-report.md`
-§10; full spatial and dynamical stability remain open.
-The scalar angular and phase operators and their conditional continuum
+§§10, 36; full spatial and dynamical stability of a selected profile remain
+outside the theorem's minimizer-set scope. The scalar angular and phase operators and their conditional continuum
 positivity identities follow in §8.11. All four selected population-256
 grids support these sectors, with 96 independently matched eigenvalues.
 Seven of eight spatial comparisons pass; the dipole nonsymmetry gap fails
@@ -1125,14 +1155,16 @@ confined to the supplied action, impulse and sampled interval
 
 Physical exterior and reservoir actions, state selection, canonical
 coefficient determination, gravity selection, continuum-localized forming
-evolution from degree-zero data, all-sector stability and a particle
-discriminator remain open. The deterministic six-requirement completion gate
-returns `FAIL`
-(`computations/matter-formation-continuum-report.md`). Status: Derived
-conditional boundary and microscopic non-identifiability / Mapped carrier
-coupling and conditional baryon benchmark / Hypothesized physical realization
-/ Tested reduced receipts, prepared binding, finite-grid spectra, parent
-correspondences and radial baryon relaxation—September 2026.
+evolution from degree-zero data, stability or capture of the radiating clouds,
+and a particle discriminator remain open. The conditional theorem concerns
+only the entire fixed-charge minimizer set of the supplied scalar action.
+The deterministic six-requirement completion gate returns `FAIL`
+(`computations/matter-formation-continuum-report.md` §§35–36). Status: Derived
+conditional boundary, microscopic non-identifiability and scalar continuum
+minimizer-set stability / Mapped carrier coupling and conditional baryon
+benchmark / Hypothesized physical realization / Tested reduced receipts,
+prepared binding, finite-grid spectra, parent correspondences, radial baryon
+relaxation and finite-charge radial condensation—September 2026.
 
 ### `quantum-free-fall-correspondence.md`—Quantum Free Fall as a Cassi Correspondence Boundary
 

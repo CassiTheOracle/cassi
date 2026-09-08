@@ -21,6 +21,12 @@ altering its verdict. Complex-scalar and Dirac parents reduce to the same slow
 carrier equation while carrying different spin and statistics. The registered
 dynamics therefore leave the microscopic action, state, normalization,
 localized forming solution and particle discriminator as independent inputs.
+The conditional continuum theorem additionally concerns only the entire
+fixed-$Q$ minimizer set at strictly bound charge in the specified energy
+space; it does not classify the simulated radiating clouds
+or cover complex mediator/gauge sectors
+(`computations/matter-formation-continuum-report.md` §§25–29, 36;
+`foundations/matter-completion-boundary.md` §18).
 
 ## 1. The projection and its mathematical boundary
 
@@ -629,12 +635,26 @@ over $32\le t\le48$ are $0.7476513029152703$ and
 $0.5637353289380143$, versus matched $h_C=0$ controls
 $0.054518103963512976$ and $0.15375753009303855$. No trap or damping is
 imposed. The result is `EMERGES-conditional finite-charge radial
-condensation` for supplied initially charged data, while physical
-normalization and units, quantum state and creation, nonradial and
-complex-mediator-phase stability, infinite-time/all-sector survival and
-particle identity remain open
-(`computations/matter-formation-continuum-report.md` §35;
-`foundations/matter-completion-boundary.md` §17).
+condensation` for supplied initially charged data. A conditional continuum
+theorem applies to the same positive-inertia real-mediator/full-complex-carrier
+action: strict binding $I(Q)<\Omega_\infty Q$ yields attainment, compactness
+of minimizing sequences modulo translations and carrier phase, and nonlinear
+orbital stability of the entire fixed-$Q$ minimizer set. The proof establishes
+the global conservative flow and excludes dispersion, splitting and escaping
+neutral energy (`computations/matter-formation-continuum-report.md` §36.6).
+Stability covers arbitrary small perturbations in the specified energy
+space, including nonradial and nearby-charge perturbations. The fixed
+trial's sufficient threshold and its $Q=256$ binding benchmark are given
+there in §36.5. Here $Q$ is the dimensionless
+supplied signed charge, distinct from prepared carrier population $Q_C$. The
+theorem does not prove uniqueness, stability of a selected profile, asymptotic
+convergence, or membership/capture/stability of the §35 radiating clouds; their
+nonradial and long-time behavior, complex-mediator-phase behavior and
+all-sector survival remain open. It covers no complex mediator or gauge
+sector. Physical action selection, physical normalization and units, quantum
+state and creation, spin/statistics and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §§35–36;
+`foundations/matter-completion-boundary.md` §§17–18).
 
 
 ### 1.12 Slow-sector non-identifiability
@@ -806,12 +826,15 @@ their independent-RK4 mean core fractions inside $r<8$ over
 $32\le t\le48$ are $0.7476513029152703$ and $0.5637353289380143$,
 versus matched $h_C=0$ controls $0.054518103963512976$ and
 $0.15375753009303855$. No imposed trap or damping is used. The result is
-finite-time, finite-charge radial scalar condensation. Canonical microscopic
-action selection, physical units and normalization,
-quantum state and creation, nonradial and complex-mediator-phase stability,
-infinite-time/all-sector survival and particle identity remain open
-(`computations/matter-formation-continuum-report.md` §35;
-`foundations/matter-completion-boundary.md` §17).
+finite-time, finite-charge radial scalar condensation. The conditional §36
+theorem concerns the entire minimizer set at strictly bound charge in the
+specified energy space; it does not establish
+membership, capture, nonradial behavior or long-time stability of these
+radiating clouds, and it covers no complex mediator or gauge sector.
+Canonical microscopic action selection, physical units and normalization,
+quantum state and creation, spin/statistics and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §§35–36;
+`foundations/matter-completion-boundary.md` §§17–18).
 
 
 The canonical scalar topology checks find contractible regular
@@ -846,8 +869,8 @@ coefficient-scale identity leave that selection open.
 - `foundations/unified-lagrangian.md` §§2, 5–7—optional fermion sector and action assembly.
 - `foundations/particle-stationary-action-closure.md` §8.12—scalar physical-normalization and particle-identity boundary.
 - `computations/matter-formation-normalization-prereg.md`—frozen unit-normalization, bilinear and action-reality checks.
-- `computations/matter-formation-continuum-report.md` §§12–29, 35—normalization and identity boundaries, scalar and fermionic production witnesses, conditional formation dynamics, the microscopic non-identifiability theorem and finite-charge radial condensation.
-- `foundations/matter-completion-boundary.md` §§12, 17—conditional completion boundary and the finite-charge radial formation scope.
+- `computations/matter-formation-continuum-report.md` §§12–29, 35–36—normalization and identity boundaries, scalar and fermionic production witnesses, conditional formation dynamics, the microscopic non-identifiability and continuum minimizer-set theorem, and finite-charge radial condensation.
+- `foundations/matter-completion-boundary.md` §§12, 17–18—conditional completion boundary, finite-charge radial formation scope and conditional minimizer-set stability boundary.
 - `computations/matter-formation-spinor-closure-prereg.md`—frozen positive-observable, closed-conversion, massive fixed-point and positive-energy witnesses.
 - `computations/matter-formation-spinor-closure-implementation-recovery.md`—execution provenance and accepted receipt location under the scientific preregistration's recovery rule.
 - `computations/matter_formation_spinor_closure.py` and `computations/verify_matter_formation_spinor_closure.py`—independent four-component and reduced-component witnesses.

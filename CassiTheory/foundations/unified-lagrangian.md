@@ -10,7 +10,11 @@ The separately supplied scalar mass-source parent has tested finite-mode
 production and conditional formation dynamics. A complex-scalar parent and a
 Dirac parent share the registered slow carrier equation with different spin
 and statistics, so the slow sector does not identify a unique microscopic
-matter theory (`computations/matter-formation-continuum-report.md` §§14–29).
+matter theory. In the supplied scalar action, strict binding yields a
+continuum fixed-charge minimizer set with nonlinear orbital stability.
+Whether the radiating clouds approach that set remains open
+(`computations/matter-formation-continuum-report.md` §§14–29, 36;
+`foundations/matter-completion-boundary.md` §18).
 
 $$
 \boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}
@@ -555,17 +559,31 @@ action ($a=1/16$, $c_\Psi=1/8$, inherited **Mapped**
 $h_C=2.9598260763447164$) also produces qualified finite-charge radial
 condensation. Diffuse Gaussian clouds carry supplied signed $\mathcal Q_a=256$
 at $w=4,8$, distinct from prepared population $Q_C=256$. Starting with
-real mediator $f=1$, they generate a depleted core. Independent RK4 mean core fractions inside $r<8$ over
-$32\le t\le48$ are $0.7476513029152703$ and $0.5637353289380143$,
+real mediator $f=1$, they generate a depleted core. Independent RK4 mean core
+fractions inside $r<8$ over $32\le t\le48$ are
+$0.7476513029152703$ and $0.5637353289380143$,
 versus matched $h_C=0$ controls $0.054518103963512976$ and
 $0.15375753009303855$. No trap or damping is imposed. This is
 `EMERGES-conditional finite-charge radial condensation` for the supplied
-classical scalar trajectories. Canonical microscopic action selection,
-physical units and normalization, quantum state
-and creation, nonradial and complex-mediator-phase stability, all-sector
-long-time survival and particle identity remain open
-(`computations/matter-formation-continuum-report.md` §35;
-`foundations/matter-completion-boundary.md` §17).
+classical trajectories. A separate conditional continuum theorem applies to
+the same supplied action: strict binding $I(Q)<\Omega_\infty Q$ gives
+attainment, compactness of minimizing sequences modulo translations and
+carrier phase, and nonlinear orbital stability of the entire fixed-$Q$
+minimizer set. The global conservative flow and all required compactness
+steps are proved in `computations/matter-formation-continuum-report.md` §36.6.
+The perturbations may be nonradial and may change the charge slightly.
+The fixed trial's sufficient charge threshold and its $Q=256$ binding
+benchmark are reported there in §36.5. Here $Q$ is the
+dimensionless supplied signed charge, distinct from prepared population
+$Q_C$. This minimizer-set result does not prove uniqueness, stability of a
+selected profile, asymptotic convergence, or membership/capture/stability of
+the §35 radiating clouds; their nonradial and complex-mediator-phase behavior
+and all-sector long-time survival remain open. It covers no complex mediator
+or gauge sector. Canonical microscopic action selection, physical units and
+normalization, quantum state and creation, spin/statistics and particle
+identity remain open
+(`computations/matter-formation-continuum-report.md` §§35–36;
+`foundations/matter-completion-boundary.md` §§17–18).
 
 
 The scalar configuration-space and compact-target results have distinct
@@ -1196,12 +1214,15 @@ $32\le t\le48$, versus matched uncoupled controls
 $0.054518103963512976$ and $0.15375753009303855$. This
 `EMERGES-conditional finite-charge radial condensation` uses no imposed
 trap or damping. The supplied signed charge $\mathcal Q_a$ is distinct
-from the prepared population label $Q_C=256$. Microscopic action selection,
-physical units and normalization, quantum state and creation, nonradial and
-complex-mediator-phase stability, all-sector long-time survival and
-particle identity remain open
-(`computations/matter-formation-continuum-report.md` §35;
-`foundations/matter-completion-boundary.md` §17).
+from the prepared population label $Q_C=256$. The conditional continuum
+theorem concerns the entire fixed-charge minimizer set at strictly bound
+charge in the specified energy space; it does not classify the
+§35 radiating clouds or establish their membership, capture, nonradial
+behavior or long-time stability. Complex mediator/gauge sectors, microscopic
+action selection, physical units and normalization, quantum state and
+creation, spin/statistics and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §§35–36;
+`foundations/matter-completion-boundary.md` §§17–18).
 
 
 The separate massive bubble-lattice comparison belongs to this added-field
@@ -1235,8 +1256,8 @@ added action rather than a canonical Cassi stress exchange
   convention remain solver parameter choices
 - `foundations/dimensionful-constants-status.md`—external dimensionful constants, parameter accounting
 - `foundations/sector-coupling-derivation.md`—conditional scale, chiral-scalar density/action obstruction, positive chiral-current map and microscopic conversion boundaries.
-- `computations/matter-formation-continuum-report.md` §§12–13, 35—independent physical-normalization, microscopic-identity and spinor-closure evidence plus the qualified finite-charge radial-condensation witness.
-- `foundations/matter-completion-boundary.md` §§12, 17—conditional total-stress Ward identity, constant-$G$ geometry branch and radial formation boundary.
+- `computations/matter-formation-continuum-report.md` §§12–13, 35–36—independent physical-normalization, microscopic-identity and spinor-closure evidence, the conditional continuum minimizer-set theorem, plus the qualified finite-charge radial-condensation witness.
+- `foundations/matter-completion-boundary.md` §§12, 17–18—conditional total-stress Ward identity, constant-$G$ geometry branch, radial formation boundary and conditional minimizer-set stability boundary.
 - `standard-model/su2-gauge-extension.md`—SM gauge sector, Weinberg angle
 - `standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$
 - `particles/cassi-yang-yin-particles.md`—optional Hypothesized complex-field/NLS particle-interference extension and its conditional Dirac mapping

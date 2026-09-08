@@ -877,6 +877,19 @@ and physical matter formation remain open
 (`foundations/matter-completion-boundary.md` §17;
 `computations/matter-formation-continuum-report.md` §35).
 
+The supplied real-mediator/complex-carrier action has a further conditional
+continuum existence and stability result. A fixed trial certifies
+$I(256)/256\le8.2839304633<\sqrt{76}$ and strict binding at every
+$Q>149.3602250815$. Every strictly bound charge has a nonempty minimizer
+set with minimizing-sequence compactness and nonlinear orbital stability
+under arbitrary small energy-space perturbations in those exact fields,
+including nonradial and nearby-charge perturbations. This mathematical
+result adds no measured particle observable or catalog prediction. It
+does not establish membership or capture of the radiating clouds by that
+set, or stability in extra complex-mediator and gauge fields
+(`computations/matter-formation-continuum-report.md` §36;
+`foundations/matter-completion-boundary.md` §18).
+
 
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;

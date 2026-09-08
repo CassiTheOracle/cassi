@@ -65,9 +65,9 @@ The fixed-signed-charge energy and rank-one radial Hessian correction are
 independently verified positive finite-grid radial curvature. Nine of twelve
 domain/resolution comparisons pass; the three population-16 domain failures
 leave aggregate radial-domain qualification **INCONCLUSIVE**. The
-population-256 subset meets its measured radial comparisons. These bounds
-qualify fixed-charge fluctuations; full spatial and dynamical stability
-remain open.
+population-256 subset meets its measured radial comparisons. These finite-grid
+bounds qualify fixed-charge fluctuations but do not establish the continuum
+theorem's energy-space hypotheses or the dynamics of radiating clouds.
 The scalar angular and phase operators and their conditional continuum
 positivity identities are **Derived conditional** (§8.11). All four
 population-256 finite grids support the measured sectors, with 96
@@ -87,11 +87,32 @@ sampled late time, minima are 0.7459683 and 0.5203347, while maximum central
 mediator $f^2$ is 0.0686678 and 0.1126838. Spatial, domain, time-step and
 independent-integrator comparisons pass across all five evolutions. This is
 the verdict `EMERGES-conditional finite-charge radial condensation`; quantum
-creation from empty carrier data, canonical microscopic selection, quantum
-state and physical normalization, nonradial and complex-mediator-phase
-stability, infinite-domain existence, infinite-time survival and particle identity remain
-**Hypothesized/Open** (`computations/matter-formation-continuum-report.md`
-§35; `foundations/matter-completion-boundary.md` §17).
+creation from empty carrier data and canonical microscopic selection remain
+**Hypothesized/Open**. For the radiating §35 clouds, nonradial and
+complex-mediator-phase stability, infinite-time survival and particle identity
+remain **Hypothesized/Open**; the finite-time result does not establish the
+continuum minimizer theorem below
+(`computations/matter-formation-continuum-report.md` §35;
+`foundations/matter-completion-boundary.md` §17).
+
+Continuum charged minimizer-set stability is **Derived conditional** for the
+specified positive-inertia real-mediator/full-complex-carrier action and
+energy space on $\mathbb R^3$. Strict binding $I(Q)<\Omega_\infty Q$ gives attainment and
+compactness of every minimizing sequence modulo translations and carrier phase,
+and Lyapunov orbital stability of the entire fixed-$Q$ minimizer set under
+arbitrary small full-energy-space perturbations, including nonradial
+perturbations and nearby charges. The verified trial certifies
+$Q>Q_{\rm tr}$, where $Q_{\rm tr}\approx149.36022508149227$; at $Q=256$ it gives
+$E_{\rm trial}/Q=8.283930463343918<\Omega_\infty=8.717797887081348$.
+Here $Q$ is the dimensionless supplied signed charge, distinct from prepared
+$Q_C$; the coefficients are $a=1/16$, $c_\Psi=1/8$ and
+$h_C=2.9598260763447164$. This does not establish uniqueness, stability of a
+selected profile, asymptotic convergence, or membership, capture or stability
+of the radiating §35 clouds, and it excludes complex mediator and gauge
+sectors. Physical action selection, quantum creation and state, normalization,
+spin, statistics and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §36;
+`foundations/matter-completion-boundary.md` §18).
 
 The separately supplied real scalar mass-source model is **Hypothesized**.
 Its finite-mode fermion pair excitation, reciprocal semiclassical feedback and
@@ -179,7 +200,7 @@ matter formation remains **Hypothesized/Open**.
 | `foundations/yin-yang-qi-dynamical-geometry.md` | Hypothesized integrated open-system geometry / Derived exact diagonal reduction, positivity-preserving conversion flow, covariance, ledger closure, conditional coherence-support boundary, bounded cross-domain interface, and nine-part conditional matter boundary / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026 | Canonical populations, coherence fibre, relative currents and bounded two-domain source interface share an effective matrix balance. The carrier action preserves an empty sector. Its Cartesian branch is ultraviolet-dominated; separate prepared smooth binding leaves production, normalization, stability and particle identity open |
 | `foundations/endpoint-link-and-localization-boundary.md` | Hypothesized Wilson-link extension / Derived conditional endpoint closure, frozen-link, source-action, stationary spatial-flux, and inter-vertex transport responses / Derived minimal-sector localization no-go / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026 | Conditional source normalization, endpoint continuity, critical current, cohomology and point-flux results remain explicit. A separate particle action has an empty-sector invariant, an ultraviolet Cartesian branch and independently reproduced prepared scalar binding. Physical endpoint normalization and full matter dynamics remain open |
 | `foundations/particle-stationary-action-closure.md` | Hypothesized temporal completion / Derived conditional action, scalar-reduction, parent-vacuum, dilation, fixed-charge, formation-dynamics and non-identifiability identities / Mapped carrier coupling and conditional baryon benchmark / Tested prepared binding, finite-grid spectra, parent correspondences, conditional temporal dynamics and radial baryon relaxation—September 2026 | The first-order carrier preserves an empty sector; its Cartesian branch is ultraviolet-dominated, and prepared smooth scalar binding leaves spatial qualifications INCONCLUSIVE. A positive-inertia parent supplies Gaussian correspondence, fixed-signed-charge radial support, periodic carrier amplification and prepared local charge transport. A separate finite-charge radial evolution in the same supplied parent retains charge $\mathcal Q_a=256$ in a core for $32\le t\le48$ across the qualified sampled evolutions, with independent RK4 agreement; the action and charge are supplied witnesses, and canonical microscopic selection, quantum state, physical normalization, nonradial stability and particle identity remain open (`computations/matter-formation-continuum-report.md` §35). Scalar and Dirac parents prove the measured inverse map many-to-one. An added compact chiral model has a stationary and radially attracting prepared degree-one soliton, a two-mass Mapped coefficient fit, and six mixed out-of-fit comparisons. Independent verification passes all 78 checks; complete physical matter formation remains Hypothesized/Open. |
-| `foundations/matter-completion-boundary.md` | Derived conditional boundary and microscopic non-identifiability / Mapped carrier coupling and conditional baryon benchmark / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences, radial baryon relaxation and finite-charge radial condensation—September 2026 | Nine conditional sectors connect the exterior to the fixed-charge fluctuation problem. The evidence distinguishes exact empty-sector preservation, a Cartesian ultraviolet obstruction, prepared scalar binding, homogeneous finite-mode fermion excitation, continuum and energetic restrictions, periodic carrier amplification, faster spatial mediator instability, prepared local charge separation and a many-to-one microscopic inverse. The finite-time supplied-charge radial result in §17 retains a charged core across its qualified sampled evolutions, while canonical action selection, quantum state and physical normalization, all-sector stability and particle identity remain open. The added chiral action supplies a Mapped stationary degree-one baryon benchmark but begins in its supplied topological sector and depends on added field, action and quantum rules. Section 14 also records a separate massive $O(4)$ bubble-lattice comparison whose six target-bearing diagnostics contradict inherited thresholds; complete physical matter formation remains Hypothesized/Open. |
+| `foundations/matter-completion-boundary.md` | Derived conditional boundary, microscopic non-identifiability and scalar continuum minimizer-set stability / Mapped carrier coupling and conditional baryon benchmark / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences, radial baryon relaxation and finite-charge radial condensation—September 2026 | Nine conditional sectors connect the exterior to the fixed-charge fluctuation problem. The exact real-mediator scalar continuum theorem adds conditional infinite-domain attainment, compactness modulo translations and carrier phase, and Lyapunov stability of the entire fixed-$Q$ minimizer set when strict binding holds; it does not identify a unique profile or settle the radiating clouds, complex mediator/gauge sectors, or physical completion |
 | `foundations/point-core-flux-sector.md` | Derived conditional exterior support / Derived current-action completion no-go / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026 | Fixed Chern flux gives the conditional exterior coefficient and support inequality. The auxiliary core, confined condensate and neutral-carrier support are separate extensions. Stored Cartesian particle fields fail the smooth-carrier diagnostic; separate scalar binding at prepared population does not supply microscopic creation or particle identity |
 | `foundations/nonabelian-magnetic-core-boundary.md` | Hypothesized auxiliary completion / Derived conditional smooth-core and confinement boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026 | The adjoint branch has a regular core and exterior match; the fundamental condensate confines flux and its isolated pair collapses without extra support. The Cartesian fixed-charge branch is parity-concentrated. Separate smooth scalar binding and an INCONCLUSIVE constrained spatial spectrum leave the physical core identification open |
 | `foundations/core-trapped-charge-support.md` | Hypothesized auxiliary carrier / Derived conditional thin-tube support boundary / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026 | The neutral carrier supplies exact conserved population, transverse binding and inverse-length self-repulsion under explicit inequalities. Empty carrier data remain empty. Cartesian localization has ultraviolet structure; separate prepared $Q_C\in\{16,256\}$ scalar binding is reproduced, with INCONCLUSIVE smooth $Q_C=16$ spatial stability |

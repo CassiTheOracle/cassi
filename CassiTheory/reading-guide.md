@@ -185,17 +185,41 @@ approximately 74.5968% and 52.0335%, and the maximum central mediator
 $f^2$ values are approximately 0.0686678 and 0.1126838. Spatial, domain, time-step and independent-integrator comparisons
 pass across all five evolutions. The verdict is
 `EMERGES-conditional finite-charge radial condensation`; the action, charge
-and normalization are supplied witnesses, and canonical microscopic
-selection, quantum state, nonradial and complex-mediator-phase stability,
-infinite-time survival, quantum creation from empty carrier data and particle
-identity remain open.
+and normalization are supplied witnesses, and canonical microscopic selection
+remains open. For these radiating formed-cloud trajectories, nonradial and
+complex-mediator-phase stability, infinite-time survival and particle identity
+remain open; the finite-time run does not establish the continuum minimizer
+theorem below. Quantum creation from empty carrier data and complete physical matter formation remain outside the calculation.
 
 Section 29 proves the completion problem is non-identifiable from the
 registered slow observables: scalar and Dirac parents share the same carrier
-equation with different spin and statistics. Complete matter formation still
-requires a canonical action, state rule, physical normalization,
-infinite-domain localization and stability, localized real-time formation and
-an observable particle discriminator.
+equation with different spin and statistics. Complete physical matter
+formation and the radiating-cloud interpretation still require a canonical
+action, state rule, physical normalization, localized real-time formation and
+an observable particle discriminator. The continuum theorem supplies
+infinite-domain attainment and minimizer-set stability for its exact
+supplied scalar action and energy space.
+
+The supplied scalar action also admits localized continuum energy minimizers.
+For the specified positive coefficients and real-mediator/full-complex-carrier
+energy space on $\mathbb R^3$, strict binding $I(Q)<\Omega_\infty Q$ gives
+attainment and compactness of every minimizing sequence modulo translations and
+carrier phase, plus Lyapunov orbital stability of the entire fixed-$Q$
+minimizer set under arbitrary small full-energy-space perturbations, including
+nonradial perturbations and nearby charges. The verified trial certifies this
+inequality for every $Q>Q_{\rm tr}$, with $Q_{\rm tr}\approx149.36022508149227$; at $Q=256$,
+$E_{\rm trial}/Q=8.283930463343918<\Omega_\infty=8.717797887081348$.
+Here $Q$ is the dimensionless supplied signed charge, distinct from
+prepared population $Q_C$; the action uses $a=1/16$, $c_\Psi=1/8$ and
+$h_C=2.9598260763447164$. This model-specific minimizer-set theorem leaves
+uniqueness, selected-profile stability, asymptotic convergence, and
+membership, capture or stability of the radiating clouds in §35 unresolved; it
+excludes complex mediator and gauge sectors. Physical action selection, quantum
+creation and state, normalization, spin, statistics, particle identity and
+physical stability of formed clouds remain open
+(`computations/matter-formation-continuum-report.md` §36;
+`foundations/matter-completion-boundary.md` §18).
+
 
 Section 30 adds a normalized complex doublet and leading compact $SU(2)$
 chiral action as an explicit conditional colour-neutral baryon model. Its
