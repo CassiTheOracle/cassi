@@ -207,6 +207,35 @@ calibration, exchange statistics or localized matter formation follows
 (`computations/matter-formation-continuum-report.md` §40;
 `foundations/matter-completion-boundary.md` §20).
 
+**Conditional temporal support obstruction.** The same charged-field action has
+no stationary gauge-electric support in the declared relative-equilibrium
+class when fields are smooth and finite-energy on $\mathbb R^3$, the scale
+measure is one, boundary work vanishes, all temporal coefficients are
+positive, and external charges, imposed voltage and reservoirs are absent.
+Completing the temporal square gives a positive exterior common-phase inertia;
+finite energy forces $\omega_N=0$, after which the homogeneous Gauss identity
+forces $\mathcal A_0=0$, including a bounded core where both charged fields
+vanish. All six interval spectra, six imposed-voltage controls and three
+negative-coefficient controls pass and reconcile to
+`SUPPORTS-conditional temporal support obstruction`
+(`computations/matter-formation-continuum-report.md` §41;
+`foundations/particle-stationary-action-closure.md` §4.4). This excludes
+gauge-electric support only in that stationary isolated sector; it does not
+exclude general time-dependent or multifrequency solutions, other vacua,
+external sourcing or quantum bound states.
+
+At $\chi_C=0$, fixing nonzero common-number momentum $P_N$ instead gives a
+Gaussian constrained initial-data sequence with
+$E_R=P_N^2/[2J_t(2\pi)^{3/2}R^3]\to0$ as $R\to\infty$, so the infimum is zero
+without a zero-energy minimizer. $P_N$ has action units and $P_N/\hbar$ is
+the number normalization; it is distinct from the first-order density excess
+$\delta Q_N$ and the neutral-carrier number $Q_C$. This is a variational
+spreading sequence, not a dispersal trajectory or a universal metastability
+theorem. The model-unit $J_t=0.8971293123871708$ is a supplied numerical
+witness, not calibration or a physical parameter prediction. These results
+leave the existing scalar-carrier binding evidence unchanged and do not
+establish complete physical matter formation.
+
 **Physical normalization and carrier identity.** The same imposed
 $0.511\ \mathrm{MeV}$ vacuum scalar mass, propagation speed $c$ and one
 internal $U(1)$ generator unit admit three independently reconstructed

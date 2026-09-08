@@ -12,9 +12,29 @@ mechanism compatible with the present first-order matter action.
 The existing common Yang/Yin number does not localize: a fixed excess can
 spread through the nonzero bulk condensate with energy tending to zero. The
 registered scale-circuit winding acts along the independent scale coordinate
-and contributes spatial tube tension rather than inverse-length support. A
-gauge-electric dyon belongs to the separate conditional temporal branch in
-`foundations/particle-stationary-action-closure.md`.
+and contributes spatial tube tension rather than inverse-length support.
+The second-order temporal branch gives a separate result: within its
+smooth finite-energy relative-equilibrium class on $\mathbb R^3$, with the
+declared nonzero vacuum and no external sources or boundary work, completion
+of the temporal square and finite energy force $\omega_N=0$, and homogeneous
+Gauss integration then forces $\mathcal A_0=0$, including a bounded core where
+both charged fields vanish. Gauge-electric support is therefore excluded in
+that stationary isolated sector, while general time-dependent, multifrequency,
+externally sourced and quantum sectors remain open. The result and its
+independent receipt are recorded in
+`computations/matter-formation-continuum-report.md` §41 and
+`foundations/particle-stationary-action-closure.md` §4.4.
+
+The fixed first-order density-excess calculation and this second-order
+common-phase result are distinct. A constrained $\chi_C=0$ initial-data
+sequence with fixed canonical common-phase momentum $P_N$ has
+$E_R=P_N^2/[2J_t(2\pi)^{3/2}R^3]\to0$ as $R\to\infty$, with no zero-energy
+minimizer. Here $P_N$ has action units and is distinct from the first-order
+density excess $\delta Q_N$ and from the neutral-carrier number $Q_C$; the
+sequence is variational initial data, not a dispersal trajectory.
+
+The gauge-electric result belongs to the separate conditional temporal branch
+in `foundations/particle-stationary-action-closure.md`.
 
 The source-free fixed-charge action has two finite-grid witnesses. At
 $h_C=1.50$, the independently matched lowest energetic eigenpairs of a diffuse
@@ -161,7 +181,7 @@ electric charge, baryon number, lepton number, or an observed particle.
 |---|---|---|---|
 | Existing common Yang/Yin number | global $U(1)_N$ Noether number | none after bulk spreading | excluded as a localizer |
 | Existing scale-circuit winding | compact winding in $\mathfrak s$ | contributes spatial tube tension | retained for scale localization only |
-| Endpoint gauge charge / Julia–Zee branch | gauge-electric charge | possible screened repulsion | represented only in the separate conditional temporal action; the registered $a_0=0$ campaign does not test dyonic support |
+| Endpoint gauge charge / Julia–Zee branch | gauge-electric charge | excluded in the declared isolated stationary class | the second-order action's finite-energy and homogeneous Gauss identities force $\omega_N=\mathcal A_0=0$; general time-dependent, externally supported and quantum sectors remain open |
 | Higher-derivative or Hopf support | derivative/linking invariant | model dependent | larger auxiliary extension |
 | Core-trapped neutral carrier | global $U(1)_C$ Noether number plus positive self-repulsion | $A_C/L$ | selected conditional branch |
 
@@ -210,7 +230,7 @@ It renormalizes $\sigma_Q$ and strengthens spatial contraction. Converting
 $\mathfrak s_p$ into the spatial length $L$ requires an additional geometric
 identification that the current framework does not define.
 
-### 2.3 Gauge-electric support belongs to the temporal branch
+### 2.3 Isolated stationary electric support is excluded
 
 The source-free action in
 `foundations/particle-stationary-action-closure.md` specifies temporal gauge
@@ -223,6 +243,54 @@ distinct static $a_0=0$ field at $h_C=1.50$ contain no negative mode on its
 strict-shell $C_4$ quotient, but that field selects no dyonic or asymptotic
 electric support coefficient. Neither branch
 determines the gauge-electric support sector.
+
+The temporal action admits a sharper analytic conclusion in its isolated
+relative-equilibrium class. On $\mathbb R^3$ with unit scale measure and zero
+boundary work, take smooth finite-energy fields approaching the declared
+nonzero, nonaligned static vacuum. Exclude external charges, imposed voltage
+and finite-density reservoirs. For $\Psi=e^{i\omega_Nt}\psi$, static $\Phi$
+and time-independent connections modulo gauge, the positive asymptotic
+common-phase inertia forces $\omega_N=0$. The covariant Gauss identity then
+gives
+$$
+\int\left[
+\epsilon_x|D_i\mathcal A_0|^2+
+\epsilon_{\mathfrak s}|D_{\mathfrak s}\mathcal A_0|^2+
+\mathcal A_0^T\mathsf M\mathcal A_0
+\right]=0,
+\qquad \mathsf M\succeq0.
+$$
+The field $\mathcal A_0$ is covariantly constant, and its positive exterior
+mass term forces it to vanish everywhere, including any bounded core where
+both charged fields vanish. The detailed proof is in
+`foundations/particle-stationary-action-closure.md` §4.4.
+
+The second-order common-number generator also has a constrained dilution
+sequence, distinct from the first-order density excess in §2.1. In the
+$\chi_C=0$ sector, vacuum field coordinates and gauge-neutral velocities
+give
+$$
+P_N=\int p_N,\qquad
+p_N=C_\Psi\operatorname{Im}(\Psi^\dagger\dot\Psi),\qquad
+[P_N]=\hbar,\qquad
+E_R=\frac{P_N^2}{2J_t(2\pi)^{3/2}R^3}\longrightarrow0.
+$$
+The number normalization is $P_N/\hbar$. At $P_N\ne0$ the nonnegative
+sector Hamiltonian has zero infimum with no finite-energy minimizer.
+These are variational initial states; no dispersal trajectory or exclusion
+of other local metastability follows. The neutral-carrier population $Q_C$
+and its separate stationary frequency remain independent.
+
+Three independently formulated calculations qualify the identities in
+`computations/matter-formation-continuum-report.md` §41. All six interval
+spectra, six imposed-voltage controls and three negative-coefficient controls
+pass the frozen comparisons. The independent inertia
+$J_t=0.8971293123871708$ is a supplied model-unit witness with no physical
+calibration. The joint verdict is
+`SUPPORTS-conditional temporal support obstruction`, with
+`complete_physical_matter_formation: false`. General time dependence,
+multiple frequencies, changed vacuum or boundary data and quantum bound
+states require separate analysis.
 
 ### 2.4 Minimal selected branch
 
@@ -947,10 +1015,13 @@ parameter-free numerical prediction.
 
 ## 10. Present conclusion
 
-The registered common Yang/Yin number does not supply spatial finite-composite
-support because it disperses through the bulk, while scale winding contributes
-tube tension. The separate source-free temporal branch defines gauge-electric
-dynamics and Gauss's law.
+The registered first-order common Yang/Yin number has an arbitrarily
+low-energy bulk-spreading sequence, while scale winding contributes tube
+tension. The separate second-order action excludes gauge-electric support
+in its declared isolated stationary class (§2.3), and its common-number
+generator $P_N$ has a zero-energy dilution infimum in the $\chi_C=0$ sector.
+These variational and stationary constraints leave general time-dependent
+and quantum localization mechanisms open.
 
 A neutral core carrier with a positive bulk gap and global $U(1)_C$ number is
 the smallest explicit support branch. Its repulsive fixed-charge energy
@@ -996,4 +1067,4 @@ normalization, quantum numbers and statistics remain open.
 11. `computations/particle-carrier-direct-coordinate-report.md`—localized retained branch and larger-domain comparison.
 12. `computations/particle-carrier-resolution-recovery-report.md`—four-grid refinement, contracting energy differences, and independent verification.
 13. `computations/particle-localized-physical-hessian-report.md`—constrained localized spectrum, carrier-phase symmetry assignment, and spatial qualification.
-- `computations/matter-formation-continuum-report.md`—empty-sector creation obstruction, Cartesian ultraviolet boundary, prepared continuum scalar binding, and constrained smooth-branch stability evidence.
+- `computations/matter-formation-continuum-report.md`—empty-sector creation obstruction, Cartesian ultraviolet boundary, prepared smooth scalar binding and constrained smooth-branch stability evidence; §41 qualifies the isolated stationary electric obstruction and fixed-common-number dilution sequence.

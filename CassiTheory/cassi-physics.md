@@ -385,6 +385,20 @@ Gauss constraint give a gapless branch; independent spectra and wave
 solutions qualify with `PASS`
 (`foundations/particle-stationary-action-closure.md` §4.3;
 `computations/matter-formation-continuum-report.md` §40).
+The temporal-support qualification closes a narrower stationary question. In the
+declared smooth finite-energy relative-equilibrium class on $\mathbb R^3$,
+with nonzero fundamental and adjoint vacuum, positive temporal coefficients,
+unit scale measure, zero boundary work and no external source or reservoir,
+the completed temporal square has $J_t>0$ and forces $\omega_N=0$. The
+homogeneous Gauss identity then forces $\mathcal A_0=0$, including when both
+charged fields vanish in a bounded core. Gauge-electric support is excluded
+only in this isolated single-frequency sector; time-dependent,
+multifrequency, externally sourced, other-vacuum and quantum sectors remain
+open (`computations/matter-formation-continuum-report.md` §41;
+`foundations/particle-stationary-action-closure.md` §4.4).
+The reconciled verdict is
+`SUPPORTS-conditional temporal support obstruction`.
+
 Transverse magnetic screening alone therefore does not determine all
 bulk excitations. These classical results leave the quantum state,
 particle statistics and a localized formation mechanism open.

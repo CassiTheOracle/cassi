@@ -6777,8 +6777,283 @@ physical normalization, exchange statistics or localized carrier.
 It supplies a verified linear wave in the declared action; complete
 physical matter formation remains **Hypothesized/Open**.
 
+## 41. Finite-energy electric support and the common-number charge
+
+### 41.1 Temporal-support qualification: pre-execution criteria
+
+The surviving common phase raises a concrete localization question: can
+the existing charged fields support an isolated stationary object through
+their common-number charge or a gauge-electric field? This calculation
+uses the second-order charged-field action in
+`foundations/particle-stationary-action-closure.md` (PA8), (PA11),
+(PA14) and (PA15), with its positive temporal coefficients. Its static
+vacuum has $\rho_0>0$, $v_Q>0$ and $0<\sin^2\beta<1$. Space is
+$\mathbb R^3$; the scale interval has unit measure and zero boundary
+work. The vacuum energy is subtracted. Fields and connections are smooth,
+approach the declared vacuum, and have finite energy. External charges,
+imposed boundary voltage and a thermal or finite-density reservoir are
+excluded.
+
+The relative-equilibrium class is
+$\Psi(t,x)=e^{i\omega_Nt}\psi(x)$, $\Phi(t,x)=\phi(x)$ and
+time-independent $\mathcal A_i,\mathcal A_0$, modulo gauge transformations.
+The separate neutral carrier may retain its own common frequency and
+fixed $Q_C$; it supplies no $SU(2)_Q$ source. A conclusion about this class
+does not exclude general time-dependent electric fields, multifrequency
+solutions or quantum bound states.
+
+Differentiate the actual component action, using
+$D_t\Psi=\partial_t\Psi-ig_Q\mathcal A_0^aT^a\Psi$ and
+$D_t\Phi=\partial_t\Phi+g_Q\mathcal A_0\times\Phi$.
+The adjoint source in (PA15) carries a minus sign. Check the exact
+temporal mass matrix, common-rotation source and minimized inertia,
+without importing the phase calculation:
+$$
+\begin{gathered}
+\mathsf M=g_Q^2\left[
+\frac{C_\Psi\rho}{4}I+
+C_\Phi\left(|\Phi|^2I-\Phi\Phi^T\right)\right],
+\qquad
+\mathbf b=\frac{g_QC_\Psi}{2}\mathbf S,\\
+J_t=C_\Psi\rho-\mathbf b^T\mathsf M^{-1}\mathbf b
+=\frac{4C_\Psi\rho\,C_\Phi v_Q^2\sin^2\beta}
+{C_\Psi\rho+4C_\Phi v_Q^2}.
+\end{gathered}
+$$
+Retain the complete-square remainder explicitly. Qualify whether
+$J_{t,\infty}>0$ and finite energy force $\omega_N=0$. For zero common
+frequency, derive the covariant integration-by-parts identity
+$$
+\int\left[
+\epsilon_x|D_i\mathcal A_0|^2+
+\epsilon_{\mathfrak s}|D_{\mathfrak s}\mathcal A_0|^2+
+\mathcal A_0^T\mathsf M\mathcal A_0\right]=0
+$$
+when boundary work vanishes. Assess its equality case even when both
+charged fields vanish inside a bounded core. This is a statement about
+the source-free stationary electric sector, independent of radial
+symmetry or a thin-tube ansatz.
+
+Also qualify a full-action initial-data construction, with $\chi_C=0$.
+At one instant set the charged fields to their homogeneous vacuum,
+$\mathcal A_i=\mathcal A_0=0$ and electric momentum to zero. For a real
+function $u(x)$ set
+$$
+\dot\Psi=i(uI-g_Qa_*^aT^a)\Psi_0,\qquad
+\dot\Phi=g_Q\mathbf a_*\times\Phi_0,\qquad
+\mathbf a_*=\mathsf M^{-1}\mathbf b\,u.
+$$
+Here $\mathbf a_*$ specifies velocities; it is not the initial
+connection. Check pointwise Gauss cancellation, temporal energy
+$J_tu^2/2$ and canonical common-number momentum density
+$p_N=C_\Psi\operatorname{Im}(\Psi^\dagger\dot\Psi)=J_tu$.
+The integrated generator $P_N=\int p_N$ has action units; dividing it
+by $\hbar$ defines a number normalization. It is distinct from the
+first-order density excess in
+`foundations/core-trapped-charge-support.md` (CC3).
+
+Use the normalized Gaussian
+$f_R(x)=\exp(-|x|^2/R^2)/(\pi^{3/2}R^3)$ and
+$u=P_Nf_R/J_t$. Compare direct three-dimensional radial quadrature with
+independent Gaussian moments at $R=1,2,4,8$ and $P_N=1$. The retained
+model-unit inputs are
+$\rho=1.2$, $v_Q=0.9$, $g_Q=0.71$, $C_\Psi=1.3$,
+$C_\Phi=0.75$, $\epsilon_x=0.26$ and $\cos\beta=\varphi^{-3}$.
+The predicted temporal energy is
+$P_N^2/[2J_t(2\pi)^{3/2}R^3]$.
+These are constrained initial states, not a forming or dispersing
+trajectory. Classify the fixed-$P_N$ infimum using the nonnegative
+$\chi_C=0$ Hamiltonian and the equality case; do not infer a nonlinear
+decay rate or universal absence of local metastability.
+
+As a separate integration-by-parts witness, discretize a spatial
+interval $[-1,1]$ with $N=15,31,63$ interior nodes and
+$h=2/(N+1)$. Each link maps the left adjoint vector to the right by
+Rodrigues rotation about $(1,2,-1)/\sqrt6$ through
+$0.11\cos(\pi x_{\rm midpoint})$. Define
+$$
+E_h=\frac{\epsilon_x}{2h}
+\sum_{i=0}^{N}|a_{i+1}-R_i a_i|^2+
+\frac h2\sum_{i=1}^{N}a_i^T\mathsf M_i a_i .
+$$
+The local adjoint direction is
+$(\sin[0.2\sin(\pi x)],0,\cos[0.2\sin(\pi x)])$.
+For the uniform-norm case use $\rho_i=\rho$ and $|\Phi_i|=v_Q$.
+For the empty-core case multiply $\rho_i$ and $|\Phi_i|$ by
+$s^3(10-15s+6s^2)$, where
+$s=\min(1,\max(0,(|x_i|-1/4)/(1/4)))$.
+Both boundaries vanish for the source-free spectrum. Compare the
+lowest eigenvalue of the physical operator $h^{-1}\nabla^2E_h$,
+and verify its Dirichlet lower bound
+$4\epsilon_xh^{-2}\sin^2[\pi/(2(N+1))]$.
+Use $a_0=(0.2,-0.1,0.3)$, $a_{N+1}=0$ as the boundary-work control
+for both profiles and every grid: solve the interior stationary
+equations and verify $2E_h=a_0\cdot\partial_{a_0}E_h>0$.
+The control is deliberately outside the isolated boundary conditions.
+At each of the three grids, a control with electric coefficient
+$-\epsilon_x=-0.26$ on the uniform profile must have a negative lowest
+eigenvalue; it is outside the positive-energy action.
+This finite interval verifies the operator and boundary
+identity, not a three-dimensional particle solution.
+
+The primary executable is
+`computations/matter_formation_electric_support.py`. Independent
+component/charge reconstruction is in
+`computations/verify_matter_formation_common_charge.py`; independent
+edge-energy and boundary reconstruction is in
+`computations/verify_matter_formation_electric_support.py`.
+No program imports either other program or the retained phase programs.
+Main owns reconciliation and documentation. Before execution preserve
+this subsection and all executed sources with SHA-256 under
+`runs/20260908_matter_formation_electric_support/`. Earlier frozen
+subsections remain unchanged.
+
+Every exact symbolic residual must vanish. For Gaussian charge and
+energy, normalize absolute differences by
+$\max(1,|\mathrm{reference}|)$ and require $10^{-11}$ or less.
+For cross-program eigenvalues and boundary energies use $10^{-10}$;
+for stationarity, boundary-work and spectral-bound residuals use
+$10^{-10}$ with the same normalization. All six physical spectra must
+obey their positive lower bound, all six voltage controls must have
+positive energy, and all three negative-coefficient controls must have
+a negative eigenvalue. Raw arrays, source hashes and comparison rows
+are retained. Missing evidence, nonfinite output, or a failed
+comparison gives `INCONCLUSIVE`; all requirements passing gives
+`SUPPORTS-conditional temporal support obstruction`. No tuning,
+additional grids or replacement thresholds are permitted in this
+calculation. Every receipt retains
+`complete_physical_matter_formation: false`.
+
+### 41.2 Stationary obstruction and constrained dilution
+
+The declared isolated stationary class has no gauge-electric support.
+The exact component calculations reproduce the temporal mass matrix,
+common-rotation source, positive asymptotic inertia and complete-square
+remainder in §41.1. A constant nonzero common frequency incurs positive
+temporal energy density throughout the asymptotic vacuum, so finite energy
+requires $\omega_N=0$. Gauss's law then has a nonnegative covariant
+quadratic form. Its zero-work identity forces $\mathcal A_0$ to be
+covariantly constant; the positive exterior fundamental mass term forces
+its norm to vanish everywhere. A bounded core with both charged fields
+zero leaves this conclusion intact. The full derivation is in
+`foundations/particle-stationary-action-closure.md` §4.4.
+
+At a fixed nonzero common-number generator, a separate family of
+Gauss-compatible initial states has arbitrarily small energy. All spatial
+coordinates are in the homogeneous vacuum, and the supplied velocities
+cancel the gauge source pointwise. Their full instantaneous excess energy
+and common momentum are
+$$
+\boxed{
+p_N=J_tu,\qquad
+P_N=\int p_N\,d^3x,\qquad
+E_R=\frac{P_N^2}{2J_t(2\pi)^{3/2}R^3}\longrightarrow0.}
+$$
+The generator $P_N$ has action units; $P_N/\hbar$ supplies a number
+normalization. It is distinct from the first-order density excess
+$\delta Q_N$ and the neutral-carrier population $Q_C$.
+Nonnegativity of the $\chi_C=0$ Hamiltonian makes zero the fixed-$P_N$
+infimum. Zero energy forces all charged covariant velocities to vanish,
+and hence $P_N=0$, so the infimum is unattained for $P_N\ne0$.
+This variational result supplies no dynamical spreading rate or exclusion
+of local metastability in other sectors.
+
+Both statements retain the boundary conditions and relative-equilibrium
+class specified in §41.1. General time-dependent or multifrequency
+solutions, external charge or voltage, changed vacuum data, finite-density
+reservoirs and quantum bound states require separate analysis. The neutral
+carrier remains allowed to carry its separate frequency and population.
+
+### 41.3 Reconciled component and interval calculations
+
+All three calculation programs exit zero with `PASS`. Every frozen
+symbolic residual vanishes, and every numerical comparison meets its
+registered tolerance. The joint verdict is
+`SUPPORTS-conditional temporal support obstruction`.
+
+At the supplied model-unit coefficients the primary and independent
+common inertias are $0.8971293123871709$ and $0.8971293123871708$.
+Direct radial quadrature agrees with independently integrated Gaussian
+moments as follows; the table uses the independent energies.
+
+| Gaussian width $R$ | Common generator $P_N$ | Instantaneous excess energy |
+|---|---|---|
+| 1 | 1 | 0.03538711479914239 |
+| 2 | 1 | 0.0044233893498927986 |
+| 4 | 1 | 0.0005529236687365998 |
+| 8 | 1 | 0.00006911545859207498 |
+
+The six covariant interval operators also have positive lowest
+eigenvalues above their declared Dirichlet lower bounds. The table uses
+the independent component/incidence reconstruction.
+
+| Interior nodes $N$ | Norm profile | Dirichlet lower bound | Lowest eigenvalue | Nonzero-voltage energy |
+|---|---|---|---|---|
+| 15 | uniform | 0.6394658681804907 | 0.8379313259027391 | 0.018379670137906434 |
+| 15 | empty core | 0.6394658681804907 | 0.7049467580762294 | 0.016302320893052183 |
+| 31 | uniform | 0.6410091853971506 | 0.8531001845836209 | 0.01815865052015561 |
+| 31 | empty core | 0.6410091853971506 | 0.7132709422632519 | 0.016113600691188376 |
+| 63 | uniform | 0.6413954798698044 | 0.9204610296117691 | 0.01789326722700792 |
+| 63 | empty core | 0.6413954798698044 | 0.7447516556660752 | 0.015803221967937976 |
+
+Each voltage control obeys $2E_h=a_0\cdot\partial_{a_0}E_h>0$:
+the electric field is supported by the imposed boundary work.
+With the electric coefficient set to $-0.26$, the independent lowest
+eigenvalues are $-65.72206867409727$, $-265.38689981541654$ and
+$-1064.0395389703879$ for $N=15,31,63$, respectively. These controls
+deliberately violate the positive-energy action. The interval calculations
+qualify operator signs and the boundary identity; they supply no
+three-dimensional particle profile or continuum formation trajectory.
+
+All differences below use the frozen normalization
+$\max(1,|\mathrm{reference}|)$.
+
+| Comparison | Maximum difference or residual | Required upper bound |
+|---|---|---|
+| Common charge | $2.220446049250313\times10^{-16}$ | $10^{-11}$ |
+| Gaussian energy | $6.938893903907228\times10^{-18}$ | $10^{-11}$ |
+| Lowest interval eigenvalue | $1.0380585280245214\times10^{-13}$ | $10^{-10}$ |
+| Boundary energy | $5.655198531684391\times10^{-16}$ | $10^{-10}$ |
+| Boundary work | $2.1649348980190553\times10^{-15}$ | $10^{-10}$ |
+| Interior stationarity | $3.649464066747013\times10^{-15}$ | $10^{-10}$ |
+| Boundary-work identity | $1.1657341758564144\times10^{-15}$ | $10^{-10}$ |
+| Dirichlet-bound violation | $0$ | $10^{-10}$ |
+
+### 41.4 Evidence identities and completion boundary
+
+The accepted calculations are `primary_json_recovery.json`, `common.json`
+and `electric.json` under
+`runs/20260908_matter_formation_electric_support/`.
+Their joint `reconciliation.json` retains every comparison row, control
+and tolerance. The frozen subsection's SHA-256 is
+`989295e3d118a10f5b467ee342e24b90a1544ae675eebb6e4760327ee74d4b4e`.
+Source and raw-output identities are:
+
+| Program | Executed-source SHA-256 | Raw-output SHA-256 |
+|---|---|---|
+| Primary | `61ce7fbb114c9301ee97ef30aacff7d06c24a297974ef4a948da0a754eb062ad` | `c60d72ec81a7769ddc04bf738021994735a9ac21d1ac8d0d00b20c6e316d2c2a` |
+| Independent common charge | `eb5e8b4ec4553679eb1875afaeff026ac63d23a96618b4699fd1aaf23c13a4ce` | `15982b01a95c521e100f532e2c6a82ec84a3a26db7fbfcda82c258c230a2c0d4` |
+| Independent electric operator | `102c51798233acff91e7817cb43b4545ed9b08dcbd8b6f2d7014942ce0f1c80f` | `380a48982612ff9e56558c8f871d3171523b7d5486f8939241ca18e023417721` |
+
+The accepted primary source converts scalar check predicates to built-in
+Booleans at the JSON boundary. The two empty primary output files are
+excluded scientific evidence; their error logs and source manifests are
+retained. The normalization concerns output serialization alone, with the
+physical expressions, inputs, controls and thresholds fixed by §41.1.
+The tracked programs reproduce the three scientific calculations.
+
+These constraints narrow the support mechanisms available to the declared
+classical action. They leave microscopic action selection, the physical
+quantum state, particle identity and localized quantum production open.
+Every accepted receipt retains
+`complete_physical_matter_formation: false`.
+
 ## References
 
+- `computations/matter_formation_electric_support.py`—exact temporal-square and charge construction, Gaussian quadrature, covariant interval operators and boundary controls.
+- `computations/verify_matter_formation_common_charge.py`—independent component currents, complete square, Gaussian moments and fixed-common-number infimum.
+- `computations/verify_matter_formation_electric_support.py`—independent covariant incidence operators, raw spectra, boundary-work and negative-coefficient controls.
+- `runs/20260908_matter_formation_electric_support/`—frozen section and source snapshots, accepted component and interval receipts, serialization manifests, raw arrays and joint reconciliation.
 - `computations/matter_formation_neutral_phase.py`—full connection projection, Gauss-constrained spectra and fixed-step linear-wave evolution.
 - `computations/verify_matter_formation_neutral_phase.py`—independent component and Gauss reconstruction, generalized spectra and exact normal-mode trajectory.
 - `computations/verify_matter_formation_phase_observable.py`—independent local observable, relative-sphere, common-phase and centre algebra.

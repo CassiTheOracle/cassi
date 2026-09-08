@@ -557,6 +557,123 @@ phase information. The classical charge-two composite and its gapless
 mode establish no quantum paired condensate, exchange statistics,
 localized particle or matter-formation trajectory.
 
+### 4.4 Isolated stationary electric support and common-number dilution
+
+The same temporal action constrains electric support for an isolated stationary
+object. Assume smooth fields on $\mathbb R^3\times I_{\mathfrak s}$,
+positive temporal coefficients, unit scale measure, zero boundary work,
+and finite energy relative to the static nonaligned vacuum of §4.3.
+There are no external charges, imposed voltages or finite-density reservoirs.
+Consider the relative-equilibrium class
+$$
+\Psi(t,x,\mathfrak s)=e^{i\omega_Nt}\psi(x,\mathfrak s),
+\qquad \Phi(t,x,\mathfrak s)=\phi(x,\mathfrak s),
+$$
+with time-independent connections, modulo gauge transformations. The neutral
+carrier can retain its separate frequency $\omega_C$ and charge $Q_C$.
+
+The common rotation has a strictly positive inertia in the asymptotic vacuum.
+Writing $\rho=\psi^\dagger\psi$ and $\mathbf S=\psi^\dagger\boldsymbol\sigma\psi$,
+the charged temporal energy density is
+$$
+\begin{gathered}
+\mathcal T_{\rm ch}
+=\frac12C_\Psi\rho\,\omega_N^2
+-\omega_N\mathbf b^T\mathcal A_0
++\frac12\mathcal A_0^T\mathsf M\mathcal A_0,\\
+\mathsf M=g_Q^2\left[
+\frac{C_\Psi\rho}{4}I+
+C_\Phi\left(|\Phi|^2I-\Phi\Phi^T\right)\right],
+\qquad
+\mathbf b=\frac{g_QC_\Psi}{2}\mathbf S .
+\end{gathered}
+$$
+Where $\rho>0$, completing the square gives
+$$
+\mathcal T_{\rm ch}
+=\frac12(\mathcal A_0-\omega_N\mathsf M^{-1}\mathbf b)^T
+\mathsf M(\mathcal A_0-\omega_N\mathsf M^{-1}\mathbf b)
++\frac12J_t\omega_N^2.
+$$
+At infinity $J_t$ is the positive coefficient in §4.3, so a nonzero
+$\omega_N$ incurs nonzero energy density over infinite spatial volume.
+Finite energy therefore forces $\omega_N=0$ in this class.
+
+With this frequency zero, direct substitution in (PA15), including the
+adjoint source's minus sign, gives $q_\Psi+q_\Phi=-\mathsf M\mathcal A_0$.
+Gauss's law becomes
+$$
+\left(-\epsilon_xD_iD_i-\epsilon_{\mathfrak s}
+D_{\mathfrak s}D_{\mathfrak s}+\mathsf M\right)\mathcal A_0=0.
+$$
+Covariant integration by parts under the declared zero-work boundary
+conditions yields
+$$
+\boxed{
+\int_{\mathbb R^3\times I_{\mathfrak s}}
+\left[
+\epsilon_x|D_i\mathcal A_0|^2+
+\epsilon_{\mathfrak s}|D_{\mathfrak s}\mathcal A_0|^2+
+\mathcal A_0^T\mathsf M\mathcal A_0
+\right]\,d^3x\,d\mathfrak s=0.}
+$$
+Every term is nonnegative. Thus $\mathcal A_0$ is covariantly constant,
+and its norm is spatially constant. The positive fundamental mass term
+in the exterior forces this constant to vanish. This argument also covers
+a bounded core in which both charged fields vanish: it never divides by
+their norms there. Consequently
+$$
+\boxed{\omega_N=0,\qquad \mathcal A_0=0,\qquad
+F_{i0}=F_{\mathfrak s0}=0}
+$$
+within the specified isolated stationary sector. The proof uses no radial
+or thin-tube approximation. General time dependence, multiple frequencies,
+changed vacuum or boundary data, and quantum bound states remain outside
+its scope.
+
+A separate initial-data construction shows why fixed common-number charge
+does not furnish a positive global localization threshold. Set $\chi_C=0$,
+the charged fields to their homogeneous vacuum, both connections to zero,
+and electric momentum to zero at one instant. For a real smooth $u(x)$ choose
+$$
+\begin{gathered}
+\dot\Psi=i(uI-g_Qa_*^aT^a)\Psi_0,\qquad
+\dot\Phi=g_Q\mathbf a_*\times\Phi_0,\qquad
+\mathbf a_*=\mathsf M^{-1}\mathbf b\,u,\\
+q_\Psi+q_\Phi=0,\qquad
+\mathcal T_{\rm ch}=\frac12J_tu^2,\qquad
+p_N=C_\Psi\operatorname{Im}(\Psi^\dagger\dot\Psi)=J_tu .
+\end{gathered}
+$$
+The vector $\mathbf a_*$ specifies velocities; the initial connection is
+zero. These data satisfy Gauss's constraint pointwise. Their common-number
+generator $P_N=\int p_N\,d^3x\,d\mathfrak s$ has action units, with
+$P_N/\hbar$ a number normalization. It is distinct from the first-order
+density excess $\delta Q_N$ in `foundations/core-trapped-charge-support.md`
+§2.1 and from the neutral-carrier population $Q_C$.
+
+Choose
+$$
+f_R(x)=\frac{e^{-|x|^2/R^2}}{\pi^{3/2}R^3},
+\qquad u=\frac{P_N}{J_t}f_R .
+$$
+The full instantaneous excess energy in this $\chi_C=0$ sector is exactly
+$$
+\boxed{E_R=\frac{P_N^2}{2J_t(2\pi)^{3/2}R^3}
+\longrightarrow0\quad(R\longrightarrow\infty).}
+$$
+Since the sector Hamiltonian is nonnegative and zero energy forces
+$p_N=0$, the fixed-$P_N\ne0$ infimum is zero and is unattained by a
+finite-energy minimizer. The Gaussian family supplies admissible constrained
+states; it gives no real-time spreading law or exclusion of local
+metastability in other sectors.
+
+Independent component algebra, Gaussian moments, six covariant interval
+spectra, six boundary-voltage controls and three negative-coefficient controls
+qualify these identities in `computations/matter-formation-continuum-report.md`
+§41. Their joint verdict is
+`SUPPORTS-conditional temporal support obstruction`.
+
 ---
 
 ## 5. Fixed-charge stationary functional

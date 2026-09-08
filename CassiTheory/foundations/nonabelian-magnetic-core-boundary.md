@@ -681,6 +681,30 @@ source and asymptotic matching. The derivation and independently
 reproduced linear wave are in
 `foundations/particle-stationary-action-closure.md` §4.3 and
 `computations/matter-formation-continuum-report.md` §40.
+The physical common phase does not restore a stationary gauge-electric support
+channel in the declared source-free sector. The verified temporal qualification
+uses smooth finite-energy fields on $\mathbb R^3$, the nonzero fundamental and
+adjoint vacuum, positive temporal coefficients, and one common frequency. Its
+completed temporal square has $J_t>0$, so finite energy forces
+$\omega_N=0$; the homogeneous Gauss identity then forces
+$\mathcal A_0=0$. The equality argument remains valid for a bounded core where
+both charged fields vanish: vanishing covariant gradients and continuity to
+the massive exterior leave only $\mathcal A_0=0$. This excludes gauge-electric
+support only in that stationary isolated class. Time-dependent,
+multifrequency, externally sourced, other-vacuum and quantum sectors remain
+open. The independent evidence is recorded in
+`computations/matter-formation-continuum-report.md` §41 and
+`foundations/particle-stationary-action-closure.md` §4.4.
+The reconciled verdict is
+`SUPPORTS-conditional temporal support obstruction`.
+
+The canonical common-phase momentum test is separate from the first-order
+density-excess calculation and from the neutral-carrier number $Q_C$. Here
+$P_N$ has action units, with $P_N/\hbar$ providing a number normalization.
+At $\chi_C=0$, fixed $P_N$ Gaussian initial data have temporal energy
+$P_N^2/[2J_t(2\pi)^{3/2}R^3]\to0$ as $R\to\infty$; this is a variational
+sequence, not a trajectory or a metastability result.
+
 These classical results select no quantum condensate or particle
 statistics.
 
@@ -913,6 +937,7 @@ selected. It does not remove the nonzero-condensate monopole obstruction.
 | Isolated finite-energy monopole with $\rho_0>0$ | **FAIL** | Trivial full stabilizer, $\pi_2=0$, and positive London mass |
 | Finite net-zero monopole-antimonopole configuration | **CONDITIONAL** | The registered condensate confines flux and the asymptotic pair can be finite in energy, but its registered interaction has a collapse direction. The localized fixed-charge branch has no demonstrated monopole-antimonopole core identity |
 | Persistent finite-separation composite from registered fields | **FAIL in the registered asymptotic branch** | Strictly positive slope (MC47); no registered support term |
+| Gauge-electric support in the smooth isolated single-frequency sector | **EXCLUDED conditionally** | The completed temporal square and finite-energy boundary force $\omega_N=0$; homogeneous Gauss integration then forces $\mathcal A_0=0$, including a bounded empty core. This does not address time-dependent, multifrequency, externally sourced, other-vacuum or quantum sectors |
 | Carrier-supported separation coordinate | **PASS conditionally in the reduced branch** | $A_C>C_Q$, carrier retention, and thin-tube matching in `foundations/core-trapped-charge-support.md` |
 | Full stationary particle solver | **TESTED finite-grid spectrum and conditional smooth scalar binding** | At $h_C=2.9598260763447164$, one nodeless branch qualifies on four same-domain finite grids and one larger-domain comparison, with adjacent agreement and twice-contracting absolute energy differences. Its finest field's six independently matched lowest constrained $C_4$ PA42 eigenpairs contain one numerically near-zero carrier-phase symmetry mode, no negative mode, and five positive modes. The Cartesian artifact is ultraviolet-dominated, while a separate continuum scalar calculation finds prepared static binding at $Q_C=16$ and $256$; the closed-boundary law forbids creation from $Q_C(0)=0$ |
 | Static adjoint BPS stability | **PASS conditionally** | The factorized static adjoint quadratic form is nonnegative conditionally (MC48) |
@@ -1016,7 +1041,8 @@ comparison, mixed dynamics and particle identification remain open.
 - `computations/core_trapped_charge_check.py`—support-root, curvature,
   localization, and source-unit checker
 - `foundations/particle-stationary-action-closure.md`—conditional temporal
-  action, Gauss constraint, stationary equations, and variational boundary
+  action, Gauss constraint, stationary equations, variational boundary and
+  §4.4 temporal-support obstruction
 - `computations/particle_action_closure_check.py`—action-algebra and
   nondimensionalization checker
 - `computations/particle-stationary-bvp-report.md`—registered source campaign receipt
@@ -1026,7 +1052,10 @@ comparison, mixed dynamics and particle identification remain open.
 - `computations/particle-carrier-direct-coordinate-report.md`—localized retained branch and larger-domain comparison
 - `computations/particle-carrier-resolution-recovery-report.md`—four-grid resolution sequence and independently verified adjacent convergence
 - `computations/particle-localized-physical-hessian-report.md`—constrained localized PA42 spectrum and spatial qualification
-- `computations/matter-formation-continuum-report.md`—empty-sector creation obstruction, Cartesian ultraviolet boundary, prepared continuum scalar binding, and constrained smooth-branch stability evidence.
+- `computations/matter-formation-continuum-report.md`—empty-sector creation
+  obstruction, §40 common-phase spectrum, §41 temporal-support qualification,
+  Cartesian ultraviolet boundary, prepared continuum scalar binding, and
+  constrained smooth-branch stability evidence.
 - G. 't Hooft, “Magnetic Monopoles in Unified Gauge Theories,” *Nuclear Physics
   B* **79** (1974), 276–284
 - A. M. Polyakov, “Particle Spectrum in Quantum Field Theory,” *JETP Letters*

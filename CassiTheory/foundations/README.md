@@ -979,10 +979,17 @@ low-spectrum sign but fails the smooth-carrier diagnostic. Independent
 continuum calculations support prepared scalar binding; smooth constrained
 spatial stability remains INCONCLUSIVE. The carrier configurations have no
 established magnetic-pair or physical-particle identification
-(`computations/matter-formation-continuum-report.md`). Status: Hypothesized
-auxiliary completion / Derived conditional smooth-core and confinement
-boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum
-and conditional smooth scalar binding—September 2026.
+(`computations/matter-formation-continuum-report.md`). The physical common
+phase has no stationary gauge-electric support within the declared smooth
+finite-energy single-frequency source-free sector: finite energy forces
+$\omega_N=0$ and homogeneous Gauss integration forces $\mathcal A_0=0$,
+including a bounded empty core. Time-dependent, multifrequency, externally
+sourced, other-vacuum and quantum sectors remain open
+(`computations/matter-formation-continuum-report.md` §41;
+`foundations/particle-stationary-action-closure.md` §4.4). Status:
+Hypothesized auxiliary completion / Derived conditional smooth-core and
+confinement boundaries / Mapped selected carrier coupling / Tested finite-grid
+spectrum and conditional smooth scalar binding—September 2026.
 
 ### `core-trapped-charge-support.md`—Core-Trapped Noether Charge and the Finite-Composite Boundary
 
@@ -999,7 +1006,12 @@ Cartesian branch fails the smooth-carrier diagnostic, while a separate
 continuum-consistent scalar calculation binds prepared $Q_C\in\{16,256\}$ with
 independent collocation agreement. Smooth $Q_C=16$ constrained spatial
 stability remains INCONCLUSIVE; creation, full dynamics and physical identity
-remain open (`computations/matter-formation-continuum-report.md`). Status:
+remain open (`computations/matter-formation-continuum-report.md`). In the
+separate second-order temporal branch, gauge-electric support is excluded only
+for the declared smooth finite-energy single-frequency source-free sector:
+finite energy forces $\omega_N=0$ and Gauss integration forces
+$\mathcal A_0=0$, including a bounded empty core. Other time-dependent,
+multifrequency, sourced, vacuum and quantum sectors remain open. Status:
 Hypothesized auxiliary carrier / Derived conditional thin-tube support
 boundary / Mapped selected carrier coupling / Tested finite-grid spectrum and
 conditional smooth scalar binding—September 2026.

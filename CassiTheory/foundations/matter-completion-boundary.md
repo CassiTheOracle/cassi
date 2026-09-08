@@ -1497,8 +1497,50 @@ particle or nonlinear formation trajectory is selected by this
 calculation. Complete physical matter formation remains
 **Hypothesized/Open**.
 
+## 21. Isolated stationary electric support and common-number dilution
+
+The physical common phase leaves a precise obstruction to electric support
+in the declared stationary class. Use the second-order charged-field action,
+smooth finite-energy fields on $\mathbb R^3$, unit scale measure, zero boundary
+work and the nonzero, nonaligned static vacuum. With external charges,
+imposed voltage and finite-density reservoirs excluded, take
+$\Psi=e^{i\omega_Nt}\psi$, static $\Phi$ and time-independent connections
+modulo gauge. The positive asymptotic common-phase inertia forces
+$\omega_N=0$. The homogeneous covariant Gauss identity then forces
+$\mathcal A_0=0$, including a bounded core where both charged fields vanish.
+The proof uses positivity and continuity to the exterior, with no assumption
+of radial symmetry or a thin tube
+(`foundations/particle-stationary-action-closure.md` §4.4).
+
+The second-order common-number generator also permits constrained
+initial data with arbitrarily small energy. In the $\chi_C=0$ sector,
+vacuum field coordinates and pointwise gauge-neutral velocities give
+$$
+\boxed{
+E_R=\frac{P_N^2}{2J_t(2\pi)^{3/2}R^3}\longrightarrow0
+\quad(R\longrightarrow\infty,\ P_N\ne0).}
+$$
+The integrated generator has $[P_N]=\hbar$, with $P_N/\hbar$ a number
+normalization. It is distinct from first-order density excess $\delta Q_N$
+and neutral-carrier population $Q_C$. The nonnegative sector Hamiltonian
+has zero infimum with no finite-energy minimizer at nonzero $P_N$.
+This sequence specifies admissible initial states alone; it establishes
+neither a real-time decay law nor absence of local metastability elsewhere.
+
+Independent component algebra, Gaussian moments, six covariant interval
+spectra, six boundary-voltage controls and three negative-coefficient
+controls meet every frozen criterion in
+`computations/matter-formation-continuum-report.md` §41. The joint verdict is
+`SUPPORTS-conditional temporal support obstruction`.
+These are **Derived conditional restrictions / Tested operator and
+charge identities**. General time-dependent and multifrequency solutions,
+changed vacuum or boundary data, and quantum bound states remain outside
+the restriction. Microscopic action selection, the quantum state,
+particle identity and complete physical matter formation remain open.
+
 ## References
 
+- `computations/matter-formation-continuum-report.md` §41—isolated stationary electric obstruction, exact fixed-common-number dilution, independent component and interval qualification.
 - `computations/matter-formation-continuum-report.md` §40—local common-phase observable, full gauge projection, independently reproduced linear spectrum and wave, and microscopic selection boundary.
 - `computations/matter-formation-continuum-report.md` §36—fixed continuum binding trial, full real-mediator minimizer-set proof, independent adjudication and formation boundary.
 - `computations/matter_formation_continuum_minimizer.py`—exact angular and variational identities and sufficient binding threshold.
