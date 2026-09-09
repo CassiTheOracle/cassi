@@ -9836,7 +9836,339 @@ remains, as do the quantum-sector and formation requirements in §55.3.
 Every scientific receipt retains
 `complete_physical_matter_formation=false`.
 
+## 58. Working notes: neutral production in the surviving charged sector
+
+### 58.1 The integrated Abelian constraint
+
+A massless vector can couple to the carrier in §56, but a closed neutral
+system must also satisfy its Gauss constraint. Keep that section's
+registered vacuum and the allowed assignment $y=0$, with
+$g=e_Xz_C\ne0$. The doublet, real adjoint and gauge fields carry no
+charge under this additional Abelian factor. The carrier is its sole
+charged field. All these statements concern the restricted comparison
+action; its identification with electromagnetism remains open.
+
+Use scale-independent fields with unit scale measure and no scale-boundary
+electric flux. Spatial space is periodic, or has zero total electric
+displacement flux through its outer boundary. External charges and a
+compensating background are excluded. Write
+$$
+D_\mu\chi=(\partial_\mu-i gB_\mu)\chi,\qquad
+\mathcal L_C=C|D_t\chi|^2+
+\frac{i\gamma}{2}\bigl(\chi^*D_t\chi-(D_t\chi)^*\chi\bigr)
+-\frac K2|D_i\chi|^2-V(|\chi|^2,\rho).
+$$
+Here $\gamma=\hbar>0$ in source units, $K>0$, and $C=0$ is the
+retained first-order action (PA11). The supplied temporal parent has
+$C>0$ (`foundations/particle-stationary-action-closure.md` §8.8).
+Its potential and field normalization are kept separate from the choice
+of temporal kinetics.
+
+Define $\mathcal D_i=\epsilon_X(\partial_iB_0-\partial_tB_i)$,
+with $\epsilon_X>0$. Direct variation of $B_0$ gives
+$$
+\boxed{
+\nabla\cdot\boldsymbol{\mathcal D}=\rho_X,\qquad
+\rho_X=g\left[\gamma|\chi|^2
+-2C\,\operatorname{Im}(\chi^*D_t\chi)\right].}
+$$
+For the retained $C=0$ theory,
+$$
+\boxed{
+\oint\boldsymbol{\mathcal D}\cdot d\mathbf S
+=g\gamma\int|\chi|^2\,d^3x=0
+\quad\Longrightarrow\quad \chi=0\ \text{almost everywhere}.}
+$$
+The source has one sign for either fixed nonzero sign of $g$. This
+excludes even prepared nonempty carrier data in the specified globally
+neutral sector. It complements the empty-sector conservation law in §2.
+A Coulomb field carrying nonzero flux at spatial infinity, another
+charged field, or an external compensating charge changes the premises.
+Finite energy on $\mathbb R^3$ alone does not require zero electric flux.
+
+A periodic Poisson solver must preserve this solvability condition.
+Removing a nonzero source average before inversion supplies a uniform
+compensating charge. A small residual against that altered source cannot
+qualify the original Gauss equation.
+
+### 58.2 Opposite charge and the temporal parent
+
+The positive-inertia parent has a signed source and therefore avoids
+the one-sign integral obstruction. Let $U_p>0$ be its quadratic spatial
+mode coefficient at $B_0=0$. The two frequencies obey
+$$
+C\omega^2+\gamma\omega-U_p=0,\qquad
+\omega_\pm=\frac{-\gamma\pm\sqrt{\gamma^2+4CU_p}}{2C}.
+$$
+Their source weights per squared amplitude are
+$$
+\boxed{\gamma+2C\omega_\pm
+=\pm\sqrt{\gamma^2+4CU_p}.}
+$$
+The field change $\phi=\sqrt C\,e^{-i\gamma t/(2C)}\chi$, with
+$B_\mu$ unchanged, gives
+$$
+C|D_t\chi|^2+
+\frac{i\gamma}{2}\bigl(\chi^*D_t\chi-(D_t\chi)^*\chi\bigr)
+=|D_t\phi|^2-\frac{\gamma^2}{4C^2}|\phi|^2,
+\qquad
+\rho_X=-2g\,\operatorname{Im}(\phi^*D_t\phi).
+$$
+Both canonical frequencies have magnitude
+$\sqrt{\gamma^2/(4C^2)+U_p/C}$. Selecting the low-frequency
+first-order branch removes the opposite-source branch from that
+description. This relation supplies no quantum state, production
+amplitude or physical particle assignment. Exactly empty classical
+field and velocity remain invariant in the parent.
+
+The source of a superposition of these two fixed linear modes is
+independent of their relative phase. For its time-dependent mode
+coordinate $\chi=A_+e^{-i\omega_+t}+A_-e^{-i\omega_-t}$,
+the interference coefficient is
+$\gamma+C(\omega_++\omega_-)=0$, giving
+$$
+\rho_X=g\sqrt{\gamma^2+4CU_p}\left(|A_+|^2-|A_-|^2\right).
+$$
+This identity holds instantaneously for constant complex amplitudes.
+A common spatial mode profile multiplies the expression by its squared
+modulus. No averaging or frequency-ratio assumption is needed. The
+statement concerns the fixed quadratic mode; nonlinear field evolution
+requires a separate calculation.
+
+### 58.3 Charge conservation and a supplied conversion vertex
+
+In an ordinary normal-ordered first-order quantization,
+$\widehat Q_X=g\gamma\widehat N_C$. The carrier number operator is
+nonnegative for either bosonic or fermionic occupation rules.
+Its zero-charge kernel contains only the carrier vacuum. Neutral
+photons and neutral background excitations do not enlarge this carrier
+kernel. The number-preserving Hamiltonian in §2 cannot leave it.
+
+An opposite-charge pair permits a different charge-neutral Hilbert
+sector. To distinguish this kinematic permission from an actual
+interaction, consider a finite comparison with a neutral bosonic
+oscillator $b$ and two charged modes $a_+,a_-$. Supply
+$$
+H_0=2n_b+n_++n_-,\qquad
+H_{\rm int}=\lambda\left(b\,a_+^\dagger a_-^\dagger
++b^\dagger a_-a_+\right),\qquad \lambda=\frac14.
+$$
+Work in model units with $\hbar=1$ and charged-mode frequency one.
+The opposite-charge modes and their quantum representation are supplied
+here; a single relativistic field can supply particle and antiparticle
+modes, so two opposite charges do not by themselves require two fields.
+The charged modes are either both bosonic or both fermionic. The latter
+use mutually anticommuting modes. These are separate quantization
+choices. Both conserve
+$$
+Q=n_+-n_-,\qquad R=2n_b+n_++n_-,
+$$
+while $n_++n_-$ can change. The vertex, oscillator, resonance,
+quantization and initial number state are supplied comparison inputs.
+This vertex is absent from the retained particle action. Its finite
+invariant sector establishes no full-field stability or localization.
+The finite-mode comparison checks total charge. A spatial gauge-field
+Hilbert space and local quantum Gauss constraints require a separate
+construction.
+
+Start in $|n_b,n_+,n_-\rangle=|2,0,0\rangle$. In the bosonic
+$R=4,Q=0$ sector, the ordered states are
+$|2,0,0\rangle,|1,1,1\rangle,|0,2,2\rangle$. After removing
+the common $H_0=4$ phase,
+$$
+H_{\rm int}^{(B)}
+=\lambda\begin{pmatrix}0&\sqrt2&0\\\sqrt2&0&2\\0&2&0\end{pmatrix}.
+$$
+With $c=\cos(\sqrt6\lambda t)$ and $s=\sin(\sqrt6\lambda t)$,
+the probabilities for zero, one and two pairs are
+$$
+(P_0,P_1,P_2)
+=\left(\frac{(2+c)^2}{9},\frac{s^2}{3},
+\frac{2(1-c)^2}{9}\right).
+$$
+The fermionic sector contains the first two states. In the plus-first
+fermionic occupation convention its interaction block is
+$$
+H_{\rm int}^{(F)}
+=\lambda\begin{pmatrix}0&\sqrt2\\\sqrt2&0\end{pmatrix},
+\qquad P_1=\sin^2(\sqrt2\lambda t).
+$$
+Both choices allow neutral conversion once the vertex is supplied,
+with different occupation responses.
+Gauge neutrality therefore does not select their statistics.
+
+### 58.4 Fixed qualification before execution
+
+Qualify the source formula by differentiating the temporal Lagrangian
+in real components. Check the canonical field change, both frequency
+roots and both charge weights exactly. Use
+$(\gamma,C,U_p)=(1,1/16,1/2)$ as one numerical normalization witness.
+These are model units, without a physical fit.
+
+For a four-vertex periodic cycle, use the incidence matrix
+$D_{ij}=\delta_{i,(j+1)\bmod4}-\delta_{ij}$ and source unit
+$g\gamma=1$. Solve $D\mathbf d=\boldsymbol\rho$ by the
+minimum-norm least-squares solution for
+$\boldsymbol\rho=(0,0,0,0)$, $(1,0,0,0)$ and $(1,0,-1,0)$.
+Retain the matrix, sources, displacements, original-source residuals and
+source-mean-subtracted residuals. The one-sign source must fail the
+original equation, with residual norm $1/2$, even though subtracting its
+mean makes the altered equation solvable. The other two sources must
+pass. This graph checks the integrated constraint; it represents no
+three-dimensional carrier profile.
+
+Construct the quantum Hamiltonians directly from occupation-basis
+operators, using oscillator occupations $0,1,2$, bosonic charged
+occupations $0,1,2$ and fermionic charged occupations $0,1$.
+Keep the full matrices and restrict the trajectories to the exact
+$R=4,Q=0$ invariant sector. No trajectory from the prepared
+$|2,0,0\rangle$ state reaches a transition lost to the supplied cutoff.
+Require exact commutators with $Q,R$, exact
+nonzero commutators with $n_++n_-$, and agreement with the displayed
+sector matrices. A same-sign assignment $Q=n_++n_-$ is an excluded
+charge-conservation control: its commutator with this vertex must be
+nonzero. With the vertex disabled, the prepared state must retain zero
+charged occupation.
+
+Evaluate the three fixed times $0,T/2,T$, where
+$T=\pi/(2\sqrt2\lambda)$. Compare full-matrix evolution with the
+displayed probability formulas and independent DOP853 evolution of
+the restricted matrices. Use DOP853 relative tolerance $10^{-11}$,
+absolute tolerance $10^{-13}$ and maximum step $T/64$.
+Every numerical equality must hold within $10^{-9}$ after division
+by $\max(1,\|\mathrm{reference}\|)$. Retain states, probabilities,
+number expectations, energies and conserved charges; require norm,
+$Q$, $R$ and total-energy conservation at the same bound.
+
+The two independent source programs are
+`computations/matter_formation_charged_gauss.py` and
+`computations/matter_formation_charged_conversion.py`. Each owns its
+stated classical or quantum calculation and an independent derivation
+review. Main reconciles their saved arrays directly. Before execution,
+bind this section, both programs, the particle-action source and both
+accepted reviews with SHA-256 under
+`runs/20260909_matter_formation_charged_sector/`. Reject a source
+mismatch or an unaccepted review before scientific calculation.
+All fixed criteria passing gives
+`SUPPORTS-conditional neutral-production charge-spectrum constraint`;
+otherwise use `INCONCLUSIVE`. Stop at this schedule, without parameter
+search or formation simulation. Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
+## 59. Working notes: qualified neutral-production constraint
+
+### 59.1 Charge source and periodic solvability
+
+The source-bound calculation qualifies the charge obstruction and the
+signed temporal-parent comparison in §58. All 21 classical checks and
+37 finite-quantum checks pass. Their joint verdict is
+`SUPPORTS-conditional neutral-production charge-spectrum constraint`.
+The numerical threshold is the fixed normalized $10^{-9}$ bound.
+
+The retained first-order carrier has
+$\rho_X=g\gamma|\chi|^2$. In the specified periodic or zero-total-flux
+sector, the integrated Gauss equation therefore excludes every nonempty
+carrier configuration. The positive-inertia parent's single normalization
+witness has frequencies $0.4852813742385703$ and
+$-16.48528137423857$, with source weights
+$\pm1.0606601717798212$. The two-mode interference contribution cancels
+instantaneously in the same fixed quadratic mode, as derived in §58.2.
+This allows both charge signs without identifying a physical particle.
+
+The four-vertex witness exposes the effect of altering an inadmissible
+source. Its measured Euclidean residual norms are:
+
+| Original source | Original-equation residual | Mean-subtracted-equation residual | Original source admissible |
+|---|---:|---:|---|
+| $(0,0,0,0)$ | $0$ | $0$ | Yes |
+| $(1,0,0,0)$ | $0.5$ | $3.93\times10^{-17}$ | No |
+| $(1,0,-1,0)$ | $1.92\times10^{-16}$ | $1.92\times10^{-16}$ | Yes |
+
+Subtracting the nonzero source mean supplies an excluded uniform
+compensating charge. The small altered-source residual does not solve
+the original equation. Reconstruction from the hand-solved cycle
+displacements and exact frequency values agrees with all classical raw
+arrays and receipt rows to $2.10\times10^{-16}$ in the declared
+normalization.
+
+### 59.2 Finite conversion from a neutral excitation
+
+Both supplied quantum models convert a neutral excitation into
+oppositely charged pairs. At the fixed endpoint
+$T=\pi/(2\sqrt2\lambda)$, their rounded occupation probabilities and
+charged-number expectations are:
+
+| Supplied charged-mode statistics | No pair | One pair | Two pairs | $\langle n_++n_-\rangle$ |
+|---|---:|---:|---:|---:|
+| Bosonic | $0.1313520744$ | $0.0556448461$ | $0.8130030796$ | $3.3633020104$ |
+| Fermionic | $0$ | $1$ | $0$ | $2$ |
+
+The endpoint is the fermionic $\pi$-pulse time, fixed before execution.
+These occupations do not define a conversion-efficiency ranking or
+select statistics. The same-sign charge control fails to commute with
+the supplied interaction, while the opposite-sign total charge $Q$
+and resonant quantity $R$ commute exactly. With the vertex disabled,
+the charged occupation stays exactly zero at every sampled time.
+
+The largest normalized discrepancies across both models and all
+three times are:
+
+| Comparison | Maximum discrepancy |
+|---|---:|
+| Full-matrix state versus analytic amplitudes | $2.10\times10^{-15}$ |
+| Restricted DOP853 versus full-matrix state | $7.87\times10^{-12}$ |
+| Occupation probabilities versus displayed formulas | $2.67\times10^{-15}$ |
+| Norm, $R$ and total-energy conservation | $2.67\times10^{-15}$ |
+| Total charge and leakage outside the invariant sector | $0$ |
+| Independent raw-array and receipt reconstruction | $4.78\times10^{-12}$ |
+
+The independent reconstruction builds the Hamiltonian from occupation
+transitions and propagates its spectral projectors. It imports neither
+calculation program. The complete reachable $R=4,Q=0$ sector fits within
+the numerical cutoff and agrees with the unrestricted interaction
+columns. This justifies the finite trajectories for the prepared state.
+It supplies no continuum or spatial stability result.
+
+### 59.3 Retained evidence and physical boundary
+
+The local evidence is under
+`runs/20260909_matter_formation_charged_sector/`. Its `manifest.json`
+binds the frozen §58, both calculation sources, the particle-action
+source and both accepted mathematical reviews. `integration.json`
+records the source and review provenance; the submitted handoffs remain
+separate from the integrated sources. The scientific outputs are
+`gauss/result.json`, `gauss/arrays.npz`, `conversion/result.json`
+and `conversion/arrays.npz`. The independent reconstructions are
+`gauss_raw_reconciliation.json` and
+`conversion_raw_reconciliation.json`; `joint_reconciliation.json`
+records the combined qualification and evidence identities.
+
+Each program rejects both a source mismatch and an unaccepted review.
+All four controls exit with `INCONCLUSIVE`, zero scientific rows and
+no array archive. The fixed scientific schedule passes from the sealed
+sources without a parameter search or formation simulation.
+
+The conversion starts with two supplied neutral oscillator quanta and
+total model energy four. It therefore consumes an initial excitation.
+Its vertex, opposite-charge modes, quantum representation and resonance
+are additional inputs absent from the retained carrier action. The
+calculation checks total charge; a spatial quantum gauge-field Hilbert
+space and local Gauss constraints remain separate requirements.
+
+The combined evidence narrows the admissible charged sector while the
+microscopic selection ambiguity in §29 remains. Completing physical
+matter formation requires a physically selected field content and
+action, a regulated quantum state with physical normalization, derived
+particle spin/statistics/charges, and a localized formation trajectory
+with nonradial persistence in that same model. These inputs and results
+remain unresolved. Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
 ## References
+
+- `computations/matter_formation_charged_gauss.py`—Abelian source variation, temporal-parent identities and periodic Gauss solvability.
+- `computations/matter_formation_charged_conversion.py`—finite charge-neutral conversion witnesses with supplied bosonic and fermionic sectors.
+- `runs/20260909_matter_formation_charged_sector/`—frozen working derivation, independent reviews, execution records and retained arrays.
 
 - `computations/matter_formation_maxwell_compatibility.py`—exact covariant Hessian, Schur complement and transverse generalized spectra.
 - `computations/verify_matter_formation_maxwell_compatibility.py`—independent component-energy polarization, gauge covariance and complete spectral reconstruction.
