@@ -15,10 +15,17 @@ optional model choices, and which claims remain unestablished.
 
 The Navier–Stokes analyses develop exact critical-norm transfer identities,
 heat-correction estimates, filtered stress dynamics, quantitative strain
-departure and spectral-spread bounds on critical transfer. Explicit initial-data
-controls delimit scalar-energy and local-geometric closure arguments.
+departure and spectral-spread bounds on critical transfer. Exact source budgets
+extend the conditional estimate to smooth forcing. Explicit initial-data and
+kinematic controls delimit scalar-energy and local-geometric closure arguments.
 Data-controlled critical production, arbitrary-data regularity and a Cassi
-current-to-momentum constitutive map remain open.
+canonical-density-to-physical-momentum constitutive map remain open.
+
+The separate fluid-feasibility study derives the conservative momentum flux
+of a restricted first-order action branch and audits the actual density solver.
+Its 246 checks include 28 native trajectories. The ordinary Navier–Stokes
+controls pass; the native self-sourced force produces mean acceleration in a
+periodic box. A physical closed-fluid completion remains open.
 
 ## 1. Document index
 
@@ -28,7 +35,8 @@ current-to-momentum constitutive map remain open.
 | 2 | `turbulence/navier-stokes-transfer-boundary.md` | Critical transfer, cubic heat correction, and coercivity | Derived identities and obstructions / conditional small-data estimates |
 | 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution and helical covariance conditions | Derived filtered identities / Hypothesized geometric closure |
 | 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response, matter binding and exterior-memory comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
-| 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, critical spectral spread and scalar-budget obstruction | Derived conditional estimates / Open data-controlled critical work |
+| 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, spectral concentration, forced budgets and singularity-rescaling scope | Derived conditional estimates / Open data-controlled critical work |
+| 6 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, scalar dissipation, native-force obstruction and actual flow controls | Derived conditional / Tested solver controls / Open physical-fluid completion |
 
 ## 2. Document summaries
 
@@ -82,8 +90,37 @@ The exact spectral-spread budget has an uncontrolled nonlinear production
 term. A smooth periodic datum develops spread immediately from zero;
 a positive-moment scalar construction has divergent critical norm despite
 positive departure. The separate departure and recurrence schedules pass
-71 and 134 checks respectively. No flow is time-evolved, and
-data-controlled critical production and arbitrary-data regularity remain open.
+71 and 134 checks respectively. The forced budget and scaling schedule passes
+215 checks, including the source correction to the strain-departure identity.
+Critical duality bounds smooth forcing within the conditional spectral estimate.
+Initial energy and prescribed force norms also bound total direct critical
+source work. Finite accumulated transfer above a fixed fraction of viscous
+dissipation suffices for continuation; controlling that accumulation remains open.
+Parabolic magnification makes the source vanish; a nontrivial unforced limit
+still requires velocity and pressure bounds and suitable compactness.
+No flow is time-evolved, and data-controlled critical production,
+arbitrary-data regularity and unforced blow-up remain open in this analysis.
+
+### 2.6 Cassi fluid feasibility
+
+`turbulence/cassi-fluid-feasibility.md` derives pressure, counterflow momentum
+flux and quantum stress from the ungauged positive-density first-order action
+with a supplied carrier mass. Its exactly proportional common-phase branch is
+compatible and irrotational; viscosity and the canonical irreversible
+conversion require additional constitutive physics. The canonical density
+system has a nonnegativity argument and a constant-reference relative entropy
+under stated continuum assumptions.
+
+The implemented self-sourced force has a nonzero periodic mean for smooth
+positive data, contradicting a closed-fluid internal-stress interpretation.
+The fixed 246-check schedule includes 28 CPU float64 native RK2 trajectories:
+conversion, exact self-acceleration, decaying shear, two-dimensional
+Taylor–Green flow, prescribed forced shear and short-time three-dimensional
+Taylor–Green flow against an independent dealiased RK4 reference.
+Promotion to a physical replacement fluid is **REJECT** under this bounded
+schedule; concentration arrest is **NOT_RUN**. Physical viscosity, material
+normalization, closed force/energy accounting and a rotational hydrodynamic
+limit remain open.
 
 ## References
 
@@ -100,4 +137,8 @@ data-controlled critical production and arbitrary-data regularity remain open.
 - `computations/verify_navier_stokes_strain_departure.py`—departure algebra, Gaussian moments and independent deadline quadrature
 - `computations/navier-stokes-critical-recurrence-prereg.md`—fixed spectral-spread and scalar-budget schedule
 - `computations/verify_navier_stokes_critical_recurrence.py`—exact critical derivatives and independent FFT reconstruction
+- `computations/navier-stokes-forced-concentration-prereg.md`—fixed source budgets, rescaling and kinematic concentration controls
+- `computations/cassi-fluid-feasibility-prereg.md`—fixed conservative, thermodynamic, native-force and actual-flow controls
+- `computations/verify_cassi_fluid_feasibility.py`—symbolic identities, native RK2 trajectories and independent RK4 comparison
+- `computations/verify_navier_stokes_forced_concentration.py`—forced Fourier identities, independent FFT reconstruction and Gaussian quadrature
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths

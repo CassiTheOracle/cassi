@@ -194,6 +194,75 @@ The accepted receipt is `runs/navier_stokes_critical_recurrence/verification.jso
 
 The independent analytical reconciliation is retained in `runs/navier_stokes_critical_recurrence/reconciliation.json`. Its accepted continuum argument uses $L^4_tL^6_x$ and keeps the critical dissipation $2\nu Y$ distinct from the higher-order enstrophy dissipation.
 
+## 11. Forced Navier–Stokes concentration budgets
+
+Smooth forcing adds explicit source work to the kinetic, strain, critical and spectral-spread budgets. It also modifies the amplification derivative by $-6\langle M,\nabla_{\rm sym}g\rangle$. The analytical derivation in `turbulence/navier-stokes-strain-departure.md` §8 shows how $\|g\|_{\dot H^{-1/2}}$ bounds critical source work and preserves conditional continuation under a uniform spectral margin below viscosity.
+
+The kinetic estimate also bounds accumulated direct critical source work using only initial energy and prescribed force norms. Finite accumulated excess $(F-\kappa\nu Y)_+$ for a fixed $0\le\kappa<1$ suffices for continuation under the same force assumptions. No bound on that nonlinear accumulation is derived. Conditional on the announced construction's full-flow growth-path estimate, its raw parabolic magnification has divergent velocity at a fixed rescaled point and therefore lacks local $C^0$ compactness there. These are analytical consequences; the source construction's correctness remains outside the verification scope.
+
+The fixed schedule in `computations/navier-stokes-forced-concentration-prereg.md` passes **215 checks**, including **20 exact forced rows**, **40 independent FFT rows**, a forcing-from-rest control and Gaussian moments with 60-digit quadrature. The maximum normalized numerical discrepancy is $7.275957614183426\times10^{-12}$ against $10^{-10}$.
+
+| Control | Decisive result | Frozen classification and scope |
+|---|---|---|
+| Forced budgets and strain derivative | All source coefficients agree with full-convolution derivatives and independently reconstructed strain dynamics; gradient forcing is removed by pressure projection | **PASS** for the fixed identities |
+| Critical source duality | $I_1^2\le Y\|g\|_{\dot H^{-1/2}}^2$ for all fixed rows; source work has both signs | **PASS** for the controls; the continuum estimate has a separate Cauchy–Schwarz proof |
+| Forcing from rest | $K'(0)=\mathcal C'(0)=0$, $K''(0)=3/2$, $\mathcal C''(0)=6$ | **PASS** for the prescribed trigonometric source |
+| Euclidean Gaussian concentration | $K[U_\ell]\to0$, $\|U_\ell\|_\infty\to\infty$, $\mathcal C[U_\ell]=8\pi/3$ | **CONTRADICTS** the purely kinematic implication that the first two conditions force critical-norm divergence; no PDE trajectory |
+| Rescaled smooth source | Force amplitude has factor $\lambda^3$; its critical squared space-time norm equals the original force integral over a shrinking time interval | **PASS** for scaling arithmetic; a nontrivial unforced limit requires additional compactness |
+
+The accepted receipt is `runs/navier_stokes_forced_concentration/verification.json`, schema `cassi.navier-stokes.forced-concentration.verification.v1`, with adjacent input manifest and frozen sources. All five raw source identities match the current executable inputs and snapshots. No Navier–Stokes trajectory, singularity search or formal-proof build is run. The announced forced construction's correctness is **NOT_AUDITED**. Data-controlled nonlinear critical production, arbitrary-data regularity, a nontrivial blow-up limit and unforced blow-up remain **UNRESOLVED**.
+
+The accepted analytical statements, exact source identities and review boundaries are recorded in `runs/navier_stokes_forced_concentration/reconciliation.json`.
+
+## 12. Cassi fluid feasibility
+
+The bounded derivation in `turbulence/cassi-fluid-feasibility.md` obtains a
+conservative momentum flux, pressure and Hamiltonian energy from the ungauged
+positive-density first-order action with a supplied carrier mass. Its exactly
+proportional common-phase branch is compatible and locally irrotational.
+The canonical density equations separately admit a nonnegativity argument
+and a constant-reference relative entropy under smooth common incompressible
+advection, equal nonnegative diffusivity and nonnegative conversion.
+Neither construction supplies a physical positive viscosity or a closed
+thermodynamic identification of the irreversible conversion.
+
+The frozen schedule in `computations/cassi-fluid-feasibility-prereg.md` passes
+**246 checks**, including **49 symbolic checks** and **28 native CPU float64
+RK2 trajectories**. At $N=16,24$, the flow endpoints agree with exact solutions
+or an independent two-thirds-dealiased RK4 reference. The maximum endpoint
+error across all 28 trajectories is $1.0078716821608566\times10^{-7}$ against
+$2\times10^{-6}$; maximum recorded divergence is
+$8.335558466132969\times10^{-15}$ against $10^{-10}$.
+The three-dimensional Taylor–Green control runs to $T=0.05$ and measures local
+vortex stretching, nonlinear velocity change and a generated vertical
+velocity. This short-time comparison supplies no continuum regularity result.
+
+| Control | Decisive result | Frozen classification and scope |
+|---|---|---|
+| First-order action reduction and scalar budgets | Pressure, quantum/counterflow momentum flux, energy split, reaction and entropy identities pass | **PASS** for fixed algebra; continuum positivity and entropy retain their analytical assumptions |
+| Native periodic force | $\rho=4+\cos x$, $\pi=\sin x$ give projected mean acceleration $\tfrac12 e_x$ without external forcing; $u(t)=\tfrac12t\,e_x$ is reproduced | **CONTRADICTS** closed-fluid internal momentum interpretation |
+| Expanding weak-force attenuation | The same positive datum retains nonzero mean acceleration with the fixed attenuation enabled | **CONTRADICTS** restoration of closed-fluid momentum by this factor |
+| Ordinary-fluid controls | Decaying shear, two-dimensional Taylor–Green, prescribed forced shear and short-time three-dimensional Taylor–Green agree with their independent references when native self-sourcing is absent | **PASS** for the conditional solver correspondence |
+| Density floor | An unforced homogeneous $(Y,I)=(10^{-4},1)$ state changes composition under the expanding step's floor/renormalization while preserving the density sum | **PASS** for recording the numerical intervention; no continuum positivity proof |
+| Physical replacement promotion | Closed native force/energy, physical viscosity, normalization and rotational limit remain absent | **REJECT** under the bounded feasibility stopping rule |
+| Concentration arrest | No arrest trajectory is run | **NOT_RUN** |
+
+The accepted receipt is
+`runs/cassi_fluid_feasibility/qualified/verification.json`, schema
+`cassi.fluid-feasibility.verification.v1`, with adjacent input manifest,
+frozen sources and `verification.trajectories.npz`.
+All seven current input, manifest and snapshot identities match.
+Independent reconstruction from the raw arrays recovers all 28 recorded
+energies, enstrophies and mean velocities with maximum scalar discrepancy
+$1.3322676295501878\times10^{-15}$ and independently reproduces the force means.
+The reconciliation is
+`runs/cassi_fluid_feasibility/qualified/reconciliation.json`.
+The diagnostic `runs/cassi_fluid_feasibility/verification.json` has
+**ERROR** status from the harness's missing lowercase coordinate attribute;
+its 49 symbolic checks and zero trajectories are excluded from qualification.
+The qualified run uses the same frozen protocol, native solver, numerical
+fixtures, timestep schedule and tolerances.
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -233,3 +302,8 @@ The independent analytical reconciliation is retained in `runs/navier_stokes_cri
 - `turbulence/navier-stokes-strain-departure.md`—quantitative departure, spectral-spread estimates and unresolved dynamical control.
 - `computations/navier-stokes-critical-recurrence-prereg.md`—fixed critical-remainder and scalar-budget controls.
 - `computations/verify_navier_stokes_critical_recurrence.py`—exact derivatives and independent FFT evidence.
+- `computations/navier-stokes-forced-concentration-prereg.md`—fixed source budgets, magnification and kinematic concentration controls.
+- `computations/verify_navier_stokes_forced_concentration.py`—exact forced derivatives and independent FFT/quadrature evidence.
+- `turbulence/cassi-fluid-feasibility.md`—qualified conservative reduction, native-force obstruction and physical-completion decision.
+- `computations/cassi-fluid-feasibility-prereg.md`—fixed analytical and actual-flow schedule.
+- `computations/verify_cassi_fluid_feasibility.py`—native RK2 controls, independent RK4 reference and immutable receipts.

@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The original unforced Navier–Stokes equation imposes a finite energy budget on persistent strain self-amplification. Retaining a standard interpolation inequality gives an explicit departure-or-breakdown deadline that is strictly earlier than the energy deadline in Miller's perturbative comparison. Known global regularity converts this alternative into a departure statement for axisymmetric, swirl-free data. An integrated identity quantifies departure, and spectral centering bounds both the critical remainder work and the complete nonlinear transfer. The spectral spread has an exact production budget and can increase immediately from zero in a smooth periodic flow. A positive-moment scalar construction shows the insufficiency of the listed energy and departure budgets for critical-norm control. Dynamical preservation of the sufficient spectral bound, recurrence control and arbitrary-data regularity remain open.
+The original unforced Navier–Stokes equation imposes a finite energy budget on persistent strain self-amplification. Retaining a standard interpolation inequality gives an explicit departure-or-breakdown deadline that is strictly earlier than the energy deadline in Miller's perturbative comparison. Known global regularity converts this alternative into a departure statement for axisymmetric, swirl-free data. An integrated identity quantifies departure, and spectral centering bounds both the critical remainder work and the complete nonlinear transfer. The spectral spread has an exact production budget and can increase immediately from zero in a smooth periodic flow. A positive-moment scalar construction shows the insufficiency of the listed energy and departure budgets for critical-norm control. With an external force, exact source terms modify the budgets and the strain-departure identity. Critical duality controls a smooth source within the conditional spectral estimate. Parabolic rescaling makes that source vanish locally, while obtaining a nontrivial unforced limit requires additional compactness. Dynamical preservation of the sufficient spectral bound, recurrence control and arbitrary-data regularity remain open.
 
 ## 1. Equation, data and source boundary
 
@@ -13,6 +13,7 @@ $$
 \partial_tu+(u\cdot\nabla)u=-\nabla p+\nu\Delta u,
 \qquad \nabla\cdot u=0,\qquad \nu>0.
 $$
+Sections 2–6 retain this unforced equation. Section 8 treats the ordinary externally forced equation explicitly; its source terms remain part of every applicable budget.
 Use smooth, finite-energy data with enough Sobolev regularity for the quantities below; divergence-free Schwartz data suffice. All identities are applied on the smooth lifespan, and all spatial integrals use Lebesgue measure. Let
 $$
 S=\nabla_{\mathrm{sym}}u,
@@ -454,6 +455,231 @@ The Sobolev estimate and conditional continuation argument in §6.2 are analytic
 
 Independent analytical reviews confirm the centered remainder estimate, the full-transfer derivative weights and the fixed scalar identities. The accepted continuation argument uses $L^4_tL^6_x$. `runs/navier_stokes_critical_recurrence/reconciliation.json` records the accepted proof statements, their scope and the excluded auxiliary claims; it is retained locally with the generated evidence.
 
+### 7.3 Forced concentration controls
+
+The schedule in `computations/navier-stokes-forced-concentration-prereg.md` passes **215 checks**, including **20 exact forced velocity rows**, **40 independent FFT rows** on $24^3$ and $32^3$ grids, a forcing-from-rest control and exact Gaussian moments with independent 60-digit quadrature. The maximum normalized numerical discrepancy is **$7.275957614183426\times10^{-12}$**, below $10^{-10}$. Pressure-gradient removal, both signs of source work, the complete forced strain identity and the critical forcing duality are included.
+
+The accepted receipt is `runs/navier_stokes_forced_concentration/verification.json`, schema `cassi.navier-stokes.forced-concentration.verification.v1`, with adjacent `verification.inputs.json` and `verification.sources/`. All five input identities match the current raw source bytes and retained snapshots:
+
+| Input | SHA-256 |
+|---|---|
+| Fixed forced protocol | `2aa31e17c796fff7d438024154f468570e34e1a7ab3c4abc64270ee1c0ab2b2f` |
+| Forced verifier | `7ddcb369a804580b3b1e1c520a02862ab7229648689f2cb4fef1abf5948ba40e` |
+| Recurrence helper | `61295a26a09506d6e336a541dd684fc690d800a524cab84899742b4454a800ce` |
+| Depletion helper | `f74633d488d974e8bb3c83d24448064f2badb89059a6938fcc8235db3e7426e5` |
+| Fourier helper | `a7ca230b989f5713cb511b18971007d41cbdad20d9c8cf8e2af7d34f107755e0` |
+
+The Gaussian family's classification is **CONTRADICTS** for the purely kinematic implication from bounded energy and unbounded maximum velocity to divergent critical norm. Its scope is a family of solenoidal fields. No Navier–Stokes trajectory or singularity is computed. The continuum inequalities below have a separate analytical derivation. The announced construction's proof is **NOT_AUDITED**, and unforced blow-up, arbitrary-data regularity and a nontrivial blow-up limit remain **UNRESOLVED**.
+
+The separate analytical reconciliation is retained in `runs/navier_stokes_forced_concentration/reconciliation.json`. It records the accepted continuum estimates, endpoint force assumptions, finite direct source work, cumulative excess-transfer condition and source-qualified growth-path calculation. Independent reviews are restricted to those statements. The numerical checks verify the budgets and fixed controls; they do not establish the continuum continuation argument or the announced construction.
+
+To reproduce, use `python computations/verify_navier_stokes_forced_concentration.py --output runs/navier_stokes_forced_concentration/reproduction/verification.json` with a fresh output path. The input manifest and source snapshots preserve the fixed computation.
+
+## 8. External forcing and concentration limits
+
+### 8.1 Exact source terms
+
+An external force can inject energy and alter the strain comparison even when it remains smooth. Denote it by $f_{\rm ext}$ to distinguish it from the amplification functional $f$ in §1, and put
+$$
+g=\mathbb P f_{\rm ext},\qquad
+\partial_tu=B-\nu\Lambda^2u+g,\qquad
+I_j=\langle\Lambda^j u,g\rangle,\quad j=0,1,2.
+$$
+The definitions of $K,E,G,\mathcal C,Y,A,F,\mathcal V$ are unchanged. Integration by parts and the Leray projection give
+$$
+\boxed{
+\begin{aligned}
+K'&=-2\nu E+I_0,\\
+E'&=A-2\nu G+I_2,\\
+\mathcal C'&=-2\nu Y+2F+2I_1.
+\end{aligned}}
+$$
+Differentiating $\mathcal V=KE-\mathcal C^2/4$ consequently yields
+$$
+\boxed{
+\mathcal V'+\nu(2KG+2E^2-\mathcal C Y)
+=KA-\mathcal C F+EI_0+KI_2-\mathcal C I_1.
+}
+$$
+A gradient part of $f_{\rm ext}$ is absorbed into pressure. On the torus these statements use mean-zero velocity and mean-zero forcing. On $\mathbb R^3$ the displayed norms must be finite.
+
+The amplification derivative also has a source term. With $T=\nabla_{\rm sym}g$, the strain equation becomes $S_t=-M-\mathcal R+T$. For an admissible strain variation $H$,
+$$
+Df[S](H)=-6\langle M,H\rangle.
+$$
+Indeed, differentiating $-3\nu\|\nabla S\|_2^2$ gives $-6\nu\langle\Lambda^2S,H\rangle$. The trace-free variation of the determinant gives $\langle S^2,H\rangle$; orthogonal projection onto admissible strains supplies the remaining term in $M$. Therefore
+$$
+\boxed{f'=-\frac32\delta-6\langle M,T\rangle.}
+$$
+This extra work has no universal sign. The monotonicity and deadlines in §§3–5 require the unforced identities specified there.
+
+### 8.2 Smooth forcing in the critical estimate
+
+The critical source work can be bounded using a norm of the prescribed force. Let
+$$
+H_g(t)=\|g(t)\|_{\dot H^{-1/2}}.
+$$
+The exact pairing and Cauchy–Schwarz give
+$$
+I_1=\langle\Lambda^{3/2}u,\Lambda^{-1/2}g\rangle,
+\qquad |I_1|\le\sqrt{Y}\,H_g.
+$$
+The estimate for $F$ in §6.2 is an instantaneous property of the velocity nonlinearity, so it still applies. Suppose, throughout a smooth interval $[t_0,T_*)$,
+$$
+c_{\rm S}\sqrt{\eta(t)\mathcal C(t)}\le\theta\nu,
+\qquad 0<\theta<1,\qquad d=(1-\theta)\nu.
+$$
+Set $\eta=0$ at the zero field; all nonlinear work then vanishes. Young's inequality gives
+$$
+2|I_1|\le dY+\frac{H_g^2}{d},
+$$
+and hence
+$$
+\boxed{
+\mathcal C(t)+d\int_{t_0}^tY(s)\,ds
+\le\mathcal C(t_0)+\frac1d\int_{t_0}^tH_g(s)^2\,ds.
+}
+$$
+If $g\in L^2((t_0,T_*);\dot H^{-1/2})$, both quantities on the left stay bounded. The interpolation $4E^2\le\mathcal C Y$ supplies $\int E^2<\infty$ and thus $u\in L^4_tL^6_x$. For continuation, also require $g\in L^2((t_0,T_*);L^2)$ and a force smooth through the endpoint in the strong-solution class. The usual $H^1$ energy estimate then has an integrable coefficient proportional to $\|u\|_6^4$ and an integrable forcing term, so strong-solution continuation applies. Smooth compactly supported space-time forces, and smooth periodic forces through $T_*$, satisfy these endpoint requirements.
+
+A smooth compactly supported space-time force satisfies the required force condition on every finite interval. At low Fourier frequencies, bounded $\widehat f_{\rm ext}$ makes the weight $|k|^{-1}$ integrable in three dimensions; at high frequencies the $L^2$ bound suffices. The Leray projection is a contraction for this weighted norm. This gives a conditional continuation estimate for such forcing. Controlling $\eta\mathcal C$ from arbitrary initial data remains an additional requirement.
+
+Any finite-time breakdown under these force assumptions must therefore violate every uniform subcritical margin near its endpoint:
+$$
+\limsup_{t\uparrow T_*}c_{\rm S}\sqrt{\eta(t)\mathcal C(t)}\ge\nu.
+$$
+This necessary condition bounds a product. It supplies no lower bound on $\eta$ alone.
+
+There is also a useful consequence without the spectral hypothesis. Taking $d=\nu$ in Young's inequality gives
+$$
+\boxed{
+\mathcal C(t)+\nu\int_{t_0}^tY
+\le\mathcal C(t_0)+2\int_{t_0}^tF
++\nu^{-1}\int_{t_0}^tH_g^2.
+}
+$$
+Thus finite $\int_{t_0}^{T_*}F_+\,dt$, where $F_+=\max(F,0)$, is sufficient for continuation under the same force assumptions. A singular solution would require divergent accumulated positive nonlinear critical transfer. The present estimates provide no upper bound on that accumulation.
+
+The same argument gives an excess-transfer condition. For any fixed $0\le\kappa<1$, define
+$$
+\mathcal W_\kappa(t)=\int_{t_0}^t(F-\kappa\nu Y)_+\,ds,
+\qquad d_\kappa=(1-\kappa)\nu.
+$$
+Using $F\le\kappa\nu Y+(F-\kappa\nu Y)_+$ before the source estimate yields
+$$
+\boxed{
+\mathcal C(t)+d_\kappa\int_{t_0}^tY
+\le\mathcal C(t_0)+2\mathcal W_\kappa(t)
++d_\kappa^{-1}\int_{t_0}^tH_g^2.
+}
+$$
+Finite $\mathcal W_\kappa(T_*)$ therefore suffices for continuation. Conversely, any finite-time singularity under the stated force assumptions must have $\mathcal W_\kappa(T_*)=\infty$ for every fixed $\kappa<1$. The endpoint $\kappa=1$ supplies no positive dissipation coefficient and is excluded. This cumulative condition permits temporary large positive transfer; it requires control of its accumulated excess over a fixed fraction of viscosity.
+
+For smooth compactly supported forcing there is also a direct bound on total source work that uses only prescribed force norms and initial energy. The regularized kinetic inequality gives
+$$
+\|u(t)\|_2\le U_*(T_*):=
+\|u(t_0)\|_2+\int_{t_0}^{T_*}\|g(s)\|_2\,ds.
+$$
+Since $I_1=\langle u,\Lambda g\rangle$,
+$$
+\boxed{
+\int_{t_0}^{T_*}|I_1(s)|\,ds
+\le U_*(T_*)\int_{t_0}^{T_*}\|\Lambda g(s)\|_2\,ds<\infty.
+}
+$$
+Regularizing $\sqrt{\|u\|_2^2+\varepsilon}$ justifies the energy bound at zero velocity. This stronger spatial regularity of the prescribed force is automatic in the smooth compactly supported case. The directly injected critical work is then finite even if the nonlinear transfer has unbounded accumulation. These are analytical corollaries; the fixed finite controls in §7.3 verify the underlying budgets and normalization.
+
+### 8.3 Vanishing source under parabolic magnification
+
+A smooth external force becomes small when space and time are magnified around a proposed singular point. On $\mathbb R^3$, define
+$$
+u_\lambda(y,s)=\lambda u(x_*+\lambda y,T_*+\lambda^2s),
+\quad p_\lambda(y,s)=\lambda^2p(x_*+\lambda y,T_*+\lambda^2s),
+$$
+$$
+(f_{\rm ext})_\lambda(y,s)
+=\lambda^3 f_{\rm ext}(x_*+\lambda y,T_*+\lambda^2s),
+\qquad \lambda\downarrow0.
+$$
+Every term in the momentum equation has the same factor $\lambda^3$. For multi-indices $\alpha$ and time-derivative order $j$,
+$$
+\partial_y^\alpha\partial_s^j(f_{\rm ext})_\lambda
+=\lambda^{3+|\alpha|+2j}
+(\partial_x^\alpha\partial_t^j f_{\rm ext})(x_*+\lambda y,T_*+\lambda^2s).
+$$
+Consequently the source tends to zero with all derivatives on compact rescaled sets when the physical force is smooth through $T_*$. The projected source also obeys the exact Euclidean identity
+$$
+\int_{-L}^0\|g_\lambda(s)\|_{\dot H^{-1/2}}^2\,ds
+=\int_{T_*-L\lambda^2}^{T_*}\|g(t)\|_{\dot H^{-1/2}}^2\,dt
+\longrightarrow0
+$$
+for every fixed $L>0$, by absolute continuity of the force integral.
+
+These statements concern the source. Constructing a limiting velocity requires uniform local velocity, pressure and local-energy bounds, compactness sufficient to pass $u_\lambda\otimes u_\lambda$, and a nondegeneracy argument preventing the limit from vanishing. The limit domain and solution class must also be specified. In particular,
+$$
+K[u_\lambda]=\lambda^{-1}K[u],
+\qquad \mathcal C[u_\lambda]=\mathcal C[u],
+$$
+so bounded physical kinetic energy supplies no uniform global energy bound after magnification. A resulting unforced limit would generally be ancient or local. Turning it into finite-time blow-up from admissible smooth unforced initial data requires a further argument.
+
+### 8.4 Scope of the announced forced construction
+
+Theorem 1.1 of OpenAI's *Finite time blowup for Navier–Stokes* states a forced solution starting from rest, with a smooth compactly supported space-time force, uniformly bounded kinetic energy and unbounded maximum velocity as $t\uparrow1$. The source identifies Clay alternatives C and D. The theorem statement alone supplies no unforced counterexample or compactness theorem for the rescalings in §8.3.
+
+The mechanism described in §§2.2 and 3 uses oscillatory velocity pulses whose mean momentum flux cancels a singular residual of the collapsing background. Their amplification draws on background shear. Such internal momentum flux belongs to the nonlinear velocity dynamics $B$; the smooth external source is the final residual. A source that becomes small under magnification can therefore coexist with substantial nonlinear transfer. No universal damping sign for the pulse feedback follows from its small external seed.
+
+Theorem 3.1(iv), together with the localization in §3.5, states a full-flow growth path
+$$
+u_\theta(\sqrt{2X_{\rm in}\tau},0,0,1-\tau)
+=\tau^{-1/2-h}\bigl(e_0+O(\tau^{2h})\bigr),
+\qquad e_0>0,
+$$
+where the position is cylindrical. Conditional on that source estimate, the magnification in §8.3 centered at $(0,1)$ gives the fixed-point value
+$$
+(u_\lambda)_\theta(\sqrt{2X_{\rm in}},0,0,-1)
+=\lambda^{-2h}\bigl(e_0+O(\lambda^{4h})\bigr)
+\longrightarrow\infty.
+$$
+Thus this parabolic magnification has no locally uniformly bounded velocity subsequence on a neighborhood containing that point, despite the vanishing smooth source. This rules out local $C^0$ compactness for the specified magnification. Other normalizations or weaker limits require separate estimates; the growth-path statement gives no classification of them.
+
+The quoted leading core scales are
+$$
+\ell_r\asymp\tau^{1/2},\quad
+\ell_z\asymp\tau^{1/2-h},\quad
+|u_{\theta,z}^{(0)}|\asymp\tau^{-1/2-h},
+\qquad \tau=1-t,\quad 0<h<1/100.
+$$
+Their exponent arithmetic gives core volume $\tau^{3/2-h}$ and characteristic core energy $\tau^{1/2-3h}$, which tends to zero. If the complete velocity has this speed as a lower bound on a fixed positive fraction of that core volume, then
+$$
+\int|u|^3\,dx\gtrsim\tau^{-4h},
+\qquad
+\mathcal C\gtrsim\|u\|_3^2\gtrsim\tau^{-8h/3}.
+$$
+The last inequality uses $\dot H^{1/2}\hookrightarrow L^3$. It is a conditional bulk-volume estimate: an $L^\infty$ lower bound on a single circle or a leading-profile statement alone does not establish its premise for the completed flow. The fixed calculation checks the exponents; it does not verify the correction estimates or the construction.
+
+### 8.5 Kinematic concentration control and remaining requirement
+
+Energy and maximum speed alone leave the critical norm undetermined. Consider the solenoidal Schwartz field
+$$
+U(x,y,z)=(-2y,2x,0)e^{-(x^2+y^2+z^2)},\qquad
+U_\ell(x)=\ell^{-1}U(x/\ell).
+$$
+With the unitary Fourier transform,
+$$
+|\widehat U(k)|^2=\frac{k_x^2+k_y^2}{8}e^{-|k|^2/2}.
+$$
+The exact moments give
+$$
+K[U_\ell]=\ell\,\frac{\sqrt2\,\pi^{3/2}}4\longrightarrow0,
+\qquad
+\mathcal C[U_\ell]=\frac{8\pi}{3},
+\qquad
+\|U_\ell\|_\infty=\ell^{-1}\sqrt{2/e}\longrightarrow\infty.
+$$
+This family is a kinematic control. No evolution law or admissible smooth forcing for this concentration is asserted.
+
+For original Navier–Stokes dynamics, the remaining quantitative target is cumulative control of nonlinear critical production or of the evolving coefficient $\eta\mathcal C$. The source estimate isolates that requirement for smooth forcing as well as for zero forcing. The force-scaling calculation specifies the additional compactness needed to compare a proposed singularity with an unforced limiting equation. Neither step establishes arbitrary-data regularity or an unforced smooth-data singularity.
+
 ## References
 
 - E. Miller, [Finite-time blowup for a Navier–Stokes model equation for the self-amplification of strain](https://arxiv.org/abs/1910.05415), §§5–6—strain model, perturbative comparison, explicit Gaussian datum, initial perturbative window and axisymmetric departure; [mathematical HTML](https://ar5iv.labs.arxiv.org/html/1910.05415).
@@ -466,4 +692,8 @@ Independent analytical reviews confirm the centered remainder estimate, the full
 - `computations/verify_navier_stokes_strain_departure.py`—exact algebra and independent numerical reconstructions.
 - `computations/navier-stokes-critical-recurrence-prereg.md`—fixed remainder, spread and scalar-budget controls.
 - `computations/verify_navier_stokes_critical_recurrence.py`—exact full-convolution derivatives and independent FFT reconstruction.
+- `computations/navier-stokes-forced-concentration-prereg.md`—fixed forced budgets, source scaling and kinematic controls.
+- `computations/verify_navier_stokes_forced_concentration.py`—exact forced derivatives, independent FFT reconstruction and Gaussian quadrature.
+- OpenAI, [Finite time blowup for Navier–Stokes](https://cdn.openai.com/pdf/32d9f210-8b73-45e0-91bc-82a30aef8a9a/navier-stokes.pdf), Theorem 1.1 and §§2–3—announced forced construction and mechanism; proof correctness is outside this analysis.
+- C. Fefferman, [Existence and smoothness of the Navier–Stokes equation](https://www.claymath.org/wp-content/uploads/2022/06/navierstokes.pdf)—original problem alternatives.
 - `field-experience/probe-outcome-ledger.md`—qualified evidence and scope.
