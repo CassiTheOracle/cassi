@@ -11283,7 +11283,301 @@ normalization witness supplies none of that missing selection.
 Every scientific receipt retains
 `complete_physical_matter_formation=false`.
 
+## 68. Working notes: scalar two-body localization and annihilation
+
+### 68.1 Quantum interactions in the same scalar parent
+
+A produced carrier pair requires an interaction that can retain it, and
+an opposite-charge pair can return its energy to neutral excitations.
+This calculation assesses those two channels in the scalar restriction
+of §§64–67. Keep the complete tree vertices, the same sixteen supplied
+normalizations and couplings, and ordinary scalar quantization.
+All masses and momenta below use the unit-cone canonical coordinates
+of §66. The original and canonical Hamiltonians differ by a term
+proportional to conserved charge, so fixed-charge binding energies and
+neutral-reaction energy balances agree between those frames.
+
+For the vacuum-shifted mediator $\widehat\sigma$ and complex carrier
+$\widehat\Phi$, write
+$$
+\begin{aligned}
+V={}&\frac{m^2}{2}\widehat\sigma^2+M^2|\widehat\Phi|^2
++\frac{\kappa_3}{6}\widehat\sigma^3
++\frac{L}{24}\widehat\sigma^4
++\gamma\widehat\sigma|\widehat\Phi|^2\\
+&+\frac{P}{2}\widehat\sigma^2|\widehat\Phi|^2
++\frac{U}{2}|\widehat\Phi|^4,\\
+m^2={}&64,\qquad M^2=76,\qquad
+\widehat v^2=2\sqrt2\,\mathcal N,\\
+\kappa_3={}&\frac{192}{\widehat v},\qquad
+\gamma=\frac{32h_C}{\widehat v},\qquad
+(L,P,U)=\frac{8\sqrt2}{\mathcal N}(6,h_C,1).
+\end{aligned}
+$$
+The carriers have opposite signs of the supplied global charge.
+No identification with electric charge or observed particle species
+is introduced.
+
+### 68.2 Complete threshold amplitudes and neutral energy return
+
+The elastic and annihilation channels fix different interference terms.
+Retain the convention $i\mathcal M=-i\mathcal F$ from §64. For
+Mandelstam invariants $s,t,u$, the complete tree coefficients are
+$$
+\begin{aligned}
+\mathcal F_{++}&=2U+\frac{\gamma^2}{t-m^2}
++\frac{\gamma^2}{u-m^2},\\
+\mathcal F_{+-}&=2U+\frac{\gamma^2}{s-m^2}
++\frac{\gamma^2}{t-m^2},\\
+\mathcal F_{\rm ann}&=P+\frac{\gamma\kappa_3}{s-m^2}
++\frac{\gamma^2}{t-M^2}+\frac{\gamma^2}{u-M^2}.
+\end{aligned}
+$$
+The last process is
+$\Phi+\overline\Phi\rightarrow\widehat\sigma+\widehat\sigma$.
+The same-charge process into two mediators has zero amplitude by the
+global charge symmetry. The first elastic amplitude includes both
+exchange diagrams required for identical carriers.
+
+At rest the elastic invariants are $(s,t,u)=(4M^2,0,0)$.
+For annihilation they are
+$(4M^2,m^2-M^2,m^2-M^2)$, and the outgoing mediator momentum is
+$\sqrt{M^2-m^2}=\sqrt{12}$. Thus
+$$
+\begin{aligned}
+\mathcal F_{++}^{(0)}&=\frac{8\sqrt2}{\mathcal N}(2-h_C^2),\\
+\mathcal F_{+-}^{(0)}&=\frac{4\sqrt2}{15\mathcal N}(60-11h_C^2),\\
+\mathcal F_{\rm ann}^{(0)}&=
+\frac{8\sqrt2\,h_C}{55\mathcal N}(99-40h_C).
+\end{aligned}
+$$
+Time reversal relates $\mathcal F_{\rm ann}^{(0)}$ to
+$\mathcal F_2/c^3$ in §64. The opposite-charge pair at rest has
+finite outgoing mediator phase space, while the reverse process
+at the pair threshold has vanishing outgoing carrier phase space.
+
+Use covariantly normalized incoming states,
+$\langle\mathbf p|\mathbf p'\rangle
+=2E_{\mathbf p}(2\pi)^3\delta^3(\mathbf p-\mathbf p')$.
+The integrated mediator phase space includes its final-state $1/2!$.
+With $\beta_f=\sqrt{1-m^2/M^2}=\sqrt{3/19}$,
+$$
+\boxed{M^2\lim_{v_{\rm rel}\to0}\sigma_{\rm ann}v_{\rm rel}
+=\frac{\beta_f|\mathcal F_{\rm ann}^{(0)}|^2}{64\pi}.}
+$$
+This is a dimensionless tree reaction coefficient in the canonical
+coordinates. Physical rates additionally require normalized incoming
+populations, physical units and controlled interaction corrections.
+The algebraic zero $h_C=99/40$ is a threshold interference control;
+it supplies no selected physical coupling or protected quantum zero.
+
+### 68.3 A sufficient bound on the leading pair Hamiltonian
+
+Instantaneous scalar exchange gives an attractive Yukawa interaction.
+The carrier quartic and the opposite-charge annihilation-exchange
+diagram also supply repulsive threshold contact terms. The leading
+nonrelativistic pair reduction has
+$$
+\begin{aligned}
+H_{\pm}&=-\frac{\nabla^2}{M}
+-\alpha\,\frac{e^{-mr}}{r}+\eta_\pm D_\Lambda(r),\\
+\alpha&=\frac{\gamma^2}{16\pi M^2},\\
+\eta_{++}&=\frac{U}{4M^2},\qquad
+\eta_{+-}=\frac{U}{2M^2}
++\frac{\gamma^2}{4M^2(4M^2-m^2)}.
+\end{aligned}
+$$
+Here $D_\Lambda$ is any bounded nonnegative contact regulator with unit
+integral. The same-charge contact coefficient follows from the
+symmetrized Born amplitude; inserting the distinguishable-particle
+coefficient there would double it.
+
+Dropping either nonnegative contact term gives a lower comparison
+Hamiltonian. Define the bare radial kinetic operator
+$T_\ell=-d^2/dr^2+\ell(\ell+1)/r^2$.
+Its zero-energy Green function is
+$G_\ell(r,r')=r_<^{\ell+1}r_>^{-\ell}/(2\ell+1)$.
+The free pair kinetic operator is $T_\ell/M$, so its Green function is
+$M G_\ell$. The positive Birman–Schwinger kernel consequently has trace
+$$
+\boxed{\operatorname{tr}K_\ell=\frac{\mathcal B}{2\ell+1},
+\qquad
+\mathcal B=\frac{M\alpha}{m}
+=\frac{\sqrt2\,h_C^2}{\pi\sqrt{19}\,\mathcal N}.}
+$$
+If $\mathcal B<1$, no partial wave reaches the unit eigenvalue needed
+for a negative-energy pair level. Positive regulated contact terms
+cannot create such a level. The same-charge sector permits only even
+orbital angular momenta; the bound covers those and every other
+partial wave. If $\mathcal B\ge1$, the trace criterion alone leaves
+binding undecided.
+
+This operator statement concerns the leading instantaneous
+nonrelativistic reduction. The ratio $m/M=\sqrt{16/19}$ provides no
+parametrically light mediator. Relativistic binding, retardation, loop
+matching, many-carrier states and nonradial formation dynamics remain
+separate questions. The real opposite-charge comparison operator
+also omits its open annihilation channel; it supplies no stable
+neutral-pair quantum Hamiltonian.
+
+### 68.4 Fixed qualification before execution
+
+The primary program is
+`computations/matter_formation_scalar_two_body.py`.
+Independent charged-state tree reconstruction is in
+`computations/verify_matter_formation_scalar_thresholds.py`;
+independent nonrelativistic matching and binding qualification is in
+`computations/verify_matter_formation_scalar_localization.py`.
+No program imports another's scientific calculation.
+
+Require exact reconstruction of all complete tree diagrams from
+the vacuum polynomial, their charged external-state projections,
+the three threshold coefficients, the forbidden same-charge
+annihilation, and the neutral final-state phase-space factor.
+Independently derive the two contact coefficients and the Yukawa
+strength from the nonrelativistic carrier expansion.
+Verify the radial Green-function derivative jump and the diagonal
+trace for general nonnegative integer $\ell$, including the
+$\ell=0$ boundary condition. The positive-kernel bound must be
+accepted by independent hand derivation before execution.
+The controls are $h_C=0$, the exact annihilation interference root,
+and omission of the mixed quartic at that root; the latter must
+destroy the cancellation.
+
+Evaluate exactly $\mathcal N=1,4,16,64$ crossed with
+$h_C=0,2,2.9598260763447164,6$, retaining the other inputs of §66.1.
+Store full-precision couplings, threshold amplitudes, reaction
+coefficients, contact terms, Yukawa trace bounds and the inherited
+asymptotic tree-bound decisions. The $\mathcal N=1$ rows remain
+formal diagnostics outside that criterion. Compare the trace integral
+by direct infinite-range quadrature and a finite interval ending at
+$8/m$ with its exact exponential tail.
+Every numerical comparison uses
+$\|A-B\|/\max(1,\|B\|)\le10^{-9}$; symbolic identities require zero.
+
+Before execution bind this section, §§64 and 66, the parent action,
+all three sources and both accepted independent hand reviews by
+normalized SHA-256 under
+`runs/20260909_matter_formation_scalar_two_body/`.
+Each program must reject a source mismatch or either unaccepted
+review before scientific rows. Separate raw reconstruction must
+compare every reported quantity without importing a calculation
+program. Retain all nine prerequisite-rejection controls.
+All requirements passing gives
+`SUPPORTS-conditional scalar pair localization and annihilation constraints`;
+missing prerequisites, nonfinite quantities or failed comparisons
+give `INCONCLUSIVE`. Stop at this schedule: no coupling fit,
+bound-state search, formation trajectory or extrapolation beyond
+the stated approximations. Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
+## 69. Working notes: qualified scalar pair constraints
+
+### 69.1 The scheduled weak-tree witnesses have no bound pair
+
+The supplied scalar interaction excludes a negative-energy two-carrier
+level throughout the twelve scheduled witnesses that satisfy the
+necessary asymptotic tree criterion. Each witness has
+$\mathcal N=4,16,64$ and one of the four couplings in §68.4.
+The exact contact matching and positive-kernel argument agree with
+the independent hand derivation. Direct infinite-range quadrature
+and the independent finite-interval quadrature with its exponential
+tail agree on every trace.
+
+The largest trace among those twelve witnesses is
+$$
+\boxed{\mathcal B=0.9294602777407048<1
+\quad\text{at}\quad(\mathcal N,h_C)=(4,6).}
+$$
+All partial waves therefore have comparison-kernel norm below one.
+The nonnegative regulated contacts preserve the exclusion for both
+charge channels of the leading real pair Hamiltonian.
+
+Fifteen of the sixteen scheduled rows satisfy $\mathcal B<1$.
+The remaining row, $(\mathcal N,h_C)=(1,6)$, has
+$\mathcal B=3.7178411109628193$ and is undecided by the trace bound.
+It also has asymptotic partial-wave radius
+$1.524235944750291>1/2$. All four $\mathcal N=1$ rows are formal
+diagnostics outside the necessary tree criterion.
+An undecided trace supplies no evidence of binding.
+
+These are conditional operator results in the leading instantaneous
+nonrelativistic reduction. Passing the asymptotic tree criterion
+supplies no low-energy error estimate. The selected mediator is
+comparable in mass to the carrier; relativistic and radiative
+corrections require separate treatment.
+Unbound massive carrier excitations remain compatible with the result.
+Many-carrier binding and real-time formation are outside this calculation.
+
+### 69.2 Opposite-charge carriers have an open neutral return channel
+
+An opposite-charge pair at rest has enough energy to produce two
+mediators. The complex-field and independent real-Cartesian tree
+reconstructions agree on its complete annihilation amplitude,
+including the mixed-quartic contact and all three exchange terms.
+The same-charge process into two mediators vanishes by the supplied
+global charge symmetry.
+
+Define the dimensionless canonical reaction coefficient
+$\mathcal R=M^2\lim_{v_{\rm rel}\to0}\sigma_{\rm ann}v_{\rm rel}$.
+The measured $\mathcal N=4$ rows are
+
+| $h_C$ | Pair trace $\mathcal B$ | Annihilation coefficient $\mathcal R$ |
+|---|---:|---:|
+| $0$ | $0$ | $0$ |
+| $2$ | $0.10327336419341161$ | $0.007547198653909491$ |
+| $2.9598260763447164$ | $0.2261833944223681$ | $0.017220386533679695$ |
+| $6$ | $0.9294602777407048$ | $3.740755423671391$ |
+
+At each fixed coupling the recorded rows obey
+$\mathcal B\propto\mathcal N^{-1}$ and
+$\mathcal R\propto\mathcal N^{-2}$.
+The exact threshold interference zero is $h_C=99/40$.
+Deleting the mixed-quartic contact at that point leaves
+$-99\sqrt2/(5\mathcal N)$ in the amplitude, so the cancellation
+depends on that interaction. No protected quantum zero follows.
+The inherited coupling has a nonzero reaction coefficient.
+Physical annihilation rates require population normalization,
+physical units and controlled interaction corrections.
+The real comparison Hamiltonian omits the absorptive channel.
+
+### 69.3 Qualification and remaining matter-formation inputs
+
+All 105 primary, 13 independent threshold and 66 independent
+localization checks pass. Separate reconstruction of the raw
+receipts passes 1,367 comparisons, with maximum normalized
+discrepancy $1.4178877528186032\times10^{-13}$ against the fixed
+$10^{-9}$ tolerance. Each program rejects a source mismatch and
+either unaccepted hand review before producing scientific rows;
+all nine prerequisite-rejection controls pass.
+
+The independent hand derivations qualify the mathematical routes.
+Main integrates the implementations, executes the fixed schedule
+and reconstructs the raw receipts. The frozen sources and sections,
+accepted reviews, submitted drafts, integration clarifications,
+full-precision rows, quadrature samples and execution records are
+retained in `runs/20260909_matter_formation_scalar_two_body/`.
+The joint verdict is
+`SUPPORTS-conditional scalar pair localization and annihilation constraints`.
+The execution uses Python 3.12.10, NumPy 2.5.1, SciPy 1.18.0
+and SymPy 1.14.0.
+
+Physical matter formation still requires a selected microscopic
+action and quantum state, a physical normalization and
+renormalization prescription, derived particle spin/statistics/charges,
+and localized formation with nonradial persistence in the same model.
+The many-to-one projection in §29 leaves the microscopic selection
+undetermined by the registered density observables. The supplied
+normalizations and the scalar pair calculation do not resolve that
+selection. Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
 ## References
+
+- `computations/matter_formation_scalar_two_body.py`—complete scalar tree interactions, contact matching, annihilation coefficient and infinite-range pair-trace quadrature.
+- `computations/verify_matter_formation_scalar_thresholds.py`—independent Cartesian vertex contractions, charged-state projections and final-state phase space.
+- `computations/verify_matter_formation_scalar_localization.py`—nonrelativistic coefficient reconstruction, general partial-wave Green functions and finite-range quadrature with exact tail.
+- `runs/20260909_matter_formation_scalar_two_body/`—frozen sources and sections, independent hand derivations, full-precision rows, raw reconciliation and nine rejection controls.
 
 - `computations/matter_formation_quantum_coupling.py`—canonical spatial normalization, scattering tensor and one-loop scalar contractions.
 - `computations/verify_matter_formation_scalar_scattering.py`—independent fourth derivatives, normalized two-particle cut, channel decomposition and spectra.
