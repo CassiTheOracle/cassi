@@ -6,6 +6,8 @@
 
 This schedule checks the source terms in the ordinary incompressible Navier–Stokes budgets, the forcing extension of the spectral-spread estimate, and the scaling of a smooth force near a proposed singular point. The work remains within the original equation. Fixed instantaneous Fourier controls and a kinematic Euclidean profile verify algebra and normalization. No Navier–Stokes trajectory, singularity search, formal-proof build or audit of the announced blow-up construction is performed.
 
+This specification governs the post-run qualification of the fixed cases, using 215 checks with explicit source-work signs, scaled-profile maximum speed and the stated endpoint/$F_+$ assumptions. The separately accepted preregistered run is `runs/navier_stokes_forced_concentration/verification.json`, bound to its own protocol and verifier snapshots.
+
 ## 1. Equation and conventions
 
 The analytical statements concern smooth solutions with finite displayed norms on $\mathbb R^3$, or real mean-zero velocity and mean-zero forcing on the $2\pi$ torus with volume-normalized integrals. Write the external force as $f_{\rm ext}$, its Leray projection as $g=\mathbb P f_{\rm ext}$, and
@@ -76,11 +78,11 @@ For the announced construction's quoted core scales, check only the exponent ari
 - Qualified source identities and scaling calculations receive **PASS** at their displayed algebraic scope. The analytic inequalities require the separate continuum derivation and independent review.
 - The Gaussian profile receives **CONTRADICTS** for the purely kinematic implication from bounded energy and diverging maximum velocity to divergent critical norm. This classification addresses no solution of the Navier–Stokes equation.
 - Arbitrary-data regularity, an unforced finite-energy blow-up construction, novelty, the announced theorem's proof correctness and a nontrivial blow-up limit remain **UNRESOLVED** or **NOT_AUDITED**, as applicable.
-- Execute this fixed schedule once after source freeze. Implementation defects may be repaired with the protocol unchanged, every failed receipt retained and a fresh output path. No new fixtures, parameter searches, trajectories or proof builds are added. Stop after the fixed controls and analytical reconciliation.
+- The post-run qualification re-executes the fixed controls under the endpoint and $F_+$ assumptions stated here. No new fixtures, parameter searches, trajectories or proof builds are added. Freeze the qualification inputs before execution; any input change requires a fresh receipt and matching manifest and snapshots. Stop after the controls and analytical reconciliation.
 
 ## 6. Evidence and references
 
-Run `python computations/verify_navier_stokes_forced_concentration.py --output runs/navier_stokes_forced_concentration/verification.json` from CassiTheory. Use a fresh immutable receipt, an adjacent input manifest and snapshots of the protocol, verifier and every imported local helper. Preserve raw bytes and reject source changes during execution. Generated evidence remains local and is indexed in `BROKEN_REFS.md`.
+Run `python computations/verify_navier_stokes_forced_concentration.py --output runs/navier_stokes_forced_concentration/qualified_reproduction/verification.json` from CassiTheory with a fresh output path. The default qualification output is `runs/navier_stokes_forced_concentration/qualified_v3/verification.json`. Each receipt retains an adjacent input manifest and snapshots of the specification, verifier and every imported local helper. Preserve raw bytes and reject source changes during execution. Generated evidence remains local and is indexed in `BROKEN_REFS.md`.
 
 - `turbulence/navier-stokes-strain-departure.md`—unforced comparison, spectral estimate and forcing extension.
 - `computations/navier-stokes-critical-recurrence-prereg.md`—retained strain and Fourier conventions.

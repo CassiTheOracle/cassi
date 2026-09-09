@@ -23,7 +23,7 @@ import verify_navier_stokes_transfer as transfer
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = ROOT / "computations/navier-stokes-forced-concentration-prereg.md"
-DEFAULT_OUTPUT = ROOT / "runs/navier_stokes_forced_concentration/verification.json"
+DEFAULT_OUTPUT = ROOT / "runs/navier_stokes_forced_concentration/qualified_v3/verification.json"
 VISCOSITIES = (sp.Rational(1, 100), sp.Integer(1))
 GRIDS = (24, 32)
 FORCES = ("zero", "drive", "brake", "laplacian", "off_support")
