@@ -7192,6 +7192,227 @@ whether an unrestricted vortex core actually depletes the total
 density enough to trap the existing neutral carrier. Winding alone
 does not impose that depletion.
 
+## 43. Working notes: vortex density relaxation and transverse binding
+
+### 43.1 The large-distance density response
+
+A stationary phase vortex can attract the existing neutral carrier
+through relaxation of the total density. This question can be tested
+in its exterior without assuming that the core empties. The calculation
+is conditional on a smooth straight vortex approaching the nonaligned
+charged vacuum, with strictly positive radial and composition
+curvatures, including $\lambda_H>0$. Existence and stability of that
+vortex remain separate requirements.
+
+Keep the spatial action (PA2), (PA12) in
+`foundations/particle-stationary-action-closure.md`, with zero carrier
+background and no scale dependence. Put $u=|\Phi|$, $v=v_Q$ and
+$c_0=\varphi^{-3}$. The potential and the fully projected angular
+stiffness are
+$$
+W=\frac{\lambda_\rho}{4}(\rho-\rho_0)^2
++\frac{\lambda_\varphi\rho^2(1+\varphi)^2}{8}
+\left(\frac{u}{v}c-c_0\right)^2
++\frac{\lambda_H}{4}(u^2-v^2)^2,
+\qquad
+J=\frac{4a\rho\,du^2(1-c^2)}{a\rho+4du^2}.
+$$
+The denominator in the composition observable is the fixed vacuum
+norm $v$. Consequently, the $u,c$ entries of the potential Hessian
+mix. The density entry decouples at the vacuum and is
+$W_{\rho\rho}=\lambda_\rho/2$.
+
+For physical phase winding $m$, the angular density is
+$m^2J/(8r^2)$. With $H_W$ the vacuum Hessian in $(\rho,u,c)$, the
+candidate leading stationary balance is
+$$
+H_W\,\delta(\rho,u,c)
+=-\frac{m^2}{8r^2}\nabla J\big|_0+o(r^{-2}).
+$$
+In the massive-vacuum expansion the amplitude-gradient contributions
+to these equations enter at order $r^{-4}$ or smaller. The exterior
+connection of §42 is flat at constant invariants; its curvature from
+their relaxation is also subleading. The resulting density coefficient
+is
+$$
+\rho_0-\rho(r)=\frac{A_\rho}{r^2}+o(r^{-2}),
+\qquad
+A_\rho=
+\frac{m^2a(4dv^2)^2(1-c_0^2)}
+{4\lambda_\rho(a\rho_0+4dv^2)^2}>0.
+$$
+Here $[A_\rho]=[\rho]L^2$. The coefficient vanishes algebraically at
+zero winding or aligned composition. Those controls do not assert
+that the nonaligned-vacuum hypotheses survive those limits.
+
+The $\lambda_H=0$ branch needs its own analysis. Its massless vacuum
+tangent is $(\delta\rho,\delta u,\delta c)=(0,1,-c_0/v)\delta u$.
+A nonzero projection of the angular force on this tangent would
+prevent a decaying massive-vacuum response: in two transverse
+dimensions, $\Delta(\ln r)^2=2/r^2$. Substituting an inverse of a
+singular Hessian would therefore change the physical premise.
+The radial metric is also projected through the gauge field. Minimizing
+$a\rho_0(\beta'+b_r)^2/8+dv^2b_r^2/2$ gives
+$$
+G_{cc}=\frac{a\rho_0(4dv^2)}
+{4(a\rho_0+4dv^2)(1-c_0^2)},\qquad
+\kappa_{\rm tang}=d+\frac{c_0^2}{v^2}G_{cc}>0.
+$$
+With $S_{\rm tang}=m^2(J_u-c_0J_c/v)/8$ at the vacuum, the
+linearized massless response is
+$\delta u=S_{\rm tang}(\ln r)^2/(2\kappa_{\rm tang})
++C\ln r+D$. This expression tests compatibility with a converging
+vacuum; its growing terms are outside a small-perturbation regime.
+
+
+### 43.2 Carrier binding in an attractive inverse-square exterior
+
+The carrier equation supplies a spectral consequence if the density
+tail in §43.1 exists. Relative to its bulk threshold, the linear
+transverse operator is
+$$
+H_\perp=-\frac{K_{Cx}}2\Delta_\perp-\frac{\gamma}{r^2}
++o(r^{-2}),\qquad \gamma=\eta_CA_\rho>0.
+$$
+Both $\gamma$ and $K_{Cx}$ have units of energy times length squared.
+For an angular Fourier mode $\ell$, define
+$\nu_\ell^2=2\gamma/K_{Cx}-\ell^2$. On the annulus
+$R_{\rm in}<r<R_{\rm in}e^L$, the continuous trial function
+$\chi=\sin[\pi\ln(r/R_{\rm in})/L]$, zero outside, has quadratic form
+$$
+\langle\chi,H_\perp\chi\rangle_{\rm pure\ tail}
+=\frac{\pi K_{Cx}L}{2}
+\left[\left(\frac{\pi}{L}\right)^2-\nu_\ell^2\right].
+$$
+Its norm is finite and positive. In the $\ell=0$ sector, any
+$L>\pi/\nu_0$ makes this form negative. The inequality remains strict
+on sufficiently distant annuli for an $o(r^{-2})$ correction. Arbitrarily
+many disjoint such annuli supply orthogonal negative directions.
+For a regular core and a semibounded operator, the min-max principle
+then gives infinitely many transverse bound eigenvalues accumulating
+at the bulk threshold. Their states need not be concentrated in the
+central core.
+
+A separate exact exterior model sets $r\ge R_0$, a Dirichlet wall at
+$R_0$, and the potential exactly to $-\gamma/r^2$. Its $\ell=0$
+decaying bound solution is $K_{i\nu_0}(\kappa r)$, with
+$K_{i\nu_0}(\kappa R_0)=0$ and binding energy
+$K_{Cx}\kappa^2/2$. At small argument, adjacent binding energies
+approach the ratio $\exp(-2\pi/\nu_0)$. This wall is a mathematical
+spectral control; it represents no solved physical core.
+
+### 43.3 Fixed calculation before execution
+
+Use the §42 witness $(\rho_0,a,d,v)=(1.2,0.83,1.25,0.9)$,
+$c_0=\varphi^{-3}$ and $m=1$. Set
+$\lambda_\rho=\lambda_\varphi=\lambda_H=K_{Cx}=\eta_C=1$ in
+the supplied source units and $R_0=1$ in the exact exterior model.
+These are declared numerical witnesses, without a physical calibration.
+
+`computations/verify_matter_formation_vortex_tail.py` independently
+differentiates the full potential and projected stiffness. Require
+exact-zero Hessian/balance residuals, agreement of $A_\rho$ with
+the separate $f=\sqrt\rho$ coordinate calculation, positive witness
+curvatures and depletion, and the stated zero-winding/alignment
+algebra controls. Retain the full Hessian, forcing and signed
+coefficients. At $\lambda_H=0$, check the null tangent and its forcing
+exactly, together with the screened radial metric and the radial
+logarithm-squared identity.
+
+`computations/matter_formation_vortex_tail_spectrum.py` reconstructs
+the coefficient directly from the displayed formula and integrates the
+radial quadratic form and norm with 70-digit arithmetic on 16 fixed
+geometric radial subintervals. For
+$\ell=0$ use $L=\pi/(2\nu_0),\pi/\nu_0,2\pi/\nu_0$ and require
+positive, zero, and negative forms respectively. At the largest $L$,
+require positive forms for $\gamma=0$, $\gamma=-|\gamma|$, and
+$\ell=1$. Compare direct and log-coordinate forms to $10^{-30}$
+after division by $\max(1,|\mathrm{reference}|)$.
+Require every direct norm to be positive and to agree at this tolerance
+with
+$\|\chi\|^2=\pi R_0^2(e^{2L}-1)(\pi/L)^2/[2(1+(\pi/L)^2)]$.
+
+For the exact exterior, bracket four roots in
+$t=\ln(2/x)$ around
+$t_n=[n\pi-\arg\Gamma(1+i\nu_0)]/\nu_0$, with half-width
+$\pi/(4\nu_0)$ and $n=1,2,3,4$. Use at most 640 bisection steps, require
+real Bessel residuals below $10^{-30}$, and retain every bracket,
+root and binding energy. Require increasing $t$ and decreasing
+positive binding energies. Verify the radial differential equation
+by direct high-precision differentiation to the same tolerance.
+The energy ratios are measurements; no finite-root spacing threshold
+is imposed.
+
+Before either program runs, retain this section and both source files
+with hashes in `runs/20260908_matter_formation_vortex_tail/`.
+Run each once. Reconcile the independently computed $A_\rho$ to
+$10^{-12}$ after division by $\max(1,|A_\rho|)$. All required checks
+passing gives the scoped identity verdict `PASS`; a failed comparison
+gives `FAIL`; missing or nonfinite evidence gives `INCONCLUSIVE`.
+Preserve failed execution output. No replacement parameters, root
+scan, stationary-core solve or formation run belongs to this
+calculation. Every receipt retains
+`complete_physical_matter_formation=false`.
+
+### 43.4 Measured tail and exterior spectrum
+
+Both programs exit successfully and every frozen comparison passes.
+The reconciled identity verdict is `PASS`. Independent differentiation
+and the high-precision spectral calculation give
+$A_\rho=0.1262207410719694$ in the supplied units. The signed
+$r^{-2}$ coefficients for $(\rho,u,c)$ are
+$(-0.1262207410719694,-0.03318688486514068,0.02782498856663281)$.
+The vacuum Hessian has positive leading principal minors
+$(0.5,0.8948813358333567,1.998656133358408)$.
+
+The attractive exterior has $\nu_0=0.5024355502389723$.
+The three direct trial forms are $3.719130088426736$, zero to
+$3.63\times10^{-71}$, and $-3.719130088426736$. At the longest
+annulus the zero-attraction, repulsive, and $\ell=1$ controls give
+$1.239710029475579$, $6.198550147377893$, and
+$15.92439313837340$. The largest normalized form discrepancy is
+$9.74\times10^{-72}$; the largest norm discrepancy is
+$1.14\times10^{-71}$.
+
+The four prescribed Dirichlet-exterior roots give these binding
+energies relative to the bulk threshold:
+
+| Root index | $\kappa R_0$ | $E_{\rm bind}$ in supplied units |
+|---:|---:|---:|
+| 1 | $2.365137300524830\times10^{-3}$ | $2.796937225166939\times10^{-6}$ |
+| 2 | $4.553347129025463\times10^{-6}$ | $1.036648503870221\times10^{-11}$ |
+| 3 | $8.766084414186051\times10^{-9}$ | $3.842211797831780\times10^{-17}$ |
+| 4 | $1.687642821411693\times10^{-11}$ | $1.424069146331209\times10^{-22}$ |
+
+The largest root residual is $3.37\times10^{-51}$. The successive
+energy ratios are $3.706370291554711\times10^{-6}$,
+$3.706378568518909\times10^{-6}$, and
+$3.706378568549587\times10^{-6}$, approaching the asymptotic
+$3.706378568549587\times10^{-6}$. Their shallow binding and large
+transverse extent make a finite-loop calculation consequential.
+
+The massless-adjoint comparison has
+$S_{\rm tang}=0.05376275348152791$ and
+$\kappa_{\rm tang}=1.264561267934366$. Its forced coefficient of
+$(\ln r)^2$ is $0.02125747278712254$. The massive-vacuum expansion
+therefore cannot be transferred to $\lambda_H=0$.
+
+These calculations establish the conditional exterior attraction and
+its transverse spectral consequence. A straight global vortex has
+logarithmically divergent energy per length in an infinite exterior.
+A finite isolated object requires a solved core and closed geometry,
+with stability and an occupied carrier sector. The classical carrier
+equation preserves an exactly empty sector, so a negative transverse
+eigenvalue supplies no creation event. Particle identity, quantum
+state and physical calibration remain open.
+
+The local, ignored evidence directory
+`runs/20260908_matter_formation_vortex_tail/` retains the frozen
+section, both executed sources, `asymptotic.json`, `spectrum.json`,
+and `reconciliation.json`. Running the two source programs in §43.3
+reproduces their numerical calculations. The result remains confined
+to these working notes.
+
 ## References
 
 - `computations/matter_formation_electric_support.py`—exact temporal-square and charge construction, Gaussian quadrature, covariant interval operators and boundary controls.
