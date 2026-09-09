@@ -337,6 +337,16 @@ The accepted receipt is **`runs/cassi_fluid_feasibility/qualified/verification.j
 
 The input manifest also hashes the first-order action, second-order completion, scale-stress boundary and canonical density reference. All seven current inputs, manifest entries and source snapshots agree.
 
+The raw hashes identify the execution bytes in `verification.sources/`.
+The separate `runs/cassi_fluid_feasibility/qualified/git-provenance.json`
+compares all seven inputs with commit `df4dbdcf`: four committed blobs match
+the raw receipt hashes, while the native solver, second-order completion and
+canonical density reference differ solely by CRLF/LF line endings.
+The repository retains its `core.autocrlf=true` transport policy.
+Validation of this accepted run uses the preserved raw source snapshots.
+A reproduction binds its own checkout bytes in a fresh manifest and source
+directory; line-ending normalization never replaces an accepted raw hash.
+
 The root-level **`runs/cassi_fluid_feasibility/verification.json` is an ERROR diagnostic**, excluded from qualification. It records 49 successful symbolic checks and no trajectory; its harness requests an absent lowercase coordinate attribute. It retains its own verifier snapshot and input manifest. The accepted run uses the native uppercase arrays with physical $x$ on the last Fourier axis. Both receipts bind the same preregistration; fixtures, equations, grids, timesteps and tolerances agree. The diagnostic is preserved without replacement.
 
 Two independent read-only analytical reviews confirm the qualified action and density identities. The accepted interpretation restricts strict positivity to the required hypotheses, keeps the two temporal branches separate, and distinguishes scalar translation from pointwise stationarity in the energy obstruction. Numerical receipt/array reconciliation and those scope qualifications are retained in `runs/cassi_fluid_feasibility/qualified/reconciliation.json`.
