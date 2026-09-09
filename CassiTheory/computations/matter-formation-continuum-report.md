@@ -11572,7 +11572,292 @@ normalizations and the scalar pair calculation do not resolve that
 selection. Every scientific receipt retains
 `complete_physical_matter_formation=false`.
 
+## 70. Working notes: autonomous quantum transfer with the full scalar interaction
+
+### 70.1 A finite-mode Hamiltonian and its quantum state
+
+The scalar parent permits a closed quantum calculation in which the
+mediator supplies the excitation energy and the carrier has no classical
+seed. Retain a spatially uniform real mediator and one complex carrier
+Fourier coefficient, $z(\mathbf x)=Z e^{ikx}$. This is a specified
+finite-mode quantization of the scalar restriction in §64. The omitted
+spatial modes, continuum counterterms and physical microscopic selection
+remain outside this calculation.
+
+Use the inherited resolved carrier wave number
+$k=2.675336705149658$ from §25, in the original spatial coordinates.
+The periodic cube has side $2\pi/k$ and volume $V=(2\pi/k)^3$.
+Set $\eta=\mathcal N V$, $v^2=\eta c_\Psi$,
+$S=vf$ and $Z=(X+iY)/\sqrt{2\eta a}$.
+With $r^2=X^2+Y^2$,
+$m^2=2u_\rho/c_\Psi$ and
+$\omega^2=(B+k_{Cx}k^2/2)/a$, the complete Hamiltonian is
+$$
+\boxed{
+H=\frac{p_S^2+p_X^2+p_Y^2}{2}
+ +\frac{m^2}{8v^2}(S^2-v^2)^2
+ +\frac{\omega^2}{2}r^2
+ +\frac{h_C}{2a}\left(\frac{S^2}{v^2}-1\right)r^2
+ +\frac{u_C}{8\eta a^2}r^4 .}
+$$
+All products are ordinary coordinate multiplication operators on
+$L^2(\mathbb R^3,dS\,dX\,dY)$. No normal-order subtraction,
+quartic deletion, imposed time-dependent frequency or carrier seed is
+introduced. The potential is coercive for the supplied positive
+coefficients, so the Friedrichs realization has a discrete spectrum
+and a unique ground state. Positivity and the reflection and rotation
+symmetries place that ground state in the even-$S$, zero-charge sector.
+The conserved carrier charge is the signed angular momentum in the
+$(X,Y)$ plane.
+
+The numerical state is defined without assuming a classical vacuum
+wavefunction. In each specified finite basis, compute the lowest
+even, neutral eigenvector $g_P$ of $H_P=PHP$. Retain its full-space
+residual $\|(H-E_P)g_P\|$. This is a variational ground-state
+approximation; a small residual alone supplies no bound on its distance
+from the exact ground state without spectral isolation.
+
+Prepare the mediator with the unitary dilation
+$U=\exp(-i\delta D)$, where
+$D=(Sp_S+p_SS)/2$ and $\delta=\log\sqrt{3/2}$.
+In coordinate space $U\psi(S)=e^{-\delta/2}\psi(e^{-\delta}S)$.
+It acts only on the mediator and leaves the carrier's reduced state
+unchanged at preparation. The finite calculation uses
+$U_P=\exp(-i\delta PDP)$ and retains its leakage bound.
+After this preparation the Hamiltonian is time independent.
+The mediator reflection sector and total carrier charge remain fixed.
+
+### 70.2 Exact matrix elements and accessible observables
+
+The oscillator basis resolves quantum fluctuations as well as the
+excited mediator. Use even mediator occupations $2j$ with oscillator
+frequency $m$, and circular carrier occupations
+$n_+=n_-=n$ with frequency $\omega$. This is the entire neutral
+radial oscillator basis, with no upper occupation bound in the
+underlying finite-mode theory. In that basis,
+$$
+r^2=\frac{2n+1+a_+a_-+a_+^\dagger a_-^\dagger}{\omega},
+\qquad
+H_{C,0}=\omega(2n+1).
+$$
+The pair-coordinate ladder has diagonal $2n+1$ and off-diagonal
+$n+1$. Matrix elements of $S^4$ and $r^4$ are computed before
+projection. Squaring a matrix already truncated to $P$ omits
+intermediate states at its boundary and changes the Hamiltonian.
+
+Record the complete state at every prescribed time and the expectations
+of $S^2/v^2$, $H_{C,0}$, $n$, and the bounded projector
+$B_C=1-|n=0\rangle\langle n=0|$. The latter is the probability
+of at least one reference-oscillator pair. It counts reference-basis
+excitations, including reversible dressing; it is not an asymptotic
+out-particle count. Its increase relative to $g_P$ is the primary
+transfer statistic. The initial dilation commutes with every carrier
+observable above.
+
+Split the energy into the mediator term, the reference carrier
+quadratic term, the carrier quartic term and the mixed interaction.
+Retain all four expectations, their sum and the initial preparation
+work. Their time dependence measures reciprocal energy exchange in
+the complete Hamiltonian. Spatial densities in this mode restriction
+are uniform. This calculation provides no localized object or
+nonradial persistence measurement.
+
+### 70.3 Bounding the oscillator-basis truncation
+
+The discarded Hamiltonian image supplies a state-norm error bound
+for the infinite occupation space of this finite-mode model.
+Let $R=(1-P)HP$, and let
+$\psi_P(t)=\exp[-i(H_P-E_P)t]U_Pg_P$. Self-adjointness gives
+$$
+\|\psi(t)-\psi_P(t)\|
+\le \int_0^t\|R\psi_P(s)\|\,ds
+$$
+for evolution from the same finite initial state, using the same
+irrelevant overall phase. Since the Hamiltonian has quartic degree,
+two extra even-mediator indices and two extra radial indices
+contain every discarded image. The preparation has the corresponding
+bound $\int_0^\delta\|(1-P)DP\,e^{-isPDP}g_P\|\,ds$.
+For normalized states and the projector $B_C$, an evaluated norm
+bound $\epsilon$ gives a probability-error bound $2\epsilon$.
+It does not by itself bound an unbounded occupation or energy
+expectation.
+
+Retain a numerical upper estimate for each integral rather than
+only sampled leakage. For the evolution, write
+$\psi_P(s)=\sum_j c_j v_j e^{-i(E_j-E_P)s}$.
+A Lipschitz constant for the leakage norm is
+$$
+L_R=\sum_j |c_j|\,|E_j-E_P|\,\|Rv_j\|.
+$$
+On a uniform grid of spacing $\Delta t$, the trapezoidal integral
+plus $L_Rt\Delta t/4$ is an upper bound in exact arithmetic.
+Use the analogous spectral expression for the preparation generator,
+with the carrier-vector norm of each mediator coefficient.
+The implementation evaluates these analytic inequalities in
+floating-point arithmetic; it supplies no interval-arithmetic
+certificate. The zero-pump state's full-space change is bounded by
+$t\|(H-E_P)g_P\|$.
+
+### 70.4 Fixed quantum-evolution calculation
+
+Use $a=1/16$, $c_\Psi=1/8$, $u_\rho=4$,
+$u_C=k_{Cx}=1$, $e_C=3/4$ and $\mathcal N=4$.
+The coupled arm uses the inherited Mapped
+$h_C=2.9598260763447164$. The mode and volume are those in §70.1.
+These are supplied dimensionless inputs, with no physical fit or
+normalization selection. Retain both accepted §25 receipts and bind
+their exact bytes before execution.
+
+The three bases have $(J,N)=(48,12),(64,16),(80,20)$, meaning
+$j=0,\ldots,J-1$ and $n=0,\ldots,N-1$.
+Run the coupled, dilated state on all three. On the largest basis
+also run the coupled zero-dilation control and the dilated $h_C=0$
+control, each using its own Hamiltonian's lowest state.
+Evolve through $t=16$ with 513 equally spaced retained samples.
+For preparation, retain 257 equally spaced generator-time samples
+from zero through $\delta$. Stop after these five trajectories.
+No parameter, wave-number, occupation-cutoff or duration scan is
+authorized beyond this schedule.
+
+The primary method constructs matrix elements with oscillator
+ladders, including every unprojected intermediate state, and evolves
+by spectral decomposition. The independent method constructs the
+coordinate-potential matrix elements by normalized Hermite and
+Laguerre quadrature, with the radial phase convention that makes
+the $r^2$ off-diagonal positive, and evolves with a sparse matrix
+exponential. Each computes its own lowest state and preparation.
+Neither imports the other's scientific implementation.
+A third program reconstructs the discarded images, integral
+bounds, energy records and transfer decisions from the raw outputs,
+without importing either evolution program.
+
+Qualification requires all five trajectories, finite arrays,
+the stated operator shapes and all sample times. Matrix and
+discarded-image comparisons use Frobenius differences divided by
+$\max(1,\|\text{reference}\|_F)$, with bounds $10^{-11}$.
+Between methods, ground energies agree to $10^{-9}$ after division
+by $\max(1,|E_P|)$; ground vectors and all propagated states agree
+in norm to $10^{-7}$ with the common ground-vector sign and
+$E_P$ phase convention. Each method preserves norm to $10^{-10}$
+and total energy to $10^{-9}$ of
+$\max(1,|\langle H\rangle_{t=0}|)$.
+
+Embed smaller-basis states into the larger basis for comparison.
+The maximum coupled-state norm difference over all sample times
+must be below $10^{-3}$ from the first to the second basis and
+below $10^{-4}$ from the second to the third. On the largest
+basis, the coupled preparation bound must be below $10^{-6}$,
+the evolution bound below $10^{-4}$, and
+$16\|(H-E_P)g_P\|$ below $10^{-5}$.
+Each control's reference-pair probability change must stay below
+$10^{-8}$. Independently reconstruct every energy and probability
+array to $10^{-9}$ after division by $\max(1,|\text{value}|)$.
+
+If every qualification passes and both evolution methods give
+$\max_t[\langle B_C\rangle_t-\langle B_C\rangle_{g_P}]>10^{-3}$
+on the largest coupled basis, return
+`SUPPORTS-conditional autonomous quantum transfer in the full scalar mode Hamiltonian`.
+Qualified calculations below this floor return
+`INCONCLUSIVE-no resolved reference-pair transfer in the fixed window`.
+Any failed prerequisite, source identity, mathematical review or
+numerical qualification returns `INCONCLUSIVE`. Preserve every
+attempt and failure without changing the physical inputs, bounds
+or stopping rule.
+
+Before execution, seal this section, §§25 and 64, the three
+programs, the parent action, both inherited receipts and two
+accepted independent mathematical reviews in
+`runs/20260909_matter_formation_quantum_backreaction/`.
+Each program refuses output overwrite and rejects invalid inputs
+before scientific arrays. Exercise source-mismatch and both
+review-rejection controls for each program.
+Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
+## 71. Working notes: quantum transfer signal and unresolved preparation bound
+
+### 71.1 Reproduced finite-basis dynamics
+
+The two independent quantum evolutions produce the same reference-pair
+signal while conserving total energy. The three coupled bases and both
+controls complete the fixed schedule in §70.4. The largest state-norm
+discrepancy between the methods, over all five trajectories and retained
+times, is $5.478273873784158\times10^{-12}$.
+
+On the largest coupled basis, the reconstructed peak probability gains are
+$0.00860546054387749$ for the spectral evolution and
+$0.008605460543877765$ for the coordinate-built sparse evolution.
+The interacting reference state has pair probability
+$0.00018062959723611543$. Preparing its mediator dilation supplies
+dimensionless work $12.756758320870064$; no classical carrier seed is
+added. The conserved signed carrier charge is zero. The probability
+counts reference-oscillator pairs within this specified mode model.
+It supplies no asymptotic particle count or localized density.
+
+For that coupled trajectory, the reconstructed norm errors are at most
+$1.0680345496894006\times10^{-13}$, and the normalized total-energy
+errors are at most $8.905703894306918\times10^{-14}$.
+The nested-basis state comparisons and both no-transfer controls
+satisfy their fixed bounds. The unpumped finite reference state's
+full-Hamiltonian residual gives
+$16\|(H-E_P)g_P\|=3.9148875827870685\times10^{-12}$.
+This controls its finite-time motion; it does not measure its distance
+from the exact infinite-occupation ground state.
+
+### 71.2 The fixed preparation criterion is unresolved
+
+The preparation error estimate prevents qualification of the transfer.
+The independently reconstructed largest-basis bounds are:
+
+| Evolution source | Preparation norm bound | Evolution norm bound through $t=16$ | Projector-probability error bound |
+|---|---:|---:|---:|
+| Spectral | $0.00606471433630124$ | $1.0288757164680495\times10^{-7}$ | $0.012129634447745773$ |
+| Coordinate/sparse | $0.006064714336290882$ | $1.0282406339983965\times10^{-7}$ | $0.012129634320708564$ |
+
+The required preparation bound is $10^{-6}$. Its sampled leakage
+integral is at most $1.0401702921422426\times10^{-14}$, but the
+prescribed spectral Lipschitz remainder is approximately $0.0060647$.
+The large remainder is an upper estimate; it does not demonstrate
+a preparation error of that size. It also cannot certify a smaller
+error. The resulting probability-error allowance exceeds the measured
+gain, so the fixed calculation has the joint verdict `INCONCLUSIVE`.
+
+The residual auditor passes 503 of 507 qualification predicates.
+All four failures are the largest-basis preparation bound, evaluated
+on each evolution's data and on the auditor's separate reconstruction.
+The primary and coordinate programs pass their 17 and 128 individual
+predicates. All nine current-source mismatch/review-rejection controls
+stop before scientific rows.
+
+### 71.3 Retained evidence and physical scope
+
+The executed sources, accepted independent derivations, complete arrays,
+failed execution receipts and recovery records are retained in
+`runs/20260909_matter_formation_quantum_backreaction/`.
+The source-bound reproduction manifest is
+`manifest-inherited-schema-recovery.json` in that directory.
+The accepted trajectory archives are in `primary/` and
+`coordinate-embedding-recovery/`; the complete qualification is
+`residuals-inherited-schema-recovery/result.json`.
+Reproduction uses the three programs listed below with that manifest,
+fresh output directories, and the auditor's `--primary` and
+`--independent` arguments pointing to the resulting evolution directories.
+The auditor exits 1 for the recorded `INCONCLUSIVE` outcome.
+
+The scalar action, bosonic quantization, action normalization, one
+spatial carrier mode and mediator preparation are supplied choices.
+Physical matter formation still requires microscopic selection,
+a quantum state and renormalization prescription, physical units and
+particle identity, and localized formation with nonradial persistence
+in the same model. Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
 ## References
+
+- `computations/matter_formation_quantum_backreaction.py`—full scalar mode Hamiltonian, independent spectral evolution, energy and reference-pair records.
+- `computations/verify_matter_formation_quantum_backreaction.py`—coordinate-quadrature matrix construction and sparse quantum evolution.
+- `computations/verify_matter_formation_quantum_residuals.py`—independent raw-array reconstruction, discarded-image bounds and joint qualification.
+- `runs/20260909_matter_formation_quantum_backreaction/`—frozen mode calculation, mathematical reviews, source snapshots, all execution attempts and complete qualification.
 
 - `computations/matter_formation_scalar_two_body.py`—complete scalar tree interactions, contact matching, annihilation coefficient and infinite-range pair-trace quadrature.
 - `computations/verify_matter_formation_scalar_thresholds.py`—independent Cartesian vertex contractions, charged-state projections and final-state phase space.
