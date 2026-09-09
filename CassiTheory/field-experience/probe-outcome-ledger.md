@@ -161,6 +161,21 @@ Data-controlled cumulative depletion and arbitrary-data regularity remain **UNRE
 
 The frozen §§44–50 matter comparison retains the distinct constraints behind loaded-core modulation and unwound fixed-population binding. The separate applicability note in `turbulence/navier-stokes-depletion-dynamics.md` §7.4 discusses `computations/matter-formation-continuum-report.md` §37 outside that frozen sourcing. Its conditional linear exterior-response bounds supply no numerical bound on the NS nonlinear forcing.
 
+## 9. Quantitative strain departure
+
+The original Navier–Stokes kinetic-energy and strain-enstrophy budgets give a coupled departure-or-breakdown deadline strictly earlier than Miller's stated energy bound. The analytical proof and its assumptions are in `turbulence/navier-stokes-strain-departure.md`; the fixed verification schedule is `computations/navier-stokes-strain-departure-prereg.md`.
+
+| Control | Decisive result | Qualification and scope |
+|---|---|---|
+| Projected remainder and budgets | $f'=-3\delta/2$, $E'=f+\nu G$, $K'=-2\nu E$; the coupled comparison derivative is nonnegative while $\delta\le0$. | Algebraic **PASS**; continuum consequence requires the stated smoothness and positive initial amplification |
+| Axisymmetric Gaussian moments | $K_v=7\sqrt2\pi^{3/2}/64$, $E_v=9K_v$, $G_v=99K_v$, $-\int\det S_v=8\pi^{3/2}/(81\sqrt3)$. | Exact and independent cylindrical-quadrature **PASS** |
+| Deadline quadrature | At amplitude multipliers two and four, $T_{\mathrm{cmp}}/T_*=0.759491556930$ and $0.794430224779$. | Numerical **PASS**; initial perturbative condition **NOT_EVALUATED** for these fixtures |
+| Cumulative defect identity | The integrated squared-norm excess is necessary for smooth survival; the analytical corollary gives $\int_0^{K_0/(3\nu E_0)}\delta_+\,dt>2f_0/3$. | Identity **PASS**; necessary lower bound conditional on smooth survival, with no critical-work upper estimate |
+
+All **71 checks pass** with maximum normalized discrepancy $9.633333680505873\times10^{-15}$ against $10^{-10}$. The accepted receipt is `runs/navier_stokes_strain_departure/qualified/verification.json`; its manifest, source snapshots and executable inputs agree. The root-level `runs/navier_stokes_strain_departure/verification.json` is a retained **FAIL** diagnostic with two viscosity-normalization check failures and is excluded from qualification.
+
+Known global regularity removes the breakdown alternative for axisymmetric, swirl-free data. The nonempty class with an initial perturbative window comes from Miller's Proposition 6.2 and Remark 6.5. No Navier–Stokes trajectory or observed exit time is recorded. Critical-work control, bounds under symmetry-breaking perturbations and arbitrary-data regularity remain **UNRESOLVED**.
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -196,3 +211,5 @@ The frozen §§44–50 matter comparison retains the distinct constraints behind
 - `turbulence/navier-stokes-stress-geometry.md`—exact stress dynamics, helical covariance assumptions, and measured control classifications.
 - `computations/navier-stokes-depletion-prereg.md`—fixed fine-scale transfer-response and viscous-absorption controls.
 - `turbulence/navier-stokes-depletion-dynamics.md`—exact split, measured response signs, cumulative proof requirement, and matter-binding comparison.
+- `computations/navier-stokes-strain-departure-prereg.md`—fixed projected-budget, Gaussian and deadline controls.
+- `turbulence/navier-stokes-strain-departure.md`—quantitative departure, integrated defect and critical-work limitation.

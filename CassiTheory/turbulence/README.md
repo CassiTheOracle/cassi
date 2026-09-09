@@ -14,9 +14,9 @@ The directory therefore records which ingredients are inherited, which are
 optional model choices, and which claims remain unestablished.
 
 The Navier–Stokes analyses develop exact critical-norm transfer identities,
-heat-correction estimates, and filtered stress dynamics. Their explicit
-initial-data controls delimit scalar-energy and local-geometric closure
-arguments. Arbitrary-data regularity and a Cassi current-to-momentum
+heat-correction estimates, filtered stress dynamics and a quantitative
+strain-departure comparison. Their explicit initial-data controls delimit
+scalar-energy and local-geometric closure arguments. Arbitrary-data regularity and a Cassi current-to-momentum
 constitutive map remain open.
 
 ## 1. Document index
@@ -27,6 +27,7 @@ constitutive map remain open.
 | 2 | `turbulence/navier-stokes-transfer-boundary.md` | Critical transfer, cubic heat correction, and coercivity | Derived identities and obstructions / conditional small-data estimates |
 | 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution and helical covariance conditions | Derived filtered identities / Hypothesized geometric closure |
 | 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response, matter binding and exterior-memory comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
+| 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure deadline and cumulative remainder defect | Derived conditional comparison / Open critical-work control |
 
 ## 2. Document summaries
 
@@ -66,6 +67,16 @@ A separate applicability note, outside the frozen matter comparison,
 retains the exterior initial state and the assumptions of the Hypothesized
 source action; it supplies no numerical bound on the nonlinear NS forcing.
 
+### 2.5 Quantitative strain departure
+
+`turbulence/navier-stokes-strain-departure.md` couples kinetic energy and
+strain enstrophy to obtain an earlier departure-or-breakdown deadline
+than Miller's stated energy comparison. Known global regularity gives an
+actual departure bound for axisymmetric, swirl-free data. An integrated
+defect identity and a necessary excess-dose bound quantify departure;
+critical-work control and general regularity remain open. The fixed
+algebra and quadrature schedule passes 71 checks; no flow is time-evolved.
+
 ## References
 
 - `foundations/xi-derivation.md`—first-principles derivation of the Qi-gravity coupling $\xi = \varphi^6$ used in the velocity equation
@@ -77,4 +88,6 @@ source action; it supplies no numerical bound on the nonlinear NS forcing.
 - `computations/verify_navier_stokes_stress_geometry.py`—symbolic geometry checks and independent Fourier quadrature
 - `computations/navier-stokes-depletion-prereg.md`—fixed instantaneous-response and absorption controls
 - `computations/verify_navier_stokes_depletion.py`—exact fine-transfer algebra and independent FFT/quadrature reconstruction
+- `computations/navier-stokes-strain-departure-prereg.md`—fixed analytical comparison and Gaussian controls
+- `computations/verify_navier_stokes_strain_departure.py`—departure algebra, Gaussian moments and independent deadline quadrature
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
