@@ -10732,7 +10732,315 @@ formation with nonradial persistence remain unresolved.
 Every scientific receipt retains
 `complete_physical_matter_formation=false`.
 
+## 64. Working notes: matching quantum conversion to the scalar action
+
+### 64.1 Canonical interactions and the retained scalar restriction
+
+A conversion calculation needs the interactions and excitation energies
+of its proposed parent action. This calculation uses the supplied real
+mediator and complex scalar carrier of
+`foundations/particle-stationary-action-closure.md` §§8.8–8.9 and 8.13.
+It studies their vacuum expansion at $f=1,z=0$, with
+$z=e^{-it/(2a)}\chi$, at tree order. The carrier remains an internal-gauge
+singlet with signed global charge. The scalar restriction and its ordinary
+bosonic quantization are hypotheses; quantizing this restriction does not
+construct the quantum reduction of the full gauge theory.
+
+Write $\mathcal N=\mathcal N_Q>0$, $B=e_C+1/(4a)$ and use canonical fields
+$$
+v=\sqrt{\mathcal N c_\Psi},\qquad
+\sigma=v(f-1),\qquad \Phi=\sqrt{\mathcal N a}\,z .
+$$
+The potential, including every interaction through its exact quartic
+degree, is
+$$
+\begin{aligned}
+\mathcal V={}&\frac{m^2}{2}\sigma^2+M^2|\Phi|^2
++\frac{\lambda_3}{3!}\sigma^3+\frac{\lambda_4}{4!}\sigma^4\\
+&+g\sigma|\Phi|^2+\frac{g_2}{2}\sigma^2|\Phi|^2
++\frac{u_C}{2\mathcal N a^2}|\Phi|^4,\\
+m^2={}&\frac{2u_\rho}{c_\Psi},\qquad M^2=\frac{B}{a},\\
+\lambda_3={}&\frac{3m^2}{v},\qquad
+\lambda_4=\frac{3m^2}{v^2},\qquad
+g=\frac{2h_C}{av},\qquad g_2=\frac{g}{v}.
+\end{aligned}
+$$
+No interaction is fitted to the quantum comparison in §60. The mediator
+and carrier propagation speeds are $c_\Psi^{-1/2}$ and
+$\sqrt{k_{Cx}/(2a)}$. The equal-cone restriction is
+$c_\Psi=2a/k_{Cx}$.
+
+The positive quartic terms also matter for stability. For real $f$,
+$n=|z|^2\ge0$, and positive $u_\rho,u_C$, the original potential obeys
+$$
+\begin{aligned}
+V_a(f^2,n)\ge{}&
+\frac{u_\rho}{8}f^4+\frac{u_C}{4}n^2-C,\\
+C={}&\frac{u_\rho}{4}
++\frac{[\max(h_C-B,0)]^2}{u_C}.
+\end{aligned}
+$$
+Here $h_C\ge0$ makes the mixed quartic nonnegative.
+This coercive bound gives a semibounded confining Schrödinger operator
+for a single homogeneous cell with its three real scalar coordinates,
+finite $\mathcal N$ times cell volume, and positive kinetic coefficients.
+The Friedrichs realization has discrete spectrum. This finite-dimensional
+quantum statement supplies no continuum renormalization or physical vacuum
+selection. Deleting all quartics leaves a cubic potential descending as
+$-(\lambda_3/6+g/2)t^3$ along
+$\sigma=-t,\Phi=t/\sqrt2$; that truncation cannot decide stability of
+the full scalar action.
+
+### 64.2 The vacuum production thresholds
+
+Use the existing scalar values
+$u_\rho=4$, $u_C=k_{Cx}=1$, $e_C=3/4$ and
+$h_C=2.9598260763447164$ (the inherited Mapped coupling).
+On the equal-cone family,
+$$
+\frac{m^2}{4M^2}
+=\frac{u_\rho k_{Cx}a}{1+4e_Ca}.
+$$
+One on-shell mediator can produce a free carrier pair only if
+$m\ge2M$. With these values this needs $a\ge1$, while the
+classical exterior-vacuum condition requires
+$$
+0<a\le a_{\rm vac}
+=\frac{1}{4(h_C-e_C-\sqrt{u_\rho u_C/2})}<1.
+$$
+For any total spatial momentum $\mathbf P$, the free pair threshold is
+$\sqrt{4M^2+c_\Psi^{-1}|\mathbf P|^2}$, reached at equal momentum
+sharing. Comparing it with
+$\sqrt{m^2+c_\Psi^{-1}|\mathbf P|^2}$ proves the same one-mediator
+restriction at all momenta. This is a quadratic-spectrum, tree-order
+threshold; interacting bound states and renormalized masses require
+separate calculations.
+
+At $a=1/16,c_\Psi=1/8$ the free masses are $m=8$ and $M=\sqrt{76}$.
+One or two mediator quanta initially at rest have insufficient energy for
+a free carrier pair. Three at-rest mediator quanta have energy $24$;
+their outgoing carrier momenta have magnitude $\sqrt{17/2}$.
+Two incoming mediators with opposite momenta can instead reach the pair
+threshold at momentum magnitude $\sqrt{3/2}$. These two statements
+distinguish a cold homogeneous pump from incoming waves carrying kinetic
+energy. Threshold kinematics alone supplies no production probability.
+
+### 64.3 Complete tree amplitudes for the first open channels
+
+The allowed reactions also require nonzero matrix elements. Use canonical
+propagator denominator $p_0^2-c_\Psi^{-1}|\mathbf p|^2-\mu^2$ and vertices
+$-i\lambda_3,-i\lambda_4,-ig,-ig_2$ from §64.1. Define the real stripped
+coefficient $\mathcal F$ by $i\mathcal M=-i\mathcal F$ after removing the
+momentum-conservation delta function and external-state factors.
+
+For two opposite-momentum mediators at the pair threshold, both incoming
+energies are $M$ and both outgoing carriers are at rest. The contact,
+mediator-exchange, and two carrier-exchange diagrams give
+$$
+\boxed{\mathcal F_2
+=g_2+\frac{\lambda_3g}{4M^2-m^2}
++\frac{2g^2}{m^2-2M^2}.}
+$$
+The phase-space volume vanishes at the exact threshold even when this
+coefficient is nonzero. A production rate above threshold requires
+normalized incoming states and the physical coupling normalization.
+
+For three at-rest mediators, each outgoing carrier has energy $3m/2$.
+All fifteen three-cubic-vertex trees and all ten cubic-plus-quartic trees
+must be retained. Grouping them by interaction content gives
+$$
+\begin{aligned}
+\mathcal F_3={}&\frac{3g^3}{2m^4}
+-\frac{g^2\lambda_3}{m^4}
++\frac{g\lambda_3^2}{8m^4}
++\frac{g\lambda_4}{8m^2}
++\frac{g_2\lambda_3}{m^2}
+-\frac{3gg_2}{m^2}\\
+={}&\boxed{\frac{3g}{2v^2}(x-1)(x-3)},\qquad
+x=\frac{gv}{m^2}=\frac{h_Cc_\Psi}{au_\rho}.
+\end{aligned}
+$$
+The equal-cone coefficients give $x=h_C/2$.
+The exact cancellation controls $h_C=2$ and $h_C=6$ therefore test the
+quartic diagrams as well as the cubic diagrams. Omitting the quartic
+diagrams must spoil both cancellations. The carrier self-repulsion
+has four charged legs and cannot appear in these trees with only two
+external charged legs; it still contributes to stability and higher
+processes.
+
+Both coefficients retain the unselected normalization:
+$\mathcal F_2\propto\mathcal N^{-1}$ and
+$\mathcal F_3\propto\mathcal N^{-3/2}$.
+Nonzero formal coefficients establish perturbative channels, subject to
+weak-coupling validity. They give no absolute rate, localized bound state,
+or selection of a physical particle.
+
+### 64.4 Fixed qualification before execution
+
+The primary program is `computations/matter_formation_parent_matching.py`.
+Independent programs are
+`computations/verify_matter_formation_parent_trees.py` and
+`computations/verify_matter_formation_parent_kinematics.py`.
+No program imports or reads another program's mathematical implementation
+or results. Source bytes may be read only for SHA-256 validation.
+Main owns integration, execution, raw-result reconciliation and the
+working notebook.
+
+Require exact symbolic reconstruction of the scalar potential and all
+canonical coefficients. Reconstruct the four two-mediator diagrams and
+the twenty-five three-mediator diagrams independently from external-leg
+partitions, including their momenta, internal field types and propagator
+denominators. Evaluate only $h_C=0,2,2.9598260763447164,6$ at
+$a=1/16,c_\Psi=1/8,\mathcal N=1$. Here $\mathcal N=1$ reports a formal
+normalization coefficient, without claiming perturbative accuracy at that
+value. Verify the displayed analytic sums, the two cancellation controls,
+the zero-coupling control and the failed cancellation when all quartic
+diagrams are omitted.
+
+For threshold checks use only
+$a=1/64,1/32,1/16,a_{\rm vac}/2,a_{\rm vac}$ with $c_\Psi=2a$ and
+$\mathbf P=(0,0,0),(1,0,0),(1,2,-1),(8,-3,4)$.
+Verify equal-sharing minima, the positive one-mediator energy deficit and
+the rationalized deficit formula. Independently minimize the pair energy
+from $\mathbf p=(0.3,-0.2,0.4)+\mathbf P/2$; compare energies and stationary
+points with the exact minimum. Evaluate the canonical-potential and
+coercive-bound witnesses at the Cartesian product
+$f=-2,0,1,3$ and $n=0,1/4,2,8$, at each scheduled $a$.
+The coercivity conclusion depends on its algebraic proof, independently
+reviewed by hand, rather than these finite witnesses.
+
+All numeric equalities use
+$\|A-B\|/\max(1,\|B\|)\le10^{-9}$.
+The minimizer-coordinate comparison uses $10^{-7}$ instead, with no
+clipping of residuals. Store all diagrams, threshold rows, minimizers and
+potential rows as full-precision JSON. Before any scientific execution,
+bind this section, the parent-action source, all three programs and
+accepted independent hand reviews with normalized SHA-256 in
+`runs/20260909_matter_formation_parent_matching/`.
+Each program rejects source mismatch or either unaccepted review before
+scientific rows. Retain these three rejection controls per program.
+All requirements passing gives
+`SUPPORTS-conditional scalar-parent production matching`; otherwise
+`INCONCLUSIVE`. Stop at this schedule; no parameter search, formation
+trajectory, fitted rate, or continuum quantum claim is included.
+Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
+## 65. Working notes: qualified scalar-parent production
+
+### 65.1 Scalar interactions and finite-cell stability
+
+The supplied real mediator and complex carrier admit a finite-cell bosonic
+quantization with energy bounded below. Their exact quartic potential
+obeys the coercive inequality in §64.1, whose algebraic reconstruction
+and independent hand derivation agree. With positive kinetic coefficients,
+the Friedrichs realization on the three real cell coordinates has discrete
+spectrum. This statement concerns a homogeneous cell with finite positive
+action normalization and volume. Continuum renormalization, the physical
+quantum state and microscopic field selection remain unresolved.
+
+The bosonic energy descent of the cubic conversion Hamiltonian in
+§§62–63 remains specific to that Hamiltonian. The supplied scalar parent
+contains quartic mediator, mixed and carrier interactions. Its
+finite-cell stability therefore supplies no selection of fermionic
+statistics. The canonical interaction coefficients follow directly from
+the scalar action; none is fitted to the finite-mode conversion model.
+
+### 65.2 Open free-pair channels at the retained coefficients
+
+A single free mediator cannot produce a free carrier pair anywhere on
+the selected equal-cone family with its classical exterior vacuum.
+The vacuum bound is $a\le a_{\rm vac}=0.3142233129944425$, whereas the
+one-mediator threshold requires $a\ge1$. At the vacuum boundary,
+$m^2/(4M^2)=0.6469926912214176$. The exact positive energy-deficit
+identity establishes this exclusion at every total momentum; the twenty
+scheduled minimizations independently reproduce the equal-sharing pair
+thresholds.
+
+At $a=1/16,c_\Psi=1/8$, the free mediator mass is $8$ and the free
+carrier mass is $\sqrt{76}=8.717797887081348$ in model units.
+One or two initially stationary mediator quanta lie below the pair
+threshold. Three stationary mediator quanta have total energy $24$ and
+can produce carriers with opposite momenta of magnitude
+$\sqrt{17/2}=2.91547594742265$. Two counterpropagating mediator quanta
+reach the pair threshold at incoming momentum magnitude
+$\sqrt{3/2}=1.2247448713915898$. The phase-space volume at that exact
+two-mediator threshold is zero.
+
+Both first open channels have nonzero formal tree coefficients at the
+inherited Mapped coupling $h_C=2.9598260763447164$. With the reporting
+normalization $\mathcal N=1$, the primary grouped calculation gives
+$$
+\mathcal F_2=-267.1710698136641,\qquad
+\mathcal F_3=-2345.164939377022.
+$$
+The separate external-leg enumeration reconstructs all four two-mediator
+diagrams and all twenty-five three-mediator diagrams. The exact
+three-mediator factorization is
+$$
+\boxed{\mathcal F_3
+=192\sqrt2\,h_C(h_C-2)(h_C-6)}
+\qquad(a=1/16,\ c_\Psi=1/8,\ \mathcal N=1).
+$$
+Its $h_C=2,6$ cancellation controls require the quartic diagrams.
+The cubic-only values are respectively $-384\sqrt2$ and
+$17280\sqrt2$; both are nonzero. At $h_C=0$, every conversion
+diagram vanishes. The largest floating-point cancellation residual in
+the primary sums is $1.0913936421275139\times10^{-11}$; the symbolic
+enumeration gives exact zeros.
+
+The normalization dependence remains
+$\mathcal F_2\propto\mathcal N^{-1}$ and
+$\mathcal F_3\propto\mathcal N^{-3/2}$. A physical rate requires
+normalized incoming states, a selected action normalization and a
+controlled perturbative regime. These coefficients establish formal
+channels in the hypothesized scalar restriction.
+
+### 65.3 Numerical qualification and formation boundary
+
+All 304 primary checks, 18 external-tree checks and 126 independent
+kinematic checks pass. The retained results include 116 individual
+diagram evaluations across the four couplings, twenty threshold rows,
+and eighty potential witnesses from each potential calculation.
+Raw reconstruction passes 1,928 scalar/vector comparisons, including
+external momenta, every internal propagator and vertex, diagram values,
+group sums, minimizer coordinates and gradients, and potential values.
+The largest normalized discrepancy is
+$1.0913936421275139\times10^{-11}$ against the fixed $10^{-9}$
+bound; minimizer coordinates retain their separate $10^{-7}$ criterion.
+
+The accepted Newton implementation compares rationalized square-root
+energy differences. It reports actual iterates with maximum normalized
+coordinate error $2.2117651505981823\times10^{-15}$ and maximum
+gradient norm $3.0464338082947985\times10^{-15}$. The run directory
+also retains an excluded non-descending-line-search receipt, its original
+source and diagnostic iterate. The recovery manifest records the
+algebraically equivalent energy comparison; all physical inputs,
+starting points, stopping rules and acceptance tolerances are unchanged.
+
+Each of the three programs rejects a source mismatch and either
+unaccepted mathematical review. All nine controls exit with
+`INCONCLUSIVE`, zero scientific rows and no array archive.
+The mathematical reviews are independently derived. Main completes and
+integrates the external-tree implementation and performs the execution
+and raw reconciliation; submitted drafts and accepted review corrections
+remain in the evidence directory.
+
+The qualified verdict is
+`SUPPORTS-conditional scalar-parent production matching`.
+The microscopic action and quantum state, physical normalization and
+renormalization, particle spin/statistics/charges, and localized formation
+with nonradial persistence remain unresolved. This calculation includes
+no formation trajectory, absolute rate or interacting bound-state mass.
+Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
 ## References
+
+- `computations/matter_formation_parent_matching.py`—exact scalar-action reconstruction, grouped production amplitudes, free-pair thresholds and coercive-potential witnesses.
+- `computations/verify_matter_formation_parent_trees.py`—external-leg tree enumeration with full propagator, interaction and cancellation reconstruction.
+- `computations/verify_matter_formation_parent_kinematics.py`—independent canonical coefficients, Newton pair-energy minimization and potential reconstruction.
+- `runs/20260909_matter_formation_parent_matching/`—frozen section and source snapshots, accepted hand reviews, minimizer recovery, full-precision scientific rows, nine prerequisite-rejection controls and joint reconciliation.
 
 - `computations/matter_formation_quantum_stability.py`—exact stability identities, Jordan–Wigner sector matrices and complete bosonic trial columns.
 - `computations/verify_matter_formation_fermion_lower_bound.py`—independent fermionic occupation/flux transitions, unprojected intermediate images and complete spectra.
