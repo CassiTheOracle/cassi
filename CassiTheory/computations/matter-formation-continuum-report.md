@@ -9299,7 +9299,283 @@ observed particles, or establish localized production and general
 nonradial persistence. Every scientific receipt retains
 `complete_physical_matter_formation=false`.
 
+## 54. Working notes: whole-composite magnetic rotation
+
+### 54.1 Relative angular momentum of two magnetic charges
+
+The rotation of a complete composite includes the motion of its constituents
+and their gauge field. An isolated endpoint's angular character therefore
+does not determine the character of the complete object. This distinction
+can be derived in an Abelian point-dyon comparison before considering
+whether its assumptions hold for the registered condensate.
+
+Work in three spatial dimensions with a specified electric/magnetic charge
+lattice $\Gamma=\mathbb Z^2$. Write $\gamma_i=(n_i,\nu_i)$, with electric
+integer $n_i$ measured in fundamental-weight units and magnetic integer
+$\nu_i$ in the flux convention of §52.1. Thus $n=2t$ for a single
+representation weight $t$, and the scalar-in-monopole integer there is
+$p=n\nu$. These are $U(1)_Q$ comparison labels. An assignment to observed
+electromagnetic charge or to a physical quantum sector remains additional
+input.
+
+For two separated dyons, the relative-coordinate line bundle over the
+sphere of directions has the Dirac–Schwinger–Zwanziger integer
+$$
+\boxed{D_{12}=n_1\nu_2-n_2\nu_1.}
+$$
+Choosing the opposite orientation reverses $D_{12}$ and leaves its parity
+unchanged. The monopole angular bands are
+$$
+\ell=\frac{|D_{12}|}{2}+k,\qquad k=0,1,2,\ldots,
+\qquad U_{\rm rel}(2\pi)=(-1)^{D_{12}}.
+$$
+These formulas require the Abelian relative bundle and its lifted rotation.
+They supply angular kinematics without a radial binding potential.
+If the intrinsic rotation characters of the two dyons are $\eta_1,\eta_2$,
+their complete tensor-product representation consequently has
+$$
+\boxed{\eta_{\rm pair}=\eta_1\eta_2(-1)^{D_{12}}.}
+$$
+Adding integer angular excitations changes the available total spins while
+preserving this central character.
+
+### 54.2 Charge-only fusion and magnetic neutrality
+
+A charge-only branch has one rotation parity for each lattice charge and
+no additional neutral fermion or unresolved fusion channel. Let the pure
+electric and pure magnetic generators have characters $(-1)^{b_e}$ and
+$(-1)^{b_m}$, where $b_e,b_m\in\{0,1\}$. Repeated electric and magnetic
+fusion gives the quadratic refinement
+$$
+\boxed{\eta(n,\nu)=(-1)^{n\nu+b_en+b_m\nu}.}
+$$
+It obeys
+$$
+\eta(\gamma_1+\gamma_2)
+=\eta(\gamma_1)\eta(\gamma_2)(-1)^{D_{12}}.
+$$
+Indeed, the exponent on the right minus the exponent on the left is
+$-2n_2\nu_1$. All four choices of $(b_e,b_m)$ are algebraic refinements;
+a microscopic realization and its anomaly constraints require a separate
+quantum theory. The bosonic-generator comparison is $b_e=b_m=0$.
+The charge–monopole statistical factor in this comparison is also derived
+in Metlitski, Kane and Fisher, §III
+([arXiv:1302.6535](https://arxiv.org/abs/1302.6535)).
+Its use as an exchange law presupposes a compatible quantum realization.
+
+For any finite number of constituents, write
+$n_{\rm tot}=\sum_i n_i$ and $\nu_{\rm tot}=\sum_i\nu_i$. Bilinearity of
+$D$ makes the fusion law associative. The exact identity
+$$
+\sum_i n_i\nu_i+\sum_{i<j}(n_i\nu_j-n_j\nu_i)
+=n_{\rm tot}\nu_{\rm tot}-2\sum_{i<j}n_j\nu_i
+$$
+then gives
+$$
+\boxed{
+\eta_{\rm tot}
+=\prod_i\eta(\gamma_i)(-1)^{\sum_{i<j}D_{ij}}
+=(-1)^{n_{\rm tot}\nu_{\rm tot}+b_en_{\rm tot}+b_m\nu_{\rm tot}}.}
+$$
+This is a successive-fusion identity; a general many-body wavefunction can
+retain correlations. The formula applies to the specified charge-only
+branch. In particular,
+$$
+\boxed{\nu_{\rm tot}=0\quad\Longrightarrow\quad
+\eta_{\rm tot}=(-1)^{b_en_{\rm tot}}.}
+$$
+With a bosonic electric generator, every magnetically neutral composite
+in this branch has integer rotation character. If both total charges vanish,
+the character is $+1$ for every refinement. A supplied neutral fermion has
+$\gamma=0$ and character $-1$, so attaching it enlarges the sector labels
+beyond $\Gamma$ and changes this conclusion. A common charge shear
+$n_i\mapsto n_i+\alpha\nu_i$ leaves $D_{12}$ unchanged for real $\alpha$.
+It is an automorphism of this integer lattice only for integer $\alpha$,
+and it can relabel the refinement. A physical theta response and its
+quantum state are separate inputs.
+
+The following examples use $b_e=b_m=0$. They expose the contribution from
+relative motion explicitly.
+
+| Constituents $(n,\nu)$ | Endpoint product $\eta_1\eta_2$ | $D_{12}$ | Relative character | Complete character |
+|---|---:|---:|---:|---:|
+| $(1,0)+(0,1)$ | $+1$ | $1$ | $-1$ | $-1$ |
+| $(1,1)+(0,-1)$ | $-1$ | $-1$ | $-1$ | $+1$ |
+| $(1,1)+(-1,-1)$ | $+1$ | $0$ | $+1$ | $+1$ |
+| $(0,1)+(0,-1)$ | $+1$ | $0$ | $+1$ | $+1$ |
+| $(1,0)+(0,0)$ | $+1$ | $0$ | $+1$ | $+1$ |
+| $(1,1)+(1,-1)$ | $+1$ | $-2$ | $+1$ | $+1$ |
+
+The second row is a charged monopole joined to an antimonopole. Keeping
+only its endpoint product would assign the opposite character to the
+complete pair. The first row retains nonzero total magnetic charge and
+therefore lies outside the magnetic-neutrality conclusion.
+
+### 54.3 Applicability to the full condensate
+
+The registered nonzero fundamental condensate changes the asymptotic
+problem. On a smooth unpunctured exterior sphere it obstructs a nonzero
+isolated magnetic integer (§§52–53). A finite monopole–antimonopole
+configuration can instead join its flux internally, with zero net exterior
+flux. Individual tube endpoints then lack the isolated Coulomb exterior
+used to construct the relative dyon bundle above. Separate endpoint and
+tube solutions, collective coordinates, and their quantum rotation lift
+would be needed to transfer that calculation to this system.
+
+For the regular domain of §12.9, an ordinary full-field $2\pi$ rotation has
+a closed lift and an explicit contraction through finite-energy
+configurations. This remains true for smooth finite cores and tubes in
+that domain because Higgs zeros and core merger are allowed. Its
+Finkelstein–Rubinstein character is therefore $+1$. The domain is scale
+independent, has fixed neutral first-order carrier population, and admits
+zero charged velocities and zero electric field. The proof supplies no
+contraction at arbitrary fixed gauge-electric charge or signed temporal
+parent charge. It also imposes no energy-sublevel or separated-core
+restriction.
+
+A nonflat Berry connection, another symmetry lift, an additional quantum
+sector, or different boundary conditions require their own analysis.
+Magnetic neutrality alone supplies no universal exclusion of fermions.
+The charge-only dyon identity and the regular-field contraction instead
+identify the assumptions that an endpoint-based half-integer assignment
+must address. Neither calculation produces a bound composite. The
+positive-tension and attractive-tail comparison in
+`foundations/nonabelian-magnetic-core-boundary.md` §5.4 decreases toward
+smaller separation in its large-separation domain; core overlap,
+stabilization and formation remain separate questions.
+
+### 54.4 Fixed qualification before execution
+
+The derivation above is the primary analytical calculation. An independent
+program, `computations/matter_formation_composite_rotation.py`, reconstructs
+its charge algebra and angular representations. Before execution, freeze
+this section, that source, the two foundation sources cited in §§12.9 and
+52.1, and an accepted independent mathematical review in
+`runs/20260909_matter_formation_composite_rotation/manifest.json`.
+
+Check all four refinements and all ordered pairs from
+$n,\nu\in\{-2,-1,0,1,2\}$: 2,500 refinement/pair cases. Check associativity
+on all ordered triples from $n,\nu\in\{-1,0,1\}$: 2,916 refinement/triple
+cases. The pairing, charge-shear, associativity and three-constituent
+even-exponent identities must also hold symbolically and exactly.
+
+Independently construct angular matrices for the six displayed pairs,
+all four refinements and $k=0,1,2$: 72 cases. Use the minimal endpoint
+representation $j_i=0$ or $1/2$ associated with its supplied character,
+and $\ell=|D_{12}|/2+k$ for relative motion. This is a representation
+witness; it selects no physical particle spin. Form all three total
+generators by tensor sums of standard ladder matrices. Check their
+commutators, the full total-Casimir spectrum including
+Clebsch–Gordan multiplicities, and the $2\pi$ rotation about
+$(1,2,3)/\sqrt{14}$. Keep every Casimir matrix, axis generator and
+computed spectrum in a raw array archive. Divide each discrepancy by
+the larger of one and the norm of its reference; require at most
+$10^{-10}$, finite values, and the complete prescribed schedule.
+Integer identities have zero tolerance.
+
+The charged-monopole/antimonopole example must detect the incorrect sign
+obtained by omitting relative angular momentum. The pure-electric example
+must change character when $b_e$ changes, while a supplied neutral fermion
+changes the zero-charge character outside the charge-only branch.
+Source or review mismatch forbids calculation. Missing evidence or any
+failed comparison gives `INCONCLUSIVE`; all requirements passing gives
+`SUPPORTS-conditional whole-composite rotation law`. There is no
+formation evolution, fitted parameter, alternative schedule or repeat
+search in this calculation. Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
+## 55. Working notes: qualified whole-composite character
+
+### 55.1 Complete rotation includes relative motion
+
+The independent algebra and angular-matrix calculation satisfies all
+requirements in §54.4. Its frozen verdict is
+`SUPPORTS-conditional whole-composite rotation law`.
+For the specified charge-only Abelian branch, the complete character is
+$$
+\boxed{
+\eta_{\rm tot}
+=(-1)^{n_{\rm tot}\nu_{\rm tot}+b_en_{\rm tot}+b_m\nu_{\rm tot}},
+\qquad
+\nu_{\rm tot}=0\ \Longrightarrow\
+\eta_{\rm tot}=(-1)^{b_en_{\rm tot}}.}
+$$
+With a bosonic electric generator, a magnetically neutral composite in
+this branch has integer rotation character. Individual dyons can still
+have half-integer characters; their relative angular contribution enters
+the complete object.
+
+The charged-monopole/antimonopole comparison
+$(1,1)+(0,-1)$ makes that contribution explicit. For $b_e=b_m=0$,
+the endpoint characters are $-1$ and $+1$, while $D_{12}=-1$ gives
+a relative character $-1$. Their complete product is $+1$.
+In the minimal $k=0$ witness, the dimensionless total-Casimir spectrum is
+$(0,2,2,2)$: one $J=0$ state and three $J=1$ states. Its complete
+$2\pi$ rotation differs from the identity by a normalized
+$1.1275\times10^{-15}$. This is a representation witness with the
+supplied endpoint characters and relative bundle.
+
+### 55.2 Independent finite qualification
+
+All 24 named checks pass. The exact schedule contains 2,500
+refinement/pair cases and 2,916 refinement/triple cases. The angular
+schedule contains all 72 prescribed tensor-product representations,
+with endpoint, relative and complete rotations checked separately.
+The complete Casimir comparison includes every magnetic state of each
+spin multiplet.
+
+| Quantity | Maximum normalized discrepancy | Required bound |
+|---|---:|---:|
+| Complete $2\pi$ rotation versus total character | $8.5889\times10^{-15}$ | $10^{-10}$ |
+| Total-Casimir spectrum including multiplicities | $3.8549\times10^{-16}$ | $10^{-10}$ |
+| Angular-generator commutators | $5.1736\times10^{-16}$ | $10^{-10}$ |
+| Independent raw-array reconstruction and character checks | $8.5704\times10^{-15}$ | $10^{-10}$ |
+
+The raw reconstruction imports no calculation program. It constructs
+raising-operator matrix elements directly in the product-state basis,
+forms the Casimir as $J_z(J_z+1)+J_-J_+$, recovers spin multiplicities
+from magnetic-weight counts, and evaluates the rotation with a matrix
+exponential. It verifies all 361 retained arrays and independently
+reconstructs the 2,500 pair cases and 2,916 triple cases. These are
+deterministic representation checks.
+
+The supplied pure-electric character changes with $b_e$ as required.
+An additional neutral fermion reverses the neutral character only after
+its extra sector label is supplied. The isolated source-hash mismatch
+and unaccepted-review controls each give `INCONCLUSIVE` before the
+scientific calculation and write no array archive.
+
+### 55.3 Evidence and remaining physical inputs
+
+The local record is
+`runs/20260909_matter_formation_composite_rotation/`: the frozen
+section and source snapshots, accepted mathematical review, manifest,
+execution records, `qualification/result.json`,
+`qualification/arrays.npz`, raw reconstruction, and prerequisite
+rejection receipts. `joint_reconciliation.json` records the reconciled
+scope and file identities. The program in §54.4 reproduces the fixed
+calculation with this manifest and a fresh output directory; the retained
+`raw_reconcile.py` reconstructs the saved matrices independently.
+
+The complete-object calculation prevents an endpoint-only half-integer
+assignment within the specified charge-only branch. The registered
+fully Higgsed condensate still requires a separate endpoint-plus-tube
+configuration space, quantum sector and rotation lift before the
+Abelian result can be applied to confined objects. The regular
+zero-flux contraction of §12.9 has the scope stated in §54.3.
+
+The calculation selects no microscopic action, quantum state,
+renormalization prescription, observed particle assignment or
+finite-separation bound state. Localized formation and general
+nonradial persistence remain separate requirements. Complete physical
+matter formation remains open; every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
 ## References
+
+- `computations/matter_formation_composite_rotation.py`—exact charge-lattice identities and independently constructed total-angular-momentum matrices.
+- `runs/20260909_matter_formation_composite_rotation/`—frozen derivation, source snapshots, mathematical review and finite qualification.
+- M. A. Metlitski, C. L. Kane and M. P. A. Fisher, “Bosonic topological insulator in three dimensions and the statistical Witten effect,” §III ([arXiv:1302.6535](https://arxiv.org/abs/1302.6535))—charge–monopole statistical interaction and quantum-sector dependence.
 
 - `computations/matter_formation_magnetic_spin.py`—exact patch, rotation-generator, angular-mode and vacuum-projector identities.
 - `computations/verify_matter_formation_magnetic_spin.py`—independent component matrices, generalized angular spectra and source-bound receipt qualification.
