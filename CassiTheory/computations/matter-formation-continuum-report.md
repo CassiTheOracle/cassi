@@ -10164,7 +10164,299 @@ with nonradial persistence in that same model. These inputs and results
 remain unresolved. Every scientific receipt retains
 `complete_physical_matter_formation=false`.
 
+## 60. Working notes: local quantum Gauss law and neutral conversion
+
+### 60.1 Supplied spatial quantum comparison
+
+The neutral conversion in §58 conserves total charge. A spatial charged
+state also has to satisfy Gauss's law at every site. This comparison
+supplies a compact $U(1)$ electric-link Hilbert space and asks whether
+conversion and transport preserve those operator constraints.
+
+Use an open three-site chain, with sites $j=0,1,2$ and links
+$\ell=0,1$ oriented to the right. Each site carries the opposite-charge
+modes $a_{+,j},a_{-,j}$ from the §58 comparison. The neutral oscillator
+$b$ couples only at the central site. All charged modes are either
+bosonic or fermionic; the latter obey mutual anticommutation, in the
+occupation order $(+,0),(+,1),(+,2),(-,0),(-,1),(-,2)$.
+The oscillator is bosonic and commutes with them.
+
+Each link is a compact rotor with
+$$
+E_\ell|e_\ell\rangle=e_\ell|e_\ell\rangle,\qquad
+U_\ell|e_\ell\rangle=|e_\ell+1\rangle,\qquad
+e_\ell\in\mathbb Z,\qquad [E_\ell,U_\ell]=U_\ell.
+$$
+Both outer electric fluxes are zero. Compactness, the integer charge
+unit, the quantum representation and this boundary sector are supplied
+inputs. They do not follow from the additional Abelian Lie algebra in
+§56. Model units set $\hbar=1$, the site spacing to one and each charged
+mode frequency to one. The Hamiltonian is
+$$
+\begin{aligned}
+H&=R+\frac{\kappa}{2}(E_0^2+E_1^2)+V+H_{\rm hop},\\
+R&=2n_b+\sum_j(n_{+,j}+n_{-,j}),\\
+V&=\lambda\left(b\,a^\dagger_{+,1}a^\dagger_{-,1}
++b^\dagger a_{-,1}a_{+,1}\right),\\
+H_{\rm hop}&=-J\sum_{\ell=0}^1
+\left(a^\dagger_{+,\ell+1}U_\ell a_{+,\ell}
++a^\dagger_{-,\ell+1}U_\ell^\dagger a_{-,\ell}
++\mathrm{h.c.}\right),\\
+\lambda&=\frac14,\qquad J=\frac18,\qquad \kappa=\frac12.
+\end{aligned}
+$$
+The conversion vertex and neutral excitation remain supplied as in §58.
+The hopping and electric-energy coefficients are fixed comparison
+inputs; no physical calibration or matching to the registered
+$SU(2)_Q$ electric coefficient is made. The graph has no magnetic
+plaquettes or transverse photon mode.
+
+### 60.2 Strong Gauss constraint and exact finite sector
+
+Electric-flux changes must track the transported charge. Define
+$$
+\rho_j=n_{+,j}-n_{-,j},\qquad Q=\sum_j\rho_j,\qquad
+D=\begin{pmatrix}-1&0\\1&-1\\0&1\end{pmatrix},\qquad
+G_j=(DE)_j-\rho_j.
+$$
+A positive rightward hop changes both the charge vector and $DE$ by
+the same column of $D$; a negative hop changes both by its negative.
+The on-site pair vertex has zero charge at each site. Therefore
+$$
+\boxed{[G_j,H]=0,\qquad [Q,H]=[R,H]=0,\qquad
+\sum_jG_j=-Q.}
+$$
+The physical condition is $G_j|\psi\rangle=0$ for every $j$.
+Checking only $\langle G_j\rangle=0$ can miss states containing
+opposite constraint violations.
+
+Start with two neutral quanta, no charged occupations and zero link
+flux: $|n_b=2;\mathbf n_+=\mathbf n_-=0;\mathbf e=0\rangle$.
+Every reachable state lies in $R=4,Q=0$, so
+$N_+=N_-=k$, $n_b=2-k$, and $k=0,1,2$. At fixed matter occupations,
+the three Gauss constraints give the unique flux
+$$
+\boxed{E_0=-\rho_0,\qquad E_1=\rho_2.}
+$$
+Consequently $|E_\ell|\le2$ throughout this physical sector.
+There are
+$$
+\dim\mathcal H_{\rm phys}^{B}
+=\sum_{k=0}^{2}\binom{k+2}{2}^{\!2}=46,\qquad
+\dim\mathcal H_{\rm phys}^{F}
+=\sum_{k=0}^{2}\binom{3}{k}^{\!2}=19
+$$
+physical states. The finite sector is exact for the specified initial
+state and Hamiltonian. A calculation may represent the larger
+$R=4,Q=0$ tensor-product space with $-2\le e_0,e_1\le2$:
+its dimensions are $1150$ and $475$. The flux translation has boundary
+defects on that auxiliary space; no nonzero transition from a physical
+column may be lost at those boundaries. No assertion of rotor
+unitarity on the full finite auxiliary space is made.
+
+### 60.3 Charge separation and the missing-link control
+
+Measure the probability that at least one site has nonzero charge,
+$P_{\rm sep}=\langle{\bf1}_{\boldsymbol\rho\ne0}\rangle$, the squared
+flux $F_E=\langle E_0^2+E_1^2\rangle$, and the strong constraint residual
+$$
+\mathcal V_G=\sum_j\langle G_j^2\rangle
+=\sum_j\|G_j|\psi\rangle\|^2.
+$$
+The mean Gauss vector is retained separately. A nonzero
+$P_{\rm sep}$ measures support on spatially charged configurations;
+the mean charge at each site can still vanish.
+
+As a deliberately invalid local-gauge control, replace both link
+translations in $H_{\rm hop}$ by the identity. This bare hopping
+preserves $Q$ and $R$ but changes charge without changing flux.
+The initial data and all coefficients stay fixed.
+For either supplied statistics, the four single-hop destinations of
+the first central pair give the short-time identities
+$$
+\begin{aligned}
+P_{\rm sep}^{\rm dressed}(t)&=2\lambda^2J^2t^4+O(t^6),\\
+F_E^{\rm dressed}(t)&=2\lambda^2J^2t^4+O(t^6),\\
+\mathcal V_G^{\rm bare}(t)&=4\lambda^2J^2t^4+O(t^6).
+\end{aligned}
+$$
+The leading coefficients are $1/512$, $1/512$ and $1/256$.
+The Hamiltonians are real in the declared occupation convention,
+so these diagonal-observable probabilities are even in time.
+Charge-conjugation symmetry preserves zero mean local charge;
+for fermions the symmetry includes $b\mapsto-b$ when the two charged
+species are exchanged. Thus the bare control can pass both total-charge
+and mean-Gauss checks while failing the physical operator constraint.
+
+### 60.4 Fixed qualification before execution
+
+Evaluate bosonic and fermionic statistics in four arms: the specified
+dressed coupling, $J=0$, $\lambda=0$, and the missing-link control.
+Use only $t=0,T/2,T$, where $T=\pi/(2\sqrt2\lambda)$ as in §58.
+There are $24$ diagnostic rows in each calculation. Do not project,
+renormalize, or repair a propagated state.
+
+The primary program solves Gauss's law in the occupation basis and
+uses a dense matrix exponential. The independent program constructs
+the larger electric-link tensor space, its local generators and
+dressed transitions, and propagates the initial vector by sparse
+exponential action without physical-subspace projection. For bare
+hopping, the primary program keeps flux zero and retains all allowed
+matter occupations; the independent program uses its full auxiliary
+space. The primary program is
+`computations/matter_formation_local_gauss.py`; the independent
+program is `computations/verify_matter_formation_local_gauss.py`.
+Neither imports the other.
+
+Require the declared basis dimensions, exact conserved-label
+selection rules, zero physical-column cutoff loss, the three exact
+short-time coefficients, and a nonzero bare Gauss commutator.
+Save bases, fluxes, Hamiltonians, times, complex state vectors and all
+diagnostics. Main reconstructs the reduced Hamiltonians and propagates
+them by Hermitian eigendecomposition from the retained arrays.
+Every equality uses
+$\|a-b\|/\max(1,\|b\|)\le10^{-9}$. This includes matrix/state
+reconciliation, Hermiticity, norm, $Q$, $R$, total energy, and all
+three local Gauss residuals in the dressed arms.
+The total Hamiltonian energy, rather than each summand, is conserved.
+
+At $J=0$, require the §58 pair probabilities for the three fixed times
+and zero spatial separation and flux. At $\lambda=0$, require the
+initial state up to its free phase. At $T/2$ in both statistics,
+the dressed arm must have $P_{\rm sep}>10^{-6}$ and $F_E>10^{-6}$,
+while the bare control must have $\mathcal V_G>10^{-6}$ and mean
+Gauss norm at most $10^{-9}$.
+
+Before execution, bind this section, both sources, the retained
+particle-action source and an accepted independent mathematical
+review with SHA-256 under
+`runs/20260909_matter_formation_local_gauss/`.
+Both programs must reject a source mismatch or an unaccepted review
+before producing scientific rows or an array archive.
+All criteria passing gives
+`SUPPORTS-conditional local quantum Gauss conversion`; otherwise
+`INCONCLUSIVE`. Stop at this schedule without tuning or extending it.
+The result concerns the supplied finite quantum model. It supplies
+no microscopic selection, three-dimensional particle identity,
+continuum renormalization, localized bound state or nonradial
+persistence. Every receipt retains
+`complete_physical_matter_formation=false`.
+
+## 61. Working notes: qualified local quantum conversion
+
+### 61.1 Neutral conversion with spatial charge separation
+
+The supplied neutral excitation converts into oppositely charged
+occupations that can separate while preserving Gauss's law at every
+site. Both independent calculations pass the fixed criteria in §60.4.
+The qualified verdict is
+`SUPPORTS-conditional local quantum Gauss conversion`.
+
+At the fixed midpoint $t=T/2=2.221441469079183$, the unprojected
+electric-link evolution gives:
+
+| Supplied statistics | Hopping | Pair expectation | $P_{\rm sep}$ | $F_E$ | $\mathcal V_G$ |
+|---|---|---:|---:|---:|---:|
+| Bosonic | Flux-dressed | 0.582827765778 | 0.041466502558 | 0.043118091844 | 0 |
+| Fermionic | Flux-dressed | 0.489542594052 | 0.038671490702 | 0.039353926447 | 0 |
+| Bosonic | Bare control | 0.582685421550 | 0.042150053667 | 0 | 0.086302262945 |
+| Fermionic | Bare control | 0.489436749776 | 0.039329916443 | 0 | 0.078659832886 |
+
+The flux-dressed states have nonzero probability on spatially charged
+configurations with matching electric flux. Their mean charge at
+each site vanishes by charge-conjugation symmetry. The bare controls
+also preserve total charge and have zero mean Gauss vector within
+roundoff, yet their strictly positive $\mathcal V_G$ places them
+outside the physical constraint subspace. Over both programs and all
+sampled times, the largest bare mean-Gauss norm is
+$4.70979819748509\times10^{-16}$. Every retained dressed Gauss
+variance and mean-Gauss component is exactly zero.
+
+Disabling hopping reproduces the single-site conversion probabilities
+in §58 and leaves separation and flux zero. Disabling the conversion
+vertex preserves the initial state up to its free phase. Norm,
+total charge, the resource $R$, and total Hamiltonian energy satisfy
+the fixed $10^{-9}$ bound in every arm. No propagated state is
+projected, renormalized or repaired.
+
+### 61.2 Independent numerical evidence
+
+The occupation-basis calculation passes $65$ checks; the independent
+electric-link tensor calculation passes $101$. Each supplies all
+$24$ prescribed diagnostic rows. Their largest internal normalized
+discrepancies are $1.905793032953756\times10^{-15}$ and
+$9.592803094535606\times10^{-15}$, respectively. The physical bases
+have dimensions $46$ and $19$; the independent auxiliary spaces have
+dimensions $1150$ and $475$.
+
+Independent reconstruction checks the saved full sparse Hamiltonians,
+untouched full state vectors, reduced coordinate views and
+diagnostics. A separate Hermitian eigendecomposition propagates the
+reconstructed reduced operators. All $268$ comparisons pass. The
+largest normalized discrepancies are:
+
+| Reconstructed quantity | Maximum discrepancy |
+|---|---:|
+| Full auxiliary Hamiltonians | 0 |
+| Reduced Hamiltonians | $5.762534765295691\times10^{-18}$ |
+| Complex state vectors | $1.344454161439660\times10^{-14}$ |
+| Diagnostic arrays and rows | $1.508400694902846\times10^{-14}$ |
+| Pair probabilities | $1.611863617499654\times10^{-14}$ |
+
+The auxiliary flux window discards transitions from unphysical
+columns: $840$ in each hopping-enabled dressed bosonic operator and
+$240$ in each corresponding fermionic operator. No nonzero
+transition from a physical column is lost. The full auxiliary shift
+is a compressed integer translation; unitarity is required of the
+Hamiltonian evolution, while exact physical-sector closure protects
+the specified trajectories from the auxiliary boundary.
+
+All four source-mismatch and unaccepted-review controls stop with
+`INCONCLUSIVE`, zero scientific rows and no array archive. The
+accepted hand derivation and its independent recheck are retained
+with the source snapshots. Submitted-source and review materials,
+the integration record and disclosed non-scientific file lookups
+are separate provenance records.
+
+The frozen section SHA-256 is
+`59c0ed2135cb237aa7f440fb297287ba4ba2e76a24692e7d339ad81b82aad633`.
+The manifest SHA-256 is
+`130d2cc8a0911aeefd24b7debb588f02752645870f9f3e3a4cb5855b14adca18`.
+Sources, reviews, execution records, full arrays, rejection controls
+and reconstruction are retained under
+`runs/20260909_matter_formation_local_gauss/`; the joint record is
+`runs/20260909_matter_formation_local_gauss/joint_reconciliation.json`.
+
+### 61.3 Finite-model stability and physical completion
+
+Hermitian evolution in the exact finite $R=4$, $Q=0$ sector preserves
+norm and has a bounded spectrum. That statement is confined to this
+sector. Vacuum stability across other resource sectors, a
+three-dimensional localized bound state, continuum renormalization
+and nonradial persistence require separate physical and mathematical
+input. The fixed three-site calculation provides no continuum or
+infinite-volume limit.
+
+The compact rotor representation, charge unit, charged-mode
+statistics, conversion interaction, coefficients and initially
+occupied neutral mode are supplied assumptions. The result qualifies
+their local constraint compatibility. It does not select a
+microscopic action, identify a physical particle or derive
+production from the canonical field variables.
+
+Complete matter formation still requires a physically selected
+microscopic action and quantum sector, physical normalization and
+renormalization conditions, derived spin/statistics/charges, and
+localized formation with nonradial persistence in that same model.
+The microscopic ambiguity established in §29 remains. Every
+scientific receipt retains
+`complete_physical_matter_formation=false`.
+
 ## References
+
+- `computations/matter_formation_local_gauss.py`—exact physical-sector operators, local Gauss identities and dense quantum evolution.
+- `computations/verify_matter_formation_local_gauss.py`—independent full electric-link tensor construction, cutoff audit and unprojected sparse exponential action.
+- `runs/20260909_matter_formation_local_gauss/`—frozen sources and section, accepted mathematical review, full arrays, raw reconstruction and prerequisite-rejection controls.
 
 - `computations/matter_formation_charged_gauss.py`—Abelian source variation, temporal-parent identities and periodic Gauss solvability.
 - `computations/matter_formation_charged_conversion.py`—finite charge-neutral conversion witnesses with supplied bosonic and fermionic sectors.
