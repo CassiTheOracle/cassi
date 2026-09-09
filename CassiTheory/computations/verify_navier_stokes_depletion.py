@@ -29,6 +29,28 @@ TOLERANCE = 1e-10
 AXES = (1, 2, 3)
 
 
+class DepletionReceipt(transfer.Receipt):
+    def check(self, name: str, passed: bool, value: object = None) -> None:
+        if name in self.checks:
+            raise ValueError(f"Duplicate verification check: {name}")
+        super().check(name, passed, value)
+
+
+def json_safe(value):
+    """Preserve nonfinite failure values as explicit JSON markers."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return {"nonfinite": str(value)}
+    if isinstance(value, dict):
+        for key in value:
+            value[key] = json_safe(value[key])
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            value[index] = json_safe(item)
+    elif isinstance(value, tuple):
+        return [json_safe(item) for item in value]
+    return value
+
+
 def fixtures():
     cyclic, shear = {}, {}
     for k, v in (((0, 1, 0), (1, 0, 0)), ((0, 0, 1), (0, 1, 0)),
@@ -202,7 +224,7 @@ def field_on_grid(field, n):
 
 
 def compute(result):
-    book = transfer.Receipt()
+    book = DepletionReceipt()
     result["checks"] = book.checks
     result["failures"] = book.failures
     exact_rows, grid_rows, quadrature_rows, absorption_rows = [], [], [], []
@@ -329,17 +351,19 @@ def compute(result):
     all_errors = [value for row in grid_rows+quadrature_rows for value in row["errors"].values()]
     finite = all(math.isfinite(row["value"]) for row in absorption_rows)
     book.check("absorption diagnostics finite", finite)
+    book.check("numerical comparisons present and finite",
+               bool(all_errors) and all(math.isfinite(error) for error in all_errors))
     quality = not book.failures
     cyclic_positive = all(row["DF_fine_B_value"] > TOLERANCE for row in exact_rows if row["fixture"] == "cyclic")
     positive = any(row["DF_fine_B_value"] > TOLERANCE for row in exact_rows)
     negative = any(row["DF_fine_B_value"] < -TOLERANCE for row in exact_rows)
     absorption_failure = any(row["value"] > TOLERANCE for row in absorption_rows)
-    result.update(status="PASS" if quality else "FAIL", max_numerical_discrepancy=max(all_errors),
+    result.update(status="PASS" if quality else "FAIL",
+                  max_numerical_discrepancy=max(all_errors) if all_errors else None,
                   check_count=len(book.checks), control_classifications={
                       "automatic_nonpositive_response": "CONTRADICTS" if quality and cyclic_positive else "INCONCLUSIVE",
                       "two_sided_nonlinear_response": "SUPPORTS" if quality and positive and negative else "INCONCLUSIVE",
-                      "viscous_only_absorption_theta_half": "CONTRADICTS" if quality and absorption_failure else "INCONCLUSIVE",
-                      "data_controlled_cumulative_depletion": "UNRESOLVED", "arbitrary_data_regularity": "UNRESOLVED"})
+                      "viscous_only_absorption_theta_half": "CONTRADICTS" if quality and absorption_failure else "INCONCLUSIVE"})
     return quality
 
 
@@ -366,7 +390,12 @@ def main():
     with manifest_path.open("x", encoding="utf-8") as stream:
         json.dump(manifest, stream, indent=2)
     result = {"schema": "cassi.navier-stokes.depletion.verification.v1", **manifest,
-              "scope": "Exact identities and instantaneous controls; no time-integrated trajectory or regularity proof."}
+              "scope": "Exact identities and instantaneous controls; no time-integrated trajectory. "
+                       "Data-controlled cumulative depletion and arbitrary-data regularity remain unresolved.",
+              "control_classifications": {
+                  "automatic_nonpositive_response": "INCONCLUSIVE",
+                  "two_sided_nonlinear_response": "INCONCLUSIVE",
+                  "viscous_only_absorption_theta_half": "INCONCLUSIVE"}}
     success = False
     try:
         success = compute(result)
@@ -374,6 +403,7 @@ def main():
             raise RuntimeError("A frozen source changed during execution")
     except Exception as exc:
         result.update(status="ERROR", error=f"{type(exc).__name__}: {exc}")
+    json_safe(result)
     with output.open("x", encoding="utf-8") as stream:
         json.dump(result, stream, indent=2, allow_nan=False)
     print(f"Receipt: {output}")

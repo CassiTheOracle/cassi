@@ -26,7 +26,7 @@ constitutive map remain open.
 | 1 | `turbulence/kolmogorov-from-phi.md` | Turbulence spectra from the two-fluid PDE | Derived conditional / Hypothesized closures |
 | 2 | `turbulence/navier-stokes-transfer-boundary.md` | Critical transfer, cubic heat correction, and coercivity | Derived identities and obstructions / conditional small-data estimates |
 | 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution and helical covariance conditions | Derived filtered identities / Hypothesized geometric closure |
-| 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response and matter-binding comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
+| 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response, matter binding and exterior-memory comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
 
 ## 2. Document summaries
 
@@ -62,6 +62,9 @@ control exceeds viscous-only absorption. A data-controlled cumulative
 estimate remains open. The matter comparison distinguishes qualified
 loaded-core redistribution from the positive constrained energy that
 establishes conditional unwound binding.
+The exterior-memory comparison retains the initial exterior state and the
+operator assumptions needed for a controlled response; the corresponding
+nonlinear Navier–Stokes estimate remains unproved.
 
 ## References
 

@@ -214,7 +214,7 @@ The cyclic field has $R_\ell=0$ at maximum-strain points at its initial instant.
 
 ## 7. What the latest matter calculations contribute
 
-The matter calculations distinguish a self-consistent response from a stable response. They also show what a genuine coercive localization argument requires. The relevant results are in `computations/matter-formation-continuum-report.md` §§44–50.
+The matter calculations distinguish a self-consistent response from a stable response. They also show what a genuine coercive localization argument requires. The relevant results are in `computations/matter-formation-continuum-report.md` §§37 and 44–50.
 
 ### 7.1 Loaded cores can favor redistribution
 
@@ -262,11 +262,46 @@ For original Navier–Stokes, kinetic energy supplies no corresponding positive 
 
 Section 50 specifies a nonlinear scalar-parent packet calculation. Its initial signed density is zero, while a phase gradient transports opposite signed densities into the two half-spaces. The report supplies the protocol and exact initial-current identities; it records no measured packet-condensation verdict. The scalar parent has additional mediator and carrier Cauchy data and a separate compact-state energy comparison. That construction supplies no established constitutive map to incompressible momentum stress.
 
+### 7.4 Surrounding-scale memory requires a controlled interaction operator
+
+Section 37.1 derives an exact exterior elimination for a time-independent self-adjoint quadratic Hamiltonian. For retained amplitude $x$, exterior amplitude $y$, bounded coupling $V$ and $U_E(t)=e^{-iH_Et/\hbar}$, it gives
+$$
+i\hbar\dot x(t)=H_Lx(t)+VU_E(t)y_0
+-\frac{i}{\hbar}\int_0^tVU_E(t-s)V^\dagger x(s)\,ds.
+$$
+The initial-exterior term carries independent initial-state information. The finite conservative kernel permits energy return and recurrence. Its retarded projected resolvent is
+$$
+G_L^R(\zeta)=
+\left[\zeta-H_L-V(\zeta-H_E)^{-1}V^\dagger\right]^{-1}.
+$$
+With $H_E\ge\Delta I>0$ and $|\zeta|<\Delta$, the expansion of this inverse kernel contains positive semidefinite moments $M_j=VH_E^{-(j+1)}V^\dagger$ and the remainder bound
+$$
+\|\mathcal R_3(\zeta)\|
+\le\frac{\|V\|^2|\zeta|^3}
+{\Delta^4(1-|\zeta|/\Delta)}.
+$$
+These hypotheses control an explicitly supplied linear exterior problem. Positivity of its moments supplies no sign for the nonlinear momentum transfer $F_f$. The collective phase inertia in §37.2 also depends on the matter action's conjugate density variables and positive density Hessian; a constitutive map to incompressible velocity remains unestablished.
+
+The Gaussian split in §2 is an instantaneous strain decomposition. At nonzero wave number its multiplier lies strictly between zero and one, so $G_L^2\ne G_L$. It eliminates no degrees of freedom and introduces no exterior initial-state assumption.
+
+An exterior decomposition of NS can instead use a separate sharp Fourier projection. Let $Q_\kappa$ retain $|k|>\kappa>0$, and put $w=Q_\kappa u$. For smooth solutions, variation of constants gives the exact identity
+$$
+w(t)=e^{\nu t\Delta}w(0)+
+\int_0^t e^{\nu(t-s)\Delta}
+Q_\kappa B(u(s),u(s))\,ds.
+$$
+The heat block satisfies
+$$
+\|e^{\nu t\Delta}Q_\kappa\|_{\dot H^{1/2}\to\dot H^{1/2}}
+\le e^{-\nu\kappa^2t}.
+$$
+The nonlinear forcing still contains the full evolving velocity and its derivatives. Section 37 supplies no data-controlled bound on that NS interaction operator. Eliminating it into a memory representation preserves this estimation requirement. A useful transfer of the method would establish the cumulative bound in §6, including the exterior initial data, with constants independent of an upper Fourier cutoff.
+
 ## 8. Verification and scope
 
 `computations/navier-stokes-depletion-prereg.md` fixes the four fields, three split lengths, two viscosities, amplitude controls, three spatial grids and two quadrature orders. `computations/verify_navier_stokes_depletion.py` uses exact sparse Fourier algebra and an independently constructed physical-space FFT calculation. It integrates the exponential transfer difference numerically before comparing with the square-root triad formula. Every differentiated slot retains generated modes.
 
-All **1,011 recorded checks pass**, including 108 spatial grid/filter/split rows, 72 quadrature rows and the finite-value qualification of all 48 absorption rows. The maximum normalized discrepancy is $8.0993\times10^{-15}$, below the fixed $10^{-10}$ tolerance. The nonlinear fine-transfer response is:
+All **1,012 recorded checks pass**, including 108 spatial grid/filter/split rows, 72 quadrature rows, the finite-value qualification of all 48 absorption rows, and a nonempty finite-comparison qualification. The maximum normalized discrepancy is $8.0993\times10^{-15}$, below the fixed $10^{-10}$ tolerance. The nonlinear fine-transfer response is:
 
 | Initial field | $D F_f[B]$, $L=1/2$ | $D F_f[B]$, $L=1$ | $D F_f[B]$, $L=2$ |
 |---|---:|---:|---:|
@@ -275,15 +310,17 @@ All **1,011 recorded checks pass**, including 108 spatial grid/filter/split rows
 | Three-coordinate multiscale | 25.0028695112 | 48.2240130186 | 57.7187576557 |
 | Shear | 0 | 0 | 0 |
 
-The frozen classifications are **CONTRADICTS** automatic nonpositive response at zero transfer, **SUPPORTS** two-sided nonlinear response in the fixed control class, and **CONTRADICTS** viscous-only absorption at $\theta=1/2$. Data-controlled cumulative depletion and arbitrary-data regularity are **UNRESOLVED**.
+The three measured classifications are **CONTRADICTS** automatic nonpositive response at zero transfer, **SUPPORTS** two-sided nonlinear response in the fixed control class, and **CONTRADICTS** viscous-only absorption at $\theta=1/2$. Data-controlled cumulative depletion and arbitrary-data regularity remain open proof obligations. The receipt records them as scope limitations, separately from the measured classifications.
 
-The accepted receipt is `runs/navier_stokes_depletion/complete/verification.json`, with its adjacent `verification.inputs.json` and `verification.sources/`. The input manifest, source snapshots and current executable inputs match the following raw SHA-256 identities:
+The accepted receipt is `runs/navier_stokes_depletion/qualified/verification.json`, with its adjacent `verification.inputs.json` and `verification.sources/`. The input manifest, source snapshots and current executable inputs match the following raw SHA-256 identities:
 
 | Input | SHA-256 |
 |---|---|
 | Frozen protocol | `d33849ce271f3fb028d6f1375d47eece01decc88c1b11eb79ade332e834a3509` |
-| Depletion verifier | `60c73e8624fcb0bb6ef48f41da99c10c1fa0668ab8bcf337e6189173e131d8cb` |
+| Depletion verifier | `e2262175a0c3d787deed44db9cac2be487f819889f9c8706000931ccdf358f06` |
 | Retained Fourier helper | `a7ca230b989f5713cb511b18971007d41cbdad20d9c8cf8e2af7d34f107755e0` |
+
+The preserved `runs/navier_stokes_depletion/complete/verification.json` contains 1,011 checks and identical exact, spatial, quadrature and absorption rows. The qualified receipt additionally requires a nonempty set of finite numerical comparisons. The root `runs/navier_stokes_depletion/verification.json` is a diagnostic receipt with non-unique amplitude-check labels. Each receipt retains its own input manifest and frozen sources. Duplicate labels are rejected before an existing check can be overwritten; nonfinite failure values are retained as explicit JSON markers.
 
 Every output path is immutable. To reproduce from the CassiTheory directory, supply a fresh path to `python computations/verify_navier_stokes_depletion.py --output runs/navier_stokes_depletion/reproduction/verification.json`. These controls concern instantaneous derivatives and analytical local-time consequences. No finite-dimensional trajectory is used to claim a continuum bound.
 
@@ -295,7 +332,7 @@ The unresolved result is a data-controlled integral of the fine-scale production
 - `turbulence/navier-stokes-stress-geometry.md`—complete stress/strain dynamics and geometric controls.
 - `computations/navier-stokes-depletion-prereg.md`—fixed identities, controls, numerical tolerances and classification rules.
 - `computations/verify_navier_stokes_depletion.py`—exact algebra and independent instantaneous Fourier reconstruction.
-- `computations/matter-formation-continuum-report.md` §§44–50—loaded-core response, finite-period redistribution, unwound binding and packet-calculation boundary.
+- `computations/matter-formation-continuum-report.md` §§37 and 44–50—exterior memory and its operator assumptions, loaded-core response, finite-period redistribution, unwound binding and packet-calculation boundary.
 - `foundations/particle-stationary-action-closure.md` §8.7—carrier conservation and scalar variational reduction.
 - G. Eyink and H. Aluie, [Localness of energy cascade in hydrodynamic turbulence. I. Smooth coarse-graining](https://arxiv.org/abs/0909.2386)—filtered energy budgets.
 - T. Tao, [Finite time blowup for an averaged three-dimensional Navier–Stokes equation](https://arxiv.org/abs/1402.0290)—limits of generic energy-cancellation estimates.
