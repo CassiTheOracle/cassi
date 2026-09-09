@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection, bubble map, and population spectrum; Hypothesized microscopic physical identification—August 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge comparisons; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -29,6 +29,12 @@ geometry or dynamics. The construction supplies a conditional carrier-to-
 density projection and a coherence-sensitive bubble coordinate. A physical
 phase law, a map from the regulated quantum configuration to these carriers,
 $\hbar$, quantum statistics, and measurement dynamics remain separate inputs.
+
+The pure-gauge comparison in §§9.4–9.9 gives an exact loop-coordinate map into
+the supplied quantum $SU(2)$ lattice theory. Gauge-invariant electric flux has
+a minimum closed-loop cost, while the projective bubble variable discards
+information needed by the Wilson magnetic energy. The interacting
+infinite-volume gap and four-dimensional continuum construction remain open.
 
 ---
 
@@ -948,10 +954,273 @@ QF1 complex field and carrier occupations remains Open, so the DQ and GQ
 promotion verdicts in `foundations/quantum-measurement-derivation.md` remain
 unchanged.
 
-The new result advances the projective research direction by proving that a
-phase-bearing carrier ensemble maps naturally to the full affine bubble
+The phase-bearing carrier ensemble maps naturally to the full affine bubble
 volume. The discarded phase fibre remains independent data beyond the
 canonical density dynamics.
+
+### 9.4 Exact loop coordinates in pure gauge theory
+
+Two paths joining the same endpoints supply a precise gauge-theory
+counterpart to oppositely traversed strands. Let their parallel transports
+obey $U_\pm\mapsto G_sU_\pm G_t^\dagger$. Their relative holonomy satisfies
+
+$$
+W=U_+U_-^\dagger,\qquad
+W\mapsto G_sWG_s^\dagger,\qquad
+\operatorname{Tr}W\mapsto\operatorname{Tr}W.
+\tag{YM1}
+$$
+
+These are Wilson variables of the original gauge field. A normalized complex
+pair gives an exact coordinate on the group:
+
+$$
+U(z)=
+\begin{pmatrix}z_Y&-z_I^*\\z_I&z_Y^*\end{pmatrix},
+\qquad |z_Y|^2+|z_I|^2=1,
+\qquad U(z)^\dagger U(z)=I,\quad\det U(z)=1.
+\tag{YM2}
+$$
+
+The quantum wavefunction is a function of the link matrices, with normalized
+Haar measure. Here $z$ is a group coordinate; it introduces no independent
+matter field. Identification of this coordinate with the carriers in §2
+requires a separate state, observable and dynamics map. The construction
+does not select a helical embedding or a physical strand-to-bubble size.
+
+Take continuous time, a cubic spatial lattice of spacing $a$, generators
+$T^a=\sigma^a/2$, and the explicit Hamiltonian convention in Bauer et al.,
+Eqs. (55)–(56):
+
+$$
+H=H_E+H_B,\qquad
+H_E=\frac{g^2}{2a}\sum_l E_l^2,\qquad
+H_B=\frac{1}{2g^2a}\sum_p
+\operatorname{Tr}(2I-U_p-U_p^\dagger).
+\tag{YM3}
+$$
+
+Each unoriented elementary square appears once, $g,a>0$, and
+$E_l^2$ has eigenvalues $j_l(j_l+1)$. The physical Hilbert space is the
+gauge-invariant subspace of $\bigotimes_l L^2(SU(2),dU_l)$, with Gauss
+invariance at every vertex. The quantum kinematics and Hamiltonian are
+supplied by established lattice gauge theory. They are independent of the
+population generator (LB6).
+
+### 9.5 Information required by the magnetic energy
+
+The projective shell forgets a coordinate that changes a gauge-invariant
+energy. Consider
+
+$$
+z_\eta=(e^{i\eta},0),\qquad
+z_\eta z_\eta^\dagger=
+\begin{pmatrix}1&0\\0&0\end{pmatrix},\qquad
+U(z_\eta)=
+\begin{pmatrix}e^{i\eta}&0\\0&e^{-i\eta}\end{pmatrix}.
+\tag{YM4}
+$$
+
+All these states of the group coordinate have the same projective point and
+affine bubble image, while
+
+$$
+\operatorname{Tr}U(z_\eta)=2\cos\eta,\qquad
+V_B(\eta)=\frac{2}{g^2a}(1-\cos\eta).
+\tag{YM5}
+$$
+
+In particular, $I$ and $-I$ have identical projective data and distinct
+magnetic energies. Both are central group elements, so a gauge conjugation
+cannot identify them. This coordinate phase is distinct from an overall
+phase multiplying a quantum wavefunction.
+
+There is also an operator obstruction to autonomous projective dynamics.
+The constant wavefunction depends only on the projector and is gauge
+invariant. Its electric energy vanishes, but $H1=H_B$ varies across the
+fibres in (YM4). Thus the subspace of projector-only wavefunctions is not
+preserved by the Hamiltonian, already on an isolated square.
+An exact effective marginal obtained by integrating out the discarded phase
+can carry additional interactions or temporal memory. The obstruction
+concerns closure using only the stated projective variable and the supplied
+Hamiltonian; it leaves such enlarged effective constructions open.
+
+### 9.6 The electric closed-loop threshold
+
+Gauss invariance forces nonzero electric flux to pay for a closed network.
+On any finite open cubic box with at least two sites in each direction,
+the pure-electric operator has unique constant vacuum $\Omega_E$ and
+
+$$
+\boxed{\Delta_E=\frac{3g^2}{2a}.}
+\tag{YM6}
+$$
+
+**Proof.** Peter–Weyl decomposition supplies a complete spin-network basis
+of the physical Hilbert space: an irreducible spin labels each edge and a
+singlet intertwiner contracts the incident representations at each vertex.
+The electric eigenvalue is
+$\frac{g^2}{2a}\sum_lj_l(j_l+1)$. A single nontrivial incident
+representation cannot contain a singlet, so every vertex in the nontrivial
+support has degree at least two. Every nonempty finite support therefore
+contains a cycle. The cubic graph has girth four, hence at least four
+nontrivial edges occur. Each contributes at least $3/4$.
+A fundamental character around one elementary square attains their sum
+$3$. The all-trivial network is the unique zero-energy state.
+Completeness extends the bound to arbitrary physical superpositions. This
+argument allows branching and integer-spin edges. $\square$
+
+The bound is independent of the number of sites. The same graph argument
+applies to periodic boxes with girth four; a short periodic cycle changes
+the minimum support. Boundary Gauss constraints are essential: external
+charges can terminate an open flux line.
+
+Equation (YM6) is an established strong-electric lattice result. It supplies
+a quantum excitation threshold under the regulated gauge-theory
+assumptions. Its origin is the combination of Gauss closure, the Casimir
+spectrum and the lattice energy scale.
+
+### 9.7 Magnetic interactions and the vacuum
+
+The magnetic term creates and mixes closed electric loops. For $SU(2)$,
+$\chi_{1/2}(U_p)=\operatorname{Tr}U_p$, and
+
+$$
+H_B\Omega_E=
+\frac{2N_p}{g^2a}\Omega_E
+-\frac{1}{g^2a}\sum_p\chi_{1/2}(U_p)\Omega_E.
+\tag{YM7}
+$$
+
+The individual square states have unit Haar norm and are mutually
+orthogonal, including squares sharing an edge: a link belonging to just
+one square has a vanishing fundamental matrix-element integral.
+Consequently the interacting vacuum differs from $\Omega_E$.
+For the scaled operator and its ground energy,
+
+$$
+h=\frac{2a}{g^2}H
+=K+2xN_p-x\sum_p\chi_{1/2}(U_p),\qquad
+K=\sum_lE_l^2,\qquad x=\frac{2}{g^4},
+$$
+$$
+e_0(x)=2xN_p-\frac{x^2N_p}{3}+O(x^3)
+\quad\text{at fixed finite box}.
+\tag{YM8}
+$$
+
+The denominator is the electric square energy $3$. The second-order shift
+is extensive; this expansion has no asserted volume-uniform remainder.
+Although $H_B\ge0$, the physical gap subtracts the interacting ground
+energy. Monotonicity of individual eigenvalues under addition of a positive
+operator gives no monotonicity of their difference. A global operator-norm
+perturbation estimate also grows with the number of squares. Control of
+connected interactions and vacuum subtraction is required.
+
+For each fixed finite box and $g,a>0$, the full operator (YM3) has compact
+resolvent on the unreduced space $L^2(SU(2)^{N_e})$. The link configuration
+space is compact and connected, its electric Laplacian is elliptic, and
+the magnetic potential is bounded and smooth. The heat kernel is strictly
+positive, giving a unique positive ground state. Gauge transformations
+preserve this normalized positive state, so it lies in the physical sector.
+The group-average Gauss projector commutes with the Hamiltonian and its
+resolvent; restriction therefore preserves compactness. The physical
+excitation spectrum has a positive finite-box gap. This argument uses
+ellipticity before gauge reduction and supplies no lower bound uniform in
+box size or lattice spacing.
+
+### 9.8 Exact interacting square control
+
+An isolated open square resolves magnetic mixing without adding physical
+fields. Gauge reduction leaves class functions of its holonomy. Write
+$\frac12\operatorname{Tr}U=\cos\theta$, $0<\theta<\pi$. The physical measure,
+orthonormal characters and matrix are
+
+$$
+d\mu(\theta)=\frac{2}{\pi}\sin^2\theta\,d\theta,\qquad
+\chi_{n/2}(\theta)=\frac{\sin((n+1)\theta)}{\sin\theta},
+$$
+$$
+H_{nm}=
+\left[\frac{g^2}{2a}n(n+2)+\frac{2}{g^2a}\right]\delta_{nm}
+-\frac{1}{g^2a}(\delta_{n,m+1}+\delta_{n,m-1}).
+\tag{YM9}
+$$
+
+The unitary transformation $u=\sqrt{2/\pi}\sin\theta\,\psi$ to
+$L^2((0,\pi),d\theta)$ gives
+
+$$
+aH_u=-\frac{g^2}{2}\left(\frac{d^2}{d\theta^2}+1\right)
++\frac{2}{g^2}(1-\cos\theta),\qquad u(0)=u(\pi)=0.
+\tag{YM10}
+$$
+
+The self-adjoint radial domain is $H^2(0,\pi)\cap H_0^1(0,\pi)$.
+With $z=\theta/2$, the equation is of Mathieu form. The physical eigenvalues
+are
+
+$$
+aE_r=\frac{g^2}{8}\left[
+b_{2(r+1)}(-8/g^4)-4\right]+\frac{2}{g^2},
+\qquad r=0,1,2,\ldots.
+\tag{YM11}
+$$
+
+The Dirichlet boundaries select the even-order sine characteristic values
+$b_{2(r+1)}$. At strong coupling the scaled levels of $h$ have corrections
+$-x^2/3$ for the vacuum and $2x^2/15$ for the first excited state, in addition
+to their common $2x$. Thus
+
+$$
+\frac{2a}{g^2}\Delta_\square
+=3+\frac{7x^2}{15}+O(x^4).
+\tag{YM12}
+$$
+
+Parity of the character index makes the gap even in $x$.
+At weak coupling, $\theta=gy$ gives the Dirichlet half-line harmonic
+oscillator,
+
+$$
+aE_r\longrightarrow\sqrt2(2r+3/2),\qquad
+a\Delta_\square\longrightarrow2\sqrt2.
+\tag{YM13}
+$$
+
+These established single-square formulas provide independent controls for
+the chosen normalization. The isolated square is a different finite graph
+from the interacting cubic lattice; neighboring magnetic terms prevent
+its character space from being an invariant single-square sector of the
+latter.
+
+### 9.9 The remaining mass-gap target
+
+The loop mechanism needs a bound relative to the fully interacting vacuum
+that survives both relevant limits. A sufficient spectral target, after
+fixing physical units along a continuum scaling trajectory, is
+
+$$
+H_{a,L}-E_0(a,L)\ \ge\
+m_*\bigl(I-|\Omega_{a,L}\rangle\langle\Omega_{a,L}|\bigr),
+\qquad m_*>0,
+\tag{YM14}
+$$
+
+with control uniform along $a\to0$ and physical volume $L^3\to\infty$,
+together with a nontrivial continuum quantum-field construction satisfying
+the required axioms. Asymptotic freedom takes the bare coupling toward
+zero, where the electric expansion parameter $x=2/g^4$ grows. The
+finite-square threshold proportional to $a^{-1}$ therefore supplies no
+continuum mass prediction.
+
+The immediate research question is whether retaining the full holonomy
+information through connected block transformations yields a useful bound
+on the vacuum-subtracted interaction. A bubble-only projection must first
+account for the phase distinguished by (YM5). The present results establish
+regulated pure-$SU(2)$ comparisons. The interacting uniform estimate,
+continuum existence, identification with Cassi microphysics and extension
+to every compact simple gauge group remain **Open**.
 
 ---
 
@@ -1003,6 +1272,11 @@ microscopic completions.
 | Universal strand-to-bubble spatial ratio | **Open** | Geometry or dynamics fixing $R/L_B$ is absent |
 | Physical loop-carrier and phase identification | **Hypothesized** | Direct carrier, phase, current, and closure tests |
 | Quantum dynamics and statistics from the loop state | **Open** | QF1–QF4 and the remaining DQ/GQ artifacts |
+| Pure-gauge loop coordinates (YM1)–(YM2) | **Derived** | Supplied $SU(2)$ quantum gauge framework; carrier identification remains open |
+| Electric closed-loop gap (YM6) | **Derived** within established lattice theory | Fixed $g,a$, source-free Gauss law and girth-four graph |
+| Autonomous projector-only Yang–Mills Hamiltonian | **Excluded** by (YM4)–(YM5) | Wilson energy varies on projective fibres |
+| Full interacting finite-box gap | **Derived** within established lattice theory | Compact configuration space; no volume-uniform estimate |
+| Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
 `foundations/geometric-manifold-completion.md` identifies the species Gram
@@ -1034,6 +1308,39 @@ certificate is
 - density-projection non-injectivity;
 - fivefold visibility scaling and the retained $\varphi$ chord ratio.
 
+The separate pure-gauge schedule is
+`computations/yang-mills-loop-gap-prereg.md`. Its primary and independent
+implementations are `computations/verify_yang_mills_loop_gap.py` and
+`computations/verify_yang_mills_loop_gap_independent.py`. They test group
+identities, projective information loss, finite spin-network accounting,
+the radial quadratic form and the character/Mathieu square spectra.
+The graph theorem and infinite-dimensional domain statements require the
+analytical arguments in §§9.4–9.9; a finite matrix calculation cannot establish
+the continuum claim.
+
+The qualified receipts in
+`runs/yang_mills_loop_gap/prufer_recovery/` pass **66 primary checks** and
+**11 independent qualification checks**. The three graph fixtures have
+$3,11,1013$ admissible spin labelings, respectively, and electric gap $3$
+in units $g^2/(2a)$. All 24 independent energy/gap comparisons pass; the
+maximum normalized discrepancy is $3.44777127772\times10^{-12}$ against
+$10^{-8}$. The $64$-versus-$128$ character-cutoff discrepancy is at most
+$3.71888228001\times10^{-13}$, and the radial quadratic-form discrepancy
+is at most $6.22335148571\times10^{-14}$.
+
+The independent evaluator solves the same Mathieu/Dirichlet problem by
+two-sided Prüfer-phase shooting. The retained
+`runs/yang_mills_loop_gap/independent.json` records a failed direct
+special-function evaluation at $g=1/8$: its first three energies are
+misordered and its gap is negative. That receipt is unqualified.
+The accepted computation retains every coupling, cutoff and threshold;
+all primary scientific controls are unchanged. Source identities, raw
+receipt hashes and classifications are in
+`runs/yang_mills_loop_gap/reconciliation.json`. The outcome is
+**SUPPORTS** for the regulated electric and square controls,
+**CONTRADICTS** for autonomous projector-only Hamiltonian closure, and
+**UNRESOLVED** for the interacting uniform gap and continuum construction.
+
 ---
 
 ## References
@@ -1051,3 +1358,6 @@ certificate is
   metric compatibility, two-rail scale graph, and exact diagonal reduction
 - `computations/loop-to-bubble-projection-pre-registration.md`—frozen gates
 - `computations/verify_loop_to_bubble_projection.py`—independent certificate
+- J. Kogut and L. Susskind, [Hamiltonian formulation of Wilson's lattice gauge theories](https://doi.org/10.1103/PhysRevD.11.395)—Hamiltonian gauge framework
+- C. W. Bauer, I. D'Andrea, M. Freytsis and D. M. Grabowska, [A new basis for Hamiltonian SU(2) simulations](https://arxiv.org/abs/2307.11829), §§II–IV and Appendix B—normalization, gauge reduction and physical square spectrum
+- A. Jaffe and E. Witten, [Quantum Yang–Mills Theory](https://www.claymath.org/wp-content/uploads/2022/06/yangmills.pdf), §4—continuum existence and mass-gap requirements

@@ -726,6 +726,15 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
+The separate pure-gauge comparison in that document, §§9.4–9.9, uses the
+supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
+exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
+projective bubble coordinate discards a phase required by Wilson magnetic
+energy. Every fixed finite box has an interacting quantum gap, but no
+volume-uniform estimate or four-dimensional continuum construction follows.
+The carrier-state identification and QF/DQ/GQ classifications remain
+unchanged.
+
 The completion ansatz in
 `foundations/geometric-manifold-completion.md` places these finite layers in
 one stratified bundle: the canonical pair is the diagonal of a positive

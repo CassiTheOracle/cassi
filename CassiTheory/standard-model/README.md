@@ -1,6 +1,6 @@
 # Standard Model—Couplings, Gauge Structure, and CP from φ
 
-## Status: Index—August 2026
+## Status: Index—September 2026
 
 ## Abstract
 
@@ -51,6 +51,14 @@ $\sin^2\theta_W=\varphi^{-3}\iff(g/g')^2=2\varphi$ are recorded as an
 asserted boundary. Section §3.2.1 tests a curvature–orbit candidate and finds
 the missing metric and orbit-matching rule. Running and measured-scale
 comparisons are in `sm-radiative-corrections.md`.
+
+The pure Yang–Mills comparison is in
+`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.9. Its state space
+and Hamiltonian come from source-free quantum $SU(2)$ lattice gauge theory,
+with no isospinor matter or symmetry-breaking potential. It establishes
+regulated electric-loop and projective-information boundaries while leaving
+the interacting continuum mass gap open. This comparison makes no
+electroweak or QCD particle identification.
 
 ### `sm-radiative-corrections.md`—Standard Model Radiative Corrections from the φ-Boundary
 

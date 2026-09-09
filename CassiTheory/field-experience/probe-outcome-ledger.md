@@ -348,6 +348,45 @@ $5.920390225714912\times10^{-14}$; no additional trajectories are run.
 The master physical parameters, numbered questions and empirical
 predictions are unchanged.
 
+## 15. Pure Yang–Mills loop closure
+
+The source-free $SU(2)$ lattice comparison in
+`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.9 derives the
+electric excitation threshold $3g^2/(2a)$ on girth-four graphs with Gauss
+invariance at every vertex. It also shows that identical projective
+bubble data can have distinct Wilson magnetic energies. Every fixed
+interacting finite box has a positive physical gap; a volume-uniform
+bound and four-dimensional continuum construction remain open.
+
+The fixed schedule in `computations/yang-mills-loop-gap-prereg.md`
+passes **66 primary checks** and **11 independent qualification checks**.
+Three finite graph enumerations contain $3,11,1013$ admissible spin
+labelings and the same electric threshold. Six couplings use three
+character cutoffs; the independent two-sided Prüfer solver evaluates
+the equivalent Mathieu/Dirichlet problem without a representation cutoff.
+
+| Control | Decisive result | Classification and scope |
+|---|---|---|
+| Electric loop identities | Casimir sum $3$ in every graph fixture; complete spin-network proof | **SUPPORTS**, regulated source-free electric theory |
+| Autonomous projector-only Hamiltonian | Equal projectors give Wilson energies $0,2,4$ at $g=a=1$ | **CONTRADICTS**, exact finite-regulator closure; enlarged effective marginals remain open |
+| Interacting square spectrum | All 24 independent energy/gap comparisons pass; maximum normalized discrepancy $3.44777127772\times10^{-12}$ | **SUPPORTS**, isolated-square reduction |
+| Character-cutoff convergence | Maximum normalized $64$-versus-$128$ discrepancy $3.71888228001\times10^{-13}$ | **PASS**, fixed six-coupling schedule |
+| Radial quadratic form | Maximum discrepancy $6.22335148571\times10^{-14}$ | **PASS**, fixed eight-function matrix controls |
+| Full interacting continuum mass gap and Cassi microscopic identification | Uniform vacuum-subtracted estimate and quantum-field construction absent | **UNRESOLVED** |
+
+The qualified raw pair is
+`runs/yang_mills_loop_gap/prufer_recovery/primary.json` and
+`runs/yang_mills_loop_gap/prufer_recovery/independent.json`, with the
+adjacent manifest and three frozen source snapshots. The top-level
+`runs/yang_mills_loop_gap/independent.json` preserves the failed
+direct special-function evaluation at $g=1/8$; its misordered energies
+and negative gap exclude that receipt from qualification.
+The Prüfer computation uses the same eigenproblem, couplings, cutoffs
+and tolerances. All primary controls are identical across the evaluator
+recovery. `runs/yang_mills_loop_gap/reconciliation.json` binds both
+receipt pairs and the accepted source identities. The master physical
+parameters and empirical prediction catalog are unchanged.
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
