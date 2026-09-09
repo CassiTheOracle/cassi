@@ -29,6 +29,12 @@ Its 246 checks include 28 native trajectories. The ordinary Navier–Stokes
 controls pass; the native self-sourced force produces mean acceleration in a
 periodic box. A physical closed-fluid completion remains open.
 
+The separate selected capillary/thermal closure conserves momentum and
+total energy and produces nonnegative entropy, with exact homogeneous
+canonical conversion. Its 395 checks cover 27 model trajectories and an
+independent differentiation-matrix reference. Microscopic transport and
+physical-fluid identification remain open.
+
 ## 1. Document index
 
 | # | Document | Domain | Epistemic |
@@ -38,7 +44,7 @@ periodic box. A physical closed-fluid completion remains open.
 | 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution and helical covariance conditions | Derived filtered identities / Hypothesized geometric closure |
 | 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response, matter binding and exterior-memory comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
 | 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, spectral concentration, forced budgets and cumulative mixing obstruction | Derived conditional estimates and cumulative mixing obstruction / Open arbitrary-data critical work |
-| 6 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, scalar dissipation, native-force obstruction and actual flow controls | Derived conditional / Tested solver controls / Open physical-fluid completion |
+| 6 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure and actual flow controls | Derived conditional mechanical and thermal identities / Tested solver controls / Open physical-fluid completion |
 
 ## 2. Document summaries
 
@@ -112,7 +118,7 @@ a finite nonlinear initial-data bound within that same family.
 Arbitrary-data critical work, general regularity and unforced blow-up
 remain open in this analysis.
 
-### 2.6 Cassi fluid feasibility
+### 2.6 Cassi fluid mechanics and thermal closure
 
 `turbulence/cassi-fluid-feasibility.md` derives pressure, counterflow momentum
 flux and quantum stress from the ungauged positive-density first-order action
@@ -130,8 +136,19 @@ Taylor–Green flow, prescribed forced shear and short-time three-dimensional
 Taylor–Green flow against an independent dealiased RK4 reference.
 Promotion to a physical replacement fluid is **REJECT** under this bounded
 schedule; concentration arrest is **NOT_RUN**. Physical viscosity, material
-normalization, closed force/energy accounting and a rotational hydrodynamic
-limit remain open.
+normalization and a rotational hydrodynamic reduction remain open.
+
+The selected constant-density completion in §7 has a variational capillary
+stress, an explicit heat equation and nonnegative entropy production.
+Its full-affinity reaction reduces to canonical gated conversion for
+homogeneous composition. The 395-check schedule covers 27 model trajectories,
+including viscous heating, conduction, coupled three-dimensional flow,
+capillary release from rest and Galilean covariance. A separate
+differentiation-matrix/DOP853 evolution agrees with the FFT endpoint.
+Smooth-solution composition and temperature positivity bounds accompany
+the finite-grid evidence. The result **SUPPORTS** the declared
+constitutive budgets; physical replacement and global regularity remain
+**UNESTABLISHED**.
 
 ## References
 
@@ -155,3 +172,6 @@ limit remain open.
 - `computations/navier-stokes-mixing-budget-prereg.md`—fixed continuum-comparison and cumulative trajectory controls
 - `computations/verify_navier_stokes_mixing_budget.py`—601-check mixing receipt, Fourier evolution and independent spatial reconstruction
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
+- `computations/cassi-fluid-thermodynamics-prereg.md`—selected fluid equations and fixed thermal controls
+- `computations/cassi_fluid_thermodynamics.py`—reacting capillary/thermal model and command-line evolution
+- `computations/verify_cassi_fluid_thermodynamics.py`—395-check thermal receipt, 27 model trajectories and independent numerical reference

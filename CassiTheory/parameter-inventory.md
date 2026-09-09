@@ -242,6 +242,21 @@ $\lambda_\rho,\lambda_\varphi$ have units $\hbar L^3/T$, distinct from the
 conversion rate's $T^{-1}$. No physical parameter or material viscosity
 is derived by these controls.
 
+The selected thermal closure in `turbulence/cassi-fluid-feasibility.md` §7
+uses $\rho_m=\rho_{\rm ref}=a=1$, $\gamma=0.02$, $C=2$, $b=0.2$,
+$\eta=0.03$, $k_T=0.02$ and $\lambda=0.4$ as dimensionless **N-class
+constitutive benchmark inputs**. Here $\rho_{\rm ref}$ is reference-normalized
+total population, $\rho_m$ is inertia, $\eta$ is dynamic viscosity and
+$\eta/\rho_m$ is kinematic viscosity. $C$ is volumetric heat capacity,
+$b$ is a mixing-entropy density coefficient and $k_T$ is thermal conductivity.
+The restricted action gives $a=\lambda_\varphi n_0^2(1+\varphi)^2$ and
+$\gamma=\hbar^2n_0/(4m_c)$ when physical $n_0,m_c$ are supplied; their
+benchmark values carry no material calibration. The mobility
+$M=(1+\varphi)\lambda(1-q)/(a+bTr)$ is a selected constitutive function
+that preserves homogeneous canonical conversion. These local benchmark
+inputs leave the 47-parameter inventory and canonical solver defaults
+unchanged; no material viscosity or additional empirical prediction is derived.
+
 ### 3.4 Summary: What These Parameters ACTUALLY Are
 
 | Parameter | True status | If it's a constant, which one? |

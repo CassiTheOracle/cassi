@@ -1349,9 +1349,19 @@ conditional Navier–Stokes controls, but its self-sourced force generates
 periodic mean acceleration. The fixed control gives **CONTRADICTS** for a
 closed internal-force interpretation; the bounded schedule gives **REJECT**
 for promotion to a physical ordinary-fluid replacement.
-Physical viscosity, material normalization, rotational hydrodynamics and
-closed thermal and momentum budgets remain open. No concentration-arrest
-trajectory is run.
+Physical viscosity, material normalization and a rotational hydrodynamic
+reduction remain open. No concentration-arrest trajectory is run.
+
+The selected constant-density thermal model in §7 has a variational
+capillary stress with closed momentum and energy budgets, nonnegative
+entropy production and exact homogeneous canonical conversion. Smooth
+continuum solutions preserve the interior composition interval and a
+positive temperature comparison bound. Its separate schedule passes
+395 checks across 27 model trajectories, with an independent
+differentiation-matrix reference and capillary release from rest.
+This **SUPPORTS** the selected constitutive closure; microscopic viscosity,
+physical-fluid replacement and arbitrary-data global regularity remain
+**UNESTABLISHED**. The native density/Poisson solver is unchanged.
 
 The registered interscale-current construction consists of a separately
 normalized scale-coordinate Yang/Yin doublet with exact total and relative

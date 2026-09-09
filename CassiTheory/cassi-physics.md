@@ -795,8 +795,20 @@ projected solver, the conditional Navier–Stokes controls pass, while a
 strictly positive periodic density configuration produces nonzero mean
 self-acceleration. The study passes 246 checks across 28 native trajectories
 and rejects promotion of the supplied sectors to a closed physical fluid.
-Material normalization, positive viscosity, rotational transport and closed
-force/energy accounting remain open.
+Material normalization and derivations of positive viscosity and rotational
+hydrodynamics remain open.
+
+Section 7 of that analysis selects a reacting capillary fluid with
+rotational velocity and temperature. Its variational stress conserves
+periodic momentum; viscous and conversion work enter the heat equation,
+closing total energy and giving nonnegative entropy production. Homogeneous
+composition follows canonical gated conversion exactly. The separate
+395-check schedule covers 27 model trajectories and an independent
+differentiation-matrix reference; capillary release from rest resolves
+composition-to-kinetic energy transfer. Continuum positivity bounds hold
+while solutions remain smooth. This is a conditional constitutive model
+with supplied transport coefficients and no physical-fluid or global
+regularity promotion.
 
 The listed correspondences are the framework's scale-assignment hypothesis. The Planck length is the external dimensionful anchor supplied to this model; the $\varphi$ recurrence supplies dimensionless ratios and does not by itself derive physical dimensionality or force unification.
 

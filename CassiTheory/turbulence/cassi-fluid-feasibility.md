@@ -1,6 +1,6 @@
-# Cassi Fluid Mechanics: Conservative Reduction and Native-Force Boundary
+# Cassi Fluid Mechanics: Conservative Reduction and Thermal Closure
 
-## Status: Derived conditional conservative reduction and native-force obstruction / Tested solver controls / Open physical-fluid completion—September 2026
+## Status: Derived conditional mechanical and thermal identities / Tested solver controls / Open physical-fluid completion—September 2026
 
 ## Abstract
 
@@ -8,7 +8,9 @@ The first-order Cassi matter action supplies a conditional mass-current map, pre
 
 The implemented projected-velocity solver passes the fixed shear, vortex and prescribed-force controls, but its self-sourced force has a nonzero periodic mean for strictly positive density data. An exact native solution accelerates uniformly while its scalar profiles only translate. This excludes a closed constant-inertia internal-stress interpretation and an additive translation-invariant scalar-energy closure for that coupling. The separate expanding force attenuation retains a nonzero mean.
 
-The fixed schedule passes **246 checks**, including **28 actual native trajectories** and comparisons with independently implemented NumPy RK4 at two three-dimensional grids. The physical-model promotion decision is **REJECT** for the supplied sectors as a closed ordinary-fluid replacement. Material normalization, rotational transport, thermal closure and a justified positive-viscosity limit remain open. No concentration-arrest experiment is run.
+The native-solver schedule passes **246 checks**, including **28 actual native trajectories** and comparisons with independently implemented NumPy RK4 at two three-dimensional grids. The physical-model promotion decision is **REJECT** for those supplied sectors as a closed ordinary-fluid replacement.
+
+A selected constant-density reacting capillary fluid couples the restricted composition energy to rotational velocity and temperature. Its internal stress conserves periodic momentum, its heat equation closes total energy, and its full-affinity reaction produces nonnegative entropy. Homogeneous composition follows canonical gated conversion exactly. The separate thermal schedule passes **395 checks across 27 model trajectories**, with a differentiation-matrix reference evolution and resolved capillary-energy release. These are conditional constitutive results; material normalization, microscopic transport coefficients, a rotational hydrodynamic reduction and arbitrary-data global regularity remain open. No concentration-arrest experiment is run.
 
 ## 1. Three state conventions
 
@@ -230,7 +232,7 @@ $$
 -\int\kappa(Y-\varphi I)\log\frac{Y}{\varphi I}\leq0.}
 $$
 
-The logarithmic identity is classical for positive fields and extends through zero by the usual regularized/lower-semicontinuous convention. The reaction sign follows monotonicity of the logarithm. Temperature, standard chemical potentials, conversion enthalpy and a closed heat budget are still needed to identify this mathematical functional with physical free energy or entropy. Common advection, incompressibility, equal diffusivity and the stated boundaries are essential hypotheses.
+The logarithmic identity is classical for positive fields and extends through zero by the usual regularized/lower-semicontinuous convention. The reaction sign follows monotonicity of the logarithm. Common advection, incompressibility, equal diffusivity and the stated boundaries are essential hypotheses. Identifying this mathematical functional with physical free energy or entropy requires temperature, standard chemical potentials, conversion energetics and a closed heat budget. Section 7 supplies a selected constant-density thermal model with those explicit constitutive assumptions; its microscopic identification remains open.
 
 ### 3.1 Exact implementation correspondence
 
@@ -374,9 +376,212 @@ The bounded study establishes a usable conservative mechanical branch and identi
 | Promotion as a closed material-fluid alternative | Required mechanical and thermodynamic correspondence is absent | **REJECT** for the supplied sectors |
 | Concentration arrest | Not run under the stopping rule | No claim |
 
-A further physical-fluid program must select the material density and inertia map, an equation of state, rotational transport degrees of freedom, and a thermal/irreversible sector with a closed heat and momentum budget. If degrees of freedom are eliminated to obtain viscosity or conversion, their state, approximation, dissipation sign and domain of validity must be derived. Gauge and scale-boundary forces require their own complete stress ledger.
+The physical-fluid program requires a material density and inertia map, an equation of state, rotational transport degrees of freedom, and a justified irreversible reduction. Section 7 declares a thermal/irreversible sector with a closed heat and momentum budget. Deriving viscosity or conversion by eliminating microscopic degrees of freedom would additionally require their state, approximation, dissipation sign and domain of validity. Gauge and scale-boundary forces require their own complete stress ledger.
 
-The present positive results support work on that constitutive problem. They do not justify adding a coherence-dependent damping factor, removing an inconvenient zero mode, or promoting a stable finite-grid evolution into physical concentration arrest. The original Navier–Stokes investigations retain their separate mathematical scope.
+The original Navier–Stokes investigations retain their separate mathematical scope. A stable finite-grid evolution supplies no concentration-arrest or arbitrary-data regularity theorem.
+
+## 7. Selected reacting capillary and thermal fluid
+
+The composition-gradient energy provides an internal force with an explicit mechanical energy destination. Adding a temperature variable makes the irreversible exchanges calculable. The state is a divergence-free velocity $u$, a composition fraction $0<c<1$ and temperature $T>0$ on a periodic domain. Total physical number density $n_0$ and inertia $\rho_m$ are fixed. Rotational velocity is a supplied hydrodynamic degree of freedom.
+
+### 7.1 Restricted energy and constitutive inputs
+
+At fixed $n_Y=n_0c$ and $n_I=n_0(1-c)$, the amplitude-gradient part of the first-order action becomes
+
+$$
+\frac{\hbar^2}{2m}\left(|\nabla\sqrt{n_Y}|^2+|\nabla\sqrt{n_I}|^2\right)
+=\frac{\hbar^2n_0}{8mc(1-c)}|\nabla c|^2.
+$$
+
+Consequently, the selected composition energy and capillary tensor are
+
+$$
+c_*=\frac{\varphi}{1+\varphi},\quad \delta=c-c_*,
+\qquad e_c=\frac a2\delta^2+\frac{g(c)}2|\nabla c|^2,
+\qquad g(c)=\frac{\gamma}{c(1-c)},\qquad
+A=g\nabla c\otimes\nabla c,
+$$
+$$
+a=\lambda_\varphi n_0^2(1+\varphi)^2,\qquad
+\gamma=\frac{\hbar^2n_0}{4m},\qquad
+\mu=\frac{\delta\int e_c}{\delta c}
+=a\delta+\frac{g'}2|\nabla c|^2-\nabla\cdot(g\nabla c).
+$$
+
+The variation supplies the gradient force. It does not by itself establish the shared rotational velocity, incompressible limit or irreversible law. The physical dimensions are $[a]=\text{energy}/L^3$, $[\gamma]=\text{energy}/L$, $[\mu]=\text{energy}/L^3$. Both action coefficients $\lambda_\rho,\lambda_\varphi$ retain the units in §1.
+
+Take thermal internal energy $CT$ and entropy density
+
+$$
+s=C\log(T/T_*)-b h(c),\qquad
+h(c)=c\log\frac c{c_*}+(1-c)\log\frac{1-c}{1-c_*},
+$$
+$$
+h'(c)=\log\frac{c(1-c_*)}{c_*(1-c)},\qquad
+r(c)=\frac{h'(c)}{c-c_*},\qquad
+r(c_*)=\frac1{c_*(1-c_*)}>0.
+$$
+
+Here $C>0$ is the volumetric heat capacity, $b>0$ is the mixing-entropy density coefficient, and $T_*>0$ fixes the thermal entropy reference. The component entropy reference in $h$ is a constitutive choice that fixes the homogeneous equilibrium composition. This logarithmic thermal law is used on $T>0$ and supplies no zero-temperature equation of state.
+
+The corresponding Helmholtz density is $f=e_c+CT-Ts$. It satisfies $\partial_Tf=-s$, $f-T\partial_Tf=e_c+CT$ and $\partial_T\partial_cf=-\partial_cs$. At fixed temperature field, its variational composition derivative is $\mathcal A=\mu+bTh'$. These identities are compatible with constant $a,b,C$.
+
+For reference-normalized populations $Y=\rho_{\rm ref}c$, $I=\rho_{\rm ref}(1-c)$, with dimensionless $\rho_{\rm ref}$, set
+
+$$
+\varepsilon=\rho_{\rm ref}(1+\varphi)\delta,\quad
+q=\frac{\rho_{\rm ref}^2}{\rho_{\rm ref}^2+\varphi^{-2}+\varepsilon^2},
+\quad \kappa=\lambda(1-q).
+$$
+
+The selected affinity, mobility and conversion rate are
+
+$$
+\boxed{\mathcal A=\mu+bTh',\qquad
+M=\frac{(1+\varphi)\kappa}{a+bTr(c)},\qquad R=-M\mathcal A.}
+$$
+
+The secant $r$ is positive and continuous, so $M\geq0$ for $\lambda\geq0$; $M=0$ when conversion is disabled. Its dimensions are $L^3/(\text{energy}\times\text{time})$. This mobility is chosen to preserve homogeneous canonical conversion, rather than inferred from microscopic kinetics.
+
+### 7.2 Momentum, energy and entropy balances
+
+Each dissipative loss has an explicit heat destination. With constant coefficients, $S=(\nabla u+\nabla u^{\mathsf T})/2$ and $D_t=\partial_t+u\cdot\nabla$, the equations are
+
+$$
+\boxed{\begin{aligned}
+\nabla\cdot u&=0,\\
+\rho_mD_tu&=-\nabla p+\nabla\cdot(2\eta S)-\nabla\cdot A,\\
+D_tc&=R,\\
+CD_tT&=k_T\Delta T+2\eta S:S-\mu R.
+\end{aligned}}
+$$
+
+The positive coefficients $\eta,k_T$ are dynamic viscosity and thermal conductivity; zero values are allowed. Canonical scalar diffusion is set to zero. The composition equation includes the gradient response carried by its variational affinity. This is a selected nonisothermal Navier–Stokes/Allen–Cahn-type closure; its stated identities do not import existence theorems for other members of that model class.
+
+The identity $\mu\nabla c=\nabla e_c-\nabla\cdot A$ fixes the stress sign. For Cauchy stress $\sigma=-pI+2\eta S-A$,
+
+$$
+\partial_t(\rho_mu)+\nabla\cdot(\rho_mu\otimes u-\sigma)=0,
+\qquad \frac{d}{dt}\int\rho_mu\,dx=0.
+$$
+
+Composition gradients are transported covariantly:
+$D_t\nabla c=\nabla R-(\nabla u)^{\mathsf T}\nabla c$. Their energy budget is
+
+$$
+D_te_c=\mu R+\nabla\cdot(g\nabla c\,R)-A:\nabla u.
+$$
+
+The final term cancels capillary work in the kinetic-energy equation. It can be nonzero: for $\gamma>0$, let $\chi=2\sqrt\gamma\arcsin\sqrt c$, so $A=\nabla\chi\otimes\nabla\chi$. With $u=\sin y\,e_x$ and $\chi=\chi_0+\alpha\cos x+\beta\cos(x+y)$ contained in $(0,\pi\sqrt\gamma)$, the normalized periodic mean is exactly $\langle A:S\rangle=\alpha\beta/4$.
+
+For $e=\rho_m|u|^2/2+e_c+CT$, the complete local energy flux is
+
+$$
+\boxed{\partial_te+\nabla\cdot
+\left(eu-\sigma u-g\nabla c\,R-k_T\nabla T\right)=0.}
+$$
+
+Periodic total energy is conserved. The term $g\nabla c\,R$ is part of the energy flux; omitting it loses the local gradient-energy exchange.
+
+The entropy equation is
+
+$$
+\boxed{\partial_ts+\nabla\cdot
+\left(su-\frac{k_T\nabla T}{T}\right)
+=\frac{2\eta S:S+M\mathcal A^2}{T}
++\frac{k_T|\nabla T|^2}{T^2}\geq0.}
+$$
+
+Conversion heat $-\mu R$ can have either sign in a nonuniform state. Its combination with the composition entropy change produces the nonnegative term $M\mathcal A^2/T$. Thus pointwise cooling is compatible with the total entropy inequality.
+
+### 7.3 Canonical limit and continuum positivity
+
+Uniform composition follows the canonical gate exactly. Since $\mu=a\delta$ and $h'=r(c)\delta$,
+
+$$
+R=-\frac{(1+\varphi)\kappa}{a+bTr}(a+bTr)\delta
+=-(1+\varphi)\kappa\delta.
+$$
+
+For nonuniform composition, the full affinity changes that law. A controlled local jet at $c=0.7$, $\nabla c=0$, $\Delta c=10$, $T=1$ gives entropy production $-0.0205097895013$ when the local canonical reaction is used without the gradient affinity, against $+0.105361635711$ for the selected reaction. This is a realizable pointwise jet and a sign control, separate from a complete trajectory.
+
+Smooth continuum evolution preserves a strict initial composition interval enlarged only to include $c_*$. Write
+
+$$
+c_-=\min(\inf c_0,c_*),\qquad c_+=\max(\sup c_0,c_*).
+$$
+
+At a maximum above $c_*$, $\nabla c=0$, $\Delta c\leq0$ and $\mathcal A=a\delta-g\Delta c+bTh'\geq0$, giving $R\leq0$. At a minimum below $c_*$ the signs reverse. Hence $c_-\leq c(x,t)\leq c_+$ while a smooth solution exists with positive temperature.
+
+A quantitative temperature bound closes the positivity argument. Let $H=\max_{[c_-,c_+]}|h'|$, which is finite for $0<c_-\leq c_+<1$. Completing the square gives
+
+$$
+\mu(\mu+bTh')=
+\left(\mu+\frac{bTh'}2\right)^2-\frac{b^2T^2(h')^2}{4}.
+$$
+
+Since $M\leq(1+\varphi)\lambda/a$, the temperature minimum satisfies the comparison inequality $\dot T_{\min}\geq-KT_{\min}^2$, where
+
+$$
+K=\frac{(1+\varphi)\lambda b^2H^2}{4aC},
+\qquad
+\boxed{T_{\min}(t)\geq
+\frac{T_{\min}(0)}{1+KT_{\min}(0)t}>0.}
+$$
+
+The maximum-principle and comparison argument apply jointly up to any finite smooth-solution time. The square completion and comparison ODE are independently checked in the reconciliation artifact. These continuum bounds provide no positivity theorem for Fourier collocation or explicit RK4, and they do not control all derivatives needed for global smoothness.
+
+### 7.4 Fixed numerical evidence
+
+The executed model is `computations/cassi_fluid_thermodynamics.py`, with CPU float64 Fourier collocation on the $2\pi$ periodic cube and classical RK4. Odd grids avoid Nyquist ambiguity. Velocity advection uses a skew advective/conservative form, and the capillary force is a tensor divergence. The Leray projection retains the zero mode. No floor, density renormalization, mean-force subtraction or post-step smoothing is applied.
+
+The dimensionless coefficients are $\rho_m=\rho_{\rm ref}=a=1$, $\gamma=0.02$, $C=2$, $b=0.2$, $\eta=0.03$, $k_T=0.02$, $\lambda=0.4$. They are **N-class constitutive benchmark inputs**, without empirical calibration or additions to the 47-parameter inventory. The fixed schedule is `computations/cassi-fluid-thermodynamics-prereg.md`.
+
+| Control | Model trajectories | Compared behavior |
+|---|---:|---|
+| Homogeneous conversion above and below $c_*$ | 6 | Independent canonical scalar ODE and conversion heat |
+| Decaying shear | 4 | Exact velocity and spatially varying viscous heating |
+| Pure conduction | 4 | Exact temperature decay |
+| Uniform golden composition with constant velocity | 4 | Stationary control |
+| Coupled three-dimensional flow | 6 | $N=9,15,21$, two timesteps, energy and entropy budgets |
+| Capillary release from rest | 2 | Composition energy converted to kinetic energy |
+| Galilean-boosted coupled flow | 1 | Translated unboosted solution |
+| **Total** | **27** | **395 passing checks, including 12 symbolic identities** |
+
+All controls run to dimensionless time $0.2$. A separate $N=9$ differentiation-matrix/DOP853 evolution agrees with the FFT fine-step endpoint to normalized error $2.05688118885\times10^{-15}$; its RHS discrepancy is $7.20452343617\times10^{-16}$. It uses independent differential operators, pressure projection, mobility evaluation and time integration. It is additional to the 27 model trajectories.
+
+For the finest coupled run, $N=21$, $\Delta t=0.002$:
+
+| Observable | Initial | Final |
+|---|---:|---:|
+| Mean kinetic energy | $0.005$ | $0.00482310351231332$ |
+| Mean composition energy | $0.00134004569043944$ | $0.00117412762058234$ |
+| Mean thermal energy | $2$ | $2.00034281455754$ |
+| Mean total energy | $2.0063400456904392$ | $2.0063400456904392$ |
+| Mean entropy | $-0.00270813248606629$ | $-0.00222868537790490$ |
+
+The maximum recorded total-energy drift is $4.44089209850\times10^{-16}$, and the trapezoidal entropy-balance error has magnitude $5.62572826865\times10^{-11}$. Composition changes by up to $0.00723790081416$ and the generated vertical speed reaches $0.00192653759977$. Absolute entropy depends on its declared reference; its increase is the measured quantity.
+
+With $\eta=k_T=\lambda=0$ and initial rest, the finest capillary control gains kinetic energy $9.02950778978\times10^{-10}$, with $|\Delta K+\Delta E_c|=2.16840434497\times10^{-19}$ and unchanged temperature. The signal exceeds the frozen $10^{-10}$ detection floor. The boosted endpoint has normalized discrepancy $4.52221248898\times10^{-10}$.
+
+All 27 histories retain $0<c<1$, $T>0$, maximum recorded divergence $4.55814271844\times10^{-15}$ and maximum momentum-component drift $8.84230960057\times10^{-17}$. These are short-time, finite-grid measurements. Error at the roundoff floor supports no measured temporal order.
+
+### 7.5 Evidence, reproduction and physical scope
+
+The analytical peer reviews are retained only at the qualified scope in `runs/cassi_fluid_thermodynamics/analytical-review-scope.json`. That artifact identifies the recomputed identities and excludes unsupported dimensional, thermal-integrability, diffusion-rewrite, fixture and asymptotic claims.
+
+The accepted receipt is `runs/cassi_fluid_thermodynamics/verification.json`, schema `cassi.fluid.thermodynamics.verification.v1`. Its adjacent input manifest, six raw source snapshots and `verification.trajectories.npz` retain the executed inputs, initial/final fields, the independent reference endpoint and all 2,127 model-history rows. The array archive SHA-256 is `14c889a2237d13cd53247c4736b5f6cd9c98ab646b0fc7a77774983aa61f4485`.
+
+Independent reconciliation imports neither model nor verifier. It validates all six working/manifest/snapshot identities and the archive hash and keys, reconstructs 54 endpoint records with maximum absolute observable discrepancy $2.08166817117\times10^{-17}$, and checks the recorded energy sums and entropy-production integrals. Its result and the continuum positivity qualifications are in `runs/cassi_fluid_thermodynamics/reconciliation.json`. The separate CLI smoke endpoint is byte-value identical to the finest coupled endpoint and is retained in `runs/cassi_fluid_thermodynamics/cli-smoke.npz`. Raw hashes identify frozen execution bytes; historical validation uses those bytes even when Git transport changes line endings.
+
+From the CassiTheory directory:
+
+```text
+python computations/cassi_fluid_thermodynamics.py --n 21 --dt 0.002 --time 0.2
+python computations/verify_cassi_fluid_thermodynamics.py --output runs/cassi_fluid_thermodynamics/reproduction/verification.json
+```
+
+The verifier refuses existing output, manifest, snapshot and archive paths. The measured classification is **SUPPORTS** for the selected momentum/energy/entropy closure. Physical-fluid replacement, microscopic viscosity and arbitrary-data global regularity remain **UNESTABLISHED**. The native-force result in §§4–6 is unchanged: this model implements a separate variational internal stress and leaves the native density/Poisson solver untouched. Material calibration and a derivation of its rotational and irreversible hydrodynamic assumptions remain the physical correspondence problem.
 
 ## References
 
@@ -390,3 +595,7 @@ The present positive results support work on that constitutive problem. They do 
 - `computations/verify_cassi_fluid_feasibility.py`—executable symbolic and native-trajectory verification.
 - `parameter-inventory.md` §§3.3,6—supplied numerical coefficients and physical-normalization boundary.
 - `field-experience/probe-outcome-ledger.md`—accepted classifications and raw-evidence location.
+- `computations/cassi-fluid-thermodynamics-prereg.md`—selected constitutive equations, fixed thermal controls and evidence policy.
+- `computations/cassi_fluid_thermodynamics.py`—reacting capillary/thermal evolution and CLI.
+- `computations/verify_cassi_fluid_thermodynamics.py`—symbolic budgets, 27 model trajectories and independent differentiation-matrix reference.
+- G. Planas, [On a non-isothermal incompressible Navier–Stokes–Allen–Cahn system](https://doi.org/10.1007/s00605-021-01564-2)—related model class; the selected closure retains its own assumptions and proof scope.

@@ -263,6 +263,45 @@ its 49 symbolic checks and zero trajectories are excluded from qualification.
 The qualified run uses the same frozen protocol, native solver, numerical
 fixtures, timestep schedule and tolerances.
 
+## 13. Cassi reacting capillary and thermal fluid
+
+The selected constant-density model in `turbulence/cassi-fluid-feasibility.md`
+§7 turns composition-gradient energy into an internal capillary stress and
+includes explicit viscous/conversion heating. Its smooth-solution identities
+conserve periodic momentum and total energy and produce nonnegative entropy.
+Uniform composition follows canonical gated conversion exactly. The
+rotational velocity, thermal coefficients and mobility remain declared
+constitutive inputs.
+
+The fixed schedule in `computations/cassi-fluid-thermodynamics-prereg.md`
+passes **395 checks**, including **12 symbolic identities** and **27 model
+trajectories**: six homogeneous-conversion, four shear/heating, four
+conduction, four stationary, six coupled three-dimensional, two conservative
+capillary-release and one Galilean-boosted evolution. The final time is
+$0.2$, with $N=9,15,21$ and the frozen timestep comparisons. A separate
+$N=9$ differentiation-matrix/DOP853 reference agrees with the FFT endpoint
+to normalized error $2.05688118885\times10^{-15}$.
+
+| Measurement | Result | Classification and scope |
+|---|---|---|
+| Finest coupled total-energy budget | Maximum drift $4.44089209850\times10^{-16}$ | **PASS**, finite-grid short-time control |
+| Finest coupled entropy budget | Increase $4.79447108161\times10^{-4}$; balance-error magnitude $5.62572826865\times10^{-11}$ | **PASS**, declared entropy and trapezoidal production integral |
+| Capillary release from rest | Kinetic gain $9.02950778978\times10^{-10}$; exchange defect $2.16840434497\times10^{-19}$ | **PASS**, resolved transfer from composition energy with $\eta=k_T=\lambda=0$ |
+| Galilean covariance | Normalized endpoint discrepancy $4.52221248898\times10^{-10}$ | **PASS**, translated reference |
+| Sampled state domain | All 27 histories retain $0<c<1$, $T>0$ | **PASS**, distinct from the conditional continuum positivity proof |
+| Selected constitutive budgets | Exact mechanical/thermal identities and all fixed controls pass | **SUPPORTS** |
+| Physical-fluid replacement, microscopic viscosity, global regularity | No physical normalization, eliminated-state transport derivation or global smoothness theorem | **UNESTABLISHED** |
+
+The receipt is `runs/cassi_fluid_thermodynamics/verification.json`, schema
+`cassi.fluid.thermodynamics.verification.v1`, with its adjacent input manifest,
+six frozen source files and `verification.trajectories.npz`.
+The independent `reconciliation.json` validates all six source identities,
+the raw archive hash and keys, 54 endpoint records and 2,127 history rows.
+Its maximum absolute reconstructed-observable discrepancy is
+$2.08166817117\times10^{-17}$. The CLI smoke in `cli-smoke.npz` has the same
+endpoint values as the finest coupled run. The native density/Poisson
+solver and the separate §12 feasibility decision are unchanged.
+
 ## 14. Unforced cumulative mixing
 
 A decaying shear coupled one-way to a third velocity component gives an
@@ -353,5 +392,8 @@ predictions are unchanged.
 - `turbulence/cassi-fluid-feasibility.md`—qualified conservative reduction, native-force obstruction and physical-completion decision.
 - `computations/cassi-fluid-feasibility-prereg.md`—fixed analytical and actual-flow schedule.
 - `computations/verify_cassi_fluid_feasibility.py`—native RK2 controls, independent RK4 reference and immutable receipts.
+- `computations/cassi-fluid-thermodynamics-prereg.md`—selected constitutive equations and frozen thermal controls.
+- `computations/cassi_fluid_thermodynamics.py`—reacting capillary/thermal evolution.
+- `computations/verify_cassi_fluid_thermodynamics.py`—395-check receipt, model trajectories and independent numerical reference.
 - `computations/navier-stokes-mixing-budget-prereg.md`—fixed invariant-family analytical and trajectory schedule.
 - `computations/verify_navier_stokes_mixing_budget.py`—601-check cumulative mixing receipt and independent spatial reconstruction.
