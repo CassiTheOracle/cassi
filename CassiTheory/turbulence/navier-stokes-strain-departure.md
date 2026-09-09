@@ -1,20 +1,22 @@
 # Strain Departure and Critical Spectral Concentration
 
-## Status: Derived conditional estimates / Open data-controlled critical work—September 2026
+## Status: Derived conditional estimates and cumulative mixing obstruction / Open arbitrary-data critical work—September 2026
 
 ## Abstract
 
 The original unforced Navier–Stokes equation imposes a finite energy budget on persistent strain self-amplification. Retaining a standard interpolation inequality gives an explicit departure-or-breakdown deadline that is strictly earlier than the energy deadline in Miller's perturbative comparison. Known global regularity converts this alternative into a departure statement for axisymmetric, swirl-free data. An integrated identity quantifies departure, and spectral centering bounds both the critical remainder work and the complete nonlinear transfer. The spectral spread has an exact production budget and can increase immediately from zero in a smooth periodic flow. A positive-moment scalar construction shows the insufficiency of the listed energy and departure budgets for critical-norm control. With an external force, exact source terms modify the budgets and the strain-departure identity. Critical duality controls a smooth source within the conditional spectral estimate. Parabolic rescaling makes that source vanish locally, while obtaining a nontrivial unforced limit requires additional compactness. Dynamical preservation of the sufficient spectral bound, recurrence control and arbitrary-data regularity remain open.
 
+An exact periodic mixing family supplies a cumulative obstruction. Its globally smooth solutions preserve odd Cartesian phase symmetry while accumulated excess critical transfer becomes arbitrarily large relative to the initial critical norm. The lower bound follows from a continuum comparison with controlled parabolic error. A separate Fourier cancellation gives a finite nonlinear initial-data bound within the same invariant family.
+
 ## 1. Equation, data and source boundary
 
-The comparison concerns the ordinary incompressible velocity equation. No Cassi force, modified dissipation, spectral truncation or constitutive identification is introduced. On $\mathbb R^3$,
+The analytical statements concern the ordinary incompressible velocity equation, with its complete nonlinearity and ordinary viscosity. The numerical approximations in §7 are identified separately. On $\mathbb R^3$,
 $$
 \partial_tu+(u\cdot\nabla)u=-\nabla p+\nu\Delta u,
 \qquad \nabla\cdot u=0,\qquad \nu>0.
 $$
-Sections 2–6 retain this unforced equation. Section 8 treats the ordinary externally forced equation explicitly; its source terms remain part of every applicable budget.
-Use smooth, finite-energy data with enough Sobolev regularity for the quantities below; divergence-free Schwartz data suffice. All identities are applied on the smooth lifespan, and all spatial integrals use Lebesgue measure. Let
+Sections 2–6 and 9 retain this unforced equation; §9 fixes the periodic domain. Section 8 treats the ordinary externally forced equation explicitly; its source terms remain part of every applicable budget.
+For the Euclidean statements, use smooth, finite-energy data with enough Sobolev regularity for the displayed quantities; divergence-free Schwartz data suffice. All identities are applied on the smooth lifespan. Euclidean integrals use Lebesgue measure, and periodic statements use the normalized conventions of §6. Let
 $$
 S=\nabla_{\mathrm{sym}}u,
 \quad \omega=\nabla\times u,
@@ -432,7 +434,7 @@ The accepted receipt is `runs/navier_stokes_strain_departure/qualified/verificat
 
 The retained `runs/navier_stokes_strain_departure/verification.json` is a **FAIL** diagnostic: its two viscosity-normalization checks use a squared viscosity ratio. It is excluded from mathematical qualification and retains its own input manifest and source snapshots. The accepted comparison uses the $\nu^{-1}$ time similarity stated in §3.1. The frozen protocol has the same raw hash in both receipts.
 
-No Navier–Stokes trajectory is run. No observed exit time, singularity, fitted constant or general regularity verdict is recorded. Data-controlled critical work and arbitrary-data regularity remain **UNRESOLVED**. No physical parameter, numbered open question or empirical prediction is introduced or reclassified.
+The departure schedule runs no Navier–Stokes trajectory. No observed exit time, singularity, fitted constant or general regularity verdict is recorded by that schedule. Arbitrary-data critical work and regularity remain **UNRESOLVED**. No physical parameter, numbered open question or empirical prediction is introduced or reclassified.
 
 To reproduce from CassiTheory, supply a fresh path to `python computations/verify_navier_stokes_strain_departure.py --output runs/navier_stokes_strain_departure/reproduction/verification.json`. Existing receipt paths are immutable.
 
@@ -476,6 +478,61 @@ The Gaussian family's classification is **CONTRADICTS** for the purely kinematic
 The post-run analytical reconciliation is retained in `runs/navier_stokes_forced_concentration/qualified_v3/reconciliation.json`. It records the qualified continuum estimates, endpoint force assumptions, finite direct source work, cumulative excess-transfer condition and source-qualified leading growth asymptotic. Independent reviews are restricted to those statements. The numerical checks verify the budgets and fixed controls; they do not establish the continuum continuation argument or the announced construction.
 
 To reproduce the qualification, use `python computations/verify_navier_stokes_forced_concentration.py --output runs/navier_stokes_forced_concentration/qualified_reproduction/verification.json` with a fresh output path. Each receipt's input manifest and source snapshots identify its computation.
+
+### 7.4 Unforced cumulative mixing controls
+
+The fixed schedule in `computations/navier-stokes-mixing-budget-prereg.md`
+passes **601 checks**. Its eight physical cases use
+$N=2,4,8,16,32,64,128,256$, with two Fourier cutoffs per case and one
+zero-shear heat control: **17 numerical evolutions** in total.
+Each evolution retains 1,001 sampled states. Forty independent spatial
+reconstructions check the critical and kinetic quantities, full convection,
+pressure projection, momentum equation, incompressibility and odd phase.
+The maximum normalized discrepancy is
+$2.2384929847241164\times10^{-11}$ against the fixed tolerance $10^{-8}$.
+
+The finer trajectories give the following endpoint values. The viscosity is
+one, the initial amplitude is $N^3$, and $t_N=1/(2N^2)$.
+
+| $N$ | $\mathcal C(t_N)/\mathcal C(0)$ | $\mathcal W_{1/2}(t_N)/\mathcal C(0)$ |
+|---|---|---|
+| 2 | 0.823147906 | 0 |
+| 4 | 1.202513994 | 0.126714769 |
+| 8 | 1.791807097 | 0.415134761 |
+| 16 | 2.970060320 | 1.013096106 |
+| 32 | 5.356797844 | 2.230579389 |
+| 64 | 10.160722058 | 4.683033991 |
+| 128 | 19.789812829 | 9.599474730 |
+| 256 | 39.061232232 | 19.439379455 |
+
+The finite unit-initial-budget control is **CONTRADICTS**: at $N=256$,
+the continuum proof in §9 gives a ratio at least $3/2$, and the numerical
+ratio exceeds one. The exclusion of every finite amplitude-independent
+coefficient $K(\nu,T)$ follows from the unbounded continuum family in §9.5.
+The numerical approximations supply finite-resolution checks of the
+invariant evolution and its budgets.
+
+The receipt is `runs/navier_stokes_mixing_budget/verification.json`,
+schema `cassi.navier-stokes.mixing-budget.verification.v1`, with adjacent
+`verification.inputs.json`, `verification.sources/` and
+`verification.trajectories.npz`. All four raw input identities match the
+live sources, manifest, receipt and snapshots. The trajectory archive hash
+also matches its receipt.
+
+The separate `runs/navier_stokes_mixing_budget/reconciliation.json` records
+the accepted analytical reviews and an independent raw-array reconstruction.
+The latter checks all 51 archive arrays and 17,017 sampled states, rebuilds
+the eight fine endpoints by direct sine quadrature, and compares stored
+critical and kinetic balances. Its 113 comparisons have maximum normalized
+discrepancy $5.920390225714912\times10^{-14}$. It imports no verifier helpers
+and performs no additional trajectory integration. These comparisons remain
+separate from the 601-check preregistered receipt.
+
+To reproduce, use
+`python computations/verify_navier_stokes_mixing_budget.py --output runs/navier_stokes_mixing_budget/reproduction/verification.json`
+from CassiTheory with a fresh output path. Existing receipts are immutable.
+The continuum lower bound, the class-specific finite upper bound and
+arbitrary-data regularity have the distinct scopes stated in §9.
 
 ## 8. External forcing and concentration limits
 
@@ -682,6 +739,238 @@ This family is a kinematic control. No evolution law or admissible smooth forcin
 
 For original Navier–Stokes dynamics, the remaining quantitative target is cumulative control of nonlinear critical production or of the evolving coefficient $\eta\mathcal C$. The source estimate isolates that requirement for smooth forcing as well as for zero forcing. The force-scaling calculation specifies the additional compactness needed to compare a proposed singularity with an unforced limiting equation. Neither step establishes arbitrary-data regularity or an unforced smooth-data singularity.
 
+## 9. Cumulative mixing in an exact periodic family
+
+Smooth unforced solutions can accumulate critical transfer arbitrarily larger than their initial critical norm. This constrains the initial-data dependence of any proposed cumulative bound. The same family also has a finite upper bound for every datum.
+
+### 9.1 Fixed margin and the candidate
+
+Use the volume-normalized $2\pi$ torus and the definitions of $\mathcal C,Y,F$ in §6. For zero forcing, set
+$$
+\mathcal W_{1/2}(T)=\int_0^T(F-\nu Y/2)_+\,dt.
+$$
+The exact critical budget gives
+$$
+\boxed{
+\mathcal C(T)+\nu\int_0^TY\,dt
+\le\mathcal C(0)+2\mathcal W_{1/2}(T).
+}
+$$
+The candidate examined here is
+$$
+\mathcal W_{1/2}(T)\le K(\nu,T)\mathcal C(0),
+$$
+with finite $K$ independent of the initial datum. The construction below excludes this amplitude-linear form for every fixed $\nu,T>0$. A more general bound $M(u_0,\nu,T)$ remains the all-data research target.
+
+### 9.2 Full-equation admissibility
+
+A one-way coupling between shear and a third velocity component gives an exact invariant class. For real $A,b$, define
+$$
+u(x,y,z,t)=(U(y,t),0,bv(x,y,t)),\qquad
+U=Ae^{-\nu t}\sin y,\qquad p=0,
+$$
+where
+$$
+v_t+Uv_x=\nu(v_{xx}+v_{yy}),\qquad v(x,y,0)=\sin x.
+$$
+Then $\nabla\cdot u=0$ and
+$$
+(u\cdot\nabla)u=(0,0,bUv_x).
+$$
+This convection is itself divergence-free. The horizontal momentum equation is the heat equation for $U$, and the vertical momentum equation is the displayed parabolic equation for $v$. Thus the full three-dimensional Navier–Stokes equation holds with zero pressure gradient.
+
+Every fixed $A,b,\nu$ gives a global smooth solution. In a differentiated $H^m$ energy estimate, the principal transport term integrates to zero; the commutators involve bounded derivatives of $U$ and derivatives of $v$ of order at most $m$. Gronwall bounds these norms by a finite factor of the form $\exp(C_m|A|/\nu)$ times their initial values. These estimates are uniform in Fourier cutoff and give global existence through the linear parabolic problem. No bound uniform in $A$ is assumed.
+
+The infinite sine expansion is
+$$
+v=\sum_{j\in\mathbb Z}c_j(t)\sin(x+jy),\qquad
+c_j'=-\nu(1+j^2)c_j-\frac{Ae^{-\nu t}}2(c_{j-1}-c_{j+1}),
+$$
+with $c_0(0)=1$ and all other coefficients zero. Both signs of $j$ are included. Since the basis has normalized squared norm $1/2$,
+$$
+\frac{d}{dt}\sum_jc_j^2=-2\nu\sum_j(1+j^2)c_j^2,\qquad
+\sum_jc_j^2\le e^{-2\nu t}.
+$$
+The coefficients stay real. Consequently $u(-x,-y,-z,t)=-u(x,y,z,t)$, and its nonzero Cartesian Fourier coefficients stay purely imaginary.
+
+### 9.3 A finite data-controlled upper bound
+
+The critical multiplier has a bounded difference between neighboring members of this sine sequence. Write $r_j=\sqrt{1+j^2}$. The complete quantities, including the horizontal shear contribution, are
+$$
+\mathcal C=\frac12\left(A^2e^{-2\nu t}+b^2\sum_jr_jc_j^2\right),\qquad
+Y=\frac12\left(A^2e^{-2\nu t}+b^2\sum_jr_j^3c_j^2\right),
+$$
+$$
+F=\frac{Ab^2e^{-\nu t}}4
+\sum_j(r_j-r_{j+1})c_jc_{j+1}.
+$$
+The last identity follows by reindexing the two advection sums. Smoothness gives absolute convergence. Since $|r_j-r_{j+1}|\le1$ and $\sum_j|c_jc_{j+1}|\le\sum_jc_j^2$,
+$$
+|F(t)|\le\frac{|A|b^2}{4}e^{-3\nu t}.
+$$
+Therefore
+$$
+\boxed{
+\mathcal W_{1/2}(T)
+\le\frac{|A|b^2}{12\nu}(1-e^{-3\nu T})
+\le\frac{|A|b^2}{12\nu}<\infty.
+}
+$$
+All coefficients on the right are prescribed by the initial datum and viscosity. With $\mathcal C(0)=(A^2+b^2)/2$, this also supplies an upper bound of order $\mathcal C(0)^{3/2}/\nu$ in this class. No optimality of that exponent is asserted.
+
+The same estimate holds for every symmetric Galerkin cutoff with $c_{-M-1}=c_{M+1}=0$: the boundary pairing cancels in the kinetic identity, and the critical pairing uses precisely the retained neighboring pairs. This establishes cutoff uniformity for the class-specific upper bound.
+
+### 9.4 A continuum lower bound
+
+Increasing the amplitude of one fixed initial profile produces a growing critical-transfer budget on a shrinking time interval. First set
+$$
+\nu=1,\qquad A=b=N^3,\qquad
+t_N=\frac1{2N^2},\qquad N\ge2.
+$$
+Then $\mathcal C(0)=N^6$. The initial Fourier support has frequency radius one for every $N$, so the initial spectral deficit in §6 is zero.
+
+Define the transport comparison
+$$
+a(t)=A(1-e^{-t}),\qquad
+\theta=x-a(t)\sin y,\qquad v_{\rm app}=\sin\theta.
+$$
+It solves $(\partial_t+U\partial_x)v_{\rm app}=0$. The exact parabolic solution remains $v$ from §9.2. Their difference $e=v-v_{\rm app}$ satisfies
+$$
+(\partial_t+U\partial_x-\Delta)e=\Delta v_{\rm app},\qquad e(0)=0.
+$$
+Normalized integration over $x$ removes the phase shift. The exact comparison moments are
+$$
+\|v_{\rm app}\|_2^2=\frac12,\qquad
+M_2:=\|\nabla v_{\rm app}\|_2^2=\frac12+\frac{a^2}4,
+$$
+$$
+M_4:=\|\Delta v_{\rm app}\|_2^2
+=\frac12+\frac{3a^2}4+\frac{3a^4}{16},
+$$
+$$
+\|\partial_x\Delta v_{\rm app}\|_2^2=M_4,\qquad
+\|\partial_y\Delta v_{\rm app}\|_2^2
+=a^2+\frac{21a^4}{16}+\frac{5a^6}{32}.
+$$
+Homogeneous interpolation gives
+$$
+\mathcal C[v_{\rm app}]\ge \frac{M_2^{3/2}}{M_4^{1/2}}\ge\frac a4.
+$$
+For the second inequality, the squared difference is the nonnegative polynomial
+$$
+M_2^3-\frac{a^2M_4}{16}
+=\frac{a^6+12a^4+40a^2+32}{256}>0.
+$$
+
+The parabolic error has a controlled derivative structure. For zero initial data, the scalar energy estimate bounds the $L^2$ norm by the time integral of its forcing norm. The $x$ derivative commutes with the transport operator. The $y$ derivative has the explicit extra term
+$$
+(\partial_t+U\partial_x-\Delta)e_y
+=\partial_y\Delta v_{\rm app}-U_y e_x.
+$$
+Using $a(s)\le As$, $|U_y|\le A$,
+$\|\Delta v_{\rm app}\|_2\le(1+a^2)/\sqrt2$ and
+$\|\partial_y\Delta v_{\rm app}\|_2\le a+a^3$ yields
+$$
+\|e\|_2,\ \|e_x\|_2\le B_0(t)
+:=\frac{t+A^2t^3/3}{\sqrt2},
+$$
+$$
+\|e_y\|_2\le B_y(t)
+:=
+At^2\left(\frac12+\frac1{2\sqrt2}\right)
++A^3t^4\left(\frac14+\frac1{12\sqrt2}\right).
+$$
+The critical error is consequently bounded by
+$$
+\|e\|_{\dot H^{1/2}}^2
+\le\|e\|_2\|\nabla e\|_2
+\le B_0\sqrt{B_0^2+B_y^2}
+\le B_0(B_0+B_y).
+$$
+
+To obtain a uniform constant, write $t_N=c/N^2$ with the fixed choice $c=1/2$. Since $N\ge1/c=2$ and $t_N\le1/8$,
+$$
+a(t_N)\ge \frac{cN}{2},\qquad
+B_0(t_N)\le\frac{4c^3}{3\sqrt2},\qquad
+B_y(t_N)\le
+\left(\frac34+\frac7{12\sqrt2}\right)c^4N.
+$$
+The first bound uses $1-e^{-t}\ge t-t^2/2\ge t/2$ on $0\le t\le1$. The remaining bounds follow from $N^{-1}\le c$. Combining them gives
+$$
+\frac{\|e(t_N)\|_{\dot H^{1/2}}^2}{a(t_N)}
+\le\left(\frac{23}{9}+\sqrt2\right)c^6
+=\frac{23/9+\sqrt2}{64}<\frac1{16},
+$$
+where $\sqrt2<13/9$. Reverse triangle now gives
+$$
+\sqrt{\mathcal C[v(t_N)]}
+\ge \frac{\sqrt{a(t_N)}}2-\frac{\sqrt{a(t_N)}}4
+=\frac{\sqrt{a(t_N)}}4.
+$$
+Thus $\mathcal C[v(t_N)]\ge a(t_N)/16\ge N/64$. Restoring the vertical amplitude and using the exact cumulative budget,
+$$
+\boxed{
+\mathcal C[u(t_N)]\ge\frac{N^7}{64},\qquad
+\mathcal W_{1/2}(t_N)\ge\frac{N^7}{128}-\frac{N^6}{2}.
+}
+$$
+The upper bound in §9.3 gives
+$\mathcal W_{1/2}(t_N)\le N^7/8$. Consequently
+$$
+\boxed{
+\frac N{128}-\frac12
+\le \frac{\mathcal W_{1/2}(t_N)}{\mathcal C(0)}
+\le\frac N8.
+}
+$$
+This is a two-sided order estimate along actual globally smooth solutions. The comparison field enters through its explicitly controlled error.
+
+### 9.5 Viscosity, fixed horizons and periodic means
+
+The obstruction holds for every positive viscosity and every fixed positive observation horizon. If $u_1$ denotes the viscosity-one solution, then
+$$
+u_\nu(x,t)=\nu u_1(x,\nu t)
+$$
+solves the equation with viscosity $\nu$. The norm and work scalings are
+$$
+\mathcal C_\nu(t)=\nu^2\mathcal C_1(\nu t),\qquad
+Y_\nu(t)=\nu^2Y_1(\nu t),\qquad
+F_\nu(t)=\nu^3F_1(\nu t),\qquad
+\mathcal W_\nu(T)=\nu^2\mathcal W_1(\nu T).
+$$
+The last relation includes the time-integration Jacobian. For
+$u_0=\nu N^3(\sin y,0,\sin x)$ and $t_N=1/(2\nu N^2)$,
+$$
+\mathcal C_0=\nu^2N^6,\qquad
+\boxed{
+\mathcal W_{1/2}(t_N)
+\ge\frac{\nu^{-1/3}}{128}\mathcal C_0^{7/6}
+-\frac{\mathcal C_0}{2}.
+}
+$$
+For any fixed $\nu,T>0$, eventually $t_N<T$ and
+$\mathcal W_{1/2}(T)\ge\mathcal W_{1/2}(t_N)$. Denoting members of this
+global smooth family by the superscript $(N)$, this yields
+$$
+\sup_{N\ge2}
+\frac{\mathcal W_{1/2}^{(N)}(T)}{\mathcal C^{(N)}(0)}=\infty.
+$$
+The limit changes the initial datum. Along this family, a bound by a fixed multiple of $\mathcal C_0^p$ requires $p\ge7/6$; the exponent concerns the squared critical norm.
+
+For a general periodic solution, its mean $m=\langle u_0\rangle$ is conserved. The field $v(x,t)=u(x+mt,t)-m$, with pressure $p(x+mt,t)$, solves the same unforced equation and has zero mean. Translation and removal of the constant mode preserve $\mathcal C,Y$, and
+$$
+\langle\Lambda u,m\cdot\nabla u\rangle=0
+$$
+preserves $F$ and the cumulative excess. Thus the fixed-margin continuation argument has no physical zero-momentum restriction.
+
+### 9.6 Scope of the obstruction
+
+The family gives a finite-time, full-equation obstruction to amplitude-linear closure. It preserves odd Cartesian phase symmetry throughout a large transfer event. The initial spectrum is monochromatic, while the actual evolution creates the transverse frequencies that increase the critical norm.
+
+The finite upper bound uses the prescribed decaying shear and the bounded multiplier difference between its neighboring Fourier interactions. General three-dimensional perturbations introduce additional advecting components, pressure coupling and feedback into the shear. The corresponding coefficient then requires dynamical control. Ordinary kinetic-energy decay continues to hold for general mean-zero periodic Navier–Stokes; the missing step is control of the critical transfer pairing.
+
+An arbitrary-data nonlinear bound $M(u_0,\nu,T)$, or another estimate that supplies continuation, remains **UNRESOLVED**. Every solution in this construction is globally smooth, and the calculation makes no claim of a singular trajectory or of priority over the shear-mixing literature.
+
 ## References
 
 - E. Miller, [Finite-time blowup for a Navier–Stokes model equation for the self-amplification of strain](https://arxiv.org/abs/1910.05415), §§5–6—strain model, perturbative comparison, explicit Gaussian datum, initial perturbative window and axisymmetric departure; [mathematical HTML](https://ar5iv.labs.arxiv.org/html/1910.05415).
@@ -696,6 +985,8 @@ For original Navier–Stokes dynamics, the remaining quantitative target is cumu
 - `computations/verify_navier_stokes_critical_recurrence.py`—exact full-convolution derivatives and independent FFT reconstruction.
 - `computations/navier-stokes-forced-concentration-prereg.md`—fixed forced budgets, source scaling and kinematic controls.
 - `computations/verify_navier_stokes_forced_concentration.py`—exact forced derivatives, independent FFT reconstruction and Gaussian quadrature.
+- `computations/navier-stokes-mixing-budget-prereg.md`—fixed continuum-comparison controls and invariant-class trajectory schedule.
+- `computations/verify_navier_stokes_mixing_budget.py`—exact moments, full Leray pairing, cumulative trajectories and independent spatial momentum reconstruction.
 - OpenAI, [Finite time blowup for Navier–Stokes](https://cdn.openai.com/pdf/32d9f210-8b73-45e0-91bc-82a30aef8a9a/navier-stokes.pdf), Theorem 1.1 and §§2–3—announced forced construction and mechanism; proof correctness is outside this analysis.
 - C. Fefferman, [Existence and smoothness of the Navier–Stokes equation](https://www.claymath.org/wp-content/uploads/2022/06/navierstokes.pdf)—original problem alternatives.
 - `field-experience/probe-outcome-ledger.md`—qualified evidence and scope.

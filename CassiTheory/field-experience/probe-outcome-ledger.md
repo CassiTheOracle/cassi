@@ -263,6 +263,52 @@ its 49 symbolic checks and zero trajectories are excluded from qualification.
 The qualified run uses the same frozen protocol, native solver, numerical
 fixtures, timestep schedule and tolerances.
 
+## 14. Unforced cumulative mixing
+
+A decaying shear coupled one-way to a third velocity component gives an
+exact globally smooth class of the original unforced periodic
+Navier–Stokes equation. For
+$u_0=\nu N^3(\sin y,0,\sin x)$ and $t_N=1/(2\nu N^2)$, the continuum
+comparison in `turbulence/navier-stokes-strain-departure.md` §9 proves
+$$
+\frac{\mathcal W_{1/2}(t_N)}{\mathcal C(0)}
+\ge\frac N{128}-\frac12.
+$$
+This excludes every finite amplitude-independent coefficient multiplying
+initial critical norm on a fixed positive time horizon. Each member also
+has the finite upper bound
+$\mathcal W_{1/2}(T)\le |A|b^2(1-e^{-3\nu T})/(12\nu)$.
+Odd Cartesian phase symmetry persists throughout the evolution.
+
+The fixed schedule in `computations/navier-stokes-mixing-budget-prereg.md`
+passes **601 checks**. Eight amplitudes use two Fourier cutoffs each;
+one zero-shear control brings the total to 17 numerical evolutions.
+Forty independent spatial reconstructions include the full momentum
+equation and pressure projection. The maximum normalized discrepancy is
+$2.2384929847241164\times10^{-11}$ against $10^{-8}$.
+
+| Control | Decisive result | Classification and scope |
+|---|---|---|
+| Numerical reduction and budgets | All fixed algebraic, trajectory, spatial and heat checks pass | **PASS**, qualified invariant-class Fourier approximations |
+| Unit initial critical budget | At $N=256$, analytical ratio $\ge1.5$ and numerical ratio $19.4393794552309$ | **CONTRADICTS**, exact continuum lower bound plus qualified finite trajectory |
+| Amplitude-linear bound at fixed $\nu,T>0$ | The continuum lower ratio grows without bound with $N$ | Excluded by the analytical construction |
+| Nonlinear bound within this family | Explicit finite bound from the critical multiplier difference | Derived for the one-way-coupled invariant class |
+| Arbitrary-data critical work and global regularity | General three-dimensional feedback remains uncontrolled | **UNRESOLVED** |
+| Singular solution or formal-proof build | Every constructed solution is globally smooth; no formalization is run | **NOT_RUN** |
+
+The receipt is `runs/navier_stokes_mixing_budget/verification.json`,
+schema `cassi.navier-stokes.mixing-budget.verification.v1`, with its
+adjacent manifest, source snapshots and `verification.trajectories.npz`.
+All four source identities and the raw archive hash match.
+The separate `runs/navier_stokes_mixing_budget/reconciliation.json`
+records the qualified analytical reviews and raw-array audit.
+That audit checks 51 arrays, 17,017 sampled states and eight direct
+sine-quadrature endpoints without importing the verifier's helpers.
+Its 113 comparisons have maximum normalized discrepancy
+$5.920390225714912\times10^{-14}$; no additional trajectories are run.
+The master physical parameters, numbered questions and empirical
+predictions are unchanged.
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -307,3 +353,5 @@ fixtures, timestep schedule and tolerances.
 - `turbulence/cassi-fluid-feasibility.md`—qualified conservative reduction, native-force obstruction and physical-completion decision.
 - `computations/cassi-fluid-feasibility-prereg.md`—fixed analytical and actual-flow schedule.
 - `computations/verify_cassi_fluid_feasibility.py`—native RK2 controls, independent RK4 reference and immutable receipts.
+- `computations/navier-stokes-mixing-budget-prereg.md`—fixed invariant-family analytical and trajectory schedule.
+- `computations/verify_navier_stokes_mixing_budget.py`—601-check cumulative mixing receipt and independent spatial reconstruction.

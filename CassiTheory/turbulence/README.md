@@ -18,7 +18,9 @@ heat-correction estimates, filtered stress dynamics, quantitative strain
 departure and spectral-spread bounds on critical transfer. Exact source budgets
 extend the conditional estimate to smooth forcing. Explicit initial-data and
 kinematic controls delimit scalar-energy and local-geometric closure arguments.
-Data-controlled critical production, arbitrary-data regularity and a Cassi
+An exact globally smooth mixing family excludes amplitude-linear cumulative
+critical-transfer bounds while admitting a finite nonlinear bound of its own.
+Arbitrary-data critical production, global regularity and a Cassi
 canonical-density-to-physical-momentum constitutive map remain open.
 
 The separate fluid-feasibility study derives the conservative momentum flux
@@ -35,7 +37,7 @@ periodic box. A physical closed-fluid completion remains open.
 | 2 | `turbulence/navier-stokes-transfer-boundary.md` | Critical transfer, cubic heat correction, and coercivity | Derived identities and obstructions / conditional small-data estimates |
 | 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution and helical covariance conditions | Derived filtered identities / Hypothesized geometric closure |
 | 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response, matter binding and exterior-memory comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
-| 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, spectral concentration, forced budgets and singularity-rescaling scope | Derived conditional estimates / Open data-controlled critical work |
+| 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, spectral concentration, forced budgets and cumulative mixing obstruction | Derived conditional estimates and cumulative mixing obstruction / Open arbitrary-data critical work |
 | 6 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, scalar dissipation, native-force obstruction and actual flow controls | Derived conditional / Tested solver controls / Open physical-fluid completion |
 
 ## 2. Document summaries
@@ -100,8 +102,15 @@ source work. Finite accumulated transfer above a fixed fraction of viscous
 dissipation suffices for continuation; controlling that accumulation remains open.
 Parabolic magnification makes the source vanish; a nontrivial unforced limit
 still requires velocity and pressure bounds and suitable compactness.
-No flow is time-evolved, and data-controlled critical production,
-arbitrary-data regularity and unforced blow-up remain open in this analysis.
+The unforced mixing analysis evolves an exact invariant family at eight
+amplitudes and two Fourier resolutions, with a separate zero-shear control.
+Its 601 checks pass. The continuum comparison proves that accumulated
+excess transfer divided by initial critical norm is unbounded as the
+amplitude increases. Every member is globally smooth and preserves odd
+Cartesian phase symmetry. A neighboring-frequency cancellation supplies
+a finite nonlinear initial-data bound within that same family.
+Arbitrary-data critical work, general regularity and unforced blow-up
+remain open in this analysis.
 
 ### 2.6 Cassi fluid feasibility
 
@@ -143,4 +152,6 @@ limit remain open.
 - `computations/cassi-fluid-feasibility-prereg.md`—fixed conservative, thermodynamic, native-force and actual-flow controls
 - `computations/verify_cassi_fluid_feasibility.py`—symbolic identities, native RK2 trajectories and independent RK4 comparison
 - `computations/verify_navier_stokes_forced_concentration.py`—forced Fourier identities, independent FFT reconstruction and Gaussian quadrature
+- `computations/navier-stokes-mixing-budget-prereg.md`—fixed continuum-comparison and cumulative trajectory controls
+- `computations/verify_navier_stokes_mixing_budget.py`—601-check mixing receipt, Fourier evolution and independent spatial reconstruction
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
