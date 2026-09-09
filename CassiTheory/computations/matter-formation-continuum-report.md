@@ -9571,7 +9571,276 @@ nonradial persistence remain separate requirements. Complete physical
 matter formation remains open; every scientific receipt retains
 `complete_physical_matter_formation=false`.
 
+## 56. Working notes: massless-vector compatibility of the matter vacuum
+
+### 56.1 Gauging an existing global symmetry
+
+An electromagnetic identification requires a transverse vector response.
+The gapless common-phase scalar in §40 supplies a different polarization
+sector. This calculation asks whether one additional local Abelian
+symmetry can retain an exactly massless vector in the registered
+fundamental-plus-adjoint vacuum. It supplies a conditional compatibility
+test; a quantitative photon-mass bound would also require physical units.
+
+Keep the particle fields and potentials in
+`foundations/particle-stationary-action-closure.md` (PA7)–(PA12).
+For this comparison only, introduce a connection $B_M$ with positive
+Maxwell coefficients and gauge one combination of the existing global
+number symmetries:
+$$
+D_M\Psi=(\partial_M-i g_Q\mathcal A_M^aT^a-i e_X y B_M)\Psi,
+\qquad
+D_M\chi_C=(\partial_M-i e_X z_C B_M)\chi_C.
+$$
+The single real adjoint is neutral under the commuting Abelian factor.
+The charges $y,z_C$, coupling $e_X$ and Abelian kinetic coefficients are
+additional inputs. No identification with weak isospin, hypercharge,
+electric charge or a particular observed particle is imposed.
+
+Use a static, scale-independent homogeneous vacuum with
+$\chi_C=0$, $\rho=\Psi^\dagger\Psi>0$ and $\Phi=v_Qe_3$, as in
+`foundations/nonabelian-magnetic-core-boundary.md` (MC33)–(MC35).
+Write
+$$
+\Psi=\sqrt{\rho}
+\begin{pmatrix}\sqrt{(1+c)/2}\\e^{i\delta}\sqrt{(1-c)/2}\end{pmatrix},
+\qquad
+\mathbf s=\frac{\Psi^\dagger\boldsymbol\sigma\Psi}{\rho},
+\qquad s_3=c.
+$$
+The registered composition is $c=\varphi^{-3}$, with $|c|<1$.
+The carrier has zero background amplitude, so its charge $z_C$ makes no
+contribution to the vacuum gauge mass.
+
+### 56.2 Transverse mass and the common-phase stiffness
+
+The mass matrix follows directly from the positive covariant-gradient
+energy. For one transverse spatial component, put $h=e_Xy$ and
+$X=(A^1,A^2,A^3,B)^T$. For positive $a,d$, define
+$$
+\mathcal E(X)=
+\frac a2|(g_Q A^aT^a+hB)\Psi|^2
++\frac d2|g_Q\mathbf A\times\Phi|^2
+=\frac12X^T\mathsf M X.
+$$
+Here $(a,d)=(K_x,1/\mu_x)$ for the spatial mass. With
+$p=a\rho/4$ and $r=dv_Q^2$,
+$$
+\boxed{
+\mathsf M=
+\begin{pmatrix}
+g_Q^2(pI_3+r\,\operatorname{diag}(1,1,0))
+&2p g_Qh\,\mathbf s\\
+2p g_Qh\,\mathbf s^T&4ph^2
+\end{pmatrix}.}
+$$
+The full connection is retained. Minimizing its algebraic quadratic
+form at fixed $B$ gives the Schur complement
+$$
+\boxed{
+\mathsf M_{BB}-\mathsf M_{BA}\mathsf M_{AA}^{-1}\mathsf M_{AB}
+=h^2J(a,d),\qquad
+J(a,d)=\frac{4a\rho\,d v_Q^2(1-c^2)}{a\rho+4d v_Q^2}.}
+$$
+This is the same stiffness as in §40. It is a static Schur complement;
+the physical frequency gaps require the full kinetic matrix.
+The determinant is
+$$
+\boxed{\det\mathsf M
+=4g_Q^6h^2p^2r(p+r)(1-c^2).}
+$$
+For nonzero $g_Q,h$, positive $p,r$ and $|c|<1$, the matrix is positive
+definite. Any positive-definite gauge kinetic matrix preserves this
+absence of a zero-frequency transverse mode. At zero wave number the
+squared gaps solve $\mathsf M v=\omega^2\mathsf K v$.
+
+The infinitesimal stabilizer gives the same conclusion without choosing
+a kinetic normalization. An unbroken generator must preserve $\Phi$,
+so its $SU(2)_Q$ part is proportional to $T^3$. Preserving both nonzero
+components of $\Psi$ requires
+$$
+\alpha/2+y\gamma=0,\qquad-\alpha/2+y\gamma=0.
+$$
+For $y\ne0$ this gives $\alpha=\gamma=0$. Finite residual subgroups and
+the faithful global gauge group depend on all matter representations;
+they do not supply a massless continuous gauge direction.
+
+### 56.3 Allowed boundary comparisons and charge assignment
+
+A fundamental-only comparison has $r=0$ and one null vector
+$(-2h\mathbf s/g_Q,1)^T$, regardless of the doublet's component ratio.
+This agrees with the full-matrix null direction in
+`standard-model/su2-gauge-extension.md` §3.1, whose action contains no
+misaligned adjoint condensate. With $r>0$, the aligned values $c=\pm1$
+also retain that null direction. These are different vacua or kinetic
+limits from the registered nonzero, misaligned pair.
+
+For a nonzero additional gauge coupling, retaining a massless vector in
+the registered vacuum within this one-Abelian-factor comparison requires
+$y=0$. Then $B_M$ is unbroken and can couple to $\chi_C$ if $z_C\ne0$.
+The common-number phase of $\Psi$ remains ungauged. This constraint
+identifies a possible charge placement, while leaving the carrier's
+physical identity, charge normalization, quantum statistics and dynamics
+to be established. Additional gauge factors or representations change
+the comparison. None of these conditions supplies a formation trajectory.
+
+### 56.4 Fixed qualification before execution
+
+Verify the covariant component Hessian, determinant, Schur complement
+and stated null-vector limits by exact algebra. An independent review
+must check the continuous stabilizer, positive-kinetic argument,
+polarization scope and distinction from the fundamental-only action.
+
+Use the supplied model-unit witness
+$$
+(\rho,a,d,v_Q,g_Q,h,\epsilon_Q,\epsilon_X)
+=(1.2,0.83,1.25,0.9,0.71,0.41,0.6,1.1),
+\qquad
+\mathsf K=\operatorname{diag}(\epsilon_Q,\epsilon_Q,\epsilon_Q,\epsilon_X).
+$$
+Evaluate $c\in\{-1,-0.7,0,\varphi^{-3},0.8,1\}$, each at
+$\delta\in\{0,\pi/3,\pi/2\}$, giving 18 cases. At
+$c=\varphi^{-3}$, also evaluate $d=0$ and $h=0$ separately at all three
+phases. At that composition and $\delta=0$, separately evaluate
+$\rho=0$ and $g_Q=0$. Finally take $d=-1.25,c=0,\delta=0$ as an
+excluded positive-energy control. All unmentioned inputs retain their
+displayed values. The fixed schedule has 27 cases.
+
+Repeat each quadratic evaluation after the joint gauge rotation
+$U=(I+i\mathbf n\cdot\boldsymbol\sigma)/\sqrt2$,
+$\mathbf n=(1,2,3)/\sqrt{14}$, rotating the adjoint and connection
+components with its adjoint representation. Retain both mass matrices,
+both generalized eigensystems and direct energies for the connection
+probes $(1,0,0,0)$, $(0,0,0,1)$, $(1,2,-1,0.5)$ and
+$(-0.3,0.7,0.2,-0.4)$, with probes rotated along with the fields.
+
+The independent program must reconstruct every Hessian by polarization
+of the component energy, without importing or inspecting the primary
+implementation. Compare all matrices, sorted spectra and probe energies
+to $10^{-10}$ after division by $\max(1,\|\mathrm{reference}\|)$.
+Require generalized residuals and kinetic orthonormality to the same
+bound. Count eigenvalues within $10^{-10}$ of zero as numerical zeros.
+The ordinary interior cases have four positive eigenvalues; aligned,
+$d=0$ and $h=0$ cases have three positive and one zero. The $\rho=0$
+case has two positive and two zero, and $g_Q=0$ has one positive and
+three zero. The negative-$d$ control has two positive and two negative.
+Gauge rotation must preserve every inertia and spectrum.
+
+The programs are `computations/matter_formation_maxwell_compatibility.py`
+and `computations/verify_matter_formation_maxwell_compatibility.py`.
+Before either executes, bind this section, both programs and the three
+cited source documents with SHA-256, alongside the accepted mathematical
+review, under `runs/20260909_matter_formation_maxwell_compatibility/`.
+Each program must reject a source mismatch and an unaccepted review
+before matrix calculation, without writing an array archive. Missing
+evidence, nonfinite values or a failed criterion gives `INCONCLUSIVE`;
+all criteria passing gives
+`SUPPORTS-conditional massless-vector compatibility constraint`.
+Stop after this schedule. No parameter search, physical mass calibration,
+quantum state selection or formation evolution belongs to this calculation.
+Every scientific receipt retains `complete_physical_matter_formation=false`.
+
+## 57. Working notes: qualified massless-vector compatibility
+
+### 57.1 Vacuum constraint and admissible charge placement
+
+The registered fundamental-plus-adjoint vacuum gaps every transverse
+vector in the one-Abelian-factor comparison when the doublet has a
+nonzero additional charge. The exact covariant Hessian, independent
+component-energy polarization and retained-matrix reconstruction satisfy
+the fixed criteria in §56.4. The joint verdict is
+`SUPPORTS-conditional massless-vector compatibility constraint`.
+
+With nonzero $g_Q,e_X$, positive $\rho,v_Q,a,d$ and the registered
+$c=\varphi^{-3}$, the conditional result is
+$$
+\boxed{
+\text{an exactly massless vector exists in this family}
+\quad\Longleftrightarrow\quad y=0.}
+$$
+For $y\ne0$, the positive determinant in §56.2 and the sum-of-squares
+mass form give four positive squared gaps for every positive-definite
+kinetic matrix. For $y=0$, the null direction is the pure Abelian
+connection $B_M$. The carrier can couple to this connection through an
+independent $z_C$, since its vacuum amplitude is zero. Its charge value,
+physical normalization and quantum statistics remain additional inputs.
+The common-number phase of the doublet remains a scalar channel.
+
+The fundamental-only and aligned comparisons preserve one massless
+vector through different vacuum or kinetic conditions. Their null
+directions do not provide a massless channel for the registered
+misaligned pair with nonzero doublet charge.
+
+### 57.2 Independent finite qualification
+
+Both programs evaluate all 27 fixed cases in the original and jointly
+rotated frames. The primary calculation passes 13 named checks,
+including ten exact algebraic identities; the independent calculation
+passes 14 named checks. Each program retains 11 arrays, including all
+54 generalized eigensystems and their kinetic-orthonormal eigenvectors.
+
+| Case class | Cases | Negative, zero, positive squared gaps |
+|---|---:|---|
+| Misaligned positive-energy interior | 12 | $0,0,4$ |
+| Aligned $c=\pm1$ | 6 | $0,1,3$ |
+| $d=0$ comparison | 3 | $0,1,3$ |
+| Uncharged doublet, $h=0$ | 3 | $0,1,3$ |
+| Zero fundamental density | 1 | $0,2,2$ |
+| Zero $SU(2)_Q$ coupling | 1 | $0,3,1$ |
+| Excluded negative-$d$ control | 1 | $2,0,2$ |
+
+Direct reconstruction imports neither calculation program. It builds
+the derivative-column Gram matrices from the declared fields and
+compares every saved matrix, spectrum, probe energy and eigenpair.
+The following maxima include both programs and both frames; every
+discrepancy uses the normalization fixed in §56.4.
+
+| Reconstructed quantity | Maximum normalized discrepancy |
+|---|---:|
+| Mass matrix | $4.54\times10^{-16}$ |
+| Sorted squared gaps | $1.36\times10^{-15}$ |
+| Probe energy | $1.04\times10^{-15}$ |
+| Generalized eigenpair residual | $8.07\times10^{-16}$ |
+| Kinetic orthonormality | $7.70\times10^{-16}$ |
+
+These displayed bounds round upward; the raw record retains the full
+values. All are below $10^{-10}$. Each program also rejects an isolated
+source-hash mismatch and an unaccepted mathematical review before
+matrix calculation. All four rejection receipts contain zero rows and
+have no array archive.
+
+### 57.3 Evidence and remaining physical inputs
+
+The accepted local record is
+`runs/20260909_matter_formation_maxwell_compatibility/`: the final
+`manifest.json`, frozen section and source snapshots, mathematical
+review, `primary/result.json`, `independent/result.json`, both array
+archives, `raw_reconciliation.json` and `joint_reconciliation.json`.
+Execution records retain the commands, stdout, stderr and environment.
+The integrated review and its submitted text have separate identities.
+
+The integration-reproduction receipt is excluded from qualification:
+its covariance predicate subtracts the reference matrix twice. The
+accepted independent predicate compares the two matrices directly.
+The unsealed worker scratch calculations are also excluded, with their
+available sources and execution disclosure retained separately; their
+stdout files and exact execution timestamps are unavailable. The
+physical equations, witness, case schedule and acceptance threshold
+are unchanged across these implementation records.
+
+The result constrains one possible additional gauging. It supplies no
+physical photon identification, charge quantization, microscopic
+action selection, regulated quantum state or localized formation
+trajectory. The scalar and Dirac completion ambiguity in §29 therefore
+remains, as do the quantum-sector and formation requirements in §55.3.
+Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
 ## References
+
+- `computations/matter_formation_maxwell_compatibility.py`—exact covariant Hessian, Schur complement and transverse generalized spectra.
+- `computations/verify_matter_formation_maxwell_compatibility.py`—independent component-energy polarization, gauge covariance and complete spectral reconstruction.
+- `runs/20260909_matter_formation_maxwell_compatibility/`—frozen source and section identities, mathematical review, raw matrices and prerequisite-rejection controls.
 
 - `computations/matter_formation_composite_rotation.py`—exact charge-lattice identities and independently constructed total-angular-momentum matrices.
 - `runs/20260909_matter_formation_composite_rotation/`—frozen derivation, source snapshots, mathematical review and finite qualification.
