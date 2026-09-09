@@ -11852,7 +11852,213 @@ particle identity, and localized formation with nonradial persistence
 in the same model. Every scientific receipt retains
 `complete_physical_matter_formation=false`.
 
+## 72. Working notes: higher-order preparation error on retained quantum states
+
+### 72.1 An integral bound using local derivatives
+
+The mediator preparation is a unitary dilation. Its discarded-image
+integral can be bounded using derivatives of the retained state,
+without changing the Hamiltonian or generating another trajectory.
+Write $A=PDP$, $K=(1-P)DP$ and
+$u(s)=e^{-isA}g_P$. For an interval of length $h$ beginning at $s_i$,
+Taylor's theorem and the triangle inequality give
+$$
+\int_{s_i}^{s_i+h}\|Ku(s)\|\,ds
+\le
+\sum_{r=0}^{3}\frac{h^{r+1}}{(r+1)!}\|KA^r u(s_i)\|
++\frac{h^5}{120}\|K\|\,\|A^4g_P\|.
+$$
+The remainder follows from $\|A^4u(s)\|=\|A^4g_P\|$.
+Expanding backward from the right endpoint gives the same inequality
+with $u(s_i+h)$. Both are upper bounds in exact arithmetic.
+Summing all 256 retained preparation intervals gives $B_L$ and $B_R$.
+The programs evaluate these inequalities in floating-point arithmetic;
+they do not provide interval-arithmetic certificates.
+
+The even-mediator basis has occupation $2j$. In bra-row convention,
+$$
+A_{j+1,j}=\frac{i}{2}\sqrt{(2j+1)(2j+2)},\qquad
+A_{j,j+1}=\overline{A_{j+1,j}}.
+$$
+The only discarded dilation row maps $j=J-1$ to $j=J$,
+with coefficient $i\sqrt{(2J-1)(2J)}/2$, acting identically
+on every carrier index. Hence
+$\|K\|=\sqrt{(2J-1)(2J)}/2$.
+Every derivative uses powers of the finite generator $A$.
+The discarded map uses the full generator before projection.
+
+### 72.2 A bounded comparison with the unpumped reference
+
+A projector permits a finite-mode transfer statement with a controlled
+preparation error. Let $\Psi(t)$ evolve under the full mode Hamiltonian
+from $e^{-i\delta D}g_P$, and let $G(t)$ evolve from $g_P$.
+Let $b_{\rm evol}$ be the retained Hamiltonian-leakage bound through
+$T=16$, and $b_0=T\|(H-E_P)g_P\|$. Then
+$$
+\boxed{
+\langle B_C\rangle_{\Psi(t)}-\langle B_C\rangle_{G(t)}
+\ge
+\langle B_C\rangle_{\psi_P(t)}-\langle B_C\rangle_{g_P}
+-2\bigl(B_{\rm prep}+b_{\rm evol}+b_0\bigr).
+}
+$$
+Here $B_{\rm prep}$ is an evaluated upper bound from §72.1.
+This compares two specified initial states in the infinite-occupation
+space of the same finite spatial-mode Hamiltonian. The reference
+$g_P$ remains a finite variational state. No distance to the exact
+ground state, continuum limit, particle detector or localization
+claim follows from this inequality.
+
+### 72.3 Fixed archived-state qualification
+
+Use only the two retained $(J,N)=(80,20)$ coupled archives identified
+in §71.3 and their complete residual-auditor receipt. Do not generate
+new Hamiltonian trajectories, alter parameters, change time samples,
+or vary derivative order. The first-derivative calculation in
+§§70–71 retains its `INCONCLUSIVE` verdict.
+
+The primary program independently constructs the oscillator dilation
+matrix and evaluates the left-endpoint bound. An independent program
+constructs the same generator from its coordinate differential
+operator and normalized Hermite integrals, then evaluates the
+right-endpoint bound. Both use all 257 retained preparation states
+and order three with the fourth-derivative remainder above.
+Each checks its generator against the archived matrix to $10^{-11}$
+in normalized Frobenius norm and reconstructs every retained
+preparation state to $10^{-10}$ in state norm.
+All input arrays and derived quantities must be finite.
+Both source records must give a preparation bound below $10^{-6}$
+in both programs.
+
+A separate observable auditor reconstructs the pair probability
+directly from the two retained quantum trajectories. It requires
+every prior residual-auditor predicate except exactly the four
+preparation predicates listed in §71 to be true. The largest
+preparation bound from both programs and source records is combined
+with the largest corresponding retained evolution and unpumped
+residual bounds in §72.2. Each probability reconstruction must agree
+with its retained array to $10^{-9}$, and the resulting lower bound
+on the peak gain must exceed $10^{-3}$ for both trajectories.
+
+Before numerical execution, bind this section, the three programs,
+both source archives, the complete residual receipt and two accepted
+independent mathematical reviews in
+`runs/20260909_matter_formation_quantum_preparation/`.
+Each program rejects invalid identities or reviews before opening
+scientific arrays, refuses output overwrite, and retains complete
+finite numerical outputs. Exercise source-mismatch and both
+review-rejection controls for each program.
+Passing preparation programs return
+`SUPPORTS-conditional preparation truncation bound`.
+Passing joint qualification returns
+`SUPPORTS-conditional finite-mode quantum transfer with a controlled preparation bound`.
+Any failed prerequisite or numerical comparison gives `INCONCLUSIVE`.
+Stop after this archived-state calculation and preserve its result.
+Every receipt retains `complete_physical_matter_formation=false`.
+
+## 73. Working notes: qualified bounded quantum transfer
+
+### 73.1 Reproduced preparation bounds
+
+The retained quantum states satisfy the higher-order preparation
+criterion in §72. Both the oscillator-matrix calculation and the
+independent coordinate-integral calculation give upper estimates
+below $10^{-6}$ for each source archive:
+
+| Retained trajectory | Left-endpoint bound | Right-endpoint bound |
+|:--|--:|--:|
+| Spectral evolution | $4.5403217815327035\times10^{-10}$ | $4.5403212454539646\times10^{-10}$ |
+| Coordinate-built evolution | $4.540216561849987\times10^{-10}$ | $4.540216561663847\times10^{-10}$ |
+
+The fourth-derivative remainder contributes approximately
+$4.5402165263062\times10^{-10}$ in every row. The largest
+preparation-state reconstruction error is
+$3.306943925547252\times10^{-14}$, against $10^{-10}$.
+The largest normalized generator discrepancy is
+$1.5127864400169758\times10^{-15}$, against $10^{-11}$.
+These are ordinary floating-point evaluations of the exact
+inequalities in §72.1; no interval-arithmetic certificate is supplied.
+The separate first-derivative calculation in §§70–71 remains
+`INCONCLUSIVE`.
+
+### 73.2 Transfer relative to the unpumped state
+
+The preparation bound is small enough to qualify the measured
+increase in the reference-pair projector. The worst-case quantities
+entering the full-space comparison are
+$$
+B_{\rm prep}=4.5403217815327035\times10^{-10},\qquad
+b_{\rm evol}=1.0288757164680495\times10^{-7},\qquad
+b_0=3.9148875827870685\times10^{-12}.
+$$
+Their combined probability allowance is
+$$
+2(B_{\rm prep}+b_{\rm evol}+b_0)
+=2.06691037425082\times10^{-7}.
+$$
+Both retained trajectories reach their sampled peak at $t=0.5625$.
+Direct reconstruction from their complex state amplitudes gives:
+
+| Retained trajectory | Reference probability | Peak gain | Gain lower estimate |
+|:--|--:|--:|--:|
+| Spectral evolution | $0.00018062959723611708$ | $0.008605460543877489$ | $0.008605253852840064$ |
+| Coordinate-built evolution | $0.00018062959723613348$ | $0.008605460543877745$ | $0.008605253852840321$ |
+
+Both lower estimates exceed the fixed $10^{-3}$ criterion.
+The largest pointwise discrepancy between the reconstructed and
+archived probability arrays is
+$1.0408340855860843\times10^{-17}$, against $10^{-9}$.
+The joint verdict is
+`SUPPORTS-conditional finite-mode quantum transfer with a controlled preparation bound`.
+
+The comparison concerns the projector onto at least one
+reference-oscillator pair in the specified spatial mode. It compares
+the full-Hamiltonian evolution of the dilated variational reference
+with the evolution of its unpumped counterpart. The estimate includes
+the unpumped state's finite residual. The exact-ground-state distance,
+asymptotic particle count, spatial localization and nonradial
+persistence remain unestablished.
+
+### 73.3 Retained qualification and physical scope
+
+The calculation passes all 15 left-endpoint checks, 19
+coordinate/right-endpoint checks and 29 observable-auditor checks.
+All nine targeted source-identity and review-rejection controls stop
+before scientific arrays are opened. A separate reconstruction of the
+retained derivative norms, integral contributions, remainders and
+probability outputs agrees across 30 comparisons, with maximum
+relative discrepancy $1.0079443939961632\times10^{-15}$.
+The raw coordinate quadrature matrix is retained alongside the
+symmetry-enforced generator.
+
+The active calculation manifest is
+`runs/20260909_matter_formation_quantum_preparation/manifest-section-span-recovery.json`.
+Its SHA-256 is
+`ccdffbf12ca81fdb73e8f6a0a6c9f296e11ed8d03fc956c8955138025db08a07`.
+It binds the complete frozen section span, the three source programs,
+two accepted mathematical reviews, two raw source archives and the
+complete residual receipt. The run directory contains every
+prerequisite attempt, identity-recovery record, execution record,
+finite output array and raw reconciliation. The scientific sources,
+state archives, parameters, derivative order, sample grids and
+acceptance criteria are fixed throughout the executed calculation.
+No new Hamiltonian trajectory is generated.
+
+Physical matter formation still requires a selected microscopic
+action and quantum state, physical normalization and renormalization
+conditions, derived particle spin/statistics/charges, and localized
+formation with nonradial persistence in that same model. The
+many-to-one density projection in §29 leaves microscopic selection
+underdetermined. The present result qualifies a bounded quantum
+transfer within the supplied scalar model. Every scientific receipt
+retains `complete_physical_matter_formation=false`.
+
 ## References
+
+- `computations/matter_formation_quantum_preparation.py`—left-endpoint Taylor bound on the retained preparation states.
+- `computations/verify_matter_formation_quantum_preparation.py`—coordinate-integral generator reconstruction and right-endpoint preparation bound.
+- `computations/verify_matter_formation_quantum_transfer_bound.py`—raw reference-pair probability reconstruction and full-space bounded comparison.
+- `runs/20260909_matter_formation_quantum_preparation/`—fixed archived-state calculation, accepted derivations, raw identities, rejection controls and numerical receipts.
 
 - `computations/matter_formation_quantum_backreaction.py`—full scalar mode Hamiltonian, independent spectral evolution, energy and reference-pair records.
 - `computations/verify_matter_formation_quantum_backreaction.py`—coordinate-quadrature matrix construction and sparse quantum evolution.
