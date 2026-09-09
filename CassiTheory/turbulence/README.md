@@ -62,9 +62,9 @@ control exceeds viscous-only absorption. A data-controlled cumulative
 estimate remains open. The matter comparison distinguishes qualified
 loaded-core redistribution from the positive constrained energy that
 establishes conditional unwound binding.
-The exterior-memory comparison retains the initial exterior state and the
-operator assumptions needed for a controlled response; the corresponding
-nonlinear Navier–Stokes estimate remains unproved.
+A separate applicability note, outside the frozen matter comparison,
+retains the exterior initial state and the assumptions of the Hypothesized
+source action; it supplies no numerical bound on the nonlinear NS forcing.
 
 ## References
 

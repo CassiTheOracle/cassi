@@ -147,7 +147,7 @@ All 37 checks in the stress-geometry receipt pass. The isotropy control is point
 
 ## 8. Fine-scale Navier–Stokes transfer dynamics
 
-The fixed calculation measures the averaged fine-scale transfer and its instantaneous derivative while retaining all modes in the original equation. The Gaussian split changes only the strain factor in the full stress contraction. Its mathematical record is `turbulence/navier-stokes-depletion-dynamics.md`, under `computations/navier-stokes-depletion-prereg.md`; the accepted receipt is `runs/navier_stokes_depletion/qualified/verification.json`.
+The fixed calculation measures the averaged fine-scale transfer and its instantaneous derivative while retaining all modes in the original equation. The Gaussian split changes only the strain factor in the full stress contraction. Its mathematical record is `turbulence/navier-stokes-depletion-dynamics.md`, under `computations/navier-stokes-depletion-prereg.md`; the accepted receipt is `runs/navier_stokes_depletion/qualified_v2/verification.json`.
 
 | Control | Decisive result | Classification and scope |
 |---|---|---|
@@ -157,9 +157,9 @@ The fixed calculation measures the averaged fine-scale transfer and its instanta
 
 All 1,012 checks pass, including 108 spatial rows, 72 quadrature rows, finite values on all 48 absorption rows and a nonempty finite-comparison qualification. The maximum normalized discrepancy is $8.0993\times10^{-15}$ against $10^{-10}$. The current protocol, verifier and retained Fourier helper match the input manifest and source snapshots. These are instantaneous controls; the cyclic field's critical norm initially decreases under viscosity. No time-evolved turbulence or continuum-regularity result is asserted.
 
-Data-controlled cumulative depletion and arbitrary-data regularity remain open scope limitations. The coarse coefficient is bounded by kinetic energy at fixed $L$; no data-controlled time integral for the remaining fine production is established. These questions have no measured classification in this receipt.
+Data-controlled cumulative depletion and arbitrary-data regularity remain **UNRESOLVED**. This literal protocol status is a scope limitation, separate from the three measured classifications. The coarse coefficient is bounded by kinetic energy at fixed $L$; no data-controlled time integral for the remaining fine production is established.
 
-The matter comparison retains the distinct constraints behind loaded-core modulation and unwound fixed-population binding. Its §37 comparison separates the Gaussian strain split from causal exterior elimination: the matter memory calculation assumes a controlled linear interaction operator, while the NS nonlinear forcing still requires a data-controlled estimate.
+The frozen §§44–50 matter comparison retains the distinct constraints behind loaded-core modulation and unwound fixed-population binding. The separate applicability note in `turbulence/navier-stokes-depletion-dynamics.md` §7.4 discusses `computations/matter-formation-continuum-report.md` §37 outside that frozen sourcing. Its conditional linear exterior-response bounds supply no numerical bound on the NS nonlinear forcing.
 
 ## References
 

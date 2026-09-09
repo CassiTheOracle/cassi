@@ -214,7 +214,7 @@ The cyclic field has $R_\ell=0$ at maximum-strain points at its initial instant.
 
 ## 7. What the latest matter calculations contribute
 
-The matter calculations distinguish a self-consistent response from a stable response. They also show what a genuine coercive localization argument requires. The relevant results are in `computations/matter-formation-continuum-report.md` §§37 and 44–50.
+The matter calculations distinguish a self-consistent response from a stable response. They also show what a genuine coercive localization argument requires. Sections 7.1–7.3 contain the frozen comparison sourced to `computations/matter-formation-continuum-report.md` §§44–50. Section 7.4 is a separate analytical applicability note outside that frozen sourcing and has no additional measured Navier–Stokes classification.
 
 ### 7.1 Loaded cores can favor redistribution
 
@@ -262,9 +262,9 @@ For original Navier–Stokes, kinetic energy supplies no corresponding positive 
 
 Section 50 specifies a nonlinear scalar-parent packet calculation. Its initial signed density is zero, while a phase gradient transports opposite signed densities into the two half-spaces. The report supplies the protocol and exact initial-current identities; it records no measured packet-condensation verdict. The scalar parent has additional mediator and carrier Cauchy data and a separate compact-state energy comparison. That construction supplies no established constitutive map to incompressible momentum stress.
 
-### 7.4 Surrounding-scale memory requires a controlled interaction operator
+### 7.4 Applicability note: surrounding-scale memory
 
-Section 37.1 derives an exact exterior elimination for a time-independent self-adjoint quadratic Hamiltonian. For retained amplitude $x$, exterior amplitude $y$, bounded coupling $V$ and $U_E(t)=e^{-iH_Et/\hbar}$, it gives
+`computations/matter-formation-continuum-report.md` §37 derives conditional consequences of the **Hypothesized** conservative interscale action in `foundations/interscale-current-soliton.md` §2.4. Its §37.1 gives exact exterior elimination for a time-independent self-adjoint quadratic Hamiltonian. For retained amplitude $x$, exterior amplitude $y$, bounded coupling $V$ and $U_E(t)=e^{-iH_Et/\hbar}$, it gives
 $$
 i\hbar\dot x(t)=H_Lx(t)+VU_E(t)y_0
 -\frac{i}{\hbar}\int_0^tVU_E(t-s)V^\dagger x(s)\,ds.
@@ -280,22 +280,27 @@ $$
 \le\frac{\|V\|^2|\zeta|^3}
 {\Delta^4(1-|\zeta|/\Delta)}.
 $$
-These hypotheses control an explicitly supplied linear exterior problem. Positivity of its moments supplies no sign for the nonlinear momentum transfer $F_f$. The collective phase inertia in §37.2 also depends on the matter action's conjugate density variables and positive density Hessian; a constitutive map to incompressible velocity remains unestablished.
+These hypotheses control an explicitly supplied linear exterior problem. Positivity of its moments supplies no sign for the nonlinear momentum transfer $F_f$. The collective phase inertia in `computations/matter-formation-continuum-report.md` §37.2 also depends on the matter action's conjugate density variables and positive density Hessian; a constitutive map to incompressible velocity remains unestablished. The source calculation is implemented in `computations/matter_formation_cascade_response.py` and independently reconstructed in `computations/verify_matter_formation_cascade_response.py`; its retained evidence is identified in the report's §37.6.
 
-The Gaussian split in §2 is an instantaneous strain decomposition. At nonzero wave number its multiplier lies strictly between zero and one, so $G_L^2\ne G_L$. It eliminates no degrees of freedom and introduces no exterior initial-state assumption.
+The Gaussian split in §2 is an instantaneous strain decomposition. For $L>0$ and $k\ne0$, its Fourier multiplier is $m_L(k)=e^{-L^2|k|^2/2}\in(0,1)$, so
+$$
+\widehat{(G_L^2-G_L)f}(k)
+=m_L(k)\bigl(m_L(k)-1\bigr)\widehat f(k).
+$$
+The coefficient is strictly negative at these wave numbers; hence $G_L^2\ne G_L$. The split eliminates no degrees of freedom and introduces no exterior initial-state assumption.
 
-An exterior decomposition of NS can instead use a separate sharp Fourier projection. Let $Q_\kappa$ retain $|k|>\kappa>0$, and put $w=Q_\kappa u$. For smooth solutions, variation of constants gives the exact identity
+An exterior decomposition of NS can instead use a separate sharp Fourier projection. Let $Q_\kappa$ retain $|k|>\kappa>0$, and put $w=Q_\kappa u$. On each retained mode, $\partial_t\widehat w+\nu|k|^2\widehat w=\widehat{B(u,u)}$. Multiplying by $e^{\nu|k|^2t}$ and integrating gives, for smooth solutions,
 $$
 w(t)=e^{\nu t\Delta}w(0)+
 \int_0^t e^{\nu(t-s)\Delta}
 Q_\kappa B(u(s),u(s))\,ds.
 $$
-The heat block satisfies
+For $|k|>\kappa$, the heat multiplier obeys $e^{-\nu|k|^2t}\le e^{-\nu\kappa^2t}$. Taking the supremum in the weighted Fourier norm gives
 $$
 \|e^{\nu t\Delta}Q_\kappa\|_{\dot H^{1/2}\to\dot H^{1/2}}
 \le e^{-\nu\kappa^2t}.
 $$
-The nonlinear forcing still contains the full evolving velocity and its derivatives. Section 37 supplies no data-controlled bound on that NS interaction operator. Eliminating it into a memory representation preserves this estimation requirement. A useful transfer of the method would establish the cumulative bound in §6, including the exterior initial data, with constants independent of an upper Fourier cutoff.
+The nonlinear forcing still contains the full evolving velocity and its derivatives. No numerical bound from `computations/matter-formation-continuum-report.md` §37 is established for this NS interaction in the critical spaces. The connection supplied here is structural: exterior elimination retains initial-state injection and feedback. A memory representation preserves the need to estimate that feedback. A useful transfer of the method would establish the cumulative bound in §6, including the exterior initial data, with constants independent of an upper Fourier cutoff.
 
 ## 8. Verification and scope
 
@@ -306,21 +311,21 @@ All **1,012 recorded checks pass**, including 108 spatial grid/filter/split rows
 | Initial field | $D F_f[B]$, $L=1/2$ | $D F_f[B]$, $L=1$ | $D F_f[B]$, $L=2$ |
 |---|---:|---:|---:|
 | Cyclic, $F_f(0)=0$ | 0.0365035324 | 0.1222352528 | 0.2686168894 |
-| Planar, $F_f(0)=0$ | 0.5431205508 | 0.7922970047 | −0.2995901414 |
+| Planar, $F_f(0)=0$ | 0.5431205508 | 0.7922970047 | $-0.2995901414$ |
 | Three-coordinate multiscale | 25.0028695112 | 48.2240130186 | 57.7187576557 |
 | Shear | 0 | 0 | 0 |
 
-The three measured classifications are **CONTRADICTS** automatic nonpositive response at zero transfer, **SUPPORTS** two-sided nonlinear response in the fixed control class, and **CONTRADICTS** viscous-only absorption at $\theta=1/2$. Data-controlled cumulative depletion and arbitrary-data regularity remain open proof obligations. The receipt records them as scope limitations, separately from the measured classifications.
+The three measured classifications are **CONTRADICTS** automatic nonpositive response at zero transfer, **SUPPORTS** two-sided nonlinear response in the fixed control class, and **CONTRADICTS** viscous-only absorption at $\theta=1/2$. Data-controlled cumulative depletion and arbitrary-data regularity remain **UNRESOLVED**. This literal protocol status identifies open proof obligations; it is recorded as a scope limitation, separately from the measured classifications.
 
-The accepted receipt is `runs/navier_stokes_depletion/qualified/verification.json`, with its adjacent `verification.inputs.json` and `verification.sources/`. The input manifest, source snapshots and current executable inputs match the following raw SHA-256 identities:
+The accepted receipt is `runs/navier_stokes_depletion/qualified_v2/verification.json`, with its adjacent `verification.inputs.json` and `verification.sources/`. Its schema is `cassi.navier-stokes.depletion.verification.v2`, which identifies the measured-classification/scope separation and the nonfinite-marker representation. The following raw SHA-256 identities belong to this receipt; its input manifest, source snapshots and current executable inputs agree:
 
 | Input | SHA-256 |
 |---|---|
 | Frozen protocol | `d33849ce271f3fb028d6f1375d47eece01decc88c1b11eb79ade332e834a3509` |
-| Depletion verifier | `e2262175a0c3d787deed44db9cac2be487f819889f9c8706000931ccdf358f06` |
+| Depletion verifier | `f74633d488d974e8bb3c83d24448064f2badb89059a6938fcc8235db3e7426e5` |
 | Retained Fourier helper | `a7ca230b989f5713cb511b18971007d41cbdad20d9c8cf8e2af7d34f107755e0` |
 
-The preserved `runs/navier_stokes_depletion/complete/verification.json` contains 1,011 checks and identical exact, spatial, quadrature and absorption rows. The qualified receipt additionally requires a nonempty set of finite numerical comparisons. The root `runs/navier_stokes_depletion/verification.json` is a diagnostic receipt with non-unique amplitude-check labels. Each receipt retains its own input manifest and frozen sources. Duplicate labels are rejected before an existing check can be overwritten; nonfinite failure values are retained as explicit JSON markers.
+The preserved `runs/navier_stokes_depletion/complete/verification.json` contains 1,011 checks and identical exact, spatial, quadrature and absorption rows. The preserved `runs/navier_stokes_depletion/qualified/verification.json` has the same 1,012 checks and scientific rows as the accepted receipt, under its recorded v1 format. Both qualified receipts require a nonempty set of finite numerical comparisons. The root `runs/navier_stokes_depletion/verification.json` is a diagnostic receipt with non-unique amplitude-check labels. Each receipt retains its own input manifest and frozen sources. Duplicate labels are rejected before an existing check can be overwritten; nonfinite failure values are retained as explicit JSON markers.
 
 Every output path is immutable. To reproduce from the CassiTheory directory, supply a fresh path to `python computations/verify_navier_stokes_depletion.py --output runs/navier_stokes_depletion/reproduction/verification.json`. These controls concern instantaneous derivatives and analytical local-time consequences. No finite-dimensional trajectory is used to claim a continuum bound.
 
@@ -332,7 +337,11 @@ The unresolved result is a data-controlled integral of the fine-scale production
 - `turbulence/navier-stokes-stress-geometry.md`—complete stress/strain dynamics and geometric controls.
 - `computations/navier-stokes-depletion-prereg.md`—fixed identities, controls, numerical tolerances and classification rules.
 - `computations/verify_navier_stokes_depletion.py`—exact algebra and independent instantaneous Fourier reconstruction.
-- `computations/matter-formation-continuum-report.md` §§37 and 44–50—exterior memory and its operator assumptions, loaded-core response, finite-period redistribution, unwound binding and packet-calculation boundary.
+- `computations/matter-formation-continuum-report.md` §§44–50—frozen matter comparison: loaded-core response, finite-period redistribution, unwound binding and packet-calculation boundary.
+- `computations/matter-formation-continuum-report.md` §37—conditional exterior-response source for the separate applicability note.
+- `foundations/interscale-current-soliton.md` §2.4—Hypothesized conservative interscale action.
+- `computations/matter_formation_cascade_response.py`; `computations/verify_matter_formation_cascade_response.py`—primary and independent qualification of the supplied matter exterior.
+- `runs/20260908_matter_formation_cascade_response/primary_recovery/results.json`; `runs/20260908_matter_formation_cascade_response/verification/verification.json`—retained conditional matter-response receipts, outside the frozen NS comparison.
 - `foundations/particle-stationary-action-closure.md` §8.7—carrier conservation and scalar variational reduction.
 - G. Eyink and H. Aluie, [Localness of energy cascade in hydrodynamic turbulence. I. Smooth coarse-graining](https://arxiv.org/abs/0909.2386)—filtered energy budgets.
 - T. Tao, [Finite time blowup for an averaged three-dimensional Navier–Stokes equation](https://arxiv.org/abs/1402.0290)—limits of generic energy-cancellation estimates.

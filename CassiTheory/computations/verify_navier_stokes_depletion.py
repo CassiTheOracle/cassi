@@ -389,9 +389,10 @@ def main():
                 "numpy_version": np.__version__, "sympy_version": sp.__version__}
     with manifest_path.open("x", encoding="utf-8") as stream:
         json.dump(manifest, stream, indent=2)
-    result = {"schema": "cassi.navier-stokes.depletion.verification.v1", **manifest,
+    result = {"schema": "cassi.navier-stokes.depletion.verification.v2", **manifest,
               "scope": "Exact identities and instantaneous controls; no time-integrated trajectory. "
-                       "Data-controlled cumulative depletion and arbitrary-data regularity remain unresolved.",
+                       "Data-controlled cumulative depletion and arbitrary-data regularity: "
+                       "UNRESOLVED (scope limitations, not measured probe classifications).",
               "control_classifications": {
                   "automatic_nonpositive_response": "INCONCLUSIVE",
                   "two_sided_nonlinear_response": "INCONCLUSIVE",
