@@ -7048,6 +7048,150 @@ quantum state, particle identity and localized quantum production open.
 Every accepted receipt retains
 `complete_physical_matter_formation: false`.
 
+## 42. Working notes: winding of the physical common phase
+
+### 42.1 Exterior winding and the core question
+
+The physical phase circle in §40 permits line defects with integer
+winding. This offers a different concentration mechanism from the
+stationary charge support tested in §41. The first question is whether
+the winding forces a localized particle or merely supplies a string
+with positive tension.
+
+Keep the charged vacuum and spatial action of §40, with no scale
+dependence, carrier or temporal motion. Put
+$a=K_x$, $d=1/\mu_x$, $c=\cos\beta$, $s=\sqrt{1-c^2}$ and
+$f=a\rho/(a\rho+4dv_Q^2)$. On an annulus around a straight line, a
+single-valued winding representative is
+$$
+\Psi(\phi)=\sqrt\rho
+\begin{pmatrix}\sqrt{(1+c)/2}\,e^{im\phi}\\
+\sqrt{(1-c)/2}\end{pmatrix},
+\qquad \Phi=v_Qe_3,\qquad m\in\mathbb Z.
+$$
+Its invariant has phase $\vartheta=m\phi+\pi$. Write the angular
+connection one-form as $g_Q\mathcal A=b^aT^a\,d\phi$. Minimizing the
+component gradient energy over all three components gives the candidate
+$$
+b(\phi)=m\left(fs\cos m\phi,-fs\sin m\phi,1+c\right).
+$$
+The corresponding angular energy is $J_xm^2/8$, where $J_x$ is defined
+in §40. Thus the candidate minimum per unit length between radii
+$r_c$ and $R$ is
+$$
+\frac{E_{\rm ann}}{L}
+=\frac{\pi J_xm^2}{4}\ln\frac{R}{r_c}.
+$$
+These are frozen-vacuum exterior expressions. A smooth core and its
+amplitude relaxation require the unrestricted spatial equations.
+
+The common phase changes by $\pi m$ in the locally constant-spinor
+frame. The compensating frame rotation ends at $(-1)^mI$, while the
+physical parallel transport also includes the screened connection.
+With $W'=i\,b^aT^aW$ and $W(0)=I$, the candidate holonomy is
+$$
+W(2\pi)=(-1)^m\exp\!\left[i\pi m(fs\,\sigma^1+c\,\sigma^3)\right],
+\qquad
+\frac12\operatorname{tr}W=(-1)^m
+\cos\!\left(\pi m\sqrt{c^2+f^2(1-c^2)}\right).
+$$
+The group-centre identification alone therefore supplies no fixed
+centre-valued holonomy.
+
+The core can leave the vacuum circle while both charged norms remain
+nonzero. In the gauge $\Psi=\sqrt\rho\,e_1$, take $\Phi=v_QN$ with
+$$
+N=(\sin\beta(r)\cos m\phi,\sin\beta(r)\sin m\phi,\cos\beta(r)).
+$$
+A smooth cap reaches $N_3=p=\pm1$ at its centre and $N_3=c$ at its
+outer edge, with $\sin\beta(r)=O(r^{|m|})$ near the centre.
+The local invariant vanishes at the pole. Its relative-orientation
+area integral is
+$$
+Q_{\rm cap}=\frac1{4\pi}\int
+N\cdot(\partial_xN\times\partial_yN)\,dx\,dy
+=\frac m2(p-c).
+$$
+This boundary-dependent geometric integral has no supplied
+particle-charge interpretation. The two caps differ by $m$; an
+unrestricted field zero can also leave the normalized relative target.
+In particular, winding alone does not force density depletion or
+binding of the separate density-coupled carrier.
+
+### 42.2 Fixed calculation before execution
+
+Use the spatial witness from §40:
+$(\rho,a,d,v_Q,g_Q)=(1.2,0.83,1.25,0.9,0.71)$.
+For $c\in\{\varphi^{-3},0,-0.7,0.8\}$ and
+$m\in\{-2,-1,0,1,2\}$, reconstruct the connection Hessian and linear
+term directly from component energies at 17 equally spaced angles.
+Compare their stationary minimum and connection with §42.1 to
+$10^{-10}$ after division by $\max(1,|\mathrm{reference}|)$.
+Integrate the parallel-transport matrix equation independently with
+DOP853, relative tolerance $10^{-12}$ and absolute tolerance
+$10^{-13}$; compare its endpoint and trace with §42.1 to $10^{-9}$.
+Require unitarity and determinant residuals below $10^{-9}$.
+The nonzero physical-composition winding-one witness must have
+holonomy different from both $I$ and $-I$ by more than $10^{-3}$.
+
+At the physical composition, directly integrate the annular component
+energy for $r_c=1$, $R\in\{2,4,8\}$ and the five windings; compare
+with the logarithmic expression to $10^{-10}$. For both cap poles and
+$m\in\{-2,-1,1,2\}$ use
+$\beta(r)=\beta(0)+[\arccos(c)-\beta(0)]r^{|m|}$ on $0\le r\le1$.
+Integrate its orientation-area density and gradient energy. Require
+the area formula to agree to $10^{-10}$ and the core gradient energy
+to be finite and positive. These caps are admissible configurations,
+without a stationary-core claim.
+
+Execute `computations/matter_formation_phase_vortex.py` once after
+retaining this subsection and the source bytes in
+`runs/20260908_matter_formation_phase_vortex/`. Preserve the raw
+receipt. All checks passing gives the scoped identity verdict `PASS`;
+a failed comparison gives `FAIL`, and an execution failure supplies
+no scientific verdict. No scan, replacement witness or formation
+simulation belongs to this calculation. It selects no particle size,
+spin, statistics, quantum state or formation outcome. Keep this
+intermediate result in the working notebook.
+
+### 42.3 Measured exterior and admissible-core result
+
+The fixed calculation passes all 172 comparisons. The largest
+connection-minimum discrepancy is $3.38618\times10^{-15}$, the largest
+angular-energy discrepancy is $1.11022\times10^{-16}$, and the largest
+parallel-transport endpoint discrepancy is $1.00190\times10^{-12}$.
+At the supplied composition and unit winding,
+$$
+J_x=0.7548561297175203,\qquad
+\tfrac12\operatorname{tr}W=-0.5771451644464498.
+$$
+The independently integrated transport is noncentral. Integer phase
+winding coexists with continuously parameter-dependent gauge
+holonomy in this exterior.
+
+Both cap orientations have finite gradient energy with constant
+$\rho=1.2$ and $|\Phi|=0.9$. For $m=1$, their area integrals are
+$0.3819660112501051$ and $-0.6180339887498948$. Their difference reflects
+the two caps of the relative sphere; neither number is a derived
+particle charge. These configurations demonstrate that the phase
+defect can be resolved through relative alignment without forcing a
+zero of either charged norm.
+
+The logarithmic annular energy is positive for nonzero winding.
+It supplies a long-range line tension. A large loop would have a
+leading energy proportional to its circumference times this tension;
+that term alone favours contraction. The calculation supplies no
+stationary loop radius. Full core relaxation could redistribute
+density and magnetic energy, so core binding and any additional
+support require their own calculation.
+
+The raw receipt is
+`runs/20260908_matter_formation_phase_vortex/result.json`, alongside
+the frozen section and executed source. The next local question is
+whether an unrestricted vortex core actually depletes the total
+density enough to trap the existing neutral carrier. Winding alone
+does not impose that depletion.
+
 ## References
 
 - `computations/matter_formation_electric_support.py`—exact temporal-square and charge construction, Gaussian quadrature, covariant interval operators and boundary controls.
