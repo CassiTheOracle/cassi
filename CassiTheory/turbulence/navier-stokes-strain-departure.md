@@ -1,10 +1,10 @@
-# Quantitative Departure from Strain Self-Amplification
+# Strain Departure and Critical Spectral Concentration
 
-## Status: Derived conditional comparison / Open critical-work control—September 2026
+## Status: Derived conditional estimates / Open data-controlled critical work—September 2026
 
 ## Abstract
 
-The original unforced Navier–Stokes equation imposes a finite energy budget on persistent strain self-amplification. Retaining a standard interpolation inequality gives an explicit departure-or-breakdown deadline that is strictly earlier than the energy deadline in Miller's perturbative comparison. Known global regularity converts this alternative into a departure statement for axisymmetric, swirl-free data. A separate integrated identity quantifies the excess of the full-equation remainder over the perturbative condition. These are conditional comparison consequences of established Navier–Stokes identities. A bound on critical-scale production, control after departure, and arbitrary-data global regularity remain open.
+The original unforced Navier–Stokes equation imposes a finite energy budget on persistent strain self-amplification. Retaining a standard interpolation inequality gives an explicit departure-or-breakdown deadline that is strictly earlier than the energy deadline in Miller's perturbative comparison. Known global regularity converts this alternative into a departure statement for axisymmetric, swirl-free data. An integrated identity quantifies departure, and spectral centering bounds both the critical remainder work and the complete nonlinear transfer. The spectral spread has an exact production budget and can increase immediately from zero in a smooth periodic flow. A positive-moment scalar construction shows the insufficiency of the listed energy and departure budgets for critical-norm control. Dynamical preservation of the sufficient spectral bound, recurrence control and arbitrary-data regularity remain open.
 
 ## 1. Equation, data and source boundary
 
@@ -229,9 +229,9 @@ Thus $a>a_{\mathrm{crit}}$ has $f_0>0$. The fixed controls use $a=ma_{\mathrm{cr
 
 The table evaluates guaranteed upper deadlines in these units. It contains no measured departure time. The Gaussian controls' initial perturbative condition is **NOT_EVALUATED**; the nonempty initial-window statement uses Miller's separate construction. No universal favorable sign of the critical work is inferred from these controls.
 
-## 6. Critical-scale limitation
+## 6. Critical work and spectral spread
 
-The regularity problem requires a different derivative weight and an upper production estimate. The velocity-critical quantities used in `turbulence/navier-stokes-transfer-boundary.md` are
+The critical budget measures concentration at a different derivative order from strain enstrophy. Its cancellation can be quantified through the spread of the velocity spectrum. The estimates below hold on $\mathbb R^3$ under the smoothness and integrability assumptions in §1, and on the mean-zero $2\pi$ torus with volume-normalized integrals. The explicit Fourier controls use the torus.
 $$
 \mathcal C=\|u\|_{\dot H^{1/2}}^2
 =2\|S\|_{\dot H^{-1/2}}^2,
@@ -239,28 +239,186 @@ $$
 Y=\|u\|_{\dot H^{3/2}}^2
 =2\|S\|_{\dot H^{1/2}}^2.
 $$
-The remainder contributes
+With $B=-\mathbb P[(u\cdot\nabla)u]$ and $F=\langle\Lambda u,B\rangle$, the complete budget is
 $$
-\left.\mathcal C'\right|_{\mathcal R}
-=-4\langle\Lambda^{-1/2}S,\Lambda^{-1/2}\mathcal R\rangle.
+\mathcal C'+2\nu Y=2F.
 $$
-The unweighted cancellation $\langle S,\mathcal R\rangle=0$ leaves this pairing uncontrolled. Neither the sign of $f'$ nor a lower bound on $\int\delta_+$ estimates it. The complete budget remains
-$$
-\mathcal C'+2\nu Y=2F,
-$$
-with the production estimate identified in `turbulence/navier-stokes-depletion-dynamics.md` still open.
 
-For general three-dimensional data, the argument permits breakdown before departure. Even for a smooth solution that leaves the perturbative condition, it supplies no bound on subsequent critical concentration, the number of renewed amplification episodes, or their cumulative production. It also provides no estimate uniform under symmetry-breaking perturbations of the axisymmetric class.
+### 6.1 Optimal scalar centering of the remainder
 
-The Cassi-inspired research question concerns how a term with zero direct enstrophy work changes future amplification. The exact $f'$ identity and energy-coupled comparison quantify one aspect of that change inside ordinary Navier–Stokes. A geometry-resolved evolution estimate for the critical work remains the additional mathematical requirement. No Cassi current-to-momentum constitutive map follows from this argument.
+The zero enstrophy work removes the part of the critical multiplier parallel to the strain. Define
+$$
+\mathcal V=KE-\mathcal C^2/4\ge0,\qquad
+W=\langle\Lambda^{-1/2}S,\Lambda^{-1/2}\mathcal R\rangle.
+$$
+For real $b$,
+$$
+\|(\Lambda^{-1}-b)S\|_2^2=K-b\mathcal C+b^2E.
+$$
+The minimum occurs at $b=\mathcal C/(2E)$. Since $\langle S,\mathcal R\rangle=0$, Cauchy–Schwarz gives
+$$
+\boxed{|W|^2\le\frac{\mathcal V}{E}\|\mathcal R\|_2^2.}
+$$
+This is the optimal scalar centering in the displayed Hilbert-space estimate. It gives zero remainder work at a single frequency radius. The complete critical budget also contains the strain-model term:
+$$
+J=\langle\Lambda^{-1}S,P_{\mathrm{st}}(S^2)\rangle,
+\qquad
+2F=-\frac83J-4W.
+$$
+Neither $\|\mathcal R\|_2$ nor $J$ has a data-controlled cumulative bound from the departure comparison alone.
+
+### 6.2 A bound on the complete nonlinear transfer
+
+Energy orthogonality supplies a spectral-spread factor directly for the full nonlinearity. For nonzero data, put
+$$
+\eta=\frac{\mathcal V}{KE}
+=1-\frac{\mathcal C^2}{4KE},\qquad 0\le\eta\le1.
+$$
+Since $\langle u,B\rangle=0$,
+$$
+\begin{aligned}
+|F|
+&=\left|\left\langle
+\left(\Lambda-\frac{\mathcal C}{2K}\right)u,B
+\right\rangle\right|\\
+&\le\sqrt{2E\eta}\,\|B\|_2.
+\end{aligned}
+$$
+Let $c_{\rm S}$ be the product of the constants in the vector-valued embeddings $\dot H^1\hookrightarrow L^6$ and $\dot H^{1/2}\hookrightarrow L^3$, with the corresponding fixed-domain constants on the mean-zero torus. Hölder's inequality and the $L^2$ contraction of the Leray projection give
+$$
+\|B\|_2
+\le\|u\|_6\|\nabla u\|_3
+\le c_{\rm S}\sqrt{2E}\sqrt{Y}.
+$$
+The derivative on $\nabla u$ is included: $\|\nabla u\|_{\dot H^{1/2}}^2=Y$. Interpolation gives $2E\le\sqrt{\mathcal C Y}$, so
+$$
+\boxed{
+|F|\le c_{\rm S}\sqrt{\eta\mathcal C}\,Y.
+}
+$$
+Every derivative on the right belongs to the critical dissipation $Y$; this argument requires no absorption of the higher-order quantity $G$.
+
+For any fixed $0<\theta<1$, the hypothesis
+$$
+c_{\rm S}\sqrt{\eta(t)\mathcal C(t)}\le\theta\nu
+$$
+throughout a smooth time interval implies
+$$
+\mathcal C'+2(1-\theta)\nu Y\le0.
+$$
+Thus $\sup\mathcal C$ and $\int Y\,dt$ are bounded on that interval. Since $4E^2\le\mathcal C Y$, the Sobolev inequality gives $u\in L^4_tL^6_x$, sufficient for Serrin continuation at a finite endpoint. This is a conditional estimate with a spectral-spread factor. A bound on its evolving coefficient from arbitrary initial data is still required.
+
+### 6.3 Exact dynamics of the spread
+
+Viscosity decreases the unnormalized spread, while convection can replenish it. Set $A=\langle\Lambda^2u,B\rangle=-4\int\det S$. Differentiating $\mathcal V$ using $K'=-2\nu E$, $E'=A-2\nu G$ and the critical budget gives
+$$
+\boxed{
+\mathcal V'+\nu(2KG+2E^2-\mathcal C Y)
+=KA-\mathcal C F.
+}
+$$
+For the radial spectral energy measure $d\mu(r)$, whose moments of orders $0,1,2,3,4$ are $2K,\mathcal C,2E,Y,2G$,
+$$
+\mathcal V=\frac18\iint(r-s)^2\,d\mu(r)d\mu(s),
+$$
+$$
+2KG+2E^2-\mathcal C Y
+=\frac14\iint(r-s)^2(r^2+s^2)\,d\mu(r)d\mu(s)\ge0.
+$$
+These are exact identities for the full spectrum. The nonlinear production $KA-\mathcal C F$ has no general sign. A decrease of $\mathcal V$ alone also need not decrease $\mathcal C$: at fixed $K,E$, the identity $\mathcal C^2=4(KE-\mathcal V)$ has the opposite dependence.
+
+The periodic datum
+$$
+u_0=a(\sin y,\sin z,\sin x),\qquad a\ne0,
+$$
+has a single frequency radius. Its full Navier–Stokes derivatives satisfy
+$$
+\mathcal V(0)=\mathcal V'(0)=0,\qquad
+\boxed{\mathcal V''(0)=\frac{9a^6}{16}(3-2\sqrt2)>0.}
+$$
+Indeed, the nonlinear velocity derivative is
+$-a^2(\sin z\cos y,\sin x\cos z,\sin y\cos x)$, a solenoidal field on the frequency radius $\sqrt2$, with squared norm $3a^4/4$. Its generated spectral mass is of order $t^2$. The radial moment formula gives the displayed curvature; viscous decay of the original unit-radius modes cancels from that coefficient. Local smoothness implies $\mathcal V(t)>0$ for sufficiently small positive $t$. Equivalently,
+$$
+\eta''(0)=a^2(3-2\sqrt2)>0.
+$$
+This contradicts preservation of zero spread for periodic data. It leaves open quantitative control of a nonzero spread. A nonzero exactly monochromatic $L^2(\mathbb R^3)$ datum is unavailable, as its Fourier support would have measure zero.
+
+### 6.4 Instantaneous amplification and critical growth
+
+A negative amplification functional and declining spectral spread can coexist with critical growth in an admissible smooth velocity field. The three-coordinate Fourier fixture in `computations/navier-stokes-critical-recurrence-prereg.md` at $a=4$, $\nu=1/100$ gives
+$$
+f=-107.52,\qquad
+\mathcal C'=\frac{44208}{25}-784\sqrt5
+=15.2427056401649\ldots>0,
+$$
+$$
+\mathcal V'=-22947.8011094927\ldots<0.
+$$
+These are full-equation derivatives at the initial datum. The strict signs persist for a sufficiently short smooth interval. The remainder itself contributes $-4W=74.6997932801615\ldots$ to $\mathcal C'$ at that instant; the strain-model contribution and viscosity must also be retained.
+
+The functional sign $f<0$ is distinct from departure, which is $\delta>0$ and hence $f'<0$. This fixture has $\delta=-53287.808$. None of the 24 frozen velocity rows has positive $\delta$, so the protocol classifies the implication $\delta>0\Rightarrow\mathcal C'\le0$ as **INCONCLUSIVE**. These controls provide no instantaneous counterexample to that particular implication.
+
+### 6.5 A scalar-budget obstruction to cumulative control
+
+The energy and departure identities alone permit divergent critical moments even with positive departure throughout. This limitation can be demonstrated with positive spectral moments, without asserting a Navier–Stokes trajectory. Set $\tau=1-t$, $0\le t<1$, $\nu=1$, and
+$$
+K=8\tau^{1/4},\quad
+E=\tau^{-3/4},\quad
+G=\frac32\tau^{-7/4},\quad
+f=-\frac34\tau^{-7/4},\quad
+\delta=\frac78\tau^{-11/4}.
+$$
+These functions satisfy
+$$
+K'=-2E,\qquad E'=f+G,\qquad f'=-\frac32\delta,
+\qquad E^2\le KG.
+$$
+They also have $\int_0^1E\,dt=4$, $f<0$, $\delta>0$ and $KE=8\tau^{-1/2}\to\infty$.
+
+A positive two-atom measure of mass $2K$, weights $44/45,1/45$ and frequency radii
+$$
+r_1=\frac{\tau^{-1/2}}4,\qquad
+r_2=\frac{\sqrt{46}\,\tau^{-1/2}}4
+$$
+has moments $m_0=2K$, $m_2=2E$, $m_4=2G$. Its critical moments are
+$$
+\mathcal C=m_1=\frac{4(44+\sqrt{46})}{45}\tau^{-1/4}\to\infty,
+\qquad
+Y=m_3=\frac{22+23\sqrt{46}}{90}\tau^{-5/4}.
+$$
+Taking $F=(\mathcal C'+2Y)/2$ satisfies the scalar critical budget. This assignment supplies no nonlinear velocity realizing $F$ or the strain remainder. Atomic radial measures also do not supply finite-energy velocities on $\mathbb R^3$ or a fixed periodic frequency lattice. The result is a counterexample to closure from the listed scalar relations; full PDE compatibility remains an additional constraint. Its $f_0<0$ lies outside the initial positive-amplification hypothesis in §3.
+
+### 6.6 Established criterion and remaining proof requirement
+
+Spectral concentration already enters the regularity literature. Miller's Corollary 1.3 in [the Laplacian-eigenfunction paper](https://arxiv.org/abs/2005.14152) gives a continuation criterion on $\mathbb R^3$ through finiteness of
+$$
+\int_0^T\left(G-\frac{E^2}{K}\right)^{2/3}dt
+$$
+at fixed $\nu>0$. The underlying centered residual is
+$$
+\inf_\lambda\|-\Delta u-\lambda u\|_2^2
+=2\left(G-\frac{E^2}{K}\right).
+$$
+This is a spread in squared frequency and differs from $\mathcal V$. For the scalar construction in §6.5,
+$$
+\left(G-\frac{E^2}{K}\right)^{2/3}
+=\frac{11^{2/3}}4\tau^{-7/6},
+$$
+whose time integral diverges. The construction is consistent with that established criterion.
+
+The bound in §6.2 concerns the complete critical transfer with a different spectral weight. No priority or stronger-than-Miller theorem is asserted. A sufficient next analytical result would derive preservation of its small-coefficient condition, or finite cumulative control of an established continuation quantity, from the original nonlinear evolution and initial data. The exact spread budget exposes the production term that such an argument must control.
+
+For general three-dimensional data, breakdown before departure, recurrent amplification and symmetry-breaking disturbances remain possible within the present estimates. No recurrence count, arbitrary-data upper bound on critical production, or Cassi current-to-momentum constitutive law is established.
 
 ## 7. Verification and evidence scope
+
+### 7.1 Departure comparison
 
 The fixed analytical-verification schedule passes **71 checks**, with maximum normalized numerical discrepancy **$9.633333680505873\times10^{-15}$** against the threshold $10^{-10}$. It covers the projected completion of squares, variational derivative, comparison monotonicity, cumulative identity, Fourier scaling, exact Gaussian moments, independent cylindrical quadrature and comparison-deadline quadrature.
 
 The cylindrical reconstruction uses Gaussian–Laguerre and Gaussian–Hermite orders 12 and 20, including the angular-basis derivative in the vorticity-gradient norm. The deadline checks compare Gaussian–Legendre orders 64 and 128 with independent 50-digit adaptive quadrature. The finite controls qualify their calculations. The continuum comparison and the strict inequality in §3 follow from the displayed analytical proof.
 
-Independent analytical reviews reconcile the scalar comparison, endpoint alternative and cumulative excess-dose proof with the derivations above. `runs/navier_stokes_strain_departure/reconciliation.json` records the accepted statements and excludes ancillary reviewer claims that lack qualification. The critical-work estimate remains open; no universal no-go theorem for that estimate is adopted.
+Independent analytical reviews reconcile the scalar comparison, endpoint alternative and cumulative excess-dose proof with the derivations above. `runs/navier_stokes_strain_departure/reconciliation.json` records the accepted statements and excludes ancillary reviewer claims that lack qualification. Data-controlled critical-work closure remains open.
 
 The accepted receipt is `runs/navier_stokes_strain_departure/qualified/verification.json`, schema `cassi.navier-stokes.strain-departure.verification.v1`, with adjacent `verification.inputs.json` and `verification.sources/`. The manifest, retained source snapshots and executable inputs agree on the following raw SHA-256 identities:
 
@@ -273,17 +431,39 @@ The accepted receipt is `runs/navier_stokes_strain_departure/qualified/verificat
 
 The retained `runs/navier_stokes_strain_departure/verification.json` is a **FAIL** diagnostic: its two viscosity-normalization checks use a squared viscosity ratio. It is excluded from mathematical qualification and retains its own input manifest and source snapshots. The accepted comparison uses the $\nu^{-1}$ time similarity stated in §3.1. The frozen protocol has the same raw hash in both receipts.
 
-No Navier–Stokes trajectory is run. No observed exit time, singularity, fitted constant or general regularity verdict is recorded. The critical-work and arbitrary-data regularity fields remain **UNRESOLVED**. No physical parameter, numbered open question or empirical prediction is introduced or reclassified by this comparison.
+No Navier–Stokes trajectory is run. No observed exit time, singularity, fitted constant or general regularity verdict is recorded. Data-controlled critical work and arbitrary-data regularity remain **UNRESOLVED**. No physical parameter, numbered open question or empirical prediction is introduced or reclassified.
 
 To reproduce from CassiTheory, supply a fresh path to `python computations/verify_navier_stokes_strain_departure.py --output runs/navier_stokes_strain_departure/reproduction/verification.json`. Existing receipt paths are immutable.
+
+### 7.2 Critical recurrence controls
+
+The separate fixed schedule in `computations/navier-stokes-critical-recurrence-prereg.md` passes **134 checks**, including **24 exact velocity rows** and **48 independent FFT rows** at grids $24^3$ and $32^3$. The maximum normalized numerical discrepancy is **$1.0766942892814768\times10^{-12}$**, below $10^{-10}$. Every generated Fourier mode needed by the contractions is retained. The spatial reconstruction evaluates the complete projected remainder independently of the exact convolution and tensor helpers.
+
+The accepted receipt is `runs/navier_stokes_critical_recurrence/verification.json`, schema `cassi.navier-stokes.critical-recurrence.verification.v1`, with adjacent `verification.inputs.json` and `verification.sources/`. Current executable inputs, the manifest and retained source snapshots have matching raw SHA-256 identities:
+
+| Input | SHA-256 |
+|---|---|
+| Fixed recurrence protocol | `7d93b9a6821edf4ace662f97e1712cf823fa2178a9c4c5244d2165178e846da9` |
+| Recurrence verifier | `61295a26a09506d6e336a541dd684fc690d800a524cab84899742b4454a800ce` |
+| Depletion helper | `f74633d488d974e8bb3c83d24448064f2badb89059a6938fcc8235db3e7426e5` |
+| Fourier helper | `a7ca230b989f5713cb511b18971007d41cbdad20d9c8cf8e2af7d34f107755e0` |
+
+The frozen classifications are **CONTRADICTS** universal zero-spread preservation in the periodic control, **INCONCLUSIVE** for departure implying a nonincreasing critical norm, and **CONTRADICTS** closure from the listed scalar budgets. The last classification concerns scalar consistency only. Data-controlled critical production, recurrence control and arbitrary-data regularity remain **UNRESOLVED**.
+
+The Sobolev estimate and conditional continuation argument in §6.2 are analytical derivations; the 134-check receipt does not constitute their continuum proof. No Navier–Stokes time trajectory is integrated. To reproduce the fixed controls, use `python computations/verify_navier_stokes_critical_recurrence.py --output runs/navier_stokes_critical_recurrence/reproduction/verification.json` with a fresh output path.
+
+Independent analytical reviews confirm the centered remainder estimate, the full-transfer derivative weights and the fixed scalar identities. The accepted continuation argument uses $L^4_tL^6_x$. `runs/navier_stokes_critical_recurrence/reconciliation.json` records the accepted proof statements, their scope and the excluded auxiliary claims; it is retained locally with the generated evidence.
 
 ## References
 
 - E. Miller, [Finite-time blowup for a Navier–Stokes model equation for the self-amplification of strain](https://arxiv.org/abs/1910.05415), §§5–6—strain model, perturbative comparison, explicit Gaussian datum, initial perturbative window and axisymmetric departure; [mathematical HTML](https://ar5iv.labs.arxiv.org/html/1910.05415).
 - E. Miller, [A regularity criterion for the Navier–Stokes equation involving only the middle eigenvalue of the strain tensor](https://arxiv.org/abs/1710.05569)—strain enstrophy and conditional geometric regularity.
+- E. Miller, [Global regularity for solutions of the Navier–Stokes equation sufficiently close to being eigenfunctions of the Laplacian](https://arxiv.org/abs/2005.14152), Corollary 1.3—established interpolation-deficit continuation criterion.
 - `turbulence/navier-stokes-transfer-boundary.md`—critical transfer budget and heat-correction limitation.
 - `turbulence/navier-stokes-stress-geometry.md`—full stress and strain dynamics.
 - `turbulence/navier-stokes-depletion-dynamics.md`—fine-scale response, cumulative production requirement and matter-response boundary.
 - `computations/navier-stokes-strain-departure-prereg.md`—fixed identities, controls, tolerance and stopping rule.
 - `computations/verify_navier_stokes_strain_departure.py`—exact algebra and independent numerical reconstructions.
+- `computations/navier-stokes-critical-recurrence-prereg.md`—fixed remainder, spread and scalar-budget controls.
+- `computations/verify_navier_stokes_critical_recurrence.py`—exact full-convolution derivatives and independent FFT reconstruction.
 - `field-experience/probe-outcome-ledger.md`—qualified evidence and scope.

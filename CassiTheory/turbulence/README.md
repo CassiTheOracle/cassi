@@ -14,10 +14,11 @@ The directory therefore records which ingredients are inherited, which are
 optional model choices, and which claims remain unestablished.
 
 The Navier–Stokes analyses develop exact critical-norm transfer identities,
-heat-correction estimates, filtered stress dynamics and a quantitative
-strain-departure comparison. Their explicit initial-data controls delimit
-scalar-energy and local-geometric closure arguments. Arbitrary-data regularity and a Cassi current-to-momentum
-constitutive map remain open.
+heat-correction estimates, filtered stress dynamics, quantitative strain
+departure and spectral-spread bounds on critical transfer. Explicit initial-data
+controls delimit scalar-energy and local-geometric closure arguments.
+Data-controlled critical production, arbitrary-data regularity and a Cassi
+current-to-momentum constitutive map remain open.
 
 ## 1. Document index
 
@@ -27,7 +28,7 @@ constitutive map remain open.
 | 2 | `turbulence/navier-stokes-transfer-boundary.md` | Critical transfer, cubic heat correction, and coercivity | Derived identities and obstructions / conditional small-data estimates |
 | 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution and helical covariance conditions | Derived filtered identities / Hypothesized geometric closure |
 | 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response, matter binding and exterior-memory comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
-| 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure deadline and cumulative remainder defect | Derived conditional comparison / Open critical-work control |
+| 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, critical spectral spread and scalar-budget obstruction | Derived conditional estimates / Open data-controlled critical work |
 
 ## 2. Document summaries
 
@@ -67,15 +68,22 @@ A separate applicability note, outside the frozen matter comparison,
 retains the exterior initial state and the assumptions of the Hypothesized
 source action; it supplies no numerical bound on the nonlinear NS forcing.
 
-### 2.5 Quantitative strain departure
+### 2.5 Strain departure and critical spectral concentration
 
 `turbulence/navier-stokes-strain-departure.md` couples kinetic energy and
 strain enstrophy to obtain an earlier departure-or-breakdown deadline
 than Miller's stated energy comparison. Known global regularity gives an
 actual departure bound for axisymmetric, swirl-free data. An integrated
-defect identity and a necessary excess-dose bound quantify departure;
-critical-work control and general regularity remain open. The fixed
-algebra and quadrature schedule passes 71 checks; no flow is time-evolved.
+defect identity and a necessary excess-dose bound quantify departure.
+Optimal scalar centering bounds critical remainder work, and energy
+orthogonality bounds the complete nonlinear transfer by
+$c_{\rm S}\sqrt{\eta\mathcal C}\,Y$.
+The exact spectral-spread budget has an uncontrolled nonlinear production
+term. A smooth periodic datum develops spread immediately from zero;
+a positive-moment scalar construction has divergent critical norm despite
+positive departure. The separate departure and recurrence schedules pass
+71 and 134 checks respectively. No flow is time-evolved, and
+data-controlled critical production and arbitrary-data regularity remain open.
 
 ## References
 
@@ -90,4 +98,6 @@ algebra and quadrature schedule passes 71 checks; no flow is time-evolved.
 - `computations/verify_navier_stokes_depletion.py`—exact fine-transfer algebra and independent FFT/quadrature reconstruction
 - `computations/navier-stokes-strain-departure-prereg.md`—fixed analytical comparison and Gaussian controls
 - `computations/verify_navier_stokes_strain_departure.py`—departure algebra, Gaussian moments and independent deadline quadrature
+- `computations/navier-stokes-critical-recurrence-prereg.md`—fixed spectral-spread and scalar-budget schedule
+- `computations/verify_navier_stokes_critical_recurrence.py`—exact critical derivatives and independent FFT reconstruction
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths

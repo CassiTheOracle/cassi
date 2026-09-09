@@ -174,7 +174,25 @@ The original Navier–Stokes kinetic-energy and strain-enstrophy budgets give a 
 
 All **71 checks pass** with maximum normalized discrepancy $9.633333680505873\times10^{-15}$ against $10^{-10}$. The accepted receipt is `runs/navier_stokes_strain_departure/qualified/verification.json`; its manifest, source snapshots and executable inputs agree. The root-level `runs/navier_stokes_strain_departure/verification.json` is a retained **FAIL** diagnostic with two viscosity-normalization check failures and is excluded from qualification.
 
-Known global regularity removes the breakdown alternative for axisymmetric, swirl-free data. The nonempty class with an initial perturbative window comes from Miller's Proposition 6.2 and Remark 6.5. No Navier–Stokes trajectory or observed exit time is recorded. Critical-work control, bounds under symmetry-breaking perturbations and arbitrary-data regularity remain **UNRESOLVED**.
+Known global regularity removes the breakdown alternative for axisymmetric, swirl-free data. The nonempty class with an initial perturbative window comes from Miller's Proposition 6.2 and Remark 6.5. No Navier–Stokes trajectory or observed exit time is recorded. Data-controlled critical work, bounds under symmetry-breaking perturbations and arbitrary-data regularity remain **UNRESOLVED**.
+
+## 10. Critical remainder and recurrence
+
+Spectral spread bounds the critical work left by enstrophy cancellation. The analytical derivations in `turbulence/navier-stokes-strain-departure.md` §6 give $|W|^2\le(\mathcal V/E)\|\mathcal R\|_2^2$ and the complete-transfer estimate $|F|\le c_{\rm S}\sqrt{\eta\mathcal C}\,Y$, where $\mathcal V=KE-\mathcal C^2/4$ and $\eta=\mathcal V/(KE)$. The latter gives conditional continuation while its coefficient stays below viscosity. Dynamical control of that coefficient is open.
+
+The fixed schedule is `computations/navier-stokes-critical-recurrence-prereg.md`. Its **134 checks pass**, with **24 exact velocity rows**, **48 independent FFT rows**, and maximum normalized discrepancy $1.0766942892814768\times10^{-12}$ against $10^{-10}$.
+
+| Control | Decisive result | Frozen classification and scope |
+|---|---|---|
+| Zero spectral spread | For the cyclic periodic datum, $\mathcal V(0)=\mathcal V'(0)=0$ and $\mathcal V''(0)=9a^6(3-2\sqrt2)/16>0$. | **CONTRADICTS** universal preservation of zero spread on the torus; no exclusion of quantitatively controlled spread |
+| Departure and critical growth | No fixed velocity row has $\delta>0$. | **INCONCLUSIVE** for the universal implication $\delta>0\Rightarrow\mathcal C'\le0$ |
+| Scalar-budget closure | The fixed positive-moment construction has $\int_0^1E\,dt=4$, $\delta>0$, $f<0$ and $\mathcal C\to\infty$. | **CONTRADICTS** closure from only the listed scalar identities; no Navier–Stokes trajectory or singularity |
+
+One velocity control has $f=-107.52$, $\mathcal C'=15.2427056401649\ldots>0$ and declining $\mathcal V$. Its $\delta=-53287.808$ distinguishes a negative amplification functional from positive departure. This is an instantaneous full-equation calculation.
+
+The accepted receipt is `runs/navier_stokes_critical_recurrence/verification.json`, schema `cassi.navier-stokes.critical-recurrence.verification.v1`, with adjacent input manifest and frozen sources. All four source identities match current executable inputs and snapshots. The known Laplacian interpolation-deficit criterion diverges on the scalar construction. The Sobolev continuation estimate is an analytical proof separate from the finite checks. Data-controlled critical production, recurrence control and arbitrary-data regularity remain **UNRESOLVED**.
+
+The independent analytical reconciliation is retained in `runs/navier_stokes_critical_recurrence/reconciliation.json`. Its accepted continuum argument uses $L^4_tL^6_x$ and keeps the critical dissipation $2\nu Y$ distinct from the higher-order enstrophy dissipation.
 
 ## References
 
@@ -212,4 +230,6 @@ Known global regularity removes the breakdown alternative for axisymmetric, swir
 - `computations/navier-stokes-depletion-prereg.md`—fixed fine-scale transfer-response and viscous-absorption controls.
 - `turbulence/navier-stokes-depletion-dynamics.md`—exact split, measured response signs, cumulative proof requirement, and matter-binding comparison.
 - `computations/navier-stokes-strain-departure-prereg.md`—fixed projected-budget, Gaussian and deadline controls.
-- `turbulence/navier-stokes-strain-departure.md`—quantitative departure, integrated defect and critical-work limitation.
+- `turbulence/navier-stokes-strain-departure.md`—quantitative departure, spectral-spread estimates and unresolved dynamical control.
+- `computations/navier-stokes-critical-recurrence-prereg.md`—fixed critical-remainder and scalar-budget controls.
+- `computations/verify_navier_stokes_critical_recurrence.py`—exact derivatives and independent FFT evidence.
