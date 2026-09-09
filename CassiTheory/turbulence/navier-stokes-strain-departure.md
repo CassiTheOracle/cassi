@@ -6,7 +6,7 @@
 
 The original unforced Navier–Stokes equation imposes a finite energy budget on persistent strain self-amplification. Retaining a standard interpolation inequality gives an explicit departure-or-breakdown deadline that is strictly earlier than the energy deadline in Miller's perturbative comparison. Known global regularity converts this alternative into a departure statement for axisymmetric, swirl-free data. An integrated identity quantifies departure, and spectral centering bounds both the critical remainder work and the complete nonlinear transfer. The spectral spread has an exact production budget and can increase immediately from zero in a smooth periodic flow. A positive-moment scalar construction shows the insufficiency of the listed energy and departure budgets for critical-norm control. With an external force, exact source terms modify the budgets and the strain-departure identity. Critical duality controls a smooth source within the conditional spectral estimate. Parabolic rescaling makes that source vanish locally, while obtaining a nontrivial unforced limit requires additional compactness. Dynamical preservation of the sufficient spectral bound, recurrence control and arbitrary-data regularity remain open.
 
-An exact periodic mixing family supplies a cumulative obstruction. Its globally smooth solutions preserve odd Cartesian phase symmetry while accumulated excess critical transfer becomes arbitrarily large relative to the initial critical norm. The lower bound follows from a continuum comparison with controlled parabolic error. A separate Fourier cancellation gives a finite nonlinear initial-data bound within the same invariant family.
+An exact periodic mixing family supplies a cumulative obstruction. Its globally smooth solutions preserve odd Cartesian phase symmetry while accumulated excess critical transfer becomes arbitrarily large relative to the initial squared critical norm $\mathcal C(0)$. The lower bound follows from a continuum comparison with controlled parabolic error. A separate Fourier cancellation gives a finite nonlinear initial-data bound within the same invariant family.
 
 ## 1. Equation, data and source boundary
 
@@ -528,7 +528,15 @@ discrepancy $5.920390225714912\times10^{-14}$. It imports no verifier helpers
 and performs no additional trajectory integration. These comparisons remain
 separate from the 601-check preregistered receipt.
 
-To reproduce, use
+The reconciliation retains the audit's `python_source` and `source_sha256`
+under `independent_array_reconstruction`. From CassiTheory, execute its
+stored source without starting a flow:
+
+```
+python -c "import hashlib, json; from pathlib import Path; a=json.loads(Path('runs/navier_stokes_mixing_budget/reconciliation.json').read_text(encoding='utf-8'))['independent_array_reconstruction']; s=a['python_source']; assert hashlib.sha256(s.encode('utf-8')).hexdigest()==a['source_sha256']; exec(compile(s, '<retained-array-audit>', 'exec'))"
+```
+
+To reproduce the separate 601-check investigation, use
 `python computations/verify_navier_stokes_mixing_budget.py --output runs/navier_stokes_mixing_budget/reproduction/verification.json`
 from CassiTheory with a fresh output path. Existing receipts are immutable.
 The continuum lower bound, the class-specific finite upper bound and
@@ -741,7 +749,7 @@ For original Navier–Stokes dynamics, the remaining quantitative target is cumu
 
 ## 9. Cumulative mixing in an exact periodic family
 
-Smooth unforced solutions can accumulate critical transfer arbitrarily larger than their initial critical norm. This constrains the initial-data dependence of any proposed cumulative bound. The same family also has a finite upper bound for every datum.
+Smooth unforced solutions can accumulate critical transfer arbitrarily larger than their initial squared critical norm $\mathcal C(0)$. This constrains the initial-data dependence of any proposed cumulative bound. The same family also has a finite upper bound for every datum.
 
 ### 9.1 Fixed margin and the candidate
 
@@ -760,7 +768,27 @@ The candidate examined here is
 $$
 \mathcal W_{1/2}(T)\le K(\nu,T)\mathcal C(0),
 $$
-with finite $K$ independent of the initial datum. The construction below excludes this amplitude-linear form for every fixed $\nu,T>0$. A more general bound $M(u_0,\nu,T)$ remains the all-data research target.
+with finite $K$ independent of the initial datum. The construction below excludes this form, linear in $\mathcal C(0)$, for every fixed $\nu,T>0$.
+
+A concrete sufficient all-data target permits dependence on $\nu$, $T$
+and a prescribed bound $R$ on the single initial norm
+$$
+R_0=\|u_0-\langle u_0\rangle\|_{H^3(\mathbb T^3)}.
+$$
+Writing $T_*$ for the maximal smooth existence time, the required estimate is
+$$
+\sup_{0\le t<\min(T,T_*)}\mathcal W_{1/2}(t)
+\le M(\nu,T,R)<\infty
+\qquad\text{whenever }R_0\le R.
+$$
+The function must be finite for every $\nu>0$, finite $T>0$ and finite
+$R\ge0$, uniformly over all smooth solenoidal periodic data with $R_0\le R$.
+Smoothness on the compact torus makes $R_0$ finite for every admissible
+datum. For a Fourier-cutoff proof, the same bound must hold at every
+cutoff: orthogonal Fourier projection contracts $H^3$, so all projected
+initial data obey the same prescribed bound $R$. Evolving norm suprema
+and cutoff-dependent quantities are excluded from the right-hand side.
+This all-data estimate remains **UNRESOLVED**.
 
 ### 9.2 Full-equation admissibility
 
@@ -969,7 +997,7 @@ The family gives a finite-time, full-equation obstruction to amplitude-linear cl
 
 The finite upper bound uses the prescribed decaying shear and the bounded multiplier difference between its neighboring Fourier interactions. General three-dimensional perturbations introduce additional advecting components, pressure coupling and feedback into the shear. The corresponding coefficient then requires dynamical control. Ordinary kinetic-energy decay continues to hold for general mean-zero periodic Navier–Stokes; the missing step is control of the critical transfer pairing.
 
-An arbitrary-data nonlinear bound $M(u_0,\nu,T)$, or another estimate that supplies continuation, remains **UNRESOLVED**. Every solution in this construction is globally smooth, and the calculation makes no claim of a singular trajectory or of priority over the shear-mixing literature.
+The initial-$H^3$ bound $M(\nu,T,R)$ specified in §9.1, or another estimate that supplies continuation, remains **UNRESOLVED**. Every solution in this construction is globally smooth, and the calculation makes no claim of a singular trajectory or of priority over the shear-mixing literature.
 
 ## References
 

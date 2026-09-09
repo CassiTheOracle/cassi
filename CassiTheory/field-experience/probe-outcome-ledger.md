@@ -174,7 +174,7 @@ The original Navier–Stokes kinetic-energy and strain-enstrophy budgets give a 
 
 All **71 checks pass** with maximum normalized discrepancy $9.633333680505873\times10^{-15}$ against $10^{-10}$. The accepted receipt is `runs/navier_stokes_strain_departure/qualified/verification.json`; its manifest, source snapshots and executable inputs agree. The root-level `runs/navier_stokes_strain_departure/verification.json` is a retained **FAIL** diagnostic with two viscosity-normalization check failures and is excluded from qualification.
 
-Known global regularity removes the breakdown alternative for axisymmetric, swirl-free data. The nonempty class with an initial perturbative window comes from Miller's Proposition 6.2 and Remark 6.5. No Navier–Stokes trajectory or observed exit time is recorded. Data-controlled critical work, bounds under symmetry-breaking perturbations and arbitrary-data regularity remain **UNRESOLVED**.
+Known global regularity removes the breakdown alternative for axisymmetric, swirl-free data. The nonempty class with an initial perturbative window comes from Miller's Proposition 6.2 and Remark 6.5. No Navier–Stokes trajectory or observed exit time is recorded by these departure controls. Data-controlled critical work, bounds under symmetry-breaking perturbations and arbitrary-data regularity remain **UNRESOLVED**.
 
 ## 10. Critical remainder and recurrence
 
@@ -314,7 +314,7 @@ $$
 \ge\frac N{128}-\frac12.
 $$
 This excludes every finite amplitude-independent coefficient multiplying
-initial critical norm on a fixed positive time horizon. Each member also
+initial squared critical norm on a fixed positive time horizon. Each member also
 has the finite upper bound
 $\mathcal W_{1/2}(T)\le |A|b^2(1-e^{-3\nu T})/(12\nu)$.
 Odd Cartesian phase symmetry persists throughout the evolution.
@@ -340,7 +340,9 @@ schema `cassi.navier-stokes.mixing-budget.verification.v1`, with its
 adjacent manifest, source snapshots and `verification.trajectories.npz`.
 All four source identities and the raw archive hash match.
 The separate `runs/navier_stokes_mixing_budget/reconciliation.json`
-records the qualified analytical reviews and raw-array audit.
+records the qualified analytical reviews and raw-array audit, including
+its executable source and SHA-256. The reproduction command is in
+`turbulence/navier-stokes-strain-departure.md` §7.4.
 That audit checks 51 arrays, 17,017 sampled states and eight direct
 sine-quadrature endpoints without importing the verifier's helpers.
 Its 113 comparisons have maximum normalized discrepancy

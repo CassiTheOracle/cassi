@@ -111,7 +111,7 @@ still requires velocity and pressure bounds and suitable compactness.
 The unforced mixing analysis evolves an exact invariant family at eight
 amplitudes and two Fourier resolutions, with a separate zero-shear control.
 Its 601 checks pass. The continuum comparison proves that accumulated
-excess transfer divided by initial critical norm is unbounded as the
+excess transfer divided by initial squared critical norm is unbounded as the
 amplitude increases. Every member is globally smooth and preserves odd
 Cartesian phase symmetry. A neighboring-frequency cancellation supplies
 a finite nonlinear initial-data bound within that same family.
