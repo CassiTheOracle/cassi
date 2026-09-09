@@ -8451,8 +8451,326 @@ $n=64$ rows. Quantum state, physical normalization and particle
 identification remain open, and every scientific receipt retains
 `complete_physical_matter_formation=false`.
 
+## 49. Working notes: unwound droplets and population selection
+
+### 49.1 The unrestricted spatial infimum
+
+The longitudinal instability leaves a useful alternative: a finite carrier
+population may bind in a density-depleted droplet without retaining a
+vortex. The exact modulus reduction in
+`foundations/particle-stationary-action-closure.md` §8.7 already applies
+to the full spatial energy (PA12) with constant vacuum boundary data,
+unit scale measure, scale-independent fields and unrestricted trivial
+topology. It includes gauge and adjoint variations within that class.
+Forced winding, flux and nonconstant scale data define different classes.
+
+Use source-unit amplitudes $u=\sqrt{\rho}$ and $c=|\chi_C|$, with
+$u\to\sqrt{\rho_0}$ and $c\to0$ at infinity. Subtract the constant
+$\varepsilon_{C,\mathrm{out}}N$ at prescribed population $N=\int c^2$.
+The exact infimum is
+$$
+\boxed{
+I(N)=\inf_{\substack{u-\sqrt{\rho_0},c\in H^1(\mathbb R^3)\\
+u,c\geq0,\ \int c^2=N}}
+\mathcal E[u,c],\qquad
+\mathcal E=\int\left[\frac{K_x}{2}|\nabla u|^2
++\frac{K_{Cx}}2|\nabla c|^2+W(u^2,c^2)\right]d^3x ,
+}
+$$
+where $W$ is the polynomial in §46.1. Covariant diamagnetism supplies
+the lower bound. A constant normalized doublet with vacuum relative
+composition, $\Phi=v_Qe_3$, zero connections and real amplitudes
+attains it for each scalar pair. The adjoint and composition squares,
+their first variations and the gauge currents vanish in this lift.
+Positive temporal energies attain their minimum at zero charged-field
+velocities and zero electric fields. The neutral carrier can retain
+its stationary phase frequency.
+
+Assume $K_x,K_{Cx},\lambda_\rho,\lambda_C,\eta_C,\rho_0>0$.
+The discarded spatial terms have $K_{\mathfrak s},K_{C\mathfrak s},
+\mu_x,\mu_{\mathfrak s},\lambda_\varphi,v_Q>0$ and $\lambda_H\geq0$.
+The temporal coefficients in (PA11) are positive, as assumed in the
+source action's §3.4. The constant lift satisfies the specified
+boundary and scale conditions.
+Clipping $u$ above $\sqrt{\rho_0}$ decreases energy. These comparisons
+are variational constructions; no clipping is applied to a trajectory.
+For $w=1-u/\sqrt{\rho_0}\in[0,1]$, simultaneous symmetric decreasing
+rearrangement of $w$ and $c$ decreases the gradients, preserves the
+separate potential integrals and increases
+$\int(2w-w^2)c^2$. This gives the same infimum in the radial class.
+
+### 49.2 Binding has a finite population threshold
+
+The coexistence square in §46 gives a sharp extensive lower bound.
+If $\lambda_C\geq2\eta_C^2/\lambda_\rho$, completing the square gives
+$W\geq0$. Broad dilute carrier clouds with $u=\sqrt{\rho_0}$ have
+energy tending to zero, so $I(N)=0$ for every finite $N>0$.
+No nonzero finite-norm minimizer attains that value because its
+carrier gradient cannot vanish.
+
+For $0<\lambda_C<2\eta_C^2/\lambda_\rho$, define
+$$
+\alpha=\frac{\eta_C^2}{\lambda_\rho}-\frac{\lambda_C}{2}>0,\qquad
+m=-\mu_*>0 .
+$$
+The two exact pointwise bounds are $W\geq-\alpha c^4$ and
+$W\geq-mc^2$. With $Y=\|\nabla c\|_2$ and the three-dimensional
+Sobolev constant
+$$
+C_S=\frac1{\sqrt3}\left(\frac4{\pi^2}\right)^{1/3},
+\qquad
+\|c\|_4^4\leq C_S^3 N^{1/2}Y^3 ,
+$$
+negative energy would require both
+$Y>K_{Cx}/(2\alpha C_S^3\sqrt N)$ and
+$Y<\sqrt{2mN/K_{Cx}}$. Therefore
+$$
+\boxed{
+I(N)=0\quad\hbox{for}\quad
+0<N\leq N_{\rm low}
+:=\frac{K_{Cx}^{3/2}}{2\alpha C_S^3\sqrt{2m}} .
+}
+$$
+This is a sufficient absence-of-binding bound, not the exact critical
+population.
+
+Large populations do bind. Keep a wall thickness $h>0$ fixed and use
+the admissible spherical trial
+$$
+(u,c)=
+\begin{cases}
+(0,\sqrt{s_*}),&0\leq r\leq R,\\
+(\sqrt{\rho_0}\,t,\sqrt{s_*}(1-t)),&
+r=R+ht,\quad 0<t<1,\\
+(\sqrt{\rho_0},0),&r\geq R+h .
+\end{cases}
+$$
+Set
+$A=K_x\rho_0+K_{Cx}s_*$ and
+$D=\lambda_\rho\rho_0^2/2+\eta_C\rho_0s_*$. Direct integration gives
+$$
+\begin{aligned}
+N_R&=4\pi s_*\left(\frac{R^3}{3}+\frac{hR^2}{3}
++\frac{h^2R}{6}+\frac{h^3}{30}\right),\\
+\mathcal E_R-\mu_*N_R
+&=4\pi\left[
+\left(\frac{A}{2h}+\frac{Dh}{30}\right)R^2
++\left(\frac A2+\frac{Dh^2}{30}\right)R
++\frac{Ah}{6}+\frac{Dh^3}{105}\right].
+\end{aligned}
+$$
+The excess is positive and proportional to surface area at large $R$.
+Since $N_R$ increases continuously to infinity and $I(N)\geq\mu_*N$,
+these explicit trials establish
+$$
+\boxed{\lim_{N\to\infty}\frac{I(N)}{N}=\mu_*<0 .}
+$$
+No thin-wall approximation is used in these trial integrals. Their
+piecewise-linear fields are comparison states, not stationary profiles.
+
+### 49.3 Attainment and fission at fixed population
+
+A negative infimum cannot lose its binding by splitting into smaller
+populations. Write the gradient energy as $G$. For $s>1$, the
+amplitude-preserving dilation $(u,c)(x/s^{1/3})$ has population $sN$
+and energy
+$$
+\mathcal E_s=s\mathcal E-(s-s^{1/3})G .
+$$
+At a fixed bound population, a minimizing sequence has $G$ bounded
+away from zero. Otherwise its only negative term is bounded by
+$$
+2\eta_C\rho_0\int wc^2
+\leq2\eta_C\rho_0 C_S^{3/2}
+\|\nabla w\|_2\,N^{3/4}\|\nabla c\|_2^{1/2}\longrightarrow0 ,
+$$
+contradicting $I(N)<0$. Thus $I(sN)<sI(N)$ at every bound $N$.
+At an unbound population $I(N)=0$, while the same dilation gives
+nonincreasing energy per population. For every bound total $N$,
+$$
+\boxed{I(N)<I(q)+I(N-q)\qquad(0<q<N).}
+$$
+A bound smaller population has strictly larger energy per population;
+an unbound one has ratio zero.
+
+Attainment follows directly in the rearranged scalar class. Indeed,
+$$
+\mathcal E+\eta_C\rho_0N
+=G+\int\left[
+\frac{\lambda_\rho}{4}(u^2-\rho_0)^2
++\eta_Cu^2c^2+\frac{\lambda_C}{2}c^4\right]d^3x
+$$
+bounds both $H^1$ norms of $w,c$ along a minimizing sequence.
+Radial $H^1(\mathbb R^3)$ sequences are compact in $L^p$ for
+$2<p<6$. Expanding $W$ in $w,c$, the integrals of
+$w^3,wc^2$ converge by strong $L^3$ convergence, and those of
+$w^4,w^2c^2,c^4$ converge by strong $L^4$ convergence.
+The remaining positive quadratic gradient and $w^2$ terms are weakly
+lower semicontinuous. This argument does not assume strong convergence
+of $c$ in $L^2$ before excluding lost population.
+If the weak limit retains carrier population
+$0<M<N$, then $I(M)>I(N)$ by the dilation inequality, which
+contradicts its energy being at most $I(N)$. At $M=0$ its energy is
+nonnegative, giving the same contradiction. Hence all population is
+retained and the infimum is attained. Equality of the energy limits
+then gives strong convergence of the rearranged amplitudes in $H^1$.
+
+The constant-composition lift of this minimizer attains the full
+spatial infimum in §49.1, including admissible nonradial gauge and
+adjoint competitors. This proves energetic minimality at fixed
+population. It supplies neither compactness of arbitrary gauge-field
+minimizing sequences nor a global dynamical stability theorem.
+For a regular minimizer the stationary multiplier $\bar\mu$ obeys
+$$
+G+3\int(W-\bar\mu c^2)d^3x=0,\qquad
+I(N)=\bar\mu N+\frac23G,\qquad
+\mu_*<\bar\mu<0 .
+$$
+The lower strict inequality follows from the coexistence square
+and the virial identity; the upper one follows from $I(N)<0$.
+The multiplier is measured relative to the bulk carrier threshold.
+Restoring that threshold gives
+$\hbar\omega_C=\varepsilon_{C,\mathrm{out}}+\bar\mu$.
+It supplies no absolute physical mass or frequency calibration.
+
+### 49.4 Fixed qualification before execution
+
+The calculation checks the algebra and explicit continuum witnesses
+supporting §§49.1–49.3. The functional-analytic argument receives a
+separate independent review. No stationary solve, time evolution,
+profile fitting or inferred formation verdict is included.
+
+Retain the supplied source-unit vortex witness
+$\rho_0=1.2$, $K_x=0.83$, $K_{Cx}=\lambda_\rho=\eta_C=1$,
+$v_Q=0.9$, $g_Q=0.71$, $\mu_x^{-1}=1.25$ and
+$\lambda_\varphi=\lambda_H=1$. Use $\lambda_C=1$ for binding and
+the exact algebraic controls $\lambda_C=2,4$. The supplied
+dimensionless coefficients retain their existing conditional status.
+Use $h=1$ and precisely $R=0,1,4,16,64$.
+
+`computations/matter_formation_unwound_localization.py` computes
+the polynomial integrals with exact SymPy arithmetic.
+`computations/verify_matter_formation_unwound_localization.py`
+imports no primary code and instead constructs the normalized
+doublet, adjoint and connection components from (PA12). It integrates
+their spherical energies directly at Gauss orders $4$ and $8$ in
+both the core and wall. The wall potentials have degree at most
+six including the radial measure, so these quadratures are exact
+up to roundoff. Both programs also evaluate the comparison field
+dilated by volume factors $s=2,8$ for every prescribed $R$.
+
+Require exact symbolic cancellation of the coexistence square, the
+pointwise $W+\alpha s^2$ square, the wall grand-potential polynomial,
+the population and energy integrals, and the mass-dilation identity.
+The $\lambda_C=2,4$ controls must have nonnegative homogeneous
+minimum for every $s\geq0$, verified by the exact piecewise formula.
+For numerical component reconstruction, compare every energy
+component, population, total energy, excess energy and dilated value
+after division by $\max(1,|\mathrm{reference}|)$ with tolerance
+$10^{-10}$. Require the component gauge currents, composition
+square and unused adjoint/gauge energies to vanish to $10^{-12}$.
+The analytic Sobolev constant is checked independently by integrating
+the Aubin–Talenti profile $(1+r^2)^{-1/2}$ and its gradient over
+$\mathbb R^3$; both integrals must equal their exact values.
+
+All quantities and comparisons must be finite. Every prescribed row
+must be retained, including positive trial energies. Negative trial
+energy at $R=16,64$ is the fixed sufficient-binding criterion.
+If any identity, comparison or criterion fails, the scoped verdict
+is `INCONCLUSIVE`. If all pass and the independent mathematical
+review closes the stated inference, it is
+`SUPPORTS-conditional unwound binding and coalescence`.
+This verdict concerns continuum variational binding at supplied
+population. It does not classify the finite-period vortex's
+nonlinear fate or derive a physical particle population.
+
+Before execution, retain this section, both programs and the source
+action under `runs/20260908_matter_formation_unwound_localization/`
+with SHA-256 identities. Each program writes JSON and raw component
+arrays under a fresh output directory, and the independent program
+receives the primary receipt only for final comparison. Retain stdout,
+stderr and exit codes. Stop after the declared schedule.
+Every scientific receipt has `complete_physical_matter_formation=false`.
+
+### 49.5 Qualified binding and the remaining population question
+
+The supplied unwound action admits an attained finite-population
+energy minimum once a negative binding trial exists. Both programs
+pass the entire fixed schedule, and independent mathematical review
+qualifies the modulus reduction, population bound, radial attainment
+and strict anti-fission argument with the assumptions in §§49.1–49.3.
+The scoped verdict is
+`SUPPORTS-conditional unwound binding and coalescence`.
+Here coalescence means an energetic preference at fixed total
+population; no merger trajectory is calculated.
+
+The witness has
+$$
+s_*=0.848528137423857,\qquad
+\mu_*=-0.351471862576143,\qquad
+N_{\rm low}=15.2918967444785 .
+$$
+All energies below are measured relative to the exterior carrier
+threshold. The radii label prescribed comparison fields.
+
+| Trial radius $R$ | Population $N_R$ | Trial energy $\mathcal E_R$ | Energy per population $\mathcal E_R/N_R$ |
+|---:|---:|---:|---:|
+| 0 | 0.355430635053 | 3.946278160445 | 11.102808174822 |
+| 1 | 9.241196511369 | 25.458424974578 | 2.754884061091 |
+| 4 | 291.808551378242 | 147.861141930181 | 0.506705993474 |
+| 16 | 15497.131118931435 | -2092.341221324520 | -0.135014745972 |
+| 64 | 946412.6159980786 | -281392.0272344142 | -0.297324890304 |
+
+Binding is excluded for $0<N\leq N_{\rm low}$ by the analytic bound.
+The negative $R=16$ trial proves binding and attainment at its stated
+population, and the dilation argument extends that conclusion to
+every larger population. Positive trial energies at the three smaller
+radii do not exclude better profiles at those populations. The exact
+critical population and the minimizing profiles remain uncomputed.
+
+The primary calculation passes 12 exact algebraic and integral
+identities, both repulsion controls, both required negative-energy
+comparisons and the finiteness check. The independent reconstruction
+passes 888 checks, including 677 numerical comparisons whose largest
+normalized difference is $1.713\times10^{-14}$ against the fixed
+$10^{-10}$ tolerance. It directly integrates all 30 combinations
+of radius, volume dilation and quadrature order. A separate
+reconstruction from the retained field arrays passes 3,411 scalar
+comparisons with largest normalized difference
+$9.407\times10^{-15}$.
+
+The energy-per-population function decreases strictly above any bound
+population and approaches $\mu_*$ as population grows. Consequently
+this unwound ground-state mechanism supplies no finite population
+that minimizes energy per carrier. A prescribed population supports
+a droplet; selection of an elementary particle population requires
+additional physical information. Restoring
+$\varepsilon_{C,\mathrm{out}}N$ preserves every fixed-total-population
+comparison without providing an absolute mass calibration.
+
+The vortex calculation in §48 fixes winding on a periodic cylinder.
+The droplet problem uses constant vacuum data on $\mathbb R^3$.
+Their different boundary classes prevent identifying the droplet
+minimizer with a dynamically accessible endpoint of that vortex.
+Formation, nonlinear gauge stability, quantum state, particle
+spin/statistics and physical normalization remain separate requirements.
+The exact empty-carrier obstruction in §2 remains in force.
+
+The frozen section, three source identities, execution records,
+primary and independent receipts, raw arrays, independent mathematical
+review and joint `reconciliation.json` are retained under
+`runs/20260908_matter_formation_unwound_localization/`.
+The two programs in §49.4 reproduce the calculation with
+`--manifest runs/20260908_matter_formation_unwound_localization/manifest.json`
+and fresh `--output` directories; the verifier also takes the new
+primary directory through `--input`. Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
 ## References
 
+- `computations/matter_formation_unwound_localization.py`—exact full-action droplet trial integrals, population bounds and dilation identities.
+- `computations/verify_matter_formation_unwound_localization.py`—independent Pauli-component reconstruction, spherical quadrature and binding comparisons.
+- `runs/20260908_matter_formation_unwound_localization/`—frozen sources and criteria, raw field energies, independent mathematical review and joint binding qualification.
 - `computations/matter_formation_vortex_axial_energy.py`—source-energy finite-period trials with population conservation and all longitudinal field terms.
 - `computations/verify_matter_formation_vortex_axial_energy.py`—independent covariant energy reconstruction, finite-period comparisons and radial/domain qualification.
 - `computations/matter_formation_electric_support.py`—exact temporal-square and charge construction, Gaussian quadrature, covariant interval operators and boundary controls.
