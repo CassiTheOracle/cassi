@@ -9044,8 +9044,266 @@ and fresh `--output` directories; the verifier additionally takes
 the fields. Every scientific receipt retains
 `complete_physical_matter_formation=false`.
 
+## 52. Working notes: magnetic rotation and isolated charged sectors
+
+### 52.1 The magnetic bundle required for half-integer rotation
+
+A scalar carrying gauge charge can acquire half-integer angular momentum
+in a monopole background. This route uses an electric representation, a
+magnetic boundary sector and its lifted spatial rotations. The
+triplet-breaking example of Jackiw and Rebbi illustrates these
+requirements [DOI:10.1103/PhysRevLett.36.1116](https://doi.org/10.1103/PhysRevLett.36.1116).
+The registered Cassi vacuum contains an additional nonzero fundamental
+condensate, whose compatibility must be checked separately.
+
+Use the gauge transformation and covariant derivative in
+`foundations/particle-stationary-action-closure.md` (PA7), (PA8), with
+$T^a=\sigma^a/2$. Define the oriented magnetic integer by the flux in
+`foundations/nonabelian-magnetic-core-boundary.md` (MC16):
+$\Phi_{\rm mag}=4\pi\nu/g_Q$. On a sphere in a unitary monopole exterior,
+choose north and south potentials
+$$
+\mathcal A_N^3=\frac{\nu}{g_Q}(1-\cos\theta)\,d\phi,\qquad
+\mathcal A_S^3=-\frac{\nu}{g_Q}(1+\cos\theta)\,d\phi.
+$$
+Their transition is $U_{NS}=\exp(2i\nu\phi T^3)$. For electric weight $t$,
+the local field components therefore obey
+$$
+\psi_N=e^{ip\phi}\psi_S,\qquad
+\boxed{p=2\nu t\in\mathbb Z,\qquad s=\nu t=p/2.}
+$$
+Here the representation weight is dimensionless: $D\psi=(d-i g_Qt
+\mathcal A^3)\psi$. The integer $p$ is the component-transition winding
+and the normalized flux $(2\pi)^{-1}\int d(g_Qt\mathcal A^3)$.
+The oriented label $\nu$ is $N_G$ in (MC16), with its sign fixed by the
+displayed flux convention. The existing neutral carrier has $t=0$, the fundamental
+weights are $t=\pm1/2$, and adjoint weights are $t=0,\pm1$.
+
+The covariant-gradient spectrum gives a direct check of the rotation
+assignment. With $x=\cos\theta$, a northern component has azimuthal factor
+$e^{i(m+s)\phi}$ and its southern component has
+$e^{i(m-s)\phi}$. Both exponents are integers. The radial angular operator
+on $L^2((-1,1),dx)$ is
+$$
+\mathcal K_{s,m}
+=-\frac{d}{dx}\left[(1-x^2)\frac{d}{dx}\right]
+ +\frac{(m+sx)^2}{1-x^2}.
+$$
+Use the regular finite-energy domain at both poles. When $m+s=0$ or
+$m-s=0$, the logarithmic local solution is square integrable but has
+divergent gradient energy and is excluded. For a nonzero integer polar
+exponent, the singular branch is already outside $L^2$. This selects
+the Friedrichs realization of the operator.
+
+Regular sections have
+$$
+u_{k,m}(x)=(1-x)^{\alpha/2}(1+x)^{\beta/2}
+P_k^{(\alpha,\beta)}(x),\quad
+\alpha=|m+s|,\quad\beta=|m-s|,
+$$
+and
+$$
+\boxed{
+j=k+\frac{\alpha+\beta}{2},\qquad
+\mathcal K_{s,m}u_{k,m}
+=[j(j+1)-s^2]u_{k,m}.}
+$$
+The complete angular bands have $j=|s|,|s|+1,\ldots$ and
+$m=-j,\ldots,j$. Their lifted generator is
+$J_z=-i\partial_\phi-s$ in the northern chart.
+The dimensionless angular generator is
+$\mathbf J=-i\widehat{\mathbf r}\times D_{S^2}-s\widehat{\mathbf r}$.
+Its northern ladder components are
+$$
+J_\pm=e^{\pm i\phi}
+\left(\pm\partial_\theta+i\cot\theta\,\partial_\phi
+-s\frac{1-\cos\theta}{\sin\theta}\right).
+$$
+They satisfy $[J_z,J_\pm]=\pm J_\pm$,
+$[J_+,J_-]=2J_z$ and $\mathbf J^2=\mathcal K+s^2$.
+The resulting lifted $2\pi$ rotation has
+$$
+\mathcal U(2\pi)=e^{-2\pi i m}=(-1)^p.
+$$
+This is a bundle rotation preserving the monopole connection. Its gauge
+lift is essential; the integer northern azimuthal exponent alone gives
+an ordinary periodic coordinate function. No particle mass, radial
+bound state, exchange law or formation history follows from this angular
+spectrum. In particular, the gauge-neutral carrier has $p=0$ in every
+magnetic sector.
+
+### 52.2 Compatibility with the full vacuum
+
+The asymptotic fundamental condensate obstructs the isolated magnetic
+bundle required above. On the outer sphere define the eigenprojectors
+$P_\pm=(1\pm\widehat\Phi^a\sigma^a)/2$. The source vacuum conditions give
+$$
+\|P_\pm\Psi\|^2
+=\frac{\rho_0}{2}(1\pm\varphi^{-3})
+=
+\begin{cases}
+\rho_0/\varphi,&+,\\
+\rho_0/\varphi^2,&-.
+\end{cases}
+$$
+Both projected fields are everywhere nonzero. In unitary patches they
+are sections with transition factors $e^{\pm i\nu\phi}$. An everywhere
+nonzero section trivializes its line bundle: its phase on each
+hemisphere extends across a disc, so each equatorial winding is zero.
+Their transition winding must then vanish. Thus the full vacuum requires
+$$
+\boxed{\nu=0.}
+$$
+This is a direct section argument for the magnetic boundary already
+classified by the trivial full stabilizer in (MC37). It assumes the
+declared smooth vacuum limit on the entire outer sphere. Allowing a
+flux tube to puncture a local sphere, removing points, imposing external
+magnetic sources or changing the asymptotic vacuum changes that problem.
+
+In the adjoint-only comparison $\Psi_\infty=0$, there is no nonvanishing
+fundamental section and this obstruction is absent. That comparison
+does not satisfy the registered nonzero-density vacuum. Even an aligned
+nonzero fundamental would leave one nonvanishing charged section and
+would still require $\nu=0$. A finite monopole-antimonopole composite can
+have zero outer flux; assigning an autonomous monopole rotation to one
+endpoint then requires treatment of its string and the complete
+composite. The argument establishes no general prohibition on emergent
+fermions in other quantum sectors.
+
+### 52.3 Fixed algebraic and spectral qualification
+
+The calculation qualifies the displayed conditional angular spectrum
+and full-vacuum obstruction. It introduces no new action, vacuum,
+coupling fit or evolution run. Before execution, freeze this entire
+section, both programs below and both source papers cited by path in
+§52.1 in `runs/20260909_matter_formation_magnetic_spin/manifest.json`.
+
+The primary program derives the patch curvature and transition winding,
+vacuum projector identities, angular commutators, the covariant
+Casimir identity and weighted Jacobi operator residuals by exact symbolic
+algebra. Use magnetic integers $\nu=-2,-1,0,1,2$ and
+weights $t=-1,-1/2,0,1/2,1$. Their distinct bundle integers are
+$p=-4,-2,-1,0,1,2,4$. For each $s=p/2$, use
+$m=-|s|-2,\ldots,|s|+2$ in unit steps and $k=0,1,2,3$.
+Every eigenfunction residual and patch identity must vanish exactly.
+Verify the rotation character and complete multiplicities of the first
+three angular bands. The neutral and even-$p$ controls must have
+integer rotation, while odd $p$ must have half-integer rotation in the
+specified monopole lift.
+
+The independent program imports no primary calculation. It constructs
+the mass and covariant-gradient matrices in the basis
+$(1-x)^{\alpha/2}(1+x)^{\beta/2}P_\ell(x)$, $\ell=0,1,2,3$,
+using direct component derivatives and Gauss-Legendre orders 16 and 24.
+Retain every mass matrix, gradient matrix, eigenvector and eigenvalue.
+Both matrices must be finite and symmetric. The mass matrices must be
+positive definite and gradient eigenvalues nonnegative to $10^{-10}$.
+Each generalized eigenvalue must match §52.1, and both quadrature
+orders must agree, to $10^{-10}\max(1,|\lambda|)$.
+Generalized eigenvector residuals use the larger of one and the sum of
+the two term norms; residuals and mass-orthonormality errors must be
+below $10^{-10}$. All raw array quantities must agree with their
+serialized comparison rows to the same tolerance.
+
+A separate mathematical review must check the monopole rotation lift,
+the nonvanishing-section obstruction, the adjoint-only comparison and
+the distinction between angular kinematics and physical particle
+statistics. All exact identities, spectral comparisons and review
+requirements passing gives
+`SUPPORTS-conditional magnetic rotation and isolation boundary`.
+Any failed comparison, missing evidence or source mismatch gives
+`INCONCLUSIVE`. Stop after this fixed schedule; no new parameters,
+replacement sectors or formation trajectories are authorized.
+Receipt controls additionally require a mismatched source hash and
+a primary receipt containing a false named check to be rejected before
+any independent matrix calculation. Each control uses a separate input
+and output; the accepted source and scientific receipt remain unchanged.
+
+The programs are `computations/matter_formation_magnetic_spin.py` and
+`computations/verify_matter_formation_magnetic_spin.py`. Preserve raw
+outputs, execution records and source snapshots. Every scientific
+receipt retains `complete_physical_matter_formation=false`.
+
+## 53. Working notes: qualified magnetic rotation boundary
+
+### 53.1 Angular character and the registered vacuum
+
+The exact calculation and independent component-basis calculation satisfy
+every fixed criterion in §52.3. Their joint verdict is
+`SUPPORTS-conditional magnetic rotation and isolation boundary`.
+For a scalar of representation weight $t$ in the specified magnetic
+background, the lifted rotation has character
+$$
+\boxed{U(2\pi)=(-1)^p,\qquad p=2\nu t.}
+$$
+The odd-$p$ angular sectors therefore carry a half-integer rotation
+character. This statement uses the monopole-preserving bundle lift;
+the periodic northern coordinate function alone does not supply it.
+The computation supplies neither a radial bound state nor an exchange
+law, quantum state or formation trajectory.
+
+The registered fundamental condensate obstructs the required nonzero
+magnetic integer on a smooth, unpunctured outer sphere. Its projected
+norms are $\rho_0/\varphi$ and $\rho_0/\varphi^2$, both positive.
+Each projection gives a nowhere-zero section of its magnetic line
+bundle, so each such bundle is trivial and $\nu=0$ under these
+conditions. The corresponding monopole contribution to the rotation
+character is $+1$. This closes the isolated magnetic mechanism within
+the stated vacuum and boundary class. Flux-tube endpoints, punctured
+boundaries and a vanishing fundamental condensate require separate
+boundary problems. The dynamical fundamental field remains part of
+the full action even when its asymptotic condensate is zero.
+
+### 53.2 Reproduced finite qualification
+
+The calculation checks the complete prescribed angular schedule.
+The primary program passes 24 named checks for 196 exact modes,
+21 complete low angular bands and 25 magnetic/representation-weight
+combinations. The independent program passes 165 named checks,
+including 98 generalized four-dimensional spectra at quadrature
+orders 16 and 24, their 49 quadrature comparisons and all four
+vacuum-projection controls. These are deterministic identities and
+finite spectral checks; they supply no statistical particle sample.
+
+| Quantity | Maximum normalized discrepancy | Required bound |
+|---|---:|---:|
+| Independent eigenvalues versus exact eigenvalues | $4.9178\times10^{-14}$ | $10^{-10}$ |
+| Generalized eigenvector residual | $1.0378\times10^{-14}$ | $10^{-10}$ |
+| Mass-inner-product orthonormality | $3.2419\times10^{-14}$ | $10^{-10}$ |
+| Quadrature-order comparison | $6.4884\times10^{-14}$ | $10^{-10}$ |
+| Raw matrix reconstruction from component formulas | $1.7764\times10^{-15}$ | $10^{-10}$ |
+
+Reconstruction directly from the retained arrays verifies all 98 mass
+and covariant-gradient matrices, their eigenpairs and the exact-mode
+norms. The isolated false-check receipt and source-hash mismatch both
+give `INCONCLUSIVE` before any independent matrix calculation; neither
+control writes an array archive. The accepted scientific inputs remain
+unchanged.
+
+### 53.3 Evidence and physical completion
+
+The complete local record is
+`runs/20260909_matter_formation_magnetic_spin/`: the manifest, frozen
+section, source snapshots, mathematical review, execution records,
+primary and independent receipts, `arrays.npz` in the `verification/`
+directory, raw reconstruction and rejection controls. The programs
+in §52.3 reproduce the fixed calculation with the retained manifest
+and fresh output directories; the verifier additionally takes
+`--input` pointing to the primary output. The local `raw_reconcile.py`
+reconstructs the retained matrices without importing either numerical
+implementation.
+
+Complete physical matter formation remains open. The calculation
+does not select a microscopic action or quantum sector, assign
+observed particles, or establish localized production and general
+nonradial persistence. Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
 ## References
 
+- `computations/matter_formation_magnetic_spin.py`—exact patch, rotation-generator, angular-mode and vacuum-projector identities.
+- `computations/verify_matter_formation_magnetic_spin.py`—independent component matrices, generalized angular spectra and source-bound receipt qualification.
+- `runs/20260909_matter_formation_magnetic_spin/`—frozen section and sources, accepted mathematical review, raw matrices, independent reconstruction and receipt-rejection controls.
 - `computations/matter_formation_neutral_packets.py`—source-bound axisymmetric packet evolution, conservation and compact-state comparisons.
 - `computations/verify_matter_formation_neutral_packets.py`—independent finite-volume Runge–Kutta evolution and frozen numerical qualification.
 - `runs/20260908_matter_formation_neutral_packets/`—source and criterion snapshots, complete trajectories, storage-recovery provenance and raw-field reconstruction.
