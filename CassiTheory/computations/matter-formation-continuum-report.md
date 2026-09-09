@@ -10452,7 +10452,292 @@ The microscopic ambiguity established in §29 remains. Every
 scientific receipt retains
 `complete_physical_matter_formation=false`.
 
+## 62. Working notes: unrestricted quantum Hamiltonian stability
+
+### 62.1 Energy across conserved resource sectors
+
+A finite invariant sector can evolve consistently even when the
+Hamiltonian has no lower energy bound across its full occupation
+space. This calculation assesses that distinction for the supplied
+three-site Hamiltonian in §60.1, with all its coefficients unchanged.
+Use the unbounded neutral oscillator and integer electric rotors.
+The physical Hilbert space is the direct sum of its exact
+$R=0,2,4,\ldots$, $Q=0$ sectors. No additional interaction,
+occupation cutoff or physical normalization is introduced.
+
+Write $n_j=n_{+,j}+n_{-,j}$, $N_C=\sum_jn_j$,
+$A=a_{-,1}a_{+,1}$ and $P=A^\dagger A=n_{+,1}n_{-,1}$.
+Define
+$$
+\mathcal B=b+\lambda A,\qquad
+\mathcal T_{+,\ell}=a_{+,\ell+1}-U_\ell a_{+,\ell},\qquad
+\mathcal T_{-,\ell}=a_{-,\ell+1}-U_\ell^\dagger a_{-,\ell}.
+$$
+Integer rotor translations are unitary on the full link space.
+Consequently their hopping quadratic forms satisfy
+$$
+H_{\rm hop}
+=J\sum_{\sigma,\ell}\mathcal T_{\sigma,\ell}^\dagger
+\mathcal T_{\sigma,\ell}
+-J(n_0+2n_1+n_2).
+$$
+Expanding $\mathcal B^\dagger\mathcal B$ and using the fixed
+$\lambda=1/4$, $J=1/8$ gives the exact identity
+$$
+\boxed{\begin{aligned}
+H={}&\frac{R}{2}+\frac{\kappa}{2}(E_0^2+E_1^2)
++\mathcal B^\dagger\mathcal B
++J\sum_{\sigma,\ell}\mathcal T_{\sigma,\ell}^\dagger
+\mathcal T_{\sigma,\ell}\\
+&+\frac38(n_0+n_2)+\frac7{32}n_1
++\frac1{32}(n_1-2P).
+\end{aligned}}
+$$
+The identity holds on finite-support occupation vectors. Positivity
+of its last term depends on the charged-mode statistics.
+
+### 62.2 Fermionic lower bound
+
+Pauli occupation limits make every term after $R/2$ nonnegative.
+For fermionic charged modes, $n_{\sigma,1}=0,1$ and
+$n_1-2P$ has eigenvalues $0,1$. Hence
+$$
+\boxed{H_F\ge\frac{R}{2}
++\frac{\kappa}{2}(E_0^2+E_1^2)\ge0.}
+$$
+The zero-resource physical sector contains only the empty matter
+and pump state with zero flux. All other physical sectors have
+$R\ge2$. The direct-sum Hamiltonian therefore has this unique
+zero-energy vacuum and a spectral gap of at least one in the
+supplied model units. This is a lower bound; no equality with the
+actual first excitation energy is asserted.
+
+For a direct quadratic-form check, retain the images of $\mathcal B$
+and each $\mathcal T_{\sigma,\ell}$ before forming their Gram
+matrices. The first image belongs to $R-2,Q=0$. For charge
+$\sigma=\pm1$, the second has $R-1,Q=-\sigma$ and
+$G_j=\sigma\delta_{j,\ell+1}$. Both terms in the same
+$\mathcal T_{\sigma,\ell}$ have this identical constraint label.
+Projecting these charged images onto $G=0$ would discard the norm
+that supplies the hopping bound.
+
+### 62.3 Bosonic variational obstruction
+
+Neutral on-site pairs can grow without paying electric-flux energy.
+For each integer $N\ge1$, let $|A_N\rangle$ have
+$n_b=n_{+,1}=n_{-,1}=N$, and let $|B_N\rangle$ have
+$n_b=N-1$, $n_{+,1}=n_{-,1}=N+1$. All other occupations and both
+fluxes vanish. Each state is physical and has $R=4N$.
+The matrix of $H_B$ between these two states is
+$$
+\begin{pmatrix}
+4N&\lambda\sqrt N(N+1)\\
+\lambda\sqrt N(N+1)&4N
+\end{pmatrix}.
+$$
+This two-state span need not be invariant. The normalized trial
+$|\psi_N\rangle=(|A_N\rangle-|B_N\rangle)/\sqrt2$ nevertheless has
+the exact Rayleigh quotient
+$$
+\boxed{\langle\psi_N|H_B|\psi_N\rangle
+=4N-\frac14\sqrt N(N+1)\longrightarrow-\infty.}
+$$
+Both its Gauss variance and electric energy are zero. Hopping has
+zero expectation on the trial. The same trial with $\lambda=0$
+has energy $4N$. For $N=m^2$, the coupled energy is the polynomial
+$4m^2-(m^3+m)/4$, whose negative leading coefficient establishes
+the obstruction without extrapolating a finite numerical scan.
+
+The unrestricted bosonic Hamiltonian thus has no ground-state
+energy. Its separate finite-resource evolutions remain unitary and
+cannot change $R$ under this Hamiltonian. The variational family
+does not imply decay of the retained $R=4$ trajectory into another
+resource sector.
+
+### 62.4 Fixed qualification before execution
+
+Evaluate fermionic sectors $R=0,2,4,6,8,16,32,64$. Their physical
+dimensions are $1,10,19,20,20,20,20,20$. Store each occupation/flux
+basis in ascending lexicographic order, each Hamiltonian, its
+complete spectrum, the separate $\mathcal B$ and summed
+$\mathcal T$ Gram matrices, the last three diagonal terms in the
+boxed identity, and the complete spectrum of
+$H-RI/2-\kappa\,\mathrm{diag}(E_0^2+E_1^2)/2$.
+The independent construction also saves the rectangular operator
+images and their explicit fluxes and constraint labels.
+
+For bosons use only $m=1,16,32,64$, $N=m^2$, for the coupled
+Hamiltonian and its $\lambda=0$ control. Retain the two source
+states, their complete untruncated Hamiltonian-column images, the
+two-state matrix and trial expectation. No finite occupation cap
+is permitted. These eight rows check the exact polynomial and
+zero-source contrast; they do not replace the asymptotic proof.
+
+The primary calculation is
+`computations/matter_formation_quantum_stability.py`.
+It derives the coefficient identities and uses six-mode
+Jordan–Wigner matrices for the fermionic operator construction.
+Independent ordered occupation/flux transitions are in
+`computations/verify_matter_formation_fermion_lower_bound.py` and
+`computations/verify_matter_formation_boson_lower_bound.py`.
+No program reads another program's numerical source or results.
+Reading source bytes solely to validate their hashes is permitted.
+Main independently reconstructs retained arrays before recording
+the combined result.
+
+Require the exact resource, charge and Gauss labels, the displayed
+coefficient and Pauli identities, zero omitted nonzero transitions,
+and agreement of both matrix constructions and their spectra.
+Every equality uses $\|a-b\|/\max(1,\|b\|)\le10^{-9}$.
+For a nonnegative matrix require its smallest eigenvalue to be at
+least $-10^{-9}\max(1,\|H\|)$. Preserve signed eigenvalues without
+clipping. Bosonic trial energies must match the displayed
+polynomial and its zero-vertex control, with no approximation to
+the integer occupations. A two-boson occupation at both central
+modes has $n_1-2P=-4$ and must fail the fermionic positivity
+premise.
+
+Before execution, bind this section, its parent Hamiltonian in §60,
+all three programs, `foundations/particle-stationary-action-closure.md`,
+and accepted
+independent hand reviews of both branches with SHA-256 under
+`runs/20260909_matter_formation_quantum_stability/`.
+Each program must reject a source mismatch or an unaccepted review
+before scientific rows or an array archive are produced.
+All criteria passing gives
+`SUPPORTS-conditional whole-Fock stability distinction`; otherwise
+`INCONCLUSIVE`. Stop at this schedule without additional
+occupation samples, parameter changes or dynamics.
+
+The bounds classify this supplied three-site Hamiltonian. They
+neither derive fermionic quantization from Cassi nor exclude
+bosonic Hamiltonians with additional interactions. No such
+interaction is introduced here. Physical microscopic selection,
+continuum matching, particle identity and localized formation
+remain unresolved. Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
+## 63. Working notes: qualified quantum Hamiltonian stability
+
+### 63.1 A stable vacuum in the supplied fermionic model
+
+The fermionic version of the three-site Hamiltonian has a unique
+zero-energy physical vacuum and a positive lower bound on every
+excited physical sector. The exact operator identity in §62.1 and
+the Pauli occupation inequality give
+$$
+\boxed{H_F\ge\frac{R}{2}+\frac14(E_0^2+E_1^2)\ge0.}
+$$
+This bound applies across the unbounded neutral-oscillator
+occupation space of the specified model.
+
+The physical operator has a definite self-adjoint realization.
+Each fixed-resource physical sector is finite-dimensional, and its
+Hamiltonian $H_R$ is Hermitian. Their direct sum acts on
+$$
+D(H)=\left\{\psi\in\mathcal H_{\rm phys}:
+\sum_R\|H_R\psi_R\|^2<\infty\right\}.
+$$
+Finite-sector truncations converge in its graph norm. Consequently
+finite-support physical occupation vectors form a core, with this
+unique self-adjoint closure. The lower bound extends to that
+closure. The $R=0$ sector contains one state with zero energy; all
+other physical sectors have even $R\ge2$, so the spectral gap is
+at least one in the supplied model units.
+
+The independent full spectra reproduce the fixed-sector
+construction. The table shows their smallest Hamiltonian
+eigenvalues, rounded to twelve decimal places.
+
+| Resource $R$ | Physical dimension | Smallest energy | Lower bound $R/2$ |
+|---:|---:|---:|---:|
+| 0 | 1 | 0 | 0 |
+| 2 | 10 | 1.670496621317 | 1 |
+| 4 | 19 | 3.579785516145 | 2 |
+| 6 | 20 | 5.507513976990 | 3 |
+| 8 | 20 | 7.445440780954 | 4 |
+| 16 | 20 | 15.249379934136 | 8 |
+| 32 | 20 | 30.966159364895 | 16 |
+| 64 | 20 | 62.560051041556 | 32 |
+
+Every retained bound-remainder spectrum satisfies the fixed
+nonnegativity criterion. The independent construction retains the
+charged intermediate images of all four hopping-gradient
+operators, including their nonzero Gauss labels. Their squared
+norms supply the positive hopping contribution in the lower-bound
+identity.
+
+### 63.2 No global lower bound in the supplied bosonic model
+
+Unrestricted bosonic occupation permits a sequence of physical
+neutral-pair states whose energy tends to minus infinity. The
+complete Hamiltonian columns reproduce the exact trial expectation
+$$
+\boxed{\langle\psi_N|H_B|\psi_N\rangle
+=4N-\frac14\sqrt N(N+1).}
+$$
+At $N=m^2$ the expression is $4m^2-(m^3+m)/4$.
+Its negative cubic coefficient establishes the unrestricted
+variational obstruction.
+
+| $m$ | Central occupation $N$ in the first trial source | Coupled trial energy | Zero-vertex trial energy |
+|---:|---:|---:|---:|
+| 1 | 1 | 3.5 | 4 |
+| 16 | 256 | -4 | 1024 |
+| 32 | 1024 | -4104 | 4096 |
+| 64 | 4096 | -49168 | 16384 |
+
+These are the exact analytic values reproduced within the frozen
+normalized tolerance by both column constructions. Each trial
+has zero electric energy and zero Gauss variance, and hopping has
+zero expectation. Its two-state span has additional nonzero
+Hamiltonian images, all of which are retained. The displayed
+energies are Rayleigh quotients.
+
+The Hamiltonian conserves $R$. Each separate fixed-resource
+physical sector remains finite-dimensional and evolves unitarily.
+The cross-sector variational sequence therefore supplies no
+transition from the retained $R=4$ trajectory to a larger-resource
+sector.
+
+### 63.3 Independent evidence and physical scope
+
+The primary calculation passes 106 checks, the independent
+fermionic construction passes 259, and the independent bosonic
+construction passes 140. Their prescribed row counts are 16, 8 and
+8. A separate occupation-transition reconstruction passes all 648
+raw-array and derived-quantity comparisons, with maximum normalized
+discrepancy $5.240252676230739\times10^{-14}$ against the fixed
+$10^{-9}$ bound. Both full Hamiltonian constructions, complete
+spectra, Gram matrices, intermediate images, constraint labels
+and bosonic Hamiltonian-column images agree.
+
+All nine prerequisite-rejection controls stop with `INCONCLUSIVE`,
+zero scientific rows and no array archive. Each of the three
+programs rejects a source-hash mismatch and rejects either
+unaccepted mathematical review. The combined qualified verdict is
+`SUPPORTS-conditional whole-Fock stability distinction`.
+Frozen inputs, accepted independent hand reviews, execution
+records, all arrays and their reconciliation are retained under
+`runs/20260909_matter_formation_quantum_stability/`.
+
+The result imposes an energy-stability constraint on the supplied
+comparison Hamiltonian. The compact rotor representation,
+charged-mode statistics, conversion interaction, graph and
+coefficients are comparison inputs. Bosonic Hamiltonians with
+additional interactions lie outside this calculation. Physical
+microscopic selection, a quantum state and renormalization
+prescription, physical units, particle identity and localized
+formation with nonradial persistence remain unresolved.
+Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
 ## References
+
+- `computations/matter_formation_quantum_stability.py`—exact stability identities, Jordan–Wigner sector matrices and complete bosonic trial columns.
+- `computations/verify_matter_formation_fermion_lower_bound.py`—independent fermionic occupation/flux transitions, unprojected intermediate images and complete spectra.
+- `computations/verify_matter_formation_boson_lower_bound.py`—independent unrestricted bosonic trial-state images and variational energies.
+- `runs/20260909_matter_formation_quantum_stability/`—frozen source and section identities, accepted hand reviews, full arrays and independent reconciliation.
 
 - `computations/matter_formation_local_gauss.py`—exact physical-sector operators, local Gauss identities and dense quantum evolution.
 - `computations/verify_matter_formation_local_gauss.py`—independent full electric-link tensor construction, cutoff audit and unprojected sparse exponential action.
