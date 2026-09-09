@@ -8055,6 +8055,189 @@ receipts, stdout, stderr and the joint `reconciliation.json` are
 retained under `runs/20260908_matter_formation_vortex_loaded/`.
 The pre-execution section and all source hashes remain unchanged.
 
+## 47. Working notes: longitudinal population response
+
+### 47.1 A local support condition also needs population stability
+
+A line can satisfy the current and escape conditions while lowering its
+energy by concentrating its population into denser segments. The relevant
+local derivative is the change in chemical potential when the whole
+transverse core relaxes:
+$$
+\zeta=\left.\frac{\partial\bar\mu}{\partial n}\right|_R
+=\left.\frac{\partial^2 e_0}{\partial n^2}\right|_R.
+$$
+The fixed-cutoff logarithmic exterior is independent of $n$ and drops
+out of this derivative.
+
+Let $z$ contain the six free nodal amplitudes at each radial node:
+the five regularized core coefficients and the real carrier. Multiply
+all six by the square root of the node's lumped radial mass to condition
+the coordinates. Keep the consistent quadrature population $P(z)$.
+At a differentiable stationary branch,
+$$
+\nabla E=\bar\mu\nabla P,\qquad P=n.
+$$
+Define $H=\nabla^2(E-\bar\mu P)$, with $\bar\mu$ held fixed when
+differentiating, and $b=\nabla P$. Differentiating the stationary
+equations with respect to $n$ gives the bordered response problem:
+$$
+\boxed{
+\begin{pmatrix}H&-b\\b^T&0\end{pmatrix}
+\begin{pmatrix}u\\\zeta\end{pmatrix}
+=\begin{pmatrix}0\\1\end{pmatrix},
+\qquad u=\partial_n z.
+}
+$$
+It follows that $u^THu=\zeta$. The population constraint must remain
+inside the Hessian; using $\nabla^2E$ alone computes a different response.
+
+The radial connection must relax in this second variation. Its local
+energy has the form
+$\mathcal E=\mathcal E_{h=0}+B_hh+A_hh^2/2$, with $A_h>0$.
+The exact reduced density is
+$$
+\mathcal E_{\rm red}=\mathcal E_{h=0}-\frac{B_h^2}{2A_h}.
+$$
+Differentiate this expression twice, including the field dependence
+of $A_h$ and $B_h$. Evaluating the source energy at $h=0$ and
+applying this reduction preserves the existing stationary energy and
+its first variation, while retaining the radial-connection response
+in the Hessian.
+
+For a smooth, zero-mean modulation $n(z_{\rm ax})=n_0+
+A\cos(pz_{\rm ax})$, the leading energy change per length is
+$$
+\frac{\Delta E}{L}
+=\frac{A^2}{4}\zeta+O(A^2p^2)+o(A^2).
+$$
+The derivative terms in the action supply finite longitudinal costs at
+fixed transverse cutoff. A negative $\zeta$ therefore gives an
+energy-lowering, population-preserving long-wavelength direction.
+Holding the carrier phase gradient $k$ fixed adds $K_{Cx}k^2n/2$,
+which is linear in $n$ and leaves this density curvature unchanged.
+The modulation also preserves total phase winding.
+
+This is an energetic statement about sufficiently long periodic
+straight cores. A finite loop has discrete longitudinal wavelengths,
+curvature and a three-dimensional exterior. No finite-loop exclusion,
+growth rate or nonlinear fragmentation outcome follows from the sign
+of $\zeta$ alone. Positive $\zeta$ qualifies only this population
+response, leaving the other perturbation sectors open.
+
+### 47.2 Fixed response calculation before execution
+
+Use every one of the 24 qualified §46 profiles, retaining both cap
+representatives, $n=1,16,64$, and all four $(R,N)$ pairs. Keep all
+source coefficients and boundary conditions unchanged. There is no
+new nonlinear minimization, population continuation or additional
+profile in this calculation.
+
+The primary program differentiates the existing joint energy twice.
+Assemble the nearest-neighbor $6$-component nodal Hessian using
+18 disjoint-color Hessian-vector products, then solve the sparse
+bordered system. Retain the unsymmetrized matrix, population gradient,
+energy gradient, response vector and every scalar residual.
+Require $\max|H-H^T|/\max(1,\max|H|)<10^{-10}$,
+$\|Hu-b\zeta\|_2/\max(1,\|b\zeta\|_2)<10^{-8}$,
+$|b^Tu-1|<10^{-10}$, and
+$|u^THu-\zeta|/\max(1,|\zeta|)<10^{-8}$.
+
+The independent program reconstructs the nodal energy and population
+gradients from the Pauli-component source expressions used in §46.
+It imports no primary energy, response or differentiation code.
+Assemble its own Hessian by centered differences of these gradients
+at unscaled nodal coefficient increments $2^{-12},2^{-13},2^{-14}$,
+using the same disjoint node colors, then transform into the declared
+mass-scaled coordinates. No amplitude renormalization or bounds are
+applied inside these derivatives.
+
+For each increment, compare every structurally nonzero Hessian entry
+to the primary matrix, after division by $\max(1,|H_{ij}|)$.
+Require the largest error below $10^{-6}$. Independently solve each
+bordered system and require its $\zeta$ to match the primary value
+to $10^{-6}$ after division by $\max(1,|\zeta|)$. Match the base
+energy and population gradients to $10^{-8}$ with the same
+componentwise normalization. Retain every matrix, response and
+finite-difference comparison, including failures.
+
+The primary $\zeta$ must agree across each of the 12 radial refinements
+and six finest-grid domain comparisons to relative error $0.02$, with
+denominator $\max(10^{-8},|\zeta_{\rm fine/reference}|)$.
+Both programs also solve the exact two-coordinate control
+$E(x,f)=x^2/2+xf^2+\lambda f^4/2$, $P=f^2=3$:
+at $x=-3$, $f=\sqrt3$, the required response is
+$\zeta=\lambda-1$ for $\lambda=1/2,1,2$. Compare to $10^{-10}$
+after division by $\max(1,|\zeta|)$.
+
+Missing or nonfinite evidence, a failed comparison or an incomplete
+schedule gives `INCONCLUSIVE`. If every numerical requirement passes
+and either cap at $n=64$ has $\zeta<-10^{-6}$ on both finest cutoff
+grids, the verdict is
+`CONTRADICTS-uniform loaded-line energetic stability`. If every
+requirement passes and both caps have $\zeta>10^{-6}$ on those grids,
+the verdict is `SUPPORTS-positive loaded-line compressibility`.
+Remaining cases give `INCONCLUSIVE`. No altered threshold, additional
+grid or replacement response solve belongs to this calculation.
+
+Before execution, retain this section, the six primary/independent
+core, loading and response programs, the 24 input hashes and the
+accepted §46 summary and verification hashes under
+`runs/20260908_matter_formation_vortex_compressibility/`.
+The programs are
+`computations/matter_formation_vortex_compressibility.py` and
+`computations/verify_matter_formation_vortex_compressibility.py`.
+Run the primary with `--manifest` and a fresh `--output`; run the
+independent program with that manifest, the primary directory as
+`--input`, and a separate fresh `--output`. Preserve raw matrices,
+JSON, stdout, stderr and exit codes.
+Every receipt retains `complete_physical_matter_formation=false`.
+
+### 47.3 Measured population response
+
+The retained cores have negative population curvature on every grid.
+The primary calculation satisfies all four bordered-response residual
+requirements on all 24 profiles. Its largest symmetry, bordered-equation,
+population-constraint and curvature-identity residuals are
+$6.63\times10^{-16}$, $2.34\times10^{-13}$,
+$2.67\times10^{-15}$ and $1.40\times10^{-14}$, respectively.
+The finest-grid values at the population that meets the local support
+and escape conditions are:
+
+| Core representative | Population $n$ | Cutoff $R$ | Radial elements $N$ | $\zeta=\partial_n\bar\mu$ |
+|---|---:|---:|---:|---:|
+| $\varsigma=+1$ | 64 | 32 | 512 | $-0.000483709338183390$ |
+| $\varsigma=+1$ | 64 | 64 | 1024 | $-0.000483709260254568$ |
+| $\varsigma=-1$ | 64 | 32 | 512 | $-0.000554760116012224$ |
+| $\varsigma=-1$ | 64 | 64 | 1024 | $-0.000554760254473298$ |
+
+The independent reconstruction agrees with the base energy and population
+gradients to a maximum normalized error of $2.51\times10^{-13}$.
+All 72 independent responses agree with the primary $\zeta$ values,
+with maximum normalized difference $4.50\times10^{-8}$. All 12 radial
+refinements, six domain comparisons and both programs' three exact
+controls pass. The maximum relative radial and domain differences are
+$0.00220014$ and $3.915\times10^{-7}$.
+
+The complete frozen calculation has verdict `INCONCLUSIVE`. Seventy
+of the 72 matrix comparisons meet the required $10^{-6}$ error bound.
+At increment $2^{-12}$, the $\varsigma=-1$, $n=1$ profiles on
+$(R,N)=(32,512)$ and $(64,1024)$ have maximum normalized matrix
+errors $1.0029856380155966\times10^{-6}$ and
+$1.0029856746252008\times10^{-6}$. Their smaller-increment comparisons
+pass. All eight $n=64$ profiles pass every individual response check;
+the two $n=1$ failures determine the aggregate verdict under §47.2.
+The threshold, increments and complete schedule remain fixed.
+
+The source and section snapshots, accepted parent hashes, 24 primary
+matrices, 72 independent matrices, execution records and raw-array
+reconciliation are retained in
+`runs/20260908_matter_formation_vortex_compressibility/`.
+The two programs in §47.2 reproduce the fixed calculation. Every
+scientific receipt retains `complete_physical_matter_formation=false`.
+Finite-period energy differences, finite-loop stability, formation
+history, quantum state and physical particle identification remain open.
+
 ## References
 
 - `computations/matter_formation_electric_support.py`—exact temporal-square and charge construction, Gaussian quadrature, covariant interval operators and boundary controls.
