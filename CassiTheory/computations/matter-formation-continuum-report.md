@@ -7413,6 +7413,245 @@ and `reconciliation.json`. Running the two source programs in §43.3
 reproduces their numerical calculations. The result remains confined
 to these working notes.
 
+## 44. Working notes: resolved radial vortex cores
+
+### 44.1 The complete energy in an axial core class
+
+The exterior result leaves the central question of whether the
+charged fields can relax to a stationary vortex that binds the
+carrier. This calculation varies the core density, composition,
+adjoint amplitude and gauge connection together in a specified
+axial, reflection-symmetric class. It uses the full spatial energy
+(PA12), with an empty carrier background. General angular stability
+and closed-loop dynamics are separate problems.
+
+Consider both ways to put unit physical winding in the doublet.
+Let $\varsigma=\pm1$, $n_Y=(1+\varsigma)/2$ and
+$n_I=(1-\varsigma)/2$, with
+$$
+\Psi=\begin{pmatrix}p_Y(r)e^{in_Y\theta}\\p_I(r)e^{in_I\theta}\end{pmatrix},
+\qquad \Phi=u(r)e_3.
+$$
+The profiles are real and vary freely; $u$ is a signed component.
+Define the rotating internal axes
+$e_1=(\cos\varsigma\theta,-\sin\varsigma\theta,0)$ and
+$e_2=(\sin\varsigma\theta,\cos\varsigma\theta,0)$. The connection
+one-form has $g_Q\mathcal A_r=h e_2$ and
+$g_Q\mathcal A_\theta=b_1e_1+b_3e_3$. Its curvature is
+$$
+g_Q\mathcal F_{r\theta}
+=[b_1'+h(b_3-\varsigma)]e_1+[b_3'-hb_1]e_3.
+$$
+
+With $\rho=p_Y^2+p_I^2$ and
+$\Delta_\varphi=[(1-\varphi)\rho+
+(1+\varphi)(u/v)(p_Y^2-p_I^2)]/2$, the energy per length is
+$E=2\pi\int_0^R r\mathcal E\,dr$, where
+$$
+\begin{aligned}
+\mathcal E={}&
+\frac a2[(p_Y'-hp_I/2)^2+(p_I'+hp_Y/2)^2]
++\frac d2(u'^2+h^2u^2)\\
+&+\frac{a}{8r^2}
+\{[(2n_Y-b_3)p_Y-b_1p_I]^2+
+[(2n_I+b_3)p_I-b_1p_Y]^2\}\\
+&+\frac{d b_1^2u^2}{2r^2}
++\frac{d}{2g_Q^2r^2}
+\{[b_1'+h(b_3-\varsigma)]^2+(b_3'-hb_1)^2\}\\
+&+\frac{\lambda_\rho}{4}(\rho-\rho_0)^2
++\frac{\lambda_\varphi}{2}\Delta_\varphi^2
++\frac{\lambda_H}{4}(u^2-v^2)^2.
+\end{aligned}
+$$
+No density hole, core flux or core composition is imposed. The radial
+connection is eliminated at its stationary value $h=-L_h/H_h$, with
+$$
+\begin{aligned}
+H_h&=\frac{a\rho}{4}+du^2+
+\frac{d[(b_3-\varsigma)^2+b_1^2]}{g_Q^2r^2},\\
+L_h&=\frac a2(p_Yp_I'-p_Ip_Y')+
+\frac{d[(b_3-\varsigma)b_1'-b_1b_3']}{g_Q^2r^2}.
+\end{aligned}
+$$
+The positive-square energy is evaluated directly at this value.
+Its derivative may hold $h$ fixed by the envelope theorem.
+The independent calculation checks that elimination against the
+component equations.
+
+### 44.2 Regular radial representation and fixed boundaries
+
+The core representation must have finite curvature at the origin.
+A piecewise-linear $b_3\propto r$ would give a divergent curvature
+integral. Use five freely varied nodal coefficients and the fixed
+regular factors
+$$
+w_1(r)=\frac r{\sqrt{1+r^2}},\qquad
+w_3(r)=\frac{r^2}{1+r^2}.
+$$
+Multiply the winding doublet component and $b_1$ by $w_1$, and
+$b_3$ by $w_3$. The other doublet component and $u$ have factor one.
+Interpolate the five coefficients linearly and differentiate the
+factors exactly. Their origin values are free. The number one in
+these factors is a numerical basis scale in supplied units; it
+constrains no physical core radius.
+
+At $r=R$, fix the physical fields to
+$$
+p_{Y,\infty}=\sqrt{\frac{\rho_0(1+c_0)}2},\quad
+p_{I,\infty}=\sqrt{\frac{\rho_0(1-c_0)}2},\quad
+u_\infty=v,\quad
+b_{1,\infty}=\frac{a\rho_0\sqrt{1-c_0^2}}{a\rho_0+4dv^2},
+\quad b_{3,\infty}=\varsigma+c_0.
+$$
+These impose a winding exterior on a finite cylinder. Energy
+minimization in this boundary sector supplies a stationary-core
+calculation; it supplies no dynamical nucleation history.
+
+### 44.3 Fixed calculation before execution
+
+Use the §43 witness, with $g_Q=0.71$. For each cap, in the fixed
+order $\varsigma=+1,-1$, run the uniform radial element schedule
+$(R,N)=(32,256),(32,512),(64,512),(64,1024)$.
+Use two-point Gauss quadrature on every element. Initially set the
+winding component to its bulk value times $\tanh r/\tanh R$,
+the other component to the positive square root that keeps
+$\rho=\rho_0$, $u=v$, and $b_1,b_3$ to their exterior values times
+$w_1(r)/w_1(R),w_3(r)/w_3(R)$ respectively.
+Use the finite analytic origin limits for the coefficients.
+For each subsequent grid, interpolate the preceding physical
+profiles and use the exact exterior vacuum beyond its domain;
+retain the origin coefficient values.
+
+The primary program is `computations/matter_formation_vortex_core.py`.
+Use CPU `float64` automatic differentiation with one Torch thread
+and L-BFGS-B. Optimize coefficients multiplied by $\sqrt{M_i}$,
+where $M_i=\int 2\pi rN_i\,dr$ is the scalar nodal weight from the
+same quadrature. Set `maxiter=8000`, `maxfun=16000`, `maxls=40`,
+`maxcor=30`, `ftol=5e-15` and `gtol=1e-9`. No amplitude bounds,
+clamps or numerical retries are allowed.
+
+Retain the true coefficient gradient $g_i=\partial E/\partial y_i$.
+For each row require
+$[\sum g_i^2/M_i\,/\,\sum M_i]^{1/2}\le10^{-6}$
+and $\max|g_i|/M_i\le10^{-4}$, summing over all five fields and
+excluding the constrained outer node. Require
+$\max|H_hh+L_h|/\max(1,|L_h|)\le10^{-10}$ at quadrature points.
+Optimizer success alone establishes none of these criteria.
+
+Assemble the carrier's consistent radial finite-element mass and
+stiffness matrices, with potential $-\eta_C(\rho_0-\rho)$,
+a natural regular origin and Dirichlet outer boundary. Retain the
+three lowest generalized eigenpairs and a zero-attraction control.
+Use shift-invert with shift $\min V-1$ and eigensolver tolerance
+$10^{-10}$. Require normalized eigenpair residual and mass
+orthonormality error below $10^{-8}$.
+For $Az=\lambda Mz$, the residual is
+$\|Az-\lambda Mz\|_2/\max(1,\|Az\|_2,\|\lambda Mz\|_2)$.
+The mass-lumped matrix uses the full nodal weights before removing
+the constrained outer node.
+
+`computations/verify_matter_formation_vortex_core.py` independently
+reconstructs the Pauli-component energy and radial elimination,
+including both cap signs at 17 fixed angles. Exact algebraic
+residuals must vanish; rotated component comparisons use $10^{-10}$
+after normalization by $\max(1,|\mathrm{reference}|)$.
+It reconstructs profiles and derivatives from the retained nodal
+coefficients, and the energy gradient from independently differentiated
+component expressions. Array agreement uses $10^{-11}$ and
+energy/gradient agreement uses $10^{-8}$ with the same normalization.
+It rechecks stationarity, the primary eigenpair equations, and an
+independent mass-lumped carrier spectrum.
+
+For both caps, require normalized renormalized-energy differences
+below $10^{-3}$ across each resolution pair and below $10^{-2}$
+between the two finest domains. The diagnostic is
+$E_{\rm ren}=E-\pi J_0\ln R/4$, in the supplied basis length units.
+The finest consistent-versus-lumped lowest eigenvalue must agree
+to 1%, using $\max(|E_0|,10^{-6})$ as denominator. The finest-domain
+zero-attraction ground eigenvalue must be positive and agree with
+$K_{Cx}j_{0,1}^2/(2R^2)$ to $10^{-3}$ relatively.
+On the finest $R=64$ grid, require the maximum relative deviation of
+$r^2(\rho_0-\rho)$ from §43's $A_\rho$ to be below 10% at quadrature
+radii $16\le r\le24$.
+
+Carrier binding requires lowest energies below $-10^{-6}$ in both
+finest domains, and relative domain agreement within 5%.
+All row, reconstruction, refinement and binding criteria passing
+gives `SUPPORTS-conditional radial vortex binding`. Qualified
+stationary rows with nonnegative finest carrier spectra give
+`DOES NOT EMERGE-finite-cylinder carrier binding`. Missing or
+nonfinite evidence, failed stationarity or failed refinement gives
+`INCONCLUSIVE`. The result supplies no statement of general angular
+stability, a stable loop, quantum creation or physical particle identity.
+
+Before execution, retain this section and both source files with
+hashes in `runs/20260908_matter_formation_vortex_core/`.
+Run the primary once with its `--output` set to the fresh `primary`
+subdirectory, then run the verifier with that directory as `--input`
+and a fresh `verification` output directory. Preserve all eight
+field/spectrum arrays and terminal optimizer statuses, including
+unqualified rows. An execution exception is retained explicitly.
+Stop after this schedule; no replacement grid or witness belongs
+to the calculation. Every receipt retains
+`complete_physical_matter_formation=false`.
+
+### 44.4 Measured stationary cores and carrier spectra
+
+Both winding representatives relax to resolved density-depleted cores.
+The primary calculation and independent component reconstruction pass
+all stationary, refinement, tail and spectral criteria on the eight
+prescribed rows. The joint verdict is
+`SUPPORTS-conditional radial vortex binding`.
+
+The independent measurements at the finer resolution in each domain are:
+
+| Winding representative | $R$ | Elements | $E_{\rm ren}$ | Lowest carrier energy relative to bulk |
+|---|---:|---:|---:|---:|
+| $n_Y=1,n_I=0$ | 32 | 512 | 3.076124269954 | −0.178711824124 |
+| $n_Y=1,n_I=0$ | 64 | 1024 | 3.076111424910 | −0.178711831088 |
+| $n_Y=0,n_I=1$ | 32 | 512 | 1.549358769688 | −0.052820163142 |
+| $n_Y=0,n_I=1$ | 64 | 1024 | 1.549345925747 | −0.052820160667 |
+
+At $R=64,N=1024$, the central densities are $0.329480440143$
+and $0.678174147729$ respectively, against bulk $\rho_0=1.2$.
+The minimum adjoint amplitudes are $0.841247514738$ and
+$0.748175538308$. The core density and adjoint amplitude vary freely
+in the minimization. Neither reaches zero in these solutions.
+
+The largest gradient RMS over all rows is $7.026\times10^{-8}$;
+the largest pointwise gradient divided by its nodal weight is
+$3.663\times10^{-5}$. The independent algebraic-connection residual
+is at most $4.880\times10^{-15}$. The maximum relative tail errors
+on the finest large domain are $0.66651\%$ and $0.59571\%$, compared
+with the 10% criterion. Each radial resolution comparison passes;
+the largest normalized renormalized-energy change is
+$2.353\times10^{-5}$.
+
+The independent mass-lumped lowest energies are
+$-0.178672050659$ and $-0.052814919163$ on the finest large domain,
+within 1% of the consistent-mass values. With attraction removed,
+the lowest energy is positive, $0.000705955378047$, and agrees with
+the radial Bessel value to $8.543\times10^{-8}$ relatively.
+The largest independently reconstructed eigenpair residual over all
+rows is $2.184\times10^{-12}$. Exact component and envelope identities
+vanish; the rotated component error is at most
+$1.111\times10^{-16}$.
+
+The raw arrays, terminal optimizer statuses, frozen source bytes and
+independent reconstruction are retained under
+`runs/20260908_matter_formation_vortex_core/`, with the joint record
+in `reconciliation.json`. The two programs in §44.3 reproduce the
+calculation. Every receipt retains
+`complete_physical_matter_formation=false`.
+
+This establishes transverse trapping in the specified stationary
+vortex class. The carrier background remains empty: no carrier
+population is produced. General angular perturbations, carrier
+backreaction, longitudinal stress and finite-loop dynamics require
+their own calculation. The negative energies in the table are binding
+energies relative to the supplied bulk threshold; they assign no
+physical particle mass, spin or statistics.
+
 ## References
 
 - `computations/matter_formation_electric_support.py`—exact temporal-square and charge construction, Gaussian quadrature, covariant interval operators and boundary controls.
