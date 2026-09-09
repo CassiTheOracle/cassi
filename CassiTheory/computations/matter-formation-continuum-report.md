@@ -8766,8 +8766,289 @@ and fresh `--output` directories; the verifier also takes the new
 primary directory through `--input`. Every scientific receipt retains
 `complete_physical_matter_formation=false`.
 
+## 50. Working notes: charge-neutral packet condensation
+
+### 50.1 A localized initial current without initial signed density
+
+Opposite signed densities can arise by transporting an initially
+charge-neutral, spatially phased field. Whether they become separate bound
+objects is a nonlinear question. Use precisely the scalar parent and
+coefficient witness of §§25.1 and 35: $a=1/16$, $c_\Psi=1/8$,
+$u_\rho=4$, $u_C=k_{Cx}=1$, $e_C=3/4$, and the supplied Mapped
+$h_C=2.9598260763447164$. The spatial coefficient witness in §49 is
+different; its numerical population bounds are not used here.
+Write $B=e_C+1/(4a)$ and $\Omega_\infty=\sqrt{B/a}$.
+The fields are the real mediator $f$ and rotating complex carrier $z$.
+Their equations, Hamiltonian and signed charge are those of §25.1.
+The constant-composition, constant-adjoint, zero-connection lift has
+vanishing charged-sector currents throughout this real-mediator sector.
+The neutral carrier retains its complex phase.
+Its compatible Cauchy data have $\Psi=f\psi_0$,
+$\dot\Psi=\dot f\psi_0$, $\Phi=v_Qe_3$, $\dot\Phi=0$ and zero
+electric fields, with fixed normalized vacuum-composition $\psi_0$.
+Gauge, adjoint, composition and scale perturbations are outside this
+invariant restriction.
+
+Use cylindrical coordinates $(r,\zeta)$ with volume element
+$2\pi r\,dr\,d\zeta$, while retaining all three-dimensional cylindrical
+gradient terms. The initial fields are
+$$
+f=1,\quad \dot f=\dot z=0,\qquad
+z=A\exp[-(r^2+\zeta^2)/(2w^2)]e^{i\kappa\zeta},\qquad
+A^2=\frac{M_0}{\pi^{3/2}w^3},
+$$
+with $M_0=1024$, $w=8$ and $\kappa=1/2$. Here $M_0=\int|z(0)|^2$
+sets the supplied initial field amplitude; it is neither conserved
+signed charge nor a quantized particle population. There is no initial
+mediator depletion or imposed trap. In the continuum on $\mathbb R^3$,
+the exact initial current gives
+$$
+\boxed{\rho_a(0)=0,\qquad
+\partial_t\rho_a(0)=
+\frac{2k_{Cx}\kappa\zeta}{w^2}|z(0)|^2,\qquad
+\left.\frac{d}{dt}\int_{\zeta>0}\rho_a\,d^3x\right|_0
+=\frac{k_{Cx}\kappa M_0}{\sqrt\pi\,w}.}
+$$
+Reflection combined with complex conjugation preserves
+$f(r,-\zeta)=f(r,\zeta)$ and $z(r,-\zeta)=z(r,\zeta)^*$,
+so the global signed charge remains zero. These identities supply initial
+transport, without implying subsequent binding. The common-phase control
+$\kappa=0$ remains locally charge-free. Exactly empty carrier data remain
+empty.
+
+### 50.2 A compact-field binding comparison
+
+A local energy integral omits the cost of separating a candidate object
+from its surroundings. Include that cost by evaluating compact comparison
+fields, without modifying the evolving fields. In each axial half-space
+use the positive part of its expected signed density to define an axial
+charge centroid. For $\kappa>0$ the expected signs are positive on the
+right and negative on the left; complex conjugation reverses both.
+If that positive-part integral vanishes, record centroid zero and zero
+concentration observables. The charge-weighted radius includes both
+$r^2$ and axial displacement from the centroid.
+
+Around each centroid let $d$ be the three-dimensional distance and set
+$\theta=1$ for $d\le8$, $\theta=0$ for $d\ge12$, and
+$\theta=1-3s^2+2s^3$ for $s=(d-8)/4\in(0,1)$.
+The comparison state is
+$$
+f_\theta=1+\theta(f-1),\quad
+z_\theta=\theta z,\quad
+\dot f_\theta=\theta\dot f,\quad
+\dot z_\theta=\theta\dot z.
+$$
+These velocities are independently specified Cauchy data; no moving-mask
+time derivative is included. Compute its complete Hamiltonian
+$E_\theta$ and signed charge
+$Q_\theta=\int\theta^2\rho_a$. The mask is never applied to a trajectory.
+For the uncoupled control $h_C=0$, pointwise positivity and
+$a|\dot z|^2+B|z|^2\ge\Omega_\infty|\rho_a|$ imply
+$E_\theta\ge\Omega_\infty|Q_\theta|$.
+A strict reversed inequality supplies an admissible finite-energy
+binding comparison at the measured charge. It does not prove that the
+unmodified object is dynamically isolated or stable for infinite time.
+
+### 50.3 Fixed nonlinear calculation before execution
+
+Evolve to $t=48$ without forcing, damping, absorption, clipping or
+trajectory normalization. Use cell-centred finite volumes on
+$0\le r\le R$, $-R\le\zeta\le R$. Impose regular zero radial flux at
+$r=0$ and fixed vacuum data $f=1,z=0$ at the other faces. Cell volumes
+are $\pi(r_{i+1}^2-r_i^2)\Delta\zeta$. Internal edge gradient weights
+are face area divided by centre spacing; a Dirichlet face uses the
+half-cell distance. Derive acceleration from this same discrete energy
+and volume inner product. Only the initial Gaussian normalization uses
+the discrete volume sum to set $\sum V|z(0)|^2=M_0$ exactly.
+The finite-grid initial half-current is instead the exact face sum
+$\sum_i (V_i/\Delta\zeta)\,k_{Cx}
+\operatorname{Im}(z_{i,L}^*z_{i,R})/\Delta\zeta$.
+The continuum Gaussian formula is not an exact finite-grid target.
+
+The primary integrator is fourth-order Yoshida composition of
+velocity Verlet, with substeps
+$w_1\Delta t,w_0\Delta t,w_1\Delta t$,
+$w_1=(2-2^{1/3})^{-1}$ and $w_0=1-2w_1$.
+The independent program constructs its own sparse cylindrical operator
+and uses classical fourth-order Runge–Kutta. It imports neither the
+primary program nor the radial-cloud implementation.
+The primary program reuses the radial-cloud coefficient definitions.
+
+| Row | $R$ | $\Delta r=\Delta\zeta$ | $\Delta t$ | Arms |
+|---|---:|---:|---:|---|
+| G0 | 192 | $1/2$ | $1/128$ | Coupled, uncoupled, common-phase, conjugate, vacuum |
+| G1 | 192 | $1/4$ | $1/128$ | Coupled, uncoupled |
+| G2 | 256 | $1/2$ | $1/128$ | Coupled, uncoupled |
+| T1 | 192 | $1/4$ | $1/256$ | Coupled, uncoupled |
+
+The uncoupled arm sets only $h_C=0$; the common-phase arm sets only
+$\kappa=0$; the conjugate arm sets only $\kappa=-1/2$; the vacuum
+arm sets only $M_0=0$. Run all eleven rows in both implementations.
+Sample complete scalar diagnostics every $1/32$ time unit, including
+energy, signed charge, absolute charge, the right-half charge derivative
+and current, both charge centroids, both positive-part integrals and
+their radius-eight core integrals, RMS radii, core charge-weighted
+$f^2$, and both compact-state energies and charges. Retain full fields
+and full-time velocities at $t=0,32,40,48$. No period fit or
+phase-selected sampling is used.
+
+Every prescribed array must be finite. Require energy drift below
+$2\times10^{-4}$, normalized by $\max(1,|E(0)|)$; global charge below
+$10^{-8}Q_{\rm ref}$, where $Q_{\rm ref}=a\Omega_\infty M_0/2$ uses
+$M_0=1024$ for all normalizations; and the instantaneous right-half
+continuity residual below $10^{-10}$ after division by the larger of
+one and the absolute derivative and current. Require vacuum fields and
+velocities to remain exactly unchanged, common-phase absolute charge
+below $10^{-10}Q_{\rm ref}$, and the conjugate and reflection field
+identities below $10^{-10}$ in normalized volume-weighted norm.
+All uncoupled compact comparisons must satisfy the stated energy lower
+bound within $10^{-10}\max(1,E(0))$.
+
+Compare each primary retained state with its independent same-row state
+in volume-weighted norm of $(f-1,\Re z,\Im z,\dot f/\Omega_\infty,
+\Re\dot z/\Omega_\infty,\Im\dot z/\Omega_\infty)$, divided by the
+largest of one, $\sqrt{1024}$ and the independent norm. Require discrepancies
+below $10^{-2}$. At every sampled time in $32\le t\le48$, require
+same-row diagnostic differences below $10^{-2}$ using reference scales
+$E(0)$ for energies, $Q_{\rm ref}$ for charges, $w$ for positions and
+radii, and one for fractions and $f^2$; each scale has a floor of one.
+For the coupled and uncoupled late-time mean diagnostics, require
+G0–G1 and G0–G2 differences below $5\times10^{-2}$ on these scales,
+and G1–T1 differences below $10^{-2}$ in each implementation.
+Independently reconstruct every retained snapshot's diagnostics from
+its field arrays and require agreement with trace rows $0,1024,1280,1536$
+within $10^{-10}$ on these scales. Coordinates, cell volumes and times
+must match their declared grid and sample exactly. Charge-current
+diagnostics use the same $Q_{\rm ref}$ reference in supplied time units;
+continuity and reflection residuals use reference one. For a cross-grid
+comparison, its first listed grid supplies the energy reference.
+
+The fixed condensation criterion requires both coupled compact states,
+on every grid and in both methods at every sampled late time, to have
+centres in their respective half-spaces at distance greater than $12$
+from the central plane and every outer face; expected signed
+$Q_\theta\ge Q_{\rm ref}/2$;
+at least $0.6$ of the half-space positive-part charge within radius
+eight; core charge-weighted $f^2\le0.5$; and
+$E_\theta\le0.98\Omega_\infty|Q_\theta|$.
+The compact supports are then disjoint.
+All qualifications and the condensation criterion passing gives
+`EMERGES—conditional charge-separated packet condensation`.
+If qualifications pass but this criterion fails, use
+`DOES NOT EMERGE in the specified packet calculation`.
+Any qualification failure gives `INCONCLUSIVE`, retaining all measured
+rows. No rejected arm is retuned or extended.
+
+The primary and independent programs are
+`computations/matter_formation_neutral_packets.py` and
+`computations/verify_matter_formation_neutral_packets.py`.
+Before execution freeze this section, both sources, the radial-cloud
+source and the particle-action source with SHA-256 in
+`runs/20260908_matter_formation_neutral_packets/manifest.json`.
+Retain source snapshots, execution records, raw arrays and a joint
+reconciliation. Source or prerequisite mismatch forbids numerical
+execution. Axisymmetry restricts the perturbation class; quantum
+production, a physical microscopic selection and general nonaxisymmetric
+stability remain separate requirements. Every scientific receipt
+retains `complete_physical_matter_formation=false`.
+
+## 51. Working notes: measured charge-neutral packet outcome
+
+### 51.1 Numerical qualification
+
+The complete packet calculation has the frozen verdict `INCONCLUSIVE`.
+Both implementations complete all eleven prescribed trajectories. Every
+trajectory passes its conservation, current, symmetry and applicable
+control checks, but four of the independent program's 79 comparisons
+fail. The failures are reproduced directly from the retained arrays:
+
+| Comparison | Reference-normalized discrepancy | Required bound |
+|---|---:|---:|
+| Coupled spatial refinement, primary method | 0.082505011 | 0.05 |
+| Coupled spatial refinement, independent method | 0.082602615 | 0.05 |
+| Common-phase control, inter-integrator state at $t=40$ | 0.020417435 | 0.01 |
+| Common-phase control, inter-integrator state at $t=48$ | 0.247678100 | 0.01 |
+
+The spatial comparison uses $\Delta r=\Delta\zeta=0.5$ and $0.25$ at
+$R=192$, with the late-time means and reference scales fixed in §50.3.
+The failing columns are absolute charge, both charge centroids and both
+core-weighted $f^2$ values. The enlarged-domain comparisons and the
+coupled and uncoupled half-time-step comparisons all pass. All eleven
+same-row late-time diagnostic comparisons pass; 42 of 44 saved-state
+comparisons pass. The common-phase control is the source of the two
+saved-state failures. Agreement of the selected scalar diagnostics
+therefore does not establish agreement of the field trajectories.
+
+The maximum normalized energy drift is
+$2.5245552\times10^{-6}$ in the primary calculation and
+$2.3822467\times10^{-5}$ in the independent calculation, both below the
+fixed $2\times10^{-4}$ bound. Global signed-charge drift is at most
+$1.1778207\times10^{-15}$ in units of $Q_{\rm ref}$. Exactly empty carrier
+data remain empty, the common-phase control retains zero signed charge,
+and charge conjugation reverses the charge with the prescribed field
+identity. These checks coexist with the failed convergence and
+inter-integrator comparisons.
+
+### 51.2 Charge separation and compact-state conditions
+
+The measured coupled trajectories satisfy the prescribed centroid
+separation and boundary-clearance conditions throughout the sampled
+late-time interval. Each trajectory nevertheless violates each of four
+other requirements at one or more sampled late times: compact signed
+charge, core charge retention, mediator depletion and compact binding.
+None satisfies the full condensation criterion throughout
+$32\le t\le48$.
+
+For example, the independent calculation at
+$(R,\Delta r,\Delta t)=(192,0.25,1/256)$ has a right-core charge fraction
+between $0.3072235$ and $0.6495935$ over that interval; the required
+lower bound is $0.6$. Its maximum core-weighted $f^2$ is $0.7022734$,
+above the allowed $0.5$. The mean right charge centroid is
+$16.4668311$ in the supplied length units. All left- and right-hand
+diagnostics and every sampled time are retained. These finite-grid
+observations supply no qualified emergence or non-emergence verdict,
+because the numerical qualification itself fails.
+
+The initial condition supplies a nonempty classical carrier field with
+zero signed density and a spatial phase gradient. Its charge transport
+does not establish production from a quantum vacuum. The fixed-population
+variational result in §49 concerns a different coefficient witness and
+constraint; it supplies no formation trajectory for this second-order
+parent. Physical microscopic selection, quantum state and normalization,
+particle identity and general nonaxisymmetric stability remain open.
+
+### 51.3 Retained evidence and reproduction
+
+A separate reconstruction reads all 88 field snapshots and 22 diagnostic
+traces without importing either evolution program. It verifies 110
+hash-bound files, recomputes 2,112 snapshot diagnostics with maximum
+reference-normalized discrepancy $3.4302708\times10^{-14}$, and rebuilds
+75 state, charge-conjugation, same-row and cross-grid comparisons. Its
+four failed comparisons agree with the independent evolution receipt.
+The reconstruction exits successfully while preserving the scientific
+verdict `INCONCLUSIVE`.
+
+The record is in `runs/20260908_matter_formation_neutral_packets/`.
+It includes the frozen section and source snapshots, mathematical
+review, storage-limited receipt, both recovery manifests, complete
+primary and independent schedules, supervised execution logs,
+`raw_reconciliation.json` and `joint_reconciliation.json`.
+Completed retained rows are hash-bound; the physics, schedule and
+acceptance criteria are unchanged. No arm is retuned or extended.
+
+The source programs in §50.3 reproduce the full fixed schedule using
+`--manifest runs/20260908_matter_formation_neutral_packets/manifest.json`
+and fresh `--output` directories; the verifier additionally takes
+`--input` pointing to the complete primary directory. The retained
+`raw_reconcile.py` reconstructs the archived evidence without evolving
+the fields. Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
 ## References
 
+- `computations/matter_formation_neutral_packets.py`—source-bound axisymmetric packet evolution, conservation and compact-state comparisons.
+- `computations/verify_matter_formation_neutral_packets.py`—independent finite-volume Runge–Kutta evolution and frozen numerical qualification.
+- `runs/20260908_matter_formation_neutral_packets/`—source and criterion snapshots, complete trajectories, storage-recovery provenance and raw-field reconstruction.
 - `computations/matter_formation_unwound_localization.py`—exact full-action droplet trial integrals, population bounds and dilation identities.
 - `computations/verify_matter_formation_unwound_localization.py`—independent Pauli-component reconstruction, spherical quadrature and binding comparisons.
 - `runs/20260908_matter_formation_unwound_localization/`—frozen sources and criteria, raw field energies, independent mathematical review and joint binding qualification.
