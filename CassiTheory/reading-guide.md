@@ -395,10 +395,12 @@ Quantum gravity and analytical three-body results.
 
 ### turbulence/
 
-The Kolmogorov spectrum, and what Cassi adds beyond it.
+Conditional turbulence spectra, exact Navier–Stokes transfer identities, and geometric regularity questions.
 
-- `turbulence/README.md`—Turbulence—Kolmogorov Spectrum from φ. Index. A single derived document showing the Kolmogorov −5/3 spectrum is inherited from the Navier-Stokes advection term rather than derived from $\varphi$, with Cassi's genuine contributions being the $\varphi$-break scale, the deviation spectrum, scale-dependent $G_{\text{eff}}(k)$, and the Qi-quality spectrum.
-- `turbulence/kolmogorov-from-phi.md`—The Kolmogorov −5/3 Spectrum in Cassi: Derivation and Novel Predictions. Derived. States plainly that the −5/3 spectrum is inherited from the Navier-Stokes advection term, and derives Cassi's novel turbulence predictions: the $\varphi$-break scale $k_\varphi$, the ε-spectrum $E_\varepsilon(k)$, scale-dependent gravitational enhancement $G_{\text{eff}}(k)$ varying by up to $\varphi^6 \approx 17.9$, and the Qi-quality spectrum $q(k)$.
+- `turbulence/README.md`—Turbulence—Spectra and Navier–Stokes Geometry. Index—September 2026. Covers the conditional spectrum analysis, critical-transfer and coercivity results, and filtered stress geometry.
+- `turbulence/kolmogorov-from-phi.md`—The Kolmogorov −5/3 Spectrum in Cassi: Derivation and Conditional Tests. Derived conditional / Hypothesized closures—August 2026. The kinetic-energy spectrum is inherited under Navier–Stokes cascade assumptions; the optional break scale, deviation spectrum, gravity factor, and Qi-quality spectrum depend on supplied constitutive and statistical assumptions.
+- `turbulence/navier-stokes-transfer-boundary.md`—Navier–Stokes Transfer, Heat Corrections, and Coercivity. Derived identities and obstructions / conditional small-data estimates—September 2026. Gives the positive critical-norm budget, cubic heat correction, signed quartic remainder, and an unbounded corrected-energy level set, with a reproducible full-convolution verifier.
+- `turbulence/navier-stokes-stress-geometry.md`—Filtered Stress Geometry in Periodic Incompressible Navier–Stokes. Derived filtered identities / Hypothesized geometric closure—September 2026. Retains third moments, pressure correlations, and viscosity; relates helical tangent covariance to anisotropy and tests local geometric preservation. The all-data regularity estimate remains open.
 
 ### cosmology/
 

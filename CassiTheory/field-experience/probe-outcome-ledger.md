@@ -1,10 +1,12 @@
 # Field-Experience Probe Outcome Ledger
 
-## Status: Record—August 2026
+## Status: Record—September 2026
 
 ## Abstract
 
 This ledger indexes the six completed counterflow/source-only field experiments, the independent phase-staggered scale-gap campaign, the conditional Qi-loop mass-cascade campaign, and the three-dimensional toroidal survival, spectral-transfer, and connected-hierarchy campaigns through their frozen protocols, raw receipts, gates, and terminal classifications. The source records retain each construction's scope: the six-wave chain uses finite proxies with externally supplied additive interventions and unmodified canonical PDE/RK2 evolution; the scale-gap campaign tests supplied-wave identities, the distinct second-order CassiCosmos wave branch, and a declared nearest-neighbor chain; the Qi-loop campaign evaluates a supplied compact Hamiltonian; toroidal V5 declares a supplied two-component Schrödinger–Poisson evolution; the transfer diagnosis analyzes frozen V5 fields inside one domain; and the connected hierarchy declares six fields arranged as three labeled scale pairs with a supplied symmetric gravitational graph. The ledger assigns no mechanism beyond those declared boundaries.
+
+The Navier–Stokes controls in §7 concern the original incompressible velocity equation. They reproduce exact transfer identities and test supplied geometric constraints through instantaneous derivatives, with no field-time simulation or singularity search.
 
 ## 1. How to read this record
 
@@ -130,6 +132,19 @@ the V5 result remains the terminal classification for the tested realization.
 Endogenous topology formation and a mode- or coefficient-selection
 discriminator remain required for a physical matter claim.
 
+## 7. Navier–Stokes transfer and stress geometry
+
+The original unforced incompressible equation admits exact stress and critical-norm transfer identities. Fixed smooth initial-data controls test local geometric preservation under the protocol `computations/navier_stokes_stress_geometry_prereg.md`.
+
+| Control | Mathematical record | Raw receipt | Decisive result | Classification and scope |
+|---|---|---|---|---|
+| Critical transfer and heat correction | `turbulence/navier-stokes-transfer-boundary.md` | `runs/navier_stokes_transfer/verification.json` | All 48 exact checks pass; the quartic remainder has both signs, and an unbounded critical-norm family lies on one corrected-energy level set. | Algebraic **PASS**; arbitrary-data regularity unresolved |
+| Pointwise stress isotropy | `turbulence/navier-stokes-stress-geometry.md` §7 | `runs/navier_stokes_stress_geometry/verification.json` | Nine grid/width combinations reproduce $\tau=T I$, $\Pi_\ell=0$, and $\partial_t\Pi_\ell=3Tg^2>0$ at the origin; maximum discrepancy $1.721\times10^{-15}$; minimum derivative $0.02746424201457126$. | **CONTRADICTS** preservation and continued transfer suppression from pointwise isotropy alone |
+| Prescribed helix deformation | `turbulence/navier-stokes-stress-geometry.md` §5 | `runs/navier_stokes_stress_geometry/verification.json` | Under the fixed affine strain, the stretching coefficient crosses from $-1/5$ to positive, with zero at $t=\log2/3$. | **CONTRADICTS** sustained protection from the supplied helix shape alone under this deformation |
+| Admissible surrounding strain and rescaling | `turbulence/navier-stokes-stress-geometry.md` §§6–7 | `runs/navier_stokes_stress_geometry/verification.json` | The compact curl-potential preserves local vorticity while adding arbitrary symmetric trace-free strain; the Gaussian all-scale norm has exact critical scaling. | Algebraic **PASS**; local vorticity geometry supplies no unique local strain |
+
+All 37 checks in the stress-geometry receipt pass. The isotropy control is pointwise at the initial origin; the affine helix is a prescribed kinematic deformation. These results do not classify every nonlocal or time-integrated geometric condition. The stress, strain, and pressure equations still require a data-controlled all-scale production estimate for an arbitrary-data regularity argument. No Cassi current-to-momentum constitutive map is supplied.
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -160,3 +175,6 @@ discriminator remain required for a physical matter claim.
 - `field-experience/toroidal-connected-hierarchy-pre-registration.md`—frozen three-scale graph, controls, convergence gates, and decision tree.
 - `field-experience/toroidal-connected-hierarchy-report.md`—verified connected energy redistribution and graph-attribution result.
 - `foundations/qi-loop-mass-cascade.md`—conditional compact-ring algebra and framework boundary.
+- `computations/navier_stokes_stress_geometry_prereg.md`—fixed Navier–Stokes identities, controls, tolerances, and stopping rule.
+- `turbulence/navier-stokes-transfer-boundary.md`—critical transfer, heat correction, and corrected-energy level-set obstruction.
+- `turbulence/navier-stokes-stress-geometry.md`—exact stress dynamics, helical covariance assumptions, and measured control classifications.

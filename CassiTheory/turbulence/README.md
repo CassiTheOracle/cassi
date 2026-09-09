@@ -1,6 +1,6 @@
-# Turbulence—Conditional Kolmogorov Spectrum Analysis
+# Turbulence—Spectra and Navier–Stokes Geometry
 
-## Status: Index—August 2026
+## Status: Index—September 2026
 
 ## Abstract
 
@@ -13,15 +13,23 @@ Hypothesized, and each test must state its assumptions and retain its receipt.
 The directory therefore records which ingredients are inherited, which are
 optional model choices, and which claims remain unestablished.
 
-## Document Index
+The Navier–Stokes analyses develop exact critical-norm transfer identities,
+heat-correction estimates, and filtered stress dynamics. Their explicit
+initial-data controls delimit scalar-energy and local-geometric closure
+arguments. Arbitrary-data regularity and a Cassi current-to-momentum
+constitutive map remain open.
+
+## 1. Document index
 
 | # | Document | Domain | Epistemic |
 |---|----------|--------|-----------|
-| 1 | `kolmogorov-from-phi.md` | Turbulence spectra from the two-fluid PDE | Derived conditional / Hypothesized closures |
+| 1 | `turbulence/kolmogorov-from-phi.md` | Turbulence spectra from the two-fluid PDE | Derived conditional / Hypothesized closures |
+| 2 | `turbulence/navier-stokes-transfer-boundary.md` | Critical transfer, cubic heat correction, and coercivity | Derived identities and obstructions / conditional small-data estimates |
+| 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution and helical covariance conditions | Derived filtered identities / Hypothesized geometric closure |
 
-## Document Summaries
+## 2. Document summaries
 
-### `kolmogorov-from-phi.md`—The Kolmogorov −5/3 Spectrum in Cassi: Derivation and Conditional Tests
+### 2.1 Conditional Kolmogorov spectrum
 
 The source document separates the inherited incompressible Navier–Stokes
 kinetic-energy spectrum from the optional $q$-gated turbulence closure. Its
@@ -29,9 +37,28 @@ $k_\varphi$, $E_\varepsilon(k)$, gravity-factor, and $q(k)$ expressions are
 conditional diagnostics: their rates, regimes, slopes, and amplitudes depend
 on declared gate, flux, shell-averaging, and gravity-coupling assumptions.
 
-## Cross-References
+### 2.2 Critical transfer and coercivity
+
+`turbulence/navier-stokes-transfer-boundary.md` derives the signed all-scale
+budget and a cubic heat correction. A phase-tuned family has unbounded
+positive critical norm on one corrected-energy level set. The quartic
+remainder has both signs; standard estimates close the small-data regime.
+
+### 2.3 Filtered stress geometry
+
+`turbulence/navier-stokes-stress-geometry.md` retains pressure correlations,
+third moments, and viscous terms in the exact stress and strain equations.
+It states the assumptions behind a helical covariance model and an
+all-scale anisotropy estimate, with fixed controls for local isotropy,
+helix deformation, surrounding strain, and scale dependence.
+
+## References
 
 - `foundations/xi-derivation.md`—first-principles derivation of the Qi-gravity coupling $\xi = \varphi^6$ used in the velocity equation
 - `foundations/bubble-edge-geometry.md` §1.2—condensation-vs-diffusion balance used as a conditional analogy
 - `cassi-physics.md`—the two-fluid PDE as written in the core physics document
 - `predictions/falsifiable-predictions.md`—registered prediction catalog; the break-scale test remains prospective unless explicitly registered
+- `computations/navier_stokes_stress_geometry_prereg.md`—fixed fixtures, numerical tolerances, and decision rules
+- `computations/verify_navier_stokes_transfer.py`—exact finite-Fourier transfer verification
+- `computations/verify_navier_stokes_stress_geometry.py`—symbolic geometry checks and independent Fourier quadrature
+- `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths

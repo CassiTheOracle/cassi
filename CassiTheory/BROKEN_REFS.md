@@ -127,6 +127,8 @@ where available, and the scripts needed to regenerate current receipts.
 
 | Source Document | Untracked receipt |
 |----------------|-------------------|
+| `turbulence/navier-stokes-transfer-boundary.md`; `computations/navier_stokes_stress_geometry_prereg.md`; `field-experience/probe-outcome-ledger.md` | `runs/navier_stokes_transfer/verification.json` (exact Fourier identities and corrected-energy controls, with script/protocol hashes) |
+| `turbulence/navier-stokes-stress-geometry.md`; `computations/navier_stokes_stress_geometry_prereg.md`; `field-experience/probe-outcome-ledger.md` | `runs/navier_stokes_stress_geometry/verification.json` (fixed symbolic and nine-grid/width quadrature controls, with script/protocol hashes) |
 | `audit.md`; `cosmology/README.md`; `foundations/refined-numeric-predictions.md`; `open-questions-cassi-answers.md`; `parameter-inventory.md` | `runs/44-truth-campaign/` |
 | `foundations/refined-numeric-predictions.md`; `open-questions-cassi-answers.md` | `runs/63-sigma8-d0-rerun/` |
 | `predictions/falsifiable-predictions.md` | `runs/20260813_005814_bubble_ring_dynamic.json` |
