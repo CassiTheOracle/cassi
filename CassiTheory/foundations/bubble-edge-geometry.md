@@ -448,22 +448,25 @@ Galaxies trace the condensation field. The edge region—where $C$ drops from $\
 
 This section specifies the exact PDE computation needed to promote $\theta_{\text{cond}}$ and $n_{\text{cond}}$ from Hypothesized to Derived. The plan uses the two-fluid PDE solver (`two-fluid/cassi_two_fluid_3d_gpu.py`, `ExpandingTwoFluid3DGPU` class).
 
-### 9.1 Corrected Parameter Mapping
+### 9.1 Parameter roles
 
-The document uses "$\nu$" in two incompatible ways. We adopt the following conventions for this plan:
+The geometric threshold uses measured effective diffusivity, while the
+density profile uses a separate exponent. Their symbols distinguish those
+quantities from the solver's transport coefficients.
 
-| Symbol in doc | Renamed to | Nature | Origin |
-|:---:|:---:|---|---|
-| $\nu$ (diffusion in $R = 2\nu(\alpha^2+\beta^2)/\omega_0$) | $D_{\text{eff}}$ | Effective diffusion of condensation field | **Measured** from PDE output (§9.2) |
-| $\nu$ (exponent in $\rho \propto (C-\theta_{\text{cond}})^{n_{\text{cond}}}$) | $n_{\text{cond}}$ | Density profile power law | **Fitted** from PDE output (§9.4) |
-
-The PDE code has three diffusion-like input parameters:
-
-| Code param | Line | Default | Role in $\theta_{\text{cond}}$ |
+| Threshold/profile quantity | Symbol | Nature | Origin |
 |---|---|---|---|
-| `D` | 295 | 0.0 | Momentum-space numerical viscosity (∇²), the conservation-exact canonical default (44). NOT $D_{\text{eff}}$; D>0 = the diffusion-bound readings. |
-| `nu` | 295 | 0.001 | Velocity viscosity (∇²). Irrelevant for condensation. |
-| `hyper_nu` | 299 | 0.0 | Hyperdiffusion (∇⁴). Disabled by default. Irrelevant. |
+| Diffusivity in $R=2D_{\text{eff}}(\alpha^2+\beta^2)/\omega_0$ | $D_{\text{eff}}$ | Effective diffusion of condensation field | **Measured** from PDE output (§9.2) |
+| Exponent in $\rho\propto(C-\theta_{\text{cond}})^{n_{\text{cond}}}$ | $n_{\text{cond}}$ | Density profile power law | **Fitted** from PDE output (§9.4) |
+
+The `ExpandingTwoFluid3DGPU` constructor and RHS in
+`two-fluid/cassi_two_fluid_3d_gpu.py` expose three distinct coefficients:
+
+| Code parameter | Default | Role in the simulated dynamics |
+|---|---|---|
+| `D` | 0.0 | Scalar-density diffusivity. Zero removes this diffusion; with no additional density drift, total density is materially conserved. Periodic diffusion at $D>0$ preserves its spatial integral |
+| `nu` | 0.001 | Velocity viscosity, which changes the flow advecting the density fields |
+| `hyper_nu` | 0.0 | Fourth-order damping of velocity and scalar densities; disabled by default |
 
 The $D_{\text{eff}}$ in the $\theta_{\text{cond}}$ equation is an **effective coarse-grained diffusion** of the $C(x,y)$ interference pattern at the bubble scale. It is not equal to any single PDE input: it encodes the combined effect of microscopic diffusion, advective mixing by the velocity field (which acts as an eddy diffusivity $D_{\text{turb}} \sim u_{\text{rms}} \times L_{\text{bubble}}$), and conversion-mediated smoothing. $D_{\text{eff}}$ must be determined from the PDE simulation, not read from the input parameters.
 
@@ -596,7 +599,7 @@ The geometric connectivity and density readings can still be used as conditional
 - A high-threshold selection would alter the conditional density contrast through the supplied $\rho(C)$ map and must be checked against the observed cosmic-web contrast.
 - Neither check is a canonical transport theorem, and neither yields a numerical bound on $R$ before $\mathcal{M}$ and $D_{\text{eff}}$ are measured.
 
-The canonical default $\lambda = 0.1$ remains a solver normalization/timescale convention; the relation $\lambda = 1/(2w)$ with $w=5$ remains Hypothesized. The D=0 default remains the conservation-exact setting, while D>0 is a diffusion-bound reading. A bare $D=0.001$ estimate can be reported as an input-scale diagnostic, but it does not predict $\theta_{\text{cond}}$ without the constitutive map and a measured effective damping.
+The framework convention $\lambda=0.1$ is a supplied solver normalization/timescale choice; the constructor default is $\lambda=0.02$. The relation $\lambda=1/(2w)$ at $w=5$ remains Hypothesized. The $D=0$ default removes scalar diffusion. Under common incompressible advection and no additional scalar drift, it gives $D_t\rho=0$, while the Eulerian density may change. A bare $D=0.001$ estimate is an input-scale diagnostic; determining $\theta_{\text{cond}}$ requires the constitutive map and measured effective damping (`turbulence/cassi-fluid-feasibility.md` §3).
 
 **Testable comparison:** the PDE measurement will report the measured map $\mathcal{M}$, $D_{\text{eff}}$, and any compatible $\theta_{\text{cond}}$ rather than selecting one of three canonical $R$ regimes. The ranges $0.1$–$0.3$, $0.3$–$0.6$, and $0.6$–$0.7$ remain phenomenological labels for thin-skinned, mid-range, and nearly-filling geometric readings only; they carry no inferred $R$ intervals.
 

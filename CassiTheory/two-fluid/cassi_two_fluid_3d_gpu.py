@@ -39,17 +39,17 @@ def get_device():
 
 
 class TwoFluid3DGPU:
-    """3D incompressible two-fluid solver on GPU (PyTorch).
+    """Projected incompressible velocity coupled to two scalar densities.
 
-    D is the momentum-space numerical viscosity (the spectral Dk² damping of
-    the scalar fields): a solver convention, not derived physics. The default
-    D = 0 is the framework-honest, conservation-exact setting — the per-cell
-    closure's ρ̇ ≡ 0 premise holds exactly at D = 0 (the 44 truth campaign's
-    structured-IC verification: the void-edge band persists at f_band = 1.147%
-    at all epochs with f_Yang = 1.000; the canonical D = 0.001 diffusion was
-    the entire Eulerian eroder). Runs with D > 0 are the diffusion-bound
-    conservative readings. The σ₈ target sits in no branch under either
-    setting (44).
+    D is scalar-density diffusivity; nu is velocity viscosity. Both are
+    supplied numerical/model coefficients. At D=chi=0, total density is
+    materially conserved by the continuum equations; advection can still
+    change its value at a fixed spatial point. Conversion conserves the
+    density sum and is ungated in this base class.
+
+    The self-sourced pi*grad(phi) force is a candidate coupling. A physical
+    closed-fluid momentum and energy interpretation requires an additional
+    constitutive derivation.
     """
 
     def __init__(self, N=64, L=2.0 * np.pi, nu=0.001, D=0.0, lam=0.02,
@@ -323,7 +323,7 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
         self.h_smooth = h_smooth
         self.hyper_nu = hyper_nu
         self.cs2 = cs2
-        self.grav_sigma = 0.2  # N-body softening: caps |∇Φ| at this scale
+        self.grav_sigma = 0.2  # Weak-force attenuation scale; no magnitude cap.
         self.qi_gate = qi_gate
         self.gate_model = 'single'  # 'single' | 'five' | 'five_ke' (5-ch Wu Xing gate, +ke ring) | 'two_pole'
         self.phi_inv2 = phi_inv2
@@ -581,9 +581,8 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
         # Force: physical gradient = comoving gradient / a
         grad_phi = self._grad(phi_hat)
         grad_rho = self._grad(rho_hat)
-        # N-body saturation: caps |F_grav| to prevent nonlinear collapse.
-        # sf = |F|²/(|F|² + σ²) → 1 in linear regime, softens at σ threshold.
-        # From cassi_nbody_100.py—the "particle-free N-body" mechanism.
+        # Weak-force attenuation: sf suppresses small |pi*grad(phi)| and
+        # approaches one for large force. It does not cap the force magnitude.
         f2 = sum((pi * grad_phi[d]) ** 2 for d in range(3))
         sf = f2 / (f2 + self.grav_sigma ** 2 + 1e-10)
         force = [(sf * pi * grad_phi[d] - self.cs2 * grad_rho[d]) / a for d in range(3)]
@@ -675,10 +674,8 @@ class ExpandingTwoFluid3DGPU(TwoFluid3DGPU):
                       - (self.hyper_nu * self.k4 * ei_hat / (a2 * a2) if self.hyper_nu > 0 else 0)
                       - torch.fft.fftn(conv))
 
-        # Gravity is handled in the velocity equation (buoyancy force
-        # at line 494) and density advects by the velocity field.
-        # No separate gravitational density flux—that was the source
-        # of all χ>0 instabilities.
+        # This branch advects density with the projected velocity and has
+        # no separate chemotactic density flux; chi acts only in the base RHS.
 
         rhs_ey_hat = rhs_ey_hat * self.dealias
         rhs_ei_hat = rhs_ei_hat * self.dealias

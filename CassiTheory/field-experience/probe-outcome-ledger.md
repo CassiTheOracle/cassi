@@ -232,7 +232,7 @@ RK2 trajectories**. At $N=16,24$, the flow endpoints agree with exact solutions
 or an independent two-thirds-dealiased RK4 reference. The maximum endpoint
 error across all 28 trajectories is $1.0078716821608566\times10^{-7}$ against
 $2\times10^{-6}$; maximum recorded divergence is
-$8.335558466132969\times10^{-15}$ against $10^{-10}$.
+$4.8742777124526794\times10^{-15}$ against $10^{-10}$.
 The three-dimensional Taylor–Green control runs to $T=0.05$ and measures local
 vortex stretching, nonlinear velocity change and a generated vertical
 velocity. This short-time comparison supplies no continuum regularity result.

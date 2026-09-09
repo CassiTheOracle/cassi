@@ -1339,6 +1339,20 @@ flowchart TD
 
 **Visual:** The canonical variables provide common vocabulary across sectors. The geometric completion ansatz combines the canonical density subcone, coherence ball, projective shell, and interscale circuit in one stratified bundle. The interscale stress branch adds an exact momentum-window ledger and separates reciprocal stress transfer from routed attenuation. General relativity and Standard Model gauge dynamics remain established external physics, Qi-gravity remains an incomplete algebraic ansatz, and no current action matches all four interactions to the canonical solver.
 
+The bounded fluid analysis in `turbulence/cassi-fluid-feasibility.md` derives
+pressure, counterflow momentum flux and quantum stress from the ungauged
+first-order action with a supplied carrier mass. The canonical density
+equations separately support a nonnegativity argument and mathematical
+relative entropy under stated transport assumptions. The actual projected
+solver passes 246 checks across 28 native trajectories, including
+conditional Navier–Stokes controls, but its self-sourced force generates
+periodic mean acceleration. The fixed control gives **CONTRADICTS** for a
+closed internal-force interpretation; the bounded schedule gives **REJECT**
+for promotion to a physical ordinary-fluid replacement.
+Physical viscosity, material normalization, rotational hydrodynamics and
+closed thermal and momentum budgets remain open. No concentration-arrest
+trajectory is run.
+
 The registered interscale-current construction consists of a separately
 normalized scale-coordinate Yang/Yin doublet with exact total and relative
 continuity identities, equal-and-opposite rail transport on the Mapped

@@ -233,6 +233,15 @@ $\varphi$-derived or physical value in this inventory. An optional
 amplitude/action extension may introduce a fourth-order coefficient
 $\kappa_4$, which is separate from the canonical solver coefficients.
 
+The bounded fluid controls in `turbulence/cassi-fluid-feasibility.md` use
+$\nu=0.2$ and homogeneous-conversion $\lambda=0.3$ as **N-class benchmark
+inputs**. They leave the implementation defaults and C-class convention
+unchanged. The conditional matter reduction requires externally supplied
+$m_c$ and $K_x=\hbar^2/m_c$; its action coefficients
+$\lambda_\rho,\lambda_\varphi$ have units $\hbar L^3/T$, distinct from the
+conversion rate's $T^{-1}$. No physical parameter or material viscosity
+is derived by these controls.
+
 ### 3.4 Summary: What These Parameters ACTUALLY Are
 
 | Parameter | True status | If it's a constant, which one? |
@@ -465,9 +474,9 @@ convention drives all configurations toward the equilibrium.
 | $L$ (box size) | variable | **N** | Physical domain size |
 | $\Delta t$ (timestep) | $0.0005$–$0.002$ | **N** | Numerical stability |
 | $\epsilon_{\text{soft}}$ (Coulomb softening) | $0.02$ a$_0$ | **N** | Removes $1/r$ singularity |
-| $\text{grav\_sigma}$ | $0.2$ | **N** | $|\nabla\Phi|$ saturation for N-body |
+| $\text{grav\_sigma}$ | $0.2$ | **N** | Weak-force attenuation scale in the expanding density solver: $s_f=|\pi\nabla\Phi|^2/(|\pi\nabla\Phi|^2+\text{grav\_sigma}^2+10^{-10})$. It approaches one at large force and imposes no force-magnitude bound |
 | $h_{\text{smooth}}$ | $0.1$ | **N** | Hubble parameter EMA smoothing |
-| $D$ (diffusion) | $0.0$ | **N** | Solver parameter, not a physics constant: momentum-space numerical viscosity (the spectral $Dk^2$ damping). $D=0$ is the canonical conservation-exact setting—the per-cell closure's $\dot\rho \equiv 0$ premise verified exactly on the structured IC (44, `runs/44-truth-campaign/`; the D=0.001 diffusion was the entire Eulerian eroder); $D>0$ runs are the diffusion-bound conservative readings. The $\sigma_8$ target sits in no branch under either setting (44) |
+| $D$ (scalar-density diffusion) | $0.0$ | **N** | Supplied coefficient of $D\Delta E_{Y/I}$, with spectral damping $-Dk^2$. At $D=\chi=0$, common incompressible advection gives $D_t\rho=0$; the Eulerian density may still change. Conversion preserves the density sum for every $D$, and periodic diffusion preserves its spatial integral. The structured cosmology control in `runs/44-truth-campaign/` attributes its diffusive erosion to $D=0.001$; its $\sigma_8$ target remains outside the tested branches |
 | $\tau_{\text{qi}}$ (IIR memory) | $\varphi^{-1} \approx 0.618$ | **N** | Qi memory EMA timescale (reduced in slow regimes) |
 
 ## 7. Summary by Category

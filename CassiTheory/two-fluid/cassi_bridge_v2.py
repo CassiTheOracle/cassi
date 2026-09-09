@@ -94,7 +94,7 @@ class CassiBridgeV2:
     qi_tau : float
         Memory time constant. Default = φ⁻¹.
     grav_sigma : float
-        N-body saturation scale for |∇Φ|. 0 = off.
+        Gradient-conditioned potential attenuation scale; 0 disables it.
     holographic : bool
         Enable holographic information bound smoothing.
     eta : float
@@ -583,7 +583,7 @@ class CassiBridgeV2:
         Phi_hat = -S_hat / denom
         Phi = torch.fft.ifftn(Phi_hat).real
 
-        # N-body gradient saturation (from nbody work)
+        # Gradient-conditioned potential attenuation; no gradient-magnitude cap.
         if self.grav_sigma > 0:
             grad_x = torch.fft.ifftn(1j * self.kx * Phi_hat).real
             grad_y = torch.fft.ifftn(1j * self.ky * Phi_hat).real
@@ -591,9 +591,7 @@ class CassiBridgeV2:
             f2 = grad_x**2 + grad_y**2 + grad_z**2
             sf = f2 / (f2 + self.grav_sigma**2 + 1e-10)
 
-            # Apply saturation in Fourier space: Φ_sat = ifft(sf_hat ⊛ Φ_hat)
-            # Approximate: multiply in real space then re-transform
-            # (exact would require convolution; this is first-order)
+            # Multiply the potential by the local factor and remove its mean.
             Phi_sat_hat = torch.fft.fftn(sf * Phi)
             Phi_sat_hat[0, 0, 0] = 0.0
             Phi = torch.fft.ifftn(Phi_sat_hat).real
@@ -1696,7 +1694,7 @@ def main():
     parser.add_argument('--yang-amp', type=float, default=1.0,
                         help='Yang dark-energy amplitude')
     parser.add_argument('--grav-sigma', type=float, default=0.2,
-                        help='N-body saturation scale')
+                        help='Gradient-conditioned potential attenuation scale (0=off)')
     parser.add_argument('--alpha-mag', type=float, default=0.0,
                         help='Magnetic/gravitomagnetic coupling (0=off)')
     parser.add_argument('--alpha-em', type=float, default=0.0, help='EM gauge coupling (0=off)')

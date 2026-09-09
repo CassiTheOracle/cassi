@@ -785,6 +785,19 @@ stress ladder conserves total momentum and energy; its interface coefficient
 changes traction and dispersion without producing a multiplicative transfer
 law.
 
+The bounded fluid reduction in `turbulence/cassi-fluid-feasibility.md`
+derives a conservative pressure, quantum stress and anisotropic counterflow
+momentum flux from an ungauged first-order action branch with supplied mass.
+The canonical real-density pair separately dissipates a mathematical
+relative entropy under its stated transport assumptions. These temporal
+laws supply no shared irreversible thermodynamic closure. In the actual
+projected solver, the conditional Navier–Stokes controls pass, while a
+strictly positive periodic density configuration produces nonzero mean
+self-acceleration. The study passes 246 checks across 28 native trajectories
+and rejects promotion of the supplied sectors to a closed physical fluid.
+Material normalization, positive viscosity, rotational transport and closed
+force/energy accounting remain open.
+
 The listed correspondences are the framework's scale-assignment hypothesis. The Planck length is the external dimensionful anchor supplied to this model; the $\varphi$ recurrence supplies dimensionless ratios and does not by itself derive physical dimensionality or force unification.
 
 **Epistemic status:** the recurrence is **Derived conditional** on the supplied anchor and one-step convention. Identifying each named cascade step with a physical scale is **Hypothesized** and, where a placement is selected from measured data, **Mapped**; `foundations/dimensionful-cascade.md` records the arithmetic and provenance.
