@@ -7826,9 +7826,10 @@ tension in its stated large-cutoff, localized-core class.
 The stationary vortex can trap the existing carrier, but finite-loop
 support requires additional conditions. A circulating population must
 simultaneously balance tension and retain a strict gap to the
-three-dimensional bulk continuum. A self-consistent loaded family,
-its angular and longitudinal stability, and a localized formation
-history remain uncomputed. The carrier self-interaction has no
+three-dimensional bulk continuum. The loaded radial family and its
+finite-period population response are calculated in §§46–48. General
+angular stability, finite-loop stability and a localized formation
+history remain open. The carrier self-interaction has no
 physically selected value in the parameter registry. The source
 action conserves carrier population and preserves exactly empty
 carrier data, so the stationary trapping result supplies no population
@@ -8235,11 +8236,225 @@ reconciliation are retained in
 `runs/20260908_matter_formation_vortex_compressibility/`.
 The two programs in §47.2 reproduce the fixed calculation. Every
 scientific receipt retains `complete_physical_matter_formation=false`.
-Finite-period energy differences, finite-loop stability, formation
-history, quantum state and physical particle identification remain open.
+Finite-period energy comparisons are given in §48. Finite-loop stability,
+formation history, quantum state and physical particle identification remain open.
+
+## 48. Working notes: finite-period population redistribution
+
+### 48.1 Longitudinal gradients set a finite energy cost
+
+A direct energy comparison can determine whether redistribution still
+lowers the energy when the longitudinal gradients are retained. Use the
+eight $n=64$ profiles that meet the local current and escape conditions
+in §46 and pass every individual response comparison in §47.
+The complete §47 verdict remains `INCONCLUSIVE`. This calculation
+evaluates finite-amplitude trial fields and supplies no replacement
+response solve.
+
+Keep the cylindrical transverse boundary and impose a periodic axial
+coordinate $s$. In the trial class set $\mathcal A_s=0$. The radial
+connection remains $h=-L_h/H_h$ at each axial position. If
+$v_Y,v_I,v_\Phi,v_1,v_3,v_C$ are the physical radial profile variations
+corresponding to the retained mass-scaled response, and
+$v_h=D h[v]$, the coefficient of the longitudinal gradient cost is
+$$
+\boxed{
+B=2\pi\int_0^R r\,dr\left[
+a(v_Y^2+v_I^2)+d v_\Phi^2+K_{Cx}v_C^2+
+\frac d{g_Q^2}\left(v_h^2+\frac{v_1^2+v_3^2}{r^2}\right)
+\right].
+}
+$$
+The connection contribution includes both $\mathcal F_{sr}$ and
+$\mathcal F_{s\theta}$. Omitting the radial-connection variation would
+remove a positive term from the trial energy. Calculate it from
+$$
+v_h=-\frac{(D L_h[v])H_h-L_h(D H_h[v])}{H_h^2}.
+$$
+The definitions of $L_h,H_h$ and the regular radial basis are in §44.
+At a stationary branch the quadratic energy change is
+$$
+\frac{\Delta E}{L}
+=\frac{A^2}{4}(\zeta+Bp^2)+o(A^2).
+$$
+For $\zeta<0$ and $B>0$, this trial direction has a threshold wavelength
+$L_\star=2\pi\sqrt{B/(-\zeta)}$. This is a variational wavelength
+for a periodic straight cylinder. A closed-loop spectrum additionally
+depends on curvature, boundary geometry and its exterior field.
+
+### 48.2 Exactly population-preserving finite trials
+
+The finite comparison uses the complete spatial energy of the trial
+fields. Let $y_0,f_0$ be a retained profile and $v_y,v_f$ its unscaled
+nodal response, with zero outer variation. Write
+$\vartheta=ps$, $L=2\pi/p$, and
+$$
+y(\vartheta)=y_0+A v_y\cos\vartheta,\qquad
+f(\vartheta)=c_A(f_0+A v_f\cos\vartheta),
+$$
+where the consistent radial quadratic population gives
+$$
+P_0=P(f_0),\qquad
+c_A=\sqrt{\frac{P_0}{P_0+A^2P(v_f)/2}}.
+$$
+The mean population is then exactly $P_0$. The supplied profiles obey
+$|P_0-64|/64<10^{-10}$. Apply this single declared factor only to the
+finite trial's carrier. The core and response remain unchanged.
+
+Set $\chi_C(s,r)=f(ps,r)e^{iwps}$ for integer $w$. Each trial retains
+its total axial phase winding $2\pi w$. The longitudinal energy density
+at an axial sample is
+$$
+\mathcal E_\parallel=
+\frac a2[(\partial_s p_Y)^2+(\partial_s p_I)^2]
++\frac d2(\partial_s u)^2
++\frac d{2g_Q^2}\left[(\partial_s h)^2+
+\frac{(\partial_s b_1)^2+(\partial_s b_3)^2}{r^2}\right]
++\frac{K_{Cx}}2\left[(\partial_s f)^2+(wp)^2 f^2\right].
+$$
+Evaluate the transverse energy directly at every sample, including the
+loaded-carrier terms of §46. The comparison quantity is the period
+average of the full energy per length minus its uniform-profile value
+at the same $p,w,P_0$. Population conservation makes the integrated
+$(wp)^2 f^2$ contribution identical in the two configurations.
+
+### 48.3 Fixed energy calculation before execution
+
+Use both core representatives and all four §46 radial grids at $n=64$,
+with the exact eight profile and response arrays retained in §§46–47.
+Keep every action coefficient and boundary value unchanged. No field
+minimization, new response solve or population continuation is performed.
+For each row calculate $B$ and $L_\star$, then use the two prescribed
+wave numbers $p=\tfrac12\sqrt{-\zeta/B}$ and
+$p=2\sqrt{-\zeta/B}$. Use all three amplitudes
+$A=64\,2^{-8},64\,2^{-9},64\,2^{-10}$, both windings $w=0,1$,
+and both uniform periodic quadratures with 32 and 64 samples.
+This gives 24 finite energy comparisons per profile, 192 in total.
+
+The primary program uses the source radial energy and differentiates
+the explicit $h=-L_h/H_h$ expression for its directional derivative.
+It may reuse transverse and axial sample energies across wave numbers
+and windings, since only their displayed coefficients change.
+The independent program imports no primary energy or differentiation
+code. It reconstructs the covariant component energy using the
+independent §44 source, and differentiates $L_h,H_h$ algebraically.
+Both programs retain all five contributions to $B$, the physical
+profile variation, $v_h$, and every axial sample's nine transverse
+energy components, five axial-gradient components and population.
+
+Require finite arrays, the source-bound parent identities, $B>0$,
+$\zeta<0$ and the existing individual $n=64$ response qualification.
+The two programs must match $B$, its components, the base energy and
+the sample energy components to $10^{-8}$ after division by
+$\max(1,|\mathrm{reference}|)$. Require relative population error
+below $10^{-10}$ for every trial.
+
+For every trial retain $Q_A=4\Delta E/(LA^2)$, where $\Delta E/L$
+is the computed energy-per-length difference. Require agreement with
+$\zeta+Bp^2$ to relative error $0.02$, using denominator
+$\max(10^{-10},|\zeta+Bp^2|)$. The independent and primary $Q_A$
+values, the 32/64-sample values and the $w=0,1$ values must agree
+to relative error $10^{-6}$ with denominator
+$\max(10^{-10},|Q_{A,\mathrm{reference}}|)$.
+The four radial refinements and two finest-grid domain comparisons
+for $B$ and $L_\star$ must agree to relative error $0.02$, using the
+finer/larger-domain value as reference and floor $10^{-10}$.
+
+Missing evidence, a nonfinite value, an incomplete schedule or a failed
+numerical comparison gives `INCONCLUSIVE`. If all numerical requirements
+pass, every slow-wave trial has $Q_A<-10^{-6}$ and every faster-wave
+control has $Q_A>10^{-6}$, the verdict is
+`CONTRADICTS-finite-period uniform-core energy minimum`.
+Remaining cases give `DOES NOT EMERGE in the specified trial family`.
+The faster-wave result qualifies only the specified trial direction.
+No growth rate, nonlinear breakup, stable closed loop or formation
+history is inferred.
+
+Before execution, retain this section, the eight core/loading/response/
+energy programs, all input profile and response hashes, and the parent
+summary and verification hashes in
+`runs/20260908_matter_formation_vortex_axial_energy/`.
+The programs are
+`computations/matter_formation_vortex_axial_energy.py` and
+`computations/verify_matter_formation_vortex_axial_energy.py`.
+Run the primary with `--manifest` and a fresh `--output`, then the
+independent program with the same manifest, the primary directory as
+`--input`, and a separate fresh `--output`. Retain stdout, stderr,
+exit codes, raw arrays and JSON. Stop after the fixed schedule.
+Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
+### 48.4 Measured finite-period energy redistribution
+
+Population redistribution lowers the full energy of every retained
+straight core at the prescribed slow wave number. The faster-wave
+control raises the energy along the same trial direction. Both results
+include the radial and angular connection gradients, conserve the mean
+carrier population and hold at both specified phase windings. All 192
+finite comparisons pass the fixed numerical requirements. The exact
+verdict is
+`CONTRADICTS-finite-period uniform-core energy minimum`.
+
+The threshold wavelengths and gradient coefficients on the finest
+grid, $(R,N)=(64,1024)$ at $n=64$, are:
+
+| Core representative | Longitudinal coefficient $B$ | Threshold wavelength $L_\star$ | Slow-wave $Q_A$ range | Faster-wave $Q_A$ range |
+|---|---:|---:|---:|---:|
+| $\varsigma=+1$ | $0.0155405909739$ | $35.6140556113$ | $[-0.000362776864,-0.000362700024]$ | $[0.001451132633,0.001451206038]$ |
+| $\varsigma=-1$ | $0.0154298052349$ | $33.1365599997$ | $[-0.000416065117,-0.000415989016]$ | $[0.001664285576,0.001664357762]$ |
+
+The lengths use the supplied dimensionless action normalization.
+The slow and faster trial periods are $2L_\star$ and $L_\star/2$,
+respectively. The ranges include all three amplitudes, both axial
+quadratures and both windings on the stated grid.
+
+The independent calculation passes 2,168 per-profile checks, all four
+radial refinements and both domain comparisons. Across its 192 trials,
+the largest relative deviation from $\zeta+Bp^2$ is
+$2.25830\times10^{-4}$, below the fixed $0.02$ bound.
+The largest relative primary/independent $Q_A$ difference is
+$1.52992\times10^{-7}$. Across both programs, the maximum relative
+32/64-sample difference is $2.62314\times10^{-8}$ and the maximum
+relative winding difference is $4.37189\times10^{-9}$.
+The maximum relative mean-population error is
+$4.44090\times10^{-16}$. The largest relative radial and domain
+differences in $B,L_\star$ are $3.16085\times10^{-4}$ and
+$1.28470\times10^{-7}$, respectively.
+
+A separate raw-array reconstruction checks all 112 accepted base/sample
+archives and reconstructs 384 trial energies across the two programs.
+It also checks the nonnegative axial-gradient terms and the
+consistent-population normalization directly. The maximum relative
+raw-reconstructed/primary $Q_A$ difference is
+$2.18560\times10^{-7}$. The source, section and input hashes are
+retained with these checks.
+
+The accepted evidence is retained under
+`runs/20260908_matter_formation_vortex_axial_energy/`: `primary/`,
+`verification_recovery/`, `raw_reconciliation.stdout.log` and
+`reconciliation.json`. The original verifier's `verification/`
+directory contains an execution-exception receipt excluded from
+scientific adjudication. The accepted source binding is
+`verifier_recovery_manifest.json`; it records the one-line coefficient
+handoff repair and the retained primary receipt. Physical expressions,
+inputs, quadratures and acceptance thresholds are identical across the
+two source bindings. To reproduce the calculation with the programs in
+§48.3, use this accepted manifest for both programs and fresh output
+directories.
+
+These finite trials establish a lower-energy, population-redistributed
+competitor within the declared periodic straight-cylinder class.
+A dynamical growth rate, nonlinear breakup, a stable closed loop and
+localized formation are uncomputed. The complete §47 response verdict
+remains `INCONCLUSIVE`; this result uses its eight individually qualified
+$n=64$ rows. Quantum state, physical normalization and particle
+identification remain open, and every scientific receipt retains
+`complete_physical_matter_formation=false`.
 
 ## References
 
+- `computations/matter_formation_vortex_axial_energy.py`—source-energy finite-period trials with population conservation and all longitudinal field terms.
+- `computations/verify_matter_formation_vortex_axial_energy.py`—independent covariant energy reconstruction, finite-period comparisons and radial/domain qualification.
 - `computations/matter_formation_electric_support.py`—exact temporal-square and charge construction, Gaussian quadrature, covariant interval operators and boundary controls.
 - `computations/verify_matter_formation_common_charge.py`—independent component currents, complete square, Gaussian moments and fixed-common-number infimum.
 - `computations/verify_matter_formation_electric_support.py`—independent covariant incidence operators, raw spectra, boundary-work and negative-coefficient controls.
