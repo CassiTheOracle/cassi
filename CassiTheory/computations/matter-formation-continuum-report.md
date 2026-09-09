@@ -11035,7 +11035,262 @@ no formation trajectory, absolute rate or interacting bound-state mass.
 Every scientific receipt retains
 `complete_physical_matter_formation=false`.
 
+## 66. Working notes: quantum coupling normalization and radiative closure
+
+### 66.1 Canonical spatial normalization
+
+The scalar production amplitudes require a coupling convention compatible
+with their propagation cone. This calculation retains the hypothesized
+real-mediator/complex-carrier action of §64, ordinary scalar quantization,
+and the equal-cone relation $c_\Psi=2a/k_{Cx}$. No gauge or fermion field
+is added. Set $c=c_\Psi^{-1/2}$, $\mathbf y=\mathbf x/c$,
+$\widehat\sigma=c^{3/2}\sigma$ and
+$\widehat\Phi=c^{3/2}\Phi=(X+iY)/\sqrt2$. The measure is
+$d^3x=c^3d^3y$; both kinetic terms now have unit propagation speed.
+Writing $S=\widehat\sigma+\widehat v$ and
+$\widehat v=c^{3/2}\sqrt{\mathcal N c_\Psi}$ gives
+$$
+\begin{aligned}
+W={}&\Lambda_0+\frac{\mu_S^2}{2}S^2
++\frac{\mu_C^2}{2}(X^2+Y^2)
++\frac{L}{24}S^4+\frac{P}{4}S^2(X^2+Y^2)
++\frac{U}{8}(X^2+Y^2)^2,\\
+L={}&\frac{\lambda_4}{c^3},\qquad
+P=\frac{g_2}{c^3},\qquad
+U=\frac{u_C}{\mathcal N a^2c^3},\\
+\mu_S^2={}&-\frac{u_\rho}{c_\Psi},\qquad
+\mu_C^2=\frac{e_C+1/(4a)-h_C}{a},\qquad
+\Lambda_0=\frac{\mathcal N c^3u_\rho}{4}.
+\end{aligned}
+$$
+The signed parameters $\mu_S^2,\mu_C^2$ are coefficients in the unshifted
+potential, distinct from the excitation masses at $f=1$. Cubic
+coefficients acquire $c^{-3/2}$ instead. This coordinate change selects
+no physical action normalization or measured propagation speed.
+At $a=1/16,c_\Psi=1/8,u_\rho=4,u_C=k_{Cx}=1,e_C=3/4$,
+$$
+\boxed{(L,P,U)=\frac{8\sqrt2}{\mathcal N}(6,h_C,1).}
+$$
+
+### 66.2 Normalized two-particle scattering
+
+Identical-particle phase space fixes a factor in the scattering bound.
+Use the channels $(SS,XX,YY,SX,SY,XY)$, with each identical pair divided
+by $\sqrt2$. In this basis the high-energy contact matrix is
+$$
+C=\begin{pmatrix}
+L/2&P/2&P/2&0&0&0\\
+P/2&3U/2&U/2&0&0&0\\
+P/2&U/2&3U/2&0&0&0\\
+0&0&0&P&0&0\\
+0&0&0&0&P&0\\
+0&0&0&0&0&U
+\end{pmatrix},\qquad a_0=-\frac{C}{16\pi}.
+$$
+Here $S_0=1+2ia_0$, and the tree-level perturbativity criterion is
+$|\operatorname{Re}a_{0,\alpha}|\le1/2$ for every eigenchannel.
+The six eigenvalues of $C$ are
+$$
+U,U,P,P,\quad
+\frac{L}{4}+U\ \pm\ \frac14\sqrt{(L-4U)^2+8P^2}.
+$$
+For the retained coupling and the controls $h_C=0,2,6$, the positive
+eigenvalue with the plus sign has largest absolute value. Therefore
+$$
+\boxed{\mathcal N\ge
+\frac{\sqrt2}{2\pi}\left(5+\sqrt{1+2h_C^2}\right)}
+$$
+is the corresponding asymptotic tree bound. Passing it is a necessary
+perturbative check in an energy range where masses and exchange terms are
+negligible; it supplies no quantitative accuracy guarantee at the pair
+production energy. Violating it diagnoses that tree approximation, without
+proving nonunitarity of an exact quantum theory.
+
+An independent normalization check uses the two-particle cut. For the
+fully symmetric fourth-derivative tensor $T_{ijkl}$ of $W$, each internal
+unordered pair has weight $1/(1+\delta_{ij})$. Dividing external identical
+pairs by $\sqrt2$ makes the cut proportional to $C^2$ and gives
+$\operatorname{Im}a_0=a_0a_0^\dagger$ in the elastic high-energy limit.
+A single real scalar with $W=\lambda_Y S^4/4$ consequently has
+$a_0=-3\lambda_Y/(16\pi)$ and $|\lambda_Y|\le8\pi/3$.
+The conventions follow Di Luzio, Kamenik and Nardecchia,
+doi:10.1140/epjc/s10052-017-4594-2, §2.
+
+### 66.3 One-loop scalar counterterms
+
+Quantum corrections test whether the fixed classical coupling ratios can
+be retained at different scales. Use dimensional regularization and
+modified minimal subtraction in $3+1$ dimensions, with
+$\beta=\mu\,d/d\mu$. At one scalar loop the field anomalous dimension
+vanishes. The three contraction channels of $T_{ijkl}$ give
+$$
+16\pi^2(\beta_L,\beta_P,\beta_U)
+=\left(3L^2+6P^2,\ P(L+4U+4P),\ 10U^2+P^2\right).
+$$
+The mass and constant terms are
+$$
+\begin{aligned}
+16\pi^2\beta_{\mu_S^2}&=L\mu_S^2+2P\mu_C^2,\\
+16\pi^2\beta_{\mu_C^2}&=P\mu_S^2+4U\mu_C^2,\\
+16\pi^2\beta_{\Lambda_0}&=\tfrac12[(\mu_S^2)^2+2(\mu_C^2)^2].
+\end{aligned}
+$$
+The independent background-field calculation must reproduce these from
+$32\pi^2\beta W=\operatorname{tr}[(W'')^2]$, coefficient by coefficient.
+This is the scalar restriction of the conventions in Luo, Wang and Xiao,
+arXiv:hep-ph/0211440, equations (13), (22), (38)–(39).
+The polynomial operator basis is closed at this order; the numerical
+coupling ratios need not be.
+
+On the retained family $L=6U,P=h_CU$,
+$$
+\boxed{16\pi^2(\beta_L-6\beta_U)=48U^2>0\quad(U>0).}
+$$
+Thus an overall normalization alone cannot absorb the scalar quartic
+running while preserving those ratios. The values can instead be supplied
+at a declared matching scale with independently running couplings.
+They do not acquire a scale or physical normalization from this calculation.
+For $x=3P/L$, the tree-amplitude cancellation coordinate in §64,
+$$
+16\pi^2\beta_x
+=x\left(-2L+4U+4P-\frac{6P^2}{L}\right).
+$$
+On that family it is $-2L/3$ at $h_C=2$ and $-10L$ at $h_C=6$.
+The two tree zeros therefore lack protection by this scalar one-loop flow.
+This statement is about running tree parameters, not a computed physical
+one-loop production amplitude. The only real simultaneous zero of the
+three quartic beta functions is the Gaussian point: the first and third
+components are sums of nonnegative squares. This one-loop conclusion
+establishes no nonperturbative ultraviolet theorem.
+
+### 66.4 Fixed qualification before execution
+
+The primary program is
+`computations/matter_formation_quantum_coupling.py`; independent programs
+are `computations/verify_matter_formation_scalar_scattering.py` and
+`computations/verify_matter_formation_scalar_radiative.py`.
+They must not import or read one another's mathematics or results.
+Source bytes may be read for identity checks. Main owns integration,
+execution, raw reconciliation and the notebook.
+
+Require exact canonical-potential reconstruction, normalized scattering
+matrix and characteristic polynomial, all three scalar-loop tensor
+contractions, mass and vacuum coefficients, and the two running-ratio
+identities. Independently verify the identical-pair cut and the
+single-real-scalar bound. Check decoupled real-scalar and $O(2)$ limits,
+the $O(3)$-symmetric limit $L=3U,P=U$, and the Gaussian point.
+Evaluate only the Cartesian product
+$\mathcal N=1,4,16,64$ and $h_C=0,2,2.9598260763447164,6$, with the
+other scalar inputs fixed in §66.1. These are normalization witnesses,
+not fitted physical choices. Store all sixteen full matrices, spectra,
+couplings, beta coefficients and bound decisions as full-precision JSON.
+Numeric comparisons use $\|A-B\|/\max(1,\|B\|)\le10^{-9}$;
+symbolic identities require exact zero.
+
+Before scientific execution bind this section, §64, all three programs,
+the parent action and accepted independent hand reviews with normalized
+SHA-256 under `runs/20260909_matter_formation_quantum_coupling/`.
+Each program must reject a mismatched source or either unaccepted review
+before scientific rows; retain these nine controls. Separate reconstruction
+must compare the recorded raw matrices, spectra and coefficients without
+importing any calculation program. All requirements passing gives
+`SUPPORTS-conditional scalar quantum coupling constraints`; a missing
+prerequisite, nonfinite quantity or failed comparison gives `INCONCLUSIVE`.
+Stop at this schedule: no parameter search, running beyond perturbative
+control, absolute production rate, formation trajectory or claim of
+physical microscopic selection. Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
+## 67. Working notes: qualified scalar quantum coupling constraints
+
+### 67.1 The normalization needed by the tree approximation
+
+The supplied scalar action has a definite high-energy scattering bound once
+its propagation cone and identical-particle states are normalized.
+The tensor calculation and independent fourth-derivative reconstruction
+agree on every matrix and spectrum in the sixteen-row schedule.
+For the inherited coupling $h_C=2.9598260763447164$,
+$$
+\boxed{\mathcal N_{\min,\mathrm{tree}}=2.094050108887042.}
+$$
+At the reporting normalization $\mathcal N=1$, the largest absolute
+partial wave is $1.047025054443521$, exceeding the tree criterion $1/2$.
+The normalization therefore fails this asymptotic perturbative check.
+The corresponding bound for each supplied coupling is
+
+| $h_C$ | Minimum $\mathcal N$ for the asymptotic tree criterion |
+|---|---:|
+| $0$ | $1.3504744742356591$ |
+| $2$ | $1.8006326323142123$ |
+| $2.9598260763447164$ | $2.094050108887042$ |
+| $6$ | $3.048471889500582$ |
+
+All four $\mathcal N=1$ witnesses violate the criterion; the twelve
+witnesses at $\mathcal N=4,16,64$ satisfy it. These are supplied
+normalizations. The calculation selects no physical value of
+$\mathcal N$, establishes no exact-theory violation of unitarity, and
+supplies no error bound for production near threshold. The formal
+tree amplitudes in §65 consequently carry no controlled physical rate
+prediction from this calculation.
+
+### 67.2 Independent running couplings are required
+
+The scalar one-loop correction stays within the declared polynomial
+operator basis and changes its numerical coupling ratios. Independent
+coefficient extraction from the background-field Hessian agrees with
+the tensor contractions for all quartic, mass and vacuum terms.
+On the supplied family the exact result is
+$$
+\boxed{16\pi^2(\beta_L-6\beta_U)=48U^2>0\qquad(U>0).}
+$$
+An overall action normalization cannot preserve $L/U=6$ under this flow.
+The three quartics can be specified at a matching scale and run
+independently; neither that scale nor their measured normalization
+is supplied by the result.
+
+The two tree-cancellation coordinates also move: for $x=3P/L$,
+$16\pi^2\beta_x=-4U$ at $h_C=2$ and $-60U$ at $h_C=6$.
+These are running-parameter statements. No physical one-loop production
+amplitude is computed. The sums of nonnegative squares in the quartic
+beta functions leave only the Gaussian real fixed point at this order;
+they establish no nonperturbative ultraviolet conclusion.
+
+### 67.3 Numerical qualification and physical scope
+
+All 70 primary, 25 independent scattering and 27 independent radiative
+checks pass. Separate raw reconstruction passes 656 comparisons of
+couplings, matrices, spectra, counterterms and bound decisions. Its
+largest normalized discrepancy is $1.4995789706150267\times10^{-15}$,
+below the fixed $10^{-9}$ tolerance. Each program rejects a source
+mismatch and either unaccepted hand review before scientific rows;
+all nine rejection controls qualify.
+
+The frozen source and section snapshots, accepted hand derivations,
+full-precision results, submitted implementation drafts and execution
+records are retained in
+`runs/20260909_matter_formation_quantum_coupling/`.
+The joint verdict is
+`SUPPORTS-conditional scalar quantum coupling constraints`.
+The calculation uses Python 3.12.10, NumPy 2.5.1 and SymPy 1.14.0.
+
+Physical matter formation still requires a selected microscopic action
+and quantum state, a physical normalization and renormalization
+prescription, derived particle spin/statistics/charges, and localized
+formation with nonradial persistence in the same model. The
+many-to-one projection in §29 leaves those microscopic choices
+undetermined by the registered density observables. Changing a
+normalization witness supplies none of that missing selection.
+Every scientific receipt retains
+`complete_physical_matter_formation=false`.
+
 ## References
+
+- `computations/matter_formation_quantum_coupling.py`—canonical spatial normalization, scattering tensor and one-loop scalar contractions.
+- `computations/verify_matter_formation_scalar_scattering.py`—independent fourth derivatives, normalized two-particle cut, channel decomposition and spectra.
+- `computations/verify_matter_formation_scalar_radiative.py`—independent background-field Hessian extraction, symmetry limits and running-ratio identities.
+- `runs/20260909_matter_formation_quantum_coupling/`—frozen sources and sections, accepted hand reviews, full scientific rows, raw reconstruction and nine rejection controls.
+- Di Luzio, Kamenik and Nardecchia, [Implications of perturbative unitarity for scalar di-boson resonance searches at LHC](https://doi.org/10.1140/epjc/s10052-017-4594-2)—partial-wave conventions and identical-particle normalization.
+- Luo, Wang and Xiao, [Two-Loop Renormalization Group Equations in General Gauge Field Theories](https://arxiv.org/abs/hep-ph/0211440)—general scalar-loop contraction and mass conventions.
 
 - `computations/matter_formation_parent_matching.py`—exact scalar-action reconstruction, grouped production amplitudes, free-pair thresholds and coercive-potential witnesses.
 - `computations/verify_matter_formation_parent_trees.py`—external-leg tree enumeration with full propagator, interaction and cancellation reconstruction.
