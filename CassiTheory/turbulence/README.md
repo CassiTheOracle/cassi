@@ -26,6 +26,7 @@ constitutive map remain open.
 | 1 | `turbulence/kolmogorov-from-phi.md` | Turbulence spectra from the two-fluid PDE | Derived conditional / Hypothesized closures |
 | 2 | `turbulence/navier-stokes-transfer-boundary.md` | Critical transfer, cubic heat correction, and coercivity | Derived identities and obstructions / conditional small-data estimates |
 | 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution and helical covariance conditions | Derived filtered identities / Hypothesized geometric closure |
+| 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response and matter-binding comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
 
 ## 2. Document summaries
 
@@ -52,6 +53,16 @@ It states the assumptions behind a helical covariance model and an
 all-scale anisotropy estimate, with fixed controls for local isotropy,
 helix deformation, surrounding strain, and scale dependence.
 
+### 2.4 Fine-scale transfer and matter binding
+
+`turbulence/navier-stokes-depletion-dynamics.md` isolates a kinetic-energy-controlled
+coarse contribution while retaining full stress in the fine contribution.
+The averaged fine transfer can increase from zero, and a fixed multiscale
+control exceeds viscous-only absorption. A data-controlled cumulative
+estimate remains open. The matter comparison distinguishes qualified
+loaded-core redistribution from the positive constrained energy that
+establishes conditional unwound binding.
+
 ## References
 
 - `foundations/xi-derivation.md`—first-principles derivation of the Qi-gravity coupling $\xi = \varphi^6$ used in the velocity equation
@@ -61,4 +72,6 @@ helix deformation, surrounding strain, and scale dependence.
 - `computations/navier_stokes_stress_geometry_prereg.md`—fixed fixtures, numerical tolerances, and decision rules
 - `computations/verify_navier_stokes_transfer.py`—exact finite-Fourier transfer verification
 - `computations/verify_navier_stokes_stress_geometry.py`—symbolic geometry checks and independent Fourier quadrature
+- `computations/navier-stokes-depletion-prereg.md`—fixed instantaneous-response and absorption controls
+- `computations/verify_navier_stokes_depletion.py`—exact fine-transfer algebra and independent FFT/quadrature reconstruction
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths

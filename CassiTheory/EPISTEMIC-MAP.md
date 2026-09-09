@@ -237,6 +237,7 @@ matter formation remains **Hypothesized/Open**.
 | `turbulence/kolmogorov-from-phi.md` | Derived/Hypothesized—August 2026 | The Kolmogorov $-5/3$ law is conditionally inherited under Navier–Stokes assumptions; the $\varphi$-break, deviation, gravity, and quality spectra are optional Hypothesized closures |
 | `turbulence/navier-stokes-transfer-boundary.md` | Derived identities and obstructions / conditional small-data estimates—September 2026 | Exact critical-transfer and cubic heat-correction identities; signed quartic remainder and unbounded corrected-energy level set; no arbitrary-data regularity result |
 | `turbulence/navier-stokes-stress-geometry.md` | Derived filtered identities / Hypothesized geometric closure—September 2026 | Exact stress, strain, and transfer dynamics; conditional helical covariance and anisotropy estimate; local isotropy and surrounding-strain controls leave the all-scale dynamic bound open |
+| `turbulence/navier-stokes-depletion-dynamics.md` | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate—September 2026 | Exact coarse/fine strain split, two-sided instantaneous response and a viscous-only absorption counterexample; 1,011 checks pass. The matter-binding comparison identifies additional coercive structure. Data-controlled cumulative depletion and arbitrary-data regularity remain open |
 
 ## 2. Calibrated
 

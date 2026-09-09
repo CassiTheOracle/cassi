@@ -145,6 +145,19 @@ The original unforced incompressible equation admits exact stress and critical-n
 
 All 37 checks in the stress-geometry receipt pass. The isotropy control is pointwise at the initial origin; the affine helix is a prescribed kinematic deformation. These results do not classify every nonlocal or time-integrated geometric condition. The stress, strain, and pressure equations still require a data-controlled all-scale production estimate for an arbitrary-data regularity argument. No Cassi current-to-momentum constitutive map is supplied.
 
+## 8. Fine-scale Navier–Stokes transfer dynamics
+
+The fixed calculation measures the averaged fine-scale transfer and its instantaneous derivative while retaining all modes in the original equation. The Gaussian split changes only the strain factor in the full stress contraction. Its mathematical record is `turbulence/navier-stokes-depletion-dynamics.md`, under `computations/navier-stokes-depletion-prereg.md`; the accepted receipt is `runs/navier_stokes_depletion/complete/verification.json`.
+
+| Control | Decisive result | Classification and scope |
+|---|---|---|
+| Zero-transfer cyclic field | $F_f(0)=0$ and $D F_f[B]=(1-e^{-L^2/2})3(\sqrt2-1)/4>0$; the derivative is $0.1222352528$ at $L=1$. | **CONTRADICTS** automatic nonpositive instantaneous response at zero fine transfer |
+| Cyclic and planar responses | The fixed rows contain both signs; the planar value at $L=2$ is $-0.2995901414$. | **SUPPORTS** two-sided instantaneous nonlinear response in this control class |
+| Fixed multiscale absorption | At amplitude eight, $L=2$ and $\nu=0.01$, $(F_f-\nu Y/2)/\mathcal C=0.029379280637034728>0$. | **CONTRADICTS** viscous-only absorption with the specified $\theta=1/2$ |
+| Data-controlled growth after viscous absorption | The coarse coefficient is bounded by kinetic energy at fixed $L$; no data-controlled time integral for the remaining fine production is established. | **UNRESOLVED** cumulative depletion and arbitrary-data regularity |
+
+All 1,011 checks pass, including 108 spatial rows, 72 quadrature rows and finite values on all 48 absorption rows. The maximum normalized discrepancy is $8.0993\times10^{-15}$ against $10^{-10}$. The current protocol, verifier and retained Fourier helper match the input manifest and source snapshots. These are instantaneous controls; the cyclic field's critical norm initially decreases under viscosity. No time-evolved turbulence or continuum-regularity result is asserted. The matter comparison retains the distinct constraints behind loaded-core modulation and unwound fixed-population binding.
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -178,3 +191,5 @@ All 37 checks in the stress-geometry receipt pass. The isotropy control is point
 - `computations/navier_stokes_stress_geometry_prereg.md`—fixed Navier–Stokes identities, controls, tolerances, and stopping rule.
 - `turbulence/navier-stokes-transfer-boundary.md`—critical transfer, heat correction, and corrected-energy level-set obstruction.
 - `turbulence/navier-stokes-stress-geometry.md`—exact stress dynamics, helical covariance assumptions, and measured control classifications.
+- `computations/navier-stokes-depletion-prereg.md`—fixed fine-scale transfer-response and viscous-absorption controls.
+- `turbulence/navier-stokes-depletion-dynamics.md`—exact split, measured response signs, cumulative proof requirement, and matter-binding comparison.
