@@ -235,10 +235,14 @@ def euclidean_control(book):
     K, E, C = expected[0] / 2, expected[2] / 2, expected[1]
     eta = sp.simplify(1 - C*C / (4 * K * E))
     book.check("Gaussian nonzero spectral spread", eta > 0 and eta < 1, eta)
-    book.exact("Gaussian maximum speed radius", sp.diff(4 * r*r * sp.exp(-2 * r*r), r).subs(r, 1 / sp.sqrt(2)), 0)
-    book.exact("Gaussian maximum speed squared", (4 * r*r * sp.exp(-2 * r*r)).subs(r, 1 / sp.sqrt(2)), 2 / sp.E)
+    scaled_U = U.subs({coordinate: coordinate / ell for coordinate in xyz}, simultaneous=True) / ell
+    radial_speed_squared = sp.simplify(scaled_U.dot(scaled_U).subs({x: r, y: 0, z: 0}))
+    maximizing_radius = ell / sp.sqrt(2)
+    maximum_speed = sp.sqrt(radial_speed_squared.subs(r, maximizing_radius))
+    book.exact("Gaussian maximum speed radius", sp.diff(radial_speed_squared, r).subs(r, maximizing_radius), 0)
+    book.exact("kinematic maximum speed scaling", maximum_speed, sp.sqrt(2 / sp.E) / ell)
     book.exact("kinematic concentrating energy limit", sp.limit(ell * K, ell, 0, dir="+"), 0)
-    book.check("kinematic concentrating speed limit", sp.limit(sp.sqrt(2 / sp.E) / ell, ell, 0, dir="+") == sp.oo)
+    book.check("kinematic concentrating speed limit", sp.limit(maximum_speed, ell, 0, dir="+") == sp.oo)
     scaled_energy = sp.integrate(sp.pi * ell**6 * r**4 * sp.exp(-ell**2 * r*r / 2) / 6, (r, 0, sp.oo))
     scaled_critical = sp.integrate(sp.pi * ell**6 * r**5 * sp.exp(-ell**2 * r*r / 2) / 3, (r, 0, sp.oo))
     book.exact("kinematic energy scaling from Fourier integral", scaled_energy, ell * K)
@@ -260,7 +264,9 @@ def compute(result):
                 values = exact_row(u, force_field(u, force), nu, book, label)
                 exact_rows.append(dict(name=name, nu=str(nu), force=force, values={key: str(value) for key, value in values.items()}))
                 if force in ("drive", "brake"):
-                    book.check(label + " source work sign", values["I1"] > 0 if force == "drive" else values["I1"] < 0, values["I1"])
+                    source_work = {key: values[key] for key in ("I0", "I1", "I2")}
+                    source_sign = 1 if force == "drive" else -1
+                    book.check(label + " source work sign", all(source_sign * value > 0 for value in source_work.values()), source_work)
                 for n in GRIDS:
                     spatial = spatial_row(name, force, n, float(nu))
                     discrepancies = {key: abs(spatial[key] - float(sp.N(value, 18))) / max(1., abs(spatial[key]), abs(float(sp.N(value, 18)))) for key, value in values.items()}

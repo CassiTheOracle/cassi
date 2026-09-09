@@ -90,8 +90,10 @@ The exact spectral-spread budget has an uncontrolled nonlinear production
 term. A smooth periodic datum develops spread immediately from zero;
 a positive-moment scalar construction has divergent critical norm despite
 positive departure. The separate departure and recurrence schedules pass
-71 and 134 checks respectively. The forced budget and scaling schedule passes
-215 checks, including the source correction to the strain-departure identity.
+71 and 134 checks respectively. The forced budget and scaling controls have
+215 passing checks in both the frozen preregistered run and the separate post-run
+qualification. The qualification explicitly covers all three source-work signs
+and the scaled Gaussian maximum speed, with qualified endpoint force assumptions.
 Critical duality bounds smooth forcing within the conditional spectral estimate.
 Initial energy and prescribed force norms also bound total direct critical
 source work. Finite accumulated transfer above a fixed fraction of viscous

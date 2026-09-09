@@ -1,6 +1,6 @@
 # Forced Critical Concentration: Fixed Analytical Verification
 
-## Status: Pre-registered—September 2026
+## Status: Post-run qualification—September 2026
 
 ## Abstract
 
@@ -41,10 +41,10 @@ The amplification functional is $f=A-3\nu G$; its symbol is distinct from $f_{\r
    Compute the left side by differentiating the velocity functional along the forced equation and the right side through the complete projected strain remainder. This identifies why the unforced monotonicity and departure deadlines require their original forcing assumption.
 3. With $H=\|g\|_{\dot H^{-1/2}}$, check the duality bound $I_1^2\le YH^2$. The continuum proof uses Cauchy–Schwarz. For $d=\nu(1-\theta)>0$, Young's inequality and the hypothesis $c_{\rm S}\sqrt{\eta\mathcal C}\le\theta\nu$, $\eta=\mathcal V/(KE)$, give
    $$\mathcal C'+dY\le H^2/d.$$
-   Set $\eta=0$ at the zero field. Check the scalar completion of squares and the coefficient of the integrated estimate. The continuation argument additionally assumes a smooth force at the finite endpoint and $g\in L^2_t\dot H^{-1/2}_x$. It uses $4E^2\le\mathcal C Y$ and $L^4_tL^6_x$ continuation. No preservation of the spectral hypothesis is assumed to follow from the equation.
+   Set $\eta=0$ at the zero field. Check the scalar completion of squares and the coefficient of the integrated estimate. The continuation argument additionally assumes $g\in L^2_t\dot H^{-1/2}_x\cap L^2_tL^2_x$ and a force smooth through the finite endpoint in the strong-solution class. It uses $4E^2\le\mathcal C Y$ and $L^4_tL^6_x$ continuation. No preservation of the spectral hypothesis is assumed to follow from the equation.
 4. The unconditional forced budget also gives
-   $$\mathcal C(t)+\nu\int_{t_0}^tY\le\mathcal C(t_0)+2\int_{t_0}^tF+\nu^{-1}\int_{t_0}^tH^2.$$
-   Thus finite integrated positive nonlinear critical transfer is sufficient for continuation under the same regular force assumptions. This is a conditional implication, with no bound on that transfer supplied.
+   $$\mathcal C(t)+\nu\int_{t_0}^tY\le\mathcal C(t_0)+2\int_{t_0}^tF_++\nu^{-1}\int_{t_0}^tH^2.$$
+   Here $F_+=\max(F,0)$; the pointwise bound $F\le F_+$ precedes integration. Thus $\int_{t_0}^{T_*}F_+\,dt<\infty$ is sufficient for continuation under the same regular force assumptions. This is a conditional implication, with no bound on that transfer supplied.
 5. For $u_\lambda(y,s)=\lambda u(x_*+\lambda y,T_*+\lambda^2s)$ and $(f_{\rm ext})_\lambda=\lambda^3 f_{\rm ext}(x_*+\lambda y,T_*+\lambda^2s)$, verify the equation exponents, the force derivative factor $\lambda^{3+|\alpha|+2j}$, and
    $$\int_{-L}^0\|g_\lambda(s)\|_{\dot H^{-1/2}}^2ds
    =\int_{T_*-L\lambda^2}^{T_*}\|g(t)\|_{\dot H^{-1/2}}^2dt.$$

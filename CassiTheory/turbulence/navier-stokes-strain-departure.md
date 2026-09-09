@@ -457,23 +457,25 @@ Independent analytical reviews confirm the centered remainder estimate, the full
 
 ### 7.3 Forced concentration controls
 
-The schedule in `computations/navier-stokes-forced-concentration-prereg.md` passes **215 checks**, including **20 exact forced velocity rows**, **40 independent FFT rows** on $24^3$ and $32^3$ grids, a forcing-from-rest control and exact Gaussian moments with independent 60-digit quadrature. The maximum normalized numerical discrepancy is **$7.275957614183426\times10^{-12}$**, below $10^{-10}$. Pressure-gradient removal, both signs of source work, the complete forced strain identity and the critical forcing duality are included.
+The post-run qualification in `computations/navier-stokes-forced-concentration-prereg.md` passes **215 checks**, including **20 exact forced velocity rows**, **40 independent FFT rows** on $24^3$ and $32^3$ grids, a forcing-from-rest control and exact Gaussian moments with independent 60-digit quadrature. The maximum normalized numerical discrepancy is **$7.275957614183426\times10^{-12}$**, below $10^{-10}$. The sign controls cover all three source pairings $I_0,I_1,I_2$; the maximum-speed scaling is evaluated from the scaled Gaussian field. Pressure-gradient removal, the complete forced strain identity and the critical forcing duality are included.
 
-The accepted receipt is `runs/navier_stokes_forced_concentration/verification.json`, schema `cassi.navier-stokes.forced-concentration.verification.v1`, with adjacent `verification.inputs.json` and `verification.sources/`. All five input identities match the current raw source bytes and retained snapshots:
+The accepted post-run qualification receipt is `runs/navier_stokes_forced_concentration/qualified_v2/verification.json`, schema `cassi.navier-stokes.forced-concentration.verification.v1`, with adjacent `verification.inputs.json` and `verification.sources/`. Its exact and spatial rows equal those of the preregistered run. All five qualification input identities match the current raw source bytes and qualification snapshots:
 
 | Input | SHA-256 |
 |---|---|
-| Fixed forced protocol | `2aa31e17c796fff7d438024154f468570e34e1a7ab3c4abc64270ee1c0ab2b2f` |
-| Forced verifier | `7ddcb369a804580b3b1e1c520a02862ab7229648689f2cb4fef1abf5948ba40e` |
+| Qualification specification | `4bf119e1d9615f88e766772af660d4c4389e1f479b5680a847613a756f3bef02` |
+| Forced verifier | `019b3c590bf40df08734f36c290ed0bdcd01460c2851769b7e72375e793a4516` |
 | Recurrence helper | `61295a26a09506d6e336a541dd684fc690d800a524cab84899742b4454a800ce` |
 | Depletion helper | `f74633d488d974e8bb3c83d24448064f2badb89059a6938fcc8235db3e7426e5` |
 | Fourier helper | `a7ca230b989f5713cb511b18971007d41cbdad20d9c8cf8e2af7d34f107755e0` |
 
+The preregistered evidence remains `runs/navier_stokes_forced_concentration/verification.json`, its adjacent manifest and snapshots, and `runs/navier_stokes_forced_concentration/reconciliation.json`. That frozen run has 215 passing checks and binds protocol SHA-256 `2aa31e17c796fff7d438024154f468570e34e1a7ab3c4abc64270ee1c0ab2b2f` and verifier SHA-256 `7ddcb369a804580b3b1e1c520a02862ab7229648689f2cb4fef1abf5948ba40e`. Its input comparisons concern the retained source snapshots. The qualification is separate post-run evidence and carries its own hashes; `runs/navier_stokes_forced_concentration/qualified/verification.json` retains an intermediate qualification with its own manifest and snapshots.
+
 The Gaussian family's classification is **CONTRADICTS** for the purely kinematic implication from bounded energy and unbounded maximum velocity to divergent critical norm. Its scope is a family of solenoidal fields. No Navier–Stokes trajectory or singularity is computed. The continuum inequalities below have a separate analytical derivation. The announced construction's proof is **NOT_AUDITED**, and unforced blow-up, arbitrary-data regularity and a nontrivial blow-up limit remain **UNRESOLVED**.
 
-The separate analytical reconciliation is retained in `runs/navier_stokes_forced_concentration/reconciliation.json`. It records the accepted continuum estimates, endpoint force assumptions, finite direct source work, cumulative excess-transfer condition and source-qualified growth-path calculation. Independent reviews are restricted to those statements. The numerical checks verify the budgets and fixed controls; they do not establish the continuum continuation argument or the announced construction.
+The post-run analytical reconciliation is retained in `runs/navier_stokes_forced_concentration/qualified_v2/reconciliation.json`. It records the qualified continuum estimates, endpoint force assumptions, finite direct source work, cumulative excess-transfer condition and source-qualified leading growth asymptotic. Independent reviews are restricted to those statements. The numerical checks verify the budgets and fixed controls; they do not establish the continuum continuation argument or the announced construction.
 
-To reproduce, use `python computations/verify_navier_stokes_forced_concentration.py --output runs/navier_stokes_forced_concentration/reproduction/verification.json` with a fresh output path. The input manifest and source snapshots preserve the fixed computation.
+To reproduce the qualification, use `python computations/verify_navier_stokes_forced_concentration.py --output runs/navier_stokes_forced_concentration/qualified_reproduction/verification.json` with a fresh output path. Each receipt's input manifest and source snapshots identify its computation.
 
 ## 8. External forcing and concentration limits
 
@@ -540,7 +542,7 @@ $$
 \le\mathcal C(t_0)+\frac1d\int_{t_0}^tH_g(s)^2\,ds.
 }
 $$
-If $g\in L^2((t_0,T_*);\dot H^{-1/2})$, both quantities on the left stay bounded. The interpolation $4E^2\le\mathcal C Y$ supplies $\int E^2<\infty$ and thus $u\in L^4_tL^6_x$. For continuation, also require $g\in L^2((t_0,T_*);L^2)$ and a force smooth through the endpoint in the strong-solution class. The usual $H^1$ energy estimate then has an integrable coefficient proportional to $\|u\|_6^4$ and an integrable forcing term, so strong-solution continuation applies. Smooth compactly supported space-time forces, and smooth periodic forces through $T_*$, satisfy these endpoint requirements.
+If $g\in L^2((t_0,T_*);\dot H^{-1/2})$, both quantities on the left stay bounded. The interpolation $4E^2\le\mathcal C Y$ supplies $\int E^2<\infty$ and thus $u\in L^4_tL^6_x$. For continuation, also require $g\in L^2((t_0,T_*);L^2)$ and a force smooth through the endpoint in the strong-solution class. The usual $H^1$ energy estimate then has an integrable coefficient proportional to $\|u\|_6^4$ and an integrable forcing term, so strong-solution continuation applies. Smooth compactly supported space-time forces on $\mathbb R^3$, and smooth mean-zero periodic forces on $\mathbb T^3$ through $T_*$, satisfy these endpoint requirements.
 
 A smooth compactly supported space-time force satisfies the required force condition on every finite interval. At low Fourier frequencies, bounded $\widehat f_{\rm ext}$ makes the weight $|k|^{-1}$ integrable in three dimensions; at high frequencies the $L^2$ bound suffices. The Leray projection is a contraction for this weighted norm. This gives a conditional continuation estimate for such forcing. Controlling $\eta\mathcal C$ from arbitrary initial data remains an additional requirement.
 
@@ -550,11 +552,11 @@ $$
 $$
 This necessary condition bounds a product. It supplies no lower bound on $\eta$ alone.
 
-There is also a useful consequence without the spectral hypothesis. Taking $d=\nu$ in Young's inequality gives
+There is also a useful consequence without the spectral hypothesis. Taking $d=\nu$ in Young's inequality and using $F\le F_+:=\max(F,0)$ before integration gives
 $$
 \boxed{
 \mathcal C(t)+\nu\int_{t_0}^tY
-\le\mathcal C(t_0)+2\int_{t_0}^tF
+\le\mathcal C(t_0)+2\int_{t_0}^tF_+
 +\nu^{-1}\int_{t_0}^tH_g^2.
 }
 $$
@@ -628,16 +630,16 @@ Theorem 1.1 of OpenAI's *Finite time blowup for Navier–Stokes* states a forced
 
 The mechanism described in §§2.2 and 3 uses oscillatory velocity pulses whose mean momentum flux cancels a singular residual of the collapsing background. Their amplification draws on background shear. Such internal momentum flux belongs to the nonlinear velocity dynamics $B$; the smooth external source is the final residual. A source that becomes small under magnification can therefore coexist with substantial nonlinear transfer. No universal damping sign for the pulse feedback follows from its small external seed.
 
-Theorem 3.1(iv), together with the localization in §3.5, states a full-flow growth path
+Theorem 3.1(iv), together with the localization in §3.5, gives a full-flow leading asymptotic along the growth path:
 $$
 u_\theta(\sqrt{2X_{\rm in}\tau},0,0,1-\tau)
-=\tau^{-1/2-h}\bigl(e_0+O(\tau^{2h})\bigr),
+=\tau^{-1/2-h}\bigl(e_0+o(1)\bigr),
 \qquad e_0>0,
 $$
 where the position is cylindrical. Conditional on that source estimate, the magnification in §8.3 centered at $(0,1)$ gives the fixed-point value
 $$
 (u_\lambda)_\theta(\sqrt{2X_{\rm in}},0,0,-1)
-=\lambda^{-2h}\bigl(e_0+O(\lambda^{4h})\bigr)
+=\lambda^{-2h}\bigl(e_0+o(1)\bigr)
 \longrightarrow\infty.
 $$
 Thus this parabolic magnification has no locally uniformly bounded velocity subsequence on a neighborhood containing that point, despite the vanishing smooth source. This rules out local $C^0$ compactness for the specified magnification. Other normalizations or weaker limits require separate estimates; the growth-path statement gives no classification of them.
