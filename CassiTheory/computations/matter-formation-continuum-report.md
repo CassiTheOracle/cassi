@@ -7652,6 +7652,409 @@ their own calculation. The negative energies in the table are binding
 energies relative to the supplied bulk threshold; they assign no
 physical particle mass, spin or statistics.
 
+## 45. Working notes: carrier loading and longitudinal vortex stress
+
+### 45.1 Population balance and mechanical tension
+
+A transverse bound state gives a place to store population. Mechanical
+support also requires that population to oppose shortening of the line.
+Use the same static charged-field action, no scale dependence or electric
+field, and a neutral carrier
+$\chi_C=f(r)e^{ikz-i\mu t/\hbar}$. The amplitude $f$ may backreact on
+every core profile. Write its population per length as
+$n=\int d^2x\,f^2$, its bulk threshold as
+$\epsilon_\infty=\varepsilon_{C,\mathrm{out}}$, and
+$\mu_0=\mu-K_{Cx}k^2/2$.
+
+Separate the transverse energy into the scalar covariant-gradient
+energy $\mathcal S$, magnetic energy $\mathcal M$, charged-field
+potential $\mathcal V$, carrier transverse-gradient energy
+$\mathcal K$, interaction $\mathcal I$ and carrier quartic energy
+$\mathcal U_C$:
+$$
+\begin{aligned}
+\mathcal K&=\frac{K_{Cx}}2\int d^2x\,|\nabla_\perp f|^2,\\
+\mathcal I&=-\eta_C\int d^2x\,(\rho_0-\rho)f^2,\qquad
+\mathcal U_C=\frac{\lambda_C}{2}\int d^2x\,f^4,\\
+e_0(n;R)&=\mathcal S+\mathcal M+\mathcal V+
+\mathcal K+\mathcal I+\mathcal U_C+\epsilon_\infty n .
+\end{aligned}
+$$
+The source coefficients make $\mathcal S,\mathcal M,\mathcal V,
+\mathcal K,\mathcal U_C$ nonnegative. The interaction can be negative.
+For a stationary localized carrier, multiplying its field equation
+by $f$ and integrating gives
+$$
+(\mu_0-\epsilon_\infty)n
+=\mathcal K+\mathcal I+2\mathcal U_C.
+$$
+On a differentiable stationary branch, $\partial_n e_0=\mu_0$.
+
+For a periodic length $L$, hold the total population $Q_C=nL$
+and carrier phase winding $w=kL/(2\pi)$ fixed when varying $L$.
+At fixed transverse cutoff, the longitudinal tension is
+$$
+\begin{aligned}
+\tau_R
+&=\frac{\partial}{\partial L}
+\left[L e_0(Q_C/L;R)+\frac{K_{Cx}}2k^2Q_C\right]_{Q_C,w,R}\\
+&=e_0-n\mu_0-K_{Cx}k^2n\\
+&=\mathcal S+\mathcal M+\mathcal V-\mathcal U_C-K_{Cx}k^2n.
+\end{aligned}
+$$
+Positive tension favors shortening. This expression includes core
+relaxation through the stationary-branch derivative.
+
+### 45.2 Transverse virial balance
+
+Core relaxation restricts how much the carrier's repulsion can oppose
+tension. Dilate the transverse coordinates by $\lambda$, leaving
+the charged scalar amplitudes unchanged, scaling the Cartesian gauge
+connection by $\lambda^{-1}$, and replacing
+$f(r)$ by $\lambda^{-1}f(r/\lambda)$. This preserves line population
+for a localized carrier. The magnetic, carrier-gradient and carrier
+quartic energies scale as $\lambda^{-2}$; the charged-field
+potential scales as $\lambda^2$. The interaction has scaling power zero.
+
+The winding exterior gives
+$\mathcal S(R)=C\ln R+O(1)$, with $C=\pi m^2J_0/4>0$.
+For a continuous stationary radial solution with $f(R)=0$, integration
+by parts gives the finite-cutoff identity
+$$
+2(\mathcal V-\mathcal M-\mathcal K-\mathcal U_C)=B_R,\qquad
+B_R=2\pi R^2
+\left[\mathcal E-\sum_a F_a'\frac{\partial\mathcal E}{\partial F_a'}
+-f'\frac{\partial\mathcal E}{\partial f'}\right]_{r=R}.
+$$
+Here $F_a=(p_Y,p_I,u,b_1,b_3)$, and the algebraic radial connection
+satisfies its stationary equation. With the massive vacuum and
+localized carrier assumed here, $B_R\to C$ at large radius.
+Combining the population and virial identities yields
+$$
+\boxed{\tau_R=\mathcal S+2\mathcal M+\mathcal K+
+\frac{B_R}{2}-K_{Cx}k^2n.}
+$$
+Thus a well-separated, current-free vortex core retains positive
+longitudinal tension. Carrier self-repulsion also changes the transverse
+core; it cannot be varied as an independent outward pressure while
+keeping that core fixed.
+
+For a slender circular loop whose effective transverse cutoff scales
+with its length, the logarithmic exterior contributes an additional
+$C$ to the length derivative at leading order. Curvature and global
+field matching require a three-dimensional calculation. The local
+identity supplies no claim about a compact, strongly curved object.
+
+### 45.3 Necessary current and escape conditions
+
+A circulating carrier current can contribute negative tension.
+In the straight-core approximation, zero tension requires
+$$
+K_{Cx}k^2n=\mathcal S+2\mathcal M+\mathcal K+C/2
+$$
+at large cutoff. For an isolated stationary loop, require a strict
+gap to bulk escape:
+$$
+\mu=\mu_0+\frac{K_{Cx}k^2}{2}<\epsilon_\infty.
+$$
+An infinite straight line has a different asymptotic constraint:
+conserved longitudinal wave number raises its bulk threshold by
+$K_{Cx}k^2/2$, so transverse binding alone only requires
+$\mu_0<\epsilon_\infty$. The loop condition above uses its
+three-dimensional far field.
+Consequently a necessary local overlap condition is
+$$
+\mathcal S+2\mathcal M+\mathcal K+C/2
+<2n(\epsilon_\infty-\mu_0).
+$$
+The additional exterior contribution makes the slender-loop condition
+more restrictive. Whether a nonlinear loaded core satisfies these
+inequalities remains open. At vanishing loading, the available
+right-hand side tends to zero while the uncharged vortex has positive
+tension. The transverse eigenvalues in §44 therefore do not establish
+a pressure-supported loop at arbitrarily small population.
+
+### 45.4 Fixed identity check and retained-core diagnostic
+
+Before execution, retain this section, its calculation source and the
+eight §44 input-array hashes under
+`runs/20260908_matter_formation_vortex_pressure/`.
+The program is `computations/matter_formation_vortex_pressure.py`.
+Check the population, fixed-$Q_C,w$ length derivative, dilation and
+combined-stress identities symbolically, including the coefficient
+of the carrier current and the escape inequality. Exact residuals
+must vanish. No loaded-core solve or new parameter choice belongs
+to this calculation.
+
+Separately reconstruct the six energy components of all eight retained
+unloaded cores directly from their nodal fields and Pauli covariant
+derivatives. Require agreement with their retained energies to
+$10^{-8}$ after division by $\max(1,|\mathrm{reference}|)$.
+Evaluate $B_R$ from the one-sided outer derivative of the same
+regular finite-element profile. Retain
+$2(\mathcal V-\mathcal M)-B_R$ and its change under both radial
+refinements. These are post-calculation discretization diagnostics:
+no new numerical acceptance threshold is assigned, and they do not
+alter the frozen §44 verdict. Missing, nonfinite or mismatched source
+evidence fails closed. Every output retains
+`complete_physical_matter_formation=false`.
+
+### 45.5 Verified stress identity and core-balance diagnostic
+
+The calculation gives `PASS`: all eight exact identities vanish, and
+all eight retained cores reproduce their component and total energies.
+The largest normalized component discrepancy is
+$3.049\times10^{-15}$. No loaded profile or forming trajectory is
+included in this result.
+
+The finite-cutoff virial residual decreases in each radial refinement:
+
+| Representative | $R$ | Coarse absolute residual | Fine absolute residual | Fine/coarse |
+|---|---:|---:|---:|---:|
+| $n_Y=1,n_I=0$ | 32 | $9.3288\times10^{-5}$ | $2.2632\times10^{-5}$ | 0.24261 |
+| $n_Y=1,n_I=0$ | 64 | $8.9312\times10^{-5}$ | $2.0162\times10^{-5}$ | 0.22575 |
+| $n_Y=0,n_I=1$ | 32 | $3.4391\times10^{-5}$ | $8.8665\times10^{-6}$ | 0.25782 |
+| $n_Y=0,n_I=1$ | 64 | $3.9207\times10^{-5}$ | $1.1959\times10^{-5}$ | 0.30502 |
+
+These values describe the retained finite-element fields; no
+continuum-order fit or additional acceptance verdict is assigned.
+Their boundary terms lie between $0.5928311$ and $0.5928558$,
+with asymptotic coefficient $C=0.592862617909$.
+The exact combined identity gives positive current-free longitudinal
+tension in its stated large-cutoff, localized-core class.
+
+The stationary vortex can trap the existing carrier, but finite-loop
+support requires additional conditions. A circulating population must
+simultaneously balance tension and retain a strict gap to the
+three-dimensional bulk continuum. A self-consistent loaded family,
+its angular and longitudinal stability, and a localized formation
+history remain uncomputed. The carrier self-interaction has no
+physically selected value in the parameter registry. The source
+action conserves carrier population and preserves exactly empty
+carrier data, so the stationary trapping result supplies no population
+creation mechanism.
+
+The source snapshot, eight input hashes, symbolic identities and
+unloaded-core diagnostics are retained in
+`runs/20260908_matter_formation_vortex_pressure/manifest.json`
+and `runs/20260908_matter_formation_vortex_pressure/result.json`.
+The program in §45.4 reproduces the calculation.
+The source/section hashes remain fixed, the §44 verdict is unchanged,
+and `complete_physical_matter_formation=false`.
+
+## 46. Working notes: self-consistent carrier loading
+
+### 46.1 Bulk depletion and coexistence
+
+A sufficiently populated core changes the density that supplies its
+binding well. The joint static energy in §45 already includes that
+response. At homogeneous amplitudes, the adjoint norm and relative
+composition can minimize their potentials while leaving the density
+$\rho\geq0$ and carrier density $s=f^2\geq0$ free. Their remaining
+energy density, measured relative to the bulk carrier threshold, is
+$$
+W(\rho,s)=\frac{\lambda_\rho}{4}(\rho-\rho_0)^2
+-\eta_C(\rho_0-\rho)s+\frac{\lambda_C}{2}s^2.
+$$
+The exact minimum over $\rho$ occurs at
+$$
+\rho_*(s)=\max\left(\rho_0-\frac{2\eta_Cs}{\lambda_\rho},0\right).
+$$
+Writing $s_c=\lambda_\rho\rho_0/(2\eta_C)$ gives
+$$
+W_{\min}(s)=
+\begin{cases}
+\dfrac12\left(\lambda_C-\dfrac{2\eta_C^2}{\lambda_\rho}\right)s^2,
+&0\leq s\leq s_c,\\[4pt]
+\dfrac{\lambda_\rho\rho_0^2}{4}-\eta_C\rho_0s
++\dfrac{\lambda_C}{2}s^2,&s\geq s_c .
+\end{cases}
+$$
+This is a constrained amplitude minimum; the density cannot continue
+below zero.
+
+For $0<\lambda_C<2\eta_C^2/\lambda_\rho$, minimizing the energy per
+carrier gives a depleted coexistence phase:
+$$
+\boxed{
+s_*=\rho_0\sqrt{\frac{\lambda_\rho}{2\lambda_C}},\qquad
+\rho_*=0,\qquad
+\mu_*=\rho_0\left(\sqrt{\frac{\lambda_\rho\lambda_C}{2}}-\eta_C\right)<0 .
+}
+$$
+The two phases are global minima of the grand-potential density:
+$$
+W-\mu_*s=
+\left[\frac{\sqrt{\lambda_\rho}}{2}(\rho-\rho_0)
++\sqrt{\frac{\lambda_C}{2}}s\right]^2
++\left(\eta_C-\sqrt{\frac{\lambda_\rho\lambda_C}{2}}\right)\rho s
+\geq0 .
+$$
+Both terms are nonnegative in this coupling regime. Their simultaneous
+zeros are the exterior vacuum and the loaded phase above. For
+$\lambda_C>2\eta_C^2/\lambda_\rho$, the infimum of $W/s$ is zero
+in the dilute limit. At equality, a flat zero-energy mixture interval
+extends from $s=0$ to $s=s_c$. These cases distinguish a supplied
+coupling regime; they do not select a physical value of $\lambda_C$.
+
+### 46.2 Finite-core current and escape margin
+
+The numerical question is whether fully relaxed transverse profiles
+reach a local overlap between mechanical support and carrier retention.
+Use $\lambda_C=1$ as an explicit dimensionless witness, retaining all
+§44 coefficients. In particular $\lambda_\rho=\eta_C=K_{Cx}=1$
+and $\rho_0=1.2$. The carrier bulk energy is the zero reference.
+No physical calibration or microscopic identification is assigned to
+this choice.
+
+For each fixed line population $n$, vary all five regularized core
+profiles together with the real carrier profile $f(r)$. The carrier
+uses ordinary piecewise-linear nodal amplitudes, $f(R)=0$, and the
+natural radial origin condition. The core basis and two-point Gauss
+quadrature are those of §44. Normalize $f$ using the consistent
+quadrature mass, rather than the lumped optimizer preconditioner.
+The quartic term uses that same variational quadrature; its numerical
+approximation is checked by radial refinement.
+
+The measured quantities are
+$$
+\begin{aligned}
+\bar\mu&=\frac{\mathcal K+\mathcal I+2\mathcal U_C}{n},\\
+\tau_0&=e_0-n\bar\mu,\\
+k_{\rm req}^2&=\frac{\tau_0+C}{K_{Cx}n},\\
+\Delta_{\rm esc}&=-\bar\mu-\frac{\tau_0+C}{2n}.
+\end{aligned}
+$$
+Here $\bar\mu=\mu_0-\epsilon_\infty$, and $C$ is the unchanged
+positive exterior coefficient in §45. The added $C$ includes the
+leading length derivative of a logarithmic exterior whose cutoff
+scales with loop length. A positive $\Delta_{\rm esc}$ with positive
+$k_{\rm req}^2$ is a necessary local overlap. Curvature, matching to
+the three-dimensional exterior, integer circulation, and angular
+and longitudinal stability require separate calculations.
+
+### 46.3 Fixed calculation before execution
+
+Run the two cap representatives at line populations $n=1,16,64$.
+Each independent cap/population family starts from its retained
+unloaded $R=32,N=256$ core and lowest transverse carrier eigenvector,
+normalized to the requested population. Within that family, use the
+fixed continuation schedule
+$$
+(R,N)=(32,256),(32,512),(64,512),(64,1024).
+$$
+Interpolate the regularized core amplitudes and carrier profile between
+grids, using the exterior vacuum and zero carrier outside the earlier
+cutoff. There is no continuation between populations, no additional
+initial profile, and no repeated solve after the schedule.
+
+Use CPU `float64` and the §44 L-BFGS-B settings: `maxiter=8000`,
+`maxfun=16000`, `maxls=40`, `maxcor=30`, `ftol=5e-15`,
+`gtol=1e-9`. No sign, positivity or profile-amplitude bounds are
+imposed. Eliminate the radial connection by its exact algebraic
+stationary equation, with finite positive quadratic coefficient.
+Retain every one of the 24 attempted rows, optimizer status,
+exception and raw profile.
+
+Independently reconstruct the action and all nodal first variations.
+For the carrier constraint, subtract $2\bar\mu M f$ from its
+unconstrained real-amplitude gradient, using the full consistent
+mass matrix before removing the fixed outer degree of freedom.
+Require the core and constrained-carrier mass-weighted RMS residuals
+to be below $10^{-6}$, and each maximum nodal gradient divided by
+its lumped nodal mass to be below $10^{-3}$. The algebraic connection
+residual must be below $10^{-10}$, normalized by
+$\max(1,|\mathrm{linear\ coefficient}|)$, and the population error
+must be below $10^{-10}$ after division by $\max(1,n)$.
+Optimizer success alone supplies no stationarity verdict.
+
+The independent reconstruction must match raw profiles, components,
+gradients, population, $\bar\mu$, $\tau_0$, $k_{\rm req}^2$ and
+$\Delta_{\rm esc}$ to $10^{-8}$ after division by
+$\max(1,|\mathrm{reference}|)$. For every cap, population and cutoff,
+the radial refinement must agree in energy, $\bar\mu$, $\tau_0$ and
+$\Delta_{\rm esc}$ to $10^{-3}$ with the same normalization.
+The domain comparison at fixed spacing $1/16$ applies that tolerance
+to $\bar\mu$ and $e_0-C\ln R$. The unrenormalized tension contains
+the physical logarithmic cutoff dependence and is not required to
+be cutoff-independent.
+
+The independent program also checks the bulk polynomial identities
+and the three algebraic controls $\lambda_C=1,2,4$. Only
+$\lambda_C=1$ enters the numerical core schedule.
+All scientific values must be finite. Missing or mismatched evidence,
+an incomplete schedule, or failed numerical qualification gives
+`INCONCLUSIVE`. If every numerical check passes and either cap at
+$n=64$ has $\Delta_{\rm esc}>10^{-3}$ and positive
+$k_{\rm req}^2$ at both finest cutoff grids, the verdict is
+`SUPPORTS-conditional loaded-core current/escape overlap`.
+If all numerical checks pass and both caps have
+$\Delta_{\rm esc}\leq0$ on those grids, the verdict is
+`DOES NOT EMERGE in the specified schedule`. Remaining cases give
+`INCONCLUSIVE`. The verdict concerns the stated necessary local
+conditions.
+
+Before execution, retain this subsection and derivation, both new
+calculation programs, both §44 source programs, and the eight
+unloaded input hashes in
+`runs/20260908_matter_formation_vortex_loaded/manifest.json`.
+The primary program is
+`computations/matter_formation_vortex_loaded.py`; the independent
+program is `computations/verify_matter_formation_vortex_loaded.py`.
+Run the primary with `--manifest` and a fresh `--output` directory,
+then the verifier with that manifest, the primary directory as
+`--input`, and a separate fresh `--output` directory. Preserve raw
+arrays, JSON, stdout, stderr and exit codes. No additional grids,
+couplings or replacement thresholds belong to this calculation.
+Every output retains `complete_physical_matter_formation=false`.
+
+### 46.4 Measured loaded-core overlap
+
+Both vortex representatives meet the necessary local current and
+escape conditions at line population $n=64$. All 24 stationary
+profiles, all 12 radial refinements and all six domain comparisons
+qualify. The independent reconstruction and bulk identities pass
+all 1,422 recorded checks. The resulting verdict is
+`SUPPORTS-conditional loaded-core current/escape overlap`.
+
+The finest-grid measurements at $n=64$ are:
+
+| Representative | $R$ | $\bar\mu$ | $\tau_0$ | $k_{\rm req}^2$ | $\Delta_{\rm esc}$ |
+|---|---:|---:|---:|---:|---:|
+| $n_Y=1,n_I=0$ | 32 | $-0.2797199331$ | $7.0856466919$ | $0.1199767080$ | $0.2197315791$ |
+| $n_Y=1,n_I=0$ | 64 | $-0.2797199497$ | $7.4965759505$ | $0.1263974776$ | $0.2165212108$ |
+| $n_Y=0,n_I=1$ | 32 | $-0.2769712526$ | $6.6604551261$ | $0.1133330898$ | $0.2203047078$ |
+| $n_Y=0,n_I=1$ | 64 | $-0.2769712527$ | $7.0713833309$ | $0.1197538429$ | $0.2170943312$ |
+
+The largest normalized scalar/component reconstruction discrepancy is
+$1.025\times10^{-14}$. The largest normalized radial-refinement
+and domain discrepancies are $4.015\times10^{-4}$ and
+$1.285\times10^{-5}$, respectively, below their frozen $10^{-3}$
+tolerance. The largest core and constrained-carrier RMS residuals
+are $2.111\times10^{-7}$ and $1.188\times10^{-7}$.
+
+The low-population $n=1$ cores have negative escape margins at the
+required current. At $n=16$, both representatives have positive
+margins on both finest cutoff grids; at $R=64$ the margins are
+$0.0304284741$ and $0.0386335354$. The supplied population changes
+the well self-consistently, with strong central density depletion
+at $n=64$.
+
+These measurements qualify a necessary local overlap within the
+specified straight-core class. A finite loop still requires
+three-dimensional field matching, integer circulation and stability
+against angular and longitudinal perturbations. The source equation
+conserves the initially supplied carrier population; this calculation
+contains no carrier-production or localized formation trajectory.
+The dimensionless coupling remains a supplied witness, and
+`complete_physical_matter_formation=false`.
+
+The fixed programs in §46.3 reproduce the calculation. Source
+snapshots, the manifest, all 24 raw profiles, primary and independent
+receipts, stdout, stderr and the joint `reconciliation.json` are
+retained under `runs/20260908_matter_formation_vortex_loaded/`.
+The pre-execution section and all source hashes remain unchanged.
+
 ## References
 
 - `computations/matter_formation_electric_support.py`—exact temporal-square and charge construction, Gaussian quadrature, covariant interval operators and boundary controls.
