@@ -1,6 +1,6 @@
 # Yang–Mills Residual Recovery and Score-Penalty Gramian Preregistration
 
-## Status: Frozen protocol v4—September 2026
+## Status: Frozen protocol v5—September 2026
 
 ## 1. Question and scope
 
@@ -25,7 +25,7 @@ Let
 \{f\in L^2(\mu):\mu(f)=0, f\text{ lies in the declared gauge-invariant sector}\}.
 \]
 
-Assume $\mathcal H_{\rm phys}$ is closed. Every conditional expectation below
+Assume $\mathcal H_{\rm phys}$ is nonzero and closed. Every conditional expectation below
 preserves this sector and its common form domain. The block family is finite,
 or its nonnegative weighted form sum is convergent on that domain.
 
@@ -84,6 +84,11 @@ The exact kernel is
 \bigcap_{B:w_B>0}\operatorname{Ran}P_B.
 \]
 
+Throughout YMRG1, $P_B$, $R_B$ and $\mathscr R$ denote their restrictions
+to the closed space $\mathcal H_{\rm phys}$, and all displayed kernels and
+ranges lie there. On the full $L^2(\mu)$ space, constants remain in the
+common kernel.
+
 A qualitative kernel identity does not imply a regulator-uniform positive \(\gamma_{\rm rec}\).
 
 ### YMRG2. Conditional rates imply a global rate only with recovery
@@ -133,7 +138,7 @@ Require
 $R_jT_{j\to n}\Pi_{\mathcal N_n}=0$ for every positive-weight scale, so the
 declared null subspace is contained in the Gramian kernel.
 
-Let \(\mathcal N_n\) be a declared nonphysical null subspace. Before
+Let \(\mathcal N_n\) be a declared closed nonphysical null subspace. Before
 centering it can contain constants; in an unreduced auxiliary
 representation it can also encode gauge redundancies. The centered
 gauge-invariant function space normally has these directions removed.
@@ -167,7 +172,8 @@ Let
 
 be the conditional transport-score operator of §9.21, so
 \(\vartheta^2=\operatorname*{ess\,sup}_V\|\mathsf K_V\|_{\rm op}^2\).
-For fixed \(\lambda_c,\lambda_{\rm fib}>0\), its one-step upper-bound matrix is
+Assume $\vartheta<\infty$ for a nonzero certified lower rate. For fixed
+\(\lambda_c,\lambda_{\rm fib}>0\), its one-step upper-bound matrix is
 
 \[
 M(\vartheta)
@@ -271,18 +277,20 @@ G_N(m)=D^{-1/2}Q_N(m)D^{-1/2}.
 \]
 
 For the all-function statement, let $p_i$ be the first-chaos projection
-associated with the conditional expectation $P_i$. On Gaussian chaos $k$,
-$P_i=\Gamma(p_i)=p_i^{\otimes_s k}$, and
+associated with the conditional expectation $P_i$, and let $S_k$ be the
+orthogonal symmetrizer on the $k$-fold tensor power. On Gaussian chaos $k$,
+$P_i=\Gamma(p_i)=p_i^{\otimes_s k}$. As a quadratic-form inequality on
+$\operatorname{Sym}^k\mathcal H$,
 
 \[
-I-p_i^{\otimes k}
+I-p_i^{\otimes_s k}
 \succeq
-(I-p_i)\otimes I^{\otimes(k-1)}
+S_k\left[(I-p_i)\otimes I^{\otimes(k-1)}\right]S_k.
 \]
 
-on the corresponding symmetrized range. The first-chaos lower bound
-therefore holds on every higher chaos, while a linear function in the bottom
-eigendirection saturates it.
+After summing in $i$, the first-chaos lower bound tensored with the identity
+gives the same floor on every higher chaos. A linear function in the bottom
+first-chaos eigendirection saturates it.
 
 The theorem must retain the exact identity
 
