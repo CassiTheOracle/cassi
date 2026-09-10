@@ -694,8 +694,14 @@ inherited-$B-L$ changes wash out, while exact CP conjugation reverses the
 asymmetry with every registered Cassi input unchanged. The empirical history
 returns `SUPPORTS`; CP selection returns `DOES NOT EMERGE`; derivation from the
 registered Cassi laws remains `FAIL`
-(`computations/matter-formation-continuum-report.md` §§83–85;
-`foundations/matter-completion-boundary.md` §§28–29).
+(`computations/matter-formation-continuum-report.md` §§83–86;
+`foundations/matter-completion-boundary.md` §§28–30).
+
+The optional phase-bearing interscale extension supplies CP-odd integrated
+spatial helicity. Its registered positive action leaves opposite-helicity
+fixtures degenerate and has no negative homogeneous density, longitudinal or
+transverse mode. Handedness selection returns `DOES NOT EMERGE`; nonlinear
+domain selection and a microscopic baryon-production coupling remain open.
 
 ### 4.3 Gravity Sector $\mathcal{L}_{\text{GR}}$ (optional gravity extension)
 This sector is an optional **Hypothesized** gravity extension. Its displayed

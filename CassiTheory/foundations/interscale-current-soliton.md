@@ -1,6 +1,6 @@
 # Interscale Yang/Yin Current and the Conditional Soliton Pinch
 
-## Status: Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, phase-current, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum, rotational and phase-coercivity controls, and conditional smooth scalar binding—September 2026
+## Status: Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, phase-current, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum, rotational, phase-coercivity, homogeneous-handedness selection controls, and conditional smooth scalar binding—September 2026
 
 ## Abstract
 
@@ -1697,10 +1697,23 @@ The exterior state in §12.2 could instead impose a dynamical restriction on
 the time-integrated critical residual. No state-selection theorem or
 memory-kernel estimate establishing that restriction is derived.
 
+The whole-bubble handedness calculation makes one selection boundary exact.
+Integrated spatial helicity is CP-odd in this phase-bearing extension, but the
+positive homogeneous action gives equal static operators to its two signs.
+The density Hessian, longitudinal phase branch and transverse London sector
+contain no negative witness in the frozen schedule. A CP-odd observable is
+therefore available conditionally; its sign does not emerge from the
+registered homogeneous action. A nonequilibrium state-selection mechanism and
+a microscopic coupling to particle production remain separate requirements
+(`computations/matter-formation-continuum-report.md` §86).
+
 ---
 
 ## References
 
+- `computations/whole-bubble-handedness-selector-prereg.md`—whole-field helicity, stability and selector-control protocol.
+- `computations/whole_bubble_handedness_selector.py`—primary symmetry and stability calculation.
+- `computations/verify_whole_bubble_handedness_selector.py`—independent source, array and verdict reconstruction.
 - `foundations/qi-flow-double-helix.md`—canonical real-density state and spatial diagnostic currents
 - `foundations/unified-lagrangian.md`—current Cassi action and open-system conversion boundary
 - `foundations/point-core-flux-sector.md`—quantized point-core exterior energy

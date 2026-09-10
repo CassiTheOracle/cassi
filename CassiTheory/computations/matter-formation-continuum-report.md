@@ -13644,8 +13644,100 @@ continuum state survives all perturbation sectors and maps to measured
 particles. None of these can be inferred from the registered real slow-field
 data, and fitting the observed baryon magnitude cannot supply them.
 
+## 86. Whole-bubble phase-current handedness boundary
+
+### 86.1 CP character of the collective observable
+
+The phase-bearing interscale extension contains information absent from the
+canonical real densities. For its spatial number-current velocity
+$u$ and vorticity $\omega=\nabla\times u$, complex conjugation of the
+doublet with reversal of the relative connection gives
+
+| Operation | $u(t,\mathbf x)$ | $\omega(t,\mathbf x)$ | $h=u\cdot\omega$ |
+|---|---|---|---|
+| $C$ | $-u(t,\mathbf x)$ | $-\omega(t,\mathbf x)$ | $+h(t,\mathbf x)$ |
+| $P$ | $-u(t,-\mathbf x)$ | $+\omega(t,-\mathbf x)$ | $-h(t,-\mathbf x)$ |
+| $CP$ | $+u(t,-\mathbf x)$ | $-\omega(t,-\mathbf x)$ | $-h(t,-\mathbf x)$ |
+
+The integrated helicity
+
+$$
+H=\int u\cdot\omega\,d^3x
+$$
+
+is therefore $C$-even, $P$-odd and $CP$-odd on a parity-symmetric closed
+domain. One everywhere-positive doublet chart has zero integrated helicity,
+while a full Hopf doublet or multiple scale bands can represent nonzero $H$.
+The whole-field phase geometry consequently supplies a candidate CP-odd
+collective observable within this Hypothesized extension.
+
+### 86.2 Static and linear selection test
+
+The registered positive-coefficient action contains only CP-even covariant
+gradient, curvature-square, density and composition terms. Its homogeneous
+state has zero static energy. The frozen calculation checks the density
+Hessian, the physical longitudinal phase branch and all 162 transverse London
+witnesses. It finds
+
+$$
+\lambda_{\min}(W_\sigma)=0.655760079950079,\qquad
+\min\omega_{\rm long}^2=0,\qquad
+\min L_T=0.5.
+$$
+
+The zero longitudinal value is the homogeneous $\sigma=0$ mode; no negative
+mode appears. On three periodic grids, opposite Beltrami fields have equal
+mean kinetic energy and opposite helicity. Their maximum spectral curl error
+is $1.50\times10^{-15}$, their energy difference and helicity sum are zero,
+and the two transverse helical polarizations have identical static operators.
+
+The registered action has $\kappa_H=0$ and gives zero opposite-helicity energy
+splitting. The diagnostic term
+
+$$
+E_\kappa=E_0-\kappa_HH,\qquad\kappa_H=0.137
+$$
+
+produces the preregistered split
+$E_{\kappa,+}-E_{\kappa,-}=-0.09864$ exactly. It demonstrates the effect of a
+CP-odd selector without adding that term to the Cassi action.
+
+All WHS1–WHS8 gates pass. Independent reconstruction passes all eleven
+source, array, metric, gate and verdict checks, with maximum raw-array error
+$1.50\times10^{-15}$ and zero metric error. The frozen verdicts are
+
+| Question | Verdict |
+|---|---|
+| Does the phase-bearing whole field contain a CP-odd helicity observable? | `SUPPORTS` |
+| Does the registered homogeneous action select its sign? | `DOES NOT EMERGE` |
+| Does the calculation establish nonlinear far-from-equilibrium domain selection? | `OPEN` |
+| Does it couple helicity to a microscopic baryon-production operator? | `UNMET` |
+| Complete physical Cassi matter formation | `FAIL` |
+
+### 86.3 Consequence for the formation program
+
+The result sharpens the whole-bubble route. Spatial and cross-scale phase
+relations can carry a physically relevant handed observable that the local
+density pair discards. The current action assigns equal energy to its two
+signs and has no linear chiral instability around the homogeneous state.
+Whole-bubble handedness can therefore enter a matter calculation only through
+a supplied asymmetric state, boundary datum, CP-odd coefficient, or a
+separately derived nonlinear selection mechanism.
+
+A positive formation result now requires two further links in the same
+microscopic theory: dynamics that produce a coherent handed domain from a
+declared cosmological quantum state, and an action-level coupling from that
+collective variable to baryon-number production. The present calculation
+supplies neither link and leaves the six-requirement verdict unchanged.
+
 ## References
 
+- `computations/whole-bubble-handedness-selector-prereg.md`—frozen symmetry, Hessian, helicity-degeneracy and selector-control protocol.
+- `computations/whole_bubble_handedness_selector.py`—primary transformations, Beltrami fixtures and positive-coefficient stability calculation.
+- `computations/verify_whole_bubble_handedness_selector.py`—independent source, array, metric, gate and verdict reconstruction.
+- `runs/20260910_whole_bubble_handedness_selector/primary-recovery1/results.json`—accepted eight-gate primary receipt.
+- `runs/20260910_whole_bubble_handedness_selector/verification/verification.json`—independent eleven-check receipt.
+- `runs/20260910_whole_bubble_handedness_selector/reconciliation.json`—type-boundary recovery and scientific-field identity record.
 - `computations/qcd-cosmological-matter-completion-prereg.md`—frozen renormalized action, thermal state, leptogenesis, QCD chemistry, nonradial and observable gates.
 - `computations/qcd_cosmological_matter_completion.py`—primary Yukawa reconstruction, Boltzmann histories, positive annihilation transfer, nonradial evolution and adjudication.
 - `computations/verify_qcd_cosmological_matter_completion.py`—independent logarithmic-time baryogenesis, event-bounded chemistry, finite-difference nonradial evolution and source verification.

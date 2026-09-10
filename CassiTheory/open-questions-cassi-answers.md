@@ -427,14 +427,17 @@ benchmark gives
 $M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ and
 $|\eta_B|=6.100000000002\times10^{-10}$. Coarse whole-bubble abundance and
 inherited-$B-L$ differences wash out, but $z$ and $z^*$ give equal and
-opposite yields with identical registered Cassi inputs. Its rank-two
-light-neutrino matrix also has one exactly massless state and cannot equal the
-separate Mapped three-nonzero-mass spectrum.
+opposite yields with identical registered Cassi inputs. The optional
+phase-bearing extension contains a CP-odd spatial helicity, while its
+positive-coefficient homogeneous action gives equal energy to both signs and
+no negative linear mode. Its rank-two light-neutrino matrix also has one
+exactly massless state and cannot equal the separate Mapped
+three-nonzero-mass spectrum.
 
-| **Cassi Answer** | $\eta\approx\varphi^{-44}\approx6.4\times10^{-10}$ is a Mapped exponent. The resolved-flavour comparator closes a conditional empirical history after calibrating one heavy scale. Cassi supplies neither the microscopic action nor a CP-odd selector; CP selection returns `DOES NOT EMERGE`. |
-| **Mechanism** | Cassi candidate: circuit reconnection, freeze-out Yang-Yin ratio and cascade dilution, with no selected rate or endpoint. Empirical comparator: thermal $N_1$ decay with $\{e+\mu,\tau\}$ washout, sphaleron transfer and QCD survival. Exact conjugation reverses $\eta_B$ (`foundations/baryon-asymmetry.md` §§6–7). |
-| **Epistemic** | **Hypothesized** (Cassi mechanism and selector) / **Mapped** ($\eta$ exponent $-44$—ledger) / **Calibrated** (resolved-flavour two-singlet $M_1$—ledger) / **Tested** (whole-bubble robustness and CP-selection no-go) |
-| **Reference** | `foundations/baryon-asymmetry.md`, `computations/qcd-whole-bubble-cp-selection-prereg.md`, `computations/matter-formation-continuum-report.md` §§83–85 |
+| **Cassi Answer** | $\eta\approx\varphi^{-44}\approx6.4\times10^{-10}$ is a Mapped exponent. The resolved-flavour comparator closes a conditional empirical history after calibrating one heavy scale. A phase-bearing whole field can carry CP-odd helicity, but the registered action does not select its sign; CP selection returns `DOES NOT EMERGE`. |
+| **Mechanism** | Cassi candidate: circuit reconnection, freeze-out Yang-Yin ratio and cascade dilution, with no selected rate or endpoint. Empirical comparator: thermal $N_1$ decay with $\{e+\mu,\tau\}$ washout, sphaleron transfer and QCD survival. Exact conjugation reverses $\eta_B$; the phase-current extension supplies equal-energy opposite-helicity states without a baryon-production coupling (`foundations/baryon-asymmetry.md` §§6–7). |
+| **Epistemic** | **Hypothesized** (Cassi mechanism, nonlinear handed-domain formation and microscopic coupling) / **Mapped** ($\eta$ exponent $-44$—ledger) / **Calibrated** (resolved-flavour two-singlet $M_1$—ledger) / **Tested** (whole-bubble robustness, CP-conjugate boundary and homogeneous handedness nonselection) |
+| **Reference** | `foundations/baryon-asymmetry.md`, `computations/qcd-whole-bubble-cp-selection-prereg.md`, `computations/whole-bubble-handedness-selector-prereg.md`, `computations/matter-formation-continuum-report.md` §§83–86 |
 
 ### C8: Big Bang singularity
 
@@ -644,12 +647,13 @@ the reconnection rate nor the freeze-out endpoint. A fixed two-singlet
 benchmark reproduces the observed magnitude at the Calibrated
 $M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ and carries the conserved
 yield through the QCD epoch. The exact conjugate texture gives the opposite
-sign, and the canonical real-density state provides no selector.
+sign. The optional phase-current state has CP-odd helicity, but the registered
+positive action leaves its two signs degenerate.
 
-| **Cassi Answer** | $\eta\approx\varphi^{-44}\approx6.4\times10^{-10}$ is a Mapped Cassi fit. The empirical comparator closes a conditional history after one heavy-scale calibration. Its CP-conjugate pair establishes `DOES NOT EMERGE` for sign selection from registered Cassi data. |
-| **Mechanism** | Cassi candidate: the C7 circuit-reconnection chain, whose $\Gamma/H=1$ test yields a thaw rather than post-seed freeze-out. Empirical comparator: resolved-flavour $N_1$ decay, washout, sphaleron conversion and QCD transfer. A CP-odd coefficient, state, boundary datum or selection rule is required to choose the sign. |
-| **Epistemic** | **Hypothesized** (Cassi mechanism and CP selector) / **Mapped** ($\eta$ exponent $-44$—ledger) / **Calibrated** (two-singlet $M_1$—ledger) / **Tested** (whole-bubble initial-state and CP-conjugate boundary) |
-| **Reference** | `foundations/baryon-asymmetry.md`, `computations/qcd-whole-bubble-cp-selection-prereg.md`, `computations/matter-formation-continuum-report.md` §§83–85 |
+| **Cassi Answer** | $\eta\approx\varphi^{-44}\approx6.4\times10^{-10}$ is a Mapped Cassi fit. The empirical comparator closes a conditional history after one heavy-scale calibration. Exact conjugation and the homogeneous phase-current calculation establish `DOES NOT EMERGE` for sign selection by the registered action. |
+| **Mechanism** | Cassi candidate: the C7 circuit-reconnection chain, whose $\Gamma/H=1$ test yields a thaw rather than post-seed freeze-out. Empirical comparator: resolved-flavour $N_1$ decay, washout, sphaleron conversion and QCD transfer. The phase-bearing extension supplies a CP-odd helicity observable, but its sign requires a CP-odd coefficient, asymmetric state or nonlinear selection rule and a microscopic baryon-production coupling. |
+| **Epistemic** | **Hypothesized** (Cassi mechanism, handed-domain formation and CP coupling) / **Mapped** ($\eta$ exponent $-44$—ledger) / **Calibrated** (two-singlet $M_1$—ledger) / **Tested** (whole-bubble initial state, CP conjugation and homogeneous handedness nonselection) |
+| **Reference** | `foundations/baryon-asymmetry.md`, `computations/qcd-whole-bubble-cp-selection-prereg.md`, `computations/whole-bubble-handedness-selector-prereg.md`, `computations/matter-formation-continuum-report.md` §§83–86 |
 
 ### Q7: Quantum measurement problem
 
@@ -2063,7 +2067,14 @@ yield with all registered Cassi inputs unchanged, so CP selection returns
 Mapped three-nonzero-mass neutrino spectrum. The empirical route is complete
 under supplied microphysics and thermal initial conditions; Cassi-origin
 completion remains open
-(`computations/matter-formation-continuum-report.md` §§83–85).
+(`computations/matter-formation-continuum-report.md` §§83–86).
+
+The optional phase-bearing whole field has a CP-odd integrated spatial
+helicity. Its positive homogeneous action leaves opposite signs degenerate
+and has no negative density, longitudinal or transverse mode. Homogeneous
+handedness selection therefore returns `DOES NOT EMERGE`; nonlinear
+far-from-equilibrium domain formation and a microscopic baryon-production
+coupling remain open.
 
 The active finite-cutoff chromodielectric completion defines the interacting
 two-flavour sea and preserves local $SU(3)_C$. Its zero-dielectric exterior
@@ -2086,8 +2097,8 @@ observable nucleons and baryogenesis conditionally. Cassi supplies no
 derivation of QCD, the seesaw action or a CP-odd selector. QMQ4, QMC6, RCF6,
 ICB6, QURB8, FCP6 and FCP7 return `FAIL`, and physical Cassi matter formation
 remains Hypothesized/Open
-(`computations/matter-formation-continuum-report.md` §§79, 81–84;
-`foundations/matter-completion-boundary.md` §§24, 26–29).
+(`computations/matter-formation-continuum-report.md` §§79, 81–86;
+`foundations/matter-completion-boundary.md` §§24, 26–30).
 
 A separate unnormalized polynomial Gram stabilizer remains finite when its
 chiral field crosses zero. Exact positivity and independent Cartesian

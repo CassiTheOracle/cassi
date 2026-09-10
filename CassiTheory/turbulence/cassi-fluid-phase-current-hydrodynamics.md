@@ -1,6 +1,6 @@
 # Cassi Fluid Phase Currents: Rotation, Helicity, and the Viscosity Boundary
 
-## Status: Derived conditional current and topology identities / Tested rotational, memory and first-order coercivity boundaries / Open microscopic viscosity and arbitrary-flow closure—September 2026
+## Status: Derived conditional current and topology identities / Tested rotational, memory, first-order coercivity and homogeneous-handedness selection boundaries / Open microscopic viscosity, nonlinear handed-domain formation and arbitrary-flow closure—September 2026
 
 ## Abstract
 
@@ -574,8 +574,22 @@ A microscopic positive viscosity, material coefficient, arbitrary-flow
 momentum closure, whole-field dynamical concentration bound, and
 arbitrary-data global regularity theorem remain **UNESTABLISHED**.
 
+
+The whole-bubble handedness follow-up classifies the integrated spatial
+helicity as $C$-even, $P$-odd and $CP$-odd. The registered
+positive-coefficient action gives equal energy to opposite Beltrami
+polarizations, positive density and transverse operators, and no negative
+longitudinal mode. All eight primary gates and eleven independent checks pass.
+The phase-bearing extension therefore contains a candidate CP-odd collective
+observable, while selection of its sign from the homogeneous state returns
+`DOES NOT EMERGE`. Nonlinear far-from-equilibrium selection remains open
+(`computations/matter-formation-continuum-report.md` §86).
+
 ## References
 
+- `computations/whole-bubble-handedness-selector-prereg.md`—fixed CP character, stability, helicity-degeneracy and selector-control schedule.
+- `computations/whole_bubble_handedness_selector.py`—primary whole-field handedness calculation.
+- `computations/verify_whole_bubble_handedness_selector.py`—independent reconstruction and verdict check.
 - `foundations/interscale-current-soliton.md`—first-order doublet action, species currents, relative connection and exact exterior-memory reduction.
 - `foundations/geometric-manifold-completion.md`—normalized projective spinor and distinct Berry/dynamical curvatures.
 - `foundations/quantum-measurement-derivation.md`—phase-fibre causality and the microscopic projection boundary.

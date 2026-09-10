@@ -161,8 +161,14 @@ frozen tolerances. Exact CP conjugation reverses the asymmetry while every
 registered Cassi input remains unchanged. The empirical history returns
 `SUPPORTS`, CP selection returns `DOES NOT EMERGE`, and Cassi-origin
 completion remains `FAIL`
-(`computations/matter-formation-continuum-report.md` §§83–85;
-`foundations/matter-completion-boundary.md` §§28–29).
+(`computations/matter-formation-continuum-report.md` §§83–86;
+`foundations/matter-completion-boundary.md` §§28–30).
+
+The optional phase-bearing extension contains CP-odd integrated spatial
+helicity, but its positive homogeneous action leaves the two signs degenerate
+and has no negative linear mode. Homogeneous handedness selection returns
+`DOES NOT EMERGE`; nonlinear domain formation and the microscopic
+baryon-production coupling remain open.
 
 
 ## Document Index
@@ -1363,8 +1369,14 @@ QCD epoch and maps to continuum-QCD nucleons. Whole-bubble abundance and
 inherited-charge variations converge within the frozen tolerances. The exact
 CP-conjugate texture gives the opposite sign with identical registered Cassi
 inputs, so CP selection returns `DOES NOT EMERGE`
-(`computations/matter-formation-continuum-report.md` §§83–85;
-`foundations/matter-completion-boundary.md` §§28–29).
+(`computations/matter-formation-continuum-report.md` §§83–86;
+`foundations/matter-completion-boundary.md` §§28–30).
+
+The phase-bearing interscale extension supplies CP-odd integrated spatial
+helicity. Its opposite-helicity fixtures have equal energy and its homogeneous
+density, longitudinal and transverse operators are nonnegative, so
+handedness selection returns `DOES NOT EMERGE`. Nonlinear domain formation and
+a microscopic coupling to baryon production remain open.
 
 
 Physical exterior and reservoir actions, state selection, canonical
@@ -1377,8 +1389,9 @@ Model completion supplies thermal production, baryogenesis, QCD survival and
 the observable nucleon map conditionally. Cassi supplies no derivation of its
 microscopic action or CP-odd branch selector. The four-coordinate interacting
 endpoint fails its own stationarity, exterior-tail, virial and formation
-criteria; the whole-bubble selector gate also fails
-(`computations/matter-formation-continuum-report.md` §§35–36, 79, 81–85).
+criteria; both the leptogenesis CP selector and homogeneous phase-current
+handedness selector fail
+(`computations/matter-formation-continuum-report.md` §§35–36, 79, 81–86).
 Status: Derived conditional nine-sector boundary, microscopic
 non-identifiability, continuum minimizer-set stability, normalized-chiral
 obstruction, regular baryon-current identity, finite-cutoff action-level
@@ -1388,8 +1401,9 @@ resolved-flavour leptogenesis scale / Hypothesized physical realization /
 Tested reduced receipts, prepared binding, finite-grid spectra, radial
 relaxation, finite-charge condensation, quark–meson regulator extrapolation,
 fixed-family binding, isolated-color divergence, neutral flux, interacting
-radial-baryon rejection, conditional empirical history and whole-bubble
-selector boundary—September 2026.
+radial-baryon rejection, conditional empirical history, whole-bubble
+leptogenesis selector boundary and homogeneous phase-current handedness
+boundary—September 2026.
 
 ### `quantum-free-fall-correspondence.md`—Quantum Free Fall as a Cassi Correspondence Boundary
 

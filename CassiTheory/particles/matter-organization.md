@@ -32,7 +32,14 @@ changes. Exact CP-conjugate textures produce opposite signs with identical
 registered Cassi inputs, so CP selection `DOES NOT EMERGE`. This route supplies
 empirical organization under declared microphysics without deriving that
 microphysics from the Cassi densities
-(`computations/matter-formation-continuum-report.md` §§83–85).
+(`computations/matter-formation-continuum-report.md` §§83–86).
+
+The optional phase-bearing interscale extension supplies CP-odd integrated
+spatial helicity, but its registered positive action leaves opposite
+helicities degenerate and has no negative homogeneous mode. It therefore
+supplies an additional collective coordinate without selecting the observed
+matter branch. Nonlinear domain selection and coupling to baryon production
+remain open.
 
 ---
 
@@ -368,7 +375,7 @@ supplies the standing pattern, contrast $\varphi^6\approx17.94$, condensation
 threshold, NLS norm $M_\Psi=\int|\Psi|^2\,ds$, and selected amplitude-ratio
 stability condition (`particles/cassi-yang-yin-particles.md` §4–7).
 Experiment 8v2 is a numerical receipt for that extension. Its relative-wake
-phase-lag curve $\delta n(\psi)=0.060-0.204\psi$ with exact $A_0$, $B_0`;
+phase-lag curve $\delta n(\psi)=0.060-0.204\psi$ with exact $A_0$, $B_0$;
 wake closure $\Lambda_Y+\Lambda_I=\ell_{n+1}$ (#43); and envelope checkerboard
 (#44) are extension diagnostics. The canonical density equations supply none
 of these phase, propagation, selected-coordinate, or NLS structures.

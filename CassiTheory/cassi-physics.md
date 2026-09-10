@@ -1504,7 +1504,16 @@ light spectrum. The registered Cassi state has no CP-odd datum or derived map
 from its Mapped quark-sector CKM phase to $z$. The empirical history returns
 `SUPPORTS`, CP selection returns `DOES NOT EMERGE`, and complete Cassi matter
 formation returns `FAIL`
-(`computations/matter-formation-continuum-report.md` §§83–85).
+(`computations/matter-formation-continuum-report.md` §§83–86).
+
+The optional phase-bearing whole field contains an integrated spatial
+helicity that is $C$-even, $P$-odd and $CP$-odd. Full-doublet and
+multiple-scale-band configurations can carry either sign. The registered
+positive-coefficient action leaves those signs energetically degenerate and
+has no negative homogeneous linear mode: all eight primary and eleven
+independent checks pass, with sign selection returning `DOES NOT EMERGE`.
+Nonlinear handed-domain formation and a microscopic coupling to baryon
+production remain open.
 
 The minimal two-singlet action has one exactly massless light neutrino,
 whereas the separate Mapped Cassi spectrum has three nonzero masses. A unified
@@ -1537,11 +1546,13 @@ baryon-asymmetry magnitude under its supplied texture. The linear growth
 rates, spatial instability, prepared charge separation, conditional baryon
 profile, radial relaxation, independent chiral-zero quadratures, quark–meson
 regulator extrapolation, shooting endpoint, fixed-$B$ binding, reduced
-barrier, resolved-flavour thermal evolution, whole-bubble initial-state arms
-and QCD yield transfer are **Tested**. The nonlinear comparison remains
-`INCONCLUSIVE`, the normalized-chiral topology-change verdict is
-`CONTRADICTS`, CP selection is `DOES NOT EMERGE`, and complete Cassi-origin
-formation is `FAIL`. A connected empirical cosmological history is available.
+barrier, resolved-flavour thermal evolution, whole-bubble initial-state arms,
+QCD yield transfer and phase-current homogeneous handedness boundary are
+**Tested**. The nonlinear comparison remains `INCONCLUSIVE`, the
+normalized-chiral topology-change verdict is `CONTRADICTS`, homogeneous
+handedness selection and CP selection are `DOES NOT EMERGE`, and complete
+Cassi-origin formation is `FAIL`. A connected empirical cosmological history
+is available.
 Physical Cassi matter formation requires microscopic action closure and a
 CP-odd selector and remains **Hypothesized/Open**.
 

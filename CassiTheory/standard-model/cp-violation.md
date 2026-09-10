@@ -1,6 +1,6 @@
 # CP Violation from the Golden Ratio
 
-## Status: Hypothesized particle-sector CP/chiral map / Mapped $\delta_{\text{CKM}}$ and strong-CP span / Tested leptogenesis CP-selection no-go / Yukawa-determinant $J_{\text{CP}}$ candidate dimensionally incomplete—September 2026
+## Status: Hypothesized particle-sector CP/chiral map and nonlinear handed-domain selection / Mapped $\delta_{\text{CKM}}$ and strong-CP span / Tested leptogenesis CP-selection and homogeneous phase-current handedness no-go boundaries / Yukawa-determinant $J_{\text{CP}}$ candidate dimensionally incomplete—September 2026
 
 ## Abstract
 
@@ -31,6 +31,14 @@ baryon asymmetries. The current quark-sector CKM map has no derived relation
 to $z$, so it supplies no leptonic branch selector. The frozen CP-selection
 verdict is `DOES NOT EMERGE`
 (`computations/matter-formation-continuum-report.md` §84).
+
+The optional phase-bearing interscale extension supplies an integrated
+spatial helicity that is $C$-even, $P$-odd and $CP$-odd. The registered
+positive action nevertheless assigns equal energy to opposite Beltrami
+polarizations and has no negative homogeneous density, longitudinal or
+transverse mode. Its sign is therefore another unselected input at this
+level: homogeneous handedness selection returns `DOES NOT EMERGE`
+(`computations/matter-formation-continuum-report.md` §86).
 
 ---
 
@@ -321,15 +329,23 @@ supply an inter-rung transport law (`foundations/bubble-lattice-fabric.md` §3.3
    the same light spectrum. A nonzero signed result requires a CP-odd action
    coefficient, state, boundary datum or selection rule.
 
+6. **A CP-odd collective observable is available but is not selected.**
+   Integrated spatial helicity in the phase-bearing extension changes sign
+   under parity and CP. Opposite-helicity fixtures have equal action energy,
+   and the homogeneous linearized operators are nonnegative. A nonlinear
+   far-from-equilibrium domain-selection mechanism and a microscopic coupling
+   to baryon-number production remain open.
+
 The overall picture is conditional. The canonical fixed-point imbalance
 $\eta_{\mathrm{dens}}=\varphi^{-3}$ can enter a particle-sector CP map only
 after additional complex or spinor structure and an explicit observation map
 are specified. The observable quark-sector structure is carried by the
 Standard Model Yukawa matrices and their diagonalisation; the CKM candidate
 and strong-CP estimate retain the Mapped statuses stated above. No registered
-map transports that phase into the leptonic Casas–Ibarra coordinate, and the
-whole-bubble calculation proves that the canonical real data cannot choose
-between its exact CP-conjugate branches.
+map transports that phase into the leptonic Casas–Ibarra coordinate. The
+canonical real data cannot choose between exact CP-conjugate branches, and the
+optional phase-current action does not choose between its opposite-helicity
+collective states.
 
 ## References
 
@@ -340,3 +356,7 @@ between its exact CP-conjugate branches.
 - `computations/qcd-whole-bubble-cp-selection-prereg.md`—frozen resolved-flavour and CP-selector decisions
 - `computations/qcd_whole_bubble_cp_selection.py`—exact conjugate pair and real-coordinate scan
 - `computations/matter-formation-continuum-report.md` §84—whole-bubble CP-selection theorem and verdict
+- `computations/whole-bubble-handedness-selector-prereg.md`—frozen collective CP character, stability and selector decisions
+- `computations/whole_bubble_handedness_selector.py`—opposite-helicity energy and homogeneous operator calculation
+- `computations/verify_whole_bubble_handedness_selector.py`—independent source, metric and verdict reconstruction
+- `computations/matter-formation-continuum-report.md` §86—phase-current handedness boundary and verdict

@@ -345,8 +345,16 @@ produces the opposite asymmetry, while every registered Cassi input is
 unchanged. CP selection returns `DOES NOT EMERGE`: the empirical history is
 connected at its declared scope, and a Cassi origin requires an explicit
 CP-odd microscopic ingredient
-(`computations/matter-formation-continuum-report.md` §§83–85;
-`foundations/matter-completion-boundary.md` §§28–29).
+(`computations/matter-formation-continuum-report.md` §§83–86;
+`foundations/matter-completion-boundary.md` §§28–30).
+
+The optional phase-bearing whole field supplies a concrete CP-odd candidate:
+integrated spatial helicity. Opposite-helicity configurations are
+energetically degenerate in the registered positive action, whose tested
+density, longitudinal and transverse operators have no negative mode.
+WHS1–WHS8 and eleven independent checks pass; handedness selection from the
+homogeneous state returns `DOES NOT EMERGE`. Nonlinear domain selection and a
+microscopic coupling to baryon production remain open.
 
 The minimal two-singlet action also has one exactly massless light neutrino,
 whereas Cassi's separate Mapped spectrum has three nonzero masses. A unified

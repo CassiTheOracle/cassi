@@ -37,7 +37,13 @@ Exact CP-conjugate textures give opposite asymmetries with identical
 registered Cassi inputs, so CP selection returns `DOES NOT EMERGE` and
 Cassi-origin completion remains `FAIL`. The boxed action excludes this
 separately supplied comparator
-(`computations/matter-formation-continuum-report.md` §§83–85).
+(`computations/matter-formation-continuum-report.md` §§83–86).
+
+The separate phase-bearing interscale extension contains CP-odd integrated
+spatial helicity, but its registered positive action leaves opposite
+helicities degenerate and has no negative homogeneous linear mode. It returns
+`DOES NOT EMERGE` for handedness selection. That extension is also absent from
+the boxed action and has no microscopic coupling to baryon-number production.
 
 $$
 \boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}
@@ -849,6 +855,23 @@ excludes this separately supplied comparator
 (`computations/matter-formation-continuum-report.md` §§83–85;
 `foundations/matter-completion-boundary.md` §§28–29).
 
+### 2.12 Phase-bearing handedness boundary
+
+The phase-bearing interscale action developed in
+`foundations/interscale-current-soliton.md` supplies an integrated spatial
+helicity with $C$-even, $P$-odd and $CP$-odd transformation character.
+Full-doublet and multiple-scale-band configurations can realize either sign.
+For the registered positive coefficients, opposite Beltrami polarizations
+have equal energy, and the homogeneous density Hessian, longitudinal branch
+and transverse London operator are nonnegative. The extension therefore
+provides a CP-odd collective coordinate without selecting its sign.
+
+WHS1–WHS8 and eleven independent checks pass. Handedness selection returns
+`DOES NOT EMERGE`; nonlinear far-from-equilibrium domain formation and a
+microscopic coupling from helicity to baryon-number production remain open
+(`computations/matter-formation-continuum-report.md` §86;
+`foundations/matter-completion-boundary.md` §30).
+
 ## 3. GR/Gravity Sector $\mathcal{L}_{\text{GR}}$
 
 Gravity is an optional Einstein–Hilbert extension with a candidate
@@ -1462,6 +1485,7 @@ added action rather than a canonical Cassi stress exchange
 - `computations/qcd-unconstrained-radial-baryon-prereg.md`, `computations/qcd_unconstrained_radial_baryon.py` and `computations/verify_qcd_unconstrained_radial_baryon.py`—frozen independent-cell radial calculation and independent QURB reconstruction.
 - `computations/qcd-cosmological-matter-completion-prereg.md` and `computations/qcd_cosmological_matter_completion.py`—supplied microscopic history, QCD-era chemistry and coarse nonradial response.
 - `computations/qcd-whole-bubble-cp-selection-prereg.md`, `computations/qcd_whole_bubble_cp_selection.py` and `computations/verify_qcd_whole_bubble_cp_selection.py`—resolved-flavour calibration, initial-state arms, conjugate-pair theorem and independent reconstruction.
+- `computations/whole-bubble-handedness-selector-prereg.md`, `computations/whole_bubble_handedness_selector.py` and `computations/verify_whole_bubble_handedness_selector.py`—collective CP character, opposite-helicity degeneracy, homogeneous stability and independent reconstruction.
 - `standard-model/su2-gauge-extension.md`—SM gauge sector, Weinberg angle
 - `standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$
 - `particles/cassi-yang-yin-particles.md`—optional Hypothesized complex-field/NLS particle-interference extension and its conditional Dirac mapping

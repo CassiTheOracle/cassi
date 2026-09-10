@@ -823,9 +823,18 @@ results establish a conditional empirical asymmetry history. A Cassi
 derivation of the microscopic fields, complex texture, initial state and
 CP-odd selector remains open.
 
+The optional phase-bearing interscale action supplies a more structured
+whole-field candidate. Its integrated spatial helicity is $C$-even, $P$-odd
+and $CP$-odd. Full-doublet or multiple-scale-band states can carry either
+sign. The registered positive-coefficient action gives them equal energy,
+contains no negative homogeneous linear mode, and therefore returns
+`DOES NOT EMERGE` for handedness selection. Nonlinear nonequilibrium domain
+formation and a microscopic coupling from helicity to baryon-number
+production remain open.
+
 The complete calculation and exact scope are recorded in
-`computations/matter-formation-continuum-report.md` §§83–85 and
-`foundations/matter-completion-boundary.md` §§28–29.
+`computations/matter-formation-continuum-report.md` §§83–86 and
+`foundations/matter-completion-boundary.md` §§28–30.
 
 ---
 
@@ -862,6 +871,9 @@ The complete calculation and exact scope are recorded in
 - `computations/qcd-whole-bubble-cp-selection-prereg.md`—frozen two-flavour, whole-bubble and CP-selection protocol
 - `computations/qcd_whole_bubble_cp_selection.py`—primary resolved-flavour calibration, initial-state arms and conjugate scan
 - `computations/verify_qcd_whole_bubble_cp_selection.py`—independent Radau calibration and source-bound verification
+- `computations/whole-bubble-handedness-selector-prereg.md`—frozen whole-field CP character, stability and selector protocol
+- `computations/whole_bubble_handedness_selector.py`—primary helicity-degeneracy and positive-operator calculation
+- `computations/verify_whole_bubble_handedness_selector.py`—independent source, array, metric and verdict reconstruction
 - S. Blanchet and P. Di Bari, [“Flavor effects on leptogenesis predictions”](https://arxiv.org/abs/hep-ph/0607330)—resolved-flavour regimes and projected washout
 - A. Abada et al., [“Flavour Matters in Leptogenesis”](https://arxiv.org/abs/hep-ph/0605281)—two-flavour Boltzmann equations
 - S. Davidson, E. Nardi and Y. Nir, [“Leptogenesis”](https://arxiv.org/abs/0802.2962)—thermal leptogenesis review

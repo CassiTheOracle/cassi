@@ -1,6 +1,6 @@
 # Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
-## Status: Derived conditional nine-sector boundary, microscopic non-identifiability, scalar continuum minimizer-set stability, normalized-chiral topology-change obstruction, regular quark-current identity, finite-cutoff confinement and CP-selection theorem / Mapped carrier coupling, conditional baryon benchmark, massive three-mass normalization and rejected step-95 radius assignment / Calibrated resolved-flavour leptogenesis scale / Hypothesized Cassi microscopic completion / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences, radial baryon relaxation, finite-charge radial condensation, quark–meson regulator extrapolation, fixed-family binding, interacting and unconstrained radial-baryon rejection, conditional empirical QCD history and whole-bubble selector boundary—September 2026
+## Status: Derived conditional nine-sector boundary, microscopic non-identifiability, scalar continuum minimizer-set stability, normalized-chiral topology-change obstruction, regular quark-current identity, finite-cutoff confinement and CP-selection theorem / Mapped carrier coupling, conditional baryon benchmark, massive three-mass normalization and rejected step-95 radius assignment / Calibrated resolved-flavour leptogenesis scale / Hypothesized Cassi microscopic completion / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences, radial baryon relaxation, finite-charge radial condensation, quark–meson regulator extrapolation, fixed-family binding, interacting and unconstrained radial-baryon rejection, conditional empirical QCD history, whole-bubble selector and phase-current handedness boundaries—September 2026
 
 ## Abstract
 
@@ -2109,8 +2109,50 @@ CP-odd sign. A successful Cassi completion must add or derive an explicit
 CP-odd microscopic ingredient and distinguish it with an out-of-fit
 observable.
 
+## 30. Phase-current handedness does not supply the selector
+
+The optional phase-bearing interscale action contains a collective variable
+that the canonical density pair omits. Its spatial current helicity
+
+$$
+H=\int u\cdot(\nabla\times u)\,d^3x
+$$
+
+is $C$-even, $P$-odd and $CP$-odd. Full-doublet topology and multiple scale
+bands can represent nonzero $H$, so the whole field has a mathematically
+admissible handed observable once the complex phase extension is supplied.
+
+The registered positive-coefficient action does not select its sign. The
+homogeneous state has zero static energy, the tested density Hessians are
+positive, the physical longitudinal phase branch is nonnegative, and all
+transverse London operators are positive and equal for opposite helicities.
+The primary minima are
+
+$$
+\lambda_{\min}(W_\sigma)=0.655760079950079,\qquad
+\min\omega_{\rm long}^2=0,\qquad
+\min L_T=0.5.
+$$
+
+Opposite periodic Beltrami fixtures have exactly equal energy and opposite
+helicity. A separately declared CP-odd control produces its predicted energy
+split, showing that the calculation would detect a selector if one were
+present. WHS1–WHS8 and all eleven independent checks pass.
+
+The whole-field helicity result is `SUPPORTS`; sign selection by the registered
+action is `DOES NOT EMERGE`. Nonlinear far-from-equilibrium domain formation
+remains open. Matter formation additionally requires an action-level coupling
+from the collective handedness to a microscopic baryon-production operator.
+Neither requirement follows from this calculation, so the complete-formation
+verdict remains `FAIL`
+(`computations/matter-formation-continuum-report.md` §86).
+
 ## References
 
+- `computations/whole-bubble-handedness-selector-prereg.md`—frozen CP character, stability, degeneracy and selector-control protocol.
+- `computations/whole_bubble_handedness_selector.py`—primary whole-field handedness calculation.
+- `computations/verify_whole_bubble_handedness_selector.py`—independent source, array, metric and verdict reconstruction.
+- `runs/20260910_whole_bubble_handedness_selector/`—accepted source-bound primary, verification and reconciliation receipts.
 - `computations/matter-formation-continuum-report.md` §83—connected QCD cosmological history, numeric evidence and adjudication.
 - `computations/qcd-cosmological-matter-completion-prereg.md`—frozen microscopic action, state, baryogenesis, chemistry, nonradial and observable protocol.
 - `computations/qcd_cosmological_matter_completion.py`—primary physical-history calculation.

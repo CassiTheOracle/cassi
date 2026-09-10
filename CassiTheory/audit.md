@@ -495,8 +495,18 @@ registered Cassi data contain no CP-odd selector between them. FCP6 and FCP7
 return `FAIL`; CP selection returns `DOES NOT EMERGE`. The conditional
 empirical history is connected at its declared scope, while Cassi-origin
 matter formation requires an explicit CP-odd microscopic ingredient
-(`computations/matter-formation-continuum-report.md` §§83–85;
-`foundations/matter-completion-boundary.md` §§28–29).
+(`computations/matter-formation-continuum-report.md` §§83–86;
+`foundations/matter-completion-boundary.md` §§28–30).
+
+The phase-bearing interscale extension supplies a concrete CP-odd collective
+observable: integrated spatial helicity. The result does not close the
+selector. Full-doublet and multiple-band configurations realize both signs,
+the registered positive action assigns equal energy to opposite Beltrami
+polarizations, and its homogeneous density, longitudinal and transverse
+operators have no negative mode. WHS1–WHS8 and eleven independent
+reconstruction checks pass. Handedness selection returns `DOES NOT EMERGE`;
+nonlinear far-from-equilibrium domain formation and a microscopic coupling
+from helicity to baryon-number production remain open.
 
 The minimal two-singlet action has a rank-two light-neutrino matrix and one
 exactly massless state. It cannot simultaneously realize Cassi's separate
