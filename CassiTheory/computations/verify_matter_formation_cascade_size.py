@@ -399,9 +399,14 @@ def profile_rhs(x: np.ndarray, F: np.ndarray, Fx: np.ndarray, mu: float) -> np.n
 
 def solve_profile(mu: float, L: float) -> tuple[Any, dict[str, Any]]:
     mesh = initial_mesh(L)
+    # Regular standard hedgehog seed F(x)=pi-2*atan(x/a) (equiv. 2*atan(a/x)),
+    # fixed a=1/sqrt(2), independent of mu. The direct-F equation, mixed mesh,
+    # tolerance, and node budget remain the independently frozen verifier
+    # contract; no primary output or profile is used as a guess.
+    hedgehog_a = 1.0 / math.sqrt(2.0)
     y_guess = np.vstack((
-        math.pi * np.exp(-mu * mesh),
-        -mu * math.pi * np.exp(-mu * mesh),
+        math.pi - 2.0 * np.arctan(mesh / hedgehog_a),
+        -2.0 * hedgehog_a / (mesh * mesh + hedgehog_a * hedgehog_a),
     ))
 
     def fun(x: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -723,17 +728,20 @@ def domain_row(L: float, scan: dict[str, Any], root: dict[str, Any] | None,
         entry["size_residual_fm"] = float(root["size_residual_fm"])
     row["root"] = entry
     diag = root.get("solver")
+    obs = root.get("observables")
+    obs_block: dict[str, Any] = {}
+    if isinstance(obs, dict):
+        obs_block = {key: float(obs[key]) for key in OBS_KEYS
+                     if math.isfinite(obs.get(key, math.nan))}
     if isinstance(diag, dict):
         solver_block: dict[str, Any] = {"status": int(diag["status"]),
                                         "message": str(diag["message"]),
                                         "n_nodes": int(diag["n_nodes"])}
         if finite_num(diag.get("max_rms_residual")):
             solver_block["max_rms_residual"] = float(diag["max_rms_residual"])
-        row["root_solver"] = solver_block
-    obs = root.get("observables")
-    if isinstance(obs, dict):
-        row["observables"] = {key: float(obs[key]) for key in OBS_KEYS
-                              if math.isfinite(obs.get(key, math.nan))}
+        obs_block["solver"] = solver_block
+    if obs_block:
+        row["observables"] = obs_block
     if root.get("profile_reasons"):
         row["root_profile_reasons"] = list(root["profile_reasons"])[:8]
     if coefficients is not None:
@@ -1117,17 +1125,19 @@ def primary_root_expectations(view: PrimaryView, L: float, summary: dict[str, An
         if not num_eq(bracket[0], summary["bracket"][0], rel=1.0e-12, abs_floor=1.0e-15) \
                 or not num_eq(bracket[1], summary["bracket"][1], rel=1.0e-12, abs_floor=1.0e-15):
             issues.append("root bracket differs from recomputed sign-change pair")
-    resid = root.get("size_residual_fm")
-    if not finite_num(resid) or float(resid) > TOL_SIZE_RESIDUAL_FM:
+    resid_abs = root.get("abs_size_residual_fm")
+    if not finite_num(resid_abs) and finite_num(root.get("size_residual_fm")):
+        resid_abs = abs(float(root["size_residual_fm"]))
+    if not finite_num(resid_abs) or float(resid_abs) > TOL_SIZE_RESIDUAL_FM:
         issues.append("root size residual above frozen threshold")
     obs = entry.get("observables")
-    if isinstance(obs, dict) and finite_num(resid) and is_num(root.get("mu")) \
+    if isinstance(obs, dict) and finite_num(resid_abs) and is_num(root.get("mu")) \
             and finite_num(obs.get("R0_sq")) and obs["R0_sq"] > 0.0:
         expected_resid = abs(HBARC_MEV_FM * float(root["mu"]) * math.sqrt(obs["R0_sq"])
                              / M_PI_MEV - ELL95_FM)
-        if abs(expected_resid - float(resid)) > RECHECK_ABS:
+        if abs(expected_resid - float(resid_abs)) > RECHECK_ABS:
             issues.append("root residual disagrees with reported root observables")
-    solver = entry.get("root_solver")
+    solver = obs.get("solver") if isinstance(obs, dict) else None
     if not isinstance(solver, dict) or solver.get("status") != 0 \
             or not finite_num(solver.get("max_rms_residual")) \
             or float(solver["max_rms_residual"]) >= TOL_RMS:
@@ -1227,9 +1237,12 @@ def check_primary_root_attempt(view: PrimaryView, L: float,
         issues.append("root attempt n_brent_evaluations malformed")
     if "mu" in root and not finite_num(root["mu"]):
         issues.append("root attempt mu is non-finite")
-    if "size_residual_fm" in root and (
-            not finite_num(root["size_residual_fm"]) or float(root["size_residual_fm"]) < 0.0):
+    if "size_residual_fm" in root and not finite_num(root["size_residual_fm"]):
         issues.append("root attempt size_residual_fm malformed")
+    if "abs_size_residual_fm" in root and (
+            not finite_num(root["abs_size_residual_fm"])
+            or float(root["abs_size_residual_fm"]) < 0.0):
+        issues.append("root attempt abs_size_residual_fm malformed")
     bracket = root.get("bracket")
     expected = summary.get("bracket")
     if expected and (not isinstance(bracket, list) or len(bracket) != 2
@@ -1459,14 +1472,25 @@ def check_primary_npz(view: PrimaryView, input_dir: Path) -> tuple[bool, list[st
                 18: (row64.get("observables"), "degree"),
                 19: (row64.get("observables"), "F_at_L"),
                 20: (row64.get("observables"), "virial_relative"),
-                25: (row64.get("root"), "size_residual_fm"),
             }
+            root_block = row64.get("root")
+            expected_resid: Any = None
+            if isinstance(root_block, dict):
+                expected_resid = root_block.get("abs_size_residual_fm")
+                if not finite_num(expected_resid) \
+                        and finite_num(root_block.get("size_residual_fm")):
+                    expected_resid = abs(float(root_block["size_residual_fm"]))
+            if finite_num(expected_resid) and not num_eq(
+                    abs(float(scalars[25])), float(expected_resid),
+                    rel=RECHECK_REL, abs_floor=RECHECK_ABS):
+                issues.append("primary npz scalar size_residual_fm disagrees with JSON")
             for index, (block, key) in scalar_expect.items():
                 if isinstance(block, dict) and finite_num(block.get(key)):
                     if not num_eq(float(scalars[index]), float(block[key]),
                                   rel=RECHECK_REL, abs_floor=RECHECK_ABS):
                         issues.append(f"primary npz scalar {SCALAR_BASIS[index]} disagrees with JSON")
-            solver = row64.get("root_solver")
+            obs64 = row64.get("observables")
+            solver = obs64.get("solver") if isinstance(obs64, dict) else None
             if isinstance(solver, dict) and finite_num(solver.get("max_rms_residual")):
                 if not num_eq(float(scalars[21]), float(solver["max_rms_residual"]),
                               rel=RECHECK_REL, abs_floor=RECHECK_ABS):
