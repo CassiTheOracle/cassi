@@ -1,6 +1,6 @@
 # Yang–Mills Conditional Transport-Score Recurrence Preregistration
 
-## Status: Frozen protocol v3—September 2026
+## Status: Frozen protocol v4—September 2026
 
 ## 1. Question and scope
 
@@ -44,7 +44,7 @@ For a unit coarse tangent vector \(\xi\), write
 \[
 s_{V,\xi}=\langle s_V,\xi\rangle,
 \qquad
-\mathbb E_{\nu_V}s_{V,\xi}=0.
+\langle s_{V,\xi},1\rangle_{H^{-1},H^1}=0.
 \]
 
 Define
@@ -66,7 +66,7 @@ descriptions
 =
 \sup_{\substack{f\in\mathcal D(\mathcal E_V)\\
 \mathbb E_{\nu_V}|\nabla_Vf|^2>0}}
-\frac{\bigl(\mathbb E_{\nu_V}[(f-\mathbb E_{\nu_V}f)s_{V,\xi}]\bigr)^2}
+\frac{\bigl\langle s_{V,\xi},f-\mathbb E_{\nu_V}f\bigr\rangle_{H^{-1},H^1}^2}
 {\mathbb E_{\nu_V}|\nabla_Vf|^2}
 \]
 
@@ -87,6 +87,11 @@ $\vartheta$ as the minimum vertical kinetic cost needed to transport the
 conditional law when the coarse variable moves.
 
 ### YMTS2. Sharpened recurrence
+
+Let $F$ belong to the joint fine Dirichlet-form domain, with almost-everywhere
+conditional slices in the vertical form domain and square-integrable weak
+horizontal derivative. The score term below is the
+$H^1$–$H^{-1}$ dual pairing when it is not an $L^2$ integral.
 
 The transported differentiated-expectation identity must give
 
@@ -163,6 +168,10 @@ Any induction using restricted coarse or fibre rates additionally requires
 the gauge-equivariant disintegration, connection, reference measure and
 invariant domains stated there. The coarse marginal is not replaced by a
 bare coarse vacuum without an explicit comparison.
+
+Assume $a_f,g_f,m_*,\lambda_c,\lambda_{\mathrm{fib}}>0$. Then
+$r_f>0$, $h>0$, and the margin coordinates below satisfy
+$\delta_c,\delta_v>-1$.
 
 For the physical target
 
@@ -241,7 +250,7 @@ A nonzero transport score consumes both coarse and vertical margin. Equality of 
 
 ### YMTS4. Exact Gaussian transport control
 
-For a positive block precision
+For a real symmetric positive-definite block precision
 
 \[
 Q=
@@ -347,12 +356,16 @@ Q_N(m)=\sqrt{D_N(m)},
 with even zero-based coordinates coarse and odd coordinates fibre. These are Gaussian controls and are not an interacting Yang–Mills vacuum.
 
 For the formal infinite translation-invariant chain, fix the Fourier symbol
-below. At $m=0$ it vanishes at zero momentum, so the bi-infinite field has no
-normalizable translation-invariant Gaussian probability without pinning,
-finite volume or removal of the zero mode. The finite open matrices
-$D_N(0)$ are positive. The infinite formulas are spectral infrared
-diagnostics rather than Poincaré rates of an unpinned infinite-volume
-probability measure.
+below. At $m=0$ it vanishes at zero momentum and
+$q_0(k)^{-1}\sim|k|^{-1}$ is not locally integrable. The bi-infinite
+massless field therefore has no ordinary normalizable stationary Gaussian
+probability without finite volume, pinning or a genuine infrared
+regularization; deleting a single momentum point is insufficient. The finite
+open matrices $D_N(0)$ are positive. The massless infinite formulas are
+spectral infrared diagnostics rather than Poincaré rates of an unpinned
+infinite-volume probability measure. For $m>0$, the symbol is bounded below
+and defines a stationary Gaussian control with a Poincaré interpretation,
+while remaining distinct from the interacting Yang–Mills vacuum.
 
 \[
 q_m(k)=\sqrt{m^2+4\sin^2(k/2)},
@@ -406,7 +419,7 @@ $y=\sin^2(K/4)\in[0,1/2]$ to show the required endpoint extrema. The fixed
 17-point grid checks the symbol identities and registered endpoint values;
 it does not prove the continuum extrema.
 
-The massless control therefore retains a positive fibre rate and bounded transport norm while its coarse rate vanishes. It is a free Gaussian infrared diagnostic, not evidence for a non-Abelian mass gap.
+At the level of the formal symbols, the massless control retains a positive fibre value and bounded transport norm while its coarse value vanishes. It is a free Gaussian infrared diagnostic, not evidence for a non-Abelian mass gap.
 
 ## 3. Fixed computational schedule
 
@@ -431,6 +444,8 @@ The primary schedule contains:
   \end{array}
   \right\};
   \]
+  The expected matrix and closed-criterion decisions, in the displayed order,
+  are `PASS, PASS, FAIL, PASS, FAIL, PASS, FAIL, FAIL, FAIL, PASS`;
 - exactly 2 infinite-symbol rows, at \(m=0\) and \(m=1/2\), evaluated on the fixed 17-point grid \(K_j=-\pi+j\pi/8\), \(j=0,\ldots,16\), plus the analytic endpoint formulas.
 
 The primary has exactly 86 checks:
