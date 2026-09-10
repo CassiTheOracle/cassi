@@ -274,6 +274,21 @@ supplies no physical particle size or formation mechanism
 (`foundations/matter-completion-boundary.md` §22;
 `computations/matter-formation-continuum-report.md` §77).
 
+The QCD-anchored normalized-chiral quench has a separate continuum
+obstruction. A generic winding-changing zero of its linear $O(4)$ field makes
+the normalized-Skyrme energy diverge as
+$3\pi^2/(4|\tau|)$ on approach and at least $2\pi/a$ on a punctured
+zero-time slice. The code's max-normalization gives $4\pi/\epsilon$, so its
+fixed cutoff defines a different local action rather than a
+regulator-independent continuum limit. Primary and independent calculations
+pass all four numerical gates; the frozen topology-change verdict is
+`CONTRADICTS` and the complete-formation verdict is `FAIL`. The result
+excludes this selected continuum formation route through a generic zero while
+leaving QCD, prepared textures and regular quark-bearing microscopic
+completions open
+(`computations/matter-formation-continuum-report.md` §78;
+`foundations/matter-completion-boundary.md` §23).
+
 
 ## The reality-simulation program
 

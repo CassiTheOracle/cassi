@@ -1356,6 +1356,21 @@ dynamics, or derives an observable particle map. The completion gate returns
 `FAIL`; physical matter formation remains **Hypothesized/Open**
 (`computations/matter-formation-continuum-report.md` §31).
 
+The QCD-anchored normalized-chiral quench encounters a generic continuum
+obstruction at the event required to change winding. For the local
+nondegenerate zero
+$\boldsymbol\phi_\tau=(\tau,\mathbf x)$, its normalized-Skyrme energy obeys
+$E_4(\tau,R)\sim3\pi^2/(4|\tau|)$; a punctured zero-time slice diverges as
+$2\pi/a$. Every rank-three spatial derivative has inverse-radius coefficient
+at least $2\pi$. The code's max-normalization instead produces
+$4\pi/\epsilon$, so a fixed cutoff changes the local action. Independent
+calculations pass all four numerical gates and return `CONTRADICTS` for
+finite-energy continuum topology change through a generic zero. This scoped
+result leaves QCD, prepared nonzero-degree textures and regular microscopic
+quark-bearing completions open
+(`computations/matter-formation-continuum-report.md` §78;
+`foundations/matter-completion-boundary.md` §23).
+
 **Epistemic status:** the modulation period is **Derived conditional** on the
 optional signal map; its physical wake imprint and cross-domain extensions
 are **Hypothesized** and being tested. The sector scale is **Derived
@@ -1364,12 +1379,15 @@ anchor. The displayed projection is excluded by the stated dimensional,
 conjugacy and Hermiticity obstructions. A distinct admissible physical
 coupling remains **Hypothesized** and unselected.
 The Hill/Floquet reduction, spatial dispersion relation, signed-charge
-continuity, microscopic non-identifiability, baryon degree and collective
-identities are **Derived conditional** on their supplied parents. The baryon
-coefficients are **Mapped** to two measured masses. The linear growth rates,
-spatial instability, prepared charge separation, conditional baryon profile
-and radial relaxation are **Tested**; the nonlinear comparison remains
-`INCONCLUSIVE`, and the complete-mechanism gate is `FAIL`. Physical matter
+continuity, microscopic non-identifiability, baryon degree, collective
+identities and generic normalized-chiral zero divergence are **Derived
+conditional** on their supplied parents. The baryon coefficients are
+**Mapped** to two measured masses. The linear growth rates, spatial
+instability, prepared charge separation, conditional baryon profile, radial
+relaxation and independent chiral-zero quadratures are **Tested**; the
+nonlinear comparison remains `INCONCLUSIVE`, the normalized-chiral
+topology-change verdict is `CONTRADICTS`, and the complete-mechanism gate is
+`FAIL`. Physical matter
 formation remains **Hypothesized/Open**.
 
 ## 18. Quantum Gravity Without Singularities

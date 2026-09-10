@@ -1,6 +1,6 @@
 # Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
-## Status: Derived conditional boundary, microscopic non-identifiability and scalar continuum minimizer-set stability / Mapped carrier coupling, conditional baryon benchmark, massive three-mass normalization and rejected step-95 radius assignment / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences, radial baryon relaxation, finite-charge radial condensation, massive-profile topology and cascade-size rejection—September 2026
+## Status: Derived conditional boundary, microscopic non-identifiability, scalar continuum minimizer-set stability and normalized-chiral topology-change obstruction / Mapped carrier coupling, conditional baryon benchmark, massive three-mass normalization and rejected step-95 radius assignment / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences, radial baryon relaxation, finite-charge radial condensation, massive-profile topology, cascade-size rejection and chiral-zero divergence—September 2026
 
 ## Abstract
 
@@ -76,6 +76,18 @@ checks. Applying the six physical requirements below leaves canonical action
 and quantum-state selection unmet, normalization met only conditionally, and
 continuum stability, degree-zero production and derived particle
 identification partial. Complete physical matter formation remains open.
+
+The QCD-anchored normalized-chiral quench meets an additional continuum
+boundary. A generic degree-changing zero of its linear $O(4)$ field gives
+normalized-Skyrme energy
+$E_4(\tau,R)\sim3\pi^2/(4|\tau|)$, while the zero-time punctured energy is
+$2\pi(1/a-1/R)$. Every rank-three spatial Jacobian has inverse-radius
+coefficient at least $2\pi$. The code's max-normalization gives the distinct
+coefficient $4\pi/\epsilon$, identifying a regulator-dependent modified
+action. Independent calculations pass all four numerical gates and return
+`CONTRADICTS` for finite-energy continuum topology change through a generic
+zero. The result leaves QCD and regular quark-bearing microscopic completions
+open (§23).
 
 ## 1. The nine-part boundary
 
@@ -1596,7 +1608,95 @@ microscopic field, action, quantum state, production channel, statistics,
 renormalization or observable particle identity. The complete-mechanism
 boundary remains open.
 
+## 23. Chiral-zero continuum boundary
+
+A topology-changing chiral formation path must remain finite and defined at
+the event where the order parameter vanishes. The selected QCD-anchored
+normalized-Skyrme action does not meet that condition for a generic
+nondegenerate zero.
+
+Let
+
+$$
+\boldsymbol\phi_\tau(\mathbf x)=(\tau,\mathbf x),
+\qquad
+\hat{\boldsymbol\phi}_\tau
+=\frac{\boldsymbol\phi_\tau}{|\boldsymbol\phi_\tau|}.
+$$
+
+For the normalized quartic energy used by the frozen quench,
+
+$$
+\mathcal U_4
+=\frac12\int d^3x\sum_{i<j}
+\left(G_{ii}G_{jj}-G_{ij}^2\right),
+\qquad
+G_{ij}=\partial_i\hat{\boldsymbol\phi}\cdot
+\partial_j\hat{\boldsymbol\phi},
+$$
+
+direct integration on $B_R$ gives
+
+$$
+\boxed{
+E_4(\tau,R)
+=\frac{3\pi^2}{4|\tau|}
+-\frac{2\pi}{R}
++O\!\left(\frac{\tau^2}{R^3}\right).}
+$$
+
+At the zero time, removing an inner ball gives
+
+$$
+\boxed{
+E_4(0;a,R)=2\pi\left(\frac1a-\frac1R\right).}
+$$
+
+The conclusion extends to every rank-three spatial derivative
+$A=D_{\mathbf x}\boldsymbol\phi$. Its angular map has degree $\pm1$, and
+
+$$
+E_4(0;a,R;A)
+=C(A)\left(\frac1a-\frac1R\right),
+\qquad
+C(A)=\frac12\int_{S^2}J_A^2\,d\Omega\ge2\pi.
+$$
+
+The max-normalization prescription used by the formation code instead gives
+
+$$
+E_{4,\max}(0;\epsilon,R)
+=\frac{4\pi}{\epsilon}-\frac{2\pi}{R}.
+$$
+
+The unequal leading coefficients show that a fixed $\epsilon$ changes the
+local action. It does not define a regulator-independent continuum winding
+change for the selected normalized-Skyrme theory.
+
+The primary and independent calculations reproduce the exact formulas,
+inverse-scale slopes, pullback metric and anisotropic lower bound. QZO1–QZO4
+all return `PASS`; QZO5 returns `CONTRADICTS` for continuum
+topology-changing use of the selected action. The theorem covers generic
+rank-three zeros. Exceptional degenerate zeros, prepared textures that remain
+away from zero, QCD itself and regular ultraviolet completions lie outside
+its scope.
+
+This boundary sharpens the production requirement in §12. A replacement
+formation model must carry physical fields and conserved baryon current
+through the zero, specify the regulated quantum state and occupation, and
+qualify the resulting localized states under one action. Explicit quark
+fields with spectral flow and regular polynomial linear-field actions are
+distinct candidate ingredients; neither is selected by this calculation.
+QZO6 remains `FAIL`, and complete physical matter formation remains open
+(`computations/matter-formation-continuum-report.md` §78).
+
 ## References
+
+- `computations/matter-formation-continuum-report.md` §78—generic chiral-zero divergence, code-cutoff mismatch and independent verdict.
+- `computations/qcd-chiral-zero-obstruction-prereg.md`—frozen local theorem, numerical controls and scope.
+- `computations/qcd_chiral_zero_obstruction.py`—primary exact and numerical obstruction calculation.
+- `computations/verify_qcd_chiral_zero_obstruction.py`—independent reconstruction and receipt qualification.
+- `runs/20260910_qcd_chiral_zero_obstruction/`—primary raw rows and exact-agreement verification.
 
 - `computations/matter-formation-continuum-report.md` §77—step-95 analytic mismatch, conditional size root, withheld mass comparisons and independent evidence.
 - `computations/matter-formation-cascade-size-log-coordinate-prereg.md`—final frozen inputs, independent method, thresholds and verdict tree.

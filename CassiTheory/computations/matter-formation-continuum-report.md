@@ -1,6 +1,6 @@
 # Matter Formation: Carrier Creation, Continuum Trapping, and a Conditional Baryon Benchmark
 
-## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology, continuum minimizer-set stability and completion-boundary identities / Mapped conditional baryon benchmark / Hypothesized physical completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation, finite-charge radial condensation and microscopic boundaries—September 2026
+## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology, continuum minimizer-set stability, chiral topology-change obstruction and completion-boundary identities / Mapped conditional baryon benchmark / Hypothesized physical completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation, finite-charge radial condensation and microscopic boundaries—September 2026
 
 ## Abstract
 
@@ -102,6 +102,21 @@ admissibility, net-degree conservation and numerical comparisons pass, but no
 retained sample contains a resolved degree-$+1$/degree-$-1$ pair for all 16
 regular values. The verdict is confined to the supplied action, impulse and
 sampled interval (§32).
+
+A separate continuum calculation exposes a structural obstruction in the
+QCD-anchored chiral quench. A generic degree-changing zero of the linear
+$O(4)$ field makes the normalized-Skyrme energy diverge as the inverse
+distance to the zero. The isotropic local model gives
+$E_4(\tau,R)\sim3\pi^2/(4|\tau|)$ before the zero and
+$E_4(0;a,R)\sim2\pi/a$ on a punctured slice; every nondegenerate rank-three
+spatial Jacobian has an inverse-radius coefficient at least $2\pi$. The
+formation code's max-normalization instead gives $4\pi/\epsilon$, so its
+fixed cutoff changes the local action and has no regulator-independent
+continuum limit. Independent calculations pass all four numerical gates and
+return `CONTRADICTS` for continuum topology-changing use of this selected
+action. This does not reject QCD, prepared nonzero-degree textures or regular
+microscopic completions containing fields defined through the chiral zero
+(§78).
 
 A supplied planar sign wall supports normal-bound carrier modes and a
 surface-growth interval below the bulk-vacuum threshold. Its ground carrier
@@ -12555,7 +12570,220 @@ calculation. Every retained receipt has
 boundary in §31 remains failed, and physical matter formation remains
 **Hypothesized/Open**.
 
+## 78. Continuum obstruction at a QCD chiral zero
+
+The QCD-anchored quench exposes a sharper boundary than its failed numerical
+integration alone. A generic change of chiral winding must pass through a zero
+of the four-component linear field, while the selected normalized-Skyrme
+stabilizer assigns infinite continuum energy to that event.
+
+### 78.1 Relation to the frozen formation run
+
+The supplied chiral experiment evolves a linear
+$O(4)$ field $\boldsymbol\phi$ from random hot initial data and evaluates its
+quartic stabilizer through
+
+$$
+\hat{\boldsymbol\phi}
+:=\frac{\boldsymbol\phi}{|\boldsymbol\phi|},
+\qquad
+\mathcal U_4[\hat{\boldsymbol\phi}]
+:=\frac12\int d^3x\sum_{i<j}
+\left(G_{ii}G_{jj}-G_{ij}^2\right),
+$$
+
+where
+$G_{ij}=\partial_i\hat{\boldsymbol\phi}\cdot
+\partial_j\hat{\boldsymbol\phi}$.
+Its amended numerical execution stopped at
+$s=0.03107724709385565$ after 11,609 accepted steps and 76,513 rejected
+step halvings, before the first nonzero retained time. That execution fixes
+QCF1 to `FAIL`, QCF2–QCF5 to `INCONCLUSIVE`, and QCF6 to `FAIL`; it supplies
+no formation trajectory.
+
+The continuum question can be decided locally without extrapolating that
+failed integration. A change of spatial degree requires
+$\boldsymbol\phi=0$. The normal form of a nondegenerate spacetime zero is
+
+$$
+\boldsymbol\phi_\tau(\mathbf x)=(\tau,x_1,x_2,x_3),
+\qquad
+\rho^2=\tau^2+r^2.
+$$
+
+Its spacetime Jacobian is nonsingular. For $\tau\ne0$,
+
+$$
+G_{ij}=\frac{\delta_{ij}}{\rho^2}
+-\frac{x_ix_j}{\rho^4},
+$$
+
+so the two tangential metric eigenvalues are $\rho^{-2}$ and the radial
+eigenvalue is $\tau^2\rho^{-4}$. The resulting local density is
+
+$$
+\boxed{
+u_4(\tau,r)
+=\frac12\left[
+\frac1{(r^2+\tau^2)^2}
++\frac{2\tau^2}{(r^2+\tau^2)^3}
+\right].}
+$$
+
+On a ball of radius $R$ this integrates exactly to
+
+$$
+E_4(\tau,R)
+=\frac{\pi}{2|\tau|}
+\left[
+3\arctan\frac{R}{|\tau|}
+-\frac{R|\tau|(R^2+3\tau^2)}
+{(R^2+\tau^2)^2}
+\right],
+$$
+
+and hence
+
+$$
+\boxed{
+E_4(\tau,R)
+=\frac{3\pi^2}{4|\tau|}
+-\frac{2\pi}{R}
++O\!\left(\frac{\tau^2}{R^3}\right).}
+$$
+
+The energy therefore diverges before the degree-changing instant is reached.
+On the zero-time slice, puncturing a ball of radius $a$ gives
+
+$$
+\boxed{
+E_4(0;a,R)=2\pi\left(\frac1a-\frac1R\right).}
+$$
+
+The unnormalized two-derivative density is finite and contributes
+$E_2(B_R)=2\pi R^3$. A polynomial potential finite at
+$\boldsymbol\phi=0$ also contributes $O(R^3)$. Neither contribution cancels
+the inverse-radius singularity.
+
+### 78.2 Generic rank-three zeros and the code regulator
+
+The divergence is stable under anisotropy. Let
+$A=D_{\mathbf x}\boldsymbol\phi$ have rank three at a spacetime zero.
+On a small sphere, the normalized angular map is
+
+$$
+\mathbf u\longmapsto\frac{A\mathbf u}{|A\mathbf u|}.
+$$
+
+It has degree $\pm1$. If $J_A$ is its area Jacobian, the local quartic energy
+is
+
+$$
+E_4(0;a,R;A)
+=C(A)\left(\frac1a-\frac1R\right),
+\qquad
+C(A)=\frac12\int_{S^2}J_A^2\,d\Omega.
+$$
+
+Since
+$\int_{S^2}|J_A|\,d\Omega=4\pi$, Cauchy–Schwarz gives
+
+$$
+\boxed{C(A)\ge2\pi.}
+$$
+
+Equality holds for an isotropic zero. The tested singular-value triples
+$(1,1,1)$, $(0.6,1.0,1.8)$ and $(0.3,1.2,2.4)$ give
+$C(A)=6.2831853072$, $11.7260688512$ and $53.5156335650$.
+The rank-two triple $(0,1,2)$ has zero minimum angular Jacobian and serves as
+the declared degenerate control; the rank-three theorem makes no claim about
+such exceptional zeros.
+
+The formation program replaces the undefined normalization at small modulus
+by
+
+$$
+\hat{\boldsymbol\phi}_\epsilon
+:=\frac{\boldsymbol\phi}
+{\max(|\boldsymbol\phi|,\epsilon)}.
+$$
+
+For the isotropic zero this prescription gives
+
+$$
+\boxed{
+E_{4,\max}(0;\epsilon,R)
+=\frac{4\pi}{\epsilon}-\frac{2\pi}{R}.}
+$$
+
+Its leading coefficient differs from the punctured continuum coefficient
+$2\pi$. A fixed $\epsilon$ therefore defines a regulator-dependent modified
+action rather than a continuum limit of the selected normalized action.
+
+### 78.3 Independent qualification
+
+The primary and independent calculations use distinct derivative
+reconstructions and quadrature rules. The primary finite-difference pullback
+metric agrees with the closed form to maximum absolute error
+$7.5410345\times10^{-11}$, and its density reconstruction agrees to relative
+error $9.0982\times10^{-16}$. Its temporal, puncture and max-cutoff
+inverse-scale slopes are respectively
+$-1.0044265818$, $-1.0052203777$ and $-1.0026012288$.
+All exact radial rows agree to relative error below
+$2.6\times10^{-16}$.
+
+The independent projection-metric reconstruction has maximum entry error
+$8.8818\times10^{-16}$. Its corresponding slopes are
+$-1.0044265818$, $-1.0052203777$ and $-1.0026012288$; its largest temporal,
+puncture and cutoff relative errors remain below
+$1.6\times10^{-15}$. It reconstructs all six verdicts exactly, reports no
+mismatch, and validates the primary receipt byte identity.
+
+The frozen decisions are:
+
+| Question | Verdict |
+|---|---|
+| Local differential identity | `PASS` |
+| Temporal approach to the zero | `PASS` |
+| Punctured zero and rank-three generality | `PASS` |
+| Code-cutoff dependence | `PASS` |
+| Continuum topology-changing use of the selected action | `CONTRADICTS` |
+| Complete physical matter formation | `FAIL` |
+
+The accepted primary receipt is
+`runs/20260910_qcd_chiral_zero_obstruction/primary/results.json`; the
+independent receipt is
+`runs/20260910_qcd_chiral_zero_obstruction/verification/verification.json`.
+They share protocol SHA-256
+`59ab044a07eceb988a79f7e2bda2edea0492428e6f37133d33b578c0fee8ec0d`.
+
+### 78.4 Physical consequence
+
+The normalized-Skyrme action used by the frozen QCD quench cannot describe a
+finite-energy continuum winding change through a generic nondegenerate zero.
+Prepared textures whose modulus stays positive remain valid conditional
+stationary or relaxation benchmarks, and the result places no restriction on
+QCD or on regular microscopic completions.
+
+A viable formation theory must keep physical degrees of freedom defined
+through the interval where the chiral condensate vanishes, transport a
+conserved baryon current across that interval, and specify the quantum state
+and particle occupation. Polynomial linear-field stabilizers, explicit quark
+fields and their spectral flow are candidate ingredients, each requiring a
+new action and frozen calculation. The present result selects none of them.
+QZO6 remains `FAIL`, every receipt retains
+`complete_physical_matter_formation=false`, and physical matter formation
+remains **Hypothesized/Open**.
+
 ## References
+
+- `computations/qcd-chiral-zero-obstruction-prereg.md`—frozen local zero, rank-three, cutoff and physical-completion decisions.
+- `computations/qcd_chiral_zero_obstruction.py`—primary pullback-metric, exact radial and anisotropic zero calculation.
+- `computations/verify_qcd_chiral_zero_obstruction.py`—independent projection derivative, fixed quadrature, raw-evidence and verdict reconstruction.
+- `runs/20260910_qcd_chiral_zero_obstruction/primary/results.json`—accepted primary local-obstruction receipt.
+- `runs/20260910_qcd_chiral_zero_obstruction/verification/verification.json`—independent exact-agreement receipt.
+- `computations/qcd-chiral-matter-formation-prereg.md`—QCD-anchored quench, amended execution record and failed-closed formation verdict.
+- G. Holzwarth and J. Klomfass, [“The Chiral Phase Transition in Dissipative Dynamics”](https://arxiv.org/abs/hep-ph/0206228)—linear $O(4)$ field, normalized-Skyrme term, random hot initial fields and dissipative evolution.
 
 - `computations/matter-formation-cascade-size-prereg.md`—frozen step-95 radius assignment, massive-profile size root, withheld mass comparisons and verdict tree.
 - `computations/matter-formation-cascade-size-numerical-recovery-prereg.md`—theta-state numerical recovery, immutable physical inputs and typed failure conditions.
