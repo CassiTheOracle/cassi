@@ -38,6 +38,25 @@ SOURCE_PATHS = (
     INTEGRITY_VERIFIER_SOURCE,
 )
 EXPECTED_CHECKS = 36
+
+class ManifestReadError(RuntimeError):
+    """A published manifest could not be read back or validated."""
+
+    def __init__(
+        self,
+        manifest_path: Path,
+        snapshot_root: Path,
+        sources: dict[str, dict[str, Any]],
+        cause: Exception,
+    ) -> None:
+        self.manifest_path = manifest_path
+        self.snapshot_root = snapshot_root
+        self.sources = sources
+        super().__init__(
+            f"published manifest read-back failed: "
+            f"{type(cause).__name__}: {cause}"
+        )
+
 TOL = 2.0e-14
 
 np: Any = None
@@ -382,6 +401,7 @@ def prepare_evidence(
     snapshot_staging = snapshot_root.with_name(snapshot_root.name + ".incomplete")
     validated_sources = _validate_source_paths(SOURCE_PATHS, snapshot_staging)
 
+    published = False
     try:
         payloads = [
             (relative, source_path.read_bytes(), staged_destination)
@@ -418,21 +438,31 @@ def prepare_evidence(
         with manifest_staging.open("x", encoding="utf-8") as stream:
             stream.write(manifest_payload)
         manifest_staging.replace(manifest_path)
-        published_root, published_sources = _load_published_manifest(
-            manifest_path,
-            snapshot_root,
-            sources,
-        )
+        published = True
+        try:
+            published_root, published_sources = _load_published_manifest(
+                manifest_path,
+                snapshot_root,
+                sources,
+            )
+        except Exception as exc:
+            raise ManifestReadError(
+                manifest_path,
+                snapshot_root,
+                sources,
+                exc,
+            ) from exc
         return target, manifest_path, published_root, published_sources
     except Exception:
         if manifest_staging.exists():
             manifest_staging.unlink()
-        if manifest_path.exists():
-            manifest_path.unlink()
-        if snapshot_staging.exists():
-            shutil.rmtree(snapshot_staging)
-        if snapshot_root.exists():
-            shutil.rmtree(snapshot_root)
+        if not published:
+            if manifest_path.exists():
+                manifest_path.unlink()
+            if snapshot_staging.exists():
+                shutil.rmtree(snapshot_staging)
+            if snapshot_root.exists():
+                shutil.rmtree(snapshot_root)
         raise
 
 
@@ -1393,6 +1423,15 @@ def run(output: Path) -> int:
 
     try:
         target, manifest_path, snapshot_root, sources = prepare_evidence(output)
+    except ManifestReadError as exc:
+        return write_inconclusive(
+            target,
+            stage="manifest-read",
+            error=exc,
+            manifest_path=exc.manifest_path,
+            snapshot_root=exc.snapshot_root,
+            sources=exc.sources,
+        )
     except Exception as exc:
         return write_inconclusive(
             target,
