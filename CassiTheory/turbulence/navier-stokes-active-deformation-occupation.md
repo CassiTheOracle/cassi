@@ -711,6 +711,13 @@ $$
 
 Possible routes include a regression-observability estimate for the seeded covariance, a depletion theorem for reachable orientations, or a cross-scale decorrelation estimate that proves (65). Positivity, geometric scale placement, kinetic energy, and the generic maximum-strain semigroup bound do not establish (68).
 
+The independent-replica refinement in
+`turbulence/navier-stokes-replica-coherence.md` resolves the same seeded
+second moment into deterministic overlap and stochastic disagreement. Its
+full-rank determinant term supplies a rigorous part of the desired
+compensation, while rank-deficient collapse leaves the uniform all-data bound
+open.
+
 ## 13. Verification and evidence scope
 
 The fixed schedule in `computations/navier-stokes-active-deformation-occupation-prereg.md` specifies 40 general polynomial components, explicitly labelled finite fixtures, local algebraic controls, and exponent checks. The executable is `computations/verify_navier_stokes_active_deformation_occupation.py`. Its source-bound selected receipt is `runs/navier_stokes_active_deformation_occupation/verification.json`, with an adjacent input manifest and source snapshots.
@@ -736,3 +743,4 @@ The qualified classifications are:
 6. T. Mahithitarmmatorn, [Exact mean–covariance dynamics of the Weber field in the stochastic Lagrangian representation of the 3D Navier–Stokes equations](https://arxiv.org/abs/2608.16915)—closed common-noise covariance calculus and stochastic-flow regularity boundary.
 7. `turbulence/navier-stokes-deformation-covariance.md`—covariance-inverse weighted law and active deformation quotient.
 8. `turbulence/navier-stokes-strain-departure.md`—critical continuation reductions and cascade-recurrence obstructions.
+9. `turbulence/navier-stokes-replica-coherence.md`—independent-replica overlap, viscous disagreement, and full-rank compensation.

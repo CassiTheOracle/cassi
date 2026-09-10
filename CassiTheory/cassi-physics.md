@@ -877,6 +877,26 @@ geometric cascade spacing alone are **CONTRADICTS** for the displayed generic
 routes. A uniform active-dose bound over every initial-$H^3$ data ball remains
 **UNRESOLVED**.
 
+The independent-replica construction in
+`turbulence/navier-stokes-replica-coherence.md` resolves the seeded moment
+into deterministic overlap and stochastic disagreement. For two independent
+stochastic Cauchy replicas, their $L^2$ overlap equals
+$W(t)=\|\omega(t)\|_2^2$, while half their mean-square difference equals
+$\mathcal V(t)=\int\operatorname{tr}R\,dx$. The centred covariance is forced
+by $2\nu Q_\omega$, making $\mathcal V$ a retarded palinstrophy occupation
+weighted by subsequent directional deformation. The coherence share
+$c=W/\mathcal E_M$ has an exact replicator-diffusion law. Incompressibility
+gives the sharp full-rank estimate
+$\mathcal V(t)\ge6\nu\int_0^t\int(\det Q_\omega)^{1/3}dx\,ds$ and the
+compensated envelope
+$W\le\mathcal G:=\mathcal E_M-6\nu\int_0^t\int(\det Q_\omega)^{1/3}dx\,ds$.
+Rank-one and rank-two collapse controls show that determinant and positivity
+alone cannot close the estimate. Periodic shear realizes the rank-deficient
+boundary, while a decaying ABC flow activates the full-rank term. The
+source-bound schedule passes 40 symbolic and exact-control checks. A uniform
+initial-$H^3$-controlled bound on $\mathcal G$ would imply continuation and
+remains **UNRESOLVED**.
+
 Section 7 of `turbulence/cassi-fluid-feasibility.md` selects a reacting
 rotational velocity and temperature. Its variational stress conserves
 periodic momentum; viscous and conversion work enter the heat equation,

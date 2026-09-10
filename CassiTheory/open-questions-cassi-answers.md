@@ -1562,6 +1562,53 @@ summable dose. The uniform active-dose estimate over every bounded
 initial-$H^3$ data ball remains **UNESTABLISHED**, as does arbitrary-data
 Navier–Stokes regularity.
 
+The independent-replica refinement in
+`turbulence/navier-stokes-replica-coherence.md` gives the viscosity loss a
+second, exact interpretation. If $Y$ and $\widetilde Y$ are independent
+stochastic Cauchy replicas, then
+
+$$
+\int\mathbb E[Y\cdot\widetilde Y]\,dx=\|\omega(t)\|_2^2,
+\qquad
+\frac12\int\mathbb E|Y-\widetilde Y|^2dx
+=\int\operatorname{tr}R\,dx.
+$$
+
+The centred covariance $R$ is forced by $2\nu Q_\omega$, so the disagreement
+is a retarded palinstrophy occupation with every source propagated through
+its later deformation history. The global coherence
+$c=\|\omega\|_2^2/\mathcal E_M$ obeys an exact replicator-diffusion equation.
+Volume preservation and the arithmetic-geometric mean inequality give
+
+$$
+\|\omega(t)\|_2^2
+\le
+\mathcal G(t)
+:=
+\mathcal E_M(t)
+-6\nu\int_0^t\int(\det Q_\omega)^{1/3}dx\,ds.
+$$
+
+The determinant lower bound is sharp for full-rank sources and vanishes for
+rank-deficient ones. Explicit determinant-one collapse families exclude a
+positive deformation-independent rank-one or rank-two analogue; periodic
+shear realizes the zero-$J$ boundary while its exact disagreement accounts
+for all enstrophy decay. A decaying ABC flow has positive $J$, so the
+full-rank term is nonvacuous on smooth periodic three-dimensional data. The
+source-bound verifier passes **40 of 40** symbolic and exact-control checks;
+it does not integrate Navier–Stokes or Brownian paths. The sufficient
+all-data target
+
+$$
+\sup_{\substack{\nabla\cdot u_0=0,\ \int u_0=0\\
+\|u_0\|_{H^3}\le R}}
+\sup_{0\le t<\min(T,T_*)}\mathcal G(t)
+<\infty
+$$
+
+remains **UNESTABLISHED**, as do the required rank-recovery or cross-scale
+compensation estimate and arbitrary-data Navier–Stokes regularity.
+
 The selected constant-density thermal model in §7 has a variational
 capillary stress with closed momentum and energy budgets, nonnegative
 entropy production and exact homogeneous canonical conversion. Smooth
