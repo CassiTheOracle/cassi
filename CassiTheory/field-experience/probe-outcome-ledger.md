@@ -490,6 +490,53 @@ Microscopic positive viscosity, an arbitrary-flow hydrodynamic closure and
 arbitrary-data global regularity remain **UNESTABLISHED**. The master physical
 parameter count and empirical prediction catalog are unchanged.
 
+## 18. Cassi radiative material closure
+
+The selected radiative-material calculation adds established LTE photon
+transfer to the conditional capillary and thermal material. Planck emission,
+Kirchhoff detailed balance, piecewise-gray M1 moments, a covariant
+matter-radiation source, elastic flux relaxation and the optically thick
+diffusion limit define the tested closure. The physical Cassi material map is
+outside the calculation.
+
+The frozen comprehensive schedule in
+`computations/cassi-radiative-material-prereg.md` records **33 of 34 passing
+checks**. It includes symbolic identities, Planck quadrature, physical
+emissive-power comparisons, 7,007 M1 tensors, 63 homogeneous slabs, 15 thermal
+relaxation trajectories, one stiff source step, 30 scattering controls, 21
+diffusion controls, 1,681 photon-entropy pairs and 16 moving-frame source
+projections.
+
+| Control | Decisive result | Classification and scope |
+|---|---|---|
+| Planck and Kirchhoff emission | Planck partition error $1.37\times10^{-16}$; maximum physical emissive-power error $3.96\times10^{-16}$ | **PASS**, supplied LTE photon physics |
+| M1 realizability | Maximum trace error $8.88\times10^{-16}$; minimum eigenvalue $-1.86\times10^{-16}$ from roundoff | **PASS**, fixed energy, directions and reduced fluxes |
+| Homogeneous slab | Maximum direct error $2.22\times10^{-16}$ and semigroup error $4.44\times10^{-16}$ | **PASS**, constant-source formal solution |
+| Thermal exchange | Maximum stored total-energy drift $0$; minimum entropy step $-8.88\times10^{-16}$ | **PASS**, five initial states and three timesteps |
+| Elastic scattering and diffusion | Momentum residual $1.11\times10^{-16}$; diffusion residual $1.78\times10^{-15}$ | **PASS**, fixed homogeneous controls |
+| Spectral photon entropy | Minimum production integrand $0$ across 1,681 pairs | **PASS**, nonnegative-opacity detailed balance |
+| Covariant interaction | Maximum normalized flux orthogonality $8.26\times10^{-16}$; boosted-LTE source $2.34\times10^{-16}$ | **PASS**, fixed velocities and group-gray tensor |
+| Comprehensive source accuracy | Finest normalized endpoint error $2.52712195192\times10^{-4}$ at $\Delta t=0.01$, above $5\times10^{-5}$ | **CONTRADICTS**, fixed benchmark timestep |
+| Fixed source qualification | Errors decrease to $2.49893979281\times10^{-5}$ at $\Delta t=0.001$ with refinement ratios $2.0050,2.0025$ | **SUPPORTS**, backward-Euler source subcycling for the benchmark |
+| Physical Cassi material | Temperature, density, opacity, ionization, current and source energetics remain unsupplied | **UNESTABLISHED** |
+
+The comprehensive receipt is
+`runs/cassi_radiative_material/verification.json`, schema
+`cassi-radiative-material-verification-v1`, with its adjacent input manifest
+and three frozen source snapshots. Its top-level scientific classification is
+`CONTRADICTS` because the fixed source-accuracy requirement fails.
+
+The source-step qualification is frozen in
+`computations/cassi-radiative-material-qualification-prereg.md`. Its receipt
+is `runs/cassi_radiative_material_qualification/verification.json`, schema
+`cassi-radiative-material-qualification-v1`, with an adjacent input manifest
+and four source snapshots including the comprehensive receipt. It passes all
+9 checks, preserves total energy to stored precision, keeps every state
+positive and records a positive minimum entropy step. Its scientific
+classification is `SUPPORTS-backward-Euler source subcycling`. The model
+equation, comprehensive verdict, physical parameter count and empirical
+prediction catalog are unchanged by the qualification.
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -544,3 +591,9 @@ parameter count and empirical prediction catalog are unchanged.
 - `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—phase-current rotation, helicity topology and viscosity projection boundary.
 - `computations/cassi-fluid-phase-current-prereg.md`—fixed current, topology, diffusion and memory schedule.
 - `computations/verify_cassi_fluid_phase_current.py`—227-check exact, Fourier, Hopf, memory and raw-array verifier.
+- `turbulence/cassi-radiative-material-closure.md`—LTE transfer derivation, material coupling and CassiCosmos implementation boundary.
+- `computations/cassi-radiative-material-prereg.md`—fixed comprehensive radiative-material schedule and decision tree.
+- `computations/cassi_radiative_material.py`—Planck, M1, slab, source, scattering and diffusion kernels.
+- `computations/verify_cassi_radiative_material.py`—33/34 comprehensive source-bound receipt generator.
+- `computations/cassi-radiative-material-qualification-prereg.md`—fixed source-step accuracy qualification.
+- `computations/verify_cassi_radiative_material_qualification.py`—9-check source-subcycling qualification.

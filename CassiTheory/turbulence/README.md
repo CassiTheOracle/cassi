@@ -38,6 +38,15 @@ produces nonnegative entropy, with exact homogeneous canonical conversion. Its
 395 checks cover 27 model trajectories and an independent
 differentiation-matrix reference.
 
+The radiative-material closure adds established LTE photon transfer to the
+selected thermal fluid. Its M1 moments carry photon energy and momentum,
+Kirchhoff emission closes thermal exchange, and a covariant source gives
+equal-and-opposite material coupling. The comprehensive schedule passes 33 of
+34 checks and rejects its fixed $\Delta t=0.01$ source-accuracy target. A
+separate 9-check qualification supports $\Delta t=0.001$ source subcycling.
+Physical temperature, density, opacity, ionization and electromagnetic current
+maps remain open.
+
 The phase-current reduction derives Mermin–Ho vorticity, full-doublet Hopf
 helicity and a two-scale-band periodic Beltrami class. Its 227 checks support
 exact scalar-diffusion/viscosity equivalence for that fixed-winding field and
@@ -55,6 +64,7 @@ transport, arbitrary-flow closure and global regularity remain open.
 | 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, spectral-spread production, continuation reduction, forced budgets and cumulative mixing obstruction | Derived conditional estimates and cumulative mixing obstruction / Open arbitrary-data critical work |
 | 6 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure, phase-current summary and actual flow controls | Derived conditional mechanical, thermal, and phase-current identities / Tested solver and rotational controls / Open physical-fluid completion |
 | 7 | `turbulence/cassi-fluid-phase-current-hydrodynamics.md` | Mermin–Ho rotation, helicity topology, two-band Beltrami flow and the viscosity projection boundary | Derived conditional current and topology identities / Tested rotational and memory controls / Open microscopic viscosity and arbitrary-flow closure |
+| 8 | `turbulence/cassi-radiative-material-closure.md` | LTE emission, multigroup M1 transport, conservative material coupling and CassiCosmos handoff | Derived conditional transfer, conservation and entropy identities / Tested kernels / Open Cassi material calibration |
 
 ## 2. Document summaries
 
@@ -199,6 +209,29 @@ rotational class and restricted viscous correspondence. Microscopic viscosity,
 arbitrary-flow hydrodynamics and arbitrary-data regularity remain
 **UNESTABLISHED**.
 
+### 2.8 Radiative material closure
+
+`turbulence/cassi-radiative-material-closure.md` supplies a conditional
+radiative extension of the selected capillary and thermal material. Planck
+emission and Kirchhoff detailed balance determine LTE emissivity from a
+supplied temperature and absorption coefficient. Frequency-group energy and
+flux evolve under an M1 angular closure, while the material-frame four-force
+transfers energy and momentum with the exact opposite increment applied to the
+material. The gray homogeneous source conserves $CT+E$, produces entropy and
+has a positive scalar implicit solve. The transport recovers the exact
+constant-source slab, free-streaming M1 and optically thick diffusion limits.
+
+The comprehensive fixed schedule records **33 of 34 passing checks**. Its one
+failure rejects a normalized endpoint-error target at $\Delta t=0.01$ for the
+coolest thermal-relaxation case. The fixed qualification passes **9 of 9
+checks** at $\Delta t=0.004,0.002,0.001$, measures first-order refinement, and
+meets the original accuracy limit at $0.001$ with zero stored energy drift.
+This supports source subcycling under the supplied dimensionless coefficients.
+The canonical densities still supply no physical temperature, mass density,
+opacity, atomic populations or electromagnetic current. CassiCosmos
+implementation therefore begins with a default-off, unit-calibrated
+radiation state rather than the Observatory's appearance coefficients.
+
 ## References
 
 - `foundations/xi-derivation.md`—first-principles derivation of the Qi-gravity coupling $\xi = \varphi^6$ used in the velocity equation
@@ -227,3 +260,9 @@ arbitrary-flow hydrodynamics and arbitrary-data regularity remain
 - `computations/cassi-fluid-phase-current-prereg.md`—fixed current, topology, diffusion and memory controls
 - `computations/verify_cassi_fluid_phase_current.py`—227-check exact, Fourier, Hopf, memory and raw-array verifier
 - `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—conditional rotational reduction and viscosity projection boundary
+- `turbulence/cassi-radiative-material-closure.md`—conditional LTE transfer, M1 moments, covariant material exchange and implementation boundary
+- `computations/cassi-radiative-material-prereg.md`—fixed comprehensive radiative-material schedule
+- `computations/cassi_radiative_material.py`—Planck, M1, transfer, source and diffusion reference kernels
+- `computations/verify_cassi_radiative_material.py`—33/34 comprehensive radiative-material receipt generator
+- `computations/cassi-radiative-material-qualification-prereg.md`—fixed source-step accuracy qualification
+- `computations/verify_cassi_radiative_material_qualification.py`—9-check source-subcycling qualification

@@ -395,7 +395,7 @@ Quantum gravity and analytical three-body results.
 
 ### turbulence/
 
-Conditional turbulence spectra, exact Navier–Stokes transfer identities, geometric regularity questions, a bounded Cassi fluid-feasibility study, and a conditional phase-current rotational reduction.
+Conditional turbulence spectra, exact Navier–Stokes transfer identities, geometric regularity questions, a bounded Cassi fluid-feasibility study, a conditional phase-current rotational reduction, and an LTE radiative-material closure.
 
 - `turbulence/README.md`—Turbulence—Spectra and Navier–Stokes Geometry. Index—September 2026. Covers the conditional spectrum analysis, critical-transfer and coercivity results, filtered stress geometry, quantitative strain departure and critical spectral-spread estimates.
 - `turbulence/kolmogorov-from-phi.md`—The Kolmogorov −5/3 Spectrum in Cassi: Derivation and Conditional Tests. Derived conditional / Hypothesized closures—August 2026. The kinetic-energy spectrum is inherited under Navier–Stokes cascade assumptions; the optional break scale, deviation spectrum, gravity factor, and Qi-quality spectrum depend on supplied constitutive and statistical assumptions.
@@ -405,6 +405,7 @@ Conditional turbulence spectra, exact Navier–Stokes transfer identities, geome
 - `turbulence/navier-stokes-strain-departure.md`—Strain Departure and Critical Spectral Concentration. Derived conditional estimates and cumulative mixing obstruction / Open arbitrary-data critical work—September 2026. Couples energy and enstrophy to sharpen departure; 71 checks. Its exact spectral-spread dissipation and centered production yield a cumulative positive-production continuation criterion; the cyclic datum generates production from zero spread and the scalar-budget obstruction remains; 134 checks. The forced extension gives exact source budgets and the compactness boundary of vanishing-source magnification; 215 checks in each separate evidence record. An exact globally smooth mixing family excludes amplitude-linear cumulative bounds for critical transfer, spread dissipation and positive spread production, with a continuum comparison proof and a finite nonlinear critical-transfer bound within the family. Its 601-check schedule covers eight amplitudes, two Fourier resolutions and a heat control. Initial-$H^3$ control of cumulative production, global regularity and unforced blow-up remain open.
 - `turbulence/cassi-fluid-feasibility.md`—Cassi Fluid Mechanics: Conservative Reduction, Thermal Closure, and Phase Currents. Derived conditional mechanical, thermal, and phase-current identities / Tested solver and rotational controls / Open physical-fluid completion—September 2026. Derives first-order pressure, counterflow and quantum stress with supplied mass. The native solver passes 246 checks across 28 trajectories while its mean self-acceleration rejects a closed internal-force interpretation. A selected capillary/thermal model closes momentum, energy and entropy and passes 395 checks across 27 model trajectories plus an independent matrix reference. The phase-current reduction adds an explicit rotational class. Physical identification, microscopic viscosity, arbitrary-flow closure and global regularity remain open.
 - `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—Cassi Fluid Phase Currents: Rotation, Helicity, and the Viscosity Boundary. Derived conditional current and topology identities / Tested rotational and memory controls / Open microscopic viscosity and arbitrary-flow closure—September 2026. Derives Mermin–Ho vorticity, the one-chart helicity obstruction, full-doublet Hopf helicity and a two-scale-band periodic Beltrami field. Its 227 checks support exact scalar-diffusion/viscosity equivalence for that fixture, contradict the general identification, and verify the recurrent closed-exterior memory boundary.
+- `turbulence/cassi-radiative-material-closure.md`—Radiative Material Closure for CassiCosmos. Derived conditional LTE transfer, conservation and entropy identities / Tested numerical kernels / Hypothesized Cassi material map—September 2026. Couples Planck–Kirchhoff emission and piecewise-gray M1 moments to the selected thermal fluid through an equal-and-opposite covariant source. The comprehensive schedule passes 33 of 34 checks and rejects its $\Delta t=0.01$ source-accuracy target; a separate 9-check qualification supports $\Delta t=0.001$ source subcycling. Physical units, opacity, ionization and the canonical-density-to-material map remain open.
 
 ### cosmology/
 
@@ -517,12 +518,19 @@ python two-fluid/cassi_nbody.py               # GPU N-body solver
 python two-fluid/calibrate_initial_ratio_xi.py  # w_a ODE with ξ = φ⁶
 python computations/<pipeline>.py             # e.g. cascade_rge_pmns.py
 python computations/matter_completion_boundary_check.py  # frozen nine-part conditional receipt
+python computations/verify_cassi_radiative_material.py  # comprehensive LTE/M1/source controls; retained 33/34 result
 python experiments/sparc_qi/sparc_qi_analysis_v4.py            # SPARC rotation-curve analysis
 python experiments/phi_periodic_pk_search/run_phi_periodic_pk_test.py  # φ-periodic P(k) test
 python visual-explainers/<script>.py          # e.g. cascade_cosmos.py, fractal_zoom.py
 ```
 
 The two-fluid PDE solver (`two-fluid/cassi_two_fluid_3d_gpu.py`) and the GPU N-body solver (`two-fluid/cassi_nbody.py`) are the core simulation engines; `two-fluid/calibrate_initial_ratio_xi.py` computes the $w_a$ ODE with $\xi = \varphi^6$. The computational pipelines in `computations/` (RGE, GUT-EW, Hubble tension, cascade depth) produce the derived numbers the papers quote, `experiments/` holds the data-facing tests (SPARC rotation curves, the φ-periodic P(k) search), and `visual-explainers/` renders the figures that make the structure visible.
+
+The radiative-material reference is
+`computations/cassi_radiative_material.py`. Its comprehensive verifier retains
+the fixed 33/34 outcome, and
+`computations/verify_cassi_radiative_material_qualification.py` checks the
+qualified source-subcycling schedule.
 
 ## References
 

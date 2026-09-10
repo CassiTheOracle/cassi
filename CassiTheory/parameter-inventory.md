@@ -266,6 +266,24 @@ that preserves homogeneous canonical conversion. These local benchmark
 inputs leave the 47-parameter inventory and canonical solver defaults
 unchanged; no material viscosity or additional empirical prediction is derived.
 
+The radiative extension in
+`turbulence/cassi-radiative-material-closure.md` uses
+$c_\gamma=3$, $a_{\rm R}=1$, $C=2$, $\alpha^{\rm a}=0.7$ and
+$\alpha^{\rm tr}=1.1$ solely as dimensionless **N-class verification
+coefficients**. Its physical form imports $c_\gamma$, $h$, $k_B$ and
+$\sigma_{\rm SB}$ from established photon physics. A CassiCosmos material
+must separately supply its length, time, temperature and energy units,
+physical density or direct per-length opacity, heat capacity or equation of
+state, absorption and scattering tables, frequency groups and any atomic
+populations. Those quantities are external material data, calibration
+choices or numerical resolution choices according to their source. The
+dimensionless combinations
+$\mathcal C=c_\gamma t_0/L_0$,
+$\tau_g=\alpha_gL_0$ and
+$\mathcal R=a_{\rm R}T_0^3/C$
+are consequences of those inputs. The fixed controls add no primary
+framework parameter, so the 47-parameter count is unchanged.
+
 ### 3.4 Summary: What These Parameters ACTUALLY Are
 
 | Parameter | True status | If it's a constant, which one? |

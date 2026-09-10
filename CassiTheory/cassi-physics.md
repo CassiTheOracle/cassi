@@ -817,6 +817,32 @@ while solutions remain smooth. This is a conditional constitutive model
 with supplied transport coefficients and no physical-fluid or global
 regularity promotion.
 
+`turbulence/cassi-radiative-material-closure.md` extends the selected thermal
+fluid with established LTE photon transfer. Planck's spectrum and Kirchhoff
+detailed balance fix emissivity once a physical temperature and absorption
+coefficient are supplied. Piecewise-gray frequency groups carry radiation
+energy and flux under an M1 angular closure. A material-frame four-force adds
+the exact opposite energy and momentum increment to matter, giving total
+four-momentum conservation. The gray local source also has a nonnegative
+matter-plus-photon entropy production and a positive conservative implicit
+solve.
+
+The comprehensive verification passes 33 of 34 checks across Planck
+quadrature, emissive power, M1 realizability, exact slab transfer, thermal
+exchange, scattering, diffusion, photon entropy and moving-frame source
+projections. Its fixed $\Delta t=0.01$ endpoint-accuracy requirement fails for
+one cold relaxation state. A separate fixed qualification passes 9 of 9 checks,
+measures first-order convergence and meets the same error target at
+$\Delta t=0.001$, supporting source subcycling under the supplied
+dimensionless coefficients.
+
+The radiation construction imports $c_\gamma,h,k_B,\sigma_{\rm SB}$ and
+material response data. The canonical $(E_Y,E_I,q)$ state leaves physical
+temperature, density, opacity, ionization and electromagnetic current open.
+CassiCosmos therefore needs a declared physical unit map and material tables
+before this closure acquires an astrophysical interpretation. The existing
+Observatory emission and optical controls remain appearance parameters.
+
 The listed correspondences are the framework's scale-assignment hypothesis. The Planck length is the external dimensionful anchor supplied to this model; the $\varphi$ recurrence supplies dimensionless ratios and does not by itself derive physical dimensionality or force unification.
 
 **Epistemic status:** the recurrence is **Derived conditional** on the supplied anchor and one-step convention. Identifying each named cascade step with a physical scale is **Hypothesized** and, where a placement is selected from measured data, **Mapped**; `foundations/dimensionful-cascade.md` records the arithmetic and provenance.
@@ -1432,6 +1458,7 @@ The framework records evidence and limitations in `audit.md`; the gate-sign conv
 - `parameter-inventory.md`—parameter classification
 - `audit.md`—self-critical prediction-vs-experiment audit
 - `visual-explainers/cascade_cosmos.py`—the three-regime cascade figure
+- `turbulence/cassi-radiative-material-closure.md`—conditional LTE emission, M1 transport, conservative material coupling and CassiCosmos implementation boundary
 
 ---
 
