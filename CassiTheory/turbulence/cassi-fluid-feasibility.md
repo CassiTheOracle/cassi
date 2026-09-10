@@ -574,6 +574,8 @@ The accepted receipt is `runs/cassi_fluid_thermodynamics/verification.json`, sch
 
 Independent reconciliation imports neither model nor verifier. It validates all six working/manifest/snapshot identities and the archive hash and keys, reconstructs 54 endpoint records with maximum absolute observable discrepancy $2.08166817117\times10^{-17}$, and checks the recorded energy sums and entropy-production integrals. Its result and the continuum positivity qualifications are in `runs/cassi_fluid_thermodynamics/reconciliation.json`. The separate CLI smoke endpoint is byte-value identical to the finest coupled endpoint and is retained in `runs/cassi_fluid_thermodynamics/cli-smoke.npz`. Raw hashes identify frozen execution bytes; historical validation uses those bytes even when Git transport changes line endings.
 
+The exact-commit reproduction in `runs/cassi_fluid_thermodynamics/committed_reproduction/` executes the fixed verifier from commit `29969d59`. Its manifest binds all six source snapshots byte-for-byte to that commit, passes 395 checks across 27 trajectories, and reproduces all 82 retained arrays value-for-value, every check and trajectory row, and the CLI endpoint. Five source blobs in the original accepted run are byte-identical to the commit. The `foundations/cassi-theory-reference.md` snapshot differs because it contains 1,562 CRLF line endings while the Git blob contains LF; their normalized content is identical. `git-source-map.json` records both hashes, and the committed-source `reconciliation.json` retains the original receipt unchanged.
+
 From the CassiTheory directory:
 
 ```text
