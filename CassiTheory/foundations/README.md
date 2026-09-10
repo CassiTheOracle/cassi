@@ -158,7 +158,7 @@ exchange (`computations/matter-formation-continuum-report.md`
 | 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction—September 2026 |
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
-| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparisons | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge comparisons / Hypothesized microscopic physical identification |
+| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities and conditional block theorem / Hypothesized microscopic physical identification |
 | 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action and Wilson-link extension / Derived conditional current, endpoint and support boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, scale graph and canonical reduction | Hypothesized completion / Derived conditional fibre geometry and canonical reduction / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 39 | `endpoint-link-and-localization-boundary.md` | Conditional endpoint covariance, response, transport and localization boundary | Hypothesized Wilson extension / Derived conditional endpoint and localization boundaries / Tested finite-grid spectrum and conditional smooth scalar binding |
@@ -723,16 +723,19 @@ even pairs, and the supplied fivefold phase orbit preserves the normalized
 $\varphi$ chord ratio. LB1–LB7 verify these identities. The physical carrier,
 phase law, scale ratio, and quantum-sector identification remain open.
 
-The separate pure-$SU(2)$ comparison in §§9.4–9.12 retains full loop holonomy.
-Gauss invariance gives an exact electric threshold on girth-four lattice
-graphs. Projective bubble data discard a phase that changes Wilson magnetic
-energy, preventing autonomous projector-only Hamiltonian closure. The
-interacting square has an exact character/Mathieu spectrum. Yarotsky's
-stability theorem supplies a volume-uniform interacting gap at sufficiently
-strong bare coupling. A gauge-invariant finite-depth unitary removes
-first-order vacuum loop creation with an exact local quadratic remainder.
-The weak-bare-coupling uniform estimate, continuum existence and physical
-carrier identification remain open.
+The separate pure-$SU(2)$ comparison in §§9.4–9.16 retains full loop
+holonomy. Gauss invariance gives an exact electric threshold on girth-four
+lattice graphs, and projective bubble data discard a phase that changes
+Wilson magnetic energy. Yarotsky's stability theorem supplies a
+volume-uniform interacting gap at sufficiently strong bare coupling, while a
+gauge-invariant finite-depth unitary retains an exact local quadratic
+remainder. The exact vacuum transform identifies each finite regulated gap
+with a gauge-invariant Poincaré rate. A conditional full-holonomy block
+theorem isolates sufficient local-rate, tensorization and cover estimates.
+The equal-weight one-plaquette vacuum, a conditional-gap-only uniform
+argument and a static pure configuration marginal are excluded at their
+stated scopes. Weak-bare-coupling uniform control, continuum existence and
+physical carrier identification remain open.
 
 ### `interscale-current-soliton.md`—Interscale Yang/Yin Current and the Conditional Soliton Pinch
 

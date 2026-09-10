@@ -53,16 +53,18 @@ the missing metric and orbit-matching rule. Running and measured-scale
 comparisons are in `sm-radiative-corrections.md`.
 
 The pure Yang–Mills comparison is in
-`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.12. Its state space
-and Hamiltonian come from source-free quantum $SU(2)$ lattice gauge theory,
-with no isospinor matter or symmetry-breaking potential. It establishes
-regulated electric-loop and projective-information boundaries. Yarotsky's
-stability theorem gives a volume-uniform interacting gap at sufficiently
-strong bare coupling, and an exact gauge-invariant finite-depth unitary
-removes first-order vacuum loop creation with a bounded local quadratic
-remainder. The weak-bare-coupling uniform estimate and continuum
-construction remain open. This comparison makes no electroweak or QCD
-particle identification.
+`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.16. Its state
+space and Hamiltonian come from source-free quantum $SU(2)$ lattice gauge
+theory, with no isospinor matter or symmetry-breaking potential. It gives
+regulated electric-loop and projective-information boundaries, a
+volume-uniform interacting gap at sufficiently strong bare coupling and an
+exact finite-depth vacuum dressing with a local quadratic remainder. The
+exact ground-state transform identifies each finite gap with the
+gauge-invariant Poincaré rate of the true vacuum measure. A conditional
+full-holonomy block theorem isolates the additional local-rate,
+tensorization and cover estimates needed for a continuum-directed bound.
+Those interacting-vacuum estimates and the continuum construction remain
+open. This comparison makes no electroweak or QCD particle identification.
 
 ### `sm-radiative-corrections.md`—Standard Model Radiative Corrections from the φ-Boundary
 

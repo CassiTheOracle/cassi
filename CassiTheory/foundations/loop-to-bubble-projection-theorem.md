@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge comparisons; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities and conditional block theorem; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -30,14 +30,20 @@ density projection and a coherence-sensitive bubble coordinate. A physical
 phase law, a map from the regulated quantum configuration to these carriers,
 $\hbar$, quantum statistics, and measurement dynamics remain separate inputs.
 
-The pure-gauge comparison in §§9.4–9.12 retains full $SU(2)$ loop holonomies.
+The pure-gauge comparison in §§9.4–9.16 retains full $SU(2)$ loop holonomies.
 Gauss invariance supplies an electric closed-loop threshold, while the
-projective bubble variable discards Wilson magnetic energy. An application
-of quantum-lattice stability gives a volume-uniform interacting gap at
-sufficiently strong bare coupling. A gauge-invariant finite-depth unitary
-removes first-order vacuum loop creation and retains an exact bounded local
-remainder. The weak-bare-coupling uniform estimate, four-dimensional
-continuum construction and microscopic Cassi identification remain open.
+projective bubble variable discards Wilson magnetic energy. Quantum-lattice
+stability gives a volume-uniform interacting gap at sufficiently strong bare
+coupling, and a gauge-invariant finite-depth unitary retains an exact local
+quadratic remainder. The exact ground-state transform identifies every finite
+regulated physical gap with a gauge-invariant Poincaré rate. A conditional
+full-holonomy block theorem isolates the local rate, tensorization and cover
+estimates sufficient for cutoff-directed control. Exact calculations exclude
+the equal-weight one-plaquette exponential as the interacting vacuum,
+uniform conditional gaps alone as a volume-uniform argument and a static pure
+configuration marginal as an exact quantum reduction. The weak-bare-coupling
+uniform estimates, four-dimensional continuum construction and microscopic
+Cassi identification remain open.
 
 ---
 
@@ -1544,6 +1550,391 @@ interaction and a bounded quadratic remainder. It establishes no
 quantitative enlargement of the coupling region in (YM18), and
 $\alpha_{\mathrm{rel}}$ diverges along $g\to0$.
 
+### 9.13 The exact vacuum-measure gap criterion
+
+The finite-regulator mass-gap question has an exact formulation in terms of
+the full interacting vacuum. Let $e_0(a,L)$ be the lowest eigenvalue of $h$
+and let $\Omega_{a,L}>0$ be its normalized ground state. The bounded magnetic
+potential, compact resolvent and positivity-improving heat kernel on the
+connected compact link manifold give a smooth, strictly positive
+$\Omega_{a,L}$.
+
+Throughout §§9.13–9.16, use the real-flow left-invariant derivative
+
+$$
+X_e^Af(U):=
+\left.\frac{d}{dt}
+f(\ldots,e^{it\sigma_A/2}U_e,\ldots)\right|_{t=0},
+\qquad
+K=-\sum_{e,A}(X_e^A)^2.
+$$
+
+Define $d\mu_{a,L}=\Omega_{a,L}^2dU$. Multiplication by $\Omega_{a,L}$ is a unitary
+map from $L^2(\mu_{a,L})$ to $L^2(dU)$, and its closed quadratic form obeys
+
+$$
+\left\langle f\Omega_{a,L},(h-e_0)f\Omega_{a,L}\right\rangle_{dU}
+=\sum_{e,A}\int\left|X_e^Af\right|^2\,d\mu_{a,L}.
+\tag{YM27}
+$$
+
+For real $f$, the identity follows by expanding $X_e^A(f\Omega)$ and using
+the weak ground-state equation with test function $f^2$; the complex form
+follows by polarization. Its form domain is $H^1(\mu_{a,L})$ with smooth
+functions as a core. The ground state is gauge
+invariant by positivity and uniqueness, so multiplication by $\Omega$ maps
+the gauge-invariant subspace onto itself. Consequently,
+
+$$
+\boxed{
+\Delta_{\mathrm{phys}}(a,L)=\frac{g^2}{2a}\lambda_{\mathrm{gi}}(\mu_{a,L}),
+\qquad
+\lambda_{\mathrm{gi}}(\mu):=
+\inf_{\substack{f\in H^1(\mu)\ {\rm gauge\ invariant}\\
+\mu(f)=0}}
+\frac{\sum_{e,A}\int|X_e^Af|^2\,d\mu}
+{\int|f|^2\,d\mu}.
+}
+\tag{YM28}
+$$
+
+Thus the regulated physical gap is exactly the gauge-invariant Poincaré rate
+of the probability measure defined by the true vacuum. This identity does
+not construct the continuum measure. It identifies the quantitative estimate
+that a continuum-directed vacuum construction must preserve.
+
+### 9.14 Conditional full-holonomy blocks
+
+Let $B$ range over finite sets of links, with nonnegative weights $w_B$, and
+condition the exact measure on the exterior link values
+$U_{B^c}=\eta$. Suppose that, for almost every $\eta$, the conditional
+measure $\mu_B^\eta$ obeys
+
+$$
+\operatorname{Var}_{\mu_B^\eta}F
+\le\frac1{\lambda_B(\eta)}
+\sum_{e\in B,A}\int|X_e^AF|^2\,d\mu_B^\eta,
+\qquad
+\lambda_B(\eta)\ge\lambda_{\mathrm{loc}}>0.
+\tag{YM29}
+$$
+
+For the physical gap it suffices to impose this inequality on the fibre
+functions induced by globally gauge-invariant $f$. Such functions are
+invariant under vertex transformations supported strictly inside $B$.
+Requiring (YM29) for every fibre function is a stronger condition.
+
+Assume also, for every gauge-invariant $f\in L^2(\mu)$ in the form domain,
+the approximate tensorization and cover bounds
+
+$$
+\operatorname{Var}_{\mu}f
+\le A_{\mathrm{AT}}\sum_Bw_B\,
+\mathbb E_\mu\!\left[
+\operatorname{Var}_{\mu_B^{U_{B^c}}}f\right],
+\qquad
+\sup_e\sum_{B\ni e}w_B\le\rho.
+$$
+
+Apply (YM29) inside each conditional integral and then sum the resulting
+Dirichlet forms. No commutation of $X_e^A$ with conditional expectation is
+required. The cover multiplicity gives
+
+$$
+\lambda_{\mathrm{gi}}(\mu)\ge
+\frac{\lambda_{\mathrm{loc}}}{A_{\mathrm{AT}}\rho},
+\qquad
+\boxed{
+\Delta_{\mathrm{phys}}(a,L)\ge
+\frac{g^2\lambda_{\mathrm{loc}}}
+{2aA_{\mathrm{AT}}\rho}.
+}
+\tag{YM30}
+$$
+
+The local rate in (YM29) belongs to the conditional density
+$\Omega(U_B,\eta)^2dU_B$. A block Hamiltonian with boundary data $\eta$ has
+its own ground state $\omega_B^\eta$ and measure
+$d\nu_B^\eta\propto|\omega_B^\eta|^2dU_B$.
+
+For each boundary value set
+
+$$
+C_B(\eta):=
+\operatorname{osc}_{U_B}
+\log\frac{d\mu_B^\eta}{d\nu_B^\eta},
+\qquad
+C_B:=\mathop{\rm ess\,sup}_{\eta}C_B(\eta),
+$$
+
+and suppose $C_B<\infty$. Direct comparison of variances and Dirichlet
+forms then gives, for almost every $\eta$,
+
+$$
+\lambda_B^\mu(\eta)
+\ge e^{-C_B(\eta)}\lambda_B^\nu(\eta)
+\ge e^{-C_B}\lambda_B^\nu(\eta).
+\tag{YM31}
+$$
+
+Strict positivity makes the pointwise oscillation $C_B(\eta)$ finite for
+each fixed finite system and fixed boundary. It does not by itself control
+the essential supremum uniformly in the block size, boundary,
+$x=2/g^4$, volume or cutoff. One may instead prove (YM29) directly on the
+gauge quotient. Either route requires new interacting-vacuum control, and
+$A_{\mathrm{AT}}$ remains an independent infrared quantity.
+
+For a fixed target $m_*>0$, (YM30) is sufficient when
+
+$$
+\frac{\lambda_{\mathrm{loc}}}{A_{\mathrm{AT}}\rho}
+\ge\frac{2am_*}{g^2}.
+$$
+
+At fixed bare $g$ the right-hand side tends to zero. The relevant comparison
+is along the asymptotically free trajectory $g=g(a)$, jointly with the
+thermodynamic limit. The criterion is sufficient; failure of this particular
+block estimate does not imply a zero spectral gap.
+
+### 9.15 An exact one-plaquette vacuum obstruction
+
+A common local trial state is
+
+$$
+\Phi_\kappa(U)=Z_\kappa^{-1/2}
+\exp\!\left(\kappa S(U)\right),
+\qquad S=\sum_pV_p,\qquad \kappa\in\mathbb R.
+$$
+
+Since $KS=3S$, direct differentiation gives the exact local energy
+
+$$
+\frac{h\Phi_\kappa}{\Phi_\kappa}
+=2xN_p+(3\kappa-x)S
+-\kappa^2\sum_{e,A}(X_e^AS)^2.
+\tag{YM32}
+$$
+
+At a link shared by plaquettes $p$ and $q$, orient both based holonomies
+$A_p,A_q$ to begin with that link. The $SU(2)$ completeness relation and
+Cayley–Hamilton identity give
+
+$$
+\sum_A(X_e^AV_p)(X_e^AV_q)
+=\frac14V_pV_q-\frac12\operatorname{Tr}(A_pA_q),
+\qquad
+\sum_{e\in p,A}(X_e^AV_p)^2=4-V_p^2.
+\tag{YM33}
+$$
+
+Fix an elementary plaquette $p$ and project (YM32), in product Haar measure,
+onto the normalized characters
+$\chi_{1/2}(U_p)=V_p$ and $\chi_1(U_p)=V_p^2-1$. The self term of $p$ is
+$4-V_p^2=3-\chi_1(U_p)$. Cross terms between $p$ and a neighboring
+plaquette contain an unpaired coefficient of every exterior link of that
+neighbor and integrate to zero. A neighboring self term can leave a function
+of the single shared link. Such a function still has zero pairing with
+$\chi_{1/2}(U_p)$ and $\chi_1(U_p)$ because it omits three links of $p$.
+The same coverage argument removes every term supported on a proper subset
+of the four plaquette links. The two nonconstant coefficients are therefore
+
+$$
+\boxed{
+\mathcal C_{p,1/2}\!\left(\frac{h\Phi_\kappa}{\Phi_\kappa}\right)
+=3\kappa-x,\qquad
+\mathcal C_{p,1}\!\left(\frac{h\Phi_\kappa}{\Phi_\kappa}\right)
+=\kappa^2.
+}
+\tag{YM34}
+$$
+
+An eigenfunction has constant local energy. Equation (YM34) would require
+$\kappa=0$ and then $x=0$. Hence, for every $x>0$, no member of
+
+$$
+\left\{\exp\!\left(\kappa\sum_p\operatorname{Tr}U_p\right):
+\kappa\in\mathbb R\right\}
+$$
+
+is the exact vacuum on an ordinary periodic cubic lattice of even side
+$L\ge4$. The result also holds on open boxes with embedded elementary
+plaquettes. It excludes
+the equal-weight one-plaquette exponential family. Exponentials containing
+larger loops have additional gradient cross terms and require their own
+analysis.
+
+### 9.16 Weak-field kernels and exact Gaussian block controls
+
+#### 9.16.1 The transverse vacuum kernel
+
+Write $U_e=\exp(iA_e^A\sigma_A/2)$ and let $C$ be the linear plaquette-curl
+map. On the nonzero transverse subspace, the quadratic Hamiltonian is
+
+$$
+H^{(2)}=\frac1{2a}
+\left[g^2p^Tp+\frac1{2g^2}A^TC^TCA\right].
+\tag{YM35}
+$$
+
+Its positive ground state and mode frequencies are
+
+$$
+\Omega^{(2)}(A)\propto
+\exp\!\left[-\frac12A^T
+\frac{\sqrt{C^TC}}{\sqrt2g^2}A\right],
+\qquad
+\omega_\lambda=\frac{\sqrt\lambda}{\sqrt2a}.
+\tag{YM36}
+$$
+
+The one-plaquette exponential instead has quadratic exponent
+$-\kappa A^TC^TCA/4$. Matching (YM36) on an eigenvalue $\lambda>0$ requires
+$\kappa=\sqrt2/(g^2\sqrt\lambda)$. A single $\kappa$ cannot match two
+distinct positive eigenvalues. For the isolated square $\lambda=4$ gives
+$\kappa=\sqrt{x}/2$, while its two-quantum gauge-singlet radial-ladder
+spacing is $2\sqrt2/a$, as in (YM13). The square-root kernel in (YM36) is nonlocal in
+lattice position. Pure-gauge and global flat modes are excluded from this
+quadratic inverse, and nonlinear magnetic and Gauss terms enter beyond the
+transverse approximation.
+
+#### 9.16.2 Conditional gaps and tensorization
+
+The finite Gaussian family
+
+$$
+D_N(m)=\operatorname{tridiag}(-1,2+m^2,-1),\qquad
+Q=\sqrt{D_N(m)},\qquad
+d\mu_N\propto e^{-q^TQq}\,dq
+$$
+
+separates local conditional control from global infrared control. Let
+$d_i=Q_{ii}$ and $D=\operatorname{diag}(d)$. The global Poincaré rate,
+single-coordinate conditional rates, and optimal all-function
+conditional-variance tensorization constant are
+
+$$
+\lambda_{\mathrm{glob}}=2\lambda_{\min}(Q),\qquad
+\lambda_i^{\mathrm{cond}}=2d_i,\qquad
+\boxed{
+A_{\mathrm{AT}}=
+\frac1{\lambda_{\min}(D^{-1/2}QD^{-1/2})}.
+}
+\tag{YM37}
+$$
+
+For completeness, let $P_i f=\mathbb E(f\mid q_{-i})$. In the first Gaussian
+chaos, $I-P_i$ projects onto the normalized conditional residual
+
+$$
+\widehat g_i=
+\frac{q_i-\mathbb E(q_i\mid q_{-i})}{\sqrt{1/(2d_i)}}.
+$$
+
+The Gram matrix of these residuals is
+$D^{-1/2}QD^{-1/2}$. Thus the first-chaos deficit
+$\sum_i(I-P_i)$ has the gap in (YM37), and a linear function in its bottom
+eigendirection attains the bound. On chaos $n$, $P_i$ acts as
+$R_i^{\otimes_s n}$, where $R_i$ is the first-chaos projection onto the
+variables $q_{-i}$. The range inclusion
+
+$$
+\operatorname{ran}\!\left((I-R_i)\otimes I^{\otimes(n-1)}\right)
+\subseteq\operatorname{ran}\!\left(I-R_i^{\otimes n}\right)
+$$
+
+gives the same lower deficit on every higher chaos. Summing the orthogonal
+chaoses proves the all-function value in (YM37).
+
+For $m=0$,
+
+$$
+\lambda_{\min}(Q)=2\sin\frac{\pi}{2(N+1)},\qquad
+1\le d_i\le\sqrt2.
+$$
+
+The lower diagonal bound follows from
+$\sqrt t\ge t/2$ on the spectrum $0<t<4$ of $D_N(0)$; the upper bound follows
+from $d_i^2\le(Q^2)_{ii}=2$. The generalized Rayleigh quotient then gives
+
+$$
+\boxed{
+\frac1{\lambda_{\min}(Q)}
+\le A_{\mathrm{AT}}\le
+\frac{\sqrt2}{\lambda_{\min}(Q)}.
+}
+\tag{YM38}
+$$
+
+Every single-coordinate conditional rate remains between $2$ and
+$2\sqrt2$, while $A_{\mathrm{AT}}$ grows linearly and the global rate tends
+to zero. This exact family disproves any implication from uniformly positive
+conditional gaps alone to a volume-uniform global gap. The tensorization
+constant carries the missing long-distance information.
+
+#### 9.16.3 Exact state reduction
+
+Partition a positive Gaussian precision matrix into retained and eliminated
+coordinates. Configuration marginalization gives
+
+$$
+Q_{\mathrm{eff}}=Q_{RR}-Q_{RE}Q_{EE}^{-1}Q_{ER},
+\qquad
+Q_{\mathrm{eff}}^{-1}=(Q^{-1})_{RR}.
+$$
+
+The true reduced quantum state has
+
+$$
+C_q=\frac12Q_{\mathrm{eff}}^{-1},\qquad
+C_p=\frac12Q_{RR}.
+$$
+
+The pure wavefunction obtained from the square root of the configuration
+marginal has the same $C_q$ and
+$C_p^{\mathrm{pure}}=Q_{\mathrm{eff}}/2$. Its missing momentum covariance is
+
+$$
+\boxed{
+C_p-C_p^{\mathrm{pure}}
+=\frac12Q_{RE}Q_{EE}^{-1}Q_{ER}\succeq0.
+}
+\tag{YM39}
+$$
+
+The symplectic eigenvalues of the true reduced covariance satisfy
+
+$$
+\nu_k=\frac12
+\sqrt{\lambda_k(Q_{\mathrm{eff}}^{-1}Q_{RR})}\ge\frac12.
+\tag{YM40}
+$$
+
+The reduced state is mixed exactly when $Q_{RE}\ne0$: at least one
+$\nu_k$ then exceeds $1/2$. Every symplectic eigenvalue exceeds $1/2$ when
+$Q_{RE}$ has full row rank. A configuration marginal therefore preserves
+all position observables while losing part of the quantum momentum data.
+
+For an exact spectral reduction, let $P_{\mathcal H}$ be a gauge-compatible
+Hilbert-space projection and $\overline P=I-P_{\mathcal H}$. Whenever
+$z$ lies in the resolvent set of
+$\overline P H\overline P$ and the off-diagonal coupling satisfies the
+required form bounds, the Feshbach–Schur operator is
+
+$$
+F(z)=P_{\mathcal H}HP_{\mathcal H}
+-P_{\mathcal H}H\overline P
+(\overline P H\overline P-z)^{-1}
+\overline P H P_{\mathcal H}.
+\tag{YM41}
+$$
+
+Its energy dependence and discarded-sector resolvent retain information
+absent from a static pure marginal. Uniform gap transfer additionally needs
+uniform control of that resolvent and coupling. Equations (YM27)–(YM41)
+reduce the next weak-coupling step to quantitative estimates on the exact
+conditional vacuum measures and their tensorization along $g=g(a)$. Those
+interacting estimates and the continuum construction remain open.
+
 ---
 
 ## 10. Physical tests and rejection conditions
@@ -1600,6 +1991,11 @@ microscopic completions.
 | Full interacting finite-box gap | **Derived** within established lattice theory | Compact configuration space; its argument supplies no uniform estimate |
 | Volume-uniform interacting strong-coupling gap (YM19) | **Derived** by application of an established stability theorem | Sufficient local smallness (YM18); theorem constants unevaluated |
 | Finite-depth gauge-invariant vacuum dressing (YM24)–(YM26) | **Derived** regulated operator identities and local bounds | Full holonomies and exact remainder retained; weak-coupling control absent |
+| Exact vacuum-measure gap identity (YM27)–(YM28) | **Derived** within each finite regulated theory | Continuum construction and cutoff-uniform estimates remain open |
+| Conditional full-holonomy block bound (YM29)–(YM31) | **Derived conditional** | Exact-vacuum fibre rates, boundary-uniform density comparison and tensorization are required |
+| Equal-weight one-plaquette exponential vacuum | **Excluded** for every $x>0$ by (YM34) | Richer loop functionals remain available |
+| Gaussian conditional-gap-only implication | **Excluded** by (YM37)–(YM38) | Exact quadratic control; no interacting-vacuum estimate |
+| Static pure configuration-marginal blocking | **Excluded** as an exact quantum reduction by (YM39)–(YM41) | Mixed reduced states or energy-dependent resolvents retain the missing data |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -1695,6 +2091,48 @@ receipt and audit source. Weak-bare-coupling uniform control, continuum
 construction, continuum mass and Cassi microscopic identification remain
 **UNRESOLVED**.
 
+The exact-vacuum block schedule in
+`computations/yang-mills-vacuum-block-prereg.md` is implemented by
+`computations/verify_yang_mills_vacuum_blocks.py`. Its immutable primary
+receipt passes **305 checks** over five full-holonomy fixtures, 45 local-energy
+rows and ten connected Gaussian rows. The maximum group-identity,
+gauge-invariance, first-derivative, normalized local-energy and Gaussian
+square-root errors are respectively
+$1.33226762955\times10^{-15}$,
+$4.44089209850\times10^{-16}$,
+$6.30606677987\times10^{-13}$,
+$3.27656206611\times10^{-8}$ and
+$9.27383170257\times10^{-15}$.
+
+The final independent JavaScript reconciliation passes **120 checks**. Its
+maximum full-holonomy reconstruction, exact local-row, finite-difference
+derivative, normalized local-energy, Gaussian-matrix and Gaussian-scalar
+discrepancies are respectively
+$3.55271367880\times10^{-15}$,
+$2.84217094304\times10^{-14}$,
+$5.35738120533\times10^{-13}$,
+$1.66022970927\times10^{-8}$,
+$1.77080572428\times10^{-14}$ and
+$9.76996261670\times10^{-13}$. The primary receipt, input manifest, frozen
+sources, two analytical reviews and reconciliation chain are in
+`runs/yang_mills_vacuum_blocks/`. Its `publication.json` seals the current
+theorem, fixed protocol, bound verifier, independent checker and receipt
+hashes without rerunning the scientific schedule. The initial
+`reconciliation.json`, `reconciliation_recovery.json`,
+`reconciliation_recovery2.json` and `reconciliation_recovery3.json` remain as
+failed audit implementations; the qualified source and receipt are
+`reconcile_recovery4.mjs` and `reconciliation_recovery4.json`.
+
+The finite group, derivative and Gaussian controls classify **SUPPORTS**.
+The exact vacuum-measure identity classifies **ADOPT** within each finite
+regulator, and the weighted full-holonomy block estimate classifies
+**ADOPT CONDITIONAL** on its displayed exact-vacuum rates, tensorization and
+cover hypotheses. The equal-weight one-plaquette vacuum, a
+conditional-gap-only volume-uniform implication and a static pure
+configuration marginal as an exact quantum block each classify
+**CONTRADICTS**. Interacting-vacuum tensorization, weak-bare-coupling uniform
+control, the continuum quantum field and its mass remain **UNRESOLVED**.
+
 ---
 
 ## References
@@ -1718,3 +2156,11 @@ construction, continuum mass and Cassi microscopic identification remain
 - D. A. Yarotsky, [Ground states in relatively bounded quantum perturbations of classical lattice systems](https://arxiv.org/abs/math-ph/0412040), Theorems 1–2 and Remark Eq. (6)—volume-uniform strong-coupling stability, connected correlations and relatively bounded perturbations
 - `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule
 - `computations/verify_yang_mills_connected_blocks.py`—connected-block controls and immutable source-bound receipt
+- `computations/yang-mills-vacuum-block-prereg.md`—fixed vacuum geometry,
+  Gaussian block and RG-sign controls
+- `computations/verify_yang_mills_vacuum_blocks.py`—source-bound finite
+  group, derivative and Gaussian controls
+- S. Janson, *Gaussian Hilbert Spaces*, Cambridge University Press
+  (1997)—Wiener chaos and conditional Gaussian factorization
+- D. Hasler and I. Herbst, [On the Smooth Feshbach–Schur
+  Map](https://arxiv.org/abs/0704.3244)—spectral reduction conditions

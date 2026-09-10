@@ -537,6 +537,56 @@ classification is `SUPPORTS-backward-Euler source subcycling`. The model
 equation, comprehensive verdict, physical parameter count and empirical
 prediction catalog are unchanged by the qualification.
 
+
+## 19. Pure Yang–Mills exact-vacuum blocks
+
+The source-free $SU(2)$ lattice comparison uses the exact finite-vacuum
+measure. The ground-state transform identifies the regulated physical gap
+with the gauge-invariant Poincaré rate of that measure. A conditional
+full-holonomy block theorem isolates local exact-vacuum rates, an
+approximate-tensorization constant and a bounded-overlap cover as sufficient
+inputs for uniform control. Weak-bare-coupling bounds for those inputs remain
+open.
+
+The immutable schedule in
+`computations/yang-mills-vacuum-block-prereg.md` is implemented by
+`computations/verify_yang_mills_vacuum_blocks.py`. The primary Python receipt
+passes **305 checks** over five full-holonomy fixtures, 45 local-energy rows
+and ten connected Gaussian rows. The final independent JavaScript
+reconciliation passes **120 checks**.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Full-holonomy group, derivative and local-energy controls | Maximum group, gauge, first-derivative and normalized-energy errors are $1.33\times10^{-15}$, $4.44\times10^{-16}$, $6.31\times10^{-13}$ and $3.28\times10^{-8}$ | **SUPPORTS**, fixed finite fixtures and declared local schedule |
+| Independent Gaussian reconstruction | Maximum matrix and scalar discrepancies are $1.77\times10^{-14}$ and $9.77\times10^{-13}$ | **SUPPORTS**, ten connected Gaussian controls |
+| Exact finite-vacuum identity | $\Delta_{\mathrm{phys}}=(g^2/2a)\lambda_{\mathrm{gi}}$ by the ground-state transform | **ADOPT**, every finite regulated theory under the displayed domain conditions |
+| Full-holonomy block theorem | $\lambda_{\mathrm{gi}}\ge\lambda_{\mathrm{loc}}/(A_{\mathrm{AT}}\rho)$ under exact-vacuum fibre rates, approximate tensorization and cover assumptions | **ADOPT CONDITIONAL**, sufficient theorem; weak-coupling estimate open |
+| Equal-weight one-plaquette exponential | Rejected as the exact interacting vacuum for $x>0$ on the stated even periodic $L\ge4$ and open-box families | **CONTRADICTS**, the trial product state remains only a control |
+| Conditional gaps alone | No volume-uniform rate follows without variance reconstruction or an equivalent global estimate | **CONTRADICTS**, proposed shortcut |
+| Static pure configuration marginal | In the coupled Gaussian control, $Q_{RE}\ne0$ gives a mixed reduced state with momentum covariance missing from the pure square root of the configuration marginal; exact spectral reduction is energy-dependent through the Feshbach–Schur resolvent | **CONTRADICTS**, exact quantum block reduction |
+| Weak-coupling continuum mass gap | Uniform exact-vacuum tensorization, local rates, continuum construction and mass identification remain missing | **UNRESOLVED** |
+
+The primary receipt, input manifest, frozen source snapshots, two analytical
+reviews and reconciliation chain are in
+`runs/yang_mills_vacuum_blocks/`. `publication.json` seals the current theorem,
+fixed protocol, bound verifier, independent checker and receipt hashes without
+rerunning the scientific schedule. The retained audit failures are
+`reconciliation.json`, `reconciliation_recovery.json`,
+`reconciliation_recovery2.json` and `reconciliation_recovery3.json`. They
+respectively expose a complex-generator implementation error, non-invariant
+componentwise gradient comparison, cancellation-sensitive absolute finite
+differences and an omitted $m^2$ in the independent Gaussian scale. The
+qualified independent sources are `reconcile_recovery4.mjs` and
+`reconciliation_recovery4.json`.
+
+Independent analytical reviews verify the approximate-tensorization
+Rayleigh-compression proof, finite-lattice quantifier, conditional
+density-ratio comparison and real left-invariant derivative convention. They
+find no remaining line-level mathematical faults in §§9.13–9.16. The physical
+parameter count, empirical prediction catalog and QF/DQ/GQ
+microscopic-identification verdicts are unchanged.
+
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -597,3 +647,5 @@ prediction catalog are unchanged by the qualification.
 - `computations/verify_cassi_radiative_material.py`—33/34 comprehensive source-bound receipt generator.
 - `computations/cassi-radiative-material-qualification-prereg.md`—fixed source-step accuracy qualification.
 - `computations/verify_cassi_radiative_material_qualification.py`—9-check source-subcycling qualification.
+- `computations/yang-mills-vacuum-block-prereg.md`—fixed full-holonomy, exact-vacuum and Gaussian block schedule.
+- `computations/verify_yang_mills_vacuum_blocks.py`—305-check primary exact-vacuum block receipt.
