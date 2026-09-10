@@ -189,15 +189,24 @@ The prediction sits **within 6.3%** of the observed value.
 
 ### 3.3 Sakharov Conditions
 
-The following table records requirements for a possible particle/gauge extension; the canonical two-density PDE does not establish these conditions by itself.
+The following table records requirements for a possible Cassi particle/gauge
+extension. The canonical two-density PDE does not establish them.
 
 | Condition | Conditional Cassi interpretation |
 |-----------|----------------------------------|
 | **B violation** | Sphaleron processes at $T>T_{\text{sph}}$ after the required electroweak extension is supplied (Hypothesized) |
-| **C/CP violation** | The mapped Yang/Yin chiral imbalance is a Hypothesized candidate; canonical density dynamics do not establish a CP-violating phase |
+| **C/CP violation** | The Mapped quark-sector CKM candidate has no derived relation to the leptonic Casas–Ibarra coordinate. The canonical real-density state supplies no CP-odd branch selector. |
 | **Out of equilibrium** | An electroweak phase transition and freeze-out at $T\approx T_{\text{sph}}$ require an explicit rate and particle-sector model (Hypothesized) |
 
-The canonical fields therefore do not by themselves satisfy the Sakharov conditions, and no conclusion about additional CP-violating phases follows until the particle/gauge extension is specified.
+A supplied resolved-flavour two-singlet comparator realizes all three
+conditions empirically and calibrates
+$M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ to the observed
+$|\eta_B|$. Whole-bubble abundance and inherited-$B-L$ variations wash out,
+but exact CP conjugation reverses the sign with identical registered Cassi
+inputs. CP selection therefore returns `DOES NOT EMERGE`. Cassi-origin
+baryogenesis requires a CP-odd microscopic coefficient, state, boundary datum
+or selection rule
+(`computations/matter-formation-continuum-report.md` §§83–84).
 
 ### 3.4 Summary
 

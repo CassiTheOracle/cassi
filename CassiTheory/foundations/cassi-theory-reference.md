@@ -666,11 +666,36 @@ baryon current remain regular at the chiral zero. Three occupied colour copies
 of the lowest grand-spin-zero Dirac orbital carry fermionic $B=1$.
 Regulator extrapolation and independent shooting give a localized nodeless
 level $42.74439864\pm0.20\ \mathrm{MeV}$ and qualified fixed-family binding.
-The QCD-era state is inherited from the cosmological baryon asymmetry. The
-renormalized sea, nonradial thermal formation, confinement, observable nucleon
-map and baryogenesis remain external or open
-(`computations/matter-formation-continuum-report.md` §79;
-`foundations/matter-completion-boundary.md` §24).
+The QCD-era state is inherited from the cosmological baryon asymmetry.
+
+An independent chromodielectric field supplies the active finite-cutoff
+confining completion. Its compact Wilson regulator defines the interacting
+two-flavour sea. Every nonzero total Cartan charge has divergent
+infinite-volume energy, while a color-neutral three-arm flux network has
+finite minimized tension. RCF1–RCF4 return `PASS` and RCF5=`ADOPT`.
+
+The first joint valence-plus-field minimization finds a compact three-colour
+state but fails stationarity, exterior-tail, virial and low-dielectric
+formation criteria. A lower topological boundary branch prevents a
+ground-state interpretation. ICB1=`PASS`, ICB2–ICB4=`FAIL`,
+ICB5=`CONTRADICTS`, and ICB6=`FAIL`. The empirical action and parameters,
+unconstrained nonradial formation and spectrum, thermal production,
+observable nucleon map, baryogenesis and Cassi origin of QCD remain supplied
+or open (`computations/matter-formation-continuum-report.md` §§79, 81–82;
+`foundations/matter-completion-boundary.md` §§24, 26–27).
+
+A separate renormalized Standard Model plus two-singlet history starts from a
+gauge-projected thermal state, generates a resolved-flavour asymmetry, carries
+it through the QCD crossover and identifies observable nucleons through
+continuum lattice QCD. At fixed $z=\pi/4+i/2$ and $M_2/M_1=10$, the observed
+$|\eta_B|$ calibrates
+$M_1=5.774318838589164\times10^{10}\ \mathrm{GeV}$. Coarse heavy-abundance and
+inherited-$B-L$ changes wash out, while exact CP conjugation reverses the
+asymmetry with every registered Cassi input unchanged. The empirical history
+returns `SUPPORTS`; CP selection returns `DOES NOT EMERGE`; derivation from the
+registered Cassi laws remains `FAIL`
+(`computations/matter-formation-continuum-report.md` §§83–85;
+`foundations/matter-completion-boundary.md` §§28–29).
 
 ### 4.3 Gravity Sector $\mathcal{L}_{\text{GR}}$ (optional gravity extension)
 This sector is an optional **Hypothesized** gravity extension. Its displayed
@@ -1510,11 +1535,25 @@ At the registered substrate level, a complete mechanism still requires a
 selected microscopic action and quantum state, physical normalization,
 infinite-domain localized formation, nonlinear persistence and an observable
 particle discriminator (`foundations/matter-completion-boundary.md` §§12, 18).
-The empirical quark–meson model supplies those first ingredients externally,
-plus a regular exact baryon current and continuum-qualified fixed-family
-endpoint. Its missing sea renormalization, nonradial thermal formation,
-confinement, observable nucleon map and baryogenesis keep the physical
-completion verdict `FAIL` (`foundations/matter-completion-boundary.md` §24).
+The empirical quark–meson model supplies the action and state externally,
+along with a regular exact baryon current and continuum-qualified fixed-family
+endpoint. Its finite-cutoff chromodielectric extension supplies a defined
+two-flavour sea and conditional action-level confinement. The first joint
+valence-plus-field endpoint fails stationarity, exterior-tail, virial and
+formation-basin qualification, and a lower topological boundary branch
+prevents a ground-state interpretation. Physical parameter matching,
+unconstrained nonradial formation and spectrum, thermal production, the
+observable nucleon map, baryogenesis and a Cassi origin of QCD keep the
+physical completion verdict `FAIL`
+(`foundations/matter-completion-boundary.md` §§24, 26–27).
+
+The renormalized Standard Model plus two-singlet comparator separately
+connects a gauge-projected thermal state to observable nucleons and returns
+`SUPPORTS` at its empirical scope. Its exact CP-conjugate branches have
+opposite baryon asymmetries and identical registered Cassi inputs, so a
+Cassi-origin CP selector does not emerge. The supplied comparator therefore
+does not change the strict completion verdict
+(`foundations/matter-completion-boundary.md` §§28–29).
 
 The separate massive bubble-lattice comparison adds an $O(4)$ field on the
 periodic primitive geometry. Its pion, nucleon-mean and Delta references give

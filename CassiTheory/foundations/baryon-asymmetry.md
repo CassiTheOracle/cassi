@@ -1,52 +1,61 @@
-# Matter-Antimatter Asymmetry from Cascade Freeze-Out and a Candidate Circuit Interaction
+# Matter–Antimatter Asymmetry: Thermal Leptogenesis and the Cascade Candidate
 
-## Status: Derivation (mechanism Hypothesized, C7/Q6; $\eta_{\mathrm{fit}}$ exponent Mapped—ledger; conditional normalized product Hypothesized; single $\eta$ normalization open; 44-step span open—no closure found in the 2026-08-11 sweeps, §4.5 and the $\Gamma/H = 1$ rate-based attempt, §4.7)—August 2026
+## Status: Calibrated resolved-flavour thermal-leptogenesis benchmark / Tested whole-bubble CP-selection no-go / Hypothesized Cassi mechanism / Mapped $\eta_{\mathrm{fit}}$ exponent and neutrino texture inputs—September 2026
 
 ## Abstract
 
-The baryon asymmetry $\eta = n_b/n_\gamma \approx 6\times10^{-10}$—why the
-universe contains matter but almost no antimatter—is represented by a candidate
-chain: a candidate particle/antiparticle circuit interaction (§5.2 of
-`proton-coherence-budget.md`), the Yang-Yin imbalance at the Wu Xing gap
-$g=1-\varphi^{-5}$, and cascade dilution. The circuit branch assignment has
-no selected reconnection interaction or event rate, and the complete
-freeze-out mechanism remains Hypothesized. The ledgered $\varphi$-power
+The baryon asymmetry
+$\eta_B=n_B/n_\gamma\approx6\times10^{-10}$ has a connected conditional
+empirical realization in the renormalized Standard Model plus a minimal
+two-singlet type-I seesaw. A gauge-projected thermal state starts with zero
+$B-L$. CP-violating Majorana decays generate $B-L$ out of equilibrium,
+electroweak sphalerons convert part of it to baryon number, and QCD
+hadronization plus pair annihilation preserves the net excess in nucleons.
+
+The preregistered resolved-flavour benchmark fixes
+$z=\pi/4+i/2$ and $M_2/M_1=10$, then calibrates its remaining heavy scale:
+
+$$
+\boxed{
+M_1=5.774318838589164\times10^{10}\ {\rm GeV},\qquad
+|\eta_B|=6.100000000002\times10^{-10}.}
+$$
+
+An independent Radau evolution agrees in the calibrated mass to
+$1.49\times10^{-12}$ relative and in the yield to
+$1.18\times10^{-12}$ relative. The Yukawa matrix is perturbative and the two
+nonzero light-neutrino masses reconstruct to machine precision. The benchmark
+is **Calibrated** because the observed $|\eta_B|$ selects $M_1$.
+
+Whole-bubble abundance arms and inherited-$B-L$ arms converge to the same
+late magnitude within $2.02\times10^{-4}$ and $2.79\times10^{-3}$ relative,
+respectively. The exact CP-conjugate texture produces the opposite signed
+yield. A real scan of the Casas–Ibarra coordinate contains positive, negative
+and zero asymmetries with the same light spectrum. The registered Cassi state
+contains no CP-odd datum or rule that selects between the conjugate branches.
+CP selection therefore returns `DOES NOT EMERGE`.
+
+The separate Cassi cascade candidate remains open. Its ledgered numerical
 coincidence is
 
-$$\boxed{\eta_{\mathrm{fit}}\equiv\varphi^{-44}\approx 6.38\times10^{-10}}$$
+$$
+\boxed{\eta_{\mathrm{fit}}\equiv\varphi^{-44}\approx6.38\times10^{-10}},
+$$
 
-which lies within 6.3% of the observed $6.0\times10^{-10}$. A separate
-conditional phenomenological normalization, using the GUT-scale matter fraction
-and the same 44-rung dilution family (§2), gives
+within $6.3\%$ of the measured value. The conditional product using the
+declared GUT-scale matter fraction is
 
-$$\boxed{\eta_{\mathrm{cond}}\approx\eta_{\text{matter}}\varphi^{-44}
-       \approx 3.187967\times10^{-11}}$$
+$$
+\boxed{\eta_{\mathrm{cond}}\approx\eta_{\mathrm{matter}}\varphi^{-44}
+\approx3.187967\times10^{-11}},
+$$
 
-This conditional product is 20× below the ledgered $\eta_{\mathrm{fit}}$ value
-and approximately 19× below the measured asymmetry. The two readings have
-separate provenance. A normalization derivation selecting one is required
-before the baryon asymmetry has a single Derived prediction. The GUT seed is
-$n\approx13.3$; the pinch-minus-seed candidate span is $46.7$, while the
-endpoint that would supply the required span
-$N_{\text{req}}=-\ln(\eta_{\text{obs}})/\ln\varphi\approx44.126$ is an
-unanchored desert scale. From the rounded seed it is near rung $57.43$; the
-closure seed $n=13.33$ gives $n\approx57.46$. The
-$\Gamma/H=1$ test supplies a unique crossing that is a thaw and a radiation-era
-crossing before the seed (§4.7). No current rate equation selects a post-seed
-freeze-out endpoint, so the exponent remains a ledgered fit and the mechanism
-remains Hypothesized.
-
-Section 4.5 records the threshold-crossing, endpoint, composite-gap, and
-factor-decomposition constructions; none closes. The strongest
-mechanism-anchored candidate—the pinch-minus-seed span $60-13.3=46.7$—sits
-5.8% above the exact required span $N_{\text{req}}\approx44.126$; its
-unit-normalized dilution factor is 3.4× low under uniform
-$\varphi^{-1}$ per-rung dilution. A closing span would end
-near rung $57.43$–$57.46$, where $E\approx1.3\times10^7$ GeV and no known
-scale or mechanism sits. In the separate unit-density normalized gate ansatz,
-the $(1-\bar q)=\varphi^{-1}$ crossing at $r\approx0.240$ maps to a cascade
-step only through the optional Hypothesized 5-phase boundaries, and the
-homogeneous ODE gives $N\approx9$ total steps.
+about nineteen times below measurement. No registered interaction or
+rate equation selects the fitted exponent: the closest mechanism-anchored
+span is $46.7$ cascade steps, the homogeneous $\Gamma/H=1$ crossing is a
+thaw, and the radiation-era crossing occurs before the seed. The empirical
+branch supplies a complete conditional formation history. A Cassi origin
+requires both microscopic action closure and a CP-odd selector.
 
 ---
 
@@ -575,10 +584,15 @@ table below; the physical mechanism statuses remain conditional where they use
 the Hypothesized particle/antiparticle branch map or the unclosed freeze-out
 map:
 
+The supplied two-singlet sector in §7 realizes all three Sakharov
+requirements through Majorana lepton-number violation, a complex Yukawa
+invariant and decay in the expanding thermal state. The following table
+assesses the separate Cassi cascade proposal.
+
 | Sakharov condition | Cassi mechanism | Status |
 |---|---|---|
 | Baryon number violation | Candidate circuit reconnection or unwinding (§5.2 of `proton-coherence-budget.md`) under the Hypothesized particle/antiparticle branch map | Hypothesized (interaction and branch map unselected; no event rate) |
-| C and CP violation | $\delta_{\text{CP}} = \pi\varphi^{-2}$ from CKM phase at GUT scale; cascade-suppressed to low-energy physics | Mapped (CP phase—ledger), Mapped (strong CP—ledger) |
+| C and CP violation | Empirical comparator: the supplied complex two-singlet Yukawa texture generates channel-resolved CP asymmetries. Cassi candidate: the Mapped quark-sector value $\delta_{\text{CP}}=\pi\varphi^{-2}$ has no derived map to the leptonic Casas–Ibarra coordinate and supplies no conjugate-branch selector. | Calibrated empirical texture / Mapped CKM comparison / Hypothesized Cassi selector |
 | Out-of-equilibrium dynamics | Cascade freeze-out: ratio $r(t)$ evolves through the optional Wu Xing phase probe during the GUT epoch ($n\approx13.3$); dilution continues through the 44-step span (Mapped fit) until the normalized-gate ansatz is assigned to stop conversion | Hypothesized (freeze-out map; span Mapped) |
 
 The conditional coherence algebra and Yang-Yin gap provide candidate
@@ -589,6 +603,22 @@ currently supplies a physical event rate.
 ---
 
 ## 6. Epistemic boundaries and what remains open
+
+### Conditional empirical completion
+
+- The renormalized Standard Model plus two-singlet seesaw supplies a positive
+  gauge-projected thermal state, channel-resolved CP asymmetries, washout,
+  sphaleron conversion and QCD-era survival.
+- The measured $|\eta_B|$ calibrates
+  $M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ for the fixed benchmark
+  texture. This is a viable parameter point rather than an independent
+  prediction of the asymmetry.
+- Independent Radau evolution reproduces $M_1$ to
+  $1.49\times10^{-12}$ relative and $\eta_B$ to
+  $1.18\times10^{-12}$ relative.
+- Vacuum, equilibrium, doubled-abundance and inherited-$B-L$ arms converge
+  within their frozen tolerances. Exact complex conjugation reverses the
+  asymmetry while preserving every CP-even observable.
 
 ### Derived conditional on declared inputs
 
@@ -610,9 +640,9 @@ currently supplies a physical event rate.
   $\eta_{\mathrm{cond}}\approx\eta_{\text{matter}}\varphi^{-44}
   \approx3.187967\times10^{-11}$, a Hypothesized phenomenological estimate
   with separate normalization
-- The Sakharov requirements remain a checklist: the CP input is Mapped, while
-  baryon-number violation and out-of-equilibrium dynamics remain Hypothesized
-  and lack interaction/rate closure
+- The Sakharov requirements remain a checklist: the supplied two-singlet
+  texture realizes them empirically, while the Cassi circuit interaction,
+  freeze-out dynamics and CP-odd branch selector remain Hypothesized
 - **5-phase mapping**: the optional assignment of Wu Xing phases to specific
   cascade step ranges (§4.1) is structurally motivated, while the current ODE
   analysis leaves the step boundaries free at the $\pm1$–$2$ scale-step level
@@ -620,8 +650,10 @@ currently supplies a physical event rate.
 
 ### Mapped / fit
 
-- CP violation from $\delta_{\text{CP}} = \pi\varphi^{-2}$ (Mapped—4-candidate
-  selection, ledger §10; `standard-model/cp-violation.md`)
+- The quark-sector comparison
+  $\delta_{\text{CP}}=\pi\varphi^{-2}$ is Mapped by four-candidate selection
+  (ledger §10; `standard-model/cp-violation.md`). It has no derived relation
+  to the leptonic Casas–Ibarra coordinate.
 - **Ledgered $\varphi$-power fit**: $\eta_{\mathrm{fit}}\equiv\varphi^{-44}
   \approx 6.38 \times 10^{-10}$ (`parameter-inventory.md` §10), within
   6.3% of the observed value; the freeze-out step it parameterizes remains
@@ -633,7 +665,7 @@ currently supplies a physical event rate.
   (`parameter-inventory.md` §10); the formal $8$-offset coordinate does not
   close with the GUT anchor
 
-### Open—requires the full 3D PDE (structure formation / wake-wave dynamics)
+### Open for a Cassi-derived asymmetry
 
 The following gaps prevent promotion of the conditional mechanism to a fully
 Derived physical account:
@@ -686,10 +718,119 @@ Derived physical account:
    $60-13.3=46.7$, misses the exact log 44.126 by 5.8%; the
    unit-normalized dilution factor is 3.4 times low when read as an asymmetry.
 
+6. **CP-odd branch selection.** With real CP-even Cassi initial data, the
+   exact conjugate pair $z,z^*$ has identical masses, projectors and
+   preparation data but opposite $\eta_B$. A CP-equivariant evolution cannot
+   select a signed CP-odd expectation from those inputs. Cassi-origin
+   baryogenesis therefore requires an explicit CP-odd action coefficient,
+   state, boundary datum or selection rule
+   (`computations/matter-formation-continuum-report.md` §84).
+
+
+## 7. Resolved-flavour thermal-leptogenesis benchmark
+
+The empirical branch makes the early-universe state and interaction explicit.
+Two gauge-singlet Majorana fields extend the Standard Model through
+
+$$
+\mathcal L_N
+:=\frac12\overline{N_i}i\!\not\!\partial N_i
+-\frac12M_i\overline{N_i^c}N_i
+-\left(Y_{\alpha i}\overline{L_\alpha}\widetilde HN_i+\mathrm{h.c.}\right).
+$$
+
+At reheating temperature $T_R=20M_2$, the initial density operator is
+
+$$
+\rho_R=Z^{-1}P_G
+\exp\!\left[-\frac{H-\sum_A\mu_AQ_A}{T_R}\right]P_G,
+\qquad Y_{B-L}=0.
+$$
+
+The projector $P_G$ restricts the state to the gauge-invariant Hilbert space.
+At $M_1\simeq5.77\times10^{10}\ {\rm GeV}$ the $\tau$ interaction is resolved
+while $e$ and $\mu$ remain coherent. For $x=M_1/T$, the two-channel system is
+
+$$
+\frac{dN_{N_1}}{dx}=-D(N_{N_1}-N_{N_1}^{\rm eq}),\qquad
+\frac{dN_{\Delta_\alpha}}{dx}
+=-\epsilon_{1\alpha}D(N_{N_1}-N_{N_1}^{\rm eq})
+-P_{1\alpha}WN_{\Delta_\alpha},
+\quad\alpha\in\{e+\mu,\tau\}.
+$$
+
+The fixed light spectrum is
+$m_1=0$, $m_2=\sqrt{7.42\times10^{-5}}\ {\rm eV}$ and
+$m_3=\sqrt{2.517\times10^{-3}}\ {\rm eV}$. With
+$z=\pi/4+i/2$ and $M_2=10M_1$, the calibrated point has
+
+$$
+\widetilde m_1=0.04535395919\ {\rm eV},\qquad
+K=41.99440666,
+$$
+
+$$
+(\epsilon_{1,e+\mu},\epsilon_{1,\tau})
+=(2.0861524055,\ 1.5366624129)\times10^{-6},
+\qquad
+(P_{1,e+\mu},P_{1,\tau})=(0.7612394925,0.2387605075).
+$$
+
+The largest Yukawa magnitude is $0.02243976$, and the reconstructed
+light-mass relative error is $8.06\times10^{-16}$. Primary and independent
+solvers both land at $|\eta_B|=6.10\times10^{-10}$.
+
+The same receipt varies the whole-bubble preparation. Zero, equilibrium and
+twice-equilibrium initial $N_1$ abundances differ in final $|\eta_B|$ by at
+most $2.01869\times10^{-4}$ relative. Initial
+$B-L\in\{-10^{-4},0,+10^{-4}\}$ is washed to yields differing by at most
+$2.78535\times10^{-3}$ relative. These arms qualify robustness to coarse
+initial abundance and inherited-charge changes within the supplied model.
+
+Complex conjugation supplies the exact pair
+
+$$
+\boxed{Y(z^*)=Y(z)^*,\qquad\eta_B(z^*)=-\eta_B(z).}
+$$
+
+The measured conjugation and yield-cancellation errors are both zero. A
+$17\times21$ scan in the real coordinate plane contains both signs and a
+zero-asymmetry line while reconstructing the same light spectrum. A
+CP-equivariant evolution with CP-even action, state and boundaries gives zero
+expectation for every CP-odd observable when the transformed state is
+identified with the original. A nonzero signed asymmetry therefore requires
+a CP-odd microscopic coefficient, state, boundary datum or branch-selection
+rule.
+
+The canonical Cassi state has two real nonnegative densities and no registered
+complex phase. Its Mapped quark-sector CKM phase has no derived relation to
+$z$. The whole-bubble preparation can erase broad initial differences, but it
+cannot distinguish $z$ from $z^*$. FCP6 and FCP7 return `FAIL`; the frozen
+CP-selection verdict is `DOES NOT EMERGE`.
+
+The minimal two-singlet action also obeys
+$\operatorname{rank}(m_\nu)\leq2$ and has one exactly massless light state.
+It cannot simultaneously realize the separate Mapped Cassi spectrum with
+$m_1=0.00356\ {\rm eV}$. A unified microscopic completion requires another
+mass source, a revised Mapped spectrum or a different baryogenesis action.
+
+The generated net yield remains stable through the $156.5\ {\rm MeV}$ QCD
+crossover. Nucleon–antinucleon annihilation at $40$–$60\ {\rm mb}$ lowers the
+antibaryon fraction below $10^{-8}$ by $27.03936\ {\rm MeV}$ and preserves
+$\eta_B$. A separate $24^3$ reaction–diffusion calculation supports
+relaxation of nonradial coarse-grained thermal-density perturbations. These
+results establish a conditional empirical asymmetry history. A Cassi
+derivation of the microscopic fields, complex texture, initial state and
+CP-odd selector remains open.
+
+The complete calculation and exact scope are recorded in
+`computations/matter-formation-continuum-report.md` §§83–85 and
+`foundations/matter-completion-boundary.md` §§28–29.
 
 ---
 
-## 7. References
+
+## 8. References
 
 - `foundations/proton-coherence-budget.md` §5.2—conditional matter/antimatter interaction requirements
 - `foundations/cascade-suppression-formula.md`—cascade attenuation,
@@ -714,3 +855,13 @@ Derived physical account:
   crossing at $r_f=1.3495$ is a thaw, while the two tested radiation-era
   normalizations cross before the seed; no closure (§4.7)
 - `open-questions-cassi-answers.md`—C7 entry, freeze-out step 52 status
+- `computations/qcd-cosmological-matter-completion-prereg.md`—frozen thermal state, two-singlet action, Boltzmann equations and completion gates
+- `computations/qcd_cosmological_matter_completion.py`—primary calibrated leptogenesis, QCD chemistry and nonradial evolution
+- `computations/verify_qcd_cosmological_matter_completion.py`—independent logarithmic-time and event-bound verification
+- `computations/matter-formation-continuum-report.md` §83—connected empirical matter history and Cassi-origin adjudication
+- `computations/qcd-whole-bubble-cp-selection-prereg.md`—frozen two-flavour, whole-bubble and CP-selection protocol
+- `computations/qcd_whole_bubble_cp_selection.py`—primary resolved-flavour calibration, initial-state arms and conjugate scan
+- `computations/verify_qcd_whole_bubble_cp_selection.py`—independent Radau calibration and source-bound verification
+- S. Blanchet and P. Di Bari, [“Flavor effects on leptogenesis predictions”](https://arxiv.org/abs/hep-ph/0607330)—resolved-flavour regimes and projected washout
+- A. Abada et al., [“Flavour Matters in Leptogenesis”](https://arxiv.org/abs/hep-ph/0605281)—two-flavour Boltzmann equations
+- S. Davidson, E. Nardi and Y. Nir, [“Leptogenesis”](https://arxiv.org/abs/0802.2962)—thermal leptogenesis review

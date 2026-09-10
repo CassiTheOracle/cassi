@@ -138,12 +138,31 @@ $18.2800415\ \mathrm{MeV}$. The QCD-era ledger interprets its baryon number as
 inherited cosmological asymmetry. A finite-cutoff chromodielectric completion
 defines the two-flavour sea and supplies action-level confinement, passing all
 four prerequisite gates and receiving `ADOPT` as the active effective bridge.
-The empirical action and unmatched dielectric scales, interacting nonradial
-baryon solution and spectrum, thermal production, observable nucleon map,
-baryogenesis and Cassi origin of QCD remain supplied or open. QMQ4, QMC6 and
-RCF6 return `FAIL`
-(`computations/matter-formation-continuum-report.md` §§79, 81;
-`foundations/matter-completion-boundary.md` §§24, 26).
+The first joint valence-plus-field minimization finds a compact three-colour
+state but fails stationarity, exterior-tail, virial and formation-basin
+criteria; a lower topological boundary branch prevents a ground-state
+interpretation. Its independent-cell radial follow-up loses every positive
+nodeless occupied state on the first bounded trial and rejects the frozen
+unconstrained qualification. The empirical action and unmatched dielectric
+scales, lower topological branch, unconstrained nonradial formation, physical
+spectrum, thermal production, observable nucleon map, baryogenesis and Cassi
+origin of QCD remain supplied or open. QMQ4, QMC6, RCF6, ICB6 and QURB8
+return `FAIL`
+(`computations/matter-formation-continuum-report.md` §§79, 81–82;
+`foundations/matter-completion-boundary.md` §§24, 26–27).
+
+The separate empirical history uses renormalized Standard Model QCD and a
+minimal two-singlet seesaw. Resolving the $\tau$ channel gives the calibrated
+$M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ and observed asymmetry
+magnitude; independent Radau evolution agrees to
+$1.49\times10^{-12}$ in mass and $1.18\times10^{-12}$ in yield.
+Whole-bubble abundance and inherited-$B-L$ variations converge within their
+frozen tolerances. Exact CP conjugation reverses the asymmetry while every
+registered Cassi input remains unchanged. The empirical history returns
+`SUPPORTS`, CP selection returns `DOES NOT EMERGE`, and Cassi-origin
+completion remains `FAIL`
+(`computations/matter-formation-continuum-report.md` §§83–85;
+`foundations/matter-completion-boundary.md` §§28–29).
 
 
 ## Document Index
@@ -1292,12 +1311,24 @@ Its finite-cutoff chromodielectric completion defines the interacting
 two-flavour sea and supplies action-level confinement: every nonzero total
 Cartan charge has divergent infinite-volume energy, while a color-neutral
 three-arm flux network has finite positive minimized tension. RCF1–RCF4
-return `PASS` and RCF5=`ADOPT`. The empirical action and unmatched dielectric
-scales, interacting nonradial baryon solution and spectrum, thermal
-production, observable particle map, baryogenesis and Cassi origin of QCD
-remain supplied or open
-(`computations/matter-formation-continuum-report.md` §§79, 81;
-`foundations/matter-completion-boundary.md` §§24, 26).
+return `PASS` and RCF5=`ADOPT`.
+
+The first joint valence-plus-field minimization gives a compact three-colour
+state at $1320.592488\ \mathrm{MeV}$, but it fails stationarity,
+exterior-tail, virial and low-dielectric formation criteria. A lower
+$957.416497\ \mathrm{MeV}$ topological boundary branch prevents a
+ground-state interpretation. ICB1=`PASS`, ICB2–ICB4=`FAIL`,
+ICB5=`CONTRADICTS`, and ICB6=`FAIL`; independent reconstruction passes. The
+independent-cell radial follow-up begins with one positive nodeless level but
+loses every such state on its first bounded trial. QURB2=`FAIL`,
+QURB7=`REJECT`, and QURB8=`FAIL`; all fifteen independent checks pass. This
+rejects the frozen unconstrained radial route without proving nonexistence
+under every state-domain method. The empirical action and parameters, lower
+topological branch, unconstrained nonradial baryon solution, physical
+spectrum, thermal production, observable particle map, baryogenesis and Cassi
+origin of QCD remain supplied or open
+(`computations/matter-formation-continuum-report.md` §§79, 81–82;
+`foundations/matter-completion-boundary.md` §§24, 26–27).
 
 The unnormalized polynomial Gram stabilizer is finite at a chiral zero and
 passes exact positivity and independent Cartesian controls. It does not yield
@@ -1307,26 +1338,40 @@ and its finite collapse path has zero barrier. RPS6 therefore returns
 (`computations/matter-formation-continuum-report.md` §80;
 `foundations/matter-completion-boundary.md` §25).
 
+The renormalized Standard Model plus two-singlet branch supplies a connected
+conditional empirical history. Its resolved-flavour benchmark calibrates
+$M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ to $|\eta_B|$, survives the
+QCD epoch and maps to continuum-QCD nucleons. Whole-bubble abundance and
+inherited-charge variations converge within the frozen tolerances. The exact
+CP-conjugate texture gives the opposite sign with identical registered Cassi
+inputs, so CP selection returns `DOES NOT EMERGE`
+(`computations/matter-formation-continuum-report.md` §§83–85;
+`foundations/matter-completion-boundary.md` §§28–29).
+
 
 Physical exterior and reservoir actions, state selection, canonical
 coefficient determination, gravity selection, continuum-localized forming
 evolution from degree-zero data, stability or capture of radiating clouds,
 and a particle discriminator remain open at the canonical substrate level.
-For the active QCD branch, physical dielectric matching, an interacting
-nonradial baryon solution and spectrum, thermal production, the observable
-nucleon map, baryogenesis and a Cassi origin of QCD remain open. The
-deterministic completion gates return `FAIL`
-(`computations/matter-formation-continuum-report.md` §§35–36, 79, 81).
-Status: Derived conditional boundary, microscopic non-identifiability,
-scalar continuum minimizer-set stability, normalized-chiral obstruction,
-regular baryon-current identity and finite-cutoff action-level confinement /
-Mapped carrier coupling, conditional baryon benchmark and rejected step-95
-radius assignment / Hypothesized physical realization / Tested reduced
-receipts, prepared binding, finite-grid spectra, parent correspondences,
-radial baryon relaxation, finite-charge radial condensation, quark–meson
-regulator extrapolation, fixed-family binding, isolated-color divergence,
-color-neutral flux witness and rejected polynomial
-stabilization—September 2026.
+For the active QCD branch, physical dielectric matching and a qualified
+unconstrained nonradial baryon solution remain open. The separate Standard
+Model completion supplies thermal production, baryogenesis, QCD survival and
+the observable nucleon map conditionally. Cassi supplies no derivation of its
+microscopic action or CP-odd branch selector. The four-coordinate interacting
+endpoint fails its own stationarity, exterior-tail, virial and formation
+criteria; the whole-bubble selector gate also fails
+(`computations/matter-formation-continuum-report.md` §§35–36, 79, 81–85).
+Status: Derived conditional nine-sector boundary, microscopic
+non-identifiability, continuum minimizer-set stability, normalized-chiral
+obstruction, regular baryon-current identity, finite-cutoff action-level
+confinement and CP-selection theorem / Mapped carrier coupling, conditional
+baryon benchmark and rejected step-95 radius assignment / Calibrated
+resolved-flavour leptogenesis scale / Hypothesized physical realization /
+Tested reduced receipts, prepared binding, finite-grid spectra, radial
+relaxation, finite-charge condensation, quark–meson regulator extrapolation,
+fixed-family binding, isolated-color divergence, neutral flux, interacting
+radial-baryon rejection, conditional empirical history and whole-bubble
+selector boundary—September 2026.
 
 ### `quantum-free-fall-correspondence.md`—Quantum Free Fall as a Cassi Correspondence Boundary
 

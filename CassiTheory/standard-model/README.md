@@ -102,17 +102,20 @@ unification and proton-decay assumptions.
 
 ### `cp-violation.md`—CP Violation from the Golden Ratio
 
-Treats the canonical $E_Y,E_I$ pair as real densities: $\eta_{\mathrm{dens}}=(\varphi-1)/(\varphi+1)=\varphi^{-3}$ is a density diagnostic with no intrinsic CP/chiral transformation law. A **Hypothesized** particle-sector complex/spinor observation map may use this scalar as a chiral bookkeeping parameter; within that conditional map, the ledgered CKM candidate $\delta_{\text{CKM}}=\pi\varphi^{-2}\approx68.8^\circ$ matches the measured $68^\circ$ within 1% (**Mapped**). The current Yukawa-determinant discussion identifies its normalization as dimensionally incomplete and retains no numerical $J_{\text{CP}}$ prediction; the strong-CP cascade estimate and no-axion null inherit the conditional Mapped CKM seed.
+Treats the canonical $E_Y,E_I$ pair as real densities: $\eta_{\mathrm{dens}}=(\varphi-1)/(\varphi+1)=\varphi^{-3}$ is a density diagnostic with no intrinsic CP/chiral transformation law. A **Hypothesized** particle-sector complex/spinor observation map may use this scalar as a chiral bookkeeping parameter; within that conditional map, the ledgered CKM candidate $\delta_{\text{CKM}}=\pi\varphi^{-2}\approx68.8^\circ$ is **Mapped** against data. The Yukawa-determinant $J_{\text{CP}}$ candidate is dimensionally incomplete. A resolved-flavour two-singlet comparison proves that exact conjugate textures have opposite baryon yields with identical registered Cassi inputs, so leptogenesis CP selection returns `DOES NOT EMERGE`.
 
 ### `neutrino-mass.md`—Neutrino Mass from φ
 
-Explains the seesaw scale with the right-handed neutrino at cascade step 20,
-$M_R\approx10^{14}\ \text{GeV}$, and presents the canonical Fibonacci
-cascade-partition spectrum
-$m_1=0.00356$, $m_2=0.00931$, $m_3=0.05019\ \text{eV}$ (normal ordering,
-no sterile neutrino). The full derivation lives in
+Explains the selected seesaw coordinate at cascade step 20 and presents the
+Mapped Fibonacci-partition spectrum
+$m_1=0.00356$, $m_2=0.00931$, $m_3=0.05019\ \text{eV}$ in normal ordering.
+The resolved-flavour matter-history comparator instead uses a minimal
+two-singlet seesaw whose light matrix has rank at most two and therefore
+$m_1=0$. One microscopic completion cannot realize both spectra without
+another mass source or a changed action. The full analysis lives in
 `foundations/neutrino-masses.md`; `standard-model/neutrino-mass.md` is the
-pedagogical entry point. Status: Hypothesized.
+pedagogical entry point. Status: Hypothesized mechanism / Mapped spectrum /
+Calibrated empirical comparator.
 
 ## Cross-References
 

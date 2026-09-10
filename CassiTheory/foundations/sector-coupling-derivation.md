@@ -1,6 +1,6 @@
 # Conditional Sector Scale and the Dirac Density Obstruction
 
-## Status: Derived conditional sector, fermionic, formation-dynamics, non-identifiability and regular quark-current identities / Tested finite-mode production, continuum, scalar-vacuum, conditional dynamical and quark–meson fixed-family restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
+## Status: Derived conditional sector, fermionic, formation-dynamics, non-identifiability, regular quark-current and finite-cutoff confinement identities / Tested finite-mode production, continuum, scalar-vacuum, conditional dynamical, quark–meson fixed-family, interacting and unconstrained radial-baryon restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
 
 ## Abstract
 
@@ -41,10 +41,24 @@ A finite-cutoff chromodielectric completion defines the interacting
 two-flavour sea and supplies action-level confinement. Every nonzero total
 Cartan charge has divergent infinite-volume energy, while a color-neutral
 three-arm flux network remains finite. RCF1–RCF4 return `PASS` and
-RCF5=`ADOPT`. Physical parameter matching, an interacting nonradial baryon
-solution and spectrum, thermal production, an observable nucleon map,
-baryogenesis and Cassi origin of QCD remain external or open
-(`computations/matter-formation-continuum-report.md` §§79, 81).
+RCF5=`ADOPT`. The first joint valence-plus-field minimization selects a
+compact three-colour state but fails stationarity, exterior-tail, virial and
+low-dielectric formation criteria; a lower topological boundary branch also
+blocks a ground-state interpretation. ICB1=`PASS`, ICB2–ICB4=`FAIL`,
+ICB5=`CONTRADICTS`, and ICB6=`FAIL`. The independent-cell radial follow-up
+loses every positive nodeless occupied state on its first bounded trial;
+QURB2=`FAIL`, QURB7=`REJECT`, and QURB8=`FAIL`. Within this finite-cutoff
+carrier, physical parameter matching, the lower topological branch,
+unconstrained nonradial formation and spectrum remain external or open
+(`computations/matter-formation-continuum-report.md` §§79, 81–82).
+
+A separate renormalized Standard Model plus two-singlet comparator supplies
+thermal production, the observable nucleon map and baryogenesis conditionally.
+Its exact CP-conjugate textures yield opposite asymmetries with identical
+registered Cassi inputs, so the microscopic action and CP orientation remain
+unselected. The empirical history returns `SUPPORTS`, CP selection returns
+`DOES NOT EMERGE`, and Cassi-origin completion remains `FAIL`
+(`computations/matter-formation-continuum-report.md` §§83–85).
 
 ## 1. The projection and its mathematical boundary
 
@@ -871,11 +885,21 @@ regular at the chiral zero, and its continuum-qualified occupied level is
 localized and fixed-family bound. The finite-cutoff chromodielectric
 completion defines the interacting two-flavour sea and gives action-level
 confinement: isolated total color charge has divergent infinite-volume energy,
-while a color-neutral baryon witness remains finite. RCF5=`ADOPT`. Physical
-parameter matching, an interacting nonradial baryon solution and spectrum,
-thermal formation, the observed nucleon map, baryogenesis and the Cassi origin
-of QCD remain open. The physical-completion verdict remains `FAIL`
-(`computations/matter-formation-continuum-report.md` §§79, 81).
+while a color-neutral baryon witness remains finite. RCF5=`ADOPT`.
+
+The first joint valence-plus-field minimization selects a compact state, but
+its nonzero free gradient, exterior field tail, virial miss and lower
+topological boundary branch prevent qualification. ICB1=`PASS`,
+ICB2–ICB4=`FAIL`, ICB5=`CONTRADICTS`, and ICB6=`FAIL`. The
+independent-cell radial follow-up loses its occupied branch before
+stationarity and rejects its frozen qualification route. QURB2 and QURB8 are
+`FAIL`, while QURB7=`REJECT`. Within the finite-cutoff carrier, physical
+parameter matching, the lower topological branch, unconstrained nonradial
+formation and spectrum remain open. A separate Standard Model plus two-singlet
+history supplies thermal production, the observed nucleon map and baryogenesis
+conditionally, while its action, thermal state and CP orientation are supplied
+inputs. The physical Cassi completion verdict remains `FAIL`
+(`computations/matter-formation-continuum-report.md` §§79, 81–85).
 
 
 The canonical scalar topology checks find contractible regular
@@ -904,19 +928,24 @@ and spinor microscopic parents. A fermionic theory therefore requires the
 independent selection of a Dirac field, its canonical algebra, state and
 interaction. The empirical quark–meson model and chromodielectric completion
 supply those ingredients, a regular localized $B=1$ endpoint, an interacting
-sea definition and action-level confinement as external QCD content. A
-physical mass fit, cascade coordinate and formal coefficient-scale identity
-do not derive that selection. Its nonradial interacting solution, thermal
-production, baryogenesis and Cassi origin remain open.
+sea definition and action-level confinement as external QCD content. Their
+first joint radial minimization does not qualify a stationary ground state,
+and removing the profile family produces a frozen occupied-branch failure
+before stationarity. A physical mass fit, cascade coordinate and formal
+coefficient-scale identity do not derive the microscopic selection. The lower
+topological branch and unconstrained nonradial formation remain open within
+that carrier. The separate Standard Model comparator supplies thermal
+production, the observable nucleon map and baryogenesis conditionally, but its
+microscopic action and CP orientation do not follow from the Cassi substrate.
 
 ## References
 
 - `foundations/unified-lagrangian.md` §§2, 5–7—optional fermion sector and action assembly.
 - `foundations/particle-stationary-action-closure.md` §8.12—scalar physical-normalization and particle-identity boundary.
 - `computations/matter-formation-normalization-prereg.md`—frozen unit-normalization, bilinear and action-reality checks.
-- `computations/matter-formation-continuum-report.md` §§12–29, 35–36, 79, 81—normalization and identity boundaries, scalar and fermionic production witnesses, conditional formation dynamics, microscopic non-identifiability, continuum minimizer-set stability, finite-charge radial condensation, regular empirical quark–meson carrier and confining bridge.
-- `foundations/matter-completion-boundary.md` §§12, 17–18, 24, 26—conditional completion boundary, finite-charge radial formation scope, minimizer-set stability, regular quark–meson comparison and confining effective-carrier boundary.
-- `computations/qcd-confining-carrier-prereg.md`—finite-cutoff chromodielectric action, sea, state, confinement bound and frozen RCF decisions.
+- `computations/matter-formation-continuum-report.md` §§12–29, 35–36, 79, 81–82—normalization and identity boundaries, scalar and fermionic production witnesses, conditional formation dynamics, microscopic non-identifiability, continuum minimizer-set stability, finite-charge radial condensation, regular empirical quark–meson carrier, confining bridge and interacting radial-baryon verdicts.
+- `foundations/matter-completion-boundary.md` §§12, 17–18, 24, 26–27—conditional completion boundary, finite-charge radial formation scope, minimizer-set stability, regular quark–meson comparison, confining effective-carrier boundary and interacting qualifications.
+- `computations/qcd-confining-carrier-prereg.md`, `computations/qcd-interacting-baryon-prereg.md` and `computations/qcd-unconstrained-radial-baryon-prereg.md`—finite-cutoff chromodielectric action, confinement criteria and frozen radial-baryon tests.
 - `computations/matter-formation-spinor-closure-prereg.md`—frozen positive-observable, closed-conversion, massive fixed-point and positive-energy witnesses.
 - `computations/matter-formation-spinor-closure-implementation-recovery.md`—execution provenance and accepted receipt location under the scientific preregistration's recovery rule.
 - `computations/matter_formation_spinor_closure.py` and `computations/verify_matter_formation_spinor_closure.py`—independent four-component and reduced-component witnesses.

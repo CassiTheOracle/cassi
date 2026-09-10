@@ -178,6 +178,11 @@ realization's fixed-point-limit value. [COMPUTED]
 **Source:** `standard-model/su2-gauge-extension.md` §§5–8, `standard-model/sm-from-phi.md` §§3–4.
 The proton lifetime prediction depends on the full GUT embedding (SU(5) or SO(10)).
 Using the canonical seesaw scale $M_R = E(n=20) = M_{\text{Pl}}\varphi^{-20} \approx 8.07\times10^{14}$ GeV in the selected ratio construction, with the mapped fit span $n=8\rightarrow20$, the mass-squared-difference fit gives the heaviest neutrino $m_3 = 0.05019$ eV (cascade RGE + PMNS; $\Sigma m_\nu = 0.0631$ eV). The companion computation's single-seed seesaw evaluation is a scale diagnostic and does not independently set this absolute normalization.
+The minimal two-singlet action used by the conditional matter-history
+comparator has $\operatorname{rank}(m_\nu)\leq2$ and one exactly massless light
+state. It cannot realize this separate three-nonzero-mass spectrum without an
+additional mass source, a revised Mapped spectrum or a different microscopic
+action (`foundations/neutrino-masses.md` §§4–6).
 
 **PMNS mixing angles—selected conversion-Jacobian/cascade ansatz:** At the seesaw scale (cascade steps ~13.3–20, $r \ll \varphi$), the selected ansatz uses the conversion Jacobian $J = \lambda[[-1,\varphi],[1,-\varphi]]$. Its eigenvectors $(\varphi,1)$ and $(1,-1)$ supply coefficient-free candidates $\theta_{12} = \arctan(1/\varphi)$ and $\theta_{23} = 45^\circ$; these are not direct outputs of the canonical density solver. The coefficient-free candidate $\theta_{13} = \arctan(\varphi^{-4})$ follows from cascade-step suppression across the ~7-rung seesaw span (the offsets are Mapped per the Fit-Status Ledger, `parameter-inventory.md` §10). The selected formulas add no fitted coefficients internally, while the ansatz and offsets remain Mapped/conditional; all three candidates are within 2° of observation. **Source:** `foundations/neutrino-masses.md`, `foundations/bubble-edge-geometry.md`, `standard-model/su2-gauge-extension.md`.
 

@@ -1,6 +1,6 @@
 # Matter Formation: Carrier Creation, Continuum Trapping, and a Conditional Baryon Benchmark
 
-## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology, continuum minimizer-set stability, normalized-chiral obstruction, regular quark-current and completion-boundary identities / Mapped conditional baryon benchmark / Hypothesized physical completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation, finite-charge radial condensation, quark–meson regulator extrapolation and fixed-family binding—September 2026
+## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology, continuum minimizer-set stability, normalized-chiral obstruction, regular quark-current, finite-cutoff confinement and CP-selection identities / Mapped conditional baryon benchmark / Calibrated resolved-flavour leptogenesis scale / Hypothesized Cassi microscopic completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation, finite-charge radial condensation, quark–meson regulator extrapolation, fixed-family binding, interacting and unconstrained radial-baryon rejection, conditional empirical QCD history and whole-bubble selector boundary—September 2026
 
 ## Abstract
 
@@ -194,6 +194,67 @@ asymmetry. QMQ1=`PASS`, QMQ2=`SUPPORTS` and QMQ3=`SUPPORTS`; the empirical
 action, Dirac sea, nonradial thermal formation, confinement, nucleon map and
 baryogenesis remain supplied or open. QMQ4 and QMC6 return `FAIL`, and
 physical matter formation remains Hypothesized/Open (§79).
+
+A separately preregistered polynomial Gram-determinant stabilizer remains
+finite when the unnormalized chiral field vanishes and passes exact
+positivity and Cartesian controls. Its three frozen radial minimizations
+remain nonstationary and regulator dependent, and the finite
+amplitude-collapse path has zero barrier. RPS1–RPS2 return `PASS`,
+RPS3–RPS5 return `FAIL`, and RPS6 returns `REJECT`. The verdict is scoped to
+that operator, physical point, hedgehog family and numerical schedule (§80).
+
+An independent chromodielectric field supplies a finite-cutoff confining
+completion for the empirical quark–meson carrier. Every nonzero total Cartan
+charge has divergent infinite-volume energy, while a color-neutral three-arm
+flux network has finite minimized tension. RCF1–RCF4 return `PASS` and
+RCF5 returns `ADOPT`, qualifying action-level Gauss-sector confinement for
+the regulator-defined bridge. The continuum-QCD mass gap, Wilson-loop area
+law, physical parameter matching, spectrum and formation dynamics remain
+open; RCF6 returns `FAIL` (§81).
+
+The first joint valence-plus-field minimization of those sectors selects a
+compact three-colour radial state at
+$E_{\rm tot}=1320.592488\ \mathrm{MeV}$. Its free gradient exceeds the
+stationarity threshold, its exterior field tail exceeds the frozen
+localization bound, its virial residual misses tolerance, and one declared
+start reaches a lower-energy boundary branch. ICB1 returns `PASS`,
+ICB2–ICB4 and ICB6 return `FAIL`, while ICB5 returns `CONTRADICTS`.
+An independent reconstruction agrees with every gate. The result excludes
+this registered endpoint as a self-consistent physical baryon and leaves the
+lower topological branch, unconstrained nonradial equations, real-time
+formation and the observable nucleon map open (§82).
+
+Removing the four-coordinate profile restriction does not qualify the same
+empirical action. The frozen $N=48$ trajectory starts with one positive
+nodeless $390.681268419\ {\rm MeV}$ level, but its first L-BFGS-B trial loses
+every positive nodeless state. The retained endpoint has total energy
+$1403.571590787\ {\rm MeV}$ and projected-gradient norm
+$1998.193609279\ {\rm MeV}$, so QURB2=`FAIL`; QURB3–QURB6 are
+`SKIPPED_PREREQUISITE`, QURB7=`REJECT`, and QURB8=`FAIL`. Independent dense
+diagonalization reconstructs the valid starting level, the state-free trial
+profile, and all fifteen receipt checks (§82.6).
+
+Renormalized Standard Model QCD plus a minimal two-singlet seesaw supplies a
+separate connected empirical history from a gauge-projected thermal state to
+observable nucleons. Resolving the $\tau$ channel at the baryogenesis
+temperature gives the calibrated magnitude at
+$M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ and
+$M_2=10M_1$. Independent Radau evolution reproduces the mass to
+$1.49\times10^{-12}$ relative and the baryon yield to
+$1.18\times10^{-12}$ relative. QCD-era annihilation, nonradial
+reaction–diffusion and continuum lattice-QCD nucleon evidence pass their
+declared empirical gates.
+
+The whole-bubble calculation also closes the initial-state question at the
+current theory boundary. Vacuum, equilibrium, doubled-abundance and inherited
+$B-L$ arms converge to the same late asymmetry within their frozen
+tolerances, but the exact CP-conjugate Yukawa pair produces equal and opposite
+yields. A real scan of the unconstrained Casas–Ibarra coordinate contains
+positive, negative and zero asymmetries while preserving the same light
+spectrum. The registered Cassi state has no complex phase or CP-odd boundary
+datum that distinguishes this pair. The conditional empirical history returns
+`SUPPORTS`; CP selection returns `DOES NOT EMERGE`, and complete Cassi matter
+formation returns `FAIL` (§§83–85).
 
 ## 1. Scope and frozen evidence
 
@@ -13131,8 +13192,483 @@ inherited baryon asymmetry mechanism and a Cassi derivation of QCD remain
 open. RCF6=`FAIL`, and
 `complete_physical_matter_formation=false`.
 
+## 82. Interacting chiral–chromodielectric baryon test
+
+### 82.1 Question and supplied action
+
+The regular quark–meson carrier in §79 and the finite-cutoff
+chromodielectric bridge in §81 leave one direct possibility: the same
+empirical QCD action may form a self-consistent localized baryon when the
+valence level and both field sectors are minimized together. The frozen
+calculation tests that possibility in a four-coordinate radial family,
+
+$$
+s(r)=f_\pi\!\left[1-a+a\frac{r^4-R_f^4}{r^4+R_f^4}\right],
+\qquad
+p(r)=-f_\pi a\frac{2r^2R_f^2}{r^4+R_f^4},
+\qquad
+\chi(r)=\chi_0e^{-(r/R_\chi)^2},
+$$
+
+with three occupied colours and the chromodielectric quark mass
+$m_q(r)=g/\sqrt{\chi(r)^2+\epsilon^2}$. The action, $f_\pi$, $m_\pi$,
+$m_\sigma$, the constituent-quark mass, $B^{1/4}$, $g_s$, and the
+finite-cutoff Wilson regulator are empirical QCD inputs. This is a
+comparison calculation inside a supplied target theory; it does not select
+that theory from the canonical two-fluid action.
+
+The preregistration fixed the action, parameter values, profile family,
+finite-volume Hamiltonian, state-selection rule, four grids, four boxes,
+four regulators, twelve formation starts, controls, and ICB1–ICB6 decision
+tree before execution. Recovery 1 corrected a Python row-retention error.
+Recovery 2 made the already specified exterior field-energy bound part of
+ICB3. Recovery 3 removed an undeclared localization penalty from the
+objective. Each amendment changed execution or adjudication plumbing only;
+the scientific inputs and thresholds stayed fixed.
+
+### 82.2 Selected radial endpoint
+
+The primary search selected
+
+$$
+(a,R_f,\chi_0,R_\chi)
+=
+(0.0618901,\ 0.767042\ {\rm fm},\ 17.9631,\ 1.21020\ {\rm fm}).
+$$
+
+Its node-free positive level is
+$E_q=363.790421\ {\rm MeV}$ with rms radius
+$1.0198586\ {\rm fm}$, same-sign gap $16.530821\ {\rm MeV}$, and quark
+probability beyond $8\ {\rm fm}$ of $6.44\times10^{-28}$. The field energy
+is $229.221224\ {\rm MeV}$ and
+
+$$
+E_{\rm tot}=3E_q+E_{\rm field}=1320.592488\ {\rm MeV}.
+$$
+
+This is a localized quark state in a finite-energy radial field profile.
+That statement is weaker than a stationary interacting baryon.
+
+### 82.3 Frozen gate results
+
+The result is
+`INTERACTING_REDUCED_FORMATION_CONTRADICTS`:
+
+- **ICB1 `PASS`.** The exact baryon-current identity, chiral-zero vacuum
+  conditions, local potential factorization, and Hamiltonian Hermiticity
+  pass.
+- **ICB2 `FAIL`.** The selected state passes its spectral criteria and the
+  projected Hessian has minimum eigenvalue
+  $627.235\ {\rm MeV}$, but the free-gradient maximum is
+  $28.5526\ {\rm MeV}$ per normalized coordinate, above the frozen
+  $1\ {\rm MeV}$ stationarity threshold. Positive curvature at a
+  nonstationary point is not a local-minimum certificate.
+- **ICB3 `FAIL`.** The finest grid pair differs by $0.1943\%$ in total
+  energy, the finest box pair by $0.00102\%$, and the finest regulator pair
+  by $0.2844\%$; their state overlaps are respectively
+  $0.9999959$, $0.9999999999$, and $0.9999355$. Those convergence checks
+  pass. The independently integrated field energy outside the primary
+  $10\ {\rm fm}$ box is $0.0760563\ {\rm MeV}$, above the frozen
+  $10^{-4}\ {\rm MeV}$ localization threshold, so the complete gate fails.
+- **ICB4 `FAIL`.** Both direct dilation neighborhoods and the volume-
+  preserving affine deformation test pass, but the virial residual is
+  $0.023708$, above the frozen $0.02$ threshold.
+- **ICB5 `CONTRADICTS`.** Ten of twelve starts return to the selected
+  endpoint, including high-$\chi_0$ starts, but no accepted low-$\chi_0$
+  start does. One topological start reaches a distinct lower-energy
+  boundary branch rather than the registered endpoint.
+- **ICB6 `FAIL`.** The calculation does not provide a proton/neutron
+  observable map, real-time thermal formation, baryogenesis, or a Cassi
+  origin of its QCD action and parameters.
+
+The vacuum-field negative control grows with box size while its candidate
+state spreads from $3.96$ to $63.75\ {\rm fm}$. Removing the
+chromodielectric coupling likewise produces a broad
+$7.32\ {\rm fm}$ state. The occupied-colour subtraction is exactly
+$2E_q=727.580842\ {\rm MeV}$. These controls show that localization and the
+three-colour energy accounting respond to the intended interaction.
+
+### 82.4 Lower-energy topological branch
+
+The failed formation gate exposes a physically distinct candidate rather
+than numerical scatter. The start with $a=1$ remains on the upper
+amplitude boundary and reaches
+
+$$
+E_{\rm tot}=957.416497\ {\rm MeV},\qquad
+E_q=3.459681\ {\rm MeV},\qquad
+r_{\rm rms}=0.55355\ {\rm fm}.
+$$
+
+Its energy is about $363\ {\rm MeV}$ below the primary endpoint, so the
+registered four-coordinate result cannot be treated as the ground state.
+The branch also has $3.138\ {\rm MeV}$ of analytic field-tail energy beyond
+the primary box and sits on an imposed amplitude boundary. The present
+receipt therefore identifies a follow-up target; it does not qualify this
+branch as an infinite-domain stationary baryon.
+
+### 82.5 Independent reconstruction and physical boundary
+
+An independent script rebuilds the Hamiltonians, fields, spectra, energy
+terms, finite differences, sequence metrics, controls, and decision tree
+from the frozen protocol and primary arrays. It reproduces the endpoint
+energy to $1.82\times10^{-12}\ {\rm MeV}$, the maximum Hessian-entry
+difference to $9.23\times10^{-8}\ {\rm MeV}$, and every frozen gate and
+overall verdict. The independent verification returns `PASS`.
+
+The supplied interaction produces a compact node-free occupied level and
+responds correctly to its confinement controls, but its registered endpoint
+is nonstationary, incompletely localized under the frozen tail criterion,
+slightly outside the virial tolerance, and not the lowest branch reached by
+the declared starts. It therefore does not establish a self-consistent
+radial baryon. Section 83 supplies a separate empirical continuum-QCD
+cosmological history, including baryogenesis, coarse-grained nonradial
+relaxation and an observable nucleon map. The derivation of that microscopic
+action and state from Cassi remains open.
+
+### 82.6 Unconstrained radial-field qualification
+
+The follow-up removes the four-parameter profile family while preserving the
+same empirical chiral–chromodielectric action, three occupied valence colours,
+finite-volume representation, state selector and parameter values. The
+primary minimizes independent $s_i$, $p_i$ and $\chi_i$ cell values through
+the frozen $N=48,96,192$ sequence.
+
+The coarse-grid starting profile has
+
+$$
+E_{\rm tot}=1403.571590787\ {\rm MeV},\qquad
+\epsilon_0=390.681268419\ {\rm MeV},\qquad
+r_{\rm rms}=1.026488699\ {\rm fm}.
+$$
+Its projected-gradient infinity norm is
+$1998.193609279\ {\rm MeV}$, and near-vacuum $\chi$ coordinates become active
+at radii below the permitted $8\ {\rm fm}$ asymptotic region. The first
+bounded L-BFGS-B trial moves
+$11.59591815$ in normalized-coordinate norm and loses every positive
+nodeless state among the twelve eigenpairs nearest zero. The frozen branch
+rule stops the trajectory before any finer grid, Hessian, continuum or basin
+claim.
+
+Independent dense diagonalization finds exactly one positive nodeless state
+at $390.681268419\ {\rm MeV}$ in both the analytic start and retained profile,
+and none in the recorded trial profile. All three Hamiltonians are exactly
+symmetric in the stored arithmetic; the largest reconstructed relative
+eigenpair residual is below $5.30\times10^{-15}$. All fifteen source,
+receipt, state and decision checks pass.
+
+QURB1=`PASS`, QURB2=`FAIL`, QURB3–QURB6=`SKIPPED_PREREQUISITE`,
+QURB7=`REJECT`, and QURB8=`FAIL`. The result rejects this frozen
+unconstrained radial qualification route. It does not prove that the
+empirical action has no radial stationary point under a different admissible
+state-domain method, and it does not address the lower topological branch or
+unconstrained nonradial dynamics.
+
+## 83. Conditional empirical QCD cosmological history
+
+### 83.1 Microscopic action and quantum state
+
+One connected completion uses renormalized Standard Model QCD and a minimal
+two-singlet type-I seesaw,
+
+$$
+\mathcal L_N
+=\frac12\overline{N_i}i\!\not\!\partial N_i
+-\frac12M_i\overline{N_i^c}N_i
+-\left(Y_{\alpha i}\overline{L_\alpha}\widetilde HN_i+\mathrm{h.c.}\right).
+$$
+
+The local operator inventory has dimension at most four. Six-flavour QCD has
+$\beta_0=7>0$ and $\beta_1=26$, giving perturbative ultraviolet asymptotic
+freedom conditional on the supplied fields. Compact $SU(3)$ links and a line
+of constant physics define the finite-cutoff and continuum prescriptions.
+Continuum lattice QCD supplies the infrared confinement and nucleon evidence;
+the calculation makes no analytic Yang–Mills mass-gap claim.
+
+At $T_R=20M_2$, the state is
+
+$$
+\boxed{
+\rho_R=Z^{-1}P_G
+\exp\!\left[-\frac{H-\sum_A\mu_AQ_A}{T_R}\right]P_G,
+\qquad
+Y_{B-L}=0.}
+$$
+
+$P_G$ projects onto the gauge-invariant Hilbert space, all violated-charge
+chemical potentials begin at zero, and the heavy-neutrino abundance begins
+in thermal equilibrium. Positivity follows from the projected Gibbs
+operator and normalization from $Z$. This is a declared cosmological boundary
+condition.
+
+### 83.2 Resolved-flavour baryogenesis
+
+The frozen two-singlet Casas–Ibarra benchmark uses normal ordering,
+$m_1=0$, the measured mass splittings,
+
+$$
+z=\frac{\pi}{4}+\frac{i}{2},\qquad M_2=10M_1,
+$$
+
+and the standard decay/inverse-decay system. At the selected scale the
+$\tau$ Yukawa interaction is resolved while $e$ and $\mu$ remain coherent, so
+the adjudication evolves the two channels
+$\alpha\in\{e+\mu,\tau\}$:
+
+$$
+\frac{dN_{N_1}}{dx}=-D(N_{N_1}-N_{N_1}^{\rm eq}),\qquad
+\frac{dN_{\Delta_\alpha}}{dx}
+=-\epsilon_{1\alpha}D(N_{N_1}-N_{N_1}^{\rm eq})
+-P_{1\alpha}WN_{\Delta_\alpha}.
+$$
+
+Calibrating the heavy scale to the observed asymmetry magnitude gives
+
+$$
+\boxed{
+M_1=5.774318838589164\times10^{10}\ {\rm GeV},\qquad
+M_2=5.774318838589164\times10^{11}\ {\rm GeV},}
+$$
+
+$$
+\boxed{
+(\epsilon_{1,e+\mu},\epsilon_{1,\tau})
+=(2.0861524055,\ 1.5366624129)\times10^{-6},\qquad
+|\eta_B|=6.100000000002\times10^{-10}.}
+$$
+
+The channel projectors are $(0.7612394925,0.2387605075)$,
+$\widetilde m_1=0.04535395919\ {\rm eV}$,
+$K=41.99440666$, and the largest Yukawa magnitude is $0.02243976$.
+The two nonzero light masses reconstruct to relative error
+$8.06\times10^{-16}$. For the displayed $z$, the program's orientation
+convention gives $\eta_B=-6.100000000002\times10^{-10}$; the exact conjugate
+coordinate $z^*$ gives the positive branch with the same magnitude.
+
+An independent Radau implementation calibrates
+$M_1=5.774318838580567\times10^{10}\ {\rm GeV}$. The primary and independent
+masses differ by $1.49\times10^{-12}$ relative, and their yields at the
+primary mass differ by $1.18\times10^{-12}$ relative. The result is
+**Calibrated** because the measured $|\eta_B|$ fixes $M_1$ for the supplied
+texture. The scalar one-flavour evolution lies outside the selected
+temperature regime and is excluded from this adjudication.
+
+### 83.3 QCD-era survival and nonradial response
+
+The generated asymmetry fixes
+$Y_-=(n_B-n_{\bar B})/s=\eta_B/7.04$. Starting in chemical equilibrium at
+$T_c=156.5\ {\rm MeV}$, a Maxwell–Boltzmann nucleon gas with
+$m_N=938.918754\ {\rm MeV}$ follows the pair-annihilation equation through
+$T=1\ {\rm MeV}$. Positive Riccati transfers at
+$\langle\sigma v\rangle=40$, $50$ and $60\ {\rm mb}$ preserve $Y_-$ and
+place the final antibaryon fraction below $10^{-6}$ in every arm.
+Independent stiff event integrations place the stricter
+$10^{-8}$ crossing at $T=27.03936\ {\rm MeV}$ in all three arms and verify
+that the fraction decreases afterward. PCM3 returns `SUPPORTS`.
+
+A periodic $24^3$ reaction–diffusion calculation then tests nonradial
+thermal-density perturbations at $100\ {\rm MeV}$. Five-percent common and
+two-percent differential random perturbations relax from combined nonzero-mode
+RMS $0.05385164810$ to $0.00067859464$, retaining
+$0.01260118615$ of the initial amplitude. The absolute normalized
+net-baryon drift is $5.55\times10^{-16}$ and the half-step pair-mean
+difference is $2.25\times10^{-13}$. Removing diffusion leaves
+$29.4756$ times more nonzero-mode amplitude. An independent real-space
+finite-difference evolution retains ratio $0.01275411187$, stays positive
+and conserves the net density to $6.97\times10^{-17}$. PCM4 returns
+`SUPPORTS` for these coarse-grained equations. The calculation does not
+resolve a single nucleon's real-time internal QCD wavefunction.
+
+### 83.4 Observable nucleon and adjudication
+
+The color-singlet interpolators
+
+$$
+p\sim\epsilon_{abc}(u_a^TC\gamma_5d_b)u_c,\qquad
+n\sim\epsilon_{abc}(d_a^TC\gamma_5u_b)d_c
+$$
+
+carry $B=1$, spin $1/2$, positive ground-state parity, and electric charges
+$+1$ and $0$. The continuum lattice-QCD value
+$m_N=0.936(25)(22)\ {\rm GeV}$ lies $0.0901$ combined quoted standard
+deviations from the isospin-averaged experimental
+$0.939\ {\rm GeV}$. PCM1 and PCM5 return `PASS EMPIRICAL`.
+
+The frozen conjunctive decision is
+
+| Gate | Verdict |
+|---|---|
+| Renormalized microscopic action and continuum QCD evidence | PCM1 `PASS EMPIRICAL` |
+| Gauge-projected state and resolved-flavour baryogenesis | PCM2 `PASS CALIBRATED` |
+| Whole-bubble initial-state robustness | FCP3–FCP4 `SUPPORTS` |
+| CP-conjugate selector | FCP6 `FAIL`; `DOES NOT EMERGE` |
+| QCD-era annihilation history | PCM3 `SUPPORTS` |
+| Coarse-grained nonradial thermal-density response | PCM4 `SUPPORTS` |
+| Observable nucleon map | PCM5 `PASS EMPIRICAL` |
+| Conditional empirical matter history | `SUPPORTS` |
+| Complete physical Cassi matter formation | `FAIL` |
+
+The empirical branch joins the quantum initial state, asymmetry generation,
+QCD crossover, annihilation, nonradial coarse-grained response and observable
+nucleon in one model. The registered Cassi action supplies no selection of
+the Standard Model gauge representations, QCD and seesaw operators,
+renormalized parameters, complex Casas–Ibarra coordinate, projected thermal
+state or reheating condition. The CP-selection result below makes one part of
+this boundary exact: real CP-even Cassi data cannot distinguish the two
+conjugate baryogenesis branches. The conditional empirical history returns
+`SUPPORTS`; the Cassi-origin gate remains `FAIL`.
+
+## 84. Whole-bubble initial state and CP-selection boundary
+
+### 84.1 Initial-state robustness
+
+The whole-bubble boundary datum is the joint gauge-projected thermal state,
+heavy-neutrino abundance and initial $B-L$. Four abundance arms,
+$N_{N_1}(0)\in\{0,1,2\}N_{N_1}^{\rm eq}$, produce asymmetry magnitudes that
+differ by at most $2.01869\times10^{-4}$ relative. Initial
+$B-L\in\{-10^{-4},0,+10^{-4}\}$ is washed to final magnitudes differing by at
+most $2.78535\times10^{-3}$ relative. These results support an attractor-like
+loss of coarse abundance memory in the supplied thermal equations. They do
+not choose a CP orientation.
+
+### 84.2 Exact conjugate pair
+
+With real light-sector mixing data, complex conjugation maps the benchmark
+Yukawa matrix and its baryon yield as
+
+$$
+\boxed{Y(z^*)=Y(z)^*,\qquad \eta_B(z^*)=-\eta_B(z).}
+$$
+
+The primary calculation gives zero Yukawa-conjugation error and zero relative
+cancellation of the two yields. A $17\times21$ real-coordinate scan over
+$0\leq\Re z\leq\pi/2$ and $-1\leq\Im z\leq1$ contains
+
+$$
+-8.2445724862\times10^{-10}\leq\eta_B
+\leq8.4925746455\times10^{-10}
+$$
+
+and a zero to $2.77\times10^{-29}$, while every point reconstructs the fixed
+light spectrum to at most $1.41\times10^{-15}$ relative error.
+
+The minimal two-singlet action has
+$\operatorname{rank}(m_\nu)\leq\operatorname{rank}(Y)\leq2$, hence one
+light-neutrino mass vanishes exactly. The reconstructed value is
+$2.72\times10^{-18}\ {\rm eV}$. This empirical comparator cannot
+simultaneously realize the separate Mapped Cassi spectrum with
+$m_1=0.00356\ {\rm eV}$. A unified microscopic model requires a third
+mass-generating degree of freedom, a revised Mapped spectrum or a replacement
+for the minimal action. This algebraic boundary sharpens FCP7 without changing
+the frozen verdict tree.
+
+### 84.3 CP-selection theorem
+
+Let the microscopic action, initial density operator and supplied boundary
+data be invariant under an antiunitary CP map $\Theta$, and let
+$\mathcal O_{\rm CP}$ be a CP-odd observable. Equivariance of the evolution
+gives
+
+$$
+\langle\mathcal O_{\rm CP}\rangle_{\Theta\rho\Theta^{-1}}
+=-\langle\mathcal O_{\rm CP}\rangle_\rho.
+$$
+
+When the registered data identify $\rho$ with
+$\Theta\rho\Theta^{-1}$, the expectation is zero. A nonzero signed asymmetry
+therefore requires a CP-odd action coefficient, quantum state, boundary datum
+or branch-selection rule. The canonical Cassi state consists of two real,
+nonnegative densities; its scale coordinate is real; its Wu Xing label is a
+scalar cosmological label; and no registered map sends the Mapped quark-sector
+CKM phase to the leptonic Casas–Ibarra coordinate. All of these inputs are
+identical for $z$ and $z^*$.
+
+The frozen decisions are
+
+| Decision | Verdict |
+|---|---|
+| FCP1, resolved-flavour equations and light-spectrum reconstruction | `PASS` |
+| FCP2, observed-magnitude calibration | `PASS CALIBRATED` |
+| FCP3, heavy-abundance robustness | `SUPPORTS` |
+| FCP4, inherited-$B-L$ washout | `SUPPORTS` |
+| FCP5, exact CP-conjugate construction | `PASS` |
+| FCP6, selector from registered Cassi data | `FAIL` |
+| FCP7, derived microscopic origin | `FAIL` |
+| CP selection | `DOES NOT EMERGE` |
+| Complete Cassi matter formation | `FAIL` |
+
+The whole bubble contributes meaningful initial-state information and erases
+large classes of coarse preparation differences. It cannot create a CP-odd
+selector from CP-even data. The empirical cosmological history is connected
+at its declared scope and remains underdetermined by the registered Cassi
+laws. Any positive Cassi-origin result now requires an explicit CP-odd
+microscopic ingredient and an out-of-fit discriminator; changing only the
+real cascade state cannot pass this boundary.
+
+## 85. Final six-requirement adjudication
+
+The strict completion rule in
+`foundations/matter-completion-boundary.md` §12 is conjunctive and requires one
+microscopic model to satisfy all six rows. The supplied empirical history and
+a derivation from the registered Cassi laws therefore require separate
+columns:
+
+| Requirement | Supplied Standard Model + two-singlet history | Derivation from registered Cassi laws |
+|---|---|---|
+| 1. Canonical microscopic action and complete conserved stress | Renormalized Standard Model QCD and the two-singlet action are **SUPPLIED EMPIRICAL** inputs; their gauge representations and couplings are not outputs of the calculation | **UNMET**—the real two-density substrate does not select those fields, representations, interactions or stress completion |
+| 2. Regulator-compatible quantum state and state selection | The gauge-projected thermal density operator, reheating condition and complex coordinate $z$ are **SUPPLIED**; the abundance and inherited-charge arms are tested, but the CP orientation is free | **UNMET**—no Cassi vacuum, regulator, renormalization prescription or CP-odd state selector derives this density operator |
+| 3. Physical normalization and ledgered empirical inputs | Standard Model parameters are empirical and $M_1$ is **CALIBRATED** to $|\eta_B|$; the scale and yield are physically normalized within the supplied model | **UNMET**—no canonical map fixes the QCD/seesaw coefficients, $M_1$, reheating scale or normalized particle sector from Cassi variables |
+| 4. Infinite-domain existence and all-sector stability | Continuum lattice QCD supports the nucleon state and the coarse nonradial thermal response relaxes, but this work does not prove all-sector localized real-time stability in one continuum calculation: **PARTIAL** | **UNMET**—the normalized-chiral route is singular, the regular four-coordinate endpoint fails qualification, and the frozen unconstrained radial trajectory loses its occupied state before reaching stationarity |
+| 5. Physically normalized localized production and nonlinear persistence | The Boltzmann, crossover and annihilation histories carry a net asymmetry to late nucleons, but the calculation does not resolve a localized nucleon's real-time QCD formation trajectory: **PARTIAL** | **UNMET**—the degree-zero quench produces no qualified pair, the regular branch has no qualified localized formation basin, and QURB7 rejects its unconstrained radial qualification |
+| 6. Particle identity, spin, statistics and out-of-fit discrimination | QCD interpolators supply $B=1$, spin $1/2$, parity and electric charge, and continuum lattice QCD supplies an empirical mass map. The free CP branch and rank-two light-neutrino spectrum prevent a unique unified Cassi model: **EMPIRICALLY IDENTIFIED / MODEL COMPATIBILITY OPEN** | **UNMET**—the registered densities derive neither the particle representations nor a CP selector; the separate Mapped three-mass spectrum is incompatible with the minimal two-singlet action |
+
+The empirical calculation consequently establishes a connected conditional
+cosmological history, not the strict six-requirement Cassi derivation. Results
+from the scalar, chiral, quark–meson and empirical branches cannot be combined
+across their inequivalent actions to fill missing rows. The frozen verdicts
+remain
+
+$$
+\boxed{
+\texttt{conditional empirical matter history = SUPPORTS},\qquad
+\texttt{CP selection = DOES NOT EMERGE},\qquad
+\texttt{complete physical Cassi matter formation = FAIL}.}
+$$
+
+The remaining information is now explicit. A positive result requires one
+renormalized microscopic action that derives the Standard Model particle
+content or a discriminably different replacement; a regulator-compatible
+cosmological quantum state containing a physical CP-odd selector; and a
+physically normalized, degree-zero, localized formation trajectory whose
+continuum state survives all perturbation sectors and maps to measured
+particles. None of these can be inferred from the registered real slow-field
+data, and fitting the observed baryon magnitude cannot supply them.
+
 ## References
 
+- `computations/qcd-cosmological-matter-completion-prereg.md`—frozen renormalized action, thermal state, leptogenesis, QCD chemistry, nonradial and observable gates.
+- `computations/qcd_cosmological_matter_completion.py`—primary Yukawa reconstruction, Boltzmann histories, positive annihilation transfer, nonradial evolution and adjudication.
+- `computations/verify_qcd_cosmological_matter_completion.py`—independent logarithmic-time baryogenesis, event-bounded chemistry, finite-difference nonradial evolution and source verification.
+- `runs/20260910_qcd_cosmological_matter_completion/primary/results.json`—source-bound primary receipt and histories.
+- `runs/20260910_qcd_cosmological_matter_completion/_verification_precheck/verification.json`—source-bound independent sixteen-check receipt.
+- `computations/qcd-whole-bubble-cp-selection-prereg.md`—frozen resolved-flavour, initial-state, conjugate-pair and selector decisions.
+- `computations/qcd_whole_bubble_cp_selection.py`—primary two-channel calibration, whole-bubble arms, CP pair, real-coordinate scan and adjudication.
+- `computations/verify_qcd_whole_bubble_cp_selection.py`—independent Radau calibration, reconstruction and source-bound verification.
+- `runs/20260910_qcd_whole_bubble_cp_selection/`—immutable primary and independent receipts.
+- S. Blanchet and P. Di Bari, [“Flavor effects on leptogenesis predictions”](https://arxiv.org/abs/hep-ph/0607330)—resolved-flavour regimes and projected washout.
+- A. Abada et al., [“Flavour Matters in Leptogenesis”](https://arxiv.org/abs/hep-ph/0605281)—two-flavour Boltzmann equations.
+- S. Davidson, E. Nardi and Y. Nir, [“Leptogenesis”](https://arxiv.org/abs/0802.2962)—thermal leptogenesis and washout.
+- S. Dürr et al., [“Ab-initio Determination of Light Hadron Masses”](https://arxiv.org/abs/0906.3599)—continuum lattice-QCD nucleon spectrum.
+- `computations/qcd-interacting-baryon-prereg.md`—frozen interacting action, radial family, convergence, formation, control and ICB1–ICB6 criteria, including execution amendments.
+- `computations/qcd_interacting_baryon.py`—primary coupled valence-level and field-energy optimization, spectra, deformations, controls and source-bound verdict.
+- `computations/verify_qcd_interacting_baryon.py`—independent Hamiltonian, energy, derivative, sequence, control and verdict reconstruction.
+- `runs/20260910_qcd_interacting_baryon/primary/recovery3/results.json`—accepted primary interacting-baryon receipt.
+- `runs/20260910_qcd_interacting_baryon/verification/recovery3/verification.json`—independent reconstruction and final gate agreement.
+- `computations/qcd-unconstrained-radial-baryon-prereg.md`—frozen independent-field action, occupied-state branch rule, multilevel stationarity and QURB1–QURB8 criteria.
+- `computations/qcd_unconstrained_radial_baryon.py`—primary finite-volume radial-field minimization, captured state-loss event and source-bound verdict.
+- `computations/verify_qcd_unconstrained_radial_baryon.py`—independent dense spectra, profile and decision reconstruction.
+- `runs/20260910_qcd_unconstrained_radial_baryon/recovery4/results.json`—accepted primary branch-stop receipt.
+- `runs/20260910_qcd_unconstrained_radial_baryon/verification/recovery4/verification.json`—independent fifteen-check receipt.
 - `computations/qcd-confining-carrier-prereg.md`—empirical QCD target, finite-cutoff chromodielectric bridge, exact confinement bound, neutral witness and frozen RCF decisions.
 - `computations/qcd_confining_carrier.py`—primary dimensions, polynomial controls, isolated-color tail and thin-wall network calculation.
 - `computations/verify_qcd_confining_carrier.py`—independent algebraic, interval, high-precision quadrature and root reconstruction.
@@ -13211,6 +13747,7 @@ open. RCF6=`FAIL`, and
 - `runs/20260909_matter_formation_local_gauss/`—frozen sources and section, accepted mathematical review, full arrays, raw reconstruction and prerequisite-rejection controls.
 
 - `computations/matter_formation_charged_gauss.py`—Abelian source variation, temporal-parent identities and periodic Gauss solvability.
+
 - `computations/matter_formation_charged_conversion.py`—finite charge-neutral conversion witnesses with supplied bosonic and fermionic sectors.
 - `runs/20260909_matter_formation_charged_sector/`—frozen working derivation, independent reviews, execution records and retained arrays.
 

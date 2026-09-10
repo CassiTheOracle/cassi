@@ -305,11 +305,44 @@ energy growing without bound with volume, while a color-neutral three-arm
 flux network has a finite positive tension minimum. Independent calculations
 return RCF1–RCF4=`PASS` and RCF5=`ADOPT`. Read
 `foundations/matter-completion-boundary.md` §26 for the exact bound and scope.
-The bridge parameters, interacting baryon solution and spectrum, real-time
-thermal production, observable nucleon map, baryogenesis and Cassi origin of
-QCD remain open; RCF6=`FAIL`.
+The bridge parameters remain empirical, and RCF6=`FAIL`.
 
+Section 82 minimizes the quark level and both supplied field sectors together.
+Its four-coordinate endpoint fails stationarity, exterior-tail, virial and
+formation-basin criteria, while a lower topological boundary branch prevents
+a ground-state interpretation. ICB1=`PASS`, ICB2–ICB4=`FAIL`,
+ICB5=`CONTRADICTS`, and ICB6=`FAIL`; independent reconstruction passes.
+The independent-cell radial follow-up loses every positive nodeless occupied
+state on its first bounded trial. QURB2 and QURB8 return `FAIL`,
+QURB7=`REJECT`, and all fifteen independent checks pass. Read
+`foundations/matter-completion-boundary.md` §27. The lower topological branch,
+unconstrained nonradial formation, physical spectrum, thermal production,
+observable nucleon map, baryogenesis and a Cassi origin of QCD remain open.
+The complete-formation verdict remains `FAIL`.
 
+Section 83 completes a separate empirical history using renormalized Standard
+Model QCD and a minimal two-singlet seesaw. The temperature-resolved
+$\{e+\mu,\tau\}$ evolution calibrates
+$M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ to the observed asymmetry
+magnitude; independent Radau integration agrees at
+$1.49\times10^{-12}$ in mass and $1.18\times10^{-12}$ in yield. QCD
+annihilation, nonradial response and the lattice-QCD nucleon map retain their
+qualified results.
+
+Section 84 tests the whole-bubble initial conditions. Zero, thermal and
+doubled heavy-neutrino abundances, together with inherited positive and
+negative $B-L$, converge to the same late magnitude within their frozen
+tolerances. Exact CP conjugation reverses the sign while leaving the
+registered Cassi data unchanged; a real coordinate scan contains both signs
+and zero. The CP-selection theorem therefore returns `DOES NOT EMERGE`.
+The conditional empirical history is connected under supplied Standard Model
+microphysics, while complete Cassi-origin formation remains `FAIL`. Read
+`foundations/matter-completion-boundary.md` §§28–29 for the compact result.
+
+The minimal two-singlet action also has a rank-two light-neutrino mass matrix
+and one exactly massless state. The separate Mapped spectrum has three
+nonzero masses, so one unified microscopic completion cannot realize both
+without an added mass source or a changed action.
 
 ### The skeptic or referee
 

@@ -448,16 +448,60 @@ reproduced to $8.44\times10^{-5}$ relative error and the independent
 calculation agrees on all confinement quantities to at most
 $1.64\times10^{-13}$. RCF1–RCF4 return `PASS` and RCF5=`ADOPT`.
 
-This is a finite-cutoff effective-action result, not a proof of the
-continuum-QCD mass gap or Wilson-loop area law. The empirical action and
-unmatched $(B,\chi_v)$, an interacting nonradial baryon solution with the
-renormalized sea, its spectrum and observable nucleon map, real-time thermal
+The first joint valence-plus-field minimization gives a compact node-free
+three-colour state at $1320.592488\ \mathrm{MeV}$. Its maximum free gradient
+is $28.5526\ \mathrm{MeV}$ per normalized coordinate, its exterior field
+energy is $0.0760563\ \mathrm{MeV}$, and its virial residual is $0.023708$;
+all exceed their frozen thresholds. Ten of twelve starts return to the
+endpoint, but the declared low-dielectric criterion fails and a distinct
+$957.416497\ \mathrm{MeV}$ topological boundary branch has lower energy.
+ICB1=`PASS`, ICB2–ICB4=`FAIL`, ICB5=`CONTRADICTS`, and ICB6=`FAIL`.
+
+The independent-cell radial follow-up does not repair this failure. Its
+$N=48$ start has one positive nodeless state at
+$390.681268419\ {\rm MeV}$, but a $1998.193609279\ {\rm MeV}$ projected
+gradient and active near-vacuum dielectric coordinates below the permitted
+asymptotic region. The first bounded trial loses every positive nodeless
+occupied state. QURB2=`FAIL`, QURB7=`REJECT`, and QURB8=`FAIL`; independent
+dense diagonalization passes all fifteen source, spectrum and decision
+checks. This is a rejection of the frozen qualification route, not a proof
+that the empirical action has no radial stationary point under another
+state-domain method.
+
+The action-level confinement result remains finite-cutoff. The empirical
+action and parameters, lower topological branch, unconstrained nonradial
+baryon solution, physical spectrum, observable nucleon map, real-time thermal
 production, baryogenesis and a Cassi derivation of QCD remain supplied or
 open. The initial-condition ledger establishes inherited-$B$ consistency
-rather than creation of the asymmetry. QMQ4, QMC6 and RCF6 return `FAIL`;
-physical matter formation remains **Hypothesized/Open**
-(`computations/matter-formation-continuum-report.md` §§79, 81;
-`foundations/matter-completion-boundary.md` §§24, 26).
+rather than creation of the asymmetry. QMQ4, QMC6, RCF6, ICB6 and QURB8
+return `FAIL`; physical matter formation remains **Hypothesized/Open**
+(`computations/matter-formation-continuum-report.md` §§79, 81–82;
+`foundations/matter-completion-boundary.md` §§24, 26–27).
+
+A separate empirical route uses renormalized Standard Model QCD and a minimal
+two-singlet seesaw. Resolving the $\tau$ flavour at
+$M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ reproduces the observed
+$|\eta_B|$ after one heavy-scale calibration; independent Radau evolution
+agrees in the mass to $1.49\times10^{-12}$ relative and in the yield to
+$1.18\times10^{-12}$ relative. QCD annihilation, nonradial
+reaction–diffusion and the continuum lattice-QCD nucleon map support the
+connected empirical history.
+
+The whole-bubble initial-state test leaves a sharper theory boundary.
+Heavy-neutrino abundance and inherited-$B-L$ variations wash to the same
+late magnitude within the frozen tolerances. The exact CP-conjugate Yukawa
+pair has identical CP-even observables and opposite $\eta_B$, and the
+registered Cassi data contain no CP-odd selector between them. FCP6 and FCP7
+return `FAIL`; CP selection returns `DOES NOT EMERGE`. The conditional
+empirical history is connected at its declared scope, while Cassi-origin
+matter formation requires an explicit CP-odd microscopic ingredient
+(`computations/matter-formation-continuum-report.md` §§83–85;
+`foundations/matter-completion-boundary.md` §§28–29).
+
+The minimal two-singlet action has a rank-two light-neutrino matrix and one
+exactly massless state. It cannot simultaneously realize Cassi's separate
+Mapped spectrum with $m_1=0.00356\ {\rm eV}$. This is an additional model
+compatibility boundary, independent of the CP-selector failure.
 
 The separately preregistered unnormalized polynomial Gram stabilizer is
 finite at the chiral zero and passes its exact and Cartesian controls. Its

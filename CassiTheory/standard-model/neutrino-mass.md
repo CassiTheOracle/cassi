@@ -1,10 +1,10 @@
 # Neutrino Mass from $\varphi$
 
-## Status: Hypothesized—August 2026
+## Status: Hypothesized mechanism / Mapped spectrum / Calibrated resolved-flavour two-singlet comparison / Tested rank and CP-selection boundary—September 2026
 
 ## Abstract
 
-Neutrinos are the lightest fermions by far: masses of $\sim 0.001\!-\!0.1\ \text{eV}$ against $0.511\ \text{MeV}$ for the electron. This primer uses the Cassi cascade assignment in which the right-handed neutrino sits at cascade step 20, $M_R \approx 10^{14}\ \text{GeV}$, and presents the Mapped candidate spectrum from the Fibonacci partition of the compressed seesaw span: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019\ \text{eV}$ ($\sum m_\nu = 0.0631\ \text{eV}$, normal ordering, no sterile neutrino). The full derivation lives in `foundations/neutrino-masses.md`; this document is the pedagogical entry point.
+Neutrinos are the lightest fermions by far: masses of $\sim 0.001\!-\!0.1\ \text{eV}$ against $0.511\ \text{MeV}$ for the electron. This primer uses the Cassi cascade assignment in which the right-handed neutrino sits at cascade step 20, $M_R \approx 10^{14}\ \text{GeV}$, and presents the Mapped candidate spectrum from the Fibonacci partition of the compressed seesaw span: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019\ \text{eV}$ ($\sum m_\nu = 0.0631\ \text{eV}$, normal ordering, no sterile neutrino). The minimal two-singlet matter-history comparator instead has rank two and one exactly massless light state; one microscopic completion cannot realize both spectra without another mass source or a changed action. The full derivation lives in `foundations/neutrino-masses.md`; this document is the pedagogical entry point.
 
 ## 1. The Problem
 
@@ -117,6 +117,15 @@ scales.
 | KATRIN endpoint | $m_\beta = 0.0092\ \text{eV}$ | KATRIN |
 | Mass sum | $\sum m_\nu = 0.0631\ \text{eV}$ | CMB + BAO bounds |
 
+The displayed Cassi spectrum has three nonzero masses. The minimal
+two-singlet seesaw used by the resolved-flavour matter-history benchmark obeys
+$\operatorname{rank}(m_\nu)\leq2$ and therefore has one exactly massless light
+state. It reproduces the two measured splittings and baryon-asymmetry
+magnitude under its supplied complex texture, but it does not realize this
+three-mass spectrum. A unified microscopic action requires a third
+mass-generating degree of freedom, a revised Mapped spectrum or a different
+baryogenesis sector.
+
 ## 6. References
 
 - `foundations/neutrino-masses.md`—canonical Fibonacci cascade-partition derivation
@@ -125,3 +134,4 @@ scales.
 - `foundations/cascade-suppression-formula.md`—cascade attenuation law
 - `computations/cascade_rge_pmns.py`—pinned offsets and mass spectrum
 - `standard-model/sm-from-phi.md`—Yukawa hierarchy and seesaw context
+- `computations/matter-formation-continuum-report.md` §§83–84—resolved-flavour comparison, rank boundary and CP-selection theorem

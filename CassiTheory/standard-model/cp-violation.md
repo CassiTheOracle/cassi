@@ -1,6 +1,6 @@
 # CP Violation from the Golden Ratio
 
-## Status: Hypothesized particle-sector CP/chiral map; Mapped $\delta_{\text{CKM}}$ and strong-CP span; Yukawa-determinant $J_{\text{CP}}$ candidate dimensionally incomplete—August 2026
+## Status: Hypothesized particle-sector CP/chiral map / Mapped $\delta_{\text{CKM}}$ and strong-CP span / Tested leptogenesis CP-selection no-go / Yukawa-determinant $J_{\text{CP}}$ candidate dimensionally incomplete—September 2026
 
 ## Abstract
 
@@ -23,6 +23,14 @@ retains a conditional cascade estimate only under a separately specified
 $\bar\theta=\pi\varphi^{-83.4}\approx1.2\times10^{-17}$ (span ~81 rungs from
 the GUT anchor; `foundations/strong-cp-derivation.md`). The conditional
 construction introduces no axion field.
+
+A resolved-flavour two-singlet leptogenesis comparison supplies a separate
+complex Yukawa sector. Its exact conjugate coordinates $z$ and $z^*$ preserve
+the light spectrum and every registered Cassi input while producing opposite
+baryon asymmetries. The current quark-sector CKM map has no derived relation
+to $z$, so it supplies no leptonic branch selector. The frozen CP-selection
+verdict is `DOES NOT EMERGE`
+(`computations/matter-formation-continuum-report.md` §84).
 
 ---
 
@@ -306,12 +314,22 @@ supply an inter-rung transport law (`foundations/bubble-lattice-fabric.md` §3.3
    Cabibbo-scale $\lambda$. The canonical two-density/bubble-lattice sector
    supplies no derived inter-rung propagation or lattice-attenuation identity.
 
+5. **The registered Cassi data do not select a leptogenesis CP branch.**
+   In the resolved-flavour two-singlet comparison,
+   $Y(z^*)=Y(z)^*$ and $\eta_B(z^*)=-\eta_B(z)$ exactly within the stored
+   precision. A real scan contains positive, negative and zero yields with
+   the same light spectrum. A nonzero signed result requires a CP-odd action
+   coefficient, state, boundary datum or selection rule.
+
 The overall picture is conditional. The canonical fixed-point imbalance
-$\eta_{\mathrm{dens}}=\varphi^{-3}$ can enter the particle-sector CP map only
-after additional complex/spinor structure and an explicit observation map are
-specified. The observable quark-sector structure is then carried by the SM
-Yukawa matrices and their diagonalisation; the CKM candidate and strong-CP
-estimate retain the Mapped statuses stated above.
+$\eta_{\mathrm{dens}}=\varphi^{-3}$ can enter a particle-sector CP map only
+after additional complex or spinor structure and an explicit observation map
+are specified. The observable quark-sector structure is carried by the
+Standard Model Yukawa matrices and their diagonalisation; the CKM candidate
+and strong-CP estimate retain the Mapped statuses stated above. No registered
+map transports that phase into the leptonic Casas–Ibarra coordinate, and the
+whole-bubble calculation proves that the canonical real data cannot choose
+between its exact CP-conjugate branches.
 
 ## References
 
@@ -319,3 +337,6 @@ estimate retain the Mapped statuses stated above.
 - `standard-model/su2-gauge-extension.md`—Weinberg angle and gauge structure
 - `foundations/strong-cp-derivation.md`—cascade de-resonance, $\bar\theta = \pi\varphi^{-83.4} \approx 1.2\times10^{-17}$
 - `foundations/bubble-lattice-fabric.md`—bubble-lattice geometry; the canonical sector supplies no derived inter-rung transport law
+- `computations/qcd-whole-bubble-cp-selection-prereg.md`—frozen resolved-flavour and CP-selector decisions
+- `computations/qcd_whole_bubble_cp_selection.py`—exact conjugate pair and real-coordinate scan
+- `computations/matter-formation-continuum-report.md` §84—whole-bubble CP-selection theorem and verdict

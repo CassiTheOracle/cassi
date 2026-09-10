@@ -1448,11 +1448,48 @@ $SU(3)_C$. Its zero-dielectric exterior gives every nonzero total Cartan charge
 an energy that diverges with volume, while the color-neutral three-arm witness
 has finite positive minimized tension. RCF1–RCF4 return `PASS` and
 RCF5=`ADOPT`, qualifying action-level confinement for this effective bridge.
-Matched dielectric parameters, an interacting nonradial baryon solution,
-physical spectrum and observable nucleon map, thermal production,
-baryogenesis and a Cassi derivation of QCD remain open. RCF6 returns `FAIL`
-(`computations/matter-formation-continuum-report.md` §§79, 81;
-`foundations/matter-completion-boundary.md` §§24, 26).
+
+A joint four-coordinate valence-plus-field calculation then selects a compact
+three-colour state at $1320.592488\ \mathrm{MeV}$. Its free gradient,
+exterior field tail, virial residual and low-dielectric formation basin miss
+their frozen criteria, and a lower $957.416497\ \mathrm{MeV}$ topological
+boundary branch blocks a ground-state interpretation. ICB1=`PASS`,
+ICB2–ICB4=`FAIL`, ICB5=`CONTRADICTS`, and ICB6=`FAIL`. Independent
+reconstruction reproduces the gates and returns `PASS`.
+
+The independent-cell radial follow-up starts with one positive nodeless
+occupied level, but its first bounded trial loses every such state. QURB2 and
+QURB8 return `FAIL`, QURB7=`REJECT`, and fifteen independent source,
+spectrum and decision checks pass. This rejects the frozen unconstrained
+radial qualification without proving radial nonexistence under every method.
+The lower topological branch, unconstrained nonradial formation, physical
+spectrum and observable nucleon map, thermal production and baryogenesis from
+this microscopic action, and a Cassi derivation of QCD remain open
+(`computations/matter-formation-continuum-report.md` §§79, 81–82;
+`foundations/matter-completion-boundary.md` §§24, 26–27).
+
+A separate resolved-flavour two-singlet thermal-leptogenesis benchmark
+connects a gauge-projected thermal state to a stable late-time baryon yield
+and carries it through the QCD crossover. With $z=\pi/4+i/2$ and
+$M_2/M_1=10$ supplied, calibration to the observed magnitude gives
+$M_1=5.774318838589164\times10^{10}\ {\rm GeV}$. Independent Radau
+integration agrees in the mass to $1.49\times10^{-12}$ relative and in the
+yield to $1.18\times10^{-12}$ relative. Whole-bubble abundance and
+inherited-$B-L$ arms converge within their frozen tolerances.
+
+The exact conjugate texture $z^*$ has the same masses, projectors and
+preparation data but produces the opposite signed asymmetry. A real
+coordinate scan contains positive, negative and zero yields with the same
+light spectrum. The registered Cassi state has no CP-odd datum or derived map
+from its Mapped quark-sector CKM phase to $z$. The empirical history returns
+`SUPPORTS`, CP selection returns `DOES NOT EMERGE`, and complete Cassi matter
+formation returns `FAIL`
+(`computations/matter-formation-continuum-report.md` §§83–85).
+
+The minimal two-singlet action has one exactly massless light neutrino,
+whereas the separate Mapped Cassi spectrum has three nonzero masses. A unified
+microscopic completion must add another mass source, revise that Mapped
+spectrum or replace the minimal baryogenesis action.
 
 The unnormalized polynomial Gram stabilizer supplies a separate
 chiral-zero-regular scalar test. Exact and Cartesian controls pass, while the
@@ -1474,14 +1511,19 @@ The Hill/Floquet reduction, spatial dispersion relation, signed-charge
 continuity, microscopic non-identifiability, baryon degree, collective
 identities, generic normalized-chiral zero divergence and regular quark
 baryon-current identity are **Derived conditional** on their supplied parents.
-The baryon coefficients are **Mapped** to two measured masses. The linear
-growth rates, spatial instability, prepared charge separation, conditional
-baryon profile, radial relaxation, independent chiral-zero quadratures,
-quark–meson regulator extrapolation, shooting endpoint, fixed-$B$ binding and
-reduced barrier are **Tested**. The nonlinear comparison remains
+The baryon coefficients are **Mapped** to two measured masses. The
+resolved-flavour two-singlet heavy mass is **Calibrated** to the observed
+baryon-asymmetry magnitude under its supplied texture. The linear growth
+rates, spatial instability, prepared charge separation, conditional baryon
+profile, radial relaxation, independent chiral-zero quadratures, quark–meson
+regulator extrapolation, shooting endpoint, fixed-$B$ binding, reduced
+barrier, resolved-flavour thermal evolution, whole-bubble initial-state arms
+and QCD yield transfer are **Tested**. The nonlinear comparison remains
 `INCONCLUSIVE`, the normalized-chiral topology-change verdict is
-`CONTRADICTS`, and both complete-mechanism gates are `FAIL`. Physical matter
-formation remains **Hypothesized/Open**.
+`CONTRADICTS`, CP selection is `DOES NOT EMERGE`, and complete Cassi-origin
+formation is `FAIL`. A connected empirical cosmological history is available.
+Physical Cassi matter formation requires microscopic action closure and a
+CP-odd selector and remains **Hypothesized/Open**.
 
 ## 18. Quantum Gravity Without Singularities
 

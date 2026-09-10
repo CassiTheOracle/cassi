@@ -1,6 +1,6 @@
 # Neutrino Masses from Fibonacci Cascade Partitioning of the Seesaw
 
-## Status: Hypothesized mechanism / Mapped offsets—August 2026
+## Status: Hypothesized mechanism / Mapped offsets / Calibrated resolved-flavour two-singlet leptogenesis comparison / Tested rank and CP-selection boundary—September 2026
 
 ## Abstract
 
@@ -49,6 +49,15 @@ cascade rungs. The sector is Mapped per the Fit-Status Ledger
 observed ratio, so the coordinate span is a convention within a fitted sector,
 not an independent derivation.
 
+The step-20 value does not select a heavy-neutrino texture. In the fixed
+two-singlet benchmark used for the empirical cosmological history,
+$z=\pi/4+i/2$ and $M_2/M_1=10$ require the calibrated
+$M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ to reproduce
+$|\eta_B|$ in the resolved $\{e+\mu,\tau\}$ regime. This is a
+texture-dependent empirical calibration rather than a derivation of the
+general seesaw scale
+(`computations/matter-formation-continuum-report.md` §§83–84).
+
 The selected-coordinate expression $v_0\,\varphi^{-12}$ is a scale
 diagnostic; it does not set the absolute spectrum. The absolute spectrum is
 fixed by the cascade RGE + PMNS computation (`computations/cascade_rge_pmns.py`),
@@ -62,6 +71,21 @@ in normal ordering, with Fibonacci offsets $\Delta_1 = 1.00$ and $\Delta_2 =
 $\beta$-decay endpoint limit.
 
 The single-seed Yukawa evaluation $m_\nu = y_\nu^2 v_0^2/M_R$ in the companion computation is a scale diagnostic and does not reproduce these fitted absolute masses at the stated $\gamma_\nu$ trajectories. The displayed spectrum is therefore normalized by the selected oscillation mass-squared differences and the mapped offsets; the seesaw expression supplies the mass-ratio structure, not an independently derived absolute normalization.
+
+A separate thermal-leptogenesis benchmark uses the measured normal-ordering
+splittings with $m_1=0$, a frozen complex Casas–Ibarra coordinate
+$z=\pi/4+i/2$ and $M_2/M_1=10$. Calibrating its baryon-asymmetry magnitude
+gives $M_1=5.774318838589164\times10^{10}\ {\rm GeV}$. Independent Radau
+integration reproduces the mass to $1.49\times10^{-12}$ relative and the
+yield to $1.18\times10^{-12}$ relative.
+
+The two-singlet light-neutrino mass matrix has rank at most two, so one
+light mass is exactly zero. It cannot simultaneously realize the separate
+Mapped spectrum with $m_1=0.00356\ {\rm eV}$. A unified Cassi completion must
+therefore supply a third mass-generating degree of freedom, revise the Mapped
+absolute spectrum, or replace the minimal two-singlet baryogenesis action.
+The exact CP-conjugate textures also produce opposite baryon signs; registered
+Cassi data select neither branch.
 
 ---
 
@@ -194,12 +218,12 @@ cascade φ-step. And $\Delta_2 = 1.75 = 7/4$ rungs is a rational fraction
 with denominator 4, corresponding to the Fibonacci spiral's quarter-rung
 subdivision (the same structure that produces spin-½).
 
-The compression factor from the raw Fibonacci offsets ($\Delta_1^{\text{raw}}
-= 2.77$, $\Delta_2^{\text{raw}} = 4.62$ rungs from the $(5,8,13)$ triple
-mapped to 12 rungs) yields an anomalous dimension $\gamma_\nu \approx 0.37$,
-close to the spectral gap $\varphi^{-2} \approx 0.382$. This confirms that
-the φ-RG spectral gap—not the fixed point $\varphi^{-1}$—governs the
-seesaw sector's Fibonacci offset compression.
+The ratio of the fitted offsets to the raw Fibonacci offsets supplies a
+post-hoc mapped compression factor, with an average near
+$\bar\kappa_{\mathrm{fit}} \approx 0.37$, close numerically to
+$\varphi^{-2} \approx 0.382$. This is a comparison of the selected
+coordinate fit. It does not establish a spectral gap, a fixed point, or an
+RG mechanism for the seesaw sector.
 
 ### 4.2 The pinned offsets in mass-exponent space
 
@@ -240,13 +264,20 @@ Fibonacci spiral).
 - The selected-coordinate suppression diagnostic $v_0\,\varphi^{-12}$
 - **Pinned Fibonacci offsets**: $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs from cascade RGE + PMNS
 - **$\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$** (0.2% residual to observed $33.89$)
+- **Post-hoc mapped compression comparison**:
+  $\bar\kappa_{\mathrm{fit}} \approx 0.37 \approx \varphi^{-2}$; this
+  numerical proximity carries no spectral-gap or RG interpretation.
+- **Resolved-flavour thermal-leptogenesis mass**:
+  $M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ is Calibrated to the
+  observed $|\eta_B|$ inside the supplied $z=\pi/4+i/2$,
+  $M_2/M_1=10$ texture. Its rank-two light matrix has $m_1=0$ and therefore
+  cannot equal the separate Mapped three-nonzero-mass spectrum.
 
 ### Hypothesized (testable)
 
-- Full mass spectrum: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, $\Sigma m_\nu = 0.0631$ eV
-- $|m_{\beta\beta}| = 0.0043$–$0.0052$ eV (0νββ, δ_CP-dependent)
-- $m_\beta = 0.0092$ eV (KATRIN endpoint effective mass)
-- Anomalous dimension $\gamma_\nu \approx 0.37 \approx \varphi^{-2}$ (spectral-gap governed)
+- Full mass spectrum: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, $\\Sigma m_\\nu = 0.0631$ eV
+- $|m_{\\beta\\beta}| = 0.0043$–$0.0052$ eV (0νββ, δ_CP-dependent)
+- $m_\\beta = 0.0092$ eV (KATRIN endpoint effective mass)
 
 ---
 
@@ -258,3 +289,8 @@ Fibonacci spiral).
 - `foundations/refined-numeric-predictions.md` §2.2—unified numeric predictions
 - `open-questions-cassi-answers.md`—Q3 (neutrino masses), Q5 (three generations)
 - `computations/cascade_rge_pmns.py`—full cascade RGE + PMNS, pinned offsets
+- `computations/qcd-cosmological-matter-completion-prereg.md`—fixed two-singlet texture and no-fit seesaw-scale comparison
+- `computations/matter-formation-continuum-report.md` §83—calibrated leptogenesis result and scope
+- `computations/qcd-whole-bubble-cp-selection-prereg.md`—frozen resolved-flavour, rank, initial-state and CP-selection protocol
+- `computations/qcd_whole_bubble_cp_selection.py`—primary calibration, conjugate pair and real-coordinate scan
+- `computations/verify_qcd_whole_bubble_cp_selection.py`—independent Radau and matrix reconstruction

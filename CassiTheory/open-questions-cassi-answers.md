@@ -408,15 +408,33 @@ flowchart TD
     D --> E[η ≈ φ⁻⁴⁴ ≈ 6.4×10⁻¹⁰]
 ```
 
-**Visual:** The diagram shows a candidate circuit-reconnection branch, the Wu Xing freeze-out gap, and cascade dilution for the Mapped value $\eta\approx\varphi^{-44}$. The reconnection interaction, event rate, and freeze-out endpoint remain open.
+**Visual:** The diagram shows Cassi's candidate circuit-reconnection branch,
+the Wu Xing freeze-out gap, and cascade dilution for the Mapped value
+$\eta\approx\varphi^{-44}$. A resolved-flavour two-singlet comparator closes
+one empirical history. Its exact CP-conjugate branches carry opposite
+asymmetries, and the registered Cassi data select neither branch.
 
+The universe is overwhelmingly made of matter, although standard
+early-universe production is nearly symmetric. Cassi's candidate combines an
+unselected particle/antiparticle circuit interaction, a Yang-Yin imbalance at
+the Wu Xing gap $g=1-\varphi^{-5}$, and cascade dilution. The value
+$\eta\approx\varphi^{-44}\approx6.4\times10^{-10}$ is a Mapped fit within
+$6\%$ of the observed ratio; the current equations select neither the
+circuit interaction nor the post-seed freeze-out endpoint.
 
-The universe is overwhelmingly made of matter, although standard early-universe production is nearly symmetric. Cassi's candidate combines an unselected particle/antiparticle circuit interaction, a Yang-Yin imbalance at the Wu Xing gap $g=1-\varphi^{-5}$, and cascade dilution. The value $\eta\approx\varphi^{-44}\approx6.4\times10^{-10}$ is a Mapped fit within 6% of the observed ratio. The current equations select neither the circuit interaction nor the post-seed freeze-out endpoint.
+In the empirical comparator, calibrating the resolved-flavour two-singlet
+benchmark gives
+$M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ and
+$|\eta_B|=6.100000000002\times10^{-10}$. Coarse whole-bubble abundance and
+inherited-$B-L$ differences wash out, but $z$ and $z^*$ give equal and
+opposite yields with identical registered Cassi inputs. Its rank-two
+light-neutrino matrix also has one exactly massless state and cannot equal the
+separate Mapped three-nonzero-mass spectrum.
 
-| **Cassi Answer** | $\eta\approx\varphi^{-44}\approx6.4\times10^{-10}$ as a Mapped exponent; circuit reconnection, Yang-Yin imbalance, and cascade dilution form a Hypothesized mechanism chain. The GUT seed and rate-based test leave the 44-step endpoint open. |
-| **Mechanism** | Candidate particle/antiparticle circuit reconnection; freeze-out Yang-Yin ratio at GUT; cascade expansion dilution. The interaction rate and endpoint selection remain open (`foundations/baryon-asymmetry.md` §4.7; `computations/eta_gamma_h_freezeout_check.py`). |
-| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($\eta$ exponent $-44$—ledger) |
-| **Reference** | `foundations/baryon-asymmetry.md`, `foundations/refined-numeric-predictions.md` |
+| **Cassi Answer** | $\eta\approx\varphi^{-44}\approx6.4\times10^{-10}$ is a Mapped exponent. The resolved-flavour comparator closes a conditional empirical history after calibrating one heavy scale. Cassi supplies neither the microscopic action nor a CP-odd selector; CP selection returns `DOES NOT EMERGE`. |
+| **Mechanism** | Cassi candidate: circuit reconnection, freeze-out Yang-Yin ratio and cascade dilution, with no selected rate or endpoint. Empirical comparator: thermal $N_1$ decay with $\{e+\mu,\tau\}$ washout, sphaleron transfer and QCD survival. Exact conjugation reverses $\eta_B$ (`foundations/baryon-asymmetry.md` §§6–7). |
+| **Epistemic** | **Hypothesized** (Cassi mechanism and selector) / **Mapped** ($\eta$ exponent $-44$—ledger) / **Calibrated** (resolved-flavour two-singlet $M_1$—ledger) / **Tested** (whole-bubble robustness and CP-selection no-go) |
+| **Reference** | `foundations/baryon-asymmetry.md`, `computations/qcd-whole-bubble-cp-selection-prereg.md`, `computations/matter-formation-continuum-report.md` §§83–85 |
 
 ### C8: Big Bang singularity
 
@@ -612,14 +630,26 @@ The Standard Model contains three copies of the basic fermion families—up/down
 ### Q6: Matter-antimatter asymmetry
 *(See diagram at C7—the baryon asymmetry mechanism is shared between cosmology and particle physics.)*
 
-**Visual:** The proposed three-part cascade—candidate circuit reconnection, the Wu Xing freeze-out gap, and cascade photon dilution—maps the particle-physics asymmetry onto the cosmological candidate while leaving the interaction rate and endpoint selection open.
+**Visual:** The Cassi cascade candidate maps circuit reconnection, the Wu Xing
+freeze-out gap and photon dilution onto a possible asymmetry. The
+resolved-flavour empirical comparator reaches the observed magnitude under
+supplied inputs, while its exact CP pair proves that the registered real
+Cassi data select no sign.
 
-The universe contains matter but essentially no antimatter, while the laws of physics treat them nearly symmetrically. Satisfying the three Sakharov conditions requires new physics beyond the Standard Model. Cassi's candidate is shared with C7: an unselected particle/antiparticle circuit interaction, a Yang-Yin freeze-out gap $g=1-\varphi^{-5}$, and cascade dilution. The value $\eta\approx\varphi^{-44}$ is Mapped; the current equations select neither the reconnection rate nor the freeze-out endpoint.
+The universe contains matter but essentially no antimatter. Cassi's candidate
+is shared with C7: an unselected particle/antiparticle circuit interaction, a
+Yang-Yin freeze-out gap $g=1-\varphi^{-5}$, and cascade dilution. The value
+$\eta\approx\varphi^{-44}$ is Mapped; the current equations select neither
+the reconnection rate nor the freeze-out endpoint. A fixed two-singlet
+benchmark reproduces the observed magnitude at the Calibrated
+$M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ and carries the conserved
+yield through the QCD epoch. The exact conjugate texture gives the opposite
+sign, and the canonical real-density state provides no selector.
 
-| **Cassi Answer** | $\eta\approx\varphi^{-44}\approx6.4\times10^{-10}$ as a Mapped fit; the three-part mechanism chain is Hypothesized, and its interaction and endpoint remain open. |
-| **Mechanism** | Same candidate chain as C7; the circuit reconnection interaction is unselected, and the $\Gamma/H=1$ test yields a thaw crossing rather than a post-seed freeze-out. |
-| **Epistemic** | **Hypothesized** (mechanism) / **Mapped** ($\eta$ exponent $-44$—ledger) |
-| **Reference** | `foundations/baryon-asymmetry.md`, `foundations/refined-numeric-predictions.md` |
+| **Cassi Answer** | $\eta\approx\varphi^{-44}\approx6.4\times10^{-10}$ is a Mapped Cassi fit. The empirical comparator closes a conditional history after one heavy-scale calibration. Its CP-conjugate pair establishes `DOES NOT EMERGE` for sign selection from registered Cassi data. |
+| **Mechanism** | Cassi candidate: the C7 circuit-reconnection chain, whose $\Gamma/H=1$ test yields a thaw rather than post-seed freeze-out. Empirical comparator: resolved-flavour $N_1$ decay, washout, sphaleron conversion and QCD transfer. A CP-odd coefficient, state, boundary datum or selection rule is required to choose the sign. |
+| **Epistemic** | **Hypothesized** (Cassi mechanism and CP selector) / **Mapped** ($\eta$ exponent $-44$—ledger) / **Calibrated** (two-singlet $M_1$—ledger) / **Tested** (whole-bubble initial-state and CP-conjugate boundary) |
+| **Reference** | `foundations/baryon-asymmetry.md`, `computations/qcd-whole-bubble-cp-selection-prereg.md`, `computations/matter-formation-continuum-report.md` §§83–85 |
 
 ### Q7: Quantum measurement problem
 
@@ -1931,18 +1961,44 @@ QMQ3=`SUPPORTS`; the accepted frozen QMC2 spectral verdict remains `FAIL`.
 The cosmological ledger treats this $B=1$ sector as asymmetry inherited before
 the QCD transition.
 
+The full empirical history extends an asymmetry through a
+resolved-flavour two-singlet benchmark and the QCD crossover. With
+$z=\pi/4+i/2$ and $M_2/M_1=10$ supplied, the Calibrated
+$M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ reproduces
+$|\eta_B|=6.10\times10^{-10}$. Independent Radau integration agrees in mass
+to $1.49\times10^{-12}$ relative and in yield to
+$1.18\times10^{-12}$ relative. Coarse whole-bubble abundance and
+inherited-charge differences wash out. Exact CP conjugation reverses the
+yield with all registered Cassi inputs unchanged, so CP selection returns
+`DOES NOT EMERGE`. The rank-two benchmark also cannot realize the separate
+Mapped three-nonzero-mass neutrino spectrum. The empirical route is complete
+under supplied microphysics and thermal initial conditions; Cassi-origin
+completion remains open
+(`computations/matter-formation-continuum-report.md` §§83–85).
+
 The active finite-cutoff chromodielectric completion defines the interacting
 two-flavour sea and preserves local $SU(3)_C$. Its zero-dielectric exterior
 gives every nonzero total Cartan charge infinite energy in infinite volume,
 while a color-neutral three-arm flux network has finite positive minimized
 tension. Independent calculations give RCF1–RCF4=`PASS` and RCF5=`ADOPT`.
-The empirical action and unmatched dielectric scales, interacting nonradial
-baryon solution and spectrum, thermal production rate, observable nucleon
-map, baryogenesis and Cassi derivation of QCD remain supplied or open. QMQ4,
-QMC6 and RCF6 return `FAIL`, and physical matter formation remains
-Hypothesized/Open
-(`computations/matter-formation-continuum-report.md` §§79, 81;
-`foundations/matter-completion-boundary.md` §§24, 26).
+
+The first joint valence-plus-field minimization produces a compact node-free
+three-colour state, but it fails stationarity, exterior-tail, virial and
+low-dielectric formation criteria. A lower topological boundary branch blocks
+a ground-state interpretation. Independent reconstruction confirms
+ICB1=`PASS`, ICB2–ICB4=`FAIL`, ICB5=`CONTRADICTS`, and ICB6=`FAIL`.
+Removing the profile family does not qualify this radial action: its first
+bounded independent-cell trial loses every positive nodeless occupied state.
+QURB2 and QURB8 return `FAIL`, QURB7=`REJECT`, and all fifteen independent
+checks pass. Within the active finite-cutoff carrier, the lower topological
+branch, unconstrained nonradial baryon formation and a qualified spectrum
+remain open. The separate Standard Model route supplies thermal production,
+observable nucleons and baryogenesis conditionally. Cassi supplies no
+derivation of QCD, the seesaw action or a CP-odd selector. QMQ4, QMC6, RCF6,
+ICB6, QURB8, FCP6 and FCP7 return `FAIL`, and physical Cassi matter formation
+remains Hypothesized/Open
+(`computations/matter-formation-continuum-report.md` §§79, 81–84;
+`foundations/matter-completion-boundary.md` §§24, 26–29).
 
 A separate unnormalized polynomial Gram stabilizer remains finite when its
 chiral field crosses zero. Exact positivity and independent Cartesian
@@ -2194,8 +2250,8 @@ The psychology mapping treats the golden ratio $r = \varphi$ as the healthy, org
 
 With the refined numeric predictions (`foundations/refined-numeric-predictions.md`), the status of each open gap is:
 
-- **Baryon asymmetry specific exponent.** $\eta \approx \varphi^{-44}$ is the best-fit integer (6.3% of observed; Mapped—`parameter-inventory.md` §10). The freeze-out step must be derived from the thermal cascade history, not fit; the 2026-08-11 sweep (`foundations/baryon-asymmetry.md` §4.5, `computations/eta_span_closure_check.py`) found no closure—five mechanisms fail (gate threshold crossings at/below the GUT seed; the gate floor $1/(1+\varphi^2) = 0.276$ prevents a $(1-q) \to 0$ freeze-out definition; the endpoint rung 57.3 is an empty desert scale; the composite gap flips sign; factorizations have no anchors). The strongest candidate span is $60 - 13.3 = 46.7$ vs the exact $44.13$ (5.5% overshoot; $\eta$ 3.4× low); the blocking step is that the freeze-out threshold rung is not fixed by any mechanism.
-- **Exact neutrino masses.** The Fibonacci offsets $\Delta_1 = 1.00$, $\Delta_2 = 1.75$ rungs are the grid-fit of the cascade RGE + PMNS pipeline against the observed ratio (Mapped—`parameter-inventory.md` §10; 0-dof fit). The predicted $\Delta m^2_{31}/\Delta m^2_{21} \approx 33.82$ matches the observed $\approx 33.89$ to 0.2% (grid quantization). Full mass spectrum: $m_1 = 0.00356$, $m_2 = 0.00931$, $m_3 = 0.05019$ eV, $\Sigma m_\nu = 0.0631$ eV. The absolute scale remains the solved-for input, not a prediction.
+- **Baryon asymmetry mechanism.** $\eta\approx\varphi^{-44}$ remains a Mapped integer fit, $6.3\%$ from observation. The Cassi rate test yields a thaw, the gate floor prevents a vanishing-$(1-q)$ endpoint, and no interaction fixes the dilution span. A resolved-flavour two-singlet comparator calibrates $M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ to the observed $|\eta_B|$ and completes a supplied empirical route through QCD. Whole-bubble abundance and inherited-$B-L$ changes wash out, while exact CP conjugation reverses the asymmetry with identical registered Cassi data. CP selection therefore `DOES NOT EMERGE`; an explicit CP-odd microscopic ingredient is required (`foundations/baryon-asymmetry.md` §§6–7; `computations/matter-formation-continuum-report.md` §§83–84).
+- **Exact neutrino masses.** The Fibonacci offsets $\Delta_1=1.00$, $\Delta_2=1.75$ are a zero-degree-of-freedom grid fit against the observed mass-squared ratio (Mapped—`parameter-inventory.md` §10). The displayed three-nonzero-mass spectrum is $m_1=0.00356$, $m_2=0.00931$, $m_3=0.05019\ {\rm eV}$ and $\Sigma m_\nu=0.0631\ {\rm eV}$; its absolute scale is solved from data. The minimal two-singlet matter-history comparator has rank at most two and therefore $m_1=0$. A unified completion must supply another mass-generating degree of freedom, revise the Mapped absolute spectrum, or replace that minimal action.
 - **$n_s$ gate form.** The present formula is a derived φ-form: $n_s = 1 - 2\varphi^{-1}/N_e = 0.969$ (1.0σ from Planck 2018), with $\delta n_s = 2\varphi^{-2}/N_e$. See `computations/ns_gate_correction.py` (July 2026).
 - **Proton decay rate and localized sector.** The Mapped proton coordinate and conditional circuit arithmetic do not determine a lifetime. Endpoint, point-flux, auxiliary-core and reduced neutral-carrier constructions have explicit conditional equations. The separate particle action preserves an empty closed carrier sector. Its stored Cartesian localized fields fail the smooth-carrier diagnostic. A continuum-consistent scalar reduction independently reproduces prepared static binding, with INCONCLUSIVE smooth constrained spatial stability. Microscopic production, physical normalization, proton quantum numbers, full dynamics and a decay channel remain open (`computations/matter-formation-continuum-report.md`).
 - **Specific beyond-SM particle spectrum.** The particle content that fills the RGE between GUT and EW scales is predicted to exist but its individual masses are not yet computed.

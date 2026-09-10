@@ -12,14 +12,27 @@ The particle action supplies a precise formation boundary. Its conserved
 nonnegative carrier population remains zero from exactly empty closed-sector
 data. The stored Cartesian localized branch has an ultraviolet obstruction
 to smooth interpretation, while separate scalar calculations support binding
-at prepared charge. An empirical two-flavour quark–meson action then supplies
+at prepared charge. An empirical two-flavour quark–meson action supplies
 explicit Dirac quarks, a regular exact baryon current, fermionic $B=1$, and a
-continuum-qualified localized fixed-family endpoint. Its small reduced static
-barrier is compatible with QCD-era reorganization of an inherited cosmological
-baryon excess. The action and asymmetry are external inputs; sea
-renormalization, nonradial thermal formation, confinement, an observable
-nucleon map and baryogenesis remain open
-(`computations/matter-formation-continuum-report.md` §79).
+continuum-qualified localized fixed-family endpoint. A finite-cutoff
+chromodielectric completion supplies action-level color confinement. Their
+first joint radial minimization gives a compact three-colour state but fails
+stationarity, exterior-tail, virial and formation-basin criteria, and a lower
+topological boundary branch prevents a ground-state interpretation. The
+action, parameters and inherited baryon excess remain supplied inputs;
+unconstrained nonradial formation, the physical spectrum, observable nucleon
+map, baryogenesis and Cassi origin of QCD remain open
+(`computations/matter-formation-continuum-report.md` §§79, 81–82).
+
+A separate renormalized Standard Model plus two-singlet comparator supplies a
+connected empirical route from a gauge-projected thermal state to observable
+nucleons. Its resolved-flavour benchmark is calibrated to the baryon-asymmetry
+magnitude and is robust to the tested heavy-abundance and inherited-charge
+changes. Exact CP-conjugate textures produce opposite signs with identical
+registered Cassi inputs, so CP selection `DOES NOT EMERGE`. This route supplies
+empirical organization under declared microphysics without deriving that
+microphysics from the Cassi densities
+(`computations/matter-formation-continuum-report.md` §§83–85).
 
 ---
 
@@ -76,11 +89,13 @@ particle-mass derivation remains open.
 
 The regular quark–meson comparison does not derive that mass. It imports
 $f_\pi$, $m_\pi$, $m_\sigma$ and the constituent-quark mass, then finds a
-localized occupied level and a fixed-family bound energy. The result supplies
-a physically grounded carrier mechanism inside the empirical action, while
-leaving the action's selection, its observable nucleon mass map and
-confinement outside the Cassi derivation
-(`foundations/matter-completion-boundary.md` §24).
+localized occupied level and a fixed-family bound energy. Its finite-cutoff
+chromodielectric completion confines isolated color at action level. A joint
+radial minimization finds a compact three-colour state but fails the frozen
+stationarity, localization, virial and formation-basin criteria. These
+results leave the microscopic action's selection, physical spectrum and
+observable nucleon mass map outside the Cassi derivation
+(`foundations/matter-completion-boundary.md` §§24, 26–27).
 
 ### 1.3 Electroweak as the pool-charge channel
 
@@ -333,7 +348,7 @@ neutron's extra mass, charge, atomic binding, β-decay, the strong-coupling gap,
 the activation steps and the descent.
 
 - **The masses themselves.** $e$, $p$, $n$ are all class **E** in the ledger ($m_e$: partial, ~25% off at integer rungs; $m_p$: not derivable, QCD scale). The ladder places them; nothing generates them.
-- **Full QCD formation.** The empirical quark–meson model has a regular exact baryon current, a continuum-qualified localized valence endpoint and fixed-family binding. Its finite-cutoff chromodielectric completion defines the interacting two-flavour sea and supplies action-level Gauss-sector confinement. A nonradial baryon solution with that sea, the physical spectrum, real-time thermal production, observable nucleon map and baryogenesis remain absent; the action, dielectric scales and inherited asymmetry are supplied inputs.
+- **Full QCD formation.** The empirical quark–meson model has a regular exact baryon current, a continuum-qualified localized valence endpoint and fixed-family binding. Its finite-cutoff chromodielectric completion defines the interacting two-flavour sea and supplies action-level Gauss-sector confinement. A joint four-coordinate minimization finds a compact three-colour state, but it fails stationarity, exterior-tail, virial and low-dielectric formation criteria; a lower topological boundary branch also blocks a ground-state interpretation. Its unconstrained radial follow-up loses the occupied state before stationarity, and unconstrained nonradial formation remains open. The separate Standard Model plus two-singlet comparator carries a calibrated baryon excess through QCD to observable nucleons but supplies the microscopic action, thermal state and CP orientation as inputs. Physical Cassi matter formation remains open.
 - **The n−p mass difference** (~1.3 MeV). Isospin $T_z$ coupling is open (§3.3).
 - **Charge magnitude and complementarity.** No derivation anywhere (§1.3).
 - **EM binding in Cassi terms.** Atomic orbitals at rung 117 are reproduced by conventional DFT numerics only (`particles/dft-benchmarks.md`); the benchmark carries implementation and atomic-reference evidence, while an analytical atomic potential from the canonical two-fluid dynamics remains open.
@@ -397,4 +412,4 @@ steps, the descent and the proton-decay tension.
 - `predictions/falsifiable-predictions.md`—#10, #43, #44, #45, #46
 - `parameter-inventory.md`—parameter classes (E); Fit-Status Ledger
 - `cassi-physics.md`—physics guide; gravitational coupling and proton stability
-- `computations/matter-formation-continuum-report.md`—empty-sector and ultraviolet boundaries, prepared scalar binding, constrained stability, regular empirical quark carrier, continuum-qualified endpoint and complete-formation adjudication.
+- `computations/matter-formation-continuum-report.md`—empty-sector and ultraviolet boundaries, prepared scalar binding, constrained stability, regular empirical quark carrier, finite-cutoff confinement, joint interacting radial-baryon rejection and complete-formation adjudication.

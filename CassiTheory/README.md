@@ -309,13 +309,48 @@ interacting two-flavour sea and gives every nonzero total Cartan charge an
 infinite-volume energy divergence, while a color-neutral three-arm flux
 network has finite minimized tension. Primary and independent calculations
 return RCF1–RCF4=`PASS` and RCF5=`ADOPT`, qualifying action-level confinement
-for this effective bridge. The action and $(B,\chi_v)$ remain empirical QCD
-inputs; no interacting nonradial baryon solution, physical spectrum,
-thermal production rate, observable nucleon map, baryogenesis mechanism or
-Cassi derivation of QCD is supplied. RCF6=`FAIL`, so
+for this effective bridge.
+
+The first joint valence-plus-field minimization finds a compact node-free
+three-colour state at $1320.592488\ \mathrm{MeV}$, but that endpoint has a
+$28.5526\ \mathrm{MeV}$ normalized-coordinate gradient, excess exterior
+field energy, and a virial residual above its frozen tolerance. A lower
+$957.416497\ \mathrm{MeV}$ topological boundary branch also prevents a
+ground-state interpretation. ICB1=`PASS`, ICB2–ICB4=`FAIL`,
+ICB5=`CONTRADICTS`, and ICB6=`FAIL`; independent reconstruction returns
+`PASS`.
+
+Removing the four-coordinate profile family does not qualify the same
+empirical action. The first bounded independent-cell trial loses every
+positive nodeless occupied state, so QURB2=`FAIL`, QURB7=`REJECT`, and
+QURB8=`FAIL`; an independent dense reconstruction passes all fifteen checks.
+This rejects the frozen unconstrained radial qualification without proving
+nonexistence under every state-domain method. The empirical action and
+parameters, lower topological branch, unconstrained nonradial baryon solution,
+physical spectrum, thermal production, observable nucleon map, baryogenesis
+mechanism and Cassi derivation of QCD remain supplied or open. Therefore
 `complete_physical_matter_formation=false`
-(`computations/matter-formation-continuum-report.md` §§79, 81;
-`foundations/matter-completion-boundary.md` §§24, 26).
+(`computations/matter-formation-continuum-report.md` §§79, 81–82;
+`foundations/matter-completion-boundary.md` §§24, 26–27).
+
+At empirical scope, a resolved-flavour two-singlet seesaw traces a connected
+history from a gauge-projected thermal state to observable nucleons.
+Calibration gives
+$M_1=5.774318838589164\times10^{10}\ {\rm GeV}$ and
+$|\eta_B|=6.100000000002\times10^{-10}$; independent Radau evolution agrees
+in the mass and yield at $1.49\times10^{-12}$ and
+$1.18\times10^{-12}$ relative. Whole-bubble abundance and inherited-charge
+arms converge within their frozen tolerances. The exact CP-conjugate texture
+produces the opposite asymmetry, while every registered Cassi input is
+unchanged. CP selection returns `DOES NOT EMERGE`: the empirical history is
+connected at its declared scope, and a Cassi origin requires an explicit
+CP-odd microscopic ingredient
+(`computations/matter-formation-continuum-report.md` §§83–85;
+`foundations/matter-completion-boundary.md` §§28–29).
+
+The minimal two-singlet action also has one exactly massless light neutrino,
+whereas Cassi's separate Mapped spectrum has three nonzero masses. A unified
+microscopic completion must resolve this rank mismatch.
 
 The separately tested unnormalized polynomial Gram stabilizer is regular at a
 chiral zero, but the frozen three-grid minimizations do not reach stationarity
