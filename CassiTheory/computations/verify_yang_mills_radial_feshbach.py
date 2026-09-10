@@ -652,7 +652,7 @@ def continued_fraction_controls(result: dict[str, Any]) -> None:
                     "sigma": float(sigma), "lower_bound": float(lower_sigma),
                     "upper_bound": float(upper_sigma),
                     "reference_relative_error": float(reference_error),
-                    "direct_relative_errors": direct_errors,
+                    "direct_normalized_errors": direct_errors,
                     "direct_values": direct_values,
                     "pass": cf_pass,
                 })
