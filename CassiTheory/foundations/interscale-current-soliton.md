@@ -1,6 +1,6 @@
 # Interscale Yang/Yin Current and the Conditional Soliton Pinch
 
-## Status: Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, phase-current, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum, rotational controls, and conditional smooth scalar binding—September 2026
+## Status: Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, phase-current, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum, rotational and phase-coercivity controls, and conditional smooth scalar binding—September 2026
 
 ## Abstract
 
@@ -44,6 +44,10 @@ periodic Beltrami flow. Composition diffusion reproduces viscous decay for
 that fixed-winding fixture, while a nonzero phase-geometry commutator excludes
 the same identification for general fields. The exact projection and evidence
 are recorded in `turbulence/cassi-fluid-phase-current-hydrodynamics.md`.
+
+The doublet's first-order gradient energy controls $L^1$ vorticity but not
+enstrophy or the critical scalar-Beltrami residual. A separate 84-check
+follow-up establishes that static coercivity boundary.
 
 A finite localized object requires short-distance support in addition to any
 pinch. A charged endpoint section supplies one coherent, gauge-covariant
@@ -1675,6 +1679,24 @@ Hamiltonian action supplies memory and an exterior initial-state force.
 A positive material viscosity requires a state or ensemble whose kernel
 decays and has a positive $k^2$ low-wave-number limit.
 
+The first-order normalized-doublet energy obeys
+
+$$
+|\nabla Z|^2=|A|^2+\frac14|\nabla n|^2,
+\qquad
+|\omega|\le\frac{\hbar}{4m}|\nabla n|^2.
+$$
+
+It controls $L^1$ vorticity, not enstrophy. The fixed helical-spread analysis
+constructs a smooth one-band positive doublet with bounded
+$\int|\nabla Z|^2dx$ while $\|\omega\|_2^2$ and the squared $L^3$ distance
+from the optimal scalar curl eigenfield diverge. Its 84 checks give
+**CONTRADICTS** for static first-order phase-energy coercivity.
+
+The exterior state in §12.2 could instead impose a dynamical restriction on
+the time-integrated critical residual. No state-selection theorem or
+memory-kernel estimate establishing that restriction is derived.
+
 ---
 
 ## References
@@ -1737,3 +1759,5 @@ decays and has a positive $k^2$ low-wave-number limit.
 - `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—phase-current vorticity, helicity topology, two-band Beltrami flow and viscosity projection boundary
 - `computations/cassi-fluid-phase-current-prereg.md`—fixed current, topology, diffusion and memory schedule
 - `computations/verify_cassi_fluid_phase_current.py`—exact, Fourier, Hopf, memory and raw-array verification
+- `computations/navier-stokes-helical-spread-prereg.md`—fixed signed-moment, residual and phase-coercivity checks
+- `computations/verify_navier_stokes_helical_spread.py`—84-check exact helical-spread and phase-concentration verifier

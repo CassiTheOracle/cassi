@@ -23,9 +23,12 @@ forcing. Explicit initial-data and kinematic controls delimit scalar-energy
 and local-geometric closure arguments. An exact globally smooth mixing family
 excludes amplitude-linear cumulative bounds for critical transfer, spread
 dissipation and positive spread production while admitting a finite nonlinear
-critical-transfer bound of its own. Arbitrary-data production, global
-regularity and a Cassi canonical-density-to-physical-momentum constitutive map
-remain open.
+critical-transfer bound of its own. A signed curl-spectrum refinement gives
+a critical scalar-Beltrami residual criterion and closes radial positive
+production conditionally on its time integral. A smooth positive-doublet
+family has bounded first-order phase energy with unbounded enstrophy and
+critical residual. Arbitrary-data production, global regularity and a Cassi
+canonical-density-to-physical-momentum constitutive map remain open.
 
 The separate fluid-feasibility study derives the conservative momentum flux
 of a restricted first-order action branch and audits the actual density solver.
@@ -50,8 +53,11 @@ maps remain open.
 The phase-current reduction derives Mermin–Ho vorticity, full-doublet Hopf
 helicity and a two-scale-band periodic Beltrami class. Its 227 checks support
 exact scalar-diffusion/viscosity equivalence for that fixed-winding field and
-contradict the equivalence for general phase potentials. Microscopic material
-transport, arbitrary-flow closure and global regularity remain open.
+contradict the equivalence for general phase potentials. A separate 84-check
+follow-up proves that bounded first-order positive-doublet energy does not
+control enstrophy or the critical scalar-Beltrami residual. Microscopic
+material transport, whole-field dynamical concentration control,
+arbitrary-flow closure and global regularity remain open.
 
 ## 1. Document index
 
@@ -61,9 +67,9 @@ transport, arbitrary-flow closure and global regularity remain open.
 | 2 | `turbulence/navier-stokes-transfer-boundary.md` | Critical transfer, cubic heat correction, and coercivity | Derived identities and obstructions / conditional small-data estimates |
 | 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution and helical covariance conditions | Derived filtered identities / Hypothesized geometric closure |
 | 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response, matter binding and exterior-memory comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
-| 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, spectral-spread production, continuation reduction, forced budgets and cumulative mixing obstruction | Derived conditional estimates and cumulative mixing obstruction / Open arbitrary-data critical work |
-| 6 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure, phase-current summary and actual flow controls | Derived conditional mechanical, thermal, and phase-current identities / Tested solver and rotational controls / Open physical-fluid completion |
-| 7 | `turbulence/cassi-fluid-phase-current-hydrodynamics.md` | Mermin–Ho rotation, helicity topology, two-band Beltrami flow and the viscosity projection boundary | Derived conditional current and topology identities / Tested rotational and memory controls / Open microscopic viscosity and arbitrary-flow closure |
+| 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, radial and signed spectral spread, critical scalar-Beltrami residual, forced budgets and cumulative mixing obstruction | Derived conditional estimates and helical reduction / Static phase-energy coercivity contradicted / Open arbitrary-data critical work |
+| 6 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure, phase-current summary and actual flow controls | Derived conditional mechanical, thermal, and phase-current identities / Tested solver, rotational and phase-coercivity boundaries / Open physical-fluid completion |
+| 7 | `turbulence/cassi-fluid-phase-current-hydrodynamics.md` | Mermin–Ho rotation, helicity topology, two-band Beltrami flow, first-order coercivity and viscosity projection boundaries | Derived conditional current and topology identities / Tested rotational, memory and coercivity boundaries / Open microscopic viscosity and arbitrary-flow closure |
 | 8 | `turbulence/cassi-radiative-material-closure.md` | LTE emission, multigroup M1 transport, conservative material coupling and CassiCosmos handoff | Derived conditional transfer, conservation and entropy identities / Tested kernels / Open Cassi material calibration |
 
 ## 2. Document summaries
@@ -120,7 +126,7 @@ $$
 controls both $\eta E^2$ and $\eta\mathcal C Y$, and centers the nonlinear
 production
 $$
-\mathscr P_{\mathcal V}=KA-\mathcal C F.
+\mathscr P_{\mathcal V}=K\mathcal A-\mathcal C F.
 $$
 Finite $\int(\mathscr P_{\mathcal V})_+dt$ bounds the critical norm and its
 dissipation, giving a Prodi–Serrin continuation criterion. The remaining
@@ -151,6 +157,17 @@ neighboring-frequency cancellation supplies a finite nonlinear
 critical-transfer bound within that same family. Arbitrary-data cumulative
 production, general regularity and unforced blow-up remain open in this
 analysis.
+
+The signed curl spectrum retains helical polarization. Its positive spread
+is $(K/2)\|\omega-Hu/(2K)\|_2^2$, and finite
+$$
+\int_0^T\left\|\omega-\frac{H}{2K}u\right\|_3^2dt
+$$
+controls enstrophy and the cumulative positive radial-spread production.
+This is a critical conditional reduction, not an arbitrary-data estimate.
+The accompanying 84-check analysis also constructs a smooth one-band
+positive doublet with bounded first-order phase energy and divergent
+enstrophy and $L^3$ residual.
 
 ### 2.6 Cassi fluid mechanics, thermal closure and phase currents
 
@@ -202,12 +219,15 @@ force; finite exterior systems recur. The selected exponential kernel has the
 expected Markov limit, but the action does not yet supply its state, decay or
 positive low-wave-number coefficient.
 
-The fixed schedule passes **227 checks**, including exact identities, odd-grid
-Fourier reconstructions, Hopf quadratures, memory controls, independent
-raw-array reconstruction and source matching. It **SUPPORTS** the conditional
-rotational class and restricted viscous correspondence. Microscopic viscosity,
-arbitrary-flow hydrodynamics and arbitrary-data regularity remain
-**UNESTABLISHED**.
+The fixed phase-current schedule passes **227 checks**, including exact
+identities, odd-grid Fourier reconstructions, Hopf quadratures, memory
+controls, independent raw-array reconstruction and source matching. It
+**SUPPORTS** the conditional rotational class and restricted viscous
+correspondence. The separate helical-spread follow-up passes **84 checks** and
+**CONTRADICTS** static first-order phase-energy coercivity for enstrophy and
+the critical scalar-Beltrami residual. Microscopic viscosity, a whole-field
+dynamical concentration bound, arbitrary-flow hydrodynamics and
+arbitrary-data regularity remain **UNESTABLISHED**.
 
 ### 2.8 Radiative material closure
 
@@ -253,6 +273,8 @@ radiation state rather than the Observatory's appearance coefficients.
 - `computations/verify_navier_stokes_forced_concentration.py`—forced Fourier identities, independent FFT reconstruction and Gaussian quadrature
 - `computations/navier-stokes-mixing-budget-prereg.md`—fixed continuum-comparison and cumulative trajectory controls
 - `computations/verify_navier_stokes_mixing_budget.py`—601-check mixing receipt, Fourier evolution and independent spatial reconstruction
+- `computations/navier-stokes-helical-spread-prereg.md`—fixed signed-moment, residual, flow-control and phase-concentration checks
+- `computations/verify_navier_stokes_helical_spread.py`—84-check exact helical-spread and phase-coercivity verifier
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
 - `computations/cassi-fluid-thermodynamics-prereg.md`—selected fluid equations and fixed thermal controls
 - `computations/cassi_fluid_thermodynamics.py`—reacting capillary/thermal model and command-line evolution

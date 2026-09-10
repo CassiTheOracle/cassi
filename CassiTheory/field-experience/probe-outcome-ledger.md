@@ -587,6 +587,38 @@ parameter count, empirical prediction catalog and QF/DQ/GQ
 microscopic-identification verdicts are unchanged.
 
 
+## 20. Helical spread and phase-energy coercivity
+
+The signed curl spectrum refines the retained Navier–Stokes radial-spread
+analysis by preserving helical polarization. Its $L^2$-optimal scalar
+Beltrami residual is
+
+$$
+r_B=\omega-\frac{H}{2K}u.
+$$
+
+The frozen schedule in
+`computations/navier-stokes-helical-spread-prereg.md` is implemented by
+`computations/verify_navier_stokes_helical_spread.py`. The retained receipt
+`runs/navier_stokes_helical_spread/verification.json` passes all **84
+checks**.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Signed moment and pair-spread identities | All exact symbolic residuals vanish; $\mathcal V_B=(K/2)\|r_B\|_2^2\ge0$ and $\mathcal Q_B=E\|r_B\|_2^2+K\|\nabla r_B\|_2^2\ge0$ | **SUPPORTS**, exact smooth-data identities |
+| Critical residual continuation | $\int_0^T\|r_B\|_3^2dt<\infty$ gives a finite enstrophy bound | **DERIVED CONDITIONAL REDUCTION**, original Navier–Stokes equation |
+| Radial positive-production closure | The same finite critical integral bounds cumulative positive radial-spread production | **DERIVED CONDITIONAL REDUCTION**, closes the earlier conditional hypothesis |
+| Beltrami, shear and mixed-helicity triad controls | Exact heat solutions delimit the residual; the triad has $H=J=0$ and $\mathcal A=1/2$ | **SUPPORTS**, exact periodic controls |
+| Static first-order positive-doublet coercivity | A smooth one-band family has $\int|\nabla Z_\varepsilon|^2=P_0+\varepsilon P_1$ while $\|\omega_\varepsilon\|_2^2=\kappa_v^2\pi^{3/2}/(128\varepsilon^2)$ and $\|r_{B,\varepsilon}\|_3^2\propto\varepsilon^{-3}$ | **CONTRADICTS**, bounded first-order phase energy does not control the required quantities |
+| Arbitrary-data residual bound | No finite initial-data-controlled bound is derived | **UNRESOLVED** |
+| Full-bubble dynamical exclusion | Exterior initial correlations and scale-memory remain possible inputs, but no selection or kernel theorem is supplied | **UNRESOLVED** |
+
+No Navier–Stokes trajectory, singular solution or formal-proof build is
+produced. The result identifies a critical quantity that the whole-bubble
+dynamics would have to control and excludes the current static first-order
+phase energy as that control.
+
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -636,6 +668,8 @@ microscopic-identification verdicts are unchanged.
 - `computations/verify_cassi_fluid_thermodynamics.py`—395-check receipt, model trajectories and independent numerical reference.
 - `computations/navier-stokes-mixing-budget-prereg.md`—fixed invariant-family analytical and trajectory schedule.
 - `computations/verify_navier_stokes_mixing_budget.py`—601-check cumulative mixing receipt and independent spatial reconstruction.
+- `computations/navier-stokes-helical-spread-prereg.md`—fixed signed-moment, residual, flow-control and phase-concentration checks.
+- `computations/verify_navier_stokes_helical_spread.py`—84-check exact helical-spread and phase-coercivity verifier.
 - `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule.
 - `computations/verify_yang_mills_connected_blocks.py`—79-check source-bound connected-block receipt.
 - `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—phase-current rotation, helicity topology and viscosity projection boundary.

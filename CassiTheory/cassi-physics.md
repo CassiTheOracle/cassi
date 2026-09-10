@@ -815,7 +815,12 @@ exact viscous decay for that fixed-winding field. A nonzero commutator
 excludes the same identification for general phase geometry, and the closed
 action supplies recurrent exterior memory rather than a positive Markovian
 coefficient. The 227-check result supports a conditional rotational
-hydrodynamic class; material viscosity and arbitrary-flow closure remain open.
+hydrodynamic class. A separate 84-check helical analysis derives a critical
+scalar-Beltrami residual criterion for Navier–Stokes and constructs a
+positive one-band doublet with bounded first-order phase energy but unbounded
+enstrophy and critical residual. Static phase-energy coercivity is therefore
+excluded; material viscosity, a whole-field dynamical concentration bound
+and arbitrary-flow closure remain open.
 
 Section 7 of that analysis selects a reacting capillary fluid with
 rotational velocity and temperature. Its variational stress conserves

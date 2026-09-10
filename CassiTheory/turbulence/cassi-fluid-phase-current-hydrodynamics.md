@@ -1,6 +1,6 @@
 # Cassi Fluid Phase Currents: Rotation, Helicity, and the Viscosity Boundary
 
-## Status: Derived conditional current and topology identities / Tested rotational and memory controls / Open microscopic viscosity and arbitrary-flow closure—September 2026
+## Status: Derived conditional current and topology identities / Tested rotational, memory and first-order coercivity boundaries / Open microscopic viscosity and arbitrary-flow closure—September 2026
 
 ## Abstract
 
@@ -8,17 +8,30 @@ The phase-bearing Yang/Yin action supplies a local rotational velocity map. A no
 
 The scale-band construction also isolates the viscosity question. Scalar diffusion of two composition amplitudes reproduces positive-viscosity decay exactly for the fixed-winding Beltrami fixture. A nonzero commutator excludes that identification for general phase potentials. The resolved kinetic energy enters unresolved species-and-band counterflow rather than heat. Exact elimination of closed exterior modes gives memory and an initial-state force; finite exterior systems recur. A positive exponential memory kernel has the expected Markov limit, while its realization and coefficient remain absent from the Cassi action.
 
+The same phase geometry has a sharp regularity boundary. Its first-order
+gradient energy controls $L^1$ vorticity but not enstrophy or the critical
+scalar-Beltrami residual. A smooth one-band
+positive-doublet family keeps that phase energy bounded while both latter
+quantities diverge. Static first-order coercivity therefore cannot supply
+the missing Navier–Stokes estimate; only an additional dynamical constraint
+from the surrounding scale field remains possible.
+
 The qualified verifier passes **227 checks**: 41 exact algebra checks, 83 periodic spatial checks, three Hopf quadratures, 12 memory checks, 82 raw-array reconstructions, and six source-identity checks. The result supports a conditional rotational phase-current reduction and sharply specifies the remaining dissipative closure.
 
-## 1. The three questions
+## 1. The four questions
 
-The selected fluid in `turbulence/cassi-fluid-feasibility.md` uses an independent divergence-free velocity and supplied viscosity. The phase-bearing action in `foundations/interscale-current-soliton.md` contains more microscopic structure: two component phases, their number currents, and a continuous scale coordinate. Three questions separate its hydrodynamic content:
+Four questions separate its hydrodynamic content:
 
 1. Does the current of one Yang/Yin doublet contain smooth vorticity?
 2. Can the scale-resolved current represent a three-dimensional flow with nonzero helicity?
 3. Can the closed action supply an irreversible positive viscosity?
+4. Does its positive first-order phase energy control a Navier–Stokes
+   critical vorticity quantity?
 
-The first two have conditional constructive answers. The third becomes an exact projection problem involving the surrounding scale field.
+The first two have conditional constructive answers. The third becomes an
+exact projection problem involving the surrounding scale field. The fourth
+has a negative answer for static energy sublevels; a dynamical whole-field
+restriction remains open.
 
 ## 2. Barycentric phase current
 
@@ -213,6 +226,77 @@ $$
 $$
 
 Each spinor component vanishes on one Hopf circle. The phase charts required by (8) fail there while the full doublet stays smooth and normalized. A single doublet can therefore carry global helicity through its full projective topology.
+
+### 3.4 First-order phase energy does not control enstrophy
+
+The same normalized doublet obeys the exact identity
+
+$$
+|\nabla Z|^2
+=|A|^2+\frac14|\nabla n|^2.
+$$
+
+The Mermin–Ho relation and the two-dimensional tangent space of $S^2$ imply
+
+$$
+|\omega|\le\frac{\kappa_v}{4}|\nabla n|^2.
+$$
+
+Thus the projective part of the first-order action controls
+$\|\omega\|_1$. It does not control $\|\omega\|_2$.
+
+The distinction is realized by an explicit smooth positive-chart family on
+$\mathbb R^3$. With
+
+$$
+a(y)=\frac14e^{-|y|^2},
+\qquad
+b(y)=y_1e^{-|y|^2},
+$$
+
+take
+
+$$
+c_\varepsilon(x)=\frac12+a(x/\varepsilon),
+\qquad
+\alpha_\varepsilon(x)=\varepsilon^{-1/2}b(x/\varepsilon),
+$$
+
+and choose the common phase so that
+
+$$
+A_\varepsilon
+=\mathbb P(c_\varepsilon\nabla\alpha_\varepsilon)
+=\varepsilon^{-3/2}
+\left[\mathbb P(a\nabla b)\right](x/\varepsilon).
+$$
+
+All component amplitudes remain positive. Direct calculation gives
+
+$$
+\int|\nabla Z_\varepsilon|^2dx=P_0+\varepsilon P_1,
+\qquad 0<P_0,P_1<\infty,
+$$
+
+while
+
+$$
+\|\omega_\varepsilon\|_2^2
+=\frac{\kappa_v^2\pi^{3/2}}{128\varepsilon^2}.
+$$
+
+The global positive chart has zero integrated helicity. Hence its
+$L^2$-optimal scalar Beltrami coefficient is zero and
+$\|\omega_\varepsilon\|_3^2$ scales as $\varepsilon^{-3}$.
+The full construction and its connection to the exact Navier–Stokes
+continuation criterion are in
+`turbulence/navier-stokes-strain-departure.md` §10.
+
+The counterexample lies inside one scale band. Additional scale bands do
+not restore a static bound unless the whole-field dynamics restrict this
+subfamily. A curvature-square term could control this Berry vorticity, but
+it would be an added higher-order action rather than a consequence of the
+first-order phase energy.
 
 ## 4. Two scale bands: a periodic helical construction
 
@@ -474,10 +558,21 @@ classification is identical, and the protocol and verifier hashes are
 unchanged. The source comparison is retained in
 `runs/cassi_fluid_phase_current_q2/reconciliation.json`.
 
-The supported result is a conditional phase-current rotational reduction with
-explicit topology and energy accounting. A microscopic positive viscosity,
-material coefficient, arbitrary-flow momentum closure, and arbitrary-data
-global regularity theorem remain **UNESTABLISHED**.
+A separate fixed follow-up,
+`computations/navier-stokes-helical-spread-prereg.md`, passes all **84
+checks** through
+`computations/verify_navier_stokes_helical_spread.py`. It verifies the
+signed curl-moment identities, the critical scalar-Beltrami residual
+criterion, three periodic flow controls, the positive-chart concentration
+family and every stated dilation exponent. Its retained receipt is
+`runs/navier_stokes_helical_spread/verification.json`.
+
+The supported result is a conditional phase-current rotational reduction
+with explicit topology and energy accounting. Its first-order positive
+energy does not control enstrophy or the critical scalar-Beltrami residual.
+A microscopic positive viscosity, material coefficient, arbitrary-flow
+momentum closure, whole-field dynamical concentration bound, and
+arbitrary-data global regularity theorem remain **UNESTABLISHED**.
 
 ## References
 
@@ -487,6 +582,9 @@ global regularity theorem remain **UNESTABLISHED**.
 - `turbulence/cassi-fluid-feasibility.md`—conservative matter reduction and selected thermal fluid.
 - `computations/cassi-fluid-phase-current-prereg.md`—fixed equations, fixtures, tolerances and decisions.
 - `computations/verify_cassi_fluid_phase_current.py`—exact algebra, Fourier, Hopf, memory and raw-array checks.
+- `turbulence/navier-stokes-strain-departure.md` §10—signed curl spread, critical Beltrami residual and explicit phase-energy concentration family.
+- `computations/navier-stokes-helical-spread-prereg.md`—fixed helical-moment, residual and phase-coercivity checks.
+- `computations/verify_navier_stokes_helical_spread.py`—84-check exact follow-up verifier.
 - N. D. Mermin and T.-L. Ho, [Circulation and Angular Momentum in the A Phase of Superfluid Helium-3](https://doi.org/10.1103/PhysRevLett.36.594)—order-parameter vorticity geometry.
 - Z. Yoshida, [Clebsch parameterization: Basic properties and remarks on its applications](https://doi.org/10.1063/1.3256125)—generalized Clebsch representation and global qualifications.
 - R. Zwanzig, [Memory Effects in Irreversible Thermodynamics](https://doi.org/10.1103/PhysRev.124.983)—exact projected memory and fluctuating-force structure.

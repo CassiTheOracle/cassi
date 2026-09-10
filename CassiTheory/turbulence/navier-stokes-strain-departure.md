@@ -1,6 +1,6 @@
 # Strain Departure and Critical Spectral Concentration
 
-## Status: Derived conditional estimates and cumulative mixing obstruction / Open arbitrary-data critical work—September 2026
+## Status: Derived conditional estimates, helical reduction and cumulative mixing obstruction / Open arbitrary-data critical work—September 2026
 
 ## Abstract
 
@@ -25,6 +25,16 @@ vanish locally, while obtaining a nontrivial unforced limit requires
 additional compactness. Arbitrary-data regularity remains open.
 
 An exact periodic mixing family supplies a cumulative obstruction. Its globally smooth solutions preserve odd Cartesian phase symmetry while accumulated excess critical transfer, spread dissipation and positive spread production become arbitrarily large relative to the initial squared critical norm $\mathcal C(0)$. The lower bounds follow from a continuum comparison with controlled parabolic error and the exact spread budget. A separate Fourier cancellation gives a finite nonlinear critical-transfer bound within the same invariant family.
+
+The signed curl spectrum gives a complementary helical spread and the
+$L^2$-optimal scalar Beltrami residual
+$r_B=\omega-Hu/(2K)$. Finite
+$\int\|r_B\|_3^2dt$ controls enstrophy and the cumulative radial-spread
+production, but no arbitrary-data bound on that critical integral is known.
+A smooth one-band positive-doublet family has bounded first-order phase
+energy while its enstrophy and instantaneous $L^3$ residual diverge. Thus
+the current phase action does not supply the missing coercivity; a
+full-bubble dynamical restriction remains open.
 
 ## 1. Equation, data and source boundary
 
@@ -334,12 +344,15 @@ Thus $\sup\mathcal C$ and $\int Y\,dt$ are bounded on that interval. Since $4E^2
 Viscosity decreases the unnormalized spread, while convection can replenish it.
 Set
 $$
+\mathcal A:=\langle\Lambda^2u,B\rangle
+=\int\omega\cdot S\omega\,dx,
+\qquad
 \mathcal Q:=2KG+2E^2-\mathcal C Y,
 \qquad
-\mathscr P_{\mathcal V}:=KA-\mathcal C F.
+\mathscr P_{\mathcal V}:=K\mathcal A-\mathcal C F.
 $$
-Differentiating $\mathcal V$ using $K'=-2\nu E$, $E'=A-2\nu G$
-and the critical budget gives
+Differentiating $\mathcal V$ using $K'=-2\nu E$,
+$E'=\mathcal A-2\nu G$ and the critical budget gives
 $$
 \boxed{\mathcal V'+\nu\mathcal Q=\mathscr P_{\mathcal V}.}
 $$
@@ -452,8 +465,8 @@ $$
 \begin{aligned}
 \mathscr P_{\mathcal V}
 &=K\left\langle(\Lambda-m)^2u,B\right\rangle\\
-&=KA-2KmF+Km^2\langle u,B\rangle
-=KA-\mathcal C F.
+&=K\mathcal A-2KmF+Km^2\langle u,B\rangle
+:=K\mathcal A-\mathcal C F.
 \end{aligned}
 $$
 Together with the bound on $B$ in §6.2,
@@ -1275,6 +1288,547 @@ remain **UNRESOLVED**. Every solution in this construction is globally
 smooth, and the calculation makes no claim of a singular trajectory or of
 priority over the shear-mixing literature.
 
+## 10. Helical spread and the phase-current coercivity boundary
+
+The radial spectral measure in §6 records frequency magnitude but discards
+the sign of the curl polarization. Retaining that sign separates
+same-helicity spectral concentration from cancellation between opposite
+helicities. It also gives a critical continuation condition that can be
+compared directly with Cassi's phase-current geometry.
+
+### 10.1 Signed curl spectrum and optimal scalar Beltrami residual
+
+For each nonzero Fourier mode, choose the helical basis
+$h_\sigma(k)$ satisfying
+
+$$
+i k\times h_\sigma(k)=\sigma|k|h_\sigma(k),
+\qquad \sigma\in\{-1,+1\}.
+$$
+
+Put the spectral energy of the coefficient $u_\sigma(k)$ at the signed
+frequency $x=\sigma|k|$. The resulting positive measure $d\mu(x)$ has
+moments
+
+$$
+(M_0,M_1,M_2,M_3,M_4)=(2K,H,2E,J,2G),
+$$
+
+where
+
+$$
+H=\langle u,\omega\rangle,
+\qquad
+J=\langle\omega,\nabla\times\omega\rangle.
+$$
+
+For $K>0$, define
+
+$$
+\lambda_B=\frac{H}{2K},
+\qquad
+r_B=\omega-\lambda_Bu.
+$$
+
+This is the $L^2$-optimal scalar curl-eigenfield approximation:
+
+$$
+\begin{aligned}
+\|\omega-\lambda u\|_2^2
+&=2E-2\lambda H+2K\lambda^2\\
+&=\boxed{
+\|r_B\|_2^2+2K(\lambda-\lambda_B)^2},
+\end{aligned}
+$$
+
+$$
+\|r_B\|_2^2
+=2E-\frac{H^2}{2K}.
+$$
+
+The corresponding signed spectral spread is
+
+$$
+\boxed{
+\mathcal V_B
+:=KE-\frac{H^2}{4}
+=\frac K2\|r_B\|_2^2
+=\frac18\iint(x-y)^2\,d\mu(x)d\mu(y)\ge0.}
+$$
+
+The exact viscous spread is
+
+$$
+\boxed{
+\begin{aligned}
+\mathcal Q_B
+&:=2KG+2E^2-HJ\\
+&=E\|r_B\|_2^2+K\|\nabla r_B\|_2^2\\
+&=\frac14\iint(x-y)^2(x^2+y^2)\,d\mu(x)d\mu(y)\ge0.
+\end{aligned}}
+$$
+
+The second line uses
+
+$$
+\|\nabla r_B\|_2^2
+=2G-2\lambda_BJ+2E\lambda_B^2.
+$$
+
+The radial measure of §6 is the pushforward of $d\mu$ under
+$x\mapsto|x|$. Write
+
+$$
+\mathcal C_\pm=\int_{\{\pm x>0\}}|x|\,d\mu,
+\qquad
+Y_\pm=\int_{\{\pm x>0\}}|x|^3\,d\mu.
+$$
+
+Then
+
+$$
+\mathcal C=\mathcal C_++\mathcal C_-,
+\quad H=\mathcal C_+-\mathcal C_-,
+\quad Y=Y_++Y_-,
+\quad J=Y_+-Y_-.
+$$
+
+Consequently,
+
+$$
+\boxed{
+\mathcal V_B=\mathcal V+\mathcal C_+\mathcal C_-,
+}
+$$
+
+$$
+\boxed{
+\mathcal Q_B
+=\mathcal Q
++2(\mathcal C_+Y_-+\mathcal C_-Y_+).
+}
+$$
+
+The new terms measure opposite-helicity mixing. They vanish when only one
+curl sign is present. A measure supported on one frequency radius can have
+$\mathcal V=0$ while $\mathcal V_B>0$ because radial concentration does not
+distinguish the two curl eigenspaces.
+
+### 10.2 Exact dynamics and a critical residual criterion
+
+The unforced helicity budget is
+
+$$
+H'=-2\nu J.
+$$
+
+Combining it with the energy and enstrophy budgets gives
+
+$$
+\boxed{
+\mathcal V_B'+\nu\mathcal Q_B=K\mathcal A.
+}
+$$
+
+The opposite-helicity mixing penalty has its own exact budget:
+
+$$
+\boxed{
+(\mathcal C_+\mathcal C_-)'
+=\mathcal C F-\nu(\mathcal C Y-HJ).
+}
+$$
+
+Thus nonlinear helicity conservation does not prevent creation of
+opposite-sign spectral mixing. Its production is the signed critical
+transfer $\mathcal C F$.
+
+There is nevertheless an exact stretching cancellation for every scalar
+$\lambda(t)$. Integration by parts, incompressibility and
+$(u\cdot\nabla)u=\omega\times u+\nabla(|u|^2/2)$ give
+
+$$
+\langle u,S\omega\rangle=0.
+$$
+
+Therefore
+
+$$
+\boxed{
+\mathcal A
+=\langle\omega,S\omega\rangle
+=\langle\omega-\lambda u,S\omega\rangle.
+}
+$$
+
+Choose $\lambda=\lambda_B$. Let $c_B$ dominate the fixed-domain Sobolev
+constants in
+
+$$
+\|S\|_6\le c_B\sqrt G,
+\qquad
+\|u\|_6\le c_B\sqrt{2E}.
+$$
+
+With $R_B=\|r_B\|_3$, Hölder and Young give
+
+$$
+\begin{aligned}
+|\mathcal A|
+&\le c_B\sqrt{2EG}\,R_B\\
+&\le\nu G+\frac{c_B^2}{2\nu}ER_B^2.
+\end{aligned}
+$$
+
+The enstrophy budget consequently becomes
+
+$$
+\boxed{
+E'+\nu G
+\le\frac{c_B^2}{2\nu}R_B^2E.
+}
+$$
+
+If
+
+$$
+\boxed{
+I_B(T):=\int_0^T
+\left\|\omega-\frac{H}{2K}u\right\|_3^2dt<\infty,
+}
+$$
+
+then
+
+$$
+\boxed{
+E(t)\le E(0)
+\exp\!\left(\frac{c_B^2}{2\nu}I_B(t)\right).
+}
+$$
+
+Bounded enstrophy gives the standard finite-endpoint continuation. This
+produces a conditional criterion for the original equation, not an estimate
+of $I_B$ from arbitrary data.
+
+The criterion is critical under the Euclidean Navier–Stokes scaling
+$u_\rho(x,t)=\rho u(\rho x,\rho^2t)$. Indeed,
+
+$$
+\lambda_{B,\rho}=\rho\lambda_B,
+\qquad
+r_{B,\rho}(x,t)=\rho^2r_B(\rho x,\rho^2t),
+$$
+
+so $\|r_{B,\rho}\|_3^2dt=\|r_B\|_3^2dt$ after the time change.
+The $L^2$-optimal coefficient is used because it also generates the exact
+signed-moment identities. The stretching cancellation itself holds for
+any scalar coefficient.
+
+### 10.3 Closing the radial positive-production condition
+
+The same residual sharpens the open production estimate in §6.3. Since
+
+$$
+B=\mathbb P(u\times\omega)=\mathbb P(u\times r_B),
+$$
+
+the centered radial-spread identity and
+$\|(\Lambda-m)^2u\|_2^2\le\mathcal Q/K$ give
+
+$$
+\boxed{
+\begin{aligned}
+|\mathscr P_{\mathcal V}|
+&\le c_B\sqrt{2KE\mathcal Q}\,R_B\\
+&\le\frac\nu2\mathcal Q
++\frac{c_B^2}{\nu}KER_B^2.
+\end{aligned}}
+$$
+
+Let $I=I_B(t)$. Combining this inequality with
+$\mathcal V'+\nu\mathcal Q=\mathscr P_{\mathcal V}$,
+$K(t)\le K_0$, and the enstrophy bound above yields
+
+$$
+\boxed{
+\int_0^t(\mathscr P_{\mathcal V})_+\,ds
+\le\mathcal V(0)
++\frac{2c_B^2K_0E_0}{\nu}
+I\exp\!\left(\frac{c_B^2I}{2\nu}\right).
+}
+$$
+
+Thus finite critical residual work supplies the cumulative
+positive-production hypothesis that was left open in §6.4. The reduction
+does not solve the arbitrary-data problem; it identifies the remaining
+quantity more geometrically. With $R_0$ as in §9.1, the sufficient
+all-data target can be written
+
+$$
+\boxed{
+\sup_{0\le t<\min(T,T_*)}
+\int_0^t
+\left\|\omega-\frac{H}{2K}u\right\|_3^2ds
+\le M_B(\nu,T,R)<\infty
+\quad\text{whenever }R_0\le R.
+}
+$$
+
+No such estimate is established here.
+
+### 10.4 Exact controls delimit the criterion
+
+Two exact global heat flows show that the residual is a conditional
+regularity quantity rather than a pointwise danger score. The Beltrami
+flow
+
+$$
+u=a e^{-\nu n^2t}(\sin nz,\cos nz,0)
+$$
+
+has $\omega=nu$ and
+
+$$
+\mathcal V=\mathcal V_B=\mathcal Q=\mathcal Q_B=0.
+$$
+
+The shear flow
+
+$$
+u=a e^{-\nu n^2t}(\sin ny,0,0)
+$$
+
+has $H=J=\mathcal V=\mathcal Q=0$ but
+
+$$
+\mathcal V_B
+=\frac{a^4n^2e^{-4\nu n^2t}}{16},
+\qquad
+\mathcal Q_B=4n^2\mathcal V_B.
+$$
+
+It is globally smooth for every $a$, $n$, and $\nu>0$. Large instantaneous
+Beltrami defect therefore does not imply concentration growth.
+
+Conversely, zero total helicity does not cancel stretching. The smooth
+periodic datum
+
+$$
+u=(0,1,1)\cos x
++(1,0,1)\cos y
++(1,-1,1)\sin(x+y)
+$$
+
+is divergence-free and has
+
+$$
+K=\frac74,\quad E=\frac52,\quad G=4,\quad H=J=0,
+$$
+
+$$
+\mathcal C=2+\frac{3\sqrt2}{2},
+\qquad
+Y=2+3\sqrt2,
+\qquad
+\boxed{\mathcal A=\frac12.}
+$$
+
+Its spread values are
+
+$$
+\mathcal V=\frac94-\frac{3\sqrt2}{2},
+\qquad
+\mathcal V_B=\frac{35}{8},
+$$
+
+$$
+\mathcal Q=\frac{27}{2}-9\sqrt2,
+\qquad
+\mathcal Q_B=\frac{53}{2}.
+$$
+
+Direct integration gives
+$\langle\omega-\lambda u,S\omega\rangle=1/2$ for every scalar
+$\lambda$. The signed spectrum distinguishes this mixed-helicity datum,
+while the residual criterion still requires time integrability rather than
+an instantaneous sign.
+
+### 10.5 The first-order Cassi phase energy is not coercive enough
+
+The phase-current map gives the requested direct comparison with Cassi.
+For one normalized positive doublet, write
+
+$$
+Z=(\sqrt c\,e^{i\theta_Y},
+\sqrt{1-c}\,e^{i\theta_I}),
+\qquad
+\alpha=\theta_Y-\theta_I,
+$$
+
+and use the dimensionless Berry connection
+
+$$
+\mathsf A=-iZ^\dagger dZ=d\theta_I+c\,d\alpha,
+\qquad
+u=\kappa_v\mathsf A.
+$$
+
+The exact first-order energy split is
+
+$$
+\boxed{
+|\nabla Z|^2
+=|\mathsf A|^2+\frac14|\nabla n|^2,
+\qquad n=Z^\dagger\sigma Z.
+}
+$$
+
+Mermin–Ho gives
+
+$$
+\omega_i
+=\frac{\kappa_v}{4}\epsilon_{ijk}
+n\cdot(\partial_jn\times\partial_kn).
+$$
+
+Since the differential of a map into $S^2$ has at most two nonzero
+singular values,
+
+$$
+\boxed{
+|\omega|\le\frac{\kappa_v}{4}|\nabla n|^2.
+}
+$$
+
+After integration, the projective part of the first-order action controls
+$\|\omega\|_1$. It does not control $\|\omega\|_2$ or $R_B$.
+
+This failure has a smooth explicit concentration family. On
+$\mathbb R^3$, fix
+
+$$
+a(y)=\frac14e^{-|y|^2},
+\qquad
+b(y)=y_1e^{-|y|^2},
+$$
+
+and, for $0<\varepsilon\le1$, set
+
+$$
+c_\varepsilon(x)=\frac12+a(x/\varepsilon),
+\qquad
+\alpha_\varepsilon(x)
+=\varepsilon^{-1/2}b(x/\varepsilon).
+$$
+
+Choose
+
+$$
+\theta_{I,\varepsilon}
+=-\frac12\alpha_\varepsilon
+-\Delta^{-1}\nabla\cdot
+\left(a(x/\varepsilon)\nabla\alpha_\varepsilon\right),
+\qquad
+\theta_{Y,\varepsilon}
+=\theta_{I,\varepsilon}+\alpha_\varepsilon.
+$$
+
+Then
+
+$$
+\mathsf A_\varepsilon
+=\mathbb P(c_\varepsilon\nabla\alpha_\varepsilon)
+=\varepsilon^{-3/2}
+\left[\mathbb P(a\nabla b)\right](x/\varepsilon).
+$$
+
+The connection is nonzero because
+
+$$
+\nabla a\times\nabla b
+=\frac12e^{-2|y|^2}(0,-y_3,y_2),
+$$
+
+and
+
+$$
+\int_{\mathbb R^3}
+|\nabla a\times\nabla b|^2dy
+=\frac{\pi^{3/2}}{128}.
+$$
+
+The resulting physical vorticity satisfies
+
+$$
+\boxed{
+\|\omega_\varepsilon\|_2^2
+=\frac{\kappa_v^2\pi^{3/2}}{128\varepsilon^2}.
+}
+$$
+
+In contrast, the complete normalized-doublet gradient energy is
+
+$$
+\boxed{
+\int|\nabla Z_\varepsilon|^2dx=P_0+\varepsilon P_1,
+\qquad 0<P_0,P_1<\infty.
+}
+$$
+
+Here
+
+$$
+P_0=\|\mathbb P(a\nabla b)\|_2^2
++\int c(1-c)|\nabla b|^2dy,
+$$
+
+$$
+P_1=\int\frac{|\nabla a|^2}{4c(1-c)}dy,
+\qquad c=\frac12+a.
+$$
+
+Both component amplitudes remain strictly positive. The global Clebsch
+chart gives zero integrated helicity, so $\lambda_B=0$ and
+$r_B=\omega$. Dilation also gives
+
+$$
+\|r_{B,\varepsilon}\|_3^2
+=\varepsilon^{-3}\|r_{B,1}\|_3^2.
+$$
+
+Therefore a bounded sublevel of the full first-order doublet gradient
+energy contains smooth phase-current velocities with unbounded enstrophy
+and unbounded instantaneous critical residual. The obstruction already
+lies in one scale band. Adding further bands does not remove it unless
+their dynamics impose an additional cross-band constraint.
+
+A curvature-square term would control enstrophy of this Berry channel,
+but inserting one changes the model. It cannot establish regularity of the
+original Navier–Stokes equation without a uniform limiting argument. The
+other remaining possibility is dynamical: the whole bubble's selected
+initial state and exterior correlations could constrain the time integral
+$I_B$. No such selection theorem or memory-kernel estimate is currently
+derived.
+
+### 10.6 Verification and scope
+
+The fixed protocol is
+`computations/navier-stokes-helical-spread-prereg.md`. The exact verifier
+`computations/verify_navier_stokes_helical_spread.py` passes all **84
+checks**. It evaluates signed moments, Young coefficients,
+the three periodic controls, the Berry pullback, the Gaussian integral and
+all dilation powers. The retained receipt is
+`runs/navier_stokes_helical_spread/verification.json`, schema
+`cassi.navier-stokes.helical-spread.verification.v1`.
+
+The helical identities, residual continuation criterion and implication
+for radial positive production are **DERIVED CONDITIONAL REDUCTION**. The
+proposed static control by first-order positive-doublet energy is
+**CONTRADICTS**. An arbitrary-data bound on $I_B$, a full-bubble dynamical
+exclusion of the concentration family and global regularity remain
+**UNRESOLVED**. No singular solution or formal-proof build is produced.
+
 ## References
 
 - E. Miller, [Finite-time blowup for a Navier–Stokes model equation for the self-amplification of strain](https://arxiv.org/abs/1910.05415), §§5–6—strain model, perturbative comparison, explicit Gaussian datum, initial perturbative window and axisymmetric departure; [mathematical HTML](https://ar5iv.labs.arxiv.org/html/1910.05415).
@@ -1291,6 +1845,11 @@ priority over the shear-mixing literature.
 - `computations/verify_navier_stokes_forced_concentration.py`—exact forced derivatives, independent FFT reconstruction and Gaussian quadrature.
 - `computations/navier-stokes-mixing-budget-prereg.md`—fixed continuum-comparison controls and invariant-class trajectory schedule.
 - `computations/verify_navier_stokes_mixing_budget.py`—exact moments, full Leray pairing, cumulative trajectories and independent spatial momentum reconstruction.
+- `computations/navier-stokes-helical-spread-prereg.md`—fixed signed-moment, residual, flow-control and phase-concentration checks.
+- `computations/verify_navier_stokes_helical_spread.py`—84-check exact helical-spread and phase-coercivity verifier.
+- `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—positive-doublet current, Mermin–Ho vorticity and topology boundary.
+- Z. Grujić and L. Xu, [Time-averaging of the 3D Navier–Stokes equations and near-Beltrami dynamics](https://arxiv.org/abs/1608.05658)—near-Beltrami context.
+- L. C. Berselli and D. Córdoba, [On the regularity of the solutions to the 3D Navier–Stokes equations: a remark on the role of the helicity](https://doi.org/10.1016/j.crma.2009.03.003)—velocity–vorticity alignment context.
 - OpenAI, [Finite time blowup for Navier–Stokes](https://cdn.openai.com/pdf/32d9f210-8b73-45e0-91bc-82a30aef8a9a/navier-stokes.pdf), Theorem 1.1 and §§2–3—announced forced construction and mechanism; proof correctness is outside this analysis.
 - C. Fefferman, [Existence and smoothness of the Navier–Stokes equation](https://www.claymath.org/wp-content/uploads/2022/06/navierstokes.pdf)—original problem alternatives.
 - `field-experience/probe-outcome-ledger.md`—qualified evidence and scope.
