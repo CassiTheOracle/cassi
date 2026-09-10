@@ -2243,20 +2243,20 @@ weak-coupling volume bounds, the thermodynamic and continuum limits, the
 continuum mass gap and Cassi microscopic identification remain
 **UNRESOLVED**.
 
-### 9.18 Continuous-\(SU(2)\) radial Feshbach transfer
+### 9.18 Continuous-$SU(2)$ radial Feshbach transfer
 
-This section gives the exact cutoff reduction for one continuous-\(SU(2)\)
+This section gives the exact cutoff reduction for one continuous-$SU(2)$
 isolated open square. The electric-character cutoff produces a finite
 Feshbach pencil whose discarded tail is an energy-dependent scalar
 self-energy. The same calculation shows why a cutoff of order
-\(x^{1/4}\) can isolate a fixed low-energy window while bare compression
-requires a cutoff whose ratio to \(x^{1/4}\) diverges.
+$x^{1/4}$ can isolate a fixed low-energy window while bare compression
+requires a cutoff whose ratio to $x^{1/4}$ diverges.
 
 #### 9.18.1 Radial Hilbert space and operator domain
 
 The continuous group is represented by the normalized Haar class-function
 sector, so the character index is an infinite Hilbert-space coordinate rather
-than a finite quadrature label. With \(n=2j\), the orthonormal basis,
+than a finite quadrature label. With $n=2j$, the orthonormal basis,
 Haar measure, and character functions are
 
 $$
@@ -2274,9 +2274,9 @@ $$
 
 The character basis in (YM57) supplies the coordinate realization of the same
 continuous-group Hilbert space. Define
-\(k_n=n(n+2)\). The multiplication recurrence
-\(\chi_{1/2}\chi_{n/2}=\chi_{(n-1)/2}+\chi_{(n+1)/2}\), with the first term
-absent at \(n=0\), gives the half-line Jacobi operator below:
+$k_n=n(n+2)$. The multiplication recurrence
+$\chi_{1/2}\chi_{n/2}=\chi_{(n-1)/2}+\chi_{(n+1)/2}$, with the first term
+absent at $n=0$, gives the half-line Jacobi operator below:
 
 $$
 \begin{aligned}
@@ -2291,11 +2291,11 @@ T|n\rangle=|n-1\rangle+|n+1\rangle\quad(n\geq1),\qquad
 \tag{YM58}
 $$
 
-The last identity first holds for finitely supported \(f\) and then by
-closure. The bound \(\|T\|\leq2\) follows from the two nearest-neighbor
+The last identity first holds for finitely supported $f$ and then by
+closure. The bound $\|T\|\leq2$ follows from the two nearest-neighbor
 terms, and long constant blocks give approximate vectors with Rayleigh
-quotient tending to \(2\), proving equality. Thus \(K\) is nonnegative
-self-adjoint on \(D(K)\), while \(T\) is bounded self-adjoint. For \(g,a>0\),
+quotient tending to $2$, proving equality. Thus $K$ is nonnegative
+self-adjoint on $D(K)$, while $T$ is bounded self-adjoint. For $g,a>0$,
 use exactly
 
 $$
@@ -2306,16 +2306,16 @@ D(h_x)=D(K),\qquad h_x\geq0.
 \tag{YM59}
 $$
 
-The bounded-perturbation theorem gives self-adjointness on \(D(K)\).
-Since \((K+1)^{-1}\) is compact, the resolvent identity for a bounded
-perturbation gives compact resolvent for \(h_x\). The same argument on
-\(Q_N\mathcal H_\square\) gives self-adjointness on \(Q_ND(K)\), compact
+The bounded-perturbation theorem gives self-adjointness on $D(K)$.
+Since $(K+1)^{-1}$ is compact, the resolvent identity for a bounded
+perturbation gives compact resolvent for $h_x$. The same argument on
+$Q_N\mathcal H_\square$ gives self-adjointness on $Q_ND(K)$, compact
 resolvent, and discrete spectrum for every tail used below.
 
-The radial unitary \(U:\mathcal H_\square\to L^2((0,\pi),d\theta)\) is
-\((U\psi)(\theta)=\sqrt{2/\pi}\sin\theta\,\psi(\theta)\). Since
-\(U|n\rangle=\sqrt{2/\pi}\sin((n+1)\theta)\), direct differentiation and
-multiplication by \(1-\cos\theta\) give
+The radial unitary $U:\mathcal H_\square\to L^2((0,\pi),d\theta)$ is
+$(U\psi)(\theta)=\sqrt{2/\pi}\sin\theta\,\psi(\theta)$. Since
+$U|n\rangle=\sqrt{2/\pi}\sin((n+1)\theta)$, direct differentiation and
+multiplication by $1-\cos\theta$ give
 
 $$
 U h_xU^{-1}
@@ -2327,12 +2327,12 @@ D(\widetilde h_x)=H^2(0,\pi)\cap H_0^1(0,\pi).
 $$
 
 The endpoint conditions are the radial Dirichlet conditions. This establishes
-the continuous-\(SU(2)\) operator before any finite-section or numerical
+the continuous-$SU(2)$ operator before any finite-section or numerical
 approximation.
 
 #### 9.18.2 Exact Schur reduction and Weyl identities
 
-For \(N\geq0\), retain characters \(0,\ldots,N\) and write
+For $N\geq0$, retain characters $0,\ldots,N$ and write
 
 $$
 P_N=\sum_{n=0}^{N}|n\rangle\langle n|,\qquad
@@ -2343,11 +2343,11 @@ V_N=P_Nh_xQ_N=-x|N\rangle\langle N+1|.
 \tag{YM61}
 $$
 
-For \(z\in\rho(D_N)\), put \(B_N(z)=D_N-z\) and
-\[
+For $z\in\rho(D_N)$, put $B_N(z)=D_N-z$ and
+$
 m_{N+1}(z):=\langle N+1|B_N(z)^{-1}|N+1\rangle .
-\]
-Eliminating the \(Q_N\)-component is an exact operation on the operator
+$
+Eliminating the $Q_N$-component is an exact operation on the operator
 domain. The block Gaussian factorization is
 
 $$
@@ -2380,7 +2380,7 @@ z\in\sigma(h_x)
 \tag{YM64}
 $$
 
-Indeed, if \(p=P_N\psi\), the second block equation gives the unique
+Indeed, if $p=P_N\psi$, the second block equation gives the unique
 discarded component
 
 $$
@@ -2392,20 +2392,20 @@ Q_N\psi
 $$
 
 Conversely, (YM65) reconstructs a vector in the domain from every
-\(p\in\ker F_N(z)\). This gives the eigenspace correspondence directly;
+$p\in\ker F_N(z)$. This gives the eigenspace correspondence directly;
 the factorization gives the corresponding analytic multiplicity statement.
 
-To make the tail scalar explicit, let \(D^{(n)}\) be the restriction of
-\(h_x\) to \(\ell^2(\{n,n+1,\ldots\})\), define
-\(m_n(z)=\langle n|(D^{(n)}-z)^{-1}|n\rangle\), and set
-\(d_n=k_n+2x\). Schur elimination of the first tail site gives
+To make the tail scalar explicit, let $D^{(n)}$ be the restriction of
+$h_x$ to $\ell^2(\{n,n+1,\ldots\})$, define
+$m_n(z)=\langle n|(D^{(n)}-z)^{-1}|n\rangle$, and set
+$d_n=k_n+2x$. Schur elimination of the first tail site gives
 
 $$
 m_n(z)=\frac{1}{d_n-z-x^2m_{n+1}(z)}.
 \tag{YM66}
 $$
 
-For the finite tail \(n,\ldots,M\), define
+For the finite tail $n,\ldots,M$, define
 
 $$
 \Delta_{n,M}(z)
@@ -2419,9 +2419,9 @@ m_n^{(M)}(z)=\frac{\Delta_{n+1,M}(z)}{\Delta_{n,M}(z)}.
 $$
 
 The finite resolvents converge at a fixed resolvent point to the half-line
-resolvent, so \(m_n^{(M)}(z)\) converges to \(m_n(z)\). If
-\(h_x^{(M)}=P_Mh_xP_M\) and \(D_N^{(M)}\) is its restriction to
-\(N+1,\ldots,M\), the same block factorization gives the determinant
+resolvent, so $m_n^{(M)}(z)$ converges to $m_n(z)$. If
+$h_x^{(M)}=P_Mh_xP_M$ and $D_N^{(M)}$ is its restriction to
+$N+1,\ldots,M$, the same block factorization gives the determinant
 identity
 
 $$
@@ -2431,8 +2431,8 @@ $$
 \tag{YM68}
 $$
 
-For real \(E<\inf\sigma(D_N)\), the spectral measure \(\nu_{N+1}\) of
-\(D_N\) at \(|N+1\rangle\) yields
+For real $E<\inf\sigma(D_N)$, the spectral measure $\nu_{N+1}$ of
+$D_N$ at $|N+1\rangle$ yields
 
 $$
 m_{N+1}(E)
@@ -2449,10 +2449,10 @@ the derivative needed for both the pole test and tail reconstruction.
 
 #### 9.18.3 Jensen, free-tail, and self-energy bounds
 
-Let \(r=N+1\), \(E<k_r\), and \(\delta=k_r-E>0\). On the tail, let \(L_+\)
+Let $r=N+1$, $E<k_r$, and $\delta=k_r-E>0$. On the tail, let $L_+$
 be the Dirichlet half-line Laplacian,
-\((L_+f)_r=2f_r-f_{r+1}\) and
-\((L_+f)_n=2f_n-f_{n-1}-f_{n+1}\) for \(n>r\). Since \(k_n\geq k_r\),
+$(L_+f)_r=2f_r-f_{r+1}$ and
+$(L_+f)_n=2f_n-f_{n-1}-f_{n+1}$ for $n>r$. Since $k_n\geq k_r$,
 
 $$
 B_N(E):=D_N-E\geq\delta I+xL_+,\qquad
@@ -2461,9 +2461,9 @@ m_r(E)\geq\frac{1}{\delta+2x}.
 \tag{YM70}
 $$
 
-The last inequality is Jensen's inequality for \(t\mapsto t^{-1}\) applied
-to the spectral measure of \(B_N(E)\):
-\(\int t^{-1}d\nu(t)\geq(\int t\,d\nu)^{-1}\). The operator order in the
+The last inequality is Jensen's inequality for $t\mapsto t^{-1}$ applied
+to the spectral measure of $B_N(E)$:
+$\int t^{-1}d\nu(t)\geq(\int t\,d\nu)^{-1}$. The operator order in the
 first inequality reverses under inversion. The boundary Green function of
 the free comparison tail therefore satisfies
 
@@ -2478,11 +2478,11 @@ g_+(\delta,x)
 \tag{YM71}
 $$
 
-The positive solution is selected by \(g_+>0\). Define
-\(\Sigma_N(E)=x^2m_r(E)\) and
-\[
+The positive solution is selected by $g_+>0$. Define
+$\Sigma_N(E)=x^2m_r(E)$ and
+$
 s(\delta,x):=x^2g_+(\delta,x)
-\]
+$
 to obtain the complete self-energy bracket
 
 $$
@@ -2497,8 +2497,8 @@ $$
 \tag{YM72}
 $$
 
-The two final estimates follow directly from the two forms of \(s\). Since
-\(F_N(E)=A_N-E-\Sigma_N(E)|N\rangle\langle N|\), (YM72) also gives
+The two final estimates follow directly from the two forms of $s$. Since
+$F_N(E)=A_N-E-\Sigma_N(E)|N\rangle\langle N|$, (YM72) also gives
 
 $$
 A_N-E-s(\delta,x)|N\rangle\langle N|
@@ -2507,8 +2507,8 @@ A_N-E-s(\delta,x)|N\rangle\langle N|
 \tag{YM73}
 $$
 
-At an eigenvalue \(E<\inf\sigma(D_N)\), choose \(p\in\ker F_N(E)\) with
-\(\|p\|=1\). Equations (YM65) and (YM69) then give
+At an eigenvalue $E<\inf\sigma(D_N)$, choose $p\in\ker F_N(E)$ with
+$\|p\|=1$. Equations (YM65) and (YM69) then give
 
 $$
 \|Q_N\psi\|^2
@@ -2520,21 +2520,21 @@ $$
 
 Thus the discarded probability and the normalization correction are obtained
 from the differentiated Weyl function itself. In particular,
-\(\delta=o(x)\) forces \(\Sigma_N(E)=\Theta(x)\), while
-\(\delta/x\to\infty\) gives \(\Sigma_N(E)\sim x^2/\delta\). The exact
+$\delta=o(x)$ forces $\Sigma_N(E)=\Theta(x)$, while
+$\delta/x\to\infty$ gives $\Sigma_N(E)\sim x^2/\delta$. The exact
 self-energy is consequently of the same order as the magnetic diagonal
 term whenever the tail threshold approaches the low energy on a scale
-smaller than \(x\).
+smaller than $x$.
 
 #### 9.18.4 Negative-axis resolvent estimates
 
-Set \(z=-\eta\) with \(\eta>0\), \(B_\eta=D_N+\eta\), and
-\[
+Set $z=-\eta$ with $\eta>0$, $B_\eta=D_N+\eta$, and
+$
 S_\eta:=A_N+\eta-V_NB_\eta^{-1}V_N^* .
-\]
-Because \(D_N>0\), \(h_x\geq0\) implies
-\(A_N-V_ND_N^{-1}V_N^*\geq0\). Also
-\(B_\eta^{-1}\leq D_N^{-1}\), so \(S_\eta\geq\eta P_N\). Block inversion
+$
+Because $D_N>0$, $h_x\geq0$ implies
+$A_N-V_ND_N^{-1}V_N^*\geq0$. Also
+$B_\eta^{-1}\leq D_N^{-1}$, so $S_\eta\geq\eta P_N$. Block inversion
 therefore gives
 
 $$
@@ -2544,13 +2544,13 @@ Q_N(h_x+\eta)^{-1}P_N
 \tag{YM75}
 $$
 
-Now \(\|B_\eta^{-1}\|\leq(k_r+\eta)^{-1}\),
-\(\|V_N\|=x\), and both \(S_\eta^{-1}\) and
-\((A_N+\eta)^{-1}\) have norm at most \(\eta^{-1}\). The inverse identity
-\[
+Now $\|B_\eta^{-1}\|\leq(k_r+\eta)^{-1}$,
+$\|V_N\|=x$, and both $S_\eta^{-1}$ and
+$(A_N+\eta)^{-1}$ have norm at most $\eta^{-1}$. The inverse identity
+$
 S_\eta^{-1}-(A_N+\eta)^{-1}
 =S_\eta^{-1}V_NB_\eta^{-1}V_N^*(A_N+\eta)^{-1}
-\]
+$
 then proves
 
 $$
@@ -2567,16 +2567,16 @@ $$
 \tag{YM77}
 $$
 
-At \(\eta=c\sqrt{x}\), the first right-hand side tends to zero under the
-sufficient unweighted condition \(N/\sqrt{x}\to\infty\), because
-\(k_r\sim N^2\). To make it negligible compared with the natural resolvent
-scale \(x^{-1/2}\), the sufficient condition is
-\(N/x^{3/4}\to\infty\). These are conservative operator-norm estimates and
+At $\eta=c\sqrt{x}$, the first right-hand side tends to zero under the
+sufficient unweighted condition $N/\sqrt{x}\to\infty$, because
+$k_r\sim N^2$. To make it negligible compared with the natural resolvent
+scale $x^{-1/2}$, the sufficient condition is
+$N/x^{3/4}\to\infty$. These are conservative operator-norm estimates and
 do not replace the low-energy form argument below.
 
 #### 9.18.5 Weak-coupling Mathieu scale
 
-The radial equation becomes a Mathieu equation after \(z=\theta/2\):
+The radial equation becomes a Mathieu equation after $z=\theta/2$:
 
 $$
 \frac{d^2u}{dz^2}
@@ -2588,8 +2588,8 @@ q_{\mathrm M}=-4x=-\frac{8}{g^4}.
 $$
 
 The Dirichlet endpoints select the even-order sine characteristic values.
-For the fixed-level asymptotics, put \(y=x^{1/4}\theta\). Taylor expansion of
-the same differential operator gives, on every fixed \(y\)-compact set,
+For the fixed-level asymptotics, put $y=x^{1/4}\theta$. Taylor expansion of
+the same differential operator gives, on every fixed $y$-compact set,
 
 $$
 x^{-1/2}\widetilde h_x
@@ -2601,11 +2601,11 @@ x^{-1/2}\widetilde h_x
 \tag{YM79}
 $$
 
-The limiting operator is the Dirichlet half-line oscillator. Its \(j\)-th
-state is the odd full-line oscillator state of index \(2j+1\), with energy
-\(4j+3\). The first perturbation is obtained by taking the expectation of
-\(-1-y^4/12\). Writing \(y=(a+a^\dagger)/\sqrt2\) in oscillator units and
-normal-ordering \(y^4\) gives the displayed fourth moment:
+The limiting operator is the Dirichlet half-line oscillator. Its $j$-th
+state is the odd full-line oscillator state of index $2j+1$, with energy
+$4j+3$. The first perturbation is obtained by taking the expectation of
+$-1-y^4/12$. Writing $y=(a+a^\dagger)/\sqrt2$ in oscillator units and
+normal-ordering $y^4$ gives the displayed fourth moment:
 
 $$
 \left\langle\phi_{2j+1},y^4\phi_{2j+1}\right\rangle
@@ -2617,12 +2617,12 @@ c_j=-1-\frac{1}{12}\left(6j^2+9j+\frac{15}{4}\right),
 $$
 
 The oscillator states are exponentially localized while the far endpoint is
-\(\pi x^{1/4}\), so the Taylor remainder and endpoint error have the stated
-order for each fixed \(j\).
+$\pi x^{1/4}$, so the Taylor remainder and endpoint error have the stated
+order for each fixed $j$.
 
-Subtracting the \(j=0\) expansion gives the gap formula below. Since
-\(c_1-c_0=-5/4\) and \(\sqrt{x}=\sqrt2/g^2\), multiplication by
-\(g^2/(2a)\) gives the isolated-square physical spacing
+Subtracting the $j=0$ expansion gives the gap formula below. Since
+$c_1-c_0=-5/4$ and $\sqrt{x}=\sqrt2/g^2$, multiplication by
+$g^2/(2a)$ gives the isolated-square physical spacing
 
 $$
 \lambda_j(h_x)-\lambda_0(h_x)
@@ -2636,13 +2636,13 @@ $$
 \tag{YM81}
 $$
 
-The leading \(2\sqrt2/a\) is an isolated ultraviolet plaquette
-normalization. It is not a volume-uniform interacting mass or a continuum
-prediction.
+The leading $2\sqrt2/a$ has status solely as an isolated ultraviolet
+plaquette normalization; volume-uniform interacting masses and continuum
+predictions remain outside this result.
 
 #### 9.18.6 Retained and discarded forms
 
-For \(f=(f_0,\ldots,f_N)\), the retained finite section has the exact form
+For $f=(f_0,\ldots,f_N)$, the retained finite section has the exact form
 
 $$
 \begin{aligned}
@@ -2656,8 +2656,8 @@ $$
 $$
 
 The bracketed term is the Dirichlet discrete Laplacian on
-\(0,\ldots,N\). Its sine eigenvectors have lowest eigenvalue
-\(4\sin^2[\pi/(2(N+2))]\), hence
+$0,\ldots,N$. Its sine eigenvectors have lowest eigenvalue
+$4\sin^2[\pi/(2(N+2))]$, hence
 
 $$
 \lambda_0(A_N)\geq
@@ -2665,7 +2665,7 @@ $$
 \tag{YM83}
 $$
 
-For \(f=(f_{N+1},f_{N+2},\ldots)\), the discarded tail has the different
+For $f=(f_{N+1},f_{N+2},\ldots)$, the discarded tail has the different
 boundary form
 
 $$
@@ -2680,11 +2680,11 @@ $$
 $$
 
 These identities retain the electric potential and every boundary term; the
-bare section \(A_N\) simply removes the tail and its self-energy.
+bare section $A_N$ simply removes the tail and its self-energy.
 
-Let \(\varepsilon=x^{-1/4}\), \(y_n=\varepsilon n\), \(C_x=\varepsilon N\),
-and rescale a sequence by \(u_n=\varepsilon^{-1/2}f_n\), so
-\(\sum_n|f_n|^2\) is a Riemann sum for \(\int|u|^2dy\). Then
+Let $\varepsilon=x^{-1/4}$, $y_n=\varepsilon n$, $C_x=\varepsilon N$,
+and rescale a sequence by $u_n=\varepsilon^{-1/2}f_n$, so
+$\sum_n|f_n|^2$ is a Riemann sum for $\int|u|^2dy$. Then
 
 $$
 \frac{k_n}{\sqrt{x}}=y_n^2+2\varepsilon y_n,\qquad
@@ -2694,13 +2694,13 @@ x^{-1/2}x|f_n|^2=\varepsilon^{-1}|u_n|^2.
 \tag{YM85}
 $$
 
-The middle expression converges to \(\int|u'|^2dy\) under piecewise-linear
+The middle expression converges to $\int|u'|^2dy$ under piecewise-linear
 interpolation. The last expression diverges unless the interpolated function
 vanishes at the associated finite endpoint. Thus the two boundary penalties
-in (YM82) impose Dirichlet data at \(y=0,C\), while the one in (YM84) imposes
-Dirichlet data at \(y=C\).
+in (YM82) impose Dirichlet data at $y=0,C$, while the one in (YM84) imposes
+Dirichlet data at $y=C$.
 
-If \(N/x^{1/4}\to C\in(0,\infty)\), the Riemann-sum calculation, lower
+If $N/x^{1/4}\to C\in(0,\infty)$, the Riemann-sum calculation, lower
 semicontinuity, and compactly supported recovery sequences give the form
 limits
 
@@ -2717,13 +2717,13 @@ H_{\mathrm{osc}}^{(C,\infty)}
 \tag{YM86}
 $$
 
-The first limit has Dirichlet conditions at both \(0\) and \(C\); the second
-has Dirichlet data at \(C\) and the usual form condition at infinity. More
+The first limit has Dirichlet conditions at both $0$ and $C$; the second
+has Dirichlet data at $C$ and the usual form condition at infinity. More
 explicitly, the limiting form domains are
-\(H_0^1(0,C)\cap L^2((0,C),y^2dy)\) and
-\(\{u\in H^1(C,\infty):u(C)=0,\ yu\in L^2(C,\infty)\}\).
-Min--max convergence gives, for ordered eigenvalues \(\mu_j(C)\) and the
-tail bottom \(\nu_0(C)\),
+$H_0^1(0,C)\cap L^2((0,C),y^2dy)$ and
+$\{u\in H^1(C,\infty):u(C)=0,\ yu\in L^2(C,\infty)\}$.
+Min--max convergence gives, for ordered eigenvalues $\mu_j(C)$ and the
+tail bottom $\nu_0(C)$,
 
 $$
 \frac{\lambda_j(A_N)}{\sqrt{x}}\longrightarrow\mu_j(C),\qquad
@@ -2733,17 +2733,17 @@ $$
 \tag{YM87}
 $$
 
-The inequality for \(\mu_j(C)\) is the min--max comparison with the
+The inequality for $\mu_j(C)$ is the min--max comparison with the
 half-line oscillator. Equality would require the same-index half-line
-eigenfunction to satisfy the extra Dirichlet condition at \(C\); Sturm
-oscillation and uniqueness rule that out. The bound on \(\nu_0(C)\) follows
-from \(y^2\geq C^2\) on the tail.
+eigenfunction to satisfy the extra Dirichlet condition at $C$; Sturm
+oscillation and uniqueness rule that out. The bound on $\nu_0(C)$ follows
+from $y^2\geq C^2$ on the tail.
 
 #### 9.18.7 Fixed-window isolation and the bare-tail condition
 
-Take the frozen low window \(J=2\), the margin
-\(\delta_{\mathrm{iso}}=1\), and \(C_J=4\). Since
-\(C_J^2=16>4J+3+2\delta_{\mathrm{iso}}=13\), set
+Take the frozen low window $J=2$, the margin
+$\delta_{\mathrm{iso}}=1$, and $C_J=4$. Since
+$C_J^2=16>4J+3+2\delta_{\mathrm{iso}}=13$, set
 
 $$
 N_{\mathrm{iso}}=\left\lceil4x^{1/4}\right\rceil,\qquad
@@ -2754,7 +2754,7 @@ N_{\mathrm{iso}}=\left\lceil4x^{1/4}\right\rceil,\qquad
 \tag{YM88}
 $$
 
-Consequently, for all sufficiently large \(x\),
+Consequently, for all sufficiently large $x$,
 
 $$
 \lambda_J(h_x)
@@ -2764,19 +2764,19 @@ $$
 \tag{YM89}
 $$
 
-Every eigenvalue \(\lambda_j(h_x)\) with \(0\leq j\leq J\) therefore lies
-below the first discarded eigenvalue by a fixed \(O(\sqrt{x})\) margin. The
+Every eigenvalue $\lambda_j(h_x)$ with $0\leq j\leq J$ therefore lies
+below the first discarded eigenvalue by a fixed $O(\sqrt{x})$ margin. The
 Weyl function has no tail pole in this fixed window, and (YM63)--(YM65)
 recover each low eigenpair exactly through the Feshbach pencil, including
 the full self-energy. This is exact spectral isolation; it does not assert
-that the bare matrix \(A_{N_{\mathrm{iso}}}\) has the half-line spectrum.
+that the bare matrix $A_{N_{\mathrm{iso}}}$ has the half-line spectrum.
 
 The distinction follows from (YM86)--(YM87). If
-\(N/x^{1/4}\to C<\infty\), the bare matrix converges to the finite-interval
-oscillator and retains the nonzero boundary error \(\mu_j(C)-(4j+3)\).
-If \(N=o(x^{1/4})\), (YM83) gives
-\(\lambda_0(A_N)/\sqrt{x}\to\infty\). Recovery of the half-line values in
-the natural \(\sqrt{x}\)-scaled problem, together with vanishing discarded
+$N/x^{1/4}\to C<\infty$, the bare matrix converges to the finite-interval
+oscillator and retains the nonzero boundary error $\mu_j(C)-(4j+3)$.
+If $N=o(x^{1/4})$, (YM83) gives
+$\lambda_0(A_N)/\sqrt{x}\to\infty$. Recovery of the half-line values in
+the natural $\sqrt{x}$-scaled problem, together with vanishing discarded
 probability for every fixed low eigenstate, requires the expanding endpoint
 
 $$
@@ -2789,28 +2789,28 @@ gN\longrightarrow\infty.
 $$
 
 For this condition, the finite-interval forms exhaust the half-line form
-domain, \(\mu_j(C_x)\to4j+3\) as \(C_x=N/x^{1/4}\to\infty\), and the
-oscillator tail beyond \(C_x\) has vanishing probability.
-The frozen choices \(N_{\mathrm{fixed}}=8\),
-\(N_C=\lceil2x^{1/4}\rceil\),
-\(N_{\mathrm{iso}}=\lceil4x^{1/4}\rceil\),
-\(N_{\mathrm{grow}}=\lceil x^{1/4}\log(2+x)\rceil\), and
-\(N_{1/2}=\lceil2\sqrt{x}\rceil\) consequently classify as follows:
-\(N_{\mathrm{fixed}}\) and \(N_C\) have bounded ratios and fail bare
-convergence; \(N_{\mathrm{iso}}\) supplies fixed-window exact isolation;
-and \(N_{\mathrm{grow}}\) and \(N_{1/2}\) satisfy (YM90).
+domain, $\mu_j(C_x)\to4j+3$ as $C_x=N/x^{1/4}\to\infty$, and the
+oscillator tail beyond $C_x$ has vanishing probability.
+The frozen choices $N_{\mathrm{fixed}}=8$,
+$N_C=\lceil2x^{1/4}\rceil$,
+$N_{\mathrm{iso}}=\lceil4x^{1/4}\rceil$,
+$N_{\mathrm{grow}}=\lceil x^{1/4}\log(2+x)\rceil$, and
+$N_{1/2}=\lceil2\sqrt{x}\rceil$ consequently classify as follows:
+$N_{\mathrm{fixed}}$ and $N_C$ have bounded ratios and fail bare
+convergence; $N_{\mathrm{iso}}$ supplies fixed-window exact isolation;
+and $N_{\mathrm{grow}}$ and $N_{1/2}$ satisfy (YM90).
 
 #### 9.18.8 Scope of the result
 
 Equations (YM57)--(YM90) concern one finite regulated isolated square in the
-continuous-\(SU(2)\) class-function sector. They do not construct a full
-interacting \(2\times2\) fibre, transport neighboring-plaquette or boundary
+continuous-$SU(2)$ class-function sector. They do not construct a full
+interacting $2\times2$ fibre, transport neighboring-plaquette or boundary
 representation sectors, or provide volume-uniform resolvent estimates. They
 also do not establish a thermodynamic limit, a continuum quantum field, a
 Yang--Mills mass gap, or a microscopic Cassi identification. Finite-group
 quadrature can serve as a numerical control of the continuous formulas, but
 it cannot replace the domain, form, or resolvent arguments. The only physical
-spacing identified here, \(2\sqrt2/a\), is the isolated ultraviolet
+spacing identified here, $2\sqrt2/a$, is the isolated ultraviolet
 plaquette normalization in (YM81).
 
 ---
@@ -3041,6 +3041,7 @@ control, the continuum quantum field and its mass remain **UNRESOLVED**.
   graining](https://arxiv.org/abs/1203.2306)—macroscopic holonomy data and
   microscopic information under gauge coarse graining
 - C. W. Bauer, I. D'Andrea, M. Freytsis and D. M. Grabowska, [A new basis for Hamiltonian SU(2) simulations](https://arxiv.org/abs/2307.11829), §§II–IV and Appendix B—normalization, gauge reduction and physical square spectrum
+- NIST Digital Library of Mathematical Functions, [§28.8, Mathieu large-parameter asymptotics](https://dlmf.nist.gov/28.8)—fixed-level characteristic-value asymptotics
 - A. Jaffe and E. Witten, [Quantum Yang–Mills Theory](https://www.claymath.org/wp-content/uploads/2022/06/yangmills.pdf), §4—continuum existence and mass-gap requirements
 - D. A. Yarotsky, [Ground states in relatively bounded quantum perturbations of classical lattice systems](https://arxiv.org/abs/math-ph/0412040), Theorems 1–2 and Remark Eq. (6)—volume-uniform strong-coupling stability, connected correlations and relatively bounded perturbations
 - `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule
