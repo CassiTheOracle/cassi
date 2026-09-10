@@ -385,9 +385,37 @@ def initial_mesh(L: float) -> np.ndarray:
     return np.unique(np.concatenate((np.asarray(geo, dtype=float), lin)))
 
 
+HALF_PI = 0.5 * math.pi
+
+
+def stable_sin_pair(F: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """sin(F) and sin(2F) via a branch-cut-free identity for F >= pi/2.
+
+    Direct-F profiles sit at F ~= pi near the origin, where the plain sine
+    is evaluated through the binary64 representation of pi (itself off by
+    ~1.2e-16) and the resulting absolute error is then divided by x^2 on
+    the geometric mesh down to EPS = 1e-5. For F >= pi/2 the subtraction
+    pi - F is exact in binary64 (Sterbenz), and the algebraic identities
+    sin(F) = sin(pi - F), sin(2F) = -sin(2(pi - F)) move both evaluations
+    onto a small exactly represented argument. Masked subsets are the only
+    ones ever passed to libm, so the near-pi call is removed outright, not
+    merely discarded. This is an algebraic identity only: F itself, the
+    ODE, the equation of state, and every frozen parameter are unchanged.
+    """
+    sinF = np.empty_like(F)
+    sin2F = np.empty_like(F)
+    low = F < HALF_PI
+    high = ~low
+    sinF[low] = np.sin(F[low])
+    sin2F[low] = np.sin(2.0 * F[low])
+    theta = math.pi - F[high]
+    sinF[high] = np.sin(theta)
+    sin2F[high] = -np.sin(2.0 * theta)
+    return sinF, sin2F
+
+
 def profile_rhs(x: np.ndarray, F: np.ndarray, Fx: np.ndarray, mu: float) -> np.ndarray:
-    sinF = np.sin(F)
-    sin2F = np.sin(2.0 * F)
+    sinF, sin2F = stable_sin_pair(F)
     numerator = (
         -2.0 * x * Fx
         - sin2F * (Fx * Fx - 1.0 - sinF * sinF / (x * x))
@@ -453,9 +481,8 @@ def panel_integrals(sol: Any, mu: float, L: float) -> dict[str, float]:
         wv = (half[sl][:, None] * GL_WEIGHTS[None, :]).ravel()
         Fs = sol.sol(xv)[0]
         Fxs = sol.sol(xv, 1)[0]
-        sinF = np.sin(Fs)
+        sinF, sin2F = stable_sin_pair(Fs)
         cosF = np.cos(Fs)
-        sin2F = np.sin(2.0 * Fs)
         s2 = sinF * sinF
         x2 = xv * xv
         acc["i_x2Fx2"] += float(wv @ (x2 * Fxs * Fxs))
