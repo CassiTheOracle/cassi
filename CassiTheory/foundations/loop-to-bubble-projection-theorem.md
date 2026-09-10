@@ -2833,7 +2833,7 @@ V_m\otimes V_n
 \tag{YM91}
 $$
 
-The four corner intertwiners are unique. Let
+The four boundary-midpoint intertwiners are unique. Let
 $s_{\mathrm N},s_{\mathrm E},s_{\mathrm S},s_{\mathrm W}$ denote the
 integer labels on the four links from the boundary midpoints to the centre.
 Since $SU(2)$ representations are self-dual, gauge invariance at each
