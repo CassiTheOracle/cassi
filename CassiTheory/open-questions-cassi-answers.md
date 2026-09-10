@@ -756,8 +756,15 @@ fixed-window isolation. For every fixed low level, the bare character cutoff
 converges with vanishing discarded mass exactly when
 $N/x^{1/4}\longrightarrow\infty$, equivalently $gN\longrightarrow\infty$.
 Fixed and finite-$N/x^{1/4}$ schedules therefore fail as bare weak-coupling
-limits; the exact Feshbach reduction remains valid at the scaled cutoff. This
-one-plaquette ultraviolet result supplies no interacting-fibre or
+limits; the exact Feshbach reduction remains valid at the scaled cutoff.
+
+The source-bound version-3 campaign preserves the five schedule functions
+while using $q(N)=\min\{3,N+1\}$. Its 62 primary and 20 independent checks
+reconstruct all 88 requested cutoff eigenvalues across 30 rows. These finite
+measurements support the implemented controls and do not establish the
+limiting theorem.
+
+This one-plaquette ultraviolet result supplies no interacting-fibre or
 volume-uniform estimate. Boundary-sector recoupling, a volume-uniform
 resolvent bound, the thermodynamic and four-dimensional continuum limits, a
 regulator-independent mass gap, and carrier-state identification remain open.

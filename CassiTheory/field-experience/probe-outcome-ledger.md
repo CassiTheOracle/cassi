@@ -653,36 +653,45 @@ establish a continuum Yang–Mills theory or mass gap.
 
 ## 22. Pure Yang–Mills isolated-square radial Feshbach and character cutoff
 
-The frozen v2 protocol in
-`computations/yang-mills-radial-feshbach-v2-prereg.md` fixes the continuous
+The frozen version-3 protocol in
+`computations/yang-mills-radial-feshbach-v3-prereg.md` fixes the continuous
 $SU(2)$ class-function operator, the exact Schur/Feshbach route, five
-character-cutoff schedules, three low levels and the version-isolation
-control. The primary verifier passes **61 checks** and the source-independent
-continuous-angle, Sturm/bisection and continued-fraction reconstruction
-passes **20 checks**. The deliberately incompatible v1 input returns the
-required `FAIL`. A source-only analytical review approves the theorem for the
-regulated isolated-square scope.
+character-cutoff schedules and the version-isolation control. Each finite
+section requests $q(N)=\min\{3,N+1\}$ low Ritz values; the two scheduled
+$N=1$ rows therefore contain levels $0$ and $1$ only. The primary verifier
+passes **62 checks**, and the source-independent continuous-angle,
+sign-preserving Sturm/bisection, continued-fraction and finite-section
+reconstruction passes **20 checks** across 30 cutoff rows and all 88 requested
+Ritz values. The
+deliberately incompatible version-2 input returns the required `FAIL`. These
+receipts qualify the finite numerical controls only. The exact claims and
+limits are the analytical results of
+`foundations/loop-to-bubble-projection-theorem.md` §§9.18.1–9.18.7; the
+receipts retain their analytical-reconciliation fields as `UNRESOLVED`.
 
 | Control or claim | Decisive result | Classification and scope |
 |---|---|---|
-| Exact radial reduction | Normalized $SU(2)$ characters give a half-line Jacobi operator; the source-independent continuous-angle spectrum reproduces the scheduled low eigenpairs | **ADOPT**, isolated-square class-function sector |
-| Energy-dependent Feshbach transfer | The discarded half-line produces a positive Stieltjes self-energy with exact Schur equivalence, continued-fraction bounds and fixed-window isolation | **ADOPT**, finite cutoff below the tail threshold; no bare-compression substitution |
-| Fixed-level weak-coupling asymptotics | $\lambda_j(h_x)/\sqrt{x}\to4j+3$ for each fixed level; since $\lambda_1-\lambda_0\sim4\sqrt{x}$ and $x=2/g^4$, the first physical spacing is $2\sqrt2/a$ | **ADOPT**, isolated ultraviolet plaquette normalization; continuum mass unresolved |
-| Bare character cutoff | Low eigenvalues converge and discarded mass vanishes exactly when $N/x^{1/4}\to\infty$, equivalently $gN\to\infty$ | **ADOPT**, isolated square |
-| Fixed and finite-scaled schedules | The maximum low-spectrum relative errors are $0.9480003387$ for $N_{\rm fixed}=8$, $0.4780504005$ for $N_C=\max\{2,\lceil2x^{1/4}\rceil\}$ and $0.0039503578$ for $N_{\rm iso}=\max\{2,\lceil4x^{1/4}\rceil\}$ on the frozen finite schedule; finite $N/x^{1/4}$ does not give the asymptotic bare limit | **CONTRADICTS**, fixed-cutoff and finite-scaled-cutoff bare weak-coupling claims |
-| Growing-ratio controls | The `grow` and `half` schedules have maximum frozen-schedule relative error $0.0136990351$ and satisfy the theorem's divergent-ratio condition asymptotically | **SUPPORTS** the finite numerical controls; convergence follows from the theorem |
+| Exact radial reduction | Normalized $SU(2)$ characters give a half-line Jacobi operator; the source-independent continuous-angle spectrum reproduces the scheduled low eigenpairs | **ADOPT** as an analytical isolated-square result; **SUPPORTS** for the finite numerical reconstruction |
+| Energy-dependent Feshbach transfer | The discarded half-line produces a positive Stieltjes self-energy with exact Schur equivalence, continued-fraction bounds and fixed-window isolation | **ADOPT** analytically at finite cutoff below the tail threshold; the v3 finite controls **SUPPORT** the implemented reconstruction |
+| Fixed-level weak-coupling asymptotics | $\lambda_j(h_x)/\sqrt{x}\to4j+3$ for each fixed level; since $\lambda_1-\lambda_0\sim4\sqrt{x}$ and $x=2/g^4$, the first physical spacing tends to $2\sqrt2/a$ | **ADOPT** analytically for the isolated ultraviolet plaquette normalization; continuum mass unresolved |
+| Bare character cutoff | Low eigenvalues converge and discarded mass vanishes exactly when $N/x^{1/4}\to\infty$, equivalently $gN\to\infty$ | **ADOPT** analytically for the isolated square; not inferred from finite rows |
+| Fixed and finite-scaled schedules | The maximum low-spectrum relative errors are $0.9480003387$ for $N_{\rm fixed}=8$, $0.4780504005$ for $N_C=\lceil2x^{1/4}\rceil$ and $0.0039503578$ for $N_{\rm iso}=\lceil4x^{1/4}\rceil$ on the frozen finite schedule; finite $N/x^{1/4}$ does not give the asymptotic bare limit | **CONTRADICTS** fixed-cutoff and finite-scaled-cutoff bare weak-coupling claims by the theorem; the rows are numerical controls |
+| Growing-ratio controls | The `grow` and `half` schedules have maximum frozen-schedule relative error $0.0136990351$ and satisfy the theorem's divergent-ratio condition asymptotically; at $x=1/4$ they retain $N=1$ and request two levels | **SUPPORTS** the finite numerical controls; convergence follows from the theorem |
 | Interacting lattice and continuum mass | No gauge-compatible interacting fibre, volume-uniform discarded-sector resolvent bound, thermodynamic limit, four-dimensional continuum field or regulator-independent mass is constructed | **UNRESOLVED** |
 | Cassi microscopic identification | No Cassi field variable is identified with the regulated gauge coordinate or its interacting vacuum | **UNRESOLVED** |
 
-Qualified artifacts are in `runs/yang_mills_radial_feshbach_v2/`:
-`v1-rejection-r3.json`, `verification-r3.json`,
-`verification-independent-r3.json`, the adjacent manifests and source
-snapshots, `source-review-pre-run-r3.json`,
-`analytical-review-final.json` and `publication.json`. The publication seal
-binds the final theorem, protocol, both verifiers and qualified receipts. The
-result closes the isolated-square radial operator and cutoff question only;
-the interacting, volume, thermodynamic, continuum and Cassi-identification
-requirements remain open.
+Qualified artifacts are in `runs/yang_mills_radial_feshbach_v3/`:
+`verification-final.json`, `verification-independent-final.json`,
+`v2-rejection-final.json`, the adjacent `verification-final.inputs.json` and
+frozen `verification-final.sources/`,
+`receipt-audit.json`, `analytical-review-final.json` and `publication.json`.
+The audits bind the live source and evidence hashes, check all 30 schedule
+rows and 88 reconstructed Ritz values, and preserve the
+numerical-versus-analytical scope boundary. The publication seal binds the
+theorem, protocol, both verifiers, canonical receipts, audits and public
+registries. The result closes the isolated-square radial
+operator and cutoff question only; the interacting, volume, thermodynamic,
+continuum and Cassi-identification requirements remain open.
 
 
 ## References
@@ -751,6 +760,6 @@ requirements remain open.
 - `computations/verify_yang_mills_vacuum_blocks.py`—305-check primary exact-vacuum block receipt.
 - `computations/yang-mills-block-map-prereg.md`—fixed path-holonomy, refined-block and unit-transport schedule.
 - `computations/verify_yang_mills_block_map.py`—53-check source-bound cylindrical block-map receipt generator.
-- `computations/yang-mills-radial-feshbach-v2-prereg.md`—fixed isolated-square radial, Feshbach, weak-coupling and character-cutoff schedule.
-- `computations/verify_yang_mills_radial_feshbach_v2.py`—61-check source-bound radial Feshbach receipt generator.
-- `computations/verify_yang_mills_radial_feshbach_v2_independent.mjs`—20-check source-independent continuous-angle, continued-fraction and finite-section reconstruction.
+- `computations/yang-mills-radial-feshbach-v3-prereg.md`—fixed isolated-square radial, Feshbach, weak-coupling, variable-Ritz and character-cutoff schedule.
+- `computations/verify_yang_mills_radial_feshbach_v3.py`—62-check source-bound radial Feshbach receipt generator.
+- `computations/verify_yang_mills_radial_feshbach_v3_independent.mjs`—20-check source-independent continuous-angle, continued-fraction, finite-section and cutoff-metric reconstruction.

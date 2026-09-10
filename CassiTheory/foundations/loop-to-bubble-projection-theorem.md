@@ -2410,6 +2410,14 @@ The factorization and invertibility of its triangular factors, together with
 $B_N(z)^{-1}$, show that $h_x-z$ has a bounded inverse precisely when
 $F_N(z)$ is invertible. Thus (YM64) holds for every $z\in\rho(D_N)$.
 
+$$
+z\in\sigma(h_x)
+\quad\Longleftrightarrow\quad
+0\in\sigma(F_N(z)),
+\qquad z\in\rho(D_N).
+\tag{YM64}
+$$
+
 For the kernel correspondence write $\psi=p+q$, with
 $p\in\mathcal H_P$ and $q\in D(D_N)$. The second block equation gives
 
@@ -3614,20 +3622,37 @@ receipt hashes and classifications are in
 **CONTRADICTS** for autonomous projector-only Hamiltonian closure, and
 **UNRESOLVED** for the weak-bare-coupling uniform estimate and continuum construction.
 
-The isolated-square radial Feshbach v2 schedule in
-`computations/yang-mills-radial-feshbach-v2-prereg.md` is implemented by
-`computations/verify_yang_mills_radial_feshbach_v2.py` and the
+The isolated-square radial Feshbach version-3 protocol in
+`computations/yang-mills-radial-feshbach-v3-prereg.md` is implemented by
+`computations/verify_yang_mills_radial_feshbach_v3.py` and the
 source-independent JavaScript reconstruction
-`computations/verify_yang_mills_radial_feshbach_v2_independent.mjs`.
-The qualified `verification-r3.json` passes **61 top-level checks** and
-records 8 symbolic rows, 24 determinant rows, 131 continued-fraction rows,
-262 finite-tail rows, 15 resolvent rows, 18 reference-eigenvector rows,
-12 continuous-angle spectrum rows, 30 cutoff rows and 6 Feshbach
-reconstructions. The qualified `verification-independent-r3.json` passes
-**20 independent qualification checks**, including source/snapshot binding,
-an independently implemented continuous-angle Dirichlet spectrum, direct
-tail solves, finite-section reconstruction, doubled-reference convergence,
-Feshbach reconstruction and weak-coupling landmarks.
+`computations/verify_yang_mills_radial_feshbach_v3_independent.mjs`. It
+preserves all five declared cutoff schedules and uses the dimension-valid
+finite-section rule
+$
+q(N)=\min\{3,N+1\}
+$
+for the requested Ritz values. The `grow` and `half` rows at $x=1/4$
+therefore retain their scheduled cutoff $N=1$ and request only levels $0$ and
+$1$.
+
+The canonical `verification-final.json` passes **62 top-level checks** and records
+8 symbolic rows, 24 determinant rows, 131 continued-fraction rows, 262
+finite-tail rows, 15 resolvent rows, 18 reference-eigenvector rows, 12
+continuous-angle spectrum rows, 30 cutoff rows containing 88 requested Ritz
+values, and 6 Feshbach reconstructions. The canonical
+`verification-independent-final.json` passes **20 independent checks**,
+including source/snapshot binding, a continuous-angle Dirichlet spectrum,
+direct tail solves, sign-preserving Sturm/bisection finite-section
+reconstruction, doubled-reference convergence, Feshbach reconstruction and
+weak-coupling landmarks.
+The maximum independent continuous-angle discrepancy from the primary
+spectrum is $7.37637628637\times10^{-11}$. All 88 independently reconstructed
+finite-section eigenvalues are bit-identical to the primary serialized
+binary64 values.
+The largest normalized error across all independently reconstructed retained
+masses, discarded masses and boundary residuals is
+$1.11022302463\times10^{-15}$.
 
 Across the five frozen cutoff schedules, the largest primary relative errors
 against the doubled-terminal low spectrum are
@@ -3635,24 +3660,24 @@ $0.948000338655$ (fixed),
 $0.478050400541$ ($C=2$),
 $0.00395035778556$ (fixed-window isolation),
 $0.0136990350912$ (growing), and
-$0.0136990350912$ (square-root). These finite rows are numerical controls,
-not proofs of the limiting classifications. The final source-only
-`analytical-review-final.json` reconciles the operator-domain, weak-coupling,
-Mosco/min–max and arbitrary-schedule arguments in §§9.18.1–9.18.7. It
-classifies the exact isolated-square Feshbach transfer and bounds and the
-character-cutoff theorem **ADOPT**, the frozen numerical controls
-**SUPPORTS**, and a fixed or $o(x^{1/4})$ bare cutoff
-**CONTRADICTS** as a weak-coupling low-energy truncation.
+$0.0136990350912$ (square-root). These finite rows support numerical controls
+only. The exact Feshbach transfer, operator bounds, fixed-level weak-coupling
+asymptotics and character-cutoff limit are established separately by the
+operator-domain and form arguments in §§9.18.1–9.18.7. The receipts leave
+their analytical-reconciliation fields `REQUIRES_ANALYTICAL_RECONCILIATION`
+or `UNRESOLVED`; they do not promote a finite calculation into a limiting
+proof.
 
-The required version-isolation control
-`v1-rejection-r3.json` has status **FAIL** because the v2 checker rejects the
-v1 schema, manifest, basenames and missing v2 row inventories; this is the
-expected negative-control outcome. The retained r2 and diagnostic receipts
-are excluded from qualification. Qualified artifacts and
-their frozen source snapshots are in
-`runs/yang_mills_radial_feshbach_v2/`. Interacting refined fibres,
-volume-uniform weak-coupling control, the thermodynamic limit, the continuum
-quantum field, continuum mass and Cassi microscopic identification remain
+The required `v2-rejection-final.json` has status **FAIL** because the version-3
+checker rejects the version-2 schema, manifest and source identities and
+detects the two incompatible $N=1$ row shapes. The status is the prescribed
+version-isolation outcome and carries no scientific classification. The
+qualified artifacts, adjacent manifest, frozen source snapshots, receipt
+audit, source-only analytical review and publication seal are in
+`runs/yang_mills_radial_feshbach_v3/`. Interacting
+refined fibres, volume-uniform weak-coupling resolvent control, the
+thermodynamic limit, the four-dimensional continuum quantum field, a
+regulator-independent mass gap and Cassi microscopic identification remain
 **UNRESOLVED**.
 
 The connected-block schedule in
@@ -3756,12 +3781,13 @@ control, the continuum quantum field and its mass remain **UNRESOLVED**.
   microscopic information under gauge coarse graining
 - C. W. Bauer, I. D'Andrea, M. Freytsis and D. M. Grabowska, [A new basis for Hamiltonian SU(2) simulations](https://arxiv.org/abs/2307.11829), §§II–IV and Appendix B—normalization, gauge reduction and physical square spectrum
 - NIST Digital Library of Mathematical Functions, [§28.8, Mathieu large-parameter asymptotics](https://dlmf.nist.gov/28.8)—fixed-level characteristic-value asymptotics
-- `computations/yang-mills-radial-feshbach-v2-prereg.md`—frozen
-  operator-domain, weak-coupling and character-cutoff protocol
-- `computations/verify_yang_mills_radial_feshbach_v2.py`—source-bound
+- `computations/yang-mills-radial-feshbach-v3-prereg.md`—frozen
+  operator-domain, weak-coupling, variable-Ritz and character-cutoff protocol
+- `computations/verify_yang_mills_radial_feshbach_v3.py`—62-check source-bound
   radial Feshbach and cutoff controls
-- `computations/verify_yang_mills_radial_feshbach_v2_independent.mjs`—independent
-  continuous-angle, continued-fraction and finite-section reconstruction
+- `computations/verify_yang_mills_radial_feshbach_v3_independent.mjs`—20-check
+  independent continuous-angle, continued-fraction, finite-section and
+  cutoff-metric reconstruction
 - A. Jaffe and E. Witten, [Quantum Yang–Mills Theory](https://www.claymath.org/wp-content/uploads/2022/06/yangmills.pdf), §4—continuum existence and mass-gap requirements
 - D. A. Yarotsky, [Ground states in relatively bounded quantum perturbations of classical lattice systems](https://arxiv.org/abs/math-ph/0412040), Theorems 1–2 and Remark Eq. (6)—volume-uniform strong-coupling stability, connected correlations and relatively bounded perturbations
 - `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule
