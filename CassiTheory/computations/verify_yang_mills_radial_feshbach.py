@@ -58,6 +58,7 @@ DERIVATIVE_RTOL = 1e-6
 RESOLVENT_SLACK = 1e-10
 FESHBACH_RTOL = 1e-9
 TAIL_NORM_RTOL = 1e-8
+EIGENVECTOR_RTOL = 1e-9
 RF20_SLACK = 1e-11
 
 
@@ -604,7 +605,7 @@ def continued_fraction_controls(result: dict[str, Any]) -> None:
                     terminal = n_cut + int(length)
                     m_cf = finite_cf_m(x, energy, start, terminal)
                     m_direct = finite_tail_m(x, energy, start, terminal)
-                    discrepancy = relative_error(m_cf, m_direct)
+                    discrepancy = normalized_error(m_cf, m_direct)
                     direct_errors[str(length)] = float(discrepancy)
                     direct_values[str(length)] = {
                         "terminal": int(terminal),
@@ -616,7 +617,7 @@ def continued_fraction_controls(result: dict[str, Any]) -> None:
                         "M": int(length), "terminal": int(terminal),
                         "m_continued_fraction": float(m_cf),
                         "m_direct_tail_solve": float(m_direct),
-                        "relative_discrepancy": float(discrepancy),
+                        "normalized_discrepancy": float(discrepancy),
                         "pass": discrepancy < CF_RTOL,
                     })
 
@@ -706,8 +707,8 @@ def continued_fraction_controls(result: dict[str, Any]) -> None:
                     "m": float(m_large), "m_prime_recurrence": float(m_prime),
                     "m_prime_direct_tail": float(derivative_direct),
                     "m_prime_centered_difference": float(derivative_fd),
-                    "recurrence_normalized_error": float(recurrence_error),
-                    "centered_difference_normalized_error": float(finite_difference_error),
+                    "recurrence_relative_error": float(recurrence_error),
+                    "centered_difference_relative_error": float(finite_difference_error),
                     "step": float(h), "pass": derivative_pass,
                 })
 
@@ -812,6 +813,7 @@ def spectrum_and_cutoff_controls(result: dict[str, Any]) -> tuple[
     reference_data: dict[float, dict[str, Any]] = {}
     reference_vectors: dict[float, np.ndarray] = {}
     spectrum_rows: list[dict[str, Any]] = []
+    reference_eigenvector_rows: list[dict[str, Any]] = []
     cutoff_rows: list[dict[str, Any]] = []
 
     for x in X_VALUES:
@@ -839,8 +841,38 @@ def spectrum_and_cutoff_controls(result: dict[str, Any]) -> tuple[
             sturm_eigenvector(reference_diagonal, x, value)
             for value in levels[m_double]
         ], dtype=float)
-        convergence_errors = [relative_error(levels[m_ref][index], levels[m_double][index])
-                              for index in range(REFERENCE_LEVELS)]
+        reference_off = jacobi_off_diagonal(x, m_double + 1)
+        for index, (value, vector) in enumerate(
+            zip(levels[m_double], reference_vectors[float(x)])
+        ):
+            hv = tridiagonal_action(reference_diagonal, reference_off, vector)
+            vector_residual = hv - float(value) * vector
+            residual_norm = float(np.linalg.norm(vector_residual))
+            residual_scale = max(
+                1.0,
+                float(np.linalg.norm(hv)),
+                abs(float(value)) * float(np.linalg.norm(vector)),
+            )
+            normalized_residual = residual_norm / residual_scale
+            vector_norm = float(np.linalg.norm(vector))
+            reference_eigenvector_rows.append({
+                "x": float(x),
+                "j": int(index),
+                "terminal": int(m_double),
+                "eigenvalue": float(value),
+                "norm": vector_norm,
+                "normalized_residual": float(normalized_residual),
+                "pass": bool(
+                    math.isfinite(vector_norm)
+                    and abs(vector_norm - 1.0) <= 1e-12
+                    and math.isfinite(normalized_residual)
+                    and normalized_residual < EIGENVECTOR_RTOL
+                ),
+            })
+        convergence_errors = [
+            relative_error(levels[m_ref][index], levels[m_double][index])
+            for index in range(REFERENCE_LEVELS)
+        ]
         record_check(
             result,
             f"reference_doubling:x={float(x)}",
@@ -858,10 +890,39 @@ def spectrum_and_cutoff_controls(result: dict[str, Any]) -> tuple[
     record_check(result, "reference_spectrum_rows_finite_and_ordered",
                  all(row["pass"] for row in spectrum_rows),
                  {"failed": [row for row in spectrum_rows if not row["pass"]]})
+    result["reference_eigenvector_rows"] = reference_eigenvector_rows
+    eigenvector_keys = [
+        (row["x"], row["j"]) for row in reference_eigenvector_rows
+    ]
+    record_check(
+        result,
+        "reference_eigenvector_row_inventory",
+        len(reference_eigenvector_rows) == 18
+        and len(set(eigenvector_keys)) == 18,
+        {
+            "actual": len(reference_eigenvector_rows),
+            "expected": 18,
+            "unique": len(set(eigenvector_keys)),
+        },
+    )
+    record_check(
+        result,
+        "reference_eigenvector_residuals_and_norms",
+        all(row["pass"] for row in reference_eigenvector_rows),
+        {
+            "failed": [
+                row for row in reference_eigenvector_rows if not row["pass"]
+            ]
+        },
+    )
 
     for x in X_VALUES:
         ref = reference_data[float(x)]["2M_ref_eigenvalues"]
         vectors = reference_vectors[float(x)]
+        reference_vectors_pass = all(
+            row["pass"] for row in reference_eigenvector_rows
+            if row["x"] == float(x)
+        )
         for schedule in SCHEDULE_NAMES:
             n_cut = cutoff_schedule(x)[schedule]
             diagonal = jacobi_diagonal(x, 0, n_cut)
@@ -903,12 +964,17 @@ def spectrum_and_cutoff_controls(result: dict[str, Any]) -> tuple[
                 "discarded_probabilities": discarded,
                 "mass_identity_errors": mass_errors,
                 "reference_terminal": int(terminal),
+                "reference_eigenvectors_pass": reference_vectors_pass,
                 # A schedule row is a measurement, not a claim that its finite
                 # error vanishes in a limit.  Only finiteness and RF20 are
                 # numerical gates here.
-                "pass": bool(np.isfinite(eigenvalues).all() and metrics_finite
-                             and bound_pass
-                             and all(error <= 1e-10 for error in mass_errors)),
+                "pass": bool(
+                    np.isfinite(eigenvalues).all()
+                    and metrics_finite
+                    and reference_vectors_pass
+                    and bound_pass
+                    and all(error <= 1e-10 for error in mass_errors)
+                ),
             })
 
     result["cutoff_rows"] = cutoff_rows
@@ -1021,6 +1087,14 @@ def feshbach_controls(result: dict[str, Any],
             reference_tail_relative_error = relative_error(
                 tail_norm_sq_direct, reference_tail_norm_sq
             )
+            psi = np.concatenate((p, reconstructed_tail))
+            full_diagonal = jacobi_diagonal(x, 0, terminal)
+            full_off = jacobi_off_diagonal(x, terminal + 1)
+            residual = (
+                tridiagonal_action(full_diagonal, full_off, psi)
+                - float(energy) * psi
+            )
+            residual_norm = float(np.linalg.norm(residual))
             residual_scale = max(
                 1.0,
                 float(np.linalg.norm(
@@ -1224,6 +1298,7 @@ def frozen_protocol() -> dict[str, Any]:
             "feshbach_residual": FESHBACH_RTOL,
             "tail_norm_relative": TAIL_NORM_RTOL,
             "RF20_slack": RF20_SLACK,
+            "reference_eigenvector_residual": EIGENVECTOR_RTOL,
         },
         "analytical_status": {
             "RF4_RF14": "REQUIRES_ANALYTICAL_RECONCILIATION",
@@ -1258,6 +1333,7 @@ def initial_receipt(manifest: dict[str, Any], identities: dict[str, dict[str, st
         "continued_fraction_rows": [],
         "resolvent_rows": [],
         "spectrum_rows": [],
+        "reference_eigenvector_rows": [],
         "cutoff_rows": [],
         "feshbach_rows": [],
         "weak_coupling_rows": [],
@@ -1316,6 +1392,7 @@ def compute(result: dict[str, Any]) -> bool:
         "continued_fraction_row_count": len(result["continued_fraction_rows"]),
         "direct_tail_row_count": len(result["direct_tail_rows"]),
         "resolvent_row_count": len(result["resolvent_rows"]),
+        "reference_eigenvector_row_count": len(result["reference_eigenvector_rows"]),
         "spectrum_row_count": len(result["spectrum_rows"]),
         "cutoff_row_count": len(result["cutoff_rows"]),
         "feshbach_row_count": len(result["feshbach_rows"]),
