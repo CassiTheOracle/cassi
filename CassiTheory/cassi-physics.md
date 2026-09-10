@@ -860,6 +860,25 @@ CassiCosmos therefore needs a declared physical unit map and material tables
 before this closure acquires an astrophysical interpretation. The existing
 Observatory emission and optical controls remain appearance parameters.
 
+`turbulence/compressible-radiative-plasma-closure.md` supplies the larger
+conditional system needed for physical gas behavior. Conservative mass,
+momentum and total-energy equations add density evolution, pressure work and
+shock jump conditions. A multilevel equation of state and finite population
+generator connect ionization and excitation to line and continuum transfer
+when evaluated atomic data are supplied. Gravitational contraction, accretion
+and nuclear mass defect enter one stellar luminosity ledger, with neutrino and
+boundary losses tracked separately.
+
+For angular structure, the extension evolves discrete intensities $I_{gm}$
+instead of reconstructing every field from $(E_g,F_g)$. Counterpropagating
+beams can therefore have $F_g=0$ while retaining an anisotropic pressure
+tensor, and intersecting beams continue on separate characteristics. Its
+fixed source-snapshotted verifier passes **70 of 70 checks** across the EOS,
+shocks, populations, line balance, energy sources, quadrature moments,
+scattering and a crossing-beam stream. A selected chemical identity, atomic
+and nuclear tables, physical units, initial source history, production
+finite-volume solver and CassiCosmos implementation remain external or open.
+
 The listed correspondences are the framework's scale-assignment hypothesis. The Planck length is the external dimensionful anchor supplied to this model; the $\varphi$ recurrence supplies dimensionless ratios and does not by itself derive physical dimensionality or force unification.
 
 **Epistemic status:** the recurrence is **Derived conditional** on the supplied anchor and one-step convention. Identifying each named cascade step with a physical scale is **Hypothesized** and, where a placement is selected from measured data, **Mapped**; `foundations/dimensionful-cascade.md` records the arithmetic and provenance.
@@ -1476,6 +1495,7 @@ The framework records evidence and limitations in `audit.md`; the gate-sign conv
 - `audit.md`—self-critical prediction-vs-experiment audit
 - `visual-explainers/cascade_cosmos.py`—the three-regime cascade figure
 - `turbulence/cassi-radiative-material-closure.md`—conditional LTE emission, M1 transport, conservative material coupling and CassiCosmos implementation boundary
+- `turbulence/compressible-radiative-plasma-closure.md`—compressible shocks, species and line kinetics, stellar energy ledgers and multi-angle crossing beams
 
 ---
 

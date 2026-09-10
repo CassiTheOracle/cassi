@@ -292,6 +292,17 @@ $\mathcal R=a_{\rm R}T_0^3/C$
 are consequences of those inputs. The fixed controls add no primary
 framework parameter, so the 47-parameter count is unchanged.
 
+The compressible extension in
+`turbulence/compressible-radiative-plasma-closure.md` adds no primary framework
+parameter. Its $\gamma=5/3$ verification gas, level energies, transition and
+collision rates, cross-sections, nuclear masses, source efficiencies,
+quadrature weights and grid sizes are **N-class verification inputs** or
+external constitutive data according to use. A physical application must
+version its EOS, species, atomic, opacity and nuclear datasets and declare its
+unit normalization. The fixed 70-check result establishes algebraic,
+conservative and angular properties under those inputs; it supplies no
+calibration from $(E_Y,E_I,q)$ and leaves the 47-parameter count unchanged.
+
 ### 3.4 Summary: What These Parameters ACTUALLY Are
 
 | Parameter | True status | If it's a constant, which one? |

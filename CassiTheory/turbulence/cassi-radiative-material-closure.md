@@ -607,7 +607,8 @@ This is enough for a controlled radiative capillary fluid and for a physically b
 
 ### 12.2 Compressible gas or plasma
 
-A compressible completion needs
+The complete conditional branch in
+`turbulence/compressible-radiative-plasma-closure.md` evolves
 
 $$
 \partial_t\rho_m+\nabla\cdot(\rho_m u)=0,
@@ -631,6 +632,11 @@ $$
 
 Tabulated EOS and opacity data are appropriate inputs for a production astrophysical model. Cassi supplies no atomic cross-sections from $\varphi$ or $q$.
 
+That branch supplies conservative momentum and total-energy equations,
+pressure work, shock jump conditions, finite population generators, a
+stellar-source ledger and multi-angle transfer. Its EOS and material
+coefficients still come from physical constitutive data.
+
 ### 12.3 Non-LTE lines
 
 Nebular lines, recombination spectra, masers and fluorescence require level populations beyond one temperature. For a bound transition $u\to l$ with normalized profile $\phi_{ul}(\nu)$,
@@ -649,6 +655,10 @@ $$
 $$
 
 LTE populations recover the Planck source through the Einstein relations. Non-LTE populations require their own rate equations and energy debits. Population inversion can make the net line coefficient negative; that is an active-medium model with a separate stored-energy ledger and lies outside the nonnegative-opacity closure verified here.
+
+`turbulence/compressible-radiative-plasma-closure.md` §§3–4 closes these
+rates and their bound-bound and bound-free energy exchanges conditionally on
+evaluated atomic data.
 
 
 ## 13. Unresolved particles and radiating surfaces
@@ -837,13 +847,14 @@ The immutable local evidence paths are registered in `BROKEN_REFS.md`.
 
 - a physical mass-density and temperature map from $(E_Y,E_I)$ or particle state;
 - electromagnetic charge and current carried by a selected microscopic Cassi matter sector;
-- opacity, ionization and line populations for that sector;
-- a compressible radiative plasma closure;
-- source energetics for stars, accretion flows and compact objects;
-- a moving multigroup implementation and its $\beta\tau$ regime qualification;
+- a species and abundance identification with versioned atomic, opacity and nuclear data;
+- an initial fuel, contraction or accretion history for each persistent emitter;
+- a production compressible, moving-multigroup and multi-angle implementation with shock, $\beta\tau$ and angular-convergence qualification;
 - a green default-off CassiCosmos GPU battery with energy, momentum, realizability and image receipts.
 
-The model is ready to implement as a conditional radiative material. Physical interpretation begins only when the unit map and material response are supplied.
+The constant-density M1 branch and its compressible multi-angle extension are
+complete conditional systems. Physical interpretation begins when the unit
+map, material identity, response tables and source history are supplied.
 
 
 ## References
@@ -854,6 +865,10 @@ The model is ready to implement as a conditional radiative material. Physical in
 - `computations/verify_cassi_radiative_material.py`—comprehensive 33/34 receipt generator
 - `computations/cassi-radiative-material-qualification-prereg.md`—fixed source-subcycling qualification
 - `computations/verify_cassi_radiative_material_qualification.py`—passing 9-check source qualification
+- `turbulence/compressible-radiative-plasma-closure.md`—compressible hydrodynamics, species kinetics, stellar energy accounting and multi-angle transfer
+- `computations/compressible-radiative-plasma-prereg.md`—fixed conservation, population, luminosity and crossing-beam controls
+- `computations/compressible_radiative_plasma.py`—reference compressible radiative-plasma kernels
+- `computations/verify_compressible_radiative_plasma.py`—70-check source-snapshotted verifier
 - `standard-model/su2-gauge-extension.md` §§2–3—conditional gauge extension and photon null direction; electromagnetic current map remains open
 - `foundations/dimensionful-constants-status.md`—external status of $c_\gamma$ and $\hbar$
 - `computations/matter-formation-continuum-report.md` §§35–36, 66—scalar cloud radiation and scalar loop corrections, distinct from transported electromagnetic photons

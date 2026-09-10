@@ -50,6 +50,14 @@ separate 9-check qualification supports $\Delta t=0.001$ source subcycling.
 Physical temperature, density, opacity, ionization and electromagnetic current
 maps remain open.
 
+The compressible extension evolves mass, momentum and total energy with a
+multilevel EOS and shock jump conditions. Finite ionization and excitation
+networks provide line and continuum coefficients from evaluated atomic data.
+Gravitational contraction, accretion and nuclear mass defect enter one
+stellar luminosity ledger. Discrete ordinates preserve distinct crossing
+beams. Its fixed source-snapshotted schedule passes **70 of 70 checks**;
+physical Cassi material identification and a production solver remain open.
+
 The phase-current reduction derives Mermin–Ho vorticity, full-doublet Hopf
 helicity and a two-scale-band periodic Beltrami class. Its 227 checks support
 exact scalar-diffusion/viscosity equivalence for that fixed-winding field and
@@ -71,6 +79,7 @@ arbitrary-flow closure and global regularity remain open.
 | 6 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure, phase-current summary and actual flow controls | Derived conditional mechanical, thermal, and phase-current identities / Tested solver, rotational and phase-coercivity boundaries / Open physical-fluid completion |
 | 7 | `turbulence/cassi-fluid-phase-current-hydrodynamics.md` | Mermin–Ho rotation, helicity topology, two-band Beltrami flow, first-order coercivity and viscosity projection boundaries | Derived conditional current and topology identities / Tested rotational, memory and coercivity boundaries / Open microscopic viscosity and arbitrary-flow closure |
 | 8 | `turbulence/cassi-radiative-material-closure.md` | LTE emission, multigroup M1 transport, conservative material coupling and CassiCosmos handoff | Derived conditional transfer, conservation and entropy identities / Tested kernels / Open Cassi material calibration |
+| 9 | `turbulence/compressible-radiative-plasma-closure.md` | Compressible hydrodynamics, shocks, species and line kinetics, persistent stellar energy accounting and multi-angle crossing beams | Derived conditional / Tested reference controls / Open Cassi material identification and production implementation |
 
 ## 2. Document summaries
 
@@ -252,6 +261,27 @@ opacity, atomic populations or electromagnetic current. CassiCosmos
 implementation therefore begins with a default-off, unit-calibrated
 radiation state rather than the Observatory's appearance coefficients.
 
+### 2.9 Compressible radiative plasma and stellar light
+
+`turbulence/compressible-radiative-plasma-closure.md` supplies the conditional
+completion required for thermal expansion, compression, shocks, species
+emission, persistent stellar luminosity and intersecting sharp beams. The
+material equations conserve mass, momentum and total energy and recover
+Rankine–Hugoniot shocks from conservative fluxes. Level-resolved population
+generators, Einstein coefficients and bound-free rates connect evaluated
+atomic data to emissivity, opacity, ionization storage and heat. Nuclear mass
+defect, gravitational contraction and accretion are finite accounted sources;
+neutrino loss and escaping radiation are explicit destinations.
+
+The angular transport retains intensity by frequency group and ordinate.
+Counterpropagating beams with zero net flux therefore remain distinguishable,
+and two axis-aligned beams cross without merging. The fixed verification
+passes **70 of 70 checks** across symbolic identities, EOS recovery, four
+normal shocks, population positivity, detailed balance, source ledgers,
+quadrature moments, scattering and a crossing-beam stream. Atomic and nuclear
+data, material units, initial composition and the Cassi field-to-baryonic-state
+map remain supplied inputs or open identifications.
+
 ## References
 
 - `foundations/xi-derivation.md`—first-principles derivation of the Qi-gravity coupling $\xi = \varphi^6$ used in the velocity equation
@@ -288,3 +318,7 @@ radiation state rather than the Observatory's appearance coefficients.
 - `computations/verify_cassi_radiative_material.py`—33/34 comprehensive radiative-material receipt generator
 - `computations/cassi-radiative-material-qualification-prereg.md`—fixed source-step accuracy qualification
 - `computations/verify_cassi_radiative_material_qualification.py`—9-check source-subcycling qualification
+- `turbulence/compressible-radiative-plasma-closure.md`—compressible, species, stellar-source and multi-angle completion
+- `computations/compressible-radiative-plasma-prereg.md`—fixed 70-check closure schedule
+- `computations/compressible_radiative_plasma.py`—reference compressible radiative-plasma kernels
+- `computations/verify_compressible_radiative_plasma.py`—source-snapshotted 70-check verifier

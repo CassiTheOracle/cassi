@@ -1412,16 +1412,24 @@ viscosity, physical-fluid replacement, whole-field dynamical concentration
 control and arbitrary-data global regularity remain **UNESTABLISHED**. The
 native density/Poisson solver is unchanged.
 
-The radiative extension in
-`turbulence/cassi-radiative-material-closure.md` couples that selected thermal
+The radiative construction spans two conditional branches.
+`turbulence/cassi-radiative-material-closure.md` couples the selected thermal
 material to established LTE photon transfer. Piecewise-gray M1 moments carry
 photon energy and momentum, while the covariant interaction source gives the
 material an equal-and-opposite four-momentum increment. The comprehensive
 schedule passes 33 of 34 checks and rejects its $\Delta t=0.01$ source-accuracy
 target; a separate 9-check qualification supports $\Delta t=0.001$
-subcycling. This closes a conditional simulation equation once material data
-are supplied. It leaves the physical $(E_Y,E_I,q)$-to-temperature and density
-map, opacity, ionization, electromagnetic current and source energetics open.
+subcycling.
+
+`turbulence/compressible-radiative-plasma-closure.md` adds mass continuity,
+conservative compressible momentum and energy, pressure work, shocks, finite
+species and level populations, line and continuum coefficients, finite
+gravitational, accretion and nuclear energy sources, and multi-angle transfer
+for crossing beams. Its source-snapshotted schedule passes **70 of 70 checks**.
+Together the branches close conditional simulation equations once
+constitutive data are supplied. The physical $(E_Y,E_I,q)$-to-baryonic-state
+map, chemical identity, evaluated atomic and nuclear tables, initial source
+history and production CassiCosmos implementation remain open.
 
 The registered interscale-current construction consists of a separately
 normalized scale-coordinate Yang/Yin doublet with exact total and relative
