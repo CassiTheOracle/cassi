@@ -4941,7 +4941,6 @@ $$
 \mathcal E_{\mathrm{YM},a,L}(f)
 :=
 \sum_{e,A}\|X_e^Af\|_{L^2(\mu_{a,L})}^2,
-\tag{YM176a}
 $$
 
 for gauge-invariant $f\in\mathcal D$, with $\chi_{a,L}<\infty$. An exact
@@ -4994,8 +4993,9 @@ cross-level blocks in $k-j$ is one sufficient mechanism. This condition
 controls the assembled transport operator directly; it does not follow by
 summing the two-scale recurrences.
 
-Combining (YM176) with (YM176a) and the exact ground-state transform (YM28)
-yields, for any family satisfying the displayed hypotheses,
+Combining (YM176) with the displayed energy comparison and the exact
+ground-state transform (YM28) yields, for any family satisfying the displayed
+hypotheses,
 
 $$
 \Delta_{\mathrm{phys}}(a,L)
@@ -5004,7 +5004,7 @@ $$
 \tag{YM179}
 $$
 
-A fixed physical mass $m_*>0$ therefore requires
+The criterion guarantees a fixed physical mass $m_*>0$ provided
 
 $$
 \inf_{a,L}
@@ -5441,8 +5441,8 @@ construction and physical mass gap remain **UNRESOLVED**.
 
 The finite-level martingale transport criterion in §9.22.7 is an analytical
 conditional extension of the shell estimates. It has no separate preregistered
-protocol or receipt: (YM171)–(YM180), including the energy comparison in
-(YM176a), are proved from their displayed form-domain and transport
+protocol or receipt: (YM171)–(YM180), including the displayed energy
+comparison, are proved from their displayed form-domain and transport
 hypotheses, while (YM181)–(YM182) are exact post-protocol Gaussian diagnostics.
 These formulas do not extend the 58-check or 30-check recovery receipts. The
 exact-vacuum shell, recovery and
