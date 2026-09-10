@@ -730,6 +730,27 @@ Two pieces of self-consistency remain available for such an estimate:
 
 Replacing these objects by an arbitrary matrix potential or factoring their correlated expectations discards the information introduced by the stochastic representation. The homogeneous extension tests that weakened problem and exhibits exponential active distortion. The periodic shear shows that the full coupled geometry can instead place all covariance in inactive directions.
 
+The state-conditioned continuation in
+`turbulence/navier-stokes-active-deformation-occupation.md` supplies a
+separate reduction. It seeds the same common-noise second-moment equation
+with $\omega_0\omega_0^{\mathsf T}$:
+
+$$
+M=\mathbb E[(FV)(FV)^{\mathsf T}],
+\qquad
+\mathcal L_uM=LM+ML^{\mathsf T}.
+$$
+
+Covariance positivity gives
+$\|\omega(t)\|_2^2\le\int\operatorname{tr}M\,dx$, and the latter quantity is
+the exponential directional-strain occupation of trajectories selected by
+the initial vorticity. Its logarithmic production depends only on orientation
+anisotropy aligned with strain. A summable positive production dose implies
+continuation, while the uniform initial-$H^3$-data bound on that dose remains
+open. The seeded route avoids a full operator norm and is exact on the
+inactive shear direction; it leaves the active Rayleigh estimate (42) as an
+independent sufficient target.
+
 A proof of (42), or a signed evolution inequality for (39) whose coefficients are controlled by the initial data, would advance the original regularity problem. Equations (26), (37), and (39) provide the exact objects for that attempt. The required uniform estimate remains **UNRESOLVED**.
 
 ## 10. Relation to Cassi

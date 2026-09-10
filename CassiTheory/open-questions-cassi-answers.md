@@ -1512,6 +1512,26 @@ A uniform bound on $\mathfrak A_C$ over every mean-zero, divergence-free
 initial-$H^3$ data ball would continue the original solution. That estimate
 remains **UNESTABLISHED**.
 
+The vorticity-seeded refinement in
+`turbulence/navier-stokes-active-deformation-occupation.md` evolves
+$M=\mathbb E[(FV)(FV)^{\mathsf T}]$ from
+$M(0)=\omega_0\omega_0^{\mathsf T}$. It obeys the closed common-noise law
+$\mathcal L_uM=LM+ML^{\mathsf T}$ and gives the exact envelope
+$\|\omega(t)\|_2^2\le\int\operatorname{tr}M\,dx$. The normalized trace is an
+exponential directional-strain occupation selected by the initial-vorticity
+distribution; its logarithmic rate is the strain alignment of the anisotropic
+part of that occupied orientation ensemble. A reachable-direction
+Khasminskii bound and a summable positive active dose would continue the
+original solution. The source-bound 40-check schedule covers general
+polynomial components, finite fixtures, local controls and exponent
+arithmetic; the stochastic-flow, heat-kernel, Khasminskii and restart
+arguments remain analytical. The energy-class strain norm alone gives
+**CONTRADICTS** for a uniform generic scalar-potential occupation bound, and
+geometric cascade spacing alone gives **CONTRADICTS** as a source of
+summable dose. The uniform active-dose estimate over every bounded
+initial-$H^3$ data ball remains **UNESTABLISHED**, as does arbitrary-data
+Navier–Stokes regularity.
+
 The selected constant-density thermal model in §7 has a variational
 capillary stress with closed momentum and energy budgets, nonnegative
 entropy production and exact homogeneous canonical conversion. Smooth

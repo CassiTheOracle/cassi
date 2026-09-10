@@ -856,6 +856,27 @@ bound on the resulting active Rayleigh quotient over every mean-zero,
 divergence-free initial-$H^3$ data ball would imply continuation and remains
 open.
 
+The state-conditioned refinement in
+`turbulence/navier-stokes-active-deformation-occupation.md` seeds the
+common-noise second moment with the actual initial vorticity,
+$M(0)=\omega_0\omega_0^{\mathsf T}$. Its closed law
+$\mathcal L_uM=LM+ML^{\mathsf T}$ and covariance positivity give
+$\|\omega(t)\|_2^2\le\int\operatorname{tr}M\,dx$. Volume preservation
+identifies the normalized trace with an exponential directional-strain
+occupation selected by the initial-vorticity distribution. The logarithmic
+production depends only on orientation anisotropy aligned with strain.
+Embedded two-dimensional flow and periodic shear have zero active production;
+a separate local algebraic matrix control realizes exponential production
+outside the periodic Navier–Stokes class. A reachable-direction
+Khasminskii condition and a summable positive active dose are sufficient for
+continuation. The fixed source-bound schedule has 40 general polynomial
+components, finite fixtures, local controls and exponent checks; stochastic
+flow, heat-kernel, Khasminskii and restart steps remain conditional analytical
+arguments outside executable scope. The energy-class strain norm alone and
+geometric cascade spacing alone are **CONTRADICTS** for the displayed generic
+routes. A uniform active-dose bound over every initial-$H^3$ data ball remains
+**UNRESOLVED**.
+
 Section 7 of `turbulence/cassi-fluid-feasibility.md` selects a reacting
 rotational velocity and temperature. Its variational stress conserves
 periodic momentum; viscous and conversion work enter the heat equation,
