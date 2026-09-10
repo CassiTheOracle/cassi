@@ -72,11 +72,19 @@ def d_value(n: int, x: float) -> float:
 
 
 def normalized_error(actual: float, expected: float) -> float:
-    """Stable normalized discrepancy used for all numerical comparisons."""
+    """Normalized discrepancy ``|a-b|/max(1,|a|,|b|)``."""
     actual = float(actual)
     expected = float(expected)
     return abs(actual - expected) / max(1.0, abs(actual), abs(expected))
 
+
+def relative_error(actual: float, expected: float) -> float:
+    """Relative discrepancy required by the frozen CF and spectral gates."""
+    actual = float(actual)
+    expected = float(expected)
+    return abs(actual - expected) / max(
+        abs(actual), abs(expected), np.finfo(float).tiny
+    )
 
 def vector_normalized_error(actual: Any, expected: Any) -> float:
     left = np.asarray(actual, dtype=float)
@@ -589,14 +597,14 @@ def continued_fraction_controls(result: dict[str, Any]) -> None:
                 m_small = finite_cf_m(x, energy, start, m_ref)
                 m_large, m_prime = finite_cf_m_and_derivative(
                     x, energy, start, m_double)
-                reference_error = normalized_error(m_small, m_large)
+                reference_error = relative_error(m_small, m_large)
                 direct_errors: dict[str, float] = {}
                 direct_values: dict[str, dict[str, float]] = {}
                 for length in DIRECT_TAIL_LENGTHS:
                     terminal = n_cut + int(length)
                     m_cf = finite_cf_m(x, energy, start, terminal)
                     m_direct = finite_tail_m(x, energy, start, terminal)
-                    discrepancy = normalized_error(m_cf, m_direct)
+                    discrepancy = relative_error(m_cf, m_direct)
                     direct_errors[str(length)] = float(discrepancy)
                     direct_values[str(length)] = {
                         "terminal": int(terminal),
@@ -608,7 +616,7 @@ def continued_fraction_controls(result: dict[str, Any]) -> None:
                         "M": int(length), "terminal": int(terminal),
                         "m_continued_fraction": float(m_cf),
                         "m_direct_tail_solve": float(m_direct),
-                        "normalized_discrepancy": float(discrepancy),
+                        "relative_discrepancy": float(discrepancy),
                         "pass": discrepancy < CF_RTOL,
                     })
 
@@ -618,8 +626,11 @@ def continued_fraction_controls(result: dict[str, Any]) -> None:
                     raise ValueError("RF12 requires E<k_(N+1)")
                 sigma = float(x) ** 2 * m_large
                 lower_sigma = float(x) ** 2 / (delta + 2.0 * float(x))
-                upper_sigma = ((delta + 2.0 * float(x)
-                                - math.sqrt(delta * (delta + 4.0 * float(x)))) / 2.0)
+                upper_sigma = (
+                    2.0 * float(x) ** 2
+                    / (delta + 2.0 * float(x)
+                       + math.sqrt(delta * (delta + 4.0 * float(x))))
+                )
                 alternative_upper = min(float(x), float(x) ** 2 / delta)
                 lower_slack = sigma - lower_sigma
                 upper_slack = upper_sigma - sigma
@@ -683,8 +694,8 @@ def continued_fraction_controls(result: dict[str, Any]) -> None:
                 h = 1e-5 * max(1.0, math.sqrt(float(x)), abs(float(energy)))
                 derivative_fd = (finite_cf_m(x, energy + h, start, m_double)
                                  - finite_cf_m(x, energy - h, start, m_double)) / (2.0 * h)
-                recurrence_error = normalized_error(m_prime, derivative_direct)
-                finite_difference_error = normalized_error(m_prime, derivative_fd)
+                recurrence_error = relative_error(m_prime, derivative_direct)
+                finite_difference_error = relative_error(m_prime, derivative_fd)
                 derivative_pass = (
                     m_large > 0.0 and m_prime > 0.0
                     and recurrence_error < DERIVATIVE_RTOL
@@ -828,14 +839,14 @@ def spectrum_and_cutoff_controls(result: dict[str, Any]) -> tuple[
             sturm_eigenvector(reference_diagonal, x, value)
             for value in levels[m_double]
         ], dtype=float)
-        convergence_errors = [normalized_error(levels[m_ref][index], levels[m_double][index])
+        convergence_errors = [relative_error(levels[m_ref][index], levels[m_double][index])
                               for index in range(REFERENCE_LEVELS)]
         record_check(
             result,
             f"reference_doubling:x={float(x)}",
             all(error < REFERENCE_RTOL for error in convergence_errors),
             {"M_ref": int(m_ref), "2M_ref": int(m_double),
-             "normalized_errors": convergence_errors},
+             "relative_errors": convergence_errors},
         )
 
     result["spectrum_rows"] = spectrum_rows
@@ -856,7 +867,7 @@ def spectrum_and_cutoff_controls(result: dict[str, Any]) -> tuple[
             diagonal = jacobi_diagonal(x, 0, n_cut)
             off = jacobi_off_diagonal(x, n_cut + 1)
             eigenvalues = sturm_low_eigenvalues(diagonal, off, REFERENCE_LEVELS)
-            relative_errors = [normalized_error(eigenvalues[index], ref[index])
+            relative_errors = [relative_error(eigenvalues[index], ref[index])
                                for index in range(REFERENCE_LEVELS)]
             lower_bound = 4.0 * x * math.sin(math.pi / (2.0 * (n_cut + 2))) ** 2
             bound_pass = bool(
@@ -1004,13 +1015,11 @@ def feshbach_controls(result: dict[str, Any],
             reference_tail_norm_sq = float(np.dot(
                 vectors[index][start:], vectors[index][start:]
             ) / retained_norm_sq)
-            tail_norm_sq_relative_error = (
-                abs(tail_norm_sq_direct - tail_norm_sq_formula)
-                / max(abs(tail_norm_sq_formula), np.finfo(float).tiny)
+            tail_norm_sq_relative_error = relative_error(
+                tail_norm_sq_direct, tail_norm_sq_formula
             )
-            reference_tail_relative_error = (
-                abs(tail_norm_sq_direct - reference_tail_norm_sq)
-                / max(abs(reference_tail_norm_sq), np.finfo(float).tiny)
+            reference_tail_relative_error = relative_error(
+                tail_norm_sq_direct, reference_tail_norm_sq
             )
             residual_scale = max(
                 1.0,
@@ -1311,8 +1320,8 @@ def compute(result: dict[str, Any]) -> bool:
         "cutoff_row_count": len(result["cutoff_rows"]),
         "feshbach_row_count": len(result["feshbach_rows"]),
         "cutoff_max_relative_error_by_schedule": schedule_errors,
-        "reference_max_normalized_error": max(
-            (float(item["detail"]["normalized_errors"][index])
+        "reference_max_relative_error": max(
+            (float(item["detail"]["relative_errors"][index])
              for item in result["checks"] if item["name"].startswith("reference_doubling:")
              for index in range(REFERENCE_LEVELS)), default=0.0),
         "analytical_claims_numerically_adopted": False,
