@@ -1404,6 +1404,31 @@ positive viscosity coefficient, arbitrary-flow projection and a whole-bubble
 dynamical bound on the critical residual remain **UNESTABLISHED**. No
 concentration-arrest trajectory is run.
 
+The second-order analysis in
+`turbulence/navier-stokes-second-order-field-energy.md` establishes a
+nonnegative weighted Hamiltonian for a continuous-time continuum Yang/Yin
+family associated with the live shader's source-free coupling. The runtime
+uses a unit-coefficient finite-difference operator and does not carry an exact
+time-step conservation claim. A connection-sector restriction maps a
+nonnegative source-free $SU(2)$
+functional to a multiple of
+$\|u_t\|_2^2+c^2\|\omega\|_2^2$ on an Abelian one-color,
+temporal-gauge, charge-free, scale-flat slice. Evaluated along the original
+unforced Navier–Stokes evolution, this quantity has an exact balance and gives
+the sufficient continuation condition
+
+$$
+\omega-\sigma_c c^{-1}u_t\in L^2(0,T;L^3),
+$$
+
+where $\sigma_c$ chooses the pointwise closer sign. Its critical exponent uses
+the Euclidean or rescaled-domain dimensional line; the fixed normalized torus
+has no exact continuous scaling symmetry. A smooth shear heat family shows
+that kinetic energy alone does not control the static time–curl residual.
+The audit-qualified reproducible verifier passes **110 of 110 checks**. The
+uniform fixed-$c$ estimate over every bounded mean-zero $H^3$ data ball remains
+**UNESTABLISHED**, so arbitrary-data global regularity remains open.
+
 The selected constant-density thermal model in §7 has a variational
 capillary stress with closed momentum and energy budgets, nonnegative
 entropy production and exact homogeneous canonical conversion. Smooth

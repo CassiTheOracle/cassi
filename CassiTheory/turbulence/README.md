@@ -28,7 +28,20 @@ a critical scalar-Beltrami residual criterion and closes radial positive
 production conditionally on its time integral. A smooth positive-doublet
 family has bounded first-order phase energy with unbounded enstrophy and
 critical residual. Arbitrary-data production, global regularity and a Cassi
-canonical-density-to-physical-momentum constitutive map remain open.
+whole-field closure remain open.
+
+The second-order analysis derives a nonnegative weighted energy for the
+continuous-time continuum Yang/Yin family associated with the live shader's
+source-free coupling; the finite-difference runtime itself carries no exact
+time-step conservation claim. Separately, the field-particle action
+supplies a second-order connection sector. On an Abelian one-color,
+temporal-gauge, charge-free, scale-flat slice, the dimensional map
+$A_i^3=\kappa_Au_i$ identifies the surviving electric, magnetic and Gauss-law
+terms with a positive multiple of
+$\|u_t\|_2^2+c_g^2\|\omega\|_2^2$. Evaluating the corresponding mathematical
+quantity along an original unforced Navier–Stokes solution with comparison
+speed $c$ produces a time–curl residual whose finite squared
+$L_t^2L_x^3$ norm suffices for continuation.
 
 The separate fluid-feasibility study derives the conservative momentum flux
 of a restricted first-order action branch and audits the actual density solver.
@@ -81,10 +94,11 @@ arbitrary-flow closure and global regularity remain open.
 | 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution and helical covariance conditions | Derived filtered identities / Hypothesized geometric closure |
 | 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response, matter binding and exterior-memory comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
 | 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, radial and signed spectral spread, critical scalar-Beltrami residual, forced budgets and cumulative mixing obstruction | Derived conditional estimates and helical reduction / Static phase-energy coercivity contradicted / Open arbitrary-data critical work |
-| 6 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure, phase-current summary and actual flow controls | Derived conditional mechanical, thermal, and phase-current identities / Tested solver, rotational and phase-coercivity boundaries / Open physical-fluid completion |
-| 7 | `turbulence/cassi-fluid-phase-current-hydrodynamics.md` | Mermin–Ho rotation, helicity topology, two-band Beltrami flow, first-order coercivity and viscosity projection boundaries | Derived conditional current and topology identities / Tested rotational, memory and coercivity boundaries / Open microscopic viscosity and arbitrary-flow closure |
-| 8 | `turbulence/cassi-radiative-material-closure.md` | LTE emission, multigroup M1 transport, conservative material coupling and CassiCosmos handoff | Derived conditional transfer, conservation and entropy identities / Tested kernels / Open Cassi material calibration |
-| 9 | `turbulence/compressible-radiative-plasma-closure.md` | Compressible hydrodynamics, shocks, species and line kinetics, persistent stellar energy accounting and multi-angle crossing beams | Derived conditional / Tested reference controls and integrity qualification / Open Cassi material identification and production implementation |
+| 6 | `turbulence/navier-stokes-second-order-field-energy.md` | Nonnegative scalar-field energy, restricted connection-sector map and time–curl continuation residual | Derived field and Navier–Stokes identities / Derived conditional connection-sector map / Open arbitrary-data residual bound |
+| 7 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure, phase-current summary and actual flow controls | Derived conditional mechanical, thermal, and phase-current identities / Tested solver, rotational and phase-coercivity boundaries / Open physical-fluid completion |
+| 8 | `turbulence/cassi-fluid-phase-current-hydrodynamics.md` | Mermin–Ho rotation, helicity topology, two-band Beltrami flow, first-order coercivity and viscosity projection boundaries | Derived conditional current and topology identities / Tested rotational, memory and coercivity boundaries / Open microscopic viscosity and arbitrary-flow closure |
+| 9 | `turbulence/cassi-radiative-material-closure.md` | LTE emission, multigroup M1 transport, conservative material coupling and CassiCosmos handoff | Derived conditional transfer, conservation and entropy identities / Tested kernels / Open Cassi material calibration |
+| 10 | `turbulence/compressible-radiative-plasma-closure.md` | Compressible hydrodynamics, shocks, species and line kinetics, persistent stellar energy accounting and multi-angle crossing beams | Derived conditional / Tested reference controls and integrity qualification / Open Cassi material identification and production implementation |
 
 ## 2. Document summaries
 
@@ -183,7 +197,37 @@ The accompanying 84-check analysis also constructs a smooth one-band
 positive doublet with bounded first-order phase energy and divergent
 enstrophy and $L^3$ residual.
 
-### 2.6 Cassi fluid mechanics, thermal closure and phase currents
+### 2.6 Second-order field energy and the time–curl residual
+
+`turbulence/navier-stokes-second-order-field-energy.md` proves that the
+continuous-time continuum Yang/Yin family associated with the shader's
+source-free coupling has a nonnegative weighted Hamiltonian, coercive after
+its constant-density zero mode is fixed when $c_s^2>0$ and $\omega_0^2>0$.
+At $c_s^2=0$, spatially varying static density-kernel fields also have zero
+energy. The live shader
+uses an extent-dependent unit-coefficient finite-difference operator and does
+not exactly conserve that Hamiltonian at finite time step.
+Separately, the field-particle action supplies a dimensionally converted
+connection-sector functional on an Abelian one-color, temporal-gauge,
+charge-free, scale-flat slice.
+
+An exact evaluation along the original unforced Navier–Stokes equation shows
+that finite
+
+$$
+\int_0^T\|\omega-\sigma_c c^{-1}u_t\|_3^2dt,
+$$
+
+where $\sigma_c$ chooses the pointwise closer sign, suffices for continuation.
+The exponent is vorticity-critical under the Euclidean or simultaneously
+rescaled-domain dilation; the fixed normalized torus has no exact continuous
+dilation symmetry. A smooth shear heat family excludes control of the static
+time–curl residual by kinetic energy alone. The audit-qualified verifier
+passes **110 of 110** algebraic, source-correspondence and fixed Fourier
+checks. A uniform fixed-$c$ estimate over each bounded mean-zero $H^3$ data
+ball remains open.
+
+### 2.7 Cassi fluid mechanics, thermal closure and phase currents
 
 `turbulence/cassi-fluid-feasibility.md` derives pressure, counterflow momentum
 flux and quantum stress from the ungauged positive-density first-order action
@@ -215,7 +259,7 @@ the finite-grid evidence. The result **SUPPORTS** the declared
 constitutive budgets; physical replacement and global regularity remain
 **UNESTABLISHED**.
 
-### 2.7 Phase-current rotation and the viscosity boundary
+### 2.8 Phase-current rotation and the viscosity boundary
 
 `turbulence/cassi-fluid-phase-current-hydrodynamics.md` derives the
 barycentric velocity of the phase-bearing action. One normalized Yang/Yin
@@ -243,7 +287,7 @@ the critical scalar-Beltrami residual. Microscopic viscosity, a whole-field
 dynamical concentration bound, arbitrary-flow hydrodynamics and
 arbitrary-data regularity remain **UNESTABLISHED**.
 
-### 2.8 Radiative material closure
+### 2.9 Radiative material closure
 
 `turbulence/cassi-radiative-material-closure.md` supplies a conditional
 radiative extension of the selected capillary and thermal material. Planck
@@ -266,7 +310,7 @@ opacity, atomic populations or electromagnetic current. CassiCosmos
 implementation therefore begins with a default-off, unit-calibrated
 radiation state rather than the Observatory's appearance coefficients.
 
-### 2.9 Compressible radiative plasma and stellar light
+### 2.10 Compressible radiative plasma and stellar light
 
 `turbulence/compressible-radiative-plasma-closure.md` supplies the conditional
 completion required for thermal expansion, compression, shocks, species

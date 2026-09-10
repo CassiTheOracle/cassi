@@ -139,6 +139,11 @@ normalizations. Atomic, galactic, and cosmological physical sound speeds
 require their own constitutive matching even when a numerical receipt uses the
 same solver value.
 
+This $0.01$ value does not parameterize
+`CassiCosmos/compute/cassi_two_fluid.glsl`, whose extent-dependent
+finite-difference operator enters the scalar acceleration with normalized
+coefficient one.
+
 ### 3.3 $\chi$: The Sector-Coupling Bridge; $D$ and $\nu$: Spatial Solver Coefficients
 
 **$\chi$ (chemotactic mobility)** couples the two-fluid density gradient to the
@@ -249,6 +254,16 @@ $0<\varepsilon\le1$ indexes the exact concentration family whose
 $\varepsilon\downarrow0$ limit proves noncoercivity. Neither quantity is fitted
 or assigned a physical value. The follow-up introduces no physical parameter
 (`computations/navier-stokes-helical-spread-prereg.md`).
+
+The second-order field-energy analysis introduces no physical parameter. Its
+conditional connection-sector map uses externally supplied fixed $v$ for the
+dimensional conversion. The source-free, charge-free, scale-flat Abelian slice
+is not a constitutive model of the live field-particle sector, and $\kappa_A$
+and $c_g$ remain unselected. The mathematical comparison speed $c>0$ is freely
+fixed; the qualified Fourier control uses $c=1.7$ only as **N-class analytical
+data**. Neither that value nor $\kappa_A$ is fitted or selected physically;
+the existing $\epsilon_x,\mu_x$ inputs remain unselected
+(`turbulence/navier-stokes-second-order-field-energy.md`).
 
 The bounded fluid controls in `turbulence/cassi-fluid-feasibility.md` use
 $\nu=0.2$ and homogeneous-conversion $\lambda=0.3$ as **N-class benchmark
@@ -704,6 +719,7 @@ Symbols used framework-wide that are not counted parameter rows in §§1–6 (or
 | $u_0,\ \varepsilon_0,\ \varepsilon_b,\ \ell_C,\ \Lambda_C$ | transverse carrier mode, eigenvalue, binding gap, exterior decay length, and effective line coupling | $\varepsilon_b=\varepsilon_{C,\rm out}-\varepsilon_0$, $\ell_C^{-2}=2\varepsilon_b/K_{Cx}$, and $\Lambda_C=\lambda_C\int d^2x_\perp d\mathfrak s\,|u_0|^4$ | **Derived conditional identities.** They require a selected density-depleted tube and bound transverse eigenmode; no numerical values are selected and they add no §7 parameter (`foundations/core-trapped-charge-support.md`) |
 | $A_C,\ L_*,\ L_{\rm match}$ | fixed-charge support coefficient, reduced stationary separation, and minimum asymptotic matching length | $A_C=\Lambda_CQ_C^2/2$; $L_*$ solves $\sigma_QL_*^2+C_Q(1+\kappa_LL_*)e^{-\kappa_LL_*}=A_C$; the sufficient thin-tube condition is $A_C-C_Q>\sigma_QL_{\rm match}^2$ | **Derived conditional support identities / Hypothesized matching boundary.** $A_C>C_Q$ gives one reduced root with positive length curvature; no physical values are selected and no §7 parameter is added (`foundations/core-trapped-charge-support.md`) |
 | $\mathcal A_0^a,C_\Psi,C_\Phi,\epsilon_x,\epsilon_{\mathfrak s}$ | temporal $SU(2)_Q$ connection and positive charged-matter/electric-curvature coefficients | $[\mathcal A_0]=T^{-1}$, $[C_\Psi]=\hbar T$, $[C_\Phi]=[\epsilon_x]=\hbar T/L$, and $[\epsilon_{\mathfrak s}]=\hbar T/L^3$ | **Hypothesized source-free temporal-completion inputs.** They define the separate second-order charged-field branch, have no selected values, and are not counted in §7 (`foundations/particle-stationary-action-closure.md`) |
+| $\kappa_A,c_g;\ c$ | field-to-fluid conversion coefficient, conditional gauge propagation speed, and mathematical time–curl comparison speed | $[\kappa_A]=TL^{-2}$, $[c_g]=[c]=LT^{-1}$, and $c_g^2=(\epsilon_x\mu_x)^{-1}$ | **Derived conditional connection-sector map / unselected physical calibration.** $\kappa_A=1$ is only a nondimensional convention; $c=1.7$ is fixed verifier data. No value follows from $\varphi$, neither quantity changes the §7 parameter count, and the continuation theorem permits a fixed comparison $c$ independently of the restricted physical connection-sector reading (`turbulence/navier-stokes-second-order-field-energy.md`) |
 | $\ell_Q,\mathcal H_Q,E_Q$ | particle-action length, Hamiltonian-density, and energy scales | $\ell_Q=(g_Qv_Q)^{-1}$, $\mathcal H_Q=K_x\rho_0/\ell_Q^2$, $E_Q=K_x\rho_0\ell_Q$ | **Derived conditional normalization scales.** They are gauge-normalization invariant and add no §7 parameter. In the scalar-parent mass-normalization branch, imposing $v_{\rm car}=c$ and $\hbar M_a(1)/t_Q=0.511$ MeV gives a conditional $\ell_Q(a_C)$ family; the three witnessed $a_C=1/64,1/32,1/16$ retain the same external vacuum scalar mass and speed while giving $\ell_Q=(2.2350537582,1.6154167965,1.1902203530)\times10^{-12}$ m. This is an identifiability witness, not a physical mass or particle-size determination (`foundations/particle-stationary-action-closure.md` §8.12; `computations/matter-formation-continuum-report.md` §12) |
 | $\alpha_{\mathfrak s},u_\rho,u_\varphi,\gamma_x,\gamma_{\mathfrak s},u_H,k_{Cx},k_{C\mathfrak s},e_C,h_C,u_C$ | static particle-action dimensionless groups | Reference normalization fixes $\alpha_{\mathfrak s}=\gamma_x=\gamma_{\mathfrak s}=k_{Cx}=k_{C\mathfrak s}=u_C=1$, $u_\rho=u_\varphi=u_H=4$, and $e_C=0.75$. The diffuse fluctuation background uses $h_C=1.50$. The selected localized-branch coupling is $h_C=2.9598260763447164$, the first candidate in a frozen ordered density-depletion scan. The same coefficients enter the continuum-consistent scalar calculation | **Hypothesized action coefficients / Mapped selected $h_C$ / Tested finite-grid spectrum, ultraviolet obstruction and prepared smooth scalar binding.** The coupling is uncalibrated and has its Fit-Status Ledger row in §10. The Cartesian sequence fails its smooth-carrier diagnostic. Independent scalar solvers support prepared $Q_C\in\{16,256\}$ binding; smooth $Q_C=16$ constrained spatial stability remains INCONCLUSIVE. The qualified endpoints have increasing radius and decreasing energy per carrier; no preferred particle size is established. These optional-extension groups remain outside the counted §7 canonical classes (`foundations/particle-stationary-action-closure.md` §7; `computations/matter-formation-continuum-report.md`) |
 | $c_\Psi,c_\Phi,e_{tx},e_{t\mathfrak s}$ | temporal particle-action groups | $C_\Psi K_x/(\hbar^2\ell_Q^2)$, $C_\Phi v_Q^2K_x/(\hbar^2\rho_0\ell_Q^2)$, $\epsilon_xv_Q^2K_x/(\hbar^2\rho_0\ell_Q^2)$, and $\epsilon_{\mathfrak s}v_Q^2K_x/(\hbar^2\rho_0)$ | **Derived conditional dimensionless combinations.** They control dynamics and fluctuations, do not enter the static functional, have no selected values, and add no §7 parameters |
