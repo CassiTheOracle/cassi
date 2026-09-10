@@ -15,13 +15,17 @@ optional model choices, and which claims remain unestablished.
 
 The Navier–Stokes analyses develop exact critical-norm transfer identities,
 heat-correction estimates, filtered stress dynamics, quantitative strain
-departure and spectral-spread bounds on critical transfer. Exact source budgets
-extend the conditional estimate to smooth forcing. Explicit initial-data and
-kinematic controls delimit scalar-energy and local-geometric closure arguments.
-An exact globally smooth mixing family excludes amplitude-linear cumulative
-critical-transfer bounds while admitting a finite nonlinear bound of its own.
-Arbitrary-data critical production, global regularity and a Cassi
-canonical-density-to-physical-momentum constitutive map remain open.
+departure and spectral-spread bounds on critical transfer. The spread has an
+exact nonnegative viscous dissipation and centered nonlinear production;
+finite cumulative positive production gives a Prodi–Serrin continuation
+criterion. Exact source budgets extend the conditional estimate to smooth
+forcing. Explicit initial-data and kinematic controls delimit scalar-energy
+and local-geometric closure arguments. An exact globally smooth mixing family
+excludes amplitude-linear cumulative bounds for critical transfer, spread
+dissipation and positive spread production while admitting a finite nonlinear
+critical-transfer bound of its own. Arbitrary-data production, global
+regularity and a Cassi canonical-density-to-physical-momentum constitutive map
+remain open.
 
 The separate fluid-feasibility study derives the conservative momentum flux
 of a restricted first-order action branch and audits the actual density solver.
@@ -43,7 +47,7 @@ physical-fluid identification remain open.
 | 2 | `turbulence/navier-stokes-transfer-boundary.md` | Critical transfer, cubic heat correction, and coercivity | Derived identities and obstructions / conditional small-data estimates |
 | 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution and helical covariance conditions | Derived filtered identities / Hypothesized geometric closure |
 | 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response, matter binding and exterior-memory comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
-| 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, spectral concentration, forced budgets and cumulative mixing obstruction | Derived conditional estimates and cumulative mixing obstruction / Open arbitrary-data critical work |
+| 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, spectral-spread production, continuation reduction, forced budgets and cumulative mixing obstruction | Derived conditional estimates and cumulative mixing obstruction / Open arbitrary-data critical work |
 | 6 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure and actual flow controls | Derived conditional mechanical and thermal identities / Tested solver controls / Open physical-fluid completion |
 
 ## 2. Document summaries
@@ -93,30 +97,44 @@ actual departure bound for axisymmetric, swirl-free data. An integrated
 defect identity and a necessary excess-dose bound quantify departure.
 Optimal scalar centering bounds critical remainder work, and energy
 orthogonality bounds the complete nonlinear transfer by
-$c_{\rm S}\sqrt{\eta\mathcal C}\,Y$.
-The exact spectral-spread budget has an uncontrolled nonlinear production
-term. A smooth periodic datum develops spread immediately from zero;
-a positive-moment scalar construction has divergent critical norm despite
-positive departure. The separate departure and recurrence schedules pass
-71 and 134 checks respectively. The forced budget and scaling controls have
-215 passing checks in both the frozen preregistered run and the separate post-run
-qualification. The qualification explicitly covers all three source-work signs
-and the scaled Gaussian maximum speed, with qualified endpoint force assumptions.
-Critical duality bounds smooth forcing within the conditional spectral estimate.
-Initial energy and prescribed force norms also bound total direct critical
-source work. Finite accumulated transfer above a fixed fraction of viscous
-dissipation suffices for continuation; controlling that accumulation remains open.
+$c_{\rm S}\sqrt{\eta\mathcal C}\,Y$. The exact spread dissipation
+$$
+\mathcal Q=2KG+2E^2-\mathcal C Y
+$$
+controls both $\eta E^2$ and $\eta\mathcal C Y$, and centers the nonlinear
+production
+$$
+\mathscr P_{\mathcal V}=KA-\mathcal C F.
+$$
+Finite $\int(\mathscr P_{\mathcal V})_+dt$ bounds the critical norm and its
+dissipation, giving a Prodi–Serrin continuation criterion. The remaining
+all-data target is a finite initial-$H^3$-controlled bound on that cumulative
+positive production. A smooth periodic datum develops positive production
+immediately from zero spread; a positive-moment scalar construction has
+divergent critical norm despite positive departure. The separate departure
+and recurrence schedules pass 71 and 134 checks respectively.
+
+The forced budget and scaling controls have 215 passing checks in both the
+frozen preregistered run and the separate post-run qualification. The
+qualification covers all three source-work signs and the scaled Gaussian
+maximum speed, with qualified endpoint force assumptions. Critical duality
+bounds smooth forcing within the conditional spectral estimate. Initial energy
+and prescribed force norms also bound total direct critical source work.
+Finite accumulated transfer above a fixed fraction of viscous dissipation
+suffices for continuation; controlling that accumulation remains open.
 Parabolic magnification makes the source vanish; a nontrivial unforced limit
 still requires velocity and pressure bounds and suitable compactness.
+
 The unforced mixing analysis evolves an exact invariant family at eight
 amplitudes and two Fourier resolutions, with a separate zero-shear control.
-Its 601 checks pass. The continuum comparison proves that accumulated
-excess transfer divided by initial squared critical norm is unbounded as the
-amplitude increases. Every member is globally smooth and preserves odd
-Cartesian phase symmetry. A neighboring-frequency cancellation supplies
-a finite nonlinear initial-data bound within that same family.
-Arbitrary-data critical work, general regularity and unforced blow-up
-remain open in this analysis.
+Its 601 checks pass. The continuum comparison proves that accumulated excess
+transfer, spread dissipation and positive spread production divided by initial
+squared critical norm are unbounded as the amplitude increases. Every member
+is globally smooth and preserves odd Cartesian phase symmetry. A
+neighboring-frequency cancellation supplies a finite nonlinear
+critical-transfer bound within that same family. Arbitrary-data cumulative
+production, general regularity and unforced blow-up remain open in this
+analysis.
 
 ### 2.6 Cassi fluid mechanics and thermal closure
 

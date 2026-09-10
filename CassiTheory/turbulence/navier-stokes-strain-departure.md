@@ -4,9 +4,27 @@
 
 ## Abstract
 
-The original unforced Navier–Stokes equation imposes a finite energy budget on persistent strain self-amplification. Retaining a standard interpolation inequality gives an explicit departure-or-breakdown deadline that is strictly earlier than the energy deadline in Miller's perturbative comparison. Known global regularity converts this alternative into a departure statement for axisymmetric, swirl-free data. An integrated identity quantifies departure, and spectral centering bounds both the critical remainder work and the complete nonlinear transfer. The spectral spread has an exact production budget and can increase immediately from zero in a smooth periodic flow. A positive-moment scalar construction shows the insufficiency of the listed energy and departure budgets for critical-norm control. With an external force, exact source terms modify the budgets and the strain-departure identity. Critical duality controls a smooth source within the conditional spectral estimate. Parabolic rescaling makes that source vanish locally, while obtaining a nontrivial unforced limit requires additional compactness. Dynamical preservation of the sufficient spectral bound, recurrence control and arbitrary-data regularity remain open.
+The original unforced Navier–Stokes equation imposes a finite energy budget
+on persistent strain self-amplification. Retaining a standard interpolation
+inequality gives an explicit departure-or-breakdown deadline that is strictly
+earlier than the energy deadline in Miller's perturbative comparison. Known
+global regularity converts this alternative into a departure statement for
+axisymmetric, swirl-free data. An integrated identity quantifies departure,
+and spectral centering bounds both the critical remainder work and the
+complete nonlinear transfer. The spectral spread has an exact nonnegative
+viscous dissipation and a centered nonlinear production. Finite cumulative
+positive spread production gives a Prodi–Serrin continuation criterion, while
+the required initial-data-controlled bound remains open. A smooth
+monochromatic periodic flow develops positive spread production immediately,
+and a positive-moment scalar construction shows the insufficiency of the
+listed energy and departure budgets for critical-norm control. With an
+external force, exact source terms modify the budgets and the
+strain-departure identity. Critical duality controls a smooth source within
+the conditional spectral estimate. Parabolic rescaling makes that source
+vanish locally, while obtaining a nontrivial unforced limit requires
+additional compactness. Arbitrary-data regularity remains open.
 
-An exact periodic mixing family supplies a cumulative obstruction. Its globally smooth solutions preserve odd Cartesian phase symmetry while accumulated excess critical transfer becomes arbitrarily large relative to the initial squared critical norm $\mathcal C(0)$. The lower bound follows from a continuum comparison with controlled parabolic error. A separate Fourier cancellation gives a finite nonlinear initial-data bound within the same invariant family.
+An exact periodic mixing family supplies a cumulative obstruction. Its globally smooth solutions preserve odd Cartesian phase symmetry while accumulated excess critical transfer, spread dissipation and positive spread production become arbitrarily large relative to the initial squared critical norm $\mathcal C(0)$. The lower bounds follow from a continuum comparison with controlled parabolic error and the exact spread budget. A separate Fourier cancellation gives a finite nonlinear critical-transfer bound within the same invariant family.
 
 ## 1. Equation, data and source boundary
 
@@ -311,40 +329,249 @@ $$
 $$
 Thus $\sup\mathcal C$ and $\int Y\,dt$ are bounded on that interval. Since $4E^2\le\mathcal C Y$, the Sobolev inequality gives $u\in L^4_tL^6_x$, sufficient for Serrin continuation at a finite endpoint. This is a conditional estimate with a spectral-spread factor. A bound on its evolving coefficient from arbitrary initial data is still required.
 
-### 6.3 Exact dynamics of the spread
+### 6.3 Exact spread dissipation and nonlinear production
 
-Viscosity decreases the unnormalized spread, while convection can replenish it. Set $A=\langle\Lambda^2u,B\rangle=-4\int\det S$. Differentiating $\mathcal V$ using $K'=-2\nu E$, $E'=A-2\nu G$ and the critical budget gives
+Viscosity decreases the unnormalized spread, while convection can replenish it.
+Set
 $$
-\boxed{
-\mathcal V'+\nu(2KG+2E^2-\mathcal C Y)
-=KA-\mathcal C F.
-}
+\mathcal Q:=2KG+2E^2-\mathcal C Y,
+\qquad
+\mathscr P_{\mathcal V}:=KA-\mathcal C F.
 $$
-For the radial spectral energy measure $d\mu(r)$, whose moments of orders $0,1,2,3,4$ are $2K,\mathcal C,2E,Y,2G$,
+Differentiating $\mathcal V$ using $K'=-2\nu E$, $E'=A-2\nu G$
+and the critical budget gives
+$$
+\boxed{\mathcal V'+\nu\mathcal Q=\mathscr P_{\mathcal V}.}
+$$
+For the radial spectral energy measure $d\mu(r)$, whose moments of orders
+$0,1,2,3,4$ are $2K,\mathcal C,2E,Y,2G$,
 $$
 \mathcal V=\frac18\iint(r-s)^2\,d\mu(r)d\mu(s),
 $$
 $$
-2KG+2E^2-\mathcal C Y
+\boxed{
+\mathcal Q
 =\frac14\iint(r-s)^2(r^2+s^2)\,d\mu(r)d\mu(s)\ge0.
+}
 $$
-These are exact identities for the full spectrum. The nonlinear production $KA-\mathcal C F$ has no general sign. A decrease of $\mathcal V$ alone also need not decrease $\mathcal C$: at fixed $K,E$, the identity $\mathcal C^2=4(KE-\mathcal V)$ has the opposite dependence.
 
-The periodic datum
+The spread dissipation controls the coefficient in the complete critical
+transfer estimate. Normalize $d\mu/(2K)$ to a probability measure and write
+$$
+a=\mathbb E R=\frac{\mathcal C}{2K},\quad
+b=\mathbb E R^2=\frac EK,\quad
+c=\mathbb E R^3=\frac Y{2K},\quad
+d=\mathbb E R^4=\frac GK,
+$$
+$$
+v=b-a^2,\qquad
+q=d+b^2-2ac.
+$$
+Then $\eta=v/b$ and $\mathcal Q=2K^2q$. With
+$$
+h=\mathbb E\!\left[R^2(R-a)^2\right],
+$$
+direct expansion gives
+$$
+q=bv+h.
+$$
+Consequently
+$$
+\boxed{\mathcal Q\ge2\eta E^2.}
+$$
+A second sharp moment inequality retains the critical dissipation $Y$. Put
+$L=a(3b-a^2)$. Then
+$$
+b(q-\eta ac)=bd+b^3-Lc.
+$$
+Cauchy–Schwarz gives $bd\ge c^2$. Since
+$x=a/\sqrt b\in[0,1]$,
+$$
+L=b^{3/2}x(3-x^2)\le2b^{3/2},
+$$
+and hence
+$$
+\begin{aligned}
+b(q-\eta ac)
+&\ge c^2-Lc+b^3\\
+&=\left(c-\frac L2\right)^2+b^3-\frac{L^2}{4}\ge0,
+\end{aligned}
+$$
+where
+$$
+b^3-\frac{L^2}{4}
+=\frac{b^3}{4}(1-x^2)^2(4-x^2).
+$$
+It follows that
+$$
+\boxed{\mathcal Q\ge\frac12\eta\mathcal C Y.}
+$$
+Both constants are optimal among nonnegative radial measures. For
+$(1-p)\delta_0+p\delta_r$,
+$$
+\frac{\mathcal Q}{\eta E^2}=\frac2p,\qquad
+\frac{\mathcal Q}{\eta\mathcal C Y}=\frac1{2p},
+$$
+and the limits as $p\uparrow1$ are $2$ and $1/2$.
+
+The same quantity centers the nonlinear spread production. Define
+$$
+m=\frac{\mathcal C}{2K}=a,\qquad
+k=\mathbb E[(R-a)^4],\qquad
+e=\mathbb E[R(R-a)^2].
+$$
+Expansion gives
+$$
+q-k=v^2+2ae\ge0,
+$$
+so
+$$
+\boxed{
+\|(\Lambda-m)^2u\|_2^2
+=2Kk\le\frac{\mathcal Q}{K}.
+}
+$$
+A further expansion compares this radial spread with Miller's
+squared-frequency deficit:
+$$
+q-\frac{d-b^2}{2}=\frac{k+3v^2}{2}\ge0,
+$$
+and therefore
+$$
+\boxed{
+G-\frac{E^2}{K}\le\frac{\mathcal Q}{K}.
+}
+$$
+The coefficient one is optimal in this centered fourth-moment bound. Energy
+orthogonality now yields
+$$
+\begin{aligned}
+\mathscr P_{\mathcal V}
+&=K\left\langle(\Lambda-m)^2u,B\right\rangle\\
+&=KA-2KmF+Km^2\langle u,B\rangle
+=KA-\mathcal C F.
+\end{aligned}
+$$
+Together with the bound on $B$ in §6.2,
+$$
+\boxed{
+|\mathscr P_{\mathcal V}|
+\le c_{\rm S}\sqrt{2KEY\mathcal Q}.
+}
+$$
+Young's inequality therefore gives
+$$
+\boxed{
+\mathcal V'+\frac\nu2\mathcal Q
+\le\frac{c_{\rm S}^2}{\nu}KEY.
+}
+$$
+The right-hand side remains uncontrolled for arbitrary data. A radial measure
+supported on one radius has $\mathcal Q=0$ even when its spectral center and
+$G$ are arbitrarily large, so $\mathcal Q$ supplies spread rather than a raw
+high-frequency bound.
+
+There is also a direct continuation reduction. The complete transfer estimate
+in §6.2 and $\eta\mathcal C Y\le2\mathcal Q$ imply, for
+$0<\varepsilon\le2\nu$,
+$$
+\boxed{
+\mathcal C'+(2\nu-\varepsilon)Y
+\le\frac{2c_{\rm S}^2}{\varepsilon}\mathcal Q.
+}
+$$
+Indeed,
+$$
+2|F|\le2c_{\rm S}\sqrt{2\mathcal QY}
+\le\varepsilon Y+\frac{2c_{\rm S}^2}{\varepsilon}\mathcal Q.
+$$
+Taking $\varepsilon=\nu$, integrating, and using the exact spread budget gives
+$$
+\begin{aligned}
+\mathcal C(t)+\nu\int_0^tY\,ds
+&\le\mathcal C(0)+\frac{2c_{\rm S}^2}{\nu}
+\int_0^t\mathcal Q\,ds\\
+&=\mathcal C(0)+\frac{2c_{\rm S}^2}{\nu^2}
+\left(\mathcal V(0)-\mathcal V(t)
++\int_0^t\mathscr P_{\mathcal V}\,ds\right)\\
+&\le
+\boxed{
+\mathcal C(0)+\frac{2c_{\rm S}^2}{\nu^2}
+\left(\mathcal V(0)
++\int_0^t(\mathscr P_{\mathcal V})_+\,ds\right).
+}
+\end{aligned}
+$$
+Thus
+$$
+\int_0^T(\mathscr P_{\mathcal V})_+\,dt<\infty
+$$
+is a continuation criterion at a finite smooth endpoint. The displayed bound
+controls $\sup_{t<T}\mathcal C(t)$ and $\int_0^T Y\,dt$. Since
+$4E^2\le\mathcal C Y$,
+$$
+\int_0^T\|u\|_6^4\,dt
+\le C_{\mathbb T^3}\sup_{t<T}\mathcal C(t)\int_0^T Y\,dt<\infty.
+$$
+The Prodi–Serrin criterion with time exponent four and space exponent six
+then continues the solution. A constant periodic mean is removed by the
+Galilean transformation in §9.5.
+
+This gives a concrete sufficient all-data target. With $R_0$ as in §9.1,
+seek
+$$
+\boxed{
+\sup_{0\le t<\min(T,T_*)}
+\int_0^t(\mathscr P_{\mathcal V})_+\,ds
+\le M_{\mathcal V}(\nu,T,R)<\infty
+\quad\text{whenever }R_0\le R.
+}
+$$
+The initial quantities $\mathcal C(0)$ and $\mathcal V(0)$ are bounded in
+terms of $R$, and orthogonal Fourier truncations preserve the same initial
+$H^3$ bound. This estimate would therefore give global regularity for smooth
+periodic data. No such arbitrary-data estimate is established here.
+
+Two admissible flows delimit possible shortcuts. The periodic datum
 $$
 u_0=a(\sin y,\sin z,\sin x),\qquad a\ne0,
 $$
-has a single frequency radius. Its full Navier–Stokes derivatives satisfy
+has one frequency radius. Its full Navier–Stokes derivatives satisfy
 $$
 \mathcal V(0)=\mathcal V'(0)=0,\qquad
 \boxed{\mathcal V''(0)=\frac{9a^6}{16}(3-2\sqrt2)>0.}
 $$
-Indeed, the nonlinear velocity derivative is
-$-a^2(\sin z\cos y,\sin x\cos z,\sin y\cos x)$, a solenoidal field on the frequency radius $\sqrt2$, with squared norm $3a^4/4$. Its generated spectral mass is of order $t^2$. The radial moment formula gives the displayed curvature; viscous decay of the original unit-radius modes cancels from that coefficient. Local smoothness implies $\mathcal V(t)>0$ for sufficiently small positive $t$. Equivalently,
+The nonlinear derivative lies on radius $\sqrt2$, and its spectral energy is
+of order $t^2$. Hence $\mathcal Q(0)=\mathcal Q'(0)=0$ and
 $$
-\eta''(0)=a^2(3-2\sqrt2)>0.
+\boxed{
+\mathscr P_{\mathcal V}(0)=0,\qquad
+\mathscr P_{\mathcal V}'(0)
+=\frac{9a^6}{16}(3-2\sqrt2)>0.
+}
 $$
-This contradicts preservation of zero spread for periodic data. It leaves open quantitative control of a nonzero spread. A nonzero exactly monochromatic $L^2(\mathbb R^3)$ datum is unavailable, as its Fourier support would have measure zero.
+Positive spread production therefore begins immediately from a
+monochromatic datum.
+
+The exact globally smooth family in §9 also excludes a linear cumulative
+bound for the new quantities. At viscosity one, the choice
+$\varepsilon=2\nu$ above gives $\mathcal C'\le c_{\rm S}^2\mathcal Q$.
+Since $\mathcal C(0)=N^6$,
+$\mathcal C(t_N)\ge N^7/64$ and $\mathcal V(0)=0$,
+$$
+\int_0^{t_N}\mathcal Q\,dt
+\ge\frac{N^7/64-N^6}{c_{\rm S}^2},
+$$
+$$
+\int_0^{t_N}(\mathscr P_{\mathcal V})_+\,dt
+\ge\int_0^{t_N}\mathscr P_{\mathcal V}\,dt
+=\mathcal V(t_N)+\int_0^{t_N}\mathcal Q\,dt
+\ge\frac{N^7/64-N^6}{c_{\rm S}^2}.
+$$
+For $N\ge65$ these lower bounds are positive, and division by
+$\mathcal C(0)$ gives $(N/64-1)/c_{\rm S}^2\to\infty$. The family permits
+finite datum-dependent bounds, while excluding a universal coefficient
+linear in the initial squared critical norm.
 
 ### 6.4 Instantaneous amplification and critical growth
 
@@ -402,16 +629,33 @@ $$
 \inf_\lambda\|-\Delta u-\lambda u\|_2^2
 =2\left(G-\frac{E^2}{K}\right).
 $$
-This is a spread in squared frequency and differs from $\mathcal V$. For the scalar construction in §6.5,
+This is a spread in squared frequency and differs from $\mathcal V$. The
+pointwise comparison in §6.3 gives
+$$
+G-\frac{E^2}{K}\le\frac{\mathcal Q}{K},
+$$
+while the time weights and energy factor in the two continuation criteria
+remain different. For the scalar construction in §6.5,
 $$
 \left(G-\frac{E^2}{K}\right)^{2/3}
-=\frac{11^{2/3}}4\tau^{-7/6},
+:=\frac{11^{2/3}}4\tau^{-7/6},
 $$
-whose time integral diverges. The construction is consistent with that established criterion.
+whose time integral diverges. The construction is consistent with Miller's
+criterion.
 
-The bound in §6.2 concerns the complete critical transfer with a different spectral weight. No priority or stronger-than-Miller theorem is asserted. A sufficient next analytical result would derive preservation of its small-coefficient condition, or finite cumulative control of an established continuation quantity, from the original nonlinear evolution and initial data. The exact spread budget exposes the production term that such an argument must control.
+Section 6.3 supplies an exact continuation reduction through cumulative
+positive spread production. The remaining all-data lemma is the finite
+$M_{\mathcal V}(\nu,T,R)$ bound displayed there. The direct production
+estimate leaves $\int KEY\,dt$ uncontrolled; kinetic-energy dissipation
+controls $\int E\,dt$ but supplies no bound on this product. The exact mixing
+family excludes dependence linear in $\mathcal C(0)$ without excluding the
+prescribed initial-$H^3$ dependence of $M_{\mathcal V}$.
 
-For general three-dimensional data, breakdown before departure, recurrent amplification and symmetry-breaking disturbances remain possible within the present estimates. No recurrence count, arbitrary-data upper bound on critical production, or Cassi current-to-momentum constitutive law is established.
+For general three-dimensional data, breakdown before departure, recurrent
+amplification and symmetry-breaking disturbances remain possible within the
+present estimates. No arbitrary-data bound on positive spread production or
+Cassi current-to-momentum constitutive law is established. No priority or
+stronger-than-Miller theorem is asserted.
 
 ## 7. Verification and evidence scope
 
@@ -453,7 +697,7 @@ The accepted receipt is `runs/navier_stokes_critical_recurrence/verification.jso
 
 The frozen classifications are **CONTRADICTS** universal zero-spread preservation in the periodic control, **INCONCLUSIVE** for departure implying a nonincreasing critical norm, and **CONTRADICTS** closure from the listed scalar budgets. The last classification concerns scalar consistency only. Data-controlled critical production, recurrence control and arbitrary-data regularity remain **UNRESOLVED**.
 
-The Sobolev estimate and conditional continuation argument in §6.2 are analytical derivations; the 134-check receipt does not constitute their continuum proof. No Navier–Stokes time trajectory is integrated. To reproduce the fixed controls, use `python computations/verify_navier_stokes_critical_recurrence.py --output runs/navier_stokes_critical_recurrence/reproduction/verification.json` with a fresh output path.
+The Sobolev estimates and continuation arguments in §§6.2–6.3 are analytical derivations; the 134-check receipt does not constitute their continuum proof. No Navier–Stokes time trajectory is integrated. To reproduce the fixed controls, use `python computations/verify_navier_stokes_critical_recurrence.py --output runs/navier_stokes_critical_recurrence/reproduction/verification.json` with a fresh output path.
 
 Independent analytical reviews confirm the centered remainder estimate, the full-transfer derivative weights and the fixed scalar identities. The accepted continuation argument uses $L^4_tL^6_x$. `runs/navier_stokes_critical_recurrence/reconciliation.json` records the accepted proof statements, their scope and the excluded auxiliary claims; it is retained locally with the generated evidence.
 
@@ -745,11 +989,19 @@ K[U_\ell]=\ell\,\frac{\sqrt2\,\pi^{3/2}}4\longrightarrow0,
 $$
 This family is a kinematic control. No evolution law or admissible smooth forcing for this concentration is asserted.
 
-For original Navier–Stokes dynamics, the remaining quantitative target is cumulative control of nonlinear critical production or of the evolving coefficient $\eta\mathcal C$. The source estimate isolates that requirement for smooth forcing as well as for zero forcing. The force-scaling calculation specifies the additional compactness needed to compare a proposed singularity with an unforced limiting equation. Neither step establishes arbitrary-data regularity or an unforced smooth-data singularity.
+For original unforced Navier–Stokes dynamics, §6.3 isolates cumulative
+positive spectral-spread production as a sufficient continuation quantity;
+the finite $M_{\mathcal V}(\nu,T,R)$ bound remains the explicit all-data
+target. Cumulative critical production and control of the evolving coefficient
+$\eta\mathcal C$ remain alternative routes. The source estimate isolates the
+additional terms for smooth forcing, and the force-scaling calculation
+specifies the compactness needed to compare a proposed singularity with an
+unforced limiting equation. These steps establish neither arbitrary-data
+regularity nor an unforced smooth-data singularity.
 
 ## 9. Cumulative mixing in an exact periodic family
 
-Smooth unforced solutions can accumulate critical transfer arbitrarily larger than their initial squared critical norm $\mathcal C(0)$. This constrains the initial-data dependence of any proposed cumulative bound. The same family also has a finite upper bound for every datum.
+Smooth unforced solutions can accumulate critical transfer, spread dissipation and positive spread production arbitrarily larger than their initial squared critical norm $\mathcal C(0)$. This constrains the initial-data dependence of the corresponding cumulative bounds. The same family also has a finite critical-transfer upper bound for every datum.
 
 ### 9.1 Fixed margin and the candidate
 
@@ -775,20 +1027,29 @@ and a prescribed bound $R$ on the single initial norm
 $$
 R_0=\|u_0-\langle u_0\rangle\|_{H^3(\mathbb T^3)}.
 $$
-Writing $T_*$ for the maximal smooth existence time, the required estimate is
+Writing $T_*$ for the maximal smooth existence time, one sufficient estimate
+is
 $$
 \sup_{0\le t<\min(T,T_*)}\mathcal W_{1/2}(t)
-\le M(\nu,T,R)<\infty
+\le M_{\mathcal W}(\nu,T,R)<\infty
 \qquad\text{whenever }R_0\le R.
 $$
-The function must be finite for every $\nu>0$, finite $T>0$ and finite
+The spread-production reduction in §6.3 gives the alternative sufficient
+estimate
+$$
+\sup_{0\le t<\min(T,T_*)}
+\int_0^t(\mathscr P_{\mathcal V})_+\,ds
+\le M_{\mathcal V}(\nu,T,R)<\infty
+\qquad\text{whenever }R_0\le R.
+$$
+Either function must be finite for every $\nu>0$, finite $T>0$ and finite
 $R\ge0$, uniformly over all smooth solenoidal periodic data with $R_0\le R$.
 Smoothness on the compact torus makes $R_0$ finite for every admissible
-datum. For a Fourier-cutoff proof, the same bound must hold at every
-cutoff: orthogonal Fourier projection contracts $H^3$, so all projected
-initial data obey the same prescribed bound $R$. Evolving norm suprema
-and cutoff-dependent quantities are excluded from the right-hand side.
-This all-data estimate remains **UNRESOLVED**.
+datum. For a Fourier-cutoff proof, the same bound must hold at every cutoff:
+orthogonal Fourier projection contracts $H^3$, so all projected initial data
+obey the same prescribed bound $R$. Evolving norm suprema and cutoff-dependent
+quantities are excluded from the right-hand side. Both all-data estimates
+remain **UNRESOLVED**.
 
 ### 9.2 Full-equation admissibility
 
@@ -995,9 +1256,20 @@ preserves $F$ and the cumulative excess. Thus the fixed-margin continuation argu
 
 The family gives a finite-time, full-equation obstruction to amplitude-linear closure. It preserves odd Cartesian phase symmetry throughout a large transfer event. The initial spectrum is monochromatic, while the actual evolution creates the transverse frequencies that increase the critical norm.
 
-The finite upper bound uses the prescribed decaying shear and the bounded multiplier difference between its neighboring Fourier interactions. General three-dimensional perturbations introduce additional advecting components, pressure coupling and feedback into the shear. The corresponding coefficient then requires dynamical control. Ordinary kinetic-energy decay continues to hold for general mean-zero periodic Navier–Stokes; the missing step is control of the critical transfer pairing.
+The finite upper bound uses the prescribed decaying shear and the bounded
+multiplier difference between its neighboring Fourier interactions. General
+three-dimensional perturbations introduce additional advecting components,
+pressure coupling and feedback into the shear. Section 6.3 identifies the
+corresponding scale-resolved quantity as positive nonlinear spread
+production. The same family proves that its cumulative integral and the
+viscous spread dissipation can both grow arbitrarily large relative to
+$\mathcal C(0)$.
 
-The initial-$H^3$ bound $M(\nu,T,R)$ specified in §9.1, or another estimate that supplies continuation, remains **UNRESOLVED**. Every solution in this construction is globally smooth, and the calculation makes no claim of a singular trajectory or of priority over the shear-mixing literature.
+Either initial-$H^3$ bound $M_{\mathcal W}(\nu,T,R)$ or
+$M_{\mathcal V}(\nu,T,R)$ specified in §9.1 would supply continuation. Both
+remain **UNRESOLVED**. Every solution in this construction is globally
+smooth, and the calculation makes no claim of a singular trajectory or of
+priority over the shear-mixing literature.
 
 ## References
 

@@ -178,7 +178,7 @@ Known global regularity removes the breakdown alternative for axisymmetric, swir
 
 ## 10. Critical remainder and recurrence
 
-Spectral spread bounds the critical work left by enstrophy cancellation. The analytical derivations in `turbulence/navier-stokes-strain-departure.md` §6 give $|W|^2\le(\mathcal V/E)\|\mathcal R\|_2^2$ and the complete-transfer estimate $|F|\le c_{\rm S}\sqrt{\eta\mathcal C}\,Y$, where $\mathcal V=KE-\mathcal C^2/4$ and $\eta=\mathcal V/(KE)$. The latter gives conditional continuation while its coefficient stays below viscosity. Dynamical control of that coefficient is open.
+Spectral spread bounds the critical work left by enstrophy cancellation. The analytical derivations in `turbulence/navier-stokes-strain-departure.md` §6 give $|W|^2\le(\mathcal V/E)\|\mathcal R\|_2^2$ and the complete-transfer estimate $|F|\le c_{\rm S}\sqrt{\eta\mathcal C}\,Y$, where $\mathcal V=KE-\mathcal C^2/4$ and $\eta=\mathcal V/(KE)$. They also give the exact spread dissipation $\mathcal Q=2KG+2E^2-\mathcal C Y\ge0$ and centered production $\mathscr P_{\mathcal V}=KA-\mathcal C F$. The sharp moment bounds $\mathcal Q\ge2\eta E^2$ and $\mathcal Q\ge\eta\mathcal C Y/2$ convert finite $\int(\mathscr P_{\mathcal V})_+dt$ into Prodi–Serrin continuation. A finite initial-$H^3$-controlled bound on that cumulative production remains open.
 
 The fixed schedule is `computations/navier-stokes-critical-recurrence-prereg.md`. Its **134 checks pass**, with **24 exact velocity rows**, **48 independent FFT rows**, and maximum normalized discrepancy $1.0766942892814768\times10^{-12}$ against $10^{-10}$.
 
@@ -190,7 +190,7 @@ The fixed schedule is `computations/navier-stokes-critical-recurrence-prereg.md`
 
 One velocity control has $f=-107.52$, $\mathcal C'=15.2427056401649\ldots>0$ and declining $\mathcal V$. Its $\delta=-53287.808$ distinguishes a negative amplification functional from positive departure. This is an instantaneous full-equation calculation.
 
-The accepted receipt is `runs/navier_stokes_critical_recurrence/verification.json`, schema `cassi.navier-stokes.critical-recurrence.verification.v1`, with adjacent input manifest and frozen sources. All four source identities match current executable inputs and snapshots. The known Laplacian interpolation-deficit criterion diverges on the scalar construction. The Sobolev continuation estimate is an analytical proof separate from the finite checks. Data-controlled critical production, recurrence control and arbitrary-data regularity remain **UNRESOLVED**.
+The accepted receipt is `runs/navier_stokes_critical_recurrence/verification.json`, schema `cassi.navier-stokes.critical-recurrence.verification.v1`, with adjacent input manifest and frozen sources. All four source identities match current executable inputs and snapshots. The known Laplacian interpolation-deficit criterion diverges on the scalar construction. The Sobolev continuation estimates are analytical proofs separate from the finite checks. Initial-$H^3$ control of cumulative positive spread production, recurrence control and arbitrary-data regularity remain **UNRESOLVED**.
 
 The independent analytical reconciliation is retained in `runs/navier_stokes_critical_recurrence/reconciliation.json`. Its accepted continuum argument uses $L^4_tL^6_x$ and keeps the critical dissipation $2\nu Y$ distinct from the higher-order enstrophy dissipation.
 
@@ -335,14 +335,17 @@ one zero-shear control brings the total to 17 numerical evolutions.
 Forty independent spatial reconstructions include the full momentum
 equation and pressure projection. The maximum normalized discrepancy is
 $2.2384929847241164\times10^{-11}$ against $10^{-8}$.
+The spread-dissipation and production conclusions below are exact analytical
+consequences of the same invariant family; no new trajectory was integrated.
 
 | Control | Decisive result | Classification and scope |
 |---|---|---|
 | Numerical reduction and budgets | All fixed algebraic, trajectory, spatial and heat checks pass | **PASS**, qualified invariant-class Fourier approximations |
 | Unit initial critical budget | At $N=256$, analytical ratio $\ge1.5$ and numerical ratio $19.4393794552309$ | **CONTRADICTS**, exact continuum lower bound plus qualified finite trajectory |
-| Amplitude-linear bound at fixed $\nu,T>0$ | The continuum lower ratio grows without bound with $N$ | Excluded by the analytical construction |
-| Nonlinear bound within this family | Explicit finite bound from the critical multiplier difference | Derived for the one-way-coupled invariant class |
-| Arbitrary-data critical work and global regularity | General three-dimensional feedback remains uncontrolled | **UNRESOLVED** |
+| Amplitude-linear critical-transfer bound at fixed $\nu,T>0$ | The continuum lower ratio grows without bound with $N$ | Excluded by the analytical construction |
+| Amplitude-linear spread-dissipation or positive-production bound | Each cumulative ratio is at least $(N/64-1)/c_{\rm S}^2$, which diverges linearly with $N$ | Excluded by the analytical construction |
+| Nonlinear critical-transfer bound within this family | Explicit finite bound from the critical multiplier difference | Derived for the one-way-coupled invariant class |
+| Arbitrary-data cumulative production and global regularity | General three-dimensional feedback remains uncontrolled; no finite initial-$H^3$-controlled bound is known | **UNRESOLVED** |
 | Singular solution or formal-proof build | Every constructed solution is globally smooth; no formalization is run | **NOT_RUN** |
 
 The receipt is `runs/navier_stokes_mixing_budget/verification.json`,
