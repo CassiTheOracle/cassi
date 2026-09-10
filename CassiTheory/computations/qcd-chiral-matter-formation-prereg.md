@@ -147,6 +147,16 @@ $$
 
 Each of the four Cartesian components is centered and rescaled to standard deviation $0.3$ before the vacuum boundary is written. No field configuration is selected using its later topology.
 
+Array index $j_\alpha\in\{0,\ldots,N-1\}$ represents
+$x_\alpha=(j_\alpha-N/2)L/N$. For each seed, `PCG64.standard_normal`
+draws the four primary arrays in component-major order. Each complete
+$30^3$ component is centered and multiplied by $0.3$ divided by its
+population standard deviation. `scipy.signal.resample` then performs real
+periodic Fourier resampling from 30 to 40 successively along array axes
+$x,y,z$. The refinement field is neither recentered nor rescaled. Only then
+is every site with any index equal to $0$ or $N-1$ replaced by the physical
+vacuum.
+
 ## 3. Discrete energy and evolution
 
 Use forward nearest-neighbor differences for all three spatial directions. The lattice energy is the cell volume times the sum of the displayed continuum density. The normalized field used in $\mathcal U_4$ is
@@ -159,14 +169,38 @@ $$
 
 Every site with $|\boldsymbol\phi|\le\epsilon$ is counted. This cutoff is a numerical definition at a singular point of the selected effective action; any retained texture must have zero cutoff hits throughout its qualified persistence interval.
 
-Advance explicit steepest descent with an attempted step $\Delta s=2\times10^{-3}$. Limit the largest component change in one accepted step to $0.02$. If any event energy increases by more than
-$10^{-9}\max(1,|\mathcal U|)$, halve the step and retry; reject after 24 halvings. End exactly at each retained time
+The discrete functional gradient uses the lattice $L^2$ inner product:
+if $\mathcal U_{\rm lat}=\Delta y^3\sum_{\mathbf j}u_{\mathbf j}$, then
+$$
+G_{\mathbf j}=\Delta y^{-3}
+\frac{\partial\mathcal U_{\rm lat}}{\partial\boldsymbol\phi_{\mathbf j}}
+=\frac{\partial(\sum_{\mathbf j}u_{\mathbf j})}
+{\partial\boldsymbol\phi_{\mathbf j}}.
+$$
+Set $G=0$ on the fixed shell. Omitting $\mathcal U_4$ removes the full
+normalized-field term before differentiation.
+
+For each update, start with
+$
+\delta s=\min[2\times10^{-3},\,s_{\rm next}-s,\,
+0.02/\max_{\mathbf j,a}|G_{\mathbf j,a}|]
+$, where the last entry is omitted for a zero gradient and $s_{\rm next}$
+is the next retained time. Fields with the same grid and action may be
+advanced as one batch; the batch uses the smallest bound required by any
+member. Accept
+$\boldsymbol\phi'=\boldsymbol\phi-\delta s\,G$ only if every member's
+energy increase is at most $10^{-9}\max(1,|\mathcal U|)$. Otherwise halve
+the shared $\delta s$ and retry, failing if the candidate after 24
+successive halvings is still unacceptable. Reapply the exact vacuum shell
+before every energy comparison. End exactly at
 
 $$
 s=0,\ 0.05,\ 0.10,\ 0.25,\ 0.50,\ 1,\ 2,\ 4,\ 8.
 $$
 
-A run stops with a numerical failure on a nonfinite state, a rejected 24th halving, an energy increase beyond tolerance, a boundary change above $10^{-7}$, or more than 100,000 accepted steps before $s=8$.
+A run stops with a numerical failure on a nonfinite state, a rejected
+24th halving, an energy increase beyond tolerance, a boundary change above
+$10^{-7}$, or more than 100,000 accepted steps before $s=8$.
 
 The primary dynamics use IEEE float32 on the available PyTorch accelerator. Every retained state is written as float64. An independent NumPy implementation recomputes energy components and all observables from those arrays.
 
@@ -175,12 +209,42 @@ The primary dynamics use IEEE float32 on the available PyTorch accelerator. Ever
 ### 4.1 Algebra and numerical controls
 
 1. Vacuum on a $16^3$ grid.
-2. A smooth small-amplitude four-component field on a $10^3$ grid for a centered finite-difference directional-derivative check of the complete discrete energy.
-3. A checkerboard field proving the forward-difference energy is nonzero.
-4. Prepared $B=+1$ and $B=-1$ hedgehogs on both physical grids, evolved through $s=8$.
+2. A deterministic smooth four-component field on a $10^3$ grid. With
+   $u_\alpha=j_\alpha/(N-1)$ and
+   $w=\prod_\alpha\sin^2(\pi u_\alpha)$, its nonvacuum components are
+   $(0.03w\cos 2\pi u_x,\ 0.08w\sin 2\pi u_x,\
+   0.07w\cos 2\pi u_y,\ 0.06w\sin 2\pi u_z)$ added componentwise to
+   $(1,0,0,0)$. The directional field is
+   $w(\sin2\pi(u_y+u_z),\cos2\pi(u_x-u_z),
+   \sin2\pi(u_x+u_y),\cos2\pi(u_y-u_z))$, normalized to unit Euclidean
+   array norm. Its fixed shell is zero. Compare the automatic directional
+   derivative with
+   $[\mathcal U(\phi+10^{-5}d)-\mathcal U(\phi-10^{-5}d)]/(2\times10^{-5})$
+   in float64.
+3. A $16^3$ field with $\phi_0=1$ and
+   $\phi_1=0.1(-1)^{j_x+j_y+j_z}$ before writing the vacuum shell, proving
+   that the forward-difference energy is nonzero.
+4. Prepared $B=+1$ and $B=-1$ hedgehogs on both physical grids, evolved
+   through $s=8$.
 5. The same prepared hedgehogs with $\mathcal U_4=0$ on the primary grid.
 
-The radial profile for a prepared hedgehog solves the massive stationary Skyrme boundary-value equation with $F(0)=\pi$ and $F(\infty)=0$ at the frozen $\mu$. Its modulus starts at one. Prepared controls are excluded from the formation statistic.
+The radial profile for a prepared hedgehog is the regular solution of
+
+$$
+F''=\frac{-2rF'
+-\sin(2F)\left(F'^2-1-\sin^2F/r^2\right)
++\mu^2r^2\sin F}{r^2+2\sin^2F},
+\qquad F(0)=\pi,\quad F(\infty)=0,
+$$
+
+solved on $10^{-5}\le r\le64$ with the regular-origin condition
+$[\pi-F(r)]-r[-F'(r)]=0$ at the left endpoint and $F(64)=0$.
+The prepared field is
+$(\cos F,\sin F\,\hat{\mathbf x})$; reflection of its first pion
+component supplies the opposite orientation. The measured regular-value
+degree, rather than the construction label, determines which field is
+called $B=+1$. Its modulus starts at one. Prepared controls are excluded
+from the formation statistic.
 
 ### 4.2 Formation arms
 
@@ -212,6 +276,42 @@ For every event and retained time, record:
 - fixed-boundary error and accepted-step history.
 
 At $s=4$ and $s=8$, an independent regular-value calculation divides every periodic cube into the fixed six Freudenthal tetrahedra and counts oriented preimages of 16 preregistered target values on $S^3$. A resolved positive-and-negative texture event must satisfy all of:
+
+The piecewise map is defined by linearly interpolating the four
+unnormalized vertex vectors within each tetrahedron and then normalizing.
+Every periodic cube uses these ordered vertex strings:
+
+```
+000 100 110 111
+000 110 010 111
+000 010 011 111
+000 011 001 111
+000 001 101 111
+000 101 100 111
+```
+
+For $m=1,\ldots,16$, the fixed regular target is
+
+$$
+\mathbf t_m=
+\frac{\sin\!\left(m\sqrt{(2,3,5,7)}+(0.11,0.23,0.37,0.53)\right)}
+{\left|\sin\!\left(m\sqrt{(2,3,5,7)}+(0.11,0.23,0.37,0.53)\right)\right|}.
+$$
+
+For the $4\times4$ vertex matrix $M$, a target-ray hit satisfies
+$M\mathbf c=\mathbf t_m$ with every $c_a>10^{-10}$. Its barycentric
+position is $\mathbf c/\sum_a c_a$, and its sign is the product of
+$\operatorname{sgn}\det M$ and the oriented spatial tetrahedron sign.
+A target is ambiguous when all $c_a>-10^{-9}$ and at least one
+$|c_a|\le10^{-9}$, or when a hit has
+$|\det M|<10^{-12}$. Matrices with $|\det M|\le10^{-13}$ are excluded
+before the solve. The signed global degree is the positive-hit count minus
+the negative-hit count.
+
+The physical baryon-density RMS radius uses $|b|$ as its weight, periodic
+circular means in each Cartesian index coordinate, and minimum-image
+physical distances in the $5\ {\rm fm}$ cube. A vanishing total
+$|b|$ has no radius.
 
 1. maximum edge angle below $\pi/2$;
 2. zero ambiguous target-face or singular-tetrahedron intersections;
