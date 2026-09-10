@@ -837,7 +837,7 @@ Fit-Status Ledger entries. These statuses describe different objects.
 
 The last column is a conditional soliton-energy conversion. The mass calibration fixes a vacuum frequency, while the soliton energy includes its spatial and temporal energy. The ratios are outputs with no particle-matching threshold. A one-unit classical generator normalization does not establish a one-fermion quantum state or justify a semiclassical approximation.
 
-The source-unit transformations in `foundations/particle-stationary-action-closure.md` (PA36)–(PA37) preserve $\ell_Q$, $a$, $\mathcal N_Q$, $u_C/(\mathcal N_Qa^2)$ and $\Omega^2/M_a^2(1)$. The displayed family changes invariant quantities; it does not merely enumerate redundant choices of $g_Q$, $v_Q$, $\mu_{x,\mathfrak s}$ or $\lambda_H$. The tail comparison uses $a>0$, $k_{Cx}>0$, $e_C>\omega_C$ and $1+4a\omega_C>0$, all satisfied by the registered witnesses.
+The source-unit transformations in `foundations/particle-stationary-action-closure.md` (PA36)–(PA37) preserve $\ell_Q$, $a$, $\mathcal N_Q$, $u_C/(\mathcal N_Qa^2)$ and $\Omega^2/M_a^2(1)$. The displayed family changes these invariant quantities and therefore represents distinct physical choices of $g_Q$, $v_Q$, $\mu_{x,\mathfrak s}$ and $\lambda_H$. The tail comparison uses $a>0$, $k_{Cx}>0$, $e_C>\omega_C$ and $1+4a\omega_C>0$, all satisfied by the registered witnesses.
 
 ### 12.3 The selected scalar core-cell assignment fails
 
@@ -12367,7 +12367,204 @@ action microscopically, identify a particle species, or establish
 nonaxisymmetric or infinite-time persistence. Every scientific receipt
 retains `complete_physical_matter_formation=false`.
 
+## 77. Cascade-size normalization and the step-95 boundary
+
+The mapped step-95 length does not supply the physical size of the retained
+massive chiral benchmark. Its direct assignment to the empirical isoscalar
+electric radius fails analytically, and a separate size-normalized profile
+branch predicts nucleon and Delta masses far below their withheld comparison
+values.
+
+### 77.1 Frozen physical question
+
+The calculation asks whether the dimensionful cascade can replace the
+three-mass calibration in §32 with a more predictive normalization. It retains
+
+$$
+\ell_{95}
+=1.616255\times10^{-35}\ \mathrm m\,\varphi^{95}
+=1.1543452099944254\ \mathrm{fm},
+$$
+
+the massive hedgehog action with $\kappa=1$, the pion reference
+$M_\pi=138.039\ \mathrm{MeV}$, and the registered collective-rotation
+splitting $d=293.081246\ \mathrm{MeV}$. The proposed physical identification is
+
+$$
+r_{I=0}=\ell_{95}.
+$$
+
+The empirical comparison value is
+$r_{I=0}^{\rm obs}=0.769\ \mathrm{fm}$. Before any profile solve,
+
+$$
+\frac{\ell_{95}}{r_{I=0}^{\rm obs}}-1
+=0.5010991027235701.
+$$
+
+This fixes
+`CONTRADICTS—step-95 radius misses the empirical isoscalar radius by
+50.1099 percent` and
+`REJECT—step-95 isoscalar-radius assignment fails the analytic
+discriminator`. The numerical branch cannot change those verdicts.
+
+The remaining conditional question is whether the same assignment defines one
+internally consistent massive profile. Both calculations solve
+
+$$
+(x^2+2\sin^2F)F_{xx}+2xF_x
++\sin2F\left(F_x^2-1-\frac{\sin^2F}{x^2}\right)
+-\mu^2x^2\sin F=0
+$$
+
+with the regular-origin and finite-domain conditions in
+`computations/matter-formation-cascade-size-log-coordinate-prereg.md` §3. For
+each solution they reconstruct the dimensionless isoscalar-radius integral
+$R_0^2(\mu)$ and search for
+
+$$
+G(\mu)=\frac{\hbar c\,\mu}{M_\pi}\sqrt{R_0^2(\mu)}-\ell_{95}=0
+$$
+
+on 33 logarithmically spaced points over $0.1\le\mu\le2.5$. The frozen
+canonical domain is $L=64$, with full repeats at $L=48$ and $L=96$.
+
+At a qualifying root,
+
+$$
+\lambda_B=\frac{\ell_{95}}{\sqrt{R_0^2}},\qquad
+P=\frac{\hbar c}{\lambda_B}=\frac{M_\pi}{\mu},
+$$
+
+$$
+A=\frac{9P^2}{2\pi\Lambda d},\qquad
+e_B=\sqrt{\frac{P}{A}},\qquad
+f_B=\sqrt{PA},\qquad
+I_0=\frac{\pi A}{3P^2}.
+$$
+
+The absolute masses are then withheld comparisons:
+
+$$
+M_{\rm cl}=2sA,\qquad
+M_N^{\rm pred}=M_{\rm cl}+\frac d4,\qquad
+M_\Delta^{\rm pred}=M_{\rm cl}+\frac{5d}{4}.
+$$
+
+The magnetic radius, axial coupling and pion–nucleon coupling are descriptive
+outputs in this protocol. They carry no decision weight.
+
+### 77.2 Independent numerical result
+
+Every scan profile qualifies in both implementations. Each domain contains
+exactly one adjacent sign-changing pair and no exact grid zero. The primary
+and independent roots are:
+
+| Calculation | $L$ | $\mu_*$ | $G(\mu_*)$ (fm) |
+|---|---:|---:|---:|
+| Primary | 48 | 1.055286733854452 | $-6.66\times10^{-16}$ |
+| Primary | 64 | 1.0552867338537264 | $4.44\times10^{-16}$ |
+| Primary | 96 | 1.0552867338593153 | $-6.66\times10^{-16}$ |
+| Independent | 48 | 1.0552867338607723 | $0$ |
+| Independent | 64 | 1.0552867338607728 | $0$ |
+| Independent | 96 | 1.0552867338607728 | $0$ |
+
+The primary calculation uses the direct-$F$ equation on geometric meshes. The
+independent program uses $z=\ln x$ with
+$\theta=\pi-F$ and $p=d\theta/dz$, constructs its own mixed physical mesh,
+performs its own bracketed root solve and fixed 24-point Gauss–Legendre
+quadrature, and does not import the primary source or read its field profile.
+The primary passes all 9 applicable numerical gates. The independent
+calculation passes all 35 applicable gates, including source, protocol,
+artifact, reference-profile, scan, root, reconstruction, domain and
+cross-implementation comparisons.
+
+The canonical primary root gives:
+
+| Quantity | Size-normalized value |
+|---|---:|
+| $\mu_*$ | 1.0552867338537264 |
+| $\lambda_B$ | 1.5085341435937252 fm |
+| $P$ | 130.8071025359195 MeV |
+| $A$ | 3.7701906585415865 |
+| $e_B$ | 5.890253776754803 |
+| $f_B$ | 22.20737976556026 MeV |
+| $I_0$ | $2.3074339555344058\times10^{-4}\ \mathrm{MeV}^{-1}$ |
+| $M_{\rm cl}$ | 319.0737635614429 MeV |
+| $M_N^{\rm pred}$ | 392.3440750614429 MeV |
+| $M_\Delta^{\rm pred}$ | 685.4253210614429 MeV |
+| $r_{I=0}$ | 1.1543452099944254 fm |
+| $r_{M,I=0}$ | 1.5491140671257995 fm |
+| $g_A$ | 0.5583902991725984 |
+| $g_{\pi NN}$ | 9.865239743047571 |
+
+The independently reconstructed root gives
+$\mu_*=1.0552867338607728$,
+$e_B=5.89025377675891$,
+$f_B=22.207379765396496\ \mathrm{MeV}$,
+$M_N^{\rm pred}=392.34407505932586\ \mathrm{MeV}$ and
+$M_\Delta^{\rm pred}=685.4253210593258\ \mathrm{MeV}$. All frozen
+cross-implementation tolerances pass.
+
+Only after fixing these predictions do both programs compare them with
+$M_N^{\rm obs}=938.918754\ \mathrm{MeV}$ and
+$M_\Delta^{\rm obs}=1232.0\ \mathrm{MeV}$. The predicted nucleon mass is
+58.2132% low and the predicted Delta mass is 44.3648% low. Both therefore
+contradict the preregistered 10-percent criterion.
+
+### 77.3 Evidence integrity and verdict
+
+The final primary receipt is
+`runs/20260909_matter_formation_cascade_size_recovery4/results.json`, SHA-256
+`0b0908803b801cc63cce30b919890c21f8affc6847356da88f9c3d67fdc4d2a1`.
+Its retained root profile has SHA-256
+`9ea1a8acc1bb4ae4e43efdd027a1a1876a64cfb8d239448f22ffb59dfe0f038a`.
+The independent receipt is
+`runs/20260909_matter_formation_cascade_size_verification_recovery4/verification.json`;
+its independently solved profile has SHA-256
+`31b5a7dec32132cdb56d7c2016561418b6946bc326cd9c14dd52dab4856bcf94`.
+Both outputs reproduce the same frozen protocol bytes, SHA-256
+`a0e14234cfcfa84e31d1b90f92424b3182e4992ec044543d61d0a6032de98ec9`,
+and the six verdict strings agree exactly. The final missing-primary control
+exits nonzero with `MissingPrimaryReceipt`, `numerical_pass=false`,
+`complete_physical_matter_formation=false`, and six `INCONCLUSIVE` verdicts.
+
+The frozen decisions are:
+
+| Question | Verdict |
+|---|---|
+| Unique conditional size root | `SUPPORTS—unique size-normalization root on the frozen scan` |
+| Absolute nucleon mass | `CONTRADICTS—conditional size-implied nucleon mass misses 10 percent` |
+| Absolute Delta mass | `CONTRADICTS—conditional size-implied Delta mass misses 10 percent` |
+| Step-95 radius assignment | `CONTRADICTS—step-95 radius misses the empirical isoscalar radius by 50.1099 percent` |
+| Size-first normalization | `REJECT—step-95 isoscalar-radius assignment fails the analytic discriminator` |
+| Complete matter formation | `INCONCLUSIVE—conditional normalization does not select or form physical matter` |
+
+The supported root is an internal property of the supplied massive chiral
+action under an imposed radius. It does not rescue the physical identification:
+the imposed cascade length already disagrees with the measured radius, and the
+two withheld absolute masses independently disagree with the resulting
+normalization. The mapped step-95 QCD scale remains a scale assignment; it does
+not become a universal particle-radius law.
+
+No canonical Cassi field or action, regulated quantum state, degree-zero
+formation channel, spin/statistics sector, renormalization prescription,
+interaction dynamics or observable particle map follows from this
+calculation. Every retained receipt has
+`complete_physical_matter_formation=false`. The six-requirement completion
+boundary in §31 remains failed, and physical matter formation remains
+**Hypothesized/Open**.
+
 ## References
+
+- `computations/matter-formation-cascade-size-prereg.md`—frozen step-95 radius assignment, massive-profile size root, withheld mass comparisons and verdict tree.
+- `computations/matter-formation-cascade-size-numerical-recovery-prereg.md`—theta-state numerical recovery, immutable physical inputs and typed failure conditions.
+- `computations/matter-formation-cascade-size-log-coordinate-prereg.md`—independent logarithmic-coordinate recovery, final source identities, execution paths and evidence contract.
+- `computations/matter_formation_cascade_size.py`—primary direct-$F$ profile scan, bracketed size root, coefficient reconstruction and withheld comparisons.
+- `computations/verify_matter_formation_cascade_size.py`—independent log-coordinate profiles, physical-space quadrature, raw-evidence validation and verdict reconstruction.
+- `runs/20260909_matter_formation_cascade_size_recovery4/`—final primary scan, root profile, protocol bytes and conditional size-first predictions.
+- `runs/20260909_matter_formation_cascade_size_verification_recovery4/`—independent scan, root profile, protocol identity and 35-gate verification.
+- `runs/20260909_matter_formation_cascade_size_verification_missing_primary_control_recovery4/`—typed missing-primary rejection receipt.
 
 - `computations/matter_formation_quantum_preparation.py`—left-endpoint Taylor bound on the retained preparation states.
 - `computations/verify_matter_formation_quantum_preparation.py`—coordinate-integral generator reconstruction and right-endpoint preparation bound.

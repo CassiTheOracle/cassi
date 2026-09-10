@@ -1,6 +1,6 @@
 # Matter Completion Boundary: Nine Conditions from Coherence to a Particle Calculation
 
-## Status: Derived conditional boundary, microscopic non-identifiability and scalar continuum minimizer-set stability / Mapped carrier coupling and conditional baryon benchmark / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences, radial baryon relaxation and finite-charge radial condensation—September 2026
+## Status: Derived conditional boundary, microscopic non-identifiability and scalar continuum minimizer-set stability / Mapped carrier coupling, conditional baryon benchmark, massive three-mass normalization and rejected step-95 radius assignment / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences, radial baryon relaxation, finite-charge radial condensation, massive-profile topology and cascade-size rejection—September 2026
 
 ## Abstract
 
@@ -1538,7 +1538,68 @@ changed vacuum or boundary data, and quantum bound states remain outside
 the restriction. Microscopic action selection, the quantum state,
 particle identity and complete physical matter formation remain open.
 
+## 22. Cascade-size assignment boundary
+
+The dimensionful cascade does not determine the retained massive chiral
+particle size through the mapped step-95 assignment. The proposed
+identification gives
+
+$$
+\ell_{95}=1.1543452099944254\ \mathrm{fm},
+\qquad
+r_{I=0}^{\rm obs}=0.769\ \mathrm{fm},
+$$
+
+and therefore
+
+$$
+\boxed{
+\frac{\ell_{95}}{r_{I=0}^{\rm obs}}-1
+=0.5010991027235701.}
+$$
+
+The direct empirical verdict is
+`CONTRADICTS—step-95 radius misses the empirical isoscalar radius by
+50.1099 percent`, fixing the size-first assignment to `REJECT` before a
+profile is solved.
+
+A conditional profile calculation nevertheless asks whether imposing
+$r_{I=0}=\ell_{95}$ selects one internally consistent massive hedgehog. On
+the frozen $0.1\le\mu\le2.5$ scan, the primary and independent methods each
+find one qualifying root on all three domains. At $L=64$ they give
+$\mu_*=1.0552867338537264$ and $1.0552867338607728$, respectively. The
+primary normalization is
+
+$$
+e_B=5.890253776754803,\qquad
+f_B=22.20737976556026\ \mathrm{MeV},
+$$
+
+with withheld absolute predictions
+
+$$
+M_N^{\rm pred}=392.3440750614429\ \mathrm{MeV},\qquad
+M_\Delta^{\rm pred}=685.4253210614429\ \mathrm{MeV}.
+$$
+
+These values lie 58.2132% and 44.3648% below the measured nucleon and Delta
+masses. Both comparisons return `CONTRADICTS` at the frozen 10-percent
+threshold. The supported root establishes numerical uniqueness within the
+supplied action and scan. It supplies no support for the rejected physical
+radius assignment.
+
+The primary passes all 9 applicable numerical gates, and the independent
+log-coordinate reconstruction passes all 35. Their verdicts agree exactly
+(`computations/matter-formation-continuum-report.md` §77). This result is a
+**Mapped assignment / Tested conditional rejection**. It selects no
+microscopic field, action, quantum state, production channel, statistics,
+renormalization or observable particle identity. The complete-mechanism
+boundary remains open.
+
 ## References
+
+- `computations/matter-formation-continuum-report.md` §77—step-95 analytic mismatch, conditional size root, withheld mass comparisons and independent evidence.
+- `computations/matter-formation-cascade-size-log-coordinate-prereg.md`—final frozen inputs, independent method, thresholds and verdict tree.
 
 - `computations/matter-formation-continuum-report.md` §41—isolated stationary electric obstruction, exact fixed-common-number dilution, independent component and interval qualification.
 - `computations/matter-formation-continuum-report.md` §40—local common-phase observable, full gauge projection, independently reproduced linear spectrum and wave, and microscopic selection boundary.

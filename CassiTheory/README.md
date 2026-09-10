@@ -264,6 +264,16 @@ for all 16 regular values. This verdict is confined to the supplied action,
 impulse and sampled window. Physical matter formation remains
 Hypothesized/Open.
 
+The independently mapped step-95 QCD length also fails as a size-first
+normalization of this massive comparison. Its
+$1.1543452099944254\ \mathrm{fm}$ value exceeds the empirical isoscalar
+radius by $50.1099\%$. The constrained profile problem has one qualified
+conditional root, but its withheld nucleon and Delta masses miss observation
+by $58.2132\%$ and $44.3648\%$. The mapped radius assignment is rejected and
+supplies no physical particle size or formation mechanism
+(`foundations/matter-completion-boundary.md` §22;
+`computations/matter-formation-continuum-report.md` §77).
+
 
 ## The reality-simulation program
 

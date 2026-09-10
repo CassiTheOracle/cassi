@@ -570,6 +570,18 @@ positive and one negative preimage for all 16 regular values. The verdict is
 confined to the supplied action, impulse and sampled interval. Physical matter
 formation remains Hypothesized/Open.
 
+The independently mapped step-95 QCD length
+$\ell_{95}=1.1543452099944254\ \mathrm{fm}$ fails the empirical
+$r_{\mathrm{iso}}=0.769\ \mathrm{fm}$ size discriminator by $50.1099\%$.
+When that length is imposed on the same massive chiral action, one conditional
+profile root is qualified at $\mu_*=1.0552867338537264$, but the withheld
+nucleon and Delta masses are $392.3440750614429\ \mathrm{MeV}$ and
+$685.4253210614429\ \mathrm{MeV}$, missing their observations by $58.2132\%$
+and $44.3648\%$. The frozen size-first verdict is `REJECT`; step 95 supplies
+no physical particle size or formation mechanism
+(`foundations/matter-completion-boundary.md` §22;
+`computations/matter-formation-continuum-report.md` §77).
+
 The supplied scalar interface calculation distinguishes trapping from
 interface survival. A normal-bound carrier mode grows above
 $a_{\rm wall}=0.2722637330$, below the nonnegative bulk-potential boundary

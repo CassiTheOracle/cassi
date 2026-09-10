@@ -242,6 +242,14 @@ $\nu=D$ exactly for one fixed-winding Beltrami family. A nonzero commutator
 excludes that equality for general phase potentials, so the inventory status
 of both $D$ and $\nu$ remains **N** and a material viscosity remains absent.
 
+The helical-spread follow-up defines
+$\lambda_B=H/(2K)$ as a trajectory-derived diagnostic rather than a theory
+parameter. Its $\delta=1/4$ is a fixed analytical coefficient, and
+$0<\varepsilon\le1$ indexes the exact concentration family whose
+$\varepsilon\downarrow0$ limit proves noncoercivity. Neither quantity is fitted
+or assigned a physical value. The follow-up introduces no physical parameter
+(`computations/navier-stokes-helical-spread-prereg.md`).
+
 The bounded fluid controls in `turbulence/cassi-fluid-feasibility.md` use
 $\nu=0.2$ and homogeneous-conversion $\lambda=0.3$ as **N-class benchmark
 inputs**. They leave the implementation defaults and C-class convention
@@ -775,15 +783,17 @@ fails the quality bar. Tier definitions: `open-questions-cassi-answers.md`
 | Scalar core-cell assignment ($\ell_Q=\lambda_*$; mapped cell $[107,108]$) | **CONTRADICTS** selected scalar electron-core assignment | The exact-root denominator is $2(k_{Cx}-2e_C)=-1$ (no positive root); the global-vacuum minimum is $\ell_Q=6.7893919382\times10^{-13}$ m at $n=108.25197355$, above the cell upper endpoint $6.0141121609\times10^{-13}$ m | Mapped electron Compton cell and external $0.511$ MeV anchor | `runs/20260906_matter_formation_normalization/results.json`; `runs/20260906_matter_formation_normalization/verification.json`; `computations/matter-formation-normalization-prereg.md` | Mapped (assignment rejected) |
 | Conditional chiral baryon coefficients $(e_B,f_B)$ | Mapped two-target/two-coefficient calibration inside the added compact chiral action | The measured nucleon mean $938.918754\ \mathrm{MeV}$ and Delta mass $1232.0\ \mathrm{MeV}$ algebraically fix $e_B=5.416264578979231$ and $f_B=64.29440244394192\ \mathrm{MeV}$ after the stationary dimensionless profile is solved; reconstructed mass residuals are below $1.9\times10^{-16}$ | External nucleon and Delta masses | `computations/matter-formation-conditional-baryon-prereg.md`; `runs/20260907_matter_formation_conditional_baryon/results.json`; `runs/20260907_matter_formation_conditional_baryon_verification/verification.json` | Mapped (conditional baryon normalization) |
 | Massive bubble-lattice calibration $(\mu;\ e_B,f_B)$ | Mapped three-measured-mass calibration for the added massive chiral comparison | The pion reference $138.039\ \mathrm{MeV}$ selects $\mu=0.5266577616452649$; the nucleon mean $938.918754\ \mathrm{MeV}$ and Delta mass $1232.0\ \mathrm{MeV}$ select $e_B=4.842429173417474$ and $f_B=54.126511603191005\ \mathrm{MeV}$; reconstructed pion residual is $1.24\times10^{-10}$ and nucleon/Delta residuals are zero. The six target-bearing out-of-fit diagnostics all contradict their inherited tolerances; the reported magnetic radius has no frozen target. This is a conditional comparison-model selection, not a canonical Cassi parameter or matter-formation result | $M_\pi$, $M_N$, and $M_\Delta$ | `computations/matter-formation-continuum-report.md` §§32.1, 32.4; `runs/20260907_matter_formation_chiral_lattice/structure_recovery1/results.json` | Mapped (conditional massive calibration) |
+| Step-95 isoscalar-radius assignment | **REJECT / CONTRADICTS** mapped cascade-size identification | The mapped step-95 QCD length $\ell_{95}=1.1543452099944254\ \mathrm{fm}$ is identified with the empirical isoscalar radius $0.769\ \mathrm{fm}$; the analytic mismatch is $50.1099\%$. Imposing this length in the supplied massive chiral action gives one qualified root, $\mu_*=1.0552867338537264$, with $e_B=5.890253776754803$ and $f_B=22.20737976556026\ \mathrm{MeV}$. The withheld predictions $M_N=392.3440750614429\ \mathrm{MeV}$ and $M_\Delta=685.4253210614429\ \mathrm{MeV}$ miss their measured values by $58.2132\%$ and $44.3648\%$. The root is an internally consistent conditional normalization; the physical radius assignment is rejected | Mapped step-95 QCD scale; empirical isoscalar radius; external pion mass and collective splitting; nucleon and Delta masses withheld for comparison | `computations/matter-formation-cascade-size-log-coordinate-prereg.md`; `runs/20260909_matter_formation_cascade_size_recovery4/results.json`; `runs/20260909_matter_formation_cascade_size_verification_recovery4/verification.json` | Mapped (assignment rejected) |
 
 
-**Row count: 46.** A row here records the quantity's epistemic status. Each
+**Row count: 47.** A row here records the quantity's epistemic status. Each
 entry carries the tier the claim must bear (Calibrated or Mapped) until an
 independent derivation replaces the fit; the status propagates to documents
 that cite the quantity. The three scalar-parent normalization rows, the
-conditional baryon calibration row, and the massive bubble-lattice calibration
-row above are selection records for supplied comparison models, not additional
-independent parameters in the §7 total.
+conditional baryon calibration row, the massive bubble-lattice calibration
+row and the rejected step-95 radius assignment are selection records for
+supplied comparison models. They add no independent parameter to the §7 total.
+
 The scalar rows' Mapped tiers apply to the imposed target, generator normalization and
 core-cell identification. The algebraic implication that a free admissible
 $a_C$ yields a nonunique length is **Derived conditional**. Its registered
@@ -792,16 +802,24 @@ numerical consistency verdict is
 derivative identity nor this implementation check derives the selected
 physical inputs or changes their ledger tiers.
 
-The massless conditional baryon calibration fixes both coefficients from two measured
-masses and is therefore **Mapped**. Its stationary profile, collective-coordinate formulas
-and relaxation receipt do not promote the calibration to a derivation. The separate
-massive bubble-lattice calibration fixes $\mu$ from the measured pion reference and
-$e_B,f_B$ from the measured nucleon and Delta masses; its exact action/stress/current
-identities and finite-site topology statement remain conditional, while its six
-target-bearing out-of-fit diagnostics fail their inherited tolerances. Neither
-calibration selects the canonical Cassi action, quantum state, stress exchange or
-particle identity. The conditional particle rules and physical-completion boundary
-remain separate from the fit record.
+The massless conditional baryon calibration fixes both coefficients from two
+measured masses and is therefore **Mapped**. Its stationary profile,
+collective-coordinate formulas and relaxation receipt do not promote the
+calibration to a derivation. The massive bubble-lattice calibration fixes
+$\mu$ from the measured pion reference and $e_B,f_B$ from the measured nucleon
+and Delta masses. Its exact action, stress, current and finite-site topology
+identities remain conditional, and its six target-bearing out-of-fit
+diagnostics fail their inherited tolerances. Both calibrations remain supplied
+comparison models; the canonical Cassi action, quantum state, stress exchange
+and particle identity remain open.
+
+The size-first row tests whether the independently mapped step-95 QCD length
+can normalize the massive comparison through the empirical isoscalar radius.
+The analytic $50.1099\%$ radius mismatch rejects that assignment. Its unique
+conditional profile root is numerically qualified, while the two withheld
+baryon masses miss their observations by $58.2132\%$ and $44.3648\%$.
+The conditional particle rules and physical-completion boundary remain
+separate from all three chiral fit records.
 
 ## 11. Unfitted Experimental Inputs
 

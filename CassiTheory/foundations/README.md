@@ -118,6 +118,16 @@ Conserved stress belongs to the added action and has no canonical Cassi stress
 exchange (`computations/matter-formation-continuum-report.md`
 §32; `foundations/matter-completion-boundary.md` §14).
 
+The independently mapped step-95 QCD length
+$\ell_{95}=1.1543452099944254\ \mathrm{fm}$ misses the empirical isoscalar
+radius by $50.1099\%$, so its direct massive-model size assignment is
+**Mapped/Rejected**. Imposing that length still yields one qualified
+conditional root, but its withheld nucleon and Delta masses miss observation
+by $58.2132\%$ and $44.3648\%$. The cascade assignment therefore supplies no
+physical particle size or formation mechanism
+(`computations/matter-formation-continuum-report.md` §77;
+`foundations/matter-completion-boundary.md` §22).
+
 
 ## Document Index
 
@@ -159,7 +169,7 @@ exchange (`computations/matter-formation-continuum-report.md`
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
 | 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities and conditional block theorem / Hypothesized microscopic physical identification |
-| 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current and conditional soliton pinch | Hypothesized action and Wilson-link extension / Derived conditional current, endpoint and support boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
+| 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current, phase-current projection and conditional soliton pinch | Hypothesized action and Wilson-link extension / Derived conditional current, endpoint, support and phase-current boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum, rotational and phase-coercivity controls, and conditional smooth scalar binding |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, scale graph and canonical reduction | Hypothesized completion / Derived conditional fibre geometry and canonical reduction / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 39 | `endpoint-link-and-localization-boundary.md` | Conditional endpoint covariance, response, transport and localization boundary | Hypothesized Wilson extension / Derived conditional endpoint and localization boundaries / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 40 | `point-core-flux-sector.md` | Quantized exterior energy and finite-energy core boundary | Derived conditional exterior support and current-action completion no-go / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
@@ -168,7 +178,7 @@ exchange (`computations/matter-formation-continuum-report.md`
 | 43 | `particle-stationary-action-closure.md` | Temporal action, Gauss, empty-sector invariant, scalar reduction, fluctuation boundary and conditional chiral baryon benchmark | Hypothesized temporal completion / Derived conditional action, scalar-reduction, parent-vacuum, dilation, fixed-charge, formation-dynamics and non-identifiability identities / Mapped carrier coupling and conditional baryon benchmark / Tested prepared binding, finite-grid spectra, parent correspondences, conditional temporal dynamics and radial baryon relaxation—September 2026 |
 | 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, source-action response, and routed quadratic-flux attenuation | Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026 |
 | 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated conversion, coherence, transport, endpoint and bounded source interface | Hypothesized integrated realization / Derived canonical reduction, positivity, covariance and conditional interface ledgers / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026 |
-| 46 | `matter-completion-boundary.md` | Nine-part conditional boundary, massless and massive conditional baryon comparisons, finite-site topology and complete-mechanism adjudication | Derived conditional boundary and microscopic non-identifiability / Mapped carrier coupling, massless benchmark and massive three-mass normalization / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences and radial baryon relaxation; all six massive out-of-fit diagnostics carry `CONTRADICTS` verdicts, finite-site regulator simply connected—September 2026 |
+| 46 | `matter-completion-boundary.md` | Nine-part conditional boundary, massless and massive conditional baryon comparisons, finite-site topology, cascade-size assignment and complete-mechanism adjudication | Derived conditional boundary and microscopic non-identifiability / Mapped carrier coupling, massless benchmark, massive three-mass normalization and rejected step-95 radius assignment / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences and radial baryon relaxation; all six massive out-of-fit diagnostics carry `CONTRADICTS` verdicts, the finite-site regulator is simply connected, and step 95 misses the empirical isoscalar radius by $50.1099\%$—September 2026 |
 | 47 | `quantum-free-fall-correspondence.md` | Ideal QGI action and inference boundary; physical-$q$ bounds and information loss; forty-three closure requirements and QFC1–QFC4 receipts | Derived conditional external-potential correspondence / Hypothesized Cassi atomic state, gravity-response, and common-lapse mappings—September 2026 |
 
 ## Document Summaries
@@ -758,6 +768,15 @@ These Derived conditional results constrain local initial-value models;
 physical bubble history, quantum-state selection and particle identity
 remain open (§12; `computations/matter-formation-continuum-report.md` §37).
 
+The spatial number currents give a conditional barycentric phase velocity.
+One normalized doublet obeys Mermin–Ho vorticity, while full-doublet topology
+and two scale bands support nonzero-helicity sectors. The 227-check
+phase-current schedule qualifies that rotational class and the boundary of
+scalar diffusion as viscosity. Its separate 84-check helical follow-up
+excludes static first-order phase energy as an enstrophy or critical-residual
+bound. The surrounding initial state could impose a dynamical restriction,
+but no such whole-field estimate is derived.
+
 On the Mapped Planck-to-proton interval, endpoint conversion closes Yang
 outward flow and Yin return flow into a two-rail circuit. A charged coherent
 section and a one-way open channel provide explicit conditional realizations.
@@ -785,9 +804,10 @@ cannot emerge from exactly empty closed-sector data. Physical endpoint
 normalization, scale tension, carrier identity, mass scaling, production and
 decay rate remain open (`computations/matter-formation-continuum-report.md`).
 Status: Hypothesized action and Wilson-link extension / Derived conditional
-endpoint, response, transport, localization, smooth-core, confinement and
-carrier-support boundaries / Mapped selected carrier coupling / Tested
-finite-grid spectrum and conditional smooth scalar binding—September 2026.
+endpoint, first-order source-action, phase-current, Wilson-transport,
+localization, smooth-core, confinement and carrier-support boundaries / Mapped
+selected carrier coupling / Tested finite-grid spectrum, rotational and
+phase-coercivity controls, and conditional smooth scalar binding—September 2026.
 
 ### `interscale-stress-attenuation-boundary.md`—Interscale Stress Transfer and the Attenuation Boundary
 
@@ -1205,6 +1225,15 @@ confined to the supplied action, impulse and sampled interval
 (`computations/matter-formation-continuum-report.md` §32.7;
 `foundations/matter-completion-boundary.md` §14).
 
+The mapped step-95 QCD length is rejected as a size-first normalization of
+this massive comparison. It exceeds the empirical isoscalar radius by
+$50.1099\%$. The imposed-length boundary-value problem has one qualified
+conditional root, while its withheld nucleon and Delta masses miss their
+measured values by $58.2132\%$ and $44.3648\%$. This closes the proposed
+step-95 radius assignment without selecting a physical particle scale
+(`computations/matter-formation-continuum-report.md` §77;
+`foundations/matter-completion-boundary.md` §22).
+
 Physical exterior and reservoir actions, state selection, canonical
 coefficient determination, gravity selection, continuum-localized forming
 evolution from degree-zero data, stability or capture of the radiating clouds,
@@ -1213,10 +1242,11 @@ only the entire fixed-charge minimizer set of the supplied scalar action.
 The deterministic six-requirement completion gate returns `FAIL`
 (`computations/matter-formation-continuum-report.md` §§35–36). Status: Derived
 conditional boundary, microscopic non-identifiability and scalar continuum
-minimizer-set stability / Mapped carrier coupling and conditional baryon
-benchmark / Hypothesized physical realization / Tested reduced receipts,
-prepared binding, finite-grid spectra, parent correspondences, radial baryon
-relaxation and finite-charge radial condensation—September 2026.
+minimizer-set stability / Mapped carrier coupling, conditional baryon
+benchmark and rejected step-95 radius assignment / Hypothesized physical
+realization / Tested reduced receipts, prepared binding, finite-grid spectra,
+parent correspondences, radial baryon relaxation and finite-charge radial
+condensation—September 2026.
 
 ### `quantum-free-fall-correspondence.md`—Quantum Free Fall as a Cassi Correspondence Boundary
 

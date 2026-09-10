@@ -390,6 +390,22 @@ and impulse. The massive-model normalization is **Mapped**, and physical
 matter formation remains **Hypothesized/Open**
 (`computations/matter-formation-continuum-report.md` §§32.1–32.7).
 
+The independently mapped step-95 QCD length does not supply the massive
+comparison's physical size. Its value
+$\ell_{95}=1.1543452099944254\ \mathrm{fm}$ differs from the empirical
+isoscalar radius $0.769\ \mathrm{fm}$ by $50.1099\%$, which rejects the frozen
+size-first assignment analytically. The imposed-length boundary-value problem
+has one qualified conditional root,
+$\mu_*=1.0552867338537264$, and the corresponding coefficients reproduce
+their defining radius, pion-mass and collective-splitting inputs. The withheld
+predictions are $M_N=392.3440750614429\ \mathrm{MeV}$ and
+$M_\Delta=685.4253210614429\ \mathrm{MeV}$, respectively $58.2132\%$ and
+$44.3648\%$ below their measured values. The primary and independent programs
+agree on the root and verdict bytes. This **Mapped/Rejected** assignment
+provides no cascade-derived particle size or matter-formation mechanism
+(`computations/matter-formation-continuum-report.md` §77;
+`foundations/matter-completion-boundary.md` §22).
+
 The supplied signed scalar interface has independently qualified
 normal-bound carrier modes and a surface-growth interval
 $0.2722637330<a\le0.3142233130$ with nonnegative bulk potential. Its

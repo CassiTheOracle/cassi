@@ -913,6 +913,40 @@ numbered catalog prediction
 (`computations/matter-formation-continuum-report.md` §38;
 `foundations/matter-completion-boundary.md` §19).
 
+The local common phase of the charged pair is an exact gauge-invariant
+classical observable. Projecting the full linearized connection system leaves
+a gapless common-phase branch at zero spatial wave number; the magnetic
+screening scale does not gap it. This conditional result does not supply a
+quantum paired state, exchange statistics, normalization or localized
+formation trajectory
+(`computations/matter-formation-continuum-report.md` §40;
+`foundations/matter-completion-boundary.md` §20).
+
+The same second-order action has two further isolated-system boundaries. A
+smooth stationary finite-energy configuration with zero boundary work,
+zero external charge and no imposed voltage or finite-density reservoir
+cannot carry nonzero asymptotic electric flux. Its common-number generator
+also has a fixed-nonzero-number sequence whose energy tends to zero as the
+support radius tends to infinity, so it has no finite-energy minimizer in
+that sector. These are conditional stationary and variational obstructions;
+time-dependent metastability and other vacuum or boundary sectors remain
+open
+(`computations/matter-formation-continuum-report.md` §41;
+`foundations/matter-completion-boundary.md` §21).
+
+The mapped step-95 QCD length fails as a size-first normalization of the
+supplied massive chiral comparison. Its value
+$\ell_{95}=1.1543452099944254\ \mathrm{fm}$ exceeds the empirical isoscalar
+radius $0.769\ \mathrm{fm}$ by $50.1099\%$. Imposing that length gives one
+qualified conditional profile root, but the withheld nucleon and Delta masses
+miss their measured values by $58.2132\%$ and $44.3648\%$. The frozen verdicts
+are `CONTRADICTS—step-95 radius misses the empirical isoscalar radius` and
+`REJECT—step-95 isoscalar-radius assignment fails the analytic
+discriminator`. This rejects the mapped size assignment and adds no numbered
+catalog prediction
+(`computations/matter-formation-continuum-report.md` §77;
+`foundations/matter-completion-boundary.md` §22).
+
 
 **Source:** `foundations/matter-completion-boundary.md`;
 `computations/matter_completion_boundary_prereg.md`;
@@ -927,6 +961,9 @@ numbered catalog prediction
 `computations/matter-formation-conditional-baryon-prereg.md`;
 `computations/matter_formation_conditional_baryon.py`;
 `computations/verify_matter_formation_conditional_baryon.py`;
+`computations/matter-formation-cascade-size-log-coordinate-prereg.md`;
+`computations/matter_formation_cascade_size.py`;
+`computations/verify_matter_formation_cascade_size.py`;
 `computations/adjudicate_matter_formation_completion.py`; and
 `computations/matter-formation-continuum-report.md`.
 
