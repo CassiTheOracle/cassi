@@ -760,7 +760,7 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
-The separate pure-gauge comparison in that document, §§9.4–9.21, uses the
+The separate pure-gauge comparison in that document, §§9.4–9.22, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
 projective bubble coordinate discards a phase required by Wilson magnetic
@@ -876,12 +876,34 @@ coarse rate decreases while the fibre rate tends to $2$ and
 $\vartheta\to1$. Thus the refinement preserves the free infrared obstruction
 and identifies an explicit transport field as the next interacting object.
 
-A scale-uniform lower bound for $\lambda_{\mathrm{fib}}$, a vertical field
-solving the exact-vacuum score transport equation with the required
-$H^{-1}$ margin, a strict coarse-rate margin, the thermodynamic and
-four-dimensional continuum limits, a regulator-independent mass gap and
-carrier-state identification remain open. The older $L^2$ route through
-$\kappa$ remains sufficient. The QF/DQ/GQ classifications remain unchanged.
+For weighted exterior conditionals on centered physical functions, define
+$R_B=I-\mathbb E(\,\cdot\mid\mathcal F_B)$ and
+$\mathscr R=\sum_Bw_BR_B$. Its lower spectrum is exactly the missing
+approximate-tensorization quantity:
+
+$$
+A_{\mathrm{AT}}^{\mathrm{opt}}=\gamma_{\mathrm{rec}}^{-1},
+\qquad
+\lambda_{\mathrm{gi}}
+\geq
+\frac{\gamma_{\mathrm{rec}}\lambda_{\mathrm{loc}}}{\rho}.
+$$
+
+This residual Gramian acts on physical functions. The transported-score
+operator acts on coarse tangent directions and enters the recurrence as an
+upper penalty. The product Gaussian has zero score Gramian and positive
+global rate; near-parallel residual projections have trivial kernels with
+$\gamma_{\mathrm{rec}}\to0$. The massless open Gaussian chain has the same
+finite-rigidity versus uniform-recovery separation. The 58-check primary and
+30-check independent controls pass.
+
+A scale-uniform recovery floor $\gamma_*>0$, a uniform lower bound for
+$\lambda_{\mathrm{fib}}$, a vertical field solving the exact-vacuum score
+transport equation with the required $H^{-1}$ upper bound, a strict
+coarse-rate margin, the thermodynamic and four-dimensional continuum limits,
+a regulator-independent mass gap and carrier-state identification remain
+open. The older $L^2$ route through $\kappa$ remains sufficient. The
+QF/DQ/GQ classifications remain unchanged.
 
 The completion ansatz in
 `foundations/geometric-manifold-completion.md` places these finite layers in

@@ -53,7 +53,7 @@ the missing metric and orbit-matching rule. Running and measured-scale
 comparisons are in `sm-radiative-corrections.md`.
 
 The pure Yang–Mills comparison is in
-`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.21. Its state
+`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.22. Its state
 space and Hamiltonian come from source-free quantum $SU(2)$ lattice gauge
 theory, with no isospinor matter or symmetry-breaking potential. It gives
 regulated electric-loop and projective-information boundaries, a
@@ -72,7 +72,7 @@ Gauss fibre has exactly 14 states once $j_{\max}\geq1$ and conditional
 electric spacing $2g^2/a$; Wilson multiplication changes the fixed boundary
 representation sector.
 
-Sections 9.20–9.21 keep the round spatial regulator, intrinsic link sphere
+Sections 9.20–9.22 keep the round spatial regulator, intrinsic link sphere
 and gauge quotient distinct. The free spatial coexact frequency $2/R$
 vanishes as $R\to\infty$ and is not an interacting Hamiltonian gap. The
 auxiliary one-link curvature bound has no asserted map to the Hamiltonian
@@ -82,13 +82,13 @@ $\lambda_{\mathrm{gi}}\geq\lambda_f$, under its stated coarse, fibre and
 transported-score estimates. The conditional Poisson inverse sharpens this
 to $\lambda_f\geq C_{-1}^{-1}$ using the minimum vertical transport cost
 $\vartheta$ and gives an exact coarse/vertical/output margin budget. The
-118/90 geometry controls and 86/32 transport-score controls pass.
+118/90 geometry, 86/32 transport-score and 58/30 recovery controls pass.
 
 Coupled boundary-sector amplitudes and self-energy control, a uniform
-interacting-vacuum transport field, weak-coupling fibre and coarse-margin
-estimates, the continuum construction and a regulator-independent mass
-remain open. This comparison makes no electroweak or QCD particle
-identification.
+interacting-vacuum residual-recovery floor and transported-score upper bound,
+weak-coupling fibre and coarse-margin estimates, the continuum construction
+and a regulator-independent mass remain open. This comparison makes no
+electroweak or QCD particle identification.
 
 ### `sm-radiative-corrections.md`—Standard Model Radiative Corrections from the φ-Boundary
 

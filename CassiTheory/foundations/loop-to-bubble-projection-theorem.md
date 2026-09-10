@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, conditional block theorems, and exact bare-cylindrical refinement obstruction; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, conditional block theorems, and exact bare-cylindrical refinement obstruction; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -30,7 +30,7 @@ density projection and a coherence-sensitive bubble coordinate. A physical
 phase law, a map from the regulated quantum configuration to these carriers,
 $\hbar$, quantum statistics, and measurement dynamics remain separate inputs.
 
-The pure-gauge comparison in §§9.4–9.21 retains full $SU(2)$ loop holonomies.
+The pure-gauge comparison in §§9.4–9.22 retains full $SU(2)$ loop holonomies.
 Gauss invariance supplies an electric closed-loop threshold, while the
 projective bubble variable discards Wilson magnetic energy. Quantum-lattice
 stability gives a volume-uniform interacting gap at sufficiently strong bare
@@ -70,8 +70,17 @@ recurrence and yielding an exact
 relative-margin budget: nonzero transport cost consumes both coarse and
 vertical gap margin. A strict Gaussian fixture improves the squared score
 coefficient by a factor of nine, while the massless weak-field chain retains
-a vanishing coarse mode and produces no gap. Constructing a scale-uniform
-transport field for the exact interacting vacuum, the four-dimensional
+a vanishing coarse mode and produces no gap. The residual-recovery Gramian on
+centered physical functions identifies
+$A_{\mathrm{AT}}^{\mathrm{opt}}=\gamma_{\mathrm{rec}}^{-1}$ and gives
+$\lambda_{\mathrm{gi}}\geq\gamma_{\mathrm{rec}}\lambda_{\mathrm{loc}}/\rho$
+under the declared conditional and cover estimates. The transported-score
+Gramian is a distinct upper penalty on coarse tangent directions. Product,
+near-parallel and Gaussian controls show that a score kernel can contain a
+physical direction and that exact finite-regulator rigidity can coexist with
+a recovery floor tending to zero. The 58-check primary and 30-check
+independent reconstructions pass. Uniform residual recovery and score
+transport bounds for the exact interacting vacuum, the four-dimensional
 continuum construction and microscopic Cassi identification remain open.
 
 ---
@@ -4508,6 +4517,355 @@ or uniform estimate has been constructed for the exact interacting
 Yang–Mills vacuum. The thermodynamic limit, weak-coupling refinement,
 continuum measure and regulator-independent physical gap remain open.
 
+### 9.22 Residual recovery and the score-penalty separation
+
+The conditional-score operator in §9.21 acts on coarse tangent directions.
+Approximate tensorization in §9.14 acts on physical functions. Their
+Gramians have opposite proof roles and cannot be exchanged.
+
+#### 9.22.1 Exact residual Gramian
+
+Let
+
+$$
+\mathcal H_{\mathrm{phys}}
+:=
+\left\{
+f\in L^2(\mu):
+\mu(f)=0,\ f\ \hbox{is gauge invariant}
+\right\}
+\tag{YM152}
+$$
+
+be a nonzero closed subspace. Assume every conditional expectation below
+preserves this sector and its common form domain. For the exterior
+$\sigma$-algebra $\mathcal F_B$, define the restricted orthogonal
+projections
+
+$$
+P_Bf:=\mathbb E_\mu(f\mid\mathcal F_B),
+\qquad
+R_B:=I-P_B.
+\tag{YM153}
+$$
+
+For a finite block family, or a convergent nonnegative form sum, set
+
+$$
+\mathscr R
+:=
+\sum_Bw_BR_B^*R_B
+=\sum_Bw_BR_B,
+\qquad
+\gamma_{\mathrm{rec}}
+:=
+\inf_{0\neq f\in\mathcal H_{\mathrm{phys}}}
+\frac{\langle f,\mathscr Rf\rangle}{\|f\|_2^2}.
+\tag{YM154}
+$$
+
+Conditional variance is exactly residual projection energy:
+
+$$
+\boxed{
+\sum_Bw_B
+\mathbb E_\mu
+\left[
+\operatorname{Var}(f\mid\mathcal F_B)
+\right]
+=
+\sum_Bw_B\|R_Bf\|_2^2
+=
+\langle f,\mathscr Rf\rangle.
+}
+\tag{YM155}
+$$
+
+Since centered physical functions satisfy
+$\operatorname{Var}_\mu f=\|f\|_2^2$, the optimal approximate-tensorization
+constant is
+
+$$
+\boxed{
+A_{\mathrm{AT}}^{\mathrm{opt}}
+=\gamma_{\mathrm{rec}}^{-1},
+\qquad
+\ker\mathscr R
+=
+\bigcap_{B:w_B>0}\ker R_B
+=
+\bigcap_{B:w_B>0}\operatorname{Ran}P_B.
+}
+\tag{YM156}
+$$
+
+All operators, kernels and ranges in (YM152)–(YM156) are restricted to
+$\mathcal H_{\mathrm{phys}}$. On the full $L^2(\mu)$ space, constants also
+belong to the common kernel. When $\gamma_{\mathrm{rec}}=0$, the optimal
+constant is $+\infty$.
+
+#### 9.22.2 Recovery plus conditional coercivity
+
+Suppose on the same physical form domain that
+
+$$
+\|R_Bf\|_2^2
+\leq
+\lambda_B^{-1}\mathcal E_B(f,f),
+\qquad
+\lambda_B\geq\lambda_{\mathrm{loc}}>0,
+\qquad
+\sum_Bw_B\mathcal E_B(f,f)
+\leq\rho\,\mathcal E(f,f).
+\tag{YM157}
+$$
+
+Combining (YM154), (YM155) and (YM157) yields
+
+$$
+\gamma_{\mathrm{rec}}\|f\|_2^2
+\leq
+\sum_Bw_B\|R_Bf\|_2^2
+\leq
+\frac{\rho}{\lambda_{\mathrm{loc}}}\mathcal E(f,f),
+$$
+
+and therefore
+
+$$
+\boxed{
+\lambda_{\mathrm{gi}}(\mu)
+\geq
+\frac{\gamma_{\mathrm{rec}}\lambda_{\mathrm{loc}}}{\rho}.
+}
+\tag{YM158}
+$$
+
+This is (YM30) with
+$A_{\mathrm{AT}}=\gamma_{\mathrm{rec}}^{-1}$. It identifies the missing
+infrared quantity as the lower spectrum of a concrete residual operator.
+
+For declared scale Hilbert spaces and isometries
+$T_{j\to n}:\mathcal H_n\to\mathcal H_j$, define
+
+$$
+\mathscr R_n
+:=
+\sum_{j\leq n}
+w_jT_{j\to n}^*R_jT_{j\to n}.
+\tag{YM159}
+$$
+
+Let $\mathcal N_n$ be a closed nonphysical null subspace and require
+$R_jT_{j\to n}\Pi_{\mathcal N_n}=0$. Quantitative recovery is
+
+$$
+\boxed{
+\mathscr R_n
+\succeq
+\gamma_*(I-\Pi_{\mathcal N_n}),
+\qquad
+\gamma_*>0
+}
+\tag{YM160}
+$$
+
+uniformly in regulator and scale. Rigidity is the separate identity
+$\ker\mathscr R_n=\mathcal N_n$. A correct kernel at every finite regulator
+does not imply a uniform positive $\gamma_*$.
+
+#### 9.22.3 Why the score Gramian cannot supply recovery
+
+The score transport operator is
+
+$$
+\mathsf K_V:
+\xi\longmapsto
+\mathcal L_V^{-1/2}s_{V,\xi},
+\qquad
+\vartheta^2
+=
+\mathop{\mathrm{ess\,sup}}_V
+\|\mathsf K_V\|_{\mathrm{op}}^2.
+\tag{YM161}
+$$
+
+It maps coarse tangent directions to conditional $H^{-1}$ data, rather than
+physical functions to conditional residuals. Its recurrence matrix is
+
+$$
+M(\vartheta)
+=
+\begin{pmatrix}
+(2\lambda_c)^{-1}
+&
+\vartheta/\lambda_c\\
+\vartheta/\lambda_c
+&
+2(\lambda_{\mathrm{fib}}^{-1}
++\vartheta^2/\lambda_c)
+\end{pmatrix}.
+\tag{YM162}
+$$
+
+For $\vartheta_2\geq\vartheta_1\geq0$, this nonnegative symmetric matrix
+increases entrywise. A maximizing Rayleigh vector can be chosen
+componentwise nonnegative, so
+$\lambda_{\max}M(\vartheta)$ is nondecreasing and the certified rate
+$[\lambda_{\max}M(\vartheta)]^{-1}$ is nonincreasing. Thus the score needs an
+upper bound. A lower bound on
+$\sum_jT_j^*\mathsf K_j^*\mathsf K_jT_j$ has the wrong sign and acts on the
+wrong space for variance recovery.
+
+The product Gaussian supplies an exact counterexample:
+
+$$
+d\mu(v,r)
+\propto
+e^{-v^2-2r^2}\,dv\,dr,
+\qquad
+s_v=0,
+\qquad
+\mathsf K=0,
+\qquad
+\lambda_{\mathrm{glob}}=2.
+\tag{YM163}
+$$
+
+The nonconstant function $f(v,r)=v$ selects
+$\xi=\partial_v\in\ker\mathsf K$ and attains the positive global rate because
+$\operatorname{Var}v=1/2$ and $\mathcal E(v,v)=1$. A score-kernel direction
+therefore need not be gauge or rigid. The fibre-only residual also obeys
+$R_rv=0$, so an incomplete block family has
+$\gamma_{\mathrm{rec}}=0$ despite a positive fibre conditional rate.
+
+#### 9.22.4 Rigidity without a uniform floor
+
+Let
+$R_1=e_1e_1^T$ and
+$R_2=r_\epsilon r_\epsilon^T$ on $\mathbb R^2$, where
+$r_\epsilon=(\cos\epsilon,\sin\epsilon)^T$. Then
+
+$$
+\operatorname{spec}(R_1+R_2)
+=
+\left\{
+1-|\cos\epsilon|,
+1+|\cos\epsilon|
+\right\}.
+\tag{YM164}
+$$
+
+For $0<\epsilon<\pi/2$ the kernel is trivial, but
+$\gamma_{\mathrm{rec}}=1-\cos\epsilon\to0$ as
+$\epsilon\downarrow0$. Qualitative rigidity therefore carries no uniform
+constant.
+
+The quotient control
+
+$$
+\mathscr R
+=
+\operatorname{diag}(1,1,0),
+\qquad
+\mathcal N=\operatorname{span}\{e_3\}
+\tag{YM165}
+$$
+
+has full-space floor zero and physical quotient floor one. The fixed
+three-scale transported construction in the recovery protocol reproduces
+this matrix and makes the null compatibility explicit.
+
+#### 9.22.5 Gaussian recovery floor
+
+For the Gaussian chain in (YM37), let
+$d_i=Q_{ii}$ and $D=\operatorname{diag}(d_i)$. On first chaos the residual
+Gramian is
+
+$$
+G_N(m)
+=
+D^{-1/2}Q_N(m)D^{-1/2},
+\qquad
+\gamma_{\mathrm{rec},N}(m)
+=
+\lambda_{\min}(G_N(m)).
+\tag{YM166}
+$$
+
+If $p_i$ is the first-chaos conditional projection and $S_k$ the orthogonal
+symmetrizer, then on $\operatorname{Sym}^k\mathcal H$,
+
+$$
+I-p_i^{\otimes_s k}
+\succeq
+S_k
+\left[
+(I-p_i)\otimes I^{\otimes(k-1)}
+\right]
+S_k.
+\tag{YM167}
+$$
+
+Summing in $i$ transfers the first-chaos floor to every higher chaos, and a
+linear function in the bottom eigendirection saturates it. Hence
+
+$$
+\boxed{
+A_{\mathrm{AT},N}^{\mathrm{opt}}
+=
+\gamma_{\mathrm{rec},N}^{-1}.
+}
+\tag{YM168}
+$$
+
+For the massless open chain,
+
+$$
+\frac{\lambda_{\min}(Q_N)}{\max_i d_i}
+\leq
+\gamma_{\mathrm{rec},N}(0)
+\leq
+\frac{\lambda_{\min}(Q_N)}{\min_i d_i},
+\qquad
+\lambda_{\min}(Q_N)
+=
+2\sin\frac{\pi}{2(N+1)}.
+\tag{YM169}
+$$
+
+Every finite chain has only the constant common kernel, while
+$\gamma_{\mathrm{rec},N}(0)\to0$. This is an exact failure of uniform
+recovery despite finite rigidity.
+
+#### 9.22.6 Correct multiscale target
+
+The recovery-or-rigidity program therefore requires two separate estimates:
+
+$$
+\boxed{
+\mathscr R_n
+\succeq
+\gamma_*(I-\Pi_{\mathcal N_n})
+\quad\hbox{on physical functions},
+\qquad
+\mathop{\mathrm{ess\,sup}}_V
+\|\mathsf K_{V,n}\|_{\mathrm{op}}^2
+\leq
+\vartheta_*^2
+\quad\hbox{on active coarse tangents}.
+}
+\tag{YM170}
+$$
+
+The first is a lower recovery bound; the second is an upper score-transport
+bound that must fit the margin criterion (YM151). Neither follows from the
+other. Proving only
+$\ker\mathscr R_n=\mathcal N_n$ supplies no uniform recovery rate, and
+proving a positive lower score Gramian supplies no gap. No such uniform pair
+has been established for the exact interacting Yang–Mills vacuum. The
+thermodynamic and continuum constructions remain open.
+
 ---
 
 ## 10. Physical tests and rejection conditions
@@ -4578,6 +4936,7 @@ microscopic completions.
 | Fixed fundamental-boundary internal Gauss fibre (YM91)–(YM96) | **Derived** within established $SU(2)$ representation theory | Exactly 14 states for $j_{\max}\geq1$; Wilson multiplication exits the fixed boundary sector |
 | Poincaré/link-sphere geometry and exact two-scale recurrence (YM99)–(YM125) | **Derived** finite-regulator geometry and **Derived conditional** Poincaré theorem | Exact marginal interactions enter through \((\lambda_{\mathrm{fib}},\kappa,\lambda_c)\); (YM125) is the sufficient $L^2$-score target and its weak-coupling scale-uniform bounds remain open |
 | Conditional $H^{-1}$ score recurrence and exact margin transfer (YM126)–(YM151) | **Derived conditional** finite-regulator theorem | The inverse-generator score norm retains vertical cancellations and is no weaker than the $L^2$ covariance estimate; its exact-vacuum uniform bound remains open |
+| Residual recovery Gramian and score-penalty separation (YM152)–(YM170) | **Derived conditional** finite-regulator theorem | $A_{\mathrm{AT}}^{\mathrm{opt}}=\gamma_{\mathrm{rec}}^{-1}$ and $\lambda_{\mathrm{gi}}\geq\gamma_{\mathrm{rec}}\lambda_{\mathrm{loc}}/\rho$; the score operator is a separate upper penalty on coarse tangents, and uniform exact-vacuum recovery and score bounds remain open |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -4858,6 +5217,41 @@ volume- and weak-coupling-uniform bound for the exact Yang–Mills vacuum, so
 the thermodynamic limit, continuum construction and physical mass gap remain
 **UNRESOLVED**.
 
+The residual-recovery protocol
+`computations/yang-mills-recovery-gramian-prereg.md` is implemented by
+`computations/verify_yang_mills_recovery_gramian.py` and the independent
+JavaScript reconstruction
+`computations/verify_yang_mills_recovery_gramian_independent.mjs`.
+The source-bound primary receipt passes **58 checks** across four
+near-parallel rows, orthogonal and gauge-quotient controls, four score rows,
+the product counterexample, ten Gaussian chains and one transported
+quotient-Gramian fixture. Its largest normalized matrix and scalar errors are
+$5.33638658877\times10^{-15}$ and
+$1.71390679427\times10^{-15}$.
+
+The qualified independent receipt passes **30 checks**, reconstructs the
+fixed matrices with a separate Jacobi eigensolver and sine basis, and binds
+the frozen protocol, both sources and the primary receipt by SHA-256. Its
+independently reconstructed matrix and scalar maxima are
+$1.62353873949\times10^{-14}$ and
+$7.77156117238\times10^{-16}$; its largest row comparison error is
+$5.02862203952\times10^{-14}$. The receipts are
+`runs/yang_mills_recovery_gramian/verification.json` and
+`runs/yang_mills_recovery_gramian/verification-independent.json`.
+The same directory retains two superseded, non-authoritative `FAIL` receipts
+from checker-source path-binding defects. The qualified source reads the
+primary schema's direct protocol and source paths and normalizes the
+`CassiTheory` root; the frozen scientific schedule and primary receipt are
+unchanged. The read-only protocol audit `analytical-review.json` and
+post-transcription audit `theorem-review.json` both classify **VALID**.
+
+The finite controls classify **PASS**. Equations (YM152)–(YM170) carry the
+analytical conditional theorem. A lower recovery floor on physical functions
+and an upper transported-score bound on coarse tangents are separate
+requirements. No receipt supplies either estimate uniformly for the exact
+interacting Yang–Mills vacuum, so the thermodynamic limit, continuum
+construction and physical mass gap remain **UNRESOLVED**.
+
 ---
 
 ## References
@@ -4919,6 +5313,12 @@ the thermodynamic limit, continuum construction and physical mass gap remain
   transport-score and Gaussian verifier
 - `computations/verify_yang_mills_transport_score_independent.mjs`—32-check
   discrete-sine, Jacobi, pivoted-solve and receipt reconstruction
+- `computations/yang-mills-recovery-gramian-prereg.md`—frozen v5
+  residual-recovery, score-separation, rigidity and Gaussian-chaos obligations
+- `computations/verify_yang_mills_recovery_gramian.py`—58-check source-bound
+  residual, score, quotient and Gaussian verifier
+- `computations/verify_yang_mills_recovery_gramian_independent.mjs`—30-check
+  independent Jacobi, sine-basis and receipt-integrity reconstruction
 - D. Bakry, I. Gentil and M. Ledoux, *Analysis and Geometry of Markov
   Diffusion Operators*—Poincaré, Poisson and carré-du-champ framework
 - C. Villani, *Optimal Transport: Old and New*—continuity equations and

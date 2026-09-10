@@ -760,6 +760,37 @@ rows test its algebra and scope without establishing the interacting
 Yang–Mills estimate.
 
 
+## 25. Pure Yang–Mills residual recovery and score-penalty separation
+
+The frozen v5 protocol
+`computations/yang-mills-recovery-gramian-prereg.md` separates the
+physical-function residual Gramian from the transported-score operator on
+coarse tangent directions. The source-bound Python verifier passes **58
+checks**. The independent JavaScript implementation reconstructs the fixed
+matrices with a separate Jacobi eigensolver and sine basis and passes **30
+checks**.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Residual Gramian | $\mathscr R=\sum_Bw_BR_B$ and $\sum_Bw_B\mathbb E[\operatorname{Var}(f\mid\mathcal F_B)]=\langle f,\mathscr Rf\rangle$ on the centered physical sector | **ADOPT** as the exact finite-regulator recovery identity |
+| Optimal tensorization and local coercivity | $A_{\mathrm{AT}}^{\mathrm{opt}}=\gamma_{\mathrm{rec}}^{-1}$ and $\lambda_{\mathrm{gi}}\geq\gamma_{\mathrm{rec}}\lambda_{\mathrm{loc}}/\rho$ under the declared conditional and cover estimates | **ADOPT** as a conditional Poincaré theorem; all three inputs require uniform interacting-vacuum control |
+| Score-penalty separation | The score operator maps coarse tangents to conditional $H^{-1}$ data and its norm lowers the certified recurrence rate; a product Gaussian has zero score and positive global rate | **CONTRADICTS** substitution of a lower score Gramian for physical-function recovery |
+| Finite rigidity | Near-parallel rank-one residuals have trivial kernel and floor $1-\cos\epsilon\to0$; the quotient fixture has the declared gauge null and physical floor one | **CONTRADICTS** promotion of qualitative kernel rigidity to a uniform spectral floor |
+| Gaussian all-chaos control | The coordinate residual floor is $\lambda_{\min}(D^{-1/2}Q_ND^{-1/2})$ on every chaos and gives the optimal all-function tensorization constant; the massless open-chain floor tends to zero | **ADOPT** for each finite Gaussian chain and **CONTRADICTS** a uniform recovery inference from finite common-kernel rigidity |
+| Frozen finite controls | The primary and independent receipts pass 58/58 and 30/30; maximum primary matrix/scalar errors are $5.33638658877\times10^{-15}$ and $1.71390679427\times10^{-15}$ | **PASS** for the fixed implementation, normalization and receipt-integrity controls |
+| Interacting Yang–Mills target | No scale-uniform residual floor, score upper bound, local exact-vacuum rate, cover control, thermodynamic limit or continuum construction is supplied | **UNRESOLVED** |
+
+The qualified receipts are
+`runs/yang_mills_recovery_gramian/verification.json` and
+`runs/yang_mills_recovery_gramian/verification-independent.json`. The same
+directory retains two independent-checker `FAIL` receipts for source-level
+path binding. The final checker binds the frozen protocol, both sources and
+the unchanged primary receipt. The analytical theorem is
+`foundations/loop-to-bubble-projection-theorem.md` §9.22. The finite controls
+guard its formulas and scope without establishing the interacting recovery
+or score estimates.
+
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
