@@ -885,17 +885,26 @@ $W(t)=\|\omega(t)\|_2^2$, while half their mean-square difference equals
 $\mathcal V(t)=\int\operatorname{tr}R\,dx$. The centred covariance is forced
 by $2\nu Q_\omega$, making $\mathcal V$ a retarded palinstrophy occupation
 weighted by subsequent directional deformation. The coherence share
-$c=W/\mathcal E_M$ has an exact replicator-diffusion law. Incompressibility
-gives the sharp full-rank estimate
-$\mathcal V(t)\ge6\nu\int_0^t\int(\det Q_\omega)^{1/3}dx\,ds$ and the
-compensated envelope
-$W\le\mathcal G:=\mathcal E_M-6\nu\int_0^t\int(\det Q_\omega)^{1/3}dx\,ds$.
-Rank-one and rank-two collapse controls show that determinant and positivity
-alone cannot close the estimate. Periodic shear realizes the rank-deficient
-boundary, while a decaying ABC flow activates the full-rank term. The
-source-bound schedule passes 40 symbolic and exact-control checks. A uniform
-initial-$H^3$-controlled bound on $\mathcal G$ would imply continuation and
-remains **UNRESOLVED**.
+$c=W/\mathcal E_M$ has an exact replicator-diffusion law.
+
+Volume preservation gives
+$\mathcal V(t)\ge6\nu\int_0^t\int(\det Q_\omega)^{1/3}dx\,ds$. Applying the
+concave determinant root after all source histories accumulate defines
+$\mathcal K=3\int(\det R)^{1/3}dx$ and sharpens the enstrophy envelope to
+
+$$
+W\le\mathcal H:=\mathcal E_M-\mathcal K
+\le\mathcal G:=\mathcal E_M-6\nu\int_0^t\int(\det Q_\omega)^{1/3}dx\,ds.
+$$
+
+An exact rank-two periodic Beltrami heat flow has zero instantaneous
+determinant functional while its accumulated covariance becomes full rank on
+an open set. Periodic shear remains rank one, excluding a uniform positive
+recovery floor over all data. The source-bound schedule passes 60 symbolic
+and exact-control checks. A production-relative recovery estimate or a
+data-controlled signed shell-stretching estimate would bound $\mathcal H$ and
+imply continuation. Both estimates and arbitrary-data regularity remain
+**UNRESOLVED**.
 
 Section 7 of `turbulence/cassi-fluid-feasibility.md` selects a reacting
 rotational velocity and temperature. Its variational stress conserves

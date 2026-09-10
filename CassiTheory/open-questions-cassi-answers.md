@@ -1628,7 +1628,8 @@ The centred covariance $R$ is forced by $2\nu Q_\omega$, so the disagreement
 is a retarded palinstrophy occupation with every source propagated through
 its later deformation history. The global coherence
 $c=\|\omega\|_2^2/\mathcal E_M$ obeys an exact replicator-diffusion equation.
-Volume preservation and the arithmetic-geometric mean inequality give
+Volume preservation and the arithmetic-geometric mean inequality give the
+instantaneous-source envelope
 
 $$
 \|\omega(t)\|_2^2
@@ -1639,25 +1640,37 @@ $$
 -6\nu\int_0^t\int(\det Q_\omega)^{1/3}dx\,ds.
 $$
 
-The determinant lower bound is sharp for full-rank sources and vanishes for
-rank-deficient ones. Explicit determinant-one collapse families exclude a
-positive deformation-independent rank-one or rank-two analogue; periodic
-shear realizes the zero-$J$ boundary while its exact disagreement accounts
-for all enstrophy decay. A decaying ABC flow has positive $J$, so the
-full-rank term is nonvacuous on smooth periodic three-dimensional data. The
-source-bound verifier passes **40 of 40** symbolic and exact-control checks;
-it does not integrate Navier–Stokes or Brownian paths. The sufficient
-all-data target
+Applying the concave determinant root to the accumulated covariance defines
+
+$$
+\mathcal K(t)=3\int(\det R)^{1/3}dx,
+\qquad
+\mathcal H(t)=\mathcal E_M(t)-\mathcal K(t),
+\qquad
+\|\omega(t)\|_2^2\le\mathcal H(t)\le\mathcal G(t).
+$$
+
+The accumulated determinant is nondecreasing and satisfies
+$\mathcal K(t)-\mathcal K(s)\ge6\nu\int_s^tJ(r)dr$. An exact rank-two
+periodic Beltrami heat flow has $J=0$ while $\det R>0$ on an open set at
+positive time, so source histories can complete one another after
+accumulation. Periodic shear retains a common missing direction and excludes
+a uniform positive recovery floor over every datum.
+
+The source-bound verifier passes **60 of 60** symbolic and exact-control
+checks; it does not integrate a generic Navier–Stokes trajectory or Brownian
+paths. The sufficient all-data target
 
 $$
 \sup_{\substack{\nabla\cdot u_0=0,\ \int u_0=0\\
 \|u_0\|_{H^3}\le R}}
-\sup_{0\le t<\min(T,T_*)}\mathcal G(t)
+\sup_{0\le t<\min(T,T_*)}\mathcal H(t)
 <\infty
 $$
 
-remains **UNESTABLISHED**, as do the required rank-recovery or cross-scale
-compensation estimate and arbitrary-data Navier–Stokes regularity.
+remains **UNESTABLISHED**, as do the production-relative rank-recovery
+inequality, the data-controlled signed shell-stretching estimate, and
+arbitrary-data Navier–Stokes regularity.
 
 The selected constant-density thermal model in §7 has a variational
 capillary stress with closed momentum and energy budgets, nonnegative

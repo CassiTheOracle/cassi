@@ -713,10 +713,12 @@ Possible routes include a regression-observability estimate for the seeded covar
 
 The independent-replica refinement in
 `turbulence/navier-stokes-replica-coherence.md` resolves the same seeded
-second moment into deterministic overlap and stochastic disagreement. Its
-full-rank determinant term supplies a rigorous part of the desired
-compensation, while rank-deficient collapse leaves the uniform all-data bound
-open.
+second moment into deterministic overlap and stochastic disagreement.
+Applying the determinant root after source histories accumulate detects
+temporal completion of singular source frames and gives a sharper enstrophy
+envelope. An exact rank-two periodic control exhibits this recovery, while
+periodic shear shows that the required all-data estimate must be relative to
+the stretching being compensated. That uniform estimate remains open.
 
 ## 13. Verification and evidence scope
 
@@ -743,4 +745,4 @@ The qualified classifications are:
 6. T. Mahithitarmmatorn, [Exact mean–covariance dynamics of the Weber field in the stochastic Lagrangian representation of the 3D Navier–Stokes equations](https://arxiv.org/abs/2608.16915)—closed common-noise covariance calculus and stochastic-flow regularity boundary.
 7. `turbulence/navier-stokes-deformation-covariance.md`—covariance-inverse weighted law and active deformation quotient.
 8. `turbulence/navier-stokes-strain-departure.md`—critical continuation reductions and cascade-recurrence obstructions.
-9. `turbulence/navier-stokes-replica-coherence.md`—independent-replica overlap, viscous disagreement, and full-rank compensation.
+9. `turbulence/navier-stokes-replica-coherence.md`—independent-replica overlap, viscous disagreement, accumulated rank recovery, and sharpened compensation.

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Verify fixed replica-coherence components for periodic Navier–Stokes.
 
-The executable checks the 40-item symbolic and exact-control inventory frozen in
+The executable checks the 60-item symbolic and exact-control inventory frozen in
 computations/navier-stokes-replica-coherence-prereg.md. It does not integrate a
-Navier–Stokes trajectory or simulate a stochastic flow.
+generic Navier–Stokes trajectory or simulate a stochastic flow.
 """
 from __future__ import annotations
 
@@ -26,10 +26,10 @@ PAPER = ROOT / "turbulence" / "navier-stokes-replica-coherence.md"
 DEFAULT_OUTPUT = (
     ROOT
     / "runs"
-    / "navier_stokes_replica_coherence_20260910_qualified"
+    / "navier_stokes_replica_coherence_rank_recovery_20260910_final_qualified"
     / "verification.json"
 )
-EXPECTED_CHECKS = 40
+EXPECTED_CHECKS = 60
 EXPECTED_CHECK_NAMES = (
     "R1 finite independent-replica outer product",
     "R2 finite independent-replica scalar overlap",
@@ -46,7 +46,7 @@ EXPECTED_CHECK_NAMES = (
     "D5 source probability normalization",
     "D6 scalar covariance integrating factor",
     "D7 integrated variance trace balance",
-    "D8 positive-minus-positive enstrophy identity",
+    "D8 seeded-occupation minus covariance-spread identity",
     "C1 total occupation decomposition",
     "C2 strain-rate mixture identity",
     "C3 coherence replicator-diffusion identity",
@@ -71,8 +71,28 @@ EXPECTED_CHECK_NAMES = (
     "X6 homogeneous extension no disagreement",
     "X7 ABC divergence curl and heat identities",
     "X8 ABC gradient determinant and decay",
+    "K1 determinant-root degree-one homogeneity",
+    "K2 determinant-root first differential",
+    "K3 determinant-root Hessian",
+    "K4 trace-free covariance stretching cancellation",
+    "K5 local determinant source equality case",
+    "K6 isotropic covariance trace equality",
+    "K7 matrix-trace recovered envelope decomposition",
+    "K8 enstrophy-spread production cancellation",
+    "K9 recent Gramian quadratic form",
+    "K10 fixed Gramian spanning control",
+    "K11 rank-two control divergence curl and heat identities",
+    "K12 rank-two control Bernoulli Navier-Stokes residual",
+    "K13 rank-two control singular instantaneous source",
+    "K14 rank-two covariance first time jet",
+    "K15 rank-two covariance second time jet",
+    "K16 rank-two recovered determinant coefficient",
+    "F1 projected shell energy chain rule",
+    "F2 conditional three-shell flux telescope",
+    "F3 finite-shell boundary-term telescope",
+    "F4 integrating-factor derivative identity",
 )
-SCHEMA = "cassi.navier-stokes.replica-coherence.verification.v1"
+SCHEMA = "cassi.navier-stokes.replica-coherence.verification.v2"
 
 
 class CheckBook:
@@ -321,11 +341,12 @@ def verify_duhamel_and_occupation(
     probabilities = tuple(g.dot(g) / source_mass for g in source_vectors)
     book.exact(EXPECTED_CHECK_NAMES[12], sum(probabilities), 1)
 
-    beta, source_rate = sp.symbols(
-        "beta source_rate",
+    beta = sp.symbols(
+        "beta",
         real=True,
         nonzero=True,
     )
+    source_rate = sp.symbols("source_rate", real=True, positive=True)
     scalar_covariance = source_rate * (sp.exp(2 * beta * t) - 1) / (2 * beta)
     scalar_residual = sp.diff(scalar_covariance, t)
     scalar_residual -= 2 * beta * scalar_covariance + source_rate
@@ -755,26 +776,493 @@ def verify_scaling_and_controls(
     }
 
 
+def verify_rank_recovery_and_cross_scale(
+    book: CheckBook,
+    values: dict[str, Any],
+) -> None:
+    r1, r2, r3, scale = sp.symbols(
+        "r1 r2 r3 scale",
+        real=True,
+        positive=True,
+    )
+    covariance = sp.diag(r1, r2, r3)
+    rho = (r1 * r2 * r3) ** sp.Rational(1, 3)
+    scaled_root = reduce_exact(
+        (scale * covariance).det() ** sp.Rational(1, 3)
+    )
+    book.exact(
+        EXPECTED_CHECK_NAMES[40],
+        scaled_root,
+        scale * rho,
+    )
+
+    h11, h22, h33, h12, h13, h23 = sp.symbols(
+        "h11 h22 h33 h12 h13 h23",
+        real=True,
+    )
+    variation = sp.Matrix(
+        [
+            [h11, h12, h13],
+            [h12, h22, h23],
+            [h13, h23, h33],
+        ]
+    )
+    epsilon = sp.symbols("epsilon", real=True)
+    curve = covariance + epsilon * variation
+    phi_curve = curve.det() ** sp.Rational(1, 3)
+    first_actual = reduce_exact(sp.diff(phi_curve, epsilon).subs(epsilon, 0))
+    first_expected = reduce_exact(
+        rho * sp.trace(covariance.inv() * variation) / 3
+    )
+    book.exact(
+        EXPECTED_CHECK_NAMES[41],
+        first_actual,
+        first_expected,
+    )
+
+    second_actual = reduce_exact(
+        sp.diff(phi_curve, epsilon, 2).subs(epsilon, 0)
+    )
+    normalized_variation = covariance.inv() * variation
+    second_expected = reduce_exact(
+        rho
+        * (
+            sp.trace(normalized_variation) ** 2 / 9
+            - sp.trace(normalized_variation * normalized_variation) / 3
+        )
+    )
+    book.exact(
+        EXPECTED_CHECK_NAMES[42],
+        second_actual,
+        second_expected,
+    )
+
+    ell_symbols = sp.symbols("ell0:8", real=True)
+    ell = sp.Matrix(
+        [
+            [ell_symbols[0], ell_symbols[1], ell_symbols[2]],
+            [ell_symbols[3], ell_symbols[4], ell_symbols[5]],
+            [ell_symbols[6], ell_symbols[7], -ell_symbols[0] - ell_symbols[4]],
+        ]
+    )
+    covariance_stretch = ell * covariance + covariance * ell.T
+    stretch_trace = reduce_exact(
+        sp.trace(covariance.inv() * covariance_stretch)
+    )
+    book.exact(EXPECTED_CHECK_NAMES[43], stretch_trace, 0)
+
+    source_scale = sp.symbols("source_scale", real=True, positive=True)
+    proportional_source = source_scale * covariance
+    source_trace = reduce_exact(
+        rho * sp.trace(covariance.inv() * proportional_source)
+    )
+    source_equality = reduce_exact(3 * source_scale * rho)
+    book.exact(
+        EXPECTED_CHECK_NAMES[44],
+        source_trace,
+        source_equality,
+    )
+
+    isotropic_level = sp.symbols("isotropic_level", real=True, positive=True)
+    isotropic_covariance = isotropic_level * sp.eye(3)
+    isotropic_trace = reduce_exact(sp.trace(isotropic_covariance))
+    isotropic_determinant_root = reduce_exact(
+        3 * isotropic_covariance.det() ** sp.Rational(1, 3)
+    )
+    book.exact(
+        EXPECTED_CHECK_NAMES[45],
+        isotropic_trace,
+        isotropic_determinant_root,
+    )
+
+    omega_symbols = sp.symbols("komega0:3", real=True)
+    covariance_symbols = sp.symbols("kcov0:6", real=True)
+    omega_vector = sp.Matrix(omega_symbols)
+    centred_covariance = sp.Matrix(
+        [
+            [covariance_symbols[0], covariance_symbols[3], covariance_symbols[4]],
+            [covariance_symbols[3], covariance_symbols[1], covariance_symbols[5]],
+            [covariance_symbols[4], covariance_symbols[5], covariance_symbols[2]],
+        ]
+    )
+    seeded_moment = (
+        omega_vector * omega_vector.T + centred_covariance
+    )
+    recovered = sp.symbols("recovered", real=True)
+    recovered_envelope = sp.trace(seeded_moment) - recovered
+    envelope_decomposition_residual = reduce_exact(
+        recovered_envelope
+        - (omega_vector.dot(omega_vector) + sp.trace(centred_covariance) - recovered)
+    )
+    book.exact(
+        EXPECTED_CHECK_NAMES[46],
+        envelope_decomposition_residual,
+        0,
+    )
+
+    coherent_strain, spread_strain, recovered_rate = sp.symbols(
+        "coherent_strain spread_strain recovered_rate",
+        real=True,
+    )
+    budget_nu, budget_dissipation = sp.symbols(
+        "budget_nu budget_dissipation",
+        real=True,
+        positive=True,
+    )
+    coherent_rate = (
+        2 * coherent_strain - 2 * budget_nu * budget_dissipation
+    )
+    spread_rate = (
+        2 * spread_strain + 2 * budget_nu * budget_dissipation
+    )
+    envelope_rate = coherent_rate + spread_rate - recovered_rate
+    envelope_production_residual = reduce_exact(
+        envelope_rate
+        - 2 * (coherent_strain + spread_strain)
+        + recovered_rate
+    )
+    book.exact(
+        EXPECTED_CHECK_NAMES[47],
+        envelope_production_residual,
+        0,
+    )
+
+    f_entries = sp.symbols("rf0:9", real=True)
+    c_entries = sp.symbols("rc0:9", real=True)
+    v_entries = sp.symbols("rv0:3", real=True)
+    deformation = sp.Matrix(3, 3, f_entries)
+    source_root = sp.Matrix(3, 3, c_entries)
+    direction = sp.Matrix(v_entries)
+    source_gram = source_root * source_root.T
+    quadratic_form = reduce_exact(
+        (direction.T * deformation * source_gram * deformation.T * direction)[0]
+    )
+    transported_root = source_root.T * deformation.T * direction
+    transported_norm = reduce_exact(
+        (transported_root.T * transported_root)[0]
+    )
+    book.exact(
+        EXPECTED_CHECK_NAMES[48],
+        quadratic_form,
+        transported_norm,
+    )
+
+    q1, q2, q3 = sp.symbols("q1 q2 q3", real=True, positive=True)
+    spanning_gramian = sp.diag(q1, q2, q3)
+    book.record(
+        EXPECTED_CHECK_NAMES[49],
+        spanning_gramian.rank() == 3
+        and reduce_exact(spanning_gramian.det() - q1 * q2 * q3) == 0,
+        {
+            "gramian": spanning_gramian,
+            "rank": spanning_gramian.rank(),
+            "determinant": spanning_gramian.det(),
+        },
+    )
+
+    x, y, z, t = sp.symbols("x y z t", real=True)
+    nu = sp.symbols("nu", real=True, positive=True)
+    coordinates = (x, y, z)
+    rank_two_base = sp.Matrix(
+        [
+            sp.cos(y),
+            sp.sin(x),
+            sp.sin(y) + sp.cos(x),
+        ]
+    )
+    rank_two_divergence = reduce_exact(
+        sum(
+            sp.diff(rank_two_base[index], coordinates[index])
+            for index in range(3)
+        )
+    )
+    rank_two_curl = sp.Matrix(
+        [
+            sp.diff(rank_two_base[2], y) - sp.diff(rank_two_base[1], z),
+            sp.diff(rank_two_base[0], z) - sp.diff(rank_two_base[2], x),
+            sp.diff(rank_two_base[1], x) - sp.diff(rank_two_base[0], y),
+        ]
+    )
+    rank_two_laplacian = sum(
+        (
+            sp.diff(rank_two_base, coordinate, 2)
+            for coordinate in coordinates
+        ),
+        sp.zeros(3, 1),
+    )
+    book.record(
+        EXPECTED_CHECK_NAMES[50],
+        rank_two_divergence == 0
+        and is_zero(reduce_exact(rank_two_curl - rank_two_base))
+        and is_zero(reduce_exact(rank_two_laplacian + rank_two_base)),
+        {
+            "divergence": rank_two_divergence,
+            "curl_residual": reduce_exact(rank_two_curl - rank_two_base),
+            "heat_residual": reduce_exact(
+                rank_two_laplacian + rank_two_base
+            ),
+        },
+    )
+
+    rank_two_flow = sp.exp(-nu * t) * rank_two_base
+    rank_two_pressure = -(rank_two_flow.T * rank_two_flow)[0] / 2
+    rank_two_convection = rank_two_flow.jacobian(coordinates) * rank_two_flow
+    rank_two_pressure_gradient = sp.Matrix(
+        [
+            sp.diff(rank_two_pressure, coordinate)
+            for coordinate in coordinates
+        ]
+    )
+    rank_two_flow_laplacian = sum(
+        (
+            sp.diff(rank_two_flow, coordinate, 2)
+            for coordinate in coordinates
+        ),
+        sp.zeros(3, 1),
+    )
+    rank_two_residual = reduce_exact(
+        sp.diff(rank_two_flow, t)
+        + rank_two_convection
+        + rank_two_pressure_gradient
+        - nu * rank_two_flow_laplacian
+    )
+    book.exact(
+        EXPECTED_CHECK_NAMES[51],
+        rank_two_residual,
+        sp.zeros(3, 1),
+    )
+
+    rank_two_gradient = rank_two_curl.jacobian(coordinates)
+    rank_two_source = reduce_exact(rank_two_gradient * rank_two_gradient.T)
+    rank_two_determinant = reduce_exact(rank_two_source.det())
+    book.record(
+        EXPECTED_CHECK_NAMES[52],
+        rank_two_determinant == 0 and rank_two_source.rank() == 2,
+        {
+            "source": rank_two_source,
+            "determinant": rank_two_determinant,
+            "generic_rank": rank_two_source.rank(),
+        },
+    )
+
+    origin = {x: 0, y: 0, z: 0}
+    source_at_origin = reduce_exact(rank_two_source.subs(origin))
+    covariance_first = reduce_exact(2 * nu * source_at_origin)
+    expected_first = 2 * nu * sp.diag(0, 1, 1)
+    book.exact(
+        EXPECTED_CHECK_NAMES[53],
+        covariance_first,
+        expected_first,
+    )
+
+    base_gradient = rank_two_base.jacobian(coordinates)
+    source_advection = sp.Matrix(
+        3,
+        3,
+        lambda row, column: sum(
+            rank_two_base[index]
+            * sp.diff(rank_two_source[row, column], coordinates[index])
+            for index in range(3)
+        ),
+    )
+    source_laplacian = sp.Matrix(
+        3,
+        3,
+        lambda row, column: sum(
+            sp.diff(rank_two_source[row, column], coordinate, 2)
+            for coordinate in coordinates
+        ),
+    )
+    covariance_second = reduce_exact(
+        2
+        * nu
+        * (
+            -source_advection
+            + nu * source_laplacian
+            + base_gradient * rank_two_source
+            + rank_two_source * base_gradient.T
+            - 2 * nu * rank_two_source
+        )
+    ).subs(origin)
+    expected_second = sp.Matrix(
+        [
+            [4 * nu**2, 0, 0],
+            [0, -8 * nu**2, 4 * nu],
+            [0, 4 * nu, -4 * nu**2],
+        ]
+    )
+    book.exact(
+        EXPECTED_CHECK_NAMES[54],
+        covariance_second,
+        expected_second,
+    )
+
+    covariance_jet = (
+        t * covariance_first + t**2 * covariance_second / 2
+    )
+    recovered_coefficient = reduce_exact(
+        sp.expand(covariance_jet.det()).coeff(t, 4)
+    )
+    book.exact(
+        EXPECTED_CHECK_NAMES[55],
+        recovered_coefficient,
+        8 * nu**4,
+    )
+
+    shell_time = sp.symbols("shell_time", real=True)
+    shell_amplitude = sp.Function("shell_amplitude")(shell_time)
+    shell_forcing = sp.Function("shell_forcing")(shell_time)
+    shell_wave_number = sp.symbols(
+        "shell_wave_number",
+        real=True,
+        positive=True,
+    )
+    projected_evolution = (
+        shell_forcing - nu * shell_wave_number**2 * shell_amplitude
+    )
+    shell_chain_residual = reduce_exact(
+        sp.diff(shell_amplitude**2, shell_time).subs(
+            sp.diff(shell_amplitude, shell_time),
+            projected_evolution,
+        )
+        / 2
+        - shell_amplitude * shell_forcing
+        + nu * shell_wave_number**2 * shell_amplitude**2
+    )
+    book.exact(EXPECTED_CHECK_NAMES[56], shell_chain_residual, 0)
+
+    adv0, adv1 = sp.symbols("adv0 adv1", real=True)
+    adv2 = -adv0 - adv1
+    flux_minus_one = sp.Integer(0)
+    flux0 = -adv0
+    flux1 = -adv0 - adv1
+    flux2 = sp.Integer(0)
+    flux_residuals = (
+        reduce_exact(adv0 - (flux_minus_one - flux0)),
+        reduce_exact(adv1 - (flux0 - flux1)),
+        reduce_exact(adv2 - (flux1 - flux2)),
+        reduce_exact(adv0 + adv1 + adv2),
+    )
+    book.record(
+        EXPECTED_CHECK_NAMES[57],
+        all(residual == 0 for residual in flux_residuals),
+        {
+            "residuals": flux_residuals,
+            "terminal_flux": flux2,
+        },
+    )
+
+    theta, growth = sp.symbols("theta growth", real=True)
+    d0, d1, d2 = sp.symbols("d0 d1 d2", real=True)
+    w0, w1, w2 = sp.symbols("w0 w1 w2", real=True)
+    b0, b1, b2 = sp.symbols("b0 b1 b2", real=True)
+    boundary0, boundary1, boundary2 = sp.symbols(
+        "boundary0 boundary1 boundary2",
+        real=True,
+    )
+    finite_shell_sum = reduce_exact(
+        theta * nu * d0
+        + growth * w0
+        + b0
+        - boundary0
+        + theta * nu * d1
+        + growth * w1
+        + b1
+        + boundary0
+        - boundary1
+        + theta * nu * d2
+        + growth * w2
+        + b2
+        + boundary1
+        - boundary2
+    )
+    finite_shell_expected = reduce_exact(
+        theta * nu * (d0 + d1 + d2)
+        + growth * (w0 + w1 + w2)
+        + b0
+        + b1
+        + b2
+        - boundary2
+    )
+    book.exact(
+        EXPECTED_CHECK_NAMES[58],
+        finite_shell_sum,
+        finite_shell_expected,
+    )
+
+    time = sp.symbols("time", real=True)
+    primitive = sp.Function("primitive")(time)
+    shell_total = sp.Function("shell_total")(time)
+    integrating_factor = sp.exp(-2 * primitive)
+    integrating_residual = reduce_exact(
+        sp.diff(integrating_factor * shell_total, time)
+        - integrating_factor
+        * (
+            sp.diff(shell_total, time)
+            - 2 * sp.diff(primitive, time) * shell_total
+        )
+    )
+    book.exact(
+        EXPECTED_CHECK_NAMES[59],
+        integrating_residual,
+        0,
+    )
+
+    values["rank_recovery_and_cross_scale"] = {
+        "determinant_root_first_differential": first_actual,
+        "determinant_root_hessian": second_actual,
+        "trace_free_stretching_residual": stretch_trace,
+        "recovered_envelope_decomposition_residual": (
+            envelope_decomposition_residual
+        ),
+        "recovered_envelope_production_residual": (
+            envelope_production_residual
+        ),
+        "gramian_quadratic_residual": reduce_exact(
+            quadratic_form - transported_norm
+        ),
+        "rank_two_source_determinant": rank_two_determinant,
+        "rank_two_covariance_first": covariance_first,
+        "rank_two_covariance_second": covariance_second,
+        "rank_two_recovered_t4_coefficient": recovered_coefficient,
+        "shell_chain_residual": shell_chain_residual,
+        "conditional_flux_residuals": flux_residuals,
+        "finite_shell_boundary_residual": reduce_exact(
+            finite_shell_sum - finite_shell_expected
+        ),
+        "integrating_factor_residual": integrating_residual,
+    }
+
+
 
 def protocol_integrity() -> dict[str, Any]:
     text = PROTOCOL.read_text(encoding="utf-8")
     tags = re.findall(r"\\tag\{(RVC\d+)\}", text)
-    expected_tags = [f"RVC{index}" for index in range(1, 53)]
+    expected_tags = [f"RVC{index}" for index in range(1, 73)]
+    declared_names = tuple(
+        re.findall(r"^\d+\. `([^`]+)`", text, flags=re.MULTILINE)
+    )
     return {
         "tag_count": len(tags),
         "unique_tag_count": len(set(tags)),
         "expected_tags": expected_tags,
         "observed_tags": tags,
         "tags_match": tags == expected_tags,
+        "declared_check_count": len(declared_names),
+        "declared_check_names": list(declared_names),
+        "inventory_names_match": declared_names == EXPECTED_CHECK_NAMES,
         "inventory_declaration_present": (
-            "must execute exactly 40 checks" in text
+            "must execute exactly 60 checks" in text
         ),
         "selected_receipt_present": (
-            "runs/navier_stokes_replica_coherence_20260910_qualified/verification.json"
+            "runs/navier_stokes_replica_coherence_rank_recovery_20260910_final_qualified/verification.json"
             in text
         ),
         "paper_binding_present": (
             "turbulence/navier-stokes-replica-coherence.md" in text
+        ),
+        "verifier_binding_present": (
+            "computations/verify_navier_stokes_replica_coherence.py" in text
         ),
     }
 
@@ -788,6 +1276,7 @@ def compute() -> tuple[dict[str, Any], bool]:
     verify_coherence_budget(book, values)
     verify_volume_preserving_optimization(book, values)
     verify_scaling_and_controls(book, values)
+    verify_rank_recovery_and_cross_scale(book, values)
 
     observed_names = tuple(row["name"] for row in book.checks)
     inventory_match = observed_names == EXPECTED_CHECK_NAMES
@@ -797,9 +1286,11 @@ def compute() -> tuple[dict[str, Any], bool]:
     integrity = protocol_integrity()
     integrity_pass = bool(
         integrity["tags_match"]
+        and integrity["inventory_names_match"]
         and integrity["inventory_declaration_present"]
         and integrity["selected_receipt_present"]
         and integrity["paper_binding_present"]
+        and integrity["verifier_binding_present"]
     )
     if not integrity_pass:
         book.failures.append("protocol integrity")
@@ -809,6 +1300,8 @@ def compute() -> tuple[dict[str, Any], bool]:
     coherence_pass = group_pass(book, "C", 8)
     optimization_pass = group_pass(book, "S", 8)
     controls_pass = group_pass(book, "X", 8)
+    recovery_pass = group_pass(book, "K", 16)
+    cross_scale_pass = group_pass(book, "F", 4)
     success = (
         not book.failures
         and inventory_match
@@ -828,20 +1321,30 @@ def compute() -> tuple[dict[str, Any], bool]:
         "failures": book.failures,
         "values": stringify(values),
         "classifications": {
-            "independent_replica_overlap_and_disagreement": (
+            "independent_replica_overlap_and_disagreement_components": (
                 "SUPPORTS" if success and replica_pass else "INCONCLUSIVE"
             ),
-            "forced_covariance_and_retarded_occupation": (
+            "forced_covariance_and_retarded_occupation_components": (
                 "SUPPORTS"
                 if success and replica_pass and occupation_pass
                 else "INCONCLUSIVE"
             ),
-            "coherence_budget_and_full_rank_compensation": (
+            "coherence_budget_and_volume_preserving_components": (
                 "SUPPORTS"
                 if success
                 and coherence_pass
                 and optimization_pass
                 and controls_pass
+                else "INCONCLUSIVE"
+            ),
+            "accumulated_rank_differential_and_exact_control_components": (
+                "SUPPORTS"
+                if success and recovery_pass
+                else "INCONCLUSIVE"
+            ),
+            "fixed_shell_algebra_components": (
+                "SUPPORTS"
+                if success and cross_scale_pass
                 else "INCONCLUSIVE"
             ),
             "singular_source_compensation_from_volume_preservation_alone": (
@@ -850,7 +1353,13 @@ def compute() -> tuple[dict[str, Any], bool]:
                 and all(book.checks[index]["passed"] for index in range(28, 32))
                 else "INCONCLUSIVE"
             ),
-            "uniform_all_data_compensated_bound": (
+            "uniform_all_data_recovered_envelope_bound": (
+                "UNRESOLVED" if success else "INCONCLUSIVE"
+            ),
+            "production_relative_rank_compensation": (
+                "UNRESOLVED" if success else "INCONCLUSIVE"
+            ),
+            "uniform_cross_scale_stretching_bound": (
                 "UNRESOLVED" if success else "INCONCLUSIVE"
             ),
             "arbitrary_data_navier_stokes_regularity": (
@@ -858,8 +1367,9 @@ def compute() -> tuple[dict[str, Any], bool]:
             ),
         },
         "scope": {
-            "symbolic_schedule": "PREREGISTERED_FIXED_40_COMPONENT_CHECKS",
-            "navier_stokes_trajectory": "NOT_RUN",
+            "symbolic_schedule": "PREREGISTERED_FIXED_60_COMPONENT_CHECKS",
+            "navier_stokes_trajectory": "EXACT_CLOSED_FORM_CONTROLS_ONLY",
+            "generic_navier_stokes_trajectory": "NOT_RUN",
             "stochastic_flow_simulation": "NOT_RUN",
             "matrix_pde_integration": "NOT_RUN",
             "replica_factorization": "FINITE_SYMBOLIC_ENSEMBLE",
@@ -872,10 +1382,22 @@ def compute() -> tuple[dict[str, Any], bool]:
             "volume_preserving_lower_bound": (
                 "ANALYTIC_AM_GM_ARGUMENT_WITH_EXACT_OPTIMIZER_AND_COLLAPSE_CHECKS"
             ),
+            "accumulated_rank_recovery": (
+                "ANALYTIC_CONCAVITY_ARGUMENT_WITH_SYMBOLIC_DIFFERENTIAL_AND_EXACT_CONTROL_COMPONENTS"
+            ),
+            "recent_gramian_spanning": (
+                "ANALYTIC_EQUIVALENCE_WITH_SYMBOLIC_QUADRATIC_FORM_COMPONENT"
+            ),
+            "cross_scale_components": (
+                "FINITE_FORMAL_ALGEBRA_ONLY"
+            ),
+            "cross_scale_projection_and_closure": "ANALYTIC_UNRESOLVED",
             "continuation_step": (
                 "CONDITIONAL_ANALYTIC_ARGUMENT_OUTSIDE_EXECUTABLE_SCOPE"
             ),
-            "all_data_compensated_bound": "UNRESOLVED",
+            "all_data_recovered_envelope_bound": "UNRESOLVED",
+            "production_relative_rank_compensation": "UNRESOLVED",
+            "uniform_cross_scale_stretching_bound": "UNRESOLVED",
             "whole_cascade_cassi_dynamics": "NOT_RUN",
         },
     }

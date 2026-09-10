@@ -6,21 +6,28 @@
 
 The Constantin–Iyer representation writes the vorticity of a smooth incompressible Navier–Stokes solution as the mean of a stochastic Cauchy vector. Two independent Brownian replicas give an exact overlap representation of physical enstrophy, while their mean squared disagreement gives the centred same-noise covariance. That covariance obeys a forced positive matrix equation. Its source is twice viscosity times the vorticity-gradient Gram matrix, so replica disagreement is generated directly by palinstrophy and subsequently transported by the same deformation that stretches vorticity.
 
-Variation of constants converts the covariance source into a retarded occupation over every earlier time, spatial label, gradient direction, and Brownian history. Volume preservation then yields the sharp pointwise inequality
+Variation of constants converts the covariance source into a retarded occupation over every earlier time, spatial label, gradient direction, and Brownian history. Volume preservation yields the sharp instantaneous-source inequality
 
 $$
 \operatorname{tr}(FQF^{\mathsf T})\ge3(\det Q)^{1/3},
-\qquad F\in SL(3),
+\qquad F\in SL(3).
 $$
 
-and hence an exact lower bound on accumulated replica disagreement by
+Applying the concave determinant root after source times and stochastic paths have accumulated gives a stronger rank-recovery functional
+
+$$
+\mathcal K(t)=3\int_{\mathbb T^3}(\det R)^{1/3}dx.
+$$
+
+It obeys
 
 $$
 6\nu\int_0^t\int_{\mathbb T^3}
-|\det\nabla\omega(x,s)|^{2/3}\,dx\,ds.
+|\det\nabla\omega(x,s)|^{2/3}\,dx\,ds
+\le\mathcal K(t)\le\mathcal V(t).
 $$
 
-The resulting compensated occupation is an upper bound for ordinary enstrophy and gives a sufficient all-data continuation target. Rank-one and rank-two source frames admit volume-preserving collapse, so determinant compensation alone cannot control locally sheet-like or filament-like gradients. Periodic shear realizes that limitation, while an exact periodic ABC heat flow shows that the full-rank functional is nonzero in a genuine three-dimensional Navier–Stokes solution. The all-data compensated bound remains open.
+The sharpened occupation $\mathcal H=\mathcal E_M-\mathcal K$ bounds ordinary enstrophy from above. Its cumulative budget is total seeded stretching minus recovered covariance volume. An exact periodic rank-two Beltrami heat flow has $\det\nabla\omega=0$ at every point and time while $\det R>0$ on an open set at positive time, establishing temporal rank recovery inside the original equation. Periodic shear remains rank one and shows why recovery cannot have a uniform positive lower bound over every datum. A relative rank-recovery estimate would bound $\mathcal H$, while a signed cross-scale estimate would bound $W$ directly; either would imply continuation. Both uniform all-data estimates remain open.
 
 ## 1. Main result
 
@@ -146,6 +153,8 @@ $$
 $$
 
 The estimate retains the positive occupation structure of $\mathcal E_M$ and subtracts a rigorously certified part of the stochastic spread. It uses no force, regularizer, hyperdiffusion, Cassi scalar, or added constitutive law.
+
+Applying the determinant after covariance contributions have accumulated gives the sharper upper envelope $\mathcal H=\mathcal E_M-\mathcal K$ derived in §12. It can detect temporal completion of rank-one or rank-two source frames that the instantaneous functional $J$ does not see.
 
 ## 2. Stochastic Cauchy field and two replicas
 
@@ -827,15 +836,17 @@ The exact statements are:
 2. The centred covariance is forced by $2\nu Q_\omega$ and starts at zero.
 3. Replica disagreement is a retarded palinstrophy occupation weighted by subsequent directional deformation.
 4. Global coherence obeys the replicator-diffusion equation (47).
-5. Volume preservation forces the sharp full-rank lower bound (11).
-6. The compensated occupation $\mathcal G$ bounds enstrophy from above.
-7. A uniform initial-$H^3$-controlled bound on $\mathcal G$ implies global continuation over every finite horizon.
+5. Volume preservation forces the sharp instantaneous-source lower bound (11).
+6. The accumulated determinant root $\mathcal K$ is nondecreasing, dominates the instantaneous-source determinant integral, and is bounded above by replica disagreement.
+7. A rank-two periodic Beltrami heat flow has $J=0$ while its accumulated covariance becomes full rank on an open set.
+8. The sharpened occupation $\mathcal H=\mathcal E_M-\mathcal K$ bounds enstrophy from above.
+9. A uniform initial-$H^3$-controlled bound on $\mathcal H$ implies continuation over every finite horizon.
 
 The unresolved statements are:
 
-1. a uniform bound on $\mathcal G$ over every bounded initial-data ball;
-2. a dynamical positive lower bound for rank-one and rank-two source frames;
-3. a cross-scale cancellation theorem comparing seeded production with viscous disagreement;
+1. a uniform bound on $\mathcal H$ over every bounded initial-data ball;
+2. a production-relative recovery or rigidity estimate for rank-one and rank-two source histories;
+3. a signed cross-scale stretching estimate with data-controlled time integrals;
 4. a Navier–Stokes estimate connecting the active strain rates $\alpha$ and $\beta$;
 5. any implication from the canonical Cassi scalar $q$ or from geometric scale spacing alone;
 6. arbitrary-data global regularity.
@@ -891,45 +902,451 @@ This quantity is a derived diagnostic. It introduces no golden-ratio coefficient
 
 ## 11. Next analytical targets
 
-The reduction isolates four routes that can improve (11) or approach (67).
+The reduction isolates three routes toward a uniform bound on the sharpened envelope in §12.
 
-### 11.1 Rank-stratified compensation
+### 11.1 Production-relative rank recovery
 
-Decompose source spacetime according to the singular values of $\nabla\omega$. The full-rank region is handled by $J$. On nearly rank-two and nearly rank-one regions, seek directional lower bounds using the evolution of the source frame relative to the compressive singular vectors of $F_{s,t}$. A successful estimate must exclude the collapse families (62)–(65) through Navier–Stokes dynamics.
+The instantaneous full-rank region is handled by $J$, while $\mathcal K$ also detects singular source frames whose transported ranges complete one another over source time and stochastic paths. An all-data estimate cannot demand a fixed positive recovery rate because zero data and periodic shear are admissible. The required bound must instead compare recovered covariance-volume production with the seeded stretching that needs compensation.
 
-### 11.2 Coherent-versus-spread strain selection
-
-Equation (49) shows the exact competition. A bound of the form
+With the accumulated quantities defined in §12, the exact uncompensated production is
 
 $$
-\int_0^T(\alpha-\beta)_+dt
-\le C(\nu,T,R_0)
-+\int_0^T\nu D
-\left(\frac1W+\frac1{\mathcal V}\right)dt
+\mathcal H(t)-W(0)
+=
+2\int_0^t\int_{\mathbb T^3}S:M\,dx\,dr
+-\mathcal K(t).
 \tag{88}
 $$
 
-would prevent indefinite growth of coherent-to-spread odds. The estimate must be derived independently of the desired enstrophy bound.
+### 11.2 Recovery-or-rigidity alternative
 
-### 11.3 Temporal rank recovery
+Weak recent-Gramian coercivity means that one direction remains nearly orthogonal to most transported source ranges. A quantitative inverse theorem could turn this near-common kernel into approximate dimensional reduction, vorticity-direction coherence, or depleted stretching. The complementary case would charge substantial spanning directly to $\mathcal K$. Establishing either implication from the original Navier–Stokes dynamics remains open.
 
-A source matrix may be singular at each instant while its transported range rotates over time. Since (31) integrates positive matrices from every $s<t$, the accumulated covariance can become full rank even when each $Q_\omega(s)$ has rank one or two. A controllability Gramian estimate for
+The quantitative recovery observable is
 
 $$
-\int_{t-\tau}^t
-\mathbb E[F_{s,t}Q_\omega(s)F_{s,t}^{\mathsf T}]ds
+\lambda_{\min}(\mathscr R_{s,t}(x))
+=
+\inf_{|v|=1}
+\int_s^t
+\mathbb E
+\left|
+Q_\omega^{1/2}F_{r,t}^{\mathsf T}v
+\right|^2
+\circ\mathscr A_{r,t}(x)\,dr.
 \tag{89}
 $$
 
-could exploit this temporal completion. Periodic shear is the exact control that any such theorem must exclude or classify.
+### 11.3 Signed cross-scale compensation
 
-### 11.4 Cross-scale compensation
+Advective shell transfer has an exact telescoping flux because it conserves total enstrophy. Vortex stretching is a genuine source and must be retained separately. The sufficient shell estimate in §12.6 permits signed backscatter and requires data-controlled time integrals; geometric spacing or triadic locality alone supplies neither the needed sign nor the bound.
 
-The first term in (51) is seeded at time zero; the second is seeded continuously by gradients. A cascade estimate may compare positive production on one scale with disagreement created at neighboring scales before the production can recur. Geometric spacing supplies an index set, while the required theorem is a quantitative decay, cancellation, or finite-overlap statement across that set.
+These routes preserve the original Navier–Stokes equation and target continuation through $\mathcal H$ or $W$.
 
-These routes preserve the original Navier–Stokes equation and target the remaining compensation gap directly.
+## 12. Accumulated rank recovery and sharpened compensation
 
-## 12. Verification evidence
+### 12.1 Determinant recovery after accumulation
+
+For a positive semidefinite $3\times3$ matrix define
+
+$$
+\Phi(A)=(\det A)^{1/3},
+\qquad
+\mathcal K(t)=3\int_{\mathbb T^3}\Phi(R(x,t))dx.
+\tag{90}
+$$
+
+The determinant root is continuous, concave, and homogeneous of degree one on the positive-semidefinite cone. Concavity and homogeneity imply superadditivity:
+
+$$
+\Phi(A+B)\ge\Phi(A)+\Phi(B),
+\qquad A,B\succeq0.
+\tag{91}
+$$
+
+**Theorem 2.** On every compact interval inside the smooth lifespan,
+
+$$
+\boxed{
+\mathcal K(t)\ge
+\mathcal K(s)+6\nu\int_s^tJ(r)dr,
+\qquad
+0\le s\le t,}
+\tag{92}
+$$
+
+and
+
+$$
+\boxed{0\le\mathcal K(t)\le\mathcal V(t).}
+\tag{93}
+$$
+
+**Proof.** Let the positive homogeneous matrix propagator be
+
+$$
+\mathscr U_{s,t}A(x)=
+\mathbb E\!\left[
+\left(F_{s,t}AF_{s,t}^{\mathsf T}\right)
+\circ\mathscr A_{s,t}(x)
+\right].
+\tag{94}
+$$
+
+The covariance Duhamel formula from any intermediate time is
+
+$$
+R(t)=\mathscr U_{s,t}R(s)
++2\nu\int_s^t\mathscr U_{r,t}Q_\omega(r)dr.
+\tag{95}
+$$
+
+Jensen's inequality for the concave function $\Phi$, followed pathwise by the volume-preserving change of variables $x=X_{s,t}(a)$, gives
+
+$$
+\int_{\mathbb T^3}\Phi(\mathscr U_{s,t}A)dx
+\ge
+\int_{\mathbb T^3}\Phi(A)dx.
+\tag{96}
+$$
+
+Apply superadditivity and homogeneity to (95), use (96) on every source contribution, and integrate in source time. This proves (92). Pointwise arithmetic-geometric mean gives $3\Phi(R)\le\operatorname{tr}R$, proving (93). The argument works directly for singular matrices by continuity on the positive-semidefinite cone. $\square$
+
+The recent source Gramian
+
+$$
+\mathscr R_{s,t}(x)=
+\int_s^t\mathscr U_{r,t}Q_\omega(r)(x)dr
+\tag{97}
+$$
+
+retains more than the separate determinants of its source matrices. The same proof gives
+
+$$
+\boxed{
+\mathcal K(t)\ge
+\mathcal K(s)
++6\nu\int_{\mathbb T^3}\Phi(\mathscr R_{s,t})dx
+\ge
+\mathcal K(s)+6\nu\int_s^tJ(r)dr.}
+\tag{98}
+$$
+
+At $s=0$, the first inequality is an equality because $R(0)=0$ and $R(t)=2\nu\mathscr R_{0,t}$.
+
+Define the recovered-rank envelope
+
+$$
+\mathcal H(t)=\mathcal E_M(t)-\mathcal K(t)
+=W(t)+\mathcal V(t)-\mathcal K(t).
+\tag{99}
+$$
+
+Equations (12), (92), and (93) yield
+
+$$
+\boxed{
+0\le W(t)\le\mathcal H(t)\le\mathcal G(t)\le\mathcal E_M(t).}
+\tag{100}
+$$
+
+### 12.2 Local production law
+
+At a time for which $R$ is positive definite throughout the torus, put $\rho_R=\Phi(R)$. Its first two matrix derivatives are
+
+$$
+D\Phi_R[A]=\frac{\rho_R}{3}\operatorname{tr}(R^{-1}A),
+\tag{101}
+$$
+
+$$
+D^2\Phi_R[A,A]
+=\rho_R\left[
+\frac19\bigl[\operatorname{tr}(R^{-1}A)\bigr]^2
+-\frac13\operatorname{tr}(R^{-1}AR^{-1}A)
+\right].
+\tag{102}
+$$
+
+For
+
+$$
+B_k=R^{-1/2}(\partial_kR)R^{-1/2},
+\tag{103}
+$$
+
+the chain rule, $\operatorname{tr}L=0$, and periodic integration give, under the same positive-definite hypothesis,
+
+$$
+\boxed{
+\begin{aligned}
+\mathcal K'(t)
+={}&2\nu\int_{\mathbb T^3}
+\rho_R\operatorname{tr}(R^{-1}Q_\omega)dx\\
+&+\nu\sum_{k=1}^3\int_{\mathbb T^3}
+\rho_R\left[
+\operatorname{tr}(B_k^2)
+-\frac13\bigl[\operatorname{tr}(B_k)\bigr]^2
+\right]dx.
+\end{aligned}}
+\tag{104}
+$$
+
+Both displayed terms are nonnegative. The matrix stretching drops out because
+
+$$
+\operatorname{tr}\!\left[
+R^{-1}(LR+RL^{\mathsf T})
+\right]
+=2\operatorname{tr}L=0.
+\tag{105}
+$$
+
+Arithmetic-geometric mean applied to $R^{-1/2}Q_\omega R^{-1/2}$ gives $\mathcal K'\ge6\nu J$ on this positive-definite region. The integral theorem supplies the corresponding statement through singular strata.
+
+Under the same positive-definite hypothesis, $\mathcal E_M'=2\int S:M\,dx$ gives
+
+$$
+\boxed{
+\mathcal H'
+=2\int_{\mathbb T^3}S:M\,dx-\mathcal K'.}
+\tag{106}
+$$
+
+### 12.3 Exact Gramian criterion
+
+For every $v\in\mathbb R^3$,
+
+$$
+\boxed{
+v^{\mathsf T}\mathscr R_{s,t}(x)v
+=
+\int_s^t
+\mathbb E
+\left|
+Q_\omega^{1/2}
+F_{r,t}^{\mathsf T}v
+\right|^2
+\circ\mathscr A_{r,t}(x)\,dr.}
+\tag{107}
+$$
+
+Consequently,
+
+$$
+\boxed{
+\mathscr R_{s,t}(x)\succ0
+\iff
+\operatorname*{ess\,span}_{r,B}
+F_{r,t}\operatorname{Ran}Q_\omega(r)
+=\mathbb R^3.}
+\tag{108}
+$$
+
+The essential qualifier is necessary: independent directions encountered only on source-time or path sets of measure zero do not contribute. Quantitative recovery requires a lower bound on the quadratic form in (107); matrix rank records only its positivity.
+
+### 12.4 Exact rank-two recovery control
+
+On the $2\pi$-periodic torus let
+
+$$
+v(x,y,z)=
+\left(\cos y,\ \sin x,\ \sin y+\cos x\right),
+\qquad
+u(x,t)=e^{-\nu t}v(x),
+\qquad
+p(x,t)=-\frac12|u(x,t)|^2.
+\tag{109}
+$$
+
+Direct differentiation gives
+
+$$
+\nabla\cdot v=0,
+\qquad
+\nabla\times v=v,
+\qquad
+\Delta v=-v,
+\qquad
+(v\cdot\nabla)v=\nabla\frac{|v|^2}{2}.
+\tag{110}
+$$
+
+Thus (109) is an exact smooth unforced Navier–Stokes solution. It is independent of $z$, so
+
+$$
+\operatorname{rank}Q_\omega\le2,
+\qquad
+\det Q_\omega=0,
+\qquad
+J(t)=0
+\tag{111}
+$$
+
+at every point and time. Writing $L_0=\nabla v(0,0,z)$ gives
+
+$$
+L_0=
+\begin{pmatrix}
+0&0&0\\
+1&0&0\\
+0&1&0
+\end{pmatrix},
+\qquad
+Q_0=L_0L_0^{\mathsf T}
+=\operatorname{diag}(0,1,1).
+\tag{112}
+$$
+
+Differentiating the covariance equation at $t=0$ gives
+
+$$
+R'(0)=2\nu Q_0,
+\qquad
+R''(0)=
+\begin{pmatrix}
+4\nu^2&0&0\\
+0&-8\nu^2&4\nu\\
+0&4\nu&-4\nu^2
+\end{pmatrix}.
+\tag{113}
+$$
+
+Therefore
+
+$$
+\boxed{
+\det R(0,0,z,t)
+=8\nu^4t^4+O(t^5)>0}
+\tag{114}
+$$
+
+The verifier checks the exact flow identities, the two covariance derivatives, and the $8\nu^4$ coefficient obtained from the truncated time jet. Smooth covariance evolution supplies the remainder in (114). Positivity of $R$ and spatial continuity then imply $R\succ0$ on an open set for sufficiently small positive time, so $\mathcal K(t)>0$ while $J(t)=0$. Source-time accumulation, spatial sampling, and deformation complete the missing covariance direction.
+
+### 12.5 Relative compensation criterion
+
+**Proposition 2.** Fix $\nu>0$, finite $T>0$, and $R_0<\infty$. Suppose there are $0\le\theta<1$ and nonnegative functions $a,b$ such that every smooth solution with $\|u_0\|_{H^3}\le R_0$ satisfies, for every $t<\min(T,T_*)$,
+
+$$
+\boxed{
+2\int_0^t\int_{\mathbb T^3}S:M\,dx\,ds
+\le
+\theta\mathcal K(t)
++2\int_0^ta(s)\mathcal H(s)ds
++2\int_0^tb(s)ds,}
+\tag{115}
+$$
+
+and
+
+$$
+\sup_{u_0}\int_0^{\min(T,T_*)}a(t)dt<\infty,
+\qquad
+\sup_{u_0}\int_0^{\min(T,T_*)}b(t)dt<\infty.
+\tag{116}
+$$
+
+Then every such solution continues through $T$.
+
+Indeed, $\mathcal H(t)+\mathcal K(t)=\mathcal E_M(t)=W(0)+2\int_0^t\int_{\mathbb T^3}S:M\,dx\,ds$ on every smooth interval. Applying (115) gives
+
+$$
+\mathcal H(t)+(1-\theta)\mathcal K(t)
+\le
+W(0)
++2\int_0^ta(s)\mathcal H(s)ds
++2\int_0^tb(s)ds.
+\tag{117}
+$$
+
+Writing $A(t)=\int_0^ta(s)ds$, Gronwall yields
+
+$$
+\boxed{
+\mathcal H(t)
+\le
+e^{2A(t)}
+\left[
+W(0)+2\int_0^te^{-2A(s)}b(s)ds
+\right].}
+\tag{118}
+$$
+
+The uniform bound on $\mathcal H$ controls enstrophy by (100), and the periodic $H^1$ restart completes the continuation argument. Deriving (115)–(116) from initial-data control is unresolved. Full rank alone cannot provide it: periodic shear has $\mathcal K=0$, and nearly rank-deficient data can have arbitrarily small recovered eigenvalues. Even isotropic $R$ leaves $\mathcal H=W$.
+
+### 12.6 Canonical signed shell target
+
+On the $2\pi$ torus, let $\Pi_j$ be the orthogonal Fourier projection onto
+
+$$
+\mathscr S_j=
+\{k\in\mathbb Z^3:2^j\le|k|<2^{j+1}\},
+\qquad
+\omega_j=\Pi_j\omega,
+\qquad
+W_j=\|\omega_j\|_2^2,
+\qquad
+D_j=\|\nabla\omega_j\|_2^2.
+\tag{119}
+$$
+
+Split nonlinear shell transfer into advection and stretching:
+
+$$
+A_j=-\langle\omega_j,\Pi_j(u\cdot\nabla\omega)\rangle,
+\qquad
+S_j=\langle\omega_j,\Pi_j(\omega\cdot\nabla u)\rangle.
+\tag{120}
+$$
+
+Orthogonality and periodic incompressibility give
+
+$$
+\frac12W_j'=A_j+S_j-\nu D_j,
+\qquad
+\sum_jA_j=0,
+\qquad
+\sum_jS_j=P.
+\tag{121}
+$$
+
+The canonical advective boundary flux
+
+$$
+\mathscr F_N=-\sum_{j=0}^NA_j
+\tag{122}
+$$
+
+satisfies $A_j=\mathscr F_{j-1}-\mathscr F_j$, with $\mathscr F_{-1}=0$ and $\mathscr F_N\to0$ on compact smooth intervals. The substantive sufficient estimate is therefore a stretching bound
+
+$$
+\boxed{
+S_j\le
+\theta\nu D_j+a_{\mathrm{sh}}(t)W_j+b_j(t),
+\qquad
+0\le\theta<1,}
+\tag{123}
+$$
+
+where $a_{\mathrm{sh}},b_j\ge0$, $b_{\mathrm{sh}}=\sum_jb_j$, and the time integrals of $a_{\mathrm{sh}}$ and $b_{\mathrm{sh}}$ are bounded uniformly over the initial-data ball. With $A_{\mathrm{sh}}(t)=\int_0^ta_{\mathrm{sh}}(s)ds$, summation and an integrating factor give
+
+$$
+\boxed{
+\begin{aligned}
+W'+2(1-\theta)\nu D
+&\le2a_{\mathrm{sh}}W+2b_{\mathrm{sh}},\\
+W(t)&\le
+e^{2A_{\mathrm{sh}}(t)}
+\left[
+W(0)+2\int_0^te^{-2A_{\mathrm{sh}}(s)}b_{\mathrm{sh}}(s)ds
+\right].
+\end{aligned}}
+\tag{124}
+$$
+
+The shell identities and conditional implication are exact. The uniform estimate (123) is unresolved. The standard bound $|P|\lesssim W^{3/4}D^{3/4}$ leaves a cubic enstrophy remainder after viscous absorption, while interaction locality alone supplies no sign for three-dimensional stretching or backscatter.
+
+## 13. Verification evidence
 
 The source-bound verifier is
 
@@ -937,7 +1354,7 @@ The source-bound verifier is
 python computations/verify_navier_stokes_replica_coherence.py
 ```
 
-It executes the 40 checks frozen in `computations/navier-stokes-replica-coherence-prereg.md`. The checked components cover:
+It executes the 60 checks frozen in `computations/navier-stokes-replica-coherence-prereg.md`. The checked components cover:
 
 - finite independent-replica factorization and disagreement algebra;
 - common-noise and independent-noise product corrections;
@@ -945,22 +1362,27 @@ It executes the 40 checks frozen in `computations/navier-stokes-replica-coherenc
 - constant-matrix Duhamel and directional occupation identities;
 - coherence-share, logarithmic, and odds balances;
 - determinant transport, the sharp equality case, and singular-rank collapse;
+- determinant-root differential components and trace-free stretching cancellation under positive-definite covariance;
+- matrix-trace derivations of the sharpened-envelope decomposition and production identity;
+- the recent-Gramian quadratic form and a fixed spanning control;
 - Navier–Stokes scaling exponents;
-- exact periodic shear, homogeneous extension, and ABC controls.
+- exact periodic shear, homogeneous extension, and ABC controls;
+- exact rank-two flow identities, covariance time-jet components, and recovered determinant coefficient;
+- fixed three-shell chain-rule, telescoping, boundary, and integrating-factor components.
 
-The stochastic-flow representation, positive matrix propagator, general Duhamel step, arithmetic-geometric mean inequality, and continuation implication remain analytical arguments under the stated smoothness assumptions. The verifier does not integrate a Navier–Stokes trajectory or simulate Brownian paths.
+The stochastic-flow representation, positive matrix propagator, general Duhamel step, determinant-root concavity, singular-stratum extension, Gramian spanning criterion, covariance-jet remainder and open-set implication, orthogonal shell-projection derivation, infinite-shell convergence, ultraviolet flux limit, assumed shell-bound signs, Gronwall step, and continuation implications remain analytical arguments under the stated smoothness hypotheses. The verifier does not integrate a generic Navier–Stokes trajectory or simulate Brownian paths.
 
 The selected local evidence bundle is
 
 ```text
-runs/navier_stokes_replica_coherence_20260910_qualified/verification.json
-runs/navier_stokes_replica_coherence_20260910_qualified/verification.inputs.json
-runs/navier_stokes_replica_coherence_20260910_qualified/verification.sources/
+runs/navier_stokes_replica_coherence_rank_recovery_20260910_final_qualified/verification.json
+runs/navier_stokes_replica_coherence_rank_recovery_20260910_final_qualified/verification.inputs.json
+runs/navier_stokes_replica_coherence_rank_recovery_20260910_final_qualified/verification.sources/
 ```
 
 The bundle records raw source hashes for this paper, the frozen protocol, and the verifier.
 
-## 13. Sources
+## 14. Sources
 
 - `turbulence/navier-stokes-active-deformation-occupation.md`—vorticity-seeded common-noise moment and active deformation occupation
 - `turbulence/navier-stokes-deformation-covariance.md`—forward-deformation covariance, inverse metric, and endpoint regression
@@ -968,3 +1390,4 @@ The bundle records raw source hashes for this paper, the frozen protocol, and th
 - G. Iyer and J. Mattingly, [A stochastic-Lagrangian particle system for the Navier–Stokes equations](https://arxiv.org/abs/0803.1222)—independent stochastic-flow replicas and finite-ensemble approximation
 - T. D. Drivas and G. L. Eyink, [A Lagrangian fluctuation-dissipation relation for scalar turbulence, I](https://arxiv.org/abs/1606.00729)—scalar fluctuation-dissipation identity
 - G. L. Eyink, A. Gupta, and T. Zaki, [Stochastic Lagrangian Dynamics of Vorticity. I. General Theory](https://arxiv.org/abs/1912.06677)—stochastic Cauchy invariants, cancellation, and ensemble variance
+- G. L. Eyink and H. Aluie, [Localness of energy cascade in hydrodynamic turbulence, I. Smooth coarse-graining](https://arxiv.org/abs/0909.2386)—scale-locality estimates under declared inertial-range scaling assumptions

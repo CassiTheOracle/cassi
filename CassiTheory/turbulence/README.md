@@ -127,7 +127,7 @@ arbitrary-flow closure and global regularity remain open.
 | 7 | `turbulence/navier-stokes-adaptive-metric.md` | Scalar, branch, terminal and forward positive metrics for vortex stretching | Derived exact weighted balances and conditional continuation reduction / Open active-distortion bound |
 | 8 | `turbulence/navier-stokes-deformation-covariance.md` | Forward-deformation covariance, inverse metric, covariant enstrophy and stochastic regression | Derived exact covariance and projection identities / Open active Rayleigh-quotient bound |
 | 9 | `turbulence/navier-stokes-active-deformation-occupation.md` | Vorticity-seeded covariance, directional-strain occupation and active cascade dose | Derived exact seeded-covariance and conditional continuation identities / Open all-data active-dose bound |
-| 10 | `turbulence/navier-stokes-replica-coherence.md` | Independent stochastic Cauchy replicas, coherence share, viscous disagreement and compensated occupation | Derived exact replica, covariance and conditional continuation identities / Open all-data compensation bound |
+| 10 | `turbulence/navier-stokes-replica-coherence.md` | Independent stochastic Cauchy replicas, accumulated covariance rank, coherence share, viscous disagreement and signed shell compensation | Derived exact replica, covariance, temporal-rank and conditional continuation identities / Open uniform recovered-envelope and cross-scale bounds |
 | 11 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure, phase-current summary and actual flow controls | Derived conditional mechanical, thermal, and phase-current identities / Tested solver, rotational and phase-coercivity boundaries / Open physical-fluid completion |
 | 12 | `turbulence/cassi-fluid-phase-current-hydrodynamics.md` | Mermin–Ho rotation, helicity topology, two-band Beltrami flow, first-order coercivity and viscosity projection boundaries | Derived conditional current and topology identities / Tested rotational, memory and coercivity boundaries / Open microscopic viscosity and arbitrary-flow closure |
 | 13 | `turbulence/cassi-radiative-material-closure.md` | LTE emission, multigroup M1 transport, conservative material coupling and CassiCosmos handoff | Derived conditional transfer, conservation and entropy identities / Tested kernels / Open Cassi material calibration |
@@ -382,22 +382,30 @@ disagreement is an exact retarded palinstrophy occupation weighted by the
 subsequent directional deformation of each gradient source.
 
 The global coherence share $c=W/\mathcal E_M$ obeys a
-replicator-diffusion equation. Volume preservation gives the sharp full-rank
-lower bound
+replicator-diffusion equation. Volume preservation gives the sharp
+instantaneous-source bound
 
 $$
 \mathcal V(t)\ge6\nu\int_0^tJ(s)\,ds,
 \qquad
-J=\int(\det Q_\omega)^{1/3}dx,
+J=\int(\det Q_\omega)^{1/3}dx.
 $$
 
-and hence $W\le\mathcal G:=\mathcal E_M-6\nu\int_0^tJ\,ds$. Rank-one and
-rank-two source frames can collapse under determinant-one deformations, so
-the bound cannot control every source locally. Periodic shear realizes this
-rank defect exactly, while a decaying ABC flow has $J>0$. The source-bound
-schedule passes **40 of 40** symbolic and exact-control checks. A uniform
-bound on $\mathcal G$ over every bounded initial-$H^3$ data ball would imply
-continuation and remains **UNRESOLVED**.
+Applying the determinant root after source histories accumulate defines
+$\mathcal K=3\int(\det R)^{1/3}dx$ and the sharper envelope
+
+$$
+W\le\mathcal H:=\mathcal E_M-\mathcal K
+\le\mathcal G:=\mathcal E_M-6\nu\int_0^tJ\,ds.
+$$
+
+An exact rank-two periodic Beltrami heat flow has $J=0$ while its accumulated
+covariance becomes full rank on an open set. Periodic shear remains rank one,
+so an all-data theorem must relate recovery to the stretching being
+compensated. The source-bound schedule passes **60 of 60** symbolic and
+exact-control checks. Uniform production-relative rank compensation, the
+signed shell-stretching estimate, and a bound on $\mathcal H$ over every
+bounded initial-$H^3$ data ball remain **UNRESOLVED**.
 
 ### 2.11 Cassi fluid mechanics, thermal closure and phase currents
 
@@ -539,8 +547,8 @@ remain supplied inputs or open identifications.
 - `computations/verify_navier_stokes_deformation_covariance.py`—40-check audit-rechecked exact deformation-covariance verifier
 - `computations/navier-stokes-active-deformation-occupation-prereg.md`—fixed seeded-covariance, orientation, Khasminskii, pulse and cascade-dose schedule
 - `computations/verify_navier_stokes_active_deformation_occupation.py`—40-check source-bound active-deformation-occupation component verifier
-- `computations/navier-stokes-replica-coherence-prereg.md`—fixed independent-replica, covariance-source, coherence, determinant, scaling and exact-control schedule
-- `computations/verify_navier_stokes_replica_coherence.py`—40-check source-bound replica-coherence and viscous-compensation verifier
+- `computations/navier-stokes-replica-coherence-prereg.md`—fixed independent-replica, covariance-source, accumulated-rank, coherence, determinant, scaling, signed-shell and exact-control schedule
+- `computations/verify_navier_stokes_replica_coherence.py`—60-check source-bound replica-coherence, temporal-rank and viscous-compensation verifier
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
 - `computations/cassi-fluid-thermodynamics-prereg.md`—selected fluid equations and fixed thermal controls
 - `computations/cassi_fluid_thermodynamics.py`—reacting capillary/thermal model and command-line evolution
