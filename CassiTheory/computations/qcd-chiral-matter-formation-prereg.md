@@ -364,6 +364,48 @@ If any requirement is absent, QCF6 is `FAIL` and `complete_physical_matter_forma
 
 Execute every arm once. Code or protocol defects may be repaired only by an amendment that states the defect, preserves all completed raw outputs, changes the protocol hash, and reruns every affected arm. Physical thresholds, seeds, parameters, targets, and decision branches remain fixed. Each primary receipt stores source hashes, protocol bytes and hash, environment information, every retained state hash, and the final verdict inputs. The independent verifier must reconstruct observables from arrays rather than importing primary numerical functions. Missing primary input exits nonzero and yields `INCONCLUSIVE` for QCF1–QCF5 and `FAIL` for QCF6.
 
+
+### 7.1 Implementation amendment—September 2026
+
+The retained execution at
+`runs/20260909_qcd_chiral_matter_formation/primary/` used protocol hash
+`31579034a381292afde7e2660916a4e3eb1fb161a626329404d5ffc50185d62b`
+and solver hash
+`0c8b13a3829cbf18fb44fcdda0b0e46bc92741d06bf2451acd49e2a439774f09`.
+It passed the algebraic controls, entered `N30_complete`, and invoked the
+frozen numerical stopping rule at
+$s=0.03107724709385565$ after 11,609 accepted steps and 76,513 rejected
+step halvings. Its partial history is retained with SHA-256
+`4a78bcf88671320b00991ce61f9f8acc24c23986c16a97c8867588c9dce213cc`.
+No event reached the first nonzero retained time, so this attempt supplies
+no formation or persistence classification.
+
+The executable evidence contract uses a group object keyed by arm name,
+target indices $1,\ldots,16$, explicit values for every frozen constant
+and control scalar consumed by the independent verifier, the full
+$s\ge4$ cutoff history in texture qualification, and a nonnegative
+maximum energy-tolerance excess. The QCF5 upper comparison uses the
+declared $H^{-1}/(2\ {\rm fm}/c)$ ratio. Event types, physical count
+ranges, detailed formation summaries, and all QCF1–QCF5 gate inputs are
+reconstructed from the retained arrays. QCF6 fails closed because the
+five required physical observables are absent from this experiment.
+The acceptance energy is evaluated from the float32 state with float64
+arithmetic. This resolves an implementation mismatch in which float32
+local-energy rounding was compared with the frozen $10^{-9}$ relative
+tolerance. The evolved state, functional gradient, Euler update, and all
+frozen step bounds remain float32 and unchanged. These corrections make
+crash recovery and independent reconstruction unambiguous. They do not
+change the action, ensemble, lattice fields, parameters, targets,
+evolution rule, retained times, thresholds, or decision tree.
+
+Every affected arm is rerun once from its original initial array into the
+fresh `runs/20260909_qcd_chiral_matter_formation/amendment-1/` evidence
+directory. A repeated numerical stop is retained as QCF1 `FAIL`, QCF2–QCF5
+`INCONCLUSIVE`, and QCF6 `FAIL`; it does not authorize a regulator,
+integrator, ensemble, or threshold change. The independent verifier fails
+closed on any incomplete primary package and retains the primary and
+verification source identities in its failure receipt.
+
 <!-- qcd-chiral-formation-protocol:end -->
 
 ## 8. Scope of a positive result

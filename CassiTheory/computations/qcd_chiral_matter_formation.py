@@ -247,13 +247,16 @@ def torch_gradient_and_energy(
     loss = sum(part.sum() for part in parts)
     (gradient,) = torch.autograd.grad(loss, variable)
     gradient = gradient.masked_fill(mask[None, None], 0.0)
-    _, total = torch_component_values(parts, h)
+    total = torch_energy(field, h, include_u4)
     return gradient.detach(), total
 
 
 def torch_energy(field: torch.Tensor, h: float, include_u4: bool) -> np.ndarray:
     with torch.no_grad():
-        _, total = torch_component_values(torch_energy_densities(field, h, include_u4), h)
+        evaluation_field = field.to(dtype=torch.float64)
+        _, total = torch_component_values(
+            torch_energy_densities(evaluation_field, h, include_u4), h
+        )
     return total
 
 
@@ -372,7 +375,7 @@ def regular_value_snapshot(field: np.ndarray, chunk_cubes: int = 16384) -> dict[
     common_degree = int(degrees[0]) if np.all(degrees == degrees[0]) else None
     rows = [
         {
-            "index": index,
+            "index": index + 1,
             "positive_hits": int(positive[index]),
             "negative_hits": int(negative[index]),
             "signed_degree": int(degrees[index]),
@@ -566,6 +569,7 @@ def control_suite(
         "finite_difference": finite_difference,
         "relative_error": relative_error,
         "passes": relative_error < 3.0e-4,
+        "direction_norm": float(np.linalg.norm(direction)),
     }
 
     checker = np.zeros((4, n_vac, n_vac, n_vac), dtype=np.float64)
@@ -576,7 +580,10 @@ def control_suite(
     checker_energy = numpy_energy_components(checker, h_vac, True)
     controls["checkerboard"] = {
         "N": n_vac,
+        "dimensionless_spacing": h_vac,
         "energies": checker_energy,
+        "energy": checker_energy["total"],
+        "e2": checker_energy["e2"],
         "passes": bool(checker_energy["total"] > 0.0 and checker_energy["e2"] > 0.0),
     }
 
@@ -615,6 +622,8 @@ def cosmology_control() -> dict[str, Any]:
                     "ratio_to_2_fm_over_c": hubble_inverse_s / (2.0 * FM_OVER_C_S),
                 }
             )
+    minimum_hubble_inverse = min(row["H_inverse_s"] for row in rows)
+    maximum_hubble_inverse = max(row["H_inverse_s"] for row in rows)
     minimum_ratio = min(row["ratio_to_2_fm_over_c"] for row in rows)
     maximum_ratio = max(row["ratio_to_0p5_fm_over_c"] for row in rows)
     return {
@@ -622,8 +631,14 @@ def cosmology_control() -> dict[str, Any]:
         "temperature_bracket_mev": list(T_C_MEV),
         "g_star_bracket": list(G_STAR),
         "rows": rows,
+        "H_inverse_s_min": minimum_hubble_inverse,
+        "H_inverse_s_max": maximum_hubble_inverse,
+        "ratio_2fm_c_min": minimum_ratio,
+        "ratio_2fm_c_max": max(row["ratio_to_2_fm_over_c"] for row in rows),
         "minimum_ratio_to_2_fm_over_c": minimum_ratio,
+        "maximum_ratio_to_2_fm_over_c": max(row["ratio_to_2_fm_over_c"] for row in rows),
         "maximum_ratio_to_0p5_fm_over_c": maximum_ratio,
+        "passes": True,
     }
 
 
@@ -676,7 +691,7 @@ def evolve_group(
         "halvings": 0,
         "completed": False,
     }
-    receipt["groups"].append(group)
+    receipt["groups"][group_id] = group
     strict_json_write(receipt_path, receipt)
 
     initial_energy = torch_energy(field, h, include_u4)
@@ -800,8 +815,8 @@ def evolve_group(
             1.0, np.abs(history_arrays["energies"][:-1])
         )
         group["max_accepted_energy_increase"] = float(np.max(energy_differences))
-        group["max_energy_tolerance_excess"] = float(
-            np.max(energy_differences - energy_tolerances)
+        group["max_energy_tolerance_excess"] = max(
+            0.0, float(np.max(energy_differences - energy_tolerances))
         )
         group["history_energy_rule_passes"] = bool(
             np.all(energy_differences <= energy_tolerances)
@@ -840,7 +855,7 @@ def snapshot_at(group: dict[str, Any], retained: float) -> dict[str, Any]:
 
 
 def classify(receipt: dict[str, Any]) -> None:
-    groups = {row["id"]: row for row in receipt["groups"]}
+    groups = receipt["groups"]
     controls = receipt["controls"]
     histories_monotone = all(
         row["completed"] and row["history_energy_rule_passes"]
@@ -883,6 +898,7 @@ def classify(receipt: dict[str, Any]) -> None:
                     and regular["ambiguity_count"] == 0
                     and metric["max_edge_angle"] < EDGE_LIMIT
                     and metric["cutoff_hits"] == 0
+                    and group["late_cutoff_hits_max"][event_id] == 0
                     and abs(metric["B"]) >= 0.65
                 )
                 radius = metric["baryon_rms_fm"]
@@ -924,8 +940,11 @@ def classify(receipt: dict[str, Any]) -> None:
 
     def resolved(group: dict[str, Any], event_id: str, retained: float) -> bool:
         metric = snapshot_at(group, retained)["events"][event_id]
+        regular = metric["regular_value"]
         return bool(
-            metric["regular_value"]["resolved_positive_negative"]
+            regular["resolved_positive_negative"]
+            and regular["ambiguity_count"] == 0
+            and metric["max_edge_angle"] < EDGE_LIMIT
             and metric["cutoff_hits"] == 0
             and group["late_cutoff_hits_max"][event_id] == 0
         )
@@ -1004,7 +1023,7 @@ def classify(receipt: dict[str, Any]) -> None:
     )
     qcf5_supports = bool(
         cosmology["classification"] == "first-order"
-        and cosmology["maximum_ratio_to_0p5_fm_over_c"] < 1.0e3
+        and cosmology["maximum_ratio_to_2_fm_over_c"] < 1.0e3
     )
     qcf5_verdict = "CONTRADICTS" if qcf5_contradicts else "SUPPORTS" if qcf5_supports else "INCONCLUSIVE"
 
@@ -1079,12 +1098,19 @@ def classify(receipt: dict[str, Any]) -> None:
             "inputs": {
                 "classification": cosmology["classification"],
                 "minimum_ratio_to_2_fm_over_c": cosmology["minimum_ratio_to_2_fm_over_c"],
-                "maximum_ratio_to_0p5_fm_over_c": cosmology["maximum_ratio_to_0p5_fm_over_c"],
+                "maximum_ratio_to_2_fm_over_c": cosmology["maximum_ratio_to_2_fm_over_c"],
             },
         },
         "QCF6": {
             "passed": qcf6,
-            "inputs": {"requirements": completion_requirements},
+            "inputs": {
+                "microscopic_qcd_selection": completion_requirements[0]["present"],
+                "baryon_current_transport": completion_requirements[1]["present"],
+                "fermionic_spin_statistics": completion_requirements[2]["present"],
+                "density_operator_occupations": completion_requirements[3]["present"],
+                "cosmological_initial_state": completion_requirements[4]["present"],
+                "requirements": completion_requirements,
+            },
         },
     }
     receipt["verdicts"] = {
@@ -1105,14 +1131,20 @@ def make_receipt(device_arg: str, device: torch.device) -> dict[str, Any]:
         "m_pi_mev": M_PI_MEV,
         "skyrme_e": SKYRME_E,
         "kappa_sq": KAPPA_SQ,
+        "delta_over_f_pi": 0.3,
         "hbarc_mev_fm": HBARC_MEV_FM,
         "mu": MU,
         "lambda": LAMBDA,
         "v_sq": V_SQ,
         "c_vac": C_VAC,
         "m_sigma_mev": M_SIGMA_MEV,
+        "L_fm": L_PHYSICAL_FM,
         "physical_length_fm": L_PHYSICAL_FM,
         "dimensionless_length": DIMENSIONLESS_LENGTH,
+        "N30": 30,
+        "N40": 40,
+        "dy30": DIMENSIONLESS_LENGTH / 30.0,
+        "dy40": DIMENSIONLESS_LENGTH / 40.0,
         "epsilon": EPSILON,
         "attempted_ds": ATTEMPTED_DS,
         "max_component_change": MAX_COMPONENT_CHANGE,
@@ -1121,9 +1153,29 @@ def make_receipt(device_arg: str, device: torch.device) -> dict[str, Any]:
         "max_accepted_steps": MAX_ACCEPTED_STEPS,
         "edge_angle_limit": EDGE_LIMIT,
         "coefficient_tolerance": COEFFICIENT_TOL,
-        "determinant_tolerance": DETERMINANT_TOL,
-        "ambiguity_coefficient_tolerance": AMBIGUITY_COEFFICIENT_TOL,
-        "ambiguity_determinant_tolerance": AMBIGUITY_DETERMINANT_TOL,
+        "determinant_exclusion_tolerance": DETERMINANT_TOL,
+        "determinant_ambiguity_tolerance": AMBIGUITY_DETERMINANT_TOL,
+        "face_tolerance": AMBIGUITY_COEFFICIENT_TOL,
+        "boundary_tolerance": 1.0e-7,
+        "directional_relative_tolerance": 3.0e-4,
+        "scalar_rtol": 3.0e-5,
+        "scalar_atol": 3.0e-7,
+        "radial_initial_nodes": 1201,
+        "radial_tol": 1.0e-8,
+        "radial_max_nodes": 100_000,
+        "radial_retained_samples": 64_001,
+        "radial_solve_r_min": 1.0e-5,
+        "radial_solve_r_max": 64.0,
+        "radial_retained_r_min": 0.0,
+        "radial_retained_r_max": 64.0,
+        "radial_initial_guess_scale": 1.0 / math.sqrt(2.0),
+        "radius_bounds_fm": [0.20, 1.20],
+        "Tc_mev": 156.5,
+        "Tc_half_width_mev": 1.5,
+        "g_star": list(G_STAR),
+        "M_planck_gev": PLANCK_MASS_GEV,
+        "gev_inv_s": GEV_INV_S,
+        "fm_c_s": FM_OVER_C_S,
         "retained_s": list(RETAINED_S),
         "seeds": list(SEEDS),
         "targets": TARGETS.tolist(),
@@ -1152,7 +1204,10 @@ def make_receipt(device_arg: str, device: torch.device) -> dict[str, Any]:
         },
         "constants": constants,
         "controls": {},
-        "groups": [],
+        "groups": {},
+        "gates": {},
+        "verdicts": {},
+        "complete_physical_matter_formation": False,
     }
 
 
