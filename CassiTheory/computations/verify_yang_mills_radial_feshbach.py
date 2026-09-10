@@ -608,13 +608,16 @@ def continued_fraction_controls(result: dict[str, Any]) -> None:
                     discrepancy = normalized_error(m_cf, m_direct)
                     direct_errors[str(length)] = float(discrepancy)
                     direct_values[str(length)] = {
+                        "L": int(length),
+                        "M": int(terminal),
                         "terminal": int(terminal),
                         "m_continued_fraction": float(m_cf),
                         "m_direct_tail_solve": float(m_direct),
                     }
                     direct_rows.append({
                         "x": float(x), "N": int(n_cut), "E": float(energy),
-                        "M": int(length), "terminal": int(terminal),
+                        "L": int(length), "M": int(terminal),
+                        "terminal": int(terminal),
                         "m_continued_fraction": float(m_cf),
                         "m_direct_tail_solve": float(m_direct),
                         "normalized_discrepancy": float(discrepancy),
@@ -724,7 +727,7 @@ def continued_fraction_controls(result: dict[str, Any]) -> None:
         ("continued_fraction_row_inventory", cf_rows, expected_cf,
          lambda row: (row["x"], row["N"], row["E"])),
         ("direct_tail_row_inventory", direct_rows, expected_direct,
-         lambda row: (row["x"], row["N"], row["E"], row["M"])),
+         lambda row: (row["x"], row["N"], row["E"], row["L"])),
         ("RF12_bound_row_inventory", bound_rows, expected_cf,
          lambda row: (row["x"], row["N"], row["E"])),
         ("RF12a_operator_bracket_row_inventory", bracket_rows, expected_cf,
