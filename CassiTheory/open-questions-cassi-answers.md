@@ -1470,6 +1470,41 @@ over bounded initial-$H^3$ data remains **UNESTABLISHED**, so the adaptive
 metric result is a conditional reduction rather than an arbitrary-data
 regularity theorem.
 
+The forward-deformation refinement in
+`turbulence/navier-stokes-deformation-covariance.md` generates
+$C=\mathbb E[FF^{\mathsf T}]$ from the Constantin–Iyer stochastic flow and
+uses $G_C=C^{-1}$. Under the stated compact-interval stochastic assumptions it
+satisfies
+
+$$
+\int\omega^{\mathsf T}G_C\omega\,dx
++2\nu\int_0^t\mathcal D_C\,ds
+:=\|\omega_0\|_2^2,
+$$
+
+with $\mathcal D_C$ an exact nonnegative covariant square. Orthogonal
+projection identifies the weighted term as retained sampled
+initial-vorticity energy and the dissipation as the endpoint regression
+residual. Its audit-rechecked source-bound verifier passes **40 of 40 exact
+symbolic and fixed-control checks**, including the citation-derived
+Stratonovich–Itô conversion. Stochastic-flow and Navier–Stokes trajectory
+integration lie outside that executable schedule. The finite-ensemble
+projection and inverse-Jensen gate is **SUPPORTS**; two separate checks are
+synthetic scalar prototypes for the analytic endpoint bridge. The exact
+controls give **CONTRADICTS** for coercivity inferred from positivity,
+determinant, or unrestricted deformation algebra alone. For nonzero vorticity,
+define
+
+$$
+\mathfrak A_C(t)=
+\frac{\|\omega(t)\|_2^2}
+{\int\omega^{\mathsf T}G_C\omega\,dx}.
+$$
+
+A uniform bound on $\mathfrak A_C$ over every mean-zero, divergence-free
+initial-$H^3$ data ball would continue the original solution. That estimate
+remains **UNESTABLISHED**.
+
 The selected constant-density thermal model in §7 has a variational
 capillary stress with closed momentum and energy budgets, nonnegative
 entropy production and exact homogeneous canonical conversion. Smooth
@@ -1866,13 +1901,21 @@ the continuum-qualified branch has more than $291\ \mathrm{MeV}$ of qualified
 binding and a conservative reduced static barrier of
 $18.2800415\ \mathrm{MeV}$. QMQ1=`PASS`, QMQ2=`SUPPORTS` and
 QMQ3=`SUPPORTS`; the accepted frozen QMC2 spectral verdict remains `FAIL`.
-The cosmological ledger consistently treats this $B=1$ sector as asymmetry
-inherited before the QCD transition. The empirical action, renormalized Dirac
-sea, nonradial persistence, thermal formation rate, confinement, observable
-nucleon map and baryogenesis remain supplied or open. QMQ4 and QMC6 return
-`FAIL`, and physical matter formation remains Hypothesized/Open
-(`computations/matter-formation-continuum-report.md` §79;
-`foundations/matter-completion-boundary.md` §24).
+The cosmological ledger treats this $B=1$ sector as asymmetry inherited before
+the QCD transition.
+
+The active finite-cutoff chromodielectric completion defines the interacting
+two-flavour sea and preserves local $SU(3)_C$. Its zero-dielectric exterior
+gives every nonzero total Cartan charge infinite energy in infinite volume,
+while a color-neutral three-arm flux network has finite positive minimized
+tension. Independent calculations give RCF1–RCF4=`PASS` and RCF5=`ADOPT`.
+The empirical action and unmatched dielectric scales, interacting nonradial
+baryon solution and spectrum, thermal production rate, observable nucleon
+map, baryogenesis and Cassi derivation of QCD remain supplied or open. QMQ4,
+QMC6 and RCF6 return `FAIL`, and physical matter formation remains
+Hypothesized/Open
+(`computations/matter-formation-continuum-report.md` §§79, 81;
+`foundations/matter-completion-boundary.md` §§24, 26).
 
 A separate unnormalized polynomial Gram stabilizer remains finite when its
 chiral field crosses zero. Exact positivity and independent Cartesian

@@ -40,6 +40,15 @@ data-controlled bound on active distortion would continue every bounded
 initial-$H^3$ solution; the bound remains open. The two fixed symbolic
 schedules pass **32 of 32** and **16 of 16** checks.
 
+The forward-deformation covariance sharpens that route with a generated
+inverse-covariance metric, a single covariant-square dissipation and an exact
+orthogonal-regression identity. Its audit-rechecked source-bound schedule passes
+**40 of 40** exact symbolic and fixed-control checks, including the
+citation-derived Stratonovich–Itô conversion. Stochastic-flow and
+Navier–Stokes trajectory integration lie outside the executable schedule. A
+uniform mean-zero divergence-free initial-$H^3$-data-conditioned active
+Rayleigh-quotient bound remains open.
+
 The second-order analysis derives a nonnegative weighted energy for the
 continuous-time continuum Yang/Yin family associated with the live shader's
 source-free coupling; the finite-difference runtime itself carries no exact
@@ -272,7 +281,49 @@ the least metric direction. The parent and forward symbolic schedules pass
 **32 of 32** and **16 of 16** fixed-control checks. Arbitrary-data active
 distortion and global regularity remain open.
 
-### 2.8 Cassi fluid mechanics, thermal closure and phase currents
+### 2.8 Forward-deformation covariance
+
+`turbulence/navier-stokes-deformation-covariance.md` uses the
+Constantin–Iyer stochastic flow to define
+
+$$
+C=\mathbb E[FF^{\mathsf T}],
+\qquad
+G_C=C^{-1}.
+$$
+
+Under the stated compact-interval stochastic-flow and interchange assumptions,
+the covariance obeys a closed deterministic parabolic equation. Its inverse
+cancels both vortex-stretching terms, and the remaining viscous terms form one
+nonnegative covariant square:
+
+$$
+\int\omega^{\mathsf T}G_C\omega\,dx
++2\nu\int_0^t\mathcal D_C\,ds
+:=\|\omega_0\|_2^2.
+$$
+
+A Hilbert-space projection identifies the weighted quantity as retained
+initial-vorticity energy and the accumulated dissipation as the endpoint
+regression residual. The active distortion is the Rayleigh quotient of the
+stochastic deformation operator on that projected component. The
+audit-rechecked source-bound schedule passes **40 of 40** exact symbolic and
+fixed-control checks, including the citation-derived stochastic-calculus
+conversion. Its finite-ensemble projection and inverse-Jensen group is
+**SUPPORTS**; two separate checks exercise only synthetic scalar prototypes for
+the analytic endpoint bridge.
+
+A homogeneous extensional control has determinant one and exponentially
+growing active distortion; it isolates unrestricted deformation algebra
+outside the periodic finite-energy Navier–Stokes class. A periodic shear
+carries covariance in the plane orthogonal to vorticity and has active
+distortion one. Together the controls classify coercivity inferred from
+positivity, determinant and exact cancellation alone as **CONTRADICTS**. A
+uniform bound on the data-conditioned active quotient over every mean-zero,
+divergence-free initial-$H^3$ data ball would imply continuation and remains
+open.
+
+### 2.9 Cassi fluid mechanics, thermal closure and phase currents
 
 `turbulence/cassi-fluid-feasibility.md` derives pressure, counterflow momentum
 flux and quantum stress from the ungauged positive-density first-order action
@@ -304,7 +355,7 @@ the finite-grid evidence. The result **SUPPORTS** the declared
 constitutive budgets; physical replacement and global regularity remain
 **UNESTABLISHED**.
 
-### 2.9 Phase-current rotation and the viscosity boundary
+### 2.10 Phase-current rotation and the viscosity boundary
 
 `turbulence/cassi-fluid-phase-current-hydrodynamics.md` derives the
 barycentric velocity of the phase-bearing action. One normalized Yang/Yin
@@ -332,7 +383,7 @@ the critical scalar-Beltrami residual. Microscopic viscosity, a whole-field
 dynamical concentration bound, arbitrary-flow hydrodynamics and
 arbitrary-data regularity remain **UNESTABLISHED**.
 
-### 2.10 Radiative material closure
+### 2.11 Radiative material closure
 
 `turbulence/cassi-radiative-material-closure.md` supplies a conditional
 radiative extension of the selected capillary and thermal material. Planck
@@ -355,7 +406,7 @@ opacity, atomic populations or electromagnetic current. CassiCosmos
 implementation therefore begins with a default-off, unit-calibrated
 radiation state rather than the Observatory's appearance coefficients.
 
-### 2.11 Compressible radiative plasma and stellar light
+### 2.12 Compressible radiative plasma and stellar light
 
 `turbulence/compressible-radiative-plasma-closure.md` supplies the conditional
 completion required for thermal expansion, compression, shocks, species
@@ -408,6 +459,8 @@ remain supplied inputs or open identifications.
 - `computations/verify_navier_stokes_adaptive_metric.py`—32-check exact adaptive-metric verifier
 - `computations/navier-stokes-forward-adaptive-metric-prereg.md`—fixed forward-parabolic metric and determinant schedule
 - `computations/verify_navier_stokes_forward_adaptive_metric.py`—16-check projected-metric, periodic-strain and norm-equivalence verifier
+- `computations/navier-stokes-deformation-covariance-prereg.md`—audit-rechecked covariance, inverse-metric, projection, inverse-Jensen-gap and exact-control schedule
+- `computations/verify_navier_stokes_deformation_covariance.py`—40-check audit-rechecked exact deformation-covariance verifier
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
 - `computations/cassi-fluid-thermodynamics-prereg.md`—selected fluid equations and fixed thermal controls
 - `computations/cassi_fluid_thermodynamics.py`—reacting capillary/thermal model and command-line evolution

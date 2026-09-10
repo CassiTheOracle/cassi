@@ -835,6 +835,27 @@ coupled Navier–Stokes dynamics. A uniform initial-$H^3$-controlled bound on
 Euclidean enstrophy divided by active weighted enstrophy would imply
 continuation; that bound and arbitrary-data regularity remain open.
 
+The covariance-inverse refinement in
+`turbulence/navier-stokes-deformation-covariance.md` sets
+$C=\mathbb E[FF^{\mathsf T}]$ from the Constantin–Iyer forward deformation
+and $G_C=C^{-1}$. Under the stated compact-interval stochastic assumptions,
+this generated metric gives an exact covariant-square dissipation law without
+the scalar work projection. Its weighted enstrophy is the energy of the
+initial-vorticity component retained by an orthogonal stochastic-deformation
+projection, and its dissipation is the complementary endpoint regression
+residual. The audit-rechecked source-bound schedule passes 40 exact symbolic
+and fixed-control checks, including the citation-derived Stratonovich–Itô
+conversion; stochastic-flow and Navier–Stokes trajectory integration remain
+outside its executable scope. The finite-ensemble projection and
+inverse-Jensen gate is **SUPPORTS**; its two scalar endpoint-bridge checks are
+synthetic algebraic prototypes. A homogeneous extension still permits
+exponential active distortion, while periodic shear keeps all covariance in
+directions inactive on vorticity. The exact controls classify coercivity from
+positivity, determinant and cancellation alone as **CONTRADICTS**. A uniform
+bound on the resulting active Rayleigh quotient over every mean-zero,
+divergence-free initial-$H^3$ data ball would imply continuation and remains
+open.
+
 Section 7 of `turbulence/cassi-fluid-feasibility.md` selects a reacting
 rotational velocity and temperature. Its variational stress conserves
 periodic momentum; viscous and conversion work enter the heat equation,
@@ -1399,12 +1420,18 @@ shorter than cosmic expansion. The qualification returns
 QMQ1=`PASS`, QMQ2=`SUPPORTS` and QMQ3=`SUPPORTS`, while the frozen QMC2
 spectral verdict remains `FAIL`.
 
-The action and parameters enter as empirical QCD inputs. The mean-field
-energy excludes the renormalized Dirac sea; continuum nonradial persistence,
-thermal formation probability, confinement, the observable nucleon map and
-baryogenesis remain open. QMQ4 and QMC6 return `FAIL`
-(`computations/matter-formation-continuum-report.md` §79;
-`foundations/matter-completion-boundary.md` §24).
+The action and parameters enter as empirical QCD inputs. A finite-cutoff
+chromodielectric completion defines the interacting two-flavour sea and
+preserves the exact baryon current, chiral-zero regularity and local
+$SU(3)_C$. Its zero-dielectric exterior gives every nonzero total Cartan charge
+an energy that diverges with volume, while the color-neutral three-arm witness
+has finite positive minimized tension. RCF1–RCF4 return `PASS` and
+RCF5=`ADOPT`, qualifying action-level confinement for this effective bridge.
+Matched dielectric parameters, an interacting nonradial baryon solution,
+physical spectrum and observable nucleon map, thermal production,
+baryogenesis and a Cassi derivation of QCD remain open. RCF6 returns `FAIL`
+(`computations/matter-formation-continuum-report.md` §§79, 81;
+`foundations/matter-completion-boundary.md` §§24, 26).
 
 The unnormalized polynomial Gram stabilizer supplies a separate
 chiral-zero-regular scalar test. Exact and Cartesian controls pass, while the
