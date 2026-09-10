@@ -103,9 +103,15 @@ shooting agree on a localized nodeless valence level at
 $42.74439864\pm0.20\ \mathrm{MeV}$. The fixed-family endpoint is bound by more
 than $291\ \mathrm{MeV}$ and separated from the vacuum along its declared
 hedgehog envelope by a conservative $18.2800415\ \mathrm{MeV}$ barrier.
-The empirical action, renormalized sea, nonradial thermal dynamics,
-confinement, observable nucleon map and baryogenesis remain external or open;
-the complete-formation gate remains `FAIL`.
+
+The finite-cutoff chromodielectric completion (§8.17) defines the interacting
+two-flavour sea and supplies action-level confinement. Every nonzero total
+Cartan charge has divergent infinite-volume energy, while a color-neutral
+three-arm flux network has finite minimized tension. The empirical action,
+unmatched dielectric scales, interacting baryon solution and spectrum,
+nonradial thermal production, observable nucleon map, baryogenesis and Cassi
+origin of QCD remain external or open; the complete-formation gate remains
+`FAIL`.
 
 ---
 
@@ -2314,15 +2320,78 @@ extrapolated level within $4.99\times10^{-5}\ {\rm MeV}$. Along the declared
 two-parameter hedgehog envelope, the conservative reduced barrier is
 $18.2800415\ {\rm MeV}$, below the QCD crossover temperature.
 
-The QCD-era state ledger supplies the occupied sector through inherited
-asymmetry rather than production from an exactly neutral classical state. The
-local strong-interaction timescale is negligible relative to cosmic expansion
-under the recorded inputs. This comparison does not calculate a thermal
-nucleation probability. It also omits the renormalized Dirac sea and does not
-establish nonradial continuum persistence, confinement, the observable
-nucleon map or baryogenesis. Its resolved regulator, binding and reduced
-barrier results are `PASS`, `SUPPORTS` and `SUPPORTS`; the full-formation gates
-remain `FAIL` (`computations/matter-formation-continuum-report.md` §79).
+The QCD-era state ledger supplies the occupied sector through an inherited
+asymmetry. An exactly neutral classical state remains neutral. The local
+strong-interaction timescale is negligible relative to cosmic expansion under
+the recorded inputs. This comparison does not calculate a thermal nucleation
+probability or establish nonradial continuum persistence. Its resolved
+regulator, binding and reduced barrier results are `PASS`, `SUPPORTS` and
+`SUPPORTS`; the full-formation gates remain `FAIL`
+(`computations/matter-formation-continuum-report.md` §79).
+
+### 8.17 Confining finite-cutoff completion
+
+Color confinement requires additional gauge and dielectric dynamics. The
+active effective bridge uses renormalized two-flavour QCD as its empirical
+target and adds an independent color-singlet $x=\chi/\chi_v$:
+
+$$
+\begin{aligned}
+\mathcal L_{\rm CDQM,\epsilon}
+={}&\bar q\left[
+ i\gamma^\mu D_\mu
+ -gF(x)(\sigma+i\gamma^5\tau^a\pi^a)
+\right]q\\
+&+\frac12\partial_\mu\Phi_A\partial^\mu\Phi_A-V_\Phi(\Phi)
+ +\frac12\partial_\mu\chi\partial^\mu\chi-U_\chi(x)\\
+&-\frac14\kappa_\epsilon(x)G^a_{\mu\nu}G^{a\mu\nu}
+ +\mathcal L_{\rm gf+gh}+\mathcal L_{\rm ct}(a),
+\end{aligned}
+\tag{PA70}
+$$
+
+with
+
+$$
+\boxed{
+F(x)=x^2,\qquad
+\kappa_\epsilon(x)=(1-x^3)^2+\epsilon,\qquad
+U_\chi(x)=B(1-x)^2(1+2x+4x^2).}
+\tag{PA71}
+$$
+
+The independent $\chi$ field leaves every coefficient finite at the chiral
+zero. The action preserves local $SU(3)_C$, chiral
+$SU(2)_L\times SU(2)_R$ and the vector current (PA68). Compact Wilson links,
+two degenerate Wilson flavours and $\epsilon>0$ give the nonnegative
+finite-cutoff sea weight $\det(D_W^\dagger D_W)$. The conditional baryon state
+is projected onto both the local Gauss constraints and $B=1$.
+
+The exterior vacuum has $x=1$ and $\kappa_0=0$. For every nonzero total
+Cartan charge $Q$, the asymptotic radial energy obeys
+
+$$
+\boxed{
+\frac{dE}{dr}\ge\frac{4\sqrt6}{19}|Q|\sqrt B>0,
+\qquad
+\lim_{L\to\infty}E_Q(L)=\infty.}
+\tag{PA72}
+$$
+
+The three fundamental color weights sum to zero. Three finite thin-wall tubes
+may therefore meet at a color-neutral junction. At the dimensionless control
+$B=\chi_v=g_s=1$, each arm has stationary radius
+$0.23615762712122443$ and tension $2.67854371384798$. Primary and independent
+calculations give RCF1–RCF4=`PASS` and RCF5=`ADOPT`.
+
+This result qualifies action-level Gauss-sector confinement in the selected
+finite-cutoff bridge. The continuum-QCD mass gap and Wilson-loop area law
+remain unproved. The physical values of $(B,\chi_v)$, an interacting
+nonradial baryon solution with its sea, the spectrum and observable nucleon
+map, thermal production, baryogenesis and Cassi origin of QCD remain open.
+RCF6=`FAIL` and `complete_physical_matter_formation=false`
+(`computations/matter-formation-continuum-report.md` §81;
+`foundations/matter-completion-boundary.md` §26).
 
 ## 9. What is closed and what remains open
 
@@ -2356,7 +2425,8 @@ remain `FAIL` (`computations/matter-formation-continuum-report.md` §79).
 | Does the compact $SU(2)_{\rm top}$ comparison identify a Cassi carrier? | No canonical identification follows. Its extended conditional baryon benchmark supplies a Mapped two-mass calibration, supplied nucleon/Delta spin and charge rules, finite-domain radial stationarity, and conservative relaxation of prepared $B=1$ data. The density-to-target bridge remains obstructed |
 | Can a hard-norm nonzero-Hopf field be a full stationary solution of PA12? | No when the adjoint norm is soft: every such field has a strict first-order amplitude descent, and the included hard-norm loops contract in the soft domain. A relaxed soft-amplitude state or separately constrained hard-norm model remains open |
 | Does the empirical quark–meson current remain regular at a chiral zero? | Yes. Its polynomial Yukawa interaction and exact vector current remain finite, and three occupied colours carry fermionic $B=1$. The field content, action and parameters are empirical QCD inputs |
-| Does that model supply a continuum-qualified localized carrier and an accessible formation path? | It supplies a regulator-extrapolated nodeless valence level, fixed-family binding and a reduced static barrier. It does not yet supply a thermal rate, nonradial continuum stability, renormalized Dirac sea, confinement or a dynamical basin from the QCD ensemble |
+| Does that model supply a continuum-qualified localized carrier and an accessible formation path? | It supplies a regulator-extrapolated nodeless valence level, fixed-family binding and a reduced static barrier. It does not yet supply a thermal rate, nonradial continuum stability, an interacting sea baryon solution or a dynamical basin from the QCD ensemble |
+| Does the finite-cutoff QCD bridge confine color? | Yes at action level in its declared Gauss sector: every nonzero total Cartan charge has infinite-volume divergent energy, while a neutral three-arm flux network has finite minimized tension. It does not establish the continuum-QCD mass gap or Wilson-loop area law, and its physical dielectric scales remain unmatched |
 | Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | The compact benchmark gives Mapped nucleon/Delta masses, a physical length unit, out-of-fit radius and coupling comparisons, and conditional charge/spin assignments. The empirical quark–meson model gives a localized valence endpoint and radius under measured parameter inputs. Neither supplies a canonical Cassi identity, an observable nucleon map or a lifetime |
 
 The action defines a fixed-charge boundary-value problem and exact empty-sector
@@ -2378,13 +2448,15 @@ attracting degree-one soliton, Mapped nucleon/Delta masses, a physical length
 unit, supplied charge/spin rules and six out-of-fit particle comparisons.
 Four absolute observables contradict their precision threshold. The field,
 action, quantum rules and degree-one initial sector remain supplied inputs.
-The empirical quark–meson comparison then replaces the singular normalized
-carrier with explicit Dirac quarks and a regular exact baryon current. Its
-continuum-qualified fixed-family endpoint is localized and bound, and its
-reduced static barrier is below the QCD crossover temperature. The calculation
-starts in the cosmologically inherited $B=1$ sector and omits sea
-renormalization, nonradial thermal dynamics, confinement, the observable
-nucleon map and baryogenesis.
+The empirical quark–meson comparison then supplies explicit Dirac quarks and a
+regular exact baryon current. Its continuum-qualified fixed-family endpoint
+is localized and bound, and its reduced static barrier is below the QCD
+crossover temperature. The finite-cutoff chromodielectric completion defines
+the interacting sea and confines every nonzero total Cartan charge at action
+level while admitting a finite neutral three-arm flux network. The calculation
+starts in the cosmologically inherited $B=1$ sector. A nonradial interacting
+baryon solution and spectrum, thermal production, the observable nucleon map,
+baryogenesis and a Cassi origin of QCD remain open.
 Scalar and spinor microscopic parents also share the registered slow equation.
 Together these results determine no unique production action, state,
 normalization, particle spectrum or formation history. The complete
@@ -2412,7 +2484,11 @@ The analytic closure fails if any of the following is shown:
 10. the prepared two-mode carrier datum violates the local charge-transport
     identity or its zero-integral boundary condition;
 11. a scalar and spinor parent with the displayed canonical algebras cannot
-    share the registered slow carrier equation.
+    share the registered slow carrier equation;
+12. the finite-cutoff bridge has a singular coefficient at the chiral zero,
+    a negative two-flavour sea weight, a finite-energy nonzero total Cartan
+    charge, or no finite color-neutral three-arm witness under the declared
+    action and boundary conditions.
 
 The finite-grid measurements leave the action identities intact. The
 Cartesian edge-gradient diagnostic contradicts a smooth interpretation of the
@@ -2498,14 +2574,18 @@ assignments follow from supplied model rules. Independent verification
 reproduces the calculation, while four absolute out-of-fit observables miss
 the precision criterion.
 
-The empirical quark–meson comparison supplies the regular microscopic endpoint.
+The empirical quark–meson comparison supplies a regular microscopic endpoint.
 Explicit Dirac quarks transport exact baryon number through the chiral zero;
 the regulator-extrapolated nodeless valence state is localized and
-fixed-family bound. Its supplied QCD action and cosmological asymmetry do not
-follow from the canonical Cassi substrate, while the renormalized sea,
-nonradial thermal formation, confinement, observable nucleon map and
-baryogenesis remain unresolved. QMQ4 and QMC6 therefore remain `FAIL`, so
-complete physical matter formation remains **Hypothesized/Open**.
+fixed-family bound. The finite-cutoff chromodielectric completion defines its
+interacting two-flavour sea and supplies action-level confinement: isolated
+total Cartan charge has divergent infinite-volume energy and a neutral
+three-arm network has finite minimized tension. Its action, dielectric scales
+and cosmological asymmetry do not follow from the canonical Cassi substrate.
+An interacting nonradial baryon solution and spectrum, thermal production,
+the observable nucleon map, baryogenesis and a Cassi origin of QCD remain
+unresolved. RCF6, QMQ4 and QMC6 therefore remain `FAIL`, so complete physical
+matter formation remains **Hypothesized/Open**.
 
 ---
 
@@ -2560,3 +2640,7 @@ complete physical matter formation remains **Hypothesized/Open**.
   fit, uncertainty, barrier and verdict reconstruction.
 - D. Diakonov, [“Chiral Quark-Soliton Model”](https://arxiv.org/abs/hep-ph/9802298)—continuum radial Hamiltonian and occupied valence branch.
 - M. C. Birse and M. K. Banerjee, [“Chiral model of the nucleon and delta”](https://doi.org/10.1103/PhysRevD.31.118)—self-consistent valence-quark chiral soliton and physical parameter context.
+- `computations/qcd-confining-carrier-prereg.md`—finite-cutoff chromodielectric action, regulator, interacting sea, projected state and confinement criteria.
+- `computations/qcd_confining_carrier.py` and `computations/verify_qcd_confining_carrier.py`—independent action-level confinement calculations and RCF verdicts.
+- K. G. Wilson, [“Confinement of quarks”](https://doi.org/10.1103/PhysRevD.10.2445)—compact lattice gauge regulator and gauge-invariant confinement observables.
+- L. Wilets, S. Hartmann and P. Tang, [“The Chiral Quark Model”](https://doi.org/10.1007/978-1-4615-1855-0_2)—chiral color-dielectric quark action and confinement setting.

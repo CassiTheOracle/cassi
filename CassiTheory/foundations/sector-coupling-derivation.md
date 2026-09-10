@@ -35,9 +35,16 @@ three-colour level realizes fermionic $B=1$. Four-grid regulator extrapolation
 and independent shooting give a localized nodeless level at
 $42.74439864\pm0.20\ \mathrm{MeV}$ with qualified fixed-family binding.
 The action, parameters, inherited cosmological asymmetry and quantum
-occupation are supplied QCD inputs. Renormalized sea energy, nonradial thermal
-formation, confinement, an observable nucleon map and baryogenesis remain
-external or open (`computations/matter-formation-continuum-report.md` §79).
+occupation are supplied QCD inputs.
+
+A finite-cutoff chromodielectric completion defines the interacting
+two-flavour sea and supplies action-level confinement. Every nonzero total
+Cartan charge has divergent infinite-volume energy, while a color-neutral
+three-arm flux network remains finite. RCF1–RCF4 return `PASS` and
+RCF5=`ADOPT`. Physical parameter matching, an interacting nonradial baryon
+solution and spectrum, thermal production, an observable nucleon map,
+baryogenesis and Cassi origin of QCD remain external or open
+(`computations/matter-formation-continuum-report.md` §§79, 81).
 
 ## 1. The projection and its mathematical boundary
 
@@ -861,12 +868,14 @@ state map open (`computations/matter-formation-continuum-report.md` §38;
 The empirical quark–meson comparison supplies the field content and state that
 the registered slow law cannot select. Its exact vector current remains
 regular at the chiral zero, and its continuum-qualified occupied level is
-localized and fixed-family bound. This resolves the regular-carrier and
-conditional-binding questions for that supplied QCD model. It does not derive
-the model from Cassi, include the renormalized Dirac sea, or establish
-nonradial thermal formation, confinement, the observed nucleon map or
-baryogenesis. The physical-completion verdict remains `FAIL`
-(`computations/matter-formation-continuum-report.md` §79).
+localized and fixed-family bound. The finite-cutoff chromodielectric
+completion defines the interacting two-flavour sea and gives action-level
+confinement: isolated total color charge has divergent infinite-volume energy,
+while a color-neutral baryon witness remains finite. RCF5=`ADOPT`. Physical
+parameter matching, an interacting nonradial baryon solution and spectrum,
+thermal formation, the observed nucleon map, baryogenesis and the Cassi origin
+of QCD remain open. The physical-completion verdict remains `FAIL`
+(`computations/matter-formation-continuum-report.md` §§79, 81).
 
 
 The canonical scalar topology checks find contractible regular
@@ -893,18 +902,21 @@ global particle-ground-state claim.
 The canonical real-density state and its slow carrier reductions admit scalar
 and spinor microscopic parents. A fermionic theory therefore requires the
 independent selection of a Dirac field, its canonical algebra, state and
-interaction. The empirical quark–meson model supplies those ingredients and a
-regular localized $B=1$ endpoint as external QCD content. A physical mass fit,
-cascade coordinate and formal coefficient-scale identity do not derive that
-selection or its missing sea, thermal, confinement and baryogenesis dynamics.
+interaction. The empirical quark–meson model and chromodielectric completion
+supply those ingredients, a regular localized $B=1$ endpoint, an interacting
+sea definition and action-level confinement as external QCD content. A
+physical mass fit, cascade coordinate and formal coefficient-scale identity
+do not derive that selection. Its nonradial interacting solution, thermal
+production, baryogenesis and Cassi origin remain open.
 
 ## References
 
 - `foundations/unified-lagrangian.md` §§2, 5–7—optional fermion sector and action assembly.
 - `foundations/particle-stationary-action-closure.md` §8.12—scalar physical-normalization and particle-identity boundary.
 - `computations/matter-formation-normalization-prereg.md`—frozen unit-normalization, bilinear and action-reality checks.
-- `computations/matter-formation-continuum-report.md` §§12–29, 35–36, 79—normalization and identity boundaries, scalar and fermionic production witnesses, conditional formation dynamics, microscopic non-identifiability, continuum minimizer-set stability, finite-charge radial condensation and the regular empirical quark–meson carrier.
-- `foundations/matter-completion-boundary.md` §§12, 17–18, 24—conditional completion boundary, finite-charge radial formation scope, minimizer-set stability and the regular quark–meson comparison.
+- `computations/matter-formation-continuum-report.md` §§12–29, 35–36, 79, 81—normalization and identity boundaries, scalar and fermionic production witnesses, conditional formation dynamics, microscopic non-identifiability, continuum minimizer-set stability, finite-charge radial condensation, regular empirical quark–meson carrier and confining bridge.
+- `foundations/matter-completion-boundary.md` §§12, 17–18, 24, 26—conditional completion boundary, finite-charge radial formation scope, minimizer-set stability, regular quark–meson comparison and confining effective-carrier boundary.
+- `computations/qcd-confining-carrier-prereg.md`—finite-cutoff chromodielectric action, sea, state, confinement bound and frozen RCF decisions.
 - `computations/matter-formation-spinor-closure-prereg.md`—frozen positive-observable, closed-conversion, massive fixed-point and positive-energy witnesses.
 - `computations/matter-formation-spinor-closure-implementation-recovery.md`—execution provenance and accepted receipt location under the scientific preregistration's recovery rule.
 - `computations/matter_formation_spinor_closure.py` and `computations/verify_matter_formation_spinor_closure.py`—independent four-component and reduced-component witnesses.

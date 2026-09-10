@@ -96,10 +96,19 @@ extrapolation and independent shooting agree on a localized nodeless valence
 level at $42.7444\ \mathrm{MeV}$. The fixed hedgehog family has more than
 $291\ \mathrm{MeV}$ of qualified binding and a conservative reduced static
 barrier $18.2800415\ \mathrm{MeV}$. The initial-condition ledger identifies
-the sector with asymmetry inherited before QCD hadronization. The action,
-renormalized Dirac sea, nonradial thermal formation, confinement, observable
-nucleon map and baryogenesis remain external or open. QMQ4 and QMC6 return
-`FAIL`, so complete physical matter formation remains open (§24).
+the sector with asymmetry inherited before QCD hadronization. The quark–meson
+action and parameters remain external QCD inputs. Its nonradial interacting
+solution, thermal production, observable nucleon map and baryogenesis remain
+open. QMQ4 and QMC6 return `FAIL` (§24).
+
+A finite-cutoff chromodielectric completion defines the interacting two-flavour
+sea and supplies action-level Gauss-sector confinement. Every nonzero total
+Cartan charge has divergent infinite-volume energy, while a color-neutral
+three-arm flux network has finite minimized tension. The physical dielectric
+scales, interacting baryon solution and spectrum, continuum-QCD mass gap,
+real-time thermal production, observable nucleon map, baryogenesis and Cassi
+origin of QCD remain open. RCF6=`FAIL`, so complete physical matter formation
+remains open (§26).
 
 ## 1. The nine-part boundary
 
@@ -1775,14 +1784,16 @@ inherited from the cosmological asymmetry. The supplied action conserves that
 number and leaves an exactly neutral closed state neutral.
 
 This construction establishes a regular empirical carrier across the
-chiral-zero interval and a conditional localized fixed-$B$ energy branch. It
-does not derive the quark–meson action or its parameters from the canonical
-Cassi fields. Its mean-field energy excludes the renormalized Dirac sea, and
-continuum nonradial persistence, a normalized real-time thermal formation
-rate, confinement, an observable nucleon map and baryogenesis remain open.
-QMQ4 and QMC6 are `FAIL`,
-`complete_physical_matter_formation=false`, and physical matter formation
-remains open (`computations/matter-formation-continuum-report.md` §79).
+chiral-zero interval and a conditional localized fixed-$B$ energy branch.
+The active finite-cutoff completion in §26 defines the interacting sea and
+supplies conditional action-level color confinement. The quark–meson
+coefficients remain empirical, and no interacting nonradial baryon solution
+with the renormalized sea has been computed. Continuum persistence, a
+normalized real-time thermal formation rate, the observable nucleon map,
+baryogenesis and a Cassi derivation of QCD remain open. QMQ4 and QMC6 are
+`FAIL`, `complete_physical_matter_formation=false`, and physical matter
+formation remains open
+(`computations/matter-formation-continuum-report.md` §§79, 81).
 
 ## 25. Regular polynomial stabilization boundary
 
@@ -1816,13 +1827,69 @@ RPS1 and RPS2 return `PASS`, RPS3–RPS5 return `FAIL`, and RPS6 returns
 `REJECT`. The result excludes the frozen polynomial operator as the regular
 scalar stabilizer for this physical point and hedgehog protocol. It does not
 exclude other regular polynomial actions. The explicit-fermion carrier in
-§24 remains the active microscopic branch, with confinement, sea
-renormalization, nonradial persistence, thermal formation, the nucleon
-observable map, and baryogenesis still open
+§24 and its confining completion in §26 remain the active microscopic branch
 (`computations/matter-formation-continuum-report.md` §80).
+
+## 26. Confining effective-carrier boundary
+
+The active microscopic branch uses renormalized two-flavour QCD as its
+empirical ultraviolet target. A finite-cutoff chromodielectric quark–meson
+bridge adds an independent color-singlet field $x=\chi/\chi_v$ with
+
+$$
+F(x)=x^2,\qquad
+\kappa_\epsilon(x)=(1-x^3)^2+\epsilon,\qquad
+U_\chi(x)=B(1-x)^2(1+2x+4x^2).
+$$
+
+The bridge is regular at a chiral zero, preserves local $SU(3)_C$, chiral
+$SU(2)_L\times SU(2)_R$ and exact global vector $U(1)_B$, and has a positive
+compact-lattice definition at finite spacing and $\epsilon>0$. For two
+degenerate flavours at zero chemical potential, its interacting sea weight is
+$\det(D_W^\dagger D_W)\ge0$. Gauge and fixed-$B$ projectors define the
+conditional one-baryon state. RCF1 and RCF2 return `PASS`.
+
+In the zero-dielectric exterior, every state with nonzero total Cartan charge
+$Q$ obeys
+
+$$
+\boxed{
+\frac{dE}{dr}\ge\frac{4\sqrt6}{19}|Q|\sqrt B>0,
+\qquad
+\lim_{L\to\infty}E_Q(L)=\infty.}
+$$
+
+The explicit asymptotic trial approaches shell energy
+$\sqrt{14}|Q|\sqrt B/3$. At the dimensionless verification point, its
+$r=512$ relative error is $4.7161\times10^{-5}$ and its integrated-tail slope
+error is $8.4398\times10^{-5}$. Independent reconstruction agrees on all
+isolated-color values to $1.64\times10^{-13}$ relative error. RCF3 returns
+`PASS`.
+
+The three fundamental color weights sum to zero and support a finite
+three-arm flux network. At $B=\chi_v=g_s=1$, every arm has stationary radius
+$0.23615762712122443$ and finite tension $2.67854371384798$; the independent
+maximum disagreement is $3.52\times10^{-16}$. RCF4 returns `PASS`, and
+RCF5=`ADOPT` qualifies this action as the active regulator-defined confining
+effective bridge.
+
+The proof concerns action-level Gauss-sector confinement in the selected
+finite-cutoff bridge. It does not prove the continuum-QCD mass gap or a
+Wilson-loop area law, and the normalized calculation predicts no physical
+hadron scale. Matched $(B,\chi_v)$, an interacting nonradial baryon solution
+with its renormalized sea, the physical spectrum and observable nucleon map,
+real-time thermal production, baryogenesis and a Cassi derivation of QCD
+remain open. RCF6=`FAIL` and
+`complete_physical_matter_formation=false`
+(`computations/matter-formation-continuum-report.md` §81).
 
 ## References
 
+- `computations/matter-formation-continuum-report.md` §81—confining effective action, isolated-color bound, neutral flux witness and completion boundary.
+- `computations/qcd-confining-carrier-prereg.md`—empirical QCD target, finite-cutoff action, regulator, state and frozen RCF decisions.
+- `computations/qcd_confining_carrier.py`—primary polynomial, asymptotic-tail and flux-tube calculation.
+- `computations/verify_qcd_confining_carrier.py`—independent algebraic, interval, quadrature and root reconstruction.
+- `runs/20260910_qcd_confining_carrier/`—source-bound primary and independent confinement receipts.
 - `computations/matter-formation-continuum-report.md` §78—generic chiral-zero divergence, code-cutoff mismatch and independent verdict.
 - `computations/qcd-chiral-zero-obstruction-prereg.md`—frozen local theorem, numerical controls and scope.
 - `computations/qcd_chiral_zero_obstruction.py`—primary exact and numerical obstruction calculation.

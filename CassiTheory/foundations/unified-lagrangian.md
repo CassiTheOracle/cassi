@@ -20,10 +20,13 @@ The empirical two-flavour quark–meson comparison supplies a regular optional
 Dirac sector. Its exact baryon current remains finite at a chiral zero, and an
 occupied three-colour level gives fermionic $B=1$. A vanishing-regulator
 sequence and independent shooting qualify one localized, fixed-family bound
-endpoint. This action, its parameters, cosmological asymmetry and occupation
-state are supplied QCD inputs. Sea renormalization, nonradial thermal
-formation, confinement, the observable nucleon map and baryogenesis remain
-external or open (`computations/matter-formation-continuum-report.md` §79).
+endpoint. A finite-cutoff chromodielectric completion defines the interacting
+two-flavour sea and supplies action-level confinement. This action, its
+parameters, cosmological asymmetry and occupation state are supplied QCD
+inputs. The interacting baryon solution and spectrum, nonradial thermal
+formation, observable nucleon map, baryogenesis and Cassi origin of QCD remain
+external or open (`computations/matter-formation-continuum-report.md`
+§§79, 81).
 
 $$
 \boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}
@@ -707,15 +710,65 @@ with uncertainty-qualified binding $291.2082392\ {\rm MeV}$ relative to three
 constituent quarks. The reduced two-parameter hedgehog envelope has a
 conservative static barrier $18.2800415\ {\rm MeV}$.
 
-This is a distinct empirical QCD effective action, rather than a term derived
-from $\mathcal L_{\rm TF}$ or the excluded chiral-density identification. Its
-fields, coefficients, vacuum convention, occupation and inherited baryon
-asymmetry are external inputs. The calculation omits the renormalized Dirac
-sea and does not yet establish nonradial thermal formation, confinement, an
-observable nucleon map or baryogenesis. It therefore supplies a conditional
-regular carrier and localized endpoint without closing physical matter
-formation (`computations/matter-formation-continuum-report.md` §79;
+This empirical QCD effective action is independently supplied alongside
+$\mathcal L_{\rm TF}$. Its fields, coefficients, vacuum convention, occupation
+and inherited baryon asymmetry are external inputs. It supplies a conditional
+regular carrier and localized endpoint while leaving its interacting
+nonradial solution, thermal production, observable nucleon map and
+baryogenesis open (`computations/matter-formation-continuum-report.md` §79;
 `foundations/matter-completion-boundary.md` §24).
+
+### 2.8 Finite-cutoff chromodielectric completion
+
+The active confining effective bridge promotes the derivative in §2.7 to the
+local color-covariant derivative and adds an independent color-singlet
+dielectric field $x=\chi/\chi_v$:
+
+$$
+\boxed{
+\begin{aligned}
+\mathcal L_{\rm CDQM,\epsilon}
+={}&\bar q\left[
+ i\gamma^\mu D_\mu
+ -gF(x)(\sigma+i\gamma^5\tau^a\pi^a)
+\right]q\\
+&+\frac12\partial_\mu\Phi_A\partial^\mu\Phi_A-V_\Phi(\Phi)
+ +\frac12\partial_\mu\chi\partial^\mu\chi-U_\chi(x)\\
+&-\frac14\kappa_\epsilon(x)G^a_{\mu\nu}G^{a\mu\nu}
+ +\mathcal L_{\rm gf+gh}+\mathcal L_{\rm ct}(a),
+\end{aligned}}
+$$
+
+where
+
+$$
+F(x)=x^2,\qquad
+\kappa_\epsilon(x)=(1-x^3)^2+\epsilon,\qquad
+U_\chi(x)=B(1-x)^2(1+2x+4x^2).
+$$
+
+At finite lattice spacing and $\epsilon>0$, compact Wilson links and two
+degenerate Wilson flavours give the nonnegative sea weight
+$\det(D_W^\dagger D_W)$. Gauge and fixed-$B$ projectors define the conditional
+one-baryon state. The action preserves local $SU(3)_C$, chiral
+$SU(2)_L\times SU(2)_R$ and exact vector $U(1)_B$ through the chiral zero.
+
+For the zero-dielectric exterior, every nonzero total Cartan charge satisfies
+
+$$
+\frac{dE}{dr}\ge\frac{4\sqrt6}{19}|Q|\sqrt B>0,
+$$
+
+so its energy diverges with volume. The zero-sum fundamental color weights
+admit a finite three-arm flux witness. RCF1–RCF4 return `PASS` and
+RCF5=`ADOPT`, qualifying action-level confinement in this selected
+finite-cutoff bridge. The result leaves the continuum-QCD mass gap and
+Wilson-loop area law unproved. $(B,\chi_v)$ require independent physical
+matching, and no interacting baryon solution, spectrum, thermal production
+rate, observable nucleon map, baryogenesis mechanism or Cassi derivation of
+QCD is supplied. RCF6=`FAIL`
+(`computations/matter-formation-continuum-report.md` §81;
+`foundations/matter-completion-boundary.md` §26).
 
 ## 3. GR/Gravity Sector $\mathcal{L}_{\text{GR}}$
 
@@ -1323,8 +1376,10 @@ added action rather than a canonical Cassi stress exchange
   convention remain solver parameter choices
 - `foundations/dimensionful-constants-status.md`—external dimensionful constants, parameter accounting
 - `foundations/sector-coupling-derivation.md`—conditional scale, chiral-scalar density/action obstruction, positive chiral-current map and microscopic conversion boundaries.
-- `computations/matter-formation-continuum-report.md` §§12–13, 35–36, 79—physical-normalization, microscopic-identity and spinor-closure evidence, continuum minimizer-set stability, finite-charge radial condensation and the regular empirical quark–meson carrier.
-- `foundations/matter-completion-boundary.md` §§12, 17–18, 24—conditional total-stress and constant-$G$ branches, radial formation, minimizer-set stability and the regular quark–meson comparison.
+- `computations/matter-formation-continuum-report.md` §§12–13, 35–36, 79, 81—physical-normalization, microscopic-identity and spinor-closure evidence, continuum minimizer-set stability, finite-charge radial condensation, regular empirical quark–meson carrier and confining effective bridge.
+- `foundations/matter-completion-boundary.md` §§12, 17–18, 24, 26—conditional total-stress and constant-$G$ branches, radial formation, minimizer-set stability, regular quark–meson comparison and confining effective-carrier boundary.
+- `computations/qcd-confining-carrier-prereg.md`—finite-cutoff chromodielectric action, regulator, sea, projected state and confinement criteria.
+- `computations/qcd_confining_carrier.py` and `computations/verify_qcd_confining_carrier.py`—independent action-level confinement calculations and RCF verdicts.
 - `standard-model/su2-gauge-extension.md`—SM gauge sector, Weinberg angle
 - `standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$
 - `particles/cassi-yang-yin-particles.md`—optional Hypothesized complex-field/NLS particle-interference extension and its conditional Dirac mapping

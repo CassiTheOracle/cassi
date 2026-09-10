@@ -333,7 +333,7 @@ neutron's extra mass, charge, atomic binding, β-decay, the strong-coupling gap,
 the activation steps and the descent.
 
 - **The masses themselves.** $e$, $p$, $n$ are all class **E** in the ledger ($m_e$: partial, ~25% off at integer rungs; $m_p$: not derivable, QCD scale). The ladder places them; nothing generates them.
-- **Full QCD formation.** The empirical quark–meson model has a regular exact baryon current, a continuum-qualified localized valence endpoint and fixed-family binding. The renormalized Dirac sea, nonradial thermal formation, confinement, observable nucleon map and baryogenesis remain absent; the action and inherited asymmetry are supplied inputs.
+- **Full QCD formation.** The empirical quark–meson model has a regular exact baryon current, a continuum-qualified localized valence endpoint and fixed-family binding. Its finite-cutoff chromodielectric completion defines the interacting two-flavour sea and supplies action-level Gauss-sector confinement. A nonradial baryon solution with that sea, the physical spectrum, real-time thermal production, observable nucleon map and baryogenesis remain absent; the action, dielectric scales and inherited asymmetry are supplied inputs.
 - **The n−p mass difference** (~1.3 MeV). Isospin $T_z$ coupling is open (§3.3).
 - **Charge magnitude and complementarity.** No derivation anywhere (§1.3).
 - **EM binding in Cassi terms.** Atomic orbitals at rung 117 are reproduced by conventional DFT numerics only (`particles/dft-benchmarks.md`); the benchmark carries implementation and atomic-reference evidence, while an analytical atomic potential from the canonical two-fluid dynamics remains open.

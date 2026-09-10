@@ -135,11 +135,15 @@ two-sided shooting agree on a localized nodeless valence level near
 $42.7444\ \mathrm{MeV}$. The fixed hedgehog family is conditionally bound by
 more than $291\ \mathrm{MeV}$ and has a conservative reduced static barrier
 $18.2800415\ \mathrm{MeV}$. The QCD-era ledger interprets its baryon number as
-inherited cosmological asymmetry. The empirical action, renormalized Dirac
-sea, nonradial thermal formation, confinement, observable nucleon map and
-baryogenesis remain supplied or open. QMQ4 and QMC6 return `FAIL`
-(`computations/matter-formation-continuum-report.md` §79;
-`foundations/matter-completion-boundary.md` §24).
+inherited cosmological asymmetry. A finite-cutoff chromodielectric completion
+defines the two-flavour sea and supplies action-level confinement, passing all
+four prerequisite gates and receiving `ADOPT` as the active effective bridge.
+The empirical action and unmatched dielectric scales, interacting nonradial
+baryon solution and spectrum, thermal production, observable nucleon map,
+baryogenesis and Cassi origin of QCD remain supplied or open. QMQ4, QMC6 and
+RCF6 return `FAIL`
+(`computations/matter-formation-continuum-report.md` §§79, 81;
+`foundations/matter-completion-boundary.md` §§24, 26).
 
 
 ## Document Index
@@ -777,6 +781,13 @@ The fixed and finite-$N/x^{1/4}$ schedules therefore fail as bare
 weak-coupling limits, while the exact energy-dependent Feshbach reduction
 remains valid at the scaled cutoff. Its scope is the one-plaquette ultraviolet
 operator. A regulator-independent mass gap remains unresolved.
+
+The source-bound version-3 finite campaign preserves all five cutoff
+schedules, uses $q(N)=\min\{3,N+1\}$, and passes 62 primary plus 20
+independent checks. Its 30 cutoff rows contain 88 requested low eigenvalues,
+including two $N=1$ rows with levels $0$ and $1$ only. These rows support the
+finite numerical controls and do not establish the limiting theorem.
+
 Interacting boundary-sector recoupling, volume-uniform resolvent control,
 thermodynamic and continuum limits, a regulator-independent mass gap, and
 physical carrier identification remain open.
@@ -1275,11 +1286,18 @@ $42.74439864\pm0.20\ \mathrm{MeV}$, independently matched by shooting.
 Within the fixed $B=1$ hedgehog family, the qualified binding margin is
 $291.2082392\ \mathrm{MeV}$ and the conservative reduced static barrier is
 $18.2800415\ \mathrm{MeV}$. These results establish a conditional carrier
-and fixed-family energy path. The empirical action, interacting vacuum,
-renormalized sea, nonradial thermal formation, confinement, observable
-particle map and baryogenesis remain supplied or open
-(`computations/matter-formation-continuum-report.md` §79;
-`foundations/matter-completion-boundary.md` §24).
+and fixed-family energy path.
+
+Its finite-cutoff chromodielectric completion defines the interacting
+two-flavour sea and supplies action-level confinement: every nonzero total
+Cartan charge has divergent infinite-volume energy, while a color-neutral
+three-arm flux network has finite positive minimized tension. RCF1–RCF4
+return `PASS` and RCF5=`ADOPT`. The empirical action and unmatched dielectric
+scales, interacting nonradial baryon solution and spectrum, thermal
+production, observable particle map, baryogenesis and Cassi origin of QCD
+remain supplied or open
+(`computations/matter-formation-continuum-report.md` §§79, 81;
+`foundations/matter-completion-boundary.md` §§24, 26).
 
 The unnormalized polynomial Gram stabilizer is finite at a chiral zero and
 passes exact positivity and independent Cartesian controls. It does not yield
@@ -1292,19 +1310,23 @@ and its finite collapse path has zero barrier. RPS6 therefore returns
 
 Physical exterior and reservoir actions, state selection, canonical
 coefficient determination, gravity selection, continuum-localized forming
-evolution from degree-zero data, stability or capture of the radiating clouds,
-and a particle discriminator remain open. The conditional theorem concerns
-only the entire fixed-charge minimizer set of the supplied scalar action.
-The deterministic completion gates return `FAIL`
-(`computations/matter-formation-continuum-report.md` §§35–36, 79). Status:
-Derived conditional boundary, microscopic non-identifiability, scalar
-continuum minimizer-set stability, normalized-chiral obstruction and regular
-baryon-current identity / Mapped carrier coupling, conditional baryon
-benchmark and rejected step-95 radius assignment / Hypothesized physical
-realization / Tested reduced receipts, prepared binding, finite-grid spectra,
-parent correspondences, radial baryon relaxation, finite-charge radial
-condensation, quark–meson regulator extrapolation, fixed-family binding and
-rejected polynomial stabilization—September 2026.
+evolution from degree-zero data, stability or capture of radiating clouds,
+and a particle discriminator remain open at the canonical substrate level.
+For the active QCD branch, physical dielectric matching, an interacting
+nonradial baryon solution and spectrum, thermal production, the observable
+nucleon map, baryogenesis and a Cassi origin of QCD remain open. The
+deterministic completion gates return `FAIL`
+(`computations/matter-formation-continuum-report.md` §§35–36, 79, 81).
+Status: Derived conditional boundary, microscopic non-identifiability,
+scalar continuum minimizer-set stability, normalized-chiral obstruction,
+regular baryon-current identity and finite-cutoff action-level confinement /
+Mapped carrier coupling, conditional baryon benchmark and rejected step-95
+radius assignment / Hypothesized physical realization / Tested reduced
+receipts, prepared binding, finite-grid spectra, parent correspondences,
+radial baryon relaxation, finite-charge radial condensation, quark–meson
+regulator extrapolation, fixed-family binding, isolated-color divergence,
+color-neutral flux witness and rejected polynomial
+stabilization—September 2026.
 
 ### `quantum-free-fall-correspondence.md`—Quantum Free Fall as a Cassi Correspondence Boundary
 

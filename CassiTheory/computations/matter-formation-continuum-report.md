@@ -13049,16 +13049,95 @@ does not produce the preregistered stationary, continuum-converged,
 barrier-protected radial carrier. RPS6 is `REJECT`. This verdict applies to
 the frozen operator, physical point, hedgehog class, and numerical protocol;
 it is not a general exclusion of every regular polynomial action. The
-explicit-fermion quark–meson carrier in §79 remains the active microscopic
-branch. Confinement, the renormalized Dirac sea, continuum nonradial
-persistence, a thermal formation probability, the observable nucleon map,
-and baryogenesis remain outside both calculations.
+explicit-fermion quark–meson carrier in §79 and its confining effective
+completion in §81 remain the active microscopic branch.
 
 The complete-formation verdict remains `FAIL` and
 `complete_physical_matter_formation=false`.
 
+## 81. Confining effective QCD bridge
+
+The regular carrier in §79 needs color dynamics that exclude an isolated
+quark without excluding a color-neutral baryon. The preregistered calculation
+in `computations/qcd-confining-carrier-prereg.md` selects renormalized
+two-flavour QCD as the empirical ultraviolet target and a finite-cutoff
+chromodielectric quark–meson action as the tractable bridge. With
+$x=\chi/\chi_v$, its added functions are
+
+$$
+\boxed{
+F(x)=x^2,\qquad
+\kappa_\epsilon(x)=(1-x^3)^2+\epsilon,\qquad
+U_\chi(x)=B(1-x)^2(1+2x+4x^2).}
+$$
+
+The dielectric field $\chi$ is independent of the chiral multiplet. The
+$F(x)$ Yukawa term therefore remains regular at a chiral zero, while the
+$\kappa_\epsilon(x)G^2$ term preserves local $SU(3)_C$. The action also
+preserves chiral $SU(2)_L\times SU(2)_R$ and the exact vector baryon current
+$j_B^\mu=\bar q\gamma^\mu q/3$. At finite lattice spacing and
+$\epsilon>0$, compact Wilson links, Wilson fermions and the two-degenerate-
+flavour weight $\det(D_W^\dagger D_W)\ge0$ define the interacting sea.
+Gauge and fixed-$B$ projectors define the conditional one-baryon state.
+RCF1 and RCF2 return `PASS`.
+
+The zero-dielectric exterior gives a direct action-level confinement
+statement. For any nonzero asymptotic Cartan charge $Q$, the nonnegative
+radial energy obeys
+
+$$
+\boxed{
+\frac{dE}{dr}\ge\frac{4\sqrt6}{19}|Q|\sqrt B>0,
+\qquad
+\lim_{L\to\infty}E_Q(L)=\infty.}
+$$
+
+The explicit tail $x=1-c_*/r$, with
+$c_*=[Q^2/(2016\pi^2B)]^{1/4}$, approaches the constant shell energy
+$\sqrt{14}|Q|\sqrt B/3$. At the dimensionless verification point
+$B=\chi_v=Q=1$, the shell value at $r=512$ is $1.2472779491299$ and differs
+from the asymptote by $4.7161\times10^{-5}$ relative. The final-three-point
+integrated slope is $1.2473243917417391$, with relative error
+$8.4398\times10^{-5}$. An independent high-precision implementation agrees
+on every isolated-color quantity to at most $1.64\times10^{-13}$ relative
+error. RCF3 returns `PASS`.
+
+Color neutrality remains finite. The three fundamental weights sum exactly
+to zero and have common magnitude $1/\sqrt3$. A thin-wall arm with charge
+$Q_i=g_s/\sqrt3$ has
+
+$$
+T_i(R)=\frac{Q_i^2}{2\pi R^2}+\pi BR^2+2\pi\sigma_\chi R,\qquad
+\sigma_\chi=\chi_v\sqrt{2B}\int_0^1
+(1-x)\sqrt{1+2x+4x^2}\,dx .
+$$
+
+At $B=\chi_v=g_s=1$, all three arms have the unique stationary radius
+$R_*=0.23615762712122443$ and tension
+$T_i(R_*)=2.67854371384798$. The frozen small- and large-radius controls
+exceed the minimum by factors $1.98\times10^6$ and
+$1.17\times10^8$; the independent maximum tube disagreement is
+$3.52\times10^{-16}$. The three-arm gauge-invariant baryon interpolator is
+finite, so RCF4 returns `PASS`.
+
+RCF5=`ADOPT`: this regulator-defined chromodielectric action is the active
+confining effective bridge to the empirical QCD target. The result proves
+action-level Gauss-sector confinement for this finite-cutoff bridge; it does
+not prove the continuum-QCD mass gap or Wilson-loop area law. Its normalized
+calculation fixes no physical hadron scale. Matched values of $(B,\chi_v)$,
+an interacting nonradial baryon solution with the renormalized sea, its
+spectrum and observable nucleon map, real-time thermal production, the
+inherited baryon asymmetry mechanism and a Cassi derivation of QCD remain
+open. RCF6=`FAIL`, and
+`complete_physical_matter_formation=false`.
+
 ## References
 
+- `computations/qcd-confining-carrier-prereg.md`—empirical QCD target, finite-cutoff chromodielectric bridge, exact confinement bound, neutral witness and frozen RCF decisions.
+- `computations/qcd_confining_carrier.py`—primary dimensions, polynomial controls, isolated-color tail and thin-wall network calculation.
+- `computations/verify_qcd_confining_carrier.py`—independent algebraic, interval, high-precision quadrature and root reconstruction.
+- `runs/20260910_qcd_confining_carrier/primary/results.json`—source-bound primary confinement receipt.
+- `runs/20260910_qcd_confining_carrier/verification/verification.json`—independent agreement and final RCF verdicts.
 - `computations/qcd-chiral-zero-obstruction-prereg.md`—frozen local zero, rank-three, cutoff and physical-completion decisions.
 - `computations/qcd_chiral_zero_obstruction.py`—primary pullback-metric, exact radial and anisotropic zero calculation.
 - `computations/verify_qcd_chiral_zero_obstruction.py`—independent projection derivative, fixed quadrature, raw-evidence and verdict reconstruction.

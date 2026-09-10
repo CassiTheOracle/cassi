@@ -278,8 +278,8 @@ The QCD-anchored normalized-chiral quench has a separate continuum
 obstruction. A generic winding-changing zero of its linear $O(4)$ field makes
 the normalized-Skyrme energy diverge as
 $3\pi^2/(4|\tau|)$ on approach and at least $2\pi/a$ on a punctured
-zero-time slice. The code's max-normalization gives $4\pi/\epsilon$, so its
-fixed cutoff defines a different local action rather than a
+zero-time slice. The code's max-normalization gives $4\pi/\epsilon$. A fixed
+cutoff therefore specifies a different local action and does not define the
 regulator-independent continuum limit. Primary and independent calculations
 pass all four numerical gates; the frozen topology-change verdict is
 `CONTRADICTS` and the complete-formation verdict is `FAIL`. The result
@@ -304,13 +304,18 @@ QMQ1=`PASS`, QMQ2=`SUPPORTS` and QMQ3=`SUPPORTS`; the accepted frozen
 three-grid QMC2 verdict remains `FAIL`.
 
 This is the strongest regular microscopic carrier in the current matter
-program. Its action and parameters are empirical QCD inputs, its mean-field
-energy omits the renormalized Dirac sea, and confinement, nonradial continuum
-persistence, thermal formation probability, the observable nucleon map and
-baryogenesis remain open. QMQ4 and QMC6 are `FAIL`, so
+program. Its active finite-cutoff chromodielectric completion defines the
+interacting two-flavour sea and gives every nonzero total Cartan charge an
+infinite-volume energy divergence, while a color-neutral three-arm flux
+network has finite minimized tension. Primary and independent calculations
+return RCF1–RCF4=`PASS` and RCF5=`ADOPT`, qualifying action-level confinement
+for this effective bridge. The action and $(B,\chi_v)$ remain empirical QCD
+inputs; no interacting nonradial baryon solution, physical spectrum,
+thermal production rate, observable nucleon map, baryogenesis mechanism or
+Cassi derivation of QCD is supplied. RCF6=`FAIL`, so
 `complete_physical_matter_formation=false`
-(`computations/matter-formation-continuum-report.md` §79;
-`foundations/matter-completion-boundary.md` §24).
+(`computations/matter-formation-continuum-report.md` §§79, 81;
+`foundations/matter-completion-boundary.md` §§24, 26).
 
 The separately tested unnormalized polynomial Gram stabilizer is regular at a
 chiral zero, but the frozen three-grid minimizations do not reach stationarity
