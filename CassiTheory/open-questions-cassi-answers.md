@@ -1434,6 +1434,34 @@ The audit-qualified reproducible verifier passes **110 of 110 checks**. The
 uniform fixed-$c$ estimate over every bounded mean-zero $H^3$ data ball remains
 **UNESTABLISHED**, so arbitrary-data global regularity remains open.
 
+The adaptive analysis in
+`turbulence/navier-stokes-adaptive-metric.md` derives scalar, material,
+terminal-adjoint and forward-parabolic SPD metrics which cancel
+vortex-stretching production in weighted enstrophy exactly. The forward metric
+$G$ obeys
+$$
+\int\omega^{\mathsf T}G\omega\,dx
++2\nu\int_0^t\mathcal D_G\,ds
+=\|\omega_0\|_2^2,
+$$
+and its unscaled determinant is at least one through every smooth interval.
+The two source-bound symbolic schedules pass **32 of 32** and **16 of 16**
+checks. The fixed extensional and covariance controls give **CONTRADICTS** for
+coercivity inferred from metric positivity or determinant alone; they do not
+classify a bound using the coupled Navier–Stokes dynamics. Set active
+distortion to one for the zero solution. For nonzero vorticity, the uniform
+bound
+$$
+\sup_{t<\min(T,T_*)}
+\frac{\|\omega(t)\|_2^2}
+{\int\omega^{\mathsf T}G\omega\,dx}
+\le C_G(\nu,T,\|u_0\|_{H^3})
+$$
+would continue the original unforced solution. Deriving this bound uniformly
+over bounded initial-$H^3$ data remains **UNESTABLISHED**, so the adaptive
+metric result is a conditional reduction rather than an arbitrary-data
+regularity theorem.
+
 The selected constant-density thermal model in §7 has a variational
 capillary stress with closed momentum and energy budgets, nonnegative
 entropy production and exact homogeneous canonical conversion. Smooth

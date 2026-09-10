@@ -822,7 +822,20 @@ enstrophy and critical residual. Static phase-energy coercivity is therefore
 excluded; material viscosity, a whole-field dynamical concentration bound
 and arbitrary-flow closure remain open.
 
-Section 7 of that analysis selects a reacting capillary fluid with
+The separate analysis in
+`turbulence/navier-stokes-adaptive-metric.md` applies CassiFI-style positive
+geometry directly to the original unforced Navier–Stokes vorticity equation.
+Scalar, material, terminal-adjoint and forward-parabolic SPD metrics cancel
+weighted vortex-stretching production exactly. The forward metric stays
+positive and its unscaled determinant is at least one through every smooth
+interval. Its two fixed symbolic schedules pass 48 checks. Fixed algebraic
+extensional and covariance controls show that positivity or determinant alone
+does not supply a uniform lower metric bound; they do not classify the
+coupled Navier–Stokes dynamics. A uniform initial-$H^3$-controlled bound on
+Euclidean enstrophy divided by active weighted enstrophy would imply
+continuation; that bound and arbitrary-data regularity remain open.
+
+Section 7 of `turbulence/cassi-fluid-feasibility.md` selects a reacting
 rotational velocity and temperature. Its variational stress conserves
 periodic momentum; viscous and conversion work enter the heat equation,
 closing total energy and giving nonnegative entropy production. Homogeneous

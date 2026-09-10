@@ -30,6 +30,16 @@ family has bounded first-order phase energy with unbounded enstrophy and
 critical residual. Arbitrary-data production, global regularity and a Cassi
 whole-field closure remain open.
 
+The adaptive-metric analysis derives scalar, branch, terminal and
+forward-parabolic positive metrics which cancel vortex stretching in weighted
+enstrophy exactly. The forward metric stays positive and its unscaled
+determinant is at least one. Fixed extensional and covariance controls show
+that exact cancellation can transfer amplification into loss of metric
+coercivity without classifying the coupled Navier–Stokes dynamics. A
+data-controlled bound on active distortion would continue every bounded
+initial-$H^3$ solution; the bound remains open. The two fixed symbolic
+schedules pass **32 of 32** and **16 of 16** checks.
+
 The second-order analysis derives a nonnegative weighted energy for the
 continuous-time continuum Yang/Yin family associated with the live shader's
 source-free coupling; the finite-difference runtime itself carries no exact
@@ -95,10 +105,11 @@ arbitrary-flow closure and global regularity remain open.
 | 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response, matter binding and exterior-memory comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
 | 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, radial and signed spectral spread, critical scalar-Beltrami residual, forced budgets and cumulative mixing obstruction | Derived conditional estimates and helical reduction / Static phase-energy coercivity contradicted / Open arbitrary-data critical work |
 | 6 | `turbulence/navier-stokes-second-order-field-energy.md` | Nonnegative scalar-field energy, restricted connection-sector map and time–curl continuation residual | Derived field and Navier–Stokes identities / Derived conditional connection-sector map / Open arbitrary-data residual bound |
-| 7 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure, phase-current summary and actual flow controls | Derived conditional mechanical, thermal, and phase-current identities / Tested solver, rotational and phase-coercivity boundaries / Open physical-fluid completion |
-| 8 | `turbulence/cassi-fluid-phase-current-hydrodynamics.md` | Mermin–Ho rotation, helicity topology, two-band Beltrami flow, first-order coercivity and viscosity projection boundaries | Derived conditional current and topology identities / Tested rotational, memory and coercivity boundaries / Open microscopic viscosity and arbitrary-flow closure |
-| 9 | `turbulence/cassi-radiative-material-closure.md` | LTE emission, multigroup M1 transport, conservative material coupling and CassiCosmos handoff | Derived conditional transfer, conservation and entropy identities / Tested kernels / Open Cassi material calibration |
-| 10 | `turbulence/compressible-radiative-plasma-closure.md` | Compressible hydrodynamics, shocks, species and line kinetics, persistent stellar energy accounting and multi-angle crossing beams | Derived conditional / Tested reference controls and integrity qualification / Open Cassi material identification and production implementation |
+| 7 | `turbulence/navier-stokes-adaptive-metric.md` | Scalar, branch, terminal and forward positive metrics for vortex stretching | Derived exact weighted balances and conditional continuation reduction / Open active-distortion bound |
+| 8 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure, phase-current summary and actual flow controls | Derived conditional mechanical, thermal, and phase-current identities / Tested solver, rotational and phase-coercivity boundaries / Open physical-fluid completion |
+| 9 | `turbulence/cassi-fluid-phase-current-hydrodynamics.md` | Mermin–Ho rotation, helicity topology, two-band Beltrami flow, first-order coercivity and viscosity projection boundaries | Derived conditional current and topology identities / Tested rotational, memory and coercivity boundaries / Open microscopic viscosity and arbitrary-flow closure |
+| 10 | `turbulence/cassi-radiative-material-closure.md` | LTE emission, multigroup M1 transport, conservative material coupling and CassiCosmos handoff | Derived conditional transfer, conservation and entropy identities / Tested kernels / Open Cassi material calibration |
+| 11 | `turbulence/compressible-radiative-plasma-closure.md` | Compressible hydrodynamics, shocks, species and line kinetics, persistent stellar energy accounting and multi-angle crossing beams | Derived conditional / Tested reference controls and integrity qualification / Open Cassi material identification and production implementation |
 
 ## 2. Document summaries
 
@@ -227,7 +238,41 @@ passes **110 of 110** algebraic, source-correspondence and fixed Fourier
 checks. A uniform fixed-$c$ estimate over each bounded mean-zero $H^3$ data
 ball remains open.
 
-### 2.7 Cassi fluid mechanics, thermal closure and phase currents
+### 2.7 Adaptive positive metrics
+
+`turbulence/navier-stokes-adaptive-metric.md` derives the general
+positive-matrix enstrophy balance and four exact cancellation forms. A scalar
+integrating factor exposes accumulated normalized production. A material
+branch metric cancels local stretching while its selected directional weight
+can collapse. A terminal adjoint metric gives an exact endpoint identity whose
+initial operator norm can grow exponentially.
+
+The forward construction evolves an SPD matrix by a parabolic equation and
+uses one scalar work projection. It gives
+
+$$
+\int\omega^{\mathsf T}G\omega\,dx
++2\nu\int_0^t\mathcal D_G\,ds
+=\|\omega_0\|_2^2.
+$$
+
+Its unscaled determinant is at least one, but determinant control does not
+bound condition number. The weakest direct continuation target is a uniform
+initial-$H^3$-controlled bound on
+
+$$
+\frac{\|\omega(t)\|_2^2}
+{\int\omega^{\mathsf T}G\omega\,dx}.
+$$
+
+The exact shear and Beltrami heat families remain benign. A local
+finite-dimensional extensional control exposes algebraic metric degeneration,
+while a smooth periodic Navier–Stokes datum shows only an initial decrease in
+the least metric direction. The parent and forward symbolic schedules pass
+**32 of 32** and **16 of 16** fixed-control checks. Arbitrary-data active
+distortion and global regularity remain open.
+
+### 2.8 Cassi fluid mechanics, thermal closure and phase currents
 
 `turbulence/cassi-fluid-feasibility.md` derives pressure, counterflow momentum
 flux and quantum stress from the ungauged positive-density first-order action
@@ -259,7 +304,7 @@ the finite-grid evidence. The result **SUPPORTS** the declared
 constitutive budgets; physical replacement and global regularity remain
 **UNESTABLISHED**.
 
-### 2.8 Phase-current rotation and the viscosity boundary
+### 2.9 Phase-current rotation and the viscosity boundary
 
 `turbulence/cassi-fluid-phase-current-hydrodynamics.md` derives the
 barycentric velocity of the phase-bearing action. One normalized Yang/Yin
@@ -287,7 +332,7 @@ the critical scalar-Beltrami residual. Microscopic viscosity, a whole-field
 dynamical concentration bound, arbitrary-flow hydrodynamics and
 arbitrary-data regularity remain **UNESTABLISHED**.
 
-### 2.9 Radiative material closure
+### 2.10 Radiative material closure
 
 `turbulence/cassi-radiative-material-closure.md` supplies a conditional
 radiative extension of the selected capillary and thermal material. Planck
@@ -310,7 +355,7 @@ opacity, atomic populations or electromagnetic current. CassiCosmos
 implementation therefore begins with a default-off, unit-calibrated
 radiation state rather than the Observatory's appearance coefficients.
 
-### 2.10 Compressible radiative plasma and stellar light
+### 2.11 Compressible radiative plasma and stellar light
 
 `turbulence/compressible-radiative-plasma-closure.md` supplies the conditional
 completion required for thermal expansion, compression, shocks, species
@@ -359,6 +404,10 @@ remain supplied inputs or open identifications.
 - `computations/verify_navier_stokes_mixing_budget.py`—601-check mixing receipt, Fourier evolution and independent spatial reconstruction
 - `computations/navier-stokes-helical-spread-prereg.md`—fixed signed-moment, residual, flow-control and phase-concentration checks
 - `computations/verify_navier_stokes_helical_spread.py`—84-check exact helical-spread and phase-coercivity verifier
+- `computations/navier-stokes-adaptive-metric-prereg.md`—fixed branch, scalar, covariance, spatial-curvature and terminal-metric schedule
+- `computations/verify_navier_stokes_adaptive_metric.py`—32-check exact adaptive-metric verifier
+- `computations/navier-stokes-forward-adaptive-metric-prereg.md`—fixed forward-parabolic metric and determinant schedule
+- `computations/verify_navier_stokes_forward_adaptive_metric.py`—16-check projected-metric, periodic-strain and norm-equivalence verifier
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
 - `computations/cassi-fluid-thermodynamics-prereg.md`—selected fluid equations and fixed thermal controls
 - `computations/cassi_fluid_thermodynamics.py`—reacting capillary/thermal model and command-line evolution
