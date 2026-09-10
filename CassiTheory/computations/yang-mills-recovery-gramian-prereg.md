@@ -1,6 +1,6 @@
 # Yang–Mills Residual Recovery and Score-Penalty Gramian Preregistration
 
-## Status: Frozen protocol v3—September 2026
+## Status: Frozen protocol v4—September 2026
 
 ## 1. Question and scope
 
@@ -25,6 +25,10 @@ Let
 \{f\in L^2(\mu):\mu(f)=0, f\text{ lies in the declared gauge-invariant sector}\}.
 \]
 
+Assume $\mathcal H_{\rm phys}$ is closed. Every conditional expectation below
+preserves this sector and its common form domain. The block family is finite,
+or its nonnegative weighted form sum is convergent on that domain.
+
 For each conditional exterior sigma-algebra \(\mathcal F_B\), let
 
 \[
@@ -33,7 +37,7 @@ P_Bf=\mathbb E_\mu(f\mid\mathcal F_B),
 R_B=I-P_B,
 \]
 
-restricted to an invariant domain on which \(P_B\) is an orthogonal projection. For fixed weights \(w_B\ge0\), define
+On this invariant domain \(P_B\) is an orthogonal projection. For fixed weights \(w_B\ge0\), define
 
 \[
 \mathscr R
@@ -84,6 +88,9 @@ A qualitative kernel identity does not imply a regulator-uniform positive \(\gam
 
 ### YMRG2. Conditional rates imply a global rate only with recovery
 
+All conditional and cover inequalities below hold on the same physical form
+domain, with the displayed constants uniform over the declared block family.
+
 Assume the conditional Poincaré estimates
 
 \[
@@ -122,6 +129,10 @@ For isometries \(T_{j\to n}:\mathcal H_n\to\mathcal H_j\) between declared scale
 \sum_{j\le n}w_jT_{j\to n}^*R_jT_{j\to n}.
 \]
 
+Require
+$R_jT_{j\to n}\Pi_{\mathcal N_n}=0$ for every positive-weight scale, so the
+declared null subspace is contained in the Gramian kernel.
+
 Let \(\mathcal N_n\) be a declared nonphysical null subspace. Before
 centering it can contain constants; in an unreduced auxiliary
 representation it can also encode gauge redundancies. The centered
@@ -136,11 +147,16 @@ Quantitative recovery is
 \gamma_*>0
 \]
 
-uniformly in regulator and scale. Rigidity identifies
-\(\ker\mathscr R_n=\mathcal N_n\); recovery additionally requires the
-uniform positive spectral floor \(\gamma_*\).
+uniformly in regulator and scale. Rigidity is the additional statement
+\(\ker\mathscr R_n=\mathcal N_n\); it does not follow from the displayed
+null compatibility alone. Recovery additionally requires the uniform
+positive spectral floor \(\gamma_*\).
 
 ### YMRG3. Score Gramian has the opposite sign role
+
+Assume the conditional fibres are connected with the no-boundary or no-flux
+form domain, the score components are centered in $H^{-1}$, and
+$\mathcal L_V^{-1/2}$ acts on the orthogonal complement of constants.
 
 Let
 
@@ -222,8 +238,11 @@ Use three exact projection families.
    \[
    1\pm|\cos\epsilon|.
    \]
-   For every fixed \(\epsilon>0\) the kernel is trivial, while
-   \(\gamma_{\rm rec}=1-\cos\epsilon\to0\). This is the frozen counterexample to qualitative rigidity implying uniform recovery.
+   For the frozen range \(0<\epsilon<\pi/2\), the kernel is trivial and
+   \(\gamma_{\rm rec}=1-\cos\epsilon\to0\) as \(\epsilon\downarrow0\).
+   More generally the floor is \(1-|\cos\epsilon|\), and the kernel is
+   trivial exactly when \(\epsilon\notin\pi\mathbb Z\). This is the frozen
+   counterexample to qualitative rigidity implying uniform recovery.
 3. Gauge-null control on \(\mathbb R^3\):
    \[
    \mathscr R=\operatorname{diag}(1,1,0),
@@ -246,9 +265,24 @@ d\mu_N\propto e^{-q^TQ_Nq}\,dq,
 
 let \(d_i=(Q_N)_{ii}\) and \(D=\operatorname{diag}(d_i)\). On first Gaussian chaos, the sum of one-coordinate conditional residual projections has Gram matrix
 
+
 \[
 G_N(m)=D^{-1/2}Q_N(m)D^{-1/2}.
 \]
+
+For the all-function statement, let $p_i$ be the first-chaos projection
+associated with the conditional expectation $P_i$. On Gaussian chaos $k$,
+$P_i=\Gamma(p_i)=p_i^{\otimes_s k}$, and
+
+\[
+I-p_i^{\otimes k}
+\succeq
+(I-p_i)\otimes I^{\otimes(k-1)}
+\]
+
+on the corresponding symmetrized range. The first-chaos lower bound
+therefore holds on every higher chaos, while a linear function in the bottom
+eigendirection saturates it.
 
 The theorem must retain the exact identity
 
