@@ -1,0 +1,269 @@
+# Yang–Mills Poincaré Geometry and Two-Scale Gap Recurrence Preregistration
+
+## Status: Frozen protocol—September 2026
+
+## 1. Question
+
+Can the geometry associated with the Poincaré theorem and the round-three-sphere realization of \(SU(2)\) produce a regulator-uniform route toward the Yang–Mills mass gap?
+
+The campaign separates three mathematically distinct uses of three-sphere geometry:
+
+1. **spatial topology:** a closed simply connected spatial three-manifold is topologically \(S^3\);
+2. **finite-volume infrared geometry:** the round spatial metric of radius \(R\) has an explicit coexact one-form spectrum;
+3. **link configuration geometry:** each regulated \(SU(2)\) link is the unit round \(S^3\) with its fixed Haar/Casimir metric.
+
+Only item 3 is intrinsic to the regulated target theory. Item 1 is conditional on the spatial assumptions. A round metric and radius in item 2 are additional regulator choices. No Cassi cascade scale, golden-ratio metric weight, or phenomenological parameter enters the target-theory estimates.
+
+## 2. Frozen analytical obligations
+
+### YMPG1. Topology and finite-volume spectrum
+
+The analysis must establish the following implication and its limits:
+
+\[
+\Sigma^3\text{ closed, connected, and simply connected}
+\quad\Longrightarrow\quad
+\Sigma^3\cong S^3.
+\]
+
+For a round metric of radius \(R\), the coexact one-form Hodge-Laplacian spectrum must be stated as
+
+\[
+\lambda_{k,1}^{\mathrm{coex}}(S_R^3)=\frac{(k+1)^2}{R^2},
+\qquad k=1,2,\ldots,
+\]
+
+so the first transverse frequency is \(2/R\). The analysis must record that this regulator scale vanishes as \(R\to\infty\) and therefore supplies no continuum mass gap by itself.
+
+The analysis must also distinguish the uniqueness of the flat \(SU(2)\) connection modulo gauge on \(S^3\), which follows from \(\pi_1(S^3)=0\), from the surviving large-gauge components indexed by \(\pi_3(SU(2))\cong\mathbb Z\).
+
+### YMPG2. Fixed link-sphere Bakry–Émery calculation
+
+With the unit-quaternion realization
+
+\[
+SU(2)\cong S^3,
+\qquad q=(q_0,q_1,q_2,q_3),
+\qquad W(q)=1-q_0,
+\]
+
+and the Haar/Casimir metric normalized so the character eigenvalues are \(n(n+2)\), the analysis must derive
+
+\[
+\operatorname{Ric}_{S^3}=2g,
+\qquad
+\operatorname{Hess}W=q_0g.
+\]
+
+For the one-link Wilson weight
+
+\[
+d\nu_\beta=Z_\beta^{-1}e^{-\beta W}\,d\mathrm{vol}_{S^3},
+\]
+
+the pointwise weighted-curvature criterion is therefore
+
+\[
+\operatorname{Ric}+\operatorname{Hess}(\beta W)
+=(2+\beta q_0)g
+\succeq(2-\beta)g.
+\]
+
+The frozen interpretation is:
+
+- \(0\le\beta<2\): the elementary Bakry–Émery estimate gives a positive one-link Poincaré rate;
+- \(\beta=2\): the pointwise lower bound reaches zero;
+- \(\beta>2\): this curvature proof no longer establishes a positive rate.
+
+This is a method boundary. It is not a claim that the compact one-link measure loses its spectral gap.
+
+### YMPG3. Exact two-link blocking geometry
+
+For the multiplication map
+
+\[
+m:G\times G\to G,
+\qquad m(U_1,U_2)=U_1U_2,
+\qquad G=SU(2),
+\]
+
+with the product Haar measure and product Casimir metric, the analysis must prove:
+
+1. the change of variables \((U_1,U_2)\leftrightarrow(V,R)=(U_1U_2,U_1)\) preserves product Haar measure;
+2. the differential of \(m\) has an orthogonal horizontal lift
+   \[
+   h(\eta)=\frac12\bigl(\eta,\operatorname{Ad}_{U_1}^{-1}\eta\bigr),
+   \qquad \|h(\eta)\|^2=\frac12\|\eta\|^2;
+   \]
+3. the vertical lift
+   \[
+   z(\zeta)=\bigl(\zeta,-\operatorname{Ad}_{U_1}^{-1}\zeta\bigr),
+   \qquad \|z(\zeta)\|^2=2\|\zeta\|^2
+   \]
+   is orthogonal to the horizontal lift;
+4. the electric carré du champ decomposes exactly as
+   \[
+   \Gamma_f(F)=2\lvert\nabla_HF\rvert^2+rac12\lvert\nabla_VF\rvert^2.
+   \]
+
+Here \(\nabla_HF\) and \(\nabla_VF\) are derivatives against the standard Lie-algebra norms in the displayed lifts. The coefficients \(2\) and \(1/2\) are fixed target-theory geometry.
+
+The coordinate pullback in \((V,R)\) variables also gives the comparison matrix
+
+\[
+\begin{pmatrix}1&-1\\-1&2\end{pmatrix},
+\]
+
+whose eigenvalues are
+
+\[
+c_\pm=\frac{3\pm\sqrt5}{2}.
+\]
+
+These numbers are coordinate-condition eigenvalues of the fixed Haar/Casimir metric. They carry no Cassi scale interpretation and are not used as a modified gauge metric.
+
+### YMPG4. Conditional-score Poincaré recurrence
+
+Let a finite regulated vacuum probability measure disintegrate under the blocking map as
+
+\[
+d\mu_f(U_1,U_2,\ldots)=d\bar\mu(V,\ldots)\,d\nu_V(R,\ldots).
+\]
+
+The analysis must define:
+
+- \(\lambda_c>0\): a Poincaré rate for the coarse marginal \(\bar\mu\) in the standard coarse Casimir metric;
+- \(\alpha>0\): a uniform conditional Poincaré rate for every fibre \(\nu_V\) in the standard vertical derivative;
+- \(s_V=\nabla_H\log(d\nu_V/d\nu_0)\): the centered horizontal conditional score relative to a fixed Haar fibre reference;
+- \(\kappa\ge0\): the smallest declared constant satisfying
+  \[
+  \mathbb E_{\nu_V}\langle s_V,z\rangle^2\le\kappa^2\lvert z\rvert^2
+  \]
+  uniformly in \(V\) and tangent covectors \(z\).
+
+Using total variance and the differentiated conditional expectation identity, the analysis must derive
+
+\[
+\operatorname{Var}_{\mu_f}F
+\le
+\frac{1}{\alpha}\,Y^2
++
+\frac1{\lambda_c}
+\left(X+\frac{\kappa}{\sqrt\alpha}Y\right)^2,
+\]
+
+where
+
+\[
+X^2=\mathbb E_{\mu_f}\lvert\nabla_HF\rvert^2,
+\qquad
+Y^2=\mathbb E_{\mu_f}\lvert\nabla_VF\rvert^2.
+\]
+
+Against the exact electric form \(2X^2+Y^2/2\), define
+
+\[
+A=\frac1{2\lambda_c},
+\qquad
+B=\frac{\kappa}{\lambda_c\sqrt\alpha},
+\qquad
+D=\frac2\alpha\left(1+\frac{\kappa^2}{\lambda_c}\right),
+\]
+
+and
+
+\[
+C_*=\frac12\left[A+D+\sqrt{(A-D)^2+4B^2}\right].
+\]
+
+The frozen target is the scale-resolved recurrence
+
+\[
+\boxed{\lambda_f\ge C_*^{-1}.}
+\]
+
+At \(\kappa=0\), it must reduce continuously to
+
+\[
+\lambda_f\ge\min\{2\lambda_c,\alpha/2\}.
+\]
+
+The theorem may be stated for all smooth functions, which is sufficient for the gauge-invariant physical sector. Any restriction directly to gauge-invariant functions must prove that conditional expectation preserves the restricted class.
+
+### YMPG5. Physical-mass induction condition
+
+For fine spacing \(a_f\), coupling \(g_f\), and target physical mass \(m_*>0\), define
+
+\[
+r_f=\frac{2a_fm_*}{g_f^2}.
+\]
+
+The recurrence proves \(m_{\mathrm{gap},f}\ge m_*\) whenever the symmetric matrix
+
+\[
+\begin{pmatrix}A&B\\B&D\end{pmatrix}
+\]
+
+is bounded above by \(r_f^{-1}I\). The equivalent scalar conditions to be derived are
+
+\[
+A\le r_f^{-1},
+\qquad
+D\le r_f^{-1},
+\qquad
+B^2\le(r_f^{-1}-A)(r_f^{-1}-D).
+\]
+
+For a factor-two block and the kinematic matching \(g_c^2=4g_f^2\), the coarse target is \(r_c=r_f/2\). At \(\kappa=0\), the horizontal branch closes exactly when \(\lambda_c\ge r_c\), while the vertical branch requires \(\alpha\ge2r_f\). For \(\kappa>0\), saturation \(\lambda_c=r_c\) leaves no score budget; a strict coarse-rate margin or a sharper cancellation estimate is required.
+
+The analysis must state that a continuum proof still needs uniform estimates for \(\alpha\), \(\kappa\), and the coarse-rate margin along an interacting gauge-compatible refinement flow.
+
+## 3. Computational verification
+
+Two implementations are required:
+
+1. `computations/verify_yang_mills_poincare_geometry.py` is the primary verifier;
+2. `computations/verify_yang_mills_poincare_geometry_independent.mjs` independently reconstructs the fixed formulas and audits the primary receipt without importing the Python implementation.
+
+The primary verifier must check:
+
+- the first four coexact one-form eigenvalues on \(S_R^3\) for \(R\in\{1,2,5\}\);
+- the Wilson Hessian formula by symmetric geodesic finite differences at at least six fixed quaternion/tangent pairs and three step sizes;
+- horizontal/vertical orthogonality, norm factors, and energy reconstruction for at least eight fixed Lie-algebra tangent/cotangent samples;
+- exact matrix eigenvalues and positive metric bounds;
+- the closed-form recurrence against independently computed two-by-two generalized eigenvalues for at least eight \((\lambda_c,\alpha,\kappa)\) triples, including \(\kappa=0\), weak-score, and failed-induction controls;
+- the physical factor-two scaling identity \(r_c=r_f/2\) under \(g_c^2=4g_f^2\);
+- the matrix semidefinite induction criterion against direct eigenvalue evaluation.
+
+All finite-difference comparisons use absolute tolerance \(5\times10^{-6}\). Algebraic and recurrence comparisons use absolute tolerance \(10^{-12}\). Every declared control must pass.
+
+The primary receipt is written to
+
+`runs/yang_mills_poincare_geometry/verification.json`.
+
+It must contain protocol and source SHA-256 hashes, per-check measurements, maxima, the complete parameter rows, and a final `PASS`/`FAIL` verdict. The independent verifier writes
+
+`runs/yang_mills_poincare_geometry/verification-independent.json`
+
+and must fail if source identities, row counts, formulas, or primary measurements disagree.
+
+## 4. Decision rule
+
+- **PASS:** every frozen analytical identity is derived in the theorem document, every primary check passes, and every independent reconstruction check passes.
+- **FAIL:** an exact identity, scaling relation, or required numerical control disagrees with the frozen target.
+- **INCONCLUSIVE:** execution is interrupted or required evidence is absent.
+
+A PASS adopts only the finite-regulator geometric identities and the conditional recurrence. It does not establish a volume-uniform Poincaré estimate, an interacting continuum mass gap, the Osterwalder–Schrader/Wightman construction, or microscopic Cassi gauge identification.
+
+## 5. Sources fixed before execution
+
+- Clay Mathematics Institute, *Poincaré Conjecture*: https://www.claymath.org/wp-content/uploads/2022/06/poincare.pdf
+- G. Perelman, *The entropy formula for the Ricci flow and its geometric applications*: https://arxiv.org/abs/math/0211159
+- Clay Mathematics Institute, *Yang–Mills and Mass Gap*: https://www.claymath.org/wp-content/uploads/2022/06/yangmills.pdf
+- A. E. Moncrief, P. Marini, and R. Maitra, *Orbit Space Curvature as a Source of Mass in Quantum Gauge Theory*: https://arxiv.org/abs/2302.05721
+- A. Ikeda and Y. Taniguchi, *Spectra and eigenforms of the Laplacian on \(S^n\) and \(P^n(\mathbb C)\)*, Osaka Journal of Mathematics 15 (1978), 515–546: https://ir.library.osaka-u.ac.jp/repo/ouka/all/6956/
+- B. C. Hall, *The Segal–Bargmann transform for unitary groups in the large-N limit*, Appendix A for normalized Wilson measures on compact groups: https://arxiv.org/abs/1308.5949
+
+## 6. Stopping rule
+
+Run the primary verifier once after both implementations are complete. Run the independent verifier once against that primary receipt. If either execution fails, preserve the failed receipt or console output, classify the campaign by the decision rule, and do not tune tolerances, sample rows, or formulas without freezing a new protocol version.
