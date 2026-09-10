@@ -181,7 +181,7 @@ baryogenesis remain supplied or open. QMQ4 and QMC6 return `FAIL`
 | 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction—September 2026 |
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
-| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
+| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling character-cutoff theorem, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
 | 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current, phase-current projection and conditional soliton pinch | Hypothesized action and Wilson-link extension / Derived conditional current, endpoint, support and phase-current boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum, rotational and phase-coercivity controls, and conditional smooth scalar binding |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, scale graph and canonical reduction | Hypothesized completion / Derived conditional fibre geometry and canonical reduction / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 39 | `endpoint-link-and-localization-boundary.md` | Conditional endpoint covariance, response, transport and localization boundary | Hypothesized Wilson extension / Derived conditional endpoint and localization boundaries / Tested finite-grid spectrum and conditional smooth scalar binding |
@@ -766,9 +766,20 @@ $2g^2/a$. Wilson multiplication changes the boundary representation sector,
 so the fixed fibre is not dynamically closed. The equal-weight
 one-plaquette vacuum, a conditional-gap-only uniform argument and a static
 pure configuration marginal are also excluded at their stated scopes.
-Coupled boundary-sector amplitudes and resolvent control, weak-bare-coupling
-uniformity, continuum existence and physical carrier identification remain
-open.
+
+The isolated-square class-function operator also admits an exact
+energy-dependent Feshbach pencil. Its half-line Jacobi tail has a positive
+Stieltjes self-energy, controlled continued fraction and fixed-window
+isolation. Fixed low levels of the bare character cutoff converge with
+vanishing discarded mass exactly when
+$N/x^{1/4}\longrightarrow\infty$, equivalently $gN\longrightarrow\infty$.
+The fixed and finite-$N/x^{1/4}$ schedules therefore fail as bare
+weak-coupling limits, while the exact energy-dependent Feshbach reduction
+remains valid at the scaled cutoff. Its scope is the one-plaquette ultraviolet
+operator. A regulator-independent mass gap remains unresolved.
+Interacting boundary-sector recoupling, volume-uniform resolvent control,
+thermodynamic and continuum limits, a regulator-independent mass gap, and
+physical carrier identification remain open.
 
 ### `interscale-current-soliton.md`—Interscale Yang/Yin Current and the Conditional Soliton Pinch
 

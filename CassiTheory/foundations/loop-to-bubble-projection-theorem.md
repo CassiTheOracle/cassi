@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact fixed-boundary gauge-fibre support, conditional block theorems, and exact bare-cylindrical refinement obstruction; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact fixed-boundary gauge-fibre support, conditional block theorems, and exact bare-cylindrical refinement obstruction; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -44,12 +44,18 @@ uniform conditional gaps alone as a volume-uniform argument and a static pure
 configuration marginal as an exact quantum reduction. An exact Haar-isometric
 path-holonomy pullback preserves endpoint gauge covariance, but genuine
 $2\times2$ refinement proves that this bare cylindrical map cannot intertwine
-the full Kogut–Susskind Hamiltonian. With all eight outer links fixed in the
-fundamental representation, exact Clebsch–Gordan constraints reduce the
-internal Gauss fibre to 14 states once $j_{\max}\geq1$; Wilson multiplication
-changes the outer representation sector, so this fibre is not dynamically
-closed. The weak-bare-coupling uniform estimates, four-dimensional continuum
-construction and microscopic Cassi identification remain open.
+the full Kogut–Susskind Hamiltonian. The continuous-$SU(2)$ isolated square
+admits an exact operator-domain Feshbach reduction. Its weak-coupling
+character scale is $n=O(x^{1/4})$; a fixed scaled endpoint isolates any fixed
+low-energy window through the exact self-energy, while bare spectral
+convergence and vanishing discarded mass hold exactly when
+$N/x^{1/4}\to\infty$. With all eight outer links fixed in the fundamental
+representation, exact Clebsch–Gordan constraints reduce the internal Gauss
+fibre to 14 states once $j_{\max}\geq1$; Wilson multiplication changes the
+outer representation sector, so this fibre is not dynamically closed. The
+coupled interacting fibre, weak-bare-coupling volume-uniform estimates,
+four-dimensional continuum construction and microscopic Cassi
+identification remain open.
 
 ---
 
@@ -2348,12 +2354,38 @@ V_N=P_Nh_xQ_N=-x|N\rangle\langle N+1|.
 \tag{YM61}
 $$
 
+
+Put $\mathcal H_P:=P_N\mathcal H_\square$ and
+$\mathcal H_Q:=Q_N\mathcal H_\square$. Since $\mathcal H_P$ is
+finite-dimensional and $P_N$ removes only finitely many coordinates,
+
+$$
+D(h_x)=\mathcal H_P\oplus D(D_N),
+\qquad
+D(D_N)=Q_ND(K).
+$$
+
+Here $A_N$ is bounded self-adjoint on $\mathcal H_P$, while $D_N$ is
+self-adjoint on $D(D_N)\subset\mathcal H_Q$. The $K$ and diagonal magnetic
+terms have no $P_N$–$Q_N$ matrix element. Thus $V_N$, initially defined on
+$D(D_N)$, extends to the displayed bounded rank-one map
+$\mathcal H_Q\to\mathcal H_P$, with
+$V_N^*=-x|N+1\rangle\langle N|$. The block operator in (YM62) is consequently
+a closed map from $\mathcal H_P\oplus D(D_N)$ to
+$\mathcal H_P\oplus\mathcal H_Q$.
+
 For $z\in\rho(D_N)$, put $B_N(z)=D_N-z$ and
 $
 m_{N+1}(z):=\langle N+1|B_N(z)^{-1}|N+1\rangle .
 $
-Eliminating the $Q_N$-component is an exact operation on the operator
-domain. The block Gaussian factorization is
+Regard $B_N(z)$ as a bijection
+$D(D_N)\to\mathcal H_Q$. Its inverse is bounded both
+$\mathcal H_Q\to\mathcal H_Q$ and
+$\mathcal H_Q\to D(D_N)$ when the latter carries its graph norm. Hence
+$V_NB_N(z)^{-1}$ and $B_N(z)^{-1}V_N^*$ are bounded between their indicated
+Hilbert spaces. Both triangular factors below are boundedly invertible and
+preserve $\mathcal H_P\oplus D(D_N)$. Direct multiplication on this common
+domain gives the block Gaussian factorization
 
 $$
 \begin{pmatrix}A_N-z&V_N\\ V_N^*&B_N(z)\end{pmatrix}
@@ -2374,19 +2406,29 @@ F_N(z)
 \tag{YM63}
 $$
 
-The two triangular factors in (YM62) are boundedly invertible. Therefore,
-including algebraic multiplicity of a finite-order spectral zero,
+The factorization and invertibility of its triangular factors, together with
+$B_N(z)^{-1}$, show that $h_x-z$ has a bounded inverse precisely when
+$F_N(z)$ is invertible. Thus (YM64) holds for every $z\in\rho(D_N)$.
+
+For the kernel correspondence write $\psi=p+q$, with
+$p\in\mathcal H_P$ and $q\in D(D_N)$. The second block equation gives
 
 $$
-z\in\sigma(h_x)
-\quad\Longleftrightarrow\quad
-0\in\sigma(F_N(z)),
-\qquad z\in\rho(D_N).
-\tag{YM64}
+B_N(z)q=-V_N^*p,
+\qquad
+q=-B_N(z)^{-1}V_N^*p.
 $$
 
-Indeed, if $p=P_N\psi$, the second block equation gives the unique
-discarded component
+Substitution in the first block equation gives $F_N(z)p=0$. Conversely,
+the displayed $q$ belongs to $D(D_N)$ for every $p\in\ker F_N(z)$.
+Consequently
+
+$$
+J_z:p\longmapsto p-B_N(z)^{-1}V_N^*p
+$$
+
+is a linear bijection
+$\ker F_N(z)\to\ker(h_x-z)$ and yields
 
 $$
 Q_N\psi
@@ -2396,14 +2438,33 @@ Q_N\psi
 \tag{YM65}
 $$
 
-Conversely, (YM65) reconstructs a vector in the domain from every
-$p\in\ker F_N(z)$. This gives the eigenspace correspondence directly;
-the factorization gives the corresponding analytic multiplicity statement.
+The multiplicity statement for the present self-adjoint operator is completed
+after (YM69), where the derivative of the pencil is available.
 
-To make the tail scalar explicit, let $D^{(n)}$ be the restriction of
-$h_x$ to $\ell^2(\{n,n+1,\ldots\})$, define
-$m_n(z)=\langle n|(D^{(n)}-z)^{-1}|n\rangle$, and set
-$d_n=k_n+2x$. Schur elimination of the first tail site gives
+For $n\geq0$, let
+$\mathcal H_n=\ell^2(\{n,n+1,\ldots\})$ and let $D^{(n)}$ be the
+self-adjoint tail operator on
+
+$$
+D(D^{(n)})=
+\left\{f\in\mathcal H_n:
+\sum_{j=n}^{\infty}k_j^2|f_j|^2<\infty\right\},
+$$
+
+with the Dirichlet value $f_{n-1}=0$. Define
+$m_n(z)=\langle n|(D^{(n)}-z)^{-1}|n\rangle$ only for
+$z\in\rho(D^{(n)})$, and put $d_n=k_n+2x$. The one-step Schur elimination
+requires
+$z\in\rho(D^{(n)})\cap\rho(D^{(n+1)})$. The complete continued fraction is
+defined on
+
+$$
+\Omega_n:=\bigcap_{j\geq n}\rho(D^{(j)}),
+$$
+
+which contains $\mathbb C\setminus\mathbb R$ and
+$(-\infty,\inf\sigma(D^{(n)}))$. On this common-resolvent set, decomposing
+$\mathcal H_n=\mathbb C|n\rangle\oplus\mathcal H_{n+1}$ gives
 
 $$
 m_n(z)=\frac{1}{d_n-z-x^2m_{n+1}(z)}.
@@ -2423,10 +2484,50 @@ m_n^{(M)}(z)=\frac{\Delta_{n+1,M}(z)}{\Delta_{n,M}(z)}.
 \tag{YM67}
 $$
 
-The finite resolvents converge at a fixed resolvent point to the half-line
-resolvent, so $m_n^{(M)}(z)$ converges to $m_n(z)$. If
-$h_x^{(M)}=P_Mh_xP_M$ and $D_N^{(M)}$ is its restriction to
-$N+1,\ldots,M$, the same block factorization gives the determinant
+Fix $x>0$ and $n$. For $M\geq n$, let
+$\mathcal E_{n,M}=\operatorname{span}\{|n\rangle,\ldots,|M\rangle\}$
+inside $\mathcal H_n$, let $\iota_{n,M}$ be zero extension, and set
+$D_{n,M}=\iota_{n,M}^*D^{(n)}\iota_{n,M}$. Its quadratic form is the
+restriction of
+
+$$
+\begin{aligned}
+\mathfrak q_n[f]
+&=\sum_{j=n}^{\infty}k_j|f_j|^2
++x\left(
+|f_n|^2+\sum_{j=n}^{\infty}|f_{j+1}-f_j|^2
+\right),\\
+Q(\mathfrak q_n)
+&=\left\{f\in\mathcal H_n:
+\sum_{j=n}^{\infty}k_j|f_j|^2<\infty\right\}.
+\end{aligned}
+$$
+
+On $\mathcal E_{n,M}$ the same formula has $f_{M+1}=0$. Finite sequences
+form a core for $\mathfrak q_n$: coordinate truncation converges in the
+weighted diagonal form because $k_j\to\infty$, and the discrete-Laplacian
+form is bounded by $4\|f\|^2$. The increasing Galerkin forms therefore give
+
+$$
+\iota_{n,M}(D_{n,M}-z)^{-1}\iota_{n,M}^*
+\xrightarrow[M\to\infty]{\mathrm{SOT}}
+(D^{(n)}-z)^{-1}
+$$
+
+for every fixed $z\in\mathbb C\setminus\mathbb R$. At a real
+$z\in\rho(D^{(n)})$, min–max convergence of the discrete eigenvalues gives
+eventual spectral separation and the same strong-resolvent limit. In
+particular, it holds throughout the real interval below the tail bottom.
+Taking the boundary matrix element proves
+$m_n^{(M)}(z)\to m_n(z)$ wherever the displayed finite resolvents exist.
+Expansion along the first row gives the recurrence and terminal values in
+(YM67), while Cramer's rule gives its quotient only when
+$\Delta_{n,M}(z)\ne0$.
+
+For the finite full operator, take $M\geq N+1$, put
+$h_x^{(M)}=P_Mh_xP_M$, and let $D_N^{(M)}$ be its restriction to
+$N+1,\ldots,M$. For $z\in\rho(D_N^{(M)})$ define $F_N^{(M)}(z)$ by the
+same Schur formula. The finite block factorization gives the determinant
 identity
 
 $$
@@ -2448,9 +2549,51 @@ m_n'(E)=m_n(E)^2\bigl(1+x^2m_{n+1}'(E)\bigr).
 \tag{YM69}
 $$
 
-The first two identities follow by differentiating the resolvent under the
-spectral integral; the last follows by differentiating (YM66). They provide
-the derivative needed for both the pole test and tail reconstruction.
+For completeness, if $\nu_{N+1}$ is the spectral probability measure of
+$D_N$ at $|N+1\rangle$, the integrands in (YM69) are uniformly dominated
+on a neighborhood of every real $E\in\rho(D_N)$. Differentiation under the
+spectral integral is therefore valid. In particular,
+
+$$
+m_{N+1}'(E)
+=\langle N+1|(D_N-E)^{-2}|N+1\rangle>0.
+$$
+
+Now let $E\in\sigma(h_x)\cap\rho(D_N)$. Compact resolvent makes $E$ an
+isolated eigenvalue, and self-adjointness makes its algebraic and geometric
+multiplicities equal. The finite pencil is Hermitian at $E$, with
+
+$$
+F_N'(E)
+=-I_{\mathcal H_P}
+-x^2m_{N+1}'(E)|N\rangle\langle N|<0.
+$$
+
+Put $\mathcal K_E=\ker F_N(E)$ and decompose
+$\mathcal H_P=\mathcal K_E\oplus\mathcal K_E^\perp$. The
+$\mathcal K_E^\perp$ block of $F_N(E)$ is invertible and the off-diagonal
+blocks vanish. Its Schur complement at $E+t$ is
+$-tG+O(t^2)$, where
+
+$$
+G=
+P_{\mathcal K_E}\bigl[-F_N'(E)\bigr]P_{\mathcal K_E}
+\big|_{\mathcal K_E}>0.
+$$
+
+It follows that
+$\det F_N(E+t)=c\,t^{\dim\mathcal K_E}
++O(t^{\dim\mathcal K_E+1})$ with $c\ne0$. Together with the kernel
+bijection, this proves
+
+$$
+\operatorname{ord}_E\det F_N
+=\dim\ker F_N(E)
+=\dim\ker(h_x-E),
+$$
+
+the algebraic multiplicity of $E$.
+
 
 #### 9.18.3 Jensen, free-tail, and self-energy bounds
 
@@ -2466,11 +2609,13 @@ m_r(E)\geq\frac{1}{\delta+2x}.
 \tag{YM70}
 $$
 
-The last inequality is Jensen's inequality for $t\mapsto t^{-1}$ applied
-to the spectral measure of $B_N(E)$:
-$\int t^{-1}d\nu(t)\geq(\int t\,d\nu)^{-1}$. The operator order in the
-first inequality reverses under inversion. The boundary Green function of
-the free comparison tail therefore satisfies
+The lower bound in (YM70) is Jensen's inequality for $t\mapsto t^{-1}$
+applied to the spectral measure of $B_N(E)$ at $|r\rangle$:
+$\int t^{-1}d\nu(t)\geq(\int t\,d\nu(t))^{-1}$. For the upper bound,
+$k_n\geq k_r$ gives
+$B_N(E)\geq\delta I+xL_+>0$. Inversion reverses the positive form order,
+so $B_N(E)^{-1}\leq(\delta I+xL_+)^{-1}$. The boundary Green function of
+this free comparison tail is
 
 $$
 \begin{aligned}
@@ -2483,7 +2628,9 @@ g_+(\delta,x)
 \tag{YM71}
 $$
 
-The positive solution is selected by $g_+>0$. Define
+Both roots of the quadratic in (YM71) are positive. The operator definition
+selects the displayed smaller root, equivalently the decaying Weyl branch
+$0<xg_+<1$. Define
 $\Sigma_N(E)=x^2m_r(E)$ and
 $
 s(\delta,x):=x^2g_+(\delta,x)
@@ -2523,8 +2670,12 @@ $$
 \tag{YM74}
 $$
 
-Thus the discarded probability and the normalization correction are obtained
-from the differentiated Weyl function itself. In particular,
+Writing $t=x^2|p_N|^2m_{N+1}'(E)$, (YM74) gives
+$\|Q_N\psi\|^2=t$ and $\|\psi\|^2=1+t$ under the retained normalization
+$\|p\|=1$. The corresponding unit full eigenvector
+$\widehat\psi=\psi/\sqrt{1+t}$ has discarded probability $t/(1+t)$.
+Thus the differentiated Weyl function gives both the tail norm and the full
+normalization correction. In particular,
 $\delta=o(x)$ forces $\Sigma_N(E)=\Theta(x)$, while
 $\delta/x\to\infty$ gives $\Sigma_N(E)\sim x^2/\delta$. The exact
 self-energy is consequently of the same order as the magnetic diagonal
@@ -2535,12 +2686,26 @@ smaller than $x$.
 
 Set $z=-\eta$ with $\eta>0$, $B_\eta=D_N+\eta$, and
 $
-S_\eta:=A_N+\eta-V_NB_\eta^{-1}V_N^* .
+S_\eta:=A_N+\eta P_N-V_NB_\eta^{-1}V_N^* .
 $
-Because $D_N>0$, $h_x\geq0$ implies
-$A_N-V_ND_N^{-1}V_N^*\geq0$. Also
-$B_\eta^{-1}\leq D_N^{-1}$, so $S_\eta\geq\eta P_N$. Block inversion
-therefore gives
+Since $r=N+1\geq1$, $D_N\geq k_rI>0$ and $D_N^{-1}$ maps
+$\mathcal H_Q$ boundedly into $D(D_N)$. For $p\in\mathcal H_P$, the vector
+$(p,-D_N^{-1}V_N^*p)$ belongs to $D(h_x)$. Positivity of $h_x$ then gives
+
+$$
+A_N-V_ND_N^{-1}V_N^*\geq0.
+$$
+
+Functional calculus gives
+$0\leq B_\eta^{-1}\leq D_N^{-1}$, and therefore
+
+$$
+S_\eta\geq\eta P_N,\qquad
+\|S_\eta^{-1}\|\leq\eta^{-1},\qquad
+\|(A_N+\eta P_N)^{-1}\|\leq\eta^{-1}.
+$$
+
+The domain-valid factorization at $z=-\eta$ now gives
 
 $$
 P_N(h_x+\eta)^{-1}P_N=S_\eta^{-1},\qquad
@@ -2606,24 +2771,151 @@ x^{-1/2}\widetilde h_x
 \tag{YM79}
 $$
 
-The limiting operator is the Dirichlet half-line oscillator. Its $j$-th
-state is the odd full-line oscillator state of index $2j+1$, with energy
-$4j+3$. The first perturbation is obtained by taking the expectation of
-$-1-y^4/12$. Writing $y=(a+a^\dagger)/\sqrt2$ in oscillator units and
-normal-ordering $y^4$ gives the displayed fourth moment:
+Here is a fixed-level proof with the moving endpoint and remainder controlled.
+Put $\varepsilon=x^{-1/4}$ and
+$L_\varepsilon=\pi/\varepsilon$. The unitary map
 
 $$
-\left\langle\phi_{2j+1},y^4\phi_{2j+1}\right\rangle
+(U_\varepsilon f)(y)=\varepsilon^{1/2}f(\varepsilon y)
+$$
+
+sends $L^2(0,\pi)$ to $L^2(0,L_\varepsilon)$ and sends
+$H_0^1(0,\pi)$ to $H_0^1(0,L_\varepsilon)$. Hence
+$x^{-1/2}\widetilde h_x$ is unitarily equivalent to
+
+$$
+H_\varepsilon
+=-\frac{d^2}{dy^2}+W_\varepsilon(y)-\varepsilon^2,
+\qquad
+W_\varepsilon(y)
+=2\varepsilon^{-2}\bigl(1-\cos(\varepsilon y)\bigr)
+$$
+
+with Dirichlet data at $0$ and $L_\varepsilon$. On
+$0\leq\varepsilon y\leq\pi$,
+
+$$
+\frac{4}{\pi^2}y^2\leq W_\varepsilon(y)\leq y^2,
+\qquad
+W_\varepsilon\longrightarrow y^2
+\quad\text{locally uniformly}.
+$$
+
+Extend the form domain $H_0^1(0,L_\varepsilon)$ by zero into
+$L^2(0,\infty)$. The lower bound gives uniform $H^1$ control and
+$y^2$-tightness on every bounded-energy form sublevel. Weak lower
+semicontinuity and local uniform convergence give the liminf inequality for
+
+$$
+H_0=-\frac{d^2}{dy^2}+y^2
+\quad\text{on }L^2(0,\infty),\qquad u(0)=0,
+$$
+
+while every $C_c^\infty(0,\infty)$ function is eventually an exact recovery
+test function. Compactness and the min–max principle therefore give, for
+each fixed $j$,
+
+$$
+\mu_j(\varepsilon)
+:=x^{-1/2}\lambda_j(h_x)
+\longrightarrow E_j:=4j+3.
+$$
+
+The same compactness shows that the normalized eigenfunction converges in
+$L^2$ to the simple Dirichlet half-line oscillator state $\phi_j$, up to a
+phase. In particular, for a fixed interval
+$I_j=(E_j-1,E_j+1)$, $H_\varepsilon$ has exactly one eigenvalue in $I_j$
+for all sufficiently small $\varepsilon$. Otherwise two orthogonal
+eigenvectors would have strongly convergent subsequences whose nonzero
+orthogonal limits both solve $H_0u=E_ju$, contradicting simplicity.
+
+It remains to control the first correction. Put
+
+$$
+V(y)=-1-\frac{y^4}{12},\qquad
+c_j=\langle\phi_j,V\phi_j\rangle,
+\qquad
+R_j=(H_0-E_j)^{-1}(I-|\phi_j\rangle\langle\phi_j|),
+$$
+
+and
+
+$$
+\chi_j=-R_j(V-c_j)\phi_j,\qquad
+w_{j,\varepsilon}=\phi_j+\varepsilon^2\chi_j.
+$$
+
+The reduced resolvent is bounded because the neighboring half-line
+oscillator levels are separated by $4$. Multiplication by $y^4$ connects
+only finitely many oscillator states, so $\chi_j$ is a polynomial times
+$e^{-y^2/2}$, vanishes at $0$, and satisfies
+
+$$
+(H_0-E_j)\chi_j=-(V-c_j)\phi_j,\qquad
+\langle\phi_j,\chi_j\rangle=0.
+$$
+
+Taylor's theorem with the sixth derivative bounded gives, throughout the
+moving interval,
+
+$$
+r_\varepsilon(y)
+:=W_\varepsilon(y)-y^2+\frac{\varepsilon^2y^4}{12},
+\qquad
+|r_\varepsilon(y)|
+\leq\frac{\varepsilon^4y^6}{360}.
+$$
+
+For
+$\nu_j(\varepsilon)=E_j+\varepsilon^2c_j$,
+the cancellation equation for $\chi_j$ yields
+
+$$
+(H_\varepsilon-\nu_j)w_{j,\varepsilon}
+=\varepsilon^4(V-c_j)\chi_j
++r_\varepsilon\phi_j
++\varepsilon^2r_\varepsilon\chi_j.
+$$
+
+Every term on the right has $L^2$ norm $O_j(\varepsilon^4)$. To impose the
+far Dirichlet endpoint, choose a smooth $\eta_\varepsilon$ equal to $1$ on
+$[0,L_\varepsilon-1]$, equal to $0$ at $L_\varepsilon$, and with its first
+two derivatives bounded independently of $\varepsilon$. The cutoff
+commutator is supported where the polynomial-Gaussian
+$w_{j,\varepsilon}$ is $O_j(e^{-cL_\varepsilon^2})$. Thus
+
+$$
+\left\|
+(H_\varepsilon-\nu_j)
+\frac{\eta_\varepsilon w_{j,\varepsilon}}
+{\|\eta_\varepsilon w_{j,\varepsilon}\|}
+\right\|
+\leq C_j\varepsilon^4.
+$$
+
+The spectral theorem places an eigenvalue within
+$C_j\varepsilon^4$ of $\nu_j$, and the uniqueness in $I_j$ identifies it
+as $\mu_j(\varepsilon)$. Hence
+
+$$
+\mu_j(\varepsilon)
+=E_j+\varepsilon^2c_j+O_j(\varepsilon^4).
+$$
+
+The half-line state $\phi_j$ is the normalized restriction of the odd
+full-line oscillator state of index $2j+1$. Ladder-operator evaluation gives
+
+$$
+\left\langle\phi_j,y^4\phi_j\right\rangle
 =6j^2+9j+\frac{15}{4},\qquad
 c_j=-1-\frac{1}{12}\left(6j^2+9j+\frac{15}{4}\right),
 \qquad
-\lambda_j(h_x)=(4j+3)\sqrt{x}+c_j+O(x^{-1/2}).
+\lambda_j(h_x)=(4j+3)\sqrt{x}+c_j+O_j(x^{-1/2}).
 \tag{YM80}
 $$
 
-The oscillator states are exponentially localized while the far endpoint is
-$\pi x^{1/4}$, so the Taylor remainder and endpoint error have the stated
-order for each fixed $j$.
+This establishes the expansion for every fixed $j$; the remainder constant
+may depend on $j$.
 
 Subtracting the $j=0$ expansion gives the gap formula below. Since
 $c_1-c_0=-5/4$ and $\sqrt{x}=\sqrt2/g^2$, multiplication by
@@ -2699,15 +2991,142 @@ x^{-1/2}x|f_n|^2=\varepsilon^{-1}|u_n|^2.
 \tag{YM85}
 $$
 
-The middle expression converges to $\int|u'|^2dy$ under piecewise-linear
-interpolation. The last expression diverges unless the interpolated function
-vanishes at the associated finite endpoint. Thus the two boundary penalties
-in (YM82) impose Dirichlet data at $y=0,C$, while the one in (YM84) imposes
-Dirichlet data at $y=C$.
+Put $V_\varepsilon(y)=y^2+2\varepsilon y$,
+$C_\varepsilon=\varepsilon N$, and
+$r_\varepsilon=\varepsilon(N+1)=C_\varepsilon+\varepsilon$. Multiplying
+(YM82) and (YM84) by $\varepsilon^2=x^{-1/2}$ gives the exact scaled
+forms
 
-If $N/x^{1/4}\to C\in(0,\infty)$, the Riemann-sum calculation, lower
-semicontinuity, and compactly supported recovery sequences give the form
-limits
+$$
+\begin{aligned}
+\mathfrak q_\varepsilon^A[f]
+&=\varepsilon\sum_{n=0}^{N}
+V_\varepsilon(y_n)|u_n|^2\\
+&\quad+\varepsilon^{-1}\left(
+|u_0|^2+\sum_{n=0}^{N-1}|u_{n+1}-u_n|^2+|u_N|^2
+\right),\\
+\mathfrak q_\varepsilon^D[f]
+&=\varepsilon\sum_{n=N+1}^{\infty}
+V_\varepsilon(y_n)|u_n|^2\\
+&\quad+\varepsilon^{-1}\left(
+|u_{N+1}|^2+\sum_{n=N+1}^{\infty}|u_{n+1}-u_n|^2
+\right).
+\end{aligned}
+$$
+
+Use the fixed Hilbert space
+$\mathcal H=L^2((0,\infty),dy)$. Define exact isometries by
+
+$$
+\begin{aligned}
+(E_\varepsilon^Af)(y)
+&=u_n &&(y\in[y_n,y_{n+1}),\ 0\leq n\leq N),\\
+(E_\varepsilon^Df)(y)
+&=u_n &&(y\in[y_n,y_{n+1}),\ n\geq N+1),
+\end{aligned}
+$$
+
+and set each image to zero off the indicated cells. For compactness and
+traces, let $L_\varepsilon^Af$ be linear through
+
+$$
+(0,0),(\varepsilon,u_0),(2\varepsilon,u_1),\ldots,
+((N+1)\varepsilon,u_N),((N+2)\varepsilon,0)
+$$
+
+and zero above $(N+2)\varepsilon$. Let $L_\varepsilon^Df$ be linear through
+
+$$
+(C_\varepsilon,0),(r_\varepsilon,u_{N+1}),
+(\varepsilon(N+2),u_{N+2}),\ldots .
+$$
+
+The one-cell shift between $E_\varepsilon^A$ and
+$L_\varepsilon^A$ makes the left and right boundary penalties into genuine
+interpolation edges. The derivative energies reproduce every difference
+and boundary term:
+
+$$
+\begin{aligned}
+\int_0^\infty |(L_\varepsilon^Af)'|^2dy
+&=\varepsilon^{-1}\left(
+|u_0|^2+\sum_{n=0}^{N-1}|u_{n+1}-u_n|^2+|u_N|^2
+\right),\\
+\int_0^\infty |(L_\varepsilon^Df)'|^2dy
+&=\varepsilon^{-1}\left(
+|u_{N+1}|^2+
+\sum_{n=N+1}^{\infty}|u_{n+1}-u_n|^2
+\right).
+\end{aligned}
+$$
+
+On a cell, the squared $L^2$ difference between the step value and its
+linear interpolation is $\varepsilon|\Delta u|^2/3$. Consequently
+
+$$
+\|L_\varepsilon^Af-E_\varepsilon^Af\|^2
+\leq\frac{\varepsilon^2}{3}\mathfrak q_\varepsilon^A[f],
+\qquad
+\|L_\varepsilon^Df-E_\varepsilon^Df\|^2
+\leq\frac{\varepsilon^2}{3}\mathfrak q_\varepsilon^D[f].
+$$
+
+Assume $C_\varepsilon\to C\in(0,\infty)$ and regard the two forms as
+extended forms on $\mathcal H$, with value $+\infty$ off their step-image
+subspaces. Their candidate limits are
+
+$$
+\begin{aligned}
+\mathfrak q_C^A[u]
+&=\int_0^C(|u'|^2+y^2|u|^2)\,dy,
+&Q(\mathfrak q_C^A)&=H_0^1(0,C),\\
+\mathfrak q_C^D[u]
+&=\int_C^\infty(|u'|^2+y^2|u|^2)\,dy,
+&Q(\mathfrak q_C^D)&=
+\{u\in H^1(C,\infty):u(C)=0,\ yu\in L^2\}.
+\end{aligned}
+$$
+
+Each function is extended by zero to the complementary part of
+$\mathcal H$. For the weak liminf condition, suppose
+$E_\varepsilon f_\varepsilon\rightharpoonup u$ and the corresponding scaled
+forms are bounded. The endpoint penalties give
+
+$$
+|u_0|^2+|u_N|^2=O(\varepsilon)
+\quad\text{for }\mathfrak q_\varepsilon^A,
+\qquad
+|u_{N+1}|^2=O(\varepsilon)
+\quad\text{for }\mathfrak q_\varepsilon^D.
+$$
+
+The linear interpolants are bounded in $H^1$ on every compact interval and
+differ from the step embeddings by $o(1)$ in $L^2$. Rellich compactness
+identifies their local strong limit with $u$. Their supports and the
+one-dimensional trace theorem give $u(0)=u(C)=0$ in the retained case and
+$u(C)=0$ in the discarded case. Weak $H^1$ lower semicontinuity handles
+the derivative terms. The retained potentials converge uniformly on their
+bounded support. For the discarded potential, local convergence on
+$(C,R)$ followed by $R\to\infty$, using
+$V_\varepsilon(y_n)\geq y_n^2$, gives
+
+$$
+\liminf_{\varepsilon\to0}\mathfrak q_\varepsilon^A[f_\varepsilon]
+\geq\mathfrak q_C^A[u],
+\qquad
+\liminf_{\varepsilon\to0}\mathfrak q_\varepsilon^D[f_\varepsilon]
+\geq\mathfrak q_C^D[u].
+$$
+
+For recovery, sample
+$f_n=\varepsilon^{1/2}u(y_n)$ first for
+$u\in C_c^\infty(0,C)$ or $u\in C_c^\infty(C,\infty)$. The boundary terms
+then vanish for small $\varepsilon$, and the norm, potential and difference
+quotients converge by Riemann sums. These test spaces are dense in the
+respective form norms; a diagonal approximation gives recovery for the full
+domains. Thus both forms converge in the Mosco sense. This fixed-space
+weak-liminf and strong-recovery statement is the meaning of
+``$\xrightarrow{\mathrm{form}}$'' below:
 
 $$
 x^{-1/2}A_N\xrightarrow{\mathrm{form}}
@@ -2723,12 +3142,19 @@ H_{\mathrm{osc}}^{(C,\infty)}
 $$
 
 The first limit has Dirichlet conditions at both $0$ and $C$; the second
-has Dirichlet data at $C$ and the usual form condition at infinity. More
-explicitly, the limiting form domains are
-$H_0^1(0,C)\cap L^2((0,C),y^2dy)$ and
-$\{u\in H^1(C,\infty):u(C)=0,\ yu\in L^2(C,\infty)\}$.
-Min--max convergence gives, for ordered eigenvalues $\mu_j(C)$ and the
-tail bottom $\nu_0(C)$,
+has Dirichlet data at $C$ and the natural form condition at infinity. The
+form sublevels are compact in the fixed Hilbert space. Retained sequences
+use Rellich compactness on a uniformly bounded interval. Discarded sequences
+use local Rellich compactness and the uniform tail estimate
+
+$$
+\int_R^\infty|E_\varepsilon^Df|^2dy
+\leq(R-o(1))^{-2}\mathfrak q_\varepsilon^D[f]
+\qquad(R>C).
+$$
+
+The min–max principle applied to the liminf and recovery sequences therefore
+gives convergence of every fixed ordered eigenvalue. In particular,
 
 $$
 \frac{\lambda_j(A_N)}{\sqrt{x}}\longrightarrow\mu_j(C),\qquad
@@ -2738,11 +3164,19 @@ $$
 \tag{YM87}
 $$
 
-The inequality for $\mu_j(C)$ is the min--max comparison with the
-half-line oscillator. Equality would require the same-index half-line
-eigenfunction to satisfy the extra Dirichlet condition at $C$; Sturm
-oscillation and uniqueness rule that out. The bound on $\nu_0(C)$ follows
-from $y^2\geq C^2$ on the tail.
+To prove the strict inequality, extend $H_0^1(0,C)$ functions by zero into
+the half-line form domain. Min–max gives $\mu_j(C)\geq4j+3$. Regular
+Dirichlet Sturm–Liouville eigenvalues are simple and strictly decrease with
+the right endpoint; for a normalized eigenfunction $u_{j,C}$,
+
+$$
+\frac{d\mu_j(C)}{dC}=-|u_{j,C}'(C)|^2<0.
+$$
+
+Both $u_{j,C}(C)$ and $u_{j,C}'(C)$ cannot vanish for a nonzero solution.
+Compactly supported recovery as $C\to\infty$ gives
+$\mu_j(C)\downarrow4j+3$, proving $\mu_j(C)>4j+3$ for every finite $C$.
+The tail bound in (YM87) follows directly from $y^2\geq C^2$.
 
 #### 9.18.7 Fixed-window isolation and the bare-tail condition
 
@@ -2776,13 +3210,93 @@ recover each low eigenpair exactly through the Feshbach pencil, including
 the full self-energy. This is exact spectral isolation; it does not assert
 that the bare matrix $A_{N_{\mathrm{iso}}}$ has the half-line spectrum.
 
-The distinction follows from (YM86)--(YM87). If
-$N/x^{1/4}\to C<\infty$, the bare matrix converges to the finite-interval
-oscillator and retains the nonzero boundary error $\mu_j(C)-(4j+3)$.
-If $N=o(x^{1/4})$, (YM83) gives
-$\lambda_0(A_N)/\sqrt{x}\to\infty$. Recovery of the half-line values in
-the natural $\sqrt{x}$-scaled problem, together with vanishing discarded
-probability for every fixed low eigenstate, requires the expanding endpoint
+There is a sharp distinction between exact Feshbach isolation and convergence
+of the bare finite section. Let $C_x=N/x^{1/4}=\varepsilon N$ and consider
+any schedule $N=N(x)$ for which the requested fixed eigenvalue is eventually
+defined. If $C_x\to C\in(0,\infty)$, (YM86)--(YM87) give
+
+$$
+\frac{\lambda_j(A_N)}{\sqrt{x}}\longrightarrow\mu_j(C)>4j+3.
+$$
+
+If $C_x\to0$, (YM83), with
+$\sin t\sim t$, gives
+$\lambda_0(A_N)/\sqrt{x}\to\infty$, and the same follows for every higher
+fixed eigenvalue. Thus any schedule on which $C_x$ fails to tend to infinity
+has a subsequence with a bounded further subsequence
+$C_x\to C\in[0,\infty)$, and bare half-line convergence fails on that
+subsequence.
+
+Conversely, suppose $C_x\to\infty$. Rayleigh--Ritz compression gives
+
+$$
+\lambda_j(A_N)\geq\lambda_j(h_x).
+$$
+
+For the reverse bound, fix $\delta>0$ and choose a
+$(j+1)$-dimensional subspace of $C_c^\infty(0,\infty)$ whose largest
+half-line oscillator Rayleigh quotient is at most $4j+3+\delta$. Sampling
+these functions on the $\varepsilon$ lattice gives a
+$(j+1)$-dimensional trial space for $A_N$ once $C_x$ exceeds their common
+support. The same Riemann-sum and difference-quotient calculation used in
+the recovery proof is uniform on this finite-dimensional space. Hence
+
+$$
+4j+3
+\leq\liminf_{x\to\infty}\frac{\lambda_j(A_N)}{\sqrt{x}}
+\leq\limsup_{x\to\infty}\frac{\lambda_j(A_N)}{\sqrt{x}}
+\leq4j+3+\delta.
+$$
+
+Letting $\delta\downarrow0$ proves sufficiency for every fixed $j$.
+
+The discarded-probability statement follows from the full, uncut Jacobi
+form. For $f=(f_0,f_1,\ldots)$ its exact scaled form is
+
+$$
+\mathfrak q_\varepsilon^h[f]
+=\varepsilon\sum_{n=0}^{\infty}
+V_\varepsilon(y_n)|u_n|^2
++\varepsilon^{-1}\left(
+|u_0|^2+\sum_{n=0}^{\infty}|u_{n+1}-u_n|^2
+\right).
+$$
+
+The fixed-space interpolation, weak-liminf, compactness and recovery
+arguments above, now without the moving right boundary, give compact Mosco
+convergence to the Dirichlet half-line oscillator form. Because its
+eigenvalues are simple, normalized character-basis eigenvectors
+$\psi_j^{(x)}$ may be phased so that
+
+$$
+E_\varepsilon^h\psi_j^{(x)}
+\longrightarrow\phi_j
+\quad\text{strongly in }L^2(0,\infty),
+$$
+
+where $E_\varepsilon^h$ is the step isometry on all cells. The exact identity
+
+$$
+\|Q_N\psi_j^{(x)}\|^2
+=\int_{r_\varepsilon}^{\infty}
+|E_\varepsilon^h\psi_j^{(x)}(y)|^2\,dy
+$$
+
+then has two consequences. If $C_x\to C<\infty$, it converges to
+$\int_C^\infty|\phi_j(y)|^2dy>0$. If $C_x\to\infty$, potential coercivity
+and $\mathfrak q_\varepsilon^h[\psi_j^{(x)}]
+=\lambda_j(h_x)/\sqrt{x}=O_j(1)$ give
+
+$$
+\|Q_N\psi_j^{(x)}\|^2
+\leq r_\varepsilon^{-2}
+\frac{\lambda_j(h_x)}{\sqrt{x}}
+\longrightarrow0.
+$$
+
+Therefore, for every fixed low eigenvalue and eigenstate, both bare
+finite-section convergence and vanishing discarded character probability
+hold if and only if
 
 $$
 \boxed{
@@ -2793,17 +3307,13 @@ gN\longrightarrow\infty.
 \tag{YM90}
 $$
 
-For this condition, the finite-interval forms exhaust the half-line form
-domain, $\mu_j(C_x)\to4j+3$ as $C_x=N/x^{1/4}\to\infty$, and the
-oscillator tail beyond $C_x$ has vanishing probability.
 The frozen choices $N_{\mathrm{fixed}}=8$,
-$N_C=\lceil2x^{1/4}\rceil$,
-$N_{\mathrm{iso}}=\lceil4x^{1/4}\rceil$,
-$N_{\mathrm{grow}}=\lceil x^{1/4}\log(2+x)\rceil$, and
-$N_{1/2}=\lceil2\sqrt{x}\rceil$ consequently classify as follows:
-$N_{\mathrm{fixed}}$ and $N_C$ have bounded ratios and fail bare
-convergence; $N_{\mathrm{iso}}$ supplies fixed-window exact isolation;
-and $N_{\mathrm{grow}}$ and $N_{1/2}$ satisfy (YM90).
+$N_C=\lceil2x^{1/4}\rceil$, and
+$N_{\mathrm{iso}}=\lceil4x^{1/4}\rceil$ all have bounded $C_x$ and fail
+bare convergence. The last nevertheless supplies the separate exact
+fixed-window Feshbach isolation proved in (YM88)--(YM89).
+$N_{\mathrm{grow}}=\lceil x^{1/4}\log(2+x)\rceil$ and
+$N_{1/2}=\lceil2\sqrt{x}\rceil$ satisfy (YM90).
 
 #### 9.18.8 Scope of the result
 
@@ -3034,6 +3544,10 @@ microscopic completions.
 | Static pure configuration-marginal blocking | **Excluded** as an exact quantum reduction by (YM39)–(YM41) | Mixed reduced states or energy-dependent resolvents retain the missing data |
 | Exact path-holonomy pullback (YM42)–(YM48) | **Derived** regulated kinematic identities | Edge-simple disjoint paths, normalized Haar measure and compatible endpoint gauge action |
 | Bare cylindrical full-Hamiltonian block map | **Excluded** on the fixed $2\times2$ refinement by (YM49)–(YM53) | Interacting fibres or energy-dependent reductions must retain discarded plaquette information |
+| Continuous-$SU(2)$ isolated-square Feshbach pencil and bounds (YM57)–(YM77) | **Derived** for the regulated class-function operator | Exact energy-dependent self-energy retained; no many-plaquette or volume-uniform implication |
+| Fixed-level weak-coupling square spectrum (YM78)–(YM81) | **Derived** | The physical $2\sqrt2/a$ leading spacing is an isolated ultraviolet plaquette normalization |
+| Finite-scaled-cutoff form limits and fixed-window isolation (YM82)–(YM89) | **Derived** | Fixed $N/x^{1/4}=C$ isolates through the exact Feshbach self-energy but does not make the bare compression converge |
+| Bare character-cutoff theorem (YM90) | **Derived** | For every fixed low level, bare spectral convergence and vanishing discarded mass hold iff $N/x^{1/4}\to\infty$, equivalently $gN\to\infty$ |
 | Fixed fundamental-boundary internal Gauss fibre (YM91)–(YM96) | **Derived** within established $SU(2)$ representation theory | Exactly 14 states for $j_{\max}\geq1$; Wilson multiplication exits the fixed boundary sector |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
@@ -3099,6 +3613,47 @@ receipt hashes and classifications are in
 **SUPPORTS** for the regulated electric and square controls,
 **CONTRADICTS** for autonomous projector-only Hamiltonian closure, and
 **UNRESOLVED** for the weak-bare-coupling uniform estimate and continuum construction.
+
+The isolated-square radial Feshbach v2 schedule in
+`computations/yang-mills-radial-feshbach-v2-prereg.md` is implemented by
+`computations/verify_yang_mills_radial_feshbach_v2.py` and the
+source-independent JavaScript reconstruction
+`computations/verify_yang_mills_radial_feshbach_v2_independent.mjs`.
+The qualified `verification-r3.json` passes **61 top-level checks** and
+records 8 symbolic rows, 24 determinant rows, 131 continued-fraction rows,
+262 finite-tail rows, 15 resolvent rows, 18 reference-eigenvector rows,
+12 continuous-angle spectrum rows, 30 cutoff rows and 6 Feshbach
+reconstructions. The qualified `verification-independent-r3.json` passes
+**20 independent qualification checks**, including source/snapshot binding,
+an independently implemented continuous-angle Dirichlet spectrum, direct
+tail solves, finite-section reconstruction, doubled-reference convergence,
+Feshbach reconstruction and weak-coupling landmarks.
+
+Across the five frozen cutoff schedules, the largest primary relative errors
+against the doubled-terminal low spectrum are
+$0.948000338655$ (fixed),
+$0.478050400541$ ($C=2$),
+$0.00395035778556$ (fixed-window isolation),
+$0.0136990350912$ (growing), and
+$0.0136990350912$ (square-root). These finite rows are numerical controls,
+not proofs of the limiting classifications. The final source-only
+`analytical-review-final.json` reconciles the operator-domain, weak-coupling,
+Mosco/min–max and arbitrary-schedule arguments in §§9.18.1–9.18.7. It
+classifies the exact isolated-square Feshbach transfer and bounds and the
+character-cutoff theorem **ADOPT**, the frozen numerical controls
+**SUPPORTS**, and a fixed or $o(x^{1/4})$ bare cutoff
+**CONTRADICTS** as a weak-coupling low-energy truncation.
+
+The required version-isolation control
+`v1-rejection-r3.json` has status **FAIL** because the v2 checker rejects the
+v1 schema, manifest, basenames and missing v2 row inventories; this is the
+expected negative-control outcome. The retained r2 and diagnostic receipts
+are excluded from qualification. Qualified artifacts and
+their frozen source snapshots are in
+`runs/yang_mills_radial_feshbach_v2/`. Interacting refined fibres,
+volume-uniform weak-coupling control, the thermodynamic limit, the continuum
+quantum field, continuum mass and Cassi microscopic identification remain
+**UNRESOLVED**.
 
 The connected-block schedule in
 `computations/yang-mills-connected-block-prereg.md` is implemented by
@@ -3201,6 +3756,12 @@ control, the continuum quantum field and its mass remain **UNRESOLVED**.
   microscopic information under gauge coarse graining
 - C. W. Bauer, I. D'Andrea, M. Freytsis and D. M. Grabowska, [A new basis for Hamiltonian SU(2) simulations](https://arxiv.org/abs/2307.11829), §§II–IV and Appendix B—normalization, gauge reduction and physical square spectrum
 - NIST Digital Library of Mathematical Functions, [§28.8, Mathieu large-parameter asymptotics](https://dlmf.nist.gov/28.8)—fixed-level characteristic-value asymptotics
+- `computations/yang-mills-radial-feshbach-v2-prereg.md`—frozen
+  operator-domain, weak-coupling and character-cutoff protocol
+- `computations/verify_yang_mills_radial_feshbach_v2.py`—source-bound
+  radial Feshbach and cutoff controls
+- `computations/verify_yang_mills_radial_feshbach_v2_independent.mjs`—independent
+  continuous-angle, continued-fraction and finite-section reconstruction
 - A. Jaffe and E. Witten, [Quantum Yang–Mills Theory](https://www.claymath.org/wp-content/uploads/2022/06/yangmills.pdf), §4—continuum existence and mass-gap requirements
 - D. A. Yarotsky, [Ground states in relatively bounded quantum perturbations of classical lattice systems](https://arxiv.org/abs/math-ph/0412040), Theorems 1–2 and Remark Eq. (6)—volume-uniform strong-coupling stability, connected correlations and relatively bounded perturbations
 - `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule

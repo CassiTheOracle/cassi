@@ -749,11 +749,19 @@ constraints give an exact 14-state internal Gauss fibre for
 $j_{\max}\geq1$ and conditional electric spacing $2g^2/a$. Fundamental
 plaquette multiplication changes the fixed outer representation sector, so
 the 14-state fibre is not dynamically closed. Pure graph subdivision has no
-leakage, so path length alone does not determine the block dynamics. These
-results leave the boundary-sector recoupling amplitudes and self-energy
-estimate open. Weak-bare-coupling uniformity and the four-dimensional
-continuum construction remain open. The carrier-state identification and
-QF/DQ/GQ classifications remain unchanged.
+leakage, so path length alone does not determine the block dynamics.
+The isolated-square class-function operator nevertheless has an exact
+energy-dependent Feshbach pencil, a positive Stieltjes self-energy and
+fixed-window isolation. For every fixed low level, the bare character cutoff
+converges with vanishing discarded mass exactly when
+$N/x^{1/4}\longrightarrow\infty$, equivalently $gN\longrightarrow\infty$.
+Fixed and finite-$N/x^{1/4}$ schedules therefore fail as bare weak-coupling
+limits; the exact Feshbach reduction remains valid at the scaled cutoff. This
+one-plaquette ultraviolet result supplies no interacting-fibre or
+volume-uniform estimate. Boundary-sector recoupling, a volume-uniform
+resolvent bound, the thermodynamic and four-dimensional continuum limits, a
+regulator-independent mass gap, and carrier-state identification remain open.
+The QF/DQ/GQ classifications remain unchanged.
 
 The completion ansatz in
 `foundations/geometric-manifold-completion.md` places these finite layers in
