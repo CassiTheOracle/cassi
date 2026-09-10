@@ -302,6 +302,15 @@ $2.08166817117\times10^{-17}$. The CLI smoke in `cli-smoke.npz` has the same
 endpoint values as the finest coupled run. The native density/Poisson
 solver and the separate §12 feasibility decision are unchanged.
 
+The exact-commit reproduction in
+`runs/cassi_fluid_thermodynamics/committed_reproduction/` binds all six source
+snapshots byte-for-byte to commit `29969d59` and returns the same 395 passing
+checks, 27 trajectories, 82 array values, check rows, trajectory rows and CLI
+endpoint. Five original source blobs are byte-identical to the commit; the
+`foundations/cassi-theory-reference.md` snapshot differs solely by CRLF/LF.
+The adjacent `git-source-map.json` and `reconciliation.json` record both
+hashes and the value-identical results.
+
 ## 14. Unforced cumulative mixing
 
 A decaying shear coupled one-way to a third velocity component gives an
