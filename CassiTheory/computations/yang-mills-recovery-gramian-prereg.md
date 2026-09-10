@@ -1,6 +1,6 @@
 # Yang–Mills Residual Recovery and Score-Penalty Gramian Preregistration
 
-## Status: Frozen protocol—September 2026
+## Status: Frozen protocol v2—September 2026
 
 ## 1. Question and scope
 
@@ -11,7 +11,7 @@ The exact conditional theorems in `foundations/loop-to-bubble-projection-theorem
 1. conditional residual projections, whose lower coercivity is approximate tensorization;
 2. transported-score operators, whose upper norm consumes physical gap margin.
 
-This protocol proves that these roles cannot be interchanged. A recovery-or-rigidity argument must use a residual Gramian. A lower bound on a score Gramian is not a gap mechanism. The result is an abstract finite-regulator theorem; it does not supply the exact-vacuum estimates, a thermodynamic limit, or a continuum Yang–Mills construction.
+These roles cannot be interchanged: the residual Gramian acts on the physical function Hilbert space, while the score Gramian acts on coarse tangent directions. A recovery-or-rigidity argument for variance must use residual projections. A lower bound on a score Gramian is not a gap mechanism. The result is an abstract finite-regulator theorem; it does not supply the exact-vacuum estimates, a thermodynamic limit, or a continuum Yang–Mills construction.
 
 ## 2. Frozen analytical obligations
 
@@ -122,7 +122,11 @@ For isometries \(T_{j\to n}:\mathcal H_n\to\mathcal H_j\) between declared scale
 \sum_{j\le n}w_jT_{j\to n}^*R_jT_{j\to n}.
 \]
 
-If \(\mathcal N_n\) is the declared constant/gauge null space, quantitative recovery is
+Let \(\mathcal N_n\) be a declared nonphysical null subspace. Before
+centering it can contain constants; in an unreduced auxiliary
+representation it can also encode gauge redundancies. The centered
+gauge-invariant function space normally has these directions removed.
+Quantitative recovery is
 
 \[
 \mathscr R_n
@@ -132,7 +136,9 @@ If \(\mathcal N_n\) is the declared constant/gauge null space, quantitative reco
 \gamma_*>0
 \]
 
-uniformly in regulator and scale. Rigidity identifies \(\ker\mathscr R_n=\mathcal N_n\); recovery additionally requires the uniform positive spectral floor \(\gamma_*\).
+uniformly in regulator and scale. Rigidity identifies
+\(\ker\mathscr R_n=\mathcal N_n\); recovery additionally requires the
+uniform positive spectral floor \(\gamma_*\).
 
 ### YMRG3. Score Gramian has the opposite sign role
 
@@ -179,9 +185,16 @@ s_v=0,
 \mathsf K=0.
 \]
 
-The nonconstant coarse function \(f(v,r)=v\) lies in \(\ker\mathsf K\), while the full Gaussian Poincaré rate is \(2\). Therefore a score near-kernel need not be gauge or rigid; it can be a healthy coarse physical direction.
+The nonconstant coarse function \(f(v,r)=v\) selects the tangent direction
+\(\xi=\partial_v\), and this direction lies in \(\ker\mathsf K\), while the
+full Gaussian Poincaré rate is \(2\). Therefore a score near-kernel need not
+be gauge or rigid; it can be a healthy coarse physical direction.
 
-For the fibre-only conditional expectation \(P_rf=\mathbb E(f\mid v)\), the residual \(R_r=I-P_r\) also annihilates \(v\). This shows that a block family which does not cover all physical directions has \(\gamma_{\rm rec}=0\), even when its conditional rate is positive.
+For the fibre-only conditional expectation
+\(P_rf=\mathbb E(f\mid v)\), the residual \(R_r=I-P_r\) annihilates the
+function \(v\). This shows that a block family which does not cover all
+physical function directions has \(\gamma_{\rm rec}=0\), even when its
+conditional rate is positive.
 
 ### YMRG5. Finite projection and quotient controls
 
