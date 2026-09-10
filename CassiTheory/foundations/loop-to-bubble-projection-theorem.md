@@ -2243,6 +2243,576 @@ weak-coupling volume bounds, the thermodynamic and continuum limits, the
 continuum mass gap and Cassi microscopic identification remain
 **UNRESOLVED**.
 
+### 9.18 Continuous-\(SU(2)\) radial Feshbach transfer
+
+This section gives the exact cutoff reduction for one continuous-\(SU(2)\)
+isolated open square. The electric-character cutoff produces a finite
+Feshbach pencil whose discarded tail is an energy-dependent scalar
+self-energy. The same calculation shows why a cutoff of order
+\(x^{1/4}\) can isolate a fixed low-energy window while bare compression
+requires a cutoff whose ratio to \(x^{1/4}\) diverges.
+
+#### 9.18.1 Radial Hilbert space and operator domain
+
+The continuous group is represented by the normalized Haar class-function
+sector, so the character index is an infinite Hilbert-space coordinate rather
+than a finite quadrature label. With \(n=2j\), the orthonormal basis,
+Haar measure, and character functions are
+
+$$
+\mathcal H_\square
+:=L^2\!\left([0,\pi],\frac{2}{\pi}\sin^2\theta\,d\theta\right),
+\qquad
+\mathcal H_\square\xrightarrow[\{|n\rangle\}]{\cong}\ell^2(\mathbb N_0),
+\qquad
+|n\rangle:=\chi_{n/2},\qquad
+d\mu(\theta)=\frac{2}{\pi}\sin^2\theta\,d\theta,
+\qquad
+\chi_{n/2}(\theta)=\frac{\sin((n+1)\theta)}{\sin\theta}.
+\tag{YM57}
+$$
+
+The character basis in (YM57) supplies the coordinate realization of the same
+continuous-group Hilbert space. Define
+\(k_n=n(n+2)\). The multiplication recurrence
+\(\chi_{1/2}\chi_{n/2}=\chi_{(n-1)/2}+\chi_{(n+1)/2}\), with the first term
+absent at \(n=0\), gives the half-line Jacobi operator below:
+
+$$
+\begin{aligned}
+K|n\rangle&=k_n|n\rangle,\qquad
+D(K)=\left\{f\in\ell^2:\sum_{n=0}^{\infty}k_n^2|f_n|^2<\infty\right\},\\
+T|0\rangle&=|1\rangle,\qquad
+T|n\rangle=|n-1\rangle+|n+1\rangle\quad(n\geq1),\qquad
+\|T\|=2,\\
+\langle f,(2I-T)f\rangle
+&=|f_0|^2+\sum_{n=0}^{\infty}|f_{n+1}-f_n|^2\geq0.
+\end{aligned}
+\tag{YM58}
+$$
+
+The last identity first holds for finitely supported \(f\) and then by
+closure. The bound \(\|T\|\leq2\) follows from the two nearest-neighbor
+terms, and long constant blocks give approximate vectors with Rayleigh
+quotient tending to \(2\), proving equality. Thus \(K\) is nonnegative
+self-adjoint on \(D(K)\), while \(T\) is bounded self-adjoint. For \(g,a>0\),
+use exactly
+
+$$
+x=\frac{2}{g^4},\qquad
+h_x=K+x(2I-T),\qquad
+H_\square=\frac{g^2}{2a}h_x,\qquad
+D(h_x)=D(K),\qquad h_x\geq0.
+\tag{YM59}
+$$
+
+The bounded-perturbation theorem gives self-adjointness on \(D(K)\).
+Since \((K+1)^{-1}\) is compact, the resolvent identity for a bounded
+perturbation gives compact resolvent for \(h_x\). The same argument on
+\(Q_N\mathcal H_\square\) gives self-adjointness on \(Q_ND(K)\), compact
+resolvent, and discrete spectrum for every tail used below.
+
+The radial unitary \(U:\mathcal H_\square\to L^2((0,\pi),d\theta)\) is
+\((U\psi)(\theta)=\sqrt{2/\pi}\sin\theta\,\psi(\theta)\). Since
+\(U|n\rangle=\sqrt{2/\pi}\sin((n+1)\theta)\), direct differentiation and
+multiplication by \(1-\cos\theta\) give
+
+$$
+U h_xU^{-1}
+=\widetilde h_x
+:=-\frac{d^2}{d\theta^2}-1+2x(1-\cos\theta),
+\qquad
+D(\widetilde h_x)=H^2(0,\pi)\cap H_0^1(0,\pi).
+\tag{YM60}
+$$
+
+The endpoint conditions are the radial Dirichlet conditions. This establishes
+the continuous-\(SU(2)\) operator before any finite-section or numerical
+approximation.
+
+#### 9.18.2 Exact Schur reduction and Weyl identities
+
+For \(N\geq0\), retain characters \(0,\ldots,N\) and write
+
+$$
+P_N=\sum_{n=0}^{N}|n\rangle\langle n|,\qquad
+Q_N=I-P_N,\qquad
+A_N=P_Nh_xP_N,\qquad
+D_N=Q_Nh_xQ_N,\qquad
+V_N=P_Nh_xQ_N=-x|N\rangle\langle N+1|.
+\tag{YM61}
+$$
+
+For \(z\in\rho(D_N)\), put \(B_N(z)=D_N-z\) and
+\[
+m_{N+1}(z):=\langle N+1|B_N(z)^{-1}|N+1\rangle .
+\]
+Eliminating the \(Q_N\)-component is an exact operation on the operator
+domain. The block Gaussian factorization is
+
+$$
+\begin{pmatrix}A_N-z&V_N\\ V_N^*&B_N(z)\end{pmatrix}
+=
+\begin{pmatrix}I&V_NB_N(z)^{-1}\\0&I\end{pmatrix}
+\begin{pmatrix}F_N(z)&0\\0&B_N(z)\end{pmatrix}
+\begin{pmatrix}I&0\\B_N(z)^{-1}V_N^*&I\end{pmatrix},
+\tag{YM62}
+$$
+
+where
+
+$$
+F_N(z)
+:=A_N-zP_N-V_NB_N(z)^{-1}V_N^*
+:=P_N(h_x-z)P_N
+-x^2m_{N+1}(z)|N\rangle\langle N|.
+\tag{YM63}
+$$
+
+The two triangular factors in (YM62) are boundedly invertible. Therefore,
+including algebraic multiplicity of a finite-order spectral zero,
+
+$$
+z\in\sigma(h_x)
+\quad\Longleftrightarrow\quad
+0\in\sigma(F_N(z)),
+\qquad z\in\rho(D_N).
+\tag{YM64}
+$$
+
+Indeed, if \(p=P_N\psi\), the second block equation gives the unique
+discarded component
+
+$$
+Q_N\psi
+=-(D_N-z)^{-1}V_N^*p
+=x\,p_N(D_N-z)^{-1}|N+1\rangle,
+\qquad p_N=\langle N|p\rangle.
+\tag{YM65}
+$$
+
+Conversely, (YM65) reconstructs a vector in the domain from every
+\(p\in\ker F_N(z)\). This gives the eigenspace correspondence directly;
+the factorization gives the corresponding analytic multiplicity statement.
+
+To make the tail scalar explicit, let \(D^{(n)}\) be the restriction of
+\(h_x\) to \(\ell^2(\{n,n+1,\ldots\})\), define
+\(m_n(z)=\langle n|(D^{(n)}-z)^{-1}|n\rangle\), and set
+\(d_n=k_n+2x\). Schur elimination of the first tail site gives
+
+$$
+m_n(z)=\frac{1}{d_n-z-x^2m_{n+1}(z)}.
+\tag{YM66}
+$$
+
+For the finite tail \(n,\ldots,M\), define
+
+$$
+\Delta_{n,M}(z)
+:=(d_n-z)\Delta_{n+1,M}(z)-x^2\Delta_{n+2,M}(z),
+\qquad
+\Delta_{M+1,M}=1,\qquad
+\Delta_{M+2,M}=0,
+\qquad
+m_n^{(M)}(z)=\frac{\Delta_{n+1,M}(z)}{\Delta_{n,M}(z)}.
+\tag{YM67}
+$$
+
+The finite resolvents converge at a fixed resolvent point to the half-line
+resolvent, so \(m_n^{(M)}(z)\) converges to \(m_n(z)\). If
+\(h_x^{(M)}=P_Mh_xP_M\) and \(D_N^{(M)}\) is its restriction to
+\(N+1,\ldots,M\), the same block factorization gives the determinant
+identity
+
+$$
+\frac{\det(h_x^{(M)}-z)}
+{\det(D_N^{(M)}-z)}
+=\det F_N^{(M)}(z).
+\tag{YM68}
+$$
+
+For real \(E<\inf\sigma(D_N)\), the spectral measure \(\nu_{N+1}\) of
+\(D_N\) at \(|N+1\rangle\) yields
+
+$$
+m_{N+1}(E)
+=\int\frac{d\nu_{N+1}(\lambda)}{\lambda-E}>0,\qquad
+m_{N+1}'(E)
+=\int\frac{d\nu_{N+1}(\lambda)}{(\lambda-E)^2}>0,\qquad
+m_n'(E)=m_n(E)^2\bigl(1+x^2m_{n+1}'(E)\bigr).
+\tag{YM69}
+$$
+
+The first two identities follow by differentiating the resolvent under the
+spectral integral; the last follows by differentiating (YM66). They provide
+the derivative needed for both the pole test and tail reconstruction.
+
+#### 9.18.3 Jensen, free-tail, and self-energy bounds
+
+Let \(r=N+1\), \(E<k_r\), and \(\delta=k_r-E>0\). On the tail, let \(L_+\)
+be the Dirichlet half-line Laplacian,
+\((L_+f)_r=2f_r-f_{r+1}\) and
+\((L_+f)_n=2f_n-f_{n-1}-f_{n+1}\) for \(n>r\). Since \(k_n\geq k_r\),
+
+$$
+B_N(E):=D_N-E\geq\delta I+xL_+,\qquad
+\langle r|B_N(E)|r\rangle=\delta+2x,\qquad
+m_r(E)\geq\frac{1}{\delta+2x}.
+\tag{YM70}
+$$
+
+The last inequality is Jensen's inequality for \(t\mapsto t^{-1}\) applied
+to the spectral measure of \(B_N(E)\):
+\(\int t^{-1}d\nu(t)\geq(\int t\,d\nu)^{-1}\). The operator order in the
+first inequality reverses under inversion. The boundary Green function of
+the free comparison tail therefore satisfies
+
+$$
+\begin{aligned}
+g_+(\delta,x)
+&:=\langle r|(\delta I+xL_+)^{-1}|r\rangle
+=\frac{1}{\delta+2x-x^2g_+(\delta,x)}\\
+&=\frac{\delta+2x-\sqrt{\delta(\delta+4x)}}{2x^2}
+=\frac{2}{\delta+2x+\sqrt{\delta(\delta+4x)}}.
+\end{aligned}
+\tag{YM71}
+$$
+
+The positive solution is selected by \(g_+>0\). Define
+\(\Sigma_N(E)=x^2m_r(E)\) and
+\[
+s(\delta,x):=x^2g_+(\delta,x)
+\]
+to obtain the complete self-energy bracket
+
+$$
+\boxed{
+\frac{x^2}{\delta+2x}
+\leq\Sigma_N(E)
+\leq s(\delta,x)
+:=\frac{\delta+2x-\sqrt{\delta(\delta+4x)}}{2}
+:=\frac{2x^2}{\delta+2x+\sqrt{\delta(\delta+4x)}}
+\leq\min\left\{x,\frac{x^2}{\delta}\right\}.
+}
+\tag{YM72}
+$$
+
+The two final estimates follow directly from the two forms of \(s\). Since
+\(F_N(E)=A_N-E-\Sigma_N(E)|N\rangle\langle N|\), (YM72) also gives
+
+$$
+A_N-E-s(\delta,x)|N\rangle\langle N|
+\leq F_N(E)
+\leq A_N-E-\frac{x^2}{\delta+2x}|N\rangle\langle N|.
+\tag{YM73}
+$$
+
+At an eigenvalue \(E<\inf\sigma(D_N)\), choose \(p\in\ker F_N(E)\) with
+\(\|p\|=1\). Equations (YM65) and (YM69) then give
+
+$$
+\|Q_N\psi\|^2
+=x^2|p_N|^2m_{N+1}'(E),\qquad
+-F_N'(E)
+=I+x^2m_{N+1}'(E)|N\rangle\langle N|.
+\tag{YM74}
+$$
+
+Thus the discarded probability and the normalization correction are obtained
+from the differentiated Weyl function itself. In particular,
+\(\delta=o(x)\) forces \(\Sigma_N(E)=\Theta(x)\), while
+\(\delta/x\to\infty\) gives \(\Sigma_N(E)\sim x^2/\delta\). The exact
+self-energy is consequently of the same order as the magnetic diagonal
+term whenever the tail threshold approaches the low energy on a scale
+smaller than \(x\).
+
+#### 9.18.4 Negative-axis resolvent estimates
+
+Set \(z=-\eta\) with \(\eta>0\), \(B_\eta=D_N+\eta\), and
+\[
+S_\eta:=A_N+\eta-V_NB_\eta^{-1}V_N^* .
+\]
+Because \(D_N>0\), \(h_x\geq0\) implies
+\(A_N-V_ND_N^{-1}V_N^*\geq0\). Also
+\(B_\eta^{-1}\leq D_N^{-1}\), so \(S_\eta\geq\eta P_N\). Block inversion
+therefore gives
+
+$$
+P_N(h_x+\eta)^{-1}P_N=S_\eta^{-1},\qquad
+Q_N(h_x+\eta)^{-1}P_N
+=-B_\eta^{-1}V_N^*S_\eta^{-1}.
+\tag{YM75}
+$$
+
+Now \(\|B_\eta^{-1}\|\leq(k_r+\eta)^{-1}\),
+\(\|V_N\|=x\), and both \(S_\eta^{-1}\) and
+\((A_N+\eta)^{-1}\) have norm at most \(\eta^{-1}\). The inverse identity
+\[
+S_\eta^{-1}-(A_N+\eta)^{-1}
+=S_\eta^{-1}V_NB_\eta^{-1}V_N^*(A_N+\eta)^{-1}
+\]
+then proves
+
+$$
+\left\|P_N(h_x+\eta)^{-1}P_N-(A_N+\eta)^{-1}\right\|
+\leq\frac{x^2}{\eta^2(k_r+\eta)}.
+\tag{YM76}
+$$
+
+The off-diagonal block in (YM75) gives the companion estimate
+
+$$
+\left\|Q_N(h_x+\eta)^{-1}P_N\right\|
+\leq\frac{x}{\eta(k_r+\eta)}.
+\tag{YM77}
+$$
+
+At \(\eta=c\sqrt{x}\), the first right-hand side tends to zero under the
+sufficient unweighted condition \(N/\sqrt{x}\to\infty\), because
+\(k_r\sim N^2\). To make it negligible compared with the natural resolvent
+scale \(x^{-1/2}\), the sufficient condition is
+\(N/x^{3/4}\to\infty\). These are conservative operator-norm estimates and
+do not replace the low-energy form argument below.
+
+#### 9.18.5 Weak-coupling Mathieu scale
+
+The radial equation becomes a Mathieu equation after \(z=\theta/2\):
+
+$$
+\frac{d^2u}{dz^2}
++\left[4(\lambda+1-2x)+8x\cos(2z)\right]u=0,
+\qquad
+a_{\mathrm M}=4(\lambda+1-2x),\qquad
+q_{\mathrm M}=-4x=-\frac{8}{g^4}.
+\tag{YM78}
+$$
+
+The Dirichlet endpoints select the even-order sine characteristic values.
+For the fixed-level asymptotics, put \(y=x^{1/4}\theta\). Taylor expansion of
+the same differential operator gives, on every fixed \(y\)-compact set,
+
+$$
+x^{-1/2}\widetilde h_x
+=-\frac{d^2}{dy^2}+y^2
++x^{-1/2}\left(-1-\frac{y^4}{12}\right)
++O(x^{-1}y^6),
+\qquad
+0<y<\pi x^{1/4}.
+\tag{YM79}
+$$
+
+The limiting operator is the Dirichlet half-line oscillator. Its \(j\)-th
+state is the odd full-line oscillator state of index \(2j+1\), with energy
+\(4j+3\). The first perturbation is obtained by taking the expectation of
+\(-1-y^4/12\). Writing \(y=(a+a^\dagger)/\sqrt2\) in oscillator units and
+normal-ordering \(y^4\) gives the displayed fourth moment:
+
+$$
+\left\langle\phi_{2j+1},y^4\phi_{2j+1}\right\rangle
+=6j^2+9j+\frac{15}{4},\qquad
+c_j=-1-\frac{1}{12}\left(6j^2+9j+\frac{15}{4}\right),
+\qquad
+\lambda_j(h_x)=(4j+3)\sqrt{x}+c_j+O(x^{-1/2}).
+\tag{YM80}
+$$
+
+The oscillator states are exponentially localized while the far endpoint is
+\(\pi x^{1/4}\), so the Taylor remainder and endpoint error have the stated
+order for each fixed \(j\).
+
+Subtracting the \(j=0\) expansion gives the gap formula below. Since
+\(c_1-c_0=-5/4\) and \(\sqrt{x}=\sqrt2/g^2\), multiplication by
+\(g^2/(2a)\) gives the isolated-square physical spacing
+
+$$
+\lambda_j(h_x)-\lambda_0(h_x)
+=4j\sqrt{x}
+-\left(\frac{j^2}{2}+\frac{3j}{4}\right)
++O(x^{-1/2}),
+\qquad
+\Delta_{\square,1}
+=\frac{g^2}{2a}\bigl[\lambda_1(h_x)-\lambda_0(h_x)\bigr]
+=\frac{2\sqrt2}{a}-\frac{5g^2}{8a}+O(g^4/a).
+\tag{YM81}
+$$
+
+The leading \(2\sqrt2/a\) is an isolated ultraviolet plaquette
+normalization. It is not a volume-uniform interacting mass or a continuum
+prediction.
+
+#### 9.18.6 Retained and discarded forms
+
+For \(f=(f_0,\ldots,f_N)\), the retained finite section has the exact form
+
+$$
+\begin{aligned}
+\langle f,A_Nf\rangle
+={}&\sum_{n=0}^{N}k_n|f_n|^2\\
+&+x\left(
+|f_0|^2+|f_N|^2+\sum_{n=0}^{N-1}|f_{n+1}-f_n|^2
+\right).
+\end{aligned}
+\tag{YM82}
+$$
+
+The bracketed term is the Dirichlet discrete Laplacian on
+\(0,\ldots,N\). Its sine eigenvectors have lowest eigenvalue
+\(4\sin^2[\pi/(2(N+2))]\), hence
+
+$$
+\lambda_0(A_N)\geq
+4x\sin^2\frac{\pi}{2(N+2)}.
+\tag{YM83}
+$$
+
+For \(f=(f_{N+1},f_{N+2},\ldots)\), the discarded tail has the different
+boundary form
+
+$$
+\begin{aligned}
+\langle f,D_Nf\rangle
+={}&\sum_{n=N+1}^{\infty}k_n|f_n|^2\\
+&+x\left(
+|f_{N+1}|^2+\sum_{n=N+1}^{\infty}|f_{n+1}-f_n|^2
+\right).
+\end{aligned}
+\tag{YM84}
+$$
+
+These identities retain the electric potential and every boundary term; the
+bare section \(A_N\) simply removes the tail and its self-energy.
+
+Let \(\varepsilon=x^{-1/4}\), \(y_n=\varepsilon n\), \(C_x=\varepsilon N\),
+and rescale a sequence by \(u_n=\varepsilon^{-1/2}f_n\), so
+\(\sum_n|f_n|^2\) is a Riemann sum for \(\int|u|^2dy\). Then
+
+$$
+\frac{k_n}{\sqrt{x}}=y_n^2+2\varepsilon y_n,\qquad
+x^{-1/2}x\sum_n|f_{n+1}-f_n|^2
+=\varepsilon^{-1}\sum_n|u_{n+1}-u_n|^2,\qquad
+x^{-1/2}x|f_n|^2=\varepsilon^{-1}|u_n|^2.
+\tag{YM85}
+$$
+
+The middle expression converges to \(\int|u'|^2dy\) under piecewise-linear
+interpolation. The last expression diverges unless the interpolated function
+vanishes at the associated finite endpoint. Thus the two boundary penalties
+in (YM82) impose Dirichlet data at \(y=0,C\), while the one in (YM84) imposes
+Dirichlet data at \(y=C\).
+
+If \(N/x^{1/4}\to C\in(0,\infty)\), the Riemann-sum calculation, lower
+semicontinuity, and compactly supported recovery sequences give the form
+limits
+
+$$
+x^{-1/2}A_N\xrightarrow{\mathrm{form}}
+H_{\mathrm{osc}}^{(0,C)}
+:=-\frac{d^2}{dy^2}+y^2
+\quad\hbox{on }(0,C),
+\qquad
+x^{-1/2}D_N\xrightarrow{\mathrm{form}}
+H_{\mathrm{osc}}^{(C,\infty)}
+:=-\frac{d^2}{dy^2}+y^2
+\quad\hbox{on }(C,\infty).
+\tag{YM86}
+$$
+
+The first limit has Dirichlet conditions at both \(0\) and \(C\); the second
+has Dirichlet data at \(C\) and the usual form condition at infinity. More
+explicitly, the limiting form domains are
+\(H_0^1(0,C)\cap L^2((0,C),y^2dy)\) and
+\(\{u\in H^1(C,\infty):u(C)=0,\ yu\in L^2(C,\infty)\}\).
+Min--max convergence gives, for ordered eigenvalues \(\mu_j(C)\) and the
+tail bottom \(\nu_0(C)\),
+
+$$
+\frac{\lambda_j(A_N)}{\sqrt{x}}\longrightarrow\mu_j(C),\qquad
+\mu_j(C)>4j+3,\qquad
+\nu_0(C):=\inf\sigma(H_{\mathrm{osc}}^{(C,\infty)})\geq C^2,\qquad
+\frac{\inf\sigma(D_N)}{\sqrt{x}}\longrightarrow\nu_0(C).
+\tag{YM87}
+$$
+
+The inequality for \(\mu_j(C)\) is the min--max comparison with the
+half-line oscillator. Equality would require the same-index half-line
+eigenfunction to satisfy the extra Dirichlet condition at \(C\); Sturm
+oscillation and uniqueness rule that out. The bound on \(\nu_0(C)\) follows
+from \(y^2\geq C^2\) on the tail.
+
+#### 9.18.7 Fixed-window isolation and the bare-tail condition
+
+Take the frozen low window \(J=2\), the margin
+\(\delta_{\mathrm{iso}}=1\), and \(C_J=4\). Since
+\(C_J^2=16>4J+3+2\delta_{\mathrm{iso}}=13\), set
+
+$$
+N_{\mathrm{iso}}=\left\lceil4x^{1/4}\right\rceil,\qquad
+\frac{\lambda_J(h_x)}{\sqrt{x}}\longrightarrow11,\qquad
+\frac{k_{N_{\mathrm{iso}}+1}}{\sqrt{x}}\longrightarrow16,\qquad
+\frac{\inf\sigma(D_{N_{\mathrm{iso}}})}{\sqrt{x}}
+\longrightarrow\nu_0(4)\geq16.
+\tag{YM88}
+$$
+
+Consequently, for all sufficiently large \(x\),
+
+$$
+\lambda_J(h_x)
+<k_{N_{\mathrm{iso}}+1}-\delta_{\mathrm{iso}}\sqrt{x}
+\leq\inf\sigma(D_{N_{\mathrm{iso}}})
+-\delta_{\mathrm{iso}}\sqrt{x}.
+\tag{YM89}
+$$
+
+Every eigenvalue \(\lambda_j(h_x)\) with \(0\leq j\leq J\) therefore lies
+below the first discarded eigenvalue by a fixed \(O(\sqrt{x})\) margin. The
+Weyl function has no tail pole in this fixed window, and (YM63)--(YM65)
+recover each low eigenpair exactly through the Feshbach pencil, including
+the full self-energy. This is exact spectral isolation; it does not assert
+that the bare matrix \(A_{N_{\mathrm{iso}}}\) has the half-line spectrum.
+
+The distinction follows from (YM86)--(YM87). If
+\(N/x^{1/4}\to C<\infty\), the bare matrix converges to the finite-interval
+oscillator and retains the nonzero boundary error \(\mu_j(C)-(4j+3)\).
+If \(N=o(x^{1/4})\), (YM83) gives
+\(\lambda_0(A_N)/\sqrt{x}\to\infty\). Recovery of the half-line values in
+the natural \(\sqrt{x}\)-scaled problem, together with vanishing discarded
+probability for every fixed low eigenstate, requires the expanding endpoint
+
+$$
+\boxed{
+\frac{N}{x^{1/4}}\longrightarrow\infty,
+\qquad\text{equivalently}\qquad
+gN\longrightarrow\infty.
+}
+\tag{YM90}
+$$
+
+For this condition, the finite-interval forms exhaust the half-line form
+domain, \(\mu_j(C_x)\to4j+3\) as \(C_x=N/x^{1/4}\to\infty\), and the
+oscillator tail beyond \(C_x\) has vanishing probability.
+The frozen choices \(N_{\mathrm{fixed}}=8\),
+\(N_C=\lceil2x^{1/4}\rceil\),
+\(N_{\mathrm{iso}}=\lceil4x^{1/4}\rceil\),
+\(N_{\mathrm{grow}}=\lceil x^{1/4}\log(2+x)\rceil\), and
+\(N_{1/2}=\lceil2\sqrt{x}\rceil\) consequently classify as follows:
+\(N_{\mathrm{fixed}}\) and \(N_C\) have bounded ratios and fail bare
+convergence; \(N_{\mathrm{iso}}\) supplies fixed-window exact isolation;
+and \(N_{\mathrm{grow}}\) and \(N_{1/2}\) satisfy (YM90).
+
+#### 9.18.8 Scope of the result
+
+Equations (YM57)--(YM90) concern one finite regulated isolated square in the
+continuous-\(SU(2)\) class-function sector. They do not construct a full
+interacting \(2\times2\) fibre, transport neighboring-plaquette or boundary
+representation sectors, or provide volume-uniform resolvent estimates. They
+also do not establish a thermodynamic limit, a continuum quantum field, a
+Yang--Mills mass gap, or a microscopic Cassi identification. Finite-group
+quadrature can serve as a numerical control of the continuous formulas, but
+it cannot replace the domain, form, or resolvent arguments. The only physical
+spacing identified here, \(2\sqrt2/a\), is the isolated ultraviolet
+plaquette normalization in (YM81).
+
 ---
 
 ## 10. Physical tests and rejection conditions
