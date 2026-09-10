@@ -1,6 +1,6 @@
 # Yang–Mills Conditional Transport-Score Recurrence Preregistration
 
-## Status: Frozen protocol v2—September 2026
+## Status: Frozen protocol v3—September 2026
 
 ## 1. Question and scope
 
@@ -23,6 +23,13 @@ The existing recurrence uses the conditional fibre rate \(\lambda_{\mathrm{fib}}
 ## 2. Frozen analytical obligations
 
 ### YMTS1. Conditional Poisson and transport norm
+
+Assume the conditional fibres are connected and carry smooth positive
+measures with either no boundary or the no-flux form domain. Their Poincaré
+rates are bounded below by the declared
+$\lambda_{\mathrm{fib}}>0$. The disintegration is measurably differentiable
+in the coarse variable, and the centered score components are measurable in
+$V$ and belong to the conditional $H^{-1}$ space.
 
 For each coarse configuration \(V\), let \(\mathcal L_V\) be the nonnegative Friedrichs operator associated with the vertical Dirichlet form
 
@@ -47,15 +54,18 @@ Define
 :=
 \mathop{\mathrm{ess\,sup}}_V
 \sup_{|\xi|=1}
-\langle s_{V,\xi},\mathcal L_V^{-1}s_{V,\xi}\rangle_{\nu_V}.
+\langle s_{V,\xi},\mathcal L_V^{-1}s_{V,\xi}\rangle_{H^{-1},H^1}.
 \]
 
-The inverse is on the centered form domain. The theorem must derive both equivalent descriptions
+The inverse is on the centered form domain and the bracket is duality when
+the score is only in $H^{-1}$. The theorem must derive both equivalent
+descriptions
 
 \[
 \|s_{V,\xi}\|_{H^{-1}(\nu_V)}^2
 =
-\sup_f
+\sup_{\substack{f\in\mathcal D(\mathcal E_V)\\
+\mathbb E_{\nu_V}|\nabla_Vf|^2>0}}
 \frac{\bigl(\mathbb E_{\nu_V}[(f-\mathbb E_{\nu_V}f)s_{V,\xi}]\bigr)^2}
 {\mathbb E_{\nu_V}|\nabla_Vf|^2}
 \]
@@ -65,11 +75,16 @@ and
 \[
 \|s_{V,\xi}\|_{H^{-1}(\nu_V)}^2
 =
-\inf_{u:\,-\operatorname{div}_{\nu_V}u=s_{V,\xi}}
+\inf_{\substack{u\in L^2(\nu_V;T\mathcal F_V)\\
+-\operatorname{div}_{\nu_V}u=s_{V,\xi}\ {\rm weakly}}}
 \mathbb E_{\nu_V}|u|^2.
 \]
 
-The minimizing field is \(u=\nabla_V\mathcal L_V^{-1}s_{V,\xi}\). The second formula interprets \(\vartheta\) as the minimum vertical kinetic cost needed to transport the conditional law when the coarse variable moves.
+The infimum is $+\infty$ if the weak divergence equation has no solution.
+When finite, the minimizing field is
+$u=\nabla_V\mathcal L_V^{-1}s_{V,\xi}$. The second formula interprets
+$\vartheta$ as the minimum vertical kinetic cost needed to transport the
+conditional law when the coarse variable moves.
 
 ### YMTS2. Sharpened recurrence
 
@@ -141,6 +156,13 @@ the fibre Poincaré inequality must imply
 Thus the new recurrence is no weaker than the covariance recurrence in §9.20. Strict improvement requires score components whose conditional \(H^{-1}\) norm is smaller than the spectral-gap relaxation of their \(L^2\) norm.
 
 ### YMTS3. Exact physical-margin transfer
+
+This is a finite-regulator statement for the exact marginal in (YM111).
+The all-function result lower-bounds the gauge-invariant rate as in §9.20.
+Any induction using restricted coarse or fibre rates additionally requires
+the gauge-equivariant disintegration, connection, reference measure and
+invariant domains stated there. The coarse marginal is not replaced by a
+bare coarse vacuum without an explicit comparison.
 
 For the physical target
 
@@ -240,7 +262,7 @@ Q_{\mathrm{eff}}
 =Q_{VV}-Q_{VR}Q_{RR}^{-1}Q_{RV}.
 \]
 
-The conditional law has mean \(Tv\) and precision \(Q_{RR}\). The exact quantities to derive are
+The conditional law has mean \(Tv\), exponent precision \(Q_{RR}\), statistical precision \(2Q_{RR}\), and covariance \((2Q_{RR})^{-1}\). The exact quantities to derive are
 
 \[
 \lambda_c=2\lambda_{\min}(Q_{\mathrm{eff}}),
@@ -271,6 +293,17 @@ the exact Gaussian Poincaré rate is
 \]
 
 Both conditional recurrences must remain below this exact rate, and the \(H^{-1}\) recurrence must be no weaker than the \(L^2\)-score recurrence.
+
+For \(\vartheta>0\), define the squared-coefficient comparison factor
+
+\[
+R_{\mathrm{cmp}}
+:=
+\frac{\kappa^2/\lambda_{\mathrm{fib}}}{\vartheta^2}.
+\]
+
+The equality and strict fixtures below have respectively
+\(R_{\mathrm{cmp}}=1\) and \(R_{\mathrm{cmp}}=9\).
 
 Use two fixed three-dimensional controls. The equality control is
 
@@ -313,7 +346,13 @@ Q_N(m)=\sqrt{D_N(m)},
 
 with even zero-based coordinates coarse and odd coordinates fibre. These are Gaussian controls and are not an interacting Yang–Mills vacuum.
 
-For the infinite translation-invariant chain, fix
+For the formal infinite translation-invariant chain, fix the Fourier symbol
+below. At $m=0$ it vanishes at zero momentum, so the bi-infinite field has no
+normalizable translation-invariant Gaussian probability without pinning,
+finite volume or removal of the zero mode. The finite open matrices
+$D_N(0)$ are positive. The infinite formulas are spectral infrared
+diagnostics rather than Poincaré rates of an unpinned infinite-volume
+probability measure.
 
 \[
 q_m(k)=\sqrt{m^2+4\sin^2(k/2)},
@@ -361,6 +400,12 @@ For \(m>0\), writing \(s_m=\sqrt{m^2+4}\), the required endpoint values are
 q_{\mathrm{eff},m}(0)=\frac{2ms_m}{m+s_m}>0.
 \]
 
+The analytical proof must establish the infimum and supremum over the full
+continuous Brillouin zone. It may use
+$y=\sin^2(K/4)\in[0,1/2]$ to show the required endpoint extrema. The fixed
+17-point grid checks the symbol identities and registered endpoint values;
+it does not prove the continuum extrema.
+
 The massless control therefore retains a positive fibre rate and bounded transport norm while its coarse rate vanishes. It is a free Gaussian infrared diagnostic, not evidence for a non-Abelian mass gap.
 
 ## 3. Fixed computational schedule
@@ -397,7 +442,15 @@ The primary has exactly 86 checks:
 
 The independent verifier has exactly 32 checks:
 
-- eight protocol, source, tolerance, primary-check and row-integrity controls;
+- eight atomic protocol and primary-integrity controls:
+  1. primary schema and verdict;
+  2. protocol path and hash;
+  3. primary-source path and hash;
+  4. fixed primary tolerances;
+  5. primary check count, uniqueness and pass flags;
+  6. primary summary totals;
+  7. row counts;
+  8. reconstructed summary maxima;
 - one complete reconstruction check for each of the 10 chain rows;
 - one complete reconstruction check for each of the 2 Gaussian fixtures;
 - one complete reconstruction check for each of the 10 margin rows;
