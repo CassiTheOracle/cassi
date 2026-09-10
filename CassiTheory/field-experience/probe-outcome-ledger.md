@@ -367,8 +367,8 @@ The source-free $SU(2)$ lattice comparison in
 electric excitation threshold $3g^2/(2a)$ on girth-four graphs with Gauss
 invariance at every vertex. It also shows that identical projective
 bubble data can have distinct Wilson magnetic energies. Every fixed
-interacting finite box has a positive physical gap; a volume-uniform
-bound and four-dimensional continuum construction remain open.
+interacting finite box has a positive physical gap; a weak-bare-coupling
+uniform estimate and four-dimensional continuum construction remain open.
 
 The fixed schedule in `computations/yang-mills-loop-gap-prereg.md`
 passes **66 primary checks** and **11 independent qualification checks**.
@@ -384,7 +384,7 @@ the equivalent Mathieu/Dirichlet problem without a representation cutoff.
 | Interacting square spectrum | All 24 independent energy/gap comparisons pass; maximum normalized discrepancy $3.44777127772\times10^{-12}$ | **SUPPORTS**, isolated-square reduction |
 | Character-cutoff convergence | Maximum normalized $64$-versus-$128$ discrepancy $3.71888228001\times10^{-13}$ | **PASS**, fixed six-coupling schedule |
 | Radial quadratic form | Maximum discrepancy $6.22335148571\times10^{-14}$ | **PASS**, fixed eight-function matrix controls |
-| Full interacting continuum mass gap and Cassi microscopic identification | Uniform vacuum-subtracted estimate and quantum-field construction absent | **UNRESOLVED** |
+| Full interacting continuum mass gap and Cassi microscopic identification | Weak-bare-coupling uniform estimate and quantum-field construction absent | **UNRESOLVED** |
 
 The qualified raw pair is
 `runs/yang_mills_loop_gap/prufer_recovery/primary.json` and
@@ -398,6 +398,43 @@ and tolerances. All primary controls are identical across the evaluator
 recovery. `runs/yang_mills_loop_gap/reconciliation.json` binds both
 receipt pairs and the accepted source identities. The master physical
 parameters and empirical prediction catalog are unchanged.
+
+## 16. Pure Yang–Mills connected blocks
+
+The source-free $SU(2)$ lattice Hamiltonian has a volume-uniform
+vacuum-subtracted gap at sufficiently strong bare coupling by application
+of Yarotsky's stability theorem. A gauge-invariant finite-depth unitary
+removes first-order electric-vacuum loop creation while retaining full
+holonomies and an exact bounded local quadratic remainder.
+`foundations/loop-to-bubble-projection-theorem.md` §§9.10–9.12 supplies
+the theorem hypotheses, local form estimate and connected remainder proof.
+
+The fixed schedule in `computations/yang-mills-connected-block-prereg.md`
+passes **79 primary checks**. The separate raw-artifact reconciliation
+passes **31 checks**, including direct local matrix reconstruction and
+an independent Jacobi evaluation of the remainder norms. The two analytical
+reviews and their mathematical reconciliation qualify the theorem
+application separately from these finite controls.
+
+| Control | Decisive result | Classification and scope |
+|---|---|---|
+| Periodic lattice geometry | Sides $4,6,8$ give $192,648,1536$ links and 24 disjoint-link plaquette layers | **SUPPORTS**, fixed finite inventories and coloring |
+| Exact local operator identities | 21 matrix cases; maximum absolute discrepancy $4.97379915032\times10^{-14}$ against $10^{-11}$ | **SUPPORTS**, fixed local rotation and Hamiltonian controls |
+| Independent reconstruction | Maximum matrix discrepancy $4.44089209850\times10^{-16}$ and remainder-norm discrepancy $3.46944695195\times10^{-18}$ | **PASS**, complete raw local matrix schedule |
+| Single-square remainder | Maximum measured $\|R_\square\|/x^2=0.539326266409$; analytic bound $(2+\sqrt2)/3=1.13807118746$ | **SUPPORTS**, fixed points; all-real-$x$ bound follows analytically |
+| Volume-uniform interacting gap | Positive theorem gap under $64/g^4\le\beta_{\mathrm Y}$, with symbolic $\beta_{\mathrm Y}>0$ | **ADOPT**, established theorem applied at sufficiently strong bare coupling |
+| Exact finite-depth dressing | 24 layers, $2^3$ coarse cells, relative coefficient $32|x|/3$ and bounded local remainder $C_Dx^2$ | **ADOPT**, regulated operator identity; exact remainder retained |
+| Weak-bare-coupling uniform estimate, continuum theory and mass, Cassi microscopic identification | No construction or bound in these regimes | **UNRESOLVED** |
+
+`runs/yang_mills_connected_blocks/verification.json` retains the full
+arrays, checks and symbolic identities, with its adjacent input manifest
+and frozen source snapshots. The same directory contains
+`raw_uniform_review.txt`, `raw_dressing_review.txt`, the independent local
+`reconcile.mjs` and the final `reconciliation.json`, which binds the raw
+receipt, review and source bytes by SHA-256. Numerical theorem constants,
+a critical coupling and continuum masses are unevaluated.
+The master physical parameter count and empirical prediction catalog
+are unchanged.
 
 ## References
 
@@ -448,3 +485,5 @@ parameters and empirical prediction catalog are unchanged.
 - `computations/verify_cassi_fluid_thermodynamics.py`—395-check receipt, model trajectories and independent numerical reference.
 - `computations/navier-stokes-mixing-budget-prereg.md`—fixed invariant-family analytical and trajectory schedule.
 - `computations/verify_navier_stokes_mixing_budget.py`—601-check cumulative mixing receipt and independent spatial reconstruction.
+- `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule.
+- `computations/verify_yang_mills_connected_blocks.py`—79-check source-bound connected-block receipt.

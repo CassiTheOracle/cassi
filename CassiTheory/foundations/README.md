@@ -723,12 +723,16 @@ even pairs, and the supplied fivefold phase orbit preserves the normalized
 $\varphi$ chord ratio. LB1–LB7 verify these identities. The physical carrier,
 phase law, scale ratio, and quantum-sector identification remain open.
 
-The separate pure-$SU(2)$ comparison in §§9.4–9.9 retains full loop holonomy.
+The separate pure-$SU(2)$ comparison in §§9.4–9.12 retains full loop holonomy.
 Gauss invariance gives an exact electric threshold on girth-four lattice
 graphs. Projective bubble data discard a phase that changes Wilson magnetic
 energy, preventing autonomous projector-only Hamiltonian closure. The
-interacting square has an exact character/Mathieu spectrum. Uniform
-infinite-volume control and four-dimensional continuum existence remain open.
+interacting square has an exact character/Mathieu spectrum. Yarotsky's
+stability theorem supplies a volume-uniform interacting gap at sufficiently
+strong bare coupling. A gauge-invariant finite-depth unitary removes
+first-order vacuum loop creation with an exact local quadratic remainder.
+The weak-bare-coupling uniform estimate, continuum existence and physical
+carrier identification remain open.
 
 ### `interscale-current-soliton.md`—Interscale Yang/Yin Current and the Conditional Soliton Pinch
 

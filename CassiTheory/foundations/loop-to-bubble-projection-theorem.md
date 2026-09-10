@@ -30,11 +30,14 @@ density projection and a coherence-sensitive bubble coordinate. A physical
 phase law, a map from the regulated quantum configuration to these carriers,
 $\hbar$, quantum statistics, and measurement dynamics remain separate inputs.
 
-The pure-gauge comparison in §§9.4–9.9 gives an exact loop-coordinate map into
-the supplied quantum $SU(2)$ lattice theory. Gauge-invariant electric flux has
-a minimum closed-loop cost, while the projective bubble variable discards
-information needed by the Wilson magnetic energy. The interacting
-infinite-volume gap and four-dimensional continuum construction remain open.
+The pure-gauge comparison in §§9.4–9.12 retains full $SU(2)$ loop holonomies.
+Gauss invariance supplies an electric closed-loop threshold, while the
+projective bubble variable discards Wilson magnetic energy. An application
+of quantum-lattice stability gives a volume-uniform interacting gap at
+sufficiently strong bare coupling. A gauge-invariant finite-depth unitary
+removes first-order vacuum loop creation and retains an exact bounded local
+remainder. The weak-bare-coupling uniform estimate, four-dimensional
+continuum construction and microscopic Cassi identification remain open.
 
 ---
 
@@ -1214,13 +1217,332 @@ zero, where the electric expansion parameter $x=2/g^4$ grows. The
 finite-square threshold proportional to $a^{-1}$ therefore supplies no
 continuum mass prediction.
 
-The immediate research question is whether retaining the full holonomy
-information through connected block transformations yields a useful bound
-on the vacuum-subtracted interaction. A bubble-only projection must first
-account for the phase distinguished by (YM5). The present results establish
-regulated pure-$SU(2)$ comparisons. The interacting uniform estimate,
-continuum existence, identification with Cassi microphysics and extension
-to every compact simple gauge group remain **Open**.
+Sections 9.10–9.12 supply a strong-bare-coupling uniform bound and an exact
+local vacuum-dressing step retaining full holonomy information. Their
+small-perturbation conditions concern $x$ near zero. Along the
+weak-bare-coupling continuum trajectory, $x=2/g^4$ grows without bound.
+Control in that regime, continuum existence, identification with Cassi
+microphysics and extension to every compact simple gauge group remain
+**Open**.
+
+### 9.10 A volume-uniform interacting strong-coupling gap
+
+Local control of magnetic interactions gives a gap independent of the
+number of lattice sites in a sufficiently strong-bare-coupling region.
+The result is an application of Yarotsky's established quantum-lattice
+stability theorem [Theorem 1, pp. 2–4; proof pp. 7–11].
+
+Work first on the unreduced tensor product over a periodic cubic lattice
+of even side $L\ge4$. Group the three positively oriented outgoing links
+at each site into
+
+$$
+\mathcal H_{\mathbf r}=L^2(SU(2)^3),\qquad
+K_{\mathbf r}=\sum_{i=1}^3 E_{\mathbf r,i}^2,\qquad
+\Omega_{\mathbf r}=1.
+\tag{YM15}
+$$
+
+The site Casimir has unique zero-energy vacuum and next eigenvalue $3/4$.
+The Peter–Weyl projections labelled by the three link representations form
+the required orthogonal partition. Infinite-dimensional site spaces and
+unbounded diagonal local operators are explicitly allowed by the theorem.
+
+Fix the four-site support
+$\mathcal S=\{0,e_1,e_2,e_3\}$ and define
+
+$$
+h^0_{\mathbf r}=\frac43
+\sum_{\mathbf y\in\mathbf r+\mathcal S}K_{\mathbf y},
+\qquad
+v_{\mathbf r}=-\frac{16x}{3}
+\sum_{i<j}\chi_{1/2}(U_{\mathbf r,ij}).
+\tag{YM16}
+$$
+
+Each $h^0_{\mathbf r}$ has unique product vacuum and local gap one.
+The anchored plaquettes use outgoing link groups at
+$\mathbf r,\mathbf r+e_i,\mathbf r+e_j$, all in the same support.
+Every site appears in exactly four translates of $\mathcal S$, so
+
+$$
+\widehat h_L:=\sum_{\mathbf r}(h^0_{\mathbf r}+v_{\mathbf r})
+=\frac{16}{3}(h-2xN_p),\qquad
+\|v_{\mathbf r}\|\le32|x|=\frac{64}{g^4}.
+\tag{YM17}
+$$
+
+The norm estimate follows from three plaquettes per anchor and
+$|\chi_{1/2}(U)|\le2$. The scalar subtraction leaves excitation energies
+unchanged and reduces the local perturbation norm. Self-adjointness holds
+at every finite $g>0$ because the perturbations are bounded.
+
+**Theorem.** There is a constant
+$\beta_{\mathrm Y}>0$, depending on dimension three and $\mathcal S$,
+such that the sufficient condition
+
+$$
+\frac{64}{g^4}\le\beta_{\mathrm Y}
+\tag{YM18}
+$$
+
+gives a nondegenerate ground state of $\widehat h_L$ and a gap
+$\gamma_{\mathrm Y}(g)>0$ independent of $L$. Thus the physical
+Hamiltonian obeys
+
+$$
+\boxed{
+H_L-E_0(L)\ \ge\
+\frac{3g^2\gamma_{\mathrm Y}(g)}{32a}
+\bigl(I-|\Omega_L\rangle\langle\Omega_L|\bigr).
+}
+\tag{YM19}
+$$
+
+**Proof.** The preceding local partition, support and normalization meet
+Yarotsky's classical hypotheses. The perturbation satisfies the bounded
+case of his form estimate, with relative coefficient zero and bounded
+coefficient at most $32|x|$. His smallness constants are independent of
+volume. Theorem 1 supplies the gap for $\widehat h_L$; multiplication by
+$3/16$ and then $g^2/(2a)$ gives (YM19).
+The full finite-volume heat kernel is positivity improving, as in §9.7.
+Its unique normalized positive ground state is gauge invariant. The Gauss
+projector commutes with the Hamiltonian, so restriction to its physical
+range retains the vacuum and cannot lower the excitation gap. $\square$
+
+The gap units are distinct: the local classical gap is one, the global
+unreduced gap of $\sum h^0_{\mathbf r}$ is four, and the unperturbed
+unreduced physical gap is $3g^2/(8a)$. The source-free electric sector has
+the larger threshold $3g^2/(2a)$ in (YM6).
+
+The source theorem also supplies a thermodynamic weak-star limit,
+exponential decay of connected bounded local correlations and analyticity
+inside the allowed perturbation region. These statements restrict to
+gauge-invariant local observables. An infinite-volume Hamiltonian and its
+GNS spectral statement require their additional construction; the
+finite-volume uniform bound alone is the asserted operator result here.
+Neither $\beta_{\mathrm Y}$ nor $\gamma_{\mathrm Y}(g)$ is numerically
+evaluated, and (YM18) supplies no numerical critical coupling.
+
+### 9.11 A gauge-invariant local vacuum-dressing step
+
+A local unitary can remove the first-order creation of a closed loop from
+the electric vacuum while preserving the original gauge state space.
+On the four links of a plaquette, let
+
+$$
+|p\rangle=\chi_{1/2}(U_p)|0_p\rangle,\qquad
+P_p=|0_p\rangle\langle0_p|,\quad Q_p=I-P_p,
+$$
+$$
+S_p=-\frac13\bigl(|p\rangle\langle0_p|-|0_p\rangle\langle p|\bigr),
+\qquad
+T_p=|p\rangle\langle0_p|+|0_p\rangle\langle p|.
+\tag{YM20}
+$$
+
+Haar orthogonality gives $\langle0_p|p\rangle=0$ and $\|p\|=1$.
+The loop state has total electric energy three. Both vectors are invariant
+under the four vertex gauge actions, so the anti-Hermitian rank-two
+operator $S_p$ commutes with Gauss transformations. It maps the electric
+operator domain to itself. Its exact identities are
+
+$$
+[S_p,K]=T_p,\qquad
+V_p:=\chi_{1/2}(U_p)=T_p+W_p,\qquad
+W_p=Q_pV_pQ_p,\quad W_p|0_p\rangle=0.
+\tag{YM21}
+$$
+
+The remaining first-order interaction has a volume-independent relative
+form bound. For $K_p=\sum_{l\in p}E_l^2$ on the local unreduced Hilbert
+space, $K_p\ge(3/4)Q_p$ and $\|W_p\|\le2$. A global physical state can
+carry flux through only one of the four local links, with the rest of its
+closed network outside the plaquette. The local estimate therefore uses
+$3/4$. Since every link belongs to four plaquettes, every subset
+$\mathcal I$ obeys
+
+$$
+\boxed{
+|x|\sum_{p\in\mathcal I}
+\left|\langle\psi,W_p\psi\rangle\right|
+\le\frac{32|x|}{3}\langle\psi,K\psi\rangle.
+}
+\tag{YM22}
+$$
+
+For one isolated square, the character basis has
+$K_{nn}=n(n+2)$ and $V_{n,n+1}=V_{n+1,n}=1$. The unitary $U(x)=e^{xS}$
+rotates only the first two characters:
+
+$$
+U(x)\big|_{\{0,1\}}=
+\begin{pmatrix}
+\cos(x/3)&\sin(x/3)\\
+-\sin(x/3)&\cos(x/3)
+\end{pmatrix}.
+$$
+
+The exact local remainder
+$R_\square=U(K-xV)U^\dagger-K+xW$ has support in characters
+$0,1,2$. The bounded commutators satisfy
+
+$$
+\|[S,V]\|=\frac{1+\sqrt2}{3},\qquad
+\|[S,[S,K]]\|=\frac23.
+$$
+
+The integral remainder formula for the electric term and the first
+integral difference for the magnetic term give, for every real $x$,
+
+$$
+\boxed{
+\|R_\square(x)\|\le
+\frac{2+\sqrt2}{3}\,x^2.
+}
+\tag{YM23}
+$$
+
+The transformed vacuum energy and its second-character amplitude are
+
+$$
+\langle0|U(K-xV)U^\dagger|0\rangle
+=3\sin^2(x/3)-2x\sin(x/3)\cos(x/3)
+=-\frac{x^2}{3}+O(x^4),
+$$
+$$
+\langle2|U(K-xV)U^\dagger|0\rangle
+=-x\sin(x/3)=-\frac{x^2}{3}+O(x^4).
+$$
+
+The nonzero second-order amplitude remains in the exact Hamiltonian.
+This step removes first-order vacuum creation; it does not make the
+product vacuum an exact interacting ground state.
+
+### 9.12 Finite-depth connected dressing and its remainder
+
+Disjoint-link layers extend the local unitary to the interacting lattice
+with controlled support. Color each plaquette by its coordinate plane and
+the three parities of its anchor. On even periodic lattices, the resulting
+24 color classes have disjoint link supports within each class. Order the
+planes and then parity triples lexicographically, and let
+
+$$
+U_c(x)=\prod_{p\in c}e^{xS_p},\qquad
+D(x)=U_{24}(x)\cdots U_1(x).
+$$
+
+This is an exact finite-depth unitary on the unreduced link tensor product.
+Each factor commutes with Gauss transformations, so $D(x)$ preserves the
+physical sector. It is periodic under translations by two lattice sites.
+Expansion only to identify its first derivative gives
+
+$$
+D(x)(h-2xN_p)D(x)^\dagger
+=K-x\sum_pW_p+R_D(x),
+\tag{YM24}
+$$
+
+where $R_D(x)$ denotes the exact difference, including every order.
+The cancellation follows from
+$D'(0)=\sum_pS_p$ and (YM21), independently of layer order.
+
+**Local remainder bound.** A bounded local operator acquires only a finite
+neighborhood under 24 layers. The number of relevant gates is bounded by
+the fixed layer count and lattice coordination, independently of total
+volume. Derivatives of their products are therefore norm bounded uniformly
+on any fixed finite interval of $x$.
+
+The electric operator is unbounded, but its first commutators are bounded:
+for $l\in p$,
+
+$$
+[S_p,E_l^2]=\frac14T_p,\qquad
+\|[S_p,E_l^2]\|=\frac14,\qquad
+\|[S_p,[S_p,E_l^2]]\|=\frac16;
+$$
+
+outside $p$ the commutators vanish. A plaquette-anchored telescoping
+identity makes the local cancellation explicit. Write
+$\mathcal L_c(A)=U_{24}\cdots U_{c+1} A U_{c+1}^\dagger\cdots U_{24}^\dagger$
+and define
+
+$$
+k_p(x)=x^2\int_0^1(1-t)e^{txS_p}
+[S_p,[S_p,K_p]]e^{-txS_p}\,dt,\qquad
+\|k_p(x)\|\le\frac{x^2}{3}.
+$$
+
+Disjoint links within a layer imply
+$U_cKU_c^\dagger-K=\sum_{p\in c}(xT_p+k_p)$.
+Telescoping across the layers therefore gives the exact decomposition
+
+$$
+R_D(x)=\sum_c\sum_{p\in c}r_p(x),\qquad
+r_p=x\bigl(\mathcal L_c(T_p)-T_p\bigr)
++\mathcal L_c(k_p)-x\bigl(DV_pD^\dagger-V_p\bigr).
+$$
+
+Each conjugation difference of a fixed bounded local operator is
+$O(|x|)$ in operator norm, with a volume-independent constant: only
+finitely many bounded generators meet its 24-layer neighborhood.
+Thus every $r_p$ has a fixed finite support, vanishing value and
+derivative at zero, and norm bounded by a constant times $x^2$.
+This uses bounded commutators throughout.
+
+Group $2\times2\times2$ sites into coarse cells so the circuit and all
+transformed interactions are translation invariant on the coarse lattice.
+Assign the transformed terms to their original coarse anchors. For
+sufficiently large even tori this gives a common finite interaction
+support $\mathcal R$ and a decomposition
+
+$$
+R_D(x)=\sum_B r_B(x),\qquad
+r_B(0)=r_B'(0)=0,\qquad
+\|r_B(x)\|\le C_Dx^2
+\quad (|x|\le x_0),
+\tag{YM25}
+$$
+
+with fixed $x_0>0$ and finite $C_D$ independent of volume. Explicitly,
+$r_B$ sums the 24 plaquette remainders whose anchors lie in coarse cell
+$B$. The cancellation holds for each $r_p$ before this grouping.
+The constants and enlarged range arise from the finite gate
+neighborhoods; the isolated-square constant in (YM23) is a different
+quantity.
+
+This decomposition also fits the relatively bounded version of
+Yarotsky's theorem. Let $K_B$ collect the original outgoing-link Casimirs
+inside coarse cell $B$, set
+$c_{\mathcal R}=4|\mathcal R|/3$, and use local classical operators
+$(4/3)\sum_{B'\in B+\mathcal R}K_{B'}$. Their sum is
+$c_{\mathcal R}K$ and their local gap is one. Apply the theorem to
+$c_{\mathcal R}D(h-2xN_p)D^\dagger$, using coarse-cell perturbations
+$-c_{\mathcal R}x\sum_{p:\,\mathrm{anchor}(p)\in B}W_p+c_{\mathcal R}r_B$.
+Equation (YM22) verifies the partial-sum relative estimate in
+Yarotsky's Remark, Eq. (6), with
+
+$$
+\alpha_{\mathrm{rel}}=\frac{32|x|}{3},\qquad
+\beta_{\mathrm{rem}}\le c_{\mathcal R}C_Dx^2.
+$$
+
+For example, Theorem 2 with its auxiliary exponent $\kappa=2$ applies
+whenever $0<\alpha_{\mathrm{rel}}<1$ and
+
+$$
+c_{\mathcal R}C_Dx^2
+\le\delta_{\mathrm Y}(1-\alpha_{\mathrm{rel}})^8,
+\qquad \delta_{\mathrm Y}>0.
+\tag{YM26}
+$$
+
+These sufficient conditions hold for sufficiently small $|x|$. The
+construction retains the exact remainder and preserves the full spectrum
+by unitary equivalence. It exposes a purely relative first-order
+interaction and a bounded quadratic remainder. It establishes no
+quantitative enlargement of the coupling region in (YM18), and
+$\alpha_{\mathrm{rel}}$ diverges along $g\to0$.
 
 ---
 
@@ -1275,7 +1597,9 @@ microscopic completions.
 | Pure-gauge loop coordinates (YM1)–(YM2) | **Derived** | Supplied $SU(2)$ quantum gauge framework; carrier identification remains open |
 | Electric closed-loop gap (YM6) | **Derived** within established lattice theory | Fixed $g,a$, source-free Gauss law and girth-four graph |
 | Autonomous projector-only Yang–Mills Hamiltonian | **Excluded** by (YM4)–(YM5) | Wilson energy varies on projective fibres |
-| Full interacting finite-box gap | **Derived** within established lattice theory | Compact configuration space; no volume-uniform estimate |
+| Full interacting finite-box gap | **Derived** within established lattice theory | Compact configuration space; its argument supplies no uniform estimate |
+| Volume-uniform interacting strong-coupling gap (YM19) | **Derived** by application of an established stability theorem | Sufficient local smallness (YM18); theorem constants unevaluated |
+| Finite-depth gauge-invariant vacuum dressing (YM24)–(YM26) | **Derived** regulated operator identities and local bounds | Full holonomies and exact remainder retained; weak-coupling control absent |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -1339,7 +1663,37 @@ receipt hashes and classifications are in
 `runs/yang_mills_loop_gap/reconciliation.json`. The outcome is
 **SUPPORTS** for the regulated electric and square controls,
 **CONTRADICTS** for autonomous projector-only Hamiltonian closure, and
-**UNRESOLVED** for the interacting uniform gap and continuum construction.
+**UNRESOLVED** for the weak-bare-coupling uniform estimate and continuum construction.
+
+The connected-block schedule in
+`computations/yang-mills-connected-block-prereg.md` is implemented by
+`computations/verify_yang_mills_connected_blocks.py`. It passes **79 checks**:
+the periodic lattices of side $4,6,8$ have $192,648,1536$ links and the same
+24 disjoint-link plaquette layers. The 21 local matrix cases use sizes
+$3,5,8$ and the seven fixed values of $x$. Their maximum absolute identity
+discrepancy is $4.97379915032\times10^{-14}$ against $10^{-11}$.
+The largest measured $\|R_\square(x)\|/x^2$ is $0.539326266409$,
+below the exact coefficient $(2+\sqrt2)/3=1.13807118746$.
+
+A separate raw-artifact reconciliation passes **31 checks**, including
+source/snapshot SHA-256 bindings, complete geometry inventories and direct
+JavaScript reconstruction of every local rotation and transformed matrix.
+Its maximum matrix discrepancy is $4.44089209850\times10^{-16}$; a separate
+three-dimensional Jacobi calculation reproduces the remainder norms within
+$3.46944695195\times10^{-18}$. The receipt, source manifest and frozen
+source bytes are in `runs/yang_mills_connected_blocks/verification.json`,
+`runs/yang_mills_connected_blocks/verification.inputs.json` and
+`runs/yang_mills_connected_blocks/verification.sources/`.
+
+The finite geometry and operator controls classify **SUPPORTS**.
+The volume-uniform strong-coupling gap and exact finite-depth dressing
+classify **ADOPT** through the analytical arguments in §§9.10–9.12 and
+the two reconciled mathematical reviews. Their classification is separate
+from the finite matrix checks. The local `reconcile.mjs` and
+`reconciliation.json` in the same run directory bind the raw reviews,
+receipt and audit source. Weak-bare-coupling uniform control, continuum
+construction, continuum mass and Cassi microscopic identification remain
+**UNRESOLVED**.
 
 ---
 
@@ -1361,3 +1715,6 @@ receipt hashes and classifications are in
 - J. Kogut and L. Susskind, [Hamiltonian formulation of Wilson's lattice gauge theories](https://doi.org/10.1103/PhysRevD.11.395)—Hamiltonian gauge framework
 - C. W. Bauer, I. D'Andrea, M. Freytsis and D. M. Grabowska, [A new basis for Hamiltonian SU(2) simulations](https://arxiv.org/abs/2307.11829), §§II–IV and Appendix B—normalization, gauge reduction and physical square spectrum
 - A. Jaffe and E. Witten, [Quantum Yang–Mills Theory](https://www.claymath.org/wp-content/uploads/2022/06/yangmills.pdf), §4—continuum existence and mass-gap requirements
+- D. A. Yarotsky, [Ground states in relatively bounded quantum perturbations of classical lattice systems](https://arxiv.org/abs/math-ph/0412040), Theorems 1–2 and Remark Eq. (6)—volume-uniform strong-coupling stability, connected correlations and relatively bounded perturbations
+- `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule
+- `computations/verify_yang_mills_connected_blocks.py`—connected-block controls and immutable source-bound receipt

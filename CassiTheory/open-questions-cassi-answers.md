@@ -726,12 +726,16 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
-The separate pure-gauge comparison in that document, §§9.4–9.9, uses the
+The separate pure-gauge comparison in that document, §§9.4–9.12, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
 projective bubble coordinate discards a phase required by Wilson magnetic
-energy. Every fixed finite box has an interacting quantum gap, but no
-volume-uniform estimate or four-dimensional continuum construction follows.
+energy. Applying Yarotsky's quantum-lattice stability theorem gives a
+volume-uniform interacting gap at sufficiently strong bare coupling.
+A gauge-invariant finite-depth unitary removes first-order vacuum loop
+creation, retaining full holonomies and an exact bounded local quadratic
+remainder. The theorem constants are unevaluated. The weak-bare-coupling
+uniform estimate and four-dimensional continuum construction remain open.
 The carrier-state identification and QF/DQ/GQ classifications remain
 unchanged.
 
