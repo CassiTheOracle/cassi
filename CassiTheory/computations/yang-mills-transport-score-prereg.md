@@ -1,6 +1,6 @@
 # Yang–Mills Conditional Transport-Score Recurrence Preregistration
 
-## Status: Frozen protocol—September 2026
+## Status: Frozen protocol v2—September 2026
 
 ## 1. Question and scope
 
@@ -405,7 +405,17 @@ The independent verifier has exactly 32 checks:
 
 The primary constructs \(Q_N\) by symmetric eigendecomposition. The independent implementation constructs it from the explicit discrete-sine eigenvectors and uses its own symmetric Jacobi eigensolver and pivoted Gaussian elimination. Neither implementation reads `runs/yang_mills_vacuum_blocks/verification.json`.
 
-Fixed normalized matrix tolerance is \(10^{-10}\). Fixed scalar algebraic tolerance is \(10^{-11}\). The independent comparison tolerance is \(10^{-9}\). No tolerance, row, matrix, mass, margin, or momentum-grid value may change after execution.
+For matrices, the normalized error is
+\[
+\operatorname{err}_{\mathrm{mat}}(A,B)
+=\frac{\|A-B\|_{\mathrm{op}}}{\max\{1,\|B\|_{\mathrm{op}}\}}.
+\]
+For scalars, it is
+\[
+\operatorname{err}_{\mathrm{sc}}(a,b)
+=\frac{|a-b|}{\max\{1,|b|\}}.
+\]
+The primary matrix tolerance is \(10^{-10}\), its scalar algebraic tolerance is \(10^{-11}\), and the independent comparison tolerance for both normalized errors is \(10^{-9}\). Each aggregate row check passes only when every identity or inequality named for that check passes. No tolerance, row, matrix, mass, margin, or momentum-grid value may change after execution.
 
 The primary receipt is
 
