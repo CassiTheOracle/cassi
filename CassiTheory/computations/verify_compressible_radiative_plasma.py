@@ -6,12 +6,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib
+import importlib.util
 import json
 import math
 import sys
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import ModuleType
 from typing import Any, Callable, Iterable
 
 np: Any = None
@@ -53,33 +55,30 @@ SCIENTIFIC_EXPORTS = (
 def load_scientific_dependencies(
     importer: Callable[[str], Any] = importlib.import_module,
 ) -> dict[str, str]:
-    """Load optional numerical dependencies inside the evidence-producing run."""
+    """Load external numerical dependencies inside the evidence-producing run."""
     loaded_np = importer("numpy")
     loaded_sp = importer("sympy")
-    kernel = importer("compressible_radiative_plasma")
-    for name in SCIENTIFIC_EXPORTS:
-        if not hasattr(kernel, name):
-            raise ImportError(f"compressible_radiative_plasma has no export {name!r}")
+    loaded_scipy = importer("scipy")
     global np, sp
     np = loaded_np
     sp = loaded_sp
-    for name in SCIENTIFIC_EXPORTS:
-        globals()[name] = getattr(kernel, name)
     return {
         "numpy": str(loaded_np.__version__),
         "sympy": str(loaded_sp.__version__),
-        "scipy": str(importer("scipy").__version__),
+        "scipy": str(loaded_scipy.__version__),
     }
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCHEMA = "cassi-compressible-radiative-plasma-verification-v1"
+SCHEMA = "cassi-compressible-radiative-plasma-verification-v2"
 DEFAULT_OUTPUT = ROOT / "runs" / "compressible_radiative_plasma" / "verification.json"
+KERNEL_SOURCE = Path("computations/compressible_radiative_plasma.py")
+VERIFIER_SOURCE = Path("computations/verify_compressible_radiative_plasma.py")
 SOURCE_PATHS = (
     Path("computations/compressible-radiative-plasma-prereg.md"),
     Path("turbulence/compressible-radiative-plasma-closure.md"),
-    Path("computations/compressible_radiative_plasma.py"),
-    Path("computations/verify_compressible_radiative_plasma.py"),
+    KERNEL_SOURCE,
+    VERIFIER_SOURCE,
 )
 EXPECTED_CHECKS = 70
 TOL = 2.0e-13
@@ -163,6 +162,108 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1 << 20), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def load_frozen_module(
+    sources: dict[str, dict[str, Any]],
+    relative: Path,
+    *,
+    role: str,
+) -> tuple[ModuleType, dict[str, Any]]:
+    """Load one module from the exact source snapshot recorded in the manifest."""
+    key = relative.as_posix()
+    if key not in sources:
+        raise ValueError(f"manifest has no frozen source for {key}")
+    recorded = sources[key]
+    if recorded.get("path") != key:
+        raise ValueError(f"manifest path identity mismatch for {key}")
+
+    snapshot_path = (ROOT / str(recorded["snapshot"])).resolve()
+    if ROOT != snapshot_path and ROOT not in snapshot_path.parents:
+        raise ValueError(f"snapshot path escapes the CassiTheory root: {snapshot_path}")
+    expected_hash = str(recorded["sha256"])
+    expected_snapshot_hash = str(recorded["snapshot_sha256"])
+    expected_bytes = int(recorded["bytes"])
+    before_hash = sha256(snapshot_path)
+    before_bytes = snapshot_path.stat().st_size
+    if (
+        before_hash != expected_hash
+        or before_hash != expected_snapshot_hash
+        or before_bytes != expected_bytes
+    ):
+        raise RuntimeError(f"frozen source mismatch before loading {key}")
+
+    token = hashlib.sha256(
+        f"{role}\0{snapshot_path}".encode("utf-8")
+    ).hexdigest()[:16]
+    module_name = f"_cassi_frozen_{role}_{token}"
+    specification = importlib.util.spec_from_file_location(module_name, snapshot_path)
+    if specification is None or specification.loader is None:
+        raise ImportError(f"cannot construct a module specification for {key}")
+    module = importlib.util.module_from_spec(specification)
+    sys.modules[module_name] = module
+    try:
+        specification.loader.exec_module(module)
+    except Exception:
+        sys.modules.pop(module_name, None)
+        raise
+
+    module_file = Path(str(getattr(module, "__file__", ""))).resolve()
+    after_hash = sha256(snapshot_path)
+    after_bytes = snapshot_path.stat().st_size
+    matches = (
+        module_file == snapshot_path
+        and before_hash == after_hash
+        and after_hash == expected_hash
+        and after_hash == expected_snapshot_hash
+        and after_bytes == expected_bytes
+    )
+    if not matches:
+        sys.modules.pop(module_name, None)
+        raise RuntimeError(f"frozen source mismatch after loading {key}")
+    return module, {
+        "role": role,
+        "source": key,
+        "snapshot": snapshot_path.relative_to(ROOT).as_posix(),
+        "module_name": module_name,
+        "module_file": module_file.relative_to(ROOT).as_posix(),
+        "before_sha256": before_hash,
+        "after_sha256": after_hash,
+        "recorded_sha256": expected_hash,
+        "bytes": after_bytes,
+        "recorded_bytes": expected_bytes,
+        "matches": matches,
+    }
+
+
+def bind_frozen_scientific_modules(
+    sources: dict[str, dict[str, Any]],
+) -> tuple[ModuleType, dict[str, Any]]:
+    """Bind the kernel and scientific schedule to their frozen source files."""
+    if np is None or sp is None:
+        raise RuntimeError("scientific dependencies must be loaded before source binding")
+    frozen_kernel, kernel_binding = load_frozen_module(
+        sources, KERNEL_SOURCE, role="compressible_radiative_plasma_kernel"
+    )
+    frozen_verifier, verifier_binding = load_frozen_module(
+        sources, VERIFIER_SOURCE, role="compressible_radiative_plasma_verifier"
+    )
+    frozen_verifier.ROOT = ROOT
+    frozen_verifier.np = np
+    frozen_verifier.sp = sp
+    for name in frozen_verifier.SCIENTIFIC_EXPORTS:
+        if not hasattr(frozen_kernel, name):
+            raise ImportError(f"frozen kernel has no export {name!r}")
+        setattr(frozen_verifier, name, getattr(frozen_kernel, name))
+    bindings = {
+        "passed": True,
+        "error": None,
+        "modules": {
+            "kernel": kernel_binding,
+            "verifier": verifier_binding,
+        },
+    }
+    return frozen_verifier, bindings
 
 
 def evidence_paths(output: Path) -> tuple[Path, Path, Path]:
@@ -1016,6 +1117,19 @@ def angular_controls(book: CheckBook) -> dict[str, Any]:
     }
 
 
+def execute_scientific_controls(book: CheckBook) -> dict[str, Any]:
+    """Execute the complete fixed schedule in this verifier module."""
+    return {
+        "symbolic": symbolic_controls(book),
+        "eos": eos_controls(book),
+        "shocks": shock_controls(book),
+        "populations": population_controls(book),
+        "lines": line_controls(book),
+        "stellar": stellar_controls(book),
+        "angular": angular_controls(book),
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
@@ -1073,6 +1187,7 @@ def run_verification(
     source_paths: Iterable[Path] = SOURCE_PATHS,
     dependency_loader: Callable[[], dict[str, str]] = load_scientific_dependencies,
 ) -> int:
+    required_check_count = EXPECTED_CHECKS
     try:
         target, _, _ = evidence_paths(output)
     except Exception as exc:
@@ -1091,9 +1206,14 @@ def run_verification(
     source_integrity: dict[str, Any] = {
         "after_snapshot": verify_source_integrity(sources)
     }
-    if not source_integrity["after_snapshot"]["passed"]:
-        dependencies: dict[str, str] = {}
-    else:
+    dependencies: dict[str, str] = {}
+    execution_binding: dict[str, Any] = {
+        "passed": False,
+        "modules": {},
+        "error": None,
+    }
+    execution_module: ModuleType | None = None
+    if source_integrity["after_snapshot"]["passed"]:
         try:
             dependencies = dependency_loader()
         except Exception as exc:
@@ -1105,23 +1225,26 @@ def run_verification(
                 sources=sources,
             )
         source_integrity["before_controls"] = verify_source_integrity(sources)
+        if source_integrity["before_controls"]["passed"]:
+            try:
+                execution_module, execution_binding = bind_frozen_scientific_modules(
+                    sources
+                )
+            except Exception as exc:
+                execution_binding["error"] = f"{type(exc).__name__}: {exc}"
 
-    book = CheckBook()
+    book = execution_module.CheckBook() if execution_module is not None else CheckBook()
     results: dict[str, Any] = {}
     error: str | None = None
     if not source_integrity["after_snapshot"]["passed"]:
         error = "source integrity mismatch immediately after snapshot publication"
     elif not source_integrity["before_controls"]["passed"]:
         error = "source integrity mismatch before scientific controls"
+    elif execution_module is None:
+        error = "execution source binding failed: " + str(execution_binding["error"])
     else:
         try:
-            results["symbolic"] = symbolic_controls(book)
-            results["eos"] = eos_controls(book)
-            results["shocks"] = shock_controls(book)
-            results["populations"] = population_controls(book)
-            results["lines"] = line_controls(book)
-            results["stellar"] = stellar_controls(book)
-            results["angular"] = angular_controls(book)
+            results = execution_module.execute_scientific_controls(book)
         except Exception as exc:  # Preserve a source-bound failed receipt.
             error = f"{type(exc).__name__}: {exc}"
             book.add("verification.completed_without_exception", False, error=error)
@@ -1130,17 +1253,45 @@ def run_verification(
     integrity_passed = all(
         phase["passed"] for phase in source_integrity.values()
     )
+    binding_passed = bool(execution_binding["passed"])
     if not integrity_passed and error is None:
         error = "source integrity mismatch after scientific controls"
 
-    passed_count = sum(row["passed"] for row in book.checks.values())
+    passed_count = sum(bool(row["passed"]) for row in book.checks.values())
+    failed_checks = [
+        name for name, row in book.checks.items() if not bool(row["passed"])
+    ]
     total_count = len(book.checks)
-    status = "PASS" if error is None and book.passed and integrity_passed else "FAIL"
+    expected_total = required_check_count
+    module_expected_total = int(
+        getattr(execution_module, "EXPECTED_CHECKS", -1)
+    )
+    declaration_matches_expected = module_expected_total == expected_total
+    count_matches_expected = (
+        total_count == expected_total and declaration_matches_expected
+    )
+    if not count_matches_expected and error is None:
+        error = (
+            "fixed scientific check count mismatch: "
+            f"observed={total_count}, required={expected_total}, "
+            f"frozen_declaration={module_expected_total}"
+        )
+    status = (
+        "PASS"
+        if (
+            error is None
+            and not failed_checks
+            and integrity_passed
+            and binding_passed
+            and count_matches_expected
+        )
+        else "FAIL"
+    )
     if status == "PASS":
         scientific_classification = (
             "SUPPORTS-conditional compressible radiative-plasma closure"
         )
-    elif not integrity_passed:
+    elif not integrity_passed or not binding_passed or not count_matches_expected:
         scientific_classification = "INCONCLUSIVE"
     else:
         scientific_classification = "CONTRADICTS"
@@ -1151,14 +1302,18 @@ def run_verification(
         "checks": {
             "passed": passed_count,
             "total": total_count,
-            "expected_total": EXPECTED_CHECKS,
-            "failed": book.failed,
+            "expected_total": expected_total,
+            "module_expected_total": module_expected_total,
+            "declaration_matches_expected": declaration_matches_expected,
+            "count_matches_expected": count_matches_expected,
+            "failed": failed_checks,
             "items": book.checks,
         },
         "results": results,
         "input_manifest": manifest_path.relative_to(ROOT).as_posix(),
         "sources": sources,
         "source_integrity": source_integrity,
+        "execution_binding": execution_binding,
         "dependencies": dependencies,
         "error": error,
         "scope": {

@@ -8,7 +8,7 @@ This schedule qualifies the species-level conservative-state constraint, defensi
 
 ## 1. Fixed sources and execution boundary
 
-The verifier reads each of the following files once, hashes those bytes and writes the same bytes into a staged snapshot tree before importing NumPy, SymPy, SciPy or the reference kernel:
+The verifier reads each of the following files once, hashes those bytes and writes the same bytes into a staged snapshot tree before loading external numerical dependencies:
 
 - `computations/compressible-radiative-plasma-integrity-prereg.md`;
 - `computations/compressible-radiative-plasma-prereg.md`;
@@ -17,7 +17,11 @@ The verifier reads each of the following files once, hashes those bytes and writ
 - `computations/verify_compressible_radiative_plasma.py`;
 - `computations/verify_compressible_radiative_plasma_integrity.py`.
 
-The output, adjacent `input_manifest.json`, staging paths and `source_snapshots/` directory must not exist when the run begins. The verifier refuses to overwrite any of them. It publishes the complete snapshot tree and manifest by separate atomic renames; a successful return exposes both, while a publication failure removes every staging path and any snapshot tree published by that attempt. It compares every current source and snapshot against the manifest immediately after publication, again after dependency imports and before scientific controls, and after the controls. A pre-control mismatch prevents scientific execution; any mismatch gives receipt status `FAIL` with scientific classification `INCONCLUSIVE`.
+The output, adjacent `input_manifest.json`, staging paths and `source_snapshots/` directory must not exist when the run begins. The verifier refuses to overwrite any of them. It publishes the complete snapshot tree and manifest by separate atomic renames; a successful return exposes both, while a publication failure removes every staging path and any snapshot tree published by that attempt.
+
+After NumPy, SymPy and SciPy load, the reference kernel, base verifier and integrity verifier are imported directly from their manifest-recorded snapshot files under unique module names. The receipt records each module's snapshot path, executed `__file__`, byte count, pre-import SHA-256, post-import SHA-256 and binding result. The fixed controls execute through the frozen integrity verifier, which uses the frozen kernel and frozen base verifier.
+
+Every current source and snapshot is compared with the manifest immediately after publication, again after dependency imports and before scientific controls, and after the controls. A pre-control mismatch prevents scientific execution. A source or execution-module path, size or hash mismatch gives receipt status `FAIL` with scientific classification `INCONCLUSIVE`.
 
 ## 2. Fixed qualification controls
 
@@ -174,13 +178,13 @@ The qualification contains exactly **36 checks**:
 
 All numerical comparisons use float64. Symbolic checks require exact simplification to zero. No threshold or input may change after execution.
 
-The result is `PASS` with scientific classification `SUPPORTS-compressible radiative-plasma integrity qualification` only if all 36 checks pass and all three source-integrity comparisons pass. A scientific check failure gives `FAIL` and `CONTRADICTS`. A source-integrity mismatch gives `FAIL` and scientific classification `INCONCLUSIVE`. Failure to read a qualification source or import a required qualification dependency gives `INCONCLUSIVE` and stops interpretation.
+The outer runner requires exactly 36 named checks and separately requires the frozen integrity verifier's declaration to equal 36, so the scientific schedule cannot lower its own acceptance count. The result is `PASS` with scientific classification `SUPPORTS-compressible radiative-plasma integrity qualification` only if that count guard, all three source-integrity comparisons and all three execution-module bindings pass. A scientific check failure gives `FAIL` and `CONTRADICTS`. A source-integrity, execution-binding or fixed-count mismatch gives `FAIL` and scientific classification `INCONCLUSIVE`. Failure to read a qualification source or import a required qualification dependency gives `INCONCLUSIVE` and stops interpretation.
 
 Run once from the CassiTheory root:
 
 ```text
 python computations/verify_compressible_radiative_plasma_integrity.py \
-  --output runs/compressible_radiative_plasma_integrity_retained_energy_final/verification.json
+  --output runs/compressible_radiative_plasma_integrity_frozen_execution_final/verification.json
 ```
 
 ## References

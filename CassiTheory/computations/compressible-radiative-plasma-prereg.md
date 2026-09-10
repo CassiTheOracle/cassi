@@ -336,7 +336,9 @@ $|a-b|/\max(1,|b|)$ unless a check explicitly normalizes by another scale. Symbo
 
 The verifier refuses an existing output, manifest, staging path or source-snapshot directory. It reads each source once and writes those exact bytes to a staged snapshot tree. The complete tree and manifest are published by separate atomic renames; a successful return exposes both, while any publication failure removes every staging path and any snapshot tree published by that attempt.
 
-Every current source and snapshot is compared with the manifest immediately after publication, after dependency imports and before scientific controls, and after the controls. A pre-control mismatch prevents scientific execution. Any source-integrity mismatch gives receipt status `FAIL` with scientific classification `INCONCLUSIVE`. The result is `PASS` only when exactly 70 fixed scientific checks and every source-integrity comparison succeed. Its scientific classification is `SUPPORTS-conditional compressible radiative-plasma closure`. A failed identity, conservation check, positivity check or rejection control gives `FAIL` and `CONTRADICTS`. A missing numerical dependency or source-read failure produces a source-bound `INCONCLUSIVE` receipt and stops interpretation.
+After the external numerical dependencies load, the kernel and fixed scientific schedule are imported directly from their manifest-recorded snapshot files under unique module names. The receipt records each module's snapshot path, executed `__file__`, byte count, pre-import SHA-256, post-import SHA-256 and binding result. A module path, size or hash mismatch prevents scientific execution and gives receipt status `FAIL` with scientific classification `INCONCLUSIVE`.
+
+Every current source and snapshot is compared with the manifest immediately after publication, after dependency imports and before scientific controls, and after the controls. A pre-control mismatch prevents scientific execution. A source-integrity or fixed-count mismatch gives receipt status `FAIL` with scientific classification `INCONCLUSIVE`. The outer runner requires exactly 70 named checks and separately requires the frozen verifier's declaration to equal 70, so the scientific schedule cannot lower its own acceptance count. The result is `PASS` only when that count guard, every source-integrity comparison and both execution-module bindings succeed. Its scientific classification is `SUPPORTS-conditional compressible radiative-plasma closure`. A failed identity, conservation check, positivity check or rejection control gives `FAIL` and `CONTRADICTS`. A missing numerical dependency or source-read failure produces a source-bound `INCONCLUSIVE` receipt and stops interpretation.
 
 A passing result supports the displayed conditional equations and reference kernels at the fixed controls. It does not establish a Cassi material map, physical element abundances, atomic or nuclear data accuracy, a production shock solver, general angular convergence, stellar evolution or a live CassiCosmos implementation.
 
@@ -344,7 +346,7 @@ Run once from the CassiTheory root:
 
 ```text
 python computations/verify_compressible_radiative_plasma.py \
-  --output runs/compressible_radiative_plasma_retained_energy_final/verification.json
+  --output runs/compressible_radiative_plasma_frozen_execution_final/verification.json
 ```
 
 ## References

@@ -1098,9 +1098,10 @@ checks**. It verifies symbolic pressure-work reduction, exact normal-shock
 fluxes, primitive recovery, finite population-generator conservation and
 positivity, LTE line balance, bound-free energy partition, virial and
 source-reservoir ledgers, angular realizability, isotropic scattering and two
-axis-aligned beams that cross in one cell and continue independently. Its
-source-bound receipt is
-`runs/compressible_radiative_plasma_retained_energy_final/verification.json`.
+axis-aligned beams that cross in one cell and continue independently. The
+`cassi-compressible-radiative-plasma-verification-v2` receipt binds the executed
+kernel and scientific schedule to their manifest-recorded snapshot files:
+`runs/compressible_radiative_plasma_frozen_execution_final/verification.json`.
 
 The separate fixed integrity qualification in
 `computations/compressible-radiative-plasma-integrity-prereg.md` passes **36 of
@@ -1109,9 +1110,11 @@ state construction, kinetic internal-energy recovery, the thermodynamic
 identities, exact physical-frequency Doppler normalization, invalid-state
 rejection, line and photoionization energy cancellation, normalized transfer
 sources, stellar control-volume reconstruction, nuclear conservation and the
-`INCONCLUSIVE` classification of missing scientific prerequisites. Its
-source-bound receipt is
-`runs/compressible_radiative_plasma_integrity_retained_energy_final/verification.json`.
+`INCONCLUSIVE` classification of missing scientific prerequisites. The
+`cassi-compressible-radiative-plasma-integrity-v2` receipt binds the executed
+kernel, base verifier and integrity schedule to their manifest-recorded
+snapshot files:
+`runs/compressible_radiative_plasma_integrity_frozen_execution_final/verification.json`.
 
 The combined qualification verdict is **SUPPORTS** for the conditional closure at reference-kernel
 level. Production finite-volume convergence, atomic and nuclear data
