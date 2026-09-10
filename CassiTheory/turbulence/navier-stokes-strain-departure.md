@@ -355,9 +355,10 @@ $$
 }
 $$
 
-At any time with $K=0$, the velocity vanishes and the identities below are
-trivial. In the nontrivial case $K>0$, the normalized radial measure is
+At any time with $K=0$, the velocity vanishes and the unnormalized identities
+are trivial. In the nontrivial case $K>0$, the normalized radial measure is
 well-defined.
+
 The spread dissipation controls the coefficient in the complete critical
 transfer estimate. Normalize $d\mu/(2K)$ to a probability measure and write
 $$
