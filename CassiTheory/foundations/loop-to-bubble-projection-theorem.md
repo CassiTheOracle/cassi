@@ -4022,8 +4022,7 @@ It supplies no uniform positive Ricci lower bound for the exact vacuum
 measure. Lichnerowicz therefore does not transfer that result to the
 stratified gauge quotient or its thermodynamic and continuum limits.
 
-The geometric route has therefore produced a stronger target than another
-finite-box eigenvalue:
+The covariance route produces the following sufficient $L^2$ target:
 
 $$
 \begin{gathered}
@@ -4035,6 +4034,9 @@ $$
 $$
 
 for exact interacting marginals or rigorously compared effective vacua.
+Equation (YM125) is the $L^2$-score sufficient route. Section 9.21 replaces
+its third line by the weaker conditional-transport requirement (YM151);
+either route still needs the displayed uniform fibre and coarse margins.
 The inequalities must remain uniform in spatial volume, representation
 support and the weak-bare-coupling refinement sequence. Establishing them,
 together with the thermodynamic limit, reflection-positive continuum
@@ -4574,7 +4576,7 @@ microscopic completions.
 | Finite-scaled-cutoff form limits and fixed-window isolation (YM82)–(YM89) | **Derived** | Fixed $N/x^{1/4}=C$ isolates through the exact Feshbach self-energy but does not make the bare compression converge |
 | Bare character-cutoff theorem (YM90) | **Derived** | For every fixed low level, bare spectral convergence and vanishing discarded mass hold iff $N/x^{1/4}\to\infty$, equivalently $gN\to\infty$ |
 | Fixed fundamental-boundary internal Gauss fibre (YM91)–(YM96) | **Derived** within established $SU(2)$ representation theory | Exactly 14 states for $j_{\max}\geq1$; Wilson multiplication exits the fixed boundary sector |
-| Poincaré/link-sphere geometry and exact two-scale recurrence (YM99)–(YM125) | **Derived** finite-regulator geometry and **Derived conditional** Poincaré theorem | Exact marginal interactions enter through \((\lambda_{\mathrm{fib}},\kappa,\lambda_c)\); their weak-coupling scale-uniform bounds remain open |
+| Poincaré/link-sphere geometry and exact two-scale recurrence (YM99)–(YM125) | **Derived** finite-regulator geometry and **Derived conditional** Poincaré theorem | Exact marginal interactions enter through \((\lambda_{\mathrm{fib}},\kappa,\lambda_c)\); (YM125) is the sufficient $L^2$-score target and its weak-coupling scale-uniform bounds remain open |
 | Conditional $H^{-1}$ score recurrence and exact margin transfer (YM126)–(YM151) | **Derived conditional** finite-regulator theorem | The inverse-generator score norm retains vertical cancellations and is no weaker than the $L^2$ covariance estimate; its exact-vacuum uniform bound remains open |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
@@ -4800,10 +4802,10 @@ are `runs/yang_mills_poincare_geometry/verification.json` and
 `runs/yang_mills_poincare_geometry/verification-independent.json`.
 The finite controls classify **PASS**. Equations (YM99)–(YM124) are
 analytical statements proved in §9.20; the checks guard their fixed formulas
-and normalization. Equation (YM125) is the open scale-uniform target.
-Uniform weak-coupling control of
-$(\lambda_{\mathrm{fib}},\kappa,\lambda_c)$, the thermodynamic limit and the continuum mass
-gap remain **UNRESOLVED**.
+and normalization. Equation (YM125) is the sufficient $L^2$-score target,
+while (YM151) is its sharper conditional-transport alternative. Uniform
+weak-coupling control of either route, the thermodynamic limit and the
+continuum mass gap remain **UNRESOLVED**.
 
 The conditional transport-score protocol
 `computations/yang-mills-transport-score-prereg.md` is implemented by
@@ -4814,7 +4816,9 @@ The primary receipt passes **86 checks** across 10 finite-chain rows, 2
 Gaussian fixtures, 10 physical-margin rows and 2 alias-symbol rows. Its
 largest normalized matrix and scalar discrepancies are respectively
 $5.33638658877\times10^{-15}$ and
-$1.91418837614\times10^{-16}$.
+$2.13450577681\times10^{-16}$. Every chain and fixture recurrence check
+reconstructs both the $H^{-1}$ and covariance-relaxed generalized
+eigenvalues.
 
 The independent receipt passes **32 checks**, constructs every chain square
 root from the discrete-sine basis, uses separate Jacobi and pivoted-solve

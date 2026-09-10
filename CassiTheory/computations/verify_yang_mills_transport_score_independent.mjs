@@ -14,8 +14,8 @@ const OUT_DIR = join(ROOT, "runs", "yang_mills_transport_score");
 const PRIMARY_RECEIPT = join(OUT_DIR, "verification.json");
 const OUT_PATH = join(OUT_DIR, "verification-independent.json");
 
-const PRIMARY_SCHEMA = "cassi.yang-mills-transport-score.verification.v1";
-const INDEPENDENT_SCHEMA = "cassi.yang-mills-transport-score.verification-independent.v1";
+const PRIMARY_SCHEMA = "cassi.yang-mills-transport-score.verification.v2";
+const INDEPENDENT_SCHEMA = "cassi.yang-mills-transport-score.verification-independent.v2";
 const MATRIX_TOLERANCE = 1.0e-10;
 const ALGEBRAIC_TOLERANCE = 1.0e-11;
 const COMPARISON_TOLERANCE = 1.0e-9;
@@ -593,11 +593,16 @@ const reconstructedMatrixMaximum = maximum([
   ...independentSymbolRows.map((row) => row.determinant_error),
 ]);
 const reconstructedScalarMaximum = maximum([
-  ...independentChainRows.map((row) => scalarError(row.hminus1_recurrence.C_closed, row.hminus1_recurrence.C_direct)),
+  ...independentChainRows.flatMap((row) => [
+    scalarError(row.hminus1_recurrence.C_closed, row.hminus1_recurrence.C_direct),
+    scalarError(row.l2_recurrence.C_closed, row.l2_recurrence.C_direct),
+  ]),
   ...independentFixtureRows.flatMap((row) => [
     scalarError(row.theta_sq, row.expected_theta_sq),
     scalarError(row.kappa_sq_over_lambda_fib, row.expected_relaxed_theta_sq),
     scalarError(row.comparison_factor, row.expected_factor),
+    scalarError(row.hminus1_recurrence.C_closed, row.hminus1_recurrence.C_direct),
+    scalarError(row.l2_recurrence.C_closed, row.l2_recurrence.C_direct),
   ]),
   ...independentMarginRows.map((row) => scalarError(row.C_normalized_direct, row.C_normalized_closed)),
   ...independentSymbolRows.flatMap((row) => [

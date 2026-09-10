@@ -745,7 +745,7 @@ passes **32 checks**.
 | Strict Gaussian fixture | $\vartheta^2=1/9$ versus $\kappa^2/\lambda_{\mathrm{fib}}=1$; bounds $0.961295942106$ versus $0.737912651870$ against exact rate $1$ | **SUPPORTS** strict inverse-generator improvement in the declared finite Gaussian control |
 | Even/odd weak-field chains | All 10 rows have comparison factor one within $7.77156117238\times10^{-16}$ and reproduce the exact anisotropic Gaussian rate within $1.66533453694\times10^{-15}$ | **SUPPORTS** exact reconstruction; the inverse norm gives no gain for this chain family |
 | Massless infrared branch | At $N=64$, $(\lambda_c,\lambda_{\mathrm{fib}},\vartheta)=(0.188747776607,2.04774351863,0.952799273901)$; the formal infinite symbol has values $(0,2,1)$ for coarse, fibre and transport quantities | **CONTRADICTS** manufacturing a mass from positive fibre control; the unpinned infinite massless symbol is not a normalizable Gaussian probability |
-| Frozen finite controls | Primary and independent receipts pass 86/86 and 32/32; maximum primary matrix/scalar errors are $5.33638658877\times10^{-15}$ and $1.91418837614\times10^{-16}$ | **PASS** for the fixed implementation and Gaussian controls |
+| Frozen finite controls | The v2 primary and independent receipts pass 86/86 and 32/32; both generalized-eigenvalue reconstructions are checked, and the maximum primary matrix/scalar errors are $5.33638658877\times10^{-15}$ and $2.13450577681\times10^{-16}$ | **PASS** for the fixed implementation and Gaussian controls |
 | Interacting Yang–Mills target | No vertical transport field, uniform $H^{-1}$ score bound, exact coarse closure, thermodynamic limit or continuum construction is supplied | **UNRESOLVED** |
 
 The qualified receipts are

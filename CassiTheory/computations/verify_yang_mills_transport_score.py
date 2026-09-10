@@ -149,8 +149,9 @@ def main() -> int:
 
             hminus1 = metrics["hminus1_recurrence"]
             l2_score = metrics["l2_recurrence"]
-            c_error = scalar_error(hminus1["C_closed"], hminus1["C_direct"])
-            scalar_errors.append(c_error)
+            hminus1_c_error = scalar_error(hminus1["C_closed"], hminus1["C_direct"])
+            l2_c_error = scalar_error(l2_score["C_closed"], l2_score["C_direct"])
+            scalar_errors.extend([hminus1_c_error, l2_c_error])
 
             row = {
                 "size": size,
@@ -175,9 +176,11 @@ def main() -> int:
             )
             check(
                 f"chain_recurrence_{label}",
-                c_error <= ALGEBRAIC_TOL
+                hminus1_c_error <= ALGEBRAIC_TOL
+                and l2_c_error <= ALGEBRAIC_TOL
                 and hminus1["bound"] + ALGEBRAIC_TOL >= l2_score["bound"],
-                error=c_error,
+                hminus1_error=hminus1_c_error,
+                l2_error=l2_c_error,
             )
             check(
                 f"chain_exact_gap_{label}",
@@ -212,7 +215,17 @@ def main() -> int:
             metrics["kappa_sq_over_lambda_fib"], spec["expected_relaxed_theta_sq"]
         )
         factor_error = scalar_error(metrics["comparison_factor"], spec["expected_factor"])
-        scalar_errors.extend([theta_error, relaxed_error, factor_error])
+        hminus1_c_error = scalar_error(
+            metrics["hminus1_recurrence"]["C_closed"],
+            metrics["hminus1_recurrence"]["C_direct"],
+        )
+        l2_c_error = scalar_error(
+            metrics["l2_recurrence"]["C_closed"],
+            metrics["l2_recurrence"]["C_direct"],
+        )
+        scalar_errors.extend(
+            [theta_error, relaxed_error, factor_error, hminus1_c_error, l2_c_error]
+        )
         fixture_rows.append(
             {
                 "name": spec["name"],
@@ -232,10 +245,14 @@ def main() -> int:
         check(f"fixture_factor_{spec['name']}", factor_error <= ALGEBRAIC_TOL, error=factor_error)
         check(
             f"fixture_ordering_{spec['name']}",
-            metrics["hminus1_recurrence"]["bound"] + ALGEBRAIC_TOL
+            hminus1_c_error <= ALGEBRAIC_TOL
+            and l2_c_error <= ALGEBRAIC_TOL
+            and metrics["hminus1_recurrence"]["bound"] + ALGEBRAIC_TOL
             >= metrics["l2_recurrence"]["bound"]
             and metrics["hminus1_recurrence"]["bound"]
             <= metrics["exact_anisotropic_gap"] + ALGEBRAIC_TOL,
+            hminus1_error=hminus1_c_error,
+            l2_error=l2_c_error,
         )
 
     margin_specs = [
@@ -354,7 +371,7 @@ def main() -> int:
 
     passed = all(item["pass"] for item in checks)
     receipt = {
-        "schema": "cassi.yang-mills-transport-score.verification.v1",
+        "schema": "cassi.yang-mills-transport-score.verification.v2",
         "verdict": "PASS" if passed else "FAIL",
         "protocol": PROTOCOL.relative_to(ROOT).as_posix(),
         "protocol_sha256": sha256(PROTOCOL),
