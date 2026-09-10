@@ -1,6 +1,6 @@
 # Yang–Mills Residual Recovery and Score-Penalty Gramian Preregistration
 
-## Status: Frozen protocol v2—September 2026
+## Status: Frozen protocol v3—September 2026
 
 ## 1. Question and scope
 
@@ -308,9 +308,16 @@ The fixed transported fixture uses \(\mathbb R^3\), gauge null
 \((1/2,1,1/2)\), and transports
 \(T_0=I\), \(T_1=\operatorname{diag}(-1,1,1)\),
 \(T_2=\operatorname{diag}(1,-1,1)\). Its accumulated Gramian is
-\(\operatorname{diag}(1,1,0)\).
+\(\operatorname{diag}(1,1,0)\). The quadratic identity uses exactly
 
-The matrix normalized error is operator norm divided by the larger of one and the reference operator norm. Scalar normalized error is absolute difference divided by the larger of one and the reference magnitude. Primary tolerance is \(10^{-11}\); independent comparison tolerance is \(10^{-9}\). The fixed rows, checks, weights, transports, and tolerances may not change after execution.
+\[
+x_1=(1,2,3)^T,\quad
+x_2=(-2,1/2,1)^T,\quad
+x_3=(0,1,-4)^T,\quad
+x_4=(\sqrt2,-\pi,1/4)^T.
+\]
+
+The matrix normalized error is operator norm divided by the larger of one and the reference operator norm. Scalar normalized error is absolute difference divided by the larger of one and the reference magnitude. Primary tolerance is \(10^{-11}\); independent comparison tolerance is \(10^{-9}\). The fixed rows, checks, weights, transports, vectors, and tolerances may not change after execution.
 
 Primary receipt:
 
