@@ -75,12 +75,15 @@ centered physical functions identifies
 $A_{\mathrm{AT}}^{\mathrm{opt}}=\gamma_{\mathrm{rec}}^{-1}$ and gives
 $\lambda_{\mathrm{gi}}\geq\gamma_{\mathrm{rec}}\lambda_{\mathrm{loc}}/\rho$
 under the declared conditional and cover estimates. The transported-score
-Gramian is a distinct upper penalty on coarse tangent directions. Product,
+Gramian is a distinct upper penalty on coarse tangent directions. At finite
+level, an explicitly defined triangular transport operator packages the
+conditional shell estimates into one operator norm; a weighted Schur
+row-and-column bound is sufficient for scale-uniform control. Product,
 near-parallel and Gaussian controls show that a score kernel can contain a
 physical direction and that exact finite-regulator rigidity can coexist with
 a recovery floor tending to zero. The 58-check primary and 30-check
-independent reconstructions pass. Uniform residual recovery and score
-transport bounds for the exact interacting vacuum, the four-dimensional
+independent reconstructions pass. Uniform recovery, shell-rate and
+score-transport bounds for the exact interacting vacuum, the four-dimensional
 continuum construction and microscopic Cassi identification remain open.
 
 ---
@@ -4866,6 +4869,172 @@ proving a positive lower score Gramian supplies no gap. No such uniform pair
 has been established for the exact interacting Yang–Mills vacuum. The
 thermodynamic and continuum constructions remain open.
 
+#### 9.22.7 Finite-level martingale transport criterion
+
+A nested conditional construction can be combined into one estimate only after
+its cross-level transport operator is defined on the joint form domain. Let
+
+$$
+\mathcal F_{-1}:=\{\varnothing,\Omega\}
+\subset\mathcal F_0\subset\cdots\subset\mathcal F_L,
+\qquad
+P_{-1}f:=\mu(f),
+\qquad
+P_jf:=\mathbb E_\mu[f\mid\mathcal F_j]\quad(0\leq j\leq L),
+\tag{YM171}
+$$
+
+and let $\mathcal D\subset L^2(\mathcal F_L,\mu)$ be the common dense form
+domain, with $P_Lf=f$ for $f\in\mathcal D$. Set
+
+$$
+\Delta_j:=P_j-P_{j-1}.
+$$
+
+For centered $f\in\mathcal D$, martingale orthogonality gives
+$\operatorname{Var}_\mu(f)=\sum_j\|\Delta_jf\|_2^2$. Assume that the
+conditional shell at level $j$ has a rate $\lambda_j>0$ satisfying
+
+$$
+\|\Delta_jf\|_2^2
+\leq
+\lambda_j^{-1}\|h_j(f)\|_2^2,
+\qquad
+h_j(f):=\nabla_jP_jf.
+\tag{YM172}
+$$
+
+Suppose differentiated disintegration supplies the joint identity
+
+$$
+h(f)=(A_L+K_L)G_Lf,
+\qquad
+G_Lf:=(\nabla_0f,\ldots,\nabla_Lf),
+\tag{YM173}
+$$
+
+on $\mathcal D$. Here $A_L$ collects the direct conditional
+gradient maps, while $K_L$ collects the centered Poisson transport fields
+solving
+
+$$
+-\operatorname{div}_{\eta_j}u_{j,\xi}=s_{j,\xi}.
+\tag{YM174}
+$$
+
+The level ordering makes $K_L$ strictly upper triangular: its $(j,k)$ block
+vanishes for $k\leq j$. Let $\Lambda_L=\operatorname{diag}(\lambda_j)$ and
+let $W_L$ be a positive direct-sum energy metric,
+
+$$
+\mathcal E_L(f):=\|W_L^{1/2}G_Lf\|_2^2.
+\tag{YM175}
+$$
+
+Then the finite-level estimate is
+
+$$
+\boxed{
+\operatorname{Var}_\mu(f)
+\leq
+C_L^2\mathcal E_L(f),
+\qquad
+C_L:=
+\left\|
+\Lambda_L^{-1/2}(A_L+K_L)W_L^{-1/2}
+\right\|_{\mathrm{op}}.
+}
+\tag{YM176}
+$$
+
+Indeed, (YM172) and martingale orthogonality bound the variance by
+$\|\Lambda_L^{-1/2}h(f)\|_2^2$; (YM173) substitutes the joint gradient;
+(YM175) and the operator norm give (YM176). Strict upper triangularity alone
+does not bound $C_L$ uniformly as $L$ grows.
+
+For a blockwise sufficient condition, write
+
+$$
+M_L:=\Lambda_L^{-1/2}(A_L+K_L)W_L^{-1/2},
+\qquad
+r_L:=\sup_j\sum_k\|M_{jk}\|,
+\qquad
+c_L:=\sup_k\sum_j\|M_{jk}\|.
+\tag{YM177}
+$$
+
+The block Schur estimate gives
+
+$$
+\|M_L\|_{\mathrm{op}}^2\leq r_Lc_L.
+\tag{YM178}
+$$
+
+Thus uniformly bounded weighted row and column sums are sufficient for a
+scale-uniform conditional estimate. Exponential decay of the normalized
+cross-level blocks in $k-j$ is one sufficient mechanism. This condition
+controls the assembled transport operator directly; it does not follow by
+summing the two-scale recurrences.
+
+Combining (YM176) with the exact ground-state transform (YM28) yields, for
+any family satisfying the displayed hypotheses,
+
+$$
+\Delta_{\mathrm{phys}}(a,L)
+\geq
+\frac{g_L^2}{2a_L}C_L^{-2}.
+\tag{YM179}
+$$
+
+A fixed physical mass $m_*>0$ therefore requires
+
+$$
+\inf_{a,L}
+\frac{g_L^2}{2a_L}C_L^{-2}
+\geq m_*.
+\tag{YM180}
+$$
+
+The Gaussian family (YM37) supplies an exact infrared diagnostic for this
+criterion. For the massless open chain,
+
+$$
+\lambda_{\mathrm{glob},N}
+=2\lambda_{\min}(Q_N)
+=4\sin\frac{\pi}{2(N+1)}
+\sim\frac{2\pi}{N+1},
+\qquad
+C_N^2\geq\lambda_{\mathrm{glob},N}^{-1}.
+\tag{YM181}
+$$
+
+Consequently, a scale-uniform $C_N$ is impossible in the massless chain,
+even though every one-coordinate conditional rate remains bounded. With
+$m>0$,
+
+$$
+\lambda_{\mathrm{glob},N}(m)
+=2\sqrt{
+m^2+4\sin^2\frac{\pi}{2(N+1)}
+}
+\longrightarrow 2m,
+\tag{YM182}
+$$
+
+so a mass or an equivalent infrared-localization hypothesis changes the
+global conclusion. These finite Gaussian formulas are algebraic diagnostics
+and are separate from the 58-check primary and 30-check independent
+receipts.
+
+For the exact Yang–Mills measure, an instantiation would take $\mathcal F_j$
+from a nested full-holonomy coarse filtration, use the exact conditional
+shell rates for $\lambda_j$, and construct the fields in (YM174) from the
+conditional vacuum scores. The required uniform shell, recovery and
+transport estimates remain the obligations in (YM151) and (YM170). Equations
+(YM171)–(YM182) provide a conditional finite-level target; they do not supply
+the missing weak-coupling bound or a continuum mass gap.
+
+
 ---
 
 ## 10. Physical tests and rejection conditions
@@ -4937,6 +5106,7 @@ microscopic completions.
 | Poincaré/link-sphere geometry and exact two-scale recurrence (YM99)–(YM125) | **Derived** finite-regulator geometry and **Derived conditional** Poincaré theorem | Exact marginal interactions enter through \((\lambda_{\mathrm{fib}},\kappa,\lambda_c)\); (YM125) is the sufficient $L^2$-score target and its weak-coupling scale-uniform bounds remain open |
 | Conditional $H^{-1}$ score recurrence and exact margin transfer (YM126)–(YM151) | **Derived conditional** finite-regulator theorem | The inverse-generator score norm retains vertical cancellations and is no weaker than the $L^2$ covariance estimate; its exact-vacuum uniform bound remains open |
 | Residual recovery Gramian and score-penalty separation (YM152)–(YM170) | **Derived conditional** finite-regulator theorem | $A_{\mathrm{AT}}^{\mathrm{opt}}=\gamma_{\mathrm{rec}}^{-1}$ and $\lambda_{\mathrm{gi}}\geq\gamma_{\mathrm{rec}}\lambda_{\mathrm{loc}}/\rho$; the score operator is a separate upper penalty on coarse tangents, and uniform exact-vacuum recovery and score bounds remain open |
+| Finite-level martingale transport criterion (YM171)–(YM182) | **Derived conditional** finite-regulator theorem | Explicit joint form-domain identity and uniformly controlled weighted transport operator are required; exact Yang–Mills shell, recovery and weak-coupling bounds remain open |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -5249,6 +5419,14 @@ and an upper transported-score bound on coarse tangents are separate
 requirements. No receipt supplies either estimate uniformly for the exact
 interacting Yang–Mills vacuum, so the thermodynamic limit, continuum
 construction and physical mass gap remain **UNRESOLVED**.
+
+The finite-level martingale transport criterion in §9.22.7 is an analytical
+conditional extension of the shell estimates. It has no separate preregistered
+protocol or receipt: (YM171)–(YM180) are proved from their displayed
+form-domain and transport hypotheses, while (YM181)–(YM182) are exact
+post-protocol Gaussian diagnostics. These formulas do not extend the 58-check
+or 30-check recovery receipts. The exact-vacuum shell, recovery and
+weak-coupling transport bounds remain **UNRESOLVED**.
 
 ---
 
