@@ -53,7 +53,7 @@ the missing metric and orbit-matching rule. Running and measured-scale
 comparisons are in `sm-radiative-corrections.md`.
 
 The pure Yang–Mills comparison is in
-`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.20. Its state
+`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.21. Its state
 space and Hamiltonian come from source-free quantum $SU(2)$ lattice gauge
 theory, with no isospinor matter or symmetry-breaking potential. It gives
 regulated electric-loop and projective-information boundaries, a
@@ -72,19 +72,23 @@ Gauss fibre has exactly 14 states once $j_{\max}\geq1$ and conditional
 electric spacing $2g^2/a$; Wilson multiplication changes the fixed boundary
 representation sector.
 
-Section 9.20 keeps the round spatial regulator, intrinsic link sphere and
-gauge quotient distinct. The free spatial coexact frequency $2/R$ vanishes
-as $R\to\infty$ and is not an interacting Hamiltonian gap. The auxiliary
-one-link curvature bound has no asserted map to the Hamiltonian coupling or
-exact vacuum. Exact factor-two disintegration gives the all-function
-conditional recurrence $\lambda_f\geq C_*^{-1}$, hence
+Sections 9.20–9.21 keep the round spatial regulator, intrinsic link sphere
+and gauge quotient distinct. The free spatial coexact frequency $2/R$
+vanishes as $R\to\infty$ and is not an interacting Hamiltonian gap. The
+auxiliary one-link curvature bound has no asserted map to the Hamiltonian
+coupling or exact vacuum. Exact factor-two disintegration gives the
+all-function conditional recurrence $\lambda_f\geq C_*^{-1}$, hence
 $\lambda_{\mathrm{gi}}\geq\lambda_f$, under its stated coarse, fibre and
-transported-score estimates. Its 118 primary checks and 90
-implementation-independent receipt checks pass. Coupled boundary-sector
-amplitudes and self-energy control, uniform weak-coupling fibre, score and
-coarse-margin estimates, the continuum construction and a
-regulator-independent mass remain open. This comparison makes no
-electroweak or QCD particle identification.
+transported-score estimates. The conditional Poisson inverse sharpens this
+to $\lambda_f\geq C_{-1}^{-1}$ using the minimum vertical transport cost
+$\vartheta$ and gives an exact coarse/vertical/output margin budget. The
+118/90 geometry controls and 86/32 transport-score controls pass.
+
+Coupled boundary-sector amplitudes and self-energy control, a uniform
+interacting-vacuum transport field, weak-coupling fibre and coarse-margin
+estimates, the continuum construction and a regulator-independent mass
+remain open. This comparison makes no electroweak or QCD particle
+identification.
 
 ### `sm-radiative-corrections.md`—Standard Model Radiative Corrections from the φ-Boundary
 

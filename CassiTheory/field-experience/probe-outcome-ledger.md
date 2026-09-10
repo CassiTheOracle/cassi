@@ -727,6 +727,39 @@ not establish continuum Yang–Mills existence or a regulator-independent mass
 gap.
 
 
+## 24. Pure Yang–Mills conditional transport score
+
+The frozen v4 protocol
+`computations/yang-mills-transport-score-prereg.md` replaces the
+$L^2$ transported-score relaxation by the exact conditional $H^{-1}$ norm.
+The source-bound Python verifier passes **86 checks**. The independent
+JavaScript implementation reconstructs the fixed matrices from the
+discrete-sine basis with separate Jacobi and pivoted-solve algorithms and
+passes **32 checks**.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Conditional Poisson transport | $\vartheta^2=\operatorname*{ess\,sup}_{V,|\xi|=1}\langle s_{V,\xi},\mathcal L_V^{-1}s_{V,\xi}\rangle$ is the minimum kinetic cost over $-\operatorname{div}_{\nu_V}u=s_{V,\xi}$ | **ADOPT** as a conditional finite-regulator identity on the stated connected form domains |
+| Sharpened recurrence | $\lambda_f\geq C_{-1}^{-1}$ with score coefficient $\vartheta$, and $\vartheta^2\leq\kappa^2/\lambda_{\mathrm{fib}}$ | **ADOPT** as no weaker than the covariance recurrence; an exact-vacuum uniform estimate is absent |
+| Physical margin transfer | The recurrence certifies output margin $\delta_f$ exactly when $\delta_c,\delta_v\geq\delta_f$ and $\vartheta^2\leq(\delta_c-\delta_f)(\delta_v-\delta_f)/[4(1+\delta_f)(1+\delta_v)]$ | **ADOPT** as the exact conditional induction budget |
+| Strict Gaussian fixture | $\vartheta^2=1/9$ versus $\kappa^2/\lambda_{\mathrm{fib}}=1$; bounds $0.961295942106$ versus $0.737912651870$ against exact rate $1$ | **SUPPORTS** strict inverse-generator improvement in the declared finite Gaussian control |
+| Even/odd weak-field chains | All 10 rows have comparison factor one within $7.77156117238\times10^{-16}$ and reproduce the exact anisotropic Gaussian rate within $1.66533453694\times10^{-15}$ | **SUPPORTS** exact reconstruction; the inverse norm gives no gain for this chain family |
+| Massless infrared branch | At $N=64$, $(\lambda_c,\lambda_{\mathrm{fib}},\vartheta)=(0.188747776607,2.04774351863,0.952799273901)$; the formal infinite symbol has values $(0,2,1)$ for coarse, fibre and transport quantities | **CONTRADICTS** manufacturing a mass from positive fibre control; the unpinned infinite massless symbol is not a normalizable Gaussian probability |
+| Frozen finite controls | Primary and independent receipts pass 86/86 and 32/32; maximum primary matrix/scalar errors are $5.33638658877\times10^{-15}$ and $1.91418837614\times10^{-16}$ | **PASS** for the fixed implementation and Gaussian controls |
+| Interacting Yang–Mills target | No vertical transport field, uniform $H^{-1}$ score bound, exact coarse closure, thermodynamic limit or continuum construction is supplied | **UNRESOLVED** |
+
+The qualified receipts are
+`runs/yang_mills_transport_score/verification.json` and
+`runs/yang_mills_transport_score/verification-independent.json`. They bind
+the frozen protocol and both sources. The protocol and theorem audits are
+`runs/yang_mills_transport_score/analytical-review.json` and
+`runs/yang_mills_transport_score/theorem-review.json`; both return `VALID`.
+The analytical theorem is
+`foundations/loop-to-bubble-projection-theorem.md` §9.21. The finite Gaussian
+rows test its algebra and scope without establishing the interacting
+Yang–Mills estimate.
+
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -799,3 +832,6 @@ gap.
 - `computations/yang-mills-poincare-geometry-prereg.md`—frozen v2 spatial/link geometry, conditional-score recurrence, physical-scaling and receipt-integrity protocol.
 - `computations/verify_yang_mills_poincare_geometry.py`—118-check source-bound geometry and recurrence receipt generator.
 - `computations/verify_yang_mills_poincare_geometry_independent.mjs`—90-check implementation-independent formula and receipt-integrity audit over the fixed primary schedule.
+- `computations/yang-mills-transport-score-prereg.md`—frozen v4 conditional Poisson, transport-score, margin-transfer and Gaussian-control protocol.
+- `computations/verify_yang_mills_transport_score.py`—86-check source-bound transport-score and Gaussian verifier.
+- `computations/verify_yang_mills_transport_score_independent.mjs`—32-check independent discrete-sine, Jacobi and pivoted-solve reconstruction.

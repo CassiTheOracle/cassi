@@ -760,7 +760,7 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
-The separate pure-gauge comparison in that document, §§9.4–9.20, uses the
+The separate pure-gauge comparison in that document, §§9.4–9.21, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
 projective bubble coordinate discards a phase required by Wilson magnetic
@@ -844,11 +844,44 @@ $\lambda_c$ otherwise saturates $r_c$. The 118-check primary receipt and
 re-evaluates the fixed primary schedule rather than generating independent
 samples.
 
-A scale-uniform lower bound for $\lambda_{\mathrm{fib}}$, an upper bound for
-$\kappa$, a coarse-rate margin for exact interacting marginals, the
-thermodynamic and four-dimensional continuum limits, a regulator-independent
-mass gap and carrier-state identification remain open. The QF/DQ/GQ
-classifications remain unchanged.
+The conditional Poisson refinement measures the score by its minimum vertical
+transport cost
+
+$$
+\vartheta^2
+=
+\operatorname*{ess\,sup}_{V,|\xi|=1}
+\langle s_{V,\xi},\mathcal L_V^{-1}s_{V,\xi}\rangle.
+$$
+
+It yields $\lambda_f\geq C_{-1}^{-1}$ and is no weaker than the covariance
+bound because
+$\vartheta^2\leq\kappa^2/\lambda_{\mathrm{fib}}$. In margin coordinates,
+the exact recurrence criterion is
+
+$$
+\delta_c,\delta_v\geq\delta_f,
+\qquad
+\vartheta^2
+\leq
+\frac{(\delta_c-\delta_f)(\delta_v-\delta_f)}
+{4(1+\delta_f)(1+\delta_v)}.
+$$
+
+The 86-check primary and 32-check independent schedule reconstructions pass.
+The strict Gaussian fixture improves the certified bound from
+$0.737912651870$ to $0.961295942106$ against exact rate $1$. All 10
+even/odd chain rows instead saturate the covariance relaxation; the massless
+coarse rate decreases while the fibre rate tends to $2$ and
+$\vartheta\to1$. Thus the refinement preserves the free infrared obstruction
+and identifies an explicit transport field as the next interacting object.
+
+A scale-uniform lower bound for $\lambda_{\mathrm{fib}}$, a vertical field
+solving the exact-vacuum score transport equation with the required
+$H^{-1}$ margin, a strict coarse-rate margin, the thermodynamic and
+four-dimensional continuum limits, a regulator-independent mass gap and
+carrier-state identification remain open. The older $L^2$ route through
+$\kappa$ remains sufficient. The QF/DQ/GQ classifications remain unchanged.
 
 The completion ansatz in
 `foundations/geometric-manifold-completion.md` places these finite layers in

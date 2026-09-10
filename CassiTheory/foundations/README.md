@@ -210,7 +210,7 @@ baryon-production coupling remain open.
 | 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction—September 2026 |
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
-| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling character-cutoff theorem, exact fixed-link three-sphere geometry and two-scale conditional-score recurrence, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
+| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling character-cutoff theorem, exact fixed-link three-sphere geometry, two-scale conditional-score recurrence, and $H^{-1}$ transport-score margin transfer, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
 | 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current, phase-current projection and conditional soliton pinch | Hypothesized action and Wilson-link extension / Derived conditional current, endpoint, support and phase-current boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum, rotational and phase-coercivity controls, and conditional smooth scalar binding |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, scale graph and canonical reduction | Hypothesized completion / Derived conditional fibre geometry and canonical reduction / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 39 | `endpoint-link-and-localization-boundary.md` | Conditional endpoint covariance, response, transport and localization boundary | Hypothesized Wilson extension / Derived conditional endpoint and localization boundaries / Tested finite-grid spectrum and conditional smooth scalar binding |
@@ -775,7 +775,7 @@ even pairs, and the supplied fivefold phase orbit preserves the normalized
 $\varphi$ chord ratio. LB1–LB7 verify these identities. The physical carrier,
 phase law, scale ratio, and quantum-sector identification remain open.
 
-The separate pure-$SU(2)$ comparison in §§9.4–9.20 retains full loop
+The separate pure-$SU(2)$ comparison in §§9.4–9.21 retains full loop
 holonomy. Gauss invariance gives an exact electric threshold on girth-four
 lattice graphs, and projective bubble data discard a phase that changes
 Wilson magnetic energy. Yarotsky's stability theorem supplies a
@@ -830,6 +830,27 @@ strict coarse-rate margin at the physical scaling target. The 118-check
 primary verifier and 90-check implementation-independent receipt audit pass.
 The latter uses the fixed primary schedule rather than independent samples.
 Uniform weak-coupling fibre, score and coarse-margin estimates remain open.
+
+The conditional Poisson inverse sharpens the score term to its minimum
+vertical transport cost $\vartheta$. It gives
+$\lambda_f\geq C_{-1}^{-1}$ and the exact margin budget
+
+$$
+\vartheta^2
+\leq
+\frac{(\delta_c-\delta_f)(\delta_v-\delta_f)}
+{4(1+\delta_f)(1+\delta_v)}.
+$$
+
+The 86-check primary and 32-check independent schedule reconstructions pass.
+A strict Gaussian fixture reduces the squared score coefficient by a factor
+of nine and raises the certified lower bound from $0.737912651870$ to
+$0.961295942106$ against exact rate $1$. The even/odd weak-field chains
+saturate the relaxed score estimate instead: their recurrence reproduces the
+exact anisotropic Gaussian rate, while the massless coarse rate tends to
+zero. These controls expose where inverse-generator cancellation can help
+and preserve the perturbative infrared obstruction. A scale-uniform
+transport field for the exact interacting vacuum remains open.
 
 The source-bound version-3 finite campaign preserves all five cutoff
 schedules, uses $q(N)=\min\{3,N+1\}$, and passes 62 primary plus 20
