@@ -33,11 +33,16 @@ Its 246 checks include 28 native trajectories. The ordinary Navier–Stokes
 controls pass; the native self-sourced force produces mean acceleration in a
 periodic box. A physical closed-fluid completion remains open.
 
-The separate selected capillary/thermal closure conserves momentum and
-total energy and produces nonnegative entropy, with exact homogeneous
-canonical conversion. Its 395 checks cover 27 model trajectories and an
-independent differentiation-matrix reference. Microscopic transport and
-physical-fluid identification remain open.
+The selected capillary/thermal closure conserves momentum and total energy and
+produces nonnegative entropy, with exact homogeneous canonical conversion. Its
+395 checks cover 27 model trajectories and an independent
+differentiation-matrix reference.
+
+The phase-current reduction derives Mermin–Ho vorticity, full-doublet Hopf
+helicity and a two-scale-band periodic Beltrami class. Its 227 checks support
+exact scalar-diffusion/viscosity equivalence for that fixed-winding field and
+contradict the equivalence for general phase potentials. Microscopic material
+transport, arbitrary-flow closure and global regularity remain open.
 
 ## 1. Document index
 
@@ -48,7 +53,8 @@ physical-fluid identification remain open.
 | 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution and helical covariance conditions | Derived filtered identities / Hypothesized geometric closure |
 | 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response, matter binding and exterior-memory comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
 | 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, spectral-spread production, continuation reduction, forced budgets and cumulative mixing obstruction | Derived conditional estimates and cumulative mixing obstruction / Open arbitrary-data critical work |
-| 6 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure and actual flow controls | Derived conditional mechanical and thermal identities / Tested solver controls / Open physical-fluid completion |
+| 6 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure, phase-current summary and actual flow controls | Derived conditional mechanical, thermal, and phase-current identities / Tested solver and rotational controls / Open physical-fluid completion |
+| 7 | `turbulence/cassi-fluid-phase-current-hydrodynamics.md` | Mermin–Ho rotation, helicity topology, two-band Beltrami flow and the viscosity projection boundary | Derived conditional current and topology identities / Tested rotational and memory controls / Open microscopic viscosity and arbitrary-flow closure |
 
 ## 2. Document summaries
 
@@ -136,7 +142,7 @@ critical-transfer bound within that same family. Arbitrary-data cumulative
 production, general regularity and unforced blow-up remain open in this
 analysis.
 
-### 2.6 Cassi fluid mechanics and thermal closure
+### 2.6 Cassi fluid mechanics, thermal closure and phase currents
 
 `turbulence/cassi-fluid-feasibility.md` derives pressure, counterflow momentum
 flux and quantum stress from the ungauged positive-density first-order action
@@ -153,8 +159,8 @@ conversion, exact self-acceleration, decaying shear, two-dimensional
 Taylor–Green flow, prescribed forced shear and short-time three-dimensional
 Taylor–Green flow against an independent dealiased RK4 reference.
 Promotion to a physical replacement fluid is **REJECT** under this bounded
-schedule; concentration arrest is **NOT_RUN**. Physical viscosity, material
-normalization and a rotational hydrodynamic reduction remain open.
+schedule; concentration arrest is **NOT_RUN**. Physical viscosity and
+material normalization remain open.
 
 The selected constant-density completion in §7 has a variational capillary
 stress, an explicit heat equation and nonnegative entropy production.
@@ -166,6 +172,31 @@ differentiation-matrix/DOP853 evolution agrees with the FFT endpoint.
 Smooth-solution composition and temperature positivity bounds accompany
 the finite-grid evidence. The result **SUPPORTS** the declared
 constitutive budgets; physical replacement and global regularity remain
+**UNESTABLISHED**.
+
+### 2.7 Phase-current rotation and the viscosity boundary
+
+`turbulence/cassi-fluid-phase-current-hydrodynamics.md` derives the
+barycentric velocity of the phase-bearing action. One normalized Yang/Yin
+doublet obeys the Mermin–Ho vorticity identity. An everywhere-positive global
+doublet chart has zero integrated helicity on a closed domain; a smooth Hopf
+doublet crosses component-zero circles and carries nonzero helicity. Two
+fixed scale bands realize the periodic Beltrami flow
+$u=A(\sin z,\cos z,0)$ with positive component populations.
+
+Diffusing the two composition amplitudes gives exact viscous decay with
+$\nu=D$ for that fixed-winding fixture. A nonzero phase-geometry commutator
+contradicts the same identification for general phase potentials. Eliminating
+closed exterior scale modes gives an exact memory kernel and initial-state
+force; finite exterior systems recur. The selected exponential kernel has the
+expected Markov limit, but the action does not yet supply its state, decay or
+positive low-wave-number coefficient.
+
+The fixed schedule passes **227 checks**, including exact identities, odd-grid
+Fourier reconstructions, Hopf quadratures, memory controls, independent
+raw-array reconstruction and source matching. It **SUPPORTS** the conditional
+rotational class and restricted viscous correspondence. Microscopic viscosity,
+arbitrary-flow hydrodynamics and arbitrary-data regularity remain
 **UNESTABLISHED**.
 
 ## References
@@ -193,3 +224,6 @@ constitutive budgets; physical replacement and global regularity remain
 - `computations/cassi-fluid-thermodynamics-prereg.md`—selected fluid equations and fixed thermal controls
 - `computations/cassi_fluid_thermodynamics.py`—reacting capillary/thermal model and command-line evolution
 - `computations/verify_cassi_fluid_thermodynamics.py`—395-check thermal receipt, 27 model trajectories and independent numerical reference
+- `computations/cassi-fluid-phase-current-prereg.md`—fixed current, topology, diffusion and memory controls
+- `computations/verify_cassi_fluid_phase_current.py`—227-check exact, Fourier, Hopf, memory and raw-array verifier
+- `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—conditional rotational reduction and viscosity projection boundary

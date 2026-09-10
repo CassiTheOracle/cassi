@@ -1,6 +1,6 @@
-# Cassi Fluid Mechanics: Conservative Reduction and Thermal Closure
+# Cassi Fluid Mechanics: Conservative Reduction, Thermal Closure, and Phase Currents
 
-## Status: Derived conditional mechanical and thermal identities / Tested solver controls / Open physical-fluid completion—September 2026
+## Status: Derived conditional mechanical, thermal, and phase-current identities / Tested solver and rotational controls / Open physical-fluid completion—September 2026
 
 ## Abstract
 
@@ -10,7 +10,7 @@ The implemented projected-velocity solver passes the fixed shear, vortex and pre
 
 The native-solver schedule passes **246 checks**, including **28 actual native trajectories** and comparisons with independently implemented NumPy RK4 at two three-dimensional grids. The physical-model promotion decision is **REJECT** for those supplied sectors as a closed ordinary-fluid replacement.
 
-A selected constant-density reacting capillary fluid couples the restricted composition energy to rotational velocity and temperature. Its internal stress conserves periodic momentum, its heat equation closes total energy, and its full-affinity reaction produces nonnegative entropy. Homogeneous composition follows canonical gated conversion exactly. The separate thermal schedule passes **395 checks across 27 model trajectories**, with a differentiation-matrix reference evolution and resolved capillary-energy release. These are conditional constitutive results; material normalization, microscopic transport coefficients, a rotational hydrodynamic reduction and arbitrary-data global regularity remain open. No concentration-arrest experiment is run.
+A selected constant-density reacting capillary fluid couples the restricted composition energy to rotational velocity and temperature. Its internal stress conserves periodic momentum, its heat equation closes total energy, and its full-affinity reaction produces nonnegative entropy. Homogeneous composition follows canonical gated conversion exactly. The separate thermal schedule passes **395 checks across 27 model trajectories**, with a differentiation-matrix reference evolution and resolved capillary-energy release. A separate phase-current reduction derives local Mermin–Ho vorticity, full-doublet Hopf helicity, and a two-scale-band periodic Beltrami class. Its **227-check** schedule supports an exact fixed-phase diffusion/viscosity correspondence for that class and excludes the same identification for general phase potentials. Material normalization, microscopic transport coefficients, arbitrary-flow closure, and arbitrary-data global regularity remain open. No concentration-arrest experiment is run.
 
 ## 1. Three state conventions
 
@@ -583,7 +583,45 @@ python computations/cassi_fluid_thermodynamics.py --n 21 --dt 0.002 --time 0.2
 python computations/verify_cassi_fluid_thermodynamics.py --output runs/cassi_fluid_thermodynamics/reproduction/verification.json
 ```
 
-The verifier refuses existing output, manifest, snapshot and archive paths. The measured classification is **SUPPORTS** for the selected momentum/energy/entropy closure. Physical-fluid replacement, microscopic viscosity and arbitrary-data global regularity remain **UNESTABLISHED**. The native-force result in §§4–6 is unchanged: this model implements a separate variational internal stress and leaves the native density/Poisson solver untouched. Material calibration and a derivation of its rotational and irreversible hydrodynamic assumptions remain the physical correspondence problem.
+The verifier refuses existing output, manifest, snapshot and archive paths. The measured classification is **SUPPORTS** for the selected momentum/energy/entropy closure. Physical-fluid replacement, microscopic viscosity and arbitrary-data global regularity remain **UNESTABLISHED**. The native-force result in §§4–6 is unchanged: this model implements a separate variational internal stress and leaves the native density/Poisson solver untouched. The phase-current construction in §8 supplies a conditional rotational class; material calibration, an arbitrary-flow phase projection, and a positive viscosity coefficient remain the physical correspondence problem.
+
+## 8. Phase-current rotational reduction
+
+The phase-bearing action admits a barycentric current velocity
+
+$$
+u=\frac{\hbar}{m}\sum_r f_r
+\left[c_r\nabla\theta_{Yr}+(1-c_r)\nabla\theta_{Ir}\right].
+$$
+
+For one normalized doublet, its curl is the Mermin–Ho pullback of the
+projective-spin area form. An everywhere-positive global doublet chart has
+exact helicity form
+$A\wedge dA=-d(c\,d\theta_I\wedge d\alpha)$ and therefore zero integrated
+helicity on a closed domain. A smooth Hopf doublet carries nonzero helicity
+through component-zero circles. Two fixed scale bands realize the periodic
+Beltrami field $u=A(\sin z,\cos z,0)$ with positive component populations.
+
+Diffusing the two composition amplitudes with $D>0$ gives
+$A(t)=e^{-Dt}$ and exactly $\partial_tu=D\Delta u$ for this fixed-winding
+fixture. For general Clebsch potentials, the nonzero commutator
+
+$$
+D\sum_r\left[
+2(\nabla a_r\cdot\nabla)\nabla b_r+a_r\nabla\Delta b_r
+\right]
+$$
+
+excludes identification of scalar diffusion with vector viscosity. The
+closed first-order action instead gives an exact exterior-memory kernel and
+initial-state force after scale modes are eliminated. Finite exterior systems
+recur; a positive Markovian viscosity requires a selected exterior state,
+correlation decay, low-wave-number limit, and heat ledger.
+
+The fixed verifier passes **227 checks** and retains 144 arrays. The accepted
+receipt is `runs/cassi_fluid_phase_current_q1/verification.json`; the full
+derivation and evidence are in
+`turbulence/cassi-fluid-phase-current-hydrodynamics.md`.
 
 ## References
 
@@ -600,4 +638,7 @@ The verifier refuses existing output, manifest, snapshot and archive paths. The 
 - `computations/cassi-fluid-thermodynamics-prereg.md`—selected constitutive equations, fixed thermal controls and evidence policy.
 - `computations/cassi_fluid_thermodynamics.py`—reacting capillary/thermal evolution and CLI.
 - `computations/verify_cassi_fluid_thermodynamics.py`—symbolic budgets, 27 model trajectories and independent differentiation-matrix reference.
+- `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—Mermin–Ho current geometry, helicity topology, two-band Beltrami construction and projection boundary.
+- `computations/cassi-fluid-phase-current-prereg.md`—fixed rotational, topology, diffusion and memory controls.
+- `computations/verify_cassi_fluid_phase_current.py`—227-check exact, Fourier, Hopf, memory and raw-array verifier.
 - G. Planas, [On a non-isothermal incompressible Navier–Stokes–Allen–Cahn system](https://doi.org/10.1007/s00605-021-01564-2)—related model class; the selected closure retains its own assumptions and proof scope.

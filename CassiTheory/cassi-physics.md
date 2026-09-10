@@ -795,8 +795,15 @@ projected solver, the conditional Navier–Stokes controls pass, while a
 strictly positive periodic density configuration produces nonzero mean
 self-acceleration. The study passes 246 checks across 28 native trajectories
 and rejects promotion of the supplied sectors to a closed physical fluid.
-Material normalization and derivations of positive viscosity and rotational
-hydrodynamics remain open.
+Material normalization remains open. The separate phase-current reduction in
+`turbulence/cassi-fluid-phase-current-hydrodynamics.md` derives the
+Mermin–Ho vorticity of one normalized doublet, a full-doublet Hopf-helicity
+sector, and a two-scale-band periodic Beltrami field. Scalar diffusion gives
+exact viscous decay for that fixed-winding field. A nonzero commutator
+excludes the same identification for general phase geometry, and the closed
+action supplies recurrent exterior memory rather than a positive Markovian
+coefficient. The 227-check result supports a conditional rotational
+hydrodynamic class; material viscosity and arbitrary-flow closure remain open.
 
 Section 7 of that analysis selects a reacting capillary fluid with
 rotational velocity and temperature. Its variational stress conserves

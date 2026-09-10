@@ -1783,6 +1783,13 @@ $0.159$ turns per amplitude e-fold under the positive-rate contract.
 common phase potential. The relative phase, vortex data, and global period
 quantization remain independent.
 
+The separate phase-bearing action supplies a conditional rotational current
+map when composition and relative-phase fields are retained. One doublet
+obeys the Mermin–Ho identity, and two fixed scale bands realize a periodic
+Beltrami field (`turbulence/cassi-fluid-phase-current-hydrodynamics.md`).
+Those additional phase and scale-band data are absent from the canonical
+projected state used by GQ4, so its reconstruction verdict remains `FAIL`.
+
 #### GQ5. Finite Kähler compatibility
 
 At fixed resolution, let the CassiFI configuration space carry the Hermitian
@@ -3021,6 +3028,7 @@ projection and coherence-ball identities under
 - `foundations/physical-becoming-hierarchy.md` §§1, 5–7
 - `foundations/qi-flow-double-helix.md` §§1–6
 - `foundations/loop-to-bubble-projection-theorem.md` §§2–11
+- `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—conditional phase-current rotational map and projected-memory boundary
 - `open-questions-cassi-answers.md` Q7
 - `parameter-inventory.md` §§2.2, 4, 9
 - `predictions/falsifiable-predictions.md` §9

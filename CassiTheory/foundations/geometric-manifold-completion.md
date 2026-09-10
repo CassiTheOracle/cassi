@@ -693,6 +693,12 @@ The projective Berry connection and the dynamical field $B_A$ retain separate
 statuses. Equation (GM34) supplies their common $U(1)_Q$ transformation law
 without identifying their curvatures.
 
+The normalized projective shell also carries the Berry-current vorticity
+derived in `turbulence/cassi-fluid-phase-current-hydrodynamics.md`. Its
+Mermin–Ho term is the pullback of the $S^2$ area form. Equation (GM34) adds a
+separate $G=dB$ contribution, preserving the distinction between projective
+texture and dynamical relative curvature.
+
 ### 3.6 Loop-carrier moment map
 
 The existing carrier Hilbert space is

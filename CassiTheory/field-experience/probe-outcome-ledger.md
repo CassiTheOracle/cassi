@@ -439,6 +439,57 @@ a critical coupling and continuum masses are unevaluated.
 The master physical parameter count and empirical prediction catalog
 are unchanged.
 
+## 17. Cassi phase-current hydrodynamics
+
+The phase-bearing first-order action supplies a conditional barycentric
+velocity. A normalized Yang/Yin doublet obeys the Mermin–Ho vorticity identity.
+An everywhere-positive global chart has exact zero integrated helicity on a
+closed domain. A full Hopf doublet crosses component-zero circles and carries
+nonzero helicity, while two fixed scale bands realize the periodic Beltrami
+field $u=A(\sin z,\cos z,0)$ with positive component populations.
+
+The fixed schedule in `computations/cassi-fluid-phase-current-prereg.md`
+passes **227 checks**: 41 exact identities, 83 periodic spatial checks,
+three Hopf quadratures, 12 memory checks, 82 independent raw-array
+reconstructions and six source-identity checks.
+
+| Control | Decisive result | Classification and scope |
+|---|---|---|
+| Local doublet vorticity | Periodic shear velocity error $\leq4.44\times10^{-16}$ and curl error $\leq4.18\times10^{-15}$ | **SUPPORTS**, conditional phase-current rotation |
+| One positive global chart | Integrated helicity is exactly zero | **CONTRADICTS**, nonzero net helicity in that chart |
+| Full Hopf doublet | Helicity $-4\pi^2$ at all three quadrature orders | **SUPPORTS**, topology with component-zero circles |
+| Two-band Beltrami field | Velocity error $\leq4.44\times10^{-16}$ and curl error $\leq2.89\times10^{-15}$ | **SUPPORTS**, fixed periodic helical class |
+| Fixed-phase scalar diffusion | Evolution error $\leq8.96\times10^{-16}$ with $\partial_tu=D\Delta u$ | **SUPPORTS**, restricted correspondence $\nu=D$ |
+| General phase diffusion | Leray-projected commutator norm $0.353553390593274$ | **CONTRADICTS**, general scalar-diffusion/vector-viscosity identification |
+| Closed exterior elimination | Kernel recurrence error $7.61\times10^{-34}$ and initial-state derivative split $0.4$ | **CONTRADICTS**, autonomous irreversible finite closed reduction |
+| Selected exponential memory | Refinement errors decrease to $8.29\times10^{-5}$ | **SUPPORTS**, mathematical Markov limit; no Cassi-derived coefficient |
+
+The accepted receipt is
+`runs/cassi_fluid_phase_current_q1/verification.json`, schema
+`cassi.fluid.phase-current.verification.v1`, with its adjacent manifest, six
+source snapshots and `verification.arrays.npz`. The archive retains 144 arrays.
+The receipt and array hashes are
+`a8e8ce036216daca3b60271104f3ab1ec5238b0d33ba585691682cf8fe876f02` and
+`435fb7cbd236e06ed81cf6a18ba5329ed5358020f2576bf87ead6d8b6883240c`.
+
+The retained diagnostic at `runs/cassi_fluid_phase_current/verification.json`
+records one checker-interface failure from comparing a SymPy zero vector with
+scalar zero. The qualified checker tests matrix components. The adjacent
+`reconciliation.json` records unchanged equations, fixtures and tolerances;
+all 144 arrays and every recorded metric agree with the diagnostic run.
+
+The current-source reproduction at
+`runs/cassi_fluid_phase_current_q2/verification.json` also passes all 227
+checks. Its receipt hash is
+`c69aac6ae0ea7edc9b78f7204b40a2773dcc78b4391410410f90ec3852b65db7`.
+The frozen protocol and verifier are unchanged from q1; all 144 arrays are
+byte-identical, and every recorded metric and classification agrees. Its
+`reconciliation.json` records the six source hashes and the integration-only
+changes in the four contextual source documents.
+Microscopic positive viscosity, an arbitrary-flow hydrodynamic closure and
+arbitrary-data global regularity remain **UNESTABLISHED**. The master physical
+parameter count and empirical prediction catalog are unchanged.
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -490,3 +541,6 @@ are unchanged.
 - `computations/verify_navier_stokes_mixing_budget.py`—601-check cumulative mixing receipt and independent spatial reconstruction.
 - `computations/yang-mills-connected-block-prereg.md`—fixed connected-block geometry and local operator schedule.
 - `computations/verify_yang_mills_connected_blocks.py`—79-check source-bound connected-block receipt.
+- `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—phase-current rotation, helicity topology and viscosity projection boundary.
+- `computations/cassi-fluid-phase-current-prereg.md`—fixed current, topology, diffusion and memory schedule.
+- `computations/verify_cassi_fluid_phase_current.py`—227-check exact, Fourier, Hopf, memory and raw-array verifier.

@@ -1,6 +1,6 @@
 # Interscale Yang/Yin Current and the Conditional Soliton Pinch
 
-## Status: Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026
+## Status: Hypothesized action and Wilson-link extension / Derived conditional endpoint, first-order source-action, phase-current, Wilson-transport, localization, smooth-core, confinement, and carrier-support boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum, rotational controls, and conditional smooth scalar binding—September 2026
 
 ## Abstract
 
@@ -35,6 +35,15 @@ Eliminating a surrounding scale region instead gives a causal response with
 memory and forcing fixed by that region's initial state. These are
 conditional reductions of the specified action (§12); its coefficients,
 boundary state and microscopic particle interpretation remain supplied.
+
+The spatial Noether currents also supply a conditional barycentric velocity.
+One normalized doublet obeys the Mermin–Ho vorticity identity; its positive
+global chart has zero integrated helicity, while a full Hopf doublet can carry
+helicity through component-zero sets. Two fixed scale bands realize a smooth
+periodic Beltrami flow. Composition diffusion reproduces viscous decay for
+that fixed-winding fixture, while a nonzero phase-geometry commutator excludes
+the same identification for general fields. The exact projection and evidence
+are recorded in `turbulence/cassi-fluid-phase-current-hydrodynamics.md`.
 
 A finite localized object requires short-distance support in addition to any
 pinch. A charged endpoint section supplies one coherent, gauge-covariant
@@ -1635,6 +1644,37 @@ boundary data, initial correlations, energy distribution and state rule.
 The exact derivation and fixed numerical qualification are in
 `computations/matter-formation-continuum-report.md` §37.
 
+### 12.3 Phase-current hydrodynamic projection
+
+For constant scale-band fractions $f_r$, the spatial number currents define
+
+$$
+u=\frac{\hbar}{m}\sum_r f_r
+\left[c_r\nabla\theta_{Yr}+(1-c_r)\nabla\theta_{Ir}\right].
+$$
+
+One normalized doublet gives
+
+$$
+\omega_i
+=\frac{\hbar}{4m}\epsilon_{ijk}
+n\cdot(\partial_jn\times\partial_kn).
+$$
+
+The phase-current construction in
+`turbulence/cassi-fluid-phase-current-hydrodynamics.md` establishes local
+rotational flow, the zero-integrated-helicity theorem for one everywhere
+positive global chart, a full-doublet Hopf exception, and a two-scale-band
+periodic Beltrami field. Its fixed schedule passes 227 checks.
+
+Scalar diffusion of the two Beltrami composition amplitudes gives the exact
+restricted identity $\partial_tu=D\Delta u$. General phase potentials retain
+a nonzero diffusion commutator. Equation (18) of that analysis is the
+spatial-mode instance of the exterior-memory structure in §12.2: the
+Hamiltonian action supplies memory and an exterior initial-state force.
+A positive material viscosity requires a state or ensemble whose kernel
+decays and has a positive $k^2$ low-wave-number limit.
+
 ---
 
 ## References
@@ -1694,3 +1734,6 @@ The exact derivation and fixed numerical qualification are in
   constrained connection response, exact exterior transfer and covariance.
 - `computations/verify_matter_formation_cascade_response.py`—independent
   Cartesian Hessian, causal-memory evolution and raw-array qualification.
+- `turbulence/cassi-fluid-phase-current-hydrodynamics.md`—phase-current vorticity, helicity topology, two-band Beltrami flow and viscosity projection boundary
+- `computations/cassi-fluid-phase-current-prereg.md`—fixed current, topology, diffusion and memory schedule
+- `computations/verify_cassi_fluid_phase_current.py`—exact, Fourier, Hopf, memory and raw-array verification

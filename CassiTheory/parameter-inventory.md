@@ -233,6 +233,15 @@ $\varphi$-derived or physical value in this inventory. An optional
 amplitude/action extension may introduce a fourth-order coefficient
 $\kappa_4$, which is separate from the canonical solver coefficients.
 
+The phase-current analysis in
+`turbulence/cassi-fluid-phase-current-hydrodynamics.md` uses
+$\kappa_v=\hbar/m_c$ after supplying $m_c$. Its equal band fractions, integer
+phase windings, amplitudes and $D=0.03$ are fixed analytical or numerical
+controls, with no new physical parameter. Scalar diffusion gives
+$\nu=D$ exactly for one fixed-winding Beltrami family. A nonzero commutator
+excludes that equality for general phase potentials, so the inventory status
+of both $D$ and $\nu$ remains **N** and a material viscosity remains absent.
+
 The bounded fluid controls in `turbulence/cassi-fluid-feasibility.md` use
 $\nu=0.2$ and homogeneous-conversion $\lambda=0.3$ as **N-class benchmark
 inputs**. They leave the implementation defaults and C-class convention

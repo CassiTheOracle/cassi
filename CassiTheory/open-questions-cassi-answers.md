@@ -1362,8 +1362,15 @@ conditional Navier–Stokes controls, but its self-sourced force generates
 periodic mean acceleration. The fixed control gives **CONTRADICTS** for a
 closed internal-force interpretation; the bounded schedule gives **REJECT**
 for promotion to a physical ordinary-fluid replacement.
-Physical viscosity, material normalization and a rotational hydrodynamic
-reduction remain open. No concentration-arrest trajectory is run.
+Material normalization remains open. The phase-current reduction in
+`turbulence/cassi-fluid-phase-current-hydrodynamics.md` derives local
+Mermin–Ho vorticity, a full-doublet Hopf-helicity sector, and a two-scale-band
+periodic Beltrami class. Its 227-check schedule supports exact viscous decay
+when scalar diffusion acts on the fixed-winding Beltrami composition modes.
+A nonzero phase-geometry commutator gives **CONTRADICTS** for the general
+identification of scalar diffusion with vector viscosity. A microscopic
+positive viscosity coefficient and arbitrary-flow projection remain
+**UNESTABLISHED**. No concentration-arrest trajectory is run.
 
 The selected constant-density thermal model in §7 has a variational
 capillary stress with closed momentum and energy budgets, nonnegative
@@ -1372,9 +1379,11 @@ continuum solutions preserve the interior composition interval and a
 positive temperature comparison bound. Its separate schedule passes
 395 checks across 27 model trajectories, with an independent
 differentiation-matrix reference and capillary release from rest.
-This **SUPPORTS** the selected constitutive closure; microscopic viscosity,
-physical-fluid replacement and arbitrary-data global regularity remain
-**UNESTABLISHED**. The native density/Poisson solver is unchanged.
+This **SUPPORTS** the selected constitutive closure. It supplies the form of a
+heat and entropy ledger that a phase-current completion could use; no
+source-derived counterflow-to-heat coupling has been established. Microscopic
+viscosity, physical-fluid replacement and arbitrary-data global regularity
+remain **UNESTABLISHED**. The native density/Poisson solver is unchanged.
 
 The registered interscale-current construction consists of a separately
 normalized scale-coordinate Yang/Yin doublet with exact total and relative
