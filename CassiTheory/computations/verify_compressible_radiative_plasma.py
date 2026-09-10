@@ -439,7 +439,12 @@ def prepare_evidence(
         with manifest_staging.open("x", encoding="utf-8") as stream:
             stream.write(manifest_payload)
         manifest_staging.replace(manifest_path)
-        return target, manifest_path, snapshot_root, manifest
+        published_root, published_sources = _load_published_manifest(
+            manifest_path,
+            snapshot_root,
+            manifest,
+        )
+        return target, manifest_path, published_root, published_sources
     except Exception:
         if manifest_staging.exists():
             manifest_staging.unlink()
@@ -1342,21 +1347,6 @@ def run_verification(
             snapshot_root=snapshot_root,
         )
 
-    try:
-        snapshot_root, sources = _load_published_manifest(
-            manifest_path,
-            snapshot_root,
-            sources,
-        )
-    except Exception as exc:
-        return write_inconclusive_receipt(
-            target,
-            stage="manifest-read",
-            error=exc,
-            manifest_path=manifest_path,
-            snapshot_root=snapshot_root,
-            sources=sources,
-        )
 
     source_integrity: dict[str, Any] = {
         "after_snapshot": verify_source_integrity(sources, snapshot_root)
