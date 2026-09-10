@@ -1849,6 +1849,23 @@ transport baryon current through a chiral zero open
 (`computations/matter-formation-continuum-report.md` §78;
 `foundations/matter-completion-boundary.md` §23).
 
+The empirical two-flavour quark–meson comparison keeps explicit Dirac quarks
+and the exact conserved baryon current regular through the chiral zero. Three
+occupied colours give a fermionic $B=1$ sector. A vanishing-Wilson-regulator
+sequence and independent two-sided shooting agree on a localized nodeless
+valence level near $42.7444\ \mathrm{MeV}$. Within the fixed hedgehog family,
+the continuum-qualified branch has more than $291\ \mathrm{MeV}$ of qualified
+binding and a conservative reduced static barrier of
+$18.2800415\ \mathrm{MeV}$. QMQ1=`PASS`, QMQ2=`SUPPORTS` and
+QMQ3=`SUPPORTS`; the accepted frozen QMC2 spectral verdict remains `FAIL`.
+The cosmological ledger consistently treats this $B=1$ sector as asymmetry
+inherited before the QCD transition. The empirical action, renormalized Dirac
+sea, nonradial persistence, thermal formation rate, confinement, observable
+nucleon map and baryogenesis remain supplied or open. QMQ4 and QMC6 return
+`FAIL`, and physical matter formation remains Hypothesized/Open
+(`computations/matter-formation-continuum-report.md` §79;
+`foundations/matter-completion-boundary.md` §24).
+
 ### F5: Dimensionful constants ($c$, $\hbar$, $G$) and $\lambda$
 
 The Cassi framework expresses dimensionless couplings as $\varphi$-powers with mixed epistemic status. The named C-class/framework convention is $\lambda=0.1$, an **Asserted** solver normalization/timescale; the implementation class default is $\lambda=0.02$. The relation $\lambda=1/(2w)$ is a **Hypothesized** Wu Xing linkage requiring independent cycle-time and dynamical closure. The Weinberg value $\sin^2\theta_W = \varphi^{-3}$ remains an asserted boundary, and three dimensionful constants—the speed of light $c$, Planck's constant $\hbar$, and Newton's constant $G$—remain external.

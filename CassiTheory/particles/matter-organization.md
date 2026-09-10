@@ -11,11 +11,15 @@ Matter organization in Cassi combines canonical two-fluid density bookkeeping wi
 The particle action supplies a precise formation boundary. Its conserved
 nonnegative carrier population remains zero from exactly empty closed-sector
 data. The stored Cartesian localized branch has an ultraviolet obstruction
-to smooth interpretation. Separate continuum calculations support static
-scalar binding at prepared population, while their constrained spatial
-stability verdict remains INCONCLUSIVE. Microscopic production, full
-dynamics, normalization, statistics and physical particle identity remain
-open (`computations/matter-formation-continuum-report.md`).
+to smooth interpretation, while separate scalar calculations support binding
+at prepared charge. An empirical two-flavour quark–meson action then supplies
+explicit Dirac quarks, a regular exact baryon current, fermionic $B=1$, and a
+continuum-qualified localized fixed-family endpoint. Its small reduced static
+barrier is compatible with QCD-era reorganization of an inherited cosmological
+baryon excess. The action and asymmetry are external inputs; sea
+renormalization, nonradial thermal formation, confinement, an observable
+nucleon map and baryogenesis remain open
+(`computations/matter-formation-continuum-report.md` §79).
 
 ---
 
@@ -69,6 +73,14 @@ coherence-product form at different cascade rungs
 class **E** and quotes the conventional relation
 $m_p\approx3\Lambda_{\text{QCD}}$ (`parameter-inventory.md` §4.3); its
 particle-mass derivation remains open.
+
+The regular quark–meson comparison does not derive that mass. It imports
+$f_\pi$, $m_\pi$, $m_\sigma$ and the constituent-quark mass, then finds a
+localized occupied level and a fixed-family bound energy. The result supplies
+a physically grounded carrier mechanism inside the empirical action, while
+leaving the action's selection, its observable nucleon mass map and
+confinement outside the Cassi derivation
+(`foundations/matter-completion-boundary.md` §24).
 
 ### 1.3 Electroweak as the pool-charge channel
 
@@ -315,9 +327,13 @@ The synthesis reading, explicitly this document's reading rather than a derivati
 
 ## 4. What the framework does not yet say
 
-The inventory of what remains open is short and precise: the masses themselves, the neutron's extra mass, charge, atomic binding, β-decay, the strong-coupling gap, the activation steps, and the descent.
+The open inventory separates the empirical quark–meson endpoint from the
+first-principles Cassi gaps: the masses themselves, full QCD formation, the
+neutron's extra mass, charge, atomic binding, β-decay, the strong-coupling gap,
+the activation steps and the descent.
 
 - **The masses themselves.** $e$, $p$, $n$ are all class **E** in the ledger ($m_e$: partial, ~25% off at integer rungs; $m_p$: not derivable, QCD scale). The ladder places them; nothing generates them.
+- **Full QCD formation.** The empirical quark–meson model has a regular exact baryon current, a continuum-qualified localized valence endpoint and fixed-family binding. The renormalized Dirac sea, nonradial thermal formation, confinement, observable nucleon map and baryogenesis remain absent; the action and inherited asymmetry are supplied inputs.
 - **The n−p mass difference** (~1.3 MeV). Isospin $T_z$ coupling is open (§3.3).
 - **Charge magnitude and complementarity.** No derivation anywhere (§1.3).
 - **EM binding in Cassi terms.** Atomic orbitals at rung 117 are reproduced by conventional DFT numerics only (`particles/dft-benchmarks.md`); the benchmark carries implementation and atomic-reference evidence, while an analytical atomic potential from the canonical two-fluid dynamics remains open.
@@ -344,7 +360,9 @@ of these phase, propagation, selected-coordinate, or NLS structures.
 
 **Hypothesized.** Three generations ($N_{\text{gen}} = 3$; rung placements Mapped—ledger). Sector-edge selection at half-rungs (T10-E1: the free wakes do not produce the placement; boundary conditions open). The lattice mass law $m = m_j/k$ (T9 null—weight rests on individual placements). Nuclear magic numbers and the island of stability (closure arithmetic open). The neutron's nuclear role. The GUT breaking chain from continued-fraction truncations.
 
-**Open.** Everything in §4: the masses, the n−p difference, charge, atomic binding, β-decay, the $\alpha_s$ gap, the activation steps, the descent, and the proton-decay tension.
+**Open.** Everything in §4: the masses, full QCD formation, the n−p
+difference, charge, atomic binding, β-decay, the $\alpha_s$ gap, the activation
+steps, the descent and the proton-decay tension.
 
 ---
 
@@ -379,4 +397,4 @@ of these phase, propagation, selected-coordinate, or NLS structures.
 - `predictions/falsifiable-predictions.md`—#10, #43, #44, #45, #46
 - `parameter-inventory.md`—parameter classes (E); Fit-Status Ledger
 - `cassi-physics.md`—physics guide; gravitational coupling and proton stability
-- `computations/matter-formation-continuum-report.md`—empty-sector obstruction, Cartesian ultraviolet diagnostic, prepared smooth binding and constrained stability.
+- `computations/matter-formation-continuum-report.md`—empty-sector and ultraviolet boundaries, prepared scalar binding, constrained stability, regular empirical quark carrier, continuum-qualified endpoint and complete-formation adjudication.

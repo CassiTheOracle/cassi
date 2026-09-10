@@ -289,6 +289,29 @@ completions open
 (`computations/matter-formation-continuum-report.md` §78;
 `foundations/matter-completion-boundary.md` §23).
 
+The regular two-flavour quark–meson comparison meets the carrier requirement
+that the normalized-chiral action misses. Its explicit Dirac quarks and exact
+baryon current remain defined at the chiral zero. Three occupied colours give
+a fermionic $B=1$ sector, and the QCD-era ledger consistently interprets that
+sector as baryon number inherited from an earlier asymmetry. A four-grid
+vanishing-regulator calculation gives a nodeless continuum valence level
+$E_{\rm lev}=42.74439864\pm0.20\ \mathrm{MeV}$, independently reproduced by
+two-sided shooting at $42.74444857\ \mathrm{MeV}$. Within the fixed hedgehog
+family, the total energy is $1208.1917608\ \mathrm{MeV}$, the qualified
+binding margin is $291.2082392\ \mathrm{MeV}$ and the conservative reduced
+barrier is $18.2800415\ \mathrm{MeV}$. The numerical qualification returns
+QMQ1=`PASS`, QMQ2=`SUPPORTS` and QMQ3=`SUPPORTS`; the accepted frozen
+three-grid QMC2 verdict remains `FAIL`.
+
+This is the strongest regular microscopic carrier in the current matter
+program. Its action and parameters are empirical QCD inputs, its mean-field
+energy omits the renormalized Dirac sea, and confinement, nonradial continuum
+persistence, thermal formation probability, the observable nucleon map and
+baryogenesis remain open. QMQ4 and QMC6 are `FAIL`, so
+`complete_physical_matter_formation=false`
+(`computations/matter-formation-continuum-report.md` §79;
+`foundations/matter-completion-boundary.md` §24).
+
 
 ## The reality-simulation program
 

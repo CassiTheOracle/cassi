@@ -1384,6 +1384,28 @@ quark-bearing completions open
 (`computations/matter-formation-continuum-report.md` §78;
 `foundations/matter-completion-boundary.md` §23).
 
+The empirical two-flavour quark–meson action supplies a regular alternative
+carrier through the chiral zero. Its exact vector current transports baryon
+number, and three occupied colours form a fermionic $B=1$ sector. A
+vanishing-Wilson-regulator sequence gives
+$E_{\rm lev}=42.74439864\pm0.20\ \mathrm{MeV}$, independently reproduced by
+two-sided shooting at $42.74444857\ \mathrm{MeV}$. Within the fixed hedgehog
+family, the continuum-qualified total energy is
+$1208.1917608\ \mathrm{MeV}$, the qualified binding margin is
+$291.2082392\ \mathrm{MeV}$ and the conservative reduced barrier is
+$18.2800415\ \mathrm{MeV}$. The QCD-era initial-condition ledger identifies
+this as reorganization of inherited baryon asymmetry on a timescale far
+shorter than cosmic expansion. The qualification returns
+QMQ1=`PASS`, QMQ2=`SUPPORTS` and QMQ3=`SUPPORTS`, while the frozen QMC2
+spectral verdict remains `FAIL`.
+
+The action and parameters enter as empirical QCD inputs. The mean-field
+energy excludes the renormalized Dirac sea; continuum nonradial persistence,
+thermal formation probability, confinement, the observable nucleon map and
+baryogenesis remain open. QMQ4 and QMC6 return `FAIL`
+(`computations/matter-formation-continuum-report.md` §79;
+`foundations/matter-completion-boundary.md` §24).
+
 **Epistemic status:** the modulation period is **Derived conditional** on the
 optional signal map; its physical wake imprint and cross-domain extensions
 are **Hypothesized** and being tested. The sector scale is **Derived
@@ -1393,14 +1415,15 @@ conjugacy and Hermiticity obstructions. A distinct admissible physical
 coupling remains **Hypothesized** and unselected.
 The Hill/Floquet reduction, spatial dispersion relation, signed-charge
 continuity, microscopic non-identifiability, baryon degree, collective
-identities and generic normalized-chiral zero divergence are **Derived
-conditional** on their supplied parents. The baryon coefficients are
-**Mapped** to two measured masses. The linear growth rates, spatial
-instability, prepared charge separation, conditional baryon profile, radial
-relaxation and independent chiral-zero quadratures are **Tested**; the
-nonlinear comparison remains `INCONCLUSIVE`, the normalized-chiral
-topology-change verdict is `CONTRADICTS`, and the complete-mechanism gate is
-`FAIL`. Physical matter
+identities, generic normalized-chiral zero divergence and regular quark
+baryon-current identity are **Derived conditional** on their supplied parents.
+The baryon coefficients are **Mapped** to two measured masses. The linear
+growth rates, spatial instability, prepared charge separation, conditional
+baryon profile, radial relaxation, independent chiral-zero quadratures,
+quark–meson regulator extrapolation, shooting endpoint, fixed-$B$ binding and
+reduced barrier are **Tested**. The nonlinear comparison remains
+`INCONCLUSIVE`, the normalized-chiral topology-change verdict is
+`CONTRADICTS`, and both complete-mechanism gates are `FAIL`. Physical matter
 formation remains **Hypothesized/Open**.
 
 ## 18. Quantum Gravity Without Singularities

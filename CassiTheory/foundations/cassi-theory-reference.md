@@ -660,6 +660,18 @@ retains multiple field-content and charge choices
 (`computations/matter-formation-continuum-report.md` §38;
 `foundations/matter-completion-boundary.md` §19).
 
+The empirical two-flavour quark–meson comparison supplies one such microscopic
+choice as external QCD content. The unnormalized chiral fields and exact
+baryon current remain regular at the chiral zero. Three occupied colour copies
+of the lowest grand-spin-zero Dirac orbital carry fermionic $B=1$.
+Regulator extrapolation and independent shooting give a localized nodeless
+level $42.74439864\pm0.20\ \mathrm{MeV}$ and qualified fixed-family binding.
+The QCD-era state is inherited from the cosmological baryon asymmetry. The
+renormalized sea, nonradial thermal formation, confinement, observable nucleon
+map and baryogenesis remain external or open
+(`computations/matter-formation-continuum-report.md` §79;
+`foundations/matter-completion-boundary.md` §24).
+
 ### 4.3 Gravity Sector $\mathcal{L}_{\text{GR}}$ (optional gravity extension)
 This sector is an optional **Hypothesized** gravity extension. Its displayed
 relations and fixed-point evaluations are **Derived conditional** on the ansatz
@@ -1494,10 +1506,15 @@ and particle identity remain open
 `foundations/matter-completion-boundary.md` §§17–18).
 
 
-A complete mechanism still requires a canonical action, quantum-state rule,
-physical normalization, infinite-domain localized formation, stability or
-capture of the radiating clouds, and an observable particle discriminator
-(`foundations/matter-completion-boundary.md` §§12, 18).
+At the registered substrate level, a complete mechanism still requires a
+selected microscopic action and quantum state, physical normalization,
+infinite-domain localized formation, nonlinear persistence and an observable
+particle discriminator (`foundations/matter-completion-boundary.md` §§12, 18).
+The empirical quark–meson model supplies those first ingredients externally,
+plus a regular exact baryon current and continuum-qualified fixed-family
+endpoint. Its missing sea renormalization, nonradial thermal formation,
+confinement, observable nucleon map and baryogenesis keep the physical
+completion verdict `FAIL` (`foundations/matter-completion-boundary.md` §24).
 
 The separate massive bubble-lattice comparison adds an $O(4)$ field on the
 periodic primitive geometry. Its pion, nucleon-mean and Delta references give

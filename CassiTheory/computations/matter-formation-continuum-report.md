@@ -1,6 +1,6 @@
 # Matter Formation: Carrier Creation, Continuum Trapping, and a Conditional Baryon Benchmark
 
-## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology, continuum minimizer-set stability, chiral topology-change obstruction and completion-boundary identities / Mapped conditional baryon benchmark / Hypothesized physical completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation, finite-charge radial condensation and microscopic boundaries—September 2026
+## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology, continuum minimizer-set stability, normalized-chiral obstruction, regular quark-current and completion-boundary identities / Mapped conditional baryon benchmark / Hypothesized physical completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation, finite-charge radial condensation, quark–meson regulator extrapolation and fixed-family binding—September 2026
 
 ## Abstract
 
@@ -181,6 +181,19 @@ Independent exact algebra and finite-occupation trajectories qualify
 these constraints, while chiral anomaly cancellation retains multiple
 field-content and charge choices. Physical microscopic selection and
 complete matter formation remain open (§38).
+
+The empirical two-flavour quark–meson comparison supplies explicit Dirac
+quarks and an exact conserved baryon current that remain regular at a chiral
+zero. A four-grid vanishing-regulator sequence and independent two-sided
+shooting give the nodeless valence level
+$42.74439864\pm0.20\ \mathrm{MeV}$. Within the fixed $B=1$ hedgehog family,
+the qualified binding margin is $291.2082392\ \mathrm{MeV}$ and the
+conservative reduced static barrier is $18.2800415\ \mathrm{MeV}$. The
+QCD-era initial-condition ledger treats this sector as inherited cosmological
+asymmetry. QMQ1=`PASS`, QMQ2=`SUPPORTS` and QMQ3=`SUPPORTS`; the empirical
+action, Dirac sea, nonradial thermal formation, confinement, nucleon map and
+baryogenesis remain supplied or open. QMQ4 and QMC6 return `FAIL`, and
+physical matter formation remains Hypothesized/Open (§79).
 
 ## 1. Scope and frozen evidence
 
@@ -12775,6 +12788,186 @@ QZO6 remains `FAIL`, every receipt retains
 `complete_physical_matter_formation=false`, and physical matter formation
 remains **Hypothesized/Open**.
 
+## 79. Regular QCD carrier and conditional formation energy
+
+The chiral-zero obstruction in §78 fixes a concrete requirement for the next
+model: the physical carrier and its conserved current must remain defined when
+the chiral condensate vanishes. The two-flavour linear quark–meson action is
+the smallest empirical QCD model examined here that meets that requirement:
+
+$$
+\mathcal L_{\rm QM}
+=\bar q\left[i\gamma^\mu\partial_\mu
+-g\left(\sigma+i\gamma_5\boldsymbol\tau\!\cdot\!\boldsymbol\pi\right)\right]q
++\frac12\partial_\mu\sigma\,\partial^\mu\sigma
++\frac12\partial_\mu\boldsymbol\pi\!\cdot\!\partial^\mu\boldsymbol\pi
+-V(\sigma,\boldsymbol\pi).
+$$
+
+Its fields, parameters and quantization are empirical Standard Model/QCD
+inputs. The calculation asks what those supplied inputs establish about a
+regular localized baryon and where the Cassi derivation still ends.
+
+### 79.1 Regular current and inherited baryon sector
+
+The global quark phase gives the exact current
+
+$$
+\boxed{j_B^\mu=\frac13\bar q\gamma^\mu q,\qquad
+\partial_\mu j_B^\mu=0.}
+$$
+
+The polynomial Yukawa matrix remains finite at
+$(\sigma,\boldsymbol\pi)=(0,\mathbf0)$. Three occupied colour copies of the
+same lowest grand-spin-zero orbital carry $B=1$, fermionic canonical
+statistics and an antisymmetric colour state. The finite three-site
+Wilson–Dirac control measures maximum continuity residual
+$2.8422\times10^{-14}$, bond antisymmetry residual
+$5.6843\times10^{-14}$ and zero-site versus vacuum-site density-derivative
+difference $2.8422\times10^{-14}$. The action, vacuum, zero and current gate
+QMC1 is `PASS`.
+
+The relevant QCD initial condition is an inherited asymmetry. At
+$T_c=156.5\ {\rm MeV}$ and $\eta_B=6.0\times10^{-10}$, the frozen ledger gives
+
+$$
+n_B=7.2910511\times10^{-11}\ {\rm fm}^{-3},
+\qquad
+d_B=2393.7013\ {\rm fm}.
+$$
+
+A $(5\ {\rm fm})^3$ box therefore contains an expected
+$9.1138\times10^{-9}$ net baryons, while approximately
+$1.0972\times10^8$ such boxes correspond to one net baryon. The minimum
+Hubble-time to $2\ {\rm fm}/c$ ratio over the declared QCD window is
+$3.6991\times10^{18}$. QMC5 is `PASS`: strong-interaction reorganization is
+locally fast, and the $B=1$ sector represents one unit supplied by the
+cosmological asymmetry. An exactly neutral closed state stays net neutral.
+
+### 79.2 Regulator-independent valence endpoint
+
+The fixed hedgehog family uses
+
+$$
+F_R(r)=2\arctan\!\left(\frac{R^2}{r^2}\right),\qquad
+\frac{\sigma}{f_\pi}=1-a+a\cos F_R,\qquad
+\frac{\boldsymbol\pi}{f_\pi}=-a\sin F_R\,\hat{\mathbf r}.
+$$
+
+At $a=1/2$ the origin crosses the chiral zero without making the action or
+baryon current singular. At $a=1$, the occupied radial Dirac level enters
+
+$$
+E_B(a,R)=3E_{\rm lev}(a,R)+E_\Phi(a,R).
+$$
+
+The accepted finite-grid calculation retains QMC2=`FAIL` because its frozen
+three-grid spectral criterion is violated. A separate preregistered
+qualification resolves the source of that failure without changing the
+frozen verdict. Its vanishing Wilson regulator produces the endpoint sequence
+
+$$
+\begin{array}{c|rrrr}
+N_r&1200&2400&4800&9600\\
+\hline
+E_N\ ({\rm MeV})&
+46.2386455&44.4831770&43.6116870&43.1775322
+\end{array}
+$$
+
+and the declared fit $E_N=E_\infty+c_1/N_r+c_2/N_r^2$ gives
+
+$$
+\boxed{E_\infty=42.74439864\pm0.20\ {\rm MeV}.}
+$$
+
+The four-point fit RMS is $6.62\times10^{-6}\ {\rm MeV}$, and its intercept
+differs from the three-point fit by $3.89\times10^{-5}\ {\rm MeV}$. An
+independent two-sided shooting solution gives
+$42.74444857\ {\rm MeV}$, a difference of
+$4.99\times10^{-5}\ {\rm MeV}$. Every retained four-grid fit across the
+formation envelope has RMS below $6.82\times10^{-6}\ {\rm MeV}$ and
+three-point/four-point intercept difference below
+$4.01\times10^{-5}\ {\rm MeV}$. QMQ1 is `PASS`: the failed frozen spectral
+criterion is identified as leading regulator bias with a convergent continuum
+subsequence.
+
+Only finite-grid states inside the independent shooting window enter the
+resolved-branch diagnostic. Their minimum weighted overlaps are
+$0.9095783$ along the radius scan and $0.8964280$ along the amplitude scan,
+both above the frozen $0.70$ threshold. Rows beyond that window remain part
+of the accepted QMC2 failure.
+
+### 79.3 Conditional localized binding
+
+Combining the continuum-extrapolated level with the independently reproduced
+meson energy gives
+
+$$
+\boxed{
+E_{B,\infty}=1208.1917608\ {\rm MeV},\qquad
+3M_q-E_{B,\infty}=291.8082392\ {\rm MeV}.}
+$$
+
+The uncertainty-qualified binding margin is
+$291.2082392\ {\rm MeV}$. Independent shooting and quadrature give
+$E_B=1208.1919106\ {\rm MeV}$, selected radius
+$R_*=0.5346186\ {\rm fm}$ and baryon RMS radius
+$0.6630293\ {\rm fm}$. The selected finite-grid radius is
+$0.5368113\ {\rm fm}$, so the independent radius difference is
+$0.0021927\ {\rm fm}$. The endpoint is an interior radial minimum in the
+fixed $B=1$ family, with positive radial curvature. QMQ2 is `SUPPORTS` for
+this conditional bound carrier.
+
+The same continuum extrapolation along the fixed two-parameter hedgehog
+envelope gives a reduced barrier
+
+$$
+\boxed{
+B=17.6800415\ {\rm MeV},\qquad
+B^+=18.2800415\ {\rm MeV}<155\ {\rm MeV}.}
+$$
+
+QMQ3 is `SUPPORTS` for accessibility within that envelope. This quantity is a
+static minimax energy. It supplies neither a thermal nucleation rate nor a
+dynamical basin from the QCD ensemble.
+
+### 79.4 Verdict and physical boundary
+
+| Question | Verdict |
+|---|---|
+| Regular action, vacuum and conserved baryon current | QMC1 `PASS` |
+| QCD-era inherited-asymmetry consistency | QMC5 `PASS` |
+| Frozen finite-grid spectral criterion | QMC2 `FAIL` |
+| Vanishing-regulator identification | QMQ1 `PASS` |
+| Continuum-qualified fixed-$B$ binding | QMQ2 `SUPPORTS` |
+| Reduced hedgehog-envelope accessibility | QMQ3 `SUPPORTS` |
+| Complete physical matter formation | QMQ4 and QMC6 `FAIL` |
+
+The primary and independent qualification receipts reproduce all fits,
+uncertainties, copied inputs and verdicts exactly. They share protocol
+SHA-256
+`0b3b3c238de2af39dab944b28f84c19009c1f92e568dc7c4dcd539264a76255d`.
+
+This calculation supplies the strongest regular microscopic carrier in the
+matter program: an empirical quark–meson action defined through the chiral
+zero, an exact baryon current, a fermionic $B=1$ sector, a
+continuum-qualified localized level and a small reduced static barrier. Its
+scope is a fixed mean-field hedgehog family with an occupied valence orbital.
+The energy omits the renormalized Dirac sea, and no continuum nonradial
+persistence or real-time thermal formation probability has been established.
+The effective model also leaves confinement, the observable nucleon map and
+baryogenesis outside the calculation.
+
+The whole-bubble initial condition enters decisively through the inherited
+signed asymmetry: QCD reorganizes an existing baryon excess on a timescale far
+shorter than cosmic expansion. The registered Cassi dynamics contain no rule
+that selects the empirical quark–meson action or generates that asymmetry.
+Those missing inputs prevent a first-principles Cassi derivation. QMQ4 and
+QMC6 remain `FAIL`,
+`complete_physical_matter_formation=false`, and physical matter formation
+remains **Hypothesized/Open**.
+
 ## References
 
 - `computations/qcd-chiral-zero-obstruction-prereg.md`—frozen local zero, rank-three, cutoff and physical-completion decisions.
@@ -12784,6 +12977,19 @@ remains **Hypothesized/Open**.
 - `runs/20260910_qcd_chiral_zero_obstruction/verification/verification.json`—independent exact-agreement receipt.
 - `computations/qcd-chiral-matter-formation-prereg.md`—QCD-anchored quench, amended execution record and failed-closed formation verdict.
 - G. Holzwarth and J. Klomfass, [“The Chiral Phase Transition in Dissipative Dynamics”](https://arxiv.org/abs/hep-ph/0206228)—linear $O(4)$ field, normalized-Skyrme term, random hot initial fields and dissipative evolution.
+- `computations/qcd-quark-meson-carrier-prereg.md`—empirical quark–meson action, exact current, fixed hedgehog family, cosmological initial-condition ledger and frozen QMC verdicts.
+- `computations/qcd_quark_meson_carrier.py`—primary finite-grid Wilson–Dirac spectrum, meson energy, current controls and fixed-family scans.
+- `computations/verify_qcd_quark_meson_carrier.py`—independent two-sided shooting, quadrature, radius reconstruction and accepted QMC verdict agreement.
+- `computations/qcd-quark-meson-carrier-qualification-prereg.md`—frozen vanishing-regulator extrapolation, resolved-branch, binding and reduced-barrier criteria.
+- `computations/qcd_quark_meson_carrier_resolution.py`—four-grid continuum extrapolation and formation-envelope calculation.
+- `computations/verify_qcd_quark_meson_carrier_resolution.py`—independent raw-row fit, uncertainty, barrier and verdict reconstruction.
+- `runs/20260910_qcd_quark_meson_carrier/amendment-2/`—accepted QMC source-bound primary and independent receipts.
+- `runs/20260910_qcd_quark_meson_carrier/qualification/`—QMQ primary arrays and exact-agreement verification.
+- D. Diakonov, [“Chiral Quark-Soliton Model”](https://arxiv.org/abs/hep-ph/9802298)—continuum radial Hamiltonian and occupied valence branch.
+- M. C. Birse and M. K. Banerjee, [“Chiral model of the nucleon and delta”](https://doi.org/10.1103/PhysRevD.31.118)—self-consistent valence-quark chiral soliton and physical parameter context.
+- A. Bazavov et al., [“The chiral and deconfinement aspects of the QCD transition”](https://arxiv.org/abs/1812.08235)—QCD crossover scale near zero chemical potential.
+- N. Aghanim et al., [“Planck 2018 results. VI. Cosmological parameters”](https://arxiv.org/abs/1807.06209)—cosmological baryon-density input.
+
 
 - `computations/matter-formation-cascade-size-prereg.md`—frozen step-95 radius assignment, massive-profile size root, withheld mass comparisons and verdict tree.
 - `computations/matter-formation-cascade-size-numerical-recovery-prereg.md`—theta-state numerical recovery, immutable physical inputs and typed failure conditions.

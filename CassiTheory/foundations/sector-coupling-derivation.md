@@ -1,6 +1,6 @@
 # Conditional Sector Scale and the Dirac Density Obstruction
 
-## Status: Derived conditional sector, fermionic, formation-dynamics and non-identifiability identities / Tested finite-mode production, continuum, scalar-vacuum and conditional dynamical restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
+## Status: Derived conditional sector, fermionic, formation-dynamics, non-identifiability and regular quark-current identities / Tested finite-mode production, continuum, scalar-vacuum, conditional dynamical and quark–meson fixed-family restrictions / Calibrated electroweak anchor / Hypothesized physical fermion coupling—September 2026
 
 ## Abstract
 
@@ -27,6 +27,17 @@ space; it does not classify the simulated radiating clouds
 or cover complex mediator/gauge sectors
 (`computations/matter-formation-continuum-report.md` §§25–29, 36;
 `foundations/matter-completion-boundary.md` §18).
+
+An empirical two-flavour quark–meson action supplies one regular microscopic
+alternative. Its Dirac field carries the exact baryon current
+$j_B^\mu=\bar q\gamma^\mu q/3$ through a chiral zero, and an occupied
+three-colour level realizes fermionic $B=1$. Four-grid regulator extrapolation
+and independent shooting give a localized nodeless level at
+$42.74439864\pm0.20\ \mathrm{MeV}$ with qualified fixed-family binding.
+The action, parameters, inherited cosmological asymmetry and quantum
+occupation are supplied QCD inputs. Renormalized sea energy, nonradial thermal
+formation, confinement, an observable nucleon map and baryogenesis remain
+external or open (`computations/matter-formation-continuum-report.md` §79).
 
 ## 1. The projection and its mathematical boundary
 
@@ -847,6 +858,16 @@ These conditional constraints leave the physical microscopic sector and
 state map open (`computations/matter-formation-continuum-report.md` §38;
 `foundations/matter-completion-boundary.md` §19).
 
+The empirical quark–meson comparison supplies the field content and state that
+the registered slow law cannot select. Its exact vector current remains
+regular at the chiral zero, and its continuum-qualified occupied level is
+localized and fixed-family bound. This resolves the regular-carrier and
+conditional-binding questions for that supplied QCD model. It does not derive
+the model from Cassi, include the renormalized Dirac sea, or establish
+nonradial thermal formation, confinement, the observed nucleon map or
+baryogenesis. The physical-completion verdict remains `FAIL`
+(`computations/matter-formation-continuum-report.md` §79).
+
 
 The canonical scalar topology checks find contractible regular
 positive-density domains with no rotation or exchange
@@ -872,16 +893,18 @@ global particle-ground-state claim.
 The canonical real-density state and its slow carrier reductions admit scalar
 and spinor microscopic parents. A fermionic theory therefore requires the
 independent selection of a Dirac field, its canonical algebra, state and
-interaction. A physical mass fit, cascade coordinate and formal
-coefficient-scale identity leave that selection open.
+interaction. The empirical quark–meson model supplies those ingredients and a
+regular localized $B=1$ endpoint as external QCD content. A physical mass fit,
+cascade coordinate and formal coefficient-scale identity do not derive that
+selection or its missing sea, thermal, confinement and baryogenesis dynamics.
 
 ## References
 
 - `foundations/unified-lagrangian.md` §§2, 5–7—optional fermion sector and action assembly.
 - `foundations/particle-stationary-action-closure.md` §8.12—scalar physical-normalization and particle-identity boundary.
 - `computations/matter-formation-normalization-prereg.md`—frozen unit-normalization, bilinear and action-reality checks.
-- `computations/matter-formation-continuum-report.md` §§12–29, 35–36—normalization and identity boundaries, scalar and fermionic production witnesses, conditional formation dynamics, the microscopic non-identifiability and continuum minimizer-set theorem, and finite-charge radial condensation.
-- `foundations/matter-completion-boundary.md` §§12, 17–18—conditional completion boundary, finite-charge radial formation scope and conditional minimizer-set stability boundary.
+- `computations/matter-formation-continuum-report.md` §§12–29, 35–36, 79—normalization and identity boundaries, scalar and fermionic production witnesses, conditional formation dynamics, microscopic non-identifiability, continuum minimizer-set stability, finite-charge radial condensation and the regular empirical quark–meson carrier.
+- `foundations/matter-completion-boundary.md` §§12, 17–18, 24—conditional completion boundary, finite-charge radial formation scope, minimizer-set stability and the regular quark–meson comparison.
 - `computations/matter-formation-spinor-closure-prereg.md`—frozen positive-observable, closed-conversion, massive fixed-point and positive-energy witnesses.
 - `computations/matter-formation-spinor-closure-implementation-recovery.md`—execution provenance and accepted receipt location under the scientific preregistration's recovery rule.
 - `computations/matter_formation_spinor_closure.py` and `computations/verify_matter_formation_spinor_closure.py`—independent four-component and reduced-component witnesses.

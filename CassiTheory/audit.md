@@ -420,6 +420,33 @@ exceptional degenerate events or a regular quark-bearing microscopic action
 (`computations/matter-formation-continuum-report.md` §78;
 `foundations/matter-completion-boundary.md` §23).
 
+The empirical two-flavour quark–meson model clears the regular-carrier
+boundary that the normalized action fails. Its polynomial Yukawa coupling and
+exact vector current remain finite at the chiral zero, and three occupied
+colours carry fermionic $B=1$. The accepted QMC calculation passes its action,
+current and inherited-asymmetry gates. Its frozen three-grid spectrum fails
+QMC2, while a separate preregistered four-grid qualification identifies a
+linear vanishing-Wilson-regulator bias. The extrapolated valence energy is
+$42.74439864\pm0.20\ \mathrm{MeV}$ and independent two-sided shooting gives
+$42.74444857\ \mathrm{MeV}$. Resolved branch overlaps exceed $0.896$, and the
+independent baryon RMS radius is $0.6630293\ \mathrm{fm}$.
+
+Within the fixed $B=1$ hedgehog family, the continuum-qualified total energy
+is $1208.1917608\ \mathrm{MeV}$, with qualified binding margin
+$291.2082392\ \mathrm{MeV}$. The conservative reduced barrier is
+$18.2800415\ \mathrm{MeV}$, below the frozen $155\ \mathrm{MeV}$ comparison.
+QMQ1 is `PASS`, while QMQ2 and QMQ3 are `SUPPORTS`. The barrier is a static
+fixed-family minimax result and gives no thermal rate or dynamical basin.
+
+The empirical action and parameters, interacting vacuum with a renormalized
+Dirac sea, continuum nonradial persistence, confinement, observable nucleon
+map and baryogenesis remain outside the result. The initial-condition ledger
+therefore establishes inherited-$B$ consistency rather than creation of the
+asymmetry. QMQ4 and QMC6 return `FAIL`; physical matter formation remains
+**Hypothesized/Open**
+(`computations/matter-formation-continuum-report.md` §79;
+`foundations/matter-completion-boundary.md` §24).
+
 The supplied signed scalar interface has independently qualified
 normal-bound carrier modes and a surface-growth interval
 $0.2722637330<a\le0.3142233130$ with nonnegative bulk potential. Its

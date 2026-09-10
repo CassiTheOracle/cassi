@@ -16,6 +16,15 @@ Whether the radiating clouds approach that set remains open
 (`computations/matter-formation-continuum-report.md` §§14–29, 36;
 `foundations/matter-completion-boundary.md` §18).
 
+The empirical two-flavour quark–meson comparison supplies a regular optional
+Dirac sector. Its exact baryon current remains finite at a chiral zero, and an
+occupied three-colour level gives fermionic $B=1$. A vanishing-regulator
+sequence and independent shooting qualify one localized, fixed-family bound
+endpoint. This action, its parameters, cosmological asymmetry and occupation
+state are supplied QCD inputs. Sea renormalization, nonradial thermal
+formation, confinement, the observable nucleon map and baryogenesis remain
+external or open (`computations/matter-formation-continuum-report.md` §79).
+
 $$
 \boxed{\mathcal{L}_{\text{Cassi}} = \mathcal{L}_{\text{TF}} + \mathcal{L}_{\text{D}} + \mathcal{L}_{\text{GR}} + \mathcal{L}_{\text{SM}} + \mathcal{L}_{\text{mix}}}
 $$
@@ -660,6 +669,54 @@ confined to the supplied action, impulse and sampled interval
 (`computations/matter-formation-continuum-report.md` §32.7).
 
 
+### 2.7 Empirical regular quark–meson comparison
+
+The regular microscopic alternative used by the matter campaign is the
+two-flavour linear quark–meson action
+
+$$
+\boxed{
+\mathcal L_{\rm QM}
+=\bar q\!\left[i\gamma^\mu\partial_\mu
+-g\!\left(\sigma+i\gamma_5\boldsymbol\tau\!\cdot\!\boldsymbol\pi\right)\right]q
++\frac12\partial_\mu\sigma\,\partial^\mu\sigma
++\frac12\partial_\mu\boldsymbol\pi\!\cdot\!\partial^\mu\boldsymbol\pi
+-\frac{\lambda}{4}
+\left(\sigma^2+\boldsymbol\pi^2-v^2\right)^2+H\sigma+C_{\rm vac}.}
+$$
+
+The global quark phase gives
+
+$$
+j_B^\mu=\frac13\bar q\gamma^\mu q,\qquad
+\partial_\mu j_B^\mu=0.
+$$
+
+The unnormalized fields and their current remain regular at
+$(\sigma,\boldsymbol\pi)=0$. Quantized Dirac quarks with one occupied colour
+copy of the lowest grand-spin-zero orbital for each of the three colours carry
+fermionic $B=1$. At the supplied empirical parameters, regulator extrapolation
+and independent shooting give
+
+$$
+E_{\rm lev}=42.74439864\pm0.20\ {\rm MeV},\qquad
+E_{B,\infty}=1208.1917608\ {\rm MeV},
+$$
+
+with uncertainty-qualified binding $291.2082392\ {\rm MeV}$ relative to three
+constituent quarks. The reduced two-parameter hedgehog envelope has a
+conservative static barrier $18.2800415\ {\rm MeV}$.
+
+This is a distinct empirical QCD effective action, rather than a term derived
+from $\mathcal L_{\rm TF}$ or the excluded chiral-density identification. Its
+fields, coefficients, vacuum convention, occupation and inherited baryon
+asymmetry are external inputs. The calculation omits the renormalized Dirac
+sea and does not yet establish nonradial thermal formation, confinement, an
+observable nucleon map or baryogenesis. It therefore supplies a conditional
+regular carrier and localized endpoint without closing physical matter
+formation (`computations/matter-formation-continuum-report.md` §79;
+`foundations/matter-completion-boundary.md` §24).
+
 ## 3. GR/Gravity Sector $\mathcal{L}_{\text{GR}}$
 
 Gravity is an optional Einstein–Hilbert extension with a candidate
@@ -1266,8 +1323,8 @@ added action rather than a canonical Cassi stress exchange
   convention remain solver parameter choices
 - `foundations/dimensionful-constants-status.md`—external dimensionful constants, parameter accounting
 - `foundations/sector-coupling-derivation.md`—conditional scale, chiral-scalar density/action obstruction, positive chiral-current map and microscopic conversion boundaries.
-- `computations/matter-formation-continuum-report.md` §§12–13, 35–36—independent physical-normalization, microscopic-identity and spinor-closure evidence, the conditional continuum minimizer-set theorem, plus the qualified finite-charge radial-condensation witness.
-- `foundations/matter-completion-boundary.md` §§12, 17–18—conditional total-stress Ward identity, constant-$G$ geometry branch, radial formation boundary and conditional minimizer-set stability boundary.
+- `computations/matter-formation-continuum-report.md` §§12–13, 35–36, 79—physical-normalization, microscopic-identity and spinor-closure evidence, continuum minimizer-set stability, finite-charge radial condensation and the regular empirical quark–meson carrier.
+- `foundations/matter-completion-boundary.md` §§12, 17–18, 24—conditional total-stress and constant-$G$ branches, radial formation, minimizer-set stability and the regular quark–meson comparison.
 - `standard-model/su2-gauge-extension.md`—SM gauge sector, Weinberg angle
 - `standard-model/sm-from-phi.md`—Standard Model couplings from $\varphi$
 - `particles/cassi-yang-yin-particles.md`—optional Hypothesized complex-field/NLS particle-interference extension and its conditional Dirac mapping

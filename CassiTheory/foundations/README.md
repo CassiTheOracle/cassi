@@ -128,6 +128,19 @@ physical particle size or formation mechanism
 (`computations/matter-formation-continuum-report.md` §77;
 `foundations/matter-completion-boundary.md` §22).
 
+The empirical two-flavour quark–meson comparison supplies a regular explicit
+carrier through the QCD chiral zero. Its exact current gives a fermionic
+$B=1$ sector, while a four-grid regulator extrapolation and independent
+two-sided shooting agree on a localized nodeless valence level near
+$42.7444\ \mathrm{MeV}$. The fixed hedgehog family is conditionally bound by
+more than $291\ \mathrm{MeV}$ and has a conservative reduced static barrier
+$18.2800415\ \mathrm{MeV}$. The QCD-era ledger interprets its baryon number as
+inherited cosmological asymmetry. The empirical action, renormalized Dirac
+sea, nonradial thermal formation, confinement, observable nucleon map and
+baryogenesis remain supplied or open. QMQ4 and QMC6 return `FAIL`
+(`computations/matter-formation-continuum-report.md` §79;
+`foundations/matter-completion-boundary.md` §24).
+
 
 ## Document Index
 
@@ -178,7 +191,7 @@ physical particle size or formation mechanism
 | 43 | `particle-stationary-action-closure.md` | Temporal action, Gauss, empty-sector invariant, scalar reduction, fluctuation boundary and conditional chiral baryon benchmark | Hypothesized temporal completion / Derived conditional action, scalar-reduction, parent-vacuum, dilation, fixed-charge, formation-dynamics and non-identifiability identities / Mapped carrier coupling and conditional baryon benchmark / Tested prepared binding, finite-grid spectra, parent correspondences, conditional temporal dynamics and radial baryon relaxation—September 2026 |
 | 44 | `interscale-stress-attenuation-boundary.md` | Spatial-momentum transfer across scale, reciprocal-stress boundary, self-adjoint endpoint matching, source-action response, and routed quadratic-flux attenuation | Hypothesized physical carrier / Derived conditional stress, frozen-link, and source-action response boundaries—September 2026 |
 | 45 | `yin-yang-qi-dynamical-geometry.md` | Integrated conversion, coherence, transport, endpoint and bounded source interface | Hypothesized integrated realization / Derived canonical reduction, positivity, covariance and conditional interface ledgers / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding—September 2026 |
-| 46 | `matter-completion-boundary.md` | Nine-part conditional boundary, massless and massive conditional baryon comparisons, finite-site topology, cascade-size assignment and complete-mechanism adjudication | Derived conditional boundary and microscopic non-identifiability / Mapped carrier coupling, massless benchmark, massive three-mass normalization and rejected step-95 radius assignment / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences and radial baryon relaxation; all six massive out-of-fit diagnostics carry `CONTRADICTS` verdicts, the finite-site regulator is simply connected, and step 95 misses the empirical isoscalar radius by $50.1099\%$—September 2026 |
+| 46 | `matter-completion-boundary.md` | Nine-part conditional boundary, massless and massive conditional baryon comparisons, finite-site topology, cascade-size assignment, regular quark–meson carrier and complete-mechanism adjudication | Derived conditional boundary, microscopic non-identifiability, normalized-chiral obstruction and regular baryon-current identity / Mapped carrier coupling, massless benchmark, massive three-mass normalization and rejected step-95 radius assignment / Hypothesized physical realization / Tested reduced receipts, prepared binding, finite-grid spectra, parent correspondences, radial baryon relaxation, quark–meson regulator extrapolation and fixed-family binding; all six massive out-of-fit diagnostics carry `CONTRADICTS` verdicts, the finite-site regulator is simply connected, step 95 misses the empirical isoscalar radius by $50.1099\%$, and the complete-formation gates remain `FAIL`—September 2026 |
 | 47 | `quantum-free-fall-correspondence.md` | Ideal QGI action and inference boundary; physical-$q$ bounds and information loss; forty-three closure requirements and QFC1–QFC4 receipts | Derived conditional external-potential correspondence / Hypothesized Cassi atomic state, gravity-response, and common-lapse mappings—September 2026 |
 
 ## Document Summaries
@@ -1244,19 +1257,34 @@ step-95 radius assignment without selecting a physical particle scale
 (`computations/matter-formation-continuum-report.md` §77;
 `foundations/matter-completion-boundary.md` §22).
 
+The regular empirical quark–meson action carries an exact baryon current
+through the chiral zero and has a continuum-qualified localized valence
+endpoint. The four-grid extrapolation gives
+$42.74439864\pm0.20\ \mathrm{MeV}$, independently matched by shooting.
+Within the fixed $B=1$ hedgehog family, the qualified binding margin is
+$291.2082392\ \mathrm{MeV}$ and the conservative reduced static barrier is
+$18.2800415\ \mathrm{MeV}$. These results establish a conditional carrier
+and fixed-family energy path. The empirical action, interacting vacuum,
+renormalized sea, nonradial thermal formation, confinement, observable
+particle map and baryogenesis remain supplied or open
+(`computations/matter-formation-continuum-report.md` §79;
+`foundations/matter-completion-boundary.md` §24).
+
 Physical exterior and reservoir actions, state selection, canonical
 coefficient determination, gravity selection, continuum-localized forming
 evolution from degree-zero data, stability or capture of the radiating clouds,
 and a particle discriminator remain open. The conditional theorem concerns
 only the entire fixed-charge minimizer set of the supplied scalar action.
-The deterministic six-requirement completion gate returns `FAIL`
-(`computations/matter-formation-continuum-report.md` §§35–36). Status: Derived
-conditional boundary, microscopic non-identifiability and scalar continuum
-minimizer-set stability / Mapped carrier coupling, conditional baryon
+The deterministic completion gates return `FAIL`
+(`computations/matter-formation-continuum-report.md` §§35–36, 79). Status:
+Derived conditional boundary, microscopic non-identifiability, scalar
+continuum minimizer-set stability, normalized-chiral obstruction and regular
+baryon-current identity / Mapped carrier coupling, conditional baryon
 benchmark and rejected step-95 radius assignment / Hypothesized physical
 realization / Tested reduced receipts, prepared binding, finite-grid spectra,
-parent correspondences, radial baryon relaxation and finite-charge radial
-condensation—September 2026.
+parent correspondences, radial baryon relaxation, finite-charge radial
+condensation, quark–meson regulator extrapolation and fixed-family
+binding—September 2026.
 
 ### `quantum-free-fall-correspondence.md`—Quantum Free Fall as a Cassi Correspondence Boundary
 

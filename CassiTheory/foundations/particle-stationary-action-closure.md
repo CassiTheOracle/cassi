@@ -1,6 +1,6 @@
 # Particle-Sector Action and Fixed-Charge Variational Closure
 
-## Status: Hypothesized temporal completion / Derived conditional action, scalar-reduction, parent-vacuum, dilation, fixed-charge, formation-dynamics and non-identifiability identities / Mapped carrier coupling and conditional baryon benchmark / Tested prepared binding, finite-grid spectra, parent correspondences, conditional temporal dynamics and radial baryon relaxation—September 2026
+## Status: Hypothesized temporal and physical completion / Derived conditional action, scalar-reduction, parent-vacuum, dilation, fixed-charge, formation-dynamics, non-identifiability and regular quark-current identities / Mapped carrier coupling and conditional baryon benchmark / Tested prepared binding, finite-grid spectra, parent correspondences, conditional temporal dynamics, radial baryon relaxation, quark–meson regulator extrapolation and fixed-family binding—September 2026
 
 ## Abstract
 
@@ -94,6 +94,18 @@ conditional nucleon/Delta assignments, while four absolute out-of-fit
 observables miss the frozen precision criterion. Independent reconstruction
 passes all 78 checks. The benchmark does not select its field, action,
 quantum-state rule or particle map from the canonical Cassi variables.
+
+The empirical two-flavour quark–meson comparison supplies a regular microscopic
+carrier beyond the normalized-chiral obstruction (§8.16). Its exact baryon
+current remains defined at a chiral zero, and three occupied colours form a
+fermionic $B=1$ sector. Four-grid regulator extrapolation and independent
+shooting agree on a localized nodeless valence level at
+$42.74439864\pm0.20\ \mathrm{MeV}$. The fixed-family endpoint is bound by more
+than $291\ \mathrm{MeV}$ and separated from the vacuum along its declared
+hedgehog envelope by a conservative $18.2800415\ \mathrm{MeV}$ barrier.
+The empirical action, renormalized sea, nonradial thermal dynamics,
+confinement, observable nucleon map and baryogenesis remain external or open;
+the complete-formation gate remains `FAIL`.
 
 ---
 
@@ -2247,6 +2259,71 @@ The six-requirement completion adjudication therefore returns `FAIL` while
 retaining the positive conditional benchmark
 (`computations/matter-formation-continuum-report.md` §§30–31).
 
+### 8.16 Regular empirical quark–meson carrier
+
+The normalized-chiral zero obstruction concerns a quotient action whose
+derivative term divides by the order-parameter modulus. A regular microscopic
+comparison keeps the quarks and the unnormalized chiral field as physical
+variables:
+
+$$
+\mathcal L_{\rm QM}
+=\bar q\!\left[i\gamma^\mu\partial_\mu
+-g\!\left(\sigma+i\gamma_5\boldsymbol\tau\!\cdot\!\boldsymbol\pi\right)\right]q
++\frac12\partial_\mu\sigma\,\partial^\mu\sigma
++\frac12\partial_\mu\boldsymbol\pi\!\cdot\!\partial^\mu\boldsymbol\pi
+-V(\sigma,\boldsymbol\pi),
+\tag{PA66}
+$$
+
+where
+
+$$
+V=\frac{\lambda}{4}
+\left(\sigma^2+\boldsymbol\pi^2-v^2\right)^2-H\sigma-C_{\rm vac}.
+\tag{PA67}
+$$
+
+The action has the exact vector current
+
+$$
+\boxed{j_B^\mu=\frac13\bar q\gamma^\mu q,\qquad
+\partial_\mu j_B^\mu=0.}
+\tag{PA68}
+$$
+
+Every coefficient in (PA66)–(PA67) is polynomial at
+$(\sigma,\boldsymbol\pi)=0$. Three occupied colour copies of the lowest
+grand-spin-zero orbital give $B=1$, fermionic statistics and an antisymmetric
+colour state. These are properties of the supplied empirical QCD model, rather
+than consequences of the canonical Cassi density equations.
+
+For the frozen hedgehog family, the continuum-extrapolated occupied level and
+total energy are
+
+$$
+E_{\rm lev}=42.74439864\pm0.20\ {\rm MeV},\qquad
+E_{B,\infty}=1208.1917608\ {\rm MeV}.
+\tag{PA69}
+$$
+
+The uncertainty-qualified binding margin relative to three constituent quarks
+is $291.2082392\ {\rm MeV}$. Independent two-sided shooting and quadrature
+give a baryon RMS radius of $0.6630293\ {\rm fm}$ and agree with the
+extrapolated level within $4.99\times10^{-5}\ {\rm MeV}$. Along the declared
+two-parameter hedgehog envelope, the conservative reduced barrier is
+$18.2800415\ {\rm MeV}$, below the QCD crossover temperature.
+
+The QCD-era state ledger supplies the occupied sector through inherited
+asymmetry rather than production from an exactly neutral classical state. The
+local strong-interaction timescale is negligible relative to cosmic expansion
+under the recorded inputs. This comparison does not calculate a thermal
+nucleation probability. It also omits the renormalized Dirac sea and does not
+establish nonradial continuum persistence, confinement, the observable
+nucleon map or baryogenesis. Its resolved regulator, binding and reduced
+barrier results are `PASS`, `SUPPORTS` and `SUPPORTS`; the full-formation gates
+remain `FAIL` (`computations/matter-formation-continuum-report.md` §79).
+
 ## 9. What is closed and what remains open
 
 | Question | Result |
@@ -2278,7 +2355,9 @@ retaining the positive conditional benchmark
 | Does the canonical scalar domain supply a rotation or exchange FR sign? | No in the tested regular domains; separated exchange, large-gauge and other quantum sectors require their own configuration spaces |
 | Does the compact $SU(2)_{\rm top}$ comparison identify a Cassi carrier? | No canonical identification follows. Its extended conditional baryon benchmark supplies a Mapped two-mass calibration, supplied nucleon/Delta spin and charge rules, finite-domain radial stationarity, and conservative relaxation of prepared $B=1$ data. The density-to-target bridge remains obstructed |
 | Can a hard-norm nonzero-Hopf field be a full stationary solution of PA12? | No when the adjoint norm is soft: every such field has a strict first-order amplitude descent, and the included hard-norm loops contract in the soft domain. A relaxed soft-amplitude state or separately constrained hard-norm model remains open |
-| Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | The added baryon comparison yields Mapped nucleon/Delta masses, a physical length unit, out-of-fit radius and coupling comparisons, and conditional charge/spin assignments. These quantities belong to the supplied effective action and rules; no canonical Cassi particle identity or lifetime follows |
+| Does the empirical quark–meson current remain regular at a chiral zero? | Yes. Its polynomial Yukawa interaction and exact vector current remain finite, and three occupied colours carry fermionic $B=1$. The field content, action and parameters are empirical QCD inputs |
+| Does that model supply a continuum-qualified localized carrier and an accessible formation path? | It supplies a regulator-extrapolated nodeless valence level, fixed-family binding and a reduced static barrier. It does not yet supply a thermal rate, nonradial continuum stability, renormalized Dirac sea, confinement or a dynamical basin from the QCD ensemble |
+| Is a physical particle mass, radius, charge, spin, spectrum, or lifetime obtained? | The compact benchmark gives Mapped nucleon/Delta masses, a physical length unit, out-of-fit radius and coupling comparisons, and conditional charge/spin assignments. The empirical quark–meson model gives a localized valence endpoint and radius under measured parameter inputs. Neither supplies a canonical Cassi identity, an observable nucleon map or a lifetime |
 
 The action defines a fixed-charge boundary-value problem and exact empty-sector
 invariants. Its continuum-consistent scalar sector supplies independently
@@ -2299,6 +2378,13 @@ attracting degree-one soliton, Mapped nucleon/Delta masses, a physical length
 unit, supplied charge/spin rules and six out-of-fit particle comparisons.
 Four absolute observables contradict their precision threshold. The field,
 action, quantum rules and degree-one initial sector remain supplied inputs.
+The empirical quark–meson comparison then replaces the singular normalized
+carrier with explicit Dirac quarks and a regular exact baryon current. Its
+continuum-qualified fixed-family endpoint is localized and bound, and its
+reduced static barrier is below the QCD crossover temperature. The calculation
+starts in the cosmologically inherited $B=1$ sector and omits sea
+renormalization, nonradial thermal dynamics, confinement, the observable
+nucleon map and baryogenesis.
 Scalar and spinor microscopic parents also share the registered slow equation.
 Together these results determine no unique production action, state,
 normalization, particle spectrum or formation history. The complete
@@ -2405,16 +2491,21 @@ soft-field metastability and physical quantization open
 (`computations/matter-formation-continuum-report.md` §§12.7–12.12, 15.6–15.7,
 18–20).
 
-The added chiral benchmark supplies the strongest particle-like endpoint in
-this comparison class. Its degree-one radial soliton persists dynamically,
-and two measured masses determine its two coefficients. Conditional
-spin/statistics and charge assignments then follow from supplied model rules.
-Independent verification reproduces the calculation, while four absolute
-out-of-fit observables miss the precision criterion. Canonical field/action
-selection, quantum-state dynamics, continuum all-sector stability and
-degree-zero formation remain open. The six-requirement completion gate is
-therefore `FAIL`, with the conditional baryon benchmark retained as
-**Mapped**.
+The compact chiral benchmark supplies a finite-domain particle-like endpoint.
+Its degree-one radial soliton persists dynamically, and two measured masses
+determine its two coefficients. Conditional spin/statistics and charge
+assignments follow from supplied model rules. Independent verification
+reproduces the calculation, while four absolute out-of-fit observables miss
+the precision criterion.
+
+The empirical quark–meson comparison supplies the regular microscopic endpoint.
+Explicit Dirac quarks transport exact baryon number through the chiral zero;
+the regulator-extrapolated nodeless valence state is localized and
+fixed-family bound. Its supplied QCD action and cosmological asymmetry do not
+follow from the canonical Cassi substrate, while the renormalized sea,
+nonradial thermal formation, confinement, observable nucleon map and
+baryogenesis remain unresolved. QMQ4 and QMC6 therefore remain `FAIL`, so
+complete physical matter formation remains **Hypothesized/Open**.
 
 ---
 
@@ -2461,3 +2552,11 @@ therefore `FAIL`, with the conditional baryon benchmark retained as
 - `computations/matter_formation_spatial_pump.py` and `computations/verify_matter_formation_spatial_pump.py`—spatial mediator instability and signed-charge transport.
 - `computations/matter_formation_nonlinear_fragmentation.py` and `computations/verify_matter_formation_nonlinear_fragmentation.py`—frozen finite-amplitude comparison and independent reconstruction.
 - `computations/matter_formation_nonlinear_phase_diagnostic.py`—period-sampled Floquet-phase diagnostic excluded from the frozen nonlinear verdict.
+- `computations/qcd-quark-meson-carrier-prereg.md`—empirical action,
+  conserved-current, occupied-sector and fixed-family protocol.
+- `computations/qcd_quark_meson_carrier_resolution.py`—four-grid regulator
+  extrapolation and reduced formation-envelope calculation.
+- `computations/verify_qcd_quark_meson_carrier_resolution.py`—independent
+  fit, uncertainty, barrier and verdict reconstruction.
+- D. Diakonov, [“Chiral Quark-Soliton Model”](https://arxiv.org/abs/hep-ph/9802298)—continuum radial Hamiltonian and occupied valence branch.
+- M. C. Birse and M. K. Banerjee, [“Chiral model of the nucleon and delta”](https://doi.org/10.1103/PhysRevD.31.118)—self-consistent valence-quark chiral soliton and physical parameter context.

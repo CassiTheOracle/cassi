@@ -270,6 +270,25 @@ outside that restriction. Read
 `foundations/matter-completion-boundary.md` §23 for the compact theorem and
 its formation requirement.
 
+Section 79 follows the regular microscopic alternative suggested by that
+boundary. An empirical two-flavour quark–meson action keeps explicit Dirac
+quarks and the exact baryon current defined through the chiral zero. A
+four-grid vanishing-Wilson-regulator sequence converges to a localized
+nodeless valence level at $42.74439864\pm0.20\ \mathrm{MeV}$ and agrees with
+independent two-sided shooting. The fixed $B=1$ hedgehog family is
+conditionally bound by more than $291\ \mathrm{MeV}$ and has a conservative
+reduced barrier $18.2800415\ \mathrm{MeV}$, below the declared QCD crossover
+scale. The whole-bubble initial condition enters as an inherited cosmological
+baryon asymmetry: QCD conserves and reorganizes it, while an exactly neutral
+closed state stays neutral.
+
+The regular carrier and reduced static barrier are positive conditional
+results. The empirical action, interacting vacuum and renormalized Dirac sea,
+nonradial persistence, thermal formation rate, confinement, nucleon
+observable map and baryogenesis remain outside the derivation. Read
+`foundations/matter-completion-boundary.md` §24 for the compact boundary.
+The complete-formation verdict remains `FAIL`.
+
 
 ### The skeptic or referee
 
