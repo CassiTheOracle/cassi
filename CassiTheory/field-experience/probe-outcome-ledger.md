@@ -343,7 +343,7 @@ consequences of the same invariant family; no new trajectory was integrated.
 | Numerical reduction and budgets | All fixed algebraic, trajectory, spatial and heat checks pass | **PASS**, qualified invariant-class Fourier approximations |
 | Unit initial critical budget | At $N=256$, analytical ratio $\ge1.5$ and numerical ratio $19.4393794552309$ | **CONTRADICTS**, exact continuum lower bound plus qualified finite trajectory |
 | Amplitude-linear critical-transfer bound at fixed $\nu,T>0$ | The continuum lower ratio grows without bound with $N$ | Excluded by the analytical construction |
-| Amplitude-linear spread-dissipation or positive-production bound | Each cumulative ratio is at least $(N/64-1)/c_{\rm S}^2$, which diverges linearly with $N$ | Excluded by the analytical construction |
+| Amplitude-linear cumulative spread-dissipation or cumulative positive-production bound at $\nu=1$ | Each cumulative ratio is at least $(N/64-1)/c_{\rm S}^2$, which diverges linearly with $N$ | Excluded by the analytical construction |
 | Nonlinear critical-transfer bound within this family | Explicit finite bound from the critical multiplier difference | Derived for the one-way-coupled invariant class |
 | Arbitrary-data cumulative production and global regularity | General three-dimensional feedback remains uncontrolled; no finite initial-$H^3$-controlled bound is known | **UNRESOLVED** |
 | Singular solution or formal-proof build | Every constructed solution is globally smooth; no formalization is run | **NOT_RUN** |
