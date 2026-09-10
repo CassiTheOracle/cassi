@@ -726,7 +726,7 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
-The separate pure-gauge comparison in that document, §§9.4–9.16, uses the
+The separate pure-gauge comparison in that document, §§9.4–9.17, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
 projective bubble coordinate discards a phase required by Wilson magnetic
@@ -739,10 +739,16 @@ theorem reduces sufficient cutoff-directed control to exact-vacuum fibre
 rates, tensorization and cover estimates. Fixed calculations exclude an
 equal-weight one-plaquette exact vacuum, conditional gaps alone as a
 volume-uniform argument and static pure configuration marginalization as an
-exact quantum reduction. These exclusions do not supply the missing
-interacting-vacuum estimates. The weak-bare-coupling uniform estimate and
-four-dimensional continuum construction remain open. The carrier-state
-identification and QF/DQ/GQ classifications remain unchanged.
+exact quantum reduction. An exact normalized-Haar path-holonomy pullback
+preserves endpoint gauge covariance and compresses the electric Casimir with
+$g_c^2=b^2g_f^2$. On a genuine $2\times2$ refinement the four fine
+plaquette characters instead give $\|Qh_fJ1\|_2=2x_f$, excluding exact
+full-Hamiltonian intertwining by that bare cylindrical map. Pure graph
+subdivision has no such leakage, so path length alone does not determine the
+block dynamics. These exclusions do not supply the missing interacting-vacuum
+estimates. The weak-bare-coupling uniform estimate and four-dimensional
+continuum construction remain open. The carrier-state identification and
+QF/DQ/GQ classifications remain unchanged.
 
 The completion ansatz in
 `foundations/geometric-manifold-completion.md` places these finite layers in

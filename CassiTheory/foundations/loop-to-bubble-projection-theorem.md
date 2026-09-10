@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities and conditional block theorem; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, conditional block theorems, and exact bare-cylindrical refinement obstruction; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -41,9 +41,12 @@ full-holonomy block theorem isolates the local rate, tensorization and cover
 estimates sufficient for cutoff-directed control. Exact calculations exclude
 the equal-weight one-plaquette exponential as the interacting vacuum,
 uniform conditional gaps alone as a volume-uniform argument and a static pure
-configuration marginal as an exact quantum reduction. The weak-bare-coupling
-uniform estimates, four-dimensional continuum construction and microscopic
-Cassi identification remain open.
+configuration marginal as an exact quantum reduction. An exact Haar-isometric
+path-holonomy pullback preserves endpoint gauge covariance, but genuine
+$2\times2$ refinement proves that this bare cylindrical map cannot intertwine
+the full Kogut–Susskind Hamiltonian. The weak-bare-coupling uniform estimates,
+four-dimensional continuum construction and microscopic Cassi identification
+remain open.
 
 ---
 
@@ -1935,6 +1938,311 @@ reduce the next weak-coupling step to quantitative estimates on the exact
 conditional vacuum measures and their tensorization along $g=g(a)$. Those
 interacting estimates and the continuum construction remain open.
 
+### 9.17 Exact cylindrical maps and refined-plaquette leakage
+
+The block question admits an exact kinematic map before any approximation is
+made. Let $\Gamma_f$ and $\Gamma_c$ be finite fine and coarse graphs. For each
+coarse edge $c$, choose a nonempty edge-simple oriented fine path
+
+$$
+P_c=(e_{c,1}^{\sigma_{c,1}},\ldots,e_{c,n_c}^{\sigma_{c,n_c}}),
+\qquad \sigma_{c,j}\in\{-1,+1\},
+$$
+
+with the paths pairwise edge-disjoint. Choose a consistent fine-vertex
+representative $\iota(v)$ for every coarse endpoint, and define
+
+$$
+\pi(U)_c
+=U_{e_{c,1}}^{\sigma_{c,1}}\cdots
+ U_{e_{c,n_c}}^{\sigma_{c,n_c}},
+\qquad
+(Jf)(U)=f(\pi(U)).
+\tag{YM42}
+$$
+
+Normalized Haar measure is invariant under inversion, and a product of
+independent Haar variables is Haar. Pairwise edge-disjoint paths therefore
+give the joint pushforward
+$\pi_*\mu_f=\mu_c$ and
+
+$$
+J^*J=I,\qquad
+\pi(U^h)_c
+=h_{\iota(s(c))}\pi(U)_c h_{\iota(t(c))}^{-1}.
+\tag{YM43}
+$$
+
+Internal fine-vertex transformations telescope along the path. Coarse
+gauge-invariant functions consequently pull back to fine gauge-invariant
+functions when the endpoint representatives are consistent. Overlapping or
+repeated paths require a separate joint-Haar and derivative analysis; they
+are outside (YM42).
+
+Let
+
+$$
+\mathcal E_f=-\sum_{e,A}(X_e^A)^2
+$$
+
+use the same orthonormal Lie-algebra basis as the coarse electric operator.
+A left derivative on a forward path edge induces a conjugated left
+derivative of the coarse holonomy. A reversed edge induces a conjugated right
+derivative with a minus sign. The adjoint matrices are orthogonal, and the
+left and right quadratic Casimirs agree. On the smooth cylindrical core this
+gives the stronger intertwining identity
+
+$$
+\mathcal E_fJ
+=J\sum_c n_c\mathcal E_c^{(c)},
+\qquad
+J^*\mathcal E_fJ
+=\sum_c n_c\mathcal E_c^{(c)}.
+\tag{YM44}
+$$
+
+For uniform path length $n_c=b$, $a_c=ba_f$ and no separate energy
+rescaling, matching the physical electric coefficients requires
+
+$$
+\frac{g_f^2}{2a_f}\,b
+=\frac{g_c^2}{2a_c},
+\qquad
+\boxed{g_c^2=b^2g_f^2},
+\qquad
+x_c=\frac{x_f}{b^4}.
+\tag{YM45}
+$$
+
+This is the exact coupling relation for the one-path cylindrical
+intertwiner. It is not a Yang–Mills beta function. In particular, a physical
+coarse electric flux normally combines parallel fine fluxes across a dual
+face, information absent from the single-path construction.
+
+#### 9.17.1 Conditional expectation and the exact invariance criterion
+
+Let $\mathcal A_c=\sigma(\pi)$,
+$\mathcal I=\operatorname{Ran}J$, $P=JJ^*$ and $Q=I-P$. The orthogonal
+projection is conditional expectation onto the coarse holonomies. For every
+bounded multiplication operator $M_F$,
+
+$$
+J^*M_FJ
+=M_{\mathbb E_{\mathrm H}[F\mid\mathcal A_c]}.
+\tag{YM46}
+$$
+
+Write
+
+$$
+W_f=\sum_{p\in P_f}\chi_{1/2}(U_p),
+\qquad
+h_f=\mathcal E_f+2x_fN_{p,f}-x_fW_f.
+$$
+
+Because $1\in\mathcal I$ and multiplication by an
+$\mathcal A_c$-measurable function preserves $\mathcal I$,
+
+$$
+M_{W_f}\mathcal I\subseteq\mathcal I
+\quad\Longleftrightarrow\quad
+W_f\in\mathcal I
+\quad\Longleftrightarrow\quad
+QW_f=0.
+\tag{YM47}
+$$
+
+Equation (YM44) shows that the electric term preserves $\mathcal I$. Thus
+$QW_f$ is the exact obstruction to invariance of this cylindrical subspace
+under the full Hamiltonian. An individual fine plaquette can have a nonzero
+conditional mean, and residuals from several plaquettes can correlate. The
+general normalized-Haar quantity is
+
+$$
+\begin{aligned}
+\sigma_f^2
+&:=\|QW_f\|_2^2\\
+&=\sum_{p,q}
+\left[
+\langle\chi_p,\chi_q\rangle
+-\left\langle
+\mathbb E(\chi_p\mid\mathcal A_c),
+\mathbb E(\chi_q\mid\mathcal A_c)
+\right\rangle
+\right].
+\end{aligned}
+\tag{YM48}
+$$
+
+This conditional-variance formula, rather than a count of nominally
+discarded plaquettes, determines the leakage.
+
+#### 9.17.2 A genuine $2\times2$ spatial refinement
+
+Take an open square divided into four elementary fine plaquettes. Its nine
+vertices and twelve links include four interior links. The four coarse
+boundary edges are the counterclockwise products of two fine boundary links
+each; no interior link occurs in a coarse path. Every elementary plaquette
+contains an interior witness link that is independent of $\mathcal A_c$ and
+appears once in its character. Peter–Weyl orthogonality gives
+
+$$
+\mathbb E_{\mathrm H}(\chi_p\mid\mathcal A_c)=0,
+\qquad
+\langle\chi_p,\chi_q\rangle=\delta_{pq},
+\qquad p,q\in\{1,2,3,4\},
+\tag{YM49}
+$$
+
+for the unnormalized fundamental character
+$\chi_{1/2}=\operatorname{Tr}$, whose $L^2$ norm is one. The four plaquette
+characters are pairwise orthogonal because each pair has a fine edge
+belonging to only one member.
+
+For the normalized constant coarse state,
+
+$$
+Qh_fJ1
+=-x_f\sum_{p=1}^4\chi_p,
+\qquad
+\boxed{\|Qh_fJ1\|_2=2x_f}.
+\tag{YM50}
+$$
+
+The constant $2x_fN_{p,f}$ lies in $\mathcal I$. Any scalar vacuum-energy
+subtraction therefore leaves (YM50) unchanged. Each $\chi_p$ is a closed
+Wilson loop, so the same leakage lies in the Gauss-invariant physical
+Hilbert space. In physical units,
+
+$$
+\boxed{
+\|QH_fJ1\|_2
+=\frac{g_f^2}{2a_f}(2x_f)
+=\frac{2}{a_fg_f^2}.
+}
+\tag{YM51}
+$$
+
+Compression also displays the magnetic mismatch. If
+$\mathcal E_c$ is the sum over the four coarse boundary edges, then
+
+$$
+J^*h_fJ=2\mathcal E_c+8x_fI.
+\tag{YM52}
+$$
+
+The standard one-plaquette coarse magnetic operator instead contains
+$2x_c-x_c\chi_{1/2}(U_{\partial B})$. The outer character is retained by
+$\pi$, but it is not generated by the first-order compression of the four
+elementary fine characters.
+
+For every coarse operator $A$ whose image is carried back by $J$,
+orthogonality gives
+
+$$
+\|h_fJ1-JA1\|_2
+\ge\|Qh_fJ1\|_2
+=2x_f.
+\tag{YM53}
+$$
+
+Hence no coarse operator exactly intertwines the full $h_f$ with this bare
+cylindrical $J$ on the refined block. For a fundamental plaquette character,
+$\mathcal E_f\chi_p=3\chi_p$ and
+$\langle\chi_p,h_f1\rangle=-x_f$. The dimensionless electric Casimir
+eigenvalue is therefore $3$, while the magnetic vacuum-to-plaquette matrix
+element has magnitude $x_f$. The ratio $x_f/3$ grows without bound as
+$g_f\to0$. This excludes an $x_f$-uniform unweighted $L^2$ or electric-vacuum
+graph-norm smallness estimate for this fixed map. It does not exclude a
+resolvent-weighted Feshbach estimate: the discarded-sector energy can scale
+with $x_f$ as well. At every fixed finite lattice the magnetic multiplication
+operator remains bounded, with an $x_f$-dependent bound.
+
+Pure graph subdivision supplies the required control. Subdivide each edge of
+one square while retaining the outer square as the only face. Its face
+holonomy is the product of complete coarse path holonomies, so $QW_f=0$ and
+the magnetic term preserves $\mathcal I$. This operation adds no elementary
+spatial faces and does not lower the plaquette cutoff. Path length $b>1$
+alone therefore does not determine magnetic leakage.
+
+#### 9.17.3 The remaining dynamical map
+
+Disintegrate fine Haar measure over the coarse variables as
+$d\mu_f=d\mu_c(v)\,d\nu_v(r)$. A normalized, gauge-compatible fibre family
+defines another exact isometry,
+
+$$
+(J_\omega f)(U)
+=f(\pi(U))\omega_{\pi(U)}(r),
+\qquad
+\int|\omega_v(r)|^2\,d\nu_v(r)=1.
+\tag{YM54}
+$$
+
+Its dynamical closure condition is
+
+$$
+(I-J_\omega J_\omega^*)H_fJ_\omega=0.
+\tag{YM55}
+$$
+
+A coarse-holonomy-dependent fibre can encode the interacting eliminated
+sector. Fine electric derivatives then act on both $f$ and $\omega_v$,
+generally producing connection, Born–Huang, coarse–fibre cross and scalar
+terms. Magnetic compression generates boundary-dependent and multi-loop
+interactions. Gauge constraints can add boundary representation sectors.
+Replacing (YM55) by the Feshbach operator (YM41) retains the corresponding
+energy-dependent discarded-sector resolvent. None of these terms is supplied
+by the bare map (YM42), and none is excluded by (YM50).
+
+The physical-gap units impose a separate exact requirement. For a fixed
+physical box with $a_c=ba_f$ and the corresponding lattice-site count
+reduced by $b$ in each blocked direction,
+
+$$
+\frac{g_f^2}{2a_f}\widehat\Delta_f
+=\frac{g_c^2}{2ba_f}\widehat\Delta_c,
+\qquad
+\boxed{
+\widehat\Delta_c
+=\frac{b g_f^2}{g_c^2}\widehat\Delta_f.
+}
+\tag{YM56}
+$$
+
+Under the kinematic electric matching (YM45), this becomes
+$\widehat\Delta_c=\widehat\Delta_f/b$. It is a unit relation, not a spectral
+conclusion, because (YM50) prevents restriction of the full fine Hamiltonian
+to $\mathcal I$. A finite continuum mass $m_*$ still requires
+
+$$
+\widehat\Delta(a,L(a))
+\sim\frac{2a\,m_*}{g(a)^2}
+$$
+
+together with thermodynamic control and construction of the continuum
+quantum field.
+
+The exact bare map therefore fixes one proof boundary. A viable next map must
+carry an interacting gauge-compatible fibre or an equivalent transfer
+operator, preserve boundary sectors, retain every generated interaction,
+control the off-diagonal resolvent uniformly, and obey (YM56). The
+hypothesized Cassi scale law supplies none of those gauge-theory structures.
+The continuum existence and mass-gap questions remain open.
+
+The source-bound primary schedule passes 53 checks. A separate JavaScript
+implementation reconstructs the fixed inventories, quaternion moments,
+Casimirs, path controls, scale identities and every primary detail in 169
+checks. Post-reconstruction analytical review assigns **ADOPT** to
+(YM42)–(YM48) under their stated finite-graph hypotheses and to
+(YM49)–(YM53) at the fixed refinement. The finite controls **SUPPORT** the
+declared fixtures. Exact full-Hamiltonian intertwining by the bare
+cylindrical map is **CONTRADICTED** only on the fixed genuine
+$2\times2$ refinement. Interacting fibres, uniform resolvent control,
+weak-coupling volume bounds, the thermodynamic and continuum limits, the
+continuum mass gap and Cassi microscopic identification remain
+**UNRESOLVED**.
+
 ---
 
 ## 10. Physical tests and rejection conditions
@@ -1996,6 +2304,8 @@ microscopic completions.
 | Equal-weight one-plaquette exponential vacuum | **Excluded** for every $x>0$ by (YM34) | Richer loop functionals remain available |
 | Gaussian conditional-gap-only implication | **Excluded** by (YM37)–(YM38) | Exact quadratic control; no interacting-vacuum estimate |
 | Static pure configuration-marginal blocking | **Excluded** as an exact quantum reduction by (YM39)–(YM41) | Mixed reduced states or energy-dependent resolvents retain the missing data |
+| Exact path-holonomy pullback (YM42)–(YM48) | **Derived** regulated kinematic identities | Edge-simple disjoint paths, normalized Haar measure and compatible endpoint gauge action |
+| Bare cylindrical full-Hamiltonian block map | **Excluded** on the fixed $2\times2$ refinement by (YM49)–(YM53) | Interacting fibres or energy-dependent reductions must retain discarded plaquette information |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -2151,6 +2461,15 @@ control, the continuum quantum field and its mass remain **UNRESOLVED**.
 - `computations/loop-to-bubble-projection-pre-registration.md`—frozen gates
 - `computations/verify_loop_to_bubble_projection.py`—independent certificate
 - J. Kogut and L. Susskind, [Hamiltonian formulation of Wilson's lattice gauge theories](https://doi.org/10.1103/PhysRevD.11.395)—Hamiltonian gauge framework
+- A. Ashtekar and J. Lewandowski, [Differential geometry on the space of
+  connections via graphs and projective limits](https://arxiv.org/abs/hep-th/9412073),
+  §§3.2–3.4—consistent graph projections and normalized Haar cylinder measures
+- W. Donnelly, [Decomposition of entanglement entropy in lattice gauge
+  theory](https://arxiv.org/abs/1109.0036), §§II–III—Haar-isometric link
+  splitting and boundary gauge sectors
+- J. A. Zapata, [Local gauge theory and coarse
+  graining](https://arxiv.org/abs/1203.2306)—macroscopic holonomy data and
+  microscopic information under gauge coarse graining
 - C. W. Bauer, I. D'Andrea, M. Freytsis and D. M. Grabowska, [A new basis for Hamiltonian SU(2) simulations](https://arxiv.org/abs/2307.11829), §§II–IV and Appendix B—normalization, gauge reduction and physical square spectrum
 - A. Jaffe and E. Witten, [Quantum Yang–Mills Theory](https://www.claymath.org/wp-content/uploads/2022/06/yangmills.pdf), §4—continuum existence and mass-gap requirements
 - D. A. Yarotsky, [Ground states in relatively bounded quantum perturbations of classical lattice systems](https://arxiv.org/abs/math-ph/0412040), Theorems 1–2 and Remark Eq. (6)—volume-uniform strong-coupling stability, connected correlations and relatively bounded perturbations
@@ -2162,5 +2481,5 @@ control, the continuum quantum field and its mass remain **UNRESOLVED**.
   group, derivative and Gaussian controls
 - S. Janson, *Gaussian Hilbert Spaces*, Cambridge University Press
   (1997)—Wiener chaos and conditional Gaussian factorization
-- D. Hasler and I. Herbst, [On the Smooth Feshbach–Schur
+- M. Griesemer and D. Hasler, [On the Smooth Feshbach–Schur
   Map](https://arxiv.org/abs/0704.3244)—spectral reduction conditions

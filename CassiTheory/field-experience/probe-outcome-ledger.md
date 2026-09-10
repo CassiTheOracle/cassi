@@ -619,6 +619,38 @@ dynamics would have to control and excludes the current static first-order
 phase energy as that control.
 
 
+## 21. Pure Yang–Mills cylindrical block map
+
+The frozen protocol in
+`computations/yang-mills-block-map-prereg.md` tests an explicit
+path-holonomy pullback between finite source-free $SU(2)$ lattice Hilbert
+spaces. The primary implementation passes **53 checks**. A separate
+JavaScript implementation reconstructs the frozen inventories, quaternion
+moments, representation Casimirs, path and gauge controls, scale identities
+and every primary detail in **169 checks**. Two post-reconstruction
+analytical reviews pass all nine fixed-scope obligations.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Normalized-Haar path pullback | Nonempty edge-simple, pairwise edge-disjoint paths push product Haar to product Haar; $J^*J=I$, endpoint gauge covariance holds and internal transformations cancel | **ADOPT**, finite graphs under the stated path and representative hypotheses |
+| Electric Casimir compression | On the smooth cylindrical core, $\mathcal E_fJ=J\sum_c n_c\mathcal E_c^{(c)}$ for either path orientation; fixed fundamental and adjoint errors are at most $8.89\times10^{-16}$ | **ADOPT**, isotropic bi-invariant independent-link Casimirs under the stated hypotheses |
+| Genuine $2\times2$ refinement | Four absent-link plaquette characters have zero conditional means and identity Gram matrix; the measured moment/Gram errors are at most $2.23\times10^{-16}$ and $1.12\times10^{-16}$ | **SUPPORTS**, fixed nine-vertex, twelve-link fixture |
+| Bare full-Hamiltonian block | $\|Qh_fJ1\|_2=2x_f$ and $\|QH_fJ1\|_2=2/(a_fg_f^2)$; no coarse operator can remove this orthogonal component on the constant state | **CONTRADICTS**, exact intertwining by this bare cylindrical map on the fixed genuine refinement only |
+| Pure graph subdivision | Retaining one outer face adds no elementary spatial faces and gives $QW_f=0$ | **SUPPORTS** the control; path length $b>1$ alone does not determine leakage |
+| Weak-coupling bare-vacuum shortcut | The fixed electric-vacuum ratio is $x_f/3=2/(3g_f^4)$ and diverges as $g_f\to0$ | **CONTRADICTS**, an $x_f$-uniform unweighted small-perturbation argument for this bare map; resolvent-weighted estimates are not excluded |
+| Interacting block and continuum mass | No gauge-compatible interacting fibre, generated-term closure, uniform Feshbach-resolvent bound, weak-coupling volume estimate, thermodynamic limit or continuum field is constructed | **UNRESOLVED** |
+| Cassi interaction survival | The hypothesized Cassi scale law supplies no microscopic link state, interacting fibre or transfer operator to which the block criterion can be applied | **UNRESOLVED**; no microscopic Cassi identification follows |
+
+The primary receipt, input manifest, frozen source snapshots, retained failed
+checker output, qualified independent reconstruction and analytical reviews
+are in `runs/yang_mills_block_map/`. `publication.json` records the
+post-reconstruction disposition and seals the current theorem, protocol,
+verifier, independent checker and evidence hashes. The result rejects the
+bare-map shortcut and identifies the interacting fibre or equivalent
+Feshbach transfer operator as the next mathematical target; it does not
+establish a continuum Yang–Mills theory or mass gap.
+
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -683,3 +715,5 @@ phase energy as that control.
 - `computations/verify_cassi_radiative_material_qualification.py`—9-check source-subcycling qualification.
 - `computations/yang-mills-vacuum-block-prereg.md`—fixed full-holonomy, exact-vacuum and Gaussian block schedule.
 - `computations/verify_yang_mills_vacuum_blocks.py`—305-check primary exact-vacuum block receipt.
+- `computations/yang-mills-block-map-prereg.md`—fixed path-holonomy, refined-block and unit-transport schedule.
+- `computations/verify_yang_mills_block_map.py`—53-check source-bound cylindrical block-map receipt generator.
