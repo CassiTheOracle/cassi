@@ -859,6 +859,11 @@ def spectrum_and_cutoff_controls(result: dict[str, Any]) -> tuple[
             relative_errors = [normalized_error(eigenvalues[index], ref[index])
                                for index in range(REFERENCE_LEVELS)]
             lower_bound = 4.0 * x * math.sin(math.pi / (2.0 * (n_cut + 2))) ** 2
+            bound_pass = bool(
+                eigenvalues[0]
+                + RF20_SLACK * max(1.0, abs(lower_bound))
+                >= lower_bound
+            )
             retained: list[float] = []
             discarded: list[float] = []
             boundary: list[float] = []
@@ -869,6 +874,13 @@ def spectrum_and_cutoff_controls(result: dict[str, Any]) -> tuple[
                 dropped = float(np.sum(vector[n_cut + 1:] ** 2))
                 retained.append(kept)
                 discarded.append(dropped)
+                boundary.append(float(math.sqrt(x) * abs(vector[n_cut + 1])))
+                mass_errors.append(abs(kept + dropped - 1.0))
+            metrics_finite = all(
+                math.isfinite(value)
+                for values in (retained, discarded, boundary, mass_errors)
+                for value in values
+            )
             cutoff_rows.append({
                 "x": float(x), "schedule": schedule, "cutoff": int(n_cut),
                 "eigenvalues": [float(value) for value in eigenvalues],
@@ -883,7 +895,8 @@ def spectrum_and_cutoff_controls(result: dict[str, Any]) -> tuple[
                 # A schedule row is a measurement, not a claim that its finite
                 # error vanishes in a limit.  Only finiteness and RF20 are
                 # numerical gates here.
-                "pass": bool(np.isfinite(eigenvalues).all() and bound_pass
+                "pass": bool(np.isfinite(eigenvalues).all() and metrics_finite
+                             and bound_pass
                              and all(error <= 1e-10 for error in mass_errors)),
             })
 
@@ -999,11 +1012,6 @@ def feshbach_controls(result: dict[str, Any],
                 abs(tail_norm_sq_direct - reference_tail_norm_sq)
                 / max(abs(reference_tail_norm_sq), np.finfo(float).tiny)
             )
-            psi = np.concatenate((p, reconstructed_tail))
-            full_diagonal = jacobi_diagonal(x, 0, terminal)
-            full_off = jacobi_off_diagonal(x, terminal + 1)
-            residual = tridiagonal_action(full_diagonal, full_off, psi) - energy * psi
-            residual_norm = float(np.linalg.norm(residual))
             residual_scale = max(
                 1.0,
                 float(np.linalg.norm(
@@ -1017,6 +1025,7 @@ def feshbach_controls(result: dict[str, Any],
                 and feshbach_normalized_residual < FESHBACH_RTOL
                 and full_residual < FESHBACH_RTOL
                 and tail_norm_sq_relative_error < TAIL_NORM_RTOL
+                and reference_tail_relative_error < TAIL_NORM_RTOL
             )
             rows.append({
                 "x": float(x), "j": int(index), "cutoff": int(n_cut),
