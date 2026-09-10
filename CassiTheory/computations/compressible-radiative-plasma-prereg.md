@@ -302,11 +302,11 @@ For a fixed reaction $4X\to Y$ use baryon numbers $(1,4)$, charges $(1,4)$, mass
 
 For the diffusion gradient use $a_R=0.8$, $c_\gamma=3$, $\kappa_R=0.4$, $\rho=1.2$, $r=2.3$, $T=1.7$ and $L=0.6$. Independently compute the flux from the displayed temperature gradient and require $4\pi r^2F_r=L$ to relative error $2\times10^{-14}$.
 
-Finally use fixed released energies $(0.3,0.2,0.4,0.1)$ from thermal, gravitational, nuclear and accretion reservoirs, emit $0.73$, retain $0.19$ and send $0.08$ to mechanical or neutrino escape. Require exact total-energy closure. Increasing emitted energy to $1.01$ with unchanged reservoirs must be rejected.
+Finally use gross power contributions $(0.3,0.2,0.4,0.1)$ from thermal release, gravitational release, nuclear mass defect and matter inflow. Emit $0.73$ as photons, retain $0.19$ as material heat and lose $0.08$ through neutrinos, with no mechanical outflow. The retained heat reduces the net stored-energy drawdown from $-0.50$ to $-0.31$. Require exact total-energy closure and exact reconstruction of the unit gross budget when retained heat is counted as a destination. Increasing emitted energy to $1.01$ with unchanged sources and net stored-energy rate must be rejected.
 
 ### 3.6 Angular moments, scattering and crossing beams
 
-Require the six-direction quadrature identities to absolute error $2\times10^{-14}$. Evaluate 257 deterministic nonnegative intensity vectors
+Require the six-direction quadrature identities to absolute error $2\times10^{-14}$ and the isotropic discrete phase matrix $p_{mm'}=1/(4\pi)$ to be finite, nonnegative and column-normalized under the quadrature weights. Evaluate 257 deterministic nonnegative intensity vectors
 
 $$
 I_m(k)=0.02+(1+0.1m)\left[1+\sin^2((k+1)(m+1))\right],
@@ -327,16 +327,16 @@ Require nonnegative intensity, angularly integrated energy conservation below $2
 
 On a $32\times32$ periodic grid, place one compact nonnegative pulse in the $+e_x$ ordinate and one different pulse in the $+e_y$ ordinate. Advance nine unit-Courant steps by exact axis shifts. Require each directional field to equal its independently rolled initial state, total angular energy to remain constant below $2\times10^{-13}$ and both beams to continue after occupying common cells. A moment-only M1 replacement is not run as an alternative solver; the analytical non-identifiability check is decisive.
 
-Alter one quadrature weight by $1\%$ without compensating the others and require the zeroth- or second-moment validation to reject it.
+Aggregate the angular rejection controls into one check. Alter one quadrature weight by $1\%$ without compensating the others; pass a negative weight, a nonunit direction or a nonfinite intensity directly to moment reconstruction; pass a nonfinite scattering weight to the isotropic update; and pass negative or nonnormalized entries to phase-matrix validation. Every case must raise `ValueError`.
 
 ## 4. Tolerances, decision and stopping rule
 
 Use float64, NumPy, SciPy and SymPy. Relative error means
 $|a-b|/\max(1,|b|)$ unless a check explicitly normalizes by another scale. Symbolic checks require exact simplification to zero. No tolerance may be relaxed after execution.
 
-The verifier refuses an existing output, manifest, staging path or source-snapshot directory. It reads each source once and writes those exact bytes to a staged snapshot tree, then publishes the complete tree and manifest atomically. It removes its own staging paths if publication fails.
+The verifier refuses an existing output, manifest, staging path or source-snapshot directory. It reads each source once and writes those exact bytes to a staged snapshot tree. The complete tree and manifest are published by separate atomic renames; a successful return exposes both, while any publication failure removes every staging path and any snapshot tree published by that attempt.
 
-Every current source and snapshot is compared with the manifest immediately after publication, after dependency imports and before scientific controls, and after the controls. A pre-control mismatch prevents scientific execution. Any source-integrity mismatch gives receipt status `FAIL` with scientific classification `INCONCLUSIVE`. The result is `PASS` only when every fixed scientific check and every source-integrity comparison succeeds. Its scientific classification is `SUPPORTS-conditional compressible radiative-plasma closure`. A failed identity, conservation check, positivity check or rejection control gives `FAIL` and `CONTRADICTS`. A missing numerical dependency or source-read failure produces a source-bound `INCONCLUSIVE` receipt and stops interpretation.
+Every current source and snapshot is compared with the manifest immediately after publication, after dependency imports and before scientific controls, and after the controls. A pre-control mismatch prevents scientific execution. Any source-integrity mismatch gives receipt status `FAIL` with scientific classification `INCONCLUSIVE`. The result is `PASS` only when exactly 70 fixed scientific checks and every source-integrity comparison succeed. Its scientific classification is `SUPPORTS-conditional compressible radiative-plasma closure`. A failed identity, conservation check, positivity check or rejection control gives `FAIL` and `CONTRADICTS`. A missing numerical dependency or source-read failure produces a source-bound `INCONCLUSIVE` receipt and stops interpretation.
 
 A passing result supports the displayed conditional equations and reference kernels at the fixed controls. It does not establish a Cassi material map, physical element abundances, atomic or nuclear data accuracy, a production shock solver, general angular convergence, stellar evolution or a live CassiCosmos implementation.
 
@@ -344,7 +344,7 @@ Run once from the CassiTheory root:
 
 ```text
 python computations/verify_compressible_radiative_plasma.py \
-  --output runs/compressible_radiative_plasma_profile_normalized_final/verification.json
+  --output runs/compressible_radiative_plasma_retained_energy_final/verification.json
 ```
 
 ## References

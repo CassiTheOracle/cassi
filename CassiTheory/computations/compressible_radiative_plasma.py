@@ -59,6 +59,9 @@ class ConservativeMaterialState:
             np.isfinite(momentum)
         ):
             raise ValueError("momentum must be a finite nonempty vector")
+        kinetic_energy = float(np.dot(momentum, momentum)) / (2.0 * density)
+        if total_energy <= kinetic_energy:
+            raise ValueError("total energy must exceed kinetic energy")
         if species.ndim != 1 or species.size == 0:
             raise ValueError("species densities must be a nonempty vector")
         if not np.all(np.isfinite(species)) or np.any(species < 0.0):
@@ -84,6 +87,15 @@ class ConservativeMaterialState:
             or not np.all(baryon_numbers == np.floor(baryon_numbers))
         ):
             raise ValueError("level baryon numbers must be finite positive integers")
+        for species_index in range(species.size):
+            species_baryons = baryon_numbers[owners == species_index]
+            if (
+                species_baryons.size > 0
+                and np.any(species_baryons != species_baryons[0])
+            ):
+                raise ValueError(
+                    "all levels owned by one species must use one baryon number"
+                )
 
         level_counts = np.bincount(owners, minlength=species.size)
         positive_species = species > tolerance * max(1.0, density)
@@ -750,7 +762,13 @@ def validate_quadrature(
 ) -> dict[str, float]:
     rays = np.asarray(directions, dtype=np.float64)
     solid = np.asarray(weights, dtype=np.float64)
-    if rays.ndim != 2 or rays.shape[1] != 3 or solid.shape != (rays.shape[0],):
+    tol = _finite_positive("quadrature tolerance", tolerance)
+    if (
+        rays.ndim != 2
+        or rays.shape[0] == 0
+        or rays.shape[1] != 3
+        or solid.shape != (rays.shape[0],)
+    ):
         raise ValueError("quadrature dimensions are invalid")
     if np.any(~np.isfinite(rays)) or np.any(~np.isfinite(solid)) or np.any(solid <= 0.0):
         raise ValueError("quadrature entries must be finite with positive weights")
@@ -761,7 +779,7 @@ def validate_quadrature(
     second = float(np.linalg.norm(second_tensor - (4.0 * math.pi / 3.0) * np.eye(3)))
     norm_error = float(np.max(np.abs(norms - 1.0)))
     diagnostics = {"zeroth": zeroth, "first": first, "second": second, "norm": norm_error}
-    if max(diagnostics.values()) > tolerance:
+    if max(diagnostics.values()) > tol:
         raise ValueError(f"quadrature moment condition failed: {diagnostics}")
     return diagnostics
 
@@ -772,19 +790,52 @@ def angular_moments(
     weights: np.ndarray,
     *,
     light_speed: float = 1.0,
+    quadrature_tolerance: float = 1.0e-12,
 ) -> AngularMoments:
     values = np.asarray(intensities, dtype=np.float64)
     rays = np.asarray(directions, dtype=np.float64)
     solid = np.asarray(weights, dtype=np.float64)
     c = _finite_positive("light speed", light_speed)
-    if values.shape != (rays.shape[0],) or solid.shape != values.shape or rays.shape[1:] != (3,):
+    validate_quadrature(rays, solid, tolerance=quadrature_tolerance)
+    if values.shape != solid.shape:
         raise ValueError("intensity and quadrature dimensions do not match")
     if np.any(~np.isfinite(values)) or np.any(values < 0.0):
         raise ValueError("intensities must be finite and nonnegative")
     energy = float(np.dot(solid, values)) / c
     flux = np.einsum("m,m,mi->i", solid, values, rays)
     pressure = np.einsum("m,m,mi,mj->ij", solid / c, values, rays, rays)
+    flux.setflags(write=False)
+    pressure.setflags(write=False)
     return AngularMoments(energy=energy, flux=flux, pressure=pressure)
+
+
+def validate_phase_matrix(
+    phase_matrix: np.ndarray,
+    weights: np.ndarray | Iterable[float],
+    *,
+    tolerance: float = 1.0e-12,
+) -> float:
+    """Validate a nonnegative discrete scattering kernel and return its worst column error."""
+    phase = np.asarray(phase_matrix, dtype=np.float64)
+    solid = np.asarray(weights, dtype=np.float64)
+    tol = _finite_positive("phase-matrix tolerance", tolerance)
+    if (
+        solid.ndim != 1
+        or solid.size == 0
+        or phase.shape != (solid.size, solid.size)
+    ):
+        raise ValueError("phase matrix and weights have incompatible dimensions")
+    if (
+        np.any(~np.isfinite(phase))
+        or np.any(phase < 0.0)
+        or np.any(~np.isfinite(solid))
+        or np.any(solid <= 0.0)
+    ):
+        raise ValueError("phase matrix must be finite and nonnegative with positive weights")
+    error = float(np.max(np.abs(solid @ phase - 1.0)))
+    if error > tol:
+        raise ValueError(f"phase-matrix column normalization failed: {error:.17g}")
+    return error
 
 
 def isotropic_scattering_step(
@@ -797,7 +848,12 @@ def isotropic_scattering_step(
     depth = float(optical_time)
     if values.ndim != 1 or solid.shape != values.shape or values.size == 0:
         raise ValueError("intensities and weights must be equal nonempty vectors")
-    if np.any(~np.isfinite(values)) or np.any(values < 0.0) or np.any(solid <= 0.0):
+    if (
+        np.any(~np.isfinite(values))
+        or np.any(values < 0.0)
+        or np.any(~np.isfinite(solid))
+        or np.any(solid <= 0.0)
+    ):
         raise ValueError("scattering state is inadmissible")
     if not math.isfinite(depth) or depth < 0.0:
         raise ValueError("optical time must be finite and nonnegative")

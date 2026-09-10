@@ -158,7 +158,7 @@ $$
 \tag{9}
 $$
 
-Here $h_i$ is the transported partial enthalpy, $Q_{\rm nuc}$ is gross nuclear mass-defect power, $Q_\nu$ is energy carried away by neutrinos, and $Q_{\rm ext}$ is a declared external source. The covariant four-force in `turbulence/cassi-radiative-material-closure.md` §7 supplies $G_{\rm rad}$ and $\mathcal Q_{\rm rad}$ as the exact negatives of the radiation momentum and energy sources.
+Here $h_i$ is the partial enthalpy carried by one particle in level $i$, so $h_iJ_i$ has energy-flux units under the number-flux convention of (3). It uses the same excitation, ionization and formation-energy zero as $e$. The quantity $Q_{\rm nuc}$ is gross nuclear mass-defect power, $Q_\nu$ is energy carried away by neutrinos, and $Q_{\rm ext}$ is a declared external source. The covariant four-force in `turbulence/cassi-radiative-material-closure.md` §7 supplies $G_{\rm rad}$ and $\mathcal Q_{\rm rad}$ as the exact negatives of the radiation momentum and energy sources.
 
 Subtracting $u$ dotted into (6) from (9) gives the internal-energy law
 
@@ -835,6 +835,7 @@ unresolved source may instead debit the separate accretion reservoir (60);
 the corresponding boundary and binding-energy contribution is then omitted
 from (65). Applying both representations to the same infalling mass would
 count its released energy twice.
+Heat retained inside the control volume appears through the stored-energy derivative in (65): retention makes $d(K+U+\Omega)/dt$ less negative, or positive when the stored reservoir grows. It is not part of $\dot E_{\rm mech,out}$. Any reduced unresolved model must therefore choose one destination for each released energy increment—radiation, neutrinos, mechanical escape, boundary advection or retained storage—and reconstruct the gross budget before applying (65).
 
 ### 5.5 Unresolved luminous particles
 
@@ -952,17 +953,17 @@ $$
 \tag{72a}
 $$
 
-Equivalently, the monochromatic isotropic source is $4\pi\eta_\nu-c_\gamma\alpha_\nu E_\nu$. The material source is its exact negative, $\mathcal Q_{{\rm rad},g}=c_\gamma\alpha_g^{\rm a}(E_g-E_g^{\rm eq})$, which matches (11). The discrete phase function obeys
+Equivalently, the monochromatic isotropic source is $4\pi\eta_\nu-c_\gamma\alpha_\nu E_\nu$. The material source is its exact negative, $\mathcal Q_{{\rm rad},g}=c_\gamma\alpha_g^{\rm a}(E_g-E_g^{\rm eq})$, which matches (11). The discrete phase matrix is a nonnegative, quadrature-weighted column-stochastic kernel:
 
 $$
 \boxed{
 p_{g,mm'}\geq0,
 \qquad
-\sum_mw_mp_{g,mm'}=1\quad\text{for every }m'.}
+\sum_mw_mp_{g,mm'}=1\quad\text{for every incoming ordinate }m'.}
 \tag{73}
 $$
 
-Summing (72) over $w_m$ makes the elastic scattering source vanish exactly. Multiplying by $w_mn_m/c_\gamma$ gives the radiation momentum source, whose negative is applied to matter. Absorption and emission are paired with the material energy and population updates from §§3–4.
+The first index labels the outgoing ordinate and the second labels the incoming ordinate. This orientation makes each column a probability density over outgoing solid angle. Summing (72) over $w_m$ therefore makes the elastic scattering source vanish exactly. Multiplying by $w_mn_m/c_\gamma$ gives the radiation momentum source, whose negative is applied to matter. Absorption and emission are paired with the material energy and population updates from §§3–4.
 
 ### 6.3 Crossing and boundary behavior
 
@@ -1099,7 +1100,7 @@ positivity, LTE line balance, bound-free energy partition, virial and
 source-reservoir ledgers, angular realizability, isotropic scattering and two
 axis-aligned beams that cross in one cell and continue independently. Its
 source-bound receipt is
-`runs/compressible_radiative_plasma_profile_normalized_final/verification.json`.
+`runs/compressible_radiative_plasma_retained_energy_final/verification.json`.
 
 The separate fixed integrity qualification in
 `computations/compressible-radiative-plasma-integrity-prereg.md` passes **36 of
@@ -1110,9 +1111,9 @@ rejection, line and photoionization energy cancellation, normalized transfer
 sources, stellar control-volume reconstruction, nuclear conservation and the
 `INCONCLUSIVE` classification of missing scientific prerequisites. Its
 source-bound receipt is
-`runs/compressible_radiative_plasma_integrity_profile_normalized_final/verification.json`.
+`runs/compressible_radiative_plasma_integrity_retained_energy_final/verification.json`.
 
-Together these results **SUPPORT** the conditional closure at reference-kernel
+The combined qualification verdict is **SUPPORTS** for the conditional closure at reference-kernel
 level. Production finite-volume convergence, atomic and nuclear data
 qualification, general angular convergence, a physical Cassi material map and
 CassiCosmos integration remain open.

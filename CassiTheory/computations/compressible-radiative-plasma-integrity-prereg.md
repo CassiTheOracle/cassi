@@ -17,7 +17,7 @@ The verifier reads each of the following files once, hashes those bytes and writ
 - `computations/verify_compressible_radiative_plasma.py`;
 - `computations/verify_compressible_radiative_plasma_integrity.py`.
 
-The output, adjacent `input_manifest.json`, staging paths and `source_snapshots/` directory must not exist when the run begins. The verifier refuses to overwrite any of them. It publishes the complete snapshot tree and manifest atomically and removes its own staging paths if publication fails. It compares every current source and snapshot against the manifest immediately after publication, again after dependency imports and before scientific controls, and after the controls. A pre-control mismatch prevents scientific execution; any mismatch gives receipt status `FAIL` with scientific classification `INCONCLUSIVE`.
+The output, adjacent `input_manifest.json`, staging paths and `source_snapshots/` directory must not exist when the run begins. The verifier refuses to overwrite any of them. It publishes the complete snapshot tree and manifest by separate atomic renames; a successful return exposes both, while a publication failure removes every staging path and any snapshot tree published by that attempt. It compares every current source and snapshot against the manifest immediately after publication, again after dependency imports and before scientific controls, and after the controls. A pre-control mismatch prevents scientific execution; any mismatch gives receipt status `FAIL` with scientific classification `INCONCLUSIVE`.
 
 ## 2. Fixed qualification controls
 
@@ -49,7 +49,7 @@ where $s_i$ is the integer owner species of level $i$. Require the packed state 
 
 Reject mass fractions $(0.7,0.2,0.2)$, level populations containing `NaN`, and a level population that violates the per-species mass sum. One mapping-admissibility check requires `ValueError` for a nonintegral owner, an out-of-range owner and a positive-density species with no owned level. A separate boundary check uses $Y=(0.8,0.2,0)$ and verifies that the zero-density third species may have no represented level.
 
-Construct the public frozen state directly. One aggregate rejection check requires `ValueError` for zero density, a rank-two momentum array, a nonfinite species density, a species sum inconsistent with $\rho$, and a negative level population. A defensive-array check requires copies of all five array inputs and rejects attempted mutation of every stored array. A final recovery check constructs a structurally valid state whose kinetic energy exceeds total energy and requires `recover_internal_energy_density` to raise `ValueError`. These packing and kinetic checks do not establish EOS admissibility; positive thermal remainder after level energy is enforced by `recover_temperature` and its fixed control in the 70-check schedule.
+Construct the public frozen state directly. One aggregate rejection check requires `ValueError` for zero density, a rank-two momentum array, a nonfinite species density, a species sum inconsistent with $\rho$, a negative level population and unequal baryon numbers assigned to levels owned by one species. A defensive-array check requires copies of all five array inputs and rejects attempted mutation of every stored array. A final admissibility check requires the public constructor itself to reject a state whose kinetic energy equals or exceeds total energy. Positive thermal remainder after subtracting represented level energy is enforced separately by `recover_temperature` and its fixed control in the 70-check schedule.
 
 For positive symbolic $\rho$ and constants $c_v=3/2$, $R=1$, define
 
@@ -140,12 +140,12 @@ L_\gamma+L_\nu+\dot E_{\rm mech,out}
 -\frac{dE_{\rm stored}}{dt}.
 $$
 
-The valid ledger is
+The valid ledger withdraws $0.50$ from stored thermal and gravitational energy, returns $0.19$ as retained heat and therefore uses $dE_{\rm stored}/dt=-0.31$. Its flux/source tuple is
 
 $$
 (L_\gamma,L_\nu,\dot E_{\rm mech,out},P_{\rm ext},
 L_{\rm nuc}^{\rm gross},\dot E_{\rm matter,in},dE_{\rm stored}/dt)
-=(0.73,0.08,0.19,0,0.4,0.1,-0.5).
+=(0.73,0.08,0,0,0.4,0.1,-0.31).
 $$
 
 Require its residual below $2\times10^{-14}$. Replacing gross nuclear power by the net value $0.32$ while retaining $L_\nu=0.08$ must raise `ValueError` at tolerance $2\times10^{-14}$. Replacing the photon luminosity by $1.01$ and setting the other outgoing channels to zero, with the same sources, must also raise `ValueError`.
@@ -180,7 +180,7 @@ Run once from the CassiTheory root:
 
 ```text
 python computations/verify_compressible_radiative_plasma_integrity.py \
-  --output runs/compressible_radiative_plasma_integrity_profile_normalized_final/verification.json
+  --output runs/compressible_radiative_plasma_integrity_retained_energy_final/verification.json
 ```
 
 ## References

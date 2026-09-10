@@ -142,14 +142,11 @@ def prepare_evidence(output: Path) -> tuple[Path, Path, dict[str, dict[str, Any]
     payloads = {relative: (ROOT / relative).read_bytes() for relative in SOURCE_PATHS}
     manifest_staging = manifest_path.with_name(manifest_path.name + ".incomplete")
     snapshot_staging = snapshot_root.with_name(snapshot_root.name + ".incomplete")
-    snapshot_staging_created = False
-    snapshot_published = False
-    manifest_staging_created = False
+    # All reserved evidence paths were verified absent by evidence_paths().
 
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
         snapshot_staging.mkdir()
-        snapshot_staging_created = True
         sources: dict[str, dict[str, Any]] = {}
         for relative, payload in payloads.items():
             staged_destination = snapshot_staging / relative
@@ -165,8 +162,6 @@ def prepare_evidence(output: Path) -> tuple[Path, Path, dict[str, dict[str, Any]
                 "snapshot_sha256": digest,
             }
         snapshot_staging.rename(snapshot_root)
-        snapshot_staging_created = False
-        snapshot_published = True
         manifest_payload = (
             json.dumps(
                 {"schema": SCHEMA, "sources": sources},
@@ -177,17 +172,17 @@ def prepare_evidence(output: Path) -> tuple[Path, Path, dict[str, dict[str, Any]
             + "\n"
         )
         with manifest_staging.open("x", encoding="utf-8") as stream:
-            manifest_staging_created = True
             stream.write(manifest_payload)
         manifest_staging.replace(manifest_path)
-        manifest_staging_created = False
         return target, manifest_path, sources
     except Exception:
-        if manifest_staging_created and manifest_staging.exists():
+        if manifest_staging.exists():
             manifest_staging.unlink()
-        if snapshot_staging_created and snapshot_staging.exists():
+        if manifest_path.exists():
+            manifest_path.unlink()
+        if snapshot_staging.exists():
             shutil.rmtree(snapshot_staging)
-        if snapshot_published and snapshot_root.exists():
+        if snapshot_root.exists():
             shutil.rmtree(snapshot_root)
         raise
 
@@ -449,6 +444,16 @@ def state_and_thermo_controls(book: CheckBook) -> dict[str, Any]:
                     | {"level_populations": np.asarray([0.7, -1.05, 0.125, 0.125])}
                 )
             ),
+            "inconsistent_species_baryon_number": lambda: kernel.ConservativeMaterialState(
+                **(
+                    valid_direct
+                    | {
+                        "level_baryon_numbers": np.asarray(
+                            [1.0, 2.0, 4.0, 2.0]
+                        )
+                    }
+                )
+            ),
         }
     )
     book.add(
@@ -507,16 +512,14 @@ def state_and_thermo_controls(book: CheckBook) -> dict[str, Any]:
     )
 
     book.rejected(
-        "state.reject_nonpositive_recovered_internal_energy",
-        lambda: kernel.recover_internal_energy_density(
-            kernel.ConservativeMaterialState(
-                **(
-                    valid_direct
-                    | {
-                        "momentum": np.asarray([10.0, 0.0, 0.0]),
-                        "total_energy": 1.0,
-                    }
-                )
+        "state.reject_nonpositive_internal_energy",
+        lambda: kernel.ConservativeMaterialState(
+            **(
+                valid_direct
+                | {
+                    "momentum": np.asarray([10.0, 0.0, 0.0]),
+                    "total_energy": 1.0,
+                }
             )
         ),
     )
@@ -738,17 +741,28 @@ def transfer_controls(book: CheckBook) -> dict[str, Any]:
 
 
 def stellar_controls(book: CheckBook) -> dict[str, Any]:
+    retained_heat = 0.19
     ledger = {
         "photon_luminosity": 0.73,
         "neutrino_luminosity": 0.08,
-        "mechanical_outflow": 0.19,
+        "mechanical_outflow": 0.0,
         "external_power": 0.0,
         "gross_nuclear_power": 0.4,
         "matter_energy_inflow": 0.1,
-        "stored_energy_rate": -0.5,
+        "stored_energy_rate": -0.5 + retained_heat,
     }
     residual = kernel.control_volume_energy_residual(**ledger)
-    book.close("ledger.gross_nuclear_balance", residual, 0.0)
+    gross_budget = (
+        ledger["photon_luminosity"]
+        + ledger["neutrino_luminosity"]
+        + ledger["mechanical_outflow"]
+        + retained_heat
+    )
+    book.close(
+        "ledger.gross_nuclear_balance",
+        np.asarray([residual, gross_budget]),
+        np.asarray([0.0, 1.0]),
+    )
     net_ledger = dict(ledger)
     net_ledger["gross_nuclear_power"] = 0.32
     book.rejected(

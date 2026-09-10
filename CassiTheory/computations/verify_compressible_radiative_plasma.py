@@ -45,6 +45,7 @@ SCIENTIFIC_EXPORTS = (
     "shock_fluxes",
     "two_level_lte_populations",
     "validate_quadrature",
+    "validate_phase_matrix",
     "virial_star_energy",
 )
 
@@ -80,6 +81,7 @@ SOURCE_PATHS = (
     Path("computations/compressible_radiative_plasma.py"),
     Path("computations/verify_compressible_radiative_plasma.py"),
 )
+EXPECTED_CHECKS = 70
 TOL = 2.0e-13
 
 
@@ -120,15 +122,21 @@ class CheckBook:
 
     def rejected(self, name: str, operation: Callable[[], Any]) -> None:
         error: str | None = None
+        expected_type = False
         try:
             operation()
-        except Exception as exc:  # The exception is the expected result.
+        except ValueError as exc:
+            expected_type = True
+            error = f"ValueError: {exc}"
+        except Exception as exc:
             error = f"{type(exc).__name__}: {exc}"
-        self.add(name, error is not None, error=error)
+        self.add(name, expected_type, error=error)
 
     @property
     def passed(self) -> bool:
-        return bool(self.checks) and all(row["passed"] for row in self.checks.values())
+        return len(self.checks) == EXPECTED_CHECKS and all(
+            row["passed"] for row in self.checks.values()
+        )
 
     @property
     def failed(self) -> list[str]:
@@ -185,14 +193,11 @@ def prepare_evidence(
     payloads = {relative: (ROOT / relative).read_bytes() for relative in source_paths}
     manifest_staging = manifest_path.with_name(manifest_path.name + ".incomplete")
     snapshot_staging = snapshot_root.with_name(snapshot_root.name + ".incomplete")
-    snapshot_staging_created = False
-    snapshot_published = False
-    manifest_staging_created = False
+    # All reserved evidence paths were verified absent by evidence_paths().
 
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
         snapshot_staging.mkdir()
-        snapshot_staging_created = True
         manifest: dict[str, dict[str, Any]] = {}
         for relative, payload in payloads.items():
             staged_destination = snapshot_staging / relative
@@ -208,8 +213,6 @@ def prepare_evidence(
                 "snapshot_sha256": digest,
             }
         snapshot_staging.rename(snapshot_root)
-        snapshot_staging_created = False
-        snapshot_published = True
         manifest_payload = (
             json.dumps(
                 {"schema": SCHEMA, "sources": manifest},
@@ -220,17 +223,17 @@ def prepare_evidence(
             + "\n"
         )
         with manifest_staging.open("x", encoding="utf-8") as stream:
-            manifest_staging_created = True
             stream.write(manifest_payload)
         manifest_staging.replace(manifest_path)
-        manifest_staging_created = False
         return target, manifest_path, manifest
     except Exception:
-        if manifest_staging_created and manifest_staging.exists():
+        if manifest_staging.exists():
             manifest_staging.unlink()
-        if snapshot_staging_created and snapshot_staging.exists():
+        if manifest_path.exists():
+            manifest_path.unlink()
+        if snapshot_staging.exists():
             shutil.rmtree(snapshot_staging)
-        if snapshot_published and snapshot_root.exists():
+        if snapshot_root.exists():
             shutil.rmtree(snapshot_root)
         raise
 
@@ -729,19 +732,27 @@ def stellar_controls(book: CheckBook) -> dict[str, Any]:
         normalized_error=diffusion_error,
     )
 
-    reservoirs = np.asarray([0.3, 0.2, 0.4, 0.1])
-    destinations = np.asarray([0.73, 0.19, 0.08])
-    gross_nuclear = float(reservoirs[2])
-    neutrino_loss = float(destinations[2])
-    stored_energy_rate = -float(reservoirs[0] + reservoirs[1])
-    matter_energy_inflow = float(reservoirs[3])
-    available = float(np.sum(reservoirs))
-    accounted = float(np.sum(destinations))
+    gross_contributions = np.asarray([0.3, 0.2, 0.4, 0.1])
+    photon_luminosity = 0.73
+    retained_heat = 0.19
+    neutrino_loss = 0.08
+    mechanical_outflow = 0.0
+    gross_nuclear = float(gross_contributions[2])
+    matter_energy_inflow = float(gross_contributions[3])
+    gross_stored_release = float(gross_contributions[0] + gross_contributions[1])
+    stored_energy_rate = -gross_stored_release + retained_heat
+    available = float(np.sum(gross_contributions))
+    accounted = (
+        photon_luminosity
+        + retained_heat
+        + neutrino_loss
+        + mechanical_outflow
+    )
     ledger_error = abs(
         control_volume_energy_residual(
-            photon_luminosity=float(destinations[0]),
+            photon_luminosity=photon_luminosity,
             neutrino_luminosity=neutrino_loss,
-            mechanical_outflow=float(destinations[1]),
+            mechanical_outflow=mechanical_outflow,
             external_power=0.0,
             gross_nuclear_power=gross_nuclear,
             matter_energy_inflow=matter_energy_inflow,
@@ -751,9 +762,9 @@ def stellar_controls(book: CheckBook) -> dict[str, Any]:
     net_nuclear_misdefinition = gross_nuclear - neutrino_loss
     double_count_residual = abs(
         control_volume_energy_residual(
-            photon_luminosity=float(destinations[0]),
+            photon_luminosity=photon_luminosity,
             neutrino_luminosity=neutrino_loss,
-            mechanical_outflow=float(destinations[1]),
+            mechanical_outflow=mechanical_outflow,
             external_power=0.0,
             gross_nuclear_power=net_nuclear_misdefinition,
             matter_energy_inflow=matter_energy_inflow,
@@ -762,11 +773,16 @@ def stellar_controls(book: CheckBook) -> dict[str, Any]:
     )
     book.add(
         "stellar.complete_energy_ledger",
-        ledger_error <= 2.0e-14 and double_count_residual > 1.0e-2,
+        ledger_error <= 2.0e-14
+        and abs(available - accounted) <= 2.0e-14
+        and double_count_residual > 1.0e-2,
         available=available,
-        emitted=destinations[0],
-        retained=destinations[1],
+        photon_luminosity=photon_luminosity,
+        retained_heat=retained_heat,
         neutrino_loss=neutrino_loss,
+        mechanical_outflow=mechanical_outflow,
+        stored_energy_rate=stored_energy_rate,
+        accounted=accounted,
         gross_nuclear_source=gross_nuclear,
         residual=ledger_error,
         net_nuclear_double_count_residual=double_count_residual,
@@ -776,8 +792,8 @@ def stellar_controls(book: CheckBook) -> dict[str, Any]:
         "stellar.reject_overdrawn_luminosity",
         lambda: require_control_volume_energy_balance(
             photon_luminosity=1.01,
-            neutrino_luminosity=0.0,
-            mechanical_outflow=0.0,
+            neutrino_luminosity=neutrino_loss,
+            mechanical_outflow=mechanical_outflow,
             external_power=0.0,
             gross_nuclear_power=gross_nuclear,
             matter_energy_inflow=matter_energy_inflow,
@@ -802,10 +818,17 @@ def stellar_controls(book: CheckBook) -> dict[str, Any]:
 def angular_controls(book: CheckBook) -> dict[str, Any]:
     directions, weights = axis_quadrature()
     quadrature = validate_quadrature(directions, weights, tolerance=2.0e-14)
+    isotropic_phase = np.full(
+        (weights.size, weights.size), 1.0 / (4.0 * math.pi), dtype=np.float64
+    )
+    phase_error = validate_phase_matrix(
+        isotropic_phase, weights, tolerance=2.0e-14
+    )
     book.add(
         "angular.axis_quadrature",
-        max(quadrature.values()) <= 2.0e-14,
+        max(quadrature.values()) <= 2.0e-14 and phase_error <= 2.0e-14,
         **quadrature,
+        phase_matrix_column_error=phase_error,
     )
 
     maximum_trace_error = 0.0
@@ -924,9 +947,57 @@ def angular_controls(book: CheckBook) -> dict[str, Any]:
 
     altered = weights.copy()
     altered[0] *= 1.01
-    book.rejected(
+    negative_weight = weights.copy()
+    negative_weight[0] = -negative_weight[0]
+    nonunit_directions = directions.copy()
+    nonunit_directions[0] *= 0.9
+    nonfinite_intensity = np.ones(weights.size)
+    nonfinite_intensity[0] = math.nan
+    nonfinite_scattering_weight = weights.copy()
+    nonfinite_scattering_weight[0] = math.nan
+    negative_phase = isotropic_phase.copy()
+    negative_phase[0, 0] = -negative_phase[0, 0]
+    nonnormalized_phase = isotropic_phase.copy()
+    nonnormalized_phase[0, 0] *= 2.0
+    rejection_cases: dict[str, Callable[[], Any]] = {
+        "altered_quadrature": lambda: validate_quadrature(
+            directions, altered, tolerance=2.0e-14
+        ),
+        "negative_moment_weight": lambda: angular_moments(
+            np.ones(weights.size), directions, negative_weight
+        ),
+        "nonunit_moment_direction": lambda: angular_moments(
+            np.ones(weights.size), nonunit_directions, weights
+        ),
+        "nonfinite_moment_intensity": lambda: angular_moments(
+            nonfinite_intensity, directions, weights
+        ),
+        "nonfinite_scattering_weight": lambda: isotropic_scattering_step(
+            np.ones(weights.size), nonfinite_scattering_weight, 0.1
+        ),
+        "negative_phase_entry": lambda: validate_phase_matrix(
+            negative_phase, weights, tolerance=2.0e-14
+        ),
+        "nonnormalized_phase_column": lambda: validate_phase_matrix(
+            nonnormalized_phase, weights, tolerance=2.0e-14
+        ),
+    }
+    rejection_outcomes: dict[str, str] = {}
+    rejections_passed = True
+    for name, operation in rejection_cases.items():
+        try:
+            operation()
+            rejection_outcomes[name] = "NO ERROR"
+            rejections_passed = False
+        except ValueError as exc:
+            rejection_outcomes[name] = f"ValueError: {exc}"
+        except Exception as exc:
+            rejection_outcomes[name] = f"{type(exc).__name__}: {exc}"
+            rejections_passed = False
+    book.add(
         "angular.reject_malformed_quadrature",
-        lambda: validate_quadrature(directions, altered, tolerance=2.0e-14),
+        rejections_passed,
+        outcomes=rejection_outcomes,
     )
     return {
         "quadrature": quadrature,
@@ -940,6 +1011,8 @@ def angular_controls(book: CheckBook) -> dict[str, Any]:
         "maximum_scattering_energy_error": maximum_scattering_energy_error,
         "maximum_scattering_flux_error": maximum_scattering_flux_error,
         "crossing_stream_error": streaming_error,
+        "phase_matrix_column_error": phase_error,
+        "angular_rejection_outcomes": rejection_outcomes,
     }
 
 
@@ -970,7 +1043,13 @@ def write_inconclusive_receipt(
         "schema": SCHEMA,
         "status": "INCONCLUSIVE",
         "scientific_classification": "INCONCLUSIVE",
-        "checks": {"passed": 0, "total": 0, "failed": [], "items": {}},
+        "checks": {
+            "passed": 0,
+            "total": 0,
+            "expected_total": EXPECTED_CHECKS,
+            "failed": [],
+            "items": {},
+        },
         "results": {},
         "input_manifest": (
             manifest_path.relative_to(ROOT).as_posix()
@@ -1072,6 +1151,7 @@ def run_verification(
         "checks": {
             "passed": passed_count,
             "total": total_count,
+            "expected_total": EXPECTED_CHECKS,
             "failed": book.failed,
             "items": book.checks,
         },
