@@ -14,7 +14,7 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = "cassi-compressible-radiative-plasma-integrity-v2"
@@ -126,6 +126,101 @@ def sha256(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
 
 
+def _strictly_under(root: Path, candidate: Path) -> bool:
+    return candidate != root and root in candidate.parents
+
+
+def _validate_snapshot_root(snapshot_root: Path) -> Path:
+    repository_root = ROOT.resolve()
+    root = snapshot_root.resolve()
+    if not _strictly_under(repository_root, root) or not root.is_dir():
+        raise ValueError(f"snapshot root is not a directory under ROOT: {root}")
+    return root
+
+
+def _validate_source_paths(
+    source_paths: Iterable[Path],
+    snapshot_staging: Path,
+) -> tuple[tuple[Path, Path, Path], ...]:
+    repository_root = ROOT.resolve()
+    staging_root = snapshot_staging.resolve()
+    if not _strictly_under(repository_root, staging_root):
+        raise ValueError(f"snapshot staging is not under ROOT: {staging_root}")
+
+    validated: list[tuple[Path, Path, Path]] = []
+    seen: set[str] = set()
+    for supplied in source_paths:
+        relative = Path(supplied)
+        if relative.is_absolute() or relative.anchor:
+            raise ValueError(f"source path must be relative: {relative}")
+        if ".." in relative.parts:
+            raise ValueError(f"source path must not contain '..': {relative}")
+        key = relative.as_posix()
+        if key in seen:
+            raise ValueError(f"duplicate source path: {key}")
+        source_path = (repository_root / relative).resolve()
+        staged_destination = (staging_root / relative).resolve()
+        if not _strictly_under(repository_root, source_path):
+            raise ValueError(f"source path escapes ROOT: {relative}")
+        if not _strictly_under(staging_root, staged_destination):
+            raise ValueError(f"staged destination escapes snapshot root: {relative}")
+        seen.add(key)
+        validated.append((relative, source_path, staged_destination))
+    return tuple(validated)
+
+
+def _load_published_manifest(
+    manifest_path: Path,
+    snapshot_root: Path,
+    expected_sources: dict[str, dict[str, Any]],
+) -> tuple[Path, dict[str, dict[str, Any]]]:
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict) or manifest.get("schema") != SCHEMA:
+        raise ValueError("published manifest schema mismatch")
+    recorded_root = manifest.get("snapshot_root")
+    if not isinstance(recorded_root, str):
+        raise ValueError("published manifest has no relative snapshot root")
+    recorded_root_path = Path(recorded_root)
+    if (
+        recorded_root_path.is_absolute()
+        or recorded_root_path.anchor
+        or ".." in recorded_root_path.parts
+        or recorded_root_path.as_posix() != recorded_root
+    ):
+        raise ValueError(f"published snapshot root is not canonical: {recorded_root}")
+    manifest_root = _validate_snapshot_root(ROOT / recorded_root_path)
+    expected_root = _validate_snapshot_root(snapshot_root)
+    if manifest_root != expected_root:
+        raise ValueError("published manifest snapshot root mismatch")
+
+    sources = manifest.get("sources")
+    if not isinstance(sources, dict) or sources != expected_sources:
+        raise ValueError("published manifest source records mismatch")
+    for key, recorded in sources.items():
+        if not isinstance(key, str) or not isinstance(recorded, dict):
+            raise ValueError("published manifest source record is malformed")
+        relative = Path(key)
+        snapshot = recorded.get("snapshot")
+        if (
+            recorded.get("path") != key
+            or not isinstance(snapshot, str)
+            or snapshot != key
+            or relative.is_absolute()
+            or relative.anchor
+            or ".." in relative.parts
+            or relative.as_posix() != key
+        ):
+            raise ValueError(f"published source record is not canonical: {key}")
+        expected_path = (manifest_root / relative).resolve()
+        snapshot_path = (manifest_root / Path(snapshot)).resolve()
+        if (
+            snapshot_path != expected_path
+            or not _strictly_under(manifest_root, snapshot_path)
+        ):
+            raise ValueError(f"published source snapshot escapes root: {key}")
+    return manifest_root, sources
+
+
 def load_frozen_module(
     sources: dict[str, dict[str, Any]],
     relative: Path,
@@ -141,7 +236,7 @@ def load_frozen_module(
     if recorded.get("path") != key:
         raise ValueError(f"manifest path identity mismatch for {key}")
 
-    root = snapshot_root.resolve()
+    root = _validate_snapshot_root(snapshot_root)
     snapshot_relative = Path(str(recorded["snapshot"]))
     expected_snapshot_path = (root / relative).resolve()
     snapshot_path = (root / snapshot_relative).resolve()
@@ -263,7 +358,7 @@ def evidence_paths(output: Path) -> tuple[Path, Path, Path]:
         raise ValueError("output must remain inside the CassiTheory root")
     manifest_path = target.with_name("input_manifest.json")
     snapshot_root = target.parent / "source_snapshots"
-    nested_root = target.parent / "prerequisite_controls"
+    nested_root = snapshot_root / "prerequisite_controls"
     manifest_staging = manifest_path.with_name(manifest_path.name + ".incomplete")
     snapshot_staging = snapshot_root.with_name(snapshot_root.name + ".incomplete")
     for path in (
@@ -283,17 +378,19 @@ def prepare_evidence(
     output: Path,
 ) -> tuple[Path, Path, Path, dict[str, dict[str, Any]]]:
     target, manifest_path, snapshot_root = evidence_paths(output)
-    payloads = {relative: (ROOT / relative).read_bytes() for relative in SOURCE_PATHS}
     manifest_staging = manifest_path.with_name(manifest_path.name + ".incomplete")
     snapshot_staging = snapshot_root.with_name(snapshot_root.name + ".incomplete")
-    # All reserved evidence paths were verified absent by evidence_paths().
+    validated_sources = _validate_source_paths(SOURCE_PATHS, snapshot_staging)
 
     try:
+        payloads = [
+            (relative, source_path.read_bytes(), staged_destination)
+            for relative, source_path, staged_destination in validated_sources
+        ]
         target.parent.mkdir(parents=True, exist_ok=True)
         snapshot_staging.mkdir()
         sources: dict[str, dict[str, Any]] = {}
-        for relative, payload in payloads.items():
-            staged_destination = snapshot_staging / relative
+        for relative, payload, staged_destination in payloads:
             staged_destination.parent.mkdir(parents=True, exist_ok=True)
             staged_destination.write_bytes(payload)
             digest = sha256_bytes(payload)
@@ -1297,6 +1394,22 @@ def run(output: Path) -> int:
             stage="source-read",
             error=exc,
             snapshot_root=snapshot_root,
+        )
+
+    try:
+        snapshot_root, sources = _load_published_manifest(
+            manifest_path,
+            snapshot_root,
+            sources,
+        )
+    except Exception as exc:
+        return write_inconclusive(
+            target,
+            stage="manifest-read",
+            error=exc,
+            manifest_path=manifest_path,
+            snapshot_root=snapshot_root,
+            sources=sources,
         )
 
     source_integrity: dict[str, Any] = {
