@@ -64,7 +64,8 @@ eigenvalue is $\tau^2\rho^{-4}$. Therefore
 $$
 \boxed{
 u_4(\tau,r)
-=\frac12\left[rac1{(r^2+\tau^2)^2}
+:=\frac12\left[
+\frac1{(r^2+\tau^2)^2}
 +\frac{2\tau^2}{(r^2+\tau^2)^3}\right].}
 $$
 
