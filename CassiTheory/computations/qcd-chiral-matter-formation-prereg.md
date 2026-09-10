@@ -239,6 +239,11 @@ $$
 
 solved on $10^{-5}\le r\le64$ with the regular-origin condition
 $[\pi-F(r)]-r[-F'(r)]=0$ at the left endpoint and $F(64)=0$.
+The numerical profile uses `scipy.integrate.solve_bvp` on 1,201 uniform
+initial nodes with relative residual tolerance $10^{-8}$ and at most
+100,000 refined nodes. The initial branch is
+$\pi-F=2\arctan(r/(1/\sqrt2))$; the retained profile contains 64,001
+uniform samples on $0\le r\le64$.
 The prepared field is
 $(\cos F,\sin F\,\hat{\mathbf x})$; reflection of its first pion
 component supplies the opposite orientation. The measured regular-value
