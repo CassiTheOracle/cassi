@@ -1784,6 +1784,43 @@ QMQ4 and QMC6 are `FAIL`,
 `complete_physical_matter_formation=false`, and physical matter formation
 remains open (`computations/matter-formation-continuum-report.md` §79).
 
+## 25. Regular polynomial stabilization boundary
+
+The unnormalized Gram-determinant operator
+
+$$
+\mathcal E_4
+=\frac{\lambda^2}{4}
+\left[
+(\partial_i\boldsymbol\Phi\!\cdot\!\partial_i\boldsymbol\Phi)^2
+-(\partial_i\boldsymbol\Phi\!\cdot\!\partial_j\boldsymbol\Phi)^2
+\right]
+$$
+
+is polynomial in field derivatives, nonnegative for static real fields, and
+finite at $\boldsymbol\Phi=\boldsymbol0$. It therefore avoids the local
+chiral-zero singularity of the normalized Skyrme operator in §23. Its
+topological charge can change continuously because the unnormalized field
+passes through the origin.
+
+The frozen three-grid radial calculation does not find the required
+stationary metastable branch. All minimizations exhaust 2,000 iterations with
+maximum absolute gradients between $0.344$ and $0.686$. The dimensionless
+energy changes by $26.95\%$ between the two finest grids, and an independent
+$N=1024$ initialization differs by $35.38\%$. The Hessian prerequisite is
+therefore absent. A 401-point amplitude-collapse path remains finite and has
+zero barrier on every grid; its independent energy reconstruction agrees to
+$4.87\times10^{-15}$ relative error.
+
+RPS1 and RPS2 return `PASS`, RPS3–RPS5 return `FAIL`, and RPS6 returns
+`REJECT`. The result excludes the frozen polynomial operator as the regular
+scalar stabilizer for this physical point and hedgehog protocol. It does not
+exclude other regular polynomial actions. The explicit-fermion carrier in
+§24 remains the active microscopic branch, with confinement, sea
+renormalization, nonradial persistence, thermal formation, the nucleon
+observable map, and baryogenesis still open
+(`computations/matter-formation-continuum-report.md` §80).
+
 ## References
 
 - `computations/matter-formation-continuum-report.md` §78—generic chiral-zero divergence, code-cutoff mismatch and independent verdict.
@@ -1797,6 +1834,11 @@ remains open (`computations/matter-formation-continuum-report.md` §79).
 - `computations/qcd_quark_meson_carrier_resolution.py`—primary continuum extrapolation and reduced formation envelope.
 - `computations/verify_qcd_quark_meson_carrier_resolution.py`—independent receipt and verdict reconstruction.
 - `runs/20260910_qcd_quark_meson_carrier/qualification/`—source-bound primary and verification evidence.
+- `computations/matter-formation-continuum-report.md` §80—regular polynomial Gram controls, nonstationary three-grid result, finite collapse path and operator decision.
+- `computations/qcd-polynomial-stabilizer-prereg.md`—frozen polynomial action, stationarity, Hessian, path and physical-completion criteria.
+- `computations/qcd_polynomial_stabilizer.py`—primary radial calculation and typed Hessian prerequisite.
+- `computations/verify_qcd_polynomial_stabilizer.py`—independent Cartesian, radial-energy and path reconstruction.
+- `runs/20260910_qcd_polynomial_stabilizer/`—preserved execution failure, accepted recovery and independent RPS verdicts.
 
 
 - `computations/matter-formation-continuum-report.md` §77—step-95 analytic mismatch, conditional size root, withheld mass comparisons and independent evidence.

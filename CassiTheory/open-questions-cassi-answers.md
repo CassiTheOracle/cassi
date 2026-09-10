@@ -1874,6 +1874,17 @@ nucleon map and baryogenesis remain supplied or open. QMQ4 and QMC6 return
 (`computations/matter-formation-continuum-report.md` §79;
 `foundations/matter-completion-boundary.md` §24).
 
+A separate unnormalized polynomial Gram stabilizer remains finite when its
+chiral field crosses zero. Exact positivity and independent Cartesian
+reconstruction pass, but no frozen radial grid reaches stationarity, the
+finest-grid energy shift is $26.95\%$, and the finite collapse path has zero
+barrier. RPS3–RPS5 return `FAIL` and RPS6 returns `REJECT`. The result applies
+only to the supplied operator and protocol; the explicit-quark carrier
+remains the active microscopic branch
+(`computations/matter-formation-continuum-report.md` §80;
+`foundations/matter-completion-boundary.md` §25).
+
+
 ### F5: Dimensionful constants ($c$, $\hbar$, $G$) and $\lambda$
 
 The Cassi framework expresses dimensionless couplings as $\varphi$-powers with mixed epistemic status. The named C-class/framework convention is $\lambda=0.1$, an **Asserted** solver normalization/timescale; the implementation class default is $\lambda=0.02$. The relation $\lambda=1/(2w)$ is a **Hypothesized** Wu Xing linkage requiring independent cycle-time and dynamical closure. The Weinberg value $\sin^2\theta_W = \varphi^{-3}$ remains an asserted boundary, and three dimensionful constants—the speed of light $c$, Planck's constant $\hbar$, and Newton's constant $G$—remain external.

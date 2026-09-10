@@ -312,6 +312,16 @@ baryogenesis remain open. QMQ4 and QMC6 are `FAIL`, so
 (`computations/matter-formation-continuum-report.md` §79;
 `foundations/matter-completion-boundary.md` §24).
 
+The separately tested unnormalized polynomial Gram stabilizer is regular at a
+chiral zero, but the frozen three-grid minimizations do not reach stationarity
+and change by $26.95\%$ between the finest grids. Its finite
+amplitude-collapse path has zero barrier. RPS1–RPS2 return `PASS`,
+RPS3–RPS5 return `FAIL`, and RPS6 returns `REJECT`. The explicit-fermion
+quark–meson model therefore remains the active regular carrier
+(`computations/matter-formation-continuum-report.md` §80;
+`foundations/matter-completion-boundary.md` §25).
+
+
 
 ## The reality-simulation program
 

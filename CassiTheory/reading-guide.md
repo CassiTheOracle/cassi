@@ -289,6 +289,14 @@ observable map and baryogenesis remain outside the derivation. Read
 `foundations/matter-completion-boundary.md` §24 for the compact boundary.
 The complete-formation verdict remains `FAIL`.
 
+Section 80 tests a polynomial Gram-determinant stabilizer that stays finite
+when the unnormalized chiral field crosses zero. Exact positivity and
+independent Cartesian controls pass, but no frozen grid reaches stationarity,
+the two finest energies differ by $26.95\%$, and the finite collapse path has
+zero barrier. The operator decision is `REJECT`. Read
+`foundations/matter-completion-boundary.md` §25 for the compact result.
+
+
 
 ### The skeptic or referee
 

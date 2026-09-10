@@ -447,6 +447,17 @@ asymmetry. QMQ4 and QMC6 return `FAIL`; physical matter formation remains
 (`computations/matter-formation-continuum-report.md` §79;
 `foundations/matter-completion-boundary.md` §24).
 
+The separately preregistered unnormalized polynomial Gram stabilizer is
+finite at the chiral zero and passes its exact and Cartesian controls. Its
+three frozen radial grids do not reach stationarity, the finest-grid energy
+shift is $26.95\%$, and the independently reconstructed finite collapse path
+has zero barrier. RPS3–RPS5 return `FAIL` and RPS6 returns `REJECT`. The
+result is confined to this operator and protocol; it supplies no evidence for
+real-time quark–meson dynamics
+(`computations/matter-formation-continuum-report.md` §80;
+`foundations/matter-completion-boundary.md` §25).
+
+
 The supplied signed scalar interface has independently qualified
 normal-bound carrier modes and a surface-growth interval
 $0.2722637330<a\le0.3142233130$ with nonnegative bulk potential. Its

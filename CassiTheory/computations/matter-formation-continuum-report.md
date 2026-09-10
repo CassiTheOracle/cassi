@@ -12968,6 +12968,95 @@ QMC6 remain `FAIL`,
 `complete_physical_matter_formation=false`, and physical matter formation
 remains **Hypothesized/Open**.
 
+## 80. Regular polynomial chiral-stabilizer test
+
+The normalized Skyrme operator in §78 becomes singular when the chiral
+amplitude vanishes. A preregistered alternative replaces it with the
+polynomial Gram determinant
+
+$$
+\mathcal L_{\rm stab}
+=-\frac{\lambda^2}{4}
+\left[
+(\partial_\mu\boldsymbol\Phi\!\cdot\!\partial^\mu\boldsymbol\Phi)^2
+-(\partial_\mu\boldsymbol\Phi\!\cdot\!\partial_\nu\boldsymbol\Phi)
+ (\partial^\mu\boldsymbol\Phi\!\cdot\!\partial^\nu\boldsymbol\Phi)
+\right],
+$$
+
+for the unnormalized field
+$\boldsymbol\Phi=(\sigma,\pi^1,\pi^2,\pi^3)$. The operator is polynomial in
+the field derivatives, remains finite at
+$\boldsymbol\Phi=\boldsymbol0$, and preserves the quark–meson model's exact
+vector baryon current. The calculation tests whether this regular operator
+also supplies a stationary, metastable scalar carrier at the frozen
+two-flavour physical point.
+
+### 80.1 Exact and Cartesian controls
+
+The independent calculation reconstructs the static Gram form
+
+$$
+\mathcal E_4
+=\frac{\lambda^2}{4}
+\left[
+(\partial_i\boldsymbol\Phi\!\cdot\!\partial_i\boldsymbol\Phi)^2
+-(\partial_i\boldsymbol\Phi\!\cdot\!\partial_j\boldsymbol\Phi)^2
+\right].
+$$
+
+All 512 random derivative matrices give a nonnegative quartic density, while
+32 rank-one matrices give zero to a maximum absolute residual
+$2.84\times10^{-14}$. Both the zero-field/zero-derivative and
+zero-field/finite-derivative controls are finite. The independent Cartesian
+finite-difference reconstruction of the radial field agrees to maximum
+relative error $4.07\times10^{-10}$, and direct radial energy quadrature
+agrees to $4.36\times10^{-16}$. RPS1 and RPS2 therefore return `PASS`.
+
+### 80.2 Stationarity and resolution
+
+The frozen L-BFGS-B minimizations exhaust 2,000 iterations on all three
+grids. Their dimensionless energies are
+$0.5926304713$, $0.7965320705$, and $1.0904146650$ at
+$N=256,512,1024$, with maximum absolute gradients
+$0.53348$, $0.34425$, and $0.68587$. None reaches the
+$10^{-7}$ stationarity threshold. The two finest-grid energy change is
+$26.95\%$, and the independent cold-to-warm $N=1024$ energy difference is
+$35.38\%$. RPS3 is `FAIL`.
+
+A physical Hessian is defined in this protocol only at a stationary point.
+Because no grid reaches that prerequisite, all three Hessian solves are
+marked `SKIPPED_NONSTATIONARY`; RPS4 is `FAIL`. The preserved initial
+execution attempted a dense generalized eigensolve before this prerequisite
+was enforced and exhausted memory. Its receipt remains at
+`runs/20260910_qcd_polynomial_stabilizer/primary/results.json`. The recovery
+changes only failure handling and output location, while retaining every
+physics input, grid, initialization, threshold, and decision.
+
+### 80.3 Finite path and decision
+
+The sampled amplitude-collapse homotopy is finite at all 401 points and
+reaches the vacuum. Its maximum occurs at the candidate endpoint itself on
+every grid, so the measured barrier is exactly zero. The maximum path energy
+changes by $26.88\%$ and $27.27\%$ under the two grid refinements, while the
+maximum two-derivative and quartic local densities vary by up to
+$94.47\%$ and $99.66\%$. The independent calculation reproduces every
+finest-grid path energy to maximum relative error
+$4.87\times10^{-15}$. RPS5 is `FAIL`.
+
+The polynomial operator clears the local chiral-zero regularity test but
+does not produce the preregistered stationary, continuum-converged,
+barrier-protected radial carrier. RPS6 is `REJECT`. This verdict applies to
+the frozen operator, physical point, hedgehog class, and numerical protocol;
+it is not a general exclusion of every regular polynomial action. The
+explicit-fermion quark–meson carrier in §79 remains the active microscopic
+branch. Confinement, the renormalized Dirac sea, continuum nonradial
+persistence, a thermal formation probability, the observable nucleon map,
+and baryogenesis remain outside both calculations.
+
+The complete-formation verdict remains `FAIL` and
+`complete_physical_matter_formation=false`.
+
 ## References
 
 - `computations/qcd-chiral-zero-obstruction-prereg.md`—frozen local zero, rank-three, cutoff and physical-completion decisions.
@@ -12988,6 +13077,12 @@ remains **Hypothesized/Open**.
 - D. Diakonov, [“Chiral Quark-Soliton Model”](https://arxiv.org/abs/hep-ph/9802298)—continuum radial Hamiltonian and occupied valence branch.
 - M. C. Birse and M. K. Banerjee, [“Chiral model of the nucleon and delta”](https://doi.org/10.1103/PhysRevD.31.118)—self-consistent valence-quark chiral soliton and physical parameter context.
 - A. Bazavov et al., [“The chiral and deconfinement aspects of the QCD transition”](https://arxiv.org/abs/1812.08235)—QCD crossover scale near zero chemical potential.
+- `computations/qcd-polynomial-stabilizer-prereg.md`—frozen regular polynomial action, three-grid stationarity, Hessian, homotopy and decision criteria.
+- `computations/qcd_polynomial_stabilizer.py`—primary radial minimization, generalized-Hessian prerequisite and amplitude-collapse path.
+- `computations/verify_qcd_polynomial_stabilizer.py`—independent Gram, Cartesian, radial-energy and homotopy reconstruction.
+- `runs/20260910_qcd_polynomial_stabilizer/primary/results.json`—preserved typed failure from the premature dense-Hessian attempt.
+- `runs/20260910_qcd_polynomial_stabilizer/primary_recovery1/results.json`—accepted primary three-grid fields, energy and verdict inputs.
+- `runs/20260910_qcd_polynomial_stabilizer/verification_recovery1/verification.json`—independent reconstruction and final RPS verdicts.
 - N. Aghanim et al., [“Planck 2018 results. VI. Cosmological parameters”](https://arxiv.org/abs/1807.06209)—cosmological baryon-density input.
 
 

@@ -1406,6 +1406,15 @@ baryogenesis remain open. QMQ4 and QMC6 return `FAIL`
 (`computations/matter-formation-continuum-report.md` §79;
 `foundations/matter-completion-boundary.md` §24).
 
+The unnormalized polynomial Gram stabilizer supplies a separate
+chiral-zero-regular scalar test. Exact and Cartesian controls pass, while the
+three-grid stationary solve fails to converge and its finite
+amplitude-collapse path has zero barrier. RPS6 returns `REJECT`; the
+explicit-quark carrier remains the active microscopic branch
+(`computations/matter-formation-continuum-report.md` §80;
+`foundations/matter-completion-boundary.md` §25).
+
+
 **Epistemic status:** the modulation period is **Derived conditional** on the
 optional signal map; its physical wake imprint and cross-domain extensions
 are **Hypothesized** and being tested. The sector scale is **Derived

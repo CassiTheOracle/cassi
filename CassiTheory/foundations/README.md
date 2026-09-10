@@ -1281,6 +1281,15 @@ particle map and baryogenesis remain supplied or open
 (`computations/matter-formation-continuum-report.md` §79;
 `foundations/matter-completion-boundary.md` §24).
 
+The unnormalized polynomial Gram stabilizer is finite at a chiral zero and
+passes exact positivity and independent Cartesian controls. It does not yield
+a stationary continuum radial branch under the frozen three-grid protocol,
+and its finite collapse path has zero barrier. RPS6 therefore returns
+`REJECT`; the explicit-quark branch remains the active regular carrier
+(`computations/matter-formation-continuum-report.md` §80;
+`foundations/matter-completion-boundary.md` §25).
+
+
 Physical exterior and reservoir actions, state selection, canonical
 coefficient determination, gravity selection, continuum-localized forming
 evolution from degree-zero data, stability or capture of the radiating clouds,
@@ -1294,8 +1303,8 @@ baryon-current identity / Mapped carrier coupling, conditional baryon
 benchmark and rejected step-95 radius assignment / Hypothesized physical
 realization / Tested reduced receipts, prepared binding, finite-grid spectra,
 parent correspondences, radial baryon relaxation, finite-charge radial
-condensation, quark–meson regulator extrapolation and fixed-family
-binding—September 2026.
+condensation, quark–meson regulator extrapolation, fixed-family binding and
+rejected polynomial stabilization—September 2026.
 
 ### `quantum-free-fall-correspondence.md`—Quantum Free Fall as a Cassi Correspondence Boundary
 
