@@ -733,7 +733,7 @@ even pairs, and the supplied fivefold phase orbit preserves the normalized
 $\varphi$ chord ratio. LB1–LB7 verify these identities. The physical carrier,
 phase law, scale ratio, and quantum-sector identification remain open.
 
-The separate pure-$SU(2)$ comparison in §§9.4–9.17 retains full loop
+The separate pure-$SU(2)$ comparison in §§9.4–9.19 retains full loop
 holonomy. Gauss invariance gives an exact electric threshold on girth-four
 lattice graphs, and projective bubble data discard a phase that changes
 Wilson magnetic energy. Yarotsky's stability theorem supplies a
@@ -746,11 +746,16 @@ An exact normalized-Haar path-holonomy pullback preserves endpoint gauge
 covariance and compresses the electric Casimir. The fixed $2\times2$
 refinement has four unresolved plaquette characters and leakage
 $\|Qh_fJ1\|_2=2x_f$, excluding this bare cylindrical map as an exact
-full-Hamiltonian block. The equal-weight one-plaquette vacuum, a
-conditional-gap-only uniform argument and a static pure configuration
-marginal are also excluded at their stated scopes. Interacting-fibre and
-resolvent control, weak-bare-coupling uniformity, continuum existence and
-physical carrier identification remain open.
+full-Hamiltonian block. With all eight outer links fixed in the fundamental
+representation, Clebsch–Gordan constraints give an exact 14-state internal
+Gauss fibre once $j_{\max}\geq1$, with first conditional electric spacing
+$2g^2/a$. Wilson multiplication changes the boundary representation sector,
+so the fixed fibre is not dynamically closed. The equal-weight
+one-plaquette vacuum, a conditional-gap-only uniform argument and a static
+pure configuration marginal are also excluded at their stated scopes.
+Coupled boundary-sector amplitudes and resolvent control, weak-bare-coupling
+uniformity, continuum existence and physical carrier identification remain
+open.
 
 ### `interscale-current-soliton.md`—Interscale Yang/Yin Current and the Conditional Soliton Pinch
 

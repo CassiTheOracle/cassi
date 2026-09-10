@@ -53,7 +53,7 @@ the missing metric and orbit-matching rule. Running and measured-scale
 comparisons are in `sm-radiative-corrections.md`.
 
 The pure Yang–Mills comparison is in
-`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.17. Its state
+`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.19. Its state
 space and Hamiltonian come from source-free quantum $SU(2)$ lattice gauge
 theory, with no isospinor matter or symmetry-breaking potential. It gives
 regulated electric-loop and projective-information boundaries, a
@@ -66,10 +66,13 @@ tensorization and cover estimates needed for a continuum-directed bound. An
 exact Haar-isometric path-holonomy map preserves endpoint gauge covariance
 and the electric Casimir, but the fixed $2\times2$ refinement excludes that
 bare cylindrical map as an exact full-Hamiltonian block: four unresolved
-fine plaquette characters give leakage norm $2x_f$. The required
-interacting fibre, uniform weak-coupling estimates and continuum construction
-remain open. This comparison makes no electroweak or QCD particle
-identification.
+fine plaquette characters give leakage norm $2x_f$. With all eight outer
+links fundamental, the internal Gauss fibre has exactly 14 states once
+$j_{\max}\geq1$ and conditional electric spacing $2g^2/a$. Wilson
+multiplication changes the fixed boundary representation sector. Coupled
+boundary-sector amplitudes and self-energy control, uniform weak-coupling
+estimates and the continuum construction remain open. This comparison makes
+no electroweak or QCD particle identification.
 
 ### `sm-radiative-corrections.md`—Standard Model Radiative Corrections from the φ-Boundary
 

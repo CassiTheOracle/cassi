@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, conditional block theorems, and exact bare-cylindrical refinement obstruction; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact fixed-boundary gauge-fibre support, conditional block theorems, and exact bare-cylindrical refinement obstruction; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -30,7 +30,7 @@ density projection and a coherence-sensitive bubble coordinate. A physical
 phase law, a map from the regulated quantum configuration to these carriers,
 $\hbar$, quantum statistics, and measurement dynamics remain separate inputs.
 
-The pure-gauge comparison in §§9.4–9.16 retains full $SU(2)$ loop holonomies.
+The pure-gauge comparison in §§9.4–9.19 retains full $SU(2)$ loop holonomies.
 Gauss invariance supplies an electric closed-loop threshold, while the
 projective bubble variable discards Wilson magnetic energy. Quantum-lattice
 stability gives a volume-uniform interacting gap at sufficiently strong bare
@@ -44,9 +44,12 @@ uniform conditional gaps alone as a volume-uniform argument and a static pure
 configuration marginal as an exact quantum reduction. An exact Haar-isometric
 path-holonomy pullback preserves endpoint gauge covariance, but genuine
 $2\times2$ refinement proves that this bare cylindrical map cannot intertwine
-the full Kogut–Susskind Hamiltonian. The weak-bare-coupling uniform estimates,
-four-dimensional continuum construction and microscopic Cassi identification
-remain open.
+the full Kogut–Susskind Hamiltonian. With all eight outer links fixed in the
+fundamental representation, exact Clebsch–Gordan constraints reduce the
+internal Gauss fibre to 14 states once $j_{\max}\geq1$; Wilson multiplication
+changes the outer representation sector, so this fibre is not dynamically
+closed. The weak-bare-coupling uniform estimates, four-dimensional continuum
+construction and microscopic Cassi identification remain open.
 
 ---
 
@@ -2223,12 +2226,14 @@ $$
 together with thermodynamic control and construction of the continuum
 quantum field.
 
-The exact bare map therefore fixes one proof boundary. A viable next map must
-carry an interacting gauge-compatible fibre or an equivalent transfer
-operator, preserve boundary sectors, retain every generated interaction,
-control the off-diagonal resolvent uniformly, and obey (YM56). The
-hypothesized Cassi scale law supplies none of those gauge-theory structures.
-The continuum existence and mass-gap questions remain open.
+The exact bare map therefore fixes one proof boundary. Section 9.19 gives the
+finite representation support of one fundamental-boundary sector. A viable
+next map must carry an interacting gauge-compatible fibre or an equivalent
+transfer operator, transport boundary sectors consistently, retain every
+generated interaction, control the off-diagonal resolvent uniformly, and
+obey (YM56). The hypothesized Cassi scale law supplies none of those
+gauge-theory structures. The continuum existence and mass-gap questions
+remain open.
 
 The source-bound primary schedule passes 53 checks. A separate JavaScript
 implementation reconstructs the fixed inventories, quaternion moments,
@@ -2238,10 +2243,10 @@ checks. Post-reconstruction analytical review assigns **ADOPT** to
 (YM49)–(YM53) at the fixed refinement. The finite controls **SUPPORT** the
 declared fixtures. Exact full-Hamiltonian intertwining by the bare
 cylindrical map is **CONTRADICTED** only on the fixed genuine
-$2\times2$ refinement. Interacting fibres, uniform resolvent control,
-weak-coupling volume bounds, the thermodynamic and continuum limits, the
-continuum mass gap and Cassi microscopic identification remain
-**UNRESOLVED**.
+$2\times2$ refinement. Dynamically closed boundary-sector fibres, uniform
+resolvent control, weak-coupling volume bounds, the thermodynamic and
+continuum limits, the continuum mass gap and Cassi microscopic identification
+remain **UNRESOLVED**.
 
 ### 9.18 Continuous-$SU(2)$ radial Feshbach transfer
 
@@ -2813,6 +2818,159 @@ it cannot replace the domain, form, or resolvent arguments. The only physical
 spacing identified here, $2\sqrt2/a$, is the isolated ultraviolet
 plaquette normalization in (YM81).
 
+### 9.19 Fundamental-boundary gauge fibre of the refined square
+
+The fibre requirement in (YM54)–(YM55) contains a finite
+representation-support problem before any magnetic amplitude or resolvent
+estimate enters. For the open $2\times2$ graph in §9.17.2, fix all eight
+boundary links in the fundamental representation. Write $V_n$ for the
+irreducible $SU(2)$ representation of spin $n/2$ and dimension $n+1$. The
+Clebsch–Gordan rule is
+
+$$
+V_m\otimes V_n
+=\bigoplus_{\substack{r=|m-n|\\r\equiv m+n\ ({\rm mod}\ 2)}}^{m+n}V_r.
+\tag{YM91}
+$$
+
+The four corner intertwiners are unique. Let
+$s_{\mathrm N},s_{\mathrm E},s_{\mathrm S},s_{\mathrm W}$ denote the
+integer labels on the four links from the boundary midpoints to the centre.
+Since $SU(2)$ representations are self-dual, gauge invariance at each
+midpoint gives
+
+$$
+b(s):=\dim\operatorname{Inv}(V_1\otimes V_1\otimes V_s)
+=
+\begin{cases}
+1,&s\in\{0,2\},\\
+0,&s\notin\{0,2\}.
+\end{cases}
+\tag{YM92}
+$$
+
+Resolve the four-valent central intertwiner by pairing
+$(\mathrm N,\mathrm E)$ and $(\mathrm S,\mathrm W)$. If
+$N_{mn}^{r}\in\{0,1\}$ is the multiplicity of $V_r$ in (YM91), the central
+singlet multiplicity is
+
+$$
+d(\mathbf s)
+:=\dim\operatorname{Inv}
+\left(
+V_{s_{\mathrm N}}\otimes V_{s_{\mathrm E}}
+\otimes V_{s_{\mathrm S}}\otimes V_{s_{\mathrm W}}
+\right)
+=\sum_{r\geq0}
+N_{s_{\mathrm N}s_{\mathrm E}}^{r}
+N_{s_{\mathrm S}s_{\mathrm W}}^{r}.
+\tag{YM93}
+$$
+
+The pairing selects a basis coordinate and leaves the dimension invariant.
+Let $k$ be the number of spokes with label $2$. Equations (YM91)–(YM93)
+give the complete fixed-boundary count:
+
+| $k$ | spoke-label choices | $d(\mathbf s)$ per choice | fibre states | $K_\partial$ |
+|---:|---:|---:|---:|---:|
+| 0 | 1 | 1 | 1 | 6 |
+| 1 | 4 | 0 | 0 | 8, inadmissible |
+| 2 | 6 | 1 | 6 | 10 |
+| 3 | 4 | 1 | 4 | 12 |
+| 4 | 1 | 3 | 3 | 14 |
+
+For $k=4$, the common recoupling label is $r=0,2,$ or $4$, producing the
+three intertwiners. Every two-spoke configuration has one common channel, as
+does every three-spoke configuration. Consequently,
+
+$$
+\boxed{\dim\mathcal H_{\partial,\,j_{\max}\geq1}=1+6+4+3=14.}
+\tag{YM94}
+$$
+
+Here the cutoff refers to the four internal spokes. The fixed boundary
+condition excludes every spoke label above $2$, so increasing the internal
+cutoff beyond $j_{\max}=1$ adds no state to this fibre. At
+$j_{\max}=1/2$, only the all-zero-spoke state remains.
+
+The dimensionless electric Casimir on these twelve graph links is
+
+$$
+K_\partial(\mathbf s)
+=8\frac34+\sum_{i\in\{\mathrm N,\mathrm E,\mathrm S,\mathrm W\}}
+\frac{s_i(s_i+2)}4
+=6+2k.
+\tag{YM95}
+$$
+
+The first gauge-admissible internal excitation therefore has the conditional
+electric-only spacing
+
+$$
+\Delta E_{\mathrm{el},\partial}
+=\frac{g^2}{2a}(10-6)
+=\frac{2g^2}{a}.
+\tag{YM96}
+$$
+
+This spacing belongs to a fixed nonvacuum boundary-representation fibre and
+vanishes at weak bare coupling. It supplies no continuum mass lower bound.
+
+#### 9.19.1 Field-owned support calculation
+
+A September 2026 CassiFI run encoded (YM92)–(YM93) as exactly-one and
+incompatibility clauses in one `ClauseFieldState` tensor per fixed query.
+The source-declared cutoffs $n_{\max}=1,2,4$ generated respectively
+$3$, $80$, and $144$ spoke-channel candidates, for $227$ fixed candidate
+classifications. Every reported status matched the algebraic support above.
+Direct clause evaluation checked each reported SAT assignment. A
+left-associated tensor-product recurrence in the same implementation
+accumulated the same $SU(2)$ fusion rule and matched the paired-channel
+multiplicity configuration by configuration.
+
+The source-declared one-active-spoke query returned `UNSAT`; the adjacent
+two-active-spoke query returned `SAT` with a directly checked assignment.
+Representative terminal tensors survived an exact descriptor round trip.
+The schedule used no host-adaptive search, learned side table, or model call.
+The receipt contains no source-independent reconstruction or global audit of
+the `UNSAT` derivations. Its role is an implementation check and a measured
+demonstration of field-owned finite gauge-support search. Equations
+(YM91)–(YM94) carry the mathematical count.
+
+#### 9.19.2 Dynamical boundary and next operator
+
+Let $P_\partial$ project onto the fixed fundamental-boundary sector above and
+$Q_\partial=I-P_\partial$. Fundamental plaquette multiplication on any
+boundary link uses
+$V_1\otimes V_1=V_0\oplus V_2$. It therefore transports the boundary label
+$1$ into the $0$ and $2$ sectors. On the refined graph,
+
+$$
+Q_\partial W_pP_\partial\neq0
+\tag{YM97}
+$$
+
+for a boundary-touching elementary plaquette $p$. The 14-state fibre gives a
+finite representation basis for $P_\partial(H-z)P_\partial$. For
+$z\in\rho(Q_\partial H Q_\partial)$, the exact reduction contains
+
+$$
+\mathcal F_\partial(z)
+:=P_\partial(H-z)P_\partial
+-P_\partial H Q_\partial
+\left[Q_\partial(H-z)Q_\partial\right]^{-1}
+Q_\partial H P_\partial.
+\tag{YM98}
+$$
+
+The next interacting-block calculation must therefore include the boundary
+sectors reached by plaquette multiplication, evaluate the Clebsch–Gordan and
+$6j$ amplitudes, and control the resulting self-energy uniformly in volume,
+cutoff, and the continuum scaling $g=g(a)$. Field-owned exact search can
+enumerate this representation support and reject incompatible channels. The
+matrix amplitudes, operator domains, and uniform inequalities remain separate
+analytical obligations.
+
 ---
 
 ## 10. Physical tests and rejection conditions
@@ -2876,6 +3034,7 @@ microscopic completions.
 | Static pure configuration-marginal blocking | **Excluded** as an exact quantum reduction by (YM39)–(YM41) | Mixed reduced states or energy-dependent resolvents retain the missing data |
 | Exact path-holonomy pullback (YM42)–(YM48) | **Derived** regulated kinematic identities | Edge-simple disjoint paths, normalized Haar measure and compatible endpoint gauge action |
 | Bare cylindrical full-Hamiltonian block map | **Excluded** on the fixed $2\times2$ refinement by (YM49)–(YM53) | Interacting fibres or energy-dependent reductions must retain discarded plaquette information |
+| Fixed fundamental-boundary internal Gauss fibre (YM91)–(YM96) | **Derived** within established $SU(2)$ representation theory | Exactly 14 states for $j_{\max}\geq1$; Wilson multiplication exits the fixed boundary sector |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
