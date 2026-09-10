@@ -12,6 +12,8 @@ const PRIMARY_SOURCE = join(ROOT, "computations", "verify_yang_mills_poincare_ge
 const OUT_DIR = join(ROOT, "runs", "yang_mills_poincare_geometry");
 const PRIMARY_RECEIPT = join(OUT_DIR, "verification.json");
 const OUT_PATH = join(OUT_DIR, "verification-independent.json");
+const ALGEBRAIC_TOLERANCE = 1.0e-12;
+const FINITE_DIFFERENCE_TOLERANCE = 5.0e-6;
 
 const sha256 = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
 const dot = (a, b) => a.reduce((sum, value, index) => sum + value * b[index], 0);
@@ -38,8 +40,8 @@ function largestEigenvalue(a, b, d) {
 }
 
 const primary = JSON.parse(readFileSync(PRIMARY_RECEIPT, "utf8"));
-const algebraicTolerance = primary.tolerances.algebraic;
-const finiteDifferenceTolerance = primary.tolerances.finite_difference;
+const algebraicTolerance = ALGEBRAIC_TOLERANCE;
+const finiteDifferenceTolerance = FINITE_DIFFERENCE_TOLERANCE;
 const checks = [];
 function check(name, pass, details = {}) {
   checks.push({ name, pass: Boolean(pass), ...details });
@@ -54,6 +56,56 @@ check("protocol_path", primary.protocol === "computations/yang-mills-poincare-ge
 check("source_path", primary.source === "computations/verify_yang_mills_poincare_geometry.py");
 check("protocol_hash", primary.protocol_sha256 === sha256(PROTOCOL));
 check("primary_source_hash", primary.source_sha256 === sha256(PRIMARY_SOURCE));
+check(
+  "algebraic_tolerance",
+  primary.tolerances?.algebraic === ALGEBRAIC_TOLERANCE,
+  { recorded: primary.tolerances?.algebraic, expected: ALGEBRAIC_TOLERANCE },
+);
+check(
+  "finite_difference_tolerance",
+  primary.tolerances?.finite_difference === FINITE_DIFFERENCE_TOLERANCE,
+  { recorded: primary.tolerances?.finite_difference, expected: FINITE_DIFFERENCE_TOLERANCE },
+);
+const primaryChecks = Array.isArray(primary.checks) ? primary.checks : [];
+const primaryCheckNames = primaryChecks.map((item) => item.name);
+check(
+  "primary_check_array",
+  primaryChecks.length === 118 &&
+    primaryChecks.every((item) => item.pass === true && typeof item.name === "string") &&
+    new Set(primaryCheckNames).size === primaryCheckNames.length,
+);
+check(
+  "primary_summary_totals",
+  primary.summary?.checks === 118 &&
+    primary.summary?.passed === 118 &&
+    primary.summary?.failed === 0,
+);
+check(
+  "primary_summary_rows",
+  primary.summary?.spectrum_rows === primary.spectrum_rows.length &&
+    primary.summary?.link_character_rows === primary.link_character_rows.length &&
+    primary.summary?.hessian_rows === primary.hessian_rows.length &&
+    primary.summary?.geometry_rows === primary.geometry_rows.length &&
+    primary.summary?.recurrence_rows === primary.recurrence_rows.length &&
+    primary.summary?.scaling_rows === primary.scaling_rows.length &&
+    primary.summary?.induction_rows === primary.induction_rows.length,
+);
+const primaryMaxima = {
+  hessian: Math.max(...primary.hessian_rows.map((row) => Math.abs(row.abs_error))),
+  energy: Math.max(
+    ...primary.geometry_rows.map((row) => Math.abs(row.original_energy - row.reconstructed_energy)),
+  ),
+  orthogonality: Math.max(...primary.geometry_rows.map((row) => Math.abs(row.orthogonality))),
+  recurrence: Math.max(...primary.recurrence_rows.map((row) => Math.abs(row.abs_error))),
+};
+check(
+  "primary_summary_maxima",
+  close(primary.summary?.max_hessian_abs_error, primaryMaxima.hessian) &&
+    close(primary.summary?.max_energy_abs_error, primaryMaxima.energy) &&
+    close(primary.summary?.max_orthogonality_abs_error, primaryMaxima.orthogonality) &&
+    close(primary.summary?.max_recurrence_abs_error, primaryMaxima.recurrence),
+  { recorded: primary.summary, reconstructed: primaryMaxima },
+);
 check("spectrum_row_count", primary.spectrum_rows.length === 12);
 check("link_character_row_count", primary.link_character_rows.length === 5);
 check("hessian_row_count", primary.hessian_rows.length === 18);
@@ -210,9 +262,13 @@ for (const [index, row] of primary.induction_rows.entries()) {
   );
 }
 
+if (checks.length !== 90) {
+  throw new Error(`independent check-count drift: expected 90, got ${checks.length}`);
+}
+
 const passed = checks.every((item) => item.pass);
 const output = {
-  schema: "cassi.yang-mills-poincare-geometry.verification-independent.v1",
+  schema: "cassi.yang-mills-poincare-geometry.verification-independent.v2",
   verdict: passed ? "PASS" : "FAIL",
   protocol: relative(ROOT, PROTOCOL).replaceAll("\\", "/"),
   protocol_sha256: sha256(PROTOCOL),

@@ -802,13 +802,15 @@ establish the limiting theorem.
 
 The Poincaré-geometry analysis separates spatial and link three-spheres. A
 closed simply connected spatial slice is topologically $S^3$, and a round
-radius-$R$ regulator has first transverse frequency $2/R$, which vanishes as
-$R\to\infty$. Each $SU(2)$ link instead has the fixed Casimir metric selected
-by $i\sigma_A/2$, character spectrum $n(n+2)/4$, and one-link
-Bakry–Émery bound $(2-\beta)/4$ for a Wilson weight with
-$0\leq\beta<2$. The pointwise curvature proof loses positivity at
-$\beta=2$; this is a method boundary for concentrated weak-coupling
-families.
+radius-$R$ regulator has free Maxwell/linearized coexact frequency $2/R$,
+which vanishes as $R\to\infty$ and is not the interacting Hamiltonian gap.
+Each $SU(2)$ link instead has the fixed Casimir metric selected by
+$i\sigma_A/2$, character spectrum $n(n+2)/4$, and an auxiliary one-link
+Bakry–Émery bound $(2-\beta)/4$ for $0\leq\beta<2$. The pointwise proof
+loses positivity at $\beta=2$. No identification of this $\beta$ with the
+Hamiltonian coupling, $x=2/g^4$, or an exact vacuum conditional measure is
+assumed. The finite unreduced space is $SU(2)^E$, while its gauge quotient is
+stratified; compactness gives no regulator-uniform orbit-space bound.
 
 For an exact factor-two path block, orthogonal horizontal and fibre
 derivatives carry electric coefficients $2$ and $1/2$. Disintegration of the
@@ -838,7 +840,9 @@ For the physical target
 $r_f=2a_fm_*/g_f^2$ and factor-two matching
 $r_c=r_f/2$, any nonzero score requires a strict coarse-rate margin when
 $\lambda_c$ otherwise saturates $r_c$. The 118-check primary receipt and
-84-check independent reconstruction both pass.
+90-check implementation-independent receipt audit pass. The latter
+re-evaluates the fixed primary schedule rather than generating independent
+samples.
 
 A scale-uniform lower bound for $\lambda_{\mathrm{fib}}$, an upper bound for
 $\kappa$, a coarse-rate margin for exact interacting marginals, the

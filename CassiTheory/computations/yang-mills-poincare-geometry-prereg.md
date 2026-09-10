@@ -1,6 +1,6 @@
 # Yang–Mills Poincaré Geometry and Two-Scale Gap Recurrence Preregistration
 
-## Status: Frozen protocol—September 2026
+## Status: Frozen protocol v2—September 2026
 
 ## 1. Question
 
@@ -33,7 +33,7 @@ For a round metric of radius \(R\), the coexact one-form Hodge-Laplacian spectru
 \qquad k=1,2,\ldots,
 \]
 
-so the first transverse frequency is \(2/R\). The analysis must record that this regulator scale vanishes as \(R\to\infty\) and therefore supplies no continuum mass gap by itself.
+so the first coexact frequency of the free Maxwell/linearized spatial operator is \(2/R\). This is a kinematic base-manifold mode, not the interacting gauge-invariant Kogut–Susskind Hamiltonian gap. The analysis must record that the regulator scale vanishes as \(R\to\infty\) and therefore supplies no continuum mass gap by itself.
 
 The analysis must also distinguish the uniqueness of the flat \(SU(2)\) connection modulo gauge on \(S^3\), which follows from \(\pi_1(S^3)=0\), from the surviving large-gauge components indexed by \(\pi_3(SU(2))\cong\mathbb Z\).
 
@@ -58,7 +58,7 @@ The regulated electric operator fixes the normalization. Its left-invariant deri
 \operatorname{Hess}W=\frac{q_0}{4}g.
 \]
 
-The factor \(1/4\) is used throughout the link-sphere curvature calculation, the blocking recurrence, and the physical-gap conversion. The spatial radius \(R\) in YMPG1 is an independent infrared-regulator choice.
+The factor \(1/4\) is used throughout the link-sphere curvature calculation, the blocking recurrence, and the physical-gap conversion. Equivalently, this \(K\) is one quarter of the positive unit-round-\(S^3\) scalar Laplacian: its fundamental-character rate is \(3/4\), whereas the first nonconstant unit-sphere scalar eigenvalue is \(3\). The spatial radius \(R\) and coexact one-form operator in YMPG1 are independent base-manifold data.
 
 For the one-link Wilson weight
 
@@ -81,6 +81,10 @@ The frozen interpretation is:
 - \(\beta>2\): this curvature proof no longer establishes a positive rate.
 
 This is a method boundary. It is not a claim that the compact one-link measure loses its spectral gap.
+
+The concentration \(\beta\) belongs only to this auxiliary one-link probability measure. No identification with the Hamiltonian coupling \(g\), \(x=2/g^4\), or an exact interacting-vacuum conditional measure is assumed. Any transfer requires an explicit density or quadratic-form comparison.
+
+For a finite graph, the unreduced configuration manifold is \(SU(2)^E\cong(S^3)^E\), with the Casimir metric above. The gauge quotient is stratified at configurations with non-free stabilizers. Compactness gives a regulator-dependent positive first eigenvalue for each smooth positive finite measure; it supplies no volume-, cutoff-, or refinement-uniform lower bound. A global orbit-space Lichnerowicz argument would additionally require a complete smooth finite-dimensional domain, a uniform positive Ricci lower bound, and control of stratum boundaries.
 
 ### YMPG3. Exact two-link blocking geometry
 
@@ -256,7 +260,7 @@ The analysis must state that a continuum proof still needs uniform estimates for
 Two implementations are required:
 
 1. `computations/verify_yang_mills_poincare_geometry.py` is the primary verifier;
-2. `computations/verify_yang_mills_poincare_geometry_independent.mjs` independently reconstructs the fixed formulas and audits the primary receipt without importing the Python implementation.
+2. `computations/verify_yang_mills_poincare_geometry_independent.mjs` reconstructs the fixed formulas from the schedule rows and measurements stored in the primary receipt without importing the Python implementation. Its independence is at the implementation level; it is not independent sample generation or a second scientific execution.
 
 The primary verifier must check:
 
@@ -279,7 +283,7 @@ It must contain protocol and source SHA-256 hashes, per-check measurements, maxi
 
 `runs/yang_mills_poincare_geometry/verification-independent.json`
 
-and must fail if source identities, row counts, formulas, or primary measurements disagree.
+and must assert the two frozen tolerances exactly, validate the primary per-check array and summary, and fail if source identities, row counts, formulas, or primary measurements disagree. Its v2 receipt contains 90 checks: 84 formula/row reconstructions plus six receipt-integrity checks.
 
 ## 4. Decision rule
 

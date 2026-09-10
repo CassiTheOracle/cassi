@@ -3533,10 +3533,11 @@ $$
 \tag{YM100}
 $$
 
-The first transverse linearized gauge frequency is therefore $2/R$. This is
-a clean infrared regulator with no physical boundary, but it tends to zero
-as $R\to\infty$. Spatial roundness alone supplies no regulator-independent
-mass.
+The first coexact frequency of the free Maxwell/linearized spatial operator
+is therefore $2/R$. It is a kinematic base-manifold mode, not the interacting
+non-Abelian gauge-invariant Hamiltonian gap or evidence for confinement. The
+round regulator has no physical boundary, but this frequency tends to zero
+as $R\to\infty$. Spatial roundness supplies no regulator-independent mass.
 
 The simply connected topology removes continuous flat-connection moduli.
 A flat $SU(2)$ connection has trivial holonomy representation of
@@ -3550,6 +3551,11 @@ background while retaining the usual winding and $\theta$-sector question.
 The group identity $SU(2)\cong S^3$ is independent of (YM99). It is known
 directly from the unit-quaternion representation and supplies the geometry
 of each regulated link even when the spatial regulator is a torus or a box.
+
+The base Hodge operator in (YM100) acts on spatial one-forms. The scalar
+Casimir below acts on functions of one link coordinate. No equality between
+their spectra, or between either spectrum and a gauge-orbit Poincaré rate, is
+assumed.
 
 #### 9.20.2 The fixed link-sphere curvature calculation
 
@@ -3574,6 +3580,10 @@ K\chi_{n/2}=\frac{n(n+2)}4\chi_{n/2},
 \operatorname{Ric}=\frac12g.
 \tag{YM102}
 $$
+
+Equivalently, $K$ is one quarter of the positive scalar Laplacian for the ambient
+unit-round three-sphere. Its fundamental-character rate is $3/4$, whereas the
+first nonconstant unit-sphere scalar eigenvalue is $3$.
 
 This is the same $j(j+1)$ normalization used by the physical factor
 $g^2/(2a)$ in (YM28). For the Wilson function
@@ -3611,11 +3621,23 @@ Poincaré-rate lower bound $(2-\beta)/4$. At $\beta=2$ the pointwise lower
 bound reaches zero at the antipode, and for $\beta>2$ this criterion gives no
 positive rate. The compact smooth one-link measure still has a positive
 spectral gap for every finite $\beta$; (YM104) locates the failure of this
-pointwise curvature proof. Any Wilson-exponential family with
-$\beta\to\infty$ crosses that boundary before the weak-coupling limit.
-A localization, capacity or vacuum-weighted estimate must exploit the small
-measure of the negatively curved region rather than take its pointwise
-minimum.
+pointwise curvature proof. Within this separately declared one-link Wilson
+family, the criterion fails once $\beta\geq2$ and throughout any
+$\beta\to\infty$ concentration limit. The auxiliary $\beta$ is not
+identified here with the Hamiltonian coupling $g$, with $x=2/g^4$, or with
+an exact interacting-vacuum conditional measure. Such a transfer requires an
+explicit density or quadratic-form comparison. Any stronger estimate for the
+one-link family must use localization, capacity or vacuum weighting rather
+than the pointwise minimum.
+
+For a finite graph the unreduced configuration manifold is
+$SU(2)^E\cong(S^3)^E$, with the product Casimir metric. The gauge quotient is
+stratified at configurations with non-free stabilizers. Compactness gives a
+regulator-dependent positive first eigenvalue for each smooth positive finite
+measure, not a volume-, cutoff- or refinement-uniform lower bound. A global
+orbit-space Lichnerowicz argument would require a complete smooth
+finite-dimensional domain, a uniform positive Ricci lower bound and control
+of stratum boundaries.
 
 No Cassi scale changes the metric in (YM101)–(YM104). In the coordinate chart
 below, the comparison eigenvalues $(3\pm\sqrt5)/2$ arise from pulling back
@@ -3988,6 +4010,12 @@ on a spatial three-manifold does not evolve the Yang–Mills ground-state
 measure, and Perelman's theorem does not apply directly to the singular
 infinite-dimensional orbit space.
 
+The cited orbit-curvature program establishes nonnegative sectional
+curvature for its regulated geometry and proposes a Ricci-based mechanism.
+It supplies no uniform positive Ricci lower bound for the exact vacuum
+measure. Lichnerowicz therefore does not transfer that result to the
+stratified gauge quotient or its thermodynamic and continuum limits.
+
 The geometric route has therefore produced a stronger target than another
 finite-box eigenvalue:
 
@@ -4288,17 +4316,22 @@ $4.44089209850\times10^{-15}$,
 $1.42108547152\times10^{-14}$ and
 $1.77635683940\times10^{-15}$.
 
-The independent receipt passes **84 checks** and binds the frozen protocol,
-both verifier sources and the primary receipt by SHA-256. It reconstructs
-the sphere and character spectra, quaternion geodesics, adjoint blocking
-geometry, connection term, generalized-eigenvalue recurrence, physical
-rescaling and semidefinite induction decisions without importing the Python
-implementation. The receipts are
-`runs/yang_mills_poincare_geometry/verification.json` and
+The implementation-independent receipt passes **90 checks** and binds the
+frozen protocol, both verifier sources and the primary receipt by SHA-256.
+It uses the schedule vectors and measurements stored in the primary receipt,
+then re-evaluates the sphere and character spectra, quaternion geodesics,
+adjoint blocking geometry, connection term, generalized-eigenvalue
+recurrence, physical rescaling and semidefinite induction decisions without
+importing the Python implementation. It also asserts the frozen tolerances
+and audits the primary per-check array, row summaries and reported maxima.
+This is an independent implementation and receipt-integrity check, not
+independent sample generation or a second scientific execution. The receipts
+are `runs/yang_mills_poincare_geometry/verification.json` and
 `runs/yang_mills_poincare_geometry/verification-independent.json`.
 The finite controls classify **PASS**. Equations (YM99)–(YM124) are
 analytical statements proved in §9.20; the checks guard their fixed formulas
-and normalization. Uniform weak-coupling control of
+and normalization. Equation (YM125) is the open scale-uniform target.
+Uniform weak-coupling control of
 $(\lambda_{\mathrm{fib}},\kappa,\lambda_c)$, the thermodynamic limit and the continuum mass
 gap remain **UNRESOLVED**.
 
@@ -4355,8 +4388,8 @@ gap remain **UNRESOLVED**.
   obligations
 - `computations/verify_yang_mills_poincare_geometry.py`—118-check
   source-bound geometry and recurrence verifier
-- `computations/verify_yang_mills_poincare_geometry_independent.mjs`—84-check
-  source-independent reconstruction and receipt audit
+- `computations/verify_yang_mills_poincare_geometry_independent.mjs`—90-check
+  implementation-independent reconstruction and receipt-integrity audit
 - J. Milnor, [The Poincaré
   Conjecture](https://www.claymath.org/wp-content/uploads/2022/06/poincare.pdf)—official
   problem statement and three-sphere topology
