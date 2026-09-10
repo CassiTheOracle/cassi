@@ -153,7 +153,7 @@ It is centered because the transported conditional measure remains normalized. T
 The analysis must define:
 
 - \(\lambda_c>0\): a Poincaré rate for the coarse marginal \(\bar\mu\) in the standard coarse Casimir metric;
-- \(\alpha>0\): a uniform conditional Poincaré rate for every fibre \(\nu_V\) in the standard vertical derivative;
+- \(\lambda_{\mathrm{fib}}>0\): a uniform conditional Poincaré rate for every fibre \(\nu_V\) in the standard vertical derivative;
 - \(\kappa\ge0\): the smallest declared constant satisfying
   \[
   \mathbb E_{\nu_V}\langle s_V,z\rangle^2\le\kappa^2\lvert z\rvert^2
@@ -177,10 +177,10 @@ Using this identity and total variance, the analysis must derive
 \[
 \operatorname{Var}_{\mu_f}F
 \le
-\frac{1}{\alpha}\,Y^2
+\frac{1}{\lambda_{\mathrm{fib}}}\,Y^2
 +
 \frac1{\lambda_c}
-\left(X+\frac{\kappa}{\sqrt\alpha}Y\right)^2,
+\left(X+\frac{\kappa}{\sqrt{\lambda_{\mathrm{fib}}}}Y\right)^2,
 \]
 
 where
@@ -196,9 +196,9 @@ Against the exact electric form \(2X^2+Y^2/2\), define
 \[
 A=\frac1{2\lambda_c},
 \qquad
-B=\frac{\kappa}{\lambda_c\sqrt\alpha},
+B=\frac{\kappa}{\lambda_c\sqrt{\lambda_{\mathrm{fib}}}},
 \qquad
-D=\frac2\alpha\left(1+\frac{\kappa^2}{\lambda_c}\right),
+D=\frac2{\lambda_{\mathrm{fib}}}\left(1+\frac{\kappa^2}{\lambda_c}\right),
 \]
 
 and
@@ -216,7 +216,7 @@ The frozen target is the scale-resolved recurrence
 At \(\kappa=0\), it must reduce continuously to
 
 \[
-\lambda_f\ge\min\{2\lambda_c,\alpha/2\}.
+\lambda_f\ge\min\{2\lambda_c,\lambda_{\mathrm{fib}}/2\}.
 \]
 
 The theorem may be stated for all smooth functions, which is sufficient for the gauge-invariant physical sector. Any restriction directly to gauge-invariant functions must prove that conditional expectation preserves the restricted class.
@@ -245,9 +245,9 @@ D\le r_f^{-1},
 B^2\le(r_f^{-1}-A)(r_f^{-1}-D).
 \]
 
-For a factor-two block and the kinematic matching \(g_c^2=4g_f^2\), the coarse target is \(r_c=r_f/2\). At \(\kappa=0\), the horizontal branch closes exactly when \(\lambda_c\ge r_c\), while the vertical branch requires \(\alpha\ge2r_f\). For \(\kappa>0\), saturation \(\lambda_c=r_c\) leaves no score budget; a strict coarse-rate margin or a sharper cancellation estimate is required.
+For a factor-two block and the kinematic matching \(g_c^2=4g_f^2\), the coarse target is \(r_c=r_f/2\). At \(\kappa=0\), the horizontal branch closes exactly when \(\lambda_c\ge r_c\), while the vertical branch requires \(\lambda_{\mathrm{fib}}\ge2r_f\). For \(\kappa>0\), saturation \(\lambda_c=r_c\) leaves no score budget; a strict coarse-rate margin or a sharper cancellation estimate is required.
 
-The analysis must state that a continuum proof still needs uniform estimates for \(\alpha\), \(\kappa\), and the coarse-rate margin along an interacting gauge-compatible refinement flow.
+The analysis must state that a continuum proof still needs uniform estimates for \(\lambda_{\mathrm{fib}}\), \(\kappa\), and the coarse-rate margin along an interacting gauge-compatible refinement flow.
 
 ## 3. Computational verification
 
@@ -263,7 +263,7 @@ The primary verifier must check:
 - the Wilson Hessian formula by symmetric geodesic finite differences at at least six fixed Casimir-unit quaternion/tangent pairs and three step sizes;
 - horizontal/vertical orthogonality, norm factors, the fixed-coordinate versus horizontal connection term, and energy reconstruction for at least eight fixed Lie-algebra tangent/cotangent samples;
 - exact matrix eigenvalues and positive metric bounds;
-- the closed-form recurrence against independently computed two-by-two generalized eigenvalues for at least eight \((\lambda_c,\alpha,\kappa)\) triples, including \(\kappa=0\), weak-score, and failed-induction controls;
+- the closed-form recurrence against independently computed two-by-two generalized eigenvalues for at least eight \((\lambda_c,\lambda_{\mathrm{fib}},\kappa)\) triples, including \(\kappa=0\), weak-score, and failed-induction controls;
 - the physical factor-two scaling identity \(r_c=r_f/2\) under \(g_c^2=4g_f^2\);
 - the matrix semidefinite induction criterion against direct eigenvalue evaluation.
 
