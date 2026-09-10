@@ -148,7 +148,7 @@ Equip the fibres of \(m\) with the orthogonal connection in YMPG3. For a smooth 
 =\langle s_V,\eta\rangle\,\nu_V.
 \]
 
-It is centered because the transported conditional measure remains normalized. This definition includes both the derivative of a conditional density and any connection/Jacobian contribution from the chosen fibre reference. If horizontal transport preserves the Haar fibre reference, it reduces to \(\nabla_H\log(d\nu_V/d\nu_{0,V})\). The analysis must prove that preservation or retain the full transported score; it may not replace horizontal transport by differentiation at fixed \(R\).
+The score is a coarse cotangent vector and pairs with the tangent \(\eta\). It is centered because the transported conditional measure remains normalized. This definition includes both the derivative of a conditional density and any connection/Jacobian contribution from the chosen fibre reference. If horizontal transport preserves the Haar fibre reference, it reduces to \(\nabla_H\log(d\nu_V/d\nu_{0,V})\). The analysis must prove that preservation or retain the full transported score; it may not replace horizontal transport by differentiation at fixed \(R\).
 
 The analysis must define:
 
@@ -156,9 +156,9 @@ The analysis must define:
 - \(\lambda_{\mathrm{fib}}>0\): a uniform conditional Poincaré rate for every fibre \(\nu_V\) in the standard vertical derivative;
 - \(\kappa\ge0\): the smallest declared constant satisfying
   \[
-  \mathbb E_{\nu_V}\langle s_V,z\rangle^2\le\kappa^2\lvert z\rvert^2
+  \mathbb E_{\nu_V}\langle s_V,\xi\rangle^2\le\kappa^2\lvert \xi\rvert^2
   \]
-  uniformly in \(V\) and tangent covectors \(z\).
+  uniformly in \(V\) and coarse tangent vectors \(\xi\).
 
 The transported differentiated-expectation identity to be proved is
 
@@ -207,6 +207,8 @@ and
 C_*=\frac12\left[A+D+\sqrt{(A-D)^2+4B^2}\right].
 \]
 
+\(C_*\) is the largest generalized eigenvalue of the Minkowski-derived upper-bound quadratic form in the variance estimate relative to the electric metric \(\operatorname{diag}(2,1/2)\).
+
 The frozen target is the scale-resolved recurrence
 
 \[
@@ -219,7 +221,7 @@ At \(\kappa=0\), it must reduce continuously to
 \lambda_f\ge\min\{2\lambda_c,\lambda_{\mathrm{fib}}/2\}.
 \]
 
-The theorem may be stated for all smooth functions, which is sufficient for the gauge-invariant physical sector. Any restriction directly to gauge-invariant functions must prove that conditional expectation preserves the restricted class.
+Here \(\lambda_f\) is the all-function fine-measure Poincaré rate. It is sufficient for the physical sector because \(\lambda_{\mathrm{gi}}(\mu_f)\ge\lambda_f\). A recurrence using gauge-restricted coarse or fibre rates additionally requires a finite connected regulated graph, the gauge-invariant Kogut–Susskind Hamiltonian and unique positive vacuum from §9.13, consistent endpoint representatives and their induced coarse gauge action, an equivariant regular conditional disintegration, and equivariance of the horizontal connection and Haar fibre reference. Under those hypotheses, \(u(V)=\mathbb E_{\nu_V}F\) is coarse gauge invariant for globally gauge-invariant \(F\), and the conditional fibre functions must lie in the explicitly declared induced invariant domain.
 
 ### YMPG5. Physical-mass induction condition
 

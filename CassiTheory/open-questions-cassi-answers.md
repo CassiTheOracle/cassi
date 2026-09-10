@@ -756,7 +756,7 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
-The separate pure-gauge comparison in that document, §§9.4–9.19, uses the
+The separate pure-gauge comparison in that document, §§9.4–9.20, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
 projective bubble coordinate discards a phase required by Wilson magnetic
@@ -769,36 +769,78 @@ theorem reduces sufficient cutoff-directed control to exact-vacuum fibre
 rates, tensorization and cover estimates. Fixed calculations exclude an
 equal-weight one-plaquette exact vacuum, conditional gaps alone as a
 volume-uniform argument and static pure configuration marginalization as an
-exact quantum reduction. An exact normalized-Haar path-holonomy pullback
-preserves endpoint gauge covariance and compresses the electric Casimir with
-$g_c^2=b^2g_f^2$. On a genuine $2\times2$ refinement the four fine
-plaquette characters instead give $\|Qh_fJ1\|_2=2x_f$, excluding exact
-full-Hamiltonian intertwining by that bare cylindrical map. With all eight
-outer links fixed in the fundamental representation, Clebsch–Gordan
-constraints give an exact 14-state internal Gauss fibre for
-$j_{\max}\geq1$ and conditional electric spacing $2g^2/a$. Fundamental
-plaquette multiplication changes the fixed outer representation sector, so
-the 14-state fibre is not dynamically closed. Pure graph subdivision has no
-leakage, so path length alone does not determine the block dynamics.
-The isolated-square class-function operator nevertheless has an exact
-energy-dependent Feshbach pencil, a positive Stieltjes self-energy and
-fixed-window isolation. For every fixed low level, the bare character cutoff
-converges with vanishing discarded mass exactly when
-$N/x^{1/4}\longrightarrow\infty$, equivalently $gN\longrightarrow\infty$.
-Fixed and finite-$N/x^{1/4}$ schedules therefore fail as bare weak-coupling
-limits; the exact Feshbach reduction remains valid at the scaled cutoff.
+exact quantum reduction.
 
-The source-bound version-3 campaign preserves the five schedule functions
-while using $q(N)=\min\{3,N+1\}$. Its 62 primary and 20 independent checks
-reconstruct all 88 requested cutoff eigenvalues across 30 rows. These finite
-measurements support the implemented controls and do not establish the
-limiting theorem.
+An exact normalized-Haar path-holonomy pullback preserves endpoint gauge
+covariance and compresses the electric Casimir with
+$g_c^2=b^2g_f^2$. A genuine $2\times2$ refinement has four missing
+plaquette characters and $\|Qh_fJ1\|_2=2x_f$, excluding full-Hamiltonian
+intertwining by that bare cylindrical map. With all eight outer links fixed
+in the fundamental representation, Clebsch–Gordan constraints give an exact
+14-state internal Gauss fibre for $j_{\max}\geq1$ and conditional electric
+spacing $2g^2/a$. Fundamental plaquette multiplication changes the outer
+representation sector, so the fixed fibre is not dynamically closed. Pure
+graph subdivision has no leakage, so path length alone does not determine
+the block dynamics.
 
-This one-plaquette ultraviolet result supplies no interacting-fibre or
-volume-uniform estimate. Boundary-sector recoupling, a volume-uniform
-resolvent bound, the thermodynamic and four-dimensional continuum limits, a
-regulator-independent mass gap, and carrier-state identification remain open.
-The QF/DQ/GQ classifications remain unchanged.
+The isolated-square class-function operator has an exact energy-dependent
+Feshbach pencil, a positive Stieltjes self-energy and fixed-window isolation.
+For every fixed low level, the bare character cutoff converges with vanishing
+discarded mass exactly when
+$N/x^{1/4}\longrightarrow\infty$, equivalently
+$gN\longrightarrow\infty$. Fixed and finite-$N/x^{1/4}$ schedules fail as
+bare weak-coupling limits; the exact Feshbach reduction remains valid at the
+scaled cutoff. The source-bound version-3 campaign preserves the five
+schedule functions while using $q(N)=\min\{3,N+1\}$. Its 62 primary and 20
+independent checks reconstruct all 88 requested cutoff eigenvalues across 30
+rows. These finite measurements support the implemented controls and do not
+establish the limiting theorem.
+
+The Poincaré-geometry analysis separates spatial and link three-spheres. A
+closed simply connected spatial slice is topologically $S^3$, and a round
+radius-$R$ regulator has first transverse frequency $2/R$, which vanishes as
+$R\to\infty$. Each $SU(2)$ link instead has the fixed Casimir metric selected
+by $i\sigma_A/2$, character spectrum $n(n+2)/4$, and one-link
+Bakry–Émery bound $(2-\beta)/4$ for a Wilson weight with
+$0\leq\beta<2$. The pointwise curvature proof loses positivity at
+$\beta=2$; this is a method boundary for concentrated weak-coupling
+families.
+
+For an exact factor-two path block, orthogonal horizontal and fibre
+derivatives carry electric coefficients $2$ and $1/2$. Disintegration of the
+true vacuum along the corresponding Haar-preserving connection gives
+
+$$
+\lambda_f\geq C_*^{-1},\qquad
+C_*=\lambda_{\max}
+\begin{pmatrix}
+(2\lambda_c)^{-1}&
+\kappa/(\lambda_c\sqrt{\lambda_{\mathrm{fib}}})\\
+\kappa/(\lambda_c\sqrt{\lambda_{\mathrm{fib}}})&
+\dfrac{2}{\lambda_{\mathrm{fib}}}
+\left(1+\dfrac{\kappa^2}{\lambda_c}\right)
+\end{pmatrix}.
+$$
+
+Here $\lambda_f$ is the all-function fine-measure rate and
+$\lambda_{\mathrm{gi}}\geq\lambda_f$ for the physical sector.
+The exact coarse-marginal rate is $\lambda_c$,
+$\lambda_{\mathrm{fib}}$ is the uniform conditional fibre rate and
+$\kappa$ is the transported conditional-score covariance. The score retains
+all interactions generated by exact marginalization. At $\kappa=0$ the
+bound is
+$\lambda_f\geq\min\{2\lambda_c,\lambda_{\mathrm{fib}}/2\}$.
+For the physical target
+$r_f=2a_fm_*/g_f^2$ and factor-two matching
+$r_c=r_f/2$, any nonzero score requires a strict coarse-rate margin when
+$\lambda_c$ otherwise saturates $r_c$. The 118-check primary receipt and
+84-check independent reconstruction both pass.
+
+A scale-uniform lower bound for $\lambda_{\mathrm{fib}}$, an upper bound for
+$\kappa$, a coarse-rate margin for exact interacting marginals, the
+thermodynamic and four-dimensional continuum limits, a regulator-independent
+mass gap and carrier-state identification remain open. The QF/DQ/GQ
+classifications remain unchanged.
 
 The completion ansatz in
 `foundations/geometric-manifold-completion.md` places these finite layers in
