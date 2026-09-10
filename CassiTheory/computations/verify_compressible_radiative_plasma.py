@@ -52,27 +52,15 @@ SCIENTIFIC_EXPORTS = (
 )
 
 
-def load_scientific_dependencies(
-    importer: Callable[[str], Any] = importlib.import_module,
-) -> dict[str, str]:
-    """Load the kernel and external numerical dependencies."""
-    try:
-        loaded_kernel = importer("compressible_radiative_plasma")
-    except ModuleNotFoundError as exc:
-        if (
-            importer is not importlib.import_module
-            or exc.name != "compressible_radiative_plasma"
-        ):
-            raise
-        loaded_kernel = importer("computations.compressible_radiative_plasma")
-    loaded_np = importer("numpy")
-    loaded_sp = importer("sympy")
-    loaded_scipy = importer("scipy")
+def load_scientific_dependencies() -> dict[str, str]:
+    """Load only external numerical dependencies before frozen-source execution."""
+    loaded_np = importlib.import_module("numpy")
+    loaded_sp = importlib.import_module("sympy")
+    loaded_scipy = importlib.import_module("scipy")
     global np, sp
     np = loaded_np
     sp = loaded_sp
     return {
-        "kernel_module": str(getattr(loaded_kernel, "__name__", "")),
         "numpy": str(loaded_np.__version__),
         "sympy": str(loaded_sp.__version__),
         "scipy": str(loaded_scipy.__version__),
@@ -177,6 +165,7 @@ def sha256(path: Path) -> str:
 def load_frozen_module(
     sources: dict[str, dict[str, Any]],
     relative: Path,
+    snapshot_root: Path,
     *,
     role: str,
 ) -> tuple[ModuleType, dict[str, Any]]:
@@ -188,9 +177,16 @@ def load_frozen_module(
     if recorded.get("path") != key:
         raise ValueError(f"manifest path identity mismatch for {key}")
 
-    snapshot_path = (ROOT / str(recorded["snapshot"])).resolve()
-    if ROOT != snapshot_path and ROOT not in snapshot_path.parents:
-        raise ValueError(f"snapshot path escapes the CassiTheory root: {snapshot_path}")
+    root = snapshot_root.resolve()
+    snapshot_relative = Path(str(recorded["snapshot"]))
+    expected_snapshot_path = (root / relative).resolve()
+    snapshot_path = (root / snapshot_relative).resolve()
+    if (
+        snapshot_relative.is_absolute()
+        or snapshot_path != expected_snapshot_path
+        or (snapshot_path != root and root not in snapshot_path.parents)
+    ):
+        raise ValueError(f"snapshot path is not receipt-local for {key}: {snapshot_relative}")
     expected_hash = str(recorded["sha256"])
     expected_snapshot_hash = str(recorded["snapshot_sha256"])
     expected_bytes = int(recorded["bytes"])
@@ -234,9 +230,10 @@ def load_frozen_module(
     return module, {
         "role": role,
         "source": key,
-        "snapshot": snapshot_path.relative_to(ROOT).as_posix(),
+        "snapshot": snapshot_path.relative_to(root).as_posix(),
         "module_name": module_name,
-        "module_file": module_file.relative_to(ROOT).as_posix(),
+        "module_file": module_file.relative_to(root).as_posix(),
+        "snapshot_root": root.relative_to(ROOT).as_posix(),
         "before_sha256": before_hash,
         "after_sha256": after_hash,
         "recorded_sha256": expected_hash,
@@ -248,15 +245,22 @@ def load_frozen_module(
 
 def bind_frozen_scientific_modules(
     sources: dict[str, dict[str, Any]],
+    snapshot_root: Path,
 ) -> tuple[ModuleType, dict[str, Any]]:
     """Bind the kernel and scientific schedule to their frozen source files."""
     if np is None or sp is None:
         raise RuntimeError("scientific dependencies must be loaded before source binding")
     frozen_kernel, kernel_binding = load_frozen_module(
-        sources, KERNEL_SOURCE, role="compressible_radiative_plasma_kernel"
+        sources,
+        KERNEL_SOURCE,
+        snapshot_root,
+        role="compressible_radiative_plasma_kernel",
     )
     frozen_verifier, verifier_binding = load_frozen_module(
-        sources, VERIFIER_SOURCE, role="compressible_radiative_plasma_verifier"
+        sources,
+        VERIFIER_SOURCE,
+        snapshot_root,
+        role="compressible_radiative_plasma_verifier",
     )
     frozen_verifier.np = np
     frozen_verifier.sp = sp
@@ -298,7 +302,7 @@ def evidence_paths(output: Path) -> tuple[Path, Path, Path]:
 def prepare_evidence(
     output: Path,
     source_paths: Iterable[Path] = SOURCE_PATHS,
-) -> tuple[Path, Path, dict[str, dict[str, Any]]]:
+) -> tuple[Path, Path, Path, dict[str, dict[str, Any]]]:
     target, manifest_path, snapshot_root = evidence_paths(output)
     payloads = {relative: (ROOT / relative).read_bytes() for relative in source_paths}
     manifest_staging = manifest_path.with_name(manifest_path.name + ".incomplete")
@@ -313,11 +317,10 @@ def prepare_evidence(
             staged_destination = snapshot_staging / relative
             staged_destination.parent.mkdir(parents=True, exist_ok=True)
             staged_destination.write_bytes(payload)
-            final_destination = snapshot_root / relative
             digest = hashlib.sha256(payload).hexdigest()
             manifest[relative.as_posix()] = {
                 "path": relative.as_posix(),
-                "snapshot": final_destination.relative_to(ROOT).as_posix(),
+                "snapshot": relative.as_posix(),
                 "bytes": len(payload),
                 "sha256": digest,
                 "snapshot_sha256": digest,
@@ -325,7 +328,11 @@ def prepare_evidence(
         snapshot_staging.rename(snapshot_root)
         manifest_payload = (
             json.dumps(
-                {"schema": SCHEMA, "sources": manifest},
+                {
+                    "schema": SCHEMA,
+                    "snapshot_root": snapshot_root.relative_to(ROOT).as_posix(),
+                    "sources": manifest,
+                },
                 indent=2,
                 sort_keys=True,
                 allow_nan=False,
@@ -335,7 +342,7 @@ def prepare_evidence(
         with manifest_staging.open("x", encoding="utf-8") as stream:
             stream.write(manifest_payload)
         manifest_staging.replace(manifest_path)
-        return target, manifest_path, manifest
+        return target, manifest_path, snapshot_root, manifest
     except Exception:
         if manifest_staging.exists():
             manifest_staging.unlink()
@@ -350,19 +357,30 @@ def prepare_evidence(
 
 def verify_source_integrity(
     sources: dict[str, dict[str, Any]],
+    snapshot_root: Path,
 ) -> dict[str, Any]:
+    root = snapshot_root.resolve()
     rows: dict[str, Any] = {}
     passed = True
     for relative, recorded in sources.items():
         try:
             current_path = ROOT / relative
-            snapshot_path = ROOT / recorded["snapshot"]
+            snapshot_relative = Path(str(recorded["snapshot"]))
+            expected_snapshot_path = (root / relative).resolve()
+            snapshot_path = (root / snapshot_relative).resolve()
+            root_bound = snapshot_path == root or root in snapshot_path.parents
+            location_matches = (
+                not snapshot_relative.is_absolute()
+                and snapshot_path == expected_snapshot_path
+                and root_bound
+            )
             current = sha256(current_path)
             snapshot = sha256(snapshot_path)
             current_bytes = current_path.stat().st_size
             snapshot_bytes = snapshot_path.stat().st_size
             matches = (
-                current == recorded["sha256"]
+                location_matches
+                and current == recorded["sha256"]
                 and snapshot == recorded["snapshot_sha256"]
                 and current == snapshot
                 and current_bytes == recorded["bytes"]
@@ -374,6 +392,8 @@ def verify_source_integrity(
             snapshot = None
             current_bytes = None
             snapshot_bytes = None
+            root_bound = False
+            location_matches = False
             matches = False
             error = f"{type(exc).__name__}: {exc}"
         rows[relative] = {
@@ -383,6 +403,10 @@ def verify_source_integrity(
             "current_bytes": current_bytes,
             "snapshot_bytes": snapshot_bytes,
             "recorded_bytes": recorded["bytes"],
+            "snapshot_root": root.relative_to(ROOT).as_posix(),
+            "recorded_snapshot": recorded.get("snapshot"),
+            "root_bound": root_bound,
+            "location_matches": location_matches,
             "matches": matches,
             "error": error,
         }
@@ -1159,6 +1183,7 @@ def write_inconclusive_receipt(
     stage: str,
     error: Exception,
     manifest_path: Path | None = None,
+    snapshot_root: Path | None = None,
     sources: dict[str, dict[str, Any]] | None = None,
 ) -> int:
     message = f"{type(error).__name__}: {error}"
@@ -1174,6 +1199,11 @@ def write_inconclusive_receipt(
             "items": {},
         },
         "results": {},
+        "snapshot_root": (
+            snapshot_root.relative_to(ROOT).as_posix()
+            if snapshot_root is not None and snapshot_root.exists()
+            else None
+        ),
         "input_manifest": (
             manifest_path.relative_to(ROOT).as_posix()
             if manifest_path is not None
@@ -1189,7 +1219,6 @@ def write_inconclusive_receipt(
     print(f"prerequisite error: {message}", file=sys.stderr)
     return 2
 
-
 def run_verification(
     output: Path,
     *,
@@ -1198,22 +1227,26 @@ def run_verification(
 ) -> int:
     required_check_count = EXPECTED_CHECKS
     try:
-        target, _, _ = evidence_paths(output)
+        target, _, snapshot_root = evidence_paths(output)
     except Exception as exc:
         print(f"EVIDENCE PATH FAILED: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
 
     try:
-        target, manifest_path, sources = prepare_evidence(output, source_paths)
+        target, manifest_path, snapshot_root, sources = prepare_evidence(
+            output,
+            source_paths,
+        )
     except Exception as exc:
         return write_inconclusive_receipt(
             target,
             stage="source-read",
             error=exc,
+            snapshot_root=snapshot_root,
         )
 
     source_integrity: dict[str, Any] = {
-        "after_snapshot": verify_source_integrity(sources)
+        "after_snapshot": verify_source_integrity(sources, snapshot_root)
     }
     dependencies: dict[str, str] = {}
     execution_binding: dict[str, Any] = {
@@ -1231,13 +1264,18 @@ def run_verification(
                 stage="scientific-dependencies",
                 error=exc,
                 manifest_path=manifest_path,
+                snapshot_root=snapshot_root,
                 sources=sources,
             )
-        source_integrity["before_controls"] = verify_source_integrity(sources)
+        source_integrity["before_controls"] = verify_source_integrity(
+            sources,
+            snapshot_root,
+        )
         if source_integrity["before_controls"]["passed"]:
             try:
                 execution_module, execution_binding = bind_frozen_scientific_modules(
-                    sources
+                    sources,
+                    snapshot_root,
                 )
             except Exception as exc:
                 execution_binding["error"] = f"{type(exc).__name__}: {exc}"
@@ -1258,7 +1296,10 @@ def run_verification(
             error = f"{type(exc).__name__}: {exc}"
             book.add("verification.completed_without_exception", False, error=error)
 
-    source_integrity["after_controls"] = verify_source_integrity(sources)
+    source_integrity["after_controls"] = verify_source_integrity(
+        sources,
+        snapshot_root,
+    )
     integrity_passed = all(
         phase["passed"] for phase in source_integrity.values()
     )
@@ -1336,6 +1377,7 @@ def run_verification(
             "items": book.checks,
         },
         "results": results,
+        "snapshot_root": snapshot_root.relative_to(ROOT).as_posix(),
         "input_manifest": manifest_path.relative_to(ROOT).as_posix(),
         "sources": sources,
         "source_integrity": source_integrity,

@@ -19,7 +19,7 @@ The verifier reads each of the following files once, hashes those bytes and writ
 
 The output, adjacent `input_manifest.json`, staging paths and `source_snapshots/` directory must not exist when the run begins. The verifier refuses to overwrite any of them. It publishes the complete snapshot tree and manifest by separate atomic renames; a successful return exposes both, while a publication failure removes every staging path and any snapshot tree published by that attempt.
 
-After NumPy, SymPy and SciPy load, the reference kernel, base verifier and integrity verifier are imported directly from their manifest-recorded snapshot files under unique module names. The receipt records each module's snapshot path, executed `__file__`, byte count, pre-import SHA-256, post-import SHA-256 and binding result. The fixed controls execute through the frozen integrity verifier, which uses the frozen kernel and frozen base verifier.
+After NumPy, SymPy and SciPy load, the reference kernel, base verifier and integrity verifier are imported directly from their manifest-recorded snapshot files under unique module names. The receipt records each module's snapshot path, executed `__file__`, byte count, pre-import SHA-256, post-import SHA-256 and binding result. The fixed controls execute through the frozen integrity verifier, which uses the frozen kernel and preserves the frozen base verifier's snapshot-derived root. A complete nested base qualification and both nested prerequisite-failure controls execute in retained receipt-local directories under that snapshot root, so their manifests and source snapshots remain available for audit and their default source paths resolve to frozen files.
 
 Every current source and snapshot is compared with the manifest immediately after publication, again after dependency imports and before scientific controls, and after the controls. A pre-control mismatch prevents scientific execution. A source or execution-module path, size or hash mismatch gives receipt status `FAIL` with scientific classification `INCONCLUSIVE`.
 
@@ -158,12 +158,13 @@ For the fixed reaction $4X\to Y$ with stoichiometry $(-4,1)$, masses $(1.01,4)$,
 
 ### 2.6 Prerequisite classifications
 
-Run the closure verifier twice in temporary, automatically removed directories inside the CassiTheory root:
+Run the frozen closure verifier in retained receipt-local directories under its snapshot-derived root:
 
-1. inject a loader that raises `ImportError` before scientific controls;
-2. replace the source list by one nonexistent path.
+1. complete the full 70-check base qualification and require its current sources, second-generation snapshots and executed modules to remain beneath that root;
+2. inject a loader that raises `ImportError` before scientific controls;
+3. replace the source list by one nonexistent path.
 
-Each nested run must exit with code 2 and write a receipt with `status` and `scientific_classification` equal to `INCONCLUSIVE`, zero scientific checks and the matching `prerequisite_stage`. The dependency case must retain an input manifest and source hashes. The source-read case must have no input manifest and must not create a source-snapshot directory. These are expected qualification checks, not scientific failures.
+The full nested qualification must pass with all source-integrity and execution-binding controls. The dependency and source-read runs must exit with code 2 and write receipts with `status` and `scientific_classification` equal to `INCONCLUSIVE`, zero scientific checks and the matching `prerequisite_stage`. The dependency case must retain an input manifest and snapshot-root source hashes. The source-read case must have no input manifest and must not create a source-snapshot directory. The passing nested run is combined with the dependency classification in one snapshot-root integrity check, leaving the fixed schedule at two prerequisite checks. These are qualification controls rather than new scientific claims.
 
 ## 3. Fixed count, decision and stopping rule
 
@@ -174,11 +175,11 @@ The qualification contains exactly **36 checks**:
 - thirteen line-profile, line-admissibility and exchange checks;
 - two transfer-source checks;
 - five stellar-ledger and nuclear checks;
-- two prerequisite-classification checks.
+- two snapshot-root prerequisite checks covering a full nested base qualification and both prerequisite-failure classifications.
 
 All numerical comparisons use float64. Symbolic checks require exact simplification to zero. No threshold or input may change after execution.
 
-The outer runner requires exactly 36 named checks and separately requires the frozen integrity verifier's declaration to equal 36, so the scientific schedule cannot lower its own acceptance count. The result is `PASS` with scientific classification `SUPPORTS-compressible radiative-plasma integrity qualification` only if that count guard, all three source-integrity comparisons and all three execution-module bindings pass. A scientific check failure gives `FAIL` and `CONTRADICTS`. A source-integrity, execution-binding or fixed-count mismatch gives `FAIL` and scientific classification `INCONCLUSIVE`. Failure to read a qualification source or import a required qualification dependency gives `INCONCLUSIVE` and stops interpretation.
+The outer runner requires exactly 36 named checks and separately requires the frozen integrity verifier's declaration to be the integer 36, so the scientific schedule cannot lower or malform its own acceptance count. The result is `PASS` with scientific classification `SUPPORTS-compressible radiative-plasma integrity qualification` only if that count guard, all three source-integrity comparisons and all three execution-module bindings pass. A scientific check failure gives `FAIL` and `CONTRADICTS`. A source-integrity, execution-binding or fixed-count mismatch gives `FAIL` and scientific classification `INCONCLUSIVE`. Failure to read a qualification source or import a required qualification dependency gives `INCONCLUSIVE` and stops interpretation.
 
 Run once from the CassiTheory root:
 

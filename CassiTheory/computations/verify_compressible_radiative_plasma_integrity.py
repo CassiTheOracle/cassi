@@ -11,7 +11,6 @@ import json
 import math
 import sys
 import shutil
-import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
@@ -130,6 +129,7 @@ def sha256(path: Path) -> str:
 def load_frozen_module(
     sources: dict[str, dict[str, Any]],
     relative: Path,
+    snapshot_root: Path,
     *,
     role: str,
 ) -> tuple[ModuleType, dict[str, Any]]:
@@ -141,9 +141,16 @@ def load_frozen_module(
     if recorded.get("path") != key:
         raise ValueError(f"manifest path identity mismatch for {key}")
 
-    snapshot_path = (ROOT / str(recorded["snapshot"])).resolve()
-    if ROOT != snapshot_path and ROOT not in snapshot_path.parents:
-        raise ValueError(f"snapshot path escapes the CassiTheory root: {snapshot_path}")
+    root = snapshot_root.resolve()
+    snapshot_relative = Path(str(recorded["snapshot"]))
+    expected_snapshot_path = (root / relative).resolve()
+    snapshot_path = (root / snapshot_relative).resolve()
+    if (
+        snapshot_relative.is_absolute()
+        or snapshot_path != expected_snapshot_path
+        or (snapshot_path != root and root not in snapshot_path.parents)
+    ):
+        raise ValueError(f"snapshot path is not receipt-local for {key}: {snapshot_relative}")
     expected_hash = str(recorded["sha256"])
     expected_snapshot_hash = str(recorded["snapshot_sha256"])
     expected_bytes = int(recorded["bytes"])
@@ -187,9 +194,10 @@ def load_frozen_module(
     return module, {
         "role": role,
         "source": key,
-        "snapshot": snapshot_path.relative_to(ROOT).as_posix(),
+        "snapshot": snapshot_path.relative_to(root).as_posix(),
         "module_name": module_name,
-        "module_file": module_file.relative_to(ROOT).as_posix(),
+        "module_file": module_file.relative_to(root).as_posix(),
+        "snapshot_root": root.relative_to(ROOT).as_posix(),
         "before_sha256": before_hash,
         "after_sha256": after_hash,
         "recorded_sha256": expected_hash,
@@ -201,18 +209,28 @@ def load_frozen_module(
 
 def bind_frozen_execution_modules(
     sources: dict[str, dict[str, Any]],
+    snapshot_root: Path,
 ) -> tuple[ModuleType, dict[str, Any]]:
     """Bind every scientific module to the manifest's frozen snapshot tree."""
     if np is None or sp is None or integrate is None:
         raise RuntimeError("scientific dependencies must be loaded before source binding")
     frozen_kernel, kernel_binding = load_frozen_module(
-        sources, KERNEL_SOURCE, role="integrity_kernel"
+        sources,
+        KERNEL_SOURCE,
+        snapshot_root,
+        role="integrity_kernel",
     )
     frozen_base, base_binding = load_frozen_module(
-        sources, BASE_VERIFIER_SOURCE, role="integrity_base_verifier"
+        sources,
+        BASE_VERIFIER_SOURCE,
+        snapshot_root,
+        role="integrity_base_verifier",
     )
     frozen_integrity, integrity_binding = load_frozen_module(
-        sources, INTEGRITY_VERIFIER_SOURCE, role="integrity_verifier"
+        sources,
+        INTEGRITY_VERIFIER_SOURCE,
+        snapshot_root,
+        role="integrity_verifier",
     )
 
     frozen_base.np = np
@@ -245,12 +263,14 @@ def evidence_paths(output: Path) -> tuple[Path, Path, Path]:
         raise ValueError("output must remain inside the CassiTheory root")
     manifest_path = target.with_name("input_manifest.json")
     snapshot_root = target.parent / "source_snapshots"
+    nested_root = target.parent / "prerequisite_controls"
     manifest_staging = manifest_path.with_name(manifest_path.name + ".incomplete")
     snapshot_staging = snapshot_root.with_name(snapshot_root.name + ".incomplete")
     for path in (
         target,
         manifest_path,
         snapshot_root,
+        nested_root,
         manifest_staging,
         snapshot_staging,
     ):
@@ -259,7 +279,9 @@ def evidence_paths(output: Path) -> tuple[Path, Path, Path]:
     return target, manifest_path, snapshot_root
 
 
-def prepare_evidence(output: Path) -> tuple[Path, Path, dict[str, dict[str, Any]]]:
+def prepare_evidence(
+    output: Path,
+) -> tuple[Path, Path, Path, dict[str, dict[str, Any]]]:
     target, manifest_path, snapshot_root = evidence_paths(output)
     payloads = {relative: (ROOT / relative).read_bytes() for relative in SOURCE_PATHS}
     manifest_staging = manifest_path.with_name(manifest_path.name + ".incomplete")
@@ -274,11 +296,10 @@ def prepare_evidence(output: Path) -> tuple[Path, Path, dict[str, dict[str, Any]
             staged_destination = snapshot_staging / relative
             staged_destination.parent.mkdir(parents=True, exist_ok=True)
             staged_destination.write_bytes(payload)
-            final_destination = snapshot_root / relative
             digest = sha256_bytes(payload)
             sources[relative.as_posix()] = {
                 "path": relative.as_posix(),
-                "snapshot": final_destination.relative_to(ROOT).as_posix(),
+                "snapshot": relative.as_posix(),
                 "bytes": len(payload),
                 "sha256": digest,
                 "snapshot_sha256": digest,
@@ -286,7 +307,11 @@ def prepare_evidence(output: Path) -> tuple[Path, Path, dict[str, dict[str, Any]
         snapshot_staging.rename(snapshot_root)
         manifest_payload = (
             json.dumps(
-                {"schema": SCHEMA, "sources": sources},
+                {
+                    "schema": SCHEMA,
+                    "snapshot_root": snapshot_root.relative_to(ROOT).as_posix(),
+                    "sources": sources,
+                },
                 indent=2,
                 sort_keys=True,
                 allow_nan=False,
@@ -296,7 +321,7 @@ def prepare_evidence(output: Path) -> tuple[Path, Path, dict[str, dict[str, Any]
         with manifest_staging.open("x", encoding="utf-8") as stream:
             stream.write(manifest_payload)
         manifest_staging.replace(manifest_path)
-        return target, manifest_path, sources
+        return target, manifest_path, snapshot_root, sources
     except Exception:
         if manifest_staging.exists():
             manifest_staging.unlink()
@@ -323,6 +348,7 @@ def write_inconclusive(
     stage: str,
     error: Exception,
     manifest_path: Path | None = None,
+    snapshot_root: Path | None = None,
     sources: dict[str, dict[str, Any]] | None = None,
 ) -> int:
     message = f"{type(error).__name__}: {error}"
@@ -339,7 +365,11 @@ def write_inconclusive(
                 "failed": [],
                 "items": {},
             },
-            "results": {},
+            "snapshot_root": (
+                snapshot_root.relative_to(ROOT).as_posix()
+                if snapshot_root is not None and snapshot_root.exists()
+                else None
+            ),
             "input_manifest": (
                 manifest_path.relative_to(ROOT).as_posix()
                 if manifest_path is not None
@@ -958,168 +988,223 @@ def stellar_controls(book: CheckBook) -> dict[str, Any]:
     }
 
 
-def prerequisite_controls(book: CheckBook, _work_root: Path) -> dict[str, Any]:
-    snapshot_root = Path(base_verifier.ROOT).resolve()
+def prerequisite_controls(book: CheckBook, target: Path) -> dict[str, Any]:
+    outer_snapshot_root = (target.parent / "source_snapshots").resolve()
     base_module_path = Path(base_verifier.__file__).resolve()
-    root_bound = (
-        len(base_module_path.parents) >= 2
-        and base_module_path.parents[1] == snapshot_root
-    )
+    expected_base_module_path = (outer_snapshot_root / BASE_VERIFIER_SOURCE).resolve()
+    root_bound = base_module_path == expected_base_module_path
     if not root_bound:
-        raise RuntimeError("frozen base verifier root does not match its snapshot file")
+        raise RuntimeError("frozen base verifier is not loaded from the outer snapshot root")
 
-    def stays_within_snapshot_root(relative: str) -> bool:
-        resolved = (snapshot_root / relative).resolve()
-        return resolved == snapshot_root or snapshot_root in resolved.parents
+    nested_root = outer_snapshot_root / "prerequisite_controls"
+    nested_root.mkdir(parents=True, exist_ok=True)
 
-    def snapshot_importer(name: str) -> Any:
-        if name == "compressible_radiative_plasma":
-            return kernel
-        return importlib.import_module(name)
+    def under(root: Path, candidate: Path) -> bool:
+        return candidate == root or root in candidate.parents
 
-    def snapshot_dependency_loader() -> dict[str, str]:
-        return base_verifier.load_scientific_dependencies(
-            importer=snapshot_importer
+    def receipt_snapshot_root(
+        receipt: dict[str, Any],
+        receipt_target: Path,
+    ) -> tuple[Path | None, bool]:
+        value = receipt.get("snapshot_root")
+        if not isinstance(value, str):
+            return None, False
+        candidate = (outer_snapshot_root / value).resolve()
+        expected = (receipt_target.parent / "source_snapshots").resolve()
+        return candidate, under(outer_snapshot_root, candidate) and candidate == expected
+
+    def receipt_manifest_bound(
+        receipt: dict[str, Any],
+        receipt_target: Path,
+    ) -> bool:
+        value = receipt.get("input_manifest")
+        if not isinstance(value, str):
+            return False
+        candidate = (outer_snapshot_root / value).resolve()
+        expected = (receipt_target.parent / "input_manifest.json").resolve()
+        return candidate == expected
+
+    def receipt_sources_bound(
+        receipt: dict[str, Any],
+        receipt_target: Path,
+        expected_sources: set[str],
+    ) -> tuple[bool, Path | None, bool]:
+        snapshot_root, snapshot_root_bound = receipt_snapshot_root(
+            receipt,
+            receipt_target,
+        )
+        if snapshot_root is None:
+            return False, None, False
+        sources = receipt.get("sources", {})
+        if not isinstance(sources, dict) or set(sources) != expected_sources:
+            return False, snapshot_root, snapshot_root_bound
+        source_paths_bound = True
+        for source_key, recorded in sources.items():
+            if not isinstance(recorded, dict) or recorded.get("path") != source_key:
+                source_paths_bound = False
+                continue
+            source_relative = Path(source_key)
+            recorded_relative = Path(str(recorded.get("snapshot", "")))
+            source_path = (snapshot_root / source_relative).resolve()
+            recorded_path = (snapshot_root / recorded_relative).resolve()
+            source_paths_bound = source_paths_bound and (
+                not recorded_relative.is_absolute()
+                and under(snapshot_root, recorded_path)
+                and recorded_path == source_path
+            )
+        return (
+            snapshot_root_bound and source_paths_bound
+            and receipt_manifest_bound(receipt, receipt_target),
+            snapshot_root,
+            snapshot_root_bound,
         )
 
+    def module_bindings_bound(
+        receipt: dict[str, Any],
+        snapshot_root: Path | None,
+    ) -> bool:
+        if snapshot_root is None:
+            return False
+        bindings = receipt.get("execution_binding", {}).get("modules", {})
+        expected_modules = {
+            "kernel": KERNEL_SOURCE.as_posix(),
+            "verifier": BASE_VERIFIER_SOURCE.as_posix(),
+        }
+        if not isinstance(bindings, dict) or set(bindings) != set(expected_modules):
+            return False
+        for name, source_key in expected_modules.items():
+            binding = bindings.get(name)
+            if not isinstance(binding, dict):
+                return False
+            snapshot_relative = Path(str(binding.get("snapshot", "")))
+            module_relative = Path(str(binding.get("module_file", "")))
+            expected = (snapshot_root / source_key).resolve()
+            expected_binding_root = snapshot_root.relative_to(
+                outer_snapshot_root
+            ).as_posix()
+            if (
+                binding.get("snapshot_root") != expected_binding_root
+                or snapshot_relative.is_absolute()
+                or module_relative.is_absolute()
+                or (snapshot_root / snapshot_relative).resolve() != expected
+                or (snapshot_root / module_relative).resolve() != expected
+            ):
+                return False
+        return True
 
-    # Nested evidence belongs under the frozen base verifier's own root. Its
-    # default source list then resolves only against the published snapshot tree.
-    with tempfile.TemporaryDirectory(
-        prefix="prerequisite_controls_",
-        dir=snapshot_root,
-    ) as raw:
-        temporary = Path(raw)
-
-        qualification_target = temporary / "qualification" / "verification.json"
-        qualification_code = base_verifier.run_verification(
+    expected_base_sources = {
+        path.as_posix() for path in base_verifier.SOURCE_PATHS
+    }
+    qualification_target = nested_root / "qualification" / "verification.json"
+    qualification_code = base_verifier.run_verification(qualification_target)
+    qualification_receipt = json.loads(
+        qualification_target.read_text(encoding="utf-8")
+    )
+    qualification_sources_bound, qualification_snapshot_root, qualification_root_bound = (
+        receipt_sources_bound(
+            qualification_receipt,
             qualification_target,
-            dependency_loader=snapshot_dependency_loader,
+            expected_base_sources,
         )
-        qualification_receipt = json.loads(
-            qualification_target.read_text(encoding="utf-8")
-        )
-        expected_base_sources = {
-            path.as_posix() for path in base_verifier.SOURCE_PATHS
-        }
-        qualification_sources_bound = (
-            set(qualification_receipt["sources"]) == expected_base_sources
-            and stays_within_snapshot_root(
-                str(qualification_receipt["input_manifest"])
-            )
-            and all(
-                stays_within_snapshot_root(relative)
-                and stays_within_snapshot_root(str(recorded["snapshot"]))
-                for relative, recorded in qualification_receipt["sources"].items()
-            )
-        )
-        qualification_bindings = qualification_receipt["execution_binding"][
-            "modules"
-        ]
-        qualification_modules_bound = (
-            set(qualification_bindings) == {"kernel", "verifier"}
-            and all(
-                stays_within_snapshot_root(str(binding["module_file"]))
-                for binding in qualification_bindings.values()
-            )
-        )
-        qualification_dependency_bound = (
-            qualification_receipt["dependencies"].get("kernel_module")
-            == getattr(kernel, "__name__", "")
-        )
-        qualification_pass = (
-            qualification_code == 0
-            and qualification_receipt["status"] == "PASS"
-            and qualification_receipt["scientific_classification"]
-            == "SUPPORTS-conditional compressible radiative-plasma closure"
-            and qualification_receipt["checks"]["passed"] == 70
-            and qualification_receipt["checks"]["total"] == 70
-            and qualification_receipt["checks"]["expected_total"] == 70
-            and qualification_receipt["checks"]["module_expected_total"] == 70
-            and qualification_receipt["checks"]["module_expected_error"] is None
-            and qualification_receipt["checks"]["declaration_matches_expected"]
-            and qualification_receipt["checks"]["count_matches_expected"]
-            and qualification_receipt["source_integrity"]["after_snapshot"]["passed"]
-            and qualification_receipt["source_integrity"]["before_controls"]["passed"]
-            and qualification_receipt["source_integrity"]["after_controls"]["passed"]
-            and qualification_receipt["execution_binding"]["passed"]
-            and qualification_sources_bound
-            and qualification_dependency_bound
-            and qualification_modules_bound
-        )
+    )
+    qualification_bindings = qualification_receipt["execution_binding"]["modules"]
+    qualification_modules_bound = module_bindings_bound(
+        qualification_receipt,
+        qualification_snapshot_root,
+    )
+    qualification_pass = (
+        qualification_code == 0
+        and qualification_receipt["status"] == "PASS"
+        and qualification_receipt["scientific_classification"]
+        == "SUPPORTS-conditional compressible radiative-plasma closure"
+        and qualification_receipt["checks"]["passed"] == 70
+        and qualification_receipt["checks"]["total"] == 70
+        and qualification_receipt["checks"]["expected_total"] == 70
+        and qualification_receipt["checks"]["module_expected_total"] == 70
+        and qualification_receipt["checks"]["module_expected_error"] is None
+        and qualification_receipt["checks"]["declaration_matches_expected"]
+        and qualification_receipt["checks"]["count_matches_expected"]
+        and qualification_receipt["source_integrity"]["after_snapshot"]["passed"]
+        and qualification_receipt["source_integrity"]["before_controls"]["passed"]
+        and qualification_receipt["source_integrity"]["after_controls"]["passed"]
+        and qualification_receipt["execution_binding"]["passed"]
+        and qualification_sources_bound
+        and qualification_modules_bound
+    )
 
-        def missing_dependency() -> dict[str, str]:
-            raise ImportError("fixed missing-dependency control")
+    def missing_dependency() -> dict[str, str]:
+        raise ImportError("fixed missing-dependency control")
 
-        dependency_target = temporary / "dependency" / "verification.json"
-        dependency_code = base_verifier.run_verification(
-            dependency_target,
-            dependency_loader=missing_dependency,
-        )
-        dependency_receipt = json.loads(
-            dependency_target.read_text(encoding="utf-8")
-        )
-        dependency_pass = (
-            dependency_code == 2
-            and dependency_receipt["status"] == "INCONCLUSIVE"
-            and dependency_receipt["scientific_classification"] == "INCONCLUSIVE"
-            and dependency_receipt["checks"]["total"] == 0
-            and dependency_receipt["prerequisite_stage"] == "scientific-dependencies"
-            and dependency_receipt["input_manifest"] is not None
-            and set(dependency_receipt["sources"]) == expected_base_sources
-            and stays_within_snapshot_root(
-                str(dependency_receipt["input_manifest"])
-            )
-            and all(
-                stays_within_snapshot_root(relative)
-                and stays_within_snapshot_root(str(recorded["snapshot"]))
-                for relative, recorded in dependency_receipt["sources"].items()
-            )
-        )
-        book.add(
-            "prerequisite.snapshot_root_and_missing_dependency",
-            qualification_pass and dependency_pass,
-            root_bound=root_bound,
-            qualification_exit_code=qualification_code,
-            qualification_sources_bound=qualification_sources_bound,
-            qualification_modules_bound=qualification_modules_bound,
-            qualification_dependency_bound=qualification_dependency_bound,
-            qualification_receipt=qualification_receipt,
-            dependency_exit_code=dependency_code,
-            dependency_receipt=dependency_receipt,
-        )
+    dependency_target = nested_root / "dependency" / "verification.json"
+    dependency_code = base_verifier.run_verification(
+        dependency_target,
+        dependency_loader=missing_dependency,
+    )
+    dependency_receipt = json.loads(
+        dependency_target.read_text(encoding="utf-8")
+    )
+    dependency_sources_bound, _, dependency_root_bound = receipt_sources_bound(
+        dependency_receipt,
+        dependency_target,
+        expected_base_sources,
+    )
+    dependency_pass = (
+        dependency_code == 2
+        and dependency_receipt["status"] == "INCONCLUSIVE"
+        and dependency_receipt["scientific_classification"] == "INCONCLUSIVE"
+        and dependency_receipt["checks"]["total"] == 0
+        and dependency_receipt["prerequisite_stage"] == "scientific-dependencies"
+        and dependency_receipt["input_manifest"] is not None
+        and dependency_sources_bound
+    )
+    book.add(
+        "prerequisite.snapshot_root_and_missing_dependency",
+        qualification_pass and dependency_pass,
+        root_bound=root_bound,
+        qualification_exit_code=qualification_code,
+        qualification_root_bound=qualification_root_bound,
+        qualification_sources_bound=qualification_sources_bound,
+        qualification_modules_bound=qualification_modules_bound,
+        qualification_receipt=qualification_receipt,
+        dependency_exit_code=dependency_code,
+        dependency_root_bound=dependency_root_bound,
+        dependency_sources_bound=dependency_sources_bound,
+        dependency_receipt=dependency_receipt,
+    )
 
-        source_target = temporary / "source" / "verification.json"
-        source_code = base_verifier.run_verification(
-            source_target,
-            source_paths=(Path("computations/__missing_integrity_control__.py"),),
-        )
-        source_receipt = json.loads(source_target.read_text(encoding="utf-8"))
-        source_pass = (
-            source_code == 2
-            and source_receipt["status"] == "INCONCLUSIVE"
-            and source_receipt["scientific_classification"] == "INCONCLUSIVE"
-            and source_receipt["checks"]["total"] == 0
-            and source_receipt["prerequisite_stage"] == "source-read"
-            and source_receipt["input_manifest"] is None
-            and not source_receipt["sources"]
-            and not source_target.with_name("input_manifest.json").exists()
-            and not (source_target.parent / "source_snapshots").exists()
-        )
-        book.add(
-            "prerequisite.missing_source_is_inconclusive",
-            source_pass,
-            exit_code=source_code,
-            receipt=source_receipt,
-        )
-        return {
-            "snapshot_root_qualification": qualification_receipt,
-            "dependency": dependency_receipt,
-            "source_read": source_receipt,
-        }
+    source_target = nested_root / "source" / "verification.json"
+    source_code = base_verifier.run_verification(
+        source_target,
+        source_paths=(Path("computations/__missing_integrity_control__.py"),),
+    )
+    source_receipt = json.loads(source_target.read_text(encoding="utf-8"))
+    source_pass = (
+        source_code == 2
+        and source_receipt["status"] == "INCONCLUSIVE"
+        and source_receipt["scientific_classification"] == "INCONCLUSIVE"
+        and source_receipt["checks"]["total"] == 0
+        and source_receipt["prerequisite_stage"] == "source-read"
+        and source_receipt["snapshot_root"] is None
+        and source_receipt["input_manifest"] is None
+        and not source_receipt["sources"]
+        and not source_target.with_name("input_manifest.json").exists()
+        and not (source_target.parent / "source_snapshots").exists()
+    )
+    book.add(
+        "prerequisite.missing_source_is_inconclusive",
+        source_pass,
+        exit_code=source_code,
+        receipt=source_receipt,
+    )
+    return {
+        "nested_root": nested_root.relative_to(outer_snapshot_root).as_posix(),
+        "snapshot_root_qualification": qualification_receipt,
+        "dependency": dependency_receipt,
+        "source_read": source_receipt,
+    }
 
 
-def execute_integrity_controls(book: CheckBook, work_root: Path) -> dict[str, Any]:
+def execute_integrity_controls(book: CheckBook, target: Path) -> dict[str, Any]:
     """Execute the complete fixed integrity schedule in this verifier module."""
     return {
         "state_and_thermodynamics": state_and_thermo_controls(book),
@@ -1127,23 +1212,36 @@ def execute_integrity_controls(book: CheckBook, work_root: Path) -> dict[str, An
         "lines": line_controls(book),
         "transfer": transfer_controls(book),
         "stellar": stellar_controls(book),
-        "prerequisites": prerequisite_controls(book, work_root),
+        "prerequisites": prerequisite_controls(book, target),
     }
 
 
-def verify_source_integrity(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def verify_source_integrity(
+    sources: dict[str, dict[str, Any]],
+    snapshot_root: Path,
+) -> dict[str, Any]:
+    root = snapshot_root.resolve()
     rows: dict[str, Any] = {}
     passed = True
     for relative, recorded in sources.items():
         try:
             current_path = ROOT / relative
-            snapshot_path = ROOT / recorded["snapshot"]
+            snapshot_relative = Path(str(recorded["snapshot"]))
+            expected_snapshot_path = (root / relative).resolve()
+            snapshot_path = (root / snapshot_relative).resolve()
+            root_bound = snapshot_path == root or root in snapshot_path.parents
+            location_matches = (
+                not snapshot_relative.is_absolute()
+                and snapshot_path == expected_snapshot_path
+                and root_bound
+            )
             current = sha256(current_path)
             snapshot = sha256(snapshot_path)
             current_bytes = current_path.stat().st_size
             snapshot_bytes = snapshot_path.stat().st_size
             matches = (
-                current == recorded["sha256"]
+                location_matches
+                and current == recorded["sha256"]
                 and snapshot == recorded["snapshot_sha256"]
                 and current == snapshot
                 and current_bytes == recorded["bytes"]
@@ -1155,6 +1253,8 @@ def verify_source_integrity(sources: dict[str, dict[str, Any]]) -> dict[str, Any
             snapshot = None
             current_bytes = None
             snapshot_bytes = None
+            root_bound = False
+            location_matches = False
             matches = False
             error = f"{type(exc).__name__}: {exc}"
         rows[relative] = {
@@ -1164,6 +1264,10 @@ def verify_source_integrity(sources: dict[str, dict[str, Any]]) -> dict[str, Any
             "current_bytes": current_bytes,
             "snapshot_bytes": snapshot_bytes,
             "recorded_bytes": recorded["bytes"],
+            "snapshot_root": root.relative_to(ROOT).as_posix(),
+            "recorded_snapshot": recorded.get("snapshot"),
+            "root_bound": root_bound,
+            "location_matches": location_matches,
             "matches": matches,
             "error": error,
         }
@@ -1180,18 +1284,23 @@ def parse_args() -> argparse.Namespace:
 def run(output: Path) -> int:
     required_check_count = EXPECTED_CHECKS
     try:
-        target, _, _ = evidence_paths(output)
+        target, _, snapshot_root = evidence_paths(output)
     except Exception as exc:
         print(f"EVIDENCE PATH FAILED: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
 
     try:
-        target, manifest_path, sources = prepare_evidence(output)
+        target, manifest_path, snapshot_root, sources = prepare_evidence(output)
     except Exception as exc:
-        return write_inconclusive(target, stage="source-read", error=exc)
+        return write_inconclusive(
+            target,
+            stage="source-read",
+            error=exc,
+            snapshot_root=snapshot_root,
+        )
 
     source_integrity: dict[str, Any] = {
-        "after_snapshot": verify_source_integrity(sources)
+        "after_snapshot": verify_source_integrity(sources, snapshot_root)
     }
     dependencies: dict[str, str] = {}
     execution_binding: dict[str, Any] = {
@@ -1209,13 +1318,18 @@ def run(output: Path) -> int:
                 stage="scientific-dependencies",
                 error=exc,
                 manifest_path=manifest_path,
+                snapshot_root=snapshot_root,
                 sources=sources,
             )
-        source_integrity["before_controls"] = verify_source_integrity(sources)
+        source_integrity["before_controls"] = verify_source_integrity(
+            sources,
+            snapshot_root,
+        )
         if source_integrity["before_controls"]["passed"]:
             try:
                 execution_module, execution_binding = bind_frozen_execution_modules(
-                    sources
+                    sources,
+                    snapshot_root,
                 )
             except Exception as exc:
                 execution_binding["error"] = f"{type(exc).__name__}: {exc}"
@@ -1231,11 +1345,14 @@ def run(output: Path) -> int:
         error = "execution source binding failed: " + str(execution_binding["error"])
     else:
         try:
-            results = execution_module.execute_integrity_controls(book, target.parent)
+            results = execution_module.execute_integrity_controls(book, target)
         except Exception as exc:
             error = f"{type(exc).__name__}: {exc}"
 
-    source_integrity["after_controls"] = verify_source_integrity(sources)
+    source_integrity["after_controls"] = verify_source_integrity(
+        sources,
+        snapshot_root,
+    )
     integrity_passed = all(
         phase["passed"] for phase in source_integrity.values()
     )
@@ -1313,6 +1430,7 @@ def run(output: Path) -> int:
             "items": book.checks,
         },
         "results": results,
+        "snapshot_root": snapshot_root.relative_to(ROOT).as_posix(),
         "input_manifest": manifest_path.relative_to(ROOT).as_posix(),
         "sources": sources,
         "source_integrity": source_integrity,
