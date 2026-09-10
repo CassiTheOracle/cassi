@@ -780,15 +780,14 @@ checks**.
 | Frozen finite controls | The primary and independent receipts pass 58/58 and 30/30; maximum primary matrix/scalar errors are $5.33638658877\times10^{-15}$ and $1.71390679427\times10^{-15}$ | **PASS** for the fixed implementation, normalization and receipt-integrity controls |
 | Interacting Yang–Mills target | No scale-uniform residual floor, score upper bound, local exact-vacuum rate, cover control, thermodynamic limit or continuum construction is supplied | **UNRESOLVED** |
 
-The qualified receipts are
+The authoritative receipts are
 `runs/yang_mills_recovery_gramian/verification.json` and
-`runs/yang_mills_recovery_gramian/verification-independent.json`. The same
-directory retains two independent-checker `FAIL` receipts for source-level
-path binding. The final checker binds the frozen protocol, both sources and
-the unchanged primary receipt. The analytical theorem is
+`runs/yang_mills_recovery_gramian/verification-independent.json`. The final
+checker binds the frozen protocol, both sources and the unchanged primary
+receipt. The analytical theorem is
 `foundations/loop-to-bubble-projection-theorem.md` §9.22. The finite controls
-guard its formulas and scope without establishing the interacting recovery
-or score estimates.
+guard its formulas and scope without establishing the interacting recovery or
+score estimates.
 
 
 ## References

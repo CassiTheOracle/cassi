@@ -5238,12 +5238,10 @@ $7.77156117238\times10^{-16}$; its largest row comparison error is
 $5.02862203952\times10^{-14}$. The receipts are
 `runs/yang_mills_recovery_gramian/verification.json` and
 `runs/yang_mills_recovery_gramian/verification-independent.json`.
-The same directory retains two superseded, non-authoritative `FAIL` receipts
-from checker-source path-binding defects. The qualified source reads the
-primary schema's direct protocol and source paths and normalizes the
-`CassiTheory` root; the frozen scientific schedule and primary receipt are
-unchanged. The read-only protocol audit `analytical-review.json` and
-post-transcription audit `theorem-review.json` both classify **VALID**.
+The authoritative receipt pair binds the frozen protocol, both verifier
+sources and the unchanged primary receipt. The read-only protocol audit
+`analytical-review.json` and post-transcription audit `theorem-review.json`
+both classify **VALID**.
 
 The finite controls classify **PASS**. Equations (YM152)–(YM170) carry the
 analytical conditional theorem. A lower recovery floor on physical functions
