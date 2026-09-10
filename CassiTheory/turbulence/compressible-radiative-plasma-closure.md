@@ -1,6 +1,6 @@
 # Compressible Radiative Plasma and Stellar-Light Closure
 
-## Status: Derived conditional / Tested reference controls—September 2026
+## Status: Derived conditional / Tested reference controls and integrity qualification—September 2026
 
 ## Abstract
 
@@ -10,16 +10,26 @@ The equations use established radiation hydrodynamics, atomic kinetics and stell
 
 ## 1. State and conventions
 
-The new state separates conserved material content from its radiative appearance. Let
+The evolved material state is written in conservative variables. With specific internal energy $e$, specific total material energy $E=e+|u|^2/2$, species mass fractions $Y_s$ and level populations $n_{s\ell}$, the solved state is
 
-- $\rho$ be conserved baryonic mass density;
-- $u$ be material velocity;
-- $n_i$ be the number density of atomic, ionic, molecular or nuclear state $i$;
-- $n_e$ be the free-electron number density;
-- $T>0$ be material temperature;
-- $E_g,F_g,P_g$ be the energy, flux and pressure tensor of radiation group $g$;
-- $I_{gm}$ be the group-integrated intensity in discrete direction $n_m$ when multi-angle transport is enabled;
-- $\Phi$ be the gravitational potential, with acceleration $g=-\nabla\Phi$.
+$$
+\boxed{
+\mathcal U_{\rm mat}
+=\left(\rho,\rho u,\rho E,\{\rho Y_s\},\{n_{s\ell}\}\right).}
+\tag{1a}
+$$
+
+The radiation block is $\{E_g,F_g\}$ for a moment solve or $\{I_{gm}\}$ for the multi-angle solve. Primitive variables such as $u$, $T$, $p$ and the level fractions are recovered from this state through the equation of state and the population constraints. In particular,
+
+- $\rho$ is conserved baryonic mass density;
+- $u$ is material velocity;
+- $Y_s$ is the mass fraction of transported material species $s$, with $\sum_sY_s=1$;
+- $n_{s\ell}$ is the number density of internal, excitation or ionization level $\ell$ of species $s$;
+- $n_e$ is the free-electron number density;
+- $T>0$ is material temperature;
+- $E_g,F_g,P_g$ are the energy, flux and pressure tensor of radiation group $g$;
+- $I_{gm}$ is the group-integrated intensity in discrete direction $n_m$ when multi-angle transport is enabled;
+- $\Phi$ is the gravitational potential, with acceleration $g=-\nabla\Phi$.
 
 The baryonic density uses a fixed mass unit rather than the reaction-dependent nuclear rest mass:
 
@@ -54,7 +64,23 @@ $$
 \tag{3}
 $$
 
-where $J_i$ is a diffusive number flux and $\omega_i$ is the net local production rate. Electronic transitions and ionization preserve the nuclei of each element. Nuclear reactions preserve baryon number and electric charge:
+Here $J_i$ is a diffusive number flux and $\omega_i$ is the net local production rate. The conservative species variables obey
+
+$$
+\boxed{
+\partial_t(\rho Y_s)
++\nabla\cdot(\rho Y_su+J_s^{m})
+=\dot\omega_s^{m},}
+\qquad
+\sum_sY_s=1,
+\quad
+\sum_sJ_s^{m}=0,
+\quad
+\sum_s\dot\omega_s^{m}=0.
+\tag{3a}
+$$
+
+Here $J_s^{m}$ and $\dot\omega_s^{m}$ are barycentric diffusive mass flux and mass-production rate. The level equations (3) resolve how each transported species is distributed over its internal and ionization states; their sums must reproduce the corresponding $\rho Y_s$. Electronic transitions and ionization preserve the nuclei of each element. Nuclear reactions preserve baryon number and electric charge:
 
 $$
 \sum_i A_i\omega_i=0,
@@ -72,7 +98,7 @@ $$
 
 with signed ionic charge $Z_i\geq0$ for the ordinary electron-ion mixture. Pair production, charged grains and nonneutral regions require their populations in (4) and a live electromagnetic field.
 
-The minimum inviscid closure sets $J_i=0$. A model that enables species diffusion must satisfy $\sum_i A_iJ_i=0$ in the barycentric frame and must include the associated enthalpy flux in the energy equation.
+The minimum inviscid closure sets $J_i=J_s^m=0$. A model that enables species diffusion must enforce the barycentric constraint $\sum_sJ_s^m=0$, the matching level-population constraint $\sum_iA_im_uJ_i=0$, and the associated enthalpy flux in the energy equation.
 
 ### 2.2 Momentum and total material energy
 
@@ -98,10 +124,12 @@ $$
 
 with shear viscosity $\eta\geq0$ and bulk viscosity $\zeta\geq0$.
 
-Let $u_m$ denote material internal-energy density, including thermal, excitation and ionization energy but excluding the common baryonic rest-energy reference. Define
+Let $e$ denote specific material internal energy, including thermal, excitation and ionization energy but excluding the common baryonic rest-energy reference. Then
 
 $$
-E_m=\frac12\rho|u|^2+u_m,
+u_m=\rho e,
+\qquad
+E_m=\rho E=\frac12\rho|u|^2+u_m,
 \qquad
 q_h=-k_T\nabla T,
 \tag{8}
@@ -195,18 +223,31 @@ c_s^2=\left(\frac{\partial p}{\partial\rho}\right)_s
 \tag{15}
 $$
 
-LTE ionization and excitation change the heat capacity and the adiabatic exponent because energy can enter internal levels. The general EOS interface must provide
+LTE ionization and excitation change the heat capacity and the adiabatic exponent because energy can enter internal levels. A thermodynamically consistent general closure starts from one specific fundamental relation,
 
 $$
-p(\rho,T,\{n_i\}),
-\quad
-u_m(\rho,T,\{n_i\}),
-\quad
-c_s^2=\left(\frac{\partial p}{\partial\rho}\right)_{s,\{Y_A\}}>0,
+\boxed{
+de
+=T\,ds-p\,d\!\left(\frac1\rho\right)
++\sum_s\mu_s\,dY_s
++\sum_i\mathcal A_i\,dx_i,}
+\tag{15a}
+$$
+
+where $s$ is specific entropy, $x_i$ denotes an independent normalized internal-state coordinate, and $\mu_s$ and $\mathcal A_i$ are the associated chemical potentials and nonequilibrium affinities in specific-energy units. The EOS interface must provide
+
+$$
+\boxed{
+\begin{aligned}
+p&=\rho^2\left(\frac{\partial e}{\partial\rho}\right)_{s,Y,x},&
+T&=\left(\frac{\partial e}{\partial s}\right)_{\rho,Y,x}>0,\\
+c_v&=\left(\frac{\partial e}{\partial T}\right)_{\rho,Y,x}>0,&
+c_s^2&=\left(\frac{\partial p}{\partial\rho}\right)_{s,Y}>0,
+\end{aligned}}
 \tag{16}
 $$
 
-plus thermodynamic derivatives used by the primitive solver. Molecules, degeneracy, Coulomb corrections, radiation pairs and relativistic temperatures replace (12)–(13) with a table or free-energy model. Thermodynamic consistency requires all returned quantities to descend from one potential or satisfy the corresponding Maxwell identities.
+together with $e(\rho,T,Y,x)$ and the derivatives needed by the primitive solver. Molecules, degeneracy, Coulomb corrections, radiation pairs and relativistic temperatures replace (12)–(13) with a table or free-energy model. Deriving every returned quantity from one Helmholtz, Gibbs or internal-energy potential enforces the corresponding Maxwell identities and prevents inconsistent pressure, energy and sound speed.
 
 ### 2.4 Shock jump conditions
 
@@ -252,6 +293,24 @@ $$
 \right]>0
 \quad(M_1>1).}
 \tag{20}
+
+For a general EOS the admissibility condition is the entropy inequality
+
+$$
+\boxed{[\rho w s]\geq0}
+\tag{20a}
+$$
+
+for positive mass flux from state 1 to state 2. A viscous and conductive shock profile realizes the same condition through
+
+$$
+\rho T\frac{Ds}{Dt}
+=\tau:\nabla u+\frac{k_T}{T}|\nabla T|^2
++T\dot s_{\rm chem}\geq0,
+\tag{20b}
+$$
+
+where a thermodynamically consistent reaction network has $\dot s_{\rm chem}\geq0$. This regularization supplies entropy production while its stress and heat flux remain inside the conservative momentum and energy equations.
 $$
 
 Radiative shocks use total fluxes. In the shock frame, $P_{\gamma,nn}$ joins the normal momentum flux and $F_{\gamma,n}$ joins the energy flux:
@@ -541,15 +600,19 @@ $$
 \tag{48}
 $$
 
-Bound-free absorption uses
+Bound-free coefficients are evaluated constitutive inputs rather than an algebraic Cassi closure. Write
 
 $$
-\alpha_\nu^{\rm bf}=\sum_i n_i\sigma_i(\nu)
-\left[1-\text{stimulated-recombination correction}\right].
+\boxed{
+\left(\eta_\nu^{\rm bf},\alpha_\nu^{\rm bf}\right)
+:=\mathcal C_\nu^{\rm bf}
+\!\left(T,n_e,\{n_i\};\mathcal D_{\rm bf}\right),}
 \tag{49}
 $$
 
-Free-free absorption, electron scattering and dust require their own temperature, density, composition and wavelength dependence. The Planck mean governs LTE emission and absorption; the Rosseland mean governs optically thick diffusion. Strong lines require explicit frequency groups or profile-aware transport because a gray mean erases their color and self-absorption.
+where $\mathcal D_{\rm bf}$ contains versioned photoionization cross-sections, recombination coefficients, threshold energies, statistical weights, continuum normalization and uncertainty metadata. Its direct photoabsorption contribution is $\sum_i n_i\sigma_i(\nu)$. The inverse spontaneous and stimulated recombination terms come from the same data and detailed-balance convention; in LTE they must satisfy $\eta_\nu^{\rm bf}/\alpha_\nu^{\rm bf}=B_\nu(T)$ wherever $\alpha_\nu^{\rm bf}>0$.
+
+Free-free absorption, electron scattering and dust likewise require evaluated temperature, density, composition and wavelength dependence. The Planck mean governs LTE emission and absorption; the Rosseland mean governs optically thick diffusion. Strong lines require explicit frequency groups or profile-aware transport because a gray mean erases their color and self-absorption.
 
 ### 4.4 Required atomic-data record
 
@@ -564,6 +627,7 @@ A production data record contains the quantities that the rate and transfer equa
 | Bound-free transition | threshold, photoionization cross-section, recombination data | (27), (35)–(37), (49) |
 | Broadening | radiative, Stark, pressure and adopted microturbulent widths | (44)–(46) |
 | Continuum response | free-free Gaunt factors, electron-scattering model, molecular or dust coefficients | (47), (48) |
+| Nuclear reaction | reactant and product identifiers, nuclear masses, rate fit and validity range, screening rule, branching fractions and neutrino energy | (51)–(54) |
 | Provenance | database version, source reference, units, interpolation rule and uncertainty flag | reproducibility |
 
 Hydrogen line transport must include the relevant H I bound levels, H II continuum, recombination cascades and collisional transitions. H$\alpha$ requires the $n=3$ and $n=2$ manifolds plus the paths that populate them. Oxygen-rich nebular transport must carry the relevant oxygen ion stages and metastable levels. The [O III] 495.9 nm and 500.7 nm lines arise from the $^1D_2$ level and are collisionally excited; their density response depends on radiative decay competing with collisional de-excitation. For an upper level $u$,
@@ -829,7 +893,14 @@ $$
 
 Positive $I_{gm}$ guarantees $E_g\geq0$, $P_g\succeq0$, $\operatorname{tr}P_g=E_g$ and $|F_g|\leq c_\gamma E_g$.
 
-For coefficients held within group $g$, the multi-angle transfer equation is
+Use the monochromatic transfer convention
+
+$$
+\frac1{c_\gamma}\partial_t I_\nu+n\cdot\nabla I_\nu
+=\eta_\nu-\alpha_\nu I_\nu,
+$$
+
+with $[I_\nu]={\rm energy}\,{\rm time}^{-1}{\rm area}^{-1}{\rm sr}^{-1}{\rm Hz}^{-1}$, $[\eta_\nu]=[I_\nu]\,{\rm length}^{-1}$ and $[\alpha_\nu]={\rm length}^{-1}$. Group-integrated $I_{gm}$ and $B_g$ have the corresponding units after frequency integration. For coefficients held within group $g$, the multi-angle transfer equation is
 
 $$
 \boxed{
@@ -843,7 +914,17 @@ $$
 \tag{72}
 $$
 
-where $B_g=\int_gB_\nu\,d\nu$ under the chosen intragroup convention. The discrete phase function obeys
+where $B_g=\int_gB_\nu\,d\nu$ under the chosen intragroup convention. With $E_g^{\rm eq}:=4\pi B_g/c_\gamma$, the weighted angular sum fixes the energy-source normalization:
+
+$$
+\boxed{
+\partial_tE_g+\nabla\cdot F_g
+=c_\gamma\alpha_g^{\rm a}
+\left(E_g^{\rm eq}-E_g\right).}
+\tag{72a}
+$$
+
+Equivalently, the monochromatic isotropic source is $4\pi\eta_\nu-c_\gamma\alpha_\nu E_\nu$. The material source is its exact negative, $\mathcal Q_{{\rm rad},g}=c_\gamma\alpha_g^{\rm a}(E_g-E_g^{\rm eq})$, which matches (11). The discrete phase function obeys
 
 $$
 \boxed{\sum_mw_mp_{g,mm'}=1\quad\text{for every }m'.}
@@ -920,6 +1001,7 @@ $$
 =\text{constant}.}
 \tag{78}
 $$
+Here $E_m$ and each $E_g$ are volume energy densities, $\rho\Phi/2$ is the self-gravitational energy density, and $E_{\rm nuclear\ rest}$ is the domain-integrated nuclear rest-energy reservoir. Every term in $\mathcal E_{\rm tot}$ is therefore extensive after the displayed volume integrations.
 
 If nuclear rest energy is converted through (53), $E_{\rm nuclear\ rest}$ decreases by the same gross amount deposited into matter and radiation. For an open domain, boundary fluxes and neutrino escape explain the complete change in (78).
 
@@ -984,11 +1066,24 @@ checks**. It verifies symbolic pressure-work reduction, exact normal-shock
 fluxes, primitive recovery, finite population-generator conservation and
 positivity, LTE line balance, bound-free energy partition, virial and
 source-reservoir ledgers, angular realizability, isotropic scattering and two
-axis-aligned beams that cross in one cell and continue independently. The
-result **SUPPORTS** the conditional closure at reference-kernel level.
-Production finite-volume convergence, atomic and nuclear data qualification,
-general angular convergence, a physical Cassi material map and CassiCosmos
-integration remain open.
+axis-aligned beams that cross in one cell and continue independently.
+Its source-bound receipt is
+`runs/compressible_radiative_plasma_sealed/verification.json`.
+
+The separate fixed integrity qualification in
+`computations/compressible-radiative-plasma-integrity-prereg.md` passes **25 of
+25 checks**. It verifies conservative-state packing and recovery, the
+thermodynamic identities, invalid-state rejection, line-input admissibility,
+line and photoionization energy cancellation, normalized transfer sources,
+stellar control-volume reconstruction, nuclear conservation and the
+`INCONCLUSIVE` classification of missing scientific prerequisites. Its
+source-bound receipt is
+`runs/compressible_radiative_plasma_integrity_sealed/verification.json`.
+
+Together these results **SUPPORT** the conditional closure at reference-kernel
+level. Production finite-volume convergence, atomic and nuclear data
+qualification, general angular convergence, a physical Cassi material map and
+CassiCosmos integration remain open.
 
 ### 9.3 Constitutive inputs
 
@@ -1017,6 +1112,8 @@ The physical mapping from the Cassi field and particle state to baryonic mass, c
 - `computations/compressible-radiative-plasma-prereg.md`—fixed symbolic, EOS, shock, population, source-ledger and angular controls
 - `computations/compressible_radiative_plasma.py`—reference EOS, shock, population, line, stellar-source and discrete-ordinates kernels
 - `computations/verify_compressible_radiative_plasma.py`—70-check source-snapshotted verifier
+- `computations/compressible-radiative-plasma-integrity-prereg.md`—fixed 25-check state, exchange, ledger and prerequisite qualification
+- `computations/verify_compressible_radiative_plasma_integrity.py`—source-bound integrity qualification verifier
 - D. Mihalas and B. Weibel-Mihalas, *Foundations of Radiation Hydrodynamics*—compressible radiation hydrodynamics and moving-frame transfer
 - R. J. LeVeque, *Finite Volume Methods for Hyperbolic Problems*—conservative weak solutions and shock-capturing finite-volume methods
 - G. B. Rybicki and A. P. Lightman, *Radiative Processes in Astrophysics*—Einstein coefficients, line transfer and continuum processes
@@ -1025,6 +1122,7 @@ The physical mapping from the Cassi field and particle state to baryonic mass, c
 - [CHIANTI atomic database](https://www.chiantidatabase.org/)—level-resolved radiative and collisional data for astrophysical plasmas
 - W. Cunto, C. Mendoza, F. Ochsenbein and C. J. Zeippen, *TOPbase at the CDS*, Astronomy & Astrophysics **275**, L5–L8 (1993)—Opacity Project levels, oscillator strengths and photoionization cross-sections
 - M. J. Seaton, Y. Yan, D. Mihalas and A. K. Pradhan, [Opacity Project systematic atomic calculations](https://doi.org/10.1093/mnras/266.4.805)—atomic opacity calculations underlying TOPbase
+- [JINA REACLIB](https://reaclib.jinaweb.org/)—versioned thermonuclear reaction-rate fits and provenance
 - C. Iliadis, *Nuclear Physics of Stars*—reaction networks, mass defects and stellar energy generation
 - R. Kippenhahn, A. Weigert and A. Weiss, *Stellar Structure and Evolution*—virial, contraction, nuclear and transport ledgers
 - B. G. Carlson, [Discrete-ordinates quadrature over the unit sphere](https://www.osti.gov/biblio/4083770)—symmetric angular quadrature

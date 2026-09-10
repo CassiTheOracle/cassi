@@ -300,8 +300,12 @@ quadrature weights and grid sizes are **N-class verification inputs** or
 external constitutive data according to use. A physical application must
 version its EOS, species, atomic, opacity and nuclear datasets and declare its
 unit normalization. The fixed 70-check result establishes algebraic,
-conservative and angular properties under those inputs; it supplies no
-calibration from $(E_Y,E_I,q)$ and leaves the 47-parameter count unchanged.
+conservative and angular properties under those inputs. The separate 25-check
+integrity qualification establishes the conservative-state and thermodynamic
+identities, input rejection boundaries, exchange cancellation, complete
+stellar and nuclear accounting, and missing-prerequisite classification. The
+extension supplies no calibration from $(E_Y,E_I,q)$ and leaves the
+47-parameter count unchanged.
 
 ### 3.4 Summary: What These Parameters ACTUALLY Are
 

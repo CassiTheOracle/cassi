@@ -1431,11 +1431,15 @@ subcycling.
 conservative compressible momentum and energy, pressure work, shocks, finite
 species and level populations, line and continuum coefficients, finite
 gravitational, accretion and nuclear energy sources, and multi-angle transfer
-for crossing beams. Its source-snapshotted schedule passes **70 of 70 checks**.
-Together the branches close conditional simulation equations once
-constitutive data are supplied. The physical $(E_Y,E_I,q)$-to-baryonic-state
-map, chemical identity, evaluated atomic and nuclear tables, initial source
-history and production CassiCosmos implementation remain open.
+for crossing beams. Its source-snapshotted schedule passes **70 of 70 checks**,
+and its separate integrity qualification passes **25 of 25 checks** across
+conservative-state recovery, thermodynamic identities, rejection boundaries,
+matter–radiation exchange cancellation, stellar and nuclear ledgers, and
+missing-prerequisite classification. Together the branches close conditional
+simulation equations once constitutive data are supplied. The physical
+$(E_Y,E_I,q)$-to-baryonic-state map, chemical identity, evaluated atomic and
+nuclear tables, initial source history and production CassiCosmos
+implementation remain open.
 
 The registered interscale-current construction consists of a separately
 normalized scale-coordinate Yang/Yin doublet with exact total and relative

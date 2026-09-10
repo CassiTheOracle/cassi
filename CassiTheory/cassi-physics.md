@@ -875,9 +875,13 @@ beams can therefore have $F_g=0$ while retaining an anisotropic pressure
 tensor, and intersecting beams continue on separate characteristics. Its
 fixed source-snapshotted verifier passes **70 of 70 checks** across the EOS,
 shocks, populations, line balance, energy sources, quadrature moments,
-scattering and a crossing-beam stream. A selected chemical identity, atomic
-and nuclear tables, physical units, initial source history, production
-finite-volume solver and CassiCosmos implementation remain external or open.
+scattering and a crossing-beam stream. A separate source-bound integrity
+qualification passes **25 of 25 checks** across conservative-state and
+thermodynamic identities, rejection boundaries, exchange cancellation, the
+complete stellar ledger, nuclear conservation and missing-prerequisite
+classification. A selected chemical identity, atomic and nuclear tables,
+physical units, initial source history, production finite-volume solver and
+CassiCosmos implementation remain external or open.
 
 The listed correspondences are the framework's scale-assignment hypothesis. The Planck length is the external dimensionful anchor supplied to this model; the $\varphi$ recurrence supplies dimensionless ratios and does not by itself derive physical dimensionality or force unification.
 

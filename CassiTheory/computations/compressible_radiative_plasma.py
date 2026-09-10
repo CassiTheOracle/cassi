@@ -28,6 +28,14 @@ class GasState:
 
 
 @dataclass(frozen=True)
+class ConservativeMaterialState:
+    density: float
+    momentum: np.ndarray
+    total_energy: float
+    species_densities: np.ndarray
+    level_populations: np.ndarray
+
+@dataclass(frozen=True)
 class ShockState:
     rho: float
     pressure: float
@@ -46,6 +54,13 @@ def _finite_positive(name: str, value: float) -> float:
     result = float(value)
     if not math.isfinite(result) or result <= 0.0:
         raise ValueError(f"{name} must be finite and positive")
+    return result
+
+
+def _finite_nonnegative(name: str, value: float) -> float:
+    result = float(value)
+    if not math.isfinite(result) or result < 0.0:
+        raise ValueError(f"{name} must be finite and nonnegative")
     return result
 
 
@@ -98,6 +113,52 @@ def ideal_level_gas(
         total_energy=internal + kinetic,
         temperature=temp,
     )
+
+
+def conservative_material_state(
+    rho: float,
+    velocity: np.ndarray | Iterable[float],
+    specific_internal_energy: float,
+    mass_fractions: np.ndarray | Iterable[float],
+    level_populations: np.ndarray | Iterable[float],
+    *,
+    fraction_tolerance: float = 1.0e-12,
+) -> ConservativeMaterialState:
+    """Pack rho, rho*u, rho*E, rho*Y_s and n_sℓ after admissibility checks."""
+    density = _finite_positive("rho", rho)
+    internal = _finite_positive("specific internal energy", specific_internal_energy)
+    tolerance = _finite_positive("fraction tolerance", fraction_tolerance)
+    flow = np.asarray(velocity, dtype=np.float64)
+    fractions = np.asarray(mass_fractions, dtype=np.float64)
+    levels = np.asarray(level_populations, dtype=np.float64)
+    if flow.ndim != 1 or flow.size == 0 or not np.all(np.isfinite(flow)):
+        raise ValueError("velocity must be a finite nonempty vector")
+    if fractions.ndim != 1 or fractions.size == 0:
+        raise ValueError("mass fractions must be a nonempty vector")
+    if not np.all(np.isfinite(fractions)) or np.any(fractions < 0.0):
+        raise ValueError("mass fractions must be finite and nonnegative")
+    if abs(float(np.sum(fractions)) - 1.0) > tolerance:
+        raise ValueError("mass fractions must sum to one")
+    if levels.ndim != 1 or not np.all(np.isfinite(levels)) or np.any(levels < 0.0):
+        raise ValueError("level populations must be a finite nonnegative vector")
+    momentum = density * flow
+    total = density * (internal + 0.5 * float(np.dot(flow, flow)))
+    return ConservativeMaterialState(
+        density=density,
+        momentum=momentum,
+        total_energy=total,
+        species_densities=density * fractions,
+        level_populations=levels,
+    )
+
+
+def recover_internal_energy_density(state: ConservativeMaterialState) -> float:
+    """Recover rho*e from a validated conservative material state."""
+    kinetic = float(np.dot(state.momentum, state.momentum)) / (2.0 * state.density)
+    internal = state.total_energy - kinetic
+    if not math.isfinite(internal) or internal <= 0.0:
+        raise ValueError("conservative state has no positive internal energy")
+    return internal
 
 
 def recover_temperature(
@@ -297,8 +358,8 @@ def line_coefficients(
     light_speed: float = 1.0,
 ) -> tuple[float, float, float, float]:
     """Return emissivity, absorption, A_ul and B_lu for one line sample."""
-    n_l = float(lower_population)
-    n_u = float(upper_population)
+    n_l = _finite_nonnegative("lower population", lower_population)
+    n_u = _finite_nonnegative("upper population", upper_population)
     g_l = _finite_positive("lower statistical weight", lower_weight)
     g_u = _finite_positive("upper statistical weight", upper_weight)
     nu = _finite_positive("frequency", frequency)
@@ -306,8 +367,6 @@ def line_coefficients(
     phi = _finite_positive("line profile", profile)
     h = _finite_positive("planck", planck)
     c = _finite_positive("light speed", light_speed)
-    if min(n_l, n_u) < 0.0 or not math.isfinite(n_l + n_u):
-        raise ValueError("line populations must be finite and nonnegative")
     b_up = g_u * b_down / g_l
     a_down = 2.0 * h * nu**3 * b_down / c**2
     scale = h * nu * phi / (4.0 * math.pi)
@@ -327,12 +386,33 @@ def line_energy_exchange(
     *,
     planck: float = 1.0,
 ) -> tuple[float, float, float]:
-    intensity = float(mean_intensity)
-    if not math.isfinite(intensity) or intensity < 0.0:
-        raise ValueError("mean intensity must be finite and nonnegative")
-    transition_rate = upper_population * (a_ul + b_ul * intensity) - lower_population * b_lu * intensity
-    photon_gain = planck * frequency * transition_rate
+    n_l = _finite_nonnegative("lower population", lower_population)
+    n_u = _finite_nonnegative("upper population", upper_population)
+    intensity = _finite_nonnegative("mean intensity", mean_intensity)
+    nu = _finite_positive("frequency", frequency)
+    a_down = _finite_positive("A_ul", a_ul)
+    b_down = _finite_positive("B_ul", b_ul)
+    b_up = _finite_positive("B_lu", b_lu)
+    h = _finite_positive("planck", planck)
+    transition_rate = n_u * (a_down + b_down * intensity) - n_l * b_up * intensity
+    photon_gain = h * nu * transition_rate
     return transition_rate, -photon_gain, photon_gain
+
+
+def isotropic_transfer_energy_source(
+    emissivity: float,
+    extinction: float,
+    radiation_energy: float,
+    *,
+    light_speed: float = 1.0,
+) -> tuple[float, float]:
+    """Return radiation and material energy sources for isotropic eta-alpha transfer."""
+    eta = _finite_nonnegative("emissivity", emissivity)
+    alpha = _finite_nonnegative("extinction", extinction)
+    energy = _finite_nonnegative("radiation energy", radiation_energy)
+    c = _finite_positive("light speed", light_speed)
+    radiation_source = 4.0 * math.pi * eta - c * alpha * energy
+    return radiation_source, -radiation_source
 
 
 def photoionization_partition(
@@ -447,6 +527,68 @@ def nuclear_reaction_power(
     sources = nu * rate
     power = -c**2 * float(np.dot(mass, sources))
     return sources, power, float(np.dot(baryon, sources)), float(np.dot(charge, sources))
+
+
+def control_volume_energy_residual(
+    photon_luminosity: float,
+    neutrino_luminosity: float,
+    mechanical_outflow: float,
+    external_power: float,
+    gross_nuclear_power: float,
+    matter_energy_inflow: float,
+    stored_energy_rate: float,
+) -> float:
+    """Evaluate L_gamma+L_nu+E_mech,out-P_ext-L_nuc-E_matter,in+dE_stored/dt."""
+    photon = _finite_nonnegative("photon luminosity", photon_luminosity)
+    neutrino = _finite_nonnegative("neutrino luminosity", neutrino_luminosity)
+    mechanical = _finite_nonnegative("mechanical outflow", mechanical_outflow)
+    nuclear = _finite_nonnegative("gross nuclear power", gross_nuclear_power)
+    matter_in = _finite_nonnegative("matter energy inflow", matter_energy_inflow)
+    external = float(external_power)
+    stored = float(stored_energy_rate)
+    if not math.isfinite(external) or not math.isfinite(stored):
+        raise ValueError("external power and stored-energy rate must be finite")
+    return photon + neutrino + mechanical - external - nuclear - matter_in + stored
+
+
+def require_control_volume_energy_balance(
+    photon_luminosity: float,
+    neutrino_luminosity: float,
+    mechanical_outflow: float,
+    external_power: float,
+    gross_nuclear_power: float,
+    matter_energy_inflow: float,
+    stored_energy_rate: float,
+    *,
+    tolerance: float = 1.0e-12,
+) -> float:
+    """Return the residual or reject a source ledger outside scaled tolerance."""
+    tol = _finite_positive("energy-balance tolerance", tolerance)
+    residual = control_volume_energy_residual(
+        photon_luminosity,
+        neutrino_luminosity,
+        mechanical_outflow,
+        external_power,
+        gross_nuclear_power,
+        matter_energy_inflow,
+        stored_energy_rate,
+    )
+    scale = max(
+        1.0,
+        abs(float(photon_luminosity))
+        + abs(float(neutrino_luminosity))
+        + abs(float(mechanical_outflow))
+        + abs(float(external_power))
+        + abs(float(gross_nuclear_power))
+        + abs(float(matter_energy_inflow))
+        + abs(float(stored_energy_rate)),
+    )
+    if abs(residual) > tol * scale:
+        raise ValueError(
+            f"control-volume energy residual {residual:.17g} exceeds "
+            f"scaled tolerance {tol * scale:.17g}"
+        )
+    return residual
 
 
 def radiative_temperature_gradient(

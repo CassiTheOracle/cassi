@@ -298,7 +298,7 @@ Use dimensionless $G=M=c_\gamma=1$, $\alpha_G=3/5$, $R_i=2$, $R_f=1$ and $L=0.03
 For accretion use $\dot M=0.04$, $R=0.8$ and efficiencies
 $\eta_{\rm acc}\in\{0,0.2,0.7,1\}$. Partition the released power into radiation $\eta_{\rm acc}GM\dot M/R$ and retained power $(1-\eta_{\rm acc})GM\dot M/R$; require exact reconstruction within $2\times10^{-14}$.
 
-For a fixed reaction $4X\to Y$ use baryon numbers $(1,4)$, charges $(1,4)$, masses $(1.01,4.0)$ and event rates $(0,10^{-6},0.2)$. Require baryon and charge residuals below $10^{-14}$ and positive mass-defect power equal to $0.04\mathcal R$ in the selected units.
+For a fixed reaction $4X\to Y$ use baryon numbers $(1,4)$, charges $(1,4)$, masses $(1.01,4.0)$ and event rates $(0,10^{-6},0.2)$. Require baryon and charge residuals below $10^{-14}$ and nonnegative mass-defect power equal to $0.04\mathcal R$ in the selected units: zero at $\mathcal R=0$ and strictly positive at both positive rates.
 
 For the diffusion gradient use $a_R=0.8$, $c_\gamma=3$, $\kappa_R=0.4$, $\rho=1.2$, $r=2.3$, $T=1.7$ and $L=0.6$. Independently compute the flux from the displayed temperature gradient and require $4\pi r^2F_r=L$ to relative error $2\times10^{-14}$.
 
@@ -336,7 +336,7 @@ $|a-b|/\max(1,|b|)$ unless a check explicitly normalizes by another scale. Symbo
 
 The verifier refuses an existing output, manifest or source-snapshot directory. It snapshots and hashes this preregistration, the derivation document, the reference kernel and the verifier before executing any scientific control.
 
-The result is `PASS` only when every fixed check succeeds. Its scientific classification is `SUPPORTS-conditional compressible radiative-plasma closure`. Any failed identity, conservation check, positivity check, rejection control or source-integrity prerequisite gives `FAIL`. A missing numerical dependency or source-read failure gives `INCONCLUSIVE` and stops interpretation.
+The result is `PASS` only when every fixed scientific check succeeds. Its scientific classification is `SUPPORTS-conditional compressible radiative-plasma closure`. A failed identity, conservation check, positivity check or rejection control gives `FAIL`. A missing numerical dependency or source-read failure produces a source-bound `INCONCLUSIVE` receipt and stops interpretation.
 
 A passing result supports the displayed conditional equations and reference kernels at the fixed controls. It does not establish a Cassi material map, physical element abundances, atomic or nuclear data accuracy, a production shock solver, general angular convergence, stellar evolution or a live CassiCosmos implementation.
 
@@ -344,7 +344,7 @@ Run once from the CassiTheory root:
 
 ```text
 python computations/verify_compressible_radiative_plasma.py \
-  --output runs/compressible_radiative_plasma/verification.json
+  --output runs/compressible_radiative_plasma_sealed/verification.json
 ```
 
 ## References

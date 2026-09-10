@@ -5,43 +5,67 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib
 import json
 import math
-import shutil
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 
-import numpy as np
-import sympy as sp
+np: Any = None
+sp: Any = None
 
-from compressible_radiative_plasma import (
-    accretion_partition,
-    angular_moments,
-    axis_quadrature,
-    boltzmann_distribution,
-    critical_density,
-    detailed_balance_generator,
-    evolve_populations,
-    ideal_level_gas,
-    isotropic_scattering_step,
-    kelvin_helmholtz_release,
-    line_coefficients,
-    line_energy_exchange,
-    normal_shock,
-    nuclear_reaction_power,
-    periodic_axis_shift,
-    photoionization_partition,
-    planck_intensity,
-    radiative_temperature_gradient,
-    recover_temperature,
-    shock_entropy_increment,
-    shock_fluxes,
-    two_level_lte_populations,
-    validate_quadrature,
-    virial_star_energy,
+SCIENTIFIC_EXPORTS = (
+    "accretion_partition",
+    "angular_moments",
+    "axis_quadrature",
+    "boltzmann_distribution",
+    "control_volume_energy_residual",
+    "critical_density",
+    "detailed_balance_generator",
+    "evolve_populations",
+    "ideal_level_gas",
+    "isotropic_scattering_step",
+    "kelvin_helmholtz_release",
+    "line_coefficients",
+    "line_energy_exchange",
+    "normal_shock",
+    "nuclear_reaction_power",
+    "periodic_axis_shift",
+    "photoionization_partition",
+    "planck_intensity",
+    "radiative_temperature_gradient",
+    "recover_temperature",
+    "require_control_volume_energy_balance",
+    "shock_entropy_increment",
+    "shock_fluxes",
+    "two_level_lte_populations",
+    "validate_quadrature",
+    "virial_star_energy",
 )
+
+
+def load_scientific_dependencies(
+    importer: Callable[[str], Any] = importlib.import_module,
+) -> dict[str, str]:
+    """Load optional numerical dependencies inside the evidence-producing run."""
+    loaded_np = importer("numpy")
+    loaded_sp = importer("sympy")
+    kernel = importer("compressible_radiative_plasma")
+    for name in SCIENTIFIC_EXPORTS:
+        if not hasattr(kernel, name):
+            raise ImportError(f"compressible_radiative_plasma has no export {name!r}")
+    global np, sp
+    np = loaded_np
+    sp = loaded_sp
+    for name in SCIENTIFIC_EXPORTS:
+        globals()[name] = getattr(kernel, name)
+    return {
+        "numpy": str(loaded_np.__version__),
+        "sympy": str(loaded_sp.__version__),
+        "scipy": str(importer("scipy").__version__),
+    }
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -113,9 +137,9 @@ def json_value(value: Any) -> Any:
         return {str(key): json_value(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
         return [json_value(item) for item in value]
-    if isinstance(value, np.ndarray):
+    if np is not None and isinstance(value, np.ndarray):
         return json_value(value.tolist())
-    if isinstance(value, np.generic):
+    if np is not None and isinstance(value, np.generic):
         return json_value(value.item())
     if isinstance(value, float) and not math.isfinite(value):
         raise ValueError("receipt contains a nonfinite value")
@@ -130,7 +154,7 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def prepare_evidence(output: Path) -> tuple[Path, Path, dict[str, dict[str, Any]]]:
+def evidence_paths(output: Path) -> tuple[Path, Path, Path]:
     target = output.resolve()
     if ROOT != target and ROOT not in target.parents:
         raise ValueError("output must remain inside the CassiTheory root")
@@ -139,20 +163,32 @@ def prepare_evidence(output: Path) -> tuple[Path, Path, dict[str, dict[str, Any]
     for path in (target, manifest_path, snapshot_root):
         if path.exists():
             raise FileExistsError(f"refusing existing evidence path: {path}")
+    return target, manifest_path, snapshot_root
+
+
+def prepare_evidence(
+    output: Path,
+    source_paths: Iterable[Path] = SOURCE_PATHS,
+) -> tuple[Path, Path, dict[str, dict[str, Any]]]:
+    target, manifest_path, snapshot_root = evidence_paths(output)
+    payloads: dict[Path, bytes] = {}
+    for relative in source_paths:
+        payloads[relative] = (ROOT / relative).read_bytes()
+
     target.parent.mkdir(parents=True, exist_ok=True)
     snapshot_root.mkdir()
     manifest: dict[str, dict[str, Any]] = {}
-    for relative in SOURCE_PATHS:
-        source = ROOT / relative
+    for relative, payload in payloads.items():
         destination = snapshot_root / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(source, destination)
+        destination.write_bytes(payload)
+        digest = hashlib.sha256(payload).hexdigest()
         manifest[relative.as_posix()] = {
             "path": relative.as_posix(),
             "snapshot": destination.relative_to(ROOT).as_posix(),
-            "bytes": source.stat().st_size,
-            "sha256": sha256(source),
-            "snapshot_sha256": sha256(destination),
+            "bytes": len(payload),
+            "sha256": digest,
+            "snapshot_sha256": digest,
         }
     manifest_path.write_text(
         json.dumps(
@@ -289,6 +325,19 @@ def eos_controls(book: CheckBook) -> dict[str, Any]:
     return {"cases": cases, "maximum_temperature_error": maximum_error}
 
 
+def require_normalized_match(
+    actual: float,
+    expected: float,
+    *,
+    tolerance: float,
+) -> None:
+    residual = abs(actual - expected) / max(1.0, abs(expected))
+    if residual > tolerance:
+        raise ValueError(
+            f"normalized residual {residual:.17g} exceeds tolerance {tolerance:.17g}"
+        )
+
+
 def shock_controls(book: CheckBook) -> dict[str, Any]:
     rows: list[dict[str, float]] = []
     maximum_residual = 0.0
@@ -329,11 +378,13 @@ def shock_controls(book: CheckBook) -> dict[str, Any]:
     bad_energy_1 = upstream.rho * upstream.velocity * 0.5 * upstream.velocity**2
     bad_energy_2 = downstream.rho * downstream.velocity * 0.5 * downstream.velocity**2
     bad_residual = abs(bad_energy_2 - bad_energy_1) / max(1.0, abs(bad_energy_1))
-    book.add(
+    book.rejected(
         "shock.reject_missing_enthalpy",
-        bad_residual > 1.0e-2,
-        normalized_residual=bad_residual,
-        strict_lower_bound=1.0e-2,
+        lambda: require_normalized_match(
+            bad_energy_2,
+            bad_energy_1,
+            tolerance=1.0e-2,
+        ),
     )
     return {
         "rows": rows,
@@ -598,14 +649,33 @@ def stellar_controls(book: CheckBook) -> dict[str, Any]:
     destinations = np.asarray([0.73, 0.19, 0.08])
     gross_nuclear = float(reservoirs[2])
     neutrino_loss = float(destinations[2])
+    stored_energy_rate = -float(reservoirs[0] + reservoirs[1])
+    matter_energy_inflow = float(reservoirs[3])
     available = float(np.sum(reservoirs))
     accounted = float(np.sum(destinations))
-    ledger_error = abs(available - accounted)
-    net_nuclear_misdefinition = gross_nuclear - neutrino_loss
-    malformed_available = (
-        available - gross_nuclear + net_nuclear_misdefinition
+    ledger_error = abs(
+        control_volume_energy_residual(
+            photon_luminosity=float(destinations[0]),
+            neutrino_luminosity=neutrino_loss,
+            mechanical_outflow=float(destinations[1]),
+            external_power=0.0,
+            gross_nuclear_power=gross_nuclear,
+            matter_energy_inflow=matter_energy_inflow,
+            stored_energy_rate=stored_energy_rate,
+        )
     )
-    double_count_residual = abs(accounted - malformed_available)
+    net_nuclear_misdefinition = gross_nuclear - neutrino_loss
+    double_count_residual = abs(
+        control_volume_energy_residual(
+            photon_luminosity=float(destinations[0]),
+            neutrino_luminosity=neutrino_loss,
+            mechanical_outflow=float(destinations[1]),
+            external_power=0.0,
+            gross_nuclear_power=net_nuclear_misdefinition,
+            matter_energy_inflow=matter_energy_inflow,
+            stored_energy_rate=stored_energy_rate,
+        )
+    )
     book.add(
         "stellar.complete_energy_ledger",
         ledger_error <= 2.0e-14 and double_count_residual > 1.0e-2,
@@ -618,11 +688,18 @@ def stellar_controls(book: CheckBook) -> dict[str, Any]:
         net_nuclear_double_count_residual=double_count_residual,
         strict_double_count_lower_bound=1.0e-2,
     )
-    book.add(
+    book.rejected(
         "stellar.reject_overdrawn_luminosity",
-        1.01 > float(np.sum(reservoirs)),
-        requested=1.01,
-        available=float(np.sum(reservoirs)),
+        lambda: require_control_volume_energy_balance(
+            photon_luminosity=1.01,
+            neutrino_luminosity=0.0,
+            mechanical_outflow=0.0,
+            external_power=0.0,
+            gross_nuclear_power=gross_nuclear,
+            matter_energy_inflow=matter_energy_inflow,
+            stored_energy_rate=stored_energy_rate,
+            tolerance=2.0e-14,
+        ),
     )
     return {
         "virial_residual": virial_residual,
@@ -788,14 +865,76 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> int:
-    args = parse_args()
-    output = args.output if args.output.is_absolute() else ROOT / args.output
+def write_json_receipt(target: Path, receipt: dict[str, Any]) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        json.dumps(json_value(receipt), indent=2, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def write_inconclusive_receipt(
+    target: Path,
+    *,
+    stage: str,
+    error: Exception,
+    manifest_path: Path | None = None,
+    sources: dict[str, dict[str, Any]] | None = None,
+) -> int:
+    message = f"{type(error).__name__}: {error}"
+    receipt = {
+        "schema": SCHEMA,
+        "status": "INCONCLUSIVE",
+        "scientific_classification": "INCONCLUSIVE",
+        "checks": {"passed": 0, "total": 0, "failed": [], "items": {}},
+        "results": {},
+        "input_manifest": (
+            manifest_path.relative_to(ROOT).as_posix()
+            if manifest_path is not None
+            else None
+        ),
+        "sources": sources or {},
+        "error": message,
+        "prerequisite_stage": stage,
+    }
+    write_json_receipt(target, receipt)
+    print(f"COMPRESSIBLE RADIATIVE PLASMA RESULT: INCONCLUSIVE ({stage})")
+    print(f"receipt: {target.relative_to(ROOT).as_posix()}")
+    print(f"prerequisite error: {message}", file=sys.stderr)
+    return 2
+
+
+def run_verification(
+    output: Path,
+    *,
+    source_paths: Iterable[Path] = SOURCE_PATHS,
+    dependency_loader: Callable[[], dict[str, str]] = load_scientific_dependencies,
+) -> int:
     try:
-        target, manifest_path, sources = prepare_evidence(output)
+        target, _, _ = evidence_paths(output)
     except Exception as exc:
-        print(f"EVIDENCE PREREQUISITE FAILED: {type(exc).__name__}: {exc}", file=sys.stderr)
+        print(f"EVIDENCE PATH FAILED: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
+
+    try:
+        target, manifest_path, sources = prepare_evidence(output, source_paths)
+    except Exception as exc:
+        return write_inconclusive_receipt(
+            target,
+            stage="source-read",
+            error=exc,
+        )
+
+    try:
+        dependencies = dependency_loader()
+    except Exception as exc:
+        return write_inconclusive_receipt(
+            target,
+            stage="scientific-dependencies",
+            error=exc,
+            manifest_path=manifest_path,
+            sources=sources,
+        )
 
     book = CheckBook()
     results: dict[str, Any] = {}
@@ -832,6 +971,7 @@ def main() -> int:
         "results": results,
         "input_manifest": manifest_path.relative_to(ROOT).as_posix(),
         "sources": sources,
+        "dependencies": dependencies,
         "error": error,
         "scope": {
             "supported": [
@@ -853,10 +993,7 @@ def main() -> int:
             ],
         },
     }
-    target.write_text(
-        json.dumps(json_value(receipt), indent=2, sort_keys=True, allow_nan=False) + "\n",
-        encoding="utf-8",
-    )
+    write_json_receipt(target, receipt)
     print(
         f"COMPRESSIBLE RADIATIVE PLASMA RESULT: {status} "
         f"({passed_count}/{total_count} checks)"
@@ -865,6 +1002,12 @@ def main() -> int:
     if book.failed:
         print("failed checks: " + ", ".join(book.failed))
     return 0 if status == "PASS" else 1
+
+
+def main() -> int:
+    args = parse_args()
+    output = args.output if args.output.is_absolute() else ROOT / args.output
+    return run_verification(output)
 
 
 if __name__ == "__main__":
