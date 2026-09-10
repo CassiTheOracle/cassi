@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 """Independent verifier for the frozen conditional cascade-size normalization test.
 
-Protocol: ``computations/matter-formation-cascade-size-prereg.md`` (§§2-7).
+Protocol: ``computations/matter-formation-cascade-size-numerical-recovery-prereg.md``
+(§§2-7), which re-freezes only the numerical representation of
+``computations/matter-formation-cascade-size-prereg.md`` after the retained
+direct-F collocation floor documented in its §1. Every physical input,
+equation, scan point, threshold, comparison, gate, and verdict is unchanged.
 
 This program never imports or executes the primary
 ``computations/matter_formation_cascade_size.py``.  It reconstructs the entire
 calculation from its own numerics:
 
-* it solves directly for the massive chiral profile ``F`` with the
-  regular-origin boundary condition ``F(eps) - eps F'(eps) = pi``, ``F(L) = 0``,
-  using SciPy ``solve_bvp`` on separately constructed mixed linear/geometric
-  meshes, tolerance ``3e-9``, at most ``150000`` nodes;
+* it evolves the recovery collocation state ``theta = pi - F`` for the massive
+  chiral profile with the regular-origin boundary conditions ``theta(eps) -
+  eps*theta_x(eps) = 0`` and ``theta(L) = pi``, using SciPy ``solve_bvp`` on
+  separately constructed mixed linear/geometric meshes, tolerance ``3e-9``, at
+  most ``150000`` nodes; it evaluates the algebraically exact transformed
+  equation directly in ``theta_rhs`` and reconstructs ``F = pi - theta`` and
+  ``F_x = -theta_x`` before evaluating any observable;
 * every integral is evaluated by fixed 24-point Gauss-Legendre quadrature on
   every refined mesh panel over ``[eps, L]`` (regular-origin integrands vanish
   as ``O(x)`` or better, so the excluded ``[0, eps]`` segment is far below every
@@ -45,9 +52,9 @@ mass verdicts after the predictions are fixed.
 
 Usage:
     python computations/verify_matter_formation_cascade_size.py \
-        --input  runs/20260909_matter_formation_cascade_size \
-        --output runs/20260909_matter_formation_cascade_size_verification \
-        [--prereg computations/matter-formation-cascade-size-prereg.md]
+        --input  runs/20260909_matter_formation_cascade_size_recovery3 \
+        --output runs/20260909_matter_formation_cascade_size_verification_recovery3 \
+        [--prereg computations/matter-formation-cascade-size-numerical-recovery-prereg.md]
 
 Completed runs (including ``numerical_pass=false``) write
 ``verification.json`` and ``frozen_protocol.txt``, plus
@@ -79,8 +86,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = "cassi.matter-formation.cascade-size.verification.v1"
 PRIMARY_SCHEMA = "cassi.matter-formation.cascade-size.v1"
 
-DEFAULT_PREREG = ROOT / "computations" / "matter-formation-cascade-size-prereg.md"
-PREREG_REL = "computations/matter-formation-cascade-size-prereg.md"
+DEFAULT_PREREG = ROOT / "computations" / \
+    "matter-formation-cascade-size-numerical-recovery-prereg.md"
+PREREG_REL = "computations/matter-formation-cascade-size-numerical-recovery-prereg.md"
 PRIMARY_SOURCE_REL = "computations/matter_formation_cascade_size.py"
 OWN_SOURCE_REL = "computations/verify_matter_formation_cascade_size.py"
 REFERENCE_RECEIPT_REL = "runs/20260907_matter_formation_chiral_lattice/structure_recovery1/results.json"
@@ -365,7 +373,8 @@ def file_identity(path: Path) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Independent numerics: direct-F BVP, mixed mesh, fixed 24-point GL panels
+# Independent numerics: recovered theta=pi-F BVP state over the exact direct-F
+# RHS identity, mixed mesh, fixed 24-point GL panels
 # ---------------------------------------------------------------------------
 
 GL_NODES, GL_WEIGHTS = leggauss(GL_ORDER)
@@ -414,34 +423,53 @@ def stable_sin_pair(F: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return sinF, sin2F
 
 
-def profile_rhs(x: np.ndarray, F: np.ndarray, Fx: np.ndarray, mu: float) -> np.ndarray:
-    sinF, sin2F = stable_sin_pair(F)
+def theta_rhs(x: np.ndarray, theta: np.ndarray, theta_x: np.ndarray,
+              mu: float) -> np.ndarray:
+    """Algebraically exact transformed second derivative for theta = pi - F.
+
+    With a = sin(theta)/x and b = sin(2 theta)/x, the field equation gives
+
+        theta_xx = [2(b/2-theta_x) - b(theta_x-a)(theta_x+a)
+                    - mu^2 x sin(theta)] / [x(1+2a^2)].
+
+    Evaluating theta itself removes the lossy binary64 round trip
+    theta -> pi-theta -> pi-F at the regular origin. ``np.sinc`` evaluates
+    the removable sin(theta)/theta factors without dividing two small
+    independently rounded numbers. This is an algebraic representation of
+    the frozen equation only; no physical input or boundary datum changes.
+    """
+    u = theta / x
+    a = u * np.sinc(theta / math.pi)
+    b = 2.0 * u * np.sinc(2.0 * theta / math.pi)
     numerator = (
-        -2.0 * x * Fx
-        - sin2F * (Fx * Fx - 1.0 - sinF * sinF / (x * x))
-        + mu * mu * x * x * sinF
+        2.0 * (0.5 * b - theta_x)
+        - b * (theta_x - a) * (theta_x + a)
+        - mu * mu * x * np.sin(theta)
     )
-    denominator = x * x + 2.0 * sinF * sinF
-    return numerator / denominator
+    return numerator / (x * (1.0 + 2.0 * a * a))
 
 
 def solve_profile(mu: float, L: float) -> tuple[Any, dict[str, Any]]:
     mesh = initial_mesh(L)
-    # Regular standard hedgehog seed F(x)=pi-2*atan(x/a) (equiv. 2*atan(a/x)),
-    # fixed a=1/sqrt(2), independent of mu. The direct-F equation, mixed mesh,
-    # tolerance, and node budget remain the independently frozen verifier
-    # contract; no primary output or profile is used as a guess.
+    # Recovery §4: the collocation state is theta = pi - F. The seed is the
+    # regular standard hedgehog in theta form, theta(x) = 2*atan(x/a) with
+    # fixed a = 1/sqrt(2), independent of mu; no primary output or profile is
+    # used as a guess. The mixed mesh, tolerance, and node budget remain the
+    # independently frozen verifier contract. theta_rhs evaluates the exact
+    # transformed field equation without reconstructing F inside the
+    # collocation residual. The BCs below are the frozen F-boundary data under
+    # F = pi - theta.
     hedgehog_a = 1.0 / math.sqrt(2.0)
     y_guess = np.vstack((
-        math.pi - 2.0 * np.arctan(mesh / hedgehog_a),
-        -2.0 * hedgehog_a / (mesh * mesh + hedgehog_a * hedgehog_a),
+        2.0 * np.arctan(mesh / hedgehog_a),
+        2.0 * hedgehog_a / (mesh * mesh + hedgehog_a * hedgehog_a),
     ))
 
     def fun(x: np.ndarray, y: np.ndarray) -> np.ndarray:
-        return np.vstack((y[1], profile_rhs(x, y[0], y[1], mu)))
+        return np.vstack((y[1], theta_rhs(x, y[0], y[1], mu)))
 
     def bc(ya: np.ndarray, yb: np.ndarray) -> np.ndarray:
-        return np.array([ya[0] - EPS * ya[1] - math.pi, yb[0]])
+        return np.array([ya[0] - EPS * ya[1], yb[0] - math.pi])
 
     diag: dict[str, Any] = {"status": -1, "message": "", "n_nodes": int(len(mesh)),
                             "max_rms_residual": None}
@@ -462,7 +490,11 @@ def solve_profile(mu: float, L: float) -> tuple[Any, dict[str, Any]]:
 
 
 def panel_integrals(sol: Any, mu: float, L: float) -> dict[str, float]:
-    """Fixed 24-point Gauss-Legendre quadrature over every refined mesh panel."""
+    """Fixed 24-point Gauss-Legendre quadrature over every refined mesh panel.
+
+    The solver state is the recovery variable theta = pi - F; ``F`` and
+    ``F_x`` are reconstructed from theta before any integrand is formed.
+    """
     mesh = np.asarray(sol.x, dtype=float)
     if mesh.size < 2:
         raise ValueError("refined mesh has fewer than two nodes")
@@ -479,8 +511,8 @@ def panel_integrals(sol: Any, mu: float, L: float) -> dict[str, float]:
         sl = slice(start, min(start + block, n_panel))
         xv = (mid[sl][:, None] + half[sl][:, None] * GL_NODES[None, :]).ravel()
         wv = (half[sl][:, None] * GL_WEIGHTS[None, :]).ravel()
-        Fs = sol.sol(xv)[0]
-        Fxs = sol.sol(xv, 1)[0]
+        Fs = math.pi - np.asarray(sol.sol(xv)[0], dtype=float)
+        Fxs = -np.asarray(sol.sol(xv, 1)[0], dtype=float)
         sinF, sin2F = stable_sin_pair(Fs)
         cosF = np.cos(Fs)
         s2 = sinF * sinF
@@ -499,8 +531,8 @@ def panel_integrals(sol: Any, mu: float, L: float) -> dict[str, float]:
     E2 = 4.0 * math.pi * (acc["i_x2Fx2"] + acc["i_2s2"])
     E4 = 4.0 * math.pi * (acc["i_2s2Fx2"] + acc["i_s4x2"])
     Em = 8.0 * math.pi * mu * mu * acc["i_m2x2v"]
-    F_L = float(sol.sol(L)[0])
-    Fx_L = float(sol.sol(L, 1)[0])
+    F_L = math.pi - float(sol.sol(L)[0])
+    Fx_L = -float(sol.sol(L, 1)[0])
     total = E2 + E4 + Em
     boundary = 4.0 * math.pi * L ** 3 * Fx_L * Fx_L
     out = {
@@ -719,8 +751,8 @@ def root_solve(L: float, bracket: list[float]) -> dict[str, Any]:
     attempt["profile_reasons"] = reasons
     attempt["mesh"] = {
         "x": np.asarray(sol.x, dtype=np.float64).copy(),
-        "F": np.asarray(sol.y[0], dtype=np.float64).copy(),
-        "F_x": np.asarray(sol.y[1], dtype=np.float64).copy(),
+        "F": math.pi - np.asarray(sol.y[0], dtype=np.float64),
+        "F_x": -np.asarray(sol.y[1], dtype=np.float64),
     }
     residual_ok = (finite_num(attempt["size_residual_fm"])
                    and float(attempt["size_residual_fm"]) <= TOL_SIZE_RESIDUAL_FM)
@@ -2135,7 +2167,7 @@ def run(args: argparse.Namespace) -> int:
         "complete_physical_matter_formation": False,
         "numerical_pass": bool(numerical_pass),
         "method": {
-            "solver": "scipy.integrate.solve_bvp on F directly",
+            "solver": "scipy.integrate.solve_bvp on theta=pi-F; physical F reconstructed before observables",
             "mesh": "mixed linear/geometric, separately constructed",
             "bvp_tol": BVP_TOL,
             "bvp_max_nodes": BVP_MAX_NODES,
