@@ -1432,10 +1432,11 @@ conservative compressible momentum and energy, pressure work, shocks, finite
 species and level populations, line and continuum coefficients, finite
 gravitational, accretion and nuclear energy sources, and multi-angle transfer
 for crossing beams. Its source-snapshotted schedule passes **70 of 70 checks**,
-and its separate integrity qualification passes **25 of 25 checks** across
-conservative-state recovery, thermodynamic identities, rejection boundaries,
-matter–radiation exchange cancellation, stellar and nuclear ledgers, and
-missing-prerequisite classification. Together the branches close conditional
+and its separate integrity qualification passes **36 of 36 checks** across
+the species-level mass constraint, defensive state construction,
+thermodynamic identities, physical-frequency Doppler normalization, rejection
+boundaries, matter–radiation exchange cancellation, stellar and nuclear
+ledgers, and missing-prerequisite classification. Together the branches close
 simulation equations once constitutive data are supplied. The physical
 $(E_Y,E_I,q)$-to-baryonic-state map, chemical identity, evaluated atomic and
 nuclear tables, initial source history and production CassiCosmos

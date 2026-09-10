@@ -334,9 +334,9 @@ Alter one quadrature weight by $1\%$ without compensating the others and require
 Use float64, NumPy, SciPy and SymPy. Relative error means
 $|a-b|/\max(1,|b|)$ unless a check explicitly normalizes by another scale. Symbolic checks require exact simplification to zero. No tolerance may be relaxed after execution.
 
-The verifier refuses an existing output, manifest or source-snapshot directory. It snapshots and hashes this preregistration, the derivation document, the reference kernel and the verifier before executing any scientific control.
+The verifier refuses an existing output, manifest, staging path or source-snapshot directory. It reads each source once and writes those exact bytes to a staged snapshot tree, then publishes the complete tree and manifest atomically. It removes its own staging paths if publication fails.
 
-The result is `PASS` only when every fixed scientific check succeeds. Its scientific classification is `SUPPORTS-conditional compressible radiative-plasma closure`. A failed identity, conservation check, positivity check or rejection control gives `FAIL`. A missing numerical dependency or source-read failure produces a source-bound `INCONCLUSIVE` receipt and stops interpretation.
+Every current source and snapshot is compared with the manifest immediately after publication, after dependency imports and before scientific controls, and after the controls. A pre-control mismatch prevents scientific execution. Any source-integrity mismatch gives receipt status `FAIL` with scientific classification `INCONCLUSIVE`. The result is `PASS` only when every fixed scientific check and every source-integrity comparison succeeds. Its scientific classification is `SUPPORTS-conditional compressible radiative-plasma closure`. A failed identity, conservation check, positivity check or rejection control gives `FAIL` and `CONTRADICTS`. A missing numerical dependency or source-read failure produces a source-bound `INCONCLUSIVE` receipt and stops interpretation.
 
 A passing result supports the displayed conditional equations and reference kernels at the fixed controls. It does not establish a Cassi material map, physical element abundances, atomic or nuclear data accuracy, a production shock solver, general angular convergence, stellar evolution or a live CassiCosmos implementation.
 
@@ -344,7 +344,7 @@ Run once from the CassiTheory root:
 
 ```text
 python computations/verify_compressible_radiative_plasma.py \
-  --output runs/compressible_radiative_plasma_sealed/verification.json
+  --output runs/compressible_radiative_plasma_profile_normalized_final/verification.json
 ```
 
 ## References

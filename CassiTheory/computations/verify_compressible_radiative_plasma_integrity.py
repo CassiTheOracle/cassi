@@ -9,6 +9,7 @@ import importlib
 import json
 import math
 import sys
+import shutil
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -27,11 +28,12 @@ SOURCE_PATHS = (
     Path("computations/verify_compressible_radiative_plasma.py"),
     Path("computations/verify_compressible_radiative_plasma_integrity.py"),
 )
-EXPECTED_CHECKS = 25
+EXPECTED_CHECKS = 36
 TOL = 2.0e-14
 
 np: Any = None
 sp: Any = None
+integrate: Any = None
 kernel: Any = None
 base_verifier: Any = None
 
@@ -121,7 +123,15 @@ def evidence_paths(output: Path) -> tuple[Path, Path, Path]:
         raise ValueError("output must remain inside the CassiTheory root")
     manifest_path = target.with_name("input_manifest.json")
     snapshot_root = target.parent / "source_snapshots"
-    for path in (target, manifest_path, snapshot_root):
+    manifest_staging = manifest_path.with_name(manifest_path.name + ".incomplete")
+    snapshot_staging = snapshot_root.with_name(snapshot_root.name + ".incomplete")
+    for path in (
+        target,
+        manifest_path,
+        snapshot_root,
+        manifest_staging,
+        snapshot_staging,
+    ):
         if path.exists():
             raise FileExistsError(f"refusing existing evidence path: {path}")
     return target, manifest_path, snapshot_root
@@ -130,32 +140,56 @@ def evidence_paths(output: Path) -> tuple[Path, Path, Path]:
 def prepare_evidence(output: Path) -> tuple[Path, Path, dict[str, dict[str, Any]]]:
     target, manifest_path, snapshot_root = evidence_paths(output)
     payloads = {relative: (ROOT / relative).read_bytes() for relative in SOURCE_PATHS}
-    target.parent.mkdir(parents=True, exist_ok=True)
-    snapshot_root.mkdir()
-    sources: dict[str, dict[str, Any]] = {}
-    for relative, payload in payloads.items():
-        destination = snapshot_root / relative
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(payload)
-        digest = sha256_bytes(payload)
-        sources[relative.as_posix()] = {
-            "path": relative.as_posix(),
-            "snapshot": destination.relative_to(ROOT).as_posix(),
-            "bytes": len(payload),
-            "sha256": digest,
-            "snapshot_sha256": digest,
-        }
-    manifest_path.write_text(
-        json.dumps(
-            {"schema": SCHEMA, "sources": sources},
-            indent=2,
-            sort_keys=True,
-            allow_nan=False,
+    manifest_staging = manifest_path.with_name(manifest_path.name + ".incomplete")
+    snapshot_staging = snapshot_root.with_name(snapshot_root.name + ".incomplete")
+    snapshot_staging_created = False
+    snapshot_published = False
+    manifest_staging_created = False
+
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        snapshot_staging.mkdir()
+        snapshot_staging_created = True
+        sources: dict[str, dict[str, Any]] = {}
+        for relative, payload in payloads.items():
+            staged_destination = snapshot_staging / relative
+            staged_destination.parent.mkdir(parents=True, exist_ok=True)
+            staged_destination.write_bytes(payload)
+            final_destination = snapshot_root / relative
+            digest = sha256_bytes(payload)
+            sources[relative.as_posix()] = {
+                "path": relative.as_posix(),
+                "snapshot": final_destination.relative_to(ROOT).as_posix(),
+                "bytes": len(payload),
+                "sha256": digest,
+                "snapshot_sha256": digest,
+            }
+        snapshot_staging.rename(snapshot_root)
+        snapshot_staging_created = False
+        snapshot_published = True
+        manifest_payload = (
+            json.dumps(
+                {"schema": SCHEMA, "sources": sources},
+                indent=2,
+                sort_keys=True,
+                allow_nan=False,
+            )
+            + "\n"
         )
-        + "\n",
-        encoding="utf-8",
-    )
-    return target, manifest_path, sources
+        with manifest_staging.open("x", encoding="utf-8") as stream:
+            manifest_staging_created = True
+            stream.write(manifest_payload)
+        manifest_staging.replace(manifest_path)
+        manifest_staging_created = False
+        return target, manifest_path, sources
+    except Exception:
+        if manifest_staging_created and manifest_staging.exists():
+            manifest_staging.unlink()
+        if snapshot_staging_created and snapshot_staging.exists():
+            shutil.rmtree(snapshot_staging)
+        if snapshot_published and snapshot_root.exists():
+            shutil.rmtree(snapshot_root)
+        raise
 
 
 def write_receipt(target: Path, receipt: dict[str, Any]) -> None:
@@ -208,17 +242,20 @@ def write_inconclusive(
 def load_dependencies() -> dict[str, str]:
     loaded_np = importlib.import_module("numpy")
     loaded_sp = importlib.import_module("sympy")
+    loaded_scipy = importlib.import_module("scipy")
+    loaded_integrate = importlib.import_module("scipy.integrate")
     loaded_kernel = importlib.import_module("compressible_radiative_plasma")
     loaded_base = importlib.import_module("verify_compressible_radiative_plasma")
-    global np, sp, kernel, base_verifier
+    global np, sp, integrate, kernel, base_verifier
     np = loaded_np
     sp = loaded_sp
+    integrate = loaded_integrate
     kernel = loaded_kernel
     base_verifier = loaded_base
     return {
         "numpy": str(loaded_np.__version__),
         "sympy": str(loaded_sp.__version__),
-        "scipy": str(importlib.import_module("scipy").__version__),
+        "scipy": str(loaded_scipy.__version__),
     }
 
 
@@ -227,13 +264,17 @@ def state_and_thermo_controls(book: CheckBook) -> dict[str, Any]:
     velocity = np.asarray([0.2, -0.4, 0.1])
     internal = 3.2
     fractions = np.asarray([0.7, 0.2, 0.1])
-    levels = np.asarray([0.4, 0.2, 0.0])
+    levels = np.asarray([0.7, 1.05, 0.125, 0.125])
+    level_species = np.asarray([0, 0, 1, 2])
+    baryon_numbers = np.asarray([1.0, 1.0, 4.0, 2.0])
     state = kernel.conservative_material_state(
         density,
         velocity,
         internal,
         fractions,
         levels,
+        level_species,
+        baryon_numbers,
     )
     actual = np.concatenate(
         (
@@ -254,6 +295,16 @@ def state_and_thermo_controls(book: CheckBook) -> dict[str, Any]:
         )
     )
     book.close("state.conservative_components", actual, expected)
+    species_from_levels = np.bincount(
+        level_species,
+        weights=baryon_numbers * levels,
+        minlength=fractions.size,
+    )
+    book.close(
+        "state.species_level_mass_identity",
+        state.species_densities,
+        species_from_levels,
+    )
     recovered = kernel.recover_internal_energy_density(state)
     book.close("state.internal_energy_recovery", recovered, density * internal)
     book.rejected(
@@ -264,6 +315,8 @@ def state_and_thermo_controls(book: CheckBook) -> dict[str, Any]:
             internal,
             np.asarray([0.7, 0.2, 0.2]),
             levels,
+            level_species,
+            baryon_numbers,
         ),
     )
     book.rejected(
@@ -273,7 +326,198 @@ def state_and_thermo_controls(book: CheckBook) -> dict[str, Any]:
             velocity,
             internal,
             fractions,
-            np.asarray([0.4, math.nan, 0.0]),
+            np.asarray([0.7, math.nan, 0.125, 0.125]),
+            level_species,
+            baryon_numbers,
+        ),
+    )
+    book.rejected(
+        "state.reject_species_level_mass_mismatch",
+        lambda: kernel.conservative_material_state(
+            density,
+            velocity,
+            internal,
+            fractions,
+            levels + np.asarray([0.01, 0.0, 0.0, 0.0]),
+            level_species,
+            baryon_numbers,
+        ),
+    )
+
+    def collect_value_errors(
+        cases: dict[str, Callable[[], Any]],
+    ) -> tuple[bool, dict[str, str]]:
+        outcomes: dict[str, str] = {}
+        passed = True
+        for name, operation in cases.items():
+            try:
+                operation()
+                outcomes[name] = "NO ERROR"
+                passed = False
+            except ValueError as exc:
+                outcomes[name] = f"ValueError: {exc}"
+            except Exception as exc:
+                outcomes[name] = f"{type(exc).__name__}: {exc}"
+                passed = False
+        return passed, outcomes
+
+    mapping_passed, mapping_outcomes = collect_value_errors(
+        {
+            "nonintegral": lambda: kernel.conservative_material_state(
+                density,
+                velocity,
+                internal,
+                fractions,
+                levels,
+                np.asarray([0.0, 0.5, 1.0, 2.0]),
+                baryon_numbers,
+            ),
+            "out_of_range": lambda: kernel.conservative_material_state(
+                density,
+                velocity,
+                internal,
+                fractions,
+                levels,
+                np.asarray([0, 3, 1, 2]),
+                baryon_numbers,
+            ),
+            "missing_positive_species": lambda: kernel.conservative_material_state(
+                density,
+                velocity,
+                internal,
+                fractions,
+                levels,
+                np.asarray([0, 0, 1, 1]),
+                baryon_numbers,
+            ),
+        }
+    )
+    book.add(
+        "state.reject_malformed_level_species",
+        mapping_passed,
+        outcomes=mapping_outcomes,
+    )
+
+    zero_species_state = kernel.conservative_material_state(
+        density,
+        velocity,
+        internal,
+        np.asarray([0.8, 0.2, 0.0]),
+        np.asarray([0.8, 1.2, 0.125]),
+        np.asarray([0, 0, 1]),
+        np.asarray([1.0, 1.0, 4.0]),
+    )
+    book.close(
+        "state.allow_unrepresented_zero_density_species",
+        zero_species_state.species_densities,
+        np.asarray([2.0, 0.5, 0.0]),
+    )
+
+    valid_direct = {
+        "density": density,
+        "momentum": density * velocity,
+        "total_energy": density
+        * (internal + 0.5 * float(np.dot(velocity, velocity))),
+        "species_densities": density * fractions,
+        "level_populations": levels,
+        "level_species": level_species,
+        "level_baryon_numbers": baryon_numbers,
+    }
+    constructor_passed, constructor_outcomes = collect_value_errors(
+        {
+            "zero_density": lambda: kernel.ConservativeMaterialState(
+                **(valid_direct | {"density": 0.0})
+            ),
+            "malformed_momentum": lambda: kernel.ConservativeMaterialState(
+                **(valid_direct | {"momentum": np.asarray([[0.0, 0.0]])})
+            ),
+            "nonfinite_species": lambda: kernel.ConservativeMaterialState(
+                **(
+                    valid_direct
+                    | {"species_densities": np.asarray([1.75, math.nan, 0.25])}
+                )
+            ),
+            "wrong_species_sum": lambda: kernel.ConservativeMaterialState(
+                **(
+                    valid_direct
+                    | {"species_densities": np.asarray([1.75, 0.5, 0.2])}
+                )
+            ),
+            "negative_level": lambda: kernel.ConservativeMaterialState(
+                **(
+                    valid_direct
+                    | {"level_populations": np.asarray([0.7, -1.05, 0.125, 0.125])}
+                )
+            ),
+        }
+    )
+    book.add(
+        "state.public_constructor_rejects_invalid_components",
+        constructor_passed,
+        outcomes=constructor_outcomes,
+    )
+
+    raw_momentum = np.asarray(density * velocity)
+    raw_species = np.asarray(density * fractions)
+    raw_levels = np.array(levels, copy=True)
+    raw_owners = np.array(level_species, copy=True)
+    raw_baryons = np.array(baryon_numbers, copy=True)
+    direct_state = kernel.ConservativeMaterialState(
+        density=density,
+        momentum=raw_momentum,
+        total_energy=valid_direct["total_energy"],
+        species_densities=raw_species,
+        level_populations=raw_levels,
+        level_species=raw_owners,
+        level_baryon_numbers=raw_baryons,
+    )
+    preserved = {
+        name: np.array(getattr(direct_state, name), copy=True)
+        for name in (
+            "momentum",
+            "species_densities",
+            "level_populations",
+            "level_species",
+            "level_baryon_numbers",
+        )
+    }
+    raw_momentum[:] = 99.0
+    raw_species[:] = 99.0
+    raw_levels[:] = 99.0
+    raw_owners[:] = 0
+    raw_baryons[:] = 99.0
+    mutation_errors: dict[str, str] = {}
+    for name in preserved:
+        try:
+            getattr(direct_state, name)[0] = 0
+            mutation_errors[name] = "NO ERROR"
+        except ValueError as exc:
+            mutation_errors[name] = f"ValueError: {exc}"
+    copies_preserved = all(
+        np.array_equal(getattr(direct_state, name), values)
+        for name, values in preserved.items()
+    )
+    writes_blocked = all(value != "NO ERROR" for value in mutation_errors.values())
+    book.add(
+        "state.public_constructor_defensive_arrays",
+        copies_preserved and writes_blocked,
+        copies_preserved=copies_preserved,
+        writes_blocked=writes_blocked,
+        mutation_errors=mutation_errors,
+    )
+
+    book.rejected(
+        "state.reject_nonpositive_recovered_internal_energy",
+        lambda: kernel.recover_internal_energy_density(
+            kernel.ConservativeMaterialState(
+                **(
+                    valid_direct
+                    | {
+                        "momentum": np.asarray([10.0, 0.0, 0.0]),
+                        "total_energy": 1.0,
+                    }
+                )
+            )
         ),
     )
 
@@ -285,20 +529,30 @@ def state_and_thermo_controls(book: CheckBook) -> dict[str, Any]:
     pressure = gas_constant * rho * temperature
     temperature_identity = sp.simplify(sp.diff(specific_energy, entropy) - temperature)
     pressure_identity = sp.simplify(rho**2 * sp.diff(specific_energy, rho) - pressure)
+    sound_speed_identity = sp.simplify(
+        sp.diff(pressure, rho) - sp.Rational(5, 3) * pressure / rho
+    )
     book.add(
         "thermo.ideal_gas_fundamental_relation",
-        temperature_identity == 0 and pressure_identity == 0,
+        temperature_identity == 0
+        and pressure_identity == 0
+        and sound_speed_identity == 0,
         temperature_identity=str(temperature_identity),
         pressure_identity=str(pressure_identity),
+        frozen_sound_speed_identity=str(sound_speed_identity),
     )
     return {
         "packed_state": actual,
         "expected_state": expected,
+        "species_from_levels": species_from_levels,
         "recovered_internal_energy_density": recovered,
+        "mapping_rejections": mapping_outcomes,
+        "constructor_rejections": constructor_outcomes,
+        "defensive_array_mutations": mutation_errors,
     }
 
 
-def shock_control(book: CheckBook) -> dict[str, float]:
+def shock_control(book: CheckBook) -> dict[str, Any]:
     residual = abs(1.2 - 1.0)
     book.rejected(
         "shock.reject_missing_enthalpy",
@@ -308,11 +562,84 @@ def shock_control(book: CheckBook) -> dict[str, float]:
             tolerance=0.01,
         ),
     )
-    return {"normalized_residual": residual, "tolerance": 0.01}
+    cases = {
+        "nonfinite_actual": (math.inf, 1.0, 0.01),
+        "nonfinite_expected": (1.0, math.inf, 0.01),
+        "nonfinite_tolerance": (1.0, 1.0, math.nan),
+        "negative_tolerance": (1.0, 1.0, -0.01),
+    }
+    outcomes: dict[str, str] = {}
+    passed = True
+    for name, (actual, expected, tolerance) in cases.items():
+        try:
+            base_verifier.require_normalized_match(
+                actual,
+                expected,
+                tolerance=tolerance,
+            )
+            outcomes[name] = "NO ERROR"
+            passed = False
+        except ValueError as exc:
+            outcomes[name] = f"ValueError: {exc}"
+        except Exception as exc:
+            outcomes[name] = f"{type(exc).__name__}: {exc}"
+            passed = False
+    book.add(
+        "shock.reject_nonfinite_normalized_comparison",
+        passed,
+        outcomes=outcomes,
+    )
+    return {
+        "normalized_residual": residual,
+        "tolerance": 0.01,
+        "comparison_rejections": outcomes,
+    }
 
 
 def line_controls(book: CheckBook) -> dict[str, Any]:
     valid = (1.4, 0.3, 2.0, 6.0, 2.0, 0.7, 0.9)
+    profile_rows: list[dict[str, float]] = []
+    profile_passed = True
+    profile_tolerance = 2.0e-12
+    for center, width in ((0.25, 1.0), (1.0, 0.7), (3.0, 1.2)):
+        integral, quadrature_error = integrate.quad(
+            lambda frequency: float(
+                kernel.doppler_profile([frequency], center, width)[0]
+            ),
+            0.0,
+            math.inf,
+            epsabs=1.0e-13,
+            epsrel=1.0e-13,
+            limit=200,
+        )
+        samples = kernel.doppler_profile(
+            np.asarray([0.0, center, center + 4.0 * width]),
+            center,
+            width,
+        )
+        residual = abs(float(integral) - 1.0)
+        admissible = bool(np.all(np.isfinite(samples)) and np.all(samples >= 0.0))
+        profile_passed = (
+            profile_passed
+            and residual <= profile_tolerance
+            and admissible
+        )
+        profile_rows.append(
+            {
+                "line_frequency": center,
+                "doppler_width": width,
+                "integral": float(integral),
+                "normalized_error": residual,
+                "quadrature_error": float(quadrature_error),
+                "minimum_sample": float(np.min(samples)),
+            }
+        )
+    book.add(
+        "line.doppler_half_axis_normalization",
+        profile_passed,
+        tolerance=profile_tolerance,
+        rows=profile_rows,
+    )
     book.rejected(
         "line.reject_negative_lower_population",
         lambda: kernel.line_coefficients(-1.0, *valid[1:]),
@@ -335,6 +662,16 @@ def line_controls(book: CheckBook) -> dict[str, Any]:
     )
 
     _, _, a_ul, b_lu = kernel.line_coefficients(*valid)
+    book.rejected(
+        "line.reject_negative_profile",
+        lambda: kernel.line_coefficients(*valid[:6], -0.1),
+    )
+    zero_profile = kernel.line_coefficients(*valid[:6], 0.0)
+    book.close(
+        "line.allow_zero_profile",
+        np.asarray(zero_profile[:2]),
+        np.asarray([0.0, 0.0]),
+    )
     exchange_args = (valid[0], valid[1], 0.8, valid[4], a_ul, valid[5], b_lu)
     book.rejected(
         "exchange.reject_negative_A_ul",
@@ -366,6 +703,7 @@ def line_controls(book: CheckBook) -> dict[str, Any]:
         "photon_increment": photon,
         "A_ul": a_ul,
         "B_lu": b_lu,
+        "doppler_profiles": profile_rows,
     }
 
 
@@ -549,14 +887,37 @@ def verify_source_integrity(sources: dict[str, dict[str, Any]]) -> dict[str, Any
     rows: dict[str, Any] = {}
     passed = True
     for relative, recorded in sources.items():
-        current = sha256(ROOT / relative)
-        snapshot = sha256(ROOT / recorded["snapshot"])
-        matches = current == recorded["sha256"] == snapshot == recorded["snapshot_sha256"]
+        try:
+            current_path = ROOT / relative
+            snapshot_path = ROOT / recorded["snapshot"]
+            current = sha256(current_path)
+            snapshot = sha256(snapshot_path)
+            current_bytes = current_path.stat().st_size
+            snapshot_bytes = snapshot_path.stat().st_size
+            matches = (
+                current == recorded["sha256"]
+                and snapshot == recorded["snapshot_sha256"]
+                and current == snapshot
+                and current_bytes == recorded["bytes"]
+                and snapshot_bytes == recorded["bytes"]
+            )
+            error = None
+        except Exception as exc:
+            current = None
+            snapshot = None
+            current_bytes = None
+            snapshot_bytes = None
+            matches = False
+            error = f"{type(exc).__name__}: {exc}"
         rows[relative] = {
             "current_sha256": current,
             "recorded_sha256": recorded["sha256"],
             "snapshot_sha256": snapshot,
+            "current_bytes": current_bytes,
+            "snapshot_bytes": snapshot_bytes,
+            "recorded_bytes": recorded["bytes"],
             "matches": matches,
+            "error": error,
         }
         passed = passed and matches
     return {"passed": passed, "rows": rows}
@@ -580,47 +941,68 @@ def run(output: Path) -> int:
     except Exception as exc:
         return write_inconclusive(target, stage="source-read", error=exc)
 
-    try:
-        dependencies = load_dependencies()
-    except Exception as exc:
-        return write_inconclusive(
-            target,
-            stage="scientific-dependencies",
-            error=exc,
-            manifest_path=manifest_path,
-            sources=sources,
-        )
+    source_integrity: dict[str, Any] = {
+        "after_snapshot": verify_source_integrity(sources)
+    }
+    if not source_integrity["after_snapshot"]["passed"]:
+        dependencies: dict[str, str] = {}
+    else:
+        try:
+            dependencies = load_dependencies()
+        except Exception as exc:
+            return write_inconclusive(
+                target,
+                stage="scientific-dependencies",
+                error=exc,
+                manifest_path=manifest_path,
+                sources=sources,
+            )
+        source_integrity["before_controls"] = verify_source_integrity(sources)
 
     book = CheckBook()
     results: dict[str, Any] = {}
     error: str | None = None
-    source_integrity: dict[str, Any] = {"passed": False, "rows": {}}
-    try:
-        results["state_and_thermodynamics"] = state_and_thermo_controls(book)
-        results["shock"] = shock_control(book)
-        results["lines"] = line_controls(book)
-        results["transfer"] = transfer_controls(book)
-        results["stellar"] = stellar_controls(book)
-        results["prerequisites"] = prerequisite_controls(book, target.parent)
-        source_integrity = verify_source_integrity(sources)
-    except Exception as exc:
-        error = f"{type(exc).__name__}: {exc}"
+    if not source_integrity["after_snapshot"]["passed"]:
+        error = "source integrity mismatch immediately after snapshot publication"
+    elif not source_integrity["before_controls"]["passed"]:
+        error = "source integrity mismatch before scientific controls"
+    else:
+        try:
+            results["state_and_thermodynamics"] = state_and_thermo_controls(book)
+            results["shock"] = shock_control(book)
+            results["lines"] = line_controls(book)
+            results["transfer"] = transfer_controls(book)
+            results["stellar"] = stellar_controls(book)
+            results["prerequisites"] = prerequisite_controls(book, target.parent)
+        except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
+
+    source_integrity["after_controls"] = verify_source_integrity(sources)
+    integrity_passed = all(
+        phase["passed"] for phase in source_integrity.values()
+    )
+    if not integrity_passed and error is None:
+        error = "source integrity mismatch after qualification controls"
 
     passed_count = sum(row["passed"] for row in book.checks.values())
     total_count = len(book.checks)
     status = (
         "PASS"
-        if error is None and book.passed and source_integrity["passed"]
+        if error is None and book.passed and integrity_passed
         else "FAIL"
     )
+    if status == "PASS":
+        scientific_classification = (
+            "SUPPORTS-compressible radiative-plasma integrity qualification"
+        )
+    elif not integrity_passed:
+        scientific_classification = "INCONCLUSIVE"
+    else:
+        scientific_classification = "CONTRADICTS"
     receipt = {
         "schema": SCHEMA,
         "status": status,
-        "scientific_classification": (
-            "SUPPORTS-compressible radiative-plasma integrity qualification"
-            if status == "PASS"
-            else "CONTRADICTS"
-        ),
+        "scientific_classification": scientific_classification,
         "checks": {
             "passed": passed_count,
             "total": total_count,
@@ -636,7 +1018,8 @@ def run(output: Path) -> int:
         "error": error,
         "scope": {
             "supported": [
-                "conservative material state packing and recovery",
+                "species-level constrained conservative state and kinetic recovery",
+                "defensive public state construction",
                 "ideal-gas fundamental-relation signs and density factor",
                 "line-input admissibility and local exchange conservation",
                 "isotropic transfer energy-source normalization",

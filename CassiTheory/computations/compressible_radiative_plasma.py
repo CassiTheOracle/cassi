@@ -34,6 +34,99 @@ class ConservativeMaterialState:
     total_energy: float
     species_densities: np.ndarray
     level_populations: np.ndarray
+    level_species: np.ndarray
+    level_baryon_numbers: np.ndarray
+    mass_unit: float = 1.0
+    consistency_tolerance: float = 1.0e-12
+
+    def __post_init__(self) -> None:
+        """Validate and detach every public conservative-state component."""
+        density = _finite_positive("density", self.density)
+        total_energy = _finite_positive("total energy", self.total_energy)
+        mass_unit = _finite_positive("mass unit", self.mass_unit)
+        tolerance = _finite_positive(
+            "consistency tolerance", self.consistency_tolerance
+        )
+        momentum = np.array(self.momentum, dtype=np.float64, copy=True)
+        species = np.array(self.species_densities, dtype=np.float64, copy=True)
+        levels = np.array(self.level_populations, dtype=np.float64, copy=True)
+        owner_values = np.array(self.level_species, dtype=np.float64, copy=True)
+        baryon_numbers = np.array(
+            self.level_baryon_numbers, dtype=np.float64, copy=True
+        )
+
+        if momentum.ndim != 1 or momentum.size == 0 or not np.all(
+            np.isfinite(momentum)
+        ):
+            raise ValueError("momentum must be a finite nonempty vector")
+        if species.ndim != 1 or species.size == 0:
+            raise ValueError("species densities must be a nonempty vector")
+        if not np.all(np.isfinite(species)) or np.any(species < 0.0):
+            raise ValueError("species densities must be finite and nonnegative")
+        if levels.ndim != 1 or levels.size == 0:
+            raise ValueError("level populations must be a nonempty vector")
+        if not np.all(np.isfinite(levels)) or np.any(levels < 0.0):
+            raise ValueError("level populations must be finite and nonnegative")
+        if owner_values.shape != levels.shape or not np.all(
+            np.isfinite(owner_values)
+        ):
+            raise ValueError("level species must match the finite level vector")
+        if not np.all(owner_values == np.floor(owner_values)):
+            raise ValueError("level species must contain integer indices")
+        owners = np.array(owner_values, dtype=np.intp, copy=True)
+        if np.any(owners < 0) or np.any(owners >= species.size):
+            raise ValueError("level species index is outside the species vector")
+        if baryon_numbers.shape != levels.shape:
+            raise ValueError("level baryon numbers must match the level vector")
+        if (
+            not np.all(np.isfinite(baryon_numbers))
+            or np.any(baryon_numbers <= 0.0)
+            or not np.all(baryon_numbers == np.floor(baryon_numbers))
+        ):
+            raise ValueError("level baryon numbers must be finite positive integers")
+
+        level_counts = np.bincount(owners, minlength=species.size)
+        positive_species = species > tolerance * max(1.0, density)
+        if np.any((level_counts == 0) & positive_species):
+            raise ValueError("every positive-density species must own at least one level")
+        expected_species = mass_unit * np.bincount(
+            owners,
+            weights=baryon_numbers * levels,
+            minlength=species.size,
+        )
+        species_error = float(np.linalg.norm(species - expected_species)) / max(
+            1.0, float(np.linalg.norm(expected_species))
+        )
+        if not math.isfinite(species_error) or species_error > tolerance:
+            raise ValueError(
+                "species densities do not match their level populations: "
+                f"normalized residual {species_error:.17g}"
+            )
+        density_error = abs(float(np.sum(species)) - density) / max(1.0, density)
+        level_density_error = abs(float(np.sum(expected_species)) - density) / max(
+            1.0, density
+        )
+        if (
+            not math.isfinite(density_error)
+            or not math.isfinite(level_density_error)
+            or density_error > tolerance
+            or level_density_error > tolerance
+        ):
+            raise ValueError(
+                "species and level baryon sums must reproduce total density"
+            )
+
+        for values in (momentum, species, levels, owners, baryon_numbers):
+            values.setflags(write=False)
+        object.__setattr__(self, "density", density)
+        object.__setattr__(self, "momentum", momentum)
+        object.__setattr__(self, "total_energy", total_energy)
+        object.__setattr__(self, "species_densities", species)
+        object.__setattr__(self, "level_populations", levels)
+        object.__setattr__(self, "level_species", owners)
+        object.__setattr__(self, "level_baryon_numbers", baryon_numbers)
+        object.__setattr__(self, "mass_unit", mass_unit)
+        object.__setattr__(self, "consistency_tolerance", tolerance)
 
 @dataclass(frozen=True)
 class ShockState:
@@ -121,16 +214,18 @@ def conservative_material_state(
     specific_internal_energy: float,
     mass_fractions: np.ndarray | Iterable[float],
     level_populations: np.ndarray | Iterable[float],
+    level_species: np.ndarray | Iterable[int],
+    level_baryon_numbers: np.ndarray | Iterable[float],
     *,
+    mass_unit: float = 1.0,
     fraction_tolerance: float = 1.0e-12,
 ) -> ConservativeMaterialState:
-    """Pack rho, rho*u, rho*E, rho*Y_s and n_sℓ after admissibility checks."""
+    """Pack a structurally admissible state on the species-level mass constraint."""
     density = _finite_positive("rho", rho)
     internal = _finite_positive("specific internal energy", specific_internal_energy)
     tolerance = _finite_positive("fraction tolerance", fraction_tolerance)
     flow = np.asarray(velocity, dtype=np.float64)
     fractions = np.asarray(mass_fractions, dtype=np.float64)
-    levels = np.asarray(level_populations, dtype=np.float64)
     if flow.ndim != 1 or flow.size == 0 or not np.all(np.isfinite(flow)):
         raise ValueError("velocity must be a finite nonempty vector")
     if fractions.ndim != 1 or fractions.size == 0:
@@ -139,8 +234,6 @@ def conservative_material_state(
         raise ValueError("mass fractions must be finite and nonnegative")
     if abs(float(np.sum(fractions)) - 1.0) > tolerance:
         raise ValueError("mass fractions must sum to one")
-    if levels.ndim != 1 or not np.all(np.isfinite(levels)) or np.any(levels < 0.0):
-        raise ValueError("level populations must be a finite nonnegative vector")
     momentum = density * flow
     total = density * (internal + 0.5 * float(np.dot(flow, flow)))
     return ConservativeMaterialState(
@@ -148,12 +241,16 @@ def conservative_material_state(
         momentum=momentum,
         total_energy=total,
         species_densities=density * fractions,
-        level_populations=levels,
+        level_populations=np.asarray(level_populations, dtype=np.float64),
+        level_species=np.asarray(level_species),
+        level_baryon_numbers=np.asarray(level_baryon_numbers, dtype=np.float64),
+        mass_unit=mass_unit,
+        consistency_tolerance=tolerance,
     )
 
 
 def recover_internal_energy_density(state: ConservativeMaterialState) -> float:
-    """Recover rho*e from a validated conservative material state."""
+    """Recover rho*e after structural conservative-state validation."""
     kinetic = float(np.dot(state.momentum, state.momentum)) / (2.0 * state.density)
     internal = state.total_energy - kinetic
     if not math.isfinite(internal) or internal <= 0.0:
@@ -169,7 +266,7 @@ def recover_temperature(
     *,
     boltzmann: float = 1.0,
 ) -> float:
-    """Invert the frozen-population ideal multilevel EOS."""
+    """Invert the frozen-population ideal EOS and enforce positive thermal energy."""
     internal = float(internal_energy)
     k_b = _finite_positive("boltzmann", boltzmann)
     electrons = float(electron_density)
@@ -323,6 +420,26 @@ def planck_intensity(
     return 2.0 * h * nu**3 / (c**2 * math.expm1(exponent))
 
 
+def doppler_profile(
+    frequencies: np.ndarray | Iterable[float],
+    line_frequency: float,
+    doppler_width: float,
+) -> np.ndarray:
+    """Return a Gaussian line profile normalized on physical frequencies."""
+    values = np.asarray(frequencies, dtype=np.float64)
+    center = _finite_positive("line frequency", line_frequency)
+    width = _finite_positive("Doppler width", doppler_width)
+    if values.ndim != 1 or values.size == 0:
+        raise ValueError("frequency samples must form a nonempty vector")
+    if np.any(~np.isfinite(values)) or np.any(values < 0.0):
+        raise ValueError("frequency samples must be finite and nonnegative")
+    normalization = 0.5 * (1.0 + math.erf(center / width))
+    offset = (values - center) / width
+    return np.exp(-(offset * offset)) / (
+        normalization * width * math.sqrt(math.pi)
+    )
+
+
 def two_level_lte_populations(
     total_population: float,
     lower_weight: float,
@@ -364,7 +481,7 @@ def line_coefficients(
     g_u = _finite_positive("upper statistical weight", upper_weight)
     nu = _finite_positive("frequency", frequency)
     b_down = _finite_positive("B_ul", b_ul)
-    phi = _finite_positive("line profile", profile)
+    phi = _finite_nonnegative("line profile", profile)
     h = _finite_positive("planck", planck)
     c = _finite_positive("light speed", light_speed)
     b_up = g_u * b_down / g_l

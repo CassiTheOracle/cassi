@@ -9,6 +9,7 @@ import importlib
 import json
 import math
 import sys
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Iterable
@@ -24,9 +25,11 @@ SCIENTIFIC_EXPORTS = (
     "control_volume_energy_residual",
     "critical_density",
     "detailed_balance_generator",
+    "doppler_profile",
     "evolve_populations",
     "ideal_level_gas",
     "isotropic_scattering_step",
+    "isotropic_transfer_energy_source",
     "kelvin_helmholtz_release",
     "line_coefficients",
     "line_energy_exchange",
@@ -160,7 +163,15 @@ def evidence_paths(output: Path) -> tuple[Path, Path, Path]:
         raise ValueError("output must remain inside the CassiTheory root")
     manifest_path = target.with_name("input_manifest.json")
     snapshot_root = target.parent / "source_snapshots"
-    for path in (target, manifest_path, snapshot_root):
+    manifest_staging = manifest_path.with_name(manifest_path.name + ".incomplete")
+    snapshot_staging = snapshot_root.with_name(snapshot_root.name + ".incomplete")
+    for path in (
+        target,
+        manifest_path,
+        snapshot_root,
+        manifest_staging,
+        snapshot_staging,
+    ):
         if path.exists():
             raise FileExistsError(f"refusing existing evidence path: {path}")
     return target, manifest_path, snapshot_root
@@ -171,36 +182,99 @@ def prepare_evidence(
     source_paths: Iterable[Path] = SOURCE_PATHS,
 ) -> tuple[Path, Path, dict[str, dict[str, Any]]]:
     target, manifest_path, snapshot_root = evidence_paths(output)
-    payloads: dict[Path, bytes] = {}
-    for relative in source_paths:
-        payloads[relative] = (ROOT / relative).read_bytes()
+    payloads = {relative: (ROOT / relative).read_bytes() for relative in source_paths}
+    manifest_staging = manifest_path.with_name(manifest_path.name + ".incomplete")
+    snapshot_staging = snapshot_root.with_name(snapshot_root.name + ".incomplete")
+    snapshot_staging_created = False
+    snapshot_published = False
+    manifest_staging_created = False
 
-    target.parent.mkdir(parents=True, exist_ok=True)
-    snapshot_root.mkdir()
-    manifest: dict[str, dict[str, Any]] = {}
-    for relative, payload in payloads.items():
-        destination = snapshot_root / relative
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(payload)
-        digest = hashlib.sha256(payload).hexdigest()
-        manifest[relative.as_posix()] = {
-            "path": relative.as_posix(),
-            "snapshot": destination.relative_to(ROOT).as_posix(),
-            "bytes": len(payload),
-            "sha256": digest,
-            "snapshot_sha256": digest,
-        }
-    manifest_path.write_text(
-        json.dumps(
-            {"schema": SCHEMA, "sources": manifest},
-            indent=2,
-            sort_keys=True,
-            allow_nan=False,
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        snapshot_staging.mkdir()
+        snapshot_staging_created = True
+        manifest: dict[str, dict[str, Any]] = {}
+        for relative, payload in payloads.items():
+            staged_destination = snapshot_staging / relative
+            staged_destination.parent.mkdir(parents=True, exist_ok=True)
+            staged_destination.write_bytes(payload)
+            final_destination = snapshot_root / relative
+            digest = hashlib.sha256(payload).hexdigest()
+            manifest[relative.as_posix()] = {
+                "path": relative.as_posix(),
+                "snapshot": final_destination.relative_to(ROOT).as_posix(),
+                "bytes": len(payload),
+                "sha256": digest,
+                "snapshot_sha256": digest,
+            }
+        snapshot_staging.rename(snapshot_root)
+        snapshot_staging_created = False
+        snapshot_published = True
+        manifest_payload = (
+            json.dumps(
+                {"schema": SCHEMA, "sources": manifest},
+                indent=2,
+                sort_keys=True,
+                allow_nan=False,
+            )
+            + "\n"
         )
-        + "\n",
-        encoding="utf-8",
-    )
-    return target, manifest_path, manifest
+        with manifest_staging.open("x", encoding="utf-8") as stream:
+            manifest_staging_created = True
+            stream.write(manifest_payload)
+        manifest_staging.replace(manifest_path)
+        manifest_staging_created = False
+        return target, manifest_path, manifest
+    except Exception:
+        if manifest_staging_created and manifest_staging.exists():
+            manifest_staging.unlink()
+        if snapshot_staging_created and snapshot_staging.exists():
+            shutil.rmtree(snapshot_staging)
+        if snapshot_published and snapshot_root.exists():
+            shutil.rmtree(snapshot_root)
+        raise
+
+
+def verify_source_integrity(
+    sources: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    rows: dict[str, Any] = {}
+    passed = True
+    for relative, recorded in sources.items():
+        try:
+            current_path = ROOT / relative
+            snapshot_path = ROOT / recorded["snapshot"]
+            current = sha256(current_path)
+            snapshot = sha256(snapshot_path)
+            current_bytes = current_path.stat().st_size
+            snapshot_bytes = snapshot_path.stat().st_size
+            matches = (
+                current == recorded["sha256"]
+                and snapshot == recorded["snapshot_sha256"]
+                and current == snapshot
+                and current_bytes == recorded["bytes"]
+                and snapshot_bytes == recorded["bytes"]
+            )
+            error = None
+        except Exception as exc:
+            current = None
+            snapshot = None
+            current_bytes = None
+            snapshot_bytes = None
+            matches = False
+            error = f"{type(exc).__name__}: {exc}"
+        rows[relative] = {
+            "current_sha256": current,
+            "recorded_sha256": recorded["sha256"],
+            "snapshot_sha256": snapshot,
+            "current_bytes": current_bytes,
+            "snapshot_bytes": snapshot_bytes,
+            "recorded_bytes": recorded["bytes"],
+            "matches": matches,
+            "error": error,
+        }
+        passed = passed and matches
+    return {"passed": passed, "rows": rows}
 
 
 def symbolic_controls(book: CheckBook) -> dict[str, str]:
@@ -331,10 +405,20 @@ def require_normalized_match(
     *,
     tolerance: float,
 ) -> None:
-    residual = abs(actual - expected) / max(1.0, abs(expected))
-    if residual > tolerance:
+    left = float(actual)
+    right = float(expected)
+    limit = float(tolerance)
+    if (
+        not math.isfinite(left)
+        or not math.isfinite(right)
+        or not math.isfinite(limit)
+        or limit < 0.0
+    ):
+        raise ValueError("comparison values and tolerance must be finite and admissible")
+    residual = abs(left - right) / max(1.0, abs(right))
+    if not math.isfinite(residual) or residual > limit:
         raise ValueError(
-            f"normalized residual {residual:.17g} exceeds tolerance {tolerance:.17g}"
+            f"normalized residual {residual:.17g} exceeds tolerance {limit:.17g}"
         )
 
 
@@ -925,43 +1009,66 @@ def run_verification(
             error=exc,
         )
 
-    try:
-        dependencies = dependency_loader()
-    except Exception as exc:
-        return write_inconclusive_receipt(
-            target,
-            stage="scientific-dependencies",
-            error=exc,
-            manifest_path=manifest_path,
-            sources=sources,
-        )
+    source_integrity: dict[str, Any] = {
+        "after_snapshot": verify_source_integrity(sources)
+    }
+    if not source_integrity["after_snapshot"]["passed"]:
+        dependencies: dict[str, str] = {}
+    else:
+        try:
+            dependencies = dependency_loader()
+        except Exception as exc:
+            return write_inconclusive_receipt(
+                target,
+                stage="scientific-dependencies",
+                error=exc,
+                manifest_path=manifest_path,
+                sources=sources,
+            )
+        source_integrity["before_controls"] = verify_source_integrity(sources)
 
     book = CheckBook()
     results: dict[str, Any] = {}
     error: str | None = None
-    try:
-        results["symbolic"] = symbolic_controls(book)
-        results["eos"] = eos_controls(book)
-        results["shocks"] = shock_controls(book)
-        results["populations"] = population_controls(book)
-        results["lines"] = line_controls(book)
-        results["stellar"] = stellar_controls(book)
-        results["angular"] = angular_controls(book)
-    except Exception as exc:  # Preserve a source-bound failed receipt.
-        error = f"{type(exc).__name__}: {exc}"
-        book.add("verification.completed_without_exception", False, error=error)
+    if not source_integrity["after_snapshot"]["passed"]:
+        error = "source integrity mismatch immediately after snapshot publication"
+    elif not source_integrity["before_controls"]["passed"]:
+        error = "source integrity mismatch before scientific controls"
+    else:
+        try:
+            results["symbolic"] = symbolic_controls(book)
+            results["eos"] = eos_controls(book)
+            results["shocks"] = shock_controls(book)
+            results["populations"] = population_controls(book)
+            results["lines"] = line_controls(book)
+            results["stellar"] = stellar_controls(book)
+            results["angular"] = angular_controls(book)
+        except Exception as exc:  # Preserve a source-bound failed receipt.
+            error = f"{type(exc).__name__}: {exc}"
+            book.add("verification.completed_without_exception", False, error=error)
+
+    source_integrity["after_controls"] = verify_source_integrity(sources)
+    integrity_passed = all(
+        phase["passed"] for phase in source_integrity.values()
+    )
+    if not integrity_passed and error is None:
+        error = "source integrity mismatch after scientific controls"
 
     passed_count = sum(row["passed"] for row in book.checks.values())
     total_count = len(book.checks)
-    status = "PASS" if error is None and book.passed else "FAIL"
+    status = "PASS" if error is None and book.passed and integrity_passed else "FAIL"
+    if status == "PASS":
+        scientific_classification = (
+            "SUPPORTS-conditional compressible radiative-plasma closure"
+        )
+    elif not integrity_passed:
+        scientific_classification = "INCONCLUSIVE"
+    else:
+        scientific_classification = "CONTRADICTS"
     receipt = {
         "schema": SCHEMA,
         "status": status,
-        "scientific_classification": (
-            "SUPPORTS-conditional compressible radiative-plasma closure"
-            if status == "PASS"
-            else "CONTRADICTS"
-        ),
+        "scientific_classification": scientific_classification,
         "checks": {
             "passed": passed_count,
             "total": total_count,
@@ -971,6 +1078,7 @@ def run_verification(
         "results": results,
         "input_manifest": manifest_path.relative_to(ROOT).as_posix(),
         "sources": sources,
+        "source_integrity": source_integrity,
         "dependencies": dependencies,
         "error": error,
         "scope": {
@@ -1001,6 +1109,8 @@ def run_verification(
     print(f"receipt: {target.relative_to(ROOT).as_posix()}")
     if book.failed:
         print("failed checks: " + ", ".join(book.failed))
+    if error is not None:
+        print(f"verification error: {error}", file=sys.stderr)
     return 0 if status == "PASS" else 1
 
 

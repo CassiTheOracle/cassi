@@ -10,21 +10,23 @@ The equations use established radiation hydrodynamics, atomic kinetics and stell
 
 ## 1. State and conventions
 
-The evolved material state is written in conservative variables. With specific internal energy $e$, specific total material energy $E=e+|u|^2/2$, species mass fractions $Y_s$ and level populations $n_{s\ell}$, the solved state is
+The evolved material state is a constrained conservative state. With specific internal energy $e$, specific total material energy $E=e+|u|^2/2$, species mass fractions $Y_s$ and level populations $n_{s\ell}$, the solved variables satisfy
 
 $$
 \boxed{
 \mathcal U_{\rm mat}
-=\left(\rho,\rho u,\rho E,\{\rho Y_s\},\{n_{s\ell}\}\right).}
+:=\left(\rho,\rho u,\rho E,\{\rho Y_s\},\{n_{s\ell}\}\right),
+\qquad
+\rho Y_s=m_u\sum_{\ell\in\mathcal L_s}A_{s\ell}n_{s\ell}.}
 \tag{1a}
 $$
 
-The radiation block is $\{E_g,F_g\}$ for a moment solve or $\{I_{gm}\}$ for the multi-angle solve. Primitive variables such as $u$, $T$, $p$ and the level fractions are recovered from this state through the equation of state and the population constraints. In particular,
+The radiation block is $\{E_g,F_g\}$ for a moment solve or $\{I_{gm}\}$ for the multi-angle solve. The species densities and level populations in (1a) are two representations of the same baryonic content, so only constrained states are admissible. Primitive variables such as $u$, $T$, $p$ and the level fractions are recovered through the equation of state and the population constraints. In particular,
 
 - $\rho$ is conserved baryonic mass density;
 - $u$ is material velocity;
 - $Y_s$ is the mass fraction of transported material species $s$, with $\sum_sY_s=1$;
-- $n_{s\ell}$ is the number density of internal, excitation or ionization level $\ell$ of species $s$;
+- $n_{s\ell}$ is the number density of internal, excitation or ionization level $\ell\in\mathcal L_s$ of species $s$; every positive-density transported species has at least one represented level, while a zero-density species may have none;
 - $n_e$ is the free-electron number density;
 - $T>0$ is material temperature;
 - $E_g,F_g,P_g$ are the energy, flux and pressure tensor of radiation group $g$;
@@ -38,7 +40,7 @@ $$
 \tag{1}
 $$
 
-where $A_i$ is the baryon number of state $i$. Nuclear binding-energy release then belongs in the energy ledger without violating baryon continuity. The Newtonian inertia is $\rho$ at this order. A relativistic implementation must include the released energy in the stress-energy tensor rather than silently changing (1).
+where $A_i$ is the baryon number of state $i$. Equation (1) is the sum of the per-species constraints in (1a). Nuclear binding-energy release then belongs in the energy ledger without violating baryon continuity. The Newtonian inertia is $\rho$ at this order. A relativistic implementation must include the released energy in the stress-energy tensor rather than silently changing (1).
 
 The speed of light is $c_\gamma$. The symbol $c$ remains the Yang/Yin composition fraction in the parent fluid paper.
 
@@ -56,7 +58,7 @@ $$
 \tag{2}
 $$
 
-Each material state obeys
+Each represented level $i=(s,\ell)$ obeys
 
 $$
 \boxed{
@@ -68,9 +70,15 @@ Here $J_i$ is a diffusive number flux and $\omega_i$ is the net local production
 
 $$
 \boxed{
+\begin{aligned}
 \partial_t(\rho Y_s)
 +\nabla\cdot(\rho Y_su+J_s^{m})
-=\dot\omega_s^{m},}
+&=\dot\omega_s^{m},\\
+J_s^{m}
+&=m_u\sum_{\ell\in\mathcal L_s}A_{s\ell}J_{s\ell},\\
+\dot\omega_s^{m}
+&=m_u\sum_{\ell\in\mathcal L_s}A_{s\ell}\omega_{s\ell},
+\end{aligned}}
 \qquad
 \sum_sY_s=1,
 \quad
@@ -80,7 +88,7 @@ $$
 \tag{3a}
 $$
 
-Here $J_s^{m}$ and $\dot\omega_s^{m}$ are barycentric diffusive mass flux and mass-production rate. The level equations (3) resolve how each transported species is distributed over its internal and ionization states; their sums must reproduce the corresponding $\rho Y_s$. Electronic transitions and ionization preserve the nuclei of each element. Nuclear reactions preserve baryon number and electric charge:
+Thus $J_s^{m}$ and $\dot\omega_s^{m}$ are the baryon-weighted sums of the level number fluxes and source rates. The variables $\rho Y_s$ and $n_{s\ell}$ are not independent conserved contents: an implementation may evolve one representation and reconstruct the other, or evolve both while enforcing (1a) and (3a) after every conservative update. Electronic transitions and ionization preserve the nuclei of each element. Nuclear reactions preserve total baryon number and electric charge:
 
 $$
 \sum_i A_i\omega_i=0,
@@ -98,7 +106,7 @@ $$
 
 with signed ionic charge $Z_i\geq0$ for the ordinary electron-ion mixture. Pair production, charged grains and nonneutral regions require their populations in (4) and a live electromagnetic field.
 
-The minimum inviscid closure sets $J_i=J_s^m=0$. A model that enables species diffusion must enforce the barycentric constraint $\sum_sJ_s^m=0$, the matching level-population constraint $\sum_iA_im_uJ_i=0$, and the associated enthalpy flux in the energy equation.
+The minimum inviscid closure sets $J_i=J_s^m=0$. A model that enables species diffusion must construct each $J_s^m$ from the level fluxes through (3a), enforce the barycentric constraint $\sum_sJ_s^m=0$, and include the associated enthalpy flux in the energy equation.
 
 ### 2.2 Momentum and total material energy
 
@@ -242,12 +250,25 @@ $$
 p&=\rho^2\left(\frac{\partial e}{\partial\rho}\right)_{s,Y,x},&
 T&=\left(\frac{\partial e}{\partial s}\right)_{\rho,Y,x}>0,\\
 c_v&=\left(\frac{\partial e}{\partial T}\right)_{\rho,Y,x}>0,&
-c_s^2&=\left(\frac{\partial p}{\partial\rho}\right)_{s,Y}>0,
+c_{s,{\rm fr}}^2&=\left(\frac{\partial p}{\partial\rho}\right)_{s,Y,x}>0,
 \end{aligned}}
 \tag{16}
 $$
-
 together with $e(\rho,T,Y,x)$ and the derivatives needed by the primitive solver. Molecules, degeneracy, Coulomb corrections, radiation pairs and relativistic temperatures replace (12)–(13) with a table or free-energy model. Deriving every returned quantity from one Helmholtz, Gibbs or internal-energy potential enforces the corresponding Maxwell identities and prevents inconsistent pressure, energy and sound speed.
+
+For an operator-split reaction step, the internal coordinates are frozen during the hyperbolic update, so $c_{s,{\rm fr}}$ sets its characteristic speeds. In the instantaneous-equilibrium limit, the affinities determine $x_{\rm eq}(\rho,s,Y)$ through $\mathcal A_i=0$, and the relevant derivative is
+
+$$
+\boxed{
+c_{s,{\rm eq}}^2
+:=\left.\frac{d}{d\rho}
+p\!\left(\rho,s,Y,x_{\rm eq}(\rho,s,Y)\right)
+\right|_{s,Y}>0.}
+\tag{16a}
+$$
+
+A production EOS declares the relaxation limit used by its Riemann solver. Finite-rate kinetics use the frozen wave speed in the flux step and resolve relaxation in the source step; an equilibrium table uses (16a) only after eliminating the equilibrated coordinates from the same thermodynamic potential.
+
 
 ### 2.4 Shock jump conditions
 
@@ -293,6 +314,7 @@ $$
 \right]>0
 \quad(M_1>1).}
 \tag{20}
+$$
 
 For a general EOS the admissibility condition is the entropy inequality
 
@@ -311,7 +333,6 @@ $$
 $$
 
 where a thermodynamically consistent reaction network has $\dot s_{\rm chem}\geq0$. This regularization supplies entropy production while its stress and heat flux remain inside the conservative momentum and energy equations.
-$$
 
 Radiative shocks use total fluxes. In the shock frame, $P_{\gamma,nn}$ joins the normal momentum flux and $F_{\gamma,n}$ joins the energy flux:
 
@@ -563,11 +584,18 @@ $$
 $$
 
 $$
+\mathcal N_D
+:=\frac12\left[1+\operatorname{erf}
+\left(\frac{\nu_{ul}}{\Delta\nu_D}\right)\right],
+\qquad
 \phi_D(\nu)
-=\frac{1}{\Delta\nu_D\sqrt\pi}
-\exp\left[-\frac{(\nu-\nu_{ul})^2}{\Delta\nu_D^2}\right].
+:=\frac{1}{\mathcal N_D\Delta\nu_D\sqrt\pi}
+\exp\left[-\frac{(\nu-\nu_{ul})^2}{\Delta\nu_D^2}\right],
+\quad \nu\geq0.
 \tag{45}
 $$
+
+The factor $\mathcal N_D$ makes (28) exact on the physical frequency half-axis; $\mathcal N_D$ is indistinguishable from unity for the usual narrow-line regime $\Delta\nu_D\ll\nu_{ul}$. Both Doppler and Voigt profiles are normalized and nonnegative on the transported frequency domain. Their sampled value may be exactly zero in a limiting tail or outside the support of a compact numerical profile; the line coefficient then vanishes at that frequency. Negative or nonfinite profile values are inadmissible.
 
 Natural and collisional damping produce a Voigt profile with damping parameter
 
@@ -927,7 +955,10 @@ $$
 Equivalently, the monochromatic isotropic source is $4\pi\eta_\nu-c_\gamma\alpha_\nu E_\nu$. The material source is its exact negative, $\mathcal Q_{{\rm rad},g}=c_\gamma\alpha_g^{\rm a}(E_g-E_g^{\rm eq})$, which matches (11). The discrete phase function obeys
 
 $$
-\boxed{\sum_mw_mp_{g,mm'}=1\quad\text{for every }m'.}
+\boxed{
+p_{g,mm'}\geq0,
+\qquad
+\sum_mw_mp_{g,mm'}=1\quad\text{for every }m'.}
 \tag{73}
 $$
 
@@ -1066,19 +1097,20 @@ checks**. It verifies symbolic pressure-work reduction, exact normal-shock
 fluxes, primitive recovery, finite population-generator conservation and
 positivity, LTE line balance, bound-free energy partition, virial and
 source-reservoir ledgers, angular realizability, isotropic scattering and two
-axis-aligned beams that cross in one cell and continue independently.
-Its source-bound receipt is
-`runs/compressible_radiative_plasma_sealed/verification.json`.
+axis-aligned beams that cross in one cell and continue independently. Its
+source-bound receipt is
+`runs/compressible_radiative_plasma_profile_normalized_final/verification.json`.
 
 The separate fixed integrity qualification in
-`computations/compressible-radiative-plasma-integrity-prereg.md` passes **25 of
-25 checks**. It verifies conservative-state packing and recovery, the
-thermodynamic identities, invalid-state rejection, line-input admissibility,
-line and photoionization energy cancellation, normalized transfer sources,
-stellar control-volume reconstruction, nuclear conservation and the
+`computations/compressible-radiative-plasma-integrity-prereg.md` passes **36 of
+36 checks**. It verifies the species-level mass constraint, defensive public
+state construction, kinetic internal-energy recovery, the thermodynamic
+identities, exact physical-frequency Doppler normalization, invalid-state
+rejection, line and photoionization energy cancellation, normalized transfer
+sources, stellar control-volume reconstruction, nuclear conservation and the
 `INCONCLUSIVE` classification of missing scientific prerequisites. Its
 source-bound receipt is
-`runs/compressible_radiative_plasma_integrity_sealed/verification.json`.
+`runs/compressible_radiative_plasma_integrity_profile_normalized_final/verification.json`.
 
 Together these results **SUPPORT** the conditional closure at reference-kernel
 level. Production finite-volume convergence, atomic and nuclear data
@@ -1112,7 +1144,7 @@ The physical mapping from the Cassi field and particle state to baryonic mass, c
 - `computations/compressible-radiative-plasma-prereg.md`—fixed symbolic, EOS, shock, population, source-ledger and angular controls
 - `computations/compressible_radiative_plasma.py`—reference EOS, shock, population, line, stellar-source and discrete-ordinates kernels
 - `computations/verify_compressible_radiative_plasma.py`—70-check source-snapshotted verifier
-- `computations/compressible-radiative-plasma-integrity-prereg.md`—fixed 25-check state, exchange, ledger and prerequisite qualification
+- `computations/compressible-radiative-plasma-integrity-prereg.md`—fixed 36-check state, line-profile, exchange, ledger and prerequisite qualification
 - `computations/verify_compressible_radiative_plasma_integrity.py`—source-bound integrity qualification verifier
 - D. Mihalas and B. Weibel-Mihalas, *Foundations of Radiation Hydrodynamics*—compressible radiation hydrodynamics and moving-frame transfer
 - R. J. LeVeque, *Finite Volume Methods for Hyperbolic Problems*—conservative weak solutions and shock-capturing finite-volume methods

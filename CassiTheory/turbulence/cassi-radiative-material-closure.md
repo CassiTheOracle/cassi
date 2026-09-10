@@ -633,12 +633,13 @@ $$
 Tabulated EOS and opacity data are appropriate inputs for a production astrophysical model. Cassi supplies no atomic cross-sections from $\varphi$ or $q$.
 
 That branch supplies conservative momentum and total-energy equations,
-pressure work, shock jump conditions, finite population generators, a
-stellar-source ledger and multi-angle transfer. Its 70-check reference
-schedule and separate 25-check integrity qualification cover the conditional
-equations, admissibility boundaries, exchange cancellation and prerequisite
-classification. Its EOS and material coefficients still come from physical
-constitutive data.
+pressure work, shock jump conditions, a species-level mass constraint, finite
+population generators, a stellar-source ledger and multi-angle transfer. Its
+70-check reference schedule and separate 36-check integrity qualification
+cover the conditional equations, defensive state construction, normalized
+line profiles, admissibility boundaries, exchange cancellation and
+prerequisite classification. Its EOS
+and material coefficients still come from physical constitutive data.
 
 ### 12.3 Non-LTE lines
 
@@ -873,7 +874,7 @@ map, material identity, response tables and source history are supplied.
 - `computations/compressible_radiative_plasma.py`—reference compressible radiative-plasma kernels
 - `computations/verify_compressible_radiative_plasma.py`—70-check source-snapshotted verifier
 - `computations/compressible-radiative-plasma-integrity-prereg.md`—fixed conservative-state, exchange, source-ledger and prerequisite qualification
-- `computations/verify_compressible_radiative_plasma_integrity.py`—passing 25-check integrity qualification
+- `computations/verify_compressible_radiative_plasma_integrity.py`—passing 36-check integrity qualification
 - `standard-model/su2-gauge-extension.md` §§2–3—conditional gauge extension and photon null direction; electromagnetic current map remains open
 - `foundations/dimensionful-constants-status.md`—external status of $c_\gamma$ and $\hbar$
 - `computations/matter-formation-continuum-report.md` §§35–36, 66—scalar cloud radiation and scalar loop corrections, distinct from transported electromagnetic photons

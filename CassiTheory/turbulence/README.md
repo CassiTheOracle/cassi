@@ -56,10 +56,12 @@ networks provide line and continuum coefficients from evaluated atomic data.
 Gravitational contraction, accretion and nuclear mass defect enter one
 stellar luminosity ledger. Discrete ordinates preserve distinct crossing
 beams. Its fixed source-snapshotted schedule passes **70 of 70 checks**, and
-the separate integrity qualification passes **25 of 25 checks** across state
-recovery, invalid-input rejection, exchange cancellation, source ledgers and
-scientific-prerequisite classification. Physical Cassi material
-identification and a production solver remain open.
+the separate integrity qualification passes **36 of 36 checks** across the
+species-level mass constraint, defensive state construction,
+physical-frequency Doppler normalization, invalid-input rejection, exchange
+cancellation, source ledgers and scientific-prerequisite classification.
+Physical Cassi material identification and a production
+solver remain open.
 
 The phase-current reduction derives Mermin–Ho vorticity, full-doublet Hopf
 helicity and a two-scale-band periodic Beltrami class. Its 227 checks support
@@ -282,8 +284,9 @@ and two axis-aligned beams cross without merging. The fixed verification
 passes **70 of 70 checks** across symbolic identities, EOS recovery, four
 normal shocks, population positivity, detailed balance, source ledgers,
 quadrature moments, scattering and a crossing-beam stream. A separate
-source-bound integrity qualification passes **25 of 25 checks** across
-conservative-state and thermodynamic identities, rejection boundaries,
+source-bound integrity qualification passes **36 of 36 checks** across the
+species-level mass constraint, defensive state construction, thermodynamic
+identities, physical-frequency Doppler normalization, rejection boundaries,
 matter–radiation exchange cancellation, the complete stellar ledger, nuclear
 conservation and missing-prerequisite classification. Atomic and nuclear data,
 material units, initial composition and the Cassi field-to-baryonic-state map
@@ -329,5 +332,5 @@ remain supplied inputs or open identifications.
 - `computations/compressible-radiative-plasma-prereg.md`—fixed 70-check closure schedule
 - `computations/compressible_radiative_plasma.py`—reference compressible radiative-plasma kernels
 - `computations/verify_compressible_radiative_plasma.py`—source-snapshotted 70-check verifier
-- `computations/compressible-radiative-plasma-integrity-prereg.md`—fixed 25-check state, exchange, ledger and prerequisite qualification
+- `computations/compressible-radiative-plasma-integrity-prereg.md`—fixed 36-check state, line-profile, exchange, ledger and prerequisite qualification
 - `computations/verify_compressible_radiative_plasma_integrity.py`—source-bound integrity qualification verifier
