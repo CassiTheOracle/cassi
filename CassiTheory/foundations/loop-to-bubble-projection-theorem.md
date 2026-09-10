@@ -4930,6 +4930,24 @@ $$
 \mathcal E_L(f):=\|W_L^{1/2}G_Lf\|_2^2.
 \tag{YM175}
 $$
+For the Yang–Mills application, require the block metric to be energy
+compatible with the gauge-invariant form domain:
+
+$$
+\mathcal E_L(f)
+\leq
+\chi_{a,L}\mathcal E_{\mathrm{YM},a,L}(f),
+\qquad
+\mathcal E_{\mathrm{YM},a,L}(f)
+:=
+\sum_{e,A}\|X_e^Af\|_{L^2(\mu_{a,L})}^2,
+\tag{YM176a}
+$$
+
+for gauge-invariant $f\in\mathcal D$, with $\chi_{a,L}<\infty$. An exact
+orthogonal block decomposition has $\chi_{a,L}=1$. The full-filtration
+condition $P_Lf=f$ and this energy comparison are separate hypotheses from
+the shell and transport estimates.
 
 Then the finite-level estimate is
 
@@ -4976,13 +4994,13 @@ cross-level blocks in $k-j$ is one sufficient mechanism. This condition
 controls the assembled transport operator directly; it does not follow by
 summing the two-scale recurrences.
 
-Combining (YM176) with the exact ground-state transform (YM28) yields, for
-any family satisfying the displayed hypotheses,
+Combining (YM176) with (YM176a) and the exact ground-state transform (YM28)
+yields, for any family satisfying the displayed hypotheses,
 
 $$
 \Delta_{\mathrm{phys}}(a,L)
 \geq
-\frac{g_L^2}{2a_L}C_L^{-2}.
+\frac{g_L^2}{2a_L}\bigl(\chi_{a,L}C_L^2\bigr)^{-1}.
 \tag{YM179}
 $$
 
@@ -4990,7 +5008,8 @@ A fixed physical mass $m_*>0$ therefore requires
 
 $$
 \inf_{a,L}
-\frac{g_L^2}{2a_L}C_L^{-2}
+\frac{g_L^2}{2a_L}
+\bigl(\chi_{a,L}C_L^2\bigr)^{-1}
 \geq m_*.
 \tag{YM180}
 $$
@@ -5106,7 +5125,7 @@ microscopic completions.
 | Poincaré/link-sphere geometry and exact two-scale recurrence (YM99)–(YM125) | **Derived** finite-regulator geometry and **Derived conditional** Poincaré theorem | Exact marginal interactions enter through \((\lambda_{\mathrm{fib}},\kappa,\lambda_c)\); (YM125) is the sufficient $L^2$-score target and its weak-coupling scale-uniform bounds remain open |
 | Conditional $H^{-1}$ score recurrence and exact margin transfer (YM126)–(YM151) | **Derived conditional** finite-regulator theorem | The inverse-generator score norm retains vertical cancellations and is no weaker than the $L^2$ covariance estimate; its exact-vacuum uniform bound remains open |
 | Residual recovery Gramian and score-penalty separation (YM152)–(YM170) | **Derived conditional** finite-regulator theorem | $A_{\mathrm{AT}}^{\mathrm{opt}}=\gamma_{\mathrm{rec}}^{-1}$ and $\lambda_{\mathrm{gi}}\geq\gamma_{\mathrm{rec}}\lambda_{\mathrm{loc}}/\rho$; the score operator is a separate upper penalty on coarse tangents, and uniform exact-vacuum recovery and score bounds remain open |
-| Finite-level martingale transport criterion (YM171)–(YM182) | **Derived conditional** finite-regulator theorem | Explicit joint form-domain identity and uniformly controlled weighted transport operator are required; exact Yang–Mills shell, recovery and weak-coupling bounds remain open |
+| Finite-level martingale transport criterion (YM171)–(YM182) | **Derived conditional** finite-regulator theorem | Full-filtration/gauge-domain identity, energy comparison, and uniformly controlled weighted transport operator are required; exact Yang–Mills shell, recovery and weak-coupling bounds remain open |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -5422,10 +5441,11 @@ construction and physical mass gap remain **UNRESOLVED**.
 
 The finite-level martingale transport criterion in §9.22.7 is an analytical
 conditional extension of the shell estimates. It has no separate preregistered
-protocol or receipt: (YM171)–(YM180) are proved from their displayed
-form-domain and transport hypotheses, while (YM181)–(YM182) are exact
-post-protocol Gaussian diagnostics. These formulas do not extend the 58-check
-or 30-check recovery receipts. The exact-vacuum shell, recovery and
+protocol or receipt: (YM171)–(YM180), including the energy comparison in
+(YM176a), are proved from their displayed form-domain and transport
+hypotheses, while (YM181)–(YM182) are exact post-protocol Gaussian diagnostics.
+These formulas do not extend the 58-check or 30-check recovery receipts. The
+exact-vacuum shell, recovery and
 weak-coupling transport bounds remain **UNRESOLVED**.
 
 ---
