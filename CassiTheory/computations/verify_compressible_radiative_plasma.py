@@ -55,7 +55,16 @@ SCIENTIFIC_EXPORTS = (
 def load_scientific_dependencies(
     importer: Callable[[str], Any] = importlib.import_module,
 ) -> dict[str, str]:
-    """Load external numerical dependencies inside the evidence-producing run."""
+    """Load the kernel and external numerical dependencies."""
+    try:
+        loaded_kernel = importer("compressible_radiative_plasma")
+    except ModuleNotFoundError as exc:
+        if (
+            importer is not importlib.import_module
+            or exc.name != "compressible_radiative_plasma"
+        ):
+            raise
+        loaded_kernel = importer("computations.compressible_radiative_plasma")
     loaded_np = importer("numpy")
     loaded_sp = importer("sympy")
     loaded_scipy = importer("scipy")
@@ -63,6 +72,7 @@ def load_scientific_dependencies(
     np = loaded_np
     sp = loaded_sp
     return {
+        "kernel_module": str(getattr(loaded_kernel, "__name__", "")),
         "numpy": str(loaded_np.__version__),
         "sympy": str(loaded_sp.__version__),
         "scipy": str(loaded_scipy.__version__),
@@ -248,7 +258,6 @@ def bind_frozen_scientific_modules(
     frozen_verifier, verifier_binding = load_frozen_module(
         sources, VERIFIER_SOURCE, role="compressible_radiative_plasma_verifier"
     )
-    frozen_verifier.ROOT = ROOT
     frozen_verifier.np = np
     frozen_verifier.sp = sp
     for name in frozen_verifier.SCIENTIFIC_EXPORTS:
@@ -1263,18 +1272,34 @@ def run_verification(
     ]
     total_count = len(book.checks)
     expected_total = required_check_count
-    module_expected_total = int(
-        getattr(execution_module, "EXPECTED_CHECKS", -1)
-    )
+    module_expected_total: int | None = None
+    module_expected_error: str | None = None
+    try:
+        declared_total = getattr(execution_module, "EXPECTED_CHECKS", -1)
+    except Exception as exc:
+        module_expected_error = f"{type(exc).__name__}: {exc}"
+    else:
+        if type(declared_total) is int:
+            module_expected_total = declared_total
+        else:
+            module_expected_error = (
+                "TypeError: EXPECTED_CHECKS must be an integer, "
+                f"got {type(declared_total).__name__}"
+            )
     declaration_matches_expected = module_expected_total == expected_total
     count_matches_expected = (
         total_count == expected_total and declaration_matches_expected
     )
     if not count_matches_expected and error is None:
+        declaration_text = (
+            str(module_expected_total)
+            if module_expected_error is None
+            else f"invalid [{module_expected_error}]"
+        )
         error = (
             "fixed scientific check count mismatch: "
             f"observed={total_count}, required={expected_total}, "
-            f"frozen_declaration={module_expected_total}"
+            f"frozen_declaration={declaration_text}"
         )
     status = (
         "PASS"
@@ -1304,6 +1329,7 @@ def run_verification(
             "total": total_count,
             "expected_total": expected_total,
             "module_expected_total": module_expected_total,
+            "module_expected_error": module_expected_error,
             "declaration_matches_expected": declaration_matches_expected,
             "count_matches_expected": count_matches_expected,
             "failed": failed_checks,
@@ -1342,8 +1368,8 @@ def run_verification(
         f"({passed_count}/{total_count} checks)"
     )
     print(f"receipt: {target.relative_to(ROOT).as_posix()}")
-    if book.failed:
-        print("failed checks: " + ", ".join(book.failed))
+    if failed_checks:
+        print("failed checks: " + ", ".join(failed_checks))
     if error is not None:
         print(f"verification error: {error}", file=sys.stderr)
     return 0 if status == "PASS" else 1

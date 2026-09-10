@@ -215,7 +215,6 @@ def bind_frozen_execution_modules(
         sources, INTEGRITY_VERIFIER_SOURCE, role="integrity_verifier"
     )
 
-    frozen_base.ROOT = ROOT
     frozen_base.np = np
     frozen_base.sp = sp
     for name in frozen_base.SCIENTIFIC_EXPORTS:
@@ -223,7 +222,6 @@ def bind_frozen_execution_modules(
             raise ImportError(f"frozen kernel has no export {name!r}")
         setattr(frozen_base, name, getattr(frozen_kernel, name))
 
-    frozen_integrity.ROOT = ROOT
     frozen_integrity.np = np
     frozen_integrity.sp = sp
     frozen_integrity.integrate = integrate
@@ -960,9 +958,95 @@ def stellar_controls(book: CheckBook) -> dict[str, Any]:
     }
 
 
-def prerequisite_controls(book: CheckBook, work_root: Path) -> dict[str, Any]:
-    with tempfile.TemporaryDirectory(prefix="prerequisite_controls_", dir=work_root) as raw:
+def prerequisite_controls(book: CheckBook, _work_root: Path) -> dict[str, Any]:
+    snapshot_root = Path(base_verifier.ROOT).resolve()
+    base_module_path = Path(base_verifier.__file__).resolve()
+    root_bound = (
+        len(base_module_path.parents) >= 2
+        and base_module_path.parents[1] == snapshot_root
+    )
+    if not root_bound:
+        raise RuntimeError("frozen base verifier root does not match its snapshot file")
+
+    def stays_within_snapshot_root(relative: str) -> bool:
+        resolved = (snapshot_root / relative).resolve()
+        return resolved == snapshot_root or snapshot_root in resolved.parents
+
+    def snapshot_importer(name: str) -> Any:
+        if name == "compressible_radiative_plasma":
+            return kernel
+        return importlib.import_module(name)
+
+    def snapshot_dependency_loader() -> dict[str, str]:
+        return base_verifier.load_scientific_dependencies(
+            importer=snapshot_importer
+        )
+
+
+    # Nested evidence belongs under the frozen base verifier's own root. Its
+    # default source list then resolves only against the published snapshot tree.
+    with tempfile.TemporaryDirectory(
+        prefix="prerequisite_controls_",
+        dir=snapshot_root,
+    ) as raw:
         temporary = Path(raw)
+
+        qualification_target = temporary / "qualification" / "verification.json"
+        qualification_code = base_verifier.run_verification(
+            qualification_target,
+            dependency_loader=snapshot_dependency_loader,
+        )
+        qualification_receipt = json.loads(
+            qualification_target.read_text(encoding="utf-8")
+        )
+        expected_base_sources = {
+            path.as_posix() for path in base_verifier.SOURCE_PATHS
+        }
+        qualification_sources_bound = (
+            set(qualification_receipt["sources"]) == expected_base_sources
+            and stays_within_snapshot_root(
+                str(qualification_receipt["input_manifest"])
+            )
+            and all(
+                stays_within_snapshot_root(relative)
+                and stays_within_snapshot_root(str(recorded["snapshot"]))
+                for relative, recorded in qualification_receipt["sources"].items()
+            )
+        )
+        qualification_bindings = qualification_receipt["execution_binding"][
+            "modules"
+        ]
+        qualification_modules_bound = (
+            set(qualification_bindings) == {"kernel", "verifier"}
+            and all(
+                stays_within_snapshot_root(str(binding["module_file"]))
+                for binding in qualification_bindings.values()
+            )
+        )
+        qualification_dependency_bound = (
+            qualification_receipt["dependencies"].get("kernel_module")
+            == getattr(kernel, "__name__", "")
+        )
+        qualification_pass = (
+            qualification_code == 0
+            and qualification_receipt["status"] == "PASS"
+            and qualification_receipt["scientific_classification"]
+            == "SUPPORTS-conditional compressible radiative-plasma closure"
+            and qualification_receipt["checks"]["passed"] == 70
+            and qualification_receipt["checks"]["total"] == 70
+            and qualification_receipt["checks"]["expected_total"] == 70
+            and qualification_receipt["checks"]["module_expected_total"] == 70
+            and qualification_receipt["checks"]["module_expected_error"] is None
+            and qualification_receipt["checks"]["declaration_matches_expected"]
+            and qualification_receipt["checks"]["count_matches_expected"]
+            and qualification_receipt["source_integrity"]["after_snapshot"]["passed"]
+            and qualification_receipt["source_integrity"]["before_controls"]["passed"]
+            and qualification_receipt["source_integrity"]["after_controls"]["passed"]
+            and qualification_receipt["execution_binding"]["passed"]
+            and qualification_sources_bound
+            and qualification_dependency_bound
+            and qualification_modules_bound
+        )
 
         def missing_dependency() -> dict[str, str]:
             raise ImportError("fixed missing-dependency control")
@@ -972,7 +1056,9 @@ def prerequisite_controls(book: CheckBook, work_root: Path) -> dict[str, Any]:
             dependency_target,
             dependency_loader=missing_dependency,
         )
-        dependency_receipt = json.loads(dependency_target.read_text(encoding="utf-8"))
+        dependency_receipt = json.loads(
+            dependency_target.read_text(encoding="utf-8")
+        )
         dependency_pass = (
             dependency_code == 2
             and dependency_receipt["status"] == "INCONCLUSIVE"
@@ -980,13 +1066,27 @@ def prerequisite_controls(book: CheckBook, work_root: Path) -> dict[str, Any]:
             and dependency_receipt["checks"]["total"] == 0
             and dependency_receipt["prerequisite_stage"] == "scientific-dependencies"
             and dependency_receipt["input_manifest"] is not None
-            and bool(dependency_receipt["sources"])
+            and set(dependency_receipt["sources"]) == expected_base_sources
+            and stays_within_snapshot_root(
+                str(dependency_receipt["input_manifest"])
+            )
+            and all(
+                stays_within_snapshot_root(relative)
+                and stays_within_snapshot_root(str(recorded["snapshot"]))
+                for relative, recorded in dependency_receipt["sources"].items()
+            )
         )
         book.add(
-            "prerequisite.missing_dependency_is_inconclusive",
-            dependency_pass,
-            exit_code=dependency_code,
-            receipt=dependency_receipt,
+            "prerequisite.snapshot_root_and_missing_dependency",
+            qualification_pass and dependency_pass,
+            root_bound=root_bound,
+            qualification_exit_code=qualification_code,
+            qualification_sources_bound=qualification_sources_bound,
+            qualification_modules_bound=qualification_modules_bound,
+            qualification_dependency_bound=qualification_dependency_bound,
+            qualification_receipt=qualification_receipt,
+            dependency_exit_code=dependency_code,
+            dependency_receipt=dependency_receipt,
         )
 
         source_target = temporary / "source" / "verification.json"
@@ -1013,6 +1113,7 @@ def prerequisite_controls(book: CheckBook, work_root: Path) -> dict[str, Any]:
             receipt=source_receipt,
         )
         return {
+            "snapshot_root_qualification": qualification_receipt,
             "dependency": dependency_receipt,
             "source_read": source_receipt,
         }
@@ -1148,18 +1249,34 @@ def run(output: Path) -> int:
     ]
     total_count = len(book.checks)
     expected_total = required_check_count
-    module_expected_total = int(
-        getattr(execution_module, "EXPECTED_CHECKS", -1)
-    )
+    module_expected_total: int | None = None
+    module_expected_error: str | None = None
+    try:
+        declared_total = getattr(execution_module, "EXPECTED_CHECKS", -1)
+    except Exception as exc:
+        module_expected_error = f"{type(exc).__name__}: {exc}"
+    else:
+        if type(declared_total) is int:
+            module_expected_total = declared_total
+        else:
+            module_expected_error = (
+                "TypeError: EXPECTED_CHECKS must be an integer, "
+                f"got {type(declared_total).__name__}"
+            )
     declaration_matches_expected = module_expected_total == expected_total
     count_matches_expected = (
         total_count == expected_total and declaration_matches_expected
     )
     if not count_matches_expected and error is None:
+        declaration_text = (
+            str(module_expected_total)
+            if module_expected_error is None
+            else f"invalid [{module_expected_error}]"
+        )
         error = (
             "fixed qualification check count mismatch: "
             f"observed={total_count}, required={expected_total}, "
-            f"frozen_declaration={module_expected_total}"
+            f"frozen_declaration={declaration_text}"
         )
     status = (
         "PASS"
@@ -1189,6 +1306,7 @@ def run(output: Path) -> int:
             "total": total_count,
             "expected_total": expected_total,
             "module_expected_total": module_expected_total,
+            "module_expected_error": module_expected_error,
             "declaration_matches_expected": declaration_matches_expected,
             "count_matches_expected": count_matches_expected,
             "failed": failed_checks,
@@ -1227,8 +1345,8 @@ def run(output: Path) -> int:
         f"({passed_count}/{total_count} checks)"
     )
     print(f"receipt: {target.relative_to(ROOT).as_posix()}")
-    if book.failed:
-        print("failed checks: " + ", ".join(book.failed))
+    if failed_checks:
+        print("failed checks: " + ", ".join(failed_checks))
     if error is not None:
         print(f"verification error: {error}", file=sys.stderr)
     return 0 if status == "PASS" else 1
