@@ -12053,6 +12053,320 @@ underdetermined. The present result qualifies a bounded quantum
 transfer within the supplied scalar model. Every scientific receipt
 retains `complete_physical_matter_formation=false`.
 
+## 74. Working notes: dispersal of a self-bound field pool
+
+### 74.1 A collective formation hypothesis
+
+A disturbed bound field configuration may reorganize into smaller bound
+configurations. This calculation tests that process in the scalar action
+of §25.1. The initial condition contains one charged pool. Daughter
+profiles serve as energy comparisons; none is inserted into the evolving
+initial state. The supplied axial disturbance selects a direction of
+dispersal, so the calculation cannot predict an unrestricted fragment
+multiplicity or a particle species.
+
+Keep $a=1/16$, $c_\Psi=1/8$, $u_\rho=4$, $u_C=k_{Cx}=1$,
+$e_C=3/4$ and the Mapped $h_C=2.9598260763447164$. Thus
+$B=4.75$ and the common propagation speed satisfies
+$c_*^2=1/c_\Psi=k_{Cx}/(2a)=8$. The real mediator and complex
+carrier remain the invariant scalar restriction described in §50.1.
+These supplied microscopic degrees of freedom do not establish the
+identity of an observed elementary particle.
+
+### 74.2 Parent and daughter energy accounting
+
+At fixed positive signed charge $Q$, minimizing the temporal kinetic
+energy gives $z=c(x)e^{-i\Omega t}$ with $N=\int c^2\,d^3x$ and
+$\Omega=Q/(2aN)$. The profile functional is
+$$
+\boxed{E_Q[f,c]=\int\left[
+\frac{|\nabla f|^2}{2}+\frac{k_{Cx}|\nabla c|^2}{2}
++\frac{u_\rho}{4}(f^2-1)^2
++(B-h_C+h_Cf^2)c^2+\frac{u_C}{2}c^4
+\right]d^3x+\frac{Q^2}{4aN}.}
+$$
+Its stationary equations are
+$$
+\begin{aligned}
+-\Delta f+u_\rho(f^2-1)f+2h_Cfc^2&=0,\\
+-\frac{k_{Cx}}2\Delta c+
+(B-h_C+h_Cf^2+u_Cc^2-a\Omega^2)c&=0.
+\end{aligned}
+$$
+The exterior free-charge threshold is $\Omega_\infty Q$, where
+$\Omega_\infty=\sqrt{B/a}$. Completing the positive potential square
+also gives $E_Q\ge\Omega_0Q$, with
+$$
+n_0=\sqrt{\frac{u_\rho}{2u_C}},\qquad
+\Omega_0=\sqrt{\frac{B-h_C+\sqrt{u_\rho u_C/2}}{a}}.
+$$
+These inequalities use the stated coefficients, for which
+$h_C>\sqrt{u_\rho u_C/2}$ and $\Omega_0>0$.
+
+Write $I(Q)=\inf E_Q$. Widely separated configurations with charges
+$Q_1$ and $Q_2$ have limiting energy $I(Q_1)+I(Q_2)$.
+Strict subadditivity of a bound minimizing branch therefore makes
+separation cost energy. Numerical stationary profiles provide upper
+bounds on these infima. The computed reference difference
+$2E_{256}-E_{512}$ compares those profiles; its sign alone is not
+a certified lower bound on every possible fission channel.
+
+### 74.3 Fixed stationary-profile calculation
+
+Before any dispersal trajectory, compute radial profiles at $Q=256$
+and $512$ on $(R,\Delta r)=(24,1/8),(24,1/16),(48,1/16)$.
+Use the spherical finite-volume energy, exact cell volumes and
+Dirichlet exterior values $f(R)=1$, $c(R)=0$ of
+`computations/matter_formation_radial.py`. Add
+$N/(4a)+Q^2/(4aN)$ to its spatial energy. Optimize in the
+mass-weighted coordinates $\sqrt V(f-1),\sqrt Vc$ with L-BFGS-B,
+analytic gradient, maximum 50,000 iterations, 200,000 evaluations,
+`ftol=1e-15`, `gtol=1e-9` and `maxcor=50`.
+Represent the nonnegative radial branch with $0\le f\le1$ and $c\ge0$.
+
+For each charge and grid use both seeds
+$f=[1+\tanh(r-sR_b)]/2$ and
+$c=\sqrt{n_0}[1-\tanh(r-sR_b)]/2$, with
+$s=0.8,1.2$ and
+$R_b=[3Q/(8\pi a\Omega_0n_0)]^{1/3}$. No additional seed or
+coefficient search is allowed. Save every endpoint. The two seeds
+must agree in energy, frequency and charge-weighted RMS radius to
+$10^{-5}$ relative to the larger of one and either magnitude.
+The corresponding spatial refinement tolerance is $2\times10^{-3}$;
+the domain tolerance is $10^{-5}$.
+
+Every endpoint must have mass-weighted stationary residuals below
+$10^{-5}$ after division by $\max(1,\|f-1\|_2)$ and
+$\max(1,\|c\|_2)$, respectively; finite arrays; outer-half
+population fraction below $10^{-6}$; and
+$E_Q<0.999\Omega_\infty Q$, $\Omega<0.999\Omega_\infty$.
+The charge reconstruction must agree to $10^{-10}$ relative error.
+Independently reconstruct energy, charge, RMS radius and residuals
+from all raw profiles to $10^{-9}$ normalized discrepancy.
+Use the $R=24,\Delta r=1/16,s=0.8$ endpoints as the fixed
+parent and daughter references. Any failed prerequisite stops the
+dispersal calculation with `INCONCLUSIVE`; it does not authorize
+retuning or substituting a different parent.
+
+## 75. Working notes: controlled pool-dispersal experiment
+
+### 75.1 One pool with an outward phase impulse
+
+Interpolate the selected $Q=512$ radial parent onto a cylindrical
+grid, using shape-preserving cubic interpolation, even reflection
+through the radial origin and the vacuum exterior beyond $R=24$.
+Normalize its carrier once at preparation so that
+$2a\Omega\sum Vc^2=512$; leave its mediator and frequency fixed.
+There is no normalization during evolution.
+With axial coordinate $\zeta$, prescribe
+$$
+\vartheta_p(\zeta)=p\left(\sqrt{\zeta^2+4}-2\right),\qquad
+z(0)=ce^{i\vartheta_p},\quad
+\dot z(0)=-i\Omega z(0),\quad \dot f(0)=0.
+$$
+Use exactly $p=0,1/2,3/2$. The preparation preserves the initial
+signed density $2a\Omega c^2$ pointwise and adds continuum energy
+$$
+\Delta E_p=\frac{k_{Cx}}2\int
+c^2|\nabla\vartheta_p|^2\,d^3x\ge0.
+$$
+Its current is $j_\zeta=k_{Cx}c^2\partial_\zeta\vartheta_p$.
+This directed preparation tests dispersal of a pre-existing charged
+pool; it supplies no production from empty fields or quantum vacuum.
+The unperturbed arm tests survival of the parent on the evolution grid.
+A matched $p=3/2,h_C=0$ arm tests the binding diagnostic with the
+attractive mediator coupling removed.
+
+### 75.2 Distinguishing smaller pools from outgoing radiation
+
+Use cylindrical volume $2\pi r\,dr\,d\zeta$, with
+$r\in[0,R]$, $\zeta\in[-R,R]$, a regular axis and vacuum Dirichlet
+outer values. Evolve the complete scalar equations without damping,
+traps, absorbers, clamping or daughter insertion.
+Reflection symmetry keeps the two half-space charges equal.
+In each half-space define a centroid using the positive part of
+$\rho_a=-2a\operatorname{Im}(z^*\dot z)$.
+
+Around each centroid use the compact comparison in §50.2:
+$\theta=1$ inside distance eight, zero outside distance twelve,
+and $1-3s^2+2s^3$ in between, with $s=(d-8)/4$.
+Multiply $f-1,z,\dot f,\dot z$ by $\theta$ only for this diagnostic.
+Include all cutoff-gradient energy. Retain its charge $Q_\theta$,
+energy $E_\theta$ and axial momentum
+$$
+P_{\theta,\zeta}=-\int\left[
+c_\Psi\dot f_\theta\,\partial_\zeta f_\theta+
+2a\operatorname{Re}(\dot z_\theta^*
+\partial_\zeta z_\theta)\right]d^3x.
+$$
+The axisymmetric integral has zero total transverse momentum.
+Its rest-energy comparison is
+$M_\theta=\sqrt{E_\theta^2-c_*^2P_{\theta,\zeta}^2}$.
+The common-cone continuum theory permits this energy–momentum
+comparison. On the grid use the centered axial derivative with
+odd vacuum ghost values; qualify it by refinement and record the
+radicand rather than concealing a negative value.
+
+At every sampled time in $24\le t\le32$, each candidate must have
+$Q_\theta\ge128$, at least $60\%$ of its half-space positive charge
+inside distance eight, charge-weighted core RMS radius below six,
+charge-weighted core $f^2\le0.5$, and
+$0<M_\theta<0.98\Omega_\infty Q_\theta$.
+Both centroids must lie more than twelve from the central plane,
+and their cutoff balls must clear every outer boundary by sixteen.
+These conditions certify separated finite-time compact binding
+comparisons. They do not establish infinite-time survival, actual
+dynamical isolation, nonaxisymmetric stability or microscopic identity.
+
+### 75.3 Frozen evolution and decision tree
+
+Use primary fourth-order Yoshida-composed velocity Verlet and an
+independently implemented classical RK4 evolution, both in float64.
+Both retain the same finite-volume action; the independent program
+reconstructs its operators without importing the primary evolution.
+The fixed schedule is:
+
+| Grid | $R$ | $\Delta r=\Delta\zeta$ | $\Delta t$ | Arms |
+|---|---:|---:|---:|---|
+| G0 | 112 | $1/4$ | $1/256$ | $p=0,1/2,3/2$; disabled coupling at $p=3/2$ |
+| G1 | 112 | $1/8$ | $1/256$ | Same four arms |
+| G2 | 160 | $1/4$ | $1/256$ | Coupled $p=3/2$ |
+| T1 | 112 | $1/8$ | $1/512$ | Coupled $p=3/2$ |
+
+Every arm ends at $t=32$. Save diagnostics every $1/8$ time unit
+and full fields and velocities at $t=0,24,32$. Retain every
+attempt, source snapshot and finite output. Energy drift relative
+to its initial energy must stay below $2\times10^{-4}$;
+signed-charge drift relative to 512 below $2\times10^{-5}$;
+relative reflection error below $10^{-10}$.
+The unperturbed arms must keep their full charge-weighted RMS radius
+within $2\%$ of its initial value.
+Every disabled-coupling compact state with positive charge must satisfy
+$M_\theta\ge(1-10^{-8})\Omega_\infty Q_\theta$.
+
+Compare same-grid, same-arm independent snapshots using the weighted
+norm of $(f-1,z,\dot f/\Omega_\infty,\dot z/\Omega_\infty)$:
+relative state discrepancy must be below $10^{-2}$ at every saved
+time. All inter-method and matched space/domain/time comparisons of
+late-time mean diagnostics must agree within $0.05$ in fixed units:
+initial energy for energy, initial energy divided by $c_*$ for momentum,
+initial energy squared for the energy–momentum radicand, 512 for charge,
+twelve for lengths, and one for fractions, $f^2$ and binding ratios.
+For a paired comparison use the larger initial energy, with floor one.
+All comparisons use the complete declared diagnostic columns.
+
+Run source-identity rejection before any scientific calculation,
+and refuse existing output directories. Reconstruct raw saved-state
+diagnostics independently to $10^{-9}$ in the same fixed units.
+Only after all numerical and profile qualifications pass, return
+`EMERGES—conditional smaller pools from one dispersed pool` if
+either nonzero impulse satisfies every two-pool condition on every
+applicable grid and in both methods throughout the late-time window.
+If qualifications pass and neither does, return
+`DOES NOT EMERGE in the specified pool-dispersal calculation`.
+Any failed qualification gives `INCONCLUSIVE`.
+Stop after this schedule. Do not extend, retune or replace a failed arm.
+All scientific receipts retain
+`complete_physical_matter_formation=false`.
+
+## 76. Working notes: pool-dispersal qualification boundary
+
+### 76.1 Reproduced stationary and evolution records
+
+The supplied scalar action has reproducible stationary parent and daughter
+references. All twelve charge/grid/seed profiles pass the residual, binding,
+outer-population, seed, refinement and domain criteria in §74.3. Independent
+reconstruction of every raw profile has maximum normalized discrepancy
+$2.2858582678094717\times10^{-16}$. The selected values are
+$$
+E_{256}=1989.394343868252,\qquad
+E_{512}=3911.6696997380577,
+$$
+so their profile comparison is
+$$
+2E_{256}-E_{512}=67.1189879984463>0.
+$$
+This is the declared comparison between stationary upper bounds. It remains
+insufficient to certify the exact fission threshold.
+
+The primary and independent methods each complete and individually qualify
+all ten scheduled trajectories. Across the resulting twenty evolutions, the
+largest relative energy drift is $1.638564584098799\times10^{-6}$, the largest
+signed-charge drift relative to 512 is
+$3.7769181371327676\times10^{-7}$, the largest reflection error is
+$4.6895399635096765\times10^{-14}$, and the largest unperturbed RMS-radius
+drift is $5.25137769270434\times10^{-4}$. The largest normalized same-row
+late-mean discrepancy between methods is
+$4.280093774045035\times10^{-5}$. The largest full-state snapshot discrepancy
+is $0.0032671060059916517$, below $10^{-2}$, and the largest raw-state
+diagnostic reconstruction discrepancy is
+$2.434756295904974\times10^{-16}$.
+
+### 76.2 Response of the driven parent
+
+The strong preparation carries enough energy to make the two selected
+daughter profiles energetically accessible as a comparison. Its initial
+energy exceeds $2E_{256}$ by $157.69794371469334$ on G0/G2 and
+$160.14484819185554$ on G1/T1. Both evolution methods produce symmetric
+outward-moving charged lobes. Over every strong-arm side, grid and method in
+the late window, the compact charge is at least $236.63266747893073$, the
+core fraction is at least $0.8508640969491237$, the core RMS radius is at
+most $4.177097153673195$, the core $f^2$ is at most
+$0.22255010654473473$, and the binding ratio lies between
+$0.9156648316631464$ and $0.9178892653261405$. The smallest boundary
+clearance is $87.19773716568905$.
+
+These strong-arm lobes fail only the required separation history. Their
+absolute centroid ranges from $11.045388155788604$ to
+$12.802262834310955$ during $24\le t\le32$, whereas §75.2 requires it to
+exceed 12 at every sampled late time. The weak-arm centroids remain between
+$1.4048472761713273$ and $2.4272086847198406$. No weak or strong trajectory
+therefore carries a qualifying two-pool flag in either method.
+
+### 76.3 Frozen result and physical scope
+
+The joint scientific verdict is `INCONCLUSIVE`. Two required late-mean
+comparison classes fail in both methods:
+
+1. The G0/G2 strong cross-domain comparison includes the declared boundary
+   clearance. Increasing the cylindrical radius from 112 to 160 changes that
+   clearance by 48 while leaving the interior trajectory unchanged at the
+   reported precision. Division by the fixed length unit 12 gives normalized
+   discrepancies $4.000000000000004$ in the primary method and
+   $3.999999999999998$ in the independent method, above $0.05$.
+2. The G0/G1 disabled-coupling cross-resolution comparison has binding-ratio
+   discrepancies $0.3924031833818076$ and $0.39236014934939$, respectively,
+   also above $0.05$.
+
+Section 75.3 requires every declared diagnostic column in those comparisons
+and assigns `INCONCLUSIVE` when any qualification fails. The absence of a
+qualifying two-pool flag consequently does not authorize
+`DOES NOT EMERGE in the specified pool-dispersal calculation`. The schedule
+ends without extension, replacement or threshold changes.
+
+The active source-bound manifest is
+`runs/20260909_matter_formation_pool_dispersal/boundary-recovery/axial-recovery/manifest.json`,
+with SHA-256
+`f2b26f3c5211a5d416aaf714f2e757f06ea94c9d1c404e7ea0f70fe452d44fa2`.
+Its profile, independent-profile, primary and independent receipt hashes are,
+respectively,
+`8f39773c2b84bfdd97778f58009d801c75fc9cc117f409b055f2e11ed9be92c7`,
+`1732d61153e4118727470e27b8ffac5a9ee5e303c06302c280985dd0f624d4ea`,
+`40ec31647e782dcfe33c7ba40e70bb05f6e04151039af3b6ed663be4e8e9f7fb`
+and
+`0a0e81f70ebaedbbe9e3327c106d87648e0f032eadf2792643fa8ae4c56d7b03`.
+The active recovery rejects a source-hash mutation, a missing-source
+inventory and a section-hash mutation in each of the three executables.
+The standalone raw reconciliation passes every provenance, row,
+conservation, state and receipt reconstruction check while retaining the
+scientific `INCONCLUSIVE` verdict.
+
+This calculation begins with one prepared $Q=512$ scalar pool and a supplied
+phase impulse. It does not produce charge from the vacuum, select the scalar
+action microscopically, identify a particle species, or establish
+nonaxisymmetric or infinite-time persistence. Every scientific receipt
+retains `complete_physical_matter_formation=false`.
+
 ## References
 
 - `computations/matter_formation_quantum_preparation.py`—left-endpoint Taylor bound on the retained preparation states.
@@ -12272,3 +12586,7 @@ retains `complete_physical_matter_formation=false`.
 - [Farhi, Graham, Jaffe and Weigel, *Searching for Quantum Solitons in a 3+1 Dimensional Chiral Yukawa Model*](https://arxiv.org/abs/hep-th/0112217)—localized fixed-fermion-number energy including the renormalized sea.
 - `computations/matter-formation-scalar-vacuum-prereg.md`—fixed local static potential, exact sign criterion and scope.
 - `computations/verify_matter_formation_scalar_vacuum.py`—symbolic and rational global lower-boundedness qualification.
+- `computations/matter_formation_pool_profiles.py`—fixed-charge stationary parent and daughter profile construction.
+- `computations/matter_formation_pool_dispersal.py`—primary finite-volume pool-dispersal evolutions and conserved-quantity diagnostics.
+- `computations/verify_matter_formation_pool_dispersal.py`—independent finite-volume reconstruction, raw-state checks and frozen verdict aggregation.
+- `runs/20260909_matter_formation_pool_dispersal/boundary-recovery/axial-recovery/`—active source-bound profiles, trajectories, controls, execution records and reconciliation.
