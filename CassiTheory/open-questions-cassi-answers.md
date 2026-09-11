@@ -792,6 +792,19 @@ positive direction. A two-parameter family over a $33\times33$ block grid
 returns the same boundary with `WITNESS_CONFINED`, so the confinement is not
 an artifact of a single path family.
 
+The loop-carrying exterior test in
+`computations/yang-mills-bowtie-fibre-prereg.md` uses an eight-link bowtie
+whose exterior plaquette shares one vertex with the block and carries a
+conjugacy-class holonomy. Its 108 source-bound rows cover
+$J=1,2,3$, $x\in\{1/4,1,4,16\}$ and nine angles. All seven analytic controls
+pass, and every one of the twelve $(J,x)$ blocks shows finite boundary
+sensitivity; at $J=1$, $x=1$, the conditional partition ranges from
+$0.9160251472$ to $2.3613249509$. The retained-rate qualification is
+`INCONCLUSIVE` for all rows because the full-space residual or nested
+restriction-rank rule fails. The exact-vacuum fibre rate, transport score,
+cutoff removal, uniform interacting recovery, thermodynamic limit and
+continuum construction remain open.
+
 An exact normalized-Haar path-holonomy pullback preserves endpoint gauge
 covariance and compresses the electric Casimir with
 $g_c^2=b^2g_f^2$. A genuine $2\times2$ refinement has four missing
@@ -2448,6 +2461,17 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
 - **The internal$\to$physical axis map.** A coordinate spiral's Frenet-Serret vectors $\{\mathbf{T}, \mathbf{N}, \mathbf{B}\}$ provide a candidate projection into three physical directions; the physical identification remains Hypothesized. See `foundations/why-three-dimensions.md` §2.2 and §6.1.
 - **Bubble edge profile.** The physical gradient in $q$, $\rho$, and $G_{\text{eff}}$ across the condensation boundary is derived from the chord lattice geometry but the condensation threshold $\theta_{\text{cond}}$ and the density exponent $\nu$ require PDE computation. See `foundations/bubble-edge-geometry.md`.
 - **BH information Page curve.** The free Gaussian supplies Euclidean UV damping but fails the standard unsubtracted positive physical-covariance interpretation at nonzero $\sigma$. A physical-sector construction and interacting, curved-spacetime evaporation calculation are required before a Page curve is defined. See `gravity/quantum-gravity.md` §§3.1,7 and `foundations/quantum-free-fall-correspondence.md` §11.5.
+- **Interacting Yang–Mills fibre and continuum mass gap.** Finite regulated
+  theory has an exact vacuum-measure gap identity and conditional
+  recurrence criteria. The seven-link tree-exterior study makes the sampled
+  boundary axis orbit-independent, while the eight-link bowtie study shows
+  loop-holonomy boundary sensitivity in all twelve scheduled cutoff/coupling
+  blocks. Its 108 retained-rate rows are `INCONCLUSIVE` under the frozen
+  residual and nested-rank rules. The exact-vacuum fibre rate, transported
+  score, cutoff removal, uniform interacting recovery, thermodynamic limit and
+  continuum construction remain open. See
+  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.24 and
+  `field-experience/probe-outcome-ledger.md` §30.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state

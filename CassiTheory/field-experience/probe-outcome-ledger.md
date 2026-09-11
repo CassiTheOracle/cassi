@@ -895,6 +895,31 @@ source digest
 analytical statements are
 `foundations/loop-to-bubble-projection-theorem.md` §9.23.
 
+## 30. Loop-carrying exterior bowtie fibre
+
+The frozen protocol `computations/yang-mills-bowtie-fibre-prereg.md` replaces
+the seven-link tree exterior with an eight-link exterior plaquette attached to
+the block at one vertex. It schedules doubled cutoffs $J=1,2,3$, couplings
+$x\in\{1/4,1,4,16\}$ and $\theta=k\pi/8$ for $k=0,\ldots,8$. The
+source-bound receipt `runs/yang_mills_bowtie_fibre/verification.json` contains
+108 rows and binds `computations/verify_yang_mills_bowtie_fibre.py`, the
+protocol, `computations/verify_yang_mills_exact_block_spectrum.py` and
+`computations/yang_mills_conditional_algebra.py` by SHA-256.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Analytic and receipt controls | State-space dimension, kinetic labels, normalization, gauge-orbit invariance, Hermiticity, positivity and exclusive receipt creation all pass | **PASS** for the declared finite contraction and receipt controls |
+| Loop-holonomy boundary response | Every one of the twelve $(J,x)$ blocks exceeds the orbit threshold, with $\min_{J,x}\max_\theta|\log Z(\theta)|=0.2995170783$; at $J=1$, $x=1$, $Z$ ranges from $0.9160251472$ to $2.3613249509$ | **SUPPORTS_BOUNDARY_SENSITIVITY** for the finite loop-carrying exterior |
+| Retained-rate qualification | All 108 rows classify **INCONCLUSIVE**: 36 fail only the full-space residual bound, 27 fail only the nested restriction-rank rule and 45 fail both; the maximum residual is $15.2349853487$ against the $10^{-2}$ bound | **INCONCLUSIVE**: the retained numbers supply no uniform fibre-rate estimate |
+| Exact vacuum and continuum target | The exact-vacuum fibre rate, transport score, cutoff removal, uniform interacting recovery, thermodynamic limit and continuum construction remain unsupplied | **UNRESOLVED** |
+
+The source digest is
+`19e3208831ce4af966cd6de8e0079e083ea55602e0d3fb1f132b71227bfb63ef` and the
+protocol digest is
+`b71f184c0c45c9eacb58e0756758baacca825bf18c951ffb651591dd76d714ae`. The
+analytical interpretation is `foundations/loop-to-bubble-projection-theorem.md`
+§9.24.
+
 
 ## References
 
@@ -981,3 +1006,7 @@ analytical statements are
 - `computations/verify_yang_mills_nodal_family.py`—source-bound schedule-wide nodal family verifier and receipt generator.
 - `computations/yang-mills-nodal-surface-prereg.md`—frozen two-parameter torus family, conformance angles and confinement decision tree.
 - `computations/verify_yang_mills_nodal_surface.py`—source-bound grid-line nodal surface verifier and receipt generator.
+- `computations/yang-mills-bowtie-fibre-prereg.md`—frozen eight-link
+  loop-carrying exterior schedule and qualification rules.
+- `computations/verify_yang_mills_bowtie_fibre.py`—source-bound bowtie
+  conditional-fibre verifier and analytic-control receipt generator.

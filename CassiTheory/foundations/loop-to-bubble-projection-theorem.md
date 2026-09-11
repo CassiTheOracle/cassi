@@ -5214,6 +5214,37 @@ row qualifies for `SUPPORTS_FINITE_BLOCK`, no conditional-collapse witness is
 issued, and the study makes no score or margin claim because the transport
 score is outside its first implementation target.
 
+### 9.24 Loop-carrying exterior and finite fibre sensitivity
+
+A finite exterior loop is the smallest graph change that leaves a genuine
+holonomy after the block links are integrated. The frozen bowtie protocol
+`computations/yang-mills-bowtie-fibre-prereg.md` uses eight links, with block
+links $B=\{0,1,2,3\}$ and an exterior plaquette on links
+$\{4,5,6,7\}$; the two plaquettes share one vertex and no link. The exterior
+orbit space is therefore a conjugacy class of $SU(2)$, represented by
+$U_4=U_5=U_6=I$ and $U_7=\exp(i\theta\sigma_3/2)$ for
+$\theta=k\pi/8$.
+
+The source-bound execution schedules the four couplings
+$x\in\{1/4,1,4,16\}$ at doubled cutoffs $J=1,2,3$ and all nine boundary
+angles, giving 108 rows. The seven analytic controls—state-space dimension,
+kinetic labels, normalization, gauge-orbit invariance, Hermiticity,
+positivity and exclusive receipt creation—pass. The partition responds to
+the exterior loop; for example, at $J=1$, $x=1$ it ranges from
+$0.9160251472$ to $2.3613249509$ over the angle slice. This selects the
+boundary-sensitivity branch of the orbit decision tree and shows that the
+tree-exterior collapse does not persist when an exterior loop is present.
+
+The rate qualification remains unresolved at this finite level. Every one of
+the 108 rows is `INCONCLUSIVE`: 36 rows fail only the full-space residual
+bound, 27 fail only the nested restriction-rank rule, and 45 fail both; the
+largest full-space residual is $15.2349853487$ against the preregistered
+$10^{-2}$ bound. The retained-rate numbers are therefore diagnostic
+measurements rather than a uniform fibre estimate. The exact-vacuum fibre
+rate, transported score, cutoff removal, uniform interacting recovery,
+thermodynamic limit and continuum construction remain open.
+
+
 
 ---
 
@@ -5287,7 +5318,8 @@ microscopic completions.
 | Conditional $H^{-1}$ score recurrence and exact margin transfer (YM126)–(YM151) | **Derived conditional** finite-regulator theorem | The inverse-generator score norm retains vertical cancellations and is no weaker than the $L^2$ covariance estimate; its exact-vacuum uniform bound remains open |
 | Residual recovery Gramian and score-penalty separation (YM152)–(YM170) | **Derived conditional** finite-regulator theorem | $A_{\mathrm{AT}}^{\mathrm{opt}}=\gamma_{\mathrm{rec}}^{-1}$ and $\lambda_{\mathrm{gi}}\geq\gamma_{\mathrm{rec}}\lambda_{\mathrm{loc}}/\rho$; the score operator is a separate upper penalty on coarse tangents, and uniform exact-vacuum recovery and score bounds remain open |
 | Finite-level martingale transport criterion (YM171)–(YM182) | **Derived conditional** finite-regulator theorem | Full-filtration/gauge-domain identity, energy comparison, and uniformly controlled weighted transport operator are required; exact Yang–Mills shell, recovery and weak-coupling bounds remain open |
-| Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM186) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre; the projected Ritz density makes the cutoff measure's conditional gap vanish identically at the rows carrying a resolved path sign change, and the twelve-row path and two-parameter torus families confine that zero-gap region to the strong-coupling rows; an exact-vacuum fibre rate and a loop-carrying exterior remain required |
+| Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM186) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre; the projected Ritz density makes the cutoff measure's conditional gap vanish identically at the rows carrying a resolved path sign change, and the twelve-row path and two-parameter torus families confine that zero-gap region to the strong-coupling rows; the exact-vacuum fibre rate remains required |
+| Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, cutoff removal and continuum construction remain open |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -5644,6 +5676,23 @@ the seventeen common angles to $7.1\times10^{-15}$, and returns
 `WITNESS_CONFINED`: the same seven rows carry resolved sign changes and the
 same five rows carry none.
 
+The loop-carrying bowtie study in §9.24 is bound by the frozen protocol
+`computations/yang-mills-bowtie-fibre-prereg.md`, the source
+`computations/verify_yang_mills_bowtie_fibre.py`, the seven-link reference
+`computations/verify_yang_mills_exact_block_spectrum.py` and the shared helper
+`computations/yang_mills_conditional_algebra.py`. Its receipt
+`runs/yang_mills_bowtie_fibre/verification.json` contains 108 rows at
+$J=1,2,3$, four couplings and nine boundary angles. The source and protocol
+digests are
+`19e3208831ce4af966cd6de8e0079e083ea55602e0d3fb1f132b71227bfb63ef` and
+`b71f184c0c45c9eacb58e0756758baacca825bf18c951ffb651591dd76d714ae`;
+the receipt also binds the shared algebra and reference-source hashes. All
+seven analytic controls pass. The partition varies with the exterior loop,
+while every retained-rate row is `INCONCLUSIVE`: 36 rows fail only the
+full-space residual bound, 27 fail only the nested-rank rule and 45 fail
+both. No exact-vacuum fibre, transport-score, cutoff-removal, uniform
+recovery, thermodynamic or continuum conclusion follows.
+
 ---
 
 ## References
@@ -5721,6 +5770,10 @@ same five rows carry none.
   block-path family, resolution rule and confinement decision tree
 - `computations/verify_yang_mills_nodal_family.py`—schedule-wide nodal
   family verifier with a SHA-256 sealed receipt
+- `computations/yang-mills-bowtie-fibre-prereg.md`—frozen eight-link
+  loop-carrying exterior, boundary schedule and qualification rules
+- `computations/verify_yang_mills_bowtie_fibre.py`—source-bound bowtie
+  conditional-fibre verifier with analytic controls and sealed receipt
 - D. Bakry, I. Gentil and M. Ledoux, *Analysis and Geometry of Markov
   Diffusion Operators*—Poincaré, Poisson and carré-du-champ framework
 - C. Villani, *Optimal Transport: Old and New*—continuity equations and
