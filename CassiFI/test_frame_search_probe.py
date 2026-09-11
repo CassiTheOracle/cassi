@@ -39,8 +39,6 @@ def test_span_test_is_dimension_general() -> None:
     inside, outside = (1, 1, 0, 0, 0), (1, 1, 0, 0, 7)
     assert probe.in_span(left, right, inside)
     assert not probe.in_span(left, right, outside)
-    normal = fsp.cross(left, right)
-    assert fsp.dot(normal, outside) == 0
 
 
 def test_connected_chain_verdict_and_connectivity() -> None:

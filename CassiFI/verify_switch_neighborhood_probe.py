@@ -357,9 +357,7 @@ def evaluate(formula: Sequence[Sequence[int]]) -> dict[str, Any]:
     classes = classes_of(columns)
     nullity = len(columns[0]) if columns else 0
     omega = census_width(columns)
-    chosen, nodes, capped = search(classes, nullity)
-    verdict = "inconclusive" if capped else ("frame" if chosen is not None else "no_frame")
-    return {
+    record: dict[str, Any] = {
         "formula": rebuilt,
         "size": len(rebuilt),
         "rank": matrix_rank,
@@ -369,11 +367,37 @@ def evaluate(formula: Sequence[Sequence[int]]) -> dict[str, Any]:
         "columns": columns,
         "classes_values": classes,
         "omega": omega,
-        "verdict": verdict,
-        "nodes": nodes,
-        "capped": capped,
+        "nodes": 0,
+        "capped": False,
+        "trivial": False,
         "triangle": triangle_exists(classes) if nullity == 3 else None,
     }
+    if nullity <= 2:
+        free: list[int] = []
+        for point in classes:
+            index = element_for_class(columns, point)
+            if rank_of([columns[item] for item in free + [index]]) != len(free) + 1:
+                continue
+            free.append(index)
+            if len(free) == nullity:
+                break
+        require(len(free) == nullity, "trivial frame could not find an independent free set")
+        width = width_of(columns, free)
+        require(width <= 2, "trivial frame exceeds width two")
+        record.update(
+            {
+                "verdict": "frame",
+                "trivial": True,
+                "free_set": free,
+                "width": width,
+            }
+        )
+        return record
+    chosen, nodes, capped = search(classes, nullity)
+    record["nodes"] = nodes
+    record["capped"] = capped
+    record["verdict"] = "inconclusive" if capped else ("frame" if chosen is not None else "no_frame")
+    return record
 
 
 def check_frame_row(row: dict[str, Any], measured: dict[str, Any], context: str) -> None:

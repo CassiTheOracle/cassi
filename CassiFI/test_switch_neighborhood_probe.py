@@ -83,6 +83,19 @@ def test_low_nullity_search_is_trivially_frame() -> None:
     assert verifier.search([(1, 0), (0, 1)], 2)[0] == [0, 1]
 
 
+
+def test_trivial_evaluators_record_an_independent_witness() -> None:
+    formula = ((1, 2, 3), (1, 2, 3), (1, 2, 3))
+    runner_record = probe.evaluate("nullity-two", formula)
+    verifier_record = verifier.evaluate(formula)
+    assert runner_record["verdict"] == verifier_record["verdict"] == "frame"
+    assert runner_record["trivial"] is True
+    assert verifier_record["trivial"] is True
+    columns = verifier_record["columns"]
+    free = verifier_record["free_set"]
+    assert verifier.rank_of([columns[index] for index in free]) == verifier_record["nullity"]
+    assert verifier_record["width"] <= 2
+
 def test_synthetic_positive_and_negative_anchors_fire() -> None:
     verifier.synthetic_anchors()
 
