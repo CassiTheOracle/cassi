@@ -1489,22 +1489,37 @@ polynomial algorithm for each fixed `k`. This covers all five finite
 basis-width controls in the current receipt, whose dual rank is three, but not
 a family in which nullity grows with `n`.
 
-Second, suppose the dual column matroid `N*` is graphic. A basis `F` is then a
-spanning forest. For a nonforest edge `b`, its fundamental circuit has size at
-most three exactly when the endpoints of `b` have forest distance at most two.
-Thus `omega(M) <= 2` is the tree-2-spanner problem, component by component.
-Tree-2-spanner recognition and construction are polynomial, in fact linear in
-the graph representation.
+Second, suppose the dual column matroid `N*` is graphic. A basis `F` is then
+a spanning forest. For a nonforest edge `b` joining vertices `u` and `v`, its
+fundamental circuit consists of `b` and the unique `u`-`v` path in `F`.
+Therefore the circuit size after removing `b` is the forest distance between
+its endpoints, and `omega(M) <= 2` is exactly the unweighted tree-2-spanner
+condition, component by component. [Cai and Corneil](https://doi.org/10.1137/S0895480192237403)
+give a linear-time construction for tree 2-spanners in unweighted graphs.
 
 Third, suppose the primal column matroid `N` is graphic. A basis `B` is a
-spanning forest, and the size of the fundamental cocircuit of a forest edge is
-exactly the number of graph edges whose tree detour uses it. Therefore
-`omega(M) <= 2` is the existence of a spanning forest of congestion at most
-three. The threshold-three spanning-tree-congestion problem is also
-polynomial, in fact linear. Graphic matroids themselves are polynomial-time
-recognizable from a rank oracle; the explicit rational matrix supplies such
-rank queries. Applying the same test to a dual representation detects the
-cographic case.
+spanning forest, and the fundamental cocircuit of a forest edge is the cut
+induced by deleting that edge. Its cardinality is the number of graph-edge
+detours using the tree edge, including the tree edge itself. Consequently
+`omega(M) <= 2` is exactly spanning-tree congestion at most three.
+[Otachi, Bodlaender, and van Leeuwen](https://ics-archive.science.uu.nl/research/techreps/repo/CS-2010/2010-007.pdf),
+Theorem 4.6, gives a linear-time algorithm for unweighted `k`-STC for
+`1 <= k <= 3`.
+
+The recognition statement is an oracle-model statement. [Seymour](https://doi.org/10.1007/BF02579179)
+gives a polynomial graphicness test from an independence oracle. Given an
+exact rational matrix, an independence query is answered by testing
+`r_N(X) = |X|`; each rank query is polynomial-time exact elimination.
+Cographicness is tested by applying the same procedure to the dual rank
+oracle
+
+```text
+r_N*(X) = |X| + r_N(E \ X) - r_N(E).
+```
+
+Thus the three subclasses above are polynomial in the represented-graph or
+exact-rational-matrix model stated here; this does not provide a polynomial
+algorithm for the unrestricted internal frame-basis problem.
 
 These algorithms are genuine clean enlargements of the tractable region, but
 they do not classify the unrestricted cubic incidence family. The rank-three
