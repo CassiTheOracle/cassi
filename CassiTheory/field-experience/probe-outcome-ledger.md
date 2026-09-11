@@ -933,7 +933,7 @@ The frozen protocol `computations/yang-mills-su2-schwinger-prereg-v2.md` defines
 | Perron sign boundary | The exact irreducible real symmetric Z-matrix theorem supplies strict ground-state positivity; the receipt uses the declared scale-aware floating-point sign tolerance for components below binary64 resolution | **DERIVED** finite-matrix fact |
 | Cutoff, volume and continuum scope | The schedule has one plaquette and finite character cutoffs. Character-cutoff removal, spatial-volume growth, thermodynamic construction, OS reconstruction and a four-dimensional physical mass gap remain unsupplied | **UNRESOLVED** |
 
-The receipt constructs a true ground state of each finite matrix. It does not use the projected Ritz density rejected by the nodal obstruction in §27. Numerical changes across character cutoffs are retained as diagnostics and carry no limiting classification.
+The finite-matrix ground state is obtained directly from the declared Hamiltonian; cutoff-dependent Ritz-density diagnostics remain separate. Numerical changes across character cutoffs are retained as diagnostics and carry no limiting classification.
 
 ## References
 
@@ -1013,6 +1013,8 @@ The receipt constructs a true ground state of each finite matrix. It does not us
 - `computations/yang-mills-su2-schwinger-prereg-v2.md`—finite one-plaquette SU(2) Schwinger-function protocol with scale-aware Perron sign certificate.
 - `computations/verify_yang_mills_su2_schwinger_bridge_v2.py`—96-check source-bound finite-regulator vacuum and correlator receipt generator.
 - `computations/verify_yang_mills_su2_schwinger_bridge_independent_v2.mjs`—20-check independent matrix, spectral and source-binding reconstruction.
+- `runs/yang_mills_su2_schwinger_bridge/verification-v2.json`—96-check source-bound finite-regulator vacuum and correlator receipt.
+- `runs/yang_mills_su2_schwinger_bridge/verification-independent-v2.json`—20-check independent receipt binding the primary source and receipt.
 - `computations/yang-mills-su2-transport-expansion-prereg.md`—fixed local strip and compact-boundary schedule.
 - `computations/verify_yang_mills_su2_transport_expansion.py`—150-check normalized transport expansion.
 - `computations/verify_yang_mills_su2_transport_expansion_independent.mjs`—60-check independent coefficient and receipt reconstruction.
