@@ -33,6 +33,43 @@ EVENT_DTYPE = np.dtype(
 )
 assert EVENT_DTYPE.itemsize == 80
 
+## The registered long-horizon target. Runs below it are implementation checks.
+REGISTERED_TARGET_STEPS = 1_000_000
+
+## Engine inputs a recorder-enabled receipt must record to qualify as evidence.
+REGISTERED_CONFIG_KEYS = (
+    "seed",
+    "grid_N",
+    "N_particles",
+    "batch_steps",
+    "dt",
+    "xi",
+    "softening",
+    "initial_condition",
+    "initial_arrangement",
+    "initial_motion",
+    "initial_speed",
+    "initial_total_mass",
+    "gravity_mode",
+    "black_holes_enabled",
+    "bh_accretion",
+    "particle_merge",
+    "merge_cadence_steps",
+    "trajectory_enabled",
+    "trajectory_sample_capacity",
+    "trajectory_sample_stride",
+    "trajectory_event_capacity",
+    "trajectory_inner_radius",
+    "trajectory_outer_radius",
+)
+
+
+def _missing_registered_config(receipt: dict[str, Any]) -> list[str]:
+    engine = receipt.get("engine")
+    if not isinstance(engine, dict):
+        return ["engine"]
+    return [key for key in REGISTERED_CONFIG_KEYS if key not in engine]
+
 
 class AnalysisFailure(Exception):
     """A malformed receipt or raw artifact."""
@@ -184,6 +221,22 @@ def _shell_candidates(
             & (contrast[:, 1:-1] > 1.5)
         )
     candidates: list[dict[str, Any]] = []
+
+    def record(bin_index: int, start_slot: int, end_slot: int, length: int) -> None:
+        peak_slot = start_slot + int(np.argmax(contrast[start_slot:end_slot, bin_index]))
+        candidates.append(
+            {
+                "bin": bin_index,
+                "start_step": int(steps[start_slot]),
+                "end_step": int(steps[end_slot - 1]),
+                "peak_step": int(steps[peak_slot]),
+                "contrast": float(contrast[peak_slot, bin_index]),
+                "persistence_slots": length,
+                "initial_occupancy": int(initial_occupancy[bin_index]),
+                "zero_baseline": bool(initial_occupancy[bin_index] == 0),
+            }
+        )
+
     for bin_index in range(contrast.shape[1]):
         start = None
         for slot in range(contrast.shape[0]):
@@ -201,33 +254,38 @@ def _shell_candidates(
             elif start is not None:
                 length = slot - start
                 if length >= 3:
-                    peak_slot = start + int(np.argmax(contrast[start:slot, bin_index]))
-                    candidates.append(
-                        {
-                            "bin": bin_index,
-                            "start_step": int(steps[start]),
-                            "end_step": int(steps[slot - 1]),
-                            "peak_step": int(steps[peak_slot]),
-                            "contrast": float(contrast[peak_slot, bin_index]),
-                            "persistence_slots": length,
-                        }
-                    )
+                    record(bin_index, start, slot, length)
                 start = None
         if start is not None:
             length = contrast.shape[0] - start
             if length >= 3:
-                peak_slot = start + int(np.argmax(contrast[start:, bin_index]))
-                candidates.append(
-                    {
-                        "bin": bin_index,
-                        "start_step": int(steps[start]),
-                        "end_step": int(steps[-1]),
-                        "peak_step": int(steps[peak_slot]),
-                        "contrast": float(contrast[peak_slot, bin_index]),
-                        "persistence_slots": length,
-                    }
-                )
+                record(bin_index, start, contrast.shape[0], length)
     return candidates
+
+
+def _baseline_analysis(run_dir: Path, receipt: dict[str, Any]) -> dict[str, Any]:
+    """Describe a recorder-off control directory: it carries no trajectory payload."""
+    return {
+        "schema": "cassi.trajectory-analysis.v1",
+        "mode": receipt.get("mode"),
+        "run_dir": str(run_dir),
+        "hard_failures": [],
+        "verdict": "NOT APPLICABLE",
+        "qualifying": False,
+        "registered_target_steps": REGISTERED_TARGET_STEPS,
+        "accepted_steps": _integer(receipt, "accepted_steps"),
+        "recorder_enabled": False,
+        "engine": receipt.get("engine"),
+        "shell_verdict": "NOT APPLICABLE",
+        "ancestry_verdict": "NOT APPLICABLE",
+        "baseline": {
+            "initial_live_count": _integer(receipt, "initial_live_count"),
+            "final_live_count": _integer(receipt, "final_live_count"),
+            "initial_total_mass": _number(receipt, "initial_total_mass"),
+            "final_total_mass": _number(receipt, "final_total_mass"),
+            "files": receipt.get("files", []),
+        },
+    }
 
 
 def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
@@ -240,6 +298,13 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
         raise AnalysisFailure(f"invalid receipt.json: {exc}") from exc
     if receipt.get("schema") != "cassi.trajectory-probe.v1":
         raise AnalysisFailure("unsupported trajectory receipt schema")
+    if not bool(receipt.get("recorder_enabled", False)):
+        baseline = _baseline_analysis(run_dir, receipt)
+        output_path = run_dir / "analysis.json"
+        output_path.write_text(
+            json.dumps(baseline, indent=2, default=_json_number) + "\n", encoding="utf-8"
+        )
+        return baseline, 0
 
     tracer_count = _integer(receipt, "tracer_count")
     sample_slots = _integer(receipt, "sample_slots")
@@ -257,6 +322,7 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
     final_total_mass = _number(receipt, "final_total_mass")
     sample_overflow = _integer(receipt, "sample_overflow")
     event_overflow = _integer(receipt, "event_overflow")
+    engine_config = receipt.get("engine")
 
     if tracer_count < 1 or sample_slots < 1 or sample_slots > sample_capacity:
         raise AnalysisFailure("invalid sample dimensions in receipt")
@@ -284,6 +350,12 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
     events = _read_exact(run_dir, "events.bin", EVENT_DTYPE, event_stored)
 
     hard_failures: list[str] = []
+    missing_registered = _missing_registered_config(receipt)
+    if missing_registered:
+        hard_failures.append(
+            "receipt does not record the registered configuration: "
+            + ", ".join(missing_registered)
+        )
     if not np.array_equal(np.sort(ids), ids):
         hard_failures.append("tracer IDs are not strictly increasing")
     if ids.size and (int(ids.min()) < 0 or int(ids.max()) >= particle_count):
@@ -308,6 +380,15 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
     if event_total != event_stored:
         hard_failures.append(
             f"event ledger truncated: total={event_total} stored={event_stored}"
+        )
+    step_count = _integer(receipt, "step_count", accepted_steps)
+    if step_count != accepted_steps:
+        hard_failures.append(
+            f"receipt horizon mismatch: accepted_steps={accepted_steps} step_count={step_count}"
+        )
+    if sample_steps.size and int(sample_steps.max()) > accepted_steps:
+        hard_failures.append(
+            f"stored sample step {int(sample_steps.max())} exceeds accepted_steps={accepted_steps}"
         )
 
     order = np.argsort(sample_steps, kind="stable")
@@ -386,13 +467,26 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
 
     shell_verdict = "SUPPORTS" if shell_candidates else "DOES NOT EMERGE"
     ancestry_verdict = "SUPPORTS" if edges_graph else "DOES NOT EMERGE"
-    overall_verdict = "FAIL" if hard_failures else shell_verdict
+    mode = str(receipt.get("mode", "shell"))
+    mode_verdict = ancestry_verdict if mode == "ancestry" else shell_verdict
+    qualifying = accepted_steps >= REGISTERED_TARGET_STEPS
+    if hard_failures:
+        overall_verdict = "FAIL"
+    elif qualifying:
+        overall_verdict = mode_verdict
+    else:
+        overall_verdict = "IMPLEMENTATION CHECK"
     analysis: dict[str, Any] = {
         "schema": "cassi.trajectory-analysis.v1",
-        "mode": receipt.get("mode"),
+        "mode": mode,
         "run_dir": str(run_dir),
         "hard_failures": hard_failures,
         "verdict": overall_verdict,
+        "qualifying": qualifying,
+        "registered_target_steps": REGISTERED_TARGET_STEPS,
+        "accepted_steps": accepted_steps,
+        "recorder_enabled": True,
+        "engine": engine_config if isinstance(engine_config, dict) else None,
         "shell_verdict": shell_verdict if not hard_failures else "FAIL",
         "ancestry_verdict": ancestry_verdict if not hard_failures else "FAIL",
         "sample_steps": [int(step) for step in ordered_steps],
@@ -455,16 +549,32 @@ def main(argv: list[str] | None = None) -> int:
     except (AnalysisFailure, OSError, ValueError) as exc:
         print(f"[trajectory-analysis] FAIL: {exc}", file=sys.stderr)
         return 1
-    print(
-        "[trajectory-analysis] %s shell=%s ancestry=%s samples=%d events=%d"
-        % (
-            analysis["verdict"],
-            analysis["shell_verdict"],
-            analysis["ancestry_verdict"],
-            analysis["sample_count_stored"],
-            analysis["ancestry"]["event_records_stored"],
+    if "sample_count_stored" in analysis:
+        print(
+            "[trajectory-analysis] %s shell=%s ancestry=%s samples=%d events=%d steps=%d qualifying=%s"
+            % (
+                analysis["verdict"],
+                analysis["shell_verdict"],
+                analysis["ancestry_verdict"],
+                analysis["sample_count_stored"],
+                analysis["ancestry"]["event_records_stored"],
+                analysis["accepted_steps"],
+                "yes" if analysis["qualifying"] else "no",
+            )
         )
-    )
+    else:
+        baseline = analysis["baseline"]
+        print(
+            "[trajectory-analysis] %s: recorder off, no trajectory payload; steps=%d live=%d→%d mass=%.6f→%.6f"
+            % (
+                analysis["verdict"],
+                analysis["accepted_steps"],
+                baseline["initial_live_count"],
+                baseline["final_live_count"],
+                baseline["initial_total_mass"],
+                baseline["final_total_mass"],
+            )
+        )
     if analysis["hard_failures"]:
         for failure in analysis["hard_failures"]:
             print(f"[trajectory-analysis] FAIL: {failure}", file=sys.stderr)

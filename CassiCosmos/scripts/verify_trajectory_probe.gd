@@ -136,22 +136,25 @@ func _process(_delta: float) -> void:
 			return
 
 
-func _engine_config() -> Dictionary:
+## The complete registered configuration. Every receipt records this dictionary
+## so a qualifying run can prove the inputs it ran under, and _engine_config()
+## derives the engine call from it.
+func _registered_config() -> Dictionary:
 	return {
-		"rd": _rd,
-		"rd_global": false,
-		"owns_rd": true,
 		"seed": _seed,
 		"grid_N": GRID_N,
 		"N_particles": _particle_count,
+		"batch_steps": _batch_steps,
+		"batches_per_frame": _batches_per_frame,
 		"dt": _dt,
 		"xi": 17.94427191,
 		"softening": 0.1,
 		"cluster_radius": DEFAULT_CLUSTER_RADIUS,
 		"cluster_separation": 0.0,
 		"num_clusters": 1,
-		"box_aspect": Vector3.ONE,
+		"box_aspect": [1.0, 1.0, 1.0],
 		"box_scale": 1.0,
+		"window_center": [0.0, 0.0, 0.0],
 		"initial_condition": 6,
 		"initial_arrangement": 0,
 		"initial_motion": 4,
@@ -180,9 +183,19 @@ func _engine_config() -> Dictionary:
 		"trajectory_sample_capacity": _sample_capacity,
 		"trajectory_sample_stride": _sample_stride,
 		"trajectory_event_capacity": _event_capacity,
-		"trajectory_inner_radius": 0.0,
-		"trajectory_outer_radius": 0.0,
+		"trajectory_inner_radius": _inner_radius,
+		"trajectory_outer_radius": _outer_radius,
 	}
+
+
+func _engine_config() -> Dictionary:
+	var cfg := _registered_config()
+	cfg["rd"] = _rd
+	cfg["rd_global"] = false
+	cfg["owns_rd"] = true
+	cfg["box_aspect"] = Vector3.ONE
+	cfg["window_center"] = Vector3.ZERO
+	return cfg
 
 
 func _parse_args() -> void:
@@ -386,6 +399,7 @@ func _write_artifacts() -> bool:
 			"mode": _mode,
 			"recorder_enabled": false,
 			"seed": _seed,
+			"engine": _registered_config(),
 			"accepted_steps_requested": _target_steps,
 			"accepted_steps": int(_eng.get("_executed")),
 			"step_count": int(_eng.get("_step_count")),
@@ -424,6 +438,8 @@ func _write_artifacts() -> bool:
 		"schema": "cassi.trajectory-probe.v1",
 		"mode": _mode,
 		"recorder_enabled": true,
+		"seed": _seed,
+		"engine": _registered_config(),
 		"accepted_steps_requested": _target_steps,
 		"accepted_steps": int(_eng.get("_executed")),
 		"step_count": int(_eng.get("_step_count")),

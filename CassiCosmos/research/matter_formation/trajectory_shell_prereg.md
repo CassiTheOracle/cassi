@@ -10,7 +10,12 @@ claims be distinguished from a transient visual concentration?
 
 This probe records particle trajectories and merge edges. It does not establish
 that the simulated particles are physical elementary particles, that a shell is
-bound, or that the Cassi field derives particle identity.
+bound, or that the Cassi field derives particle identity. The recorded events
+are hops accepted by the existing particle-merge rule under its coherence gate.
+The probe never dispatches the condensation scanner, spawns a black-hole
+record, or transfers mass from the field to the particle population; it
+measures the particle-merge path alone, and is not a test of the fluid-to-
+matter collapse pathway.
 
 ## 2. Registered implementation
 
@@ -46,8 +51,11 @@ The harness has two modes:
   fixed coherent field plant (`E_Y = \varphi`, `E_I = 1`) so the existing
   coherence and mechanical binding gates are exercised without changing their
   thresholds.
-shell radii, and output directory. A qualifying run must record the complete
-configuration and engine mode in its receipt. The long-horizon target is
+
+Command-line inputs select the mode, seed, particle and tracer counts, step
+count, sample stride, merge cadence, shell radii, and output directory. A
+qualifying run must record the complete configuration and engine mode in its
+receipt. The long-horizon target is
 1,000,000 accepted steps, sampled every 4,096 steps, with 4,096 tracers and a
 256-slot history ring; smaller runs are implementation checks only.
 
@@ -78,6 +86,15 @@ that persists for at least three consecutive stored history slots and its
 contrast exceeds 1.5 relative to the initial occupancy. This is a descriptive
 criterion, not a universal shell definition. A run with no candidate is a
 negative result and remains a valid completed probe.
+
+Contrast is the bin's share of live tracers at the stored slot divided by its
+share at step zero. A bin that holds no tracers at step zero has no ratio, so
+its baseline share is the one-tracer floor `1/N`: the smallest non-zero
+occupancy the bin can hold. A candidate in such a bin therefore reports the
+filling of an initially empty region, and its contrast scales with the tracer
+count rather than with a measured ratio. Every candidate carries its step-zero
+occupancy, so the stricter criterion—a local maximum in a bin that was already
+occupied at step zero—can be read directly from the analysis output.
 
 ## 5. Decision rules
 

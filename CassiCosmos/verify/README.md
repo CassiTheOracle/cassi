@@ -1,6 +1,6 @@
 # Verify battery — one-command runner
 
-Runs the whole Cassi GPU-sim verify battery (40 arms) in sequence, captures each
+Runs the whole Cassi GPU-sim verify battery (43 arms) in sequence, captures each
 arm's exit code, and exits 0 only when every arm passes.
 
 ## How to run
@@ -18,7 +18,7 @@ Godot console exe:
   `--path . res://scenes/<scene>.tscn`; child commands never receive
   `--headless`. Both the sim's global RenderingDevice and the arms' local
   RenderingDevices require a real window on this rig.
-- Exit code: `0` = all 40 passed; `1` = at least one failed.
+- Exit code: `0` = all 43 passed; `1` = at least one failed.
 - The runner prints a progress line per arm and a summary table; failed arms
   get their last 15 stdout/stderr lines printed.
 - Per-arm logs: `res://_diag/battery_logs/armNN_<name>.log` (gitignored).
@@ -69,27 +69,66 @@ All three must exit 0 after a Field Particles change. Changes to
 full configured battery before release. Frozen registrations and measured
 results live in `research/field_particles/`.
 
+## Standalone GPU trajectory probe (not an ARMS member)
+
+`verify_trajectory_probe.tscn` is a windowed GPU probe that reads the passive
+trajectory recorder — a default-off, read-only observation path inside
+`cassi_physics_engine.gd`. It stays outside `ARMS` so the configured runner
+continues to prove default-off compatibility without changing its contract.
+Run it from `CassiCosmos/` with the console executable:
+
+```
+"<console exe>" --path . res://scenes/verify_trajectory_probe.tscn -- --mode=shell --recorder=on \
+    --steps=1000000 --particles=8192 --tracers=4096 \
+    --sample-stride=4096 --sample-capacity=256 --merge-cadence=64
+```
+
+`--mode=shell` runs the nested-shell initial condition with merging disabled;
+`--mode=ancestry` repeats the same seeded geometry with the existing
+particle-merge rule enabled under a fixed coherent field plant. `--recorder=off`
+writes only the tracer endpoints and is the paired dynamics-neutrality control.
+The frozen registration is
+[`research/matter_formation/trajectory_shell_prereg.md`](../research/matter_formation/trajectory_shell_prereg.md);
+runs shorter than the registered 1,000,000 accepted steps are implementation
+checks, and the analysis reports them as `IMPLEMENTATION CHECK` rather than
+evidence.
+
+Every run writes `receipt.json`, the raw recorder arrays, and `analysis.json`
+(the last two directories are gitignored) under
+`res://_diag/matter_formation/trajectory_<mode>/`. Score a run with the
+standalone analyzer, which consumes only the receipt and the binary payload:
+
+```
+python tools/analyze_trajectory_probe.py _diag/matter_formation/trajectory_shell
+```
+
+The probe measures radial shell occupancy and contrast, boundary crossings,
+turnarounds, and the merge-edge ancestry graph. It does not dispatch the
+condensation scanner, spawn black-hole records, or transfer field mass to the
+particle population: recorded events are particle-merge hops only, and the
+probe is not a test of the fluid-to-matter collapse pathway.
+
 ## The arms
 
-The authoritative arm list is the `ARMS` const in `verify/run_all.gd` (40 arms).
+The authoritative arm list is the `ARMS` const in `verify/run_all.gd` (43 arms).
 The table below documents each arm:
 
 | # | Scene | What it verifies |
 |---|-------|------------------|
-| 1 | verify_fft | GPU FFT/Poisson round-trip identity (per-axis + full 3D) and point-mass / Gaussian solve checks, at N=64 and N=256 |
-| 2 | verify_fmm | FMM/tree gravity: 8192-point octree build+walk on a local RD vs the numpy prototype (G16–G18 in research/meshless/stage5_verify.py) |
+| 1 | verify_fft | GPU FFT/Poisson round-trip identity (per-axis + full 3D) and point-mass / Gaussian solve checks at N=64 and N=256, including twiddle initialization for direct dispatches |
+| 2 | verify_fmm | FMM/tree gravity: 8192-point octree build and complete stackless walk on a local RD, with a terminal root escape; dump for the numpy prototype (G16–G18 in research/meshless/stage5_verify.py) |
 | 3 | verify_gravity_modes | 5-mode gravity selector, truncated-Plummer ICs, river calibration/attractor init, cached-acc KDK, BH toggle, RealSim dissipation |
 | 4 | verify_merge | Particle-merge shader on a planted 8-particle input (local RD); dump for stage6_merge.py (G28/G29) |
 | 5 | verify_meshless_sim | Meshless arm vs grid arm from the SAME initial condition — cross-solver agreement (G11/G12′ in stage4_verify.py) |
 | 6 | verify_meshless_stability | Meshless arm under live-sim flat-noise conditions: 2000 steps, Voronoi site-spread and finiteness gates |
-| 7 | verify_gridless_physics | Production site-native field, topology, tree-force, telemetry, snapshot, and CSR contracts |
+| 7 | verify_gridless_physics | Production site-native field, topology, tree-force, telemetry, snapshot and CSR contracts; exact original-ID nearest-site queries, sparse/window-edge/tie cases, and particle-query cache epochs |
 | 8 | verify_phi_box | φ-aspect box battery: anisotropic 19-point stencil residuals, ellipsoid ring test, box-mode de-resonance |
 | 9 | verify_ring | Wave-front ring roundness: 19-point stencil dispersion anisotropy, symbol[110]/symbol[100] ∈ [0.985, 1.015] |
 | 10 | verify_river_law | River-law gravity upgrade: q→0 Newtonian limit, point-mass profile, mode toggle, no-NaN, reinit regression |
 | 11 | validate_sim_ui | sim_ui.gd loads cleanly and the VFX controls exist (exit 0 = parse/load clean) |
 | 12 | verify_particle_vfx | Instancer pipeline through each default-off visual feature, plus the shader-exact legacy size/color contract |
 | 13 | verify_presentation_layers | Opt-in particle, macro-site, velocity-ribbon, camera-following sky, and site-volume-history rendering contracts |
-| 14 | verify_survey | Survey exporter: programmatic snapshot vs a direct frozen-buffer reference read (byte-exact gate in survey_read.py) |
+| 14 | verify_survey | Survey exporter: frozen authoritative field and particle buffers, extent metadata, and byte-exact particle comparison; separate field/payload gate in survey_read.py |
 | 15 | verify_synth | Audio-reduce cascade meter: φ-spaced plane-wave rung energies vs analytic references (G22/G23) |
 | 16 | verify_volumetric | Volumetric ray-marched render of the analytic φ-attractor field (PNG + RGBAF pixel dump; G35) |
 | 17 | verify_voronoi3d | GPU JFA Voronoi + per-cell two-fluid wave vs the numpy spectral reference (stage1_verify.py) |
@@ -116,15 +155,18 @@ The table below documents each arm:
 | 38 | verify_particle_world_agent | Canonical particle-program validation, pure preview, decoupled-engine authoritative Apply, cache/render publication, idempotency and conflict rejection, one explicit step, and byte-exact automatic Undo (PWA0–PWA8) |
 | 39 | verify_rotation_stress | Default-off engine byte identity; conservative matter–Qi linear/angular exchange and heat ledger; φ⁻¹ interscale transfer/null controls; merge-spin quaternion orientation; 64-step finite stability; explicit conservative scale-boundary reservoirs with a byte-zero closed contract (G78–G82, G101) |
 | 40 | verify_rotation_end_to_end | Repeatable live production regression: a real merge acquires canonical orbital angular momentum, persistent spin causally advances resolved orientation, bounded publication matches the GPU state, and particle/environment momentum ledgers close (G97–G100) |
+| 41 | verify_physical_radiation | Immutable model/unit/snapshot rejection contracts; grouped Planck/CIE/slab references; real global-RD spectral formal solution against the independent CPU value; spatial/spectral convergence; one-way provenance; allocation reuse (PR-G1–G6, PR-G10, PR-G12 for the implemented P0/P1 scope) |
+| 42 | verify_coupled_radiation_engine | Hash-bound supplied-material extensive-state solver; null/affine/frequency/LTE/thermal references; accepted-step batching; checkpoint identity; local-RD `CassiPhysicsEngine` scheduler integration; default-off core bit identity; fail-closed setup and resource lifecycle (CR-G0–CR-G8) |
+| 43 | verify_observatory_integration | Production-scene Scientific/Observatory/Cinematic and independent source selection; prescribed spectral pixels; fail-closed coupled-source diagnostics; solver-byte preservation; still/raw-XYZ/sidecar capture; quality, history, camera, and lifecycle behavior (PR-G0, PR-G6, PR-G11 plus Observatory regressions) |
 
 ## Expected runtime
 
-Measured 2026-08-14 on the RX 7900 XTX rig: **≈ 8–9 minutes** for a fully
-passing tree (arms 1–60 s each; the slowest are verify_fft ~35 s,
-verify_meshless_sim_aniso ~25 s, verify_particle_vanish ~60–100 s). The
-A prior full run with three arms hitting their 240 s timeout took 17 minutes.
-Arms run strictly serially because they share the GPU. First run after a shader
-change can be slower (SPIR-V recompile).
+Measured 2026-09-09 on the RX 7900 XTX rig: **397 seconds (6m37s)** for a
+fully passing 43-arm tree. Arms commonly take 1–60 seconds; the slowest in that
+run were `verify_particle_vanish` (52 s), `verify_gravity_modes` (48 s) and
+`verify_fft` (38 s). A prior full run with three arms hitting their 240-second
+timeout took 17 minutes. Arms run strictly serially because they share the GPU.
+The first run after a shader change can be slower while SPIR-V recompiles.
 
 ## Special launch conventions (read before touching the battery)
 
