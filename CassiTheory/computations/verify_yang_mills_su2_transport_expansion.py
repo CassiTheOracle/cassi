@@ -293,23 +293,35 @@ def compute_receipt() -> dict[str, Any]:
     checks.append(check("finite_summary", all(math.isfinite(float(row_value["absolute_error"])) for row_value in rows)))
     alpha = (0.0, 1.0, 0.0)
     xi = (1.0, 0.0, 0.0)
+    transverse = sum(value * value for value in alpha) - sum(alpha[j] * xi[j] for j in range(3)) ** 2
+    checks.append(check("boundary_target_nonzero", abs(transverse) > 1.0e-12, transverse=transverse))
     for index, u in enumerate((1.0e-2, 1.0e-3, 1.0e-4)):
-        z = tuple(value / math.sqrt(u) for value in alpha)
-        transverse = sum(value * value for value in alpha) - sum(alpha[j] * xi[j] for j in range(3)) ** 2
-        measured = u * (sum(value * value for value in z) - sum(z[j] * xi[j] for j in range(3)) ** 2) / 64.0
+        root = math.sqrt(u)
+        z = (alpha[0] / root, alpha[1] / root, alpha[2] / root)
         expected = transverse / 64.0
+        try:
+            boundary = row(1.0, z, xi)
+            measured = u * (boundary["c1"] + 0.25)
+            failure = None
+        except Exception as error:  # noqa: BLE001
+            measured = float("nan")
+            failure = f"{type(error).__name__}: {error}"
         checks.append(
             check(
                 f"boundary_scaling_{index}",
-                math.isfinite(measured) and abs(measured - expected) <= TOLERANCE,
+                failure is None and math.isfinite(measured) and abs(measured - expected) <= TOLERANCE,
+                kappa=1.0,
                 u=u,
                 z=list(z),
                 measured=measured,
                 expected=expected,
-                chart_annotation="z grows as u^{-1/2}; this is a complement-uniformity diagnostic",
+                failure=failure,
+                chart_annotation="z grows as u^{-1/2}; the boundary contribution is routed through the verified c1 row",
             )
         )
     passed = all(item["pass"] for item in checks)
+    boundary_checks = [item for item in checks if item["name"].startswith("boundary_scaling_") or item["name"] == "boundary_target_nonzero"]
+    boundary_ok = len(boundary_checks) == 4 and all(item["pass"] for item in boundary_checks)
     return {
         "schema": "cassi.yang-mills.su2-transport-expansion.v1",
         "verdict": "PASS" if passed else "FAIL",
@@ -320,7 +332,7 @@ def compute_receipt() -> dict[str, Any]:
         "tolerance": TOLERANCE,
         "schedule": {"kappas": list(KAPPAS), "boundaries": [list(z) for z in BOUNDARIES], "tangents": [list(xi) for xi in TANGENTS]},
         "summary": {"rows": len(rows), "checks": len(checks), "passed": sum(item["pass"] for item in checks), "failed": sum(not item["pass"] for item in checks), "max_error": max(row_value["absolute_error"] for row_value in rows)},
-        "classifications": {"local_chart_expansion": "SUPPORTS" if passed else "INCONCLUSIVE", "full_holonomy_boundary_uniformity": "REJECT_CHART_UNIFORMITY", "exact_interacting_vacuum": "UNRESOLVED"},
+        "classifications": {"local_chart_expansion": "SUPPORTS" if passed else "INCONCLUSIVE", "full_holonomy_boundary_uniformity": "REJECT_CHART_UNIFORMITY" if passed and boundary_ok else "INCONCLUSIVE", "exact_interacting_vacuum": "UNRESOLVED"},
         "rows": rows,
         "checks": checks,
     }

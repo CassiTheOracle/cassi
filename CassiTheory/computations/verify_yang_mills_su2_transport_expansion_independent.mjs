@@ -290,8 +290,8 @@ addCheck("primary_schema", primary?.schema === "cassi.yang-mills.su2-transport-e
 addCheck("protocol_identity", primary?.protocol === relativePath(PROTOCOL) && primary?.protocol_sha256 === sha256(PROTOCOL), { recorded: primary?.protocol_sha256 ?? null, expected: sha256(PROTOCOL) });
 addCheck("primary_source_identity", primary?.source === relativePath(PRIMARY_SOURCE) && primary?.source_sha256 === sha256(PRIMARY_SOURCE), { recorded: primary?.source_sha256 ?? null, expected: sha256(PRIMARY_SOURCE) });
 addCheck("primary_receipt_exists", existsSync(PRIMARY_RECEIPT), { path: relativePath(PRIMARY_RECEIPT) });
-addCheck("primary_summary", primary?.summary?.rows === 48 && primary?.summary?.checks === 149 && primary?.summary?.passed === 149 && primary?.summary?.failed === 0 && primary?.summary?.max_error <= 1.0e-11, { summary: primary?.summary ?? null });
-addCheck("primary_checks_all_pass", Array.isArray(primary?.checks) && primary.checks.length === 149 && primary.checks.every((item) => item?.pass === true), { count: Array.isArray(primary?.checks) ? primary.checks.length : null });
+addCheck("primary_summary", primary?.summary?.rows === 48 && primary?.summary?.checks === 150 && primary?.summary?.passed === 150 && primary?.summary?.failed === 0 && primary?.summary?.max_error <= 1.0e-11, { summary: primary?.summary ?? null });
+addCheck("primary_checks_all_pass", Array.isArray(primary?.checks) && primary.checks.length === 150 && primary.checks.every((item) => item?.pass === true), { count: Array.isArray(primary?.checks) ? primary.checks.length : null });
 addCheck("primary_schedule", JSON.stringify(primary?.schedule?.kappas) === JSON.stringify(KAPPAS) && JSON.stringify(primary?.schedule?.boundaries) === JSON.stringify(BOUNDARIES) && JSON.stringify(primary?.schedule?.tangents) === JSON.stringify(TANGENTS), { schedule: primary?.schedule ?? null });
 
 const rows = Array.isArray(primary?.rows) ? primary.rows : [];
@@ -320,14 +320,25 @@ addCheck("row_count", rowIndex === 48 && rows.length === 48, { expected: 48, rec
 
 const alpha = [0, 1, 0];
 const xi = [1, 0, 0];
+const transverse = numericNormSquared(alpha) - numericDot(alpha, xi) ** 2;
+addCheck("boundary_target_nonzero", Math.abs(transverse) > 1.0e-12, { transverse });
 for (const [index, u] of [1e-2, 1e-3, 1e-4].entries()) {
   const z = alpha.map((value) => value / Math.sqrt(u));
-  const transverse = numericNormSquared(alpha) - numericDot(alpha, xi) ** 2;
-  const measured = u * (numericNormSquared(z) - numericDot(z, xi) ** 2);
-  addCheck(`boundary_scaling_${index}`, finite(measured) && transverse !== 0 && Math.abs(measured - transverse) <= 1.0e-12, { u, z, measured, expected: transverse, chartAnnotation: "z grows as u^{-1/2}; chart complement is probed" });
+  const expected = transverse / 64;
+  let measured = Number.NaN;
+  let failure = null;
+  try {
+    const boundary = computeRow(1, z, xi);
+    measured = u * (boundary.c1 + 0.25);
+  } catch (error) {
+    failure = String(error);
+  }
+  addCheck(`boundary_scaling_${index}`, failure === null && finite(measured) && Math.abs(measured - expected) <= TOLERANCE, { kappa: 1, u, z, measured, expected, failure, chartAnnotation: "z grows as u^{-1/2}; the boundary contribution is routed through the verified c1 row" });
 }
 
 const passed = checks.every((item) => item.pass === true);
+const boundaryChecks = checks.filter((item) => item.name.startsWith("boundary_scaling_") || item.name === "boundary_target_nonzero");
+const boundaryOk = boundaryChecks.length === 4 && boundaryChecks.every((item) => item.pass === true);
 const receipt = {
   schema: "cassi.yang-mills.su2-transport-expansion-independent.v1",
   verdict: passed ? "PASS" : "FAIL",
@@ -341,7 +352,7 @@ const receipt = {
   primary_receipt_sha256: sha256(PRIMARY_RECEIPT),
   tolerance: TOLERANCE,
   summary: { checks: checks.length, passed: checks.filter((item) => item.pass).length, failed: checks.filter((item) => !item.pass).length, reconstructed_rows: rowIndex },
-  classifications: { local_chart_expansion: passed ? "SUPPORTS" : "INCONCLUSIVE", full_holonomy_boundary_uniformity: "REJECT_CHART_UNIFORMITY", exact_interacting_vacuum: "UNRESOLVED" },
+  classifications: { local_chart_expansion: passed ? "SUPPORTS" : "INCONCLUSIVE", full_holonomy_boundary_uniformity: passed && boundaryOk ? "REJECT_CHART_UNIFORMITY" : "INCONCLUSIVE", exact_interacting_vacuum: "UNRESOLVED" },
   checks,
 };
 mkdirSync(dirname(OUTPUT), { recursive: true });
