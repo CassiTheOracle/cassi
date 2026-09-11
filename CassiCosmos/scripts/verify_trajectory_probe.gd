@@ -15,10 +15,11 @@ extends Node3D
 ## Long run inputs are explicit in the receipt. The frozen target is one
 ## million accepted steps, 4,096 tracers, stride 4,096, and a 256-slot ring.
 ##
-## Initial-condition inputs (`--ic`, `--arrangement`, `--motion`) and the force
-## selector (`--gravity`, `--gridless`) default to the registered configuration
-## of the shell/ancestry probe. Runs that vary them record the values in the
-## same receipt fields, so a multi-condition comparison stays auditable.
+## Initial-condition inputs (`--ic`, `--arrangement`, `--motion`, `--speed`) and
+## the force selector (`--gravity`, `--gridless`) default to the registered
+## configuration of the shell/ancestry probe. Runs that vary them record the
+## values in the same receipt fields, so a multi-condition comparison stays
+## auditable.
 
 const ENGINE_SCRIPT = preload("res://scripts/cassi_physics_engine.gd")
 const ParticleInitialConditions = preload("res://scripts/cassi_particle_initial_conditions.gd")
@@ -34,6 +35,7 @@ const DEFAULT_SAMPLE_CAPACITY := 128
 const DEFAULT_EVENT_CAPACITY := 65536
 const DEFAULT_MERGE_CADENCE := 64
 const DEFAULT_DT: float = 0.001
+const DEFAULT_INITIAL_SPEED: float = 1.0
 const DEFAULT_CLUSTER_RADIUS: float = 25.0
 const DEFAULT_TOTAL_MASS: float = 1000.0
 const DEFAULT_CLUSTERS := 1
@@ -53,6 +55,7 @@ var _mode := "shell"
 var _ic := DEFAULT_IC
 var _arrangement := DEFAULT_ARRANGEMENT
 var _motion := DEFAULT_MOTION
+var _initial_speed: float = DEFAULT_INITIAL_SPEED
 var _gravity_mode := DEFAULT_GRAVITY_MODE
 var _gridless := false
 var _field_attractor_init := false
@@ -207,7 +210,7 @@ func _registered_config() -> Dictionary:
 		"initial_condition": _ic,
 		"initial_arrangement": _arrangement,
 		"initial_motion": _motion,
-		"initial_speed": 1.0,
+		"initial_speed": _initial_speed,
 		"initial_total_mass": _total_mass,
 		"initial_radius_fraction": _radius_fraction,
 		"initial_shape_settings": {
@@ -259,6 +262,7 @@ func _parse_args() -> void:
 	_ic = _arg_int("ic", DEFAULT_IC)
 	_arrangement = _arg_int("arrangement", DEFAULT_ARRANGEMENT)
 	_motion = _arg_int("motion", DEFAULT_MOTION)
+	_initial_speed = _arg_float("speed", DEFAULT_INITIAL_SPEED)
 	_gravity_mode = _arg_int("gravity", DEFAULT_GRAVITY_MODE)
 	var gridless_arg := _arg_value("gridless", "off").to_lower()
 	if gridless_arg == "on" or gridless_arg == "true":
@@ -340,6 +344,8 @@ func _parse_args() -> void:
 		_failure = "radius fraction must be in (0, 4]"
 	elif _dt <= 0.0 or not is_finite(_dt):
 		_failure = "dt must be finite and positive"
+	elif _initial_speed < 0.0 or not is_finite(_initial_speed):
+		_failure = "initial speed must be finite and nonnegative"
 	elif _inner_radius_arg < -1.0 or _outer_radius_arg < -1.0:
 		_failure = "shell radius overrides must be nonnegative"
 	elif _ic < 0 or _ic >= ParticleInitialConditions.SHAPE_NAMES.size() \
@@ -602,6 +608,7 @@ func _write_artifacts() -> bool:
 			"initial_arrangement_index": _arrangement,
 			"initial_motion": ParticleInitialConditions.MOTION_NAMES[_motion],
 			"initial_motion_index": _motion,
+			"initial_speed": _initial_speed,
 			"shell_count": 3,
 			"shell_spacing": 0.33,
 			"shell_inner_radius": 0.34,
