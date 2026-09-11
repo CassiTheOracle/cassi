@@ -1334,21 +1334,27 @@ cover the ground set. For all 1,620 switches that intersection is empty over all
 
 The same coverage test at bound three then carries each switch to an exact
 optimum. The free sets that survive the triple-coverage filter include an
-independent one, and in every switch the first surviving free set already is,
-so the exact width is measured after 1,620 candidate tests in total, one per
-formula. Width is then read off by Gauss-Jordan elimination on the augmented
-kernel-coordinate system, which exhibits a width-three witness for each switch
-and settles `omega = 3` exactly. The exact width primitive reproduces the
-project's canonical pivot-support width on the canonical free set, and the
-bound-two and bound-three screens reproduce the width-three invariant of the
-all-bases controls under their full basis censuses as well as the known width-two
-minimum of the canonical support-three controls. Canonical width is not the
-optimum: the canonical basis attains width three on only 864 switches, with
-canonical-width histogram `3: 864, 4: 540, 5: 216`, so the other 756 have
-canonical width four or five while their frame optimum is still three. Applied
-to the mixed sum, the same filters also return no covering pair and an exact
-width-three witness, and the survivor count of the triple-coverage filter there
-equals its basis count of 32,232, matching the width-three census exactly.
+independent one, and in every switch the first surviving free set is
+independent, so the exact width is measured after 1,620 candidate tests in
+total, one per formula. Width is then read off by Gauss-Jordan elimination on
+the augmented kernel-coordinate system, which exhibits a width-three witness
+for each switch. A bound-`k` screen is a feasibility test, not an optimiser: it
+returns an independent free set of width at most `k`, which may be wider than
+the optimum, as the support-three UNSAT control shows at bound three. Exactness
+therefore comes from the pair of results, a failed bound-two screen giving
+`omega >= 3` and a measured width-three witness giving `omega <= 3`, and all
+1,620 switches land at `omega = 3`. The exact width primitive reproduces the
+project's canonical pivot-support width on the canonical free set; the screens
+reproduce the width-three invariant of the all-bases controls at both bounds,
+and the bound-two screen together with the exact width measurement reproduces
+the known width-two minimum of the canonical support-three controls. Canonical
+width is not the optimum: the canonical basis attains width three on only 864
+switches, with canonical-width histogram `3: 864, 4: 540, 5: 216`, so the other
+756 have canonical width four or five while their frame optimum is still three.
+Applied to the mixed sum, the same filters also return no covering pair and an
+exact width-three witness, and the survivor count of the triple-coverage filter
+there equals its basis count of 32,232, matching the width-three census
+exactly.
 
 Run the census, its independent verifier, and the retained cubic tests with:
 
@@ -1363,12 +1369,12 @@ verifier imports neither the runner, the growing-nullity probe, nor the
 cubic-kernel implementation. It rebuilds every component basis and Schaefer
 class row, all 32,232 direct-sum rows, all 1,620 switches with their canonical
 widths and both screens, revalidates every positive witness with its own exact
-rational elimination, and enumerates every free subset of seven sampled switches
-at both bounds with no coverage prefilter. All seven brute-force controls agree
-at both bounds, and the mixed-formula screen agrees with both the full
-enumeration and the basis census. This is a finite-family measurement: it does
-not decide width-two frame recognition or classify unbounded connected cubic
-families.
+rational elimination, anchors both bounds on the four canonical width controls,
+and enumerates every free subset of seven sampled switches at both bounds with
+no coverage prefilter. All seven brute-force controls agree at both bounds, and
+the mixed-formula screen agrees with both the full enumeration and the basis
+census. This is a finite-family measurement: it does not decide width-two frame
+recognition or classify unbounded connected cubic families.
 
 
 ## Gauge-compatible Yang–Mills block fibre

@@ -1708,13 +1708,20 @@ width three on 864 of the 1,620 switches and width four or five on the remaining
 756, so it is a strict upper bound on the frame optimum for 756 formulas that
 still have `omega = 3`.
 
+A bound-`k` screen is a feasibility test rather than an optimiser: it returns
+an independent free set of width at most `k`, which can be wider than the
+optimum, as the support-three UNSAT control shows when screened at bound three.
+Exactness comes from pairing the two bounds, the failed lower bound
+`omega >= 3` with the measured upper bound `omega <= 3`.
+
 Two independent agreement checks fix the scale of the screen. The exact width
 primitive reproduces the canonical pivot-support width whenever it is applied to
-the canonical free set, so the two width conventions coincide. The screen itself
-reproduces the known control invariants: it certifies `omega = 3` exactly for
-both all-bases controls, in agreement with their complete basis censuses, and it
-finds width-two witnesses for both canonical support-three controls, in
-agreement with their known minimum.
+the canonical free set, so the two width conventions coincide. The screens
+reproduce the known control invariants: both all-bases controls certify
+`omega = 3` exactly at both bounds, in agreement with their complete basis
+censuses, and the bound-two screen with the exact width measurement finds
+width-two witnesses for both canonical support-three controls, in agreement with
+their known minimum.
 
 The same filter independently reproduces the mixed census. On the disconnected
 27-variable sum the bound-two intersection is empty and the bound-three

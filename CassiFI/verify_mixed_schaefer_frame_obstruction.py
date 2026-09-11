@@ -875,6 +875,20 @@ def main() -> None:
             anchored["omega_exact"] and anchored["omega"] == anchor["width"],
             f"{anchor['name']} exact width changed",
         )
+        triple = coverage_screen(anchor["formula"], 3)
+        require(
+            triple["exists"] and triple["witness_free_columns"] is not None,
+            f"{anchor['name']} has no bound-three witness",
+        )
+        assert triple["witness_free_columns"] is not None
+        require(
+            exact_width(
+                anchor["formula"],
+                [column - 1 for column in triple["witness_free_columns"]],
+            )
+            <= 3,
+            f"{anchor['name']} bound-three witness exceeds width three",
+        )
 
     mixed = mixed_formula()
     mixed_status = exact_status(mixed)
