@@ -642,8 +642,8 @@ pigeons. It has
 N = h(h+1)
 ```
 
-Boolean variables. Haken proved that every unrestricted resolution refutation
-of this family has size `2^Omega(h)`, equivalently
+Boolean variables. [Haken](https://doi.org/10.1016/0304-3975(85)90144-6) proved that every unrestricted
+resolution refutation of this family has size `2^Omega(h)`, equivalently
 `2^Omega(sqrt(N))` as a function of the variable count.
 
 The clause-field execution maps to such a refutation with polynomial overhead.
@@ -665,7 +665,7 @@ does not establish `P != NP`.
 
 ### Continuous-time SAT
 
-Ercsey-Ravasz and Toroczkai prove useful dynamical properties for an analog SAT
+[Ercsey-Ravasz and Toroczkai](https://arxiv.org/abs/1208.0526) prove useful dynamical properties for an analog SAT
 flow with positive clause variables `a_m`, including the absence of
 nonsolution fixed-point attractors in their model. They also state that
 polynomial continuous time comes at the expense of exponential energy
@@ -676,18 +676,19 @@ not rename.
 ### Ising, annealing, and optical machines
 
 Physical annealers and coherent Ising machines can be effective heuristics,
-but benchmark studies on hard Ising families do not supply worst-case
-polynomial exact algorithms. Coupling range, embedding size, annealing time,
-precision, and repeated success probability all count. A field superposition
-of many modes is not parallel evaluation of exponentially many assignments
-unless exponentially many distinguishable degrees of freedom or precision are
-available at readout.
+but benchmark studies such as [Hamerly et al.](https://arxiv.org/abs/1805.05217)
+on hard Ising families do not supply worst-case polynomial exact algorithms.
+Coupling range, embedding size, annealing time, precision, and repeated
+success probability all count. A field superposition of many modes is not
+parallel evaluation of exponentially many assignments unless exponentially
+many distinguishable degrees of freedom or precision are available at readout.
 
 ### Memcomputing
 
 Memcomputing supplies a richer nonlinear memory architecture and can be
 classically simulated, but empirical solver performance and continuous-time
-claims are not a worst-case polynomial proof. Published critiques emphasize
+claims are not a worst-case polynomial proof. [Markov](https://arxiv.org/abs/1412.0650)
+and [Sheldon et al.](https://arxiv.org/abs/1807.00107) emphasize
 spectral/precision and total-resource accounting. Its most useful lesson here
 is architectural: persistent violated-constraint memory matters. The bounded
 Cassi crossover tested that lesson and found that a fixed cap changes outcomes.
@@ -696,16 +697,18 @@ Cassi crossover tested that lesson and found that a fixed cap changes outcomes.
 
 A direct `P != NP` attack would need lower bounds for unrestricted
 polynomial-size computation, not merely for a local lattice, bounded-depth
-network, monotone circuit, or fixed PDE. Relativization, natural proofs, and
-algebrization explain why broad reusable lower-bound templates repeatedly
-stall. Cassi's geometry does not by itself evade those barriers.
+network, monotone circuit, or fixed PDE. [Natural proofs](https://eccc.weizmann.ac.il/report/1994/010/)
+and [algebrization](https://arxiv.org/abs/0805.1385) explain why broad reusable
+lower-bound templates repeatedly stall. Cassi's geometry does not by itself
+evade those barriers.
 
-The algorithms-to-lower-bounds program remains relevant: even modest general
-Circuit-SAT improvements imply major circuit lower bounds. The clause-field
-work does not provide such an improvement. It instead gives a complete
-restricted lower-bound result: once the field transition is translated to
-resolution, classical proof complexity rules out polynomial worst-case search
-for that architecture without confusing wave propagation with computation.
+The [algorithms-to-lower-bounds program](https://people.csail.mit.edu/rrw/improved-algs-lbs2.pdf)
+remains relevant: even modest general Circuit-SAT improvements imply major
+circuit lower bounds. The clause-field work does not provide such an
+improvement. It instead gives a complete restricted lower-bound result: once
+the field transition is translated to resolution, classical proof complexity
+rules out polynomial worst-case search for that architecture without
+confusing wave propagation with computation.
 
 ## 8. What survives
 
