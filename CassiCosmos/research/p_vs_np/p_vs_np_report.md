@@ -59,11 +59,12 @@ results:
     remains width three under all 7,344 bases; this is a finite structural
     obstruction, not a recognition or hardness theorem for connected families.
 14. an exhaustive one-switch census over the mixed SAT+UNSAT direct sum screens
-    all 1,620 connected 27-variable switches and finds no width-two dual frame
-    in any of them, so each has `omega >= 3`, with a complete pair-coverage
-    certificate over all `C(27,5) = 80,730` free subsets; 864 switches carry a
-    width-three basis and are exactly `omega = 3`, while the 32,232-base
-    disconnected sum is `omega = 3` under its full basis census.
+    all 1,620 connected 27-variable switches, finds no width-two dual frame in
+    any of them, and exhibits a width-three witness in each, so every switch has
+    `omega = 3` exactly, with complete coverage certificates at bound two over
+    all `C(27,5) = 80,730` free subsets and exact rational widths on the
+    witnesses; the 32,232-base disconnected sum is `omega = 3` under its full
+    basis census.
 
 The first two results make the CassiCosmos boundary unusually clear. Its
 isolated field is an auditable linear signal processor. Combinatorial search
@@ -1665,7 +1666,7 @@ minimum width three. The bounded conclusion is:
 > Result N closes only the zero-valid semantic shortcut; it does not close
 > width-two frame recognition or the broader supplied-Schaefer-basis question.
 
-### Result P—mixed connectivity preserves the width-at-least-three obstruction
+### Result P—mixed connectivity preserves the width-three frame optimum
 
 Result O measured one connected bridge. Result P replaces that single
 construction with a census over the entire cross-component switch family of the
@@ -1685,41 +1686,57 @@ Now cut two incidences, one from each side, and reattach them across the
 components. Each of the 36 left incidence edges can be switched against each of
 the 45 right edges, giving 1,620 raw switches that are pairwise distinct
 formulas, all connected, all with rank 22, nullity 5, and all UNSAT. None of
-the 1,620 admits a width-two dual frame, so every one of them has `omega >= 3`.
+the 1,620 admits a width-two dual frame, and every one of them admits a
+width-three frame witness, so all 1,620 have `omega = 3` exactly.
 
 The certificate is a free-subset screen, not a basis census. A free set `F`
-frames the dual in width two exactly when every ground-set element lies in the
-span of at most two elements of `F`. Collecting, for every element, all element
-pairs whose span contains it, and intersecting the corresponding subset
-bitsets, leaves exactly the free subsets whose internal pairs already cover the
-ground set. For all 1,620 switches that intersection is empty, so no free
-subset of any kind covers, independent or not. Each negative is complete over
-all `C(27,5) = 80,730` five-subsets of that formula and needs no independence
-test. The screen decides the width-two question exactly, but it returns less
-information than a full basis-width histogram: it bounds `omega` from below
-without exhibiting an optimal basis. The canonical basis attains width three on
-864 of the 1,620 switches, and on those formulas the lower bound is tight at
-`omega = 3`; the remaining 756 have canonical width four or five and are
-certified only as `omega >= 3`. Exact `omega` for all 1,620 would need the
-per-formula basis census that Result O showed is exponential.
+frames the dual in width `k` exactly when every ground-set element lies in the
+span of at most `k` elements of `F`. Collecting, for every element, all element
+`k`-subsets whose span contains it, and intersecting the corresponding subset
+bitsets, leaves exactly the free subsets whose internal `k`-subsets already
+cover the ground set. At `k = 2` that intersection is empty for all 1,620
+switches, so no free subset of any kind covers, independent or not, and each
+negative is complete over all `C(27,5) = 80,730` five-subsets of that formula
+without an independence test. At `k = 3` the intersection is nonempty, and its
+first element is independent in every switch, so one exact independence check
+per formula yields a width-at-most-three frame. The exact width is then computed
+rather than assumed, by Gauss-Jordan elimination on the augmented
+kernel-coordinate system: the maximum number of non-zero coordinates of any
+element expressed in the free set. Every switch measures exactly three, and the
+canonical RREF basis is typically not the witness. The canonical basis attains
+width three on 864 of the 1,620 switches and width four or five on the remaining
+756, so it is a strict upper bound on the frame optimum for 756 formulas that
+still have `omega = 3`.
 
-The same filter independently reproduces the mixed census: applied to the
-disconnected 27-variable sum it also returns no covering free subset, which
-agrees with the exhaustive enumeration of all 32,232 bases, and the value
-matches the census on that formula exactly.
+Two independent agreement checks fix the scale of the screen. The exact width
+primitive reproduces the canonical pivot-support width whenever it is applied to
+the canonical free set, so the two width conventions coincide. The screen itself
+reproduces the known control invariants: it certifies `omega = 3` exactly for
+both all-bases controls, in agreement with their complete basis censuses, and it
+finds width-two witnesses for both canonical support-three controls, in
+agreement with their known minimum.
+
+The same filter independently reproduces the mixed census. On the disconnected
+27-variable sum the bound-two intersection is empty and the bound-three
+intersection has exactly 32,232 survivors, the same number as the width-three
+basis count from the exhaustive enumeration, and the screened optimum equals
+the census optimum. Neither number was supplied to the filter.
 
 Independent verification reconstructs every component basis census, all 32,232
-direct-sum rows, all 1,620 switches, the canonical widths, the free-subset
-filter, and seven full-enumeration brute-force controls over every free subset
-without the coverage prefilter. It reports `status: verified`. The bounded
-conclusion:
+direct-sum rows, all 1,620 switches, the canonical widths, both coverage
+screens, every width witness through its own exact rational elimination, and
+seven full-enumeration brute-force controls over every free subset at both
+bounds without the coverage prefilter. It reports `status: verified`. The
+bounded conclusion:
 
 > Cutting the mixed sum open with a degree-preserving 2-switch makes the
 > formula connected, drops nullity from 6 to 5, and blocks the width-two frame
-> on every one of the 1,620 switches. Connectivity is not what blocks it, and
-> no switch in this family exposes one. This remains a finite family
-> measurement; it does not decide width-two frame recognition, classify
-> unbounded connected cubic families, or bear on `P = NP`.
+> on every one of the 1,620 switches, each of which instead has a width-three
+> frame and frame optimum exactly three. Connectivity is not what blocks the
+> width-two frame, and no switch in this family exposes one. Canonical RREF
+> width is not the frame optimum. This remains a finite family measurement; it
+> does not decide width-two frame recognition, classify unbounded connected
+> cubic families, or bear on `P = NP`.
 
 
 ## 9. Remaining credible research directions
@@ -1744,10 +1761,12 @@ compression attempts now have precise outcomes. The next work is:
    Keep that semantic problem separate from width-two frame recognition, and
    test whether any broader union of Schaefer-tractable basis languages has a
    recognizable structural characterization rather than merely encoding a
-   satisfying assignment. Result P's pair-coverage filter is exact and much
-   faster than a basis census per formula, but its `C(n,k)` free-subset
-   intersection is still `O(n^k)` for fixed nullity `k`, so it certifies
-   finite families rather than changing the asymptotics.
+   satisfying assignment. Result P's coverage filters are exact and much
+   faster than a basis census per formula: bound two decides the width-two
+   question and bound three adds a measured width-three witness, but the
+   `C(n,k)` free-subset intersection at each bound is still `O(n^k)` for fixed
+   nullity `k`, so the pair certifies finite families rather than changing the
+   asymptotics.
 2. **Move beyond one uniform matchgate basis.** Test whether locally varying
    edge gauges, bounded-size equality gadgets, higher-dimensional signatures,
    or non-matchgate determinant identities can aggregate the correlated
@@ -1946,14 +1965,16 @@ The mixed-frame receipt is
 `CassiFI/_diag/mixed_schaefer_frame_obstruction.json`. It stores both component
 censuses, the 27-variable mixed direct sum with all 32,232 bases, the 1,620
 cross-component switches with rank 22 and nullity 5, the free-subset
-pair-coverage screen for every formula, and the scope record. The independent
-verifier imports neither the runner, the growing-nullity probe, nor the
-cubic-kernel implementation. It rebuilds both matrices and every basis row,
-re-runs the subset filter on all 1,620 switches and on the mixed sum, and
-full-enumerates every free subset of seven sampled switches with no coverage
-prefilter. The current run reports 32,232 verified mixed bases, 1,620 verified
-switches, no width-two frame in any of them, complete screening for all 1,620,
-and seven-of-seven brute-force agreement.
+pair-coverage and triple-coverage screens with an exact width witness for every
+formula, and the scope record. The independent verifier imports neither the
+runner, the growing-nullity probe, nor the cubic-kernel implementation. It
+rebuilds both matrices and every basis row, re-runs both coverage screens on all
+1,620 switches and on the mixed sum, remeasures every witness with its own
+rational elimination, and full-enumerates every free subset of seven sampled
+switches at both bounds with no coverage prefilter. The current run reports
+32,232 verified mixed bases, 1,620 verified switches, no width-two frame and an
+exact width-three witness in each, and seven-of-seven brute-force agreement at
+bound two and at bound three.
 
 ## Primary references
 

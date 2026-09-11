@@ -112,34 +112,37 @@ def dual_columns(formula: Sequence[Sequence[int]]) -> tuple[tuple[int, ...], ...
     )
 
 
-def _build_pair_subset_bits(size: int, nullity: int) -> dict[tuple[int, int], int]:
-    subsets = math.comb(size, nullity)
-    byte_length = (subsets + 7) // 8
-    payloads: dict[tuple[int, int], bytearray] = {
-        pair: bytearray(byte_length) for pair in itertools.combinations(range(size), 2)
+def _build_subset_bits(
+    size: int, nullity: int, bound: int
+) -> dict[tuple[int, ...], int]:
+    total = math.comb(size, nullity)
+    byte_length = (total + 7) // 8
+    payloads: dict[tuple[int, ...], bytearray] = {
+        subset: bytearray(byte_length)
+        for subset in itertools.combinations(range(size), bound)
     }
-    for index, subset in enumerate(itertools.combinations(range(size), nullity)):
+    for index, free in enumerate(itertools.combinations(range(size), nullity)):
         byte = index >> 3
         bit = 1 << (index & 7)
-        for pair in itertools.combinations(subset, 2):
-            payloads[pair][byte] |= bit
+        for subset in itertools.combinations(free, bound):
+            payloads[subset][byte] |= bit
     return {
-        pair: int.from_bytes(bytes(payload), "little")
-        for pair, payload in payloads.items()
+        subset: int.from_bytes(bytes(payload), "little")
+        for subset, payload in payloads.items()
     }
 
 
-_SUBSET_BITS: dict[tuple[int, int], dict[tuple[int, int], int]] = {}
+_SUBSET_BITS: dict[tuple[int, int, int], dict[tuple[int, ...], int]] = {}
 _SUBSET_INDEX: dict[tuple[int, int], tuple[tuple[int, ...], ...]] = {}
 
 
-def pair_subset_bits(size: int, nullity: int) -> dict[tuple[int, int], int]:
-    """Map each element pair to the free subsets that contain it."""
+def subset_bits(size: int, nullity: int, bound: int) -> dict[tuple[int, ...], int]:
+    """Map each element subset of size ``bound`` to the free subsets containing it."""
 
-    key = (size, nullity)
+    key = (size, nullity, bound)
     cached = _SUBSET_BITS.get(key)
     if cached is None:
-        cached = _build_pair_subset_bits(size, nullity)
+        cached = _build_subset_bits(size, nullity, bound)
         _SUBSET_BITS[key] = cached
     return cached
 
@@ -185,110 +188,236 @@ def column_classes(
     return tuple(class_of), tuple(class_masks), tuple(representatives)
 
 
-def width_two_screen(formula: Sequence[Sequence[int]]) -> dict[str, Any]:
-    """Exhaustively decide whether some column basis frames the dual in width two.
+def covering_subsets(
+    columns: tuple[tuple[int, ...], ...], bound: int
+) -> tuple[list[list[tuple[int, ...]]], dict[tuple[int, ...], int]]:
+    """Index the elements covered by every ``bound``-subset of the ground set.
 
-    A free set ``F`` frames the dual exactly when every ground-set element lies
-    in the span of at most two elements of ``F``. The screen first intersects
-    subset bitsets to keep only free subsets whose internal pairs cover the
-    whole ground set, then checks exact independence for any survivor.
+    Width ``w`` means every ground-set element lies in the span of at most ``w``
+    elements of the free set, so ``bound = w`` coverage inside ``F`` is exactly
+    the width-at-most-``bound`` test for an independent ``F``. Returns the
+    element-to-covering-subsets index and the subset-to-element-mask table.
     """
 
-    columns = dual_columns(formula)
     size = len(columns)
-    nullity = len(columns[0]) if size else 0
     class_of, class_masks, representatives = column_classes(columns)
-    class_pair_masks: dict[tuple[int, int], int] = {}
-    for left in range(len(class_masks)):
-        for right in range(left, len(class_masks)):
-            cover = 0
-            if left == right:
-                cover = class_masks[left]
-            else:
-                pair_rank = rank_int((representatives[left], representatives[right]))
-                for candidate in range(len(class_masks)):
-                    if (
-                        rank_int(
-                            (
-                                representatives[left],
-                                representatives[right],
-                                representatives[candidate],
-                            )
-                        )
-                        == pair_rank
-                    ):
-                        cover |= class_masks[candidate]
-            class_pair_masks[(left, right)] = cover
+    class_count = len(class_masks)
+    by_multiset: dict[tuple[int, ...], int] = {}
+    for multiset in itertools.combinations_with_replacement(range(class_count), bound):
+        rows = tuple(representatives[index] for index in multiset)
+        base = rank_int(rows)
+        cover = 0
+        for candidate in range(class_count):
+            if rank_int(rows + (representatives[candidate],)) == base:
+                cover |= class_masks[candidate]
+        by_multiset[multiset] = cover
 
-    pair_covers: dict[tuple[int, int], int] = {}
-    element_pairs: list[list[tuple[int, int]]] = [[] for _ in range(size)]
-    for left, right in itertools.combinations(range(size), 2):
-        low, high = sorted((class_of[left], class_of[right]))
-        cover = class_pair_masks[(low, high)]
-        pair_covers[(left, right)] = cover
+    covers: list[list[tuple[int, ...]]] = [[] for _ in range(size)]
+    masks: dict[tuple[int, ...], int] = {}
+    for subset in itertools.combinations(range(size), bound):
+        cover = by_multiset[tuple(sorted(class_of[element] for element in subset))]
+        masks[subset] = cover
         for element in range(size):
             if (cover >> element) & 1:
-                element_pairs[element].append((left, right))
+                covers[element].append(subset)
+    return covers, masks
 
-    full = (1 << size) - 1
-    bits = pair_subset_bits(size, nullity)
-    order = sorted(range(size), key=lambda element: len(element_pairs[element]))
+
+def coverage_screen(
+    columns: tuple[tuple[int, ...], ...], bound: int
+) -> dict[str, Any]:
+    """Decide whether a free basis is spanned by ``bound``-subsets of itself.
+
+    The subset bitsets keep exactly the free subsets whose internal
+    ``bound``-subsets already cover the ground set, so an empty intersection is
+    complete over all free subsets. Survivors are ranked until one is
+    independent; a positive answer stops at the first independent survivor.
+    """
+
+    size = len(columns)
+    nullity = len(columns[0]) if size else 0
+    covers, subset_masks = covering_subsets(columns, bound)
+    bits = subset_bits(size, nullity, bound)
     candidates = (1 << math.comb(size, nullity)) - 1
-    for element in order:
+    for element in sorted(range(size), key=lambda item: len(covers[item])):
         mask = 0
-        for pair in element_pairs[element]:
-            mask |= bits[pair]
+        for subset in covers[element]:
+            mask |= bits[subset]
         candidates &= mask
         if not candidates:
             return {
                 "exists": False,
                 "complete": True,
                 "candidates_after_filter": 0,
-                "bases_examined": 0,
+                "candidates_examined": 0,
                 "witness_free_columns": None,
             }
 
     subsets = free_subsets(size, nullity)
-    bases_examined = 0
+    candidates_examined = 0
     remaining = candidates
     while remaining:
         low = remaining & -remaining
         index = low.bit_length() - 1
         remaining ^= low
         free_columns = subsets[index]
-        if nullity <= 2 or rank_int(
+        candidates_examined += 1
+        if nullity <= bound or rank_int(
             tuple(columns[column] for column in free_columns)
         ) == nullity:
-            bases_examined += 1
             covered = 0
-            for pair in itertools.combinations(free_columns, 2):
-                covered |= pair_covers[pair]
-            if covered != full:
+            for subset in itertools.combinations(free_columns, bound):
+                covered |= subset_masks[subset]
+            if covered != (1 << size) - 1:
                 raise AssertionError("subset bitset filter admitted an uncovered free set")
             return {
                 "exists": True,
                 "complete": False,
                 "candidates_after_filter": bin(candidates).count("1"),
-                "bases_examined": bases_examined,
+                "candidates_examined": candidates_examined,
                 "witness_free_columns": [column + 1 for column in free_columns],
             }
     return {
         "exists": False,
         "complete": True,
         "candidates_after_filter": bin(candidates).count("1"),
-        "bases_examined": bases_examined,
+        "candidates_examined": candidates_examined,
         "witness_free_columns": None,
     }
 
 
-def width_two_digest(records: Sequence[dict[str, Any]]) -> str:
+def basis_width(
+    columns: tuple[tuple[int, ...], ...], free_columns: Sequence[int]
+) -> int:
+    """Exact maximum pivot-free support of one independent free set.
+
+    Row-reduce the matrix whose columns are the free vectors while the whole
+    ground set rides along as a right-hand side; the reduced table holds the
+    coordinates of every element in the free set, so the largest number of
+    non-zero coordinates over the elements is the frame width of that basis.
+    """
+
+    size = len(columns)
+    width_of = len(free_columns)
+    matrix = [
+        [Fraction(columns[free_columns[index]][coordinate]) for index in range(width_of)]
+        for coordinate in range(width_of)
+    ]
+    table = [
+        [Fraction(columns[element][coordinate]) for element in range(size)]
+        for coordinate in range(width_of)
+    ]
+    for column in range(width_of):
+        source = next(
+            (row for row in range(column, width_of) if matrix[row][column]), None
+        )
+        if source is None:
+            raise AssertionError("free set is not independent")
+        matrix[column], matrix[source] = matrix[source], matrix[column]
+        table[column], table[source] = table[source], table[column]
+        divisor = matrix[column][column]
+        matrix[column] = [value / divisor for value in matrix[column]]
+        table[column] = [value / divisor for value in table[column]]
+        for row in range(width_of):
+            if row == column or not matrix[row][column]:
+                continue
+            multiplier = matrix[row][column]
+            matrix[row] = [
+                value - multiplier * pivot_value
+                for value, pivot_value in zip(matrix[row], matrix[column], strict=True)
+            ]
+            table[row] = [
+                value - multiplier * pivot_value
+                for value, pivot_value in zip(table[row], table[column], strict=True)
+            ]
+    return max(sum(1 for row in table if row[element]) for element in range(size))
+
+
+def frame_screen(formula: Sequence[Sequence[int]]) -> dict[str, Any]:
+    """Decide the frame width of one cubic incidence matrix as far as it closes.
+
+    Bound two closes either way: a witness means ``omega <= 2``, an empty
+    intersection means ``omega >= 3``. Bound three then either exhibits an
+    independent free set whose exact width is measured directly, or certifies
+    ``omega >= 4``.
+    """
+
+    columns = dual_columns(formula)
+    canonical = cubic_kernel_profile(formula)["maximum_pivot_free_support"]
+    width_two = coverage_screen(columns, 2)
+    if width_two["exists"]:
+        witness = [column - 1 for column in width_two["witness_free_columns"] or []]
+        width = basis_width(columns, witness)
+        if width > 2:
+            raise AssertionError("width-two witness failed exact width validation")
+        return {
+            "width_two_basis_exists": True,
+            "width_two_search_complete": False,
+            "width_two_candidates_after_filter": width_two["candidates_after_filter"],
+            "width_two_candidates_examined": width_two["candidates_examined"],
+            "width_three_basis_exists": None,
+            "width_three_search_complete": None,
+            "width_three_candidates_after_filter": None,
+            "width_three_candidates_examined": None,
+            "canonical_width": canonical,
+            "witness_free_columns": width_two["witness_free_columns"],
+            "witness_width": width,
+            "omega": width,
+            "omega_exact": True,
+        }
+
+    width_three = coverage_screen(columns, 3)
+    if width_three["exists"]:
+        witness = [column - 1 for column in width_three["witness_free_columns"] or []]
+        width = basis_width(columns, witness)
+        if width > 3:
+            raise AssertionError("width-three witness failed exact width validation")
+        return {
+            "width_two_basis_exists": False,
+            "width_two_search_complete": True,
+            "width_two_candidates_after_filter": width_two["candidates_after_filter"],
+            "width_two_candidates_examined": width_two["candidates_examined"],
+            "width_three_basis_exists": True,
+            "width_three_search_complete": False,
+            "width_three_candidates_after_filter": width_three["candidates_after_filter"],
+            "width_three_candidates_examined": width_three["candidates_examined"],
+            "canonical_width": canonical,
+            "witness_free_columns": width_three["witness_free_columns"],
+            "witness_width": width,
+            "omega": width,
+            "omega_exact": width == 3,
+        }
+    return {
+        "width_two_basis_exists": False,
+        "width_two_search_complete": True,
+        "width_two_candidates_after_filter": width_two["candidates_after_filter"],
+        "width_two_candidates_examined": width_two["candidates_examined"],
+        "width_three_basis_exists": False,
+        "width_three_search_complete": True,
+        "width_three_candidates_after_filter": width_three["candidates_after_filter"],
+        "width_three_candidates_examined": width_three["candidates_examined"],
+        "canonical_width": canonical,
+        "witness_free_columns": None,
+        "witness_width": None,
+        "omega": None,
+        "omega_exact": False,
+        "omega_lower_bound": 4,
+    }
+
+
+def frame_digest(records: Sequence[dict[str, Any]]) -> str:
     payload = [
         {
             "digest": record["digest"],
-            "exists": record["width_two_basis_exists"],
-            "complete": record["width_two_search_complete"],
+            "width_two_basis_exists": record["width_two_basis_exists"],
+            "width_two_search_complete": record["width_two_search_complete"],
+            "width_three_basis_exists": record["width_three_basis_exists"],
+            "width_three_search_complete": record["width_three_search_complete"],
             "canonical_width": record["canonical_width"],
-            "witness_free_columns": record["width_two_witness_free_columns"],
+            "witness_free_columns": record["witness_free_columns"],
+            "witness_width": record["witness_width"],
+            "omega": record["omega"],
+            "omega_exact": record["omega_exact"],
         }
         for record in records
     ]
@@ -349,7 +478,7 @@ def switch_records() -> list[dict[str, Any]]:
                     )
                     decision = decide_cubic_kernel(formula)
                     profile = cubic_kernel_profile(formula)
-                    screen = width_two_screen(formula)
+                    screen = frame_screen(formula)
                     records.append(
                         {
                             "digest": formula_digest(formula),
@@ -357,12 +486,8 @@ def switch_records() -> list[dict[str, Any]]:
                             "rank": profile["rank"],
                             "nullity": profile["nullity"],
                             "status": decision["status"],
-                            "canonical_width": profile["maximum_pivot_free_support"],
-                            "width_two_basis_exists": screen["exists"],
-                            "width_two_search_complete": screen["complete"],
-                            "width_two_candidates_after_filter": screen["candidates_after_filter"],
-                            "width_two_bases_examined": screen["bases_examined"],
-                            "width_two_witness_free_columns": screen["witness_free_columns"],
+                            "canonical_width": screen["canonical_width"],
+                            **screen,
                         }
                     )
     return records
@@ -392,10 +517,21 @@ def build_receipt() -> dict[str, Any]:
     records = switch_records()
     digests = sorted(record["digest"] for record in records)
     digest_payload = json.dumps(digests, separators=(",", ":"))
-    mixed_screen = width_two_screen(mixed)
+    mixed_screen = frame_screen(mixed)
     census_has_width_two = any(int(key) <= 2 for key in mixed_width_histogram)
-    if mixed_screen["exists"] != census_has_width_two:
+    if mixed_screen["width_two_basis_exists"] != census_has_width_two:
         raise AssertionError("subset filter disagrees with the exhaustive basis census")
+    census_width_three = all(int(key) == 3 for key in mixed_width_histogram)
+    if mixed_screen["omega"] is not None and census_width_three:
+        if mixed_screen["omega"] != 3:
+            raise AssertionError("mixed witness width disagrees with the width-three census")
+    if census_width_three and not mixed_screen["omega_exact"]:
+        raise AssertionError("mixed width-three census did not close exactly")
+    if census_width_three:
+        if mixed_screen["width_three_candidates_after_filter"] != sum(
+            mixed_width_histogram.values()
+        ):
+            raise AssertionError("mixed triple-coverage survivors do not match the census")
     return {
         "schema": SCHEMA,
         "components": {
@@ -416,10 +552,10 @@ def build_receipt() -> dict[str, Any]:
             "all_bases_width_at_least_three": all(
                 int(key) >= 3 for key in mixed_width_histogram
             ),
-            "width_two_basis_exists": mixed_screen["exists"],
-            "width_two_search_complete": mixed_screen["complete"],
-            "width_two_candidates_after_filter": mixed_screen["candidates_after_filter"],
-            "width_two_agrees_with_census": mixed_screen["exists"] == census_has_width_two,
+            **mixed_screen,
+            "width_two_agrees_with_census": (
+                mixed_screen["width_two_basis_exists"] == census_has_width_two
+            ),
         },
         "one_switch_enumeration": {
             "left_component_incidence_edges": sum(len(clause) for clause in ALL_BASES_TERNARY_SAT),
@@ -435,29 +571,36 @@ def build_receipt() -> dict[str, Any]:
             "width_two_search_complete_histogram": histogram(
                 records, "width_two_search_complete"
             ),
+            "width_three_basis_histogram": histogram(records, "width_three_basis_exists"),
+            "width_three_search_complete_histogram": histogram(
+                records, "width_three_search_complete"
+            ),
+            "canonical_width_histogram": histogram(records, "canonical_width"),
+            "witness_width_histogram": histogram(records, "witness_width"),
+            "omega_histogram": histogram(records, "omega"),
+            "omega_exact_histogram": histogram(records, "omega_exact"),
+            "omega_exact_formulas": sum(1 for record in records if record["omega_exact"]),
             "width_two_candidates_after_filter": sum(
                 record["width_two_candidates_after_filter"] for record in records
             ),
-            "width_two_bases_examined": sum(
-                record["width_two_bases_examined"] for record in records
+            "width_two_candidates_examined": sum(
+                record["width_two_candidates_examined"] for record in records
             ),
-            "canonical_width_histogram": histogram(records, "canonical_width"),
-            "width_exactly_three_formulas": sum(
-                1
-                for record in records
-                if record["canonical_width"] == 3
-                and record["width_two_search_complete"]
-                and not record["width_two_basis_exists"]
+            "width_three_candidates_after_filter": sum(
+                record["width_three_candidates_after_filter"] for record in records
             ),
-            "width_two_screen_digest": width_two_digest(records),
+            "width_three_candidates_examined": sum(
+                record["width_three_candidates_examined"] for record in records
+            ),
+            "frame_screen_digest": frame_digest(records),
             "formula_digest_sha256": hashlib.sha256(digest_payload.encode("ascii")).hexdigest(),
         },
         "scope": {
             "frame_property": "ground-set dual basis with every fundamental circuit of size at most three",
             "one_switches_only": True,
             "known_cross_component_edge_cut": 2,
-            "connected_width_two_screened": True,
-            "screen_certificate": "exact pair-coverage filter over all binomial(27,5) free subsets, with exact independence for survivors",
+            "connected_frame_screened": True,
+            "screen_certificate": "exact bound-coverage filter over all binomial(n,k) free subsets of each formula, with exact independence for survivors and exact rational width for every witness",
             "no_hardness_claim": True,
         },
     }

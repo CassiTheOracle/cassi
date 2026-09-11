@@ -11,6 +11,7 @@ fixed sample of switches without any coverage prefilter.
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import itertools
 import json
@@ -29,6 +30,34 @@ SCHAEFER_CLASSES = (
     "dual_horn",
     "bijunctive",
     "affine",
+)
+SUPPORT_THREE_SAT = (
+    (1, 6, 3),
+    (1, 3, 5),
+    (1, 8, 2),
+    (4, 6, 8),
+    (4, 8, 5),
+    (4, 3, 2),
+    (7, 9, 5),
+    (7, 9, 2),
+    (7, 9, 6),
+)
+SUPPORT_THREE_UNSAT = (
+    (1, 14, 11),
+    (2, 1, 15),
+    (3, 10, 5),
+    (4, 8, 14),
+    (5, 11, 7),
+    (6, 12, 1),
+    (7, 9, 2),
+    (8, 15, 12),
+    (9, 5, 6),
+    (10, 13, 3),
+    (11, 4, 8),
+    (12, 3, 10),
+    (13, 6, 4),
+    (14, 7, 13),
+    (15, 2, 9),
 )
 ALL_BASES_TERNARY_SAT = (
     (1, 2, 7),
@@ -127,6 +156,7 @@ def rref(matrix: Sequence[Sequence[Fraction]]) -> tuple[list[list[Fraction]], tu
     return values, tuple(pivots)
 
 
+@functools.lru_cache(maxsize=None)
 def basis_system(
     formula: tuple[tuple[int, int, int], ...], pivots: tuple[int, ...]
 ) -> dict[str, Any] | None:
@@ -151,16 +181,58 @@ def basis_system(
     }
 
 
+@functools.lru_cache(maxsize=None)
 def profile(formula: tuple[tuple[int, int, int], ...]) -> dict[str, Any]:
     reduced, pivots = rref(matrix_for(formula))
     del reduced
     return {"rank": len(pivots), "nullity": len(formula) - len(pivots), "pivots": pivots}
 
 
+def span_basis(
+    rows: Sequence[Sequence[Fraction]],
+) -> tuple[tuple[int, ...], list[list[Fraction]]]:
+    """Echelon basis of the span of ``rows`` with normalised pivot entries."""
+
+    basis: list[list[Fraction]] = []
+    pivots: list[int] = []
+    for source in rows:
+        vector = [Fraction(value) for value in source]
+        for pivot, row in zip(pivots, basis, strict=True):
+            if vector[pivot]:
+                factor = vector[pivot]
+                vector = [
+                    value - factor * basis_value
+                    for value, basis_value in zip(vector, row, strict=True)
+                ]
+        pivot = next((index for index, value in enumerate(vector) if value), None)
+        if pivot is None:
+            continue
+        divisor = vector[pivot]
+        vector = [value / divisor for value in vector]
+        basis.append(vector)
+        pivots.append(pivot)
+    return tuple(pivots), basis
+
+
+def in_span(pivots: tuple[int, ...], basis: Sequence[Sequence[Fraction]], vector: Sequence[Fraction]) -> bool:
+    """Whether one vector lies in the span of an echelon basis."""
+
+    reduced = list(vector)
+    for pivot, row in zip(pivots, basis, strict=True):
+        if reduced[pivot]:
+            factor = reduced[pivot]
+            reduced = [
+                value - factor * basis_value
+                for value, basis_value in zip(reduced, row, strict=True)
+            ]
+    return all(value == 0 for value in reduced)
+
+
 def rational_rank(rows: Sequence[Sequence[Fraction]]) -> int:
     return len(rref(rows)[1])
 
 
+@functools.lru_cache(maxsize=None)
 def kernel_coordinate_rows(
     formula: tuple[tuple[int, int, int], ...],
 ) -> tuple[tuple[Fraction, ...], ...]:
@@ -211,140 +283,144 @@ def column_partition(
     return tuple(class_of), tuple(class_masks), tuple(representatives)
 
 
-def pair_cover_masks(
-    kernel_rows: tuple[tuple[Fraction, ...], ...],
-) -> dict[tuple[int, int], int]:
-    """Element bitmask spanned by each pair of ground-set coordinates."""
+def class_cover_masks(
+    kernel_rows: tuple[tuple[Fraction, ...], ...], bound: int
+) -> tuple[list[list[tuple[int, ...]]], dict[tuple[int, ...], int]]:
+    """Index the elements covered by every ``bound``-subset of the ground set.
+
+    Width ``w`` means every element lies in the span of at most ``w`` elements
+    of the free set, so coverage by ``bound``-subsets of a free set is exactly
+    the width-at-most-``bound`` test for an independent free set.
+    """
 
     size = len(kernel_rows)
     class_of, class_masks, representatives = column_partition(kernel_rows)
-    class_pair_masks: dict[tuple[int, int], int] = {}
-    for left in range(len(class_masks)):
-        for right in range(left, len(class_masks)):
-            cover = 0
-            if left == right:
-                cover = class_masks[left]
-            else:
-                pair_rank = rational_rank((representatives[left], representatives[right]))
-                for candidate in range(len(class_masks)):
-                    if rational_rank(
-                        (
-                            representatives[left],
-                            representatives[right],
-                            representatives[candidate],
-                        )
-                    ) == pair_rank:
-                        cover |= class_masks[candidate]
-            class_pair_masks[(left, right)] = cover
+    class_count = len(class_masks)
+    by_multiset: dict[tuple[int, ...], int] = {}
+    for multiset in itertools.combinations_with_replacement(range(class_count), bound):
+        pivots, basis = span_basis(tuple(representatives[index] for index in multiset))
+        cover = 0
+        for candidate in range(class_count):
+            if in_span(pivots, basis, representatives[candidate]):
+                cover |= class_masks[candidate]
+        by_multiset[multiset] = cover
 
-    masks: dict[tuple[int, int], int] = {}
-    for left, right in itertools.combinations(range(size), 2):
-        low, high = sorted((class_of[left], class_of[right]))
-        masks[(left, right)] = class_pair_masks[(low, high)]
-    return masks
+    covers: list[list[tuple[int, ...]]] = [[] for _ in range(size)]
+    masks: dict[tuple[int, ...], int] = {}
+    for subset in itertools.combinations(range(size), bound):
+        cover = by_multiset[tuple(sorted(class_of[element] for element in subset))]
+        masks[subset] = cover
+        for element in range(size):
+            if (cover >> element) & 1:
+                covers[element].append(subset)
+    return covers, masks
 
 
-_SUBSET_BITS: dict[tuple[int, int], dict[tuple[int, int], int]] = {}
+_SUBSET_BITS: dict[tuple[int, int, int], dict[tuple[int, ...], int]] = {}
 BRUTEFORCE_SAMPLE = (0, 1, 2, 405, 810, 1215, 1619)
 BRUTEFORCE_CROSS_CHECK: list[dict[str, Any]] = []
 
 
-def subset_bits(size: int, nullity: int) -> dict[tuple[int, int], int]:
-    """Map each element pair to the free subsets that contain it (own build)."""
+def subset_bits(size: int, nullity: int, bound: int) -> dict[tuple[int, ...], int]:
+    """Map each element subset of size ``bound`` to the free subsets holding it."""
 
-    key = (size, nullity)
+    key = (size, nullity, bound)
     cached = _SUBSET_BITS.get(key)
     if cached is not None:
         return cached
-    subsets = math.comb(size, nullity)
-    payloads: dict[tuple[int, int], bytearray] = {
-        pair: bytearray((subsets + 7) // 8)
-        for pair in itertools.combinations(range(size), 2)
+    total = math.comb(size, nullity)
+    payloads: dict[tuple[int, ...], bytearray] = {
+        subset: bytearray((total + 7) // 8)
+        for subset in itertools.combinations(range(size), bound)
     }
-    for index, subset in enumerate(itertools.combinations(range(size), nullity)):
+    for index, free in enumerate(itertools.combinations(range(size), nullity)):
         byte = index >> 3
         bit = 1 << (index & 7)
-        for pair in itertools.combinations(subset, 2):
-            payloads[pair][byte] |= bit
-    masks = {pair: int.from_bytes(bytes(raw), "little") for pair, raw in payloads.items()}
+        for subset in itertools.combinations(free, bound):
+            payloads[subset][byte] |= bit
+    masks = {
+        subset: int.from_bytes(bytes(raw), "little") for subset, raw in payloads.items()
+    }
     _SUBSET_BITS[key] = masks
     return masks
 
 
-def width_two_screen(formula: tuple[tuple[int, int, int], ...]) -> dict[str, Any]:
-    """Keep only free subsets whose internal pairs span the whole ground set."""
+def coverage_screen(
+    formula: tuple[tuple[int, int, int], ...], bound: int
+) -> dict[str, Any]:
+    """Keep only free subsets whose internal ``bound``-subsets cover everything."""
 
     kernel_rows = kernel_coordinate_rows(formula)
     size = len(kernel_rows)
     nullity = len(kernel_rows[0]) if kernel_rows else 0
-    pair_covers = pair_cover_masks(kernel_rows)
-    element_pairs: list[list[tuple[int, int]]] = [[] for _ in range(size)]
-    for pair, cover in pair_covers.items():
-        for element in range(size):
-            if (cover >> element) & 1:
-                element_pairs[element].append(pair)
-
-    bits = subset_bits(size, nullity)
+    covers, subset_masks = class_cover_masks(kernel_rows, bound)
+    bits = subset_bits(size, nullity, bound)
     candidates = (1 << math.comb(size, nullity)) - 1
-    for element in sorted(range(size), key=lambda item: len(element_pairs[item])):
+    for element in sorted(range(size), key=lambda item: len(covers[item])):
         mask = 0
-        for pair in element_pairs[element]:
-            mask |= bits[pair]
+        for subset in covers[element]:
+            mask |= bits[subset]
         candidates &= mask
         if not candidates:
             return {
                 "exists": False,
                 "complete": True,
                 "candidates_after_filter": 0,
-                "bases_examined": 0,
+                "candidates_examined": 0,
                 "witness_free_columns": None,
             }
 
     free_sets = tuple(itertools.combinations(range(size), nullity))
-    bases_examined = 0
+    candidates_examined = 0
     remaining = candidates
     while remaining:
         low = remaining & -remaining
         index = low.bit_length() - 1
         remaining ^= low
         free_columns = free_sets[index]
-        if nullity <= 2 or rational_rank(
+        candidates_examined += 1
+        if nullity <= bound or rational_rank(
             tuple(kernel_rows[column] for column in free_columns)
         ) == nullity:
-            bases_examined += 1
+            covered = 0
+            for subset in itertools.combinations(free_columns, bound):
+                covered |= subset_masks[subset]
+            require(covered == (1 << size) - 1, "coverage filter admitted an uncovered free set")
             return {
                 "exists": True,
                 "complete": False,
                 "candidates_after_filter": bin(candidates).count("1"),
-                "bases_examined": bases_examined,
+                "candidates_examined": candidates_examined,
                 "witness_free_columns": [column + 1 for column in free_columns],
             }
     return {
         "exists": False,
         "complete": True,
         "candidates_after_filter": bin(candidates).count("1"),
-        "bases_examined": bases_examined,
+        "candidates_examined": candidates_examined,
         "witness_free_columns": None,
     }
 
 
-def width_two_bruteforce(formula: tuple[tuple[int, int, int], ...]) -> dict[str, Any]:
+def coverage_bruteforce(
+    formula: tuple[tuple[int, int, int], ...], bound: int
+) -> dict[str, Any]:
     """Full enumeration over every free subset, no coverage prefilter."""
 
     kernel_rows = kernel_coordinate_rows(formula)
     size = len(kernel_rows)
     nullity = len(kernel_rows[0]) if kernel_rows else 0
-    pair_covers = pair_cover_masks(kernel_rows)
+    _, subset_masks = class_cover_masks(kernel_rows, bound)
     full = (1 << size) - 1
     covering = 0
     for free_columns in itertools.combinations(range(size), nullity):
         covered = 0
-        for left, right in itertools.combinations(free_columns, 2):
-            covered |= pair_covers[(left, right)]
+        for subset in itertools.combinations(free_columns, bound):
+            covered |= subset_masks[subset]
         if covered != full:
             continue
         covering += 1
-        if nullity <= 2 or rational_rank(
+        if nullity <= bound or rational_rank(
             tuple(kernel_rows[column] for column in free_columns)
         ) == nullity:
             return {
@@ -355,35 +431,76 @@ def width_two_bruteforce(formula: tuple[tuple[int, int, int], ...]) -> dict[str,
     return {"exists": False, "covering_subsets": covering, "witness_free_columns": None}
 
 
-def validate_witness(
-    formula: tuple[tuple[int, int, int], ...], free_columns: Sequence[int] | None
-) -> None:
-    """Recheck a claimed width-two basis directly from its free columns."""
+def exact_width(
+    formula: tuple[tuple[int, int, int], ...], free_columns: Sequence[int]
+) -> int:
+    """Exact maximum support of one free basis, solved in the kernel coordinates."""
 
-    require(free_columns is not None, "width-two witness missing")
-    assert free_columns is not None
     kernel_rows = kernel_coordinate_rows(formula)
+    size = len(kernel_rows)
+    width_of = len(free_columns)
+    matrix = [
+        [kernel_rows[free_columns[index]][coordinate] for index in range(width_of)]
+        for coordinate in range(width_of)
+    ]
+    table = [
+        [kernel_rows[element][coordinate] for element in range(size)]
+        for coordinate in range(width_of)
+    ]
+    for column in range(width_of):
+        source = next((row for row in range(column, width_of) if matrix[row][column]), None)
+        require(source is not None, "claimed witness is not a free basis")
+        assert source is not None
+        matrix[column], matrix[source] = matrix[source], matrix[column]
+        table[column], table[source] = table[source], table[column]
+        divisor = matrix[column][column]
+        matrix[column] = [value / divisor for value in matrix[column]]
+        table[column] = [value / divisor for value in table[column]]
+        for row in range(width_of):
+            if row == column or not matrix[row][column]:
+                continue
+            multiplier = matrix[row][column]
+            matrix[row] = [
+                value - multiplier * pivot_value
+                for value, pivot_value in zip(matrix[row], matrix[column], strict=True)
+            ]
+            table[row] = [
+                value - multiplier * pivot_value
+                for value, pivot_value in zip(table[row], table[column], strict=True)
+            ]
+    return max(sum(1 for row in table if row[element]) for element in range(size))
+
+
+def validate_witness(
+    formula: tuple[tuple[int, int, int], ...],
+    free_columns: Sequence[int] | None,
+    bound: int,
+) -> int:
+    """Recheck a claimed free basis from scratch and measure its exact width."""
+
+    require(free_columns is not None, "frame witness missing")
+    assert free_columns is not None
+    shape = profile(formula)
     columns = [column - 1 for column in free_columns]
-    require(len(columns) == len(kernel_rows[0]), "width-two witness size mismatch")
-    require(
-        rational_rank(tuple(kernel_rows[column] for column in columns)) == len(columns),
-        "width-two witness is not a basis",
-    )
-    pair_covers = pair_cover_masks(kernel_rows)
-    covered = 0
-    for left, right in itertools.combinations(columns, 2):
-        covered |= pair_covers[(left, right)]
-    require(covered == (1 << len(kernel_rows)) - 1, "width-two witness does not span all elements")
+    require(len(columns) == shape["nullity"], "frame witness size mismatch")
+    width = exact_width(formula, columns)
+    require(width <= bound, "frame witness exceeds its bounding claim")
+    return width
 
 
-def width_two_digest(records: Sequence[dict[str, Any]]) -> str:
+def frame_digest(records: Sequence[dict[str, Any]]) -> str:
     payload = [
         {
             "digest": record["digest"],
-            "exists": record["width_two_basis_exists"],
-            "complete": record["width_two_search_complete"],
+            "width_two_basis_exists": record["width_two_basis_exists"],
+            "width_two_search_complete": record["width_two_search_complete"],
+            "width_three_basis_exists": record["width_three_basis_exists"],
+            "width_three_search_complete": record["width_three_search_complete"],
             "canonical_width": record["canonical_width"],
-            "witness_free_columns": record["width_two_witness_free_columns"],
+            "witness_free_columns": record["witness_free_columns"],
+            "witness_width": record["witness_width"],
+            "omega": record["omega"],
+            "omega_exact": record["omega_exact"],
         }
         for record in records
     ]
@@ -563,6 +680,69 @@ def exact_status(formula: tuple[tuple[int, int, int], ...]) -> str:
     return "unsat"
 
 
+def frame_screen(formula: tuple[tuple[int, int, int], ...]) -> dict[str, Any]:
+    """Independent exact frame width: bound two then a measured bound-three basis."""
+
+    pair = coverage_screen(formula, 2)
+    width_bound = canonical_width(formula)
+    if pair["exists"]:
+        width = validate_witness(formula, pair["witness_free_columns"], 2)
+        require(width <= width_bound, "pair witness beats the canonical upper bound")
+        return {
+            "width_two_basis_exists": True,
+            "width_two_search_complete": False,
+            "width_two_candidates_after_filter": pair["candidates_after_filter"],
+            "width_two_candidates_examined": pair["candidates_examined"],
+            "width_three_basis_exists": None,
+            "width_three_search_complete": None,
+            "width_three_candidates_after_filter": None,
+            "width_three_candidates_examined": None,
+            "canonical_width": width_bound,
+            "witness_free_columns": pair["witness_free_columns"],
+            "witness_width": width,
+            "omega": width,
+            "omega_exact": True,
+        }
+
+    triple = coverage_screen(formula, 3)
+    if triple["exists"]:
+        width = validate_witness(formula, triple["witness_free_columns"], 3)
+        require(width == 3, "triple witness is not exactly width three")
+        require(width <= width_bound, "triple witness beats the canonical upper bound")
+        return {
+            "width_two_basis_exists": False,
+            "width_two_search_complete": True,
+            "width_two_candidates_after_filter": pair["candidates_after_filter"],
+            "width_two_candidates_examined": pair["candidates_examined"],
+            "width_three_basis_exists": True,
+            "width_three_search_complete": False,
+            "width_three_candidates_after_filter": triple["candidates_after_filter"],
+            "width_three_candidates_examined": triple["candidates_examined"],
+            "canonical_width": width_bound,
+            "witness_free_columns": triple["witness_free_columns"],
+            "witness_width": width,
+            "omega": width,
+            "omega_exact": True,
+        }
+    require(width_bound >= 4, "canonical width contradicts the bound-three screen")
+    return {
+        "width_two_basis_exists": False,
+        "width_two_search_complete": True,
+        "width_two_candidates_after_filter": pair["candidates_after_filter"],
+        "width_two_candidates_examined": pair["candidates_examined"],
+        "width_three_basis_exists": False,
+        "width_three_search_complete": True,
+        "width_three_candidates_after_filter": triple["candidates_after_filter"],
+        "width_three_candidates_examined": triple["candidates_examined"],
+        "canonical_width": width_bound,
+        "witness_free_columns": None,
+        "witness_width": None,
+        "omega": None,
+        "omega_exact": False,
+        "omega_lower_bound": 4,
+    }
+
+
 def switch_records() -> list[dict[str, Any]]:
     offset = len(ALL_BASES_TERNARY_SAT)
     records: list[dict[str, Any]] = []
@@ -578,26 +758,32 @@ def switch_records() -> list[dict[str, Any]]:
                     )
                     shape = profile(formula)
                     index = len(records)
-                    screen = width_two_screen(formula)
-                    width_bound = canonical_width(formula)
-                    require(
-                        width_bound > 2 or screen["exists"],
-                        "canonical width contradicts the subset screen",
-                    )
-                    if screen["exists"]:
-                        validate_witness(formula, screen["witness_free_columns"])
+                    screen = frame_screen(formula)
                     if index in BRUTEFORCE_SAMPLE:
-                        brute = width_two_bruteforce(formula)
+                        brute_pairs = coverage_bruteforce(formula, 2)
+                        brute_triples = coverage_bruteforce(formula, 3)
+                        agrees = (
+                            brute_pairs["exists"] == screen["width_two_basis_exists"]
+                            and brute_triples["exists"] == screen["width_three_basis_exists"]
+                        )
                         BRUTEFORCE_CROSS_CHECK.append(
                             {
                                 "index": index,
                                 "digest": formula_digest(formula),
-                                "screen_exists": screen["exists"],
-                                "bruteforce_exists": brute["exists"],
-                                "bruteforce_covering_subsets": brute["covering_subsets"],
-                                "agrees": screen["exists"] == brute["exists"],
+                                "screen_width_two_exists": screen["width_two_basis_exists"],
+                                "bruteforce_width_two_exists": brute_pairs["exists"],
+                                "bruteforce_width_two_covering_subsets": brute_pairs[
+                                    "covering_subsets"
+                                ],
+                                "screen_width_three_exists": screen["width_three_basis_exists"],
+                                "bruteforce_width_three_exists": brute_triples["exists"],
+                                "bruteforce_width_three_covering_subsets": brute_triples[
+                                    "covering_subsets"
+                                ],
+                                "agrees": agrees,
                             }
                         )
+                        require(agrees, "brute-force frame enumeration disagrees with the screen")
                     records.append(
                         {
                             "digest": formula_digest(formula),
@@ -605,17 +791,13 @@ def switch_records() -> list[dict[str, Any]]:
                             "rank": shape["rank"],
                             "nullity": shape["nullity"],
                             "status": exact_status(formula),
-                            "canonical_width": width_bound,
-                            "width_two_basis_exists": screen["exists"],
-                            "width_two_search_complete": screen["complete"],
-                            "width_two_candidates_after_filter": screen["candidates_after_filter"],
-                            "width_two_bases_examined": screen["bases_examined"],
-                            "width_two_witness_free_columns": screen["witness_free_columns"],
+                            **screen,
                         }
                     )
     return records
 
 
+@functools.lru_cache(maxsize=None)
 def canonical_width(formula: tuple[tuple[int, int, int], ...]) -> int:
     """Maximum pivot-free support of the canonical RREF basis."""
 
@@ -647,6 +829,52 @@ def main() -> None:
     unsat_status = exact_status(unsat)
     require(sat_status == "sat", "SAT component exact status mismatch")
     require(unsat_status == "unsat", "UNSAT component exact status mismatch")
+
+    control_anchors = [
+        {
+            "name": "all_bases_sat",
+            "formula": canonical_formula(ALL_BASES_TERNARY_SAT),
+            "width_two_exists": False,
+            "width_three_exists": True,
+            "width": 3,
+        },
+        {
+            "name": "all_bases_unsat",
+            "formula": canonical_formula(ALL_BASES_TERNARY_UNSAT),
+            "width_two_exists": False,
+            "width_three_exists": True,
+            "width": 3,
+        },
+        {
+            "name": "support_three_sat",
+            "formula": canonical_formula(SUPPORT_THREE_SAT),
+            "width_two_exists": True,
+            "width_three_exists": None,
+            "width": 2,
+        },
+        {
+            "name": "support_three_unsat",
+            "formula": canonical_formula(SUPPORT_THREE_UNSAT),
+            "width_two_exists": True,
+            "width_three_exists": None,
+            "width": 2,
+        },
+    ]
+    for anchor in control_anchors:
+        anchored = frame_screen(anchor["formula"])
+        require(
+            anchored["width_two_basis_exists"] == anchor["width_two_exists"],
+            f"{anchor['name']} width-two verdict changed",
+        )
+        if anchor["width_three_exists"] is not None:
+            require(
+                anchored["width_three_basis_exists"] == anchor["width_three_exists"],
+                f"{anchor['name']} width-three verdict changed",
+            )
+        require(
+            anchored["omega_exact"] and anchored["omega"] == anchor["width"],
+            f"{anchor['name']} exact width changed",
+        )
 
     mixed = mixed_formula()
     mixed_status = exact_status(mixed)
@@ -680,21 +908,31 @@ def main() -> None:
         },
         "all_bases_width_at_least_three": all(int(key) >= 3 for key in combined_widths),
     }
-    mixed_screen = width_two_screen(mixed)
-    mixed_bruteforce = width_two_bruteforce(mixed)
+    mixed_screen = frame_screen(mixed)
+    mixed_pairs = coverage_bruteforce(mixed, 2)
+    mixed_triples = coverage_bruteforce(mixed, 3)
     require(
-        mixed_screen["exists"] == mixed_bruteforce["exists"],
+        mixed_pairs["exists"] == mixed_screen["width_two_basis_exists"]
+        and mixed_triples["exists"] == mixed_screen["width_three_basis_exists"],
         "mixed formula screen disagrees with full subset enumeration",
     )
     require(
-        mixed_screen["exists"] == any(int(key) <= 2 for key in combined_widths),
+        mixed_screen["width_two_basis_exists"] == any(int(key) <= 2 for key in combined_widths),
         "mixed formula screen disagrees with the basis census",
+    )
+    require(mixed_screen["omega_exact"] and mixed_screen["omega"] == 3, "mixed width is not exactly three")
+    require(
+        min(int(key) for key in combined_widths) == mixed_screen["omega"],
+        "mixed census width and screened width disagree",
+    )
+    require(
+        mixed_screen["width_three_candidates_after_filter"]
+        == len(sat_records) * len(unsat_records),
+        "mixed triple-coverage survivors do not match the width-three basis count",
     )
     expected_mixed.update(
         {
-            "width_two_basis_exists": mixed_screen["exists"],
-            "width_two_search_complete": mixed_screen["complete"],
-            "width_two_candidates_after_filter": mixed_screen["candidates_after_filter"],
+            **mixed_screen,
             "width_two_agrees_with_census": True,
         }
     )
@@ -720,21 +958,28 @@ def main() -> None:
         "width_two_search_complete_histogram": histogram(
             records, "width_two_search_complete"
         ),
+        "width_three_basis_histogram": histogram(records, "width_three_basis_exists"),
+        "width_three_search_complete_histogram": histogram(
+            records, "width_three_search_complete"
+        ),
+        "canonical_width_histogram": histogram(records, "canonical_width"),
+        "witness_width_histogram": histogram(records, "witness_width"),
+        "omega_histogram": histogram(records, "omega"),
+        "omega_exact_histogram": histogram(records, "omega_exact"),
+        "omega_exact_formulas": sum(1 for record in records if record["omega_exact"]),
         "width_two_candidates_after_filter": sum(
             record["width_two_candidates_after_filter"] for record in records
         ),
-        "width_two_bases_examined": sum(
-            record["width_two_bases_examined"] for record in records
+        "width_two_candidates_examined": sum(
+            record["width_two_candidates_examined"] for record in records
         ),
-        "canonical_width_histogram": histogram(records, "canonical_width"),
-        "width_exactly_three_formulas": sum(
-            1
-            for record in records
-            if record["canonical_width"] == 3
-            and record["width_two_search_complete"]
-            and not record["width_two_basis_exists"]
+        "width_three_candidates_after_filter": sum(
+            record["width_three_candidates_after_filter"] for record in records
         ),
-        "width_two_screen_digest": width_two_digest(records),
+        "width_three_candidates_examined": sum(
+            record["width_three_candidates_examined"] for record in records
+        ),
+        "frame_screen_digest": frame_digest(records),
         "formula_digest_sha256": hashlib.sha256(
             json.dumps(digests, separators=(",", ":")).encode("ascii")
         ).hexdigest(),
@@ -745,13 +990,15 @@ def main() -> None:
     require(all(record["connected"] for record in records), "a cross-component switch was disconnected")
     require(all(record["rank"] == 22 and record["nullity"] == 5 for record in records), "switch rank/nullity varied")
     require(all(record["status"] == "unsat" for record in records), "switch status was not uniformly UNSAT")
+    require(all(record["omega_exact"] for record in records), "a switch width did not close exactly")
+    require({record["omega"] for record in records} == {3}, "a switch width is not exactly three")
     require(
-        all(
-            record["width_two_search_complete"]
-            or record["width_two_basis_exists"]
-            for record in records
-        ),
-        "width-two screening stopped without a witness",
+        all(record["witness_width"] == 3 for record in records),
+        "a switch witness width is not three",
+    )
+    require(
+        all(record["width_two_search_complete"] and not record["width_two_basis_exists"] for record in records),
+        "a switch admitted a width-two frame",
     )
     require(len(BRUTEFORCE_CROSS_CHECK) == len(BRUTEFORCE_SAMPLE), "brute-force sample size mismatch")
     require(
@@ -774,11 +1021,19 @@ def main() -> None:
         "switch_width_two_search_complete_histogram": histogram(
             records, "width_two_search_complete"
         ),
+        "switch_width_three_histogram": histogram(records, "width_three_basis_exists"),
         "switch_canonical_width_histogram": histogram(records, "canonical_width"),
+        "switch_witness_width_histogram": histogram(records, "witness_width"),
+        "switch_omega_exact_formulas": sum(1 for record in records if record["omega_exact"]),
         "bruteforce_cross_check": {
             "sampled": len(BRUTEFORCE_CROSS_CHECK),
             "agreement": sum(1 for item in BRUTEFORCE_CROSS_CHECK if item["agrees"]),
-            "exists_histogram": histogram(BRUTEFORCE_CROSS_CHECK, "bruteforce_exists"),
+            "width_two_histogram": histogram(
+                BRUTEFORCE_CROSS_CHECK, "bruteforce_width_two_exists"
+            ),
+            "width_three_histogram": histogram(
+                BRUTEFORCE_CROSS_CHECK, "bruteforce_width_three_exists"
+            ),
         },
         "status": "verified",
     }, sort_keys=True))

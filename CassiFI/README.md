@@ -56,8 +56,8 @@ identified GPU arithmetic path. This repository root contains:
 | [`verify_cubic_kernel_analysis.py`](verify_cubic_kernel_analysis.py) | Independent rational elimination, exhaustive basis-width reconstruction, kernel and 2-SAT certificate checking, relation closures, fixed-gauge formulas, and receipt verification |
 | [`growing_nullity_schaefer_probe.py`](growing_nullity_schaefer_probe.py) | Exact direct-sum and connected-bridge census of growing-nullity cubic bases, pivot width, and arity-at-most-three Schaefer closures |
 | [`verify_growing_nullity_schaefer_probe.py`](verify_growing_nullity_schaefer_probe.py) | Independent reconstruction of the growing-nullity formulas, rational basis censuses, product laws, connected bridge, and Schaefer relation profile |
-| [`run_mixed_schaefer_frame_obstruction.py`](run_mixed_schaefer_frame_obstruction.py) | Exact mixed SAT+UNSAT direct-sum census with all 32,232 bases, the 1,620 connected cross-component 2-switches, canonical widths, and an exhaustive free-subset width-two screen |
-| [`verify_mixed_schaefer_frame_obstruction.py`](verify_mixed_schaefer_frame_obstruction.py) | Independent reconstruction of both component censuses, the mixed basis product, every switch screen and canonical width, witness rechecks, and full-enumeration brute-force controls |
+| [`run_mixed_schaefer_frame_obstruction.py`](run_mixed_schaefer_frame_obstruction.py) | Exact mixed SAT+UNSAT direct-sum census with all 32,232 bases, the 1,620 connected cross-component 2-switches, canonical widths, an exhaustive bound-two width screen, and an exact width-three witness for every switch |
+| [`verify_mixed_schaefer_frame_obstruction.py`](verify_mixed_schaefer_frame_obstruction.py) | Independent reconstruction of both component censuses, the mixed basis product, both switch screens and canonical widths, exact witness remeasurement, and full-enumeration brute-force controls at both bounds |
 | [`run_yang_mills_gauge_fibre_probe.py`](run_yang_mills_gauge_fibre_probe.py) | Field-owned exact $SU(2)$ Gauss-constraint search for a fixed-boundary refined plaquette, with tensor-product multiplicity and cutoff controls |
 
 Run the implemented paths from this directory:
@@ -1330,13 +1330,25 @@ screen decides this exhaustively rather than by basis enumeration: a free set
 the span of at most two elements of `F`, so intersecting the subset bitsets of
 all element-pair spans leaves exactly the free subsets whose internal pairs
 cover the ground set. For all 1,620 switches that intersection is empty over all
-`C(27,5) = 80,730` five-subsets, before any independence test. The screen bounds
-`omega` below without exhibiting an optimal basis: the canonical basis attains
-width three on 864 switches, with canonical-width histogram
-`3: 864, 4: 540, 5: 216`, so those 864 are exactly `omega = 3` and the other 756
-are certified only as `omega >= 3`. Applied to the mixed sum, the same filter
-also returns no covering free subset, matching the width-three census of all
-32,232 bases.
+`C(27,5) = 80,730` five-subsets, before any independence test.
+
+The same coverage test at bound three then carries each switch to an exact
+optimum. The free sets that survive the triple-coverage filter include an
+independent one, and in every switch the first surviving free set already is,
+so the exact width is measured after 1,620 candidate tests in total, one per
+formula. Width is then read off by Gauss-Jordan elimination on the augmented
+kernel-coordinate system, which exhibits a width-three witness for each switch
+and settles `omega = 3` exactly. The exact width primitive reproduces the
+project's canonical pivot-support width on the canonical free set, and the
+bound-two and bound-three screens reproduce the width-three invariant of the
+all-bases controls under their full basis censuses as well as the known width-two
+minimum of the canonical support-three controls. Canonical width is not the
+optimum: the canonical basis attains width three on only 864 switches, with
+canonical-width histogram `3: 864, 4: 540, 5: 216`, so the other 756 have
+canonical width four or five while their frame optimum is still three. Applied
+to the mixed sum, the same filters also return no covering pair and an exact
+width-three witness, and the survivor count of the triple-coverage filter there
+equals its basis count of 32,232, matching the width-three census exactly.
 
 Run the census, its independent verifier, and the retained cubic tests with:
 
@@ -1350,12 +1362,13 @@ The SHA-256-bound receipt is `_diag/mixed_schaefer_frame_obstruction.json`. The
 verifier imports neither the runner, the growing-nullity probe, nor the
 cubic-kernel implementation. It rebuilds every component basis and Schaefer
 class row, all 32,232 direct-sum rows, all 1,620 switches with their canonical
-widths and screens, revalidates every positive witness, and enumerates every
-free subset of seven sampled switches with no coverage prefilter. All seven
-brute-force controls agree, and the mixed-formula screen agrees with both the
-full enumeration and the basis census. This is a finite-family measurement: it
-does not decide width-two frame recognition or classify unbounded connected
-cubic families.
+widths and both screens, revalidates every positive witness with its own exact
+rational elimination, and enumerates every free subset of seven sampled switches
+at both bounds with no coverage prefilter. All seven brute-force controls agree
+at both bounds, and the mixed-formula screen agrees with both the full
+enumeration and the basis census. This is a finite-family measurement: it does
+not decide width-two frame recognition or classify unbounded connected cubic
+families.
 
 
 ## Gauge-compatible Yang–Mills block fibre
