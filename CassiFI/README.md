@@ -61,6 +61,9 @@ identified GPU arithmetic path. This repository root contains:
 | [`run_frame_separation_probe.py`](run_frame_separation_probe.py) | Element-triangle and frame verdicts for the five nullity-three basis-width controls, the direct-sum width law with block witnesses, and the repeated all-bases family through size 48 |
 | [`verify_frame_separation_probe.py`](verify_frame_separation_probe.py) | Independent reconstruction of every formula, elimination, kernel-coordinate column, class configuration, and basis census, with complete partition enumeration for the nullity-three frame decision and full witness rechecks |
 | [`test_frame_separation_probe.py`](test_frame_separation_probe.py) | Frame-separation regression: both frame decision procedures, census and element-triangle agreement, direct-sum width law, and the unbounded frame family |
+| [`run_frame_search_probe.py`](run_frame_search_probe.py) | Complete class search for the ground-set frame basis: control and sum verdicts, 24 sampled switches, and connected chains of both width-three controls at nullity five, seven, and nine |
+| [`verify_frame_search_probe.py`](verify_frame_search_probe.py) | Independent reconstruction of every formula, elimination, class partition, and search verdict under a different branching order, with an exact ground-element sieve over every `C(n, nullity)` free subset through nullity six |
+| [`test_frame_search_probe.py`](test_frame_search_probe.py) | Frame-search regression: coverage bookkeeping, the dimension-general span test, control verdicts against the census, and runner/verifier agreement on a connected chain |
 | [`run_yang_mills_gauge_fibre_probe.py`](run_yang_mills_gauge_fibre_probe.py) | Field-owned exact $SU(2)$ Gauss-constraint search for a fixed-boundary refined plaquette, with tensor-product multiplicity and cutoff controls |
 
 Run the implemented paths from this directory:
@@ -1426,6 +1429,45 @@ a graphic anchor that is frame and seven general-position points that are not.
 This is a finite measurement plus the proof of the one-sided implication; it
 does not decide width-two frame recognition or classify unbounded cubic
 families.
+
+### Frame search beyond census reach
+
+[`run_frame_search_probe.py`](run_frame_search_probe.py) decides the same
+ground-set frame question without enumerating free subsets. It picks the first
+class not yet covered by pairwise joins of the chosen classes, branches over
+every class pair whose join covers it, and accepts an independent covering set,
+which is then extended to a ground basis. Any ground-set two-sparse basis must
+cover the branching target, so an exhausted search proves that none exists, and
+every success is re-verified by exact coordinates in the free basis. The five
+controls and five direct sums reproduce their recorded widths and 24 sampled
+members of the 1,620-switch family report no ground-set basis, with the sample
+tied to that enumeration by the sorted-digest hash of all 1,620 formulas.
+
+The chains apply the degree-preserving incidence switch once per consecutive
+pair of copies of the two all-bases controls. `t` copies give `n = 12t` with
+nullity `2t + 1` for the SAT control and `n = 15t` with the same nullity for the
+UNSAT control, and every link keeps the incidence graph connected. All nine
+chains report no ground-set two-sparse basis at nullity five, seven, and nine.
+The 60-variable chain would need `C(60, 9) = 14,783,142,660` free subsets for a
+census and the search exhausts its subtree at 21,671 nodes; the same verdict
+holds for the star composition and for alternating SAT and UNSAT blocks.
+
+Run the probe, its independent verifier, and the regression tests with:
+
+```powershell
+python run_frame_search_probe.py
+python verify_frame_search_probe.py
+python -m pytest test_frame_search_probe.py -q
+```
+
+The receipt is `_diag/frame_search_probe.json`. The verifier imports neither the
+runner nor the cubic-kernel implementation: it re-decides all 43 cases with its
+own complete search under a different branching order, rechecks all five
+width-two certificates, decides the 37 cases of nullity at most six again by
+exact ground-element sieve over every `C(n, nullity)` free subset, and agrees
+with the exact coordinate width on all 787 sampled independent bases. This is a
+complete decision procedure with an exponential worst case plus measured
+connected witnesses; it does not give a polynomial recognition algorithm.
 
 
 ## Gauge-compatible Yang–Mills block fibre

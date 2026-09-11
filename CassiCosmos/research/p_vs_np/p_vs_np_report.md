@@ -7,7 +7,7 @@ clause-field solver are rejected as routes to `P = NP`. These are
 mechanism-level results, not a proof that `P != NP` and not a claim that every
 Cassi-inspired algorithm must fail.
 
-The investigation and beyond-resolution continuation produced fourteen useful
+The investigation and beyond-resolution continuation produced sixteen useful
 results:
 
 1. the fixed-source Cassi two-fluid field has an exact gapless/gapped
@@ -72,6 +72,13 @@ results:
     cover every class; direct sums combine width by maximum and yield a family
     that is frame with width three at every measured size up to 48, so a
     polynomial frame test cannot decide the width.
+16. a complete class search decides the ground-set frame question without
+    free-subset enumeration: it reproduces every recorded width verdict on the
+    controls, the direct sums, and sampled members of the 1,620-switch family,
+    and it certifies connected chains of the two width-three controls at
+    nullity five, seven, and nine, where the 60-variable chain's census would
+    need `C(60,9) = 14,783,142,660` free subsets and the search exhausts its
+    subtree at 21,671 nodes.
 
 The first two results make the CassiCosmos boundary unusually clear. Its
 isolated field is an auditable linear signal processor. Combinatorial search
@@ -1818,6 +1825,65 @@ nullity 12.
 > proof of the one-sided implication; it does not decide width-two frame
 > recognition or bear on `P = NP`.
 
+### Result R—a complete class search decides the ground-set frame question beyond census reach
+
+Result Q's remaining target is the ground-set frame basis: a basis of the dual
+that spans every element with at most two of its own elements, equivalently a
+complementary free set of width at most two. Enumerating `C(n, k)` free subsets
+decides it and stops being feasible once nullity reaches the high single digits.
+The search works instead on the classes of the kernel-coordinate representation.
+Pick the first class not yet covered by pairwise joins of the chosen classes,
+branch over every class pair whose join covers it, and accept when the chosen
+classes are independent and cover every class; independent classes are then
+added to reach a full ground basis, which cannot lose coverage. Any ground-set
+two-sparse basis must cover the branching target with two of its own classes, so
+a search that exhausts its subtree without a success proves that no ground-set
+basis is two-sparse, and a success is re-verified by exact coordinates in the
+free basis. The procedure is complete; its worst case remains exponential.
+
+The chains use the degree-preserving incidence two-switch of Result P, applied
+once per consecutive pair of copies. Chaining `t` copies of the 12-variable
+all-bases control gives `n = 12t` and nullity `2t + 1`; chaining the 15-variable
+control gives `n = 15t` with the same nullity. Every link keeps the clause
+variable incidence graph connected, so unlike the direct-sum family the
+components interact at growing size and nullity.
+
+```text
+t   SAT chain      UNSAT chain      nullity   search nodes   verdict
+2   24 elements    30 elements      5         608    1167    no ground-set basis
+3   36 elements    45 elements      7         3611   7091    no ground-set basis
+4   48 elements    60 elements      9         10850  21671   no ground-set basis
+```
+
+At `n = 60` and nullity nine the census would need `C(60, 9) = 14,783,142,660`
+free subsets; the search exhausts its subtree at 21,671 nodes and reports no
+ground-set two-sparse basis, so every measured chain has `omega = 3`. The same
+verdict holds for the star composition, which joins every later copy to the
+first, and for alternating SAT and UNSAT blocks. The five controls and five
+direct sums reproduce their recorded widths, and 24 sampled members of the
+1,620-switch family all report no ground-set basis, with the sampled population
+tied to that earlier enumeration by the sorted-digest hash of all 1,620
+canonical formulas.
+
+The independent verifier imports neither the runner nor any cubic-kernel
+implementation. It rebuilds every formula, canonical order, rational
+elimination, kernel-coordinate column, and class partition; re-decides all 43
+cases with its own complete search under a different branching order; rechecks
+all five width-two certificates; decides the 37 cases of nullity at most six
+again by exact ground-element sieve over every `C(n, nullity)` free subset; and
+tests the covering identity on sampled bases, where "spans every element with at
+most two free elements" agreed with the exact coordinate width on all 787
+independent draws. The 36 width-two draws all lie inside the known width-two
+cases, and none of the 7,200 draws on the nullity-seven and nullity-nine chains
+reaches width two.
+
+> The ground-set frame question for cubic incidence duals is decidable without
+> free-subset enumeration, and connected chains of the two width-three controls
+> stay width three through nullity nine, where enumeration is infeasible. This is
+> a complete decision procedure with an exponential worst case plus measured
+> connected witnesses; it does not give a polynomial recognition algorithm and
+> does not bear on `P = NP`.
+
 ## 9. Remaining credible research directions
 
 The alias theorem reaches an NP-complete occurrence boundary, and three
@@ -1830,7 +1896,10 @@ compression attempts now have precise outcomes. The next work is:
    incidence family with nullity growing in `n`. Determine whether its
    ground-set frame basis can be found in polynomial time or is NP-hard.
    Strictly improving one-column exchange is not sufficient; any proposed
-   local algorithm must handle certified width-three plateaus. Frame structure
+   local algorithm must handle certified width-three plateaus. Result R reaches
+   nullity nine with a complete search at tens of thousands of nodes and
+   certifies connected width-three chains there, so the open question is
+   polynomial recognition or hardness rather than decidability. Frame structure
    is one-sided here, by Result Q: the repeated all-bases family is frame at
    every measured size while its width stays three, so a frame test cannot
    substitute for the width decision. For matrices
@@ -1946,8 +2015,11 @@ python run_mixed_schaefer_frame_obstruction.py
 python verify_mixed_schaefer_frame_obstruction.py
 python run_frame_separation_probe.py
 python verify_frame_separation_probe.py
+python run_frame_search_probe.py
+python verify_frame_search_probe.py
 python -m pytest test_cubic_kernel_decision.py -q
 python -m pytest test_frame_separation_probe.py -q
+python -m pytest test_frame_search_probe.py -q
 ```
 
 The raw receipt is `_diag/p_vs_np_probe.json`. The verifier checks the frozen
@@ -2076,6 +2148,23 @@ seven general-position points that are not. The current run reports five
 verified controls, nine verified sum and family witnesses, census and criterion
 agreement on all five controls, the width law on every sum, and a family that
 is frame with width three at sizes 12, 24, 36, and 48.
+
+The frame-search receipt is `CassiFI/_diag/frame_search_probe.json`. It stores
+the five controls, five direct sums, 24 sampled switches, and nine chains with
+size, rank, nullity, class count, connectivity, search nodes, verdicts, the
+certificate of every width-two frame, and the scope record. The independent
+verifier imports neither the runner nor any cubic-kernel implementation. It
+rebuilds every formula, canonical order, rational elimination,
+kernel-coordinate column, and class partition; re-decides all 43 cases with its
+own complete search under a different branching order; rechecks all five
+certificates against exact coordinates in the claimed free basis; ties the
+1,620-switch population to the mixed-frame receipt by recomputing its
+sorted-digest hash; decides the 37 cases of nullity at most six again by exact
+ground-element sieve over every `C(n, nullity)` free subset; and verifies the
+covering identity on 787 sampled independent bases. The current run reports 43
+verified verdicts, ten verified certificates, 2,694,750 sieved free subsets,
+1,282,415 dependent coverings rejected by the independence filter, and no
+width-two draw outside the known width-two cases.
 
 ## Primary references
 
