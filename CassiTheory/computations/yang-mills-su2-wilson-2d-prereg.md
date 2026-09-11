@@ -87,13 +87,16 @@ correlator at the four declared temporal separations. Each row checks:
 1. positivity of every scheduled \(I_n(\beta)\) coefficient;
 2. strict decrease of \(r_n\) over the retained indices;
 3. the transfer-eigenvalue formula;
-4. the exact character-fusion correlator;
-5. the effective-mass identity;
+4. the exact character-fusion correlator at all four declared \(t\) values;
+5. the effective-mass identity for the corresponding one-step ratios;
 6. the positive character-tail bound;
 7. the finite partition function and tail-bound ordering;
 8. the fixed gauge-projected area identity \(A=L_sL_t\).
 
-The primary therefore has exactly 864 row checks plus 12 schedule and source-integrity checks, for 876 checks.
+The two time-dependent predicates are aggregate row checks over the four
+declared \(t\) values; the time schedule changes the recorded values, not the
+row or total-check count. The primary therefore has exactly 864 row checks
+plus 12 schedule and source-integrity checks, for 876 checks.
 
 The independent receipt has exactly 120 checks:
 
