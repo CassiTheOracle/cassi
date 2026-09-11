@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, conditional block theorems, and exact bare-cylindrical refinement obstruction; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block, conditional block theorems, and exact bare-cylindrical refinement obstruction; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -30,7 +30,7 @@ density projection and a coherence-sensitive bubble coordinate. A physical
 phase law, a map from the regulated quantum configuration to these carriers,
 $\hbar$, quantum statistics, and measurement dynamics remain separate inputs.
 
-The pure-gauge comparison in §§9.4–9.22 retains full $SU(2)$ loop holonomies.
+The pure-gauge comparison in §§9.4–9.23 retains full $SU(2)$ loop holonomies.
 Gauss invariance supplies an electric closed-loop threshold, while the
 projective bubble variable discards Wilson magnetic energy. Quantum-lattice
 stability gives a volume-uniform interacting gap at sufficiently strong bare
@@ -5053,6 +5053,106 @@ transport estimates remain the obligations in (YM151) and (YM170). Equations
 (YM171)–(YM182) provide a conditional finite-level target; they do not supply
 the missing weak-coupling bound or a continuum mass gap.
 
+### 9.23 Finite cutoff block study: exterior independence and the nodal Ritz obstruction
+
+A seven-link two-plaquette calculation tests the conditional rate of (YM29)
+on a graph small enough for exact representation contractions. Its frozen
+protocol is `computations/yang-mills-exact-block-spectral-prereg.md`, its
+source is `computations/verify_yang_mills_exact_block_spectrum.py`, and its
+raw receipt is `runs/yang_mills_exact_block_spectrum/verification.json`. The
+block is $B=\{0,1,2,3\}$, the exterior links are $\{4,5,6\}$, and the
+scheduled boundary data are $U_4=e^{i\theta\sigma_3/2}$, $U_5=U_6=I$, with
+$\theta$ running over the nine multiples of $\pi/8$ in $[0,\pi]$.
+
+Two structural results come out of this calculation, and each one constrains
+how the remaining obligations are stated.
+
+The first says that this graph cannot test boundary uniformity. Its exterior
+links form a tree, so exterior gauge transformations act freely on them, and
+the only exterior invariant is the path holonomy
+$W=U_6U_5^{-1}U_4$. The block Haar integral is unchanged by the substitution
+$U_B\mapsto U_B^{\mathcal G}$ induced by a gauge transformation, and exact
+gauge invariance evaluates the regulated state at the transformed data, so
+every block-integrated conditional moment of the restricted test space is
+constant on the gauge orbit:
+
+$$
+\int dU_B\,\overline{\Psi(U_B^{\mathcal G};\eta^{\mathcal G})}\,
+\Phi(U_B^{\mathcal G};\eta^{\mathcal G})\,
+|\Omega(U_B^{\mathcal G};\eta^{\mathcal G})|^2
+=
+\int dU_B\,\overline{\Psi(U_B;\eta)}\,\Phi(U_B;\eta)\,
+|\Omega(U_B;\eta)|^2 .
+\tag{YM183}
+$$
+
+The block transformations at the attachment vertices move $W$ by left
+multiplication, which reaches every element of $SU(2)$, so the partition,
+Gram and Dirichlet moments of the declared fibre sector coincide at every
+scheduled boundary angle. The Dirichlet sum inherits the invariance because
+its generator indices are contracted. A direct seven-link contraction with
+explicit boundary matrices reproduces the boundary-independent product
+algebra to $2.2\times10^{-16}$ in the partition, $1.6\times10^{-15}$ in the
+Gram and $3.4\times10^{-15}$ in the Dirichlet form, with a spread of
+$2.2\times10^{-16}$ across the nine angles; three random exterior holonomies
+reproduce the same moments to $3.7\times10^{-15}$. A finite surrogate for the
+boundary-uniform estimate therefore needs an exterior carrying at least one
+independent loop. The coarse plaquettes of the full lattice block
+decomposition supply them.
+
+The second result is a negative one at the smallest cutoff. At doubled
+cutoff $J=1$ and $x=1$ the projected Ritz ground vector changes sign on the
+block. In the four-state basis $(000),(011),(101),(110)$ the normalized
+Hamiltonian is
+
+$$
+H_1=
+\begin{pmatrix}
+4&0&1&1\\
+0&\tfrac{17}{2}&\tfrac12&\tfrac12\\
+1&\tfrac12&7&0\\
+1&\tfrac12&0&7
+\end{pmatrix},
+\tag{YM184}
+$$
+
+and the symmetric-loop sector has ground energy $4-s$, where $s$ is the
+unique positive root of
+
+$$
+2s^3+15s^2+22s-18=0,
+\qquad
+\frac{23}{40}<s<\frac{72}{125}.
+\tag{YM185}
+$$
+
+The exact eigenvector takes the value $2.094120531213694$ at the identity
+configuration and $-0.03437408376157869$ at the configuration with the first
+block link inverted, and the scaled ratio is bounded above by $-298/4669$.
+The cutoff density $\rho\propto|\Omega|^2$ therefore vanishes on a nonempty
+set, and a smooth approximation to $\operatorname{sign}(\Omega)$ has positive
+limiting variance with Dirichlet energy tending to zero, so the unrestricted
+conditional Poincaré gap of that cutoff measure is exactly zero. The
+preregistered retained test space returns $0.864465200076$ for the same row.
+
+The exact regulated vacuum measure is strictly positive by §9.13, so the nodal
+degeneracy belongs to the projected Ritz density and not to the vacuum. The
+retained rate keeps its one-sided meaning as an upper estimate for the cutoff
+measure's conditional gap, and the exact-vacuum fibre rate
+$\lambda_{\mathrm{fib}}$ remains an obligation in its own right: a projected
+Ritz density is not a usable surrogate for it.
+
+The frozen study classifies all 180 scheduled boundary rows
+`INCONCLUSIVE`. The restriction rank grows with the cutoff at every coupling,
+the embedded-minimizer and rate-stability rules fail under their literal
+tolerances, and the endpoint full-space residual is $7.4\times10^{-2}$ at
+$x=4$ and $3.12$ at $x=16$, above the $10^{-2}$ qualification bound. At the
+two smallest couplings the retained rates have stabilized to
+$1.1\times10^{-10}$ and $2.9\times10^{-6}$ between the last two cutoffs. No
+row qualifies for `SUPPORTS_FINITE_BLOCK`, no conditional-collapse witness is
+issued, and the study makes no score or margin claim because the transport
+score is outside its first implementation target.
+
 
 ---
 
@@ -5126,6 +5226,7 @@ microscopic completions.
 | Conditional $H^{-1}$ score recurrence and exact margin transfer (YM126)–(YM151) | **Derived conditional** finite-regulator theorem | The inverse-generator score norm retains vertical cancellations and is no weaker than the $L^2$ covariance estimate; its exact-vacuum uniform bound remains open |
 | Residual recovery Gramian and score-penalty separation (YM152)–(YM170) | **Derived conditional** finite-regulator theorem | $A_{\mathrm{AT}}^{\mathrm{opt}}=\gamma_{\mathrm{rec}}^{-1}$ and $\lambda_{\mathrm{gi}}\geq\gamma_{\mathrm{rec}}\lambda_{\mathrm{loc}}/\rho$; the score operator is a separate upper penalty on coarse tangents, and uniform exact-vacuum recovery and score bounds remain open |
 | Finite-level martingale transport criterion (YM171)–(YM182) | **Derived conditional** finite-regulator theorem | Full-filtration/gauge-domain identity, energy comparison, and uniformly controlled weighted transport operator are required; exact Yang–Mills shell, recovery and weak-coupling bounds remain open |
+| Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM185) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre, and the projected Ritz density makes the cutoff measure's conditional gap vanish identically; an exact-vacuum fibre rate and a loop-carrying exterior remain required |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -5448,6 +5549,21 @@ These formulas do not extend the 58-check or 30-check recovery receipts. The
 exact-vacuum shell, recovery and
 weak-coupling transport bounds remain **UNRESOLVED**.
 
+The exact-block first-target study in §9.23 is bound by SHA-256 to the frozen
+protocol `computations/yang-mills-exact-block-spectral-prereg.md`, the source
+`computations/verify_yang_mills_exact_block_spectrum.py` and the shared
+representation helper `computations/yang_mills_conditional_algebra.py`. Its
+receipt `runs/yang_mills_exact_block_spectrum/verification.json` holds 20
+Ritz rows, 180 scheduled boundary rows and the analytic nodal control, with
+partition, Gram, Dirichlet and boundary-spread deviations at the
+$10^{-15}$–$10^{-16}$ level. All 180 boundary rows classify `INCONCLUSIVE`
+under the literal preregistered rules, no row qualifies, and the study issues
+no score or margin verdict because the transport score lies outside its
+first implementation target. It extends neither the 58-check nor the
+30-check recovery receipts, and the exact-vacuum fibre rate, transport score,
+cutoff removal, uniform interacting recovery, thermodynamic limit and
+continuum construction remain **UNRESOLVED**.
+
 ---
 
 ## References
@@ -5515,6 +5631,12 @@ weak-coupling transport bounds remain **UNRESOLVED**.
   residual, score, quotient and Gaussian verifier
 - `computations/verify_yang_mills_recovery_gramian_independent.mjs`—30-check
   independent Jacobi, sine-basis and receipt-integrity reconstruction
+- `computations/yang-mills-exact-block-spectral-prereg.md`—frozen cutoff
+  schedule, seven-link boundary fixtures, convergence and qualification rules
+- `computations/verify_yang_mills_exact_block_spectrum.py`—exact Ritz,
+  conditional-moment and boundary verifier with a SHA-256 sealed receipt
+- `computations/yang_mills_conditional_algebra.py`—shared representation,
+  Haar-contraction and conditional-moment helper bound by receipt hash
 - D. Bakry, I. Gentil and M. Ledoux, *Analysis and Geometry of Markov
   Diffusion Operators*—Poincaré, Poisson and carré-du-champ framework
 - C. Villani, *Optimal Transport: Old and New*—continuity equations and

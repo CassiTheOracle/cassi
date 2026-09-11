@@ -813,6 +813,37 @@ The raw receipts are
 Their SHA-256 source and protocol bindings match the tracked files.
 
 
+## 27. Cutoff finite-lattice conditional block spectrum and boundary independence
+
+The frozen first-target protocol
+`computations/yang-mills-exact-block-spectral-prereg.md` projects a truncated
+spin-network Ritz ground state of the seven-link two-plaquette graph onto a
+full-holonomy block and extracts the conditional Poincaré rate of
+$d\mu_J^{\mathrm{Ritz}}=|\Omega_J|^2dU$. The source-bound receipt
+`runs/yang_mills_exact_block_spectrum/verification.json` executes the
+schedule at doubled cutoffs $J=1,\ldots,5$ with the $J=6$ extension for the
+endpoint residual, couplings $x=1/4,1,4,16$ and nine boundary angles
+$\theta=k\pi/8$.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Tree-exterior boundary independence | The exterior links $\{4,5,6\}$ form a tree, so every block-integrated conditional moment is constant on the gauge orbit of the boundary data; the direct seven-link contraction reproduces the boundary-independent algebra with partition deviation $2.2\times10^{-16}$, Gram $1.6\times10^{-15}$, Dirichlet $3.3\times10^{-15}$ and a spread of $2.2\times10^{-16}$ across the slice | **ADOPT** as an exact finite-regulator identity; the scheduled boundary axis carries no information about the fibre rate |
+| Nodal Ritz obstruction | At $J=1$, $x=1$ the projected ground vector changes sign on the block, with amplitudes $2.094120531213694$ at the identity configuration and $-0.03437408376157869$ on the inverted first link, so the cutoff density has a nodal set and its unrestricted conditional gap is exactly $0$ while the retained test space reports $0.864465200076$ | **CONTRADICTS** use of the projected Ritz density as a surrogate for the exact-vacuum fibre rate |
+| Cutoff-qualified rate rows | At $J=5$ the retained rates are $0.754314828716$, $0.817612505009$, $1.38823233618$ and $0.472769320267$ for $x=1/4,1,4,16$; the two smallest couplings have stabilized between the last two cutoffs to $1.1\times10^{-10}$ and $2.9\times10^{-6}$ | cutoff-qualified finite numbers only; no all-boundary, cutoff-removal or continuum implication |
+| Frozen qualification | All 180 scheduled boundary rows classify **INCONCLUSIVE**: the restriction rank grows with the cutoff at every coupling, the literal embedded-minimizer and rate-stability tolerances fail, and the endpoint full-space residual is $7.4\times10^{-2}$ at $x=4$ and $3.12$ at $x=16$ against the $10^{-2}$ bound | **INCONCLUSIVE**: no `SUPPORTS_FINITE_BLOCK` row and no conditional-collapse witness |
+| Transport score and continuum target | The transport score lies outside the first implementation target, so no score or margin verdict is issued; cutoff removal, uniform interacting recovery, the thermodynamic limit and the continuum gap stay open | **UNRESOLVED** |
+
+The receipt binds the protocol, the source and the shared representation
+helper by SHA-256, with source digest
+`fcca48a2c2721f5c9068eff65245ba7752e7d659e27b37efeeca9f7cc47f24fd` and
+protocol digest
+`a2cf6db4c8a82d69982d2df3b9ebd5673c17705dd092969bb161d365a7285446`. The
+analytical statements are
+`foundations/loop-to-bubble-projection-theorem.md` §9.23. The finite controls
+guard the algebra and the declared scope without establishing the interacting
+vacuum estimate.
+
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -891,3 +922,6 @@ Their SHA-256 source and protocol bindings match the tracked files.
 - `computations/yang-mills-su2-transport-expansion-prereg.md`—fixed local strip and compact-boundary schedule.
 - `computations/verify_yang_mills_su2_transport_expansion.py`—150-check normalized transport expansion.
 - `computations/verify_yang_mills_su2_transport_expansion_independent.mjs`—60-check independent coefficient and receipt reconstruction.
+- `computations/yang-mills-exact-block-spectral-prereg.md`—frozen v6 seven-link boundary fixtures, cutoff schedule, convergence and qualification rules.
+- `computations/verify_yang_mills_exact_block_spectrum.py`—sealed exact Ritz, conditional-moment, boundary and nodal-control receipt generator.
+- `computations/yang_mills_conditional_algebra.py`—shared representation, Haar-contraction and conditional-moment helper bound by receipt hash.

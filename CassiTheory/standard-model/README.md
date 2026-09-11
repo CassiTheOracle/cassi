@@ -53,7 +53,7 @@ the missing metric and orbit-matching rule. Running and measured-scale
 comparisons are in `sm-radiative-corrections.md`.
 
 The pure Yang–Mills comparison is in
-`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.22. Its state
+`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.23. Its state
 space and Hamiltonian come from source-free quantum $SU(2)$ lattice gauge
 theory, with no isospinor matter or symmetry-breaking potential. It gives
 regulated electric-loop and projective-information boundaries, a

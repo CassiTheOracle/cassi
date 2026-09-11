@@ -760,7 +760,7 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
-The separate pure-gauge comparison in that document, §§9.4–9.22, uses the
+The separate pure-gauge comparison in that document, §§9.4–9.23, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
 projective bubble coordinate discards a phase required by Wilson magnetic
@@ -774,6 +774,16 @@ rates, tensorization and cover estimates. Fixed calculations exclude an
 equal-weight one-plaquette exact vacuum, conditional gaps alone as a
 volume-uniform argument and static pure configuration marginalization as an
 exact quantum reduction.
+
+A seven-link two-plaquette cutoff study makes two of these statements exact
+inside a finite regulator. With a tree exterior, every block-integrated
+conditional moment is constant on the gauge orbit of the boundary data, so
+the sampled boundary slice carries no information about the fibre rate and a
+boundary-uniform comparison needs an exterior loop. At the smallest cutoff
+the projected Ritz ground vector changes sign on the block, so that cutoff
+measure's unrestricted conditional gap vanishes while the retained test space
+reports $0.864465200076$, which leaves the exact-vacuum fibre rate as a
+separate obligation.
 
 An exact normalized-Haar path-holonomy pullback preserves endpoint gauge
 covariance and compresses the electric Casimir with

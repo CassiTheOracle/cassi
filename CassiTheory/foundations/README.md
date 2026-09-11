@@ -210,7 +210,7 @@ baryon-production coupling remain open.
 | 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction—September 2026 |
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
-| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling character-cutoff theorem, exact fixed-link three-sphere geometry, two-scale conditional-score recurrence, $H^{-1}$ transport-score margin transfer, residual-recovery Gramian and score-penalty separation, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
+| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling character-cutoff theorem, exact fixed-link three-sphere geometry, two-scale conditional-score recurrence, $H^{-1}$ transport-score margin transfer, residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
 | 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current, phase-current projection and conditional soliton pinch | Hypothesized action and Wilson-link extension / Derived conditional current, endpoint, support and phase-current boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum, rotational and phase-coercivity controls, and conditional smooth scalar binding |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, scale graph and canonical reduction | Hypothesized completion / Derived conditional fibre geometry and canonical reduction / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 39 | `endpoint-link-and-localization-boundary.md` | Conditional endpoint covariance, response, transport and localization boundary | Hypothesized Wilson extension / Derived conditional endpoint and localization boundaries / Tested finite-grid spectrum and conditional smooth scalar binding |
@@ -775,7 +775,7 @@ even pairs, and the supplied fivefold phase orbit preserves the normalized
 $\varphi$ chord ratio. LB1–LB7 verify these identities. The physical carrier,
 phase law, scale ratio, and quantum-sector identification remain open.
 
-The separate pure-$SU(2)$ comparison in §§9.4–9.22 retains full loop
+The separate pure-$SU(2)$ comparison in §§9.4–9.23 retains full loop
 holonomy. Gauss invariance gives an exact electric threshold on girth-four
 lattice graphs, and projective bubble data discard a phase that changes
 Wilson magnetic energy. Yarotsky's stability theorem supplies a
@@ -862,6 +862,23 @@ penalty. Product, near-parallel and Gaussian controls separate score kernels,
 finite rigidity and uniform recovery. The 58-check primary and 30-check
 independent receipts pass. A uniform exact-vacuum recovery floor and score
 upper bound remain open.
+
+The seven-link two-plaquette cutoff study adds two exact finite-regulator
+statements. Its exterior links form a tree, so exact gauge invariance makes
+every block-integrated conditional moment constant on the gauge orbit of the
+boundary data: the partition, Gram and Dirichlet moments agree at all nine
+scheduled boundary angles to $10^{-15}$–$10^{-16}$, and three random exterior
+holonomies reproduce them to $3.7\times10^{-15}$. A finite surrogate for the
+boundary-uniform estimate therefore needs an exterior carrying an independent
+loop. The projected Ritz ground vector at doubled cutoff $1$ and $x=1$
+changes sign on the block, with amplitudes $2.094120531213694$ at the identity
+configuration and $-0.03437408376157869$ on the inverted first link, so that
+cutoff density has a nodal set and its unrestricted conditional gap vanishes
+while the retained test space reports $0.864465200076$. The frozen
+qualification classifies all 180 scheduled boundary rows `INCONCLUSIVE`, with
+the endpoint residual above the declared bound at $x=4$ and $x=16$ and no
+score or margin verdict, because the transport score lies outside the first
+implementation target.
 
 The source-bound version-3 finite campaign preserves all five cutoff
 schedules, uses $q(N)=\min\{3,N+1\}$, and passes 62 primary plus 20
