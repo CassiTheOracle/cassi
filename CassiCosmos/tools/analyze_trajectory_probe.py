@@ -474,6 +474,24 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
     if mass_relative_error > 1.0e-4:
         hard_failures.append(f"mass closure relative error={mass_relative_error:.6e}")
 
+    ## The engine resolves its own initial condition, so a receipt carries both
+    ## what the harness requested and what the run actually built. An engine
+    ## without the registered geometry falls back to another initial condition
+    ## and silently produces a different experiment; comparing the measured
+    ## initial mass against the requested total mass fails such a receipt closed
+    ## instead of letting its step count qualify it as probe evidence.
+    requested_mass = (
+        _number(engine_config, "initial_total_mass") if isinstance(engine_config, dict) else 0.0
+    )
+    if requested_mass > 0.0:
+        geometry_mass_error = abs(initial_total_mass - requested_mass) / requested_mass
+        if geometry_mass_error > 1.0e-4:
+            hard_failures.append(
+                "initial mass %.6f does not match the requested total mass %.6f "
+                "(relative error=%.4f): the engine built a different initial condition"
+                % (initial_total_mass, requested_mass, geometry_mass_error)
+            )
+
     edges_graph: list[tuple[int, int]] = []
     event_state_failures = 0
     ## Ledger mass accounting (prereg 4.6). A hop records the source's pre-hop
@@ -542,6 +560,12 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
     ## claim alone. The ancestry mode measures both claims, and its composite
     ## verdict is their conjunction: neither claim's result stands in for the
     ## other, and a mixed outcome is reported as INCONCLUSIVE with its parts.
+    ## A receipt that fails a hard check resolves nothing: every per-claim
+    ## verdict is rewritten before the scoped claims and composite are derived,
+    ## so no field can report SUPPORTS beside an overall FAIL.
+    if hard_failures:
+        shell_verdict = "FAIL"
+        ancestry_verdict = "FAIL"
     verdicts = {"shell": shell_verdict, "ancestry": ancestry_verdict}
     scoped_claims = ("shell",) if mode == "shell" else ("shell", "ancestry")
     supporting = [claim for claim in scoped_claims if verdicts[claim] == "SUPPORTS"]
@@ -574,8 +598,8 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
         "accepted_steps": accepted_steps,
         "recorder_enabled": True,
         "engine": engine_config if isinstance(engine_config, dict) else None,
-        "shell_verdict": shell_verdict if not hard_failures else "FAIL",
-        "ancestry_verdict": ancestry_verdict if not hard_failures else "FAIL",
+        "shell_verdict": shell_verdict,
+        "ancestry_verdict": ancestry_verdict,
         "sample_steps": [int(step) for step in ordered_steps],
         "sample_count_stored": sample_slots,
         "sample_count_total": sample_total,
