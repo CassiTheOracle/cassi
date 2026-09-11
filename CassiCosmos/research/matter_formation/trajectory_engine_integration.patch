@@ -1,0 +1,405 @@
+diff --git a/CassiCosmos/scripts/cassi_physics_engine.gd b/CassiCosmos/scripts/cassi_physics_engine.gd
+index 77da5434..bf4b3d2f 100644
+--- a/CassiCosmos/scripts/cassi_physics_engine.gd
++++ b/CassiCosmos/scripts/cassi_physics_engine.gd
+@@ -143,6 +143,17 @@ var field_particles_single_seed: bool = false
+ # cycle makes the host CPU prefix-sum readback legal there); on a global-RD
+ # engine instance the sim's _render_frame hook runs it instead.
+ var particle_merge: bool = false
++# Passive GPU trajectory recorder (research/matter_formation/trajectory_shell_prereg.md).
++# It is a separate read-only observation path and remains fully default-off.
++var trajectory_enabled: bool = false
++var trajectory_tracer_count: int = 4096
++var trajectory_sample_capacity: int = 256
++var trajectory_sample_stride: int = 4096
++var trajectory_event_capacity: int = 262144
++var trajectory_inner_radius: float = 0.0
++var trajectory_outer_radius: float = 0.0
++var _trajectory_started := false
++var _trajectory_tracer_count_eff := 0
+ # Merge cadence (perf-decomp 2026-08-14): gate the merge pass on
+ # accumulated STEPS so it stops running every job. 0 = AUTO = 1/2 of the
+ # R_m reaction budget — R_m = extent_min/grid_N world units, closing speed
+@@ -475,6 +486,15 @@ var _merge_cc_buf: RID; var _merge_cs_buf: RID; var _merge_ch_buf: RID
+ var _merge_cl_buf: RID; var _merge_mc_buf: RID
+ var _merge_spin_buf: RID   # vec4[N] — per-object spin accumulator (§3c, coherence_merge_rnd.md)
+ var _merge_mprev_buf: RID  # float[N] — pre-hop canonical mass (pass_fold stash; exact μ for spin)
++var _trajectory_shader: RID
++var _trajectory_pipe: RID
++var _us_trajectory: RID
++var _trajectory_ids_buf: RID
++var _trajectory_history_pos_buf: RID
++var _trajectory_history_vel_buf: RID
++var _trajectory_sample_steps_buf: RID
++var _trajectory_events_buf: RID
++var _trajectory_counters_buf: RID
+ var _merge_hash_nx: int = 1; var _merge_hash_ny: int = 1; var _merge_hash_nz: int = 1
+ var _merge_hash_total: int = 1
+ var _merge_cell_wx: float = 0.0; var _merge_cell_wy: float = 0.0; var _merge_cell_wz: float = 0.0
+@@ -556,6 +576,7 @@ var _tel_reset_bytes: PackedByteArray
+ var _site_nbody_pc_bytes: PackedByteArray
+ var _site_cond_pc_bytes: PackedByteArray
+ var _site_bh_int_pc_bytes: PackedByteArray
++var _trajectory_pc_bytes: PackedByteArray # 12 floats: recorder configuration/state
+ var _rotation_pc_bytes: PackedByteArray  # 24 floats = 96 B
+ # — step state —
+ var _time: float = 0.0
+@@ -680,6 +701,15 @@ func setup(cfg: Dictionary) -> bool:
+ 	if field_particles:
+ 		cfg["rotation_stress_enabled"] = false
+ 	particle_merge = bool(cfg.get("particle_merge", particle_merge))
++	trajectory_enabled = bool(cfg.get("trajectory_enabled", trajectory_enabled))
++	trajectory_tracer_count = int(cfg.get("trajectory_tracer_count", trajectory_tracer_count))
++	trajectory_sample_capacity = int(cfg.get("trajectory_sample_capacity", trajectory_sample_capacity))
++	trajectory_sample_stride = int(cfg.get("trajectory_sample_stride", trajectory_sample_stride))
++	trajectory_event_capacity = int(cfg.get("trajectory_event_capacity", trajectory_event_capacity))
++	trajectory_inner_radius = float(cfg.get("trajectory_inner_radius", trajectory_inner_radius))
++	trajectory_outer_radius = float(cfg.get("trajectory_outer_radius", trajectory_outer_radius))
++	_trajectory_started = false
++	_trajectory_tracer_count_eff = 0
+ 	merge_cadence_steps = int(cfg.get("merge_cadence_steps", merge_cadence_steps))
+ 	_merge_pair_phase = 0
+ 	_merge_cycles_run = 0
+@@ -743,6 +773,33 @@ func setup(cfg: Dictionary) -> bool:
+ 		meshless_gravity = false
+ 		boxless_field = false
+ 		cascade_level = false
++	if trajectory_enabled:
++		if field_particles:
++			push_error("[PhysicsEngine] trajectory recorder requires point-particle dynamics")
++			return false
++		if N_particles <= 0 or trajectory_tracer_count < 1 \
++				or trajectory_tracer_count > N_particles:
++			push_error("[PhysicsEngine] trajectory_tracer_count must be in [1, N_particles]")
++			return false
++		if trajectory_sample_capacity < 1 or trajectory_sample_capacity > 65536 \
++				or trajectory_sample_stride < 1 \
++				or trajectory_event_capacity < 1 or trajectory_event_capacity > 4194304:
++			push_error("[PhysicsEngine] invalid trajectory recorder capacity or stride")
++			return false
++		if trajectory_tracer_count * trajectory_sample_capacity > 16777216:
++			push_error("[PhysicsEngine] trajectory history allocation exceeds 256 MiB per channel")
++			return false
++		if not is_finite(trajectory_inner_radius) or not is_finite(trajectory_outer_radius) \
++				or trajectory_inner_radius < 0.0 \
++				or trajectory_outer_radius < trajectory_inner_radius:
++			push_error("[PhysicsEngine] trajectory shell radii must be finite and ordered")
++			return false
++	else:
++		trajectory_enabled = false
++	# The recorder is deliberately configured after all feature coercions; a
++	# disabled recorder allocates no GPU resources.
++	if trajectory_enabled:
++		_trajectory_tracer_count_eff = trajectory_tracer_count
+ 	# Tree cadence (the sim's _tree_local_cadence) — the in-list tree job gate.
+ 	_tree_cadence = int(cfg.get("tree_cadence", 1))
+ 	_tree_job_counter = 0
+@@ -969,6 +1026,56 @@ func _field_particle_catalog_charge() -> float:
+ 	return charge
+ 
+ 
++## Read the recorder's compact GPU-owned payload after the caller has fenced
++## the local/global submission. History is returned in physical ring order;
++## sample_steps identifies the chronology of each stored slot.
++func readback_trajectory() -> Dictionary:
++	if not trajectory_enabled or _rd == null or not _trajectory_counters_buf.is_valid():
++		return {}
++	var counter_bytes: PackedByteArray = _rd.buffer_get_data(
++		_trajectory_counters_buf, 0, 16)
++	var total_events := int(counter_bytes.decode_u32(0)) if counter_bytes.size() >= 4 else 0
++	var event_overflow := int(counter_bytes.decode_u32(4)) if counter_bytes.size() >= 8 else 0
++	var samples_written := int(counter_bytes.decode_u32(8)) if counter_bytes.size() >= 12 else 0
++	var sample_overflow := int(counter_bytes.decode_u32(12)) if counter_bytes.size() >= 16 else 0
++	var event_count := mini(total_events, trajectory_event_capacity)
++	var sample_slots := mini(samples_written, trajectory_sample_capacity)
++	var history_records := _trajectory_tracer_count_eff * sample_slots
++	var sample_steps := PackedByteArray()
++	if sample_slots > 0:
++		sample_steps = _rd.buffer_get_data(
++			_trajectory_sample_steps_buf, 0, sample_slots * 4)
++	var event_bytes := PackedByteArray()
++	if event_count > 0:
++		event_bytes = _rd.buffer_get_data(_trajectory_events_buf, 0, event_count * 80)
++	var history_pos := PackedByteArray()
++	var history_vel := PackedByteArray()
++	if history_records > 0:
++		history_pos = _rd.buffer_get_data(
++			_trajectory_history_pos_buf, 0, history_records * 16)
++		history_vel = _rd.buffer_get_data(
++			_trajectory_history_vel_buf, 0, history_records * 16)
++	return {
++		"tracer_ids": _rd.buffer_get_data(
++			_trajectory_ids_buf, 0, _trajectory_tracer_count_eff * 4),
++		"sample_steps": sample_steps,
++		"history_pos": history_pos,
++		"history_vel": history_vel,
++		"events": event_bytes,
++		"counters": PackedInt32Array([
++			total_events, event_overflow, samples_written, sample_overflow]),
++		"tracer_count": _trajectory_tracer_count_eff,
++		"sample_slots": sample_slots,
++		"sample_total": samples_written,
++		"sample_capacity": trajectory_sample_capacity,
++		"sample_stride": trajectory_sample_stride,
++		"event_count": event_count,
++		"event_capacity": trajectory_event_capacity,
++		"step_count": _step_count,
++		"dt": dt,
++		"inner_radius": trajectory_inner_radius,
++		"outer_radius": trajectory_outer_radius,
++	}
+ ## Record the full per-step chain n times. On a global RD the list is
+ ## executed by the renderer's frame machinery (NEVER submit/sync here); on
+ ## a local RD it is submitted, and synced when wait=true. tree_grad, when
+@@ -994,6 +1101,10 @@ func record_pending_steps(cl: int, target: int) -> int:
+ 	var steps := target - _executed
+ 	if steps <= 0:
+ 		return 0
++	if trajectory_enabled and not field_particles and not _trajectory_started:
++		_trajectory_dispatch(cl, 0.0, 0)
++		_barrier(cl)
++		_trajectory_started = true
+ 	if field_particles:
+ 		steps = mini(steps, JOB_STEP_CAP)
+ 		var recorded: int = _field_particle_engine.record_steps(cl, steps, dt)
+@@ -1020,6 +1131,9 @@ func record_pending_steps(cl: int, target: int) -> int:
+ 		_dispatch_cascade(cl)
+ 	for _s in range(steps):
+ 		_step_dispatches(cl)
++		if trajectory_enabled and not field_particles:
++			_trajectory_dispatch(cl, 1.0, _step_count)
++			_barrier(cl)
+ 	_executed += steps
+ 	if _rd_global and meshless_mode and not freeze_field and _step_count % ML_REBUILD == 13:
+ 		# Host buffer preparation must happen before the next frame's list;
+@@ -1108,6 +1222,9 @@ func record_merge_if_due(cl: int) -> bool:
+ 	_rd.compute_list_add_barrier(cl)
+ 	_merge_bind_dispatch(cl, 5.0, 0)
+ 	_rd.compute_list_add_barrier(cl)
++	if trajectory_enabled:
++		_trajectory_dispatch(cl, 2.0, _step_count)
++		_barrier(cl)
+ 	_merge_bind_dispatch(cl, 6.0)
+ 	_merge_cycles_run += 1
+ 	return true
+@@ -1773,6 +1890,8 @@ func start_threaded(cfg: Dictionary) -> bool:
+ 		shader_paths.append("res://compute/cassi_rotation_stress.glsl")
+ 	if bool(cfg.get("field_particles", field_particles)):
+ 		shader_paths.append(FieldParticleEngine.SHADER_PATH)
++	if bool(cfg.get("trajectory_enabled", trajectory_enabled)):
++		shader_paths.append("res://compute/cassi_trajectory_recorder.glsl")
+ 	for p in shader_paths:
+ 		var sf := load(p) as RDShaderFile
+ 		if sf == null or sf.get_spirv() == null:
+@@ -2146,6 +2265,7 @@ func shutdown() -> void:
+ 		_us_site_nbody_1, _us_site_nbody_2, _us_site_cond_0, _us_site_cond_1,
+ 		_us_site_bh_int_0, _us_site_bh_int_1])
+ 	free_uniforms.append(_us_rotation)
++	free_uniforms.append(_us_trajectory)
+ 	for rid in free_uniforms:
+ 		if rid.is_valid() and _rd.uniform_set_is_valid(rid) and not seen.has(rid):
+ 			seen[rid] = true
+@@ -2154,6 +2274,7 @@ func shutdown() -> void:
+ 	free_pipes.append_array([_site_physics_pipe, _site_mass_pipe, _site_nbody_pipe,
+ 		_site_cond_pipe, _site_bh_int_pipe])
+ 	free_pipes.append(_rotation_pipe)
++	free_pipes.append(_trajectory_pipe)
+ 	for rid in free_pipes:
+ 		if rid.is_valid() and not seen.has(rid):
+ 			seen[rid] = true
+@@ -2162,6 +2283,7 @@ func shutdown() -> void:
+ 	free_shaders.append_array([_site_physics_shader, _site_mass_shader, _site_nbody_shader,
+ 		_site_cond_shader, _site_bh_int_shader])
+ 	free_shaders.append(_rotation_shader)
++	free_shaders.append(_trajectory_shader)
+ 	for rid in free_shaders:
+ 		if rid.is_valid() and not seen.has(rid):
+ 			seen[rid] = true
+@@ -2170,6 +2292,9 @@ func shutdown() -> void:
+ 	free_buffers.append_array([_ml_sites_world, _ml_mass_fix, _ml_mass, _ml_q, _ml_eps])
+ 	free_buffers.append(_fi_fallback_buf)
+ 	free_buffers.append_array([
++		_trajectory_ids_buf, _trajectory_history_pos_buf,
++		_trajectory_history_vel_buf, _trajectory_sample_steps_buf,
++		_trajectory_events_buf, _trajectory_counters_buf,
+ 		_rotation_displacement_buf, _rotation_momentum_buf,
+ 		_rotation_momentum_next_buf, _rotation_spin_heat_buf,
+ 		_rotation_matter_buf, _rotation_impulse_buf,
+@@ -2246,6 +2371,17 @@ func _clear_gpu_handles() -> void:
+ 	_merge_cc_buf = RID(); _merge_cs_buf = RID(); _merge_ch_buf = RID()
+ 	_merge_cl_buf = RID(); _merge_mc_buf = RID(); _merge_spin_buf = RID()
+ 	_merge_mprev_buf = RID(); _merge_scr_buf = RID()
++	_trajectory_ids_buf = RID()
++	_trajectory_history_pos_buf = RID(); _trajectory_history_vel_buf = RID()
++	_trajectory_sample_steps_buf = RID()
++	_trajectory_events_buf = RID(); _trajectory_counters_buf = RID()
++	_trajectory_pc_bytes = PackedByteArray()
++	_cf_density_buf = RID(); _cf_density_fix_buf = RID(); _cf_fft_buf = RID(); _cf_grad_buf = RID()
++	_rotation_displacement_buf = RID(); _rotation_momentum_buf = RID()
++	_rotation_momentum_next_buf = RID(); _rotation_spin_heat_buf = RID()
++	_rotation_matter_buf = RID(); _rotation_impulse_buf = RID()
++	_trajectory_started = false
++	_trajectory_tracer_count_eff = 0
+ 	_cf_density_buf = RID(); _cf_density_fix_buf = RID(); _cf_fft_buf = RID(); _cf_grad_buf = RID()
+ 	_rotation_displacement_buf = RID(); _rotation_momentum_buf = RID()
+ 	_rotation_momentum_next_buf = RID(); _rotation_spin_heat_buf = RID()
+@@ -2274,6 +2410,7 @@ func _clear_gpu_handles() -> void:
+ 	_cond_shader = RID(); _cond_pipe = RID()
+ 	_bh_int_shader = RID(); _bh_int_pipe = RID()
+ 	_merge_shader = RID(); _merge_pipe = RID()
++	_trajectory_shader = RID(); _trajectory_pipe = RID()
+ 	_scan_shader = RID(); _scan_pipe = RID()
+ 	_bh_acc_shader = RID(); _bh_acc_pipe = RID()
+ 	_cf_grad_shader = RID(); _cf_grad_pipe = RID()
+@@ -2297,6 +2434,7 @@ func _clear_gpu_handles() -> void:
+ 	_us_poisson_0 = RID(); _us_cond_0 = RID(); _us_cond_1 = RID()
+ 	_us_bh_int_0 = RID(); _us_bh_int_1 = RID()
+ 	_us_merge_0 = RID(); _us_scan_0 = RID(); _us_bh_acc_0 = RID(); _us_cf_grad_0 = RID()
++	_us_trajectory = RID()
+ 	_us_rotation = RID()
+ 	_us_poisson_c = RID(); _us_mass_dep_c = RID()
+ 	
+@@ -2332,6 +2470,31 @@ func _merge_cadence_eff() -> int:
+ 
+ func _barrier(cl: int) -> void:
+ 	_rd.compute_list_add_barrier(cl)
++## Record one passive trajectory/merge event dispatch into an open list.
++## The dispatch is read-only with respect to all physics-owned bindings.
++func _trajectory_dispatch(cl: int, pass_mode: float, step: int) -> void:
++	if not trajectory_enabled or not _trajectory_pipe.is_valid() \
++			or not _us_trajectory.is_valid():
++		return
++	_trajectory_pc_bytes.encode_float(0, float(N_particles))
++	_trajectory_pc_bytes.encode_float(4, float(_trajectory_tracer_count_eff))
++	_trajectory_pc_bytes.encode_float(8, float(trajectory_sample_capacity))
++	_trajectory_pc_bytes.encode_float(12, float(trajectory_sample_stride))
++	_trajectory_pc_bytes.encode_float(16, float(trajectory_event_capacity))
++	_trajectory_pc_bytes.encode_float(20, pass_mode)
++	_trajectory_pc_bytes.encode_float(24, float(step))
++	_trajectory_pc_bytes.encode_float(28, _window_center.x)
++	_trajectory_pc_bytes.encode_float(32, _window_center.y)
++	_trajectory_pc_bytes.encode_float(36, _window_center.z)
++	_trajectory_pc_bytes.encode_float(40, trajectory_inner_radius)
++	_trajectory_pc_bytes.encode_float(44, trajectory_outer_radius)
++	_rd.compute_list_bind_compute_pipeline(cl, _trajectory_pipe)
++	_rd.compute_list_bind_uniform_set(cl, _us_trajectory, 0)
++	_rd.compute_list_set_push_constant(
++		cl, _trajectory_pc_bytes, _trajectory_pc_bytes.size())
++	var dispatch_count := _trajectory_tracer_count_eff \
++			if pass_mode < 1.5 else N_particles
++	_rd.compute_list_dispatch(cl, ceili(float(maxi(dispatch_count, 1)) / 64.0), 1, 1)
+ 
+ 
+ ## The sim's standalone lists (meshless JFA/cell/rebuild) never submit on
+@@ -2711,6 +2874,34 @@ func _setup_buffers() -> void:
+ 			_rd.buffer_update(_merge_spin_buf, 0, rotation_particle_bytes, rotation_particle_zero)
+ 		_rotation_pc_bytes = PackedByteArray()
+ 		_rotation_pc_bytes.resize(24 * 4)
++	# ── Passive GPU trajectory recorder buffers (explicit opt-in only) ──
++	if trajectory_enabled:
++		var tracer_count := trajectory_tracer_count
++		_trajectory_tracer_count_eff = tracer_count
++		_trajectory_ids_buf = _rd.storage_buffer_create(tracer_count * 4)
++		_trajectory_history_pos_buf = _rd.storage_buffer_create(
++			tracer_count * trajectory_sample_capacity * 16)
++		_trajectory_history_vel_buf = _rd.storage_buffer_create(
++			tracer_count * trajectory_sample_capacity * 16)
++		_trajectory_sample_steps_buf = _rd.storage_buffer_create(
++			trajectory_sample_capacity * 4)
++		_trajectory_events_buf = _rd.storage_buffer_create(
++			trajectory_event_capacity * 80)
++		_trajectory_counters_buf = _rd.storage_buffer_create(16)
++		var tracer_ids := PackedInt32Array()
++		tracer_ids.resize(tracer_count)
++		for tracer in range(tracer_count):
++			tracer_ids[tracer] = int(float(tracer) * float(N_particles)
++					/ float(tracer_count))
++		_rd.buffer_update(_trajectory_ids_buf, 0, tracer_ids.size() * 4,
++			tracer_ids.to_byte_array())
++		var trajectory_counter_zero := PackedByteArray()
++		trajectory_counter_zero.resize(16)
++		trajectory_counter_zero.fill(0)
++		_rd.buffer_update(_trajectory_counters_buf, 0,
++			trajectory_counter_zero.size(), trajectory_counter_zero)
++		_trajectory_pc_bytes = PackedByteArray()
++		_trajectory_pc_bytes.resize(12 * 4)
+ 	_tree_build_pc_bytes = PackedByteArray(); _tree_build_pc_bytes.resize(19 * 4)
+ 	_tree_grav_pc_bytes = PackedByteArray(); _tree_grav_pc_bytes.resize(8 * 4)
+ 	# Pre-allocate push-constant byte buffers (hitch-free pattern)
+@@ -2745,6 +2936,7 @@ func _pipelines_ready() -> bool:
+ 			and _site_bh_int_pipe.is_valid()))
+ 		and (not particle_merge or _merge_pipe.is_valid())
+ 		and (not particle_merge or _scan_pipe.is_valid())
++		and (not trajectory_enabled or _trajectory_pipe.is_valid())
+ 		and (not bh_accretion or _bh_acc_pipe.is_valid())
+ 		and (not cascade_level or _cf_grad_pipe.is_valid())
+ 		and (not rotation_stress_enabled or _rotation_pipe.is_valid())
+@@ -2782,6 +2974,10 @@ func _create_pipelines() -> void:
+ 	_mass_deposit_shader = _shader_create("res://compute/cassi_mass_deposit.glsl")
+ 	if _mass_deposit_shader.is_valid():
+ 		_mass_deposit_pipe = _rd.compute_pipeline_create(_mass_deposit_shader)
++	if trajectory_enabled:
++		_trajectory_shader = _shader_create("res://compute/cassi_trajectory_recorder.glsl")
++		if _trajectory_shader.is_valid():
++			_trajectory_pipe = _rd.compute_pipeline_create(_trajectory_shader)
+ 	# Condensation scanner (Qi peak → BH nucleation)
+ 	_cond_shader = _shader_create("res://compute/cassi_condensation.glsl")
+ 	if _cond_shader.is_valid():
+@@ -2982,6 +3178,31 @@ func _setup_shaders() -> void:
+ 			_uniform_storage(27, _hash_cell_sites), _uniform_storage(28, _hash_cfg),
+ 			_uniform_storage(29, _shortlist_count),
+ 		], _merge_shader, 0)
++	# Passive trajectory set. Merge bindings point at valid fallbacks when the
++	# merge feature is off; mode 2 is never dispatched in that configuration.
++	if trajectory_enabled and _trajectory_shader.is_valid() \
++			and _trajectory_ids_buf.is_valid():
++		var trajectory_best: RID = _merge_best_buf if _merge_best_buf.is_valid() else _fi_fallback_buf
++		var trajectory_sink: RID = _merge_sink_buf if _merge_sink_buf.is_valid() else _fi_fallback_buf
++		var trajectory_mass: RID = _merge_mass_buf if _merge_mass_buf.is_valid() else _fi_fallback_buf
++		var trajectory_mom: RID = _merge_mom_buf if _merge_mom_buf.is_valid() else _fi_fallback_buf
++		var trajectory_cen: RID = _merge_cen_buf if _merge_cen_buf.is_valid() else _fi_fallback_buf
++		_us_trajectory = _rd.uniform_set_create([
++			_uniform_storage(0, _pos_buf),
++			_uniform_storage(1, _vel_buf),
++			_uniform_storage(2, _trajectory_ids_buf),
++			_uniform_storage(3, trajectory_best),
++			_uniform_storage(4, trajectory_sink),
++			_uniform_storage(5, trajectory_mass),
++			_uniform_storage(6, trajectory_mom),
++			_uniform_storage(7, trajectory_cen),
++			_uniform_storage(8, _trajectory_history_pos_buf),
++			_uniform_storage(9, _trajectory_history_vel_buf),
++			_uniform_storage(10, _trajectory_sample_steps_buf),
++			_uniform_storage(11, _trajectory_events_buf),
++			_uniform_storage(12, _trajectory_counters_buf),
++			_uniform_storage(13, _fi_fallback_buf),
++		], _trajectory_shader, 0)
+ 	# On-GPU scan set (FIX B): cc(15) → cs(16) + scr(17) two-level + ch(18).
+ 	if particle_merge and _scan_shader.is_valid() and _merge_scr_buf.is_valid():
+ 		_us_scan_0 = _rd.uniform_set_create([
+@@ -3157,6 +3378,14 @@ func _setup_shaders() -> void:
+ 			and _rotation_reservoir_displacement_buf.is_valid()
+ 			and _rotation_reservoir_momentum_buf.is_valid()
+ 			and _rotation_reservoir_momentum_next_buf.is_valid()))
++		and (not trajectory_enabled or (
++			_trajectory_pipe.is_valid() and _us_trajectory.is_valid()
++			and _trajectory_ids_buf.is_valid()
++			and _trajectory_history_pos_buf.is_valid()
++			and _trajectory_history_vel_buf.is_valid()
++			and _trajectory_sample_steps_buf.is_valid()
++			and _trajectory_events_buf.is_valid()
++			and _trajectory_counters_buf.is_valid()))
+ 		and _jfa_pipe.is_valid() and _cell_pipe.is_valid() and _raster_pipe.is_valid()
+ 		and _topology_pipe.is_valid() and _topology_adj_pipe.is_valid()
+ 		and _topology_csr_pipe.is_valid() and _topology_optical_pipe.is_valid()
+@@ -5162,6 +5391,10 @@ func _run_merge_pass() -> int:
+ 			_rd.compute_list_add_barrier(cl)
+ 			_merge_bind_dispatch(cl, 5.0, cyc + c)     # hop → mc[cyc+c]
+ 			_rd.compute_list_add_barrier(cl)           # next cycle's fold sees this hop
++			if trajectory_enabled:
++				# Capture this hop before the next cycle's fold resets best/alive.
++				_trajectory_dispatch(cl, 2.0, _step_count)
++				_barrier(cl)
+ 		_rd.compute_list_end()
+ 		_rd.submit(); _rd.sync()
+ 		var counts := _merge_read_counts()
