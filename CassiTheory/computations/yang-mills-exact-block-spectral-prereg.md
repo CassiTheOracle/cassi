@@ -105,8 +105,10 @@ omitted \((I-P_J)h_xP_J\) component; it must be finite, must be recorded
 separately, and must be at most \(10^{-2}\) for a row to qualify for
 `SUPPORTS_FINITE_BLOCK`. For \(J<\tfrac52\), a cutoff row is internally
 stable only when the ground energy, conditional rate and score norm change by
-at most \(10^{-6}\) relative to the next scheduled cutoff, with absolute
-scale \(10^{-10}\) used when the reference value is below one. The endpoint
+at most \(10^{-6}\) relative to the next scheduled cutoff, with the
+conditional-rate comparison made through the embedded-minimizer criterion of
+§4 and absolute scale \(10^{-10}\) used when the reference value is below
+one. The endpoint
 \(J=\tfrac52\) is accepted as internally stable only when the same observable
 bound holds against \(J=2\), the projected residual bound passes, the full
 residual is at most \(10^{-2}\) and is no larger than its \(J=2\) value, and
@@ -173,6 +175,16 @@ left-generator Dirichlet matrices over \(e\in B\). Record
 \]
 The restriction map, its rank and the removed constant direction are part of
 the receipt.
+
+The truncation is nested: through the identity on functions, each lower-cutoff
+test function belongs to the next cutoff's test space. Record every retained
+dimension and the minimizing direction \(v_{B,J}^{\eta}\). Cutoff convergence
+is assessed on a fixed-comparable observable beyond the scalar minimum: embed
+the lower-cutoff minimizing function in the next test space and require its
+Rayleigh quotient there to agree with that space's computed rate within the
+stated tolerance, together with the rate agreement. A rank change, a failed
+nested-inclusion check or an embedded quotient that exceeds the higher
+cutoff's rate beyond tolerance classifies the row `INCONCLUSIVE`.
 
 Before forming a logarithmic score, certify on the compact block domain that
 \(\rho_{B,J}^{\mathrm{Ritz},\eta}\) has no zero on the scheduled conditional
@@ -243,8 +255,9 @@ For every schedule row classify the finite calculation as follows:
 - `SUPPORTS_FINITE_BLOCK` if every rate row converges, no conditional-collapse
   witness or score lower-bound witness is found, all required positivity and
   finite residual checks pass, and the result is labeled cutoff-qualified;
-- `INCONCLUSIVE` if any scheduled row fails cutoff convergence, matrix
-  positivity, residual control or score centering.
+- `INCONCLUSIVE` if any scheduled row fails cutoff convergence, the
+  nested-inclusion or rank checks, matrix positivity, residual control or
+  score centering.
 
 `SUPPORTS_FINITE_BLOCK` is a finite spectral result for the declared cutoff
 model, graph and boundary slice. It does not establish the essential boundary
