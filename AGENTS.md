@@ -45,13 +45,13 @@ Per-repo structure:
 
 | Path | Purpose |
 |---|---|
-| `CassiCosmos/scripts/` | GDScript: sim orchestrator, physics engine, mind engine (7599), tree worker, UI (`sim_ui.gd` + `addons/cassi_ui`), verify arms |
+| `CassiCosmos/scripts/` | GDScript: sim orchestrator, physics engine, mind engine (7599), tree worker, UI (`sim_ui.gd` + `addons/cassi_ui`), the `verify_core` gate + standalone probe scripts |
 | `CassiCosmos/compute/` | GLSL compute shaders (the physics vocabulary) |
-| `CassiCosmos/scenes/` | Godot scenes: `main.tscn`, `verify_*.tscn` battery arms, `mind_engine*.tscn` sidecars |
-| `CassiCosmos/verify/` | Battery runner `run_all.gd` + `README.md` (the contract) |
+| `CassiCosmos/scenes/` | Godot scenes: `main.tscn`, `verify_core.tscn` (the gate) + standalone probe scenes, `mind_engine*.tscn` sidecars |
+| `CassiCosmos/verify/` | `README.md` — the gate contract, retained probe list and launch conventions |
 | `CassiCosmos/tools/` | Python bridge clients: `engine_cache_writer.py` (→ `CassiAI/datasets/physics_cache_engine.pt`), `field_steer.py`, `field_collector_git.py` |
 | `CassiCosmos/research/` | Per-area R&D: `*_design.md`, `*_prereg.md`, `*_report.md`, `*_verify.py` (numpy gates), e.g. `research/meshless/`, `research/steering/` |
-| `CassiCosmos/_diag/` | Gitignored run dumps (battery logs, verify JSONs consumed by numpy gates) |
+| `CassiCosmos/_diag/` | Gitignored run dumps (gate receipts under `_diag/core/`, verify JSONs consumed by numpy gates) |
 | `CassiCore/packages/` | 22 retained `@cassicore/*` packages; `packages/mind-runtime/src/vendor/core/intelligence/` holds vendored retained intelligence modules (field-bridge, unified-loop, workspace, …) |
 | `CassiCore/scripts/` | `verify-focus-gate.mjs` (zero-import acceptance gate) |
 | `CassiTheory/` | Domain dirs (`foundations/`, `cosmology/`, `consciousness/`, …), `two-fluid/` (solvers), `computations/` (verify pipelines), `experiments/`, `field-experience/` (pre-registered probes + ledger) |
@@ -66,11 +66,14 @@ Per-repo structure:
 ```
 
 ```
-# Full 43-arm verify battery (runner may be headless, arms NEVER; see verify/README.md for runtime)
-"<exe>" --path . --headless -s res://verify/run_all.gd
+# Production smoke gate (~25 s, ALWAYS windowed; verify/README.md lists the checks)
+"<exe>" --path . res://scenes/verify_core.tscn
 
-# Single arm (ALWAYS windowed)
-"<exe>" --path . res://scenes/verify_<name>.tscn
+# Named fast fixture of the same gate (~2-4 s, 65,536 particles; NOT exact production coverage)
+"<exe>" --path . res://scenes/verify_core.tscn -- --fast
+
+# Standalone probe (ALWAYS windowed, one at a time; verify/README.md lists them)
+"<exe>" --path . res://scenes/verify_<probe>.tscn
 
 # Stale shaders after edits ("No loader found for res://compute/..."): import once, re-run
 "<exe>" --headless --import
@@ -104,9 +107,9 @@ Recording: `powershell -File record.ps1 -Out myvideo.avi -Duration 60` (see `Cas
 
 **Owner-live workspace.** Parallel sessions (human + agents) edit the same trees concurrently. Never edit `UNIFICATION.md` unless asked (owner carries uncommitted edits there). Commit path-limited (`git commit -- <paths>`); when a file mixes your edits with a live collaborator's, stage only your hunks. One session pushes. If a file looks mid-write, report uncertainty instead of guessing.
 
-**Measured-verdict discipline (CassiFI exempt).** Pre-register CassiCosmos/CassiTheory research runs before execution: statistic, decision tree, stopping rule — frozen in a `*_prereg.md` before the probe script runs. Gates are G-numbered (`verify_mind_engine` Gate A–C, G52–G60…). Verdict vocabulary is frozen: `PASS/FAIL/NULL/ADOPT/REJECT` for stage gates; `SUPPORTS/CONTRADICTS/EMERGES/DOES NOT EMERGE/INCONCLUSIVE` for probes; honest negatives are deliverables. Never re-run a rejected hypothesis at full cost. **CassiFI never creates preregistrations, gates, contract/protocol documents, or frozen verdicts:** implement the smallest field-owned change directly, run focused tests and actual scenarios, and report the measured behavior. Do not block CassiFI work waiting for a preregistration.
+**Measured-verdict discipline (CassiFI exempt).** Pre-register CassiCosmos/CassiTheory research runs before execution: statistic, decision tree, stopping rule — frozen in a `*_prereg.md` before the probe script runs. Gates are G-numbered (G16–G18 in `verify_fmm`, G30/G31 and G61–G63 in `verify_meshless_gravity`, G97–G100 in `verify_rotation_end_to_end`…). Verdict vocabulary is frozen: `PASS/FAIL/NULL/ADOPT/REJECT` for stage gates; `SUPPORTS/CONTRADICTS/EMERGES/DOES NOT EMERGE/INCONCLUSIVE` for probes; honest negatives are deliverables. Never re-run a rejected hypothesis at full cost. **CassiFI never creates preregistrations, gates, contract/protocol documents, or frozen verdicts:** implement the smallest field-owned change directly, run focused tests and actual scenarios, and report the measured behavior. Do not block CassiFI work waiting for a preregistration.
 
-**Default-off additive toggles.** New engine features ship disabled and must leave the default battery bit-identical (`cassi_qi_time.glsl` OFF = bit-identical copy is the model). The no-op contracts that actually exist today: the attractor-ratio dormant-deposit gate (`verify_mind_engine`) and toggle-off bit-identity (G57 etc.). `verify_river_isotropy.gd` pins the default CUBE grid-river chain bit-identical with fixed numeric anchors — treat its anchors as load-bearing.
+**Default-off additive toggles.** New engine features ship disabled and must leave the default configuration bit-identical (`cassi_qi_time.glsl` OFF = bit-identical copy is the model). `verify_river_isotropy.gd` pins the default CUBE grid-river chain bit-identical with fixed numeric anchors — treat its anchors as load-bearing, and the gate pins the production scene's declared contract (33 values) before boot. The retired arms' no-op gates (attractor-ratio dormant deposit, toggle-off bit-identity) live in git history.
 
 **Godot/GDScript patterns.** Cleanup on the physics engine is `shutdown()`, never `free()` (4.7 RefCounted shadowing). Local RenderingDevices must be created **on** the worker thread that uses them; `RDShaderFile` loading is not thread-safe — pre-extract SPIR-V (`cfg.spirv`) before handing off. Never commit `.godot/`, `*.uid`, `*.spv`, or the `.glsl.import` churn Godot rewrites every run. One Godot instance at a time (`tasklist | findstr /i Godot`; never kill the Mono editor). Stale cache recovery: delete `.godot/shader_cache`, re-`--import`.
 
@@ -124,7 +127,7 @@ Recording: `powershell -File record.ps1 -Out myvideo.avi -Duration 60` (see `Cas
 | `CassiCosmos/scripts/cassi_sim.gd` | Main sim orchestrator (inline chain + decoupled mirror) |
 | `CassiCosmos/scripts/cassi_physics_engine.gd` | Standalone GPU engine; `shutdown()` lifecycle; threaded local RD |
 | `CassiCosmos/scripts/cassi_mind_engine.gd` | The 7599 field I/O primitive |
-| `CassiCosmos/verify/README.md` | Battery contract — read before touching anything GPU-side |
+| `CassiCosmos/verify/README.md` | Gate + probe contract — read before touching anything GPU-side |
 | `CassiCosmos/MESHLESS_PLAN.md`, `MACHINE_PLAN.md` | Status/road-map docs; house style for staged plans with hard gates |
 | `CassiCosmos/cassi_contract.py` | Buffer/push-constant layout doc (historical; live shader headers are authoritative) |
 | `CassiCore/package.json` | Workspace scripts; build order; allowScripts |
@@ -136,7 +139,7 @@ Recording: `powershell -File record.ps1 -Out myvideo.avi -Duration 60` (see `Cas
 
 ## Runtime/Tooling Preferences
 
-- **Godot 4.7.1 Mono** console exe (WinGet path above). Scene arms **always windowed** — this rig's global RenderingDevice has no headless device; only the battery runner may be `--headless`. GPU: RX 7900 XTX.
+- **Godot 4.7.1 Mono** console exe (WinGet path above). Scene runs are **always windowed** — this rig's global RenderingDevice has no headless device, so there is no headless GPU path; `--headless` is import-only (`--headless --import`). GPU: RX 7900 XTX.
 - **Node ≥20 + npm** for CassiCore (no packageManager field; lockfileVersion 3). No lint tooling exists; `typecheck` = `tsc --noEmit` per package.
 - **System Python 3.12** everywhere; torch is the ROCm build (device reports `cuda`). No `requirements.txt`/`pyproject.toml` anywhere — environments are pre-installed; keep scripts dependency-light.
 - **AMD/ROCm env** (current machine convention): `CUDA_VISIBLE_DEVICES=0` (the iGPU is disabled; the RX 7900 XTX is the sole ROCm device), `PYTORCH_HIP_ALLOC_CONF=expandable_segments:True`, `HSA_ENABLE_SDMA=0`.
@@ -145,7 +148,7 @@ Recording: `powershell -File record.ps1 -Out myvideo.avi -Duration 60` (see `Cas
 
 ## Testing & QA
 
-**CassiCosmos — the 43-arm battery is the contract.** `verify/run_all.gd` runs 43 scenes serially (they share the GPU); each arm exits 0/1; battery exit 0 only on 43/43. Per-arm timeout 240 s (`ARM_TIMEOUT_SEC`), hung arms killed with `taskkill /T /F` (the console exe wraps a child process — the tree must die). Logs: `res://_diag/battery_logs/armNN_<name>.log`. `verify_particle_vanish` is a diagnostic, not a gate (always exits 0; findings are in its printed timeline). Numpy gates (`research/meshless/stage5_verify.py` etc.) consume `_diag` dumps and are run separately — the arm's exit code is the battery contract. Expected runtime is recorded in `CassiCosmos/verify/README.md`; a run with timeout arms takes much longer. After any engine/shader change, green battery before claiming a gain.
+**CassiCosmos — `scenes/verify_core.tscn` is the contract.** The gate boots the real `main.tscn`, drives bounded explicit step windows, and exits 0 only when all 16 checks pass (receipt `res://_diag/core/core_receipt.json`, ~25 s exact production; `-- --fast` runs the same checks on a 65,536-particle fixture). The 27-arm battery and its `run_all.gd` runner were retired — their coverage lives in git history. Retained standalone probes — analytic identities, engine-branch fidelity, the numpy-dump producers, the radiation/observatory workstreams — are listed in `CassiCosmos/verify/README.md` and run windowed, one at a time. Numpy gates (`research/meshless/stage5_verify.py` etc.) consume `_diag` dumps and are run separately — a probe's exit code is its contract. After any engine/shader change, green gate before claiming a gain.
 
 **CassiCore — vitest per package.** 2336 tests green, 0 typecheck errors across the 22 retained packages. Host-wired suites live in `packages/*/tests/host-wired/` and are **permanently quarantined** (excluded via per-package vitest configs; they wired against deleted `core/daemon.js`) — do not "fix" them into the default run. `npm run verify:focus` after any dependency-surface change.
 
