@@ -140,7 +140,10 @@ The receipt records \(R_{N,A}\), \(Z_{N,L_s,L_t}\), and the relative bound
 \[
 R_{N,A}/Z_{N,L_s,L_t}.
 \]
-This is a character-expansion bound for the declared two-dimensional Wilson model. It is not a bound for a four-dimensional transfer matrix or an interacting exact vacuum on a spatial lattice.
+It also records the natural logarithms of the bound and relative bound, so
+strict positivity remains visible when a binary64 power underflows. Its scope
+is the declared two-dimensional Wilson model; four-dimensional transfer
+matrices and interacting exact vacua require separate estimates.
 
 ## 5. Implementations and receipts
 
