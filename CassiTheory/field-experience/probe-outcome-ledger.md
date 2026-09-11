@@ -790,6 +790,29 @@ guard its formulas and scope without establishing the interacting recovery or
 score estimates.
 
 
+## 26. SU(2) strip transport expansion and compact-boundary control
+
+The normalized weak-field strip calculation reproduces the leading
+transport cost $\Theta_0^2=1/4$ and the first correction
+$c_1=-1/(4\kappa)+[|z|^2-(z\cdot\xi)^2]/64$ on all 48 prescribed
+coupling, boundary and tangent combinations. The source-bound Python receipt
+passes **150/150 checks**, with maximum coefficient error
+$5.55111512313\times10^{-17}$. The independent JavaScript reconstruction
+passes **60/60 checks**.
+
+| Claim | Classification and scope |
+|---|---|
+| Local rescaled strip expansion | **SUPPORTS** the declared leading term and first-order coefficient, including the Wilson, Haar and metric contributions |
+| Uniformity over compact boundary holonomies | **REJECT_CHART_UNIFORMITY**: substituting $z=\alpha/\sqrt u$ leaves a nonzero transverse contribution of order one |
+| Exact interacting vacuum and continuum gap | **UNRESOLVED**: the finite strip law supplies no boundary-uniform estimate for the exact vacuum or its multiscale recovery operator |
+
+The protocol is `computations/yang-mills-su2-transport-expansion-prereg.md`.
+The raw receipts are
+`runs/yang_mills_su2_transport_expansion/verification.json` and
+`runs/yang_mills_su2_transport_expansion/verification-independent.json`.
+Their SHA-256 source and protocol bindings match the tracked files.
+
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -865,3 +888,6 @@ score estimates.
 - `computations/yang-mills-transport-score-prereg.md`—frozen v4 conditional Poisson, transport-score, margin-transfer and Gaussian-control protocol.
 - `computations/verify_yang_mills_transport_score.py`—86-check source-bound transport-score and Gaussian verifier.
 - `computations/verify_yang_mills_transport_score_independent.mjs`—32-check independent discrete-sine, Jacobi and pivoted-solve reconstruction.
+- `computations/yang-mills-su2-transport-expansion-prereg.md`—fixed local strip and compact-boundary schedule.
+- `computations/verify_yang_mills_su2_transport_expansion.py`—150-check normalized transport expansion.
+- `computations/verify_yang_mills_su2_transport_expansion_independent.mjs`—60-check independent coefficient and receipt reconstruction.
