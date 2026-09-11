@@ -64,6 +64,9 @@ identified GPU arithmetic path. This repository root contains:
 | [`run_frame_search_probe.py`](run_frame_search_probe.py) | Complete class search for the ground-set frame basis: control and sum verdicts, 24 sampled switches, and connected chains of both width-three controls at nullity five, seven, and nine |
 | [`verify_frame_search_probe.py`](verify_frame_search_probe.py) | Independent reconstruction of every formula, elimination, class partition, and search verdict under a different branching order, with an exact ground-element sieve over every `C(n, nullity)` free subset through nullity six |
 | [`test_frame_search_probe.py`](test_frame_search_probe.py) | Frame-search regression: coverage bookkeeping, the dimension-general span test, control verdicts against the census, and runner/verifier agreement on a connected chain |
+| [`run_switch_neighborhood_probe.py`](run_switch_neighborhood_probe.py) | Complete within-control incidence-switch neighborhoods with nullity-conditioned exact census/search results and seeded two-switch walks |
+| [`verify_switch_neighborhood_probe.py`](verify_switch_neighborhood_probe.py) | Independent standard-library reconstruction of both controls, every one-switch formula, every free-basis census, both seeded walk sequences, and all witnesses |
+| [`test_switch_neighborhood_probe.py`](test_switch_neighborhood_probe.py) | Fast switch-population, canonical-replay, search-agreement, synthetic-anchor, and seed-determinism regression checks |
 | [`run_yang_mills_gauge_fibre_probe.py`](run_yang_mills_gauge_fibre_probe.py) | Field-owned exact $SU(2)$ Gauss-constraint search for a fixed-boundary refined plaquette, with tensor-product multiplicity and cutoff controls |
 
 Run the implemented paths from this directory:
@@ -1470,6 +1473,48 @@ exact coordinate width on all 787 sampled independent bases. This is a
 complete decision procedure with an exponential worst case plus measured
 connected witnesses; it does not give a polynomial recognition algorithm.
 
+
+### Nullity-conditioned switch neighborhoods
+
+[`run_switch_neighborhood_probe.py`](run_switch_neighborhood_probe.py) maps the
+complete within-control degree-preserving incidence-switch neighborhoods of the
+12-variable all-bases SAT control and the 15-variable all-bases UNSAT control.
+It deduplicates legal switch descriptions by canonical formula digest and
+decides each distinct neighbor by both the complete class search and an exact
+free-basis census. The nullity-three element-triangle criterion is also checked
+where applicable.
+
+| control | legal descriptions | distinct formulas | `k = 2` | `k = 3` | `k = 4` |
+|---|---:|---:|---:|---:|---:|
+| all-bases SAT | 424 | 368 | `261: omega=2` | `40: omega=2`, `60: omega=3` | `3: omega=2`, `4: omega=3` |
+| all-bases UNSAT | 726 | 646 | `519: omega=2` | `29: omega=2`, `94: omega=3` | `4: omega=3` |
+
+The two decision procedures agree on all 1,014 complete-neighborhood formulas;
+the triangle criterion agrees on its 223 nullity-three rows. A seeded sample of
+400 two-switch walks per control adds 397 and 399 unique final formulas. The
+SAT finals have `(k=1, omega=1):145`, `(k=2, omega=2):195`,
+`(k=3, omega=2):38`, `(k=3, omega=3):15`, and `(k=4, omega=2):4`; the UNSAT
+finals have `(k=1, omega=1):221`, `(k=2, omega=1):7`,
+`(k=2, omega=2):151`, `(k=3, omega=2):5`, and `(k=3, omega=3):15`.
+Nullity at most two is automatically width at most two, so these rows are
+reported separately from the nontrivial nullity-three boundary. This is a
+finite local measurement, not a distributional claim about arbitrary cubic
+incidence formulas.
+
+Run the probe, independent verifier, and fast regression with:
+
+```powershell
+python run_switch_neighborhood_probe.py
+python verify_switch_neighborhood_probe.py
+python -m pytest test_switch_neighborhood_probe.py -q
+```
+
+The receipt is `_diag/switch_neighborhood_probe.json`. The verifier imports
+neither the runner nor the cubic-kernel implementation: it rebuilds the
+controls, switch formulas, canonical digests, rational kernel coordinates,
+free-basis censuses, class-search decisions, seeded walks, and frame witnesses.
+The two-switch walks are seeded samples, not an exhaustive radius-two
+neighborhood.
 
 ## Gauge-compatible Yang–Mills block fibre
 

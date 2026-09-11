@@ -79,6 +79,17 @@ results:
     nullity five, seven, and nine, where the 60-variable chain's census would
     need `C(60,9) = 14,783,142,660` free subsets and the search exhausts its
     subtree at 21,671 nodes.
+17. the complete within-control one-switch neighborhoods are nullity-conditioned:
+    the SAT control has `(k=2, omega=2):261`, `(k=3, omega=2):40`,
+    `(k=3, omega=3):60`, `(k=4, omega=2):3`, and `(k=4, omega=3):4`;
+    the UNSAT control has `(k=2, omega=2):519`, `(k=3, omega=2):29`,
+    `(k=3, omega=3):94`, and `(k=4, omega=3):4`. The class search and exact
+    free-basis census agree on all 1,014 neighbors; a seeded distance-two
+    sample reaches the listed `k=1` and `k=2` width-one rows as well as
+    nontrivial width-two and width-three rows. This is a finite local
+    measurement, not a distributional claim about general cubic incidence
+    families.
+
 
 The first two results make the CassiCosmos boundary unusually clear. Its
 isolated field is an auditable linear signal processor. Combinatorial search
@@ -1879,6 +1890,43 @@ independent draws. The 36 width-two draws all lie inside the known width-two
 cases, and none of the 7,200 draws on the nullity-seven and nullity-nine chains
 reaches width two.
 
+
+### Result S—within-control switches expose a nullity-conditioned local boundary
+
+Result R's two width-three controls are not locally stable under arbitrary
+degree-preserving switches inside a block. The complete legal one-switch
+neighborhood of the 12-variable all-bases SAT control has 424 switch
+descriptions and 368 distinct canonical formulas. Its joint `(nullity, omega)`
+counts are
+
+| control | `k = 2` | `k = 3` | `k = 4` |
+|---|---:|---:|---:|
+| all-bases SAT | `261: omega=2` | `40: omega=2`, `60: omega=3` | `3: omega=2`, `4: omega=3` |
+| all-bases UNSAT | `519: omega=2` | `29: omega=2`, `94: omega=3` | `4: omega=3` |
+
+The UNSAT control has 726 legal descriptions and 646 distinct formulas. The
+class search and exact `C(n, nullity)` free-basis census agree on all 1,014
+neighbors. The nullity-three element-triangle criterion is available on 100
+SAT and 123 UNSAT neighbors and agrees in every case. The `k = 2` rows are
+automatically width at most two; the genuine nullity-three neighborhoods
+contain 40 of 100 SAT formulas and 29 of 123 UNSAT formulas at width two, with
+the remaining rows at width three. The four nullity-four rows are nontrivial:
+three SAT rows have width two and all four UNSAT rows have width three.
+
+A seeded sample of 400 two-switch walks per control has 397 and 399 unique
+final formulas. Their joint outcomes are `k = 1: omega=1 (145)`, `k = 2:
+omega=2 (195)`, `k = 3: omega=2 (38), omega=3 (15)`, and `k = 4: omega=2
+(4)` for the SAT control; and `k = 1: omega=1 (221)`, `k = 2: omega=1 (7),
+omega=2 (151)`, and `k = 3: omega=2 (5), omega=3 (15)` for the UNSAT control.
+The independent search agrees with the census on all 397 and 399 decisions.
+The first-step one-switch formulas have `omega = 2` on 341 of 400 SAT walks
+and 355 of 400 UNSAT walks.
+
+This maps a finite local neighborhood and a seeded distance-two sample. It does
+not estimate a distribution for arbitrary cubic incidence formulas, establish a
+generic perturbation law, or provide a polynomial recognition algorithm.
+
+
 > The ground-set frame question for cubic incidence duals is decidable without
 > free-subset enumeration, and connected chains of the two width-three controls
 > stay width three through nullity nine, where enumeration is infeasible. This is
@@ -2019,6 +2067,9 @@ python run_frame_separation_probe.py
 python verify_frame_separation_probe.py
 python run_frame_search_probe.py
 python verify_frame_search_probe.py
+python run_switch_neighborhood_probe.py
+python verify_switch_neighborhood_probe.py
+python -m pytest test_switch_neighborhood_probe.py -q
 python -m pytest test_cubic_kernel_decision.py -q
 python -m pytest test_frame_separation_probe.py -q
 python -m pytest test_frame_search_probe.py -q
@@ -2169,6 +2220,18 @@ verified verdicts, ten verified certificates, 312,859 enumerated class subsets
 across 40 cases with three skipped as too large, 2,694,750 sieved free subsets,
 1,282,415 dependent coverings rejected by the independence filter, and no
 width-two draw outside the known width-two cases.
+
+The switch-neighborhood receipt is `CassiFI/_diag/switch_neighborhood_probe.json`.
+It stores every distinct one-switch neighbor with its canonical digest, switch,
+nullity, exact census width, class-search verdict, and witness metadata, plus
+every unique final formula in the seeded distance-two samples. The independent
+verifier imports neither the runner nor a cubic-kernel implementation. It
+rebuilds both controls, every legal switch and canonical deduplication, fresh
+rational kernel coordinates, every free-basis census, the class-search
+decisions, both seeded walk sequences, and every stored frame witness. The run
+reports 1,014 complete neighbors, 796 unique sampled finals, census/search
+agreement on every decision, and two synthetic search anchors; the distance-two
+walks are samples rather than an exhaustive radius-two neighborhood.
 
 ## Primary references
 

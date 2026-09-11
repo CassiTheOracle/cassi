@@ -262,7 +262,7 @@ def evaluate_case(
         independent = rank_of([classes[index] for index in basis]) == len(basis)
         free = sorted(element_index_for_class(columns, classes[index]) for index in basis)
         width = runner.basis_width(columns, free)
-        if not covered or not independent or width != 2:
+        if not covered or not independent or width > 2:
             raise AssertionError(
                 f"{name}: certificate failed covered={covered} independent={independent} width={width}"
             )
