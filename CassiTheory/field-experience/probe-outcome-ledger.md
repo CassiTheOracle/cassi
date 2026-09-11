@@ -921,6 +921,20 @@ analytical interpretation is `foundations/loop-to-bubble-projection-theorem.md`
 §9.24.
 
 
+## 31. Finite-regulator SU(2) Schwinger-function bridge
+
+The frozen protocol `computations/yang-mills-su2-schwinger-prereg-v2.md` defines a one-plaquette SU(2) class-function Hamiltonian in a finite character basis. The primary constructs the lowest eigenstate of the declared finite matrix and evaluates the connected fundamental-character Euclidean correlator by its spectral decomposition. The independent implementation rebuilds the tridiagonal matrices and correlators with a separate Jacobi eigensolver.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Finite vacuum construction | Twelve rows over doubled cutoffs $N=8,16,24,32$ and $g^2\in\{1/2,1,2\}$ construct the normalized positive lowest state, the first spectral gap and the connected correlator at four Euclidean times | **PASS** for the declared finite character-cutoff matrices |
+| Primary verification | `runs/yang_mills_su2_schwinger_bridge/verification-v2.json` passes 96/96 checks, including matrix symmetry, residual, Perron sign certificate, positive gap, correlator positivity, effective-mass ordering and $C(0)\le4$ | **SUPPORTS_FINITE_REGULATOR_BRIDGE** |
+| Independent reconstruction | `runs/yang_mills_su2_schwinger_bridge/verification-independent-v2.json` passes 20/20 source, protocol, schedule and row-reconstruction checks; it binds the primary source and receipt hashes | **PASS** for implementation-independent finite reconstruction |
+| Perron sign boundary | The exact irreducible real symmetric Z-matrix theorem supplies strict ground-state positivity; the receipt uses the declared scale-aware floating-point sign tolerance for components below binary64 resolution | **DERIVED** finite-matrix fact |
+| Cutoff, volume and continuum scope | The schedule has one plaquette and finite character cutoffs. Character-cutoff removal, spatial-volume growth, thermodynamic construction, OS reconstruction and a four-dimensional physical mass gap remain unsupplied | **UNRESOLVED** |
+
+The receipt constructs a true ground state of each finite matrix. It does not use the projected Ritz density rejected by the nodal obstruction in §27. Numerical changes across character cutoffs are retained as diagnostics and carry no limiting classification.
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -996,6 +1010,9 @@ analytical interpretation is `foundations/loop-to-bubble-projection-theorem.md`
 - `computations/yang-mills-transport-score-prereg.md`—frozen v4 conditional Poisson, transport-score, margin-transfer and Gaussian-control protocol.
 - `computations/verify_yang_mills_transport_score.py`—86-check source-bound transport-score and Gaussian verifier.
 - `computations/verify_yang_mills_transport_score_independent.mjs`—32-check independent discrete-sine, Jacobi and pivoted-solve reconstruction.
+- `computations/yang-mills-su2-schwinger-prereg-v2.md`—finite one-plaquette SU(2) Schwinger-function protocol with scale-aware Perron sign certificate.
+- `computations/verify_yang_mills_su2_schwinger_bridge_v2.py`—96-check source-bound finite-regulator vacuum and correlator receipt generator.
+- `computations/verify_yang_mills_su2_schwinger_bridge_independent_v2.mjs`—20-check independent matrix, spectral and source-binding reconstruction.
 - `computations/yang-mills-su2-transport-expansion-prereg.md`—fixed local strip and compact-boundary schedule.
 - `computations/verify_yang_mills_su2_transport_expansion.py`—150-check normalized transport expansion.
 - `computations/verify_yang_mills_su2_transport_expansion_independent.mjs`—60-check independent coefficient and receipt reconstruction.
