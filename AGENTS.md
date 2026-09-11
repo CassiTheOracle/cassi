@@ -66,7 +66,7 @@ Per-repo structure:
 ```
 
 ```
-# Full 30-arm verify battery (~8–9 min; runner may be headless, arms NEVER)
+# Full 43-arm verify battery (runner may be headless, arms NEVER; see verify/README.md for runtime)
 "<exe>" --path . --headless -s res://verify/run_all.gd
 
 # Single arm (ALWAYS windowed)
@@ -145,7 +145,7 @@ Recording: `powershell -File record.ps1 -Out myvideo.avi -Duration 60` (see `Cas
 
 ## Testing & QA
 
-**CassiCosmos — the 30-arm battery is the contract.** `verify/run_all.gd` runs 30 scenes serially (they share the GPU); each arm exits 0/1; battery exit 0 only on 30/30. Per-arm timeout 240 s (`ARM_TIMEOUT_SEC`), hung arms killed with `taskkill /T /F` (the console exe wraps a child process — the tree must die). Logs: `res://_diag/battery_logs/armNN_<name>.log`. `verify_particle_vanish` is a diagnostic, not a gate (always exits 0; findings are in its printed timeline). Numpy gates (`research/meshless/stage5_verify.py` etc.) consume `_diag` dumps and are run separately — the arm's exit code is the battery contract. Expected runtime ≈8–9 min when green; a run with timeout arms takes much longer. After any engine/shader change, green battery before claiming a gain.
+**CassiCosmos — the 43-arm battery is the contract.** `verify/run_all.gd` runs 43 scenes serially (they share the GPU); each arm exits 0/1; battery exit 0 only on 43/43. Per-arm timeout 240 s (`ARM_TIMEOUT_SEC`), hung arms killed with `taskkill /T /F` (the console exe wraps a child process — the tree must die). Logs: `res://_diag/battery_logs/armNN_<name>.log`. `verify_particle_vanish` is a diagnostic, not a gate (always exits 0; findings are in its printed timeline). Numpy gates (`research/meshless/stage5_verify.py` etc.) consume `_diag` dumps and are run separately — the arm's exit code is the battery contract. Expected runtime is recorded in `CassiCosmos/verify/README.md`; a run with timeout arms takes much longer. After any engine/shader change, green battery before claiming a gain.
 
 **CassiCore — vitest per package.** 2336 tests green, 0 typecheck errors across the 22 retained packages. Host-wired suites live in `packages/*/tests/host-wired/` and are **permanently quarantined** (excluded via per-package vitest configs; they wired against deleted `core/daemon.js`) — do not "fix" them into the default run. `npm run verify:focus` after any dependency-surface change.
 
