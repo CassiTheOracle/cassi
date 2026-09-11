@@ -503,6 +503,7 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
     implied_survivor_pre_mass_total = 0.0
     maximum_absorbed_mass_fraction = 0.0
     ledger_mass_mismatches = 0
+    ledger_chained_comparisons = 0
     ledger_survivor_mass: dict[int, float] = {}
     for event in events:
         source = int(event["source"])
@@ -536,6 +537,7 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
             )
             recorded = ledger_survivor_mass.pop(source, None)
             if recorded is not None:
+                ledger_chained_comparisons += 1
                 scale = max(abs(recorded), abs(source_mass))
                 if abs(recorded - source_mass) > LEDGER_MASS_TOLERANCE * scale:
                     ledger_mass_mismatches += 1
@@ -641,6 +643,7 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
             "absorbed_source_mass_total": absorbed_source_mass_total,
             "implied_survivor_pre_mass_total": implied_survivor_pre_mass_total,
             "maximum_absorbed_mass_fraction": maximum_absorbed_mass_fraction,
+            "chained_comparisons": ledger_chained_comparisons,
             "chained_mass_mismatches": ledger_mass_mismatches,
             "chained_mass_tolerance": LEDGER_MASS_TOLERANCE,
         },
