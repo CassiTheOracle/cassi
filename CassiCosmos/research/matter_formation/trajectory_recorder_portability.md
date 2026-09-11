@@ -20,7 +20,7 @@ Verified on a fresh worktree at that commit:
 | Trajectory-bearing lines vs the working-tree engine | 166 / 166, identical multiset |
 | Hook ordering (start, per-step, merge cycle, merge hop) | required statement subsequences match, including every `_barrier(cl)` — asserted by `research/matter_formation/verify_recorder_hooks.py` |
 | Sample schedule after the ordering fix | same slots at the same steps (`0, 4096, … , 262144`) and the same tracer IDs as the working tree |
-| Shell-mode run, 262144 steps, stride 4096 | receipt written, 65 samples, mass conserved |
+| Shell-mode run, 262144 steps, stride 4096 | receipt written, 65 samples, mass conserved — records `INCONCLUSIVE` / `IMPLEMENTATION CHECK` |
 
 The verifier asserts hook order and barriers rather than whole neighborhoods:
 surrounding control flow differs between the two engines by design, because the
@@ -47,8 +47,12 @@ and motion enumerations are part of the uncommitted refactor.
 
 Consequently a run from the committed engine is a different experiment: measured
 initial mass 7639.913070 instead of 1000.000000, and a support radius of 24.999
-instead of 27.624. Its receipt is an implementation check of the recorder path,
-never probe evidence.
+instead of 27.624. Its receipt fails the configuration guard and records
+`verdict: FAIL`, `status: FAILED`, `scoped_claims.shell: FAIL`, and
+`qualifying: false`, so it carries no probe evidence. The
+`INCONCLUSIVE` / `IMPLEMENTATION CHECK` label belongs to runs at the registered
+configuration that fall short of the registered step target — the recorder path
+measured, no claim resolved.
 
 ## The fail-closed check
 
