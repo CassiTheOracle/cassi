@@ -447,6 +447,33 @@ def sieve(
     return witnesses, examined, dependent
 
 
+def class_enumeration(
+    classes: Sequence[tuple[int, ...]], nullity: int, limit: int = 350_000
+) -> tuple[list[tuple[int, ...]] | None, int]:
+    """Exhaustive decision over every ``C(classes, nullity)`` class subset.
+
+    Returns an independent covering class set (at most one) and the universe
+    size, or ``(None, size)`` when the universe exceeds the limit.
+    """
+
+    total = math.comb(len(classes), nullity)
+    if total > limit:
+        return None, total
+    masks, full = pair_masks(classes)
+    witnesses: list[tuple[int, ...]] = []
+    for chosen in itertools.combinations(range(len(classes)), nullity):
+        covered = 0
+        for left, right in itertools.combinations(chosen, 2):
+            covered |= masks[(left, right)]
+        if covered != full:
+            continue
+        if rank_of([classes[index] for index in chosen]) != nullity:
+            continue
+        witnesses.append(chosen)
+        break
+    return witnesses, total
+
+
 def connected(formula: Sequence[Sequence[int]]) -> bool:
     size = len(formula)
     parent = list(range(size + size))
@@ -538,6 +565,11 @@ def main() -> None:
     sieve_examined = 0
     sieve_dependent = 0
     search_nodes_total = 0
+    class_enumeration_checks = 0
+    class_no_frame = 0
+    class_frame = 0
+    class_universes = 0
+    class_skipped = 0
     for record in receipt["cases"]:
         name = record["name"]
         group = record["group"]
@@ -587,6 +619,25 @@ def main() -> None:
                 (verdict == "frame") == (expected == 2),
                 f"{name}: verdict does not match the recorded width {expected}",
             )
+
+        class_witnesses, class_universe = class_enumeration(classes, nullity)
+        if class_witnesses is None:
+            class_skipped += 1
+        else:
+            class_universes += class_universe
+            class_enumeration_checks += 1
+            if verdict == "no_frame":
+                require(
+                    not class_witnesses,
+                    f"{name}: the class enumeration found an independent covering set",
+                )
+                class_no_frame += 1
+            else:
+                require(
+                    bool(class_witnesses),
+                    f"{name}: the class enumeration found no independent covering set",
+                )
+                class_frame += 1
 
         if nullity <= 6:
             witnesses, examined, dependent = sieve(columns, nullity, limit=1 if verdict == "frame" else 4)
@@ -670,6 +721,11 @@ def main() -> None:
         "cases_verified": len(receipt["cases"]),
         "verdict_agreements": verdict_agreements,
         "certificates_verified": certificate_checks,
+        "class_enumeration_checks": class_enumeration_checks,
+        "class_enumeration_no_frame": class_no_frame,
+        "class_enumeration_frame": class_frame,
+        "class_universes_examined": class_universes,
+        "class_universes_skipped": class_skipped,
         "sieve_no_frame_agreements": sieve_no_frame,
         "sieve_frame_agreements": sieve_frame,
         "sieve_subsets_examined": sieve_examined,

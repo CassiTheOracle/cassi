@@ -1870,7 +1870,9 @@ implementation. It rebuilds every formula, canonical order, rational
 elimination, kernel-coordinate column, and class partition; re-decides all 43
 cases with its own complete search under a different branching order; rechecks
 all five width-two certificates; decides the 37 cases of nullity at most six
-again by exact ground-element sieve over every `C(n, nullity)` free subset; and
+again by exact ground-element sieve over every `C(n, nullity)` free subset;
+enumerates every class subset of the 40 cases whose class universe is at most
+350,000, which is 312,859 subsets and includes both nullity-nine chains; and
 tests the covering identity on sampled bases, where "spans every element with at
 most two free elements" agreed with the exact coordinate width on all 787
 independent draws. The 36 width-two draws all lie inside the known width-two
@@ -2159,10 +2161,12 @@ kernel-coordinate column, and class partition; re-decides all 43 cases with its
 own complete search under a different branching order; rechecks all five
 certificates against exact coordinates in the claimed free basis; ties the
 1,620-switch population to the mixed-frame receipt by recomputing its
-sorted-digest hash; decides the 37 cases of nullity at most six again by exact
+sorted-digest hash; enumerates the complete class-subset universe of the 40
+tractable cases; decides the 37 cases of nullity at most six again by exact
 ground-element sieve over every `C(n, nullity)` free subset; and verifies the
 covering identity on 787 sampled independent bases. The current run reports 43
-verified verdicts, ten verified certificates, 2,694,750 sieved free subsets,
+verified verdicts, ten verified certificates, 312,859 enumerated class subsets
+across 40 cases with three skipped as too large, 2,694,750 sieved free subsets,
 1,282,415 dependent coverings rejected by the independence filter, and no
 width-two draw outside the known width-two cases.
 

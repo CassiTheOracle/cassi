@@ -1463,9 +1463,10 @@ python -m pytest test_frame_search_probe.py -q
 The receipt is `_diag/frame_search_probe.json`. The verifier imports neither the
 runner nor the cubic-kernel implementation: it re-decides all 43 cases with its
 own complete search under a different branching order, rechecks all five
-width-two certificates, decides the 37 cases of nullity at most six again by
-exact ground-element sieve over every `C(n, nullity)` free subset, and agrees
-with the exact coordinate width on all 787 sampled independent bases. This is a
+width-two certificates, exhaustively enumerates the class-subset universe of the
+40 tractable cases, decides the 37 cases of nullity at most six again by exact
+ground-element sieve over every `C(n, nullity)` free subset, and agrees with the
+exact coordinate width on all 787 sampled independent bases. This is a
 complete decision procedure with an exponential worst case plus measured
 connected witnesses; it does not give a polynomial recognition algorithm.
 
