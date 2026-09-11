@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block, conditional block theorems, and exact bare-cylindrical refinement obstruction; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -5067,14 +5067,11 @@ $\theta$ running over the nine multiples of $\pi/8$ in $[0,\pi]$.
 Two structural results come out of this calculation, and each one constrains
 how the remaining obligations are stated.
 
-The first says that this graph cannot test boundary uniformity. Its exterior
-links form a tree, so exterior gauge transformations act freely on them, and
-the only exterior invariant is the path holonomy
-$W=U_6U_5^{-1}U_4$. The block Haar integral is unchanged by the substitution
-$U_B\mapsto U_B^{\mathcal G}$ induced by a gauge transformation, and exact
-gauge invariance evaluates the regulated state at the transformed data, so
-every block-integrated conditional moment of the restricted test space is
-constant on the gauge orbit:
+The first is an orbit identity that holds for every block. Write $\eta$ for
+the link data outside the block and $\eta^{\mathcal G}$ for its image under a
+gauge transformation. The block Haar integral is unchanged by the
+substitution $U_B\mapsto U_B^{\mathcal G}$, and exact gauge invariance
+evaluates the regulated state at the transformed data, so
 
 $$
 \int dU_B\,\overline{\Psi(U_B^{\mathcal G};\eta^{\mathcal G})}\,
@@ -5082,23 +5079,34 @@ $$
 |\Omega(U_B^{\mathcal G};\eta^{\mathcal G})|^2
 =
 \int dU_B\,\overline{\Psi(U_B;\eta)}\,\Phi(U_B;\eta)\,
-|\Omega(U_B;\eta)|^2 .
+|\Omega(U_B;\eta)|^2
 \tag{YM183}
 $$
 
-The block transformations at the attachment vertices move $W$ by left
-multiplication, which reaches every element of $SU(2)$, so the partition,
-Gram and Dirichlet moments of the declared fibre sector coincide at every
-scheduled boundary angle. The Dirichlet sum inherits the invariance because
-its generator indices are contracted. A direct seven-link contraction with
-explicit boundary matrices reproduces the boundary-independent product
-algebra to $2.2\times10^{-16}$ in the partition, $1.6\times10^{-15}$ in the
-Gram and $3.4\times10^{-15}$ in the Dirichlet form, with a spread of
-$2.2\times10^{-16}$ across the nine angles; three random exterior holonomies
-reproduce the same moments to $3.7\times10^{-15}$. A finite surrogate for the
-boundary-uniform estimate therefore needs an exterior carrying at least one
-independent loop. The coarse plaquettes of the full lattice block
-decomposition supply them.
+holds for every gauge transformation: each block-integrated conditional
+moment is a function of the gauge orbit of the exterior data alone. Where the
+exterior is a tree, that orbit is the whole exterior configuration space.
+Here the exterior links $\{4,5,6\}$ form a tree, exterior gauge
+transformations act freely on them, the only exterior invariant is the path
+holonomy $W=U_6U_5^{-1}U_4$, and the block transformations at the attachment
+vertices move $W$ by left multiplication, which reaches every element of
+$SU(2)$. The partition, Gram and Dirichlet moments of the declared fibre
+sector therefore coincide at every scheduled boundary angle, and the
+Dirichlet sum inherits the invariance because its generator indices are
+contracted. A direct seven-link contraction with explicit boundary matrices
+reproduces the boundary-independent product algebra to $2.2\times10^{-16}$ in
+the partition, $1.6\times10^{-15}$ in the Gram and $3.4\times10^{-15}$ in the
+Dirichlet form, with a spread of $2.2\times10^{-16}$ across the nine angles;
+three random exterior holonomies reproduce the same moments to
+$3.7\times10^{-15}$.
+
+Where the exterior carries loops, the orbit space is coordinatized by the
+exterior loop holonomies, so the conditional moments become functions of
+those holonomies alone. A finite surrogate for the boundary-uniform estimate
+therefore needs an exterior with at least one independent loop. The coarse
+plaquettes of the full lattice block decomposition supply them, and the
+fibre-rate obligation is then stated over the compact exterior-holonomy
+domain rather than over all exterior data.
 
 The second result is a negative one at the smallest cutoff. At doubled
 cutoff $J=1$ and $x=1$ the projected Ritz ground vector changes sign on the
@@ -5141,6 +5149,45 @@ retained rate keeps its one-sided meaning as an upper estimate for the cutoff
 measure's conditional gap, and the exact-vacuum fibre rate
 $\lambda_{\mathrm{fib}}$ remains an obligation in its own right: a projected
 Ritz density is not a usable surrogate for it.
+
+The schedule-wide extension of that obstruction is frozen in
+`computations/yang-mills-nodal-family-prereg.md`, with source
+`computations/verify_yang_mills_nodal_family.py` and receipt
+`runs/yang_mills_nodal_family/verification.json`. The measured statistic is
+the resolved sign-change count of the normalized Ritz wavefunction along two
+block paths,
+
+$$
+N_{\mathrm{chg}}(J,x)=\#\Bigl\{k:\ \Omega_J\bigl(U_{(e^*)}(\varphi_k)\bigr)\,
+\Omega_J\bigl(U_{(e^*)}(\varphi_{k+1})\bigr)<0,\ \
+\bigl|\Omega_J\bigr|>10^{-10}\Bigr\},
+\qquad
+U_{(e^*)}(\varphi)=\exp\!\Bigl(i\frac{\varphi}{2}\sigma_3\Bigr),
+\tag{YM186}
+$$
+
+evaluated at the twelve rows $J\in\{1,2,3\}$,
+$x\in\{1/4,1,4,16\}$ with $\varphi_k=2\pi k/48$, the other block links and
+the three exterior links at the identity, and path link $e^*\in\{0,1\}$. The
+endpoint values at $J=1$, $x=1$ reproduce the sealed control to
+$4.4\times10^{-16}$, and the path values are real to $8.5\times10^{-18}$
+relative. Seven rows carry a resolved sign change, five of them with odd
+parity, and the two rows at $J=2$, $x=4,16$ pass through two crossings with
+negative excursions of resolved modulus $1.2\times10^{-2}$ and
+$4.8\times10^{-3}$. The onset moves with the cutoff: at $J=1$ the
+obstruction is present at $x=1$, while at $J=2$ and $J=3$ it appears only at
+$x=4$. The $x=1/4$ rows are witness-free at every cutoff, with path minima
+$0.675$, $0.706$ and $0.704$, three orders of magnitude above the
+resolution, so their silence is not a resolution artifact. The frozen
+decision tree returns `NODAL_CONFINED`.
+
+Two consequences attach to this extension. The zero-gap region of the
+projected Ritz density is not uniform in the cutoff; it occupies the
+strong-coupling half of the schedule and recedes as the cutoff grows. A
+one-parameter path can miss a codimension-one nodal set, so the five
+witness-free rows bound nothing in the positive direction, and the whole
+statement stays inside the surrogate: the exact regulated vacuum measure is
+unaffected.
 
 The frozen study classifies all 180 scheduled boundary rows
 `INCONCLUSIVE`. The restriction rank grows with the cutoff at every coupling,
@@ -5226,7 +5273,7 @@ microscopic completions.
 | Conditional $H^{-1}$ score recurrence and exact margin transfer (YM126)–(YM151) | **Derived conditional** finite-regulator theorem | The inverse-generator score norm retains vertical cancellations and is no weaker than the $L^2$ covariance estimate; its exact-vacuum uniform bound remains open |
 | Residual recovery Gramian and score-penalty separation (YM152)–(YM170) | **Derived conditional** finite-regulator theorem | $A_{\mathrm{AT}}^{\mathrm{opt}}=\gamma_{\mathrm{rec}}^{-1}$ and $\lambda_{\mathrm{gi}}\geq\gamma_{\mathrm{rec}}\lambda_{\mathrm{loc}}/\rho$; the score operator is a separate upper penalty on coarse tangents, and uniform exact-vacuum recovery and score bounds remain open |
 | Finite-level martingale transport criterion (YM171)–(YM182) | **Derived conditional** finite-regulator theorem | Full-filtration/gauge-domain identity, energy comparison, and uniformly controlled weighted transport operator are required; exact Yang–Mills shell, recovery and weak-coupling bounds remain open |
-| Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM185) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre, and the projected Ritz density makes the cutoff measure's conditional gap vanish identically; an exact-vacuum fibre rate and a loop-carrying exterior remain required |
+| Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM186) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre; the projected Ritz density makes the cutoff measure's conditional gap vanish identically at the rows carrying a resolved path sign change, and the twelve-row path family confines that zero-gap region to the strong-coupling rows; an exact-vacuum fibre rate and a loop-carrying exterior remain required |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -5564,6 +5611,18 @@ first implementation target. It extends neither the 58-check nor the
 cutoff removal, uniform interacting recovery, thermodynamic limit and
 continuum construction remain **UNRESOLVED**.
 
+The schedule-wide nodal family of §9.23 is bound in the same way to the
+frozen protocol `computations/yang-mills-nodal-family-prereg.md`, the source
+`computations/verify_yang_mills_nodal_family.py` and the shared helper. Its
+receipt `runs/yang_mills_nodal_family/verification.json` holds twelve rows
+with two 49-point block paths each, reproduces the sealed nodal control to
+$4.4\times10^{-16}$, keeps the path amplitudes real to $8.5\times10^{-18}$
+relative, and returns `NODAL_CONFINED`: seven rows carry a resolved sign
+change, five of them with odd parity, and the five witness-free rows sit at
+$x=1/4$ plus $x=1$ for $J\geq2$. The decision tree of the frozen protocol,
+not the raw count, supplies the classification. The probe makes no
+cutoff-removal, vacuum or continuum statement.
+
 ---
 
 ## References
@@ -5637,6 +5696,10 @@ continuum construction remain **UNRESOLVED**.
   conditional-moment and boundary verifier with a SHA-256 sealed receipt
 - `computations/yang_mills_conditional_algebra.py`—shared representation,
   Haar-contraction and conditional-moment helper bound by receipt hash
+- `computations/yang-mills-nodal-family-prereg.md`—frozen twelve-row
+  block-path family, resolution rule and confinement decision tree
+- `computations/verify_yang_mills_nodal_family.py`—schedule-wide nodal
+  family verifier with a SHA-256 sealed receipt
 - D. Bakry, I. Gentil and M. Ledoux, *Analysis and Geometry of Markov
   Diffusion Operators*—Poincaré, Poisson and carré-du-champ framework
 - C. Villani, *Optimal Transport: Old and New*—continuity equations and

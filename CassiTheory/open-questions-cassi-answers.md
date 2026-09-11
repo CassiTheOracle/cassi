@@ -783,7 +783,12 @@ boundary-uniform comparison needs an exterior loop. At the smallest cutoff
 the projected Ritz ground vector changes sign on the block, so that cutoff
 measure's unrestricted conditional gap vanishes while the retained test space
 reports $0.864465200076$, which leaves the exact-vacuum fibre rate as a
-separate obligation.
+separate obligation. A twelve-row path family over cutoffs $1$–$3$ returns
+`NODAL_CONFINED`: the sign change is present at strong coupling for every
+sampled cutoff and absent along the sampled paths at $x=1/4$ and at the
+weak-coupling rows of the higher cutoffs, so the surrogate's zero-gap region
+is not uniform in the cutoff and the sampled paths certify nothing in the
+positive direction.
 
 An exact normalized-Haar path-holonomy pullback preserves endpoint gauge
 covariance and compresses the electric Casimir with

@@ -827,7 +827,7 @@ $\theta=k\pi/8$.
 
 | Control or claim | Decisive result | Classification and scope |
 |---|---|---|
-| Tree-exterior boundary independence | The exterior links $\{4,5,6\}$ form a tree, so every block-integrated conditional moment is constant on the gauge orbit of the boundary data; the direct seven-link contraction reproduces the boundary-independent algebra with partition deviation $2.2\times10^{-16}$, Gram $1.6\times10^{-15}$, Dirichlet $3.3\times10^{-15}$ and a spread of $2.2\times10^{-16}$ across the slice | **ADOPT** as an exact finite-regulator identity; the scheduled boundary axis carries no information about the fibre rate |
+| Gauge-orbit reduction and tree-exterior boundary independence | Every block-integrated conditional moment is a function of the gauge orbit of the exterior data. The exterior links $\{4,5,6\}$ form a tree whose orbit fills the configuration space, so the moments are constant on the scheduled slice: the direct seven-link contraction reproduces the boundary-independent algebra with partition deviation $2.2\times10^{-16}$, Gram $1.6\times10^{-15}$, Dirichlet $3.3\times10^{-15}$ and a spread of $2.2\times10^{-16}$ across the slice. A loop-carrying exterior would leave only its loop holonomies | **ADOPT** as an exact finite-regulator identity; the scheduled boundary axis carries no information about the fibre rate, and the boundary-uniform obligation is quantified over exterior holonomies |
 | Nodal Ritz obstruction | At $J=1$, $x=1$ the projected ground vector changes sign on the block, with amplitudes $2.094120531213694$ at the identity configuration and $-0.03437408376157869$ on the inverted first link, so the cutoff density has a nodal set and its unrestricted conditional gap is exactly $0$ while the retained test space reports $0.864465200076$ | **CONTRADICTS** use of the projected Ritz density as a surrogate for the exact-vacuum fibre rate |
 | Cutoff-qualified rate rows | At $J=5$ the retained rates are $0.754314828716$, $0.817612505009$, $1.38823233618$ and $0.472769320267$ for $x=1/4,1,4,16$; the two smallest couplings have stabilized between the last two cutoffs to $1.1\times10^{-10}$ and $2.9\times10^{-6}$ | cutoff-qualified finite numbers only; no all-boundary, cutoff-removal or continuum implication |
 | Frozen qualification | All 180 scheduled boundary rows classify **INCONCLUSIVE**: the restriction rank grows with the cutoff at every coupling, the literal embedded-minimizer and rate-stability tolerances fail, and the endpoint full-space residual is $7.4\times10^{-2}$ at $x=4$ and $3.12$ at $x=16$ against the $10^{-2}$ bound | **INCONCLUSIVE**: no `SUPPORTS_FINITE_BLOCK` row and no conditional-collapse witness |
@@ -842,6 +842,32 @@ analytical statements are
 `foundations/loop-to-bubble-projection-theorem.md` §9.23. The finite controls
 guard the algebra and the declared scope without establishing the interacting
 vacuum estimate.
+
+
+## 28. Schedule-wide confinement of the nodal Ritz obstruction
+
+The frozen protocol `computations/yang-mills-nodal-family-prereg.md` extends
+the §27 nodal control from one row to the twelve scheduled rows of the
+seven-link block. The source-bound receipt
+`runs/yang_mills_nodal_family/verification.json` evaluates the normalized
+Ritz wavefunction along two 49-point block paths that rotate one block link
+through $e^{i\varphi\sigma_3/2}$, with the other block links and the exterior
+at the identity, and counts resolved sign changes under the frozen
+$10^{-10}$ resolution rule.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+|| Sealed-control reproduction | The path endpoints at $J=1$, $x=1$ reproduce $2.094120531213694$ and $-0.03437408376157869$ to $4.4\times10^{-16}$, and the path amplitudes are real to $8.5\times10^{-18}$ relative | **ADOPT** as the conformance control of the extension against the sealed analytic nodal control |
+|| Path sign changes | Seven of twelve rows carry a resolved sign change, five with odd parity and two at $J=2$, $x=4,16$ with even parity and negative excursions of resolved modulus $1.2\times10^{-2}$ and $4.8\times10^{-3}$; five rows carry none | **CONFINED** to the strong-coupling half of the schedule; the witness-free rows bound neither the surrogate's gap nor its sign constancy |
+|| Onset with cutoff | The obstruction appears at $x=1$ at $J=1$ and only at $x=4$ at $J=2,3$; the $x=1/4$ rows are witness-free at every cutoff with path minima $0.675$, $0.706$ and $0.704$ | measurement, not proof: a one-parameter path can miss a codimension-one nodal set |
+|| Frozen decision tree | The preregistered rules return **NODAL_CONFINED**: not every row shows an odd number of resolved sign changes and rows with zero resolved sign changes exist | **NODAL_CONFINED**; the raw count of nodal witnesses is not the verdict |
+|| Vacuum and continuum | The exact regulated vacuum measure remains strictly positive by the exact criterion, and no row of this extension constrains it | **UNRESOLVED**: the exact-vacuum fibre rate, cutoff removal, uniform interacting recovery, thermodynamic limit and continuum construction stay open |
+
+The receipt binds the protocol, the source, the §27 source and the shared
+helper by SHA-256, with source digest
+`908150965c6672a022aba4596b9515acaf839c91500a0698c8d6ff52894ced7c`. The
+analytical statements are
+`foundations/loop-to-bubble-projection-theorem.md` §9.23.
 
 
 ## References
@@ -925,3 +951,5 @@ vacuum estimate.
 - `computations/yang-mills-exact-block-spectral-prereg.md`—frozen v6 seven-link boundary fixtures, cutoff schedule, convergence and qualification rules.
 - `computations/verify_yang_mills_exact_block_spectrum.py`—sealed exact Ritz, conditional-moment, boundary and nodal-control receipt generator.
 - `computations/yang_mills_conditional_algebra.py`—shared representation, Haar-contraction and conditional-moment helper bound by receipt hash.
+- `computations/yang-mills-nodal-family-prereg.md`—frozen twelve-row block-path family, resolution rule and confinement decision tree.
+- `computations/verify_yang_mills_nodal_family.py`—source-bound schedule-wide nodal family verifier and receipt generator.

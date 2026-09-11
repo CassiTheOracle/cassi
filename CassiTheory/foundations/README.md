@@ -210,7 +210,7 @@ baryon-production coupling remain open.
 | 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction—September 2026 |
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
-| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling character-cutoff theorem, exact fixed-link three-sphere geometry, two-scale conditional-score recurrence, $H^{-1}$ transport-score margin transfer, residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
+| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling character-cutoff theorem, exact fixed-link three-sphere geometry, two-scale conditional-score recurrence, $H^{-1}$ transport-score margin transfer, residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
 | 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current, phase-current projection and conditional soliton pinch | Hypothesized action and Wilson-link extension / Derived conditional current, endpoint, support and phase-current boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum, rotational and phase-coercivity controls, and conditional smooth scalar binding |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, scale graph and canonical reduction | Hypothesized completion / Derived conditional fibre geometry and canonical reduction / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 39 | `endpoint-link-and-localization-boundary.md` | Conditional endpoint covariance, response, transport and localization boundary | Hypothesized Wilson extension / Derived conditional endpoint and localization boundaries / Tested finite-grid spectrum and conditional smooth scalar binding |
@@ -874,7 +874,13 @@ loop. The projected Ritz ground vector at doubled cutoff $1$ and $x=1$
 changes sign on the block, with amplitudes $2.094120531213694$ at the identity
 configuration and $-0.03437408376157869$ on the inverted first link, so that
 cutoff density has a nodal set and its unrestricted conditional gap vanishes
-while the retained test space reports $0.864465200076$. The frozen
+while the retained test space reports $0.864465200076$. A twelve-row extension
+over $J\in\{1,2,3\}$ and $x\in\{1/4,1,4,16\}$ evaluates the same wavefunction
+along two 49-point block paths and returns `NODAL_CONFINED`: seven rows carry
+a resolved sign change and five carry none, the onset moves from $x=1$ at
+cutoff $1$ to $x=4$ at cutoffs $2$ and $3$, the witness-free rows keep path
+minima at or above $0.201$, and the endpoint values reproduce the sealed
+nodal control to $4.4\times10^{-16}$. The frozen
 qualification classifies all 180 scheduled boundary rows `INCONCLUSIVE`, with
 the endpoint residual above the declared bound at $x=4$ and $x=16$ and no
 score or margin verdict, because the transport score lies outside the first
