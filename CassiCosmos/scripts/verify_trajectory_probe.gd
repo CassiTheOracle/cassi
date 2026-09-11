@@ -305,6 +305,19 @@ func _select_tracer_state(pos: PackedFloat32Array) -> PackedFloat32Array:
 	return selected
 
 
+## Resolve the active field-role buffers. The current engine exposes the active
+## role through get_field_role_state() (it ping-pongs between two buffer sets);
+## the engine as committed has one set under the same property names.
+func _field_role_rids() -> Dictionary:
+	if _eng.has_method("get_field_role_state"):
+		return _eng.get_field_role_state()
+	return {
+		"ey": _eng.get("_field_ey"),
+		"ei": _eng.get("_field_ei"),
+		"q": _eng.get("_field_q"),
+	}
+
+
 func _plant_coherent_field() -> void:
 	var cells := GRID_N * GRID_N * GRID_N
 	var ey := PackedFloat32Array()
@@ -317,7 +330,7 @@ func _plant_coherent_field() -> void:
 		ey[cell] = PHI
 		ei[cell] = 1.0
 		q[cell] = PHI * PHI + 1.0
-	var state: Dictionary = _eng.get_field_role_state()
+	var state: Dictionary = _field_role_rids()
 	var ey_rid: RID = state.get("ey")
 	var ei_rid: RID = state.get("ei")
 	var q_rid: RID = state.get("q")
