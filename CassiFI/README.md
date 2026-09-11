@@ -58,6 +58,9 @@ identified GPU arithmetic path. This repository root contains:
 | [`verify_growing_nullity_schaefer_probe.py`](verify_growing_nullity_schaefer_probe.py) | Independent reconstruction of the growing-nullity formulas, rational basis censuses, product laws, connected bridge, and Schaefer relation profile |
 | [`run_mixed_schaefer_frame_obstruction.py`](run_mixed_schaefer_frame_obstruction.py) | Exact mixed SAT+UNSAT direct-sum census with all 32,232 bases, the 1,620 connected cross-component 2-switches, canonical widths, an exhaustive bound-two width screen, and an exact width-three witness for every switch |
 | [`verify_mixed_schaefer_frame_obstruction.py`](verify_mixed_schaefer_frame_obstruction.py) | Independent reconstruction of both component censuses, the mixed basis product, both switch screens and canonical widths, exact witness remeasurement, and full-enumeration brute-force controls at both bounds |
+| [`run_frame_separation_probe.py`](run_frame_separation_probe.py) | Element-triangle and frame verdicts for the five nullity-three basis-width controls, the direct-sum width law with block witnesses, and the repeated all-bases family through size 48 |
+| [`verify_frame_separation_probe.py`](verify_frame_separation_probe.py) | Independent reconstruction of every formula, elimination, kernel-coordinate column, class configuration, and basis census, with complete partition enumeration for the nullity-three frame decision and full witness rechecks |
+| [`test_frame_separation_probe.py`](test_frame_separation_probe.py) | Frame-separation regression: both frame decision procedures, census and element-triangle agreement, direct-sum width law, and the unbounded frame family |
 | [`run_yang_mills_gauge_fibre_probe.py`](run_yang_mills_gauge_fibre_probe.py) | Field-owned exact $SU(2)$ Gauss-constraint search for a fixed-boundary refined plaquette, with tensor-product multiplicity and cutoff controls |
 
 Run the implemented paths from this directory:
@@ -1375,6 +1378,54 @@ no coverage prefilter. All seven brute-force controls agree at both bounds, and
 the mixed-formula screen agrees with both the full enumeration and the basis
 census. This is a finite-family measurement: it does not decide width-two frame
 recognition or classify unbounded connected cubic families.
+
+
+### Frame separation inside nullity three
+
+[`run_frame_separation_probe.py`](run_frame_separation_probe.py) asks whether
+the frame structure of the dual decides the width optimum. Width implies frame
+structure, not the reverse. Both all-bases ternary controls have `omega = 3`
+under every basis and both still admit a full-rank two-sparse ambient basis `T`
+with every column of `T*B` two-sparse, while no ground-set basis of either dual
+is two-sparse. A polynomial frame test is therefore one-sided: it refutes width
+two only when frame structure fails, and both width-three controls pass it.
+
+The internal criterion at nullity three is exact. `omega(M) <= 2` exactly when
+three element classes exist whose three pairwise joins cover every class,
+because those joins are the orthogonal spaces of three independent normals. All
+three width-two controls carry such an element triangle and the two width-three
+controls carry none, matching the basis census on all five. The external
+decision is equally finite: partition the classes into three groups of
+projective span at most a line and test the eight exact Hall conditions on the
+orthogonal spaces, which the independent verifier enumerates in full rather
+than searching.
+
+Frame structure is closed under direct sums and widths combine by maximum, as
+the block diagonal of two-sparse witnesses is two-sparse and sum bases are
+exactly the unions of component bases. All five control sums confirm the law,
+the block structure is detected from the kernel-coordinate support graph, and
+the 18-variable sum is additionally censused by brute force as an anchor.
+Repeating the 12-variable width-three control `t` times gives an unbounded
+family with `n = 12t`, nullity `3t`, a two-sparse frame witness of rank `3t`,
+and `omega = 3` at every measured size, through 48 variables and nullity 12.
+
+Run the probe, its independent verifier, and the frame tests with:
+
+```powershell
+python run_frame_separation_probe.py
+python verify_frame_separation_probe.py
+python -m pytest test_frame_separation_probe.py -q
+```
+
+The receipt is `_diag/frame_separation_probe.json`. The verifier imports
+neither the runner nor the cubic-kernel implementation: it rebuilds every
+formula, elimination, kernel-coordinate column, class configuration, and basis
+census, decides nullity-three frame structure by complete partition
+enumeration, and rechecks every witness by direct support evaluation, including
+a graphic anchor that is frame and seven general-position points that are not.
+This is a finite measurement plus the proof of the one-sided implication; it
+does not decide width-two frame recognition or classify unbounded cubic
+families.
 
 
 ## Gauge-compatible Yang–Mills block fibre

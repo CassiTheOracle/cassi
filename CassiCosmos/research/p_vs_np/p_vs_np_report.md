@@ -65,6 +65,13 @@ results:
     all `C(27,5) = 80,730` free subsets and exact rational widths on the
     witnesses; the 32,232-base disconnected sum is `omega = 3` under its full
     basis census.
+15. external frame structure is necessary but not sufficient for width two:
+    both invariant-width-three controls admit full-rank two-sparse ambient
+    bases while no ground-set basis of either dual is two-sparse, and the
+    nullity-three criterion is internal, an element triple whose three joins
+    cover every class; direct sums combine width by maximum and yield a family
+    that is frame with width three at every measured size up to 48, so a
+    polynomial frame test cannot decide the width.
 
 The first two results make the CassiCosmos boundary unusually clear. Its
 isolated field is an auditable linear signal processor. Combinatorial search
@@ -106,7 +113,9 @@ polynomial-time ground-set frame-basis finder for the dual matroid, a global
 algorithm for invariant-width-three two-point kernel intersections, a stronger
 nonuniform or non-matchgate representation, or a different algorithm—not
 quotient topology, polynomial state representation, rank alone, or one
-canonical elimination order.
+canonical elimination order. Frame structure cannot replace the width decision:
+it is one-sided, satisfied by both width-three controls and by the repeated
+all-bases family whose width never drops below three.
 
 The next controlled census separates basis width from small-arity Schaefer
 closure. Two all-bases controls have width three under every column basis, but
@@ -1505,6 +1514,11 @@ represented matroids with a ground-set frame basis**. No polynomial
 recognition algorithm or hardness reduction for that restricted cubic
 rational-matrix class is established here.
 
+Result Q fixes the direction of that target: external frame structure is a
+necessary condition for `omega(M) <= 2` rather than an equivalent one, so the
+recognition question is one-sided and a frame test cannot replace the width
+decision.
+
 
 
 
@@ -1746,6 +1760,64 @@ bounded conclusion:
 > cubic families, or bear on `P = NP`.
 
 
+### Result Q—element triangles decide nullity-three width; frame structure is one-sided
+
+Result M's recognition target needs the direction of its implication pinned
+down. Call the dual `D = N*` frame when an ambient basis `T` of kernel
+coordinates makes every column of `T*B` have at most two nonzero entries. That
+is the frame-matroid condition of the matroid-minors literature in the form
+`D = M'\B` for a basis `B` of an extension `M'`. Frame matroids have a
+polynomial recognition algorithm for represented matroids, so the test is
+available in principle; this result shows it cannot settle the width.
+
+Width two implies frame structure. If `omega(M) <= 2`, some ground-set
+complementary basis `F` spans every element of `D` with at most two of its own
+elements. That `F` is also a basis of the matroid `D`, so extending `D` by the
+`F` columns gives `D = M'\F` and `D` is frame. The converse fails inside this
+family. Both all-bases ternary controls have `omega = 3` under every basis, and
+each admits an exact integer two-sparse ambient basis `T` of full rank with
+every column of `T*B` two-sparse. No ground-set basis of either dual is
+two-sparse. A frame test is therefore necessary only: non-frame `D` forces
+`omega >= 3`, while frame `D` leaves the width undecided.
+
+At nullity three the internal criterion is exact and finite. A triple of
+classes `p1, p2, p3` spans the kernel-coordinate space, its three pairwise
+joins are the orthogonal spaces of three independent normals, and such a triple
+exists exactly when a ground-set basis of `D` spans every element with at most
+two of its elements. So `omega(M) <= 2` exactly when some element triple has
+its three joins covering every class. The three width-two controls all carry
+such an element triangle and the two width-three controls carry none, matching
+the basis census on all five. The external decision is equally finite:
+partition the classes into three groups of projective span at most a line and
+test the eight exact Hall conditions on the orthogonal spaces. The independent
+verifier enumerates every partition rather than searching, and cross-checks the
+runner's cover search on all five controls, a graphic anchor, and seven
+general-position points.
+
+Frame structure is closed under direct sums, and widths combine by maximum:
+
+```text
+omega(M1 + M2) = max(omega(M1), omega(M2))
+```
+
+The block diagonal of two-sparse witnesses is a two-sparse witness, and the
+bases of a sum are exactly the unions of component bases. All five control sums
+confirm the law, the block structure is detected from the kernel-coordinate
+support graph, and the 18-variable sum is additionally censused by brute force
+as an anchor. Repeating the 12-variable width-three control `t` times gives an
+unbounded family `M_t` with `n = 12t`, nullity `3t`, a two-sparse frame witness
+of rank `3t`, and `omega(M_t) = 3` for every measured `t`, through size 48 and
+nullity 12.
+
+> External frame-matroid structure cannot decide internal width. The width-two
+> criterion is internal to the ground set, an element triangle covering every
+> class, while frame structure is satisfied by width-three matrices and by a
+> family that stays at width three at every measured size. Fixed-nullity
+> enumeration, tree-2-spanner recognition, and spanning-tree congestion remain
+> the polynomial islands of Result M. This is a finite measurement plus the
+> proof of the one-sided implication; it does not decide width-two frame
+> recognition or bear on `P = NP`.
+
 ## 9. Remaining credible research directions
 
 The alias theorem reaches an NP-complete occurrence boundary, and three
@@ -1758,7 +1830,10 @@ compression attempts now have precise outcomes. The next work is:
    incidence family with nullity growing in `n`. Determine whether its
    ground-set frame basis can be found in polynomial time or is NP-hard.
    Strictly improving one-column exchange is not sufficient; any proposed
-   local algorithm must handle certified width-three plateaus. For matrices
+   local algorithm must handle certified width-three plateaus. Frame structure
+   is one-sided here, by Result Q: the repeated all-bases family is frame at
+   every measured size while its width stays three, so a frame test cannot
+   substitute for the width decision. For matrices
    with `omega(M) >= 3`, seek a shared invariant, decomposition,
    determinant/Pfaffian identity, or bounded dynamic program. Enumerating
    `2^nullity` assignments or `binomial(n,rank)` bases only restates the
@@ -1869,7 +1944,10 @@ python growing_nullity_schaefer_probe.py
 python verify_growing_nullity_schaefer_probe.py
 python run_mixed_schaefer_frame_obstruction.py
 python verify_mixed_schaefer_frame_obstruction.py
+python run_frame_separation_probe.py
+python verify_frame_separation_probe.py
 python -m pytest test_cubic_kernel_decision.py -q
+python -m pytest test_frame_separation_probe.py -q
 ```
 
 The raw receipt is `_diag/p_vs_np_probe.json`. The verifier checks the frozen
@@ -1982,6 +2060,22 @@ switches at both bounds with no coverage prefilter. The current run reports
 32,232 verified mixed bases, 1,620 verified switches, no width-two frame and an
 exact width-three witness in each, and seven-of-seven brute-force agreement at
 bound two and at bound three.
+
+The frame-separation receipt is
+`CassiFI/_diag/frame_separation_probe.json`. It stores the five basis-width
+controls with their exact element-triangle and frame verdicts, the five
+component direct sums with block structure and witnesses, and the repeated
+all-bases family through size 48. The independent verifier imports neither the
+runner nor the cubic-kernel implementation. It rebuilds every formula,
+canonical order, rational elimination, kernel-coordinate column, class
+configuration, and basis census; decides nullity-three frame structure by
+enumerating every class partition under exact Hall conditions instead of
+searching; and rechecks every witness matrix by direct support evaluation. It
+also validates its decision procedure on a graphic anchor that is frame and on
+seven general-position points that are not. The current run reports five
+verified controls, nine verified sum and family witnesses, census and criterion
+agreement on all five controls, the width law on every sum, and a family that
+is frame with width three at sizes 12, 24, 36, and 48.
 
 ## Primary references
 
