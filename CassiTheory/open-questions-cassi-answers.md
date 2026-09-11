@@ -788,7 +788,9 @@ separate obligation. A twelve-row path family over cutoffs $1$–$3$ returns
 sampled cutoff and absent along the sampled paths at $x=1/4$ and at the
 weak-coupling rows of the higher cutoffs, so the surrogate's zero-gap region
 is not uniform in the cutoff and the sampled paths certify nothing in the
-positive direction.
+positive direction. A two-parameter family over a $33\times33$ block grid
+returns the same boundary with `WITNESS_CONFINED`, so the confinement is not
+an artifact of a single path family.
 
 An exact normalized-Haar path-holonomy pullback preserves endpoint gauge
 covariance and compresses the electric Casimir with

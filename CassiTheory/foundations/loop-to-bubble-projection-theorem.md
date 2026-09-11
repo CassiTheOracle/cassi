@@ -5189,6 +5189,20 @@ witness-free rows bound nothing in the positive direction, and the whole
 statement stays inside the surrogate: the exact regulated vacuum measure is
 unaffected.
 
+A second frozen protocol,
+`computations/yang-mills-nodal-surface-prereg.md` with source
+`computations/verify_yang_mills_nodal_surface.py` and receipt
+`runs/yang_mills_nodal_surface/verification.json`, replaces the paths by a
+two-parameter torus family that rotates block links $0$ and $1$ independently
+over a $33\times33$ grid. Its 66 grid lines per row find the same boundary:
+the same seven rows carry resolved sign changes, now on 12–62 lines each with
+16–162 total changes, and the same five rows carry none on any line, with
+grid minima $0.675$, $0.706$, $0.704$, $0.277$ and $0.201$ over 1089 points
+per row. Both one-parameter lines reproduce the sealed path tables at the
+seventeen common angles to $7.1\times10^{-15}$, and the frozen decision tree
+returns `WITNESS_CONFINED`. The zero-gap region of the projected Ritz density
+is therefore not an artifact of a single path family.
+
 The frozen study classifies all 180 scheduled boundary rows
 `INCONCLUSIVE`. The restriction rank grows with the cutoff at every coupling,
 the embedded-minimizer and rate-stability rules fail under their literal
@@ -5273,7 +5287,7 @@ microscopic completions.
 | Conditional $H^{-1}$ score recurrence and exact margin transfer (YM126)–(YM151) | **Derived conditional** finite-regulator theorem | The inverse-generator score norm retains vertical cancellations and is no weaker than the $L^2$ covariance estimate; its exact-vacuum uniform bound remains open |
 | Residual recovery Gramian and score-penalty separation (YM152)–(YM170) | **Derived conditional** finite-regulator theorem | $A_{\mathrm{AT}}^{\mathrm{opt}}=\gamma_{\mathrm{rec}}^{-1}$ and $\lambda_{\mathrm{gi}}\geq\gamma_{\mathrm{rec}}\lambda_{\mathrm{loc}}/\rho$; the score operator is a separate upper penalty on coarse tangents, and uniform exact-vacuum recovery and score bounds remain open |
 | Finite-level martingale transport criterion (YM171)–(YM182) | **Derived conditional** finite-regulator theorem | Full-filtration/gauge-domain identity, energy comparison, and uniformly controlled weighted transport operator are required; exact Yang–Mills shell, recovery and weak-coupling bounds remain open |
-| Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM186) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre; the projected Ritz density makes the cutoff measure's conditional gap vanish identically at the rows carrying a resolved path sign change, and the twelve-row path family confines that zero-gap region to the strong-coupling rows; an exact-vacuum fibre rate and a loop-carrying exterior remain required |
+| Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM186) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre; the projected Ritz density makes the cutoff measure's conditional gap vanish identically at the rows carrying a resolved path sign change, and the twelve-row path and two-parameter torus families confine that zero-gap region to the strong-coupling rows; an exact-vacuum fibre rate and a loop-carrying exterior remain required |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -5621,7 +5635,14 @@ relative, and returns `NODAL_CONFINED`: seven rows carry a resolved sign
 change, five of them with odd parity, and the five witness-free rows sit at
 $x=1/4$ plus $x=1$ for $J\geq2$. The decision tree of the frozen protocol,
 not the raw count, supplies the classification. The probe makes no
-cutoff-removal, vacuum or continuum statement.
+cutoff-removal, vacuum or continuum statement. Its two-parameter torus
+extension (`computations/yang-mills-nodal-surface-prereg.md`,
+`computations/verify_yang_mills_nodal_surface.py`, receipt
+`runs/yang_mills_nodal_surface/verification.json`) searches all 66 grid lines
+of a $33\times33$ block grid per row, reproduces both one-parameter lines at
+the seventeen common angles to $7.1\times10^{-15}$, and returns
+`WITNESS_CONFINED`: the same seven rows carry resolved sign changes and the
+same five rows carry none.
 
 ---
 

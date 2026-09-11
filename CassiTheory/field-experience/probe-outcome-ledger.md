@@ -870,6 +870,32 @@ analytical statements are
 `foundations/loop-to-bubble-projection-theorem.md` §9.23.
 
 
+## 29. Two-parameter nodal surface search
+
+The frozen protocol `computations/yang-mills-nodal-surface-prereg.md`
+replaces the one-parameter block paths by a two-parameter torus family that
+rotates block links $0$ and $1$ independently on a $33\times33$ grid. Its
+source-bound receipt `runs/yang_mills_nodal_surface/verification.json`
+searches all 66 grid lines of each of the twelve scheduled rows for resolved
+sign changes and cross-checks the two one-parameter lines against the sealed
+one-parameter receipt on the seventeen common angles.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+|| Conformance to the one-parameter receipt | Both one-parameter lines reproduce the sealed path tables at the common angles to $7.1\times10^{-15}$ or better | **ADOPT** as the conformance control on the two-parameter family |
+|| Grid-line witnesses | Seven rows carry resolved sign changes on 12–62 of the 66 grid lines, with 16–162 total changes; the remaining five rows carry none on any line | **CONFINED**: the witness boundary of the one-parameter family is stable under the two-parameter family |
+|| Silent rows | The $x=1/4$ rows at every cutoff and the $x=1$ rows at $J=2,3$ keep grid minima $0.675$, $0.706$, $0.704$, $0.277$ and $0.201$ over 1089 grid points each | no positivity or sign-constancy proof: a finite grid cannot certify a sign |
+|| Frozen decision tree | At least one row shows no resolved sign change on any grid line | **WITNESS_CONFINED** |
+|| Vacuum and continuum | The exact regulated vacuum measure remains strictly positive and the cutoff-removal obligations are untouched | **UNRESOLVED** |
+
+The receipt binds the protocol, the source, the one-parameter protocol,
+source and receipt, the §27 source and the shared helper by SHA-256, with
+source digest
+`6f215f5961fad3b654830392d18b8ce33464660893a5f5ad346f218ad1d97f77`. The
+analytical statements are
+`foundations/loop-to-bubble-projection-theorem.md` §9.23.
+
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -953,3 +979,5 @@ analytical statements are
 - `computations/yang_mills_conditional_algebra.py`—shared representation, Haar-contraction and conditional-moment helper bound by receipt hash.
 - `computations/yang-mills-nodal-family-prereg.md`—frozen twelve-row block-path family, resolution rule and confinement decision tree.
 - `computations/verify_yang_mills_nodal_family.py`—source-bound schedule-wide nodal family verifier and receipt generator.
+- `computations/yang-mills-nodal-surface-prereg.md`—frozen two-parameter torus family, conformance angles and confinement decision tree.
+- `computations/verify_yang_mills_nodal_surface.py`—source-bound grid-line nodal surface verifier and receipt generator.

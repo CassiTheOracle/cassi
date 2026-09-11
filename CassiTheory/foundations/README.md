@@ -880,7 +880,11 @@ along two 49-point block paths and returns `NODAL_CONFINED`: seven rows carry
 a resolved sign change and five carry none, the onset moves from $x=1$ at
 cutoff $1$ to $x=4$ at cutoffs $2$ and $3$, the witness-free rows keep path
 minima at or above $0.201$, and the endpoint values reproduce the sealed
-nodal control to $4.4\times10^{-16}$. The frozen
+nodal control to $4.4\times10^{-16}$. A two-parameter torus family that
+rotates two block links independently over a $33\times33$ grid reproduces both
+one-parameter lines at the common angles to $7.1\times10^{-15}$ and returns
+`WITNESS_CONFINED` with the same boundary: seven rows witness resolved sign
+changes on 12–62 of 66 grid lines, five rows witness none. The frozen
 qualification classifies all 180 scheduled boundary rows `INCONCLUSIVE`, with
 the endpoint residual above the declared bound at $x=4$ and $x=16$ and no
 score or margin verdict, because the transport score lies outside the first
