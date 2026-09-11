@@ -933,7 +933,7 @@ The frozen protocol `computations/yang-mills-su2-schwinger-prereg-v2.md` defines
 | Perron sign boundary | The exact irreducible real symmetric Z-matrix theorem supplies strict ground-state positivity; the receipt uses the declared scale-aware floating-point sign tolerance for components below binary64 resolution | **DERIVED** finite-matrix fact |
 | Cutoff, volume and continuum scope | The schedule has one plaquette and finite character cutoffs. Character-cutoff removal, spatial-volume growth, thermodynamic construction, OS reconstruction and a four-dimensional physical mass gap remain unsupplied | **UNRESOLVED** |
 
-The finite-matrix ground state is obtained directly from the declared Hamiltonian; cutoff-dependent Ritz-density diagnostics remain separate. Numerical changes across character cutoffs are retained as diagnostics and carry no limiting classification.
+The finite-matrix ground state is obtained directly from the declared Hamiltonian. The schedule records character-cutoff diagnostics separately from the vacuum correlator.
 
 ## References
 
