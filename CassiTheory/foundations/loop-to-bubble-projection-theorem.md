@@ -1725,6 +1725,85 @@ $x=2/g^4$, volume or cutoff. One may instead prove (YM29) directly on the
 gauge quotient. Either route requires new interacting-vacuum control, and
 $A_{\mathrm{AT}}$ remains an independent infrared quantity.
 
+#### 9.14.1 Fixed-regulator Haar comparison
+
+At each fixed finite regulator, the exact conditional rate has a direct
+positive lower bound. Let
+
+$$
+\omega_-:=\min_{U}\Omega_{a,L}(U)>0,
+\qquad
+\omega_+:=\max_{U}\Omega_{a,L}(U)<\infty.
+\tag{YM31a}
+$$
+
+For a block $B$ and exterior value $\eta$, write the conditional density
+relative to normalized product Haar measure $\nu_B$ as
+
+$$
+d\mu_B^\eta=p_\eta\,d\nu_B,
+\qquad
+p_\eta(U_B)
+:=
+\frac{\Omega_{a,L}(U_B,\eta)^2}{Z_\eta}.
+\tag{YM31b}
+$$
+
+Then
+
+$$
+\frac{\omega_-^2}{Z_\eta}
+\leq p_\eta(U_B)
+\leq
+\frac{\omega_+^2}{Z_\eta},
+\qquad
+\frac{\sup p_\eta}{\inf p_\eta}
+\leq
+\left(\frac{\omega_+}{\omega_-}\right)^2.
+\tag{YM31c}
+$$
+
+If $\lambda_{\mathrm{Haar},B}$ is the product-Haar Poincare rate for the
+block Dirichlet form, Haar Poincare and the two density bounds give
+
+$$
+\begin{aligned}
+\operatorname{Var}_{\mu_B^\eta}F
+&\leq
+\sup(p_\eta)\operatorname{Var}_{\nu_B}F\\
+&\leq
+\frac{\sup(p_\eta)}{\lambda_{\mathrm{Haar},B}\inf(p_\eta)}
+\sum_{e\in B,A}\int|X_e^AF|^2\,d\mu_B^\eta.
+\end{aligned}
+$$
+
+Consequently,
+
+$$
+\boxed{
+\lambda_B^\mu(\eta)
+\geq
+\lambda_{\mathrm{Haar},B}
+\left(\frac{\omega_-}{\omega_+}\right)^2
+}
+\tag{YM31d}
+$$
+
+for every exterior value, and hence also on the gauge-invariant induced
+fibre domain. With the present $SU(2)$ generator normalization,
+$\lambda_{\mathrm{Haar},B}=3/4$ for a nonempty product block; for a compact
+simple group it is the first nonzero Casimir in the selected metric.
+The normalization factor $Z_\eta$ cancels, so this comparison is uniform in
+the boundary at the fixed regulator.
+
+The estimate makes the remaining issue explicit. The ratio
+$\omega_-/\omega_+$ is a global exact-vacuum condition ratio; finite
+positivity makes it nonzero, but no bound on it uniform in volume, block
+size, weak coupling or refinement has been proved. Equation (YM31d) is
+therefore a fixed-regulator realization of (YM29), not the missing
+continuum estimate. It also leaves $A_{\mathrm{AT}}$ and the recovery floor
+independent.
+
 For a fixed target $m_*>0$, (YM30) is sufficient when
 
 $$
@@ -5693,6 +5772,23 @@ full-space residual bound, 27 fail only the nested-rank rule and 45 fail
 both. No exact-vacuum fibre, transport-score, cutoff-removal, uniform
 recovery, thermodynamic or continuum conclusion follows.
 
+The finite-volume Wilson Schwinger bridge is bound by the frozen protocol
+`computations/yang-mills-su2-wilson-2d-prereg.md`, the primary
+`computations/verify_yang_mills_su2_wilson_2d.py` and the independent
+reconstruction `computations/verify_yang_mills_su2_wilson_2d_independent.mjs`.
+The primary receipt
+`runs/yang_mills_su2_wilson_2d/verification.json` passes 876/876 checks
+across 108 coupling, spatial-length, temporal-length and character-cutoff
+rows. It evaluates the gauge-projected character transfer spectrum, the
+fundamental-character correlator at four temporal separations, the exact
+effective-mass identity and the analytic character-tail bound. The independent
+receipt `runs/yang_mills_su2_wilson_2d/verification-independent.json` passes
+120/120 checks from the positive Bessel series and binds both verifier sources
+and the primary receipt by SHA-256. This establishes a finite-volume
+two-dimensional Wilson benchmark; four-dimensional spatial-volume growth,
+thermodynamic construction, OS reconstruction and the physical mass gap remain
+**UNRESOLVED**.
+
 ---
 
 ## References
@@ -5774,6 +5870,12 @@ recovery, thermodynamic or continuum conclusion follows.
   loop-carrying exterior, boundary schedule and qualification rules
 - `computations/verify_yang_mills_bowtie_fibre.py`—source-bound bowtie
   conditional-fibre verifier with analytic controls and sealed receipt
+- `computations/yang-mills-su2-wilson-2d-prereg.md`—finite-volume
+  two-dimensional Wilson transfer, character-fusion correlator and tail protocol
+- `computations/verify_yang_mills_su2_wilson_2d.py`—876-check source-bound
+  finite-volume Wilson bridge verifier
+- `computations/verify_yang_mills_su2_wilson_2d_independent.mjs`—120-check
+  independent Bessel-series and receipt reconstruction
 - D. Bakry, I. Gentil and M. Ledoux, *Analysis and Geometry of Markov
   Diffusion Operators*—Poincaré, Poisson and carré-du-champ framework
 - C. Villani, *Optimal Transport: Old and New*—continuity equations and

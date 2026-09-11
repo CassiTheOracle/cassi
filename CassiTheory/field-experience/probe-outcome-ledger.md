@@ -935,6 +935,29 @@ The frozen protocol `computations/yang-mills-su2-schwinger-prereg-v2.md` defines
 
 The finite-matrix ground state is obtained directly from the declared Hamiltonian. The schedule records character-cutoff diagnostics separately from the vacuum correlator.
 
+## 32. Finite-volume SU(2) Wilson Schwinger bridge
+
+The frozen protocol `computations/yang-mills-su2-wilson-2d-prereg.md` defines
+the gauge-projected character transfer spectrum of the periodic two-dimensional
+SU(2) Wilson model. The primary evaluates the modified-Bessel coefficients and
+the fundamental-character correlator over the fixed coupling, spatial-length,
+temporal-length and character-cutoff schedule. The independent implementation
+rebuilds the coefficients from the positive Bessel series and reconstructs the
+tail certificate and all correlator rows.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Gauge projection and transfer spectrum | 108 rows over \(\beta\in\{1,2,4\}\), \(L_s,L_t\in\{1,2,4\}\), and \(N\in\{8,16,24,32\}\) retain the normalized-Haar character transfer data and four declared temporal separations | **PASS** for the declared finite-volume two-dimensional Wilson model |
+| Primary verification | `runs/yang_mills_su2_wilson_2d/verification.json` passes 876/876 checks, including the transfer spectrum, character-fusion correlator, effective-mass identity, area accounting and tail certificate | **SUPPORTS_FINITE_VOLUME_2D_WILSON_BRIDGE** |
+| Independent reconstruction | `runs/yang_mills_su2_wilson_2d/verification-independent.json` passes 120/120 source, protocol, schedule and row-reconstruction checks; it binds both verifier sources and the primary receipt | **PASS** for implementation-independent finite reconstruction |
+| Character-tail certificate | Every scheduled tail probe lies below its analytic bound; the largest recorded relative bound is \(7.16379095734615\times10^{-4}\), with log-domain fields preserving subnormal rows | **DERIVED** finite-regulator bound |
+| Four-dimensional scope | The construction supplies a two-dimensional gauge-projected transfer benchmark; spatial-volume growth in four dimensions, the thermodynamic limit, OS reconstruction and a physical mass gap remain unresolved | **UNRESOLVED** |
+
+The bridge supplies a finite-volume Wilson Schwinger component and a controlled
+character-tail diagnostic. Its transfer spectrum is an exact two-dimensional
+benchmark; the four-dimensional interacting vacuum requires a new spatial
+transfer construction.
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -1015,6 +1038,11 @@ The finite-matrix ground state is obtained directly from the declared Hamiltonia
 - `computations/verify_yang_mills_su2_schwinger_bridge_independent_v2.mjs`—20-check independent matrix, spectral and source-binding reconstruction.
 - `runs/yang_mills_su2_schwinger_bridge/verification-v2.json`—96-check source-bound finite-regulator vacuum and correlator receipt.
 - `runs/yang_mills_su2_schwinger_bridge/verification-independent-v2.json`—20-check independent receipt binding the primary source and receipt.
+- `computations/yang-mills-su2-wilson-2d-prereg.md`—finite-volume two-dimensional Wilson transfer and tail protocol.
+- `computations/verify_yang_mills_su2_wilson_2d.py`—876-check source-bound Wilson bridge receipt generator.
+- `computations/verify_yang_mills_su2_wilson_2d_independent.mjs`—120-check independent Bessel-series and receipt reconstruction.
+- `runs/yang_mills_su2_wilson_2d/verification.json`—876-check finite-volume Wilson bridge receipt.
+- `runs/yang_mills_su2_wilson_2d/verification-independent.json`—120-check independent receipt binding both sources and the primary receipt.
 - `computations/yang-mills-su2-transport-expansion-prereg.md`—fixed local strip and compact-boundary schedule.
 - `computations/verify_yang_mills_su2_transport_expansion.py`—150-check normalized transport expansion.
 - `computations/verify_yang_mills_su2_transport_expansion_independent.mjs`—60-check independent coefficient and receipt reconstruction.
