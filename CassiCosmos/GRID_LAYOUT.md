@@ -568,7 +568,7 @@ Each commit keeps the repo runnable; verification per commit:
    cube battery AND the φ-battery green; record the measured ellipsoid ratios
    vs the k-sum predictions (the doc's expected-effect claims).
 4. **Preset flip + docs.** main.tscn / main_recorder.tscn RealSim runs move to
-   box_aspect = (φ, 1, φ²); GRID_LAYOUT.md referenced from the sim README;
+   box_aspect = (φ, 1, φ²); GRID_LAYOUT.md referenced from the [technical guide](TECHNICAL_GUIDE.md);
    commit message notes the new file is part of this commit. Verify: a short
    recorded RealSim run at the preset (no NaN; straight-line lock visually
    gone; occupancy sane).
