@@ -1910,7 +1910,7 @@ neighbors. The nullity-three element-triangle criterion is available on 100
 SAT and 123 UNSAT neighbors and agrees in every case. The `k = 2` rows are
 automatically width at most two; the genuine nullity-three neighborhoods
 contain 40 of 100 SAT formulas and 29 of 123 UNSAT formulas at width two, with
-the remaining rows at width three. The four nullity-four rows are nontrivial:
+the remaining rows at width three. The seven nullity-four rows are nontrivial:
 three SAT rows have width two and all four UNSAT rows have width three.
 
 A seeded sample of 400 two-switch walks per control has 397 and 399 unique
