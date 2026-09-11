@@ -18,8 +18,15 @@ Verified on a fresh worktree at that commit:
 |---|---|
 | GDScript parse (`--check-only --script`) | clean |
 | Trajectory-bearing lines vs the working-tree engine | 166 / 166, identical multiset |
-| Hook neighborhoods (start, per-step, merge cycle, merge hop) | same statement order, including every `_barrier(cl)` |
+| Hook ordering (start, per-step, merge cycle, merge hop) | required statement subsequences match, including every `_barrier(cl)` — asserted by `research/matter_formation/verify_recorder_hooks.py` |
+| Sample schedule after the ordering fix | same slots at the same steps (`0, 4096, … , 262144`) and the same tracer IDs as the working tree |
 | Shell-mode run, 262144 steps, stride 4096 | receipt written, 65 samples, mass conserved |
+
+The verifier asserts hook order and barriers rather than whole neighborhoods:
+surrounding control flow differs between the two engines by design, because the
+working tree ends a batch with `if not _step_dispatches(cl): break` where the
+committed engine calls the same dispatch directly. The invariant that carries the
+recorder is the ordering, and that is what the script checks.
 
 Two ordering details are load-bearing and were caught by that comparison. The
 per-step hook runs **after** `_step_dispatches(cl)`, not before it, and each hook
@@ -52,12 +59,24 @@ relative error 6.64; the working-tree run agrees to $1.1 \times 10^{-9}$. The
 check catches the divergence that exists today: an engine without the registered
 geometry builds a different initial condition with a different total mass.
 
-Its scope is the mass, not the shape. An engine that honored the requested total
-mass while resolving a different geometry would pass this check, so the receipt
-still records the requested `initial_condition`, `initial_arrangement`, and
-`initial_motion` for review.
+Its scope is the mass, not the shape. It detects the fallback divergence that
+exists between these two engines: an engine without the registered geometry
+builds a different initial condition and therefore a different total mass. An
+engine that honored the requested total mass while resolving a different
+geometry would pass this check, and the receipt still records the requested
+`initial_condition`, `initial_arrangement`, and `initial_motion` for review. A
+gate on the geometry itself needs the engine to report the condition it resolved,
+or an invariant that does not move with the analyzer's bin count.
 
-## Removal
+## Where the registered probe belongs
+
+The registered probe belongs with the engine revision that implements its
+contract: the revision that resolves the nested-shell geometry and carries the
+recorder. This patch exists so the recorder is reviewable and recoverable from
+committed history while that revision is prepared, and it holds only the
+recorder. Transplanting further engine code by line-range extraction would carry
+the same risk this port already surfaced twice — dropped barriers and a moved
+hook — without the surrounding refactor that gives those lines their meaning.
 
 Once the engine carrying the recorder is committed, the patch and this note are
 obsolete: the recorder is part of `cassi_physics_engine.gd`, and nothing
