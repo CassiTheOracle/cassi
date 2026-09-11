@@ -1170,8 +1170,9 @@ ordered witness for all `2^k` branches: a clause conflict, an odd residual
 order, or an independently checkable Tutte barrier.
 
 This extension reaches an NP-complete boundary rather than another tractable
-subclass. Cubic Planar Monotone 1-in-3 SAT, proved NP-complete by Moore and
-Robson, is the special case in which every variable has degree three; it lies
+subclass. Cubic Planar Monotone 1-in-3 SAT, proved NP-complete by [Moore and
+Robson, Sections 3.1–3.3](https://arxiv.org/abs/math/0003039), is the special
+case in which every variable has degree three; it lies
 inside the recognizer with `k=n`. Membership in NP is immediate from a Boolean
 assignment. Therefore the unrestricted recognized degree-two/degree-three
 class is NP-complete, and the exponential parameter cannot be replaced by a
@@ -1231,11 +1232,12 @@ Exact-cover search visits fewer states on 31 cases, the same number on two,
 and more on 32; the increases occur primarily where the binary schedule finds
 a SAT branch immediately.
 
-The exact-cover search has no new competitive worst-case theorem. Wahlström's
-published monotone one-in-three upper bound, recorded as `O*(1.0984^n)`,
-remains the applicable global benchmark for this class. No asymptotic
-comparison with the measured cover-state counts is justified without a
-correct global recurrence.
+The exact-cover search has no new competitive worst-case theorem. The
+[Wahlström X3SAT upper bound](https://liu.diva-portal.org/smash/get/diva2%3A23420/FULLTEXT01.pdf),
+which includes monotone one-in-three SAT as a special case, is recorded as
+`O*(1.0984^n)` and remains the applicable global benchmark for this class. No
+asymptotic comparison with the measured cover-state counts is justified without
+a correct global recurrence.
 
 The independent Result I matching-branch theorem still has the proved
 parameterized bound `O(2^k c^3)`. Comparing only that theorem's exponential
@@ -1253,8 +1255,8 @@ The second compression attempt tests the standard planar-matchgate route.
 Write the arity-three variable signature as
 `EQ3 = [1, 0, 0, 1]` and the clause signature as
 `EXACT1_3 = [0, 1, 0, 0]`, indexed by Hamming weight. Every matchgate signature
-satisfies the parity condition: either all even-weight or all odd-weight
-coordinates vanish.
+satisfies the parity condition [Cai and Gorenstein](https://arxiv.org/abs/1303.6729):
+either all even-weight or all odd-weight coordinates vanish.
 
 For a uniform invertible basis
 
@@ -1385,8 +1387,8 @@ variables and nullity 32. The support-two reduction decides both without
 materializing `2^33` or `2^32` assignments.
 
 For every measured canonical pivot relation of arity at most three, the runner
-also computes the standard Schaefer closure tests. The canonical support-three
-SAT residual is jointly 0-valid. The canonical support-three UNSAT residual
+also computes the standard [Schaefer closure tests](https://doi.org/10.1145/800133.804350). The canonical
+support-three SAT residual is jointly 0-valid. The canonical support-three UNSAT residual
 has no one class shared by all its pivot relations among 0-valid, 1-valid,
 Horn, dual-Horn, bijunctive, and affine. An independent implementation
 recomputes each truth table and closure. These statements classify those
@@ -1623,10 +1625,10 @@ also polynomial.
 even when `M` is a planar square `0/1` incidence matrix with exactly three
 ones in every row and column. Membership in NP follows because a proposed
 column basis is checked by exact elimination and only the all-zero free tuple
-must be evaluated. NP-hardness is the identity reduction from Cubic Planar
-Monotone 1-in-3 SAT: the Moore–Robson restriction already has exactly these
-matrix properties, and the theorem makes its SAT answer identical to the
-zero-valid-basis answer.
+must be evaluated. NP-hardness is the identity reduction from [Moore and
+Robson, Sections 3.1–3.3](https://arxiv.org/abs/math/0003039), whose Cubic Planar
+Monotone 1-in-3 SAT restriction has exactly these matrix properties and whose
+SAT answer is identical to the zero-valid-basis answer.
 
 This is a certificate-preserving equivalence, not a SAT algorithm. It rules
 out the hope that zero-valid basis selection is an easier generic preprocessing
@@ -1664,12 +1666,12 @@ support three:
 |all-bases UNSAT|UNSAT|15|12|3|237|`6: bijunctive; 2: dual-Horn+bijunctive; 53: Horn+bijunctive; 6: Horn+dual-Horn+bijunctive; 10: Horn+dual-Horn+bijunctive+affine; 160: none`|
 
 Thus neither control has a width-two basis. Only 90 SAT bases and 77 UNSAT
-bases share at least one listed Schaefer class; the remaining 46 and 160 bases
-share none. The two properties must not be conflated: width two gives the
-direct 2-SAT reduction already proved above, whereas a supplied bounded-arity
-zero-valid, one-valid, Horn, dual-Horn, bijunctive, or affine language gives
-its own polynomial residual solver. Finding such a basis is still a separate
-search problem.
+bases share at least one class from [Schaefer's classification](https://doi.org/10.1145/800133.804350);
+the remaining 46 and 160 bases share none. The two properties must not be
+conflated: width two gives the direct 2-SAT reduction already proved above,
+whereas a supplied bounded-arity zero-valid, one-valid, Horn, dual-Horn,
+bijunctive, or affine language gives its own polynomial residual solver.
+Finding such a basis is still a separate search problem.
 
 The controls admit an exact disconnected scaling law. For `t` direct-sum
 blocks, every column basis is the disjoint union of one basis from each
@@ -1799,10 +1801,16 @@ bounded conclusion:
 Result M's recognition target needs the direction of its implication pinned
 down. Call the dual `D = N*` frame when an ambient basis `T` of kernel
 coordinates makes every column of `T*B` have at most two nonzero entries. That
-is the frame-matroid condition of the matroid-minors literature in the form
-`D = M'\B` for a basis `B` of an extension `M'`. Frame matroids have a
-polynomial recognition algorithm for represented matroids, so the test is
-available in principle; this result shows it cannot settle the width.
+is the frame-matroid condition in the form `D = M'\B` for a basis `B` of an
+extension `M'`. For an explicit matrix representation, a frame matrix has at
+most two nonzero entries in each column, and [Geelen's matrix-recognition
+announcement](https://uwaterloo.ca/combinatorics-and-optimization/events/tutte-colloquium-jim-geelen)
+gives a polynomial-time test for row-equivalence to such a matrix. This
+represented-matrix result is distinct from the rank-oracle model: [Chen and
+Whittle](https://arxiv.org/abs/1601.01791) prove that no polynomial `p` can
+guarantee distinguishing a frame matroid from a lifted-graphic matroid using
+at most `p(|M|)` rank evaluations. The explicit matrix test is available here
+in principle; this result shows it cannot settle the width.
 
 Width two implies frame structure. If `omega(M) <= 2`, some ground-set
 complementary basis `F` spans every element of `D` with at most two of its own
@@ -1990,13 +1998,17 @@ compression attempts now have precise outcomes. The next work is:
    edge gauges, bounded-size equality gadgets, higher-dimensional signatures,
    or non-matchgate determinant identities can aggregate the correlated
    residual matchings. The uniform `2x2` holographic route is closed by the
-   parity ideal; broader routes require their own explicit transformation and
-   polynomial resource proof.
+   parity condition [Cai and Gorenstein](https://arxiv.org/abs/1303.6729);
+   broader routes require their own explicit transformation and polynomial
+   resource proof.
 3. **Exploit the parameterized crossover.** The matching-branch algorithm has
-   the better exponential term below `k/c = 0.1902266`; the published
-   monotone one-in-three algorithm wins above it. Seek reductions or kernels
-   that lower `k` without increasing `c`, and compare against the published
-   `1.0984^n` baseline rather than raw assignment enumeration.
+   the better exponential term below `k/c = 0.1902266`. The
+   [Wahlström X3SAT upper bound](https://liu.diva-portal.org/smash/get/diva2%3A23420/FULLTEXT01.pdf),
+   inherited by monotone one-in-three SAT as a special case and recorded for
+   that relation by [Jonsson et al.](https://victorlagerkvist.github.io/assets/pdf/jcss2017.pdf),
+   wins above it at `1.0984^n`. Seek reductions or kernels that lower `k`
+   without increasing `c`, and compare against this baseline rather than raw
+   assignment enumeration.
 4. **Proof search versus proof existence.** Characterize the strength of the
    combined proof system and separate short-proof existence from efficient
    automatizability. A polynomially bounded refutation system would imply
@@ -2015,8 +2027,8 @@ compression attempts now have precise outcomes. The next work is:
 
 Cassi can also remain a useful heuristic SAT substrate, but empirical solution
 rate—even excellent rate—is not evidence for a Millennium Prize resolution.
-The baseline clause-field family's published resolution lower bound settles
-its worst-case status. The hybrid successor has exact and conservative
+The resolution lower bound established in Result D using [Haken](https://doi.org/10.1016/0304-3975(85)90144-6)
+settles its worst-case status. The hybrid successor has exact and conservative
 infinite-subfamily proof bounds. The matching field is total on every
 connected topology in its syntax-recognized class. The alias field is total
 with explicit `O(2^k c^3)` search and `O(2^k c^4)` proof-construction bounds,
