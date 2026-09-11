@@ -1480,7 +1480,7 @@ invariant-width-three cases without enumerating bases or alphabet vectors.
 ### Result M—polynomial islands and a basis-exchange obstruction
 
 The frame-basis question is not uniformly mysterious. Three exact subclasses
-are polynomial.
+are polynomial under the models stated below.
 
 First, if the nullity `k = n - rank(M)` is fixed, the complementary dual basis
 `F` has `k` elements. Enumerating all `binomial(n,k) = O(n^k)` candidates,
@@ -1507,11 +1507,12 @@ Theorem 4.6, gives a linear-time algorithm for unweighted `k`-STC for
 `1 <= k <= 3`.
 
 The recognition statement is an oracle-model statement. [Seymour](https://doi.org/10.1007/BF02579179)
-gives a polynomial graphicness test from an independence oracle. Given an
-exact rational matrix, an independence query is answered by testing
-`r_N(X) = |X|`; each rank query is polynomial-time exact elimination.
-Cographicness is tested by applying the same procedure to the dual rank
-oracle
+gives a polynomial graphicness test from an independence oracle. Given an exact
+rational matrix with standard binary encoding, an independence query is
+answered by computing the exact rank and testing whether `r_N(X) = |X|`;
+fraction-free elimination answers each rank query in polynomial bit
+complexity. Cographicness is tested by applying the same procedure to the
+dual rank oracle.
 
 ```text
 r_N*(X) = |X| + r_N(E \ X) - r_N(E).
@@ -1846,10 +1847,10 @@ nullity 12.
 > criterion is internal to the ground set, an element triangle covering every
 > class, while frame structure is satisfied by width-three matrices and by a
 > family that stays at width three at every measured size. Fixed-nullity
-> enumeration, tree-2-spanner recognition, and spanning-tree congestion remain
-> the polynomial islands of Result M. This is a finite measurement plus the
-> proof of the one-sided implication; it does not decide width-two frame
-> recognition or bear on `P = NP`.
+> enumeration and the graph algorithms for tree 2-spanners and spanning-tree
+> congestion remain polynomial islands under the models stated in Result M.
+> This is a finite measurement plus the proof of the one-sided implication; it
+> does not decide width-two frame recognition or bear on `P = NP`.
 
 ### Result R—a complete class search decides the ground-set frame question beyond census reach
 
@@ -1955,9 +1956,11 @@ The alias theorem reaches an NP-complete occurrence boundary, and three
 compression attempts now have precise outcomes. The next work is:
 
 1. **Classify the unbounded-nullity internal-frame problem.** Fixed nullity is
-   polynomial by `O(n^k)` dual-basis enumeration, and graphic or cographic
-   column matroids reduce to tree 2-spanners or threshold-three spanning-tree
-   congestion. The remaining target is the non-graphic, non-cographic cubic
+   polynomial by `O(n^k)` dual-basis enumeration, and, under the
+   represented-graph or exact-rational-matrix models stated in Result M,
+   graphic or cographic column matroids reduce to tree 2-spanners or
+   threshold-three spanning-tree congestion. The remaining target is the
+   non-graphic, non-cographic cubic
    incidence family with nullity growing in `n`. Determine whether its
    ground-set frame basis can be found in polynomial time or is NP-hard.
    Strictly improving one-column exchange is not sufficient; any proposed
@@ -2024,8 +2027,9 @@ The cubic kernel equivalence removes rational linear consistency as the
 mystery and proves a supplied-width-two polynomial theorem. Exact basis
 optimization shows that the original canonical support-three controls also
 belong to that class, but only after a basis is found. Fixed nullity and
-graphic or cographic column structure now give three unassisted polynomial
-subclasses. They do not cover the unbounded-nullity general case. Separate SAT
+graphic or cographic column structure now give three polynomially recognizable
+subclasses under the represented-graph or exact-rational-matrix models stated
+in Result M. They do not cover the unbounded-nullity general case. Separate SAT
 and UNSAT controls have invariant width three; every tested dual element still
 lies in a small circuit, so local triangle coverage does not construct a
 global frame. A fifth SAT control has a width-two basis but 19 nonglobal
