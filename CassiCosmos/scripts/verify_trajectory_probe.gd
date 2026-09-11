@@ -14,8 +14,14 @@ extends Node3D
 ##
 ## Long run inputs are explicit in the receipt. The frozen target is one
 ## million accepted steps, 4,096 tracers, stride 4,096, and a 256-slot ring.
+##
+## Initial-condition inputs (`--ic`, `--arrangement`, `--motion`) and the force
+## selector (`--gravity`, `--gridless`) default to the registered configuration
+## of the shell/ancestry probe. Runs that vary them record the values in the
+## same receipt fields, so a multi-condition comparison stays auditable.
 
 const ENGINE_SCRIPT = preload("res://scripts/cassi_physics_engine.gd")
+const ParticleInitialConditions = preload("res://scripts/cassi_particle_initial_conditions.gd")
 const GRID_N := 64
 const PHI: float = 1.618033988749895
 const DEFAULT_SEED := 20260910
@@ -30,9 +36,26 @@ const DEFAULT_MERGE_CADENCE := 64
 const DEFAULT_DT: float = 0.001
 const DEFAULT_CLUSTER_RADIUS: float = 25.0
 const DEFAULT_TOTAL_MASS: float = 1000.0
+const DEFAULT_CLUSTERS := 1
+const DEFAULT_SEPARATION: float = 0.0
+const DEFAULT_BOX_SCALE: float = 1.0
+const DEFAULT_TREE_CADENCE := 1
+const DEFAULT_RADIUS_FRACTION: float = 0.9
+const DEFAULT_RIVER_CALIBRATE_GN := false
+const DEFAULT_IC := 6
+const DEFAULT_ARRANGEMENT := 0
+const DEFAULT_MOTION := 4
+const DEFAULT_GRAVITY_MODE := 2
+const GRAVITY_MODES := 6
 const RUNNING := 1
 
 var _mode := "shell"
+var _ic := DEFAULT_IC
+var _arrangement := DEFAULT_ARRANGEMENT
+var _motion := DEFAULT_MOTION
+var _gravity_mode := DEFAULT_GRAVITY_MODE
+var _gridless := false
+var _field_attractor_init := false
 var _seed := DEFAULT_SEED
 var _particle_count := DEFAULT_PARTICLES
 var _tracer_count := DEFAULT_TRACERS
@@ -44,6 +67,15 @@ var _sample_capacity := DEFAULT_SAMPLE_CAPACITY
 var _event_capacity := DEFAULT_EVENT_CAPACITY
 var _merge_cadence := DEFAULT_MERGE_CADENCE
 var _dt := DEFAULT_DT
+var _clusters := DEFAULT_CLUSTERS
+var _separation := DEFAULT_SEPARATION
+var _box_scale := DEFAULT_BOX_SCALE
+var _cluster_radius := DEFAULT_CLUSTER_RADIUS
+var _total_mass := DEFAULT_TOTAL_MASS
+var _tree_cadence := DEFAULT_TREE_CADENCE
+var _radius_fraction := DEFAULT_RADIUS_FRACTION
+var _freeze_field := true
+var _river_calibrate_gn := DEFAULT_RIVER_CALIBRATE_GN
 var _timeout_sec := 0.0
 var _recorder_enabled := true
 var _out_dir := ""
@@ -74,6 +106,16 @@ func _ready() -> void:
 	print("[VerifyTrajectoryProbe] mode=%s recorder=%s particles=%d steps=%d seed=%d" % [
 		_mode, "on" if _recorder_enabled else "off",
 		_particle_count, _target_steps, _seed])
+	print("[VerifyTrajectoryProbe] IC=%s arrangement=%s motion=%s gravity=%d gridless=%s attractor_init=%s" % [
+		ParticleInitialConditions.SHAPE_NAMES[_ic],
+		ParticleInitialConditions.ARRANGEMENT_NAMES[_arrangement],
+		ParticleInitialConditions.MOTION_NAMES[_motion],
+		_gravity_mode, "on" if _gridless else "off",
+		"on" if _field_attractor_init else "off"])
+	print("[VerifyTrajectoryProbe] clusters=%d separation=%.3f radius=%.3f box=%.3f mass=%.1f tree_cadence=%d radius_fraction=%.3f freeze_field=%s river_calibrate_gn=%s" % [
+		_clusters, _separation, _cluster_radius, _box_scale,
+		_total_mass, _tree_cadence, _radius_fraction,
+		"on" if _freeze_field else "off", "on" if _river_calibrate_gn else "off"])
 	_rd = RenderingServer.create_local_rendering_device()
 	if _rd == null:
 		_fail("local RenderingDevice unavailable; run the scene windowed")
@@ -111,6 +153,7 @@ func _ready() -> void:
 		_plant_coherent_field()
 	print("[VerifyTrajectoryProbe] support=%.6f inner=%.6f outer=%.6f" % [
 		_support_radius(), _inner_radius, _outer_radius])
+	_started_ms = Time.get_ticks_msec()
 	_phase = RUNNING
 
 
@@ -154,18 +197,19 @@ func _registered_config() -> Dictionary:
 		"dt": _dt,
 		"xi": 17.94427191,
 		"softening": 0.1,
-		"cluster_radius": DEFAULT_CLUSTER_RADIUS,
-		"cluster_separation": 0.0,
-		"num_clusters": 1,
+		"cluster_radius": _cluster_radius,
+		"cluster_separation": _separation,
+		"num_clusters": _clusters,
 		"box_aspect": [1.0, 1.0, 1.0],
-		"box_scale": 1.0,
+		"box_scale": _box_scale,
+		"tree_cadence": _tree_cadence,
 		"window_center": [0.0, 0.0, 0.0],
-		"initial_condition": 6,
-		"initial_arrangement": 0,
-		"initial_motion": 4,
+		"initial_condition": _ic,
+		"initial_arrangement": _arrangement,
+		"initial_motion": _motion,
 		"initial_speed": 1.0,
-		"initial_total_mass": DEFAULT_TOTAL_MASS,
-		"initial_radius_fraction": 0.9,
+		"initial_total_mass": _total_mass,
+		"initial_radius_fraction": _radius_fraction,
 		"initial_shape_settings": {
 			"shell_count": 3,
 			"shell_spacing": 0.33,
@@ -173,14 +217,17 @@ func _registered_config() -> Dictionary:
 			"shell_ellipticity": 0.88,
 			"shell_offset": 0.12,
 		},
-		"freeze_field": true,
+		"freeze_field": _freeze_field,
+		"field_attractor_init": _field_attractor_init,
 		"source_strength": 0.0,
-		"gravity_mode": 2,
+		"river_calibrate_gn": _river_calibrate_gn,
+		"gravity_mode": _gravity_mode,
+		"gridless_physics": _gridless,
 		"black_holes_enabled": false,
 		"bh_accretion": false,
 		"dual_grid": false,
-		"meshless_mode": false,
-		"meshless_gravity": false,
+		"meshless_mode": _gridless,
+		"meshless_gravity": _gridless,
 		"particle_merge": _mode == "ancestry",
 		"merge_cadence_steps": _merge_cadence,
 		"trajectory_enabled": _recorder_enabled,
@@ -209,6 +256,26 @@ func _parse_args() -> void:
 		_failure = "mode must be shell or ancestry"
 		return
 	_seed = _arg_int("seed", DEFAULT_SEED)
+	_ic = _arg_int("ic", DEFAULT_IC)
+	_arrangement = _arg_int("arrangement", DEFAULT_ARRANGEMENT)
+	_motion = _arg_int("motion", DEFAULT_MOTION)
+	_gravity_mode = _arg_int("gravity", DEFAULT_GRAVITY_MODE)
+	var gridless_arg := _arg_value("gridless", "off").to_lower()
+	if gridless_arg == "on" or gridless_arg == "true":
+		_gridless = true
+	elif gridless_arg == "off" or gridless_arg == "false":
+		_gridless = false
+	else:
+		_failure = "gridless must be on or off"
+		return
+	var attractor_arg := _arg_value("field-attractor-init", "off").to_lower()
+	if attractor_arg == "on" or attractor_arg == "true":
+		_field_attractor_init = true
+	elif attractor_arg == "off" or attractor_arg == "false":
+		_field_attractor_init = false
+	else:
+		_failure = "field-attractor-init must be on or off"
+		return
 	_particle_count = _arg_int("particles", DEFAULT_PARTICLES)
 	_tracer_count = _arg_int("tracers", mini(DEFAULT_TRACERS, _particle_count))
 	_target_steps = _arg_int("steps", DEFAULT_STEPS)
@@ -219,6 +286,29 @@ func _parse_args() -> void:
 	_event_capacity = _arg_int("event-capacity", DEFAULT_EVENT_CAPACITY)
 	_merge_cadence = _arg_int("merge-cadence", DEFAULT_MERGE_CADENCE)
 	_dt = _arg_float("dt", DEFAULT_DT)
+	_clusters = _arg_int("clusters", DEFAULT_CLUSTERS)
+	_separation = _arg_float("separation", DEFAULT_SEPARATION)
+	_box_scale = _arg_float("box-scale", DEFAULT_BOX_SCALE)
+	_cluster_radius = _arg_float("cluster-radius", DEFAULT_CLUSTER_RADIUS)
+	_total_mass = _arg_float("total-mass", DEFAULT_TOTAL_MASS)
+	_tree_cadence = _arg_int("tree-cadence", DEFAULT_TREE_CADENCE)
+	_radius_fraction = _arg_float("radius-fraction", DEFAULT_RADIUS_FRACTION)
+	var freeze_arg := _arg_value("freeze-field", "on").to_lower()
+	if freeze_arg == "on" or freeze_arg == "true":
+		_freeze_field = true
+	elif freeze_arg == "off" or freeze_arg == "false":
+		_freeze_field = false
+	else:
+		_failure = "freeze-field must be on or off"
+		return
+	var calibrate_arg := _arg_value("river-calibrate-gn", "off").to_lower()
+	if calibrate_arg == "on" or calibrate_arg == "true":
+		_river_calibrate_gn = true
+	elif calibrate_arg == "off" or calibrate_arg == "false":
+		_river_calibrate_gn = false
+	else:
+		_failure = "river-calibrate-gn must be on or off"
+		return
 	_timeout_sec = _arg_float("timeout-sec", 0.0)
 	var recorder_mode := _arg_value("recorder", "on").to_lower()
 	if recorder_mode == "on" or recorder_mode == "true":
@@ -240,10 +330,24 @@ func _parse_args() -> void:
 		_failure = "recorder capacities and stride must be positive"
 	elif _merge_cadence < 1:
 		_failure = "merge cadence must be positive"
+	elif _clusters < 1 or _clusters > 64:
+		_failure = "cluster count must be in [1, 64]"
+	elif _separation < 0.0 or _box_scale <= 0.0 or _cluster_radius <= 0.0 or _total_mass <= 0.0:
+		_failure = "separation must be nonnegative; box scale, cluster radius, and total mass must be positive"
+	elif _tree_cadence < 1:
+		_failure = "tree cadence must be positive"
+	elif _radius_fraction <= 0.0 or _radius_fraction > 4.0:
+		_failure = "radius fraction must be in (0, 4]"
 	elif _dt <= 0.0 or not is_finite(_dt):
 		_failure = "dt must be finite and positive"
 	elif _inner_radius_arg < -1.0 or _outer_radius_arg < -1.0:
 		_failure = "shell radius overrides must be nonnegative"
+	elif _ic < 0 or _ic >= ParticleInitialConditions.SHAPE_NAMES.size() \
+			or _arrangement < 0 or _arrangement >= ParticleInitialConditions.ARRANGEMENT_NAMES.size() \
+			or _motion < 0 or _motion >= ParticleInitialConditions.MOTION_NAMES.size():
+		_failure = "initial condition, arrangement, or motion index is out of range"
+	elif _gravity_mode < 0 or _gravity_mode >= GRAVITY_MODES:
+		_failure = "gravity mode must be in [0, %d]" % (GRAVITY_MODES - 1)
 
 
 func _arg_value(name: String, fallback: String) -> String:
@@ -481,15 +585,23 @@ func _write_artifacts() -> bool:
 		"initial_total_mass": _initial_total_mass,
 		"final_live_count": final_live_count,
 		"final_total_mass": final_total_mass,
-		"cluster_radius": DEFAULT_CLUSTER_RADIUS,
+		"cluster_radius": _cluster_radius,
 		"box_aspect": [1.0, 1.0, 1.0],
-		"extents": [DEFAULT_CLUSTER_RADIUS * 1.5, DEFAULT_CLUSTER_RADIUS * 1.5, DEFAULT_CLUSTER_RADIUS * 1.5],
+		"box_scale": _box_scale,
+		"extents": [
+			_cluster_radius * 1.5 * _box_scale,
+			_cluster_radius * 1.5 * _box_scale,
+			_cluster_radius * 1.5 * _box_scale,
+		],
 		"inner_radius": _inner_radius,
 		"outer_radius": _outer_radius,
 		"geometry": {
-			"initial_condition": "Nested shells",
-			"initial_arrangement": "Ring",
-			"initial_motion": "Inward",
+			"initial_condition": ParticleInitialConditions.SHAPE_NAMES[_ic],
+			"initial_condition_index": _ic,
+			"initial_arrangement": ParticleInitialConditions.ARRANGEMENT_NAMES[_arrangement],
+			"initial_arrangement_index": _arrangement,
+			"initial_motion": ParticleInitialConditions.MOTION_NAMES[_motion],
+			"initial_motion_index": _motion,
 			"shell_count": 3,
 			"shell_spacing": 0.33,
 			"shell_inner_radius": 0.34,
@@ -497,7 +609,8 @@ func _write_artifacts() -> bool:
 			"shell_offset": 0.12,
 		},
 		"field_control": {
-			"freeze_field": true,
+			"freeze_field": _freeze_field,
+			"field_attractor_init": _field_attractor_init,
 			"source_strength": 0.0,
 			"coherent_field_plant": _mode == "ancestry",
 			"plant_EY": PHI if _mode == "ancestry" else 0.0,
