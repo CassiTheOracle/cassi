@@ -78,8 +78,11 @@ The analysis script consumes only the raw receipt and binary arrays. It computes
    fraction of tracers remaining finite and alive;
 5. the merge-edge count, unique source/survivor IDs, maximum ancestry depth, and
    connected-component size distribution;
-6. mass closure from initial/final live-particle summaries and the source/survivor
-   masses in the merge event ledger.
+6. mass closure from the initial and final live-particle summaries, together
+   with the merge event ledger: each hop's absorbed source mass, the survivor
+   pre-hop mass implied by mass conservation, and, where a survivor later
+   appears as a source, the agreement of that mass across both records at
+   `1e-4` relative.
 
 A shell candidate is reported when a radial bin has a local occupancy maximum
 that persists for at least three consecutive stored history slots and its

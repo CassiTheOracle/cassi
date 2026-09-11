@@ -36,6 +36,12 @@ assert EVENT_DTYPE.itemsize == 80
 ## The registered long-horizon target. Runs below it are implementation checks.
 REGISTERED_TARGET_STEPS = 1_000_000
 
+## The two registered harness modes. Anything else is a malformed receipt.
+MODES = ("shell", "ancestry")
+
+## Registered relative tolerance for merge-ledger mass agreement (prereg 5).
+LEDGER_MASS_TOLERANCE = 1.0e-4
+
 ## Engine inputs a recorder-enabled receipt must record to qualify as evidence.
 ## This mirrors _registered_config() in scripts/verify_trajectory_probe.gd; the
 ## registration requires the complete configuration, so every key the harness
@@ -322,6 +328,13 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
         raise AnalysisFailure(f"invalid receipt.json: {exc}") from exc
     if receipt.get("schema") != "cassi.trajectory-probe.v1":
         raise AnalysisFailure("unsupported trajectory receipt schema")
+    ## The mode selects which claims a run scopes, so it is validated before any
+    ## branch uses it: an unrecognized mode must not be read as ancestry.
+    mode = receipt.get("mode")
+    if mode not in MODES:
+        raise AnalysisFailure(
+            "receipt mode must be one of %s, got %r" % (", ".join(MODES), mode)
+        )
     recorder_flag = receipt.get("recorder_enabled")
     if recorder_flag is False:
         baseline = _baseline_analysis(run_dir, receipt)
@@ -463,6 +476,16 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
 
     edges_graph: list[tuple[int, int]] = []
     event_state_failures = 0
+    ## Ledger mass accounting (prereg 4.6). A hop records the source's pre-hop
+    ## mass and the survivor's post-hop mass, and the merge conserves mass, so
+    ## the survivor's pre-hop mass is implied by their difference. When a
+    ## survivor later appears as a source, that same mass is recorded a second
+    ## time, which reconciles the two events at the registered tolerance.
+    absorbed_source_mass_total = 0.0
+    implied_survivor_pre_mass_total = 0.0
+    maximum_absorbed_mass_fraction = 0.0
+    ledger_mass_mismatches = 0
+    ledger_survivor_mass: dict[int, float] = {}
     for event in events:
         source = int(event["source"])
         survivor = int(event["survivor"])
@@ -475,20 +498,39 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
         source_vel = event["source_vel"]
         survivor_pos = event["survivor_pos"]
         survivor_vel = event["survivor_vel"]
-        if not (
+        state_ok = bool(
             np.isfinite(source_pos).all()
             and np.isfinite(source_vel).all()
             and np.isfinite(survivor_pos).all()
             and np.isfinite(survivor_vel).all()
             and source_pos[3] > 0.0
             and survivor_pos[3] > source_pos[3]
-        ):
+        )
+        if not state_ok:
             event_state_failures += 1
+        else:
+            source_mass = float(source_pos[3])
+            survivor_mass = float(survivor_pos[3])
+            absorbed_source_mass_total += source_mass
+            implied_survivor_pre_mass_total += survivor_mass - source_mass
+            maximum_absorbed_mass_fraction = max(
+                maximum_absorbed_mass_fraction, source_mass / survivor_mass
+            )
+            recorded = ledger_survivor_mass.pop(source, None)
+            if recorded is not None:
+                scale = max(abs(recorded), abs(source_mass))
+                if abs(recorded - source_mass) > LEDGER_MASS_TOLERANCE * scale:
+                    ledger_mass_mismatches += 1
+            ledger_survivor_mass[survivor] = survivor_mass
         if int(event["step"]) > accepted_steps:
             event_state_failures += 1
         edges_graph.append((source, survivor))
     if event_state_failures:
         hard_failures.append(f"invalid event state records={event_state_failures}")
+    if ledger_mass_mismatches:
+        hard_failures.append(
+            f"merge ledger mass mismatch across chained hops={ledger_mass_mismatches}"
+        )
     maximum_depth, graph_cycle = _ancestry_depth(edges_graph)
     if graph_cycle:
         hard_failures.append("merge ancestry graph contains a cycle or conflicting parent")
@@ -496,7 +538,6 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
 
     shell_verdict = "SUPPORTS" if shell_candidates else "DOES NOT EMERGE"
     ancestry_verdict = "SUPPORTS" if edges_graph else "DOES NOT EMERGE"
-    mode = str(receipt.get("mode", "shell"))
     ## Merging is disabled in the shell control, so that mode scopes the shell
     ## claim alone. The ancestry mode measures both claims, and its composite
     ## verdict is their conjunction: neither claim's result stands in for the
@@ -566,9 +607,18 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
             "final_tracer_live_count": int((final_tracers[:, 3] > 0.0).sum()),
         },
         "mass_closure": {
+            "scope": "receipt initial vs final live-particle totals",
             "initial_total_mass": initial_total_mass,
             "final_total_mass": final_total_mass,
             "relative_error": mass_relative_error,
+        },
+        "merge_ledger": {
+            "scope": "per-hop absorbed and implied masses from the event records",
+            "absorbed_source_mass_total": absorbed_source_mass_total,
+            "implied_survivor_pre_mass_total": implied_survivor_pre_mass_total,
+            "maximum_absorbed_mass_fraction": maximum_absorbed_mass_fraction,
+            "chained_mass_mismatches": ledger_mass_mismatches,
+            "chained_mass_tolerance": LEDGER_MASS_TOLERANCE,
         },
         "ancestry": {
             "event_total": event_total,
