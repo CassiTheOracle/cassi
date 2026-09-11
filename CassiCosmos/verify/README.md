@@ -89,14 +89,15 @@ particle-merge rule enabled under a fixed coherent field plant. `--recorder=off`
 writes only the tracer endpoints and is the paired dynamics-neutrality control.
 The frozen registration is
 [`research/matter_formation/trajectory_shell_prereg.md`](../research/matter_formation/trajectory_shell_prereg.md);
-runs shorter than the registered 1,000,000 accepted steps are implementation
-checks, and the analysis reports them as `IMPLEMENTATION CHECK` rather than
-evidence.
+runs shorter than the registered 1,000,000 accepted steps are reported with the
+status `IMPLEMENTATION CHECK` and a verdict of `INCONCLUSIVE`, so they are never
+read as evidence either way.
 
 Every run writes `receipt.json`, the raw recorder arrays, and `analysis.json`
-(the last two directories are gitignored) under
-`res://_diag/matter_formation/trajectory_<mode>/`. Score a run with the
-standalone analyzer, which consumes only the receipt and the binary payload:
+under `res://_diag/matter_formation/trajectory_<mode>/`. That output tree is
+gitignored, so receipts and raw arrays stay out of commits; only the harness,
+analyzer, and registration are tracked. Score a run with the standalone
+analyzer, which consumes only the receipt and the binary payload:
 
 ```
 python tools/analyze_trajectory_probe.py _diag/matter_formation/trajectory_shell
@@ -107,6 +108,13 @@ turnarounds, and the merge-edge ancestry graph. It does not dispatch the
 condensation scanner, spawn black-hole records, or transfer field mass to the
 particle population: recorded events are particle-merge hops only, and the
 probe is not a test of the fluid-to-matter collapse pathway.
+
+The recorder-off control compares the arrays the harness retains — the 4,096
+sampled tracer identities and their initial and final states — and those arrays
+match byte for byte across the on/off pair at matched configuration. Sampled
+tracer motion therefore carries no recorder perturbation; the comparison does
+not cover the unsampled particles or the field state, which rely on the
+recorder's read-only dispatch contract rather than on this measurement.
 
 ## The arms
 

@@ -90,11 +90,19 @@ negative result and remains a valid completed probe.
 Contrast is the bin's share of live tracers at the stored slot divided by its
 share at step zero. A bin that holds no tracers at step zero has no ratio, so
 its baseline share is the one-tracer floor `1/N`: the smallest non-zero
-occupancy the bin can hold. A candidate in such a bin therefore reports the
-filling of an initially empty region, and its contrast scales with the tracer
-count rather than with a measured ratio. Every candidate carries its step-zero
-occupancy, so the stricter criterion—a local maximum in a bin that was already
-occupied at step zero—can be read directly from the analysis output.
+occupancy the bin can hold. A candidate in such a bin reports the filling of an
+initially empty region, and its contrast scales with the tracer count rather
+than with a measured ratio. Every candidate carries its step-zero occupancy, and
+the analysis reports the already-occupied subset separately; that subset is the
+reading which does not depend on the floor convention, and it is the stricter of
+the two.
+
+The floor convention and the per-candidate step-zero occupancy were fixed before
+the receipts reported here were produced. Both qualifying runs return support
+under either reading of an initially empty bin: three of the 43 shell candidates
+sit in bins occupied at step zero with a maximum contrast of 2.91, and two of
+the 54 ancestry-mode candidates with a maximum of 2.83, against a registered
+threshold of 1.5. No recorded verdict depends on the convention.
 
 ## 5. Decision rules
 

@@ -37,25 +37,43 @@ assert EVENT_DTYPE.itemsize == 80
 REGISTERED_TARGET_STEPS = 1_000_000
 
 ## Engine inputs a recorder-enabled receipt must record to qualify as evidence.
+## This mirrors _registered_config() in scripts/verify_trajectory_probe.gd; the
+## registration requires the complete configuration, so every key the harness
+## writes is required here.
 REGISTERED_CONFIG_KEYS = (
     "seed",
     "grid_N",
     "N_particles",
     "batch_steps",
+    "batches_per_frame",
     "dt",
     "xi",
     "softening",
+    "cluster_radius",
+    "cluster_separation",
+    "num_clusters",
+    "box_aspect",
+    "box_scale",
+    "window_center",
     "initial_condition",
     "initial_arrangement",
     "initial_motion",
     "initial_speed",
     "initial_total_mass",
+    "initial_radius_fraction",
+    "initial_shape_settings",
+    "freeze_field",
+    "source_strength",
     "gravity_mode",
     "black_holes_enabled",
     "bh_accretion",
+    "dual_grid",
+    "meshless_mode",
+    "meshless_gravity",
     "particle_merge",
     "merge_cadence_steps",
     "trajectory_enabled",
+    "trajectory_tracer_count",
     "trajectory_sample_capacity",
     "trajectory_sample_stride",
     "trajectory_event_capacity",
@@ -264,20 +282,26 @@ def _shell_candidates(
 
 
 def _baseline_analysis(run_dir: Path, receipt: dict[str, Any]) -> dict[str, Any]:
-    """Describe a recorder-off control directory: it carries no trajectory payload."""
+    """Describe a recorder-off control directory: it carries no trajectory payload.
+
+    The control answers neither registered claim, so its verdict is INCONCLUSIVE
+    and its status records why. Nothing here is evidence for or against a claim.
+    """
     return {
         "schema": "cassi.trajectory-analysis.v1",
         "mode": receipt.get("mode"),
         "run_dir": str(run_dir),
         "hard_failures": [],
-        "verdict": "NOT APPLICABLE",
+        "verdict": "INCONCLUSIVE",
+        "status": "CONTROL (recorder off)",
+        "scoped_claims": {},
         "qualifying": False,
         "registered_target_steps": REGISTERED_TARGET_STEPS,
         "accepted_steps": _integer(receipt, "accepted_steps"),
         "recorder_enabled": False,
         "engine": receipt.get("engine"),
-        "shell_verdict": "NOT APPLICABLE",
-        "ancestry_verdict": "NOT APPLICABLE",
+        "shell_verdict": "INCONCLUSIVE",
+        "ancestry_verdict": "INCONCLUSIVE",
         "baseline": {
             "initial_live_count": _integer(receipt, "initial_live_count"),
             "final_live_count": _integer(receipt, "final_live_count"),
@@ -298,13 +322,18 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
         raise AnalysisFailure(f"invalid receipt.json: {exc}") from exc
     if receipt.get("schema") != "cassi.trajectory-probe.v1":
         raise AnalysisFailure("unsupported trajectory receipt schema")
-    if not bool(receipt.get("recorder_enabled", False)):
+    recorder_flag = receipt.get("recorder_enabled")
+    if recorder_flag is False:
         baseline = _baseline_analysis(run_dir, receipt)
         output_path = run_dir / "analysis.json"
         output_path.write_text(
             json.dumps(baseline, indent=2, default=_json_number) + "\n", encoding="utf-8"
         )
         return baseline, 0
+    if recorder_flag is not True:
+        raise AnalysisFailure(
+            "receipt does not declare recorder_enabled as a boolean"
+        )
 
     tracer_count = _integer(receipt, "tracer_count")
     sample_slots = _integer(receipt, "sample_slots")
@@ -468,20 +497,37 @@ def analyze(run_dir: Path, bins: int) -> tuple[dict[str, Any], int]:
     shell_verdict = "SUPPORTS" if shell_candidates else "DOES NOT EMERGE"
     ancestry_verdict = "SUPPORTS" if edges_graph else "DOES NOT EMERGE"
     mode = str(receipt.get("mode", "shell"))
-    mode_verdict = ancestry_verdict if mode == "ancestry" else shell_verdict
+    ## Merging is disabled in the shell control, so that mode scopes the shell
+    ## claim alone. The ancestry mode measures both claims, and its composite
+    ## verdict is their conjunction: neither claim's result stands in for the
+    ## other, and a mixed outcome is reported as INCONCLUSIVE with its parts.
+    verdicts = {"shell": shell_verdict, "ancestry": ancestry_verdict}
+    scoped_claims = ("shell",) if mode == "shell" else ("shell", "ancestry")
+    supporting = [claim for claim in scoped_claims if verdicts[claim] == "SUPPORTS"]
     qualifying = accepted_steps >= REGISTERED_TARGET_STEPS
     if hard_failures:
         overall_verdict = "FAIL"
-    elif qualifying:
-        overall_verdict = mode_verdict
+        status = "FAILED"
+    elif not qualifying:
+        overall_verdict = "INCONCLUSIVE"
+        status = "IMPLEMENTATION CHECK"
+    elif len(supporting) == len(scoped_claims):
+        overall_verdict = "SUPPORTS"
+        status = "PROBE"
+    elif not supporting:
+        overall_verdict = "DOES NOT EMERGE"
+        status = "PROBE"
     else:
-        overall_verdict = "IMPLEMENTATION CHECK"
+        overall_verdict = "INCONCLUSIVE"
+        status = "MIXED SCOPED CLAIMS"
     analysis: dict[str, Any] = {
         "schema": "cassi.trajectory-analysis.v1",
         "mode": mode,
         "run_dir": str(run_dir),
         "hard_failures": hard_failures,
         "verdict": overall_verdict,
+        "status": status,
+        "scoped_claims": {claim: verdicts[claim] for claim in scoped_claims},
         "qualifying": qualifying,
         "registered_target_steps": REGISTERED_TARGET_STEPS,
         "accepted_steps": accepted_steps,
@@ -551,9 +597,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if "sample_count_stored" in analysis:
         print(
-            "[trajectory-analysis] %s shell=%s ancestry=%s samples=%d events=%d steps=%d qualifying=%s"
+            "[trajectory-analysis] %s (%s) shell=%s ancestry=%s samples=%d events=%d steps=%d qualifying=%s"
             % (
                 analysis["verdict"],
+                analysis["status"],
                 analysis["shell_verdict"],
                 analysis["ancestry_verdict"],
                 analysis["sample_count_stored"],
@@ -565,9 +612,10 @@ def main(argv: list[str] | None = None) -> int:
     else:
         baseline = analysis["baseline"]
         print(
-            "[trajectory-analysis] %s: recorder off, no trajectory payload; steps=%d live=%d→%d mass=%.6f→%.6f"
+            "[trajectory-analysis] %s (%s): no trajectory payload; steps=%d live=%d→%d mass=%.6f→%.6f"
             % (
                 analysis["verdict"],
+                analysis["status"],
                 analysis["accepted_steps"],
                 baseline["initial_live_count"],
                 baseline["final_live_count"],

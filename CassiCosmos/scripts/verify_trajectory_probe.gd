@@ -139,6 +139,11 @@ func _process(_delta: float) -> void:
 ## The complete registered configuration. Every receipt records this dictionary
 ## so a qualifying run can prove the inputs it ran under, and _engine_config()
 ## derives the engine call from it.
+##
+## The shell bounds derive from the initial radial support, which is only known
+## after setup(), so setup() receives the pre-measurement zeros and _ready()
+## applies the computed bounds with eng.set before the first step. Receipts are
+## written after that, so their radii are the effective bounds.
 func _registered_config() -> Dictionary:
 	return {
 		"seed": _seed,
@@ -412,6 +417,8 @@ func _write_artifacts() -> bool:
 			"initial_total_mass": _initial_total_mass,
 			"final_live_count": final_live_count,
 			"final_total_mass": final_total_mass,
+			"inner_radius": _inner_radius,
+			"outer_radius": _outer_radius,
 			"files": ["receipt.json", "tracer_ids.bin", "initial_tracers.bin", "final_tracers.bin"],
 		}
 		if not baseline_files_ok or not _write_receipt(baseline_receipt):
