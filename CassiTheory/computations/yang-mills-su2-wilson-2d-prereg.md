@@ -71,15 +71,18 @@ The value is independent of \(t\), which is an exact transfer-matrix identity fo
 
 ## 3. Frozen schedule
 
-Use
 \[
 \beta\in\{1,2,4\},
 \qquad
 L_s,L_t\in\{1,2,4\},
 \qquad
-N\in\{8,16,24,32\}.
+N\in\{8,16,24,32\},
+\qquad
+t\in\{0,1,2,4\}.
 \]
-The primary has 108 rows, the Cartesian product of the three couplings, nine \((L_s,L_t)\) pairs and four character cutoffs. Each row checks:
+The primary has 108 rows, the Cartesian product of the three couplings, nine
+\((L_s,L_t)\) pairs and four character cutoffs. Each row evaluates the
+correlator at the four declared temporal separations. Each row checks:
 
 1. positivity of every scheduled \(I_n(\beta)\) coefficient;
 2. strict decrease of \(r_n\) over the retained indices;
