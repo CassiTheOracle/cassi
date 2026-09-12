@@ -1004,6 +1004,32 @@ condition required for a finite-volume exact-ground-state tail estimate. No
 primary or independent execution receipt is present, so this entry records a
 target and supplies no measured Hamiltonian or vacuum result.
 
+## 35. Finite-volume SU(2) quantum Schwinger generator
+
+The frozen protocol
+`computations/yang-mills-su2-quantum-schwinger-2d-prereg-v1.md` defines a
+finite two-dimensional SU(2) Wilson transfer model with
+\(\beta\in\{1,2,4\}\), spatial lengths \(L_s\in\{1,2,4\}\), character
+cutoffs \(N\in\{8,16,24,32\}\), three fusion channels and five Euclidean
+times. It is separate from the larger-volume Hamiltonian target in §34.
+
+| Protocol component | Decisive result | Classification and scope |
+|---|---|---|
+| Primary transfer generator | 36 parameter rows, 396 row checks and six top-level checks pass: 402/402 | **PASS**, finite two-dimensional transfer model |
+| Independent reconstruction | Eight top-level checks pass; all 36 rows reconstruct the primary transfer data, fusion channels, correlators and effective masses | **PASS**, implementation-independent finite reconstruction |
+| Positive-series control | The independent source records positive Bessel-series tail bounds and propagated log-energy bounds; the largest scheduled relative tail bound is below \(10^{-16}\) | **DERIVED**, finite coefficient-control diagnostic |
+| Continuum boundary | Character-cutoff removal, spatial-volume uniformity, thermodynamic construction, OS reconstruction and a regulator-independent physical mass gap remain unsupplied | **UNRESOLVED** |
+
+The qualified receipts are
+`runs/yang_mills_su2_quantum_schwinger_2d/verification-v1.json` and
+`runs/yang_mills_su2_quantum_schwinger_2d/verification-independent-v1.json`.
+The directory retains
+`verification-independent-v1-failed.json` as an audit artifact with one
+failed independent reconstruction before the final bounded-series source.
+The final receipts bind the frozen protocol, both source files and the
+primary receipt hash. No larger-volume Hamiltonian receipt is claimed, and
+the finite two-dimensional result supplies no continuum mass-gap estimate.
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -1089,6 +1115,11 @@ target and supplies no measured Hamiltonian or vacuum result.
 - `computations/verify_yang_mills_su2_wilson_2d_independent.mjs`—120-check independent Bessel-series and receipt reconstruction.
 - `runs/yang_mills_su2_wilson_2d/verification.json`—876-check finite-volume Wilson bridge receipt.
 - `runs/yang_mills_su2_wilson_2d/verification-independent.json`—120-check independent receipt binding both sources and the primary receipt.
+- `computations/yang-mills-su2-quantum-schwinger-2d-prereg-v1.md`—finite-volume two-dimensional SU(2) quantum Schwinger-function protocol.
+- `computations/verify_yang_mills_su2_quantum_schwinger_2d.py`—402-check primary finite-volume transfer and correlator receipt generator.
+- `computations/verify_yang_mills_su2_quantum_schwinger_2d_independent.mjs`—eight-check independent Bessel-series, spectral and source-binding reconstruction.
+- `runs/yang_mills_su2_quantum_schwinger_2d/verification-v1.json`—402-check source-bound finite-volume quantum Schwinger receipt.
+- `runs/yang_mills_su2_quantum_schwinger_2d/verification-independent-v1.json`—eight-check independent receipt binding both sources and the primary receipt.
 - `computations/yang-mills-su2-transport-expansion-prereg.md`—fixed local strip and compact-boundary schedule.
 - `computations/verify_yang_mills_su2_transport_expansion.py`—150-check normalized transport expansion.
 - `computations/verify_yang_mills_su2_transport_expansion_independent.mjs`—60-check independent coefficient and receipt reconstruction.
