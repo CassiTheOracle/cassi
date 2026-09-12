@@ -14273,7 +14273,7 @@ persistent remnant, so the preregistered verdict is
 The binding ratio remains part of the formation predicate. It is omitted
 from cross-resolution equivalence comparisons because its denominator is
 ill-conditioned when the retained core charge is negligible; the stable
-observable comparison gate remains load-bearing for numerical qualification.
+observable comparison gate remains the numerical qualification criterion.
 
 ### 92.3 Bounded interpretation
 
