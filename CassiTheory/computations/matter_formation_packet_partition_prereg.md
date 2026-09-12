@@ -10,7 +10,7 @@ remnant. Total signed charge, packet separation, width, carrier magnitude,
 relative phase, phase-gradient direction, action, domain, grid ladder, final
 time, and persistence predicates are fixed. The packet at positive axial
 centre receives the declared isolated charge fraction
-$\lambda_+\in\{0.25,0.5,0.75\}$ through its envelope amplitude before the
+$\eta_+\in\{0.25,0.5,0.75\}$ through its envelope amplitude before the
 complete superposition is normalized to $Q=16$. A separate outward equal-split
 arm controls the near-zero-core binding-ratio gate. The calculation measures
 only the declared axisymmetric scalar model. General three-dimensional
@@ -30,7 +30,7 @@ lineage; no earlier receipt is modified or used as evidence for this
 calculation.
 
 The scientific output path is
-`runs/20260912_matter_formation_packet_partition`. The primary runner creates
+`runs/20260912_matter_formation_packet_partition_signed_share`. The primary runner creates
 it exclusively, snapshots this protocol, the declarative preparation
 specification, both runner/verifier sources, and every declared action source.
 The verifier writes `verification.json` and a sibling independent-state
@@ -80,12 +80,12 @@ $$
 \omega=\sqrt{\Omega_\infty^2+8k^2}.
 $$
 
-Let $\lambda_+$ denote the declared isolated charge fraction of the packet
-centred at $\zeta=+12$. Before full-field normalization, the envelope
-amplitudes are multiplied by $\sqrt{1-\lambda_+}$ at $\zeta=-12$ and
-$\sqrt{\lambda_+}$ at $\zeta=+12$. The partition ladder is
+Let $\eta_+$ denote the declared signed-charge fraction of the packet centred
+at $\zeta=+12$, and let $\eta_-=1-\eta_+$. Before full-field normalization,
+the envelope amplitudes are multiplied by $\sqrt{\eta_-}$ at $\zeta=-12$ and
+$\sqrt{\eta_+}$ at $\zeta=+12$. The partition ladder is
 $$
-\lambda_+\in\left\{\frac14,\frac12,\frac34\right\}.
+\eta_+\in\left\{\frac14,\frac12,\frac34\right\}.
 $$
 
 The `pair_split25`, `pair_split50`, and `pair_split75` arms use these three
@@ -94,14 +94,19 @@ values. `uncoupled_split50` uses the equal partition with $h_C=0$ throughout.
 reversed and exists only as the near-zero-core binding-gate control. Every
 preparation is normalized once from the complete superposed field to total
 signed charge $Q=16$.
-The primary and independent assemblers compute the charge of each isolated
-weighted packet after applying the same full-field normalization factor. The
-receipt records both isolated packet charge contributions and their
-reconstructed positive-centre fraction. The reconstructed fraction must equal
-$\lambda_+$ within $10^{-12}$. The coherent superposition's full signed charge,
-including any overlap cross term, is separately measured and must equal
-$Q=16$; the isolated contributions are not substituted for that full-field
-observable.
+The primary and independent assemblers compute the signed charge of each
+isolated weighted packet after applying the same full-field normalization
+factor. The receipt records both isolated packet charge contributions and
+their reconstructed negative- and positive-centre fractions. The
+reconstructed fractions must equal $(\eta_-,\eta_+)$ within $10^{-12}$. The
+coherent superposition's full signed charge, including any overlap cross term,
+is separately measured and must equal $Q=16$; the isolated contributions are
+not substituted for that full-field observable.
+The `pair_split25` and `pair_split75` arms are the complementary
+$\eta_+\leftrightarrow\eta_-$ pair. The verifier checks their initial fields
+and velocities under axial reflection, checks that their isolated fractions
+swap, and checks that both reflected preparations retain total signed charge
+$Q=16$ on every primary grid.
 
 The inward sign is fixed by
 $z\propto e^{i(k\zeta-\omega t)}$ and $\dot z=-i\omega z$: the packet at
@@ -121,9 +126,9 @@ The following JSON is the sole scientific schedule and decision contract.
 
 ```json
 {
-  "schema": "matter-formation-packet-charge-partition-protocol-v1",
+  "schema": "matter-formation-packet-charge-partition-protocol-v2",
   "execution_class": "packet_charge_partition_probe",
-  "output": "runs/20260912_matter_formation_packet_partition",
+  "output": "runs/20260912_matter_formation_packet_partition_signed_share",
   "preparation": {
     "total_charge": 16.0,
     "center_separation": 12.0,
@@ -132,7 +137,8 @@ The following JSON is the sole scientific schedule and decision contract.
     "relative_phase": 0.0,
     "inward_phase_sign": 1.0,
     "outward_phase_sign": -1.0,
-    "positive_center_isolated_charge_fractions": [0.25, 0.5, 0.75],
+    "eta_plus_values": [0.25, 0.5, 0.75],
+    "mirrored_partition_arms": ["pair_split25", "pair_split75"],
     "initial_overlap_max": 0.01,
     "initial_core_fraction_max": 0.10
   },
@@ -154,7 +160,8 @@ The following JSON is the sole scientific schedule and decision contract.
     "all": ["single16_w4", "pair_split25", "pair_split50", "pair_split75", "uncoupled_split50", "outward_split50"],
     "coupled_candidates": ["pair_split25", "pair_split50", "pair_split75"],
     "rule_control": "outward_split50",
-    "uncoupled_control": "uncoupled_split50"
+    "uncoupled_control": "uncoupled_split50",
+    "mirrored_partition": ["pair_split25", "pair_split75"]
   },
   "comparison_observables": ["energy", "charge", "core_fraction", "core_rms", "core_energy", "shell_energy_fraction"],
   "binding_gate": {
@@ -183,7 +190,8 @@ The following JSON is the sole scientific schedule and decision contract.
     "core_rms_max": 6.0,
     "late_core_variation_fraction": 0.10,
     "shell_energy_fraction": 0.05,
-    "isolated_partition_tolerance": 1e-12
+    "signed_share_tolerance": 1e-12,
+    "mirror_swap_tolerance": 1e-10
   },
   "archive": {
     "primary_raw_states_per_row": 4,
@@ -251,10 +259,13 @@ time, and geometry checks.
 The independent T1 reconstruction is compared to the matching primary T1 row
 at each archived time over the stable observable set. Every comparison also
 requires finite values for all declared observables, including binding ratio.
-The preparation contract independently checks the declared isolated fraction,
-the two positive isolated packet charge contributions, and the reconstructed
-fraction from those contributions. The independent assembler performs the same
-charge-density calculation before the primary-row comparison.
+The preparation contract independently checks the declared $\eta_+$ and
+$\eta_-$ shares, the two isolated packet charge contributions, and both
+reconstructed isolated fractions. The independent assembler performs the same
+signed-charge calculation on every primary grid and requires total charge
+$Q=16$ for every arm. The verifier also checks the complementary
+`pair_split25`/`pair_split75` initial fields and velocities under axial
+reflection.
 The maximum symmetric relative error over the stable set must remain below
 $0.05$.
 
@@ -282,8 +293,9 @@ created. The scientific schedule then executes once with the exact §3 values.
 
 1. Any missing source identity, protocol mismatch, malformed receipt,
    incomplete state archive, failed reconstruction, nonfinite value, failed
-global conservation check, failed local-balance check, failed boundary check,
-failed required comparison, failed independent comparison, or failed
+global conservation check, failed per-grid independent preparation check,
+failed mirrored-partition check, failed local-balance check, failed boundary
+check, failed required comparison, failed independent comparison, or failed
 binding-gate witness gives **INCONCLUSIVE**.
 2. With all numerical, evidence, and binding-gate checks passing, at least one
    fully compared coupled partition arm plus a numerically qualified uncoupled

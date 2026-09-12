@@ -28,8 +28,9 @@ from matter_formation_packet_partition_spec import (
     BINDING_RATIO_MAX,
     RULE_CONTROL_ARM,
     WIDTH,
-    POSITIVE_CENTER_FRACTIONS,
-    ISOLATED_PARTITION_TOL,
+    ETA_PLUS_VALUES,
+    SIGNED_SHARE_TOL,
+    MIRROR_SWAP_TOL,
 )
 
 SELF = Path(__file__).resolve()
@@ -38,8 +39,8 @@ PRIMARY_SOURCE = COMPUTATIONS / "matter_formation_packet_partition.py"
 SPEC_SOURCE = COMPUTATIONS / "matter_formation_packet_partition_spec.py"
 NEUTRAL_SOURCE = COMPUTATIONS / "matter_formation_neutral_packets.py"
 CLOUD_SOURCE = COMPUTATIONS / "matter_formation_radial_cloud.py"
-SCHEMA = "matter-formation-packet-charge-partition-verification-v1"
-PRIMARY_SCHEMA = "matter-formation-packet-charge-partition-primary-v1"
+SCHEMA = "matter-formation-packet-charge-partition-verification-v2"
+PRIMARY_SCHEMA = "matter-formation-packet-charge-partition-primary-v2"
 
 
 def sha256(path: Path) -> str:
@@ -63,23 +64,23 @@ def assemble_independent(grid: independent_dynamics.IndependentGrid, arm: str) -
     width = float(config["width"])
     wave_number = float(config["wave_number"])
     phase_sign = float(config["phase_sign"])
-    positive_center_fraction = config.get("positive_center_fraction")
+    eta_plus = config.get("eta_plus")
     omega = independent_dynamics.OMEGA_INF if not pair else math.sqrt(independent_dynamics.OMEGA_INF**2 + OMEGA_OFFSET_SQUARED * wave_number**2)
     if config["kind"] == "single":
         envelope = torch.exp(-(grid.r2 + grid.axial[None, :].square()) / (2.0 * width**2))
         complex_field = envelope.to(torch.complex128)
     else:
-        right = torch.exp(-(grid.r2 + (grid.axial[None, :] + center).square()) / (2.0 * width**2))
-        left = torch.exp(-(grid.r2 + (grid.axial[None, :] - center).square()) / (2.0 * width**2))
-        phase_right = phase_sign * wave_number * (grid.axial[None, :] + center)
-        phase_left = -phase_sign * wave_number * (grid.axial[None, :] - center)
-        if positive_center_fraction is None or not 0.0 < float(positive_center_fraction) < 1.0:
-            raise independent_dynamics.VerificationError(f"invalid charge partition for {arm}")
-        right_weight = math.sqrt(1.0 - float(positive_center_fraction))
-        left_weight = math.sqrt(float(positive_center_fraction))
-        right_integral = float((grid.volume * right.square()).sum())
-        left_integral = float((grid.volume * left.square()).sum())
-        complex_field = right_weight * right * torch.exp(1j * phase_right) + left_weight * left * torch.exp(1j * phase_left)
+        envelope_negative = torch.exp(-(grid.r2 + (grid.axial[None, :] + center).square()) / (2.0 * width**2))
+        envelope_positive = torch.exp(-(grid.r2 + (grid.axial[None, :] - center).square()) / (2.0 * width**2))
+        phase_negative = phase_sign * wave_number * (grid.axial[None, :] + center)
+        phase_positive = -phase_sign * wave_number * (grid.axial[None, :] - center)
+        if eta_plus is None or not 0.0 < float(eta_plus) < 1.0:
+            raise independent_dynamics.VerificationError(f"invalid signed charge share for {arm}")
+        negative_weight = math.sqrt(1.0 - float(eta_plus))
+        positive_weight = math.sqrt(float(eta_plus))
+        negative_integral = float((grid.volume * envelope_negative.square()).sum())
+        positive_integral = float((grid.volume * envelope_positive.square()).sum())
+        complex_field = negative_weight * envelope_negative * torch.exp(1j * phase_negative) + positive_weight * envelope_positive * torch.exp(1j * phase_positive)
     norm = torch.sum(grid.volume * (complex_field.real.square() + complex_field.imag.square()))
     norm_value = float(norm)
     if not math.isfinite(norm_value) or norm_value <= 0.0:
@@ -88,12 +89,16 @@ def assemble_independent(grid: independent_dynamics.IndependentGrid, arm: str) -
     complex_field = complex_field * math.sqrt(scale_squared)
     if pair:
         isolated_packet_charges = [
-            2.0 * independent_dynamics.A * omega * right_weight**2 * right_integral * scale_squared,
-            2.0 * independent_dynamics.A * omega * left_weight**2 * left_integral * scale_squared,
+            2.0 * independent_dynamics.A * omega * negative_weight**2 * negative_integral * scale_squared,
+            2.0 * independent_dynamics.A * omega * positive_weight**2 * positive_integral * scale_squared,
         ]
-        isolated_positive_fraction = isolated_packet_charges[1] / sum(isolated_packet_charges)
-        if abs(isolated_positive_fraction - float(positive_center_fraction)) > ISOLATED_PARTITION_TOL:
-            raise independent_dynamics.VerificationError(f"isolated charge partition mismatch for {arm}")
+        isolated_total = sum(isolated_packet_charges)
+        isolated_packet_fractions = [value / isolated_total for value in isolated_packet_charges]
+        if (
+            abs(isolated_packet_fractions[0] - (1.0 - float(eta_plus))) > SIGNED_SHARE_TOL
+            or abs(isolated_packet_fractions[1] - float(eta_plus)) > SIGNED_SHARE_TOL
+        ):
+            raise independent_dynamics.VerificationError(f"independent isolated signed charge share mismatch for {arm}")
     q = torch.zeros((3, grid.nr, grid.nz), dtype=torch.float64, device="cuda")
     q[1], q[2] = complex_field.real, complex_field.imag
     v = torch.zeros_like(q)
@@ -218,38 +223,139 @@ def preparation_contract(receipt: dict[str, Any]) -> dict[str, Any]:
     rows = receipt.get("rows", [])
     expected = {(grid, arm) for grid in GRID_SPECS for arm in ARMS}
     observed = {(row.get("grid"), row.get("arm")) for row in rows if isinstance(row, dict)}
-    checks = {"row_key_set": observed == expected, "row_count": len(rows) == len(expected), "total_charge": True, "nominal_packet_charge": True, "partition_metadata": True, "arm_metadata": True, "center_metadata": True, "width_metadata": True, "wave_metadata": True, "phase_metadata": True, "relative_phase_metadata": True, "orientation_metadata": True, "rule_control_metadata": True}
+    preparation = receipt.get("preparation", {}) if isinstance(receipt.get("preparation", {}), dict) else {}
+    top_eta_values = preparation.get("eta_plus_values")
+    top_tolerance = preparation.get("signed_share_tolerance")
+    top_mirror_tolerance = preparation.get("mirror_swap_tolerance")
+    top_arm_specs = preparation.get("arm_specs")
+    checks = {
+        "row_key_set": observed == expected,
+        "row_count": len(rows) == len(expected),
+        "top_level_schedule": bool(
+            preparation.get("total_charge") == TOTAL_CHARGE
+            and isinstance(top_eta_values, list)
+            and top_eta_values == list(ETA_PLUS_VALUES)
+            and isinstance(top_arm_specs, dict)
+            and set(top_arm_specs) == set(ARM_SPECS)
+            and isinstance(top_tolerance, (int, float))
+            and abs(float(top_tolerance) - SIGNED_SHARE_TOL) <= SIGNED_SHARE_TOL
+            and isinstance(top_mirror_tolerance, (int, float))
+            and abs(float(top_mirror_tolerance) - MIRROR_SWAP_TOL) <= SIGNED_SHARE_TOL
+        ),
+        "total_charge": True,
+        "nominal_packet_charge": True,
+        "partition_metadata": True,
+        "arm_metadata": True,
+        "center_metadata": True,
+        "width_metadata": True,
+        "wave_metadata": True,
+        "phase_metadata": True,
+        "relative_phase_metadata": True,
+        "orientation_metadata": True,
+        "rule_control_metadata": True,
+    }
     for row in rows:
         metadata = row.get("metadata", {}) if isinstance(row, dict) else {}
-        checks["total_charge"] = checks["total_charge"] and abs(float(metadata.get("charge", math.nan)) - TOTAL_CHARGE) <= 1.0e-12
+        checks["total_charge"] = checks["total_charge"] and abs(float(metadata.get("charge", math.nan)) - TOTAL_CHARGE) <= SIGNED_SHARE_TOL
         expected_nominal = TOTAL_CHARGE / 2.0 if bool(metadata.get("pair")) else None
         observed_nominal = metadata.get("nominal_packet_charge")
-        checks["nominal_packet_charge"] = checks["nominal_packet_charge"] and ((expected_nominal is None and observed_nominal is None) or (observed_nominal is not None and abs(float(observed_nominal) - expected_nominal) <= 1.0e-12))
+        checks["nominal_packet_charge"] = checks["nominal_packet_charge"] and ((expected_nominal is None and observed_nominal is None) or (observed_nominal is not None and abs(float(observed_nominal) - expected_nominal) <= SIGNED_SHARE_TOL))
         arm = row.get("arm")
-        checks["arm_metadata"] = checks["arm_metadata"] and arm in ARM_SPECS and bool(metadata.get("pair")) == bool(ARM_SPECS[arm]["pair"])
-        checks["center_metadata"] = checks["center_metadata"] and arm in ARM_SPECS and abs(float(metadata.get("center", math.nan)) - float(ARM_SPECS[arm]["center"])) <= 1.0e-12
-        checks["width_metadata"] = checks["width_metadata"] and arm in ARM_SPECS and abs(float(metadata.get("width", math.nan)) - float(ARM_SPECS[arm]["width"])) <= 1.0e-12
-        checks["relative_phase_metadata"] = checks["relative_phase_metadata"] and arm in ARM_SPECS and abs(float(metadata.get("relative_phase", math.nan)) - float(ARM_SPECS[arm]["relative_phase"])) <= 1.0e-12
-        expected_fraction = ARM_SPECS[arm].get("positive_center_fraction") if arm in ARM_SPECS else None
-        observed_declared = metadata.get("declared_positive_center_charge_fraction")
-        observed_isolated = metadata.get("isolated_positive_center_charge_fraction")
+        spec = ARM_SPECS.get(arm, {})
+        checks["arm_metadata"] = checks["arm_metadata"] and arm in ARM_SPECS and bool(metadata.get("pair")) == bool(spec.get("pair"))
+        checks["center_metadata"] = checks["center_metadata"] and arm in ARM_SPECS and abs(float(metadata.get("center", math.nan)) - float(spec.get("center", math.nan))) <= SIGNED_SHARE_TOL
+        checks["width_metadata"] = checks["width_metadata"] and arm in ARM_SPECS and abs(float(metadata.get("width", math.nan)) - float(spec.get("width", math.nan))) <= SIGNED_SHARE_TOL
+        checks["relative_phase_metadata"] = checks["relative_phase_metadata"] and arm in ARM_SPECS and abs(float(metadata.get("relative_phase", math.nan)) - float(spec.get("relative_phase", math.nan))) <= SIGNED_SHARE_TOL
+        expected_eta = spec.get("eta_plus") if arm in ARM_SPECS else None
+        observed_eta = metadata.get("eta_plus")
+        observed_eta_minus = metadata.get("eta_minus")
         isolated_contributions = metadata.get("isolated_packet_charge_contributions")
-        if expected_fraction is None:
-            partition_ok = observed_declared is None and observed_isolated is None and isolated_contributions is None
+        isolated_fractions = metadata.get("isolated_packet_charge_fractions")
+        if expected_eta is None:
+            partition_ok = observed_eta is None and observed_eta_minus is None and isolated_contributions is None and isolated_fractions is None
         else:
             try:
                 contribution_sum = sum(float(value) for value in isolated_contributions)
-                reconstructed_fraction = float(isolated_contributions[1]) / contribution_sum
-                partition_ok = bool(len(isolated_contributions) == 2 and all(math.isfinite(float(value)) and float(value) > 0.0 for value in isolated_contributions) and abs(float(observed_declared) - float(expected_fraction)) <= ISOLATED_PARTITION_TOL and abs(float(observed_isolated) - float(expected_fraction)) <= ISOLATED_PARTITION_TOL and abs(reconstructed_fraction - float(expected_fraction)) <= ISOLATED_PARTITION_TOL)
+                reconstructed_fractions = [float(value) / contribution_sum for value in isolated_contributions]
+                partition_ok = bool(
+                    len(isolated_contributions) == 2
+                    and len(isolated_fractions) == 2
+                    and all(math.isfinite(float(value)) and float(value) > 0.0 for value in isolated_contributions)
+                    and all(math.isfinite(float(value)) and float(value) > 0.0 for value in isolated_fractions)
+                    and abs(float(observed_eta) - float(expected_eta)) <= SIGNED_SHARE_TOL
+                    and abs(float(observed_eta_minus) - (1.0 - float(expected_eta))) <= SIGNED_SHARE_TOL
+                    and abs(float(isolated_fractions[0]) - (1.0 - float(expected_eta))) <= SIGNED_SHARE_TOL
+                    and abs(float(isolated_fractions[1]) - float(expected_eta)) <= SIGNED_SHARE_TOL
+                    and all(abs(reconstructed_fractions[index] - float(isolated_fractions[index])) <= SIGNED_SHARE_TOL for index in range(2))
+                )
             except (TypeError, ValueError, IndexError, ZeroDivisionError):
                 partition_ok = False
         checks["partition_metadata"] = checks["partition_metadata"] and partition_ok
-        checks["wave_metadata"] = checks["wave_metadata"] and arm in ARM_SPECS and abs(float(metadata.get("wave_number", math.nan)) - float(ARM_SPECS[arm]["wave_number"])) <= 1.0e-12
-        checks["phase_metadata"] = checks["phase_metadata"] and arm in ARM_SPECS and abs(float(metadata.get("phase_sign", math.nan)) - float(ARM_SPECS[arm]["phase_sign"])) <= 1.0e-12
-        checks["orientation_metadata"] = checks["orientation_metadata"] and arm in ARM_SPECS and metadata.get("orientation") == ARM_SPECS[arm]["orientation"]
-        checks["rule_control_metadata"] = checks["rule_control_metadata"] and arm in ARM_SPECS and bool(metadata.get("rule_control")) == bool(ARM_SPECS[arm]["rule_control"])
+        checks["wave_metadata"] = checks["wave_metadata"] and arm in ARM_SPECS and abs(float(metadata.get("wave_number", math.nan)) - float(spec.get("wave_number", math.nan))) <= SIGNED_SHARE_TOL
+        checks["phase_metadata"] = checks["phase_metadata"] and arm in ARM_SPECS and abs(float(metadata.get("phase_sign", math.nan)) - float(spec.get("phase_sign", math.nan))) <= SIGNED_SHARE_TOL
+        checks["orientation_metadata"] = checks["orientation_metadata"] and arm in ARM_SPECS and metadata.get("orientation") == spec.get("orientation")
+        checks["rule_control_metadata"] = checks["rule_control_metadata"] and arm in ARM_SPECS and bool(metadata.get("rule_control")) == bool(spec.get("rule_control"))
     checks["pass"] = all(checks.values())
     return checks
+
+
+def mirrored_swap_control(input_dir: Path, receipt: dict[str, Any]) -> dict[str, Any]:
+    rows = {(row.get("grid"), row.get("arm")): row for row in receipt.get("rows", []) if isinstance(row, dict)}
+    grid_checks: dict[str, Any] = {}
+    for grid_name in GRID_SPECS:
+        lower = rows.get((grid_name, "pair_split25"))
+        upper = rows.get((grid_name, "pair_split75"))
+        if not isinstance(lower, dict) or not isinstance(upper, dict):
+            grid_checks[grid_name] = {"pass": False, "reason": "complementary partition rows missing"}
+            continue
+        try:
+            lower_grid, lower_q, lower_v = independent_dynamics._validate_state_archive(input_dir, lower, lower["states"][0])
+            upper_grid, upper_q, upper_v = independent_dynamics._validate_state_archive(input_dir, upper, upper["states"][0])
+            lower_charge = float((lower_grid.volume * (-2.0 * independent_dynamics.A * (lower_q[1] * lower_v[2] - lower_q[2] * lower_v[1]))).sum())
+            upper_charge = float((upper_grid.volume * (-2.0 * independent_dynamics.A * (upper_q[1] * upper_v[2] - upper_q[2] * upper_v[1]))).sum())
+            field_error = float(torch.max(torch.abs(lower_q - torch.flip(upper_q, dims=[2]))).item())
+            velocity_error = float(torch.max(torch.abs(lower_v - torch.flip(upper_v, dims=[2]))).item())
+            lower_fraction = lower["metadata"]["isolated_packet_charge_fractions"]
+            upper_fraction = upper["metadata"]["isolated_packet_charge_fractions"]
+            eta_swap = abs(float(lower["metadata"]["eta_plus"]) + float(upper["metadata"]["eta_plus"]) - 1.0) <= SIGNED_SHARE_TOL
+            fraction_swap = bool(
+                len(lower_fraction) == 2
+                and len(upper_fraction) == 2
+                and abs(float(lower_fraction[0]) - float(upper_fraction[1])) <= SIGNED_SHARE_TOL
+                and abs(float(lower_fraction[1]) - float(upper_fraction[0])) <= SIGNED_SHARE_TOL
+            )
+            lower_charge_pass = abs(lower_charge - TOTAL_CHARGE) / TOTAL_CHARGE <= SIGNED_SHARE_TOL
+            upper_charge_pass = abs(upper_charge - TOTAL_CHARGE) / TOTAL_CHARGE <= SIGNED_SHARE_TOL
+            grid_checks[grid_name] = {
+                "eta_swap_pass": eta_swap,
+                "fraction_swap_pass": fraction_swap,
+                "field_reflection_max_error": field_error,
+                "velocity_reflection_max_error": velocity_error,
+                "field_reflection_pass": field_error <= MIRROR_SWAP_TOL,
+                "velocity_reflection_pass": velocity_error <= MIRROR_SWAP_TOL,
+                "lower_charge": lower_charge,
+                "upper_charge": upper_charge,
+                "lower_charge_pass": lower_charge_pass,
+                "upper_charge_pass": upper_charge_pass,
+                "pass": bool(eta_swap and fraction_swap and field_error <= MIRROR_SWAP_TOL and velocity_error <= MIRROR_SWAP_TOL and lower_charge_pass and upper_charge_pass),
+            }
+        except (KeyError, IndexError, TypeError, ValueError, RuntimeError):
+            grid_checks[grid_name] = {"pass": False, "reason": "complementary state reconstruction failed"}
+    return {"grids": grid_checks, "pass": bool(grid_checks and all(item.get("pass") is True for item in grid_checks.values()))}
+
+
+def independent_preparation_checks() -> dict[str, Any]:
+    checks: dict[str, bool] = {}
+    charges: dict[str, float] = {}
+    for grid_name, (radius, spacing, _dt) in GRID_SPECS.items():
+        grid = independent_dynamics.IndependentGrid(radius, spacing)
+        for arm in ARMS:
+            q, v, _coupling, declared_charge = assemble_independent(grid, arm)
+            charge = float((grid.volume * (-2.0 * independent_dynamics.A * (q[1] * v[2] - q[2] * v[1]))).sum())
+            key = f"{grid_name}_{arm}"
+            charges[key] = charge
+            checks[key] = bool(independent_dynamics.finite_number(charge) and abs(charge - declared_charge) / TOTAL_CHARGE <= SIGNED_SHARE_TOL)
+    return {"checks": checks, "charges": charges, "pass": bool(checks and all(checks.values()))}
 
 
 def method_comparison_robust(primary_row: dict[str, Any] | None, independent: dict[str, Any]) -> dict[str, Any]:
@@ -315,6 +421,8 @@ def run(input_dir: Path, output_path: Path) -> dict[str, Any]:
     source_identity = source_checks(input_dir, receipt)
     contract = preparation_contract(receipt)
     snapshot_details = independent_dynamics.verify_primary_rows(input_dir, receipt)
+    mirrored_swap = mirrored_swap_control(input_dir, receipt)
+    independent_preparation = independent_preparation_checks()
     mutation = mutation_control(input_dir, receipt["rows"][0])
     corrupted_hash_rejected = corrupted_hash_control(input_dir, receipt)
     radius, spacing, dt = GRID_SPECS["T1"]
@@ -344,6 +452,8 @@ def run(input_dir: Path, output_path: Path) -> dict[str, Any]:
         "conservation_checks": conservation_checks,
         "method_comparisons": method_comparisons,
         "primary_comparison_pass": primary_comparison_pass,
+        "mirrored_partition_swap": mirrored_swap,
+        "independent_preparation_checks": independent_preparation,
         "binding_rule_control": rule_control,
         "independent_raw_archive_complete": independent_complete,
         "scalar_snapshot_comparison_pass": bool(method_comparisons and all(item["pass"] for item in method_comparisons)),
@@ -353,7 +463,7 @@ def run(input_dir: Path, output_path: Path) -> dict[str, Any]:
         "physical_size_map_established": False,
         "packet_count_minimum_established": False,
     }
-    result["numeric_pass"] = bool(all(source_identity.values()) and contract["pass"] and snapshot_details["pass"] and primary_comparison_pass and rule_control["pass"] and mutation and corrupted_hash_rejected and result["scalar_snapshot_comparison_pass"] and result["independent_conservation_pass"] and independent_complete)
+    result["numeric_pass"] = bool(all(source_identity.values()) and contract["pass"] and snapshot_details["pass"] and mirrored_swap["pass"] and independent_preparation["pass"] and primary_comparison_pass and rule_control["pass"] and mutation and corrupted_hash_rejected and result["scalar_snapshot_comparison_pass"] and result["independent_conservation_pass"] and independent_complete)
     write_json(output_path, result)
     return result
 
@@ -366,19 +476,19 @@ def run_smoke() -> int:
         assert math.isfinite(float(config["width"]))
         assert math.isfinite(float(config["relative_phase"]))
         assert bool(config["rule_control"]) == (arm == RULE_CONTROL_ARM)
-        expected_fraction = config.get("positive_center_fraction")
-        assert expected_fraction is None or float(expected_fraction) in POSITIVE_CENTER_FRACTIONS
+        expected_eta = config.get("eta_plus")
+        assert expected_eta is None or float(expected_eta) in ETA_PLUS_VALUES
         q, v, coupling, charge = assemble_independent(grid, arm)
         observed = float((grid.volume * (-2.0 * independent_dynamics.A * (q[1] * v[2] - q[2] * v[1]))).sum())
-        assert abs(observed - charge) / charge < 1.0e-12
-        records.append({"arm": arm, "charge": observed, "center": config["center"], "wave_number": config["wave_number"], "phase_sign": config["phase_sign"], "relative_phase": config["relative_phase"], "positive_center_fraction": expected_fraction, "orientation": config["orientation"], "coupling": coupling})
+        assert abs(observed - charge) / charge <= SIGNED_SHARE_TOL
+        records.append({"arm": arm, "charge": observed, "center": config["center"], "wave_number": config["wave_number"], "phase_sign": config["phase_sign"], "relative_phase": config["relative_phase"], "eta_plus": expected_eta, "eta_minus": None if expected_eta is None else 1.0 - float(expected_eta), "orientation": config["orientation"], "coupling": coupling})
     print(independent_dynamics.json.dumps({"smoke": "PASS", "arms": records}))
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", type=Path, default=ROOT / "runs" / "20260912_matter_formation_packet_partition")
+    parser.add_argument("--input", type=Path, default=ROOT / "runs" / "20260912_matter_formation_packet_partition_signed_share")
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--smoke", action="store_true")
     args = parser.parse_args(argv)
@@ -387,7 +497,7 @@ def main(argv: list[str] | None = None) -> int:
     input_dir = args.input.resolve()
     output = (args.output or (input_dir / "verification.json")).resolve()
     result = run(input_dir, output)
-    print(independent_dynamics.json.dumps({"output": str(output), "numeric_pass": result["numeric_pass"], "snapshot_pass": result["snapshot_details"]["pass"], "conservation_pass": result["independent_conservation_pass"]}))
+    print(independent_dynamics.json.dumps({"output": str(output), "numeric_pass": result["numeric_pass"], "snapshot_pass": result["snapshot_details"]["pass"], "conservation_pass": result["independent_conservation_pass"], "mirror_swap_pass": result["mirrored_partition_swap"]["pass"], "independent_preparation_pass": result["independent_preparation_checks"]["pass"]}))
     return 0 if result["numeric_pass"] else 1
 
 

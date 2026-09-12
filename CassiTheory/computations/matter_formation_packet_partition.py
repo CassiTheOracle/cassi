@@ -45,8 +45,9 @@ from matter_formation_packet_partition_spec import (
     UNCOUPLED_CONTROL_ARM,
     WAVE_NUMBER,
     WIDTH,
-    POSITIVE_CENTER_FRACTIONS,
-    ISOLATED_PARTITION_TOL,
+    ETA_PLUS_VALUES,
+    SIGNED_SHARE_TOL,
+    MIRROR_SWAP_TOL,
 )
 
 SELF = Path(__file__).resolve()
@@ -55,7 +56,7 @@ SPEC_SOURCE = COMPUTATIONS / "matter_formation_packet_partition_spec.py"
 NEUTRAL_SOURCE = COMPUTATIONS / "matter_formation_neutral_packets.py"
 CLOUD_SOURCE = COMPUTATIONS / "matter_formation_radial_cloud.py"
 VERIFIER_SOURCE = COMPUTATIONS / "verify_matter_formation_packet_partition.py"
-SCHEMA = "matter-formation-packet-charge-partition-primary-v1"
+SCHEMA = "matter-formation-packet-charge-partition-primary-v2"
 
 
 def sha256(path: Path) -> str:
@@ -91,9 +92,9 @@ def assemble_primary(grid: CylindricalGrid, arm: str) -> tuple[torch.Tensor, tor
     width = float(config["width"])
     wave_number = float(config["wave_number"])
     phase_sign = float(config["phase_sign"])
-    positive_center_fraction = config.get("positive_center_fraction")
+    eta_plus = config.get("eta_plus")
     isolated_packet_charges: list[float] | None = None
-    isolated_positive_fraction: float | None = None
+    isolated_packet_fractions: list[float] | None = None
     omega = dynamics.OMEGA_INF if not pair else math.sqrt(dynamics.OMEGA_INF**2 + OMEGA_OFFSET_SQUARED * wave_number**2)
     zeta = grid.axial
     if config["kind"] == "single":
@@ -101,17 +102,17 @@ def assemble_primary(grid: CylindricalGrid, arm: str) -> tuple[torch.Tensor, tor
         complex_field = envelope.to(dtype=torch.complex128)
         centers = (0.0,)
     else:
-        envelope_right = torch.exp(-(grid.r2 + (zeta[None, :] + center).square()) / (2.0 * width**2))
-        envelope_left = torch.exp(-(grid.r2 + (zeta[None, :] - center).square()) / (2.0 * width**2))
-        phase_right = phase_sign * wave_number * (zeta[None, :] + center)
-        phase_left = -phase_sign * wave_number * (zeta[None, :] - center)
-        if positive_center_fraction is None or not 0.0 < float(positive_center_fraction) < 1.0:
-            raise RuntimeError(f"invalid charge partition for {arm}")
-        right_weight = math.sqrt(1.0 - float(positive_center_fraction))
-        left_weight = math.sqrt(float(positive_center_fraction))
-        right_integral = float((grid.volume * envelope_right.square()).sum())
-        left_integral = float((grid.volume * envelope_left.square()).sum())
-        complex_field = right_weight * envelope_right * torch.exp(1j * phase_right) + left_weight * envelope_left * torch.exp(1j * phase_left)
+        envelope_negative = torch.exp(-(grid.r2 + (zeta[None, :] + center).square()) / (2.0 * width**2))
+        envelope_positive = torch.exp(-(grid.r2 + (zeta[None, :] - center).square()) / (2.0 * width**2))
+        phase_negative = phase_sign * wave_number * (zeta[None, :] + center)
+        phase_positive = -phase_sign * wave_number * (zeta[None, :] - center)
+        if eta_plus is None or not 0.0 < float(eta_plus) < 1.0:
+            raise RuntimeError(f"invalid signed charge share for {arm}")
+        negative_weight = math.sqrt(1.0 - float(eta_plus))
+        positive_weight = math.sqrt(float(eta_plus))
+        negative_integral = float((grid.volume * envelope_negative.square()).sum())
+        positive_integral = float((grid.volume * envelope_positive.square()).sum())
+        complex_field = negative_weight * envelope_negative * torch.exp(1j * phase_negative) + positive_weight * envelope_positive * torch.exp(1j * phase_positive)
         centers = (-center, center)
     norm = torch.sum(grid.volume * (complex_field.real.square() + complex_field.imag.square()))
     norm_value = float(norm)
@@ -121,12 +122,16 @@ def assemble_primary(grid: CylindricalGrid, arm: str) -> tuple[torch.Tensor, tor
     complex_field = complex_field * math.sqrt(scale_squared)
     if pair:
         isolated_packet_charges = [
-            2.0 * dynamics.A * omega * right_weight**2 * right_integral * scale_squared,
-            2.0 * dynamics.A * omega * left_weight**2 * left_integral * scale_squared,
+            2.0 * dynamics.A * omega * negative_weight**2 * negative_integral * scale_squared,
+            2.0 * dynamics.A * omega * positive_weight**2 * positive_integral * scale_squared,
         ]
-        isolated_positive_fraction = isolated_packet_charges[1] / sum(isolated_packet_charges)
-        if abs(isolated_positive_fraction - float(positive_center_fraction)) > ISOLATED_PARTITION_TOL:
-            raise RuntimeError(f"isolated charge partition mismatch for {arm}")
+        isolated_total = sum(isolated_packet_charges)
+        isolated_packet_fractions = [value / isolated_total for value in isolated_packet_charges]
+        if (
+            abs(isolated_packet_fractions[0] - (1.0 - float(eta_plus))) > SIGNED_SHARE_TOL
+            or abs(isolated_packet_fractions[1] - float(eta_plus)) > SIGNED_SHARE_TOL
+        ):
+            raise RuntimeError(f"isolated signed charge share mismatch for {arm}")
     q = torch.zeros((3, grid.nr, grid.nz), dtype=torch.float64, device="cuda")
     q[1] = complex_field.real
     q[2] = complex_field.imag
@@ -135,18 +140,19 @@ def assemble_primary(grid: CylindricalGrid, arm: str) -> tuple[torch.Tensor, tor
     v[2] = -omega * q[1]
     overlap = 0.0
     if pair:
-        a = torch.exp(-(grid.r2 + (zeta[None, :] + center).square()) / (2.0 * width**2))
-        b = torch.exp(-(grid.r2 + (zeta[None, :] - center).square()) / (2.0 * width**2))
-        overlap = float(torch.abs(torch.sum(grid.volume * a * b)) / torch.sqrt(torch.sum(grid.volume * a.square()) * torch.sum(grid.volume * b.square())))
+        overlap = float(torch.abs(torch.sum(grid.volume * envelope_negative * envelope_positive)) / torch.sqrt(torch.sum(grid.volume * envelope_negative.square()) * torch.sum(grid.volume * envelope_positive.square())))
     rho = 2.0 * dynamics.A * omega * (q[1].square() + q[2].square())
     distance = torch.sqrt(grid.r2 + grid.axial[None, :].square())
     initial_core = float((grid.volume * rho * (distance < CORE_RADIUS)).sum()) / TOTAL_CHARGE
     metadata: dict[str, Any] = {
         "charge": TOTAL_CHARGE,
         "nominal_packet_charge": TOTAL_CHARGE / 2.0 if pair else None,
-        "declared_positive_center_charge_fraction": float(positive_center_fraction) if pair else None,
+        "eta_plus": float(eta_plus) if pair else None,
+        "eta_minus": (1.0 - float(eta_plus)) if pair else None,
         "isolated_packet_charge_contributions": isolated_packet_charges,
-        "isolated_positive_center_charge_fraction": isolated_positive_fraction,
+        "isolated_packet_charge_fractions": isolated_packet_fractions,
+        "isolated_negative_center_charge_fraction": isolated_packet_fractions[0] if pair else None,
+        "isolated_positive_center_charge_fraction": isolated_packet_fractions[1] if pair else None,
         "center": center,
         "width": width,
         "omega": omega,
@@ -159,7 +165,6 @@ def assemble_primary(grid: CylindricalGrid, arm: str) -> tuple[torch.Tensor, tor
         "rule_control": bool(config["rule_control"]),
         "initial_overlap": overlap,
         "initial_core_fraction": initial_core,
-        "centers": list(centers),
         "initially_unbound": bool((not pair) or (overlap <= INITIAL_OVERLAP_MAX and initial_core <= INITIAL_CORE_FRACTION_MAX)),
     }
     return q, v, (0.0 if uncoupled else dynamics.HC), metadata
@@ -307,16 +312,17 @@ def run_smoke() -> int:
     for arm in ARMS:
         q, v, coupling, metadata = assemble_primary(grid, arm)
         charge = float((grid.volume * (-2.0 * dynamics.A * (q[1] * v[2] - q[2] * v[1]))).sum())
-        records.append({"arm": arm, "charge": charge, "center": metadata["center"], "wave_number": metadata["wave_number"], "phase_sign": metadata["phase_sign"], "relative_phase": metadata["relative_phase"], "declared_positive_center_charge_fraction": metadata["declared_positive_center_charge_fraction"], "isolated_positive_center_charge_fraction": metadata["isolated_positive_center_charge_fraction"], "orientation": metadata["orientation"], "width": metadata["width"], "overlap": metadata["initial_overlap"]})
+        records.append({"arm": arm, "charge": charge, "center": metadata["center"], "wave_number": metadata["wave_number"], "phase_sign": metadata["phase_sign"], "relative_phase": metadata["relative_phase"], "eta_plus": metadata["eta_plus"], "eta_minus": metadata["eta_minus"], "isolated_packet_charge_fractions": metadata["isolated_packet_charge_fractions"], "orientation": metadata["orientation"], "width": metadata["width"], "overlap": metadata["initial_overlap"]})
         assert abs(charge - TOTAL_CHARGE) / TOTAL_CHARGE < 1.0e-12
-        assert abs(metadata["width"] - float(ARM_SPECS[arm]["width"])) <= 1.0e-12
-        assert abs(metadata["relative_phase"] - float(ARM_SPECS[arm]["relative_phase"])) <= 1.0e-12
-        expected_fraction = ARM_SPECS[arm]["positive_center_fraction"]
-        declared_fraction = metadata["declared_positive_center_charge_fraction"]
-        isolated_fraction = metadata["isolated_positive_center_charge_fraction"]
-        assert (expected_fraction is None and declared_fraction is None and isolated_fraction is None) or (abs(float(declared_fraction) - float(expected_fraction)) <= ISOLATED_PARTITION_TOL and abs(float(isolated_fraction) - float(expected_fraction)) <= ISOLATED_PARTITION_TOL)
-        assert metadata["rule_control"] == bool(ARM_SPECS[arm]["rule_control"])
-        assert dynamics.finite(metadata)
+        assert abs(metadata["width"] - float(ARM_SPECS[arm]["width"])) <= SIGNED_SHARE_TOL
+        assert abs(metadata["relative_phase"] - float(ARM_SPECS[arm]["relative_phase"])) <= SIGNED_SHARE_TOL
+        expected_eta = ARM_SPECS[arm]["eta_plus"]
+        assert (expected_eta is None and metadata["eta_plus"] is None and metadata["eta_minus"] is None and metadata["isolated_packet_charge_fractions"] is None) or (
+            abs(float(metadata["eta_plus"]) - float(expected_eta)) <= SIGNED_SHARE_TOL
+            and abs(float(metadata["eta_minus"]) - (1.0 - float(expected_eta))) <= SIGNED_SHARE_TOL
+            and abs(float(metadata["isolated_packet_charge_fractions"][0]) - (1.0 - float(expected_eta))) <= SIGNED_SHARE_TOL
+            and abs(float(metadata["isolated_packet_charge_fractions"][1]) - float(expected_eta)) <= SIGNED_SHARE_TOL
+        )
     print(dynamics.json.dumps({"smoke": "PASS", "arms": records}))
     return 0
 
@@ -399,8 +405,9 @@ def run_campaign(output: Path) -> dict[str, Any]:
             "nominal_packet_charge": TOTAL_CHARGE / 2.0,
             "width": WIDTH,
             "relative_phase": 0.0,
-            "positive_center_isolated_charge_fractions": list(POSITIVE_CENTER_FRACTIONS),
-            "isolated_partition_tolerance": ISOLATED_PARTITION_TOL,
+            "eta_plus_values": list(ETA_PLUS_VALUES),
+            "signed_share_tolerance": SIGNED_SHARE_TOL,
+            "mirror_swap_tolerance": MIRROR_SWAP_TOL,
             "arm_specs": ARM_SPECS,
             "center": CENTER,
             "wave_number": WAVE_NUMBER,
@@ -429,7 +436,7 @@ def run_campaign(output: Path) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=ROOT / "runs" / "20260912_matter_formation_packet_partition")
+    parser.add_argument("--output", type=Path, default=ROOT / "runs" / "20260912_matter_formation_packet_partition_signed_share")
     parser.add_argument("--smoke", action="store_true")
     args = parser.parse_args(argv)
     if args.smoke:

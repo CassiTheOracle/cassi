@@ -8,8 +8,9 @@ WAVE_NUMBER = 1.0
 OMEGA_OFFSET_SQUARED = 8.0
 INWARD_PHASE_SIGN = 1.0
 OUTWARD_PHASE_SIGN = -1.0
-POSITIVE_CENTER_FRACTIONS = (0.25, 0.5, 0.75)
-ISOLATED_PARTITION_TOL = 1.0e-12
+ETA_PLUS_VALUES = (0.25, 0.5, 0.75)
+SIGNED_SHARE_TOL = 1.0e-12
+MIRROR_SWAP_TOL = 1.0e-10
 INITIAL_OVERLAP_MAX = 0.01
 INITIAL_CORE_FRACTION_MAX = 0.10
 CORE_RADIUS = 8.0
@@ -37,12 +38,12 @@ ROBUST_COMPARISON_OBSERVABLES = (
 )
 
 ARM_SPECS = {
-    "single16_w4": {"kind": "single", "pair": False, "uncoupled": False, "rule_control": False, "center": 0.0, "width": WIDTH, "wave_number": 0.0, "phase_sign": 0.0, "relative_phase": 0.0, "positive_center_fraction": None, "orientation": "single"},
-    "pair_split25": {"kind": "pair", "pair": True, "uncoupled": False, "rule_control": False, "center": CENTER, "width": WIDTH, "wave_number": WAVE_NUMBER, "phase_sign": INWARD_PHASE_SIGN, "relative_phase": 0.0, "positive_center_fraction": 0.25, "orientation": "inward_split25"},
-    "pair_split50": {"kind": "pair", "pair": True, "uncoupled": False, "rule_control": False, "center": CENTER, "width": WIDTH, "wave_number": WAVE_NUMBER, "phase_sign": INWARD_PHASE_SIGN, "relative_phase": 0.0, "positive_center_fraction": 0.5, "orientation": "inward_split50"},
-    "pair_split75": {"kind": "pair", "pair": True, "uncoupled": False, "rule_control": False, "center": CENTER, "width": WIDTH, "wave_number": WAVE_NUMBER, "phase_sign": INWARD_PHASE_SIGN, "relative_phase": 0.0, "positive_center_fraction": 0.75, "orientation": "inward_split75"},
-    "uncoupled_split50": {"kind": "pair", "pair": True, "uncoupled": True, "rule_control": False, "center": CENTER, "width": WIDTH, "wave_number": WAVE_NUMBER, "phase_sign": INWARD_PHASE_SIGN, "relative_phase": 0.0, "positive_center_fraction": 0.5, "orientation": "inward_uncoupled_split50"},
-    "outward_split50": {"kind": "pair", "pair": True, "uncoupled": False, "rule_control": True, "center": CENTER, "width": WIDTH, "wave_number": WAVE_NUMBER, "phase_sign": OUTWARD_PHASE_SIGN, "relative_phase": 0.0, "positive_center_fraction": 0.5, "orientation": "outward_rule_control_split50"},
+    "single16_w4": {"kind": "single", "pair": False, "uncoupled": False, "rule_control": False, "center": 0.0, "width": WIDTH, "wave_number": 0.0, "phase_sign": 0.0, "relative_phase": 0.0, "eta_plus": None, "orientation": "single"},
+    "pair_split25": {"kind": "pair", "pair": True, "uncoupled": False, "rule_control": False, "center": CENTER, "width": WIDTH, "wave_number": WAVE_NUMBER, "phase_sign": INWARD_PHASE_SIGN, "relative_phase": 0.0, "eta_plus": 0.25, "orientation": "inward_split25"},
+    "pair_split50": {"kind": "pair", "pair": True, "uncoupled": False, "rule_control": False, "center": CENTER, "width": WIDTH, "wave_number": WAVE_NUMBER, "phase_sign": INWARD_PHASE_SIGN, "relative_phase": 0.0, "eta_plus": 0.5, "orientation": "inward_split50"},
+    "pair_split75": {"kind": "pair", "pair": True, "uncoupled": False, "rule_control": False, "center": CENTER, "width": WIDTH, "wave_number": WAVE_NUMBER, "phase_sign": INWARD_PHASE_SIGN, "relative_phase": 0.0, "eta_plus": 0.75, "orientation": "inward_split75"},
+    "uncoupled_split50": {"kind": "pair", "pair": True, "uncoupled": True, "rule_control": False, "center": CENTER, "width": WIDTH, "wave_number": WAVE_NUMBER, "phase_sign": INWARD_PHASE_SIGN, "relative_phase": 0.0, "eta_plus": 0.5, "orientation": "inward_uncoupled_split50"},
+    "outward_split50": {"kind": "pair", "pair": True, "uncoupled": False, "rule_control": True, "center": CENTER, "width": WIDTH, "wave_number": WAVE_NUMBER, "phase_sign": OUTWARD_PHASE_SIGN, "relative_phase": 0.0, "eta_plus": 0.5, "orientation": "outward_rule_control_split50"},
 }
 
 GRID_SPECS = {

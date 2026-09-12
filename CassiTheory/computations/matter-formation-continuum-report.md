@@ -14485,36 +14485,43 @@ relative phase, a phase-independent nonformation theorem, a global charge
 minimum, physical size, gravitational capture, a packet-count minimum, or
 complete matter formation.
 
-## 95. Isolated packet-charge partition at fixed total charge, separation, width, and carrier magnitude
+## 95. Isolated signed packet-charge partition at fixed total charge, separation, width, and carrier magnitude
 
-The packet-charge partition probe tests whether changing the isolated charge
-share between two inward-moving packets changes the fixed-charge formation
-outcome. Total signed charge $Q=16$, packet centres $\zeta=\pm12$, width
-$w=4$, carrier magnitude $|k|=1$, zero relative phase, inward phase-gradient
-sign, coupling, domain, grid ladder, final time, and persistence predicates
-remain fixed.
+The packet-charge partition probe tests whether changing the isolated signed
+charge share between two inward-moving packets changes the fixed-charge
+formation outcome. Total signed charge $Q=16$, packet centres $\zeta=\pm12$,
+width $w=4$, carrier magnitude $|k|=1$, zero relative phase, inward
+phase-gradient sign, coupling, domain, grid ladder, final time, and
+persistence predicates remain fixed.
 
 ### 95.1 Isolated-charge contract and evidence
 
-The declared intervention parameter is the isolated charge fraction
-$\lambda_+$ of the packet centred at $\zeta=+12$:
+The declared intervention parameter is the isolated signed-charge fraction
+$\eta_+$ of the packet centred at $\zeta=+12$:
 
 $$
-\lambda_+\in\left\{\frac14,\frac12,\frac34\right\}.
+\eta_+\in\left\{\frac14,\frac12,\frac34\right\}.
 $$
 
 Before coherent superposition, the negative-centre and positive-centre
-envelopes receive amplitude factors $\sqrt{1-\lambda_+}$ and
-$\sqrt{\lambda_+}$. Each preparation is then normalized once from the complete
+envelopes receive amplitude factors $\sqrt{1-\eta_+}$ and
+$\sqrt{\eta_+}$. Each preparation is then normalized once from the complete
 superposed field to total signed charge $Q=16$.
 
 The protocol does not identify an isolated packet contribution with the
 coherent field's total charge. Both assemblers independently compute the
-charge of each weighted isolated packet after applying the same full-field
-normalization factor. They record those two contributions and reconstruct
-$\lambda_+$ from them. The reconstructed isolated fraction must agree with
-the declared value within $10^{-12}$. The full coherent-field charge,
-including its overlap cross term, is measured separately.
+signed charge of each weighted isolated packet after applying the same
+full-field normalization factor. They record the two contributions and
+reconstruct both $\eta_-=1-\eta_+$ and $\eta_+$. The reconstructed isolated
+fractions must agree with the declared values within $10^{-12}$. The full
+coherent-field charge, including its overlap cross term, is measured
+separately and must remain $Q=16$.
+
+The `pair_split25` and `pair_split75` preparations are the complementary
+$\eta_+\leftrightarrow1-\eta_+$ pair. The verifier checks their initial
+fields and velocities under axial reflection, checks that the isolated
+fractions swap, and checks total signed charge independently on every primary
+grid.
 
 The preregistered schedule is
 `computations/matter_formation_packet_partition_prereg.md`. The declarative
@@ -14524,34 +14531,40 @@ specification, primary runner, and independent verifier are
 `computations/verify_matter_formation_packet_partition.py`.
 
 The primary receipt is
-`runs/20260912_matter_formation_packet_partition/result.json`, SHA-256
-`30465c4a9e51cc86d791024f4ce42a6c9b3a3334d6cab95a7f0ab6fb752dc390`. The
+`runs/20260912_matter_formation_packet_partition_signed_share/result.json`,
+SHA-256
+`0322f70287905f8cd6e3e53cdc51eda7c60dda9f062a8de7c795dfe7e8d44bed`. The
 independent receipt is
-`runs/20260912_matter_formation_packet_partition/verification.json`, SHA-256
-`1bd9605ad69053e82432a045231c6d3187deb267a04766d6f6bb3d2503f6f131`.
+`runs/20260912_matter_formation_packet_partition_signed_share/verification`,
+SHA-256
+`a12eb4d0f15c51871acd23d1cd27d4e563f1c39e512ea6802b657208a2657899`.
 
 All 18 primary rows are finite, numerically qualified, and preparation
-eligible. All 12 spatial and time-step comparisons pass. The independent
-verifier passes source identity, preparation metadata, isolated-charge
-reconstruction, primary archive reconstruction, mutation rejection,
-corrupted-hash rejection, independent archive completeness, conservation, and
-six independent scalar snapshot comparisons. The independent comparison
-contains 144 scalar entries; its maximum stable-set error is
-$9.563865875792284\times10^{-5}$. The primary and independent numerical
-receipts both pass.
+eligible. The independent verifier passes source identity, preparation
+metadata, signed-share reconstruction, primary archive reconstruction,
+mutation rejection, corrupted-hash rejection, independent archive
+completeness, conservation, and six arm-level independent comparisons. The
+verifier records 72/72 state-hash checks and 1,872/1,872 raw-state
+reconstruction checks. All 144 stable-observable comparison entries pass; the
+maximum stable-set error is
+$9.563865875792284\times10^{-5}$. The mirrored $\eta_+=0.25$ and
+$\eta_+=0.75$ preparations pass field and velocity reflection with maximum
+error $0$ on G0, G1, and T1, their isolated fractions swap, and each
+independently reconstructed total charge remains $Q=16$.
+The primary and independent numerical receipts both pass.
 
 ### 95.2 Partition result
 
 The G0 late minimum core fractions are:
 
-- `pair_split25`, $\lambda_+=0.25$:
+- `pair_split25`, $\eta_+=0.25$:
   $0.00014008891006214412$;
-- `pair_split50`, $\lambda_+=0.50$:
+- `pair_split50`, $\eta_+=0.50$:
   $0.0001084462363078619$;
-- `pair_split75`, $\lambda_+=0.75$:
+- `pair_split75`, $\eta_+=0.75$:
   $0.00014008891006214627$.
 
-The $\lambda_+=0.25$ and $\lambda_+=0.75$ arms are the reflected charge-share
+The $\eta_+=0.25$ and $\eta_+=0.75$ arms are the reflected charge-share
 pair in this symmetric preparation. Their late core minima agree to the
 reported precision. All three coupled arms remain below the retained-core
 threshold $0.25$, so the binding predicate is excluded and each arm is
@@ -14622,8 +14635,8 @@ matter formation.
 - `computations/matter_formation_packet_partition_spec.py`—declarative partition arms, isolated-charge contract, and grid schedule.
 - `computations/matter_formation_packet_partition.py`—primary Yoshida-composed finite-volume charge-partition evolution.
 - `computations/verify_matter_formation_packet_partition.py`—separate partition preparation assembly, isolated-charge reconstruction, RK4 evolution, archive checks, and rule-control witness.
-- `runs/20260912_matter_formation_packet_partition/result.json`—source-bound primary charge-partition receipt.
-- `runs/20260912_matter_formation_packet_partition/verification.json`—source-bound independent charge-partition receipt.
+- `runs/20260912_matter_formation_packet_partition_signed_share/result.json`—source-bound primary charge-partition receipt.
+- `runs/20260912_matter_formation_packet_partition_signed_share/verification`—source-bound independent charge-partition receipt.
 
 - `computations/matter_formation_momentum_basin_prereg.md`—frozen fixed-charge incoming-momentum ladder, controls, decision tree, and independent evidence contract.
 - `computations/matter_formation_momentum_basin_spec.py`—declarative momentum arms and grid schedule.
