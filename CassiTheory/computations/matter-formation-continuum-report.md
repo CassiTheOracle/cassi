@@ -13905,6 +13905,10 @@ $0.0002772905710744887$ for `antiphase256`; both controls pass. The compact
 decomposition's causal scope is the registered spatial mismatch, while the
 independent method result remains a cross-check.
 
+### 88.3 Three-late-snapshot reference compact observable
+This is the secondary finite-volume decomposition over the archived
+$t=32,40,48$ states. It explains the compact observable's components while
+leaving the registered full-trace spatial comparison as the primary result.
 The recomputed compact energy-component errors remain below threshold. For
 `pair256`, the mediator, carrier, kinetic, radial-gradient, and
 axial-gradient errors are
@@ -13925,12 +13929,6 @@ comparison entries (two arms, two adjacent level pairs, and 15 cuts per
 entry). The largest identity error is
 $1.1368683772161603\times10^{-13}$ against a largest applicable tolerance of
 $8.623404419340683\times10^{-6}$; every identity passes.
-
-
-### 88.3 Three-late-snapshot reference compact observable
-This is the secondary finite-volume decomposition over the archived
-$t=32,40,48$ states. It explains the compact observable's components while
-leaving the registered full-trace spatial comparison as the primary result.
 
 The decision rule is anchored to the original reference cut and the
 `S1\to S2` comparison. For `pair256`, the binding-ratio error is
