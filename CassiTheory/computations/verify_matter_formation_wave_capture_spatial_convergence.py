@@ -103,6 +103,7 @@ def baseline_binding(receipt: dict[str, Any]) -> bool:
     baseline = receipt.get("baseline")
     return bool(
         isinstance(baseline, dict)
+        and BASELINE_RECEIPT.is_file()
         and baseline.get("primary_receipt") == BASELINE_RECEIPT.relative_to(ROOT).as_posix()
         and baseline.get("primary_receipt_sha256") == BASELINE_RECEIPT_SHA256
         and baseline.get("protocol_sha256") == BASELINE_PROTOCOL_SHA256
@@ -139,7 +140,7 @@ def source_checks(input_dir: Path, receipt: dict[str, Any]) -> dict[str, bool]:
 def safe_verify_primary_rows(input_dir: Path, receipt: dict[str, Any]) -> dict[str, Any]:
     try:
         return audit.verify_primary_rows(input_dir, receipt)
-    except (OSError, ValueError, zipfile.BadZipFile, audit.VerificationError) as error:
+    except (OSError, ValueError, TypeError, IndexError, AttributeError, zipfile.BadZipFile, audit.VerificationError) as error:
         return {
             "pass": False,
             "details": [{"failures": [str(error)]}],
@@ -148,6 +149,12 @@ def safe_verify_primary_rows(input_dir: Path, receipt: dict[str, Any]) -> dict[s
             "reconstruction_attempted": 0,
             "reconstruction_passed": 0,
         }
+def safe_mutation_control(input_dir: Path, row: dict[str, Any]) -> bool:
+    try:
+        return bool(audit.mutation_control(input_dir, row))
+    except (OSError, ValueError, TypeError, IndexError, AttributeError, zipfile.BadZipFile, audit.VerificationError):
+        return False
+
 
 
 
@@ -230,6 +237,7 @@ def independent_decomposition_pass(archive_dir: Path, independent: list[dict[str
             for state in states:
                 if not isinstance(state, dict):
                     return False
+                audit._validate_independent_state(archive_dir, item, state)
                 state_path = audit._independent_state_path(archive_dir, state)
                 with audit.np.load(state_path, allow_pickle=False) as data:
                     q = audit.torch.as_tensor(data["fields"], dtype=audit.torch.float64, device="cuda")
@@ -261,7 +269,7 @@ def independent_decomposition_pass(archive_dir: Path, independent: list[dict[str
 def corrupted_hash_control(input_dir: Path, receipt: dict[str, Any]) -> bool:
     mutated = copy.deepcopy(receipt)
     rows = mutated.get("rows", [])
-    row = next((item for item in rows if item.get("grid") == "S0" and item.get("arm") == "pair256"), None)
+    row = next((item for item in rows if isinstance(item, dict) and item.get("grid") == "S0" and item.get("arm") == "pair256"), None)
     if not isinstance(row, dict) or not isinstance(row.get("states"), list) or not row["states"]:
         return False
     row["states"][0]["sha256"] = "0" * 64
@@ -275,7 +283,7 @@ def corrupted_hash_control(input_dir: Path, receipt: dict[str, Any]) -> bool:
 def corrupted_archive_control(input_dir: Path, receipt: dict[str, Any]) -> bool:
     mutated = copy.deepcopy(receipt)
     rows = mutated.get("rows", [])
-    row = next((item for item in rows if item.get("grid") == "S0" and item.get("arm") == "pair256"), None)
+    row = next((item for item in rows if isinstance(item, dict) and item.get("grid") == "S0" and item.get("arm") == "pair256"), None)
     if not isinstance(row, dict) or not isinstance(row.get("states"), list) or not row["states"]:
         return False
     state = row["states"][0]
@@ -300,7 +308,7 @@ def corrupted_archive_control(input_dir: Path, receipt: dict[str, Any]) -> bool:
 def path_traversal_control(input_dir: Path, receipt: dict[str, Any]) -> bool:
     mutated = copy.deepcopy(receipt)
     rows = mutated.get("rows", [])
-    row = next((item for item in rows if item.get("grid") == "S0" and item.get("arm") == "pair256"), None)
+    row = next((item for item in rows if isinstance(item, dict) and item.get("grid") == "S0" and item.get("arm") == "pair256"), None)
     if not isinstance(row, dict) or not isinstance(row.get("states"), list) or not row["states"]:
         return False
     state = row["states"][0]
@@ -329,12 +337,12 @@ def run(input_dir: Path, output_path: Path) -> dict[str, Any]:
     checks = source_checks(input_dir, receipt)
     snapshot_details = safe_verify_primary_rows(input_dir, receipt)
     target_row = next(
-        (row for row in receipt.get("rows", []) if row.get("grid") == "S0" and row.get("arm") == "pair256"),
+        (row for row in receipt.get("rows", []) if isinstance(row, dict) and row.get("grid") == "S0" and row.get("arm") == "pair256"),
         None,
     )
     if not isinstance(target_row, dict):
         raise audit.VerificationError("S0 pair256 row missing")
-    mutation = audit.mutation_control(input_dir, target_row)
+    mutation = safe_mutation_control(input_dir, target_row)
     corrupted = corrupted_hash_control(input_dir, receipt)
     corrupted_archive = corrupted_archive_control(input_dir, receipt)
     traversal = path_traversal_control(input_dir, receipt)
@@ -445,7 +453,7 @@ def run(input_dir: Path, output_path: Path) -> dict[str, Any]:
     result["numeric_pass"] = bool(
         result["baseline_binding_pass"]
         and all(checks.values())
-        and snapshot_details["pass"]
+        and snapshot_details.get("pass") is True
         and diagnostic_pass
         and primary_comparison_pass
         and mutation
@@ -492,7 +500,7 @@ def main(argv: list[str] | None = None) -> int:
     input_dir = args.input.resolve()
     output = (args.output or (input_dir / "verification.json")).resolve()
     result = run(input_dir, output)
-    print(json.dumps({"output": str(output), "numeric_pass": result["numeric_pass"], "snapshot_pass": result["snapshot_details"]["pass"], "independent_archive_pass": result["independent_raw_archive_complete"]}))
+    print(json.dumps({"output": str(output), "numeric_pass": result["numeric_pass"], "snapshot_pass": result["snapshot_details"].get("pass") is True, "independent_archive_pass": result["independent_raw_archive_complete"]}))
     return 0 if result["numeric_pass"] else 1
 
 
