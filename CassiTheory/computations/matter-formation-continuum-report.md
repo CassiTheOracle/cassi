@@ -14555,9 +14555,10 @@ corrupted-hash rejection, independent archive completeness, conservation, and
 six arm-level independent comparisons. It records 72/72 state-hash checks and
 1,872/1,872 raw-state reconstruction checks; the latter is
 $18\times4\times26$, from 18 archived row entries, four saved states per row,
-and 26 reconstruction checks per saved state. The primary receipt contains 12 comparison
-objects with six observables each, so all 72 primary stable-observable
-comparison entries pass. The independent verifier's six arm-level comparison
+and one reconstruction comparison for each of 26 required observables per
+saved state. The primary receipt contains 12 comparison objects with six
+observables each, so all 72 primary stable-observable comparison entries pass.
+The independent verifier's six arm-level comparison
 objects each contain 24 observable-time error entries (four snapshots times six
 observables), so all 144 independent observable-time checks also pass, with
 maximum stable-set error
