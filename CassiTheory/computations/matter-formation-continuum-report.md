@@ -13730,7 +13730,91 @@ declared cosmological quantum state, and an action-level coupling from that
 collective variable to baryon-number production. The present calculation
 supplies neither link and leaves the six-requirement verdict unchanged.
 
+## 87. Compact-cut localization after charged-wave capture
+
+The retained charged-wave states do not contain a localized carrier remnant at
+the campaign's core scale. This calculation post-processes the immutable
+primary and independent state archives from the spatial-convergence campaign;
+it does not evolve a new trajectory or select a replacement cut.
+
+### 87.1 Fixed observables and reconstruction
+
+The analysis reconstructs the action energy, signed and absolute charge,
+origin-centred core charge, core RMS, core energy, smooth-cut energy and
+charge, axial momentum, and binding ratio for `S0`, `S1`, and `S2` in the
+`pair256` and `antiphase256` arms. The smooth-cut matrix covers
+$r_{\rm in}\in\{4,6,8,10,12\}$ and widths $\{2,4,6\}$; the radial profiles
+use the fixed shells bounded by $4,6,8,10,12,16,24,32$.
+
+The fixed-core predicate is separate from the smooth-cut observable. For every
+target row it takes the largest late-time absolute charge inside
+$r^2+\zeta^2<8^2$, divided by the declared initial charge magnitude. The
+predicate passes only when all six target rows remain below $0.25$, the
+campaign's retained-charge threshold. Absolute charge prevents cancellation
+from hiding a localized carrier.
+
+All 32 primary and independent snapshot reconstructions pass. The maximum
+relative reconstruction error is
+$6.164156635519811\times10^{-16}$. The final receipt is
+`runs/20260911_matter_formation_cut_localization_20260911_r6/result.json`,
+SHA-256
+`310066a9f6acf757ecf1f549145acc93e291e412239b1a2605c5d098a2c3f673`;
+its protocol hash is
+`5dec29a4ca354bdf5d32411a1e0e12c9c6faa7db1cb4f2da35792f90010add1d`.
+
+### 87.2 Spatial result
+
+At the registered cut, the `pair256` `S1\to S2` binding-ratio difference is
+$0.0645294436181778$, while its normalized cut-energy and cut-charge
+differences are $0.005907331126855257$ and
+$0.006013313012721827$. The `antiphase256` binding-ratio difference is
+$0.009042585183720808$, with cut-energy and cut-charge differences
+$0.00017930559264336357$ and $0.000044502474323541465$. The pair arm's
+late smooth-cut charge fractions at `S1` and `S2` are
+$0.011941521482686826$ and $0.005928208469964997$; the antiphase values are
+$0.007119734633204994$ and $0.00707523215888145$.
+
+No `S1\to S2` matrix member has substantial retained smooth-cut charge:
+the largest late charge fraction across those comparisons is
+$0.03796012336408166$ for `pair256` and $0.036635279852891736$ for
+`antiphase256`, both below $0.25$. The wider `S0` sensitivity matrix does
+contain a `pair256` member at $(r_{\rm in},w)=(12,6)$ with fraction
+$0.383294533484555$; it is not an adjacent-level comparison and does not
+enter the decision branch. Across all target rows, the largest fixed-core
+absolute-charge fraction is $0.08925645974786468$ in `S0_pair256`; the
+`S1_pair256` and `S2_pair256` values are $0.01085718338736074$ and
+$0.00414951164932381$. The corresponding antiphase maxima are
+$0.024878379321572466$, $0.006160751049432506$, and
+$0.005921045026993692$. The radial profiles place the late charge and energy
+outside the fixed core rather than in a retained compact state.
+The receipt records zero substantial-charge `S1\to S2` comparisons, a
+component-comparison tolerance of $0.05$, and
+`field_level_predicate=false`. The `FIELD-LEVEL` branch therefore has no
+eligible comparison in this campaign.
+
+
+The fixed decision tree therefore returns
+`DISPERSIVE—binding ratio is ill-conditioned on the dispersed tail`. The
+binding-ratio discrepancy is not evidence for a bound remnant: the localized
+charge is already below the campaign retained-charge threshold, and the
+smooth-cut numerator and denominator both shrink on the dispersed tail.
+
+### 87.3 Formation boundary
+
+This result supports the compact-cut interpretation for the present
+incoming-wave preparation at the declared scale. It does not establish matter
+formation, particle identity, infinite-time persistence, or a microscopic
+production mechanism. A formation intervention must change the initial
+preparation or the dynamical channel and must be specified by a separate
+evolution preregistration; changing width, phase, charge, coupling, domain,
+grid, or final time within this campaign is not licensed.
+
+
 ## References
+
+- `computations/matter_formation_cut_localization_prereg.md`—frozen cut matrix, fixed-core predicate, component decision branches, and archive checks.
+- `computations/matter_formation_cut_localization.py`—primary reconstruction, radial profiles, matrix comparisons, and receipt writer.
+- `runs/20260911_matter_formation_cut_localization_20260911_r6/result.json`—protocol-bound primary receipt for this localization diagnosis.
 
 - `computations/whole-bubble-handedness-selector-prereg.md`—frozen symmetry, Hessian, helicity-degeneracy and selector-control protocol.
 - `computations/whole_bubble_handedness_selector.py`—primary transformations, Beltrami fixtures and positive-coefficient stability calculation.
