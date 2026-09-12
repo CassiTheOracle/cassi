@@ -14500,6 +14500,12 @@ complete matter formation.
 - `computations/verify_matter_formation_momentum_orientation.py`—separate orientation preparation assembly, RK4 evolution, archive checks, and stable-observable comparisons.
 - `runs/20260911_matter_formation_momentum_orientation/result.json`—source-bound primary orientation receipt.
 - `runs/20260911_matter_formation_momentum_orientation/verification.json`—source-bound independent orientation receipt.
+- `computations/matter_formation_packet_phase_prereg.md`—frozen fixed-charge relative-phase ladder, binding gate, controls, and decision tree.
+- `computations/matter_formation_packet_phase_spec.py`—declarative relative-phase arms and grid schedule.
+- `computations/matter_formation_packet_phase.py`—primary Yoshida-composed finite-volume relative-phase evolution.
+- `computations/verify_matter_formation_packet_phase.py`—separate relative-phase preparation assembly, RK4 evolution, archive checks, and rule-control witness.
+- `runs/20260912_matter_formation_packet_phase/result.json`—source-bound primary relative-phase receipt.
+- `runs/20260912_matter_formation_packet_phase/verification.json`—source-bound independent relative-phase receipt.
 
 - `computations/matter_formation_momentum_basin_prereg.md`—frozen fixed-charge incoming-momentum ladder, controls, decision tree, and independent evidence contract.
 - `computations/matter_formation_momentum_basin_spec.py`—declarative momentum arms and grid schedule.
