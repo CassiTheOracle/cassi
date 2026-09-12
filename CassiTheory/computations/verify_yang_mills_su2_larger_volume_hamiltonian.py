@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Exact finite-volume SU(2) Hamiltonian on the frozen 3x2x2 graph.
+"""Recovered finite-volume SU(2) Hamiltonian on the frozen 3x2x2 graph.
 
-Protocol: ``computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md``.
+Protocol:
+``computations/yang-mills-su2-larger-volume-hamiltonian-recovery-prereg.md``.
 
-The program enumerates the complete gauge-invariant spin-network basis with the
+The program enumerates the complete gauge-invariant spin-network basis with
 fixed degree-three and degree-four coupling trees, contracts every fundamental
-Wilson plaquette entry with the exact SU(2) tensor network primitives, solves
-the two finite generalized Ritz problems, and evaluates the declared C=1 shell
-and C=2 analytic character-tail bounds.  All results are finite-volume and
-finite-cutoff results; no continuum claim is emitted.
+Wilson plaquette with exact SU(2) tensor-network primitives, enforces the
+orthogonality of spectator intertwiner channels, solves the two finite
+generalized Ritz problems, and evaluates the declared character-tail bounds.
+All results are finite-volume and finite-cutoff results.
 """
 
 from __future__ import annotations
@@ -42,10 +43,11 @@ three_j = _exact.three_j
 valid_triple = _exact.valid_triple
 
 ROOT = Path(__file__).resolve().parents[1]
-PROTOCOL = ROOT / "computations" / "yang-mills-su2-larger-volume-hamiltonian-prereg.md"
+PROTOCOL = ROOT / "computations" / "yang-mills-su2-larger-volume-hamiltonian-recovery-prereg.md"
+SCIENTIFIC_PROTOCOL = ROOT / "computations" / "yang-mills-su2-larger-volume-hamiltonian-prereg.md"
 SOURCE = Path(__file__).resolve()
 HELPER = ROOT / "computations" / "verify_yang_mills_exact_block_spectrum.py"
-DEFAULT_OUTPUT = ROOT / "runs" / "yang_mills_su2_larger_volume_hamiltonian" / "verification.json"
+DEFAULT_OUTPUT = ROOT / "runs" / "yang_mills_su2_larger_volume_hamiltonian_recovery" / "verification.json"
 
 CUTOFFS = (1, 2)
 COUPLINGS = (Fraction(1, 64), Fraction(1, 16), Fraction(1, 4), Fraction(1, 1))
@@ -54,6 +56,10 @@ EIGEN_RESIDUAL_TOLERANCE = 1.0e-10
 NESTED_ENERGY_TOLERANCE = 1.0e-10
 FORBIDDEN_SAMPLE_SIZE = 128
 HASH_QUANTUM = 1.0e-15
+PARSEVAL_TOLERANCE = 1.0e-10
+WILSON_SPECTRUM_TOLERANCE = 1.0e-8
+WILSON_RESIDUAL_TOLERANCE = 1.0e-8
+GROUND_ENERGY_TOLERANCE = 1.0e-8
 
 VERTEX_COORDS = tuple(
     (x, y, z)
@@ -105,6 +111,11 @@ RIGHT_BOUNDARY_EDGES = (4, 5, 6, 7, 12, 13, 18, 19)
 MIDDLE_EDGES = (10, 11, 16, 17)
 
 State = tuple[int, ...]
+FIRING_RIGHT: State = (
+    1, 1, 2, 2, 1, 1, 1, 1, 1, 1,
+    1, 1, 0, 2, 0, 1, 1, 2, 1, 1,
+    0, 0, 3, 1,
+)
 
 
 def sha256(path: Path) -> str:
@@ -167,6 +178,36 @@ def _state_edges(state: State) -> tuple[int, ...]:
 
 def _state_channels(state: State) -> tuple[int, ...]:
     return state[20:]
+
+
+def _active_vertices(word: Sequence[tuple[int, int]]) -> frozenset[int]:
+    return frozenset(
+        vertex
+        for edge, _ in word
+        for vertex in (LINK_TAILS[edge], LINK_HEADS[edge])
+    )
+
+
+def _spectator_channel_positions(word: Sequence[tuple[int, int]]) -> tuple[int, ...]:
+    active = _active_vertices(word)
+    return tuple(
+        vertex - FOUR_VALENCE_VERTICES[0]
+        for vertex in FOUR_VALENCE_VERTICES
+        if vertex not in active
+    )
+
+
+def _spectator_channels_match(
+    left: State,
+    right: State,
+    word: Sequence[tuple[int, int]],
+) -> bool:
+    left_channels = _state_channels(left)
+    right_channels = _state_channels(right)
+    return all(
+        left_channels[position] == right_channels[position]
+        for position in _spectator_channel_positions(word)
+    )
 
 
 def _channels_for_edges(edges: Sequence[int]) -> tuple[tuple[int, ...], ...]:
@@ -393,6 +434,7 @@ def _fast_matrix_element(
     right: State,
     word: Sequence[tuple[int, int]],
     dagger: bool = False,
+    enforce_spectator_channels: bool = True,
 ) -> complex:
     if dagger:
         word = reverse_word(word)
@@ -406,6 +448,12 @@ def _fast_matrix_element(
     spec, vertex_metadata, path, ordered_edges, _, _ = _plaquette_kernel(word)
     left_channels = dict(zip(FOUR_VALENCE_VERTICES, _state_channels(left)))
     right_channels = dict(zip(FOUR_VALENCE_VERTICES, _state_channels(right)))
+    if enforce_spectator_channels and any(
+        left_channels[vertex] != right_channels[vertex]
+        for vertex in FOUR_VALENCE_VERTICES
+        if vertex not in _active_vertices(word)
+    ):
+        return 0.0j
     operands: list[np.ndarray] = []
     for vertex, active_positions, inactive_positions in vertex_metadata:
         legs = INCIDENT_LEGS[vertex]
@@ -491,6 +539,8 @@ def _batch_matrix_elements(
         right_edges = _state_edges(right)
         active_set = set(ordered_edges)
         if any(left_edges[edge] != right_edges[edge] for edge in range(20) if edge not in active_set):
+            continue
+        if not _spectator_channels_match(left, right, word):
             continue
         left_channels = dict(zip(FOUR_VALENCE_VERTICES, _state_channels(left)))
         right_channels = dict(zip(FOUR_VALENCE_VERTICES, _state_channels(right)))
@@ -628,6 +678,8 @@ def _batch_transfer_matrix_elements(
         right_edges = _state_edges(right)
         if any(left_edges[edge] != right_edges[edge] for edge in range(20) if edge not in active_set):
             continue
+        if not _spectator_channels_match(left, right, word):
+            continue
         left_channels = dict(zip(FOUR_VALENCE_VERTICES, _state_channels(left)))
         right_channels = dict(zip(FOUR_VALENCE_VERTICES, _state_channels(right)))
         for transfer_index, (
@@ -679,6 +731,8 @@ def direct_local_matrix_element(left: State, right: State, word: Sequence[tuple[
     left_edges = _state_edges(left)
     right_edges = _state_edges(right)
     active_edges = {edge for edge, _ in word}
+    if not _spectator_channels_match(left, right, word):
+        return 0.0j
     net = Network()
     loop_factors = _active_loop_labels(net, word)
     bra_axes: dict[tuple[int, int], Any] = {}
@@ -753,6 +807,8 @@ def candidate_states(
         if any(value < 0 or value > cutoff for value in target):
             continue
         for state in index_by_edges.get(tuple(target), ()):
+            if not _spectator_channels_match(state, right, word):
+                continue
 
 
             targets.add(state)
@@ -793,6 +849,33 @@ def _indexed_edge_groups(states: Sequence[State]) -> tuple[dict[tuple[int, ...],
         edge_array,
         channel_array,
     )
+
+
+CandidateGroupKey = tuple[tuple[int, ...], tuple[int, ...]]
+
+
+def _candidate_group_key(
+    state: State,
+    word: Sequence[tuple[int, int]],
+) -> CandidateGroupKey:
+    channels = _state_channels(state)
+    return (
+        _state_edges(state),
+        tuple(channels[position] for position in _spectator_channel_positions(word)),
+    )
+
+
+def _indexed_candidate_groups(
+    states: Sequence[State],
+    word: Sequence[tuple[int, int]],
+) -> dict[CandidateGroupKey, np.ndarray]:
+    groups: dict[CandidateGroupKey, list[int]] = {}
+    for index, state in enumerate(states):
+        groups.setdefault(_candidate_group_key(state, word), []).append(index)
+    return {
+        key: np.asarray(indices, dtype=np.int32)
+        for key, indices in groups.items()
+    }
 
 
 def _transition_tables(
@@ -898,6 +981,32 @@ def _transition_values(
 
 def _candidate_edge_targets(
     edges: tuple[int, ...],
+    spectator_channels: tuple[int, ...],
+    word: Sequence[tuple[int, int]],
+    candidate_groups: dict[CandidateGroupKey, np.ndarray],
+    cutoff: int,
+) -> np.ndarray:
+    targets: list[np.ndarray] = []
+    link_ids = tuple(edge for edge, _ in word)
+    for signs in itertools.product((-1, +1), repeat=4):
+        target = list(edges)
+        for edge, sign in zip(link_ids, signs):
+            target[edge] += sign
+        if any(value < 0 or value > cutoff for value in target):
+            continue
+        group = candidate_groups.get((tuple(target), spectator_channels))
+        if group is not None:
+            targets.append(group)
+    if not targets:
+        return np.zeros(0, dtype=np.int32)
+    combined = np.concatenate(targets)
+    if np.unique(combined).size != combined.size:
+        raise RuntimeError("duplicate candidate target index")
+    return combined
+
+
+def _edge_only_candidate_targets(
+    edges: tuple[int, ...],
     word: Sequence[tuple[int, int]],
     edge_groups: dict[tuple[int, ...], np.ndarray],
     cutoff: int,
@@ -923,6 +1032,8 @@ def _assemble_plaquette(
     chunk_size: int = 262144,
 ) -> tuple[csr_matrix, int, int, str, float]:
     edge_groups, edge_array, channel_array = _indexed_edge_groups(states)
+    candidate_groups = _indexed_candidate_groups(states, word)
+    spectator_channel_positions = _spectator_channel_positions(word)
     descriptor_ids, pair_maps, transfer_matrices, _ = _transition_tables(
         states,
         word,
@@ -935,12 +1046,18 @@ def _assemble_plaquette(
         if edge not in active_edges:
             spectators /= edge_array[:, edge] + 1.0
     target_groups = {
-        edges: _candidate_edge_targets(edges, word, edge_groups, cutoff)
-        for edges in edge_groups
+        key: _candidate_edge_targets(
+            key[0],
+            key[1],
+            word,
+            candidate_groups,
+            cutoff,
+        )
+        for key in candidate_groups
     }
     candidate_count = sum(
-        len(columns) * len(target_groups[edges])
-        for edges, columns in edge_groups.items()
+        len(columns) * len(target_groups[key])
+        for key, columns in candidate_groups.items()
     )
     rows_out = np.empty(candidate_count, dtype=np.int32)
     columns_out = np.empty(candidate_count, dtype=np.int32)
@@ -956,6 +1073,11 @@ def _assemble_plaquette(
             return
         rows = np.concatenate(pending_rows)
         columns = np.concatenate(pending_columns)
+        if spectator_channel_positions and np.any(
+            channel_array[rows][:, spectator_channel_positions]
+            != channel_array[columns][:, spectator_channel_positions]
+        ):
+            raise ArithmeticError("candidate support changed a spectator intertwiner channel")
         values = _transition_values(rows, columns, descriptor_ids, pair_maps, transfer_matrices)
         values *= spectators[columns]
         size = rows.size
@@ -967,8 +1089,8 @@ def _assemble_plaquette(
         pending_columns.clear()
         pending_count = 0
 
-    for edges, columns in edge_groups.items():
-        target_rows = target_groups[edges]
+    for key, columns in candidate_groups.items():
+        target_rows = target_groups[key]
         if target_rows.size == 0:
             continue
         pending_rows.append(np.tile(target_rows, columns.size))
@@ -1005,10 +1127,19 @@ def evaluate_plaquette(
     word = tuple(word)
     matrix, candidate_count, nonzero, matrix_digest, hermiticity = _assemble_plaquette(states, word, cutoff)
     reverse = reverse_word(word)
-    edge_groups, _, _ = _indexed_edge_groups(states)
+    reverse_groups = _indexed_candidate_groups(states, reverse)
     reverse_count = sum(
-        len(columns) * len(_candidate_edge_targets(edges, reverse, edge_groups, cutoff))
-        for edges, columns in edge_groups.items()
+        len(columns)
+        * len(
+            _candidate_edge_targets(
+                key[0],
+                key[1],
+                reverse,
+                reverse_groups,
+                cutoff,
+            )
+        )
+        for key, columns in reverse_groups.items()
     )
     candidate_sample = sorted(zip(*matrix.nonzero()))[: min(64, matrix.nnz)]
     dagger_residual = max(
@@ -1035,6 +1166,15 @@ def evaluate_plaquette(
             break
     forbidden_values = [matrix_element(states[row], states[column], word) for row, column in forbidden]
     forbidden_max = max((abs(value) for value in forbidden_values), default=0.0)
+    physical = normalized_operator(matrix, states)
+    squared = physical.conjugate().multiply(physical)
+    column_norms_squared = np.asarray(squared.sum(axis=0)).ravel().real
+    maximum_column = int(np.argmax(column_norms_squared)) if column_norms_squared.size else 0
+    maximum_column_norm_squared = (
+        float(column_norms_squared[maximum_column])
+        if column_norms_squared.size
+        else 0.0
+    )
     return {
         "name": PLAQUETTE_NAMES[PLAQUETTES.index(word)],
         "word": [[edge, sign] for edge, sign in word],
@@ -1049,6 +1189,10 @@ def evaluate_plaquette(
         "maximum_hermiticity_residual": hermiticity,
         "reverse_support_matches": reverse_count == candidate_count,
         "maximum_dagger_residual": float(dagger_residual),
+        "spectator_channels_preserved": True,
+        "candidate_targets_unique": True,
+        "maximum_normalized_column_index": maximum_column,
+        "maximum_normalized_column_norm_squared": maximum_column_norm_squared,
         "matrix_hash": matrix_digest,
         "matrix": matrix,
     }
@@ -1062,6 +1206,58 @@ def sparse_from_row(row: dict[str, Any], dimension: int) -> csr_matrix:
 
 def state_norm(state: State) -> float:
     return float(np.prod([1.0 / (state[edge] + 1.0) for edge in range(20)]))
+
+
+def normalized_operator(
+    matrix: csr_matrix,
+    states: Sequence[State],
+) -> csr_matrix:
+    norms = np.asarray([state_norm(state) for state in states], dtype=float)
+    inverse_sqrt = 1.0 / np.sqrt(norms)
+    return matrix.multiply(inverse_sqrt[:, None]).multiply(inverse_sqrt[None, :]).tocsr()
+
+
+def normalized_operator_extrema(
+    matrix: csr_matrix,
+    states: Sequence[State],
+) -> dict[str, float]:
+    physical = normalized_operator(matrix, states)
+    physical = (0.5 * (physical + physical.T.conjugate())).tocsr()
+    if physical.shape[0] <= 3:
+        eigenvalues = np.linalg.eigvalsh(physical.toarray())
+        minimum = float(eigenvalues[0])
+        maximum = float(eigenvalues[-1])
+        minimum_residual = 0.0
+        maximum_residual = 0.0
+    else:
+        minimum_values, minimum_vectors = eigsh(
+            physical,
+            k=1,
+            which="SA",
+            tol=1.0e-11,
+            maxiter=max(2000, physical.shape[0] * 20),
+        )
+        maximum_values, maximum_vectors = eigsh(
+            physical,
+            k=1,
+            which="LA",
+            tol=1.0e-11,
+            maxiter=max(2000, physical.shape[0] * 20),
+        )
+        minimum = float(minimum_values[0])
+        maximum = float(maximum_values[0])
+        minimum_residual = float(
+            np.linalg.norm(physical @ minimum_vectors[:, 0] - minimum * minimum_vectors[:, 0])
+        )
+        maximum_residual = float(
+            np.linalg.norm(physical @ maximum_vectors[:, 0] - maximum * maximum_vectors[:, 0])
+        )
+    return {
+        "minimum": minimum,
+        "maximum": maximum,
+        "minimum_residual": minimum_residual,
+        "maximum_residual": maximum_residual,
+    }
 
 
 def state_energy(state: State) -> float:
@@ -1086,6 +1282,109 @@ def selected_overlap_checks(states: Sequence[State]) -> list[dict[str, Any]]:
             expected = state_norm(states[row]) if row == column else 0.0
             values.append({"row": row, "column": column, "observed": [observed.real, observed.imag], "expected": expected, "residual": abs(observed - expected)})
     return values
+
+
+def spectator_channel_firing_control(states: Sequence[State]) -> dict[str, Any]:
+    state_index = {state: index for index, state in enumerate(states)}
+    if FIRING_RIGHT not in state_index:
+        raise ArithmeticError("frozen firing-control ket is absent from the C=2 basis")
+    word = PLAQUETTES[8]
+    right = FIRING_RIGHT
+    right_index = state_index[right]
+    edge_groups, _, _ = _indexed_edge_groups(states)
+    legacy_targets = _edge_only_candidate_targets(
+        _state_edges(right),
+        word,
+        edge_groups,
+        2,
+    )
+    recovered_groups = _indexed_candidate_groups(states, word)
+    recovered_key = _candidate_group_key(right, word)
+    recovered_targets = _candidate_edge_targets(
+        recovered_key[0],
+        recovered_key[1],
+        word,
+        recovered_groups,
+        2,
+    )
+    legacy_values = {
+        int(row): _fast_matrix_element(
+            states[int(row)],
+            right,
+            word,
+            enforce_spectator_channels=False,
+        )
+        for row in legacy_targets
+    }
+    legacy_column_norm_squared = float(
+        sum(
+            abs(value) ** 2 / (state_norm(states[row]) * state_norm(right))
+            for row, value in legacy_values.items()
+        )
+    )
+    mismatched_rows = [
+        row
+        for row, value in legacy_values.items()
+        if not _spectator_channels_match(states[row], right, word)
+        and abs(value) > MATRIX_TOLERANCE
+    ]
+    if not mismatched_rows:
+        raise ArithmeticError("frozen firing control did not expose the legacy support defect")
+    mismatch_row = min(mismatched_rows, key=lambda row: states[row])
+    mismatch_left = states[mismatch_row]
+    spectator_position = next(
+        position
+        for position in _spectator_channel_positions(word)
+        if _state_channels(mismatch_left)[position] != _state_channels(right)[position]
+    )
+    spectator_vertex = FOUR_VALENCE_VERTICES[spectator_position]
+    legs = INCIDENT_LEGS[spectator_vertex]
+    left_tensor = vertex_tensor(
+        tuple(_state_edges(mismatch_left)[edge] for edge, _, _ in legs),
+        _state_channels(mismatch_left)[spectator_position],
+    )
+    right_tensor = vertex_tensor(
+        tuple(_state_edges(right)[edge] for edge, _, _ in legs),
+        _state_channels(right)[spectator_position],
+    )
+    local_overlap = np.vdot(left_tensor, right_tensor)
+    recovered_values = {
+        int(row): matrix_element(states[int(row)], right, word)
+        for row in recovered_targets
+    }
+    recovered_column_norm_squared = float(
+        sum(
+            abs(value) ** 2 / (state_norm(states[row]) * state_norm(right))
+            for row, value in recovered_values.items()
+        )
+    )
+    corrected_mismatch_value = matrix_element(mismatch_left, right, word)
+    return {
+        "plaquette": PLAQUETTE_NAMES[8],
+        "right_state_index": right_index,
+        "right_state": list(right),
+        "legacy_candidate_count": int(legacy_targets.size),
+        "recovered_candidate_count": int(recovered_targets.size),
+        "legacy_normalized_column_norm_squared": legacy_column_norm_squared,
+        "recovered_normalized_column_norm_squared": recovered_column_norm_squared,
+        "mismatched_remote_channel_state_index": mismatch_row,
+        "mismatched_remote_channel_position": spectator_position,
+        "mismatched_remote_channel_vertex": spectator_vertex,
+        "legacy_mismatched_value": [
+            float(legacy_values[mismatch_row].real),
+            float(legacy_values[mismatch_row].imag),
+        ],
+        "corrected_mismatched_value": [
+            float(corrected_mismatch_value.real),
+            float(corrected_mismatch_value.imag),
+        ],
+        "local_channel_overlap": [
+            float(local_overlap.real),
+            float(local_overlap.imag),
+        ],
+        "mismatched_state_excluded_from_recovered_support": mismatch_row
+        not in set(int(value) for value in recovered_targets),
+    }
 
 
 def solve_ritz(
@@ -1241,14 +1540,21 @@ def run(output: Path) -> dict[str, Any]:
                 status = status + ":COARSE"
             solved[str(cutoff)]["tail"].update({"coupling_bound": bound, "ratio": min(1.0, bound / separation) if separation > 0 else None, "status": status})
         rows.append({"coupling": coupling.numerator / coupling.denominator, "cutoffs": solved, "nested_energy": nested[key], "b1_shell_norm": b1})
-    oracle_edges, _, _ = _indexed_edge_groups(bases[1])
+    wilson_spectra = {
+        str(cutoff): normalized_operator_extrema(operators[cutoff], bases[cutoff])
+        for cutoff in CUTOFFS
+    }
+    firing_control = spectator_channel_firing_control(bases[2])
+    oracle_groups = _indexed_candidate_groups(bases[1], PLAQUETTES[0])
     oracle_right = next(
         state for state in bases[1] if all(value == 0 for value in _state_edges(state))
     )
+    oracle_key = _candidate_group_key(oracle_right, PLAQUETTES[0])
     oracle_targets = _candidate_edge_targets(
-        _state_edges(oracle_right),
+        oracle_key[0],
+        oracle_key[1],
         PLAQUETTES[0],
-        oracle_edges,
+        oracle_groups,
         1,
     )
     oracle_left = bases[1][int(oracle_targets[0])]
@@ -1258,12 +1564,45 @@ def run(output: Path) -> dict[str, Any]:
     )
     checks: list[dict[str, Any]] = [
         check("protocol_path", PROTOCOL.exists()),
+        check("scientific_protocol_path", SCIENTIFIC_PROTOCOL.exists()),
         check("source_path", SOURCE.relative_to(ROOT).as_posix() == "computations/verify_yang_mills_su2_larger_volume_hamiltonian.py"),
         check("helper_path", HELPER.exists()),
         check("graph_vertex_count", len(VERTEX_COORDS) == 12),
         check("graph_link_count", len(LINK_TAILS) == 20 and len(LINK_HEADS) == 20),
         check("plaquette_count", len(PLAQUETTES) == 11),
         check("all_words_close", all(closure), closure=closure),
+        check(
+            "all_plaquette_links_distinct",
+            all(len({edge for edge, _ in word}) == 4 for word in PLAQUETTES),
+        ),
+        check(
+            "firing_legacy_parseval_violation",
+            firing_control["legacy_normalized_column_norm_squared"]
+            > 4.0 + PARSEVAL_TOLERANCE,
+            observed=firing_control["legacy_normalized_column_norm_squared"],
+        ),
+        check(
+            "firing_recovered_parseval_bound",
+            firing_control["recovered_normalized_column_norm_squared"]
+            <= 4.0 + PARSEVAL_TOLERANCE,
+            observed=firing_control["recovered_normalized_column_norm_squared"],
+        ),
+        check(
+            "firing_remote_channel_overlap_zero",
+            abs(complex(*firing_control["local_channel_overlap"]))
+            <= MATRIX_TOLERANCE,
+            overlap=firing_control["local_channel_overlap"],
+        ),
+        check(
+            "firing_mismatched_matrix_element_zero",
+            abs(complex(*firing_control["corrected_mismatched_value"]))
+            <= MATRIX_TOLERANCE,
+            value=firing_control["corrected_mismatched_value"],
+        ),
+        check(
+            "firing_mismatched_state_excluded",
+            firing_control["mismatched_state_excluded_from_recovered_support"],
+        ),
         check("nested_basis", set(bases[1]).issubset(set(bases[2]))),
         check("local_exact_oracle_C1", oracle_residual <= MATRIX_TOLERANCE, residual=oracle_residual),
     ]
@@ -1277,7 +1616,43 @@ def run(output: Path) -> dict[str, Any]:
                 check(f"hermitian_C{cutoff}_{matrix['name']}", matrix["maximum_hermiticity_residual"] <= MATRIX_TOLERANCE, residual=matrix["maximum_hermiticity_residual"]),
                 check(f"dagger_C{cutoff}_{matrix['name']}", matrix["maximum_dagger_residual"] <= MATRIX_TOLERANCE, residual=matrix["maximum_dagger_residual"]),
                 check(f"forbidden_C{cutoff}_{matrix['name']}", matrix["forbidden_sample_zero"], maximum=matrix["maximum_forbidden_sample_magnitude"]),
+                check(
+                    f"parseval_C{cutoff}_{matrix['name']}",
+                    matrix["maximum_normalized_column_norm_squared"]
+                    <= 4.0 + PARSEVAL_TOLERANCE,
+                    maximum=matrix["maximum_normalized_column_norm_squared"],
+                    column=matrix["maximum_normalized_column_index"],
+                ),
+                check(
+                    f"spectator_channels_C{cutoff}_{matrix['name']}",
+                    matrix["spectator_channels_preserved"],
+                ),
+                check(
+                    f"unique_candidates_C{cutoff}_{matrix['name']}",
+                    matrix["candidate_targets_unique"],
+                ),
             ])
+    for cutoff in CUTOFFS:
+        spectrum = wilson_spectra[str(cutoff)]
+        checks.extend([
+            check(
+                f"wilson_minimum_C{cutoff}",
+                spectrum["minimum"] >= -22.0 - WILSON_SPECTRUM_TOLERANCE,
+                minimum=spectrum["minimum"],
+            ),
+            check(
+                f"wilson_maximum_C{cutoff}",
+                spectrum["maximum"] <= 22.0 + WILSON_SPECTRUM_TOLERANCE,
+                maximum=spectrum["maximum"],
+            ),
+            check(
+                f"wilson_extremal_residuals_C{cutoff}",
+                max(spectrum["minimum_residual"], spectrum["maximum_residual"])
+                <= WILSON_RESIDUAL_TOLERANCE,
+                minimum_residual=spectrum["minimum_residual"],
+                maximum_residual=spectrum["maximum_residual"],
+            ),
+        ])
     for row in rows:
         for cutoff in CUTOFFS:
             solved = row["cutoffs"][str(cutoff)]
@@ -1285,6 +1660,11 @@ def run(output: Path) -> dict[str, Any]:
                 check(f"ritz_residual_C{cutoff}_x{row['coupling']}", solved["generalized_residual"] <= EIGEN_RESIDUAL_TOLERANCE, residual=solved["generalized_residual"]),
                 check(f"ritz_gap_C{cutoff}_x{row['coupling']}", solved["ritz_gap"] is None or solved["ritz_gap"] >= -MATRIX_TOLERANCE, gap=solved["ritz_gap"]),
                 check(f"tail_separation_C{cutoff}_x{row['coupling']}", solved["tail"]["separation"] > 0, separation=solved["tail"]["separation"]),
+                check(
+                    f"ground_energy_nonnegative_C{cutoff}_x{row['coupling']}",
+                    solved["ground_energy"] >= -GROUND_ENERGY_TOLERANCE,
+                    ground_energy=solved["ground_energy"],
+                ),
             ])
         checks.append(check(f"nested_energy_x{row['coupling']}", row["nested_energy"]["nonincreasing"], difference=row["nested_energy"]["difference"]))
     finite_checks = [
@@ -1318,18 +1698,18 @@ def run(output: Path) -> dict[str, Any]:
     classification = (
         "FAIL"
         if not finite_pass
-        else "SUPPORTS_FINITE_VOLUME_CUTOFF_TAIL_CONTROL"
-        if all(value == "SUPPORTS_FINITE_VOLUME_CUTOFF_TAIL_CONTROL" for value in cutoff_qualifications.values())
-        else "PASS_FINITE_CONSTRUCTION"
+        else "PASS_RECOVERED_FINITE_CONSTRUCTION"
     )
     record: dict[str, Any] = {
-        "schema": "yang_mills_su2_larger_volume_hamiltonian_v1",
+        "schema": "yang_mills_su2_larger_volume_hamiltonian_recovery_v2",
         "status": "PASS" if finite_pass else "FAIL",
         "classification": classification,
         "protocol": str(PROTOCOL.relative_to(ROOT)).replace("\\", "/"),
+        "scientific_protocol": str(SCIENTIFIC_PROTOCOL.relative_to(ROOT)).replace("\\", "/"),
         "source": str(SOURCE.relative_to(ROOT)).replace("\\", "/"),
         "helper": str(HELPER.relative_to(ROOT)).replace("\\", "/"),
         "protocol_sha256": sha256(PROTOCOL),
+        "scientific_protocol_sha256": sha256(SCIENTIFIC_PROTOCOL),
         "source_sha256": sha256(SOURCE),
         "helper_sha256": sha256(HELPER),
         "cutoffs": list(CUTOFFS),
@@ -1341,6 +1721,8 @@ def run(output: Path) -> dict[str, Any]:
         "plaquettes": [{"name": name, "word": [[edge, sign] for edge, sign in word]} for name, word in zip(PLAQUETTE_NAMES, PLAQUETTES)],
         "basis": basis_records,
         "matrices": {str(cutoff): matrices[cutoff] for cutoff in CUTOFFS},
+        "wilson_operator_spectra": wilson_spectra,
+        "spectator_channel_firing_control": firing_control,
         "rows": rows,
         "checks": checks,
         "checks_passed": sum(item["passed"] for item in checks),
@@ -1356,7 +1738,7 @@ def run(output: Path) -> dict[str, Any]:
         "tail_status_C2": tail_status_c2,
         "useful_tail_rows": len(tail_rows),
         "continuum_claim": False,
-        "scope": "finite open 3x2x2 SU(2) gauge-invariant character Hamiltonian with C=1,2",
+        "scope": "recovered finite open 3x2x2 SU(2) gauge-invariant character Hamiltonian with C=1,2",
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.exists():

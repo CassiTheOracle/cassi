@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Recovered finite $3\times2\times2$ $SU(2)$ Hamiltonian construction with character-cutoff tails inconclusive; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -5400,7 +5400,7 @@ microscopic completions.
 | Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM186) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre; the projected Ritz density makes the cutoff measure's conditional gap vanish identically at the rows carrying a resolved path sign change, and the twelve-row path and two-parameter torus families confine that zero-gap region to the strong-coupling rows; the exact-vacuum fibre rate remains required |
 | Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, cutoff removal and continuum construction remain open |
 | Finite open-cube SU(2) basis and oriented Wilson support | **Derived** finite-regulator construction | The open $2\times2\times2$ cube has 32 and 1013 gauge-invariant raw trivalent-$3j$ states at doubled cutoffs $C=1,2$; every six signed fundamental plaquette operators has 32 and 2388 nonzero candidate-supported directed entries, with finite Hermitian contractions; volume growth, cutoff removal and continuum control remain open |
-| Larger-volume/cutoff SU(2) Hamiltonian target | **Pre-registered finite target** | The `3\times2\times2` open graph, complete binary-tree intertwiners, nested link cutoffs $C=1,2$, and finite-volume exact-ground-state tail estimate are fixed in `computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md`; no execution receipt is present |
+| Larger-volume/cutoff SU(2) Hamiltonian | **Derived** recovered finite-regulator construction; **INCONCLUSIVE** character-cutoff tail control | The open $3\times2\times2$ graph has 868 and 955835 complete gauge-invariant states at doubled cutoffs $C=1,2$; the recovery enforces spectator-intertwiner orthogonality, all 226 finite-construction checks and 256 independent checks pass, every scheduled ground energy is nonnegative, and all four aggregate cutoff qualifications remain `INCONCLUSIVE` |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -5806,14 +5806,44 @@ character-cutoff control, the interacting weak-coupling estimate,
 thermodynamic construction, OS reconstruction and a physical mass gap remain
 **UNRESOLVED**.
 
-The next finite construction is fixed by
-`computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md`. It uses a
-$3\times2\times2$ open graph with twenty links and eleven plaquettes, a
-complete sequential binary-coupling basis at every vertex, link cutoffs
-$C=1,2$, and $x\in\{1/64,1/16,1/4,1\}$. The $C=1$ omitted-sector coupling
-is computed from the full $C=2$ shell; the $C=2$ row receives the declared
-analytic operator-norm bound. This is a finite-volume target without an
-execution receipt. Character-cutoff removal, spatial-volume uniformity, the
+The larger-volume construction is governed by the scientific protocol
+`computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md` and the
+spectator-channel recovery protocol
+`computations/yang-mills-su2-larger-volume-hamiltonian-recovery-prereg.md`.
+It uses a $3\times2\times2$ open graph with twenty links and eleven
+plaquettes, a complete sequential binary-coupling basis at every vertex,
+link cutoffs $C=1,2$, and
+$x\in\{1/64,1/16,1/4,1\}$. The basis dimensions are 868 and 955835.
+
+The recovered primary receipt
+`runs/yang_mills_su2_larger_volume_hamiltonian_recovery/verification.json`
+passes all 226 finite-construction checks. Its 234/238 aggregate count
+contains four non-gating failed tail-separation checks at $x=1/4$ and $x=1$
+for both cutoffs. The independent receipt
+`runs/yang_mills_su2_larger_volume_hamiltonian_recovery/verification-independent.json`
+passes 256/256 checks and reconstructs the basis hashes, plaquette matrix
+hashes and counts, Wilson extrema, Ritz energies, shell norms and recovery
+invariants.
+
+The frozen $yz_{x0}$ firing control reduces the edge-only candidate column
+from 80 states to five and its normalized squared norm from $16$ to $1$.
+The lexicographically selected remote channel has zero intertwiner overlap
+and zero recovered matrix element at spectator vertex 6. The largest
+normalized squared plaquette-column norm is $1$ at $C=1$ and $2$ at $C=2$.
+The Wilson-sum spectra lie in
+$[-5.89211600962,5.89211600962]$ and
+$[-11.1908496223,11.1908496223]$, respectively, inside the required
+$[-22,22]$ interval. All eight scheduled ground energies are nonnegative;
+the $C=2$ values range from $0.342854829715$ at $x=1/64$ to
+$18.5248301195$ at $x=1$.
+
+Every aggregate cutoff qualification is `INCONCLUSIVE`. The sole useful
+individual tail row is the $C=1$, $x=1/64$ exact-shell bound; the corresponding
+$C=2$ analytic ratio is $0.100890916829$, above the frozen $0.1$ threshold.
+The edge-only external receipts bound in
+`runs/yang_mills_continuum_boundary_audit/verification.json` are excluded
+from Hamiltonian and tail evidence because they omit the spectator-channel
+Kronecker deltas. Character-cutoff removal, spatial-volume uniformity, the
 thermodynamic limit, OS reconstruction and the physical mass gap remain
 **UNRESOLVED**.
 
@@ -5908,7 +5938,12 @@ thermodynamic limit, OS reconstruction and the physical mass gap remain
   gauge-basis and oriented Wilson-support protocol
 - `computations/verify_yang_mills_su2_open_cube.py`—69-check exact
   open-cube basis and Wilson-support verifier
-- `computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md`—pre-registered larger-volume/cutoff Hamiltonian, complete intertwiner basis and finite-volume character-tail protocol
+- `computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md`—larger-volume/cutoff Hamiltonian, complete intertwiner basis and finite-volume character-tail protocol
+- `computations/yang-mills-su2-larger-volume-hamiltonian-recovery-prereg.md`—spectator-channel recovery identity, firing control and finite-operator bounds
+- `computations/verify_yang_mills_su2_larger_volume_hamiltonian.py`—recovered 226-check finite Hamiltonian construction
+- `computations/verify_yang_mills_su2_larger_volume_hamiltonian_independent.py`—256-check independent basis, matrix and spectrum reconstruction
+- `runs/yang_mills_continuum_boundary_audit/verification.json`—21-check v2 hash-bound audit receipt covering recovered finite evidence, excluded defect provenance and the unresolved continuum boundary
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—21-check source, receipt, recovery-snapshot and continuum-boundary audit
 - D. Bakry, I. Gentil and M. Ledoux, *Analysis and Geometry of Markov
   Diffusion Operators*—Poincaré, Poisson and carré-du-champ framework
 - C. Villani, *Optimal Transport: Old and New*—continuity equations and

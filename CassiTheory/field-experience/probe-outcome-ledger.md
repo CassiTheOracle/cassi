@@ -982,27 +982,37 @@ $1.33959190672153\times10^{-6}$ at $C=2$. The receipt passes 69/69 frozen
 checks. The result supplies a bounded three-dimensional operator layer for
 the next finite-volume construction.
 
-## 34. Pre-registered larger-volume SU(2) Hamiltonian and character tail
+## 34. Recovered larger-volume SU(2) Hamiltonian and character tail
 
-The frozen protocol `computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md`
-defines the first larger-than-cube finite spatial Hamiltonian target: an open
-$3\times2\times2$ graph with twenty links and eleven plaquettes. The eight
-degree-three boundary vertices and four degree-four vertices at $x=1$ use the
-fixed sequential binary coupling tree, including all intertwiner multiplicity
-labels. The schedule uses link cutoffs $C=1,2$ and couplings
-$x\in\{1/64,1/16,1/4,1\}$.
+The scientific protocol
+`computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md` defines the
+open $3\times2\times2$ graph with twenty links and eleven plaquettes, the
+complete binary-tree intertwiner basis, cutoffs $C=1,2$, and
+$x\in\{1/64,1/16,1/4,1\}$. The recovery protocol
+`computations/yang-mills-su2-larger-volume-hamiltonian-recovery-prereg.md`
+adds the spectator-channel identity, a defect-firing witness, plaquette
+Parseval bounds, Wilson-spectrum bounds and Hamiltonian positivity.
 
-| Protocol component | Frozen content | Status |
+| Control or claim | Decisive result | Classification and scope |
 |---|---|---|
-| Hamiltonian | $H_C=K_C+22xI-xW_C$ with exact SU(2) Haar contractions and generalized Ritz spectrum | **PRE-REGISTERED—NO RECEIPT** |
-| Cutoff tail | Exact $C=1$ cross-shell operator norm from $C=2$ plus the analytic $C=2$ bound $b_2\le22x$ | **PRE-REGISTERED—NO RECEIPT** |
-| Scope | Finite spatial graph and finite-volume untruncated character Hamiltonian | **PRE-REGISTERED—NO RECEIPT** |
-| Continuum boundary | Character-cutoff removal, spatial-volume uniformity, thermodynamic construction, OS reconstruction and physical mass gap | **UNRESOLVED** |
+| Spectator-channel recovery | On the frozen $yz_{x0}$ ket, the edge-only candidate set has 80 states and normalized column norm squared $16$; enforcing remote intertwiner equality leaves five states and norm squared $1$. The selected channel-1/channel-3 overlap at vertex 6 and the recovered matrix element are zero | **PASS**, the omitted-channel defect fires and the production support excludes it |
+| Complete finite basis and plaquettes | The basis dimensions are 868 and 955835. The largest normalized plaquette-column norm squared is $1$ at $C=1$ and $2$ at $C=2$; all candidate pairs preserve spectator channels | **PASS**, recovered finite construction for the declared graph and cutoffs |
+| Wilson sum and Hamiltonian | The Wilson spectra are $\pm5.89211600962$ and $\pm11.1908496223$, within $[-22,22]$. All eight ground energies are nonnegative and decrease under $C=1\to2$; the $C=2$ values run from $0.342854829715$ to $18.5248301195$ | **PASS**, 226/226 finite-construction checks |
+| Independent reconstruction | The independent source reconstructs both ordered basis hashes, every plaquette matrix hash and count, both Wilson extrema, every Ritz energy, all shell norms and the recovery witness | **PASS**, 256/256 checks |
+| Character-cutoff tails | Only the $C=1$, $x=1/64$ exact-shell row has ratio at most $0.1$; its $C=2$ partner has ratio $0.100890916829$. The $x=1/4$ and $x=1$ separations are negative at both cutoffs | **INCONCLUSIVE**, all four aggregate cutoff qualifications |
+| Excluded edge-only evidence | The external primary and independent receipts bound in `runs/yang_mills_continuum_boundary_audit/verification.json` omit spectator-channel Kronecker deltas and admit the firing witness | **REJECT** for Hamiltonian spectra and cutoff-tail interpretation; retained as defect provenance |
+| Continuum boundary | Character-cutoff removal, spatial-volume uniformity, thermodynamic construction, OS reconstruction and the regulator-independent physical mass gap are not supplied | **UNRESOLVED** |
 
-The protocol fixes the complete high-valence basis and the separation
-condition required for a finite-volume exact-ground-state tail estimate. No
-primary or independent execution receipt is present, so this entry records a
-target and supplies no measured Hamiltonian or vacuum result.
+The recovered primary receipt
+`runs/yang_mills_su2_larger_volume_hamiltonian_recovery/verification.json`
+passes 234/238 aggregate checks; the four failures are the declared
+non-gating tail-separation rows at $x=1/4$ and $x=1$. The independent receipt
+`runs/yang_mills_su2_larger_volume_hamiltonian_recovery/verification-independent.json`
+passes 256/256 checks. Both bind the materialized receipt-bound recovery
+protocol snapshot, the scientific protocol, the current source files and the
+shared exact representation helper by SHA-256. The 21-check continuum-boundary
+audit verifies the one-reference relation between that snapshot and the
+current recovery protocol.
 
 ## 35. Finite-volume SU(2) quantum Schwinger generator
 
@@ -1027,8 +1037,9 @@ The directory retains
 `verification-independent-v1-failed.json` as an audit artifact with one
 failed independent reconstruction before the final bounded-series source.
 The final receipts bind the frozen protocol, both source files and the
-primary receipt hash. No larger-volume Hamiltonian receipt is claimed, and
-the finite two-dimensional result supplies no continuum mass-gap estimate.
+current primary receipt by SHA-256. The separate recovered larger-volume
+Hamiltonian receipts remain finite-volume and finite-cutoff evidence and
+supply no continuum mass-gap estimate.
 
 ## References
 
@@ -1120,6 +1131,12 @@ the finite two-dimensional result supplies no continuum mass-gap estimate.
 - `computations/verify_yang_mills_su2_quantum_schwinger_2d_independent.mjs`—eight-check independent Bessel-series, spectral and source-binding reconstruction.
 - `runs/yang_mills_su2_quantum_schwinger_2d/verification-v1.json`—402-check source-bound finite-volume quantum Schwinger receipt.
 - `runs/yang_mills_su2_quantum_schwinger_2d/verification-independent-v1.json`—eight-check independent receipt binding both sources and the primary receipt.
+- `computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md`—finite $3\times2\times2$ Hamiltonian and character-tail schedule.
+- `computations/yang-mills-su2-larger-volume-hamiltonian-recovery-prereg.md`—spectator-channel recovery and operator-bound protocol.
+- `computations/verify_yang_mills_su2_larger_volume_hamiltonian.py`—226-check recovered finite construction.
+- `computations/verify_yang_mills_su2_larger_volume_hamiltonian_independent.py`—256-check independent reconstruction.
+- `runs/yang_mills_continuum_boundary_audit/verification.json`—21-check v2 hash-bound audit receipt covering recovered finite evidence, excluded defect provenance and the unresolved continuum boundary.
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—21-check hash-bound finite-evidence and continuum-boundary audit.
 - `computations/yang-mills-su2-transport-expansion-prereg.md`—fixed local strip and compact-boundary schedule.
 - `computations/verify_yang_mills_su2_transport_expansion.py`—150-check normalized transport expansion.
 - `computations/verify_yang_mills_su2_transport_expansion_independent.mjs`—60-check independent coefficient and receipt reconstruction.

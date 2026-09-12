@@ -833,6 +833,17 @@ independent checks reconstruct all 88 requested cutoff eigenvalues across 30
 rows. These finite measurements support the implemented controls and do not
 establish the limiting theorem.
 
+The recovered open $3\times2\times2$ Hamiltonian construction uses complete
+binary-tree intertwiner bases of dimensions 868 and 955835 at character
+cutoffs $C=1,2$. Its spectator-channel firing witness restricts an edge-only
+80-state candidate column to five states and reduces the normalized squared
+norm from $16$ to $1$. The primary source passes 226/226 finite-construction
+checks, and an independent reconstruction passes 256/256 checks while matching
+the ordered basis hashes, plaquette hashes, Wilson extrema, Ritz energies and
+shell norms. All eight scheduled ground energies are nonnegative. Every
+aggregate character-tail qualification is `INCONCLUSIVE`, so these finite
+spectra supply no cutoff-removal or continuum theorem.
+
 The Poincaré-geometry analysis separates spatial and link three-spheres. A
 closed simply connected spatial slice is topologically $S^3$, and a round
 radius-$R$ regulator has free Maxwell/linearized coexact frequency $2/R$,
@@ -2467,16 +2478,18 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
 - **Bubble edge profile.** The physical gradient in $q$, $\rho$, and $G_{\text{eff}}$ across the condensation boundary is derived from the chord lattice geometry but the condensation threshold $\theta_{\text{cond}}$ and the density exponent $\nu$ require PDE computation. See `foundations/bubble-edge-geometry.md`.
 - **BH information Page curve.** The free Gaussian supplies Euclidean UV damping but fails the standard unsubtracted positive physical-covariance interpretation at nonzero $\sigma$. A physical-sector construction and interacting, curved-spacetime evaporation calculation are required before a Page curve is defined. See `gravity/quantum-gravity.md` §§3.1,7 and `foundations/quantum-free-fall-correspondence.md` §11.5.
 - **Interacting Yang–Mills fibre and continuum mass gap.** Finite regulated
-  theory has an exact vacuum-measure gap identity and conditional
-  recurrence criteria. The seven-link tree-exterior study makes the sampled
-  boundary axis orbit-independent, while the eight-link bowtie study shows
-  loop-holonomy boundary sensitivity in all twelve scheduled cutoff/coupling
-  blocks. Its 108 retained-rate rows are `INCONCLUSIVE` under the frozen
-  residual and nested-rank rules. The exact-vacuum fibre rate, transported
-  score, cutoff removal, uniform interacting recovery, thermodynamic limit and
-  continuum construction remain open. See
-  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.24 and
-  `field-experience/probe-outcome-ledger.md` §30.
+  theory has an exact vacuum-measure gap identity and conditional recurrence
+  criteria. The seven-link tree-exterior study makes the sampled boundary axis
+  orbit-independent, while the eight-link bowtie study finds loop-holonomy
+  boundary sensitivity but no qualified retained fibre rate. The recovered
+  $3\times2\times2$ Hamiltonian construction passes 226/226 primary and
+  256/256 independent finite checks with nonnegative scheduled spectra.
+  Every aggregate character-tail qualification is `INCONCLUSIVE`. A uniform
+  exact-vacuum fibre rate, transported score, character-cutoff theorem,
+  spatial-volume uniformity, thermodynamic construction, OS reconstruction
+  and regulator-independent physical mass gap remain open. See
+  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.24 and §11 and
+  `field-experience/probe-outcome-ledger.md` §§30,34.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state
