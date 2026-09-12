@@ -437,10 +437,13 @@ class Network:
                 local: (np.asarray(self.nodes[global_index][0]), ())
                 for local, global_index in enumerate(component)
             }
-            for i, j, out_index, spec in steps:
+            for i, j, out_index, spec, merged_axes in steps:
                 left = store.pop(i)
                 right = store.pop(j)
-                store[out_index] = (np.einsum(spec, left[0], right[0], optimize=True), ())
+                store[out_index] = (
+                    np.einsum(spec, left[0], right[0], optimize=True),
+                    merged_axes,
+                )
             if len(store) != 1:
                 raise ValueError("contraction plan left a partial network")
             array = np.asarray(store[final_index][0])
@@ -518,7 +521,10 @@ def _components(nodes: Sequence[tuple[np.ndarray, tuple[Label, ...]]]) -> list[l
     return list(groups.values())
 
 
-_PLAN_CACHE: dict[tuple, tuple[list[tuple[int, int, int, str]], int, tuple[Label, ...]]] = {}
+_PLAN_CACHE: dict[
+    tuple,
+    tuple[list[tuple[int, int, int, str, tuple[Label, ...]]], int, tuple[Label, ...]],
+] = {}
 
 
 _ALPHABET = string.ascii_letters
@@ -552,9 +558,9 @@ def _plan_step_spec(axes_i: Sequence[Label], axes_j: Sequence[Label]) -> tuple[t
 def _build_plan(
     nodes: Sequence[tuple[np.ndarray, tuple[Label, ...]]],
     open_names: frozenset[str] = frozenset(),
-) -> tuple[list[tuple[int, int, int, str]], int, tuple[Label, ...]]:
+) -> tuple[list[tuple[int, int, int, str, tuple[Label, ...]]], int, tuple[Label, ...]]:
     entries = [(index, tuple(axes)) for index, (_, axes) in enumerate(nodes)]
-    steps: list[tuple[int, int, int, str]] = []
+    steps: list[tuple[int, int, int, str, tuple[Label, ...]]] = []
     counter = len(entries)
     while len(entries) > 1:
         best = None
@@ -574,7 +580,7 @@ def _build_plan(
             raise ValueError("network is disconnected")
         i, j = best
         merged, spec = _plan_step_spec(entries[i][1], entries[j][1])
-        steps.append((entries[i][0], entries[j][0], counter, spec))
+        steps.append((entries[i][0], entries[j][0], counter, spec, merged))
         entries = [entry for index, entry in enumerate(entries) if index not in (i, j)]
         entries.append((counter, merged))
         counter += 1
