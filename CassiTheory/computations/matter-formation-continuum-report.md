@@ -14189,6 +14189,105 @@ formation. A future momentum intervention needs a fresh protocol that
 specifies a stable compact observable or a different preparation before
 execution.
 
+## 92. Momentum orientation at fixed separation and carrier magnitude
+
+The momentum-orientation probe tests whether the direction of packet motion
+changes the fixed-charge outcome while every scalar preparation parameter
+remains fixed. The packet centres are $\zeta=\pm12$, the width is $w=4$, the
+total signed charge is $Q=16$, and the carrier magnitude is $|k|=1$. The
+inward sign sends the packets toward the origin; the outward sign reverses
+both phase gradients.
+
+### 92.1 Sign convention and evidence
+
+The phase convention is $z\propto e^{i(k\zeta-\omega t)}$ with
+$\dot z=-i\omega z$. For `phase_sign=+1`, the packet at $\zeta=-12$ has
+gradient $+1$ and moves toward increasing $\zeta$, while the packet at
+$\zeta=+12$ has gradient $-1$ and moves toward decreasing $\zeta`. This is
+`pair_inward`. `phase_sign=-1` is `pair_outward`. The antiphase and
+uncoupled arms retain the inward sign.
+
+The preregistered schedule is
+`computations/matter_formation_momentum_orientation_prereg.md`. The primary
+runner and declarative specification are
+`computations/matter_formation_momentum_orientation.py` and
+`computations/matter_formation_momentum_orientation_spec.py`; the independent
+verifier is
+`computations/verify_matter_formation_momentum_orientation.py`.
+
+The primary receipt is
+`runs/20260911_matter_formation_momentum_orientation/result.json`, SHA-256
+`95a41169ac43d2c10777b75fa0ede51e7e2195d2e25a8009df5c12550f95e035`. The
+independent receipt is
+`runs/20260911_matter_formation_momentum_orientation/verification.json`,
+SHA-256
+`ca4ee84b53fd7a2db8fb5cdece7c42cd3810960676625ff803f527a764c73eea`.
+
+All 15 primary rows are finite and numerically qualified. Every pair passes
+preparation eligibility. All 10 spatial and time-step comparisons pass over
+the stable observable set
+
+$$
+\{E,Q,f_{\mathrm{core}},R_{\mathrm{core}},E_{\mathrm{core}},
+f_{\mathrm{shell}}\}.
+$$
+
+The independent verifier passes source identity, preparation metadata,
+primary archive reconstruction, mutation rejection, corrupted-hash
+rejection, independent archive completeness, conservation, and all five
+independent scalar snapshot comparisons. The maximum independent-to-primary
+error over the stable comparison set is
+$9.20323524469819\times10^{-5}$. The primary and independent numerical
+receipts both pass.
+
+### 92.2 Orientation result
+
+The inward coupled arm `pair_inward` disperses. Its late fixed-core fraction
+has minimum $0.0001084462363078627$, its maximum binding ratio is
+$1.7653372742426348$, its maximum core RMS is
+$6.773939110941506$, and its maximum shell fraction is
+$0.12234025124405376$.
+
+The outward arm `pair_outward` also fails the remnant predicate. Its late
+signed core fraction ranges from
+$-5.750352115234642\times10^{-6}$ to
+$-1.258376905526001\times10^{-7}$, with maximum shell fraction
+$0.00018515171286731215$. The near-zero signed core makes its binding ratio
+large, but the retained-core condition already fails.
+
+The inward antiphase arm `antiphase_inward` disperses with minimum late
+fixed-core fraction $0.00011085566637268963$, maximum binding ratio
+$1.8103552666633955$, maximum core RMS
+$6.71928241522844$, and maximum shell fraction
+$0.12231716322773441$. The uncoupled inward control also fails, with minimum
+late fixed-core fraction $0.0005553742775647759$ and maximum shell fraction
+$0.11832008929619367$.
+
+The single control retains a large core fraction but fails the compact
+remnant predicate: its maximum binding ratio is
+$1.0069729720673124$ and its maximum shell fraction is
+$0.162544045305624$. No coupled orientation arm is fully compared as a
+persistent remnant, so the preregistered verdict is
+`DOES NOT EMERGE in the specified momentum-orientation calculation`.
+
+The binding ratio remains part of the formation predicate. It is omitted
+from cross-resolution equivalence comparisons because its denominator is
+ill-conditioned when the retained core charge is negligible; the stable
+observable comparison gate remains load-bearing for numerical qualification.
+
+### 92.3 Bounded interpretation
+
+Within the declared fixed-charge, fixed-separation, fixed-width, fixed
+carrier-magnitude calculation, reversing the common phase-gradient sign
+does not produce a persistent remnant. The inward and antiphase inward
+preparations disperse, and the outward preparation leaves negligible signed
+core charge.
+
+This result does not establish a global orientation rule, an optimal phase
+schedule, a charge minimum, physical size, gravitational capture, a
+packet-count minimum, or complete matter formation. It identifies no
+orientation-dependent formation basin in the tested preparation.
+
 ## References
 
 - `computations/matter_formation_packet_separation_prereg.md`—frozen fixed-charge separation ladder, controls, decision tree, and independent evidence contract.
@@ -14197,6 +14296,13 @@ execution.
 - `computations/verify_matter_formation_packet_separation.py`—separate separation preparation assembly, RK4 evolution, archive checks, and rejection controls.
 - `runs/20260911_matter_formation_packet_separation/result.json`—source-bound primary separation receipt.
 - `runs/20260911_matter_formation_packet_separation/verification.json`—source-bound independent separation receipt.
+
+- `computations/matter_formation_momentum_orientation_prereg.md`—frozen fixed-charge phase-sign intervention, stable comparison set, controls, and decision tree.
+- `computations/matter_formation_momentum_orientation_spec.py`—declarative inward/outward orientation arms and grid schedule.
+- `computations/matter_formation_momentum_orientation.py`—primary Yoshida-composed finite-volume orientation evolution.
+- `computations/verify_matter_formation_momentum_orientation.py`—separate orientation preparation assembly, RK4 evolution, archive checks, and stable-observable comparisons.
+- `runs/20260911_matter_formation_momentum_orientation/result.json`—source-bound primary orientation receipt.
+- `runs/20260911_matter_formation_momentum_orientation/verification.json`—source-bound independent orientation receipt.
 
 - `computations/matter_formation_momentum_basin_prereg.md`—frozen fixed-charge incoming-momentum ladder, controls, decision tree, and independent evidence contract.
 - `computations/matter_formation_momentum_basin_spec.py`—declarative momentum arms and grid schedule.
