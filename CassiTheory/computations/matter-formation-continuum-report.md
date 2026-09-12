@@ -14288,6 +14288,102 @@ schedule, a charge minimum, physical size, gravitational capture, a
 packet-count minimum, or complete matter formation. It identifies no
 orientation-dependent formation basin in the tested preparation.
 
+## 93. Packet width at fixed charge, separation, and carrier magnitude
+
+The packet-width probe tests whether the initial envelope width changes the
+fixed-charge outcome while total signed charge $Q=16$, packet centres
+$\zeta=\pm12$, carrier magnitude $|k|=1$, inward phase sign, coupling, domain,
+grid ladder, final time, and persistence predicates remain fixed. The coupled
+candidate widths are $w=3$, $4$, and $5$. The `antiphase_w4` and
+`uncoupled_w4` arms are controls. The `outward_w4` arm is a numerical
+binding-gate control and is not a formation candidate.
+
+### 93.1 Frozen gate and evidence
+
+The preregistered schedule is
+`computations/matter_formation_packet_width_prereg.md`. The declarative
+specification, primary runner, and independent verifier are
+`computations/matter_formation_packet_width_spec.py`,
+`computations/matter_formation_packet_width.py`, and
+`computations/verify_matter_formation_packet_width.py`.
+
+The binding rule was frozen before execution. If the minimum signed core
+fraction over $32\le t\le48$ is at least $0.25$, the binding ratio is
+evaluated and persistence requires $\max\mathcal B<0.99$. If that retained
+core threshold is not met, binding-ratio evaluation is excluded from the
+equivalence comparison and the row is nonpersistent. Cross-resolution and
+time-step equivalence use
+
+$$
+\{E,Q,f_{\mathrm{core}},R_{\mathrm{core}},E_{\mathrm{core}},
+f_{\mathrm{shell}}\}.
+$$
+
+The `outward_w4` control independently demonstrates the reason for this
+branch. Its minimum late core fraction is
+$-5.750352115234642\times10^{-6}$, so the gate excludes binding. The legacy
+binding-ratio error is $0.08946977173014822$ for $G0\to G1$, above the
+$0.05$ method threshold, while the stable observable comparisons pass. The
+independent verifier recomputes this witness from the primary rows and
+records `pass=true`.
+
+The primary receipt is
+`runs/20260911_matter_formation_packet_width/result.json`, SHA-256
+`14c56eea92755fc10ac47e1676c93a0f11998edc3b30a795362b4890f016f0f4`. The
+independent receipt is
+`runs/20260911_matter_formation_packet_width/verification.json`, SHA-256
+`110d42c73eceebad16728ab40b4b0e902a8354762e4ef6b2a7cdfcf8324799cd`.
+
+All 21 primary rows are finite and numerically qualified, and all 21 pass
+preparation eligibility. All 14 spatial and time-step comparisons pass. The
+independent verifier passes live and archived source identity, preparation
+metadata, primary archive reconstruction, mutation rejection, corrupted-hash
+rejection, independent archive completeness, conservation, and all seven
+independent arm comparisons. The maximum independent-to-primary error over
+the stable comparison set is
+$9.417989506723388\times10^{-5}$. The primary and independent numerical
+receipts both pass.
+
+### 93.2 Width result
+
+The inward coupled candidates all fail the retained-core condition:
+
+- `pair_w3`: minimum late core fraction
+  $0.00035764247359257534$;
+- `pair_w4`: minimum late core fraction
+  $0.0001084462363078627$;
+- `pair_w5`: minimum late core fraction
+  $8.226091784141278\times10^{-5}$.
+
+Their binding ratios are therefore excluded from equivalence comparisons and
+none is persistent. The inward antiphase control has minimum late core
+fraction $0.00011085566637268963$ and is also nonpersistent. The uncoupled
+inward control has minimum late core fraction
+$0.0005553742775647759$ and is nonpersistent.
+
+The single-packet control retains a core fraction of
+$0.7689030533852563$, so its binding gate is evaluated. Its maximum binding
+ratio is $1.0069729720673124$, above the $0.99$ threshold, and its maximum
+shell fraction is $0.16254404530562405$. It is not a compact persistent
+remnant.
+
+No coupled width arm is fully compared as a persistent remnant. The
+preregistered verdict is
+`DOES NOT EMERGE in the specified packet-width calculation`.
+
+### 93.3 Bounded interpretation
+
+Within the declared fixed-charge, fixed-separation, fixed-carrier-magnitude
+calculation, changing the Gaussian packet width from $3$ to $5$ does not
+produce a persistent remnant. The antiphase and uncoupled controls also
+fail. The outward control shows that the near-zero-core branch is active and
+that the legacy binding ratio can lose cross-grid stability while the stable
+observables remain comparable.
+
+This result does not establish an optimal width, a width-independent
+nonformation theorem, a global charge minimum, physical size, gravitational
+capture, a packet-count minimum, or complete matter formation.
+
 ## References
 
 - `computations/matter_formation_packet_separation_prereg.md`—frozen fixed-charge separation ladder, controls, decision tree, and independent evidence contract.
