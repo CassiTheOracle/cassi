@@ -6,14 +6,17 @@
 
 Modern physics faces approximately 25–30 major open questions spanning
 cosmology, particle physics, gravity, and fundamentals. The Cassi framework
-addresses **every single one** around the golden ratio
+supplies candidate mechanisms and conditional analyses for selected questions,
+with the golden ratio
 $\varphi = (1+\sqrt{5})/2$ as a Derived arithmetic de-resonance datum and a
 Hypothesized physical mapping, together with a governing two-fluid PDE.
 The registries record named solver normalizations, asserted boundaries,
 calibrated anchors, mapped placements, and external constants; quantitative claims retain mixed-input accounting and their
-epistemic status. Current constructions omit dark matter particles, an
-inflaton, a cosmological constant, SUSY, and extra dimensions. Every answer is
-tagged with one of five evidential statuses: **Derived**
+epistemic status. Continuum construction, regulator-independent limits,
+physical identification, and several observational closures remain open where
+the evidence does not supply them. Current constructions omit dark matter
+particles, an inflaton, a cosmological constant, SUSY, and extra dimensions.
+Every answer is tagged with one of five evidential statuses: **Derived**
 (a priori consequence of $\varphi$ + PDE), **Calibrated** (value anchored to
 an observation), **Mapped** (placement or exponent fitted or selected, fit
 ledgered), **Hypothesized** (mechanism proposed, test exists), or **Speculative**
