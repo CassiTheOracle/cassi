@@ -1,6 +1,6 @@
 # Matter Formation: Carrier Creation, Continuum Trapping, and a Conditional Baryon Benchmark
 
-## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology, continuum minimizer-set stability, normalized-chiral obstruction, regular quark-current, finite-cutoff confinement and CP-selection identities / Mapped conditional baryon benchmark / Calibrated resolved-flavour leptogenesis scale / Hypothesized Cassi microscopic completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation, finite-charge radial condensation, quark–meson regulator extrapolation, fixed-family binding, interacting and unconstrained radial-baryon rejection, conditional empirical QCD history and whole-bubble selector boundary—September 2026
+## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology, continuum minimizer-set stability, normalized-chiral obstruction, regular quark-current, finite-cutoff confinement and CP-selection identities / Mapped conditional baryon benchmark / Calibrated resolved-flavour leptogenesis scale / Hypothesized Cassi microscopic completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation, finite-charge radial condensation, quark–meson regulator extrapolation, fixed-family binding, interacting and unconstrained radial-baryon rejection, conditional empirical QCD history, whole-bubble selector boundary, and one-to-three packet collision family—September 2026
 
 ## Abstract
 
@@ -14638,7 +14638,69 @@ partition, a global charge minimum, a phase-independent nonformation theorem,
 physical size, gravitational capture, a packet-count minimum, or complete
 matter formation.
 
+## 96. One-to-three packet count at total charge 16
+
+This calculation tests whether two or three initially separated carrier packets can leave a persistent localized remnant in one fixed axisymmetric preparation family. The intervention is packet count; the action, total signed charge, carrier width, carrier magnitude, coupling, domain, time interval, persistence rule, and numerical comparison schedule remain fixed.
+
+### 96.1 Preparation and evidence contract
+
+The total signed charge is $Q=16$, the Gaussian width is $w=4$, the reference radius is $R_0=20$, and the carrier magnitude is $|k|=1$. The $N=2$ arm uses two axial centres at $(0,\pm R_0)$. The $N=3$ arm uses three meridional centres
+$$
+(R_0,0),\qquad
+\left(\frac{R_0}{2},\frac{\sqrt{3}R_0}{2}\right),\qquad
+\left(\frac{R_0}{2},-\frac{\sqrt{3}R_0}{2}\right).
+$$
+The nonzero radial centre is a toroidal ring in the full axisymmetric volume element. The triple arm is therefore a three-ring meridional preparation.
+
+Each isolated Gaussian receives the same $L^2$ charge share before coherent superposition. The complete field is normalized once on the actual grid to $Q=16$. The primary receipt records the isolated contributions, reconstructed fractions, pairwise envelope overlaps, origin-core fraction, coupling role, and phase directions. The independent assembler reconstructs the same geometry and charge contract without importing the primary assembler.
+
+The primary schedule contains 24 rows: six arms on G0, G1, and T1. G0 and G1 are spatial comparisons at spacing $0.5$ and $0.25$; T1 repeats G0 at half the time step. The trajectory ends at $T=48$ and stores fields and velocities at $t=0,32,40,48$. The stable comparison set is
+$$
+\{E,Q,f_{\rm core},R_{\rm core},E_{\rm core},f_{\rm shell}\}.
+$$
+The binding ratio is used in the persistence predicate when the retained-core gate is active and is excluded from stable comparisons when the late core has dispersed below the retained fraction.
+
+The source-bound primary receipt is
+`runs/20260912_matter_formation_packet_count/result.json`,
+SHA-256
+`697c770f64e074690d2dd8cc496745884037438197986047c1887471e7e39295`.
+The independent receipt is
+`runs/20260912_matter_formation_packet_count/verification.json`,
+SHA-256
+`b1786ec532b35fd45061063398ff5549f3edfc20c0db4ef80953a6558712d7ac`.
+The protocol hash is
+`d6cda5747e2a0a1ce67c579d9d0427db95a9a37e9b85abd7b65ae8dbcf94691e`.
+
+Both receipts have `numeric_pass=true`. The independent verifier passes every live and archived source-byte check, the preparation contract, 72/72 saved-state hash checks, 1,872/1,872 raw-state reconstruction checks, the mutated-state rejection control, and the corrupted-hash rejection control. The independent T1 archive contains all six arms at the four declared snapshot times. Its six conservation checks pass; the maximum independent relative energy drift is $1.1817035285622067\times10^{-5}$ and the maximum relative charge drift is $1.1794882691318344\times10^{-5}$.
+
+The primary receipt contains 12 spatial or temporal comparison objects with six stable observables each. All 72 primary comparison values pass, with maximum normalized stable-set error $0.025868408544275245$. The six independent T1 method comparisons contain 144 observable-time entries; all pass, with maximum normalized error $9.267664586123421\times10^{-5}$. The primary maximum relative energy drift is $1.6256639810072634\times10^{-6}$ and its maximum relative charge drift is $8.881784197001252\times10^{-16}$.
+
+### 96.2 Measured packet-count outcome
+
+The $N=1$ centred control is nonpersistent on every grid. Its G0 late minimum core fraction is $0.7689030533852572$; the retained-core gate is active, but the binding and compactness conditions do not jointly pass. The inward candidate arms are preparation-eligible on all three grids, yet neither leaves a persistent remnant:
+
+| Arm | Count | G0 late minimum core fraction | G1 | T1 | Persistent |
+|---|---:|---:|---:|---:|---|
+| `pair_inward` | 2 | $0.004195351302940156$ | $0.003651860474411387$ | $0.004187996740211613$ | `false` |
+| `triple_inward` | 3 | $0.03809732850752762$ | $0.031693088869821216$ | $0.03807612081202886$ | `false` |
+
+The late core fractions of both candidate counts remain below the retained fraction $0.25$, so their binding comparisons are excluded by the preregistered gate. The uncoupled pair and triple controls and the outward triple control also remain nonpersistent. Every row retains `formation=false`.
+
+The reconstruction therefore returns
+`minimum_packet_count=null` and
+`packet_count_minimum_established=false`.
+The preregistered verdict is
+`DOES NOT EMERGE in the specified one-to-three packet schedule`.
+Within this axisymmetric three-ring family, the calculation supplies no persistent two- or three-packet remnant. It does not determine what happens for higher packet counts, other three-dimensional geometries, a different incoming state, gravitational capture, a physical size map, quantum creation, or complete physical matter formation.
+
 ## References
+
+- `computations/matter_formation_packet_count_prereg.md`—frozen one-to-three packet geometry, controls, persistence gates, stopping rule, and source contract.
+- `computations/matter_formation_packet_count_spec.py`—declarative packet-count arms, geometries, grids, and observables.
+- `computations/matter_formation_packet_count.py`—primary Yoshida-composed axisymmetric packet evolution and receipt writer.
+- `computations/verify_matter_formation_packet_count.py`—independent packet assembly, RK4 evolution, archive validation, and rejection controls.
+- `runs/20260912_matter_formation_packet_count/result.json`—source-bound primary packet-count receipt.
+- `runs/20260912_matter_formation_packet_count/verification.json`—independent packet-count receipt and raw-state archive checks.
 
 - `computations/matter_formation_packet_separation_prereg.md`—frozen fixed-charge separation ladder, controls, decision tree, and independent evidence contract.
 - `computations/matter_formation_packet_separation_spec.py`—declarative separation arms and grid schedule.
