@@ -30,7 +30,7 @@ lineage; no earlier receipt is modified or used as evidence for this
 calculation.
 
 The scientific output path is
-`runs/20260912_matter_formation_packet_partition_signed_share`. The primary runner creates
+`runs/20260912_matter_formation_packet_partition_field_reflection`. The primary runner creates
 it exclusively, snapshots this protocol, the declarative preparation
 specification, both runner/verifier sources, and every declared action source.
 The verifier writes `verification.json` and a sibling independent-state
@@ -103,10 +103,20 @@ coherent superposition's full signed charge, including any overlap cross term,
 is separately measured and must equal $Q=16$; the isolated contributions are
 not substituted for that full-field observable.
 The `pair_split25` and `pair_split75` arms are the complementary
-$\eta_+\leftrightarrow\eta_-$ pair. The verifier checks their initial fields
-and velocities under axial reflection, checks that their isolated fractions
-swap, and checks that both reflected preparations retain total signed charge
-$Q=16$ on every primary grid.
+$\eta_+\leftrightarrow\eta_-$ pair. The field-level mirror map is the scalar
+axial reflection
+$$
+\psi'(r,\zeta)=\psi(r,-\zeta),\qquad
+v'(r,\zeta)=v(r,-\zeta),
+$$
+with no complex conjugation. Therefore
+$\partial_\zeta\phi'(r,\zeta)=-\partial_\zeta\phi(r,-\zeta)$: the phase
+gradient reverses under the coordinate reflection, preserving inward motion
+for both carriers. The verifier compares reflected fields and velocities,
+charge, energy, and every archived trace at $t=0,32,40,48$; `center` and
+`momentum` are odd under the map and all other declared trace observables are
+even. The isolated fractions must swap, and both reflected preparations must
+retain total signed charge $Q=16$ on every primary grid.
 
 The inward sign is fixed by
 $z\propto e^{i(k\zeta-\omega t)}$ and $\dot z=-i\omega z$: the packet at
@@ -116,9 +126,9 @@ $\zeta$. The charge partition changes envelope amplitude only and does not
 change either carrier gradient or relative phase.
 
 A pair is preparation-eligible only when its normalized envelope overlap is at
-most $0.01$, its origin-centred initial core charge fraction is at most $0.10$,
-and its initial energy satisfies $E\ge\Omega_\infty|Q|$. Eligibility is
-computed from the actual discretized preparation on each grid.
+most $0.01$, its origin-centred initial core charge fraction is at most
+$0.10$, and its initial energy satisfies $E\ge\Omega_\infty|Q|$. Eligibility
+is computed from the actual discretized preparation on each grid.
 
 ## 3. Frozen machine-readable schedule
 
@@ -126,9 +136,9 @@ The following JSON is the sole scientific schedule and decision contract.
 
 ```json
 {
-  "schema": "matter-formation-packet-charge-partition-protocol-v2",
+  "schema": "matter-formation-packet-charge-partition-protocol-v3",
   "execution_class": "packet_charge_partition_probe",
-  "output": "runs/20260912_matter_formation_packet_partition_signed_share",
+  "output": "runs/20260912_matter_formation_packet_partition_field_reflection",
   "preparation": {
     "total_charge": 16.0,
     "center_separation": 12.0,
@@ -139,6 +149,14 @@ The following JSON is the sole scientific schedule and decision contract.
     "outward_phase_sign": -1.0,
     "eta_plus_values": [0.25, 0.5, 0.75],
     "mirrored_partition_arms": ["pair_split25", "pair_split75"],
+    "mirror_transform": {
+      "coordinate_rule": "z -> -z",
+      "field_rule": "psi'(r,z) = psi(r,-z)",
+      "velocity_rule": "v'(r,z) = v(r,-z)",
+      "phase_gradient_rule": "d_z phi'(r,z) = -d_z phi(r,-z)",
+      "complex_conjugation": false
+    },
+    "mirror_trace_parity": {"center": -1.0, "momentum": -1.0},
     "initial_overlap_max": 0.01,
     "initial_core_fraction_max": 0.10
   },

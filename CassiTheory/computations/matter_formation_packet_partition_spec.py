@@ -11,6 +11,14 @@ OUTWARD_PHASE_SIGN = -1.0
 ETA_PLUS_VALUES = (0.25, 0.5, 0.75)
 SIGNED_SHARE_TOL = 1.0e-12
 MIRROR_SWAP_TOL = 1.0e-10
+MIRROR_TRANSFORM = {
+    "coordinate_rule": "z -> -z",
+    "field_rule": "psi'(r,z) = psi(r,-z)",
+    "velocity_rule": "v'(r,z) = v(r,-z)",
+    "phase_gradient_rule": "d_z phi'(r,z) = -d_z phi(r,-z)",
+    "complex_conjugation": False,
+}
+MIRROR_TRACE_PARITY = {"center": -1.0, "momentum": -1.0}
 INITIAL_OVERLAP_MAX = 0.01
 INITIAL_CORE_FRACTION_MAX = 0.10
 CORE_RADIUS = 8.0

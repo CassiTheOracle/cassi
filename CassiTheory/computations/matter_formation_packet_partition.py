@@ -48,6 +48,8 @@ from matter_formation_packet_partition_spec import (
     ETA_PLUS_VALUES,
     SIGNED_SHARE_TOL,
     MIRROR_SWAP_TOL,
+    MIRROR_TRANSFORM,
+    MIRROR_TRACE_PARITY,
 )
 
 SELF = Path(__file__).resolve()
@@ -56,7 +58,7 @@ SPEC_SOURCE = COMPUTATIONS / "matter_formation_packet_partition_spec.py"
 NEUTRAL_SOURCE = COMPUTATIONS / "matter_formation_neutral_packets.py"
 CLOUD_SOURCE = COMPUTATIONS / "matter_formation_radial_cloud.py"
 VERIFIER_SOURCE = COMPUTATIONS / "verify_matter_formation_packet_partition.py"
-SCHEMA = "matter-formation-packet-charge-partition-primary-v2"
+SCHEMA = "matter-formation-packet-charge-partition-primary-v3"
 
 
 def sha256(path: Path) -> str:
@@ -323,6 +325,8 @@ def run_smoke() -> int:
             and abs(float(metadata["isolated_packet_charge_fractions"][0]) - (1.0 - float(expected_eta))) <= SIGNED_SHARE_TOL
             and abs(float(metadata["isolated_packet_charge_fractions"][1]) - float(expected_eta)) <= SIGNED_SHARE_TOL
         )
+        assert metadata["rule_control"] == bool(ARM_SPECS[arm]["rule_control"])
+        assert dynamics.finite(metadata)
     print(dynamics.json.dumps({"smoke": "PASS", "arms": records}))
     return 0
 
@@ -408,6 +412,8 @@ def run_campaign(output: Path) -> dict[str, Any]:
             "eta_plus_values": list(ETA_PLUS_VALUES),
             "signed_share_tolerance": SIGNED_SHARE_TOL,
             "mirror_swap_tolerance": MIRROR_SWAP_TOL,
+            "mirror_transform": MIRROR_TRANSFORM,
+            "mirror_trace_parity": MIRROR_TRACE_PARITY,
             "arm_specs": ARM_SPECS,
             "center": CENTER,
             "wave_number": WAVE_NUMBER,
@@ -436,7 +442,7 @@ def run_campaign(output: Path) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=ROOT / "runs" / "20260912_matter_formation_packet_partition_signed_share")
+    parser.add_argument("--output", type=Path, default=ROOT / "runs" / "20260912_matter_formation_packet_partition_field_reflection")
     parser.add_argument("--smoke", action="store_true")
     args = parser.parse_args(argv)
     if args.smoke:

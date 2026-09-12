@@ -31,6 +31,8 @@ from matter_formation_packet_partition_spec import (
     ETA_PLUS_VALUES,
     SIGNED_SHARE_TOL,
     MIRROR_SWAP_TOL,
+    MIRROR_TRANSFORM,
+    MIRROR_TRACE_PARITY,
 )
 
 SELF = Path(__file__).resolve()
@@ -39,8 +41,8 @@ PRIMARY_SOURCE = COMPUTATIONS / "matter_formation_packet_partition.py"
 SPEC_SOURCE = COMPUTATIONS / "matter_formation_packet_partition_spec.py"
 NEUTRAL_SOURCE = COMPUTATIONS / "matter_formation_neutral_packets.py"
 CLOUD_SOURCE = COMPUTATIONS / "matter_formation_radial_cloud.py"
-SCHEMA = "matter-formation-packet-charge-partition-verification-v2"
-PRIMARY_SCHEMA = "matter-formation-packet-charge-partition-primary-v2"
+SCHEMA = "matter-formation-packet-charge-partition-verification-v3"
+PRIMARY_SCHEMA = "matter-formation-packet-charge-partition-primary-v3"
 
 
 def sha256(path: Path) -> str:
@@ -227,6 +229,8 @@ def preparation_contract(receipt: dict[str, Any]) -> dict[str, Any]:
     top_eta_values = preparation.get("eta_plus_values")
     top_tolerance = preparation.get("signed_share_tolerance")
     top_mirror_tolerance = preparation.get("mirror_swap_tolerance")
+    top_mirror_transform = preparation.get("mirror_transform")
+    top_trace_parity = preparation.get("mirror_trace_parity")
     top_arm_specs = preparation.get("arm_specs")
     checks = {
         "row_key_set": observed == expected,
@@ -241,6 +245,8 @@ def preparation_contract(receipt: dict[str, Any]) -> dict[str, Any]:
             and abs(float(top_tolerance) - SIGNED_SHARE_TOL) <= SIGNED_SHARE_TOL
             and isinstance(top_mirror_tolerance, (int, float))
             and abs(float(top_mirror_tolerance) - MIRROR_SWAP_TOL) <= SIGNED_SHARE_TOL
+            and top_mirror_transform == MIRROR_TRANSFORM
+            and top_trace_parity == MIRROR_TRACE_PARITY
         ),
         "total_charge": True,
         "nominal_packet_charge": True,
@@ -302,6 +308,19 @@ def preparation_contract(receipt: dict[str, Any]) -> dict[str, Any]:
 def mirrored_swap_control(input_dir: Path, receipt: dict[str, Any]) -> dict[str, Any]:
     rows = {(row.get("grid"), row.get("arm")): row for row in receipt.get("rows", []) if isinstance(row, dict)}
     grid_checks: dict[str, Any] = {}
+
+    def charge_of(grid: Any, q: torch.Tensor, v: torch.Tensor) -> float:
+        rho = -2.0 * independent_dynamics.A * (q[1] * v[2] - q[2] * v[1])
+        return float((grid.volume * rho).sum())
+
+    def normalized_tensor_error(left: torch.Tensor, right: torch.Tensor) -> tuple[float, float]:
+        absolute = float(torch.max(torch.abs(left - right)).item())
+        scale = max(1.0, float(torch.max(torch.abs(left)).item()), float(torch.max(torch.abs(right)).item()))
+        return absolute / scale, absolute
+
+    def normalized_scalar_error(left: float, right: float) -> float:
+        return abs(float(left) - float(right)) / max(1.0, abs(float(left)), abs(float(right)))
+
     for grid_name in GRID_SPECS:
         lower = rows.get((grid_name, "pair_split25"))
         upper = rows.get((grid_name, "pair_split75"))
@@ -309,39 +328,126 @@ def mirrored_swap_control(input_dir: Path, receipt: dict[str, Any]) -> dict[str,
             grid_checks[grid_name] = {"pass": False, "reason": "complementary partition rows missing"}
             continue
         try:
-            lower_grid, lower_q, lower_v = independent_dynamics._validate_state_archive(input_dir, lower, lower["states"][0])
-            upper_grid, upper_q, upper_v = independent_dynamics._validate_state_archive(input_dir, upper, upper["states"][0])
-            lower_charge = float((lower_grid.volume * (-2.0 * independent_dynamics.A * (lower_q[1] * lower_v[2] - lower_q[2] * lower_v[1]))).sum())
-            upper_charge = float((upper_grid.volume * (-2.0 * independent_dynamics.A * (upper_q[1] * upper_v[2] - upper_q[2] * upper_v[1]))).sum())
-            field_error = float(torch.max(torch.abs(lower_q - torch.flip(upper_q, dims=[2]))).item())
-            velocity_error = float(torch.max(torch.abs(lower_v - torch.flip(upper_v, dims=[2]))).item())
-            lower_fraction = lower["metadata"]["isolated_packet_charge_fractions"]
-            upper_fraction = upper["metadata"]["isolated_packet_charge_fractions"]
-            eta_swap = abs(float(lower["metadata"]["eta_plus"]) + float(upper["metadata"]["eta_plus"]) - 1.0) <= SIGNED_SHARE_TOL
+            lower_metadata = lower["metadata"]
+            upper_metadata = upper["metadata"]
+            lower_fraction = lower_metadata["isolated_packet_charge_fractions"]
+            upper_fraction = upper_metadata["isolated_packet_charge_fractions"]
+            eta_swap = abs(float(lower_metadata["eta_plus"]) + float(upper_metadata["eta_plus"]) - 1.0) <= SIGNED_SHARE_TOL
             fraction_swap = bool(
                 len(lower_fraction) == 2
                 and len(upper_fraction) == 2
                 and abs(float(lower_fraction[0]) - float(upper_fraction[1])) <= SIGNED_SHARE_TOL
                 and abs(float(lower_fraction[1]) - float(upper_fraction[0])) <= SIGNED_SHARE_TOL
             )
-            lower_charge_pass = abs(lower_charge - TOTAL_CHARGE) / TOTAL_CHARGE <= SIGNED_SHARE_TOL
-            upper_charge_pass = abs(upper_charge - TOTAL_CHARGE) / TOTAL_CHARGE <= SIGNED_SHARE_TOL
+            phase_metadata_pass = bool(
+                abs(float(lower_metadata["wave_number"]) - float(upper_metadata["wave_number"])) <= SIGNED_SHARE_TOL
+                and abs(float(lower_metadata["phase_sign"]) - float(upper_metadata["phase_sign"])) <= SIGNED_SHARE_TOL
+                and abs(float(lower_metadata["relative_phase"]) - float(upper_metadata["relative_phase"])) <= SIGNED_SHARE_TOL
+            )
+            lower_states = lower["states"]
+            upper_states = upper["states"]
+            state_checks: list[dict[str, Any]] = []
+            if len(lower_states) != len(upper_states):
+                raise independent_dynamics.VerificationError("complementary state counts differ")
+            for lower_state, upper_state in zip(lower_states, upper_states):
+                lower_grid, lower_q, lower_v = independent_dynamics._validate_state_archive(input_dir, lower, lower_state)
+                _upper_grid, upper_q, upper_v = independent_dynamics._validate_state_archive(input_dir, upper, upper_state)
+                lower_time = float(lower_state["time"])
+                upper_time = float(upper_state["time"])
+                reflected_q = torch.flip(upper_q, dims=[2])
+                reflected_v = torch.flip(upper_v, dims=[2])
+                field_error, field_absolute = normalized_tensor_error(lower_q, reflected_q)
+                velocity_error, velocity_absolute = normalized_tensor_error(lower_v, reflected_v)
+                lower_charge = charge_of(lower_grid, lower_q, lower_v)
+                reflected_upper_charge = charge_of(lower_grid, reflected_q, reflected_v)
+                lower_energy = float(lower_grid.energy(lower_q, lower_v, float(lower["coupling"])))
+                reflected_upper_energy = float(lower_grid.energy(reflected_q, reflected_v, float(upper["coupling"])))
+                charge_error = normalized_scalar_error(lower_charge, reflected_upper_charge)
+                energy_error = normalized_scalar_error(lower_energy, reflected_upper_energy)
+                state_checks.append(
+                    {
+                        "time": lower_time,
+                        "time_match": abs(lower_time - upper_time) <= SIGNED_SHARE_TOL,
+                        "field_reflection_normalized_error": field_error,
+                        "field_reflection_absolute_error": field_absolute,
+                        "velocity_reflection_normalized_error": velocity_error,
+                        "velocity_reflection_absolute_error": velocity_absolute,
+                        "lower_charge": lower_charge,
+                        "reflected_upper_charge": reflected_upper_charge,
+                        "charge_error": charge_error,
+                        "lower_energy": lower_energy,
+                        "reflected_upper_energy": reflected_upper_energy,
+                        "energy_error": energy_error,
+                        "pass": bool(
+                            abs(lower_time - upper_time) <= SIGNED_SHARE_TOL
+                            and field_error <= MIRROR_SWAP_TOL
+                            and velocity_error <= MIRROR_SWAP_TOL
+                            and charge_error <= MIRROR_SWAP_TOL
+                            and energy_error <= MIRROR_SWAP_TOL
+                        ),
+                    }
+                )
+            trace_errors = {name: 0.0 for name in independent_dynamics.REQUIRED_OBSERVABLES}
+            trace_times_pass = len(lower["times"]) == len(upper["times"]) == len(lower["trace"]) == len(upper["trace"])
+            if trace_times_pass:
+                for lower_time, upper_time in zip(lower["times"], upper["times"]):
+                    trace_times_pass = trace_times_pass and abs(float(lower_time) - float(upper_time)) <= SIGNED_SHARE_TOL
+            if trace_times_pass:
+                for lower_trace, upper_trace in zip(lower["trace"], upper["trace"]):
+                    for name in independent_dynamics.REQUIRED_OBSERVABLES:
+                        left = lower_trace.get(name)
+                        right = upper_trace.get(name)
+                        if left is None or right is None:
+                            error = 0.0 if left is None and right is None else math.inf
+                        else:
+                            error = normalized_scalar_error(float(left), float(MIRROR_TRACE_PARITY.get(name, 1.0)) * float(right))
+                        trace_errors[name] = max(trace_errors[name], error)
+            max_trace_error = max(trace_errors.values(), default=math.inf)
+            state_pass = bool(state_checks and all(item["pass"] for item in state_checks))
+            trace_pass = bool(trace_times_pass and max_trace_error <= MIRROR_SWAP_TOL)
+            max_field_error = max((item["field_reflection_normalized_error"] for item in state_checks), default=math.inf)
+            max_velocity_error = max((item["velocity_reflection_normalized_error"] for item in state_checks), default=math.inf)
+            max_charge_error = max((item["charge_error"] for item in state_checks), default=math.inf)
+            max_energy_error = max((item["energy_error"] for item in state_checks), default=math.inf)
             grid_checks[grid_name] = {
+                "lower_arm": "pair_split25",
+                "upper_arm": "pair_split75",
+                "transform": MIRROR_TRANSFORM,
+                "trace_parity": MIRROR_TRACE_PARITY,
                 "eta_swap_pass": eta_swap,
                 "fraction_swap_pass": fraction_swap,
-                "field_reflection_max_error": field_error,
-                "velocity_reflection_max_error": velocity_error,
-                "field_reflection_pass": field_error <= MIRROR_SWAP_TOL,
-                "velocity_reflection_pass": velocity_error <= MIRROR_SWAP_TOL,
-                "lower_charge": lower_charge,
-                "upper_charge": upper_charge,
-                "lower_charge_pass": lower_charge_pass,
-                "upper_charge_pass": upper_charge_pass,
-                "pass": bool(eta_swap and fraction_swap and field_error <= MIRROR_SWAP_TOL and velocity_error <= MIRROR_SWAP_TOL and lower_charge_pass and upper_charge_pass),
+                "phase_metadata_pass": phase_metadata_pass,
+                "state_checks": state_checks,
+                "field_reflection_max_normalized_error": max_field_error,
+                "velocity_reflection_max_normalized_error": max_velocity_error,
+                "charge_max_normalized_error": max_charge_error,
+                "energy_max_normalized_error": max_energy_error,
+                "trace_max_normalized_error": max_trace_error,
+                "trace_errors": trace_errors,
+                "trace_times_pass": trace_times_pass,
+                "field_reflection_pass": max_field_error <= MIRROR_SWAP_TOL,
+                "velocity_reflection_pass": max_velocity_error <= MIRROR_SWAP_TOL,
+                "charge_pass": max_charge_error <= MIRROR_SWAP_TOL,
+                "energy_pass": max_energy_error <= MIRROR_SWAP_TOL,
+                "trace_pass": trace_pass,
+                "pass": bool(
+                    eta_swap
+                    and fraction_swap
+                    and phase_metadata_pass
+                    and state_pass
+                    and trace_pass
+                ),
             }
         except (KeyError, IndexError, TypeError, ValueError, RuntimeError):
-            grid_checks[grid_name] = {"pass": False, "reason": "complementary state reconstruction failed"}
-    return {"grids": grid_checks, "pass": bool(grid_checks and all(item.get("pass") is True for item in grid_checks.values()))}
+            grid_checks[grid_name] = {"pass": False, "reason": "complementary transformed-state check failed"}
+    return {
+        "lower_arm": "pair_split25",
+        "upper_arm": "pair_split75",
+        "transform": MIRROR_TRANSFORM,
+        "trace_parity": MIRROR_TRACE_PARITY,
+        "grids": grid_checks,
+        "pass": bool(grid_checks and all(item.get("pass") is True for item in grid_checks.values())),
+    }
 
 
 def independent_preparation_checks() -> dict[str, Any]:
@@ -488,7 +594,7 @@ def run_smoke() -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", type=Path, default=ROOT / "runs" / "20260912_matter_formation_packet_partition_signed_share")
+    parser.add_argument("--input", type=Path, default=ROOT / "runs" / "20260912_matter_formation_packet_partition_field_reflection")
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--smoke", action="store_true")
     args = parser.parse_args(argv)

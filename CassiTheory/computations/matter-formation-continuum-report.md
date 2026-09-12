@@ -14518,10 +14518,17 @@ coherent-field charge, including its overlap cross term, is measured
 separately and must remain $Q=16$.
 
 The `pair_split25` and `pair_split75` preparations are the complementary
-$\eta_+\leftrightarrow1-\eta_+$ pair. The verifier checks their initial
-fields and velocities under axial reflection, checks that the isolated
-fractions swap, and checks total signed charge independently on every primary
-grid.
+$\eta_+\leftrightarrow1-\eta_+$ pair. The verifier applies the scalar field
+reflection
+$$
+\psi'(r,\zeta)=\psi(r,-\zeta),\qquad
+v'(r,\zeta)=v(r,-\zeta),
+$$
+with no complex conjugation. The phase gradient therefore changes sign under
+$\zeta\mapsto-\zeta$, preserving inward motion. The verifier compares charge,
+energy, and every archived trace after this transform; `center` and `momentum`
+are sign-reversed while the other declared trace observables are reflection
+even.
 
 The preregistered schedule is
 `computations/matter_formation_packet_partition_prereg.md`. The declarative
@@ -14531,27 +14538,42 @@ specification, primary runner, and independent verifier are
 `computations/verify_matter_formation_packet_partition.py`.
 
 The primary receipt is
-`runs/20260912_matter_formation_packet_partition_signed_share/result.json`,
+`runs/20260912_matter_formation_packet_partition_field_reflection/result.json`,
 SHA-256
-`0322f70287905f8cd6e3e53cdc51eda7c60dda9f062a8de7c795dfe7e8d44bed`. The
+`d2bdc7d082145240e5604d1873ab85e8a24fb5a14d627b9abc1360240d040b45`. The
 independent receipt is
-`runs/20260912_matter_formation_packet_partition_signed_share/verification`,
+`runs/20260912_matter_formation_packet_partition_field_reflection/verification.json`,
 SHA-256
-`a12eb4d0f15c51871acd23d1cd27d4e563f1c39e512ea6802b657208a2657899`.
+`eb9a59f810b70c09eec690b648a7891be8455929028712ecb3985ded8de86765`.
 
-All 18 primary rows are finite, numerically qualified, and preparation
-eligible. The independent verifier passes source identity, preparation
-metadata, signed-share reconstruction, primary archive reconstruction,
-mutation rejection, corrupted-hash rejection, independent archive
-completeness, conservation, and six arm-level independent comparisons. The
-verifier records 72/72 state-hash checks and 1,872/1,872 raw-state
-reconstruction checks. All 144 stable-observable comparison entries pass; the
-maximum stable-set error is
-$9.563865875792284\times10^{-5}$. The mirrored $\eta_+=0.25$ and
-$\eta_+=0.75$ preparations pass field and velocity reflection with maximum
-error $0$ on G0, G1, and T1, their isolated fractions swap, and each
-independently reconstructed total charge remains $Q=16$.
-The primary and independent numerical receipts both pass.
+The protocol hash bound into the primary receipt is
+`3f4fd674db0dd8041c452bef84a16b270a457a5a8f8346a9a7dbef03e8045b52`. All 18
+primary rows are finite, numerically qualified, and preparation eligible. The
+independent verifier passes source identity, preparation metadata, signed-share
+reconstruction, primary archive reconstruction, mutation rejection,
+corrupted-hash rejection, independent archive completeness, conservation, and
+six arm-level independent comparisons. It records 72/72 state-hash checks and
+1,872/1,872 raw-state reconstruction checks. All 72 primary stable-observable
+comparison entries pass; the independent verifier's six arm-level comparisons
+also pass, with maximum stable-set error
+$9.563865875792284\times10^{-5}$.
+
+The field-level mirror invariant passes on G0, G1, and T1 across all four
+archived snapshots and every sampled trace. The maximum normalized errors over
+the three grids are
+$$
+\begin{aligned}
+\epsilon_{\mathrm{field}}&=5.133046765415372\times10^{-15},&
+\epsilon_{\mathrm{velocity}}&=1.1370548599898278\times10^{-13},\\
+\epsilon_{\mathrm{charge}}&=1.1102230246251554\times10^{-15},&
+\epsilon_{\mathrm{energy}}&=9.655093785369443\times10^{-16},\\
+\epsilon_{\mathrm{trace}}&=1.8683783704356225\times10^{-14}.
+\end{aligned}
+$$
+The isolated fractions swap, the phase-gradient transformation preserves
+inward motion without conjugation, and every independently reconstructed total
+charge remains $Q=16$. The primary and independent numerical receipts both
+pass.
 
 ### 95.2 Partition result
 
@@ -14635,8 +14657,8 @@ matter formation.
 - `computations/matter_formation_packet_partition_spec.py`—declarative partition arms, isolated-charge contract, and grid schedule.
 - `computations/matter_formation_packet_partition.py`—primary Yoshida-composed finite-volume charge-partition evolution.
 - `computations/verify_matter_formation_packet_partition.py`—separate partition preparation assembly, isolated-charge reconstruction, RK4 evolution, archive checks, and rule-control witness.
-- `runs/20260912_matter_formation_packet_partition_signed_share/result.json`—source-bound primary charge-partition receipt.
-- `runs/20260912_matter_formation_packet_partition_signed_share/verification`—source-bound independent charge-partition receipt.
+- `runs/20260912_matter_formation_packet_partition_field_reflection/result.json`—source-bound primary charge-partition receipt.
+- `runs/20260912_matter_formation_packet_partition_field_reflection/verification.json`—source-bound independent charge-partition receipt.
 
 - `computations/matter_formation_momentum_basin_prereg.md`—frozen fixed-charge incoming-momentum ladder, controls, decision tree, and independent evidence contract.
 - `computations/matter_formation_momentum_basin_spec.py`—declarative momentum arms and grid schedule.
