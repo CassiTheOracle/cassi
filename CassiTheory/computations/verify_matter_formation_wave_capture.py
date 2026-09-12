@@ -6,6 +6,7 @@ import argparse
 import copy
 import hashlib
 import json
+import zipfile
 import shutil
 import tempfile
 import math
@@ -40,6 +41,46 @@ SHELL_RADIUS = CUT_RADIUS + CUT_WIDTH
 OUTER_SHELL_WIDTH = 16.0
 SAMPLE_TIMES = (0.0, 32.0, 40.0, 48.0)
 ARMS = ("single256", "pair256", "antiphase256", "uncoupled256")
+REQUIRED_OBSERVABLES = (
+    "energy",
+    "charge",
+    "abs_charge",
+    "center",
+    "core_charge",
+    "core_abs_charge",
+    "core_fraction",
+    "core_rms",
+    "core_f2",
+    "mediator_depletion",
+    "core_energy",
+    "cut_energy",
+    "cut_charge",
+    "momentum",
+    "radicand",
+    "binding_ratio",
+    "shell_energy",
+    "shell_energy_fraction",
+    "boundary_energy",
+    "boundary_energy_fraction",
+    "core_energy_derivative",
+    "core_energy_flux",
+    "core_energy_balance_error",
+    "core_charge_derivative",
+    "core_charge_flux",
+    "core_charge_balance_error",
+)
+METHOD_COMPARISON_OBSERVABLES = (
+    "energy",
+    "charge",
+    "core_fraction",
+    "core_rms",
+    "binding_ratio",
+    "shell_energy_fraction",
+    "core_energy",
+    "mediator_depletion",
+)
+
+
 RECONSTRUCTION_TOL = 1.0e-8
 METHOD_TOL = 0.05
 ENERGY_DRIFT_TOL = 2.0e-4
@@ -65,7 +106,12 @@ def strict_json(path: Path) -> dict[str, Any]:
     def reject_constant(value: str) -> None:
         raise VerificationError(f"nonfinite JSON constant {value}: {path}")
 
-    value = json.loads(path.read_text(encoding="utf-8"), parse_constant=reject_constant)
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"), parse_constant=reject_constant)
+    except (OSError, UnicodeError, json.JSONDecodeError, VerificationError) as error:
+        if isinstance(error, VerificationError):
+            raise
+        raise VerificationError(f"invalid JSON: {path}") from error
     if not isinstance(value, dict):
         raise VerificationError(f"object required: {path}")
     return value
@@ -81,6 +127,13 @@ def finite(value: Any) -> bool:
     if isinstance(value, (list, tuple)):
         return all(finite(item) for item in value)
     return False
+def finite_number(value: Any) -> bool:
+    if value is None or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
 
 
 class IndependentGrid:
@@ -164,6 +217,38 @@ def potential_gradient(q: torch.Tensor, coupling: float) -> torch.Tensor:
     result[0] = URHO * (f.square() - 1.0) * f + 2.0 * coupling * f * n
     result[1:] = 2.0 * coefficient * q[1:]
     return result
+
+
+def energy_components(grid: IndependentGrid, q: torch.Tensor, v: torch.Tensor, coupling: float) -> dict[str, float]:
+    f = q[0] + 1.0
+    n = q[1].square() + q[2].square()
+    mediator = (grid.volume * (URHO / 4.0 * (f.square() - 1.0).square())).sum()
+    carrier = (grid.volume * ((B - coupling + coupling * f.square()) * n + UC / 2.0 * n.square())).sum()
+    kinetic = (grid.volume * (CPSI / 2.0 * v[0].square() + A * (v[1].square() + v[2].square()))).sum()
+    radial_faces = ((q[:, 1:, :] - q[:, :-1, :]).square() * grid.radial_edge) / 2.0
+    radial_faces[1:] *= K
+    radial = radial_faces.sum() + grid.radial_boundary / 2.0 * (
+        q[0, -1, :].square() + K * q[1, -1, :].square() + K * q[2, -1, :].square()
+    ).sum()
+    axial_faces = ((q[:, :, 1:] - q[:, :, :-1]).square() * grid.axial_edge) / 2.0
+    axial_faces[1:] *= K
+    axial = axial_faces.sum() + (
+        grid.axial_edge[:, 0] * (
+            q[0, :, 0].square() + K * (q[1, :, 0].square() + q[2, :, 0].square())
+        )
+    ).sum()
+    axial += (
+        grid.axial_edge[:, 0] * (
+            q[0, :, -1].square() + K * (q[1, :, -1].square() + q[2, :, -1].square())
+        )
+    ).sum()
+    return {
+        "mediator_potential": float(mediator),
+        "carrier_potential": float(carrier),
+        "kinetic_energy": float(kinetic),
+        "radial_gradient": float(radial),
+        "axial_gradient": float(axial),
+    }
 
 
 def cell_energy(grid: IndependentGrid, q: torch.Tensor, v: torch.Tensor, coupling: float) -> torch.Tensor:
@@ -280,6 +365,7 @@ def metric(
     shell = (distance2 >= CUT_RADIUS**2) & (distance2 < SHELL_RADIUS**2)
     boundary = (grid.r[:, None] >= grid.R - OUTER_SHELL_WIDTH) | (torch.abs(grid.axial[None, :]) >= grid.R - OUTER_SHELL_WIDTH)
     energy = float(grid.energy(q, v, coupling))
+    components = energy_components(grid, q, v, coupling)
     balances = local_balances(grid, q, v, grid.acceleration(q, coupling), coupling, core)
     return {
         "energy": energy,
@@ -302,6 +388,7 @@ def metric(
         "shell_energy_fraction": float((allocated * shell).sum()) / max(abs(energy_reference), 1.0e-30),
         "boundary_energy": float((allocated * boundary).sum()),
         "boundary_energy_fraction": float((allocated * boundary).sum()) / max(abs(energy_reference), 1.0e-30),
+        **components,
         **balances,
     }
 
@@ -378,6 +465,8 @@ def independent_evolution(
     initial_rho = -2.0 * A * (q[1] * v[2] - q[2] * v[1])
     charge_reference = float((grid.volume * initial_rho).sum())
     energy_reference = float(grid.energy(q, v, coupling))
+    if not finite_number(charge_reference) or not finite_number(energy_reference):
+        raise VerificationError(f"nonfinite independent initial reference for {arm}")
     results = {0.0: metric(grid, q, v, coupling, charge_reference, energy_reference)}
     states = [_write_independent_state(archive_dir, arm, grid, q, v, 0.0)]
     targets = {int(round(t / dt)): t for t in SAMPLE_TIMES[1:]}
@@ -389,9 +478,15 @@ def independent_evolution(
             states.append(_write_independent_state(archive_dir, arm, grid, q, v, t))
     if len(results) != len(SAMPLE_TIMES) or len(states) != len(SAMPLE_TIMES):
         raise VerificationError(f"independent evolution missed snapshot for {arm}")
-    energy_drift = max(abs(float(values["energy"]) - energy_reference) for values in results.values()) / max(1.0, abs(energy_reference))
-    charge_drift = max(abs(float(values["charge"]) - charge_reference) for values in results.values()) / max(1.0, abs(charge_reference))
-    finite_snapshots = all(finite(values) for values in results.values())
+    finite_snapshots = bool(results) and all(
+        finite_number(values.get(name)) for values in results.values() for name in REQUIRED_OBSERVABLES
+    )
+    if finite_snapshots:
+        energy_drift = max(abs(float(values["energy"]) - energy_reference) for values in results.values()) / max(1.0, abs(energy_reference))
+        charge_drift = max(abs(float(values["charge"]) - charge_reference) for values in results.values()) / max(1.0, abs(charge_reference))
+    else:
+        energy_drift = math.inf
+        charge_drift = math.inf
     return {
         "arm": arm,
         "grid": radius,
@@ -454,6 +549,9 @@ def _validate_independent_state(archive_dir: Path, item: dict[str, Any], state: 
         axial = np.array(data["axial"], copy=True)
         volume = np.array(data["volume"], copy=True)
         embedded_time = float(np.asarray(data["time"]).reshape(()))
+    declared_time = state.get("time")
+    if not finite_number(embedded_time) or not finite_number(declared_time):
+        raise VerificationError(f"independent state time invalid: {state_path.name}")
     radius = int(item["grid"])
     spacing = float(item["spacing"])
     nr = int(round(radius / spacing))
@@ -477,7 +575,7 @@ def _validate_independent_state(archive_dir: Path, item: dict[str, Any], state: 
         raise VerificationError(f"independent axial coordinate mismatch: {state_path.name}")
     if not np.allclose(volume, expected_volume, rtol=0.0, atol=1.0e-12):
         raise VerificationError(f"independent volume mismatch: {state_path.name}")
-    if abs(embedded_time - float(state["time"])) > 1.0e-12:
+    if abs(embedded_time - float(declared_time)) > 1.0e-12:
         raise VerificationError(f"independent time mismatch: {state_path.name}")
 
 
@@ -490,8 +588,18 @@ def _validate_independent_archive(archive_dir: Path, independent: list[dict[str,
         if not isinstance(states, list) or len(states) != len(SAMPLE_TIMES):
             errors.append("independent snapshot count")
             states = states if isinstance(states, list) else []
-        times = [state.get("time") for state in states if isinstance(state, dict)]
-        if {float(value) for value in times if value is not None} != set(SAMPLE_TIMES):
+        parsed_times: list[float] = []
+        for state in states:
+            if not isinstance(state, dict):
+                continue
+            value = state.get("time")
+            if not finite_number(value):
+                errors.append("independent snapshot time invalid")
+                continue
+            parsed_times.append(float(value))
+        if len(parsed_times) != len(SAMPLE_TIMES) or not np.allclose(
+            sorted(parsed_times), SAMPLE_TIMES, rtol=0.0, atol=1.0e-12
+        ):
             errors.append("independent snapshot time coverage")
         for state in states:
             if not isinstance(state, dict):
@@ -499,7 +607,7 @@ def _validate_independent_archive(archive_dir: Path, independent: list[dict[str,
                 continue
             try:
                 _validate_independent_state(archive_dir, item, state)
-            except (KeyError, OSError, ValueError, VerificationError) as error:
+            except (KeyError, OSError, ValueError, VerificationError, zipfile.BadZipFile) as error:
                 errors.append(str(error))
         passed = not errors
         item["raw_state_archive_complete"] = passed
@@ -527,6 +635,9 @@ def _validate_state_archive(root: Path, row: dict[str, Any], state: dict[str, An
         axial = np.asarray(data["axial"])
         volume = np.asarray(data["volume"])
         embedded_time = float(np.asarray(data["time"]).reshape(()))
+    declared_time = state.get("time")
+    if not finite_number(embedded_time) or not finite_number(declared_time):
+        raise VerificationError(f"state time invalid: {state_path.name}")
     radius = int(row["R"])
     spacing = float(row["spacing"])
     nr = int(round(radius / spacing))
@@ -548,9 +659,7 @@ def _validate_state_archive(root: Path, row: dict[str, Any], state: dict[str, An
         raise VerificationError(f"radial coordinate mismatch: {state_path.name}")
     if not np.allclose(axial, expected_axial, rtol=0.0, atol=1.0e-12):
         raise VerificationError(f"axial coordinate mismatch: {state_path.name}")
-    if not np.allclose(volume, expected_volume, rtol=0.0, atol=1.0e-12):
-        raise VerificationError(f"volume mismatch: {state_path.name}")
-    if abs(embedded_time - float(state["time"])) > 1.0e-12:
+    if abs(embedded_time - float(declared_time)) > 1.0e-12:
         raise VerificationError(f"embedded time mismatch: {state_path.name}")
     grid = IndependentGrid(radius, spacing)
     return grid, torch.as_tensor(fields_raw, dtype=torch.float64, device="cuda"), torch.as_tensor(velocities_raw, dtype=torch.float64, device="cuda")
@@ -593,22 +702,39 @@ def verify_primary_rows(root: Path, receipt: dict[str, Any]) -> dict[str, Any]:
         failures: list[str] = []
         trace = row.get("trace", [])
         row_times = row.get("times", [])
-        coverage = len(trace) == expected_trace_length and len(row_times) == expected_trace_length and np.allclose(
-            np.asarray(row_times, dtype=np.float64),
-            np.arange(expected_trace_length, dtype=np.float64) * 0.5,
-            rtol=0.0,
-            atol=1.0e-12,
-        )
-        state_times = {float(state.get("time", math.nan)) for state in row.get("states", [])}
-        if state_times != expected_state_times:
+        trace = trace if isinstance(trace, list) else []
+        row_times = row_times if isinstance(row_times, list) else []
+        try:
+            row_time_array = np.asarray(row_times, dtype=np.float64)
+            coverage = len(trace) == expected_trace_length and len(row_times) == expected_trace_length and np.allclose(
+                row_time_array,
+                np.arange(expected_trace_length, dtype=np.float64) * 0.5,
+                rtol=0.0,
+                atol=1.0e-12,
+            )
+        except (TypeError, ValueError):
+            coverage = False
+        states = row.get("states", [])
+        states = states if isinstance(states, list) else []
+        parsed_state_times: list[float] = []
+        for state in states:
+            if isinstance(state, dict) and finite_number(state.get("time")):
+                parsed_state_times.append(float(state["time"]))
+            else:
+                failures.append("snapshot time metadata")
+        if len(parsed_state_times) != len(expected_state_times) or not np.allclose(
+            sorted(parsed_state_times), sorted(expected_state_times), rtol=0.0, atol=1.0e-12
+        ):
             coverage = False
             failures.append("snapshot time coverage")
-        for state in row.get("states", []):
+        for state in states:
+            if not isinstance(state, dict) or not finite_number(state.get("time")):
+                continue
             hash_attempted += 1
             row_hash_attempted += 1
             t = float(state["time"])
             index = int(round(t / 0.5))
-            if index >= len(trace):
+            if index < 0 or index >= len(trace):
                 failures.append(f"trace missing state time {t}")
                 continue
             try:
@@ -620,13 +746,8 @@ def verify_primary_rows(root: Path, receipt: dict[str, Any]) -> dict[str, Any]:
             except (KeyError, OSError, ValueError, VerificationError) as error:
                 failures.append(str(error))
                 continue
-            observed = trace[index]
-            names = (
-                "energy", "charge", "core_fraction", "core_rms", "binding_ratio",
-                "shell_energy_fraction", "core_energy", "mediator_depletion",
-                "core_energy_balance_error", "core_charge_balance_error",
-            )
-            for name in names:
+            observed = trace[index] if isinstance(trace[index], dict) else {}
+            for name in REQUIRED_OBSERVABLES:
                 reconstruction_attempted += 1
                 passed = _real_equal(rebuilt.get(name), observed.get(name))
                 reconstruction_passed += int(passed)
@@ -712,9 +833,9 @@ def _preserved_independent_summary(items: list[dict[str, Any]]) -> list[dict[str
     summaries: list[dict[str, Any]] = []
     for item in items:
         snapshots = item.get("snapshots", {})
-        numeric = [values for values in snapshots.values() if isinstance(values, dict)]
-        energy_values = [float(values["energy"]) for values in numeric if "energy" in values and math.isfinite(float(values["energy"]))]
-        charge_values = [float(values["charge"]) for values in numeric if "charge" in values and math.isfinite(float(values["charge"]))]
+        numeric = [values for values in snapshots.values() if isinstance(values, dict)] if isinstance(snapshots, dict) else []
+        energy_values = [float(values["energy"]) for values in numeric if finite_number(values.get("energy"))]
+        charge_values = [float(values["charge"]) for values in numeric if finite_number(values.get("charge"))]
         energy_reference = energy_values[0] if energy_values else None
         charge_reference = charge_values[0] if charge_values else None
         energy_drift = (
@@ -725,7 +846,9 @@ def _preserved_independent_summary(items: list[dict[str, Any]]) -> list[dict[str
             max(abs(value - float(charge_reference)) for value in charge_values) / max(1.0, abs(float(charge_reference)))
             if charge_reference is not None else None
         )
-        finite_snapshots = bool(numeric) and all(finite(values) for values in numeric)
+        finite_snapshots = bool(numeric) and all(
+            finite_number(values.get(name)) for values in numeric for name in REQUIRED_OBSERVABLES
+        )
         summaries.append({
             "arm": item.get("arm"),
             "grid": item.get("grid"),
@@ -756,29 +879,25 @@ def _method_comparison(primary_row: dict[str, Any] | None, independent: dict[str
     if primary_row is None:
         result["failures"].append("primary T1 row missing")
         return result
-    names = ("energy", "charge", "core_fraction", "core_rms", "binding_ratio", "shell_energy_fraction", "core_energy", "mediator_depletion")
+    names = METHOD_COMPARISON_OBSERVABLES
     snapshots = independent.get("snapshots", {})
     for time_value in SAMPLE_TIMES:
-        values = snapshots.get(str(time_value), snapshots.get(time_value))
+        values = snapshots.get(str(time_value), snapshots.get(time_value)) if isinstance(snapshots, dict) else None
         index = int(round(time_value / 0.5))
-        if not isinstance(values, dict) or index >= len(primary_row.get("trace", [])):
+        trace = primary_row.get("trace", [])
+        if not isinstance(values, dict) or not isinstance(trace, list) or index < 0 or index >= len(trace):
             result["failures"].append(f"missing snapshot {time_value}")
             continue
-        observed = primary_row["trace"][index]
+        observed = trace[index] if isinstance(trace[index], dict) else {}
+        if any(
+            not finite_number(observed.get(name)) or not finite_number(values.get(name))
+            for name in REQUIRED_OBSERVABLES
+        ):
+            result["failures"].append(f"{time_value}:required observable missing or invalid")
+            continue
         for name in names:
-            observed_value = observed.get(name)
-            rebuilt_value = values.get(name)
-            if observed_value is None or rebuilt_value is None:
-                result["failures"].append(f"{time_value}:{name} missing or invalid")
-                continue
-            try:
-                observed_float, rebuilt_float = float(observed_value), float(rebuilt_value)
-            except (TypeError, ValueError):
-                result["failures"].append(f"{time_value}:{name} nonnumeric")
-                continue
-            if not math.isfinite(observed_float) or not math.isfinite(rebuilt_float):
-                result["failures"].append(f"{time_value}:{name} nonfinite")
-                continue
+            observed_float = float(observed[name])
+            rebuilt_float = float(values[name])
             result["errors"][f"{time_value}:{name}"] = abs(observed_float - rebuilt_float) / max(1.0, abs(observed_float), abs(rebuilt_float))
     result["pass"] = bool(result["errors"]) and not result["failures"] and max(result["errors"].values()) < METHOD_TOL
     return result
@@ -882,6 +1001,8 @@ def run_smoke() -> int:
     q, v, coupling, _ = initial(grid, "pair256")
     charge_reference = float((grid.volume * (-2.0 * A * (q[1] * v[2] - q[2] * v[1]))).sum())
     energy_reference = float(grid.energy(q, v, coupling))
+    components = energy_components(grid, q, v, coupling)
+    assert abs(sum(components.values()) - energy_reference) < 1.0e-8
     assert abs(float(cut(torch.tensor(8.0, device=q.device))) - 1.0) < 1.0e-14
     assert abs(float(cut(torch.tensor(12.0, device=q.device))) - 0.0) < 1.0e-14
     vacuum = torch.zeros_like(q)

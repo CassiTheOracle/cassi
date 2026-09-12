@@ -76,6 +76,36 @@ GRID_SPECS = {
 BASE_ARMS = ("single64", "single128", "single256", "pair64", "pair128", "pair256", "antiphase256", "outgoing256", "uncoupled256")
 COMPARISON_ARMS = ("single256", "pair256", "antiphase256", "uncoupled256")
 SNAPSHOT_TIMES = (0.0, 32.0, 40.0, 48.0)
+REQUIRED_OBSERVABLES = (
+    "energy",
+    "charge",
+    "abs_charge",
+    "center",
+    "core_charge",
+    "core_abs_charge",
+    "core_fraction",
+    "core_rms",
+    "core_f2",
+    "mediator_depletion",
+    "core_energy",
+    "cut_energy",
+    "cut_charge",
+    "momentum",
+    "radicand",
+    "binding_ratio",
+    "shell_energy",
+    "shell_energy_fraction",
+    "boundary_energy",
+    "boundary_energy_fraction",
+    "core_energy_derivative",
+    "core_energy_flux",
+    "core_energy_balance_error",
+    "core_charge_derivative",
+    "core_charge_flux",
+    "core_charge_balance_error",
+)
+
+
 
 
 def sha256(path: Path) -> str:
@@ -135,6 +165,38 @@ def axial_derivative(value: torch.Tensor, h: float) -> torch.Tensor:
     result[..., 0] = (value[..., 1] - value[..., 0]) / h
     result[..., -1] = (value[..., -1] - value[..., -2]) / h
     return result
+
+
+def energy_components(grid: CylindricalGrid, q: torch.Tensor, v: torch.Tensor, coupling: float) -> dict[str, float]:
+    f = q[0] + 1.0
+    n = q[1].square() + q[2].square()
+    mediator = (grid.volume * (URHO / 4.0 * (f.square() - 1.0).square())).sum()
+    carrier = (grid.volume * ((B - coupling + coupling * f.square()) * n + UC / 2.0 * n.square())).sum()
+    kinetic = (grid.volume * (CPSI / 2.0 * v[0].square() + A * (v[1].square() + v[2].square()))).sum()
+    radial_faces = ((q[:, 1:, :] - q[:, :-1, :]).square() * grid.radial_edge) / 2.0
+    radial_faces[1:] *= K
+    radial = radial_faces.sum() + grid.radial_boundary / 2.0 * (
+        q[0, -1, :].square() + K * q[1, -1, :].square() + K * q[2, -1, :].square()
+    ).sum()
+    axial_faces = ((q[:, :, 1:] - q[:, :, :-1]).square() * grid.axial_edge) / 2.0
+    axial_faces[1:] *= K
+    axial = axial_faces.sum() + (
+        grid.axial_edge[:, 0] * (
+            q[0, :, 0].square() + K * (q[1, :, 0].square() + q[2, :, 0].square())
+        )
+    ).sum()
+    axial += (
+        grid.axial_edge[:, 0] * (
+            q[0, :, -1].square() + K * (q[1, :, -1].square() + q[2, :, -1].square())
+        )
+    ).sum()
+    return {
+        "mediator_potential": float(mediator),
+        "carrier_potential": float(carrier),
+        "kinetic_energy": float(kinetic),
+        "radial_gradient": float(radial),
+        "axial_gradient": float(axial),
+    }
 
 
 def cell_energy(grid: CylindricalGrid, q: torch.Tensor, v: torch.Tensor, coupling: float) -> torch.Tensor:
@@ -272,7 +334,10 @@ def initial_state(grid: CylindricalGrid, arm: str) -> tuple[torch.Tensor, torch.
         complex_field = envelope_right * torch.exp(1j * phase_right) + sign_left * envelope_left * torch.exp(1j * phase_left)
         centers = (-12.0, 12.0)
     norm = torch.sum(grid.volume * (complex_field.real.square() + complex_field.imag.square()))
-    complex_field = complex_field * math.sqrt(charge / (2.0 * A * omega * float(norm)))
+    norm_value = float(norm)
+    if not finite_number(charge) or charge <= 0.0 or not finite_number(norm_value) or norm_value <= 0.0:
+        raise RuntimeError(f"invalid initial normalization for {arm}")
+    complex_field = complex_field * math.sqrt(charge / (2.0 * A * omega * norm_value))
     q = torch.zeros((3, grid.nr, grid.nz), dtype=torch.float64, device="cuda")
     q[1] = complex_field.real
     q[2] = complex_field.imag
@@ -302,6 +367,7 @@ def diagnostics(
 ) -> dict[str, float | None]:
     if acc is None:
         acc = grid.acceleration(q, coupling)
+    components = energy_components(grid, q, v, coupling)
     rho = -2.0 * A * (q[1] * v[2] - q[2] * v[1])
     abs_rho = torch.abs(rho)
     total_charge = float((grid.volume * rho).sum())
@@ -354,6 +420,7 @@ def diagnostics(
         "shell_energy_fraction": shell_energy / max(abs(initial_energy), 1.0e-30),
         "boundary_energy": boundary_energy,
         "boundary_energy_fraction": boundary_energy / max(abs(initial_energy), 1.0e-30),
+        **components,
         **balances,
     }
 
@@ -371,6 +438,8 @@ def run_row(output: Path, grid_name: str, grid: CylindricalGrid, dt: float, arm:
     initial_energy = float(grid.energy(q, v, coupling))
     initial_rho = -2.0 * A * (q[1] * v[2] - q[2] * v[1])
     initial_charge = float((grid.volume * initial_rho).sum())
+    if not finite_number(initial_energy) or not finite_number(initial_charge):
+        raise RuntimeError(f"nonfinite initial reference for {grid_name}_{arm}")
     times = np.arange(int(round(T_FINAL / SAMPLE_DT)) + 1, dtype=np.float64) * SAMPLE_DT
     trace: list[dict[str, float | None]] = []
     initial = diagnostics(grid, q, v, coupling, initial_charge, initial_energy, acc)
@@ -405,14 +474,10 @@ def run_row(output: Path, grid_name: str, grid: CylindricalGrid, dt: float, arm:
     late = [row for index, row in enumerate(trace) if times[index] >= LATE_START]
     core_fraction_values = [row.get("core_fraction") for row in late]
     binding_values = [row.get("binding_ratio") for row in late]
-    required_observables = (
-        "core_fraction", "binding_ratio", "core_rms", "shell_energy_fraction",
-        "boundary_energy_fraction", "core_energy_balance_error", "core_charge_balance_error",
-    )
     finite_trace = all(finite(row) for row in trace)
     complete_observables = bool(
         trace
-        and all(finite_number(row.get(name)) for row in trace for name in required_observables)
+        and all(finite_number(row.get(name)) for row in trace for name in REQUIRED_OBSERVABLES)
     )
     balance_error = (
         max(
@@ -489,7 +554,7 @@ def compare_rows(left: dict[str, Any], right: dict[str, Any], kind: str) -> dict
     if not left_late or not right_late:
         result["reason"] = "late trace missing"
         return result
-    if any(not finite_number(row.get(name)) for row in left_late + right_late for name in names):
+    if any(not finite_number(row.get(name)) for row in left_late + right_late for name in REQUIRED_OBSERVABLES):
         result["reason"] = "nonfinite required observable"
         return result
     initial_values = (
@@ -532,6 +597,8 @@ def run_smoke() -> int:
         acc = grid.acceleration(q, coupling)
         v.add_(acc, alpha=h / 2.0)
     current = diagnostics(grid, q, v, coupling, initial_charge, initial_energy, acc)
+    components = energy_components(grid, q, v, coupling)
+    assert abs(sum(components.values()) - float(grid.energy(q, v, coupling))) < 1.0e-8
 
     vacuum = torch.zeros_like(q)
     assert torch.count_nonzero(grid.acceleration(vacuum, coupling)) == 0
