@@ -14384,6 +14384,107 @@ This result does not establish an optimal width, a width-independent
 nonformation theorem, a global charge minimum, physical size, gravitational
 capture, a packet-count minimum, or complete matter formation.
 
+## 94. Relative packet phase at fixed charge, separation, width, and carrier magnitude
+
+The relative-phase probe tests whether interference phase changes the
+fixed-charge outcome while total signed charge $Q=16$, packet centres
+$\zeta=\pm12$, width $w=4$, carrier magnitude $|k|=1$, inward carrier
+direction, coupling, domain, grid ladder, final time, and persistence
+predicates remain fixed. The left packet receives the multiplier
+$e^{i\delta}$ after the two inward carrier gradients are assigned. The
+declared phase ladder is
+
+$$
+\delta\in\left\{0,\frac{\pi}{2},\pi\right\}.
+$$
+
+### 94.1 Frozen phase contract and evidence
+
+The preregistered schedule is
+`computations/matter_formation_packet_phase_prereg.md`. The declarative
+specification, primary runner, and independent verifier are
+`computations/matter_formation_packet_phase_spec.py`,
+`computations/matter_formation_packet_phase.py`, and
+`computations/verify_matter_formation_packet_phase.py`.
+
+The phase multiplier changes the relative complex phase without changing
+either packet's carrier gradient. `pair_phase0` is in phase,
+`pair_phase90` is in quadrature, and `pair_phase180` has relative phase
+$\pi$. The outward arm is the binding-gate control and is not a formation
+candidate.
+
+The equivalence set excludes binding ratio for every arm:
+
+$$
+\{E,Q,f_{\mathrm{core}},R_{\mathrm{core}},E_{\mathrm{core}},
+f_{\mathrm{shell}}\}.
+$$
+
+Binding remains a separate formation predicate. A late minimum core fraction
+of at least $0.25$ activates the binding requirement
+$\max\mathcal B<0.99$; below $0.25$ the row is nonpersistent.
+
+The `outward_phase0` control has minimum late core fraction
+$-5.750352115234642\times10^{-6}$. Its legacy binding-ratio error is
+$0.08946977173014822$ for $G0\to G1$, above the $0.05$ method threshold,
+and $0.0006518214217311987$ for $G0\to T1$. Its stable observable
+comparisons pass, and the independent verifier recomputes the rule-control
+witness from the primary rows.
+
+The primary receipt is
+`runs/20260912_matter_formation_packet_phase/result.json`, SHA-256
+`fe01f59ae50ba06bb3f4ae964d0d95cfdeeb6a35d2d0ee26e914f54fcacecc2f`. The
+independent receipt is
+`runs/20260912_matter_formation_packet_phase/verification.json`, SHA-256
+`b78c67f4072bee1ae1e4742cb139a9c3c28f2c9e8d1ea63819038dc0f3067f06`.
+
+All 18 primary rows are finite and numerically qualified, and all 18 pass
+preparation eligibility. All 12 spatial and time-step comparisons pass. The
+independent verifier passes source identity, preparation metadata, primary
+archive reconstruction, mutation rejection, corrupted-hash rejection,
+independent archive completeness, conservation, and six independent scalar
+snapshot comparisons. The independent comparison contains 144 scalar
+entries; its maximum error over the stable set is
+$9.203235244621043\times10^{-5}$. The primary and independent numerical
+receipts both pass.
+
+### 94.2 Relative-phase result
+
+The three inward coupled phase arms all fail the retained-core condition:
+
+- `pair_phase0`: minimum late core fraction
+  $0.0001084462363078627$;
+- `pair_phase90`: minimum late core fraction
+  $0.00010965097116444724$;
+- `pair_phase180`: minimum late core fraction
+  $0.00011085566637269057$.
+
+Their binding ratios are diagnostic only because each late minimum core
+fraction is below $0.25$. None of the three phase arms is persistent.
+
+The uncoupled in-phase control has minimum late core fraction
+$0.0005553742775647759$ and is nonpersistent. The single control retains
+minimum late core fraction $0.7689030533852563$, so its binding gate is
+active; its maximum binding ratio is $1.0069729720673124$, above $0.99$,
+and its maximum shell fraction is $0.16254404530562405$.
+
+No coupled relative-phase arm is fully compared as a persistent remnant. The
+preregistered verdict is
+`DOES NOT EMERGE in the specified relative-phase calculation`.
+
+### 94.3 Bounded interpretation
+
+Within the declared fixed-charge, fixed-separation, fixed-width,
+fixed-carrier-magnitude calculation, the relative phase values
+$0$, $\pi/2$, and $\pi$ do not produce a persistent remnant. The small
+variation in late core fraction across the three phase arms remains within
+the same dispersive basin.
+
+This result does not establish a global phase-selection rule, an optimal
+relative phase, a phase-independent nonformation theorem, a global charge
+minimum, physical size, gravitational capture, a packet-count minimum, or
+complete matter formation.
+
 ## References
 
 - `computations/matter_formation_packet_separation_prereg.md`—frozen fixed-charge separation ladder, controls, decision tree, and independent evidence contract.
