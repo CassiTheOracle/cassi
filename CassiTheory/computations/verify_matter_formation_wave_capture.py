@@ -833,6 +833,13 @@ def run(input_dir: Path, output_path: Path, replay_only: bool = False) -> dict[s
         "pass": bool(item.get("conservation_pass", False)),
         "raw_state_archive_complete": bool(item.get("raw_state_archive_complete", False)),
     } for item in independent]
+    primary_comparisons = receipt.get("comparisons", [])
+    primary_comparison_pass = bool(
+        receipt.get("numerical_pass") is True
+        and isinstance(primary_comparisons, list)
+        and len(primary_comparisons) == len(ARMS) * 3
+        and all(isinstance(item, dict) and item.get("pass") is True for item in primary_comparisons)
+    )
     result = {
         "schema": SCHEMA,
         "primary": str(input_dir),
@@ -846,6 +853,7 @@ def run(input_dir: Path, output_path: Path, replay_only: bool = False) -> dict[s
         "independent_archive_validation": archive_validation,
         "conservation_checks": conservation_checks,
         "method_comparisons": method_comparisons,
+        "primary_comparison_pass": primary_comparison_pass,
         "independent_raw_archive_complete": independent_complete,
         "scalar_snapshot_comparison_pass": bool(method_comparisons and all(item["pass"] for item in method_comparisons)),
         "independent_conservation_pass": bool(conservation_checks and all(item["pass"] for item in conservation_checks)),
@@ -858,6 +866,7 @@ def run(input_dir: Path, output_path: Path, replay_only: bool = False) -> dict[s
         primary_schema == "matter-formation-wave-capture-primary-v2"
         and all(source_checks.values())
         and snapshot_details["pass"]
+        and primary_comparison_pass
         and mutation
         and corrupted_hash_rejected
         and result["scalar_snapshot_comparison_pass"]
