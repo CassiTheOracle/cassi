@@ -14120,6 +14120,75 @@ a minimum packet count, physical size, gravitational capture, or complete
 matter formation. A different phase schedule, width, momentum, total charge,
 or dynamical channel requires another preregistered intervention.
 
+## 91. Incoming-momentum basin at fixed total charge 16
+
+The incoming-momentum ladder tests whether collision speed changes the
+fixed-charge pair outcome when the packet separation remains $c=12$.
+The declared wave numbers are $k=0.5$, $1.0$, and $1.5$, with width $w=4$,
+total signed charge $Q=16$, and the same coupled, antiphase, uncoupled, and
+single-packet controls used by the fixed-charge preparation family.
+
+### 91.1 Protocol and receipts
+
+The preregistered schedule is
+`computations/matter_formation_momentum_basin_prereg.md`. The primary runner
+and declarative specification are
+`computations/matter_formation_momentum_basin.py` and
+`computations/matter_formation_momentum_basin_spec.py`; the independent
+verifier is
+`computations/verify_matter_formation_momentum_basin.py`.
+
+The primary receipt is
+`runs/20260911_matter_formation_momentum_basin/result.json`, SHA-256
+`81e25c934fbfc4b4f798182646841e4351cd202ffe485411db1c31a4b12b383e`. The
+independent receipt is
+`runs/20260911_matter_formation_momentum_basin/verification.json`, SHA-256
+`e318f8eafbfcbaf49069c39c40b1993365c26a03e49496c4d407b0400a66588c`.
+
+All 18 primary rows are finite and numerically qualified. Every pair passes
+the preparation-eligibility checks. Every row has
+`persistent_remnant=false` and `formation=false`, but the primary
+cross-resolution decision is not complete: 10 of 12 spatial and time-step
+comparisons pass, while both comparisons for `pair_k15` fail the frozen
+method-comparison threshold through the compact binding-ratio observable.
+
+The `G0` to `G1` `pair_k15` binding-ratio error is
+$53.02195086401264$. The `G0` to `T1` error is
+$0.30286939542989444$. The remaining comparison observables for that arm,
+including energy, charge, core fraction, core RMS, and shell fraction, remain
+finite; the binding ratio becomes highly sensitive as the late core charge
+approaches zero.
+
+The independent verifier passes live-source and archived-source identity,
+the preparation contract, primary state reconstruction, mutation rejection,
+corrupted-hash rejection, independent archive completeness, independent
+conservation, and all six independent scalar snapshot comparisons. Its
+`primary_comparison_pass` is false because it imports the failed primary
+comparison gate, so `numeric_pass=false` and the frozen decision tree returns
+`INCONCLUSIVE`.
+
+The first launcher attempt, which stopped before producing a receipt because
+of a stale control-key lookup, remains preserved at
+`runs/20260911_matter_formation_momentum_basin_failed_stale_control_key`.
+It is a retained failed execution artifact and is excluded from the scientific
+receipt.
+
+### 91.2 Bounded interpretation
+
+The protocol-level result is `INCONCLUSIVE`. The qualified rows show no
+persistent remnant under the declared predicates, while the `pair_k15`
+cross-resolution failure prevents those nonformation observations from
+entering a scientific negative verdict. The comparison threshold is not
+relaxed and the failed arm is not reinterpreted as dispersion evidence.
+
+The calculation therefore establishes a numerical comparison boundary for
+the tested momentum ladder. It does not establish a momentum-dependent
+formation window, an optimal momentum, a global charge minimum, physical
+size, gravitational capture, a packet-count minimum, or complete matter
+formation. A future momentum intervention needs a fresh protocol that
+specifies a stable compact observable or a different preparation before
+execution.
+
 ## References
 
 - `computations/matter_formation_packet_separation_prereg.md`—frozen fixed-charge separation ladder, controls, decision tree, and independent evidence contract.
@@ -14128,6 +14197,13 @@ or dynamical channel requires another preregistered intervention.
 - `computations/verify_matter_formation_packet_separation.py`—separate separation preparation assembly, RK4 evolution, archive checks, and rejection controls.
 - `runs/20260911_matter_formation_packet_separation/result.json`—source-bound primary separation receipt.
 - `runs/20260911_matter_formation_packet_separation/verification.json`—source-bound independent separation receipt.
+
+- `computations/matter_formation_momentum_basin_prereg.md`—frozen fixed-charge incoming-momentum ladder, controls, decision tree, and independent evidence contract.
+- `computations/matter_formation_momentum_basin_spec.py`—declarative momentum arms and grid schedule.
+- `computations/matter_formation_momentum_basin.py`—primary Yoshida-composed finite-volume momentum evolution.
+- `computations/verify_matter_formation_momentum_basin.py`—separate momentum preparation assembly, RK4 evolution, archive checks, and rejection controls.
+- `runs/20260911_matter_formation_momentum_basin/result.json`—source-bound primary momentum receipt.
+- `runs/20260911_matter_formation_momentum_basin/verification.json`—source-bound independent momentum receipt.
 
 - `computations/matter_formation_two_packet_q16_prereg.md`—frozen total-charge-16 preparation, two-packet decision tree, and independent evidence contract.
 - `computations/matter_formation_two_packet_q16_spec.py`—declarative Q16 arms and grid schedule.
