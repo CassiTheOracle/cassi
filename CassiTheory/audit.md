@@ -569,6 +569,16 @@ matter formation remains **Hypothesized/Open**
 (`computations/matter-formation-continuum-report.md` §35;
 `foundations/matter-completion-boundary.md` §17).
 
+A separate Q=256 incoming-packet calculation varies the inward carrier
+momentum over $k\in\{0.25,0.5,1.0\}$ at fixed packet separation. All 18
+primary rows are numerically qualified, and the independent RK4 archives,
+conservation checks, stable-observable reconstruction and rejection controls
+pass. Two S1-to-S2 spatial stable-observable comparisons fail, so no coupled
+arm is fully compared and the source-bound verdict is `INCONCLUSIVE`.
+Incoming-wave capture remains unqualified
+(`computations/matter-formation-continuum-report.md` §97). Physical matter
+formation remains **Hypothesized/Open**.
+
 The supplied scalar action admits localized continuum energy minimizers.
 For the specified positive coefficients and real-mediator/full-complex-carrier
 energy space on $\mathbb R^3$, strict binding $I(Q)<\Omega_\infty Q$ implies attainment

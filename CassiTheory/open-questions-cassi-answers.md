@@ -1955,6 +1955,8 @@ normalization, all-sector stability and particle identity remain open
 (`computations/matter-formation-continuum-report.md` §35;
 `foundations/matter-completion-boundary.md` §17).
 
+A separate fixed-charge Q=256 incoming-packet calculation varies $k\in\{0.25,0.5,1.0\}$ at packet centres $\zeta=\pm12$. All 18 primary rows are numerically qualified and the independent RK4 reconstruction, conservation checks, raw archives and rejection controls pass. Two spatial stable-observable comparisons fail, leaving no fully compared coupled arm; the source-bound verdict is `INCONCLUSIVE` (`computations/matter-formation-continuum-report.md` §97). Incoming-wave capture remains unqualified while radial condensation and continuum fixed-charge minimizer results retain their declared scopes. Physical matter formation remains **Hypothesized/Open**.
+
 For that same action, strict continuum binding is certified at $Q=256$
 and at every $Q>149.3602250815$. The full real-mediator/complex-carrier
 energy space has a global continuous conservative flow; its fixed-charge

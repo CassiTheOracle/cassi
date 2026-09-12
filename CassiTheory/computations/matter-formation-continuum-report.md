@@ -14693,7 +14693,75 @@ The preregistered verdict is
 `DOES NOT EMERGE in the specified one-to-three packet schedule`.
 Within this axisymmetric three-ring family, the calculation supplies no persistent two- or three-packet remnant. It does not determine what happens for higher packet counts, other three-dimensional geometries, a different incoming state, gravitational capture, a physical size map, quantum creation, or complete physical matter formation.
 
+## 97. Incoming-momentum capture at total charge 256
+
+This calculation tests whether a Q=256 collision can leave a persistent localized remnant when the incoming carrier momentum is varied at fixed packet separation. The calculation uses the supplied real-mediator/complex-carrier action and measures a conditional axisymmetric preparation family.
+
+### 97.1 Protocol and independent evidence
+
+The total signed charge is $Q=256$, the Gaussian width is $w=4$, the packet centres are $\zeta=\pm12$, and the inward momentum ladder is
+$$
+k\in\{0.25,\;0.5,\;1.0\}.
+$$
+The primary schedule uses S1 $(R,h,\Delta t)=(192,0.25,0.0078125)$, S2 $(192,0.125,0.00390625)$, and T1 $(192,0.25,0.00390625)$. It evolves six arms—one centred control, three in-phase pairs, one antiphase pair, and one uncoupled pair—to $T=48$, storing fields and velocities at $t=0,32,40,48$. Stable comparisons use
+$$
+\{E,Q,f_{\rm core},R_{\rm core},E_{\rm core},f_{\rm shell}\};
+$$
+the compact binding ratio remains a formation predicate.
+
+The source-bound primary receipt is
+`runs/20260912_matter_formation_q256_momentum/result.json`, SHA-256
+`0a59cc5b3fdc10e2472950faeff6e11572dfad7f9b5783a156799a2fb2202aa9`.
+The independent receipt is
+`runs/20260912_matter_formation_q256_momentum/verification.json`, SHA-256
+`9a7ee17bb13b1c7a805dd11dbaa1f87f60411b5849063647c9e72ede6374c999`.
+The protocol hash is
+`da466f90fd0ba1a88e1a66d0113b58743a5067bcd6574c4f0303766711dd35c0`.
+
+The primary contains all 18 declared rows. Every row is numerically qualified. Its maximum relative energy drift is
+$9.708845543715027\times10^{-7}$ and its maximum relative signed-charge drift is
+$1.2212453270876724\times10^{-15}$. The verifier passes all live and archived source-byte checks, the schedule contract, 72/72 primary state-hash checks, 1,872/1,872 primary raw-state reconstruction checks, the changed-state rejection control, and the corrupted-hash rejection control. Its six independent RK4 evolutions have complete four-time raw archives, pass all conservation checks, and agree with the primary T1 traces over the stable observable set. The largest independent method-comparison error is
+$1.3409137988253739\times10^{-5}$; the largest independent relative energy and charge drifts are
+$4.119499917471803\times10^{-7}$ and
+$3.487621360598326\times10^{-7}$.
+
+### 97.2 Measured capture outcome
+
+No coupled arm is a formation candidate on any declared grid. The late core-fraction minima are:
+
+| Arm | S1 | S2 | T1 | Persistent on every grid |
+|---|---:|---:|---:|---|
+| `pair_k025` | $0.5291433889671416$ | $0.5319866523349427$ | $0.5291407863471583$ | `false` |
+| `pair_k05` | $0.09842504015213015$ | $0.12464368425509399$ | $0.09842106584004476$ | `false` |
+| `pair_k10` | $0.004670527999910324$ | $0.0020191662628821286$ | $0.00467086115539484$ | `false` |
+| `antiphase_k05` | $0.10476095275805625$ | $0.019877933518341096$ | $0.10475120166331815$ | `false` |
+
+The `pair_k05` arm has late core-charge variation $0.5123695191234348$ on S1, above the $0.10$ persistence bound. The uncoupled control fails formation, while the coupled candidates do not satisfy the complete comparison contract.
+
+Two spatial comparisons fail:
+
+| Comparison | Largest stable-observable error | Failing observables |
+|---|---:|---|
+| `S1_pair_k05` → `S2_pair_k05` | $0.06313932291760727$ | $R_{\rm core}$ |
+| `S1_antiphase_k05` → `S2_antiphase_k05` | $0.0887730140987297$ | $f_{\rm core}$, $E_{\rm core}$, $f_{\rm shell}$ |
+
+The primary and independent receipts therefore agree on the evidence boundary:
+`primary_comparison_pass=false`,
+`fully_compared_candidates=[]`,
+`numeric_pass=false`, and
+`INCONCLUSIVE`.
+The result supplies no validated Q=256 incoming-wave capture. The Q=256 radial-condensation result in §35 and the continuum minimizer theorem in §36 concern distinct prepared or variational states; the scope of each result remains unchanged. It also supplies no particle discriminator, quantum creation rule, physical size, gravitational capture, or complete physical matter-formation mechanism. Complete physical matter formation remains **Hypothesized/Open**.
+
+The preregistered stopping rule ends this calculation at $T=48$. It does not select a different momentum ladder, relax the spatial-comparison tolerance, or convert the failed convergence contract into a formation verdict.
+
 ## References
+
+- `computations/matter_formation_q256_momentum_prereg.md`—frozen Q=256 incoming-momentum preparation, stable comparison contract, persistence predicates, and stopping rule.
+- `computations/matter_formation_q256_momentum_spec.py`—declarative Q=256 arms and S1/S2/T1 schedule.
+- `computations/matter_formation_q256_momentum.py`—primary Yoshida-composed Q=256 finite-volume evolution and source-bound receipt writer.
+- `computations/verify_matter_formation_q256_momentum.py`—independent Q=256 preparation, RK4 evolution, archive validation, method comparison, and rejection controls.
+- `runs/20260912_matter_formation_q256_momentum/result.json`—Q=256 primary receipt.
+- `runs/20260912_matter_formation_q256_momentum/verification.json`—Q=256 independent receipt and raw-state archive checks.
 
 - `computations/matter_formation_packet_count_prereg.md`—frozen one-to-three packet geometry, controls, persistence gates, stopping rule, and source contract.
 - `computations/matter_formation_packet_count_spec.py`—declarative packet-count arms, geometries, grids, and observables.
