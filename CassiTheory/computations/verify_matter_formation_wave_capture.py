@@ -16,7 +16,7 @@ import numpy as np
 import torch
 
 ROOT = Path(__file__).resolve().parents[1]
-PREREG = ROOT / "computations" / "matter_formation_minimum_droplet_prereg.md"
+PREREG = ROOT / "computations" / "matter_formation_wave_capture_v2_prereg.md"
 PRIMARY_SOURCE = ROOT / "computations" / "matter_formation_wave_capture.py"
 NEUTRAL_SOURCE = ROOT / "computations" / "matter_formation_neutral_packets.py"
 CLOUD_SOURCE = ROOT / "computations" / "matter_formation_radial_cloud.py"
@@ -36,7 +36,7 @@ T_FINAL = 48.0
 CORE_RADIUS = 8.0
 CUT_RADIUS = 8.0
 CUT_WIDTH = 4.0
-SHELL_RADIUS = 16.0
+SHELL_RADIUS = CUT_RADIUS + CUT_WIDTH
 OUTER_SHELL_WIDTH = 16.0
 SAMPLE_TIMES = (0.0, 32.0, 40.0, 48.0)
 ARMS = ("single256", "pair256", "antiphase256", "uncoupled256")
@@ -62,7 +62,10 @@ def write_json(path: Path, value: dict[str, Any]) -> None:
     path.write_text(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8", newline="\n")
 
 def strict_json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
+    def reject_constant(value: str) -> None:
+        raise VerificationError(f"nonfinite JSON constant {value}: {path}")
+
+    value = json.loads(path.read_text(encoding="utf-8"), parse_constant=reject_constant)
     if not isinstance(value, dict):
         raise VerificationError(f"object required: {path}")
     return value
@@ -341,20 +344,50 @@ def rk4_step(grid: IndependentGrid, q: torch.Tensor, v: torch.Tensor, dt: float,
     return q + dt * (kq1 + 2.0 * kq2 + 2.0 * kq3 + kq4) / 6.0, v + dt * (kv1 + 2.0 * kv2 + 2.0 * kv3 + kv4) / 6.0
 
 
-def independent_evolution(arm: str, radius: int, spacing: float, dt: float) -> dict[str, Any]:
+def _write_independent_state(
+    archive_dir: Path,
+    arm: str,
+    grid: IndependentGrid,
+    q: torch.Tensor,
+    v: torch.Tensor,
+    time_value: float,
+) -> dict[str, str | float]:
+    path = archive_dir / f"{arm}_t{int(round(time_value)):03d}.npz"
+    with path.open("xb") as stream:
+        np.savez_compressed(
+            stream,
+            fields=q.detach().cpu().numpy(),
+            velocities=v.detach().cpu().numpy(),
+            r=grid.r.detach().cpu().numpy(),
+            axial=grid.axial.detach().cpu().numpy(),
+            volume=grid.volume.detach().cpu().numpy(),
+            time=np.asarray(time_value),
+        )
+    return {"path": path.name, "sha256": sha256(path), "time": float(time_value)}
+
+
+def independent_evolution(
+    arm: str,
+    radius: int,
+    spacing: float,
+    dt: float,
+    archive_dir: Path,
+) -> dict[str, Any]:
     grid = IndependentGrid(radius, spacing)
     q, v, coupling, charge = initial(grid, arm)
     initial_rho = -2.0 * A * (q[1] * v[2] - q[2] * v[1])
     charge_reference = float((grid.volume * initial_rho).sum())
     energy_reference = float(grid.energy(q, v, coupling))
     results = {0.0: metric(grid, q, v, coupling, charge_reference, energy_reference)}
+    states = [_write_independent_state(archive_dir, arm, grid, q, v, 0.0)]
     targets = {int(round(t / dt)): t for t in SAMPLE_TIMES[1:]}
     for step in range(1, int(round(T_FINAL / dt)) + 1):
         q, v = rk4_step(grid, q, v, dt, coupling)
         if step in targets:
             t = targets[step]
             results[t] = metric(grid, q, v, coupling, charge_reference, energy_reference)
-    if len(results) != len(SAMPLE_TIMES):
+            states.append(_write_independent_state(archive_dir, arm, grid, q, v, t))
+    if len(results) != len(SAMPLE_TIMES) or len(states) != len(SAMPLE_TIMES):
         raise VerificationError(f"independent evolution missed snapshot for {arm}")
     energy_drift = max(abs(float(values["energy"]) - energy_reference) for values in results.values()) / max(1.0, abs(energy_reference))
     charge_drift = max(abs(float(values["charge"]) - charge_reference) for values in results.values()) / max(1.0, abs(charge_reference))
@@ -367,6 +400,7 @@ def independent_evolution(arm: str, radius: int, spacing: float, dt: float) -> d
         "charge_reference": charge_reference,
         "energy_reference": energy_reference,
         "snapshots": results,
+        "states": states,
         "energy_drift": energy_drift,
         "charge_drift": charge_drift,
         "finite_snapshots": finite_snapshots,
@@ -386,6 +420,92 @@ def _state_path(root: Path, state: dict[str, Any]) -> Path:
     except ValueError as error:
         raise VerificationError("state path escapes primary archive") from error
     return path
+
+
+def _independent_state_path(archive_dir: Path, state: dict[str, Any]) -> Path:
+    relative = Path(str(state["path"]))
+    if relative.is_absolute() or ".." in relative.parts:
+        raise VerificationError("independent state path escapes archive")
+    root = archive_dir.resolve()
+    path = (root / relative).resolve()
+    try:
+        path.relative_to(root)
+    except ValueError as error:
+        raise VerificationError("independent state path escapes archive") from error
+    return path
+
+
+def _validate_independent_state(archive_dir: Path, item: dict[str, Any], state: dict[str, Any]) -> None:
+    state_path = _independent_state_path(archive_dir, state)
+    if not state_path.is_file():
+        raise VerificationError(f"missing independent state: {state_path}")
+    expected_hash = state.get("sha256")
+    if not isinstance(expected_hash, str) or len(expected_hash) != 64:
+        raise VerificationError(f"independent state hash missing: {state_path.name}")
+    if sha256(state_path) != expected_hash:
+        raise VerificationError(f"independent state hash mismatch: {state_path.name}")
+    with np.load(state_path, allow_pickle=False) as data:
+        required = {"fields", "velocities", "r", "axial", "volume", "time"}
+        if set(data.files) != required:
+            raise VerificationError(f"independent state fields mismatch: {state_path.name}")
+        fields_raw = np.array(data["fields"], copy=True)
+        velocities_raw = np.array(data["velocities"], copy=True)
+        r = np.array(data["r"], copy=True)
+        axial = np.array(data["axial"], copy=True)
+        volume = np.array(data["volume"], copy=True)
+        embedded_time = float(np.asarray(data["time"]).reshape(()))
+    radius = int(item["grid"])
+    spacing = float(item["spacing"])
+    nr = int(round(radius / spacing))
+    nz = 2 * nr
+    if fields_raw.dtype != np.float64 or velocities_raw.dtype != np.float64:
+        raise VerificationError(f"independent state dtype mismatch: {state_path.name}")
+    if fields_raw.shape != (3, nr, nz) or velocities_raw.shape != fields_raw.shape:
+        raise VerificationError(f"independent state shape mismatch: {state_path.name}")
+    if r.shape != (nr,) or axial.shape != (nz,) or volume.shape != (nr, 1):
+        raise VerificationError(f"independent state geometry shape mismatch: {state_path.name}")
+    arrays = (fields_raw, velocities_raw, r, axial, volume, np.asarray(embedded_time))
+    if not all(np.isfinite(array).all() for array in arrays):
+        raise VerificationError(f"nonfinite independent state: {state_path.name}")
+    expected_r = (np.arange(nr, dtype=np.float64) + 0.5) * spacing
+    expected_axial = -radius + (np.arange(nz, dtype=np.float64) + 0.5) * spacing
+    faces = np.arange(nr + 1, dtype=np.float64) * spacing
+    expected_volume = (math.pi * (faces[1:] ** 2 - faces[:-1] ** 2) * spacing)[:, None]
+    if not np.allclose(r, expected_r, rtol=0.0, atol=1.0e-12):
+        raise VerificationError(f"independent radial coordinate mismatch: {state_path.name}")
+    if not np.allclose(axial, expected_axial, rtol=0.0, atol=1.0e-12):
+        raise VerificationError(f"independent axial coordinate mismatch: {state_path.name}")
+    if not np.allclose(volume, expected_volume, rtol=0.0, atol=1.0e-12):
+        raise VerificationError(f"independent volume mismatch: {state_path.name}")
+    if abs(embedded_time - float(state["time"])) > 1.0e-12:
+        raise VerificationError(f"independent time mismatch: {state_path.name}")
+
+
+def _validate_independent_archive(archive_dir: Path, independent: list[dict[str, Any]]) -> tuple[bool, list[dict[str, Any]]]:
+    details: list[dict[str, Any]] = []
+    complete = bool(independent)
+    for item in independent:
+        states = item.get("states", [])
+        errors: list[str] = []
+        if not isinstance(states, list) or len(states) != len(SAMPLE_TIMES):
+            errors.append("independent snapshot count")
+            states = states if isinstance(states, list) else []
+        times = [state.get("time") for state in states if isinstance(state, dict)]
+        if {float(value) for value in times if value is not None} != set(SAMPLE_TIMES):
+            errors.append("independent snapshot time coverage")
+        for state in states:
+            if not isinstance(state, dict):
+                errors.append("independent state metadata")
+                continue
+            try:
+                _validate_independent_state(archive_dir, item, state)
+            except (KeyError, OSError, ValueError, VerificationError) as error:
+                errors.append(str(error))
+        passed = not errors
+        item["raw_state_archive_complete"] = passed
+        details.append({"arm": item.get("arm"), "states": len(states), "errors": errors, "pass": passed})
+        complete = complete and passed
+    return complete, details
 
 
 def _validate_state_archive(root: Path, row: dict[str, Any], state: dict[str, Any]) -> tuple[IndependentGrid, torch.Tensor, torch.Tensor]:
@@ -634,7 +754,7 @@ def _method_comparison(primary_row: dict[str, Any] | None, independent: dict[str
     arm = independent.get("arm")
     result: dict[str, Any] = {"arm": arm, "errors": {}, "failures": [], "pass": False}
     if primary_row is None:
-        result["failures"].append("primary G0 row missing")
+        result["failures"].append("primary T1 row missing")
         return result
     names = ("energy", "charge", "core_fraction", "core_rms", "binding_ratio", "shell_energy_fraction", "core_energy", "mediator_depletion")
     snapshots = independent.get("snapshots", {})
@@ -683,16 +803,28 @@ def run(input_dir: Path, output_path: Path, replay_only: bool = False) -> dict[s
 
     if replay_only:
         independent = _preserved_independent_summary(_legacy_independent(input_dir))
+        archive_validation = [{
+            "arm": item.get("arm"),
+            "states": 0,
+            "errors": ["preserved legacy verification has no independent raw-state archive"],
+            "pass": False,
+        } for item in independent]
+        independent_complete = False
     else:
+        archive_dir = output_path.parent / f"{output_path.stem}_independent_states"
+        if archive_dir.exists():
+            raise VerificationError(f"refusing to overwrite independent archive: {archive_dir}")
+        archive_dir.mkdir(parents=True, exist_ok=False)
         independent = []
         for arm in ARMS:
-            evolved = independent_evolution(arm, 192, 0.5, 1.0 / 64.0)
+            evolved = independent_evolution(arm, 192, 0.5, 1.0 / 128.0, archive_dir)
             independent.append({
                 **evolved,
                 "snapshots": {str(t): values for t, values in evolved["snapshots"].items()},
                 "source": "fresh independent RK4 integration",
             })
-    rows_by_arm = {row.get("arm"): row for row in receipt.get("rows", []) if row.get("grid") == "G0"}
+        independent_complete, archive_validation = _validate_independent_archive(archive_dir, independent)
+    rows_by_arm = {row.get("arm"): row for row in receipt.get("rows", []) if row.get("grid") == "T1"}
     method_comparisons = [_method_comparison(rows_by_arm.get(item.get("arm")), item) for item in independent]
     conservation_checks = [{
         "arm": item.get("arm"),
@@ -701,11 +833,6 @@ def run(input_dir: Path, output_path: Path, replay_only: bool = False) -> dict[s
         "pass": bool(item.get("conservation_pass", False)),
         "raw_state_archive_complete": bool(item.get("raw_state_archive_complete", False)),
     } for item in independent]
-    independent_complete = bool(
-        independent
-        and len(independent) == len(ARMS)
-        and all(item.get("raw_state_archive_complete", False) for item in independent)
-    )
     result = {
         "schema": SCHEMA,
         "primary": str(input_dir),
@@ -716,6 +843,7 @@ def run(input_dir: Path, output_path: Path, replay_only: bool = False) -> dict[s
         "rejection_control_mutated_state_rejected": mutation,
         "rejection_control_corrupted_hash_rejected": corrupted_hash_rejected,
         "independent_evolution": independent,
+        "independent_archive_validation": archive_validation,
         "conservation_checks": conservation_checks,
         "method_comparisons": method_comparisons,
         "independent_raw_archive_complete": independent_complete,

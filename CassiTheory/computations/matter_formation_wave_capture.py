@@ -32,7 +32,7 @@ from matter_formation_neutral_packets import (  # noqa: E402
 from matter_formation_radial_cloud import CONSTANTS, OMEGA_INF  # noqa: E402
 
 SELF = Path(__file__).resolve()
-PREREG = ROOT / "computations" / "matter_formation_minimum_droplet_prereg.md"
+PREREG = ROOT / "computations" / "matter_formation_wave_capture_v2_prereg.md"
 NEUTRAL_SOURCE = ROOT / "computations" / "matter_formation_neutral_packets.py"
 CLOUD_SOURCE = ROOT / "computations" / "matter_formation_radial_cloud.py"
 VERIFIER_SOURCE = ROOT / "computations" / "verify_matter_formation_wave_capture.py"
@@ -51,7 +51,7 @@ LATE_START = 32.0
 CORE_RADIUS = 8.0
 CUT_RADIUS = 8.0
 CUT_WIDTH = 4.0
-SHELL_RADIUS = 16.0
+SHELL_RADIUS = CUT_RADIUS + CUT_WIDTH
 OUTER_SHELL_WIDTH = 16.0
 ENERGY_DRIFT_TOL = 2.0e-4
 CHARGE_DRIFT_TOL = 2.0e-5
@@ -94,6 +94,15 @@ def finite(value: Any) -> bool:
     if isinstance(value, (list, tuple)):
         return all(finite(item) for item in value)
     return False
+
+
+def finite_number(value: Any) -> bool:
+    if value is None or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
 
 
 def write_json(path: Path, value: dict[str, Any]) -> None:
@@ -381,19 +390,36 @@ def run_row(output: Path, grid_name: str, grid: CylindricalGrid, dt: float, arm:
             trace.append(diagnostics(grid, q, v, coupling, initial_charge, initial_energy, acc))
             if any(abs(current - target) < 1.0e-12 for target in SNAPSHOT_TIMES[1:]):
                 states.append(write_state(output / f"{grid_name}_{arm}_t{int(round(current)):03d}.npz", grid, q, v, current))
-    energy_drift = max(abs(float(row["energy"]) - initial_energy) for row in trace) / max(1.0, abs(initial_energy))
-    charge_drift = max(abs(float(row["charge"]) - initial_charge) for row in trace) / max(1.0, abs(initial_charge))
-    late = [row for index, row in enumerate(trace) if times[index] >= LATE_START]
-    core_fraction_values = [row["core_fraction"] for row in late]
-    binding_values = [row["binding_ratio"] for row in late]
-    finite_trace = all(finite(row) for row in trace)
-    complete_observables = all(
-        row["core_fraction"] is not None and row["binding_ratio"] is not None
-        for row in trace
+    if not trace:
+        raise RuntimeError(f"empty diagnostic trace for {grid_name}_{arm}")
+    energy_values = [row.get("energy") for row in trace]
+    charge_values = [row.get("charge") for row in trace]
+    energy_drift = (
+        max(abs(float(value) - initial_energy) for value in energy_values) / max(1.0, abs(initial_energy))
+        if all(finite_number(value) for value in energy_values) else math.inf
     )
-    balance_error = max(
-        max(float(row["core_energy_balance_error"]) for row in trace),
-        max(float(row["core_charge_balance_error"]) for row in trace),
+    charge_drift = (
+        max(abs(float(value) - initial_charge) for value in charge_values) / max(1.0, abs(initial_charge))
+        if all(finite_number(value) for value in charge_values) else math.inf
+    )
+    late = [row for index, row in enumerate(trace) if times[index] >= LATE_START]
+    core_fraction_values = [row.get("core_fraction") for row in late]
+    binding_values = [row.get("binding_ratio") for row in late]
+    required_observables = (
+        "core_fraction", "binding_ratio", "core_rms", "shell_energy_fraction",
+        "boundary_energy_fraction", "core_energy_balance_error", "core_charge_balance_error",
+    )
+    finite_trace = all(finite(row) for row in trace)
+    complete_observables = bool(
+        trace
+        and all(finite_number(row.get(name)) for row in trace for name in required_observables)
+    )
+    balance_error = (
+        max(
+            max(float(row["core_energy_balance_error"]) for row in trace),
+            max(float(row["core_charge_balance_error"]) for row in trace),
+        )
+        if complete_observables else math.inf
     )
     numerically_qualified = bool(
         finite_trace
@@ -405,7 +431,7 @@ def run_row(output: Path, grid_name: str, grid: CylindricalGrid, dt: float, arm:
     )
     eligibility = bool(metadata["initially_unbound"] and initial_energy >= OMEGA_INF * abs(initial_charge)) if metadata["pair"] else True
     late_variation = math.inf
-    if late and abs(initial_charge) > 1.0e-30:
+    if late and abs(initial_charge) > 1.0e-30 and all(finite_number(row.get("core_charge")) for row in late):
         late_variation = (max(float(row["core_charge"]) for row in late) - min(float(row["core_charge"]) for row in late)) / abs(initial_charge)
     persistent = bool(
         late
@@ -455,13 +481,25 @@ def compare_rows(left: dict[str, Any], right: dict[str, Any], kind: str) -> dict
     if not left.get("numerically_qualified", False) or not right.get("numerically_qualified", False):
         result["reason"] = "both rows must pass numerical qualification"
         return result
+    if len(left.get("times", [])) != len(left.get("trace", [])) or len(right.get("times", [])) != len(right.get("trace", [])):
+        result["reason"] = "trace/time coverage mismatch"
+        return result
     left_late = [row for index, row in enumerate(left["trace"]) if left["times"][index] >= LATE_START]
     right_late = [row for index, row in enumerate(right["trace"]) if right["times"][index] >= LATE_START]
     if not left_late or not right_late:
         result["reason"] = "late trace missing"
         return result
-    if any(row[name] is None for row in left_late + right_late for name in names):
+    if any(not finite_number(row.get(name)) for row in left_late + right_late for name in names):
         result["reason"] = "nonfinite required observable"
+        return result
+    initial_values = (
+        left.get("initial", {}).get("energy"),
+        right.get("initial", {}).get("energy"),
+        left.get("initial", {}).get("charge"),
+        right.get("initial", {}).get("charge"),
+    )
+    if not all(finite_number(value) for value in initial_values):
+        result["reason"] = "nonfinite initial comparison scale"
         return result
     left_means = {name: float(np.mean([row[name] for row in left_late])) for name in names}
     right_means = {name: float(np.mean([row[name] for row in right_late])) for name in names}
@@ -475,7 +513,7 @@ def compare_rows(left: dict[str, Any], right: dict[str, Any], kind: str) -> dict
     }
     errors = {name: abs(left_means[name] - right_means[name]) / scales[name] for name in names}
     result["errors"] = errors
-    result["pass"] = bool(max(errors.values()) < COMPARISON_TOL)
+    result["pass"] = bool(all(finite_number(value) for value in errors.values()) and max(errors.values()) < COMPARISON_TOL)
     return result
 
 
