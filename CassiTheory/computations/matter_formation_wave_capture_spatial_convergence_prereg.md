@@ -32,6 +32,7 @@ a=\frac1{16},\quad c_\Psi=\frac18,\quad u_\rho=4,\quad u_C=1,\quad k_{Cx}=1,
 $$
 
 Every preparation has $f=1$ and $\dot f=0$. The single packet is a Gaussian of width $w=4$ centred at the origin. Each pair is the equal superposition of Gaussian packets of width $w=4$ centred at $\zeta=\pm12$, with inward wave number $k=1$ and the declared charged-wave frequency. `antiphase256` multiplies the left packet by $-1$. `outgoing256` reverses both wave numbers. `uncoupled256` uses the pair preparation with $h_C=0$ throughout. Each arm is normalized once from the full superposed field to total signed charge $64$, $128$, or $256$ as declared by the arm.
+At every spatial level, evaluate the same analytic packet field at that level's cell geometry, then normalize the discretized superposition exactly once to the declared total signed charge.
 
 The physical domain is $R=192$ with the same radial and axial finite-volume geometry at every resolution. The core is $r^2+\zeta^2<8^2$. The smooth cut equals one through radius $8$ and zero from radius $12$ outward. The interface shell is exactly $8\le\sqrt{r^2+\zeta^2}<12$. The outer boundary shell has width $16$.
 
@@ -45,7 +46,14 @@ The following JSON is the sole scientific schedule and decision contract.
   "baseline": {
     "primary_receipt": "runs/20260911_matter_formation_wave_capture_v2/result.json",
     "primary_receipt_sha256": "c380ecb40c9c3239534e8546389ebfbac312d60e0df4238e7ce38e3a1780a052",
-    "protocol_sha256": "8c8cfb63e2e2ecb56a82864e7ff38468791d00318d5b7ef99317a8aa324747ba"
+    "protocol_sha256": "8c8cfb63e2e2ecb56a82864e7ff38468791d00318d5b7ef99317a8aa324747ba",
+    "source_sha256": {
+      "computations/matter_formation_wave_capture.py": "31ab56d40524c505d90431b65b0072b998c65635313955d057b4d6d4b8e35b83",
+      "computations/matter_formation_wave_capture_v2_prereg.md": "8c8cfb63e2e2ecb56a82864e7ff38468791d00318d5b7ef99317a8aa324747ba",
+      "computations/matter_formation_neutral_packets.py": "743e2e75e6b8bc5c5ffd6a75393a49b9da6e5481b9b0b4dee08b040b3f1b901f",
+      "computations/matter_formation_radial_cloud.py": "7ed6029e878c6642ab22a6c2526b4a02b2107b1538b751a6c1ea66762f5f6cb4",
+      "computations/verify_matter_formation_wave_capture.py": "a7bccd1c20904e43b05cc7559863747df2d8b61dca8ea61b216c29581545da8d"
+    }
   },
   "output": "runs/20260911_matter_formation_wave_capture_spatial_convergence_20260911",
   "preparation": {

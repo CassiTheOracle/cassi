@@ -25,6 +25,14 @@ SPATIAL_VERIFIER_SOURCE = COMPUTATIONS / "verify_matter_formation_wave_capture_s
 BASELINE_RECEIPT = ROOT / "runs" / "20260911_matter_formation_wave_capture_v2" / "result.json"
 BASELINE_RECEIPT_SHA256 = "c380ecb40c9c3239534e8546389ebfbac312d60e0df4238e7ce38e3a1780a052"
 BASELINE_PROTOCOL_SHA256 = "8c8cfb63e2e2ecb56a82864e7ff38468791d00318d5b7ef99317a8aa324747ba"
+BASELINE_SOURCE_SHA256 = {
+    "computations/matter_formation_wave_capture.py": "31ab56d40524c505d90431b65b0072b998c65635313955d057b4d6d4b8e35b83",
+    "computations/matter_formation_wave_capture_v2_prereg.md": "8c8cfb63e2e2ecb56a82864e7ff38468791d00318d5b7ef99317a8aa324747ba",
+    "computations/matter_formation_neutral_packets.py": "743e2e75e6b8bc5c5ffd6a75393a49b9da6e5481b9b0b4dee08b040b3f1b901f",
+    "computations/matter_formation_radial_cloud.py": "7ed6029e878c6642ab22a6c2526b4a02b2107b1538b751a6c1ea66762f5f6cb4",
+    "computations/verify_matter_formation_wave_capture.py": "a7bccd1c20904e43b05cc7559863747df2d8b61dca8ea61b216c29581545da8d",
+}
+BASELINE_SOURCE_ARCHIVE = BASELINE_RECEIPT.parent / "sources"
 SCHEMA = "matter-formation-spatial-convergence-primary-20260911"
 DEFAULT_OUTPUT = ROOT / "runs" / "20260911_matter_formation_wave_capture_spatial_convergence_20260911"
 GRID_SPECS = {
@@ -61,6 +69,13 @@ def strict_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise RuntimeError(f"object required: {path}")
     return value
+def baseline_source_archive_binding() -> bool:
+    return all(
+        (BASELINE_SOURCE_ARCHIVE / key.replace("/", "__")).is_file()
+        and sha256(BASELINE_SOURCE_ARCHIVE / key.replace("/", "__")) == expected
+        for key, expected in BASELINE_SOURCE_SHA256.items()
+    )
+
 
 
 def bind_baseline() -> dict[str, str]:
@@ -72,10 +87,16 @@ def bind_baseline() -> dict[str, str]:
     receipt = strict_json(BASELINE_RECEIPT)
     if receipt.get("protocol_sha256") != BASELINE_PROTOCOL_SHA256:
         raise RuntimeError("baseline protocol hash mismatch")
+    if receipt.get("source_sha256") != BASELINE_SOURCE_SHA256:
+        raise RuntimeError("baseline source hash mismatch")
+    if not baseline_source_archive_binding():
+        raise RuntimeError("baseline source archive mismatch")
     return {
         "primary_receipt": BASELINE_RECEIPT.relative_to(ROOT).as_posix(),
         "primary_receipt_sha256": receipt_hash,
         "protocol_sha256": BASELINE_PROTOCOL_SHA256,
+        "source_sha256": BASELINE_SOURCE_SHA256,
+        "source_archive": BASELINE_SOURCE_ARCHIVE.relative_to(ROOT).as_posix(),
     }
 
 
@@ -107,8 +128,14 @@ def assert_diagnostic_components(row: dict[str, Any]) -> None:
     if not isinstance(trace, list) or not trace:
         raise RuntimeError(f"missing diagnostic trace: {row.get('grid')}_{row.get('arm')}")
     for sample in trace:
-        if not isinstance(sample, dict) or any(not base.finite_number(sample.get(name)) for name in DIAGNOSTIC_COMPONENTS):
+        if not isinstance(sample, dict) or any(
+            not base.finite_number(sample.get(name)) for name in ("energy", *DIAGNOSTIC_COMPONENTS)
+        ):
             raise RuntimeError(f"invalid diagnostic components: {row.get('grid')}_{row.get('arm')}")
+        component_total = sum(float(sample[name]) for name in DIAGNOSTIC_COMPONENTS)
+        energy = float(sample["energy"])
+        if abs(component_total - energy) > 1.0e-8 * max(1.0, abs(energy)):
+            raise RuntimeError(f"diagnostic energy identity mismatch: {row.get('grid')}_{row.get('arm')}")
 
 
 def max_error(comparison: dict[str, Any]) -> float:
