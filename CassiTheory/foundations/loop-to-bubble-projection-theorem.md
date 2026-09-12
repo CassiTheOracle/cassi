@@ -5399,6 +5399,7 @@ microscopic completions.
 | Finite-level martingale transport criterion (YM171)–(YM182) | **Derived conditional** finite-regulator theorem | Full-filtration/gauge-domain identity, energy comparison, and uniformly controlled weighted transport operator are required; exact Yang–Mills shell, recovery and weak-coupling bounds remain open |
 | Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM186) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre; the projected Ritz density makes the cutoff measure's conditional gap vanish identically at the rows carrying a resolved path sign change, and the twelve-row path and two-parameter torus families confine that zero-gap region to the strong-coupling rows; the exact-vacuum fibre rate remains required |
 | Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, cutoff removal and continuum construction remain open |
+| Finite open-cube SU(2) basis and oriented Wilson support | **Derived** finite-regulator construction | The open $2\times2\times2$ cube has 32 and 1013 gauge-invariant raw trivalent-$3j$ states at doubled cutoffs $C=1,2$; every six signed fundamental plaquette operators has 32 and 2388 nonzero candidate-supported directed entries, with finite Hermitian contractions; volume growth, cutoff removal and continuum control remain open |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -5789,6 +5790,21 @@ two-dimensional Wilson benchmark; four-dimensional spatial-volume growth,
 thermodynamic construction, OS reconstruction and the physical mass gap remain
 **UNRESOLVED**.
 
+The finite open-cube SU(2) pilot is bound by the frozen protocol
+`computations/yang-mills-su2-open-cube-prereg.md`, the primary
+`computations/verify_yang_mills_su2_open_cube.py` and the shared exact
+representation helper `computations/verify_yang_mills_exact_block_spectrum.py`.
+Its receipt `runs/yang_mills_su2_open_cube/verification.json` passes 69/69
+checks. The two cutoffs contain 32 and 1013 gauge-invariant raw trivalent
+$3j$ states. Each of the six signed cyclic fundamental plaquette words has
+32 nonzero candidate-supported directed entries at $C=1$ and 2388 at $C=2$.
+The largest Hermiticity and dagger residual is
+$5.55\times10^{-17}$, and the deterministic forbidden-pair samples vanish.
+This supplies a finite three-dimensional operator layer. Volume growth,
+character-cutoff control, the interacting weak-coupling estimate,
+thermodynamic construction, OS reconstruction and a physical mass gap remain
+**UNRESOLVED**.
+
 ---
 
 ## References
@@ -5876,6 +5892,10 @@ thermodynamic construction, OS reconstruction and the physical mass gap remain
   finite-volume Wilson bridge verifier
 - `computations/verify_yang_mills_su2_wilson_2d_independent.mjs`—120-check
   independent Bessel-series and receipt reconstruction
+- `computations/yang-mills-su2-open-cube-prereg.md`—frozen open-cube
+  gauge-basis and oriented Wilson-support protocol
+- `computations/verify_yang_mills_su2_open_cube.py`—69-check exact
+  open-cube basis and Wilson-support verifier
 - D. Bakry, I. Gentil and M. Ledoux, *Analysis and Geometry of Markov
   Diffusion Operators*—Poincaré, Poisson and carré-du-champ framework
 - C. Villani, *Optimal Transport: Old and New*—continuity equations and

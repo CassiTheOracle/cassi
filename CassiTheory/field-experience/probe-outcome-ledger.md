@@ -958,6 +958,30 @@ character-tail diagnostic. Its transfer spectrum is an exact two-dimensional
 benchmark; the four-dimensional interacting vacuum requires a new spatial
 transfer construction.
 
+## 33. Finite open-cube SU(2) gauge basis and Wilson sparsity
+
+The frozen protocol `computations/yang-mills-su2-open-cube-prereg.md` defines
+one open $2\times2\times2$ cube with twelve positively oriented links, six
+signed cyclic plaquette words, and trivalent gauge-invariant SU(2) labels.
+The primary exact contraction program is
+`computations/verify_yang_mills_su2_open_cube.py`. Its receipt
+`runs/yang_mills_su2_open_cube/verification.json` binds the protocol, source,
+and exact-block representation helper by SHA-256.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Oriented graph words | All six frozen plaquette words close under the endpoint walk; the signed words are retained in the Wilson contraction | **PASS** for the declared open-cube graph |
+| Gauge-invariant basis | The raw trivalent $3j$ basis has dimensions $32$ at doubled cutoff $C=1$ and $1013$ at $C=2$ | **PASS** for the finite label enumeration |
+| Fundamental Wilson support | Every plaquette has $32$ candidate and nonzero directed entries at $C=1$, and $2388$ candidate and nonzero directed entries at $C=2$; no candidate cancellations occur at the $10^{-12}$ threshold | **SUPPORTS_FINITE_OPEN_CUBE_OPERATOR** |
+| Operator controls | The maximum Hermiticity and dagger residual is $5.55\times10^{-17}$; 128 forbidden pairs per plaquette have zero magnitude in both cutoffs | **PASS** for the exact finite contractions |
+| Continuum boundary | Character-cutoff removal, volume growth, interacting weak-coupling estimates, thermodynamic construction, OS reconstruction and the physical mass gap remain open | **UNRESOLVED** |
+
+The minimum retained matrix magnitude is
+$9.76562500000009\times10^{-4}$ at $C=1$ and
+$1.33959190672153\times10^{-6}$ at $C=2$. The receipt passes 69/69 frozen
+checks. The result supplies a bounded three-dimensional operator layer for
+the next finite-volume construction.
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
