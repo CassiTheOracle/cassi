@@ -13969,7 +13969,90 @@ bound-remnant result, or microscopic production mechanism. The original
 spatial-convergence verdict remains
 `SPATIAL CONVERGENCE DOES NOT EMERGE in the declared resolution ladder`.
 
+## 89. Two-packet threshold at total charge 16
+
+The stationary branch and the incoming-wave branch answer different questions. This
+probe tests the smallest two-packet total charge selected by the stationary onset
+bracket, with both packets individually below that total charge.
+
+### 89.1 Fixed preparation and evidence
+
+The declared total signed charge is $Q=16$, with nominal charge share $Q/2=8$
+per incoming packet. The pair uses width $w=4$, centres $\zeta=\pm12$, inward
+wave number $k=1$, and the full-superposition normalization. The `antiphase16`
+arm changes the sign of the left packet. `single16` is an equal-total-charge
+single Gaussian control, and `uncoupled16` is the pair preparation with
+$h_C=0$. The primary Yoshida-composed finite-volume evolution uses `G0`, `G1`,
+and `T1`; the verifier assembles its own finite-volume operator and evolves all
+four arms with RK4.
+
+The primary receipt is
+`runs/20260911_matter_formation_two_packet_q16/result.json`, SHA-256
+`0c387fbc5de5d85f4826853f8cb5f1d102816c8350d3e41c2ae7e868808ef72c`. Its
+protocol hash is
+`5c4ca6ccea2effe7e15fd371068d2b9b08634da6db5f9e08186164e0516aee3e`.
+All four arms are preparation-eligible and numerically qualified on every
+primary grid. All eight spatial and time-step comparisons pass.
+
+The independent receipt is
+`runs/20260911_matter_formation_two_packet_q16/verification.json`, SHA-256
+`b42a1eb4f7b67e56838fc2daa57f5d1bf8d5c9a7ee2e9d5c7375168f69025c1c`.
+Source identity, primary archive reconstruction, changed-state rejection,
+corrupted-hash rejection, independent raw-state archive validation, global
+conservation, and independent method comparison all pass. The largest
+independent-to-primary observable error is
+$9.20323524469819\times10^{-5}$.
+
+### 89.2 Collision result
+
+Neither coupled two-packet arm leaves a persistent remnant. In the `pair16` arm,
+the late fixed-core signed-charge fraction falls from
+$0.0199785686139191$ at $t=32$ to
+$0.0001084462363078627$ at $t=48$. The compact binding ratio rises from
+$1.0503912185928956$ to $1.7653372742426348$, and the late core RMS reaches
+$6.773939110941506$. The `antiphase16` arm has the same dispersive outcome:
+its late fixed-core fraction falls from
+$0.019738168949202863$ to $0.00011085566637268963$, while its binding ratio
+rises from $1.0501081577749087$ to $1.8103552666633955$ and its core RMS
+reaches $6.71928241522844$.
+
+The equal-charge `single16` control retains a much larger core fraction, from
+$0.8541193518399706$ at $t=32$ to $0.7689030533852563$ at $t=48$, but it
+does not satisfy the remnant predicate. Its binding ratio remains above the
+registered bound threshold, from $1.0064244464864311$ to
+$1.0069729720673124$, and its interface-shell energy fraction reaches
+$0.162544045305624$. The uncoupled control also disperses, with late
+fixed-core fraction decreasing from $0.03110729575357534$ to
+$0.0005553742775647759$.
+
+The source-bound primary and independent evidence are complete, so the
+scientific verdict is
+`DOES NOT EMERGE in the specified Q16 two-packet calculation`. This is a
+negative result for the declared incoming preparation, not a proof that every
+two-packet preparation fails.
+
+### 89.3 Formation boundary
+
+The Q16 stationary droplet witness does not transfer to a head-on collision of
+two nominally subthreshold packets. The collision disperses before it can place
+the total charge into a compact bound state, while the equal-charge single
+control fails the binding and interface-shell conditions despite retaining
+substantial core charge. The result leaves the global minimum charge, physical
+size map, gravitational capture, and minimum packet count unestablished.
+
+A different incoming basin, phase schedule, width, or dynamical channel is a
+separate intervention and requires its own preregistration, source lineage,
+and stopping rule. The Q16 receipt is complete and is not retuned through
+those alternatives.
+
 ## References
+
+- `computations/matter_formation_two_packet_q16_prereg.md`—frozen total-charge-16 preparation, two-packet decision tree, and independent evidence contract.
+- `computations/matter_formation_two_packet_q16_spec.py`—declarative Q16 arms and grid schedule.
+- `computations/matter_formation_two_packet_q16.py`—primary Yoshida-composed finite-volume Q16 evolution.
+- `computations/verify_matter_formation_two_packet_q16.py`—separate Q16 preparation assembly, RK4 evolution, archive checks, and rejection controls.
+- `runs/20260911_matter_formation_two_packet_q16/result.json`—source-bound primary Q16 receipt.
+- `runs/20260911_matter_formation_two_packet_q16/verification.json`—source-bound independent Q16 receipt.
 
 - `computations/matter_formation_compact_observable_decomposition_prereg.md`—frozen compact-cut matrix, component normalization, reconstruction checks, and two-branch decision rule.
 - `computations/matter_formation_compact_observable_decomposition.py`—local finite-volume reconstruction from archived primary NPZ states.
