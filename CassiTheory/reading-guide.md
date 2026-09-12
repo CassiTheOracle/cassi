@@ -201,6 +201,17 @@ complex-mediator-phase stability, infinite-time survival and particle identity
 remain open; the finite-time run does not establish the continuum minimizer
 theorem below. Quantum creation from empty carrier data and complete physical matter formation remain outside the calculation.
 
+Section 98 adds a separate three-dimensional radial fermion-bag witness. A
+supplied positive-energy $\kappa=-1$ packet deforms the real-scalar vacuum and
+remains localized across three spatial resolutions and a finer time schedule;
+the finest late window retains $88.454\%$ of its probability inside $r<4$,
+with $R_\psi=2.1914$ and $E_\psi=4.9485<gv=6$. Independent DOP853
+reconstruction and zero-coupling and zero-packet controls pass. This is
+conditional capture from a supplied carrier. Quantum-vacuum creation, sea
+renormalization, all angular sectors, physical normalization and particle
+identity remain open, and the next boundary is a regulated spatial
+vacuum-to-bag calculation.
+
 Section 29 proves the completion problem is non-identifiable from the
 registered slow observables: scalar and Dirac parents share the same carrier
 equation with different spin and statistics. Complete physical matter
@@ -337,12 +348,21 @@ registered Cassi data unchanged; a real coordinate scan contains both signs
 and zero. The CP-selection theorem therefore returns `DOES NOT EMERGE`.
 The conditional empirical history is connected under supplied Standard Model
 microphysics, while complete Cassi-origin formation remains `FAIL`. Read
-`foundations/matter-completion-boundary.md` §§28–29 for the compact result.
+`foundations/matter-completion-boundary.md` §§28–30 for the compact result.
 
 The minimal two-singlet action also has a rank-two light-neutrino mass matrix
 and one exactly massless state. The separate Mapped spectrum has three
 nonzero masses, so one unified microscopic completion cannot realize both
 without an added mass source or a changed action.
+
+Section 86 tests whether the optional phase-bearing whole field supplies the
+missing sign selector. Its integrated spatial helicity is CP-odd, and
+full-doublet or multiple-scale-band states can carry either sign. The
+registered positive action leaves them degenerate and has no negative
+homogeneous linear mode. The calculation returns `SUPPORTS` for the collective
+observable and `DOES NOT EMERGE` for its sign selection. Nonlinear
+far-from-equilibrium domain formation and a microscopic coupling to baryon
+production remain open.
 
 ### The skeptic or referee
 

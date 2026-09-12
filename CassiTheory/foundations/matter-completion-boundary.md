@@ -1433,6 +1433,24 @@ microscopic action, quantum state, physical normalization and
 spin/statistics selection do not follow from these scalar trajectories.
 Physical matter formation remains **Hypothesized/Open**.
 
+An explicitly supplied real-scalar Yukawa action also qualifies a different
+radial route. In a spherical $\kappa=-1$ channel, one positive-energy
+degree-zero fermion packet deforms the scalar vacuum and remains localized
+through the reciprocal scalar source. A finer temporal-resolution recovery,
+with an independent DOP853 reconstruction, retains
+$\overline{P_4}=0.8845401877$ inside $r<4$ at the finest grid,
+$\overline{R_\psi}=2.1914254435$, and
+$\overline{E_\psi}=4.9484923674<gv=6$, with relative total-energy drift
+$2.7164913145\times10^{-4}$. All three spatial resolutions and the uncoupled
+and zero-packet controls pass. This is a conditional radial capture witness
+for a supplied carrier. It does not provide vacuum creation, a renormalized
+fermion-sea force, all angular sectors, canonical Cassi-action selection,
+physical normalization or particle identity. A regulated spatial
+vacuum-to-bag calculation is the remaining formation experiment
+(`computations/matter-formation-continuum-report.md` §98).
+
+Physical matter formation remains **Hypothesized/Open**.
+
 ## 18. Continuum localized minimizers and nonlinear stability
 
 The supplied scalar action supports localized states that remain close to

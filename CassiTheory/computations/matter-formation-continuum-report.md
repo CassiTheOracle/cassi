@@ -14754,6 +14754,79 @@ The result supplies no validated Q=256 incoming-wave capture. The Q=256 radial-c
 
 The preregistered stopping rule ends this calculation at $T=48$. It does not select a different momentum ladder, relax the spatial-comparison tolerance, or convert the failed convergence contract into a formation verdict.
 
+## 98. Temporal-resolution recovery of radial fermion-bag capture
+
+The radial fermion-bag mechanism survives an independent temporal-resolution
+recovery, but it remains a conditional supplied-carrier result. The recovery
+repeats the three-dimensional spherical $\kappa=-1$ Yukawa calculation from
+the earlier bag protocol with the same action, packet, controls, observables,
+physical thresholds and reconstruction tolerances. Only the fixed RK4 steps
+are changed to $\Delta t=0.005$, $0.0025$ and $0.00125$ on $G0$, $G1$ and
+$G2$.
+
+### 98.1 Recovery contract and source-bound evidence
+
+The recovery protocol is
+`computations/matter-formation-fermion-bag-capture-recovery-prereg.md`. It
+uses $(v,\lambda,g)=(1,\tfrac14,6)$, $R=16$, final time $24$, a scalar
+vacuum $\sigma=v$ with zero initial velocity, and one supplied positive-energy
+radial state in the $\kappa=-1$ channel. The scalar source is reciprocal and
+the evolution has no damping, absorber, trap, external source, clamping or
+energy removal. The independent verifier assembles the same radial equations
+and reconstructs every archived state with adaptive DOP853; it does not
+import the recovery primary.
+
+The recovery primary receipt is
+`runs/20260912_matter_formation_fermion_bag_capture_recovery/result.json`,
+SHA-256
+`21e0a2b95064079fefba4827094eb8e13a6118357a9decf5ed644b0b9c881f4b`.
+The provenance-complete independent receipt is
+`runs/20260912_matter_formation_fermion_bag_capture_recovery_verification2/verification.json`,
+SHA-256
+`97e496814803a1de8d7152e060ebfc21ea4f3cc7c026f792c2120abed3735eea`.
+Its archived source identities include the recovery primary, the independent
+recovery wrapper, the base primary and verifier, and both recovery and parent
+protocols. The verifier reports `numerical_pass=true`, an empty failure list,
+all source and raw-state checks passing, all controls passing, and
+`CAPTURED—conditional radial fermion-bag formation`.
+
+### 98.2 Measured radial capture
+
+All three candidate resolutions satisfy the frozen late-window predicate. The
+late window is $16\le t\le24$:
+
+| Grid | $\Delta r$ | $\Delta t$ | $\overline{P_4}$ | $\overline{R_\psi}$ | $\overline{E_\psi}$ | $\overline{1-\sigma_0}$ | Relative energy drift |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `G0` | $0.1$ | $0.005$ | $0.8872038819$ | $2.1401355349$ | $4.9073174672$ | $0.5521491398$ | $1.0703258931\times10^{-3}$ |
+| `G1` | $1/15$ | $0.0025$ | $0.8848925325$ | $2.1802854495$ | $4.9385496872$ | $0.5389305386$ | $4.7933442359\times10^{-4}$ |
+| `G2` | $0.05$ | $0.00125$ | $0.8845401877$ | $2.1914254435$ | $4.9484923674$ | $0.5348626593$ | $2.7164913145\times10^{-4}$ |
+
+The finest grid therefore retains $88.454\%$ of the supplied radial
+probability inside $r<4$, has a fermion RMS radius $2.1914$, and lowers the
+fermion energy below the vacuum mass $gv=6$ while maintaining
+$0.999999999999$ fermion norm. Its outer scalar-energy fraction is
+$0.0348854559$. Adjacent-grid differences in every registered late observable
+pass; the largest is the $G0$–$G1$ RMS difference $0.0401499146$.
+
+The independent DOP853 reconstruction agrees with the primary raw archives.
+The largest state-array errors over the candidate arms are
+$2.0826374\times10^{-7}$ for $\sigma$,
+$8.2247935\times10^{-7}$ for $\pi$,
+$5.1764738\times10^{-7}$ for $\operatorname{Re}\psi$, and
+$6.1482977\times10^{-7}$ for $\operatorname{Im}\psi$, all below the fixed
+$2\times10^{-4}$ reconstruction tolerance. The $g=0$ control leaves
+$\sigma=v$ and fails capture; the zero-packet control leaves both fields at
+zero.
+
+This is a resolved real-time localization mechanism for a supplied
+degree-zero one-fermion packet in a spherical partial-wave model. It does not
+create the fermion from the quantum vacuum, quantify a renormalized Dirac sea,
+cover all angular sectors, select a Cassi microscopic action or physical
+normalization, assign a particle identity, or complete the matter-formation
+problem. The next required calculation is a spatially resolved regulated
+vacuum-to-bag evolution with an explicit vacuum subtraction and localization
+observable.
+
 ## References
 
 - `computations/matter_formation_q256_momentum_prereg.md`—frozen Q=256 incoming-momentum preparation, stable comparison contract, persistence predicates, and stopping rule.
@@ -15080,6 +15153,14 @@ The preregistered stopping rule ends this calculation at $T=48$. It does not sel
 - `computations/matter_formation_fermion_production.py`—primary full Dirac covariance evolution and energy accounting.
 - `computations/verify_matter_formation_fermion_production.py`—independent Bloch-vector dynamics, raw-array reconstruction and qualification.
 - `runs/20260906_matter_formation_fermion_production_implementation_recovery/results.json` and `runs/20260906_matter_formation_fermion_production_implementation_recovery/verification.json`—accepted finite-mode production, backreaction and source-bound verification.
+- `computations/matter-formation-fermion-bag-capture-prereg.md`—frozen three-dimensional radial fermion-bag capture action, supplied packet, controls, observables and stopping rule.
+- `computations/matter_formation_fermion_bag_capture.py`—primary finite-volume radial Yukawa evolution and source-bound receipt writer.
+- `computations/verify_matter_formation_fermion_bag_capture.py`—independent DOP853 reconstruction, raw-state comparison and control checks.
+- `computations/matter-formation-fermion-bag-capture-recovery-prereg.md`—frozen temporal-resolution recovery protocol.
+- `computations/matter_formation_fermion_bag_capture_recovery.py`—recovery primary with the finer fixed-step schedule.
+- `computations/verify_matter_formation_fermion_bag_capture_recovery.py`—provenance-complete independent recovery wrapper.
+- `runs/20260912_matter_formation_fermion_bag_capture_recovery/result.json`—accepted recovery primary receipt.
+- `runs/20260912_matter_formation_fermion_bag_capture_recovery_verification2/verification.json`—accepted independent recovery receipt with archived sources and raw-state checks.
 - [Greene and Kofman, *Preheating of Fermions*](https://arxiv.org/abs/hep-ph/9807339)—coherent fermion production and Pauli-bounded occupation.
 - [Baacke, Heitmann and Pätzold, *Nonequilibrium dynamics of fermions in a spatially homogeneous scalar background field*](https://arxiv.org/abs/hep-ph/9806205)—one-loop backreaction, renormalization and initial-state requirements.
 - `foundations/sector-coupling-derivation.md` §1—dimensional, positivity, Hermiticity, chiral-current and dynamical-closure boundaries of the displayed Dirac identifications.

@@ -1968,6 +1968,19 @@ normalization, all-sector stability and particle identity remain open
 
 A separate fixed-charge Q=256 incoming-packet calculation varies $k\in\{0.25,0.5,1.0\}$ at packet centres $\zeta=\pm12$. All 18 primary rows are numerically qualified and the independent RK4 reconstruction, conservation checks, raw archives and rejection controls pass. Two spatial stable-observable comparisons fail, leaving no fully compared coupled arm; the source-bound verdict is `INCONCLUSIVE` (`computations/matter-formation-continuum-report.md` §97). Incoming-wave capture remains unqualified while radial condensation and continuum fixed-charge minimizer results retain their declared scopes. Physical matter formation remains **Hypothesized/Open**.
 
+A separate real-scalar Yukawa calculation qualifies conditional radial
+fermion-bag capture from a supplied positive-energy $\kappa=-1$ packet. The
+source-bound recovery passes three spatial resolutions, a finer temporal
+schedule, uncoupled and zero-packet controls, and independent DOP853
+reconstruction; the finest late window retains $0.8845401877$ of the packet
+inside $r<4$. This closes one localized supplied-carrier mechanism at its
+declared radial scope. It does not supply vacuum creation, renormalized sea
+backreaction, all angular sectors, canonical action selection, physical
+normalization or particle identity, so complete physical matter formation
+remains **Hypothesized/Open**
+(`computations/matter-formation-continuum-report.md` §98;
+`foundations/matter-completion-boundary.md` §17).
+
 For that same action, strict continuum binding is certified at $Q=256$
 and at every $Q>149.3602250815$. The full real-mediator/complex-carrier
 energy space has a global continuous conservative flow; its fixed-charge

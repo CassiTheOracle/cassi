@@ -173,6 +173,19 @@ complete physical matter formation remain outside its scope
 (`computations/matter-formation-continuum-report.md` §35;
 `foundations/matter-completion-boundary.md` §17).
 
+An explicitly supplied real-scalar Yukawa action gives a separate
+three-dimensional radial fermion-bag capture witness. A supplied positive
+$\kappa=-1$ packet deforms the scalar vacuum and remains localized across
+three spatial resolutions and a finer temporal schedule; the finest late
+window retains $88.454\%$ of the fermion probability inside $r<4$, with
+$R_\psi=2.1914$ and $E_\psi=4.9485<gv=6$. Independent DOP853
+reconstruction and uncoupled and zero-packet controls pass. This qualifies
+conditional capture from an existing carrier. Vacuum creation, the
+renormalized sea, all angular sectors, physical normalization and particle
+identity remain open, so complete physical matter formation is not yet
+established (`computations/matter-formation-continuum-report.md` §98;
+`foundations/matter-completion-boundary.md` §17).
+
 The supplied scalar model also has continuum localized energy minimizers.
 For the specified positive coefficients and real-mediator/full-complex-carrier
 energy space on $\mathbb R^3$, strict fixed-$Q$ binding

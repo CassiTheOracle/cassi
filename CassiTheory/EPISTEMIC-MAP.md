@@ -123,6 +123,16 @@ conditional** on the declared model. Dynamical renormalization, nonlocal
 quantum energy, localized fermion formation and physical identification
 remain open (`computations/matter-formation-continuum-report.md` §§14–16).
 
+The separately supplied real-scalar Yukawa action has a **Tested** conditional
+radial capture witness. A positive-energy $\kappa=-1$ packet deforms and
+remains localized in the scalar vacuum across three spatial resolutions and a
+finer temporal schedule; an independent DOP853 reconstruction and uncoupled
+and zero-packet controls pass. The result qualifies supplied-carrier
+formation only. Vacuum creation, renormalized sea backreaction, all angular
+sectors, physical normalization and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §98;
+`foundations/matter-completion-boundary.md` §17).
+
 The compact-target calculation is a supplied comparison model qualified for
 radial stationarity and energetic stability. A smooth pointwise map of the two
 canonical densities has zero degree density. The optional phase-bearing gauge

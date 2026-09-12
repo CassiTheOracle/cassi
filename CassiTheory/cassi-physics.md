@@ -498,8 +498,22 @@ plane-symmetric comparison is `INCONCLUSIVE`; a post-hoc period-sampled
 diagnostic identifies phase aliasing in its prescribed observable and leaves
 the verdict unchanged. Scalar and Dirac parents share the measured slow
 carrier equation while carrying different spin and statistics, proving that
-the registered observables do not identify one microscopic completion
-(`computations/matter-formation-continuum-report.md` §§25–29).
+the registered observables do not identify one microscopic completion.
+
+A separate supplied real-scalar Yukawa action now qualifies localized radial
+capture from an existing carrier. In the spherical $\kappa=-1$ channel, a
+positive-energy packet deforms the scalar vacuum and remains localized through
+the reciprocal source. The finest recovered grid retains
+$\overline{P_4}=0.8845401877$ inside $r<4$, gives
+$\overline{R_\psi}=2.1914254435$ and
+$\overline{E_\psi}=4.9484923674<gv=6$, with relative energy drift
+$2.7164913145\times10^{-4}$. Three spatial resolutions, zero-coupling and
+zero-packet controls, and an independent DOP853 reconstruction pass. This is
+a conditional supplied-carrier mechanism witness. It does not provide
+quantum-vacuum creation, a renormalized sea force, all angular sectors,
+physical normalization or a particle discriminator. The next experiment is a
+regulated spatial vacuum-to-bag evolution
+(`computations/matter-formation-continuum-report.md` §98).
 
 A complete physical matter-formation mechanism still requires one selected
 canonical microscopic action, a regulator-compatible state rule, physical
