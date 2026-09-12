@@ -763,7 +763,7 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
-The separate pure-gauge comparison in that document, §§9.4–9.23, uses the
+The separate pure-gauge comparison in that document, §§9.4–9.25, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
 projective bubble coordinate discards a phase required by Wilson magnetic
@@ -805,8 +805,8 @@ sensitivity; at $J=1$, $x=1$, the conditional partition ranges from
 $0.9160251472$ to $2.3613249509$. The retained-rate qualification is
 `INCONCLUSIVE` for all rows because the full-space residual or nested
 restriction-rank rule fails. The exact-vacuum fibre rate, transport score,
-cutoff removal, uniform interacting recovery, thermodynamic limit and
-continuum construction remain open.
+conditional-rate cutoff removal, uniform interacting recovery, thermodynamic
+limit and continuum construction remain open.
 
 An exact normalized-Haar path-holonomy pullback preserves endpoint gauge
 covariance and compresses the electric Casimir with
@@ -841,8 +841,19 @@ norm from $16$ to $1$. The primary source passes 226/226 finite-construction
 checks, and an independent reconstruction passes 256/256 checks while matching
 the ordered basis hashes, plaquette hashes, Wilson extrema, Ritz energies and
 shell norms. All eight scheduled ground energies are nonnegative. Every
-aggregate character-tail qualification is `INCONCLUSIVE`, so these finite
-spectra supply no cutoff-removal or continuum theorem.
+aggregate separation-based character-tail qualification is `INCONCLUSIVE`.
+
+The fixed-graph theorem in §9.25 supplies the missing finite-regulator
+statement without that separation. Exact tree-gauge Haar disintegration makes
+the electric form equivalent to the chord product form; Peter–Weyl edge
+cutoffs form a core; positivity of the complete Wilson potential bounds the
+discarded mass; and a bounded-potential min–max estimate controls the
+noncommuting Ritz error. The primary verifier passes 22/22 checks and the
+independent dense reconstruction passes 18/18, including all 84 spectral rows.
+Both receipts set `continuum_hypotheses_present=false` and
+`clay_verdict=NULL`. This removes the character cutoff after the finite graph,
+coupling and low-energy index are fixed. It supplies no uniform graph-size,
+weak-coupling or lattice-spacing estimate.
 
 The Poincaré-geometry analysis separates spatial and link three-spheres. A
 closed simply connected spatial slice is topologically $S^3$, and a round
@@ -946,8 +957,9 @@ $\lambda_{\mathrm{fib}}$, a vertical field solving the exact-vacuum score
 transport equation with the required $H^{-1}$ upper bound, a strict
 coarse-rate margin, the thermodynamic and four-dimensional continuum limits,
 a regulator-independent mass gap and carrier-state identification remain
-open. The older $L^2$ route through $\kappa$ remains sufficient. The
-QF/DQ/GQ classifications remain unchanged.
+open. The fixed-graph character form theorem supplies none of these uniform
+constants. The $L^2$ route through $\kappa$ remains sufficient. The QF/DQ/GQ
+classifications remain unchanged.
 
 The completion ansatz in
 `foundations/geometric-manifold-completion.md` places these finite layers in
@@ -2497,12 +2509,15 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   boundary sensitivity but no qualified retained fibre rate. The recovered
   $3\times2\times2$ Hamiltonian construction passes 226/226 primary and
   256/256 independent finite checks with nonnegative scheduled spectra.
-  Every aggregate character-tail qualification is `INCONCLUSIVE`. A uniform
-  exact-vacuum fibre rate, transported score, character-cutoff theorem,
-  spatial-volume uniformity, thermodynamic construction, OS reconstruction
-  and regulator-independent physical mass gap remain open. See
-  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.24 and §11 and
-  `field-experience/probe-outcome-ledger.md` §§30,34.
+  Every aggregate separation-based character-tail qualification is
+  `INCONCLUSIVE`. The analytic form theorem nevertheless removes the character
+  cutoff at each fixed finite graph and coupling; its 22/22 primary and 18/18
+  independent controls retain a `NULL` Clay verdict. A uniform exact-vacuum
+  fibre rate, transported score, graph-size- and weak-coupling-uniform cutoff
+  estimate, thermodynamic construction, OS reconstruction and
+  regulator-independent physical mass gap remain open. See
+  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.25 and §11 and
+  `field-experience/probe-outcome-ledger.md` §§30,34,36.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state

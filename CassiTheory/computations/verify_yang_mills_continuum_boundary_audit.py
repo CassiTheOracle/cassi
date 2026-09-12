@@ -59,6 +59,27 @@ INDEPENDENT_SOURCE = (
     / "verify_yang_mills_su2_larger_volume_hamiltonian_independent.py"
 )
 HELPER_SOURCE = ROOT / "computations" / "verify_yang_mills_exact_block_spectrum.py"
+CUTOFF_FORM_PROTOCOL = (
+    ROOT / "computations" / "yang-mills-finite-graph-cutoff-form-prereg.md"
+)
+CUTOFF_FORM_PRIMARY_SOURCE = (
+    ROOT / "computations" / "verify_yang_mills_finite_graph_cutoff_form.py"
+)
+CUTOFF_FORM_INDEPENDENT_SOURCE = (
+    ROOT
+    / "computations"
+    / "verify_yang_mills_finite_graph_cutoff_form_independent.py"
+)
+CUTOFF_FORM_PRIMARY_RECEIPT = (
+    ROOT / "runs" / "yang_mills_finite_graph_cutoff_form" / "verification.json"
+)
+CUTOFF_FORM_INDEPENDENT_RECEIPT = (
+    ROOT
+    / "runs"
+    / "yang_mills_finite_graph_cutoff_form"
+    / "verification-independent.json"
+)
+
 
 EXCLUDED_PRIMARY_RECEIPT = Path("D:/Cassi-ym-larger-volume/verification-final2.json")
 EXCLUDED_INDEPENDENT_RECEIPT = Path(
@@ -101,6 +122,7 @@ MISSING_CLAY_OBLIGATIONS = [
     "reflection-positive Euclidean Schwinger functions and OS/Wightman reconstruction",
     "renormalized local gauge-invariant field content with the required short-distance behavior",
     "uniform weak-coupling estimates along a->0",
+    "spatial-volume- and lattice-spacing-uniform character-cutoff estimates",
     "thermodynamic limit L^3->infinity",
     "regulator-independent positive gauge-invariant mass gap",
     "extension from SU(2) to every compact simple gauge group",
@@ -233,6 +255,11 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         PRIMARY_SOURCE,
         INDEPENDENT_SOURCE,
         HELPER_SOURCE,
+        CUTOFF_FORM_PROTOCOL,
+        CUTOFF_FORM_PRIMARY_SOURCE,
+        CUTOFF_FORM_INDEPENDENT_SOURCE,
+        CUTOFF_FORM_PRIMARY_RECEIPT,
+        CUTOFF_FORM_INDEPENDENT_RECEIPT,
         EXCLUDED_PRIMARY_RECEIPT,
         EXCLUDED_INDEPENDENT_RECEIPT,
     ]
@@ -269,6 +296,8 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
     }
     primary = read_primary_top_level(PRIMARY_RECEIPT, primary_keys)
     independent = load_json(INDEPENDENT_RECEIPT)
+    cutoff_form_primary = load_json(CUTOFF_FORM_PRIMARY_RECEIPT)
+    cutoff_form_independent = load_json(CUTOFF_FORM_INDEPENDENT_RECEIPT)
 
     current_protocol = validate_protocol_snapshot_relation()
     hashes = {
@@ -284,6 +313,13 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         "primary_source": sha256(PRIMARY_SOURCE),
         "independent_source": sha256(INDEPENDENT_SOURCE),
         "helper_source": sha256(HELPER_SOURCE),
+        "cutoff_form_protocol": sha256(CUTOFF_FORM_PROTOCOL),
+        "cutoff_form_primary_source": sha256(CUTOFF_FORM_PRIMARY_SOURCE),
+        "cutoff_form_independent_source": sha256(CUTOFF_FORM_INDEPENDENT_SOURCE),
+        "cutoff_form_primary_receipt": sha256(CUTOFF_FORM_PRIMARY_RECEIPT),
+        "cutoff_form_independent_receipt": sha256(
+            CUTOFF_FORM_INDEPENDENT_RECEIPT
+        ),
         "excluded_primary_receipt": sha256(EXCLUDED_PRIMARY_RECEIPT),
         "excluded_independent_receipt": sha256(EXCLUDED_INDEPENDENT_RECEIPT),
     }
@@ -353,6 +389,82 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         primary=primary["continuum_claim"],
         independent=independent.get("continuum_claim"),
     )
+    check(
+        "fixed-graph cutoff-form primary passes and withholds a Clay claim",
+        cutoff_form_primary.get("schema")
+        == "cassi.yang_mills_finite_graph_cutoff_form.v1"
+        and cutoff_form_primary.get("finite_graph_status") == "PASS"
+        and cutoff_form_primary.get("checks_passed")
+        == cutoff_form_primary.get("checks_total")
+        == 22
+        and cutoff_form_primary.get("continuum_hypotheses_present") is False
+        and cutoff_form_primary.get("clay_verdict") == "NULL",
+        status=cutoff_form_primary.get("finite_graph_status"),
+        passed_count=cutoff_form_primary.get("checks_passed"),
+        total=cutoff_form_primary.get("checks_total"),
+        clay_verdict=cutoff_form_primary.get("clay_verdict"),
+    )
+    check(
+        "fixed-graph cutoff-form independent reconstruction passes",
+        cutoff_form_independent.get("schema")
+        == "cassi.yang_mills_finite_graph_cutoff_form.independent.v1"
+        and cutoff_form_independent.get("finite_graph_status") == "PASS"
+        and cutoff_form_independent.get("checks_passed")
+        == cutoff_form_independent.get("checks_total")
+        == 18
+        and cutoff_form_independent.get("continuum_hypotheses_present") is False
+        and cutoff_form_independent.get("clay_verdict") == "NULL",
+        status=cutoff_form_independent.get("finite_graph_status"),
+        passed_count=cutoff_form_independent.get("checks_passed"),
+        total=cutoff_form_independent.get("checks_total"),
+        clay_verdict=cutoff_form_independent.get("clay_verdict"),
+    )
+    cutoff_primary_inputs = cutoff_form_primary.get("inputs", {})
+    cutoff_independent_inputs = cutoff_form_independent.get("inputs", {})
+    check(
+        "fixed-graph cutoff-form protocol sources and primary receipt are bound",
+        cutoff_primary_inputs.get("protocol", {}).get("sha256")
+        == cutoff_independent_inputs.get("protocol", {}).get("sha256")
+        == hashes["cutoff_form_protocol"]
+        and cutoff_primary_inputs.get("primary_source", {}).get("sha256")
+        == cutoff_independent_inputs.get("primary_source", {}).get("sha256")
+        == hashes["cutoff_form_primary_source"]
+        and cutoff_independent_inputs.get("independent_source", {}).get("sha256")
+        == hashes["cutoff_form_independent_source"]
+        and cutoff_independent_inputs.get("primary_receipt", {}).get("sha256")
+        == hashes["cutoff_form_primary_receipt"],
+        protocol_sha256=hashes["cutoff_form_protocol"],
+        primary_source_sha256=hashes["cutoff_form_primary_source"],
+        independent_source_sha256=hashes["cutoff_form_independent_source"],
+        primary_receipt_sha256=hashes["cutoff_form_primary_receipt"],
+    )
+    cutoff_primary_spectrum = cutoff_form_primary.get("square_spectrum", {})
+    cutoff_independent_spectrum = cutoff_form_independent.get(
+        "square_spectrum", {}
+    )
+    cutoff_firing = cutoff_form_primary.get("noncommuting_firing_control", {})
+    check(
+        "fixed-graph tail Ritz and noncommuting firing controls pass",
+        cutoff_primary_spectrum.get("tail_attempted") == 84
+        and cutoff_primary_spectrum.get("tail_passed") == 84
+        and cutoff_primary_spectrum.get("square_tail_passed") == 84
+        and cutoff_primary_spectrum.get("ritz_applicable") == 67
+        and cutoff_primary_spectrum.get("ritz_passed") == 67
+        and cutoff_independent_spectrum.get("row_count") == 84
+        and cutoff_independent_spectrum.get("tail_passed") == 84
+        and cutoff_independent_spectrum.get("square_tail_passed") == 84
+        and cutoff_independent_spectrum.get("ritz_applicable") == 67
+        and cutoff_independent_spectrum.get("ritz_passed") == 67
+        and cutoff_firing.get("incomplete_bound_violation_margin", 0.0)
+        > 1.0e-3,
+        primary_tail_passed=cutoff_primary_spectrum.get("tail_passed"),
+        primary_tail_attempted=cutoff_primary_spectrum.get("tail_attempted"),
+        primary_ritz_passed=cutoff_primary_spectrum.get("ritz_passed"),
+        primary_ritz_applicable=cutoff_primary_spectrum.get("ritz_applicable"),
+        independent_rows=cutoff_independent_spectrum.get("row_count"),
+        firing_margin=cutoff_firing.get("incomplete_bound_violation_margin"),
+    )
+
 
     receipt_protocol_hashes = {
         primary["protocol_sha256"], independent.get("protocol_sha256")
@@ -523,18 +635,21 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
 
     theory = THEORY_SOURCE.read_text(encoding="utf-8")
     check(
-        "theory keeps the continuum mass gap unresolved",
-        "Character-cutoff removal, spatial-volume uniformity, the\nthermodynamic limit, OS reconstruction and the physical mass gap remain\n**UNRESOLVED**."
+        "theory separates fixed-graph cutoff removal from the open Clay target",
+        "Fixed-graph character-cutoff form theorem (YM187)\u2013(YM195) | **Derived**"
+        in theory
+        and "`continuum_hypotheses_present=false` and `clay_verdict=NULL`"
         in theory
         and "Continuum Yang\u2013Mills existence and mass gap | **Open**" in theory,
     )
 
     all_passed = all(row["passed"] for row in checks)
     record: dict[str, Any] = {
-        "schema": "yang_mills_continuum_boundary_audit_v2",
+        "schema": "yang_mills_continuum_boundary_audit_v3",
         "status": "PASS" if all_passed else "FAIL",
         "verdict": "UNRESOLVED_CONTINUUM_PROBLEM",
-        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence against the Clay Yang-Mills existence and mass-gap obligations",
+        "clay_verdict": "NULL",
+        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence and fixed-graph cutoff removal against the Clay Yang-Mills existence and mass-gap obligations",
         "audit_source": {
             "path": display_path(SOURCE),
             "sha256": hashes["audit_source"],
@@ -579,6 +694,28 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
                 "path": display_path(HELPER_SOURCE),
                 "sha256": hashes["helper_source"],
             },
+            "cutoff_form_protocol": {
+                "path": display_path(CUTOFF_FORM_PROTOCOL),
+                "sha256": hashes["cutoff_form_protocol"],
+            },
+            "cutoff_form_primary_source": {
+                "path": display_path(CUTOFF_FORM_PRIMARY_SOURCE),
+                "sha256": hashes["cutoff_form_primary_source"],
+            },
+            "cutoff_form_independent_source": {
+                "path": display_path(CUTOFF_FORM_INDEPENDENT_SOURCE),
+                "sha256": hashes["cutoff_form_independent_source"],
+            },
+            "cutoff_form_primary_receipt": {
+                "path": display_path(CUTOFF_FORM_PRIMARY_RECEIPT),
+                "sha256": hashes["cutoff_form_primary_receipt"],
+                "bytes": CUTOFF_FORM_PRIMARY_RECEIPT.stat().st_size,
+            },
+            "cutoff_form_independent_receipt": {
+                "path": display_path(CUTOFF_FORM_INDEPENDENT_RECEIPT),
+                "sha256": hashes["cutoff_form_independent_receipt"],
+                "bytes": CUTOFF_FORM_INDEPENDENT_RECEIPT.stat().st_size,
+            },
         },
         "protocol_snapshot_audit": {
             "current_reference": CURRENT_REFERENCE.decode("utf-8"),
@@ -616,6 +753,21 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "primary_continuum_claim": primary["continuum_claim"],
             "independent_continuum_claim": independent.get("continuum_claim"),
         },
+        "fixed_graph_cutoff_form": {
+            "classification": "DERIVED_FIXED_FINITE_GRAPH",
+            "primary_status": cutoff_form_primary["finite_graph_status"],
+            "primary_checks_passed": cutoff_form_primary["checks_passed"],
+            "primary_checks_total": cutoff_form_primary["checks_total"],
+            "independent_status": cutoff_form_independent["finite_graph_status"],
+            "independent_checks_passed": cutoff_form_independent["checks_passed"],
+            "independent_checks_total": cutoff_form_independent["checks_total"],
+            "tail_rows_passed": cutoff_primary_spectrum["tail_passed"],
+            "tail_rows_attempted": cutoff_primary_spectrum["tail_attempted"],
+            "ritz_rows_passed": cutoff_primary_spectrum["ritz_passed"],
+            "ritz_rows_applicable": cutoff_primary_spectrum["ritz_applicable"],
+            "continuum_hypotheses_present": False,
+            "clay_verdict": "NULL",
+        },
         "cutoff_tail_evidence": {
             "qualifications": primary["cutoff_qualifications"],
             "useful_tail_rows": primary["useful_tail_rows"],
@@ -644,7 +796,7 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "unproved_inputs": [
                 "uniform interacting fibre and coarse Poincare margins",
                 "uniform transport-score or mixed-Hessian bounds",
-                "character-cutoff removal",
+                "graph-size-, weak-coupling-, and lattice-spacing-uniform character-cutoff control",
                 "thermodynamic control",
             ],
         },
@@ -663,7 +815,7 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "conclusion": "positive local conditional rates alone do not imply a volume-uniform global gap",
         },
         "missing_clay_obligations": MISSING_CLAY_OBLIGATIONS,
-        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction and its independent reconstruction. Their character-cutoff tails are inconclusive, and they supply no continuum Yang-Mills construction or regulator-independent mass-gap theorem.",
+        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction, and the form theorem removes the character cutoff after the graph, coupling and low-energy index are fixed. Its constants are not uniform in graph size, weak coupling or lattice spacing, and no continuum Yang-Mills construction or regulator-independent mass-gap theorem is supplied.",
     }
 
     if not all_passed:
