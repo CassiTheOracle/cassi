@@ -13909,6 +13909,7 @@ independent method result remains a cross-check.
 This is the secondary finite-volume decomposition over the archived
 $t=32,40,48$ states. It explains the compact observable's components while
 leaving the registered full-trace spatial comparison as the primary result.
+
 The recomputed compact energy-component errors remain below threshold. For
 `pair256`, the mediator, carrier, kinetic, radial-gradient, and
 axial-gradient errors are
