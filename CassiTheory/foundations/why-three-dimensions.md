@@ -30,10 +30,6 @@ geometric postulates unless separately implemented and tested. The W1
 opposite-sign wake result remains a measured morphology branch, with the
 paired-sheet consequences recorded as conditional predictions.
 
-**Figure:** `visual-explainers/cascade_cosmos.png`—panel A shows the bubble
-chain on the string; panel B (zoom) shows the conditional $\mathbb{R}^3$
-triaxial morphology ansatz with the opposite-sign paired-sheet interference
-pattern (`visual-explainers/cascade_cosmos.py`).
 
 ---
 

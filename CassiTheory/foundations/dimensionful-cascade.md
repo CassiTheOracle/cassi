@@ -12,8 +12,6 @@ where $\varphi = (1+\sqrt{5})/2 \approx 1.618$. The integer or near-integer expo
 
 **Extension:** The coordinate formula is defined above $n\approx292$ and below $n=0$. The names **megacascade** and **microcascade** label Hypothesized physical extensions of those formal ranges; the scale table alone supplies no state, current, or energy there. See `foundations/microcascade-mirror.md`.
 
-**Figure:** `visual-explainers/cascade_cosmos.png`—3-regime diagram: megacascade bubble chain, the 292-rung ladder, and the microcascade golden spiral, all computed from $\ell_n = \ell_{\text{Pl}}\,\varphi^{n}$ (`visual-explainers/cascade_cosmos.py`).
-**Figure:** `visual-explainers/fractal_zoom.png`—three-panel fractal zoom demonstrating cascade self-similarity: overview with φ-spaced rings, deep zoom into a Qi bubble interior (elliptical φ:1 cross-section, five-arm spiral poles), and pole ultra-zoom with Fibonacci phyllotaxis. Zoom by φ → identical structure at every rung (`visual-explainers/fractal_zoom.py`).
 
 ---
 

@@ -313,12 +313,6 @@ This is the dimension of the idealized curve in the added doublet plane; an
 effective dimension for an embedding in physical space plus an internal
 coordinate requires a separate embedding definition.
 
-The figure record in `visual-explainers/fractal_zoom.png` describes three
-panels: $\varphi$-spaced cascade rings with
-$I(\rho)=2[1-\cos(2\pi\rho)]$, a Qi-bubble deep zoom with elliptical
-$\varphi:1$ cross-section and two five-arm spiral poles, and a pole zoom with
-golden-angle arms. These are visualization and geometry records, not PDE
-proof of compact phase.
 
 ### 3.2 Sampling and Fibonacci ratios
 
