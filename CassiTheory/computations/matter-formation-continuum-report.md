@@ -14045,7 +14045,89 @@ separate intervention and requires its own preregistration, source lineage,
 and stopping rule. The Q16 receipt is complete and is not retuned through
 those alternatives.
 
+## 90. Packet-separation basin at fixed total charge 16
+
+The fixed-charge separation ladder tests whether the incoming basin changes
+when the two packet centres move from $\zeta=\pm10$ to $\zeta=\pm14$. Total
+charge, width, wave number, phase convention, coupling, evolution window, and
+acceptance criteria remain fixed across the ladder.
+
+### 90.1 Fixed preparation and evidence
+
+The declared total signed charge is $Q=16$, with nominal charge share $Q/2=8$
+per packet. The pair width is $w=4$, the inward wave number is $k=1$, and the
+tested centres are $\zeta=\pm10$, $\pm12$, and $\pm14$. The arms are
+`pair_c10`, `pair_c12`, `pair_c14`, `antiphase_c12`, `uncoupled_c12`, and the
+equal-total-charge `single16` control. Each preparation is normalized from
+the complete field to total signed charge 16.
+
+The primary receipt is
+`runs/20260911_matter_formation_packet_separation/result.json`, SHA-256
+`95f8fdc5e72295db84fb216fee66ef12a93fe72eb3918d0565de9559581e69bd`. The
+independent receipt is
+`runs/20260911_matter_formation_packet_separation/verification.json`, SHA-256
+`fb456df79d6310afa47a459b5fccf46a9f506a1c2d20a6d0a03346026987ea9a`.
+
+Every primary row is numerically qualified. All spatial and time-step
+comparisons pass. The independent verifier passes source identity, primary
+archive reconstruction, mutation rejection, corrupted-hash rejection,
+independent archive validation, conservation, and method comparison. The
+maximum independent-to-primary observable error is
+$9.20323524469819\times10^{-5}$.
+
+### 90.2 Separation result
+
+The closest pair, `pair_c10`, is not preparation-eligible: its initial
+origin-centred core fraction is
+$0.15559230729254878$, above the preregistered $0.10$ limit. Its normalized
+envelope overlap is only $0.0019304541362277089$, so the eligibility failure
+comes from initial core occupation rather than packet overlap.
+
+The eligible `pair_c12` arm disperses. Its late fixed-core fraction reaches
+$0.0001084462363078627$, its maximum late binding ratio is
+$1.7653372742426348$, and its maximum late interface-shell energy fraction is
+$0.122340251244053$. The eligible `pair_c14` arm also disperses: its minimum
+late fixed-core fraction is
+$0.00026653962365417815$, its maximum late binding ratio is
+$1.2800632120477227$, and its maximum late interface-shell energy fraction is
+$0.22046760148028186$.
+
+The `antiphase_c12` arm has minimum late fixed-core fraction
+$0.00011085566637268963$, maximum binding ratio
+$1.8103552666633955$, and maximum core RMS
+$6.71928241522844$. The uncoupled control has minimum late fixed-core fraction
+$0.0005553742775647759$ and does not form. The single control retains a larger
+core fraction, but its maximum binding ratio is
+$1.0069729720673124$ and its maximum interface-shell fraction is
+$0.162544045305624$, so it does not satisfy the persistent-remnant predicate.
+
+The source-bound primary and independent evidence are complete. The scientific
+verdict is
+`DOES NOT EMERGE in the specified packet-separation calculation`.
+
+### 90.3 Basin boundary
+
+This ladder places a preparation boundary around the tested collision basin.
+Moving the packets inward to $c=10$ violates the declared initial-core
+eligibility condition before evolution. The eligible $c=12$ and $c=14$
+preparations both disperse, while the equal-charge single control remains
+above the compact binding threshold and carries excessive interface-shell
+energy. The measurement therefore does not identify a separation that forms a
+bound remnant at total charge 16.
+
+The result does not establish an optimal separation, a global charge minimum,
+a minimum packet count, physical size, gravitational capture, or complete
+matter formation. A different phase schedule, width, momentum, total charge,
+or dynamical channel requires another preregistered intervention.
+
 ## References
+
+- `computations/matter_formation_packet_separation_prereg.md`—frozen fixed-charge separation ladder, controls, decision tree, and independent evidence contract.
+- `computations/matter_formation_packet_separation_spec.py`—declarative separation arms and grid schedule.
+- `computations/matter_formation_packet_separation.py`—primary Yoshida-composed finite-volume separation evolution.
+- `computations/verify_matter_formation_packet_separation.py`—separate separation preparation assembly, RK4 evolution, archive checks, and rejection controls.
+- `runs/20260911_matter_formation_packet_separation/result.json`—source-bound primary separation receipt.
+- `runs/20260911_matter_formation_packet_separation/verification.json`—source-bound independent separation receipt.
 
 - `computations/matter_formation_two_packet_q16_prereg.md`—frozen total-charge-16 preparation, two-packet decision tree, and independent evidence contract.
 - `computations/matter_formation_two_packet_q16_spec.py`—declarative Q16 arms and grid schedule.
