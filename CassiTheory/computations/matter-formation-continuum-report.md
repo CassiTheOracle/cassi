@@ -13810,7 +13810,86 @@ evolution preregistration; changing width, phase, charge, coupling, domain,
 grid, or final time within this campaign is not licensed.
 
 
+## 88. Compact-observable decomposition of the spatial mismatch
+
+The retained-state decomposition identifies the registered binding-ratio
+discrepancy as a low-retained-charge compact-observable effect under the
+predeclared component rule. It post-processes the immutable primary NPZ
+archives and row metadata through $t=48$; it does not evolve a new trajectory
+or change the spatial-convergence receipt.
+
+### 88.1 Bound inputs and reconstruction
+
+The calculation uses the six target rows `S0`, `S1`, and `S2` for `pair256` and
+`antiphase256`, the retained states at $t=32,40,48$, and the full
+$R_{\rm in}\in\{4,6,8,10,12\}$ by $W\in\{2,4,6\}$ smooth-cut matrix. It
+reconstructs the exact cut-weighted energy, signed charge, absolute charge,
+axial momentum, radicand, binding ratio, hard-core energy, interface-shell
+energy, and the mediator/carrier/kinetic/radial-gradient/axial-gradient
+energy components from `primary/*.npz`.
+
+The final receipt is
+`runs/20260911_matter_formation_compact_observable_decomposition_20260911/result.json`,
+SHA-256
+`cc4c9a4ae9c6e22622085b01ddceba416e1dca091cb6d8a997f1c64505110f54`;
+its protocol hash is
+`b1ec0672c299608177214530c7089f7f926498345c49106ba292cd255572ed58`.
+The primary and campaign-verification receipt hashes match their frozen
+identities. Every target archive passes the key, dtype, shape, geometry,
+embedded-time, finite-value, and declared-hash checks. All six $t=0$
+reference reconstructions and the default $(R_{\rm in},W)=(8,4)$
+reconstruction pass at every retained late snapshot, and every cut-energy
+decomposition passes the $10^{-8}$ identity tolerance.
+
+The calculation binds its formula provenance to the campaign's archived source
+snapshots. The live spatial verifier source has SHA-256
+`c93f4b3d4bc83d03b0cab9d3b409872d81ee075d58f85273aeba58668713e509`, while
+the campaign-bound archived verifier source is
+`589a26fd4580b61056fdf31a3116981f50f2ec94e29d077b4b82afb130652126`; the
+decomposition receipt records both identities and uses the archived bytes.
+
+### 88.2 Reference compact observable
+
+The decision rule is anchored to the original reference cut and the
+`S1\to S2` comparison. For `pair256`, the binding-ratio error is
+$0.06452944361817736$, while the normalized cut-energy, cut-charge, and
+$v_*P_{\rm cut}$ errors are
+$0.005907331126855256$,
+$0.006013313012721828$, and
+$1.8275141632920305\times10^{-18}$. The left and right smooth-cut energies
+are $29.719743060350265$ and $15.725492455999245$; the signed cut charges
+are $3.0570294995678267$ and $1.5176213683110389$. Their retained charge
+fractions are $0.011941521482686826$ and $0.005928208469964997$, and the
+corresponding binding denominators are $26.65056531207775$ and
+$13.23031635805148$.
+
+For `antiphase256`, the reference binding-ratio error is
+$0.00904258518372103$, below the $0.05$ comparison tolerance. Its normalized
+cut-energy, cut-charge, and $v_*P_{\rm cut}$ errors are
+$0.00017930559264336507$,
+$0.0000445024743235406$, and
+$5.638312266971386\times10^{-18}$. The retained charge fractions on the two
+levels are $0.0071197346332049945$ and $0.007075232158881453$.
+
+### 88.3 Decision and scope
+
+Exactly one of the two reference comparisons fails the binding-ratio
+tolerance. Its additive component errors remain below the tolerance, and
+both sides have retained charge fractions below $0.25$. The preregistered
+decision is therefore
+`DENOMINATOR-CONDITIONED`; the `COMPONENT-DISAGREEMENT` predicate is false.
+This classification describes the conditioning of the registered compact
+observable on the retained states. It supplies no formation acceptance result,
+bound-remnant result, or microscopic production mechanism. The original
+spatial-convergence verdict remains
+`SPATIAL CONVERGENCE DOES NOT EMERGE in the declared resolution ladder`.
+
 ## References
+
+- `computations/matter_formation_compact_observable_decomposition_prereg.md`—frozen compact-cut matrix, component normalization, reconstruction checks, and two-branch decision rule.
+- `computations/matter_formation_compact_observable_decomposition.py`—local finite-volume reconstruction from archived primary NPZ states.
+- `runs/20260911_matter_formation_compact_observable_decomposition_20260911/result.json`—protocol-bound compact-observable decomposition receipt.
+
 
 - `computations/matter_formation_cut_localization_prereg.md`—frozen cut matrix, fixed-core predicate, component decision branches, and archive checks.
 - `computations/matter_formation_cut_localization.py`—primary reconstruction, radial profiles, matrix comparisons, and receipt writer.
