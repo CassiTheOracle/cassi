@@ -5400,6 +5400,7 @@ microscopic completions.
 | Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM186) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre; the projected Ritz density makes the cutoff measure's conditional gap vanish identically at the rows carrying a resolved path sign change, and the twelve-row path and two-parameter torus families confine that zero-gap region to the strong-coupling rows; the exact-vacuum fibre rate remains required |
 | Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, cutoff removal and continuum construction remain open |
 | Finite open-cube SU(2) basis and oriented Wilson support | **Derived** finite-regulator construction | The open $2\times2\times2$ cube has 32 and 1013 gauge-invariant raw trivalent-$3j$ states at doubled cutoffs $C=1,2$; every six signed fundamental plaquette operators has 32 and 2388 nonzero candidate-supported directed entries, with finite Hermitian contractions; volume growth, cutoff removal and continuum control remain open |
+| Larger-volume/cutoff SU(2) Hamiltonian target | **Pre-registered finite target** | The `3\times2\times2` open graph, complete binary-tree intertwiners, nested link cutoffs $C=1,2$, and finite-volume exact-ground-state tail estimate are fixed in `computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md`; no execution receipt is present |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
@@ -5805,6 +5806,17 @@ character-cutoff control, the interacting weak-coupling estimate,
 thermodynamic construction, OS reconstruction and a physical mass gap remain
 **UNRESOLVED**.
 
+The next finite construction is fixed by
+`computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md`. It uses a
+$3\times2\times2$ open graph with twenty links and eleven plaquettes, a
+complete sequential binary-coupling basis at every vertex, link cutoffs
+$C=1,2$, and $x\in\{1/64,1/16,1/4,1\}$. The $C=1$ omitted-sector coupling
+is computed from the full $C=2$ shell; the $C=2$ row receives the declared
+analytic operator-norm bound. This is a finite-volume target without an
+execution receipt. Character-cutoff removal, spatial-volume uniformity, the
+thermodynamic limit, OS reconstruction and the physical mass gap remain
+**UNRESOLVED**.
+
 ---
 
 ## References
@@ -5896,6 +5908,7 @@ thermodynamic construction, OS reconstruction and a physical mass gap remain
   gauge-basis and oriented Wilson-support protocol
 - `computations/verify_yang_mills_su2_open_cube.py`—69-check exact
   open-cube basis and Wilson-support verifier
+- `computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md`—pre-registered larger-volume/cutoff Hamiltonian, complete intertwiner basis and finite-volume character-tail protocol
 - D. Bakry, I. Gentil and M. Ledoux, *Analysis and Geometry of Markov
   Diffusion Operators*—Poincaré, Poisson and carré-du-champ framework
 - C. Villani, *Optimal Transport: Old and New*—continuity equations and

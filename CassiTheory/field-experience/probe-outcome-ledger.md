@@ -982,6 +982,28 @@ $1.33959190672153\times10^{-6}$ at $C=2$. The receipt passes 69/69 frozen
 checks. The result supplies a bounded three-dimensional operator layer for
 the next finite-volume construction.
 
+## 34. Pre-registered larger-volume SU(2) Hamiltonian and character tail
+
+The frozen protocol `computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md`
+defines the first larger-than-cube finite spatial Hamiltonian target: an open
+$3\times2\times2$ graph with twenty links and eleven plaquettes. The eight
+degree-three boundary vertices and four degree-four vertices at $x=1$ use the
+fixed sequential binary coupling tree, including all intertwiner multiplicity
+labels. The schedule uses link cutoffs $C=1,2$ and couplings
+$x\in\{1/64,1/16,1/4,1\}$.
+
+| Protocol component | Frozen content | Status |
+|---|---|---|
+| Hamiltonian | $H_C=K_C+22xI-xW_C$ with exact SU(2) Haar contractions and generalized Ritz spectrum | **PRE-REGISTERED—NO RECEIPT** |
+| Cutoff tail | Exact $C=1$ cross-shell operator norm from $C=2$ plus the analytic $C=2$ bound $b_2\le22x$ | **PRE-REGISTERED—NO RECEIPT** |
+| Scope | Finite spatial graph and finite-volume untruncated character Hamiltonian | **PRE-REGISTERED—NO RECEIPT** |
+| Continuum boundary | Character-cutoff removal, spatial-volume uniformity, thermodynamic construction, OS reconstruction and physical mass gap | **UNRESOLVED** |
+
+The protocol fixes the complete high-valence basis and the separation
+condition required for a finite-volume exact-ground-state tail estimate. No
+primary or independent execution receipt is present, so this entry records a
+target and supplies no measured Hamiltonian or vacuum result.
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
