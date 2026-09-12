@@ -99,6 +99,38 @@ RECONSTRUCTION_FIELDS = (
     "shell_energy",
     "shell_energy_fraction",
 )
+REGISTERED_LATE_START = 32.0
+REGISTERED_OBSERVABLES = (
+    "energy",
+    "charge",
+    "core_fraction",
+    "core_rms",
+    "binding_ratio",
+    "shell_energy_fraction",
+)
+REGISTERED_TRACE_MATCH_TOL = 1.0e-12
+METHOD_COMPARISON_TIMES = (0.0, 32.0, 40.0, 48.0)
+METHOD_COMPARISON_OBSERVABLES = (
+    "energy",
+    "charge",
+    "core_fraction",
+    "core_rms",
+    "binding_ratio",
+    "shell_energy_fraction",
+    "core_energy",
+    "mediator_depletion",
+)
+CUT_COMPONENT_FIELDS = (
+    "cut_mediator_potential",
+    "cut_carrier_potential",
+    "cut_kinetic_energy",
+    "cut_radial_gradient",
+    "cut_axial_gradient",
+)
+CUT_GRADIENT_CONVENTION = (
+    "recompute finite-volume face and boundary gradients from masked q^(w), v^(w); "
+    "uncut cell-energy allocation is reserved for hard-core and shell observables"
+)
 A = 1.0 / 16.0
 CPSI = 1.0 / 8.0
 URHO = 4.0
@@ -385,6 +417,7 @@ def measure_cut(
         "energy": energy,
         "charge": total_charge,
         "abs_charge": abs_charge,
+
         "core_charge": core_charge,
         "core_abs_charge": core_abs_charge,
         "core_fraction": core_charge / charge_reference,
@@ -412,10 +445,126 @@ def measure_cut(
     if not all(finite_number(value) for value in result.values()):
         raise DiagnosticError(f"nonfinite measurement at cut ({inner}, {width})")
     return result
-
-
 def comparison_mean(left: dict[str, Any], right: dict[str, Any], field: str) -> float:
     return abs(float(left[field]) - float(right[field]))
+def registered_late_means(row: dict[str, Any]) -> dict[str, float]:
+    times = row.get("times")
+    trace = row.get("trace")
+    if not isinstance(times, list) or not isinstance(trace, list) or len(times) != len(trace):
+        raise DiagnosticError("registered trace/time coverage mismatch")
+    late = [
+        sample
+        for time_value, sample in zip(times, trace)
+        if finite_number(time_value) and float(time_value) >= REGISTERED_LATE_START
+    ]
+    if not late or any(
+        not isinstance(sample, dict)
+        or any(not finite_number(sample.get(field)) for field in REGISTERED_OBSERVABLES)
+        for sample in late
+    ):
+        raise DiagnosticError("registered late trace missing or nonfinite")
+    return {
+        field: float(np.mean([float(sample[field]) for sample in late]))
+        for field in REGISTERED_OBSERVABLES
+    }
+
+
+def registered_scale(field: str, left_row: dict[str, Any], right_row: dict[str, Any]) -> float:
+    if field == "energy":
+        return max(1.0, abs(float(left_row["initial_energy"])), abs(float(right_row["initial_energy"])))
+    if field == "charge":
+        return max(1.0, abs(float(left_row["initial_charge"])), abs(float(right_row["initial_charge"])))
+    if field == "core_rms":
+        return CORE_RADIUS
+    return 1.0
+
+
+def registered_compare(
+    left_row: dict[str, Any],
+    right_row: dict[str, Any],
+    level_pair: str,
+    archived: dict[str, Any],
+) -> dict[str, Any]:
+    left_means = left_row["registered_late_means"]
+    right_means = right_row["registered_late_means"]
+    scales = {field: registered_scale(field, left_row, right_row) for field in REGISTERED_OBSERVABLES}
+    errors = {
+        field: abs(float(left_means[field]) - float(right_means[field])) / scales[field]
+        for field in REGISTERED_OBSERVABLES
+    }
+    archived_errors = archived.get("errors")
+    archived_match = bool(
+        isinstance(archived_errors, dict)
+        and set(archived_errors) == set(REGISTERED_OBSERVABLES)
+        and all(
+            finite_number(archived_errors[field])
+            and abs(errors[field] - float(archived_errors[field])) <= REGISTERED_TRACE_MATCH_TOL
+            for field in REGISTERED_OBSERVABLES
+        )
+    )
+    threshold_pass = bool(all(error < COMPARISON_TOL for error in errors.values()))
+    monotone_error_pass = archived.get("monotone_error_pass") if level_pair == "S1->S2" else None
+    return {
+        "arm": left_row["arm"],
+        "level_pair": level_pair,
+        "left": f"{left_row['grid']}_{left_row['arm']}",
+        "right": f"{right_row['grid']}_{right_row['arm']}",
+        "sample_count_left": left_row["registered_late_sample_count"],
+        "sample_count_right": right_row["registered_late_sample_count"],
+        "left_means": left_means,
+        "right_means": right_means,
+        "scales": scales,
+        "errors": errors,
+        "threshold_pass": threshold_pass,
+        "monotone_error_pass": monotone_error_pass,
+        "pass": bool(threshold_pass and (monotone_error_pass is not False)),
+        "archived_errors": archived_errors,
+        "archived_match": archived_match,
+        "archived_pass": archived.get("pass"),
+        "archived_monotone_error_pass": archived.get("monotone_error_pass"),
+    }
+
+
+def independent_method_control(verification: dict[str, Any]) -> dict[str, Any]:
+    raw = verification.get("method_comparisons")
+    if not isinstance(raw, list) or len(raw) != len(TARGET_ARMS):
+        raise DiagnosticError("independent method comparison receipt mismatch")
+    expected_keys = {
+        f"{time_value}:{field}"
+        for time_value in METHOD_COMPARISON_TIMES
+        for field in METHOD_COMPARISON_OBSERVABLES
+    }
+    summaries: list[dict[str, Any]] = []
+    for item in raw:
+        if not isinstance(item, dict) or item.get("arm") not in TARGET_ARMS:
+            raise DiagnosticError("independent method comparison identity mismatch")
+        errors = item.get("errors")
+        failures = item.get("failures")
+        if not isinstance(errors, dict) or set(errors) != expected_keys or not isinstance(failures, list):
+            raise DiagnosticError("independent method comparison schema mismatch")
+        if any(not finite_number(value) for value in errors.values()):
+            raise DiagnosticError("independent method comparison contains nonfinite error")
+        max_error = max(float(value) for value in errors.values())
+        summaries.append(
+            {
+                "arm": item["arm"],
+                "max_error": max_error,
+                "failure_count": len(failures),
+                "pass": bool(item.get("pass") is True and not failures and max_error < COMPARISON_TOL),
+            }
+        )
+    summaries.sort(key=lambda item: str(item["arm"]))
+    return {
+        "scope": "orthogonal implementation-method control",
+        "causal_diagnosis_target": "registered primary S1->S2 spatial mismatch",
+        "times": list(METHOD_COMPARISON_TIMES),
+        "observables": list(METHOD_COMPARISON_OBSERVABLES),
+        "normalization": "max(1, abs(primary), abs(independent)) per sample and observable",
+        "tolerance": COMPARISON_TOL,
+        "comparisons": raw,
+        "summaries": summaries,
+        "pass": bool(all(item["pass"] for item in summaries)),
+    }
 
 
 def reconstruct_row(row: dict[str, Any]) -> tuple[dict[str, Any], dict[tuple[float, float], dict[str, Any]]]:
@@ -429,8 +578,12 @@ def reconstruct_row(row: dict[str, Any]) -> tuple[dict[str, Any], dict[tuple[flo
         raise DiagnosticError("row schema mismatch")
     if len(times) != len(trace):
         raise DiagnosticError("row trace/time mismatch")
+    registered_means = registered_late_means(row)
     charge_reference = float(initial["charge"])
     energy_reference = float(initial["energy"])
+    registered_late_sample_count = sum(
+        finite_number(value) and float(value) >= REGISTERED_LATE_START for value in times
+    )
     grid = ArchivedGrid(int(row["R"]), float(row["spacing"]))
     state_by_time = {float(state["time"]): state for state in states}
     if set(state_by_time) != {0.0, *SNAPSHOT_TIMES}:
@@ -554,6 +707,8 @@ def reconstruct_row(row: dict[str, Any]) -> tuple[dict[str, Any], dict[tuple[flo
             "coupling": row["coupling"],
             "initial_energy": energy_reference,
             "initial_charge": charge_reference,
+            "registered_late_means": registered_means,
+            "registered_late_sample_count": registered_late_sample_count,
             "initial_snapshot": initial_snapshot_output,
             "snapshots": snapshot_outputs,
             "late_snapshot_times": list(SNAPSHOT_TIMES),
@@ -583,8 +738,14 @@ def compare(
         "sqrt_radicand": comparison_mean(left, right, "sqrt_radicand") / energy_scale,
         "binding_ratio": comparison_mean(left, right, "binding_ratio"),
     }
+    energy_component_errors = {
+        field: comparison_mean(left, right, field) / energy_scale
+        for field in CUT_COMPONENT_FIELDS
+    }
     component_failures = [
         name for name in ("cut_energy", "cut_charge", "momentum_energy") if errors[name] >= COMPARISON_TOL
+    ] + [
+        name for name, error in energy_component_errors.items() if error >= COMPARISON_TOL
     ]
     return {
         "arm": left_row["arm"],
@@ -596,6 +757,7 @@ def compare(
         "left": {field: left[field] for field in MEAN_FIELDS},
         "right": {field: right[field] for field in MEAN_FIELDS},
         "errors": errors,
+        "energy_component_errors": energy_component_errors,
         "ratio_fail": bool(errors["binding_ratio"] >= COMPARISON_TOL),
         "component_failures": component_failures,
         "left_charge_fraction": left["cut_charge_fraction"],
@@ -637,6 +799,30 @@ def run(output: Path) -> dict[str, Any]:
         row_output, row_summaries = reconstruct_row(rows[(grid_name, arm)])
         row_outputs[(grid_name, arm)] = row_output
         summaries[(grid_name, arm)] = row_summaries
+    archived_primary_comparisons = {
+        (item.get("arm"), item.get("level_pair")): item
+        for item in primary.get("comparisons", [])
+        if isinstance(item, dict)
+    }
+    registered_comparisons: list[dict[str, Any]] = []
+    for arm in TARGET_ARMS:
+        for left_grid, right_grid, level_pair in (("S0", "S1", "S0->S1"), ("S1", "S2", "S1->S2")):
+            archived = archived_primary_comparisons.get((arm, level_pair))
+            if not isinstance(archived, dict):
+                raise DiagnosticError(f"registered primary comparison missing: {arm} {level_pair}")
+            registered_comparisons.append(
+                registered_compare(
+                    row_outputs[(left_grid, arm)],
+                    row_outputs[(right_grid, arm)],
+                    level_pair,
+                    archived,
+                )
+            )
+    registered_trace_reproduction_pass = bool(
+        len(registered_comparisons) == len(TARGET_ARMS) * 2
+        and all(item["archived_match"] for item in registered_comparisons)
+    )
+    method_control = independent_method_control(verification)
     comparisons: list[dict[str, Any]] = []
     for arm in TARGET_ARMS:
         for left_grid, right_grid, level_pair in (("S0", "S1", "S0->S1"), ("S1", "S2", "S1->S2")):
@@ -661,7 +847,14 @@ def run(output: Path) -> dict[str, Any]:
         and (float(item["inner"]), float(item["width"])) == REFERENCE_CUT
     ]
     reconstruction_pass = bool(all(item["reconstruction_pass"] for item in row_outputs.values()))
-    integrity_pass = bool(reconstruction_pass and captured_sources and primary_hash == PRIMARY_RECEIPT_SHA256 and verification_hash == VERIFICATION_RECEIPT_SHA256)
+    integrity_pass = bool(
+        reconstruction_pass
+        and registered_trace_reproduction_pass
+        and method_control["pass"]
+        and captured_sources
+        and primary_hash == PRIMARY_RECEIPT_SHA256
+        and verification_hash == VERIFICATION_RECEIPT_SHA256
+    )
     denominator_conditioned = bool(
         any(
             item["ratio_fail"]
@@ -711,11 +904,20 @@ def run(output: Path) -> dict[str, Any]:
             "target_grids": list(TARGET_GRIDS),
             "target_arms": list(TARGET_ARMS),
             "snapshot_times": list(SNAPSHOT_TIMES),
+            "registered_late_start": REGISTERED_LATE_START,
+            "registered_observables": list(REGISTERED_OBSERVABLES),
+            "registered_trace_match_tolerance": REGISTERED_TRACE_MATCH_TOL,
+            "method_comparison_times": list(METHOD_COMPARISON_TIMES),
+            "method_comparison_observables": list(METHOD_COMPARISON_OBSERVABLES),
+            "method_comparison_normalization": "max(1, abs(primary), abs(independent)) per sample and observable",
             "cut_inners": list(CUT_INNERS),
             "cut_widths": list(CUT_WIDTHS),
             "reference_cut": list(REFERENCE_CUT),
             "comparison_tolerance": COMPARISON_TOL,
             "retained_fraction": RETAINED_FRACTION,
+            "cut_component_fields": list(CUT_COMPONENT_FIELDS),
+            "cut_component_tolerance": COMPARISON_TOL,
+            "cut_gradient_convention": CUT_GRADIENT_CONVENTION,
             "reconstruction_tolerance": RECONSTRUCTION_TOL,
             "energy_identity_tolerance": ENERGY_IDENTITY_TOL,
         },
@@ -724,9 +926,14 @@ def run(output: Path) -> dict[str, Any]:
             "verification_receipt_hash": verification_hash == VERIFICATION_RECEIPT_SHA256,
             "source_hashes": archived_hashes == EXPECTED_SOURCE_SHA256,
             "reconstruction_pass": reconstruction_pass,
+            "registered_trace_reproduction_pass": registered_trace_reproduction_pass,
+            "independent_method_control_pass": method_control["pass"],
             "pass": integrity_pass,
         },
         "rows": [row_outputs[key] for key in sorted(row_outputs)],
+        "registered_primary_comparisons": registered_comparisons,
+        "registered_trace_reproduction_pass": registered_trace_reproduction_pass,
+        "independent_method_control": method_control,
         "comparisons": comparisons,
         "summary": {
             "reference_comparisons": reference,
