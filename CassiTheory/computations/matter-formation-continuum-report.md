@@ -13828,14 +13828,26 @@ axial momentum, radicand, binding ratio, hard-core energy, interface-shell
 energy, and the mediator/carrier/kinetic/radial-gradient/axial-gradient
 energy components from `primary/*.npz`.
 
-The compact-cut matrix uses four archived states per target row: $t=0$ for
-the initial-state audit and $t=32,40,48$ for the finite-volume decomposition
-means. The registered spatial comparison uses a separate aggregation: every
-primary trace sample with $t\ge32$, which is 33 samples per side in this
-campaign. Its scales are the initial energy and charge magnitudes for energy
-and charge, $8$ for core RMS, and $1$ for the remaining registered
-observables. The runner stores both aggregations and reproduces the archived
-primary comparison errors within $10^{-12}$.
+The compact-cut matrix validates four archived states per target row: $t=0$
+for the initial-state audit and $t=32,40,48$ for the finite-volume
+decomposition means. The $t=0$ checks are required integrity audits but are
+not included in the late matrix means or the branch decision. The registered
+spatial comparison uses a separate aggregation: every primary trace sample
+with $t\ge32$, which is 33 samples per side in this campaign. Its scales are
+the initial energy and charge magnitudes for energy and charge, $8$ for core
+RMS, and $1$ for the remaining registered observables. The runner stores both
+aggregations and reproduces the archived primary comparison errors within
+$10^{-12}$.
+
+For the shared `S1\to S2` binding-ratio observable, the full-trace versus
+retained-snapshot aggregation contrast is explicit. `pair256` changes from
+$0.06452944361817736$ on the three retained snapshots to
+$0.08114437449651035$ on the 33-sample late trace, a full-minus-retained
+difference of $0.01661493087833299$. `antiphase256` changes from
+$0.00904258518372103$ to $0.033193969117790934$, a difference of
+$0.024151383934069903$. This is a measured aggregation effect; it prevents
+the difference between the two binding-ratio errors from being attributed to
+the compact components or denominator alone.
 
 The compact energy components use finite-volume gradients recomputed from
 the smooth-cut fields $q^{(w)}$ and $v^{(w)}$, including the interface face
@@ -13848,9 +13860,9 @@ the energy scale and the $0.05$ comparison threshold.
 The final receipt is
 `runs/20260911_matter_formation_compact_observable_decomposition_20260911/result.json`,
 SHA-256
-`7e20fb70350b4ee906e11ad2f12521456ea32639174c4573f2799a44008f8c8c`;
+`eb9b7405d743830e2352c849b4c501f32ba48f832e41bacd8c3dc6b1ba21e57f`;
 its protocol hash is
-`de0ba866fc620f252c1178b4982c835bc6026b56603e7fcee8ae2e810f7c74ef`.
+`6ee0a222172c643dd24121acc3b4a6a4209aa6772e6170a99e2aa9560f803752`.
 The primary and campaign-verification receipt hashes match their frozen
 identities. Every target archive passes the key, dtype, shape, geometry,
 embedded-time, finite-value, and declared-hash checks. All six $t=0$
@@ -13906,9 +13918,16 @@ $6.557878517251982\times10^{-5}$,
 $5.652739472910776\times10^{-5}$,
 $4.958031130930116\times10^{-6}$, and
 $2.450740340833106\times10^{-5}$.
+These are absolute normalized component-wise discrepancies, not additive
+contributions to the total cut-energy error. The receipt also checks signed
+component deltas against the signed total cut-energy delta for all 60 matrix
+comparison entries (two arms, two adjacent level pairs, and 15 cuts per
+entry). The largest identity error is
+$1.1368683772161603\times10^{-13}$ against a largest applicable tolerance of
+$8.623404419340683\times10^{-6}$; every identity passes.
 
 
-### 88.3 Four-snapshot reference compact observable
+### 88.3 Three-late-snapshot reference compact observable
 This is the secondary finite-volume decomposition over the archived
 $t=32,40,48$ states. It explains the compact observable's components while
 leaving the registered full-trace spatial comparison as the primary result.
@@ -13936,7 +13955,7 @@ levels are $0.0071197346332049945$ and $0.007075232158881453$.
 
 ### 88.4 Decision and scope
 
-The four-snapshot reference matrix has exactly one binding-ratio failure. Its
+The three-late-snapshot reference matrix has exactly one binding-ratio failure. Its
 additive and recomputed energy-component errors remain below the comparison
 tolerance, and both sides have retained charge fractions below $0.25$. The
 preregistered compact-cut decision is therefore

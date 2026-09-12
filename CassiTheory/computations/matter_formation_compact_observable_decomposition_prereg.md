@@ -193,9 +193,10 @@ The registered spatial comparison is the primary mismatch diagnosed by this
 follow-up. For every target row, select every primary trace sample whose
 embedded time satisfies $t\ge32$. Compute one mean per registered observable
 over that complete late trace, then compare adjacent levels `S0\to S1` and
-`S1\to S2`. This aggregation is separate from the four archived states used
-by the compact-cut matrix reconstruction: $t=0$ is used for an initial-state
-audit, while $t=32,40,48$ supply the finite-volume decomposition snapshots.
+`S1\to S2`. This aggregation is separate from the four archived states
+validated by the compact-cut reconstruction: $t=0$ is used for an
+initial-state audit, while only $t=32,40,48$ enter the finite-volume
+decomposition means and branch decision.
 
 The registered observables and fixed comparison scales are
 
@@ -215,13 +216,25 @@ $$
 e_o=\frac{|\bar o_L-\bar o_R|}{S_o}.
 $$
 
-The registered comparison passes when every error is finite, the maximum
-error is strictly below $0.05$, and the primary runner's monotone
-`S1\to S2` condition is satisfied. The follow-up stores these full-trace
-means and errors and reproduces the archived primary comparison errors within
-$10^{-12}$. This binds the decomposition to the registered spatial mismatch,
-including the pair-arm binding-ratio error, rather than substituting the
-four-snapshot matrix mean.
+The registered comparison has a scientific `threshold_pass` when every
+declared error is finite and the maximum error is strictly below $0.05$. The
+primary runner's monotone condition is an additional requirement only for
+`S1\to S2`; `monotone_error_pass` is explicitly non-applicable and serialized
+as `null` for `S0\to S1`. The scientific `pass` field combines the threshold
+predicate with this applicable monotone predicate. A false scientific
+comparison pass is an observed result, not an archive-integrity failure:
+integrity requires reproduction of the archived errors and the separate
+method control, while the comparison pass remains available for diagnosis.
+The follow-up stores these full-trace means and errors and reproduces the
+archived primary comparison errors within $10^{-12}$. This binds the
+decomposition to the registered spatial mismatch, including the pair-arm
+binding-ratio error, rather than substituting the three-late-snapshot matrix
+mean.
+Because the compact matrix retains only $t=32,40,48$, the receipt also reports
+the direct full-trace-versus-retained-snapshot difference for the shared
+`binding_ratio` error on `S1\to S2`; this is an aggregation diagnostic and
+does not replace the registered full-trace comparison or its decision rule.
+
 
 ### 5.2 Independent method control
 
@@ -246,7 +259,8 @@ is recorded as a cross-check alongside the compact-cut causal branches.
 
 ### 5.3 Compact component normalization and cut-gradient convention
 
-For the compact-cut matrix, compare the five recomputed cut-energy components
+For all 15 smooth cuts in each adjacent comparison, compare the five
+recomputed cut-energy components
 `cut_mediator_potential`, `cut_carrier_potential`,
 `cut_kinetic_energy`, `cut_radial_gradient`, and `cut_axial_gradient` with
 
@@ -255,10 +269,24 @@ e_c=\frac{|\bar c_L-\bar c_R|}{S_E}.
 $$
 
 Each $e_c$ has the same $0.05$ component threshold as the additive
-cut-energy, cut-charge, and momentum errors. The
-$10^{-8}$ `DECOMPOSITION_TOL` is used only for the identity
-$\sum_c c=E_{\mathrm{cut}}$ at each reconstructed state; it cannot pass or
-fail a cross-level component comparison.
+cut-energy, cut-charge, and momentum errors. These are bounded component-wise
+discrepancies, not additive contributions to the total cut-energy error.
+For every comparison entry, the receipt also records signed deltas
+$\Delta c=c_R-c_L$ and $\Delta E_{\mathrm{cut}}=E_{\mathrm{cut},R}-
+E_{\mathrm{cut},L}$, together with
+
+$$
+\Delta E_{\mathrm{cut}}-\sum_c\Delta c.
+$$
+
+This signed-delta identity must pass the same
+$10^{-8}\max(1,|E_{\mathrm{cut},L}|,|E_{\mathrm{cut},R}|)$ tolerance used
+for each reconstructed state. The identity is a consistency check; it is not
+used to add the absolute component errors.
+
+The $10^{-8}$ `DECOMPOSITION_TOL` is used only for the per-state and signed
+cross-level identities; it cannot pass or fail a cross-level component
+comparison.
 
 The cut-energy components are evaluated by recomputing the finite-volume
 potential, kinetic, face-gradient, and boundary terms from the masked fields
@@ -274,16 +302,35 @@ Before interpreting any comparison, the runner must pass:
 
 1. exact input receipt hashes and source identities;
 2. archive containment, state hashes, keys, dtype, shapes, geometry, finite values, and embedded times;
-3. default-cut reconstruction against the archived primary trace at $t=0,32,40,48$ for the registered observables, with
-   $|x-y|\le5\times10^{-8}\max(1,|y|)$;
-4. the cut-energy component identity at every target state and cut;
+3. default-cut reconstruction against the archived primary trace at
+   $t=0,32,40,48$ for the registered observables, with
+   $|x-y|\le5\times10^{-8}\max(1,|y|)$. The $t=0$ check is an initial-state
+   audit for each of the six target rows; the compact matrix means and
+   branch decision use only the three late states $t=32,40,48$;
+4. the cut-energy component identity at every target state and all 15 cuts,
+   plus the signed component-delta identity for every adjacent comparison;
 5. finite output with complete matrix entries.
 
-The two causal branches apply to the reference `S1→S2` comparison at $(8,4)$:
 
-- **DENOMINATOR-CONDITIONED:** at least one target arm has a ratio failure, while $e_E<0.05$, $e_Q<0.05$, $e_M<0.05$, and every compact energy-component error $e_c<0.05$, and both left and right $f_Q$ values are below the campaign retained-charge fraction $0.25$. This branch identifies a ratio discrepancy in a low-retained-charge compact observable whose additive and recomputed energy components remain within the comparison tolerance.
+The two causal branches apply to the reference `S1\to S2` comparison at
+$(8,4)$. Within these branch predicates, the five compact energy-component
+errors $e_c$ and their signed-delta identity refer only to this registered
+reference cut; the other 14 cuts per adjacent pair remain diagnostic matrix
+entries and cannot change the branch.
 
-- **COMPONENT-DISAGREEMENT:** at least one target arm has a ratio failure and either an additive error $e_E\ge0.05$, $e_Q\ge0.05$, or $e_M\ge0.05$, a compact energy-component error $e_c\ge0.05$, or one side has $f_Q\ge0.25$. This branch identifies an additive compact-observable disagreement or a comparison with substantial retained charge.
+- **DENOMINATOR-CONDITIONED:** at least one target arm has a ratio failure,
+  while $e_E<0.05$, $e_Q<0.05$, $e_M<0.05$, and every reference-cut energy
+  component error $e_c<0.05$, and both left and right $f_Q$ values are below
+  the campaign retained-charge fraction $0.25$. This branch identifies a
+  ratio discrepancy in a low-retained-charge compact observable whose
+  additive and recomputed energy components remain within the comparison
+  tolerance.
+
+- **COMPONENT-DISAGREEMENT:** at least one target arm has a ratio failure and
+  either an additive error $e_E\ge0.05$, $e_Q\ge0.05$, or $e_M\ge0.05$, a
+  reference-cut energy-component error $e_c\ge0.05$, or one side has
+  $f_Q\ge0.25$. This branch identifies an additive compact-observable
+  disagreement or a comparison with substantial retained charge.
 
 If both causal branch conditions occur across the two target arms, `COMPONENT-DISAGREEMENT` takes precedence over `DENOMINATOR-CONDITIONED`. If neither target reference comparison has a ratio failure, record `NO_RATIO_FAILURE`; this is the no-failure terminal result rather than a causal branch. If archive or reconstruction checks fail, record `INCONCLUSIVE—archive integrity failure` and do not evaluate a scientific branch. Matrix sensitivity entries are reported for context and cannot override the reference result.
 

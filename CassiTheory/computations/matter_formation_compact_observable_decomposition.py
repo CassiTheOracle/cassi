@@ -445,8 +445,12 @@ def measure_cut(
     if not all(finite_number(value) for value in result.values()):
         raise DiagnosticError(f"nonfinite measurement at cut ({inner}, {width})")
     return result
+
+
 def comparison_mean(left: dict[str, Any], right: dict[str, Any], field: str) -> float:
     return abs(float(left[field]) - float(right[field]))
+
+
 def registered_late_means(row: dict[str, Any]) -> dict[str, float]:
     times = row.get("times")
     trace = row.get("trace")
@@ -742,6 +746,23 @@ def compare(
         field: comparison_mean(left, right, field) / energy_scale
         for field in CUT_COMPONENT_FIELDS
     }
+    signed_component_deltas = {
+        field: float(right[field]) - float(left[field])
+        for field in CUT_COMPONENT_FIELDS
+    }
+    signed_cut_energy_delta = float(right["cut_energy"]) - float(left["cut_energy"])
+    signed_component_delta_sum = sum(signed_component_deltas.values())
+    signed_component_delta_identity_error = abs(
+        signed_component_delta_sum - signed_cut_energy_delta
+    )
+    signed_component_delta_identity_tolerance = ENERGY_IDENTITY_TOL * max(
+        1.0,
+        abs(float(left["cut_energy"])),
+        abs(float(right["cut_energy"])),
+    )
+    signed_component_delta_identity_pass = bool(
+        signed_component_delta_identity_error <= signed_component_delta_identity_tolerance
+    )
     component_failures = [
         name for name in ("cut_energy", "cut_charge", "momentum_energy") if errors[name] >= COMPARISON_TOL
     ] + [
@@ -758,6 +779,12 @@ def compare(
         "right": {field: right[field] for field in MEAN_FIELDS},
         "errors": errors,
         "energy_component_errors": energy_component_errors,
+        "signed_component_deltas": signed_component_deltas,
+        "signed_cut_energy_delta": signed_cut_energy_delta,
+        "signed_component_delta_sum": signed_component_delta_sum,
+        "signed_component_delta_identity_error": signed_component_delta_identity_error,
+        "signed_component_delta_identity_tolerance": signed_component_delta_identity_tolerance,
+        "signed_component_delta_identity_pass": signed_component_delta_identity_pass,
         "ratio_fail": bool(errors["binding_ratio"] >= COMPARISON_TOL),
         "component_failures": component_failures,
         "left_charge_fraction": left["cut_charge_fraction"],
@@ -846,11 +873,41 @@ def run(output: Path) -> dict[str, Any]:
         if item["level_pair"] == "S1->S2"
         and (float(item["inner"]), float(item["width"])) == REFERENCE_CUT
     ]
+    retained_reference = {item["arm"]: item for item in reference}
+    full_trace_reference = {
+        item["arm"]: item
+        for item in registered_comparisons
+        if item["level_pair"] == "S1->S2"
+    }
+    if set(retained_reference) != set(TARGET_ARMS) or set(full_trace_reference) != set(TARGET_ARMS):
+        raise DiagnosticError("reference aggregation comparison row set mismatch")
+    aggregation_comparison: list[dict[str, Any]] = []
+    for arm in TARGET_ARMS:
+        full_trace_error = float(full_trace_reference[arm]["errors"]["binding_ratio"])
+        retained_snapshot_error = float(retained_reference[arm]["errors"]["binding_ratio"])
+        aggregation_comparison.append(
+            {
+                "arm": arm,
+                "level_pair": "S1->S2",
+                "full_trace_sample_count_left": full_trace_reference[arm]["sample_count_left"],
+                "full_trace_sample_count_right": full_trace_reference[arm]["sample_count_right"],
+                "retained_snapshot_times": list(SNAPSHOT_TIMES),
+                "full_trace_binding_ratio_error": full_trace_error,
+                "retained_snapshot_binding_ratio_error": retained_snapshot_error,
+                "difference_full_minus_retained": full_trace_error - retained_snapshot_error,
+                "absolute_difference": abs(full_trace_error - retained_snapshot_error),
+            }
+        )
+    component_delta_identity_pass = bool(
+        comparisons
+        and all(item["signed_component_delta_identity_pass"] for item in comparisons)
+    )
     reconstruction_pass = bool(all(item["reconstruction_pass"] for item in row_outputs.values()))
     integrity_pass = bool(
         reconstruction_pass
         and registered_trace_reproduction_pass
         and method_control["pass"]
+        and component_delta_identity_pass
         and captured_sources
         and primary_hash == PRIMARY_RECEIPT_SHA256
         and verification_hash == VERIFICATION_RECEIPT_SHA256
@@ -915,6 +972,8 @@ def run(output: Path) -> dict[str, Any]:
             "reference_cut": list(REFERENCE_CUT),
             "comparison_tolerance": COMPARISON_TOL,
             "retained_fraction": RETAINED_FRACTION,
+            "compact_matrix_times": list(SNAPSHOT_TIMES),
+            "reconstruction_audit_times": [0.0],
             "cut_component_fields": list(CUT_COMPONENT_FIELDS),
             "cut_component_tolerance": COMPARISON_TOL,
             "cut_gradient_convention": CUT_GRADIENT_CONVENTION,
@@ -927,12 +986,14 @@ def run(output: Path) -> dict[str, Any]:
             "source_hashes": archived_hashes == EXPECTED_SOURCE_SHA256,
             "reconstruction_pass": reconstruction_pass,
             "registered_trace_reproduction_pass": registered_trace_reproduction_pass,
+            "component_delta_identity_pass": component_delta_identity_pass,
             "independent_method_control_pass": method_control["pass"],
             "pass": integrity_pass,
         },
         "rows": [row_outputs[key] for key in sorted(row_outputs)],
         "registered_primary_comparisons": registered_comparisons,
         "registered_trace_reproduction_pass": registered_trace_reproduction_pass,
+        "aggregation_comparison": aggregation_comparison,
         "independent_method_control": method_control,
         "comparisons": comparisons,
         "summary": {
@@ -940,6 +1001,8 @@ def run(output: Path) -> dict[str, Any]:
             "denominator_conditioned": denominator_conditioned,
             "component_disagreement": component_disagreement,
             "no_ratio_failure": no_ratio_failure,
+            "component_delta_identity_pass": component_delta_identity_pass,
+            "aggregation_comparison": aggregation_comparison,
             "reference_ratio_failures": sum(1 for item in reference if item["ratio_fail"]),
             "reference_component_failures": {
                 item["arm"]: item["component_failures"] for item in reference
