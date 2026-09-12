@@ -14485,6 +14485,118 @@ relative phase, a phase-independent nonformation theorem, a global charge
 minimum, physical size, gravitational capture, a packet-count minimum, or
 complete matter formation.
 
+## 95. Isolated packet-charge partition at fixed total charge, separation, width, and carrier magnitude
+
+The packet-charge partition probe tests whether changing the isolated charge
+share between two inward-moving packets changes the fixed-charge formation
+outcome. Total signed charge $Q=16$, packet centres $\zeta=\pm12$, width
+$w=4$, carrier magnitude $|k|=1$, zero relative phase, inward phase-gradient
+sign, coupling, domain, grid ladder, final time, and persistence predicates
+remain fixed.
+
+### 95.1 Isolated-charge contract and evidence
+
+The declared intervention parameter is the isolated charge fraction
+$\lambda_+$ of the packet centred at $\zeta=+12$:
+
+$$
+\lambda_+\in\left\{\frac14,\frac12,\frac34\right\}.
+$$
+
+Before coherent superposition, the negative-centre and positive-centre
+envelopes receive amplitude factors $\sqrt{1-\lambda_+}$ and
+$\sqrt{\lambda_+}$. Each preparation is then normalized once from the complete
+superposed field to total signed charge $Q=16$.
+
+The protocol does not identify an isolated packet contribution with the
+coherent field's total charge. Both assemblers independently compute the
+charge of each weighted isolated packet after applying the same full-field
+normalization factor. They record those two contributions and reconstruct
+$\lambda_+$ from them. The reconstructed isolated fraction must agree with
+the declared value within $10^{-12}$. The full coherent-field charge,
+including its overlap cross term, is measured separately.
+
+The preregistered schedule is
+`computations/matter_formation_packet_partition_prereg.md`. The declarative
+specification, primary runner, and independent verifier are
+`computations/matter_formation_packet_partition_spec.py`,
+`computations/matter_formation_packet_partition.py`, and
+`computations/verify_matter_formation_packet_partition.py`.
+
+The primary receipt is
+`runs/20260912_matter_formation_packet_partition/result.json`, SHA-256
+`30465c4a9e51cc86d791024f4ce42a6c9b3a3334d6cab95a7f0ab6fb752dc390`. The
+independent receipt is
+`runs/20260912_matter_formation_packet_partition/verification.json`, SHA-256
+`1bd9605ad69053e82432a045231c6d3187deb267a04766d6f6bb3d2503f6f131`.
+
+All 18 primary rows are finite, numerically qualified, and preparation
+eligible. All 12 spatial and time-step comparisons pass. The independent
+verifier passes source identity, preparation metadata, isolated-charge
+reconstruction, primary archive reconstruction, mutation rejection,
+corrupted-hash rejection, independent archive completeness, conservation, and
+six independent scalar snapshot comparisons. The independent comparison
+contains 144 scalar entries; its maximum stable-set error is
+$9.563865875792284\times10^{-5}$. The primary and independent numerical
+receipts both pass.
+
+### 95.2 Partition result
+
+The G0 late minimum core fractions are:
+
+- `pair_split25`, $\lambda_+=0.25$:
+  $0.00014008891006214412$;
+- `pair_split50`, $\lambda_+=0.50$:
+  $0.0001084462363078619$;
+- `pair_split75`, $\lambda_+=0.75$:
+  $0.00014008891006214627$.
+
+The $\lambda_+=0.25$ and $\lambda_+=0.75$ arms are the reflected charge-share
+pair in this symmetric preparation. Their late core minima agree to the
+reported precision. All three coupled arms remain below the retained-core
+threshold $0.25$, so the binding predicate is excluded and each arm is
+nonpersistent.
+
+The maximum late binding ratios for the three coupled arms are, respectively,
+$1.8164094330747043$, $1.765337274242667$, and
+$1.816409433074704$. These values are diagnostic only because the retained
+core gate is not active.
+
+The `uncoupled_split50` control has minimum late core fraction
+$0.0005553742775647748$ and is nonpersistent. The `single16_w4` control has
+minimum late core fraction $0.7689030533852563$, maximum binding ratio
+$1.0069729720673124$, and maximum shell-energy fraction
+$0.16254404530562405$; it does not satisfy the persistent-remnant predicate.
+
+The `outward_split50` rule control has minimum late core fraction
+$-5.750352115234275\times10^{-6}$. Its legacy binding-ratio errors are
+
+$$
+\epsilon_{G0\to G1}=0.08946977173020444,
+\qquad
+\epsilon_{G0\to T1}=0.0006518214217908205.
+$$
+
+The first exceeds the $0.05$ method threshold while the stable observable
+comparisons pass, so the binding-gate witness passes independently.
+
+No coupled partition arm is fully compared as a persistent remnant. The
+preregistered verdict is
+`DOES NOT EMERGE in the specified charge-partition calculation`.
+
+### 95.3 Bounded interpretation
+
+Within the declared fixed-total-charge, fixed-separation, fixed-width,
+fixed-carrier-magnitude calculation, changing the isolated packet charge
+share across $\lambda_+=0.25$, $0.50$, and $0.75$ does not produce a
+persistent localized remnant. The asymmetric arms remain in the same
+near-zero-core dispersive basin as the equal-share arm.
+
+This result does not establish a universal charge-partition rule, an optimal
+partition, a global charge minimum, a phase-independent nonformation theorem,
+physical size, gravitational capture, a packet-count minimum, or complete
+matter formation.
+
 ## References
 
 - `computations/matter_formation_packet_separation_prereg.md`—frozen fixed-charge separation ladder, controls, decision tree, and independent evidence contract.
@@ -14506,6 +14618,12 @@ complete matter formation.
 - `computations/verify_matter_formation_packet_phase.py`—separate relative-phase preparation assembly, RK4 evolution, archive checks, and rule-control witness.
 - `runs/20260912_matter_formation_packet_phase/result.json`—source-bound primary relative-phase receipt.
 - `runs/20260912_matter_formation_packet_phase/verification.json`—source-bound independent relative-phase receipt.
+- `computations/matter_formation_packet_partition_prereg.md`—frozen fixed-charge isolated packet-charge partition ladder, binding gate, controls, and decision tree.
+- `computations/matter_formation_packet_partition_spec.py`—declarative partition arms, isolated-charge contract, and grid schedule.
+- `computations/matter_formation_packet_partition.py`—primary Yoshida-composed finite-volume charge-partition evolution.
+- `computations/verify_matter_formation_packet_partition.py`—separate partition preparation assembly, isolated-charge reconstruction, RK4 evolution, archive checks, and rule-control witness.
+- `runs/20260912_matter_formation_packet_partition/result.json`—source-bound primary charge-partition receipt.
+- `runs/20260912_matter_formation_packet_partition/verification.json`—source-bound independent charge-partition receipt.
 
 - `computations/matter_formation_momentum_basin_prereg.md`—frozen fixed-charge incoming-momentum ladder, controls, decision tree, and independent evidence contract.
 - `computations/matter_formation_momentum_basin_spec.py`—declarative momentum arms and grid schedule.
