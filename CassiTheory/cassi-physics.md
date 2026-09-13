@@ -304,9 +304,17 @@ density on periodic cubic lattices has a fixed-support cutoff error bounded
 uniformly in spatial volume. An edge-disjoint loop family shows that bounded
 electric-energy density alone cannot provide a volume-uniform whole-state
 norm estimate. The fixed-support result is **Derived** at fixed coupling.
-A compatible thermodynamic limit, clustering, a weak-coupling continuum
-construction, Osterwalder–Schrader reconstruction and a regulator-independent
-positive mass gap remain open; the Clay verdict is `NULL`.
+Conditional on the finite-volume ground densities and this uniform local
+bound, trace-norm compactness and a diagonal extraction construct a
+compatible, symmetry-invariant locally normal ground-state subsequence at
+each fixed regulator and coupling. The algebraic ground inequality holds on
+the gauge-invariant finite-character local algebra. This operator result is
+**Derived conditional**. Its 18/18 primary and 19/19 independent executable
+checks cover finite identities and implication controls; both receipts state
+that they construct no interacting $SU(2)$ ground state and retain
+`clay_verdict=NULL`. Full-sequence convergence, phase uniqueness, clustering,
+a weak-coupling continuum construction, Osterwalder–Schrader reconstruction
+and a regulator-independent positive mass gap remain open.
 
 The geometric manifold completion ansatz places these finite structures in
 one stratified bundle. A positive Hermitian Yang/Yin fibre contains the

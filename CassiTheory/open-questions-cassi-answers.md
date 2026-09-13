@@ -763,7 +763,7 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
-The separate pure-gauge comparison in that document, §§9.4–9.26, uses the
+The separate pure-gauge comparison in that document, §§9.4–9.27, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
 projective bubble coordinate discards a phase required by Wilson magnetic
@@ -805,8 +805,9 @@ sensitivity; at $J=1$, $x=1$, the conditional partition ranges from
 $0.9160251472$ to $2.3613249509$. The retained-rate qualification is
 `INCONCLUSIVE` for all rows because the full-space residual or nested
 restriction-rank rule fails. The exact-vacuum fibre rate, transport score,
-conditional-rate cutoff removal, uniform interacting recovery, thermodynamic
-limit and continuum construction remain open.
+conditional-rate cutoff removal, uniform interacting recovery,
+phase-selected thermodynamic convergence and continuum construction remain
+open.
 
 An exact normalized-Haar path-holonomy pullback preserves endpoint gauge
 covariance and compresses the electric Casimir with
@@ -866,7 +867,21 @@ verifiers pass 16/16 and 17/17 checks over 1,536 local rows and 180
 product-family rows. The product family has bounded electric energy density
 while its discarded global norm tends to one at fixed cutoff, so an
 energy-density bound cannot provide volume-uniform whole-wavefunction norm
-control. Neither estimate constructs the thermodynamic or continuum vacuum.
+control.
+
+Section 9.27 uses the fixed-support tail estimate to prove trace-norm
+precompactness of every reduced ground-density family. A Cantor diagonal
+subsequence defines compatible local density matrices and a
+symmetry-invariant locally normal state at each fixed lattice regulator and
+coupling. The finite-volume quadratic ground inequality passes to the limit
+on the gauge-invariant finite-character local algebra. This is a
+subsequential construction. It supplies no full-sequence convergence, phase
+uniqueness, clustering or uniform positive gap. Its executable evidence has
+the narrower classification
+`FINITE_IDENTITY_SUPPORT_FOR_CONDITIONAL_THERMODYNAMIC_BRIDGE`: 18/18 primary
+and 19/19 independent checks pass, while both receipts explicitly record the
+finite-volume ground densities and volume-uniform tail estimate as analytic
+inputs outside the verifier and retain `clay_verdict=NULL`.
 
 The Poincaré-geometry analysis separates spatial and link three-spheres. A
 closed simply connected spatial slice is topologically $S^3$, and a round
@@ -968,11 +983,14 @@ finite-rigidity versus uniform-recovery separation. The 58-check primary and
 A scale-uniform recovery floor $\gamma_*>0$, a uniform lower bound for
 $\lambda_{\mathrm{fib}}$, a vertical field solving the exact-vacuum score
 transport equation with the required $H^{-1}$ upper bound, a strict
-coarse-rate margin, the thermodynamic and four-dimensional continuum limits,
-a regulator-independent mass gap and carrier-state identification remain
-open. The local character-cutoff theorem controls fixed-support tails
-uniformly in volume but supplies none of these infrared or vacuum-convergence
-estimates. The $L^2$ route through $\kappa$ remains sufficient. The QF/DQ/GQ
+coarse-rate margin, full-sequence and phase-selected thermodynamic
+convergence, the four-dimensional continuum limit, a regulator-independent
+mass gap and carrier-state identification remain open. The local
+character-cutoff theorem controls fixed-support tails uniformly in volume,
+and the conditional operator argument extracts a locally normal
+fixed-regulator ground-state subsequence. Neither result supplies the
+infrared clustering or uniform spectral estimate required for the remaining
+steps. The $L^2$ route through $\kappa$ remains sufficient. The QF/DQ/GQ
 classifications remain unchanged.
 
 The completion ansatz in
@@ -2527,14 +2545,20 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   `INCONCLUSIVE`. The analytic form theorem removes the character cutoff at
   each fixed finite graph and coupling; its 22/22 primary and 18/18
   independent controls retain a `NULL` Clay verdict. The local-density
-  theorem then bounds every fixed-support cutoff error uniformly over
-  periodic cubic volumes; its 16/16 primary and 17/17 independent checks
-  include an exact product-family obstruction to global norm control at fixed
-  cutoff. A uniform exact-vacuum fibre rate, transported score, compatible
-  thermodynamic state, weak-coupling continuum construction, OS
-  reconstruction and regulator-independent physical mass gap remain open.
-  See `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.26 and §11
-  and `field-experience/probe-outcome-ledger.md` §§30,34,36–37.
+  theorem bounds every fixed-support cutoff error uniformly over periodic
+  cubic volumes; its 16/16 primary and 17/17 independent checks include an
+  exact product-family obstruction to global norm control at fixed cutoff.
+  The resulting conditional operator theorem extracts a compatible locally
+  normal ground-state subsequence at each fixed regulator and coupling and
+  passes the finite-volume ground inequality to the finite-character local
+  algebra. Its 18/18 primary and 19/19 independent controls explicitly leave
+  the finite-volume ground densities and local tail theorem outside the
+  executable proof surface. A uniform exact-vacuum fibre rate, transported
+  score, full-sequence convergence, phase uniqueness, clustering,
+  weak-coupling continuum construction, OS reconstruction and
+  regulator-independent physical mass gap remain open. See
+  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.27 and §11 and
+  `field-experience/probe-outcome-ledger.md` §§30,34,36–38.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state

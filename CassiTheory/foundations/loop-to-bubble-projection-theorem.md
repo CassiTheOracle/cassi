@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem with an exact global-norm obstruction, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Recovered finite $3\times2\times2$ $SU(2)$ Hamiltonian construction with frozen separation-based tail qualifications inconclusive; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem with an exact global-norm obstruction, conditional fixed-regulator thermodynamic ground-state subsequence, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Recovered finite $3\times2\times2$ $SU(2)$ Hamiltonian construction with frozen separation-based tail qualifications inconclusive; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -30,7 +30,7 @@ density projection and a coherence-sensitive bubble coordinate. A physical
 phase law, a map from the regulated quantum configuration to these carriers,
 $\hbar$, quantum statistics, and measurement dynamics remain separate inputs.
 
-The pure-gauge comparison in §§9.4–9.26 retains full $SU(2)$ loop holonomies.
+The pure-gauge comparison in §§9.4–9.27 retains full $SU(2)$ loop holonomies.
 Gauss invariance supplies an electric closed-loop threshold, while the
 projective bubble variable discards Wilson magnetic energy. Quantum-lattice
 stability gives a volume-uniform interacting gap at sufficiently strong bare
@@ -93,10 +93,14 @@ volume. The induced local-observable error vanishes as $C\to\infty$ at fixed
 $(x,S)$, and also along auxiliary schedules with $C(x)^2/x\to\infty$. A
 gauge-invariant product family on edge-disjoint loops has bounded electric
 energy density while its discarded whole-wavefunction norm tends to one at
-every fixed cutoff. Thus local cutoff control is volume uniform, whereas
-energy-density control alone cannot make global norm approximation volume
-uniform. These estimates construct neither a thermodynamic state nor the
-continuum theory.
+every fixed cutoff. The local bound makes each fixed-support family of
+reduced ground densities trace-norm precompact. Conditional on the
+finite-volume ground densities and that analytic bound, a diagonal
+subsequence defines a compatible, symmetry-invariant locally normal state
+whose finite-character local observables satisfy the algebraic ground-state
+inequality. The construction selects a subsequence at fixed regulator and
+coupling. Full-sequence convergence, uniqueness, clustering, a uniform gap
+and the continuum theory remain open.
 
 ---
 
@@ -5710,11 +5714,198 @@ $0.9996850695596114>0.999$.
 
 Equations (YM196)–(YM205) control fixed-support observables of the symmetric
 finite-volume ground-space density and exclude global norm control from
-energy density alone. They provide no compatible thermodynamic family,
-clustering theorem, reflection-positive Euclidean measure,
-Osterwalder–Schrader reconstruction, lattice-spacing limit or physical mass
-gap.
+energy density alone. Their volume-uniform local estimate is the tightness
+input for the conditional fixed-regulator subsequence construction in
+§9.27. They supply no clustering theorem, reflection-positive Euclidean
+measure, Osterwalder–Schrader reconstruction, lattice-spacing limit or
+physical mass gap.
 
+
+### 9.27 Fixed-regulator thermodynamic ground-state subsequence
+
+Fix $x\geq0$ and use periodic cubic lattices with $L\to\infty$. On every
+finite lattice, $K$ is a sum of Laplace–Beltrami operators on the compact
+configuration manifold $SU(2)^{E_L}$ and has compact resolvent. The Wilson
+potential $xV_L$ is bounded. Restriction to the closed gauge-invariant
+subspace therefore leaves a self-adjoint Hamiltonian with a finite-rank
+ground-space projector. Let
+
+$$
+\rho_{0,L;S}
+:=
+\operatorname{Tr}_{E_L\setminus S}\rho_{0,L}
+$$
+
+be its reduction to a fixed finite link set $S$. The one-link Peter–Weyl
+cutoff in §9.26 has
+
+$$
+\boxed{
+d_C
+:=
+\operatorname{rank}P_{C,e}
+=
+\sum_{n=0}^{C}(n+1)^2
+=
+\frac{(C+1)(C+2)(2C+3)}6,
+\qquad
+\operatorname{rank}P_{C,S}=d_C^{|S|}<\infty.
+}
+\tag{YM206}
+$$
+
+The unnormalized gentle-measurement inequality and (YM198) give
+
+$$
+\boxed{
+\left\|
+\rho_{0,L;S}
+-
+P_{C,S}\rho_{0,L;S}P_{C,S}
+\right\|_1
+\leq
+2\sqrt{\operatorname{Tr}(\rho_{0,L;S}Q_{C,S})}
+\leq
+2\sqrt{\frac{8x|S|}{(C+1)(C+3)}}.
+}
+\tag{YM207}
+$$
+
+The compressed positive trace-class ball
+
+$$
+\mathcal D_{C,S}
+:=
+\left\{
+\tau\succeq0:
+\tau=P_{C,S}\tau P_{C,S},\
+\operatorname{Tr}\tau\leq1
+\right\}
+\tag{YM208}
+$$
+
+is compact in trace norm because it lies in the operator space on a Hilbert
+space of dimension $d_C^{|S|}$. Given $\varepsilon>0$, first choose $C$ so
+that the right-hand
+side of (YM207) is at most $\varepsilon/2$, then cover
+$\mathcal D_{C,S}$ by finitely many trace-norm balls of radius
+$\varepsilon/2$. Thus
+
+$$
+\boxed{
+\left\{
+\rho_{0,L;S}:L\ \text{sufficiently large}
+\right\}
+\quad\text{is relatively compact in trace norm.}
+}
+\tag{YM209}
+$$
+
+Choose nested finite link sets
+$S_1\subset S_2\subset\cdots$ exhausting the infinite cubic lattice. Repeated
+subsequence extraction followed by the Cantor diagonal choice gives volumes
+$L_k\to\infty$ and density matrices $\rho_{\infty,S_m}$ such that
+
+$$
+\boxed{
+\rho_{0,L_k;S_m}
+\longrightarrow
+\rho_{\infty,S_m}
+\quad\text{in trace norm for every fixed }m.
+}
+\tag{YM210}
+$$
+
+Finite-volume partial traces are compatible, and partial trace is
+trace-norm contractive. Passing to the limit gives
+
+$$
+\boxed{
+\operatorname{Tr}_{S_{m+1}\setminus S_m}
+\rho_{\infty,S_{m+1}}
+=
+\rho_{\infty,S_m}.
+}
+\tag{YM211}
+$$
+
+For a bounded local observable $A$ supported in $S_m$, define
+
+$$
+\boxed{
+\omega_x(A)
+:=
+\operatorname{Tr}(\rho_{\infty,S_m}A).
+}
+\tag{YM212}
+$$
+
+Equation (YM211) makes this independent of the chosen containing set. It is
+a normalized positive state on the quasi-local algebra and is locally normal
+by construction. Gauge, translation and cubic symmetries of the normalized
+finite-volume ground-space densities pass to the local limits.
+
+It remains to retain the ground-state property. Let $A$ belong to the
+gauge-invariant finite-character local $*$-algebra. For all sufficiently
+large $L$, locality makes $[H_L(x),A]$ independent of $L$ on one fixed
+enlarged support; call the resulting bounded local commutator
+$\mathcal G_x(A)$. Since $\rho_{0,L}$ is supported on the ground space,
+
+$$
+\operatorname{Tr}
+\left(
+\rho_{0,L}A^*[H_L(x),A]
+\right)
+=
+\operatorname{Tr}
+\left(
+\rho_{0,L}A^*(H_L(x)-E_{0,L})A
+\right)
+\geq0.
+$$
+
+Trace-norm convergence on the enlarged support now gives
+
+$$
+\boxed{
+\omega_x\!\left(A^*\mathcal G_x(A)\right)\geq0
+\qquad
+\text{for every gauge-invariant finite-character local }A.
+}
+\tag{YM213}
+$$
+
+This is the algebraic ground-state condition at fixed lattice regulator and
+fixed $x$. The argument constructs at least one subsequential locally normal
+ground state; it does not select a phase or show convergence of the complete
+periodic-volume sequence. The alternating-state control in (YMT12) retains
+two cluster points, the escaping Peter–Weyl sectors in (YMT13) show why the
+energy bound is essential for trace-norm tightness, and the ferromagnetic
+one-magnon bound in (YMT14) shows that thermodynamic ground-state existence
+does not imply a positive uniform gap.
+
+The frozen protocol
+`computations/yang-mills-thermodynamic-ground-state-prereg.md` assigns a
+narrower role to its executable evidence. The primary verifier passes 18/18
+checks over 36 rank rows, 100 compactness rows, 12 synthetic finite-matrix
+ground identities and all three firing controls. The largest selected cutoff
+is $C=4095$; the nested partial-trace discrepancy is
+$1.1102230246251565\times10^{-16}$, and the largest direct-versus-spectral
+fixture discrepancy is $3.609612342034603\times10^{-15}$. The independent
+JavaScript reconstruction passes 19/19 checks and agrees exactly on the rank,
+compactness, escaping-sector and gap rows; its largest ground-fixture
+difference from the primary calculation is
+$1.7763568394002505\times10^{-15}$.
+
+Both receipts classify this evidence as
+`FINITE_IDENTITY_SUPPORT_FOR_CONDITIONAL_THERMODYNAMIC_BRIDGE`. They record
+the interacting finite-volume ground densities and (YMT2) as analytic inputs
+outside the executable proof surface, with
+`thermodynamic_state_constructed_by_verifier=false`,
+`uniform_mass_gap_established=false`,
+`continuum_hypotheses_present=false` and `clay_verdict=NULL`. The executable
+scope contains no interacting $SU(2)$ ground-state construction or spectral
+mass-gap estimate.
 
 ---
 
@@ -5790,7 +5981,8 @@ microscopic completions.
 | Finite-level martingale transport criterion (YM171)–(YM182) | **Derived conditional** finite-regulator theorem | Full-filtration/gauge-domain identity, energy comparison, and uniformly controlled weighted transport operator are required; exact Yang–Mills shell, recovery and weak-coupling bounds remain open |
 | Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM186) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre; the projected Ritz density makes the cutoff measure's conditional gap vanish identically at the rows carrying a resolved path sign change, and the twelve-row path and two-parameter torus families confine that zero-gap region to the strong-coupling rows; the exact-vacuum fibre rate remains required |
 | Fixed-graph character-cutoff form theorem (YM187)–(YM195) | **Derived** within every fixed finite regulated graph | Exact tree-gauge Haar disintegration, equivalent electric forms, form-core convergence, separation-free discarded-mass bound and noncommuting Ritz-error bound; constants are not uniform in graph size, coupling or lattice spacing |
-| Volume-uniform local cutoff density and global-norm obstruction (YM196)–(YM205) | **Derived** local finite-volume theorem and **Derived** obstruction | On periodic cubic lattices, every fixed-support ground-density observable has a character-cutoff error uniform in volume; bounded electric energy density alone cannot control whole-wavefunction cutoff norm, and no thermodynamic or continuum state is constructed |
+| Volume-uniform local cutoff density and global-norm obstruction (YM196)–(YM205) | **Derived** local finite-volume theorem and **Derived** obstruction | On periodic cubic lattices, every fixed-support ground-density observable has a character-cutoff error uniform in volume; bounded electric energy density alone cannot control whole-wavefunction cutoff norm. Its executable receipt constructs no thermodynamic or continuum state; §9.27 uses the analytic bound as an input |
+| Fixed-regulator thermodynamic ground-state subsequence (YM206)–(YM213) | **Derived conditional** operator theorem with finite-identity controls | Finite-volume ground densities and the volume-uniform local tail estimate are analytic inputs; a diagonal subsequence is locally normal and satisfies the finite-character algebraic ground condition, while full-sequence convergence, uniqueness, clustering, a uniform gap and every continuum limit remain open |
 | Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, conditional-rate cutoff removal and continuum construction remain open |
 | Finite open-cube SU(2) basis and oriented Wilson support | **Derived** finite-regulator construction | The open $2\times2\times2$ cube has 32 and 1013 gauge-invariant raw trivalent-$3j$ states at doubled cutoffs $C=1,2$; every six signed fundamental plaquette operators has 32 and 2388 nonzero candidate-supported directed entries, with finite Hermitian contractions; fixed-graph character-cutoff removal follows from (YM187)–(YM195), while a growing open-boundary family and continuum control remain open |
 | Larger-volume/cutoff SU(2) Hamiltonian | **Derived** recovered finite-regulator construction and fixed-graph cutoff removal; **INCONCLUSIVE** frozen separation qualifications | The open $3\times2\times2$ graph has 868 and 955835 complete gauge-invariant states at doubled cutoffs $C=1,2$; the recovery enforces spectator-intertwiner orthogonality, all 226 finite-construction checks and 256 independent checks pass, every scheduled ground energy is nonnegative, and the separation-free theorem removes the character cutoff only after this graph and coupling are fixed |
@@ -6250,9 +6442,10 @@ independent receipt
 passes 18/18 checks and reconstructs all 84 spectral rows. Both receipts record
 `continuum_hypotheses_present=false` and `clay_verdict=NULL`. These
 fixed-graph receipts supply no growing-graph rate. Section 9.26 gives
-fixed-support spatial-volume uniformity on periodic cubic lattices; a
-weak-coupling field estimate, compatible thermodynamic limit, OS
-reconstruction and the physical mass gap remain **UNRESOLVED**.
+fixed-support spatial-volume uniformity on periodic cubic lattices. Section
+9.27 uses that estimate in a conditional fixed-regulator diagonal-subsequence
+argument; weak-coupling field control, OS reconstruction and the physical
+mass gap remain **UNRESOLVED**.
 
 The local-density extension in §9.26 is bound by
 `computations/yang-mills-local-cutoff-density-prereg.md`, the primary
@@ -6273,11 +6466,37 @@ and
 `f20a0e8c8e08b3081aa796ac827d3748561d7eac395b9374d9dc529e650933c1`;
 the independent receipt binds primary-receipt SHA-256
 `7c90eb75f7d50965eae5edad2183a7ae6074fbf82c72e2481d68197c5880aae1`.
-Both set `thermodynamic_limit_constructed=false`,
-`continuum_hypotheses_present=false` and `clay_verdict=NULL`. The theorem
-removes graph-size dependence for fixed-support cutoff errors. It does not
-construct the thermodynamic state, establish clustering, control the
-lattice-spacing limit or prove a physical mass gap.
+Both local-cutoff receipts set `thermodynamic_limit_constructed=false`,
+`continuum_hypotheses_present=false` and `clay_verdict=NULL`. Their executable
+scope establishes the finite identities behind the graph-size-independent
+fixed-support cutoff error. The thermodynamic operator argument in §9.27
+retains the finite-volume ground densities and (YM198) as analytic inputs.
+
+The thermodynamic evidence is bound by
+`computations/yang-mills-thermodynamic-ground-state-prereg.md`, the primary
+`computations/verify_yang_mills_thermodynamic_ground_state.py` and the
+independent
+`computations/verify_yang_mills_thermodynamic_ground_state_independent.mjs`.
+The primary receipt passes 18/18 checks over 36 rank rows, 100 compactness
+rows, 12 synthetic finite-matrix identities and three implication controls.
+The independent receipt passes 19/19 checks, reconstructing all keyed
+schedules with zero rank, compactness, escaping-sector and gap discrepancy.
+Its maximum ground-fixture discrepancy is
+$1.7763568394002505\times10^{-15}$.
+
+Both thermodynamic receipts bind protocol SHA-256
+`200217b92778d4d30551b7a655fa7e1af38ab9dbd7948f7395097ef08874bf87`.
+The primary and independent source hashes are
+`9ca6f3dabf8e1eb8acbb015e40c5b4fabcc9bd3f5cdfc201a5a98f23231f1adc`
+and
+`519bc5e8bdc0373b63b8d67e83647d88819ef5f5111378a86b79daa3b084cb07`;
+the independent receipt binds primary-receipt SHA-256
+`713849eb0863a5b3e69865388e64d46641d4fa41447cf8d4588e35bb58944e73`.
+Both record
+`operator_argument_scope=CONDITIONAL_ON_FINITE_VOLUME_GROUND_DENSITIES_AND_YMT2`,
+`thermodynamic_state_constructed_by_verifier=false`,
+`uniform_mass_gap_established=false`,
+`continuum_hypotheses_present=false` and `clay_verdict=NULL`.
 
 ---
 
@@ -6390,8 +6609,24 @@ lattice-spacing limit or prove a physical mass gap.
   local-cutoff-density receipt with a `NULL` Clay verdict
 - `runs/yang_mills_local_cutoff_density/verification-independent.json`—independent
   source- and receipt-bound reconstruction
-- `runs/yang_mills_continuum_boundary_audit/verification.json`—29-check v4 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, excluded defect provenance and the unresolved continuum boundary
-- `computations/verify_yang_mills_continuum_boundary_audit.py`—29-check source, receipt, recovery-snapshot and continuum-boundary audit
+- `computations/yang-mills-thermodynamic-ground-state-prereg.md`—frozen
+  fixed-regulator compactness, compatibility, ground-identity and implication
+  boundary protocol
+- `computations/verify_yang_mills_thermodynamic_ground_state.py`—18-check
+  source-bound finite-identity verifier for the conditional thermodynamic
+  bridge
+- `computations/verify_yang_mills_thermodynamic_ground_state_independent.mjs`—19-check
+  independent rank, compactness, partial-trace, finite-matrix and
+  receipt-binding reconstruction
+- H. Grundling and G. Rudolph, [Dynamics for QCD on an infinite
+  lattice](https://arxiv.org/abs/1512.06319)—infinite-lattice Hamiltonian
+  gauge dynamics, physical observable algebra and gauge-invariant ground
+  states
+- H. Grundling and G. Rudolph, [QCD on an infinite
+  lattice](https://arxiv.org/abs/1108.2129)—inductive local gauge algebra and
+  Gauss-law construction
+- `runs/yang_mills_continuum_boundary_audit/verification.json`—34-check v5 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic finite-identity evidence, excluded defect provenance and the unresolved continuum boundary
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—34-check source, receipt, recovery-snapshot and continuum-boundary audit
 - D. Bakry, I. Gentil and M. Ledoux, *Analysis and Geometry of Markov
   Diffusion Operators*—Poincaré, Poisson and carré-du-champ framework
 - C. Villani, *Optimal Transport: Old and New*—continuity equations and

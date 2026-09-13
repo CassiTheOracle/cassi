@@ -97,6 +97,28 @@ LOCAL_CUTOFF_INDEPENDENT_RECEIPT = (
     / "yang_mills_local_cutoff_density"
     / "verification-independent.json"
 )
+THERMODYNAMIC_PROTOCOL = (
+    ROOT / "computations" / "yang-mills-thermodynamic-ground-state-prereg.md"
+)
+THERMODYNAMIC_PRIMARY_SOURCE = (
+    ROOT / "computations" / "verify_yang_mills_thermodynamic_ground_state.py"
+)
+THERMODYNAMIC_INDEPENDENT_SOURCE = (
+    ROOT
+    / "computations"
+    / "verify_yang_mills_thermodynamic_ground_state_independent.mjs"
+)
+THERMODYNAMIC_PRIMARY_RECEIPT = (
+    ROOT / "runs" / "yang_mills_thermodynamic_ground_state" / "verification.json"
+)
+THERMODYNAMIC_INDEPENDENT_RECEIPT = (
+    ROOT
+    / "runs"
+    / "yang_mills_thermodynamic_ground_state"
+    / "verification-independent.json"
+)
+
+
 
 
 
@@ -141,7 +163,7 @@ MISSING_CLAY_OBLIGATIONS = [
     "reflection-positive Euclidean Schwinger functions and OS/Wightman reconstruction",
     "renormalized local gauge-invariant field content with the required short-distance behavior",
     "uniform weak-coupling estimates along a->0",
-    "compatible thermodynamic ground-state limit with clustering",
+    "full-sequence thermodynamic phase control, uniqueness, and clustering",
     "lattice-spacing-uniform interacting estimates beyond fixed-support character tails",
     "regulator-independent positive gauge-invariant mass gap",
     "extension from SU(2) to every compact simple gauge group",
@@ -284,6 +306,11 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         LOCAL_CUTOFF_INDEPENDENT_SOURCE,
         LOCAL_CUTOFF_PRIMARY_RECEIPT,
         LOCAL_CUTOFF_INDEPENDENT_RECEIPT,
+        THERMODYNAMIC_PROTOCOL,
+        THERMODYNAMIC_PRIMARY_SOURCE,
+        THERMODYNAMIC_INDEPENDENT_SOURCE,
+        THERMODYNAMIC_PRIMARY_RECEIPT,
+        THERMODYNAMIC_INDEPENDENT_RECEIPT,
         EXCLUDED_PRIMARY_RECEIPT,
         EXCLUDED_INDEPENDENT_RECEIPT,
     ]
@@ -324,6 +351,8 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
     cutoff_form_independent = load_json(CUTOFF_FORM_INDEPENDENT_RECEIPT)
     local_cutoff_primary = load_json(LOCAL_CUTOFF_PRIMARY_RECEIPT)
     local_cutoff_independent = load_json(LOCAL_CUTOFF_INDEPENDENT_RECEIPT)
+    thermodynamic_primary = load_json(THERMODYNAMIC_PRIMARY_RECEIPT)
+    thermodynamic_independent = load_json(THERMODYNAMIC_INDEPENDENT_RECEIPT)
 
     current_protocol = validate_protocol_snapshot_relation()
     hashes = {
@@ -352,6 +381,15 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         "local_cutoff_primary_receipt": sha256(LOCAL_CUTOFF_PRIMARY_RECEIPT),
         "local_cutoff_independent_receipt": sha256(
             LOCAL_CUTOFF_INDEPENDENT_RECEIPT
+        ),
+        "thermodynamic_protocol": sha256(THERMODYNAMIC_PROTOCOL),
+        "thermodynamic_primary_source": sha256(THERMODYNAMIC_PRIMARY_SOURCE),
+        "thermodynamic_independent_source": sha256(
+            THERMODYNAMIC_INDEPENDENT_SOURCE
+        ),
+        "thermodynamic_primary_receipt": sha256(THERMODYNAMIC_PRIMARY_RECEIPT),
+        "thermodynamic_independent_receipt": sha256(
+            THERMODYNAMIC_INDEPENDENT_RECEIPT
         ),
         "excluded_primary_receipt": sha256(EXCLUDED_PRIMARY_RECEIPT),
         "excluded_independent_receipt": sha256(EXCLUDED_INDEPENDENT_RECEIPT),
@@ -590,6 +628,197 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         obstruction_rows=len(local_obstruction.get("rows", [])),
         firing_control=local_firing,
     )
+    check(
+        "thermodynamic primary passes with the conditional premise boundary",
+        thermodynamic_primary.get("schema")
+        == "cassi.yang_mills_thermodynamic_ground_state.v1"
+        and thermodynamic_primary.get("status") == "PASS"
+        and thermodynamic_primary.get("classification")
+        == "FINITE_IDENTITY_SUPPORT_FOR_CONDITIONAL_THERMODYNAMIC_BRIDGE"
+        and thermodynamic_primary.get("conditional_thermodynamic_bridge_status")
+        == "PASS"
+        and thermodynamic_primary.get("checks_passed")
+        == thermodynamic_primary.get("checks_total")
+        == 18
+        and thermodynamic_primary.get("operator_argument_scope")
+        == "CONDITIONAL_ON_FINITE_VOLUME_GROUND_DENSITIES_AND_YMT2"
+        and thermodynamic_primary.get("finite_volume_setup_proved_by_verifier")
+        is False
+        and thermodynamic_primary.get("uniform_tail_bound_proved_by_verifier")
+        is False
+        and thermodynamic_primary.get(
+            "thermodynamic_state_constructed_by_verifier"
+        )
+        is False
+        and thermodynamic_primary.get("uniform_mass_gap_established") is False
+        and thermodynamic_primary.get("continuum_hypotheses_present") is False
+        and thermodynamic_primary.get("clay_verdict") == "NULL",
+        status=thermodynamic_primary.get("status"),
+        classification=thermodynamic_primary.get("classification"),
+        passed_count=thermodynamic_primary.get("checks_passed"),
+        total=thermodynamic_primary.get("checks_total"),
+        operator_argument_scope=thermodynamic_primary.get(
+            "operator_argument_scope"
+        ),
+    )
+    check(
+        "thermodynamic independent reconstruction retains the same boundary",
+        thermodynamic_independent.get("schema")
+        == "cassi.yang_mills_thermodynamic_ground_state.independent.v1"
+        and thermodynamic_independent.get("status") == "PASS"
+        and thermodynamic_independent.get("classification")
+        == "FINITE_IDENTITY_SUPPORT_FOR_CONDITIONAL_THERMODYNAMIC_BRIDGE"
+        and thermodynamic_independent.get(
+            "conditional_thermodynamic_bridge_status"
+        )
+        == "PASS"
+        and thermodynamic_independent.get("checks_passed")
+        == thermodynamic_independent.get("checks_total")
+        == 19
+        and thermodynamic_independent.get("operator_argument_scope")
+        == "CONDITIONAL_ON_FINITE_VOLUME_GROUND_DENSITIES_AND_YMT2"
+        and thermodynamic_independent.get(
+            "finite_volume_setup_proved_by_verifier"
+        )
+        is False
+        and thermodynamic_independent.get(
+            "uniform_tail_bound_proved_by_verifier"
+        )
+        is False
+        and thermodynamic_independent.get(
+            "thermodynamic_state_constructed_by_verifier"
+        )
+        is False
+        and thermodynamic_independent.get("uniform_mass_gap_established")
+        is False
+        and thermodynamic_independent.get("continuum_hypotheses_present")
+        is False
+        and thermodynamic_independent.get("clay_verdict") == "NULL",
+        status=thermodynamic_independent.get("status"),
+        classification=thermodynamic_independent.get("classification"),
+        passed_count=thermodynamic_independent.get("checks_passed"),
+        total=thermodynamic_independent.get("checks_total"),
+    )
+    thermodynamic_primary_inputs = thermodynamic_primary.get("inputs", {})
+    thermodynamic_independent_inputs = thermodynamic_independent.get("inputs", {})
+    check(
+        "thermodynamic protocol sources and receipts are hash bound",
+        thermodynamic_primary_inputs.get("protocol", {}).get("sha256")
+        == thermodynamic_independent_inputs.get("protocol", {}).get("sha256")
+        == hashes["thermodynamic_protocol"]
+        and thermodynamic_primary_inputs.get("primary_source", {}).get("sha256")
+        == thermodynamic_independent_inputs.get("primary_source", {}).get(
+            "sha256"
+        )
+        == hashes["thermodynamic_primary_source"]
+        and thermodynamic_independent_inputs.get("independent_source", {}).get(
+            "sha256"
+        )
+        == hashes["thermodynamic_independent_source"]
+        and thermodynamic_independent_inputs.get("primary_receipt", {}).get(
+            "sha256"
+        )
+        == hashes["thermodynamic_primary_receipt"]
+        and thermodynamic_primary_inputs.get("local_primary_receipt", {}).get(
+            "sha256"
+        )
+        == thermodynamic_independent_inputs.get(
+            "local_primary_receipt", {}
+        ).get("sha256")
+        == hashes["local_cutoff_primary_receipt"],
+        protocol_sha256=hashes["thermodynamic_protocol"],
+        primary_source_sha256=hashes["thermodynamic_primary_source"],
+        independent_source_sha256=hashes["thermodynamic_independent_source"],
+        primary_receipt_sha256=hashes["thermodynamic_primary_receipt"],
+    )
+    thermodynamic_comparisons = thermodynamic_independent.get("comparisons", {})
+    thermodynamic_rank = thermodynamic_comparisons.get("rank", {})
+    thermodynamic_compactness = thermodynamic_comparisons.get("compactness", {})
+    thermodynamic_ground = thermodynamic_comparisons.get("ground", {})
+    check(
+        "thermodynamic rank compactness and ground schedules reconstruct",
+        len(thermodynamic_primary.get("rank_rows", [])) == 36
+        and len(thermodynamic_independent.get("rank_rows", [])) == 36
+        and len(thermodynamic_primary.get("compactness_rows", [])) == 100
+        and len(thermodynamic_independent.get("compactness_rows", [])) == 100
+        and len(thermodynamic_primary.get("ground_identity_rows", [])) == 12
+        and len(thermodynamic_independent.get("ground_identity_rows", [])) == 12
+        and max(
+            row["cutoff_search"]
+            for row in thermodynamic_primary.get("compactness_rows", [])
+        )
+        == 4095
+        and thermodynamic_rank.get("keys_match") is True
+        and thermodynamic_rank.get("exact_match") is True
+        and close(thermodynamic_rank.get("maximum_difference"), 0.0)
+        and thermodynamic_compactness.get("keys_match") is True
+        and thermodynamic_compactness.get("exact_match") is True
+        and close(thermodynamic_compactness.get("maximum_difference"), 0.0)
+        and thermodynamic_ground.get("keys_match") is True
+        and thermodynamic_ground.get("exact_match") is True
+        and thermodynamic_ground.get("maximum_difference", 1.0) < 1.0e-12,
+        primary_rank_rows=len(thermodynamic_primary.get("rank_rows", [])),
+        primary_compactness_rows=len(
+            thermodynamic_primary.get("compactness_rows", [])
+        ),
+        primary_ground_rows=len(
+            thermodynamic_primary.get("ground_identity_rows", [])
+        ),
+        comparisons={
+            "rank": thermodynamic_rank,
+            "compactness": thermodynamic_compactness,
+            "ground": thermodynamic_ground,
+        },
+    )
+    thermodynamic_firing = thermodynamic_primary.get("firing_controls", {})
+    thermodynamic_alternating = thermodynamic_firing.get(
+        "alternating_sequence", {}
+    )
+    thermodynamic_escape = thermodynamic_firing.get("escaping_sector_rows", [])
+    thermodynamic_gaps = thermodynamic_firing.get("ferromagnetic_gap_rows", [])
+    thermodynamic_premise = next(
+        (
+            row
+            for row in thermodynamic_primary.get("checks", [])
+            if row.get("name") == "analytic_input_boundary"
+        ),
+        {},
+    )
+    check(
+        "thermodynamic implication controls fire and premises stay explicit",
+        thermodynamic_premise.get("passed") is True
+        and thermodynamic_premise.get("measured", {}).get(
+            "finite_volume_ground_densities"
+        )
+        == "ANALYTIC_INPUT_NOT_CONSTRUCTED_BY_VERIFIER"
+        and thermodynamic_premise.get("measured", {}).get(
+            "uniform_tail_bound_YMT2"
+        )
+        == "ANALYTIC_INPUT_NOT_PROVED_BY_VERIFIER"
+        and thermodynamic_alternating.get("even_odd_trace_distance") == 2.0
+        and thermodynamic_alternating.get("full_sequence_converges") is False
+        and len(thermodynamic_escape) == 35
+        and sum(row.get("tail_mass") == 1.0 for row in thermodynamic_escape)
+        == 25
+        and len(thermodynamic_gaps) == 7
+        and all(
+            right["one_magnon_gap_upper_bound"]
+            < left["one_magnon_gap_upper_bound"]
+            for left, right in zip(thermodynamic_gaps, thermodynamic_gaps[1:])
+        )
+        and thermodynamic_gaps[-1]["one_magnon_gap_upper_bound"] < 1.0e-3,
+        premise=thermodynamic_premise.get("measured"),
+        alternating=thermodynamic_alternating,
+        escaping_rows=len(thermodynamic_escape),
+        escaping_tail_rows=sum(
+            row.get("tail_mass") == 1.0 for row in thermodynamic_escape
+        ),
+        terminal_gap_bound=(
+            thermodynamic_gaps[-1]["one_magnon_gap_upper_bound"]
+            if thermodynamic_gaps
+            else None
+        ),
+    )
 
 
 
@@ -762,24 +991,30 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
 
     theory = THEORY_SOURCE.read_text(encoding="utf-8")
     check(
-        "theory separates local cutoff control from the open Clay target",
+        "theory separates conditional thermodynamic control from the open Clay target",
         "Fixed-graph character-cutoff form theorem (YM187)–(YM195) | **Derived**"
         in theory
         and "Volume-uniform local cutoff density and global-norm obstruction "
         "(YM196)–(YM205) | **Derived**"
         in theory
+        and "Fixed-regulator thermodynamic ground-state subsequence "
+        "(YM206)–(YM213) | **Derived conditional**"
+        in theory
+        and "`thermodynamic_state_constructed_by_verifier=false`" in theory
         and "`continuum_hypotheses_present=false` and `clay_verdict=NULL`"
         in theory
         and "Continuum Yang–Mills existence and mass gap | **Open**" in theory,
     )
 
+    if len(checks) != 34:
+        raise RuntimeError(f"expected 34 audit checks, constructed {len(checks)}")
     all_passed = all(row["passed"] for row in checks)
     record: dict[str, Any] = {
-        "schema": "yang_mills_continuum_boundary_audit_v4",
+        "schema": "yang_mills_continuum_boundary_audit_v5",
         "status": "PASS" if all_passed else "FAIL",
         "verdict": "UNRESOLVED_CONTINUUM_PROBLEM",
         "clay_verdict": "NULL",
-        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence, fixed-graph cutoff removal, and volume-uniform local cutoff control against the Clay Yang-Mills existence and mass-gap obligations",
+        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence, fixed-graph and local cutoff control, and conditional thermodynamic finite-identity evidence against the Clay Yang-Mills existence and mass-gap obligations",
         "audit_source": {
             "path": display_path(SOURCE),
             "sha256": hashes["audit_source"],
@@ -868,6 +1103,28 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
                 "sha256": hashes["local_cutoff_independent_receipt"],
                 "bytes": LOCAL_CUTOFF_INDEPENDENT_RECEIPT.stat().st_size,
             },
+            "thermodynamic_protocol": {
+                "path": display_path(THERMODYNAMIC_PROTOCOL),
+                "sha256": hashes["thermodynamic_protocol"],
+            },
+            "thermodynamic_primary_source": {
+                "path": display_path(THERMODYNAMIC_PRIMARY_SOURCE),
+                "sha256": hashes["thermodynamic_primary_source"],
+            },
+            "thermodynamic_independent_source": {
+                "path": display_path(THERMODYNAMIC_INDEPENDENT_SOURCE),
+                "sha256": hashes["thermodynamic_independent_source"],
+            },
+            "thermodynamic_primary_receipt": {
+                "path": display_path(THERMODYNAMIC_PRIMARY_RECEIPT),
+                "sha256": hashes["thermodynamic_primary_receipt"],
+                "bytes": THERMODYNAMIC_PRIMARY_RECEIPT.stat().st_size,
+            },
+            "thermodynamic_independent_receipt": {
+                "path": display_path(THERMODYNAMIC_INDEPENDENT_RECEIPT),
+                "sha256": hashes["thermodynamic_independent_receipt"],
+                "bytes": THERMODYNAMIC_INDEPENDENT_RECEIPT.stat().st_size,
+            },
         },
         "protocol_snapshot_audit": {
             "current_reference": CURRENT_REFERENCE.decode("utf-8"),
@@ -941,6 +1198,36 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "continuum_hypotheses_present": False,
             "clay_verdict": "NULL",
         },
+        "thermodynamic_ground_state_bridge": {
+            "classification": thermodynamic_primary["classification"],
+            "operator_argument_scope": thermodynamic_primary[
+                "operator_argument_scope"
+            ],
+            "primary_status": thermodynamic_primary["status"],
+            "primary_checks_passed": thermodynamic_primary["checks_passed"],
+            "primary_checks_total": thermodynamic_primary["checks_total"],
+            "independent_status": thermodynamic_independent["status"],
+            "independent_checks_passed": thermodynamic_independent[
+                "checks_passed"
+            ],
+            "independent_checks_total": thermodynamic_independent["checks_total"],
+            "rank_rows": len(thermodynamic_primary["rank_rows"]),
+            "compactness_rows": len(thermodynamic_primary["compactness_rows"]),
+            "synthetic_ground_identity_rows": len(
+                thermodynamic_primary["ground_identity_rows"]
+            ),
+            "maximum_selected_cutoff": max(
+                row["cutoff_search"]
+                for row in thermodynamic_primary["compactness_rows"]
+            ),
+            "finite_volume_setup_proved_by_verifier": False,
+            "uniform_tail_bound_proved_by_verifier": False,
+            "thermodynamic_state_constructed_by_verifier": False,
+            "full_sequence_convergence_established": False,
+            "uniform_mass_gap_established": False,
+            "continuum_hypotheses_present": False,
+            "clay_verdict": "NULL",
+        },
         "cutoff_tail_evidence": {
             "qualifications": primary["cutoff_qualifications"],
             "useful_tail_rows": primary["useful_tail_rows"],
@@ -970,7 +1257,7 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
                 "uniform interacting fibre and coarse Poincare margins",
                 "uniform transport-score or mixed-Hessian bounds",
                 "weak-coupling- and lattice-spacing-uniform interacting estimates",
-                "compatible thermodynamic ground-state family, clustering, and local-limit compactness",
+                "full-sequence thermodynamic phase control, uniqueness, and clustering",
             ],
         },
         "regime_check": {
@@ -988,7 +1275,7 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "conclusion": "positive local conditional rates alone do not imply a volume-uniform global gap",
         },
         "missing_clay_obligations": MISSING_CLAY_OBLIGATIONS,
-        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction; the form theorem removes the character cutoff after the graph, coupling and low-energy index are fixed; and the local-density theorem controls every fixed support uniformly over periodic cubic volumes. The product family excludes global norm control from energy density alone. No compatible thermodynamic state, weak-coupling continuum construction or regulator-independent mass-gap theorem is supplied.",
+        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction; the form theorem removes the character cutoff after the graph, coupling and low-energy index are fixed; and the local-density theorem controls every fixed support uniformly over periodic cubic volumes. Conditional on finite-volume ground densities and YMT2, the operator argument extracts a locally normal fixed-regulator ground-state subsequence. The thermodynamic executable evidence checks finite identities and implication controls and constructs no interacting ground state. Full-sequence phase control, clustering, weak-coupling continuum construction and a regulator-independent mass-gap theorem remain open.",
     }
 
     if not all_passed:
@@ -1023,7 +1310,10 @@ def main() -> None:
         f"tails={record['cutoff_tail_evidence']['classification']} "
         "local="
         f"{record['local_cutoff_density']['primary_checks_passed']}/"
-        f"{record['local_cutoff_density']['primary_checks_total']}"
+        f"{record['local_cutoff_density']['primary_checks_total']} "
+        "thermodynamic="
+        f"{record['thermodynamic_ground_state_bridge']['primary_checks_passed']}/"
+        f"{record['thermodynamic_ground_state_bridge']['primary_checks_total']}"
     )
 
 

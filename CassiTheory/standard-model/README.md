@@ -53,7 +53,7 @@ the missing metric and orbit-matching rule. Running and measured-scale
 comparisons are in `sm-radiative-corrections.md`.
 
 The pure Yang–Mills comparison is in
-`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.26. Its state
+`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.27. Its state
 space and Hamiltonian come from source-free quantum $SU(2)$ lattice gauge
 theory, with no isospinor matter or symmetry-breaking potential. It gives
 regulated electric-loop and projective-information boundaries, a
@@ -90,11 +90,17 @@ ground-space density further gives the fixed-support bound
 $\operatorname{Tr}(\rho_{0,L}Q_{C,S})\leq2x|S|/\kappa_C$, uniformly in
 spatial volume. The associated 16/16 primary and 17/17 independent checks
 pass. An exact product family with bounded electric energy density has
-discarded whole-wavefunction norm tending to one at fixed cutoff. The local
-bound does not construct a thermodynamic state or control the
-lattice-spacing limit.
+discarded whole-wavefunction norm tending to one at fixed cutoff.
 
-Coupled boundary-sector amplitudes and self-energy control, a uniform
+Conditional on the finite-volume ground densities and that local estimate,
+trace-norm precompactness and a diagonal extraction give a compatible,
+symmetry-invariant locally normal ground-state subsequence at each fixed
+regulator and coupling. Its algebraic ground inequality holds on the
+gauge-invariant finite-character local algebra. The executable controls pass
+18/18 primary and 19/19 independently and explicitly leave the interacting
+ground densities and uniform tail estimate outside their proof surface.
+Full-sequence convergence, phase uniqueness, clustering, coupled
+boundary-sector amplitudes and self-energy control, a uniform
 interacting-vacuum residual-recovery floor and transported-score upper bound,
 weak-coupling fibre and coarse-margin estimates, the continuum construction
 and a regulator-independent mass remain open. This comparison makes no
