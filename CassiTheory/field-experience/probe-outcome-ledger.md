@@ -1949,8 +1949,49 @@ and
 `dbe8d8d185fa5a8a5e822570fa5fb313035b64c6a5e70c410d7b243e29fab11e`.
 
 The finite translation sweep is evidence for a local retained construction,
-not a volume-uniform or continuum mass-gap proof. The next obligation is the
-same fixed-rank sweep on a larger spatial graph.
+not a volume-uniform or continuum mass-gap proof. The open $4\times2\times2$
+$C=1$ screen in §54 extends the graph and source schedule, while its declared
+test-energy qualification remains `INCONCLUSIVE`. A volume-uniform operator
+bound or a residual-aware complement certificate is still required.
+
+
+## 54. Open 4x2x2 C=1 sparse Feshbach screen
+
+The frozen protocol
+`computations/yang-mills-4x2x2-c1-feshbach-prereg.md` evaluates the
+vacuum-plus-one-plaquette family on the open $4\times2\times2$ graph at
+character cutoff $C=1$. The graph has $28$ links, $16$ vertices, $8$
+four-valent sites, $16$ fundamental plaquettes and a complete
+gauge-invariant basis of dimension $25{,}676$. The sixteen translated source
+families have rank $2$ at each of four couplings, for $64$ rows.
+
+The primary receipt has status `FAIL`, classification `INCONCLUSIVE`, and
+$407/423$ controls passing. The independent arithmetic and source-binding
+audit passes $531/531$ checks. All $64$ rows report positive conditional
+zero-point roots, with values from $1.31898990696$ to $2.95378011172$ and
+root-to-gap ratios from $0.3552036049$ to $0.9845023484$.
+
+The sixteen failed primary controls are the declared test-energy conditions
+at $x=1$: $\Phi_j(\Delta_x/2)$ ranges from $-2.0146598632$ to
+$-0.7508664577$. The positive zero-point roots therefore do not qualify as a
+translated-family result under this protocol. The screen provides an
+independently audited larger-graph construction and an `INCONCLUSIVE`
+conditional Feshbach result. Character-cutoff removal, volume-uniform
+control, lattice-spacing control, continuum recovery and the Yang–Mills mass
+gap remain unresolved.
+
+The source-binding order is protocol, primary source, independent source,
+exact tensor source, recovered large-volume source, recovered large-volume
+protocol, primary receipt and independent receipt:
+`a0fc940c6be1acde8e5365176471155635916ab54008ad2928c6e4187d282a6a`,
+`ff957d5702f6e4c7326189104c163d1acf31a3806379f680833b0365f541c276`,
+`06c385bae140ffdfd405e91f93b571aa3782ae4694031239477c117d570a0df7`,
+`b3ed3a4af4b84e787180654fc7e863a61e8f79693c54b9f1efe75346996c8524`,
+`87764d365f592b091a8006ed178b13ce9d2da2b519638d19b35d88c3762243af`,
+`5647bfa524c25672c83d5daa2e515c33313fdf118c84afd29155e1e1e5cf1821`,
+`5ff6e3f5444125d0e42c611163fb42608419da71196635b213c30a05d8f39759`
+and
+`49c9d90848790d2a9f492e61f8be1e4009412ac205bb982f850a9bc4f880e272`.
 
 
 ## References
@@ -2124,3 +2165,13 @@ same fixed-rank sweep on a larger spatial graph.
   loop-carrying exterior schedule and qualification rules.
 - `computations/verify_yang_mills_bowtie_fibre.py`—source-bound bowtie
   conditional-fibre verifier and analytic-control receipt generator.
+- `computations/yang-mills-4x2x2-c1-feshbach-prereg.md`—frozen open
+  $4\times2\times2$ graph, rank-two translated source, test-energy and
+  conditional-root schedule.
+- `computations/verify_yang_mills_4x2x2_c1_feshbach.py`—source-bound
+  423-control larger-graph sparse Feshbach receipt generator.
+- `computations/verify_yang_mills_4x2x2_c1_feshbach_independent.py`—531-check
+  independent sparse-matrix, root and receipt-binding audit.
+- `runs/yang_mills_4x2x2_c1_feshbach/verification.json` and
+  `verification-independent.json`—primary `FAIL`/`INCONCLUSIVE` and
+  independent `531/531` receipts for the open $4\times2\times2$ screen.

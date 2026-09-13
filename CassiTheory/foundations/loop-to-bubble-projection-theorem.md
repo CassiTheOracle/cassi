@@ -7493,9 +7493,10 @@ Across all eleven source-order plaquettes the maximum coupling is
 $2.6859149786$, the maximum self-energy ratio is $0.3487102889$, and the
 minimum root-to-gap ratio is $0.9863223397$. This closes the translated
 one-plaquette coverage on this finite graph without increasing retained rank.
-It does not establish a volume-uniform or lattice-spacing-uniform bound:
-larger spatial graphs, arbitrary block shapes, continuum recovery and the
-Yang–Mills mass gap remain open.
+It does not establish a volume-uniform or lattice-spacing-uniform bound. The
+open $4\times2\times2$ extension in §9.41 remains `INCONCLUSIVE` because its
+declared test-energy qualification fails; arbitrary block shapes, continuum
+recovery and the Yang–Mills mass gap remain open.
 
 See `computations/yang-mills-volume-translated-block-feshbach-prereg.md`,
 `computations/verify_yang_mills_volume_translated_block_feshbach.py`,
@@ -7503,7 +7504,41 @@ See `computations/yang-mills-volume-translated-block-feshbach-prereg.md`,
 and `field-experience/probe-outcome-ledger.md` §53.
 
 
+### 9.41 Open 4x2x2 C=1 sparse Feshbach screen
+
+The fixed-rank translated family has been evaluated on the open
+$4\times2\times2$ graph at character cutoff $C=1$. The graph has $28$ links,
+$16$ vertices, $8$ four-valent intertwiner sites and $16$ fundamental
+plaquettes. Its complete gauge-invariant outer basis has dimension $25{,}676$.
+The source family is the vacuum plus one translated plaquette, with rank $2$
+for all sixteen plaquettes and four couplings, producing $64$ rows.
+
+The primary receipt has status `FAIL`, classification `INCONCLUSIVE`, and
+$407/423$ controls passing. The independent arithmetic and source-binding
+audit passes $531/531$ checks. All $64$ rows have positive conditional
+zero-point roots in the reported finite Ritz screen, ranging from
+$1.31898990696$ to $2.95378011172$, with root-to-gap ratios from
+$0.3552036049$ to $0.9845023484$. These values use the declared
+Ritz-resolution oracle for the full-gap complement edge.
+
+The sixteen failed primary controls are the declared test-energy conditions
+at $x=1$: $\Phi_j(\Delta_x/2)$ ranges from $-2.0146598632$ to
+$-0.7508664577$. The positive zero-point roots therefore do not qualify as a
+translated-family result under this screen. The outcome is
+`INCONCLUSIVE`: the larger spatial graph and complete source schedule are
+constructed and audited, while the conditional test-energy certificate does
+not pass. Character-cutoff removal, volume-uniform bounds, lattice-spacing
+control, continuum recovery and the Yang–Mills mass gap remain open.
+
+See `computations/yang-mills-4x2x2-c1-feshbach-prereg.md`,
+`computations/verify_yang_mills_4x2x2_c1_feshbach.py`,
+`computations/verify_yang_mills_4x2x2_c1_feshbach_independent.py` and
+`field-experience/probe-outcome-ledger.md` §54.
+
+
 ---
+
+
 
 
 ## 10. Physical tests and rejection conditions
@@ -7595,6 +7630,7 @@ microscopic completions.
 | Collective plaquette Feshbach family (§9.38) | **INCONCLUSIVE** finite-volume measurement (`SUPPORTS_FINITE_VOLUME_COLLECTIVE_PLAQUETTE_FAMILY`) | $83/83$ primary and $85/85$ independent checks pass; the small-graph $\beta$ is at numerical floor, so the cross-volume ratio does not establish uniform coupling control |
 | Anchored block-local plaquette family (§9.39) | **INCONCLUSIVE** finite-volume measurement (`SUPPORTS_FINITE_VOLUME_ANCHORED_BLOCK_FAMILY`) | $83/83$ primary and $85/85$ independent checks pass with large-to-small $\beta$ ratios $4.5974$–$4.7456$; translation, larger-volume and continuum control remain open |
 | Translated block-local sweep (§9.40) | **INCONCLUSIVE** finite-volume measurement (`SUPPORTS_FINITE_TRANSLATED_BLOCK_SWEEP`) | $455/455$ primary and $375/375$ independent checks pass across all eleven plaquettes and four couplings; the worst finite $\beta$ is $2.6859$ and the larger-volume bound remains open |
+| Open $4\times2\times2$ $C=1$ sparse Feshbach screen (§9.41) | **INCONCLUSIVE** finite-volume numerical measurement | The $25{,}676$-state graph and all $64$ translated source rows are assembled; the primary passes $407/423$ controls and the independent audit passes $531/531$, while all $16$ $x=1$ test-energy rows fail $\Phi_j(\Delta_x/2)>0$ despite positive conditional zero-point roots; no larger-volume or continuum certificate follows |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
 The completion ansatz in
