@@ -14958,6 +14958,126 @@ continuum renormalization, all-angular-sector result, canonical microscopic
 action, physical normalization or particle identity. Complete physical matter
 formation remains **Hypothesized/Open**.
 
+## 100. Compact CP-pump vacuum-to-carrier trajectory
+
+The finite-mode calculation qualifies one conditional vacuum-to-localized
+trajectory for a non-topological complex carrier under a compact external
+CP-odd pump. The action has a bounded sextic carrier potential and a prescribed
+quadratic $J\Phi^2$ interaction. The carrier starts from a fixed 64-mode Wigner
+vacuum realization with no prepared localized profile or charge packet. The
+positive pump and its CP-conjugate use the same vacuum draw, with opposite
+imaginary source phase and conjugate carrier data. The source is exactly zero
+after $T_p=24$.
+
+The preregistration is
+`computations/matter-formation-compact-cp-pump-qball-v3b-prereg.md`. The
+primary and independent programs are
+`computations/matter_formation_compact_cp_pump_qball_v3.py` and
+`computations/verify_matter_formation_compact_cp_pump_qball_v3.py`. The
+source-bound primary receipt is
+`runs/20260912_matter_formation_compact_cp_pump_qball_v3d/result.json`, with
+SHA-256
+`ae5e21949ac3c57cea924b42f47ae6596381ed42bd454dfda90fa2d391d53a8d`. The
+independent receipt is
+`runs/20260912_matter_formation_compact_cp_pump_qball_v3d/verification.json`,
+with SHA-256
+`440cb54c3e44d56172e4a1a8a0d4f5cf7b7b01c51298cea1f15341cb5b3f213e`.
+The verifier rebuilds the finite-volume evolution without importing the
+primary solver. Its largest raw archive difference is
+$1.3536\times10^{-12}$.
+
+The primary grid is $R=48$, $N=384$, $\Delta t=0.003$; the resolution arm is
+$N=768$, $\Delta t=0.0015$. The late window is $60\le t\le78$, with core
+$r\le12$ and exterior support measured at $r\ge20$. The positive arm gives
+
+| Observable | Measured value |
+|---|---:|
+| Source-free late core density | $0.0032640229$ |
+| Positive late mean core density | $0.2652032401$ |
+| Minimum late core number fraction | $0.9021408301$ |
+| Mean / maximum exterior support fraction | $0.1245191244$ / $0.1349883043$ |
+| Minimum late absolute core charge | $1075.6312695$ |
+| Maximum late $E_{\Phi,\mathrm{core}}/|Q_{\Phi,\mathrm{core}}|$ | $0.7199461578$ |
+| Corrected post-pump charge drift | $7.3377\times10^{-9}$ |
+| Maximum raw CP-conjugacy error | $0$ |
+
+The doubled-grid relative differences are $1.2746\%$ for mean core energy,
+$1.0117\%$ for mean absolute core charge, $0.0783\%$ for core fraction,
+$0.2179\%$ for exterior support and $0.0933\%$ for RMS radius. The finite-volume
+ledger retains the outgoing boundary flux and the pump work. Its maximum
+absolute charge and energy residuals are $2.7014\times10^{-5}$ and
+$1.0413\times10^{-4}$; normalized by scales $1205.3668$ and $1596.4693$, they
+are $2.2412\times10^{-8}$ and $6.5224\times10^{-8}$, below the preregistered
+$10^{-6}$ bound. The independent receipt also checks finite rebuilt
+observables and source snapshots.
+
+All seven scientific and numerical predicates pass. The scoped verdict is
+`CAPTURED—conditional compact CP-pump vacuum-to-carrier formation`. The
+trajectory demonstrates a supplied effective-action route from a finite-mode
+vacuum realization to a localized degree-zero carrier remnant, with a measured
+CP-conjugate charge pair and a post-pump flux ledger.
+
+This result does not select a canonical Cassi action, a dynamical pump
+reservoir, a continuum-renormalized vacuum, infinite-domain all-sector
+stability, physical normalization, fermionic statistics, QCD, baryogenesis or
+particle identity. The pump supplies the CP-odd coefficient and the energy
+source; the finite-mode Wigner state supplies the quantum-state surrogate.
+Complete physical Cassi matter formation remains **Hypothesized/Open**.
+
+
+## 101. Carrier-frequency-resonant autonomous reservoir
+
+The closed-reservoir calculation tests whether the compact-pump route can be
+carried by a finite-energy dynamical field rather than a prescribed source.
+The complex reservoir has a carrier-frequency-resonant outgoing packet,
+couples through the same quadratic CP-odd operator, and evolves with the
+carrier from a fixed 64-mode Gaussian vacuum realization. Its positive and
+negative arms are CP conjugates; the reservoir-only and source-free controls,
+outgoing boundary, charge ledger, energy ledger and doubled-grid comparison
+are part of the frozen contract.
+
+The preregistration is
+`computations/matter-formation-closed-cp-reservoir-v9-prereg.md`. The
+source-bound primary program is
+`computations/matter_formation_closed_cp_reservoir_v9.py`, and the independent
+program is
+`computations/verify_matter_formation_closed_cp_reservoir_v9.py`. The primary
+receipt is
+`runs/20260912_matter_formation_closed_cp_reservoir_v9/result.json`, SHA-256
+`c95676b725dd239f1e7d19d16d8c07c471a63f4635377127b75efa64221eece4`. The
+independent receipt is
+`runs/20260912_matter_formation_closed_cp_reservoir_v9_verify/verification.json`,
+SHA-256
+`392e2edd1eadc859aec5e5a0fde9a4a2b3000d2470b0bab751578ca23b889af9`.
+Both programs pass the finite-state, CP, archive, charge-ledger and
+energy-ledger reconstruction checks.
+
+The scientific formation predicates do not pass:
+
+| Observable | Measured value | Required condition |
+|---|---:|---:|
+| Late mean core density | $0.0021799173$ | at least $0.0130560916$ (four times the vacuum control $0.0032640229$) |
+| Minimum late absolute core charge | $0.6524284$ | $>200$ |
+| Late exterior-support fraction at the final checkpoint | $0.8551231$ | maximum and mean below $0.25$ and $0.20$ |
+| Source-tail ratio | $0.2611197$ | $<0.15$ |
+| Resolution relative error, core energy / absolute core charge | $5.3298\%$ / $5.5879\%$ | each $<5\%$ |
+
+The retained positive trajectory therefore returns
+`DOES NOT EMERGE—conditional closed CP-odd-reservoir vacuum-to-carrier
+formation`. The dynamic reservoir does not reproduce the localized remnant
+qualified by the compact external pump. This result constrains the tested
+reservoir preparation and action; it does not establish a no-go theorem for
+every closed reservoir.
+
+The combined evidence now separates three statements. A prepared carrier can
+remain localized in the supplied scalar action; a compact external CP-odd
+pump can create such a carrier from the declared finite-mode vacuum; and the
+carrier-frequency-resonant autonomous reservoir tested here does not do so.
+The remaining canonical action, quantum-state, normalization, continuum
+stability and particle-map requirements are not selected by these trajectories.
+Complete physical Cassi matter formation remains **Hypothesized/Open**.
+
+
 ## References
 
 - `computations/matter_formation_q256_momentum_prereg.md`—frozen Q=256 incoming-momentum preparation, stable comparison contract, persistence predicates, and stopping rule.
@@ -15327,4 +15447,9 @@ formation remains **Hypothesized/Open**.
 - `computations/matter_formation_pool_profiles.py`—fixed-charge stationary parent and daughter profile construction.
 - `computations/matter_formation_pool_dispersal.py`—primary finite-volume pool-dispersal evolutions and conserved-quantity diagnostics.
 - `computations/verify_matter_formation_pool_dispersal.py`—independent finite-volume reconstruction, raw-state checks and frozen verdict aggregation.
+- `computations/matter-formation-closed-cp-reservoir-v9-prereg.md`—frozen carrier-frequency-resonant autonomous reservoir action, controls, ledgers and formation decision rule.
+- `computations/matter_formation_closed_cp_reservoir_v9.py`—source-bound primary closed-reservoir evolution and receipt writer.
+- `computations/verify_matter_formation_closed_cp_reservoir_v9.py`—independent closed-reservoir reconstruction, archive checks and predicate verification.
+- `runs/20260912_matter_formation_closed_cp_reservoir_v9/result.json`—primary autonomous-reservoir receipt.
+- `runs/20260912_matter_formation_closed_cp_reservoir_v9_verify/verification.json`—independent autonomous-reservoir receipt.
 - `runs/20260909_matter_formation_pool_dispersal/boundary-recovery/axial-recovery/`—active source-bound profiles, trajectories, controls, execution records and reconciliation.

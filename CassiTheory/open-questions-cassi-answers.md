@@ -763,7 +763,7 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
-The separate pure-gauge comparison in that document, §§9.4–9.29, uses the
+The separate pure-gauge comparison in that document, §§9.4–9.30, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
 projective bubble coordinate discards a phase required by Wilson magnetic
@@ -873,9 +873,9 @@ Section 9.27 uses the fixed-support tail estimate to prove trace-norm
 precompactness of every reduced ground-density family. A Cantor diagonal
 subsequence defines compatible local density matrices and a
 symmetry-invariant locally normal state at each fixed lattice regulator and
-coupling. The finite-volume quadratic ground inequality passes to the limit
-on the gauge-invariant finite-character local algebra. This is a
-subsequential construction. It supplies no full-sequence convergence, phase
+coupling. The finite-volume quadratic ground inequality passes to the local
+gauge-invariant $*$-algebra whose operators have finite Peter–Weyl matrix
+support. This is a subsequential construction. It supplies no full-sequence
 uniqueness, clustering or uniform positive gap. Its executable evidence has
 the narrower classification
 `FINITE_IDENTITY_SUPPORT_FOR_CONDITIONAL_THERMODYNAMIC_BRIDGE`: 18/18 primary
@@ -912,6 +912,17 @@ generators, semigroup products, normalization and firing controls. Both
 receipts retain `clay_verdict=NULL`. The bounds are not uniform in the graph,
 lattice spacing or coupling, and this trajectory has
 $B_\tau\to\infty$ and $B_\sigma\to0$ rather than fixed $\beta$.
+
+Section 9.30 fixes the missing continuum yardstick with the universal
+two-loop Wilson factor
+$a\Lambda_L=F_W(g_0)[1+O(g_0^2)]$. Simultaneous cutoff removal and infinite
+volume require $g_0\to0$ and $NF_W\to\infty$; fixed or polynomial spatial
+sizes collapse, while $N\asymp F_W^{-1}$ holds only a fixed physical box.
+A finite positive excitation requires $a\Delta_W/F_W$ bounded above and below
+by positive constants in a nonzero local channel. The 80/80 primary and 20/20
+independent arithmetic controls pass and all six mutations fire. They compute
+no interacting gap and construct no continuum trajectory. The
+Osterwalder–Schrader reconstruction statement remains conditional.
 
 The Poincaré-geometry analysis separates spatial and link three-spheres. A
 closed simply connected spatial slice is topologically $S^3$, and a round
@@ -2023,10 +2034,11 @@ flowchart TD
     B --> F[SM: established gauge structure and asserted boundary]
     B --> H[Open dynamical geometry: Hypothesized effective closure]
     H --> I[Exact canonical reduction and conditional ledgers]
-    I --> J[Bounded two-domain source interface: conditional]
-    J --> K[Nine-part matter boundary: conditional]
-    K --> G[Conditional particle evidence: ultraviolet Cartesian branch and prepared smooth scalar binding]
-    G --> L[Microscopic production, full stability and physical identity open]
+    I --> J[Nine-part matter boundary: conditional]
+    J --> K[Conditional particle evidence: ultraviolet Cartesian branch and prepared smooth scalar binding]
+    J --> M[Conditional compact CP-pump vacuum-to-carrier trajectory]
+    K --> L[Microscopic production, full stability and physical identity open]
+    M --> L
 ```
 
 **Visual:** Shared $\varphi$ and two-fluid notation organize mixed-tier sector claims. Conditional dynamical geometry and the matter boundary connect coherence, interfaces, stress and stationary equations. The particle evidence separates the ultraviolet Cartesian branch from independently reproduced prepared scalar binding, homogeneous fermion excitation and conditional scalar parametric growth. Exact empty-sector invariance, unresolved continuum localization and a many-to-one microscopic projection leave physical matter formation open.
@@ -2087,6 +2099,32 @@ capture theorem for the formed radiating clouds, complex-mediator or gauge
 stability, microscopic action selection, quantum creation or particle
 assignment (`computations/matter-formation-continuum-report.md` §36;
 `foundations/matter-completion-boundary.md` §18).
+
+A finite-mode compact CP-pump action qualifies a conditional vacuum-to-localized
+carrier trajectory. A fixed 64-mode Wigner-vacuum realization supplies the
+state surrogate; a compact CP-odd pump supplies the energy and signed-source
+selection; the late carrier remnant passes charge, localization, CP-conjugacy,
+resolution and finite-volume ledger predicates, with an independent
+reconstruction. The source-bound verdict is
+`CAPTURED—conditional compact CP-pump vacuum-to-carrier formation`
+(`computations/matter-formation-continuum-report.md` §100). The result does not
+select the canonical action, a continuum-renormalized vacuum, a dynamical
+reservoir, all-sector stability, physical normalization, QCD, baryogenesis or
+particle identity. Complete physical matter formation remains
+**Hypothesized/Open**.
+
+A source-bound closed-reservoir calculation carries the CP-odd pump through a
+finite-energy dynamical complex field rather than a prescribed background.
+The carrier-frequency-resonant outgoing packet passes the finite-state,
+CP-conjugacy and energy/charge-ledger checks, but the late carrier density is
+below the source-free control, the core charge is subthreshold, the exterior
+support remains large, the source tail exceeds its cutoff and the resolution
+comparison fails. Its verdict is
+`DOES NOT EMERGE—conditional closed CP-odd-reservoir vacuum-to-carrier
+formation` (`computations/matter-formation-continuum-report.md` §101).
+The compact external-pump trajectory therefore remains a conditional
+effective-action result; a dynamical reservoir, canonical action, quantum
+state, normalization and particle map remain unselected.
 
 The conservative interscale action has a **Derived conditional**
 collective-response reduction. Eliminating density fluctuations gives
@@ -2601,9 +2639,10 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   exact product-family obstruction to global norm control at fixed cutoff.
   The resulting conditional operator theorem extracts a compatible locally
   normal ground-state subsequence at each fixed regulator and coupling and
-  passes the finite-volume ground inequality to the finite-character local
-  algebra. Its 18/18 primary and 19/19 independent controls explicitly leave
-  the finite-volume ground densities and local tail theorem outside the
+  passes the finite-volume ground inequality to the local gauge-invariant
+  $*$-algebra whose operators have finite Peter–Weyl matrix support. Its
+  18/18 primary and 19/19 independent controls explicitly leave the
+  finite-volume ground densities and local tail theorem outside the
   executable proof surface. The Euclidean theorem conditionally extracts a
   translation- and gauge-invariant, reflection-positive DLR subsequence on
   the infinite lattice at each fixed $\beta$, using established
@@ -2614,14 +2653,20 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   fixed finite spatial graph and proves strong semigroup-product convergence.
   Its 414/414 primary and 24/24 independent checks reconstruct all 36
   finite-character rows, coefficient normalizations and firing controls.
+  The two-loop Wilson scale now makes the continuum target quantitative:
+  $g_0\to0$ and $NF_W\to\infty$ are necessary for simultaneous cutoff removal
+  and infinite volume, while a finite positive local excitation requires
+  $a\Delta_W/F_W$ bounded above and below. Its 80/80 primary and 20/20
+  independent arithmetic checks classify schedules but compute no
+  interacting spectrum or continuum limit.
   Every receipt retains `clay_verdict=NULL`. A uniform exact-vacuum fibre
   rate, transported score, full-sequence convergence, phase uniqueness,
   clustering, identification of the fixed-$\beta$ state with the anisotropic
   family, spatial-volume uniformity, weak-coupling continuum construction,
   continuum Osterwalder–Schrader/Wightman reconstruction and a
   regulator-independent physical mass gap remain open. See
-  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.29 and §11 and
-  `field-experience/probe-outcome-ledger.md` §§30,34,36–40.
+  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.30 and §11 and
+  `field-experience/probe-outcome-ledger.md` §§30,34,36–41.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state

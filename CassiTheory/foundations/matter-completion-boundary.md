@@ -1169,9 +1169,36 @@ amplification, homogeneous finite-mode fermion production and a mapped
 conditional colour-neutral baryon soliton. The baryon comparison adds
 finite-domain radial relaxation, mapped masses and supplied particle rules
 inside one effective action. Its field, action and quantum rules remain
-additional inputs, and it begins with degree-one data. The other results retain
-their separate models. No accepted construction satisfies all six physical
-requirements, so physical matter formation remains open.
+additional inputs, and it begins with degree-one data. The scalar, chiral,
+QCD and temporal calculations retain their model-specific scopes.
+
+A finite-mode effective action qualifies a compact CP-pump trajectory from a
+fixed Wigner-vacuum realization to a localized non-topological carrier remnant.
+The source-bound primary and independent receipts pass the charge, localization,
+CP-conjugacy, resolution and finite-volume energy-ledger predicates
+(`computations/matter-formation-continuum-report.md` §100). The construction
+supplies its CP-odd pump coefficient, pump energy source, finite mode
+truncation and radiative boundary as explicit inputs. It therefore qualifies a
+conditional formation route at that model's scope without selecting the
+canonical Cassi action, a continuum quantum state, physical normalization,
+all-sector stability or a particle map.
+
+A closed-reservoir calculation tests the same vacuum-to-carrier route with
+the CP-odd source carried by a finite-energy dynamical complex reservoir. The
+carrier-frequency-resonant outgoing packet, finite-mode vacuum, CP-conjugate
+arms, outgoing boundary and independent reconstruction all satisfy their
+numerical ledgers. Formation does not emerge: the late core density is
+$0.0021799173$ against a source-free control of $0.0032640229$, the minimum
+late core charge is $0.6524284$, the source-tail ratio is $0.2611197$, and the
+late exterior support remains $0.8551231$ at the final checkpoint. The
+source-bound result is
+`DOES NOT EMERGE—conditional closed CP-odd-reservoir vacuum-to-carrier
+formation` (`computations/matter-formation-continuum-report.md` §101). The
+calculation constrains this reservoir preparation and does not establish a
+no-go theorem for all dynamical reservoirs.
+
+No accepted construction satisfies all six physical requirements, so physical
+matter formation remains open.
 
 ## 13. Conditional baryon endpoint
 
