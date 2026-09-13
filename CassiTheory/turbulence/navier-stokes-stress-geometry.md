@@ -636,23 +636,29 @@ controlled by direction coherence. The second is the high-source
 contribution observed on the low-vorticity region, and the third contains
 every low-source pair, including pairs crossing the superlevel boundary.
 
-Its $L^2$ and $L^4$ bounds give
+The $L^6$ Calderón–Zygmund bound gives
 $$
 \begin{aligned}
 \left|\int\omega\cdot(\mathcal T\omega_L)\omega\,dx\right|
-&\le C\|\omega\|_{L^{8/3}}^2\|\omega_L\|_{L^4}\\
-&\le C(\kappa M)^{1/2}B^2,
+&\le C\|\omega\|_{L^{12/5}}^2\|\omega_L\|_{L^6}\\
+&\le C M^{1/3}B^{5/3}\kappa^{2/3}B^{1/3}\\
+&=C M^{1/3}\kappa^{2/3}B^2.
 \end{aligned}
 $$
-because $\|\omega_L\|_4\le\kappa^{1/2}B^{1/2}$ and
-$\|\omega\|_{8/3}^2\le M^{1/2}B^{3/2}$. For the high source on the
+Here $\|\omega_L\|_6\le\kappa^{2/3}B^{1/3}$ and
+$\|\omega\|_{12/5}^2\le M^{1/3}B^{5/3}$. For the high source on the
 low-vorticity region,
 $$
 \left|\int_{H_\kappa^c}\omega\cdot(\mathcal T\omega_H)\omega\,dx\right|
 \le C\|\omega\mathbf 1_{H_\kappa^c}\|_4^2\|\omega_H\|_2
 \le C\kappa B^2
-\le C(\kappa M)^{1/2}B^2.
+\le C M^{1/3}\kappa^{2/3}B^2,
 $$
+where the last inequality uses $\kappa\le M$.
+
+The finite $L^6$ choice is deliberate; no $L^\infty$ boundedness of a
+Calderón–Zygmund operator is being used.
+
 On $H_\kappa$ itself, the local high-source kernel uses the direction
 condition and the far periodic tail uses the $L^2$ bound above. Hence,
 for $0<\rho\le\bar\rho$,
@@ -663,7 +669,7 @@ $$
 \left[
 \Gamma(t)M(t)\rho^\alpha
 +B(t)\rho^{-3/2}
-+(\kappa M)^{1/2}
++M(t)^{1/3}\kappa(t)^{2/3}
 \right].
 }
 $$
@@ -675,7 +681,7 @@ $$
 W(t)\left[
 (\Gamma(t)M(t))^{3/(2\alpha+3)}
 B(t)^{\,2\alpha/(2\alpha+3)}
-+(\kappa M)^{1/2}
++M(t)^{1/3}\kappa(t)^{2/3}
 \right].
 $$
 Thus an interior superlevel direction criterion yields continuation if
@@ -714,15 +720,22 @@ In the Lipschitz interior case, the bracketed coefficient is therefore
 bounded by
 $$
 \left(\frac{2MD}{\kappa}\right)^{3/5}B^{2/5}
-+(\kappa M)^{1/2}.
++M^{1/3}\kappa^{2/3}.
 $$
 For $M,D,B>0$, ignoring the radius and threshold constraints, balancing
 the two $\kappa$-dependent terms gives
 $$
-\kappa_*\asymp M^{1/11}D^{6/11}B^{4/11},
+\kappa_*\asymp M^{4/19}D^{9/19}B^{6/19},
 \qquad
-A_{\kappa_*}\lesssim M^{6/11}D^{3/11}B^{2/11}.
+A_{\kappa_*}\lesssim M^{9/19}D^{6/19}B^{4/19}.
 $$
+
+Under the formal Euclidean Navier–Stokes scaling used in §8.1,
+$M$ and $\kappa$ scale as $\lambda^2$, $D$ as $\lambda^3$, and $B$ as
+$\lambda^{1/2}$. Thus $\kappa_*$ scales as $\lambda^2$ and
+$A_{\kappa_*}$ as $\lambda^2$; the threshold optimization remains
+critical and supplies no subcritical gain.
+
 The constrained optimizer must still satisfy $0<\kappa_*\le M$ and the
 interior-radius condition; otherwise the corresponding boundary expression
 applies. The resulting bound contains $D=\|\nabla\omega\|_\infty$, which
@@ -730,7 +743,6 @@ is not controlled by the enstrophy dissipation
 $\|\nabla\omega\|_2^2$. Thus differentiability and threshold optimization
 do not turn the conditional geometric criterion into an unconditional
 estimate.
-
 
 The pressure equation and the unfiltered strain equation are
 $$
