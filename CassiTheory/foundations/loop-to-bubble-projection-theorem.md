@@ -7398,6 +7398,39 @@ See `computations/yang-mills-volume-adapted-feshbach-v2-prereg.md`,
 
 
 
+### 9.38 Collective plaquette mode
+
+The collective candidate retains the vacuum and the arithmetic sum of all
+fundamental plaquette actions on each graph. Its source rank is $2$ on both
+graphs. After ground-state projection the Feshbach ranks are $(2,1)$ on the
+seven-link graph and $(2,865)$ on the open $3\times2\times2$ graph.
+
+The primary receipt passes $83/83$ controls and all $8/8$ rows have positive
+finite Schur roots, with classification
+`SUPPORTS_FINITE_VOLUME_COLLECTIVE_PLAQUETTE_FAMILY`. The independent
+arithmetic and source-binding audit passes $85/85$ checks.
+
+| $x$ | large $\beta$ | large $\beta^2/(\alpha\delta_Q)$ | large $\gamma_{\rm Fesh}$ |
+|---:|---:|---:|---:|
+| $1/64$ | 0.6984316229 | 0.0541852424 | 2.3019975663 |
+| $1/16$ | 0.7185809145 | 0.0571122893 | 2.2882584639 |
+| $1/4$ | 0.9871161559 | 0.1011242513 | 2.1163501686 |
+| $1$ | 2.9251978345 | 0.5011164193 | 1.1979260668 |
+
+On the small graph the measured $\beta$ is at the floating-point floor,
+$2.2\times10^{-16}$ at the first two couplings and below
+$4.8\times10^{-15}$ at the remaining two. The large-to-small $\beta$ ratios
+are therefore numerical-floor ratios rather than a meaningful volume bound;
+the collective screen does not establish volume-uniform coupling control.
+The finite positive roots establish only this finite two-graph family. The
+lattice-spacing, recovery, continuum and mass-gap bounds remain open.
+
+See `computations/yang-mills-volume-collective-feshbach-prereg.md`,
+`computations/verify_yang_mills_volume_collective_feshbach.py`,
+`computations/verify_yang_mills_volume_collective_feshbach_independent.py` and
+`field-experience/probe-outcome-ledger.md` §51.
+
+
 ---
 
 

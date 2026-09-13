@@ -1756,7 +1756,67 @@ and
 The next proof obligation is a collective or block-local retained family
 with a coupling norm bounded independently of spatial volume.
 
+## 51. Collective plaquette volume screen
 
+The frozen protocol
+`computations/yang-mills-volume-collective-feshbach-prereg.md` retains the
+vacuum and the arithmetic sum of every fundamental plaquette action. The
+retained source rank is $2$ on both graphs; the post-ground-projection
+Feshbach ranks are $(2,1)$ on the seven-link graph and $(2,865)$ on the open
+$3\times2\times2$ graph.
+
+The primary receipt has status `PASS` with $83/83$ controls passing and
+classification `SUPPORTS_FINITE_VOLUME_COLLECTIVE_PLAQUETTE_FAMILY`. All
+$8/8$ rows have positive finite Schur roots. The independent arithmetic and
+source-binding audit passes $85/85$ checks.
+
+| $x$ | large $\beta$ | large $\beta^2/(\alpha\delta_Q)$ | large $\gamma_{\rm Fesh}$ |
+|---:|---:|---:|---:|
+| $1/64$ | 0.6984316229 | 0.0541852424 | 2.3019975663 |
+| $1/16$ | 0.7185809145 | 0.0571122893 | 2.2882584639 |
+| $1/4$ | 0.9871161559 | 0.1011242513 | 2.1163501686 |
+| $1$ | 2.9251978345 | 0.5011164193 | 1.1979260668 |
+
+The small-graph $\beta$ is at the floating-point floor
+($2.2\times10^{-16}$ at $x=1/64$ and $1/16$, below
+$4.8\times10^{-15}$ at the remaining couplings). The resulting
+large-to-small ratios are numerical-floor ratios, not evidence for a
+volume-uniform bound. This screen therefore establishes a finite collective
+family only; lattice-spacing, recovery, continuum and mass-gap bounds remain
+open.
+
+The source-binding order is protocol, primary source, independent source,
+v1 source, v1 protocol, v1 primary receipt, v1 independent receipt, volume
+bridge source, exact source, large source, scientific large-volume protocol,
+recovery protocol, recovered large-volume receipt, primary receipt and
+independent receipt:
+`6e12006f984e4c50d20879811046f6a61095049baf2d8506c9f00e12d1e667c2`,
+`a13a0168e368ad12782f7d357f917a68f85a0cfd6115ff7e5f6d3386c5760c0c`,
+`ae7d3f48cbfb77df3cf1bb7bbee4b108a13c01ff6736d70bc58b163d18fc4a47`,
+`c445a6ce30041be632110bc67a5b07a6011996a387958559e00722b5181f49ba`,
+`c60e40885b46b8fe0feeb400b9a1ef7277b8957543a6bf378bdceb70e3c6e29a`,
+`78d9f3334a6c02fe5d6acf8ccab71da9d5021be01435968b2712995d911d1bb7`,
+`beee93c05469258ad9beec336f4a29fe04bf5e609fcfbeb2eedbdd52f54776b4`,
+`abba34224e95f3aab52b5cbc04b45997e575bfc615a998d783a8bb7fccac22e5`,
+`b3ed3a4af4b84e787180654fc7e863a61e8f79693c54b9f1efe75346996c8524`,
+`87764d365f592b091a8006ed178b13ce9d2da2b519638d19b35d88c3762243af`,
+`190081eb42bc82432033fc59f3bfb4386a74760f0f4b951ec46ad461a0f056f7`,
+`5647bfa524c25672c83d5daa2e515c33313fdf118c84afd29155e1e1e5cf1821`,
+`914d4ed7da56b7e459a98ff83c08f21a8a7e12a211ace0074afd41d1f3e40837`,
+`862995abaae19e31b2e4d739838f0239cf66e624846c7e776475d0f5244f306b`
+and
+`83bf85c07fb59cce1a683705af7c948386138ae4f982f30899ba740a82c10e93`.
+
+The collective mode does not close the volume bridge: the small-graph
+coupling is a numerical zero while the large-graph coupling is nonzero and
+grows with the tested coupling.
+
+
+
+- `computations/yang-mills-volume-collective-feshbach-prereg.md`—frozen equal-weight collective retained family and finite-volume decision tree.
+- `computations/verify_yang_mills_volume_collective_feshbach.py`—83-check primary collective finite-family verifier.
+- `computations/verify_yang_mills_volume_collective_feshbach_independent.py`—85-check independent arithmetic and source-binding audit.
+- `runs/yang_mills_volume_collective_feshbach/verification.json` and `verification-independent.json`—source-bound finite collective receipts; the small-graph beta is at the numerical floor, so volume-uniform, continuum and mass-gap claims remain unresolved.
 - `computations/yang-mills-volume-adapted-feshbach-prereg.md`—all-local-action retained family and explicit rank/domain decision tree.
 - `computations/verify_yang_mills_volume_adapted_feshbach.py`—50-control primary rank-boundary receipt.
 - `computations/verify_yang_mills_volume_adapted_feshbach_independent.py`—53-check independent audit of the rank-boundary receipt.
