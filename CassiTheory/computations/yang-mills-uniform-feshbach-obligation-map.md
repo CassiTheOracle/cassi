@@ -155,6 +155,213 @@ Construct maps for every $\nu$, block position, and boundary sector that are iso
 
 A finite spin-network matrix with an asserted Ritz complement instantiates the algebraic part of UF-A. The full obligation additionally requires the block map, boundary fibres, and exact form-domain inclusion.
 
+### UF-A.1 Conditional boundary-fibre specification
+
+An admissible block map requires a boundary representation construction before any averaging or coarse-variable identification. The following is a conditional specification; it asserts the data and tests required for a map, with no existence claim.
+
+Fix $\nu$ and a finite block $B$ in the lattice graph $\Lambda_\nu$. Split the fine links into block links and exterior links, and let $V_{\partial B}$ be the vertices at which the two parts meet. With
+
+$$
+G_{\partial B}:=\prod_{v\in V_{\partial B}}SU(2)_v,
+\tag{UFA1}
+$$
+
+define the relative fine block Hilbert space by leaving boundary gauge transformations unquotiented:
+
+$$
+\mathcal H_{\nu,B}^{\mathrm f}
+:=
+L^2\!\left(SU(2)^{E_B^{\mathrm f}},dU\right)^{
+SU(2)^{V_B\setminus V_{\partial B}}}.
+\tag{UFA2}
+$$
+
+Peter–Weyl decomposition for the compact boundary group gives
+
+$$
+\mathcal H_{\nu,B}^{\mathrm f}
+\cong
+\widehat{\bigoplus}_{\alpha\in\widehat{G_{\partial B}}}
+\mathcal M_{\nu,B,\alpha}^{\mathrm f}\otimes V_\alpha,
+\tag{UFA3}
+$$
+
+where $\alpha$ contains the boundary representation labels and the multiplicity spaces contain the interior spin-network and intertwiner data. The exterior relative space has the dual boundary factor,
+
+$$
+\mathcal H_{\nu,\bar B}^{\mathrm f}
+\cong
+\widehat{\bigoplus}_{\alpha\in\widehat{G_{\partial B}}}
+\mathcal M_{\nu,\bar B,\bar\alpha}^{\mathrm f}\otimes V_\alpha^*.
+\tag{UFA4}
+$$
+
+The fine physical Hilbert space is obtained by the invariant contraction of $V_\alpha\otimes V_\alpha^*$:
+
+$$
+\mathcal H_{\nu,\Lambda}^{\mathrm{gi}}
+\cong
+\widehat{\bigoplus}_{\alpha}
+\mathcal M_{\nu,B,\alpha}^{\mathrm f}
+\otimes
+\mathcal M_{\nu,\bar B,\bar\alpha}^{\mathrm f}.
+\tag{UFA5}
+$$
+
+The same construction is required for a proposed coarse block graph, with a declared identification of its boundary gauge group with $G_{\partial B}$. If the coarse and fine boundary groups have different vertex identifications, an explicit intertwiner between the two boundary representations must be supplied before a block map can be defined.
+
+For every $\nu$, block position and boundary sector, the candidate map consists of multiplicity-space maps
+
+$$
+J_{\nu,B,\alpha}:
+\mathcal M_{\nu,B,\alpha}^{\mathrm c}
+\longrightarrow
+\mathcal M_{\nu,B,\alpha}^{\mathrm f},
+\qquad
+J_{\nu,B,\alpha}^*J_{\nu,B,\alpha}=I,
+\tag{UFA6}
+$$
+
+extended as $J_{\nu,B,\alpha}\otimes I_{V_\alpha}$ on the boundary factor and assembled as a direct sum $J_{\nu,B}$. Boundary covariance requires
+
+$$
+(J_{\nu,B,\alpha}\otimes I_{V_\alpha})
+\pi_{\nu,B,\alpha}^{\mathrm c}(g)
+=
+\pi_{\nu,B,\alpha}^{\mathrm f}(g)
+(J_{\nu,B,\alpha}\otimes I_{V_\alpha})
+\qquad
+(g\in G_{\partial B}).
+\tag{UFA7}
+$$
+
+The exterior map and the block map must preserve the Gauss-law contraction:
+
+$$
+\operatorname{Glue}_{\mathrm f}
+\circ
+\bigl(J_{\nu,B}\otimes J_{\nu,\bar B}\bigr)
+=
+J_{\nu,\Lambda}
+\circ
+\operatorname{Glue}_{\mathrm c}
+\tag{UFA8}
+$$
+
+on every matched boundary sector. Equation (UFA8) is the decisive boundary test. A map obtained by averaging link variables has no UF-A status until it satisfies (UFA7)–(UFA8), including all boundary intertwiners and orientation conventions.
+
+The forms in (UFA9)–(UFA13) are the dimensionless forms of $h_\nu=K_\nu+x_\nu V_\nu$. Their physical forms carry the common factor $g_\nu^2/(2a_\nu)$, so the coupling normalization is applied after the block and boundary tests rather than absorbed into the map.
+
+The form test must include the plaquettes that cross the block boundary. Let $\mathscr D_{\nu,B}^{\mathrm f}\odot\mathscr D_{\nu,\bar B}^{\mathrm f}$ be the finite Peter–Weyl tensor core with matched boundary sectors. The electric terms of links assigned to $B$ and the plaquettes wholly owned by $B$ induce a sesquilinear form $\mathfrak k_{\nu,B}^{\mathrm f,\mathrm{int}}$ on the glued core; the exterior terms induce $\mathfrak k_{\nu,\bar B}^{\mathrm f,\mathrm{int}}$. Their restrictions to the relative block and exterior spaces are denoted by the same symbols with arguments in the corresponding relative spaces. For matched tensors $u\otimes\bar u$ and $v\otimes\bar v$, define
+
+$$
+\begin{aligned}
+\mathfrak h_{\nu,\Lambda}^{\mathrm f}
+\bigl[
+\operatorname{Glue}_{\mathrm f}(u\otimes\bar u),
+\operatorname{Glue}_{\mathrm f}(v\otimes\bar v)
+\bigr]
+&=
+\mathfrak k_{\nu,B}^{\mathrm f,\mathrm{int}}
+[u\otimes\bar u,v\otimes\bar v]\\
+&\quad+
+\mathfrak k_{\nu,\bar B}^{\mathrm f,\mathrm{int}}
+[u\otimes\bar u,v\otimes\bar v]\\
+&\quad+
+\mathfrak i_{\nu,\partial B}^{\mathrm f}
+[u\otimes\bar u,v\otimes\bar v].
+\end{aligned}
+\tag{UFA9}
+$$
+
+The interaction form $\mathfrak i_{\nu,\partial B}^{\mathrm f}$ contains every plaquette multiplication term with support on both sides of the cut. Each link Casimir is assigned to exactly one side by the declared link-ownership convention. A boundary electric or Gauss-law operator generated by the relative construction is included in $\mathfrak i_{\nu,\partial B}^{\mathrm f}$; it is absent only after that absence has been proved. The coarse form has the analogous decomposition with $\mathfrak i_{\nu,\partial B}^{\mathrm c}$.
+
+Equivalently, after fixing an exterior boundary datum $\eta$ in a declared representation sector, the relative form is
+
+$$
+\mathfrak h_{\nu,B}^{\mathrm f,\eta}[u,v]
+:=
+\mathfrak k_{\nu,B}^{\mathrm f,\mathrm{int}}[u,v]
++
+\mathfrak i_{\nu,\partial B}^{\mathrm f,\eta}[u,v].
+\tag{UFA10}
+$$
+
+The datum $\eta$ is an exterior holonomy or boundary operator, rather than a scalar boundary value. A coarse datum $\eta_{\mathrm c}$ and its fine image $\eta_{\mathrm f}$ must be specified by an intertwining rule. The coarse relative form uses the corresponding expression $\mathfrak h_{\nu,B}^{\mathrm c,\eta_{\mathrm c}}[u,v]=\mathfrak k_{\nu,B}^{\mathrm c,\mathrm{int}}[u,v]+\mathfrak i_{\nu,\partial B}^{\mathrm c,\eta_{\mathrm c}}[u,v]$, and (UFA10) must agree with the glued form for every admissible boundary datum.
+
+
+Let $\mathscr D_{\nu,\Lambda}^{\mathrm c}$ denote the matched coarse finite Peter–Weyl core. The exact-map alternative requires the glued image to lie in the fine form domain and to preserve the full form:
+
+$$
+\operatorname{Glue}_{\mathrm f}
+\bigl(J_{\nu,B}\otimes J_{\nu,\bar B}\bigr)
+\mathscr D_{\nu,\Lambda}^{\mathrm c}
+\subseteq
+\operatorname{Dom}\mathfrak h_{\nu,\Lambda}^{\mathrm f},
+\tag{UFA11}
+$$
+
+$$
+\mathfrak h_{\nu,\Lambda}^{\mathrm f}
+\left[
+\operatorname{Glue}_{\mathrm f}(J_{\nu,B}u\otimes J_{\nu,\bar B}\bar u),
+\operatorname{Glue}_{\mathrm f}(J_{\nu,B}v\otimes J_{\nu,\bar B}\bar v)
+\right]
+=
+\mathfrak h_{\nu,\Lambda}^{\mathrm c}
+\left[
+\operatorname{Glue}_{\mathrm c}(u\otimes\bar u),
+\operatorname{Glue}_{\mathrm c}(v\otimes\bar v)
+\right]
+\tag{UFA12}
+$$
+
+for every matched finite-core tensor. The same equality may be stated fibrewise using (UFA10), provided it holds for every admissible exterior datum and every boundary sector.
+
+In (UFA13), $\|(u,\bar u)\|_{\mathfrak h_\nu^{\mathrm c}}$ denotes the form norm of the glued vector, namely $\|w\|_{\mathfrak h_\nu^{\mathrm c}}^2=\|w\|^2+\mathfrak h_{\nu,\Lambda}^{\mathrm c}[w,w]$ with $w=\operatorname{Glue}_{\mathrm c}(u\otimes\bar u)$; the fine norm is defined analogously.
+
+If only an approximate transport estimate is available, it must include the glued interaction:
+
+$$
+\left|
+\mathfrak h_{\nu,\Lambda}^{\mathrm f}
+\left[
+\operatorname{Glue}_{\mathrm f}(J_{\nu,B}u\otimes J_{\nu,\bar B}\bar u),
+\operatorname{Glue}_{\mathrm f}(J_{\nu,B}v\otimes J_{\nu,\bar B}\bar v)
+\right]
+-
+\mathfrak h_{\nu,\Lambda}^{\mathrm c}
+\left[
+\operatorname{Glue}_{\mathrm c}(u\otimes\bar u),
+\operatorname{Glue}_{\mathrm c}(v\otimes\bar v)
+\right]
+\right|
+\leq
+\varepsilon_{\nu,B,\alpha}
+\|(u,\bar u)\|_{\mathfrak h_{\nu}^{\mathrm c}}
+\|(v,\bar v)\|_{\mathfrak h_{\nu}^{\mathrm c}}.
+\tag{UFA13}
+$$
+
+The limit or summability required of $\varepsilon_{\nu,B,\alpha}$ belongs to the continuum transport obligation. It cannot be silently substituted for the exact fine-space identity in (UF4), (UF7) or (UF9).
+
+
+For a finite representation cutoff $C$, retain only the declared internal and boundary sectors and form the centered Wilson-word columns in each $\alpha$. Their raw Gram matrix $S_{\nu,B,C,\alpha}$ must be positive on the retained quotient, and the physical columns are $U=S_{\nu,B,C,\alpha}^{1/2}C$. After removing the declared ground subspace, set
+
+$$
+P_{\nu,B,C,\alpha}
+:=
+\operatorname{proj}_{\mathcal K_\nu}
+\operatorname{ran}(U_{\nu,B,C,\alpha}),
+\qquad
+Q_{\nu,B,C,\alpha}
+:=
+I_{\mathcal K_\nu}-P_{\nu,B,C,\alpha}.
+\tag{UFA14}
+$$
+
+If the finite-volume ground state is degenerate, centering and ground removal use the declared ground-space density and the entire ground subspace. A single positive vector is sufficient only under a separately established uniqueness statement. The conditional specification is satisfied only after (UFA3)–(UFA14), including form-domain inclusion and boundary contraction, are proved for the chosen block family. It supplies a testable UF-A target; it supplies no UF-A–UF-E theorem by itself.
+
 ### UF-B. Uniform discarded-sector resolvent
 
 The bound required for the whole trajectory is
