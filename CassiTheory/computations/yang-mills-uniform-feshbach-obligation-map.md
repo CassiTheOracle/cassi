@@ -176,6 +176,71 @@ SU(2)^{V_B\setminus V_{\partial B}}}.
 \tag{UFA2}
 $$
 
+The measure $dU$ is the product of normalized Haar measures on the block links, and the relative inner product is
+
+$$
+\langle F,G\rangle_{\nu,B}^{\mathrm f}
+:=
+\int_{SU(2)^{E_B^{\mathrm f}}}
+\overline{F(U)}G(U)\,dU.
+\tag{UFA15}
+$$
+
+For $g=(g_v)_{v\in V_{\partial B}}\in G_{\partial B}$, extend $g$ by the identity away from $V_{\partial B}$ and let
+
+$$
+(\pi_{\nu,B}^{\mathrm f}(g)F)(U)
+:=
+F(g^{-1}\!\cdot U),
+\qquad
+(g\!\cdot U)_e
+:=
+g_{s(e)}U_eg_{t(e)}^{-1}.
+\tag{UFA16}
+$$
+
+The action is unitary for (UFA15). Interior Gauss generators annihilate the relative space, while the boundary generators remain as the infinitesimal representation $\pi_{\nu,B}^{\mathrm f}$. The exterior action uses the opposite boundary orientation.
+
+For $\alpha\in\widehat{G_{\partial B}}$, define the isotypic projector and multiplicity space by
+
+$$
+\mathsf P_{\nu,B,\alpha}^{\mathrm f}
+:=
+d_\alpha
+\int_{G_{\partial B}}
+\overline{\chi_\alpha(g)}\,
+\pi_{\nu,B}^{\mathrm f}(g)\,dg,
+\qquad
+\mathcal M_{\nu,B,\alpha}^{\mathrm f}
+:=
+\operatorname{Hom}_{G_{\partial B}}
+\!\left(V_\alpha,\mathcal H_{\nu,B}^{\mathrm f}\right),
+\tag{UFA17}
+$$
+
+with the Hilbert inner product inherited from (UFA15) and the standard inner product on $V_\alpha$. Fix a boundary half-edge identification $\iota_{\partial B}$, including orientations and any duplicated cut-link variables. Define the matched tensor space and its Haar/Peter–Weyl contraction by
+
+$$
+\begin{aligned}
+\mathscr H_{\nu,B|\bar B}^{\mathrm f,\mathrm{match}}
+:=
+\operatorname{Inv}_{G_{\partial B}}
+\left(
+\mathcal H_{\nu,B}^{\mathrm f}
+\widehat\otimes_{\iota_{\partial B}}
+\mathcal H_{\nu,\bar B}^{\mathrm f}
+\right),\\
+\Gamma_{\nu,B}^{\mathrm f}:&
+\mathscr H_{\nu,B|\bar B}^{\mathrm f,\mathrm{match}}
+\longrightarrow
+\mathcal H_{\nu,\Lambda}^{\mathrm{gi}}.
+\end{aligned}
+\tag{UFA18}
+$$
+
+Here $\widehat\otimes_{\iota_{\partial B}}$ is the Hilbert tensor product after identifying duplicated cut-link variables with the declared orientations, and $\operatorname{Inv}_{G_{\partial B}}$ denotes fixed vectors under the diagonal boundary action. The map $\Gamma_{\nu,B}^{\mathrm f}$ is the Haar/Peter–Weyl contraction of matching $V_\alpha\otimes V_\alpha^*$ factors. UF-A requires proving that this map is a unitary bijection onto $\mathcal H_{\nu,\Lambda}^{\mathrm{gi}}$; that property is not assumed by the specification. On the finite Peter–Weyl core, the boundary condition is equivalently $(G_{\nu,B,v}^A+G_{\nu,\bar B,v}^A)\Psi=0$ for every boundary vertex and Lie-algebra direction. In the remaining equations, $\operatorname{Glue}_{\mathrm f}$ denotes this $\Gamma_{\nu,B}^{\mathrm f}$; the coarse $\operatorname{Glue}_{\mathrm c}$ has the analogous definition.
+
+
 Peter–Weyl decomposition for the compact boundary group gives
 
 $$
@@ -360,7 +425,7 @@ I_{\mathcal K_\nu}-P_{\nu,B,C,\alpha}.
 \tag{UFA14}
 $$
 
-If the finite-volume ground state is degenerate, centering and ground removal use the declared ground-space density and the entire ground subspace. A single positive vector is sufficient only under a separately established uniqueness statement. The conditional specification is satisfied only after (UFA3)–(UFA14), including form-domain inclusion and boundary contraction, are proved for the chosen block family. It supplies a testable UF-A target; it supplies no UF-A–UF-E theorem by itself.
+If the finite-volume ground state is degenerate, centering and ground removal use the declared ground-space density and the entire ground subspace. A single positive vector is sufficient only under a separately established uniqueness statement. The conditional specification is satisfied only after (UFA1)–(UFA18), including the Haar inner product, boundary Gauss constraint, form-domain inclusion and boundary contraction, are proved for the chosen block family. It supplies a testable UF-A target; it supplies no UF-A–UF-E theorem by itself.
 
 ### UF-B. Uniform discarded-sector resolvent
 
