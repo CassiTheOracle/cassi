@@ -7299,6 +7299,48 @@ See `computations/yang-mills-interacting-feshbach-cutoff6-prereg.md`,
 `computations/verify_yang_mills_interacting_feshbach_cutoff6.py` and
 `field-experience/probe-outcome-ledger.md` §47.
 
+### 9.35 Finite-volume bridge from the constant retained sector
+
+The $C_P=0\to C_Q=1$ construction is now evaluated on the seven-link
+two-plaquette graph and the open $3\times2\times2$ graph. The retained source
+space has dimension one on both graphs, while the outer source dimensions are
+$4$ and $868$. After ground-state projection the Feshbach blocks have
+$\dim\mathcal P=1$ and $\dim\mathcal Q=2,866$. The fixed schedule is
+$x\in\{1/64,1/16,1/4,1\}$.
+
+The primary execution passes $84/84$ controls and all $8/8$ rows have a
+positive Schur root, with classification
+`SUPPORTS_FINITE_VOLUME_FESHBACH_BRIDGE`. The independent arithmetic and
+source-binding audit passes $77/77$ checks without assembling either matrix.
+
+| $x$ | $\gamma_{\rm small}/\Delta_{\rm small}$ | $\gamma_{\rm large}/\Delta_{\rm large}$ | $\beta^2/(\alpha\delta_Q)$ on large graph | $\beta_{\rm large}/\beta_{\rm small}$ |
+|---:|---:|---:|---:|---:|
+| $1/64$ | 0.9975643387 | 0.9902557756 | 0.0000972544 | 4.0173181867 |
+| $1/16$ | 0.9904908196 | 0.9623921662 | 0.0015517108 | 4.0219195972 |
+| $1/4$ | 0.9655388367 | 0.8677618274 | 0.0237784983 | 4.0881757096 |
+| $1$ | 0.9026891870 | 0.6114247979 | 0.2393160764 | 4.4501924266 |
+
+The large-to-small ratios of $\alpha$ are
+$1.0002268173,1.0036145449,1.0543966493,1.4708879563$ across the schedule,
+and the corresponding ratios of $\delta_Q$ are
+$1.0000271164,1.0004313948,1.0063264310,1.0417806625$. The coupling block
+therefore grows by approximately a factor of four between these two graphs,
+with stronger drift at $x=1$. At $x=1$ on the large graph the labeled
+diagnostics are
+$\alpha=5.8626424752$, $\delta_Q=3.7246287552$,
+$\beta=2.2859890090$, $\beta^2/(\alpha\delta_Q)=0.2393160764$,
+$\Phi(0)=4.4596178806$ and $\gamma_{\rm Fesh}=2.2700426575$.
+The positive finite-volume bridge persists, while the constant retained
+sector supplies no volume-uniform bound. A volume-adapted retained family
+with uniform $\alpha$, $\delta_Q$ and $\beta$ estimates is the next proof
+obligation; the lattice-spacing, recovery, continuum and mass-gap bounds
+remain open.
+
+See `computations/yang-mills-volume-feshbach-bridge-prereg.md`,
+`computations/verify_yang_mills_volume_feshbach_bridge.py`,
+`computations/verify_yang_mills_volume_feshbach_bridge_independent.py` and
+`field-experience/probe-outcome-ledger.md` §48.
+
 
 
 ---

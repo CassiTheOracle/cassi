@@ -1611,6 +1611,71 @@ gauge-compatible retained family, followed by a bound on
 $\alpha$, $\delta_Q$ and $\beta$ that is uniform in the outer cutoff, spatial
 volume and weak-coupling trajectory.
 
+## 48. Finite-volume C=0-to-C=1 Feshbach bridge
+
+The frozen protocol
+`computations/yang-mills-volume-feshbach-bridge-prereg.md` tests the
+constant $C=0$ retained sector against the complete $C=1$ source space on
+the seven-link two-plaquette graph and the open $3\times2\times2$ graph. The
+outer dimensions are $4$ and $868$; the post-ground-projection Feshbach
+ranks are $\dim\mathcal P=1$ and $\dim\mathcal Q=2,866$. The fixed coupling
+schedule is $x\in\{1/64,1/16,1/4,1\}$.
+
+The primary receipt has status `PASS` with $84/84$ controls passing and
+classification `SUPPORTS_FINITE_VOLUME_FESHBACH_BRIDGE`. All $8/8$ rows have
+positive Schur roots. The independent arithmetic and source-binding receipt
+has status `PASS` with $77/77$ checks passing without reassembling either
+graph matrix.
+
+| $x$ | small $\gamma/\Delta$ | large $\gamma/\Delta$ | large $\beta^2/(\alpha\delta_Q)$ | $\beta_{\rm large}/\beta_{\rm small}$ |
+|---:|---:|---:|---:|---:|
+| $1/64$ | 0.9975643387 | 0.9902557756 | 0.0000972544 | 4.0173181867 |
+| $1/16$ | 0.9904908196 | 0.9623921662 | 0.0015517108 | 4.0219195972 |
+| $1/4$ | 0.9655388367 | 0.8677618274 | 0.0237784983 | 4.0881757096 |
+| $1$ | 0.9026891870 | 0.6114247979 | 0.2393160764 | 4.4501924266 |
+
+The large-to-small ratios of $\alpha$ are
+$1.0002268173,1.0036145449,1.0543966493,1.4708879563$, while the ratios of
+$\delta_Q$ are
+$1.0000271164,1.0004313948,1.0063264310,1.0417806625$. At $x=1$ on the
+large graph, the receipt labels
+$\alpha=5.8626424752$, $\delta_Q=3.7246287552$,
+$\beta=2.2859890090$, $\beta^2/(\alpha\delta_Q)=0.2393160764$,
+$\Phi(0)=4.4596178806$ and
+$\gamma_{\rm Fesh}=2.2700426575$. The finite bridge survives this volume
+change, while the constant retained sector has no volume-uniform estimate:
+the coupling block grows by approximately four between the two graphs and
+the large-graph root-to-gap ratio decreases at stronger coupling. A
+volume-adapted retained family and uniform $\alpha$, $\delta_Q$, $\beta$
+bounds are required before the volume bridge can enter a continuum
+argument. Lattice-spacing, recovery, continuum and mass-gap claims remain
+unresolved.
+
+The source-binding order is protocol, primary source, independent source,
+exact-block source, large-volume source, scientific large-volume protocol,
+recovery protocol, recovered large-volume receipt, primary receipt and
+independent receipt:
+`43037cb97bfb68e3f3c55d1d5226a1e8ef5ace23261a48edc546dfa229728f58`,
+`abba34224e95f3aab52b5cbc04b45997e575bfc615a998d783a8bb7fccac22e5`,
+`6980c5418ca6894f8f6b73e99ecbba2eaba7fc7e301b8418a4160cd822aca473`,
+`b3ed3a4af4b84e787180654fc7e863a61e8f79693c54b9f1efe75346996c8524`,
+`87764d365f592b091a8006ed178b13ce9d2da2b519638d19b35d88c3762243af`,
+`190081eb42bc82432033fc59f3bfb4386a74760f0f4b951ec46ad461a0f056f7`,
+`5647bfa524c25672c83d5daa2e515c33313fdf118c84afd29155e1e1e5cf1821`,
+`914d4ed7da56b7e459a98ff83c08f21a8a7e12a211ace0074afd41d1f3e40837`,
+`a86f3cf2fc53fdc0392431524c9b952c437fa468e5a7e292e3c0b593d53df066`
+and
+`b8ea5734ff2a38ac5a062ea2da8ca6f1ce540d15295f93f67c5dac1f978d8d98`.
+
+The next proof obligation is a volume-adapted gauge-compatible retained
+family whose $\alpha$, $\delta_Q$ and $\beta$ admit bounds uniform in spatial
+volume, outer cutoff and the weak-coupling trajectory.
+
+
+- `computations/yang-mills-volume-feshbach-bridge-prereg.md`—frozen finite-volume $C=0\to C=1$ Feshbach bridge protocol.
+- `computations/verify_yang_mills_volume_feshbach_bridge.py`—84-check primary two-graph bridge verifier.
+- `computations/verify_yang_mills_volume_feshbach_bridge_independent.py`—77-check independent arithmetic and provenance audit.
+- `runs/yang_mills_volume_feshbach_bridge/verification.json` and `verification-independent.json`—source-bound finite-volume bridge receipts with positive roots on both graphs and unresolved volume-uniform, continuum and mass-gap bounds.
 
 ## References
 
