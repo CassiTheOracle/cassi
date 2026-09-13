@@ -135,6 +135,8 @@ arbitrary-flow closure and global regularity remain open.
 | 15 | `turbulence/navier-stokes-coherence-dose-criterion.md` | Active seeded-production dose and retarded-spread continuation criterion | Derived conditional / Open uniform dose and arbitrary-data regularity |
 | 16 | `turbulence/navier-stokes-vorticity-quotient.md` | Inverse seeded-covariance quotient, normalized mean bound, and initial-layer obstruction | Derived local identity / Open uniform continuation estimate |
 | 17 | `turbulence/navier-stokes-rank-deficient-stretching.md` | Active stretching with rank-deficient vorticity-gradient source | Derived periodic 2.5D control / Open temporal recovery and global regularity |
+| 18 | `turbulence/navier-stokes-rank-deficient-temporal-recovery.md` | Temporal covariance rank recovery from an active rank-deficient source | Derived local time-jet witness / Open uniform Gramian, compensation, and global regularity |
+
 
 ## 2. Document summaries
 
@@ -606,6 +608,28 @@ production-relative compensation, and arbitrary-data regularity remain
 The receipt is intentionally generated under `runs/` as local, untracked
 evidence. Rerunning the listed verifier regenerates it and rebinds the hashes
 of the three committed source files.
+### 2.18 Temporal covariance rank recovery
+
+`turbulence/navier-stokes-rank-deficient-temporal-recovery.md` is a separate
+supplement to the seven-check active rank-deficient control. It differentiates
+the exact seeded covariance PDE at $t=0$ rather than simulating stochastic
+paths. At the active point $(x,y)=(\pi/2,0)$, the first two covariance jets
+give
+
+$$
+\det\!\left(tR_t(0)+\frac{t^2}{2}R_{tt}(0)\right)
+=8\nu^4t^4+O(t^5),\qquad \nu>0.
+$$
+
+The five-check supplement schedule passes **5 of 5 checks** and supports
+temporal covariance rank recovery for this active control even though the
+instantaneous source determinant remains zero. A uniform accumulated-Gramian
+lower bound, production-relative compensation, and arbitrary-data regularity
+remain **UNRESOLVED**. The supplement receipt is intentionally generated at
+`runs/navier_stokes_rank_deficient_temporal_recovery_v2_20260913/verification.json`
+as local, untracked evidence; rerunning the listed verifier regenerates it and
+rebinds the four source hashes.
+
 
 ## References
 
@@ -648,6 +672,9 @@ of the three committed source files.
 - `computations/navier-stokes-rank-deficient-stretching-prereg.md`—fixed active 2.5D control and source-rank schedule
 - `computations/verify_navier_stokes_rank_deficient_stretching.py`—7-check initial-control and invariant-class verifier
 - `turbulence/navier-stokes-rank-deficient-stretching.md`—active stretching with rank-deficient source boundary
+- `computations/navier-stokes-rank-deficient-temporal-recovery-prereg.md`—frozen covariance-PDE time-jet and temporal-recovery schedule
+- `computations/verify_navier_stokes_rank_deficient_temporal_recovery.py`—5-check exact temporal covariance rank-recovery verifier
+- `turbulence/navier-stokes-rank-deficient-temporal-recovery.md`—local temporal rank-recovery supplement
 - `turbulence/navier-stokes-coherence-dose-criterion.md`—conditional active-dose and retarded-spread continuation note
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
 - `computations/cassi-fluid-thermodynamics-prereg.md`—selected fluid equations and fixed thermal controls
