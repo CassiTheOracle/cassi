@@ -955,11 +955,17 @@ $$
 An exact rank-two periodic Beltrami heat flow has zero instantaneous
 determinant functional while its accumulated covariance becomes full rank on
 an open set. Periodic shear remains rank one, excluding a uniform positive
-recovery floor over all data. The source-bound schedule passes 60 symbolic
-and exact-control checks. A production-relative recovery estimate or a
-data-controlled signed shell-stretching estimate would bound $\mathcal H$ and
-imply continuation. Both estimates and arbitrary-data regularity remain
-**UNRESOLVED**.
+recovery floor over all data. The paper makes the continuation bridge
+explicit: a bounded enstrophy envelope gives $u\in L^4_tL^6_x$ through the
+periodic kinetic-energy identity and Sobolev embedding, so the velocity
+Prodi–Serrin theorem supplies the finite-endpoint step. Its indexed
+common-noise kernel diffuses only in the center coordinate; an absolute
+diagonal bound would control the active quotient, whereas increment bounds
+leave spatially constant extension unbounded. The source-bound schedule passes
+60 symbolic and exact-control checks. A production-relative recovery estimate
+or a data-controlled signed shell-stretching estimate would bound
+$\mathcal H$ and imply continuation. Both estimates and arbitrary-data
+regularity remain **UNRESOLVED**.
 
 Section 7 of `turbulence/cassi-fluid-feasibility.md` selects a reacting
 rotational velocity and temperature. Its variational stress conserves

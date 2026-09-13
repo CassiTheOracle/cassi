@@ -1820,7 +1820,26 @@ a uniform positive recovery floor over every datum.
 
 The source-bound verifier passes **60 of 60** symbolic and exact-control
 checks; it does not integrate a generic Navier–Stokes trajectory or Brownian
-paths. The sufficient all-data target
+paths. The paper's continuation bridge is explicit: a bounded enstrophy
+envelope gives $u\in L^4_tL^6_x$ through the periodic kinetic-energy identity
+and Sobolev embedding, and the velocity Prodi–Serrin theorem supplies the
+finite-endpoint continuation step. Its indexed common-noise kernel has only
+center-coordinate diffusion; an absolute diagonal bound would control the
+active quotient, while increment bounds leave spatially constant extension
+unbounded.
+
+A Galerkin route would require the cutoff-uniform critical estimate
+
+$$
+\sup_N\int_0^T
+\left(P_N^{\mathrm{str}}-\frac{\nu}{2}D_N\right)_+dt<\infty,
+$$
+
+which would supply the uniform $H^1$ and $L^4_tL^6_x$ norms needed for the
+compactness and Prodi–Serrin endpoint passage. This estimate is not supplied
+by finite-dimensionality or by the 60-check source-bound receipt.
+
+The sufficient all-data target
 
 $$
 \sup_{\substack{\nabla\cdot u_0=0,\ \int u_0=0\\

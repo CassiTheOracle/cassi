@@ -127,7 +127,7 @@ arbitrary-flow closure and global regularity remain open.
 | 7 | `turbulence/navier-stokes-adaptive-metric.md` | Scalar, branch, terminal and forward positive metrics for vortex stretching | Derived exact weighted balances and conditional continuation reduction / Open active-distortion bound |
 | 8 | `turbulence/navier-stokes-deformation-covariance.md` | Forward-deformation covariance, inverse metric, covariant enstrophy and stochastic regression | Derived exact covariance and projection identities / Open active Rayleigh-quotient bound |
 | 9 | `turbulence/navier-stokes-active-deformation-occupation.md` | Vorticity-seeded covariance, directional-strain occupation and active cascade dose | Derived exact seeded-covariance and conditional continuation identities / Open all-data active-dose bound |
-| 10 | `turbulence/navier-stokes-replica-coherence.md` | Independent stochastic Cauchy replicas, accumulated covariance rank, coherence share, viscous disagreement and signed shell compensation | Derived exact replica, covariance, temporal-rank and conditional continuation identities / Open uniform recovered-envelope and cross-scale bounds |
+| 10 | `turbulence/navier-stokes-replica-coherence.md` | Independent stochastic Cauchy replicas, accumulated covariance rank, coherence share, viscous disagreement, indexed center-only two-point transport and signed shell compensation | Derived exact replica, covariance, temporal-rank, restart-bridge and conditional continuation identities / Open uniform recovered-envelope and cross-scale bounds |
 | 11 | `turbulence/cassi-fluid-feasibility.md` | Conservative action reduction, native-force obstruction, reacting capillary/thermal closure, phase-current summary and actual flow controls | Derived conditional mechanical, thermal, and phase-current identities / Tested solver, rotational and phase-coercivity boundaries / Open physical-fluid completion |
 | 12 | `turbulence/cassi-fluid-phase-current-hydrodynamics.md` | Mermin–Ho rotation, helicity topology, two-band Beltrami flow, first-order coercivity and viscosity projection boundaries | Derived conditional current and topology identities / Tested rotational, memory and coercivity boundaries / Open microscopic viscosity and arbitrary-flow closure |
 | 13 | `turbulence/cassi-radiative-material-closure.md` | LTE emission, multigroup M1 transport, conservative material coupling and CassiCosmos handoff | Derived conditional transfer, conservation and entropy identities / Tested kernels / Open Cassi material calibration |
@@ -398,6 +398,26 @@ $$
 W\le\mathcal H:=\mathcal E_M-\mathcal K
 \le\mathcal G:=\mathcal E_M-6\nu\int_0^tJ\,ds.
 $$
+
+The continuation bridge is explicit: a bounded enstrophy envelope gives
+$u\in L^4_tL^6_x$ by the periodic kinetic-energy identity and Sobolev
+embedding, so the velocity Prodi–Serrin theorem supplies the finite-endpoint
+step. The indexed common-noise kernel in §12.7 diffuses only in the center
+coordinate; an absolute diagonal bound would control the active quotient, while
+increment bounds leave spatially constant extension unbounded.
+
+A Galerkin proof would have to establish, uniformly in the Fourier cutoff,
+
+$$
+\sup_N\int_0^T
+\left(P_N^{\mathrm{str}}-\frac{\nu}{2}D_N\right)_+dt<\infty.
+$$
+
+That estimate would give cutoff-independent $H^1$ and $L^4_tL^6_x$ bounds,
+allow a compactness passage to a Leray solution, and invoke the same
+Prodi–Serrin endpoint restart. It is a proof target, not part of the
+60-check receipt.
+
 
 An exact rank-two periodic Beltrami heat flow has $J=0$ while its accumulated
 covariance becomes full rank on an open set. Periodic shear remains rank one,

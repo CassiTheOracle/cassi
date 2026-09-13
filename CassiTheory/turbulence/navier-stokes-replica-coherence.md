@@ -682,30 +682,176 @@ Then each such solution continues through time $T$.
 
 $$
 \sup_{0\le t<\min(T,T_*)}W(t)
-\le C_G(\nu,T,R_0).
+\le C_G(\nu,T,R_0)=:B_W.
 \tag{68}
 $$
 
-For mean-zero periodic divergence-free velocity, the Fourier curl identity and Poincaré inequality control the velocity $H^1$ norm by enstrophy. The standard local $H^1$ restart criterion extends the solution at any finite endpoint with a uniform lifespan depending on the bound in (68). Therefore $T_*\le T$ is impossible. $\square$
+For a mean-zero periodic divergence-free field, the Fourier curl identity gives
 
-Conversely, finite-time loss of regularity would force $W$ and hence $\mathcal G$ to become unbounded along an endpoint sequence. The criterion is scale critical in the same formal Euclidean sense as enstrophy. Under
+$$
+\|\nabla u(t)\|_2^2=W(t).
+\tag{68a}
+$$
+
+The kinetic-energy identity and Sobolev embedding therefore imply, for every
+$\tau<\min(T,T_*)$,
+
+$$
+\begin{aligned}
+\int_0^\tau\|u(t)\|_6^4dt
+&\le C_S^4\int_0^\tau W(t)^2dt\\
+&\le C_S^4B_W\int_0^\tau W(t)dt\\
+&\le \frac{C_S^4B_W\|u_0\|_2^2}{2\nu}.
+\end{aligned}
+\tag{68b}
+$$
+
+Thus $u\in L^4(0,\min(T,T_*);L^6)$, with
+$2/4+3/6=1$. The periodic Prodi–Serrin continuation theorem then extends
+the solution through every finite endpoint. The direct vorticity energy
+estimate retains its $\|\nabla u\|_\infty$ term; the continuation bridge here
+uses the velocity Serrin class obtained from the kinetic-energy identity.
+Consequently $T_*\le T$ is impossible. $\square$
+
+The estimate is a restart statement in the Serrin class. It does not close
+the enstrophy energy inequality from an $H^1$ bound; it supplies the
+space–time norm required by the local regularity theorem.
+
+### 7.1 Galerkin endpoint passage
+
+A cutoff proof must make the restart mechanism explicit. Let
+$\mathbb P_N$ be the divergence-free Fourier projector onto
+$\{|k|\le N\}$, and let $u_N$ solve
+
+$$
+\partial_tu_N+\mathbb P_N\bigl((u_N\cdot\nabla)u_N\bigr)
+=\nu\Delta u_N,
+\qquad
+u_N(0)=\mathbb P_Nu_0.
+\tag{68e}
+$$
+
+Every fixed cutoff has a global finite-dimensional solution: the velocity
+energy identity is
+
+$$
+\frac12\frac{d}{dt}\|u_N\|_2^2
++\nu\|\nabla u_N\|_2^2=0.
+\tag{68f}
+$$
+
+However, the projected equation has a high-mode residual when viewed as the
+full equation, so the stochastic Cauchy formula and (13) cannot simply be
+applied to $u_N$ without controlling that residual. The precise
+cutoff-uniform critical target is instead
+
+$$
+\boxed{
+\sup_{\substack{N\ge1\\ \|u_{0,N}\|_{H^3}\le R_0}}
+\int_0^T
+\left(P_N^{\mathrm{str}}(t)-\frac{\nu}{2}D_N(t)\right)_+dt
+\le M_{\mathrm{Gal}}(\nu,T,R_0)<\infty,}
+\tag{68g}
+$$
+
+where
+$P_N^{\mathrm{str}}=\int_{\mathbb T^3}\omega_N\cdot S_N\omega_N\,dx$ and
+$D_N=\|\nabla\omega_N\|_2^2$. This is a stronger, Galerkin-level
+formulation of the unresolved all-data production estimate; finite
+dimensionality alone does not supply a cutoff-independent
+$M_{\mathrm{Gal}}$.
+
+If (68g) were proved, the Galerkin enstrophy identity would give
+
+$$
+W_N(t)+\nu\int_0^tD_N(s)\,ds
+\le W_N(0)+2M_{\mathrm{Gal}},
+\tag{68h}
+$$
+
+and hence a cutoff-independent $L^\infty_tH^1_x$ bound. The velocity energy
+identity and the periodic curl identity also give
+
+$$
+\int_0^T W_N(t)\,dt
+\le\frac{\|u_{0,N}\|_2^2}{2\nu},
+\qquad
+\int_0^T\|u_N(t)\|_6^4dt
+\le C_S^4\bigl(W_N(0)+2M_{\mathrm{Gal}}\bigr)
+\frac{\|u_{0,N}\|_2^2}{2\nu}.
+\tag{68i}
+$$
+
+The nonlinear term and viscosity give the cutoff-independent derivative bound
+
+$$
+\sup_N
+\|\partial_tu_N\|_{L^{4/3}(0,T;H^{-1})}
+\le C(\nu,T,R_0,M_{\mathrm{Gal}})<\infty.
+\tag{68l}
+$$
+
+so Aubin–Lions yields, after a subsequence,
+
+$$
+u_N\longrightarrow u\ \text{strongly in }L^2(0,T;L^2),
+\qquad
+u_N\rightharpoonup^\ast u\ \text{in }L^\infty(0,T;H^1),
+\qquad
+u\in L^4(0,T;L^6).
+\tag{68j}
+$$
+
+The strong convergence passes the convection term to the Leray limit, while
+the energy inequality supplies the endpoint trace
+$u(T)=\lim_{t\uparrow T}u(t)$ in $L^2$. The $L^4_tL^6_x$ bound is the
+Prodi–Serrin condition, so the limit has no singular endpoint and
+$u(T)\in H^1$ as a strong trace. Local strong $H^1$ existence from $u(T)$,
+combined with weak–strong uniqueness, extends the solution beyond $T$.
+Equivalently, the uniform restart constant is visible directly: for two
+smooth solutions $u,v$ and $w=u-v$,
+
+$$
+\frac{d}{dt}\|w\|_2^2+\nu\|\nabla w\|_2^2
+\le C_{\mathbb T}\nu^{-3}\|u\|_6^4\|w\|_2^2,
+\qquad
+\|w(t)\|_2^2
+\le\|w(\tau)\|_2^2
+\exp\!\left(
+C_{\mathbb T}\nu^{-3}\int_\tau^t\|u(s)\|_6^4ds
+\right).
+\tag{68k}
+$$
+
+Thus (68g) would be a complete cutoff-uniform Galerkin-to-continuum
+restart passage. Establishing (68g), or an equivalent initial-data bound
+for the full signed three-dimensional production, remains unresolved.
+
+Conversely, finite-time loss of regularity would force $W$ and hence
+$\mathcal G$ to become unbounded along an endpoint sequence. The criterion
+is scale critical in the same formal Euclidean sense as enstrophy. Under
 
 $$
 u_\lambda(x,t)=\lambda u(\lambda x,\lambda^2t),
 \qquad
 \omega_\lambda(x,t)=\lambda^2\omega(\lambda x,\lambda^2t),
-\tag{69}
+\tag{68c}
 $$
 
-$W$, $\mathcal E_M$, $\mathcal V$, and $\nu\int Jdt$ all have scaling exponent one. Their ratios have exponent zero. The rescaling changes the period of a fixed torus.
+$W$, $\mathcal E_M$, $\mathcal V$, and $\nu\int Jdt$ all have scaling
+exponent one. Their ratios have exponent zero. The rescaling changes the
+period of a fixed torus.
 
-The open obligation is the uniform estimate (67). Positivity and volume preservation prove the subtracted lower bound in (12); they do not bound the remaining compensation gap
+The open obligation is the uniform estimate (67). Positivity and volume
+preservation prove the subtracted lower bound in (12); they do not bound the
+remaining compensation gap
 
 $$
 \mathcal G-W
-=\mathcal V-6\nu\int_0^tJ(s)ds.
-\tag{70}
+:=\mathcal V-6\nu\int_0^tJ(s)ds.
+\tag{68d}
 $$
+
 
 ## 8. Exact controls
 
@@ -1272,7 +1418,14 @@ W(0)+2\int_0^te^{-2A(s)}b(s)ds
 \tag{118}
 $$
 
-The uniform bound on $\mathcal H$ controls enstrophy by (100), and the periodic $H^1$ restart completes the continuation argument. Deriving (115)–(116) from initial-data control is unresolved. Full rank alone cannot provide it: periodic shear has $\mathcal K=0$, and nearly rank-deficient data can have arbitrarily small recovered eigenvalues. Even isotropic $R$ leaves $\mathcal H=W$.
+The bound (118) controls $W$ through (100). Applying the periodic Serrin
+bridge above gives $u\in L^4_tL^6_x$ with a finite norm, so (115)–(116)
+would continue every solution through $T$. Deriving (115)–(116) from
+initial-data control is unresolved. Full rank alone cannot provide it:
+periodic shear has $\mathcal K=0$, and nearly rank-deficient data can have
+arbitrarily small recovered eigenvalues. Even isotropic $R$ leaves
+$\mathcal H=W$.
+
 
 ### 12.6 Canonical signed shell target
 
@@ -1345,6 +1498,107 @@ W(0)+2\int_0^te^{-2A_{\mathrm{sh}}(s)}b_{\mathrm{sh}}(s)ds
 $$
 
 The shell identities and conditional implication are exact. The uniform estimate (123) is unresolved. The standard bound $|P|\lesssim W^{3/4}D^{3/4}$ leaves a cubic enstrophy remainder after viscous absorption, while interaction locality alone supplies no sign for three-dimensional stretching or backscatter.
+### 12.7 Indexed two-point transport and the restart product
+
+The indexed two-point kernel separates a useful exact transport identity from
+the unresolved production estimate. Let $F_{i\alpha}(x,t)$ denote the
+$i$-th output component of a stochastic deformation column $\alpha$, with
+the same Brownian translation used at $x$ and $y$, and define
+
+$$
+C_{2,ij}(x,y,t)
+:=\sum_\alpha\mathbb E\!\left[
+F_{i\alpha}(x,t)F_{j\alpha}(y,t)
+\right].
+\tag{125}
+$$
+
+Applying Itô's product rule to the two spatially indexed copies gives
+
+$$
+\boxed{
+\begin{aligned}
+\partial_tC_2
+&+u(x)\cdot\nabla_xC_2+u(y)\cdot\nabla_yC_2\\
+&-\nu\left(
+\Delta_x+\Delta_y+2\partial_{x_k}\partial_{y_k}
+\right)C_2\\
+&=L(x)C_2+C_2L(y)^{\mathsf T}.
+\end{aligned}}
+\tag{126}
+$$
+
+The cross derivative is the quadratic variation of the common Brownian
+translation. In center and relative coordinates
+
+$$
+X=\frac{x+y}{2},\qquad r=x-y,
+\qquad
+\nabla_x+\nabla_y=\nabla_X,
+\tag{127}
+$$
+
+so that
+
+$$
+\Delta_x+\Delta_y+2\partial_{x_k}\partial_{y_k}
+:=(\nabla_x+\nabla_y)^2
+=\Delta_X.
+\tag{128}
+$$
+
+The common-noise kernel therefore diffuses in the center coordinate and has no
+relative-coordinate Laplacian. On the diagonal,
+
+$$
+D_{ij}(x,t):=C_{2,ij}(x,x,t),
+\tag{129}
+$$
+
+the chain rule gives $\nabla D=(\nabla_x+\nabla_y)C_2|_{y=x}$ and
+$\Delta D=(\nabla_x+\nabla_y)^2C_2|_{y=x}$, so $D$ obeys the corresponding
+one-point covariance equation. No pointwise positive-semidefinite inequality
+for an off-diagonal matrix $C_2(x,y)$ is needed.
+
+If the diagonal covariance is uniformly positive definite and bounded,
+$0\prec D(x,t)\preceq KI$, then $D^{-1}\succeq K^{-1}I$ and the
+corresponding active quotient is bounded by $K$. A bound only on increments
+or centered relative deformation cannot do this: the
+spatially constant trace-free deformation
+
+$$
+F(t)=\operatorname{diag}(e^{at},e^{-at},1)
+\tag{130}
+$$
+
+has zero relative variation while
+$\mathbb E[FF^{\mathsf T}]
+=\operatorname{diag}(e^{2at},e^{-2at},1)$.
+
+Restart the kernel at $\tau_n$ and write its restarted deformation as
+$F^{(n)}$; then $F^{(n)}_{\tau_n,\tau_n}=I$ and therefore
+$D^{(n)}(\tau_n)=I$. If a future-window estimate supplies
+$D^{(n)}\preceq K_nI$, its associated envelope is
+
+$$
+W(t)\le K_nW(\tau_n),
+\qquad t\in[\tau_n,\tau_{n+1}].
+\tag{131}
+$$
+
+Across infinitely many windows, a global bound requires
+
+$$
+\prod_nK_n<\infty
+\qquad\Longleftrightarrow\qquad
+\sum_n\log K_n<\infty
+\tag{132}
+$$
+
+for $K_n\ge1$. A fixed factor $K_n>1$ on every window gives no uniform
+continuation bound. The indexed equation thus identifies the correct
+restart target—an absolute, summable window estimate—while leaving the
+Navier–Stokes production-relative bound unresolved.
 
 ## 13. Verification evidence
 
@@ -1391,3 +1645,4 @@ The bundle records raw source hashes for this paper, the frozen protocol, and th
 - T. D. Drivas and G. L. Eyink, [A Lagrangian fluctuation-dissipation relation for scalar turbulence, I](https://arxiv.org/abs/1606.00729)—scalar fluctuation-dissipation identity
 - G. L. Eyink, A. Gupta, and T. Zaki, [Stochastic Lagrangian Dynamics of Vorticity. I. General Theory](https://arxiv.org/abs/1912.06677)—stochastic Cauchy invariants, cancellation, and ensemble variance
 - G. L. Eyink and H. Aluie, [Localness of energy cascade in hydrodynamic turbulence, I. Smooth coarse-graining](https://arxiv.org/abs/0909.2386)—scale-locality estimates under declared inertial-range scaling assumptions
+- J. Serrin, [On the interior regularity of weak solutions of the Navier–Stokes equations](https://link.springer.com/article/10.1007/BF00253344), *Archive for Rational Mechanics and Analysis* **9** (1962), 187–195—velocity Prodi–Serrin continuation criterion
