@@ -7266,6 +7266,23 @@ open. See `computations/yang-mills-interacting-feshbach-prereg.md`,
 `computations/verify_yang_mills_interacting_feshbach.py` and
 `field-experience/probe-outcome-ledger.md` §45.
 
+The nested-cutoff screen extends this test over all ten pairs
+$(c_P,c_Q)$ with $1\le c_P<c_Q\le5$. The forty-row primary calculation
+passes $403/403$ controls, and the independent arithmetic and source-binding
+audit passes $370/370$ checks. Its classification is
+`NO_POSITIVE_FAMILY_CERTIFICATE`: positive Schur roots occur in $36/40$ rows.
+The four rows without a positive root are all at $x=16$, with pairs
+$(1,4)$, $(1,5)$, $(2,5)$ and $(3,5)$; their
+$\beta^2/(\alpha\delta_Q)$ ratios are $1.08018$, $1.21046$, $1.27583$ and
+$1.02498$. At the same coupling, the pairs $(2,4)$, $(3,4)$ and $(4,5)$
+recover positive roots, so the finite result shows retained-cutoff dependence
+and motivates testing a growth schedule for the interacting fibre. The screen
+reaches outer cutoff $5$ on this fixed graph; its constants remain
+finite-family data.
+See `computations/yang-mills-interacting-feshbach-cutoff-screen-prereg.md`,
+`computations/verify_yang_mills_interacting_feshbach_cutoff_screen.py` and
+`field-experience/probe-outcome-ledger.md` §46.
+
 
 ---
 
@@ -7349,6 +7366,7 @@ microscopic completions.
 | Renormalized weak-coupling gap and volume criterion (YM242)–(YM248) | **Derived** two-loop asymptotic scale relation from established perturbative inputs and **Derived conditional** continuum implication | $a\Lambda_L=F_W[1+O(g_0^2)]$ requires $NF_W\to\infty$ for simultaneous infinite volume and $a\Delta/F_W$ bounded above and below for a finite positive excitation; 80/80 primary and 20/20 independent arithmetic checks pass, but no interacting gap, continuum trajectory or Osterwalder–Schrader limit is constructed |
 | Conditional RG endpoint-to-gap matching theorem (YM249)–(YM255) | **Derived conditional** scale, transfer-rate and volume implication | A bounded cumulative two-loop scale defect, fixed positive interacting endpoint rate, exact controlled block-correlation map, complete retained physical channels and continuum Osterwalder–Schrader construction are required; 139/139 primary and 32/32 independent arithmetic checks pass, while every construction hypothesis and the Clay verdict remain open |
 | Local Wilson-word algebra, GNS completeness and uniform-form criterion (YM259)–(YM267) | **Derived conditional** finite gauge-invariant algebra, vacuum-orthogonal density statement and exact lower-bound transfer criterion | The full centered local gauge-invariant algebra supplies a complete finite-regulator GNS core; a selected finite Wilson family or unproved RG image does not. A regulator-uniform lower form bound, strong recovery/form transport, physical scale matching and continuum construction remain open |
+| Nested-cutoff interacting Feshbach screen | **INCONCLUSIVE** finite-cutoff measurement (`NO_POSITIVE_FAMILY_CERTIFICATE`) | Ten nested cutoff pairs on the seven-link graph pass 403/403 primary controls and 370/370 independent arithmetic/source-binding checks; positive Schur roots occur in 36/40 rows, with four zero-root rows at $x=16$; uniform regulator, volume, recovery, continuum and mass-gap control remain open |
 | Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, conditional-rate cutoff removal and continuum construction remain open |
 | Finite open-cube SU(2) basis and oriented Wilson support | **Derived** finite-regulator construction | The open $2\times2\times2$ cube has 32 and 1013 gauge-invariant raw trivalent-$3j$ states at doubled cutoffs $C=1,2$; every six signed fundamental plaquette operators has 32 and 2388 nonzero candidate-supported directed entries, with finite Hermitian contractions; fixed-graph character-cutoff removal follows from (YM187)–(YM195), while a growing open-boundary family and continuum control remain open |
 | Larger-volume/cutoff SU(2) Hamiltonian | **Derived** recovered finite-regulator construction and fixed-graph cutoff removal; **INCONCLUSIVE** frozen separation qualifications | The open $3\times2\times2$ graph has 868 and 955835 complete gauge-invariant states at doubled cutoffs $C=1,2$; the recovery enforces spectator-intertwiner orthogonality, all 226 finite-construction checks and 256 independent checks pass, every scheduled ground energy is nonnegative, and the separation-free theorem removes the character cutoff only after this graph and coupling are fixed |

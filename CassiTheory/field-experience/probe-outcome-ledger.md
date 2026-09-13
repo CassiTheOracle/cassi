@@ -1516,6 +1516,53 @@ constant uniform in lattice spacing, spatial volume and the weak-coupling
 trajectory, together with recovery transport and continuum scale matching,
 remains the next proof obligation.
 
+## 46. Nested-cutoff interacting Feshbach screen
+
+The frozen protocol
+`computations/yang-mills-interacting-feshbach-cutoff-screen-prereg.md`
+extends the fixed $(c_P,c_Q)=(1,3)$ calculation over all ten nested pairs
+$1\le c_P<c_Q\le5$ on the same seven-link two-plaquette $SU(2)$ graph. The
+source dimensions at cutoffs $1,2,3,4,5$ are $4,11,23,42,69$. Each pair is
+evaluated at $x\in\{1/4,1,4,16\}$, giving $40$ rows.
+
+The primary execution has status `PASS` with $403/403$ controls passing. Its
+scientific classification is `NO_POSITIVE_FAMILY_CERTIFICATE`: $36/40$ rows
+have positive Schur roots. The independent arithmetic and source-binding
+audit has status `PASS` with $370/370$ checks passing.
+
+| $x$ | positive roots | minimum root | minimum root/gap | maximum $\beta^2/(\alpha\delta_Q)$ | rows without positive root |
+|---:|---:|---:|---:|---:|:---|
+| $1/4$ | 10/10 | 2.9094856999 | 0.9623980492 | 0.0232040377 | — |
+| $1$ | 10/10 | 3.0212793119 | 0.9006418757 | 0.0651026186 | — |
+| $4$ | 10/10 | 2.8564483523 | 0.4663584974 | 0.4231527971 | — |
+| $16$ | 6/10 | 0.4294699691 | 0.0317119684 | 1.2758330866 | $(1,4),(1,5),(2,5),(3,5)$ |
+
+At $x=16$, the four rows without a positive root have
+$\beta^2/(\alpha\delta_Q)$ equal to $1.080183$, $1.210459$, $1.275833$
+and $1.024983$. The same outer cutoffs recover positive roots when the
+retained cutoff grows: $(2,4)$, $(3,4)$ and $(4,5)$ all qualify. The finite
+screen shows retained-cutoff dependence and motivates testing a growth
+schedule for this interacting fibre. It leaves the uniform regulator, volume
+and continuum constants open.
+
+The source-binding order for the evidence is protocol, primary screen source,
+exact-block reference, predecessor Feshbach source, predecessor receipt,
+current primary receipt, independent screen source, independent receipt:
+`7347dffc5a12299fae84355e42db230c0cf7df739b095556b92966253c54fbe7`,
+`ca05675b6e54507c94db6546219206f7f0acf2656fa052c644a97ce17848cdd0`,
+`b3ed3a4af4b84e787180654fc7e863a61e8f79693c54b9f1efe75346996c8524`,
+`f232859d15718962a9b7ffc94ff7c346aac305be46de96bd696cbdfd2a7a6f7a`,
+`787c064df8b0ce4bf2bd224b4637aad794597334e857df43e86271e509bc6c29`,
+`7cc9e6d5afafb3811da613528b570686a7ba74ff20a297f3a1908c8626a436b8`,
+`64e2a7acdd1ffca5873463e56420901c2ffd95d129bd69bb66c9c878b4859b8b`
+and
+`5e81df731ab80a5bca5046ebd1207873fc3a0847f07732f232107831393a8bfc`.
+
+The next proof obligation is a gauge-compatible retained family whose
+$\alpha$, $\delta_Q$ and $\beta$ admit a bound uniform in the outer cutoff,
+volume and weak-coupling trajectory. The present rows identify the finite
+growth pattern that such a family must accommodate.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
