@@ -1215,6 +1215,20 @@ vacuum-to-carrier formation`
 reservoir preparations without establishing a no-go theorem for all closed
 reservoirs.
 
+An incoming-shell autonomous calculation tests radial focusing in the same
+pair-frequency-resonant action. The shell centroid starts at $18.1016$ and
+reaches a minimum of $8.9998$ before the $t=30$ source-tail checkpoint. The
+primary and independent receipts pass their source, CP, archive, finite-state
+and charge/energy-ledger checks. The late mean core density is $1.2716046$ and
+the minimum late core charge is $226.6244$, but the minimum core fraction is
+$0.0119851$, the exterior-support mean is $0.9248362$, the source-tail ratio is
+$0.9576208$, and the maximum late core energy-to-absolute-charge ratio is
+$26.4089$. The resolution comparison also fails. The verdict is
+`DOES NOT EMERGE—conditional pair-frequency-resonant incoming-shell formation`
+(`computations/matter-formation-continuum-report.md` §103). The focusing pulse
+does not become a persistent localized carrier, so the physical completion
+boundary remains open.
+
 No accepted construction satisfies all six physical requirements, so physical
 matter formation remains open.
 

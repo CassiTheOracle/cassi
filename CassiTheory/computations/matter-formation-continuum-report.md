@@ -15134,6 +15134,64 @@ quantum-state, normalization, continuum stability and particle-map selection
 remain open. Complete physical Cassi matter formation remains
 **Hypothesized/Open**.
 
+## 103. Pair-frequency-resonant incoming-shell reservoir
+
+The incoming-shell calculation tests whether radial focusing can transfer a
+finite-energy reservoir into a localized carrier more effectively than a packet
+launched at the origin. The closed CP-odd action, finite-mode vacuum draw,
+pair-frequency condition $\Omega=2m$, amplitude, coupling and outgoing boundary
+are retained. The reservoir is a Gaussian shell centred at $r_0=16$ with
+width $W=6$ and incoming reduced momentum $+\partial_r f$. A reduced-reservoir
+energy centroid is stored as a characteristic check; the preregistered
+trajectory must begin in $[14,18]$ and reach $C_R\le8$ before the source-tail
+checkpoint at $t=30$.
+
+The protocol is
+`computations/matter-formation-closed-cp-incoming-reservoir-v11-prereg.md`,
+SHA-256
+`bbeeb7efba88b726ea3dec0ea76c4e0c4bd658e5f89eefadf89aa72e290bcda9`. The
+source-bound primary and independent programs are
+`computations/matter_formation_closed_cp_incoming_reservoir_v11.py` and
+`computations/verify_matter_formation_closed_cp_incoming_reservoir_v11.py`.
+The primary receipt is
+`runs/20260913_matter_formation_closed_cp_incoming_reservoir_v11/result.json`,
+SHA-256
+`1db3331a75ca00ab6020c034125085d6a63806508d66369b54855eff0590ab1b`. The
+independent receipt is
+`runs/20260913_matter_formation_closed_cp_incoming_reservoir_v11_verify_final/verification.json`,
+SHA-256
+`e5e7ff70a99b7d5b34e78ac9442c4cde03b6820d7ee7d50f0f94a24ecede82ea`.
+All independent source, summary, raw-archive, CP, finite-state and
+charge/energy-ledger reconstruction checks pass.
+
+The incoming shell produces a strong transient core pulse but not a captured
+late remnant:
+
+| Observable | Measured value | Required condition |
+|---|---:|---:|
+| Late mean core density | $1.2716046$ | at least $0.0130561$ |
+| Minimum late core fraction | $0.0119851$ | at least $0.80$ |
+| Maximum / mean exterior support fraction | $0.9320759$ / $0.9248362$ | below $0.25$ / $0.20$ |
+| Minimum late absolute core charge | $226.6244$ | $>200$ |
+| Maximum late core energy / absolute charge | $26.4089$ | below $m=1$ |
+| Source-tail ratio | $0.9576208$ | $<0.15$ |
+| Initial / minimum reservoir-energy centroid before $t=30$ | $18.1016$ / $8.9998$ | initial in $[14,18]$, minimum $\le8$ |
+| Resolution relative error, core charge / energy | $31.6539\%$ / $18.7860\%$ | each $<5\%$ |
+
+The normalized charge and energy ledger residuals are
+$5.9250\times10^{-6}$ and $5.8348\times10^{-7}$, and the corrected late
+charge drift is $9.6240\times10^{-3}$. The late density and charge thresholds
+are reached only while the reservoir remains coupled; the exterior support,
+core retention, energy-per-charge, source-tail, centroid and resolution
+predicates fail. The scoped verdict is
+`DOES NOT EMERGE—conditional pair-frequency-resonant incoming-shell formation`.
+
+The incoming shell therefore supplies a measured focusing pulse without
+selecting a persistent carrier. Its failure is a boundary on this shell
+geometry and parameter point, not a no-go theorem for every closed reservoir,
+interaction or canonical microscopic action. Complete physical Cassi matter
+formation remains **Hypothesized/Open**.
+
 ## References
 
 - `computations/matter_formation_q256_momentum_prereg.md`—frozen Q=256 incoming-momentum preparation, stable comparison contract, persistence predicates, and stopping rule.
@@ -15518,4 +15576,9 @@ remain open. Complete physical Cassi matter formation remains
 - `computations/verify_matter_formation_closed_cp_pair_reservoir_v10.py`—independent pair-resonant reconstruction, archive checks and predicate verification.
 - `runs/20260913_matter_formation_closed_cp_pair_reservoir_v10/result.json`—primary pair-resonant reservoir receipt.
 - `runs/20260913_matter_formation_closed_cp_pair_reservoir_v10_verify/verification.json`—independent pair-resonant reservoir receipt.
+- `computations/matter-formation-closed-cp-incoming-reservoir-v11-prereg.md`—frozen pair-frequency incoming-shell action, centroid sign check, controls, ledgers and formation decision rule.
+- `computations/matter_formation_closed_cp_incoming_reservoir_v11.py`—source-bound incoming-shell primary evolution and receipt writer.
+- `computations/verify_matter_formation_closed_cp_incoming_reservoir_v11.py`—independent incoming-shell reconstruction, archive checks and predicate verification.
+- `runs/20260913_matter_formation_closed_cp_incoming_reservoir_v11/result.json`—primary incoming-shell receipt.
+- `runs/20260913_matter_formation_closed_cp_incoming_reservoir_v11_verify_final/verification.json`—independent incoming-shell receipt.
 - `runs/20260909_matter_formation_pool_dispersal/boundary-recovery/axial-recovery/`—active source-bound profiles, trajectories, controls, execution records and reconciliation.
