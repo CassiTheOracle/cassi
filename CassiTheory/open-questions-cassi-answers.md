@@ -2138,6 +2138,22 @@ The compact external-pump trajectory therefore remains a conditional
 effective-action result; a dynamical reservoir, canonical action, quantum
 state, normalization and particle map remain unselected.
 
+A pair-frequency-resonant autonomous calculation corrects the quadratic
+interaction's resonance condition by fixing the reservoir at $\\Omega=2m$,
+with $K=\\sqrt{\\Omega^2-m_a^2}$ and the v9 vacuum draw, amplitude, coupling
+and packet width held fixed. The primary and independent receipts pass the
+finite-state, CP, archive and charge/energy-ledger checks, but the late mean
+core density is $0.0035298704$ against the required
+$0.0130560915$, the minimum core fraction is $0.1280743$, the minimum core
+charge is $5.8003536$, the exterior-support mean is $0.7319105$, and the
+source-tail ratio is $0.2016527$. Its verdict is
+`DOES NOT EMERGE—conditional pair-frequency-resonant closed CP-odd-reservoir
+vacuum-to-carrier formation`
+(`computations/matter-formation-continuum-report.md` §102). Both the
+carrier-frequency and pair-frequency outgoing reservoir tests therefore fail
+to replace the conditional external pump; the canonical action, quantum
+state, normalization, continuum stability and particle map remain unselected.
+
 The conservative interscale action has a **Derived conditional**
 collective-response reduction. Eliminating density fluctuations gives
 positive phase inertia; admissible variation of the longitudinal

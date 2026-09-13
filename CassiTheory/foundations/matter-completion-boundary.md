@@ -1197,6 +1197,24 @@ formation` (`computations/matter-formation-continuum-report.md` §101). The
 calculation constrains this reservoir preparation and does not establish a
 no-go theorem for all dynamical reservoirs.
 
+A pair-frequency-resonant autonomous calculation corrects the resonance
+condition for the quadratic carrier interaction: the reservoir frequency is
+fixed at $\\Omega=2m$, with $K=\\sqrt{\\Omega^2-m_a^2}$, while the finite-mode
+vacuum draw, amplitude, coupling and outgoing packet width are held fixed.
+The primary and independent receipts pass the finite-state, CP, archive and
+charge/energy-ledger checks, but formation does not emerge. The late mean core
+density is $0.0035298704$ against a four-times-vacuum requirement of
+$0.0130560915$, the minimum core fraction is $0.1280743$, the minimum absolute
+core charge is $5.8003536$, and the late exterior-support mean is $0.7319105$.
+The source-tail ratio is $0.2016527$ and the maximum core
+energy-to-absolute-charge ratio is $8.9568416$. The source-bound result is
+`DOES NOT EMERGE—conditional pair-frequency-resonant closed CP-odd-reservoir
+vacuum-to-carrier formation`
+(`computations/matter-formation-continuum-report.md` §102). Together with
+§101, this constrains the tested nonresonant and pair-resonant outgoing
+reservoir preparations without establishing a no-go theorem for all closed
+reservoirs.
+
 No accepted construction satisfies all six physical requirements, so physical
 matter formation remains open.
 

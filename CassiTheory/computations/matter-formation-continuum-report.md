@@ -15078,6 +15078,62 @@ stability and particle-map requirements are not selected by these trajectories.
 Complete physical Cassi matter formation remains **Hypothesized/Open**.
 
 
+## 102. Pair-frequency-resonant autonomous reservoir
+
+The v9 autonomous packet used the carrier frequency in a quadratic
+$\\Phi^2$ interaction. The complex carrier equation instead contains the
+parametric term $a^*\\Phi^*$, so a carrier mode
+$\\Phi\\sim e^{-imt}$ is secularly driven by a reservoir mode only when
+$\\Omega=2m$. This preregistered calculation tests that pair-frequency
+resonance with the same finite-volume action, vacuum draw, reservoir amplitude,
+coupling and outgoing preparation; only the derived reservoir frequency and
+wavenumber change. The protocol is
+`computations/matter-formation-closed-cp-pair-reservoir-v10-prereg.md`.
+
+The source-bound primary and independent programs are
+`computations/matter_formation_closed_cp_pair_reservoir_v10.py` and
+`computations/verify_matter_formation_closed_cp_pair_reservoir_v10.py`. The
+primary receipt is
+`runs/20260913_matter_formation_closed_cp_pair_reservoir_v10/result.json`, with
+SHA-256
+`70f869b7a377e8a8d723e3e354cbc708038f4c7243ddd9b68c1f51fd2755592b`. The
+independent receipt is
+`runs/20260913_matter_formation_closed_cp_pair_reservoir_v10_verify/verification.json`,
+with SHA-256
+`2be9856ff54276e41dbccfdc48df1cb413d05722234052a64acc900749cf0c3b`.
+Both programs pass the finite-state, CP-conjugacy, raw-archive, charge-ledger
+and energy-ledger reconstruction checks.
+
+The pair-frequency arm still does not form the retained carrier:
+
+| Observable | Measured value | Required condition |
+|---|---:|---:|
+| Late mean core density | $0.0035298704$ | at least $0.0130560915$ (four times the vacuum control $0.0032640229$) |
+| Minimum late core fraction | $0.1280743$ | at least $0.80$ |
+| Maximum / mean exterior support fraction | $0.8171447$ / $0.7319105$ | below $0.25$ / $0.20$ |
+| Minimum late absolute core charge | $5.8003536$ | $>200$ |
+| Maximum late core energy / absolute charge | $8.9568416$ | below $m=1$ |
+| Source-tail ratio | $0.2016527$ | $<0.15$ |
+| Resolution relative error, core charge / energy | $6.1805\%$ / $3.2846\%$ | each $<5\%$ |
+
+The normalized charge and energy ledgers pass at approximately
+$8.19\\times10^{-7}$ and $9.37\\times10^{-8}$, and the corrected late charge
+drift is $9.8273\\times10^{-7}$. The independent raw-array differences are
+below $8.2\\times10^{-13}$. These numerical controls do not rescue the
+scientific formation predicates. The scoped verdict is
+`DOES NOT EMERGE—conditional pair-frequency-resonant closed CP-odd-reservoir
+vacuum-to-carrier formation`.
+
+The pair-frequency correction therefore does not establish an autonomous
+vacuum-to-carrier route. Together with §101, it constrains both the tested
+carrier-frequency and pair-frequency outgoing reservoir packets under this
+finite-mode action. It does not establish a no-go theorem for a different
+reservoir state, interaction, boundary or canonical microscopic action. The
+compact external-pump trajectory remains conditional, and canonical action,
+quantum-state, normalization, continuum stability and particle-map selection
+remain open. Complete physical Cassi matter formation remains
+**Hypothesized/Open**.
+
 ## References
 
 - `computations/matter_formation_q256_momentum_prereg.md`—frozen Q=256 incoming-momentum preparation, stable comparison contract, persistence predicates, and stopping rule.
@@ -15452,4 +15508,14 @@ Complete physical Cassi matter formation remains **Hypothesized/Open**.
 - `computations/verify_matter_formation_closed_cp_reservoir_v9.py`—independent closed-reservoir reconstruction, archive checks and predicate verification.
 - `runs/20260912_matter_formation_closed_cp_reservoir_v9/result.json`—primary autonomous-reservoir receipt.
 - `runs/20260912_matter_formation_closed_cp_reservoir_v9_verify/verification.json`—independent autonomous-reservoir receipt.
+- `computations/matter-formation-compact-cp-pump-qball-v3b-prereg.md`—frozen compact CP-pump action, vacuum draw, charge/localization predicates and ledger decision rule.
+- `computations/matter_formation_compact_cp_pump_qball_v3.py`—source-bound primary compact CP-pump evolution and receipt writer.
+- `computations/verify_matter_formation_compact_cp_pump_qball_v3.py`—independent compact-pump reconstruction, archive checks and predicate verification.
+- `runs/20260912_matter_formation_compact_cp_pump_qball_v3d/result.json`—primary compact-pump receipt.
+- `runs/20260912_matter_formation_compact_cp_pump_qball_v3d/verification.json`—independent compact-pump receipt.
+- `computations/matter-formation-closed-cp-pair-reservoir-v10-prereg.md`—frozen pair-frequency-resonant autonomous reservoir action, controls, ledgers and formation decision rule.
+- `computations/matter_formation_closed_cp_pair_reservoir_v10.py`—source-bound primary pair-resonant reservoir evolution and receipt writer.
+- `computations/verify_matter_formation_closed_cp_pair_reservoir_v10.py`—independent pair-resonant reconstruction, archive checks and predicate verification.
+- `runs/20260913_matter_formation_closed_cp_pair_reservoir_v10/result.json`—primary pair-resonant reservoir receipt.
+- `runs/20260913_matter_formation_closed_cp_pair_reservoir_v10_verify/verification.json`—independent pair-resonant reservoir receipt.
 - `runs/20260909_matter_formation_pool_dispersal/boundary-recovery/axial-recovery/`—active source-bound profiles, trajectories, controls, execution records and reconciliation.
