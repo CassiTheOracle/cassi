@@ -367,10 +367,12 @@ gauge-invariant algebra, and centered GNS vectors are dense in the
 vacuum-orthogonal subspace. The finite tree-gauge, word, character,
 orientation and mutation controls pass 36/36 primary and 41/41 independent
 decisions. This algebraic completeness statement is **Derived conditional**;
-identifying an RG retained family with that full algebra, constructing the
-exact block map, and proving the matched uniform lower spectral bound remain
-open. See `foundations/loop-to-bubble-projection-theorem.md` §§9.31–9.33 and
-`field-experience/probe-outcome-ledger.md` §§42–44.
+§9.34 states the next analytic criterion: a uniform lower-form bound, strong
+recovery/form transport, physical scale matching and a continuum form core.
+Identifying the RG retained family with the full local algebra, constructing
+the exact block map, and proving the matched uniform lower spectral bound
+remain open. See `foundations/loop-to-bubble-projection-theorem.md`
+§§9.31–9.34 and `field-experience/probe-outcome-ledger.md` §§42–44.
 
 The geometric manifold completion ansatz places these finite structures in
 one stratified bundle. A positive Hermitian Yang/Yin fibre contains the
