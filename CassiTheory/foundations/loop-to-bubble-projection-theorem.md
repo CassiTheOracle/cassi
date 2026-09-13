@@ -7431,6 +7431,40 @@ See `computations/yang-mills-volume-collective-feshbach-prereg.md`,
 `field-experience/probe-outcome-ledger.md` §51.
 
 
+### 9.39 Anchored block-local plaquette family
+
+The anchored block-local candidate retains the vacuum and the first
+source-order plaquette on both graphs. Its retained source rank is $2$ on
+both graphs. After ground-state projection the Feshbach ranks are $(2,1)$ on
+the seven-link graph and $(2,865)$ on the open $3\times2\times2$ graph.
+
+The primary receipt passes $83/83$ controls and all $8/8$ rows have positive
+finite Schur roots, with classification
+`SUPPORTS_FINITE_VOLUME_ANCHORED_BLOCK_FAMILY`. The independent arithmetic
+and source-binding audit passes $85/85$ checks.
+
+| $x$ | large $\beta$ | large $\beta^2/(\alpha\delta_Q)$ | $\beta_{\rm large}/\beta_{\rm small}$ | large $\gamma_{\rm Fesh}$ |
+|---:|---:|---:|---:|---:|
+| $1/64$ | 0.0390807318 | 0.0001696380 | 4.7455417334 | 2.9614699937 |
+| $1/16$ | 0.1563390545 | 0.0026998907 | 4.7447035122 | 2.8524006934 |
+| $1/4$ | 0.6263718323 | 0.0399009617 | 4.7317300361 | 2.5059613297 |
+| $1$ | 2.5587309590 | 0.3192237962 | 4.5974249526 | 1.9068853539 |
+
+Across the fixed two-graph schedule, the anchored coupling ratio remains in
+$[4.5974,4.7456]$ while the large-graph self-energy ratio remains below
+$0.32$. This is a stronger finite-volume signal than the collective screen:
+the retained rank does not grow with the tested volume and the measured
+coupling ratio does not have a numerical-floor denominator. It is not a
+volume-uniform theorem: only one anchored plaquette, one larger graph and one
+finite cutoff are tested. Translation coverage, block-shape coverage,
+lattice-spacing, recovery, continuum and mass-gap bounds remain open.
+
+See `computations/yang-mills-volume-block-local-feshbach-prereg.md`,
+`computations/verify_yang_mills_volume_block_local_feshbach.py`,
+`computations/verify_yang_mills_volume_block_local_feshbach_independent.py` and
+`field-experience/probe-outcome-ledger.md` §52.
+
+
 ---
 
 

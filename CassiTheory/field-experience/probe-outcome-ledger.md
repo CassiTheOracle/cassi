@@ -1825,6 +1825,66 @@ grows with the tested coupling.
 - `computations/verify_yang_mills_volume_adapted_feshbach_v2_independent.py`—85-check independent reserved-plaquette arithmetic and provenance audit.
 - `runs/yang_mills_volume_adapted_feshbach_v2/verification.json` and `verification-independent.json`—source-bound finite reserved-plaquette receipts with unresolved volume-uniform, continuum and mass-gap bounds.
 
+- `computations/yang-mills-volume-block-local-feshbach-prereg.md`—frozen anchored first-plaquette retained family and finite-volume decision tree.
+- `computations/verify_yang_mills_volume_block_local_feshbach.py`—83-check primary anchored block-local finite-family verifier.
+- `computations/verify_yang_mills_volume_block_local_feshbach_independent.py`—85-check independent arithmetic and source-binding audit.
+- `runs/yang_mills_volume_block_local_feshbach/verification.json` and `verification-independent.json`—source-bound finite anchored block-local receipts; translation, continuum and mass-gap claims remain unresolved.
+
+## 52. Anchored block-local plaquette family
+
+The frozen protocol
+`computations/yang-mills-volume-block-local-feshbach-prereg.md` retains the
+vacuum and the first source-order plaquette on both graphs. The retained source
+rank is $2$ on both graphs; the post-ground-projection Feshbach ranks are
+$(2,1)$ on the seven-link graph and $(2,865)$ on the open $3\times2\times2$
+graph.
+
+The primary receipt has status `PASS` with $83/83$ controls passing and
+classification `SUPPORTS_FINITE_VOLUME_ANCHORED_BLOCK_FAMILY`. All $8/8$ rows
+have positive finite Schur roots. The independent arithmetic and
+source-binding audit passes $85/85$ checks.
+
+| $x$ | large $\beta$ | large $\beta^2/(\alpha\delta_Q)$ | $\beta_{\rm large}/\beta_{\rm small}$ | large $\gamma_{\rm Fesh}$ |
+|---:|---:|---:|---:|---:|
+| $1/64$ | 0.0390807318 | 0.0001696380 | 4.7455417334 | 2.9614699937 |
+| $1/16$ | 0.1563390545 | 0.0026998907 | 4.7447035122 | 2.8524006934 |
+| $1/4$ | 0.6263718323 | 0.0399009617 | 4.7317300361 | 2.5059613297 |
+| $1$ | 2.5587309590 | 0.3192237962 | 4.5974249526 | 1.9068853539 |
+
+The measured coupling ratio remains in $[4.5974,4.7456]$ across the fixed
+two-graph schedule, and the large-graph self-energy ratio remains below
+$0.32$. This is a stronger finite-volume signal than the collective screen,
+because the retained rank is fixed and the small-graph coupling is not a
+numerical floor. Translation coverage, block-shape coverage, lattice-spacing,
+recovery, continuum and mass-gap bounds remain open.
+
+The source-binding order is protocol, primary source, independent source,
+adapted source, adapted protocol, adapted primary receipt, adapted independent
+receipt, volume bridge source, exact source, large source, scientific
+large-volume protocol, recovery protocol, recovered large-volume receipt,
+primary receipt and independent receipt:
+`c8f5a6174d87d34eeb6ff4f03332719ccdde1d84dc26182929cf3d4fec41824f`,
+`56cbb14dc965aa683120aa20914e750835348c5adb03740a4feffc36d6b45b2b`,
+`8ea270f8109d84a289cd05f6e49353e326025a3e692b61b13b628b3cd7ff411b`,
+`c445a6ce30041be632110bc67a5b07a6011996a387958559e00722b5181f49ba`,
+`c60e40885b46b8fe0feeb400b9a1ef7277b8957543a6bf378bdceb70e3c6e29a`,
+`78d9f3334a6c02fe5d6acf8ccab71da9d5021be01435968b2712995d911d1bb7`,
+`beee93c05469258ad9beec336f4a29fe04bf5e609fcfbeb2eedbdd52f54776b4`,
+`abba34224e95f3aab52b5cbc04b45997e575bfc615a998d783a8bb7fccac22e5`,
+`b3ed3a4af4b84e787180654fc7e863a61e8f79693c54b9f1efe75346996c8524`,
+`87764d365f592b091a8006ed178b13ce9d2da2b519638d19b35d88c3762243af`,
+`190081eb42bc82432033fc59f3bfb4386a74760f0f4b951ec46ad461a0f056f7`,
+`5647bfa524c25672c83d5daa2e515c33313fdf118c84afd29155e1e1e5cf1821`,
+`914d4ed7da56b7e459a98ff83c08f21a8a7e12a211ace0074afd41d1f3e40837`,
+`fb73f1356fd9f69d2474ec73fa01b0082ced979a1b1756166298ebad22fad01b`
+and
+`8ba59d04bd286ff2cbdbe48e08ffcba273858036a19da68dc01d409d2ed2e0d3`.
+
+The anchored block-local bridge is a finite positive result, not a continuum
+mass-gap proof. The next obligation is to cover translated blocks and increase
+the spatial volume without changing the retained rank.
+
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
