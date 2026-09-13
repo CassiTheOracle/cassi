@@ -15310,7 +15310,123 @@ physical normalization, particle spin/statistics/charges or a particle
 identity. Complete physical Cassi matter formation remains
 **Hypothesized/Open**.
 
+## 106. The leading angular continuation does not qualify autonomous formation
+
+The finite-core spherical $\kappa=-1$ witness does not extend to the
+degeneracy-weighted $\kappa=+1$ sector at the declared G3 resolution. The
+continuation evolves both $j=1/2$ channels with their full
+normal-ordered scalar source. It retains
+$(v,\lambda,g,R,A,r_s,w,a_c,T)=(1,\tfrac14,3,16,0.75,4,2,0.5,12)$, magnetic
+degeneracy two in each channel, the bound window $0<E\le1.5$, and the
+late-window observables of §105.
+
+The precision protocol is
+`computations/matter-formation-autonomous-shell-g3-two-channel-v2-prereg.md`
+(canonical SHA-256
+`d4db725f65826506a721261cea660f5840a172fe8c38ae07c698e2d0d21f0ac2`).
+The source-bound primary
+`computations/matter_formation_autonomous_shell_g3_two_channel.py`
+(canonical SHA-256
+`e389b9a5a68240171e1166a508ea1ee9f7f6edba834cb0113adfd76fa356e9e8`)
+uses eight RK4 substeps per listed interval. The independent program
+`computations/verify_matter_formation_autonomous_shell_g3_two_channel.py`
+(canonical SHA-256
+`f757196d376539413918f4cdb4608176d262dae3f012d1cd2f27331014ab2915`)
+uses DOP853 and reconstructs both occupied matrices without importing the
+primary. The primary receipt
+`runs/20260913_matter_formation_autonomous_shell_g3_two_channel_primary_v2/result.json`
+has raw SHA-256
+`8ce323e4f8b6db81a077f7b80521eabb4fc539711149c303e974e93a7340f57a`, and
+the independent receipt
+`runs/20260913_matter_formation_autonomous_shell_g3_two_channel_verification_v3/verification.json`
+has raw SHA-256
+`a6de5bb16e5c72a4451fb518317d50761fc75d2d598170540a738c3c172de64b`.
+
+The independent late-window measurements are:
+
+| Grid | Pair number | Bound occupation | Pair core | Bound core | Pair RMS | Bound RMS |
+|---|---:|---:|---:|---:|---:|---:|
+| G0 | 6.7350703 | 0.8048654 | 0.7501017 | 0.2322196 | 3.0002230 | 4.5182241 |
+| G1 | 9.2466567 | 1.0257112 | 0.6152257 | 0.0077431 | 3.9663820 | 5.7764825 |
+| G2 | 10.5914134 | 1.2122485 | 0.4821130 | 0.0002365 | 4.6325579 | 6.4976837 |
+
+The G0-to-G1 differences in pair number, bound core fraction, pair RMS and
+bound RMS are $2.5115864$, $0.2244765$, $0.9661590$ and $1.2582584$.
+The G1-to-G2 differences are $1.3447561$, $0.0075066$, $0.6661758$ and
+$0.7212012$. The G0-to-G1 pair-core difference is $0.1348761$ and the
+G1-to-G2 bound-core difference is $0.0075066$; the remaining candidate
+predicates fail through the occupation and radial-spread changes. Energy,
+particle–hole and control identities remain finite and numerically stable.
+The independent state comparison fails the G2 $\pi$ threshold
+($8.0166\times10^{-5}$ against $5\times10^{-5}$), so this continuation has
+no qualified scientific verdict. Its receipt is
+`runs/20260913_matter_formation_autonomous_shell_g3_two_channel_verification_v3/verification.json`.
+
+The spatial operator check replaces the nearest-neighbour derivative with the
+skew fourth-order stencil
+
+$$
+(D_4)_{i,i+1}=\frac{2}{3\Delta r},
+\qquad
+(D_4)_{i,i+2}=-\frac{1}{12\Delta r}.
+$$
+
+The frozen protocol is
+`computations/matter-formation-autonomous-shell-g3-two-channel-fourth-order-prereg.md`
+(canonical SHA-256
+`4e1c5e965497579cff4af3ed2f218b2bfdcaef6eac04de69f32e5827c1c1df7b`).
+The primary source
+`computations/matter_formation_autonomous_shell_g3_two_channel.py`
+has canonical SHA-256
+`e034fa551a8b929a6125aff9f312363bfe5039947abebb657a616e1efe2d9305`;
+the independent source
+`computations/verify_matter_formation_autonomous_shell_g3_two_channel.py`
+has canonical SHA-256
+`217cbdeb30b9045441d5b666b1bc05bde4a61770683feae39d8866c0c8322a4a`.
+The primary receipt
+`runs/20260913_matter_formation_autonomous_shell_g3_two_channel_fourth_order_primary_v1/result.json`
+has raw SHA-256
+`fc0e8844d0a41d32f6a53222854d0706e17c1bdf73a253df3237d430e271d146`;
+the independent receipt
+`runs/20260913_matter_formation_autonomous_shell_g3_two_channel_fourth_order_verification_v1/verification.json`
+has raw SHA-256
+`e1f6e946b1d83349ce64713726fe18e1c9c0e905e086011cd2e86092f0353ba9`.
+Its primary and verifier retain separate source identities and the same
+degeneracy-weighted channel equations. The independent late-window values
+are:
+
+| Grid | Pair number | Bound occupation | Pair core | Bound core | Pair RMS | Bound RMS |
+|---|---:|---:|---:|---:|---:|---:|
+| G0 | 4.2740408 | 0.7970572 | 0.6963961 | 0.4669623 | 3.4804340 | 4.1037477 |
+| G1 | 4.8077577 | 0.7092056 | 0.5860556 | 0.0491408 | 4.1546077 | 5.3160575 |
+| G2 | 5.3248683 | 0.7440151 | 0.4883295 | 0.0059386 | 4.9006294 | 6.0350351 |
+
+The fourth-order G0-to-G1 differences in pair number, bound core fraction,
+pair RMS and bound RMS are $0.5337169$, $0.4178214$, $0.6741736$ and
+$1.2123098$. The G1-to-G2 differences are $0.5171114$, $0.0432023$,
+$0.7460213$ and $0.7189776$. The independent verifier reproduces the
+summaries and controls, while its G2 state comparison fails the declared
+direct-state thresholds. The fourth-order result therefore also returns
+`INCONCLUSIVE`; its receipt is
+`runs/20260913_matter_formation_autonomous_shell_g3_two_channel_fourth_order_verification_v1/verification.json`.
+
+Adding the leading opposite-parity channel changes the radial occupation and
+drives the bound core fraction toward zero on the finer grids. The
+fourth-order skew operator changes the measured values but leaves
+adjacent-grid qualification and a localized bound subspace unqualified. This
+conditional failure is scoped to the finite-core two-channel mechanism; other
+microscopic actions and angular completions remain untested. The single-channel
+result in §105 remains scoped to $\kappa=-1$; nonradial persistence,
+ultraviolet renormalization, action selection, physical normalization and
+particle identity remain unmet requirements.
+
 ## References
+- `computations/matter-formation-autonomous-shell-g3-two-channel-v2-prereg.md`—degeneracy-weighted two-channel finite-core action, controls and precision contract.
+- `computations/matter-formation-autonomous-shell-g3-two-channel-fourth-order-prereg.md`—skew fourth-order spatial operator continuation and decision rule.
+- `computations/matter_formation_autonomous_shell_g3_two_channel.py`—two-channel primary evolution and source-bound archives.
+- `computations/verify_matter_formation_autonomous_shell_g3_two_channel.py`—independent two-channel DOP853 reconstruction and verifier.
+- `runs/20260913_matter_formation_autonomous_shell_g3_two_channel_primary_v2/` and `runs/20260913_matter_formation_autonomous_shell_g3_two_channel_verification_v3/`—precision two-channel receipts.
+- `runs/20260913_matter_formation_autonomous_shell_g3_two_channel_fourth_order_primary_v1/` and `runs/20260913_matter_formation_autonomous_shell_g3_two_channel_fourth_order_verification_v1/`—fourth-order two-channel receipts.
 - `computations/matter-formation-autonomous-shell-g3-prereg.md`—finite-core G3 autonomous action, initial data, bound spectral window, controls and scope.
 - `computations/matter-formation-autonomous-shell-g3-stability-prereg.md`—G3 numerical schedule, independent method, projector comparison and thresholds.
 - `computations/matter_formation_autonomous_shell.py`—source-bound primary autonomous finite-core evolution.

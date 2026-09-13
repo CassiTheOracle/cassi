@@ -2315,8 +2315,29 @@ remains **Hypothesized/Open**.
 The source, protocols, programs and receipts are listed in
 `computations/matter-formation-continuum-report.md` §105.
 
+## 33. The leading angular continuation is unqualified
+
+The two-channel continuation adds the spherical $\kappa=+1$ sector with
+magnetic degeneracy two and its normal-ordered scalar source to the
+finite-core $\kappa=-1$ calculation. Its independent pair numbers are
+$6.7350703$, $9.2466567$ and $10.5914134$ on G0, G1 and G2; bound-core
+fractions are $0.2322196$, $0.0077431$ and $0.0002365$. The declared
+adjacent-grid occupation/RMS and finest direct-state checks fail. A frozen
+skew fourth-order spatial operator changes the late-window pair numbers to
+$4.2740408$, $4.8077577$ and $5.3248683$, but its adjacent-grid and
+direct-state requirements also fail. The conditional failure is scoped to
+this finite-core two-channel continuation; other actions or angular
+completions remain untested. Nonradial persistence, ultraviolet
+renormalization, action selection, physical normalization and particle
+identity therefore remain open.
+
+The source, protocols, programs and receipts are listed in
+`computations/matter-formation-continuum-report.md` §106.
+
 ## References
 - `computations/matter-formation-continuum-report.md` §105—source-bound G3 finite-core autonomous formation witness and completion boundary.
+- `computations/matter-formation-autonomous-shell-g3-two-channel-v2-prereg.md`—precision two-channel angular continuation and decision rule.
+- `computations/matter-formation-autonomous-shell-g3-two-channel-fourth-order-prereg.md`—skew fourth-order operator continuation and decision rule.
 - `computations/matter-formation-autonomous-shell-g3-prereg.md`—G3 action, bound spectral window and conditional decision rule.
 - `computations/matter-formation-autonomous-shell-g3-stability-prereg.md`—G3 numerical stability and independent comparison protocol.
 - `computations/matter_formation_autonomous_shell.py`—primary finite-core autonomous evolution.

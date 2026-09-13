@@ -2203,6 +2203,18 @@ finite-core and spherical, with supplied coupling and regulator; continuum
 renormalization, all angular sectors, whole-bubble preparation, physical
 normalization and particle identification remain open.
 
+A two-channel continuation adds the $\kappa=+1$ spherical sector with
+magnetic degeneracy two and its normal-ordered backreaction. Its independent
+late-window pair numbers are $6.7350703$, $9.2466567$ and $10.5914134$ on
+G0, G1 and G2, while bound-core fractions are $0.2322196$, $0.0077431$ and
+$0.0002365$. The adjacent-grid occupation and RMS changes fail the frozen
+qualification, and the finest direct-state comparison also fails its stated
+threshold. A skew fourth-order spatial derivative changes the values to pair
+numbers $4.2740408$, $4.8077577$ and $5.3248683$, but its pair, bound-core
+and RMS comparisons remain unqualified. The evidence supports the
+single-channel scope of §105 and does not qualify nonradial persistence
+(`computations/matter-formation-continuum-report.md` §106).
+
 The conservative interscale action has a **Derived conditional**
 collective-response reduction. Eliminating density fluctuations gives
 positive phase inertia; admissible variation of the longitudinal

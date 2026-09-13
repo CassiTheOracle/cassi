@@ -615,6 +615,16 @@ normalization and particle identity remain open
 (`computations/matter-formation-continuum-report.md` §105;
 `foundations/matter-completion-boundary.md` §32).
 
+The leading angular continuation is not qualified. Adding the
+degeneracy-weighted spherical $\kappa=+1$ channel gives independent pair
+numbers $6.7350703$, $9.2466567$ and $10.5914134$ on G0, G1 and G2, with
+bound-core fractions $0.2322196$, $0.0077431$ and $0.0002365$. The declared
+adjacent-grid occupation/RMS and finest direct-state checks fail. The frozen
+skew fourth-order spatial operator changes the values but still fails
+qualification, so the finite-core result remains a spherical
+$\kappa=-1$ conditional witness rather than an all-angular-sector mechanism
+(`computations/matter-formation-continuum-report.md` §106).
+
 A complete physical matter-formation mechanism still requires one selected
 canonical microscopic action, a regulator-compatible state rule, physical
 normalization, localized real-time forming evolution, and an observable

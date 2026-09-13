@@ -187,6 +187,18 @@ and particle identity remain open
 (`computations/matter-formation-continuum-report.md` §105;
 `foundations/matter-completion-boundary.md` §32).
 
+The leading angular continuation is not yet qualified. Adding the
+degeneracy-weighted spherical $\kappa=+1$ channel gives independent pair
+numbers $6.7350703$, $9.2466567$ and $10.5914134$ on G0, G1 and G2, with
+bound-core fractions $0.2322196$, $0.0077431$ and $0.0002365$; the declared
+adjacent-grid and direct-state checks fail. Replacing the nearest-neighbour
+operator with the frozen skew fourth-order stencil changes the pair numbers
+to $4.2740408$, $4.8077577$ and $5.3248683$, but does not qualify
+nonradial persistence. The finite-core $\kappa=-1$ result therefore remains
+conditional and spherical, while all-angular-sector persistence,
+renormalized backreaction, physical normalization and particle identity
+remain open (`computations/matter-formation-continuum-report.md` §106).
+
 An explicitly supplied real-scalar Yukawa action gives a separate
 three-dimensional radial fermion-bag capture witness. A supplied positive
 $\kappa=-1$ packet deforms the scalar vacuum and remains localized across
