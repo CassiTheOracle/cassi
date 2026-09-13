@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Recovered finite $3\times2\times2$ $SU(2)$ Hamiltonian construction with frozen separation-based tail qualifications inconclusive; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem with an exact global-norm obstruction, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Recovered finite $3\times2\times2$ $SU(2)$ Hamiltonian construction with frozen separation-based tail qualifications inconclusive; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -30,7 +30,7 @@ density projection and a coherence-sensitive bubble coordinate. A physical
 phase law, a map from the regulated quantum configuration to these carriers,
 $\hbar$, quantum statistics, and measurement dynamics remain separate inputs.
 
-The pure-gauge comparison in §§9.4–9.23 retains full $SU(2)$ loop holonomies.
+The pure-gauge comparison in §§9.4–9.26 retains full $SU(2)$ loop holonomies.
 Gauss invariance supplies an electric closed-loop threshold, while the
 projective bubble variable discards Wilson magnetic energy. Quantum-lattice
 stability gives a volume-uniform interacting gap at sufficiently strong bare
@@ -85,6 +85,18 @@ a recovery floor tending to zero. The 58-check primary and 30-check
 independent reconstructions pass. Uniform recovery, shell-rate and
 score-transport bounds for the exact interacting vacuum, the four-dimensional
 continuum construction and microscopic Cassi identification remain open.
+
+On periodic cubic lattices, the normalized ground-space density has electric
+energy at most $2x$ per link. A cutoff on any fixed finite link support
+therefore has discarded mass at most $2x|S|/\kappa_C$, uniformly in spatial
+volume. The induced local-observable error vanishes as $C\to\infty$ at fixed
+$(x,S)$, and also along auxiliary schedules with $C(x)^2/x\to\infty$. A
+gauge-invariant product family on edge-disjoint loops has bounded electric
+energy density while its discarded whole-wavefunction norm tends to one at
+every fixed cutoff. Thus local cutoff control is volume uniform, whereas
+energy-density control alone cannot make global norm approximation volume
+uniform. These estimates construct neither a thermodynamic state nor the
+continuum theory.
 
 ---
 
@@ -5491,6 +5503,219 @@ regulator-independent mass gap.
 
 
 
+### 9.26 Volume-uniform local cutoff density and the global-norm obstruction
+
+Local character observables admit a graph-size-independent cutoff estimate.
+Electric-energy-density control alone does not make whole-wavefunction norm
+approximation volume uniform.
+
+Let $\Gamma_L$ be the periodic cubic lattice of side $L\geq3$, so
+$|E_L|=N_{p,L}=3L^3$, and let $H_L(x)=K+xV_L$ be the dimensionless
+Hamiltonian in (YM187). Write $\Pi_{0,L}$ for its ground-space projector and
+use the normalized ground-space density
+$\rho_{0,L}=\Pi_{0,L}/\operatorname{Tr}\Pi_{0,L}$. The lattice symmetry acts
+transitively on links and commutes with $\Pi_{0,L}$, so every link has the
+same electric expectation. The normalized constant function is
+gauge-invariant, has zero electric energy, and has plaquette expectation
+$\langle2-\chi_{1/2}(U_p)\rangle=2$ by normalized Haar orthogonality.
+Consequently,
+
+$$
+E_{0,L}(x)
+\leq 2xN_{p,L},
+\qquad
+\operatorname{Tr}(\rho_{0,L}K)
+\leq E_{0,L}(x),
+\qquad
+\boxed{
+\operatorname{Tr}(\rho_{0,L}K_e)\leq2x
+}
+\quad(e\in E_L).
+\tag{YM196}
+$$
+
+For a finite link set $S\subset E_L$, let $P_{C,e}$ retain doubled spins
+$n_e=2j_e\leq C$ on link $e$, put
+$P_{C,S}=\prod_{e\in S}P_{C,e}$, and set
+$Q_{C,S}=I-P_{C,S}$. These link-Casimir projectors commute. The union bound
+for commuting projections and the first excluded Casimir in (YM192) give the
+operator inequality
+
+$$
+\boxed{
+Q_{C,S}
+\preceq
+\sum_{e\in S}(I-P_{C,e})
+\preceq
+\frac1{\kappa_C}\sum_{e\in S}K_e,
+\qquad
+\kappa_C=\frac{(C+1)(C+3)}4.
+}
+\tag{YM197}
+$$
+
+The discarded local mass of the symmetric ground-space density therefore
+satisfies
+
+$$
+\boxed{
+\delta_{C,S}(L,x)
+:=\operatorname{Tr}(\rho_{0,L}Q_{C,S})
+\leq
+b_{C,S}(x)
+:=\frac{2x|S|}{\kappa_C}
+=\frac{8x|S|}{(C+1)(C+3)}.
+}
+\tag{YM198}
+$$
+
+Whenever $b_{C,S}(x)<1$, normalize the locally truncated density by
+
+$$
+\rho_{0,L}^{(C,S)}
+:=
+\frac{P_{C,S}\rho_{0,L}P_{C,S}}
+{\operatorname{Tr}(P_{C,S}\rho_{0,L})}.
+$$
+
+The gentle-measurement estimate, followed by normalization, yields
+
+$$
+\left\|
+\rho_{0,L}^{(C,S)}-\rho_{0,L}
+\right\|_1
+\leq
+2\sqrt{\delta_{C,S}}+\delta_{C,S}
+\leq
+2\sqrt{b_{C,S}}+b_{C,S}.
+\tag{YM199}
+$$
+
+Thus every bounded observable $A$ supported on $S$ obeys
+
+$$
+\boxed{
+\left|
+\operatorname{Tr}\!\left[
+A\left(\rho_{0,L}^{(C,S)}-\rho_{0,L}\right)
+\right]
+\right|
+\leq
+\|A\|\left(2\sqrt{b_{C,S}}+b_{C,S}\right),
+}
+\tag{YM200}
+$$
+
+uniformly in $L$. At fixed $x$ and fixed $S$, the right-hand side tends to
+zero as $C\to\infty$. Since $x=2/g^4$ grows on a weak-bare-coupling
+trajectory, a joint auxiliary-cutoff schedule also has vanishing local error
+whenever
+
+$$
+x_k\longrightarrow\infty,
+\qquad
+C_k\longrightarrow\infty,
+\qquad
+\boxed{
+\frac{C_k^2}{x_k}\longrightarrow\infty.
+}
+\tag{YM201}
+$$
+
+This is a sufficient character-cutoff schedule for the local estimate. It is
+not a weak-coupling field estimate and does not construct a limiting vacuum.
+
+The corresponding whole-wavefunction statement fails under an energy-density
+hypothesis. Let $P_C^{\mathrm{all}}$ retain doubled spins at most $C$ on every
+link and put $Q_C^{\mathrm{all}}=I-P_C^{\mathrm{all}}$. Choose $N$
+edge-disjoint elementary plaquettes, use the constant wavefunction on every
+unused link and, for $0<q<1$, define the normalized class function and
+gauge-invariant product state
+
+$$
+f_q(U)
+=
+\sqrt{1-q^2}
+\sum_{n=0}^{\infty}q^n\chi_{n/2}(U),
+\qquad
+\Psi_{q,N}
+=
+\prod_{r=1}^{N}f_q(U_{p_r}).
+\tag{YM202}
+$$
+
+Character orthogonality and edge disjointness give
+
+$$
+\boxed{
+\frac1N
+\langle\Psi_{q,N},K\Psi_{q,N}\rangle
+=
+\frac{q^2(3-q^2)}{(1-q^2)^2},
+\qquad
+\|P_C^{\mathrm{all}}\Psi_{q,N}\|_2^2
+=
+\left(1-q^{2(C+1)}\right)^N.
+}
+\tag{YM203}
+$$
+
+The loops occupy $4N$ distinct links, so the electric-energy density is at
+most one quarter of the displayed finite energy per loop, independently of
+$N$. Nevertheless, at every fixed $C$,
+
+$$
+\boxed{
+\|Q_C^{\mathrm{all}}\Psi_{q,N}\|_2^2
+=
+1-\left(1-q^{2(C+1)}\right)^N
+\longrightarrow1
+\qquad(N\to\infty).
+}
+\tag{YM204}
+$$
+
+For fixed $0<q<1$ and $0<\varepsilon<1$, the exact least nonnegative cutoff
+with retained squared norm at least $1-\varepsilon$ is
+
+$$
+\boxed{
+C_{\min}(N,q,\varepsilon)
+=
+\max\!\left\{
+0,\,
+\left\lceil
+\frac{
+\log\!\left(1-(1-\varepsilon)^{1/N}\right)
+}{
+2\log q
+}
+-1
+\right\rceil
+\right\}
+=\Theta(\log N).
+}
+\tag{YM205}
+$$
+
+The frozen protocol
+`computations/yang-mills-local-cutoff-density-prereg.md` evaluates 1,536
+local rows, seven auxiliary joint-cutoff rows and 180 product-family rows.
+The primary verifier passes 16/16 checks; the source-independent JavaScript
+reconstruction passes 17/17 and agrees on every row. Exactly 1,152 local rows
+meet the declared $b_{C,S}<1$ applicability condition, the maximum
+fixed-$(x,|S|,C)$ spread over all eight volumes is zero, and the firing row
+$(q,C,N)=(1/2,2,512)$ has discarded norm
+$0.9996850695596114>0.999$.
+
+Equations (YM196)–(YM205) control fixed-support observables of the symmetric
+finite-volume ground-space density and exclude global norm control from
+energy density alone. They provide no compatible thermodynamic family,
+clustering theorem, reflection-positive Euclidean measure,
+Osterwalder–Schrader reconstruction, lattice-spacing limit or physical mass
+gap.
+
+
 ---
 
 ## 10. Physical tests and rejection conditions
@@ -5565,8 +5790,9 @@ microscopic completions.
 | Finite-level martingale transport criterion (YM171)–(YM182) | **Derived conditional** finite-regulator theorem | Full-filtration/gauge-domain identity, energy comparison, and uniformly controlled weighted transport operator are required; exact Yang–Mills shell, recovery and weak-coupling bounds remain open |
 | Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM186) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre; the projected Ritz density makes the cutoff measure's conditional gap vanish identically at the rows carrying a resolved path sign change, and the twelve-row path and two-parameter torus families confine that zero-gap region to the strong-coupling rows; the exact-vacuum fibre rate remains required |
 | Fixed-graph character-cutoff form theorem (YM187)–(YM195) | **Derived** within every fixed finite regulated graph | Exact tree-gauge Haar disintegration, equivalent electric forms, form-core convergence, separation-free discarded-mass bound and noncommuting Ritz-error bound; constants are not uniform in graph size, coupling or lattice spacing |
+| Volume-uniform local cutoff density and global-norm obstruction (YM196)–(YM205) | **Derived** local finite-volume theorem and **Derived** obstruction | On periodic cubic lattices, every fixed-support ground-density observable has a character-cutoff error uniform in volume; bounded electric energy density alone cannot control whole-wavefunction cutoff norm, and no thermodynamic or continuum state is constructed |
 | Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, conditional-rate cutoff removal and continuum construction remain open |
-| Finite open-cube SU(2) basis and oriented Wilson support | **Derived** finite-regulator construction | The open $2\times2\times2$ cube has 32 and 1013 gauge-invariant raw trivalent-$3j$ states at doubled cutoffs $C=1,2$; every six signed fundamental plaquette operators has 32 and 2388 nonzero candidate-supported directed entries, with finite Hermitian contractions; fixed-graph character-cutoff removal follows from (YM187)–(YM195), while volume-uniform and continuum control remain open |
+| Finite open-cube SU(2) basis and oriented Wilson support | **Derived** finite-regulator construction | The open $2\times2\times2$ cube has 32 and 1013 gauge-invariant raw trivalent-$3j$ states at doubled cutoffs $C=1,2$; every six signed fundamental plaquette operators has 32 and 2388 nonzero candidate-supported directed entries, with finite Hermitian contractions; fixed-graph character-cutoff removal follows from (YM187)–(YM195), while a growing open-boundary family and continuum control remain open |
 | Larger-volume/cutoff SU(2) Hamiltonian | **Derived** recovered finite-regulator construction and fixed-graph cutoff removal; **INCONCLUSIVE** frozen separation qualifications | The open $3\times2\times2$ graph has 868 and 955835 complete gauge-invariant states at doubled cutoffs $C=1,2$; the recovery enforces spectator-intertwiner orthogonality, all 226 finite-construction checks and 256 independent checks pass, every scheduled ground energy is nonnegative, and the separation-free theorem removes the character cutoff only after this graph and coupling are fixed |
 | Continuum Yang–Mills existence and mass gap | **Open** | Vacuum-subtracted uniform control and continuum construction |
 
@@ -5971,8 +6197,9 @@ The largest Hermiticity and dagger residual is
 $5.55\times10^{-17}$, and the deterministic forbidden-pair samples vanish.
 This supplies a finite three-dimensional operator layer. The form theorem in
 §9.25 removes the character cutoff after this graph and coupling are fixed.
-Volume-uniform and weak-coupling-uniform estimates, thermodynamic construction,
-OS reconstruction and a physical mass gap remain **UNRESOLVED**.
+A volume-uniform estimate for this growing open-boundary family,
+weak-coupling control, thermodynamic construction, OS reconstruction and a
+physical mass gap remain **UNRESOLVED**.
 
 The larger-volume construction is governed by the scientific protocol
 `computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md` and the
@@ -6021,9 +6248,36 @@ checks, including 84/84 tail and 67/67 applicable Ritz inequalities. The
 independent receipt
 `runs/yang_mills_finite_graph_cutoff_form/verification-independent.json`
 passes 18/18 checks and reconstructs all 84 spectral rows. Both receipts record
-`continuum_hypotheses_present=false` and `clay_verdict=NULL`. Spatial-volume
-uniformity, a weak-coupling-uniform rate, the thermodynamic limit, OS
+`continuum_hypotheses_present=false` and `clay_verdict=NULL`. These
+fixed-graph receipts supply no growing-graph rate. Section 9.26 gives
+fixed-support spatial-volume uniformity on periodic cubic lattices; a
+weak-coupling field estimate, compatible thermodynamic limit, OS
 reconstruction and the physical mass gap remain **UNRESOLVED**.
+
+The local-density extension in §9.26 is bound by
+`computations/yang-mills-local-cutoff-density-prereg.md`, the primary
+`computations/verify_yang_mills_local_cutoff_density.py` and the independent
+`computations/verify_yang_mills_local_cutoff_density_independent.mjs`. The
+primary receipt passes 16/16 checks over 1,536 local rows, seven auxiliary
+joint-cutoff rows and 180 product-family rows. The independent receipt passes
+17/17 checks and reconstructs every primary value exactly. Of the local rows,
+1,152 satisfy $b_{C,S}<1$; their fixed-parameter spread across
+$L\in\{3,4,6,8,12,16,24,32\}$ is zero. The product-family firing control has
+discarded global norm $0.9996850695596114$.
+
+Both receipts bind protocol SHA-256
+`69fe2a132dbccec4484bb6fc5f3d1b75dc95e88d5de7687774ab17e69c0e6789`.
+The primary and independent source hashes are
+`9584c4027c4be798c0a9687da78e1a977bba255ee1323bde76086022ddc4ec2c`
+and
+`f20a0e8c8e08b3081aa796ac827d3748561d7eac395b9374d9dc529e650933c1`;
+the independent receipt binds primary-receipt SHA-256
+`7c90eb75f7d50965eae5edad2183a7ae6074fbf82c72e2481d68197c5880aae1`.
+Both set `thermodynamic_limit_constructed=false`,
+`continuum_hypotheses_present=false` and `clay_verdict=NULL`. The theorem
+removes graph-size dependence for fixed-support cutoff errors. It does not
+construct the thermodynamic state, establish clustering, control the
+lattice-spacing limit or prove a physical mass gap.
 
 ---
 
@@ -6125,8 +6379,19 @@ reconstruction and the physical mass gap remain **UNRESOLVED**.
 - `computations/verify_yang_mills_finite_graph_cutoff_form_independent.py`—18-check dense independent reconstruction and receipt audit
 - `runs/yang_mills_finite_graph_cutoff_form/verification.json`—primary fixed-graph cutoff-form receipt with a `NULL` Clay verdict
 - `runs/yang_mills_finite_graph_cutoff_form/verification-independent.json`—independent source- and receipt-bound reconstruction
-- `runs/yang_mills_continuum_boundary_audit/verification.json`—25-check v3 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, excluded defect provenance and the unresolved continuum boundary
-- `computations/verify_yang_mills_continuum_boundary_audit.py`—25-check source, receipt, recovery-snapshot and continuum-boundary audit
+- `computations/yang-mills-local-cutoff-density-prereg.md`—frozen
+  multi-volume local cutoff, joint auxiliary schedule and global-obstruction
+  protocol
+- `computations/verify_yang_mills_local_cutoff_density.py`—16-check
+  source-bound local-density and product-family verifier
+- `computations/verify_yang_mills_local_cutoff_density_independent.mjs`—17-check
+  independent reconstruction and receipt-binding audit
+- `runs/yang_mills_local_cutoff_density/verification.json`—primary
+  local-cutoff-density receipt with a `NULL` Clay verdict
+- `runs/yang_mills_local_cutoff_density/verification-independent.json`—independent
+  source- and receipt-bound reconstruction
+- `runs/yang_mills_continuum_boundary_audit/verification.json`—29-check v4 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, excluded defect provenance and the unresolved continuum boundary
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—29-check source, receipt, recovery-snapshot and continuum-boundary audit
 - D. Bakry, I. Gentil and M. Ledoux, *Analysis and Geometry of Markov
   Diffusion Operators*—Poincaré, Poisson and carré-du-champ framework
 - C. Villani, *Optimal Transport: Old and New*—continuity equations and

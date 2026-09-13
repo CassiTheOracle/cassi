@@ -79,6 +79,25 @@ CUTOFF_FORM_INDEPENDENT_RECEIPT = (
     / "yang_mills_finite_graph_cutoff_form"
     / "verification-independent.json"
 )
+LOCAL_CUTOFF_PROTOCOL = (
+    ROOT / "computations" / "yang-mills-local-cutoff-density-prereg.md"
+)
+LOCAL_CUTOFF_PRIMARY_SOURCE = (
+    ROOT / "computations" / "verify_yang_mills_local_cutoff_density.py"
+)
+LOCAL_CUTOFF_INDEPENDENT_SOURCE = (
+    ROOT / "computations" / "verify_yang_mills_local_cutoff_density_independent.mjs"
+)
+LOCAL_CUTOFF_PRIMARY_RECEIPT = (
+    ROOT / "runs" / "yang_mills_local_cutoff_density" / "verification.json"
+)
+LOCAL_CUTOFF_INDEPENDENT_RECEIPT = (
+    ROOT
+    / "runs"
+    / "yang_mills_local_cutoff_density"
+    / "verification-independent.json"
+)
+
 
 
 EXCLUDED_PRIMARY_RECEIPT = Path("D:/Cassi-ym-larger-volume/verification-final2.json")
@@ -122,8 +141,8 @@ MISSING_CLAY_OBLIGATIONS = [
     "reflection-positive Euclidean Schwinger functions and OS/Wightman reconstruction",
     "renormalized local gauge-invariant field content with the required short-distance behavior",
     "uniform weak-coupling estimates along a->0",
-    "spatial-volume- and lattice-spacing-uniform character-cutoff estimates",
-    "thermodynamic limit L^3->infinity",
+    "compatible thermodynamic ground-state limit with clustering",
+    "lattice-spacing-uniform interacting estimates beyond fixed-support character tails",
     "regulator-independent positive gauge-invariant mass gap",
     "extension from SU(2) to every compact simple gauge group",
 ]
@@ -260,6 +279,11 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         CUTOFF_FORM_INDEPENDENT_SOURCE,
         CUTOFF_FORM_PRIMARY_RECEIPT,
         CUTOFF_FORM_INDEPENDENT_RECEIPT,
+        LOCAL_CUTOFF_PROTOCOL,
+        LOCAL_CUTOFF_PRIMARY_SOURCE,
+        LOCAL_CUTOFF_INDEPENDENT_SOURCE,
+        LOCAL_CUTOFF_PRIMARY_RECEIPT,
+        LOCAL_CUTOFF_INDEPENDENT_RECEIPT,
         EXCLUDED_PRIMARY_RECEIPT,
         EXCLUDED_INDEPENDENT_RECEIPT,
     ]
@@ -298,6 +322,8 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
     independent = load_json(INDEPENDENT_RECEIPT)
     cutoff_form_primary = load_json(CUTOFF_FORM_PRIMARY_RECEIPT)
     cutoff_form_independent = load_json(CUTOFF_FORM_INDEPENDENT_RECEIPT)
+    local_cutoff_primary = load_json(LOCAL_CUTOFF_PRIMARY_RECEIPT)
+    local_cutoff_independent = load_json(LOCAL_CUTOFF_INDEPENDENT_RECEIPT)
 
     current_protocol = validate_protocol_snapshot_relation()
     hashes = {
@@ -319,6 +345,13 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         "cutoff_form_primary_receipt": sha256(CUTOFF_FORM_PRIMARY_RECEIPT),
         "cutoff_form_independent_receipt": sha256(
             CUTOFF_FORM_INDEPENDENT_RECEIPT
+        ),
+        "local_cutoff_protocol": sha256(LOCAL_CUTOFF_PROTOCOL),
+        "local_cutoff_primary_source": sha256(LOCAL_CUTOFF_PRIMARY_SOURCE),
+        "local_cutoff_independent_source": sha256(LOCAL_CUTOFF_INDEPENDENT_SOURCE),
+        "local_cutoff_primary_receipt": sha256(LOCAL_CUTOFF_PRIMARY_RECEIPT),
+        "local_cutoff_independent_receipt": sha256(
+            LOCAL_CUTOFF_INDEPENDENT_RECEIPT
         ),
         "excluded_primary_receipt": sha256(EXCLUDED_PRIMARY_RECEIPT),
         "excluded_independent_receipt": sha256(EXCLUDED_INDEPENDENT_RECEIPT),
@@ -464,6 +497,100 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         independent_rows=cutoff_independent_spectrum.get("row_count"),
         firing_margin=cutoff_firing.get("incomplete_bound_violation_margin"),
     )
+    local_primary_summary = local_cutoff_primary.get("local_summary", {})
+    check(
+        "local cutoff-density primary passes and retains the Clay boundary",
+        local_cutoff_primary.get("schema")
+        == "cassi.yang_mills_local_cutoff_density.v1"
+        and local_cutoff_primary.get("status") == "PASS"
+        and local_cutoff_primary.get("local_cutoff_status") == "PASS"
+        and local_cutoff_primary.get("checks_passed")
+        == local_cutoff_primary.get("checks_total")
+        == 16
+        and local_primary_summary.get("attempted") == 1536
+        and local_primary_summary.get("applicable") == 1152
+        and close(local_primary_summary.get("maximum_volume_spread"), 0.0)
+        and local_cutoff_primary.get("global_norm_uniformity")
+        == "EXCLUDED_BY_PRODUCT_FAMILY"
+        and local_cutoff_primary.get("thermodynamic_limit_constructed") is False
+        and local_cutoff_primary.get("continuum_hypotheses_present") is False
+        and local_cutoff_primary.get("clay_verdict") == "NULL",
+        status=local_cutoff_primary.get("status"),
+        passed_count=local_cutoff_primary.get("checks_passed"),
+        total=local_cutoff_primary.get("checks_total"),
+        local_summary=local_primary_summary,
+        clay_verdict=local_cutoff_primary.get("clay_verdict"),
+    )
+    local_independent_summary = local_cutoff_independent.get("local_summary", {})
+    check(
+        "local cutoff-density independent reconstruction passes",
+        local_cutoff_independent.get("schema")
+        == "cassi.yang_mills_local_cutoff_density.independent.v1"
+        and local_cutoff_independent.get("status") == "PASS"
+        and local_cutoff_independent.get("local_cutoff_status") == "PASS"
+        and local_cutoff_independent.get("checks_passed")
+        == local_cutoff_independent.get("checks_total")
+        == 17
+        and local_independent_summary.get("attempted") == 1536
+        and local_independent_summary.get("applicable") == 1152
+        and close(local_independent_summary.get("maximum_primary_difference"), 0.0)
+        and local_cutoff_independent.get("global_norm_uniformity")
+        == "EXCLUDED_BY_PRODUCT_FAMILY"
+        and local_cutoff_independent.get("thermodynamic_limit_constructed")
+        is False
+        and local_cutoff_independent.get("continuum_hypotheses_present") is False
+        and local_cutoff_independent.get("clay_verdict") == "NULL",
+        status=local_cutoff_independent.get("status"),
+        passed_count=local_cutoff_independent.get("checks_passed"),
+        total=local_cutoff_independent.get("checks_total"),
+        local_summary=local_independent_summary,
+        clay_verdict=local_cutoff_independent.get("clay_verdict"),
+    )
+    local_primary_inputs = local_cutoff_primary.get("inputs", {})
+    local_independent_inputs = local_cutoff_independent.get("inputs", {})
+    check(
+        "local cutoff protocol sources and primary receipt are hash bound",
+        local_primary_inputs.get("protocol", {}).get("sha256")
+        == local_independent_inputs.get("protocol", {}).get("sha256")
+        == hashes["local_cutoff_protocol"]
+        and local_primary_inputs.get("primary_source", {}).get("sha256")
+        == local_independent_inputs.get("primary_source", {}).get("sha256")
+        == hashes["local_cutoff_primary_source"]
+        and local_independent_inputs.get("independent_source", {}).get("sha256")
+        == hashes["local_cutoff_independent_source"]
+        and local_independent_inputs.get("primary_receipt", {}).get("sha256")
+        == hashes["local_cutoff_primary_receipt"],
+        protocol_sha256=hashes["local_cutoff_protocol"],
+        primary_source_sha256=hashes["local_cutoff_primary_source"],
+        independent_source_sha256=hashes["local_cutoff_independent_source"],
+        primary_receipt_sha256=hashes["local_cutoff_primary_receipt"],
+    )
+    local_joint = local_cutoff_primary.get("joint_cutoff_rows", [])
+    local_joint_tails = [float(row["local_tail_bound"]) for row in local_joint]
+    local_obstruction = local_cutoff_primary.get("global_obstruction", {})
+    local_firing = local_obstruction.get("firing_control", {})
+    check(
+        "local auxiliary schedule and global-norm firing control pass",
+        len(local_joint) == 7
+        and all(
+            close(row["cutoff_squared_over_x"], float(row["scale_k"]) ** 2)
+            for row in local_joint
+        )
+        and all(
+            right < left
+            for left, right in zip(local_joint_tails, local_joint_tails[1:])
+        )
+        and len(local_obstruction.get("rows", [])) == 180
+        and local_firing.get("q") == 0.5
+        and local_firing.get("cutoff_C") == 2
+        and local_firing.get("loops_N") == 512
+        and local_firing.get("discarded_global_norm_sq", 0.0) > 0.999,
+        joint_rows=len(local_joint),
+        joint_tail_bounds=local_joint_tails,
+        obstruction_rows=len(local_obstruction.get("rows", [])),
+        firing_control=local_firing,
+    )
+
 
 
     receipt_protocol_hashes = {
@@ -635,21 +762,24 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
 
     theory = THEORY_SOURCE.read_text(encoding="utf-8")
     check(
-        "theory separates fixed-graph cutoff removal from the open Clay target",
-        "Fixed-graph character-cutoff form theorem (YM187)\u2013(YM195) | **Derived**"
+        "theory separates local cutoff control from the open Clay target",
+        "Fixed-graph character-cutoff form theorem (YM187)–(YM195) | **Derived**"
+        in theory
+        and "Volume-uniform local cutoff density and global-norm obstruction "
+        "(YM196)–(YM205) | **Derived**"
         in theory
         and "`continuum_hypotheses_present=false` and `clay_verdict=NULL`"
         in theory
-        and "Continuum Yang\u2013Mills existence and mass gap | **Open**" in theory,
+        and "Continuum Yang–Mills existence and mass gap | **Open**" in theory,
     )
 
     all_passed = all(row["passed"] for row in checks)
     record: dict[str, Any] = {
-        "schema": "yang_mills_continuum_boundary_audit_v3",
+        "schema": "yang_mills_continuum_boundary_audit_v4",
         "status": "PASS" if all_passed else "FAIL",
         "verdict": "UNRESOLVED_CONTINUUM_PROBLEM",
         "clay_verdict": "NULL",
-        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence and fixed-graph cutoff removal against the Clay Yang-Mills existence and mass-gap obligations",
+        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence, fixed-graph cutoff removal, and volume-uniform local cutoff control against the Clay Yang-Mills existence and mass-gap obligations",
         "audit_source": {
             "path": display_path(SOURCE),
             "sha256": hashes["audit_source"],
@@ -716,6 +846,28 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
                 "sha256": hashes["cutoff_form_independent_receipt"],
                 "bytes": CUTOFF_FORM_INDEPENDENT_RECEIPT.stat().st_size,
             },
+            "local_cutoff_protocol": {
+                "path": display_path(LOCAL_CUTOFF_PROTOCOL),
+                "sha256": hashes["local_cutoff_protocol"],
+            },
+            "local_cutoff_primary_source": {
+                "path": display_path(LOCAL_CUTOFF_PRIMARY_SOURCE),
+                "sha256": hashes["local_cutoff_primary_source"],
+            },
+            "local_cutoff_independent_source": {
+                "path": display_path(LOCAL_CUTOFF_INDEPENDENT_SOURCE),
+                "sha256": hashes["local_cutoff_independent_source"],
+            },
+            "local_cutoff_primary_receipt": {
+                "path": display_path(LOCAL_CUTOFF_PRIMARY_RECEIPT),
+                "sha256": hashes["local_cutoff_primary_receipt"],
+                "bytes": LOCAL_CUTOFF_PRIMARY_RECEIPT.stat().st_size,
+            },
+            "local_cutoff_independent_receipt": {
+                "path": display_path(LOCAL_CUTOFF_INDEPENDENT_RECEIPT),
+                "sha256": hashes["local_cutoff_independent_receipt"],
+                "bytes": LOCAL_CUTOFF_INDEPENDENT_RECEIPT.stat().st_size,
+            },
         },
         "protocol_snapshot_audit": {
             "current_reference": CURRENT_REFERENCE.decode("utf-8"),
@@ -768,6 +920,27 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "continuum_hypotheses_present": False,
             "clay_verdict": "NULL",
         },
+        "local_cutoff_density": {
+            "classification": "DERIVED_VOLUME_UNIFORM_FIXED_SUPPORT",
+            "global_norm_uniformity": "EXCLUDED_BY_PRODUCT_FAMILY",
+            "primary_status": local_cutoff_primary["local_cutoff_status"],
+            "primary_checks_passed": local_cutoff_primary["checks_passed"],
+            "primary_checks_total": local_cutoff_primary["checks_total"],
+            "independent_status": local_cutoff_independent["local_cutoff_status"],
+            "independent_checks_passed": local_cutoff_independent["checks_passed"],
+            "independent_checks_total": local_cutoff_independent["checks_total"],
+            "local_rows_attempted": local_primary_summary["attempted"],
+            "local_rows_applicable": local_primary_summary["applicable"],
+            "maximum_volume_spread": local_primary_summary[
+                "maximum_volume_spread"
+            ],
+            "joint_cutoff_rows": len(local_joint),
+            "global_obstruction_rows": len(local_obstruction["rows"]),
+            "firing_control": local_firing,
+            "thermodynamic_limit_constructed": False,
+            "continuum_hypotheses_present": False,
+            "clay_verdict": "NULL",
+        },
         "cutoff_tail_evidence": {
             "qualifications": primary["cutoff_qualifications"],
             "useful_tail_rows": primary["useful_tail_rows"],
@@ -796,8 +969,8 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "unproved_inputs": [
                 "uniform interacting fibre and coarse Poincare margins",
                 "uniform transport-score or mixed-Hessian bounds",
-                "graph-size-, weak-coupling-, and lattice-spacing-uniform character-cutoff control",
-                "thermodynamic control",
+                "weak-coupling- and lattice-spacing-uniform interacting estimates",
+                "compatible thermodynamic ground-state family, clustering, and local-limit compactness",
             ],
         },
         "regime_check": {
@@ -815,7 +988,7 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "conclusion": "positive local conditional rates alone do not imply a volume-uniform global gap",
         },
         "missing_clay_obligations": MISSING_CLAY_OBLIGATIONS,
-        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction, and the form theorem removes the character cutoff after the graph, coupling and low-energy index are fixed. Its constants are not uniform in graph size, weak coupling or lattice spacing, and no continuum Yang-Mills construction or regulator-independent mass-gap theorem is supplied.",
+        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction; the form theorem removes the character cutoff after the graph, coupling and low-energy index are fixed; and the local-density theorem controls every fixed support uniformly over periodic cubic volumes. The product family excludes global norm control from energy density alone. No compatible thermodynamic state, weak-coupling continuum construction or regulator-independent mass-gap theorem is supplied.",
     }
 
     if not all_passed:
@@ -847,7 +1020,10 @@ def main() -> None:
         "independent="
         f"{record['finite_evidence']['independent_checks_passed']}/"
         f"{record['finite_evidence']['independent_checks_total']} "
-        f"tails={record['cutoff_tail_evidence']['classification']}"
+        f"tails={record['cutoff_tail_evidence']['classification']} "
+        "local="
+        f"{record['local_cutoff_density']['primary_checks_passed']}/"
+        f"{record['local_cutoff_density']['primary_checks_total']}"
     )
 
 

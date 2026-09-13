@@ -53,7 +53,7 @@ the missing metric and orbit-matching rule. Running and measured-scale
 comparisons are in `sm-radiative-corrections.md`.
 
 The pure Yang–Mills comparison is in
-`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.23. Its state
+`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.26. Its state
 space and Hamiltonian come from source-free quantum $SU(2)$ lattice gauge
 theory, with no isospinor matter or symmetry-breaking potential. It gives
 regulated electric-loop and projective-information boundaries, a
@@ -83,6 +83,16 @@ transported-score estimates. The conditional Poisson inverse sharpens this
 to $\lambda_f\geq C_{-1}^{-1}$ using the minimum vertical transport cost
 $\vartheta$ and gives an exact coarse/vertical/output margin budget. The
 118/90 geometry, 86/32 transport-score and 58/30 recovery controls pass.
+
+The finite-graph form theorem removes the character cutoff at fixed graph,
+coupling and low-energy index. On periodic cubic lattices, the normalized
+ground-space density further gives the fixed-support bound
+$\operatorname{Tr}(\rho_{0,L}Q_{C,S})\leq2x|S|/\kappa_C$, uniformly in
+spatial volume. The associated 16/16 primary and 17/17 independent checks
+pass. An exact product family with bounded electric energy density has
+discarded whole-wavefunction norm tending to one at fixed cutoff. The local
+bound does not construct a thermodynamic state or control the
+lattice-spacing limit.
 
 Coupled boundary-sector amplitudes and self-energy control, a uniform
 interacting-vacuum residual-recovery floor and transported-score upper bound,

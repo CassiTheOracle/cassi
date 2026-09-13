@@ -298,6 +298,16 @@ a projection theorem. The microscopic identification, phase dynamics,
 QF1-to-carrier state map, quantum postulates, and physical scale law remain
 independent. See `foundations/loop-to-bubble-projection-theorem.md`.
 
+The same source develops a regulated pure-$SU(2)$ comparison. Character
+cutoffs converge on each fixed finite graph, and the normalized ground-space
+density on periodic cubic lattices has a fixed-support cutoff error bounded
+uniformly in spatial volume. An edge-disjoint loop family shows that bounded
+electric-energy density alone cannot provide a volume-uniform whole-state
+norm estimate. The fixed-support result is **Derived** at fixed coupling.
+A compatible thermodynamic limit, clustering, a weak-coupling continuum
+construction, Osterwalder–Schrader reconstruction and a regulator-independent
+positive mass gap remain open; the Clay verdict is `NULL`.
+
 The geometric manifold completion ansatz places these finite structures in
 one stratified bundle. A positive Hermitian Yang/Yin fibre contains the
 canonical density pair on its diagonal, the loop coherence state in its

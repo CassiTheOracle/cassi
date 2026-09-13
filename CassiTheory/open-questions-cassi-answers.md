@@ -763,7 +763,7 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
-The separate pure-gauge comparison in that document, §§9.4–9.25, uses the
+The separate pure-gauge comparison in that document, §§9.4–9.26, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
 projective bubble coordinate discards a phase required by Wilson magnetic
@@ -854,6 +854,19 @@ Both receipts set `continuum_hypotheses_present=false` and
 `clay_verdict=NULL`. This removes the character cutoff after the finite graph,
 coupling and low-energy index are fixed. It supplies no uniform graph-size,
 weak-coupling or lattice-spacing estimate.
+
+The local-density theorem in §9.26 removes graph-size dependence for a
+different cutoff question. On periodic cubic lattices, the normalized
+ground-space density obeys
+$\operatorname{Tr}(\rho_{0,L}K_e)\leq2x$ on every link, so a cutoff on any
+fixed link support $S$ has discarded mass at most
+$2x|S|/\kappa_C$, uniformly in $L$. The induced local-observable error tends
+to zero at fixed $(x,S)$ as $C\to\infty$. The primary and independent
+verifiers pass 16/16 and 17/17 checks over 1,536 local rows and 180
+product-family rows. The product family has bounded electric energy density
+while its discarded global norm tends to one at fixed cutoff, so an
+energy-density bound cannot provide volume-uniform whole-wavefunction norm
+control. Neither estimate constructs the thermodynamic or continuum vacuum.
 
 The Poincaré-geometry analysis separates spatial and link three-spheres. A
 closed simply connected spatial slice is topologically $S^3$, and a round
@@ -957,8 +970,9 @@ $\lambda_{\mathrm{fib}}$, a vertical field solving the exact-vacuum score
 transport equation with the required $H^{-1}$ upper bound, a strict
 coarse-rate margin, the thermodynamic and four-dimensional continuum limits,
 a regulator-independent mass gap and carrier-state identification remain
-open. The fixed-graph character form theorem supplies none of these uniform
-constants. The $L^2$ route through $\kappa$ remains sufficient. The QF/DQ/GQ
+open. The local character-cutoff theorem controls fixed-support tails
+uniformly in volume but supplies none of these infrared or vacuum-convergence
+estimates. The $L^2$ route through $\kappa$ remains sufficient. The QF/DQ/GQ
 classifications remain unchanged.
 
 The completion ansatz in
@@ -2510,14 +2524,17 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   $3\times2\times2$ Hamiltonian construction passes 226/226 primary and
   256/256 independent finite checks with nonnegative scheduled spectra.
   Every aggregate separation-based character-tail qualification is
-  `INCONCLUSIVE`. The analytic form theorem nevertheless removes the character
-  cutoff at each fixed finite graph and coupling; its 22/22 primary and 18/18
-  independent controls retain a `NULL` Clay verdict. A uniform exact-vacuum
-  fibre rate, transported score, graph-size- and weak-coupling-uniform cutoff
-  estimate, thermodynamic construction, OS reconstruction and
-  regulator-independent physical mass gap remain open. See
-  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.25 and §11 and
-  `field-experience/probe-outcome-ledger.md` §§30,34,36.
+  `INCONCLUSIVE`. The analytic form theorem removes the character cutoff at
+  each fixed finite graph and coupling; its 22/22 primary and 18/18
+  independent controls retain a `NULL` Clay verdict. The local-density
+  theorem then bounds every fixed-support cutoff error uniformly over
+  periodic cubic volumes; its 16/16 primary and 17/17 independent checks
+  include an exact product-family obstruction to global norm control at fixed
+  cutoff. A uniform exact-vacuum fibre rate, transported score, compatible
+  thermodynamic state, weak-coupling continuum construction, OS
+  reconstruction and regulator-independent physical mass gap remain open.
+  See `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.26 and §11
+  and `field-experience/probe-outcome-ledger.md` §§30,34,36–37.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state

@@ -210,7 +210,7 @@ baryon-production coupling remain open.
 | 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction—September 2026 |
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
-| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling character-cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, exact fixed-link three-sphere geometry, two-scale conditional-score recurrence, $H^{-1}$ transport-score margin transfer, residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
+| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling character-cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem and global-norm obstruction, exact fixed-link three-sphere geometry, two-scale conditional-score recurrence, $H^{-1}$ transport-score margin transfer, residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
 | 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current, phase-current projection and conditional soliton pinch | Hypothesized action and Wilson-link extension / Derived conditional current, endpoint, support and phase-current boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum, rotational and phase-coercivity controls, and conditional smooth scalar binding |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, scale graph and canonical reduction | Hypothesized completion / Derived conditional fibre geometry and canonical reduction / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 39 | `endpoint-link-and-localization-boundary.md` | Conditional endpoint covariance, response, transport and localization boundary | Hypothesized Wilson extension / Derived conditional endpoint and localization boundaries / Tested finite-grid spectrum and conditional smooth scalar binding |
@@ -775,7 +775,7 @@ even pairs, and the supplied fivefold phase orbit preserves the normalized
 $\varphi$ chord ratio. LB1–LB7 verify these identities. The physical carrier,
 phase law, scale ratio, and quantum-sector identification remain open.
 
-The separate pure-$SU(2)$ comparison in §§9.4–9.23 retains full loop
+The separate pure-$SU(2)$ comparison in §§9.4–9.26 retains full loop
 holonomy. Gauss invariance gives an exact electric threshold on girth-four
 lattice graphs, and projective bubble data discard a phase that changes
 Wilson magnetic energy. Yarotsky's stability theorem supplies a
@@ -895,6 +895,19 @@ schedules, uses $q(N)=\min\{3,N+1\}$, and passes 62 primary plus 20
 independent checks. Its 30 cutoff rows contain 88 requested low eigenvalues,
 including two $N=1$ rows with levels $0$ and $1$ only. These rows support the
 finite numerical controls and do not establish the limiting theorem.
+
+The fixed-graph form theorem removes the character cutoff after a finite
+graph, coupling and low-energy index are fixed. Normalized-Haar tree
+coordinates, equivalent electric forms and positivity of the complete Wilson
+potential give form-core convergence, discarded-mass decay and a
+noncommuting Ritz-error bound; the primary and independent controls pass
+22/22 and 18/18 checks with `clay_verdict=NULL`. On periodic cubic lattices,
+the normalized ground-space density also gives discarded mass at most
+$2x|S|/\kappa_C$ on each fixed support $S$, uniformly in volume. The 16/16
+primary and 17/17 independent checks cover 1,536 local rows and an exact
+global product-family obstruction: bounded electric energy density does not
+control whole-wavefunction norm at fixed cutoff. This local theorem supplies
+no compatible thermodynamic state or continuum vacuum.
 
 Interacting boundary-sector recoupling, volume-uniform resolvent control,
 thermodynamic and continuum limits, a regulator-independent mass gap, and

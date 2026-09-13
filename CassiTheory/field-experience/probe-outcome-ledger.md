@@ -931,7 +931,7 @@ The frozen protocol `computations/yang-mills-su2-schwinger-prereg-v2.md` defines
 | Primary verification | `runs/yang_mills_su2_schwinger_bridge/verification-v2.json` passes 96/96 checks, including matrix symmetry, residual, Perron sign certificate, positive gap, correlator positivity, effective-mass ordering and $C(0)\le4$ | **SUPPORTS_FINITE_REGULATOR_BRIDGE** |
 | Independent reconstruction | `runs/yang_mills_su2_schwinger_bridge/verification-independent-v2.json` passes 20/20 source, protocol, schedule and row-reconstruction checks; it binds the primary source and receipt hashes | **PASS** for implementation-independent finite reconstruction |
 | Perron sign boundary | The exact irreducible real symmetric Z-matrix theorem supplies strict ground-state positivity; the receipt uses the declared scale-aware floating-point sign tolerance for components below binary64 resolution | **DERIVED** finite-matrix fact |
-| Cutoff, volume and continuum scope | The schedule has one plaquette and finite character cutoffs. The fixed-graph theorem in §36 removes the character cutoff at fixed coupling and eigenvalue index; it supplies no graph-size-uniform or lattice-spacing-uniform rate | **DERIVED** at fixed finite graph; **UNRESOLVED** for uniform volume and continuum limits |
+| Cutoff, volume and continuum scope | The schedule has one plaquette and finite character cutoffs. The fixed-graph theorem in §36 removes the cutoff at fixed coupling and eigenvalue index. Section 37 separately gives a volume-uniform fixed-support ground-density bound on periodic cubic lattices; neither theorem controls this correlator through the lattice-spacing limit | **DERIVED** at fixed graph and fixed local support; **UNRESOLVED** continuum limit |
 
 The finite-matrix ground state is obtained directly from the declared Hamiltonian. The schedule records character-cutoff diagnostics separately from the vacuum correlator.
 
@@ -974,7 +974,7 @@ and exact-block representation helper by SHA-256.
 | Gauge-invariant basis | The raw trivalent $3j$ basis has dimensions $32$ at doubled cutoff $C=1$ and $1013$ at $C=2$ | **PASS** for the finite label enumeration |
 | Fundamental Wilson support | Every plaquette has $32$ candidate and nonzero directed entries at $C=1$, and $2388$ candidate and nonzero directed entries at $C=2$; no candidate cancellations occur at the $10^{-12}$ threshold | **SUPPORTS_FINITE_OPEN_CUBE_OPERATOR** |
 | Operator controls | The maximum Hermiticity and dagger residual is $5.55\times10^{-17}$; 128 forbidden pairs per plaquette have zero magnitude in both cutoffs | **PASS** for the exact finite contractions |
-| Cutoff and continuum boundary | The fixed open cube lies within the fixed-graph cutoff theorem of §36. Volume-uniform and weak-coupling-uniform estimates, interacting continuum construction, OS reconstruction and the physical mass gap remain open | **DERIVED** cutoff removal at fixed graph; **UNRESOLVED** continuum boundary |
+| Cutoff and continuum boundary | The fixed open cube lies within the fixed-graph cutoff theorem of §36. Section 37 gives a volume-uniform fixed-support ground-density bound on periodic cubic lattices. A compatible thermodynamic state, weak-coupling continuum construction, OS reconstruction and the physical mass gap remain open | **DERIVED** cutoff removal at fixed graph and fixed local support; **UNRESOLVED** continuum boundary |
 
 The minimum retained matrix magnitude is
 $9.76562500000009\times10^{-4}$ at $C=1$ and
@@ -1001,7 +1001,7 @@ Parseval bounds, Wilson-spectrum bounds and Hamiltonian positivity.
 | Independent reconstruction | The independent source reconstructs both ordered basis hashes, every plaquette matrix hash and count, both Wilson extrema, every Ritz energy, all shell norms and the recovery witness | **PASS**, 256/256 checks |
 | Character-cutoff tails | Only the $C=1$, $x=1/64$ exact-shell row has ratio at most $0.1$; its $C=2$ partner has ratio $0.100890916829$. The $x=1/4$ and $x=1$ separations are negative at both cutoffs | **INCONCLUSIVE**, all four aggregate cutoff qualifications |
 | Excluded edge-only evidence | The external primary and independent receipts bound in `runs/yang_mills_continuum_boundary_audit/verification.json` omit spectator-channel Kronecker deltas and admit the firing witness | **REJECT** for Hamiltonian spectra and cutoff-tail interpretation; retained as defect provenance |
-| Cutoff and continuum boundary | The frozen separation qualifications remain `INCONCLUSIVE`, while the form theorem in §36 removes the character cutoff on this fixed graph without that separation. Spatial-volume uniformity, a weak-coupling-uniform rate, thermodynamic construction, OS reconstruction and the regulator-independent physical mass gap are not supplied | **DERIVED** fixed-graph cutoff removal; **UNRESOLVED** uniform and continuum limits |
+| Cutoff and continuum boundary | The frozen separation qualifications remain `INCONCLUSIVE`, while the form theorem in §36 removes the cutoff on this fixed graph without that separation. Section 37 controls fixed-support ground-density errors uniformly over periodic cubic volumes and excludes global norm control from energy density alone. A compatible thermodynamic state, weak-coupling continuum construction, OS reconstruction and the regulator-independent physical mass gap are not supplied | **DERIVED** fixed-graph and local cutoff control; **UNRESOLVED** thermodynamic and continuum limits |
 
 The recovered primary receipt
 `runs/yang_mills_su2_larger_volume_hamiltonian_recovery/verification.json`
@@ -1010,7 +1010,7 @@ non-gating tail-separation rows at $x=1/4$ and $x=1$. The independent receipt
 `runs/yang_mills_su2_larger_volume_hamiltonian_recovery/verification-independent.json`
 passes 256/256 checks. Both bind the materialized receipt-bound recovery
 protocol snapshot, the scientific protocol, the current source files and the
-shared exact representation helper by SHA-256. The 25-check v3 continuum-boundary
+shared exact representation helper by SHA-256. The 29-check v4 continuum-boundary
 audit verifies the one-reference relation between that snapshot and the
 current recovery protocol.
 
@@ -1028,7 +1028,7 @@ times. It is separate from the larger-volume Hamiltonian target in §34.
 | Primary transfer generator | 36 parameter rows, 396 row checks and six top-level checks pass: 402/402 | **PASS**, finite two-dimensional transfer model |
 | Independent reconstruction | Eight top-level checks pass; all 36 rows reconstruct the primary transfer data, fusion channels, correlators and effective masses | **PASS**, implementation-independent finite reconstruction |
 | Positive-series control | The independent source records positive Bessel-series tail bounds and propagated log-energy bounds; the largest scheduled relative tail bound is below \(10^{-16}\) | **DERIVED**, finite coefficient-control diagnostic |
-| Cutoff and continuum boundary | The fixed-graph theorem in §36 removes the character cutoff at fixed coupling. Spatial-volume uniformity, weak-coupling-uniform control, thermodynamic construction, OS reconstruction and a regulator-independent physical mass gap remain unsupplied | **DERIVED** at fixed finite graph; **UNRESOLVED** continuum boundary |
+| Cutoff and continuum boundary | The fixed-graph theorem in §36 removes the character cutoff at fixed coupling. Section 37 supplies volume-uniform fixed-support control for periodic cubic ground densities. Neither result constructs the thermodynamic state or controls this Schwinger generator through the weak-coupling lattice-spacing limit | **DERIVED** at fixed graph and fixed local support; **UNRESOLVED** continuum boundary |
 
 The qualified receipts are
 `runs/yang_mills_su2_quantum_schwinger_2d/verification-v1.json` and
@@ -1084,9 +1084,54 @@ The receipts are
 `runs/yang_mills_finite_graph_cutoff_form/verification.json` and
 `runs/yang_mills_finite_graph_cutoff_form/verification-independent.json`.
 They establish cutoff removal only after the graph, coupling and low-energy
-index are fixed. Spatial-volume uniformity, weak-coupling-uniform convergence,
-the thermodynamic limit, Osterwalder–Schrader reconstruction and a
-regulator-independent positive mass remain open.
+index are fixed. Section 37 separately controls every fixed support uniformly
+over periodic cubic volumes and proves a global-norm obstruction.
+Compatibility of the finite-volume ground densities, clustering,
+weak-coupling convergence, the lattice-spacing limit,
+Osterwalder–Schrader reconstruction and a regulator-independent positive mass
+remain open.
+
+## 37. Volume-uniform local SU(2) character cutoff
+
+The analytic protocol
+`computations/yang-mills-local-cutoff-density-prereg.md` separates
+fixed-support approximation from whole-wavefunction norm approximation. On a
+periodic cubic lattice, symmetry of the normalized ground-space density and
+the constant-state variational bound give
+
+$$
+\operatorname{Tr}(\rho_{0,L}K_e)\leq2x,
+\qquad
+\operatorname{Tr}(\rho_{0,L}Q_{C,S})
+\leq
+\frac{2x|S|}{\kappa_C},
+\qquad
+\kappa_C=\frac{(C+1)(C+3)}4.
+$$
+
+The resulting error for a unit-norm observable supported on $S$ is at most
+$2\sqrt b+b$, where $b=2x|S|/\kappa_C$. This bound is independent of the
+periodic volume.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Multi-volume local schedule | All 1,536 rows over eight volumes, six couplings, four support sizes and eight cutoffs are present; 1,152 meet $b<1$, and every fixed-parameter volume spread is zero | **PASS**, volume-uniform fixed-support cutoff estimate |
+| Auxiliary joint-cutoff schedule | Seven rows with $x_k=k^4$ and $C_k=k^3$ satisfy $C_k^2/x_k=k^2$ and have strictly decreasing local bounds | **PASS**, sufficient cutoff diagnostic; no weak-coupling field estimate |
+| Global product-family obstruction | All 180 rows reconstruct the character tail and electric energy; at $(q,C,N)=(1/2,2,512)$ the discarded norm is $0.9996850695596114$ | **PASS**, bounded electric energy density does not imply volume-uniform whole-wavefunction norm control |
+| Independent reconstruction | The Python primary passes 16/16 checks and the JavaScript independent source passes 17/17, with zero maximum difference over all primary rows | **PASS**, source- and receipt-bound independent calculation |
+| Clay boundary | Both receipts record `thermodynamic_limit_constructed=false`, `continuum_hypotheses_present=false` and `clay_verdict=NULL` | **NULL**, no continuum or mass-gap conclusion |
+
+The receipts are
+`runs/yang_mills_local_cutoff_density/verification.json` and
+`runs/yang_mills_local_cutoff_density/verification-independent.json`. They
+bind protocol SHA-256
+`69fe2a132dbccec4484bb6fc5f3d1b75dc95e88d5de7687774ab17e69c0e6789`;
+the independent receipt also binds the current primary source and
+primary-receipt hash. The theorem controls local observables of the symmetric
+finite-volume ground density. A compatible thermodynamic state, clustering,
+the weak-coupling lattice-spacing limit, Osterwalder–Schrader reconstruction
+and a regulator-independent physical mass remain open.
+
 
 ## References
 
@@ -1187,8 +1232,18 @@ regulator-independent positive mass remain open.
 - `computations/verify_yang_mills_finite_graph_cutoff_form_independent.py`—18-check independent dense reconstruction and receipt audit.
 - `runs/yang_mills_finite_graph_cutoff_form/verification.json`—primary fixed-graph form and spectral-control receipt.
 - `runs/yang_mills_finite_graph_cutoff_form/verification-independent.json`—independent source- and receipt-bound reconstruction.
-- `runs/yang_mills_continuum_boundary_audit/verification.json`—25-check v3 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, excluded defect provenance and the unresolved continuum boundary.
-- `computations/verify_yang_mills_continuum_boundary_audit.py`—25-check hash-bound finite-evidence and continuum-boundary audit.
+- `computations/yang-mills-local-cutoff-density-prereg.md`—frozen
+  multi-volume local cutoff and global-obstruction protocol.
+- `computations/verify_yang_mills_local_cutoff_density.py`—16-check
+  source-bound local-density verifier.
+- `computations/verify_yang_mills_local_cutoff_density_independent.mjs`—17-check
+  independent reconstruction and receipt audit.
+- `runs/yang_mills_local_cutoff_density/verification.json`—primary
+  local-cutoff-density receipt.
+- `runs/yang_mills_local_cutoff_density/verification-independent.json`—independent
+  source- and receipt-bound reconstruction.
+- `runs/yang_mills_continuum_boundary_audit/verification.json`—29-check v4 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, excluded defect provenance and the unresolved continuum boundary.
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—29-check hash-bound finite-evidence and continuum-boundary audit.
 - `computations/yang-mills-su2-transport-expansion-prereg.md`—fixed local strip and compact-boundary schedule.
 - `computations/verify_yang_mills_su2_transport_expansion.py`—150-check normalized transport expansion.
 - `computations/verify_yang_mills_su2_transport_expansion_independent.mjs`—60-check independent coefficient and receipt reconstruction.
