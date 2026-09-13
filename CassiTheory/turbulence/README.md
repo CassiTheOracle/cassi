@@ -134,6 +134,7 @@ arbitrary-flow closure and global regularity remain open.
 | 14 | `turbulence/compressible-radiative-plasma-closure.md` | Compressible hydrodynamics, shocks, species and line kinetics, persistent stellar energy accounting and multi-angle crossing beams | Derived conditional / Tested reference controls and integrity qualification / Open Cassi material identification and production implementation |
 | 15 | `turbulence/navier-stokes-coherence-dose-criterion.md` | Active seeded-production dose and retarded-spread continuation criterion | Derived conditional / Open uniform dose and arbitrary-data regularity |
 | 16 | `turbulence/navier-stokes-vorticity-quotient.md` | Inverse seeded-covariance quotient, normalized mean bound, and initial-layer obstruction | Derived local identity / Open uniform continuation estimate |
+| 17 | `turbulence/navier-stokes-rank-deficient-stretching.md` | Active stretching with rank-deficient vorticity-gradient source | Derived periodic 2.5D control / Open temporal recovery and global regularity |
 
 ## 2. Document summaries
 
@@ -585,6 +586,26 @@ arbitrary-data regularity remain **UNRESOLVED**.
 The receipt is intentionally generated under `runs/` as local, untracked
 evidence. Rerunning the listed verifier regenerates it and rebinds the hashes
 of the three committed source files.
+### 2.17 Active stretching with rank-deficient vorticity gradients
+
+`turbulence/navier-stokes-rank-deficient-stretching.md` qualifies the
+periodic two-and-a-half-dimensional datum
+$u_0=(-\sin y,0,\sin x+\cos x\sin y)$. Its full initial vorticity transport
+terms are compatible with Navier–Stokes, the source $Q_{\omega_0}$ has rank two
+at a realized point, and
+$\langle\omega_0\cdot S_0\omega_0\rangle=1/4>0$.
+
+The invariant two-and-a-half-dimensional evolution keeps $\partial_z\omega=0$,
+so the instantaneous determinant functional
+$\langle|\det\nabla\omega|^{2/3}\rangle$ vanishes at every smooth time. The
+fixed source-bound schedule passes **7 of 7 checks**. It establishes a
+boundary for instantaneous determinant recovery; temporal Gramian recovery,
+production-relative compensation, and arbitrary-data regularity remain
+**UNRESOLVED**.
+
+The receipt is intentionally generated under `runs/` as local, untracked
+evidence. Rerunning the listed verifier regenerates it and rebinds the hashes
+of the three committed source files.
 
 ## References
 
@@ -624,6 +645,9 @@ of the three committed source files.
 - `computations/navier-stokes-vorticity-quotient-prereg.md`—fixed local quotient, normalized-mean, ABC initial-layer and degenerate-control schedule
 - `computations/verify_navier_stokes_vorticity_quotient.py`—13-check exact quotient verifier
 - `turbulence/navier-stokes-vorticity-quotient.md`—derived inverse-covariance quotient and smooth-control obstruction
+- `computations/navier-stokes-rank-deficient-stretching-prereg.md`—fixed active 2.5D control and source-rank schedule
+- `computations/verify_navier_stokes_rank_deficient_stretching.py`—7-check initial-control and invariant-class verifier
+- `turbulence/navier-stokes-rank-deficient-stretching.md`—active stretching with rank-deficient source boundary
 - `turbulence/navier-stokes-coherence-dose-criterion.md`—conditional active-dose and retarded-spread continuation note
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
 - `computations/cassi-fluid-thermodynamics-prereg.md`—selected fluid equations and fixed thermal controls
