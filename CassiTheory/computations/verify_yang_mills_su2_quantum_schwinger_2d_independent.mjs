@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Independent finite-volume SU(2) quantum Schwinger reconstruction. */
+/* Independent normalization-corrected finite SU(2) Schwinger reconstruction. */
 
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -8,10 +8,13 @@ import { fileURLToPath } from "node:url";
 
 const SOURCE = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(SOURCE), "..");
-const PROTOCOL = join(ROOT, "computations", "yang-mills-su2-quantum-schwinger-2d-prereg-v1.md");
+const PROTOCOL = join(ROOT, "computations", "yang-mills-su2-quantum-schwinger-2d-prereg-v2.md");
+const WILSON_PROTOCOL = join(ROOT, "computations", "yang-mills-su2-wilson-2d-prereg-v2.md");
 const PRIMARY_SOURCE = join(ROOT, "computations", "verify_yang_mills_su2_quantum_schwinger_2d.py");
-const PRIMARY_RECEIPT = join(ROOT, "runs", "yang_mills_su2_quantum_schwinger_2d", "verification-v1.json");
-const DEFAULT_OUTPUT = join(ROOT, "runs", "yang_mills_su2_quantum_schwinger_2d", "verification-independent-v1.json");
+const WILSON_SOURCE = join(ROOT, "computations", "verify_yang_mills_su2_wilson_2d.py");
+const PRIMARY_RECEIPT = join(ROOT, "runs", "yang_mills_su2_quantum_schwinger_2d", "verification-v2.json");
+const WILSON_RECEIPT = join(ROOT, "runs", "yang_mills_su2_wilson_2d", "verification-v2.json");
+const DEFAULT_OUTPUT = join(ROOT, "runs", "yang_mills_su2_quantum_schwinger_2d", "verification-independent-v2.json");
 
 const BETA_VALUES = [1.0, 2.0, 4.0];
 const SPATIAL_LENGTHS = [1, 2, 4];
@@ -19,11 +22,13 @@ const CHARACTER_CUTOFFS = [8, 16, 24, 32];
 const CHANNELS = [1, 2, 3];
 const TIMES = [0.0, 0.5, 1.0, 2.0, 4.0];
 const DELTA_T = 0.5;
+const HAAR_ORDERS = [1, 2, 3, 4, 5, 6, 7, 8];
+const HAAR_MIDPOINTS = 65536;
 const TOLERANCE = 1.0e-9;
 const EXPECTED_ROWS = BETA_VALUES.length * SPATIAL_LENGTHS.length * CHARACTER_CUTOFFS.length;
-const CHECKS_PER_ROW = 11;
-const EXPECTED_PRIMARY_CHECKS = EXPECTED_ROWS * CHECKS_PER_ROW + 6;
-const EXPECTED_TOP_LEVEL_CHECKS = 8;
+const CHECKS_PER_ROW = 13;
+const EXPECTED_PRIMARY_CHECKS = EXPECTED_ROWS * CHECKS_PER_ROW + 8;
+const EXPECTED_TOP_LEVEL_CHECKS = 10;
 
 function sha256(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
@@ -31,6 +36,21 @@ function sha256(path) {
 
 function closeEnough(left, right) {
   return Math.abs(left - right) <= TOLERANCE * Math.max(1, Math.abs(left), Math.abs(right));
+}
+
+function relativeClose(left, right) {
+  return Math.abs(left - right) <= TOLERANCE * Math.max(Math.abs(left), Math.abs(right), Number.MIN_VALUE);
+}
+
+function relativeError(left, right) {
+  return Math.abs(left - right) / Math.max(Math.abs(left), Math.abs(right), Number.MIN_VALUE);
+}
+
+function arrayClose(left, right, relative = false) {
+  return Array.isArray(left)
+    && Array.isArray(right)
+    && left.length === right.length
+    && left.every((value, index) => (relative ? relativeClose(value, right[index]) : closeEnough(value, right[index])));
 }
 
 function check(name, passed, detail = {}) {
@@ -61,21 +81,38 @@ function besselISeries(order, beta) {
   throw new Error(`Bessel series did not converge for order=${order}, beta=${beta}`);
 }
 
+const haarCache = new Map();
+function haarCoefficientMidpoint(beta, n) {
+  const key = `${beta}|${n}`;
+  if (haarCache.has(key)) return haarCache.get(key);
+  let sum = 0;
+  for (let index = 0; index < HAAR_MIDPOINTS; index += 1) {
+    const theta = (index + 0.5) * Math.PI / HAAR_MIDPOINTS;
+    sum += Math.exp(beta * Math.cos(theta)) * Math.sin(theta) * Math.sin(n * theta);
+  }
+  const value = 2 * sum / HAAR_MIDPOINTS;
+  haarCache.set(key, value);
+  return value;
+}
+
 function characterData(beta, cutoff) {
+  const dimensions = [];
   const coefficients = [];
-  const ratios = [];
+  const reduced = [];
   const omitted = [];
   const tailBounds = [];
   const relativeTailBounds = [];
   for (let n = 1; n <= cutoff; n += 1) {
     const series = besselISeries(n, beta);
-    coefficients.push(2 * series.value / beta);
-    ratios.push((2 * series.value / beta) / n);
+    const reducedValue = 2 * series.value / beta;
+    dimensions.push(n);
+    coefficients.push(n * reducedValue);
+    reduced.push(reducedValue);
     omitted.push(series.omitted);
     tailBounds.push(series.tailBound);
     relativeTailBounds.push(series.relativeTailBound);
   }
-  return { coefficients, ratios, omitted, tailBounds, relativeTailBounds };
+  return { dimensions, coefficients, reduced, omitted, tailBounds, relativeTailBounds };
 }
 
 function zeros(rows, columns) {
@@ -162,54 +199,81 @@ function finitePayload(value) {
 
 function reconstruct(beta, spatialLength, cutoff) {
   const {
+    dimensions,
     coefficients,
-    ratios,
+    reduced,
     omitted,
     tailBounds,
     relativeTailBounds,
   } = characterData(beta, cutoff);
-  const transfer = ratios.map((value) => Math.pow(value, spatialLength));
+  const haarCoefficients = HAAR_ORDERS.map((n) => haarCoefficientMidpoint(beta, n));
+  const haarRelativeErrors = haarCoefficients.map((value, index) => relativeError(value, coefficients[index]));
+  const quotientResiduals = coefficients.map((value, index) => value / dimensions[index] - reduced[index]);
+  const quotientResidual = Math.max(...quotientResiduals.map(Math.abs));
+  const quotientRelativeResidual = Math.max(...quotientResiduals.map((value, index) => Math.abs(value) / Math.max(Math.abs(reduced[index]), Number.MIN_VALUE)));
+  const rejectedDoubleDivision = reduced.map((value, index) => value / dimensions[index]);
+  const doubleDivisionRelativeErrorN2 = Math.abs(rejectedDoubleDivision[1] - reduced[1]) / reduced[1];
+  const transfer = reduced.map((value) => Math.pow(value, spatialLength));
   const transferMatrix = zeros(cutoff, cutoff);
   transfer.forEach((value, index) => {
     transferMatrix[index][index] = value;
   });
   const transferSymmetryResidual = matrixSymmetryResidual(transferMatrix);
-  const energies = ratios.map((value) => spatialLength * Math.log(ratios[0] / value));
-  const energyErrorBounds = ratios.map((_, index) =>
+  const energies = reduced.map((value) => spatialLength * Math.log(reduced[0] / value));
+  const energyErrorBounds = reduced.map((_, index) =>
     spatialLength
       * (-Math.log1p(-relativeTailBounds[0]) - Math.log1p(-relativeTailBounds[index])),
   );
   const rowChecks = [];
   const channels = {};
-  const coefficientPositive = coefficients.every((value) => Number.isFinite(value) && value > 0);
-  const transferPositive = transfer.every((value) => Number.isFinite(value) && value > 0);
-  rowChecks.push(check("positive_finite_coefficients_and_transfer", coefficientPositive && transferPositive, {
-    minimum_coefficient: Math.min(...coefficients),
-    minimum_transfer: Math.min(...transfer),
-    maximum_omitted_bessel_term: Math.max(...omitted),
-    maximum_bessel_tail_bound: Math.max(...tailBounds),
-    maximum_bessel_relative_tail_bound: Math.max(...relativeTailBounds),
-    maximum_energy_error_bound: Math.max(...energyErrorBounds),
-  }));
-  rowChecks.push(check("symmetric_transfer_matrix", transferSymmetryResidual <= TOLERANCE, {
-    symmetry_residual: transferSymmetryResidual,
-  }));
-  const ratioDrops = ratios.slice(0, -1).map((value, index) => value - ratios[index + 1]);
-  const monotone = ratioDrops.every((value) => value > 0);
-  rowChecks.push(check("strict_transfer_order", monotone, {
-    minimum_ratio_drop: Math.min(...ratioDrops),
-  }));
-  const energiesOk = closeEnough(energies[0], 0) && energies.slice(1).every((value) => Number.isFinite(value) && value > 0);
-  rowChecks.push(check("normalized_ground_and_positive_gaps", energiesOk, {
-    ground_energy: energies[0],
-    minimum_gap: Math.min(...energies.slice(1)),
-  }));
+  rowChecks.push(check(
+    "positive_finite_coefficients_and_transfer",
+    coefficients.every((value) => Number.isFinite(value) && value > 0)
+      && reduced.every((value) => Number.isFinite(value) && value > 0)
+      && transfer.every((value) => Number.isFinite(value) && value > 0),
+    {
+      maximum_omitted_bessel_term: Math.max(...omitted),
+      maximum_bessel_tail_bound: Math.max(...tailBounds),
+      maximum_bessel_relative_tail_bound: Math.max(...relativeTailBounds),
+      maximum_energy_error_bound: Math.max(...energyErrorBounds),
+    },
+  ));
+  rowChecks.push(check(
+    "haar_character_normalization",
+    Math.max(...haarRelativeErrors) <= TOLERANCE,
+    { maximum_relative_error: Math.max(...haarRelativeErrors) },
+  ));
+  rowChecks.push(check(
+    "single_convolution_quotient",
+    quotientResidual <= TOLERANCE && quotientRelativeResidual <= TOLERANCE,
+    { maximum_absolute_residual: quotientResidual, maximum_relative_residual: quotientRelativeResidual },
+  ));
+  rowChecks.push(check(
+    "double_division_firing_control",
+    doubleDivisionRelativeErrorN2 >= 0.5 - TOLERANCE,
+    { n: 2, relative_error: doubleDivisionRelativeErrorN2 },
+  ));
+  rowChecks.push(check(
+    "symmetric_transfer_matrix",
+    transferSymmetryResidual <= TOLERANCE,
+    { symmetry_residual: transferSymmetryResidual },
+  ));
+  const reducedDrops = reduced.slice(0, -1).map((value, index) => value - reduced[index + 1]);
+  rowChecks.push(check(
+    "strict_transfer_order",
+    reducedDrops.every((value) => value > 0),
+    { minimum_reduced_drop: Math.min(...reducedDrops) },
+  ));
+  rowChecks.push(check(
+    "normalized_ground_and_positive_gaps",
+    closeEnough(energies[0], 0) && energies.slice(1).every((value) => Number.isFinite(value) && value > 0),
+    { ground_energy: energies[0], minimum_gap: Math.min(...energies.slice(1)) },
+  ));
 
   let allObservablesSymmetric = true;
   let allVacuumOrbits = true;
   let allCorrelatorsNonnegative = true;
-  let allEffectiveMasses = true;
-  let allSemigroup = true;
+  let allEffectiveAndSemigroup = true;
   let allOperatorBounds = true;
   for (const channel of CHANNELS) {
     const observable = fusionMatrix(channel, cutoff);
@@ -224,6 +288,7 @@ function reconstruct(beta, spatialLength, cutoff) {
     const correlators = TIMES.map((time) => Math.exp(-time * spectralEnergy));
     const shiftedCorrelators = TIMES.map((time) => Math.exp(-(time + DELTA_T) * spectralEnergy));
     const effectiveMasses = correlators.map((value, index) => -(1 / DELTA_T) * Math.log(shiftedCorrelators[index] / value));
+    const effectiveMassError = Math.max(...effectiveMasses.map((value) => Math.abs(value - spectralEnergy)));
     const semigroupError = Math.max(...shiftedCorrelators.map((shifted, index) => Math.abs(shifted - correlators[index] * Math.exp(-DELTA_T * spectralEnergy))));
     channels[String(channel)] = {
       allowed_entries: observable.flat().filter((value) => value !== 0).length,
@@ -236,48 +301,40 @@ function reconstruct(beta, spatialLength, cutoff) {
       correlators,
       shifted_correlators: shiftedCorrelators,
       effective_masses: effectiveMasses,
+      effective_mass_error: effectiveMassError,
       semigroup_error: semigroupError,
     };
     allObservablesSymmetric = allObservablesSymmetric && symmetryResidual <= TOLERANCE;
     allVacuumOrbits = allVacuumOrbits && vacuumError <= TOLERANCE;
     allCorrelatorsNonnegative = allCorrelatorsNonnegative && correlators.every((value) => Number.isFinite(value) && value >= 0);
-    allEffectiveMasses = allEffectiveMasses && effectiveMasses.every((value) => closeEnough(value, spectralEnergy));
-    allSemigroup = allSemigroup && semigroupError <= TOLERANCE;
+    allEffectiveAndSemigroup = allEffectiveAndSemigroup && effectiveMassError <= TOLERANCE && semigroupError <= TOLERANCE;
     allOperatorBounds = allOperatorBounds && operatorNorm <= channel + 1 + TOLERANCE;
   }
-  rowChecks.push(check("symmetric_finite_fusion_observables", allObservablesSymmetric, {
-    maximum_symmetry_residual: Math.max(...Object.values(channels).map((value) => value.matrix_symmetry_residual)),
-  }));
-  rowChecks.push(check("vacuum_fusion_orbits", allVacuumOrbits, {
-    maximum_vacuum_orbit_error: Math.max(...Object.values(channels).map((value) => value.vacuum_orbit_error)),
-  }));
-  rowChecks.push(check("nonnegative_connected_correlators", allCorrelatorsNonnegative, {
-    minimum_correlator: Math.min(...Object.values(channels).flatMap((value) => value.correlators)),
-  }));
-  rowChecks.push(check("effective_mass_identity", allEffectiveMasses, {
-    maximum_effective_mass_error: Math.max(
-      ...Object.values(channels).flatMap((value) =>
-        value.effective_masses.map((mass) => Math.abs(mass - value.spectral_energy)),
-      ),
-    ),
-  }));
-  rowChecks.push(check("semigroup_identity", allSemigroup, {
-    maximum_semigroup_error: Math.max(...Object.values(channels).map((value) => value.semigroup_error)),
-  }));
-  rowChecks.push(check("fusion_operator_norm_bounds", allOperatorBounds, {
-    maximum_bound_ratio: Math.max(...Object.values(channels).map((value) => value.operator_norm / value.declared_operator_bound)),
-  }));
+  rowChecks.push(check("symmetric_finite_fusion_observables", allObservablesSymmetric));
+  rowChecks.push(check("vacuum_fusion_orbits", allVacuumOrbits));
+  rowChecks.push(check("nonnegative_connected_correlators", allCorrelatorsNonnegative));
+  rowChecks.push(check("effective_mass_and_semigroup_identities", allEffectiveAndSemigroup));
+  rowChecks.push(check("fusion_operator_norm_bounds", allOperatorBounds));
+
   const row = {
     beta,
     spatial_length: spatialLength,
     character_cutoff: cutoff,
-    "coefficient_values": coefficients,
-    "ratio_values": ratios,
-    "transfer_values": transfer,
-    "bessel_tail_bounds": tailBounds,
-    "bessel_relative_tail_bounds": relativeTailBounds,
-    "energy_error_bounds": energyErrorBounds,
-    "transfer_symmetry_residual": transferSymmetryResidual,
+    character_dimensions: dimensions,
+    character_coefficients: coefficients,
+    reduced_coefficients: reduced,
+    haar_orders: HAAR_ORDERS,
+    haar_coefficients: haarCoefficients,
+    haar_relative_errors: haarRelativeErrors,
+    convolution_quotient_residual: quotientResidual,
+    convolution_quotient_relative_residual: quotientRelativeResidual,
+    rejected_double_division: rejectedDoubleDivision,
+    double_division_relative_error_n2: doubleDivisionRelativeErrorN2,
+    transfer_values: transfer,
+    bessel_tail_bounds: tailBounds,
+    bessel_relative_tail_bounds: relativeTailBounds,
+    energy_error_bounds: energyErrorBounds,
+    transfer_symmetry_residual: transferSymmetryResidual,
     energies,
     transfer_symmetric: transferSymmetryResidual <= TOLERANCE,
     channels,
@@ -289,32 +346,49 @@ function reconstruct(beta, spatialLength, cutoff) {
 }
 
 function rowClose(expected, actual) {
+  if (actual === undefined) return false;
   if (expected.beta !== actual.beta || expected.spatial_length !== actual.spatial_length || expected.character_cutoff !== actual.character_cutoff) return false;
-  for (const field of ["coefficient_values", "ratio_values", "transfer_values", "energies"]) {
-    if (expected[field].length !== actual[field].length || !expected[field].every((value, index) => closeEnough(value, actual[field][index]))) return false;
+  for (const field of ["character_dimensions", "haar_orders"]) {
+    if (JSON.stringify(expected[field]) !== JSON.stringify(actual[field])) return false;
   }
-  if (!closeEnough(expected.transfer_symmetry_residual, actual.transfer_symmetry_residual)) return false;
+  for (const field of ["character_coefficients", "reduced_coefficients", "haar_coefficients", "rejected_double_division", "transfer_values"]) {
+    if (!arrayClose(expected[field], actual[field], true)) return false;
+  }
+  if (!arrayClose(expected.energies, actual.energies)) return false;
+  for (const field of ["convolution_quotient_residual", "convolution_quotient_relative_residual", "double_division_relative_error_n2", "transfer_symmetry_residual"]) {
+    if (!closeEnough(expected[field], actual[field])) return false;
+  }
   for (const channel of CHANNELS.map(String)) {
     const left = expected.channels[channel];
     const right = actual.channels[channel];
     for (const field of ["allowed_entries", "vacuum_target"]) if (left[field] !== right[field]) return false;
-    for (const field of ["matrix_symmetry_residual", "operator_norm", "declared_operator_bound", "vacuum_orbit_error", "spectral_energy", "semigroup_error"]) {
+    for (const field of ["matrix_symmetry_residual", "operator_norm", "declared_operator_bound", "vacuum_orbit_error", "spectral_energy", "effective_mass_error", "semigroup_error"]) {
       if (!closeEnough(left[field], right[field])) return false;
     }
-    for (const field of ["correlators", "shifted_correlators", "effective_masses"]) {
-      if (left[field].length !== right[field].length || !left[field].every((value, index) => closeEnough(value, right[field][index]))) return false;
+    for (const field of ["correlators", "shifted_correlators"]) {
+      if (!arrayClose(left[field], right[field], true)) return false;
     }
+    if (!arrayClose(left.effective_masses, right.effective_masses)) return false;
   }
   return true;
 }
 
+function argumentValue(flag, fallback) {
+  const index = process.argv.indexOf(flag);
+  return index >= 0 ? process.argv[index + 1] : fallback;
+}
+
 function main() {
-  const output = process.argv[2] ? resolve(process.argv[2]) : DEFAULT_OUTPUT;
-  if (!existsSync(PROTOCOL) || !existsSync(PRIMARY_SOURCE) || !existsSync(PRIMARY_RECEIPT)) {
+  const primaryPath = resolve(argumentValue("--input", PRIMARY_RECEIPT));
+  const outputPath = resolve(argumentValue("--output", DEFAULT_OUTPUT));
+  if (!existsSync(PROTOCOL) || !existsSync(WILSON_PROTOCOL) || !existsSync(PRIMARY_SOURCE) || !existsSync(WILSON_SOURCE) || !existsSync(primaryPath) || !existsSync(WILSON_RECEIPT)) {
     throw new Error("required protocol, source, or primary receipt is missing");
   }
-  if (existsSync(output)) throw new Error(`refusing to overwrite existing receipt: ${output}`);
-  const primary = JSON.parse(readFileSync(PRIMARY_RECEIPT, "utf8"));
+  if (existsSync(outputPath) && !process.argv.includes("--replace")) {
+    throw new Error(`refusing to overwrite existing receipt: ${outputPath}`);
+  }
+  const primary = JSON.parse(readFileSync(primaryPath, "utf8"));
+  const wilson = JSON.parse(readFileSync(WILSON_RECEIPT, "utf8"));
   const rows = [];
   let allRowsMatch = true;
   for (const beta of BETA_VALUES) {
@@ -322,12 +396,9 @@ function main() {
       for (const cutoff of CHARACTER_CUTOFFS) {
         const reconstructed = reconstruct(beta, spatialLength, cutoff);
         const expected = primary.rows.find(
-          (row) =>
-            row.beta === beta
-            && row.spatial_length === spatialLength
-            && row.character_cutoff === cutoff,
+          (row) => row.beta === beta && row.spatial_length === spatialLength && row.character_cutoff === cutoff,
         );
-        const matches = expected !== undefined && rowClose(expected, reconstructed);
+        const matches = expected !== undefined && rowClose(expected, reconstructed) && reconstructed.checks_passed;
         allRowsMatch = allRowsMatch && matches;
         rows.push({ ...reconstructed, matches_primary: matches });
       }
@@ -335,11 +406,23 @@ function main() {
   }
   const checks = [
     check(
-      "protocol_and_source_identity",
-      sha256(PROTOCOL) === primary.protocol_sha256
-        && sha256(PRIMARY_SOURCE) === primary.source_sha256,
+      "protocol_and_primary_source_identity",
+      sha256(PROTOCOL) === primary.protocol_sha256 && sha256(PRIMARY_SOURCE) === primary.source_sha256,
     ),
-    check("primary_receipt_present", existsSync(PRIMARY_RECEIPT)),
+    check(
+      "wilson_protocol_and_source_identity",
+      primary.prerequisites?.wilson_protocol_sha256 === sha256(WILSON_PROTOCOL)
+        && primary.prerequisites?.wilson_source_sha256 === sha256(WILSON_SOURCE),
+    ),
+    check("quantum_primary_receipt_present", existsSync(primaryPath)),
+    check(
+      "wilson_primary_receipt_current",
+      wilson.schema === "cassi.yang-mills.su2-wilson-2d.v2"
+        && wilson.verdict === "PASS"
+        && wilson.protocol_sha256 === sha256(WILSON_PROTOCOL)
+        && wilson.source_sha256 === sha256(WILSON_SOURCE)
+        && primary.prerequisites?.wilson_receipt_sha256 === sha256(WILSON_RECEIPT),
+    ),
     check(
       "schedule_identity",
       JSON.stringify(primary.schedule) === JSON.stringify({
@@ -349,6 +432,7 @@ function main() {
         channels: CHANNELS,
         times: TIMES,
         delta_t: DELTA_T,
+        haar_orders: HAAR_ORDERS,
       }),
     ),
     check("primary_verdict", primary.verdict === "PASS"),
@@ -356,43 +440,61 @@ function main() {
       "primary_count_integrity",
       primary.summary.rows === EXPECTED_ROWS
         && primary.summary.row_checks === EXPECTED_ROWS * CHECKS_PER_ROW
-        && primary.summary.top_level_checks === 6
+        && primary.summary.top_level_checks === 8
         && primary.summary.checks === EXPECTED_PRIMARY_CHECKS
+        && primary.summary.passed === EXPECTED_PRIMARY_CHECKS
         && primary.summary.failed === 0,
     ),
     check("independent_row_count", rows.length === EXPECTED_ROWS),
     check("independent_row_reconstruction", allRowsMatch && rows.every((row) => row.checks_passed)),
-    check("independent_payload_finite", finitePayload(rows)),
+    check(
+      "independent_payload_and_firing",
+      finitePayload(rows) && rows.every((row) => row.double_division_relative_error_n2 >= 0.5 - TOLERANCE),
+    ),
   ];
   const record = {
-    schema: "cassi.yang-mills.su2.quantum-schwinger-2d.independent.v1",
+    schema: "cassi.yang-mills.su2.quantum-schwinger-2d.independent.v2",
     verdict: checks.every((item) => item.passed) ? "PASS" : "FAIL",
-    classification: "FINITE_VOLUME_2D_QUANTUM_SCHWINGER_GENERATOR_INDEPENDENT",
-    protocol: "computations/yang-mills-su2-quantum-schwinger-2d-prereg-v1.md",
+    classification: "NORMALIZATION_CORRECTED_FINITE_VOLUME_2D_QUANTUM_SCHWINGER_GENERATOR_INDEPENDENT",
+    protocol: "computations/yang-mills-su2-quantum-schwinger-2d-prereg-v2.md",
     protocol_sha256: sha256(PROTOCOL),
     source: "computations/verify_yang_mills_su2_quantum_schwinger_2d_independent.mjs",
     source_sha256: sha256(SOURCE),
     primary_source: "computations/verify_yang_mills_su2_quantum_schwinger_2d.py",
     primary_source_sha256: sha256(PRIMARY_SOURCE),
-    primary_receipt: "runs/yang_mills_su2_quantum_schwinger_2d/verification-v1.json",
-    primary_receipt_sha256: sha256(PRIMARY_RECEIPT),
-    tolerances: { independent: TOLERANCE, bessel_series_relative: 1.0e-16 },
+    primary_receipt: "runs/yang_mills_su2_quantum_schwinger_2d/verification-v2.json",
+    primary_receipt_sha256: sha256(primaryPath),
+    wilson_protocol: "computations/yang-mills-su2-wilson-2d-prereg-v2.md",
+    wilson_protocol_sha256: sha256(WILSON_PROTOCOL),
+    wilson_source: "computations/verify_yang_mills_su2_wilson_2d.py",
+    wilson_source_sha256: sha256(WILSON_SOURCE),
+    wilson_receipt: "runs/yang_mills_su2_wilson_2d/verification-v2.json",
+    wilson_receipt_sha256: sha256(WILSON_RECEIPT),
+    tolerances: { independent: TOLERANCE, bessel_series_relative: 1.0e-16, haar_midpoints: HAAR_MIDPOINTS },
     summary: {
       rows: rows.length,
       checks: checks.length,
       passed: checks.filter((item) => item.passed).length,
       failed: checks.filter((item) => !item.passed).length,
+      expected_top_level_checks: EXPECTED_TOP_LEVEL_CHECKS,
     },
     checks,
     rows,
+    normalization: {
+      character_coefficient: "C_n=2*n*I_n(beta)/beta",
+      gluing_eigenvalue: "r_n=C_n/n=2*I_n(beta)/beta",
+      independent_haar_method: `midpoint:${HAAR_MIDPOINTS}`,
+      double_division_rejected: true,
+    },
     uniformity_and_scope: [
-      "The independent source reconstructs the declared finite two-dimensional transfer model from a positive Bessel series.",
-      "No larger-volume Hamiltonian receipt is read or written by this study.",
-      "No character-cutoff, thermodynamic, Osterwalder-Schrader, continuum, or physical mass-gap estimate is inferred.",
+      "The independent source reconstructs the corrected finite transfer model from a positive Bessel series and midpoint Haar integral.",
+      "The current Wilson v2 primary receipt is bound as a prerequisite.",
+      "The rejected double division fires in every row.",
+      "No four-dimensional thermodynamic, OS, continuum or physical mass-gap estimate is inferred.",
     ],
   };
-  mkdirSync(dirname(output), { recursive: true });
-  writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+  mkdirSync(dirname(outputPath), { recursive: true });
+  writeFileSync(outputPath, `${JSON.stringify(record, null, 2)}\n`, "utf8");
   console.log(JSON.stringify(record.summary));
   process.exit(record.verdict === "PASS" ? 0 : 1);
 }

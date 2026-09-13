@@ -1,6 +1,12 @@
 # Finite-Volume SU(2) Quantum Schwinger-Function Generator in Two Dimensions
 
-## Status: Pre-registered—September 2026
+## Status: Invalidated normalization—September 2026
+
+The active specification is
+`computations/yang-mills-su2-quantum-schwinger-2d-prereg-v2.md`. This retained
+defect record imports the double-divided Wilson transfer eigenvalue from the
+unversioned two-dimensional protocol. Its v1 receipts carry no active evidence
+claim.
 
 ## Abstract
 

@@ -1,6 +1,14 @@
 # Finite-Volume SU(2) Wilson Schwinger Bridge in Two Dimensions
 
-## Status: Pre-registered—September 2026
+## Status: Invalidated normalization—September 2026
+
+The active specification is
+`computations/yang-mills-su2-wilson-2d-prereg-v2.md`. In this retained defect
+record, the quantity \(2I_n(\beta)/\beta\) is written as the coefficient
+multiplying \(\chi_n\) and then divided by \(n\) during gluing. Normalized Haar
+orthogonality instead gives the direct coefficient \(2nI_n(\beta)/\beta\) and
+the once-divided gluing eigenvalue \(2I_n(\beta)/\beta\). The unversioned
+receipts carry no active evidence claim.
 
 ## Abstract
 

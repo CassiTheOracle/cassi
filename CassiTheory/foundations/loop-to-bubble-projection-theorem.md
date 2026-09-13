@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem with an exact global-norm obstruction, conditional fixed-regulator thermodynamic ground-state subsequence, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Recovered finite $3\times2\times2$ $SU(2)$ Hamiltonian construction with frozen separation-based tail qualifications inconclusive; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem with an exact global-norm obstruction, conditional fixed-regulator thermodynamic ground-state subsequence, conditional fixed-regulator Euclidean reflection-positive Gibbs subsequence, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Recovered finite $3\times2\times2$ $SU(2)$ Hamiltonian construction with frozen separation-based tail qualifications inconclusive; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -30,7 +30,7 @@ density projection and a coherence-sensitive bubble coordinate. A physical
 phase law, a map from the regulated quantum configuration to these carriers,
 $\hbar$, quantum statistics, and measurement dynamics remain separate inputs.
 
-The pure-gauge comparison in §§9.4–9.27 retains full $SU(2)$ loop holonomies.
+The pure-gauge comparison in §§9.4–9.28 retains full $SU(2)$ loop holonomies.
 Gauss invariance supplies an electric closed-loop threshold, while the
 projective bubble variable discards Wilson magnetic energy. Quantum-lattice
 stability gives a volume-uniform interacting gap at sufficiently strong bare
@@ -101,6 +101,17 @@ whose finite-character local observables satisfy the algebraic ground-state
 inequality. The construction selects a subsequence at fixed regulator and
 coupling. Full-sequence convergence, uniqueness, clustering, a uniform gap
 and the continuum theory remain open.
+
+For every fixed Wilson coupling $\beta>0$, positive normalized-Haar character
+coefficients give reflection positivity and a positive transfer operator on
+each even periodic four-torus. Compactness of all finite-link marginal spaces
+then yields a diagonal infinite-volume subsequence. Its limit is
+translation invariant, gauge invariant, reflection positive and DLR, and its
+positive-time cylinder algebra supplies a fixed-regulator
+Osterwalder–Schrader Hilbert space. The complete periodic-volume sequence,
+phase uniqueness, clustering, Hamiltonian equivalence, the weak-coupling
+lattice-spacing limit, continuum reconstruction and a uniform physical gap
+remain open.
 
 ---
 
@@ -5907,6 +5918,195 @@ outside the executable proof surface, with
 scope contains no interacting $SU(2)$ ground-state construction or spectral
 mass-gap estimate.
 
+### 9.28 Fixed-regulator Euclidean reflection-positive Gibbs subsequence
+
+Fix $\beta>0$ and even periodic four-tori
+$\mathbb T_L^4=(\mathbb Z/L\mathbb Z)^4$. With normalized Haar product
+measure, the Wilson probability measure is
+
+$$
+\boxed{
+d\mu_{L,\beta}(U)
+:=
+Z_{L,\beta}^{-1}
+\prod_{p\subset\mathbb T_L^4}
+\exp\!\left(\frac{\beta}{2}\operatorname{Tr}U_p\right)
+\prod_{e\in E_L}dU_e .
+}
+\tag{YM214}
+$$
+
+The finite configuration space is compact and the density is continuous and
+strictly positive, so $0<Z_{L,\beta}<\infty$. Index the irreducible
+$SU(2)$ characters by dimension $n\geq1$. Normalized Haar orthogonality and
+the modified-Bessel recurrence give
+
+$$
+\boxed{
+\exp\!\left(\frac{\beta}{2}\operatorname{Tr}V\right)
+=
+\sum_{n=1}^{\infty}C_n(\beta)\chi_n(V),
+\qquad
+C_n(\beta)
+=
+I_{n-1}(\beta)-I_{n+1}(\beta)
+=
+\frac{2nI_n(\beta)}{\beta}>0.
+}
+\tag{YM215}
+$$
+
+The series is absolutely and uniformly convergent because
+$|\chi_n(V)|\leq n$ and its positive majorant at $V=I$ sums to
+$e^\beta$. If $D^{(n)}$ is a unitary dimension-$n$ representation, then
+
+$$
+\boxed{
+w_\beta(AB^{-1})
+=
+\sum_{n\geq1}\sum_{a,b=1}^{n}
+C_n(\beta)
+D_{ab}^{(n)}(A)
+\overline{D_{ab}^{(n)}(B)} .
+}
+\tag{YM216}
+$$
+
+Thus every finite crossing-plaquette kernel is positive semidefinite.
+Products of such kernels retain positivity. The Wilson
+reflection-positivity theorem applies this factorization to a reflection
+$\vartheta$ through a plane between adjacent time slices. If
+$(\Theta F)(U)=\overline{F(\vartheta U)}$ and $F$ is a continuous cylinder
+function supported strictly in the positive half of the even torus, then
+
+$$
+\boxed{
+\int(\Theta F)F\,d\mu_{L,\beta}\geq0.
+}
+\tag{YM217}
+$$
+
+Site-plane reflection positivity supplies translated planes for
+gauge-invariant observables. At finite spatial volume, the Wilson transfer
+operator is self-adjoint and strictly positive on the physical
+gauge-invariant Hilbert space. Normalizing it by its spectral radius and
+applying spectral calculus gives a nonnegative fixed-regulator generator.
+This is the finite-lattice transfer theorem; it contains no lower spectral
+bound uniform in spatial volume or lattice spacing.
+
+An infinite-volume Euclidean measure now follows without a uniqueness
+assumption. Choose nested centred finite link boxes
+$B_1\subset B_2\subset\cdots$ exhausting $E(\mathbb Z^4)$, and identify each
+$B_m$ with its non-wrapping image in all sufficiently large tori. For fixed
+$m$, the local marginals $\mu_{L,\beta}^{(m)}$ belong to the compact
+probability-measure space on $SU(2)^{B_m}$. Repeated extraction and the
+Cantor diagonal choice give even $L_k\to\infty$ and local measures
+$\nu_\beta^{(m)}$ satisfying
+
+$$
+\boxed{
+\mu_{L_k,\beta}^{(m)}
+\Longrightarrow
+\nu_\beta^{(m)}
+\qquad\text{for every fixed }m.
+}
+\tag{YM218}
+$$
+
+Marginalization is continuous under local weak convergence. The finite-volume
+compatibility identities therefore give
+
+$$
+\boxed{
+(\pi_{B_m})_\#\nu_\beta^{(m+1)}
+=
+\nu_\beta^{(m)}.
+}
+\tag{YM219}
+$$
+
+The compact-space Kolmogorov extension theorem produces a probability measure
+$\mu_{\infty,\beta}$ on $SU(2)^{E(\mathbb Z^4)}$ with these marginals.
+Translation invariance passes to the limit by placing an observable and its
+translate in one fixed box. A compactly supported lattice gauge
+transformation can be periodized after its incident links fit without
+wrapping, so gauge invariance passes by the same argument. For a fixed
+positive-time cylinder function, its reflected support fits away from the
+second periodic reflection plane for all sufficiently large $L_k$. Equation
+(YM217) therefore yields
+
+$$
+\boxed{
+\int(\Theta F)F\,d\mu_{\infty,\beta}\geq0.
+}
+\tag{YM220}
+$$
+
+The limit is also a Wilson Gibbs state. For a finite link set $\Delta$, let
+$\gamma_{\Delta,\beta}$ be the local Wilson specification formed from the
+plaquettes meeting $\Delta$. Finite range, compactness and strict positivity
+make $\gamma_{\Delta,\beta}f$ a bounded continuous cylinder function whenever
+$f$ is. Once the relevant plaquette neighbourhood fits without wrapping, the
+finite torus DLR identity can be passed through (YM218):
+
+$$
+\boxed{
+\int f\,d\mu_{\infty,\beta}
+=
+\int\gamma_{\Delta,\beta}f\,d\mu_{\infty,\beta}.
+}
+\tag{YM221}
+$$
+
+Consequently, every selected limit is translation invariant, gauge invariant,
+reflection positive and DLR at fixed $\beta$. Equation (YM220) defines the
+positive semidefinite Osterwalder–Schrader form
+
+$$
+\boxed{
+(F,G)_{\mathrm{OS}}
+:=
+\int(\Theta F)G\,d\mu_{\infty,\beta}.
+}
+\tag{YM222}
+$$
+
+Quotienting its null space and completing gives the fixed-regulator
+Osterwalder–Schrader Hilbert space. This is a lattice reconstruction. It does
+not supply the continuum regularity, Euclidean covariance restoration,
+nontrivial Schwinger functions or uniform spectral estimate needed for
+continuum Wightman reconstruction.
+
+The frozen protocol
+`computations/yang-mills-euclidean-reflection-positive-prereg.md` assigns a
+narrow support role to its executable evidence. The primary verifier passes
+308/308 checks over 36 coefficient and finite-kernel rows. Its normalized-Haar
+quadrature has maximum relative error
+$6.578917885036281\times10^{-10}$. Every reflection Gram matrix, Schur
+product and weighted transfer fixture is positive semidefinite within its
+scaled tolerance. The independent JavaScript reconstruction passes 22/22
+checks, rebuilds all 36 rows with a positive Bessel series and an independent
+Jacobi eigensolver, and has maximum midpoint-Haar relative error
+$1.7530111416976028\times10^{-12}$.
+
+The negative-character firing fixture has minimum eigenvalue
+$-8.612469317193874$, the asymmetric-kernel fixture is rejected before a
+spectral test, and the positive two-level transfer control reaches gap
+$6.023626075915001\times10^{-4}$ at $L=256$. The latter proves that transfer
+positivity does not imply a volume-uniform gap. Both receipts record the
+finite-volume reflection and transfer theorems as analytic inputs,
+`infinite_volume_measure_constructed_by_verifier=false`,
+`full_sequence_convergence_established=false`,
+`continuum_limit_established=false`,
+`uniform_mass_gap_established=false` and `clay_verdict=NULL`.
+
+The theorem establishes existence of at least one reflection-positive
+four-dimensional Wilson Gibbs state for every fixed lattice coupling and
+regulator. Full-sequence convergence, uniqueness, clustering, an anisotropic
+Hamiltonian equivalence theorem, the weak-coupling lattice-spacing limit,
+continuum Osterwalder–Schrader reconstruction and the physical mass gap remain
+open.
+
 ---
 
 ## 10. Physical tests and rejection conditions
@@ -5983,6 +6183,7 @@ microscopic completions.
 | Fixed-graph character-cutoff form theorem (YM187)–(YM195) | **Derived** within every fixed finite regulated graph | Exact tree-gauge Haar disintegration, equivalent electric forms, form-core convergence, separation-free discarded-mass bound and noncommuting Ritz-error bound; constants are not uniform in graph size, coupling or lattice spacing |
 | Volume-uniform local cutoff density and global-norm obstruction (YM196)–(YM205) | **Derived** local finite-volume theorem and **Derived** obstruction | On periodic cubic lattices, every fixed-support ground-density observable has a character-cutoff error uniform in volume; bounded electric energy density alone cannot control whole-wavefunction cutoff norm. Its executable receipt constructs no thermodynamic or continuum state; §9.27 uses the analytic bound as an input |
 | Fixed-regulator thermodynamic ground-state subsequence (YM206)–(YM213) | **Derived conditional** operator theorem with finite-identity controls | Finite-volume ground densities and the volume-uniform local tail estimate are analytic inputs; a diagonal subsequence is locally normal and satisfies the finite-character algebraic ground condition, while full-sequence convergence, uniqueness, clustering, a uniform gap and every continuum limit remain open |
+| Fixed-regulator Euclidean reflection-positive Gibbs subsequence (YM214)–(YM222) | **Derived conditional** lattice theorem with finite-kernel controls | Conditional on the established finite-lattice Wilson reflection/transfer theorems, positive character coefficients and compact local marginals give a translation-, gauge- and reflection-invariant DLR subsequence at each fixed $\beta>0$; full-sequence convergence, uniqueness, clustering, Hamiltonian equivalence, the lattice-spacing limit, continuum reconstruction and a uniform physical gap remain open |
 | Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, conditional-rate cutoff removal and continuum construction remain open |
 | Finite open-cube SU(2) basis and oriented Wilson support | **Derived** finite-regulator construction | The open $2\times2\times2$ cube has 32 and 1013 gauge-invariant raw trivalent-$3j$ states at doubled cutoffs $C=1,2$; every six signed fundamental plaquette operators has 32 and 2388 nonzero candidate-supported directed entries, with finite Hermitian contractions; fixed-graph character-cutoff removal follows from (YM187)–(YM195), while a growing open-boundary family and continuum control remain open |
 | Larger-volume/cutoff SU(2) Hamiltonian | **Derived** recovered finite-regulator construction and fixed-graph cutoff removal; **INCONCLUSIVE** frozen separation qualifications | The open $3\times2\times2$ graph has 868 and 955835 complete gauge-invariant states at doubled cutoffs $C=1,2$; the recovery enforces spectator-intertwiner orthogonality, all 226 finite-construction checks and 256 independent checks pass, every scheduled ground energy is nonnegative, and the separation-free theorem removes the character cutoff only after this graph and coupling are fixed |
@@ -6360,22 +6561,32 @@ full-space residual bound, 27 fail only the nested-rank rule and 45 fail
 both. No exact-vacuum fibre, transport-score, conditional-rate cutoff-removal,
 uniform recovery, thermodynamic or continuum conclusion follows.
 
-The finite-volume Wilson Schwinger bridge is bound by the frozen protocol
-`computations/yang-mills-su2-wilson-2d-prereg.md`, the primary
+The normalization-corrected finite-volume Wilson Schwinger bridge is bound by
+`computations/yang-mills-su2-wilson-2d-prereg-v2.md`, the primary
 `computations/verify_yang_mills_su2_wilson_2d.py` and the independent
 reconstruction `computations/verify_yang_mills_su2_wilson_2d_independent.mjs`.
-The primary receipt
-`runs/yang_mills_su2_wilson_2d/verification.json` passes 876/876 checks
+Normalized Haar orthogonality gives the direct character coefficient
+\(C_n=2nI_n(\beta)/\beta\), while one link convolution gives
+\(r_n=C_n/n=2I_n(\beta)/\beta\). The primary receipt
+`runs/yang_mills_su2_wilson_2d/verification-v2.json` passes 1092/1092 checks
 across 108 coupling, spatial-length, temporal-length and character-cutoff
-rows. It evaluates the gauge-projected character transfer spectrum, the
-fundamental-character correlator at four temporal separations, the exact
-effective-mass identity and the analytic character-tail bound. The independent
-receipt `runs/yang_mills_su2_wilson_2d/verification-independent.json` passes
-120/120 checks from the positive Bessel series and binds both verifier sources
-and the primary receipt by SHA-256. This establishes a finite-volume
-two-dimensional Wilson benchmark; four-dimensional spatial-volume growth,
-thermodynamic construction, OS reconstruction and the physical mass gap remain
-**UNRESOLVED**.
+rows. Its adaptive Haar check has maximum relative error
+\(1.91\times10^{-11}\). The independent receipt
+`runs/yang_mills_su2_wilson_2d/verification-independent-v2.json` passes
+120/120 checks using a positive Bessel series and a 65,536-point midpoint Haar
+integral; its maximum Haar relative error is \(2.05\times10^{-10}\). The
+rejected second division \(r_n/n\) differs by one half at \(n=2\) in every
+row. The unversioned protocol and receipts carry no active evidence claim.
+
+The dependent quantum generator is bound by
+`computations/yang-mills-su2-quantum-schwinger-2d-prereg-v2.md`. Its primary
+receipt `runs/yang_mills_su2_quantum_schwinger_2d/verification-v2.json` passes
+476/476 checks over 36 transfer, fusion-channel and correlator rows, and its
+independent receipt passes 10/10 source, prerequisite, reconstruction and
+firing checks while rebuilding all 36 rows. These corrected constructions
+establish finite two-dimensional transfer benchmarks. Four-dimensional
+spatial-volume growth, thermodynamic construction, OS reconstruction and the
+physical mass gap remain **UNRESOLVED**.
 
 The finite open-cube SU(2) pilot is bound by the frozen protocol
 `computations/yang-mills-su2-open-cube-prereg.md`, the primary
@@ -6498,6 +6709,31 @@ Both record
 `uniform_mass_gap_established=false`,
 `continuum_hypotheses_present=false` and `clay_verdict=NULL`.
 
+The Euclidean reflection evidence is bound by
+`computations/yang-mills-euclidean-reflection-positive-prereg.md`, the primary
+`computations/verify_yang_mills_euclidean_reflection_positive.py` and the
+independent
+`computations/verify_yang_mills_euclidean_reflection_positive_independent.mjs`.
+The primary receipt passes 308/308 checks over 36 normalized-Haar coefficient,
+reflection Gram, Schur-product and weighted-transfer rows. The independent
+receipt passes 22/22 checks and reconstructs all 36 rows with a positive
+Bessel series, compensated 65,536-point midpoint Haar integration and an
+independent Jacobi eigensolver.
+
+The protocol, primary source and independent source SHA-256 values are
+`d3a948b2114fad9b757c5005a8adc5f1e953b1353de0d5a99b896ef8c6c9165f`,
+`212229883db015655e7f74a3015a8e4e76ae1f00607ae085f4feb091467c6f28`
+and
+`a72cf5e38d58d0ec1afa34f218371a1426e8383564c5f0a48377e75374efb11c`.
+The independent receipt binds primary-receipt SHA-256
+`2e63f1eb49670ba87a678e9acfcae5c0574669db94296c4768a83d3c854b128f`.
+The primary and independent maximum Haar relative errors are
+$6.578917885036281\times10^{-10}$ and
+$1.7530111416976028\times10^{-12}$. Both receipts retain finite-volume
+reflection positivity and transfer positivity as analytic inputs and set the
+full-sequence, continuum, Wightman and uniform-gap conclusions false with
+`clay_verdict=NULL`.
+
 ---
 
 ## References
@@ -6579,12 +6815,18 @@ Both record
   loop-carrying exterior, boundary schedule and qualification rules
 - `computations/verify_yang_mills_bowtie_fibre.py`—source-bound bowtie
   conditional-fibre verifier with analytic controls and sealed receipt
-- `computations/yang-mills-su2-wilson-2d-prereg.md`—finite-volume
-  two-dimensional Wilson transfer, character-fusion correlator and tail protocol
-- `computations/verify_yang_mills_su2_wilson_2d.py`—876-check source-bound
-  finite-volume Wilson bridge verifier
+- `computations/yang-mills-su2-wilson-2d-prereg-v2.md`—normalized-Haar
+  coefficient, once-divided two-dimensional transfer, correlator and tail protocol
+- `computations/verify_yang_mills_su2_wilson_2d.py`—1092-check source-bound
+  normalization-corrected Wilson bridge verifier
 - `computations/verify_yang_mills_su2_wilson_2d_independent.mjs`—120-check
-  independent Bessel-series and receipt reconstruction
+  independent positive-series, Haar-integral and receipt reconstruction
+- `computations/yang-mills-su2-quantum-schwinger-2d-prereg-v2.md`—corrected
+  finite two-dimensional quantum transfer and fusion-correlator protocol
+- `computations/verify_yang_mills_su2_quantum_schwinger_2d.py`—476-check
+  corrected finite transfer generator
+- `computations/verify_yang_mills_su2_quantum_schwinger_2d_independent.mjs`—10-check
+  independent source-bound reconstruction over all 36 rows
 - `computations/yang-mills-su2-open-cube-prereg.md`—frozen open-cube
   gauge-basis and oriented Wilson-support protocol
 - `computations/verify_yang_mills_su2_open_cube.py`—69-check exact
@@ -6618,6 +6860,30 @@ Both record
 - `computations/verify_yang_mills_thermodynamic_ground_state_independent.mjs`—19-check
   independent rank, compactness, partial-trace, finite-matrix and
   receipt-binding reconstruction
+- `computations/yang-mills-euclidean-reflection-positive-prereg.md`—frozen
+  finite Wilson measure, reflection kernel, local-marginal compactness, DLR
+  passage and implication-boundary protocol
+- `computations/verify_yang_mills_euclidean_reflection_positive.py`—308-check
+  source-bound finite-kernel and compactness-control verifier
+- `computations/verify_yang_mills_euclidean_reflection_positive_independent.mjs`—22-check
+  positive-series, midpoint-Haar, Jacobi-spectrum and receipt reconstruction
+- `runs/yang_mills_euclidean_reflection_positive/verification.json`—primary
+  finite-kernel support receipt with a `NULL` Clay verdict
+- `runs/yang_mills_euclidean_reflection_positive/verification-independent.json`—independent
+  source- and receipt-bound reconstruction
+- K. Osterwalder and E. Seiler, [Gauge field theories on a
+  lattice](https://doi.org/10.1016/0003-4916(78)90039-8)—reflection positivity
+  and Euclidean lattice gauge construction
+- M. Lüscher, [Construction of a selfadjoint, strictly positive transfer
+  matrix for Euclidean lattice gauge
+  theories](https://doi.org/10.1007/BF01614090)—finite-volume Wilson transfer
+  operator
+- P. Menotti and A. Pelissetto, [General proof of Osterwalder–Schrader
+  positivity for the Wilson
+  action](https://doi.org/10.1007/BF01221251)—site-plane reflection positivity
+- H.-O. Georgii, *Gibbs Measures and Phase Transitions*, 2nd ed., de Gruyter
+  (2011)—compact-spin finite-range Gibbs specifications and thermodynamic
+  limits
 - H. Grundling and G. Rudolph, [Dynamics for QCD on an infinite
   lattice](https://arxiv.org/abs/1512.06319)—infinite-lattice Hamiltonian
   gauge dynamics, physical observable algebra and gauge-invariant ground
@@ -6625,8 +6891,8 @@ Both record
 - H. Grundling and G. Rudolph, [QCD on an infinite
   lattice](https://arxiv.org/abs/1108.2129)—inductive local gauge algebra and
   Gauss-law construction
-- `runs/yang_mills_continuum_boundary_audit/verification.json`—34-check v5 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic finite-identity evidence, excluded defect provenance and the unresolved continuum boundary
-- `computations/verify_yang_mills_continuum_boundary_audit.py`—34-check source, receipt, recovery-snapshot and continuum-boundary audit
+- `runs/yang_mills_continuum_boundary_audit/verification.json`—38-check v6 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean fixed-regulator evidence, excluded defect provenance and the unresolved continuum boundary
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—38-check source, receipt, recovery-snapshot and continuum-boundary audit
 - D. Bakry, I. Gentil and M. Ledoux, *Analysis and Geometry of Markov
   Diffusion Operators*—Poincaré, Poisson and carré-du-champ framework
 - C. Villani, *Optimal Transport: Old and New*—continuity equations and

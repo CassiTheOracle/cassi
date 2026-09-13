@@ -937,26 +937,28 @@ The finite-matrix ground state is obtained directly from the declared Hamiltonia
 
 ## 32. Finite-volume SU(2) Wilson Schwinger bridge
 
-The frozen protocol `computations/yang-mills-su2-wilson-2d-prereg.md` defines
-the gauge-projected character transfer spectrum of the periodic two-dimensional
-SU(2) Wilson model. The primary evaluates the modified-Bessel coefficients and
-the fundamental-character correlator over the fixed coupling, spatial-length,
-temporal-length and character-cutoff schedule. The independent implementation
-rebuilds the coefficients from the positive Bessel series and reconstructs the
-tail certificate and all correlator rows.
+The corrected protocol
+`computations/yang-mills-su2-wilson-2d-prereg-v2.md` defines the
+normalized-Haar character and gluing conventions for the periodic
+two-dimensional SU(2) Wilson model. Haar orthogonality gives
+\(C_n=2nI_n(\beta)/\beta\), and one convolution gives
+\(r_n=C_n/n=2I_n(\beta)/\beta\). The primary and independent implementations
+evaluate this normalization separately before reconstructing the partition,
+tail and transfer-vacuum correlator rows.
 
 | Control or claim | Decisive result | Classification and scope |
 |---|---|---|
-| Gauge projection and transfer spectrum | 108 rows over \(\beta\in\{1,2,4\}\), \(L_s,L_t\in\{1,2,4\}\), and \(N\in\{8,16,24,32\}\) retain the normalized-Haar character transfer data and four declared temporal separations | **PASS** for the declared finite-volume two-dimensional Wilson model |
-| Primary verification | `runs/yang_mills_su2_wilson_2d/verification.json` passes 876/876 checks, including the transfer spectrum, character-fusion correlator, effective-mass identity, area accounting and tail certificate | **SUPPORTS_FINITE_VOLUME_2D_WILSON_BRIDGE** |
-| Independent reconstruction | `runs/yang_mills_su2_wilson_2d/verification-independent.json` passes 120/120 source, protocol, schedule and row-reconstruction checks; it binds both verifier sources and the primary receipt | **PASS** for implementation-independent finite reconstruction |
-| Character-tail certificate | Every scheduled tail probe lies below its analytic bound; the largest recorded relative bound is \(7.16379095734615\times10^{-4}\), with log-domain fields retaining finite logarithmic bounds for underflowing rows | **DERIVED** finite-regulator bound |
-| Four-dimensional scope | The construction supplies a two-dimensional gauge-projected transfer benchmark; spatial-volume growth in four dimensions, the thermodynamic limit, OS reconstruction and a physical mass gap remain unresolved | **UNRESOLVED** |
+| Haar normalization and gluing | Adaptive quadrature has maximum relative error \(1.9081\times10^{-11}\); the independent 65,536-point midpoint integral has maximum relative error \(2.0462\times10^{-10}\); the rejected \(r_n/n\) value differs by one half at \(n=2\) in every row | **PASS**, direct coefficient and single convolution quotient |
+| Primary verification | `runs/yang_mills_su2_wilson_2d/verification-v2.json` passes 1092/1092 checks over 108 coupling, spatial-length, temporal-length and cutoff rows | **SUPPORTS_NORMALIZATION_CORRECTED_2D_WILSON_BRIDGE** |
+| Independent reconstruction | `runs/yang_mills_su2_wilson_2d/verification-independent-v2.json` passes 120/120 source, protocol, schedule and row checks using a positive Bessel series | **PASS** for implementation-independent reconstruction |
+| Character-tail certificate | Every 64-term tail probe lies below the corrected analytic bound; the largest recorded relative bound is \(0.00444863262841\) | **DERIVED** finite-area bound |
+| Invalidated evidence | The unversioned protocol and unversioned receipts use a second division by \(n\) and carry no active evidence claim | **REJECT** for the standard Wilson transfer normalization |
+| Four-dimensional scope | The construction supplies a two-dimensional partition diagnostic and transfer-vacuum benchmark | **UNRESOLVED** for four-dimensional thermodynamics, OS reconstruction, the lattice-spacing limit and physical mass gap |
 
-The bridge supplies a finite-volume Wilson Schwinger component and a controlled
-character-tail diagnostic. Its transfer spectrum is an exact two-dimensional
-benchmark; the four-dimensional interacting vacuum requires a new spatial
-transfer construction.
+The corrected transfer spectrum is exact for the declared two-dimensional
+model. Its vacuum correlator is distinct from a finite-temperature torus
+correlator. A four-dimensional interacting transfer construction remains a
+separate obligation.
 
 ## 33. Finite open-cube SU(2) gauge basis and Wilson sparsity
 
@@ -974,7 +976,7 @@ and exact-block representation helper by SHA-256.
 | Gauge-invariant basis | The raw trivalent $3j$ basis has dimensions $32$ at doubled cutoff $C=1$ and $1013$ at $C=2$ | **PASS** for the finite label enumeration |
 | Fundamental Wilson support | Every plaquette has $32$ candidate and nonzero directed entries at $C=1$, and $2388$ candidate and nonzero directed entries at $C=2$; no candidate cancellations occur at the $10^{-12}$ threshold | **SUPPORTS_FINITE_OPEN_CUBE_OPERATOR** |
 | Operator controls | The maximum Hermiticity and dagger residual is $5.55\times10^{-17}$; 128 forbidden pairs per plaquette have zero magnitude in both cutoffs | **PASS** for the exact finite contractions |
-| Cutoff and continuum boundary | The fixed open cube lies within the fixed-graph cutoff theorem of §36. Section 37 gives a volume-uniform fixed-support ground-density bound on periodic cubic lattices, and §38 conditionally extracts a locally normal fixed-regulator ground-state subsequence. Full-sequence convergence, phase uniqueness, clustering, weak-coupling continuum construction, OS reconstruction and the physical mass gap remain open | **DERIVED** cutoff removal at fixed graph and fixed local support; **DERIVED CONDITIONAL** thermodynamic subsequence; **UNRESOLVED** continuum boundary |
+| Cutoff and continuum boundary | The fixed open cube lies within the fixed-graph cutoff theorem of §36. Section 37 gives a volume-uniform fixed-support ground-density bound on periodic cubic lattices, §38 conditionally extracts a locally normal fixed-regulator ground-state subsequence, and §39 conditionally extracts a reflection-positive Euclidean DLR subsequence at fixed $\beta$. Full-sequence convergence, phase uniqueness, clustering, weak-coupling continuum construction, continuum Osterwalder–Schrader/Wightman reconstruction and the physical mass gap remain open | **DERIVED** cutoff removal at fixed graph and fixed local support; **DERIVED CONDITIONAL** Hamiltonian and Euclidean subsequences; **UNRESOLVED** continuum boundary |
 
 The minimum retained matrix magnitude is
 $9.76562500000009\times10^{-4}$ at $C=1$ and
@@ -1001,7 +1003,7 @@ Parseval bounds, Wilson-spectrum bounds and Hamiltonian positivity.
 | Independent reconstruction | The independent source reconstructs both ordered basis hashes, every plaquette matrix hash and count, both Wilson extrema, every Ritz energy, all shell norms and the recovery witness | **PASS**, 256/256 checks |
 | Character-cutoff tails | Only the $C=1$, $x=1/64$ exact-shell row has ratio at most $0.1$; its $C=2$ partner has ratio $0.100890916829$. The $x=1/4$ and $x=1$ separations are negative at both cutoffs | **INCONCLUSIVE**, all four aggregate cutoff qualifications |
 | Excluded edge-only evidence | The external primary and independent receipts bound in `runs/yang_mills_continuum_boundary_audit/verification.json` omit spectator-channel Kronecker deltas and admit the firing witness | **REJECT** for Hamiltonian spectra and cutoff-tail interpretation; retained as defect provenance |
-| Cutoff and continuum boundary | The frozen separation qualifications remain `INCONCLUSIVE`, while the form theorem in §36 removes the cutoff on this fixed graph without that separation. Section 37 controls fixed-support ground-density errors uniformly over periodic cubic volumes and excludes global norm control from energy density alone. Section 38 conditionally extracts a locally normal fixed-regulator ground-state subsequence. Full-sequence convergence, phase uniqueness, clustering, weak-coupling continuum construction, OS reconstruction and the regulator-independent physical mass gap remain open | **DERIVED** fixed-graph and local cutoff control; **DERIVED CONDITIONAL** thermodynamic subsequence; **UNRESOLVED** continuum limit |
+| Cutoff and continuum boundary | The frozen separation qualifications remain `INCONCLUSIVE`, while the form theorem in §36 removes the cutoff on this fixed graph without that separation. Section 37 controls fixed-support ground-density errors uniformly over periodic cubic volumes and excludes global norm control from energy density alone. Sections 38 and 39 conditionally extract a locally normal fixed-regulator ground-state subsequence and a reflection-positive Euclidean DLR subsequence at fixed $\beta$. Full-sequence convergence, phase uniqueness, clustering, weak-coupling continuum construction, continuum Osterwalder–Schrader/Wightman reconstruction and the regulator-independent physical mass gap remain open | **DERIVED** fixed-graph and local cutoff control; **DERIVED CONDITIONAL** Hamiltonian and Euclidean subsequences; **UNRESOLVED** continuum limit |
 
 The recovered primary receipt
 `runs/yang_mills_su2_larger_volume_hamiltonian_recovery/verification.json`
@@ -1010,37 +1012,34 @@ non-gating tail-separation rows at $x=1/4$ and $x=1$. The independent receipt
 `runs/yang_mills_su2_larger_volume_hamiltonian_recovery/verification-independent.json`
 passes 256/256 checks. Both bind the materialized receipt-bound recovery
 protocol snapshot, the scientific protocol, the current source files and the
-shared exact representation helper by SHA-256. The 34-check v5
+shared exact representation helper by SHA-256. The 38-check v6
 continuum-boundary audit verifies the one-reference relation between that
 snapshot and the current recovery protocol and binds the conditional
-thermodynamic finite-identity evidence.
+thermodynamic and Euclidean fixed-regulator evidence.
 
 ## 35. Finite-volume SU(2) quantum Schwinger generator
 
-The frozen protocol
-`computations/yang-mills-su2-quantum-schwinger-2d-prereg-v1.md` defines a
-finite two-dimensional SU(2) Wilson transfer model with
+The corrected protocol
+`computations/yang-mills-su2-quantum-schwinger-2d-prereg-v2.md` defines the
+finite two-dimensional SU(2) transfer model with
 \(\beta\in\{1,2,4\}\), spatial lengths \(L_s\in\{1,2,4\}\), character
 cutoffs \(N\in\{8,16,24,32\}\), three fusion channels and five Euclidean
-times. It is separate from the larger-volume Hamiltonian target in §34.
+times. It requires the current corrected Wilson v2 receipt.
 
 | Protocol component | Decisive result | Classification and scope |
 |---|---|---|
-| Primary transfer generator | 36 parameter rows, 396 row checks and six top-level checks pass: 402/402 | **PASS**, finite two-dimensional transfer model |
-| Independent reconstruction | Eight top-level checks pass; all 36 rows reconstruct the primary transfer data, fusion channels, correlators and effective masses | **PASS**, implementation-independent finite reconstruction |
-| Positive-series control | The independent source records positive Bessel-series tail bounds and propagated log-energy bounds; the largest scheduled relative tail bound is below \(10^{-16}\) | **DERIVED**, finite coefficient-control diagnostic |
-| Cutoff and continuum boundary | The fixed-graph theorem in §36 removes the character cutoff at fixed coupling. Section 37 supplies volume-uniform fixed-support control for periodic cubic ground densities. Neither result constructs the thermodynamic state or controls this Schwinger generator through the weak-coupling lattice-spacing limit | **DERIVED** at fixed graph and fixed local support; **UNRESOLVED** continuum boundary |
+| Primary transfer generator | 36 parameter rows, 468 row checks and eight top-level checks pass: 476/476 | **PASS**, normalization-corrected finite two-dimensional transfer model |
+| Independent reconstruction | Ten top-level checks pass; all 36 rows reconstruct the coefficient, gluing, transfer, fusion, correlator and effective-mass data | **PASS**, implementation-independent finite reconstruction |
+| Haar and positive-series control | The primary and independent Haar maxima are \(1.9081\times10^{-11}\) and \(2.0462\times10^{-10}\); the independent positive Bessel series has scheduled relative tail bounds below \(10^{-16}\) | **DERIVED**, finite coefficient-control diagnostic |
+| Double-division control | Every row rejects \(r_n/n\) with relative discrepancy \(1/2\) at \(n=2\) | **PASS**, normalization defect can fire |
+| Cutoff and continuum boundary | The corrected Wilson tail controls the fixed-area partition cutoff, and each declared vacuum fusion orbit is contained once \(N\geq4\) | **UNRESOLVED** for four-dimensional spatial-volume control, the lattice-spacing limit and physical mass gap |
 
 The qualified receipts are
-`runs/yang_mills_su2_quantum_schwinger_2d/verification-v1.json` and
-`runs/yang_mills_su2_quantum_schwinger_2d/verification-independent-v1.json`.
-The directory retains
-`verification-independent-v1-failed.json` as an audit artifact with one
-failed independent reconstruction before the final bounded-series source.
-The final receipts bind the frozen protocol, both source files and the
-current primary receipt by SHA-256. The separate recovered larger-volume
-Hamiltonian receipts remain finite-volume and finite-cutoff evidence and
-supply no continuum mass-gap estimate.
+`runs/yang_mills_su2_quantum_schwinger_2d/verification-v2.json` and
+`runs/yang_mills_su2_quantum_schwinger_2d/verification-independent-v2.json`.
+They bind the corrected protocols, current sources and Wilson v2 primary
+receipt by SHA-256. The v1 protocol and v1 receipts retain the rejected
+double-division model as defect provenance and carry no active evidence claim.
 
 ## 36. Fixed-finite-graph SU(2) character-cutoff form lemma
 
@@ -1188,6 +1187,50 @@ gap, weak-coupling continuum construction, Osterwalder–Schrader
 reconstruction and a regulator-independent physical mass remain open.
 
 
+## 39. Fixed-regulator Euclidean reflection-positive Gibbs subsequence
+
+The analytic protocol
+`computations/yang-mills-euclidean-reflection-positive-prereg.md` fixes the
+four-dimensional Wilson measure on even periodic tori. For irreducible
+dimension $n\geq1$, its normalized-Haar character coefficient is
+
+$$
+C_n(\beta)
+=I_{n-1}(\beta)-I_{n+1}(\beta)
+=\frac{2nI_n(\beta)}{\beta}>0.
+$$
+
+Established finite-lattice reflection and transfer theorems combine this
+positivity with a diagonal limit of compact finite-link marginal spaces.
+Conditional on those established theorems, the limit is a
+translation-invariant, gauge-invariant, reflection-positive Wilson DLR state
+at each fixed $\beta>0$ and defines a fixed-regulator
+Osterwalder–Schrader Hilbert space.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Primary finite-kernel schedule | All 308 checks pass over 36 coefficient, reflection-Gram, Schur-product and weighted-transfer rows; the maximum adaptive-Haar relative error is $6.578917885036281\times10^{-10}$ | **PASS**, finite normalized-Haar reflection-kernel support |
+| Independent reconstruction | All 22 checks pass and all 36 rows reconstruct through a positive Bessel series, compensated 65,536-point midpoint Haar rule and independent Jacobi eigensolver; the maximum Haar relative error is $1.7530111416976028\times10^{-12}$ | **PASS**, source- and receipt-bound independent reconstruction |
+| Analytic local-marginal limit | Compatible local marginals have a diagonal weak subsequence; translation, compactly supported gauge symmetry, reflection positivity and the Wilson DLR identity pass on cylinder functions | **DERIVED CONDITIONAL**, fixed regulator and fixed $\beta$ |
+| Implication firing controls | A negative highest character coefficient gives minimum Gram eigenvalue $-8.612469317193874$; an asymmetric kernel is rejected; strictly positive two-level transfer matrices have gap $6.023626075915001\times10^{-4}$ at $L=256$ and tend to zero | **PASS**, positivity can fail and positive transfer does not imply a uniform gap |
+| Continuum boundary | Both receipts set full-sequence convergence, uniqueness, clustering, Hamiltonian equivalence, continuum construction, Wightman reconstruction and uniform mass gap false, with `clay_verdict=NULL` | **NULL**, no continuum or physical mass-gap conclusion |
+
+The qualified receipts are
+`runs/yang_mills_euclidean_reflection_positive/verification.json` and
+`runs/yang_mills_euclidean_reflection_positive/verification-independent.json`.
+The protocol, primary source and independent source SHA-256 values are
+`d3a948b2114fad9b757c5005a8adc5f1e953b1353de0d5a99b896ef8c6c9165f`,
+`212229883db015655e7f74a3015a8e4e76ae1f00607ae085f4feb091467c6f28`
+and
+`a72cf5e38d58d0ec1afa34f218371a1426e8383564c5f0a48377e75374efb11c`.
+The independent receipt binds primary-receipt SHA-256
+`2e63f1eb49670ba87a678e9acfcae5c0574669db94296c4768a83d3c854b128f`.
+Full-volume convergence, phase selection, clustering, the anisotropic
+Hamiltonian relation, the weak-coupling lattice-spacing limit, continuum
+Osterwalder–Schrader reconstruction and a regulator-independent physical mass
+remain open.
+
+
 ## References
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
@@ -1268,16 +1311,16 @@ reconstruction and a regulator-independent physical mass remain open.
 - `computations/verify_yang_mills_su2_schwinger_bridge_independent_v2.mjs`—20-check independent matrix, spectral and source-binding reconstruction.
 - `runs/yang_mills_su2_schwinger_bridge/verification-v2.json`—96-check source-bound finite-regulator vacuum and correlator receipt.
 - `runs/yang_mills_su2_schwinger_bridge/verification-independent-v2.json`—20-check independent receipt binding the primary source and receipt.
-- `computations/yang-mills-su2-wilson-2d-prereg.md`—finite-volume two-dimensional Wilson transfer and tail protocol.
-- `computations/verify_yang_mills_su2_wilson_2d.py`—876-check source-bound Wilson bridge receipt generator.
-- `computations/verify_yang_mills_su2_wilson_2d_independent.mjs`—120-check independent Bessel-series and receipt reconstruction.
-- `runs/yang_mills_su2_wilson_2d/verification.json`—876-check finite-volume Wilson bridge receipt.
-- `runs/yang_mills_su2_wilson_2d/verification-independent.json`—120-check independent receipt binding both sources and the primary receipt.
-- `computations/yang-mills-su2-quantum-schwinger-2d-prereg-v1.md`—finite-volume two-dimensional SU(2) quantum Schwinger-function protocol.
-- `computations/verify_yang_mills_su2_quantum_schwinger_2d.py`—402-check primary finite-volume transfer and correlator receipt generator.
-- `computations/verify_yang_mills_su2_quantum_schwinger_2d_independent.mjs`—eight-check independent Bessel-series, spectral and source-binding reconstruction.
-- `runs/yang_mills_su2_quantum_schwinger_2d/verification-v1.json`—402-check source-bound finite-volume quantum Schwinger receipt.
-- `runs/yang_mills_su2_quantum_schwinger_2d/verification-independent-v1.json`—eight-check independent receipt binding both sources and the primary receipt.
+- `computations/yang-mills-su2-wilson-2d-prereg-v2.md`—normalization-corrected finite-volume two-dimensional Wilson transfer and tail protocol.
+- `computations/verify_yang_mills_su2_wilson_2d.py`—1092-check source-bound Wilson bridge receipt generator.
+- `computations/verify_yang_mills_su2_wilson_2d_independent.mjs`—120-check independent Bessel-series, Haar-integral and receipt reconstruction.
+- `runs/yang_mills_su2_wilson_2d/verification-v2.json`—1092-check normalization-corrected Wilson bridge receipt.
+- `runs/yang_mills_su2_wilson_2d/verification-independent-v2.json`—120-check independent receipt binding both sources and the primary receipt.
+- `computations/yang-mills-su2-quantum-schwinger-2d-prereg-v2.md`—normalization-corrected finite two-dimensional SU(2) quantum Schwinger protocol.
+- `computations/verify_yang_mills_su2_quantum_schwinger_2d.py`—476-check primary finite transfer and correlator receipt generator.
+- `computations/verify_yang_mills_su2_quantum_schwinger_2d_independent.mjs`—ten-check independent reconstruction over all 36 rows.
+- `runs/yang_mills_su2_quantum_schwinger_2d/verification-v2.json`—476-check source-bound corrected quantum Schwinger receipt.
+- `runs/yang_mills_su2_quantum_schwinger_2d/verification-independent-v2.json`—ten-check independent receipt binding the corrected Wilson and quantum sources and receipts.
 - `computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md`—finite $3\times2\times2$ Hamiltonian and character-tail schedule.
 - `computations/yang-mills-su2-larger-volume-hamiltonian-recovery-prereg.md`—spectator-channel recovery and operator-bound protocol.
 - `computations/verify_yang_mills_su2_larger_volume_hamiltonian.py`—226-check recovered finite construction.
@@ -1308,8 +1351,20 @@ reconstruction and a regulator-independent physical mass remain open.
   thermodynamic finite-identity receipt with a `NULL` Clay verdict.
 - `runs/yang_mills_thermodynamic_ground_state/verification-independent.json`—independent
   source- and receipt-bound reconstruction.
-- `runs/yang_mills_continuum_boundary_audit/verification.json`—34-check v5 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic finite-identity evidence, excluded defect provenance and the unresolved continuum boundary.
-- `computations/verify_yang_mills_continuum_boundary_audit.py`—34-check hash-bound finite-evidence and continuum-boundary audit.
+- `computations/yang-mills-euclidean-reflection-positive-prereg.md`—frozen
+  finite Wilson reflection, local-marginal compactness, DLR passage and
+  implication-boundary protocol.
+- `computations/verify_yang_mills_euclidean_reflection_positive.py`—308-check
+  source-bound finite-kernel and compactness-control verifier.
+- `computations/verify_yang_mills_euclidean_reflection_positive_independent.mjs`—22-check
+  independent positive-series, midpoint-Haar, Jacobi-spectrum and receipt
+  reconstruction.
+- `runs/yang_mills_euclidean_reflection_positive/verification.json`—primary
+  finite-kernel support receipt with a `NULL` Clay verdict.
+- `runs/yang_mills_euclidean_reflection_positive/verification-independent.json`—independent
+  source- and receipt-bound reconstruction.
+- `runs/yang_mills_continuum_boundary_audit/verification.json`—38-check v6 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean fixed-regulator evidence, excluded defect provenance and the unresolved continuum boundary.
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—38-check hash-bound finite-evidence and continuum-boundary audit.
 - `computations/yang-mills-su2-transport-expansion-prereg.md`—fixed local strip and compact-boundary schedule.
 - `computations/verify_yang_mills_su2_transport_expansion.py`—150-check normalized transport expansion.
 - `computations/verify_yang_mills_su2_transport_expansion_independent.mjs`—60-check independent coefficient and receipt reconstruction.

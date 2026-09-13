@@ -312,9 +312,23 @@ the gauge-invariant finite-character local algebra. This operator result is
 **Derived conditional**. Its 18/18 primary and 19/19 independent executable
 checks cover finite identities and implication controls; both receipts state
 that they construct no interacting $SU(2)$ ground state and retain
-`clay_verdict=NULL`. Full-sequence convergence, phase uniqueness, clustering,
-a weak-coupling continuum construction, Osterwalder–Schrader reconstruction
-and a regulator-independent positive mass gap remain open.
+`clay_verdict=NULL`.
+
+The Euclidean route gives a second fixed-regulator existence bridge. On
+reflection-compatible even four-tori, the Wilson plaquette weight has positive
+$SU(2)$ character coefficients. Taking the standard finite-lattice reflection
+positivity and positive-transfer results as explicit analytic inputs, compact
+local marginals and diagonal extraction yield a translation- and
+gauge-invariant, reflection-positive DLR subsequential limit at every fixed
+$\beta$. The fixed-lattice Osterwalder–Schrader quotient therefore supplies a
+positive transfer Hilbert space. This result is **Derived conditional** because
+the executable receipts test the finite coefficients, kernels, covariance and
+failure controls but do not construct the infinite-volume measure. The
+308/308 primary and 22/22 independent checks retain `clay_verdict=NULL`.
+Full-sequence convergence, phase uniqueness, clustering, equivalence with the
+Hamiltonian construction, weak-coupling continuum existence, continuum
+Osterwalder–Schrader/Wightman reconstruction and a regulator-independent
+positive mass gap remain open.
 
 The geometric manifold completion ansatz places these finite structures in
 one stratified bundle. A positive Hermitian Yang/Yin fibre contains the

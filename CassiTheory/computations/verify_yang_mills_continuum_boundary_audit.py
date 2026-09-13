@@ -117,6 +117,29 @@ THERMODYNAMIC_INDEPENDENT_RECEIPT = (
     / "yang_mills_thermodynamic_ground_state"
     / "verification-independent.json"
 )
+EUCLIDEAN_PROTOCOL = (
+    ROOT / "computations" / "yang-mills-euclidean-reflection-positive-prereg.md"
+)
+EUCLIDEAN_PRIMARY_SOURCE = (
+    ROOT / "computations" / "verify_yang_mills_euclidean_reflection_positive.py"
+)
+EUCLIDEAN_INDEPENDENT_SOURCE = (
+    ROOT
+    / "computations"
+    / "verify_yang_mills_euclidean_reflection_positive_independent.mjs"
+)
+EUCLIDEAN_PRIMARY_RECEIPT = (
+    ROOT
+    / "runs"
+    / "yang_mills_euclidean_reflection_positive"
+    / "verification.json"
+)
+EUCLIDEAN_INDEPENDENT_RECEIPT = (
+    ROOT
+    / "runs"
+    / "yang_mills_euclidean_reflection_positive"
+    / "verification-independent.json"
+)
 
 
 
@@ -160,7 +183,7 @@ EXPECTED_BASIS = {
 COUPLINGS = [0.015625, 0.0625, 0.25, 1.0]
 MISSING_CLAY_OBLIGATIONS = [
     "nontrivial four-dimensional quantum Yang-Mills construction on R^4",
-    "reflection-positive Euclidean Schwinger functions and OS/Wightman reconstruction",
+    "continuum Osterwalder-Schrader axioms, Euclidean covariance restoration, and Wightman reconstruction",
     "renormalized local gauge-invariant field content with the required short-distance behavior",
     "uniform weak-coupling estimates along a->0",
     "full-sequence thermodynamic phase control, uniqueness, and clustering",
@@ -311,6 +334,11 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         THERMODYNAMIC_INDEPENDENT_SOURCE,
         THERMODYNAMIC_PRIMARY_RECEIPT,
         THERMODYNAMIC_INDEPENDENT_RECEIPT,
+        EUCLIDEAN_PROTOCOL,
+        EUCLIDEAN_PRIMARY_SOURCE,
+        EUCLIDEAN_INDEPENDENT_SOURCE,
+        EUCLIDEAN_PRIMARY_RECEIPT,
+        EUCLIDEAN_INDEPENDENT_RECEIPT,
         EXCLUDED_PRIMARY_RECEIPT,
         EXCLUDED_INDEPENDENT_RECEIPT,
     ]
@@ -353,6 +381,8 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
     local_cutoff_independent = load_json(LOCAL_CUTOFF_INDEPENDENT_RECEIPT)
     thermodynamic_primary = load_json(THERMODYNAMIC_PRIMARY_RECEIPT)
     thermodynamic_independent = load_json(THERMODYNAMIC_INDEPENDENT_RECEIPT)
+    euclidean_primary = load_json(EUCLIDEAN_PRIMARY_RECEIPT)
+    euclidean_independent = load_json(EUCLIDEAN_INDEPENDENT_RECEIPT)
 
     current_protocol = validate_protocol_snapshot_relation()
     hashes = {
@@ -391,6 +421,11 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         "thermodynamic_independent_receipt": sha256(
             THERMODYNAMIC_INDEPENDENT_RECEIPT
         ),
+        "euclidean_protocol": sha256(EUCLIDEAN_PROTOCOL),
+        "euclidean_primary_source": sha256(EUCLIDEAN_PRIMARY_SOURCE),
+        "euclidean_independent_source": sha256(EUCLIDEAN_INDEPENDENT_SOURCE),
+        "euclidean_primary_receipt": sha256(EUCLIDEAN_PRIMARY_RECEIPT),
+        "euclidean_independent_receipt": sha256(EUCLIDEAN_INDEPENDENT_RECEIPT),
         "excluded_primary_receipt": sha256(EXCLUDED_PRIMARY_RECEIPT),
         "excluded_independent_receipt": sha256(EXCLUDED_INDEPENDENT_RECEIPT),
     }
@@ -822,6 +857,132 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
 
 
 
+    check(
+        "Euclidean reflection primary and independent receipts pass",
+        euclidean_primary.get("schema")
+        == "cassi.yang-mills.euclidean-reflection-positive.v1"
+        and euclidean_primary.get("verdict") == "PASS"
+        and euclidean_primary.get("fixed_regulator_euclidean_support") == "PASS"
+        and euclidean_primary.get("summary", {}).get("rows") == 36
+        and euclidean_primary.get("summary", {}).get("checks") == 308
+        and euclidean_primary.get("summary", {}).get("passed") == 308
+        and euclidean_primary.get("summary", {}).get("failed") == 0
+        and euclidean_independent.get("schema")
+        == "cassi.yang-mills.euclidean-reflection-positive.independent.v1"
+        and euclidean_independent.get("verdict") == "PASS"
+        and euclidean_independent.get("summary", {}).get("rows_reconstructed")
+        == 36
+        and euclidean_independent.get("summary", {}).get("checks") == 22
+        and euclidean_independent.get("summary", {}).get("passed") == 22
+        and euclidean_independent.get("summary", {}).get("failed") == 0,
+        primary_summary=euclidean_primary.get("summary"),
+        independent_summary=euclidean_independent.get("summary"),
+    )
+    check(
+        "Euclidean reflection protocol sources and primary receipt are hash bound",
+        euclidean_primary.get("protocol_sha256") == hashes["euclidean_protocol"]
+        and euclidean_independent.get("protocol_sha256")
+        == hashes["euclidean_protocol"]
+        and euclidean_primary.get("source_sha256")
+        == hashes["euclidean_primary_source"]
+        and euclidean_independent.get("primary_source_sha256")
+        == hashes["euclidean_primary_source"]
+        and euclidean_independent.get("independent_source_sha256")
+        == hashes["euclidean_independent_source"]
+        and euclidean_independent.get("primary_receipt_sha256")
+        == hashes["euclidean_primary_receipt"],
+        protocol_sha256=hashes["euclidean_protocol"],
+        primary_source_sha256=hashes["euclidean_primary_source"],
+        independent_source_sha256=hashes["euclidean_independent_source"],
+        primary_receipt_sha256=hashes["euclidean_primary_receipt"],
+    )
+    euclidean_rows = euclidean_primary.get("rows", [])
+    euclidean_independent_rows = euclidean_independent.get("rows", [])
+    check(
+        "Euclidean reflection schedules and finite rows reconstruct",
+        euclidean_primary.get("schedule", {}).get("beta_values")
+        == [0.25, 1.0, 4.0, 16.0]
+        and euclidean_primary.get("schedule", {}).get("character_cutoffs")
+        == [4, 8, 16]
+        and euclidean_primary.get("schedule", {}).get("sample_counts")
+        == [8, 12, 16]
+        and len(euclidean_rows) == 36
+        and all(
+            len(row.get("checks", [])) == 8
+            and all(item.get("passed") is True for item in row.get("checks", []))
+            for row in euclidean_rows
+        )
+        and len(euclidean_independent_rows) == 36
+        and all(row.get("checks_passed") == 8 for row in euclidean_independent_rows)
+        and euclidean_primary.get("haar_fixture", {}).get(
+            "maximum_relative_error", 1.0
+        )
+        <= 1.0e-9
+        and euclidean_independent.get("haar_fixture", {}).get(
+            "maximum_relative_error", 1.0
+        )
+        <= 1.0e-9,
+        primary_rows=len(euclidean_rows),
+        independent_rows=len(euclidean_independent_rows),
+        primary_haar_relative_error=euclidean_primary.get(
+            "haar_fixture", {}
+        ).get("maximum_relative_error"),
+        independent_haar_relative_error=euclidean_independent.get(
+            "haar_fixture", {}
+        ).get("maximum_relative_error"),
+    )
+    euclidean_inputs = euclidean_primary.get("analytic_inputs", {})
+    euclidean_boundaries = euclidean_primary.get("boundaries", {})
+    euclidean_independent_boundaries = euclidean_independent.get("boundaries", {})
+    euclidean_negative = euclidean_primary.get("negative_coefficient_fixture", {})
+    euclidean_asymmetric = euclidean_primary.get("asymmetric_kernel_fixture", {})
+    euclidean_alternating = euclidean_primary.get(
+        "alternating_sequence_fixture", {}
+    )
+    euclidean_gaps = euclidean_primary.get("collapsing_gap_fixture", {})
+    check(
+        "Euclidean analytic premises and implication controls stay explicit",
+        euclidean_inputs.get("finite_torus_wilson_reflection_positivity") is True
+        and euclidean_inputs.get("finite_spatial_volume_positive_transfer")
+        is True
+        and euclidean_inputs.get("compact_group_finite_range_gibbs_compactness")
+        is True
+        and euclidean_inputs.get(
+            "executable_proof_of_geometric_reflection_factorization"
+        )
+        is False
+        and euclidean_inputs.get("infinite_volume_measure_constructed_by_verifier")
+        is False
+        and euclidean_negative.get("passed") is True
+        and euclidean_negative.get("minimum_eigenvalue", 0.0) < -1.0
+        and euclidean_asymmetric.get("passed") is True
+        and euclidean_alternating.get("passed") is True
+        and euclidean_gaps.get("passed") is True
+        and euclidean_gaps.get("rows", [])[-1].get("gap", 1.0) < 1.0e-3
+        and euclidean_boundaries == euclidean_independent_boundaries
+        and euclidean_boundaries.get("full_sequence_convergence_established")
+        is False
+        and euclidean_boundaries.get("uniqueness_established") is False
+        and euclidean_boundaries.get("clustering_established") is False
+        and euclidean_boundaries.get(
+            "anisotropic_hamiltonian_equivalence_established"
+        )
+        is False
+        and euclidean_boundaries.get("continuum_limit_established") is False
+        and euclidean_boundaries.get("wightman_reconstruction_established")
+        is False
+        and euclidean_boundaries.get("uniform_mass_gap_established") is False
+        and euclidean_boundaries.get("clay_verdict") == "NULL",
+        analytic_inputs=euclidean_inputs,
+        boundaries=euclidean_boundaries,
+        negative_minimum_eigenvalue=euclidean_negative.get("minimum_eigenvalue"),
+        terminal_gap=(
+            euclidean_gaps.get("rows", [])[-1].get("gap")
+            if euclidean_gaps.get("rows")
+            else None
+        ),
+    )
+
     receipt_protocol_hashes = {
         primary["protocol_sha256"], independent.get("protocol_sha256")
     }
@@ -991,7 +1152,7 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
 
     theory = THEORY_SOURCE.read_text(encoding="utf-8")
     check(
-        "theory separates conditional thermodynamic control from the open Clay target",
+        "theory separates fixed-regulator Euclidean support from the open Clay target",
         "Fixed-graph character-cutoff form theorem (YM187)–(YM195) | **Derived**"
         in theory
         and "Volume-uniform local cutoff density and global-norm obstruction "
@@ -1000,21 +1161,24 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         and "Fixed-regulator thermodynamic ground-state subsequence "
         "(YM206)–(YM213) | **Derived conditional**"
         in theory
-        and "`thermodynamic_state_constructed_by_verifier=false`" in theory
-        and "`continuum_hypotheses_present=false` and `clay_verdict=NULL`"
+        and "Fixed-regulator Euclidean reflection-positive Gibbs subsequence "
+        "(YM214)–(YM222) | **Derived conditional**"
         in theory
+        and "`thermodynamic_state_constructed_by_verifier=false`" in theory
+        and "`infinite_volume_measure_constructed_by_verifier=false`" in theory
+        and "`clay_verdict=NULL`" in theory
         and "Continuum Yang–Mills existence and mass gap | **Open**" in theory,
     )
 
-    if len(checks) != 34:
-        raise RuntimeError(f"expected 34 audit checks, constructed {len(checks)}")
+    if len(checks) != 38:
+        raise RuntimeError(f"expected 38 audit checks, constructed {len(checks)}")
     all_passed = all(row["passed"] for row in checks)
     record: dict[str, Any] = {
-        "schema": "yang_mills_continuum_boundary_audit_v5",
+        "schema": "yang_mills_continuum_boundary_audit_v6",
         "status": "PASS" if all_passed else "FAIL",
         "verdict": "UNRESOLVED_CONTINUUM_PROBLEM",
         "clay_verdict": "NULL",
-        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence, fixed-graph and local cutoff control, and conditional thermodynamic finite-identity evidence against the Clay Yang-Mills existence and mass-gap obligations",
+        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence, fixed-graph and local cutoff control, conditional thermodynamic finite-identity evidence, and fixed-regulator Euclidean reflection support against the Clay Yang-Mills existence and mass-gap obligations",
         "audit_source": {
             "path": display_path(SOURCE),
             "sha256": hashes["audit_source"],
@@ -1125,6 +1289,28 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
                 "sha256": hashes["thermodynamic_independent_receipt"],
                 "bytes": THERMODYNAMIC_INDEPENDENT_RECEIPT.stat().st_size,
             },
+            "euclidean_protocol": {
+                "path": display_path(EUCLIDEAN_PROTOCOL),
+                "sha256": hashes["euclidean_protocol"],
+            },
+            "euclidean_primary_source": {
+                "path": display_path(EUCLIDEAN_PRIMARY_SOURCE),
+                "sha256": hashes["euclidean_primary_source"],
+            },
+            "euclidean_independent_source": {
+                "path": display_path(EUCLIDEAN_INDEPENDENT_SOURCE),
+                "sha256": hashes["euclidean_independent_source"],
+            },
+            "euclidean_primary_receipt": {
+                "path": display_path(EUCLIDEAN_PRIMARY_RECEIPT),
+                "sha256": hashes["euclidean_primary_receipt"],
+                "bytes": EUCLIDEAN_PRIMARY_RECEIPT.stat().st_size,
+            },
+            "euclidean_independent_receipt": {
+                "path": display_path(EUCLIDEAN_INDEPENDENT_RECEIPT),
+                "sha256": hashes["euclidean_independent_receipt"],
+                "bytes": EUCLIDEAN_INDEPENDENT_RECEIPT.stat().st_size,
+            },
         },
         "protocol_snapshot_audit": {
             "current_reference": CURRENT_REFERENCE.decode("utf-8"),
@@ -1228,6 +1414,32 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "continuum_hypotheses_present": False,
             "clay_verdict": "NULL",
         },
+        "euclidean_reflection_bridge": {
+            "classification": "CONDITIONAL_FIXED_REGULATOR_EUCLIDEAN_GIBBS_SUBSEQUENCE",
+            "primary_status": euclidean_primary["fixed_regulator_euclidean_support"],
+            "primary_checks_passed": euclidean_primary["summary"]["passed"],
+            "primary_checks_total": euclidean_primary["summary"]["checks"],
+            "independent_status": euclidean_independent["verdict"],
+            "independent_checks_passed": euclidean_independent["summary"]["passed"],
+            "independent_checks_total": euclidean_independent["summary"]["checks"],
+            "rows": len(euclidean_primary["rows"]),
+            "primary_maximum_haar_relative_error": euclidean_primary[
+                "haar_fixture"
+            ]["maximum_relative_error"],
+            "independent_maximum_haar_relative_error": euclidean_independent[
+                "haar_fixture"
+            ]["maximum_relative_error"],
+            "finite_volume_reflection_positivity_analytic_input": True,
+            "finite_volume_positive_transfer_analytic_input": True,
+            "infinite_volume_measure_constructed_by_verifier": False,
+            "full_sequence_convergence_established": False,
+            "uniqueness_established": False,
+            "clustering_established": False,
+            "continuum_limit_established": False,
+            "wightman_reconstruction_established": False,
+            "uniform_mass_gap_established": False,
+            "clay_verdict": "NULL",
+        },
         "cutoff_tail_evidence": {
             "qualifications": primary["cutoff_qualifications"],
             "useful_tail_rows": primary["useful_tail_rows"],
@@ -1275,7 +1487,7 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "conclusion": "positive local conditional rates alone do not imply a volume-uniform global gap",
         },
         "missing_clay_obligations": MISSING_CLAY_OBLIGATIONS,
-        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction; the form theorem removes the character cutoff after the graph, coupling and low-energy index are fixed; and the local-density theorem controls every fixed support uniformly over periodic cubic volumes. Conditional on finite-volume ground densities and YMT2, the operator argument extracts a locally normal fixed-regulator ground-state subsequence. The thermodynamic executable evidence checks finite identities and implication controls and constructs no interacting ground state. Full-sequence phase control, clustering, weak-coupling continuum construction and a regulator-independent mass-gap theorem remain open.",
+        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction; the form theorem removes the character cutoff after the graph, coupling and low-energy index are fixed; and the local-density theorem controls every fixed support uniformly over periodic cubic volumes. Conditional on finite-volume ground densities and YMT2, the operator argument extracts a locally normal fixed-regulator ground-state subsequence. Conditional on the established finite-lattice Wilson reflection and transfer theorems, compact local Euclidean marginals extract a reflection-positive DLR subsequence at every fixed beta. The executable evidence checks finite identities, kernels and implication controls; it constructs no infinite-volume Hamiltonian or Euclidean state directly. Full-sequence phase control, clustering, weak-coupling continuum construction, continuum Osterwalder-Schrader reconstruction and a regulator-independent mass-gap theorem remain open.",
     }
 
     if not all_passed:
@@ -1313,7 +1525,10 @@ def main() -> None:
         f"{record['local_cutoff_density']['primary_checks_total']} "
         "thermodynamic="
         f"{record['thermodynamic_ground_state_bridge']['primary_checks_passed']}/"
-        f"{record['thermodynamic_ground_state_bridge']['primary_checks_total']}"
+        f"{record['thermodynamic_ground_state_bridge']['primary_checks_total']} "
+        "euclidean="
+        f"{record['euclidean_reflection_bridge']['primary_checks_passed']}/"
+        f"{record['euclidean_reflection_bridge']['primary_checks_total']}"
     )
 
 

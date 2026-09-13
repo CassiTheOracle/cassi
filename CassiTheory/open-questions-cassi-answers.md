@@ -883,6 +883,22 @@ and 19/19 independent checks pass, while both receipts explicitly record the
 finite-volume ground densities and volume-uniform tail estimate as analytic
 inputs outside the verifier and retain `clay_verdict=NULL`.
 
+Section 9.28 supplies the Euclidean counterpart. The Wilson plaquette weight
+on reflection-compatible even four-tori has strictly positive $SU(2)$
+character coefficients. Conditional on the standard finite-lattice reflection
+positivity and positive-transfer theorems, compact local marginals and a
+diagonal extraction construct a translation- and gauge-invariant,
+reflection-positive DLR subsequential limit at every fixed $\beta$. The
+fixed-lattice Osterwalder–Schrader quotient has a positive Hilbert space and
+transfer semigroup. This is **Derived conditional**: the 308/308 primary and
+22/22 independent executable checks validate finite coefficient, kernel,
+covariance and firing identities, while explicitly recording that the
+verifiers do not construct the infinite-volume measure and retain
+`clay_verdict=NULL`. Full-sequence convergence, uniqueness, clustering,
+Hamiltonian equivalence, the $a\to0$ limit, continuum
+Osterwalder–Schrader/Wightman reconstruction and a uniform physical gap are
+not established.
+
 The Poincaré-geometry analysis separates spatial and link three-spheres. A
 closed simply connected spatial slice is topologically $S^3$, and a round
 radius-$R$ regulator has free Maxwell/linearized coexact frequency $2/R$,
@@ -984,11 +1000,13 @@ A scale-uniform recovery floor $\gamma_*>0$, a uniform lower bound for
 $\lambda_{\mathrm{fib}}$, a vertical field solving the exact-vacuum score
 transport equation with the required $H^{-1}$ upper bound, a strict
 coarse-rate margin, full-sequence and phase-selected thermodynamic
-convergence, the four-dimensional continuum limit, a regulator-independent
-mass gap and carrier-state identification remain open. The local
-character-cutoff theorem controls fixed-support tails uniformly in volume,
-and the conditional operator argument extracts a locally normal
-fixed-regulator ground-state subsequence. Neither result supplies the
+convergence, the four-dimensional continuum limit, continuum
+Osterwalder–Schrader/Wightman reconstruction, a regulator-independent mass
+gap and carrier-state identification remain open. The local character-cutoff
+theorem controls fixed-support tails uniformly in volume, the conditional
+operator argument extracts a locally normal fixed-regulator ground-state
+subsequence, and the conditional Euclidean argument extracts a
+reflection-positive DLR subsequence at fixed $\beta$. None supplies the
 infrared clustering or uniform spectral estimate required for the remaining
 steps. The $L^2$ route through $\kappa$ remains sufficient. The QF/DQ/GQ
 classifications remain unchanged.
@@ -2553,12 +2571,19 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   passes the finite-volume ground inequality to the finite-character local
   algebra. Its 18/18 primary and 19/19 independent controls explicitly leave
   the finite-volume ground densities and local tail theorem outside the
-  executable proof surface. A uniform exact-vacuum fibre rate, transported
-  score, full-sequence convergence, phase uniqueness, clustering,
-  weak-coupling continuum construction, OS reconstruction and
-  regulator-independent physical mass gap remain open. See
-  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.27 and §11 and
-  `field-experience/probe-outcome-ledger.md` §§30,34,36–38.
+  executable proof surface. The Euclidean theorem conditionally extracts a
+  translation- and gauge-invariant, reflection-positive DLR subsequence on
+  the infinite lattice at each fixed $\beta$, using established
+  finite-lattice reflection and transfer theorems as analytic inputs. Its
+  308/308 primary and 22/22 independent controls reconstruct the finite
+  coefficients, kernels and implication boundaries and retain
+  `clay_verdict=NULL`. A uniform exact-vacuum fibre rate, transported score,
+  full-sequence convergence, phase uniqueness, clustering, Hamiltonian–
+  Euclidean equivalence, weak-coupling continuum construction, continuum
+  Osterwalder–Schrader/Wightman reconstruction and a regulator-independent
+  physical mass gap remain open. See
+  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.28 and §11 and
+  `field-experience/probe-outcome-ledger.md` §§30,34,36–39.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state
