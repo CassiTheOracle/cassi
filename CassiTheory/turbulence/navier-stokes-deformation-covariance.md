@@ -479,7 +479,7 @@ $$
 
 Then every such solution continues through $T$.
 
-**Proof.** Equations (40) and (42) give a uniform enstrophy bound through the smooth interval. On the mean-zero periodic divergence-free subspace, the Fourier curl identity and Poincaré inequality control the $H^1$ velocity norm by enstrophy. The standard local $H^1$ restart extends the solution at a finite endpoint. $\square$
+**Proof.** Equation (26) gives the independent bound $0\le Z_C(t)\le W(0)$. Hence (40) and (42) give $W(t)=\mathfrak A_C(t)Z_C(t)\le C_C(\nu,T,R)W(0)$ through the smooth interval. On the mean-zero periodic divergence-free subspace, the Fourier curl identity and Poincaré inequality control the $H^1$ velocity norm by enstrophy. The standard local $H^1$ restart extends the solution at a finite endpoint. $\square$
 
 Conversely, a finite maximal time forces enstrophy to become unbounded. Since (26) gives $Z_C\le W(0)$, finite-time loss of regularity forces $\mathfrak A_C$ to diverge along a sequence approaching that endpoint.
 
