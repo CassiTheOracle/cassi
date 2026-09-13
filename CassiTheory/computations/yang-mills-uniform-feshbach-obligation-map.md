@@ -258,4 +258,4 @@ No new Feshbach receipt is scheduled until an exact block/transfer construction 
 - `computations/yang-mills-4x2x2-c1-feshbach-prereg.md`—finite translated $4\times2\times2$ screen and its declared evidence boundary.
 - `computations/yang-mills-interacting-feshbach-prereg.md`—fixed-graph interacting resolvent and Schur inequalities.
 - `computations/yang-mills-transport-score-prereg.md`—conditional $H^{-1}$ transport recurrence and Gaussian controls.
-- `computations/verify_yang_mills_continuum_boundary_audit.py`—hash-bound audit whose receipt records the unresolved continuum boundary and `clay_verdict: NULL`.
+- `computations/verify_yang_mills_continuum_boundary_audit.py` and `runs/yang_mills_continuum_boundary_audit/verification.json`—the hash-bound audit source and its recorded `status: PASS`, `verdict: UNRESOLVED_CONTINUUM_PROBLEM` and `clay_verdict: NULL`; the receipt is source-snapshot-bound and its recorded result is not a current-theorem validation.
