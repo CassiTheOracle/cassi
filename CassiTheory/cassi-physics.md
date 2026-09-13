@@ -347,6 +347,22 @@ conditional**. The 80/80
 primary and 20/20 independent arithmetic controls pass. They compute no
 interacting gap and construct no continuum trajectory or continuum theory.
 
+The conditional RG endpoint bridge sharpens the required scale mechanism. A
+bounded cumulative two-loop scale defect, fixed positive endpoint rate, exact
+correlation-preserving blocking and complete retained physical observables
+would bound the microscopic gap in units of $F_W$; its 139/139 primary and
+32/32 independent arithmetic checks pass with synthetic endpoint witnesses.
+The finite transfer-correlation criterion then isolates the algebraic map
+boundary: for positive self-adjoint $A$ and isometric retained map $J$,
+$D_2(u)=\|QAJu\|^2$ with $Q=I-JJ^*$, so exact second-moment matching forces
+a reducing retained sector and all-moment matching. Its complete, incomplete
+and leaky fixtures pass 54/54 primary checks and 55/55 independent decisions
+with four firing mutations. The incomplete fixture retains exact moments
+while omitting a lower transfer channel; retained-observable completeness,
+the exact Yang–Mills block map, the interacting gap and the continuum
+construction remain open. See `foundations/loop-to-bubble-projection-theorem.md`
+§§9.31–9.32 and `field-experience/probe-outcome-ledger.md` §§42–43.
+
 The geometric manifold completion ansatz places these finite structures in
 one stratified bundle. A positive Hermitian Yang/Yin fibre contains the
 canonical density pair on its diagonal, the loop coherence state in its

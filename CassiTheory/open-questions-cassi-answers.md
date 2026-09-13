@@ -2154,6 +2154,22 @@ carrier-frequency and pair-frequency outgoing reservoir tests therefore fail
 to replace the conditional external pump; the canonical action, quantum
 state, normalization, continuum stability and particle map remain unselected.
 
+A pair-frequency-resonant incoming-shell calculation tests radial focusing as
+the reservoir reaches the carrier core from the bubble interior. The primary
+and independent receipts pass finite-state, CP, archive and charge/energy
+ledger checks. The late mean core density is $1.2716046$ and the minimum late
+core charge is $226.6244$, but the minimum core fraction is $0.0119851$, the
+exterior-support mean is $0.9248362$, the source-tail ratio is $0.9576208$,
+and the maximum late core energy-to-absolute-charge ratio is $26.4089$. The
+reservoir centroid reaches $8.9998$ from an initial $18.1016$, missing the
+preregistered $C_R\le8$ focusing check, and the resolution comparison fails.
+Its verdict is
+`DOES NOT EMERGE—conditional pair-frequency-resonant incoming-shell formation`
+(`computations/matter-formation-continuum-report.md` §103). Radial focusing
+therefore supplies a transient pulse without selecting a persistent carrier;
+the canonical action, quantum state, normalization, continuum stability and
+particle map remain unselected.
+
 The conservative interscale action has a **Derived conditional**
 collective-response reduction. Eliminating density fluctuations gives
 positive phase inertia; admissible variation of the longitudinal
@@ -2693,7 +2709,21 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   retains a complete physical observable family. Its 139/139 primary and
   32/32 independent checks verify the scale, rate and volume identities and
   reject a per-step-only drift criterion. The endpoint rates are synthetic
-  assumption witnesses.
+  assumption witnesses. A separate finite positive-transfer diagnostic now
+  isolates the map's algebraic boundary: for an isometric retained map $J$
+  and positive self-adjoint transfer $A$, the second-moment defect is
+  $\|QAJu\|^2$ with $Q=I-JJ^*$, so exact second-moment matching is equivalent
+  to a reducing retained sector and then to all-moment matching. Its complete,
+  incomplete and leaky fixtures pass 54/54 primary checks and 55/55
+  independent decisions, including four firing mutations. The incomplete
+  fixture has exact retained moments but a retained gap
+  $0.3285040669720361$ versus full gap $0.09431067947124129$, proving that
+  completeness is not inferred from correlation matching. The 55th decision is
+  the protocol-scheduled primary-receipt source-binding audit; the scientific
+  fixture schedule remains 54 checks. This finite result
+  does not construct the Yang–Mills block map, interacting transfer operator
+  or full physical gap.
+
   Every receipt retains `clay_verdict=NULL`. A uniform exact-vacuum fibre
   rate, transported score, full-sequence convergence, phase uniqueness,
   clustering, identification of the fixed-$\beta$ state with the anisotropic
@@ -2702,8 +2732,8 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   uniform interacting endpoint gap, weak-coupling continuum construction,
   continuum Osterwalder–Schrader/Wightman reconstruction and a
   regulator-independent physical mass gap remain open. See
-  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.31 and §11 and
-  `field-experience/probe-outcome-ledger.md` §§30,34,36–42.
+  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.32 and §11 and
+  `field-experience/probe-outcome-ledger.md` §§30,34,36–43.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state

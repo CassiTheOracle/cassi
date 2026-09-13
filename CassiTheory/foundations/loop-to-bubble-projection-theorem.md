@@ -30,7 +30,7 @@ density projection and a coherence-sensitive bubble coordinate. A physical
 phase law, a map from the regulated quantum configuration to these carriers,
 $\hbar$, quantum statistics, and measurement dynamics remain separate inputs.
 
-The pure-gauge comparison in §§9.4–9.31 retains full $SU(2)$ loop holonomies.
+The pure-gauge comparison in §§9.4–9.32 retains full $SU(2)$ loop holonomies.
 Gauss invariance supplies an electric closed-loop threshold, while the
 projective bubble variable discards Wilson magnetic energy. Quantum-lattice
 stability gives a volume-uniform interacting gap at sufficiently strong bare
@@ -146,6 +146,16 @@ the blocked spatial volume diverge exactly when $NF_W\to\infty$. The 139/139
 primary and 32/32 independent arithmetic checks include a cumulative-drift
 rejection and seven firing mutations. They construct none of the RG,
 transfer, endpoint-gap, completeness or continuum inputs, and
+`clay_verdict=NULL`.
+The finite-transfer completeness diagnostic separates the remaining map
+obligation. For a positive self-adjoint blocked transfer $A$ and an isometric
+retained map $J$, the second correlation moment differs from its compression
+by $\|QAJu\|^2$, where $Q=I-JJ^*$. Exact matching through that moment is
+therefore equivalent to a reducing retained subspace and hence to matching of
+all later moments. This does not imply that the retained subspace is complete.
+The complete, incomplete and leaky frozen fixtures pass 54/54 primary and
+55/55 independent checks, with four firing mutations; the receipts construct
+neither an interacting block map nor a full physical gap and retain
 `clay_verdict=NULL`.
 
 ---
@@ -6863,6 +6873,100 @@ do not complete the Clay construction.
 
 
 
+### 9.32 Finite transfer-correlation criterion and completeness boundary
+
+The exact correlation transport assumed in (YM251) has a finite operator
+consequence that can be checked without choosing a Yang–Mills block
+transformation. Let $A$ be a positive self-adjoint transfer operator after the
+blocking interval, let $J$ be an isometry from the retained space into the
+fine physical space, and set
+
+$$
+P:=JJ^*,
+\qquad
+Q:=I-P,
+\qquad
+A_c:=J^*AJ.
+$$
+
+For a retained vector $u$, write
+$C_f^u(m)=\langle Ju,A^mJu\rangle$ and
+$C_c^u(m)=\langle u,A_c^m u\rangle$. The first moment is the compression
+identity. The second moment has the positive defect
+
+$$
+\boxed{
+D_2(u):=C_f^u(2)-C_c^u(2)
+=\langle u,J^*AQAJu\rangle
+=\|QAJu\|^2\geq0.
+}
+\tag{YM256}
+$$
+
+Consequently, in finite dimension,
+
+$$
+\boxed{
+\begin{aligned}
+D_2(u)=0\ \text{for every }u
+&\Longleftrightarrow QAJ=0\\
+&\Longleftrightarrow A\operatorname{Ran}J
+  \subseteq\operatorname{Ran}J\\
+&\Longleftrightarrow \operatorname{Ran}J\text{ reduces }A\\
+&\Longleftrightarrow C_f^u(m)=C_c^u(m)
+  \ \text{for every }u\text{ and }m\geq0.
+\end{aligned}
+}
+\tag{YM257}
+$$
+
+The first equivalence is the positivity of
+$J^*AQAJ=(QAJ)^*(QAJ)$. Self-adjointness gives the reducing-subspace
+statement, and invariance then gives all powers. A one-step compressed
+correlation or a single exponential rate does not establish (YM257).
+
+Completeness is a separate condition:
+
+$$
+\boxed{
+\operatorname{Ran}J=\mathcal H_{\mathrm{phys}}
+\quad\Longrightarrow\quad
+\bigl(QAJ=0\bigr)\ \Longrightarrow\
+\Delta_{\mathrm{full}}=\Delta_{\mathrm{ret}}.
+}
+\tag{YM258}
+$$
+
+The first condition cannot be inferred from exact moments on
+$\operatorname{Ran}J$. A proper reducing subspace may omit a physical channel
+whose transfer eigenvalue lies closer to the vacuum. In that case the retained
+rate is not a full physical gap.
+
+The frozen finite diagnostic
+`computations/yang-mills-transfer-completeness-prereg.md` uses a complete
+invariant fixture, an incomplete invariant fixture and a leaky positive
+fixture. The complete fixture has defect zero and
+$\Delta_{\mathrm{full}}=\Delta_{\mathrm{ret}}=0.3285040669720361$. The
+incomplete fixture also has exact retained moments and zero defect, but its
+retained rate is $0.3285040669720361$ while the omitted $0.91$ channel gives
+$\Delta_{\mathrm{full}}=0.09431067947124129$. The leaky fixture has
+$\|QAJ\|^2=0.004900000000000001$; its $m=1$ moment agrees, while the $m=2$
+through $m=5$ errors are
+$0.0049000000000000155$, $0.009065000000000045$,
+$0.011361140000000047$ and $0.012035433900000031$.
+
+The primary receipt passes 54/54 checks and all four mutations. The independent
+Node receipt passes 55/55 decisions: the 55th is the explicit primary-receipt
+source-binding audit required by the frozen protocol, while the scientific
+fixture schedule remains 54 checks. Both receipts set
+`exact_rg_block_map_constructed=false`,
+`interacting_transfer_operator_constructed=false`,
+`retained_observable_completeness_established=false`,
+`full_physical_gap_established=false`,
+`continuum_mass_gap_established=false` and `clay_verdict=NULL`. The criterion
+sharpens the missing input in (YM251); it does not construct that input.
+
+
 ---
 
 ## 10. Physical tests and rejection conditions
@@ -7760,6 +7864,16 @@ retain `clay_verdict=NULL`.
   arithmetic receipt with every construction claim false
 - `runs/yang-mills-rg-gap-matching/verification-independent.json`—independent
   source- and primary-receipt-bound reconstruction
+- `computations/yang-mills-transfer-completeness-prereg.md`—frozen finite
+  positive-transfer second-moment, reducing-subspace and retained-completeness
+  criterion.
+- `computations/verify_yang_mills_transfer_completeness.py`—54-check primary
+  finite-transfer criterion and four mutation controls.
+- `computations/verify_yang_mills_transfer_completeness_independent.mjs`—55-check
+  independent reconstruction with the source-binding audit.
+- `runs/yang-mills-transfer-completeness/verification.json` and
+  `verification-independent.json`—source-bound finite-transfer receipts with
+  `PASS` criterion and `NULL` Clay verdict.
 - T. Bałaban, [Renormalization Group Approach to Lattice Gauge Field
   Theories. I](https://doi.org/10.1007/BF01215223)—four-dimensional
   small-field effective actions and coupling-constant renormalization

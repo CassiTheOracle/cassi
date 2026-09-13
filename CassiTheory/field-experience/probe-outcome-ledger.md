@@ -1368,6 +1368,51 @@ continuum Osterwalder–Schrader reconstruction remain open. Balaban's
 ultraviolet-stability results do not establish these inputs.
 
 
+## 43. Finite transfer-correlation criterion and completeness boundary
+
+The frozen protocol
+`computations/yang-mills-transfer-completeness-prereg.md` tests the finite
+operator content of exact correlation transport without claiming to construct
+the Yang–Mills block map. For a positive self-adjoint transfer operator $A$,
+an isometric retained map $J$, $P=JJ^*$ and $Q=I-P$, the second retained
+correlation defect is
+
+$$
+D_2(u)
+=\langle Ju,A^2Ju\rangle-\langle u,(J^*AJ)^2u\rangle
+=\|QAJu\|^2.
+$$
+
+Thus exact second-moment matching for every retained vector is equivalent to
+$\operatorname{Ran}J$ reducing $A$, which is equivalent to matching every
+later moment in the finite positive self-adjoint setting. Completeness is
+separate: an exact reducing retained sector can omit a physical channel and
+therefore report a retained rate rather than the full physical gap.
+
+| Fixture or control | Decisive result | Classification and scope |
+|---|---|---|
+| Complete invariant fixture | Defect $0$; retained and full gaps both $0.3285040669720361$ | **PASS**, exact finite transfer criterion |
+| Incomplete invariant fixture | Defect $0$ and exact retained moments; retained gap $0.3285040669720361$, full gap $0.09431067947124129$ from the omitted $0.91$ channel | **PASS**, completeness is not inferred from exact retained correlations |
+| Leaky positive fixture | Defect $0.004900000000000001$; $m=2$–$5$ errors are nonzero | **PASS**, second-moment leakage fires |
+| Mutation controls | Omitted defect, ignored completeness, compressed/full-gap conflation and forced leakage acceptance all fire; $4/4$ controls activate | **PASS**, checks are non-vacuous |
+| Independent reconstruction | Primary `54/54`; independent `55/55`; both activate all four controls | **PASS**, the fifth independent decision is the scheduled primary-receipt source-binding audit; the scientific fixture schedule remains 54 checks |
+| Clay boundary | No exact interacting block map, interacting transfer operator, complete observable family, full gap, thermodynamic/continuum construction or mass gap is established | **NULL**, finite criterion only |
+
+The qualified receipts are
+`runs/yang-mills-transfer-completeness/verification.json` and
+`runs/yang-mills-transfer-completeness/verification-independent.json`.
+The protocol, primary source, independent source, primary receipt and
+independent receipt SHA-256 values are
+`6a34e35376f8af5115a975fb868f13e25cd5d1cd38ae83f02eb6c8af7ec8d9fc`,
+`fa470ad179e93bf7f371db0f856b0b3faa8d06509edcc1fac048761eaaecac58`,
+`bce9a24511941aa7d18f5318c6c42ba64495b3132aeb54de4fb06d5458d548f1`,
+`b073ffe2dd2c98f7dd5c52a2535b58c86c149ea0ae0242305a201294ba1c6140`
+and
+`c04fced6f75e27b50b1cf2460c1eaf2049ce67b9bbcb48c5aeadb5b2b839fe66`.
+The finite criterion sharpens the correlation-preserving map obligation; it
+does not supply the map or solve the Clay problem.
+
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -1382,6 +1427,16 @@ ultraviolet-stability results do not establish these inputs.
 - `computations/verify_yang_mills_rg_gap_matching.py`—139-check source-bound exact, bounded-defect, drift-control and gap-matching verifier.
 - `computations/verify_yang_mills_rg_gap_matching_independent.mjs`—32-check independent reconstruction with seven firing mutations.
 - `runs/yang-mills-rg-gap-matching/verification.json` and `verification-independent.json`—source- and primary-receipt-bound conditional arithmetic receipts with `NULL` Clay verdicts.
+- `computations/yang-mills-transfer-completeness-prereg.md`—frozen finite
+  positive-transfer second-moment, reducing-subspace and completeness
+  criterion.
+- `computations/verify_yang_mills_transfer_completeness.py`—54-check primary
+  verifier with four firing mutation controls.
+- `computations/verify_yang_mills_transfer_completeness_independent.mjs`—55-check
+  independent reconstruction with the scheduled source-binding audit.
+- `runs/yang-mills-transfer-completeness/verification.json` and
+  `verification-independent.json`—source-bound finite-transfer receipts with
+  `PASS` finite criterion and `NULL` Clay verdict.
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
 - `field-experience/counterflow-resonant-addressing-pre-registration.md`—Wave 1 frozen protocol and decision tree.

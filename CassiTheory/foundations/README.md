@@ -969,6 +969,17 @@ A bounded cumulative defect, exact block map, complete retained physical
 observable family, uniform interacting endpoint gap and continuum
 Osterwalder–Schrader construction remain open.
 
+The finite transfer-correlation criterion makes the algebraic part of the map
+obligation explicit. For a positive self-adjoint blocked transfer $A$ and an
+isometric retained map $J$, the second-moment defect is
+$\|QAJu\|^2$ with $Q=I-JJ^*$. Exact second-moment matching is therefore
+equivalent to a reducing retained sector and then to all-moment matching.
+The complete, incomplete and leaky fixtures pass 54/54 primary checks and
+55/55 independent decisions with four firing mutations. The incomplete
+fixture's exact retained moments still miss an omitted lower transfer channel,
+so completeness and the full physical gap remain open; both receipts retain
+`clay_verdict=NULL` (`field-experience/probe-outcome-ledger.md` §43).
+
 ### `interscale-current-soliton.md`—Interscale Yang/Yin Current and the Conditional Soliton Pinch
 
 Introduces a Hypothesized complex Yang/Yin doublet
