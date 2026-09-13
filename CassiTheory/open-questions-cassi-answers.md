@@ -2653,7 +2653,7 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   fixed finite spatial graph and proves strong semigroup-product convergence.
   Its 414/414 primary and 24/24 independent checks reconstruct all 36
   finite-character rows, coefficient normalizations and firing controls.
-  The two-loop Wilson scale now makes the continuum target quantitative:
+  The two-loop Wilson scale makes the continuum target quantitative:
   $g_0\to0$ and $NF_W\to\infty$ are necessary for simultaneous cutoff removal
   and infinite volume, while a finite positive local excitation requires
   $a\Delta_W/F_W$ bounded above and below. Its 80/80 primary and 20/20

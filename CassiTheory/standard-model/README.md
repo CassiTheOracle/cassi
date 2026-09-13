@@ -53,7 +53,7 @@ the missing metric and orbit-matching rule. Running and measured-scale
 comparisons are in `sm-radiative-corrections.md`.
 
 The pure Yang–Mills comparison is in
-`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.27. Its state
+`foundations/loop-to-bubble-projection-theorem.md` §§9.4–9.30. Its state
 space and Hamiltonian come from source-free quantum $SU(2)$ lattice gauge
 theory, with no isospinor matter or symmetry-breaking potential. It gives
 regulated electric-loop and projective-information boundaries, a
@@ -95,16 +95,28 @@ discarded whole-wavefunction norm tending to one at fixed cutoff.
 Conditional on the finite-volume ground densities and that local estimate,
 trace-norm precompactness and a diagonal extraction give a compatible,
 symmetry-invariant locally normal ground-state subsequence at each fixed
-regulator and coupling. Its algebraic ground inequality holds on the
-gauge-invariant finite-character local algebra. The executable controls pass
-18/18 primary and 19/19 independently and explicitly leave the interacting
-ground densities and uniform tail estimate outside their proof surface.
+regulator and coupling. Its algebraic ground inequality holds on the local
+gauge-invariant $*$-algebra whose operators have finite Peter–Weyl matrix
+support. The executable controls pass 18/18 primary and 19/19 independently
+and explicitly leave the interacting ground densities and uniform tail
+estimate outside their proof surface.
 Full-sequence convergence, phase uniqueness, clustering, coupled
 boundary-sector amplitudes and self-energy control, a uniform
 interacting-vacuum residual-recovery floor and transported-score upper bound,
 weak-coupling fibre and coarse-margin estimates, the continuum construction
 and a regulator-independent mass remain open. This comparison makes no
 electroweak or QCD particle identification.
+
+At fixed Wilson coupling, the conditional Euclidean theorem extracts a
+reflection-positive DLR subsequence, while a separate anisotropic theorem
+identifies the Kogut–Susskind generator on every fixed finite spatial graph.
+The universal two-loop Wilson scale supplies the weak-coupling yardstick:
+simultaneous cutoff removal and infinite volume require $g_0\to0$ and
+$NF_W(g_0)\to\infty$, and a finite positive excitation requires
+$a\Delta_W/F_W$ bounded above and below in a nonzero local channel. The
+80/80 primary and 20/20 independent scaling controls pass. These are
+necessary scale conditions; no interacting continuum trajectory, continuum
+theory or physical gap is constructed.
 
 ### `sm-radiative-corrections.md`—Standard Model Radiative Corrections from the φ-Boundary
 

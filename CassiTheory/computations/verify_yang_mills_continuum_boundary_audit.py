@@ -1,9 +1,9 @@
 """Audit recovered finite SU(2) evidence against the continuum mass-gap target.
 
-This verifier does not reconstruct the 955835-state Hamiltonian.  It binds the
-already reconstructed primary and independent receipts to the current source
-files, checks the finite claims used by the theory documents, and records the
-continuum obligations that those receipts do not discharge.
+This verifier does not reconstruct the 955835-state Hamiltonian. It binds the
+reconstructed finite-regulator and renormalized-scaling receipts to the
+current source files, checks the claims used by the theory documents, and
+records the continuum obligations that those receipts do not discharge.
 
 Run from the CassiTheory root:
 
@@ -168,6 +168,31 @@ HAMILTONIAN_LIMIT_INDEPENDENT_RECEIPT = (
 
 
 
+SCALING_PROTOCOL = (
+    ROOT / "computations" / "yang-mills-renormalized-gap-scaling-prereg.md"
+)
+SCALING_PRIMARY_SOURCE = (
+    ROOT / "computations" / "verify_yang_mills_renormalized_gap_scaling.py"
+)
+SCALING_INDEPENDENT_SOURCE = (
+    ROOT
+    / "computations"
+    / "verify_yang_mills_renormalized_gap_scaling_independent.mjs"
+)
+SCALING_PRIMARY_RECEIPT = (
+    ROOT
+    / "runs"
+    / "yang-mills-renormalized-gap-scaling"
+    / "verification.json"
+)
+SCALING_INDEPENDENT_RECEIPT = (
+    ROOT
+    / "runs"
+    / "yang-mills-renormalized-gap-scaling"
+    / "verification-independent.json"
+)
+
+
 EXCLUDED_PRIMARY_RECEIPT = Path("D:/Cassi-ym-larger-volume/verification-final2.json")
 EXCLUDED_INDEPENDENT_RECEIPT = Path(
     "D:/Cassi-ym-larger-volume/verification-independent-final2.json"
@@ -212,6 +237,7 @@ MISSING_CLAY_OBLIGATIONS = [
     "full-sequence thermodynamic phase control, uniqueness, and clustering",
     "lattice-spacing-uniform interacting estimates beyond fixed-support character tails",
     "regulator-independent positive gauge-invariant mass gap",
+    "construction of a coupled g0->0, N(g0) F_W(g0)->infinity trajectory",
     "extension from SU(2) to every compact simple gauge group",
 ]
 
@@ -367,6 +393,11 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         HAMILTONIAN_LIMIT_INDEPENDENT_SOURCE,
         HAMILTONIAN_LIMIT_PRIMARY_RECEIPT,
         HAMILTONIAN_LIMIT_INDEPENDENT_RECEIPT,
+        SCALING_PROTOCOL,
+        SCALING_PRIMARY_SOURCE,
+        SCALING_INDEPENDENT_SOURCE,
+        SCALING_PRIMARY_RECEIPT,
+        SCALING_INDEPENDENT_RECEIPT,
         EXCLUDED_PRIMARY_RECEIPT,
         EXCLUDED_INDEPENDENT_RECEIPT,
     ]
@@ -415,6 +446,8 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
     hamiltonian_limit_independent = load_json(
         HAMILTONIAN_LIMIT_INDEPENDENT_RECEIPT
     )
+    scaling_primary = load_json(SCALING_PRIMARY_RECEIPT)
+    scaling_independent = load_json(SCALING_INDEPENDENT_RECEIPT)
 
     current_protocol = validate_protocol_snapshot_relation()
     hashes = {
@@ -471,6 +504,11 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         "hamiltonian_limit_independent_receipt": sha256(
             HAMILTONIAN_LIMIT_INDEPENDENT_RECEIPT
         ),
+        "scaling_protocol": sha256(SCALING_PROTOCOL),
+        "scaling_primary_source": sha256(SCALING_PRIMARY_SOURCE),
+        "scaling_independent_source": sha256(SCALING_INDEPENDENT_SOURCE),
+        "scaling_primary_receipt": sha256(SCALING_PRIMARY_RECEIPT),
+        "scaling_independent_receipt": sha256(SCALING_INDEPENDENT_RECEIPT),
         "excluded_primary_receipt": sha256(EXCLUDED_PRIMARY_RECEIPT),
         "excluded_independent_receipt": sha256(EXCLUDED_INDEPENDENT_RECEIPT),
     }
@@ -1226,6 +1264,169 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         claims=hamiltonian_claims,
         independent_claims=hamiltonian_independent_claims,
     )
+    scaling_primary_summary = scaling_primary.get("summary", {})
+    scaling_independent_summary = scaling_independent.get("summary", {})
+    check(
+        "renormalized scaling primary and independent receipts pass",
+        scaling_primary.get("schema")
+        == "cassi.yang-mills.renormalized-gap-scaling.verification.v1"
+        and scaling_primary.get("verdict") == "PASS"
+        and scaling_primary_summary.get("checks")
+        == scaling_primary_summary.get("passing_checks")
+        == 80
+        and scaling_primary_summary.get("rows") == 6
+        and scaling_primary_summary.get("row_checks") == 60
+        and scaling_primary_summary.get("top_level_checks") == 20
+        and scaling_primary_summary.get("firing_controls")
+        == scaling_primary_summary.get("firing_controls_activated")
+        == 6
+        and scaling_independent.get("schema")
+        == "cassi.yang-mills.renormalized-gap-scaling.verification-independent.v1"
+        and scaling_independent.get("verdict") == "PASS"
+        and scaling_independent_summary.get("checks")
+        == scaling_independent_summary.get("passing_checks")
+        == 20
+        and scaling_independent_summary.get("reconstructed_rows") == 6
+        and scaling_independent_summary.get("firing_controls")
+        == scaling_independent_summary.get("firing_controls_activated")
+        == 6,
+        primary_summary=scaling_primary_summary,
+        independent_summary=scaling_independent_summary,
+    )
+    scaling_primary_bindings = scaling_primary.get("sources", {})
+    scaling_independent_bindings = scaling_independent.get("sources", {})
+    check(
+        "renormalized scaling protocol sources and receipt are hash bound",
+        scaling_primary_bindings.get("protocol", {}).get("sha256")
+        == scaling_independent_bindings.get("protocol", {}).get("sha256")
+        == hashes["scaling_protocol"]
+        and scaling_primary_bindings.get("primary_source", {}).get("sha256")
+        == scaling_independent_bindings.get("primary_source", {}).get("sha256")
+        == hashes["scaling_primary_source"]
+        and scaling_primary_bindings.get("independent_source", {}).get("sha256")
+        == scaling_independent_bindings.get("independent_source", {}).get("sha256")
+        == hashes["scaling_independent_source"]
+        and scaling_independent_bindings.get("primary_receipt", {}).get("sha256")
+        == hashes["scaling_primary_receipt"],
+        protocol_sha256=hashes["scaling_protocol"],
+        primary_source_sha256=hashes["scaling_primary_source"],
+        independent_source_sha256=hashes["scaling_independent_source"],
+        primary_receipt_sha256=hashes["scaling_primary_receipt"],
+    )
+    scaling_coefficients = scaling_primary.get("coefficients", {})
+    scaling_independent_coefficients = scaling_independent.get("coefficients", {})
+    scaling_parameters = scaling_primary.get("parameters", {})
+    scaling_classifications = scaling_primary.get("classifications", {})
+    scaling_rows = scaling_primary.get("rows", [])
+    expected_volume_classifications = {
+        "fixed_count": "COLLAPSES_TO_ZERO",
+        "polynomial_count": "COLLAPSES_TO_ZERO",
+        "fixed_box": "FIXED_PHYSICAL_SIZE",
+        "thermodynamic_inverse_g2": "DIVERGES_TO_INFINITY",
+        "thermodynamic_log_scale": "DIVERGES_TO_INFINITY",
+    }
+    expected_gap_classifications = {
+        "constant": "DIVERGES_TO_INFINITY",
+        "polynomial": "DIVERGES_TO_INFINITY",
+        "subscale": "VANISHES_TO_ZERO",
+        "matched": "FINITE_POSITIVE",
+        "isolated_square": "DIVERGES_TO_INFINITY",
+    }
+    check(
+        "two-loop coefficients, schedules, and asymptotic classes stay consistent",
+        close(scaling_coefficients.get("b0", 0.0), 11.0 / (24.0 * math.pi**2))
+        and close(scaling_coefficients.get("b1", 0.0), 17.0 / (96.0 * math.pi**4))
+        and close(scaling_coefficients.get("p", 0.0), 51.0 / 121.0)
+        and close(
+            scaling_independent_coefficients.get("b0", 0.0),
+            scaling_coefficients.get("b0", 1.0),
+        )
+        and close(
+            scaling_independent_coefficients.get("b1", 0.0),
+            scaling_coefficients.get("b1", 1.0),
+        )
+        and close(
+            scaling_independent_coefficients.get("p", 0.0),
+            scaling_coefficients.get("p", 1.0),
+        )
+        and scaling_parameters.get("g0_squared")
+        == [0.8, 0.5, 0.3, 0.2, 0.1, 0.05]
+        and scaling_classifications.get("volume")
+        == expected_volume_classifications
+        and scaling_classifications.get("gap") == expected_gap_classifications
+        and scaling_independent.get("classifications") == scaling_classifications
+        and len(scaling_rows) == 6
+        and all(
+            scaling_rows[index + 1].get("scale", math.inf)
+            < scaling_rows[index].get("scale", 0.0)
+            for index in range(5)
+        )
+        and close(
+            scaling_rows[0].get("log_scale_from_coupling", 0.0),
+            -12.07069314273597,
+        )
+        and close(
+            scaling_rows[-1].get("log_scale_from_coupling", 0.0),
+            -212.78035320771062,
+        ),
+        coefficients=scaling_coefficients,
+        parameters=scaling_parameters,
+        classifications=scaling_classifications,
+        first_row=scaling_rows[0] if scaling_rows else None,
+        last_row=scaling_rows[-1] if scaling_rows else None,
+    )
+    expected_scaling_firing_controls = {
+        "omit_two_loop_power",
+        "replace_su2_b0_with_su3_b0",
+        "mislabel_fixed_box_as_thermodynamic",
+        "mislabel_constant_gap_as_finite_mass",
+        "reverse_wilson_hamiltonian_coupling_map",
+        "omit_gap_time_rescaling",
+    }
+    scaling_primary_firing = scaling_primary.get("firing_controls", [])
+    scaling_independent_firing = scaling_independent.get("firing_controls", [])
+    check(
+        "all renormalized scaling firing controls activate independently",
+        {row.get("name") for row in scaling_primary_firing}
+        == expected_scaling_firing_controls
+        and {row.get("name") for row in scaling_independent_firing}
+        == expected_scaling_firing_controls
+        and all(
+            row.get("unmutated_passed") is True
+            and row.get("mutation_passed") is False
+            and row.get("fired") is True
+            and row.get("comparisons_attempted") == 2
+            for row in scaling_primary_firing + scaling_independent_firing
+        ),
+        primary=scaling_primary_firing,
+        independent=scaling_independent_firing,
+    )
+    scaling_primary_claims = scaling_primary.get("claims", {})
+    scaling_independent_claims = scaling_independent.get("claims", {})
+    scaling_negative_claims = (
+        "interacting_gap_computed",
+        "continuum_trajectory_constructed",
+        "thermodynamic_limit_constructed",
+        "os_axioms_established",
+        "euclidean_covariance_restored",
+        "nontrivial_continuum_limit_established",
+        "volume_uniform_mass_gap_established",
+        "continuum_mass_gap_established",
+    )
+    check(
+        "renormalized scaling claim boundary withholds the continuum theorem",
+        all(
+            claims.get("two_loop_scaling_arithmetic") == "PASS"
+            and claims.get("double_scaling_necessity_diagnostic") == "PASS"
+            and claims.get("conditional_continuum_bridge_analytic") is True
+            and claims.get("analytic_theorem_outside_executable") is True
+            and all(claims.get(name) is False for name in scaling_negative_claims)
+            and claims.get("clay_verdict") == "NULL"
+            for claims in (scaling_primary_claims, scaling_independent_claims)
+        ),
+        primary_claims=scaling_primary_claims,
+        independent_claims=scaling_independent_claims,
+    )
 
     receipt_protocol_hashes = {
         primary["protocol_sha256"], independent.get("protocol_sha256")
@@ -1396,7 +1597,7 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
 
     theory = THEORY_SOURCE.read_text(encoding="utf-8")
     check(
-        "theory separates fixed-regulator bridges from the open Clay target",
+        "theory separates regulated and scaling bridges from the open Clay target",
         "Fixed-graph character-cutoff form theorem (YM187)–(YM195) | **Derived**"
         in theory
         and "Volume-uniform local cutoff density and global-norm obstruction "
@@ -1411,21 +1612,26 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         and "Fixed-graph anisotropic transfer-to-Hamiltonian limit "
         "(YM223)–(YM241) | **Derived**"
         in theory
+        and "Renormalized weak-coupling gap and volume criterion "
+        "(YM242)–(YM248) | **Derived**"
+        in theory
         and "`thermodynamic_state_constructed_by_verifier=false`" in theory
         and "`infinite_volume_measure_constructed_by_verifier=false`" in theory
+        and "`interacting_gap_computed=false`" in theory
+        and "`continuum_trajectory_constructed=false`" in theory
         and "Both receipts record\n`clay_verdict=NULL`." in theory
         and "Continuum Yang–Mills existence and mass gap | **Open**" in theory,
     )
 
-    if len(checks) != 42:
-        raise RuntimeError(f"expected 42 audit checks, constructed {len(checks)}")
+    if len(checks) != 47:
+        raise RuntimeError(f"expected 47 audit checks, constructed {len(checks)}")
     all_passed = all(row["passed"] for row in checks)
     record: dict[str, Any] = {
-        "schema": "yang_mills_continuum_boundary_audit_v7",
+        "schema": "yang_mills_continuum_boundary_audit_v8",
         "status": "PASS" if all_passed else "FAIL",
         "verdict": "UNRESOLVED_CONTINUUM_PROBLEM",
         "clay_verdict": "NULL",
-        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence, fixed-graph and local cutoff control, conditional thermodynamic and Euclidean subsequences, and the exact fixed-graph anisotropic transfer-to-Hamiltonian limit against the Clay Yang-Mills existence and mass-gap obligations",
+        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence, fixed-graph and local cutoff control, conditional thermodynamic and Euclidean subsequences, the exact fixed-graph anisotropic transfer-to-Hamiltonian limit, and the necessary renormalized weak-coupling volume/gap criterion against the Clay Yang-Mills existence and mass-gap obligations",
         "audit_source": {
             "path": display_path(SOURCE),
             "sha256": hashes["audit_source"],
@@ -1579,6 +1785,28 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
                 "path": display_path(HAMILTONIAN_LIMIT_INDEPENDENT_RECEIPT),
                 "sha256": hashes["hamiltonian_limit_independent_receipt"],
                 "bytes": HAMILTONIAN_LIMIT_INDEPENDENT_RECEIPT.stat().st_size,
+            },
+            "scaling_protocol": {
+                "path": display_path(SCALING_PROTOCOL),
+                "sha256": hashes["scaling_protocol"],
+            },
+            "scaling_primary_source": {
+                "path": display_path(SCALING_PRIMARY_SOURCE),
+                "sha256": hashes["scaling_primary_source"],
+            },
+            "scaling_independent_source": {
+                "path": display_path(SCALING_INDEPENDENT_SOURCE),
+                "sha256": hashes["scaling_independent_source"],
+            },
+            "scaling_primary_receipt": {
+                "path": display_path(SCALING_PRIMARY_RECEIPT),
+                "sha256": hashes["scaling_primary_receipt"],
+                "bytes": SCALING_PRIMARY_RECEIPT.stat().st_size,
+            },
+            "scaling_independent_receipt": {
+                "path": display_path(SCALING_INDEPENDENT_RECEIPT),
+                "sha256": hashes["scaling_independent_receipt"],
+                "bytes": SCALING_INDEPENDENT_RECEIPT.stat().st_size,
             },
         },
         "protocol_snapshot_audit": {
@@ -1752,6 +1980,32 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "uniform_mass_gap_established": False,
             "clay_verdict": "NULL",
         },
+        "renormalized_gap_scaling": {
+            "classification": "DERIVED_NECESSARY_CONTINUUM_SCALING_CRITERION",
+            "primary_status": scaling_primary["verdict"],
+            "primary_checks_passed": scaling_primary_summary["passing_checks"],
+            "primary_checks_total": scaling_primary_summary["checks"],
+            "independent_status": scaling_independent["verdict"],
+            "independent_checks_passed": scaling_independent_summary[
+                "passing_checks"
+            ],
+            "independent_checks_total": scaling_independent_summary["checks"],
+            "g0_squared": scaling_parameters["g0_squared"],
+            "coefficients": scaling_coefficients,
+            "volume_classifications": scaling_classifications["volume"],
+            "gap_classifications": scaling_classifications["gap"],
+            "first_scale": scaling_rows[0]["scale"],
+            "last_scale": scaling_rows[-1]["scale"],
+            "firing_controls": scaling_primary_firing,
+            "conditional_continuum_bridge_analytic": True,
+            "interacting_gap_computed": False,
+            "continuum_trajectory_constructed": False,
+            "thermodynamic_limit_constructed": False,
+            "os_axioms_established": False,
+            "nontrivial_continuum_limit_established": False,
+            "continuum_mass_gap_established": False,
+            "clay_verdict": "NULL",
+        },
         "cutoff_tail_evidence": {
             "qualifications": primary["cutoff_qualifications"],
             "useful_tail_rows": primary["useful_tail_rows"],
@@ -1777,6 +2031,9 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         "conditional_gap_target": {
             "regulated_identity": "Delta_phys(a,L) = (g^2/(2a)) lambda_gi(mu_(a,L))",
             "sufficient_physical_bound": "inf_(a,L) (g_L^2/(2a_L)) (chi_(a,L) C_L^2)^(-1) >= m_* > 0",
+            "renormalized_scale": "a Lambda_L = F_W(g0) [1 + O(g0^2)]",
+            "simultaneous_volume_condition": "g0 -> 0 and N(g0) F_W(g0) -> infinity",
+            "finite_positive_gap_condition": "0 < c_- <= liminf delta_W/F_W <= limsup delta_W/F_W <= c_+ < infinity",
             "unproved_inputs": [
                 "uniform interacting fibre and coarse Poincare margins",
                 "uniform transport-score or mixed-Hessian bounds",
@@ -1799,7 +2056,7 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "conclusion": "positive local conditional rates alone do not imply a volume-uniform global gap",
         },
         "missing_clay_obligations": MISSING_CLAY_OBLIGATIONS,
-        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction; the form theorem removes the character cutoff after the graph, coupling and low-energy index are fixed; and the local-density theorem controls every fixed support uniformly over periodic cubic volumes. Conditional on finite-volume ground densities and YMT2, the operator argument extracts a locally normal fixed-regulator ground-state subsequence. Conditional on the established finite-lattice Wilson reflection and transfer theorems, compact local Euclidean marginals extract a reflection-positive DLR subsequence at every fixed beta. The separate anisotropic transfer has difference and logarithmic generators converging in strong-resolvent sense to the Kogut-Susskind Hamiltonian on every fixed finite spatial graph, and its products converge strongly to the heat semigroup. The executable evidence checks finite identities, kernels and implication controls; it constructs no infinite-volume Hamiltonian or Euclidean state directly. Identification of the fixed-beta state with the anisotropic family, spatial-volume uniformity, full-sequence phase control, clustering, weak-coupling continuum construction, continuum Osterwalder-Schrader reconstruction and a regulator-independent mass-gap theorem remain open.",
+        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction; the form theorem removes the character cutoff after the graph, coupling and low-energy index are fixed; and the local-density theorem controls every fixed support uniformly over periodic cubic volumes. Conditional on finite-volume ground densities and YMT2, the operator argument extracts a locally normal fixed-regulator ground-state subsequence. Conditional on the established finite-lattice Wilson reflection and transfer theorems, compact local Euclidean marginals extract a reflection-positive DLR subsequence at every fixed beta. The separate anisotropic transfer has difference and logarithmic generators converging in strong-resolvent sense to the Kogut-Susskind Hamiltonian on every fixed finite spatial graph, and its products converge strongly to the heat semigroup. The universal two-loop Wilson scale makes the remaining target quantitative: g0 must tend to zero with N(g0) F_W(g0) tending to infinity, and a finite positive local excitation must have delta_W/F_W bounded above and below. The executable evidence checks finite identities, kernels, scale arithmetic and implication controls; it constructs no infinite-volume Hamiltonian or Euclidean state and computes no interacting scaling gap. Identification of the fixed-beta state with the anisotropic family, spatial-volume uniformity, full-sequence phase control, clustering, weak-coupling continuum construction, continuum Osterwalder-Schrader reconstruction and a regulator-independent mass-gap theorem remain open.",
     }
 
     if not all_passed:
@@ -1843,7 +2100,10 @@ def main() -> None:
         f"{record['euclidean_reflection_bridge']['primary_checks_total']} "
         "hamiltonian_limit="
         f"{record['anisotropic_hamiltonian_limit']['primary_checks_passed']}/"
-        f"{record['anisotropic_hamiltonian_limit']['primary_checks_total']}"
+        f"{record['anisotropic_hamiltonian_limit']['primary_checks_total']} "
+        "scaling="
+        f"{record['renormalized_gap_scaling']['primary_checks_passed']}/"
+        f"{record['renormalized_gap_scaling']['primary_checks_total']}"
     )
 
 

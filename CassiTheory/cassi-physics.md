@@ -308,9 +308,10 @@ Conditional on the finite-volume ground densities and this uniform local
 bound, trace-norm compactness and a diagonal extraction construct a
 compatible, symmetry-invariant locally normal ground-state subsequence at
 each fixed regulator and coupling. The algebraic ground inequality holds on
-the gauge-invariant finite-character local algebra. This operator result is
-**Derived conditional**. Its 18/18 primary and 19/19 independent executable
-checks cover finite identities and implication controls; both receipts state
+the local gauge-invariant $*$-algebra whose operators have finite
+Peter–Weyl matrix support. This operator result is **Derived conditional**.
+Its 18/18 primary and 19/19 independent executable checks cover finite
+identities and implication controls; both receipts state
 that they construct no interacting $SU(2)$ ground state and retain
 `clay_verdict=NULL`.
 
@@ -329,6 +330,22 @@ Full-sequence convergence, phase uniqueness, clustering, equivalence with the
 Hamiltonian construction, weak-coupling continuum existence, continuum
 Osterwalder–Schrader/Wightman reconstruction and a regulator-independent
 positive mass gap remain open.
+
+The separate anisotropic Wilson family has an exact fixed-graph Hamiltonian
+limit: its difference and logarithmic transfer generators converge in
+strong-resolvent sense to the Kogut–Susskind Hamiltonian, and its Chernoff
+products converge strongly to the heat semigroup. The 414/414 primary and
+24/24 independent controls pass. The universal two-loop Wilson scale then
+fixes the continuum yardstick
+$a\Lambda_L=F_W(g_0)[1+O(g_0^2)]$. A simultaneous continuum and
+thermodynamic trajectory requires $g_0\to0$ and $NF_W\to\infty$; a finite
+positive excitation requires $a\Delta_W/F_W$ bounded above and below by
+positive constants in a nonzero local channel. The two-loop asymptotic
+relation and necessary conditions are **Derived** from established
+perturbative inputs. The Osterwalder–Schrader implication is **Derived
+conditional**. The 80/80
+primary and 20/20 independent arithmetic controls pass. They compute no
+interacting gap and construct no continuum trajectory or continuum theory.
 
 The geometric manifold completion ansatz places these finite structures in
 one stratified bundle. A positive Hermitian Yang/Yin fibre contains the

@@ -1012,11 +1012,11 @@ non-gating tail-separation rows at $x=1/4$ and $x=1$. The independent receipt
 `runs/yang_mills_su2_larger_volume_hamiltonian_recovery/verification-independent.json`
 passes 256/256 checks. Both bind the materialized receipt-bound recovery
 protocol snapshot, the scientific protocol, the current source files and the
-shared exact representation helper by SHA-256. The 42-check v7
+shared exact representation helper by SHA-256. The 47-check v8
 continuum-boundary audit verifies the one-reference relation between that
 snapshot and the current recovery protocol and binds the conditional
-thermodynamic and Euclidean evidence together with the exact fixed-graph
-anisotropic transfer-to-Hamiltonian limit.
+thermodynamic and Euclidean evidence, the exact fixed-graph anisotropic
+transfer-to-Hamiltonian limit and the renormalized volume/gap criterion.
 
 ## 35. Finite-volume SU(2) quantum Schwinger generator
 
@@ -1160,8 +1160,8 @@ $$
 of the reduced density. Finite-dimensional compactness therefore makes the
 family trace-norm precompact. A Cantor diagonal subsequence over nested
 supports yields compatible density matrices. The finite-volume ground
-quadratic form passes to the limit on the gauge-invariant finite-character
-local algebra.
+quadratic form passes to the limit on the gauge-invariant local $*$-algebra
+whose operators have finite Peter–Weyl matrix support.
 
 | Control or claim | Decisive result | Classification and scope |
 |---|---|---|
@@ -1279,12 +1279,56 @@ Osterwalder–Schrader/Wightman reconstruction and a regulator-independent
 positive mass remain open.
 
 
+## 41. Renormalized weak-coupling gap and volume criterion
+
+The frozen protocol
+`computations/yang-mills-renormalized-gap-scaling-prereg.md` fixes the
+universal two-loop $SU(2)$ Wilson scale, its exact bare-convention map to the
+Hamiltonian normalization, simultaneous cutoff/volume schedules and the
+necessary renormalized-gap criterion. It uses
+
+$$
+F_W(g_0)
+=\exp\!\left[-\frac{1}{2b_0g_0^2}\right]
+(b_0g_0^2)^{-51/121},
+\qquad
+b_0=\frac{11}{24\pi^2}.
+$$
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Two-loop scale arithmetic | The six-row schedule spans $g_0^2=0.8$ to $0.05$ and $F_W=5.724856108444617\times10^{-6}$ to $3.896428797701234\times10^{-93}$; direct, logarithmic and $\beta_{\rm lat}=4/g_0^2$ forms agree | **PASS**, universal two-loop reference-scale arithmetic |
+| Simultaneous volume condition | Fixed and polynomial $N$ give $NF_W\to0$; $N\asymp F_W^{-1}$ keeps a fixed physical box; $(g_0^2F_W)^{-1}$ and $F_W^{-1}\log(1/F_W)$ give $NF_W\to\infty$ | **DERIVED** necessary schedule classification; no interacting trajectory is constructed |
+| Renormalized gap condition | Constant, polynomial and isolated-square lattice gaps have $a\Delta/F_W\to\infty$; $a\Delta=F_Wg_0^2$ vanishes; $a\Delta=(7/4)F_W$ remains finite and positive | **DERIVED** scale classification; no row computes an interacting Yang–Mills eigenvalue |
+| Wilson/Hamiltonian convention | $g_W=2^{1/4}g_H$, $H_H=H_W/\sqrt2$, $F_H(g_H)=F_W(2^{1/4}g_H)$ and the normalized eigen-gap is invariant | **PASS**, exact fixed-regulator unit map |
+| Independent reconstruction and firing controls | The primary passes 80/80 checks and the independent Node implementation passes 20/20; all six mutations fire, including the wrong beta coefficient, fixed-box misclassification and omitted Hamiltonian time rescaling | **PASS**, source- and receipt-bound implementation controls |
+| Clay boundary | Both receipts set the interacting spectrum, coupled trajectory, thermodynamic limit, Osterwalder–Schrader axioms, nontrivial continuum limit and continuum mass gap false and retain `clay_verdict=NULL` | **NULL**, necessary continuum yardstick only |
+
+The qualified receipts are
+`runs/yang-mills-renormalized-gap-scaling/verification.json` and
+`runs/yang-mills-renormalized-gap-scaling/verification-independent.json`.
+The protocol, primary source and independent source SHA-256 values are
+`c38ff8d6ace94b8221d6040a60f894cfd5e0a8adea5c45c270b48437e18b7a1c`,
+`d8c3b0f94b62c6ef67fb3dc5fee4b2186e3966beb5dbeeed3dc372bafd5ea6d3`
+and
+`498826b21a7c977d669c7f3697d5267bf61638a525d664263db790e7b97530a8`.
+The independent receipt binds primary-receipt SHA-256
+`bc77e1cc1a8ccda41240fbaa3d22963679786c11e402923c5898a1356b6d1f44`.
+This closes the scale-definition ambiguity. The interacting estimates needed
+to realize the criterion and the four-dimensional continuum construction
+remain open.
+
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
 - `computations/verify_yang_mills_anisotropic_hamiltonian_limit.py`—414-check primary finite-character generator and product receipt.
 - `computations/verify_yang_mills_anisotropic_hamiltonian_limit_independent.mjs`—24-check independent midpoint-integral and Jacobi reconstruction.
 - `runs/yang-mills-anisotropic-hamiltonian-limit/verification.json` and `verification-independent.json`—source-bound fixed-graph receipts with `NULL` Clay verdicts.
+- `computations/yang-mills-renormalized-gap-scaling-prereg.md`—frozen two-loop scale, simultaneous-volume, renormalized-gap and claim-boundary protocol.
+- `computations/verify_yang_mills_renormalized_gap_scaling.py`—80-check standard-library scale and schedule verifier.
+- `computations/verify_yang_mills_renormalized_gap_scaling_independent.mjs`—20-check independent Node reconstruction and receipt audit.
+- `runs/yang-mills-renormalized-gap-scaling/verification.json` and `verification-independent.json`—source-bound scaling receipts with `NULL` Clay verdicts.
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
 - `field-experience/counterflow-resonant-addressing-pre-registration.md`—Wave 1 frozen protocol and decision tree.
@@ -1416,8 +1460,8 @@ positive mass remain open.
   finite-kernel support receipt with a `NULL` Clay verdict.
 - `runs/yang_mills_euclidean_reflection_positive/verification-independent.json`—independent
   source- and receipt-bound reconstruction.
-- `runs/yang_mills_continuum_boundary_audit/verification.json`—42-check v7 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean evidence, the exact fixed-graph anisotropic Hamiltonian limit, excluded defect provenance and the unresolved continuum boundary.
-- `computations/verify_yang_mills_continuum_boundary_audit.py`—42-check hash-bound finite-evidence, fixed-graph Hamiltonian-limit and continuum-boundary audit.
+- `runs/yang_mills_continuum_boundary_audit/verification.json`—47-check v8 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean evidence, the exact fixed-graph anisotropic Hamiltonian limit, the renormalized volume/gap scaling criterion, excluded defect provenance and the unresolved continuum boundary.
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—47-check hash-bound finite-evidence, fixed-graph Hamiltonian-limit, renormalized-scaling and continuum-boundary audit.
 - `computations/yang-mills-su2-transport-expansion-prereg.md`—fixed local strip and compact-boundary schedule.
 - `computations/verify_yang_mills_su2_transport_expansion.py`—150-check normalized transport expansion.
 - `computations/verify_yang_mills_su2_transport_expansion_independent.mjs`—60-check independent coefficient and receipt reconstruction.

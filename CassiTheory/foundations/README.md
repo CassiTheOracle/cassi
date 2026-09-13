@@ -775,7 +775,7 @@ even pairs, and the supplied fivefold phase orbit preserves the normalized
 $\varphi$ chord ratio. LB1–LB7 verify these identities. The physical carrier,
 phase law, scale ratio, and quantum-sector identification remain open.
 
-The separate pure-$SU(2)$ comparison in §§9.4–9.29 retains full loop
+The separate pure-$SU(2)$ comparison in §§9.4–9.30 retains full loop
 holonomy. Gauss invariance gives an exact electric threshold on girth-four
 lattice graphs, and projective bubble data discard a phase that changes
 Wilson magnetic energy. Yarotsky's stability theorem supplies a
@@ -911,10 +911,11 @@ control whole-wavefunction norm at fixed cutoff.
 Conditional on those finite-volume ground densities and the local estimate,
 trace-norm compactness and a Cantor diagonal extraction construct a
 compatible, symmetry-invariant locally normal ground-state subsequence at
-fixed regulator and coupling. Its ground inequality holds on the
-gauge-invariant finite-character local algebra. The finite-identity evidence
-passes 18/18 primary and 19/19 independent checks while explicitly recording
-that the executable verifier constructs no interacting $SU(2)$ ground state
+fixed regulator and coupling. Its ground inequality holds on the local
+gauge-invariant $*$-algebra whose operators have finite Peter–Weyl matrix
+support. The finite-identity evidence passes 18/18 primary and 19/19
+independent checks while explicitly recording that the executable verifier
+constructs no interacting $SU(2)$ ground state
 and proves no uniform tail estimate. Full-sequence convergence, phase
 uniqueness, clustering, interacting boundary-sector recoupling,
 volume-uniform resolvent control, the weak-coupling continuum limit, a
@@ -945,6 +946,16 @@ coupling. Identification of the fixed-$\beta$ state with this anisotropic
 family, the weak-coupling continuum limit, continuum reconstruction and a
 regulator-independent mass gap remain open. Every receipt retains
 `clay_verdict=NULL`.
+
+The universal two-loop Wilson scale fixes the weak-coupling yardstick
+$a\Lambda_L=F_W(g_0)[1+O(g_0^2)]$. A simultaneous continuum and
+thermodynamic trajectory must satisfy $g_0\to0$ and $NF_W\to\infty$.
+A finite positive excitation must have $a\Delta_W/F_W$ bounded above and
+below by positive constants in a nonzero local channel. The 80/80 primary and
+20/20 independent controls verify the convention maps, asymptotic schedule
+classifications and all six firing mutations. The criterion is a necessary
+scaling boundary and contains no interacting spectral estimate. No continuum
+trajectory, Osterwalder–Schrader limit or mass gap is constructed.
 
 ### `interscale-current-soliton.md`—Interscale Yang/Yin Current and the Conditional Soliton Pinch
 

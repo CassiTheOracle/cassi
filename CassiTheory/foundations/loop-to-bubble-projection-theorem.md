@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem with an exact global-norm obstruction, conditional fixed-regulator thermodynamic ground-state subsequence, conditional fixed-regulator Euclidean reflection-positive Gibbs subsequence, exact fixed-graph anisotropic Wilson transfer-to-Hamiltonian strong-resolvent and product limit, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Recovered finite $3\times2\times2$ $SU(2)$ Hamiltonian construction with frozen separation-based tail qualifications inconclusive; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem with an exact global-norm obstruction, conditional fixed-regulator thermodynamic ground-state subsequence, conditional fixed-regulator Euclidean reflection-positive Gibbs subsequence, exact fixed-graph anisotropic Wilson transfer-to-Hamiltonian strong-resolvent and product limit, universal two-loop Wilson asymptotic scale relation and necessary renormalized volume/gap criterion, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Recovered finite $3\times2\times2$ $SU(2)$ Hamiltonian construction with frozen separation-based tail qualifications inconclusive; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -30,7 +30,7 @@ density projection and a coherence-sensitive bubble coordinate. A physical
 phase law, a map from the regulated quantum configuration to these carriers,
 $\hbar$, quantum statistics, and measurement dynamics remain separate inputs.
 
-The pure-gauge comparison in §§9.4–9.29 retains full $SU(2)$ loop holonomies.
+The pure-gauge comparison in §§9.4–9.30 retains full $SU(2)$ loop holonomies.
 Gauss invariance supplies an electric closed-loop threshold, while the
 projective bubble variable discards Wilson magnetic energy. Quantum-lattice
 stability gives a volume-uniform interacting gap at sufficiently strong bare
@@ -97,9 +97,10 @@ every fixed cutoff. The local bound makes each fixed-support family of
 reduced ground densities trace-norm precompact. Conditional on the
 finite-volume ground densities and that analytic bound, a diagonal
 subsequence defines a compatible, symmetry-invariant locally normal state
-whose finite-character local observables satisfy the algebraic ground-state
-inequality. The construction selects a subsequence at fixed regulator and
-coupling. Full-sequence convergence, uniqueness, clustering, a uniform gap
+whose local gauge-invariant observables have finite Peter–Weyl matrix support
+and satisfy the algebraic ground-state inequality. The construction selects
+a subsequence at fixed regulator and coupling. Full-sequence convergence,
+uniqueness, clustering, a uniform gap
 and the continuum theory remain open.
 
 For every fixed Wilson coupling $\beta>0$, positive normalized-Haar character
@@ -124,6 +125,17 @@ This establishes the fixed-graph Hamiltonian limit. The fixed-$\beta$ Gibbs
 subsequence is a different trajectory; spatial-volume uniformity, the
 $a\to0$ limit, continuum reconstruction and a regulator-independent gap
 remain open.
+
+The universal two-loop Wilson scale fixes the missing weak-coupling yardstick:
+$a\Lambda_L=F_W(g_0)[1+O(g_0^2)]$, with
+$F_W=\exp[-1/(2b_0g_0^2)](b_0g_0^2)^{-51/121}$.
+A simultaneous continuum and thermodynamic trajectory must satisfy
+$g_0\to0$ and $NF_W\to\infty$, while a finite positive excitation requires
+$a\Delta/F_W$ bounded above and below by positive constants in a nonzero
+local channel. The 80/80 primary and 20/20 independent arithmetic checks
+verify the convention maps, schedule classifications and all six firing
+controls. They compute no interacting gap and establish no continuum limit;
+the conditional Osterwalder–Schrader bridge and the Clay problem remain open.
 
 ---
 
@@ -5869,8 +5881,9 @@ by construction. Gauge, translation and cubic symmetries of the normalized
 finite-volume ground-space densities pass to the local limits.
 
 It remains to retain the ground-state property. Let $A$ belong to the
-gauge-invariant finite-character local $*$-algebra. For all sufficiently
-large $L$, locality makes $[H_L(x),A]$ independent of $L$ on one fixed
+local gauge-invariant $*$-algebra whose operators have finite Peter–Weyl
+matrix support. For all sufficiently large $L$, locality makes
+$[H_L(x),A]$ independent of $L$ on one fixed
 enlarged support; call the resulting bounded local commutator
 $\mathcal G_x(A)$. Since $\rho_{0,L}$ is supported on the ground space,
 
@@ -5893,7 +5906,8 @@ $$
 \boxed{
 \omega_x\!\left(A^*\mathcal G_x(A)\right)\geq0
 \qquad
-\text{for every gauge-invariant finite-character local }A.
+\text{for every local gauge-invariant }A
+\text{ with finite Peter--Weyl matrix support}.
 }
 \tag{YM213}
 $$
@@ -6469,6 +6483,185 @@ restoration, continuum Osterwalder–Schrader or Wightman reconstruction and
 regulator-independent positive mass gap remain open. Both receipts record
 `clay_verdict=NULL`.
 
+### 9.30 Renormalized weak-coupling gap and volume criterion
+
+The fixed-regulator results above leave the physical unit of mass unspecified.
+For the standard isotropic $SU(2)$ Wilson bare coupling $g_0=g_W$, use the
+lattice beta-function convention and universal coefficients
+
+$$
+\begin{aligned}
+\beta_L(g_0)
+&:=-a\frac{dg_0}{da}\bigg|_{g_R,\mu}
+=-b_0g_0^3-b_1g_0^5+O(g_0^7),\\
+b_0&=\frac{11}{24\pi^2},
+\qquad
+b_1=\frac{17}{96\pi^4},
+\qquad
+p:=\frac{b_1}{2b_0^2}=\frac{51}{121},\\
+F_W(g_0)
+&:=\exp\!\left[-\frac{1}{2b_0g_0^2}\right]
+(b_0g_0^2)^{-p},
+\qquad
+a\Lambda_L=F_W(g_0)[1+O(g_0^2)].
+\end{aligned}
+\tag{YM242}
+$$
+
+The first two beta-function coefficients are scheme independent. The
+$O(g_0^2)$ factor in the last relation contains scheme-dependent higher-order
+and nonperturbative information; the displayed $F_W$ is the universal
+two-loop reference scale. With $\beta_{\rm lat}=4/g_0^2$, the same factor is
+
+$$
+\boxed{
+F_W(\beta_{\rm lat})
+=
+\exp\!\left[-\frac{3\pi^2}{11}\beta_{\rm lat}\right]
+\left(\frac{6\pi^2}{11}\beta_{\rm lat}\right)^{51/121}.
+}
+\tag{YM243}
+$$
+
+The exact fixed-regulator map in (YM231)–(YM232) gives
+$g_W=2^{1/4}g_H$ and
+$H_H(g_H)=H_W(2^{1/4}g_H)/\sqrt2$. Hence
+
+$$
+\boxed{
+F_H(g_H)
+:=F_W(2^{1/4}g_H)
+=
+\exp\!\left[-\frac{6\sqrt2\pi^2}{11g_H^2}\right]
+\left(\frac{12\sqrt2\pi^2}{11g_H^2}\right)^{51/121},
+\qquad
+a\Delta_H=\frac{a\Delta_W}{\sqrt2}.
+}
+\tag{YM244}
+$$
+
+If
+$a\Delta_W=g_W^2\widehat\Delta_W/2$ and
+$a\Delta_H=g_H^2\widehat\Delta_H/2$, the dimensionless eigen-gap is invariant
+under this convention change:
+$\widehat\Delta_H(g_H)=\widehat\Delta_W(2^{1/4}g_H)$.
+This identity relates units at one regulator; it supplies no spectral
+estimate.
+
+Let $N(g_0)$ be the linear spatial site count. Since the physical linear size
+is $R=Na$, removal of the cutoff and divergence of the spatial volume require
+one simultaneous trajectory satisfying
+
+$$
+\boxed{
+g_0\longrightarrow0,
+\qquad
+N(g_0)F_W(g_0)\longrightarrow\infty,
+\qquad
+R\Lambda_L
+=N(g_0)F_W(g_0)[1+O(g_0^2)].
+}
+\tag{YM245}
+$$
+
+Fixed $N$ and every $N$ polynomial in $1/g_0$ collapse the physical box
+because the exponential in (YM242) dominates all powers. A schedule
+$N\asymp F_W^{-1}$ holds $R\Lambda_L$ fixed. Schedules such as
+$N\asymp(g_0^2F_W)^{-1}$ and
+$N\asymp F_W^{-1}\log(1/F_W)$ reach infinite volume. Every Euclidean extent
+must obey the corresponding condition. Neither the fixed-$\beta$ subsequence
+in §9.28 nor the fixed-graph anisotropic limit in §9.29 establishes this
+coupled limit.
+
+For the finite-volume dimensionless lattice gap
+$\delta_W(g_0,N):=a\Delta_W(g_0,N)$, its renormalized value is
+
+$$
+\boxed{
+\frac{\Delta_W}{\Lambda_L}
+=\frac{\delta_W}{a\Lambda_L}
+=\frac{\delta_W}{F_W(g_0)}[1+O(g_0^2)].
+}
+\tag{YM246}
+$$
+
+Consequently a finite positive limiting excitation on the same trajectory
+must obey
+
+$$
+\boxed{
+0<c_-
+\leq
+\liminf_{g_0\to0}
+\frac{\delta_W(g_0,N(g_0))}{F_W(g_0)}
+\leq
+\limsup_{g_0\to0}
+\frac{\delta_W(g_0,N(g_0))}{F_W(g_0)}
+\leq c_+<\infty.
+}
+\tag{YM247}
+$$
+
+The lower bound is the mass-gap scale. A nonzero centered local
+gauge-invariant channel with spectral support below $c_+\Lambda_L$ supplies
+the finite upper witness required for a nontrivial finite-energy theory. In
+the factorization of (YM56), condition (YM247) is equivalent, up to positive
+two-sided constants, to
+
+$$
+\boxed{
+\widehat\Delta_W(g_0,N(g_0))
+\asymp\frac{2F_W(g_0)}{g_0^2}.
+}
+\tag{YM248}
+$$
+
+A constant or power-law lattice gap therefore has
+$\delta_W/F_W\to\infty$ and remains at the ultraviolet scale. In particular,
+the isolated-square limit $a\Delta_H\to2\sqrt2$ from (YM80) produces a
+divergent renormalized mass and remains at the ultraviolet scale. A gap
+$\delta_W=F_Wg_0^2$ has
+$\delta_W/F_W\to0$. Only the matched exponential scale can satisfy
+(YM247); the arithmetic does not prove that the interacting spectrum has
+that scale.
+
+The remaining continuum implication is precise. Suppose a full sequence
+satisfies (YM242) and (YM245); its renormalized gauge-invariant local
+Schwinger functions converge to a nontrivial limit satisfying the
+Osterwalder–Schrader axioms, restored Euclidean covariance and the required
+short-distance asymptotically free behavior; every centered local
+gauge-invariant transfer correlation has a regulator- and volume-uniform
+decay rate at least $c_-\Lambda_L$; and one nonzero centered local channel
+has spectral support at or below $c_+\Lambda_L$. Osterwalder–Schrader
+reconstruction then gives a nontrivial relativistic quantum field with
+vacuum-sector mass gap in $[c_-,c_+]\Lambda_L$. This is a conditional
+implication. Proving its interacting convergence and uniform spectral
+hypotheses is the unresolved continuum problem.
+
+The frozen diagnostic evaluates
+$g_0^2\in\{0.8,0.5,0.3,0.2,0.1,0.05\}$ in the log domain. Across that schedule,
+$F_W$ decreases from
+$5.724856108444617\times10^{-6}$ to
+$3.896428797701234\times10^{-93}$. Fixed and polynomial lattice sizes
+collapse, the $F_W^{-1}$ schedule stays at fixed physical volume, and both
+faster schedules in (YM245) diverge. Constant, polynomial and isolated-square
+gaps are classified as ultraviolet; $F_Wg_0^2$ vanishes in renormalized
+units; and $(7/4)F_W$ remains finite and positive.
+
+The primary standard-library implementation passes 80/80 checks and the
+independent Node implementation passes 20/20 checks, reconstructing all six
+rows. All six mutations fire: omission of the two-loop power, substitution of
+the $SU(3)$ one-loop coefficient, misclassification of fixed physical volume,
+misclassification of a constant lattice gap, reversal of the coupling map
+and omission of the time/gap rescaling. Both receipts record
+`interacting_gap_computed=false`,
+`continuum_trajectory_constructed=false`,
+`thermodynamic_limit_constructed=false`,
+`os_axioms_established=false`,
+`nontrivial_continuum_limit_established=false`,
+`continuum_mass_gap_established=false` and `clay_verdict=NULL`.
+
+
 ---
 
 ## 10. Physical tests and rejection conditions
@@ -6544,9 +6737,10 @@ microscopic completions.
 | Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM186) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre; the projected Ritz density makes the cutoff measure's conditional gap vanish identically at the rows carrying a resolved path sign change, and the twelve-row path and two-parameter torus families confine that zero-gap region to the strong-coupling rows; the exact-vacuum fibre rate remains required |
 | Fixed-graph character-cutoff form theorem (YM187)–(YM195) | **Derived** within every fixed finite regulated graph | Exact tree-gauge Haar disintegration, equivalent electric forms, form-core convergence, separation-free discarded-mass bound and noncommuting Ritz-error bound; constants are not uniform in graph size, coupling or lattice spacing |
 | Volume-uniform local cutoff density and global-norm obstruction (YM196)–(YM205) | **Derived** local finite-volume theorem and **Derived** obstruction | On periodic cubic lattices, every fixed-support ground-density observable has a character-cutoff error uniform in volume; bounded electric energy density alone cannot control whole-wavefunction cutoff norm. Its executable receipt constructs no thermodynamic or continuum state; §9.27 uses the analytic bound as an input |
-| Fixed-regulator thermodynamic ground-state subsequence (YM206)–(YM213) | **Derived conditional** operator theorem with finite-identity controls | Finite-volume ground densities and the volume-uniform local tail estimate are analytic inputs; a diagonal subsequence is locally normal and satisfies the finite-character algebraic ground condition, while full-sequence convergence, uniqueness, clustering, a uniform gap and every continuum limit remain open |
+| Fixed-regulator thermodynamic ground-state subsequence (YM206)–(YM213) | **Derived conditional** operator theorem with finite-identity controls | Finite-volume ground densities and the volume-uniform local tail estimate are analytic inputs; a diagonal subsequence is locally normal and satisfies the algebraic ground condition on the local gauge-invariant $*$-algebra with finite Peter–Weyl matrix support, while full-sequence convergence, uniqueness, clustering, a uniform gap and every continuum limit remain open |
 | Fixed-regulator Euclidean reflection-positive Gibbs subsequence (YM214)–(YM222) | **Derived conditional** lattice theorem with finite-kernel controls | Conditional on the established finite-lattice Wilson reflection/transfer theorems, positive character coefficients and compact local marginals give a translation-, gauge- and reflection-invariant DLR subsequence at each fixed $\beta>0$; full-sequence convergence, uniqueness, clustering, identification with the anisotropic Hamiltonian family, the lattice-spacing limit, continuum reconstruction and a uniform physical gap remain open |
 | Fixed-graph anisotropic transfer-to-Hamiltonian limit (YM223)–(YM241) | **Derived** fixed-regulator operator theorem with finite-character controls | Normalized central convolution with $B_\tau=4a/(g^2\epsilon)$ and symmetric magnetic half-steps has difference and logarithmic generators converging in strong resolvent sense to (YM3), and its Chernoff products converge strongly to $e^{-tH_\Lambda}$ on every fixed finite spatial graph. The exact Wilson convention map is $g_W=2^{1/4}g$, $a_\tau=\epsilon/\sqrt2$; spatial-volume uniformity, the $a\to0$ limit, continuum reconstruction and a uniform physical gap remain open |
+| Renormalized weak-coupling gap and volume criterion (YM242)–(YM248) | **Derived** two-loop asymptotic scale relation from established perturbative inputs and **Derived conditional** continuum implication | $a\Lambda_L=F_W[1+O(g_0^2)]$ requires $NF_W\to\infty$ for simultaneous infinite volume and $a\Delta/F_W$ bounded above and below for a finite positive excitation; 80/80 primary and 20/20 independent arithmetic checks pass, but no interacting gap, continuum trajectory or Osterwalder–Schrader limit is constructed |
 | Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, conditional-rate cutoff removal and continuum construction remain open |
 | Finite open-cube SU(2) basis and oriented Wilson support | **Derived** finite-regulator construction | The open $2\times2\times2$ cube has 32 and 1013 gauge-invariant raw trivalent-$3j$ states at doubled cutoffs $C=1,2$; every six signed fundamental plaquette operators has 32 and 2388 nonzero candidate-supported directed entries, with finite Hermitian contractions; fixed-graph character-cutoff removal follows from (YM187)–(YM195), while a growing open-boundary family and continuum control remain open |
 | Larger-volume/cutoff SU(2) Hamiltonian | **Derived** recovered finite-regulator construction and fixed-graph cutoff removal; **INCONCLUSIVE** frozen separation qualifications | The open $3\times2\times2$ graph has 868 and 955835 complete gauge-invariant states at doubled cutoffs $C=1,2$; the recovery enforces spectator-intertwiner orthogonality, all 226 finite-construction checks and 256 independent checks pass, every scheduled ground energy is nonnegative, and the separation-free theorem removes the character cutoff only after this graph and coupling are fixed |
@@ -7119,6 +7313,27 @@ Both receipts retain spatial-volume, lattice-spacing, continuum,
 Wightman and uniform-gap conclusions as false and record
 `clay_verdict=NULL`.
 
+The renormalized gap-scaling evidence is bound by
+`computations/yang-mills-renormalized-gap-scaling-prereg.md`, the primary
+`computations/verify_yang_mills_renormalized_gap_scaling.py` and the
+independent
+`computations/verify_yang_mills_renormalized_gap_scaling_independent.mjs`.
+The primary receipt passes 80/80 checks over six weak-coupling rows and the
+independent receipt passes 20/20 checks. It reconstructs the universal
+coefficients, Wilson and Hamiltonian scale formulas, volume and gap
+classifications, derivative residual and six firing controls.
+
+The protocol, primary source and independent source SHA-256 values are
+`c38ff8d6ace94b8221d6040a60f894cfd5e0a8adea5c45c270b48437e18b7a1c`,
+`d8c3b0f94b62c6ef67fb3dc5fee4b2186e3966beb5dbeeed3dc372bafd5ea6d3`
+and
+`498826b21a7c977d669c7f3697d5267bf61638a525d664263db790e7b97530a8`.
+The independent receipt binds primary-receipt SHA-256
+`bc77e1cc1a8ccda41240fbaa3d22963679786c11e402923c5898a1356b6d1f44`.
+Both receipts classify the work as an arithmetic necessity diagnostic, set
+every interacting continuum conclusion false and retain `clay_verdict=NULL`.
+
+
 ---
 
 ## References
@@ -7300,8 +7515,34 @@ Wightman and uniform-gap conclusions as false and record
 - H. Grundling and G. Rudolph, [QCD on an infinite
   lattice](https://arxiv.org/abs/1108.2129)—inductive local gauge algebra and
   Gauss-law construction
-- `runs/yang_mills_continuum_boundary_audit/verification.json`—42-check v7 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean evidence, the exact fixed-graph anisotropic Hamiltonian limit, excluded defect provenance and the unresolved continuum boundary
-- `computations/verify_yang_mills_continuum_boundary_audit.py`—42-check source, receipt, recovery-snapshot, fixed-graph Hamiltonian-limit and continuum-boundary audit
+- `runs/yang_mills_continuum_boundary_audit/verification.json`—47-check v8 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean evidence, the exact fixed-graph anisotropic Hamiltonian limit, the renormalized volume/gap scaling criterion, excluded defect provenance and the unresolved continuum boundary
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—47-check source, receipt, recovery-snapshot, fixed-graph Hamiltonian-limit, renormalized-scaling and continuum-boundary audit
+- `computations/yang-mills-renormalized-gap-scaling-prereg.md`—frozen
+  universal two-loop scale, simultaneous volume, renormalized-gap and
+  conditional continuum-bridge protocol
+- `computations/verify_yang_mills_renormalized_gap_scaling.py`—80-check
+  source-bound scale and schedule diagnostic
+- `computations/verify_yang_mills_renormalized_gap_scaling_independent.mjs`—20-check
+  independent coefficient, row, classification and firing reconstruction
+- `runs/yang-mills-renormalized-gap-scaling/verification.json`—primary
+  arithmetic receipt with a `NULL` Clay verdict
+- `runs/yang-mills-renormalized-gap-scaling/verification-independent.json`—independent
+  source- and receipt-bound reconstruction
+- B. Allés, A. Feo and H. Panagopoulos, [The three-loop beta function in
+  $SU(N)$ lattice gauge
+  theories](https://arxiv.org/abs/hep-lat/9609025), Eqs. (1.1), (2.11) and
+  (3.5)—lattice beta-function convention, universal coefficients and
+  integrated lattice scale
+- W. E. Caswell, [Asymptotic Behavior of Nonabelian Gauge Theories to
+  Two-Loop Order](https://doi.org/10.1103/PhysRevLett.33.244)—two-loop
+  non-Abelian beta function
+- D. R. T. Jones, [Two-loop diagrams in Yang–Mills
+  theory](https://doi.org/10.1016/0550-3213(74)90093-5)—independent two-loop
+  calculation
+- A. Hasenfratz and P. Hasenfratz, [The connection between the lambda
+  parameters of lattice and continuum
+  QCD](https://doi.org/10.1016/0370-2693(80)90118-5)—lattice/continuum
+  scheme-scale relation
 - D. Bakry, I. Gentil and M. Ledoux, *Analysis and Geometry of Markov
   Diffusion Operators*—Poincaré, Poisson and carré-du-champ framework
 - C. Villani, *Optimal Transport: Old and New*—continuity equations and
