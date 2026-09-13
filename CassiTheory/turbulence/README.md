@@ -133,6 +133,7 @@ arbitrary-flow closure and global regularity remain open.
 | 13 | `turbulence/cassi-radiative-material-closure.md` | LTE emission, multigroup M1 transport, conservative material coupling and CassiCosmos handoff | Derived conditional transfer, conservation and entropy identities / Tested kernels / Open Cassi material calibration |
 | 14 | `turbulence/compressible-radiative-plasma-closure.md` | Compressible hydrodynamics, shocks, species and line kinetics, persistent stellar energy accounting and multi-angle crossing beams | Derived conditional / Tested reference controls and integrity qualification / Open Cassi material identification and production implementation |
 | 15 | `turbulence/navier-stokes-coherence-dose-criterion.md` | Active seeded-production dose and retarded-spread continuation criterion | Derived conditional / Open uniform dose and arbitrary-data regularity |
+| 16 | `turbulence/navier-stokes-vorticity-quotient.md` | Inverse seeded-covariance quotient, normalized mean bound, and initial-layer obstruction | Derived local identity / Open uniform continuation estimate |
 
 ## 2. Document summaries
 
@@ -565,6 +566,26 @@ The receipt is intentionally generated under `runs/` as local, untracked
 evidence. Rerunning the listed verifier regenerates it and rebinds the hashes
 of the three committed source files.
 
+### 2.16 Vorticity-covariance quotient
+
+`turbulence/navier-stokes-vorticity-quotient.md` derives an inverse-covariance
+quotient on cylinders where the seeded replica covariance is positive
+definite. Reaction stretching cancels, leaving a covariant spatial square and
+a covariance-source square with nonpositive sign. The seeded second moment has
+a source-free matrix law, and its normalized mean quotient is bounded by one.
+
+The ABC Beltrami heat flow exposes the starting boundary: at the origin
+$Q_\omega=I$, so $R=2\nu tI+O(t^2)$ and
+$z_R=3/(2\nu t)+O(1)$. The raw quotient is therefore not time-integrable
+from the zero-covariance slice even on a smooth global control. Periodic shear
+and a zero-source affine branch retain rank-deficient cases. The fixed
+schedule passes **13 of 13 checks**; uniform continuation control and
+arbitrary-data regularity remain **UNRESOLVED**.
+
+The receipt is intentionally generated under `runs/` as local, untracked
+evidence. Rerunning the listed verifier regenerates it and rebinds the hashes
+of the three committed source files.
+
 ## References
 
 - `foundations/xi-derivation.md`—first-principles derivation of the Qi-gravity coupling $\xi = \varphi^6$ used in the velocity equation
@@ -600,6 +621,9 @@ of the three committed source files.
 - `computations/verify_navier_stokes_replica_coherence.py`—60-check source-bound replica-coherence, temporal-rank and viscous-compensation verifier
 - `computations/navier-stokes-coherence-dose-continuation-prereg.md`—fixed active-dose, retarded-spread and exact-control schedule
 - `computations/verify_navier_stokes_coherence_dose.py`—16-check coherence-dose continuation verifier
+- `computations/navier-stokes-vorticity-quotient-prereg.md`—fixed local quotient, normalized-mean, ABC initial-layer and degenerate-control schedule
+- `computations/verify_navier_stokes_vorticity_quotient.py`—13-check exact quotient verifier
+- `turbulence/navier-stokes-vorticity-quotient.md`—derived inverse-covariance quotient and smooth-control obstruction
 - `turbulence/navier-stokes-coherence-dose-criterion.md`—conditional active-dose and retarded-spread continuation note
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
 - `computations/cassi-fluid-thermodynamics-prereg.md`—selected fluid equations and fixed thermal controls
