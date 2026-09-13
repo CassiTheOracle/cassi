@@ -603,9 +603,134 @@ there. The far estimate covers only the finitely many periodic shells
 outside the local radius; the direction hypothesis is not extended to
 those shells. For the Lipschitz case $\alpha=1$, the interior coefficient
 is $(\Gamma M)^{3/5}B^{2/5}$, while the boundary cases retain the
-unoptimized expression above. The high-vorticity version of the direction
-condition adds a low-vorticity remainder; it leaves the same local
-cancellation and the same need for a time-integrated bound.
+unoptimized expression above.
+
+For a high-vorticity-only hypothesis, at each time choose a threshold
+$0<\kappa(t)\le M(t)$ and abbreviate
+$\kappa=\kappa(t)$, $M=M(t)$ and $B=B(t)$ in this paragraph. Let
+$$
+H_\kappa(t)=\{x:|\omega(x,t)|>\kappa\},\qquad
+\omega_H=\omega\mathbf 1_{H_\kappa},\qquad
+\omega_L=\omega\mathbf 1_{H_\kappa^c},
+$$
+with $0<\kappa\le M$. Assume the direction condition only for local pairs
+$x,x+r\in H_\kappa(t)$:
+$$
+|\xi(x+r)\times\xi(x)|\le\Gamma |r|^\alpha,
+\qquad |r|\le\rho.
+$$
+No condition is imposed on pairs crossing the superlevel boundary or
+involving a zero of $\omega$. Let $\mathcal T$ be the periodic
+order-zero Calderón–Zygmund strain operator, so $S=\mathcal T\omega$.
+The exact source and observation split at fixed time is
+$$
+\begin{aligned}
+P={}&\int_{H_\kappa}\omega\cdot(\mathcal T\omega_H)\omega\,dx
+\;+\int_{H_\kappa^c}\omega\cdot(\mathcal T\omega_H)\omega\,dx\\
+&+\int_{\mathbb T^3}\omega\cdot(\mathcal T\omega_L)\omega\,dx.
+\end{aligned}
+$$
+The first term is the high-source contribution observed on the
+high-vorticity region; its local part is the high--high contribution
+controlled by direction coherence. The second is the high-source
+contribution observed on the low-vorticity region, and the third contains
+every low-source pair, including pairs crossing the superlevel boundary.
+
+Its $L^2$ and $L^4$ bounds give
+$$
+\begin{aligned}
+\left|\int\omega\cdot(\mathcal T\omega_L)\omega\,dx\right|
+&\le C\|\omega\|_{L^{8/3}}^2\|\omega_L\|_{L^4}\\
+&\le C(\kappa M)^{1/2}B^2,
+\end{aligned}
+$$
+because $\|\omega_L\|_4\le\kappa^{1/2}B^{1/2}$ and
+$\|\omega\|_{8/3}^2\le M^{1/2}B^{3/2}$. For the high source on the
+low-vorticity region,
+$$
+\left|\int_{H_\kappa^c}\omega\cdot(\mathcal T\omega_H)\omega\,dx\right|
+\le C\|\omega\mathbf 1_{H_\kappa^c}\|_4^2\|\omega_H\|_2
+\le C\kappa B^2
+\le C(\kappa M)^{1/2}B^2.
+$$
+On $H_\kappa$ itself, the local high-source kernel uses the direction
+condition and the far periodic tail uses the $L^2$ bound above. Hence,
+for $0<\rho\le\bar\rho$,
+$$
+\boxed{
+|P(t)|
+\le C_{\alpha,\mathbb T}W(t)
+\left[
+\Gamma(t)M(t)\rho^\alpha
++B(t)\rho^{-3/2}
++(\kappa M)^{1/2}
+\right].
+}
+$$
+The same interior-versus-boundary radius cases stated above apply to the
+first two terms. In the interior case this becomes
+$$
+|P(t)|
+\lesssim_{\alpha,\mathbb T}
+W(t)\left[
+(\Gamma(t)M(t))^{3/(2\alpha+3)}
+B(t)^{\,2\alpha/(2\alpha+3)}
++(\kappa M)^{1/2}
+\right].
+$$
+Thus an interior superlevel direction criterion yields continuation if
+the displayed coefficient is integrable in time. This remains a
+solution hypothesis: no bound of $\Gamma$, $M$, or $\kappa$ from the
+initial $H^3$ norm is derived here. The low-vorticity remainder is
+explicit rather than being hidden inside a global direction assumption.
+
+The continuation bridge here is the unfiltered enstrophy identity. With
+$A_\kappa(t)$ denoting the bracketed coefficient in the last display,
+$$
+W'(t)+2\nu\|\nabla\omega(t)\|_2^2=2P(t)
+\le C W(t)A_\kappa(t).
+$$
+If $A_\kappa\in L^1(0,T)$, Gronwall bounds $W$ and the same inequality
+integrates $\|\nabla\omega\|_2^2$. Mean-zero periodic Biot--Savart
+elliptic regularity then gives
+$$
+\|u(t)\|_{H^2}\le C_{\mathbb T}\bigl(\|\omega(t)\|_2+
+\|\nabla\omega(t)\|_2\bigr),
+$$
+so $u\in L^2(0,T;H^2)\subset L^2(0,T;L^\infty)$, a Serrin endpoint
+that prevents finite-time breakdown. This is separate from the filtered
+$G$-criterion in §4.
+
+A smooth solution supplies a local direction bound, but it does so through
+a higher norm rather than through the enstrophy budget. Set
+$D=\|\nabla\omega\|_\infty$. For two points in $H_\kappa$,
+$$
+|\xi(x+r)\times\xi(x)|
+\le|\xi(x+r)-\xi(x)|
+\le\frac{2}{\kappa}|\omega(x+r)-\omega(x)|
+\le\frac{2D}{\kappa}|r|.
+$$
+In the Lipschitz interior case, the bracketed coefficient is therefore
+bounded by
+$$
+\left(\frac{2MD}{\kappa}\right)^{3/5}B^{2/5}
++(\kappa M)^{1/2}.
+$$
+For $M,D,B>0$, ignoring the radius and threshold constraints, balancing
+the two $\kappa$-dependent terms gives
+$$
+\kappa_*\asymp M^{1/11}D^{6/11}B^{4/11},
+\qquad
+A_{\kappa_*}\lesssim M^{6/11}D^{3/11}B^{2/11}.
+$$
+The constrained optimizer must still satisfy $0<\kappa_*\le M$ and the
+interior-radius condition; otherwise the corresponding boundary expression
+applies. The resulting bound contains $D=\|\nabla\omega\|_\infty$, which
+is not controlled by the enstrophy dissipation
+$\|\nabla\omega\|_2^2$. Thus differentiability and threshold optimization
+do not turn the conditional geometric criterion into an unconditional
+estimate.
+
 
 The pressure equation and the unfiltered strain equation are
 $$
