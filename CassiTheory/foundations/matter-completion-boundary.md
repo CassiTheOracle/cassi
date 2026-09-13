@@ -1471,6 +1471,19 @@ $1.2\times10^{-6}$ per cell-volume. The regulated vacuum-to-bag mechanism is
 therefore not established. Physical matter formation remains
 **Hypothesized/Open**.
 
+A unitary midpoint recovery applies a self-consistent scalar midpoint and
+exact finite-box covariance exponentials to every arm. The `static_vacuum`
+control then has late centre deficit
+$-1.8025093613\times10^{-12}$ and pair number
+$4.2446434020\times10^{-25}$, but the candidate pair means remain strongly
+grid dependent: for $A=1.5$ they are $4.4741306887$, $12.7387182577$ and
+$25.1689514200$ on `G0`–`G2`, and for $A=2.0$ they are
+$4.9819025734$, $8.0181579470$ and $20.4527444767$. The independent receipt
+therefore retains `INCONCLUSIVE`: the vacuum control passes, while the
+candidate resolution and static zero-pair summary checks do not
+(`computations/matter-formation-continuum-report.md` §99.3). The regulated
+vacuum-to-bag route supplies no resolved grid-independent formation witness.
+
 ## 18. Continuum localized minimizers and nonlinear stability
 
 The supplied scalar action supports localized states that remain close to

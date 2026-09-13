@@ -12201,6 +12201,8 @@ $2E_{256}-E_{512}$ compares those profiles; its sign alone is not
 a certified lower bound on every possible fission channel.
 
 ### 74.3 Fixed stationary-profile calculation
+The frozen execution contract is `computations/matter-formation-pool-dispersal-prereg.md`. It binds the source inventory, report-section hashes, profile prerequisite, diagnostic statistic, decision tree, stopping rule, and complete-formation boundary before any trajectory is opened.
+
 
 Before any dispersal trajectory, compute radial profiles at $Q=256$
 and $512$ on $(R,\Delta r)=(24,1/8),(24,1/16),(48,1/16)$.
@@ -12308,6 +12310,8 @@ comparisons. They do not establish infinite-time survival, actual
 dynamical isolation, nonaxisymmetric stability or microscopic identity.
 
 ### 75.3 Frozen evolution and decision tree
+The fixed schedule and decision tree are repeated in the preregistered protocol `computations/matter-formation-pool-dispersal-prereg.md`; the protocol is the execution source of truth for this campaign.
+
 
 Use primary fourth-order Yoshida-composed velocity Verlet and an
 independently implemented classical RK4 evolution, both in float64.
@@ -12342,7 +12346,17 @@ initial energy for energy, initial energy divided by $c_*$ for momentum,
 initial energy squared for the energy–momentum radicand, 512 for charge,
 twelve for lengths, and one for fractions, $f^2$ and binding ratios.
 For a paired comparison use the larger initial energy, with floor one.
-All comparisons use the complete declared diagnostic columns.
+The absolute boundary clearance remains a hard formation predicate. Since
+the domain comparison changes $R$, its comparison value is the fixed
+threshold deficit
+$$d_C=\max(0,16-C),\qquad
+C=\min(R-12,R-|\zeta_{\rm centroid}|-12),$$
+with length scale twelve. Raw clearance differences remain in the
+receipt; all other columns use their direct late-mean differences.
+Every comparison records both representations and uses
+`clearance_threshold_deficit_for_clearance_columns` for the clearance
+column.
+
 
 Run source-identity rejection before any scientific calculation,
 and refuse existing output directories. Reconstruct raw saved-state
@@ -12354,7 +12368,7 @@ applicable grid and in both methods throughout the late-time window.
 If qualifications pass and neither does, return
 `DOES NOT EMERGE in the specified pool-dispersal calculation`.
 Any failed qualification gives `INCONCLUSIVE`.
-Stop after this schedule. Do not extend, retune or replace a failed arm.
+Stop after this schedule. Do not extend, retune, replace a failed arm, or change the declared clearance-deficit comparison.
 All scientific receipts retain
 `complete_physical_matter_formation=false`.
 
@@ -14884,6 +14898,66 @@ The supplied-carrier capture witness in §98 remains the positive result at
 its narrower scope; complete physical matter formation remains
 **Hypothesized/Open**.
 
+### 99.3 Unitary midpoint recovery
+
+The unitary midpoint recovery removes the static-vacuum drift while exposing
+a separate spatial-resolution failure. Its frozen update uses one
+self-consistent scalar midpoint correction and exact dense matrix
+exponentials for the occupied covariance, with the same rule applied to every
+arm. The primary and independent verifier reassemble the finite-box operator
+and run the declared update separately. The recovery protocol is
+`computations/matter-formation-fermion-vacuum-bag-unitary-recovery-prereg.md`.
+
+The source-bound primary is
+`runs/20260912_matter_formation_fermion_vacuum_bag_unitary_recovery3/result.json`,
+SHA-256
+`a57f8ee2413362cee02f6584e6bb70b3a67cc75e070ab7d43538098b1a0087e0`.
+The independent receipt is
+`runs/20260912_matter_formation_fermion_vacuum_bag_unitary_recovery_verification3/verification.json`,
+SHA-256
+`3c305455c3339ff592569395a25b8bb758141919c7d7600f22ada70230d657a2`.
+The primary source hash is
+`a7e1643575c4ba5c349a3cdb5906d6b91bc22a10265142c122efa05847abfb67`;
+the independent verifier source hash is
+`e295c8967702265ac9b0630587beca2748a7c8691830ffa7215c9cc58a02f757`; and
+the recovery protocol hash is
+`07b09449d71c52eeb58ea4ea9587c72093868fc82329ccc34e5e136a4818d7a5`.
+
+The `static_vacuum` control now remains stationary on `G1`: its late centre
+deficit is $-1.8025093613\times10^{-12}$ and its late pair number is
+$4.2446434020\times10^{-25}$. Its primary raw archive agrees with the
+independent reconstruction below the fixed array tolerance, and the control
+predicates pass. This validates the unitary treatment of the exact finite-box
+vacuum state.
+
+The candidate rows do not define a resolved retained bag. The late pair means
+on the $A=1.5$ grids are $4.4741306887$, $12.7387182577$ and
+$25.1689514200$, while their late pair-number standard deviations are
+$0.4561230371$, $1.0807939323$ and $2.2259585821$. For $A=2.0$, the
+corresponding means are $4.9819025734$, $8.0181579470$ and
+$20.4527444767$, with standard deviations
+$0.4336327761$, $0.7958630050$ and $1.8848794763$. Every candidate row
+fails the retained-capture predicate. The adjacent-grid pair-number
+differences are $8.2645875690$ and $12.4302331623$ for $A=1.5$, and
+$3.0362553736$ and $12.4345865297$ for $A=2.0$, against the fixed bound
+$0.15$. The other resolution observables also fail on the finer comparison.
+
+The independent receipt reports `numerical_pass=false` with `controls_pass=true`
+and failures in `summary` and `resolution`. The raw state comparisons pass.
+The summary failure is confined to numerically ill-conditioned derived
+localization and outer-energy summaries in the zero-pair static control; the
+physical static predicates and raw state remain qualified. The resolution
+failure is substantive: the produced pair number and scalar deformation do
+not approach a grid-independent late state on the declared schedule.
+
+The exact scoped verdict is
+`INCONCLUSIVE—unitary regulated radial vacuum-to-bag recovery`. The
+unitary update repairs the numerical vacuum-control defect, but the finite-box
+vacuum calculation still supplies no resolved vacuum-to-bag mechanism,
+continuum renormalization, all-angular-sector result, canonical microscopic
+action, physical normalization or particle identity. Complete physical matter
+formation remains **Hypothesized/Open**.
+
 ## References
 
 - `computations/matter_formation_q256_momentum_prereg.md`—frozen Q=256 incoming-momentum preparation, stable comparison contract, persistence predicates, and stopping rule.
@@ -15249,6 +15323,7 @@ its narrower scope; complete physical matter formation remains
 - [Farhi, Graham, Jaffe and Weigel, *Searching for Quantum Solitons in a 3+1 Dimensional Chiral Yukawa Model*](https://arxiv.org/abs/hep-th/0112217)—localized fixed-fermion-number energy including the renormalized sea.
 - `computations/matter-formation-scalar-vacuum-prereg.md`—fixed local static potential, exact sign criterion and scope.
 - `computations/verify_matter_formation_scalar_vacuum.py`—symbolic and rational global lower-boundedness qualification.
+- `computations/matter-formation-pool-dispersal-prereg.md`—frozen profile prerequisite, source and section identities, finite-volume schedule, statistic, decision tree, stopping rule and physical scope.
 - `computations/matter_formation_pool_profiles.py`—fixed-charge stationary parent and daughter profile construction.
 - `computations/matter_formation_pool_dispersal.py`—primary finite-volume pool-dispersal evolutions and conserved-quantity diagnostics.
 - `computations/verify_matter_formation_pool_dispersal.py`—independent finite-volume reconstruction, raw-state checks and frozen verdict aggregation.
