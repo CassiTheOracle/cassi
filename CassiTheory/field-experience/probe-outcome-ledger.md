@@ -1830,6 +1830,11 @@ grows with the tested coupling.
 - `computations/verify_yang_mills_volume_block_local_feshbach_independent.py`—85-check independent arithmetic and source-binding audit.
 - `runs/yang_mills_volume_block_local_feshbach/verification.json` and `verification-independent.json`—source-bound finite anchored block-local receipts; translation, continuum and mass-gap claims remain unresolved.
 
+- `computations/yang-mills-volume-translated-block-feshbach-prereg.md`—frozen all-plaquette translated block sweep and 44-row decision tree.
+- `computations/verify_yang_mills_volume_translated_block_feshbach.py`—455-check primary translated sweep verifier.
+- `computations/verify_yang_mills_volume_translated_block_feshbach_independent.py`—375-check independent arithmetic and source-binding audit.
+- `runs/yang_mills_volume_translated_block_feshbach/verification.json` and `verification-independent.json`—source-bound all-plaquette finite translated-family receipts; larger-volume and continuum claims remain unresolved.
+
 ## 52. Anchored block-local plaquette family
 
 The frozen protocol
@@ -1883,6 +1888,69 @@ and
 The anchored block-local bridge is a finite positive result, not a continuum
 mass-gap proof. The next obligation is to cover translated blocks and increase
 the spatial volume without changing the retained rank.
+
+
+## 53. Translated block-local sweep
+
+The frozen protocol
+`computations/yang-mills-volume-translated-block-feshbach-prereg.md` tests
+the vacuum plus one plaquette separately for all eleven source-order
+plaquettes of the open $3\times2\times2$ graph. Every family has source rank
+$2$ and projected ranks $(2,865)$ at each coupling, for $44$ rows.
+
+The primary receipt has status `PASS` with $455/455$ controls passing and
+classification `SUPPORTS_FINITE_TRANSLATED_BLOCK_SWEEP`. All $44/44$ rows
+have positive finite Schur roots. The independent arithmetic and
+source-binding audit passes $375/375$ checks.
+
+The eight $xy$ and $xz$ families are symmetry-equivalent, with maximum
+$\\beta=2.5587309590$, maximum self-energy ratio $0.3192237962$ and minimum
+certified root $1.9068853539$. The $yz_x1$ family has maximum
+$\\beta=2.2721362582$ and minimum root $2.1238035176$. The outer $yz_x0$ and
+$yz_x2$ families are worst:
+
+| family | max $\beta$ | max $\beta^2/(\alpha\delta_Q)$ | min $\gamma_{\rm Fesh}$ |
+|---|---:|---:|---:|
+| $yz_x0$ | 2.6859149786 | 0.3487102889 | 1.8020569942 |
+| $yz_x2$ | 2.6859149786 | 0.3487102889 | 1.8020569942 |
+
+Across all eleven families the maximum coupling is $2.6859149786$, the
+maximum self-energy ratio is $0.3487102889$, and the minimum root-to-gap ratio
+is $0.9863223397$. Translation and orientation coverage therefore closes on
+this finite graph without increasing retained rank. Larger spatial graphs,
+lattice-spacing control, continuum recovery and the mass-gap theorem remain
+open.
+
+The source-binding order is protocol, primary source, independent source,
+block-local source, block-local protocol, block-local primary receipt,
+block-local independent receipt, adapted source, adapted protocol, adapted
+primary receipt, adapted independent receipt, volume bridge source, exact
+source, large source, scientific large-volume protocol, recovery protocol,
+recovered large-volume receipt, primary receipt and independent receipt:
+`41e212622f4b8b913d8a8f6977af08ec6a2ac29a41846fef649953186cc8f7de`,
+`5b6c53cb13291172f8a8243b3446d517ef8cf212e2cec1127b2636c4c0b8289f`,
+`f76b8417d4c26a94987fb109e4563b79caa254d4beb14a9744d61171918f6691`,
+`56cbb14dc965aa683120aa20914e750835348c5adb03740a4feffc36d6b45b2b`,
+`c8f5a6174d87d34eeb6ff4f03332719ccdde1d84dc26182929cf3d4fec41824f`,
+`fb73f1356fd9f69d2474ec73fa01b0082ced979a1b1756166298ebad22fad01b`,
+`8ba59d04bd286ff2cbdbe48e08ffcba273858036a19da68dc01d409d2ed2e0d3`,
+`c445a6ce30041be632110bc67a5b07a6011996a387958559e00722b5181f49ba`,
+`c60e40885b46b8fe0feeb400b9a1ef7277b8957543a6bf378bdceb70e3c6e29a`,
+`78d9f3334a6c02fe5d6acf8ccab71da9d5021be01435968b2712995d911d1bb7`,
+`beee93c05469258ad9beec336f4a29fe04bf5e609fcfbeb2eedbdd52f54776b4`,
+`abba34224e95f3aab52b5cbc04b45997e575bfc615a998d783a8bb7fccac22e5`,
+`b3ed3a4af4b84e787180654fc7e863a61e8f79693c54b9f1efe75346996c8524`,
+`87764d365f592b091a8006ed178b13ce9d2da2b519638d19b35d88c3762243af`,
+`190081eb42bc82432033fc59f3bfb4386a74760f0f4b951ec46ad461a0f056f7`,
+`5647bfa524c25672c83d5daa2e515c33313fdf118c84afd29155e1e1e5cf1821`,
+`914d4ed7da56b7e459a98ff83c08f21a8a7e12a211ace0074afd41d1f3e40837`,
+`60ea5429e842f75dba21d6c489f1e1b6b3b5b45e20f6e9ec8fcf12b50656a7e2`
+and
+`dbe8d8d185fa5a8a5e822570fa5fb313035b64c6a5e70c410d7b243e29fab11e`.
+
+The finite translation sweep is evidence for a local retained construction,
+not a volume-uniform or continuum mass-gap proof. The next obligation is the
+same fixed-rank sweep on a larger spatial graph.
 
 
 ## References

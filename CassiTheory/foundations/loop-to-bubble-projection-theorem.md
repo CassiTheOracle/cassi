@@ -7465,6 +7465,44 @@ See `computations/yang-mills-volume-block-local-feshbach-prereg.md`,
 `field-experience/probe-outcome-ledger.md` §52.
 
 
+### 9.40 Translated block-local sweep
+
+The translated sweep applies the vacuum-plus-one-plaquette retained family to
+all eleven plaquettes of the recovered open $3\times2\times2$ graph. Every
+family has source rank $2$ and projected ranks $(2,865)$ at each of the four
+couplings, producing $44$ finite Feshbach rows.
+
+The primary receipt passes $455/455$ controls and all $44/44$ rows have
+positive finite Schur roots, with classification
+`SUPPORTS_FINITE_TRANSLATED_BLOCK_SWEEP`. The independent arithmetic and
+source-binding audit passes $375/375$ checks.
+
+The eight $xy$ and $xz$ plaquettes are numerically symmetry-equivalent in this
+source. Their largest tested $\beta$ is $2.5587309590$, largest
+$\beta^2/(\alpha\delta_Q)$ is $0.3192237962$, and smallest certified root is
+$1.9068853539$. The $yz_x1$ boundary plaquette has lower values, with maximum
+$\\beta=2.2721362582$ and minimum root $2.1238035176$. The two outer
+$yz_x0$ and $yz_x2$ plaquettes are the worst tested families:
+
+| family | max $\beta$ | max $\beta^2/(\alpha\delta_Q)$ | min $\gamma_{\rm Fesh}$ |
+|---|---:|---:|---:|
+| $yz_x0$ | 2.6859149786 | 0.3487102889 | 1.8020569942 |
+| $yz_x2$ | 2.6859149786 | 0.3487102889 | 1.8020569942 |
+
+Across all eleven source-order plaquettes the maximum coupling is
+$2.6859149786$, the maximum self-energy ratio is $0.3487102889$, and the
+minimum root-to-gap ratio is $0.9863223397$. This closes the translated
+one-plaquette coverage on this finite graph without increasing retained rank.
+It does not establish a volume-uniform or lattice-spacing-uniform bound:
+larger spatial graphs, arbitrary block shapes, continuum recovery and the
+Yang–Mills mass gap remain open.
+
+See `computations/yang-mills-volume-translated-block-feshbach-prereg.md`,
+`computations/verify_yang_mills_volume_translated_block_feshbach.py`,
+`computations/verify_yang_mills_volume_translated_block_feshbach_independent.py`
+and `field-experience/probe-outcome-ledger.md` §53.
+
+
 ---
 
 
