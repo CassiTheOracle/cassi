@@ -2715,25 +2715,30 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   $\|QAJu\|^2$ with $Q=I-JJ^*$, so exact second-moment matching is equivalent
   to a reducing retained sector and then to all-moment matching. Its complete,
   incomplete and leaky fixtures pass 54/54 primary checks and 55/55
-  independent decisions, including four firing mutations. The incomplete
+  independent decisions, including four mutation firings. The incomplete
   fixture has exact retained moments but a retained gap
   $0.3285040669720361$ versus full gap $0.09431067947124129$, proving that
   completeness is not inferred from correlation matching. The 55th decision is
   the protocol-scheduled primary-receipt source-binding audit; the scientific
-  fixture schedule remains 54 checks. This finite result
-  does not construct the Yang–Mills block map, interacting transfer operator
-  or full physical gap.
+  fixture schedule remains 54 checks. This finite result does not construct
+  the Yang–Mills block map, interacting transfer operator or full physical gap.
+  The local algebraic completeness premise is now explicit: fundamental
+  Wilson traces over all closed words are uniformly dense in every finite
+  gauge-invariant cylinder algebra, and centered local vectors are dense in
+  the vacuum-orthogonal GNS subspace. The 36/36 primary and 41/41 independent
+  finite controls classify this statement as `DERIVED CONDITIONAL`. An exact
+  RG image must still be shown to have this full local closure.
 
   Every receipt retains `clay_verdict=NULL`. A uniform exact-vacuum fibre
   rate, transported score, full-sequence convergence, phase uniqueness,
   clustering, identification of the fixed-$\beta$ state with the anisotropic
   family, spatial-volume uniformity, an $O(1)$ cumulative RG defect, an exact
-  transfer-correlation block map, retained-observable completeness, a
-  uniform interacting endpoint gap, weak-coupling continuum construction,
-  continuum Osterwalder–Schrader/Wightman reconstruction and a
-  regulator-independent physical mass gap remain open. See
-  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.32 and §11 and
-  `field-experience/probe-outcome-ledger.md` §§30,34,36–43.
+  transfer-correlation block map, identification of its retained image with
+  the full local algebra, a uniform interacting endpoint gap, weak-coupling
+  continuum construction, continuum Osterwalder–Schrader/Wightman
+  reconstruction and a regulator-independent physical mass gap remain open.
+  See `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.33 and §11
+  and `field-experience/probe-outcome-ledger.md` §§30,34,36–44.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state
