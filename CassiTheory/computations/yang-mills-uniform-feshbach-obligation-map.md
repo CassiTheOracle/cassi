@@ -4,7 +4,7 @@
 
 ## Abstract
 
-This document fixes the conditional statement that an interacting Feshbach construction would have to prove before it can support the uniform lower-form criterion for the Yang–Mills mass-gap problem. It uses an explicit weak-coupling and growing-volume trajectory, the physical overlap metric, the exact retained/discarded projections, a fixed resolvent domain, and fixed positive margins. Existing Feshbach receipts are classified against these obligations. A finite receipt receives a finite-regulator classification; the `YM262` conclusion requires every obligation in this map together with continuum recovery.
+This document fixes the conditional statement that an interacting Feshbach construction would have to prove before it can support the uniform lower-form criterion for the Yang–Mills mass-gap problem. It uses an explicit weak-coupling and growing-volume trajectory, the physical overlap metric, the exact retained/discarded projections, a fixed resolvent domain, and fixed positive margins. Existing Feshbach receipts are classified against these obligations. A finite receipt receives a finite-regulator classification; the `YM262` conclusion requires every obligation in this map together with continuum recovery. This is an analytical roadmap, not an executable receipt protocol.
 
 ## 1. Target and frozen trajectory
 
@@ -122,6 +122,9 @@ $$
  \sigma_*:=2^{-12}.
 \tag{UF5}
 $$
+
+The values in (UF5) are declared hypotheses for a future proof package. No
+current receipt or theorem establishes that these margins are attainable.
 
 The frozen resolvent domain and margins are
 
@@ -255,3 +258,4 @@ No new Feshbach receipt is scheduled until an exact block/transfer construction 
 - `computations/yang-mills-4x2x2-c1-feshbach-prereg.md`—finite translated $4\times2\times2$ screen and its declared evidence boundary.
 - `computations/yang-mills-interacting-feshbach-prereg.md`—fixed-graph interacting resolvent and Schur inequalities.
 - `computations/yang-mills-transport-score-prereg.md`—conditional $H^{-1}$ transport recurrence and Gaussian controls.
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—hash-bound audit whose receipt records the unresolved continuum boundary and `clay_verdict: NULL`.
