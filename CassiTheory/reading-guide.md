@@ -213,6 +213,19 @@ candidate resolution ladder fail, and independent reconstruction returns
 `INCONCLUSIVE`. Quantum-vacuum creation, sea renormalization, all angular
 sectors, physical normalization and particle identity remain open.
 
+Section 105 closes a stronger regulated radial boundary for the real-scalar
+Yukawa model. The source-bound G3 continuation starts from a finite-energy
+incoming shell and a local negative-energy covariance, then evolves both
+fields self-consistently. Pair numbers converge from $1.8658322$ to
+$1.4694810$ across G0–G2; bound occupations are $0.3119478$ to
+$0.2435462$, with pair and bound core fractions remaining above $0.916$ and
+$0.982$. Primary and independent controls, state reconstruction, and
+resolution checks pass. The result is
+`CAPTURED—conditional autonomous radial formation` for a finite-core
+spherical $\kappa=-1$ channel. The point-core limit, continuum
+renormalization, all angular sectors, whole-bubble preparation, physical
+normalization and particle identity remain open.
+
 Section 29 proves the completion problem is non-identifiable from the
 registered slow observables: scalar and Dirac parents share the same carrier
 equation with different spin and statistics. Complete physical matter

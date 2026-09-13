@@ -2170,6 +2170,39 @@ therefore supplies a transient pulse without selecting a persistent carrier;
 the canonical action, quantum state, normalization, continuum stability and
 particle map remain unselected.
 
+A smooth $C^\infty$ prescribed-bag transition now qualifies vacuum
+pair production followed by occupation of a localized particle–hole
+excitation involving the positive-energy bound mode in a finite radial
+Yukawa channel. The finest grid gives pair number
+$1.1429898215820515$, bound occupation
+$0.2835558554150467$, bound-mode energy
+$0.4687442851739749$, core probability
+$0.9997943420447438$, and RMS radius
+$2.3164354034855066$. A static-background control gives pair number
+$2.0500663326911148\times10^{-29}$ and zero bound occupation. Independent
+DOP853 reconstruction, 14 checks, 33 typed comparisons, and three-grid
+convergence pass. The verdict is
+`CAPTURED—conditional smooth vacuum-to-bound-state formation`
+(`computations/matter-formation-continuum-report.md` §104). The scalar
+background remains prescribed, the radial channel remains finite and
+regulated, and preparation work remains external, so autonomous
+backreaction, ultraviolet completion, whole-bubble preparation, and particle
+identification remain open.
+
+A source-bound G3 finite-core autonomous continuation now qualifies
+self-consistent radial formation in the spherical $\kappa=-1$ channel. It uses
+$g=3$, $a_c=0.5$ and the bound spectral window $0<E\le1.5$. The independent
+late-window pair numbers on G0, G1 and G2 are $1.8658322$, $1.6903014$ and
+$1.4694810$; bound occupations are $0.3119478$, $0.2704331$ and $0.2435462$;
+pair core fractions are $0.9790510$, $0.9484845$ and $0.9161716$; and bound
+core fractions are $0.9828173$, $0.9955034$ and $0.9981595$. Independent state,
+summary, control and resolution checks pass. The verdict is
+`CAPTURED—conditional autonomous radial formation`
+(`computations/matter-formation-continuum-report.md` §105). The witness remains
+finite-core and spherical, with supplied coupling and regulator; continuum
+renormalization, all angular sectors, whole-bubble preparation, physical
+normalization and particle identification remain open.
+
 The conservative interscale action has a **Derived conditional**
 collective-response reduction. Eliminating density fluctuations gives
 positive phase inertia; admissible variation of the longitudinal

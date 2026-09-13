@@ -173,6 +173,20 @@ complete physical matter formation remain outside its scope
 (`computations/matter-formation-continuum-report.md` §35;
 `foundations/matter-completion-boundary.md` §17).
 
+The source-bound G3 finite-core continuation couples the incoming shell to the
+fermionic covariance and evolves the scalar and covariance together without a
+prescribed background, damping or reset. The independent receipt retains late
+pair numbers $1.8658322$, $1.6903014$ and $1.4694810$ on the three grids, with
+bound occupations $0.3119478$, $0.2704331$ and $0.2435462$. Pair and bound
+core fractions remain above $0.916$ and $0.982$, respectively, and the
+primary/independent controls and resolution checks pass. This qualifies
+`CAPTURED—conditional autonomous radial formation` in the finite-core
+spherical $\kappa=-1$ channel. Continuum removal, all angular sectors,
+renormalized backreaction, whole-bubble preparation, physical normalization
+and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §105;
+`foundations/matter-completion-boundary.md` §32).
+
 An explicitly supplied real-scalar Yukawa action gives a separate
 three-dimensional radial fermion-bag capture witness. A supplied positive
 $\kappa=-1$ packet deforms the scalar vacuum and remains localized across

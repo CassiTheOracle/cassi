@@ -1,6 +1,6 @@
 # Matter Formation: Carrier Creation, Continuum Trapping, and a Conditional Baryon Benchmark
 
-## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology, continuum minimizer-set stability, normalized-chiral obstruction, regular quark-current, finite-cutoff confinement and CP-selection identities / Mapped conditional baryon benchmark / Calibrated resolved-flavour leptogenesis scale / Hypothesized Cassi microscopic completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation, finite-charge radial condensation, quark–meson regulator extrapolation, fixed-family binding, interacting and unconstrained radial-baryon rejection, conditional empirical QCD history, whole-bubble selector boundary, and one-to-three packet collision family—September 2026
+## Status: Derived conditional carrier, parent-vacuum, dilation, fixed-charge, fermionic, topology, continuum minimizer-set stability, normalized-chiral obstruction, regular quark-current, finite-cutoff confinement and CP-selection identities / Mapped conditional baryon benchmark / Calibrated resolved-flavour leptogenesis scale / Hypothesized Cassi microscopic completion / Tested prepared binding, spatial spectra, finite-mode production, radial baryon relaxation, finite-charge radial condensation, quark–meson regulator extrapolation, fixed-family binding, interacting and unconstrained radial-baryon rejection, conditional empirical QCD history, whole-bubble selector boundary, one-to-three packet collision family, smooth vacuum-to-bound-state formation, and autonomous finite-core radial formation—September 2026
 
 ## Abstract
 
@@ -15192,7 +15192,135 @@ geometry and parameter point, not a no-go theorem for every closed reservoir,
 interaction or canonical microscopic action. Complete physical Cassi matter
 formation remains **Hypothesized/Open**.
 
+## 104. Smooth vacuum-to-bound-state formation in a prescribed bag transition
+
+The smooth-bag transition protocol tests the missing dynamical step between a
+fermionic vacuum and a localized carrier in a finite radial Yukawa channel. It
+uses a $C^\infty$ compact-to-bag background transition, a full covariance
+evolution, a static-background control, three spatial and temporal resolutions,
+and an independent DOP853 reconstruction. The result is a conditional
+formation witness within the regulated channel.
+
+The frozen protocol is
+`computations/matter-formation-smooth-bag-transition-prereg.md`
+(SHA-256
+`48cebad49ac64b43685263ae4dbfc8fd61b4b00f3d5b5f2daa36969c9c94cccc`).
+The primary source
+`computations/matter_formation_smooth_bag_transition.py`
+(SHA-256
+`2be83a61ca32efcecf66d43d9b743249b25ecddc7ea2dd3b76f5c932361128f7`)
+produced
+`runs/20260913_matter_formation_smooth_bag_transition_recovery1/results.json`
+(SHA-256
+`5320e001b8a250604c077b3d8c6a62846fd980f72d483697e6554f0c35f277a6`).
+The independent verifier
+`computations/verify_matter_formation_smooth_bag_transition.py`
+(SHA-256
+`8c1977a30a8d0b04f18fa09b505dbb72819f91d6ee50b1fe48afdc5720baf3db`)
+reconstructed the trajectory into
+`runs/20260913_matter_formation_smooth_bag_transition_recovery1_verification2/verification.json`
+(SHA-256
+`22754f2ec32a33d649aa73700dd7343291b19902dbe1c6dfb867e7be0ae30884`).
+All 14 verifier checks and all 33 typed comparisons pass with zero
+mismatches.
+
+On the finest grid, the produced pair number is
+$1.1429898215820515$, the localized bound-mode occupation is
+$0.2835558554150467$, the bound-mode energy is
+$0.4687442851739749$, the core probability is
+$0.9997943420447438$, and the bound-mode RMS radius is
+$2.3164354034855066$. The particle and hole occupations agree within the
+frozen convention. The static control has pair number
+$2.0500663326911148\times10^{-29}$ and zero bound occupation. The three-grid
+sequence gives pair numbers
+$1.294553427652507$, $1.1782197098467055$, and
+$1.1429898215820515$, while the bound occupations are
+$0.28569135086607383$, $0.2841122612370135$, and
+$0.2835558554150467$. Spatial profile, bound occupation, and pair number
+meet the preregistered convergence predicates.
+
+The scientific verdict is
+`CAPTURED—conditional smooth vacuum-to-bound-state formation`. The result
+establishes that a smooth, time-dependent prescribed scalar background can
+draw fermionic occupation from the vacuum and leave nonzero occupation in a
+localized particle–hole excitation involving the positive-energy bound mode
+of the regulated radial channel. It does not
+establish autonomous Cassi matter formation: the scalar background is
+prescribed rather than solved self-consistently, the radial channel is finite
+and regulated, and the preparation supplies the transition work. Thus the
+completion adjudication remains `Hypothesized/Open`; this arm advances the
+formation boundary without satisfying the action-level, ultraviolet,
+backreaction, and whole-bubble requirements in §1.
+
+## 105. Autonomous finite-core radial formation at the G3 continuation
+
+The autonomous continuation couples the incoming scalar shell to the fermionic
+covariance and evolves both without a prescribed background, damping, reset or
+external source. Its dimensionless inputs are
+$(v,\lambda,g,R,A,r_s,w,a_c,T)=(1,\tfrac14,3,16,0.75,4,2,0.5,12)$.
+The radial connection uses
+$c_{a_c}(r)=(r^2+a_c^2)^{-1/2}$ with $a_c=0.5$, and the bound observable is
+the instantaneous positive-energy subspace $0<E\le1.5$. The three spatial
+grids use the G0/G1/G2 schedule retained in the action protocol.
+
+The source-bound primary is
+`computations/matter_formation_autonomous_shell.py`, and the action and
+stability protocols are
+`computations/matter-formation-autonomous-shell-g3-prereg.md` and
+`computations/matter-formation-autonomous-shell-g3-stability-prereg.md`.
+The primary receipt is
+`runs/20260913_matter_formation_autonomous_shell_g3_primary_v6/result.json`.
+The independent verifier is
+`computations/verify_matter_formation_autonomous_shell.py`, with receipt
+`runs/20260913_matter_formation_autonomous_shell_g3_verification_v6/verification.json`.
+The independent receipt binds the primary, verifier, action protocol and
+stability protocol by SHA-256 and reports every identity, finite-payload,
+state-reconstruction, summary-reconstruction, control, resolution and
+candidate check as passing. The occupied-mode matrices are archived, while
+cross-method state comparison uses the gauge-invariant projector
+$P=UU^\dagger$.
+
+The independent late-window measurements are:
+
+| Grid | Pair number | Bound occupation | Pair core | Bound core | Pair RMS | Bound RMS |
+|---|---:|---:|---:|---:|---:|---:|
+| G0 | 1.8658322 | 0.3119478 | 0.9790510 | 0.9828173 | 1.8572373 | 2.6063291 |
+| G1 | 1.6903014 | 0.2704331 | 0.9484845 | 0.9955034 | 2.0499787 | 2.5134413 |
+| G2 | 1.4694810 | 0.2435462 | 0.9161716 | 0.9981595 | 2.3179807 | 2.3888545 |
+
+All three candidate grids satisfy the pair–hole and bound-subspace
+particle–hole identities. The largest candidate relative energy drift is
+$5.2743\times10^{-11}$, the largest adjacent-grid observable difference is
+$0.2680019$ for pair RMS, and the largest independent state discrepancy is
+$1.1934\times10^{-8}$. The static vacuum control has pair number
+$1.3114\times10^{-28}$; the declared $10^{-12}$ pair-localization convention
+therefore returns zero rather than dividing by a static numerical residue.
+The source-off and zero-covariance controls retain their diagnostic roles and
+do not satisfy the candidate predicate.
+
+The numerical verdict is
+`CAPTURED—conditional autonomous radial formation`. It establishes a
+self-consistent finite-core, spherical $\kappa=-1$ mechanism in which an
+incoming scalar excitation produces a convergent localized particle–hole
+occupation. The coupling $g=3$ and core regulator $a_c=0.5$ are supplied
+finite-model inputs, not derived physical constants. The result does not
+establish the unsmoothed point-core limit, a continuum renormalized
+backreaction, nonradial or all-angular stability, whole-bubble preparation,
+physical normalization, particle spin/statistics/charges or a particle
+identity. Complete physical Cassi matter formation remains
+**Hypothesized/Open**.
+
 ## References
+- `computations/matter-formation-autonomous-shell-g3-prereg.md`—finite-core G3 autonomous action, initial data, bound spectral window, controls and scope.
+- `computations/matter-formation-autonomous-shell-g3-stability-prereg.md`—G3 numerical schedule, independent method, projector comparison and thresholds.
+- `computations/matter_formation_autonomous_shell.py`—source-bound primary autonomous finite-core evolution.
+- `computations/verify_matter_formation_autonomous_shell.py`—independent DOP853 evolution, projector reconstruction, controls and convergence.
+- `runs/20260913_matter_formation_autonomous_shell_g3_primary_v6/` and `runs/20260913_matter_formation_autonomous_shell_g3_verification_v6/`—source-bound primary and independent receipts.
+- `computations/matter-formation-smooth-bag-transition-prereg.md`—frozen smooth $C^\infty$ bag transition, vacuum covariance, static control, resolution schedule and conditional formation decision rule.
+- `computations/matter_formation_smooth_bag_transition.py`—primary finite-radial-channel vacuum-to-bound-state evolution and receipt writer.
+- `computations/verify_matter_formation_smooth_bag_transition.py`—independent DOP853 reconstruction, provenance checks, static control, localization checks and convergence qualification.
+- `runs/20260913_matter_formation_smooth_bag_transition_recovery1/results.json`—source-bound primary receipt.
+- `runs/20260913_matter_formation_smooth_bag_transition_recovery1_verification2/verification.json`—independent receipt with 14 passing checks, 33 passing comparisons and zero mismatches.
 
 - `computations/matter_formation_q256_momentum_prereg.md`—frozen Q=256 incoming-momentum preparation, stable comparison contract, persistence predicates, and stopping rule.
 - `computations/matter_formation_q256_momentum_spec.py`—declarative Q=256 arms and S1/S2/T1 schedule.

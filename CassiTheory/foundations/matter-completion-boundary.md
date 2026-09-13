@@ -2257,7 +2257,76 @@ Neither requirement follows from this calculation, so the complete-formation
 verdict remains `FAIL`
 (`computations/matter-formation-continuum-report.md` §86).
 
+## 31. Smooth vacuum-to-bound-state formation remains conditional
+
+The smooth-bag transition arm now supplies a qualified dynamical witness for
+one formation subproblem. A $C^\infty$ prescribed scalar background
+transition, full fermionic covariance evolution, static control, three-grid
+resolution sequence, and independent DOP853 reconstruction produce nonzero
+vacuum pair number and nonzero occupation in a localized particle–hole
+excitation involving the positive-energy bound mode.
+The finest-grid values are pair number
+$1.1429898215820515$, bound occupation
+$0.2835558554150467$, bound-mode energy
+$0.4687442851739749$, core probability
+$0.9997943420447438$, and RMS radius
+$2.3164354034855066$. The static control gives pair number
+$2.0500663326911148\times10^{-29}$ and zero bound occupation. All 14
+independent checks and 33 typed comparisons pass.
+
+The scoped verdict is
+`CAPTURED—conditional smooth vacuum-to-bound-state formation`. The result
+does not close the matter-completion boundary because the scalar background
+is prescribed, the channel is finite and regulated, and the preparation work
+is external to the coupled action. It therefore does not supply autonomous
+field formation, ultraviolet removal, self-consistent renormalized
+backreaction, or the whole-bubble preparation and selection requirements.
+Complete Cassi matter formation remains `Hypothesized/Open`.
+
+The source, protocol, independent verifier, and receipts are listed in
+`computations/matter-formation-continuum-report.md` §104.
+
+## 32. Autonomous finite-core radial formation remains conditional
+
+The source-bound G3 continuation couples an incoming finite-energy scalar shell
+to a fermionic covariance and evolves both fields self-consistently in the
+finite spherical $\kappa=-1$ channel. It uses $g=3$, the finite-core radial
+coefficient $c_{a_c}(r)=(r^2+a_c^2)^{-1/2}$ with $a_c=0.5$, and the physical
+bound spectral window $0<E\le1.5$.
+
+The independent receipt reports pair numbers
+$1.8658322$, $1.6903014$, and $1.4694810$ on G0, G1 and G2, with bound
+occupations $0.3119478$, $0.2704331$, and $0.2435462$. Pair core fractions
+are $0.9790510$, $0.9484845$, and $0.9161716$; bound-subspace core fractions
+are $0.9828173$, $0.9955034$, and $0.9981595$. Pair RMS radii are
+$1.8572373$, $2.0499787$, and $2.3179807$, while bound RMS radii are
+$2.6063291$, $2.5134413$, and $2.3888545$. The primary and independent
+receipts pass state, summary, control, adjacent-grid and candidate checks.
+
+The scoped verdict is
+`CAPTURED—conditional autonomous radial formation`. This closes the
+finite-core spherical backreaction witness at the stated dimensionless
+inputs. The coupling and regulator are supplied numerical inputs. The result
+does not establish the point-core limit, continuum renormalization, other
+angular channels, whole-bubble preparation, physical normalization, particle
+spin/statistics/charges or particle identity. Complete Cassi matter formation
+remains **Hypothesized/Open**.
+
+The source, protocols, programs and receipts are listed in
+`computations/matter-formation-continuum-report.md` §105.
+
 ## References
+- `computations/matter-formation-continuum-report.md` §105—source-bound G3 finite-core autonomous formation witness and completion boundary.
+- `computations/matter-formation-autonomous-shell-g3-prereg.md`—G3 action, bound spectral window and conditional decision rule.
+- `computations/matter-formation-autonomous-shell-g3-stability-prereg.md`—G3 numerical stability and independent comparison protocol.
+- `computations/matter_formation_autonomous_shell.py`—primary finite-core autonomous evolution.
+- `computations/verify_matter_formation_autonomous_shell.py`—independent reconstruction and convergence verification.
+- `runs/20260913_matter_formation_autonomous_shell_g3_primary_v6/` and `runs/20260913_matter_formation_autonomous_shell_g3_verification_v6/`—source-bound primary and independent receipts.
+- `computations/matter-formation-continuum-report.md` §104—smooth prescribed-bag vacuum-to-bound-state formation witness and completion boundary.
+- `computations/matter-formation-smooth-bag-transition-prereg.md`—frozen protocol and conditional decision rule.
+- `computations/matter_formation_smooth_bag_transition.py`—primary finite-radial-channel evolution.
+- `computations/verify_matter_formation_smooth_bag_transition.py`—independent reconstruction and convergence verification.
+- `runs/20260913_matter_formation_smooth_bag_transition_recovery1/` and `runs/20260913_matter_formation_smooth_bag_transition_recovery1_verification2/`—primary and independent receipts.
 
 - `computations/whole-bubble-handedness-selector-prereg.md`—frozen CP character, stability, degeneracy and selector-control protocol.
 - `computations/whole_bubble_handedness_selector.py`—primary whole-field handedness calculation.

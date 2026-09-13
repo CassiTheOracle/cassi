@@ -600,6 +600,21 @@ scalar summaries but fails the raw-mode, static-control and resolution
 requirements
 (`computations/matter-formation-continuum-report.md` §99).
 
+The G3 finite-core continuation closes a stronger regulated radial witness.
+An incoming scalar shell and the local negative-energy covariance are evolved
+self-consistently in the spherical $\kappa=-1$ channel, with no prescribed
+background, damping or reset. The independent late-window pair numbers are
+$1.8658322$, $1.6903014$ and $1.4694810$ on G0, G1 and G2; bound occupations
+are $0.3119478$, $0.2704331$ and $0.2435462$. Pair core fractions remain
+above $0.916$ and bound core fractions above $0.982$. The source-bound
+primary and independent controls, state comparisons and resolution checks
+pass, giving `CAPTURED—conditional autonomous radial formation` at this
+finite-core radial scope. The point-core and continuum limits, all angular
+sectors, renormalized backreaction, whole-bubble preparation, physical
+normalization and particle identity remain open
+(`computations/matter-formation-continuum-report.md` §105;
+`foundations/matter-completion-boundary.md` §32).
+
 A complete physical matter-formation mechanism still requires one selected
 canonical microscopic action, a regulator-compatible state rule, physical
 normalization, localized real-time forming evolution, and an observable
