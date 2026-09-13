@@ -743,6 +743,111 @@ is not controlled by the enstrophy dissipation
 $\|\nabla\omega\|_2^2$. Thus differentiability and threshold optimization
 do not turn the conditional geometric criterion into an unconditional
 estimate.
+A finite-$q$ family sharpens the truncation remainder and identifies the
+quantitative gain available from an endpoint estimate. For $2\le q<\infty$,
+set
+$$
+p_q=\frac{2q}{q-1}.
+$$
+The order-zero periodic Calderón–Zygmund bound
+$\|\mathcal T f\|_{L^q}\le C_{\mathbb T,q}\|f\|_{L^q}$, Hölder, and
+interpolation between $L^2$ and $L^\infty$ give
+$$
+\|\omega\|_{L^{p_q}}^2
+\le M^{2/q}B^{\,2-2/q},
+\qquad
+\|\omega_L\|_{L^q}
+\le\kappa^{\,1-2/q}B^{\,2/q}.
+$$
+Therefore the low-source term obeys
+$$
+\left|\int\omega\cdot(\mathcal T\omega_L)\omega\,dx\right|
+\le C_{\mathbb T,q}
+M^{2/q}\kappa^{\,1-2/q}B^2.
+$$
+The high-source contribution observed on the low-vorticity region is
+estimated at $q=2$:
+$$
+\left|\int_{H_\kappa^c}\omega\cdot(\mathcal T\omega_H)\omega\,dx\right|
+\le C_{\mathbb T,2}\|\omega_L\|_4^2\|\omega_H\|_2
+\le C_{\mathbb T,2}\kappa B^2.
+$$
+Since $\kappa\le M$ and $M^{2/q}\kappa^{1-2/q}\ge\kappa$, all source and
+observation terms outside the high--high local term are bounded, for every
+fixed $q\ge2$, by
+$$
+C_{\mathbb T,q}
+\left[
+M^{2/q}\kappa^{\,1-2/q}+\kappa
+\right]B^2
+\le \widetilde C_{\mathbb T,q}
+M^{2/q}\kappa^{\,1-2/q}B^2.
+$$
+The resulting family of conditional estimates is
+$$
+\boxed{
+|P(t)|
+\le C_{\alpha,\mathbb T,q}W(t)
+\left[
+\Gamma(t)M(t)\rho^\alpha
++B(t)\rho^{-3/2}
++M(t)^{2/q}\kappa(t)^{\,1-2/q}
+\right].
+}
+$$
+The $q=6$ member is the finite-exponent estimate above. Larger $q$ moves
+the power remainder toward $\kappa$ while its Calderón–Zygmund constant
+grows with $q$.
+
+The standard weak-$L^1$, $L^2$, and duality bounds for this periodic
+second-Riesz-transform operator give
+$C_{\mathbb T,q}\le C_{\mathbb T}q$ for $q\ge2$. Write
+$L=M/\kappa\ge1$ and choose
+$q_L=2\max\{1,\log L\}$. Then
+$$
+q_L L^{2/q_L}\le 2e(1+\log L),
+$$
+so selecting one finite exponent at each threshold yields the logarithmic
+envelope
+$$
+\boxed{
+|P(t)|
+\le C_{\alpha,\mathbb T}W(t)
+\left[
+\Gamma(t)M(t)\rho^\alpha
++B(t)\rho^{-3/2}
++\kappa(t)\left(1+\log\frac{M(t)}{\kappa(t)}\right)
+\right].
+}
+$$
+This is an optimized finite-$q$ statement; it uses no $L^\infty$
+boundedness of a Calderón–Zygmund operator. It replaces the power
+$M^{1/3}\kappa^{2/3}$ by a logarithmic threshold remainder when $M/\kappa$
+is large.
+
+The Lipschitz direction audit makes the remaining scaling transparent.
+For $\alpha=1$, $\Gamma\le2D/\kappa$, and an interior radius, put
+$L=M/\kappa$. The coefficient from the first and third terms of the
+logarithmic estimate has the form
+$$
+A_{\log}(L)
+\lesssim
+D^{3/5}B^{2/5}L^{3/5}
++M\frac{1+\log L}{L}
+=M\left[
+\eta L^{3/5}+\frac{1+\log L}{L}
+\right],
+\qquad
+\eta=\frac{D^{3/5}B^{2/5}}{M}.
+$$
+The dimensionless parameter $\eta$ is invariant under the Euclidean
+Navier–Stokes scaling, while $A_{\log}$ scales as $\lambda^2$. Thus the
+endpoint envelope improves the threshold dependence quantitatively, but
+its optimized coefficient remains critical and still contains the
+uncontrolled higher norm $D=\|\nabla\omega\|_\infty$. The radius and
+threshold constraints continue to select boundary expressions when the
+interior choice is inadmissible.
+
 
 The pressure equation and the unfiltered strain equation are
 $$
@@ -831,6 +936,8 @@ The exact filtered equations retain the third moment, pressure correlations, gra
 
 At the unfiltered $L^2$ strain pairing, the pressure Hessian has zero global work, and the integrated Betchov identity reduces total vortex stretching to the strain determinant. The Biot–Savart calculation adds a local direction-coherence estimate, but its coefficient remains critical and depends on vorticity amplitude and directional regularity.
 
+The finite-$q$ superlevel family replaces the power truncation remainder by a logarithmic threshold envelope under the standard $L^q$ growth of the Calderón–Zygmund constants. Its optimized coefficient remains critical and still requires a higher-norm or geometric time-integrability input.
+
 The field $u_0=(\sin y,\sin z,\sin x)$ has isotropic filtered covariance and zero instantaneous transfer at the origin, with a strictly positive transfer derivative there. The compact curl-potential construction independently shows that local vorticity does not determine symmetric strain. Together these facts require any proposed geometric condition to state its nonlocal, ensemble, time, and filtering assumptions explicitly.
 
 No Millennium-problem solution, unconditional global regularity theorem, or physical Cassi-to-Navier–Stokes stress identification follows from these derivations.
@@ -849,3 +956,4 @@ No Millennium-problem solution, unconditional global regularity theorem, or phys
 - D. Buaria, A. Pumir, and E. Bodenschatz, “Self-attenuation of extreme events in Navier–Stokes turbulence,” *Nature Communications* **11** (2020), article 5852, DOI `10.1038/s41467-020-19530-1`, https://www.nature.com/articles/s41467-020-19530-1
 - P. Constantin and C. Fefferman, “Direction of vorticity and the problem of global regularity for the Navier–Stokes equations,” *Indiana University Mathematics Journal* **42** (1993), 775–789, DOI `10.1512/iumj.1993.42.42034`
 - P. Constantin, [Near identity transformations for the Navier–Stokes equations](https://web.math.princeton.edu/~const/niD.pdf), §§4–5—conditional continuation estimates and geometric depletion.
+- E. M. Stein, *Singular Integrals and Differentiability Properties of Functions* (Princeton University Press, 1970)—weak-$L^1$, interpolation, and Riesz-transform $L^q$ bounds.
