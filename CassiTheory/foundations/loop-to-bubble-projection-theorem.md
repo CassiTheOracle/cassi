@@ -7249,6 +7249,23 @@ therefore cannot be promoted to (YM262) without a new interacting fibre or
 equivalent Feshbach estimate. This section is a precise conditional
 criterion, not a proof of the Yang–Mills continuum theory or mass gap.
 
+A fixed-graph interacting test now instantiates the missing Schur mechanism
+on the seven-link two-plaquette $SU(2)$ Hamiltonian. The nested source
+cutoffs have $4$ and $23$ gauge-invariant states; after projection away from
+the computed finite-graph ground vector, the retained and discarded spaces
+have ranks $4$ and $18$. At $x\in\{1/4,1,4,16\}$, the source-bound calculation
+verifies the discarded-sector resolvent estimate, the corresponding
+self-energy bound, the positive Schur root and the finite measured-gap
+comparison in all four rows. The independent receipt reconstructs the scalar
+inequalities and source bindings.
+
+This is finite-cutoff evidence for an interacting Feshbach
+certificate; the regulator-uniform constant, growing-volume extension,
+recovery transport and scale matching in (YM262), (YM265) and (YM266) remain
+open. See `computations/yang-mills-interacting-feshbach-prereg.md`,
+`computations/verify_yang_mills_interacting_feshbach.py` and
+`field-experience/probe-outcome-ledger.md` §45.
+
 
 ---
 

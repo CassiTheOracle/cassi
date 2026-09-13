@@ -1456,6 +1456,66 @@ regulator-uniform lower spectral bound, the strong recovery transport in
 required for a physical mass gap.
 
 
+## 45. Fixed-graph interacting Feshbach resolvent
+
+The frozen protocol
+`computations/yang-mills-interacting-feshbach-prereg.md` turns the first
+analytic obligation in (YM262) into an explicit finite interacting
+Feshbach calculation. It reuses the exact seven-link two-plaquette
+representation contractions from
+`computations/verify_yang_mills_exact_block_spectrum.py`, with source cutoff
+$c_P=1$ for the retained space and $c_Q=3$ for the full space. The raw
+spaces contain $4$ and $23$ gauge-invariant states. Projecting out the
+computed finite-graph ground vector gives $\dim\mathcal K=22$,
+$\dim\mathcal P=4$ and $\dim\mathcal Q=18$.
+
+For the shifted normalized Hamiltonian, the test forms
+$A=P(H-E_0)P$, $B=PHQ$ and $D=Q(H-E_0)Q$. With
+$\alpha=\lambda_{\min}(A)$, $\delta_Q=\lambda_{\min}(D)$ and
+$\beta=\|B\|_2$, it checks
+
+$$
+\|(D-\lambda I)^{-1}\|_2\le(\delta_Q-\lambda)^{-1},
+\qquad
+\|B(D-\lambda I)^{-1}B^*\|_2
+\le\frac{\beta^2}{\delta_Q-\lambda},
+$$
+
+and the sufficient Schur lower function
+$\Phi(\lambda)=\alpha-\lambda-\beta^2/(\delta_Q-\lambda)$. The
+tail-floor control evaluates the domain boundary $\lambda=\delta_Q$ and
+records that the discarded-sector resolvent is undefined there in every row.
+
+| $x$ | finite gap $\Delta_x$ | $\alpha$ | $\delta_Q$ | $\beta$ | $\beta^2/(\alpha\delta_Q)$ | $\gamma_{\mathrm{Fesh}}$ |
+|---:|---:|---:|---:|---:|---:|---:|
+| $1/4$ | 3.0231627325 | 3.0234709080 | 7.5667571360 | 0.7285225073 | 0.0231990584 | 2.9095098048 |
+| $1$ | 3.3551682618 | 3.3771718906 | 7.9203910621 | 1.3157987531 | 0.0647260568 | 3.0236078690 |
+| $4$ | 6.2289507390 | 7.2712618643 | 10.1841717978 | 5.3628682696 | 0.3883816982 | 3.1705937311 |
+| $16$ | 14.7507061280 | 27.9439067368 | 22.6573195372 | 22.7838845309 | 0.8198981173 | 2.3639090282 |
+
+The primary receipt
+`runs/yang_mills_interacting_feshbach/verification.json` passes $38/38$
+checks and classifies the four rows `SUPPORTS_FINITE_FESHBACH`. The separate
+arithmetic and provenance audit
+`runs/yang_mills_interacting_feshbach/verification-independent.json` passes
+$29/29$ checks; it reconstructs the scalar inequalities and source bindings,
+while its matrix-reassembly scope is explicitly absent. The protocol, primary
+source, exact-block reference, primary receipt, independent source and
+independent receipt SHA-256 values are respectively
+`df0083d5132944d2d0cb68a5c224eb7664e5be48c4b9aa41a9a12a18213a4ab7`,
+`f232859d15718962a9b7ffc94ff7c346aac305be46de96bd696cbdfd2a7a6f7a`,
+`b3ed3a4af4b84e787180654fc7e863a61e8f79693c54b9f1efe75346996c8524`,
+`787c064df8b0ce4bf2bd224b4637aad794597334e857df43e86271e509bc6c29`,
+`ac3a633361bf554b4bdb49b3386a9cbce6ff0b1933e77961eec0d793ba82e192`
+and
+`20c937430e48b180f57026ea80b4f2ec77bba22015f15c79c9cf0a1750a72014`.
+
+The result is confined to this seven-link, finite-cutoff matrix. It supplies
+a working finite Schur certificate for the interacting discarded sector. A
+constant uniform in lattice spacing, spatial volume and the weak-coupling
+trajectory, together with recovery transport and continuum scale matching,
+remains the next proof obligation.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
