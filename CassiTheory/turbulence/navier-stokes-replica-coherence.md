@@ -1425,6 +1425,7 @@ initial-data control is unresolved. Full rank alone cannot provide it:
 periodic shear has $\mathcal K=0$, and nearly rank-deficient data can have
 arbitrarily small recovered eigenvalues. Even isotropic $R$ leaves
 $\mathcal H=W$.
+
 ### 12.5.1 Algebraic baseline for the relative target
 
 The relative-compensation target has an exact algebraic baseline. At a fixed
