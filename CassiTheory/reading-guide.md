@@ -207,10 +207,11 @@ remains localized across three spatial resolutions and a finer time schedule;
 the finest late window retains $88.454\%$ of its probability inside $r<4$,
 with $R_\psi=2.1914$ and $E_\psi=4.9485<gv=6$. Independent DOP853
 reconstruction and zero-coupling and zero-packet controls pass. This is
-conditional capture from a supplied carrier. Quantum-vacuum creation, sea
-renormalization, all angular sectors, physical normalization and particle
-identity remain open, and the next boundary is a regulated spatial
-vacuum-to-bag calculation.
+conditional capture from a supplied carrier. Section 99 tests the finite-box
+negative-energy covariance extension: the `static_vacuum` control and
+candidate resolution ladder fail, and independent reconstruction returns
+`INCONCLUSIVE`. Quantum-vacuum creation, sea renormalization, all angular
+sectors, physical normalization and particle identity remain open.
 
 Section 29 proves the completion problem is non-identifiable from the
 registered slow observables: scalar and Dirac parents share the same carrier

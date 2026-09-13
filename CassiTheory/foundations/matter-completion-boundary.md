@@ -1445,11 +1445,31 @@ $2.7164913145\times10^{-4}$. All three spatial resolutions and the uncoupled
 and zero-packet controls pass. This is a conditional radial capture witness
 for a supplied carrier. It does not provide vacuum creation, a renormalized
 fermion-sea force, all angular sectors, canonical Cassi-action selection,
-physical normalization or particle identity. A regulated spatial
-vacuum-to-bag calculation is the remaining formation experiment
+physical normalization or particle identity
 (`computations/matter-formation-continuum-report.md` §98).
 
-Physical matter formation remains **Hypothesized/Open**.
+A finite-box negative-energy covariance calculation then tests vacuum-to-bag
+formation with the same declared radial Yukawa action, a fixed-vacuum
+subtraction and a normal-ordered reciprocal force. The primary candidate rows
+conserve their displayed normal-ordered energy, but the `static_vacuum`
+control develops a late center deficit of $5.9113886544$ and a late pair
+number of $4.1426940523$. Candidate-grid resolution comparisons also fail,
+including an $A=1.5$ pair-number difference of $8.2645614912$ between `G0`
+and `G1` and $12.4301288859$ between `G1` and `G2`. The independent DOP853
+reconstruction returns `INCONCLUSIVE`; its source identities and candidate
+scalar summaries pass, while raw mode comparisons, the static control and
+resolution checks fail
+(`computations/matter-formation-continuum-report.md` §99).
+
+Reducing the fixed-$N=72$ RK4 step from $0.004$ to $0.0005$ leaves the
+static center deficit between $6.6163$ and $7.8012. A separate DOP853
+tolerance ladder reaches a static center error of $3.3207\times10^{-5}$ at
+`rtol=10^{-12}`, `atol=10^{-14}`, `max_step=0.005`, above the frozen
+$10^{-10}$ control bound. The finite-difference derivative of the declared
+normal-ordered energy agrees with the implemented scalar force to
+$1.2\times10^{-6}$ per cell-volume. The regulated vacuum-to-bag mechanism is
+therefore not established. Physical matter formation remains
+**Hypothesized/Open**.
 
 ## 18. Continuum localized minimizers and nonlinear stability
 

@@ -500,7 +500,7 @@ the verdict unchanged. Scalar and Dirac parents share the measured slow
 carrier equation while carrying different spin and statistics, proving that
 the registered observables do not identify one microscopic completion.
 
-A separate supplied real-scalar Yukawa action now qualifies localized radial
+A separate supplied real-scalar Yukawa action qualifies localized radial
 capture from an existing carrier. In the spherical $\kappa=-1$ channel, a
 positive-energy packet deforms the scalar vacuum and remains localized through
 the reciprocal source. The finest recovered grid retains
@@ -511,9 +511,18 @@ $2.7164913145\times10^{-4}$. Three spatial resolutions, zero-coupling and
 zero-packet controls, and an independent DOP853 reconstruction pass. This is
 a conditional supplied-carrier mechanism witness. It does not provide
 quantum-vacuum creation, a renormalized sea force, all angular sectors,
-physical normalization or a particle discriminator. The next experiment is a
-regulated spatial vacuum-to-bag evolution
-(`computations/matter-formation-continuum-report.md` §98).
+physical normalization or a particle discriminator; see
+`computations/matter-formation-continuum-report.md` §98.
+
+The finite-box negative-energy covariance extension returns `INCONCLUSIVE`.
+Its primary `static_vacuum` control develops a late center deficit of
+$5.9113886544$ and a late pair number of $4.1426940523$; the candidate
+resolution ladder also fails with pair-number differences of
+$8.2645614912$ (`G0`–`G1`) and $12.4301288859$ (`G1`–`G2`) at $A=1.5$.
+Independent DOP853 reconstruction confirms source identities and candidate
+scalar summaries but fails the raw-mode, static-control and resolution
+requirements
+(`computations/matter-formation-continuum-report.md` §99).
 
 A complete physical matter-formation mechanism still requires one selected
 canonical microscopic action, a regulator-compatible state rule, physical

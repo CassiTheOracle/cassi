@@ -14823,9 +14823,66 @@ degree-zero one-fermion packet in a spherical partial-wave model. It does not
 create the fermion from the quantum vacuum, quantify a renormalized Dirac sea,
 cover all angular sectors, select a Cassi microscopic action or physical
 normalization, assign a particle identity, or complete the matter-formation
-problem. The next required calculation is a spatially resolved regulated
-vacuum-to-bag evolution with an explicit vacuum subtraction and localization
-observable.
+problem. The regulated spatial vacuum-to-bag boundary is tested in §99.
+
+## 99. Regulated spatial vacuum-to-bag formation
+
+### 99.1 Contract and numerical status
+
+The finite-box negative-energy covariance experiment tests whether a scalar
+pulse can create and retain a localized pair through the normal-ordered
+fermion force in the declared spherical $\kappa=-1$ channel. The action,
+finite-volume stencil, vacuum subtraction, pulse amplitudes
+$A\in\{1.5,2.0\}$, grids `G0`–`G2`, controls, late observables and stopping
+rule are fixed in
+`computations/matter-formation-fermion-vacuum-bag-prereg.md`. The primary
+receipt is
+`runs/20260912_matter_formation_fermion_vacuum_bag_force_repair/result.json`;
+the independent reconstruction is
+`runs/20260912_matter_formation_fermion_vacuum_bag_force_repair_verification_v2/verification.json`.
+
+The source-bound primary conserves its displayed normal-ordered energy on the
+candidate rows to relative errors between $5.06\times10^{-7}$ and
+$7.22\times10^{-6}$, but the `static_vacuum` control leaves its exact
+$\sigma=v$ state. Its late center deficit is $5.9113886544$ and its late pair
+number is $4.1426940523$, whereas both control values must remain zero. The
+candidate grids also fail the registered resolution comparisons: the
+$A=1.5$ $G0$–$G1$ pair-number difference is $8.2645614912$, and the
+$A=1.5$ $G1$–$G2$ difference is $12.4301288859$.
+
+The independent DOP853 reconstruction confirms the source identities and
+reproduces the candidate scalar summaries within the registered summary
+tolerance. It does not reproduce every candidate raw mode archive within the
+$5\times10^{-4}$ entry tolerance, with the largest candidate errors
+$1.0757612384\times10^{-3}$ in $\operatorname{Re}U$ and
+$1.1066093825\times10^{-3}$ in $\operatorname{Im}U$. The independent
+`static_vacuum` trajectory also departs strongly, with maximum errors
+$7.7834198490$ in $\sigma$, $12.7759127919$ in $\pi$ and approximately
+$3$ in each archived mode component. The verifier therefore returns
+`INCONCLUSIVE` with failures in `raw`, `summary`, `controls` and
+`resolution`.
+
+### 99.2 Boundary of the regulated mechanism
+
+The static failure is not repaired by reducing the RK4 step at fixed
+$N=72$: the late center deficit remains between $6.6163$ and $7.8012$ over
+$\Delta t=0.004,0.002,0.001,0.0005$, while mode-norm error decreases. A
+separate DOP853 tolerance ladder reduces the static center error to
+$3.3207\times10^{-5}$ at `rtol=10^{-12}`, `atol=10^{-14}`,
+`max_step=0.005`, but does not satisfy
+the $10^{-10}$ static-control bound. The finite-difference force check
+matches the derivative of the declared normal-ordered energy to
+$1.2\times10^{-6}$ per cell-volume, so the observed boundary is a
+coupled finite-regulator dynamics problem rather than a missing scalar
+force term.
+
+The fixed protocol consequently establishes no regulated vacuum-to-bag
+mechanism. It does not establish pair creation from the regulated vacuum,
+localized retention, continuum renormalization, all angular sectors,
+canonical action selection, physical normalization or particle identity.
+The supplied-carrier capture witness in §98 remains the positive result at
+its narrower scope; complete physical matter formation remains
+**Hypothesized/Open**.
 
 ## References
 
@@ -15161,6 +15218,11 @@ observable.
 - `computations/verify_matter_formation_fermion_bag_capture_recovery.py`—provenance-complete independent recovery wrapper.
 - `runs/20260912_matter_formation_fermion_bag_capture_recovery/result.json`—accepted recovery primary receipt.
 - `runs/20260912_matter_formation_fermion_bag_capture_recovery_verification2/verification.json`—accepted independent recovery receipt with archived sources and raw-state checks.
+- `computations/matter-formation-fermion-vacuum-bag-prereg.md`—frozen finite-box vacuum-to-bag action, covariance, normal-ordered force, controls, observables and stopping rule.
+- `computations/matter_formation_fermion_vacuum_bag.py`—source-bound primary finite-volume vacuum-covariance evolution.
+- `computations/verify_matter_formation_fermion_vacuum_bag.py`—independent DOP853 reconstruction, source/archive checks, control checks and resolution comparisons.
+- `runs/20260912_matter_formation_fermion_vacuum_bag_force_repair/result.json`—source-bound primary vacuum-to-bag receipt.
+- `runs/20260912_matter_formation_fermion_vacuum_bag_force_repair_verification_v2/verification.json`—independent vacuum-to-bag receipt with raw-state, summary, control and resolution failures.
 - [Greene and Kofman, *Preheating of Fermions*](https://arxiv.org/abs/hep-ph/9807339)—coherent fermion production and Pauli-bounded occupation.
 - [Baacke, Heitmann and Pätzold, *Nonequilibrium dynamics of fermions in a spatially homogeneous scalar background field*](https://arxiv.org/abs/hep-ph/9806205)—one-loop backreaction, renormalization and initial-state requirements.
 - `foundations/sector-coupling-derivation.md` §1—dimensional, positivity, Hermiticity, chiral-current and dynamical-closure boundaries of the displayed Dirac identifications.

@@ -155,21 +155,25 @@ symmetry and domain comparisons. No physical matter-production,
 particle-mass or spin/statistics claim follows
 (`computations/matter-formation-continuum-report.md`).
 
-**Radial fermion-bag capture.** The added real-scalar Yukawa action now has a
-source-bound, independently reconstructed three-dimensional radial formation
+**Radial fermion-bag capture.** The added real-scalar Yukawa action has a
+source-bound, independently reconstructed three-dimensional radial capture
 witness. With one supplied positive-energy $\kappa=-1$ packet, the finer
 temporal schedule retains $\overline{P_4}=0.8845401877$ on $G2$, gives
 $\overline{R_\psi}=2.1914254435$, lowers the fermion energy to
 $4.9484923674<gv=6$, and keeps relative total-energy drift at
 $2.7164913145\times10^{-4}$. All three spatial resolutions, the $g=0$ and
 zero-packet controls, and an independent DOP853 reconstruction pass. This
-qualifies conditional radial capture from a supplied carrier. The action,
-finite radial regulator, source subtraction, vacuum state, all angular
-sectors, physical normalization and particle map remain unselected. A
-spatially resolved regulated vacuum-to-bag calculation with an explicit
-renormalized force and localization observable is required before assigning
-the result to quantum matter formation
-(`computations/matter-formation-continuum-report.md` §98;
+qualifies conditional radial capture from a supplied carrier.
+
+The finite-box negative-energy covariance extension is `INCONCLUSIVE`.
+The primary `static_vacuum` control develops center deficit $5.9113886544$
+and pair number $4.1426940523$. At $A=1.5$, the candidate pair-number
+resolution differences are $8.2645614912$ between $G0$ and $G1$ and
+$12.4301288859$ between $G1$ and $G2$. Independent reconstruction confirms
+source identities and candidate scalar summaries but fails raw-mode,
+static-control and resolution checks. The regulated vacuum-to-bag mechanism
+is not established
+(`computations/matter-formation-continuum-report.md` §99;
 `foundations/matter-completion-boundary.md` §17).
 
 **Conditional quantum carrier parent.** An optional positive temporal
