@@ -1,9 +1,10 @@
 """Audit recovered finite SU(2) evidence against the continuum mass-gap target.
 
 This verifier does not reconstruct the 955835-state Hamiltonian. It binds the
-reconstructed finite-regulator and renormalized-scaling receipts to the
-current source files, checks the claims used by the theory documents, and
-records the continuum obligations that those receipts do not discharge.
+reconstructed finite-regulator, renormalized-scaling and conditional
+RG-matching receipts to the current source files, checks the claims used by
+the theory documents, and records the continuum obligations that those
+receipts do not discharge.
 
 Run from the CassiTheory root:
 
@@ -191,6 +192,31 @@ SCALING_INDEPENDENT_RECEIPT = (
     / "yang-mills-renormalized-gap-scaling"
     / "verification-independent.json"
 )
+MATCHING_PROTOCOL = (
+    ROOT / "computations" / "yang-mills-rg-gap-matching-prereg.md"
+)
+MATCHING_PRIMARY_SOURCE = (
+    ROOT / "computations" / "verify_yang_mills_rg_gap_matching.py"
+)
+MATCHING_INDEPENDENT_SOURCE = (
+    ROOT
+    / "computations"
+    / "verify_yang_mills_rg_gap_matching_independent.mjs"
+)
+MATCHING_PRIMARY_RECEIPT = (
+    ROOT
+    / "runs"
+    / "yang-mills-rg-gap-matching"
+    / "verification.json"
+)
+MATCHING_INDEPENDENT_RECEIPT = (
+    ROOT
+    / "runs"
+    / "yang-mills-rg-gap-matching"
+    / "verification-independent.json"
+)
+
+
 
 
 EXCLUDED_PRIMARY_RECEIPT = Path("D:/Cassi-ym-larger-volume/verification-final2.json")
@@ -238,6 +264,9 @@ MISSING_CLAY_OBLIGATIONS = [
     "lattice-spacing-uniform interacting estimates beyond fixed-support character tails",
     "regulator-independent positive gauge-invariant mass gap",
     "construction of a coupled g0->0, N(g0) F_W(g0)->infinity trajectory",
+    "uniform O(1) cumulative RG scale defect across O(g0^-2) block levels",
+    "correlation-preserving exact block map with complete retained physical observables",
+    "uniform positive interacting endpoint gap in every retained physical channel",
     "extension from SU(2) to every compact simple gauge group",
 ]
 
@@ -398,6 +427,11 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         SCALING_INDEPENDENT_SOURCE,
         SCALING_PRIMARY_RECEIPT,
         SCALING_INDEPENDENT_RECEIPT,
+        MATCHING_PROTOCOL,
+        MATCHING_PRIMARY_SOURCE,
+        MATCHING_INDEPENDENT_SOURCE,
+        MATCHING_PRIMARY_RECEIPT,
+        MATCHING_INDEPENDENT_RECEIPT,
         EXCLUDED_PRIMARY_RECEIPT,
         EXCLUDED_INDEPENDENT_RECEIPT,
     ]
@@ -448,6 +482,8 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
     )
     scaling_primary = load_json(SCALING_PRIMARY_RECEIPT)
     scaling_independent = load_json(SCALING_INDEPENDENT_RECEIPT)
+    matching_primary = load_json(MATCHING_PRIMARY_RECEIPT)
+    matching_independent = load_json(MATCHING_INDEPENDENT_RECEIPT)
 
     current_protocol = validate_protocol_snapshot_relation()
     hashes = {
@@ -509,6 +545,11 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         "scaling_independent_source": sha256(SCALING_INDEPENDENT_SOURCE),
         "scaling_primary_receipt": sha256(SCALING_PRIMARY_RECEIPT),
         "scaling_independent_receipt": sha256(SCALING_INDEPENDENT_RECEIPT),
+        "matching_protocol": sha256(MATCHING_PROTOCOL),
+        "matching_primary_source": sha256(MATCHING_PRIMARY_SOURCE),
+        "matching_independent_source": sha256(MATCHING_INDEPENDENT_SOURCE),
+        "matching_primary_receipt": sha256(MATCHING_PRIMARY_RECEIPT),
+        "matching_independent_receipt": sha256(MATCHING_INDEPENDENT_RECEIPT),
         "excluded_primary_receipt": sha256(EXCLUDED_PRIMARY_RECEIPT),
         "excluded_independent_receipt": sha256(EXCLUDED_INDEPENDENT_RECEIPT),
     }
@@ -1427,6 +1468,234 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         primary_claims=scaling_primary_claims,
         independent_claims=scaling_independent_claims,
     )
+    matching_primary_summary = matching_primary.get("summary", {})
+    matching_independent_summary = matching_independent.get("summary", {})
+    check(
+        "RG gap matching primary and independent receipts pass",
+        matching_primary.get("schema")
+        == "cassi.yang-mills.rg-gap-matching.verification.v1"
+        and matching_primary.get("verdict") == "PASS"
+        and matching_primary_summary.get("checks")
+        == matching_primary_summary.get("passing_checks")
+        == 139
+        and matching_primary_summary.get("exact_rows") == 6
+        and matching_primary_summary.get("bounded_rows") == 6
+        and matching_primary_summary.get("drift_rows") == 6
+        and matching_primary_summary.get("exact_checks") == 42
+        and matching_primary_summary.get("bounded_checks") == 48
+        and matching_primary_summary.get("drift_checks") == 18
+        and matching_primary_summary.get("volume_checks") == 5
+        and matching_primary_summary.get("flatness_checks") == 4
+        and matching_primary_summary.get("firing_checks") == 7
+        and matching_primary_summary.get("top_level_checks") == 15
+        and matching_primary_summary.get("firing_controls")
+        == matching_primary_summary.get("firing_controls_activated")
+        == 7
+        and matching_independent.get("schema")
+        == "cassi.yang-mills.rg-gap-matching.verification-independent.v1"
+        and matching_independent.get("verdict") == "PASS"
+        and matching_independent_summary.get("checks")
+        == matching_independent_summary.get("passing_checks")
+        == 32
+        and matching_independent_summary.get("reconstructed_exact_rows") == 6
+        and matching_independent_summary.get("reconstructed_bounded_rows") == 6
+        and matching_independent_summary.get("reconstructed_drift_rows") == 6
+        and matching_independent_summary.get("firing_controls")
+        == matching_independent_summary.get("firing_controls_activated")
+        == 7,
+        primary_summary=matching_primary_summary,
+        independent_summary=matching_independent_summary,
+    )
+    matching_primary_bindings = matching_primary.get("sources", {})
+    matching_independent_bindings = matching_independent.get("sources", {})
+    check(
+        "RG gap matching protocol sources and primary receipt are hash bound",
+        matching_primary_bindings.get("protocol", {}).get("sha256")
+        == matching_independent_bindings.get("protocol", {}).get("sha256")
+        == hashes["matching_protocol"]
+        and matching_primary_bindings.get("primary_source", {}).get("sha256")
+        == matching_independent_bindings.get("primary_source", {}).get("sha256")
+        == hashes["matching_primary_source"]
+        and matching_primary_bindings.get("independent_source", {}).get("sha256")
+        == matching_independent_bindings.get("independent_source", {}).get(
+            "sha256"
+        )
+        == hashes["matching_independent_source"]
+        and matching_independent_bindings.get("primary_receipt", {}).get(
+            "sha256"
+        )
+        == hashes["matching_primary_receipt"],
+        protocol_sha256=hashes["matching_protocol"],
+        primary_source_sha256=hashes["matching_primary_source"],
+        independent_source_sha256=hashes["matching_independent_source"],
+        primary_receipt_sha256=hashes["matching_primary_receipt"],
+        independent_receipt_sha256=hashes["matching_independent_receipt"],
+    )
+    matching_coefficients = matching_primary.get("coefficients", {})
+    matching_parameters = matching_primary.get("parameters", {})
+    matching_exact_rows = matching_primary.get("exact_rows", [])
+    matching_bounded_rows = matching_primary.get("bounded_rows", [])
+    matching_drift_rows = matching_primary.get("drift_rows", [])
+    matching_volume = matching_primary.get("volume_schedules", [])
+    matching_flatness = matching_primary.get("flatness_rows", [])
+    check(
+        "RG endpoint, cumulative-defect, rate and volume identities stay consistent",
+        close(matching_coefficients.get("b0", 0.0), 11.0 / (24.0 * math.pi**2))
+        and close(
+            matching_coefficients.get("b1", 0.0),
+            17.0 / (96.0 * math.pi**4),
+        )
+        and close(matching_coefficients.get("p", 0.0), 51.0 / 121.0)
+        and matching_parameters.get("B") == 2.0
+        and matching_parameters.get("g0_squared")
+        == [0.8, 0.5, 0.3, 0.2, 0.1, 0.05]
+        and close(matching_parameters.get("endpoint_lower", 0.0), 1.0 / 64.0)
+        and close(
+            matching_parameters.get("endpoint_upper_exact", 0.0),
+            1.0 / 32.0,
+        )
+        and close(
+            matching_parameters.get("bounded_cumulative_limit", 0.0),
+            0.025,
+        )
+        and len(matching_exact_rows) == 6
+        and [row.get("block_count") for row in matching_exact_rows]
+        == [12, 23, 44, 69, 147, 301]
+        and all(
+            close(row.get("cumulative_defect", math.inf), 0.0)
+            and 1.0 / 64.0
+            <= row.get("endpoint_scale", 0.0)
+            < 1.0 / 32.0
+            and close(
+                row.get("block_ratio_over_scale", 0.0),
+                1.0 / row.get("endpoint_scale", math.inf),
+            )
+            and close(
+                row.get("renormalized_rate", 0.0),
+                row.get("coarse_rate", 0.0)
+                / row.get("endpoint_scale", math.inf),
+            )
+            for row in matching_exact_rows
+        )
+        and len(matching_bounded_rows) == 6
+        and all(
+            abs(row.get("cumulative_defect", math.inf)) <= 0.025 + 1.0e-12
+            and row.get("qualified") is True
+            and close(
+                row.get("block_ratio_over_scale", 0.0),
+                math.exp(row.get("cumulative_defect", math.inf))
+                / row.get("endpoint_scale", math.inf),
+            )
+            and close(
+                row.get("renormalized_rate", 0.0),
+                row.get("coarse_rate", 0.0)
+                * math.exp(row.get("cumulative_defect", math.inf))
+                / row.get("endpoint_scale", math.inf),
+            )
+            for row in matching_bounded_rows
+        )
+        and len(matching_drift_rows) == 6
+        and all(
+            row.get("cumulative_defect", 0.0) > 0.025
+            and row.get("maximum_step_defect", math.inf) < 0.025
+            and row.get("qualified") is False
+            and row.get("per_step_only_qualified") is True
+            for row in matching_drift_rows
+        )
+        and {
+            row.get("name"): row.get("classification") for row in matching_volume
+        }
+        == {
+            "fixed_sites": "COLLAPSE",
+            "polynomial": "COLLAPSE",
+            "fixed_physical_box": "FIXED",
+            "inverse_g2_enhanced": "INFINITE",
+            "logarithmically_enhanced": "INFINITE",
+        }
+        and [row.get("power") for row in matching_flatness] == [1, 2, 4, 8]
+        and all(
+            len(row.get("log_ratios", [])) == 6
+            and all(
+                right < left
+                for left, right in zip(
+                    row.get("log_ratios", []),
+                    row.get("log_ratios", [])[1:],
+                )
+            )
+            for row in matching_flatness
+        ),
+        coefficients=matching_coefficients,
+        parameters=matching_parameters,
+        exact_block_counts=[
+            row.get("block_count") for row in matching_exact_rows
+        ],
+        bounded_cumulative_defects=[
+            row.get("cumulative_defect") for row in matching_bounded_rows
+        ],
+        drift_cumulative_defects=[
+            row.get("cumulative_defect") for row in matching_drift_rows
+        ],
+        volume_classifications={
+            row.get("name"): row.get("classification") for row in matching_volume
+        },
+    )
+    expected_matching_firing_controls = {
+        "omit_cumulative_defect_factor",
+        "reverse_cumulative_defect_sign",
+        "accept_per_step_only_drift",
+        "omit_time_rate_rescaling",
+        "call_fixed_box_infinite",
+        "accept_zero_endpoint_rate",
+        "conclude_without_observable_completeness",
+    }
+    matching_primary_firing = matching_primary.get("firing_controls", [])
+    matching_independent_firing = matching_independent.get("firing_controls", [])
+    check(
+        "all RG gap matching firing controls activate independently",
+        {row.get("name") for row in matching_primary_firing}
+        == expected_matching_firing_controls
+        and {row.get("name") for row in matching_independent_firing}
+        == expected_matching_firing_controls
+        and all(
+            row.get("unmutated_passed") is True
+            and row.get("mutation_passed") is False
+            and row.get("fired") is True
+            and row.get("comparisons_attempted") == 2
+            for row in matching_primary_firing + matching_independent_firing
+        ),
+        primary=matching_primary_firing,
+        independent=matching_independent_firing,
+    )
+    matching_negative_claims = (
+        "balaban_uv_stability_is_mass_gap",
+        "gaussian_no_go_claimed",
+        "rg_trajectory_constructed",
+        "exact_block_map_constructed",
+        "transfer_correlation_matching_established",
+        "observable_completeness_established",
+        "coarse_interacting_gap_computed",
+        "interacting_gap_computed",
+        "thermodynamic_limit_constructed",
+        "os_axioms_established",
+        "nontrivial_continuum_limit_established",
+        "continuum_mass_gap_established",
+    )
+    matching_primary_claims = matching_primary.get("claims", {})
+    matching_independent_claims = matching_independent.get("claims", {})
+    check(
+        "RG gap matching claim boundary withholds every construction hypothesis",
+        all(
+            claims.get("two_loop_blocking_arithmetic") == "PASS"
+            and claims.get("conditional_rg_gap_matching_theorem_analytic") is True
+            and claims.get("analytic_theorem_outside_executable") is True
+            and all(claims.get(name) is False for name in matching_negative_claims)
+            and claims.get("clay_verdict") == "NULL"
+            for claims in (matching_primary_claims, matching_independent_claims)
+        ),
+        primary_claims=matching_primary_claims,
+        independent_claims=matching_independent_claims,
+    )
+
 
     receipt_protocol_hashes = {
         primary["protocol_sha256"], independent.get("protocol_sha256")
@@ -1615,6 +1884,9 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         and "Renormalized weak-coupling gap and volume criterion "
         "(YM242)–(YM248) | **Derived**"
         in theory
+        and "Conditional RG endpoint-to-gap matching theorem "
+        "(YM249)–(YM255) | **Derived conditional**"
+        in theory
         and "`thermodynamic_state_constructed_by_verifier=false`" in theory
         and "`infinite_volume_measure_constructed_by_verifier=false`" in theory
         and "`interacting_gap_computed=false`" in theory
@@ -1623,15 +1895,15 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         and "Continuum Yang–Mills existence and mass gap | **Open**" in theory,
     )
 
-    if len(checks) != 47:
-        raise RuntimeError(f"expected 47 audit checks, constructed {len(checks)}")
+    if len(checks) != 52:
+        raise RuntimeError(f"expected 52 audit checks, constructed {len(checks)}")
     all_passed = all(row["passed"] for row in checks)
     record: dict[str, Any] = {
-        "schema": "yang_mills_continuum_boundary_audit_v8",
+        "schema": "yang_mills_continuum_boundary_audit_v9",
         "status": "PASS" if all_passed else "FAIL",
         "verdict": "UNRESOLVED_CONTINUUM_PROBLEM",
         "clay_verdict": "NULL",
-        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence, fixed-graph and local cutoff control, conditional thermodynamic and Euclidean subsequences, the exact fixed-graph anisotropic transfer-to-Hamiltonian limit, and the necessary renormalized weak-coupling volume/gap criterion against the Clay Yang-Mills existence and mass-gap obligations",
+        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence, fixed-graph and local cutoff control, conditional thermodynamic and Euclidean subsequences, the exact fixed-graph anisotropic transfer-to-Hamiltonian limit, the necessary renormalized weak-coupling volume/gap criterion, and the conditional RG endpoint-to-gap matching theorem against the Clay Yang-Mills existence and mass-gap obligations",
         "audit_source": {
             "path": display_path(SOURCE),
             "sha256": hashes["audit_source"],
@@ -1807,6 +2079,28 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
                 "path": display_path(SCALING_INDEPENDENT_RECEIPT),
                 "sha256": hashes["scaling_independent_receipt"],
                 "bytes": SCALING_INDEPENDENT_RECEIPT.stat().st_size,
+            },
+            "matching_protocol": {
+                "path": display_path(MATCHING_PROTOCOL),
+                "sha256": hashes["matching_protocol"],
+            },
+            "matching_primary_source": {
+                "path": display_path(MATCHING_PRIMARY_SOURCE),
+                "sha256": hashes["matching_primary_source"],
+            },
+            "matching_independent_source": {
+                "path": display_path(MATCHING_INDEPENDENT_SOURCE),
+                "sha256": hashes["matching_independent_source"],
+            },
+            "matching_primary_receipt": {
+                "path": display_path(MATCHING_PRIMARY_RECEIPT),
+                "sha256": hashes["matching_primary_receipt"],
+                "bytes": MATCHING_PRIMARY_RECEIPT.stat().st_size,
+            },
+            "matching_independent_receipt": {
+                "path": display_path(MATCHING_INDEPENDENT_RECEIPT),
+                "sha256": hashes["matching_independent_receipt"],
+                "bytes": MATCHING_INDEPENDENT_RECEIPT.stat().st_size,
             },
         },
         "protocol_snapshot_audit": {
@@ -2006,6 +2300,51 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "continuum_mass_gap_established": False,
             "clay_verdict": "NULL",
         },
+        "rg_gap_matching": {
+            "classification": "DERIVED_CONDITIONAL_RG_ENDPOINT_TO_GAP_MATCHING",
+            "primary_status": matching_primary["verdict"],
+            "primary_checks_passed": matching_primary_summary["passing_checks"],
+            "primary_checks_total": matching_primary_summary["checks"],
+            "independent_status": matching_independent["verdict"],
+            "independent_checks_passed": matching_independent_summary[
+                "passing_checks"
+            ],
+            "independent_checks_total": matching_independent_summary["checks"],
+            "coefficients": matching_coefficients,
+            "parameters": matching_parameters,
+            "scale_bound": matching_primary["scale_bound"],
+            "exact_block_counts": [
+                row["block_count"] for row in matching_exact_rows
+            ],
+            "exact_renormalized_rates": [
+                row["renormalized_rate"] for row in matching_exact_rows
+            ],
+            "bounded_cumulative_defects": [
+                row["cumulative_defect"] for row in matching_bounded_rows
+            ],
+            "drift_cumulative_defects": [
+                row["cumulative_defect"] for row in matching_drift_rows
+            ],
+            "volume_classifications": {
+                row["name"]: row["classification"] for row in matching_volume
+            },
+            "flatness_powers": [
+                row["power"] for row in matching_flatness
+            ],
+            "firing_controls": matching_primary_firing,
+            "conditional_rg_gap_matching_theorem_analytic": True,
+            "endpoint_rates_are_synthetic_assumption_witnesses": True,
+            "rg_trajectory_constructed": False,
+            "exact_block_map_constructed": False,
+            "transfer_correlation_matching_established": False,
+            "observable_completeness_established": False,
+            "coarse_interacting_gap_computed": False,
+            "interacting_gap_computed": False,
+            "thermodynamic_limit_constructed": False,
+            "continuum_limit_constructed": False,
+            "continuum_mass_gap_established": False,
+            "clay_verdict": "NULL",
+        },
         "cutoff_tail_evidence": {
             "qualifications": primary["cutoff_qualifications"],
             "useful_tail_rows": primary["useful_tail_rows"],
@@ -2033,11 +2372,17 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "sufficient_physical_bound": "inf_(a,L) (g_L^2/(2a_L)) (chi_(a,L) C_L^2)^(-1) >= m_* > 0",
             "renormalized_scale": "a Lambda_L = F_W(g0) [1 + O(g0^2)]",
             "simultaneous_volume_condition": "g0 -> 0 and N(g0) F_W(g0) -> infinity",
+            "block_scale_identity": "B^(-n)/F_W(g0) = exp(R_n)/F_W(g_n)",
+            "conditional_matching_bound": "d_- exp(-C_RG)/f_+ <= delta_0/F_W(g0) <= d_+ exp(C_RG)/f_-",
             "finite_positive_gap_condition": "0 < c_- <= liminf delta_W/F_W <= limsup delta_W/F_W <= c_+ < infinity",
             "unproved_inputs": [
                 "uniform interacting fibre and coarse Poincare margins",
                 "uniform transport-score or mixed-Hessian bounds",
                 "weak-coupling- and lattice-spacing-uniform interacting estimates",
+                "uniform O(1) cumulative scale defect over O(g0^-2) RG levels",
+                "exact controlled transfer-correlation matching under time blocking",
+                "complete retained gauge-invariant Osterwalder-Schrader vectors",
+                "uniform positive interacting endpoint gap",
                 "full-sequence thermodynamic phase control, uniqueness, and clustering",
             ],
         },
@@ -2056,7 +2401,7 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "conclusion": "positive local conditional rates alone do not imply a volume-uniform global gap",
         },
         "missing_clay_obligations": MISSING_CLAY_OBLIGATIONS,
-        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction; the form theorem removes the character cutoff after the graph, coupling and low-energy index are fixed; and the local-density theorem controls every fixed support uniformly over periodic cubic volumes. Conditional on finite-volume ground densities and YMT2, the operator argument extracts a locally normal fixed-regulator ground-state subsequence. Conditional on the established finite-lattice Wilson reflection and transfer theorems, compact local Euclidean marginals extract a reflection-positive DLR subsequence at every fixed beta. The separate anisotropic transfer has difference and logarithmic generators converging in strong-resolvent sense to the Kogut-Susskind Hamiltonian on every fixed finite spatial graph, and its products converge strongly to the heat semigroup. The universal two-loop Wilson scale makes the remaining target quantitative: g0 must tend to zero with N(g0) F_W(g0) tending to infinity, and a finite positive local excitation must have delta_W/F_W bounded above and below. The executable evidence checks finite identities, kernels, scale arithmetic and implication controls; it constructs no infinite-volume Hamiltonian or Euclidean state and computes no interacting scaling gap. Identification of the fixed-beta state with the anisotropic family, spatial-volume uniformity, full-sequence phase control, clustering, weak-coupling continuum construction, continuum Osterwalder-Schrader reconstruction and a regulator-independent mass-gap theorem remain open.",
+        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction; the form theorem removes the character cutoff after the graph, coupling and low-energy index are fixed; and the local-density theorem controls every fixed support uniformly over periodic cubic volumes. Conditional on finite-volume ground densities and YMT2, the operator argument extracts a locally normal fixed-regulator ground-state subsequence. Conditional on the established finite-lattice Wilson reflection and transfer theorems, compact local Euclidean marginals extract a reflection-positive DLR subsequence at every fixed beta. The separate anisotropic transfer has difference and logarithmic generators converging in strong-resolvent sense to the Kogut-Susskind Hamiltonian on every fixed finite spatial graph, and its products converge strongly to the heat semigroup. The universal two-loop Wilson scale makes the remaining target quantitative: g0 must tend to zero with N(g0) F_W(g0) tending to infinity, and a finite positive local excitation must have delta_W/F_W bounded above and below. The conditional RG endpoint theorem shows that a bounded cumulative scale defect, an exact correlation-preserving block map, complete retained physical channels and a uniform positive interacting endpoint gap would imply this scaling. Its executable endpoint rates are synthetic assumption witnesses and construct none of those inputs. The executable evidence checks finite identities, kernels, scale arithmetic and implication controls; it constructs no infinite-volume Hamiltonian or Euclidean state and computes no interacting scaling gap. Identification of the fixed-beta state with the anisotropic family, spatial-volume uniformity, full-sequence phase control, clustering, weak-coupling continuum construction, continuum Osterwalder-Schrader reconstruction and a regulator-independent mass-gap theorem remain open.",
     }
 
     if not all_passed:
@@ -2103,7 +2448,10 @@ def main() -> None:
         f"{record['anisotropic_hamiltonian_limit']['primary_checks_total']} "
         "scaling="
         f"{record['renormalized_gap_scaling']['primary_checks_passed']}/"
-        f"{record['renormalized_gap_scaling']['primary_checks_total']}"
+        f"{record['renormalized_gap_scaling']['primary_checks_total']} "
+        "rg_matching="
+        f"{record['rg_gap_matching']['primary_checks_passed']}/"
+        f"{record['rg_gap_matching']['primary_checks_total']}"
     )
 
 

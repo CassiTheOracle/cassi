@@ -763,7 +763,7 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
-The separate pure-gauge comparison in that document, §§9.4–9.30, uses the
+The separate pure-gauge comparison in that document, §§9.4–9.31, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
 projective bubble coordinate discards a phase required by Wilson magnetic
@@ -923,6 +923,18 @@ by positive constants in a nonzero local channel. The 80/80 primary and 20/20
 independent arithmetic controls pass and all six mutations fire. They compute
 no interacting gap and construct no continuum trajectory. The
 Osterwalder–Schrader reconstruction statement remains conditional.
+
+Section 9.31 proves the conditional endpoint-to-gap matching theorem. With a
+fixed block factor and endpoint window, bounded cumulative scale defect gives
+$B^{-n}/F_W(g_0)$ bounded above and below. Exact time-correlation blocking
+then carries a fixed positive endpoint rate to
+$a\Delta/F_W\asymp1$, provided the retained physical observable family is
+complete. The same identity gives blocked infinite volume exactly when
+$N_0F_W(g_0)\to\infty$, with $n=O(g_0^{-2})$. The 139/139 primary and 32/32
+independent checks pass, including rejection of bounded one-step defects whose
+cumulative drift grows. Their endpoint rates are synthetic assumption
+witnesses. No RG trajectory, correlation-preserving block map, interacting
+endpoint gap, observable completeness or continuum field is constructed.
 
 The Poincaré-geometry analysis separates spatial and link three-spheres. A
 closed simply connected spatial slice is topologically $S^3$, and a round
@@ -2658,15 +2670,24 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   and infinite volume, while a finite positive local excitation requires
   $a\Delta_W/F_W$ bounded above and below. Its 80/80 primary and 20/20
   independent arithmetic checks classify schedules but compute no
-  interacting spectrum or continuum limit.
+  interacting spectrum or continuum limit. The conditional RG endpoint
+  theorem proves that a fixed positive coarse rate produces the required
+  microscopic scale when the cumulative two-loop scale defect stays
+  $O(1)$ through $O(g_0^{-2})$ blocks and an exact correlation-preserving map
+  retains a complete physical observable family. Its 139/139 primary and
+  32/32 independent checks verify the scale, rate and volume identities and
+  reject a per-step-only drift criterion. The endpoint rates are synthetic
+  assumption witnesses.
   Every receipt retains `clay_verdict=NULL`. A uniform exact-vacuum fibre
   rate, transported score, full-sequence convergence, phase uniqueness,
   clustering, identification of the fixed-$\beta$ state with the anisotropic
-  family, spatial-volume uniformity, weak-coupling continuum construction,
+  family, spatial-volume uniformity, an $O(1)$ cumulative RG defect, an exact
+  transfer-correlation block map, retained-observable completeness, a
+  uniform interacting endpoint gap, weak-coupling continuum construction,
   continuum Osterwalder–Schrader/Wightman reconstruction and a
   regulator-independent physical mass gap remain open. See
-  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.30 and §11 and
-  `field-experience/probe-outcome-ledger.md` §§30,34,36–41.
+  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.31 and §11 and
+  `field-experience/probe-outcome-ledger.md` §§30,34,36–42.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state

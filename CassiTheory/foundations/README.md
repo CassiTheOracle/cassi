@@ -210,7 +210,7 @@ baryon-production coupling remain open.
 | 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction—September 2026 |
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
-| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling character-cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem and global-norm obstruction, conditional fixed-regulator thermodynamic ground-state and Euclidean reflection-positive Gibbs subsequences, exact fixed-graph anisotropic Wilson transfer-to-Hamiltonian limit, exact fixed-link three-sphere geometry, two-scale conditional-score recurrence, $H^{-1}$ transport-score margin transfer, residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
+| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling character-cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem and global-norm obstruction, conditional fixed-regulator thermodynamic ground-state and Euclidean reflection-positive Gibbs subsequences, exact fixed-graph anisotropic Wilson transfer-to-Hamiltonian limit, universal two-loop gap/volume criterion, conditional RG endpoint-to-gap matching theorem, exact fixed-link three-sphere geometry, two-scale conditional-score recurrence, $H^{-1}$ transport-score margin transfer, residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
 | 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current, phase-current projection and conditional soliton pinch | Hypothesized action and Wilson-link extension / Derived conditional current, endpoint, support and phase-current boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum, rotational and phase-coercivity controls, and conditional smooth scalar binding |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, scale graph and canonical reduction | Hypothesized completion / Derived conditional fibre geometry and canonical reduction / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 39 | `endpoint-link-and-localization-boundary.md` | Conditional endpoint covariance, response, transport and localization boundary | Hypothesized Wilson extension / Derived conditional endpoint and localization boundaries / Tested finite-grid spectrum and conditional smooth scalar binding |
@@ -775,7 +775,7 @@ even pairs, and the supplied fivefold phase orbit preserves the normalized
 $\varphi$ chord ratio. LB1–LB7 verify these identities. The physical carrier,
 phase law, scale ratio, and quantum-sector identification remain open.
 
-The separate pure-$SU(2)$ comparison in §§9.4–9.30 retains full loop
+The separate pure-$SU(2)$ comparison in §§9.4–9.31 retains full loop
 holonomy. Gauss invariance gives an exact electric threshold on girth-four
 lattice graphs, and projective bubble data discard a phase that changes
 Wilson magnetic energy. Yarotsky's stability theorem supplies a
@@ -956,6 +956,18 @@ below by positive constants in a nonzero local channel. The 80/80 primary and
 classifications and all six firing mutations. The criterion is a necessary
 scaling boundary and contains no interacting spectral estimate. No continuum
 trajectory, Osterwalder–Schrader limit or mass gap is constructed.
+
+The conditional RG endpoint theorem sharpens that boundary. For an isotropic
+block factor $B$, cumulative scale defect $R_n$, fixed endpoint scale window
+and fixed positive endpoint rate, exact correlation-preserving time blocking
+gives $\delta_0/F_W(g_0)$ bounded above and below. The same identity gives
+$N_n\to\infty$ exactly when $N_0F_W(g_0)\to\infty$, and the matching depth is
+$O(g_0^{-2})$. Its 139/139 primary and 32/32 independent checks reconstruct
+exact, bounded-defect and rejected cumulative-drift schedules with seven
+firing mutations. The endpoint rates are synthetic assumption witnesses.
+A bounded cumulative defect, exact block map, complete retained physical
+observable family, uniform interacting endpoint gap and continuum
+Osterwalder–Schrader construction remain open.
 
 ### `interscale-current-soliton.md`—Interscale Yang/Yin Current and the Conditional Soliton Pinch
 

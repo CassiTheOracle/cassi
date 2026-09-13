@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem with an exact global-norm obstruction, conditional fixed-regulator thermodynamic ground-state subsequence, conditional fixed-regulator Euclidean reflection-positive Gibbs subsequence, exact fixed-graph anisotropic Wilson transfer-to-Hamiltonian strong-resolvent and product limit, universal two-loop Wilson asymptotic scale relation and necessary renormalized volume/gap criterion, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Recovered finite $3\times2\times2$ $SU(2)$ Hamiltonian construction with frozen separation-based tail qualifications inconclusive; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem with an exact global-norm obstruction, conditional fixed-regulator thermodynamic ground-state subsequence, conditional fixed-regulator Euclidean reflection-positive Gibbs subsequence, exact fixed-graph anisotropic Wilson transfer-to-Hamiltonian strong-resolvent and product limit, universal two-loop Wilson asymptotic scale relation and necessary renormalized volume/gap criterion, conditional RG endpoint-to-gap matching theorem, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Recovered finite $3\times2\times2$ $SU(2)$ Hamiltonian construction with frozen separation-based tail qualifications inconclusive; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -30,7 +30,7 @@ density projection and a coherence-sensitive bubble coordinate. A physical
 phase law, a map from the regulated quantum configuration to these carriers,
 $\hbar$, quantum statistics, and measurement dynamics remain separate inputs.
 
-The pure-gauge comparison in §§9.4–9.30 retains full $SU(2)$ loop holonomies.
+The pure-gauge comparison in §§9.4–9.31 retains full $SU(2)$ loop holonomies.
 Gauss invariance supplies an electric closed-loop threshold, while the
 projective bubble variable discards Wilson magnetic energy. Quantum-lattice
 stability gives a volume-uniform interacting gap at sufficiently strong bare
@@ -136,6 +136,17 @@ local channel. The 80/80 primary and 20/20 independent arithmetic checks
 verify the convention maps, schedule classifications and all six firing
 controls. They compute no interacting gap and establish no continuum limit;
 the conditional Osterwalder–Schrader bridge and the Clay problem remain open.
+
+The conditional RG endpoint theorem sharpens this target. If the cumulative
+two-loop scale defect stays $O(1)$ through $O(g_0^{-2})$ isotropic blocks, an
+exact correlation-preserving map retains a complete physical observable
+family, and the interacting endpoint has a fixed positive spectral rate, then
+the microscopic gap satisfies $a\Delta/F_W\asymp1$. The same identity makes
+the blocked spatial volume diverge exactly when $NF_W\to\infty$. The 139/139
+primary and 32/32 independent arithmetic checks include a cumulative-drift
+rejection and seven firing mutations. They construct none of the RG,
+transfer, endpoint-gap, completeness or continuum inputs, and
+`clay_verdict=NULL`.
 
 ---
 
@@ -6661,6 +6672,196 @@ and omission of the time/gap rescaling. Both receipts record
 `nontrivial_continuum_limit_established=false`,
 `continuum_mass_gap_established=false` and `clay_verdict=NULL`.
 
+### 9.31 Conditional RG endpoint-to-gap matching theorem
+
+The criterion in §9.30 fixes the required microscopic scale but does not
+identify a mechanism that produces it. A conditional block-flow theorem
+isolates the missing estimate. Fix an isotropic integer block factor $B>1$
+and let $g_0,\ldots,g_n$ be a candidate weak-coupling trajectory. Define
+
+$$
+\boxed{
+\begin{aligned}
+r_k
+&:=\log F_W(g_{k+1})-\log F_W(g_k)-\log B,\\
+R_n&:=\sum_{k=0}^{n-1}r_k,\\
+\frac{B^{-n}}{F_W(g_0)}
+&=\frac{e^{R_n}}{F_W(g_n)}.
+\end{aligned}
+}
+\tag{YM249}
+$$
+
+The last line is an exact telescoping identity. Suppose that the trajectory
+reaches a fixed endpoint window and has a uniformly bounded cumulative
+defect,
+
+$$
+0<f_-\leq F_W(g_n)\leq f_+<\infty,
+\qquad
+|R_n|\leq C_{\mathrm{RG}}<\infty.
+$$
+
+Then
+
+$$
+\boxed{
+\frac{e^{-C_{\mathrm{RG}}}}{f_+}
+\leq
+\frac{B^{-n}}{F_W(g_0)}
+\leq
+\frac{e^{C_{\mathrm{RG}}}}{f_-}.
+}
+\tag{YM250}
+$$
+
+Control of each $r_k$ alone leaves an $O(n)$ cumulative error available. The
+bound in (YM250) requires control of $R_n$ through all
+$n=O(g_0^{-2})$ levels.
+
+To connect this scale identity to a spectral gap, let $T_k=e^{-H_k}$ be a
+positive transfer operator and let $A_k$ be a centered retained
+gauge-invariant observable. Its autocorrelation and spectral rate are
+
+$$
+\begin{aligned}
+C_k^{A_k}(m)
+&=\langle A_k\Omega_k,T_k^mA_k\Omega_k\rangle
+=\int_{[0,\infty)}e^{-mE}\,d\mu_{k,A_k}(E),\\
+\gamma_k(A_k)
+&:=\inf\operatorname{supp}\mu_{k,A_k}
+=\lim_{m\to\infty}-\frac{1}{m}\log C_k^{A_k}(m).
+\end{aligned}
+$$
+
+Assume that the exact block map carries a family $\mathcal R_0$ onto a
+retained family $\mathcal R_n$ and that every corresponding pair satisfies
+
+$$
+\boxed{
+C_0^A(B^nm)=Z_{n,A}C_n^{A_n}(m),
+\quad
+0<Z_{n,A}<\infty,
+\qquad
+\gamma_0(A)=B^{-n}\gamma_n(A_n).
+}
+\tag{YM251}
+$$
+
+The normalization is independent of $m$ and therefore drops out of the
+exponential rate. Set
+
+$$
+\delta_k:=
+\inf_{\substack{A_k\in\mathcal R_k\\A_k\Omega_k\ne0}}
+\gamma_k(A_k).
+$$
+
+If the endpoint family has
+$0<d_-\leq\delta_n\leq d_+<\infty$, (YM249)–(YM251) give
+
+$$
+\boxed{
+\frac{d_-e^{-C_{\mathrm{RG}}}}{f_+}
+\leq
+\frac{\delta_0}{F_W(g_0)}
+\leq
+\frac{d_+e^{C_{\mathrm{RG}}}}{f_-}.
+}
+\tag{YM252}
+$$
+
+The lower endpoint estimate must hold in every retained nonzero channel, and
+one channel supplies the finite upper witness. If the
+Osterwalder–Schrader vectors generated by $\mathcal R_0$ are dense in the
+vacuum-orthogonal physical Hilbert space, $\delta_0$ is the full
+vacuum-sector gap. Without this completeness, (YM252) controls only the
+retained family.
+
+The spatial-volume condition follows from the same identity. When
+$N_0=B^nN_n$,
+
+$$
+\boxed{
+N_n
+=N_0B^{-n}
+=(N_0F_W(g_0))
+\frac{B^{-n}}{F_W(g_0)},
+\qquad
+N_n\longrightarrow\infty
+\Longleftrightarrow
+N_0F_W(g_0)\longrightarrow\infty.
+}
+\tag{YM253}
+$$
+
+Integer rounding does not change the equivalence when the right-hand side
+diverges. Every Euclidean extent requires the corresponding scale control.
+For a fixed endpoint window and $R_n=O(1)$, the number of block levels is
+
+$$
+\boxed{
+n
+=\frac{1}{2b_0\log B}\frac{1}{g_0^2}
++\frac{p}{\log B}\log(b_0g_0^2)
++O(1).
+}
+\tag{YM254}
+$$
+
+The endpoint theorem is intrinsically nonperturbative. For every real $q$,
+
+$$
+\boxed{
+\lim_{g\downarrow0}\frac{F_W(g)}{g^q}=0.
+}
+\tag{YM255}
+$$
+
+A finite power, Puiseux or power-log expansion around $g=0$ cannot determine
+the positive coefficient in (YM252). This flatness supplies no Gaussian
+no-go theorem: a nonperturbative interacting contribution can have the
+required scale while every finite perturbative coefficient vanishes.
+
+The frozen arithmetic diagnostic uses $B=2$,
+$f_-=1/64$, $f_+^{\mathrm{exact}}=1/32$,
+$C_{\mathrm{RG}}=0.025$ and endpoint rates in $[0.5,2]$. The exact schedules
+reach the endpoint after
+$n=(12,23,44,69,147,301)$ blocks. Alternating defects
+$r_k=(-1)^k0.025$ keep $R_n\in\{0,0.025\}$, while a constant
+$r_k=0.00625$ violates the cumulative bound in every row despite satisfying
+the one-step bound. The resulting synthetic values obey
+
+$$
+15.2196707920
+\leq
+\frac{\delta_0}{F_W(g_0)}
+\leq
+131.2403354271.
+$$
+
+These endpoint rates are assumption witnesses rather than Yang–Mills
+eigenvalues. The primary implementation passes 139/139 checks, including all
+seven firing mutations. The independent Node implementation reconstructs
+the schedules and passes 32/32 checks. Both receipts set
+`rg_trajectory_constructed=false`,
+`exact_block_map_constructed=false`,
+`transfer_correlation_matching_established=false`,
+`observable_completeness_established=false`,
+`coarse_interacting_gap_computed=false`,
+`interacting_gap_computed=false`,
+`nontrivial_continuum_limit_established=false`,
+`continuum_mass_gap_established=false` and `clay_verdict=NULL`.
+
+Balaban's four-dimensional renormalization results establish ultraviolet
+stability and localized effective-density control in their stated lattice
+scope. They do not establish the cumulative trajectory bound, exact
+correlation transport, endpoint interacting gap, observable completeness or
+continuum reconstruction assumed above. Equations (YM249)–(YM255) therefore
+give a conditional matching theorem and a sharper research obligation; they
+do not complete the Clay construction.
+
+
 
 ---
 
@@ -6741,6 +6942,7 @@ microscopic completions.
 | Fixed-regulator Euclidean reflection-positive Gibbs subsequence (YM214)–(YM222) | **Derived conditional** lattice theorem with finite-kernel controls | Conditional on the established finite-lattice Wilson reflection/transfer theorems, positive character coefficients and compact local marginals give a translation-, gauge- and reflection-invariant DLR subsequence at each fixed $\beta>0$; full-sequence convergence, uniqueness, clustering, identification with the anisotropic Hamiltonian family, the lattice-spacing limit, continuum reconstruction and a uniform physical gap remain open |
 | Fixed-graph anisotropic transfer-to-Hamiltonian limit (YM223)–(YM241) | **Derived** fixed-regulator operator theorem with finite-character controls | Normalized central convolution with $B_\tau=4a/(g^2\epsilon)$ and symmetric magnetic half-steps has difference and logarithmic generators converging in strong resolvent sense to (YM3), and its Chernoff products converge strongly to $e^{-tH_\Lambda}$ on every fixed finite spatial graph. The exact Wilson convention map is $g_W=2^{1/4}g$, $a_\tau=\epsilon/\sqrt2$; spatial-volume uniformity, the $a\to0$ limit, continuum reconstruction and a uniform physical gap remain open |
 | Renormalized weak-coupling gap and volume criterion (YM242)–(YM248) | **Derived** two-loop asymptotic scale relation from established perturbative inputs and **Derived conditional** continuum implication | $a\Lambda_L=F_W[1+O(g_0^2)]$ requires $NF_W\to\infty$ for simultaneous infinite volume and $a\Delta/F_W$ bounded above and below for a finite positive excitation; 80/80 primary and 20/20 independent arithmetic checks pass, but no interacting gap, continuum trajectory or Osterwalder–Schrader limit is constructed |
+| Conditional RG endpoint-to-gap matching theorem (YM249)–(YM255) | **Derived conditional** scale, transfer-rate and volume implication | A bounded cumulative two-loop scale defect, fixed positive interacting endpoint rate, exact controlled block-correlation map, complete retained physical channels and continuum Osterwalder–Schrader construction are required; 139/139 primary and 32/32 independent arithmetic checks pass, while every construction hypothesis and the Clay verdict remain open |
 | Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, conditional-rate cutoff removal and continuum construction remain open |
 | Finite open-cube SU(2) basis and oriented Wilson support | **Derived** finite-regulator construction | The open $2\times2\times2$ cube has 32 and 1013 gauge-invariant raw trivalent-$3j$ states at doubled cutoffs $C=1,2$; every six signed fundamental plaquette operators has 32 and 2388 nonzero candidate-supported directed entries, with finite Hermitian contractions; fixed-graph character-cutoff removal follows from (YM187)–(YM195), while a growing open-boundary family and continuum control remain open |
 | Larger-volume/cutoff SU(2) Hamiltonian | **Derived** recovered finite-regulator construction and fixed-graph cutoff removal; **INCONCLUSIVE** frozen separation qualifications | The open $3\times2\times2$ graph has 868 and 955835 complete gauge-invariant states at doubled cutoffs $C=1,2$; the recovery enforces spectator-intertwiner orthogonality, all 226 finite-construction checks and 256 independent checks pass, every scheduled ground energy is nonnegative, and the separation-free theorem removes the character cutoff only after this graph and coupling are fixed |
@@ -7333,6 +7535,26 @@ The independent receipt binds primary-receipt SHA-256
 Both receipts classify the work as an arithmetic necessity diagnostic, set
 every interacting continuum conclusion false and retain `clay_verdict=NULL`.
 
+The conditional RG gap-matching evidence is bound by
+`computations/yang-mills-rg-gap-matching-prereg.md`, the primary
+`computations/verify_yang_mills_rg_gap_matching.py` and the independent
+`computations/verify_yang_mills_rg_gap_matching_independent.mjs`.
+The primary receipt passes 139/139 checks over six exact, six
+alternating-defect and six cumulative-drift rows. The independent receipt
+passes 32/32 checks and reconstructs the endpoint identities, volume
+classifications, flatness rows and seven firing controls.
+
+The protocol, primary source and independent source SHA-256 values are
+`d8749326eb0fcf2062302e0afec4cb68dc2dd96ac532962bffdb18c658860f36`,
+`712902166378a92f3cbb651fc0a1e5d6e075a1e9d3d95b8eacdd3325b44bd6f2`
+and
+`fda53344e26e65f7c652ecc1ea0cd01dbcc583fa394af3acb444453ca827cfad`.
+The independent receipt binds primary-receipt SHA-256
+`ccb8b3e562b047e6fd562bd06cdfce807beb6d7f0d7a4d7c59b0704ccffdc5d4`.
+Both receipts classify the executable as conditional arithmetic, set every
+RG, transfer, interacting-gap and continuum construction claim false and
+retain `clay_verdict=NULL`.
+
 
 ---
 
@@ -7515,8 +7737,8 @@ every interacting continuum conclusion false and retain `clay_verdict=NULL`.
 - H. Grundling and G. Rudolph, [QCD on an infinite
   lattice](https://arxiv.org/abs/1108.2129)—inductive local gauge algebra and
   Gauss-law construction
-- `runs/yang_mills_continuum_boundary_audit/verification.json`—47-check v8 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean evidence, the exact fixed-graph anisotropic Hamiltonian limit, the renormalized volume/gap scaling criterion, excluded defect provenance and the unresolved continuum boundary
-- `computations/verify_yang_mills_continuum_boundary_audit.py`—47-check source, receipt, recovery-snapshot, fixed-graph Hamiltonian-limit, renormalized-scaling and continuum-boundary audit
+- `runs/yang_mills_continuum_boundary_audit/verification.json`—52-check v9 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean evidence, the exact fixed-graph anisotropic Hamiltonian limit, the renormalized volume/gap scaling criterion, the conditional RG endpoint-to-gap theorem, excluded defect provenance and the unresolved continuum boundary
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—52-check source, receipt, recovery-snapshot, fixed-graph Hamiltonian-limit, renormalized-scaling, conditional RG-matching and continuum-boundary audit
 - `computations/yang-mills-renormalized-gap-scaling-prereg.md`—frozen
   universal two-loop scale, simultaneous volume, renormalized-gap and
   conditional continuum-bridge protocol
@@ -7528,6 +7750,22 @@ every interacting continuum conclusion false and retain `clay_verdict=NULL`.
   arithmetic receipt with a `NULL` Clay verdict
 - `runs/yang-mills-renormalized-gap-scaling/verification-independent.json`—independent
   source- and receipt-bound reconstruction
+- `computations/yang-mills-rg-gap-matching-prereg.md`—frozen conditional
+  endpoint, cumulative-defect, transfer-rate, volume and flatness protocol
+- `computations/verify_yang_mills_rg_gap_matching.py`—139-check source-bound
+  exact, bounded-defect, drift-control and gap-matching diagnostic
+- `computations/verify_yang_mills_rg_gap_matching_independent.mjs`—32-check
+  independent reconstruction with seven separately firing mutations
+- `runs/yang-mills-rg-gap-matching/verification.json`—primary conditional
+  arithmetic receipt with every construction claim false
+- `runs/yang-mills-rg-gap-matching/verification-independent.json`—independent
+  source- and primary-receipt-bound reconstruction
+- T. Bałaban, [Renormalization Group Approach to Lattice Gauge Field
+  Theories. I](https://doi.org/10.1007/BF01215223)—four-dimensional
+  small-field effective actions and coupling-constant renormalization
+- T. Bałaban, [Large Field Renormalization.
+  II](https://doi.org/10.1007/BF01238433)—localization, exponentiation and
+  ultraviolet stability of four-dimensional pure lattice gauge theory
 - B. Allés, A. Feo and H. Panagopoulos, [The three-loop beta function in
   $SU(N)$ lattice gauge
   theories](https://arxiv.org/abs/hep-lat/9609025), Eqs. (1.1), (2.11) and

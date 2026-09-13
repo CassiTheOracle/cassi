@@ -1012,11 +1012,12 @@ non-gating tail-separation rows at $x=1/4$ and $x=1$. The independent receipt
 `runs/yang_mills_su2_larger_volume_hamiltonian_recovery/verification-independent.json`
 passes 256/256 checks. Both bind the materialized receipt-bound recovery
 protocol snapshot, the scientific protocol, the current source files and the
-shared exact representation helper by SHA-256. The 47-check v8
+shared exact representation helper by SHA-256. The 52-check v9
 continuum-boundary audit verifies the one-reference relation between that
 snapshot and the current recovery protocol and binds the conditional
 thermodynamic and Euclidean evidence, the exact fixed-graph anisotropic
-transfer-to-Hamiltonian limit and the renormalized volume/gap criterion.
+transfer-to-Hamiltonian limit, the renormalized volume/gap criterion and the
+conditional RG endpoint-to-gap matching theorem.
 
 ## 35. Finite-volume SU(2) quantum Schwinger generator
 
@@ -1319,6 +1320,54 @@ to realize the criterion and the four-dimensional continuum construction
 remain open.
 
 
+## 42. Conditional RG endpoint-to-gap matching
+
+The frozen protocol
+`computations/yang-mills-rg-gap-matching-prereg.md` isolates a sufficient
+renormalization-group bridge from the two-loop yardstick in §41 to the
+required microscopic spectral scale. With block factor $B$ and
+
+$$
+r_k=\log F_W(g_{k+1})-\log F_W(g_k)-\log B,
+\qquad
+R_n=\sum_{k=0}^{n-1}r_k,
+$$
+
+the exact scale identity is
+$B^{-n}/F_W(g_0)=e^{R_n}/F_W(g_n)$. A fixed positive endpoint window and
+$|R_n|\leq C_{\mathrm{RG}}$ therefore bound this ratio above and below.
+Exact time-correlation blocking then gives
+$\delta_0=B^{-n}\delta_n$ for the retained observable family.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Exact endpoint schedules | At $g_0^2=(0.8,0.5,0.3,0.2,0.1,0.05)$, the $B=2$ schedules enter $[1/64,1/32)$ after $(12,23,44,69,147,301)$ blocks and satisfy $B^{-n}/F_W=1/F_W(g_n)$ | **PASS**, exact scale-matching arithmetic |
+| Bounded cumulative defect | Alternating $r_k=(-1)^k0.025$ gives $R_n\in\{0,0.025\}$ and keeps every synthetic renormalized rate inside $[15.2196707920,131.2403354271]$ | **PASS**, conditional endpoint-to-microscopic rate implication |
+| Drift discriminator | Constant $r_k=0.00625$ satisfies the frozen one-step bound but has $R_n>0.025$ in all six rows and is rejected | **PASS**, per-step control is insufficient |
+| Volume and blocking depth | The same identity gives $N_n\to\infty$ iff $N_0F_W(g_0)\to\infty$; the matching depth is $n=[2b_0\log B]^{-1}g_0^{-2}+O(\log g_0^2)$ | **DERIVED conditional**, contingent on the supplied trajectory and endpoint window |
+| Perturbative flatness | For every real $q$, $F_W(g)/g^q\to0$; the frozen $q=(1,2,4,8)$ rows decrease strictly | **DERIVED** scale property; no Gaussian no-go conclusion |
+| Independent reconstruction and firing controls | The primary passes 139/139 checks and the independent Node implementation passes 32/32. All seven mutations fire: two cumulative-defect errors, per-step-only drift acceptance, omitted time rescaling, fixed-box misclassification, zero endpoint rate and deleted observable completeness | **PASS**, source- and primary-receipt-bound arithmetic controls |
+| Clay boundary | Endpoint rates are synthetic assumption witnesses. Both receipts set the RG trajectory, exact block map, correlation transport, retained-observable completeness, coarse interacting gap, continuum construction and continuum mass gap false and retain `clay_verdict=NULL` | **NULL**, conditional implication only |
+
+The qualified receipts are
+`runs/yang-mills-rg-gap-matching/verification.json` and
+`runs/yang-mills-rg-gap-matching/verification-independent.json`.
+The protocol, primary source and independent source SHA-256 values are
+`d8749326eb0fcf2062302e0afec4cb68dc2dd96ac532962bffdb18c658860f36`,
+`712902166378a92f3cbb651fc0a1e5d6e075a1e9d3d95b8eacdd3325b44bd6f2`
+and
+`fda53344e26e65f7c652ecc1ea0cd01dbcc583fa394af3acb444453ca827cfad`.
+The independent receipt binds primary-receipt SHA-256
+`ccb8b3e562b047e6fd562bd06cdfce807beb6d7f0d7a4d7c59b0704ccffdc5d4`.
+Its own SHA-256 is
+`0f1e82b9ad18dde67c3b4802db8038519cb5d39038c921f9eb343073b5052eb5`.
+The RG construction, $O(1)$ cumulative defect bound over
+$O(g_0^{-2})$ levels, exact correlation-preserving block map, complete
+retained physical channels, uniform positive interacting endpoint gap and
+continuum Osterwalder–Schrader reconstruction remain open. Balaban's
+ultraviolet-stability results do not establish these inputs.
+
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
@@ -1329,6 +1378,10 @@ remain open.
 - `computations/verify_yang_mills_renormalized_gap_scaling.py`—80-check standard-library scale and schedule verifier.
 - `computations/verify_yang_mills_renormalized_gap_scaling_independent.mjs`—20-check independent Node reconstruction and receipt audit.
 - `runs/yang-mills-renormalized-gap-scaling/verification.json` and `verification-independent.json`—source-bound scaling receipts with `NULL` Clay verdicts.
+- `computations/yang-mills-rg-gap-matching-prereg.md`—frozen conditional RG endpoint, cumulative-defect, transfer-rate, volume and flatness protocol.
+- `computations/verify_yang_mills_rg_gap_matching.py`—139-check source-bound exact, bounded-defect, drift-control and gap-matching verifier.
+- `computations/verify_yang_mills_rg_gap_matching_independent.mjs`—32-check independent reconstruction with seven firing mutations.
+- `runs/yang-mills-rg-gap-matching/verification.json` and `verification-independent.json`—source- and primary-receipt-bound conditional arithmetic receipts with `NULL` Clay verdicts.
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
 - `field-experience/counterflow-resonant-addressing-pre-registration.md`—Wave 1 frozen protocol and decision tree.
@@ -1460,8 +1513,8 @@ remain open.
   finite-kernel support receipt with a `NULL` Clay verdict.
 - `runs/yang_mills_euclidean_reflection_positive/verification-independent.json`—independent
   source- and receipt-bound reconstruction.
-- `runs/yang_mills_continuum_boundary_audit/verification.json`—47-check v8 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean evidence, the exact fixed-graph anisotropic Hamiltonian limit, the renormalized volume/gap scaling criterion, excluded defect provenance and the unresolved continuum boundary.
-- `computations/verify_yang_mills_continuum_boundary_audit.py`—47-check hash-bound finite-evidence, fixed-graph Hamiltonian-limit, renormalized-scaling and continuum-boundary audit.
+- `runs/yang_mills_continuum_boundary_audit/verification.json`—52-check v9 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean evidence, the exact fixed-graph anisotropic Hamiltonian limit, the renormalized volume/gap scaling criterion, the conditional RG endpoint-to-gap theorem, excluded defect provenance and the unresolved continuum boundary.
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—52-check hash-bound finite-evidence, fixed-graph Hamiltonian-limit, renormalized-scaling, conditional RG-matching and continuum-boundary audit.
 - `computations/yang-mills-su2-transport-expansion-prereg.md`—fixed local strip and compact-boundary schedule.
 - `computations/verify_yang_mills_su2_transport_expansion.py`—150-check normalized transport expansion.
 - `computations/verify_yang_mills_su2_transport_expansion_independent.mjs`—60-check independent coefficient and receipt reconstruction.
