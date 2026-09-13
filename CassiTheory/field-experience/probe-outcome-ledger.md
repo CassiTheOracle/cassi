@@ -621,14 +621,17 @@ phase energy as that control.
 
 ## 21. Pure Yang–Mills cylindrical block map
 
-The frozen protocol in
-`computations/yang-mills-block-map-prereg.md` tests an explicit
-path-holonomy pullback between finite source-free $SU(2)$ lattice Hilbert
-spaces. The primary implementation passes **53 checks**. A separate
-JavaScript implementation reconstructs the frozen inventories, quaternion
-moments, representation Casimirs, path and gauge controls, scale identities
-and every primary detail in **169 checks**. Two post-reconstruction
-analytical reviews pass all nine fixed-scope obligations.
+The tracked protocol in
+`computations/yang-mills-block-map-prereg.md` and its primary verifier define
+the fixed path-holonomy schedule. The generated
+`runs/yang_mills_block_map/` directory, primary receipt, independent checker,
+analytical reviews and publication seal are not present in this checkout. The
+reported 53 primary and 169 independent checks are retained as
+documentation-only provenance; they are not current artifact-backed
+execution evidence and are not rerun by this correction.
+
+The table below preserves the stated analytical dispositions of the documented
+schedule. Its numerical entries do not carry a current receipt claim.
 
 | Control or claim | Decisive result | Classification and scope |
 |---|---|---|
@@ -641,14 +644,14 @@ analytical reviews pass all nine fixed-scope obligations.
 | Interacting block and continuum mass | No gauge-compatible interacting fibre, generated-term closure, uniform Feshbach-resolvent bound, weak-coupling volume estimate, thermodynamic limit or continuum field is constructed | **UNRESOLVED** |
 | Cassi interaction survival | The hypothesized Cassi scale law supplies no microscopic link state, interacting fibre or transfer operator to which the block criterion can be applied | **UNRESOLVED**; no microscopic Cassi identification follows |
 
-The primary receipt, input manifest, frozen source snapshots, retained failed
-checker output, qualified independent reconstruction and analytical reviews
-are in `runs/yang_mills_block_map/`. `publication.json` records the
-post-reconstruction disposition and seals the current theorem, protocol,
-verifier, independent checker and evidence hashes. The result rejects the
-bare-map shortcut and identifies the interacting fibre or equivalent
-Feshbach transfer operator as the next mathematical target; it does not
-establish a continuum Yang–Mills theory or mass gap.
+The fixed-refinement formulas and the scope boundary remain explicit in
+`foundations/loop-to-bubble-projection-theorem.md` §9.17. A fresh source-bound
+execution and independent reconstruction would be required before the
+53/169 counts or publication disposition could be used as current evidence.
+The analytic result still rejects the bare-map shortcut at the declared
+refinement and identifies the interacting fibre or equivalent Feshbach
+transfer operator as the next mathematical target; it does not establish a
+continuum Yang–Mills theory or mass gap.
 
 
 ## 22. Pure Yang–Mills isolated-square radial Feshbach and character cutoff
@@ -1431,6 +1434,7 @@ centered local GNS vectors are dense in the vacuum-orthogonal subspace.
 | Orbit separation and domain boundary | The full word family separates the fixed three-loop orientation pair by $0.8639999999999999$, while words of length at most two collide; the finite $\chi_0,\ldots,\chi_3$ family misses $\chi_8$ by $12.822948255619522$ | **PASS**, full word family and centering requirement are non-vacuous |
 | Mutation controls | Raw link entries, dropped orientation words, omitted centering and finite-word completeness each fire | **PASS**, $4/4$ controls |
 | Analytic completeness statement | Wilson-word density and centered local GNS density follow under the stated compact-$SU(2)$, Peter–Weyl and positive-state hypotheses | **DERIVED CONDITIONAL**, finite and infinite local algebra |
+| Uniform-form transfer criterion (YM262)–(YM267) | The exact finite-regulator lower bound, strong recovery-sequence direction, continuum form-core requirement and scale matching required to transfer a physical lower gap are stated explicitly | **DERIVED CONDITIONAL**, criterion only; no uniform bound, recovery construction, form core or continuum representation is supplied |
 | RG and mass-gap bridge | No retained RG image is identified with the full local algebra, and no matched uniform lower form bound is constructed | **UNRESOLVED**, exact transport and physical spectral lower bound |
 
 The primary receipt
@@ -1446,8 +1450,10 @@ are respectively
 and
 `5fe7f7197a1b6acb0347714094ea210f489abcd8da0e96853795c8df5beaac82`.
 The result removes the ambiguity of an arbitrarily selected finite observable
-list. It does not construct the exact RG map or the volume- and
-regulator-uniform lower spectral bound required for a physical mass gap.
+list. It does not construct the exact RG map, the volume- and
+regulator-uniform lower spectral bound, the strong recovery transport in
+(YM265), the scale matching in (YM266), or the continuum representation
+required for a physical mass gap.
 
 
 ## References

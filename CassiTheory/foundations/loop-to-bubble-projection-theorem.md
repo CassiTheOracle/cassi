@@ -2421,18 +2421,18 @@ obey (YM56). The hypothesized Cassi scale law supplies none of those
 gauge-theory structures. The continuum existence and mass-gap questions
 remain open.
 
-The source-bound primary schedule passes 53 checks. A separate JavaScript
-implementation reconstructs the fixed inventories, quaternion moments,
-Casimirs, path controls, scale identities and every primary detail in 169
-checks. Post-reconstruction analytical review assigns **ADOPT** to
-(YM42)–(YM48) under their stated finite-graph hypotheses and to
-(YM49)–(YM53) at the fixed refinement. The finite controls **SUPPORT** the
-declared fixtures. Exact full-Hamiltonian intertwining by the bare
-cylindrical map is **CONTRADICTED** only on the fixed genuine
-$2\times2$ refinement. Dynamically closed boundary-sector fibres, uniform
-resolvent control, weak-coupling volume bounds, the thermodynamic and
-continuum limits, the continuum mass gap and Cassi microscopic identification
-remain **UNRESOLVED**.
+The tracked protocol and primary verifier define the fixed path-holonomy
+schedule, but the generated `runs/yang_mills_block_map/` directory, primary
+receipt, independent checker, analytical reviews and publication seal are not
+present in this checkout. The reported 53 primary and 169 independent checks
+are therefore documentation-only provenance rather than current
+artifact-backed execution evidence. The fixed-refinement identities
+(YM42)–(YM53) remain analytic statements under their displayed finite-graph
+hypotheses; a fresh source-bound execution and independent reconstruction
+would be required to restore receipt-backed classifications. Dynamically
+closed boundary-sector fibres, uniform resolvent control, weak-coupling
+volume bounds, the thermodynamic and continuum limits, the continuum mass gap
+and Cassi microscopic identification remain **UNRESOLVED**.
 
 ### 9.18 Continuous-$SU(2)$ radial Feshbach transfer
 
@@ -7099,9 +7099,159 @@ audit. The receipts classify the finite algebra/GNS statement as
 uniform physical lower bound, continuum construction and mass gap as
 **UNRESOLVED**.
 
+### 9.34 Uniform lower-form criterion and continuum transfer
+
+The finite-regulator statement in (YM261) has an exact form-theoretic
+version. Let
+
+$$
+\mathfrak T=\{(a_\nu,L_\nu,g_\nu)\}_{\nu\geq1},
+\qquad
+F_\nu:=F_W(g_\nu),
+$$
+
+be a weak-coupling, growing-volume trajectory. Write
+$H_\nu$ for the physical Hamiltonian, $E_{0,\nu}$ for its vacuum energy, and
+$\Omega_\nu$ for the normalized positive vacuum at the regulator
+$(a_\nu,L_\nu)$. Under the ground-state identification of §9.13, let
+$\mathscr D_{\nu,\mathrm{loc}}^0$ be the centered gauge-invariant
+Wilson-word core:
+
+$$
+\mathscr D_{\nu,\mathrm{loc}}^0
+:=
+\left\{
+f\in\mathscr D_{\nu,\mathrm{loc}}:
+\int f\,d\mu_\nu=0
+\right\}.
+$$
+
+The exact finite-regulator target is
+
+$$
+\boxed{
+\left\langle f\Omega_\nu,
+(H_\nu-E_{0,\nu})f\Omega_\nu\right\rangle
+\geq
+c_-\frac{F_\nu}{a_\nu}
+\|f\|_{L^2(\mu_\nu)}^2,
+\qquad
+f\in\mathscr D_{\nu,\mathrm{loc}}^0,
+\quad
+c_->0
+}
+\tag{YM262}
+$$
+
+with one $c_-$ independent of $\nu$. By (YM27), (YM262) is exactly the
+dimensionful form of
+
+$$
+\frac{g_\nu^2}{2a_\nu}
+\sum_{e,A}\int|X_e^Af|^2\,d\mu_\nu
+\geq
+c_-\frac{F_\nu}{a_\nu}
+\int|f|^2\,d\mu_\nu.
+\tag{YM263}
+$$
+
+At each fixed finite graph, Peter–Weyl truncations and invariant word
+generation make the Wilson-word core a form core. Therefore (YM262) extends
+by closure to the entire vacuum-orthogonal physical form domain at that
+regulator, and (YM28) gives
+
+$$
+\boxed{
+\Delta_{\mathrm{phys}}(a_\nu,L_\nu)
+\geq
+c_-\frac{F_\nu}{a_\nu}.
+}
+\tag{YM264}
+$$
+
+This implication has no continuum content by itself. To transfer the lower
+bound to a continuum Hamiltonian, one must construct a local continuum core
+$\mathscr D_{\mathrm{loc},*}$, a locally normal limiting representation in
+which that centered local domain is a form core for $\mathfrak q_*$, and
+for every $v\in\mathscr D_{\mathrm{loc},*}$ a strong recovery sequence
+$v_\nu=f_\nu\Omega_\nu\to v$ with
+$f_\nu\in\mathscr D_{\nu,\mathrm{loc}}^0$ satisfying
+
+$$
+\|v_\nu\|_\nu\longrightarrow\|v\|_*,
+\qquad
+\limsup_{\nu\to\infty}
+\left\langle v_\nu,(H_\nu-E_{0,\nu})v_\nu\right\rangle_\nu
+\leq
+\mathfrak q_*(v,v),
+\tag{YM265}
+$$
+
+where $\mathfrak q_*$ is the closed continuum vacuum-orthogonal form. The
+opposite inequality
+$\mathfrak q_*(v,v)\leq\liminf_\nu\mathfrak q_\nu(v_\nu,v_\nu)$ is the
+lower-semicontinuity half of Mosco convergence and is needed for a full
+continuum construction, but it cannot by itself transfer a lower bound:
+its direction would allow the limiting form to be smaller. The recovery
+inequality in (YM265), together with the finite lower bound, gives the
+required direction. If, in addition,
+
+$$
+\frac{F_\nu}{a_\nu}\longrightarrow m_W\in(0,\infty),
+\tag{YM266}
+$$
+then (YM262), (YM265), the form-core property of
+$\mathscr D_{\mathrm{loc},*}$ and density of that core imply the form lower
+bound
+
+$$
+\boxed{
+\mathfrak q_*(v,v)\geq c_-m_W\|v\|_*^2
+\quad
+(v\in\mathscr D_{\mathrm{loc},*}),
+\qquad
+\operatorname{spec}(H_*-E_{0,*})
+\subseteq[c_-m_W,\infty)
+}
+\tag{YM267}
+$$
+
+for the self-adjoint operator associated with $\mathfrak q_*$, after closure.
+Thus the exact missing bridge is not positivity at each finite cutoff. It is a
+single lower bound uniform in the regulator, a strong recovery/form-transport
+statement in the direction (YM265), and the scale relation in (YM266).
+
+
+Three quantifier failures must be excluded explicitly. First,
+$\lambda_{\mathrm{gi}}(\mu_\nu)>0$ for every $\nu$ does not imply
+$\inf_\nu a_\nu\Delta_{\mathrm{phys}}/F_\nu>0$; the infimum may be zero.
+Second, density of local Wilson words at each finite graph does not imply
+density of their transported limit in the continuum GNS representation.
+Third, a finite-volume lower bound does not survive a growing-volume limit
+without uniform constants. The massless Gaussian chain in §9.22 already
+exhibits the first and third failures: every finite chain has a positive
+gap, while its lowest mode tends to zero with volume.
+
+Consequently, the next Yang–Mills proof target is the following conjunction:
+
+1. construct an exact gauge-compatible block or transfer map whose discarded
+   sector yields (YM262), including all fibre and boundary interactions;
+2. prove the constant $c_-$ is independent of $a_\nu$, $L_\nu$ and the
+   weak-coupling trajectory;
+3. prove the local correlation transport, form-core density and the
+   lower-semicontinuity/recovery statements needed for (YM265); and
+4. establish the physical scale matching (YM266) while constructing the
+   continuum representation.
+
+The fixed $2\times2$ refinement in §9.17 fails the bare-map version of item
+1 by (YM50)–(YM53). The Gaussian, finite-section and finite-graph controls
+therefore cannot be promoted to (YM262) without a new interacting fibre or
+equivalent Feshbach estimate. This section is a precise conditional
+criterion, not a proof of the Yang–Mills continuum theory or mass gap.
 
 
 ---
+
 
 ## 10. Physical tests and rejection conditions
 
@@ -7181,7 +7331,7 @@ microscopic completions.
 | Fixed-graph anisotropic transfer-to-Hamiltonian limit (YM223)–(YM241) | **Derived** fixed-regulator operator theorem with finite-character controls | Normalized central convolution with $B_\tau=4a/(g^2\epsilon)$ and symmetric magnetic half-steps has difference and logarithmic generators converging in strong resolvent sense to (YM3), and its Chernoff products converge strongly to $e^{-tH_\Lambda}$ on every fixed finite spatial graph. The exact Wilson convention map is $g_W=2^{1/4}g$, $a_\tau=\epsilon/\sqrt2$; spatial-volume uniformity, the $a\to0$ limit, continuum reconstruction and a uniform physical gap remain open |
 | Renormalized weak-coupling gap and volume criterion (YM242)–(YM248) | **Derived** two-loop asymptotic scale relation from established perturbative inputs and **Derived conditional** continuum implication | $a\Lambda_L=F_W[1+O(g_0^2)]$ requires $NF_W\to\infty$ for simultaneous infinite volume and $a\Delta/F_W$ bounded above and below for a finite positive excitation; 80/80 primary and 20/20 independent arithmetic checks pass, but no interacting gap, continuum trajectory or Osterwalder–Schrader limit is constructed |
 | Conditional RG endpoint-to-gap matching theorem (YM249)–(YM255) | **Derived conditional** scale, transfer-rate and volume implication | A bounded cumulative two-loop scale defect, fixed positive interacting endpoint rate, exact controlled block-correlation map, complete retained physical channels and continuum Osterwalder–Schrader construction are required; 139/139 primary and 32/32 independent arithmetic checks pass, while every construction hypothesis and the Clay verdict remain open |
-| Local Wilson-word algebra and GNS completeness (YM259)–(YM261) | **Derived conditional** finite gauge-invariant algebra and vacuum-orthogonal density statement | The full centered local gauge-invariant algebra supplies a complete GNS core; a selected finite Wilson family or unproved RG image does not. A uniform lower form bound at the matched $F_W$ scale and exact correlation transport remain open |
+| Local Wilson-word algebra, GNS completeness and uniform-form criterion (YM259)–(YM267) | **Derived conditional** finite gauge-invariant algebra, vacuum-orthogonal density statement and exact lower-bound transfer criterion | The full centered local gauge-invariant algebra supplies a complete finite-regulator GNS core; a selected finite Wilson family or unproved RG image does not. A regulator-uniform lower form bound, strong recovery/form transport, physical scale matching and continuum construction remain open |
 | Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, conditional-rate cutoff removal and continuum construction remain open |
 | Finite open-cube SU(2) basis and oriented Wilson support | **Derived** finite-regulator construction | The open $2\times2\times2$ cube has 32 and 1013 gauge-invariant raw trivalent-$3j$ states at doubled cutoffs $C=1,2$; every six signed fundamental plaquette operators has 32 and 2388 nonzero candidate-supported directed entries, with finite Hermitian contractions; fixed-graph character-cutoff removal follows from (YM187)–(YM195), while a growing open-boundary family and continuum control remain open |
 | Larger-volume/cutoff SU(2) Hamiltonian | **Derived** recovered finite-regulator construction and fixed-graph cutoff removal; **INCONCLUSIVE** frozen separation qualifications | The open $3\times2\times2$ graph has 868 and 955835 complete gauge-invariant states at doubled cutoffs $C=1,2$; the recovery enforces spectator-intertwiner orthogonality, all 226 finite-construction checks and 256 independent checks pass, every scheduled ground energy is nonnegative, and the separation-free theorem removes the character cutoff only after this graph and coupling are fixed |

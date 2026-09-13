@@ -2729,6 +2729,16 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   finite controls classify this statement as `DERIVED CONDITIONAL`. An exact
   RG image must still be shown to have this full local closure.
 
+  Section 9.34 states the exact remaining transfer criterion. At finite
+  regulator, a single $c_->0$ must bound the centered local form by
+  $F_W(g_\nu)/a_\nu$ uniformly in lattice spacing, volume and weak-coupling
+  index. A continuum proof additionally needs strong recovery sequences with
+  the form inequality in the recovery direction, the scale limit
+  $F_W(g_\nu)/a_\nu\to m_W>0$, and a locally normal continuum
+  representation whose centered local domain is a form core. Lower-
+  semicontinuity alone has the opposite direction and does not transfer a
+  lower bound.
+
   Every receipt retains `clay_verdict=NULL`. A uniform exact-vacuum fibre
   rate, transported score, full-sequence convergence, phase uniqueness,
   clustering, identification of the fixed-$\beta$ state with the anisotropic
@@ -2737,7 +2747,7 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   the full local algebra, a uniform interacting endpoint gap, weak-coupling
   continuum construction, continuum Osterwalder–Schrader/Wightman
   reconstruction and a regulator-independent physical mass gap remain open.
-  See `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.33 and §11
+  See `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.34 and §11
   and `field-experience/probe-outcome-ledger.md` §§30,34,36–44.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted

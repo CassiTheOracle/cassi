@@ -979,7 +979,11 @@ equivalent to a reducing retained sector and then to all-moment matching.
 The full centered local gauge-invariant algebra has the GNS closure required
 for a complete observable core. Its finite tree-gauge, Wilson-word, character,
 orientation and mutation controls pass 36/36 primary and 41/41 independent
-decisions. An unproved RG image does not inherit this closure, so the
+decisions. Section 9.34 now states the exact lower-form target
+(YM262)–(YM267): a regulator-uniform lower bound, strong recovery/form
+transport, physical scale matching, a continuum form core and continuum
+representation are separate obligations. An unproved RG image does not
+inherit this closure, so the
 correlation-map and full physical-gap obligations remain open; both receipts
 retain `clay_verdict=NULL` (`field-experience/probe-outcome-ledger.md` §§43–44).
 
