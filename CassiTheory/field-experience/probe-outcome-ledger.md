@@ -1617,9 +1617,11 @@ The frozen protocol
 `computations/yang-mills-volume-feshbach-bridge-prereg.md` tests the
 constant $C=0$ retained sector against the complete $C=1$ source space on
 the seven-link two-plaquette graph and the open $3\times2\times2$ graph. The
-outer dimensions are $4$ and $868$; the post-ground-projection Feshbach
-ranks are $\dim\mathcal P=1$ and $\dim\mathcal Q=2,866$. The fixed coupling
-schedule is $x\in\{1/64,1/16,1/4,1\}$.
+outer dimensions are $4$ and $868$. After removing the ground direction and
+retained source image, the post-ground-projection Feshbach block ranks are
+$\dim\mathcal P=1$, $\dim\mathcal Q=2$ on the small graph and
+$\dim\mathcal P=1$, $\dim\mathcal Q=866$ on the large graph. The fixed
+coupling schedule is $x\in\{1/64,1/16,1/4,1\}$.
 
 The primary receipt has status `PASS` with $84/84$ controls passing and
 classification `SUPPORTS_FINITE_VOLUME_FESHBACH_BRIDGE`. All $8/8$ rows have
@@ -1676,6 +1678,92 @@ volume, outer cutoff and the weak-coupling trajectory.
 - `computations/verify_yang_mills_volume_feshbach_bridge.py`—84-check primary two-graph bridge verifier.
 - `computations/verify_yang_mills_volume_feshbach_bridge_independent.py`—77-check independent arithmetic and provenance audit.
 - `runs/yang_mills_volume_feshbach_bridge/verification.json` and `verification-independent.json`—source-bound finite-volume bridge receipts with positive roots on both graphs and unresolved volume-uniform, continuum and mass-gap bounds.
+
+## 49. All-local-action volume-adapted family rank boundary
+
+The frozen protocol
+`computations/yang-mills-volume-adapted-feshbach-prereg.md` retains the
+vacuum and every fundamental plaquette action on both graphs. The retained
+source ranks are $3$ and $12$. On the seven-link graph the projected space
+has dimension $3$, so $\mathcal Q$ has dimension zero at all four couplings.
+The large graph has $\dim\mathcal P=12$ and $\dim\mathcal Q=855$.
+
+The primary receipt has status `FAIL`, classification `INCONCLUSIVE`, $50$
+controls and $46$ passing controls. Its four failed controls are the
+small-graph nonempty-$\mathcal Q$ domain checks. The independent receipt
+passes $53/53$ checks by reconstructing the ranks, null diagnostics,
+classification and source bindings without matrix assembly. The candidate
+remains a rank/domain boundary and supplies no finite Feshbach certificate.
+
+The source-binding order is protocol, primary source, independent source,
+primary receipt and independent receipt:
+`c60e40885b46b8fe0feeb400b9a1ef7277b8957543a6bf378bdceb70e3c6e29a`,
+`c445a6ce30041be632110bc67a5b07a6011996a387958559e00722b5181f49ba`,
+`411bb3b004329f64820d2be5c68af2dd9df297363346171a45085ffd0d906b52`,
+`78d9f3334a6c02fe5d6acf8ccab71da9d5021be01435968b2712995d911d1bb7`
+and
+`beee93c05469258ad9beec336f4a29fe04bf5e609fcfbeb2eedbdd52f54776b4`.
+
+## 50. Reserved-plaquette volume-adapted family
+
+The frozen protocol
+`computations/yang-mills-volume-adapted-feshbach-v2-prereg.md` retains the
+vacuum and every fundamental plaquette action except the final plaquette in
+the source ordering. The retained source column counts are $2$ and $11$;
+the post-ground-projection Feshbach ranks are $(2,1)$ on the small graph and
+$(11,856)$ on the large graph.
+
+The primary receipt has status `PASS` with $84/84$ controls passing and
+classification `SUPPORTS_FINITE_VOLUME_RESERVED_PLAQUETTE_FAMILY`. All
+$8/8$ rows have positive roots. The independent arithmetic and
+source-binding audit passes $85/85$ checks.
+
+| $x$ | large $\gamma/\Delta$ | large $\beta^2/(\alpha\delta_Q)$ | $\beta_{\rm large}/\beta_{\rm small}$ |
+|---:|---:|---:|---:|
+| $1/64$ | 0.9981978926 | 0.0006332943 | 11.1953568586 |
+| $1/16$ | 0.9718452911 | 0.0100503642 | 11.0660830301 |
+| $1/4$ | 0.7465837728 | 0.1222042415 | 9.5205046971 |
+| $1$ | 0.3161143619 | 0.5343088125 | 5.7412930806 |
+
+The reserved local rank grows with the graph and the finite bridge remains
+positive. The coupling norm grows strongly between the two graphs, and the
+large-graph strong-coupling ratio reaches $0.5343088125$. A volume-uniform
+$\\beta$ bound remains open, as do the lattice-spacing, recovery, continuum
+and mass-gap bounds.
+
+The source-binding order is protocol, primary source, independent source,
+v1 source, v1 protocol, v1 primary receipt, v1 independent receipt, volume
+bridge source, exact source, large source, scientific large-volume protocol,
+recovery protocol, recovered large-volume receipt, primary receipt and
+independent receipt:
+`cdba497b370abeb8fc5f00e3400095f428e8da7419919c203d36eef8e1a6f86a`,
+`669af98b0d27a0bfa82255e2d86dde20c7240078746c1c6b96a988d1d9e91827`,
+`a235b8b5cc37fe47e31440051835ab46efd8734a3816a080b1fd800a558c9488`,
+`c445a6ce30041be632110bc67a5b07a6011996a387958559e00722b5181f49ba`,
+`c60e40885b46b8fe0feeb400b9a1ef7277b8957543a6bf378bdceb70e3c6e29a`,
+`78d9f3334a6c02fe5d6acf8ccab71da9d5021be01435968b2712995d911d1bb7`,
+`beee93c05469258ad9beec336f4a29fe04bf5e609fcfbeb2eedbdd52f54776b4`,
+`abba34224e95f3aab52b5cbc04b45997e575bfc615a998d783a8bb7fccac22e5`,
+`b3ed3a4af4b84e787180654fc7e863a61e8f79693c54b9f1efe75346996c8524`,
+`87764d365f592b091a8006ed178b13ce9d2da2b519638d19b35d88c3762243af`,
+`190081eb42bc82432033fc59f3bfb4386a74760f0f4b951ec46ad461a0f056f7`,
+`5647bfa524c25672c83d5daa2e515c33313fdf118c84afd29155e1e1e5cf1821`,
+`914d4ed7da56b7e459a98ff83c08f21a8a7e12a211ace0074afd41d1f3e40837`,
+`e32deff2cc5c5f426d862ea057970065a30af6a1b8763994c66ed9519b8531ef`
+and
+`5e7a0341aaff8adf1bf1dff5a750b8a6e047e4a7def8947bbbded6b5ebde7cfd`.
+
+The next proof obligation is a collective or block-local retained family
+with a coupling norm bounded independently of spatial volume.
+
+
+- `computations/yang-mills-volume-adapted-feshbach-prereg.md`—all-local-action retained family and explicit rank/domain decision tree.
+- `computations/verify_yang_mills_volume_adapted_feshbach.py`—50-control primary rank-boundary receipt.
+- `computations/verify_yang_mills_volume_adapted_feshbach_independent.py`—53-check independent audit of the rank-boundary receipt.
+- `computations/yang-mills-volume-adapted-feshbach-v2-prereg.md`—reserved-plaquette retained family protocol.
+- `computations/verify_yang_mills_volume_adapted_feshbach_v2.py`—84-check primary reserved-plaquette bridge verifier.
+- `computations/verify_yang_mills_volume_adapted_feshbach_v2_independent.py`—85-check independent reserved-plaquette arithmetic and provenance audit.
+- `runs/yang_mills_volume_adapted_feshbach_v2/verification.json` and `verification-independent.json`—source-bound finite reserved-plaquette receipts with unresolved volume-uniform, continuum and mass-gap bounds.
 
 ## References
 

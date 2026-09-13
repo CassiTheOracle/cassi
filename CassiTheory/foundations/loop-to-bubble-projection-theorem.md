@@ -7304,8 +7304,10 @@ See `computations/yang-mills-interacting-feshbach-cutoff6-prereg.md`,
 The $C_P=0\to C_Q=1$ construction is now evaluated on the seven-link
 two-plaquette graph and the open $3\times2\times2$ graph. The retained source
 space has dimension one on both graphs, while the outer source dimensions are
-$4$ and $868$. After ground-state projection the Feshbach blocks have
-$\dim\mathcal P=1$ and $\dim\mathcal Q=2,866$. The fixed schedule is
+$4$ and $868$. After removing the ground direction and retained source
+image, the Feshbach block dimensions are $\dim\mathcal P=1$,
+$\dim\mathcal Q=2$ on the small graph and $\dim\mathcal P=1$,
+$\dim\mathcal Q=866$ on the large graph. The fixed schedule is
 $x\in\{1/64,1/16,1/4,1\}$.
 
 The primary execution passes $84/84$ controls and all $8/8$ rows have a
@@ -7340,6 +7342,59 @@ See `computations/yang-mills-volume-feshbach-bridge-prereg.md`,
 `computations/verify_yang_mills_volume_feshbach_bridge.py`,
 `computations/verify_yang_mills_volume_feshbach_bridge_independent.py` and
 `field-experience/probe-outcome-ledger.md` §48.
+
+### 9.36 Rank boundary of the all-local-action family
+
+The all-local-action candidate retains the vacuum and every fundamental
+plaquette action on each graph. Its retained source ranks are $3$ on the
+seven-link graph and $12$ on the open $3\times2\times2$ graph. On the small
+graph the projected space has dimension $3$, so the retained image exhausts
+it and $\mathcal Q$ has dimension zero at all four couplings. The primary
+receipt records $50$ controls with $46$ passing and classification
+`INCONCLUSIVE`; the independent audit passes $53/53$ checks. The large graph
+has $\dim\mathcal P=12$ and $\dim\mathcal Q=855$, with positive roots in all
+four rows. The all-local-action family remains at this rank and domain
+boundary and carries no finite Feshbach certificate.
+
+See `computations/yang-mills-volume-adapted-feshbach-prereg.md`,
+`computations/verify_yang_mills_volume_adapted_feshbach.py`,
+`computations/verify_yang_mills_volume_adapted_feshbach_independent.py` and
+`field-experience/probe-outcome-ledger.md` §49.
+
+### 9.37 Reserved-plaquette volume-adapted family
+
+The reserved-plaquette construction retains the vacuum and every fundamental
+plaquette action except the lexicographically final source-order plaquette.
+The retained source column counts are $2$ and $11$ on the small and large
+graphs. After ground projection the Feshbach ranks are
+$(\dim\mathcal P,\dim\mathcal Q)=(2,1)$ on the small graph and $(11,856)$ on
+the large graph.
+
+The primary receipt passes $84/84$ controls and all $8/8$ rows have positive
+Schur roots, with classification
+`SUPPORTS_FINITE_VOLUME_RESERVED_PLAQUETTE_FAMILY`. The independent
+arithmetic and source-binding audit passes $85/85$ checks.
+
+| $x$ | large $\gamma/\Delta$ | large $\beta^2/(\alpha\delta_Q)$ | $\beta_{\rm large}/\beta_{\rm small}$ |
+|---:|---:|---:|---:|
+| $1/64$ | 0.9981978926 | 0.0006332943 | 11.1953568586 |
+| $1/16$ | 0.9718452911 | 0.0100503642 | 11.0660830301 |
+| $1/4$ | 0.7465837728 | 0.1222042415 | 9.5205046971 |
+| $1$ | 0.3161143619 | 0.5343088125 | 5.7412930806 |
+
+At $x=1$ on the large graph the labeled diagnostics are
+$\alpha=4.6186842745$, $\delta_Q=4.1374120229$,
+$\beta=3.1953592504$, $\beta^2/(\alpha\delta_Q)=0.5343088125$,
+$\Phi(0)=2.1508805647$ and $\gamma_{\rm Fesh}=1.1736407957$.
+The local retained rank grows with the graph and the finite bridge remains
+positive, while the coupling norm grows more strongly than in the constant
+retained-sector screen. The volume-uniform $\beta$ bound remains open, as do
+the lattice-spacing, recovery, continuum and mass-gap bounds.
+
+See `computations/yang-mills-volume-adapted-feshbach-v2-prereg.md`,
+`computations/verify_yang_mills_volume_adapted_feshbach_v2.py`,
+`computations/verify_yang_mills_volume_adapted_feshbach_v2_independent.py` and
+`field-experience/probe-outcome-ledger.md` §50.
 
 
 
