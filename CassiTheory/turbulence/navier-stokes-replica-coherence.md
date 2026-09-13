@@ -1425,6 +1425,99 @@ initial-data control is unresolved. Full rank alone cannot provide it:
 periodic shear has $\mathcal K=0$, and nearly rank-deficient data can have
 arbitrarily small recovered eigenvalues. Even isotropic $R$ leaves
 $\mathcal H=W$.
+### 12.5.1 Algebraic baseline for the relative target
+
+The relative-compensation target has an exact algebraic baseline. At a fixed
+smooth time, write
+
+$$
+d_R=(\det R)^{1/3},
+\qquad
+h_R=\operatorname{tr}R-3d_R,
+\qquad
+h_M=|\omega|^2+h_R.
+\tag{115a}
+$$
+
+Thus $\mathcal H(t)=\int_{\mathbb T^3}h_M\,dx$ and
+$\mathcal K(t)=3\int_{\mathbb T^3}d_R\,dx$. For a fixed $0<\theta<1$, set
+
+$$
+a_\theta(t)=
+\sqrt{2}\,\|S(t)\|_{L^\infty}
++\theta^{-1}\|S(t)\|_{L^\infty}^2.
+\tag{115b}
+$$
+
+**Lemma.** Every smooth solution satisfies, at each time before its
+continuation time,
+
+$$
+\boxed{
+2\int_{\mathbb T^3}S:M\,dx
+\le
+\theta\mathcal K(t)+2a_\theta(t)\mathcal H(t).}
+\tag{115c}
+$$
+
+To prove this for every positive-semidefinite $R$, let $r_1,r_2,r_3$ be its
+eigenvalues, put $V=\sum_i r_i$, and first suppose $d_R>0$. With
+$x_i=r_i/d_R$, $s=\sum_i x_i=V/d_R\ge3$, and
+$q=\sum_{i<j}x_ix_j\ge3$, one has
+
+$$
+\sum_i(r_i-d_R)^2
+=d_R^2\left(s^2-2q-2s+3\right)
+\le
+d_R^2(s-3)(s+1)
+\le
+2V(V-3d_R).
+\tag{115d}
+$$
+
+If $d_R=0$, then $h_R=V$ and
+$\sum_i(r_i-d_R)^2=\sum_i r_i^2\le V^2\le2Vh_R$, so (115d) holds in that
+case as well. Since $V=h_R+3d_R$, (115d) gives
+
+$$
+\|R-d_RI\|_F
+\le
+\sqrt{2}\,h_R+\sqrt{6d_Rh_R}.
+\tag{115e}
+$$
+
+Trace-freeness of $S$ and $M=\omega\omega^{\mathsf T}+R$ now yield the
+pointwise estimate
+
+$$
+\begin{aligned}
+2S:M
+&\le
+2|S|\,|\omega|^2
++2\sqrt{2}|S|\,h_R
++2\sqrt{6}|S|\sqrt{d_Rh_R}\\
+&\le
+3\theta d_R+
+\left(2\sqrt{2}|S|+2\theta^{-1}|S|^2\right)
+\left(|\omega|^2+h_R\right),
+\end{aligned}
+\tag{115f}
+$$
+
+where the last step is $2ab\le\theta a^2+\theta^{-1}b^2$ with
+$a=\sqrt{3d_R}$ and $b=\sqrt{2}|S|\sqrt{h_R}$. Integrating (115f) and
+using the spatial $L^\infty$ norm gives (115c).
+
+This is a conditional baseline, not a closure of (115)--(116). It instantiates
+(115) with $b=0$ along an already smooth solution, but its coefficient
+requires a uniform initial-data-ball bound on
+$\int_0^{\min(T,T_*)}(\|S(t)\|_{L^\infty}
++\|S(t)\|_{L^\infty}^2)\,dt$. The energy identity and determinant recovery do
+not provide that bound. The all-data production-relative estimate, and hence
+arbitrary-data regularity, remain unresolved; the open step is precisely to
+replace this continuation-level coefficient by a data-controlled integrable
+one.
+
 
 
 ### 12.6 Canonical signed shell target
