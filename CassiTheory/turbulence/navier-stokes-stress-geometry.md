@@ -563,23 +563,49 @@ W(t)\left[
 P(t)=\int_{\mathbb T^3}\omega\cdot S\omega\,dx.
 }
 $$
-The smooth periodic remainder is absorbed into the second term when $\rho\le1$. If
+The smooth periodic remainder is absorbed into the second term when
+$\rho\le1$. Set
+$\bar\rho=\min(1,\rho_{\mathbb T})$ and $B=\|\omega\|_{L^2}$. For
+$\Gamma M>0$, an unconstrained balancing radius is
 $$
 \rho_*\asymp
-\left(\frac{\|\omega\|_{L^2}}{\Gamma M}\right)^{1/(\alpha+3/2)}
+\left(\frac{B}{\Gamma M}\right)^{1/(\alpha+3/2)}.
 $$
-lies in the local range, optimization gives
+If $\rho_*\le\bar\rho$, this radius lies in the chart and optimization
+gives
 $$
 \boxed{
 |P(t)|
 \lesssim_{\alpha,\mathbb T}
 W(t)\,
 (\Gamma(t)M(t))^{3/(2\alpha+3)}
-\|\omega(t)\|_{L^2}^{\,2\alpha/(2\alpha+3)}.
+B(t)^{\,2\alpha/(2\alpha+3)}.
 }
 $$
-For the Lipschitz case $\alpha=1$, the coefficient is
-$(\Gamma M)^{3/5}\|\omega\|_2^{2/5}$. The high-vorticity version of the direction condition adds a low-vorticity remainder; it leaves the same local cancellation and the same need for a time-integrated bound.
+If $\rho_*>\bar\rho$, the local hypothesis cannot be used at the
+unconstrained optimizer; choose the boundary radius $\rho=\bar\rho$
+instead and retain
+$$
+|P(t)|
+\le C_{\alpha,\mathbb T}W(t)
+\left[
+\Gamma(t)M(t)\bar\rho^\alpha
++B(t)\bar\rho^{-3/2}
+\right].
+$$
+When $\Gamma M=0$, $\rho_*$ is not defined and the same boundary choice
+gives
+$$
+|P(t)|\le C_{\alpha,\mathbb T}W(t)B(t)\bar\rho^{-3/2}.
+$$
+There is no admissible $\rho=0$ endpoint because the far term diverges
+there. The far estimate covers only the finitely many periodic shells
+outside the local radius; the direction hypothesis is not extended to
+those shells. For the Lipschitz case $\alpha=1$, the interior coefficient
+is $(\Gamma M)^{3/5}B^{2/5}$, while the boundary cases retain the
+unoptimized expression above. The high-vorticity version of the direction
+condition adds a low-vorticity remainder; it leaves the same local
+cancellation and the same need for a time-integrated bound.
 
 The pressure equation and the unfiltered strain equation are
 $$
