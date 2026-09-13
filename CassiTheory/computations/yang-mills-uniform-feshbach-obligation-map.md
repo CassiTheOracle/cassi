@@ -178,6 +178,95 @@ $$
 
 with the bound uniform in lattice spacing, volume, coupling, block position, boundary fibre and representation cutoff. A finite full-volume gap used as a Ritz-resolution oracle is a row-wise assumption; it is not a proof of (UF7).
 
+### UF-B.1 The elementary Casimir bound is non-uniform
+
+The one-link character estimate gives an exact finite-volume form inequality, but its shifted version cannot supply the trajectory-uniform discarded resolvent. Write the dimensionless Hamiltonian and its physical normalization as
+
+$$
+h_\nu=K_\nu+x_\nu V_\nu,
+\qquad
+H_\nu=\frac{g_\nu^2}{2a_\nu}h_\nu,
+\qquad
+x_\nu=\frac{2}{g_\nu^4},
+\qquad
+0\leq V_\nu\leq4N_{p,\nu}I.
+\tag{UF-B.1a}
+$$
+
+For a finite link set $S$, let $P_{C,S}$ and $Q_{C,S}$ be the character projectors in (UF2)–(UF3), and let
+
+$$
+\kappa_C=\frac{(C+1)(C+3)}4.
+$$
+
+Commutativity of the link Casimirs gives the exact operator inequality
+
+$$
+Q_{C,S}K_\nu Q_{C,S}\succeq\kappa_CQ_{C,S}.
+\tag{UF-B.2a}
+$$
+
+If $e_{0,\nu}$ is the lowest eigenvalue of $h_\nu$, then positivity of $V_\nu$ yields
+
+$$
+Q_{C,S}(h_\nu-e_{0,\nu})Q_{C,S}
+\succeq
+(\kappa_C-e_{0,\nu})Q_{C,S}.
+\tag{UF-B.3a}
+$$
+
+The constant gauge-invariant wavefunction is a variational state with zero electric energy and plaquette expectation $2$, so
+
+$$
+e_{0,\nu}\leq2x_\nu N_{p,\nu}.
+\tag{UF-B.4a}
+$$
+
+Consequently the elementary estimate certifies only
+
+$$
+Q_{C,S}Y_\nu Q_{C,S}
+\succeq
+\frac{g_\nu^2}{2F_\nu}
+\left(\kappa_C-2x_\nu N_{p,\nu}\right)Q_{C,S},
+\qquad
+Y_\nu=\frac{a_\nu}{F_\nu}(H_\nu-E_{0,\nu}).
+\tag{UF-B.5a}
+$$
+
+It gives a positive discarded-sector margin only when $\kappa_C>2x_\nu N_{p,\nu}$. On the frozen trajectory in §1, $N_{p,\nu}=3L_\nu^3$ and $L_\nu=\Theta(F_\nu^{-2})$. Since
+
+$$
+x_\nu N_{p,\nu}
+=\Theta\!\left(g_\nu^{-4}F_\nu^{-6}\right)
+=\Theta\!\left(\nu^{\,2-6p}e^{3\nu/b_0}\right),
+\qquad
+b_0=\frac{11}{24\pi^2},
+\qquad
+p=\frac{51}{121}.
+$$
+
+while every polynomial cutoff $C_\nu=O(\nu^r)$ has $\kappa_{C_\nu}=O(\nu^{2r})$, the ratio
+
+$$
+\frac{\kappa_{C_\nu}}{2x_\nu N_{p,\nu}}
+\longrightarrow0.
+\tag{UF-B.6a}
+$$
+
+A log-domain evaluation of (UF-B.5) with the illustrative polynomial schedule $C_\nu=\nu^3$ gives:
+
+| $\nu$ | $C_\nu$ | $\log_2L_\nu$ | $\log_{10}\!\left[\kappa_{C_\nu}/(2x_\nu N_{p,\nu})\right]$ | certified sign |
+|---:|---:|---:|---:|:---|
+| 1 | 1 | 274 | $-250.133$ | negative |
+| 2 | 8 | 305 | $-277.128$ | negative |
+| 4 | 64 | 367 | $-331.635$ | negative |
+| 8 | 512 | 490 | $-441.182$ | negative |
+| 16 | 4096 | 738 | $-663.697$ | negative |
+| 32 | 32768 | 1235 | $-1111.171$ | negative |
+
+This is a counter-obstruction to the elementary Casimir-plus-extensive-ground-energy proof route, not a counterexample to UF-B itself. The true discarded resolvent estimate must control $h_\nu-e_{0,\nu}$ directly on the $Q$ sector, including the vacuum-energy cancellation and every block-boundary and fibre interaction. The fixed-support local cutoff theorem supplies neither this cancellation nor that boundary and fibre control; it therefore cannot discharge UF-B or UF-C along the continuum trajectory.
+
 ### UF-C. Uniform Schur lower bound
 
 The interacting self-energy must obey the endpoint inequality on every retained local span:
@@ -221,6 +310,7 @@ $$
 
 and establish $F_\nu/a_\nu\to m_W\in(0,\infty)$. The form-core closure then gives the conditional continuum lower bound in (YM267), with spectral threshold at least $c_-m_W$.
 
+
 ## 4. Current Feshbach evidence tested against UF-A–UF-E
 
 The following receipts are the current finite evidence inventory. Their classifications are retained exactly; the quantifier column records the obligation coverage required by (UF1).
@@ -254,7 +344,7 @@ No new Feshbach receipt is scheduled until an exact block/transfer construction 
 
 ## References
 
-- `foundations/loop-to-bubble-projection-theorem.md` §§9.13, 9.20, 9.33–9.34—vacuum form, conditional recurrence, local completeness and the uniform lower-form criterion.
+- `foundations/loop-to-bubble-projection-theorem.md` §§9.13, 9.20, 9.25–9.26, 9.30, 9.33–9.34—vacuum form, finite character bounds, scale matching, local completeness and the uniform lower-form criterion.
 - `computations/yang-mills-4x2x2-c1-feshbach-prereg.md`—finite translated $4\times2\times2$ screen and its declared evidence boundary.
 - `computations/yang-mills-interacting-feshbach-prereg.md`—fixed-graph interacting resolvent and Schur inequalities.
 - `computations/yang-mills-transport-score-prereg.md`—conditional $H^{-1}$ transport recurrence and Gaussian controls.
