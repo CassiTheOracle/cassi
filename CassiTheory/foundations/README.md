@@ -210,7 +210,7 @@ baryon-production coupling remain open.
 | 33 | `physical-becoming-hierarchy.md` | Actual physics, embodied history, action-conditioned shadows, bounded control, and learning in one causal state hierarchy | Hypothesized architecture / Derived canonical reduction—September 2026 |
 | 34 | `qi-loop-mass-cascade.md` | Conditional compact two-fluid ring and mass-selection boundary | Derived conditional ring algebra / Tested conditional branch / Hypothesized physical identification |
 | 35 | `string-bubble-projective-map.md` | Complex CassiFI state, Yin/Yang densities, and quadratic bubble shell in one projective geometry | Derived conditional geometry, affine group action, and conversion-only flow / Hypothesized phase dynamics, physical identification, and fivefold selector |
-| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling character-cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem and global-norm obstruction, conditional fixed-regulator thermodynamic ground-state subsequence, exact fixed-link three-sphere geometry, two-scale conditional-score recurrence, $H^{-1}$ transport-score margin transfer, residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
+| 36 | `loop-to-bubble-projection-theorem.md` | Shared-support loop, canonical projection, coherence ball, internal spectrum and pure-gauge comparison | Derived conditional carrier projection and spectrum / Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling character-cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem and global-norm obstruction, conditional fixed-regulator thermodynamic ground-state and Euclidean reflection-positive Gibbs subsequences, exact fixed-graph anisotropic Wilson transfer-to-Hamiltonian limit, exact fixed-link three-sphere geometry, two-scale conditional-score recurrence, $H^{-1}$ transport-score margin transfer, residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional full-holonomy block theorem, and exact bare-cylindrical refinement obstruction / Hypothesized microscopic physical identification |
 | 37 | `interscale-current-soliton.md` | Complex Yang/Yin scale current, phase-current projection and conditional soliton pinch | Hypothesized action and Wilson-link extension / Derived conditional current, endpoint, support and phase-current boundaries / Mapped selected carrier coupling / Tested finite-grid spectrum, rotational and phase-coercivity controls, and conditional smooth scalar binding |
 | 38 | `geometric-manifold-completion.md` | Stratified Yang/Yin fibre, scale graph and canonical reduction | Hypothesized completion / Derived conditional fibre geometry and canonical reduction / Mapped selected carrier coupling / Tested finite-grid spectrum and conditional smooth scalar binding |
 | 39 | `endpoint-link-and-localization-boundary.md` | Conditional endpoint covariance, response, transport and localization boundary | Hypothesized Wilson extension / Derived conditional endpoint and localization boundaries / Tested finite-grid spectrum and conditional smooth scalar binding |
@@ -775,7 +775,7 @@ even pairs, and the supplied fivefold phase orbit preserves the normalized
 $\varphi$ chord ratio. LB1–LB7 verify these identities. The physical carrier,
 phase law, scale ratio, and quantum-sector identification remain open.
 
-The separate pure-$SU(2)$ comparison in §§9.4–9.27 retains full loop
+The separate pure-$SU(2)$ comparison in §§9.4–9.29 retains full loop
 holonomy. Gauss invariance gives an exact electric threshold on girth-four
 lattice graphs, and projective bubble data discard a phase that changes
 Wilson magnetic energy. Yarotsky's stability theorem supplies a
@@ -920,6 +920,31 @@ uniqueness, clustering, interacting boundary-sector recoupling,
 volume-uniform resolvent control, the weak-coupling continuum limit, a
 regulator-independent mass gap and physical carrier identification remain
 open.
+
+At each fixed Wilson coupling $\beta>0$, positive normalized-Haar character
+coefficients and the established finite-lattice reflection and transfer
+theorems give a conditional Euclidean counterpart. Compact local marginals
+admit a translation-, gauge- and reflection-invariant DLR subsequence, whose
+positive-time cylinder algebra defines a fixed-regulator
+Osterwalder–Schrader Hilbert space. The 308/308 primary and 22/22 independent
+checks reconstruct the finite coefficient and kernel identities. They do not
+construct the infinite-volume measure.
+
+The separate anisotropic family
+$B_\tau=4a/(g^2\epsilon)$,
+$B_\sigma=2\epsilon/(g^2a)$ has an exact fixed-graph Hamiltonian limit.
+Normalized central convolution and symmetric magnetic half-steps give
+difference and logarithmic generators converging in strong-resolvent sense
+to (YM3); their Chernoff products converge strongly to the heat semigroup.
+The bare-convention map is
+$g_W=2^{1/4}g$, $a_\tau=\epsilon/\sqrt2$.
+The 414/414 primary and 24/24 independent checks reconstruct 36
+finite-character rows, semigroup products, normalizations and firing
+controls. The result is not uniform in the spatial graph, lattice spacing or
+coupling. Identification of the fixed-$\beta$ state with this anisotropic
+family, the weak-coupling continuum limit, continuum reconstruction and a
+regulator-independent mass gap remain open. Every receipt retains
+`clay_verdict=NULL`.
 
 ### `interscale-current-soliton.md`—Interscale Yang/Yin Current and the Conditional Soliton Pinch
 

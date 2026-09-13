@@ -140,6 +140,29 @@ EUCLIDEAN_INDEPENDENT_RECEIPT = (
     / "yang_mills_euclidean_reflection_positive"
     / "verification-independent.json"
 )
+HAMILTONIAN_LIMIT_PROTOCOL = (
+    ROOT / "computations" / "yang-mills-anisotropic-hamiltonian-limit-prereg.md"
+)
+HAMILTONIAN_LIMIT_PRIMARY_SOURCE = (
+    ROOT / "computations" / "verify_yang_mills_anisotropic_hamiltonian_limit.py"
+)
+HAMILTONIAN_LIMIT_INDEPENDENT_SOURCE = (
+    ROOT
+    / "computations"
+    / "verify_yang_mills_anisotropic_hamiltonian_limit_independent.mjs"
+)
+HAMILTONIAN_LIMIT_PRIMARY_RECEIPT = (
+    ROOT
+    / "runs"
+    / "yang-mills-anisotropic-hamiltonian-limit"
+    / "verification.json"
+)
+HAMILTONIAN_LIMIT_INDEPENDENT_RECEIPT = (
+    ROOT
+    / "runs"
+    / "yang-mills-anisotropic-hamiltonian-limit"
+    / "verification-independent.json"
+)
 
 
 
@@ -339,6 +362,11 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         EUCLIDEAN_INDEPENDENT_SOURCE,
         EUCLIDEAN_PRIMARY_RECEIPT,
         EUCLIDEAN_INDEPENDENT_RECEIPT,
+        HAMILTONIAN_LIMIT_PROTOCOL,
+        HAMILTONIAN_LIMIT_PRIMARY_SOURCE,
+        HAMILTONIAN_LIMIT_INDEPENDENT_SOURCE,
+        HAMILTONIAN_LIMIT_PRIMARY_RECEIPT,
+        HAMILTONIAN_LIMIT_INDEPENDENT_RECEIPT,
         EXCLUDED_PRIMARY_RECEIPT,
         EXCLUDED_INDEPENDENT_RECEIPT,
     ]
@@ -383,6 +411,10 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
     thermodynamic_independent = load_json(THERMODYNAMIC_INDEPENDENT_RECEIPT)
     euclidean_primary = load_json(EUCLIDEAN_PRIMARY_RECEIPT)
     euclidean_independent = load_json(EUCLIDEAN_INDEPENDENT_RECEIPT)
+    hamiltonian_limit_primary = load_json(HAMILTONIAN_LIMIT_PRIMARY_RECEIPT)
+    hamiltonian_limit_independent = load_json(
+        HAMILTONIAN_LIMIT_INDEPENDENT_RECEIPT
+    )
 
     current_protocol = validate_protocol_snapshot_relation()
     hashes = {
@@ -426,6 +458,19 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         "euclidean_independent_source": sha256(EUCLIDEAN_INDEPENDENT_SOURCE),
         "euclidean_primary_receipt": sha256(EUCLIDEAN_PRIMARY_RECEIPT),
         "euclidean_independent_receipt": sha256(EUCLIDEAN_INDEPENDENT_RECEIPT),
+        "hamiltonian_limit_protocol": sha256(HAMILTONIAN_LIMIT_PROTOCOL),
+        "hamiltonian_limit_primary_source": sha256(
+            HAMILTONIAN_LIMIT_PRIMARY_SOURCE
+        ),
+        "hamiltonian_limit_independent_source": sha256(
+            HAMILTONIAN_LIMIT_INDEPENDENT_SOURCE
+        ),
+        "hamiltonian_limit_primary_receipt": sha256(
+            HAMILTONIAN_LIMIT_PRIMARY_RECEIPT
+        ),
+        "hamiltonian_limit_independent_receipt": sha256(
+            HAMILTONIAN_LIMIT_INDEPENDENT_RECEIPT
+        ),
         "excluded_primary_receipt": sha256(EXCLUDED_PRIMARY_RECEIPT),
         "excluded_independent_receipt": sha256(EXCLUDED_INDEPENDENT_RECEIPT),
     }
@@ -982,6 +1027,205 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             else None
         ),
     )
+    hamiltonian_primary_summary = hamiltonian_limit_primary.get("summary", {})
+    hamiltonian_independent_summary = hamiltonian_limit_independent.get(
+        "summary", {}
+    )
+    check(
+        "anisotropic Hamiltonian-limit primary and independent receipts pass",
+        hamiltonian_limit_primary.get("schema")
+        == "cassi.yang-mills.anisotropic-hamiltonian-limit.verification.v1"
+        and hamiltonian_limit_primary.get("verdict") == "PASS"
+        and hamiltonian_primary_summary.get("matrix_rows") == 36
+        and hamiltonian_primary_summary.get("convergence_families") == 9
+        and hamiltonian_primary_summary.get("passing_checks")
+        == hamiltonian_primary_summary.get("total_checks")
+        == 414
+        and hamiltonian_limit_independent.get("schema")
+        == "cassi.yang-mills.anisotropic-hamiltonian-limit.verification-independent.v1"
+        and hamiltonian_limit_independent.get("verdict") == "PASS"
+        and hamiltonian_independent_summary.get("reconstructed_rows") == 36
+        and hamiltonian_independent_summary.get(
+            "reconstructed_convergence_families"
+        )
+        == 9
+        and hamiltonian_independent_summary.get("passing_checks")
+        == hamiltonian_independent_summary.get("checks")
+        == 24,
+        primary_summary=hamiltonian_primary_summary,
+        independent_summary=hamiltonian_independent_summary,
+    )
+    hamiltonian_primary_bindings = hamiltonian_limit_primary.get(
+        "source_bindings", {}
+    )
+    hamiltonian_independent_bindings = hamiltonian_limit_independent.get(
+        "source_bindings", {}
+    )
+    check(
+        "anisotropic Hamiltonian-limit protocol sources and receipt are hash bound",
+        hamiltonian_primary_bindings.get("protocol", {}).get("sha256")
+        == hamiltonian_independent_bindings.get("protocol", {}).get("sha256")
+        == hashes["hamiltonian_limit_protocol"]
+        and hamiltonian_primary_bindings.get("primary", {}).get("sha256")
+        == hamiltonian_independent_bindings.get("primary", {}).get("sha256")
+        == hashes["hamiltonian_limit_primary_source"]
+        and hamiltonian_independent_bindings.get("independent", {}).get(
+            "sha256"
+        )
+        == hashes["hamiltonian_limit_independent_source"]
+        and hamiltonian_independent_bindings.get("primary_receipt", {}).get(
+            "sha256"
+        )
+        == hashes["hamiltonian_limit_primary_receipt"],
+        protocol_sha256=hashes["hamiltonian_limit_protocol"],
+        primary_source_sha256=hashes["hamiltonian_limit_primary_source"],
+        independent_source_sha256=hashes[
+            "hamiltonian_limit_independent_source"
+        ],
+        primary_receipt_sha256=hashes["hamiltonian_limit_primary_receipt"],
+    )
+    hamiltonian_parameters = hamiltonian_limit_primary.get("parameters", {})
+    hamiltonian_normalization = hamiltonian_limit_primary.get(
+        "normalization", {}
+    )
+    hamiltonian_rows = hamiltonian_limit_primary.get("matrix_rows", [])
+    hamiltonian_families = hamiltonian_limit_primary.get(
+        "convergence_families", []
+    )
+    hamiltonian_top_checks = hamiltonian_limit_primary.get(
+        "top_level_checks", []
+    )
+    hamiltonian_semigroup = hamiltonian_limit_primary.get("fixtures", {}).get(
+        "semigroup", {}
+    )
+    check(
+        "anisotropic coefficient, generator, and product schedules reconstruct",
+        hamiltonian_parameters.get("g_squared_values") == [0.5, 1.0, 2.0]
+        and hamiltonian_parameters.get("cutoffs") == [2, 4, 6]
+        and hamiltonian_parameters.get("deltas")
+        == [2.0**-8, 2.0**-9, 2.0**-10, 2.0**-11]
+        and hamiltonian_parameters.get("semigroup_steps") == [64, 128, 256, 512]
+        and hamiltonian_normalization.get("beta_tau")
+        == "4*a/(g_squared*epsilon)"
+        and hamiltonian_normalization.get("beta_sigma")
+        == "2*epsilon/(g_squared*a)"
+        and hamiltonian_normalization.get(
+            "character_parameter_equals_twice_action_beta"
+        )
+        is True
+        and close(
+            hamiltonian_normalization.get(
+                "wilson_g_squared_over_target_g_squared", 0.0
+            ),
+            math.sqrt(2.0),
+        )
+        and close(
+            hamiltonian_normalization.get(
+                "target_epsilon_over_wilson_a_tau", 0.0
+            ),
+            math.sqrt(2.0),
+        )
+        and len(hamiltonian_rows) == 36
+        and all(row.get("passed") is True for row in hamiltonian_rows)
+        and len(hamiltonian_families) == 9
+        and all(row.get("passed") is True for row in hamiltonian_families)
+        and len(hamiltonian_top_checks) == 18
+        and all(row.get("passed") is True for row in hamiltonian_top_checks)
+        and len(hamiltonian_semigroup.get("rows", [])) == 4
+        and hamiltonian_semigroup.get("strictly_decreasing") is True
+        and hamiltonian_semigroup.get("final_to_first_ratio", 1.0) < 0.2,
+        parameters=hamiltonian_parameters,
+        normalization=hamiltonian_normalization,
+        matrix_rows=len(hamiltonian_rows),
+        convergence_families=len(hamiltonian_families),
+        semigroup=hamiltonian_semigroup,
+    )
+    hamiltonian_fixtures = hamiltonian_limit_primary.get("fixtures", {})
+    hamiltonian_claims = hamiltonian_limit_primary.get("claims", {})
+    hamiltonian_independent_claims = hamiltonian_limit_independent.get(
+        "claims", {}
+    )
+    hamiltonian_independent_reconstruction = hamiltonian_limit_independent.get(
+        "reconstruction", {}
+    )
+    hamiltonian_gap_rows = hamiltonian_fixtures.get("gap_controls", [])
+    check(
+        "anisotropic implication controls and claim boundary stay explicit",
+        close(hamiltonian_fixtures.get("temporal_mutation_ratio", 0.0), 2.0)
+        and close(hamiltonian_fixtures.get("spatial_mutation_ratio", 0.0), 2.0)
+        and hamiltonian_fixtures.get(
+            "unnormalized_vacuum_eigenvalue_at_beta_4", 0.0
+        )
+        > 1.0
+        and hamiltonian_fixtures.get(
+            "asymmetric_product_max_abs_residual", 0.0
+        )
+        > 1.0e-3
+        and len(hamiltonian_gap_rows) == 6
+        and all(row.get("gap", 0.0) > 0.0 for row in hamiltonian_gap_rows)
+        and hamiltonian_gap_rows[-1]["gap"] / hamiltonian_gap_rows[0]["gap"]
+        < 0.01
+        and hamiltonian_claims.get("analytic_fixed_graph_core_limit") is True
+        and hamiltonian_claims.get(
+            "analytic_fixed_graph_strong_resolvent_limit"
+        )
+        is True
+        and hamiltonian_claims.get("analytic_fixed_graph_log_generator_limit")
+        is True
+        and hamiltonian_claims.get("analytic_fixed_graph_chernoff_limit") is True
+        and hamiltonian_claims.get("fixed_graph_anisotropic_hamiltonian_limit")
+        == "PASS"
+        and hamiltonian_claims.get(
+            "fixed_beta_gibbs_identified_with_anisotropic_limit"
+        )
+        is False
+        and hamiltonian_claims.get("spatial_volume_uniformity_established")
+        is False
+        and hamiltonian_claims.get("lattice_spacing_limit_established") is False
+        and hamiltonian_claims.get("continuum_limit_established") is False
+        and hamiltonian_claims.get("uniform_mass_gap_established") is False
+        and hamiltonian_claims.get("clay_verdict") == "NULL"
+        and hamiltonian_independent_claims.get(
+            "spatial_volume_uniformity_established"
+        )
+        is False
+        and hamiltonian_independent_claims.get("continuum_limit_established")
+        is False
+        and hamiltonian_independent_claims.get("uniform_mass_gap_established")
+        is False
+        and hamiltonian_independent_claims.get("clay_verdict") == "NULL"
+        and len(
+            hamiltonian_independent_reconstruction.get("reconstructedRows", [])
+        )
+        == 36
+        and len(
+            hamiltonian_independent_reconstruction.get(
+                "reconstructedConvergence", []
+            )
+        )
+        == 9
+        and hamiltonian_independent_reconstruction.get(
+            "semigroupMaximumDifference", 1.0
+        )
+        < 1.0e-10,
+        temporal_mutation_ratio=hamiltonian_fixtures.get(
+            "temporal_mutation_ratio"
+        ),
+        spatial_mutation_ratio=hamiltonian_fixtures.get("spatial_mutation_ratio"),
+        raw_vacuum_eigenvalue=hamiltonian_fixtures.get(
+            "unnormalized_vacuum_eigenvalue_at_beta_4"
+        ),
+        asymmetric_residual=hamiltonian_fixtures.get(
+            "asymmetric_product_max_abs_residual"
+        ),
+        gap_final_to_first=(
+            hamiltonian_gap_rows[-1]["gap"] / hamiltonian_gap_rows[0]["gap"]
+            if hamiltonian_gap_rows
+            else None
+        ),
+        claims=hamiltonian_claims,
+        independent_claims=hamiltonian_independent_claims,
+    )
 
     receipt_protocol_hashes = {
         primary["protocol_sha256"], independent.get("protocol_sha256")
@@ -1152,7 +1396,7 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
 
     theory = THEORY_SOURCE.read_text(encoding="utf-8")
     check(
-        "theory separates fixed-regulator Euclidean support from the open Clay target",
+        "theory separates fixed-regulator bridges from the open Clay target",
         "Fixed-graph character-cutoff form theorem (YM187)–(YM195) | **Derived**"
         in theory
         and "Volume-uniform local cutoff density and global-norm obstruction "
@@ -1164,21 +1408,24 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
         and "Fixed-regulator Euclidean reflection-positive Gibbs subsequence "
         "(YM214)–(YM222) | **Derived conditional**"
         in theory
+        and "Fixed-graph anisotropic transfer-to-Hamiltonian limit "
+        "(YM223)–(YM241) | **Derived**"
+        in theory
         and "`thermodynamic_state_constructed_by_verifier=false`" in theory
         and "`infinite_volume_measure_constructed_by_verifier=false`" in theory
-        and "`clay_verdict=NULL`" in theory
+        and "Both receipts record\n`clay_verdict=NULL`." in theory
         and "Continuum Yang–Mills existence and mass gap | **Open**" in theory,
     )
 
-    if len(checks) != 38:
-        raise RuntimeError(f"expected 38 audit checks, constructed {len(checks)}")
+    if len(checks) != 42:
+        raise RuntimeError(f"expected 42 audit checks, constructed {len(checks)}")
     all_passed = all(row["passed"] for row in checks)
     record: dict[str, Any] = {
-        "schema": "yang_mills_continuum_boundary_audit_v6",
+        "schema": "yang_mills_continuum_boundary_audit_v7",
         "status": "PASS" if all_passed else "FAIL",
         "verdict": "UNRESOLVED_CONTINUUM_PROBLEM",
         "clay_verdict": "NULL",
-        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence, fixed-graph and local cutoff control, conditional thermodynamic finite-identity evidence, and fixed-regulator Euclidean reflection support against the Clay Yang-Mills existence and mass-gap obligations",
+        "scope": "Hash-bound audit of recovered finite SU(2) Hamiltonian evidence, fixed-graph and local cutoff control, conditional thermodynamic and Euclidean subsequences, and the exact fixed-graph anisotropic transfer-to-Hamiltonian limit against the Clay Yang-Mills existence and mass-gap obligations",
         "audit_source": {
             "path": display_path(SOURCE),
             "sha256": hashes["audit_source"],
@@ -1311,6 +1558,28 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
                 "sha256": hashes["euclidean_independent_receipt"],
                 "bytes": EUCLIDEAN_INDEPENDENT_RECEIPT.stat().st_size,
             },
+            "hamiltonian_limit_protocol": {
+                "path": display_path(HAMILTONIAN_LIMIT_PROTOCOL),
+                "sha256": hashes["hamiltonian_limit_protocol"],
+            },
+            "hamiltonian_limit_primary_source": {
+                "path": display_path(HAMILTONIAN_LIMIT_PRIMARY_SOURCE),
+                "sha256": hashes["hamiltonian_limit_primary_source"],
+            },
+            "hamiltonian_limit_independent_source": {
+                "path": display_path(HAMILTONIAN_LIMIT_INDEPENDENT_SOURCE),
+                "sha256": hashes["hamiltonian_limit_independent_source"],
+            },
+            "hamiltonian_limit_primary_receipt": {
+                "path": display_path(HAMILTONIAN_LIMIT_PRIMARY_RECEIPT),
+                "sha256": hashes["hamiltonian_limit_primary_receipt"],
+                "bytes": HAMILTONIAN_LIMIT_PRIMARY_RECEIPT.stat().st_size,
+            },
+            "hamiltonian_limit_independent_receipt": {
+                "path": display_path(HAMILTONIAN_LIMIT_INDEPENDENT_RECEIPT),
+                "sha256": hashes["hamiltonian_limit_independent_receipt"],
+                "bytes": HAMILTONIAN_LIMIT_INDEPENDENT_RECEIPT.stat().st_size,
+            },
         },
         "protocol_snapshot_audit": {
             "current_reference": CURRENT_REFERENCE.decode("utf-8"),
@@ -1440,6 +1709,49 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "uniform_mass_gap_established": False,
             "clay_verdict": "NULL",
         },
+        "anisotropic_hamiltonian_limit": {
+            "classification": "DERIVED_FIXED_GRAPH_TRANSFER_TO_HAMILTONIAN_LIMIT",
+            "primary_status": hamiltonian_limit_primary["verdict"],
+            "primary_checks_passed": hamiltonian_primary_summary[
+                "passing_checks"
+            ],
+            "primary_checks_total": hamiltonian_primary_summary["total_checks"],
+            "independent_status": hamiltonian_limit_independent["verdict"],
+            "independent_checks_passed": hamiltonian_independent_summary[
+                "passing_checks"
+            ],
+            "independent_checks_total": hamiltonian_independent_summary[
+                "checks"
+            ],
+            "matrix_rows": len(hamiltonian_rows),
+            "convergence_families": len(hamiltonian_families),
+            "normalization": hamiltonian_normalization,
+            "semigroup": hamiltonian_semigroup,
+            "temporal_mutation_ratio": hamiltonian_fixtures[
+                "temporal_mutation_ratio"
+            ],
+            "spatial_mutation_ratio": hamiltonian_fixtures[
+                "spatial_mutation_ratio"
+            ],
+            "unnormalized_vacuum_eigenvalue_at_beta_4": hamiltonian_fixtures[
+                "unnormalized_vacuum_eigenvalue_at_beta_4"
+            ],
+            "asymmetric_product_max_abs_residual": hamiltonian_fixtures[
+                "asymmetric_product_max_abs_residual"
+            ],
+            "analytic_fixed_graph_core_limit": True,
+            "analytic_fixed_graph_strong_resolvent_limit": True,
+            "analytic_fixed_graph_log_generator_limit": True,
+            "analytic_fixed_graph_chernoff_limit": True,
+            "fixed_beta_gibbs_identified_with_anisotropic_limit": False,
+            "spatial_volume_uniformity_established": False,
+            "thermodynamic_limit_established": False,
+            "lattice_spacing_limit_established": False,
+            "continuum_limit_established": False,
+            "wightman_reconstruction_established": False,
+            "uniform_mass_gap_established": False,
+            "clay_verdict": "NULL",
+        },
         "cutoff_tail_evidence": {
             "qualifications": primary["cutoff_qualifications"],
             "useful_tail_rows": primary["useful_tail_rows"],
@@ -1487,7 +1799,7 @@ def run(output: Path, replace: bool) -> dict[str, Any]:
             "conclusion": "positive local conditional rates alone do not imply a volume-uniform global gap",
         },
         "missing_clay_obligations": MISSING_CLAY_OBLIGATIONS,
-        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction; the form theorem removes the character cutoff after the graph, coupling and low-energy index are fixed; and the local-density theorem controls every fixed support uniformly over periodic cubic volumes. Conditional on finite-volume ground densities and YMT2, the operator argument extracts a locally normal fixed-regulator ground-state subsequence. Conditional on the established finite-lattice Wilson reflection and transfer theorems, compact local Euclidean marginals extract a reflection-positive DLR subsequence at every fixed beta. The executable evidence checks finite identities, kernels and implication controls; it constructs no infinite-volume Hamiltonian or Euclidean state directly. Full-sequence phase control, clustering, weak-coupling continuum construction, continuum Osterwalder-Schrader reconstruction and a regulator-independent mass-gap theorem remain open.",
+        "claim_boundary": "The recovered receipts establish a finite 3x2x2 SU(2) regulated Hamiltonian construction; the form theorem removes the character cutoff after the graph, coupling and low-energy index are fixed; and the local-density theorem controls every fixed support uniformly over periodic cubic volumes. Conditional on finite-volume ground densities and YMT2, the operator argument extracts a locally normal fixed-regulator ground-state subsequence. Conditional on the established finite-lattice Wilson reflection and transfer theorems, compact local Euclidean marginals extract a reflection-positive DLR subsequence at every fixed beta. The separate anisotropic transfer has difference and logarithmic generators converging in strong-resolvent sense to the Kogut-Susskind Hamiltonian on every fixed finite spatial graph, and its products converge strongly to the heat semigroup. The executable evidence checks finite identities, kernels and implication controls; it constructs no infinite-volume Hamiltonian or Euclidean state directly. Identification of the fixed-beta state with the anisotropic family, spatial-volume uniformity, full-sequence phase control, clustering, weak-coupling continuum construction, continuum Osterwalder-Schrader reconstruction and a regulator-independent mass-gap theorem remain open.",
     }
 
     if not all_passed:
@@ -1528,7 +1840,10 @@ def main() -> None:
         f"{record['thermodynamic_ground_state_bridge']['primary_checks_total']} "
         "euclidean="
         f"{record['euclidean_reflection_bridge']['primary_checks_passed']}/"
-        f"{record['euclidean_reflection_bridge']['primary_checks_total']}"
+        f"{record['euclidean_reflection_bridge']['primary_checks_total']} "
+        "hamiltonian_limit="
+        f"{record['anisotropic_hamiltonian_limit']['primary_checks_passed']}/"
+        f"{record['anisotropic_hamiltonian_limit']['primary_checks_total']}"
     )
 
 

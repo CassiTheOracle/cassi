@@ -1003,7 +1003,7 @@ Parseval bounds, Wilson-spectrum bounds and Hamiltonian positivity.
 | Independent reconstruction | The independent source reconstructs both ordered basis hashes, every plaquette matrix hash and count, both Wilson extrema, every Ritz energy, all shell norms and the recovery witness | **PASS**, 256/256 checks |
 | Character-cutoff tails | Only the $C=1$, $x=1/64$ exact-shell row has ratio at most $0.1$; its $C=2$ partner has ratio $0.100890916829$. The $x=1/4$ and $x=1$ separations are negative at both cutoffs | **INCONCLUSIVE**, all four aggregate cutoff qualifications |
 | Excluded edge-only evidence | The external primary and independent receipts bound in `runs/yang_mills_continuum_boundary_audit/verification.json` omit spectator-channel Kronecker deltas and admit the firing witness | **REJECT** for Hamiltonian spectra and cutoff-tail interpretation; retained as defect provenance |
-| Cutoff and continuum boundary | The frozen separation qualifications remain `INCONCLUSIVE`, while the form theorem in §36 removes the cutoff on this fixed graph without that separation. Section 37 controls fixed-support ground-density errors uniformly over periodic cubic volumes and excludes global norm control from energy density alone. Sections 38 and 39 conditionally extract a locally normal fixed-regulator ground-state subsequence and a reflection-positive Euclidean DLR subsequence at fixed $\beta$. Full-sequence convergence, phase uniqueness, clustering, weak-coupling continuum construction, continuum Osterwalder–Schrader/Wightman reconstruction and the regulator-independent physical mass gap remain open | **DERIVED** fixed-graph and local cutoff control; **DERIVED CONDITIONAL** Hamiltonian and Euclidean subsequences; **UNRESOLVED** continuum limit |
+| Cutoff and continuum boundary | The frozen separation qualifications remain `INCONCLUSIVE`, while the form theorem in §36 removes the cutoff on this fixed graph without that separation. Section 37 controls fixed-support ground-density errors uniformly over periodic cubic volumes and excludes global norm control from energy density alone. Sections 38 and 39 conditionally extract a locally normal fixed-regulator ground-state subsequence and a reflection-positive Euclidean DLR subsequence at fixed $\beta$. Section 40 proves the separate anisotropic transfer-to-Hamiltonian and semigroup limit on every fixed finite spatial graph. Identification of the fixed-$\beta$ state with that family, spatial-volume uniformity, full-sequence convergence, phase uniqueness, clustering, weak-coupling continuum construction, continuum Osterwalder–Schrader/Wightman reconstruction and the regulator-independent physical mass gap remain open | **DERIVED** fixed-graph cutoff, local cutoff and anisotropic Hamiltonian-limit control; **DERIVED CONDITIONAL** Hamiltonian and Euclidean subsequences; **UNRESOLVED** continuum limit |
 
 The recovered primary receipt
 `runs/yang_mills_su2_larger_volume_hamiltonian_recovery/verification.json`
@@ -1012,10 +1012,11 @@ non-gating tail-separation rows at $x=1/4$ and $x=1$. The independent receipt
 `runs/yang_mills_su2_larger_volume_hamiltonian_recovery/verification-independent.json`
 passes 256/256 checks. Both bind the materialized receipt-bound recovery
 protocol snapshot, the scientific protocol, the current source files and the
-shared exact representation helper by SHA-256. The 38-check v6
+shared exact representation helper by SHA-256. The 42-check v7
 continuum-boundary audit verifies the one-reference relation between that
 snapshot and the current recovery protocol and binds the conditional
-thermodynamic and Euclidean fixed-regulator evidence.
+thermodynamic and Euclidean evidence together with the exact fixed-graph
+anisotropic transfer-to-Hamiltonian limit.
 
 ## 35. Finite-volume SU(2) quantum Schwinger generator
 
@@ -1213,7 +1214,7 @@ Osterwalder–Schrader Hilbert space.
 | Independent reconstruction | All 22 checks pass and all 36 rows reconstruct through a positive Bessel series, compensated 65,536-point midpoint Haar rule and independent Jacobi eigensolver; the maximum Haar relative error is $1.7530111416976028\times10^{-12}$ | **PASS**, source- and receipt-bound independent reconstruction |
 | Analytic local-marginal limit | Compatible local marginals have a diagonal weak subsequence; translation, compactly supported gauge symmetry, reflection positivity and the Wilson DLR identity pass on cylinder functions | **DERIVED CONDITIONAL**, fixed regulator and fixed $\beta$ |
 | Implication firing controls | A negative highest character coefficient gives minimum Gram eigenvalue $-8.612469317193874$; an asymmetric kernel is rejected; strictly positive two-level transfer matrices have gap $6.023626075915001\times10^{-4}$ at $L=256$ and tend to zero | **PASS**, positivity can fail and positive transfer does not imply a uniform gap |
-| Continuum boundary | Both receipts set full-sequence convergence, uniqueness, clustering, Hamiltonian equivalence, continuum construction, Wightman reconstruction and uniform mass gap false, with `clay_verdict=NULL` | **NULL**, no continuum or physical mass-gap conclusion |
+| Continuum boundary | Both receipts set their fixed-$\beta$ Hamiltonian-equivalence flag, continuum construction, Wightman reconstruction and uniform mass gap false, together with full-sequence convergence, uniqueness and clustering; §40 treats a separate anisotropic fixed-graph family | **NULL**, no continuum or physical mass-gap conclusion |
 
 The qualified receipts are
 `runs/yang_mills_euclidean_reflection_positive/verification.json` and
@@ -1225,13 +1226,65 @@ and
 `a72cf5e38d58d0ec1afa34f218371a1426e8383564c5f0a48377e75374efb11c`.
 The independent receipt binds primary-receipt SHA-256
 `2e63f1eb49670ba87a678e9acfcae5c0574669db94296c4768a83d3c854b128f`.
-Full-volume convergence, phase selection, clustering, the anisotropic
-Hamiltonian relation, the weak-coupling lattice-spacing limit, continuum
-Osterwalder–Schrader reconstruction and a regulator-independent physical mass
-remain open.
+Full-volume convergence, phase selection, clustering, identification of the
+fixed-$\beta$ state with the anisotropic Hamiltonian family, the weak-coupling
+lattice-spacing limit, continuum Osterwalder–Schrader reconstruction and a
+regulator-independent physical mass remain open.
+
+
+## 40. Fixed-graph anisotropic Wilson transfer-to-Hamiltonian limit
+
+The frozen protocol
+`computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md` separates
+the anisotropic temporal-step limit from the fixed-$\beta$ thermodynamic
+family. Its character weights are
+
+$$
+B_\tau=\frac{4a}{g^2\epsilon},
+\qquad
+B_\sigma=\frac{2\epsilon}{g^2a}.
+$$
+
+Normalized central convolution and symmetric magnetic half-steps define
+$T_\epsilon$. On every fixed finite spatial graph,
+$(I-T_\epsilon)/\epsilon$ and
+$-\epsilon^{-1}\log T_\epsilon$ converge in strong-resolvent sense to the
+supplied Kogut–Susskind Hamiltonian, and
+$T_{t/N}^{\,N}\to e^{-tH}$ strongly. The exact bare Wilson convention is
+$g_W=2^{1/4}g$, $a_\tau=\epsilon/\sqrt2$.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Normalized-Haar character kernel | The primary adaptive-Haar maximum errors are $1.2105410256096666\times10^{-15}$ for the Bessel coefficient and $6.661338147750939\times10^{-16}$ for the half-potential compression | **PASS**, normalization and finite-character matrix identities |
+| Difference and logarithmic generators | All 414 primary checks pass over 36 rows and nine $(g^2,C)$ families. Every error decreases; final-to-first ratios are $0.126154$–$0.131896$ and $0.124385$–$0.126598$ | **PASS**, finite-character support for the analytic fixed-graph theorem |
+| Semigroup product | At $g^2=a=1$, $C=6$ and $t=1/2$, errors decrease from $2.205924599021739\times10^{-4}$ at $N=64$ to $2.8046955584765558\times10^{-5}$ at $N=512$ | **PASS**, fixed-compression Chernoff-product control |
+| Implication firing controls | Both coefficient mutations produce ratio $2$; omission of $C_1(4)$ gives vacuum multiplier $4.879732576852224$; an asymmetric split gives residual $8.500055557561465\times10^{-3}$; a positive two-level family has final-to-first gap ratio $1.0282972921526613\times10^{-3}$ | **PASS**, normalization, symmetry and nonuniform-gap implications can fail |
+| Independent reconstruction | All 24 checks pass using separate midpoint integrals and a Jacobi eigensolver; maximum differences from primary character ratios, generator errors and semigroup errors are $2.220446049250313\times10^{-16}$, $5.7048044673629894\times10^{-12}$ and $9.750632410049451\times10^{-13}$ | **PASS**, source- and receipt-bound independent calculation |
+| Clay boundary | Both receipts record fixed graph only, with no spatial thermodynamic limit, lattice-spacing limit, continuum reconstruction or uniform physical gap and `clay_verdict=NULL` | **NULL**, no Clay conclusion |
+
+The qualified receipts are
+`runs/yang-mills-anisotropic-hamiltonian-limit/verification.json` and
+`runs/yang-mills-anisotropic-hamiltonian-limit/verification-independent.json`.
+The protocol, primary source and independent source SHA-256 values are
+`cfbcfb7140e2c085e86285541ac97517d3b6a021c6967f57189ce5a801abe54e`,
+`41f8a69ba2b4a07b2f94735d1f5368069c1a3cdb04b583c23dfb67fabd9acf7f`
+and
+`d7cd26729c592e6459015f2a7cd733e1042748a8d697cbc31e45a7c58f4f7093`.
+The independent receipt binds primary-receipt SHA-256
+`bf1ac61a072a2cc24fde30d22df5892d8b27a4dfcba680f81d5cb00b9981dd54`.
+Along this family $B_\tau\to\infty$ and $B_\sigma\to0$, so it does not
+identify the fixed-$\beta$ Gibbs subsequence of §39. Spatial-volume
+uniformity, weak-coupling continuum construction, continuum
+Osterwalder–Schrader/Wightman reconstruction and a regulator-independent
+positive mass remain open.
 
 
 ## References
+
+- `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
+- `computations/verify_yang_mills_anisotropic_hamiltonian_limit.py`—414-check primary finite-character generator and product receipt.
+- `computations/verify_yang_mills_anisotropic_hamiltonian_limit_independent.mjs`—24-check independent midpoint-integral and Jacobi reconstruction.
+- `runs/yang-mills-anisotropic-hamiltonian-limit/verification.json` and `verification-independent.json`—source-bound fixed-graph receipts with `NULL` Clay verdicts.
 
 - `field-experience/counterflow-resonant-addressing-wave-1-report.md`—Wave 1 execution record.
 - `field-experience/counterflow-resonant-addressing-pre-registration.md`—Wave 1 frozen protocol and decision tree.
@@ -1363,8 +1416,8 @@ remain open.
   finite-kernel support receipt with a `NULL` Clay verdict.
 - `runs/yang_mills_euclidean_reflection_positive/verification-independent.json`—independent
   source- and receipt-bound reconstruction.
-- `runs/yang_mills_continuum_boundary_audit/verification.json`—38-check v6 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean fixed-regulator evidence, excluded defect provenance and the unresolved continuum boundary.
-- `computations/verify_yang_mills_continuum_boundary_audit.py`—38-check hash-bound finite-evidence and continuum-boundary audit.
+- `runs/yang_mills_continuum_boundary_audit/verification.json`—42-check v7 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean evidence, the exact fixed-graph anisotropic Hamiltonian limit, excluded defect provenance and the unresolved continuum boundary.
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—42-check hash-bound finite-evidence, fixed-graph Hamiltonian-limit and continuum-boundary audit.
 - `computations/yang-mills-su2-transport-expansion-prereg.md`—fixed local strip and compact-boundary schedule.
 - `computations/verify_yang_mills_su2_transport_expansion.py`—150-check normalized transport expansion.
 - `computations/verify_yang_mills_su2_transport_expansion_independent.mjs`—60-check independent coefficient and receipt reconstruction.

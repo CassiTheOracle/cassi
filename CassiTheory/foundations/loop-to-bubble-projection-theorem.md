@@ -1,6 +1,6 @@
 # Loop-to-Bubble Projection Theorem: Shared-Support Counterflow, Coherence, and Scale Separation
 
-## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem with an exact global-norm obstruction, conditional fixed-regulator thermodynamic ground-state subsequence, conditional fixed-regulator Euclidean reflection-positive Gibbs subsequence, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Recovered finite $3\times2\times2$ $SU(2)$ Hamiltonian construction with frozen separation-based tail qualifications inconclusive; Hypothesized microscopic physical identification—September 2026
+## Status: Derived conditional projection and population spectrum; Derived regulated pure-gauge identities, exact isolated-square radial Feshbach transfer and weak-coupling cutoff theorem, exact character-cutoff form theorem on every fixed finite graph, volume-uniform local character-cutoff density theorem with an exact global-norm obstruction, conditional fixed-regulator thermodynamic ground-state subsequence, conditional fixed-regulator Euclidean reflection-positive Gibbs subsequence, exact fixed-graph anisotropic Wilson transfer-to-Hamiltonian strong-resolvent and product limit, exact fixed-boundary gauge-fibre support, exact two-scale and $H^{-1}$ transport-score vacuum-measure recurrences, exact residual-recovery Gramian and score-penalty separation, exact tree-exterior boundary independence and the nodal Ritz obstruction for the finite cut-off block with its schedule-wide confinement along block paths, conditional block theorems, and exact bare-cylindrical refinement obstruction; Recovered finite $3\times2\times2$ $SU(2)$ Hamiltonian construction with frozen separation-based tail qualifications inconclusive; Hypothesized microscopic physical identification—September 2026
 
 ## Abstract
 
@@ -30,7 +30,7 @@ density projection and a coherence-sensitive bubble coordinate. A physical
 phase law, a map from the regulated quantum configuration to these carriers,
 $\hbar$, quantum statistics, and measurement dynamics remain separate inputs.
 
-The pure-gauge comparison in §§9.4–9.28 retains full $SU(2)$ loop holonomies.
+The pure-gauge comparison in §§9.4–9.29 retains full $SU(2)$ loop holonomies.
 Gauss invariance supplies an electric closed-loop threshold, while the
 projective bubble variable discards Wilson magnetic energy. Quantum-lattice
 stability gives a volume-uniform interacting gap at sufficiently strong bare
@@ -109,8 +109,20 @@ then yields a diagonal infinite-volume subsequence. Its limit is
 translation invariant, gauge invariant, reflection positive and DLR, and its
 positive-time cylinder algebra supplies a fixed-regulator
 Osterwalder–Schrader Hilbert space. The complete periodic-volume sequence,
-phase uniqueness, clustering, Hamiltonian equivalence, the weak-coupling
-lattice-spacing limit, continuum reconstruction and a uniform physical gap
+phase uniqueness, clustering, the weak-coupling lattice-spacing limit,
+continuum reconstruction and a uniform physical gap remain open.
+
+A separate anisotropic Wilson family has
+$B_\tau=4a/(g^2\epsilon)$ and
+$B_\sigma=2\epsilon/(g^2a)$. On every fixed finite spatial graph, its
+normalized symmetric transfer operator has difference and logarithmic
+generators converging in the strong-resolvent sense to (YM3), and its repeated
+products converge strongly to the Kogut–Susskind heat semigroup. The exact
+bare-convention map is
+$g_W=2^{1/4}g$, $a_\tau=\epsilon/\sqrt2$.
+This establishes the fixed-graph Hamiltonian limit. The fixed-$\beta$ Gibbs
+subsequence is a different trajectory; spatial-volume uniformity, the
+$a\to0$ limit, continuum reconstruction and a regulator-independent gap
 remain open.
 
 ---
@@ -6102,10 +6114,360 @@ finite-volume reflection and transfer theorems as analytic inputs,
 
 The theorem establishes existence of at least one reflection-positive
 four-dimensional Wilson Gibbs state for every fixed lattice coupling and
-regulator. Full-sequence convergence, uniqueness, clustering, an anisotropic
-Hamiltonian equivalence theorem, the weak-coupling lattice-spacing limit,
-continuum Osterwalder–Schrader reconstruction and the physical mass gap remain
-open.
+regulator. Section 9.29 supplies the separate anisotropic fixed-graph
+transfer-to-Hamiltonian limit. Full-sequence convergence, uniqueness,
+clustering, identification of the fixed-$\beta$ state with that anisotropic
+family, the weak-coupling lattice-spacing limit, continuum
+Osterwalder–Schrader reconstruction and the physical mass gap remain open.
+
+### 9.29 Fixed-graph anisotropic transfer-to-Hamiltonian limit
+
+The fixed-regulator Euclidean state in §9.28 and the Hamiltonian in (YM3)
+have different limiting parameters. This section fixes the anisotropic
+family that generates (YM3) on each finite spatial graph and keeps its
+normalization separate from the fixed-$\beta$ thermodynamic subsequence.
+
+Let $\Lambda$ be a finite spatial graph with oriented link set $E$ and one
+positively oriented copy of every elementary plaquette in $P$. On
+$\mathcal H_\Lambda=L^2(SU(2)^E,dU)$ write
+
+$$
+\boxed{
+H_\Lambda=H_E+V,\qquad
+H_E=\frac{g^2}{2a}\sum_{e\in E}E_e^2,\qquad
+V=\frac{1}{g^2a}\sum_{p\in P}
+\left(2-\operatorname{Tr}U_p\right).
+}
+\tag{YM223}
+$$
+
+This is exactly (YM3), because the fundamental $SU(2)$ trace is real.
+The magnetic multiplier is bounded:
+$0\leq V\leq4|P|/(g^2a)$.
+
+For $B>0$, define the one-link Wilson weight, its trivial-character
+coefficient and the normalized central density
+
+$$
+\boxed{
+w_B(W):=\exp\!\left(\frac B2\operatorname{Tr}W\right),\qquad
+C_n(B):=\frac{2nI_n(B)}B,\qquad
+q_B(W):=\frac{w_B(W)}{C_1(B)}.
+}
+\tag{YM224}
+$$
+
+Normalized Haar orthogonality gives
+$\int_{SU(2)}w_B\,dW=C_1(B)$, so $q_BdW$ is a probability
+measure. Convolution by $q_B$, denoted $R_B$, acts on every spin-$j$
+matrix coefficient as
+
+$$
+\boxed{
+R_BD^{(j)}_{mn}
+=\eta_j(B)D^{(j)}_{mn},\qquad
+\eta_j(B)
+=\frac{C_{2j+1}(B)}{(2j+1)C_1(B)}
+=\frac{I_{2j+1}(B)}{I_1(B)},
+}
+\tag{YM225}
+$$
+
+with $\eta_0=1$ and $0<\eta_j<1$ for $j>0$. Fixed-order
+modified-Bessel asymptotics give
+
+$$
+-\log\eta_j(B)
+=\frac{2j(j+1)}B+O(B^{-2}).
+\tag{YM226}
+$$
+
+Let $\epsilon>0$ be the target Hamiltonian time step. The temporal and
+spatial character-weight parameters are
+
+$$
+\boxed{
+B_\tau(\epsilon)=\frac{4a}{g^2\epsilon},\qquad
+B_\sigma(\epsilon)=\frac{2\epsilon}{g^2a},
+\qquad
+\frac{2}{B_\tau\epsilon}=\frac{g^2}{2a},\qquad
+\frac{B_\sigma}{2\epsilon}=\frac{1}{g^2a}.
+}
+\tag{YM227}
+$$
+
+Write
+$\mathcal R_B=\bigotimes_{e\in E}R_B$ and let
+$M_\epsilon$ be multiplication by $\exp(-\epsilon V/2)$. The symmetric
+one-step transfer operator is
+
+$$
+\boxed{
+T_\epsilon
+:=M_\epsilon\mathcal R_{B_\tau(\epsilon)}M_\epsilon.
+}
+\tag{YM228}
+$$
+
+In temporal gauge, a periodic product of these kernels has, up to
+configuration-independent normalization, weight
+
+$$
+\boxed{
+\prod_{t,e}
+\exp\!\left[
+\frac{B_\tau}{2}\operatorname{Tr}U_{0e}(t)
+\right]
+\prod_{t,p}
+\exp\!\left[
+\frac{B_\sigma}{2}\operatorname{Tr}U_p(t)
+\right].
+}
+\tag{YM229}
+$$
+
+The factor of two between action and character conventions is essential.
+Carena et al. use coefficients
+
+$$
+\widehat\beta_\sigma=\frac{2}{g_\sigma^2\xi},
+\qquad
+\widehat\beta_\tau=\frac{2\xi}{g_\tau^2},
+\qquad
+\xi=\frac{a}{a_\tau},
+\tag{YM230}
+$$
+
+multiplying the unnormalized
+$\operatorname{ReTr}(I-U_p)$ in the action. Since (YM229) uses
+$\exp[(B_\mu/2)\operatorname{Tr}U_p]$, its character parameter is
+$B_\mu=2\widehat\beta_\mu$. The exact bare map
+
+$$
+\boxed{
+g_\sigma=g_\tau=g_W=2^{1/4}g,\qquad
+a_\tau=\frac{\epsilon}{\sqrt2},\qquad
+\xi=\frac{\sqrt2a}{\epsilon}
+}
+\tag{YM231}
+$$
+
+therefore gives
+$B_\tau=4\xi/g_W^2$ and
+$B_\sigma=4/(g_W^2\xi)$, which are precisely (YM227). If
+
+$$
+H_{W,\Lambda}(g_W)
+:=\frac{g_W^2}{2a}\sum_eE_e^2
++\frac{2}{g_W^2a}\sum_p(2-\operatorname{Tr}U_p),
+$$
+
+then the time and coupling conversion is the operator identity
+
+$$
+\boxed{
+H_\Lambda(g)
+=2^{-1/2}H_{W,\Lambda}(2^{1/4}g).
+}
+\tag{YM232}
+$$
+
+This map compares bare conventions and time coordinates. It introduces no
+physical scale and gives no gap estimate.
+
+The operator limit is exact on every fixed finite graph. Central convolution
+commutes with all endpoint gauge actions, and $V$ is gauge invariant.
+Consequently $T_\epsilon$ preserves the physical subspace. Each
+$\mathcal R_B$ is a positive self-adjoint contraction with trivial kernel.
+$M_\epsilon$ is a bounded, strictly positive self-adjoint contraction with a
+bounded inverse. Thus $T_\epsilon$ is a positive self-adjoint contraction
+with trivial kernel.
+
+Let $\mathcal D_{\mathrm{PW}}$ be the finite Peter–Weyl span on
+$SU(2)^E$. It is a core for $H_E$ and for $H_\Lambda$, because $V$ is
+bounded. On every fixed finite representation support, (YM226)–(YM227) give
+
+$$
+\mathcal R_{B_\tau(\epsilon)}f
+=f-\epsilon H_Ef+O_f(\epsilon^2),
+\qquad
+M_\epsilon f
+=f-\frac{\epsilon}{2}Vf+O(\epsilon^2)\|f\|.
+$$
+
+Multiplication of the three factors yields
+
+$$
+\boxed{
+\lim_{\epsilon\downarrow0}
+\frac{I-T_\epsilon}{\epsilon}f
+=H_\Lambda f,
+\qquad f\in\mathcal D_{\mathrm{PW}}.
+}
+\tag{YM233}
+$$
+
+Set
+
+$$
+A_\epsilon:=\frac{I-T_\epsilon}{\epsilon},
+\qquad
+H_\epsilon:=-\frac1\epsilon\log T_\epsilon.
+\tag{YM234}
+$$
+
+The $A_\epsilon$ are nonnegative self-adjoint operators. The common
+lower-bound core theorem applied to (YM233) gives
+
+$$
+\boxed{
+A_\epsilon\xrightarrow[\epsilon\downarrow0]{\mathrm{sr}}H_\Lambda.
+}
+\tag{YM235}
+$$
+
+No uniform lower spectral bound on $T_\epsilon$ is needed to pass to the
+logarithmic generator. For $0<r\leq1$, $s=1-r$ and $\lambda>0$,
+
+$$
+\boxed{
+0\leq
+\frac{1}{(1-r)/\epsilon+\lambda}
+-
+\frac{1}{-\log(r)/\epsilon+\lambda}
+\leq\epsilon.
+}
+\tag{YM236}
+$$
+
+Indeed, with $\ell=-\log r$, the upper bound reduces to
+$\ell-s\leq(s+\lambda\epsilon)(\ell+\lambda\epsilon)$.
+The right side is at least $s\ell$, and
+$\ell-s\leq s\ell$ is equivalent to
+$-r\log r\leq1-r$. Spectral calculus now gives
+
+$$
+\left\|
+(A_\epsilon+\lambda)^{-1}
+-(H_\epsilon+\lambda)^{-1}
+\right\|\leq\epsilon.
+$$
+
+Together with (YM235), this proves
+
+$$
+\boxed{
+H_\epsilon\xrightarrow[\epsilon\downarrow0]{\mathrm{sr}}H_\Lambda.
+}
+\tag{YM237}
+$$
+
+Finally, $T_0=I$ in the strong sense, every $T_\epsilon$ is a contraction,
+and (YM233) supplies the derivative on a core of the generator. Chernoff's
+product theorem gives
+
+$$
+\boxed{
+\operatorname*{s-lim}_{N\to\infty}
+T_{t/N}^{\,N}=e^{-tH_\Lambda},
+\qquad t\geq0.
+}
+\tag{YM238}
+$$
+
+The gauge-averaging projection preserves
+$\mathcal D_{\mathrm{PW}}$ and commutes with every displayed operator.
+Equations (YM233)–(YM238) therefore restrict to the gauge-invariant physical
+Hilbert space.
+
+The frozen finite-character fixture uses the isolated-square physical basis
+$\{\chi_{n/2}:0\leq n\leq C\}$. Four links carry the same representation,
+so the electric transfer and exact half-potential compression are
+
+$$
+\begin{aligned}
+(R_C)_{nn}
+&=\eta_{n/2}(B_\tau)^4,\\
+(M_C)_{nm}
+&=e^{-\zeta}
+\sum_{\substack{r=|n-m|\\r\equiv n+m\ (2)}}^{n+m}
+\frac{2(r+1)I_{r+1}(\zeta)}{\zeta},
+\qquad
+\zeta=\frac{\epsilon}{g^2a}.
+\end{aligned}
+\tag{YM239}
+$$
+
+The target compression is
+
+$$
+\boxed{
+(H_C)_{nm}
+=\left[
+\frac{g^2}{2a}n(n+2)+\frac{2}{g^2a}
+\right]\delta_{nm}
+-\frac{1}{g^2a}
+(\delta_{n,m+1}+\delta_{n,m-1}).
+}
+\tag{YM240}
+$$
+
+Across
+$g^2\in\{1/2,1,2\}$,
+$C\in\{2,4,6\}$ and
+$\epsilon/a\in\{2^{-8},2^{-9},2^{-10},2^{-11}\}$, the primary verifier
+passes all 414 frozen checks. The relative
+$(I-T_C)/\epsilon$ error ranges from
+$1.5370242154129727\times10^{-3}$ to
+$8.913753423328576\times10^{-2}$; the logarithmic-generator error ranges
+from $1.5636259866138503\times10^{-5}$ to
+$9.375870165145489\times10^{-4}$. In every one of the nine
+$(g^2,C)$ families both errors decrease strictly. Their final-to-first
+ratios lie in $[0.126154,0.131896]$ and
+$[0.124385,0.126598]$, respectively.
+
+At $g^2=a=1$, $C=6$ and $t=1/2$, the product errors for
+$N=64,128,256,512$ are
+$2.205924599021739\times10^{-4}$,
+$1.1137664396560835\times10^{-4}$,
+$5.5958675384364275\times10^{-5}$ and
+$2.8046955584765558\times10^{-5}$. The final-to-first ratio is
+$0.12714376364996127$.
+
+The independent Node implementation passes 24/24 checks. It uses a
+65,536-point midpoint integral for the Bessel ratios, a 16,384-point direct
+normalized-Haar rule for $M_C$ and a Jacobi eigensolver. Its maximum
+differences from the primary ratios, generator errors and semigroup errors
+are $2.220446049250313\times10^{-16}$,
+$5.7048044673629894\times10^{-12}$ and
+$9.750632410049451\times10^{-13}$.
+
+All five firing controls activate. Halving $B_\tau$ and doubling
+$B_\sigma$ each double the corresponding induced coefficient. Omitting
+$C_1(4)$ gives vacuum multiplier $4.879732576852224$. Replacing
+$M_CR_CM_C$ by $M_C^2R_C$ gives antisymmetric residual
+$8.500055557561465\times10^{-3}$. Strictly positive two-level transfers
+retain gaps whose $L=256$ to $L=8$ ratio is
+$1.0282972921526613\times10^{-3}$.
+
+The result closes the anisotropic fixed-graph generator relation left open
+in §9.28. It does not identify the fixed-$\beta$ subsequential Gibbs state
+with the anisotropic family: along (YM227),
+
+$$
+\boxed{
+B_\tau\longrightarrow\infty,\qquad
+B_\sigma\longrightarrow0
+\qquad(\epsilon\downarrow0).
+}
+\tag{YM241}
+$$
+
+No estimate above is uniform in the spatial graph, $a$, or $g$. The spatial
+thermodynamic limit, weak-coupling lattice-spacing limit, Euclidean covariance
+restoration, continuum Osterwalder–Schrader or Wightman reconstruction and
+regulator-independent positive mass gap remain open. Both receipts record
+`clay_verdict=NULL`.
 
 ---
 
@@ -6183,7 +6545,8 @@ microscopic completions.
 | Fixed-graph character-cutoff form theorem (YM187)–(YM195) | **Derived** within every fixed finite regulated graph | Exact tree-gauge Haar disintegration, equivalent electric forms, form-core convergence, separation-free discarded-mass bound and noncommuting Ritz-error bound; constants are not uniform in graph size, coupling or lattice spacing |
 | Volume-uniform local cutoff density and global-norm obstruction (YM196)–(YM205) | **Derived** local finite-volume theorem and **Derived** obstruction | On periodic cubic lattices, every fixed-support ground-density observable has a character-cutoff error uniform in volume; bounded electric energy density alone cannot control whole-wavefunction cutoff norm. Its executable receipt constructs no thermodynamic or continuum state; §9.27 uses the analytic bound as an input |
 | Fixed-regulator thermodynamic ground-state subsequence (YM206)–(YM213) | **Derived conditional** operator theorem with finite-identity controls | Finite-volume ground densities and the volume-uniform local tail estimate are analytic inputs; a diagonal subsequence is locally normal and satisfies the finite-character algebraic ground condition, while full-sequence convergence, uniqueness, clustering, a uniform gap and every continuum limit remain open |
-| Fixed-regulator Euclidean reflection-positive Gibbs subsequence (YM214)–(YM222) | **Derived conditional** lattice theorem with finite-kernel controls | Conditional on the established finite-lattice Wilson reflection/transfer theorems, positive character coefficients and compact local marginals give a translation-, gauge- and reflection-invariant DLR subsequence at each fixed $\beta>0$; full-sequence convergence, uniqueness, clustering, Hamiltonian equivalence, the lattice-spacing limit, continuum reconstruction and a uniform physical gap remain open |
+| Fixed-regulator Euclidean reflection-positive Gibbs subsequence (YM214)–(YM222) | **Derived conditional** lattice theorem with finite-kernel controls | Conditional on the established finite-lattice Wilson reflection/transfer theorems, positive character coefficients and compact local marginals give a translation-, gauge- and reflection-invariant DLR subsequence at each fixed $\beta>0$; full-sequence convergence, uniqueness, clustering, identification with the anisotropic Hamiltonian family, the lattice-spacing limit, continuum reconstruction and a uniform physical gap remain open |
+| Fixed-graph anisotropic transfer-to-Hamiltonian limit (YM223)–(YM241) | **Derived** fixed-regulator operator theorem with finite-character controls | Normalized central convolution with $B_\tau=4a/(g^2\epsilon)$ and symmetric magnetic half-steps has difference and logarithmic generators converging in strong resolvent sense to (YM3), and its Chernoff products converge strongly to $e^{-tH_\Lambda}$ on every fixed finite spatial graph. The exact Wilson convention map is $g_W=2^{1/4}g$, $a_\tau=\epsilon/\sqrt2$; spatial-volume uniformity, the $a\to0$ limit, continuum reconstruction and a uniform physical gap remain open |
 | Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, conditional-rate cutoff removal and continuum construction remain open |
 | Finite open-cube SU(2) basis and oriented Wilson support | **Derived** finite-regulator construction | The open $2\times2\times2$ cube has 32 and 1013 gauge-invariant raw trivalent-$3j$ states at doubled cutoffs $C=1,2$; every six signed fundamental plaquette operators has 32 and 2388 nonzero candidate-supported directed entries, with finite Hermitian contractions; fixed-graph character-cutoff removal follows from (YM187)–(YM195), while a growing open-boundary family and continuum control remain open |
 | Larger-volume/cutoff SU(2) Hamiltonian | **Derived** recovered finite-regulator construction and fixed-graph cutoff removal; **INCONCLUSIVE** frozen separation qualifications | The open $3\times2\times2$ graph has 868 and 955835 complete gauge-invariant states at doubled cutoffs $C=1,2$; the recovery enforces spectator-intertwiner orthogonality, all 226 finite-construction checks and 256 independent checks pass, every scheduled ground energy is nonnegative, and the separation-free theorem removes the character cutoff only after this graph and coupling are fixed |
@@ -6734,6 +7097,28 @@ reflection positivity and transfer positivity as analytic inputs and set the
 full-sequence, continuum, Wightman and uniform-gap conclusions false with
 `clay_verdict=NULL`.
 
+The fixed-graph anisotropic Hamiltonian-limit evidence is bound by
+`computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`, the
+primary
+`computations/verify_yang_mills_anisotropic_hamiltonian_limit.py` and the
+independent
+`computations/verify_yang_mills_anisotropic_hamiltonian_limit_independent.mjs`.
+The primary receipt passes 414/414 checks over 36 matrix rows and nine
+convergence families. The independent receipt passes 24/24 checks and
+reconstructs every row with separate midpoint integrals and a Jacobi
+eigensolver.
+
+The protocol, primary source and independent source SHA-256 values are
+`cfbcfb7140e2c085e86285541ac97517d3b6a021c6967f57189ce5a801abe54e`,
+`41f8a69ba2b4a07b2f94735d1f5368069c1a3cdb04b583c23dfb67fabd9acf7f`
+and
+`d7cd26729c592e6459015f2a7cd733e1042748a8d697cbc31e45a7c58f4f7093`.
+The independent receipt binds primary-receipt SHA-256
+`bf1ac61a072a2cc24fde30d22df5892d8b27a4dfcba680f81d5cb00b9981dd54`.
+Both receipts retain spatial-volume, lattice-spacing, continuum,
+Wightman and uniform-gap conclusions as false and record
+`clay_verdict=NULL`.
+
 ---
 
 ## References
@@ -6871,6 +7256,30 @@ full-sequence, continuum, Wightman and uniform-gap conclusions false with
   finite-kernel support receipt with a `NULL` Clay verdict
 - `runs/yang_mills_euclidean_reflection_positive/verification-independent.json`—independent
   source- and receipt-bound reconstruction
+- `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen
+  fixed-graph character normalization, anisotropic coefficient,
+  strong-resolvent, Chernoff-product and claim-boundary protocol
+- `computations/verify_yang_mills_anisotropic_hamiltonian_limit.py`—414-check
+  source-bound finite-character generator and semigroup verifier
+- `computations/verify_yang_mills_anisotropic_hamiltonian_limit_independent.mjs`—24-check
+  independent midpoint-Haar, Bessel-ratio, Jacobi-spectrum and receipt
+  reconstruction
+- `runs/yang-mills-anisotropic-hamiltonian-limit/verification.json`—primary
+  fixed-graph generator receipt with a `NULL` Clay verdict
+- `runs/yang-mills-anisotropic-hamiltonian-limit/verification-independent.json`—independent
+  source- and receipt-bound reconstruction
+- M. Carena, E. J. Gustafson, H. Lamm, Y.-Y. Li and W. Liu, [Gauge Theory
+  Couplings on Anisotropic Lattices](https://arxiv.org/abs/2208.10417),
+  Eqs. (1)–(3)—anisotropic Wilson action and bare-coupling convention
+- P. R. Chernoff, [Note on product formulas for operator
+  semigroups](https://doi.org/10.1016/0022-1236(68)90020-7)—contraction
+  product limit
+- M. Reed and B. Simon, *Methods of Modern Mathematical Physics I:
+  Functional Analysis*, Theorem VIII.25—common-core strong-resolvent
+  convergence
+- NIST Digital Library of Mathematical Functions,
+  [§10.40](https://dlmf.nist.gov/10.40)—fixed-order large-argument
+  modified-Bessel asymptotics
 - K. Osterwalder and E. Seiler, [Gauge field theories on a
   lattice](https://doi.org/10.1016/0003-4916(78)90039-8)—reflection positivity
   and Euclidean lattice gauge construction
@@ -6891,8 +7300,8 @@ full-sequence, continuum, Wightman and uniform-gap conclusions false with
 - H. Grundling and G. Rudolph, [QCD on an infinite
   lattice](https://arxiv.org/abs/1108.2129)—inductive local gauge algebra and
   Gauss-law construction
-- `runs/yang_mills_continuum_boundary_audit/verification.json`—38-check v6 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean fixed-regulator evidence, excluded defect provenance and the unresolved continuum boundary
-- `computations/verify_yang_mills_continuum_boundary_audit.py`—38-check source, receipt, recovery-snapshot and continuum-boundary audit
+- `runs/yang_mills_continuum_boundary_audit/verification.json`—42-check v7 hash-bound audit receipt covering recovered finite evidence, fixed-graph cutoff removal, volume-uniform local cutoff control, conditional thermodynamic and Euclidean evidence, the exact fixed-graph anisotropic Hamiltonian limit, excluded defect provenance and the unresolved continuum boundary
+- `computations/verify_yang_mills_continuum_boundary_audit.py`—42-check source, receipt, recovery-snapshot, fixed-graph Hamiltonian-limit and continuum-boundary audit
 - D. Bakry, I. Gentil and M. Ledoux, *Analysis and Geometry of Markov
   Diffusion Operators*—Poincaré, Poisson and carré-du-champ framework
 - C. Villani, *Optimal Transport: Old and New*—continuity equations and

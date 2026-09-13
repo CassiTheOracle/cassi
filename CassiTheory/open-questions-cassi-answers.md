@@ -763,7 +763,7 @@ generator has an explicit spectral gap. LB1–LB7 pass. The physical
 QF1-to-carrier state map, phase dynamics, scale ratio, and quantum statistics
 remain open, so the DQ and GQ physical-identification verdicts are unchanged.
 
-The separate pure-gauge comparison in that document, §§9.4–9.27, uses the
+The separate pure-gauge comparison in that document, §§9.4–9.29, uses the
 supplied quantum $SU(2)$ lattice Hilbert space and Hamiltonian. It gives an
 exact regulated electric-loop threshold $3g^2/(2a)$ and shows that the
 projective bubble coordinate discards a phase required by Wilson magnetic
@@ -895,9 +895,23 @@ transfer semigroup. This is **Derived conditional**: the 308/308 primary and
 covariance and firing identities, while explicitly recording that the
 verifiers do not construct the infinite-volume measure and retain
 `clay_verdict=NULL`. Full-sequence convergence, uniqueness, clustering,
-Hamiltonian equivalence, the $a\to0$ limit, continuum
-Osterwalder–Schrader/Wightman reconstruction and a uniform physical gap are
-not established.
+identification of the fixed-$\beta$ state with an anisotropic Hamiltonian
+family, the $a\to0$ limit, continuum Osterwalder–Schrader/Wightman
+reconstruction and a uniform physical gap are not established.
+
+Section 9.29 proves the separate anisotropic fixed-graph relation. With
+$B_\tau=4a/(g^2\epsilon)$,
+$B_\sigma=2\epsilon/(g^2a)$ and symmetric magnetic half-steps, the
+difference and logarithmic transfer generators converge in strong-resolvent
+sense to the supplied Kogut–Susskind Hamiltonian on every fixed finite spatial
+graph. Chernoff products converge strongly to its heat semigroup. The exact
+bare-convention map is
+$g_W=2^{1/4}g$, $a_\tau=\epsilon/\sqrt2$.
+The 414/414 primary and 24/24 independent checks reconstruct finite-character
+generators, semigroup products, normalization and firing controls. Both
+receipts retain `clay_verdict=NULL`. The bounds are not uniform in the graph,
+lattice spacing or coupling, and this trajectory has
+$B_\tau\to\infty$ and $B_\sigma\to0$ rather than fixed $\beta$.
 
 The Poincaré-geometry analysis separates spatial and link three-spheres. A
 closed simply connected spatial slice is topologically $S^3$, and a round
@@ -2595,14 +2609,19 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   the infinite lattice at each fixed $\beta$, using established
   finite-lattice reflection and transfer theorems as analytic inputs. Its
   308/308 primary and 22/22 independent controls reconstruct the finite
-  coefficients, kernels and implication boundaries and retain
-  `clay_verdict=NULL`. A uniform exact-vacuum fibre rate, transported score,
-  full-sequence convergence, phase uniqueness, clustering, Hamiltonian–
-  Euclidean equivalence, weak-coupling continuum construction, continuum
-  Osterwalder–Schrader/Wightman reconstruction and a regulator-independent
-  physical mass gap remain open. See
-  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.28 and §11 and
-  `field-experience/probe-outcome-ledger.md` §§30,34,36–39.
+  coefficients, kernels and implication boundaries. The separate anisotropic
+  theorem identifies the normalized transfer generator with (YM3) on every
+  fixed finite spatial graph and proves strong semigroup-product convergence.
+  Its 414/414 primary and 24/24 independent checks reconstruct all 36
+  finite-character rows, coefficient normalizations and firing controls.
+  Every receipt retains `clay_verdict=NULL`. A uniform exact-vacuum fibre
+  rate, transported score, full-sequence convergence, phase uniqueness,
+  clustering, identification of the fixed-$\beta$ state with the anisotropic
+  family, spatial-volume uniformity, weak-coupling continuum construction,
+  continuum Osterwalder–Schrader/Wightman reconstruction and a
+  regulator-independent physical mass gap remain open. See
+  `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.29 and §11 and
+  `field-experience/probe-outcome-ledger.md` §§30,34,36–40.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state
