@@ -202,6 +202,64 @@ $$
 =0.029379280637034728>0.
 $$
 Thus $F_f\le\nu Y/2$ fails on this admissible initial datum. A positive data-controlled growth term remains allowed in the sufficient estimate above. The fixture, amplitude, viscosity and split length belong to the fixed schedule; no coefficient is fitted to this result.
+### 6.1 Amplitude scaling of the absorption obstruction
+
+The same fixed control gives a sharper endpoint obstruction without an
+amplitude scan. Let $U$ be the registered three-coordinate fixture and set
+$u_\beta=\beta U$ with $\beta>0$. Exact homogeneity of the fixed split gives
+$$
+\mathcal C[u_\beta]=\beta^2\mathcal C_0,\qquad
+Y[u_\beta]=\beta^2Y_0,\qquad
+F_f[u_\beta]=\beta^3F_{f,0}.
+$$
+For $L=2$, the amplitude-one symbolic values are
+$$
+\mathcal C_0=14+10\sqrt5,\qquad
+Y_0=74+50\sqrt5,
+$$
+$$
+F_{f,0}
+=2e^{-8}\left[
+(1-\sqrt5)e^6-8+4\sqrt5+(7-3\sqrt5)e^8
+\right]
+=0.2496584512047454204\ldots>0.
+$$
+For fixed $\theta$ and $\nu$, the residual after the proposed viscous
+fraction is therefore
+$$
+F_f[u_\beta]-\theta\nu Y[u_\beta]
+=\beta^2\left(\beta F_{f,0}-\theta\nu Y_0\right).
+$$
+At the registered diagnostic values $\theta=1/2$ and $\nu=1/100$, its
+zero occurs at
+$$
+\beta_*=\frac{\theta\nu Y_0}{F_{f,0}}
+=3.7211517971528976402\ldots.
+$$
+The registered amplitude $\beta=8$ gives
+$$
+\frac{F_f[u_8]-\nu Y[u_8]/2}{\mathcal C[u_8]}
+=0.0293792806370347273\ldots>0,
+$$
+matching the qualified absorption row above. More generally, any
+pointwise estimate of the form
+$$
+F_f\le\theta\nu Y+a_f\mathcal C
+$$
+applied to this family at the initial time requires
+$$
+a_f(0)\ge
+\beta\frac{F_{f,0}}{\mathcal C_0}
+-\theta\nu\frac{Y_0}{\mathcal C_0}
+$$
+whenever the right side is positive. The required coefficient grows
+linearly in $\beta$, equivalently as $\mathcal C[u_\beta]^{1/2}$.
+Consequently, no data-independent $a_f$ and no coefficient with
+sub-square-root growth in the critical norm can close this endpoint on
+the supplied class. This does not contradict the sufficient target with
+$a_f$ controlled by the full initial datum; it quantifies why that
+data-controlled cumulative estimate remains the unresolved step.
+
 
 The full stress equation retains third moments, pressure covariance and dissipative gradient covariance; the strain equation retains the pressure Hessian and stress-divergence derivatives. Pressure redistributes the dynamics and does not supply a separately signed global dissipation. These terms must remain in any feedback argument. Tao's averaged-equation construction retains energy cancellation and similar scaling estimates while permitting blow-up. A complete proof therefore needs an additional property of the original interaction beyond those generic estimates. The coarse estimate by itself supplies no such property.
 
