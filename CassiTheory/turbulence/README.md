@@ -120,7 +120,7 @@ arbitrary-flow closure and global regularity remain open.
 |---|----------|--------|-----------|
 | 1 | `turbulence/kolmogorov-from-phi.md` | Turbulence spectra from the two-fluid PDE | Derived conditional / Hypothesized closures |
 | 2 | `turbulence/navier-stokes-transfer-boundary.md` | Critical transfer, cubic heat correction, and coercivity | Derived identities and obstructions / conditional small-data estimates |
-| 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution and helical covariance conditions | Derived filtered identities / Hypothesized geometric closure |
+| 3 | `turbulence/navier-stokes-stress-geometry.md` | Exact stress evolution, pressure/Biot–Savart boundary, and helical covariance conditions | Derived filtered identities / Conditional direction estimate / Hypothesized geometric closure |
 | 4 | `turbulence/navier-stokes-depletion-dynamics.md` | Exact fine-scale transfer response, matter binding and exterior-memory comparison | Derived filtered identities and instantaneous obstructions / Conditional continuation estimate |
 | 5 | `turbulence/navier-stokes-strain-departure.md` | Energy-coupled departure, radial and signed spectral spread, critical scalar-Beltrami residual, forced budgets and cumulative mixing obstruction | Derived conditional estimates and helical reduction / Static phase-energy coercivity contradicted / Open arbitrary-data critical work |
 | 6 | `turbulence/navier-stokes-second-order-field-energy.md` | Nonnegative scalar-field energy, restricted connection-sector map and time–curl continuation residual | Derived field and Navier–Stokes identities / Derived conditional connection-sector map / Open arbitrary-data residual bound |
@@ -154,9 +154,12 @@ remainder has both signs; standard estimates close the small-data regime.
 
 `turbulence/navier-stokes-stress-geometry.md` retains pressure correlations,
 third moments, and viscous terms in the exact stress and strain equations.
-It states the assumptions behind a helical covariance model and an
-all-scale anisotropy estimate, with fixed controls for local isotropy,
-helix deformation, surrounding strain, and scale dependence.
+It also derives the curl-kernel Biot–Savart contraction: locally parallel
+vorticity cancels, while a direction-coherence condition gives a critical
+near/far stretching estimate. The unfiltered pressure Hessian has zero
+$L^2$ strain work, and the integrated Betchov identity ties total stretching
+to $\det S$. Fixed shear, Beltrami, and Gaussian concentration controls
+show why this boundary remains conditional.
 
 ### 2.4 Fine-scale transfer and matter binding
 

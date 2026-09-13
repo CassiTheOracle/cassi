@@ -4,7 +4,7 @@
 
 ## Abstract
 
-The Gaussian-filtered form of the original three-dimensional incompressible Navier–Stokes equation retains a velocity covariance, third central moment, pressure covariance, and gradient covariance. This paper derives their exact contribution to stress, strain, and signed transfer $\Pi_\ell=-S_\ell:\tau_\ell$ on the periodic torus. The anisotropy ratio $R_\ell=\|\tau_{\ell,\mathrm{dev}}\|_F/\operatorname{tr}\tau_\ell$ bounds local transfer. Its all-scale representation gives a conditional Gronwall and Serrin continuation estimate when the spatial-and-scale supremum of $\|S_\ell\|_F R_\ell$ has a data-controlled time integral. Establishing that control from the original dynamics remains open.
+The Gaussian-filtered form of the original three-dimensional incompressible Navier–Stokes equation retains a velocity covariance, third central moment, pressure covariance, and gradient covariance. This paper derives their exact contribution to stress, strain, and signed transfer $\Pi_\ell=-S_\ell:\tau_\ell$ on the periodic torus. The anisotropy ratio $R_\ell=\|\tau_{\ell,\mathrm{dev}}\|_F/\operatorname{tr}\tau_\ell$ bounds local transfer. Its all-scale representation gives a conditional Gronwall and Serrin continuation estimate when the spatial-and-scale supremum of $\|S_\ell\|_F R_\ell$ has a data-controlled time integral. At the unfiltered $L^2$ strain pairing, the pressure Hessian has zero work, while the periodic Biot–Savart kernel cancels the locally parallel vorticity component. A direction-coherence hypothesis gives a critical near/far stretching bound; establishing its required time control from arbitrary smooth data remains open.
 
 An equal-weight, equal-speed phase average of two helical tangent dyads gives axisymmetric stress eigenvalues and
 $$
@@ -481,9 +481,192 @@ precludes a singularity while the condition holds. This is a vorticity-direction
 
 Buaria, Pumir, and Bodenschatz (Nature Communications 11, article 5852, 2020, DOI `10.1038/s41467-020-19530-1`) use highly resolved turbulent data and a Biot–Savart decomposition to report local strain self-attenuation at extreme vorticity, connected to local Beltramization. This is a measured turbulence-statistics mechanism in a specified numerical regime. It is valuable motivation for adversarial stress geometry, while the present paper treats arbitrary smooth initial data algebraically and makes no statistical extrapolation.
 
+### 8.1 The pressure and Biot–Savart boundary
+
+At the unfiltered $L^2$ strain pairing, the pressure changes the pointwise strain while its global strain work vanishes. The Biot–Savart representation then isolates the geometric cancellation that a direction hypothesis can use. In this subsection $S=\operatorname{sym}\nabla u$ is the unfiltered strain. Write the physical-space integrals with Lebesgue measure, and let $G_{\mathbb T}$ be the mean-zero periodic Green function for $-\Delta$. For a mean-zero divergence-free field,
+$$
+\begin{aligned}
+u(x)&=\nabla\times\bigl(G_{\mathbb T}*\omega\bigr)(x)\\
+&=\int_{\mathbb T^3}\nabla G_{\mathbb T}(x-y)\times\omega(y)\,dy.
+\end{aligned}
+$$
+Equivalently, for $k\in\mathbb Z^3\setminus\{0\}$,
+$$
+\widehat u(k)=\frac{i\,k\times\widehat\omega(k)}{|k|^2}.
+$$
+In a local chart around the kernel singularity,
+$$
+\nabla^2G_{\mathbb T}(r)
+=\frac{3r\otimes r-|r|^2I}{4\pi |r|^5}+R_{\mathbb T}(r),
+$$
+where the remainder is smooth. With $A_{ij}=\partial_j u_i$, differentiation of this curl kernel gives
+$$
+\partial_j u_i(x)
+=\operatorname{p.v.}\int_{\mathbb T^3}
+\varepsilon_{iab}\,\partial_a\partial_jG_{\mathbb T}(r)\,
+\omega_b(x+r)\,dr.
+$$
+Symmetrizing in $i,j$ and contracting with $w$ gives the displayed stretching kernel. Choose a cutoff $0\le\chi\le1$ supported in that chart and equal to one near $r=0$. For $w=\omega(x)$, the singular contribution to the stretching is
+$$
+\boxed{
+w\cdot S(x)w
+=\frac{3}{4\pi}\operatorname{p.v.}\int
+\chi(r)\,
+\frac{(w\cdot r)\,
+\omega(x+r)\cdot(w\times r)}
+{|r|^5}\,dr+\mathcal E_\chi(x),
+}
+$$
+with
+$$
+|\mathcal E_\chi(x)|
+\le C_{\mathbb T,\chi}|w|^2\|\omega\|_{L^1}.
+$$
+The term obtained by replacing $\omega(x+r)$ with $w$ is identically zero because $w\cdot(w\times r)=0$. Thus the singular kernel sees only the component of the neighboring vorticity direction transverse to $w$.
+
+This cancellation produces a precise conditional estimate. Let
+$$
+M=\|\omega\|_{L^\infty},\qquad
+W=\|\omega\|_{L^2}^2,
+$$
+and suppose that, with $\xi=\omega/|\omega|$ where $\omega\ne0$ and
+$\xi=0$ where $\omega=0$,
+$$
+|\xi(x+r)\times\xi(x)|\le \Gamma |r|^\alpha,
+\qquad
+\alpha>0,
+$$
+for every local pair with $|r|\le\rho\le\min(1,\rho_{\mathbb T})$.
+Here $\rho_{\mathbb T}$ is the radius of the chosen chart; pairs involving a
+zero vorticity value contribute zero to the kernel and need no directional
+regularity assumption. The near part is bounded by
+$$
+\frac{3}{4\pi}|w|^2\int_{|r|\le\rho}
+\Gamma M |r|^{\alpha-3}\,dr
+\le \frac{3}{\alpha}\Gamma M\rho^\alpha |w|^2.
+$$
+The far part follows from Cauchy–Schwarz and
+$$
+\left\||r|^{-3}\mathbf 1_{\{|r|>\rho\}}\right\|_{L^2}
+\le C_{\mathbb T}\rho^{-3/2}.
+$$
+Consequently,
+$$
+\boxed{
+|P(t)|
+\le C_{\alpha,\mathbb T}\,
+W(t)\left[
+\Gamma(t)M(t)\rho^\alpha
++\|\omega(t)\|_{L^2}\rho^{-3/2}
+\right],
+\qquad
+P(t)=\int_{\mathbb T^3}\omega\cdot S\omega\,dx.
+}
+$$
+The smooth periodic remainder is absorbed into the second term when $\rho\le1$. If
+$$
+\rho_*\asymp
+\left(\frac{\|\omega\|_{L^2}}{\Gamma M}\right)^{1/(\alpha+3/2)}
+$$
+lies in the local range, optimization gives
+$$
+\boxed{
+|P(t)|
+\lesssim_{\alpha,\mathbb T}
+W(t)\,
+(\Gamma(t)M(t))^{3/(2\alpha+3)}
+\|\omega(t)\|_{L^2}^{\,2\alpha/(2\alpha+3)}.
+}
+$$
+For the Lipschitz case $\alpha=1$, the coefficient is
+$(\Gamma M)^{3/5}\|\omega\|_2^{2/5}$. The high-vorticity version of the direction condition adds a low-vorticity remainder; it leaves the same local cancellation and the same need for a time-integrated bound.
+
+The pressure equation and the unfiltered strain equation are
+$$
+-\Delta p=\partial_i u_j\,\partial_j u_i,
+\qquad
+(\partial_t+u\cdot\nabla)S+S^2+\Omega^2+\nabla^2p=\nu\Delta S.
+$$
+At the unfiltered $L^2$ strain pairing, the pressure Hessian is dynamically present but its global strain work is zero:
+$$
+\int_{\mathbb T^3}S:\nabla^2p\,dx
+=\int_{\mathbb T^3}\partial_j u_i\,\partial_i\partial_jp\,dx
+=-\int_{\mathbb T^3}u_i\,\partial_i\Delta p\,dx
+=\int_{\mathbb T^3}(\partial_i u_i)\Delta p\,dx
+=0.
+$$
+This identity does not remove the pressure covariance, third moment, stress-divergence derivatives, or pressure Hessian from the filtered equations in §§2–3. Pressure can reorient and redistribute strain pointwise without providing a separately signed global sink.
+
+There is a second exact global reduction. With $A=\nabla u$, periodic integration by parts and $\nabla\cdot u=0$ give
+$$
+\int_{\mathbb T^3}\operatorname{tr}(A^3)\,dx=0.
+$$
+For example, writing $B_{ij}=\partial_i u_j$ and
+$I=\int B_{ij}B_{jk}B_{ki}\,dx$, the two integrations by parts give
+$$
+I
+=-\int u_j\,\partial_{ij}u_k\,\partial_k u_i\,dx
+=\int u_j\,\partial_i u_k\,\partial_{jk}u_i\,dx
+=-\int\partial_k u_j\,\partial_i u_k\,\partial_j u_i\,dx
+=-I.
+$$
+Since $A=S+\Omega$ and
+$$
+\Omega^2=\frac14\left(\omega\otimes\omega-|\omega|^2I\right),
+$$
+expansion of $\operatorname{tr}(A^3)$ gives the integrated Betchov identity
+$$
+\boxed{
+P(t)=-\frac43\int_{\mathbb T^3}\operatorname{tr}(S^3)\,dx
+=-4\int_{\mathbb T^3}\det S\,dx.
+}
+$$
+This is an integrated identity; it is not a pointwise identity. The pointwise trace-free spectral inequality
+$$
+|\operatorname{tr}(S^3)|
+\le \frac1{\sqrt6}\left(\operatorname{tr}(S^2)\right)^{3/2}
+$$
+therefore supplies the unconditional fallback
+$$
+|P|
+\le \frac4{3\sqrt6}\|S\|_{L^3}^3
+\le C\|S\|_{L^2}^{3/2}\|\nabla S\|_{L^2}^{3/2}.
+$$
+The last step is the three-dimensional Sobolev interpolation estimate. It has the same critical scaling as the usual vorticity estimate and leaves a cubic-in-enstrophy remainder after viscous Young absorption.
+
+The fixed controls separate the possible signs and the concentration boundary. For the shear $u=(f(y),0,0)$, $\omega=(0,0,-f'(y))$, $P$ and $\det S$ vanish pointwise. The periodic Beltrami field
+$$
+u_B=(\sin z,\cos z,0),\qquad \omega_B=u_B,
+$$
+also has $P=0$ pointwise and evolves by heat flow. In contrast, the Schwartz field used as the Gaussian control in `turbulence/navier-stokes-strain-departure.md` §3 is
+$$
+v=e^{-(x^2+y^2+z^2)}
+\left(x(1-2z^2),y(1-2z^2),2z(x^2+y^2-1)\right)
+$$
+has
+$$
+-\int_{\mathbb R^3}\det S_v\,dx
+=\frac{8\pi^{3/2}}{81\sqrt3},
+\qquad
+\int_{\mathbb R^3}\omega_v\cdot S_v\omega_v\,dx
+=\frac{32\pi^{3/2}}{81\sqrt3}>0.
+$$
+The fixed-kinetic-energy concentration family
+$v_\lambda(x)=\lambda^{3/2}v(\lambda x)$ obeys
+$$
+K[v_\lambda]=K[v],\qquad
+\|\omega_{v_\lambda}\|_2^2=\lambda^2\|\omega_v\|_2^2,\qquad
+P[v_\lambda]=\lambda^{9/2}P[v].
+$$
+It rules out an energy-only bound on instantaneous stretching, while each member is smooth and rapidly decaying.
+
+Under the Navier–Stokes scaling $u_\lambda(x,t)=\lambda u(\lambda x,\lambda^2t)$, $W$ scales as $\lambda$, $\|\nabla\omega\|_2^2$ as $\lambda^3$, and $P$ as $\lambda^3$. The direction constant scales as $\Gamma\mapsto\lambda^\alpha\Gamma$ and $M\mapsto\lambda^2M$, so the optimized Biot–Savart bound has exactly the same critical scaling. The route supplies a conditional continuation mechanism, but it leaves the data-controlled time integral of its coefficient unresolved.
+
 ## 9. Present boundary and conclusions
 
 The exact filtered equations retain the third moment, pressure correlations, gradient covariance, pressure Hessian, stress derivatives, and product cross-diffusion. They supply an exact all-scale concentration budget and a conditional anisotropy estimate. A data-controlled bound on its time integral remains open. The helical covariance model requires uniform phase sampling and zero-mean signed tangent fluctuations, and its deformation depends on the surrounding strain.
+
+At the unfiltered $L^2$ strain pairing, the pressure Hessian has zero global work, and the integrated Betchov identity reduces total vortex stretching to the strain determinant. The Biot–Savart calculation adds a local direction-coherence estimate, but its coefficient remains critical and depends on vorticity amplitude and directional regularity.
 
 The field $u_0=(\sin y,\sin z,\sin x)$ has isotropic filtered covariance and zero instantaneous transfer at the origin, with a strictly positive transfer derivative there. The compact curl-potential construction independently shows that local vorticity does not determine symmetric strain. Together these facts require any proposed geometric condition to state its nonlocal, ensemble, time, and filtering assumptions explicitly.
 
@@ -494,6 +677,7 @@ No Millennium-problem solution, unconditional global regularity theorem, or phys
 - `foundations/qi-flow-double-helix.md` §3—canonical density-plane mathematics and conditional compact-phase/double-helix structure
 - `foundations/interscale-stress-attenuation-boundary.md` §1—spatial momentum stress boundary and missing current-to-stress map
 - `turbulence/navier-stokes-transfer-boundary.md`—parent transfer and heat-corrector audit
+- `turbulence/navier-stokes-strain-departure.md` §3—Gaussian strain control and determinant integral
 - `computations/navier_stokes_stress_geometry_prereg.md`—stress-geometry protocol
 - `computations/verify_navier_stokes_transfer.py`—transfer checks
 - `computations/verify_navier_stokes_stress_geometry.py`—stress-geometry checks
