@@ -478,6 +478,13 @@ $$
 \le \frac{|x-y|}{\rho},
 $$
 precludes a singularity while the condition holds. This is a vorticity-direction condition controlling vortex stretching. It is distinct from the stress-anisotropy envelope $\|S_\ell\|_F R_\ell\in L^1_tL^\infty_{x,\ell}$ proposed here. Both are conditional geometric regularity statements; neither supplies an unconditional proof for every smooth datum.
+The superlevel calculation later in this subsection is a quantitative
+reformulation of that established criterion. It keeps directional coherence
+only for pairs inside $H_\kappa$, retains every crossing contribution, and
+makes the low-source remainder explicit. The finite-$q$ and logarithmic
+estimates sharpen this bookkeeping; they add no independent qualitative
+regularity mechanism or all-data bound. Their continuation implication uses
+the same enstrophy-to-Serrin bridge as the global criterion.
 
 Buaria, Pumir, and Bodenschatz (Nature Communications 11, article 5852, 2020, DOI `10.1038/s41467-020-19530-1`) use highly resolved turbulent data and a Biot–Savart decomposition to report local strain self-attenuation at extreme vorticity, connected to local Beltramization. This is a measured turbulence-statistics mechanism in a specified numerical regime. It is valuable motivation for adversarial stress geometry, while the present paper treats arbitrary smooth initial data algebraically and makes no statistical extrapolation.
 
@@ -684,11 +691,11 @@ B(t)^{\,2\alpha/(2\alpha+3)}
 +M(t)^{1/3}\kappa(t)^{2/3}
 \right].
 $$
-Thus an interior superlevel direction criterion yields continuation if
-the displayed coefficient is integrable in time. This remains a
-solution hypothesis: no bound of $\Gamma$, $M$, or $\kappa$ from the
-initial $H^3$ norm is derived here. The low-vorticity remainder is
-explicit rather than being hidden inside a global direction assumption.
+The displayed coefficient is a conditional enstrophy-production control.
+Its time integrability is the hypothesis used in the continuation bridge
+below. No bound of $\Gamma$, $M$, or $\kappa$ from the initial $H^3$ norm
+is derived here. The low-vorticity remainder is explicit rather than being
+hidden inside a global direction assumption.
 
 The continuation bridge here is the unfiltered enstrophy identity. With
 $A_\kappa(t)$ denoting the bracketed coefficient in the last display,
@@ -799,9 +806,18 @@ The $q=6$ member is the finite-exponent estimate above. Larger $q$ moves
 the power remainder toward $\kappa$ while its Calderón–Zygmund constant
 grows with $q$.
 
-The standard weak-$L^1$, $L^2$, and duality bounds for this periodic
-second-Riesz-transform operator give
-$C_{\mathbb T,q}\le C_{\mathbb T}q$ for $q\ge2$. Write
+For completeness, the growth estimate follows from the operator bounds
+themselves. For $q\ge2$, let $q'=q/(q-1)\in(1,2]$. Weak-$L^1$ and
+$L^2$ interpolation applied to the adjoint second-Riesz-transform operator
+gives
+$$
+\|\mathcal T\|_{L^{q'}\to L^{q'}}
+\le \frac{C_{\mathbb T}}{q'-1},
+\qquad
+\|\mathcal T\|_{L^q\to L^q}
+\le C_{\mathbb T}q.
+$$
+The second inequality uses $1/(q'-1)=q-1\le q$. Write
 $L=M/\kappa\ge1$ and choose
 $q_L=2\max\{1,\log L\}$. Then
 $$
