@@ -132,6 +132,7 @@ arbitrary-flow closure and global regularity remain open.
 | 12 | `turbulence/cassi-fluid-phase-current-hydrodynamics.md` | Mermin–Ho rotation, helicity topology, two-band Beltrami flow, first-order coercivity and viscosity projection boundaries | Derived conditional current and topology identities / Tested rotational, memory and coercivity boundaries / Open microscopic viscosity and arbitrary-flow closure |
 | 13 | `turbulence/cassi-radiative-material-closure.md` | LTE emission, multigroup M1 transport, conservative material coupling and CassiCosmos handoff | Derived conditional transfer, conservation and entropy identities / Tested kernels / Open Cassi material calibration |
 | 14 | `turbulence/compressible-radiative-plasma-closure.md` | Compressible hydrodynamics, shocks, species and line kinetics, persistent stellar energy accounting and multi-angle crossing beams | Derived conditional / Tested reference controls and integrity qualification / Open Cassi material identification and production implementation |
+| 15 | `turbulence/navier-stokes-coherence-dose-criterion.md` | Active seeded-production dose and retarded-spread continuation criterion | Derived conditional / Open uniform dose and arbitrary-data regularity |
 
 ## 2. Document summaries
 
@@ -539,6 +540,31 @@ conservation and missing-prerequisite classification. Atomic and nuclear data,
 material units, initial composition and the Cassi field-to-baryonic-state map
 remain supplied inputs or open identifications.
 
+### 2.15 Coherence-dose continuation criterion
+
+`turbulence/navier-stokes-coherence-dose-criterion.md` extracts a continuation
+criterion from the positive-minus-positive replica identity. A uniform
+initial-data-ball bound on the accumulated positive active rate
+$G_+=\int(\Gamma_M)_+dt$ bounds enstrophy and invokes the periodic
+Prodi–Serrin bridge. An independently proved retarded-spread lower bound
+relative to the seeded occupation gives the corresponding compensated route.
+
+The operator inequality
+$$
+\Gamma_M\le\|S\|_{L^\infty(\operatorname{op})}
+$$
+recovers a finite continuation-level dose on every already-smooth compact
+interval. It supplies no uniform initial-data-ball estimate. Shear, the
+rank-two Beltrami control, ABC, and a homogeneous extensional control separate
+rank-deficient spread, accumulated covariance recovery, full-rank recovery,
+and zero-spread stretching. The fixed schedule passes **16 of 16 checks**;
+uniform active dose, uniform retarded compensation, and arbitrary-data
+regularity remain **UNRESOLVED**.
+
+The receipt is intentionally generated under `runs/` as local, untracked
+evidence. Rerunning the listed verifier regenerates it and rebinds the hashes
+of the three committed source files.
+
 ## References
 
 - `foundations/xi-derivation.md`—first-principles derivation of the Qi-gravity coupling $\xi = \varphi^6$ used in the velocity equation
@@ -572,6 +598,9 @@ remain supplied inputs or open identifications.
 - `computations/verify_navier_stokes_active_deformation_occupation.py`—40-check source-bound active-deformation-occupation component verifier
 - `computations/navier-stokes-replica-coherence-prereg.md`—fixed independent-replica, covariance-source, accumulated-rank, coherence, determinant, scaling, signed-shell and exact-control schedule
 - `computations/verify_navier_stokes_replica_coherence.py`—60-check source-bound replica-coherence, temporal-rank and viscous-compensation verifier
+- `computations/navier-stokes-coherence-dose-continuation-prereg.md`—fixed active-dose, retarded-spread and exact-control schedule
+- `computations/verify_navier_stokes_coherence_dose.py`—16-check coherence-dose continuation verifier
+- `turbulence/navier-stokes-coherence-dose-criterion.md`—conditional active-dose and retarded-spread continuation note
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
 - `computations/cassi-fluid-thermodynamics-prereg.md`—selected fluid equations and fixed thermal controls
 - `computations/cassi_fluid_thermodynamics.py`—reacting capillary/thermal model and command-line evolution
