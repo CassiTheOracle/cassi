@@ -725,6 +725,27 @@ cutoff-uniform Galerkin bound, production-relative compensation, and
 arbitrary-data regularity remain **UNRESOLVED**.
 
 
+### 2.24 Independent signed-mode Galerkin audit
+
+The longer-horizon finite-mode rows have a separate audit in
+`turbulence/navier-stokes-replica-coherence.md` §7.5. It stores the full signed
+Fourier spectrum, constructs the analytic controls directly, applies the
+orthogonal Leray projector, and evaluates the nonlinear term by explicit
+convolution. The four $N=2$, $T=1/2$ rows reproduce the saved production
+receipt, while $M=9$ and $M=13$ product grids, timestep halving, and an
+$N=2$ versus $N=4$ finite truncation witness supply independent controls.
+
+The audit receipt
+`runs/navier_stokes_galerkin_long_trajectory_audit_20260914/verification.json`
+passes all ten declared checks. The maximum direct-convolution relative error
+is $5.43\times10^{-17}$, the maximum grid-to-triple-convolution relative
+error is $3.02\times10^{-15}$, and the maximum relative difference from the
+saved production integrals is $1.34\times10^{-15}$. The classification is
+`SUPPORTS—independent finite-mode reproducibility diagnostic only`; the
+cutoff-uniform Galerkin bound, production-relative compensation, and
+arbitrary-data regularity remain **UNRESOLVED**.
+
+
 ## References
 
 - `foundations/xi-derivation.md`—first-principles derivation of the Qi-gravity coupling $\xi = \varphi^6$ used in the velocity equation
@@ -764,6 +785,8 @@ arbitrary-data regularity remain **UNRESOLVED**.
 - `computations/verify_navier_stokes_galerkin_trajectory.py`—self-contained Fourier–Galerkin trajectory, reconstruction, and receipt verifier
 - `computations/navier-stokes-galerkin-long-trajectory-prereg.md`—fixed longer-horizon finite-mode trajectory schedule and evidence boundary
 - `computations/verify_navier_stokes_galerkin_long_trajectory.py`—independent long-horizon Fourier–Galerkin trajectory, reconstruction, and receipt verifier
+- `computations/navier-stokes-galerkin-long-trajectory-audit-prereg.md`—frozen signed-mode normalization, direct-convolution controls, and evidence boundary
+- `computations/verify_navier_stokes_galerkin_long_trajectory_audit.py`—independent signed-mode Galerkin trajectory and receipt verifier
 - `computations/navier-stokes-coherence-dose-continuation-prereg.md`—fixed active-dose, retarded-spread and exact-control schedule
 - `computations/verify_navier_stokes_coherence_dose.py`—16-check coherence-dose continuation verifier
 - `computations/navier-stokes-vorticity-quotient-prereg.md`—fixed local quotient, normalized-mean, ABC initial-layer and degenerate-control schedule

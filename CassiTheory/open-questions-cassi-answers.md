@@ -1891,6 +1891,21 @@ maximum divergence residual is $2.2224\times10^{-17}$. These finite-cutoff
 trajectories do not establish the supremum in (68g), a production-relative
 rank-recovery inequality, or arbitrary-data regularity.
 
+The independent signed-mode audit
+`runs/navier_stokes_galerkin_long_trajectory_audit_20260914/verification.json`
+recomputes the four $N=2$ long-horizon rows with analytic initial
+coefficients and direct mode-by-mode convolution. All ten audit checks pass:
+the maximum direct-convolution relative error is
+$5.43\times10^{-17}$, the maximum alias-free grid discrepancy is
+$3.02\times10^{-15}$, and the maximum relative difference from the saved
+production integrals is $1.34\times10^{-15}$. The 512-step truncation witness
+changes $I_N(T)$ from $15.7563017241$ to $21.7512766295$ for the rank-two
+datum and from $15.8568908426$ to $21.9817197357$ for the near-rank datum
+between $N=2$ and $N=4$. This is classified
+`SUPPORTS—independent finite-mode reproducibility diagnostic only`; the
+cutoff-uniform supremum, production-relative rank-recovery inequality, and
+arbitrary-data regularity remain **UNESTABLISHED**.
+
 The trajectory-level analysis gives two explicit baselines. A periodic
 Gagliardo–Nirenberg estimate yields
 

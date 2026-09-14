@@ -556,6 +556,16 @@ $N=2,4,8,16$ under
 finite-mode result is recorded in
 `turbulence/navier-stokes-replica-coherence.md` §7.4 and §13.
 
+The signed-mode audit in
+`computations/navier-stokes-galerkin-long-trajectory-audit-prereg.md` and
+`computations/verify_navier_stokes_galerkin_long_trajectory_audit.py` independently
+recomputes the four $N=2$ rows by direct convolution. Its ten-check receipt is
+`runs/navier_stokes_galerkin_long_trajectory_audit_20260914/verification.json`;
+the result is classified
+`SUPPORTS—independent finite-mode reproducibility diagnostic only`. It remains
+finite-mode reproducibility evidence and leaves the cutoff-uniform bound,
+production-relative compensation, and arbitrary-data regularity unresolved.
+
 - `turbulence/README.md`—Turbulence—Spectra and Navier–Stokes Geometry. Index—September 2026. Covers the conditional spectrum analysis, critical-transfer and coercivity results, filtered stress geometry, quantitative strain departure, radial and signed spectral-spread estimates, adaptive metrics, forward-deformation covariance, vorticity-seeded active occupation, independent-replica coherence and viscous compensation, scalar-Beltrami and time–curl residuals, and the phase-energy coercivity boundary.
 - `turbulence/kolmogorov-from-phi.md`—The Kolmogorov −5/3 Spectrum in Cassi: Derivation and Conditional Tests. Derived conditional / Hypothesized closures—August 2026. The kinetic-energy spectrum is inherited under Navier–Stokes cascade assumptions; the optional break scale, deviation spectrum, gravity factor, and Qi-quality spectrum depend on supplied constitutive and statistical assumptions.
 - `turbulence/navier-stokes-transfer-boundary.md`—Navier–Stokes Transfer, Heat Corrections, and Coercivity. Derived identities and obstructions / conditional small-data estimates—September 2026. Gives the positive critical-norm budget, cubic heat correction, signed quartic remainder, and an unbounded corrected-energy level set, with a reproducible full-convolution verifier.

@@ -1064,6 +1064,21 @@ $1.0563\times10^{-8}$ and $1.2323\times10^{-15}$. This remains finite-mode
 evidence; the cutoff-uniform Galerkin bound, production-relative
 compensation, and arbitrary-data regularity are **UNRESOLVED**.
 
+An independent signed-mode audit recomputes the four $N=2$ long-horizon rows
+with analytic initial coefficients and direct mode-by-mode convolution. It
+passes all ten checks, including orthogonal projection, finite-state tracking,
+divergence, energy, direct-convolution and alias-free grid agreement, production
+row reproduction, timestep refinement, and a finite $N=2$ versus $N=4$
+truncation witness. The maximum relative differences are
+$5.43\times10^{-17}$ for direct convolution,
+$3.02\times10^{-15}$ for grid products, and
+$1.34\times10^{-15}$ for reproduction of the saved production integrals.
+The receipt is classified
+`SUPPORTS—independent finite-mode reproducibility diagnostic only`; the
+cutoff-uniform Galerkin bound, production-relative compensation, and
+arbitrary-data regularity remain **UNRESOLVED**.
+
+
 Section 7.1.1 of that paper derives a trajectory-level baseline for the
 Galerkin target. The critical Gagliardo–Nirenberg inequality reduces the
 remainder to $C_{\mathbb T}\nu^{-3}\int_0^T W_N^3dt$, while Bernstein,
@@ -1899,6 +1914,8 @@ The framework records evidence and limitations in `audit.md`; the gate-sign conv
 - `computations/verify_navier_stokes_galerkin_trajectory.py`—self-contained trajectory and receipt verifier
 - `computations/navier-stokes-galerkin-long-trajectory-prereg.md`—fixed longer-horizon finite-mode trajectory schedule
 - `computations/verify_navier_stokes_galerkin_long_trajectory.py`—independent long-horizon trajectory and receipt verifier
+- `computations/navier-stokes-galerkin-long-trajectory-audit-prereg.md`—frozen signed-mode normalization, direct-convolution controls, and evidence boundary
+- `computations/verify_navier_stokes_galerkin_long_trajectory_audit.py`—independent signed-mode Galerkin trajectory and receipt verifier
 
 ---
 

@@ -1274,6 +1274,41 @@ and no arbitrary-data regularity theorem. Those statements remain
 **UNRESOLVED**.
 
 
+### 7.5 Independent signed-mode convolution audit
+
+The longer-horizon finite-mode rows have an independent recomputation in a
+different Fourier representation. The audit stores every signed mode, constructs
+the four analytic controls directly, applies the orthogonal Leray projector, and
+assembles the quadratic nonlinearity by explicit mode-by-mode convolution. The
+production rows use $N=2$, $T=1/2$, and 2048 RK4 steps; the audit also checks
+$M=9$ and $M=13$ product grids, a 4096-step timestep refinement, and $N=2$
+versus $N=4$ finite truncation rows.
+
+The audit receipt passes all ten declared checks. The largest projector
+idempotence and wave-annihilation errors are $1.11\times10^{-16}$ and
+$2.22\times10^{-16}$, the largest divergence residual is
+$2.14\times10^{-17}$, and the maximum positive kinetic-energy increment is
+zero. Direct signed triple convolution agrees with the same-state
+enstrophy-derivative production to relative error
+$5.43\times10^{-17}$; the two alias-free product grids agree with the same
+triple convolution to relative error $3.02\times10^{-15}$. The four
+independent $N=2$ long rows reproduce the saved production receipt with
+maximum relative integral difference $1.34\times10^{-15}$, and timestep
+halving changes the rank-two and near-rank integrals by at most
+$1.06\times10^{-8}$.
+
+The finite truncation witness at 512 steps gives
+$I_2=15.7563017241$ and $I_4=21.7512766295$ for the rank-two datum, and
+$I_2=15.8568908426$ and $I_4=21.9817197357$ for the near-rank datum. These
+rows record cutoff dependence at the declared finite scope; they carry no
+monotonicity or convergence inference. The source-bound receipt is
+`runs/navier_stokes_galerkin_long_trajectory_audit_20260914/verification.json`,
+with classification
+`SUPPORTS—independent finite-mode reproducibility diagnostic only`. The
+cutoff-uniform estimate in (68g), production-relative compensation, and
+arbitrary-data regularity remain **UNRESOLVED**.
+
+
 ## 8. Exact controls
 
 ### 8.1 Periodic shear
@@ -2314,6 +2349,26 @@ are $1.0563\times10^{-8}$ and $1.2323\times10^{-15}$. This is a longer
 finite-mode measurement, not a cutoff-uniform estimate or a regularity
 result.
 
+An independent signed-mode audit is retained at
+`runs/navier_stokes_galerkin_long_trajectory_audit_20260914/verification.json`.
+The command
+
+```text
+python computations/verify_navier_stokes_galerkin_long_trajectory_audit.py
+```
+
+recomputes the four $N=2$ long-horizon rows without importing the production
+verifier. It stores the complete signed spectrum, evaluates the nonlinear term
+by direct convolution, checks the $M=9$ and $M=13$ alias-free products, and
+records the $N=2$ versus $N=4$ finite truncation witness. All ten audit checks
+pass, including finite-state tracking, orthogonal projection, divergence,
+energy, direct-convolution agreement, grid agreement, production-row
+reproduction, and timestep refinement. The receipt binds the committed audit
+protocol and verifier to the saved production receipt. Its classification is
+`SUPPORTS—independent finite-mode reproducibility diagnostic only`; the
+cutoff-uniform target, production-relative compensation, and arbitrary-data
+regularity remain **UNRESOLVED**.
+
 ## 14. Sources
 
 - `turbulence/navier-stokes-active-deformation-occupation.md`—vorticity-seeded common-noise moment and active deformation occupation
@@ -2328,3 +2383,5 @@ result.
 - `computations/verify_navier_stokes_galerkin_trajectory.py`—self-contained Fourier–Galerkin, Leray, RK4, reconstruction, and receipt verifier
 - `computations/navier-stokes-galerkin-long-trajectory-prereg.md`—fixed longer-horizon finite-mode trajectory schedule and evidence boundary
 - `computations/verify_navier_stokes_galerkin_long_trajectory.py`—independent longer-horizon Fourier–Galerkin trajectory and receipt verifier
+- `computations/navier-stokes-galerkin-long-trajectory-audit-prereg.md`—frozen signed-mode normalization, direct-convolution controls, and evidence boundary
+- `computations/verify_navier_stokes_galerkin_long_trajectory_audit.py`—independent signed-mode Galerkin trajectory and receipt verifier
