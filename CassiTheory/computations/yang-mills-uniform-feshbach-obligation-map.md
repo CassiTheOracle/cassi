@@ -709,6 +709,43 @@ $$
 
 Thus every single-coordinate conditional rate stays uniformly positive while the all-function tensorization constant grows as $\Theta(N)$ and the global Poincaré rate decays as $\Theta(N^{-1})$. A proof of UF-B must therefore establish (UF-B.8) independently on the discarded sector: either a multiscale cover with uniformly bounded effective $A_{Q,*}\rho_{\mathrm{cov},*}$, or a geometric statement showing that $Q_{\nu,B,C}$ excludes the collective low modes. A single-scale conditional estimate based only on (UF-B.7) leaves this infrared channel uncontrolled.
 
+### UF-B.4 Q-sector mode separation
+
+The Gaussian model also fixes the spectral geometry required of a discarded sector. Let $\varphi_k$ be the first-chaos sine mode with index $k$ for the massless chain. Its normalized Gaussian Poincaré eigenvalue is
+
+$$
+\gamma_k
+:=
+4\sin\frac{k\pi}{2(N+1)},
+\qquad
+1\le k\le N.
+\tag{UF-B.13}
+$$
+
+If the retained first-chaos space contains the modes $1,\ldots,K-1$, the complementary first-chaos sector has the exact floor
+
+$$
+\inf\operatorname{spec}
+\left(
+\mathsf Q_{\ge K}\mathcal L_{\mathrm G}\mathsf Q_{\ge K}
+\bigm|_{\mathrm{first\ chaos}}
+\right)
+=
+\gamma_K.
+\tag{UF-B.14}
+$$
+
+For $0<d\le4$, a uniform discarded margin $\gamma_K\ge d$ requires
+
+$$
+K
+\ge
+\frac{2(N+1)}{\pi}\arcsin\frac d4,
+\tag{UF-B.15}
+$$
+
+so a fixed-rank retained first-chaos space leaves a vanishing discarded margin as $N\to\infty$. The Yang–Mills construction must therefore exhibit a retained multiscale representation that captures the corresponding long modes, or prove an interacting mechanism that lifts them before the $Q$ projection. Local support and finite retained rank alone do not provide the required UF-B margin.
+
 ### UF-C. Uniform Schur lower bound
 
 The interacting self-energy must obey the endpoint inequality on every retained local span:
