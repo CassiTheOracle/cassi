@@ -2004,6 +2004,64 @@ and
 `49c9d90848790d2a9f492e61f8be1e4009412ac205bb982f850a9bc4f880e272`.
 
 
+## 55. Qualified simultaneous translated-block residual Gramian
+
+The frozen protocol
+`computations/yang-mills-simultaneous-residual-gramian-prereg.md` constructs
+the eleven translated fundamental-plaquette residuals in one common
+868-dimensional $C=1$ Hilbert space on the open $3\times2\times2$ graph. The
+coupling schedule is $x\in\{1/64,1/16,1/4,1\}$, with equal weights
+$w_p=1/11$.
+
+The primary receipt
+`runs/yang_mills_simultaneous_residual_gramian/verification-v4.json` passes
+$50/50$ checks with classification
+`QUALIFIED_FINITE_SOURCE_SECTOR_RECOVERY`. The minimum measured
+source-sector floor is
+$\gamma_{\min}^{Q,\mathrm{src}}=0.061191332082923884$. The full centered
+$Q$ space has dimension $867$; the zero-extended residual family has rank
+$11$, full-$Q$ floor $0$, and nullity $856$.
+
+The selected larger-volume source artifact is finite qualified evidence with
+$234/238$ checks. Its unresolved rows are
+`tail_separation_C1_x0.25`, `tail_separation_C2_x0.25`,
+`tail_separation_C1_x1.0`, and `tail_separation_C2_x1.0`, all
+`TAIL_UNRESOLVED`. The original larger-volume receipt remains excluded from
+this chain because its recovery-protocol binding is
+`8ca8b34e5250b798fdb2e196e68d731a2b14f6c4e2b7a0fcf89e0db29f9264e7`; the
+selected source artifact binds
+`5647bfa524c25672c83d5daa2e515c33313fdf118c84afd29155e1e1e5cf1821`.
+
+The arithmetic audit
+`runs/yang_mills_simultaneous_residual_gramian/verification-independent-v4.json`
+passes $30/30$ checks with classification
+`PRIMARY_RECEIPT_ARITHMETIC_AUDIT_PASS`. It reconstructs the serialized
+primary Gramian, coverage matrix, weighted source spectrum, spatial probes,
+and full-$Q$ rank boundary without importing the primary implementation. It
+does not perform a second physical Hamiltonian solve.
+
+The result establishes a qualified finite source-sector measurement. Its
+scope ends before a full-$Q$ recovery floor, volume-uniform estimate,
+thermodynamic limit, continuum construction, or Yang–Mills mass gap. The
+continuum boundary audit remains `UNRESOLVED_CONTINUUM_PROBLEM` with Clay
+verdict `NULL`.
+
+The source-binding order is protocol, primary source, independent source,
+larger source, exact helper, scientific larger-volume protocol, recovery
+protocol, selected larger-volume receipt, primary receipt and independent
+receipt:
+`2ad2f0a5e67866bbea9253f14ffdd85e5e7a1f79ef816c3e654190274bbe187e`,
+`34d952d1217cf44ccd1bba9e8f84e403e50e95ed66271b477314e7fc14f65ac2`,
+`ec6082eea99502043a6c584de2483c632fc292eebc7d85895eb0a47d385e57e5`,
+`87764d365f592b091a8006ed178b13ce9d2da2b519638d19b35d88c3762243af`,
+`b3ed3a4af4b84e787180654fc7e863a61e8f79693c54b9f1efe75346996c8524`,
+`190081eb42bc82432033fc59f3bfb4386a74760f0f4b951ec46ad461a0f056f7`,
+`5647bfa524c25672c83d5daa2e515c33313fdf118c84afd29155e1e1e5cf1821`,
+`7bdf0c525976e6976ff4a510a429c8febc73a61278216f95cced57a7b0e7120b`,
+`54bf58497458cfe59c155e4ad47e846223c5c478bec99197a7a5fd16c26aea68`
+and
+`2a6fc20fa5de2bd089ef353ba1c692c890544ad0503e14ad35a4069e41a4fb79`.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
