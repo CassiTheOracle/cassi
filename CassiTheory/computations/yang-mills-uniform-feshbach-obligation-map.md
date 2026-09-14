@@ -681,6 +681,34 @@ $$
 
 The log-domain values of $\log_{10}(g_\nu^2/F_\nu)$ at $\nu=(1,2,4,8,16,32)$ are $(40.165,44.776,54.016,72.542,109.700,184.200)$. The asymptotic scale factor therefore grows strongly; the finite prefix and a regulator-uniform lower bound for $\lambda_{\mathrm{loc},*}/(A_{Q,*}\rho_{\mathrm{cov},*})$ remain the required estimates.
 
+### UF-B.3 Tensorization boundary
+
+The local conditional gap in (UF-B.7) cannot by itself supply the $Q$-coverage estimate in (UF-B.8). The exact Gaussian family in (YM37)–(YM38) makes the missing long-distance quantity explicit. For the massless chain,
+
+$$
+\lambda_{\mathrm{glob}}=2\lambda_{\min}(Q_N),
+\qquad
+\lambda_i^{\mathrm{cond}}=2(Q_N)_{ii}\in[2,2\sqrt2],
+\qquad
+\frac{1}{\lambda_{\min}(Q_N)}
+\le A_{\mathrm{AT}}
+\le
+\frac{\sqrt2}{\lambda_{\min}(Q_N)},
+\tag{UF-B.11}
+$$
+
+with
+
+$$
+\lambda_{\min}(Q_N)
+=
+2\sin\frac{\pi}{2(N+1)}
+\asymp N^{-1}.
+\tag{UF-B.12}
+$$
+
+Thus every single-coordinate conditional rate stays uniformly positive while the all-function tensorization constant grows as $\Theta(N)$ and the global Poincaré rate decays as $\Theta(N^{-1})$. A proof of UF-B must therefore establish (UF-B.8) independently on the discarded sector: either a multiscale cover with uniformly bounded effective $A_{Q,*}\rho_{\mathrm{cov},*}$, or a geometric statement showing that $Q_{\nu,B,C}$ excludes the collective low modes. A single-scale conditional estimate based only on (UF-B.7) leaves this infrared channel uncontrolled.
+
 ### UF-C. Uniform Schur lower bound
 
 The interacting self-energy must obey the endpoint inequality on every retained local span:
