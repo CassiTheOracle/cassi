@@ -1036,6 +1036,21 @@ or a data-controlled signed shell-stretching estimate would bound
 $\mathcal H$ and imply continuation. Both estimates and arbitrary-data
 regularity remain **UNRESOLVED**.
 
+The rate-boundary supplement in
+`turbulence/navier-stokes-covariance-recovery-rate.md` quantifies the first
+instant at which the accumulated covariance can recover the missing source
+direction. For the smooth rank-deficient periodic control, the normalized
+determinant-root volume is
+$$
+\mathcal K(t)=6\nu^{4/3}\left\langle f^{1/3}\right\rangle t^{4/3}
++o(t^{4/3}),
+$$
+while seeded stretching contributes $\frac12t+O(t^2)$. The production-to-recovery
+ratio therefore grows as $t^{-1/3}$ near the initial time. A recovery-only
+coefficient cannot close this initial layer; the occupation term in a
+production-relative estimate and arbitrary-data regularity remain
+**UNRESOLVED**. The fixed integrated-rate schedule passes 6 of 6 checks.
+
 Section 7 of `turbulence/cassi-fluid-feasibility.md` selects a reacting
 rotational velocity and temperature. Its variational stress conserves
 periodic momentum; viscous and conversion work enter the heat equation,

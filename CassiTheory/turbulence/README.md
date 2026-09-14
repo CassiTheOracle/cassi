@@ -136,6 +136,7 @@ arbitrary-flow closure and global regularity remain open.
 | 16 | `turbulence/navier-stokes-vorticity-quotient.md` | Inverse seeded-covariance quotient, normalized mean bound, and initial-layer obstruction | Derived local identity / Open uniform continuation estimate |
 | 17 | `turbulence/navier-stokes-rank-deficient-stretching.md` | Active stretching with rank-deficient vorticity-gradient source | Derived periodic 2.5D control / Open temporal recovery and global regularity |
 | 18 | `turbulence/navier-stokes-rank-deficient-temporal-recovery.md` | Temporal covariance rank recovery from an active rank-deficient source | Derived local time-jet witness / Open uniform Gramian, compensation, and global regularity |
+| 19 | `turbulence/navier-stokes-covariance-recovery-rate.md` | Initial-layer rate of accumulated covariance recovery versus seeded stretching | Derived exact short-time asymptotic / Open recovery-only continuation bound and global regularity |
 
 
 ## 2. Document summaries
@@ -630,6 +631,24 @@ remain **UNRESOLVED**. The supplement receipt is intentionally generated at
 as local, untracked evidence; rerunning the listed verifier regenerates it and
 rebinds the four source hashes.
 
+### 2.19 Initial-layer rate of covariance recovery
+
+`turbulence/navier-stokes-covariance-recovery-rate.md` derives the uniform
+initial-time determinant order for the active rank-deficient control. The global
+coefficient satisfies $c_4=8\nu^4f\ge0$ and is positive on an open region, so
+the recovered covariance volume obeys
+
+$$
+\mathcal K(t)=6\nu^{4/3}\langle f^{1/3}\rangle t^{4/3}
++o(t^{4/3}).
+$$
+
+The seeded occupation increment is $\frac12t+O(t^2)$ because the initial
+stretching production is $1/4$. Their ratio diverges like $t^{-1/3}$, ruling
+out a finite recovery-only coefficient even on this globally smooth datum. The
+occupation term required by the production-relative target and arbitrary-data
+regularity remain **UNRESOLVED**.
+
 
 ## References
 
@@ -675,6 +694,9 @@ rebinds the four source hashes.
 - `computations/navier-stokes-rank-deficient-temporal-recovery-prereg.md`—frozen covariance-PDE time-jet and temporal-recovery schedule
 - `computations/verify_navier_stokes_rank_deficient_temporal_recovery.py`—5-check exact temporal covariance rank-recovery verifier
 - `turbulence/navier-stokes-rank-deficient-temporal-recovery.md`—local temporal rank-recovery supplement
+- `computations/navier-stokes-covariance-recovery-rate-prereg.md`—fixed integrated coefficient, quadrature and initial-layer scaling schedule
+- `computations/verify_navier_stokes_covariance_recovery_rate.py`—6-check integrated covariance recovery-rate verifier
+- `turbulence/navier-stokes-covariance-recovery-rate.md`—initial-layer recovery-rate boundary
 - `turbulence/navier-stokes-coherence-dose-criterion.md`—conditional active-dose and retarded-spread continuation note
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
 - `computations/cassi-fluid-thermodynamics-prereg.md`—selected fluid equations and fixed thermal controls
