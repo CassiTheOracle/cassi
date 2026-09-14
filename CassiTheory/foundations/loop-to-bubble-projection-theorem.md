@@ -7242,6 +7242,134 @@ Consequently, the next Yang–Mills proof target is the following conjunction:
    lower-semicontinuity/recovery statements needed for (YM265); and
 4. establish the physical scale matching (YM266) while constructing the
    continuum representation.
+#### 9.34.1 Conditional local-recovery route
+
+The lower-form criterion has a concrete sufficient route through the exact
+ground-state Dirichlet form. Write
+
+$$
+\mathfrak y_\nu[f]
+:=
+\frac{a_\nu}{F_\nu}
+\left\langle f\Omega_\nu,
+(H_\nu-E_{0,\nu})f\Omega_\nu\right\rangle_\nu
+=
+\frac{g_\nu^2}{2F_\nu}\mathcal E_\nu[f],
+\qquad
+\mathcal E_\nu[f]
+:=
+\sum_{e,A}\int|X_e^Af|^2\,d\mu_\nu .
+\tag{YM268}
+$$
+
+For every matched boundary datum $\eta$, boundary representation sector
+$\alpha$ and block $B$, suppose the conditional form satisfies
+
+$$
+\operatorname{Var}_{\mu_{\nu,B}^{\eta,\alpha}}F
+\leq
+\lambda_{\mathrm{loc},*}^{-1}
+\mathcal E_{\nu,B}^{\eta,\alpha}(F,F),
+\qquad
+\lambda_{\mathrm{loc},*}>0,
+\tag{YM269}
+$$
+
+and suppose the centered vectors in the transported discarded sector obey
+
+$$
+\|f\|_{L^2(\mu_\nu)}^2
+\leq
+A_{Q,*}
+\sum_{B\in\mathcal B_\nu}w_B
+\mathbb E_{\mu_\nu}
+\left[
+\operatorname{Var}_{\mu_{\nu,B}^{U_{B^c},\alpha}}f
+\right],
+\tag{YM270}
+$$
+
+with the local-energy overlap bound
+
+$$
+\sum_{B\in\mathcal B_\nu}w_B
+\mathbb E_{\mu_\nu}
+\left[
+\mathcal E_{\nu,B}^{U_{B^c},\alpha}(f,f)
+\right]
+\leq
+\rho_{\mathrm{cov},*}\mathcal E_\nu[f].
+\tag{YM271}
+$$
+
+Under the $S_\nu$-isometry (UF2a), $D_{\nu,B,C}$ denotes the Euclidean
+compression of this physical form to the discarded domain $Q_{\nu,B,C}$.
+
+The conditional variance identity and (YM268)–(YM271) give, on
+$f\Omega_\nu\in\operatorname{ran}Q_{\nu,B,C}$,
+
+$$
+D_{\nu,B,C}
+\succeq
+\frac{g_\nu^2\lambda_{\mathrm{loc},*}}
+{2F_\nu A_{Q,*}\rho_{\mathrm{cov},*}}I_Q .
+\tag{YM272}
+$$
+
+Consequently, the discarded-sector hypothesis (UF7) follows from the single
+uniform comparison
+
+$$
+\inf_{\nu,B,C}
+\frac{g_\nu^2\lambda_{\mathrm{loc},*}}
+{2F_\nu A_{Q,*}\rho_{\mathrm{cov},*}}
+\geq c_*+\rho_* .
+\tag{YM273}
+$$
+
+The residual-recovery formulation makes the coverage constant measurable.
+For transported scale spaces, let $\mathscr R_{\nu,n}^{Q}$ be the
+$Q$-restricted residual Gramian from (UF-B.20), let
+$\mathcal K_{\nu,n}^{Q}=\operatorname{ran}Q_{\nu,n}\cap\mathcal N_n^\perp$,
+and let $E_{\nu,n}$ project onto a retained test space in that sector.
+With $C_{\nu,n}=I-E_{\nu,n}$, form the residual blocks (UF-B.21). Assume the
+closed residual form restricts to these sectors and each off-diagonal block
+extends boundedly between the two sectors in the declared Hilbert norm, or
+use a stated relative-form cross-bound. Uniform constants
+
+$$
+\alpha_R>0,\qquad
+\delta_R>0,\qquad
+\beta_R^2<\alpha_R\delta_R
+$$
+
+then give
+
+$$
+\mathscr R_{\nu,n}^{Q}\succeq\gamma_R Q_{\nu,n},
+\qquad
+\gamma_R=
+\frac{\alpha_R+\delta_R
+-\sqrt{(\alpha_R-\delta_R)^2+4\beta_R^2}}{2}>0,
+\tag{YM274}
+$$
+
+and one may take $A_{Q,*}=\gamma_R^{-1}$. This is the residual-recovery
+bridge in `computations/yang-mills-uniform-feshbach-obligation-map.md`
+§§UF-B.5–UF-B.6 and the frozen separation in
+`computations/yang-mills-recovery-gramian-prereg.md` §§YMRG1–YMRG5.
+
+The boundary representation construction supplies the domain on which these
+estimates are meaningful. In particular, the orientation-fixed Haar
+contraction in (UFA18a)–(UFA18d) must extend from the finite
+Peter–Weyl core to the gauge-invariant Hilbert space, preserve the exact
+form domain and include every plaquette-crossing boundary interaction.
+The residual blocks above describe the recovery Gramian; the Hamiltonian
+blocks used in the finite Feshbach receipts remain a separate Schur
+calculation. Establishing the uniform constants in (YM269)–(YM274), the
+boundary extension, the retained-sector margin and the recovery statements
+(YM265)–(YM266) would supply the analytic bridge to (YM267).
+
 
 The fixed $2\times2$ refinement in §9.17 fails the bare-map version of item
 1 by (YM50)–(YM53). The Gaussian, finite-section and finite-graph controls
@@ -7619,7 +7747,7 @@ microscopic completions.
 | Fixed-graph anisotropic transfer-to-Hamiltonian limit (YM223)–(YM241) | **Derived** fixed-regulator operator theorem with finite-character controls | Normalized central convolution with $B_\tau=4a/(g^2\epsilon)$ and symmetric magnetic half-steps has difference and logarithmic generators converging in strong resolvent sense to (YM3), and its Chernoff products converge strongly to $e^{-tH_\Lambda}$ on every fixed finite spatial graph. The exact Wilson convention map is $g_W=2^{1/4}g$, $a_\tau=\epsilon/\sqrt2$; spatial-volume uniformity, the $a\to0$ limit, continuum reconstruction and a uniform physical gap remain open |
 | Renormalized weak-coupling gap and volume criterion (YM242)–(YM248) | **Derived** two-loop asymptotic scale relation from established perturbative inputs and **Derived conditional** continuum implication | $a\Lambda_L=F_W[1+O(g_0^2)]$ requires $NF_W\to\infty$ for simultaneous infinite volume and $a\Delta/F_W$ bounded above and below for a finite positive excitation; 80/80 primary and 20/20 independent arithmetic checks pass, but no interacting gap, continuum trajectory or Osterwalder–Schrader limit is constructed |
 | Conditional RG endpoint-to-gap matching theorem (YM249)–(YM255) | **Derived conditional** scale, transfer-rate and volume implication | A bounded cumulative two-loop scale defect, fixed positive interacting endpoint rate, exact controlled block-correlation map, complete retained physical channels and continuum Osterwalder–Schrader construction are required; 139/139 primary and 32/32 independent arithmetic checks pass, while every construction hypothesis and the Clay verdict remain open |
-| Local Wilson-word algebra, GNS completeness and uniform-form criterion (YM259)–(YM267) | **Derived conditional** finite gauge-invariant algebra, vacuum-orthogonal density statement and exact lower-bound transfer criterion | The full centered local gauge-invariant algebra supplies a complete finite-regulator GNS core; a selected finite Wilson family or unproved RG image does not. A regulator-uniform lower form bound, strong recovery/form transport, physical scale matching and continuum construction remain open |
+| Local Wilson-word algebra, GNS completeness and uniform-form criterion (YM259)–(YM274) | **Derived conditional** finite gauge-invariant algebra, vacuum-orthogonal density statement, boundary-fibre contraction, local-recovery route and residual-Schur criterion | The full centered local gauge-invariant algebra supplies a complete finite-regulator GNS core; the orientation-fixed finite Peter–Weyl contraction, conditional local-Poincaré/coverage route and residual recovery floor are stated with their extension and uniformity obligations, while a regulator-uniform lower form bound, strong recovery/form transport, physical scale matching and continuum construction remain open |
 | Nested-cutoff interacting Feshbach screen | **INCONCLUSIVE** finite-cutoff measurement (`NO_POSITIVE_FAMILY_CERTIFICATE`) | Ten nested cutoff pairs on the seven-link graph pass 403/403 primary controls and 370/370 independent arithmetic/source-binding checks; positive Schur roots occur in 36/40 rows, with four zero-root rows at $x=16$; uniform regulator, volume, recovery, continuum and mass-gap control remain open |
 | Cutoff-six interacting Feshbach growth family | **INCONCLUSIVE** finite-cutoff measurement (`SUPPORTS_FINITE_ADJACENT_FAMILY`) | The adjacent gauge-invariant retained sequence through outer cutoff 6 passes 603/603 primary controls and 552/552 independent arithmetic/source-binding checks, with positive Schur roots in 20/20 adjacent rows; eight non-adjacent $x=16$ rows lack positive roots, and uniform regulator, volume, recovery, continuum and mass-gap control remain open |
 | Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, conditional-rate cutoff removal and continuum construction remain open |

@@ -234,7 +234,7 @@ d_\alpha
 \tag{UFA17}
 $$
 
-with the Hilbert inner product inherited from (UFA15) and the standard inner product on $V_\alpha$. Fix a boundary half-edge identification $\iota_{\partial B}$, including orientations and any duplicated cut-link variables. Define the matched tensor space and its Haar/Peter–Weyl contraction by
+with the Hilbert inner product inherited from (UFA15) and the standard inner product on $V_\alpha$. Fix a boundary half-edge identification $\iota_{\partial B}$, including orientations and any duplicated cut-link variables. Define the matched tensor space and its Haar/Peter–Weyl contraction by:
 
 $$
 \begin{aligned}
@@ -254,7 +254,62 @@ $$
 \tag{UFA18}
 $$
 
-Here $\widehat\otimes_{\iota_{\partial B}}$ is the Hilbert tensor product after identifying duplicated cut-link variables with the declared orientations, and $\operatorname{Inv}_{G_{\partial B}}$ denotes fixed vectors under the diagonal boundary action. The map $\Gamma_{\nu,B}^{\mathrm f}$ is the Haar/Peter–Weyl contraction of matching $V_\alpha\otimes V_\alpha^*$ factors. UF-A includes proving that this map is a unitary bijection onto $\mathcal H_{\nu,\Lambda}^{\mathrm{gi}}$; the specification records that proof as an open obligation. On the finite Peter–Weyl core, the boundary condition is equivalently $(G_{\nu,B,v}^A+G_{\nu,\bar B,v}^A)\Psi=0$ for every boundary vertex and Lie-algebra direction. In the remaining equations, $\operatorname{Glue}_{\mathrm f}$ denotes this $\Gamma_{\nu,B}^{\mathrm f}$; the coarse $\operatorname{Glue}_{\mathrm c}$ has the analogous definition.
+Here $\widehat\otimes_{\iota_{\partial B}}$ is the Hilbert tensor product after identifying duplicated cut-link variables with the declared orientations, and $\operatorname{Inv}_{G_{\partial B}}$ denotes fixed vectors under the diagonal boundary action. The exterior factor carries the dual representation $V_\alpha^*$ with the reversed-boundary action $D^\alpha(g)^*$ when the block factor carries $D^\alpha(g)$. On the finite Peter–Weyl core, choose orthonormal bases $m_{\alpha,\ell}$ of $\mathcal M_{\nu,B,\alpha}^{\mathrm f}$ and $\bar m_{\alpha,\ell'}$ of $\mathcal M_{\nu,\bar B,\bar\alpha}^{\mathrm f}$, and set
+
+$$
+\iota_\alpha:=
+\frac{1}{\sqrt{d_\alpha}}
+\sum_{r=1}^{d_\alpha}
+e_{\alpha,r}\otimes e_\alpha^{\,r}
+\in V_\alpha\otimes V_\alpha^*.
+\tag{UFA18a}
+$$
+
+For finite coefficients $c_{\alpha,\ell,\ell'}$, the matched invariant vector and its contraction are
+
+$$
+\begin{aligned}
+\Psi
+&=
+\bigoplus_{\alpha,\ell,\ell'}
+c_{\alpha,\ell,\ell'}
+\bigl(m_{\alpha,\ell}\otimes\bar m_{\alpha,\ell'}\bigr)
+\otimes\iota_\alpha,\\
+\Gamma_{\nu,B}^{\mathrm f}(\Psi)
+&=
+\sum_{\alpha,\ell,\ell'}
+c_{\alpha,\ell,\ell'}
+\operatorname{Glue}_{\mathrm f,\alpha}
+\bigl(m_{\alpha,\ell}\otimes\bar m_{\alpha,\ell'}\bigr).
+\end{aligned}
+\tag{UFA18b}
+$$
+
+The normalization and orthogonality are fixed by the boundary Haar identity
+
+$$
+\int_{G_{\partial B}}
+\overline{D^\alpha_{rs}(g)}D^\beta_{tu}(g)\,dg
+=
+\frac{\delta_{\alpha\beta}\delta_{rt}\delta_{su}}{d_\alpha},
+\qquad
+\|\iota_\alpha\|=1.
+\tag{UFA18c}
+$$
+
+Thus, on the finite matched core with the declared cut-link orientations,
+
+$$
+\left\|\Gamma_{\nu,B}^{\mathrm f}(\Psi)\right\|_{\mathcal H_{\nu,\Lambda}^{\mathrm{gi}}}^2
+=
+\sum_{\alpha,\ell,\ell'}
+|c_{\alpha,\ell,\ell'}|^2
+=
+\|\Psi\|_{\mathscr H_{\nu,B|\bar B}^{\mathrm f,\mathrm{match}}}^2.
+\tag{UFA18d}
+$$
+
+The finite-core action (UFA18b) supplies the candidate contraction and its isometry. UF-A still requires proving that the contraction extends to a unitary bijection onto $\mathcal H_{\nu,\Lambda}^{\mathrm{gi}}$, that every gauge-invariant finite-core vector has the displayed matched expansion, and that the extension preserves the exact form domain. The specification records these extension, surjectivity and form-compatibility statements as open obligations. On the finite Peter–Weyl core, the boundary condition is equivalently $(G_{\nu,B,v}^A+G_{\nu,\bar B,v}^A)\Psi=0$ for every boundary vertex and Lie-algebra direction. In the remaining equations, $\operatorname{Glue}_{\mathrm f}$ denotes this orientation-fixed contraction.
 
 
 Peter–Weyl decomposition for the compact boundary group gives
@@ -846,7 +901,7 @@ C_{\nu,n}\mathscr R_{\nu,n}^{Q}C_{\nu,n}.
 \tag{UF-B.21}
 $$
 
-Assume these form blocks share the declared form domain and define
+Assume these form blocks are the restrictions of the closed residual form to the orthogonal sectors, and that each off-diagonal block $B_{\nu,n}^{R}$ extends boundedly from $\operatorname{ran}C_{\nu,n}$ to $\mathcal S_{\nu,n}^{Q}$ in the declared Hilbert norm. A relative-form cross-bound may replace this Hilbert-space boundedness, provided the corresponding quadratic estimate is used below. Define
 
 $$
 \alpha_R:=

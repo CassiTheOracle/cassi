@@ -986,6 +986,10 @@ representation are separate obligations. An unproved RG image does not
 inherit this closure, so the
 correlation-map and full physical-gap obligations remain open; both receipts
 retain `clay_verdict=NULL` (`field-experience/probe-outcome-ledger.md` §§43–44).
+The conditional local-recovery route, orientation-fixed boundary contraction
+and residual-Schur separation are formalized in
+`computations/yang-mills-uniform-feshbach-obligation-map.md`; the exact
+boundary extension and uniform constants remain analytic obligations.
 
 ### `interscale-current-soliton.md`—Interscale Yang/Yin Current and the Conditional Soliton Pinch
 
