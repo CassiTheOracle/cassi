@@ -1,0 +1,61 @@
+{
+  "schema": "yang_mills_closed_wilson_simple_cycle_coverage_manifest_v1",
+  "closed_wilson_simple_cycle": {
+    "protocol": "computations/yang-mills-closed-wilson-simple-cycle-coverage-prereg.md",
+    "primary_source": "computations/verify_yang_mills_closed_wilson_simple_cycle_coverage.py",
+    "independent_source": "computations/verify_yang_mills_closed_wilson_simple_cycle_coverage_independent.py",
+    "baseline_protocol": "computations/yang-mills-plaquette-cyclic-coverage-prereg-v3.md",
+    "baseline_source": "computations/verify_yang_mills_plaquette_cyclic_coverage.py",
+    "degree_four_protocol": "computations/yang-mills-plaquette-cyclic-coverage-prereg-v4.md",
+    "degree_four_source": "computations/verify_yang_mills_plaquette_cyclic_coverage_v4.py",
+    "primary_receipt": "runs/yang_mills_closed_wilson_simple_cycle_coverage/verification.json",
+    "independent_receipt": "runs/yang_mills_closed_wilson_simple_cycle_coverage/verification-independent.json",
+    "hashes": {
+      "computations/yang-mills-closed-wilson-simple-cycle-coverage-prereg.md": "d310ebe67f65f02f9dc2d74774b6fa2f2e461a58e8f070925613fb71edd20eb1",
+      "computations/verify_yang_mills_closed_wilson_simple_cycle_coverage.py": "36303bbbef83e314e2a9aecc43b60a60e435230f10370d36166dc9bdfcdc0e63",
+      "computations/verify_yang_mills_closed_wilson_simple_cycle_coverage_independent.py": "abe11785850dd808c40eb711124364e6d0e0049df4ec6a48fe41397fa0bf2c49",
+      "computations/yang-mills-plaquette-cyclic-coverage-prereg-v3.md": "1c3d21817f6f62870c96a2bc38e02d480449946f7da74657d852a9e9b67da6f0",
+      "computations/verify_yang_mills_plaquette_cyclic_coverage.py": "42f7f6dc4584e15424c745fe5eb61fe8f455e3ae8911b3a1c88bbdf45a58fbdb",
+      "computations/yang-mills-plaquette-cyclic-coverage-prereg-v4.md": "70a93fb4b1eeb31d674d3c86679193f6ddd9325a42cbb8ca59af0a6c92997bd4",
+      "computations/verify_yang_mills_plaquette_cyclic_coverage_v4.py": "a299400291e2388e46a1e1292317793b2169c2f206b5d8e45ad942759b5c4673",
+      "computations/verify_yang_mills_su2_larger_volume_hamiltonian.py": "87764d365f592b091a8006ed178b13ce9d2da2b519638d19b35d88c3762243af",
+      "computations/verify_yang_mills_exact_block_spectrum.py": "b3ed3a4af4b84e787180654fc7e863a61e8f79693c54b9f1efe75346996c8524",
+      "computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md": "190081eb42bc82432033fc59f3bfb4386a74760f0f4b951ec46ad461a0f056f7",
+      "computations/yang-mills-su2-larger-volume-hamiltonian-recovery-prereg.md": "5647bfa524c25672c83d5daa2e515c33313fdf118c84afd29155e1e1e5cf1821",
+      "runs/yang_mills_su2_larger_volume_hamiltonian_recovery/current-verification.json": "7bdf0c525976e6976ff4a510a429c8febc73a61278216f95cced57a7b0e7120b",
+      "runs/yang_mills_closed_wilson_simple_cycle_coverage/verification.json": "07d04859db731ff55de713f4551c41d6e608652928afa52fe0ba740a99ecfe60",
+      "runs/yang_mills_closed_wilson_simple_cycle_coverage/verification-independent.json": "54bdb0c79cef04bfdd75278ae5be23be13656a21413e5c5bd07111f2ad3befc8"
+    },
+    "result": {
+      "status": "FAIL",
+      "classification": "CLOSED_WILSON_SIMPLE_CYCLE_COVERAGE_INCOMPLETE",
+      "checks": "40/40",
+      "independent_checks": "24/24",
+      "raw_directed_occurrences": 3880,
+      "canonical_simple_cycles": 225,
+      "length_counts": {
+        "4": 11,
+        "6": 36,
+        "8": 72,
+        "10": 84,
+        "12": 22
+      },
+      "projected_columns": 16329,
+      "couplings": ["1/64", "1/16", "1/4", "1"],
+      "final_ranks": [865, 867, 867, 867],
+      "finite_deficiencies": [2, 0, 0, 0],
+      "first_full_blocks": [null, "plaquette_degree_4", "plaquette_degree_4", "plaquette_degree_4"]
+    }
+  },
+  "shared_dependencies": {
+    "larger_source": "computations/verify_yang_mills_su2_larger_volume_hamiltonian.py",
+    "helper": "computations/verify_yang_mills_exact_block_spectrum.py",
+    "larger_protocol": "computations/yang-mills-su2-larger-volume-hamiltonian-prereg.md",
+    "larger_recovery_protocol": "computations/yang-mills-su2-larger-volume-hamiltonian-recovery-prereg.md",
+    "larger_receipt": "runs/yang_mills_su2_larger_volume_hamiltonian_recovery/current-verification.json"
+  },
+  "scope": "finite C=1 coverage from every canonical unoriented simple cycle plus ordered plaquette products through degree four on the recovered open 3x2x2 SU(2) graph; no all-word, continuum, thermodynamic or mass-gap claim",
+  "continuum_claim": false,
+  "thermodynamic_claim": false,
+  "mass_gap_claim": false
+}

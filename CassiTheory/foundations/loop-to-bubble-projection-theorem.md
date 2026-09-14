@@ -7820,6 +7820,61 @@ See `computations/yang-mills-plaquette-cyclic-coverage-prereg-v4.md`,
 `field-experience/probe-outcome-ledger.md` §57.
 
 
+### 9.43 Finite closed-Wilson simple-cycle coverage
+
+The complete unoriented simple-cycle inventory gives a larger finite operator
+family than the plaquette-product screen. On the recovered open
+$3\times2\times2$ graph, deterministic enumeration produces $3880$ rooted
+directed occurrences and $225$ canonical unoriented classes:
+
+| length | canonical classes |
+|---:|---:|
+| $4$ | $11$ |
+| $6$ | $36$ |
+| $8$ | $72$ |
+| $10$ | $84$ |
+| $12$ | $22$ |
+
+Every class closes, has distinct active edges and visits distinct vertices.
+Each variable-length matrix uses one transfer factor per active cycle edge and
+retains all compatible spectator intertwiner channels. The eleven length-four
+matrices agree exactly with the existing plaquette assembler, and a fixed
+length-eight sample agrees with direct link-Haar network contractions at the
+four scheduled state pairs. All $225$ matrices are finite and Hermitian.
+
+At each scheduled coupling, the measured family contains the $225$ centered
+simple-cycle vectors together with the $11+121+1331+14641$ ordered plaquette
+products through degree four, for $16329$ projected columns in the
+$868$-dimensional basis. The ranks are:
+
+| $x$ | augmented rank | $Q$ deficiency | first full-rank block |
+|---:|---:|---:|---|
+| $1/64$ | $865$ | $2$ | none |
+| $1/16$ | $867$ | $0$ | plaquette degree four |
+| $1/4$ | $867$ | $0$ | plaquette degree four |
+| $1$ | $867$ | $0$ | plaquette degree four |
+
+The source-bound receipt has `status=FAIL` with classification
+`CLOSED_WILSON_SIMPLE_CYCLE_COVERAGE_INCOMPLETE`: all $40/40$ primary
+checks pass, but the declared all-coupling decision rule requires rank $867$
+at every coupling. The independent receipt passes $24/24$ arithmetic-audit
+checks and confirms the inventory, schedule, singular-value ranks, nullities
+and finite classification without a second Hamiltonian solve.
+
+This result closes the declared finite simple-cycle inventory and shows
+full-$Q$ coverage at three of four couplings for the stated augmented family.
+It does not include self-intersecting or repeated-edge single-trace words
+beyond the retained plaquette products. Complete closed-Wilson-word coverage,
+local conditional residual estimates, volume-uniform control, lattice-spacing
+control, continuum construction and the Yang–Mills mass gap remain open.
+
+See `computations/yang-mills-closed-wilson-simple-cycle-coverage-prereg.md`,
+`computations/verify_yang_mills_closed_wilson_simple_cycle_coverage.py`,
+`computations/verify_yang_mills_closed_wilson_simple_cycle_coverage_independent.py`,
+`computations/yang_mills_closed_wilson_simple_cycle_coverage_manifest.json` and
+`field-experience/probe-outcome-ledger.md` §58.
+
+
 ---
 
 

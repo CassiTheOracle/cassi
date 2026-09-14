@@ -373,6 +373,18 @@ Identifying the RG retained family with the full local algebra, constructing
 the exact block map, and proving the matched uniform lower spectral bound
 remain open. See `foundations/loop-to-bubble-projection-theorem.md`
 §§9.31–9.34 and `field-experience/probe-outcome-ledger.md` §§42–44.
+The next finite operator screen enumerates every canonical unoriented simple
+cycle on the recovered open $3\times2\times2$ graph: $3880$ rooted directed
+occurrences reduce to $225$ classes with length counts
+$11,36,72,84,22$. Adding their centered multiplication vectors to the
+degree-four plaquette products gives $16329$ columns. The source-bound
+calculation passes $40/40$ controls and reaches rank $865,867,867,867$ in
+$Q$ of dimension $867$, so its all-coupling classification is
+`CLOSED_WILSON_SIMPLE_CYCLE_COVERAGE_INCOMPLETE`; the independent arithmetic
+audit passes $24/24$. This closes the declared finite simple-cycle inventory,
+not all closed words, local recovery, volume-uniform control or the continuum
+mass gap. See `foundations/loop-to-bubble-projection-theorem.md` §9.43 and
+`field-experience/probe-outcome-ledger.md` §58.
 
 The geometric manifold completion ansatz places these finite structures in
 one stratified bundle. A positive Hermitian Yang/Yin fibre contains the

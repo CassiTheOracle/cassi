@@ -2179,6 +2179,67 @@ The tracked lineage manifest
 the degree-three baseline, the degree-four sources and both finite receipt
 sets.
 
+## 58. Finite closed-Wilson simple-cycle coverage
+
+The frozen protocol
+`computations/yang-mills-closed-wilson-simple-cycle-coverage-prereg.md`
+enumerates every canonical unoriented simple cycle of the recovered open
+$3\times2\times2$ graph and adds the resulting variable-length Wilson
+multiplication family to the degree-four plaquette products. The complete
+$C=1$ basis has dimension $868$, so the centered sector has dimension $867$.
+The inventory contains $3880$ rooted directed occurrences and $225$ canonical
+classes, with length counts $11,36,72,84,22$ for lengths $4,6,8,10,12$.
+
+The primary receipt
+`runs/yang_mills_closed_wilson_simple_cycle_coverage/verification.json` has
+status `FAIL` and classification
+`CLOSED_WILSON_SIMPLE_CYCLE_COVERAGE_INCOMPLETE`. All $40/40$ primary checks
+pass: the variable-length assembler agrees with all eleven length-four
+plaquette matrices, a direct length-eight network sample agrees at all four
+state pairs, and all $225$ matrices are finite and Hermitian. The augmented
+family has $16329$ projected columns and ranks:
+
+| $x$ | augmented rank | $Q$ deficiency | first full-rank block |
+|---:|---:|---:|---|
+| $1/64$ | $865$ | $2$ | none |
+| $1/16$ | $867$ | $0$ | plaquette degree four |
+| $1/4$ | $867$ | $0$ | plaquette degree four |
+| $1$ | $867$ | $0$ | plaquette degree four |
+
+The all-coupling rule therefore returns an incomplete finite family despite
+full-$Q$ rank at three scheduled couplings. The independent receipt
+`runs/yang_mills_closed_wilson_simple_cycle_coverage/verification-independent.json`
+passes $24/24$ arithmetic-audit checks and does not perform a second
+Hamiltonian solve. Repeated-edge and self-intersecting closed words remain
+outside this family except for the retained plaquette products. Complete
+closed-Wilson-word coverage, local recovery, volume-uniform control,
+lattice-spacing control, continuum construction and the Yang–Mills mass gap
+remain open.
+
+The source-binding order is protocol, primary source, independent source,
+degree-three baseline protocol, degree-three baseline source, degree-four
+protocol, degree-four source, larger source, exact helper, scientific
+larger-volume protocol, recovery protocol, selected larger-volume receipt,
+primary receipt and independent receipt:
+`d310ebe67f65f02f9dc2d74774b6fa2f2e461a58e8f070925613fb71edd20eb1`,
+`36303bbbef83e314e2a9aecc43b60a60e435230f10370d36166dc9bdfcdc0e63`,
+`abe11785850dd808c40eb711124364e6d0e0049df4ec6a48fe41397fa0bf2c49`,
+`1c3d21817f6f62870c96a2bc38e02d480449946f7da74657d852a9e9b67da6f0`,
+`42f7f6dc4584e15424c745fe5eb61fe8f455e3ae8911b3a1c88bbdf45a58fbdb`,
+`70a93fb4b1eeb31d674d3c86679193f6ddd9325a42cbb8ca59af0a6c92997bd4`,
+`a299400291e2388e46a1e1292317793b2169c2f206b5d8e45ad942759b5c4673`,
+`87764d365f592b091a8006ed178b13ce9d2da2b519638d19b35d88c3762243af`,
+`b3ed3a4af4b84e787180654fc7e863a61e8f79693c54b9f1efe75346996c8524`,
+`190081eb42bc82432033fc59f3bfb4386a74760f0f4b951ec46ad461a0f056f7`,
+`5647bfa524c25672c83d5daa2e515c33313fdf118c84afd29155e1e1e5cf1821`,
+`7bdf0c525976e6976ff4a510a429c8febc73a61278216f95cced57a7b0e7120b`,
+`07d04859db731ff55de713f4551c41d6e608652928afa52fe0ba740a99ecfe60`
+and
+`54bdb0c79cef04bfdd75278ae5be23be13656a21413e5c5bd07111f2ad3befc8`.
+The tracked lineage manifest
+`computations/yang_mills_closed_wilson_simple_cycle_coverage_manifest.json`
+records the same source and receipt hashes.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.

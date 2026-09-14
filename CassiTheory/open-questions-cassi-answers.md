@@ -2837,6 +2837,19 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   $x=1/64,1/16,1/4,1$. The independent arithmetic audit passes $20/20$
   checks. This finite result does not close the retained family to full $Q$;
   complete closed-word coverage and full local recovery remain open.
+  The complete simple-cycle inventory on the same graph contains $3880$ rooted
+  directed occurrences and $225$ canonical classes with length counts
+  $11,36,72,84,22$ for lengths $4,6,8,10,12$. Adding its $225$ centered
+  vectors to the degree-four plaquette family gives $16329$ projected columns.
+  The source-bound receipt passes all $40/40$ checks but remains `FAIL` under
+  the all-coupling rule: the final ranks are $865$, $867$, $867$, and $867$,
+  with deficiencies $2$, $0$, $0$, and $0$ at
+  $x=1/64,1/16,1/4,1$. The independent arithmetic audit passes $24/24$.
+  Finite simple-cycle coverage is therefore complete as an inventory and
+  incomplete as an all-coupling full-$Q$ family; repeated-edge and
+  self-intersecting closed words, local recovery, volume-uniform control,
+  continuum construction and the mass gap remain open.
+
 
   Section 9.34 states the exact remaining transfer criterion. At finite
   regulator, a single $c_->0$ must bound the centered local form by
@@ -2856,8 +2869,8 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   the full local algebra, a uniform interacting endpoint gap, weak-coupling
   continuum construction, continuum Osterwalder–Schrader/Wightman
   reconstruction and a regulator-independent physical mass gap remain open.
-  See `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.34, 9.42 and
-  `field-experience/probe-outcome-ledger.md` §§30,34,36–44,56.
+  See `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.34, 9.42–9.43 and
+  `field-experience/probe-outcome-ledger.md` §§30,34,36–44,56–58.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state
