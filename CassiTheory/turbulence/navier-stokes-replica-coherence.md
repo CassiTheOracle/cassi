@@ -1441,12 +1441,13 @@ h_M=|\omega|^2+h_R.
 $$
 
 Thus $\mathcal H(t)=\int_{\mathbb T^3}h_M\,dx$ and
-$\mathcal K(t)=3\int_{\mathbb T^3}d_R\,dx$. For a fixed $0<\theta<1$, set
+$\mathcal K(t)=3\int_{\mathbb T^3}d_R\,dx$. For a fixed horizon $T>0$ and
+$0<\theta<1$, put $\mu=\theta/T$ and set
 
 $$
-a_\theta(t)=
+a_{\theta,T}(t)=
 \sqrt{2}\,\|S(t)\|_{L^\infty}
-+\theta^{-1}\|S(t)\|_{L^\infty}^2.
++\mu^{-1}\|S(t)\|_{L^\infty}^2.
 \tag{115b}
 $$
 
@@ -1457,7 +1458,7 @@ $$
 \boxed{
 2\int_{\mathbb T^3}S:M\,dx
 \le
-\theta\mathcal K(t)+2a_\theta(t)\mathcal H(t).}
+\mu\mathcal K(t)+2a_{\theta,T}(t)\mathcal H(t).}
 \tag{115c}
 $$
 
@@ -1498,28 +1499,139 @@ $$
 +2\sqrt{2}|S|\,h_R
 +2\sqrt{6}|S|\sqrt{d_Rh_R}\\
 &\le
-3\theta d_R+
-\left(2\sqrt{2}|S|+2\theta^{-1}|S|^2\right)
+3\mu d_R+
+\left(2\sqrt{2}|S|+2\mu^{-1}|S|^2\right)
 \left(|\omega|^2+h_R\right),
 \end{aligned}
 \tag{115f}
 $$
 
-where the last step is $2ab\le\theta a^2+\theta^{-1}b^2$ with
-$a=\sqrt{3d_R}$ and $b=\sqrt{2}|S|\sqrt{h_R}$. Integrating (115f) and
-using the spatial $L^\infty$ norm gives (115c).
+where the last step is $2ab\le\mu a^2+\mu^{-1}b^2$ with
+$a=\sqrt{3d_R}$ and $b=\sqrt{2}|S|\sqrt{h_R}$. Integrating (115f) over
+space and using the spatial $L^\infty$ norm gives (115c). For
+$0\le s\le t\le T$, monotonicity $\mathcal K(s)\le\mathcal K(t)$ from (92)
+then gives
+
+$$
+\begin{aligned}
+2\int_0^t\int_{\mathbb T^3}S:M\,dx\,ds
+&\le
+\mu\int_0^t\mathcal K(s)\,ds
++2\int_0^ta_{\theta,T}(s)\mathcal H(s)\,ds\\
+&\le
+\mu t\mathcal K(t)
++2\int_0^ta_{\theta,T}(s)\mathcal H(s)\,ds\\
+&\le
+\theta\mathcal K(t)
++2\int_0^ta_{\theta,T}(s)\mathcal H(s)\,ds.
+\end{aligned}
+\tag{115g}
+$$
 
 This is a conditional baseline, not a closure of (115)--(116). It instantiates
-(115) with $b=0$ along an already smooth solution, but its coefficient
-requires a uniform initial-data-ball bound on
-$\int_0^{\min(T,T_*)}(\|S(t)\|_{L^\infty}
-+\|S(t)\|_{L^\infty}^2)\,dt$. The energy identity and determinant recovery do
-not provide that bound. The all-data production-relative estimate, and hence
-arbitrary-data regularity, remain unresolved; the open step is precisely to
-replace this continuation-level coefficient by a data-controlled integrable
-one.
+(115) with $a=a_{\theta,T}$ and $b=0$ along an already smooth solution, but
+its coefficient requires a uniform initial-data-ball bound on
+
+$$
+\int_0^{\min(T,T_*)}
+\left[
+\sqrt{2}\,\|S(t)\|_{L^\infty}
++\frac{T}{\theta}\|S(t)\|_{L^\infty}^2
+\right]dt.
+$$
+
+This coefficient has the formal critical scaling: under the Euclidean
+Navier–Stokes dilation, $\|S\|_{L^\infty}$ scales like $\lambda^2$ and
+$T\|S\|_{L^\infty}^2$ scales like $\lambda^2$. The energy identity and
+determinant recovery do not provide the displayed bound. The all-data
+production-relative estimate, and hence arbitrary-data regularity, remain
+unresolved; the open step is precisely to replace this continuation-level
+coefficient by a data-controlled integrable one.
 
 
+
+### 12.5.2 Algebraic limits of simpler replacements
+
+The determinant-rate term cannot be substituted for the accumulated
+$\mathcal K$ term using the covariance transport identities alone. As a
+homogeneous algebraic control, take
+
+$$
+L=S=\operatorname{diag}(1,-1,0),
+\qquad
+Q=0,
+\qquad
+F_t=\operatorname{diag}(e^t,e^{-t},1),
+\qquad
+R(t)=F_tR_0F_t^{\mathsf T},
+\qquad
+R_0=\operatorname{diag}(2,1,1).
+\tag{115h}
+$$
+
+Then $\det F_t=1$, so $\Phi(R(t))$ and hence $\mathcal K$ are constant,
+while
+
+$$
+\mathcal K'=0,
+\qquad
+2S:R_0=2.
+\tag{115i}
+$$
+
+This is a homogeneous covariance control rather than a periodic
+Navier–Stokes trajectory; it only rules out replacing $\mathcal K$ by
+$\mathcal K'$ without an additional dynamical estimate.
+
+The quadratic strain coefficient is likewise forced by the local matrix
+geometry. Let
+
+$$
+A=\frac{1}{\sqrt6}\operatorname{diag}(2,-1,-1),
+\qquad
+|A|_F=1,
+\qquad
+S=sA,
+\qquad
+R_{d,\varepsilon}=dI+\varepsilon A,
+\qquad
+\omega=0.
+\tag{115j}
+$$
+
+For $\varepsilon/d\to0$,
+
+$$
+d_R=d-\frac{\varepsilon^2}{6d}
++O\!\left(\frac{\varepsilon^3}{d^2}\right),
+\qquad
+h_R=\frac{\varepsilon^2}{2d}
++O\!\left(\frac{\varepsilon^3}{d^2}\right),
+\qquad
+2S:R_{d,\varepsilon}=2s\varepsilon.
+\tag{115k}
+$$
+
+Consequently, a pointwise inequality of the form
+$2S:R\le3\mu d_R+2a\,h_R$ for all positive-semidefinite $R$ has, to leading
+order, the necessary condition
+
+$$
+\inf_{d>0}
+\left(3\mu d+\frac{a\varepsilon^2}{d}\right)
+=2\varepsilon\sqrt{3\mu a}
+\ge2s\varepsilon,
+\qquad
+a\ge(1+o(1))\frac{s^2}{3\mu}.
+\tag{115l}
+$$
+
+The optimizer is admissible for this near-isotropic family when $s/\mu$ is
+large, so a coefficient merely linear in $|S|$ cannot replace the
+$\mu^{-1}|S|^2$ term. The constants in (115f) may be sharpened, but this
+quadratic scaling is not a Young-inequality artifact. These controls delimit
+the algebraic route; they do not supply the missing data-controlled
+space–time estimate for the Navier–Stokes solution.
 
 ### 12.6 Canonical signed shell target
 
@@ -1723,9 +1835,9 @@ The stochastic-flow representation, positive matrix propagator, general Duhamel 
 The selected local evidence bundle is
 
 ```text
-runs/navier_stokes_replica_coherence_rank_recovery_20260910_final_qualified/verification.json
-runs/navier_stokes_replica_coherence_rank_recovery_20260910_final_qualified/verification.inputs.json
-runs/navier_stokes_replica_coherence_rank_recovery_20260910_final_qualified/verification.sources/
+runs/navier_stokes_replica_coherence_compensation_baseline_20260913/verification.json
+runs/navier_stokes_replica_coherence_compensation_baseline_20260913/verification.inputs.json
+runs/navier_stokes_replica_coherence_compensation_baseline_20260913/verification.sources/
 ```
 
 The bundle records raw source hashes for this paper, the frozen protocol, and the verifier.
