@@ -429,13 +429,13 @@ Prodi–Serrin endpoint restart. It is a proof target, not part of the
 60-check receipt.
 
 
-An exact rank-two periodic Beltrami heat flow has $J=0$ while its accumulated
-covariance becomes full rank on an open set. Periodic shear remains rank one,
-so an all-data theorem must relate recovery to the stretching being
-compensated. The source-bound schedule passes **60 of 60** symbolic and
-exact-control checks. Uniform production-relative rank compensation, the
-signed shell-stretching estimate, and a bound on $\mathcal H$ over every
-bounded initial-$H^3$ data ball remain **UNRESOLVED**.
+An exact rank-two periodic control has $J=0$ while its accumulated covariance
+becomes full rank on an open set. Periodic shear remains rank one, so an
+all-data theorem must relate recovery to the stretching being compensated.
+The source-bound schedule passes **60 of 60** symbolic and exact-control
+checks. Uniform production-relative rank compensation, the signed
+shell-stretching estimate, and a bound on $\mathcal H$ over every bounded
+initial-$H^3$ data ball remain **UNRESOLVED**.
 
 ### 2.11 Cassi fluid mechanics, thermal closure and phase currents
 
@@ -664,6 +664,20 @@ $H^3$ family. The independent source-bound schedule passes **7 of 7 checks** at
 Production-relative occupation control and arbitrary-data regularity remain
 **UNRESOLVED**.
 
+### 2.21 Frozen Galerkin endpoint controls
+
+`turbulence/navier-stokes-replica-coherence.md` §7.2 records a separate
+finite-mode control schedule for the positive critical endpoint remainder.
+The periodic shear and ABC Beltrami heat controls have zero positive
+remainder, while the rank-two datum and its full-dimensional near-rank
+perturbations have positive initial remainder. The perturbation family keeps
+normalized production fixed at $1/4$, has a sampled full-rank vorticity-gradient
+source, obeys a common $H^3$ triangle bound, and reproduces the critical
+Euclidean scaling. The source-bound verifier passes **8 of 8 checks** at
+`runs/navier_stokes_galerkin_endpoint_controls_publication_20260913/verification.json`.
+The cutoff-uniform time-integrated Galerkin bound, production-relative
+compensation, and arbitrary-data regularity remain **UNRESOLVED**.
+
 ## References
 
 - `foundations/xi-derivation.md`—first-principles derivation of the Qi-gravity coupling $\xi = \varphi^6$ used in the velocity equation
@@ -697,6 +711,8 @@ Production-relative occupation control and arbitrary-data regularity remain
 - `computations/verify_navier_stokes_active_deformation_occupation.py`—40-check source-bound active-deformation-occupation component verifier
 - `computations/navier-stokes-replica-coherence-prereg.md`—fixed independent-replica, covariance-source, accumulated-rank, coherence, determinant, scaling, signed-shell and exact-control schedule
 - `computations/verify_navier_stokes_replica_coherence.py`—60-check source-bound replica-coherence, temporal-rank and viscous-compensation verifier
+- `computations/navier-stokes-galerkin-target-prereg.md`—frozen finite-mode endpoint target, control family, scaling and evidence boundary
+- `computations/verify_navier_stokes_galerkin_target.py`—8-check source-bound Galerkin endpoint-control verifier
 - `computations/navier-stokes-coherence-dose-continuation-prereg.md`—fixed active-dose, retarded-spread and exact-control schedule
 - `computations/verify_navier_stokes_coherence_dose.py`—16-check coherence-dose continuation verifier
 - `computations/navier-stokes-vorticity-quotient-prereg.md`—fixed local quotient, normalized-mean, ABC initial-layer and degenerate-control schedule

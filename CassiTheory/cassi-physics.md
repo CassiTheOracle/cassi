@@ -1021,18 +1021,19 @@ W\le\mathcal H:=\mathcal E_M-\mathcal K
 \le\mathcal G:=\mathcal E_M-6\nu\int_0^t\int(\det Q_\omega)^{1/3}dx\,ds.
 $$
 
-An exact rank-two periodic Beltrami heat flow has zero instantaneous
-determinant functional while its accumulated covariance becomes full rank on
-an open set. Periodic shear remains rank one, excluding a uniform positive
-recovery floor over all data. The paper makes the continuation bridge
+An exact rank-two periodic control has zero instantaneous determinant
+functional while its accumulated covariance becomes full rank on an open set.
+Periodic shear remains rank one, excluding a uniform positive recovery floor
+over all data. The paper makes the continuation bridge
 explicit: a bounded enstrophy envelope gives $u\in L^4_tL^6_x$ through the
 periodic kinetic-energy identity and Sobolev embedding, so the velocity
 Prodi–Serrin theorem supplies the finite-endpoint step. Its indexed
 common-noise kernel diffuses only in the center coordinate; an absolute
 diagonal bound would control the active quotient, whereas increment bounds
 leave spatially constant extension unbounded. The source-bound schedule passes
-60 symbolic and exact-control checks. A production-relative recovery estimate
-or a data-controlled signed shell-stretching estimate would bound
+60 symbolic and exact-control checks; the separate Galerkin endpoint-control
+schedule passes 8 of 8 finite-mode checks. A production-relative recovery
+estimate or a data-controlled signed shell-stretching estimate would bound
 $\mathcal H$ and imply continuation. Both estimates and arbitrary-data
 regularity remain **UNRESOLVED**.
 

@@ -853,6 +853,93 @@ $$
 $$
 
 
+### 7.2 Frozen finite-mode endpoint controls
+
+The endpoint integrand has both dissipative zero controls and positive-production controls, so a cutoff argument must control its time history rather than rely on a source-rank label.
+
+The fixed control schedule uses $\nu=1/10$ on the $2\pi$-periodic torus. Its
+rank-deficient heat datum is
+
+$$
+u^{\mathrm{sh}}_2(y,t)=e^{-4\nu t}\sin(2y)e_1.
+$$
+
+For this datum, $P^{\mathrm{str}}=0$, $D>0$, and the endpoint remainder
+$\left(P^{\mathrm{str}}-\nu D/2\right)_+$ vanishes. The ABC Beltrami heat
+flow
+
+$$
+u_{\mathrm{ABC}}(x,y,z,t)=e^{-\nu t}
+(\sin z+\cos y,\ \sin x+\cos z,\ \sin y+\cos x)
+$$
+
+also has zero integrated stretching production and $D=W$, so its endpoint
+remainder vanishes at the declared viscosity.
+
+The positive-production datum and its full-dimensional perturbations are
+
+$$
+u_b=(-\sin y,\ 0,\ \sin x+\cos x\sin y),
+\qquad
+w=(\sin z+\cos y,\ \sin x+\cos z,\ \sin y+\cos x),
+$$
+
+$$
+u_\varepsilon=u_b+\varepsilon w,
+\qquad
+\varepsilon\in\{10^{-1},10^{-2},10^{-3},10^{-4}\}.
+$$
+
+Their exact normalized initial production is
+
+$$
+\left\langle\omega_b\cdot S_b\omega_b\right\rangle
+:=\frac14,
+\qquad
+\left\langle\omega_\varepsilon\cdot S_\varepsilon\omega_\varepsilon\right\rangle
+:=\frac14.
+$$
+
+The source of $u_b$ has rank two and zero determinant. Every positive
+$\varepsilon$ has a nonzero source determinant on an open set by the
+near-rank calculation in `turbulence/navier-stokes-near-rank-recovery-obstruction.md`.
+The triangle inequality gives one bounded $H^3$ family,
+
+$$
+\|u_\varepsilon\|_{H^3}
+\le\|u_b\|_{H^3}+10^{-1}\|w\|_{H^3}.
+$$
+
+Using unnormalized torus integrals, the eight-check control receipt reports the
+following. For the near-rank rows, the displayed $D(0)$ is recovered from the
+receipt's recorded $P^{\mathrm{str}}(0)$ and endpoint remainder using
+$D=2(P^{\mathrm{str}}-\mathfrak m)/\nu$.
+
+| datum | $P^{\mathrm{str}}(0)$ | $D(0)$ | $\left(P^{\mathrm{str}}-\nu D/2\right)_+$ |
+|---|---:|---:|---:|
+| rank-deficient shear | $0$ | $1984.401708$ | $0$ |
+| ABC Beltrami heat flow | $0$ | $744.150640$ | $0$ |
+| $u_b$ | $62.012553$ | $496.100427$ | $37.207532$ |
+| $u_{10^{-1}}$ | $62.012553$ | $503.541933$ | $36.835457$ |
+| $u_{10^{-2}}$ | $62.012553$ | $496.174842$ | $37.203811$ |
+| $u_{10^{-3}}$ | $62.012553$ | $496.101171$ | $37.207495$ |
+| $u_{10^{-4}}$ | $62.012553$ | $496.100434$ | $37.207532$ |
+
+The midpoint spectral reconstruction retains every listed mode, and the
+sampled nonzero determinant fraction for the near-rank family is at least
+$0.9979$. Under the Euclidean dilation with $\lambda=3$, the initial
+$P^{\mathrm{str}}$, $D$, and endpoint remainder ratios are $27$ to numerical
+precision; after $t\mapsto t/\lambda^2$, the time-integrated target ratio is
+$\lambda$. These controls support the finite-mode endpoint algebra and its
+critical scaling. They do not estimate the time integral in (68g), supply a
+cutoff-uniform $M_{\mathrm{Gal}}$, or change the unresolved status of
+arbitrary-data regularity.
+
+The control protocol is
+`computations/navier-stokes-galerkin-target-prereg.md`, and its executable is
+`computations/verify_navier_stokes_galerkin_target.py`.
+
+
 ## 8. Exact controls
 
 ### 8.1 Periodic shear
@@ -984,7 +1071,7 @@ The exact statements are:
 4. Global coherence obeys the replicator-diffusion equation (47).
 5. Volume preservation forces the sharp instantaneous-source lower bound (11).
 6. The accumulated determinant root $\mathcal K$ is nondecreasing, dominates the instantaneous-source determinant integral, and is bounded above by replica disagreement.
-7. A rank-two periodic Beltrami heat flow has $J=0$ while its accumulated covariance becomes full rank on an open set.
+7. An exact rank-two periodic control has $J=0$ while its accumulated covariance becomes full rank on an open set.
 8. The sharpened occupation $\mathcal H=\mathcal E_M-\mathcal K$ bounds enstrophy from above.
 9. A uniform initial-$H^3$-controlled bound on $\mathcal H$ implies continuation over every finite horizon.
 
@@ -1835,12 +1922,34 @@ The stochastic-flow representation, positive matrix propagator, general Duhamel 
 The selected local evidence bundle is
 
 ```text
-runs/navier_stokes_replica_coherence_compensation_baseline_20260913/verification.json
-runs/navier_stokes_replica_coherence_compensation_baseline_20260913/verification.inputs.json
-runs/navier_stokes_replica_coherence_compensation_baseline_20260913/verification.sources/
+runs/navier_stokes_replica_coherence_publication_20260913/verification.json
+runs/navier_stokes_replica_coherence_publication_20260913/verification.inputs.json
+runs/navier_stokes_replica_coherence_publication_20260913/verification.sources/
 ```
 
 The bundle records raw source hashes for this paper, the frozen protocol, and the verifier.
+
+A separate source-bound control schedule evaluates the Galerkin endpoint
+integrand at the initial time for the frozen shear, ABC, rank-two, and
+near-rank data. It executes eight checks and records the positive and zero
+finite-mode controls, the sampled full-rank fraction, the uniform $H^3$
+triangle bound, and the Euclidean scaling ratios:
+
+```text
+python computations/verify_navier_stokes_galerkin_target.py
+```
+
+The selected control receipt is
+
+```text
+runs/navier_stokes_galerkin_endpoint_controls_publication_20260913/verification.json
+runs/navier_stokes_galerkin_endpoint_controls_publication_20260913/verification.inputs.json
+runs/navier_stokes_galerkin_endpoint_controls_publication_20260913/verification.sources/
+```
+
+All eight control checks pass. The receipt classifies the cutoff-uniform
+time-integrated Galerkin bound, production-relative covariance compensation,
+and arbitrary-data regularity as `UNRESOLVED`.
 
 ## 14. Sources
 

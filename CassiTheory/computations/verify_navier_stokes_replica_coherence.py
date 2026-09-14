@@ -26,7 +26,7 @@ PAPER = ROOT / "turbulence" / "navier-stokes-replica-coherence.md"
 DEFAULT_OUTPUT = (
     ROOT
     / "runs"
-    / "navier_stokes_replica_coherence_compensation_baseline_20260913"
+    / "navier_stokes_replica_coherence_compensation_publication_20260913"
     / "verification.json"
 )
 EXPECTED_CHECKS = 60
@@ -1255,7 +1255,7 @@ def protocol_integrity() -> dict[str, Any]:
             "must execute exactly 60 checks" in text
         ),
         "selected_receipt_present": (
-            "runs/navier_stokes_replica_coherence_compensation_baseline_20260913/verification.json"
+            "runs/navier_stokes_replica_coherence_compensation_publication_20260913/verification.json"
             in text
         ),
         "paper_binding_present": (
