@@ -7785,37 +7785,39 @@ See `computations/yang-mills-4x2x2-c1-feshbach-prereg.md`,
 
 ### 9.42 Finite plaquette-cyclic coverage screen
 
-The degree-three products of the eleven fundamental plaquette characters
+The degree-four products of the eleven fundamental plaquette characters
 provide a finite test of how much of the centered $Q$ sector is reached by a
 local translated operator family. On the recovered open $3\times2\times2$
 graph at $C=1$, the gauge-invariant Hilbert space has dimension $868$ and
-$\dim Q=867$. For each $x\in\{1/64,1/16,1/4,1\}$, the complete ordered
-plaquette-word family through degree three contains $11$, $121$, and $1331$
-words at degrees one, two, and three. The cumulative degree-three ranks are
+$\dim Q=867$. For each
+$x\in\{1/64,1/16,1/4,1\}$, the complete ordered plaquette-word family through
+degree four contains $11$, $121$, $1331$, and $14641$ words at degrees one
+through four. The cumulative degree-four ranks are:
 
-| $x$ | degree-three rank | $Q$ deficiency |
+| $x$ | degree-four rank | $Q$ deficiency |
 |---:|---:|---:|
-| $1/64$ | $665$ | $202$ |
-| $1/16$ | $779$ | $88$ |
-| $1/4$ | $804$ | $63$ |
-| $1$ | $806$ | $61$ |
+| $1/64$ | $861$ | $6$ |
+| $1/16$ | $863$ | $4$ |
+| $1/4$ | $863$ | $4$ |
+| $1$ | $863$ | $4$ |
 
 The source-bound receipt records `status=FAIL`,
 `PLAQUETTE_CYCLIC_COVERAGE_INCOMPLETE`, and $32/32$ arithmetic and source
 checks. The independent receipt passes $20/20$ arithmetic-audit checks with
-classification `PRIMARY_RECEIPT_CYCLIC_RANK_AUDIT_PASS`. The result leaves a
-positive finite deficiency at every scheduled coupling, so this plaquette
-family through degree three does not supply a full-$Q$ recovery family.
+classification `PRIMARY_RECEIPT_CYCLIC_RANK_AUDIT_PASS`. The degree-four
+family reduces the finite deficiency at every scheduled coupling but does not
+reach the full $Q$ dimension.
 
-The screen is an algebraic finite-graph measurement. Higher-degree plaquette
-words, larger closed Wilson-word families, local conditional residuals,
-volume-uniform constants, lattice-spacing control, continuum construction and
-the Yang–Mills mass gap remain separate obligations.
+The screen is an algebraic finite-graph measurement. Complete closed
+Wilson-word families, local conditional residuals, volume-uniform constants,
+lattice-spacing control, continuum construction and the Yang–Mills mass gap
+remain separate obligations. The all-word density statement does not promote
+this finite plaquette-family result to finite retained-family completeness.
 
-See `computations/yang-mills-plaquette-cyclic-coverage-prereg-v3.md`,
-`computations/verify_yang_mills_plaquette_cyclic_coverage.py`,
-`computations/verify_yang_mills_plaquette_cyclic_coverage_independent.py` and
-`field-experience/probe-outcome-ledger.md` §56.
+See `computations/yang-mills-plaquette-cyclic-coverage-prereg-v4.md`,
+`computations/verify_yang_mills_plaquette_cyclic_coverage_v4.py`,
+`computations/verify_yang_mills_plaquette_cyclic_coverage_v4_independent.py` and
+`field-experience/probe-outcome-ledger.md` §57.
 
 
 ---

@@ -2830,12 +2830,13 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   finite controls classify this statement as `DERIVED CONDITIONAL`. An exact
   RG image must still be shown to have this full local closure.
   The finite plaquette-cyclic screen on the recovered $3\times2\times2$ graph
-  extends the tested source sector through ordered degree-three words but leaves
-  full-$Q$ deficiencies of $202$, $88$, $63$, and $61$ at
-  $x=1/64,1/16,1/4,1$. Its source-bound receipt records `FAIL` with $32/32$
-  checks, and the independent arithmetic audit passes $20/20$ checks. This
-  finite result leaves higher-degree operator coverage and full local recovery
-  open.
+  uses every ordered product of the eleven fundamental plaquette characters
+  through degree four. Its source-bound receipt records `FAIL` with $32/32$
+  checks and final ranks $861$, $863$, $863$, and $863$, leaving $Q$
+  deficiencies $6$, $4$, $4$, and $4$ at
+  $x=1/64,1/16,1/4,1$. The independent arithmetic audit passes $20/20$
+  checks. This finite result does not close the retained family to full $Q$;
+  complete closed-word coverage and full local recovery remain open.
 
   Section 9.34 states the exact remaining transfer criterion. At finite
   regulator, a single $c_->0$ must bound the centered local form by
