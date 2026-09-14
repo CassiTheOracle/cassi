@@ -883,6 +883,120 @@ $$
 
 Thus the standard finite-mode route supplies a global bound with explicit $N^{5/2}$ growth and a cutoff-uniform bound only through the local interval $T_{\mathrm{loc}}$. A prescribed-horizon constant independent of $N$ requires a mechanism that extends the local $H^3$ control or removes the cutoff power in (68q); that is the unresolved content of (68g).
 
+#### 7.1.2 Discrete Fourier normalization and the sampled diagnostic
+
+The finite-mode receipt can be interpreted exactly at the spatial level once its
+Fourier normalization and product bandwidth are stated.
+
+For an odd grid size $M$, set
+$$
+\mathcal K_M=
+\left\{-\frac{M-1}{2},\ldots,\frac{M-1}{2}\right\}^3,
+\qquad
+x_j=\frac{2\pi}{M}j,
+\qquad
+j\in\{0,\ldots,M-1\}^3.
+$$
+The DFT convention used by the trajectory verifier is
+$$
+\widehat f_M(k)=\frac1{M^3}\sum_j f(x_j)e^{-ik\cdot x_j},
+\qquad
+f(x_j)=\sum_{k\in\mathcal K_M}\widehat f_M(k)e^{ik\cdot x_j}.
+$$
+For a real field,
+$\widehat f_M(-k)=\overline{\widehat f_M(k)}$. If the signed spectrum is
+stored through the nonnegative-$k_z$ half-spectrum, the corresponding
+Parseval weight is
+$$
+w_M(k_z)=
+\begin{cases}
+1,&k_z=0,\\
+2,&k_z>0,
+\end{cases}
+$$
+because an odd grid has no Nyquist plane. With $V=(2\pi)^3$, real vector
+fields therefore satisfy
+$$
+\frac{V}{M^3}\sum_j f(x_j)\cdot g(x_j)
+=V\sum_{k\in\mathcal K_M}
+\widehat f_M(k)\cdot\overline{\widehat g_M(k)}
+=V\sum_{k_z\ge0}w_M(k_z)
+\widehat f_M(k)\cdot\overline{\widehat g_M(k)}.
+$$
+The published trajectory receipt uses the final form; the independent audit
+specified below uses the signed form.
+
+For $k\ne0$, the Leray matrix and shell projection are
+$$
+\Pi_k=I-\frac{kk^{\mathsf T}}{|k|^2},
+\qquad
+\Pi_0=0,
+\qquad
+\mathbb P_N(k)=\mathbf 1_{\{0<|k|\le N\}}\Pi_k.
+$$
+They obey
+$\Pi_k^{\mathsf T}=\Pi_k$, $\Pi_k^2=\Pi_k$, and
+$k^{\mathsf T}\Pi_k=0$. Thus the projection is orthogonal in the Parseval
+inner product and preserves the divergence-free shell.
+
+For a zero-mean field supported on
+$\Lambda_N=\{k\in\mathbb Z^3:0<|k|\le N\}$, the exact coefficient of the
+advective product is
+$$
+\widehat{(u\cdot\nabla)u}_i(k)
+=i\sum_{\substack{p,q\in\Lambda_N\\p+q=k}}
+\left(\widehat u(p)\cdot q\right)\widehat u_i(q).
+$$
+The Galerkin ODE is consequently
+$$
+\partial_t\widehat u_N(k)
+=-\nu|k|^2\widehat u_N(k)
+-\Pi_k\widehat{(u_N\cdot\nabla)u_N}(k),
+\qquad k\in\Lambda_N.
+$$
+The identity
+$\mathbb P_N((u\cdot\nabla)u)=\mathbb P_N(\omega\times u)$
+for divergence-free fields explains the rotational implementation in the
+production verifier, while the explicit convolution is the independent
+implementation used by the audit.
+
+Each retained coordinate frequency is at most $N$. Quadratic evolution
+products have coordinate bandwidth at most $2N$, and the cubic checkpoint
+integrand $\omega\cdot S\omega$ has bandwidth at most $3N$. The choices
+$M=4N+1$ and $M=6N+1$ therefore make both the evolution product and the
+checkpoint torus average alias-free. At an exact Galerkin state, the signed
+Parseval sum, the weighted half-spectrum sum, and the odd-grid product give
+the same $W_N$, $D_N$, and $P_N^{\mathrm{str}}$ values up to floating-point
+roundoff.
+
+The trajectory quantity is
+$$
+\mathfrak m_N(t)=P_N^{\mathrm{str}}(t)-\frac{\nu}{2}D_N(t),
+\qquad
+I_N(T)=\int_0^T(\mathfrak m_N(t))_+\,dt.
+$$
+RK4 time stepping and composite trapezoidal integration replace this exact
+integral by a sampled value
+$\widehat I_{N,M,\Delta t}(T)$; timestep refinement measures that temporal
+discretization effect. Product-grid refinement checks the reconstruction and
+quadrature path, and a cutoff sequence records finite-mode behavior.
+
+The target (68g) takes a supremum over every cutoff and every bounded
+initial-data family. A row in the receipt is one value of
+$I_N(T)$ for one fixed $(u_{0,N},N,\nu,T)$. A finite collection of rows,
+even with agreement under the stated refinements, supplies no estimate for
+that supremum. The deterministic Galerkin variables here are separate from
+the stochastic replicas, covariance $R$, active occupation $M$, and
+functionals $\mathcal K$ and $\mathcal G$ used in the continuation analysis.
+The normalization audit records this evidence boundary without fitting or
+extrapolating in cutoff, horizon, or initial data.
+
+The fixed independent schedule is recorded in
+`computations/navier-stokes-galerkin-long-trajectory-audit-prereg.md`, with
+the signed-mode implementation in
+`computations/verify_navier_stokes_galerkin_long_trajectory_audit.py`.
+
+
 If (68g) were proved, the Galerkin enstrophy identity would give
 
 $$
