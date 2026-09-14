@@ -815,6 +815,94 @@ $$
 
 where $\mathcal N_n$ is the declared closed null subspace containing gauge redundancies, and it satisfies $R_{\nu,j}T_{j\to n}\Pi_{\mathcal N_n}=0$. The UF-B target is this residual-recovery floor; score Gramian bounds occupy a separate role on coarse tangent directions.
 
+### UF-B.6 Residual Schur bridge
+
+The finite interacting-Feshbach studies and the UF-B recovery target use
+different block forms. Let
+
+$$
+\mathcal K_{\nu,n}^{Q}
+:=
+\operatorname{ran}Q_{\nu,n}\cap\mathcal N_n^\perp,
+\qquad
+E_{\nu,n}:\mathcal K_{\nu,n}^{Q}\to\mathcal K_{\nu,n}^{Q}
+$$
+
+be the orthogonal projection onto a retained gauge-invariant test space
+$\mathcal S_{\nu,n}^{Q}\subset\mathcal K_{\nu,n}^{Q}$, and put
+$C_{\nu,n}:=I_{\mathcal K_{\nu,n}^{Q}}-E_{\nu,n}$. Apply the decomposition
+$\mathcal K_{\nu,n}^{Q}=\mathcal S_{\nu,n}^{Q}\oplus\operatorname{ran}C_{\nu,n}$
+to the residual Gramian, not to the Hamiltonian:
+
+$$
+A_{\nu,n}^{R}:=
+E_{\nu,n}\mathscr R_{\nu,n}^{Q}E_{\nu,n},
+\qquad
+B_{\nu,n}^{R}:=
+E_{\nu,n}\mathscr R_{\nu,n}^{Q}C_{\nu,n},
+\qquad
+D_{\nu,n}^{R}:=
+C_{\nu,n}\mathscr R_{\nu,n}^{Q}C_{\nu,n}.
+\tag{UF-B.21}
+$$
+
+Assume these form blocks share the declared form domain and define
+
+$$
+\alpha_R:=
+\inf_{\nu,n}\inf\operatorname{spec}
+\left(A_{\nu,n}^{R}\big|_{\mathcal S_{\nu,n}^{Q}}\right),
+\qquad
+\delta_R:=
+\inf_{\nu,n}\inf\operatorname{spec}
+\left(D_{\nu,n}^{R}\big|_{\operatorname{ran}C_{\nu,n}}\right),
+\qquad
+\beta_R:=
+\sup_{\nu,n}\left\|B_{\nu,n}^{R}\right\|.
+\tag{UF-B.22}
+$$
+
+If $\alpha_R>0$, $\delta_R>0$ and $\beta_R^2<\alpha_R\delta_R$, then for
+$f=u+v$ in the two orthogonal sectors,
+
+$$
+\left\langle f,\mathscr R_{\nu,n}^{Q}f\right\rangle
+\ge
+\begin{pmatrix}\|u\|&\|v\|\end{pmatrix}
+\begin{pmatrix}\alpha_R&-\beta_R\\-\beta_R&\delta_R\end{pmatrix}
+\begin{pmatrix}\|u\|\\\|v\|\end{pmatrix}
+\ge
+\gamma_R\|f\|^2,
+\qquad
+\gamma_R:=
+\frac{\alpha_R+\delta_R-
+\sqrt{(\alpha_R-\delta_R)^2+4\beta_R^2}}{2}>0.
+\tag{UF-B.23}
+$$
+
+Thus (UF-B.21)–(UF-B.23) give a sufficient non-receipt criterion for the
+uniform recovery floor. A proof of these three uniform bounds, together with
+the conditional-disintegration construction in (UF-B.16)–(UF-B.20), would
+discharge UF-B without requiring the retained source space to be the whole
+physical Hilbert space.
+
+The finite interacting-Feshbach receipts instead use
+$A^H=V_P^*(\widehat H-E_0)V_P$,
+$B^H=V_P^*(\widehat H-E_0)V_Q$ and
+$D^H=V_Q^*(\widehat H-E_0)V_Q$. Their positive Schur roots certify finite
+Hamiltonian resolvent control for the declared graph and character cutoffs.
+They do not materialize the residual blocks in (UF-B.21), so a positive
+Hamiltonian root is separate from a uniform recovery floor.
+
+The recovered larger-volume source is admissible for this comparison only
+after spectator-channel compatibility is enforced at every inactive vertex.
+The link-label-only predecessor admits forbidden channel transitions and
+fails the positive-Hamiltonian construction; the accepted recovered source
+removes those transitions. The volume-adapted Feshbach family is therefore
+finite source-space evidence with the recovered matrix. Its receipt fields
+`volume_uniform_bound`, `lattice_spacing_uniform_bound`,
+`continuum_recovery` and `continuum_mass_gap` remain `UNRESOLVED`.
+
 ### UF-C. Uniform Schur lower bound
 
 The interacting self-energy must obey the endpoint inequality on every retained local span:
