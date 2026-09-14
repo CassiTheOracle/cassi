@@ -94,6 +94,22 @@ $$
 
 $\mathcal W_{B,C}$ denotes the complete centered gauge-invariant Wilson-word family supported in a block $B$ and with representation cutoff $C$. The centering is with the exact vacuum functional, so every retained vector lies in $\mathcal K_\nu$.
 
+The physical and Euclidean pictures are linked on the positive-support completion by the isometry
+
+$$
+\mathcal J_\nu c
+:=
+\sum_k\Phi_{\nu,k}\bigl(S_\nu^{-1/2}c\bigr)_k,
+\qquad
+\mathcal J_\nu^*\mathcal J_\nu=I,
+\qquad
+\mathcal J_\nu^*Y_\nu\mathcal J_\nu
+=\widetilde Y_\nu.
+\tag{UF2a}
+$$
+
+In the block formulas below, $P$ and $Q$ denote the physical projections in (UF3), while the corresponding Euclidean matrices are $\mathcal J_\nu^*P\mathcal J_\nu$ and $\mathcal J_\nu^*Q\mathcal J_\nu$. The two descriptions are unitarily equivalent on the exact form domain.
+
 On the exact discarded form domain define
 
 $$
@@ -537,7 +553,133 @@ A log-domain evaluation of (UF-B.5) with the illustrative polynomial schedule $C
 | 16 | 4096 | 738 | $-663.697$ | negative |
 | 32 | 32768 | 1235 | $-1111.171$ | negative |
 
-This is a counter-obstruction to the elementary Casimir-plus-extensive-ground-energy proof route, not a counterexample to UF-B itself. The true discarded resolvent estimate must control $h_\nu-e_{0,\nu}$ directly on the $Q$ sector, including the vacuum-energy cancellation and every block-boundary and fibre interaction. The fixed-support local cutoff theorem supplies neither this cancellation nor that boundary and fibre control; it therefore cannot discharge UF-B or UF-C along the continuum trajectory.
+This is a counter-obstruction to the elementary Casimir-plus-extensive-ground-energy proof route; UF-B itself remains an open possibility. The true discarded resolvent estimate must control $h_\nu-e_{0,\nu}$ directly on the $Q$ sector, including the vacuum-energy cancellation and every block-boundary and fibre interaction. The fixed-support local cutoff theorem supplies neither this cancellation nor that boundary and fibre control; it therefore cannot discharge UF-B or UF-C along the continuum trajectory.
+
+### UF-B.2 Conditional local-Poincaré route
+
+The ground-state transform gives a direct sufficient route to the discarded-sector estimate. Let $\mathcal B_\nu$ be a finite block cover with nonnegative weights $w_B$, let $\eta$ denote the exterior holonomy, and let $\alpha$ denote a matched boundary representation sector.
+
+With $d\mu_\nu=\Omega_\nu^2\,dU$, define the exact normalized shifted form on $H^1(\mu_\nu)\cap\mathcal K_\nu$ by
+
+$$
+\mathfrak y_\nu[f]
+:=
+\left\langle f\Omega_\nu,Y_\nu f\Omega_\nu\right\rangle
+:=
+\frac{g_\nu^2}{2F_\nu}
+\mathcal E_\nu[f],
+\qquad
+\mathcal E_\nu[f]
+:=
+\sum_{e,A}\int|X_e^Af|^2\,d\mu_\nu.
+\tag{UF-B.6b}
+$$
+
+Here $Y_\nu$ is the exact self-adjoint operator associated with this closed form on $\mathcal K_\nu=\Omega_\nu^\perp$; the coefficient follows from $Y_\nu=(a_\nu/F_\nu)(H_\nu-E_{0,\nu})$ and the ground-state transform. The block estimates below are estimates for this physical form before transport through (UF2a).
+
+Write $\mu_{\nu,B}^{\eta,\alpha}$ for the normalized disintegration of $\mu_\nu$ on the matched boundary fibre. For this conditional measure, require
+
+$$
+\operatorname{Var}_{\mu_{\nu,B}^{\eta,\alpha}}F
+\le
+\frac{1}{\lambda_{\nu,B,\alpha}(\eta)}
+\mathcal E_{\nu,B}^{\eta,\alpha}(F),
+\qquad
+\lambda_{\mathrm{loc},*}
+:=
+\inf_{\nu,B,\alpha,\eta}
+\lambda_{\nu,B,\alpha}(\eta)>0,
+\tag{UF-B.7}
+$$
+
+where $\mathcal E_{\nu,B}^{\eta,\alpha}$ is the conditional sum of the left-invariant link Dirichlet forms on $B$. Require in addition a $Q$-coverage estimate for every centered $f$ with $f\Omega_\nu\in\operatorname{ran}Q_{\nu,B,C}$:
+
+$$
+\|f\|_{L^2(\mu_\nu)}^2
+\le
+A_{Q,*}
+\sum_{B\in\mathcal B_\nu}w_B\,
+\mathbb E_{\mu_\nu}\!\left[
+\operatorname{Var}_{\mu_{\nu,B}^{U_{B^c},\alpha}}f
+\right],
+\qquad
+\sup_e\sum_{B\ni e}w_B
+\le
+\rho_{\mathrm{cov},*}<\infty.
+\tag{UF-B.8}
+$$
+
+The two constants enter through the explicit chain
+
+$$
+\sum_{B\in\mathcal B_\nu}w_B\,
+\mathbb E_{\mu_\nu}\!\left[
+\operatorname{Var}_{\mu_{\nu,B}^{U_{B^c},\alpha}}f
+\right]
+\le
+\frac{1}{\lambda_{\mathrm{loc},*}}
+\sum_{B\in\mathcal B_\nu}w_B\,
+\mathbb E_{\mu_\nu}\!\left[
+\mathcal E_{\nu,B}^{U_{B^c},\alpha}(f)
+\right]
+\le
+\frac{\rho_{\mathrm{cov},*}}{\lambda_{\mathrm{loc},*}}
+\mathcal E_\nu[f].
+\tag{UF-B.8a}
+$$
+
+The conditional inequalities and the cover bound imply
+
+$$
+\left\langle f\Omega_\nu,Y_\nu f\Omega_\nu\right\rangle
+\ge
+\frac{g_\nu^2\lambda_{\mathrm{loc},*}}
+{2F_\nu A_{Q,*}\rho_{\mathrm{cov},*}}
+\|f\|_{L^2(\mu_\nu)}^2,
+\qquad
+f\Omega_\nu\in\operatorname{ran}Q_{\nu,B,C}.
+\tag{UF-B.9}
+$$
+
+Under the isometry in (UF2a), the same physical inequality is the Euclidean compression
+
+$$
+D_{\nu,B,C}
+\succeq
+\frac{g_\nu^2\lambda_{\mathrm{loc},*}}
+{2F_\nu A_{Q,*}\rho_{\mathrm{cov},*}}
+I_Q,
+\tag{UF-B.9a}
+$$
+
+on the transported discarded form domain. This is the type-consistent bridge from the ground-state form estimate to (UF7).
+
+Thus this route discharges (UF7) provided the single scale comparison
+
+$$
+\inf_{\nu,B,C}
+\frac{g_\nu^2\lambda_{\mathrm{loc},*}}
+{2F_\nu A_{Q,*}\rho_{\mathrm{cov},*}}
+\ge c_*+\rho_*.
+\tag{UF-B.10}
+$$
+
+holds. The infimum in (UF-B.7) includes all representation cutoffs and boundary data, and (UF-B.8) requires the retained/discarded decomposition to be compatible with those conditional fibres. These two statements are analytic inputs beyond the finite receipts; together they are a concrete UF-B proof target.
+
+For the frozen trajectory, the two-loop scale in (YM242) gives
+
+$$
+\frac{g_\nu^2}{F_\nu}
+=
+g_\nu^2
+\exp\!\left(\frac{1}{2b_0g_\nu^2}\right)
+(b_0g_\nu^2)^p
+\longrightarrow\infty
+\qquad(\nu\to\infty).
+\tag{UF-B.10a}
+$$
+
+The log-domain values of $\log_{10}(g_\nu^2/F_\nu)$ at $\nu=(1,2,4,8,16,32)$ are $(40.165,44.776,54.016,72.542,109.700,184.200)$. The asymptotic scale factor therefore grows strongly; the finite prefix and a regulator-uniform lower bound for $\lambda_{\mathrm{loc},*}/(A_{Q,*}\rho_{\mathrm{cov},*})$ remain the required estimates.
 
 ### UF-C. Uniform Schur lower bound
 
@@ -553,6 +695,44 @@ $$
 $$
 
 The quantifier includes every translated block and every boundary sector. Source-dependent positive roots, a positive root at each sampled coupling, and a root-to-gap ratio bounded away from zero on one graph are finite observations. UF-C requires one declared constant over the complete trajectory and an extension from cutoff spans to the local core.
+
+### UF-C.1 Schur margin lemma
+
+The endpoint self-energy reduces to three operator bounds. Suppose that, on every retained/discarded pair in the declared form domains,
+
+$$
+A_{\nu,B,C}\succeq a_*I_P,
+\qquad
+\|B_{\nu,B,C}\|\le\beta_*,
+\qquad
+D_{\nu,B,C}\succeq d_*I_Q,
+\qquad
+d_*>c_*.
+\tag{UF-C.1a}
+$$
+
+Then
+
+$$
+\mathfrak F_{\nu,B,C}(c_*)
+\succeq
+\left(
+a_*-c_*-\frac{\beta_*^2}{d_*-c_*}
+\right)I_P.
+\tag{UF-C.1b}
+$$
+
+Indeed, the discarded resolvent obeys $\|(D_{\nu,B,C}-c_*I_Q)^{-1}\|\le(d_*-c_*)^{-1}$, so
+$B_{\nu,B,C}(D_{\nu,B,C}-c_*I_Q)^{-1}B_{\nu,B,C}^*$
+is bounded above by $\beta_*^2(d_*-c_*)^{-1}I_P$. A sufficient uniform UF-C margin is therefore
+
+$$
+a_*-c_*-\frac{\beta_*^2}{d_*-c_*}
+\ge\sigma_*.
+\tag{UF-C.1c}
+$$
+
+The retained lower form $a_*$ and coupling norm $\beta_*$ require estimates on the full matched boundary fibres; the discarded margin $d_*$ is supplied by UF-B. Fixed-graph roots test this scalar inequality row by row, while UF-C requires the three constants in (UF-C.1a) and the margin in (UF-C.1c) uniformly along the trajectory.
 
 ### UF-D. Cutoff removal and local correlation transport
 
