@@ -990,6 +990,60 @@ and arbitrary-data regularity remain **UNRESOLVED**.
 
 
 
+### 7.4 Longer-horizon Galerkin trajectory measurement
+
+The trajectory schedule was extended to $T=1/2$ and the cutoff
+$N\in\{2,4,8,16\}$. For every control and cutoff, the primary execution used
+2048 RK4 steps on $M=4N+1$, the timestep refinement used 4096 steps on the
+same grid, and the product-grid refinement used 2048 steps on $M=6N+1$. The
+complete receipt therefore contains $4\times4\times3=48$ executions,
+including the $M=97$ product grids at $N=16$.
+
+The production receipt was generated with the explicit Torch half-spectrum
+backend on the declared ROCm device. The verifier retains a NumPy reference
+backend. Both backends pass the scheduler smoke; on the $N=4$, $M=17$,
+16-step near-rank comparison, the maximum difference across the recorded
+scalar observables was $1.1369\times10^{-13}$.
+
+The primary integrated positive remainder
+$I_N(T)=\int_0^T(\mathfrak m_N(t))_+dt$ is:
+
+| datum | $N=2$ | $N=4$ | $N=8$ | $N=16$ |
+|---|---:|---:|---:|---:|
+| shear | $0$ | $0$ | $0$ | $0$ |
+| ABC | $0$ | $0$ | $0$ | $0$ |
+| $u_b$ | $15.7563048947$ | $21.7512800923$ | $21.7517444203$ | $21.7517444203$ |
+| $u_{0.1}$ | $15.8568941925$ | $21.9817233632$ | $21.9822233502$ | $21.9822233502$ |
+
+The corresponding peak positive remainders
+$\max_{0\le t\le T}(\mathfrak m_N(t))_+$ are:
+
+| datum | $N=2$ | $N=4$ | $N=8$ | $N=16$ |
+|---|---:|---:|---:|---:|
+| shear | $0$ | $0$ | $0$ | $0$ |
+| ABC | $0$ | $0$ | $0$ | $0$ |
+| $u_b$ | $37.2075320164$ | $46.0574027586$ | $46.0602648483$ | $46.0602648483$ |
+| $u_{0.1}$ | $36.8354566962$ | $47.0722574958$ | $47.0761488207$ | $47.0761488209$ |
+
+All eleven receipt checks pass. Across the 48 executions, the maximum
+direct-versus-spectral production relative error is
+$9.1195\times10^{-17}$, the maximum Fourier divergence residual is
+$2.2224\times10^{-17}$, and the maximum positive kinetic-energy increment is
+zero. The largest direct production residual among the shear and ABC heat
+controls is $6.6487\times10^{-15}$. The largest relative changes under
+timestep halving and product-grid refinement are
+$1.0563\times10^{-8}$ and $1.2323\times10^{-15}$, respectively.
+
+The source-bound receipt is
+`runs/navier_stokes_galerkin_long_trajectory_probe_20260914/verification.json`.
+It classifies the result as
+`SUPPORTS—longer-horizon finite-mode trajectory measurement only`. The
+positive cutoff sequence remains a finite-mode observation: it supplies no
+cutoff-uniform bound in (68g), no production-relative compensation estimate,
+and no arbitrary-data regularity theorem. Those statements remain
+**UNRESOLVED**.
+
+
 ## 8. Exact controls
 
 ### 8.1 Periodic shear
@@ -2014,6 +2068,22 @@ reconstruction, divergence, energy dissipation, timestep refinement, and grid
 refinement all satisfy their finite-probe bounds. The receipt does not supply a
 cutoff-uniform estimate in (68g) or an arbitrary-data regularity result.
 
+The doubled-horizon extension is retained at
+`runs/navier_stokes_galerkin_long_trajectory_probe_20260914/verification.json`.
+The explicit production command used `--backend torch`; the receipt records
+the Torch backend and the NumPy reference backend. Its 48-run matrix passes
+all eleven state, checkpoint, conservation, control, and refinement checks.
+The primary $I_N(1/2)$ values for $u_b$ are
+$(15.7563048947,21.7512800923,21.7517444203,21.7517444203)$ and for
+$u_{0.1}$ are
+$(15.8568941925,21.9817233632,21.9822233502,21.9822233502)$ at
+$N=(2,4,8,16)$. The maximum direct-versus-spectral relative error is
+$9.1195\times10^{-17}$, the maximum divergence residual is
+$2.2224\times10^{-17}$, and the timestep and product-grid relative changes
+are $1.0563\times10^{-8}$ and $1.2323\times10^{-15}$. This is a longer
+finite-mode measurement, not a cutoff-uniform estimate or a regularity
+result.
+
 ## 14. Sources
 
 - `turbulence/navier-stokes-active-deformation-occupation.md`—vorticity-seeded common-noise moment and active deformation occupation
@@ -2026,3 +2096,5 @@ cutoff-uniform estimate in (68g) or an arbitrary-data regularity result.
 - J. Serrin, [On the interior regularity of weak solutions of the Navier–Stokes equations](https://link.springer.com/article/10.1007/BF00253344), *Archive for Rational Mechanics and Analysis* **9** (1962), 187–195—velocity Prodi–Serrin continuation criterion
 - `computations/navier-stokes-galerkin-trajectory-prereg.md`—fixed short-time finite-mode trajectory schedule and evidence boundary
 - `computations/verify_navier_stokes_galerkin_trajectory.py`—self-contained Fourier–Galerkin, Leray, RK4, reconstruction, and receipt verifier
+- `computations/navier-stokes-galerkin-long-trajectory-prereg.md`—fixed longer-horizon finite-mode trajectory schedule and evidence boundary
+- `computations/verify_navier_stokes_galerkin_long_trajectory.py`—independent longer-horizon Fourier–Galerkin trajectory and receipt verifier

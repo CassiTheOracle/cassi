@@ -1876,6 +1876,21 @@ which would supply the uniform $H^1$ and $L^4_tL^6_x$ norms needed for the
 compactness and Prodi–Serrin endpoint passage. This estimate is not supplied
 by finite-dimensionality or by the 60-check source-bound receipt.
 
+The separate longer-horizon Galerkin trajectory receipt
+`runs/navier_stokes_galerkin_long_trajectory_probe_20260914/verification.json`
+extends the finite-mode measurement to $T=1/2$ and
+$N\in\{2,4,8,16\}$. Its 48 executions pass all eleven declared state,
+checkpoint, conservation, control and refinement checks. The primary
+$I_N(T)$ sequence is
+$(15.7563048947,21.7512800923,21.7517444203,21.7517444203)$ for the rank-two
+datum and
+$(15.8568941925,21.9817233632,21.9822233502,21.9822233502)$ for the
+near-rank datum; the shear and ABC heat controls remain zero. The maximum
+direct-versus-spectral relative error is $9.1195\times10^{-17}$ and the
+maximum divergence residual is $2.2224\times10^{-17}$. These finite-cutoff
+trajectories do not establish the supremum in (68g), a production-relative
+rank-recovery inequality, or arbitrary-data regularity.
+
 The sufficient all-data target
 
 $$

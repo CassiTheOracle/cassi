@@ -1051,6 +1051,19 @@ $1.1841\times10^{-8}$ and $1.4079\times10^{-15}$. This qualifies a
 short-time finite-mode measurement; the cutoff-uniform time-integrated
 Galerkin bound and arbitrary-data regularity remain **UNRESOLVED**.
 
+A separate longer-horizon Fourier–Galerkin trajectory probe extends the same
+controls to $T=1/2$ and $N=2,4,8,16$. Its 48-run receipt
+`runs/navier_stokes_galerkin_long_trajectory_probe_20260914/verification.json`
+passes all eleven declared checks. The primary integrated endpoint remainders
+are zero for shear and ABC, while the rank-two and near-rank controls give
+$(15.7563048947,\ 21.7512800923,\ 21.7517444203,\ 21.7517444203)$ and
+$(15.8568941925,\ 21.9817233632,\ 21.9822233502,\ 21.9822233502)$ across
+$N=2,4,8,16$. The maximum direct-versus-spectral relative error is
+$9.1195\times10^{-17}$, and the timestep and product-grid changes are
+$1.0563\times10^{-8}$ and $1.2323\times10^{-15}$. This remains finite-mode
+evidence; the cutoff-uniform Galerkin bound, production-relative
+compensation, and arbitrary-data regularity are **UNRESOLVED**.
+
 The rate-boundary supplement in
 `turbulence/navier-stokes-covariance-recovery-rate.md` quantifies the first
 instant at which the accumulated covariance can recover the missing source
@@ -1874,6 +1887,8 @@ The framework records evidence and limitations in `audit.md`; the gate-sign conv
 - `computations/verify_navier_stokes_galerkin_target.py`—8-check finite-mode endpoint-control verifier
 - `computations/navier-stokes-galerkin-trajectory-prereg.md`—fixed short-time finite-mode trajectory schedule
 - `computations/verify_navier_stokes_galerkin_trajectory.py`—self-contained trajectory and receipt verifier
+- `computations/navier-stokes-galerkin-long-trajectory-prereg.md`—fixed longer-horizon finite-mode trajectory schedule
+- `computations/verify_navier_stokes_galerkin_long_trajectory.py`—independent long-horizon trajectory and receipt verifier
 
 ---
 

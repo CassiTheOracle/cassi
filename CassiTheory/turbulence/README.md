@@ -698,6 +698,24 @@ Galerkin bound, production-relative compensation, and arbitrary-data
 regularity remain **UNRESOLVED**.
 
 
+### 2.23 Longer-horizon Galerkin trajectories
+
+The same finite-mode trajectory schedule was extended to $T=1/2$ and
+$N=2,4,8,16$, with primary $M=4N+1$, timestep-refined 4096-step, and
+product-grid-refined $M=6N+1$ executions. The source-bound receipt
+`runs/navier_stokes_galerkin_long_trajectory_probe_20260914/verification.json`
+contains all 48 declared rows and passes all eleven checks. The primary
+integrated positive remainders are zero for the shear and ABC heat controls,
+$(15.7563048947,21.7512800923,21.7517444203,21.7517444203)$ for $u_b$, and
+$(15.8568941925,21.9817233632,21.9822233502,21.9822233502)$ for $u_{0.1}$
+across the four cutoffs. The maximum direct-versus-spectral relative error is
+$9.1195\times10^{-17}$; the timestep and product-grid changes are
+$1.0563\times10^{-8}$ and $1.2323\times10^{-15}$. The result is
+`SUPPORTS—longer-horizon finite-mode trajectory measurement only`; the
+cutoff-uniform Galerkin bound, production-relative compensation, and
+arbitrary-data regularity remain **UNRESOLVED**.
+
+
 ## References
 
 - `foundations/xi-derivation.md`—first-principles derivation of the Qi-gravity coupling $\xi = \varphi^6$ used in the velocity equation
@@ -735,6 +753,8 @@ regularity remain **UNRESOLVED**.
 - `computations/verify_navier_stokes_galerkin_target.py`—8-check source-bound Galerkin endpoint-control verifier
 - `computations/navier-stokes-galerkin-trajectory-prereg.md`—fixed short-time finite-mode trajectory schedule and evidence boundary
 - `computations/verify_navier_stokes_galerkin_trajectory.py`—self-contained Fourier–Galerkin trajectory, reconstruction, and receipt verifier
+- `computations/navier-stokes-galerkin-long-trajectory-prereg.md`—fixed longer-horizon finite-mode trajectory schedule and evidence boundary
+- `computations/verify_navier_stokes_galerkin_long_trajectory.py`—independent long-horizon Fourier–Galerkin trajectory, reconstruction, and receipt verifier
 - `computations/navier-stokes-coherence-dose-continuation-prereg.md`—fixed active-dose, retarded-spread and exact-control schedule
 - `computations/verify_navier_stokes_coherence_dose.py`—16-check coherence-dose continuation verifier
 - `computations/navier-stokes-vorticity-quotient-prereg.md`—fixed local quotient, normalized-mean, ABC initial-layer and degenerate-control schedule
