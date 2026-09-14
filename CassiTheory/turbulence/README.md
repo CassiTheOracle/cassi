@@ -428,6 +428,15 @@ allow a compactness passage to a Leray solution, and invoke the same
 Prodi–Serrin endpoint restart. It is a proof target, not part of the
 60-check receipt.
 
+Section 7.1.1 derives the trajectory-level baseline behind this target. The
+critical Gagliardo–Nirenberg estimate reduces the remainder to a constant
+times $\nu^{-3}\int_0^T W_N^3dt$. Bernstein and the velocity-energy identity
+give a global fixed-cutoff estimate proportional to
+$\nu^{-1}N^{5/2}\|u_{0,N}\|_2^3$, while the order-three energy estimate gives
+a cutoff-uniform estimate proportional to $\tau R_0^3$ only on the local
+$H^3$ interval $\tau\le c_{\mathbb T}/R_0$. The prescribed-horizon
+cutoff-uniform estimate remains **UNRESOLVED**.
+
 
 An exact rank-two periodic control has $J=0$ while its accumulated covariance
 becomes full rank on an open set. Periodic shear remains rank one, so an

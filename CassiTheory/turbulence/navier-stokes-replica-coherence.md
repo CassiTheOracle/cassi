@@ -767,6 +767,122 @@ formulation of the unresolved all-data production estimate; finite
 dimensionality alone does not supply a cutoff-independent
 $M_{\mathrm{Gal}}$.
 
+#### 7.1.1 Explicit finite-cutoff trajectory estimate
+
+Finite-dimensionality gives a global trajectory bound for every fixed cutoff, and its power of $N$ displays the unresolved uniformity requirement in (68g).
+
+Write
+
+$$
+m_N(t)=\left(P_N^{\mathrm{str}}(t)-\frac{\nu}{2}D_N(t)\right)_+,
+\qquad
+I_N(\tau)=\int_0^\tau m_N(s)ds.
+\tag{68m}
+$$
+
+For a periodic field supported in $\{|k|\le N\}$, Bernstein's inequality gives a constant $B_{\mathbb T}$, independent of $N$ and $t$, such that
+
+$$
+\|\omega_N(t)\|_{L^4}^2
+\le B_{\mathbb T}N^{3/2}\|\omega_N(t)\|_2^2
+=B_{\mathbb T}N^{3/2}W_N(t).
+\tag{68n}
+$$
+
+Since $\|S_N\|_2\le\|\nabla u_N\|_2=W_N^{1/2}$, Hölder's inequality and (68n) give
+
+$$
+\begin{aligned}
+m_N(t)
+&\le \bigl(P_N^{\mathrm{str}}(t)\bigr)_+\\
+&\le \|S_N(t)\|_2\|\omega_N(t)\|_{L^4}^2
+\le B_{\mathbb T}N^{3/2}W_N(t)^{3/2}.
+\end{aligned}
+\tag{68o}
+$$
+
+The critical Gagliardo–Nirenberg inequality gives a complementary trajectory estimate. There is a domain constant $C_{\mathrm{GN}}$ such that
+
+$$
+\left|P_N^{\mathrm{str}}(t)\right|
+\le C_{\mathrm{GN}}W_N(t)^{3/4}D_N(t)^{3/4}.
+\tag{68o_a}
+$$
+
+Maximizing the right-hand side after subtracting $\nu D_N/2$ over
+$D_N\ge0$ gives
+
+$$
+m_N(t)
+\le\frac{27C_{\mathrm{GN}}^4}{32\nu^3}W_N(t)^3,
+\qquad
+I_N(\tau)
+\le\frac{27C_{\mathrm{GN}}^4}{32\nu^3}
+\int_0^\tau W_N(s)^3ds.
+\tag{68o_b}
+$$
+
+This form removes the explicit cutoff from the pointwise inequality and
+places the unresolved work in a critical time integral of enstrophy.
+
+The velocity-energy identity and the spectral support give, for every $\tau>0$,
+
+$$
+\int_0^\tau W_N(s)ds
+\le\frac{\|u_{0,N}\|_2^2}{2\nu},
+\qquad
+\sup_{0\le s\le\tau}W_N(s)
+\le N^2\|u_{0,N}\|_2^2.
+\tag{68p}
+$$
+
+Combining (68o) and (68p) produces the explicit fixed-cutoff estimate
+
+$$
+\boxed{
+I_N(\tau)
+\le\frac{B_{\mathbb T}}{2\nu}N^{5/2}\|u_{0,N}\|_2^3
+\le\frac{B_{\mathbb T}}{2\nu}N^{5/2}R_0^3
+\quad\text{if }\|u_{0,N}\|_{H^3}\le R_0.}
+\tag{68q}
+$$
+
+The same trajectory has a cutoff-uniform estimate on its local $H^3$ lifespan. Set $Y_N(t)=\|u_N(t)\|_{H^3}$. The projected equation, the order-three product estimate, and $H^3(\mathbb T^3)\hookrightarrow W^{1,\infty}(\mathbb T^3)$ give
+
+$$
+\frac12\frac{d}{dt}Y_N(t)^2
++\nu\|\nabla u_N(t)\|_{H^3}^2
+\le C_4\|\nabla u_N(t)\|_{L^\infty}Y_N(t)^2
+\le C_4Y_N(t)^3.
+\tag{68r}
+$$
+
+After enlarging $C_4$ once to include the Sobolev constant, $Y_N(0)\le R_0$ implies
+
+$$
+Y_N(t)
+\le\frac{Y_N(0)}{1-C_4Y_N(0)t}
+\le2R_0,
+\qquad
+0\le t\le T_{\mathrm{loc}}:=\frac{1}{2C_4R_0},
+\tag{68s}
+$$
+
+for $R_0>0$; the zero-radius case is the zero solution. On this interval,
+
+$$
+m_N(t)\le\|S_N(t)\|_{L^\infty}W_N(t)
+\le C_4Y_N(t)^3,
+\qquad
+\boxed{
+\sup_N I_N(\tau)\le8C_4\tau R_0^3,
+\quad
+0\le\tau\le T_{\mathrm{loc}}.}
+\tag{68t}
+$$
+
+Thus the standard finite-mode route supplies a global bound with explicit $N^{5/2}$ growth and a cutoff-uniform bound only through the local interval $T_{\mathrm{loc}}$. A prescribed-horizon constant independent of $N$ requires a mechanism that extends the local $H^3$ control or removes the cutoff power in (68q); that is the unresolved content of (68g).
+
 If (68g) were proved, the Galerkin enstrophy identity would give
 
 $$

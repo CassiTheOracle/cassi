@@ -1891,6 +1891,32 @@ maximum divergence residual is $2.2224\times10^{-17}$. These finite-cutoff
 trajectories do not establish the supremum in (68g), a production-relative
 rank-recovery inequality, or arbitrary-data regularity.
 
+The trajectory-level analysis gives two explicit baselines. A periodic
+Gagliardo–Nirenberg estimate yields
+
+$$
+\int_0^T
+\left(P_N^{\mathrm{str}}-\frac{\nu}{2}D_N\right)_+dt
+\le C_{\mathbb T}\nu^{-3}\int_0^T W_N(t)^3dt,
+$$
+
+while Bernstein's inequality, the finite spectral support, and the velocity
+energy identity give a global fixed-cutoff bound
+
+$$
+\int_0^T
+\left(P_N^{\mathrm{str}}-\frac{\nu}{2}D_N\right)_+dt
+\le C_{\mathbb T}\nu^{-1}N^{5/2}\|u_{0,N}\|_2^3.
+$$
+
+The order-three Galerkin energy inequality also gives
+$\sup_N\int_0^\tau(P_N^{\mathrm{str}}-\nu D_N/2)_+dt
+\le C_{\mathbb T}\tau R^3$ on $\tau\le c_{\mathbb T}/R$ for an
+$H^3$ initial-data ball of radius $R$. The fixed-cutoff estimate has explicit
+$N$ growth, and the cutoff-uniform estimate has only the local lifespan
+currently supplied by the $H^3$ argument. Extending either control to a
+prescribed arbitrary $T$ remains the unresolved step in (68g).
+
 The sufficient all-data target
 
 $$

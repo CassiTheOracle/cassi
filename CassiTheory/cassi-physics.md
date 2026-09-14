@@ -1064,6 +1064,16 @@ $1.0563\times10^{-8}$ and $1.2323\times10^{-15}$. This remains finite-mode
 evidence; the cutoff-uniform Galerkin bound, production-relative
 compensation, and arbitrary-data regularity are **UNRESOLVED**.
 
+Section 7.1.1 of that paper derives a trajectory-level baseline for the
+Galerkin target. The critical Gagliardo–Nirenberg inequality reduces the
+remainder to $C_{\mathbb T}\nu^{-3}\int_0^T W_N^3dt$, while Bernstein,
+finite spectral support and the velocity-energy identity give a global
+fixed-cutoff bound proportional to
+$\nu^{-1}N^{5/2}\|u_{0,N}\|_2^3$. The order-three energy estimate supplies a
+cutoff-uniform bound proportional to $\tau R_0^3$ only on the local interval
+$\tau\le c_{\mathbb T}/R_0$. Extending this control to a prescribed horizon
+independently of $N$ remains **UNRESOLVED**.
+
 The rate-boundary supplement in
 `turbulence/navier-stokes-covariance-recovery-rate.md` quantifies the first
 instant at which the accumulated covariance can recover the missing source
