@@ -2045,6 +2045,9 @@ scope ends before a full-$Q$ recovery floor, volume-uniform estimate,
 thermodynamic limit, continuum construction, or Yang–Mills mass gap. The
 continuum boundary audit remains `UNRESOLVED_CONTINUUM_PROBLEM` with Clay
 verdict `NULL`.
+The tracked manifest
+`computations/yang_mills_simultaneous_residual_gramian_manifest.json` records
+the hash-matched external source receipt and both generated v4 receipts.
 
 The source-binding order is protocol, primary source, independent source,
 larger source, exact helper, scientific larger-volume protocol, recovery
