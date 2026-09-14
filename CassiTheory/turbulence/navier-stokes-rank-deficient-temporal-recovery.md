@@ -140,8 +140,8 @@ The standalone verifier
 checks the exact first and second covariance jets, their active-point matrices,
 and the $8\nu^4$ determinant coefficient. Its receipt binds this supplement,
 the frozen preregistration, the verifier, and the published rank-deficient
-control note. The earlier seven-check receipt remains a separate immutable
-bundle.
+control note. A separate seven-check receipt covers the base-control checks.
+
 
 ## 6. Sources
 

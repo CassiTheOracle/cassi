@@ -332,7 +332,7 @@ def compute() -> tuple[dict[str, Any], bool]:
     required_note_anchors = (
         "temporal covariance rank recovery",
         r"8\nu^4t^4",
-        "the earlier seven-check receipt",
+        "a separate seven-check receipt covers the base-control checks",
         "unresolved",
     )
     required_bound_note_anchors = (

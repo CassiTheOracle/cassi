@@ -1051,6 +1051,18 @@ coefficient cannot close this initial layer; the occupation term in a
 production-relative estimate and arbitrary-data regularity remain
 **UNRESOLVED**. The fixed integrated-rate schedule passes 6 of 6 checks.
 
+The near-rank supplement in
+`turbulence/navier-stokes-near-rank-recovery-obstruction.md` tests whether
+pointwise full rank restores uniform determinant-root recovery. The declared
+smooth periodic family adds a small ABC Beltrami field to the active
+rank-deficient control; every positive member has a full-rank initial
+vorticity-gradient source almost everywhere, while
+$A_\varepsilon\sim A_*\varepsilon^{2/3}$ and the initial seeded production stays
+exactly $1/4$. Its source-bound schedule passes 7 of 7 checks. The
+recovery-only coefficient is unbounded over the uniformly bounded $H^3$ family;
+production-relative occupation control and arbitrary-data regularity remain
+**UNRESOLVED**.
+
 Section 7 of `turbulence/cassi-fluid-feasibility.md` selects a reacting
 rotational velocity and temperature. Its variational stress conserves
 periodic momentum; viscous and conversion work enter the heat equation,

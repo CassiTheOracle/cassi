@@ -19,7 +19,7 @@ $\det\nabla\omega_0=\det Q_{\omega_0}=0$, a rank-two source witness, and
 The datum belongs to the invariant two-and-a-half-dimensional class. Its
 horizontal velocity follows two-dimensional Navier–Stokes and its vertical
 velocity is a passive scalar, so the vorticity remains independent of $z$ for
-every smooth time and the instantaneous source determinant remains zero. The
+every smooth time and the instantaneous source determinant remains zero.
 The full initial vorticity transport terms—advection, reaction, and diffusion—are
 checked explicitly. The control is globally smooth through the standard
 two-dimensional reduction.

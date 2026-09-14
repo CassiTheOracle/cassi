@@ -137,6 +137,7 @@ arbitrary-flow closure and global regularity remain open.
 | 17 | `turbulence/navier-stokes-rank-deficient-stretching.md` | Active stretching with rank-deficient vorticity-gradient source | Derived periodic 2.5D control / Open temporal recovery and global regularity |
 | 18 | `turbulence/navier-stokes-rank-deficient-temporal-recovery.md` | Temporal covariance rank recovery from an active rank-deficient source | Derived local time-jet witness / Open uniform Gramian, compensation, and global regularity |
 | 19 | `turbulence/navier-stokes-covariance-recovery-rate.md` | Initial-layer rate of accumulated covariance recovery versus seeded stretching | Derived exact short-time asymptotic / Open recovery-only continuation bound and global regularity |
+| 20 | `turbulence/navier-stokes-near-rank-recovery-obstruction.md` | Near-rank full-3D source and determinant-root recovery coefficient | Derived exact near-rank obstruction / Open production-relative recovery and global regularity |
 
 
 ## 2. Document summaries
@@ -627,7 +628,7 @@ temporal covariance rank recovery for this active control even though the
 instantaneous source determinant remains zero. A uniform accumulated-Gramian
 lower bound, production-relative compensation, and arbitrary-data regularity
 remain **UNRESOLVED**. The supplement receipt is intentionally generated at
-`runs/navier_stokes_rank_deficient_temporal_recovery_v2_20260913/verification.json`
+`runs/navier_stokes_rank_deficient_temporal_recovery_post_source_cleanup_v2_20260913/verification.json`
 as local, untracked evidence; rerunning the listed verifier regenerates it and
 rebinds the four source hashes.
 
@@ -649,6 +650,19 @@ out a finite recovery-only coefficient even on this globally smooth datum. The
 occupation term required by the production-relative target and arbitrary-data
 regularity remain **UNRESOLVED**.
 
+### 2.20 Near-rank full-3D recovery obstruction
+
+`turbulence/navier-stokes-near-rank-recovery-obstruction.md` adds a small ABC
+Beltrami perturbation to the active rank-deficient control. Every positive
+perturbation in the declared family has a full-rank vorticity-gradient source
+almost everywhere, while the normalized source scale satisfies
+$A_\varepsilon\sim A_*\varepsilon^{2/3}$ and the seeded stretching production
+remains exactly $1/4$. The recovery-only coefficient
+$(12\nu A_\varepsilon)^{-1}$ therefore diverges across a uniformly bounded
+$H^3$ family. The independent source-bound schedule passes **7 of 7 checks** at
+`runs/navier_stokes_near_rank_recovery_obstruction_post_source_cleanup_20260913/verification.json`.
+Production-relative occupation control and arbitrary-data regularity remain
+**UNRESOLVED**.
 
 ## References
 
@@ -697,6 +711,9 @@ regularity remain **UNRESOLVED**.
 - `computations/navier-stokes-covariance-recovery-rate-prereg.md`—fixed integrated coefficient, quadrature and initial-layer scaling schedule
 - `computations/verify_navier_stokes_covariance_recovery_rate.py`—6-check integrated covariance recovery-rate verifier
 - `turbulence/navier-stokes-covariance-recovery-rate.md`—initial-layer recovery-rate boundary
+- `computations/navier-stokes-near-rank-recovery-obstruction-prereg.md`—fixed near-rank determinant-scale and recovery-only schedule
+- `computations/verify_navier_stokes_near_rank_recovery_obstruction.py`—7-check source-bound near-rank obstruction verifier
+- `turbulence/navier-stokes-near-rank-recovery-obstruction.md`—full-rank approximants and unbounded recovery-only coefficient
 - `turbulence/navier-stokes-coherence-dose-criterion.md`—conditional active-dose and retarded-spread continuation note
 - `field-experience/probe-outcome-ledger.md`—measured classifications and evidence paths
 - `computations/cassi-fluid-thermodynamics-prereg.md`—selected fluid equations and fixed thermal controls

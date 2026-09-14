@@ -208,8 +208,8 @@ The fixed six-check schedule is
 quadrature and exact active-point verifier is
 `computations/verify_navier_stokes_covariance_recovery_rate.py`. The final receipt
 passes **6 of 6 checks** at
-`runs/navier_stokes_covariance_recovery_rate_final2_20260913/verification.json` and
-records the positive integrated coefficient, determinant order, and
+`runs/navier_stokes_covariance_recovery_rate_post_source_cleanup_20260913/verification.json`.
+It records the positive integrated coefficient, determinant order, and
 $t^{-1/3}$ leading-ratio boundary. The receipt and source snapshots remain local
 and untracked.
 
