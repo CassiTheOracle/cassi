@@ -7360,15 +7360,135 @@ bridge in `computations/yang-mills-uniform-feshbach-obligation-map.md`
 `computations/yang-mills-recovery-gramian-prereg.md` §§YMRG1–YMRG5.
 
 The boundary representation construction supplies the domain on which these
-estimates are meaningful. In particular, the orientation-fixed Haar
-contraction in (UFA18a)–(UFA18d) must extend from the finite
-Peter–Weyl core to the gauge-invariant Hilbert space, preserve the exact
-form domain and include every plaquette-crossing boundary interaction.
-The residual blocks above describe the recovery Gramian; the Hamiltonian
-blocks used in the finite Feshbach receipts remain a separate Schur
-calculation. Establishing the uniform constants in (YM269)–(YM274), the
-boundary extension, the retained-sector margin and the recovery statements
+estimates are meaningful. The finite-regulator Hilbert extension and
+surjectivity for the orientation-fixed Haar contraction are derived under
+the explicit finite-graph hypotheses in §9.34.2; the form-domain identity
+remains conditional on the derivative chain rule and boundary-electric
+matching stated in (YM278). The residual blocks above describe the recovery
+Gramian; the Hamiltonian blocks used in the finite Feshbach receipts remain
+a separate Schur calculation. Establishing the uniform constants in
+(YM269)–(YM274), the coarse retained-sector map, and the recovery statements
 (YM265)–(YM266) would supply the analytic bridge to (YM267).
+
+#### 9.34.2 Finite boundary-gluing theorem
+
+Fix a finite regulated graph, a block split $B|\bar B$, compact boundary
+group $G_{\partial B}$ with normalized Haar measure, and the exact
+orientation-fixed cut-link identification used in (UFA16). Assume the
+relative block actions are unitary and the matched boundary space is the
+diagonal invariant subspace. The Hilbert-space conclusions below follow
+from these hypotheses. The finite Kogut–Susskind form is the sum of link
+electric forms and bounded Wilson plaquette multipliers; the form-domain
+identity in (YM278) additionally requires the derivative chain rule and
+boundary-electric matching on the algebraic core.
+Let $\mathscr H_{\nu,B|\bar B}^{\mathrm f,\mathrm{PW}}$ denote the algebraic
+Peter–Weyl core with finite matched boundary support. Then the boundary Haar
+projector has the representation decomposition
+
+$$
+\begin{aligned}
+\Pi_{\partial B}
+&:=
+\int_{G_{\partial B}}
+\pi_{\nu,B}^{\mathrm f}(g)\otimes
+\pi_{\nu,\bar B}^{\mathrm f}(g)\,dg,\\
+\operatorname{ran}\Pi_{\partial B}
+&=
+\widehat{\bigoplus}_{\alpha}
+\mathcal M_{\nu,B,\alpha}^{\mathrm f}
+\otimes
+\mathcal M_{\nu,\bar B,\bar\alpha}^{\mathrm f}
+\otimes
+\operatorname{span}\{\iota_\alpha\}.
+\end{aligned}
+\tag{YM275}
+$$
+
+where $\iota_\alpha=d_\alpha^{-1/2}\sum_r e_{\alpha,r}\otimes
+e_\alpha^{\,r}$ is the normalized invariant in
+$V_\alpha\otimes V_\alpha^*$. The Peter–Weyl core is dense on both sides of
+the gluing:
+
+$$
+\overline{\mathscr H_{\nu,B|\bar B}^{\mathrm f,\mathrm{PW}}}
+=
+\mathscr H_{\nu,B|\bar B}^{\mathrm f,\mathrm{match}},
+\qquad
+\overline{\Gamma_{\nu,B}^{\mathrm f}
+\left(\mathscr H_{\nu,B|\bar B}^{\mathrm f,\mathrm{PW}}\right)}
+=
+\mathcal H_{\nu,\Lambda}^{\mathrm{gi}}.
+\tag{YM276}
+$$
+
+The finite-core contraction therefore extends uniquely to a unitary map:
+
+$$
+\Gamma_{\nu,B}^{\mathrm f}:
+\mathscr H_{\nu,B|\bar B}^{\mathrm f,\mathrm{match}}
+\xrightarrow{\ \simeq\ }
+\mathcal H_{\nu,\Lambda}^{\mathrm{gi}},
+\qquad
+\left(\Gamma_{\nu,B}^{\mathrm f}\right)^*
+\Gamma_{\nu,B}^{\mathrm f}
+=
+I,
+\qquad
+\Gamma_{\nu,B}^{\mathrm f}
+\left(\Gamma_{\nu,B}^{\mathrm f}\right)^*
+=
+I.
+\tag{YM277}
+$$
+
+The finite Peter–Weyl core is a form core on each relative compact graph,
+but derivative and boundary-electric compatibility across the gluing is an
+additional core identity. If that identity holds and
+$\mathfrak i_{\nu,\partial B}^{\mathrm f}$ includes every
+plaquette-crossing boundary interaction and any boundary electric term, then
+closure gives
+$$
+\begin{aligned}
+\Gamma_{\nu,B}^{\mathrm f}
+\left(\mathscr Q_{\nu,B|\bar B}^{\mathrm f,\mathrm{match}}\right)
+&=
+\mathscr Q_{\nu,\Lambda}^{\mathrm{gi}},\\
+\mathfrak h_{\nu,\Lambda}^{\mathrm f}
+\left[\Gamma_{\nu,B}^{\mathrm f}u,\Gamma_{\nu,B}^{\mathrm f}v\right]
+&=
+\mathfrak k_{\nu,B}^{\mathrm f,\mathrm{int}}[u,v]
++
+\mathfrak k_{\nu,\bar B}^{\mathrm f,\mathrm{int}}[u,v]
++
+\mathfrak i_{\nu,\partial B}^{\mathrm f}[u,v].
+\end{aligned}
+\tag{YM278}
+$$
+
+Here $\mathfrak i_{\nu,\partial B}^{\mathrm f}$ includes every
+plaquette-crossing boundary interaction and any boundary electric term,
+rather than treating either as a scalar boundary potential.
+
+The proof is finite-dimensional at the representation level and
+Hilbert-space complete at the graph level. Peter–Weyl gives the orthogonal
+sector decomposition, and Haar averaging is the orthogonal projector onto
+the diagonal invariant subspace. Schur orthogonality makes each
+$V_\alpha\otimes V_\alpha^*$ invariant line one-dimensional and gives the
+coefficient norm in (UFA18c), proving (YM276) and hence (YM277). The
+derivative chain rule and boundary-electric matching used in (YM278) are
+additional finite-core identities. Once those identities hold, boundedness
+of the Wilson multipliers and closure of the electric form extend the form
+equality to the form domain.
+
+This theorem discharges the finite-regulator Hilbert-space extension and
+surjectivity portion of UF-A. It records the form-domain statement as the
+conditional target (YM278), not as a consequence of bounded Wilson
+multipliers alone. It does not construct the coarse maps
+$J_{\nu,B,\alpha}$, prove the coarse intertwining and exact form transport
+in (UFA7)–(UFA13), or provide any volume-, spacing-, cutoff- or
+continuum-uniform estimate.
+
+
 
 
 The fixed $2\times2$ refinement in §9.17 fails the bare-map version of item
@@ -7747,7 +7867,7 @@ microscopic completions.
 | Fixed-graph anisotropic transfer-to-Hamiltonian limit (YM223)–(YM241) | **Derived** fixed-regulator operator theorem with finite-character controls | Normalized central convolution with $B_\tau=4a/(g^2\epsilon)$ and symmetric magnetic half-steps has difference and logarithmic generators converging in strong resolvent sense to (YM3), and its Chernoff products converge strongly to $e^{-tH_\Lambda}$ on every fixed finite spatial graph. The exact Wilson convention map is $g_W=2^{1/4}g$, $a_\tau=\epsilon/\sqrt2$; spatial-volume uniformity, the $a\to0$ limit, continuum reconstruction and a uniform physical gap remain open |
 | Renormalized weak-coupling gap and volume criterion (YM242)–(YM248) | **Derived** two-loop asymptotic scale relation from established perturbative inputs and **Derived conditional** continuum implication | $a\Lambda_L=F_W[1+O(g_0^2)]$ requires $NF_W\to\infty$ for simultaneous infinite volume and $a\Delta/F_W$ bounded above and below for a finite positive excitation; 80/80 primary and 20/20 independent arithmetic checks pass, but no interacting gap, continuum trajectory or Osterwalder–Schrader limit is constructed |
 | Conditional RG endpoint-to-gap matching theorem (YM249)–(YM255) | **Derived conditional** scale, transfer-rate and volume implication | A bounded cumulative two-loop scale defect, fixed positive interacting endpoint rate, exact controlled block-correlation map, complete retained physical channels and continuum Osterwalder–Schrader construction are required; 139/139 primary and 32/32 independent arithmetic checks pass, while every construction hypothesis and the Clay verdict remain open |
-| Local Wilson-word algebra, GNS completeness and uniform-form criterion (YM259)–(YM274) | **Derived conditional** finite gauge-invariant algebra, vacuum-orthogonal density statement, boundary-fibre contraction, local-recovery route and residual-Schur criterion | The full centered local gauge-invariant algebra supplies a complete finite-regulator GNS core; the orientation-fixed finite Peter–Weyl contraction, conditional local-Poincaré/coverage route and residual recovery floor are stated with their extension and uniformity obligations, while a regulator-uniform lower form bound, strong recovery/form transport, physical scale matching and continuum construction remain open |
+| Local Wilson-word algebra, GNS completeness and uniform-form criterion (YM259)–(YM278) | **Derived conditional** finite gauge-invariant algebra, vacuum-orthogonal density statement, finite boundary Hilbert extension and surjectivity, conditional form-domain target, local-recovery route and residual-Schur criterion | The full centered local gauge-invariant algebra supplies a complete finite-regulator GNS core; the orientation-fixed finite Peter–Weyl contraction extends unitarily, while derivative/form compatibility in (YM278), coarse retained-sector transport, a regulator-uniform lower form bound, physical scale matching and continuum construction remain open |
 | Nested-cutoff interacting Feshbach screen | **INCONCLUSIVE** finite-cutoff measurement (`NO_POSITIVE_FAMILY_CERTIFICATE`) | Ten nested cutoff pairs on the seven-link graph pass 403/403 primary controls and 370/370 independent arithmetic/source-binding checks; positive Schur roots occur in 36/40 rows, with four zero-root rows at $x=16$; uniform regulator, volume, recovery, continuum and mass-gap control remain open |
 | Cutoff-six interacting Feshbach growth family | **INCONCLUSIVE** finite-cutoff measurement (`SUPPORTS_FINITE_ADJACENT_FAMILY`) | The adjacent gauge-invariant retained sequence through outer cutoff 6 passes 603/603 primary controls and 552/552 independent arithmetic/source-binding checks, with positive Schur roots in 20/20 adjacent rows; eight non-adjacent $x=16$ rows lack positive roots, and uniform regulator, volume, recovery, continuum and mass-gap control remain open |
 | Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, conditional-rate cutoff removal and continuum construction remain open |

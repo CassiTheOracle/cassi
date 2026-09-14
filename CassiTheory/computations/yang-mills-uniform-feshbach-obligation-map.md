@@ -309,7 +309,118 @@ $$
 \tag{UFA18d}
 $$
 
-The finite-core action (UFA18b) supplies the candidate contraction and its isometry. UF-A still requires proving that the contraction extends to a unitary bijection onto $\mathcal H_{\nu,\Lambda}^{\mathrm{gi}}$, that every gauge-invariant finite-core vector has the displayed matched expansion, and that the extension preserves the exact form domain. The specification records these extension, surjectivity and form-compatibility statements as open obligations. On the finite Peter–Weyl core, the boundary condition is equivalently $(G_{\nu,B,v}^A+G_{\nu,\bar B,v}^A)\Psi=0$ for every boundary vertex and Lie-algebra direction. In the remaining equations, $\operatorname{Glue}_{\mathrm f}$ denotes this orientation-fixed contraction.
+The finite-core action (UFA18b) supplies the candidate contraction and its
+isometry. The finite-regulator Hilbert-space extension and surjectivity are
+supplied by the finite boundary-gluing theorem below under the declared
+cut-link orientation. The form-domain identity is a separate finite-core
+condition: it requires the derivative chain rule and boundary-electric
+matching in (UFA22), with all crossing Wilson terms included in
+$\mathfrak i_{\nu,\partial B}^{\mathrm f}$. UF-A still requires the coarse
+multiplicity maps, their boundary intertwining, the exact or controlled form
+transport in (UFA11)–(UFA13), and every uniform-in-$\nu$ version of those
+tests.
+
+### UF-A.2 Finite boundary-gluing theorem
+
+For a fixed finite graph with the relative spaces (UFA2), an exact
+orientation-fixed cut-link identification, and the diagonal boundary action
+(UFA16), let $\mathscr H_{\nu,B|\bar B}^{\mathrm f,\mathrm{PW}}$ be the
+matched Peter–Weyl core. The boundary Haar projector is
+
+$$
+\begin{aligned}
+\Pi_{\partial B}
+&:=
+\int_{G_{\partial B}}
+\pi_{\nu,B}^{\mathrm f}(g)\otimes
+\pi_{\nu,\bar B}^{\mathrm f}(g)\,dg,\\
+\operatorname{ran}\Pi_{\partial B}
+&=
+\widehat{\bigoplus}_{\alpha}
+\mathcal M_{\nu,B,\alpha}^{\mathrm f}
+\otimes
+\mathcal M_{\nu,\bar B,\bar\alpha}^{\mathrm f}
+\otimes
+\operatorname{span}\{\iota_\alpha\}.
+\end{aligned}
+\tag{UFA19}
+$$
+
+Schur orthogonality gives the norm identity on the finite core and therefore
+
+$$
+\overline{\mathscr H_{\nu,B|\bar B}^{\mathrm f,\mathrm{PW}}}
+=
+\mathscr H_{\nu,B|\bar B}^{\mathrm f,\mathrm{match}},
+\qquad
+\overline{\Gamma_{\nu,B}^{\mathrm f}
+\left(\mathscr H_{\nu,B|\bar B}^{\mathrm f,\mathrm{PW}}\right)}
+=
+\mathcal H_{\nu,\Lambda}^{\mathrm{gi}}.
+\tag{UFA20}
+$$
+
+Consequently, the finite-core contraction has a unique unitary extension:
+
+$$
+\Gamma_{\nu,B}^{\mathrm f}:
+\mathscr H_{\nu,B|\bar B}^{\mathrm f,\mathrm{match}}
+\xrightarrow{\ \simeq\ }
+\mathcal H_{\nu,\Lambda}^{\mathrm{gi}},
+\qquad
+\left(\Gamma_{\nu,B}^{\mathrm f}\right)^*
+\Gamma_{\nu,B}^{\mathrm f}
+=
+I,
+\qquad
+\Gamma_{\nu,B}^{\mathrm f}
+\left(\Gamma_{\nu,B}^{\mathrm f}\right)^*
+=
+I.
+\tag{UFA21}
+$$
+
+For the finite Kogut–Susskind form, the algebraic Peter–Weyl core is a form
+core on each relative compact graph, but derivative and boundary-electric
+compatibility across the gluing is an additional core identity. If that
+identity holds and all crossing plaquettes and boundary electric terms are
+included in $\mathfrak i_{\nu,\partial B}^{\mathrm f}$ as in (UFA9), closure
+gives
+
+$$
+\Gamma_{\nu,B}^{\mathrm f}
+\left(\mathscr Q_{\nu,B|\bar B}^{\mathrm f,\mathrm{match}}\right)
+=
+\mathscr Q_{\nu,\Lambda}^{\mathrm{gi}},
+\qquad
+\mathfrak h_{\nu,\Lambda}^{\mathrm f}
+\left[\Gamma_{\nu,B}^{\mathrm f}u,\Gamma_{\nu,B}^{\mathrm f}v\right]
+=
+\mathfrak k_{\nu,B}^{\mathrm f,\mathrm{int}}[u,v]
++
+\mathfrak k_{\nu,\bar B}^{\mathrm f,\mathrm{int}}[u,v]
++
+\mathfrak i_{\nu,\partial B}^{\mathrm f}[u,v].
+\tag{UFA22}
+$$
+
+The proof is the Peter–Weyl decomposition (UFA3)–(UFA4), followed by the
+Haar projector onto the diagonal invariant subspace. Each
+$V_\alpha\otimes V_\alpha^*$ invariant is one-dimensional and is spanned by
+$\iota_\alpha$; (UFA18c) then gives the coefficient norm. Density of the
+Peter–Weyl core gives (UFA20), and the invariant projector gives surjectivity.
+The link-derivative chain rule and boundary-electric matching used in
+(UFA22) are additional finite-core identities. Once those identities hold,
+boundedness of the Wilson multipliers and closure of the electric form extend
+the form equality to the form domain.
+
+This discharges the Hilbert-space extension and surjectivity portion of UF-A
+at fixed regulator. It records the finite-regulator form-domain statement as
+the conditional target (UFA22), not as a consequence of bounded Wilson
+multipliers alone. It does not construct the coarse maps
+$J_{\nu,B,\alpha}$, prove (UFA7)–(UFA13) for a coarse graph, or provide any
+volume-, spacing-, cutoff- or continuum-uniform estimate.
+
 
 
 Peter–Weyl decomposition for the compact boundary group gives
@@ -496,7 +607,7 @@ I_{\mathcal K_\nu}-P_{\nu,B,C,\alpha}.
 \tag{UFA14}
 $$
 
-If the finite-volume ground state is degenerate, centering and ground removal use the declared ground-space density and the entire ground subspace. A single positive vector is sufficient only under a separately established uniqueness statement. The conditional specification is satisfied only after (UFA1)–(UFA18), including the Haar inner product, boundary Gauss constraint, form-domain inclusion and boundary contraction, are proved for the chosen block family. It supplies a testable UF-A target; it supplies no UF-A–UF-E theorem by itself.
+If the finite-volume ground state is degenerate, centering and ground removal use the declared ground-space density and the entire ground subspace. A single positive vector is sufficient only under a separately established uniqueness statement. The conditional specification requires (UFA1)–(UFA18), including the Haar inner product, boundary Gauss constraint and finite-core contraction, for the chosen block family. The finite boundary-gluing theorem above supplies (UFA19)–(UFA21) at fixed regulator under its explicit hypotheses; (UFA22) remains the separate derivative/form compatibility condition. The coarse multiplicity maps and uniform estimates remain to be established. It supplies a testable UF-A target; it supplies no UF-A–UF-E theorem by itself.
 
 ### UF-B. Uniform discarded-sector resolvent
 

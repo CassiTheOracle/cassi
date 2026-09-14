@@ -1436,7 +1436,8 @@ centered local GNS vectors are dense in the vacuum-orthogonal subspace.
 | Mutation controls | Raw link entries, dropped orientation words, omitted centering and finite-word completeness each fire | **PASS**, $4/4$ controls |
 | Analytic completeness statement | Wilson-word density and centered local GNS density follow under the stated compact-$SU(2)$, Peter–Weyl and positive-state hypotheses | **DERIVED CONDITIONAL**, finite and infinite local algebra |
 | Uniform-form transfer criterion (YM262)–(YM267) | The exact finite-regulator lower bound, strong recovery-sequence direction, continuum form-core requirement and scale matching required to transfer a physical lower gap are stated explicitly | **DERIVED CONDITIONAL**, criterion only; no uniform bound, recovery construction, form core or continuum representation is supplied |
-| Boundary-fibre Haar contraction (UFA18a)–(UFA18d) | The normalized invariant tensor $\iota_\alpha=d_\alpha^{-1/2}\sum_r e_{\alpha,r}\otimes e_\alpha^{\,r}$ gives the finite Peter–Weyl contraction and its isometry under the declared dual orientation | **DERIVED CONDITIONAL**, extension, surjectivity and exact form-domain preservation remain analytic obligations |
+| Boundary-fibre Haar contraction (UFA18a)–(UFA18d) | The normalized invariant tensor $\iota_\alpha=d_\alpha^{-1/2}\sum_r e_{\alpha,r}\otimes e_\alpha^{\,r}$ gives the finite Peter–Weyl contraction and its isometry under the declared dual orientation | **DERIVED CONDITIONAL**, the finite-graph Hilbert extension and surjectivity are supplied by (UFA19)–(UFA21); the derivative/form compatibility in (UFA22), coarse transport, uniform constants and the continuum bridge remain open |
+| Finite boundary-gluing extension (UFA19)–(UFA22; YM275)–(YM278) | Haar projection, Peter–Weyl density and unitary extension hold for each fixed graph; (UFA22) is the separate derivative/boundary-electric core identity whose closure would give the finite form-domain statement | **DERIVED CONDITIONAL**, fixed-regulator Hilbert theorem plus conditional form target; no coarse retained-sector map or regulator-uniform estimate follows |
 | Local recovery route (YM268)–(YM273) | Conditional boundary-fibre Poincaré control, discarded-sector coverage and local-energy overlap imply a uniform discarded resolvent through the displayed scale comparison | **DERIVED CONDITIONAL**, exact-vacuum constants and all trajectory quantifiers remain open |
 | Residual Schur bridge (YM274) | Uniform positive residual blocks and a bounded residual off-diagonal block give the recovery floor $\gamma_R$; the resulting $A_{Q,*}=\gamma_R^{-1}$ enters the local route | **DERIVED CONDITIONAL**, residual estimates and boundary-compatible transport remain open; Hamiltonian Feshbach roots are a separate finite calculation |
 | RG and mass-gap bridge | No retained RG image is identified with the full local algebra, and no matched uniform lower form bound is constructed | **UNRESOLVED**, exact transport and physical spectral lower bound |
@@ -1454,13 +1455,14 @@ are respectively
 and
 `5fe7f7197a1b6acb0347714094ea210f489abcd8da0e96853795c8df5beaac82`.
 The result identifies the complete local observable core. The conditional
-boundary-fibre, local-recovery and residual-Schur route is recorded in
-`foundations/loop-to-bubble-projection-theorem.md` §9.34.1 and
+boundary-fibre, finite boundary-gluing, local-recovery and residual-Schur
+route is recorded in
+`foundations/loop-to-bubble-projection-theorem.md` §§9.34.1–9.34.2 and
 `computations/yang-mills-uniform-feshbach-obligation-map.md`
-§§UF-A.1, UF-B.2–UF-B.6. The exact RG map, the volume- and
-regulator-uniform lower spectral bound, the strong recovery transport in
-(YM265), the scale matching in (YM266), and the continuum representation
-required for a physical mass gap remain open.
+§§UF-A.1–UF-A.2, UF-B.2–UF-B.6. The exact coarse RG map, the
+volume- and regulator-uniform lower spectral bound, the strong recovery
+transport in (YM265), the scale matching in (YM266), and the continuum
+representation required for a physical mass gap remain open.
 
 
 ## 45. Fixed-graph interacting Feshbach resolvent

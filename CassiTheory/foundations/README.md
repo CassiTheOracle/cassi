@@ -988,8 +988,12 @@ correlation-map and full physical-gap obligations remain open; both receipts
 retain `clay_verdict=NULL` (`field-experience/probe-outcome-ledger.md` §§43–44).
 The conditional local-recovery route, orientation-fixed boundary contraction
 and residual-Schur separation are formalized in
-`computations/yang-mills-uniform-feshbach-obligation-map.md`; the exact
-boundary extension and uniform constants remain analytic obligations.
+`computations/yang-mills-uniform-feshbach-obligation-map.md`. The
+finite-regulator boundary Hilbert extension and surjectivity are derived in
+§9.34.2 under its explicit finite-graph hypotheses; the derivative/form
+compatibility in (YM278), the coarse map, uniform constants and continuum
+bridge remain analytic obligations.
+
 
 ### `interscale-current-soliton.md`—Interscale Yang/Yin Current and the Conditional Soliton Pinch
 
