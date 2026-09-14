@@ -539,6 +539,15 @@ covariance-volume recovery and seeded stretching.
 The near-rank full-3D supplement then tests whether pointwise full rank restores
 uniform determinant-root recovery across a bounded data family.
 
+The finite-mode endpoint target is specified in
+`computations/navier-stokes-galerkin-target-prereg.md` and checked by
+`computations/verify_navier_stokes_galerkin_target.py`. Its short-time
+trajectory extension is fixed in
+`computations/navier-stokes-galerkin-trajectory-prereg.md` and executed by
+`computations/verify_navier_stokes_galerkin_trajectory.py`; the resulting
+finite-mode measurement is recorded in
+`turbulence/navier-stokes-replica-coherence.md` §7.3 and §13.
+
 
 - `turbulence/README.md`—Turbulence—Spectra and Navier–Stokes Geometry. Index—September 2026. Covers the conditional spectrum analysis, critical-transfer and coercivity results, filtered stress geometry, quantitative strain departure, radial and signed spectral-spread estimates, adaptive metrics, forward-deformation covariance, vorticity-seeded active occupation, independent-replica coherence and viscous compensation, scalar-Beltrami and time–curl residuals, and the phase-energy coercivity boundary.
 - `turbulence/kolmogorov-from-phi.md`—The Kolmogorov −5/3 Spectrum in Cassi: Derivation and Conditional Tests. Derived conditional / Hypothesized closures—August 2026. The kinetic-energy spectrum is inherited under Navier–Stokes cascade assumptions; the optional break scale, deviation spectrum, gravity factor, and Qi-quality spectrum depend on supplied constitutive and statistical assumptions.

@@ -29,6 +29,12 @@ $$
 
 The sharpened occupation $\mathcal H=\mathcal E_M-\mathcal K$ bounds ordinary enstrophy from above. Its cumulative budget is total seeded stretching minus recovered covariance volume. An exact periodic rank-two Beltrami heat flow has $\det\nabla\omega=0$ at every point and time while $\det R>0$ on an open set at positive time, establishing temporal rank recovery inside the original equation. Periodic shear remains rank one and shows why recovery cannot have a uniform positive lower bound over every datum. A relative rank-recovery estimate would bound $\mathcal H$, while a signed cross-scale estimate would bound $W$ directly; either would imply continuation. Both uniform all-data estimates remain open.
 
+A self-contained short-time Fourier–Galerkin probe records positive integrated
+endpoint remainders for the rank-two datum and a full-dimensional near-rank
+perturbation, while the shear and ABC heat controls remain zero. This evidence
+is finite-mode and short-time; the cutoff-uniform estimate remains open.
+
+
 ## 1. Main result
 
 Consider a smooth mean-zero divergence-free solution of the unforced periodic three-dimensional Navier–Stokes equation on a compact interval inside its smooth lifespan:
@@ -938,6 +944,50 @@ arbitrary-data regularity.
 The control protocol is
 `computations/navier-stokes-galerkin-target-prereg.md`, and its executable is
 `computations/verify_navier_stokes_galerkin_target.py`.
+
+### 7.3 Short-time Galerkin trajectory measurement
+
+A finite-cutoff trajectory test measures the endpoint remainder over a time
+interval rather than only at the initial state. On the same torus with
+$\nu=1/10$ and $T=1/4$, a self-contained Fourier–Galerkin integrator evolves
+the four frozen controls at $N\in\{2,4,8\}$. The primary runs use 1024 RK4
+steps; timestep-refined runs use 2048 steps, and the product-grid refinement
+uses $M=6N+1$ instead of $M=4N+1$.
+
+The primary integrated positive remainder
+$I_N(T)=\int_0^T(\mathfrak m_N(t))_+dt$ is:
+
+| datum | $N=2$ | $N=4$ | $N=8$ |
+|---|---:|---:|---:|
+| shear | $0$ | $0$ | $0$ |
+| ABC | $0$ | $0$ | $0$ |
+| $u_b$ | $8.8400763280$ | $10.3389234924$ | $10.3389341821$ |
+| $u_{0.1}$ | $8.8321302942$ | $10.3618043367$ | $10.3618155163$ |
+
+The corresponding peak positive remainders
+$\max_{0\le t\le T}(\mathfrak m_N(t))_+$ are:
+
+| datum | $N=2$ | $N=4$ | $N=8$ |
+|---|---:|---:|---:|
+| shear | $0$ | $0$ | $0$ |
+| ABC | $0$ | $0$ | $0$ |
+| $u_b$ | $37.2075320164$ | $44.4780309002$ | $44.4782708475$ |
+| $u_{0.1}$ | $36.8354566962$ | $44.9848572559$ | $44.9851091923$ |
+
+The 36-run receipt passes every prescribed state, checkpoint, projection, and
+refinement check. At the five direct strain checkpoints, the maximum
+direct-versus-spectral production relative error is
+$1.2225\times10^{-16}$; the maximum Fourier divergence residual is
+$8.9852\times10^{-18}$. The maximum positive kinetic-energy increment is zero,
+and the largest direct production residual among the shear and ABC heat
+controls is $3.9462\times10^{-15}$. The maximum relative changes under
+timestep halving and product-grid refinement are $1.1841\times10^{-8}$ and
+$1.4079\times10^{-15}$, respectively.
+
+This supplies a finite-mode trajectory measurement and no singularity
+witness. The cutoff-uniform bound in (68g), production-relative compensation,
+and arbitrary-data regularity remain **UNRESOLVED**.
+
 
 
 ## 8. Exact controls
@@ -1951,6 +2001,19 @@ All eight control checks pass. The receipt classifies the cutoff-uniform
 time-integrated Galerkin bound, production-relative covariance compensation,
 and arbitrary-data regularity as `UNRESOLVED`.
 
+A trajectory-level extension of the finite-mode control schedule is recorded
+in
+`runs/navier_stokes_galerkin_trajectory_probe_20260913/verification.json`.
+The source-bound receipt contains 36 runs: four controls, three Fourier
+cutoffs, and primary, timestep-refined, and product-grid-refined executions.
+It passes every prescribed check and has classification
+`SUPPORTS—short-time finite-mode trajectory measurement only`. The primary
+integrated remainders are reported in §7.3. Their positive values for $u_b$ and
+$u_{0.1}$ coexist with zero shear and ABC controls; direct strain
+reconstruction, divergence, energy dissipation, timestep refinement, and grid
+refinement all satisfy their finite-probe bounds. The receipt does not supply a
+cutoff-uniform estimate in (68g) or an arbitrary-data regularity result.
+
 ## 14. Sources
 
 - `turbulence/navier-stokes-active-deformation-occupation.md`—vorticity-seeded common-noise moment and active deformation occupation
@@ -1961,3 +2024,5 @@ and arbitrary-data regularity as `UNRESOLVED`.
 - G. L. Eyink, A. Gupta, and T. Zaki, [Stochastic Lagrangian Dynamics of Vorticity. I. General Theory](https://arxiv.org/abs/1912.06677)—stochastic Cauchy invariants, cancellation, and ensemble variance
 - G. L. Eyink and H. Aluie, [Localness of energy cascade in hydrodynamic turbulence, I. Smooth coarse-graining](https://arxiv.org/abs/0909.2386)—scale-locality estimates under declared inertial-range scaling assumptions
 - J. Serrin, [On the interior regularity of weak solutions of the Navier–Stokes equations](https://link.springer.com/article/10.1007/BF00253344), *Archive for Rational Mechanics and Analysis* **9** (1962), 187–195—velocity Prodi–Serrin continuation criterion
+- `computations/navier-stokes-galerkin-trajectory-prereg.md`—fixed short-time finite-mode trajectory schedule and evidence boundary
+- `computations/verify_navier_stokes_galerkin_trajectory.py`—self-contained Fourier–Galerkin, Leray, RK4, reconstruction, and receipt verifier

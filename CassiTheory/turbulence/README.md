@@ -678,6 +678,26 @@ Euclidean scaling. The source-bound verifier passes **8 of 8 checks** at
 The cutoff-uniform time-integrated Galerkin bound, production-relative
 compensation, and arbitrary-data regularity remain **UNRESOLVED**.
 
+### 2.22 Short-time Galerkin trajectories
+
+The finite-mode endpoint target now has a trajectory-level measurement in
+`turbulence/navier-stokes-replica-coherence.md` §7.3. A self-contained
+Fourier–Galerkin/RK4 integrator evolves the shear, ABC, rank-two, and
+near-rank controls at $N=2,4,8$ over $T=1/4$. The source-bound receipt
+`runs/navier_stokes_galerkin_trajectory_probe_20260913/verification.json`
+contains 36 runs and passes every prescribed check. The primary integrated
+positive remainders are
+zero for the shear and ABC heat controls, while they are
+$(8.8400763280,\ 10.3389234924,\ 10.3389341821)$ for $u_b$ and
+$(8.8321302942,\ 10.3618043367,\ 10.3618155163)$ for $u_{0.1}$ across the
+three cutoffs. The maximum direct-versus-spectral production relative error is
+$1.2225\times10^{-16}$; timestep and product-grid changes are
+$1.1841\times10^{-8}$ and $1.4079\times10^{-15}$. This qualifies a
+short-time finite-mode measurement. The cutoff-uniform time-integrated
+Galerkin bound, production-relative compensation, and arbitrary-data
+regularity remain **UNRESOLVED**.
+
+
 ## References
 
 - `foundations/xi-derivation.md`—first-principles derivation of the Qi-gravity coupling $\xi = \varphi^6$ used in the velocity equation
@@ -713,6 +733,8 @@ compensation, and arbitrary-data regularity remain **UNRESOLVED**.
 - `computations/verify_navier_stokes_replica_coherence.py`—60-check source-bound replica-coherence, temporal-rank and viscous-compensation verifier
 - `computations/navier-stokes-galerkin-target-prereg.md`—frozen finite-mode endpoint target, control family, scaling and evidence boundary
 - `computations/verify_navier_stokes_galerkin_target.py`—8-check source-bound Galerkin endpoint-control verifier
+- `computations/navier-stokes-galerkin-trajectory-prereg.md`—fixed short-time finite-mode trajectory schedule and evidence boundary
+- `computations/verify_navier_stokes_galerkin_trajectory.py`—self-contained Fourier–Galerkin trajectory, reconstruction, and receipt verifier
 - `computations/navier-stokes-coherence-dose-continuation-prereg.md`—fixed active-dose, retarded-spread and exact-control schedule
 - `computations/verify_navier_stokes_coherence_dose.py`—16-check coherence-dose continuation verifier
 - `computations/navier-stokes-vorticity-quotient-prereg.md`—fixed local quotient, normalized-mean, ABC initial-layer and degenerate-control schedule

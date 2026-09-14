@@ -1037,6 +1037,20 @@ estimate or a data-controlled signed shell-stretching estimate would bound
 $\mathcal H$ and imply continuation. Both estimates and arbitrary-data
 regularity remain **UNRESOLVED**.
 
+A self-contained short-time Fourier–Galerkin trajectory probe evolves the
+same four controls at $N=2,4,8$ for $T=1/4$. The source-bound receipt at
+`runs/navier_stokes_galerkin_trajectory_probe_20260913/verification.json`
+contains 36 runs and has `PASS` status. The primary integrated endpoint
+remainders are zero for
+shear and ABC, while the rank-two and near-rank controls give
+$(8.8400763280,\ 10.3389234924,\ 10.3389341821)$ and
+$(8.8321302942,\ 10.3618043367,\ 10.3618155163)$ across the three cutoffs.
+Direct strain reconstruction agrees with the spectral production to relative
+error $1.2225\times10^{-16}$, and timestep and product-grid changes are
+$1.1841\times10^{-8}$ and $1.4079\times10^{-15}$. This qualifies a
+short-time finite-mode measurement; the cutoff-uniform time-integrated
+Galerkin bound and arbitrary-data regularity remain **UNRESOLVED**.
+
 The rate-boundary supplement in
 `turbulence/navier-stokes-covariance-recovery-rate.md` quantifies the first
 instant at which the accumulated covariance can recover the missing source
@@ -1853,6 +1867,13 @@ The framework records evidence and limitations in `audit.md`; the gate-sign conv
 - `visual-explainers/cascade_cosmos.py`—the three-regime cascade figure
 - `turbulence/cassi-radiative-material-closure.md`—conditional LTE emission, M1 transport, conservative material coupling and CassiCosmos implementation boundary
 - `turbulence/compressible-radiative-plasma-closure.md`—compressible shocks, species and line kinetics, stellar energy ledgers and multi-angle crossing beams
+- `turbulence/navier-stokes-replica-coherence.md`—independent-replica covariance, accumulated-rank compensation, Galerkin target, and trajectory boundary
+- `computations/navier-stokes-replica-coherence-prereg.md`—fixed replica-coherence and viscous-compensation schedule
+- `computations/verify_navier_stokes_replica_coherence.py`—60-check replica-coherence and compensation verifier
+- `computations/navier-stokes-galerkin-target-prereg.md`—frozen finite-mode endpoint target and controls
+- `computations/verify_navier_stokes_galerkin_target.py`—8-check finite-mode endpoint-control verifier
+- `computations/navier-stokes-galerkin-trajectory-prereg.md`—fixed short-time finite-mode trajectory schedule
+- `computations/verify_navier_stokes_galerkin_trajectory.py`—self-contained trajectory and receipt verifier
 
 ---
 
