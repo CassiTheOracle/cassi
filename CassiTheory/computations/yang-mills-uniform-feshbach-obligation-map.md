@@ -1253,6 +1253,53 @@ The result is scoped to a coupling-independent finite-rank invariant fibre and a
 
 The fixed $2\times2$ block receipt verifies a nonzero bare-map magnetic residual and the interior-link witness controls. It does not by itself certify the disintegration (UFA23) or the almost-everywhere level-set premise for an interacting fibre, so applying this lemma to that block remains a separate analytical step.
 
+### 4.3 Application to the declared $2\times2$ bare fibre
+
+The declared path map has an explicit product-Haar fibre, so the scoped obstruction can be applied to its kinematic fibre without extending the conclusion to interacting boundary sectors.
+
+Let $V_c=\pi(U)_c$, $c=1,\ldots,4$, be the four coarse boundary products. For each two-link boundary path, retain the first fine link as a split variable and solve the second fine link uniquely from the ordered product $V_c$, using the declared orientation. Retain the four interior links as independent variables. The twelve fine links are thereby represented by four coarse products and eight fibre variables. Haar invariance under multiplication and inversion gives the product-Haar disintegration
+
+$$
+d\mu_{\mathrm f}(U)
+:=
+d\mu_{\mathrm c}(V)\,d\nu(r).
+\tag{UFA28}
+$$
+
+With $H_{i,j}$ and $K_{i,j}$ denoting the horizontal and vertical fine links, the four plaquette words are
+
+$$
+U_{i,j}
+:=
+H_{i,j}K_{i+1,j}H_{i,j+1}^{-1}K_{i,j}^{-1},
+\qquad
+(i,j)\in\{0,1\}^2.
+\tag{UFA29}
+$$
+
+The nonconstant part of the magnetic multiplier is
+$W(V,r)=\sum_{i,j}\operatorname{Tr}(U_{i,j})$. Choose the interior link $H_{0,1}$ and define $F$ as the value of $W$ with $H_{0,1}=I$ minus its value with $H_{0,1}=-I$, keeping all other coordinates fixed. At the all-identity configuration, only $U_{0,0}$ and $U_{0,1}$ change, and
+
+$$
+F(I,\ldots,I)
+:=
+(2-(-2))+(2-(-2))
+:=
+8.
+\tag{UFA30}
+$$
+
+Thus $F$ is a nonzero real-analytic function of the product coordinates. Its zero set has Haar measure zero. Fubini's theorem then gives, for almost every coarse $V$, a fibre set of positive measure on which $W(V,\cdot)$ takes two different values. Hence $W(V,\cdot)$ is nonconstant for almost every such $V$, and every level set is $\nu$-null by real analyticity.
+
+Equations (UFA28)–(UFA30) establish the level-set premise in (UFA25) for the unreduced product-Haar path fibre of the declared bare $2\times2$ fixture. The scoped consequence is:
+
+$$
+\boxed{\text{No coupling-independent finite-rank invariant fibre exists for this bare path family over an open $x$-interval.}}
+\tag{UFA31}
+$$
+
+This conclusion concerns the kinematic product-Haar fibre and its bare multiplication potential. Extending it to a chosen interacting boundary representation requires the boundary disintegration and intertwiner in (UFA7)–(UFA10); the finite receipt does not supply that extension. Coupling-dependent fibres and energy-dependent Feshbach reductions remain admissible.
+
 ## 5. Decision rule and stopping rule
 
 A finite implementation may report one of the following:
@@ -1268,6 +1315,8 @@ No new Feshbach receipt is scheduled until an exact block/transfer construction 
 ## References
 
 - `foundations/loop-to-bubble-projection-theorem.md` §§9.13, 9.20, 9.25–9.26, 9.30, 9.33–9.34—vacuum form, finite character bounds, scale matching, local completeness and the uniform lower-form criterion.
+- `computations/yang-mills-block-map-prereg.md`—edge-disjoint path coordinates, fixed $2\times2$ refinement and subdivision control.
+- `computations/verify_yang_mills_block_map.py`—declared plaquette words and deterministic finite controls for the bare fixture.
 - `computations/yang-mills-4x2x2-c1-feshbach-prereg.md`—finite translated $4\times2\times2$ screen and its declared evidence boundary.
 - `computations/yang-mills-interacting-feshbach-prereg.md`—fixed-graph interacting resolvent and Schur inequalities.
 - `computations/yang-mills-transport-score-prereg.md`—conditional $H^{-1}$ transport recurrence and Gaussian controls.
