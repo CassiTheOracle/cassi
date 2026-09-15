@@ -1583,9 +1583,9 @@ This route is compatible with the discrete trajectory $x_\nu$ and with an energy
 
 ### 4.4.2 Partial fixed-regulator conditional-fibre realization
 
-The strict-positivity premise used below is a finite-regulator theorem, not an additional vacuum assumption. For fixed $a,L$, the unreduced configuration manifold $\mathcal X=SU(2)^{E_L}$ is compact and connected; its electric Laplacian is elliptic and its magnetic Wilson multiplier is bounded and smooth. The positivity-improving heat kernel therefore gives a simple normalized positive ground state. This is the finite-box argument in `foundations/loop-to-bubble-projection-theorem.md` §§9.7 and 9.13, and it is applied before Gauss reduction.
+The strict-positivity premise used below is a finite-regulator theorem, not an additional vacuum assumption. For fixed $a,L$, the unreduced configuration manifold $\mathcal X=SU(2)^{E_L}$ is compact and connected; its electric Laplacian is elliptic and its magnetic Wilson multiplier is bounded and smooth. The positivity-improving heat kernel therefore gives a simple normalized positive ground state. The smooth strict-positivity statement is the finite-box result in `foundations/loop-to-bubble-projection-theorem.md` §9.13; the gauge-invariance and Gauss-projector restriction are the separate finite-volume step in §9.7. Only this fixed-regulator argument enters here.
 
-Writing $h_{a,L}$ for the unreduced Hamiltonian and $G_{a,L}=SU(2)^{V_L}$ for the finite-dimensional lattice gauge group, simplicity and commutation with the gauge action give
+Writing $h_{a,L}$ for the unreduced Hamiltonian and $G_{a,L}=SU(2)^{V_L}$ for the finite-dimensional compact lattice gauge group, simplicity and commutation with the gauge action give
 
 $$
 \ker(h_{a,L}-e_0(a,L))
@@ -1613,6 +1613,47 @@ $$
 
 This discharges the positivity and bounded-density input at each fixed regulator. It does not make $\omega_-/\omega_+$ uniform in $a,L$, and it supplies no continuum or thermodynamic gap.
 
+The measurable part of (UFA62) has a separate fixed-regulator statement. Let
+$\mathcal X$ and $\mathcal V$ be standard Borel spaces, let $\mu$ be a
+probability measure on $\mathcal X$, and let
+$\vartheta:\mathcal X\to\mathcal V$ be Borel with
+$\kappa=\vartheta_\#\mu$. A regular conditional kernel
+$\mathsf K(v,\cdot)$ then satisfies
+
+$$
+\mu\!\left(A\cap\vartheta^{-1}(C)\right)
+\;=\;
+\int_C\mathsf K(v,A)\,d\kappa(v),
+\qquad
+\mathsf K\!\left(v,\vartheta^{-1}(\{v\})\right)=1
+\quad\text{for $\kappa$-a.e. }v,
+\tag{UFA78}
+$$
+
+for measurable $A\subseteq\mathcal X$ and $C\subseteq\mathcal V$. If a
+compact group $H$ acts measurably on both spaces, preserves $\mu$ and
+$\kappa$, and $\vartheta(hx)=h\vartheta(x)$, replace this kernel by its Haar
+average
+
+$$
+\mathsf K^{\mathrm{eq}}(v,A)
+:=
+\int_H
+\mathsf K\!\left(h^{-1}\!\cdot v,h^{-1}\!\cdot A\right)\,dh .
+\tag{UFA79}
+$$
+
+Haar invariance gives
+$\mathsf K^{\mathrm{eq}}(k\!\cdot v,k\!\cdot A)
+\;=\;\mathsf K^{\mathrm{eq}}(v,A)$, while the disintegration and fibre-support
+identities in (UFA78) hold on a $\kappa$-conull set. This is the precise
+null-set convention: no assertion is made for exceptional base data, and no
+continuous dependence on $v$ is inferred. Applied to the already-declared
+$\mu_{\nu,B,\alpha}$ and $\vartheta_{\nu,B,\alpha}$, (UFA78)–(UFA79) supply
+the measurable equivariant kernel required by (UFA62); they do not construct
+the boundary-sector measure, the smooth horizontal form domain, or the maps
+$J_{\nu,B,\alpha}$.
+
 The conditional generator in (UFA59) therefore supplies a concrete scalar fibre projection at each fixed finite regulator. For an exterior datum $\eta$ define
 
 $$
@@ -1622,6 +1663,45 @@ Z_{a,L;B}(\eta)^{-1}
 \Omega_{a,L}(U_B,\eta)^2\,dU_B .
 \tag{UFA70}
 $$
+
+The measure in (UFA70) is the conditional density of the full interacting
+vacuum. The distinction from the ground-state measure of a block Hamiltonian
+is explicit in `foundations/loop-to-bubble-projection-theorem.md` §9.14. It is
+not, in general, the block measure with boundary data. If a relative operator
+$h_{a,L;B}^{\eta,\alpha}$ and a normalized ground state
+$\omega_{a,L;B}^{\eta,\alpha}$ have been constructed in boundary sector
+$\alpha$, the latter measure is
+
+$$
+d\nu_{a,L;B}^{\eta,\alpha}(U_B)
+:=
+\frac{\left|\omega_{a,L;B}^{\eta,\alpha}(U_B)\right|^2}
+{Z_{a,L;B}^{\eta,\alpha}}\,
+dU_B .
+\tag{UFA80}
+$$
+
+The two measures may be compared only after their mutual absolute
+continuity and boundary-sector identification have been proved. Where
+
+$$
+C_{a,L;B}^{\eta,\alpha}
+:=
+\operatorname*{osc}_{U_B}
+\log\frac{d\mu_{a,L;B}^{\eta}}
+{d\nu_{a,L;B}^{\eta,\alpha}}
+<\infty
+\tag{UFA81}
+$$
+
+holds, the fixed-fibre comparison is
+$\lambda_{a,L;B}^{\mu}(\eta)\ge
+\exp(-C_{a,L;B}^{\eta,\alpha})
+\lambda_{a,L;B}^{\nu}(\eta,\alpha)$.
+Neither this comparison nor a regulator-uniform bound on $C$ follows from
+(UFA76)–(UFA77). Thus (UFA72) is a statement about the exact conditional
+vacuum measure, not a substitute for the interacting block-Hamiltonian
+fibre required by (UFA64).
 
 On the conditional fibre set
 
@@ -1998,7 +2078,7 @@ No new Feshbach receipt is scheduled until the construction (UFA61)–(UFA69) is
 
 ## References
 
-- `foundations/loop-to-bubble-projection-theorem.md` §§9.13, 9.20, 9.25–9.26, 9.30, 9.33–9.34—vacuum form, finite character bounds, scale matching, local completeness and the uniform lower-form criterion.
+- `foundations/loop-to-bubble-projection-theorem.md` §§9.13–9.14, 9.20, 9.25–9.26, 9.30, 9.33–9.34—vacuum form, conditional-measure comparison, finite character bounds, scale matching, local completeness and the uniform lower-form criterion.
 - `foundations/loop-to-bubble-projection-theorem.md` §9.18—continuous-$SU(2)$ radial Feshbach pencil, Weyl self-energy bounds, fixed-window isolation and the $N/x^{1/4}$ cutoff condition.
 - `computations/yang-mills-block-map-prereg.md`—edge-disjoint path coordinates, fixed $2\times2$ refinement and subdivision control.
 - `computations/verify_yang_mills_block_map.py`—declared plaquette words and deterministic finite controls for the bare fixture.
