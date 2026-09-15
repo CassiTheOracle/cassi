@@ -1179,7 +1179,7 @@ quantifiers.
 
 | Order | Obligation | Evidence already available | Missing proof object |
 |---:|---|---|---|
-| 1 | UF-A: gauge-compatible block or transfer map | The local-observable preregistration states the finite gauge-invariant word-algebra and conditional density input; UFA19–UFA21 give a fixed-graph boundary-Haar construction under their explicit hypotheses; UFA82–UFA90 add the scalar Haar-fibre candidate and exact magnetic leakage identity; UFA92–UFA100 make the physical $S_\nu$-metric, boundary-intertwiner and derivative-leakage tests explicit; and UFA101–UFA102 give a fixed-sector boundary obstruction with its exact Feshbach escape. | Existence of the coarse multiplicity maps $J_{\nu,B,\alpha}$ in every required boundary sector, boundary intertwining (UFA7), glued Gauss-law transport (UFA8), and exact or uniformly controlled form transport (UFA11–UFA13), including the metric and derivative conditions in UFA93 and UFA96–UFA100. The fixed 14-state sector cannot be used without the generated sectors in UFA101, and the Feshbach alternative requires uniform control of its discarded resolvent. |
+| 1 | UF-A: gauge-compatible block or transfer map | The local-observable preregistration states the finite gauge-invariant word-algebra and conditional density input; UFA19–UFA21 give a fixed-graph boundary-Haar construction under their explicit hypotheses; UFA82–UFA90 add the scalar Haar-fibre candidate and exact magnetic leakage identity; UFA92–UFA100 make the physical $S_\nu$-metric, boundary-intertwiner and derivative-leakage tests explicit; and UFA101–UFA102 give a fixed-sector boundary obstruction with its exact Feshbach escape; UFA103–UFA107 supply the sector-support audit of the refined square, with the operator-level compression matrix recorded as the next obligation. | Existence of the coarse multiplicity maps $J_{\nu,B,\alpha}$ in every required boundary sector, boundary intertwining (UFA7), glued Gauss-law transport (UFA8), and exact or uniformly controlled form transport (UFA11–UFA13), including the metric and derivative conditions in UFA93 and UFA96–UFA100. The fixed 14-state sector cannot be used without the generated sectors in UFA101, and the Feshbach alternative requires uniform control of its discarded resolvent. |
 | 2 | UF-B: uniform discarded-sector recovery floor | Finite interacting Feshbach rows provide $D$-sector and Schur diagnostics; the obligation map gives the residual Gramian route (UF-B.16)–(UF-B.23). | A positive $\gamma_{Q,*}$ in (UF-B.19) or an equivalent multiscale estimate, uniform in volume, spacing, boundary fibre, representation cutoff and the weak-coupling trajectory. The Gaussian tensorization boundary rules out inferring this from single-block conditional gaps. |
 | 3 | UF-C: uniform Schur margin | The fixed-graph, cutoff and finite-volume receipts test positive roots on their declared rows; the translated sweep supplies finite plaquette-position coverage. | Uniform $a_*$, $\beta_*$ and $d_*>c_*$ satisfying (UF-C.1a)–(UF-C.1c), or a form-level $\kappa_*$ satisfying (UFA48)–(UFA50) with the independent conversion in (UFA52), after the UF-A transport and UF-B discarded-sector bound are established. A finite root or root-to-gap ratio is insufficient. |
 | 4 | UF-D: transported local-core exhaustion | The preregistration states the conditional finite/infinite local-algebra density, while the local-observable receipt checks finite supporting controls and the transfer criterion identifies the completeness distinction. | A transported exhaustion $(B_k,C_k)$ with uniform source-tail and form-tail limits compatible with the actual boundary fibres and retained projections. Finite word or plaquette coverage does not supply these uniform limits. |
@@ -1191,6 +1191,12 @@ sector calculation (UFA101)–(UFA102) provide fixed-regulator observables and
 admissibility tests. The fixed fundamental-boundary sector is exited by a
 boundary plaquette, so a viable continuation must enlarge the sector family
 or retain the generated sectors in an energy-dependent Feshbach operator.
+The sector-support audit (UFA103)–(UFA107) fixes the family growth and shows
+that exactness requires closure along every nonzero shift compression, with
+the operator-level compression matrix recorded as the next obligation; the
+exact branch must select proper subspaces within the fibres, and the Feshbach
+operator (UFA102) keeps the generated sectors at the cost of a controlled
+discarded resolvent.
 The Gaussian recovery theorem (UFA91) shows that local conditional positivity
 does not imply a uniform physical $Q$ floor. UF-B therefore remains
 downstream of the UF-A transport and requires the transported residual floor
@@ -2244,6 +2250,126 @@ remain open. This sharpens the scoped bare-fibre obstruction in (UFA31) and
 the recovery-floor boundary in (UFA91) without closing the dynamic-fibre
 route.
 
+
+### 4.4.7 Sector-shift closure and multiplicity growth on the refined square
+
+The fixed-sector obstruction in (UFA101) is the first case of a closed-form
+family statement. On the open $2\times2$ refinement, label the eight boundary
+links cyclically so that the corner pairs are $(L_1,L_8)$, $(L_2,L_3)$,
+$(L_4,L_5)$ and $(L_6,L_7)$. Gauge invariance at a two-valent corner forces
+equal labels within a pair, so a boundary sector is a four-tuple $(a,b,c,d)$
+of corner labels; the four midpoint spokes satisfy
+$s_1\in\operatorname{fuse}(a,b)$, $s_2\in\operatorname{fuse}(b,c)$,
+$s_3\in\operatorname{fuse}(c,d)$ and $s_4\in\operatorname{fuse}(d,a)$, where
+$\operatorname{fuse}(m,n)=\{|m-n|,|m-n|+2,\dots,m+n\}$.
+
+Fundamental plaquette multiplication acts on a link label through
+$$
+V_n\otimes V_1=V_{n+1}\oplus V_{n-1}\quad(n\ge1),
+\qquad
+V_0\otimes V_1=V_1 .
+\tag{UFA103}
+$$
+
+Each corner plaquette touches the two boundary links of exactly one corner
+pair and no other boundary link. Its multiplier is gauge invariant and carries
+one fundamental matrix element in each touched link, so Peter–Weyl support and
+corner invariance give
+$$
+\chi_{1/2}(U_{p_a})\,S_{(a,b,c,d)}
+\subseteq
+S_{(a+1,b,c,d)}\oplus S_{(a-1,b,c,d)},
+\tag{UFA104}
+$$
+with the second term absent at $a=0$, and cyclically for the other three
+corners.
+
+The support action (UFA104) fixes which sectors a shift can reach; the
+operator-level compression is a separate matrix. On the all-identity slice —
+every link except $L_1$ and $L_8$ set to the identity — the multiplier reduces
+to the character $\chi_{1/2}(U_{L_1}U_{L_8}^{\pm1})$, whose value is unchanged
+by the orientation sign, and the slice value of the trivial-spoke vector in a
+diagonal sector $(a,a,a,a)$ is $c\,\chi_a(U_{L_1}U_{L_8}^{\pm1})/\sqrt{d_a}$
+with $c\ne0$, so the character recursion
+$\chi_{1/2}\chi_a=\chi_{a+1}+\chi_{a-1}$ puts $U_{L_1}$-content $a+1$ and
+$a-1$ into the slice image. A vector in sector $(a-1,a,a,a)$ alone carries
+$U_{L_1}$-content $a-1$, so the $a+1$ content excludes the single shifted
+sector, and the image of the trivial-spoke vector has a nonzero component in
+each existing neighbour sector. That is a derivation at the declared
+conventions, not a computed matrix. For general sectors the compression is a
+linear map between multiplicity spaces,
+$$
+K_{\alpha\to\alpha\pm e_c}:M^{\mathrm f}(\alpha)\longrightarrow
+M^{\mathrm f}(\alpha\pm e_c),
+\tag{UFA105}
+$$
+whose vanishing pattern decides which sector families can be exact; the
+general matrix is the next adjacent-block obligation, and the closure
+statements below are scoped to the support action and the diagonal domains
+until it is available.
+
+The four corner shifts act on the four corner labels independently, so the
+smallest family of sectors that contains the trivial boundary sector
+$(0,0,0,0)$ or the fundamental boundary sector $(1,1,1,1)$ and is closed under
+all shifts is the full set of nonnegative four-tuples. Truncation at label
+cutoff $C$ retains exactly $(C+1)^4$ sectors, which is $16$, $81$, $256$ and
+$625$ at $C=1,2,3,4$; no cutoff-independent finite sector family exists.
+
+For a sector $(a,b,c,d)$ the fine multiplicity space has dimension
+$$
+M^{\mathrm f}(a,b,c,d)
+=
+\sum_{s_1\in\operatorname{fuse}(a,b)}
+\sum_{s_2\in\operatorname{fuse}(b,c)}
+\sum_{s_3\in\operatorname{fuse}(c,d)}
+\sum_{s_4\in\operatorname{fuse}(d,a)}
+\sum_{r\ge0}
+N^{r}_{s_1s_2}N^{r}_{s_3s_4},
+\tag{UFA106}
+$$
+with $N^r_{mn}=1$ on $r\in\operatorname{fuse}(m,n)$ and $0$ otherwise; the
+pairing $(s_1,s_2)\mid(s_3,s_4)$ follows (YM93) and the value is independent
+of that choice. Anchor values, with the square's rotations and reflections
+permuting the four labels while leaving $M^{\mathrm f}$ invariant:
+
+| $(a,b,c,d)$ | $M^{\mathrm f}$ |
+|---|---|
+| $(0,0,0,0)$ | $1$ |
+| $(1,1,0,0)$ | $2$ |
+| $(1,1,1,1)$ | $14$ |
+| $(2,1,1,1)$ | $19$ |
+| $(2,2,1,1)$ | $30$ |
+| $(3,1,1,1)$ | $20$ |
+| $(2,2,2,2)$ | $91$ |
+
+The fundamental row decomposes as $1+0+6+4+3$ and recovers (YM94). Over
+$0\le a,b,c,d\le3$ the fibre dimension is never zero (minimum $1$), so
+(UFA97) is not obstructed at the level of dimensions on this fixture; the
+binding constraints remain the sector shift and the form and gluing tests of
+(UFA92)–(UFA100).
+
+The exactness consequence. The electric form is diagonal in the Peter–Weyl
+labels and preserves every complete sector; the magnetic multipliers are the
+four corner plaquettes with the support action (UFA104). A retained subspace
+that is a union of complete boundary sectors is invariant under the magnetic
+part only if every compression out of the family into an unretained sector
+vanishes, so
+$$
+\boxed{\ \text{Exactness forces closure along every nonzero shift compression, and shift-closed families are the full label cones.}\ }
+\tag{UFA107}
+$$
+The diagonal sectors, the fundamental sector $(1,1,1,1)$ among them, have
+nonzero compressions into each existing neighbour, so exactness there forces
+all eight neighbouring sectors into the family; a family that reaches the full
+cone is the full truncated space at cutoff $C$, which is no coarsening at all.
+Beyond the diagonal domains the forcing chain needs the compression matrix
+(UFA105), which is the recorded obligation; the exact branch must select
+proper subspaces within the fibres — the dynamic-fibre objects of
+(UFA32)–(UFA36) and (UFA61)–(UFA69) — or retain the generated sectors through
+the Feshbach operator of (UFA102). The statement concerns the boundary-label
+action of the magnetic multipliers and is independent of the
+coupling-independent fibre obstruction (UFA31), which constrains level sets of
+the reduced fibre potential.
 
 ### 4.5 Conditional consequences of a fibre gap
 
