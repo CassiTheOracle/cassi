@@ -1217,7 +1217,7 @@ $$
 \tag{UFA24}
 $$
 
-with the $\omega_{j,v}$ orthonormal for almost every $v$. Let the dimensionless Hamiltonian family be
+with the $\omega_{j,v}$ orthonormal for almost every $v$ and the coarse domain containing arbitrary measurable coefficient sections $f_j$, so that $\operatorname{Ran}J=\int_{\mathcal V}^{\oplus}\mathcal S_v\,d\mu(v)$. Let the dimensionless Hamiltonian family be
 
 $$
 h_x=K+xV,
