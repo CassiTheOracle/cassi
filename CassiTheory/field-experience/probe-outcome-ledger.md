@@ -552,42 +552,36 @@ open.
 
 The immutable schedule in
 `computations/yang-mills-vacuum-block-prereg.md` is implemented by
-`computations/verify_yang_mills_vacuum_blocks.py`. The primary Python receipt
-passes **305 checks** over five full-holonomy fixtures, 45 local-energy rows
-and ten connected Gaussian rows. The final independent JavaScript
-reconciliation passes **120 checks**.
+`computations/verify_yang_mills_vacuum_blocks.py`. The source-bound primary
+receipt passes **305 checks** over five full-holonomy fixtures, 45 local-energy
+rows and ten connected Gaussian rows. The independent Python reconciliation
+`computations/reconcile_yang_mills_vacuum_blocks.py` passes **78 checks**,
+reconstructs the five fixtures and 45 local-energy rows, and rebuilds the ten
+Gaussian rows from the explicit sine basis. Its largest normalized Gaussian
+reconstruction discrepancy is $1.81\times10^{-14}$; the largest direct
+local-energy difference is zero at the stored precision.
 
 | Control or claim | Decisive result | Classification and scope |
 |---|---|---|
 | Full-holonomy group, derivative and local-energy controls | Maximum group, gauge, first-derivative and normalized-energy errors are $1.33\times10^{-15}$, $4.44\times10^{-16}$, $6.31\times10^{-13}$ and $3.28\times10^{-8}$ | **SUPPORTS**, fixed finite fixtures and declared local schedule |
-| Independent Gaussian reconstruction | Maximum matrix and scalar discrepancies are $1.77\times10^{-14}$ and $9.77\times10^{-13}$ | **SUPPORTS**, ten connected Gaussian controls |
-| Exact finite-vacuum identity | $\Delta_{\mathrm{phys}}=(g^2/2a)\lambda_{\mathrm{gi}}$ by the ground-state transform | **ADOPT**, every finite regulated theory under the displayed domain conditions |
-| Full-holonomy block theorem | $\lambda_{\mathrm{gi}}\ge\lambda_{\mathrm{loc}}/(A_{\mathrm{AT}}\rho)$ under exact-vacuum fibre rates, approximate tensorization and cover assumptions | **ADOPT CONDITIONAL**, sufficient theorem; weak-coupling estimate open |
-| Equal-weight one-plaquette exponential | Rejected as the exact interacting vacuum for $x>0$ on the stated even periodic $L\ge4$ and open-box families | **CONTRADICTS**, the trial product state remains only a control |
-| Conditional gaps alone | No volume-uniform rate follows without variance reconstruction or an equivalent global estimate | **CONTRADICTS**, proposed shortcut |
-| Static pure configuration marginal | In the coupled Gaussian control, $Q_{RE}\ne0$ gives a mixed reduced state with momentum covariance missing from the pure square root of the configuration marginal; exact spectral reduction is energy-dependent through the Feshbach–Schur resolvent | **CONTRADICTS**, exact quantum block reduction |
+| Independent Gaussian reconstruction | The explicit sine-basis reconstruction passes for all ten connected rows; the largest normalized discrepancy is $1.81\times10^{-14}$ | **SUPPORTS**, finite Gaussian controls |
+| Exact finite-vacuum identity | The ground-state transform and the displayed gauge-invariant Poincaré formula are the declared finite-regulator identity | **REQUIRES ANALYTICAL RECONCILIATION**, domain and gauge-invariance hypotheses remain part of the proof obligation |
+| Full-holonomy block theorem | The displayed tensorization and bounded-overlap assumptions imply the stated sufficient rate | **REQUIRES ANALYTICAL RECONCILIATION**, exact-vacuum fibre rates and uniform constants remain open |
+| Equal-weight one-plaquette exponential | The fixed local-energy and same-character controls retain the trial-family obstruction target | **REQUIRES ANALYTICAL RECONCILIATION**, the trial family is not promoted to an interacting-vacuum conclusion |
+| Conditional gaps alone | The massless Gaussian sequence has a vanishing global rate while conditional-coordinate rates remain positive | **CONTRADICTS**, a volume-uniform inference from conditional gaps alone |
+| Static pure configuration marginal | Coupled Gaussian rows retain a positive discarded momentum term and symplectic eigenvalue above $1/2$ | **CONTRADICTS**, replacing the reduced quantum state by the pure square root of its configuration marginal |
 | Weak-coupling continuum mass gap | Uniform exact-vacuum tensorization, local rates, continuum construction and mass identification remain missing | **UNRESOLVED** |
 
-The primary receipt, input manifest, frozen source snapshots, two analytical
-reviews and reconciliation chain are in
-`runs/yang_mills_vacuum_blocks/`. `publication.json` seals the current theorem,
-fixed protocol, bound verifier, independent checker and receipt hashes without
-rerunning the scientific schedule. The retained audit failures are
-`reconciliation.json`, `reconciliation_recovery.json`,
-`reconciliation_recovery2.json` and `reconciliation_recovery3.json`. They
-respectively expose a complex-generator implementation error, non-invariant
-componentwise gradient comparison, cancellation-sensitive absolute finite
-differences and an omitted $m^2$ in the independent Gaussian scale. The
-qualified independent sources are `reconcile_recovery4.mjs` and
-`reconciliation_recovery4.json`.
-
-Independent analytical reviews verify the approximate-tensorization
-Rayleigh-compression proof, finite-lattice quantifier, conditional
-density-ratio comparison and real left-invariant derivative convention. They
-find no remaining line-level mathematical faults in §§9.13–9.16. The physical
-parameter count, empirical prediction catalog and QF/DQ/GQ
-microscopic-identification verdicts are unchanged.
-
+The primary receipt, input manifest and frozen source snapshots are in
+`runs/yang_mills_vacuum_blocks_recovery_20260914/verification.json`,
+`verification.inputs.json` and `verification.sources/`. The independent
+receipt and its source manifest/snapshots are
+`verification-independent.json`, `verification-independent.inputs.json` and
+`verification-independent.sources/` in the same directory. The receipts bind
+the live protocol, primary verifier, shared receipt helper and independent
+reconciler by SHA-256. The numerical pair qualifies the finite controls; the
+exact-vacuum theorem, interacting tensorization estimate, thermodynamic
+limit, continuum construction and physical mass remain open.
 
 ## 20. Helical spread and phase-energy coercivity
 
@@ -625,36 +619,37 @@ phase energy as that control.
 
 The tracked protocol in
 `computations/yang-mills-block-map-prereg.md` and its primary verifier define
-the fixed path-holonomy schedule. The generated
-`runs/yang_mills_block_map/` directory, primary receipt, independent checker,
-analytical reviews and publication seal are not present in this checkout. The
-reported 53 primary and 169 independent checks are retained as
-documentation-only provenance; they are not current artifact-backed
-execution evidence and are not rerun by this correction.
-
-The table below preserves the stated analytical dispositions of the documented
-schedule. Its numerical entries do not carry a current receipt claim.
+the fixed path-holonomy schedule. The source-bound primary receipt in
+`runs/yang_mills_block_map_recovery_20260914/verification.json` passes
+**53 checks**. The independent Python reconstruction in
+`computations/reconcile_yang_mills_block_map.py` passes **9 aggregate checks**
+and regenerates the seeded path, electric, genuine-refinement,
+pure-subdivision and scale rows without importing the primary verifier. The
+largest reconstructed path, electric, refined-block and subdivision errors are
+$3.14\times10^{-16}$, $8.88\times10^{-16}$, $4.44\times10^{-16}$ and
+$2.37\times10^{-16}$.
 
 | Control or claim | Decisive result | Classification and scope |
 |---|---|---|
-| Normalized-Haar path pullback | Nonempty edge-simple, pairwise edge-disjoint paths push product Haar to product Haar; $J^*J=I$, endpoint gauge covariance holds and internal transformations cancel | **ADOPT**, finite graphs under the stated path and representative hypotheses |
-| Electric Casimir compression | On the smooth cylindrical core, $\mathcal E_fJ=J\sum_c n_c\mathcal E_c^{(c)}$ for either path orientation; fixed fundamental and adjoint errors are at most $8.89\times10^{-16}$ | **ADOPT**, isotropic bi-invariant independent-link Casimirs under the stated hypotheses |
-| Genuine $2\times2$ refinement | Four absent-link plaquette characters have zero conditional means and identity Gram matrix; the measured moment/Gram errors are at most $2.23\times10^{-16}$ and $1.12\times10^{-16}$ | **SUPPORTS**, fixed nine-vertex, twelve-link fixture |
-| Bare full-Hamiltonian block | $\|Qh_fJ1\|_2=2x_f$ and $\|QH_fJ1\|_2=2/(a_fg_f^2)$; no coarse operator can remove this orthogonal component on the constant state | **CONTRADICTS**, exact intertwining by this bare cylindrical map on the fixed genuine refinement only |
-| Pure graph subdivision | Retaining one outer face adds no elementary spatial faces and gives $QW_f=0$ | **SUPPORTS** the control; path length $b>1$ alone does not determine leakage |
-| Weak-coupling bare-vacuum shortcut | The fixed electric-vacuum ratio is $x_f/3=2/(3g_f^4)$ and diverges as $g_f\to0$ | **CONTRADICTS**, an $x_f$-uniform unweighted small-perturbation argument for this bare map; resolvent-weighted estimates are not excluded |
+| Normalized-Haar path pullback | The seeded mixed-orientation paths reconstruct, transform covariantly and cancel internal gauges within $3.14\times10^{-16}$ | **SUPPORTS**, fixed numerical path controls; the general analytical isometry remains a review obligation |
+| Electric Casimir compression | Fundamental and adjoint seeded rows reproduce the direct second-derivative compression within $8.88\times10^{-16}$ | **SUPPORTS**, fixed numerical representation controls; the smooth-core statement remains an analytical obligation |
+| Genuine $2\times2$ refinement | Four absent-link plaquette characters have zero conditional means, identity Gram matrix and leakage coefficient $2$; the independent Gram discrepancy is $1.11\times10^{-16}$ | **SUPPORTS**, fixed nine-vertex, twelve-link fixture |
+| Bare full-Hamiltonian block | The reconstructed dimensionless leakage is $2x_f$ and the physical scale rows reproduce $2/(a_fg_f^2)$ | **REQUIRES ANALYTICAL RECONCILIATION**, exact intertwiner failure is confined to the declared bare map and fixture |
+| Pure graph subdivision | The outer face remains unchanged under fibre variation and no elementary face is added | **SUPPORTS**, fixed graph-subdivision control |
+| Weak-coupling bare-vacuum shortcut | The fixed diagnostic is $x_f/3=2/(3g_f^4)$ and the scale rows reproduce its divergence pattern | **REQUIRES ANALYTICAL RECONCILIATION**, resolvent-weighted interacting estimates remain outside the receipt |
 | Interacting block and continuum mass | No gauge-compatible interacting fibre, generated-term closure, uniform Feshbach-resolvent bound, weak-coupling volume estimate, thermodynamic limit or continuum field is constructed | **UNRESOLVED** |
-| Cassi interaction survival | The hypothesized Cassi scale law supplies no microscopic link state, interacting fibre or transfer operator to which the block criterion can be applied | **UNRESOLVED**; no microscopic Cassi identification follows |
+| Cassi interaction survival | No microscopic Cassi link state, interacting fibre or transfer operator is supplied for this block criterion | **UNRESOLVED** |
 
-The fixed-refinement formulas and the scope boundary remain explicit in
-`foundations/loop-to-bubble-projection-theorem.md` §9.17. A fresh source-bound
-execution and independent reconstruction would be required before the
-53/169 counts or publication disposition could be used as current evidence.
-The analytic result still rejects the bare-map shortcut at the declared
-refinement and identifies the interacting fibre or equivalent Feshbach
-transfer operator as the next mathematical target; it does not establish a
-continuum Yang–Mills theory or mass gap.
-
+The primary receipt, input manifest and frozen source snapshots are in
+`runs/yang_mills_block_map_recovery_20260914/`. The accepted independent
+receipt is
+`verification-independent-repaired.json` with its adjacent manifest and
+source snapshots; the directory also retains the first failed independent
+receipt as a diagnostic artifact. Both accepted receipts bind the protocol,
+primary verifier, shared receipt helper and independent reconciler by
+SHA-256. The numerical pair qualifies the declared finite controls. The
+interacting fibre, exact cylindrical intertwiner theorem, Feshbach estimate,
+thermodynamic limit, continuum construction and physical mass remain open.
 
 ## 22. Pure Yang–Mills isolated-square radial Feshbach and character cutoff
 

@@ -2422,17 +2422,24 @@ gauge-theory structures. The continuum existence and mass-gap questions
 remain open.
 
 The tracked protocol and primary verifier define the fixed path-holonomy
-schedule, but the generated `runs/yang_mills_block_map/` directory, primary
-receipt, independent checker, analytical reviews and publication seal are not
-present in this checkout. The reported 53 primary and 169 independent checks
-are therefore documentation-only provenance rather than current
-artifact-backed execution evidence. The fixed-refinement identities
-(YM42)–(YM53) remain analytic statements under their displayed finite-graph
-hypotheses; a fresh source-bound execution and independent reconstruction
-would be required to restore receipt-backed classifications. Dynamically
-closed boundary-sector fibres, uniform resolvent control, weak-coupling
-volume bounds, the thermodynamic and continuum limits, the continuum mass gap
-and Cassi microscopic identification remain **UNRESOLVED**.
+schedule. The source-bound primary receipt
+`runs/yang_mills_block_map_recovery_20260914/verification.json` passes **53
+checks**. The independent Python reconstruction
+`computations/reconcile_yang_mills_block_map.py` passes **9 aggregate checks**
+and regenerates the seeded path, electric, genuine-refinement,
+pure-subdivision and scale controls without importing the primary verifier.
+The largest reconstructed path, electric, refined-block and subdivision errors
+are $3.14\times10^{-16}$, $8.88\times10^{-16}$,
+$4.44\times10^{-16}$ and $2.37\times10^{-16}$.
+
+The finite numerical controls support the declared fixed path and
+refinement fixtures. The normalized-Haar isometry, smooth-core Casimir
+compression, exact bare-map obstruction and weak-coupling diagnostic retain
+their displayed analytical hypotheses and require analytical reconciliation.
+Dynamically closed boundary-sector fibres, uniform resolvent control,
+weak-coupling volume bounds, the thermodynamic and continuum limits, the
+continuum mass gap and Cassi microscopic identification remain
+**UNRESOLVED**.
 
 ### 9.18 Continuous-$SU(2)$ radial Feshbach transfer
 
@@ -8166,54 +8173,41 @@ source bytes are in `runs/yang_mills_connected_blocks/verification.json`,
 The finite geometry and operator controls classify **SUPPORTS**.
 The volume-uniform strong-coupling gap and exact finite-depth dressing
 classify **ADOPT** through the analytical arguments in §§9.10–9.12 and
-the two reconciled mathematical reviews. Their classification is separate
-from the finite matrix checks. The local `reconcile.mjs` and
-`reconciliation.json` in the same run directory bind the raw reviews,
-receipt and audit source. Weak-bare-coupling uniform control, continuum
-construction, continuum mass and Cassi microscopic identification remain
-**UNRESOLVED**.
-
 The exact-vacuum block schedule in
 `computations/yang-mills-vacuum-block-prereg.md` is implemented by
-`computations/verify_yang_mills_vacuum_blocks.py`. Its immutable primary
-receipt passes **305 checks** over five full-holonomy fixtures, 45 local-energy
-rows and ten connected Gaussian rows. The maximum group-identity,
-gauge-invariance, first-derivative, normalized local-energy and Gaussian
-square-root errors are respectively
+`computations/verify_yang_mills_vacuum_blocks.py`. Its source-bound primary
+receipt
+`runs/yang_mills_vacuum_blocks_recovery_20260914/verification.json` passes
+**305 checks** over five full-holonomy fixtures, 45 local-energy rows and ten
+connected Gaussian rows. The maximum group-identity, gauge-invariance,
+first-derivative and normalized local-energy errors are respectively
 $1.33226762955\times10^{-15}$,
 $4.44089209850\times10^{-16}$,
-$6.30606677987\times10^{-13}$,
-$3.27656206611\times10^{-8}$ and
-$9.27383170257\times10^{-15}$.
+$6.30606677987\times10^{-13}$ and
+$3.27656206611\times10^{-8}$.
 
-The final independent JavaScript reconciliation passes **120 checks**. Its
-maximum full-holonomy reconstruction, exact local-row, finite-difference
-derivative, normalized local-energy, Gaussian-matrix and Gaussian-scalar
-discrepancies are respectively
-$3.55271367880\times10^{-15}$,
-$2.84217094304\times10^{-14}$,
-$5.35738120533\times10^{-13}$,
-$1.66022970927\times10^{-8}$,
-$1.77080572428\times10^{-14}$ and
-$9.76996261670\times10^{-13}$. The primary receipt, input manifest, frozen
-sources, two analytical reviews and reconciliation chain are in
-`runs/yang_mills_vacuum_blocks/`. Its `publication.json` seals the current
-theorem, fixed protocol, bound verifier, independent checker and receipt
-hashes without rerunning the scientific schedule. The initial
-`reconciliation.json`, `reconciliation_recovery.json`,
-`reconciliation_recovery2.json` and `reconciliation_recovery3.json` remain as
-failed audit implementations; the qualified source and receipt are
-`reconcile_recovery4.mjs` and `reconciliation_recovery4.json`.
+The independent Python reconstruction
+`computations/reconcile_yang_mills_vacuum_blocks.py` passes **78 checks**. It
+reconstructs the five group fixtures and 45 local-energy rows and rebuilds the
+ten connected Gaussian rows from the explicit sine basis. Its largest
+normalized Gaussian discrepancy is $1.81\times10^{-14}$, and its largest
+stored local-energy difference is zero.
 
-The finite group, derivative and Gaussian controls classify **SUPPORTS**.
-The exact vacuum-measure identity classifies **ADOPT** within each finite
-regulator, and the weighted full-holonomy block estimate classifies
-**ADOPT CONDITIONAL** on its displayed exact-vacuum rates, tensorization and
-cover hypotheses. The equal-weight one-plaquette vacuum, a
-conditional-gap-only volume-uniform implication and a static pure
-configuration marginal as an exact quantum block each classify
-**CONTRADICTS**. Interacting-vacuum tensorization, weak-bare-coupling uniform
-control, the continuum quantum field and its mass remain **UNRESOLVED**.
+The finite group, derivative, local-energy and Gaussian controls classify
+**SUPPORTS** at the declared schedule. The exact vacuum-measure identity,
+weighted full-holonomy block estimate and equal-weight trial-vacuum
+obstruction retain their analytical domain, tensorization and lattice
+hypotheses. The conditional-gap-only volume-uniform inference and static pure
+configuration-marginal replacement are contradicted by the coupled Gaussian
+controls. Interacting-vacuum tensorization, weak-bare-coupling uniform
+control, the thermodynamic limit, the continuum quantum field and its mass
+remain **UNRESOLVED**.
+
+The primary receipt, input manifest and frozen sources are in
+`runs/yang_mills_vacuum_blocks_recovery_20260914/`; the independent receipt
+and its source manifest bind the live protocol, primary verifier, shared
+receipt helper and independent reconciler by SHA-256. The numerical pair
+does not supply an analytical review or a publication seal.
 
 The Poincaré-geometry recurrence protocol in
 `computations/yang-mills-poincare-geometry-prereg.md` is implemented by
