@@ -1179,23 +1179,25 @@ quantifiers.
 
 | Order | Obligation | Evidence already available | Missing proof object |
 |---:|---|---|---|
-| 1 | UF-A: gauge-compatible block or transfer map | The local-observable preregistration states the finite gauge-invariant word-algebra and conditional density input; UFA19–UFA21 give a fixed-graph boundary-Haar construction under their explicit hypotheses; UFA82–UFA90 add the scalar Haar-fibre candidate and exact magnetic leakage identity. | Existence of the coarse multiplicity maps $J_{\nu,B,\alpha}$ in every boundary sector, boundary intertwining (UFA7), glued Gauss-law transport (UFA8), and exact or uniformly controlled form transport (UFA11–UFA13). The scalar candidate does not construct these maps. |
+| 1 | UF-A: gauge-compatible block or transfer map | The local-observable preregistration states the finite gauge-invariant word-algebra and conditional density input; UFA19–UFA21 give a fixed-graph boundary-Haar construction under their explicit hypotheses; UFA82–UFA90 add the scalar Haar-fibre candidate and exact magnetic leakage identity, while UFA92–UFA100 make the physical $S_\nu$-metric, boundary-intertwiner and derivative-leakage tests explicit. | Existence of the coarse multiplicity maps $J_{\nu,B,\alpha}$ in every boundary sector, boundary intertwining (UFA7), glued Gauss-law transport (UFA8), and exact or uniformly controlled form transport (UFA11–UFA13), including the metric and derivative conditions in UFA93 and UFA96–UFA100. The scalar candidate does not construct these maps. |
 | 2 | UF-B: uniform discarded-sector recovery floor | Finite interacting Feshbach rows provide $D$-sector and Schur diagnostics; the obligation map gives the residual Gramian route (UF-B.16)–(UF-B.23). | A positive $\gamma_{Q,*}$ in (UF-B.19) or an equivalent multiscale estimate, uniform in volume, spacing, boundary fibre, representation cutoff and the weak-coupling trajectory. The Gaussian tensorization boundary rules out inferring this from single-block conditional gaps. |
 | 3 | UF-C: uniform Schur margin | The fixed-graph, cutoff and finite-volume receipts test positive roots on their declared rows; the translated sweep supplies finite plaquette-position coverage. | Uniform $a_*$, $\beta_*$ and $d_*>c_*$ satisfying (UF-C.1a)–(UF-C.1c), or a form-level $\kappa_*$ satisfying (UFA48)–(UFA50) with the independent conversion in (UFA52), after the UF-A transport and UF-B discarded-sector bound are established. A finite root or root-to-gap ratio is insufficient. |
 | 4 | UF-D: transported local-core exhaustion | The preregistration states the conditional finite/infinite local-algebra density, while the local-observable receipt checks finite supporting controls and the transfer criterion identifies the completeness distinction. | A transported exhaustion $(B_k,C_k)$ with uniform source-tail and form-tail limits compatible with the actual boundary fibres and retained projections. Finite word or plaquette coverage does not supply these uniform limits. |
 | 5 | UF-E: continuum recovery and scale matching | The obligation map states the required norm and form limsup conditions and the scale factor $F_\nu/a_\nu$. Existing finite receipts retain this boundary as unresolved. | A locally normal continuum representation, recovery sequences for the continuum form core, and $F_\nu/a_\nu\to m_W\in(0,\infty)$, followed by closure of the uniform lower bound. |
 
-UF-A remains the upstream blocker. The scalar candidate (UFA82)–(UFA90)
-provides an exact fixed-regulator leakage observable, while (UFA91) and the
-Gaussian recovery theorem show that local conditional positivity does not
-imply a uniform physical $Q$ floor. UF-B therefore requires the transported
-residual floor (UF-B.19) or an equivalent multiscale estimate. UF-C then
-requires a uniform retained lower form, discarded margin and coupling bound
-after the UF-A transport; its finite Schur roots cannot replace those
-constants. UF-D must transport the same fibre maps through a uniform
-local-core exhaustion, and UF-E must construct the locally normal continuum
-representation, recovery sequences and scale limit. Section 4.4.3 gives the
-finite candidate, but it must not be labelled as a completed coarse map.
+UF-A remains the upstream blocker. The scalar candidate (UFA82)–(UFA90),
+with the metric, boundary and derivative audit (UFA92)–(UFA100), provides an
+exact fixed-regulator leakage observable and a list of admissibility tests,
+while (UFA91) and the Gaussian recovery theorem show that local conditional
+positivity does not imply a uniform physical $Q$ floor. UF-B therefore
+requires the transported residual floor (UF-B.19) or an equivalent multiscale
+estimate. UF-C then requires a uniform retained lower form, discarded margin
+and coupling bound after the UF-A transport; its finite Schur roots cannot
+replace those constants. UF-D must transport the same fibre maps through a
+uniform local-core exhaustion, and UF-E must construct the locally normal
+continuum representation, recovery sequences and scale limit. Section 4.4.3
+gives the finite candidate, but it must not be labelled as a completed coarse
+map.
 
 ### 4.2 Scoped obstruction for coupling-independent finite-rank fibres
 
@@ -1993,6 +1995,180 @@ floor for the transported physical $Q$ sector, together with a uniform
 conditional rate and cover bound. The test does not exclude the dynamic
 fibre route; it rules out promoting fixed-regulator conditional positivity
 to continuum uniformity without multiscale mode separation.
+
+### 4.4.5 Conditional expectation audit: metric, boundary and derivative tests
+
+A conditional expectation is not itself a coarse transfer map. At a fixed
+regulator, write the physical direct integrals as
+
+$$
+\mathcal H_\nu^{\mathrm f}
+:=
+\int_{\mathcal V_\nu}^{\oplus}
+\mathcal H_\nu^{\mathrm f}(v)\,d\kappa_\nu(v),
+\qquad
+\mathcal H_\nu^{\mathrm c}
+:=
+\int_{\mathcal V_\nu}^{\oplus}
+\mathcal M_\nu^{\mathrm c}(v)\,d\kappa_\nu(v),
+\qquad
+J_\nu
+:=
+\int_{\mathcal V_\nu}^{\oplus}
+J_\nu(v)\,d\kappa_\nu(v).
+\tag{UFA92}
+$$
+
+If $T_\nu(v)$ maps raw coarse coefficients to raw fine coefficients, then
+the physical $S_\nu$-isometry condition is
+
+$$
+T_\nu(v)^*S_\nu^{\mathrm f}(v)T_\nu(v)
+=
+S_\nu^{\mathrm c}(v),
+\qquad
+\widehat T_\nu(v)
+=
+\bigl(S_\nu^{\mathrm f}(v)\bigr)^{1/2}
+T_\nu(v)
+\bigl(S_\nu^{\mathrm c}(v)\bigr)^{-1/2},
+\qquad
+\widehat T_\nu(v)^*\widehat T_\nu(v)=I,
+\tag{UFA93}
+$$
+
+on the positive supports of the two Gram matrices. Equality of Haar
+measures, or equality of unweighted coefficient norms, does not establish
+(UFA93). It is necessary to identify the raw coefficient map and both
+overlap matrices before the Euclidean partial-isometry statement in (UFA69)
+can be used.
+
+For a scalar normalized fibre section, define
+
+$$
+\begin{aligned}
+(J_{\nu,\omega}f)(v,r)&:=f(v)\omega_{\nu,v}(r),\\
+(C_{\nu,\omega}F)(v)&:=
+\int\overline{\omega_{\nu,v}(r)}F(v,r)\,d\nu_{\nu,v}(r),\\
+\int|\omega_{\nu,v}(r)|^2\,d\nu_{\nu,v}(r)&=1.
+\end{aligned}
+\tag{UFA94}
+$$
+
+The adjoint pair satisfies
+
+$$
+C_{\nu,\omega}J_{\nu,\omega}=I,
+\qquad
+J_{\nu,\omega}C_{\nu,\omega}=P_{\nu,\omega},
+\qquad
+\|F\|^2-\|C_{\nu,\omega}F\|^2
+=
+\|(I-P_{\nu,\omega})F\|^2\geq0.
+\tag{UFA95}
+$$
+
+Thus $C_{\nu,\omega}$ is a coisometry and $J_{\nu,\omega}$ is an isometry
+onto the selected one-dimensional fibre subbundle; neither is an isometry
+on the full fine fibre unless that fibre already equals the selected
+subbundle. The usual conditional expectation is the case
+$\omega_{\nu,v}=1$. Its discarded component is precisely the variance
+appearing in (UFA86)–(UFA87), so conditional averaging cannot by itself
+instantiate the physical transfer map.
+
+The section must also carry the boundary representation. For every boundary
+group element $g$, the scalar or vector-valued section must satisfy
+
+$$
+J_{\nu,\omega}(g\!\cdot\!v)\,
+\pi_{\nu,B,\alpha}^{\mathrm c}(g)
+=
+\pi_{\nu,B,\alpha}^{\mathrm f}(g)\,
+J_{\nu,\omega}(v),
+\qquad
+\operatorname{Glue}_{\mathrm f}
+\circ
+\bigl(J_{\nu,\omega,B}\otimes J_{\nu,\omega,\bar B}\bigr)
+=
+J_{\nu,\omega,\Lambda}
+\circ
+\operatorname{Glue}_{\mathrm c}.
+\tag{UFA96}
+$$
+
+For finite multiplicities this already requires, for every relevant
+$\alpha$ and almost every $v$,
+
+$$
+\dim\mathcal M_{\nu,B,\alpha}^{\mathrm c}(v)
+\leq
+\dim\mathcal M_{\nu,B,\alpha}^{\mathrm f}(v),
+\tag{UFA97}
+$$
+
+with a measurable choice of the corresponding intertwiner. Haar invariance
+of the conditional kernel gives no such multiplicity comparison. A scalar
+section can describe the trivial boundary line, but a nontrivial
+$V_\alpha$ sector requires the vector-valued multiplicity map and its
+intertwining relation in (UFA7), followed by the contraction identity in
+(UFA8).
+
+The derivative test exposes a second independent obstruction. Let
+$\mathsf X_a$ be a fine left-invariant derivative, let $\nabla_a$ be its
+horizontal coarse derivative, and put
+
+$$
+A_{\nu,a}(v):=
+\left\langle\omega_{\nu,v},
+\mathsf X_a\omega_{\nu,v}\right\rangle_{\nu,v},
+\qquad
+\chi_{\nu,a}(v):=
+\bigl(I-P_{\nu,\omega}(v)\bigr)
+\mathsf X_a\omega_{\nu,v}.
+\tag{UFA98}
+$$
+
+On the common differentiable form core, the product rule and orthogonality
+give
+
+$$
+\mathsf X_aJ_{\nu,\omega}f
+=
+J_{\nu,\omega}\bigl(\nabla_af+A_{\nu,a}f\bigr)
++\chi_{\nu,a}f,
+\qquad
+\left\|\mathsf X_aJ_{\nu,\omega}f\right\|^2
+=
+\left\|\nabla_af+A_{\nu,a}f\right\|^2
++\left\|\chi_{\nu,a}\right\|^2|f|^2.
+\tag{UFA99}
+$$
+
+For a vector-valued boundary fibre, $A_{\nu,a}$ is a connection matrix.
+The $\chi_{\nu,a}$ term is the Born–Huang/vertical leakage term; it is not
+controlled by the fibre normalization in (UFA94). If the coarse form carries
+a declared connection contribution $E_\nu^{\mathrm{conn}}$, it must be
+included explicitly. An exact form transport therefore additionally requires
+the derivative chain rule, matching of every boundary-electric term, and
+inclusion of every crossing Wilson multiplier:
+
+$$
+J_{\nu,\omega}^*E_{\nu}^{\mathrm f}J_{\nu,\omega}
+=
+E_{\nu}^{\mathrm c}+E_\nu^{\mathrm{conn}},
+\qquad
+Q_{\nu,\omega}E_{\nu}^{\mathrm f}J_{\nu,\omega}
+=
+0
+\tag{UFA100}
+$$
+
+on the declared form domain, or a uniform relative-form replacement of these
+identities. Equations (UFA93), (UFA95)–(UFA100) are therefore
+admissibility tests for the conditional-expectation candidate, not
+consequences of its disintegration. The candidate remains a finite-regulator
+conditional construction; the dynamic spectral-fibre route stays open only
+after these metric, boundary and derivative obligations are supplied.
 
 ### 4.5 Conditional consequences of a fibre gap
 
