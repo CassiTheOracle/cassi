@@ -1120,7 +1120,7 @@ a_*-c_*-\frac{\beta_*^2}{d_*-c_*}
 \tag{UF-C.1c}
 $$
 
-The retained lower form $a_*$ and coupling norm $\beta_*$ require estimates on the full matched boundary fibres; the discarded margin $d_*$ is supplied by UF-B. Fixed-graph roots test this scalar inequality row by row, while UF-C requires the three constants in (UF-C.1a) and the margin in (UF-C.1c) uniformly along the trajectory.
+The retained lower form $a_*$ and the coupling control—either the Hilbert norm $\beta_*$ in (UF-C.1a) or the form-to-Schur coefficient $\kappa_*$ in (UFA48)—require estimates on the full matched boundary fibres; the discarded margin $d_*$ is supplied by UF-B. Fixed-graph roots test the scalar inequality row by row, while UF-C requires the corresponding constants and margin uniformly along the trajectory.
 
 ### UF-D. Cutoff removal and local correlation transport
 
@@ -1180,7 +1180,7 @@ quantifiers.
 |---:|---|---|---|
 | 1 | UF-A: gauge-compatible block or transfer map | The local-observable preregistration states the finite gauge-invariant word-algebra and conditional density input; its two receipts check finite supporting controls. The obligation map's UFA19–UFA21 give a fixed-graph boundary-Haar construction under their explicit hypotheses. | Existence of the coarse multiplicity maps $J_{\nu,B,\alpha}$, boundary intertwining (UFA7), glued Gauss-law transport (UFA8), and exact or uniformly controlled form transport (UFA11–UFA13). The finite receipts do not construct these maps. |
 | 2 | UF-B: uniform discarded-sector recovery floor | Finite interacting Feshbach rows provide $D$-sector and Schur diagnostics; the obligation map gives the residual Gramian route (UF-B.16)–(UF-B.23). | A positive $\gamma_{Q,*}$ in (UF-B.19) or an equivalent multiscale estimate, uniform in volume, spacing, boundary fibre, representation cutoff and the weak-coupling trajectory. The Gaussian tensorization boundary rules out inferring this from single-block conditional gaps. |
-| 3 | UF-C: uniform Schur margin | The fixed-graph, cutoff and finite-volume receipts test positive roots on their declared rows; the translated sweep supplies finite plaquette-position coverage. | Uniform $a_*$, $\beta_*$ and $d_*>c_*$ satisfying (UF-C.1a)–(UF-C.1c) after the UF-A transport and UF-B discarded-sector bound are established. A finite root or root-to-gap ratio is insufficient. |
+| 3 | UF-C: uniform Schur margin | The fixed-graph, cutoff and finite-volume receipts test positive roots on their declared rows; the translated sweep supplies finite plaquette-position coverage. | Uniform $a_*$, $\beta_*$ and $d_*>c_*$ satisfying (UF-C.1a)–(UF-C.1c), or a form-level $\kappa_*$ satisfying (UFA48)–(UFA50) with the independent conversion in (UFA52), after the UF-A transport and UF-B discarded-sector bound are established. A finite root or root-to-gap ratio is insufficient. |
 | 4 | UF-D: transported local-core exhaustion | The preregistration states the conditional finite/infinite local-algebra density, while the local-observable receipt checks finite supporting controls and the transfer criterion identifies the completeness distinction. | A transported exhaustion $(B_k,C_k)$ with uniform source-tail and form-tail limits compatible with the actual boundary fibres and retained projections. Finite word or plaquette coverage does not supply these uniform limits. |
 | 5 | UF-E: continuum recovery and scale matching | The obligation map states the required norm and form limsup conditions and the scale factor $F_\nu/a_\nu$. Existing finite receipts retain this boundary as unresolved. | A locally normal continuum representation, recovery sequences for the continuum form core, and $F_\nu/a_\nu\to m_W\in(0,\infty)$, followed by closure of the uniform lower bound. |
 
@@ -1305,7 +1305,7 @@ This conclusion concerns the kinematic product-Haar fibre and its bare multiplic
 A viable escape route uses a coupling-dependent spectral subbundle and sends its horizontal leakage through the Feshbach operator instead of requiring exact invariance.
 
 For every $\nu$, block $B$, matched boundary sector $\alpha$ and trajectory coupling $x_\nu$, let
-$L_{\nu,B,\alpha,x_\nu}(v)$ be the fibre operator obtained from the vertical electric form together with every magnetic and boundary term that depends on the fibre coordinates at coarse datum $v$. The link-ownership convention must assign every crossing term to this form or to the complementary horizontal form before $L$ is defined. A conditional spectral-fibre construction requires an isolated rank-$r_\alpha$ cluster with a common gap:
+$L_{\nu,B,\alpha,x_\nu}(v)$ be the fibre operator obtained from the vertical electric form together with every magnetic and boundary term that depends on the fibre coordinates at coarse datum $v$. The link-ownership convention must assign every crossing term to this form or to the complementary horizontal form before $L$ is defined. A conditional spectral-fibre construction requires an isolated cluster of rank $r_{\nu,B,\alpha}$ with a common gap:
 
 $$
 \operatorname{dist}\!\left(
@@ -1432,10 +1432,10 @@ g_*\sup_{\xi}\|\nabla_\xi p\|\,
 \tag{UFA41}
 $$
 
-and a remaining crossing-term bound $\beta_{\mathrm{cross},*}$ give the sufficient target
+and a remaining crossing-term bound $\beta_{\mathrm{cross},*}$ give the sufficient form-bound coefficient
 
 $$
-\beta_*
+\beta_{\mathrm{form},*}
 :=
 g_*
 \frac{\sup_v\ell(\Gamma(v))}{2\pi}
@@ -1446,6 +1446,132 @@ g_*
 $$
 
 This chain turns a proved uniform fibre gap, derivative bound and crossing-term estimate into the off-diagonal input of (UFA36). It does not prove any of those inputs, and it does not replace the discarded-sector lower bound or the retained Schur margin.
+
+### 4.6 Infrared rank requirement
+
+The spectral-fibre route must be compatible with the discarded-sector mode separation in (UF-B.13)–(UF-B.15). Consider a declared weak-field first-chaos channel $\mathcal Z_N$ whose normalized quadratic form is the massless Gaussian chain
+
+$$
+\gamma_k
+:=
+4\sin\frac{k\pi}{2(N+1)},
+\qquad
+1\le k\le N.
+\tag{UFA43}
+$$
+
+Assume that the orthogonal projection used for the discarded-sector estimate leaves $\mathcal Z_N$ invariant. Write $P_N$ for its retained restriction and $Q_N:=I-P_N$ on this channel, with $\operatorname{rank}P_N\le r_N<N$ whenever the channel has a discarded component. Assume also that the Yang–Mills form obeys
+
+$$
+\left|
+\mathfrak h_{\mathrm{YM},N}[u,u]
+-\mathfrak g_N[u,u]
+\right|
+\le
+\varepsilon_N\|u\|^2,
+\qquad
+u\in\mathcal Z_N.
+\tag{UFA44}
+$$
+
+The min–max principle then gives the first-chaos Rayleigh bound
+
+$$
+\inf_{\substack{
+u\in\mathcal Z_N\cap\operatorname{ran}Q_N\\
+\|u\|=1}}
+\mathfrak h_{\mathrm{YM},N}[u,u]
+\le
+\gamma_{r_N+1}+\varepsilon_N.
+\tag{UFA45}
+$$
+
+Consequently, a uniform discarded margin $d>0$ along this channel requires, whenever $0<d-\varepsilon_N\le4$,
+
+$$
+r_N+1
+\ge
+\frac{2(N+1)}{\pi}
+\arcsin\frac{d-\varepsilon_N}{4}.
+\tag{UFA46}
+$$
+
+If $\varepsilon_N\to0$ and $d$ is fixed, the retained first-chaos rank is therefore $\Omega(N)$. This conclusion reaches (UFA32) only under the compatibility condition
+$\Pi_{\nu,B,\alpha}^{\mathrm{fib}}\!\restriction_{\mathcal Z_N}=P_N$, or the weaker condition that the restriction has rank at most the scale-independent $r_\alpha$. Under that identification, a specialization $r_{\nu,B,\alpha}=r_\alpha$ in (UFA32) cannot feed a uniform UF-B margin while this massless channel remains in the discarded sector. Without the identification, (UFA46) is a rank requirement on the UF-B projection alone and does not constrain the rank of the spectral cluster in (UFA32). The construction must either carry the growing multiscale rank through its coarse multiplicity spaces and $S_\nu$ bounds, or prove a regulator-uniform interaction that lifts this channel before the discarded projection.
+
+The implication is conditional on the channel embedding, invariance and form comparison in (UFA44). It supplies a necessary compatibility test for UFA32 and UF-B, not a claim that the full non-Abelian Hamiltonian has the Gaussian spectrum.
+
+### 4.7 Form-to-Schur conversion
+
+The off-diagonal estimate in (UFA35) is a form statement, whereas (UF-C.1a) uses a Hilbert-space operator norm. Let $\mathfrak a$, $\mathfrak d$ and $\mathfrak b$ denote the retained, discarded and off-diagonal forms induced by (UFA35)–(UFA36). All norms in this conversion are physical norms on the positive-support completion from (UF2a); a raw Wilson-word coefficient norm does not supply this bound. The missing bridge is a shifted discarded-form estimate. Define
+
+$$
+\mathfrak d_{c_*}[v]
+:=
+\mathfrak d[v]-c_*\|v\|^2,
+\qquad
+v\in\operatorname{dom}\mathfrak d.
+\tag{UFA47}
+$$
+
+The discarded lower bound in (UF-C.1a), equivalently (UF7), gives $\mathfrak d_{c_*}[v]\ge(d_*-c_*)\|v\|^2\ge0$ on the discarded form domain.
+
+If there is a constant $\kappa_*$ independent of $\nu$, block position, boundary sector and cutoff such that
+
+$$
+|\mathfrak b[u,v]|
+\le
+\kappa_*\|u\|\,
+\mathfrak d_{c_*}[v]^{1/2},
+\tag{UFA48}
+$$
+
+then the variational form of the discarded resolvent gives
+
+$$
+\sup_v
+\left(
+2\operatorname{Re}\mathfrak b[u,v]
+-\mathfrak d_{c_*}[v]
+\right)
+\le
+\kappa_*^2\|u\|^2,
+\qquad
+\mathfrak F(c_*)[u]
+\ge
+\mathfrak a[u]-c_*\|u\|^2-\kappa_*^2\|u\|^2.
+\tag{UFA49}
+$$
+
+Thus a retained lower form $\mathfrak a[u]\ge a_*\|u\|^2$ has the UF-C margin whenever
+
+$$
+a_*-c_*-\kappa_*^2\ge\sigma_*.
+\tag{UFA50}
+$$
+
+When $B$ is a Hilbert-space bounded operator, (UFA48) follows from
+
+$$
+\kappa_*
+:=
+\left\|B(D-c_*I_Q)^{-1/2}\right\|
+\le
+\frac{\beta_*}{\sqrt{d_*-c_*}},
+\tag{UFA51}
+$$
+
+and (UFA50) reduces to (UF-C.1b). The form coefficient $\beta_{\mathrm{form},*}$ in (UFA42) can feed (UFA48) only after a uniform conversion estimate is proved. For example, it is sufficient to establish
+
+$$
+\|u\|_{\mathfrak h_P}\le c_P\|u\|,
+\qquad
+\|v\|_{\mathfrak h_Q}\le c_Q\mathfrak d_{c_*}[v]^{1/2},
+\qquad
+\kappa_*\le c_Pc_Q\beta_{\mathrm{form},*},
+\tag{UFA52}
+$$
+The constants in (UFA52) must be independent of the trajectory and cutoff. The second inequality in (UFA52) is an independent form-domain comparison; the lower bound in (UF-C.1a) supplies positivity of $\mathfrak d_{c_*}$ but does not supply this upper comparison. Without (UFA48) or an equivalent conversion, the derivative estimate in (UFA40) and the form coefficient in (UFA42) cannot be inserted into UF-C.1.
 
 ## 5. Decision rule and stopping rule
 
