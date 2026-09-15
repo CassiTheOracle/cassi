@@ -2295,8 +2295,10 @@ $\chi_{1/2}\chi_a=\chi_{a+1}+\chi_{a-1}$ puts $U_{L_1}$-content $a+1$ and
 $a-1$ into the slice image. A vector in sector $(a-1,a,a,a)$ alone carries
 $U_{L_1}$-content $a-1$, so the $a+1$ content excludes the single shifted
 sector, and the image of the trivial-spoke vector has a nonzero component in
-each existing neighbour sector. That is a derivation at the declared
-conventions, not a computed matrix. For general sectors the compression is a
+each existing neighbour sector. That step is a derivation at the declared
+conventions, not a computed matrix; the diagonal case of the compression
+matrix therefore rests on that derivation until (UFA105) is computed. For
+general sectors the compression is a
 linear map between multiplicity spaces,
 $$
 K_{\alpha\to\alpha\pm e_c}:M^{\mathrm f}(\alpha)\longrightarrow
@@ -2305,7 +2307,7 @@ M^{\mathrm f}(\alpha\pm e_c),
 $$
 whose vanishing pattern decides which sector families can be exact; the
 general matrix is the next adjacent-block obligation, and the closure
-statements below are scoped to the support action and the diagonal domains
+statements below are scoped to the support action and to this derivation
 until it is available.
 
 The four corner shifts act on the four corner labels independently, so the
@@ -2342,9 +2344,11 @@ permuting the four labels while leaving $M^{\mathrm f}$ invariant:
 | $(3,1,1,1)$ | $20$ |
 | $(2,2,2,2)$ | $91$ |
 
-The fundamental row decomposes as $1+0+6+4+3$ and recovers (YM94). Over
-$0\le a,b,c,d\le3$ the fibre dimension is never zero (minimum $1$), so
-(UFA97) is not obstructed at the level of dimensions on this fixture; the
+The fundamental row decomposes as $1+0+6+4+3$ and recovers (YM94). The table
+is fine-side multiplicity data: the fibre dimension is never zero over
+$0\le a,b,c,d\le3$ (minimum $1$). The comparison with the coarse sector spaces
+required by (UFA97) still needs the matched coarse-sector identification,
+which this section does not fix, so that comparison remains conditional; the
 binding constraints remain the sector shift and the form and gluing tests of
 (UFA92)–(UFA100).
 
@@ -2358,9 +2362,10 @@ $$
 \boxed{\ \text{Exactness forces closure along every nonzero shift compression, and shift-closed families are the full label cones.}\ }
 \tag{UFA107}
 $$
-The diagonal sectors, the fundamental sector $(1,1,1,1)$ among them, have
-nonzero compressions into each existing neighbour, so exactness there forces
-all eight neighbouring sectors into the family; a family that reaches the full
+The slice derivation puts nonzero compressions out of the diagonal sectors,
+the fundamental sector $(1,1,1,1)$ among them, into each existing neighbour;
+on that derivation, exactness there forces all eight neighbouring sectors into
+the family, and a family that reaches the full
 cone is the full truncated space at cutoff $C$, which is no coarsening at all.
 Beyond the diagonal domains the forcing chain needs the compression matrix
 (UFA105), which is the recorded obligation; the exact branch must select
@@ -2370,6 +2375,11 @@ the Feshbach operator of (UFA102). The statement concerns the boundary-label
 action of the magnetic multipliers and is independent of the
 coupling-independent fibre obstruction (UFA31), which constrains level sets of
 the reduced fibre potential.
+
+Scope of the section: the label algebra (UFA103)–(UFA104), the reachable-family
+count and the anchor table (UFA106) are finite statements; the compression step
+for the diagonal sectors is a derivation at the declared conventions, and the
+general compression matrix (UFA105) is the recorded obligation.
 
 ### 4.5 Conditional consequences of a fibre gap
 
