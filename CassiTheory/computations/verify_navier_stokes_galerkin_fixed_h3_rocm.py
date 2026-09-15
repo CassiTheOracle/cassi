@@ -381,6 +381,7 @@ def integrate_case(
 
     record_checkpoint(0, initial)
     previous = initial
+    positive_remainder_evaluation_count = 1
     previous_positive = max(0.0, initial["remainder"])
     integral = 0.0
     max_divergence = initial["divergence_residual"]
@@ -393,6 +394,7 @@ def integrate_case(
         first_rhs = box.right_hand_side(state)
         current = box.spectral_observables(state, first_rhs)
         current_positive = max(0.0, current["remainder"])
+        positive_remainder_evaluation_count += 1
         integral += 0.5 * dt * (previous_positive + current_positive)
         previous_positive = current_positive
         max_positive_remainder = max(max_positive_remainder, current_positive)
@@ -421,6 +423,7 @@ def integrate_case(
         "final": previous,
         "positive_remainder_integral": float(integral),
         "positive_remainder_max": max_positive_remainder,
+        "positive_remainder_evaluation_count": positive_remainder_evaluation_count,
         "max_divergence_residual": max_divergence,
         "max_positive_energy_increment": max_positive_energy_increment,
         "max_abs_production": max_abs_production,
