@@ -415,29 +415,29 @@ holonomies and an exact bounded local quadratic remainder.
 the theorem hypotheses, local form estimate and connected remainder proof.
 
 The fixed schedule in `computations/yang-mills-connected-block-prereg.md`
-passes **79 primary checks**. The separate raw-artifact reconciliation
-passes **31 checks**, including direct local matrix reconstruction and
-an independent Jacobi evaluation of the remainder norms. The two analytical
-reviews and their mathematical reconciliation qualify the theorem
-application separately from these finite controls.
+passes **79 primary checks**. The source-bound receipt is
+`runs/yang_mills_connected_blocks/current-verification.json`, with its
+adjacent manifest and frozen source snapshots. The protocol-required raw
+analytical reviews and separate reconciliation receipt are not present in the
+current directory, so these finite controls do not by themselves qualify the
+theorem application.
 
 | Control | Decisive result | Classification and scope |
 |---|---|---|
 | Periodic lattice geometry | Sides $4,6,8$ give $192,648,1536$ links and 24 disjoint-link plaquette layers | **SUPPORTS**, fixed finite inventories and coloring |
 | Exact local operator identities | 21 matrix cases; maximum absolute discrepancy $4.97379915032\times10^{-14}$ against $10^{-11}$ | **SUPPORTS**, fixed local rotation and Hamiltonian controls |
-| Independent reconstruction | Maximum matrix discrepancy $4.44089209850\times10^{-16}$ and remainder-norm discrepancy $3.46944695195\times10^{-18}$ | **PASS**, complete raw local matrix schedule |
+| Independent reconstruction | No retained independent receipt or 31-check reconciliation is present in the current directory | **UNAVAILABLE**, primary finite controls only |
 | Single-square remainder | Maximum measured $\|R_\square\|/x^2=0.539326266409$; analytic bound $(2+\sqrt2)/3=1.13807118746$ | **SUPPORTS**, fixed points; all-real-$x$ bound follows analytically |
-| Volume-uniform interacting gap | Positive theorem gap under $64/g^4\le\beta_{\mathrm Y}$, with symbolic $\beta_{\mathrm Y}>0$ | **ADOPT**, established theorem applied at sufficiently strong bare coupling |
-| Exact finite-depth dressing | 24 layers, $2^3$ coarse cells, relative coefficient $32|x|/3$ and bounded local remainder $C_Dx^2$ | **ADOPT**, regulated operator identity; exact remainder retained |
+| Volume-uniform interacting gap | Positive theorem gap under $64/g^4\le\beta_{\mathrm Y}$, with symbolic $\beta_{\mathrm Y}>0$ | **UNRESOLVED**, protocol-level analytical review and reconciliation are not currently retained |
+| Exact finite-depth dressing | 24 layers, $2^3$ coarse cells, relative coefficient $32|x|/3$ and bounded local remainder $C_Dx^2$ | **UNRESOLVED**, protocol-level analytical review and reconciliation are not currently retained |
 | Weak-bare-coupling uniform estimate, continuum theory and mass, Cassi microscopic identification | No construction or bound in these regimes | **UNRESOLVED** |
 
-`runs/yang_mills_connected_blocks/verification.json` retains the full
-arrays, checks and symbolic identities, with its adjacent input manifest
-and frozen source snapshots. The same directory contains
-`raw_uniform_review.txt`, `raw_dressing_review.txt`, the independent local
-`reconcile.mjs` and the final `reconciliation.json`, which binds the raw
-receipt, review and source bytes by SHA-256. Numerical theorem constants,
-a critical coupling and continuum masses are unevaluated.
+`runs/yang_mills_connected_blocks/current-verification.json` retains the
+source-bound primary arrays, checks and symbolic identities, with its
+adjacent input manifest and frozen source snapshots. The expected
+`raw_uniform_review.txt`, `raw_dressing_review.txt`, `reconcile.mjs` and
+`reconciliation.json` are not present in that directory. Numerical theorem
+constants, a critical coupling and continuum masses are unevaluated.
 The master physical parameter count and empirical prediction catalog
 are unchanged.
 

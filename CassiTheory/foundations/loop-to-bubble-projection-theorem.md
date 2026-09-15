@@ -8160,19 +8160,18 @@ discrepancy is $4.97379915032\times10^{-14}$ against $10^{-11}$.
 The largest measured $\|R_\square(x)\|/x^2$ is $0.539326266409$,
 below the exact coefficient $(2+\sqrt2)/3=1.13807118746$.
 
-A separate raw-artifact reconciliation passes **31 checks**, including
-source/snapshot SHA-256 bindings, complete geometry inventories and direct
-JavaScript reconstruction of every local rotation and transformed matrix.
-Its maximum matrix discrepancy is $4.44089209850\times10^{-16}$; a separate
-three-dimensional Jacobi calculation reproduces the remainder norms within
-$3.46944695195\times10^{-18}$. The receipt, source manifest and frozen
-source bytes are in `runs/yang_mills_connected_blocks/verification.json`,
-`runs/yang_mills_connected_blocks/verification.inputs.json` and
-`runs/yang_mills_connected_blocks/verification.sources/`.
+The source-bound primary receipt
+`runs/yang_mills_connected_blocks/current-verification.json` passes the
+finite schedule's **79 checks**. Its adjacent input manifest and frozen source
+snapshots bind the protocol, verifier and receipt helper. The finite geometry
+and local operator controls therefore classify **SUPPORTS**.
 
-The finite geometry and operator controls classify **SUPPORTS**.
-The volume-uniform strong-coupling gap and exact finite-depth dressing
-classify **ADOPT** through the analytical arguments in §§9.10–9.12 and
+The protocol-required `raw_uniform_review.txt`, `raw_dressing_review.txt`,
+independent `reconcile.mjs` and final `reconciliation.json` are not present
+in the current directory. The volume-uniform strong-coupling gap and exact
+finite-depth dressing therefore remain **UNRESOLVED** as protocol evidence:
+the primary finite controls do not substitute for the missing independent
+analytical reviews and reconciliation.
 The exact-vacuum block schedule in
 `computations/yang-mills-vacuum-block-prereg.md` is implemented by
 `computations/verify_yang_mills_vacuum_blocks.py`. Its source-bound primary
