@@ -1370,6 +1370,83 @@ The fibre gap in (UFA32) does not imply (UFA36): horizontal connection, Born–H
 
 This route is compatible with the discrete trajectory $x_\nu$ and with an energy-dependent Feshbach map. It supplies the precise escape from (UFA31) while preserving the requirement that every generated interaction remain in the declared $\Pi^{\mathrm{fib}}/Q^{\mathrm{fib}}$ forms.
 
+### 4.5 Conditional consequences of a fibre gap
+
+If the fibre form is gauge-covariant and differentiable in the coarse variables, the spectral projection supplies two checkable consequences.
+
+Assume on the common form domain that
+
+$$
+L_{\nu,B,\alpha,x_\nu}(g\!\cdot\! v)
+:=
+\pi_{\nu,B,\alpha}^{\mathrm f}(g)\,
+L_{\nu,B,\alpha,x_\nu}(v)\,
+\pi_{\nu,B,\alpha}^{\mathrm f}(g)^*
+\tag{UFA37}
+$$
+
+and that the contour in (UFA33) is transported by the same action. Resolvent covariance and contour integration then give (UFA34):
+
+$$
+(z-L(g\!\cdot\! v))^{-1}
+:=
+\pi^{\mathrm f}(g)(z-L(v))^{-1}\pi^{\mathrm f}(g)^*,
+\qquad
+p(g\!\cdot\! v)
+:=
+\pi^{\mathrm f}(g)p(v)\pi^{\mathrm f}(g)^*.
+\tag{UFA38}
+$$
+
+Suppose the horizontal derivative $\nabla_\xi L(v)$ exists in a relative operator or form norm and the contour stays at distance at least $\delta_{\mathrm{fib},*}/2$ from the spectrum. Differentiating the resolvent gives
+
+$$
+\nabla_\xi p(v)
+:=
+\frac{1}{2\pi i}
+\oint_{\Gamma(v)}
+(z-L(v))^{-1}
+(\nabla_\xi L(v))
+(z-L(v))^{-1}\,dz,
+\tag{UFA39}
+$$
+
+and therefore, in operator norm when the derivative is bounded,
+
+$$
+\|\nabla_\xi p(v)\|
+\le
+\frac{\ell(\Gamma(v))}{2\pi}
+\left(\frac{2}{\delta_{\mathrm{fib},*}}\right)^2
+\|\nabla_\xi L(v)\|.
+\tag{UFA40}
+$$
+
+The relative-form version of (UFA40) is the required statement when the derivative is unbounded. For a horizontal metric coefficient bounded by $g_*$, a connection contribution satisfying
+
+$$
+|\mathfrak b_{\mathrm{conn}}[u,v]|
+\le
+g_*\sup_{\xi}\|\nabla_\xi p\|\,
+\|u\|_{\mathfrak h_P}\|v\|_{\mathfrak h_Q}
+\tag{UFA41}
+$$
+
+and a remaining crossing-term bound $\beta_{\mathrm{cross},*}$ give the sufficient target
+
+$$
+\beta_*
+:=
+g_*
+\frac{\sup_v\ell(\Gamma(v))}{2\pi}
+\left(\frac{2}{\delta_{\mathrm{fib},*}}\right)^2
+\sup_{v,\xi}\|\nabla_\xi L(v)\|
++\beta_{\mathrm{cross},*}.
+\tag{UFA42}
+$$
+
+This chain turns a proved uniform fibre gap, derivative bound and crossing-term estimate into the off-diagonal input of (UFA36). It does not prove any of those inputs, and it does not replace the discarded-sector lower bound or the retained Schur margin.
+
 ## 5. Decision rule and stopping rule
 
 A finite implementation may report one of the following:
