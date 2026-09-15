@@ -1104,14 +1104,17 @@ def ritz_row(
         vector = -vector
     state_norm = math.sqrt(float(vector @ overlap @ vector))
     vector = vector / state_norm
+    # The preregistered residuals use raw Euclidean coefficient norms.
     residual = (matrix - energy * overlap) @ vector
-    r_proj = float(np.linalg.norm(residual / space.norms))
+    r_proj = float(np.linalg.norm(residual))
+    r_proj_weighted = float(np.linalg.norm(residual / space.norms))
     record: dict[str, Any] = {
         "cutoff": space.cutoff,
         "coupling": str(coupling),
         "energy_ground": energy,
         "energy_first_excited": float(values[1]),
         "projected_residual": r_proj,
+        "projected_residual_weighted": r_proj_weighted,
         "basis_dimension": len(space.states),
         "matrix_sha256": _array_hash(matrix),
         "overlap_sha256": _array_hash(overlap),
@@ -1125,8 +1128,10 @@ def ritz_row(
         ext_matrix = extended.hamiltonian(coupling)
         ext_overlap = extended.overlap
         full_residual = (ext_matrix - energy * ext_overlap) @ embedded
-        r_full = float(np.linalg.norm(full_residual / extended.norms))
+        r_full = float(np.linalg.norm(full_residual))
+        r_full_weighted = float(np.linalg.norm(full_residual / extended.norms))
         record["full_residual"] = r_full
+        record["full_residual_weighted"] = r_full_weighted
         record["extension_cutoff"] = extended.cutoff
     return record
 

@@ -312,21 +312,23 @@ def _ritz(n2: int, x: float) -> dict:
             break
     alpha = alpha / math.sqrt(float(alpha @ s_metric @ alpha))
 
+    # The preregistered residuals use raw Euclidean coefficient norms.
     beta = h @ alpha - values[0] * s_metric @ alpha
-    r_projected = math.sqrt(float(beta @ s_metric @ beta))
+    r_projected = float(np.linalg.norm(beta))
+    r_projected_weighted = float(np.linalg.norm(beta / scale))
 
-    # Full residual: embed into the next cutoff space, ending at doubled
-    # spin 6 for the scheduled endpoint.
+    # Retain the norm-weighted diagnostic separately.
     bigger = _states(n2 + 1)
     index = {s: k for k, s in enumerate(bigger)}
     _, h_big, s_big = _hamiltonian(n2 + 1, x)
+    scale_big = np.sqrt(np.diag(s_big))
     alpha_big = np.zeros(len(bigger), dtype=float)
     for state, coeff in zip(labels, alpha):
         if state in index:
             alpha_big[index[state]] = coeff
     beta_big = h_big @ alpha_big - values[0] * s_big @ alpha_big
-    r_full = math.sqrt(float(beta_big @ s_big @ beta_big))
-    r_full_euclid = float(np.linalg.norm(beta_big))
+    r_full = float(np.linalg.norm(beta_big))
+    r_full_weighted = float(np.linalg.norm(beta_big / scale_big))
 
     return {
         "cutoff": n2,
@@ -337,8 +339,9 @@ def _ritz(n2: int, x: float) -> dict:
         "ground_energy": float(values[0]),
         "first_excited": float(values[1]) if len(values) > 1 else None,
         "projected_residual": r_projected,
+        "projected_residual_weighted": r_projected_weighted,
         "full_residual": r_full,
-        "full_residual_euclidean": r_full_euclid,
+        "full_residual_weighted": r_full_weighted,
         "dimension": len(labels),
     }
 
@@ -971,11 +974,12 @@ def schedule(stage: str = "full") -> dict:
                 "cutoff": n2,
                 "x": x,
                 "dimension": row["dimension"],
-                "ground_energy": row["ground_energy"],
                 "first_excited": row["first_excited"],
+                "ground_energy": row["ground_energy"],
                 "projected_residual": row["projected_residual"],
+                "projected_residual_weighted": row["projected_residual_weighted"],
                 "full_residual": row["full_residual"],
-                "full_residual_euclidean": row["full_residual_euclidean"],
+                "full_residual_weighted": row["full_residual_weighted"],
                 "conditional_rate": rate["rate"],
                 "retained_dimension": rate["retained_dimension"],
                 "partition": rate["partition"],
