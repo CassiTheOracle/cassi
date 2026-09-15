@@ -2368,6 +2368,38 @@ $$
 \tag{YM54}
 $$
 
+For a bounded multiplication operator $M_F$, define
+
+$$
+\mathbb E_\omega[F\mid v]
+:=
+\int\overline{\omega_v(r)}F(v,r)\omega_v(r)\,d\nu_v(r),
+\qquad
+d\mu_{\omega,v}(r):=
+|\omega_v(r)|^2d\nu_v(r).
+\tag{YM54a}
+$$
+
+With $P_\omega:=J_\omega J_\omega^*$, the same disintegration gives the
+exact compression and leakage identities
+
+$$
+\begin{aligned}
+J_\omega^*M_FJ_\omega
+&=M_{\mathbb E_\omega[F\mid v]},\\
+(I-P_\omega)M_FJ_\omega f&=\bigl(F-\mathbb E_\omega[F\mid v]\bigr)f(v)\omega_v(r),\\
+\left\|(I-P_\omega)M_FJ_\omega f\right\|^2&=\int |f(v)|^2\operatorname{Var}_{\mu_{\omega,v}}\!\left(F(v,\cdot)\right)\,d\mu_c(v).\\
+\end{aligned}
+\tag{YM54b}
+$$
+
+For the magnetic multiplier $W_f$, (YM54b) is the exact
+$\omega$-weighted conditional variance of the magnetic discarded coupling.
+The electric part still differentiates the fibre section and contributes
+the connection and Born–Huang terms listed after (YM55). Thus (YM54a)–(YM54b)
+identify the finite-regulator leakage observable without supplying a
+regulator-uniform bound.
+
 Its dynamical closure condition is
 
 $$
@@ -7954,6 +7986,7 @@ microscopic completions.
 | Gaussian conditional-gap-only implication | **Excluded** by (YM37)–(YM38) | Exact quadratic control; no interacting-vacuum estimate |
 | Static pure configuration-marginal blocking | **Excluded** as an exact quantum reduction by (YM39)–(YM41) | Mixed reduced states or energy-dependent resolvents retain the missing data |
 | Exact path-holonomy pullback (YM42)–(YM48) | **Derived** regulated kinematic identities | Edge-simple disjoint paths, normalized Haar measure and compatible endpoint gauge action |
+| Weighted dynamic-fibre compression (YM54)–(YM54b) | **Derived** fixed-regulator identity | Normalized fibre and Haar disintegration give exact weighted conditional magnetic leakage; derivative, boundary-sector, uniform resolvent and continuum estimates remain open |
 | Bare cylindrical full-Hamiltonian block map | **Excluded** on the fixed $2\times2$ refinement by (YM49)–(YM53) | Interacting fibres or energy-dependent reductions must retain discarded plaquette information |
 | Continuous-$SU(2)$ isolated-square Feshbach pencil and bounds (YM57)–(YM77) | **Derived** for the regulated class-function operator | Exact energy-dependent self-energy retained; no many-plaquette or volume-uniform implication |
 | Fixed-level weak-coupling square spectrum (YM78)–(YM81) | **Derived** | The physical $2\sqrt2/a$ leading spacing is an isolated ultraviolet plaquette normalization |

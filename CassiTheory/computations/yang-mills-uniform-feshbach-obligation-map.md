@@ -1179,19 +1179,23 @@ quantifiers.
 
 | Order | Obligation | Evidence already available | Missing proof object |
 |---:|---|---|---|
-| 1 | UF-A: gauge-compatible block or transfer map | The local-observable preregistration states the finite gauge-invariant word-algebra and conditional density input; its two receipts check finite supporting controls. The obligation map's UFA19–UFA21 give a fixed-graph boundary-Haar construction under their explicit hypotheses. | Existence of the coarse multiplicity maps $J_{\nu,B,\alpha}$, boundary intertwining (UFA7), glued Gauss-law transport (UFA8), and exact or uniformly controlled form transport (UFA11–UFA13). The finite receipts do not construct these maps. |
+| 1 | UF-A: gauge-compatible block or transfer map | The local-observable preregistration states the finite gauge-invariant word-algebra and conditional density input; UFA19–UFA21 give a fixed-graph boundary-Haar construction under their explicit hypotheses; UFA82–UFA90 add the scalar Haar-fibre candidate and exact magnetic leakage identity. | Existence of the coarse multiplicity maps $J_{\nu,B,\alpha}$ in every boundary sector, boundary intertwining (UFA7), glued Gauss-law transport (UFA8), and exact or uniformly controlled form transport (UFA11–UFA13). The scalar candidate does not construct these maps. |
 | 2 | UF-B: uniform discarded-sector recovery floor | Finite interacting Feshbach rows provide $D$-sector and Schur diagnostics; the obligation map gives the residual Gramian route (UF-B.16)–(UF-B.23). | A positive $\gamma_{Q,*}$ in (UF-B.19) or an equivalent multiscale estimate, uniform in volume, spacing, boundary fibre, representation cutoff and the weak-coupling trajectory. The Gaussian tensorization boundary rules out inferring this from single-block conditional gaps. |
 | 3 | UF-C: uniform Schur margin | The fixed-graph, cutoff and finite-volume receipts test positive roots on their declared rows; the translated sweep supplies finite plaquette-position coverage. | Uniform $a_*$, $\beta_*$ and $d_*>c_*$ satisfying (UF-C.1a)–(UF-C.1c), or a form-level $\kappa_*$ satisfying (UFA48)–(UFA50) with the independent conversion in (UFA52), after the UF-A transport and UF-B discarded-sector bound are established. A finite root or root-to-gap ratio is insufficient. |
 | 4 | UF-D: transported local-core exhaustion | The preregistration states the conditional finite/infinite local-algebra density, while the local-observable receipt checks finite supporting controls and the transfer criterion identifies the completeness distinction. | A transported exhaustion $(B_k,C_k)$ with uniform source-tail and form-tail limits compatible with the actual boundary fibres and retained projections. Finite word or plaquette coverage does not supply these uniform limits. |
 | 5 | UF-E: continuum recovery and scale matching | The obligation map states the required norm and form limsup conditions and the scale factor $F_\nu/a_\nu$. Existing finite receipts retain this boundary as unresolved. | A locally normal continuum representation, recovery sequences for the continuum form core, and $F_\nu/a_\nu\to m_W\in(0,\infty)$, followed by closure of the uniform lower bound. |
 
-UF-A is the upstream blocker. UF-B and UF-C use the transported $P/Q$
-decomposition and therefore cannot be promoted by adding more finite matrix
-rows. UF-D requires the same transport at the local-core level, and UF-E
-depends on all preceding steps. The next proof attempt must establish an
-existence/intertwining result for UF-A or produce a precise obstruction to
-such a result; it must not label the conditional boundary specification
-(UFA1)–(UFA22) as an already constructed coarse map.
+UF-A remains the upstream blocker. The scalar candidate (UFA82)–(UFA90)
+provides an exact fixed-regulator leakage observable, while (UFA91) and the
+Gaussian recovery theorem show that local conditional positivity does not
+imply a uniform physical $Q$ floor. UF-B therefore requires the transported
+residual floor (UF-B.19) or an equivalent multiscale estimate. UF-C then
+requires a uniform retained lower form, discarded margin and coupling bound
+after the UF-A transport; its finite Schur roots cannot replace those
+constants. UF-D must transport the same fibre maps through a uniform
+local-core exhaustion, and UF-E must construct the locally normal continuum
+representation, recovery sequences and scale limit. Section 4.4.3 gives the
+finite candidate, but it must not be labelled as a completed coarse map.
 
 ### 4.2 Scoped obstruction for coupling-independent finite-rank fibres
 
@@ -1806,6 +1810,190 @@ $\lambda_{\mathrm{loc},*}$, $A_{Q,*}$ or $\rho_{\mathrm{cov},*}$ for
 (UF-B.7)–(UF-B.10). The symbol $A_{Q,*}=\gamma_R^{-1}$ therefore remains a
 conditional target rather than a value extracted from that receipt.
 
+### 4.4.3 Exact finite-regulator fibre candidate and leakage identity
+
+The fixed graph admits an explicit coarse-to-fine fibre candidate before any
+continuum estimate is attempted. Use an edge-disjoint path map of the form
+(YM42)–(YM43), from `foundations/loop-to-bubble-projection-theorem.md` §9.17,
+on a finite regulator and write its Haar disintegration as
+
+$$
+dU_\nu=d\kappa_{\nu,B}(v)\,d\nu_{\nu,B}^{\,v}(r),
+\qquad
+\pi_{\nu,B}(U)=v .
+\tag{UFA82}
+$$
+
+For a scalar fibre section, choose a measurable
+$\omega_{\nu,B}(v,r)$ with
+
+$$
+\int\left|\omega_{\nu,B}(v,r)\right|^2
+d\nu_{\nu,B}^{\,v}(r)=1
+\quad\text{for $\kappa_{\nu,B}$-a.e. }v
+\tag{UFA83}
+$$
+
+and define
+
+$$
+\begin{aligned}
+J_{\nu,B}^{\omega}:L^2(\mathcal V_{\nu,B},\kappa_{\nu,B})
+&\longrightarrow L^2(\mathcal X_\nu,dU_\nu),\\
+(J_{\nu,B}^{\omega}f)(v,r)
+&:=f(v)\omega_{\nu,B}(v,r),\\
+(J_{\nu,B}^{\omega})^*J_{\nu,B}^{\omega}
+&=I,\qquad
+P_{\nu,B}^{\omega}:=
+J_{\nu,B}^{\omega}(J_{\nu,B}^{\omega})^*,\qquad
+Q_{\nu,B}^{\omega}:=I-P_{\nu,B}^{\omega}.
+\end{aligned}
+\tag{UFA84}
+$$
+
+The normalization makes (UFA84) an isometry at the fixed regulator. In the
+scalar gauge-invariant sector it is gauge-compatible when the Haar kernel is
+equivariant and
+$\omega_{\nu,B}(g\!\cdot\!v,g\!\cdot\!r)=\omega_{\nu,B}(v,r)$. A nontrivial
+boundary sector replaces this scalar condition by the intertwining relation
+in (UFA7) and must still satisfy the gluing contraction (UFA8). The choice
+$\omega_{\nu,B}=1$ is the bare cylindrical map (YM42); it is a kinematic map,
+not an interacting fibre.
+
+For any bounded multiplication operator $M_F$, define the
+$\omega$-weighted conditional expectation
+
+$$
+\mathbb E_{\omega}[F\mid v]
+:=
+\int\overline{\omega_{\nu,B}(v,r)}
+F(v,r)\omega_{\nu,B}(v,r)\,
+d\nu_{\nu,B}^{\,v}(r).
+\tag{UFA85}
+$$
+
+Direct substitution into (UFA84) gives the exact compression and leakage
+identities
+
+$$
+\begin{aligned}
+(J_{\nu,B}^{\omega})^*M_FJ_{\nu,B}^{\omega}
+&=M_{\mathbb E_{\omega}[F\mid v]},\\
+Q_{\nu,B}^{\omega}M_FJ_{\nu,B}^{\omega}f&=\bigl(F-\mathbb E_{\omega}[F\mid v]\bigr)f(v)\omega_{\nu,B}(v,r),\\
+\left\|Q_{\nu,B}^{\omega}M_FJ_{\nu,B}^{\omega}f\right\|^2
+&=\int_{\mathcal V_{\nu,B}}|f(v)|^2
+\left(
+\mathbb E_{\omega}[|F|^2\mid v]
+-\left|\mathbb E_{\omega}[F\mid v]\right|^2
+\right)d\kappa_{\nu,B}(v).
+\end{aligned}
+\tag{UFA86}
+$$
+
+For the magnetic multiplier $V_\nu=M_{W_\nu}$ in
+$h_\nu=K_\nu+x_\nu V_\nu$, (UFA86) turns the magnetic part of the discarded
+coupling into the conditional variance
+
+$$
+\left\|Q_{\nu,B}^{\omega}V_\nu J_{\nu,B}^{\omega}f\right\|^2
+=\int|f(v)|^2
+\operatorname{Var}_{|\omega_{\nu,B}(v,\cdot)|^2d\nu_{\nu,B}^{\,v}}
+\!\left(W_\nu(v,\cdot)\right)d\kappa_{\nu,B}(v).
+\tag{UFA87}
+$$
+
+The full leakage is not just (UFA87). Fine electric derivatives act on both
+$f$ and $\omega_{\nu,B}$, so
+
+$$
+Q_{\nu,B}^{\omega}h_\nu J_{\nu,B}^{\omega}f
+=Q_{\nu,B}^{\omega}K_\nu J_{\nu,B}^{\omega}f
++x_\nu Q_{\nu,B}^{\omega}V_\nu J_{\nu,B}^{\omega}f.
+\tag{UFA88}
+$$
+
+The first term contains the horizontal connection and Born–Huang
+contributions. For $\omega_{\nu,B}=1$ on the declared $2\times2$ refinement,
+(YM49)–(YM53) give
+
+$$
+\left\|Q_{\nu,B}^{1}h_\nu J_{\nu,B}^{1}1\right\|=2x_\nu .
+\tag{UFA89}
+$$
+
+The bare candidate therefore cannot satisfy exact invariance. The dynamic
+fibre must reduce (UFA87) together with the derivative term in (UFA88), or
+retain their effect in the energy-dependent Feshbach resolvent.
+
+At a fixed finite regulator, the positive ground state in (UFA76) supplies
+a canonical scalar candidate. Express $\Omega_\nu$ in the Haar coordinates
+$(v,r)$ of (UFA82) and set
+
+$$
+Z_\nu(v):=
+\int\left|\Omega_\nu(v,r)\right|^2d\nu_{\nu,B}^{\,v}(r),
+\qquad
+\omega_{\nu,B}^{\mathrm{vac}}(v,r):=
+\frac{\Omega_\nu(v,r)}{\sqrt{Z_\nu(v)}} .
+\tag{UFA90}
+$$
+
+Strict positivity gives $Z_\nu(v)>0$ on the declared finite fibre. The
+corresponding $J_{\nu,B}^{\mathrm{vac}}$ contains the exact ground state,
+with coarse coefficient $\sqrt{Z_\nu}$. Its
+$|\omega_{\nu,B}^{\mathrm{vac}}|^2d\nu_{\nu,B}^{\,v}$ is the conditional
+vacuum measure for the datum $v$, constructed in the same way as (UFA70)
+after replacing the exterior datum $\eta$ by the Haar coarse datum.
+This constructs a finite-regulator candidate, but it is not an independent
+uniform estimate: controlling its horizontal form derivatives, boundary
+intertwiners, conditional variance and Feshbach resolvent along $\nu$ is
+precisely the remaining UF-A–UF-C work. It also does not identify the
+candidate with the relative block ground-state measure (UFA80).
+
+Equations (UFA82)–(UFA90) therefore close the finite-regulator candidate
+interface and expose its exact leakage observable. They do not supply
+regulator-independent constants, the contraction identity for all boundary
+sectors, transported local-core recovery or continuum scale matching.
+
+### 4.4.4 Uniformity test: conditional rate versus recovery floor
+
+The exact finite-regulator candidate still needs a separate test for
+long-distance recovery. The massless Gaussian chain in (UF-B.11)–(UF-B.15),
+derived in `foundations/loop-to-bubble-projection-theorem.md` §9.16.2, gives
+that control test without assuming Yang–Mills dynamics. For chain length $N$,
+every single-coordinate conditional rate remains in
+$[2,2\sqrt2]$, while
+
+$$
+\lambda_{\min}\!\left(\sqrt{D_N(0)}\right)
+=2\sin\frac{\pi}{2(N+1)}
+\asymp N^{-1},
+\qquad
+\frac1{\lambda_{\min}}
+\le A_{\mathrm{AT}}
+\le\frac{\sqrt2}{\lambda_{\min}} .
+\tag{UFA91}
+$$
+
+Consequently the residual-recovery floor
+$\gamma_{\mathrm{rec}}=A_{\mathrm{AT}}^{-1}$ is $\Theta(N^{-1})$ even
+though every local conditional gap is uniformly positive. A normalized
+fibre section in (UFA83), or positivity of the fixed-regulator density in
+(UFA90), cannot change this implication without a statement about which
+collective modes the transported $Q$ sector contains.
+
+The recovery receipt
+`runs/yang_mills_recovery_gramian/verification-independent.json` passes its
+30 algebraic controls, including the Gaussian rows, but its scope is the
+finite control family in
+`computations/yang-mills-recovery-gramian-prereg.md`; it does not evaluate
+$\gamma_{\mathrm{rec}}$ for the exact interacting vacuum along the lattice
+trajectory. The uniform UF-B target therefore remains a positive recovery
+floor for the transported physical $Q$ sector, together with a uniform
+conditional rate and cover bound. The test does not exclude the dynamic
+fibre route; it rules out promoting fixed-regulator conditional positivity
+to continuum uniformity without multiscale mode separation.
+
 ### 4.5 Conditional consequences of a fibre gap
 
 If the fibre form is gauge-covariant and differentiable in the coarse variables, the spectral projection supplies two checkable consequences.
@@ -2078,7 +2266,7 @@ No new Feshbach receipt is scheduled until the construction (UFA61)–(UFA69) is
 
 ## References
 
-- `foundations/loop-to-bubble-projection-theorem.md` §§9.13–9.14, 9.20, 9.25–9.26, 9.30, 9.33–9.34—vacuum form, conditional-measure comparison, finite character bounds, scale matching, local completeness and the uniform lower-form criterion.
+- `foundations/loop-to-bubble-projection-theorem.md` §§9.13–9.14, 9.17, 9.20, 9.25–9.26, 9.30, 9.33–9.34—exact cylindrical maps and refined-plaquette leakage, vacuum form, conditional-measure comparison, finite character bounds, scale matching, local completeness and the uniform lower-form criterion.
 - `foundations/loop-to-bubble-projection-theorem.md` §9.18—continuous-$SU(2)$ radial Feshbach pencil, Weyl self-energy bounds, fixed-window isolation and the $N/x^{1/4}$ cutoff condition.
 - `computations/yang-mills-block-map-prereg.md`—edge-disjoint path coordinates, fixed $2\times2$ refinement and subdivision control.
 - `computations/verify_yang_mills_block_map.py`—declared plaquette words and deterministic finite controls for the bare fixture.
