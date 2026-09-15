@@ -1170,6 +1170,28 @@ The following receipts are the current finite evidence inventory. Their classifi
 
 The independent Feshbach receipts in this inventory are audit artifacts. Their declared scopes do not add UF-A–UF-E or the missing uniform operator estimates.
 
+## 4.1 Dependency order for the remaining proof
+
+The finite receipts separate the remaining proof into an upstream-to-downstream
+chain. They do not provide a second route around the missing uniform
+quantifiers.
+
+| Order | Obligation | Evidence already available | Missing proof object |
+|---:|---|---|---|
+| 1 | UF-A: gauge-compatible block or transfer map | The local-observable receipt establishes the finite gauge-invariant word algebra, and UFA19–UFA21 establish fixed-graph boundary Haar gluing under their stated hypotheses. The transfer-completeness receipt tests finite reducing-sector logic. | Existence of the coarse multiplicity maps $J_{\nu,B,\alpha}$, boundary intertwining (UFA7), glued Gauss-law transport (UFA8), and exact or uniformly controlled form transport (UFA11–UFA13). The finite receipts do not construct these maps. |
+| 2 | UF-B: uniform discarded-sector recovery floor | Finite interacting Feshbach rows provide $D$-sector and Schur diagnostics; the obligation map gives the residual Gramian route (UF-B.16)–(UF-B.23). | A positive $\gamma_{Q,*}$ in (UF-B.19) or an equivalent multiscale estimate, uniform in volume, spacing, boundary fibre, representation cutoff and the weak-coupling trajectory. The Gaussian tensorization boundary rules out inferring this from single-block conditional gaps. |
+| 3 | UF-C: uniform Schur margin | The fixed-graph, cutoff and finite-volume receipts test positive roots on their declared rows; the translated sweep supplies finite plaquette-position coverage. | Uniform $a_*$, $\beta_*$ and $d_*>c_*$ satisfying (UF-C.1a)–(UF-C.1c) after the UF-A transport and UF-B discarded-sector bound are established. A finite root or root-to-gap ratio is insufficient. |
+| 4 | UF-D: transported local-core exhaustion | The preregistration states the conditional finite/infinite local-algebra density, while the local-observable receipt checks finite supporting controls and the transfer criterion identifies the completeness distinction. | A transported exhaustion $(B_k,C_k)$ with uniform source-tail and form-tail limits compatible with the actual boundary fibres and retained projections. Finite word or plaquette coverage does not supply these uniform limits. |
+| 5 | UF-E: continuum recovery and scale matching | The obligation map states the required norm and form limsup conditions and the scale factor $F_\nu/a_\nu$. Existing finite receipts retain this boundary as unresolved. | A locally normal continuum representation, recovery sequences for the continuum form core, and $F_\nu/a_\nu\to m_W\in(0,\infty)$, followed by closure of the uniform lower bound. |
+
+UF-A is the upstream blocker. UF-B and UF-C use the transported $P/Q$
+decomposition and therefore cannot be promoted by adding more finite matrix
+rows. UF-D requires the same transport at the local-core level, and UF-E
+depends on all preceding steps. The next proof attempt must establish an
+existence/intertwining result for UF-A or produce a precise obstruction to
+such a result; it must not label the conditional boundary specification
+(UFA1)–(UFA22) as an already constructed coarse map.
+
 ## 5. Decision rule and stopping rule
 
 A finite implementation may report one of the following:
