@@ -1407,8 +1407,177 @@ $$
 
 If $\mathcal V_{B,\eta}\subseteq\mathcal H_{a,L;B,\eta}$ is a closed gauge-invariant subspace containing the constants and its form is the restriction of $\mathfrak e_{a,L;B,\eta}$, the same Poincare inequality holds on $\mathcal V_{B,\eta}\cap\mathbf1^\perp$. This proves uniformity over the exterior boundary at fixed $a,L,B$ for that declared subspace. The ratio $\omega_-/\omega_+$ is regulator-dependent, so (UFA60) supplies no $\nu$-uniform trajectory bound.
 
-The operator in (UFA59) is the conditional ground-state-measure generator. The exact-block spectral protocol supplies the finite matrix $P_Jh_xP_J$, its Ritz ground vector, and conditional Gramian/Dirichlet matrices on the slice $\eta(\theta)$ with $\theta=k\pi/8$. The Hamiltonian fibre operator $L_{\nu,B,\alpha,x_\nu}(v)$ in (UFA32), its form domain, cluster $\Sigma_{\nu,B,\alpha}(v)$, resolvent contour and uniform contour-length bound remain undefined in that source. Its recovered receipt therefore supplies bounded finite evidence while leaving UFA32 uninstantiated.
-The fixed-regulator result (UFA59)–(UFA60) is the strongest gap statement currently available for a defined conditional fibre operator. The Hamiltonian spectral-fibre target in (UFA32) still requires a separate definition and proof along $\mathfrak T$: its boundary-sector Hilbert spaces, common form core, selected cluster and rank, contour with $\sup_v\ell(\Gamma(v))<\infty$, and uniform continuation from the finite regulator must all be supplied before (UFA39)–(UFA42) can be evaluated.
+### 4.4.1 Defined finite-regulator transfer construction
+
+The conditional route can be made a specified finite-regulator object before any uniform estimate is claimed. Fix a regulator $\nu$, a block $B$, a boundary sector $\alpha$ and the declared coupling $x_\nu$. Write
+
+$$
+\mathcal X_\nu:=SU(2)^{E_\nu},
+\qquad
+\mathcal H_\nu^{\mathrm{gi}}
+:=
+L^2(\mathcal X_\nu,dU_\nu)^{G_\nu},
+\qquad
+G_\nu:=SU(2)^{V_\nu}.
+\tag{UFA61}
+$$
+
+Let $\vartheta_{\nu,B,\alpha}$ be the measurable coarse-data map built from the exterior holonomy and the matched boundary representation in (UFA10). Its target is $\mathcal V_{\nu,B,\alpha}$, its pushforward measure is $\kappa_{\nu,B,\alpha}$, and its conditional block fibres are
+
+$$
+\mathcal F_{\nu,B,\alpha}(v):=
+\vartheta_{\nu,B,\alpha}^{-1}(v),
+\qquad
+d\mu_{\nu,B,\alpha}(U)
+:=
+\int_{\mathcal V_{\nu,B,\alpha}}
+d\mu_{\nu,B,\alpha}^{\,v}(U)\,
+d\kappa_{\nu,B,\alpha}(v).
+\tag{UFA62}
+$$
+
+The disintegration in (UFA62) is part of the construction data. On each fibre let $\mathscr D_{\nu,B,\alpha}(v)$ be the restriction of the declared finite Peter–Weyl core, including the representation cutoff and the boundary intertwiner. Define the multiplicity and boundary-sector Hilbert spaces by
+
+$$
+\mathscr K_{\nu,B,\alpha}(v)
+:=
+\overline{\mathscr D_{\nu,B,\alpha}(v)}^{
+L^2(\mathcal F_{\nu,B,\alpha}(v),\mu_{\nu,B,\alpha}^{\,v})},
+\qquad
+\mathscr H_{\nu,B,\alpha}(v)
+:=
+\mathscr K_{\nu,B,\alpha}(v)\widehat\otimes V_\alpha .
+\tag{UFA63}
+$$
+
+Assign every block electric term, fibre-dependent magnetic multiplier, boundary electric term and crossing plaquette to exactly one vertical form. With the common core $\mathscr D_{\nu,B,\alpha}(v)$, set
+
+$$
+\begin{aligned}
+\mathfrak l_{\nu,B,\alpha,x_\nu}(v)[u,w]
+:={}&
+\mathfrak k_{\nu,B,\alpha}^{\mathrm{vert}}(v)[u,w]
++x_\nu\mathfrak v_{\nu,B,\alpha}^{\mathrm{vert}}(v)[u,w]\\
+&+\mathfrak i_{\nu,\partial B,\alpha}^{\mathrm{vert}}(v)[u,w],\\
+\mathscr Q_{\nu,B,\alpha}(v)
+:={}&
+\overline{\mathscr D_{\nu,B,\alpha}(v)}^{
+\|\,\cdot\,\|_{\mathscr H_{\nu,B,\alpha}(v)}^2+
+\mathfrak l_{\nu,B,\alpha,x_\nu}(v)[\,\cdot\,,\,\cdot\,]},\\
+L_{\nu,B,\alpha,x_\nu}(v)
+:={}&
+\operatorname{Friedrichs}\!\left(
+\mathfrak l_{\nu,B,\alpha,x_\nu}(v),
+\mathscr Q_{\nu,B,\alpha}(v)\right).
+\end{aligned}
+\tag{UFA64}
+$$
+
+The form in (UFA64) is the vertical part of the full form; horizontal derivatives and the remaining cross terms belong to $R_{\nu,B,\alpha,x_\nu}$ in (UFA35). Closedness, semiboundedness, the common-core property and the boundary covariance of (UFA64) are admissibility conditions. They cannot be inferred from the finite Ritz matrix.
+
+For a bottom-cluster transfer, require that $L_{\nu,B,\alpha,x_\nu}(v)$ have compact resolvent, or supply an equivalent isolated finite-rank spectral set, and write its ordered eigenvalues as $\lambda_1(v)\le\lambda_2(v)\le\cdots$. Choose an integer $r_{\nu,B,\alpha}$ independent of $v$ and require
+
+$$
+\begin{gathered}
+\Sigma_{\nu,B,\alpha}(v)
+:=
+\{\lambda_1(v),\ldots,\lambda_{r_{\nu,B,\alpha}}(v)\},\\
+\lambda_{r_{\nu,B,\alpha}+1}(v)
+-\lambda_{r_{\nu,B,\alpha}}(v)
+\ge\delta_{\mathrm{fib},*}>0,
+\qquad
+\lambda_{r_{\nu,B,\alpha}}(v)-\lambda_1(v)
+\le W_*<\infty .
+\end{gathered}
+\tag{UFA65}
+$$
+
+Here $\delta_{\mathrm{fib},*}$ and $W_*$ must be independent of $\nu$, block position, $\alpha$ and $v$ for the uniform route. At a single regulator they may be replaced by $\delta_{\nu,B,\alpha}$ and $W_{\nu,B,\alpha}$, but those finite values do not supply (UFA32). A non-bottom cluster uses the same construction with its lower and upper exterior spectral gaps supplied separately.
+
+The common contour is no longer an unspecified curve. For the bottom cluster in (UFA65), define the positively oriented rectangle
+
+$$
+\begin{aligned}
+\mathcal R_{\nu,B,\alpha}(v)
+:={}&
+\left\{z\in\mathbb C:
+\lambda_1(v)-\frac{\delta_{\mathrm{fib},*}}{3}
+<\operatorname{Re}z<
+\lambda_{r_{\nu,B,\alpha}}(v)
++\frac{\delta_{\mathrm{fib},*}}{3},\right.\\
+&\hspace{42mm}\left.
+|\operatorname{Im}z|<
+\frac{\delta_{\mathrm{fib},*}}{3}
+\right\},\\
+\Gamma_{\nu,B,\alpha}(v)
+:={}&\partial\mathcal R_{\nu,B,\alpha}(v).
+\end{aligned}
+\tag{UFA66}
+$$
+
+The right edge stays at least $2\delta_{\mathrm{fib},*}/3$ below the next eigenvalue, while the other three edges are at least $\delta_{\mathrm{fib},*}/3$ from the selected spectrum. Consequently
+
+$$
+\operatorname{dist}\!\left(
+\Gamma_{\nu,B,\alpha}(v),
+\operatorname{spec}L_{\nu,B,\alpha,x_\nu}(v)
+\right)
+\ge\frac{\delta_{\mathrm{fib},*}}{3},
+\qquad
+\ell\!\left(\Gamma_{\nu,B,\alpha}(v)\right)
+\le
+2W_*+\frac{8\delta_{\mathrm{fib},*}}{3}.
+\tag{UFA67}
+$$
+
+The projection and its direct-integral lift are therefore defined by
+
+$$
+\begin{aligned}
+p_{\nu,B,\alpha}(v)
+:={}&
+\frac{1}{2\pi i}
+\oint_{\Gamma_{\nu,B,\alpha}(v)}
+(z-L_{\nu,B,\alpha,x_\nu}(v))^{-1}\,dz,\\
+\Pi_{\nu,B,\alpha}^{\mathrm{fib}}
+:={}&
+\int_{\mathcal V_{\nu,B,\alpha}}^\oplus
+p_{\nu,B,\alpha}(v)\,d\kappa_{\nu,B,\alpha}(v),
+\qquad
+Q_{\nu,B,\alpha}^{\mathrm{fib}}
+:=I-\Pi_{\nu,B,\alpha}^{\mathrm{fib}} .
+\end{aligned}
+\tag{UFA68}
+$$
+
+The transfer map must now be a measurable family of onto partial isometries
+
+$$
+\begin{aligned}
+J_{\nu,B,\alpha}(v):
+\mathcal M_{\nu,B,\alpha}^{\mathrm c}(v)
+&\longrightarrow
+\operatorname{ran}p_{\nu,B,\alpha}(v),\\
+J_{\nu,B,\alpha}(v)^*J_{\nu,B,\alpha}(v)
+&=I,
+\qquad
+J_{\nu,B,\alpha}(v)J_{\nu,B,\alpha}(v)^*
+=p_{\nu,B,\alpha}(v),\\
+J_{\nu,B,\alpha}(g\!\cdot\!v)\,
+\pi_{\nu,B,\alpha}^{\mathrm c}(g)
+&=
+\pi_{\nu,B,\alpha}^{\mathrm f}(g)\,
+J_{\nu,B,\alpha}(v).
+\end{aligned}
+\tag{UFA69}
+$$
+
+The direct integral of (UFA69) supplies the coarse-to-fibre map, and its block/exterior families must still satisfy the contraction identity (UFA8). Local frames may be used only to represent this bundle map; the projection and the partial isometry, rather than a globally selected eigenvector, are the invariant objects.
+
+Equations (UFA61)–(UFA69) define the Hamiltonian fibre, the selected cluster, the contour and the direct-integral projection needed by (UFA32)–(UFA42). They do not prove the disintegration, compact-resolvent or isolated-cluster conditions, the regulator-independent constants, the rank compatibility in (UFA46), or the form bounds in (UFA35)–(UFA36). Those remain the analytical work required before a new finite receipt can be interpreted as evidence for UF-A–UF-C.
+
+The operator in (UFA59) is the conditional ground-state-measure generator. The exact-block spectral protocol supplies the finite matrix $P_Jh_xP_J$, its Ritz ground vector, and conditional Gramian/Dirichlet matrices on the slice $\eta(\theta)$ with $\theta=k\pi/8$. The construction (UFA61)–(UFA69) names the candidate disintegration, boundary-sector Hilbert spaces, Hamiltonian fibre, cluster and contour, but the exact-block source and its receipt do not instantiate or prove those data. Its recovered receipt therefore supplies bounded finite evidence while leaving the uniform spectral-fibre obligations open.
+The fixed-regulator result (UFA59)–(UFA60) is the strongest gap statement currently available for a defined conditional fibre operator. Equations (UFA61)–(UFA69) give the conditional Hamiltonian spectral-fibre target needed by (UFA32)–(UFA42); the remaining proof must establish the disintegration and common form core, compact-resolvent or equivalent isolated-spectrum condition, rank compatibility, regulator-independent $\delta_{\mathrm{fib},*}$ and $W_*$, covariance, and uniform continuation before (UFA39)–(UFA42) can be evaluated.
 
 This route is compatible with the discrete trajectory $x_\nu$ and with an energy-dependent Feshbach map. It supplies the precise escape from (UFA31) while preserving the requirement that every generated interaction remain in the declared $\Pi^{\mathrm{fib}}/Q^{\mathrm{fib}}$ forms.
 
@@ -1680,7 +1849,7 @@ A finite implementation may report one of the following:
 
 The label `SUPPORTS_YM262` is reserved for a proof package containing UF-A, UF-B, UF-C, UF-D and UF-E with constants and quantifiers stated before execution. A positive finite receipt, including one with translated blocks or many couplings, cannot receive that label by itself.
 
-No new Feshbach receipt is scheduled until an exact block/transfer construction has been written with its boundary fibres, $S$-metric, $P/Q$ domains, the fixed $z$-domain in (UF6), and a proof strategy for the uniform constants in (UF7) and (UF9). If a proposed construction changes the graph trajectory, source family, cutoff order, constants or stopping rule, it requires a new protocol version.
+No new Feshbach receipt is scheduled until the construction (UFA61)–(UFA69) is instantiated for the declared boundary fibres, $S$-metric, $P/Q$ domains and fixed $z$-domain in (UF6), with a proof strategy for the uniform constants in (UF7) and (UF9). If a proposed construction changes the graph trajectory, source family, cutoff order, constants or stopping rule, it requires a new protocol version.
 
 ## References
 
