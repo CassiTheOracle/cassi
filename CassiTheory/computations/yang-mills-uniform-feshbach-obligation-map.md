@@ -1300,6 +1300,76 @@ $$
 
 This conclusion concerns the kinematic product-Haar fibre and its bare multiplication potential. Extending it to a chosen interacting boundary representation requires the boundary disintegration and intertwiner in (UFA7)–(UFA10); the finite receipt does not supply that extension. Coupling-dependent fibres and energy-dependent Feshbach reductions remain admissible.
 
+### 4.4 Conditional coupling-dependent spectral-fibre route
+
+A viable escape route uses a coupling-dependent spectral subbundle and sends its horizontal leakage through the Feshbach operator instead of requiring exact invariance.
+
+For every $\nu$, block $B$, matched boundary sector $\alpha$ and trajectory coupling $x_\nu$, let
+$L_{\nu,B,\alpha,x_\nu}(v)$ be the fibre operator obtained from the vertical electric form together with every magnetic and boundary term that depends on the fibre coordinates at coarse datum $v$. The link-ownership convention must assign every crossing term to this form or to the complementary horizontal form before $L$ is defined. A conditional spectral-fibre construction requires an isolated rank-$r_\alpha$ cluster with a common gap:
+
+$$
+\operatorname{dist}\!\left(
+\operatorname{spec}L_{\nu,B,\alpha,x_\nu}(v)\setminus\Sigma_{\nu,B,\alpha}(v),
+\Sigma_{\nu,B,\alpha}(v)
+\right)
+\ge\delta_{\mathrm{fib},*}>0
+\tag{UFA32}
+$$
+
+for every declared $v$ and uniformly in $\nu$, block position and boundary sector. When a common resolvent contour exists, define the spectral projection
+
+$$
+p_{\nu,B,\alpha}(v)
+:=
+\frac{1}{2\pi i}
+\oint_{\Gamma_{\nu,B,\alpha}(v)}
+(z-L_{\nu,B,\alpha,x_\nu}(v))^{-1}\,dz.
+\tag{UFA33}
+$$
+
+The projection, rather than a globally chosen eigenvector, is the gauge-compatible object. It must satisfy
+
+$$
+p_{\nu,B,\alpha}(g\!\cdot\! v)
+:=
+\pi_{\nu,B,\alpha}^{\mathrm f}(g)\,
+p_{\nu,B,\alpha}(v)\,
+\pi_{\nu,B,\alpha}^{\mathrm f}(g)^*,
+\tag{UFA34}
+$$
+
+and have the measurable and horizontal form regularity needed for the direct-integral range $\operatorname{Ran}P_{\nu,B,\alpha}=\int^\oplus\operatorname{Ran}p_{\nu,B,\alpha}(v)\,d\mu(v)$. A coarse Hilbert bundle may then be mapped isometrically into this range, with local frames patched by unitary transitions; no global fibre eigenvector is assumed. The block and exterior projections must satisfy the boundary contraction identity (UFA8).
+
+The fibre spectral relation removes only the vertical off-diagonal term. On the declared common form core, write the associated decomposition as $h_{x_\nu}=L_{\nu,B,\alpha,x_\nu}+R_{\nu,B,\alpha,x_\nu}$, where $R$ contains the horizontal derivatives and the remaining cross terms. In the form sense,
+
+$$
+Q_{\nu,B,\alpha}h_{x_\nu}P_{\nu,B,\alpha}
+:=
+Q_{\nu,B,\alpha}R_{\nu,B,\alpha,x_\nu}P_{\nu,B,\alpha}
+:=
+B_{\nu,B,\alpha}.
+\tag{UFA35}
+$$
+
+The required uniform estimate is a relative form bound for $B_{\nu,B,\alpha}$ in the declared $S_\nu$-metric, together with
+
+$$
+D_{\nu,B,\alpha}
+:=
+Q_{\nu,B,\alpha}h_{x_\nu}Q_{\nu,B,\alpha}
+\succeq
+(c_*+\rho_*)I_Q,
+\qquad
+\mathfrak F_{\nu,B,\alpha}(c_*)
+\succeq
+\sigma_*I_P.
+\tag{UFA36}
+$$
+
+The fibre gap in (UFA32) does not imply (UFA36): horizontal connection, Born–Huang, boundary and crossing terms can lower the discarded form. The projection regularity, the off-diagonal estimate, the discarded lower bound and the retained Schur margin are separate proof obligations. Equations (UFA32)–(UFA36) are therefore a conditional construction target for UF-A–UF-C, not a claim that an interacting spectral subbundle exists.
+
+This route is compatible with the discrete trajectory $x_\nu$ and with an energy-dependent Feshbach map. It supplies the precise escape from (UFA31) while preserving the requirement that every generated interaction remain in the declared $P/Q$ forms.
+
 ## 5. Decision rule and stopping rule
 
 A finite implementation may report one of the following:
