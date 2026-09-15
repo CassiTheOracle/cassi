@@ -1179,25 +1179,28 @@ quantifiers.
 
 | Order | Obligation | Evidence already available | Missing proof object |
 |---:|---|---|---|
-| 1 | UF-A: gauge-compatible block or transfer map | The local-observable preregistration states the finite gauge-invariant word-algebra and conditional density input; UFA19–UFA21 give a fixed-graph boundary-Haar construction under their explicit hypotheses; UFA82–UFA90 add the scalar Haar-fibre candidate and exact magnetic leakage identity, while UFA92–UFA100 make the physical $S_\nu$-metric, boundary-intertwiner and derivative-leakage tests explicit. | Existence of the coarse multiplicity maps $J_{\nu,B,\alpha}$ in every boundary sector, boundary intertwining (UFA7), glued Gauss-law transport (UFA8), and exact or uniformly controlled form transport (UFA11–UFA13), including the metric and derivative conditions in UFA93 and UFA96–UFA100. The scalar candidate does not construct these maps. |
+| 1 | UF-A: gauge-compatible block or transfer map | The local-observable preregistration states the finite gauge-invariant word-algebra and conditional density input; UFA19–UFA21 give a fixed-graph boundary-Haar construction under their explicit hypotheses; UFA82–UFA90 add the scalar Haar-fibre candidate and exact magnetic leakage identity; UFA92–UFA100 make the physical $S_\nu$-metric, boundary-intertwiner and derivative-leakage tests explicit; and UFA101–UFA102 give a fixed-sector boundary obstruction with its exact Feshbach escape. | Existence of the coarse multiplicity maps $J_{\nu,B,\alpha}$ in every required boundary sector, boundary intertwining (UFA7), glued Gauss-law transport (UFA8), and exact or uniformly controlled form transport (UFA11–UFA13), including the metric and derivative conditions in UFA93 and UFA96–UFA100. The fixed 14-state sector cannot be used without the generated sectors in UFA101, and the Feshbach alternative requires uniform control of its discarded resolvent. |
 | 2 | UF-B: uniform discarded-sector recovery floor | Finite interacting Feshbach rows provide $D$-sector and Schur diagnostics; the obligation map gives the residual Gramian route (UF-B.16)–(UF-B.23). | A positive $\gamma_{Q,*}$ in (UF-B.19) or an equivalent multiscale estimate, uniform in volume, spacing, boundary fibre, representation cutoff and the weak-coupling trajectory. The Gaussian tensorization boundary rules out inferring this from single-block conditional gaps. |
 | 3 | UF-C: uniform Schur margin | The fixed-graph, cutoff and finite-volume receipts test positive roots on their declared rows; the translated sweep supplies finite plaquette-position coverage. | Uniform $a_*$, $\beta_*$ and $d_*>c_*$ satisfying (UF-C.1a)–(UF-C.1c), or a form-level $\kappa_*$ satisfying (UFA48)–(UFA50) with the independent conversion in (UFA52), after the UF-A transport and UF-B discarded-sector bound are established. A finite root or root-to-gap ratio is insufficient. |
 | 4 | UF-D: transported local-core exhaustion | The preregistration states the conditional finite/infinite local-algebra density, while the local-observable receipt checks finite supporting controls and the transfer criterion identifies the completeness distinction. | A transported exhaustion $(B_k,C_k)$ with uniform source-tail and form-tail limits compatible with the actual boundary fibres and retained projections. Finite word or plaquette coverage does not supply these uniform limits. |
 | 5 | UF-E: continuum recovery and scale matching | The obligation map states the required norm and form limsup conditions and the scale factor $F_\nu/a_\nu$. Existing finite receipts retain this boundary as unresolved. | A locally normal continuum representation, recovery sequences for the continuum form core, and $F_\nu/a_\nu\to m_W\in(0,\infty)$, followed by closure of the uniform lower bound. |
 
 UF-A remains the upstream blocker. The scalar candidate (UFA82)–(UFA90),
-with the metric, boundary and derivative audit (UFA92)–(UFA100), provides an
-exact fixed-regulator leakage observable and a list of admissibility tests,
-while (UFA91) and the Gaussian recovery theorem show that local conditional
-positivity does not imply a uniform physical $Q$ floor. UF-B therefore
-requires the transported residual floor (UF-B.19) or an equivalent multiscale
-estimate. UF-C then requires a uniform retained lower form, discarded margin
-and coupling bound after the UF-A transport; its finite Schur roots cannot
-replace those constants. UF-D must transport the same fibre maps through a
-uniform local-core exhaustion, and UF-E must construct the locally normal
-continuum representation, recovery sequences and scale limit. Section 4.4.3
-gives the finite candidate, but it must not be labelled as a completed coarse
-map.
+the metric, boundary and derivative audit (UFA92)–(UFA100), and the finite
+sector calculation (UFA101)–(UFA102) provide fixed-regulator observables and
+admissibility tests. The fixed fundamental-boundary sector is exited by a
+boundary plaquette, so a viable continuation must enlarge the sector family
+or retain the generated sectors in an energy-dependent Feshbach operator.
+The Gaussian recovery theorem (UFA91) shows that local conditional positivity
+does not imply a uniform physical $Q$ floor. UF-B therefore remains
+downstream of the UF-A transport and requires the transported residual floor
+(UF-B.19) or an equivalent multiscale estimate. UF-C then requires a uniform
+retained lower form, discarded margin and coupling bound after the UF-A
+transport; its finite Schur roots cannot replace those constants. UF-D must
+transport the same fibre maps through a uniform local-core exhaustion, and
+UF-E must construct the locally normal continuum representation, recovery
+sequences and scale limit. The finite candidate remains a conditional
+construction and is not a completed coarse map.
 
 ### 4.2 Scoped obstruction for coupling-independent finite-rank fibres
 
@@ -1998,8 +2001,26 @@ to continuum uniformity without multiscale mode separation.
 
 ### 4.4.5 Conditional expectation audit: metric, boundary and derivative tests
 
-A conditional expectation is not itself a coarse transfer map. At a fixed
-regulator, write the physical direct integrals as
+A conditional expectation is not itself a coarse transfer map. This audit uses
+a fixed-regulator finite direct-integral setup. For (UFA82), $\kappa_\nu$ is
+the normalized-Haar pushforward; for (UFA90), it is the finite pushforward
+of the normalized vacuum measure.
+
+For this subsection, assume that $\mathcal V_\nu$ is a standard Borel space
+with finite measure $\kappa_\nu$,
+measurable Hilbert fields, and that $\omega_{\nu,v}$ is a measurable
+$L^2$-normalized section for $\kappa_\nu$-almost every $v$. Assume also that
+the section belongs to the common differentiable form core in the $r$
+variables, that $\mathsf X_a\omega_{\nu,v}$ is square-integrable there, and
+that the horizontal derivative and every boundary/crossing term act on the
+same declared core. The operators $J_{\nu,\omega}$, $C_{\nu,\omega}$,
+$P_{\nu,\omega}$ and $Q_{\nu,\omega}$ below are defined on the resulting
+direct-integral form domain. Every derivative identity in this subsection is
+understood on that core, followed by closure only when the stated relative
+form bound is available.
+
+
+The physical spaces are
 
 $$
 \mathcal H_\nu^{\mathrm f}
@@ -2145,12 +2166,12 @@ J_{\nu,\omega}\bigl(\nabla_af+A_{\nu,a}f\bigr)
 $$
 
 For a vector-valued boundary fibre, $A_{\nu,a}$ is a connection matrix.
-The $\chi_{\nu,a}$ term is the Born–Huang/vertical leakage term; it is not
-controlled by the fibre normalization in (UFA94). If the coarse form carries
-a declared connection contribution $E_\nu^{\mathrm{conn}}$, it must be
-included explicitly. An exact form transport therefore additionally requires
-the derivative chain rule, matching of every boundary-electric term, and
-inclusion of every crossing Wilson multiplier:
+The $\chi_{\nu,a}$ term is the Born–Huang/vertical leakage term; fibre
+normalization alone does not control it. Let $E_\nu^{\mathrm{conn}}$ denote
+the declared coarse connection and vertical form assembled from
+$A_{\nu,a}$, $\chi_{\nu,a}$, the boundary-electric terms and every crossing
+Wilson multiplier. Let $Q_{\nu,\omega}:=I-P_{\nu,\omega}$. The exact
+form-transport branch would require
 
 $$
 J_{\nu,\omega}^*E_{\nu}^{\mathrm f}J_{\nu,\omega}
@@ -2163,12 +2184,66 @@ Q_{\nu,\omega}E_{\nu}^{\mathrm f}J_{\nu,\omega}
 \tag{UFA100}
 $$
 
-on the declared form domain, or a uniform relative-form replacement of these
-identities. Equations (UFA93), (UFA95)–(UFA100) are therefore
-admissibility tests for the conditional-expectation candidate, not
-consequences of its disintegration. The candidate remains a finite-regulator
-conditional construction; the dynamic spectral-fibre route stays open only
-after these metric, boundary and derivative obligations are supplied.
+on the declared form domain. These equalities are admissibility hypotheses
+for the exact branch, not identities supplied by (UFA98)–(UFA99). If the
+exact branch is unavailable, a uniform relative-form replacement must state
+the norm, domain and regulator dependence of its error. Equations (UFA93),
+(UFA95)–(UFA100) therefore audit the conditional-expectation candidate; the
+candidate remains a finite-regulator conditional construction, while the
+dynamic spectral-fibre route remains open only after the missing metric,
+boundary, derivative and form-transport objects are supplied.
+
+### 4.4.6 Finite boundary-sector obstruction and Feshbach escape
+
+The finite boundary calculation gives a concrete obstruction to confining
+the interacting map to one fixed representation sector. On the open
+$2\times2$ refinement, fix all eight boundary links in the fundamental
+representation, let $P_\partial$ project onto that gauge-invariant sector,
+and put $Q_\partial:=I-P_\partial$. The representation count and a
+boundary-touching plaquette action give
+
+$$
+\begin{gathered}
+\dim\operatorname{Ran}P_\partial=14,
+\qquad
+V_1\otimes V_1=V_0\oplus V_2,\\
+Q_\partial W_pP_\partial\neq0
+\qquad
+\text{for a boundary-touching elementary plaquette }p .
+\end{gathered}
+\tag{UFA101}
+$$
+
+This is the finite-sector content of (YM94) and (YM97). Any exact transfer
+map whose image is confined to $\operatorname{Ran}P_\partial$ therefore
+fails the closure condition $Q_\partial HJ=0$ for a Hamiltonian containing
+that plaquette term. The statement is a fixed-graph representation-theory
+obstruction; it does not exclude an expanded interacting fibre that carries
+the sectors reached by plaquette multiplication.
+
+The finite escape retains those sectors through the Feshbach operator. For
+$z\in\rho(Q_\partial H Q_\partial)$, the exact reduced operator is
+
+$$
+\mathcal F_\partial(z)
+:=
+P_\partial(H-z)P_\partial
+-P_\partial H Q_\partial
+\left[Q_\partial(H-z)Q_\partial\right]^{-1}
+Q_\partial H P_\partial .
+\tag{UFA102}
+$$
+
+Thus the next UF-A construction must either provide measurable, covariant
+partial isometries for an enlarged family of boundary sectors and verify the
+glued contraction in (UFA8), or retain the generated sectors in an
+energy-dependent Feshbach transfer. The finite count and leakage relation
+are analytical controls, not a regulator-uniform receipt; the uniform
+sector ranks, form domains, off-diagonal bounds and discarded lower form
+remain open. This sharpens the scoped bare-fibre obstruction in (UFA31) and
+the recovery-floor boundary in (UFA91) without closing the dynamic-fibre
+route.
+
 
 ### 4.5 Conditional consequences of a fibre gap
 
