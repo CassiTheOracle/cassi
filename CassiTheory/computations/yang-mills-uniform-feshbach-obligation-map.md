@@ -2266,7 +2266,7 @@ No new Feshbach receipt is scheduled until the construction (UFA61)–(UFA69) is
 
 ## References
 
-- `foundations/loop-to-bubble-projection-theorem.md` §§9.13–9.14, 9.17, 9.20, 9.25–9.26, 9.30, 9.33–9.34—exact cylindrical maps and refined-plaquette leakage, vacuum form, conditional-measure comparison, finite character bounds, scale matching, local completeness and the uniform lower-form criterion.
+- `foundations/loop-to-bubble-projection-theorem.md` §§9.13–9.14, 9.17, 9.20, 9.25–9.26, 9.30, 9.33–9.34—exact cylindrical maps, weighted dynamic-fibre compression/leakage (YM54a)–(YM54b), refined-plaquette leakage, vacuum form, conditional-measure comparison, finite character bounds, scale matching, local completeness and the uniform lower-form criterion.
 - `foundations/loop-to-bubble-projection-theorem.md` §9.18—continuous-$SU(2)$ radial Feshbach pencil, Weyl self-energy bounds, fixed-window isolation and the $N/x^{1/4}$ cutoff condition.
 - `computations/yang-mills-block-map-prereg.md`—edge-disjoint path coordinates, fixed $2\times2$ refinement and subdivision control.
 - `computations/verify_yang_mills_block_map.py`—declared plaquette words and deterministic finite controls for the bare fixture.
