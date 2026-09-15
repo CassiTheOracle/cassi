@@ -1338,37 +1338,37 @@ p_{\nu,B,\alpha}(v)\,
 \tag{UFA34}
 $$
 
-and have the measurable and horizontal form regularity needed for the direct-integral range $\operatorname{Ran}P_{\nu,B,\alpha}=\int^\oplus\operatorname{Ran}p_{\nu,B,\alpha}(v)\,d\mu(v)$. A coarse Hilbert bundle may then be mapped isometrically into this range, with local frames patched by unitary transitions; no global fibre eigenvector is assumed. The block and exterior projections must satisfy the boundary contraction identity (UFA8).
+and have the measurable and horizontal form regularity needed for the direct-integral range $\operatorname{Ran}\Pi_{\nu,B,\alpha}^{\mathrm{fib}}=\int^\oplus\operatorname{Ran}p_{\nu,B,\alpha}(v)\,d\mu(v)$, where $\Pi_{\nu,B,\alpha}^{\mathrm{fib}}$ is the direct-integral projection and $Q_{\nu,B,\alpha}^{\mathrm{fib}}:=I-\Pi_{\nu,B,\alpha}^{\mathrm{fib}}$. The identities in (UFA36) act on the indicated ranges. A coarse Hilbert bundle may then be mapped isometrically into this range, with local frames patched by unitary transitions; no global fibre eigenvector is assumed. The block and exterior projections must satisfy the boundary contraction identity (UFA8).
 
 The fibre spectral relation removes only the vertical off-diagonal term. On the declared common form core, write the associated decomposition as $h_{x_\nu}=L_{\nu,B,\alpha,x_\nu}+R_{\nu,B,\alpha,x_\nu}$, where $R$ contains the horizontal derivatives and the remaining cross terms. In the form sense,
 
 $$
-Q_{\nu,B,\alpha}h_{x_\nu}P_{\nu,B,\alpha}
+Q_{\nu,B,\alpha}^{\mathrm{fib}}h_{x_\nu}\Pi_{\nu,B,\alpha}^{\mathrm{fib}}
 :=
-Q_{\nu,B,\alpha}R_{\nu,B,\alpha,x_\nu}P_{\nu,B,\alpha}
+Q_{\nu,B,\alpha}^{\mathrm{fib}}R_{\nu,B,\alpha,x_\nu}\Pi_{\nu,B,\alpha}^{\mathrm{fib}}
 :=
-B_{\nu,B,\alpha}.
+B_{\nu,B,\alpha}^{\mathrm{fib}}.
 \tag{UFA35}
 $$
 
-The required uniform estimate is a relative form bound for $B_{\nu,B,\alpha}$ in the declared $S_\nu$-metric, together with
+The required uniform estimate is a relative form bound for $B_{\nu,B,\alpha}^{\mathrm{fib}}$ in the declared $S_\nu$-metric, together with
 
 $$
-D_{\nu,B,\alpha}
+D_{\nu,B,\alpha}^{\mathrm{fib}}
 :=
-Q_{\nu,B,\alpha}h_{x_\nu}Q_{\nu,B,\alpha}
+Q_{\nu,B,\alpha}^{\mathrm{fib}}h_{x_\nu}Q_{\nu,B,\alpha}^{\mathrm{fib}}
 \succeq
-(c_*+\rho_*)I_Q,
+(c_*+\rho_*)I_{Q^{\mathrm{fib}}},
 \qquad
-\mathfrak F_{\nu,B,\alpha}(c_*)
+\mathfrak F_{\nu,B,\alpha}^{\mathrm{fib}}(c_*)
 \succeq
-\sigma_*I_P.
+\sigma_*I_{\Pi^{\mathrm{fib}}}.
 \tag{UFA36}
 $$
 
 The fibre gap in (UFA32) does not imply (UFA36): horizontal connection, Born–Huang, boundary and crossing terms can lower the discarded form. The projection regularity, the off-diagonal estimate, the discarded lower bound and the retained Schur margin are separate proof obligations. Equations (UFA32)–(UFA36) are therefore a conditional construction target for UF-A–UF-C, not a claim that an interacting spectral subbundle exists.
 
-This route is compatible with the discrete trajectory $x_\nu$ and with an energy-dependent Feshbach map. It supplies the precise escape from (UFA31) while preserving the requirement that every generated interaction remain in the declared $P/Q$ forms.
+This route is compatible with the discrete trajectory $x_\nu$ and with an energy-dependent Feshbach map. It supplies the precise escape from (UFA31) while preserving the requirement that every generated interaction remain in the declared $\Pi^{\mathrm{fib}}/Q^{\mathrm{fib}}$ forms.
 
 ## 5. Decision rule and stopping rule
 
