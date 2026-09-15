@@ -1573,6 +1573,61 @@ $$
 $$
 The constants in (UFA52) must be independent of the trajectory and cutoff. The second inequality in (UFA52) is an independent form-domain comparison; the lower bound in (UF-C.1a) supplies positivity of $\mathfrak d_{c_*}$ but does not supply this upper comparison. Without (UFA48) or an equivalent conversion, the derivative estimate in (UFA40) and the form coefficient in (UFA42) cannot be inserted into UF-C.1.
 
+### 4.8 Continuous-$SU(2)$ radial benchmark
+
+The continuous-$SU(2)$ radial model supplies an exact one-loop test of the domain, tail and self-energy interfaces used above. In the character basis, the operator has the half-line form
+
+$$
+h_x=K+x(2I-T),
+\qquad
+x=\frac{2}{g^4},
+\qquad
+P_N=\sum_{n=0}^{N}|n\rangle\langle n|,
+\qquad
+Q_N=I-P_N,
+\tag{UFA55}
+$$
+
+with a self-adjoint discarded tail $D_N=Q_Nh_xQ_N$ and rank-one coupling $V_N=-x|N\rangle\langle N+1|$. Its exact Feshbach pencil is
+
+$$
+F_N(z)
+:=
+A_N-zP_N
+-V_N(D_N-z)^{-1}V_N^*
+:=
+A_N-zP_N
+-x^2m_{N+1}(z)|N\rangle\langle N|.
+\tag{UFA56}
+$$
+
+The Weyl-function bracket in `foundations/loop-to-bubble-projection-theorem.md` §9.18 gives the tail self-energy directly. This provides a model form-domain implementation of the $\kappa_*$ bridge: the discarded resolvent is controlled before the retained Schur margin is tested, and the energy dependence is retained rather than replaced by the coarse Hilbert bound $\|V_N\|=x$.
+
+For the fixed low window $J=2$, the choice $N_{\mathrm{iso}}=\lceil4x^{1/4}\rceil$ gives
+
+$$
+\frac{\lambda_2(h_x)}{\sqrt{x}}\longrightarrow11,
+\qquad
+\frac{\inf\operatorname{spec}D_{N_{\mathrm{iso}}}}{\sqrt{x}}
+\longrightarrow\nu_0(4)\ge16,
+\tag{UFA57}
+$$
+
+The cited radial derivation gives exact spectral isolation for this model, including its self-energy.
+
+Bare finite-section convergence has a stronger requirement:
+
+$$
+\frac{N}{x^{1/4}}\longrightarrow\infty,
+\qquad\text{equivalently}\qquad
+gN\longrightarrow\infty.
+\tag{UFA58}
+$$
+
+The scale $N\asymp x^{1/4}$ is sufficient for fixed-window Feshbach isolation and insufficient for bare half-line convergence; the distinction is the tail probability and form approximation, not the existence of a finite Schur pencil.
+
+The radial construction therefore supplies a finite, model-qualified benchmark for UFA32, UFA35 and UFA47–UFA51. Its scope ends at one isolated square in the class-function sector. It does not construct the interacting block fibres, boundary representation intertwiners, volume-uniform recovery floor, UF-C conversion constants or continuum representation required by UF-A–UF-E. Those full Yang–Mills obligations remain open.
+
 ## 5. Decision rule and stopping rule
 
 A finite implementation may report one of the following:
@@ -1588,6 +1643,7 @@ No new Feshbach receipt is scheduled until an exact block/transfer construction 
 ## References
 
 - `foundations/loop-to-bubble-projection-theorem.md` §§9.13, 9.20, 9.25–9.26, 9.30, 9.33–9.34—vacuum form, finite character bounds, scale matching, local completeness and the uniform lower-form criterion.
+- `foundations/loop-to-bubble-projection-theorem.md` §9.18—continuous-$SU(2)$ radial Feshbach pencil, Weyl self-energy bounds, fixed-window isolation and the $N/x^{1/4}$ cutoff condition.
 - `computations/yang-mills-block-map-prereg.md`—edge-disjoint path coordinates, fixed $2\times2$ refinement and subdivision control.
 - `computations/verify_yang_mills_block_map.py`—declared plaquette words and deterministic finite controls for the bare fixture.
 - `computations/yang-mills-4x2x2-c1-feshbach-prereg.md`—finite translated $4\times2\times2$ screen and its declared evidence boundary.
