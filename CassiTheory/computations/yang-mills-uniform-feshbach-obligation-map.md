@@ -1707,8 +1707,14 @@ $\omega_-/\omega_+$ is regulator-dependent, so (UFA72) supplies no
 $\nu$-uniform $\delta_{\mathrm{fib},*}$.
 
 This partial realization closes the fixed-regulator scalar projection
-subproblem and isolates the next analytic interface: prove the
-boundary-sector lift and the exact vertical-form identification before
+subproblem. The finite boundary-gluing theorem in
+`foundations/loop-to-bubble-projection-theorem.md` §9.34.2 supplies the
+matched-sector Hilbert extension and surjectivity under its stated
+Peter–Weyl hypotheses, but it does not instantiate the conditional fibre
+disintegration, the coarse maps $J_{\nu,B,\alpha}$, or their transport across
+$v$. The next analytic interface is therefore to connect that finite gluing to
+the conditional boundary sectors and prove the exact vertical-form identity,
+including the derivative chain rule and boundary-electric matching, before
 attempting a uniform spectral-fibre or Feshbach estimate.
 
 The residual-recovery receipt does not fill this interface. Its finite
