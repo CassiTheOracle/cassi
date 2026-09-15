@@ -2845,10 +2845,16 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   the all-coupling rule: the final ranks are $865$, $867$, $867$, and $867$,
   with deficiencies $2$, $0$, $0$, and $0$ at
   $x=1/64,1/16,1/4,1$. The independent arithmetic audit passes $24/24$.
-  Finite simple-cycle coverage is therefore complete as an inventory and
-  incomplete as an all-coupling full-$Q$ family; repeated-edge and
-  self-intersecting closed words, local recovery, volume-uniform control,
-  continuum construction and the mass gap remain open.
+  Finite simple-cycle coverage is complete as an inventory and incomplete as
+  an all-coupling full-$Q$ family. The repeated-edge extension adds the
+  $55$ length-eight classes with repeated edges or repeated vertices, for
+  $280$ canonical Wilson representatives and $16384$ projected columns with
+  the degree-four plaquette products. Its source-bound receipt passes all
+  $41/41$ controls but remains `FAIL` under the all-coupling rule: the final
+  ranks are $865$, $867$, $867$, and $867$, with deficiencies $2$, $0$, $0$,
+  and $0$ at $x=1/64,1/16,1/4,1$. The independent arithmetic audit passes
+  $24/24$. All-word local recovery, volume-uniform control, continuum
+  construction and the mass gap remain open.
 
 
   Section 9.34 states the exact remaining transfer criterion. At finite
@@ -2869,8 +2875,8 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
   the full local algebra, a uniform interacting endpoint gap, weak-coupling
   continuum construction, continuum Osterwalder–Schrader/Wightman
   reconstruction and a regulator-independent physical mass gap remain open.
-  See `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.34, 9.42–9.43 and
-  `field-experience/probe-outcome-ledger.md` §§30,34,36–44,56–58.
+  See `foundations/loop-to-bubble-projection-theorem.md` §§9.23–9.34, 9.42–9.44 and
+  `field-experience/probe-outcome-ledger.md` §§30,34,36–44,56–59.
 - **Quantum-field-to-carrier state map.** The regulated QF1 complex field and
   the finite carrier occupations form independent factors in the adopted
   additive completion. A physical identification requires an admissible state

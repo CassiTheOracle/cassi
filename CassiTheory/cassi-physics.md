@@ -386,6 +386,24 @@ not all closed words, local recovery, volume-uniform control or the continuum
 mass gap. See `foundations/loop-to-bubble-projection-theorem.md` §9.43 and
 `field-experience/probe-outcome-ledger.md` §58.
 
+The finite closed-Wilson screen now includes every canonical cyclically reduced
+fundamental trace of lengths $4$, $6$ and $8$, including the $55$ length-eight
+classes with repeated edges or repeated vertices, together with the simple
+length-$10$ and length-$12$ representatives. The declared family has $280$
+classes, $792$ rooted occurrences in the repeated length-eight sector, and
+$16384$ projected columns after the degree-four plaquette products are added.
+The source-bound calculation passes all $41/41$ primary controls and returns
+`REPEATED_EDGE_CLOSED_WILSON_COVERAGE_INCOMPLETE` with ranks
+$865,867,867,867$ and finite deficiencies $2,0,0,0$ in the centered
+$Q$ space. The independent arithmetic audit passes $24/24$ checks. Repeated
+closed words therefore do not remove the finite $1/64$ deficiency in this
+declared family; the result remains a finite graph and cutoff statement, with
+local recovery, volume-uniform control, lattice-spacing control, continuum
+construction and the Yang–Mills mass gap outside its scope. See
+`computations/yang-mills-closed-wilson-repeated-edge-coverage-prereg.md`,
+`computations/yang_mills_closed_wilson_repeated_edge_coverage_manifest.json`
+and `field-experience/probe-outcome-ledger.md` §59.
+
 The geometric manifold completion ansatz places these finite structures in
 one stratified bundle. A positive Hermitian Yang/Yin fibre contains the
 canonical density pair on its diagonal, the loop coherence state in its

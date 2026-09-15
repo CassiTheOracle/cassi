@@ -7863,10 +7863,60 @@ and finite classification without a second Hamiltonian solve.
 
 This result closes the declared finite simple-cycle inventory and shows
 full-$Q$ coverage at three of four couplings for the stated augmented family.
-It does not include self-intersecting or repeated-edge single-trace words
-beyond the retained plaquette products. Complete closed-Wilson-word coverage,
-local conditional residual estimates, volume-uniform control, lattice-spacing
+This section covers only simple cycles; the repeated-edge single-trace
+extension is recorded in §9.44. Complete closed-Wilson-word coverage, local
+conditional residual estimates, volume-uniform control, lattice-spacing
 control, continuum construction and the Yang–Mills mass gap remain open.
+
+See `computations/yang-mills-closed-wilson-simple-cycle-coverage-prereg.md`,
+`computations/verify_yang_mills_closed_wilson_simple_cycle_coverage.py`,
+`computations/verify_yang_mills_closed_wilson_simple_cycle_coverage_independent.py`,
+`computations/yang_mills_closed_wilson_simple_cycle_coverage_manifest.json` and
+`field-experience/probe-outcome-ledger.md` §58.
+
+### 9.44 Finite closed-Wilson repeated-edge coverage
+
+The repeated-edge screen supplies the declared finite single-trace extension.
+On the recovered open $3\times2\times2$ graph, cyclically reduced fundamental
+traces of lengths $4$, $6$ and $8$ give canonical counts $11,36,127$; the
+length-eight sector contains $55$ classes with repeated edges or repeated
+vertices and $792$ rooted directed occurrences. The simple length-$10$ and
+length-$12$ classes add $84$ and $22$ representatives, giving $280$
+canonical Wilson representatives in total.
+
+Every retained repeated-edge matrix uses one loop factor for every word
+occurrence at each active link and retains all compatible spectator intertwiner
+channels. The $225$ simple and $55$ repeated-edge matrices are finite and
+Hermitian. The exact length-four controls agree with the plaquette assembler,
+and fixed state-pair controls agree with direct link-Haar network contractions.
+
+At each scheduled coupling, the $280$ centered Wilson vectors are combined with
+the $11+121+1331+14641$ ordered plaquette products through degree four, giving
+$16384$ projected columns in the $868$-dimensional basis. The ranks are:
+
+| $x$ | augmented rank | $Q$ deficiency | first full-rank block |
+|---:|---:|---:|---|
+| $1/64$ | $865$ | $2$ | none |
+| $1/16$ | $867$ | $0$ | plaquette degree four |
+| $1/4$ | $867$ | $0$ | plaquette degree four |
+| $1$ | $867$ | $0$ | plaquette degree four |
+
+The source-bound receipt has `status=FAIL` with classification
+`REPEATED_EDGE_CLOSED_WILSON_COVERAGE_INCOMPLETE`: all $41/41$ primary
+controls pass, but the all-coupling rule retains the $1/64$ deficiency. The
+independent receipt passes $24/24$ arithmetic-audit checks and confirms the
+inventory, schedule, singular-value ranks, nullities and finite classification
+without a second Hamiltonian solve.
+
+Repeated closed words do not remove the finite deficiency in this declared
+family. All-word local recovery, volume-uniform control, lattice-spacing
+control, continuum construction and the Yang–Mills mass gap remain separate
+obligations. See
+`computations/yang-mills-closed-wilson-repeated-edge-coverage-prereg.md`,
+`computations/verify_yang_mills_closed_wilson_repeated_edge_coverage.py`,
+`computations/verify_yang_mills_closed_wilson_repeated_edge_coverage_independent.py`,
+`computations/yang_mills_closed_wilson_repeated_edge_coverage_manifest.json` and
+`field-experience/probe-outcome-ledger.md` §59.
 
 See `computations/yang-mills-closed-wilson-simple-cycle-coverage-prereg.md`,
 `computations/verify_yang_mills_closed_wilson_simple_cycle_coverage.py`,

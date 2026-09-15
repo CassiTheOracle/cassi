@@ -2240,6 +2240,38 @@ The tracked lineage manifest
 `computations/yang_mills_closed_wilson_simple_cycle_coverage_manifest.json`
 records the same source and receipt hashes.
 
+## 59. Finite closed-Wilson repeated-edge coverage
+
+The frozen protocol
+`computations/yang-mills-closed-wilson-repeated-edge-coverage-prereg.md`
+defines the complete declared cyclically reduced fundamental Wilson family of
+lengths $4$, $6$ and $8$, including the $55$ length-eight classes with repeated
+edges or repeated vertices. It also includes the simple length-$10$ and
+length-$12$ representatives and the ordered plaquette products through degree
+four. The inventory has $4672$ declared rooted occurrences, $280$ canonical
+representatives, and length counts $11,36,127,84,22$ for lengths
+$4,6,8,10,12$. The repeated length-eight sector has $792$ rooted occurrences
+and $55$ canonical classes.
+
+| Control or claim | Decisive result | Classification and scope |
+|---|---|---|
+| Exact repeated-edge construction | The primary retains every loop occurrence at each active link, all bra and ket factors, all spectator intertwiner channels and the complete link-Haar contraction. All $225$ simple and $55$ repeated-edge matrices are finite and Hermitian; the sampled direct-network and reversal residuals are at most $4.44\times10^{-16}$ and $0$ | **PASS**, declared finite $C=1$ matrices |
+| Primary verification | `runs/yang_mills_closed_wilson_repeated_edge_coverage/verification.json` has status `FAIL`, classification `REPEATED_EDGE_CLOSED_WILSON_COVERAGE_INCOMPLETE`, and passes all $41/41$ construction and arithmetic controls | **INCOMPLETE**, finite family and coupling schedule |
+| Independent reconstruction | `runs/yang_mills_closed_wilson_repeated_edge_coverage/verification-independent.json` independently reconstructs the graph-walk inventory, word family, projected-column schedule, cumulative rank arithmetic, nullities and finite classifications; it passes $24/24$ checks without a second Hamiltonian solve | **PASS**, implementation-independent arithmetic audit |
+| Augmented rank | The $16384$-column projected matrix has ranks $865,867,867,867$ at $x=1/64,1/16,1/4,1$, with deficiencies $2,0,0,0$; full rank first appears at the degree-four plaquette block for the last three couplings | **INCOMPLETE** under the all-coupling rule |
+| Continuum boundary | The calculation fixes the graph, $C=1$ basis, coupling schedule, rank threshold and word family. It does not establish all-word local recovery, volume-uniform estimates, lattice-spacing control, a continuum construction, thermodynamic control or the Yang–Mills mass gap | **UNRESOLVED**, separate analytical obligations |
+
+Repeated closed words do not remove the finite $1/64$ deficiency in this
+declared family. The result ends the fixed stopping rule: no additional word
+length, threshold tuning, coupling selection or family is added in response to
+the rank. The tracked manifest
+`computations/yang_mills_closed_wilson_repeated_edge_coverage_manifest.json`
+binds the protocol, source files, reused finite-volume receipt and both new
+receipts. The primary receipt SHA-256 is
+`eb766044ee94e8eeb85e0a57a9b1c3fbf16d3d0f3de61815a42c9ad57801d7b8`; the
+independent receipt SHA-256 is
+`52767905974b485a90de899b6965fb95118b28bb0a8bb9cf30f78eb274a98a3f`.
+
 ## References
 
 - `computations/yang-mills-anisotropic-hamiltonian-limit-prereg.md`—frozen normalized-character, anisotropic coefficient, generator, semigroup and claim-boundary protocol.
