@@ -5292,85 +5292,47 @@ $$
 \tag{YM185}
 $$
 
-The exact eigenvector takes the value $2.094120531213694$ at the identity
-configuration and $-0.03437408376157869$ at the configuration with the first
-block link inverted, and the scaled ratio is bounded above by $-298/4669$.
-The cutoff density $\rho\propto|\Omega|^2$ therefore vanishes on a nonempty
-set, and a smooth approximation to $\operatorname{sign}(\Omega)$ has positive
-limiting variance with Dirichlet energy tending to zero, so the unrestricted
-conditional Poincaré gap of that cutoff measure is exactly zero. The
-preregistered retained test space returns $0.864465200076$ for the same row.
+The retained finite execution record reports the projected Ritz vector at the
+identity configuration as $2.094120531213694$ and at the configuration with
+the first block link inverted as $-0.03437408376157869$, with the scaled
+ratio bounded above by $-298/4669$. The cutoff density
+$\rho\propto|\Omega|^2$ therefore vanishes on a nonempty set, and a smooth
+approximation to $\operatorname{sign}(\Omega)$ has positive limiting variance
+with Dirichlet energy tending to zero, so the unrestricted conditional
+Poincaré gap of that cutoff measure is exactly zero. The retained test space
+returns $0.864465200076$ for the same row.
 
-The exact regulated vacuum measure is strictly positive by §9.13, so the nodal
-degeneracy belongs to the projected Ritz density and not to the vacuum. The
-retained rate keeps its one-sided meaning as an upper estimate for the cutoff
-measure's conditional gap, and the exact-vacuum fibre rate
+The exact regulated vacuum measure is strictly positive by §9.13, so the
+nodal degeneracy belongs to the projected Ritz density and not to the vacuum.
+The retained rate keeps its one-sided meaning as an upper estimate for the
+cutoff measure's conditional gap, and the exact-vacuum fibre rate
 $\lambda_{\mathrm{fib}}$ remains an obligation in its own right: a projected
 Ritz density is not a usable surrogate for it.
 
-The schedule-wide extension of that obstruction is frozen in
-`computations/yang-mills-nodal-family-prereg.md`, with source
-`computations/verify_yang_mills_nodal_family.py` and receipt
-`runs/yang_mills_nodal_family/verification.json`. The measured statistic is
-the resolved sign-change count of the normalized Ritz wavefunction along two
-block paths,
+The retained §27 record has no matching source snapshot for the primary
+verifier digest embedded in its receipt. Its rows remain a local finite
+diagnostic rather than source-bound evidence for the Hamiltonian fibre or a
+uniform gap.
 
-$$
-N_{\mathrm{chg}}(J,x)=\#\Bigl\{k:\ \Omega_J\bigl(U_{(e^*)}(\varphi_k)\bigr)\,
-\Omega_J\bigl(U_{(e^*)}(\varphi_{k+1})\bigr)<0,\ \
-\bigl|\Omega_J\bigr|>10^{-10}\Bigr\},
-\qquad
-U_{(e^*)}(\varphi)=\exp\!\Bigl(i\frac{\varphi}{2}\sigma_3\Bigr),
-\tag{YM186}
-$$
+The schedule-wide nodal-family protocol is retained in
+`computations/yang-mills-nodal-family-prereg.md`, with executable
+`computations/verify_yang_mills_nodal_family.py`. Its expected receipt
+`runs/yang_mills_nodal_family/verification.json` is absent, and no source
+snapshot accompanies the retained specification. No current numerical
+classification or source-bound conformance result is available for the
+twelve-row extension.
 
-evaluated at the twelve rows $J\in\{1,2,3\}$,
-$x\in\{1/4,1,4,16\}$ with $\varphi_k=2\pi k/48$, the other block links and
-the three exterior links at the identity, and path link $e^*\in\{0,1\}$. The
-endpoint values at $J=1$, $x=1$ reproduce the sealed control to
-$4.4\times10^{-16}$, and the path values are real to $8.5\times10^{-18}$
-relative. Seven rows carry a resolved sign change, five of them with odd
-parity, and the two rows at $J=2$, $x=4,16$ pass through two crossings with
-negative excursions of resolved modulus $1.2\times10^{-2}$ and
-$4.8\times10^{-3}$. The onset moves with the cutoff: at $J=1$ the
-obstruction is present at $x=1$, while at $J=2$ and $J=3$ it appears only at
-$x=4$. The $x=1/4$ rows are witness-free at every cutoff, with path minima
-$0.675$, $0.706$ and $0.704$, three orders of magnitude above the
-resolution, so their silence is not a resolution artifact. The frozen
-decision tree returns `NODAL_CONFINED`.
+The two-parameter surface protocol is retained in
+`computations/yang-mills-nodal-surface-prereg.md`, with executable
+`computations/verify_yang_mills_nodal_surface.py`. Its expected receipt
+`runs/yang_mills_nodal_surface/verification.json` is absent, so the
+one-parameter conformance prerequisite and the surface search have no current
+numerical classification. No nodal-family or nodal-surface verdict is
+transferred to the present theory.
 
-Two consequences attach to this extension. The zero-gap region of the
-projected Ritz density is not uniform in the cutoff; it occupies the
-strong-coupling half of the schedule and recedes as the cutoff grows. A
-one-parameter path can miss a codimension-one nodal set, so the five
-witness-free rows bound nothing in the positive direction, and the whole
-statement stays inside the surrogate: the exact regulated vacuum measure is
-unaffected.
-
-A second frozen protocol,
-`computations/yang-mills-nodal-surface-prereg.md` with source
-`computations/verify_yang_mills_nodal_surface.py` and receipt
-`runs/yang_mills_nodal_surface/verification.json`, replaces the paths by a
-two-parameter torus family that rotates block links $0$ and $1$ independently
-over a $33\times33$ grid. Its 66 grid lines per row find the same boundary:
-the same seven rows carry resolved sign changes, now on 12–62 lines each with
-16–162 total changes, and the same five rows carry none on any line, with
-grid minima $0.675$, $0.706$, $0.704$, $0.277$ and $0.201$ over 1089 points
-per row. Both one-parameter lines reproduce the sealed path tables at the
-seventeen common angles to $7.1\times10^{-15}$, and the frozen decision tree
-returns `WITNESS_CONFINED`. The zero-gap region of the projected Ritz density
-is therefore not an artifact of a single path family.
-
-The frozen study classifies all 180 scheduled boundary rows
-`INCONCLUSIVE`. The restriction rank grows with the cutoff at every coupling,
-the embedded-minimizer and rate-stability rules fail under their literal
-tolerances, and the endpoint full-space residual is $7.4\times10^{-2}$ at
-$x=4$ and $3.12$ at $x=16$, above the $10^{-2}$ qualification bound. At the
-two smallest couplings the retained rates have stabilized to
-$1.1\times10^{-10}$ and $2.9\times10^{-6}$ between the last two cutoffs. No
-row qualifies for `SUPPORTS_FINITE_BLOCK`, no conditional-collapse witness is
-issued, and the study makes no score or margin claim because the transport
-score is outside its first implementation target.
+The exact regulated vacuum measure, conditional-rate cutoff removal, uniform
+interacting recovery, thermodynamic limit and continuum construction remain
+open.
 
 ### 9.24 Loop-carrying exterior and finite fibre sensitivity
 
@@ -5383,24 +5345,19 @@ orbit space is therefore a conjugacy class of $SU(2)$, represented by
 $U_4=U_5=U_6=I$ and $U_7=\exp(i\theta\sigma_3/2)$ for
 $\theta=k\pi/8$.
 
-The source-bound execution schedules the four couplings
+The retained bowtie protocol schedules the four couplings
 $x\in\{1/4,1,4,16\}$ at doubled cutoffs $J=1,2,3$ and all nine boundary
-angles, giving 108 rows. The seven analytic controls—state-space dimension,
-kinetic labels, normalization, gauge-orbit invariance, Hermiticity,
-positivity and exclusive receipt creation—pass. The partition responds to
-the exterior loop; for example, at $J=1$, $x=1$ it ranges from
-$0.9160251472$ to $2.3613249509$ over the angle slice. This selects the
-boundary-sensitivity branch of the orbit decision tree and shows that the
-tree-exterior collapse does not persist when an exterior loop is present.
+angles, giving 108 planned rows. Its expected receipt
+`runs/yang_mills_bowtie_fibre/verification.json` is absent. The executable
+imports the current
+`computations/verify_yang_mills_exact_block_spectrum.py` and
+`computations/yang_mills_conditional_algebra.py` at runtime, and no frozen
+source snapshot accompanies the specification. No current
+boundary-sensitivity or retained-rate classification is available.
 
-The rate qualification remains unresolved at this finite level. Every one of
-the 108 rows is `INCONCLUSIVE`: 36 rows fail only the full-space residual
-bound, 27 fail only the nested restriction-rank rule, and 45 fail both; the
-largest full-space residual is $15.2349853487$ against the preregistered
-$10^{-2}$ bound. The retained-rate numbers are therefore diagnostic
-measurements rather than a uniform fibre estimate. The exact-vacuum fibre
-rate, transported score, conditional-rate cutoff removal, uniform interacting
-recovery, thermodynamic limit and continuum construction remain open.
+The exact-vacuum fibre rate, transported score, conditional-rate cutoff
+removal, uniform interacting recovery, thermodynamic limit and continuum
+construction remain open.
 
 ### 9.25 Fixed-finite-graph character-cutoff form lemma
 
@@ -8007,7 +7964,7 @@ microscopic completions.
 | Conditional $H^{-1}$ score recurrence and exact margin transfer (YM126)–(YM151) | **Derived conditional** finite-regulator theorem | The inverse-generator score norm retains vertical cancellations and is no weaker than the $L^2$ covariance estimate; its exact-vacuum uniform bound remains open |
 | Residual recovery Gramian and score-penalty separation (YM152)–(YM170) | **Derived conditional** finite-regulator theorem | $A_{\mathrm{AT}}^{\mathrm{opt}}=\gamma_{\mathrm{rec}}^{-1}$ and $\lambda_{\mathrm{gi}}\geq\gamma_{\mathrm{rec}}\lambda_{\mathrm{loc}}/\rho$; the score operator is a separate upper penalty on coarse tangents, and uniform exact-vacuum recovery and score bounds remain open |
 | Finite-level martingale transport criterion (YM171)–(YM182) | **Derived conditional** finite-regulator theorem | Full-filtration/gauge-domain identity, energy comparison, and uniformly controlled weighted transport operator are required; exact Yang–Mills shell, recovery and weak-coupling bounds remain open |
-| Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM186) | **Derived** finite-regulator identity and **Derived** obstruction | A tree exterior collapses every scheduled boundary angle to one fibre; the projected Ritz density makes the cutoff measure's conditional gap vanish identically at the rows carrying a resolved path sign change, and the twelve-row path and two-parameter torus families confine that zero-gap region to the strong-coupling rows; the exact-vacuum fibre rate remains required |
+| Tree-exterior boundary independence and nodal Ritz obstruction (YM183)–(YM186) | **Derived** finite-regulator identity and **Derived** one-row projected-Ritz obstruction | A tree exterior collapses every scheduled boundary angle to one fibre, and the retained §27 execution record supplies the one-row projected-Ritz nodal control with unresolved source provenance; the schedule-wide path and two-parameter protocols are retained without current receipts or dependent classifications, while the exact-vacuum fibre rate remains required |
 | Fixed-graph character-cutoff form theorem (YM187)–(YM195) | **Derived** within every fixed finite regulated graph | Exact tree-gauge Haar disintegration, equivalent electric forms, form-core convergence, separation-free discarded-mass bound and noncommuting Ritz-error bound; constants are not uniform in graph size, coupling or lattice spacing |
 | Volume-uniform local cutoff density and global-norm obstruction (YM196)–(YM205) | **Derived** local finite-volume theorem and **Derived** obstruction | On periodic cubic lattices, every fixed-support ground-density observable has a character-cutoff error uniform in volume; bounded electric energy density alone cannot control whole-wavefunction cutoff norm. Its executable receipt constructs no thermodynamic or continuum state; §9.27 uses the analytic bound as an input |
 | Fixed-regulator thermodynamic ground-state subsequence (YM206)–(YM213) | **Derived conditional** operator theorem with finite-identity controls | Finite-volume ground densities and the volume-uniform local tail estimate are analytic inputs; a diagonal subsequence is locally normal and satisfies the algebraic ground condition on the local gauge-invariant $*$-algebra with finite Peter–Weyl matrix support, while full-sequence convergence, uniqueness, clustering, a uniform gap and every continuum limit remain open |
@@ -8018,7 +7975,7 @@ microscopic completions.
 | Local Wilson-word algebra, GNS completeness and uniform-form criterion (YM259)–(YM278) | **Derived conditional** finite gauge-invariant algebra, vacuum-orthogonal density statement, finite boundary Hilbert extension and surjectivity, conditional form-domain target, local-recovery route and residual-Schur criterion | The full centered local gauge-invariant algebra supplies a complete finite-regulator GNS core; the orientation-fixed finite Peter–Weyl contraction extends unitarily, while derivative/form compatibility in (YM278), coarse retained-sector transport, a regulator-uniform lower form bound, physical scale matching and continuum construction remain open |
 | Nested-cutoff interacting Feshbach screen | **INCONCLUSIVE** finite-cutoff measurement (`NO_POSITIVE_FAMILY_CERTIFICATE`) | Ten nested cutoff pairs on the seven-link graph pass 403/403 primary controls and 370/370 independent arithmetic/source-binding checks; positive Schur roots occur in 36/40 rows, with four zero-root rows at $x=16$; uniform regulator, volume, recovery, continuum and mass-gap control remain open |
 | Cutoff-six interacting Feshbach growth family | **INCONCLUSIVE** finite-cutoff measurement (`SUPPORTS_FINITE_ADJACENT_FAMILY`) | The adjacent gauge-invariant retained sequence through outer cutoff 6 passes 603/603 primary controls and 552/552 independent arithmetic/source-binding checks, with positive Schur roots in 20/20 adjacent rows; eight non-adjacent $x=16$ rows lack positive roots, and uniform regulator, volume, recovery, continuum and mass-gap control remain open |
-| Loop-carrying exterior bowtie fibre probe | **INCONCLUSIVE** finite-cutoff measurement | The eight-link exterior plaquette produces boundary-sensitive conditional partitions, but all 108 retained-rate rows fail a residual or nested-rank qualification rule; the exact-vacuum fibre rate, transport score, conditional-rate cutoff removal and continuum construction remain open |
+| Loop-carrying exterior bowtie fibre probe | **Unresolved finite specification** | The retained eight-link protocol defines a loop-carrying exterior and a 108-row qualification schedule, but its expected receipt is absent, so no current boundary-sensitivity or retained-rate classification is available; the exact-vacuum fibre rate, transport score, conditional-rate cutoff removal and continuum construction remain open |
 | Finite open-cube SU(2) basis and oriented Wilson support | **Derived** finite-regulator construction | The open $2\times2\times2$ cube has 32 and 1013 gauge-invariant raw trivalent-$3j$ states at doubled cutoffs $C=1,2$; every six signed fundamental plaquette operators has 32 and 2388 nonzero candidate-supported directed entries, with finite Hermitian contractions; fixed-graph character-cutoff removal follows from (YM187)–(YM195), while a growing open-boundary family and continuum control remain open |
 | Larger-volume/cutoff SU(2) Hamiltonian | **Derived** recovered finite-regulator construction and fixed-graph cutoff removal; **INCONCLUSIVE** frozen separation qualifications | The open $3\times2\times2$ graph has 868 and 955835 complete gauge-invariant states at doubled cutoffs $C=1,2$; the recovery enforces spectator-intertwiner orthogonality, all 226 finite-construction checks and 256 independent checks pass, every scheduled ground energy is nonnegative, and the separation-free theorem removes the character cutoff only after this graph and coupling are fixed |
 | All-local-action volume-adapted Feshbach family (§9.36) | **INCONCLUSIVE** finite-volume measurement | The retained source rank grows from $3$ to $12$ and exhausts the seven-link projected space ($\mathcal Q=0$); the large graph has positive finite roots, but no volume-uniform retained-family certificate |
@@ -8335,57 +8292,35 @@ These formulas do not extend the 58-check or 30-check recovery receipts. The
 exact-vacuum shell, recovery and
 weak-coupling transport bounds remain **UNRESOLVED**.
 
-The exact-block first-target study in §9.23 is bound by SHA-256 to the frozen
-protocol `computations/yang-mills-exact-block-spectral-prereg.md`, the source
-`computations/verify_yang_mills_exact_block_spectrum.py` and the shared
-representation helper `computations/yang_mills_conditional_algebra.py`. Its
-receipt `runs/yang_mills_exact_block_spectrum/verification.json` holds 20
-Ritz rows, 180 scheduled boundary rows and the analytic nodal control, with
-partition, Gram, Dirichlet and boundary-spread deviations at the
-$10^{-15}$–$10^{-16}$ level. All 180 boundary rows classify `INCONCLUSIVE`
-under the literal preregistered rules, no row qualifies, and the study issues
-no score or margin verdict because the transport score lies outside its
-first implementation target. It extends neither the 58-check nor the
-30-check recovery receipts, and the exact-vacuum fibre rate, transport score,
-conditional-rate cutoff removal, uniform interacting recovery, thermodynamic
-limit and continuum construction remain **UNRESOLVED**.
+The exact-block first-target study in §9.23 has a retained primary execution
+record at `runs/yang_mills_exact_block_spectrum/verification.json` with
+20 Ritz rows, 180 scheduled boundary rows and the analytic nodal control.
+All 180 boundary rows classify `INCONCLUSIVE` under the literal
+preregistered rules, no row qualifies, and the study issues no score or
+margin verdict because the transport score lies outside its first
+implementation target. The record's embedded source digest has no matching
+retained source snapshot, and the independent output lacks source, protocol
+and primary-receipt binding fields. The finite rows are therefore a local
+diagnostic rather than source-bound evidence for the Hamiltonian fibre or a
+uniform gap.
 
-The schedule-wide nodal family of §9.23 is bound in the same way to the
-frozen protocol `computations/yang-mills-nodal-family-prereg.md`, the source
-`computations/verify_yang_mills_nodal_family.py` and the shared helper. Its
-receipt `runs/yang_mills_nodal_family/verification.json` holds twelve rows
-with two 49-point block paths each, reproduces the sealed nodal control to
-$4.4\times10^{-16}$, keeps the path amplitudes real to $8.5\times10^{-18}$
-relative, and returns `NODAL_CONFINED`: seven rows carry a resolved sign
-change, five of them with odd parity, and the five witness-free rows sit at
-$x=1/4$ plus $x=1$ for $J\geq2$. The decision tree of the frozen protocol,
-not the raw count, supplies the classification. The probe makes no
-conditional-rate cutoff-removal, exact-vacuum or continuum statement. Its
-two-parameter torus
-extension (`computations/yang-mills-nodal-surface-prereg.md`,
-`computations/verify_yang_mills_nodal_surface.py`, receipt
-`runs/yang_mills_nodal_surface/verification.json`) searches all 66 grid lines
-of a $33\times33$ block grid per row, reproduces both one-parameter lines at
-the seventeen common angles to $7.1\times10^{-15}$, and returns
-`WITNESS_CONFINED`: the same seven rows carry resolved sign changes and the
-same five rows carry none.
+The schedule-wide nodal family is retained in
+`computations/yang-mills-nodal-family-prereg.md` with source
+`computations/verify_yang_mills_nodal_family.py`, but
+`runs/yang_mills_nodal_family/verification.json` is absent. No current
+numerical classification is available. Its two-parameter torus extension is
+also retained in `computations/yang-mills-nodal-surface-prereg.md` with source
+`computations/verify_yang_mills_nodal_surface.py`, but
+`runs/yang_mills_nodal_surface/verification.json` is absent. No
+one-parameter conformance or surface classification is available.
 
-The loop-carrying bowtie study in §9.24 is bound by the frozen protocol
-`computations/yang-mills-bowtie-fibre-prereg.md`, the source
-`computations/verify_yang_mills_bowtie_fibre.py`, the seven-link reference
-`computations/verify_yang_mills_exact_block_spectrum.py` and the shared helper
-`computations/yang_mills_conditional_algebra.py`. Its receipt
-`runs/yang_mills_bowtie_fibre/verification.json` contains 108 rows at
-$J=1,2,3$, four couplings and nine boundary angles. The source and protocol
-digests are
-`19e3208831ce4af966cd6de8e0079e083ea55602e0d3fb1f132b71227bfb63ef` and
-`b71f184c0c45c9eacb58e0756758baacca825bf18c951ffb651591dd76d714ae`;
-the receipt also binds the shared algebra and reference-source hashes. All
-seven analytic controls pass. The partition varies with the exterior loop,
-while every retained-rate row is `INCONCLUSIVE`: 36 rows fail only the
-full-space residual bound, 27 fail only the nested-rank rule and 45 fail
-both. No exact-vacuum fibre, transport-score, conditional-rate cutoff-removal,
-uniform recovery, thermodynamic or continuum conclusion follows.
+The loop-carrying bowtie study is retained in
+`computations/yang-mills-bowtie-fibre-prereg.md` with source
+`computations/verify_yang_mills_bowtie_fibre.py`, but
+`runs/yang_mills_bowtie_fibre/verification.json` is absent. The executable
+imports the current exact-spectrum verifier and shared helper at runtime, with
+no frozen source snapshot. No current boundary-sensitivity or retained-rate
+classification is available.
 
 The normalization-corrected finite-volume Wilson Schwinger bridge is bound by
 `computations/yang-mills-su2-wilson-2d-prereg-v2.md`, the primary
@@ -8693,17 +8628,23 @@ retain `clay_verdict=NULL`.
 - `computations/yang-mills-exact-block-spectral-prereg.md`—frozen cutoff
   schedule, seven-link boundary fixtures, convergence and qualification rules
 - `computations/verify_yang_mills_exact_block_spectrum.py`—exact Ritz,
-  conditional-moment and boundary verifier with a SHA-256 sealed receipt
+  conditional-moment and boundary verifier for the retained local execution
+  record
 - `computations/yang_mills_conditional_algebra.py`—shared representation,
-  Haar-contraction and conditional-moment helper bound by receipt hash
-- `computations/yang-mills-nodal-family-prereg.md`—frozen twelve-row
-  block-path family, resolution rule and confinement decision tree
-- `computations/verify_yang_mills_nodal_family.py`—schedule-wide nodal
-  family verifier with a SHA-256 sealed receipt
-- `computations/yang-mills-bowtie-fibre-prereg.md`—frozen eight-link
-  loop-carrying exterior, boundary schedule and qualification rules
-- `computations/verify_yang_mills_bowtie_fibre.py`—source-bound bowtie
-  conditional-fibre verifier with analytic controls and sealed receipt
+  Haar-contraction and conditional-moment helper used by the finite
+  diagnostic
+- `computations/yang-mills-nodal-family-prereg.md`—retained twelve-row
+  block-path specification, resolution rule and decision tree
+- `computations/verify_yang_mills_nodal_family.py`—schedule-wide nodal family
+  verifier; its expected receipt is absent
+- `computations/yang-mills-nodal-surface-prereg.md`—retained two-parameter
+  torus specification and conformance rule
+- `computations/verify_yang_mills_nodal_surface.py`—surface verifier; its
+  expected receipt is absent
+- `computations/yang-mills-bowtie-fibre-prereg.md`—retained eight-link
+  loop-carrying exterior specification and qualification rules
+- `computations/verify_yang_mills_bowtie_fibre.py`—conditional-fibre
+  verifier; its expected receipt is absent
 - `computations/yang-mills-su2-wilson-2d-prereg-v2.md`—normalized-Haar
   coefficient, once-divided two-dimensional transfer, correlator and tail protocol
 - `computations/verify_yang_mills_su2_wilson_2d.py`—1092-check source-bound

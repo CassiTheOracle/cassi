@@ -2412,16 +2412,24 @@ independent receipt SHA-256 is
 - `computations/verify_yang_mills_su2_transport_expansion.py`—150-check normalized transport expansion.
 - `computations/verify_yang_mills_su2_transport_expansion_independent.mjs`—60-check independent coefficient and receipt reconstruction.
 - `computations/yang-mills-exact-block-spectral-prereg.md`—frozen v6 seven-link boundary fixtures, cutoff schedule, convergence and qualification rules.
-- `computations/verify_yang_mills_exact_block_spectrum.py`—sealed exact Ritz, conditional-moment, boundary and nodal-control receipt generator.
-- `computations/yang_mills_conditional_algebra.py`—shared representation, Haar-contraction and conditional-moment helper bound by receipt hash.
-- `computations/yang-mills-nodal-family-prereg.md`—frozen twelve-row block-path family, resolution rule and confinement decision tree.
-- `computations/verify_yang_mills_nodal_family.py`—source-bound schedule-wide nodal family verifier and receipt generator.
-- `computations/yang-mills-nodal-surface-prereg.md`—frozen two-parameter torus family, conformance angles and confinement decision tree.
-- `computations/verify_yang_mills_nodal_surface.py`—source-bound grid-line nodal surface verifier and receipt generator.
-- `computations/yang-mills-bowtie-fibre-prereg.md`—frozen eight-link
-  loop-carrying exterior schedule and qualification rules.
-- `computations/verify_yang_mills_bowtie_fibre.py`—source-bound bowtie
-  conditional-fibre verifier and analytic-control receipt generator.
+- `computations/verify_yang_mills_exact_block_spectrum.py`—exact Ritz,
+  conditional-moment, boundary and nodal-control verifier for the retained
+  local execution record.
+- `computations/yang_mills_conditional_algebra.py`—shared representation,
+  Haar-contraction and conditional-moment helper used by the finite
+  diagnostic.
+- `computations/yang-mills-nodal-family-prereg.md`—retained twelve-row
+  block-path specification, resolution rule and decision tree.
+- `computations/verify_yang_mills_nodal_family.py`—schedule-wide nodal family
+  verifier; its expected receipt is absent.
+- `computations/yang-mills-nodal-surface-prereg.md`—retained two-parameter
+  torus specification, conformance angles and decision tree.
+- `computations/verify_yang_mills_nodal_surface.py`—surface verifier; its
+  expected receipt is absent.
+- `computations/yang-mills-bowtie-fibre-prereg.md`—retained eight-link
+  loop-carrying exterior specification and qualification rules.
+- `computations/verify_yang_mills_bowtie_fibre.py`—conditional-fibre
+  verifier; its expected receipt is absent.
 - `computations/yang-mills-4x2x2-c1-feshbach-prereg.md`—frozen open
   $4\times2\times2$ graph, rank-two translated source, test-energy and
   conditional-root schedule.

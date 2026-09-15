@@ -863,32 +863,28 @@ finite rigidity and uniform recovery. The 58-check primary and 30-check
 independent receipts pass. A uniform exact-vacuum recovery floor and score
 upper bound remain open.
 
-The seven-link two-plaquette cutoff study adds two exact finite-regulator
-statements. Its exterior links form a tree, so exact gauge invariance makes
-every block-integrated conditional moment constant on the gauge orbit of the
-boundary data: the partition, Gram and Dirichlet moments agree at all nine
-scheduled boundary angles to $10^{-15}$–$10^{-16}$, and three random exterior
-holonomies reproduce them to $3.7\times10^{-15}$. A finite surrogate for the
-boundary-uniform estimate therefore needs an exterior carrying an independent
-loop. The projected Ritz ground vector at doubled cutoff $1$ and $x=1$
-changes sign on the block, with amplitudes $2.094120531213694$ at the identity
-configuration and $-0.03437408376157869$ on the inverted first link, so that
-cutoff density has a nodal set and its unrestricted conditional gap vanishes
-while the retained test space reports $0.864465200076$. A twelve-row extension
-over $J\in\{1,2,3\}$ and $x\in\{1/4,1,4,16\}$ evaluates the same wavefunction
-along two 49-point block paths and returns `NODAL_CONFINED`: seven rows carry
-a resolved sign change and five carry none, the onset moves from $x=1$ at
-cutoff $1$ to $x=4$ at cutoffs $2$ and $3$, the witness-free rows keep path
-minima at or above $0.201$, and the endpoint values reproduce the sealed
-nodal control to $4.4\times10^{-16}$. A two-parameter torus family that
-rotates two block links independently over a $33\times33$ grid reproduces both
-one-parameter lines at the common angles to $7.1\times10^{-15}$ and returns
-`WITNESS_CONFINED` with the same boundary: seven rows witness resolved sign
-changes on 12–62 of 66 grid lines, five rows witness none. The frozen
-qualification classifies all 180 scheduled boundary rows `INCONCLUSIVE`, with
-the endpoint residual above the declared bound at $x=4$ and $x=16$ and no
-score or margin verdict, because the transport score lies outside the first
-implementation target.
+The retained local execution record for the seven-link two-plaquette cutoff
+study reports two finite-regulator controls. Its exterior links form a tree,
+so exact gauge invariance makes every block-integrated conditional moment
+constant on the gauge orbit of the boundary data: the partition, Gram and
+Dirichlet moments agree at all nine scheduled boundary angles to
+$10^{-15}$–$10^{-16}$, and three random exterior holonomies reproduce them to
+$3.7\times10^{-15}$. The projected Ritz ground vector at doubled cutoff $1$
+and $x=1$ changes sign on the block, with amplitudes
+$2.094120531213694$ at the identity configuration and
+$-0.03437408376157869$ on the inverted first link, so that cutoff density
+has a nodal set and its unrestricted conditional gap vanishes while the
+retained test space reports $0.864465200076$.
+
+The same local record classifies all 180 scheduled boundary rows
+`INCONCLUSIVE`, with the endpoint residual above the declared bound at
+$x=4$ and $x=16$ and no score or margin verdict. Its embedded source digest
+has no matching retained source snapshot. The schedule-wide nodal-family and
+two-parameter surface protocols are retained in
+`computations/yang-mills-nodal-family-prereg.md` and
+`computations/yang-mills-nodal-surface-prereg.md`, but their expected receipts
+are absent and no current `NODAL_CONFINED` or `WITNESS_CONFINED`
+classification is available.
 
 The source-bound version-3 finite campaign preserves all five cutoff
 schedules, uses $q(N)=\min\{3,N+1\}$, and passes 62 primary plus 20

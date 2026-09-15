@@ -786,28 +786,26 @@ boundary-uniform comparison needs an exterior loop. At the smallest cutoff
 the projected Ritz ground vector changes sign on the block, so that cutoff
 measure's unrestricted conditional gap vanishes while the retained test space
 reports $0.864465200076$, which leaves the exact-vacuum fibre rate as a
-separate obligation. A twelve-row path family over cutoffs $1$–$3$ returns
-`NODAL_CONFINED`: the sign change is present at strong coupling for every
-sampled cutoff and absent along the sampled paths at $x=1/4$ and at the
-weak-coupling rows of the higher cutoffs, so the surrogate's zero-gap region
-is not uniform in the cutoff and the sampled paths certify nothing in the
-positive direction. A two-parameter family over a $33\times33$ block grid
-returns the same boundary with `WITNESS_CONFINED`, so the confinement is not
-an artifact of a single path family.
+separate obligation.
 
-The loop-carrying exterior test in
-`computations/yang-mills-bowtie-fibre-prereg.md` uses an eight-link bowtie
+The schedule-wide nodal-family and two-parameter surface protocols are
+retained in `computations/yang-mills-nodal-family-prereg.md` and
+`computations/yang-mills-nodal-surface-prereg.md`. Their expected receipts
+`runs/yang_mills_nodal_family/verification.json` and
+`runs/yang_mills_nodal_surface/verification.json` are absent, so no current
+`NODAL_CONFINED` or `WITNESS_CONFINED` classification is available.
+
+The loop-carrying exterior protocol in
+`computations/yang-mills-bowtie-fibre-prereg.md` defines an eight-link bowtie
 whose exterior plaquette shares one vertex with the block and carries a
-conjugacy-class holonomy. Its 108 source-bound rows cover
-$J=1,2,3$, $x\in\{1/4,1,4,16\}$ and nine angles. All seven analytic controls
-pass, and every one of the twelve $(J,x)$ blocks shows finite boundary
-sensitivity; at $J=1$, $x=1$, the conditional partition ranges from
-$0.9160251472$ to $2.3613249509$. The retained-rate qualification is
-`INCONCLUSIVE` for all rows because the full-space residual or nested
-restriction-rank rule fails. The exact-vacuum fibre rate, transport score,
-conditional-rate cutoff removal, uniform interacting recovery,
-phase-selected thermodynamic convergence and continuum construction remain
-open.
+conjugacy-class holonomy. Its expected receipt
+`runs/yang_mills_bowtie_fibre/verification.json` is absent, and the executable
+imports the current exact-spectrum verifier and shared helper at runtime
+without a frozen source snapshot. No current boundary-sensitivity or
+retained-rate classification is available. The exact-vacuum fibre rate,
+transport score, conditional-rate cutoff removal, uniform interacting
+recovery, phase-selected thermodynamic convergence and continuum construction
+remain open.
 
 An exact normalized-Haar path-holonomy pullback preserves endpoint gauge
 covariance and compresses the electric Casimir with
@@ -2770,9 +2768,13 @@ With the refined numeric predictions (`foundations/refined-numeric-predictions.m
 - **BH information Page curve.** The free Gaussian supplies Euclidean UV damping but fails the standard unsubtracted positive physical-covariance interpretation at nonzero $\sigma$. A physical-sector construction and interacting, curved-spacetime evaporation calculation are required before a Page curve is defined. See `gravity/quantum-gravity.md` §§3.1,7 and `foundations/quantum-free-fall-correspondence.md` §11.5.
 - **Interacting Yang–Mills fibre and continuum mass gap.** Finite regulated
   theory has an exact vacuum-measure gap identity and conditional recurrence
-  criteria. The seven-link tree-exterior study makes the sampled boundary axis
-  orbit-independent, while the eight-link bowtie study finds loop-holonomy
-  boundary sensitivity but no qualified retained fibre rate. The recovered
+  criteria. The retained seven-link execution record reports
+  orbit-independent sampled boundary moments and the one-row projected-Ritz
+  nodal control, but its source provenance is unresolved. The schedule-wide
+  nodal-family, two-parameter surface and loop-carrying bowtie protocols are
+  retained specifications whose expected receipts are absent, so no current
+  dependent nodal classification or bowtie boundary-sensitivity and
+  retained-rate classification is available. The recovered
   $3\times2\times2$ Hamiltonian construction passes 226/226 primary and
   256/256 independent finite checks with nonnegative scheduled spectra.
   Every aggregate separation-based character-tail qualification is
