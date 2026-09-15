@@ -14,7 +14,7 @@ $$
 P(t)=\int_{\mathbb T^3}\omega\cdot S\omega\,dx
 $$
 
-at every accepted state. The exact Beltrami control holds $P$ at roundoff, as
+at every recorded state. The exact Beltrami control holds $P$ at roundoff, as
 its closed-form heat-flow solution requires. The homochiral-mode and
 opposite-helicity-mode families stay nonpositive throughout the finite
 horizon. The wide, narrow, tight-pitch, two-scale and opposite-handed tube
@@ -140,11 +140,11 @@ P_{\text{opposite-handed}}(1/8)&=1.24\times10^{-2},&&
 $$
 
 while the two mode families remain negative at that time
-($-1.79\times10^{-3}$ and $-2.10\times10^{-2}$). The final signed values of
-the tube families are the maxima reported above to three digits; the narrow
-and tight-pitch families end at $2.74\times10^{-3}$ and
-$7.16\times10^{-3}$, and the opposite-handed family at
-$6.40\times10^{-3}$.
+($-1.79\times10^{-3}$ and $-2.10\times10^{-2}$). Every reported checkpoint
+from $t=1/8$ onward carries positive signed production for the five tube
+families. Their final values are $2.14\times10^{-3}$, $2.74\times10^{-3}$,
+$7.16\times10^{-3}$, $2.04\times10^{-3}$ and $6.40\times10^{-3}$ for the
+wide, narrow, tight-pitch, two-scale and opposite-handed families.
 
 Signed helicity obeys
 
@@ -155,11 +155,12 @@ $$
 
 so its nonlinear contribution cancels from the helicity budget. The
 opposite-handed family carries $H/C=-4.7\times10^{-18}$ initially and
-$-9.7\times10^{-18}$ at the final checkpoint while producing positive
-stretching throughout the measured window. The tight-pitch family shows the
+$-9.7\times10^{-18}$ at the final checkpoint while its signed production is
+positive at every reported checkpoint from $t=1/8$ onward. The tight-pitch family shows the
 same decoupling in the opposite direction: its normalized helicity is
 $-2.4\times10^{-2}$ initially and $+4.5\times10^{-1}$ at the end, with
-positive production at every checkpoint from $t=1/8$ on. $H=0$ or small $H/C$
+positive signed production at every reported checkpoint from $t=1/8$
+onward. $H=0$ or small $H/C$
 supplies no sign for $P$.
 
 ## 4. Reading of the stressors

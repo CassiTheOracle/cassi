@@ -116,9 +116,9 @@ arbitrary-flow closure and global regularity remain open.
 
 The helical stress test evolves coherent tube and mode families in a finite
 Fourier–Galerkin matrix. Its exact Beltrami control preserves zero stretching
-production, while five non-Beltrami families—including opposite-handed tubes
-with vanishing net helicity—develop positive signed production by the first
-nonzero checkpoint. The matrix contradicts the universal sign statement for
+production, while the five helical-tube families—including opposite-handed tubes
+with vanishing net helicity—carry positive signed production at every
+reported checkpoint from the first nonzero time. The matrix contradicts the universal sign statement for
 the declared families; a scale-uniform data-controlled direction-strain
 estimate remains open.
 
@@ -760,7 +760,8 @@ arbitrary-data regularity remain **UNRESOLVED**.
 coherent helical geometry preserves vortex-stretching depletion. The Beltrami
 control holds $P$ at roundoff, as its exact heat-flow solution requires,
 while the wide, narrow, tight-pitch, two-scale and opposite-handed tube
-families develop positive signed production by $t=1/8$; the opposite-handed
+families carry positive signed production at every reported checkpoint from
+$t=1/8$ onward; the opposite-handed
 family does so with normalized helicity near $10^{-18}$. The homochiral-mode
 and opposite-helicity-mode families stay nonpositive over the finite horizon.
 The 24-run matrix passes its integrity, refinement and source-binding checks,

@@ -1151,7 +1151,8 @@ The helical stress test in
 and mode families to test whether ordered spiral geometry preserves negative
 stretching production. The exact Beltrami control preserves $P=0$ at
 roundoff, while the wide, narrow, tight-pitch, two-scale and opposite-handed
-tube families all develop positive signed production by $t=1/8$; the
+tube families are all positive at every reported checkpoint from $t=1/8$
+onward; the
 opposite-handed pair does so with normalized helicity near $10^{-18}$, and
 the two mode families stay nonpositive over the finite horizon. The 24-run
 matrix passes every integrity and timestep-refinement check and classifies
